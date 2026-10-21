@@ -1,0 +1,105 @@
+{
+  "legacy_sha": "f7e70aec54e6d16e627f444f2a67114cbfb07b5e",
+  "tree_truncated": false,
+  "tree_entries": 1849,
+  "git_blobs": 1686,
+  "git_blob_bytes": 29139022,
+  "git_blob_size_note": "Git object metadata only: LFS pointer bytes do not measure full assets, APK size, disk usage or RAM.",
+  "test_files": 97,
+  "backend_test_files": 21,
+  "top_level_license_present": false,
+  "dependency_lock_packages": 919,
+  "direct_dependencies": [
+    {
+      "name": "@op-engineering/op-sqlite",
+      "declared": "^16.2.0",
+      "version": "16.2.0",
+      "license": "MIT"
+    },
+    {
+      "name": "@react-native-community/datetimepicker",
+      "declared": "^9.1.0",
+      "version": "9.1.0",
+      "license": "MIT"
+    },
+    {
+      "name": "@react-native-community/netinfo",
+      "declared": "^11.4.1",
+      "version": "11.5.2",
+      "license": "MIT"
+    },
+    {
+      "name": "@react-native-documents/picker",
+      "declared": "^12.0.1",
+      "version": "12.0.1",
+      "license": "MIT"
+    },
+    {
+      "name": "@react-native/new-app-screen",
+      "declared": "0.86.0",
+      "version": "0.86.0",
+      "license": "MIT"
+    },
+    {
+      "name": "ical-js-parser",
+      "declared": "^0.7.4",
+      "version": "0.7.4",
+      "license": "MIT"
+    },
+    {
+      "name": "lucide-react",
+      "declared": "^1.21.0",
+      "version": "1.21.0",
+      "license": "ISC"
+    },
+    {
+      "name": "lucide-react-native",
+      "declared": "^1.21.0",
+      "version": "1.21.0",
+      "license": "ISC"
+    },
+    {
+      "name": "react",
+      "declared": "19.2.3",
+      "version": "19.2.3",
+      "license": "MIT"
+    },
+    {
+      "name": "react-native",
+      "declared": "0.86.0",
+      "version": "0.86.0",
+      "license": "MIT"
+    },
+    {
+      "name": "react-native-fs",
+      "declared": "^2.20.0",
+      "version": "2.20.0",
+      "license": "MIT"
+    },
+    {
+      "name": "react-native-safe-area-context",
+      "declared": "^5.5.2",
+      "version": "5.8.0",
+      "license": "MIT"
+    },
+    {
+      "name": "react-native-share",
+      "declared": "^10.2.0",
+      "version": "10.2.1",
+      "license": "MIT"
+    },
+    {
+      "name": "react-native-svg",
+      "declared": "^15.15.5",
+      "version": "15.15.5",
+      "license": "MIT"
+    },
+    {
+      "name": "rrule",
+      "declared": "^2.8.1",
+      "version": "2.8.1",
+      "license": "BSD-3-Clause"
+    }
+  ],
+  "source_api": "https://api.github.com/repos/LAFINA-AI/LAFINA/git/trees/f7e70aec54e6d16e627f444f2a67114cbfb07b5e?recursive=1"
+}

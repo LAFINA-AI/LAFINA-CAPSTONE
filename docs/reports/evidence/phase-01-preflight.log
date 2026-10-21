@@ -1,0 +1,36 @@
+
+> lafina-capstone@0.1.0 preflight
+> npm run typecheck && npm run lint && npm run format:check && npm test && npm run check:architecture
+
+
+> lafina-capstone@0.1.0 typecheck
+> tsc --noEmit
+
+
+> lafina-capstone@0.1.0 lint
+> eslint src __tests__ index.js --max-warnings 0
+
+
+> lafina-capstone@0.1.0 format:check
+> prettier --check src __tests__ scripts *.js *.json .github/workflows/*.yml
+
+Checking formatting...
+All matched files use Prettier code style!
+
+> lafina-capstone@0.1.0 test
+> jest --runInBand
+
+PASS __tests__/App.test.tsx (7.926 s)
+PASS __tests__/storage.test.ts
+PASS __tests__/preferences.test.ts
+
+Test Suites: 3 passed, 3 total
+Tests:       19 passed, 19 total
+Snapshots:   0 total
+Time:        8.653 s
+Ran all test suites.
+
+> lafina-capstone@0.1.0 check:architecture
+> node scripts/check-architecture.mjs
+
+PASS: 10 TypeScript modules; no import cycles, forbidden offline dependencies or premature release permissions.

@@ -1,0 +1,10 @@
+API37 x86_64 emulator; read-only AVD, memory configured2048MB, not a physical phone.
+Release preview, no Metro; airplane_mode_on=1,wifi_on=0,mobile_data=0.
+Earlier observed: offline fresh launch; anonymous completion; dark theme; Calendar placeholder; force-stop/relaunch.
+PASS: Chat is an honest unavailable placeholder.
+PASS: synthetic nickname and timezone saved through actual native SQLite.
+PASS: nickname, timezone, completion survive process restart offline.
+PASS: Settings restores persisted fields; no account or permission prompt.
+PASS: font_scale=2.0 renders readable wrapping Today/navigation; Settings Save reachable by scrolling. TalkBack and landscape NOT RUN.
+PASS final viewport APK recheck: persisted Asia/Manila timezone, Chat/Settings navigation and large-font Save reachability. Final settings screenshot refreshed.
+Dedicated read-only emulator stopped after Phase01 checks.

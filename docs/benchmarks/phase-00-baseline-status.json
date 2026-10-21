@@ -1,0 +1,20 @@
+{
+  "phase": "00",
+  "legacy_sha": "f7e70aec54e6d16e627f444f2a67114cbfb07b5e",
+  "status": "BASELINE NOT RUN",
+  "raw_measurements": [],
+  "device_model": null,
+  "android_api": null,
+  "new_build_sha": null,
+  "reason": "Pinned source audited through GitHub; no isolated runnable pinned build, no attached phone, no capstone app. Host Gradle/JDK17 and ADB enumeration rechecks passed outside sandbox.",
+  "metrics": [
+    {"name": "kokoro_vs_android_tts_first_audible_ms", "n": null, "p50": null, "p95": null, "peak_pss_mb": null, "failures": null},
+    {"name": "stt_wer_and_release_to_transcript_ms", "n": null, "wer": null, "p50": null, "p95": null, "failures": null},
+    {"name": "command_durable_confirmation_ms", "n": null, "p50": null, "p95": null, "failures": null},
+    {"name": "startup_to_usable_ui_ms", "n": null, "p50": null, "p95": null, "failures": null},
+    {"name": "pipeline_peak_pss_mb", "n": null, "value": null},
+    {"name": "fixed_workload_battery", "n": null, "value": null, "unit": null},
+    {"name": "reminder_delivery_drift_ms", "n": null, "p50": null, "p95": null, "failures": null},
+    {"name": "release_apk_bytes", "value": null}
+  ]
+}

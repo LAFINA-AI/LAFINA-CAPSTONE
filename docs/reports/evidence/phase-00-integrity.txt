@@ -1,0 +1,91 @@
+Phase 00 documentation/inventory verification
+UTC: 2026-10-20T21:05:09.4404962Z
+Commands: Get-FileHash SHA256 for manifest entries; regex local Markdown link resolution with Test-Path; ConvertFrom-Json; Test-Path for forbidden app paths; git diff --check; git check-ignore; Get-ChildItem final inventory.
+PASS: source handoff SHA-256 56/56
+PASS: all 55 installed planning files present; byte-identical=51; deliberately amended=docs/02-ARCHITECTURE.md, docs/04-DECISION-LOG.md, qa/REQUIREMENTS-MATRIX.md, qa/RISK-REGISTER.md
+PASS: 67 local links across 68 Markdown files resolve
+PASS: JSON parse, files=3
+PASS: no root app/native/backend/dependency tree; active files are planning/evidence/ignore rules only
+PASS: git diff --check exit 0 (tracked diff; does not run an app test)
+PASS: 6 protective ignore fixtures matched; fixtures were not created
+Earlier local-link check failed because this report-linked evidence file had not been generated; final pass includes it.
+Final active file inventory:
+.gitignore
+AGENTS.md
+docs\00-PROJECT-CHARTER.md
+docs\01-PRODUCT-REQUIREMENTS.md
+docs\02-ARCHITECTURE.md
+docs\03-LEGACY-REFERENCE.md
+docs\04-DECISION-LOG.md
+docs\05-DATA-SCHEDULING.md
+docs\06-VOICE-AND-OFFLINE-AI.md
+docs\07-RAG-AND-ONLINE.md
+docs\08-QA-AND-PERFORMANCE.md
+docs\09-ENGINEERING-QUALITY.md
+docs\10-SECURITY-AND-PRIVACY.md
+docs\11-UX-AND-ONBOARDING.md
+docs\12-RESEARCH-AND-EVALUATION.md
+docs\13-SOURCE-REFERENCES.md
+docs\14-PHASE-APPROVAL-OPERATIONS.md
+docs\15-MINIMUM-DEPENDENCIES.md
+docs\audits\phase-00-inventory.md
+docs\audits\phase-00-native.md
+docs\audits\phase-00-reuse.md
+docs\audits\phase-00-toolchain.md
+docs\benchmarks\phase-00-baseline-status.json
+docs\benchmarks\phase-00-baseline.md
+docs\decisions\ADR-001-independent-reference.md
+docs\decisions\ADR-002-stack-validation.md
+docs\decisions\ADR-003-local-state.md
+docs\decisions\ADR-004-platform-delivery.md
+docs\decisions\ADR-005-system-tts.md
+docs\decisions\ADR-006-adaptive-stt.md
+docs\decisions\ADR-007-validated-intents.md
+docs\phase-00-blueprint.md
+docs\reports\evidence\handoff-manifest.json
+docs\reports\evidence\phase-00-doc-check-command.txt
+docs\reports\evidence\phase-00-integrity.txt
+docs\reports\evidence\phase-00-pinned-inventory.json
+docs\reports\evidence\phase-00-repository-state.txt
+docs\reports\evidence\phase-00-toolchain.txt
+docs\reports\phase-00-checklist.md
+docs\reports\phase-00-report.md
+phases\PHASE-00.md
+phases\PHASE-01.md
+phases\PHASE-02.md
+phases\PHASE-03.md
+phases\PHASE-04.md
+phases\PHASE-05.md
+phases\PHASE-06.md
+phases\PHASE-07.md
+phases\PHASE-08.md
+phases\PHASE-09.md
+phases\PHASE-10.md
+phases\PHASE-11.md
+prompts\PHASE-00-PROMPT.md
+prompts\PHASE-01-PROMPT.md
+prompts\PHASE-02-PROMPT.md
+prompts\PHASE-03-PROMPT.md
+prompts\PHASE-04-PROMPT.md
+prompts\PHASE-05-PROMPT.md
+prompts\PHASE-06-PROMPT.md
+prompts\PHASE-07-PROMPT.md
+prompts\PHASE-08-PROMPT.md
+prompts\PHASE-09-PROMPT.md
+prompts\PHASE-10-PROMPT.md
+prompts\PHASE-11-PROMPT.md
+qa\AI-ENGINE-DECISION-TEMPLATE.md
+qa\COMMAND-DATASET.md
+qa\PERFORMANCE-BENCHMARK.csv
+qa\PHONE-TEST-RESULTS.csv
+qa\RAG-GOLDEN-QUESTIONS.csv
+qa\README.md
+qa\REAL-DEVICE-QA.md
+qa\REQUIREMENTS-MATRIX.md
+qa\RISK-REGISTER.md
+README.md
+START_HERE.md
+STARTING_PROMPT.md
+templates\ADR.md
+templates\PHASE-REPORT.md
+templates\PR-CHECKLIST.md

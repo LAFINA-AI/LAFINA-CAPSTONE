@@ -1,0 +1,43 @@
+apply plugin: 'com.android.application'
+apply plugin: 'org.jetbrains.kotlin.android'
+apply plugin: 'com.facebook.react'
+
+react { autolinkLibrariesWithApp() }
+
+android {
+    ndkVersion rootProject.ext.ndkVersion
+    buildToolsVersion rootProject.ext.buildToolsVersion
+    compileSdk rootProject.ext.compileSdkVersion
+    namespace 'com.lafina.capstone'
+    defaultConfig {
+        applicationId 'com.lafina.capstone'
+        minSdkVersion rootProject.ext.minSdkVersion
+        targetSdkVersion rootProject.ext.targetSdkVersion
+        versionCode 1
+        versionName '0.1.0'
+    }
+    // Separate ABI APKs avoid shipping other architectures to a low-end phone.
+    splits {
+        abi {
+            enable true
+            reset()
+            include(*(project.findProperty('reactNativeArchitectures') ?: 'armeabi-v7a,arm64-v8a,x86_64').split(','))
+            universalApk false
+        }
+    }
+    buildTypes {
+        debug { applicationIdSuffix '.debug' }
+        release {
+            // Development preview only. Never publish with the standard debug key.
+            signingConfig signingConfigs.debug
+            versionNameSuffix '-preview'
+            minifyEnabled false
+            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+        }
+    }
+}
+
+dependencies {
+    implementation('com.facebook.react:react-android')
+    implementation('com.facebook.react:hermes-android')
+}

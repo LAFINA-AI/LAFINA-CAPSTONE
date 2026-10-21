@@ -1,0 +1,40 @@
+Phase 00 repository safety evidence
+UTC: 2026-10-20T21:02:26.0259502Z
+Initial and final observed legacy status match (15 modified, 4 untracked). This is status comparison, not a full filesystem byte snapshot.
+Only read-only legacy Git/status and AGENTS inspection were performed locally; all pinned source reads used GitHub.
+Legacy HEAD: abb35ac5c8d8684fed80294405a0d82561b79a17
+Commands: git --no-optional-locks -C <legacyPath> status --short; git --no-optional-locks -C <legacyPath> rev-parse HEAD; Compare-Object with initial captured status.
+Legacy status:
+ M __tests__/storage/dbResilience.test.ts
+ M __tests__/sync/syncWorker.test.ts
+ M __tests__/ui/preferencesSettings.test.tsx
+ M backend/app/api/v1/ai.py
+ M backend/app/api/v1/sync.py
+ M src/ai/index.ts
+ M src/ai/native/voicePipeline.ts
+ M src/ai/nlu/parser.ts
+ M src/ai/nlu/prompt.ts
+ M src/constants.ts
+ M src/storage/dbInit.ts
+ M src/storage/preferencesStore.ts
+ M src/storage/profileSyncPayload.ts
+ M src/sync/syncWorker.ts
+ M src/ui/screens/PreferencesSettingsScreen.tsx
+?? __tests__/ai/schedulingOnlyGuardrail.test.ts
+?? __tests__/ai/schedulingTitleExtraction.test.ts
+?? __tests__/storage/guardrailPreference.test.ts
+?? src/ai/nlu/guardrail.ts
+Capstone final branch/base:
+codex/phase-00-audit
+e43e38b9bb31ed98f5f52ae6df42404488fd173d
+Capstone final short status:
+ M README.md
+?? .gitignore
+?? AGENTS.md
+?? STARTING_PROMPT.md
+?? START_HERE.md
+?? docs/
+?? phases/
+?? prompts/
+?? qa/
+?? templates/

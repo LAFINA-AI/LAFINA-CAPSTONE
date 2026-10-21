@@ -1,0 +1,10 @@
+node_modules
+android
+docs
+qa
+phases
+prompts
+templates
+LAFINA_CAPSTONE_Codex_Phase_Gated_Handoff
+.phase01-template
+package-lock.json

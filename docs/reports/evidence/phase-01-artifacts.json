@@ -1,0 +1,37 @@
+{
+  "phase": "01",
+  "recordedAtUtc": "2026-10-20T21:49:58.6242436Z",
+  "branch": "codex/phase-01-foundation",
+  "gitBase": "e43e38b9bb31ed98f5f52ae6df42404488fd173d",
+  "sourceState": "uncommitted Phase 01 working tree; no source commit fabricated",
+  "minAndroidApi": 30,
+  "targetAndroidApi": 36,
+  "artifacts": [
+    {
+      "path": "android/app/build/outputs/apk/debug/app-arm64-v8a-debug.apk",
+      "bytes": 48287824,
+      "sha256": "6e99a513a36ed77ba863d1a7c1616717cdc5773bd938b61348aaef398579cf1b",
+      "kind": "debug Metro development build"
+    },
+    {
+      "path": "android/app/build/outputs/apk/debug/app-x86_64-debug.apk",
+      "bytes": 47808148,
+      "sha256": "1e808665fd84484fb436416d1764e2b01889fcf6cd3df247ad8e00e515a5c913",
+      "kind": "debug Metro development build"
+    },
+    {
+      "path": "android/app/build/outputs/apk/release/app-arm64-v8a-release.apk",
+      "bytes": 27161529,
+      "sha256": "de72486a4d8d538893c74504106dd090b44674938c75d4226bbde60f74853788",
+      "kind": "bundled development-signed release preview"
+    },
+    {
+      "path": "android/app/build/outputs/apk/release/app-x86_64-release.apk",
+      "bytes": 27519813,
+      "sha256": "7874df5a3a5dea83820fecbef25f11f1ac167c77e8210c47420d31b46947f1b1",
+      "kind": "bundled development-signed release preview"
+    }
+  ],
+  "physicalPerformanceStatus": "NOT RUN",
+  "legacyComparison": "NOT RUN"
+}

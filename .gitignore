@@ -1,0 +1,66 @@
+# Original handoff remains locally available; root planning files are versioned.
+/LAFINA_CAPSTONE_Codex_Phase_Gated_Handoff/
+*handoff*/
+*Handoff*/
+docs/reports/evidence/handoff-manifest.json
+
+# AI prompts and session orchestration
+START_HERE.md
+STARTING_PROMPT.md
+prompts/
+
+# Private configuration, signing material, local student data and captures.
+.env
+.env.*
+!.env.example
+*.keystore
+*.jks
+*.pem
+*.key
+*.db
+*.db-*
+*.sqlite
+*.sqlite-*
+*.hprof
+*.wav
+*.mp3
+*.m4a
+*.pcm
+
+# Generated dependencies/builds.
+node_modules/
+.gradle/
+.cxx/
+build/
+coverage/
+__pycache__/
+*.pyc
+.venv/
+local.properties
+.idea/
+.vscode/
+graphify-out/
+.phase01-template/
+.local/
+*.tgz
+*.zip
+*.tar
+*.tar.gz
+.preflight-*
+
+# OS and log artifacts
+.DS_Store
+Thumbs.db
+desktop.ini
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Model binaries require a later explicit provenance/size decision.
+*.gguf
+*.ggml
+*.onnx
+*.bin
+*.apk
+*.aab
+

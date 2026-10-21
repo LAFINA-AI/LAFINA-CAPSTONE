@@ -1,0 +1,16 @@
+
+> lafina-capstone@0.1.0 doctor
+> node scripts/doctor.mjs
+
+Node: v24.19.0; expected 24.19.x
+JAVA_HOME: JDK executable present; use version check below
+Android SDK: present
+platforms/android-36: present
+build-tools/36.0.0: present
+ndk/27.1.12297006: present
+cmake/3.22.1: present
+openjdk version "17.0.20.1" 2026-08-18 LTS
+OpenJDK Runtime Environment Microsoft-14940689 (build 17.0.20.1+1-LTS)
+OpenJDK 64-Bit Server VM Microsoft-14940689 (build 17.0.20.1+1-LTS, mixed mode, sharing)
+Device tests: run adb devices -l locally; do not commit serials. A host inventory is not native build or device proof.
+App models/backend: not required by Phase 01. Graphify: not installed; npm run check:architecture is the reproducible import/cycle substitute.

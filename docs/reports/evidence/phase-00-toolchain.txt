@@ -1,0 +1,228 @@
+Phase 00 toolchain evidence
+Assessment date: 2026-10-21 Asia/Manila
+Working repository: LAFINA-CAPSTONE
+Only read-only host/version queries were executed. No legacy code/build was executed.
+Privacy normalization: user profile path below represented as [user profile]. No
+phone serials were obtained. No environment dump or .env read was performed.
+
+COMMAND GROUP 1: Get-Command <tool> (first result), then version commands
+node : C:\Program Files\nodejs\node.exe
+npm : C:\Program Files\nodejs\npm.ps1
+java : C:\Program Files\Microsoft\jdk-17.0.20.101-hotspot\bin\java.exe
+javac : C:\Program Files\Microsoft\jdk-17.0.20.101-hotspot\bin\javac.exe
+gradle : NOT FOUND ON PATH
+kotlinc : NOT FOUND ON PATH
+python : C:\Python314\python.exe
+py : C:\WINDOWS\py.exe
+adb : [user profile]\AppData\Local\Android\Sdk\platform-tools\adb.exe
+sdkmanager : NOT FOUND ON PATH
+cmake : NOT FOUND ON PATH
+ninja : NOT FOUND ON PATH
+graphify : NOT FOUND ON PATH
+clang : NOT FOUND ON PATH
+git : C:\Program Files\Git\cmd\git.exe
+
+node --version
+v24.19.0
+npm --version
+11.17.0
+java -version
+openjdk version "17.0.20.1" 2026-08-18 LTS
+OpenJDK Runtime Environment Microsoft-14940689 (build 17.0.20.1+1-LTS)
+OpenJDK 64-Bit Server VM Microsoft-14940689 (build 17.0.20.1+1-LTS, mixed mode, sharing)
+javac -version
+javac 17.0.20.1
+python --version
+Python 3.14.7
+py --version
+Python 3.14.7
+git --version
+git version 2.55.0.windows.4
+Group exit code: 0
+
+COMMAND GROUP 2: Get-ChildItem -Directory in selected SDK component directories
+platforms:
+android-34
+android-35
+android-36
+android-37.0
+build-tools:
+34.0.0
+35.0.0
+36.0.0
+ndk:
+26.1.10909125
+27.0.12077973
+27.1.12297006
+cmake:
+3.22.1
+cmdline-tools: NOT FOUND
+SDK manager recursive filename lookup under selected SDK: no sdkmanager.bat output
+
+[SDK]\platform-tools\adb.exe version
+Android Debug Bridge version 1.0.41
+Version 37.0.1-15733141
+Installed as [user profile]\AppData\Local\Android\Sdk\platform-tools\adb.exe
+Running on Windows 10.0.26300
+
+Get-Process -Name adb (before device enumeration)
+adb server process observed: False
+Initial enumeration skipped to avoid host daemon startup; subsequent explicit
+read-only devices enumeration was attempted and failed as recorded below.
+
+Cached Gradle distribution directory names:
+gradle-8.11.1-bin
+gradle-9.3.1-bin
+
+Test-Path in capstone:
+package.json : False
+package-lock.json : False
+node_modules : False
+android : False
+src : False
+Group exit code: 0
+
+COMMAND GROUP 3: absolute SDK executable version commands
+[SDK]\cmake\3.22.1\bin\cmake.exe --version
+cmake version 3.22.1-g37088a8-dirty
+CMake suite maintained and supported by Kitware (kitware.com/cmake).
+[SDK]\cmake\3.22.1\bin\ninja.exe --version
+1.10.2
+[SDK]\ndk\27.1.12297006\toolchains\llvm\prebuilt\windows-x86_64\bin\clang.exe --version
+Android (12285214, based on r522817b) clang version 18.0.2 (https://android.googlesource.com/toolchain/llvm-project d8003a456d14a3deb8054cdaa529ffbf02d9b262)
+Target: x86_64-w64-windows-gnu
+Thread model: posix
+InstalledDir: [user profile]/AppData/Local/Android/Sdk/ndk/27.1.12297006/toolchains/llvm/prebuilt/windows-x86_64/bin
+Group exit code: 0
+
+COMMAND GROUP 4: INITIAL RESTRICTED adb devices -l query
+Executed twice; both attempts failed before device enumeration. Second attempt
+output preserved below; first attempt's overbroad redaction was not retained.
+Device-line filter would redact only serial and transport identifiers if any
+device rows existed. No adb shell/install/reboot/settings commands were run.
+
+* daemon not running; starting now at tcp:5037
+could not read ok from ADB Server
+* failed to start daemon
+adb.exe: failed to check server version: cannot connect to daemon
+adb exit code: 1
+
+Selected public SDK source.properties fields (Get-Content | Select-String):
+ndk\27.1.12297006\source.properties
+Pkg.Desc = Android NDK
+Pkg.Revision = 27.1.12297006
+cmake\3.22.1\source.properties
+Pkg.Revision = 3.22.1
+Pkg.Desc = CMake 3.22.1
+build-tools\36.0.0\source.properties
+Pkg.Revision=36.0.0
+platforms\android-36\source.properties
+Pkg.Desc=Android SDK Platform 16
+Pkg.Revision=2
+Group exit code: 0 (individual adb failure separately captured above)
+
+COMMAND GROUP 5: INITIAL RESTRICTED cached Gradle and Graphify metadata
+Get-ChildItem [user profile]\.gradle\wrapper\dists\gradle-9.3.1-bin
+  -Filter gradle.bat -File -Recurse
+Invoked found executable: gradle.bat --version --no-daemon
+
+FAILURE: Build failed with an exception.
+
+* What went wrong:
+Gradle could not start your build.
+> Could not initialize native services.
+   > Failed to load native library 'native-platform.dll' for Windows 11 amd64.
+
+* Try:
+> Run with --stacktrace option to get the stack trace.
+> Run with --info or --debug option to get more log output.
+> Run with --scan to get full insights from a Build Scan (powered by Develocity).
+> Get more help at https://help.gradle.org.
+
+This was a version query, not an application build. No Build Scan was uploaded.
+
+python -c "import importlib.metadata as m; print(m.version('graphify'))"
+Traceback tail:
+importlib.metadata.PackageNotFoundError: No package metadata was found for graphify
+Group exit code: 1
+
+COMMAND GROUP 6: capstone branch/read-only diff summary
+git branch --show-current
+codex/phase-00-audit
+git diff --stat
+ README.md | 43 ++++++++++++++++++++++++++++++++++++++++++-
+ 1 file changed, 42 insertions(+), 1 deletion(-)
+This was a concurrent documentation snapshot, not the final phase change list.
+
+PINNED GITHUB CONNECTOR READS
+Repository: LAFINA-AI/LAFINA
+ref: f7e70aec54e6d16e627f444f2a67114cbfb07b5e
+No files were imported into the capstone app.
+Path                                      Git blob SHA
+package.json                              c1a8dbbf4e29922cd03489c89a2ecf64380b9028
+package-lock.json                         7b19a5325e4ff9d76e9d3792a33fb08c74484c6f
+android/build.gradle                      437ba279d244d365b6056ee2d89f9e54d8c1422a
+android/app/build.gradle                  5ce3054b6e23f77d86755bed3b498a4f71c8f843
+android/gradle/wrapper/gradle-wrapper.properties
+                                          37f78a6af8379e9ac907b8527c9c68807bf42d20
+android/settings.gradle                   c4cea8bd36bb35bf09bd8d83dc430c18c5230ee7
+jest.config.js                            1ae1cba3eb00e325ea87df4fd22db210135a9b6a
+tsconfig.json                             2ea1cdaeb075d2cfa964f417446785d1dc966651
+.eslintrc.js                              c8d15efde10fa51be6fb0dd9460d30e7c59ec52b
+android/gradle.properties                 404 NOT FOUND
+Initial LAFINA/package.json path probe    404 NOT FOUND; corrected to root package.json
+
+Lock subset parsed in memory, not installed:
+lockfileVersion: 3
+react-native: 0.86.0
+react: 19.2.3
+typescript: 5.9.3
+jest: 29.7.0
+@op-engineering/op-sqlite: 16.2.0
+@react-native-community/datetimepicker: 9.1.0
+@react-native-community/cli: 20.1.0
+@react-native/gradle-plugin: 0.86.0
+Locked RN engines.node: ^20.19.4 || ^22.13.0 || ^24.3.0 || >= 25.0.0
+
+APPROVED OUTSIDE-SANDBOX FOLLOW-UP RESULTS (reported by root agent)
+The following are actual output summaries supplied by the root agent, not a
+reconstruction of full stdout. Initial restricted failures above are preserved.
+No additional tests were executed by this subtask after receiving these results.
+
+Cached Gradle executable: gradle.bat --version --no-daemon
+Result: PASS, exit 0
+Gradle: 9.3.1
+Embedded Gradle Kotlin: 2.2.21 (not the project's Kotlin Gradle plugin)
+Inherited launcher JVM: Android Studio JBR 25.0.2
+OS: Windows 11
+
+Explicit process JDK selection, then same cached Gradle version command:
+$env:JAVA_HOME = 'C:\Program Files\Microsoft\jdk-17.0.20.101-hotspot'
+gradle.bat --version --no-daemon
+Result: PASS, exit 0
+Gradle: 9.3.1
+Launcher JVM: 17.0.20.1
+Daemon JVM: same explicitly selected Microsoft JDK 17
+OS: Windows 11
+This confirms the cached Gradle runtime/version query under JDK 17. No project
+build, plugin resolution, dependency installation, or instrumentation ran.
+Default JVM drift matters: PATH java -version and an inherited JAVA_HOME may
+select different runtimes. The process override does not change machine settings.
+
+adb devices -l
+Result: PASS, exit 0
+* daemon not running; starting now at tcp:5037
+* daemon started successfully
+List of devices attached
+
+The device list was blank: zero attached devices. No serials were emitted.
+No apps, permissions, phone settings, or device state were changed.
+
+FINAL NOT RUN
+Capstone application typecheck, lint, Jest, native build: no app scaffold.
+Legacy typecheck, lint, Jest, native build: no safe pinned execution workspace.
+Dependency install, npm audit, Graphify, import-cycle checker: not executed.
+Physical-device tests/instrumentation: adb enumeration succeeded; zero attached
+devices. Phone models/API/voice engines and physical behavior remain untested.
+TTS/STT latency/accuracy, startup, memory, battery, APK size, reminder reliability:
+no measurements collected. All benchmark results remain null/not-run.

@@ -1,0 +1,15 @@
+package: name='com.lafina.capstone' versionCode='1' versionName='0.1.0-preview' platformBuildVersionName='16' platformBuildVersionCode='36' compileSdkVersion='36' compileSdkVersionCodename='16'
+minSdkVersion:'30'
+targetSdkVersion:'36'
+uses-permission: name='com.lafina.capstone.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION'
+application-label:'LAFINA Capstone'
+launchable-activity: name='com.lafina.capstone.MainActivity'  label='LAFINA Capstone' icon=''
+native-code: 'arm64-v8a'
+Verifies
+Verified using v1 scheme (JAR signing): false
+Verified using v2 scheme (APK Signature Scheme v2): true
+Verified using v3 scheme (APK Signature Scheme v3): false
+Verified using v3.1 scheme (APK Signature Scheme v3.1): false
+Verified using v4 scheme (APK Signature Scheme v4): false
+Verified for SourceStamp: false
+Number of signers: 1
