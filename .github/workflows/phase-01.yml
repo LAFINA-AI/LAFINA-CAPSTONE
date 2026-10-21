@@ -25,7 +25,9 @@ jobs:
         with:
           distribution: temurin
           java-version: '17'
-      - uses: android-actions/setup-android@v3
+      - uses: android-actions/setup-android@v4
+        with:
+          packages: ''
       - run: sdkmanager 'platforms;android-36' 'build-tools;36.0.0' 'ndk;27.1.12297006' 'cmake;3.22.1'
       - run: npm ci --ignore-scripts
       - run: bash android/gradlew -p android :app:assembleDebug :app:assembleRelease -PreactNativeArchitectures=arm64-v8a --no-daemon --console=plain
