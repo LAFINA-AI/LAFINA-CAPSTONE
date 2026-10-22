@@ -1,0 +1,265 @@
+{
+  "utc": "2026-10-22T18:36:13.494230+00:00",
+  "kind": "descriptive small-n emulator observations, not controlled phone benchmark",
+  "device": {
+    "model": "sdk_gphone16k_x86_64",
+    "api": 37,
+    "abi": "x86_64",
+    "ram": "MemTotal:        4008376 kB",
+    "physical": false
+  },
+  "conditions": {
+    "variant": "dataQa, debuggable, bundled Hermes JS",
+    "offline": "airplane on, Wi-Fi and mobile data off during scenarios; original connectivity restored",
+    "permissions": "notification/exact allowed for timing samples; FSI denied initial or separately opted/allowed screen-off final",
+    "workload": "15-second synthetic TODO tasks, lead0, native60-second response window",
+    "clock": "UTC wall clock persisted by native events; no clock changes during samples",
+    "observation": "NOTIFICATION_POSTED timestamps after notify() returns; not first visible pixel or audible sound"
+  },
+  "statistics": "p50 is median; p95 nearest rank ceil(0.95*n). Very small mixed-scenario samples are descriptive only. Reboot catch-up kept separate. No causal speedup or target/reliability-rate conclusion.",
+  "cohorts": [
+    {
+      "name": "initial awake notification observations",
+      "apkSha256": "73b4ef093c524bfec55d6b6342b0d99f4a97ce134edb77370bdb97aa744f7a2b",
+      "notificationPostLag": {
+        "n": 4,
+        "p50Ms": 140.0,
+        "p95NearestRankMs": 2607.0,
+        "maxMs": 2607.0
+      },
+      "claimLag": {
+        "n": 4,
+        "p50Ms": 37.5,
+        "p95NearestRankMs": 2339.0,
+        "maxMs": 2339.0
+      },
+      "samples": [
+        {
+          "event": "NOTIFICATION_POSTED",
+          "atUtc": "2026-10-22T17:30:11.238Z",
+          "plannedAt": "2026-10-22T17:30:11.078Z",
+          "lagMs": 160.0
+        },
+        {
+          "event": "CLAIM_RING",
+          "atUtc": "2026-10-22T17:30:11.127Z",
+          "plannedAt": "2026-10-22T17:30:11.078Z",
+          "lagMs": 49.0
+        },
+        {
+          "event": "NOTIFICATION_POSTED",
+          "atUtc": "2026-10-22T17:33:55.577Z",
+          "plannedAt": "2026-10-22T17:33:55.457Z",
+          "lagMs": 120.0
+        },
+        {
+          "event": "CLAIM_RING",
+          "atUtc": "2026-10-22T17:33:55.483Z",
+          "plannedAt": "2026-10-22T17:33:55.457Z",
+          "lagMs": 26.0
+        },
+        {
+          "event": "NOTIFICATION_POSTED",
+          "atUtc": "2026-10-22T17:38:48.919Z",
+          "plannedAt": "2026-10-22T17:38:46.312Z",
+          "lagMs": 2607.0
+        },
+        {
+          "event": "CLAIM_RING",
+          "atUtc": "2026-10-22T17:38:48.651Z",
+          "plannedAt": "2026-10-22T17:38:46.312Z",
+          "lagMs": 2339.0
+        },
+        {
+          "event": "NOTIFICATION_POSTED",
+          "atUtc": "2026-10-22T17:38:44.236Z",
+          "plannedAt": "2026-10-22T17:38:44.177Z",
+          "lagMs": 59.0
+        },
+        {
+          "event": "CLAIM_RING",
+          "atUtc": "2026-10-22T17:38:44.188Z",
+          "plannedAt": "2026-10-22T17:38:44.177Z",
+          "lagMs": 11.0
+        }
+      ]
+    },
+    {
+      "name": "final non-reboot observations",
+      "apkSha256": "eeae7d5a42e714f5b63e5298b088672acac7c4db8fa4ad63133d4903b5afeb9b",
+      "notificationPostLag": {
+        "n": 5,
+        "p50Ms": 77.0,
+        "p95NearestRankMs": 169.0,
+        "maxMs": 169.0
+      },
+      "claimLag": {
+        "n": 5,
+        "p50Ms": 14.0,
+        "p95NearestRankMs": 70.0,
+        "maxMs": 70.0
+      },
+      "samples": [
+        {
+          "event": "NOTIFICATION_POSTED",
+          "atUtc": "2026-10-22T18:02:53.055Z",
+          "plannedAt": "2026-10-22T18:02:52.886Z",
+          "lagMs": 169.0,
+          "scenario": "final locked full-screen alert"
+        },
+        {
+          "event": "CLAIM_RING",
+          "atUtc": "2026-10-22T18:02:52.956Z",
+          "plannedAt": "2026-10-22T18:02:52.886Z",
+          "lagMs": 70.0,
+          "scenario": "final locked full-screen alert"
+        },
+        {
+          "event": "NOTIFICATION_POSTED",
+          "atUtc": "2026-10-22T18:09:39.362Z",
+          "plannedAt": "2026-10-22T18:09:39.261Z",
+          "lagMs": 101.0,
+          "scenario": "final force-stop/reopen restores future alarm"
+        },
+        {
+          "event": "CLAIM_RING",
+          "atUtc": "2026-10-22T18:09:39.275Z",
+          "plannedAt": "2026-10-22T18:09:39.261Z",
+          "lagMs": 14.0,
+          "scenario": "final force-stop/reopen restores future alarm"
+        },
+        {
+          "event": "NOTIFICATION_POSTED",
+          "atUtc": "2026-10-22T18:27:40.405Z",
+          "plannedAt": "2026-10-22T18:27:40.368Z",
+          "lagMs": 37.0,
+          "scenario": "final overlapping native reminders"
+        },
+        {
+          "event": "CLAIM_RING",
+          "atUtc": "2026-10-22T18:27:40.374Z",
+          "plannedAt": "2026-10-22T18:27:40.368Z",
+          "lagMs": 6.0,
+          "scenario": "final overlapping native reminders"
+        },
+        {
+          "event": "NOTIFICATION_POSTED",
+          "atUtc": "2026-10-22T18:27:33.936Z",
+          "plannedAt": "2026-10-22T18:27:33.903Z",
+          "lagMs": 33.0,
+          "scenario": "final overlapping native reminders"
+        },
+        {
+          "event": "CLAIM_RING",
+          "atUtc": "2026-10-22T18:27:33.909Z",
+          "plannedAt": "2026-10-22T18:27:33.903Z",
+          "lagMs": 6.0,
+          "scenario": "final overlapping native reminders"
+        },
+        {
+          "event": "NOTIFICATION_POSTED",
+          "atUtc": "2026-10-22T18:25:01.831Z",
+          "plannedAt": "2026-10-22T18:25:01.754Z",
+          "lagMs": 77.0,
+          "scenario": "single reminder during first overlap automation attempt"
+        },
+        {
+          "event": "CLAIM_RING",
+          "atUtc": "2026-10-22T18:25:01.772Z",
+          "plannedAt": "2026-10-22T18:25:01.754Z",
+          "lagMs": 18.0,
+          "scenario": "single reminder during first overlap automation attempt"
+        }
+      ]
+    },
+    {
+      "name": "final reboot catch-up observations",
+      "apkSha256": "eeae7d5a42e714f5b63e5298b088672acac7c4db8fa4ad63133d4903b5afeb9b",
+      "notificationPostLag": {
+        "n": 2,
+        "p50Ms": 151985.0,
+        "p95NearestRankMs": 262511.0,
+        "maxMs": 262511.0
+      },
+      "claimLag": {
+        "n": 2,
+        "p50Ms": 151317.0,
+        "p95NearestRankMs": 261331.0,
+        "maxMs": 261331.0
+      },
+      "samples": [
+        {
+          "event": "CLAIM_RING",
+          "atUtc": "2026-10-22T18:22:17.972Z",
+          "plannedAt": "2026-10-22T18:17:56.641Z",
+          "lagMs": 261331.0,
+          "scenario": "final reboot first attempt, unattended UI not established"
+        },
+        {
+          "event": "NOTIFICATION_POSTED",
+          "atUtc": "2026-10-22T18:22:19.152Z",
+          "plannedAt": "2026-10-22T18:17:56.641Z",
+          "lagMs": 262511.0,
+          "scenario": "final reboot first attempt, unattended UI not established"
+        },
+        {
+          "event": "NOTIFICATION_POSTED",
+          "atUtc": "2026-10-22T18:32:54.059Z",
+          "plannedAt": "2026-10-22T18:32:12.600Z",
+          "lagMs": 41459.0,
+          "scenario": "final reboot/unlock without opening main app"
+        },
+        {
+          "event": "CLAIM_RING",
+          "atUtc": "2026-10-22T18:32:53.903Z",
+          "plannedAt": "2026-10-22T18:32:12.600Z",
+          "lagMs": 41303.0,
+          "scenario": "final reboot/unlock without opening main app"
+        }
+      ]
+    }
+  ],
+  "initialTimeoutEvents": [
+    "RING_TIMEOUT \u00b7 2026-10-22T17:39:49.548Z \u00b7 planned 2026-10-22T17:39:48.651Z",
+    "RING_TIMEOUT \u00b7 2026-10-22T17:39:44.212Z \u00b7 planned 2026-10-22T17:39:44.188Z"
+  ],
+  "finalTimeoutEvents": [
+    "RING_TIMEOUT \u00b7 2026-10-22T18:26:01.796Z \u00b7 planned 2026-10-22T18:26:01.772Z",
+    "RING_TIMEOUT \u00b7 2026-10-22T18:28:40.380Z \u00b7 planned 2026-10-22T18:28:40.374Z",
+    "RING_TIMEOUT \u00b7 2026-10-22T18:28:33.926Z \u00b7 planned 2026-10-22T18:28:33.909Z"
+  ],
+  "memorySnapshot": {
+    "utc": "2026-10-22T17:31:00.467357+00:00",
+    "kind": "single PSS snapshot, not peak and not a phone benchmark",
+    "build": "0.3.0-data-qa x86_64 API37",
+    "processes": {
+      "com.lafina.capstone": [
+        "TOTAL    91348    43352    26116        0   229328    44672    31605     9091",
+        "TOTAL PSS:    91348            TOTAL RSS:   229328      TOTAL SWAP (KB):        0"
+      ],
+      "com.lafina.capstone:reminders": [
+        "TOTAL    42531    24008       76        0   174696    28328    20568     4189",
+        "TOTAL PSS:    42531            TOTAL RSS:   174696      TOTAL SWAP (KB):        0"
+      ]
+    }
+  },
+  "notRun": [
+    "physical Android phone release-like baseline",
+    "matched pinned legacy/new comparison",
+    "API30 and ARM64 execution",
+    "Doze/OEM/battery-saver reliability",
+    "notification audio/vibration/intelligibility",
+    "true peak PSS",
+    "repeated cold startup median/p95",
+    "battery energy comparison",
+    "Kokoro versus Android TTS",
+    "STT accuracy/latency"
+  ],
+  "evidence": [
+    "docs/reports/evidence/phase-03-emulator-initial.json",
+    "docs/reports/evidence/phase-03-emulator-final.json",
+    "docs/reports/evidence/phase-03-emulator-memory.json"
+  ],
+  "sourceManifest": "docs/reports/evidence/phase-03-source-hashes.json",
+  "artifactManifest": "docs/reports/evidence/phase-03-artifacts-reviewed.json"
+}

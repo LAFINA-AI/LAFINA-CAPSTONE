@@ -1,0 +1,10 @@
+<resources>
+  <color name="reminder_background">#161519</color>
+  <color name="reminder_text">#F9F5F7</color>
+  <color name="reminder_accent">#FF9AB0</color>
+  <style name="ReminderTheme" parent="android:style/Theme.Material.NoActionBar">
+    <item name="android:colorAccent">@color/reminder_accent</item>
+    <item name="android:windowLightStatusBar">false</item>
+    <item name="android:windowBackground">@color/reminder_background</item>
+  </style>
+</resources>

@@ -51,3 +51,26 @@ minimal navigation do not import legacy accounts/business/cloud code. Actual
 version/build/runtime evidence is in the Phase 01 report. Source/brand authorization
 already recorded remains valid; no assets or legacy application code were copied.
 No acceptance of physical-device behavior or approval of Phase 02 is implied.
+
+## Phase 02 record — 2026-10-22
+
+Owner: “so far phase 01 looks good, proceed phase 02”, with screenshots of the
+reviewed foundation. Natural-language approval authorizes only Phase02. Exact
+physical model/API/RAM and offline lifecycle results were not supplied; no missing
+Phase01 benchmark/device results are inferred. [ADR-014](decisions/ADR-014-planner-transactions.md)
+records the fresh schema, settings-preserving migration, synchronous atomic
+mutations, generation-safe outcomes, logical deletion and finite recurrence policy.
+No legacy source was copied. The previous Phase01 report remains historical;
+its then-current uncommitted state has since been committed by the owner.
+Phase03 was unapproved at that handoff; the subsequent record below supersedes it.
+
+## Phase03 record — 2026-10-23
+
+Owner explicitly wrote `APPROVE PHASE 03`, requested emulator installation and
+manual checks, and requested independent verification of the Antigravity audit.
+[ADR-015](decisions/ADR-015-native-reminder-delivery.md) records native delivery,
+the private process/SQLite journal boundary, consent and platform fallbacks.
+[Audit verification](audits/phase-03-independent-audit.md) records four confirmed
+findings, bounded QA reads, Settings draft protection, UTC fallback and experimental
+ARMv7 gating. Physical checks remain pending; approval is not fabricated device
+evidence. Phase04 is not authorized.

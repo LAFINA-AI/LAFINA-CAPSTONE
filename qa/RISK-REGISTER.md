@@ -59,3 +59,35 @@ Emulator smoke checks are a separate evidence class, never phone certification.
 
 The package [provenance/security ledger](../docs/third-party/phase-01-provenance.md)
 records actual advisories and compatible fixes; no advisory scan is labeled PASS.
+
+## Phase 02 update
+
+R-16 is mitigated in the new data layer by surfaced failures, one shared connection,
+transactional migrations, real SQLite pair/receipt rollback and host-process
+interruption tests. R-22 has strict time/weekly validation; intent parsing and
+destructive command target checks remain Phase07. Legacy defects were not ported.
+
+| ID | Severity/status | Finding | Owner/checkpoint |
+|---|---|---|---|
+| R-27 | High, OPEN | Desired jobs exist but Phase02 has no native registration/reconciliation; all delivery is UNAVAILABLE | Phase03 engineer; implement capability/identity/generation and real-device delivery without claiming Phase02 RINGING meant an alert |
+| R-28 | Medium, OPEN | Debug snapshots read all planner rows; tombstones/operation receipts retained, only chat capped100 | Phase04 engineer; reviewed paging/pruning/privacy purge and measured large-dataset behavior; logical deletion is not erasure |
+| R-29 | Medium, REVIEW | Initial overdue grace15min and strict DST gap/quiet-boundary rejection; weekly horizon366dates | Human reviewer; inspect documented policy and DST fixtures; native lifecycle behavior later |
+| R-30 | High, OPEN | dataQa is a private debuggable development-signed build exposing test controls | Build/reviewer; do not publish, release build flag false, Android permissions/ABI inspect before installing |
+
+R-20/R-24/R-25/R-26 remain open. Host in-memory timing is explicitly not low-end
+Android latency/PSS/battery/legacy comparison evidence. No dependency was added;
+Phase01 advisory snapshot remains historical and unresolved, not a new clean scan.
+
+## Phase03 update
+
+R-27 now has a native implementation; physical delivery acceptance remains open.
+R-28 QA SQL reads are capped at501 and returned rows500 per table; product paging,
+native active-job reads and retention remain review items. ARMv7 is now gated
+experimental. Historical Phase02 records above describe that earlier build.
+
+| ID | Severity/status | Finding | Owner/checkpoint |
+|---|---|---|---|
+| R-31 | High, DEVICE PENDING | API37 x86_64 emulator cannot establish API30/low-RAM/ARM64/OEM delivery, battery or screen-lock behavior | Human phone reviewer; Phase03 checklist before acceptance |
+| R-32 | Medium, OPEN | Inexact alarms can arrive outside the15min grace; Android idle quotas can delay persisted timeout settlement | Clear capability warning; notification has60s visibility timeout; reconcile on resume/restore, validate real devices |
+| R-33 | High, MITIGATED BY DESIGN; DEVICE PENDING | Multiple SQLite copies in one process and older WAL engines risk corruption | Separate private process, DELETE journal/schema preflight, no destructive native repair; migration/locking/native tests and phone lifecycle checks |
+| R-34 | Medium, OPEN | Native current-job reads materialize all pending/ringing rows despite bounded128 platform registrations | Measure realistic semester load on low-RAM hardware; implement reviewed windowed APIs when product scheduling is authorized |

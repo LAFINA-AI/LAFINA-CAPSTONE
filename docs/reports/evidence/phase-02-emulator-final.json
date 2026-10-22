@@ -1,0 +1,19 @@
+{
+  "utc": "2026-10-21T17:43:59.151519+00:00",
+  "device": "API37 x86_64 emulator; not a physical phone",
+  "offlineConditions": {
+    "airplane_mode_on": "1",
+    "wifi_on": "0",
+    "mobile_data": "0"
+  },
+  "connectivityRestored": true,
+  "checks": [
+    "PASS: final APK native isolated SQL checks offline.",
+    "PASS: task title/version2 persist across emulator disappearance/reopen and install-r upgrade; existing onboarding remains complete.",
+    "PASS: native UI timed edit, due-state simulation and ACK; linked task remains TODO; delivery UNAVAILABLE, no alarm/audio claim.",
+    "PASS: task version3 and ACK persist across actual force-stop/relaunch offline.",
+    "PASS: native UI delete cancel/confirm hides only the known synthetic task; terminal outcome retained."
+  ],
+  "physicalPhone": "NOT RUN",
+  "alarmSpeechBattery": "NOT RUN"
+}

@@ -1,0 +1,243 @@
+To honour the JVM settings for this build a single-use Daemon process will be forked. For more on this, please refer to https://docs.gradle.org/9.3.1/userguide/gradle_daemon.html#sec:disabling_the_daemon in the Gradle documentation.
+Daemon will be stopped at the end of the build 
+> Task :gradle-plugin:settings-plugin:checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :gradle-plugin:shared:checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :gradle-plugin:shared:compileKotlin UP-TO-DATE
+> Task :gradle-plugin:shared:compileJava NO-SOURCE
+> Task :gradle-plugin:shared:processResources NO-SOURCE
+> Task :gradle-plugin:shared:classes UP-TO-DATE
+> Task :gradle-plugin:shared:jar UP-TO-DATE
+> Task :gradle-plugin:settings-plugin:compileKotlin UP-TO-DATE
+> Task :gradle-plugin:settings-plugin:compileJava NO-SOURCE
+> Task :gradle-plugin:settings-plugin:pluginDescriptors UP-TO-DATE
+> Task :gradle-plugin:settings-plugin:processResources UP-TO-DATE
+> Task :gradle-plugin:settings-plugin:classes UP-TO-DATE
+> Task :gradle-plugin:settings-plugin:jar UP-TO-DATE
+> Task :gradle-plugin:react-native-gradle-plugin:checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :gradle-plugin:react-native-gradle-plugin:compileKotlin UP-TO-DATE
+> Task :gradle-plugin:react-native-gradle-plugin:compileJava NO-SOURCE
+> Task :gradle-plugin:react-native-gradle-plugin:pluginDescriptors UP-TO-DATE
+> Task :gradle-plugin:react-native-gradle-plugin:processResources UP-TO-DATE
+> Task :gradle-plugin:react-native-gradle-plugin:classes UP-TO-DATE
+> Task :gradle-plugin:react-native-gradle-plugin:jar UP-TO-DATE
+> Task :app:checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :app:generateAutolinkingNewArchitectureFiles UP-TO-DATE
+> Task :app:generateAutolinkingPackageList UP-TO-DATE
+> Task :app:generateCodegenSchemaFromJavaScript SKIPPED
+> Task :app:generateCodegenArtifactsFromSchema SKIPPED
+> Task :app:generateReactNativeEntryPoint UP-TO-DATE
+> Task :op-engineering_op-sqlite:generateCodegenSchemaFromJavaScript UP-TO-DATE
+> Task :op-engineering_op-sqlite:generateCodegenArtifactsFromSchema UP-TO-DATE
+> Task :op-engineering_op-sqlite:prepareHeaders UP-TO-DATE
+> Task :op-engineering_op-sqlite:preBuild UP-TO-DATE
+> Task :react-native-safe-area-context:generateCodegenSchemaFromJavaScript UP-TO-DATE
+> Task :react-native-safe-area-context:generateCodegenArtifactsFromSchema UP-TO-DATE
+> Task :react-native-safe-area-context:preBuild UP-TO-DATE
+> Task :app:preBuild UP-TO-DATE
+> Task :app:preDataQaBuild UP-TO-DATE
+> Task :app:generateDataQaBuildConfig UP-TO-DATE
+> Task :op-engineering_op-sqlite:preDebugBuild UP-TO-DATE
+> Task :op-engineering_op-sqlite:writeDebugAarMetadata UP-TO-DATE
+> Task :react-native-safe-area-context:preDebugBuild UP-TO-DATE
+> Task :react-native-safe-area-context:writeDebugAarMetadata UP-TO-DATE
+> Task :app:checkDataQaAarMetadata UP-TO-DATE
+
+> Task :app:createBundleDataQaJsAndAssets
+
+                        ▒▒▓▓▓▓▒▒
+                     ▒▓▓▓▒▒░░▒▒▓▓▓▒
+                  ▒▓▓▓▓░░░▒▒▒▒░░░▓▓▓▓▒
+                 ▓▓▒▒▒▓▓▓▓▓▓▓▓▓▓▓▓▒▒▒▓▓
+                 ▓▓░░░░░▒▓▓▓▓▓▓▒░░░░░▓▓
+                 ▓▓░░▓▓▒░░░▒▒░░░▒▓▒░░▓▓
+                 ▓▓░░▓▓▓▓▓▒▒▒▒▓▓▓▓▒░░▓▓
+                 ▓▓░░▓▓▓▓▓▓▓▓▓▓▓▓▓▒░░▓▓
+                 ▓▓▒░░▒▒▓▓▓▓▓▓▓▓▒░░░▒▓▓
+                  ▒▓▓▓▒░░░▒▓▓▒░░░▒▓▓▓▒
+                     ▒▓▓▓▒░░░░▒▓▓▓▒
+                        ▒▒▓▓▓▓▒▒
+
+
+ WARN  the transform cache was reset.
+                Welcome to Metro v0.84.6
+              Fast - Scalable - Integrated
+
+
+transform[stderr]: (node:36128) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+transform[stderr]: (Use `node --trace-warnings ...` to show where the warning was created)
+transform[stderr]: (node:21516) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+transform[stderr]: (Use `node --trace-warnings ...` to show where the warning was created)
+LOG:Writing bundle output to: android\app\build\generated\assets\react\dataQa\index.android.bundle
+LOG:Writing sourcemap output to: android\app\build\intermediates\sourcemaps\react\dataQa\index.android.bundle.packager.map
+LOG:Done writing bundle output
+LOG:Done writing sourcemap output
+
+> Task :app:generateDataQaResValues UP-TO-DATE
+> Task :op-engineering_op-sqlite:generateDebugResValues UP-TO-DATE
+> Task :op-engineering_op-sqlite:generateDebugResources UP-TO-DATE
+> Task :op-engineering_op-sqlite:packageDebugResources UP-TO-DATE
+> Task :react-native-safe-area-context:generateDebugResValues UP-TO-DATE
+> Task :react-native-safe-area-context:generateDebugResources UP-TO-DATE
+> Task :react-native-safe-area-context:packageDebugResources UP-TO-DATE
+> Task :app:mapDataQaSourceSetPaths UP-TO-DATE
+> Task :app:generateDataQaResources UP-TO-DATE
+> Task :app:mergeDataQaResources UP-TO-DATE
+> Task :app:packageDataQaResources UP-TO-DATE
+> Task :app:parseDataQaLocalResources UP-TO-DATE
+> Task :app:createDataQaCompatibleScreenManifests UP-TO-DATE
+> Task :app:extractDeepLinksDataQa UP-TO-DATE
+> Task :op-engineering_op-sqlite:extractDeepLinksDebug UP-TO-DATE
+> Task :op-engineering_op-sqlite:processDebugManifest UP-TO-DATE
+> Task :react-native-safe-area-context:extractDeepLinksDebug UP-TO-DATE
+> Task :react-native-safe-area-context:processDebugManifest UP-TO-DATE
+> Task :app:processDataQaMainManifest UP-TO-DATE
+> Task :app:processDataQaManifest UP-TO-DATE
+> Task :app:processDataQaManifestForPackage UP-TO-DATE
+> Task :op-engineering_op-sqlite:compileDebugLibraryResources UP-TO-DATE
+> Task :op-engineering_op-sqlite:parseDebugLocalResources UP-TO-DATE
+> Task :op-engineering_op-sqlite:generateDebugRFile UP-TO-DATE
+> Task :react-native-safe-area-context:compileDebugLibraryResources UP-TO-DATE
+> Task :react-native-safe-area-context:parseDebugLocalResources UP-TO-DATE
+> Task :react-native-safe-area-context:generateDebugRFile UP-TO-DATE
+> Task :app:processDataQaResources UP-TO-DATE
+> Task :op-engineering_op-sqlite:checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :op-engineering_op-sqlite:generateDebugBuildConfig UP-TO-DATE
+> Task :op-engineering_op-sqlite:compileDebugKotlin UP-TO-DATE
+> Task :op-engineering_op-sqlite:javaPreCompileDebug UP-TO-DATE
+> Task :op-engineering_op-sqlite:compileDebugJavaWithJavac UP-TO-DATE
+> Task :op-engineering_op-sqlite:bundleLibCompileToJarDebug UP-TO-DATE
+> Task :react-native-safe-area-context:checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :react-native-safe-area-context:generateDebugBuildConfig UP-TO-DATE
+> Task :react-native-safe-area-context:compileDebugKotlin UP-TO-DATE
+> Task :react-native-safe-area-context:javaPreCompileDebug UP-TO-DATE
+> Task :react-native-safe-area-context:compileDebugJavaWithJavac UP-TO-DATE
+> Task :react-native-safe-area-context:bundleLibCompileToJarDebug UP-TO-DATE
+> Task :app:javaPreCompileDataQa UP-TO-DATE
+> Task :app:preDataQaUnitTestBuild UP-TO-DATE
+> Task :app:javaPreCompileDataQaUnitTest UP-TO-DATE
+> Task :op-engineering_op-sqlite:bundleLibRuntimeToJarDebug UP-TO-DATE
+> Task :op-engineering_op-sqlite:processDebugJavaRes UP-TO-DATE
+> Task :react-native-safe-area-context:bundleLibRuntimeToJarDebug UP-TO-DATE
+> Task :react-native-safe-area-context:processDebugJavaRes UP-TO-DATE
+> Task :app:mergeDataQaNativeDebugMetadata NO-SOURCE
+> Task :app:mergeDataQaShaders UP-TO-DATE
+> Task :app:compileDataQaShaders NO-SOURCE
+> Task :app:generateDataQaAssets UP-TO-DATE
+> Task :op-engineering_op-sqlite:mergeDebugShaders UP-TO-DATE
+> Task :op-engineering_op-sqlite:compileDebugShaders NO-SOURCE
+> Task :op-engineering_op-sqlite:generateDebugAssets UP-TO-DATE
+> Task :op-engineering_op-sqlite:mergeDebugAssets UP-TO-DATE
+> Task :react-native-safe-area-context:mergeDebugShaders UP-TO-DATE
+> Task :react-native-safe-area-context:compileDebugShaders NO-SOURCE
+> Task :react-native-safe-area-context:generateDebugAssets UP-TO-DATE
+> Task :react-native-safe-area-context:mergeDebugAssets UP-TO-DATE
+> Task :app:mergeDataQaAssets
+> Task :app:compressDataQaAssets
+> Task :app:desugarDataQaFileDependencies UP-TO-DATE
+> Task :app:checkDataQaDuplicateClasses UP-TO-DATE
+> Task :app:mergeExtDexDataQa UP-TO-DATE
+> Task :op-engineering_op-sqlite:bundleLibRuntimeToDirDebug UP-TO-DATE
+> Task :react-native-safe-area-context:bundleLibRuntimeToDirDebug UP-TO-DATE
+> Task :app:mergeLibDexDataQa UP-TO-DATE
+
+> Task :op-engineering_op-sqlite:configureCMakeDebug[arm64-v8a]
+[CXX5304] This version only understands SDK XML versions up to 3 but an SDK XML file of version 4 was encountered. This can happen if you use versions of Android Studio and the command-line tools that were released at different times.
+[CXX5304] This version only understands SDK XML versions up to 3 but an SDK XML file of version 4 was encountered. This can happen if you use versions of Android Studio and the command-line tools that were released at different times.
+
+> Task :op-engineering_op-sqlite:configureCMakeDebug[x86_64]
+> Task :op-engineering_op-sqlite:generateJsonModelDebug
+> Task :op-engineering_op-sqlite:prefabDebugConfigurePackage UP-TO-DATE
+> Task :app:configureCMakeDebug[arm64-v8a]
+> Task :op-engineering_op-sqlite:buildCMakeDebug[arm64-v8a]
+> Task :op-engineering_op-sqlite:buildCMakeDebug[x86_64]
+> Task :op-engineering_op-sqlite:externalNativeBuildDebug
+> Task :op-engineering_op-sqlite:prefabDebugPackage UP-TO-DATE
+> Task :app:buildCMakeDebug[arm64-v8a]
+> Task :app:configureCMakeDebug[x86_64]
+> Task :app:buildCMakeDebug[x86_64]
+> Task :app:mergeDataQaJniLibFolders UP-TO-DATE
+> Task :op-engineering_op-sqlite:mergeDebugJniLibFolders UP-TO-DATE
+> Task :op-engineering_op-sqlite:mergeDebugNativeLibs UP-TO-DATE
+> Task :op-engineering_op-sqlite:copyDebugJniLibsProjectOnly UP-TO-DATE
+> Task :react-native-safe-area-context:mergeDebugJniLibFolders UP-TO-DATE
+> Task :react-native-safe-area-context:mergeDebugNativeLibs NO-SOURCE
+> Task :react-native-safe-area-context:copyDebugJniLibsProjectOnly UP-TO-DATE
+> Task :app:mergeDataQaNativeLibs UP-TO-DATE
+> Task :app:stripDataQaDebugSymbols UP-TO-DATE
+> Task :app:validateSigningDataQa UP-TO-DATE
+> Task :app:writeDataQaAppMetadata UP-TO-DATE
+> Task :app:writeDataQaSigningConfigVersions UP-TO-DATE
+> Task :app:preDataQaAndroidTestBuild SKIPPED
+> Task :app:processDataQaAndroidTestManifest
+> Task :app:generateDataQaAndroidTestBuildConfig
+> Task :app:checkDataQaAndroidTestAarMetadata
+> Task :app:generateDataQaAndroidTestResValues
+> Task :app:mapDataQaAndroidTestSourceSetPaths
+> Task :app:generateDataQaAndroidTestResources
+> Task :app:mergeDataQaAndroidTestResources
+> Task :app:processDataQaAndroidTestResources
+> Task :app:javaPreCompileDataQaAndroidTest
+> Task :app:mergeDataQaAndroidTestShaders
+> Task :app:compileDataQaAndroidTestShaders NO-SOURCE
+> Task :app:generateDataQaAndroidTestAssets UP-TO-DATE
+> Task :app:mergeDataQaAndroidTestAssets
+> Task :app:compressDataQaAndroidTestAssets
+> Task :app:desugarDataQaAndroidTestFileDependencies
+> Task :app:checkDataQaAndroidTestDuplicateClasses
+
+> Task :app:compileDataQaKotlin
+w: file:///C:/L3mxr/Github%20Repositories/LAFINA-CAPSTONE/android/app/src/main/java/com/lafina/capstone/CapstoneBuildPackage.kt:11:16 This declaration overrides a deprecated member but is not marked as deprecated itself. Add the '@Deprecated' annotation or suppress the diagnostic.
+w: file:///C:/L3mxr/Github%20Repositories/LAFINA-CAPSTONE/android/app/src/main/java/com/lafina/capstone/CapstoneBuildPackage.kt:11:36 The corresponding parameter in the supertype 'ReactPackage' is named 'reactContext'. This may cause problems when calling this function with named arguments.
+w: file:///C:/L3mxr/Github%20Repositories/LAFINA-CAPSTONE/android/app/src/main/java/com/lafina/capstone/CapstoneBuildPackage.kt:14:35 The corresponding parameter in the supertype 'ReactPackage' is named 'reactContext'. This may cause problems when calling this function with named arguments.
+w: file:///C:/L3mxr/Github%20Repositories/LAFINA-CAPSTONE/android/app/src/main/java/com/lafina/capstone/reminders/ReminderPackage.kt:18:16 This declaration overrides a deprecated member but is not marked as deprecated itself. Add the '@Deprecated' annotation or suppress the diagnostic.
+w: file:///C:/L3mxr/Github%20Repositories/LAFINA-CAPSTONE/android/app/src/main/java/com/lafina/capstone/reminders/ReminderPackage.kt:18:36 The corresponding parameter in the supertype 'ReactPackage' is named 'reactContext'. This may cause problems when calling this function with named arguments.
+w: file:///C:/L3mxr/Github%20Repositories/LAFINA-CAPSTONE/android/app/src/main/java/com/lafina/capstone/reminders/ReminderPackage.kt:19:35 The corresponding parameter in the supertype 'ReactPackage' is named 'reactContext'. This may cause problems when calling this function with named arguments.
+w: file:///C:/L3mxr/Github%20Repositories/LAFINA-CAPSTONE/android/app/src/main/java/com/lafina/capstone/reminders/ReminderStore.kt:225:24 Type argument for reified type parameter 'T' was inferred to the intersection of ['Comparable<*>' & 'Serializable']. Reification of an intersection type results in the common supertype being used. This may lead to subtle issues and an explicit type argument is encouraged. This will become an error in a future release.
+w: file:///C:/L3mxr/Github%20Repositories/LAFINA-CAPSTONE/android/app/src/main/java/com/lafina/capstone/reminders/ReminderStore.kt:407:4 Type argument for reified type parameter 'T' was inferred to the intersection of ['Comparable<*>?' & 'Serializable?']. Reification of an intersection type results in the common supertype being used. This may lead to subtle issues and an explicit type argument is encouraged. This will become an error in a future release.
+w: file:///C:/L3mxr/Github%20Repositories/LAFINA-CAPSTONE/android/app/src/main/java/com/lafina/capstone/reminders/ReminderStore.kt:425:61 Type argument for reified type parameter 'T' was inferred to the intersection of ['Comparable<*>?' & 'Serializable?']. Reification of an intersection type results in the common supertype being used. This may lead to subtle issues and an explicit type argument is encouraged. This will become an error in a future release.
+w: file:///C:/L3mxr/Github%20Repositories/LAFINA-CAPSTONE/android/app/src/main/java/com/lafina/capstone/reminders/ReminderStore.kt:435:6 Type argument for reified type parameter 'T' was inferred to the intersection of ['Comparable<*>?' & 'Serializable?']. Reification of an intersection type results in the common supertype being used. This may lead to subtle issues and an explicit type argument is encouraged. This will become an error in a future release.
+
+> Task :app:mergeExtDexDataQaAndroidTest
+> Task :app:compileDataQaJavaWithJavac
+> Task :app:bundleDataQaClassesToRuntimeJar
+> Task :app:bundleDataQaClassesToCompileJar
+> Task :app:processDataQaJavaRes
+> Task :app:compileDataQaUnitTestKotlin
+> Task :app:dexBuilderDataQa
+> Task :app:compileDataQaUnitTestJavaWithJavac NO-SOURCE
+> Task :app:processDataQaUnitTestJavaRes
+> Task :app:testDataQaUnitTest
+> Task :app:mergeDataQaGlobalSynthetics UP-TO-DATE
+> Task :app:mergeProjectDexDataQa
+> Task :app:mergeDataQaJavaResource
+> Task :app:packageDataQa
+> Task :app:createDataQaApkListingFileRedirect
+> Task :app:assembleDataQa
+> Task :app:mergeLibDexDataQaAndroidTest
+> Task :app:mergeDataQaAndroidTestJniLibFolders
+> Task :app:mergeDataQaAndroidTestNativeLibs NO-SOURCE
+> Task :app:stripDataQaAndroidTestDebugSymbols NO-SOURCE
+> Task :app:validateSigningDataQaAndroidTest
+> Task :app:writeDataQaAndroidTestSigningConfigVersions
+> Task :app:compileDataQaAndroidTestKotlin
+> Task :app:compileDataQaAndroidTestJavaWithJavac
+> Task :app:dexBuilderDataQaAndroidTest
+> Task :app:mergeDataQaAndroidTestGlobalSynthetics
+> Task :app:processDataQaAndroidTestJavaRes
+> Task :app:mergeProjectDexDataQaAndroidTest
+> Task :app:mergeDataQaAndroidTestJavaResource
+> Task :app:packageDataQaAndroidTest
+> Task :app:createDataQaAndroidTestApkListingFileRedirect
+> Task :app:assembleDataQaAndroidTest
+
+[Incubating] Problems report is available at: file:///C:/L3mxr/Github%20Repositories/LAFINA-CAPSTONE/android/build/reports/problems/problems-report.html
+
+Deprecated Gradle features were used in this build, making it incompatible with Gradle 10.
+
+You can use '--warning-mode all' to show the individual deprecation warnings and determine if they come from your own scripts or plugins.
+
+For more on this, please refer to https://docs.gradle.org/9.3.1/userguide/command_line_interface.html#sec:command_line_warnings in the Gradle documentation.
+
+BUILD SUCCESSFUL in 1m 10s
+144 actionable tasks: 53 executed, 91 up-to-date
+Consider enabling configuration cache to speed up this build: https://docs.gradle.org/9.3.1/userguide/configuration_cache_enabling.html

@@ -1,0 +1,424 @@
+
+com.lafina.capstone.reminders.ReminderStoreTest:
+Error in quietHoursDeferUsingSavedGlobalZoneAndFenceOldCallback(com.lafina.capstone.reminders.ReminderStoreTest):
+com.lafina.capstone.reminders.RecoverableStoreException: DATABASE_OPERATION_FAILED
+	at com.lafina.capstone.reminders.ReminderStore.transaction(ReminderStore.kt:292)
+	at com.lafina.capstone.reminders.ReminderStore.claimDue(ReminderStore.kt:57)
+	at com.lafina.capstone.reminders.ReminderStoreTest.quietHoursDeferUsingSavedGlobalZoneAndFenceOldCallback(ReminderStoreTest.kt:203)
+	... 34 trimmed
+Caused by: android.database.sqlite.SQLiteException: unknown error (code 0 SQLITE_OK): Queries can be performed using SQLiteDatabase query or rawQuery methods only.
+	at android.database.sqlite.SQLiteConnection.nativeExecuteForChangedRowCount(Native Method)
+	at android.database.sqlite.SQLiteConnection.executeForChangedRowCount(SQLiteConnection.java:947)
+	at android.database.sqlite.SQLiteSession.executeForChangedRowCount(SQLiteSession.java:791)
+	at android.database.sqlite.SQLiteStatement.executeUpdateDelete(SQLiteStatement.java:68)
+	at android.database.sqlite.SQLiteDatabase.executeSql(SQLiteDatabase.java:2229)
+	at android.database.sqlite.SQLiteDatabase.execSQL(SQLiteDatabase.java:2148)
+	at com.lafina.capstone.reminders.ReminderStore.transaction(ReminderStore.kt:269)
+	... 37 more
+
+Error in nonDeleteJournalIsRejectedWithoutSwitchingMode(com.lafina.capstone.reminders.ReminderStoreTest):
+org.junit.ComparisonFailure: expected:<[ROLLBACK_JOURNAL_REQUIR]ED> but was:<[DATABASE_OPERATION_FAIL]ED>
+	at org.junit.Assert.assertEquals(Assert.java:117)
+	at org.junit.Assert.assertEquals(Assert.java:146)
+	at com.lafina.capstone.reminders.ReminderStoreTest.nonDeleteJournalIsRejectedWithoutSwitchingMode(ReminderStoreTest.kt:80)
+
+Error in deniedNotificationsPreserveManualPendingStateWithFailureReason(com.lafina.capstone.reminders.ReminderStoreTest):
+com.lafina.capstone.reminders.RecoverableStoreException: DATABASE_OPERATION_FAILED
+	at com.lafina.capstone.reminders.ReminderStore.transaction(ReminderStore.kt:292)
+	at com.lafina.capstone.reminders.ReminderStore.claimDue(ReminderStore.kt:57)
+	at com.lafina.capstone.reminders.ReminderStoreTest.deniedNotificationsPreserveManualPendingStateWithFailureReason(ReminderStoreTest.kt:125)
+	... 34 trimmed
+Caused by: android.database.sqlite.SQLiteException: unknown error (code 0 SQLITE_OK): Queries can be performed using SQLiteDatabase query or rawQuery methods only.
+	at android.database.sqlite.SQLiteConnection.nativeExecuteForChangedRowCount(Native Method)
+	at android.database.sqlite.SQLiteConnection.executeForChangedRowCount(SQLiteConnection.java:947)
+	at android.database.sqlite.SQLiteSession.executeForChangedRowCount(SQLiteSession.java:791)
+	at android.database.sqlite.SQLiteStatement.executeUpdateDelete(SQLiteStatement.java:68)
+	at android.database.sqlite.SQLiteDatabase.executeSql(SQLiteDatabase.java:2229)
+	at android.database.sqlite.SQLiteDatabase.execSQL(SQLiteDatabase.java:2148)
+	at com.lafina.capstone.reminders.ReminderStore.transaction(ReminderStore.kt:269)
+	... 37 more
+
+Error in repeatedOrStaleCallbacksDoNotIncrementAttempts(com.lafina.capstone.reminders.ReminderStoreTest):
+com.lafina.capstone.reminders.RecoverableStoreException: DATABASE_OPERATION_FAILED
+	at com.lafina.capstone.reminders.ReminderStore.transaction(ReminderStore.kt:292)
+	at com.lafina.capstone.reminders.ReminderStore.claimDue(ReminderStore.kt:57)
+	at com.lafina.capstone.reminders.ReminderStoreTest.repeatedOrStaleCallbacksDoNotIncrementAttempts(ReminderStoreTest.kt:102)
+	... 34 trimmed
+Caused by: android.database.sqlite.SQLiteException: unknown error (code 0 SQLITE_OK): Queries can be performed using SQLiteDatabase query or rawQuery methods only.
+	at android.database.sqlite.SQLiteConnection.nativeExecuteForChangedRowCount(Native Method)
+	at android.database.sqlite.SQLiteConnection.executeForChangedRowCount(SQLiteConnection.java:947)
+	at android.database.sqlite.SQLiteSession.executeForChangedRowCount(SQLiteSession.java:791)
+	at android.database.sqlite.SQLiteStatement.executeUpdateDelete(SQLiteStatement.java:68)
+	at android.database.sqlite.SQLiteDatabase.executeSql(SQLiteDatabase.java:2229)
+	at android.database.sqlite.SQLiteDatabase.execSQL(SQLiteDatabase.java:2148)
+	at com.lafina.capstone.reminders.ReminderStore.transaction(ReminderStore.kt:269)
+	... 37 more
+
+Error in timeoutRequiresExactDeadlineAndIsIdempotent(com.lafina.capstone.reminders.ReminderStoreTest):
+com.lafina.capstone.reminders.RecoverableStoreException: DATABASE_OPERATION_FAILED
+	at com.lafina.capstone.reminders.ReminderStore.transaction(ReminderStore.kt:292)
+	at com.lafina.capstone.reminders.ReminderStore.claimDue(ReminderStore.kt:57)
+	at com.lafina.capstone.reminders.ReminderStoreTest.timeoutRequiresExactDeadlineAndIsIdempotent(ReminderStoreTest.kt:151)
+	... 34 trimmed
+Caused by: android.database.sqlite.SQLiteException: unknown error (code 0 SQLITE_OK): Queries can be performed using SQLiteDatabase query or rawQuery methods only.
+	at android.database.sqlite.SQLiteConnection.nativeExecuteForChangedRowCount(Native Method)
+	at android.database.sqlite.SQLiteConnection.executeForChangedRowCount(SQLiteConnection.java:947)
+	at android.database.sqlite.SQLiteSession.executeForChangedRowCount(SQLiteSession.java:791)
+	at android.database.sqlite.SQLiteStatement.executeUpdateDelete(SQLiteStatement.java:68)
+	at android.database.sqlite.SQLiteDatabase.executeSql(SQLiteDatabase.java:2229)
+	at android.database.sqlite.SQLiteDatabase.execSQL(SQLiteDatabase.java:2148)
+	at com.lafina.capstone.reminders.ReminderStore.transaction(ReminderStore.kt:269)
+	... 37 more
+
+Error in overdueReminderMissesEvenWhenNotificationPermissionIsDenied(com.lafina.capstone.reminders.ReminderStoreTest):
+com.lafina.capstone.reminders.RecoverableStoreException: DATABASE_OPERATION_FAILED
+	at com.lafina.capstone.reminders.ReminderStore.transaction(ReminderStore.kt:292)
+	at com.lafina.capstone.reminders.ReminderStore.claimDue(ReminderStore.kt:57)
+	at com.lafina.capstone.reminders.ReminderStoreTest.overdueReminderMissesEvenWhenNotificationPermissionIsDenied(ReminderStoreTest.kt:135)
+	... 34 trimmed
+Caused by: android.database.sqlite.SQLiteException: unknown error (code 0 SQLITE_OK): Queries can be performed using SQLiteDatabase query or rawQuery methods only.
+	at android.database.sqlite.SQLiteConnection.nativeExecuteForChangedRowCount(Native Method)
+	at android.database.sqlite.SQLiteConnection.executeForChangedRowCount(SQLiteConnection.java:947)
+	at android.database.sqlite.SQLiteSession.executeForChangedRowCount(SQLiteSession.java:791)
+	at android.database.sqlite.SQLiteStatement.executeUpdateDelete(SQLiteStatement.java:68)
+	at android.database.sqlite.SQLiteDatabase.executeSql(SQLiteDatabase.java:2229)
+	at android.database.sqlite.SQLiteDatabase.execSQL(SQLiteDatabase.java:2148)
+	at com.lafina.capstone.reminders.ReminderStore.transaction(ReminderStore.kt:269)
+	... 37 more
+.
+Error in claimAndAcknowledgementArePairedAndNeverCompleteTask(com.lafina.capstone.reminders.ReminderStoreTest):
+com.lafina.capstone.reminders.RecoverableStoreException: DATABASE_OPERATION_FAILED
+	at com.lafina.capstone.reminders.ReminderStore.transaction(ReminderStore.kt:292)
+	at com.lafina.capstone.reminders.ReminderStore.claimDue(ReminderStore.kt:57)
+	at com.lafina.capstone.reminders.ReminderStoreTest.claimAndAcknowledgementArePairedAndNeverCompleteTask(ReminderStoreTest.kt:91)
+	... 34 trimmed
+Caused by: android.database.sqlite.SQLiteException: unknown error (code 0 SQLITE_OK): Queries can be performed using SQLiteDatabase query or rawQuery methods only.
+	at android.database.sqlite.SQLiteConnection.nativeExecuteForChangedRowCount(Native Method)
+	at android.database.sqlite.SQLiteConnection.executeForChangedRowCount(SQLiteConnection.java:947)
+	at android.database.sqlite.SQLiteSession.executeForChangedRowCount(SQLiteSession.java:791)
+	at android.database.sqlite.SQLiteStatement.executeUpdateDelete(SQLiteStatement.java:68)
+	at android.database.sqlite.SQLiteDatabase.executeSql(SQLiteDatabase.java:2229)
+	at android.database.sqlite.SQLiteDatabase.execSQL(SQLiteDatabase.java:2148)
+	at com.lafina.capstone.reminders.ReminderStore.transaction(ReminderStore.kt:269)
+	... 37 more
+
+Error in snoozeChangesGenerationAndOldTimeoutCannotConsumeIt(com.lafina.capstone.reminders.ReminderStoreTest):
+com.lafina.capstone.reminders.RecoverableStoreException: DATABASE_OPERATION_FAILED
+	at com.lafina.capstone.reminders.ReminderStore.transaction(ReminderStore.kt:292)
+	at com.lafina.capstone.reminders.ReminderStore.claimDue(ReminderStore.kt:57)
+	at com.lafina.capstone.reminders.ReminderStoreTest.snoozeChangesGenerationAndOldTimeoutCannotConsumeIt(ReminderStoreTest.kt:141)
+	... 34 trimmed
+Caused by: android.database.sqlite.SQLiteException: unknown error (code 0 SQLITE_OK): Queries can be performed using SQLiteDatabase query or rawQuery methods only.
+	at android.database.sqlite.SQLiteConnection.nativeExecuteForChangedRowCount(Native Method)
+	at android.database.sqlite.SQLiteConnection.executeForChangedRowCount(SQLiteConnection.java:947)
+	at android.database.sqlite.SQLiteSession.executeForChangedRowCount(SQLiteSession.java:791)
+	at android.database.sqlite.SQLiteStatement.executeUpdateDelete(SQLiteStatement.java:68)
+	at android.database.sqlite.SQLiteDatabase.executeSql(SQLiteDatabase.java:2229)
+	at android.database.sqlite.SQLiteDatabase.execSQL(SQLiteDatabase.java:2148)
+	at com.lafina.capstone.reminders.ReminderStore.transaction(ReminderStore.kt:269)
+	... 37 more
+.
+Error in deletedOrCompletedSourceCannotRing(com.lafina.capstone.reminders.ReminderStoreTest):
+com.lafina.capstone.reminders.RecoverableStoreException: DATABASE_OPERATION_FAILED
+	at com.lafina.capstone.reminders.ReminderStore.transaction(ReminderStore.kt:292)
+	at com.lafina.capstone.reminders.ReminderStore.claimDue(ReminderStore.kt:57)
+	at com.lafina.capstone.reminders.ReminderStoreTest.deletedOrCompletedSourceCannotRing(ReminderStoreTest.kt:160)
+	... 34 trimmed
+Caused by: android.database.sqlite.SQLiteException: unknown error (code 0 SQLITE_OK): Queries can be performed using SQLiteDatabase query or rawQuery methods only.
+	at android.database.sqlite.SQLiteConnection.nativeExecuteForChangedRowCount(Native Method)
+	at android.database.sqlite.SQLiteConnection.executeForChangedRowCount(SQLiteConnection.java:947)
+	at android.database.sqlite.SQLiteSession.executeForChangedRowCount(SQLiteSession.java:791)
+	at android.database.sqlite.SQLiteStatement.executeUpdateDelete(SQLiteStatement.java:68)
+	at android.database.sqlite.SQLiteDatabase.executeSql(SQLiteDatabase.java:2229)
+	at android.database.sqlite.SQLiteDatabase.execSQL(SQLiteDatabase.java:2148)
+	at com.lafina.capstone.reminders.ReminderStore.transaction(ReminderStore.kt:269)
+	... 37 more
+
+Error in concurrentClaimsHaveOneWinner(com.lafina.capstone.reminders.ReminderStoreTest):
+java.util.concurrent.ExecutionException: com.lafina.capstone.reminders.RecoverableStoreException: DATABASE_OPERATION_FAILED
+	at java.util.concurrent.FutureTask.report(FutureTask.java:124)
+	at java.util.concurrent.FutureTask.get(FutureTask.java:207)
+	at com.lafina.capstone.reminders.ReminderStoreTest.concurrentClaimsHaveOneWinner(ReminderStoreTest.kt:119)
+	... 34 trimmed
+Caused by: com.lafina.capstone.reminders.RecoverableStoreException: DATABASE_OPERATION_FAILED
+	at com.lafina.capstone.reminders.ReminderStore.transaction(ReminderStore.kt:292)
+	at com.lafina.capstone.reminders.ReminderStore.claimDue(ReminderStore.kt:57)
+	at com.lafina.capstone.reminders.ReminderStoreTest.concurrentClaimsHaveOneWinner$lambda$8$lambda$7(ReminderStoreTest.kt:115)
+	at com.lafina.capstone.reminders.ReminderStoreTest.$r8$lambda$bGlfCWaQKOI4lNOjfBofJip158g(ReminderStoreTest.kt:0)
+	at com.lafina.capstone.reminders.ReminderStoreTest$$ExternalSyntheticLambda4.call(D8$$SyntheticClass:0)
+	at java.util.concurrent.FutureTask.run(FutureTask.java:328)
+	at java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1100)
+	at java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:624)
+	at java.lang.Thread.run(Thread.java:1571)
+Caused by: android.database.sqlite.SQLiteException: unknown error (code 0 SQLITE_OK): Queries can be performed using SQLiteDatabase query or rawQuery methods only.
+	at android.database.sqlite.SQLiteConnection.nativeExecuteForChangedRowCount(Native Method)
+	at android.database.sqlite.SQLiteConnection.executeForChangedRowCount(SQLiteConnection.java:947)
+	at android.database.sqlite.SQLiteSession.executeForChangedRowCount(SQLiteSession.java:791)
+	at android.database.sqlite.SQLiteStatement.executeUpdateDelete(SQLiteStatement.java:68)
+	at android.database.sqlite.SQLiteDatabase.executeSql(SQLiteDatabase.java:2229)
+	at android.database.sqlite.SQLiteDatabase.execSQL(SQLiteDatabase.java:2148)
+	at com.lafina.capstone.reminders.ReminderStore.transaction(ReminderStore.kt:269)
+	... 8 more
+
+Error in registrationCacheAndDiagnosticsAreBoundedAndRedacted(com.lafina.capstone.reminders.ReminderStoreTest):
+com.lafina.capstone.reminders.RecoverableStoreException: DATABASE_OPERATION_FAILED
+	at com.lafina.capstone.reminders.ReminderStore.transaction(ReminderStore.kt:292)
+	at com.lafina.capstone.reminders.ReminderStore.upsertRegistration(ReminderStore.kt:214)
+	at com.lafina.capstone.reminders.ReminderStoreTest.registrationCacheAndDiagnosticsAreBoundedAndRedacted(ReminderStoreTest.kt:188)
+	... 34 trimmed
+Caused by: android.database.sqlite.SQLiteException: unknown error (code 0 SQLITE_OK): Queries can be performed using SQLiteDatabase query or rawQuery methods only.
+	at android.database.sqlite.SQLiteConnection.nativeExecuteForChangedRowCount(Native Method)
+	at android.database.sqlite.SQLiteConnection.executeForChangedRowCount(SQLiteConnection.java:947)
+	at android.database.sqlite.SQLiteSession.executeForChangedRowCount(SQLiteSession.java:791)
+	at android.database.sqlite.SQLiteStatement.executeUpdateDelete(SQLiteStatement.java:68)
+	at android.database.sqlite.SQLiteDatabase.executeSql(SQLiteDatabase.java:2229)
+	at android.database.sqlite.SQLiteDatabase.execSQL(SQLiteDatabase.java:2148)
+	at com.lafina.capstone.reminders.ReminderStore.transaction(ReminderStore.kt:269)
+	... 37 more
+
+Error in unmigratedDatabaseIsRejectedWithoutChangingVersion(com.lafina.capstone.reminders.ReminderStoreTest):
+org.junit.ComparisonFailure: expected:<[SCHEMA_NOT_READY]> but was:<[DATABASE_OPERATION_FAILED]>
+	at org.junit.Assert.assertEquals(Assert.java:117)
+	at org.junit.Assert.assertEquals(Assert.java:146)
+	at com.lafina.capstone.reminders.ReminderStoreTest.unmigratedDatabaseIsRejectedWithoutChangingVersion(ReminderStoreTest.kt:68)
+.
+Error in sourceTimeChangeInvalidatesOldOccurrenceEvenWithoutGenerationUpdate(com.lafina.capstone.reminders.ReminderStoreTest):
+com.lafina.capstone.reminders.RecoverableStoreException: DATABASE_OPERATION_FAILED
+	at com.lafina.capstone.reminders.ReminderStore.transaction(ReminderStore.kt:292)
+	at com.lafina.capstone.reminders.ReminderStore.claimDue(ReminderStore.kt:57)
+	at com.lafina.capstone.reminders.ReminderStoreTest.sourceTimeChangeInvalidatesOldOccurrenceEvenWithoutGenerationUpdate(ReminderStoreTest.kt:167)
+	... 34 trimmed
+Caused by: android.database.sqlite.SQLiteException: unknown error (code 0 SQLITE_OK): Queries can be performed using SQLiteDatabase query or rawQuery methods only.
+	at android.database.sqlite.SQLiteConnection.nativeExecuteForChangedRowCount(Native Method)
+	at android.database.sqlite.SQLiteConnection.executeForChangedRowCount(SQLiteConnection.java:947)
+	at android.database.sqlite.SQLiteSession.executeForChangedRowCount(SQLiteSession.java:791)
+	at android.database.sqlite.SQLiteStatement.executeUpdateDelete(SQLiteStatement.java:68)
+	at android.database.sqlite.SQLiteDatabase.executeSql(SQLiteDatabase.java:2229)
+	at android.database.sqlite.SQLiteDatabase.execSQL(SQLiteDatabase.java:2148)
+	at com.lafina.capstone.reminders.ReminderStore.transaction(ReminderStore.kt:269)
+	... 37 more
+
+Error in notificationReceiptRequiresLiveUnexpiredRingAndDoesNotRepeat(com.lafina.capstone.reminders.ReminderStoreTest):
+com.lafina.capstone.reminders.RecoverableStoreException: DATABASE_OPERATION_FAILED
+	at com.lafina.capstone.reminders.ReminderStore.transaction(ReminderStore.kt:292)
+	at com.lafina.capstone.reminders.ReminderStore.markNotificationPosted(ReminderStore.kt:168)
+	at com.lafina.capstone.reminders.ReminderStoreTest.notificationReceiptRequiresLiveUnexpiredRingAndDoesNotRepeat(ReminderStoreTest.kt:172)
+	... 34 trimmed
+Caused by: android.database.sqlite.SQLiteException: unknown error (code 0 SQLITE_OK): Queries can be performed using SQLiteDatabase query or rawQuery methods only.
+	at android.database.sqlite.SQLiteConnection.nativeExecuteForChangedRowCount(Native Method)
+	at android.database.sqlite.SQLiteConnection.executeForChangedRowCount(SQLiteConnection.java:947)
+	at android.database.sqlite.SQLiteSession.executeForChangedRowCount(SQLiteSession.java:791)
+	at android.database.sqlite.SQLiteStatement.executeUpdateDelete(SQLiteStatement.java:68)
+	at android.database.sqlite.SQLiteDatabase.executeSql(SQLiteDatabase.java:2229)
+	at android.database.sqlite.SQLiteDatabase.execSQL(SQLiteDatabase.java:2148)
+	at com.lafina.capstone.reminders.ReminderStore.transaction(ReminderStore.kt:269)
+	... 37 more
+
+
+Time: 2.909
+There were 14 failures:
+1) quietHoursDeferUsingSavedGlobalZoneAndFenceOldCallback(com.lafina.capstone.reminders.ReminderStoreTest)
+com.lafina.capstone.reminders.RecoverableStoreException: DATABASE_OPERATION_FAILED
+	at com.lafina.capstone.reminders.ReminderStore.transaction(ReminderStore.kt:292)
+	at com.lafina.capstone.reminders.ReminderStore.claimDue(ReminderStore.kt:57)
+	at com.lafina.capstone.reminders.ReminderStoreTest.quietHoursDeferUsingSavedGlobalZoneAndFenceOldCallback(ReminderStoreTest.kt:203)
+	... 34 trimmed
+Caused by: android.database.sqlite.SQLiteException: unknown error (code 0 SQLITE_OK): Queries can be performed using SQLiteDatabase query or rawQuery methods only.
+	at android.database.sqlite.SQLiteConnection.nativeExecuteForChangedRowCount(Native Method)
+	at android.database.sqlite.SQLiteConnection.executeForChangedRowCount(SQLiteConnection.java:947)
+	at android.database.sqlite.SQLiteSession.executeForChangedRowCount(SQLiteSession.java:791)
+	at android.database.sqlite.SQLiteStatement.executeUpdateDelete(SQLiteStatement.java:68)
+	at android.database.sqlite.SQLiteDatabase.executeSql(SQLiteDatabase.java:2229)
+	at android.database.sqlite.SQLiteDatabase.execSQL(SQLiteDatabase.java:2148)
+	at com.lafina.capstone.reminders.ReminderStore.transaction(ReminderStore.kt:269)
+	... 37 more
+2) nonDeleteJournalIsRejectedWithoutSwitchingMode(com.lafina.capstone.reminders.ReminderStoreTest)
+org.junit.ComparisonFailure: expected:<[ROLLBACK_JOURNAL_REQUIR]ED> but was:<[DATABASE_OPERATION_FAIL]ED>
+	at org.junit.Assert.assertEquals(Assert.java:117)
+	at org.junit.Assert.assertEquals(Assert.java:146)
+	at com.lafina.capstone.reminders.ReminderStoreTest.nonDeleteJournalIsRejectedWithoutSwitchingMode(ReminderStoreTest.kt:80)
+3) deniedNotificationsPreserveManualPendingStateWithFailureReason(com.lafina.capstone.reminders.ReminderStoreTest)
+com.lafina.capstone.reminders.RecoverableStoreException: DATABASE_OPERATION_FAILED
+	at com.lafina.capstone.reminders.ReminderStore.transaction(ReminderStore.kt:292)
+	at com.lafina.capstone.reminders.ReminderStore.claimDue(ReminderStore.kt:57)
+	at com.lafina.capstone.reminders.ReminderStoreTest.deniedNotificationsPreserveManualPendingStateWithFailureReason(ReminderStoreTest.kt:125)
+	... 34 trimmed
+Caused by: android.database.sqlite.SQLiteException: unknown error (code 0 SQLITE_OK): Queries can be performed using SQLiteDatabase query or rawQuery methods only.
+	at android.database.sqlite.SQLiteConnection.nativeExecuteForChangedRowCount(Native Method)
+	at android.database.sqlite.SQLiteConnection.executeForChangedRowCount(SQLiteConnection.java:947)
+	at android.database.sqlite.SQLiteSession.executeForChangedRowCount(SQLiteSession.java:791)
+	at android.database.sqlite.SQLiteStatement.executeUpdateDelete(SQLiteStatement.java:68)
+	at android.database.sqlite.SQLiteDatabase.executeSql(SQLiteDatabase.java:2229)
+	at android.database.sqlite.SQLiteDatabase.execSQL(SQLiteDatabase.java:2148)
+	at com.lafina.capstone.reminders.ReminderStore.transaction(ReminderStore.kt:269)
+	... 37 more
+4) repeatedOrStaleCallbacksDoNotIncrementAttempts(com.lafina.capstone.reminders.ReminderStoreTest)
+com.lafina.capstone.reminders.RecoverableStoreException: DATABASE_OPERATION_FAILED
+	at com.lafina.capstone.reminders.ReminderStore.transaction(ReminderStore.kt:292)
+	at com.lafina.capstone.reminders.ReminderStore.claimDue(ReminderStore.kt:57)
+	at com.lafina.capstone.reminders.ReminderStoreTest.repeatedOrStaleCallbacksDoNotIncrementAttempts(ReminderStoreTest.kt:102)
+	... 34 trimmed
+Caused by: android.database.sqlite.SQLiteException: unknown error (code 0 SQLITE_OK): Queries can be performed using SQLiteDatabase query or rawQuery methods only.
+	at android.database.sqlite.SQLiteConnection.nativeExecuteForChangedRowCount(Native Method)
+	at android.database.sqlite.SQLiteConnection.executeForChangedRowCount(SQLiteConnection.java:947)
+	at android.database.sqlite.SQLiteSession.executeForChangedRowCount(SQLiteSession.java:791)
+	at android.database.sqlite.SQLiteStatement.executeUpdateDelete(SQLiteStatement.java:68)
+	at android.database.sqlite.SQLiteDatabase.executeSql(SQLiteDatabase.java:2229)
+	at android.database.sqlite.SQLiteDatabase.execSQL(SQLiteDatabase.java:2148)
+	at com.lafina.capstone.reminders.ReminderStore.transaction(ReminderStore.kt:269)
+	... 37 more
+5) timeoutRequiresExactDeadlineAndIsIdempotent(com.lafina.capstone.reminders.ReminderStoreTest)
+com.lafina.capstone.reminders.RecoverableStoreException: DATABASE_OPERATION_FAILED
+	at com.lafina.capstone.reminders.ReminderStore.transaction(ReminderStore.kt:292)
+	at com.lafina.capstone.reminders.ReminderStore.claimDue(ReminderStore.kt:57)
+	at com.lafina.capstone.reminders.ReminderStoreTest.timeoutRequiresExactDeadlineAndIsIdempotent(ReminderStoreTest.kt:151)
+	... 34 trimmed
+Caused by: android.database.sqlite.SQLiteException: unknown error (code 0 SQLITE_OK): Queries can be performed using SQLiteDatabase query or rawQuery methods only.
+	at android.database.sqlite.SQLiteConnection.nativeExecuteForChangedRowCount(Native Method)
+	at android.database.sqlite.SQLiteConnection.executeForChangedRowCount(SQLiteConnection.java:947)
+	at android.database.sqlite.SQLiteSession.executeForChangedRowCount(SQLiteSession.java:791)
+	at android.database.sqlite.SQLiteStatement.executeUpdateDelete(SQLiteStatement.java:68)
+	at android.database.sqlite.SQLiteDatabase.executeSql(SQLiteDatabase.java:2229)
+	at android.database.sqlite.SQLiteDatabase.execSQL(SQLiteDatabase.java:2148)
+	at com.lafina.capstone.reminders.ReminderStore.transaction(ReminderStore.kt:269)
+	... 37 more
+6) overdueReminderMissesEvenWhenNotificationPermissionIsDenied(com.lafina.capstone.reminders.ReminderStoreTest)
+com.lafina.capstone.reminders.RecoverableStoreException: DATABASE_OPERATION_FAILED
+	at com.lafina.capstone.reminders.ReminderStore.transaction(ReminderStore.kt:292)
+	at com.lafina.capstone.reminders.ReminderStore.claimDue(ReminderStore.kt:57)
+	at com.lafina.capstone.reminders.ReminderStoreTest.overdueReminderMissesEvenWhenNotificationPermissionIsDenied(ReminderStoreTest.kt:135)
+	... 34 trimmed
+Caused by: android.database.sqlite.SQLiteException: unknown error (code 0 SQLITE_OK): Queries can be performed using SQLiteDatabase query or rawQuery methods only.
+	at android.database.sqlite.SQLiteConnection.nativeExecuteForChangedRowCount(Native Method)
+	at android.database.sqlite.SQLiteConnection.executeForChangedRowCount(SQLiteConnection.java:947)
+	at android.database.sqlite.SQLiteSession.executeForChangedRowCount(SQLiteSession.java:791)
+	at android.database.sqlite.SQLiteStatement.executeUpdateDelete(SQLiteStatement.java:68)
+	at android.database.sqlite.SQLiteDatabase.executeSql(SQLiteDatabase.java:2229)
+	at android.database.sqlite.SQLiteDatabase.execSQL(SQLiteDatabase.java:2148)
+	at com.lafina.capstone.reminders.ReminderStore.transaction(ReminderStore.kt:269)
+	... 37 more
+7) claimAndAcknowledgementArePairedAndNeverCompleteTask(com.lafina.capstone.reminders.ReminderStoreTest)
+com.lafina.capstone.reminders.RecoverableStoreException: DATABASE_OPERATION_FAILED
+	at com.lafina.capstone.reminders.ReminderStore.transaction(ReminderStore.kt:292)
+	at com.lafina.capstone.reminders.ReminderStore.claimDue(ReminderStore.kt:57)
+	at com.lafina.capstone.reminders.ReminderStoreTest.claimAndAcknowledgementArePairedAndNeverCompleteTask(ReminderStoreTest.kt:91)
+	... 34 trimmed
+Caused by: android.database.sqlite.SQLiteException: unknown error (code 0 SQLITE_OK): Queries can be performed using SQLiteDatabase query or rawQuery methods only.
+	at android.database.sqlite.SQLiteConnection.nativeExecuteForChangedRowCount(Native Method)
+	at android.database.sqlite.SQLiteConnection.executeForChangedRowCount(SQLiteConnection.java:947)
+	at android.database.sqlite.SQLiteSession.executeForChangedRowCount(SQLiteSession.java:791)
+	at android.database.sqlite.SQLiteStatement.executeUpdateDelete(SQLiteStatement.java:68)
+	at android.database.sqlite.SQLiteDatabase.executeSql(SQLiteDatabase.java:2229)
+	at android.database.sqlite.SQLiteDatabase.execSQL(SQLiteDatabase.java:2148)
+	at com.lafina.capstone.reminders.ReminderStore.transaction(ReminderStore.kt:269)
+	... 37 more
+8) snoozeChangesGenerationAndOldTimeoutCannotConsumeIt(com.lafina.capstone.reminders.ReminderStoreTest)
+com.lafina.capstone.reminders.RecoverableStoreException: DATABASE_OPERATION_FAILED
+	at com.lafina.capstone.reminders.ReminderStore.transaction(ReminderStore.kt:292)
+	at com.lafina.capstone.reminders.ReminderStore.claimDue(ReminderStore.kt:57)
+	at com.lafina.capstone.reminders.ReminderStoreTest.snoozeChangesGenerationAndOldTimeoutCannotConsumeIt(ReminderStoreTest.kt:141)
+	... 34 trimmed
+Caused by: android.database.sqlite.SQLiteException: unknown error (code 0 SQLITE_OK): Queries can be performed using SQLiteDatabase query or rawQuery methods only.
+	at android.database.sqlite.SQLiteConnection.nativeExecuteForChangedRowCount(Native Method)
+	at android.database.sqlite.SQLiteConnection.executeForChangedRowCount(SQLiteConnection.java:947)
+	at android.database.sqlite.SQLiteSession.executeForChangedRowCount(SQLiteSession.java:791)
+	at android.database.sqlite.SQLiteStatement.executeUpdateDelete(SQLiteStatement.java:68)
+	at android.database.sqlite.SQLiteDatabase.executeSql(SQLiteDatabase.java:2229)
+	at android.database.sqlite.SQLiteDatabase.execSQL(SQLiteDatabase.java:2148)
+	at com.lafina.capstone.reminders.ReminderStore.transaction(ReminderStore.kt:269)
+	... 37 more
+9) deletedOrCompletedSourceCannotRing(com.lafina.capstone.reminders.ReminderStoreTest)
+com.lafina.capstone.reminders.RecoverableStoreException: DATABASE_OPERATION_FAILED
+	at com.lafina.capstone.reminders.ReminderStore.transaction(ReminderStore.kt:292)
+	at com.lafina.capstone.reminders.ReminderStore.claimDue(ReminderStore.kt:57)
+	at com.lafina.capstone.reminders.ReminderStoreTest.deletedOrCompletedSourceCannotRing(ReminderStoreTest.kt:160)
+	... 34 trimmed
+Caused by: android.database.sqlite.SQLiteException: unknown error (code 0 SQLITE_OK): Queries can be performed using SQLiteDatabase query or rawQuery methods only.
+	at android.database.sqlite.SQLiteConnection.nativeExecuteForChangedRowCount(Native Method)
+	at android.database.sqlite.SQLiteConnection.executeForChangedRowCount(SQLiteConnection.java:947)
+	at android.database.sqlite.SQLiteSession.executeForChangedRowCount(SQLiteSession.java:791)
+	at android.database.sqlite.SQLiteStatement.executeUpdateDelete(SQLiteStatement.java:68)
+	at android.database.sqlite.SQLiteDatabase.executeSql(SQLiteDatabase.java:2229)
+	at android.database.sqlite.SQLiteDatabase.execSQL(SQLiteDatabase.java:2148)
+	at com.lafina.capstone.reminders.ReminderStore.transaction(ReminderStore.kt:269)
+	... 37 more
+10) concurrentClaimsHaveOneWinner(com.lafina.capstone.reminders.ReminderStoreTest)
+java.util.concurrent.ExecutionException: com.lafina.capstone.reminders.RecoverableStoreException: DATABASE_OPERATION_FAILED
+	at java.util.concurrent.FutureTask.report(FutureTask.java:124)
+	at java.util.concurrent.FutureTask.get(FutureTask.java:207)
+	at com.lafina.capstone.reminders.ReminderStoreTest.concurrentClaimsHaveOneWinner(ReminderStoreTest.kt:119)
+	... 34 trimmed
+Caused by: com.lafina.capstone.reminders.RecoverableStoreException: DATABASE_OPERATION_FAILED
+	at com.lafina.capstone.reminders.ReminderStore.transaction(ReminderStore.kt:292)
+	at com.lafina.capstone.reminders.ReminderStore.claimDue(ReminderStore.kt:57)
+	at com.lafina.capstone.reminders.ReminderStoreTest.concurrentClaimsHaveOneWinner$lambda$8$lambda$7(ReminderStoreTest.kt:115)
+	at com.lafina.capstone.reminders.ReminderStoreTest.$r8$lambda$bGlfCWaQKOI4lNOjfBofJip158g(ReminderStoreTest.kt:0)
+	at com.lafina.capstone.reminders.ReminderStoreTest$$ExternalSyntheticLambda4.call(D8$$SyntheticClass:0)
+	at java.util.concurrent.FutureTask.run(FutureTask.java:328)
+	at java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1100)
+	at java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:624)
+	at java.lang.Thread.run(Thread.java:1571)
+Caused by: android.database.sqlite.SQLiteException: unknown error (code 0 SQLITE_OK): Queries can be performed using SQLiteDatabase query or rawQuery methods only.
+	at android.database.sqlite.SQLiteConnection.nativeExecuteForChangedRowCount(Native Method)
+	at android.database.sqlite.SQLiteConnection.executeForChangedRowCount(SQLiteConnection.java:947)
+	at android.database.sqlite.SQLiteSession.executeForChangedRowCount(SQLiteSession.java:791)
+	at android.database.sqlite.SQLiteStatement.executeUpdateDelete(SQLiteStatement.java:68)
+	at android.database.sqlite.SQLiteDatabase.executeSql(SQLiteDatabase.java:2229)
+	at android.database.sqlite.SQLiteDatabase.execSQL(SQLiteDatabase.java:2148)
+	at com.lafina.capstone.reminders.ReminderStore.transaction(ReminderStore.kt:269)
+	... 8 more
+11) registrationCacheAndDiagnosticsAreBoundedAndRedacted(com.lafina.capstone.reminders.ReminderStoreTest)
+com.lafina.capstone.reminders.RecoverableStoreException: DATABASE_OPERATION_FAILED
+	at com.lafina.capstone.reminders.ReminderStore.transaction(ReminderStore.kt:292)
+	at com.lafina.capstone.reminders.ReminderStore.upsertRegistration(ReminderStore.kt:214)
+	at com.lafina.capstone.reminders.ReminderStoreTest.registrationCacheAndDiagnosticsAreBoundedAndRedacted(ReminderStoreTest.kt:188)
+	... 34 trimmed
+Caused by: android.database.sqlite.SQLiteException: unknown error (code 0 SQLITE_OK): Queries can be performed using SQLiteDatabase query or rawQuery methods only.
+	at android.database.sqlite.SQLiteConnection.nativeExecuteForChangedRowCount(Native Method)
+	at android.database.sqlite.SQLiteConnection.executeForChangedRowCount(SQLiteConnection.java:947)
+	at android.database.sqlite.SQLiteSession.executeForChangedRowCount(SQLiteSession.java:791)
+	at android.database.sqlite.SQLiteStatement.executeUpdateDelete(SQLiteStatement.java:68)
+	at android.database.sqlite.SQLiteDatabase.executeSql(SQLiteDatabase.java:2229)
+	at android.database.sqlite.SQLiteDatabase.execSQL(SQLiteDatabase.java:2148)
+	at com.lafina.capstone.reminders.ReminderStore.transaction(ReminderStore.kt:269)
+	... 37 more
+12) unmigratedDatabaseIsRejectedWithoutChangingVersion(com.lafina.capstone.reminders.ReminderStoreTest)
+org.junit.ComparisonFailure: expected:<[SCHEMA_NOT_READY]> but was:<[DATABASE_OPERATION_FAILED]>
+	at org.junit.Assert.assertEquals(Assert.java:117)
+	at org.junit.Assert.assertEquals(Assert.java:146)
+	at com.lafina.capstone.reminders.ReminderStoreTest.unmigratedDatabaseIsRejectedWithoutChangingVersion(ReminderStoreTest.kt:68)
+13) sourceTimeChangeInvalidatesOldOccurrenceEvenWithoutGenerationUpdate(com.lafina.capstone.reminders.ReminderStoreTest)
+com.lafina.capstone.reminders.RecoverableStoreException: DATABASE_OPERATION_FAILED
+	at com.lafina.capstone.reminders.ReminderStore.transaction(ReminderStore.kt:292)
+	at com.lafina.capstone.reminders.ReminderStore.claimDue(ReminderStore.kt:57)
+	at com.lafina.capstone.reminders.ReminderStoreTest.sourceTimeChangeInvalidatesOldOccurrenceEvenWithoutGenerationUpdate(ReminderStoreTest.kt:167)
+	... 34 trimmed
+Caused by: android.database.sqlite.SQLiteException: unknown error (code 0 SQLITE_OK): Queries can be performed using SQLiteDatabase query or rawQuery methods only.
+	at android.database.sqlite.SQLiteConnection.nativeExecuteForChangedRowCount(Native Method)
+	at android.database.sqlite.SQLiteConnection.executeForChangedRowCount(SQLiteConnection.java:947)
+	at android.database.sqlite.SQLiteSession.executeForChangedRowCount(SQLiteSession.java:791)
+	at android.database.sqlite.SQLiteStatement.executeUpdateDelete(SQLiteStatement.java:68)
+	at android.database.sqlite.SQLiteDatabase.executeSql(SQLiteDatabase.java:2229)
+	at android.database.sqlite.SQLiteDatabase.execSQL(SQLiteDatabase.java:2148)
+	at com.lafina.capstone.reminders.ReminderStore.transaction(ReminderStore.kt:269)
+	... 37 more
+14) notificationReceiptRequiresLiveUnexpiredRingAndDoesNotRepeat(com.lafina.capstone.reminders.ReminderStoreTest)
+com.lafina.capstone.reminders.RecoverableStoreException: DATABASE_OPERATION_FAILED
+	at com.lafina.capstone.reminders.ReminderStore.transaction(ReminderStore.kt:292)
+	at com.lafina.capstone.reminders.ReminderStore.markNotificationPosted(ReminderStore.kt:168)
+	at com.lafina.capstone.reminders.ReminderStoreTest.notificationReceiptRequiresLiveUnexpiredRingAndDoesNotRepeat(ReminderStoreTest.kt:172)
+	... 34 trimmed
+Caused by: android.database.sqlite.SQLiteException: unknown error (code 0 SQLITE_OK): Queries can be performed using SQLiteDatabase query or rawQuery methods only.
+	at android.database.sqlite.SQLiteConnection.nativeExecuteForChangedRowCount(Native Method)
+	at android.database.sqlite.SQLiteConnection.executeForChangedRowCount(SQLiteConnection.java:947)
+	at android.database.sqlite.SQLiteSession.executeForChangedRowCount(SQLiteSession.java:791)
+	at android.database.sqlite.SQLiteStatement.executeUpdateDelete(SQLiteStatement.java:68)
+	at android.database.sqlite.SQLiteDatabase.executeSql(SQLiteDatabase.java:2229)
+	at android.database.sqlite.SQLiteDatabase.execSQL(SQLiteDatabase.java:2148)
+	at com.lafina.capstone.reminders.ReminderStore.transaction(ReminderStore.kt:269)
+	... 37 more
+
+FAILURES!!!
+Tests run: 17,  Failures: 14
+
+

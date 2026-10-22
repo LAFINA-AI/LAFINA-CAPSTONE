@@ -1,0 +1,181 @@
+{
+  "utc": "2026-10-22T17:57:08.304043+00:00",
+  "device": {
+    "model": "sdk_gphone16k_x86_64",
+    "api": 37,
+    "abi": "x86_64",
+    "ram": "MemTotal:        4008376 kB",
+    "physical": false
+  },
+  "buildLabel": "FINAL with process-lifetime registration reuse",
+  "installedApkSha256": "eeae7d5a42e714f5b63e5298b088672acac7c4db8fa4ad63133d4903b5afeb9b",
+  "checks": [
+    {
+      "check": "final locked full-screen alert",
+      "result": "PASS",
+      "utc": "2026-10-22T18:03:43.928837+00:00",
+      "observed": "With exact/notification/full-screen access allowed and explicit opt-in, screen-off alarm automatically displayed native simulated reminder; explicit Dismiss acknowledged it and task stayedTODO. No notification tap or direct Activity start was used."
+    },
+    {
+      "check": "final force-stop/reopen restores future alarm",
+      "result": "PASS",
+      "utc": "2026-10-22T18:11:06.153173+00:00",
+      "observed": "Task was saved, UID force-stopped then reopened before due; notification arrived while app backgrounded before the second app open. Native Answer ACK succeeded; active counts returned tozero. Delivery while remaining force-stopped is not promised."
+    },
+    {
+      "check": "final reboot first attempt, unattended UI not established",
+      "result": "INCONCLUSIVE",
+      "utc": "2026-10-22T18:27:42.042173+00:00",
+      "observed": "Actual reboot completed after a slow boot; initial adb getprop poll exceeded its8second subprocess timeout. Follow-up at4seconds after unlock found no reminder process; main app was subsequently opened. System events show mainprocess start18:22:11.077Z, nativeprocess broadcast start18:22:14.887Z; notificationposted18:22:19.152Z forplanned18:17:56.641Z. BOOT broadcast eventually dispatched, but this attempt does not prove unattended UI delivery."
+    },
+    {
+      "check": "final overlapping native reminders",
+      "result": "PASS",
+      "utc": "2026-10-22T18:28:02.381104+00:00",
+      "observed": "Two distinct synthetic alarms were simultaneously RINGING with two independent registrations; captured planned and actual native timestamps."
+    },
+    {
+      "check": "final background response-window expiry",
+      "result": "PASS",
+      "utc": "2026-10-22T18:31:21.338392+00:00",
+      "observed": "Both notifications absent after response windows in earlier shade check. Both native RING_TIMEOUT events preceded app return; recheck confirms pairedMISSED, taskTODO and nativecounts0. UI navigation helper retry did not alter domain data."
+    },
+    {
+      "check": "final reboot/unlock without opening main app",
+      "result": "PASS",
+      "utc": "2026-10-22T18:33:57.121359+00:00",
+      "observed": "PASS actual reboot. After boot/unlock, observed real notification while main app process remained absent throughout5-second polling; private reminder process was running. Notification tap opened native shell, Answer ACK returned active counts tozero. Boot broadcast dispatch may lag startup; timing remains separate from awake observations. No secure-lock/physical-device claim."
+    },
+    {
+      "check": "final cleanup and review-ready emulator",
+      "result": "PASS",
+      "utc": "2026-10-22T18:35:29.252671+00:00",
+      "observed": "Delivery disabled and in-app full-screen opt-inoff; nativeactivecounts0pending/0ringing/0registered/0failed. Platformnotification/exact grants retained for owner review. Originalairplane0/Wi-Fi1/mobile-data1 restored. Synthetic test records retained with explicit QA titles; existing planner/settings notreset."
+    }
+  ],
+  "samples": [
+    {
+      "event": "NOTIFICATION_POSTED",
+      "atUtc": "2026-10-22T18:02:53.055Z",
+      "plannedAt": "2026-10-22T18:02:52.886Z",
+      "lagMs": 169.0
+    },
+    {
+      "event": "CLAIM_RING",
+      "atUtc": "2026-10-22T18:02:52.956Z",
+      "plannedAt": "2026-10-22T18:02:52.886Z",
+      "lagMs": 70.0
+    },
+    {
+      "event": "NOTIFICATION_POSTED",
+      "atUtc": "2026-10-22T18:09:39.362Z",
+      "plannedAt": "2026-10-22T18:09:39.261Z",
+      "lagMs": 101.0
+    },
+    {
+      "event": "CLAIM_RING",
+      "atUtc": "2026-10-22T18:09:39.275Z",
+      "plannedAt": "2026-10-22T18:09:39.261Z",
+      "lagMs": 14.0
+    },
+    {
+      "event": "CLAIM_RING",
+      "atUtc": "2026-10-22T18:22:17.972Z",
+      "plannedAt": "2026-10-22T18:17:56.641Z",
+      "lagMs": 261331.0
+    },
+    {
+      "event": "NOTIFICATION_POSTED",
+      "atUtc": "2026-10-22T18:22:19.152Z",
+      "plannedAt": "2026-10-22T18:17:56.641Z",
+      "lagMs": 262511.0
+    },
+    {
+      "event": "NOTIFICATION_POSTED",
+      "atUtc": "2026-10-22T18:27:40.405Z",
+      "plannedAt": "2026-10-22T18:27:40.368Z",
+      "lagMs": 37.0
+    },
+    {
+      "event": "CLAIM_RING",
+      "atUtc": "2026-10-22T18:27:40.374Z",
+      "plannedAt": "2026-10-22T18:27:40.368Z",
+      "lagMs": 6.0
+    },
+    {
+      "event": "NOTIFICATION_POSTED",
+      "atUtc": "2026-10-22T18:27:33.936Z",
+      "plannedAt": "2026-10-22T18:27:33.903Z",
+      "lagMs": 33.0
+    },
+    {
+      "event": "CLAIM_RING",
+      "atUtc": "2026-10-22T18:27:33.909Z",
+      "plannedAt": "2026-10-22T18:27:33.903Z",
+      "lagMs": 6.0
+    },
+    {
+      "event": "NOTIFICATION_POSTED",
+      "atUtc": "2026-10-22T18:25:01.831Z",
+      "plannedAt": "2026-10-22T18:25:01.754Z",
+      "lagMs": 77.0
+    },
+    {
+      "event": "CLAIM_RING",
+      "atUtc": "2026-10-22T18:25:01.772Z",
+      "plannedAt": "2026-10-22T18:25:01.754Z",
+      "lagMs": 18.0
+    },
+    {
+      "event": "NOTIFICATION_POSTED",
+      "atUtc": "2026-10-22T18:32:54.059Z",
+      "plannedAt": "2026-10-22T18:32:12.600Z",
+      "lagMs": 41459.0
+    },
+    {
+      "event": "CLAIM_RING",
+      "atUtc": "2026-10-22T18:32:53.903Z",
+      "plannedAt": "2026-10-22T18:32:12.600Z",
+      "lagMs": 41303.0
+    }
+  ],
+  "physicalPhone": "NOT RUN",
+  "excludedHistoricalTimingEvents": [
+    {
+      "event": "NOTIFICATION_POSTED",
+      "atUtc": "2026-10-22T17:38:48.919Z",
+      "plannedAt": "2026-10-22T17:38:46.312Z",
+      "lagMs": 2607.0
+    },
+    {
+      "event": "CLAIM_RING",
+      "atUtc": "2026-10-22T17:38:48.651Z",
+      "plannedAt": "2026-10-22T17:38:46.312Z",
+      "lagMs": 2339.0
+    },
+    {
+      "event": "NOTIFICATION_POSTED",
+      "atUtc": "2026-10-22T17:38:44.236Z",
+      "plannedAt": "2026-10-22T17:38:44.177Z",
+      "lagMs": 59.0
+    }
+  ],
+  "timingFilter": "Only events at/after final test-start utc belong to final APK sample set; earlier diagnostic history retained separately.",
+  "automationAttempts": [
+    {
+      "step": "first reboot boot polling",
+      "result": "INCONCLUSIVE",
+      "cause": "ADB getprop timeout during Android startup; cleanup statusbar unavailable until boot completed. Original connectivity restored in follow-up."
+    },
+    {
+      "step": "first final overlap probe",
+      "result": "INCONCLUSIVE",
+      "cause": "Second tap reused stale screen coordinates after first save added a notice; only one synthetic task was observed. Repeated using fresh control lookup."
+    }
+  ],
+  "timeoutEvents": [
+    "RING_TIMEOUT \u00b7 2026-10-22T18:26:01.796Z \u00b7 planned 2026-10-22T18:26:01.772Z",
+    "RING_TIMEOUT \u00b7 2026-10-22T18:28:40.380Z \u00b7 planned 2026-10-22T18:28:40.374Z",
+    "RING_TIMEOUT \u00b7 2026-10-22T18:28:33.926Z \u00b7 planned 2026-10-22T18:28:33.909Z"
+  ]
+}

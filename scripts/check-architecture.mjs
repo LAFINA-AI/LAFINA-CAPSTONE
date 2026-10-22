@@ -113,20 +113,39 @@ const manifest = fs.readFileSync(
   'android/app/src/main/AndroidManifest.xml',
   'utf8',
 );
-if (
-  /android.permission.(INTERNET|RECORD_AUDIO|POST_NOTIFICATIONS|USE_FULL_SCREEN_INTENT|SCHEDULE_EXACT_ALARM)/.test(
-    manifest,
-  )
-) {
-  errors.push(
-    'Phase 01 release manifest must not request network, mic or alarm permissions',
-  );
+const allowedPermissions = new Set([
+  'POST_NOTIFICATIONS',
+  'SCHEDULE_EXACT_ALARM',
+  'USE_FULL_SCREEN_INTENT',
+  'RECEIVE_BOOT_COMPLETED',
+  'VIBRATE',
+]);
+for (const [, permission] of manifest.matchAll(
+  /<uses-permission\s+android:name="android\.permission\.([A-Z_]+)"/g,
+)) {
+  if (!allowedPermissions.has(permission)) {
+    errors.push(
+      `Phase 03 release permission outside approved alarm scope: ${permission}`,
+    );
+  }
+}
+for (const tag of manifest.matchAll(
+  /<(provider|receiver|activity)\b[^>]*android:name="\.reminders\.[^"]+"[^>]*>/g,
+)) {
+  if (
+    !tag[0].includes('android:exported="false"') ||
+    !tag[0].includes('android:process=":reminders"')
+  ) {
+    errors.push(
+      'Native reminder components must be private and isolated from the OP-SQLite process',
+    );
+  }
 }
 if (errors.length) {
   console.error(errors.join('\n'));
   process.exitCode = 1;
 } else {
   console.log(
-    `PASS: ${files.length} TypeScript modules; no import cycles, forbidden offline dependencies or premature release permissions.`,
+    `PASS: ${files.length} TypeScript modules; no import cycles or forbidden offline dependencies; Phase 03 native permissions/process boundaries checked.`,
   );
 }

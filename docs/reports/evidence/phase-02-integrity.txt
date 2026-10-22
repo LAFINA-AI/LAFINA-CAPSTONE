@@ -1,0 +1,2 @@
+Markdown files: 50; local links: 165; JSON files: 17; APK hashes: 4; current benchmark source hashes: 10.
+PASS: links/JSON/artifacts/source hashes/whitespace checks.

@@ -1,0 +1,30 @@
+{
+  "utc": "2026-10-21T17:36:05.8583420Z",
+  "device": "Android API37 x86_64 emulator; no physical phone",
+  "outcome": "PARTIAL — emulator disappeared from ADB during UI checks",
+  "passed": [
+    "Actual native SQL isolated QA checks",
+    "Synthetic task create through UI",
+    "Synthetic task title edit to version2"
+  ],
+  "notRun": [
+    "ACK via main test-tool UI",
+    "Main planner force-stop/relaunch persistence",
+    "Delete confirm via native UI",
+    "Physical phone reboot and low-end performance"
+  ],
+  "priorAttemptsRestored": true,
+  "interruptedAttemptRestoration": "NOT COMPLETED: emulator went offline, then disappeared; process not running",
+  "currentRadioState": "UNKNOWN until emulator reopens",
+  "originalSettings": {
+    "wifi_on": 1,
+    "airplane_mode_on": 0,
+    "mobile_data": 1
+  },
+  "restoreCommands": [
+    "adb -s emulator-5554 shell cmd connectivity airplane-mode disable",
+    "adb -s emulator-5554 shell svc wifi enable",
+    "adb -s emulator-5554 shell svc data enable"
+  ],
+  "note": "No student database extracted, app uninstalled, storage cleared, emulator killed or AVD launched by this phase."
+}

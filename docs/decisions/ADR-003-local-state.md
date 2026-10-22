@@ -44,3 +44,10 @@ Do not delete schedules because voice/native registration fails.
 
 Local-first/no-account direction authorized by requirements. Exact schema,
 driver build and receiver-safe native access require review in their approved phases.
+
+## Phase 02 implementation update
+
+The capstone schema and synchronous paired transaction protocol now exist; see
+[ADR-014](ADR-014-planner-transactions.md) and the [schema](../phase-02-data.md).
+Actual automated, emulator and not-run evidence belongs to the Phase02 report.
+No receiver-safe native access or AlarmManager reconciliation is implemented yet.

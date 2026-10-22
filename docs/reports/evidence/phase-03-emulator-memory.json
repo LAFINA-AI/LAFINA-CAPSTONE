@@ -1,0 +1,15 @@
+{
+  "utc": "2026-10-22T17:31:00.467357+00:00",
+  "kind": "single PSS snapshot, not peak and not a phone benchmark",
+  "build": "0.3.0-data-qa x86_64 API37",
+  "processes": {
+    "com.lafina.capstone": [
+      "TOTAL    91348    43352    26116        0   229328    44672    31605     9091",
+      "TOTAL PSS:    91348            TOTAL RSS:   229328      TOTAL SWAP (KB):        0"
+    ],
+    "com.lafina.capstone:reminders": [
+      "TOTAL    42531    24008       76        0   174696    28328    20568     4189",
+      "TOTAL PSS:    42531            TOTAL RSS:   174696      TOTAL SWAP (KB):        0"
+    ]
+  }
+}

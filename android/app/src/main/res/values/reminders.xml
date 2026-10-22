@@ -1,0 +1,14 @@
+<resources>
+  <!-- Native process mirrors the shared semantic palette; no React runtime is loaded. -->
+  <color name="reminder_background">#F8F5F0</color>
+  <color name="reminder_text">#252329</color>
+  <color name="reminder_accent">#B8002E</color>
+  <dimen name="reminder_padding">24dp</dimen>
+  <dimen name="reminder_gap">16dp</dimen>
+  <dimen name="reminder_control">48dp</dimen>
+  <style name="ReminderTheme" parent="android:style/Theme.Material.Light.NoActionBar">
+    <item name="android:colorAccent">@color/reminder_accent</item>
+    <item name="android:windowLightStatusBar">true</item>
+    <item name="android:windowBackground">@color/reminder_background</item>
+  </style>
+</resources>

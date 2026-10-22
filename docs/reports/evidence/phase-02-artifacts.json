@@ -1,0 +1,28 @@
+{
+  "utc": "2026-10-21T17:40:09.2608778Z",
+  "phase": "02",
+  "base": "7d4105e",
+  "source": "uncommitted working tree; final rollback-quarantine build",
+  "artifacts": [
+    {
+      "path": "android/app/build/outputs/apk/dataQa/app-arm64-v8a-dataQa.apk",
+      "bytes": 50517495,
+      "sha256": "972cdacbb96c879e09e71e051c07d740721f7082f99152797fe0a4300708a4ef"
+    },
+    {
+      "path": "android/app/build/outputs/apk/dataQa/app-x86_64-dataQa.apk",
+      "bytes": 50037819,
+      "sha256": "fd55ea06b914ad551e8a6397b68954d868429f02063b28c498ffe7d26105b73c"
+    },
+    {
+      "path": "android/app/build/outputs/apk/release/app-arm64-v8a-release.apk",
+      "bytes": 27222285,
+      "sha256": "ebe590b57e57b59b7f88ae3622439838a25c4eca91196d801cb9302179dff366"
+    },
+    {
+      "path": "android/app/build/outputs/apk/release/app-x86_64-release.apk",
+      "bytes": 27580569,
+      "sha256": "8a197c5e8fae4754e7d52ee2f1d01083a7e7bbcf67e83cf118e4b32fe9f2369e"
+    }
+  ]
+}

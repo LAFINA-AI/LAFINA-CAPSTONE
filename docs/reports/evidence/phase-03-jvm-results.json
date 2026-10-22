@@ -1,0 +1,233 @@
+{
+  "utc": "2026-10-22T18:33:52.0911930Z",
+  "method": "Read existing Gradle JUnit XML; no tests or build rerun. Duration is sum of suite execution durations, not Gradle wall-clock build time.",
+  "totals": {
+    "suites": 3,
+    "tests": 30,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0,
+    "durationSeconds": 0.149
+  },
+  "suites": [
+    {
+      "name": "com.lafina.capstone.reminders.AlarmRegistrationPolicyTest",
+      "tests": 8,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "durationSeconds": 0.059,
+      "timestampUtc": "2026-10-22T17:53:51.066Z",
+      "sourceXml": "android/app/build/test-results/testDataQaUnitTest/TEST-com.lafina.capstone.reminders.AlarmRegistrationPolicyTest.xml",
+      "sourceXmlSha256": "c8e16e38c66235ea5ebce226addd6ca3e23d6a48cad74e15b2ca033277b56a18",
+      "cases": [
+        {
+          "name": "first process pass rebuilds even perfectly matching persisted registration",
+          "className": "com.lafina.capstone.reminders.AlarmRegistrationPolicyTest",
+          "durationSeconds": 0.003,
+          "status": "PASS"
+        },
+        {
+          "name": "failed unavailable pending or invalid source cannot suppress retry",
+          "className": "com.lafina.capstone.reminders.AlarmRegistrationPolicyTest",
+          "durationSeconds": 0.049,
+          "status": "PASS"
+        },
+        {
+          "name": "restart or explicit restore invalidation requires replay again",
+          "className": "com.lafina.capstone.reminders.AlarmRegistrationPolicyTest",
+          "durationSeconds": 0.0,
+          "status": "PASS"
+        },
+        {
+          "name": "changed generation occurrence target or precision must replace cached alarm",
+          "className": "com.lafina.capstone.reminders.AlarmRegistrationPolicyTest",
+          "durationSeconds": 0.0,
+          "status": "PASS"
+        },
+        {
+          "name": "incomplete restoration never establishes cache trust",
+          "className": "com.lafina.capstone.reminders.AlarmRegistrationPolicyTest",
+          "durationSeconds": 0.001,
+          "status": "PASS"
+        },
+        {
+          "name": "current epoch receipt preserves timeout instead of resetting near its deadline",
+          "className": "com.lafina.capstone.reminders.AlarmRegistrationPolicyTest",
+          "durationSeconds": 0.0,
+          "status": "PASS"
+        },
+        {
+          "name": "completed epoch preserves unchanged neighboring alarm across repeated callbacks",
+          "className": "com.lafina.capstone.reminders.AlarmRegistrationPolicyTest",
+          "durationSeconds": 0.0,
+          "status": "PASS"
+        },
+        {
+          "name": "fresh process or explicit restoration repairs timeout even with old persisted receipt",
+          "className": "com.lafina.capstone.reminders.AlarmRegistrationPolicyTest",
+          "durationSeconds": 0.0,
+          "status": "PASS"
+        }
+      ]
+    },
+    {
+      "name": "com.lafina.capstone.reminders.ReminderIdentityKeyTest",
+      "tests": 3,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "durationSeconds": 0.044,
+      "timestampUtc": "2026-10-22T17:53:51.129Z",
+      "sourceXml": "android/app/build/test-results/testDataQaUnitTest/TEST-com.lafina.capstone.reminders.ReminderIdentityKeyTest.xml",
+      "sourceXmlSha256": "83c8c6922cc23f10f4b40e40d635527f1e5c39e7a2bdb3129dda19e8527b898f",
+      "cases": [
+        {
+          "name": "path separators unicode plus and spaces remain distinct",
+          "className": "com.lafina.capstone.reminders.ReminderIdentityKeyTest",
+          "durationSeconds": 0.042,
+          "status": "PASS"
+        },
+        {
+          "name": "all callback dimensions change identity without hashes",
+          "className": "com.lafina.capstone.reminders.ReminderIdentityKeyTest",
+          "durationSeconds": 0.0,
+          "status": "PASS"
+        },
+        {
+          "name": "unknown callback is rejected",
+          "className": "com.lafina.capstone.reminders.ReminderIdentityKeyTest",
+          "durationSeconds": 0.0,
+          "status": "PASS"
+        }
+      ]
+    },
+    {
+      "name": "com.lafina.capstone.reminders.ReminderPolicyTest",
+      "tests": 19,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "durationSeconds": 0.046,
+      "timestampUtc": "2026-10-22T17:53:51.180Z",
+      "sourceXml": "android/app/build/test-results/testDataQaUnitTest/TEST-com.lafina.capstone.reminders.ReminderPolicyTest.xml",
+      "sourceXmlSha256": "23d49190404db8f5802b67596aca22e81503e7330f6e11662a894defd0f5706b",
+      "cases": [
+        {
+          "name": "lowercaseBoundaryResolvesTheSameFoldAndRejectsTheSameGap",
+          "className": "com.lafina.capstone.reminders.ReminderPolicyTest",
+          "durationSeconds": 0.023,
+          "status": "PASS"
+        },
+        {
+          "name": "lowercaseZonesKeepQuietDecisionsEquivalent",
+          "className": "com.lafina.capstone.reminders.ReminderPolicyTest",
+          "durationSeconds": 0.008,
+          "status": "PASS"
+        },
+        {
+          "name": "invalidIdentitiesCannotReachSql",
+          "className": "com.lafina.capstone.reminders.ReminderPolicyTest",
+          "durationSeconds": 0.0,
+          "status": "PASS"
+        },
+        {
+          "name": "quietStartInclusiveEndExclusive",
+          "className": "com.lafina.capstone.reminders.ReminderPolicyTest",
+          "durationSeconds": 0.001,
+          "status": "PASS"
+        },
+        {
+          "name": "lowercaseIanaAndUtcAliasesResolveWithoutChangingOffsets",
+          "className": "com.lafina.capstone.reminders.ReminderPolicyTest",
+          "durationSeconds": 0.001,
+          "status": "PASS"
+        },
+        {
+          "name": "overnightQuietUsesGlobalTimezone",
+          "className": "com.lafina.capstone.reminders.ReminderPolicyTest",
+          "durationSeconds": 0.001,
+          "status": "PASS"
+        },
+        {
+          "name": "snoozeAcceptsWholeMinutesWithinBoundsAndCrossesDate",
+          "className": "com.lafina.capstone.reminders.ReminderPolicyTest",
+          "durationSeconds": 0.002,
+          "status": "PASS"
+        },
+        {
+          "name": "morningHalfOfOvernightQuietUsesPreviousStartDate",
+          "className": "com.lafina.capstone.reminders.ReminderPolicyTest",
+          "durationSeconds": 0.001,
+          "status": "PASS"
+        },
+        {
+          "name": "exactDueInstantRings",
+          "className": "com.lafina.capstone.reminders.ReminderPolicyTest",
+          "durationSeconds": 0.0,
+          "status": "PASS"
+        },
+        {
+          "name": "utcRejectsOffsetsMissingMillisecondsAndImpossibleDates",
+          "className": "com.lafina.capstone.reminders.ReminderPolicyTest",
+          "durationSeconds": 0.002,
+          "status": "PASS"
+        },
+        {
+          "name": "repeatedQuietEndUsesLaterFoldEvenAfterEarlierLocalClockEnd",
+          "className": "com.lafina.capstone.reminders.ReminderPolicyTest",
+          "durationSeconds": 0.001,
+          "status": "PASS"
+        },
+        {
+          "name": "fifteenMinuteGraceIsInclusive",
+          "className": "com.lafina.capstone.reminders.ReminderPolicyTest",
+          "durationSeconds": 0.0,
+          "status": "PASS"
+        },
+        {
+          "name": "foldBoundaryChoiceIsExplicit",
+          "className": "com.lafina.capstone.reminders.ReminderPolicyTest",
+          "durationSeconds": 0.001,
+          "status": "PASS"
+        },
+        {
+          "name": "canonicalUtcRoundTrips",
+          "className": "com.lafina.capstone.reminders.ReminderPolicyTest",
+          "durationSeconds": 0.0,
+          "status": "PASS"
+        },
+        {
+          "name": "missedPolicyTakesPrecedenceOverQuietReschedule",
+          "className": "com.lafina.capstone.reminders.ReminderPolicyTest",
+          "durationSeconds": 0.0,
+          "status": "PASS"
+        },
+        {
+          "name": "ringingDeadlineIsExactlySixtySeconds",
+          "className": "com.lafina.capstone.reminders.ReminderPolicyTest",
+          "durationSeconds": 0.0,
+          "status": "PASS"
+        },
+        {
+          "name": "nonexistentQuietBoundaryIsRejectedWithoutSilentShift",
+          "className": "com.lafina.capstone.reminders.ReminderPolicyTest",
+          "durationSeconds": 0.001,
+          "status": "PASS"
+        },
+        {
+          "name": "quietHoursRejectInvalidAndEqualBoundaries",
+          "className": "com.lafina.capstone.reminders.ReminderPolicyTest",
+          "durationSeconds": 0.002,
+          "status": "PASS"
+        },
+        {
+          "name": "futureCallbacksDoNotRing",
+          "className": "com.lafina.capstone.reminders.ReminderPolicyTest",
+          "durationSeconds": 0.0,
+          "status": "PASS"
+        }
+      ]
+    }
+  ]
+}

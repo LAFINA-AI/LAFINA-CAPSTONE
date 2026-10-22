@@ -21,7 +21,15 @@ export function useLocalPreferences(factory: () => PreferencesRepository) {
       try {
         repository.current ??= factory();
         const preferences = await repository.current.load();
-        const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+        let timezone = 'UTC';
+        if (!preferences) {
+          try {
+            timezone =
+              Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC';
+          } catch {
+            // Saved preferences never depend on a fresh runtime zone lookup.
+          }
+        }
         if (active) {
           setState({
             kind: 'ready',

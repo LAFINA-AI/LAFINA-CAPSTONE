@@ -1,0 +1,12 @@
+{
+  "utc": "2026-10-21T17:26:55.837452+00:00",
+  "device": "Android API37 x86_64 emulator, MemTotal 4008376kB; not a physical phone",
+  "connectivityRestored": true,
+  "checks": [
+    "PASS: emulator airplane=1, wifi=0, mobile_data=0 during checks; no Metro used.",
+    "PASS: actual Android OP-SQLite isolated migration/settings replay, injected paired rollback, idempotency, ACK separation, integrity/FK checks.",
+    "PASS: create no-due task through native SQLite and read it back."
+  ],
+  "physicalPhone": "NOT RUN",
+  "alarmSpeechBattery": "NOT RUN"
+}

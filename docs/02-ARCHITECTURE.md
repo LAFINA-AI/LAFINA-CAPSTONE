@@ -1,5 +1,16 @@
 # 02 — Proposed Application Architecture
 
+## Implemented through Phase03
+
+The [Phase03 architecture](phase-03-native-reminders.md) and
+[ADR-015](decisions/ADR-015-native-reminder-delivery.md) describe the current native
+delivery boundary. Main-process OP-SQLite owns migrations and manual planner edits;
+a private `:reminders` Android process reads validated durable jobs and performs
+AlarmManager/notification actions against the same DELETE-journal database.
+The provider exposes fixed commands, never arbitrary SQL. Post-commit
+reconciliation failure leaves saved manual edits intact and shows a warning.
+Speech, product calendar UI and intent execution remain deferred.
+
 ## Recommendation
 
 Continue **React Native + TypeScript** for UI/domain, supplemented by Kotlin Android native bridges and minimal existing C/C++ where needed. This is provisional pending Phase 00 audit/Phase 01 viability. Rewriting fully in Kotlin is a change request, not the default. No dependency on online/cloud features in offline layers.
@@ -99,3 +110,11 @@ planner/reminder schema or native voice/alarm behavior is implemented early.
 The [Phase 01 ADR](decisions/ADR-013-phase-01-preferences.md) documents persistence,
 permission boundaries, dependencies and later schema extension. Phase 00 records
 above remain historical evidence, not a description of the current tree.
+
+## Implemented data layer — Phase 02
+
+[Data architecture and schema](phase-02-data.md) describes the implemented typed
+repository, transactional migration, shared SQLite owner, reminder state machine,
+weekly/timezone policies and debug-only review harness. [ADR-014](decisions/ADR-014-planner-transactions.md)
+distinguishes desired job persistence from the absent Android alarm adapter. Native
+delivery/reconciliation remains Phase03; calendar product UI remains Phase04.

@@ -1,4 +1,4 @@
-import {useRef, useState} from 'react';
+import {useEffect, useRef, useState} from 'react';
 import {StyleSheet, Switch, Text, View} from 'react-native';
 import {Button, Choice, Field, Message} from '../../core/ui/controls';
 import {useTheme, ThemeContext} from '../../core/theme/ThemeContext';
@@ -11,20 +11,35 @@ interface Props {
   initial: Preferences;
   onboarding: boolean;
   onSave: (preferences: Preferences) => Promise<void>;
+  onDraftStateChange?: (state: {dirty: boolean; saving: boolean}) => void;
 }
 
 /** Keep draft values on failure; never advance onboarding before the save commits. */
-export function PreferencesForm({initial, onboarding, onSave}: Props) {
+export function PreferencesForm({
+  initial,
+  onboarding,
+  onSave,
+  onDraftStateChange,
+}: Props) {
+  const [committed, setCommitted] = useState(initial);
   const [draft, setDraft] = useState(initial);
   const [lead, setLead] = useState(String(initial.leadMinutes));
   const [snooze, setSnooze] = useState(String(initial.snoozeMinutes));
   const [error, setError] = useState<string | null>(null);
   const [saved, setSaved] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [confirmDiscard, setConfirmDiscard] = useState(false);
   const inFlight = useRef(false);
   const [step, setStep] = useState(0);
   const scheme = useColorScheme();
   const theme = resolveTheme(draft.theme, scheme);
+  const dirty =
+    JSON.stringify(draft) !== JSON.stringify(committed) ||
+    lead !== String(committed.leadMinutes) ||
+    snooze !== String(committed.snoozeMinutes);
+  useEffect(() => {
+    onDraftStateChange?.({dirty, saving});
+  }, [dirty, saving, onDraftStateChange]);
   function change<K extends keyof Preferences>(key: K, value: Preferences[K]) {
     setDraft(current => ({...current, [key]: value}));
     setSaved(false);
@@ -49,6 +64,11 @@ export function PreferencesForm({initial, onboarding, onSave}: Props) {
     setSaving(true);
     try {
       await onSave(next);
+      setCommitted(next);
+      setDraft(next);
+      setLead(String(next.leadMinutes));
+      setSnooze(String(next.snoozeMinutes));
+      setConfirmDiscard(false);
       setSaved(true);
     } catch {
       setError(
@@ -204,18 +224,35 @@ export function PreferencesForm({initial, onboarding, onSave}: Props) {
                 disabled={saving}
                 onPress={() => setStep(0)}
               />
+            ) : confirmDiscard ? (
+              <>
+                <Message text="Discard your unsaved preference edits? Saved preferences will be kept." />
+                <Button
+                  label="Confirm discard preference edits"
+                  secondary
+                  disabled={saving}
+                  onPress={() => {
+                    setDraft(committed);
+                    setLead(String(committed.leadMinutes));
+                    setSnooze(String(committed.snoozeMinutes));
+                    setSaved(false);
+                    setError(null);
+                    setConfirmDiscard(false);
+                  }}
+                />
+                <Button
+                  label="Keep editing preferences"
+                  secondary
+                  disabled={saving}
+                  onPress={() => setConfirmDiscard(false)}
+                />
+              </>
             ) : (
               <Button
                 label="Discard unsaved changes"
                 secondary
-                disabled={saving}
-                onPress={() => {
-                  setDraft(initial);
-                  setLead(String(initial.leadMinutes));
-                  setSnooze(String(initial.snoozeMinutes));
-                  setSaved(false);
-                  setError(null);
-                }}
+                disabled={saving || !dirty}
+                onPress={() => setConfirmDiscard(true)}
               />
             )}
           </>

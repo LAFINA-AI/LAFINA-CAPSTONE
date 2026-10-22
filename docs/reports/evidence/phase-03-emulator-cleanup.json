@@ -1,0 +1,22 @@
+{
+  "utc": "2026-10-22T18:35:34.311689+00:00",
+  "connectivity": {
+    "airplane_mode_on": "0",
+    "wifi_on": "1",
+    "mobile_data": "1"
+  },
+  "deliveryEnabled": false,
+  "fullScreenOptIn": false,
+  "platformFullScreenAllowed": true,
+  "notificationAndExactAccess": "granted during QA and retained for owner review",
+  "nativeCounts": {
+    "pending": 0,
+    "ringing": 0,
+    "registered": 0,
+    "failed": 0
+  },
+  "package": "com.lafina.capstone",
+  "version": "0.3.0-data-qa",
+  "data": "existing preferences/planner preserved; synthetic test records retained for review",
+  "screen": "Settings / Reminder delivery"
+}

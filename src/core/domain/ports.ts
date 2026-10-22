@@ -1,4 +1,6 @@
-/** Contracts only. Phase 01 provides no alarm, speech or intent implementation. */
+/** Speech/intent contracts remain unimplemented. Native alarms use the validated
+ * durable-row reconciliation boundary in core/native/reminders (ADR-015).
+ */
 export type Capability = {available: false; reason: string} | {available: true};
 export interface AlarmPort {
   capability(): Promise<Capability>;

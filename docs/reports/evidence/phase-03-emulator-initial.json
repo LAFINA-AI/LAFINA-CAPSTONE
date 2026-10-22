@@ -1,0 +1,128 @@
+{
+  "utc": "2026-10-22T17:18:03.477303+00:00",
+  "model": "sdk_gphone16k_x86_64",
+  "api": "37",
+  "abi": "x86_64",
+  "ram": "MemTotal:        4008376 kB",
+  "connectivity": {
+    "airplane_mode_on": "0",
+    "wifi_on": "1",
+    "mobile_data": "1"
+  },
+  "initialUiCapabilities": {
+    "enabled": false,
+    "notifications": false,
+    "exact": false,
+    "fullScreen": true,
+    "fullScreenEnabled": false
+  },
+  "checks": [
+    {
+      "check": "notification denial",
+      "result": "PASS",
+      "observed": "Blocked status and synthetic-create disabled after Android denial"
+    },
+    {
+      "check": "inexact fallback cancellation",
+      "result": "PASS",
+      "observed": "Exact access denied; synthetic registration appeared, explicit cancel returned native jobs to0 pending/0ringing/0registered/0failed"
+    },
+    {
+      "check": "offline background alarm; FSI denied; notification opens native shell; Answer ACK",
+      "result": "PASS",
+      "utc": "2026-10-22T17:31:22.070567+00:00",
+      "observed": "Real AlarmManager/notification loop with airplane1/wifi0/data0. Native activity opened by notification tap. Paired ACKNOWLEDGED returned through OP-SQLite; linked task stayed TODO."
+    },
+    {
+      "check": "native ten-minute snooze",
+      "result": "PASS",
+      "utc": "2026-10-22T17:36:21.384092+00:00",
+      "observed": "Native action kept taskTODO, reminderSNOOZED/jobPENDING; actual PendingIntent generation2; planned next timestamp exactly ten minutes after ACTION_SNOOZE."
+    },
+    {
+      "check": "cancel snoozed generation",
+      "result": "PASS",
+      "utc": "2026-10-22T17:36:56.335406+00:00",
+      "observed": "Synthetic deletion/cancellation returned all native active counts tozero."
+    },
+    {
+      "check": "overlapping native reminders",
+      "result": "PASS",
+      "utc": "2026-10-22T17:39:18.643961+00:00",
+      "observed": "Two separately created alarms entered RINGING together; native diagnostics showed two independent registrations with no failed jobs."
+    },
+    {
+      "check": "overlapping reminder timing capture",
+      "result": "PASS",
+      "utc": "2026-10-22T17:39:37.113419+00:00",
+      "observed": "Recorded bounded diagnostic planned/actual timestamps for both synthetic alarms."
+    },
+    {
+      "check": "background response-window expiry",
+      "result": "PASS",
+      "utc": "2026-10-22T17:45:12.959807+00:00",
+      "observed": "Two background RING_TIMEOUT records precede app return, at24ms and897ms after persisted deadlines. Notifications were absent after60seconds; taskTODO/reminderMISSED/jobMISSED and native activecounts0 verified."
+    }
+  ],
+  "samples": [
+    {
+      "event": "NOTIFICATION_POSTED",
+      "atUtc": "2026-10-22T17:30:11.238Z",
+      "plannedAt": "2026-10-22T17:30:11.078Z",
+      "lagMs": 160.0
+    },
+    {
+      "event": "CLAIM_RING",
+      "atUtc": "2026-10-22T17:30:11.127Z",
+      "plannedAt": "2026-10-22T17:30:11.078Z",
+      "lagMs": 49.0
+    },
+    {
+      "event": "NOTIFICATION_POSTED",
+      "atUtc": "2026-10-22T17:33:55.577Z",
+      "plannedAt": "2026-10-22T17:33:55.457Z",
+      "lagMs": 120.0
+    },
+    {
+      "event": "CLAIM_RING",
+      "atUtc": "2026-10-22T17:33:55.483Z",
+      "plannedAt": "2026-10-22T17:33:55.457Z",
+      "lagMs": 26.0
+    },
+    {
+      "event": "NOTIFICATION_POSTED",
+      "atUtc": "2026-10-22T17:38:48.919Z",
+      "plannedAt": "2026-10-22T17:38:46.312Z",
+      "lagMs": 2607.0
+    },
+    {
+      "event": "CLAIM_RING",
+      "atUtc": "2026-10-22T17:38:48.651Z",
+      "plannedAt": "2026-10-22T17:38:46.312Z",
+      "lagMs": 2339.0
+    },
+    {
+      "event": "NOTIFICATION_POSTED",
+      "atUtc": "2026-10-22T17:38:44.236Z",
+      "plannedAt": "2026-10-22T17:38:44.177Z",
+      "lagMs": 59.0
+    },
+    {
+      "event": "CLAIM_RING",
+      "atUtc": "2026-10-22T17:38:44.188Z",
+      "plannedAt": "2026-10-22T17:38:44.177Z",
+      "lagMs": 11.0
+    }
+  ],
+  "timeoutEvents": [
+    "RING_TIMEOUT \u00b7 2026-10-22T17:39:49.548Z \u00b7 planned 2026-10-22T17:39:48.651Z",
+    "RING_TIMEOUT \u00b7 2026-10-22T17:39:44.212Z \u00b7 planned 2026-10-22T17:39:44.188Z"
+  ],
+  "automationNotes": [
+    "Connectivity state needed a short settle/retry; original states restored.",
+    "Android alarm dump omitted URI text; generation2 was verified in dumpsys activity intents.",
+    "Notification shade stayed open after HOME; explicitly collapsed and verified existing MISSED state."
+  ],
+  "installedApkSha256": "73b4ef093c524bfec55d6b6342b0d99f4a97ce134edb77370bdb97aa744f7a2b",
+  "buildLabel": "INITIAL before registration reuse refinement"
+}

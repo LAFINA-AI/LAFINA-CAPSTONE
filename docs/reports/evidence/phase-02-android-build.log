@@ -1,0 +1,509 @@
+To honour the JVM settings for this build a single-use Daemon process will be forked. For more on this, please refer to https://docs.gradle.org/9.3.1/userguide/gradle_daemon.html#sec:disabling_the_daemon in the Gradle documentation.
+Daemon will be stopped at the end of the build 
+> Task :gradle-plugin:settings-plugin:checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :gradle-plugin:shared:checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :gradle-plugin:shared:compileKotlin UP-TO-DATE
+> Task :gradle-plugin:shared:compileJava NO-SOURCE
+> Task :gradle-plugin:shared:processResources NO-SOURCE
+> Task :gradle-plugin:shared:classes UP-TO-DATE
+> Task :gradle-plugin:shared:jar UP-TO-DATE
+> Task :gradle-plugin:settings-plugin:compileKotlin UP-TO-DATE
+> Task :gradle-plugin:settings-plugin:compileJava NO-SOURCE
+> Task :gradle-plugin:settings-plugin:pluginDescriptors UP-TO-DATE
+> Task :gradle-plugin:settings-plugin:processResources UP-TO-DATE
+> Task :gradle-plugin:settings-plugin:classes UP-TO-DATE
+> Task :gradle-plugin:settings-plugin:jar UP-TO-DATE
+> Task :gradle-plugin:react-native-gradle-plugin:checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :gradle-plugin:react-native-gradle-plugin:compileKotlin UP-TO-DATE
+> Task :gradle-plugin:react-native-gradle-plugin:compileJava NO-SOURCE
+> Task :gradle-plugin:react-native-gradle-plugin:pluginDescriptors UP-TO-DATE
+> Task :gradle-plugin:react-native-gradle-plugin:processResources UP-TO-DATE
+> Task :gradle-plugin:react-native-gradle-plugin:classes UP-TO-DATE
+> Task :gradle-plugin:react-native-gradle-plugin:jar UP-TO-DATE
+> Task :app:generateAutolinkingNewArchitectureFiles UP-TO-DATE
+> Task :app:generateAutolinkingPackageList UP-TO-DATE
+> Task :app:generateCodegenSchemaFromJavaScript SKIPPED
+> Task :app:generateCodegenArtifactsFromSchema SKIPPED
+> Task :app:generateReactNativeEntryPoint UP-TO-DATE
+> Task :op-engineering_op-sqlite:generateCodegenSchemaFromJavaScript UP-TO-DATE
+> Task :op-engineering_op-sqlite:generateCodegenArtifactsFromSchema UP-TO-DATE
+> Task :op-engineering_op-sqlite:prepareHeaders UP-TO-DATE
+> Task :op-engineering_op-sqlite:preBuild UP-TO-DATE
+> Task :react-native-safe-area-context:generateCodegenSchemaFromJavaScript UP-TO-DATE
+> Task :react-native-safe-area-context:generateCodegenArtifactsFromSchema UP-TO-DATE
+> Task :react-native-safe-area-context:preBuild UP-TO-DATE
+> Task :app:preBuild UP-TO-DATE
+> Task :app:preDataQaBuild UP-TO-DATE
+> Task :app:mergeDataQaNativeDebugMetadata NO-SOURCE
+> Task :app:checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :app:generateDataQaBuildConfig
+> Task :op-engineering_op-sqlite:preReleaseBuild UP-TO-DATE
+> Task :op-engineering_op-sqlite:writeReleaseAarMetadata UP-TO-DATE
+> Task :react-native-safe-area-context:preReleaseBuild UP-TO-DATE
+> Task :react-native-safe-area-context:writeReleaseAarMetadata UP-TO-DATE
+> Task :app:checkDataQaAarMetadata
+
+> Task :app:createBundleDataQaJsAndAssets
+
+                        ▒▒▓▓▓▓▒▒
+                     ▒▓▓▓▒▒░░▒▒▓▓▓▒
+                  ▒▓▓▓▓░░░▒▒▒▒░░░▓▓▓▓▒
+                 ▓▓▒▒▒▓▓▓▓▓▓▓▓▓▓▓▓▒▒▒▓▓
+                 ▓▓░░░░░▒▓▓▓▓▓▓▒░░░░░▓▓
+                 ▓▓░░▓▓▒░░░▒▒░░░▒▓▒░░▓▓
+                 ▓▓░░▓▓▓▓▓▒▒▒▒▓▓▓▓▒░░▓▓
+                 ▓▓░░▓▓▓▓▓▓▓▓▓▓▓▓▓▒░░▓▓
+                 ▓▓▒░░▒▒▓▓▓▓▓▓▓▓▒░░░▒▓▓
+                  ▒▓▓▓▒░░░▒▓▓▒░░░▒▓▓▓▒
+                     ▒▓▓▓▒░░░░▒▓▓▓▒
+                        ▒▒▓▓▓▓▒▒
+
+
+ WARN  the transform cache was reset.
+                Welcome to Metro v0.84.6
+              Fast - Scalable - Integrated
+
+
+transform[stderr]: (node:20552) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+transform[stderr]: (Use `node --trace-warnings ...` to show where the warning was created)
+transform[stderr]: (node:33876) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+transform[stderr]: (Use `node --trace-warnings ...` to show where the warning was created)
+transform[stderr]: (node:37684) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+transform[stderr]: (Use `node --trace-warnings ...` to show where the warning was created)
+transform[stderr]: (node:37260) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+transform[stderr]: (Use `node --trace-warnings ...` to show where the warning was created)
+transform[stderr]: (node:22924) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+transform[stderr]: (Use `node --trace-warnings ...` to show where the warning was created)
+transform[stderr]: (node:8508) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+transform[stderr]: (Use `node --trace-warnings ...` to show where the warning was created)
+transform[stderr]: (node:32756) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+transform[stderr]: (Use `node --trace-warnings ...` to show where the warning was created)
+transform[stderr]: (node:14532) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+transform[stderr]: (Use `node --trace-warnings ...` to show where the warning was created)
+LOG:Writing bundle output to: android\app\build\generated\assets\react\dataQa\index.android.bundle
+LOG:Writing sourcemap output to: android\app\build\intermediates\sourcemaps\react\dataQa\index.android.bundle.packager.map
+LOG:Done writing bundle output
+LOG:Done writing sourcemap output
+
+> Task :app:generateDataQaResValues
+> Task :op-engineering_op-sqlite:generateReleaseResValues UP-TO-DATE
+> Task :op-engineering_op-sqlite:generateReleaseResources UP-TO-DATE
+> Task :op-engineering_op-sqlite:packageReleaseResources UP-TO-DATE
+> Task :react-native-safe-area-context:generateReleaseResValues UP-TO-DATE
+> Task :react-native-safe-area-context:generateReleaseResources UP-TO-DATE
+> Task :react-native-safe-area-context:packageReleaseResources UP-TO-DATE
+> Task :app:mapDataQaSourceSetPaths
+> Task :app:generateDataQaResources
+> Task :app:packageDataQaResources
+> Task :app:parseDataQaLocalResources
+> Task :app:createDataQaCompatibleScreenManifests
+> Task :app:extractDeepLinksDataQa
+> Task :op-engineering_op-sqlite:extractDeepLinksRelease UP-TO-DATE
+> Task :op-engineering_op-sqlite:processReleaseManifest UP-TO-DATE
+> Task :react-native-safe-area-context:extractDeepLinksRelease UP-TO-DATE
+> Task :react-native-safe-area-context:processReleaseManifest UP-TO-DATE
+> Task :app:processDataQaMainManifest
+> Task :app:processDataQaManifest
+> Task :app:processDataQaManifestForPackage
+> Task :op-engineering_op-sqlite:compileReleaseLibraryResources UP-TO-DATE
+> Task :op-engineering_op-sqlite:parseReleaseLocalResources UP-TO-DATE
+> Task :op-engineering_op-sqlite:generateReleaseRFile UP-TO-DATE
+> Task :react-native-safe-area-context:compileReleaseLibraryResources UP-TO-DATE
+> Task :react-native-safe-area-context:parseReleaseLocalResources UP-TO-DATE
+> Task :react-native-safe-area-context:generateReleaseRFile UP-TO-DATE
+> Task :op-engineering_op-sqlite:checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :op-engineering_op-sqlite:generateReleaseBuildConfig UP-TO-DATE
+> Task :app:mergeDataQaResources
+> Task :op-engineering_op-sqlite:compileReleaseKotlin UP-TO-DATE
+> Task :op-engineering_op-sqlite:javaPreCompileRelease UP-TO-DATE
+> Task :op-engineering_op-sqlite:compileReleaseJavaWithJavac UP-TO-DATE
+> Task :op-engineering_op-sqlite:bundleLibCompileToJarRelease UP-TO-DATE
+> Task :react-native-safe-area-context:checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :react-native-safe-area-context:generateReleaseBuildConfig UP-TO-DATE
+> Task :react-native-safe-area-context:compileReleaseKotlin UP-TO-DATE
+> Task :react-native-safe-area-context:javaPreCompileRelease UP-TO-DATE
+> Task :react-native-safe-area-context:compileReleaseJavaWithJavac UP-TO-DATE
+> Task :react-native-safe-area-context:bundleLibCompileToJarRelease UP-TO-DATE
+> Task :app:javaPreCompileDataQa
+> Task :app:mergeDataQaShaders
+> Task :app:compileDataQaShaders NO-SOURCE
+> Task :app:generateDataQaAssets UP-TO-DATE
+> Task :op-engineering_op-sqlite:mergeReleaseShaders UP-TO-DATE
+> Task :op-engineering_op-sqlite:compileReleaseShaders NO-SOURCE
+> Task :op-engineering_op-sqlite:generateReleaseAssets UP-TO-DATE
+> Task :op-engineering_op-sqlite:mergeReleaseAssets UP-TO-DATE
+> Task :react-native-safe-area-context:mergeReleaseShaders UP-TO-DATE
+> Task :react-native-safe-area-context:compileReleaseShaders NO-SOURCE
+> Task :react-native-safe-area-context:generateReleaseAssets UP-TO-DATE
+> Task :react-native-safe-area-context:mergeReleaseAssets UP-TO-DATE
+> Task :app:mergeDataQaAssets
+> Task :app:compressDataQaAssets
+> Task :op-engineering_op-sqlite:bundleLibRuntimeToJarRelease UP-TO-DATE
+> Task :react-native-safe-area-context:bundleLibRuntimeToJarRelease UP-TO-DATE
+> Task :app:processDataQaResources
+> Task :app:desugarDataQaFileDependencies
+> Task :op-engineering_op-sqlite:processReleaseJavaRes UP-TO-DATE
+> Task :react-native-safe-area-context:processReleaseJavaRes UP-TO-DATE
+> Task :app:checkDataQaDuplicateClasses
+
+> Task :app:compileDataQaKotlin
+w: file:///C:/L3mxr/Github%20Repositories/LAFINA-CAPSTONE/android/app/src/main/java/com/lafina/capstone/CapstoneBuildPackage.kt:11:16 This declaration overrides a deprecated member but is not marked as deprecated itself. Add the '@Deprecated' annotation or suppress the diagnostic.
+w: file:///C:/L3mxr/Github%20Repositories/LAFINA-CAPSTONE/android/app/src/main/java/com/lafina/capstone/CapstoneBuildPackage.kt:11:36 The corresponding parameter in the supertype 'ReactPackage' is named 'reactContext'. This may cause problems when calling this function with named arguments.
+w: file:///C:/L3mxr/Github%20Repositories/LAFINA-CAPSTONE/android/app/src/main/java/com/lafina/capstone/CapstoneBuildPackage.kt:14:35 The corresponding parameter in the supertype 'ReactPackage' is named 'reactContext'. This may cause problems when calling this function with named arguments.
+
+> Task :app:compileDataQaJavaWithJavac
+> Task :app:dexBuilderDataQa
+> Task :app:mergeDataQaGlobalSynthetics
+> Task :app:mergeExtDexDataQa
+> Task :app:processDataQaJavaRes
+> Task :op-engineering_op-sqlite:bundleLibRuntimeToDirRelease UP-TO-DATE
+> Task :react-native-safe-area-context:bundleLibRuntimeToDirRelease UP-TO-DATE
+> Task :app:mergeLibDexDataQa
+> Task :app:mergeProjectDexDataQa
+
+> Task :op-engineering_op-sqlite:configureCMakeRelWithDebInfo[arm64-v8a]
+[CXX5304] This version only understands SDK XML versions up to 3 but an SDK XML file of version 4 was encountered. This can happen if you use versions of Android Studio and the command-line tools that were released at different times.
+[CXX5304] This version only understands SDK XML versions up to 3 but an SDK XML file of version 4 was encountered. This can happen if you use versions of Android Studio and the command-line tools that were released at different times.
+
+> Task :op-engineering_op-sqlite:configureCMakeRelWithDebInfo[x86_64]
+> Task :op-engineering_op-sqlite:generateJsonModelRelease
+> Task :op-engineering_op-sqlite:prefabReleaseConfigurePackage UP-TO-DATE
+> Task :app:mergeDataQaJavaResource
+> Task :app:configureCMakeDebug[arm64-v8a]
+> Task :op-engineering_op-sqlite:buildCMakeRelWithDebInfo[arm64-v8a]
+> Task :op-engineering_op-sqlite:buildCMakeRelWithDebInfo[x86_64]
+> Task :op-engineering_op-sqlite:externalNativeBuildRelease
+> Task :op-engineering_op-sqlite:prefabReleasePackage UP-TO-DATE
+> Task :app:buildCMakeDebug[arm64-v8a]
+C/C++: ninja: Entering directory `C:\L3mxr\Github Repositories\LAFINA-CAPSTONE\android\app\.cxx\Debug\1q36193l\arm64-v8a'
+C/C++: cmd.exe /C "cd . && C:\Users\USER-PC\AppData\Local\Android\Sdk\ndk\27.1.12297006\toolchains\llvm\prebuilt\windows-x86_64\bin\clang++.exe --target=aarch64-none-linux-android30 --sysroot=C:/Users/USER-PC/AppData/Local/Android/Sdk/ndk/27.1.12297006/toolchains/llvm/prebuilt/windows-x86_64/sysroot -fPIC -g -DANDROID -fdata-sections -ffunction-sections -funwind-tables -fstack-protector-strong -no-canonical-prefixes -D__BIONIC_NO_PAGE_SIZE_MACRO -D_FORTIFY_SOURCE=2 -Wformat -Werror=format-security   -fno-limit-debug-info  -Wl,-z,max-page-size=16384 -Wl,--build-id=sha1 -Wl,--no-undefined-version -Wl,--fatal-warnings -Wl,--no-undefined -Qunused-arguments -shared -Wl,-soname,libreact_codegen_safeareacontext.so -o "C:\L3mxr\Github Repositories\LAFINA-CAPSTONE\android\app\build\intermediates\cxx\Debug\1q36193l\obj\arm64-v8a\libreact_codegen_safeareacontext.so" safeareacontext_autolinked_build/CMakeFiles/react_codegen_safeareacontext.dir/f68b4584f6037a5c35392d62b22a2a19/safeareacontext/RNCSafeAreaViewShadowNode.cpp.o safeareacontext_autolinked_build/CMakeFiles/react_codegen_safeareacontext.dir/f68b4584f6037a5c35392d62b22a2a19/safeareacontext/RNCSafeAreaViewState.cpp.o safeareacontext_autolinked_build/CMakeFiles/react_codegen_safeareacontext.dir/444957f6e057d461726bdf9d2a4e4b80/safeareacontext/ComponentDescriptors.cpp.o safeareacontext_autolinked_build/CMakeFiles/react_codegen_safeareacontext.dir/1293edc8256043253c5fdd9cbecaca3f/components/safeareacontext/EventEmitters.cpp.o safeareacontext_autolinked_build/CMakeFiles/react_codegen_safeareacontext.dir/ff4d5063b359f82845c31ec182aa8572/renderer/components/safeareacontext/Props.cpp.o safeareacontext_autolinked_build/CMakeFiles/react_codegen_safeareacontext.dir/1293edc8256043253c5fdd9cbecaca3f/components/safeareacontext/ShadowNodes.cpp.o safeareacontext_autolinked_build/CMakeFiles/react_codegen_safeareacontext.dir/ff4d5063b359f82845c31ec182aa8572/renderer/components/safeareacontext/States.cpp.o safeareacontext_autolinked_build/CMakeFiles/react_codegen_safeareacontext.dir/2e21723c3c4d5f906fd9ff4f2d2bf73e/source/codegen/jni/safeareacontext-generated.cpp.o  C:/Users/USER-PC/.gradle/caches/9.3.1/transforms/3c01aea05d2737e987399f1309ae090e/workspace/transformed/fbjni-0.7.0/prefab/modules/fbjni/libs/android.arm64-v8a/libfbjni.so  C:/Users/USER-PC/.gradle/caches/9.3.1/transforms/2454197a7a7bdd22c9814cde61f3ed7f/workspace/transformed/react-android-0.86.0-release/prefab/modules/jsi/libs/android.arm64-v8a/libjsi.so  C:/Users/USER-PC/.gradle/caches/9.3.1/transforms/2454197a7a7bdd22c9814cde61f3ed7f/workspace/transformed/react-android-0.86.0-release/prefab/modules/reactnative/libs/android.arm64-v8a/libreactnative.so  -latomic -lm && cd ."
+C/C++: ld.lld: error: undefined symbol: facebook::react::Sealable::ensureUnsealed() const
+C/C++: >>> referenced by RNCSafeAreaViewShadowNode.cpp:40 (C:/L3mxr/Github Repositories/LAFINA-CAPSTONE/node_modules/react-native-safe-area-context/common/cpp/react/renderer/components/safeareacontext/RNCSafeAreaViewShadowNode.cpp:40)
+C/C++: >>>               safeareacontext_autolinked_build/CMakeFiles/react_codegen_safeareacontext.dir/f68b4584f6037a5c35392d62b22a2a19/safeareacontext/RNCSafeAreaViewShadowNode.cpp.o:(facebook::react::RNCSafeAreaViewShadowNode::adjustLayoutWithState())
+C/C++: ld.lld: error: undefined symbol: facebook::react::Sealable::Sealable()
+C/C++: >>> referenced by Props.cpp:17 (C:/L3mxr/Github Repositories/LAFINA-CAPSTONE/node_modules/react-native-safe-area-context/android/build/generated/source/codegen/jni/react/renderer/components/safeareacontext/Props.cpp:17)
+C/C++: >>>               safeareacontext_autolinked_build/CMakeFiles/react_codegen_safeareacontext.dir/ff4d5063b359f82845c31ec182aa8572/renderer/components/safeareacontext/Props.cpp.o:(facebook::react::RNCSafeAreaProviderProps::RNCSafeAreaProviderProps(facebook::react::PropsParserContext const&, facebook::react::RNCSafeAreaProviderProps const&, facebook::react::RawProps const&))
+C/C++: >>> referenced by Props.cpp:43 (C:/L3mxr/Github Repositories/LAFINA-CAPSTONE/node_modules/react-native-safe-area-context/android/build/generated/source/codegen/jni/react/renderer/components/safeareacontext/Props.cpp:43)
+C/C++: >>>               safeareacontext_autolinked_build/CMakeFiles/react_codegen_safeareacontext.dir/ff4d5063b359f82845c31ec182aa8572/renderer/components/safeareacontext/Props.cpp.o:(facebook::react::RNCSafeAreaViewProps::RNCSafeAreaViewProps(facebook::react::PropsParserContext const&, facebook::react::RNCSafeAreaViewProps const&, facebook::react::RawProps const&))
+C/C++: >>> referenced by Props.h:113 (C:/L3mxr/Github Repositories/LAFINA-CAPSTONE/node_modules/react-native-safe-area-context/android/src/main/jni/../../../build/generated/source/codegen/jni/react/renderer/components/safeareacontext/Props.h:113)
+C/C++: >>>               safeareacontext_autolinked_build/CMakeFiles/react_codegen_safeareacontext.dir/ff4d5063b359f82845c31ec182aa8572/renderer/components/safeareacontext/Props.cpp.o:(facebook::react::RNCSafeAreaViewProps::RNCSafeAreaViewProps())
+C/C++: >>> referenced 1 more times
+C/C++: ld.lld: error: undefined symbol: facebook::react::Sealable::~Sealable()
+C/C++: >>> referenced by Props.cpp:22 (C:/L3mxr/Github Repositories/LAFINA-CAPSTONE/node_modules/react-native-safe-area-context/android/build/generated/source/codegen/jni/react/renderer/components/safeareacontext/Props.cpp:22)
+C/C++: >>>               safeareacontext_autolinked_build/CMakeFiles/react_codegen_safeareacontext.dir/ff4d5063b359f82845c31ec182aa8572/renderer/components/safeareacontext/Props.cpp.o:(facebook::react::RNCSafeAreaProviderProps::RNCSafeAreaProviderProps(facebook::react::PropsParserContext const&, facebook::react::RNCSafeAreaProviderProps const&, facebook::react::RawProps const&))
+C/C++: >>> referenced by Props.cpp:49 (C:/L3mxr/Github Repositories/LAFINA-CAPSTONE/node_modules/react-native-safe-area-context/android/build/generated/source/codegen/jni/react/renderer/components/safeareacontext/Props.cpp:49)
+C/C++: >>>               safeareacontext_autolinked_build/CMakeFiles/react_codegen_safeareacontext.dir/ff4d5063b359f82845c31ec182aa8572/renderer/components/safeareacontext/Props.cpp.o:(facebook::react::RNCSafeAreaViewProps::RNCSafeAreaViewProps(facebook::react::PropsParserContext const&, facebook::react::RNCSafeAreaViewProps const&, facebook::react::RawProps const&))
+C/C++: >>> referenced by Props.h:113 (C:/L3mxr/Github Repositories/LAFINA-CAPSTONE/node_modules/react-native-safe-area-context/android/src/main/jni/../../../build/generated/source/codegen/jni/react/renderer/components/safeareacontext/Props.h:113)
+C/C++: >>>               safeareacontext_autolinked_build/CMakeFiles/react_codegen_safeareacontext.dir/ff4d5063b359f82845c31ec182aa8572/renderer/components/safeareacontext/Props.cpp.o:(facebook::react::RNCSafeAreaViewProps::RNCSafeAreaViewProps())
+C/C++: >>> referenced 8 more times
+C/C++: ld.lld: error: undefined symbol: VTT for facebook::react::BaseViewProps
+C/C++: >>> referenced by BaseViewProps.h:31 (C:/Users/USER-PC/.gradle/caches/9.3.1/transforms/2454197a7a7bdd22c9814cde61f3ed7f/workspace/transformed/react-android-0.86.0-release/prefab/modules/reactnative/include/react/renderer/components/view/BaseViewProps.h:31)
+C/C++: >>>               safeareacontext_autolinked_build/CMakeFiles/react_codegen_safeareacontext.dir/ff4d5063b359f82845c31ec182aa8572/renderer/components/safeareacontext/Props.cpp.o:(facebook::react::BaseViewProps::~BaseViewProps())
+C/C++: >>> referenced by BaseViewProps.h:31 (C:/Users/USER-PC/.gradle/caches/9.3.1/transforms/2454197a7a7bdd22c9814cde61f3ed7f/workspace/transformed/react-android-0.86.0-release/prefab/modules/reactnative/include/react/renderer/components/view/BaseViewProps.h:31)
+C/C++: >>>               safeareacontext_autolinked_build/CMakeFiles/react_codegen_safeareacontext.dir/ff4d5063b359f82845c31ec182aa8572/renderer/components/safeareacontext/Props.cpp.o:(facebook::react::BaseViewProps::~BaseViewProps())
+C/C++: ld.lld: error: undefined symbol: vtable for facebook::react::DebugStringConvertible
+C/C++: >>> referenced by DebugStringConvertible.h:44 (C:/Users/USER-PC/.gradle/caches/9.3.1/transforms/2454197a7a7bdd22c9814cde61f3ed7f/workspace/transformed/react-android-0.86.0-release/prefab/modules/reactnative/include/react/renderer/debug/DebugStringConvertible.h:44)
+C/C++: >>>               safeareacontext_autolinked_build/CMakeFiles/react_codegen_safeareacontext.dir/444957f6e057d461726bdf9d2a4e4b80/safeareacontext/ComponentDescriptors.cpp.o:(facebook::react::DebugStringConvertible::DebugStringConvertible())
+C/C++: >>> referenced by DebugStringConvertible.h:44 (C:/Users/USER-PC/.gradle/caches/9.3.1/transforms/2454197a7a7bdd22c9814cde61f3ed7f/workspace/transformed/react-android-0.86.0-release/prefab/modules/reactnative/include/react/renderer/debug/DebugStringConvertible.h:44)
+C/C++: >>>               safeareacontext_autolinked_build/CMakeFiles/react_codegen_safeareacontext.dir/444957f6e057d461726bdf9d2a4e4b80/safeareacontext/ComponentDescriptors.cpp.o:(facebook::react::DebugStringConvertible::DebugStringConvertible())
+C/C++: >>> the vtable symbol may be undefined because the class is missing its key function (see https://lld.llvm.org/missingkeyfunction)
+C/C++: ld.lld: error: undefined symbol: VTT for facebook::react::YogaStylableProps
+C/C++: >>> referenced by YogaStylableProps.h:18 (C:/Users/USER-PC/.gradle/caches/9.3.1/transforms/2454197a7a7bdd22c9814cde61f3ed7f/workspace/transformed/react-android-0.86.0-release/prefab/modules/reactnative/include/react/renderer/components/view/YogaStylableProps.h:18)
+C/C++: >>>               safeareacontext_autolinked_build/CMakeFiles/react_codegen_safeareacontext.dir/ff4d5063b359f82845c31ec182aa8572/renderer/components/safeareacontext/Props.cpp.o:(facebook::react::YogaStylableProps::~YogaStylableProps())
+C/C++: >>> referenced by YogaStylableProps.h:18 (C:/Users/USER-PC/.gradle/caches/9.3.1/transforms/2454197a7a7bdd22c9814cde61f3ed7f/workspace/transformed/react-android-0.86.0-release/prefab/modules/reactnative/include/react/renderer/components/view/YogaStylableProps.h:18)
+C/C++: >>>               safeareacontext_autolinked_build/CMakeFiles/react_codegen_safeareacontext.dir/ff4d5063b359f82845c31ec182aa8572/renderer/components/safeareacontext/Props.cpp.o:(facebook::react::YogaStylableProps::~YogaStylableProps())
+C/C++: ld.lld: error: undefined symbol: facebook::react::DebugStringConvertible::getDebugName() const
+C/C++: >>> referenced by Props.cpp
+C/C++: >>>               safeareacontext_autolinked_build/CMakeFiles/react_codegen_safeareacontext.dir/ff4d5063b359f82845c31ec182aa8572/renderer/components/safeareacontext/Props.cpp.o:(vtable for facebook::react::RNCSafeAreaProviderProps)
+C/C++: >>> referenced by Props.cpp
+C/C++: >>>               safeareacontext_autolinked_build/CMakeFiles/react_codegen_safeareacontext.dir/ff4d5063b359f82845c31ec182aa8572/renderer/components/safeareacontext/Props.cpp.o:(vtable for facebook::react::RNCSafeAreaViewProps)
+C/C++: >>> referenced by Props.cpp
+C/C++: >>>               safeareacontext_autolinked_build/CMakeFiles/react_codegen_safeareacontext.dir/ff4d5063b359f82845c31ec182aa8572/renderer/components/safeareacontext/Props.cpp.o:(construction vtable for facebook::react::HostPlatformViewProps-in-facebook::react::RNCSafeAreaProviderProps)
+C/C++: >>> referenced 7 more times
+C/C++: ld.lld: error: undefined symbol: facebook::react::DebugStringConvertible::getDebugValue() const
+C/C++: >>> referenced by Props.cpp
+C/C++: >>>               safeareacontext_autolinked_build/CMakeFiles/react_codegen_safeareacontext.dir/ff4d5063b359f82845c31ec182aa8572/renderer/components/safeareacontext/Props.cpp.o:(vtable for facebook::react::RNCSafeAreaProviderProps)
+C/C++: >>> referenced by Props.cpp
+C/C++: >>>               safeareacontext_autolinked_build/CMakeFiles/react_codegen_safeareacontext.dir/ff4d5063b359f82845c31ec182aa8572/renderer/components/safeareacontext/Props.cpp.o:(vtable for facebook::react::RNCSafeAreaViewProps)
+C/C++: >>> referenced by Props.cpp
+C/C++: >>>               safeareacontext_autolinked_build/CMakeFiles/react_codegen_safeareacontext.dir/ff4d5063b359f82845c31ec182aa8572/renderer/components/safeareacontext/Props.cpp.o:(construction vtable for facebook::react::HostPlatformViewProps-in-facebook::react::RNCSafeAreaProviderProps)
+C/C++: >>> referenced 7 more times
+C/C++: ld.lld: error: undefined symbol: facebook::react::DebugStringConvertible::getDebugChildren() const
+C/C++: >>> referenced by Props.cpp
+C/C++: >>>               safeareacontext_autolinked_build/CMakeFiles/react_codegen_safeareacontext.dir/ff4d5063b359f82845c31ec182aa8572/renderer/components/safeareacontext/Props.cpp.o:(vtable for facebook::react::RNCSafeAreaProviderProps)
+C/C++: >>> referenced by Props.cpp
+C/C++: >>>               safeareacontext_autolinked_build/CMakeFiles/react_codegen_safeareacontext.dir/ff4d5063b359f82845c31ec182aa8572/renderer/components/safeareacontext/Props.cpp.o:(vtable for facebook::react::RNCSafeAreaViewProps)
+C/C++: >>> referenced by Props.cpp
+C/C++: >>>               safeareacontext_autolinked_build/CMakeFiles/react_codegen_safeareacontext.dir/ff4d5063b359f82845c31ec182aa8572/renderer/components/safeareacontext/Props.cpp.o:(construction vtable for facebook::react::HostPlatformViewProps-in-facebook::react::RNCSafeAreaProviderProps)
+C/C++: >>> referenced 7 more times
+C/C++: ld.lld: error: undefined symbol: facebook::react::HostPlatformViewProps::getDebugProps() const
+C/C++: >>> referenced by Props.cpp
+C/C++: >>>               safeareacontext_autolinked_build/CMakeFiles/react_codegen_safeareacontext.dir/ff4d5063b359f82845c31ec182aa8572/renderer/components/safeareacontext/Props.cpp.o:(vtable for facebook::react::RNCSafeAreaProviderProps)
+C/C++: >>> referenced by Props.cpp
+C/C++: >>>               safeareacontext_autolinked_build/CMakeFiles/react_codegen_safeareacontext.dir/ff4d5063b359f82845c31ec182aa8572/renderer/components/safeareacontext/Props.cpp.o:(vtable for facebook::react::RNCSafeAreaViewProps)
+C/C++: >>> referenced by Props.cpp
+C/C++: >>>               safeareacontext_autolinked_build/CMakeFiles/react_codegen_safeareacontext.dir/ff4d5063b359f82845c31ec182aa8572/renderer/components/safeareacontext/Props.cpp.o:(construction vtable for facebook::react::HostPlatformViewProps-in-facebook::react::RNCSafeAreaProviderProps)
+C/C++: >>> referenced 1 more times
+C/C++: ld.lld: error: undefined symbol: facebook::react::DebugStringConvertible::getDebugDescription(facebook::react::DebugStringConvertibleOptions) const
+C/C++: >>> referenced by Props.cpp
+C/C++: >>>               safeareacontext_autolinked_build/CMakeFiles/react_codegen_safeareacontext.dir/ff4d5063b359f82845c31ec182aa8572/renderer/components/safeareacontext/Props.cpp.o:(vtable for facebook::react::RNCSafeAreaProviderProps)
+C/C++: >>> referenced by Props.cpp
+C/C++: >>>               safeareacontext_autolinked_build/CMakeFiles/react_codegen_safeareacontext.dir/ff4d5063b359f82845c31ec182aa8572/renderer/components/safeareacontext/Props.cpp.o:(vtable for facebook::react::RNCSafeAreaViewProps)
+C/C++: >>> referenced by Props.cpp
+C/C++: >>>               safeareacontext_autolinked_build/CMakeFiles/react_codegen_safeareacontext.dir/ff4d5063b359f82845c31ec182aa8572/renderer/components/safeareacontext/Props.cpp.o:(construction vtable for facebook::react::HostPlatformViewProps-in-facebook::react::RNCSafeAreaProviderProps)
+C/C++: >>> referenced 9 more times
+C/C++: ld.lld: error: undefined symbol: facebook::react::DebugStringConvertible::getDebugPropsDescription(facebook::react::DebugStringConvertibleOptions) const
+C/C++: >>> referenced by Props.cpp
+C/C++: >>>               safeareacontext_autolinked_build/CMakeFiles/react_codegen_safeareacontext.dir/ff4d5063b359f82845c31ec182aa8572/renderer/components/safeareacontext/Props.cpp.o:(vtable for facebook::react::RNCSafeAreaProviderProps)
+C/C++: >>> referenced by Props.cpp
+C/C++: >>>               safeareacontext_autolinked_build/CMakeFiles/react_codegen_safeareacontext.dir/ff4d5063b359f82845c31ec182aa8572/renderer/components/safeareacontext/Props.cpp.o:(vtable for facebook::react::RNCSafeAreaViewProps)
+C/C++: >>> referenced by Props.cpp
+C/C++: >>>               safeareacontext_autolinked_build/CMakeFiles/react_codegen_safeareacontext.dir/ff4d5063b359f82845c31ec182aa8572/renderer/components/safeareacontext/Props.cpp.o:(construction vtable for facebook::react::HostPlatformViewProps-in-facebook::react::RNCSafeAreaProviderProps)
+C/C++: >>> referenced 9 more times
+C/C++: ld.lld: error: undefined symbol: facebook::react::DebugStringConvertible::getDebugChildrenDescription(facebook::react::DebugStringConvertibleOptions) const
+C/C++: >>> referenced by Props.cpp
+C/C++: >>>               safeareacontext_autolinked_build/CMakeFiles/react_codegen_safeareacontext.dir/ff4d5063b359f82845c31ec182aa8572/renderer/components/safeareacontext/Props.cpp.o:(vtable for facebook::react::RNCSafeAreaProviderProps)
+C/C++: >>> referenced by Props.cpp
+C/C++: >>>               safeareacontext_autolinked_build/CMakeFiles/react_codegen_safeareacontext.dir/ff4d5063b359f82845c31ec182aa8572/renderer/components/safeareacontext/Props.cpp.o:(vtable for facebook::react::RNCSafeAreaViewProps)
+C/C++: >>> referenced by Props.cpp
+C/C++: >>>               safeareacontext_autolinked_build/CMakeFiles/react_codegen_safeareacontext.dir/ff4d5063b359f82845c31ec182aa8572/renderer/components/safeareacontext/Props.cpp.o:(construction vtable for facebook::react::HostPlatformViewProps-in-facebook::react::RNCSafeAreaProviderProps)
+C/C++: >>> referenced 9 more times
+C/C++: ld.lld: error: undefined symbol: facebook::react::BaseViewProps::getDebugProps() const
+C/C++: >>> referenced by Props.cpp
+C/C++: >>>               safeareacontext_autolinked_build/CMakeFiles/react_codegen_safeareacontext.dir/ff4d5063b359f82845c31ec182aa8572/renderer/components/safeareacontext/Props.cpp.o:(construction vtable for facebook::react::BaseViewProps-in-facebook::react::RNCSafeAreaProviderProps)
+C/C++: >>> referenced by Props.cpp
+C/C++: >>>               safeareacontext_autolinked_build/CMakeFiles/react_codegen_safeareacontext.dir/ff4d5063b359f82845c31ec182aa8572/renderer/components/safeareacontext/Props.cpp.o:(construction vtable for facebook::react::BaseViewProps-in-facebook::react::RNCSafeAreaViewProps)
+C/C++: ld.lld: error: undefined symbol: facebook::react::YogaStylableProps::getDebugProps() const
+C/C++: >>> referenced by Props.cpp
+C/C++: >>>               safeareacontext_autolinked_build/CMakeFiles/react_codegen_safeareacontext.dir/ff4d5063b359f82845c31ec182aa8572/renderer/components/safeareacontext/Props.cpp.o:(construction vtable for facebook::react::YogaStylableProps-in-facebook::react::RNCSafeAreaProviderProps)
+C/C++: >>> referenced by Props.cpp
+C/C++: >>>               safeareacontext_autolinked_build/CMakeFiles/react_codegen_safeareacontext.dir/ff4d5063b359f82845c31ec182aa8572/renderer/components/safeareacontext/Props.cpp.o:(construction vtable for facebook::react::YogaStylableProps-in-facebook::react::RNCSafeAreaViewProps)
+C/C++: ld.lld: error: undefined symbol: facebook::react::Props::getDebugProps() const
+C/C++: >>> referenced by Props.cpp
+C/C++: >>>               safeareacontext_autolinked_build/CMakeFiles/react_codegen_safeareacontext.dir/ff4d5063b359f82845c31ec182aa8572/renderer/components/safeareacontext/Props.cpp.o:(construction vtable for facebook::react::Props-in-facebook::react::RNCSafeAreaProviderProps)
+C/C++: >>> referenced by Props.cpp
+C/C++: >>>               safeareacontext_autolinked_build/CMakeFiles/react_codegen_safeareacontext.dir/ff4d5063b359f82845c31ec182aa8572/renderer/components/safeareacontext/Props.cpp.o:(construction vtable for facebook::react::Props-in-facebook::react::RNCSafeAreaViewProps)
+C/C++: ld.lld: error: undefined symbol: facebook::react::ShadowNode::getDebugName() const
+C/C++: >>> referenced by ComponentDescriptors.cpp
+C/C++: >>>               safeareacontext_autolinked_build/CMakeFiles/react_codegen_safeareacontext.dir/444957f6e057d461726bdf9d2a4e4b80/safeareacontext/ComponentDescriptors.cpp.o:(vtable for facebook::react::ConcreteViewShadowNode<&facebook::react::RNCSafeAreaProviderComponentName.<char const at offset 0>, facebook::react::RNCSafeAreaProviderProps, facebook::react::RNCSafeAreaProviderEventEmitter, facebook::react::StateData>)
+C/C++: >>> referenced by ComponentDescriptors.cpp
+C/C++: >>>               safeareacontext_autolinked_build/CMakeFiles/react_codegen_safeareacontext.dir/444957f6e057d461726bdf9d2a4e4b80/safeareacontext/ComponentDescriptors.cpp.o:(vtable for facebook::react::ConcreteShadowNode<&facebook::react::RNCSafeAreaProviderComponentName.<char const at offset 0>, facebook::react::YogaLayoutableShadowNode, facebook::react::RNCSafeAreaProviderProps, facebook::react::RNCSafeAreaProviderEventEmitter, facebook::react::StateData>)
+C/C++: ld.lld: error: undefined symbol: facebook::react::ShadowNode::getDebugValue() const
+C/C++: >>> referenced by ComponentDescriptors.cpp
+C/C++: >>>               safeareacontext_autolinked_build/CMakeFiles/react_codegen_safeareacontext.dir/444957f6e057d461726bdf9d2a4e4b80/safeareacontext/ComponentDescriptors.cpp.o:(vtable for facebook::react::ConcreteViewShadowNode<&facebook::react::RNCSafeAreaProviderComponentName.<char const at offset 0>, facebook::react::RNCSafeAreaProviderProps, facebook::react::RNCSafeAreaProviderEventEmitter, facebook::react::StateData>)
+C/C++: >>> referenced by ComponentDescriptors.cpp
+C/C++: >>>               safeareacontext_autolinked_build/CMakeFiles/react_codegen_safeareacontext.dir/444957f6e057d461726bdf9d2a4e4b80/safeareacontext/ComponentDescriptors.cpp.o:(vtable for facebook::react::ConcreteShadowNode<&facebook::react::RNCSafeAreaProviderComponentName.<char const at offset 0>, facebook::react::YogaLayoutableShadowNode, facebook::react::RNCSafeAreaProviderProps, facebook::react::RNCSafeAreaProviderEventEmitter, facebook::react::StateData>)
+C/C++: ld.lld: error: undefined symbol: facebook::react::ShadowNode::getDebugChildren() const
+C/C++: >>> referenced by ComponentDescriptors.cpp
+C/C++: >>>               safeareacontext_autolinked_build/CMakeFiles/react_codegen_safeareacontext.dir/444957f6e057d461726bdf9d2a4e4b80/safeareacontext/ComponentDescriptors.cpp.o:(vtable for facebook::react::ConcreteViewShadowNode<&facebook::react::RNCSafeAreaProviderComponentName.<char const at offset 0>, facebook::react::RNCSafeAreaProviderProps, facebook::react::RNCSafeAreaProviderEventEmitter, facebook::react::StateData>)
+C/C++: >>> referenced by ComponentDescriptors.cpp
+C/C++: >>>               safeareacontext_autolinked_build/CMakeFiles/react_codegen_safeareacontext.dir/444957f6e057d461726bdf9d2a4e4b80/safeareacontext/ComponentDescriptors.cpp.o:(vtable for facebook::react::ConcreteShadowNode<&facebook::react::RNCSafeAreaProviderComponentName.<char const at offset 0>, facebook::react::YogaLayoutableShadowNode, facebook::react::RNCSafeAreaProviderProps, facebook::react::RNCSafeAreaProviderEventEmitter, facebook::react::StateData>)
+C/C++: ld.lld: error: undefined symbol: facebook::react::LayoutableShadowNode::getDebugProps() const
+C/C++: >>> referenced by ComponentDescriptors.cpp
+C/C++: >>>               safeareacontext_autolinked_build/CMakeFiles/react_codegen_safeareacontext.dir/444957f6e057d461726bdf9d2a4e4b80/safeareacontext/ComponentDescriptors.cpp.o:(vtable for facebook::react::ConcreteViewShadowNode<&facebook::react::RNCSafeAreaProviderComponentName.<char const at offset 0>, facebook::react::RNCSafeAreaProviderProps, facebook::react::RNCSafeAreaProviderEventEmitter, facebook::react::StateData>)
+C/C++: >>> referenced by ComponentDescriptors.cpp
+C/C++: >>>               safeareacontext_autolinked_build/CMakeFiles/react_codegen_safeareacontext.dir/444957f6e057d461726bdf9d2a4e4b80/safeareacontext/ComponentDescriptors.cpp.o:(vtable for facebook::react::ConcreteShadowNode<&facebook::react::RNCSafeAreaProviderComponentName.<char const at offset 0>, facebook::react::YogaLayoutableShadowNode, facebook::react::RNCSafeAreaProviderProps, facebook::react::RNCSafeAreaProviderEventEmitter, facebook::react::StateData>)
+C/C++: clang++: error: linker command failed with exit code 1 (use -v to see invocation)
+C/C++: ninja: build stopped: subcommand failed.
+
+> Task :app:buildCMakeDebug[arm64-v8a] FAILED
+
+[Incubating] Problems report is available at: file:///C:/L3mxr/Github%20Repositories/LAFINA-CAPSTONE/android/build/reports/problems/problems-report.html
+
+FAILURE: Build failed with an exception.
+
+* What went wrong:
+Execution failed for task ':app:buildCMakeDebug[arm64-v8a]'.
+> com.android.ide.common.process.ProcessException: ninja: Entering directory `C:\L3mxr\Github Repositories\LAFINA-CAPSTONE\android\app\.cxx\Debug\1q36193l\arm64-v8a'
+  [0/2] Re-checking globbed directories...
+  [1/18] Building CXX object OPSQLiteSpec_autolinked_build/CMakeFiles/react_codegen_OPSQLiteSpec.dir/react/renderer/components/OPSQLiteSpec/EventEmitters.cpp.o
+  [2/18] Building CXX object OPSQLiteSpec_autolinked_build/CMakeFiles/react_codegen_OPSQLiteSpec.dir/react/renderer/components/OPSQLiteSpec/States.cpp.o
+  [3/18] Building CXX object safeareacontext_autolinked_build/CMakeFiles/react_codegen_safeareacontext.dir/ff4d5063b359f82845c31ec182aa8572/renderer/components/safeareacontext/States.cpp.o
+  [4/18] Building CXX object safeareacontext_autolinked_build/CMakeFiles/react_codegen_safeareacontext.dir/1293edc8256043253c5fdd9cbecaca3f/components/safeareacontext/EventEmitters.cpp.o
+  [5/18] Building CXX object CMakeFiles/appmodules.dir/OnLoad.cpp.o
+  [6/18] Building CXX object OPSQLiteSpec_autolinked_build/CMakeFiles/react_codegen_OPSQLiteSpec.dir/OPSQLiteSpec-generated.cpp.o
+  [7/18] Building CXX object OPSQLiteSpec_autolinked_build/CMakeFiles/react_codegen_OPSQLiteSpec.dir/react/renderer/components/OPSQLiteSpec/Props.cpp.o
+  [8/18] Building CXX object safeareacontext_autolinked_build/CMakeFiles/react_codegen_safeareacontext.dir/2e21723c3c4d5f906fd9ff4f2d2bf73e/source/codegen/jni/safeareacontext-generated.cpp.o
+  [9/18] Building CXX object safeareacontext_autolinked_build/CMakeFiles/react_codegen_safeareacontext.dir/f68b4584f6037a5c35392d62b22a2a19/safeareacontext/RNCSafeAreaViewState.cpp.o
+  [10/18] Building CXX object OPSQLiteSpec_autolinked_build/CMakeFiles/react_codegen_OPSQLiteSpec.dir/react/renderer/components/OPSQLiteSpec/ShadowNodes.cpp.o
+  [11/18] Building CXX object OPSQLiteSpec_autolinked_build/CMakeFiles/react_codegen_OPSQLiteSpec.dir/react/renderer/components/OPSQLiteSpec/ComponentDescriptors.cpp.o
+  [12/18] Building CXX object safeareacontext_autolinked_build/CMakeFiles/react_codegen_safeareacontext.dir/ff4d5063b359f82845c31ec182aa8572/renderer/components/safeareacontext/Props.cpp.o
+  [13/18] Building CXX object safeareacontext_autolinked_build/CMakeFiles/react_codegen_safeareacontext.dir/444957f6e057d461726bdf9d2a4e4b80/safeareacontext/ComponentDescriptors.cpp.o
+  [14/18] Building CXX object safeareacontext_autolinked_build/CMakeFiles/react_codegen_safeareacontext.dir/1293edc8256043253c5fdd9cbecaca3f/components/safeareacontext/ShadowNodes.cpp.o
+  [15/18] Building CXX object CMakeFiles/appmodules.dir/C_/L3mxr/Github_Repositories/LAFINA-CAPSTONE/android/app/build/generated/autolinking/src/main/jni/autolinking.cpp.o
+  [16/18] Building CXX object safeareacontext_autolinked_build/CMakeFiles/react_codegen_safeareacontext.dir/f68b4584f6037a5c35392d62b22a2a19/safeareacontext/RNCSafeAreaViewShadowNode.cpp.o
+  [17/18] Linking CXX shared library "C:\L3mxr\Github Repositories\LAFINA-CAPSTONE\android\app\build\intermediates\cxx\Debug\1q36193l\obj\arm64-v8a\libreact_codegen_safeareacontext.so"
+  FAILED: C:/L3mxr/Github Repositories/LAFINA-CAPSTONE/android/app/build/intermediates/cxx/Debug/1q36193l/obj/arm64-v8a/libreact_codegen_safeareacontext.so 
+  cmd.exe /C "cd . && C:\Users\USER-PC\AppData\Local\Android\Sdk\ndk\27.1.12297006\toolchains\llvm\prebuilt\windows-x86_64\bin\clang++.exe --target=aarch64-none-linux-android30 --sysroot=C:/Users/USER-PC/AppData/Local/Android/Sdk/ndk/27.1.12297006/toolchains/llvm/prebuilt/windows-x86_64/sysroot -fPIC -g -DANDROID -fdata-sections -ffunction-sections -funwind-tables -fstack-protector-strong -no-canonical-prefixes -D__BIONIC_NO_PAGE_SIZE_MACRO -D_FORTIFY_SOURCE=2 -Wformat -Werror=format-security   -fno-limit-debug-info  -Wl,-z,max-page-size=16384 -Wl,--build-id=sha1 -Wl,--no-undefined-version -Wl,--fatal-warnings -Wl,--no-undefined -Qunused-arguments -shared -Wl,-soname,libreact_codegen_safeareacontext.so -o "C:\L3mxr\Github Repositories\LAFINA-CAPSTONE\android\app\build\intermediates\cxx\Debug\1q36193l\obj\arm64-v8a\libreact_codegen_safeareacontext.so" safeareacontext_autolinked_build/CMakeFiles/react_codegen_safeareacontext.dir/f68b4584f6037a5c35392d62b22a2a19/safeareacontext/RNCSafeAreaViewShadowNode.cpp.o safeareacontext_autolinked_build/CMakeFiles/react_codegen_safeareacontext.dir/f68b4584f6037a5c35392d62b22a2a19/safeareacontext/RNCSafeAreaViewState.cpp.o safeareacontext_autolinked_build/CMakeFiles/react_codegen_safeareacontext.dir/444957f6e057d461726bdf9d2a4e4b80/safeareacontext/ComponentDescriptors.cpp.o safeareacontext_autolinked_build/CMakeFiles/react_codegen_safeareacontext.dir/1293edc8256043253c5fdd9cbecaca3f/components/safeareacontext/EventEmitters.cpp.o safeareacontext_autolinked_build/CMakeFiles/react_codegen_safeareacontext.dir/ff4d5063b359f82845c31ec182aa8572/renderer/components/safeareacontext/Props.cpp.o safeareacontext_autolinked_build/CMakeFiles/react_codegen_safeareacontext.dir/1293edc8256043253c5fdd9cbecaca3f/components/safeareacontext/ShadowNodes.cpp.o safeareacontext_autolinked_build/CMakeFiles/react_codegen_safeareacontext.dir/ff4d5063b359f82845c31ec182aa8572/renderer/components/safeareacontext/States.cpp.o safeareacontext_autolinked_build/CMakeFiles/react_codegen_safeareacontext.dir/2e21723c3c4d5f906fd9ff4f2d2bf73e/source/codegen/jni/safeareacontext-generated.cpp.o  C:/Users/USER-PC/.gradle/caches/9.3.1/transforms/3c01aea05d2737e987399f1309ae090e/workspace/transformed/fbjni-0.7.0/prefab/modules/fbjni/libs/android.arm64-v8a/libfbjni.so  C:/Users/USER-PC/.gradle/caches/9.3.1/transforms/2454197a7a7bdd22c9814cde61f3ed7f/workspace/transformed/react-android-0.86.0-release/prefab/modules/jsi/libs/android.arm64-v8a/libjsi.so  C:/Users/USER-PC/.gradle/caches/9.3.1/transforms/2454197a7a7bdd22c9814cde61f3ed7f/workspace/transformed/react-android-0.86.0-release/prefab/modules/reactnative/libs/android.arm64-v8a/libreactnative.so  -latomic -lm && cd ."
+  ld.lld: error: undefined symbol: facebook::react::Sealable::ensureUnsealed() const
+  >>> referenced by RNCSafeAreaViewShadowNode.cpp:40 (C:/L3mxr/Github Repositories/LAFINA-CAPSTONE/node_modules/react-native-safe-area-context/common/cpp/react/renderer/components/safeareacontext/RNCSafeAreaViewShadowNode.cpp:40)
+  >>>               safeareacontext_autolinked_build/CMakeFiles/react_codegen_safeareacontext.dir/f68b4584f6037a5c35392d62b22a2a19/safeareacontext/RNCSafeAreaViewShadowNode.cpp.o:(facebook::react::RNCSafeAreaViewShadowNode::adjustLayoutWithState())
+  
+  ld.lld: error: undefined symbol: facebook::react::Sealable::Sealable()
+  >>> referenced by Props.cpp:17 (C:/L3mxr/Github Repositories/LAFINA-CAPSTONE/node_modules/react-native-safe-area-context/android/build/generated/source/codegen/jni/react/renderer/components/safeareacontext/Props.cpp:17)
+  >>>               safeareacontext_autolinked_build/CMakeFiles/react_codegen_safeareacontext.dir/ff4d5063b359f82845c31ec182aa8572/renderer/components/safeareacontext/Props.cpp.o:(facebook::react::RNCSafeAreaProviderProps::RNCSafeAreaProviderProps(facebook::react::PropsParserContext const&, facebook::react::RNCSafeAreaProviderProps const&, facebook::react::RawProps const&))
+  >>> referenced by Props.cpp:43 (C:/L3mxr/Github Repositories/LAFINA-CAPSTONE/node_modules/react-native-safe-area-context/android/build/generated/source/codegen/jni/react/renderer/components/safeareacontext/Props.cpp:43)
+  >>>               safeareacontext_autolinked_build/CMakeFiles/react_codegen_safeareacontext.dir/ff4d5063b359f82845c31ec182aa8572/renderer/components/safeareacontext/Props.cpp.o:(facebook::react::RNCSafeAreaViewProps::RNCSafeAreaViewProps(facebook::react::PropsParserContext const&, facebook::react::RNCSafeAreaViewProps const&, facebook::react::RawProps const&))
+  >>> referenced by Props.h:113 (C:/L3mxr/Github Repositories/LAFINA-CAPSTONE/node_modules/react-native-safe-area-context/android/src/main/jni/../../../build/generated/source/codegen/jni/react/renderer/components/safeareacontext/Props.h:113)
+  >>>               safeareacontext_autolinked_build/CMakeFiles/react_codegen_safeareacontext.dir/ff4d5063b359f82845c31ec182aa8572/renderer/components/safeareacontext/Props.cpp.o:(facebook::react::RNCSafeAreaViewProps::RNCSafeAreaViewProps())
+  >>> referenced 1 more times
+  
+  ld.lld: error: undefined symbol: facebook::react::Sealable::~Sealable()
+  >>> referenced by Props.cpp:22 (C:/L3mxr/Github Repositories/LAFINA-CAPSTONE/node_modules/react-native-safe-area-context/android/build/generated/source/codegen/jni/react/renderer/components/safeareacontext/Props.cpp:22)
+  >>>               safeareacontext_autolinked_build/CMakeFiles/react_codegen_safeareacontext.dir/ff4d5063b359f82845c31ec182aa8572/renderer/components/safeareacontext/Props.cpp.o:(facebook::react::RNCSafeAreaProviderProps::RNCSafeAreaProviderProps(facebook::react::PropsParserContext const&, facebook::react::RNCSafeAreaProviderProps const&, facebook::react::RawProps const&))
+  >>> referenced by Props.cpp:49 (C:/L3mxr/Github Repositories/LAFINA-CAPSTONE/node_modules/react-native-safe-area-context/android/build/generated/source/codegen/jni/react/renderer/components/safeareacontext/Props.cpp:49)
+  >>>               safeareacontext_autolinked_build/CMakeFiles/react_codegen_safeareacontext.dir/ff4d5063b359f82845c31ec182aa8572/renderer/components/safeareacontext/Props.cpp.o:(facebook::react::RNCSafeAreaViewProps::RNCSafeAreaViewProps(facebook::react::PropsParserContext const&, facebook::react::RNCSafeAreaViewProps const&, facebook::react::RawProps const&))
+  >>> referenced by Props.h:113 (C:/L3mxr/Github Repositories/LAFINA-CAPSTONE/node_modules/react-native-safe-area-context/android/src/main/jni/../../../build/generated/source/codegen/jni/react/renderer/components/safeareacontext/Props.h:113)
+  >>>               safeareacontext_autolinked_build/CMakeFiles/react_codegen_safeareacontext.dir/ff4d5063b359f82845c31ec182aa8572/renderer/components/safeareacontext/Props.cpp.o:(facebook::react::RNCSafeAreaViewProps::RNCSafeAreaViewProps())
+  >>> referenced 8 more times
+  
+  ld.lld: error: undefined symbol: VTT for facebook::react::BaseViewProps
+  >>> referenced by BaseViewProps.h:31 (C:/Users/USER-PC/.gradle/caches/9.3.1/transforms/2454197a7a7bdd22c9814cde61f3ed7f/workspace/transformed/react-android-0.86.0-release/prefab/modules/reactnative/include/react/renderer/components/view/BaseViewProps.h:31)
+  >>>               safeareacontext_autolinked_build/CMakeFiles/react_codegen_safeareacontext.dir/ff4d5063b359f82845c31ec182aa8572/renderer/components/safeareacontext/Props.cpp.o:(facebook::react::BaseViewProps::~BaseViewProps())
+  >>> referenced by BaseViewProps.h:31 (C:/Users/USER-PC/.gradle/caches/9.3.1/transforms/2454197a7a7bdd22c9814cde61f3ed7f/workspace/transformed/react-android-0.86.0-release/prefab/modules/reactnative/include/react/renderer/components/view/BaseViewProps.h:31)
+  >>>               safeareacontext_autolinked_build/CMakeFiles/react_codegen_safeareacontext.dir/ff4d5063b359f82845c31ec182aa8572/renderer/components/safeareacontext/Props.cpp.o:(facebook::react::BaseViewProps::~BaseViewProps())
+  
+  ld.lld: error: undefined symbol: vtable for facebook::react::DebugStringConvertible
+  >>> referenced by DebugStringConvertible.h:44 (C:/Users/USER-PC/.gradle/caches/9.3.1/transforms/2454197a7a7bdd22c9814cde61f3ed7f/workspace/transformed/react-android-0.86.0-release/prefab/modules/reactnative/include/react/renderer/debug/DebugStringConvertible.h:44)
+  >>>               safeareacontext_autolinked_build/CMakeFiles/react_codegen_safeareacontext.dir/444957f6e057d461726bdf9d2a4e4b80/safeareacontext/ComponentDescriptors.cpp.o:(facebook::react::DebugStringConvertible::DebugStringConvertible())
+  >>> referenced by DebugStringConvertible.h:44 (C:/Users/USER-PC/.gradle/caches/9.3.1/transforms/2454197a7a7bdd22c9814cde61f3ed7f/workspace/transformed/react-android-0.86.0-release/prefab/modules/reactnative/include/react/renderer/debug/DebugStringConvertible.h:44)
+  >>>               safeareacontext_autolinked_build/CMakeFiles/react_codegen_safeareacontext.dir/444957f6e057d461726bdf9d2a4e4b80/safeareacontext/ComponentDescriptors.cpp.o:(facebook::react::DebugStringConvertible::DebugStringConvertible())
+  >>> the vtable symbol may be undefined because the class is missing its key function (see https://lld.llvm.org/missingkeyfunction)
+  
+  ld.lld: error: undefined symbol: VTT for facebook::react::YogaStylableProps
+  >>> referenced by YogaStylableProps.h:18 (C:/Users/USER-PC/.gradle/caches/9.3.1/transforms/2454197a7a7bdd22c9814cde61f3ed7f/workspace/transformed/react-android-0.86.0-release/prefab/modules/reactnative/include/react/renderer/components/view/YogaStylableProps.h:18)
+  >>>               safeareacontext_autolinked_build/CMakeFiles/react_codegen_safeareacontext.dir/ff4d5063b359f82845c31ec182aa8572/renderer/components/safeareacontext/Props.cpp.o:(facebook::react::YogaStylableProps::~YogaStylableProps())
+  >>> referenced by YogaStylableProps.h:18 (C:/Users/USER-PC/.gradle/caches/9.3.1/transforms/2454197a7a7bdd22c9814cde61f3ed7f/workspace/transformed/react-android-0.86.0-release/prefab/modules/reactnative/include/react/renderer/components/view/YogaStylableProps.h:18)
+  >>>               safeareacontext_autolinked_build/CMakeFiles/react_codegen_safeareacontext.dir/ff4d5063b359f82845c31ec182aa8572/renderer/components/safeareacontext/Props.cpp.o:(facebook::react::YogaStylableProps::~YogaStylableProps())
+  
+  ld.lld: error: undefined symbol: facebook::react::DebugStringConvertible::getDebugName() const
+  >>> referenced by Props.cpp
+  >>>               safeareacontext_autolinked_build/CMakeFiles/react_codegen_safeareacontext.dir/ff4d5063b359f82845c31ec182aa8572/renderer/components/safeareacontext/Props.cpp.o:(vtable for facebook::react::RNCSafeAreaProviderProps)
+  >>> referenced by Props.cpp
+  >>>               safeareacontext_autolinked_build/CMakeFiles/react_codegen_safeareacontext.dir/ff4d5063b359f82845c31ec182aa8572/renderer/components/safeareacontext/Props.cpp.o:(vtable for facebook::react::RNCSafeAreaViewProps)
+  >>> referenced by Props.cpp
+  >>>               safeareacontext_autolinked_build/CMakeFiles/react_codegen_safeareacontext.dir/ff4d5063b359f82845c31ec182aa8572/renderer/components/safeareacontext/Props.cpp.o:(construction vtable for facebook::react::HostPlatformViewProps-in-facebook::react::RNCSafeAreaProviderProps)
+  >>> referenced 7 more times
+  
+  ld.lld: error: undefined symbol: facebook::react::DebugStringConvertible::getDebugValue() const
+  >>> referenced by Props.cpp
+  >>>               safeareacontext_autolinked_build/CMakeFiles/react_codegen_safeareacontext.dir/ff4d5063b359f82845c31ec182aa8572/renderer/components/safeareacontext/Props.cpp.o:(vtable for facebook::react::RNCSafeAreaProviderProps)
+  >>> referenced by Props.cpp
+  >>>               safeareacontext_autolinked_build/CMakeFiles/react_codegen_safeareacontext.dir/ff4d5063b359f82845c31ec182aa8572/renderer/components/safeareacontext/Props.cpp.o:(vtable for facebook::react::RNCSafeAreaViewProps)
+  >>> referenced by Props.cpp
+  >>>               safeareacontext_autolinked_build/CMakeFiles/react_codegen_safeareacontext.dir/ff4d5063b359f82845c31ec182aa8572/renderer/components/safeareacontext/Props.cpp.o:(construction vtable for facebook::react::HostPlatformViewProps-in-facebook::react::RNCSafeAreaProviderProps)
+  >>> referenced 7 more times
+  
+  ld.lld: error: undefined symbol: facebook::react::DebugStringConvertible::getDebugChildren() const
+  >>> referenced by Props.cpp
+  >>>               safeareacontext_autolinked_build/CMakeFiles/react_codegen_safeareacontext.dir/ff4d5063b359f82845c31ec182aa8572/renderer/components/safeareacontext/Props.cpp.o:(vtable for facebook::react::RNCSafeAreaProviderProps)
+  >>> referenced by Props.cpp
+  >>>               safeareacontext_autolinked_build/CMakeFiles/react_codegen_safeareacontext.dir/ff4d5063b359f82845c31ec182aa8572/renderer/components/safeareacontext/Props.cpp.o:(vtable for facebook::react::RNCSafeAreaViewProps)
+  >>> referenced by Props.cpp
+  >>>               safeareacontext_autolinked_build/CMakeFiles/react_codegen_safeareacontext.dir/ff4d5063b359f82845c31ec182aa8572/renderer/components/safeareacontext/Props.cpp.o:(construction vtable for facebook::react::HostPlatformViewProps-in-facebook::react::RNCSafeAreaProviderProps)
+  >>> referenced 7 more times
+  
+  ld.lld: error: undefined symbol: facebook::react::HostPlatformViewProps::getDebugProps() const
+  >>> referenced by Props.cpp
+  >>>               safeareacontext_autolinked_build/CMakeFiles/react_codegen_safeareacontext.dir/ff4d5063b359f82845c31ec182aa8572/renderer/components/safeareacontext/Props.cpp.o:(vtable for facebook::react::RNCSafeAreaProviderProps)
+  >>> referenced by Props.cpp
+  >>>               safeareacontext_autolinked_build/CMakeFiles/react_codegen_safeareacontext.dir/ff4d5063b359f82845c31ec182aa8572/renderer/components/safeareacontext/Props.cpp.o:(vtable for facebook::react::RNCSafeAreaViewProps)
+  >>> referenced by Props.cpp
+  >>>               safeareacontext_autolinked_build/CMakeFiles/react_codegen_safeareacontext.dir/ff4d5063b359f82845c31ec182aa8572/renderer/components/safeareacontext/Props.cpp.o:(construction vtable for facebook::react::HostPlatformViewProps-in-facebook::react::RNCSafeAreaProviderProps)
+  >>> referenced 1 more times
+  
+  ld.lld: error: undefined symbol: facebook::react::DebugStringConvertible::getDebugDescription(facebook::react::DebugStringConvertibleOptions) const
+  >>> referenced by Props.cpp
+  >>>               safeareacontext_autolinked_build/CMakeFiles/react_codegen_safeareacontext.dir/ff4d5063b359f82845c31ec182aa8572/renderer/components/safeareacontext/Props.cpp.o:(vtable for facebook::react::RNCSafeAreaProviderProps)
+  >>> referenced by Props.cpp
+  >>>               safeareacontext_autolinked_build/CMakeFiles/react_codegen_safeareacontext.dir/ff4d5063b359f82845c31ec182aa8572/renderer/components/safeareacontext/Props.cpp.o:(vtable for facebook::react::RNCSafeAreaViewProps)
+  >>> referenced by Props.cpp
+  >>>               safeareacontext_autolinked_build/CMakeFiles/react_codegen_safeareacontext.dir/ff4d5063b359f82845c31ec182aa8572/renderer/components/safeareacontext/Props.cpp.o:(construction vtable for facebook::react::HostPlatformViewProps-in-facebook::react::RNCSafeAreaProviderProps)
+  >>> referenced 9 more times
+  
+  ld.lld: error: undefined symbol: facebook::react::DebugStringConvertible::getDebugPropsDescription(facebook::react::DebugStringConvertibleOptions) const
+  >>> referenced by Props.cpp
+  >>>               safeareacontext_autolinked_build/CMakeFiles/react_codegen_safeareacontext.dir/ff4d5063b359f82845c31ec182aa8572/renderer/components/safeareacontext/Props.cpp.o:(vtable for facebook::react::RNCSafeAreaProviderProps)
+  >>> referenced by Props.cpp
+  >>>               safeareacontext_autolinked_build/CMakeFiles/react_codegen_safeareacontext.dir/ff4d5063b359f82845c31ec182aa8572/renderer/components/safeareacontext/Props.cpp.o:(vtable for facebook::react::RNCSafeAreaViewProps)
+  >>> referenced by Props.cpp
+  >>>               safeareacontext_autolinked_build/CMakeFiles/react_codegen_safeareacontext.dir/ff4d5063b359f82845c31ec182aa8572/renderer/components/safeareacontext/Props.cpp.o:(construction vtable for facebook::react::HostPlatformViewProps-in-facebook::react::RNCSafeAreaProviderProps)
+  >>> referenced 9 more times
+  
+  ld.lld: error: undefined symbol: facebook::react::DebugStringConvertible::getDebugChildrenDescription(facebook::react::DebugStringConvertibleOptions) const
+  >>> referenced by Props.cpp
+  >>>               safeareacontext_autolinked_build/CMakeFiles/react_codegen_safeareacontext.dir/ff4d5063b359f82845c31ec182aa8572/renderer/components/safeareacontext/Props.cpp.o:(vtable for facebook::react::RNCSafeAreaProviderProps)
+  >>> referenced by Props.cpp
+  >>>               safeareacontext_autolinked_build/CMakeFiles/react_codegen_safeareacontext.dir/ff4d5063b359f82845c31ec182aa8572/renderer/components/safeareacontext/Props.cpp.o:(vtable for facebook::react::RNCSafeAreaViewProps)
+  >>> referenced by Props.cpp
+  >>>               safeareacontext_autolinked_build/CMakeFiles/react_codegen_safeareacontext.dir/ff4d5063b359f82845c31ec182aa8572/renderer/components/safeareacontext/Props.cpp.o:(construction vtable for facebook::react::HostPlatformViewProps-in-facebook::react::RNCSafeAreaProviderProps)
+  >>> referenced 9 more times
+  
+  ld.lld: error: undefined symbol: facebook::react::BaseViewProps::getDebugProps() const
+  >>> referenced by Props.cpp
+  >>>               safeareacontext_autolinked_build/CMakeFiles/react_codegen_safeareacontext.dir/ff4d5063b359f82845c31ec182aa8572/renderer/components/safeareacontext/Props.cpp.o:(construction vtable for facebook::react::BaseViewProps-in-facebook::react::RNCSafeAreaProviderProps)
+  >>> referenced by Props.cpp
+  >>>               safeareacontext_autolinked_build/CMakeFiles/react_codegen_safeareacontext.dir/ff4d5063b359f82845c31ec182aa8572/renderer/components/safeareacontext/Props.cpp.o:(construction vtable for facebook::react::BaseViewProps-in-facebook::react::RNCSafeAreaViewProps)
+  
+  ld.lld: error: undefined symbol: facebook::react::YogaStylableProps::getDebugProps() const
+  >>> referenced by Props.cpp
+  >>>               safeareacontext_autolinked_build/CMakeFiles/react_codegen_safeareacontext.dir/ff4d5063b359f82845c31ec182aa8572/renderer/components/safeareacontext/Props.cpp.o:(construction vtable for facebook::react::YogaStylableProps-in-facebook::react::RNCSafeAreaProviderProps)
+  >>> referenced by Props.cpp
+  >>>               safeareacontext_autolinked_build/CMakeFiles/react_codegen_safeareacontext.dir/ff4d5063b359f82845c31ec182aa8572/renderer/components/safeareacontext/Props.cpp.o:(construction vtable for facebook::react::YogaStylableProps-in-facebook::react::RNCSafeAreaViewProps)
+  
+  ld.lld: error: undefined symbol: facebook::react::Props::getDebugProps() const
+  >>> referenced by Props.cpp
+  >>>               safeareacontext_autolinked_build/CMakeFiles/react_codegen_safeareacontext.dir/ff4d5063b359f82845c31ec182aa8572/renderer/components/safeareacontext/Props.cpp.o:(construction vtable for facebook::react::Props-in-facebook::react::RNCSafeAreaProviderProps)
+  >>> referenced by Props.cpp
+  >>>               safeareacontext_autolinked_build/CMakeFiles/react_codegen_safeareacontext.dir/ff4d5063b359f82845c31ec182aa8572/renderer/components/safeareacontext/Props.cpp.o:(construction vtable for facebook::react::Props-in-facebook::react::RNCSafeAreaViewProps)
+  
+  ld.lld: error: undefined symbol: facebook::react::ShadowNode::getDebugName() const
+  >>> referenced by ComponentDescriptors.cpp
+  >>>               safeareacontext_autolinked_build/CMakeFiles/react_codegen_safeareacontext.dir/444957f6e057d461726bdf9d2a4e4b80/safeareacontext/ComponentDescriptors.cpp.o:(vtable for facebook::react::ConcreteViewShadowNode<&facebook::react::RNCSafeAreaProviderComponentName.<char const at offset 0>, facebook::react::RNCSafeAreaProviderProps, facebook::react::RNCSafeAreaProviderEventEmitter, facebook::react::StateData>)
+  >>> referenced by ComponentDescriptors.cpp
+  >>>               safeareacontext_autolinked_build/CMakeFiles/react_codegen_safeareacontext.dir/444957f6e057d461726bdf9d2a4e4b80/safeareacontext/ComponentDescriptors.cpp.o:(vtable for facebook::react::ConcreteShadowNode<&facebook::react::RNCSafeAreaProviderComponentName.<char const at offset 0>, facebook::react::YogaLayoutableShadowNode, facebook::react::RNCSafeAreaProviderProps, facebook::react::RNCSafeAreaProviderEventEmitter, facebook::react::StateData>)
+  
+  ld.lld: error: undefined symbol: facebook::react::ShadowNode::getDebugValue() const
+  >>> referenced by ComponentDescriptors.cpp
+  >>>               safeareacontext_autolinked_build/CMakeFiles/react_codegen_safeareacontext.dir/444957f6e057d461726bdf9d2a4e4b80/safeareacontext/ComponentDescriptors.cpp.o:(vtable for facebook::react::ConcreteViewShadowNode<&facebook::react::RNCSafeAreaProviderComponentName.<char const at offset 0>, facebook::react::RNCSafeAreaProviderProps, facebook::react::RNCSafeAreaProviderEventEmitter, facebook::react::StateData>)
+  >>> referenced by ComponentDescriptors.cpp
+  >>>               safeareacontext_autolinked_build/CMakeFiles/react_codegen_safeareacontext.dir/444957f6e057d461726bdf9d2a4e4b80/safeareacontext/ComponentDescriptors.cpp.o:(vtable for facebook::react::ConcreteShadowNode<&facebook::react::RNCSafeAreaProviderComponentName.<char const at offset 0>, facebook::react::YogaLayoutableShadowNode, facebook::react::RNCSafeAreaProviderProps, facebook::react::RNCSafeAreaProviderEventEmitter, facebook::react::StateData>)
+  
+  ld.lld: error: undefined symbol: facebook::react::ShadowNode::getDebugChildren() const
+  >>> referenced by ComponentDescriptors.cpp
+  >>>               safeareacontext_autolinked_build/CMakeFiles/react_codegen_safeareacontext.dir/444957f6e057d461726bdf9d2a4e4b80/safeareacontext/ComponentDescriptors.cpp.o:(vtable for facebook::react::ConcreteViewShadowNode<&facebook::react::RNCSafeAreaProviderComponentName.<char const at offset 0>, facebook::react::RNCSafeAreaProviderProps, facebook::react::RNCSafeAreaProviderEventEmitter, facebook::react::StateData>)
+  >>> referenced by ComponentDescriptors.cpp
+  >>>               safeareacontext_autolinked_build/CMakeFiles/react_codegen_safeareacontext.dir/444957f6e057d461726bdf9d2a4e4b80/safeareacontext/ComponentDescriptors.cpp.o:(vtable for facebook::react::ConcreteShadowNode<&facebook::react::RNCSafeAreaProviderComponentName.<char const at offset 0>, facebook::react::YogaLayoutableShadowNode, facebook::react::RNCSafeAreaProviderProps, facebook::react::RNCSafeAreaProviderEventEmitter, facebook::react::StateData>)
+  
+  ld.lld: error: undefined symbol: facebook::react::LayoutableShadowNode::getDebugProps() const
+  >>> referenced by ComponentDescriptors.cpp
+  >>>               safeareacontext_autolinked_build/CMakeFiles/react_codegen_safeareacontext.dir/444957f6e057d461726bdf9d2a4e4b80/safeareacontext/ComponentDescriptors.cpp.o:(vtable for facebook::react::ConcreteViewShadowNode<&facebook::react::RNCSafeAreaProviderComponentName.<char const at offset 0>, facebook::react::RNCSafeAreaProviderProps, facebook::react::RNCSafeAreaProviderEventEmitter, facebook::react::StateData>)
+  >>> referenced by ComponentDescriptors.cpp
+  >>>               safeareacontext_autolinked_build/CMakeFiles/react_codegen_safeareacontext.dir/444957f6e057d461726bdf9d2a4e4b80/safeareacontext/ComponentDescriptors.cpp.o:(vtable for facebook::react::ConcreteShadowNode<&facebook::react::RNCSafeAreaProviderComponentName.<char const at offset 0>, facebook::react::YogaLayoutableShadowNode, facebook::react::RNCSafeAreaProviderProps, facebook::react::RNCSafeAreaProviderEventEmitter, facebook::react::StateData>)
+  clang++: error: linker command failed with exit code 1 (use -v to see invocation)
+
+  ninja: build stopped: subcommand failed.
+  
+  C++ build system [build] failed while executing:
+      @echo off
+      "C:\\Users\\USER-PC\\AppData\\Local\\Android\\Sdk\\cmake\\3.22.1\\bin\\ninja.exe" ^
+        -C ^
+        "C:\\L3mxr\\Github Repositories\\LAFINA-CAPSTONE\\android\\app\\.cxx\\Debug\\1q36193l\\arm64-v8a" ^
+        appmodules ^
+        react_codegen_safeareacontext
+    from C:\L3mxr\Github Repositories\LAFINA-CAPSTONE\android\app
+
+* Try:
+> Run with --stacktrace option to get the stack trace.
+> Run with --info or --debug option to get more log output.
+> Run with --scan to get full insights from a Build Scan (powered by Develocity).
+> Get more help at https://help.gradle.org.
+
+Deprecated Gradle features were used in this build, making it incompatible with Gradle 10.
+
+You can use '--warning-mode all' to show the individual deprecation warnings and determine if they come from your own scripts or plugins.
+
+For more on this, please refer to https://docs.gradle.org/9.3.1/userguide/command_line_interface.html#sec:command_line_warnings in the Gradle documentation.
+
+BUILD FAILED in 2m 53s
+95 actionable tasks: 37 executed, 58 up-to-date

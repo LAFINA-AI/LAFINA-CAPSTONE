@@ -1,0 +1,55 @@
+Phase 03 independent integrity verification
+UTC: 2026-10-22T18:24:17.728Z
+Scope: source manifest, reviewed existing APKs, Phase 03 local Markdown links. Read-only inputs; no build, ADB or source changes.
+
+Source SHA256 and byte sizes: PASS
+Manifest: docs/reports/evidence/phase-03-source-hashes.json
+Entries checked: 85
+Mismatch count: 0
+
+Reviewed APK SHA256 and byte sizes: PASS
+Manifest: docs/reports/evidence/phase-03-artifacts-reviewed.json
+Entries checked: 7
+Mismatch count: 0
+
+Phase 03 local Markdown link existence: PASS
+Markdown files checked: 9
+Local links checked: 66
+Missing targets: 0
+
+Pending-label scan (review candidates, not automatic failures):
+docs/audits/phase-03-code-review.md:6: **Verdict:** findings reported; final automated, emulator and physical-device evidence pending the phase owner's validation.
+docs/audits/phase-03-code-review.md:13: The pending labels below preserve the review-time evidence boundary.
+docs/audits/phase-03-code-review.md:18: policy, runtime, private provider, bridge, receivers, PendingIntent identity,
+docs/audits/phase-03-code-review.md:43: also ends legacy simulated rings. **Final native test run: pending review
+docs/audits/phase-03-code-review.md:54: cases. **Final Jest run: pending review owner evidence.**
+docs/audits/phase-03-code-review.md:68: in the final tree. **Final native test run: pending review owner evidence.**
+docs/decisions/ADR-015-native-reminder-delivery.md:5: **Status:** implementation under validation; automated and physical-device results belong to the Phase 03 report.
+docs/phase-03-native-reminders.md:4: reminder shell. Source under validation is not evidence of physical-phone success.
+docs/reports/phase-03-report.md:8: **Evidence cutoff:** this draft records completed checks visible by the UTC timestamp above. Final reboot/overlap emulator runs and benchmark/source manifests were still being finalized by the phase owner; see the explicitly pending rows below.
+docs/reports/phase-03-report.md:49: | `ReminderIntents.kt`, `ReminderIdentityKey.kt` | Full encoded job/occurrence/generation/operation URI identity avoids request-code hash collisions. | JVM identity tests and real Android PendingIntent tests. |
+docs/reports/phase-03-report.md:60: | Tests, ADR-015, architecture/schema, audit and QA documents | Record actual behavior, independent audit corrections, process/SQLite rationale and manual acceptance criteria. | Evidence links below; final human acceptance pending. |
+docs/reports/phase-03-report.md:92: | Android instrumentation | PASS: **23 tests**, actual API 37 emulator, 11.876 seconds in reviewed run. Real Android SQLite and PendingIntent assertions use isolated synthetic test files. | [Reviewed instrumentation](evidence/phase-03-instrumentation-reviewed.log). |
+docs/reports/phase-03-report.md:100: | Final APK reboot and overlapping reminders | **PENDING PHASE-OWNER UPDATE at this report cutoff.** Do not inherit PASS from an earlier APK or a test still running. | Append actual completed results to final APK ledger, then update this row. |
+docs/reports/phase-03-report.md:335: evidence. Pending work must not become
+docs/reports/phase-03-report.md:356: - [ ] Final pending emulator/evidence-manifest rows above updated by phase owner.
+qa/PHASE-03-MANUAL.md:107: | Snooze, then allow old response deadline to pass. | New generation/run time remains PENDING; old timeout cannot mark the snooze MISSED. Current UI uses 10 minutes. | NOT RUN |
+
+Interpretation: Historical audit pending labels remain dated observations; final phase report and its evidence determine completed automation. Physical-device NOT RUN labels remain valid. Inconclusive reboot must not be changed to PASS by this integrity check. APK hashes above refer only to current reviewed manifest, not deliberately retained historical report hashes.
+
+OVERALL INTEGRITY: PASS
+
+Post-addendum local-link verification UTC: 2026-10-22T18:24:52.949Z
+Markdown documents: 9; local links: 67; missing targets: 0
+Result: PASS
+
+Final owner integrity verification UTC: 2026-10-22T18:38:29.709549+00:00
+Source 85/85 hashes+bytes PASS; reviewed APK 7/7 hashes+bytes PASS; mismatches 0.
+Phase03 Markdown documents 10, local links 87, missing 0: PASS.
+Benchmark cohort count/median/nearest-rank p95 and native timestamp lag recomputation: PASS.
+Final installed APK SHA matches reviewed x86_64 dataQa artifact: PASS.
+Logged gates 156 Jest / 30 JVM / 23 Android instrumentation / native build: PASS.
+Final screen-off, force-stop/reopen, overlap, expiry, unattended reboot and cleanup assertions: PASS.
+Original connectivity 0/1/1 restored; delivery/FSI opt-in off; active native counts all 0: PASS.
+First inconclusive attempts preserved; physical/API30/ARM64/OEM/lowRAM/audio/battery remain NOT RUN.
+FINAL INTEGRITY: PASS

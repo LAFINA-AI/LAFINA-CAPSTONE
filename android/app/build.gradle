@@ -2,7 +2,16 @@ apply plugin: 'com.android.application'
 apply plugin: 'org.jetbrains.kotlin.android'
 apply plugin: 'com.facebook.react'
 
-react { autolinkLibrariesWithApp() }
+react {
+    autolinkLibrariesWithApp()
+    extraPackagerArgs = ['--max-workers', '2']
+}
+
+def targetAbis = (project.findProperty('reactNativeArchitectures') ?: 'arm64-v8a,x86_64').split(',')
+// ARMv7 has not been compiled or validated on a 32-bit phone. Opt in explicitly.
+if (targetAbis.contains('armeabi-v7a') && project.findProperty('enableExperimentalArmv7') != 'true') {
+    throw new GradleException('ARMv7 is experimental: add -PenableExperimentalArmv7=true to validate it separately.')
+}
 
 android {
     ndkVersion rootProject.ext.ndkVersion
@@ -13,20 +22,26 @@ android {
         applicationId 'com.lafina.capstone'
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        versionCode 1
-        versionName '0.1.0'
+        versionCode 3
+        versionName '0.3.0'
+        testInstrumentationRunner 'androidx.test.runner.AndroidJUnitRunner'
+        buildConfigField 'boolean', 'ENABLE_PLANNER_HARNESS', 'false'
     }
     // Separate ABI APKs avoid shipping other architectures to a low-end phone.
     splits {
         abi {
             enable true
             reset()
-            include(*(project.findProperty('reactNativeArchitectures') ?: 'armeabi-v7a,arm64-v8a,x86_64').split(','))
+            include(*targetAbis)
             universalApk false
         }
     }
+    testBuildType 'dataQa'
     buildTypes {
-        debug { applicationIdSuffix '.debug' }
+        debug {
+            applicationIdSuffix '.debug'
+            buildConfigField 'boolean', 'ENABLE_PLANNER_HARNESS', 'true'
+        }
         release {
             // Development preview only. Never publish with the standard debug key.
             signingConfig signingConfigs.debug
@@ -34,10 +49,24 @@ android {
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
         }
+        // Private, debuggable data-layer review build: bundled JS, no Metro/network.
+        // Same application ID/signature preserves the Phase 01 preview's settings.
+        dataQa {
+            initWith debug
+            applicationIdSuffix ''
+            debuggable true
+            // Match native debug headers/libraries; release prefabs lack debug symbols.
+            matchingFallbacks = ['debug']
+            versionNameSuffix '-data-qa'
+            buildConfigField 'boolean', 'ENABLE_PLANNER_HARNESS', 'true'
+        }
     }
 }
 
 dependencies {
     implementation('com.facebook.react:react-android')
     implementation('com.facebook.react:hermes-android')
+    testImplementation 'junit:junit:4.13.2'
+    androidTestImplementation 'androidx.test:runner:1.7.0'
+    androidTestImplementation 'androidx.test.ext:junit:1.3.0'
 }
