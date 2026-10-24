@@ -10,6 +10,7 @@ export {
   getReminderPermissionStatus,
   openExactAlarmSettings,
   openFullScreenIntentSettings,
+  openNotificationSettings,
   reconcileReminderAlarms,
 } from './reminderAlarm';
 export type {
@@ -40,3 +41,21 @@ export { refreshPendingReminderLeadTimes } from './reminderPreferenceSync';
 export type { ReminderPreferenceRefreshResult } from './reminderPreferenceSync';
 export { defaultCallSpeechProvider } from './speechProvider';
 export type { CallSpeechProvider, CallSpeechResult } from './speechProvider';
+export {
+  prepareCallSpeech,
+  speakText,
+  detectCallKeyword,
+  answerCall,
+  autoSnoozeCall,
+  declineCall,
+  manualSnoozeCall,
+  manualAcknowledgeCall,
+  disconnectCall,
+} from './callDispatcher';
+export type {
+  CallState,
+  CallResolutionOutcome,
+  CallResolution,
+  CallStateEvent,
+  CallCommand,
+} from './callDispatcher';

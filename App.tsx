@@ -9,6 +9,9 @@ import {
   AppState,
   Modal,
   TouchableOpacity,
+  DeviceEventEmitter,
+  PermissionsAndroid,
+  Platform,
 } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { Fonts, useThemedStyles } from './src/ui/theme';
@@ -17,6 +20,7 @@ import {
   userStore,
   syncOutboxStore,
   productTourStore,
+  remindersStore,
 } from './src/storage';
 import { CustomTabBar, TabType } from './src/ui/components/CustomTabBar';
 import { hasProEntitlement } from './src/cloud';
@@ -26,6 +30,15 @@ import {
   rescheduleUserReminders,
   startReminderPoller,
   stopReminderPoller,
+  consumePendingNativeCall,
+  getReminderPermissionStatus,
+  reconcileReminderAlarms,
+  EVENT_CALL_TRIGGER,
+} from './src/scheduler';
+import type {
+  NativeCallAction,
+  NativeCallTrigger,
+  ReminderPermissionStatus,
 } from './src/scheduler';
 import { syncWorker } from './src/sync/syncWorker';
 import { createSyncScheduler } from './src/sync/syncScheduler';
@@ -40,6 +53,8 @@ import { WelcomeScreen } from './src/ui/screens/WelcomeScreen';
 import { LoginScreen } from './src/ui/screens/LoginScreen';
 import { RegisterScreen } from './src/ui/screens/RegisterScreen';
 import { OnboardingScreen } from './src/ui/screens/OnboardingScreen';
+import { IncomingCallScreen } from './src/ui/screens/IncomingCallScreen';
+import { ReminderPermissionModal } from './src/ui/components/call/ReminderPermissionModal';
 import { AuthBackdrop } from './src/ui/components/auth/AuthBackdrop';
 import { ProductTour } from './src/ui/tour/ProductTour';
 import { buildTourSteps } from './src/ui/tour/tourSteps';
@@ -60,6 +75,16 @@ function AppContent({
   const [refreshTrigger, setRefreshTrigger] = useState(0);
   const [isKeyboardVisible, setIsKeyboardVisible] = useState(false);
   const [startupReady, setStartupReady] = useState(false);
+
+  // Incoming Call State
+  const [callVisible, setCallVisible] = useState(false);
+  const [callReminderId, setCallReminderId] = useState('');
+  const [callTask, setCallTask] = useState('');
+  const [callAction, setCallAction] = useState<NativeCallAction>('call');
+
+  // Reminder Permission State
+  const [permissionStatus, setPermissionStatus] = useState<ReminderPermissionStatus | null>(null);
+  const [permissionModalVisible, setPermissionModalVisible] = useState(false);
 
   const { colors } = useTheme();
   const themed = useThemedStyles(getThemedStyles);
@@ -86,6 +111,76 @@ function AppContent({
     startReminderPoller(userId);
     return () => {
       stopReminderPoller();
+    };
+  }, [userId]);
+
+  // Reconcile exact alarms, verify reminder permissions, and consume cold-start call intents
+  useEffect(() => {
+    if (!userId) return;
+
+    void reconcileReminderAlarms(remindersStore.getPendingReminders(userId));
+
+    void (async (): Promise<void> => {
+      try {
+        let status = await getReminderPermissionStatus();
+        if (Platform.OS === 'android' && (!status || !status.notificationsEnabled)) {
+          await PermissionsAndroid.request(
+            PermissionsAndroid.PERMISSIONS.POST_NOTIFICATIONS,
+          );
+          status = await getReminderPermissionStatus();
+        }
+        setPermissionStatus(status);
+
+        // If any critical reminder permission is missing, show educational guidance
+        if (
+          status &&
+          (!status.canScheduleExactAlarms ||
+            !status.canUseFullScreenIntent ||
+            !status.notificationsEnabled)
+        ) {
+          setPermissionModalVisible(true);
+        }
+      } catch (error) {
+        console.warn('[App] Failed to check reminder permissions:', error);
+      }
+    })();
+
+    void consumePendingNativeCall().then((payload) => {
+      if (!payload) return;
+      const reminder = remindersStore.getReminderById(payload.reminderId);
+      if (!reminder || reminder.userId !== userId) return;
+      setIsLoading(false);
+      setCallReminderId(reminder.id);
+      setCallTask(payload.task || reminder.task);
+      setCallAction(payload.action);
+      setCallVisible(true);
+    });
+  }, [userId]);
+
+  // Listen for both foreground scheduler events and native alarm/activity intents
+  useEffect(() => {
+    const showCall = (event: { reminderId: string; task?: string; action?: NativeCallAction }): void => {
+      const reminder = remindersStore.getReminderById(event.reminderId);
+      if (!reminder || (userId && reminder.userId !== userId)) return;
+      setCallReminderId(reminder.id);
+      setCallTask(event.task || reminder.task);
+      setCallAction(event.action || 'call');
+      setCallVisible(true);
+    };
+
+    const foregroundSubscription = DeviceEventEmitter.addListener(
+      EVENT_CALL_TRIGGER,
+      (event: { reminderId: string; task: string }) =>
+        showCall({ ...event, action: 'call' }),
+    );
+    const nativeSubscription = DeviceEventEmitter.addListener(
+      'LAFINA_NATIVE_CALL_TRIGGER',
+      (event: NativeCallTrigger) => showCall(event),
+    );
+
+    return () => {
+      foregroundSubscription.remove();
+      nativeSubscription.remove();
     };
   }, [userId]);
 
@@ -141,6 +236,18 @@ function AppContent({
       scheduler.start();
       startReminderPoller(userId);
       void rescheduleUserReminders(userId);
+      void consumePendingNativeCall().then((payload) => {
+        if (!payload) return;
+        const reminder = remindersStore.getReminderById(payload.reminderId);
+        if (!reminder || reminder.userId !== userId) return;
+        setCallReminderId(reminder.id);
+        setCallTask(payload.task || reminder.task);
+        setCallAction(payload.action);
+        setCallVisible(true);
+      });
+      void getReminderPermissionStatus().then((status) => {
+        if (status) setPermissionStatus(status);
+      });
       syncWorker
         .performSync()
         .then(() => {
@@ -373,6 +480,29 @@ function AppContent({
             onFinish={finishTour}
           />
         )}
+
+        {/* Proactive Incoming Reminder Call */}
+        <IncomingCallScreen
+          visible={callVisible}
+          reminderId={callReminderId}
+          task={callTask}
+          userId={userId}
+          initialAction={callAction}
+          onClose={() => {
+            setCallVisible(false);
+            triggerRefresh();
+          }}
+        />
+
+        {/* Reminder Permissions Educational / Onboarding Modal */}
+        <ReminderPermissionModal
+          visible={permissionModalVisible}
+          status={permissionStatus}
+          onClose={() => setPermissionModalVisible(false)}
+          onRefreshStatus={() => {
+            void getReminderPermissionStatus().then(setPermissionStatus);
+          }}
+        />
       </SafeAreaView>
     </SafeAreaProvider>
   );

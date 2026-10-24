@@ -31,6 +31,7 @@ interface LafinaReminderNativeModule {
   getPermissionStatus: () => Promise<ReminderPermissionStatus>;
   openExactAlarmSettings: () => Promise<boolean>;
   openFullScreenIntentSettings: () => Promise<boolean>;
+  openNotificationSettings?: () => Promise<boolean>;
 }
 
 const getNativeModule = (): LafinaReminderNativeModule | null => {
@@ -117,6 +118,12 @@ export const openFullScreenIntentSettings = async (): Promise<void> => {
   const module = getNativeModule();
   if (!module?.openFullScreenIntentSettings) return;
   await module.openFullScreenIntentSettings();
+};
+
+export const openNotificationSettings = async (): Promise<void> => {
+  const module = getNativeModule();
+  if (!module?.openNotificationSettings) return;
+  await module.openNotificationSettings();
 };
 
 export const reconcileReminderAlarms = async (

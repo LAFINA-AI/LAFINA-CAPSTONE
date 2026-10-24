@@ -9,7 +9,7 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
-import { ChevronLeft } from 'lucide-react-native';
+import { Bell, ChevronLeft } from 'lucide-react-native';
 import { preferencesStore } from '../../storage';
 import type {
   LongestClassGap,
@@ -18,9 +18,14 @@ import type {
   UserPreferences,
   WeeklyClassCount,
 } from '../../storage';
-import { refreshPendingReminderLeadTimes } from '../../scheduler';
+import {
+  getReminderPermissionStatus,
+  refreshPendingReminderLeadTimes,
+} from '../../scheduler';
+import type { ReminderPermissionStatus } from '../../scheduler';
 import { Fonts, Layout, Shadows } from '../theme';
 import { useTheme } from '../contexts/ThemeContext';
+import { ReminderPermissionModal } from '../components/call/ReminderPermissionModal';
 
 interface PreferencesSettingsScreenProps {
   userId: string;
@@ -149,7 +154,19 @@ export const PreferencesSettingsScreen: React.FC<PreferencesSettingsScreenProps>
   );
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [permissionModalVisible, setPermissionModalVisible] = useState(false);
+  const [permissionStatus, setPermissionStatus] = useState<ReminderPermissionStatus | null>(null);
   const { colors } = useTheme();
+
+  const handleOpenPermissions = async () => {
+    try {
+      const status = await getReminderPermissionStatus();
+      setPermissionStatus(status);
+    } catch {
+      // Ignore
+    }
+    setPermissionModalVisible(true);
+  };
 
   const wakeOptions = useMemo(
     () =>
@@ -289,6 +306,22 @@ export const PreferencesSettingsScreen: React.FC<PreferencesSettingsScreenProps>
           />
         </View>
 
+        <View style={[styles.card, Shadows.card, { backgroundColor: colors.cardBg }]}>
+          <Text style={[styles.sectionTitle, { color: colors.textPrimary }]}>Device permissions</Text>
+          <Text style={[styles.permissionHelperText, { color: colors.textSecondary }]}>
+            Ensure notifications, exact alarms, and full-screen calls are enabled so LAFINA can remind you on schedule.
+          </Text>
+          <TouchableOpacity
+            style={[styles.permissionButton, { borderColor: colors.blue }]}
+            onPress={() => void handleOpenPermissions()}
+          >
+            <Bell size={18} color={colors.blue} />
+            <Text style={[styles.permissionButtonText, { color: colors.blue }]}>
+              Check Reminder Permissions
+            </Text>
+          </TouchableOpacity>
+        </View>
+
         {error && <Text style={[styles.errorText, { color: colors.error }]}>{error}</Text>}
 
         <TouchableOpacity
@@ -303,6 +336,15 @@ export const PreferencesSettingsScreen: React.FC<PreferencesSettingsScreenProps>
           )}
         </TouchableOpacity>
       </ScrollView>
+
+      <ReminderPermissionModal
+        visible={permissionModalVisible}
+        status={permissionStatus}
+        onClose={() => setPermissionModalVisible(false)}
+        onRefreshStatus={() => {
+          void getReminderPermissionStatus().then(setPermissionStatus);
+        }}
+      />
     </SafeAreaView>
   );
 };
@@ -393,5 +435,26 @@ const styles = StyleSheet.create({
     fontFamily: Fonts.body,
     fontSize: 15,
     fontWeight: 'bold',
+  },
+  permissionHelperText: {
+    fontFamily: Fonts.body,
+    fontSize: 13,
+    lineHeight: 18,
+    marginBottom: 12,
+  },
+  permissionButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    borderWidth: 1.5,
+    borderRadius: Layout.borderRadiusButton,
+    minHeight: 44,
+    paddingHorizontal: 16,
+  },
+  permissionButtonText: {
+    fontFamily: Fonts.body,
+    fontSize: 13,
+    fontWeight: '700',
   },
 });

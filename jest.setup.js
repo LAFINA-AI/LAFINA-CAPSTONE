@@ -15,6 +15,7 @@ NativeModules.LafinaReminder = {
   ),
   openExactAlarmSettings: jest.fn(() => Promise.resolve(true)),
   openFullScreenIntentSettings: jest.fn(() => Promise.resolve(true)),
+  openNotificationSettings: jest.fn(() => Promise.resolve(true)),
   startRingtone: jest.fn(() => Promise.resolve(true)),
   stopRingtone: jest.fn(() => Promise.resolve(true)),
 };

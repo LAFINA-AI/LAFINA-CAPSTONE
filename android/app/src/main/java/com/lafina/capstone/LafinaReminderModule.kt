@@ -165,6 +165,20 @@ class LafinaReminderModule(private val reactContext: ReactApplicationContext) :
     }, promise)
   }
 
+  @ReactMethod
+  fun openNotificationSettings(promise: Promise) {
+    val intent = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+      Intent(Settings.ACTION_APP_NOTIFICATION_SETTINGS).apply {
+        putExtra(Settings.EXTRA_APP_PACKAGE, reactContext.packageName)
+      }
+    } else {
+      Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
+        data = Uri.parse("package:${reactContext.packageName}")
+      }
+    }
+    openSettingsIntent(intent, promise)
+  }
+
   private fun openSettingsIntent(intent: Intent, promise: Promise) {
     try {
       intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)

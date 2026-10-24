@@ -15,3 +15,7 @@ export const DEFAULT_VOICE_CALLS = true;
 export const DEFAULT_NOTIFICATIONS = true;
 export const DEFAULT_DAILY_DIGEST = false;
 export const DEFAULT_QUIET_HOURS = '22:00-07:00';
+
+/** Delay (ms) before closing a resolved reminder call result state */
+export const CALL_RESULT_DELAY_MS = 1500;
+
