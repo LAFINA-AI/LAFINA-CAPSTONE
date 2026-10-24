@@ -18,6 +18,7 @@ class CapstoneBuildPackage : ReactPackage {
       LafinaThemeRevealModule(context),
       LafinaGrainientModule(context),
       LafinaReminderModule(context),
+      LafinaAudioPlayerModule(context),
     )
 
   override fun createViewManagers(context: ReactApplicationContext): List<ViewManager<*, *>> =

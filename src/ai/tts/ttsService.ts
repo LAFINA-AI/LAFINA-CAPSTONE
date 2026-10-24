@@ -258,10 +258,23 @@ export const deletePreCachedReminderAudio = async (
   }
 };
 
+export const initTTS = initTts;
+export const speakText = speakTextWithTts;
+export const stopSpeaking = stopSpeechPlayback;
+export const isTTSAvailable = isTtsAvailable;
+
 export const ttsService = {
   init: initTts,
+  initTTS: initTts,
   speak: speakTextWithTts,
+  speakText: speakTextWithTts,
   stop: stopSpeechPlayback,
+  stopSpeaking: stopSpeechPlayback,
   isAvailable: isTtsAvailable,
+  isTTSAvailable: isTtsAvailable,
   getSelectedOfflineVoiceId,
+  selectOfflineVoice,
+  preCacheReminderAudio,
+  deletePreCachedReminderAudio,
+  playSpeechFile,
 };

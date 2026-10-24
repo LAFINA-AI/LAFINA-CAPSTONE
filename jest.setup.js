@@ -20,6 +20,11 @@ NativeModules.LafinaReminder = {
   stopRingtone: jest.fn(() => Promise.resolve(true)),
 };
 
+NativeModules.LafinaAudioPlayer = {
+  playAudio: jest.fn(() => Promise.resolve(true)),
+  stopAudio: jest.fn(() => Promise.resolve(true)),
+};
+
 jest.mock(
   'react-native-safe-area-context',
   () => require('react-native-safe-area-context/jest/mock').default,

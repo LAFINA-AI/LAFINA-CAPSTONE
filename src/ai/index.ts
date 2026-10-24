@@ -1,11 +1,16 @@
 export {
   initTts,
+  initTTS,
   isTtsAvailable,
+  isTTSAvailable,
   getSelectedOfflineVoiceId,
   selectOfflineVoice,
   playSpeechFile,
   stopSpeechPlayback,
+  stopSpeaking,
   speakTextWithTts,
+  speakText,
   preCacheReminderAudio,
   deletePreCachedReminderAudio,
+  ttsService,
 } from './tts/ttsService';
