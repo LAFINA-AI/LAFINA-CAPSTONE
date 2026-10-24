@@ -30,4 +30,6 @@ jobs:
           packages: ''
       - run: sdkmanager 'platforms;android-36' 'build-tools;36.0.0' 'ndk;27.1.12297006' 'cmake;3.22.1'
       - run: npm ci --ignore-scripts
+      # --ignore-scripts skips postinstall, so apply the react-native-tts jcenter() -> mavenCentral() patch explicitly (Gradle 9 removed jcenter()).
+      - run: node scripts/patch-android-libs.mjs
       - run: bash android/gradlew -p android :app:testDataQaUnitTest :app:assembleDebug :app:assembleDataQa :app:assembleRelease :app:assembleDataQaAndroidTest -PreactNativeArchitectures=arm64-v8a,x86_64 --max-workers=2 --no-daemon --console=plain
