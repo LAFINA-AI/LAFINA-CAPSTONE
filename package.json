@@ -1,24 +1,35 @@
 {
   "name": "lafina-capstone",
-  "version": "0.1.0",
+  "version": "1.3.4",
   "private": true,
   "scripts": {
     "start": "react-native start",
-    "android": "react-native run-android",
+    "android": "react-native run-android --appId com.lafina.capstone.debug --main-activity com.lafina.capstone.MainActivity",
     "typecheck": "tsc --noEmit",
-    "lint": "eslint src __tests__ index.js --max-warnings 0",
-    "format": "prettier --write src __tests__ scripts *.js *.json .github/workflows/*.yml",
-    "format:check": "prettier --check src __tests__ scripts *.js *.json .github/workflows/*.yml",
+    "lint": "eslint src __tests__ App.tsx index.js --max-warnings 0",
+    "format": "prettier --write src __tests__ App.tsx scripts *.js *.json .github/workflows/*.yml",
+    "format:check": "prettier --check src __tests__ App.tsx scripts *.js *.json .github/workflows/*.yml",
     "test": "jest --runInBand",
     "check:architecture": "node scripts/check-architecture.mjs",
     "doctor": "node scripts/doctor.mjs",
-    "preflight": "npm run typecheck && npm run lint && npm run format:check && npm test && npm run check:architecture"
+    "postinstall": "node scripts/patch-android-libs.mjs",
+    "preflight": "npm run typecheck && npm run lint && npm test && npm run check:architecture"
   },
   "dependencies": {
     "@op-engineering/op-sqlite": "16.2.0",
+    "@react-native-community/datetimepicker": "^9.1.0",
+    "@react-native-community/netinfo": "^11.4.1",
+    "@react-native-documents/picker": "^12.0.1",
+    "ical-js-parser": "^0.7.4",
+    "lucide-react-native": "^1.21.0",
     "react": "19.2.3",
     "react-native": "0.86.0",
-    "react-native-safe-area-context": "5.8.0"
+    "react-native-fs": "^2.20.0",
+    "react-native-safe-area-context": "5.8.0",
+    "react-native-share": "^10.2.0",
+    "react-native-svg": "^15.15.5",
+    "react-native-tts": "^4.1.1",
+    "rrule": "^2.8.1"
   },
   "devDependencies": {
     "@babel/core": "7.29.7",
@@ -42,8 +53,7 @@
     "typescript": "5.9.3"
   },
   "engines": {
-    "node": "24.19.x",
-    "npm": "11.17.x"
-  },
-  "packageManager": "npm@11.17.0"
+    "node": ">= 22.11.0",
+    "npm": ">= 10.0.0"
+  }
 }

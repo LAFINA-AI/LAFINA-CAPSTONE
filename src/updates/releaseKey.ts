@@ -1,0 +1,2 @@
+export const UPDATE_PUBLIC_KEY: string =
+  'MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEqilaZ/G7QrgZzz8TW7EbSvYAmuqENbkvQVgMMTSn8OtYa7krWzKX4Vnq4dipBKnV8ln8u7U423ySfdW1yo+38g==';

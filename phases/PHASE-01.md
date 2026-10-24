@@ -1,36 +1,28 @@
-# PHASE 01 — Minimal app foundation, theme, local onboarding
+# PHASE 01 — LAFINA UI/UX Foundation, Theme, Auth, Onboarding & Profile
 
-**Work authorization:** ONE PHASE ONLY. **Previous gate:** PHASE-00. **Prerequisites:** Human approval `APPROVE PHASE 01` after previous phase report reviewed; Phase 08 offline gate must pass before 09/10.
+> Read `AGENTS.md` first. Execute **only Phase 01** in this turn and stop for human review.
 
-## In-scope work
+## Objective
 
-- Bootstrap fresh capstone Android-first React Native+TypeScript using tested/compatible versions; choose from old baseline when practical. Keep only required Java/Kotlin native setup. Validate debug/release-like Android build and physical device launch where possible.
-- Create minimal navigation `Today`, `Calendar` placeholder, `Chat` placeholder, `Settings`; use central semantic light/dark theme tokens, reusable minimal accessible controls, no costly animations/gradients. Borrow old brand/theme design as reference, not full old app.
-- Implement **no-account anonymous local onboarding**: optional nickname, timezone autodetect, reminder lead/snooze defaults, optional quiet hours, reply voice/text/both, permissions explanation (avoid premature mic request). Persist `onboarding_complete` locally and provide reset/retake controls.
-- Create typed interface skeletons for future SQLite, alarm, STT, TTS and AI, with no fake success states. Support airplane-mode startup and fresh install.
-- Configure stable test/lint/typecheck/format scripts, CI starter, small debug diagnostics page, `README` with exact commands. Write `docs/decisions` for RN stack, dependency choice and onboarding data.
-- Verify all identifiers, copies and app icons/license; never include bundled AI models until relevant phase.
+Migrate the `LAFINA` student UI/UX foundation, theme system, animated startup splash (`SynthSplash`), authentication & guest flows (`AuthBackdrop`, `Grainient`, `WelcomeScreen`, `LoginScreen`, `RegisterScreen`, `authService`, `accountLinkService`, `cloudClient`), 5-step student onboarding (`OnboardingScreen`), `ProfileScreen` + `PreferencesSettingsScreen`, student-only `CustomTabBar` (4 tabs + central Mic button without study-tool radial menu), `ProductTour` (student steps only), and the core SQLite database & stores (`database.ts`, `dbInit.ts`, `userStore`, `preferencesStore`, `onboardingStore`, `behaviorStore`, `localSettingsStore`, `productTourStore`, `syncOutboxStore`, `syncMetadataStore`, `syncStateStore`, `syncConflictStore`).
 
-## Required evidence / exit gate
+## Scope
 
-**Deliver:** runnable minimal Android application, functional offline no-account onboarding, shared theme, basic tabs, initial Jest UI tests, working preflight and device instructions.
-**Automated:** TS strict, formatting, lint, unit/UI tests, Android assemble if available; verify offline imports contain no backend dependencies.
-**Human:** fresh install in airplane mode, onboarding screens; close/reopen preserves settings; light/dark and big-font navigation; no login screen or blocked network calls.
-**Fail if:** app requires internet/account, default app includes business modules, UI tests fail, or physical app not usable.
+1. **Theme & Visual Polish (`src/ui/theme/`, `src/ui/contexts/ThemeContext.tsx`, `src/ui/splash/`)**
+   - Migrate `Colors`, `Fonts`, `FontSize`, `Spacing`, `Layout`, `Shadows`, `mixColors`, `getCategoryColor`, `useThemedStyles`, `themeReveal`, `ThemeProvider`, and `SynthSplash`.
+   - Port native Android visual/platform modules: `LafinaGrainientView.kt`, `LafinaGrainientViewManager.kt`, `LafinaThemeRevealModule.kt`, `AndroidKeystoreModule.kt`, `AndroidConnectivityModule.kt`.
+2. **SQLite Schema & Core Stores (`src/storage/`)**
+   - Migrate `database.ts` and `dbInit.ts` matching `LAFINA-backend` personal tables (`users`, `user_preferences`, `behavior_logs`, `feature_snapshots`, `tasks`, `events`, `time_blocks`, `reminders`, `notes`, `custom_categories`, `chat_sessions`, `messages`, `local_settings`, `sync_outbox`, `sync_metadata`, `sync_state`, `sync_conflicts`, `sync_control`).
+   - Exclude all business tables, Gmail cache tables, and study-tool tables (`pomodoro_*`, `flashcard_decks`, `study_summaries`, `recorded_meetings`).
+   - Migrate `authUtils.ts`, `userStore.ts`, `preferencesStore.ts`, `onboardingStore.ts`, `behaviorStore.ts`, `localSettingsStore.ts`, `productTourStore.ts`, `profileSyncPayload.ts`, `syncTypes.ts`, `syncOutboxStore.ts`, `syncMetadataStore.ts`, `syncStateStore.ts`, `syncConflictStore.ts`, `tasksStore.ts`, `notesStore.ts`, `timeBlocksStore.ts`, `remindersStore.ts`, `chatStore.ts`.
+3. **Cloud Client, Auth & Bidirectional Sync Foundation (`src/cloud/`, `src/sync/`)**
+   - Configure `src/cloud/cloudClient.ts` with `CLOUD_API_BASE_URL = 'https://lafina-backend.vercel.app'` and `LOCAL_API_BASE_URL = 'http://127.0.0.1:8000'`.
+   - Migrate `authService.ts`, `accountLinkService.ts`, `entitlements.ts` (student & student_pro/admin only, no business workspace), and `syncEntityTypes.ts`, `syncState.ts`, `syncWorker.ts`, `syncScheduler.ts` (syncing the 7 personal entity types: `profile`, `task`, `event`, `time_block`, `reminder`, `note`, `custom_category`).
+4. **Screens & Navigation Shell (`src/ui/screens/`, `src/ui/components/`, `App.tsx`)**
+   - Migrate `WelcomeScreen.tsx`, `LoginScreen.tsx`, `RegisterScreen.tsx`, `OnboardingScreen.tsx`, `ProfileScreen.tsx` (without business workspace or study-tool cleanup), `PreferencesSettingsScreen.tsx`, `CustomTabBar.tsx` (without study-tool radial menu), and `ProductTour.tsx` (without study-tool step).
+   - Wire `App.tsx` with `SynthSplash`, `AuthBackdrop`, `OnboardingScreen`, `CustomTabBar`, `ProfileScreen`, `ProductTour`, and clean phase-ready placeholders for `Calendar`, `Notes`, `Chat`, and `Mic` until Phases 02–08.
 
-## Phase execution checklist
+## Verification
 
-1. Read root `AGENTS.md`, current phase and relevant docs. Check git status/branch and requirement IDs. If files differ from proposal, inspect and record discrepancies.
-2. Create/update a brief phase execution plan and acceptance checklist. Inspect only relevant old repo files **read-only** at the pinned SHA.
-3. Implement in small reviewable patches; do not modify unrelated features, business code or future phase features. Add tests alongside changes.
-4. Execute focused tests, then full available `preflight`, build and instrumentation where configured. Report `PASS`, `FAIL`, `NOT RUN`, `HUMAN REQUIRED` accurately with commands/logs and device IDs only at general model/API level.
-5. Update architecture docs and ADRs, domain schema and manual QA checklist if touched. Run Graphify/import cycle checks when applicable and record whether they ran.
-6. Write `docs/reports/phase-01-report.md` using the report template, link commits/PR if allowed, list human validation steps and open risks.
-7. **STOP, do not open the next phase.** End the message `STATUS: READY FOR REVIEW` or `STATUS: AWAITING DEVICE VALIDATION` or `STATUS: BLOCKED`; then `STOPPED — awaiting explicit human approval`.
-
-## Hard boundaries
-
-- New repo writable, old repo never writable. No full old repo copy, auto model downloads of unknown provenance, or remote secrets in mobile.
-- No account/signup/business team functionality and no large UI redesign.
-- Before Phase 09, absolutely no online API/backend runtime dependency for essential student flows. After Phase 09, online mode must remain optional.
-- If manual phone checks cannot run here, stop with `AWAITING DEVICE VALIDATION` and supply exact steps. Never claim pass by mocking native Android.
+- `npm run typecheck`, `npm run lint`, `npm test`, `npm run check:architecture`, and Android Gradle `assembleDebug` / `testDebugUnitTest` must pass with zero errors.
+- Generate `docs/reports/phase-01-report.md` and stop for human approval (`APPROVE PHASE 02`).

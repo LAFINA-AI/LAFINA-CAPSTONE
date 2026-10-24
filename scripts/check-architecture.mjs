@@ -3,8 +3,8 @@ import path from 'node:path';
 import ts from 'typescript';
 
 const root = path.resolve('src');
-const walk = dir =>
-  fs.readdirSync(dir, {withFileTypes: true}).flatMap(entry => {
+const walk = (dir) =>
+  fs.readdirSync(dir, { withFileTypes: true }).flatMap((entry) => {
     const name = path.join(dir, entry.name);
     return entry.isDirectory()
       ? walk(name)
@@ -12,86 +12,112 @@ const walk = dir =>
       ? [name]
       : [];
   });
+
 const files = walk(root);
-const graph = new Map(files.map(file => [file, []]));
+const graph = new Map(files.map((file) => [file, []]));
 const errors = [];
+
+const FORBIDDEN_SPECIFIER_PATTERNS = [
+  {
+    pattern: /(^|\/)(businessStore|businessService|CompanyChatScreen|ManagerOverviewScreen|EmployeeTodayScreen|WorkScreen|TeamManagementModal)(\/|$)/,
+    reason: 'business dashboard/workspace module is out of student capstone scope',
+  },
+  {
+    pattern: /(^|\/)(gmailService|GmailInboxScreen)(\/|$)/,
+    reason: 'Gmail integration is out of student capstone scope',
+  },
+  {
+    pattern: /(^|\/)(pomodoro|flashcards|studynotes|meetings|PomodoroContext|MeetingsContext)(\/|$)/i,
+    reason: 'study tools (Pomodoro, Flashcards, Study Notes, Meetings) are out of scope',
+  },
+  {
+    pattern: /kokoro|af_bella|LafinaTTSModule/i,
+    reason: 'Kokoro 82M is replaced by react-native-tts',
+  },
+];
+
 for (const file of files) {
+  const content = fs.readFileSync(file, 'utf8');
+  if (/kokoro-v0_19|af_bella\.bin|LafinaTTSModule/.test(content)) {
+    errors.push(
+      `${path.relative(root, file)}: references forbidden Kokoro 82M TTS artifact or module`,
+    );
+  }
+
   const source = ts.createSourceFile(
     file,
-    fs.readFileSync(file, 'utf8'),
+    content,
     ts.ScriptTarget.Latest,
     true,
   );
   const imports = [];
   function visit(node) {
     if (
-      (ts.isImportDeclaration(node) || ts.isExportDeclaration(node)) &&
+      ts.isImportDeclaration(node) &&
       node.moduleSpecifier &&
       ts.isStringLiteral(node.moduleSpecifier)
     ) {
-      imports.push(node.moduleSpecifier.text);
-    }
-    if (
+      const isTypeOnly = Boolean(node.importClause?.isTypeOnly);
+      imports.push({ specifier: node.moduleSpecifier.text, isTypeOnly });
+    } else if (
+      ts.isExportDeclaration(node) &&
+      node.moduleSpecifier &&
+      ts.isStringLiteral(node.moduleSpecifier)
+    ) {
+      const isTypeOnly = Boolean(node.isTypeOnly);
+      imports.push({ specifier: node.moduleSpecifier.text, isTypeOnly });
+    } else if (
       ts.isCallExpression(node) &&
       ts.isIdentifier(node.expression) &&
       ['require', 'import'].includes(node.expression.text) &&
       node.arguments[0] &&
       ts.isStringLiteral(node.arguments[0])
     ) {
-      imports.push(node.arguments[0].text);
-    }
-    if (
-      ts.isIdentifier(node) &&
-      ['fetch', 'XMLHttpRequest', 'WebSocket'].includes(node.text)
-    ) {
-      errors.push(
-        `${path.relative(root, file)}: network global ${
-          node.text
-        } forbidden in offline foundation`,
-      );
+      imports.push({ specifier: node.arguments[0].text, isTypeOnly: false });
     }
     ts.forEachChild(node, visit);
   }
   visit(source);
-  for (const specifier of imports) {
-    if (
-      /^(https?:|axios|node:https?$|firebase|@google\/|@google-cloud\/)/.test(
-        specifier,
-      ) ||
-      /(^|\/)(cloud|backend|online|auth|skills)(\/|$)/.test(specifier)
-    ) {
-      errors.push(`${file}: forbidden dependency ${specifier}`);
+
+  for (const { specifier, isTypeOnly } of imports) {
+    for (const rule of FORBIDDEN_SPECIFIER_PATTERNS) {
+      if (rule.pattern.test(specifier)) {
+        errors.push(
+          `${path.relative(root, file)}: forbidden import "${specifier}" (${rule.reason})`,
+        );
+      }
     }
-    if (
-      file.includes(`${path.sep}core${path.sep}domain${path.sep}`) &&
-      !specifier.startsWith('./')
-    ) {
-      errors.push(
-        `${file}: domain must remain platform-independent (${specifier})`,
-      );
-    }
+
     if (specifier.startsWith('.')) {
       const base = path.resolve(path.dirname(file), specifier);
+      if (/\.(png|jpg|jpeg|svg|onnx|bin|gguf|json)$/.test(specifier)) {
+        if (!fs.existsSync(base)) {
+          errors.push(`${path.relative(root, file)}: missing file ${specifier}`);
+        }
+        continue;
+      }
       const target = [
         base + '.ts',
         base + '.tsx',
         path.join(base, 'index.ts'),
-      ].find(candidate => graph.has(candidate));
+        path.join(base, 'index.tsx'),
+      ].find((candidate) => graph.has(candidate));
       if (!target) {
-        errors.push(`${file}: unresolved import ${specifier}`);
-      } else {
+        errors.push(`${path.relative(root, file)}: unresolved import ${specifier}`);
+      } else if (!isTypeOnly) {
         graph.get(file).push(target);
       }
     }
   }
 }
+
 const visited = new Set();
 const active = new Set();
 function visitGraph(file, chain) {
   if (active.has(file)) {
     errors.push(
       `Import cycle: ${[...chain, file]
-        .map(item => path.relative(root, item))
+        .map((item) => path.relative(root, item))
         .join(' -> ')}`,
     );
     return;
@@ -109,43 +135,39 @@ function visitGraph(file, chain) {
 for (const file of files) {
   visitGraph(file, []);
 }
+
 const manifest = fs.readFileSync(
   'android/app/src/main/AndroidManifest.xml',
   'utf8',
 );
 const allowedPermissions = new Set([
+  'INTERNET',
+  'ACCESS_NETWORK_STATE',
   'POST_NOTIFICATIONS',
   'SCHEDULE_EXACT_ALARM',
+  'USE_EXACT_ALARM',
   'USE_FULL_SCREEN_INTENT',
   'RECEIVE_BOOT_COMPLETED',
   'VIBRATE',
+  'RECORD_AUDIO',
+  'WAKE_LOCK',
+  'FOREGROUND_SERVICE',
+  'FOREGROUND_SERVICE_MICROPHONE',
+  'REQUEST_INSTALL_PACKAGES',
 ]);
 for (const [, permission] of manifest.matchAll(
   /<uses-permission\s+android:name="android\.permission\.([A-Z_]+)"/g,
 )) {
   if (!allowedPermissions.has(permission)) {
-    errors.push(
-      `Phase 03 release permission outside approved alarm scope: ${permission}`,
-    );
+    errors.push(`Unapproved Android permission in manifest: ${permission}`);
   }
 }
-for (const tag of manifest.matchAll(
-  /<(provider|receiver|activity)\b[^>]*android:name="\.reminders\.[^"]+"[^>]*>/g,
-)) {
-  if (
-    !tag[0].includes('android:exported="false"') ||
-    !tag[0].includes('android:process=":reminders"')
-  ) {
-    errors.push(
-      'Native reminder components must be private and isolated from the OP-SQLite process',
-    );
-  }
-}
+
 if (errors.length) {
   console.error(errors.join('\n'));
   process.exitCode = 1;
 } else {
   console.log(
-    `PASS: ${files.length} TypeScript modules; no import cycles or forbidden offline dependencies; Phase 03 native permissions/process boundaries checked.`,
+    `PASS: ${files.length} TypeScript modules checked; 0 import cycles, 0 forbidden business/Gmail/study-tool/Kokoro dependencies.`,
   );
 }

@@ -6,7 +6,6 @@ import com.facebook.react.ReactApplication
 import com.facebook.react.ReactHost
 import com.facebook.react.ReactNativeApplicationEntryPoint.loadReactNative
 import com.facebook.react.defaults.DefaultReactHost.getDefaultReactHost
-import com.lafina.capstone.reminders.ReminderPackage
 
 class MainApplication : Application(), ReactApplication {
 
@@ -16,7 +15,6 @@ class MainApplication : Application(), ReactApplication {
       packageList =
         PackageList(this).packages.apply {
           add(CapstoneBuildPackage())
-          add(ReminderPackage())
         },
       useDevSupport = BuildConfig.BUILD_TYPE == "debug",
     )
@@ -24,7 +22,6 @@ class MainApplication : Application(), ReactApplication {
 
   override fun onCreate() {
     super.onCreate()
-    // Native reminder delivery must not load React/Hermes or OP-SQLite's SQLite copy.
-    if (Application.getProcessName() == packageName) loadReactNative(this)
+    loadReactNative(this)
   }
 }
