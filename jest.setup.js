@@ -25,6 +25,33 @@ NativeModules.LafinaAudioPlayer = {
   stopAudio: jest.fn(() => Promise.resolve(true)),
 };
 
+NativeModules.LafinaSpeechToText = {
+  startListening: jest.fn((options) =>
+    Promise.resolve({
+      captureId: options?.captureId || 'mock-cap',
+      transcript: 'mock transcript',
+      speechDetected: true,
+      cancelled: false,
+      captureDurationMs: 120,
+      inferenceDurationMs: 60,
+    }),
+  ),
+  transcribe: jest.fn((options) =>
+    Promise.resolve({
+      captureId: options?.captureId || 'mock-cap',
+      transcript: 'mock transcript',
+      speechDetected: true,
+      cancelled: false,
+      captureDurationMs: 120,
+      inferenceDurationMs: 60,
+    }),
+  ),
+  stopListening: jest.fn(() => Promise.resolve(true)),
+  cancelListening: jest.fn(() => Promise.resolve(true)),
+  isAvailable: jest.fn(() => Promise.resolve(true)),
+  release: jest.fn(() => Promise.resolve(true)),
+};
+
 jest.mock(
   'react-native-safe-area-context',
   () => require('react-native-safe-area-context/jest/mock').default,

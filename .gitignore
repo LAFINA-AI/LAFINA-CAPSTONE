@@ -64,3 +64,5 @@ yarn-error.log*
 *.apk
 *.aab
 
+!android/app/src/main/assets/models/ggml-tiny.en-q5_1.bin
+!android/app/src/main/assets/models/silero_vad.onnx

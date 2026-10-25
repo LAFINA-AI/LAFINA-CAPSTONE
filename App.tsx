@@ -7,8 +7,6 @@ import {
   Text,
   Keyboard,
   AppState,
-  Modal,
-  TouchableOpacity,
   DeviceEventEmitter,
   PermissionsAndroid,
   Platform,
@@ -58,6 +56,7 @@ import { ReminderPermissionModal } from './src/ui/components/call/ReminderPermis
 import { AuthBackdrop } from './src/ui/components/auth/AuthBackdrop';
 import { ProductTour } from './src/ui/tour/ProductTour';
 import { buildTourSteps } from './src/ui/tour/tourSteps';
+import { VoiceModal } from './src/ui/components/VoiceModal';
 
 function AppContent({
   userId,
@@ -449,29 +448,16 @@ function AppContent({
           />
         )}
 
-        <Modal
+        <VoiceModal
           visible={voiceVisible}
-          transparent
-          animationType="fade"
-          onRequestClose={() => setVoiceVisible(false)}
-        >
-          <View style={styles.modalBackdrop}>
-            <View style={[styles.modalCard, themed.modalCard]}>
-              <Text style={[styles.placeholderTitle, themed.text]}>Voice Assistant</Text>
-              <Text style={[styles.placeholderSubtitle, themed.mutedText]}>
-                Push-to-talk offline voice input is enabled in the Voice phase.
-              </Text>
-              <TouchableOpacity
-                style={[styles.modalCloseBtn, { backgroundColor: colors.primary }]}
-                onPress={() => setVoiceVisible(false)}
-              >
-                <Text style={[styles.modalCloseText, { color: colors.textOnPrimary }]}>
-                  Close
-                </Text>
-              </TouchableOpacity>
-            </View>
-          </View>
-        </Modal>
+          userId={userId || 'local_guest_user'}
+          onClose={(didUpdate) => {
+            setVoiceVisible(false);
+            if (didUpdate) {
+              setRefreshTrigger((prev) => prev + 1);
+            }
+          }}
+        />
 
         {tourOpen && (
           <ProductTour

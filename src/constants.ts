@@ -19,3 +19,8 @@ export const DEFAULT_QUIET_HOURS = '22:00-07:00';
 /** Delay (ms) before closing a resolved reminder call result state */
 export const CALL_RESULT_DELAY_MS = 1500;
 
+/** Voice modal and command processing timing constants */
+export const NLU_PARSER_DELAY_MS = 250;
+export const VOICE_SUCCESS_DELAY_MS = 1400;
+
+
