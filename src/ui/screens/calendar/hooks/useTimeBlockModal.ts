@@ -5,6 +5,7 @@ import type { TimeBlock } from '../../../../storage';
 import { timeBlocksStore } from '../../../../storage';
 import { TimeBlockForm, TimeBlockModalState } from '../types';
 import { generateId } from '../../../../utils';
+import { formatLocalDate } from '../utils/calendarHelpers';
 
 interface UseTimeBlockModalOptions {
   userId: string;
@@ -14,11 +15,12 @@ interface UseTimeBlockModalOptions {
   resetForm?: () => TimeBlockForm;
 }
 
-const defaultForm = (): TimeBlockForm => ({
+const defaultForm = (initialDate?: Date): TimeBlockForm => ({
   title: '',
+  date: formatLocalDate(initialDate || new Date()),
   startTime: '09:00',
   endTime: '10:00',
-  category: 'Work',
+  category: 'Academic',
   color: Colors.blue,
   notes: '',
   recurrenceRule: null,
@@ -28,7 +30,8 @@ export const useTimeBlockModal = (options: UseTimeBlockModalOptions): TimeBlockM
   const { userId, selectedDate, onSaved, onRefresh } = options;
   const [visible, setVisible] = useState(false);
   const [editingBlock, setEditingBlock] = useState<TimeBlock | null>(null);
-  const [form, setForm] = useState<TimeBlockForm>(defaultForm());
+  const [form, setForm] = useState<TimeBlockForm>(defaultForm(selectedDate));
+  const [showDatePicker, setShowDatePicker] = useState(false);
   const [showStartPicker, setShowStartPicker] = useState(false);
   const [showEndPicker, setShowEndPicker] = useState(false);
 
@@ -49,16 +52,25 @@ export const useTimeBlockModal = (options: UseTimeBlockModalOptions): TimeBlockM
     });
   }, []);
 
-  const openNewBlock = useCallback(() => {
+  const openNewBlock = useCallback((initialHour?: number, targetDate?: Date) => {
     setEditingBlock(null);
-    setForm(defaultForm());
+    const dateToUse = targetDate || selectedDate;
+    const startH = initialHour !== undefined ? initialHour : 9;
+    const endH = (startH + 1) % 24;
+    setForm({
+      ...defaultForm(dateToUse),
+      date: formatLocalDate(dateToUse),
+      startTime: `${String(startH).padStart(2, '0')}:00`,
+      endTime: `${String(endH).padStart(2, '0')}:00`,
+    });
     setVisible(true);
-  }, []);
+  }, [selectedDate]);
 
   const openEditBlock = useCallback((block: TimeBlock) => {
     setEditingBlock(block);
     setForm({
       title: block.title,
+      date: block.date,
       startTime: block.startTime,
       endTime: block.endTime,
       category: block.category,
@@ -81,13 +93,13 @@ export const useTimeBlockModal = (options: UseTimeBlockModalOptions): TimeBlockM
       return;
     }
 
-    const dateStr = selectedDate.toISOString().split('T')[0];
+    const dateStr = form.date || formatLocalDate(selectedDate);
     const rule = recurrenceRule !== undefined ? recurrenceRule : (form.recurrenceRule || null);
 
     if (editingBlock) {
       timeBlocksStore.update({
         id: editingBlock.id,
-        title: form.title,
+        title: form.title.trim(),
         date: dateStr,
         startTime: form.startTime,
         endTime: form.endTime,
@@ -100,7 +112,7 @@ export const useTimeBlockModal = (options: UseTimeBlockModalOptions): TimeBlockM
       timeBlocksStore.insert({
         id: generateId('block'),
         userId,
-        title: form.title,
+        title: form.title.trim(),
         date: dateStr,
         startTime: form.startTime,
         endTime: form.endTime,
@@ -136,6 +148,7 @@ export const useTimeBlockModal = (options: UseTimeBlockModalOptions): TimeBlockM
     visible,
     editingBlock,
     form,
+    showDatePicker,
     showStartPicker,
     showEndPicker,
     openNewBlock,
@@ -144,6 +157,7 @@ export const useTimeBlockModal = (options: UseTimeBlockModalOptions): TimeBlockM
     updateField,
     save,
     delete: handleDelete,
+    setShowDatePicker,
     setShowStartPicker,
     setShowEndPicker,
   };

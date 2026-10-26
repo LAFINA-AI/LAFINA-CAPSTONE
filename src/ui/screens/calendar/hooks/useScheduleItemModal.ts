@@ -5,6 +5,7 @@ import { tasksStore, remindersStore } from '../../../../storage';
 import { ScheduleItemForm, ScheduleItemModalState } from '../types';
 import { generateId } from '../../../../utils';
 import { getReminderPreferences, scheduleReminderAlarm } from '../../../../scheduler';
+import { formatLocalDate } from '../utils/calendarHelpers';
 
 interface UseScheduleItemModalOptions {
   userId: string;
@@ -87,7 +88,7 @@ export const useScheduleItemModal = (options: UseScheduleItemModalOptions): Sche
       return;
     }
 
-    const dateStr = selectedDate.toISOString().split('T')[0];
+    const dateStr = form.date || formatLocalDate(selectedDate);
     const rule = recurrenceRule !== undefined ? recurrenceRule : (form.recurrenceRule || null);
 
     const syncReminder = (title: string, date: string, time: string) => {

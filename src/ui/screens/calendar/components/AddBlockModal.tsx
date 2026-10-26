@@ -6,11 +6,18 @@ import {
   Modal,
   TextInput,
   TouchableOpacity,
+  ScrollView,
 } from 'react-native';
 import DateTimePicker from '@react-native-community/datetimepicker';
+import { Calendar } from 'lucide-react-native';
 import { useTheme } from '../../../contexts/ThemeContext';
 import { Colors } from '../../../theme';
-import { timeStringToDate, dateToTimeString, formatTimeForDisplay } from '../utils/calendarHelpers';
+import {
+  timeStringToDate,
+  dateToTimeString,
+  formatTimeForDisplay,
+  formatLocalDate,
+} from '../utils/calendarHelpers';
 import { TimeBlockModalState } from '../types';
 import { Shadows } from '../../../theme';
 import { parseRrule } from '../../../../storage/rruleHelper';
@@ -31,6 +38,7 @@ export const AddBlockModal: React.FC<AddBlockModalProps> = ({ state, timeFormat2
   const [repeatUntil, setRepeatUntil] = useState(''); // YYYY-MM-DD
   const [repeatCount, setRepeatCount] = useState('10');
   const [showUntilDatePicker, setShowUntilDatePicker] = useState(false);
+  const [showDatePicker, setShowDatePicker] = useState(false);
 
   // Sync form recurrenceRule to local state when modal becomes visible
   useEffect(() => {
@@ -91,288 +99,320 @@ export const AddBlockModal: React.FC<AddBlockModalProps> = ({ state, timeFormat2
   return (
     <Modal visible={state.visible} animationType="slide" transparent>
       <View style={styles.modalOverlay}>
-        <View style={[styles.modalContent, { backgroundColor: colors.cardBg }]}>
-          <Text style={[styles.modalHeaderTitle, { color: colors.textPrimary }]}>
-            {state.editingBlock ? 'Edit Time Block' : 'Create Time Block'}
-          </Text>
+        <View style={[styles.modalContent, { backgroundColor: colors.cardBg, maxHeight: '90%' }]}>
+          <ScrollView
+            showsVerticalScrollIndicator={false}
+            keyboardShouldPersistTaps="handled"
+            contentContainerStyle={styles.scrollContent}
+          >
+            <Text style={[styles.modalHeaderTitle, { color: colors.textPrimary }]}>
+              {state.editingBlock ? 'Edit Time Block' : 'Create Time Block'}
+            </Text>
 
-          <TextInput
-            style={[styles.modalInput, { borderColor: colors.border, color: colors.textPrimary, backgroundColor: colors.inputBg }]}
-            placeholder="Deep Work, Study, Lunch..."
-            placeholderTextColor={colors.placeholder}
-            value={state.form.title}
-            onChangeText={(v) => state.updateField('title', v)}
-          />
+            <TextInput
+              style={[styles.modalInput, { borderColor: colors.border, color: colors.textPrimary, backgroundColor: colors.inputBg }]}
+              placeholder="Deep Work, Study, Lunch..."
+              placeholderTextColor={colors.placeholder}
+              value={state.form.title}
+              onChangeText={(v) => state.updateField('title', v)}
+            />
 
-          <View style={styles.modalTimeRow}>
-            <View style={styles.timeInputCol}>
-              <Text style={[styles.timeInputLabel, { color: colors.textSecondary }]}>Start Time</Text>
+            {/* Target Date Row */}
+            <View style={styles.datePickerRow}>
+              <Text style={[styles.timeInputLabel, { color: colors.textSecondary }]}>Date</Text>
               <TouchableOpacity
-                style={[styles.timePickerBtn, { borderColor: colors.border, backgroundColor: colors.inputBg }]}
-                onPress={() => state.setShowStartPicker(true)}
+                style={[styles.dateSelectorBtn, { borderColor: colors.border, backgroundColor: colors.inputBg }]}
+                onPress={() => setShowDatePicker(true)}
                 activeOpacity={0.7}
               >
-                <Text style={[styles.timePickerBtnText, { color: colors.textPrimary }]}>
-                  {formatTimeForDisplay(state.form.startTime, timeFormat24h)}
+                <Calendar size={15} color={colors.textSecondary} style={{ marginRight: 8 }} />
+                <Text style={[styles.dateSelectorBtnText, { color: colors.textPrimary }]}>
+                  {state.form.date || formatLocalDate(new Date())}
                 </Text>
               </TouchableOpacity>
-              {state.showStartPicker && (
+              {showDatePicker && (
                 <DateTimePicker
-                  value={timeStringToDate(state.form.startTime)}
-                  mode="time"
-                  is24Hour={timeFormat24h}
+                  value={state.form.date ? new Date(`${state.form.date}T00:00:00`) : new Date()}
+                  mode="date"
                   display="default"
                   onChange={(_event, date) => {
-                    state.setShowStartPicker(false);
-                    if (date) state.updateField('startTime', dateToTimeString(date));
+                    setShowDatePicker(false);
+                    if (date) state.updateField('date', formatLocalDate(date));
                   }}
                 />
               )}
             </View>
-            <View style={styles.timeInputCol}>
-              <Text style={[styles.timeInputLabel, { color: colors.textSecondary }]}>End Time</Text>
-              <TouchableOpacity
-                style={[styles.timePickerBtn, { borderColor: colors.border, backgroundColor: colors.inputBg }]}
-                onPress={() => state.setShowEndPicker(true)}
-                activeOpacity={0.7}
-              >
-                <Text style={[styles.timePickerBtnText, { color: colors.textPrimary }]}>
-                  {formatTimeForDisplay(state.form.endTime, timeFormat24h)}
-                </Text>
-              </TouchableOpacity>
-              {state.showEndPicker && (
-                <DateTimePicker
-                  value={timeStringToDate(state.form.endTime)}
-                  mode="time"
-                  is24Hour={timeFormat24h}
-                  display="default"
-                  onChange={(_event, date) => {
-                    state.setShowEndPicker(false);
-                    if (date) state.updateField('endTime', dateToTimeString(date));
-                  }}
-                />
-              )}
-            </View>
-          </View>
 
-          <View style={styles.categoryRow}>
-            {['Work', 'Personal', 'Health', 'Learning'].map((cat) => (
-              <TouchableOpacity
-                key={cat}
-                style={[
-                  styles.categoryChip,
-                  { borderColor: colors.border, backgroundColor: 'transparent' },
-                  state.form.category === cat && { backgroundColor: colors.red, borderColor: colors.red },
-                ]}
-                onPress={() => state.updateField('category', cat)}
-              >
-                <Text style={[
-                  styles.categoryChipText,
-                  { color: colors.textSecondary },
-                  state.form.category === cat && { color: colors.white, fontWeight: 'bold' },
-                ]}>
-                  {cat}
-                </Text>
-              </TouchableOpacity>
-            ))}
-          </View>
-
-          <View style={styles.colorRow}>
-            {[Colors.blue, Colors.red, Colors.yellow, Colors.success, Colors.gradientPurple].map((c) => (
-              <TouchableOpacity
-                key={c}
-                style={[
-                  styles.colorBubble,
-                  { backgroundColor: c },
-                  state.form.color === c && styles.colorBubbleActive,
-                  state.form.color === c && { borderColor: colors.textPrimary },
-                ]}
-                onPress={() => state.updateField('color', c)}
-              />
-            ))}
-          </View>
-
-          {/* Recurrence Section */}
-          <Text style={[styles.sectionLabel, { color: colors.textSecondary }]}>Recurrence</Text>
-          <View style={styles.recurrenceContainer}>
-            <View style={styles.freqRow}>
-              {(['NONE', 'DAILY', 'WEEKLY', 'MONTHLY', 'YEARLY'] as const).map((freq) => (
+            <View style={styles.modalTimeRow}>
+              <View style={styles.timeInputCol}>
+                <Text style={[styles.timeInputLabel, { color: colors.textSecondary }]}>Start Time</Text>
                 <TouchableOpacity
-                  key={freq}
-                  style={[
-                    styles.freqBtn,
-                    { borderColor: colors.border, backgroundColor: colors.inputBg },
-                    repeatFreq === freq && { backgroundColor: colors.red, borderColor: colors.red },
-                  ]}
-                  onPress={() => setRepeatFreq(freq)}
+                  style={[styles.timePickerBtn, { borderColor: colors.border, backgroundColor: colors.inputBg }]}
+                  onPress={() => state.setShowStartPicker(true)}
                   activeOpacity={0.7}
                 >
+                  <Text style={[styles.timePickerBtnText, { color: colors.textPrimary }]}>
+                    {formatTimeForDisplay(state.form.startTime, timeFormat24h)}
+                  </Text>
+                </TouchableOpacity>
+                {state.showStartPicker && (
+                  <DateTimePicker
+                    value={timeStringToDate(state.form.startTime)}
+                    mode="time"
+                    is24Hour={timeFormat24h}
+                    display="default"
+                    onChange={(_event, date) => {
+                      state.setShowStartPicker(false);
+                      if (date) state.updateField('startTime', dateToTimeString(date));
+                    }}
+                  />
+                )}
+              </View>
+              <View style={styles.timeInputCol}>
+                <Text style={[styles.timeInputLabel, { color: colors.textSecondary }]}>End Time</Text>
+                <TouchableOpacity
+                  style={[styles.timePickerBtn, { borderColor: colors.border, backgroundColor: colors.inputBg }]}
+                  onPress={() => state.setShowEndPicker(true)}
+                  activeOpacity={0.7}
+                >
+                  <Text style={[styles.timePickerBtnText, { color: colors.textPrimary }]}>
+                    {formatTimeForDisplay(state.form.endTime, timeFormat24h)}
+                  </Text>
+                </TouchableOpacity>
+                {state.showEndPicker && (
+                  <DateTimePicker
+                    value={timeStringToDate(state.form.endTime)}
+                    mode="time"
+                    is24Hour={timeFormat24h}
+                    display="default"
+                    onChange={(_event, date) => {
+                      state.setShowEndPicker(false);
+                      if (date) state.updateField('endTime', dateToTimeString(date));
+                    }}
+                  />
+                )}
+              </View>
+            </View>
+
+            <View style={styles.categoryRow}>
+              {['Academic', 'Work', 'Personal', 'Health', 'Learning'].map((cat) => (
+                <TouchableOpacity
+                  key={cat}
+                  style={[
+                    styles.categoryChip,
+                    { borderColor: colors.border, backgroundColor: 'transparent' },
+                    state.form.category === cat && { backgroundColor: colors.red, borderColor: colors.red },
+                  ]}
+                  onPress={() => state.updateField('category', cat)}
+                >
                   <Text style={[
-                    styles.freqBtnText,
+                    styles.categoryChipText,
                     { color: colors.textSecondary },
-                    repeatFreq === freq && { color: colors.white, fontWeight: 'bold' },
+                    state.form.category === cat && { color: colors.white, fontWeight: 'bold' },
                   ]}>
-                    {freq === 'NONE' ? 'None' : freq.charAt(0) + freq.slice(1).toLowerCase()}
+                    {cat}
                   </Text>
                 </TouchableOpacity>
               ))}
             </View>
 
-            {repeatFreq !== 'NONE' && (
-              <View style={[styles.recurrenceDetails, { borderColor: colors.border, backgroundColor: colors.cardBg }]}>
-                {/* Interval */}
-                <View style={styles.detailRow}>
-                  <Text style={[styles.detailLabel, { color: colors.textPrimary }]}>Repeat every</Text>
-                  <TextInput
-                    style={[styles.detailNumberInput, { borderColor: colors.border, color: colors.textPrimary, backgroundColor: colors.inputBg }]}
-                    keyboardType="numeric"
-                    value={repeatInterval}
-                    onChangeText={setRepeatInterval}
-                  />
-                  <Text style={[styles.detailLabel, { color: colors.textPrimary }]}>
-                    {repeatFreq === 'DAILY' ? 'days' : repeatFreq === 'WEEKLY' ? 'weeks' : repeatFreq === 'MONTHLY' ? 'months' : 'years'}
-                  </Text>
-                </View>
+            <View style={styles.colorRow}>
+              {[Colors.blue, Colors.red, Colors.yellow, Colors.success, Colors.gradientPurple].map((c) => (
+                <TouchableOpacity
+                  key={c}
+                  style={[
+                    styles.colorBubble,
+                    { backgroundColor: c },
+                    state.form.color === c && styles.colorBubbleActive,
+                    state.form.color === c && { borderColor: colors.textPrimary },
+                  ]}
+                  onPress={() => state.updateField('color', c)}
+                />
+              ))}
+            </View>
 
-                {/* Weekly Days */}
-                {repeatFreq === 'WEEKLY' && (
+            {/* Recurrence Section */}
+            <Text style={[styles.sectionLabel, { color: colors.textSecondary }]}>Recurrence</Text>
+            <View style={styles.recurrenceContainer}>
+              <View style={styles.freqRow}>
+                {(['NONE', 'DAILY', 'WEEKLY', 'MONTHLY', 'YEARLY'] as const).map((freq) => (
+                  <TouchableOpacity
+                    key={freq}
+                    style={[
+                      styles.freqBtn,
+                      { borderColor: colors.border, backgroundColor: colors.inputBg },
+                      repeatFreq === freq && { backgroundColor: colors.red, borderColor: colors.red },
+                    ]}
+                    onPress={() => setRepeatFreq(freq)}
+                    activeOpacity={0.7}
+                  >
+                    <Text style={[
+                      styles.freqBtnText,
+                      { color: colors.textSecondary },
+                      repeatFreq === freq && { color: colors.white, fontWeight: 'bold' },
+                    ]}>
+                      {freq === 'NONE' ? 'None' : freq.charAt(0) + freq.slice(1).toLowerCase()}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+
+              {repeatFreq !== 'NONE' && (
+                <View style={[styles.recurrenceDetails, { borderColor: colors.border, backgroundColor: colors.cardBg }]}>
+                  {/* Interval */}
                   <View style={styles.detailRow}>
-                    <Text style={[styles.detailLabel, { color: colors.textPrimary }]}>On days</Text>
-                    <View style={styles.weekDaysGrid}>
-                      {(['SU', 'MO', 'TU', 'WE', 'TH', 'FR', 'SA'] as const).map((day) => {
-                        const active = repeatWeekDays.includes(day);
-                        return (
-                          <TouchableOpacity
-                            key={day}
-                            style={[
-                              styles.dayBubble,
-                              { borderColor: colors.border, backgroundColor: colors.inputBg },
-                              active && { backgroundColor: colors.red, borderColor: colors.red },
-                            ]}
-                            onPress={() => {
-                              if (active) {
-                                setRepeatWeekDays(repeatWeekDays.filter(d => d !== day));
-                              } else {
-                                setRepeatWeekDays([...repeatWeekDays, day]);
-                              }
-                            }}
-                          >
-                            <Text style={[
-                              styles.dayBubbleText,
-                              { color: colors.textSecondary },
-                              active && { color: colors.white, fontWeight: 'bold' },
-                            ]}>
-                              {day[0]}
-                            </Text>
-                          </TouchableOpacity>
-                        );
-                      })}
-                    </View>
-                  </View>
-                )}
-
-                {/* End Condition */}
-                <View style={styles.detailRow}>
-                  <Text style={[styles.detailLabel, { color: colors.textPrimary }]}>Ends</Text>
-                  <View style={styles.endTypeRow}>
-                    {(['NEVER', 'UNTIL', 'COUNT'] as const).map((type) => (
-                      <TouchableOpacity
-                        key={type}
-                        style={[
-                          styles.endTypeBtn,
-                          { borderColor: colors.border, backgroundColor: colors.inputBg },
-                          repeatEndType === type && { backgroundColor: colors.red, borderColor: colors.red },
-                        ]}
-                        onPress={() => setRepeatEndType(type)}
-                      >
-                        <Text style={[
-                          styles.endTypeBtnText,
-                          { color: colors.textSecondary },
-                          repeatEndType === type && { color: colors.white, fontWeight: 'bold' },
-                        ]}>
-                          {type === 'NEVER' ? 'Never' : type === 'UNTIL' ? 'On Date' : 'After'}
-                        </Text>
-                      </TouchableOpacity>
-                    ))}
-                  </View>
-                </View>
-
-                {/* End Details */}
-                {repeatEndType === 'UNTIL' && (
-                  <View style={styles.detailRow}>
-                    <Text style={[styles.detailLabel, { color: colors.textPrimary }]}>Until date</Text>
-                    <TouchableOpacity
-                      style={[styles.dateSelectorBtn, { borderColor: colors.border, backgroundColor: colors.inputBg }]}
-                      onPress={() => setShowUntilDatePicker(true)}
-                    >
-                      <Text style={[styles.dateSelectorBtnText, { color: colors.textPrimary }]}>
-                        {repeatUntil || 'Select Date'}
-                      </Text>
-                    </TouchableOpacity>
-                    {showUntilDatePicker && (
-                      <DateTimePicker
-                        value={repeatUntil ? new Date(repeatUntil) : new Date()}
-                        mode="date"
-                        display="default"
-                        onChange={(_event, date) => {
-                          setShowUntilDatePicker(false);
-                          if (date) {
-                            setRepeatUntil(date.toISOString().split('T')[0]);
-                          }
-                        }}
-                      />
-                    )}
-                  </View>
-                )}
-
-                {repeatEndType === 'COUNT' && (
-                  <View style={styles.detailRow}>
-                    <Text style={[styles.detailLabel, { color: colors.textPrimary }]}>End after</Text>
+                    <Text style={[styles.detailLabel, { color: colors.textPrimary }]}>Repeat every</Text>
                     <TextInput
                       style={[styles.detailNumberInput, { borderColor: colors.border, color: colors.textPrimary, backgroundColor: colors.inputBg }]}
                       keyboardType="numeric"
-                      value={repeatCount}
-                      onChangeText={setRepeatCount}
+                      value={repeatInterval}
+                      onChangeText={setRepeatInterval}
                     />
-                    <Text style={[styles.detailLabel, { color: colors.textPrimary }]}>occurrences</Text>
+                    <Text style={[styles.detailLabel, { color: colors.textPrimary }]}>
+                      {repeatFreq === 'DAILY' ? 'days' : repeatFreq === 'WEEKLY' ? 'weeks' : repeatFreq === 'MONTHLY' ? 'months' : 'years'}
+                    </Text>
                   </View>
-                )}
-              </View>
-            )}
-          </View>
 
-          <TextInput
-            style={[styles.modalInput, styles.textArea, { borderColor: colors.border, color: colors.textPrimary, backgroundColor: colors.inputBg }]}
-            placeholder="Add optional notes..."
-            placeholderTextColor={colors.placeholder}
-            multiline
-            numberOfLines={3}
-            value={state.form.notes}
-            onChangeText={(v) => state.updateField('notes', v)}
-          />
+                  {/* Weekly Days */}
+                  {repeatFreq === 'WEEKLY' && (
+                    <View style={styles.detailRow}>
+                      <Text style={[styles.detailLabel, { color: colors.textPrimary }]}>On days</Text>
+                      <View style={styles.weekDaysGrid}>
+                        {(['SU', 'MO', 'TU', 'WE', 'TH', 'FR', 'SA'] as const).map((day) => {
+                          const active = repeatWeekDays.includes(day);
+                          return (
+                            <TouchableOpacity
+                              key={day}
+                              style={[
+                                styles.dayBubble,
+                                { borderColor: colors.border, backgroundColor: colors.inputBg },
+                                active && { backgroundColor: colors.red, borderColor: colors.red },
+                              ]}
+                              onPress={() => {
+                                if (active) {
+                                  setRepeatWeekDays(repeatWeekDays.filter(d => d !== day));
+                                } else {
+                                  setRepeatWeekDays([...repeatWeekDays, day]);
+                                }
+                              }}
+                            >
+                              <Text style={[
+                                styles.dayBubbleText,
+                                { color: colors.textSecondary },
+                                active && { color: colors.white, fontWeight: 'bold' },
+                              ]}>
+                                {day[0]}
+                              </Text>
+                            </TouchableOpacity>
+                          );
+                        })}
+                      </View>
+                    </View>
+                  )}
 
-          <View style={styles.actionRow}>
-            {state.editingBlock && (
+                  {/* End Condition */}
+                  <View style={styles.detailRow}>
+                    <Text style={[styles.detailLabel, { color: colors.textPrimary }]}>Ends</Text>
+                    <View style={styles.endTypeRow}>
+                      {(['NEVER', 'UNTIL', 'COUNT'] as const).map((type) => (
+                        <TouchableOpacity
+                          key={type}
+                          style={[
+                            styles.endTypeBtn,
+                            { borderColor: colors.border, backgroundColor: colors.inputBg },
+                            repeatEndType === type && { backgroundColor: colors.red, borderColor: colors.red },
+                          ]}
+                          onPress={() => setRepeatEndType(type)}
+                        >
+                          <Text style={[
+                            styles.endTypeBtnText,
+                            { color: colors.textSecondary },
+                            repeatEndType === type && { color: colors.white, fontWeight: 'bold' },
+                          ]}>
+                            {type === 'NEVER' ? 'Never' : type === 'UNTIL' ? 'On Date' : 'After'}
+                          </Text>
+                        </TouchableOpacity>
+                      ))}
+                    </View>
+                  </View>
+
+                  {/* End Details */}
+                  {repeatEndType === 'UNTIL' && (
+                    <View style={styles.detailRow}>
+                      <Text style={[styles.detailLabel, { color: colors.textPrimary }]}>Until date</Text>
+                      <TouchableOpacity
+                        style={[styles.dateSelectorBtn, { borderColor: colors.border, backgroundColor: colors.inputBg }]}
+                        onPress={() => setShowUntilDatePicker(true)}
+                      >
+                        <Text style={[styles.dateSelectorBtnText, { color: colors.textPrimary }]}>
+                          {repeatUntil || 'Select Date'}
+                        </Text>
+                      </TouchableOpacity>
+                      {showUntilDatePicker && (
+                        <DateTimePicker
+                          value={repeatUntil ? new Date(repeatUntil) : new Date()}
+                          mode="date"
+                          display="default"
+                          onChange={(_event, date) => {
+                            setShowUntilDatePicker(false);
+                            if (date) {
+                              setRepeatUntil(formatLocalDate(date));
+                            }
+                          }}
+                        />
+                      )}
+                    </View>
+                  )}
+
+                  {repeatEndType === 'COUNT' && (
+                    <View style={styles.detailRow}>
+                      <Text style={[styles.detailLabel, { color: colors.textPrimary }]}>End after</Text>
+                      <TextInput
+                        style={[styles.detailNumberInput, { borderColor: colors.border, color: colors.textPrimary, backgroundColor: colors.inputBg }]}
+                        keyboardType="numeric"
+                        value={repeatCount}
+                        onChangeText={setRepeatCount}
+                      />
+                      <Text style={[styles.detailLabel, { color: colors.textPrimary }]}>occurrences</Text>
+                    </View>
+                  )}
+                </View>
+              )}
+            </View>
+
+            <TextInput
+              style={[styles.modalInput, styles.textArea, { borderColor: colors.border, color: colors.textPrimary, backgroundColor: colors.inputBg }]}
+              placeholder="Add optional notes..."
+              placeholderTextColor={colors.placeholder}
+              multiline
+              numberOfLines={3}
+              value={state.form.notes}
+              onChangeText={(v) => state.updateField('notes', v)}
+            />
+
+            <View style={styles.actionRow}>
+              {state.editingBlock && (
+                <TouchableOpacity
+                  style={[styles.modalBtn, styles.deleteBtn]}
+                  onPress={() => state.delete(state.editingBlock!.id)}
+                >
+                  <Text style={styles.modalBtnText}>Delete</Text>
+                </TouchableOpacity>
+              )}
               <TouchableOpacity
-                style={[styles.modalBtn, styles.deleteBtn]}
-                onPress={() => state.delete(state.editingBlock!.id)}
+                style={[styles.modalBtn, styles.cancelBtn, { backgroundColor: colors.divider }]}
+                onPress={state.close}
               >
-                <Text style={styles.modalBtnText}>Delete</Text>
+                <Text style={[styles.modalBtnTextDark, { color: colors.textPrimary }]}>Cancel</Text>
               </TouchableOpacity>
-            )}
-            <TouchableOpacity
-              style={[styles.modalBtn, styles.cancelBtn, { backgroundColor: colors.divider }]}
-              onPress={state.close}
-            >
-              <Text style={[styles.modalBtnTextDark, { color: colors.textPrimary }]}>Cancel</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={[styles.modalBtn, styles.saveBtn]}
-              onPress={handleSaveLocal}
-            >
-              <Text style={styles.modalBtnText}>Save</Text>
-            </TouchableOpacity>
-          </View>
+              <TouchableOpacity
+                style={[styles.modalBtn, styles.saveBtn]}
+                onPress={handleSaveLocal}
+              >
+                <Text style={styles.modalBtnText}>Save</Text>
+              </TouchableOpacity>
+            </View>
+          </ScrollView>
         </View>
       </View>
     </Modal>
@@ -389,9 +429,16 @@ const styles = StyleSheet.create({
   },
   modalContent: {
     borderRadius: 16,
-    padding: 24,
+    padding: 20,
     width: '100%',
+    maxHeight: '90%',
     ...Shadows.card,
+  },
+  scrollContent: {
+    paddingBottom: 8,
+  },
+  datePickerRow: {
+    marginBottom: 12,
   },
   modalHeaderTitle: {
     fontFamily: 'sans-serif-medium',

@@ -6,11 +6,17 @@ import {
   Modal,
   TextInput,
   TouchableOpacity,
+  ScrollView,
 } from 'react-native';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { useTheme } from '../../../contexts/ThemeContext';
 import { Colors } from '../../../theme';
-import { timeStringToDate, dateToTimeString, formatTimeForDisplay } from '../utils/calendarHelpers';
+import {
+  timeStringToDate,
+  dateToTimeString,
+  formatTimeForDisplay,
+  formatLocalDate,
+} from '../utils/calendarHelpers';
 import { ScheduleItemModalState } from '../types';
 import { Shadows } from '../../../theme';
 import { parseRrule } from '../../../../storage/rruleHelper';
@@ -91,10 +97,15 @@ export const AddTaskEventModal: React.FC<AddTaskEventModalProps> = ({ state, tim
   return (
     <Modal visible={state.visible} animationType="slide" transparent>
       <View style={styles.modalOverlay}>
-        <View style={[styles.modalContent, { backgroundColor: colors.cardBg }]}>
-          <Text style={[styles.modalHeaderTitle, { color: colors.textPrimary }]}>
-            {state.editingItem ? `Edit ${state.modalType}` : `Create ${state.modalType}`}
-          </Text>
+        <View style={[styles.modalContent, { backgroundColor: colors.cardBg, maxHeight: '90%' }]}>
+          <ScrollView
+            showsVerticalScrollIndicator={false}
+            keyboardShouldPersistTaps="handled"
+            contentContainerStyle={styles.scrollContent}
+          >
+            <Text style={[styles.modalHeaderTitle, { color: colors.textPrimary }]}>
+              {state.editingItem ? `Edit ${state.modalType}` : `Create ${state.modalType}`}
+            </Text>
 
           <TextInput
             style={[styles.modalInput, { borderColor: colors.border, color: colors.textPrimary, backgroundColor: colors.inputBg }]}
@@ -340,7 +351,7 @@ export const AddTaskEventModal: React.FC<AddTaskEventModalProps> = ({ state, tim
                         onChange={(_event, date) => {
                           setShowUntilDatePicker(false);
                           if (date) {
-                            setRepeatUntil(date.toISOString().split('T')[0]);
+                            setRepeatUntil(formatLocalDate(date));
                           }
                         }}
                       />
@@ -396,6 +407,7 @@ export const AddTaskEventModal: React.FC<AddTaskEventModalProps> = ({ state, tim
               <Text style={styles.modalBtnText}>Save</Text>
             </TouchableOpacity>
           </View>
+          </ScrollView>
         </View>
       </View>
     </Modal>
@@ -412,9 +424,13 @@ const styles = StyleSheet.create({
   },
   modalContent: {
     borderRadius: 16,
-    padding: 24,
+    padding: 20,
     width: '100%',
+    maxHeight: '90%',
     ...Shadows.card,
+  },
+  scrollContent: {
+    paddingBottom: 8,
   },
   modalHeaderTitle: {
     fontFamily: 'sans-serif-medium',

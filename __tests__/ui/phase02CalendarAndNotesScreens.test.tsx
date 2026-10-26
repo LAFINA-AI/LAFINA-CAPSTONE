@@ -104,6 +104,54 @@ describe('Phase 02 Calendar & Notes UI Screens', () => {
       expect(getByText('Task')).toBeTruthy();
       expect(getByText('Note')).toBeTruthy();
     });
+
+    test('allows adding a time block manually via FAB and persists with correct local date', async () => {
+      const onRefresh = jest.fn();
+      const { getByLabelText, getByText, getByPlaceholderText } = render(
+        <ThemeProvider userId={userId}>
+          <CalendarScreen
+            userId={userId}
+            refreshTrigger={0}
+            onRefresh={onRefresh}
+          />
+        </ThemeProvider>,
+      );
+
+      // Open FAB menu
+      const fabButton = getByLabelText('Add New Item');
+      fireEvent.press(fabButton);
+
+      // Choose Time Block
+      const timeBlockOption = getByText('Time Block');
+      fireEvent.press(timeBlockOption);
+
+      // Verify modal is visible
+      expect(getByText('Create Time Block')).toBeTruthy();
+
+      // Enter title
+      const titleInput = getByPlaceholderText('Deep Work, Study, Lunch...');
+      fireEvent.changeText(titleInput, 'Algorithms Deep Work');
+
+      // Tap Save
+      const saveBtn = getByText('Save');
+      fireEvent.press(saveBtn);
+
+      // Verify block is persisted in timeBlocksStore with correct local date
+      const savedBlocks = db.executeSync(
+        'SELECT * FROM time_blocks WHERE user_id = ? AND title = ?',
+        [userId, 'Algorithms Deep Work'],
+      );
+      expect(savedBlocks.rows.length).toBe(1);
+
+      const now = new Date();
+      const expectedLocalDate = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+      expect(savedBlocks.rows[0].date).toBe(expectedLocalDate);
+      expect(savedBlocks.rows[0].start_time).toBe('09:00');
+      expect(savedBlocks.rows[0].end_time).toBe('10:00');
+
+      // Verify calendar reloaded
+      expect(onRefresh).toHaveBeenCalled();
+    });
   });
 
   describe('NotesScreen', () => {

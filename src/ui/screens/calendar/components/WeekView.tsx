@@ -23,7 +23,7 @@ interface WeekViewProps {
   onEditEvent: (event: Event, type: 'event') => void;
   onEditBlock: (block: TimeBlock) => void;
   onToggleTask: (task: Task) => void;
-  onAddBlock: () => void;
+  onAddBlock: (hour?: number) => void;
   getCategoryColor: (category: string) => string;
 }
 

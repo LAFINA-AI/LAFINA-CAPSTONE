@@ -318,7 +318,7 @@ export const CalendarScreen: React.FC<CalendarScreenProps> = ({
             onEditEvent={(event) => scheduleModal.openEdit(event, 'event')}
             onEditBlock={(block) => blockModal.openEditBlock(block)}
             onToggleTask={toggleTaskCompletion}
-            onAddBlock={blockModal.openNewBlock}
+            onAddBlock={(hour) => blockModal.openNewBlock(hour, calendar.selectedDate)}
             getCategoryColor={getCategoryColor}
           />
         )}
@@ -367,7 +367,7 @@ export const CalendarScreen: React.FC<CalendarScreenProps> = ({
               style={[styles.fabMenuItem, { borderBottomColor: colors.divider }]}
               onPress={() => {
                 setFabMenuVisible(false);
-                blockModal.openNewBlock();
+                blockModal.openNewBlock(undefined, calendar.selectedDate);
               }}
             >
               <Clock size={20} color={colors.blue} style={styles.fabMenuItemIcon} />

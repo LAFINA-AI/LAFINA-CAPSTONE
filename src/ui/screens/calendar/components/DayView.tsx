@@ -29,7 +29,7 @@ interface DayViewProps {
   onEditEvent: (event: Event, type: 'event') => void;
   onEditBlock: (block: TimeBlock) => void;
   onToggleTask: (task: Task) => void;
-  onAddBlock: () => void;
+  onAddBlock: (hour?: number) => void;
   getCategoryColor: (cat: string) => string;
   /** The built-in "Holidays in the Philippines" layer, on unless hidden in My Calendars. */
   showHolidays?: boolean;
@@ -175,7 +175,7 @@ export const DayView: React.FC<DayViewProps> = ({
             <TouchableOpacity
               key={hour}
               style={[styles.slot, { top: hour * HOUR_HEIGHT, borderTopColor: colors.border }]}
-              onPress={onAddBlock}
+              onPress={() => onAddBlock(hour)}
               accessibilityRole="button"
               accessibilityLabel={`Add a time block at ${hourLabel(hour, timeFormat24h)}`}
             />

@@ -17,6 +17,7 @@ export interface CalendarScreenProps {
 // ── Modal State ──
 export interface TimeBlockForm {
   title: string;
+  date?: string;
   startTime: string;
   endTime: string;
   category: string;
@@ -27,6 +28,7 @@ export interface TimeBlockForm {
 
 export interface ScheduleItemForm {
   title: string;
+  date?: string;
   time: string;
   endTime: string;
   priority: 'High' | 'Medium' | 'Low';
@@ -78,14 +80,16 @@ export interface TimeBlockModalState {
   visible: boolean;
   editingBlock: TimeBlock | null;
   form: TimeBlockForm;
+  showDatePicker?: boolean;
   showStartPicker: boolean;
   showEndPicker: boolean;
-  openNewBlock: () => void;
+  openNewBlock: (initialHour?: number, targetDate?: Date) => void;
   openEditBlock: (block: TimeBlock) => void;
   close: () => void;
   updateField: <K extends keyof TimeBlockForm>(key: K, value: TimeBlockForm[K]) => void;
   save: (recurrenceRule?: string | null) => void;
   delete: (id: string) => void;
+  setShowDatePicker?: (show: boolean) => void;
   setShowStartPicker: (show: boolean) => void;
   setShowEndPicker: (show: boolean) => void;
 }
