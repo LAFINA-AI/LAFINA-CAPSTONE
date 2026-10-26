@@ -51,8 +51,9 @@ it('keeps the real planner unchanged when an unavailable offline engine leaves a
     />,
   );
   try {
-    fireEvent.press(await screen.findByRole('tab', {name: /Chat/}));
-    fireEvent.press(screen.getByRole('button', {name: 'Show speech input'}));
+    fireEvent.press(
+      await screen.findByRole('button', {name: 'Open voice assistant'}),
+    );
     await waitFor(() => expect(speech.capabilities).toHaveBeenCalled());
     expect(screen.getByRole('button', {name: 'Hold to talk'})).toBeDisabled();
     fireEvent.changeText(

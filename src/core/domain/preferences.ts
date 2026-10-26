@@ -16,6 +16,8 @@ export interface Preferences {
   timezone: string;
   theme: ThemePreference;
   replyMode: ReplyMode;
+  clockFormat: '12h' | '24h';
+  weekStartsMonday: boolean;
   leadMinutes: number;
   snoozeMinutes: number;
   quietHoursEnabled: boolean;
@@ -90,6 +92,8 @@ export function defaultPreferences(timezone: string): Preferences {
     timezone: isTimezone(timezone) ? timezone : 'UTC',
     theme: 'system',
     replyMode: 'text',
+    clockFormat: '24h',
+    weekStartsMonday: true,
     leadMinutes: 15,
     snoozeMinutes: 10,
     quietHoursEnabled: false,
@@ -110,6 +114,12 @@ export function isTimezone(value: string): boolean {
 
 /** Validate persisted and user-entered settings before a durable write. */
 export function validatePreferences(value: Preferences): string | null {
+  if (
+    !['12h', '24h'].includes(value.clockFormat) ||
+    typeof value.weekStartsMonday !== 'boolean'
+  ) {
+    return 'Choose a valid calendar time format and first day of the week.';
+  }
   if (value.tts !== undefined) {
     const speechError = validateSpeechPreferences(value.tts);
     if (speechError) return speechError;
@@ -170,7 +180,14 @@ export function decodePreferences(payload: string): Preferences {
   ) {
     throw new Error('Unsupported preference record');
   }
-  const preferences = item as unknown as Preferences;
+  // Earlier settings snapshots did not persist calendar display options. The
+  // defaults preserve their existing 24h/Monday behavior without rewriting data.
+  const preferences = {
+    ...item,
+    clockFormat: item.clockFormat === undefined ? '24h' : item.clockFormat,
+    weekStartsMonday:
+      item.weekStartsMonday === undefined ? true : item.weekStartsMonday,
+  } as unknown as Preferences;
   if (validatePreferences(preferences)) {
     throw new Error('Invalid saved preference values');
   }

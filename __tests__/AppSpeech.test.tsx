@@ -89,8 +89,15 @@ function store(replyMode: ReplyMode = 'text') {
   return {initial, repository, factory: () => repository, current: () => saved};
 }
 
+async function openPreferences() {
+  fireEvent.press(await screen.findByRole('tab', {name: /Profile/}));
+  fireEvent.press(
+    screen.getByRole('button', {name: 'Scheduling & Reminder Preferences'}),
+  );
+}
+
 async function openSpeechSettings() {
-  fireEvent.press(await screen.findByRole('tab', {name: /Settings/}));
+  await openPreferences();
   fireEvent.press(
     screen.getByRole('button', {name: 'Offline speech settings'}),
   );
@@ -131,6 +138,7 @@ describe('App speech integration with synthetic adapters, not audible device pro
       />,
     );
     fireEvent.press(await screen.findByRole('tab', {name: /Chat/}));
+    fireEvent.press(screen.getByRole('button', {name: 'Chat tools'}));
     fireEvent.press(screen.getByRole('button', {name: 'Show planner help'}));
     expect(screen.getByText(help)).toBeTruthy();
     expect(client.initialize).not.toHaveBeenCalled();
@@ -159,6 +167,7 @@ describe('App speech integration with synthetic adapters, not audible device pro
         />,
       );
       fireEvent.press(await screen.findByRole('tab', {name: /Chat/}));
+      fireEvent.press(screen.getByRole('button', {name: 'Chat tools'}));
       fireEvent.press(screen.getByRole('button', {name: 'Show planner help'}));
       expect(screen.getByText(help)).toBeTruthy();
       expect(
@@ -201,9 +210,16 @@ describe('App speech integration with synthetic adapters, not audible device pro
       />,
     );
     try {
+      fireEvent.press(
+        await screen.findByRole('button', {name: 'Calendar tools'}),
+      );
       await screen.findByText(
         /Android alerts are off or notifications are blocked/,
       );
+      fireEvent.press(
+        screen.getByRole('button', {name: 'Close calendar tools'}),
+      );
+      fireEvent.press(screen.getByRole('button', {name: 'Add new item'}));
       fireEvent.press(screen.getByRole('button', {name: 'Add task'}));
       fireEvent.changeText(
         screen.getByLabelText('Title'),
@@ -298,9 +314,7 @@ describe('App speech integration with synthetic adapters, not audible device pro
     fireEvent.press(
       screen.getByRole('button', {name: 'Discard voice options and continue'}),
     );
-    expect(
-      screen.getByRole('button', {name: 'Show planner help'}),
-    ).toBeTruthy();
+    expect(screen.getByRole('button', {name: 'Chat tools'})).toBeTruthy();
     await openSpeechSettings();
     expect(
       screen.getByRole('radio', {name: 'Speech speed: Normal'}),
@@ -370,7 +384,7 @@ describe('App speech integration with synthetic adapters, not audible device pro
         now={now}
       />,
     );
-    fireEvent.press(await screen.findByRole('tab', {name: /Settings/}));
+    await openPreferences();
     fireEvent.changeText(
       screen.getByLabelText('Nickname (optional)'),
       'Unsaved synthetic draft',

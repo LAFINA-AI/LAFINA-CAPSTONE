@@ -1,0 +1,37 @@
+{
+  "utc": "2026-10-26T21:01:56.874904+00:00",
+  "installedVersion": "0.7.2-data-qa",
+  "connectivity": {
+    "airplane_mode_on": "0",
+    "wifi_on": "1",
+    "mobile_data": "1"
+  },
+  "themeRestored": "Dark",
+  "replyModeUnchanged": "Text",
+  "nicknameRestored": true,
+  "clockFormat": "24h",
+  "weekStartsMonday": true,
+  "fontScale": "1.0",
+  "displaySize": "Physical size: 1080x2400",
+  "hostMicrophone": "OFF",
+  "activeAppRecording": false,
+  "deliverySetting": "unchanged OFF; no native delivery toggle in this follow-up",
+  "ownedFixturesDeleted": [
+    "QA72 retained",
+    "QA72 lecture",
+    "QA72 seminar",
+    "QA72 revise"
+  ],
+  "neverConfirmed": [
+    "QA72 unsaved manual",
+    "QA72 reviewed draft"
+  ],
+  "limits": [
+    "Notes tombstones and idempotency receipts remain locally; no secure-erasure claim.",
+    "No student database clear/uninstall/broad deletion."
+  ],
+  "finalInstalledApkSha256": "0edc3b64d46759d355f7ce2e02a43e395915f0b2b6a81c5ffe04355950cc87f6",
+  "installedApkMatchesBuild": true,
+  "deliveryEnabledVerified": false,
+  "microphonePermissionGrantedPreserved": true
+}

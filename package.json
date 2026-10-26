@@ -1,6 +1,6 @@
 {
   "name": "lafina-capstone",
-  "version": "0.7.1",
+  "version": "0.7.2",
   "private": true,
   "scripts": {
     "start": "react-native start",
@@ -18,7 +18,8 @@
     "@op-engineering/op-sqlite": "16.2.0",
     "react": "19.2.3",
     "react-native": "0.86.0",
-    "react-native-safe-area-context": "5.8.0"
+    "react-native-safe-area-context": "5.8.0",
+    "react-native-svg": "15.15.5"
   },
   "devDependencies": {
     "@babel/core": "7.29.7",

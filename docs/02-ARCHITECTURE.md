@@ -1,6 +1,33 @@
 # 02 — Proposed Application Architecture
 
-## Phase 07.1 selective integration
+## Current Phase07.1 Nol UI follow-up
+
+[ADR-022](decisions/ADR-022-nol-ui-local-notes.md) implements the owner's
+Chat/Calendar/Notes/Profile composition and central microphone around the retained
+offline services. The mic opens a visible editable-input panel; capture still
+requires an explicit hold. Calendar Month/Week controls drive the existing
+20-record day queries, validated editors and manual fallback. Chat presents
+chronological transient messages while keeping the private Send/Confirm boundary.
+Tab/mic/Back navigation preserves dirty planner, note and preference drafts.
+
+`core/domain/notes.ts`, the notes repository and `features/notes` add local
+CRUD/search/pin/category behavior. The same `lafina-capstone.sqlite` advances
+atomically from schema2 to3 with only a notes table/indexes; existing settings,
+planner data, alarm registrations/jobs and receipts are preserved. Notes use
+versions and transactional receipts; pages expose at most20 records. Body search
+can scan history and is not a constant-time query. Profile uses actual SQL counts
+and serialized writes to the existing preferences JSON. Missing earlier clock/
+week-start keys default to24h/Monday without rewriting the stored payload on read.
+
+Native reminder readers accept schemas2/3, refuse4+, and never access notes.
+No incoming schema17 database, account/cloud runtime, new model or speech engine
+is imported. `react-native-svg@15.15.5` renders local outline shapes and one static
+Profile gradient; current provenance/build checks are separate from device QA.
+See the [follow-up report](reports/phase-07-1-nol-ui-report.md),
+[data design](05-DATA-SCHEDULING.md) and
+[manual checks](../qa/PHASE-07-1-NOL-UI-MANUAL.md). Phase08 remains unapproved.
+
+## Earlier Phase07.1 selective integration
 
 [ADR-021](decisions/ADR-021-selective-upstream-integration.md) keeps the existing
 single SQLite schema2, native services, strict command-session boundary and theme.
@@ -35,7 +62,8 @@ existing transactional repository/receipt commits. Saved records and asynchronou
 Android reconciliation are separate outcomes. ACK remains separate from task
 completion; no bare/global acknowledgement selects an alert.
 
-`ChatScreen` owns a manual composer, latest-first bounded40-message conversation,
+`ChatScreen` owns a manual composer and bounded40-message conversation (originally
+latest-first; the current reference composition is chronological),
 Send/Confirm/Discard/Clear/retry states and optional asynchronous system TTS.
 Conversation is memory-only; leaving Chat clears it, and backgrounding cancels a
 review. `SpeechInputPanel` explicitly copies reviewed words to the composer;
@@ -128,7 +156,8 @@ agenda, paged tasks, manual forms and item/reminder actions. UI uses bounded
 window/page queries; the finite QA snapshot is not a product read API. Android
 pickers return local components for domain timezone/DST validation. Local saves
 finish before native reconciliation, whose completion and app foreground refresh
-update detail delivery state without polling. Schema 2 remains unchanged.
+update detail delivery state without polling. Phase04 kept schema2; the current
+additive notes migration is schema3 and does not change those planner tables.
 
 The [Phase03 architecture](phase-03-native-reminders.md) and
 [ADR-015](decisions/ADR-015-native-reminder-delivery.md) describe the current native
@@ -158,6 +187,7 @@ LAFINA-CAPSTONE/
       reminders/
       chat/
       settings/
+      notes/      # approved local CRUD in Phase07.1 UI follow-up
       handbook/   # only Phase 10+
     core/
       theme/      # semantic tokens, light/dark
@@ -184,7 +214,7 @@ LAFINA-CAPSTONE/
 
 ```mermaid
 flowchart TD
-  UI[Student UI: Onboarding Chat Calendar Call-like Reminder] --> UC[Application Use Cases]
+  UI[Student UI: Onboarding Chat Calendar Notes Profile Call-like Reminder] --> UC[Application Use Cases]
   UC --> DOM[Validated Domain + State Machines]
   DOM --> DB[(SQLite Local Source of Truth)]
   DOM --> ALARM[Android Native Alarm Adapter]

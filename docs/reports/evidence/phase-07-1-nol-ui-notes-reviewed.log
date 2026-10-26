@@ -1,0 +1,10 @@
+PASS __tests__/NotesScreen.test.tsx
+PASS __tests__/notesRepository.test.ts
+PASS __tests__/notesMigrations.test.ts
+PASS __tests__/plannerMigrations.test.ts
+
+Test Suites: 4 passed, 4 total
+Tests:       60 passed, 60 total
+Snapshots:   0 total
+Time:        4.931 s, estimated 8 s
+Ran all test suites matching /__tests__\\NotesScreen.test.tsx|__tests__\\notesRepository.test.ts|__tests__\\notesMigrations.test.ts|__tests__\\plannerMigrations.test.ts/i.

@@ -61,10 +61,71 @@ async function enterSetup() {
 async function finishSetup() {
   await enterSetup();
   fireEvent.press(screen.getByRole('button', {name: 'Finish setup'}));
-  await screen.findByText("You're set, Student.");
+  await screen.findByRole('radio', {name: 'Calendar display: Week'});
+}
+
+async function openPreferences() {
+  fireEvent.press(await screen.findByRole('tab', {name: /Profile/}));
+  fireEvent.press(
+    screen.getByRole('button', {name: 'Scheduling & Reminder Preferences'}),
+  );
+}
+function openAddMenu(label: 'Add task' | 'Add event') {
+  fireEvent.press(screen.getByRole('button', {name: 'Add new item'}));
+  fireEvent.press(screen.getByRole('button', {name: label}));
+}
+async function expectCalendarDeliveryWarning() {
+  fireEvent.press(await screen.findByRole('button', {name: 'Calendar tools'}));
+  await screen.findByText(
+    /Android alerts are off or notifications are blocked/,
+  );
+  fireEvent.press(screen.getByRole('button', {name: 'Close calendar tools'}));
 }
 
 describe('Phase 01 anonymous foundation', () => {
+  it('persists the Profile display switches without losing local identity and restores them after remount', async () => {
+    const local = store({
+      ...defaultPreferences('Asia/Manila'),
+      nickname: 'Local student',
+      onboardingCompletedAt: now().toISOString(),
+    });
+    const view = render(<App repositoryFactory={local.factory} now={now} />);
+    fireEvent.press(await screen.findByRole('tab', {name: /Profile/}));
+    await act(async () => {
+      fireEvent(
+        screen.getByLabelText('24-Hour Time Format'),
+        'valueChange',
+        false,
+      );
+    });
+    await waitFor(() => expect(local.current()?.clockFormat).toBe('12h'));
+    await act(async () => {
+      fireEvent(
+        screen.getByLabelText('Week Starts on Monday'),
+        'valueChange',
+        false,
+      );
+    });
+    await waitFor(() => expect(local.current()?.weekStartsMonday).toBe(false));
+    expect(local.current()).toMatchObject({
+      nickname: 'Local student',
+      timezone: 'Asia/Manila',
+    });
+    expect(local.repository.save).toHaveBeenCalledTimes(2);
+    view.unmount();
+    render(<App repositoryFactory={local.factory} now={now} />);
+    fireEvent.press(await screen.findByRole('tab', {name: /Profile/}));
+    expect(screen.getByLabelText('24-Hour Time Format')).toHaveProp(
+      'value',
+      false,
+    );
+    expect(screen.getByLabelText('Week Starts on Monday')).toHaveProp(
+      'value',
+      false,
+    );
+    expect(screen.getByText('Local student')).toBeTruthy();
+  });
+
   it('opens saved preferences even if the runtime timezone lookup throws', async () => {
     const local = store({
       ...defaultPreferences('Asia/Manila'),
@@ -78,8 +139,9 @@ describe('Phase 01 anonymous foundation', () => {
       });
     try {
       render(<App repositoryFactory={local.factory} now={now} />);
-      await screen.findByText("You're set, Saved.");
-      fireEvent.press(screen.getByRole('tab', {name: /Settings/}));
+      fireEvent.press(await screen.findByRole('tab', {name: /Profile/}));
+      expect(screen.getByText('Saved')).toBeTruthy();
+      await openPreferences();
       expect(screen.getByDisplayValue('Asia/Manila')).toBeTruthy();
       expect(local.repository.save).not.toHaveBeenCalled();
     } finally {
@@ -115,7 +177,7 @@ describe('Phase 01 anonymous foundation', () => {
         }),
     );
     render(<App repositoryFactory={local.factory} now={now} />);
-    fireEvent.press(await screen.findByRole('tab', {name: /Settings/}));
+    await openPreferences();
     fireEvent.changeText(
       screen.getByLabelText('Nickname (optional)'),
       'Saving draft',
@@ -132,9 +194,7 @@ describe('Phase 01 anonymous foundation', () => {
     await screen.findByText('Preferences saved on this phone.');
     fireEvent.press(screen.getByRole('tab', {name: /Calendar/}));
     expect(screen.getByText(/Nothing scheduled for this day/)).toBeTruthy();
-    await screen.findByText(
-      /Android alerts are off or notifications are blocked/,
-    );
+    await expectCalendarDeliveryWarning();
     expect(screen.queryByText(/You have unsaved preferences/)).toBeNull();
   });
 
@@ -145,7 +205,7 @@ describe('Phase 01 anonymous foundation', () => {
       onboardingCompletedAt: now().toISOString(),
     });
     render(<App repositoryFactory={local.factory} now={now} />);
-    fireEvent.press(await screen.findByRole('tab', {name: /Settings/}));
+    await openPreferences();
     fireEvent.changeText(screen.getByLabelText('Nickname (optional)'), 'Draft');
     fireEvent.press(screen.getByRole('tab', {name: /Calendar/}));
     expect(screen.getByText(/You have unsaved preferences/)).toBeTruthy();
@@ -157,7 +217,7 @@ describe('Phase 01 anonymous foundation', () => {
       screen.getByRole('button', {name: 'Discard preferences and continue'}),
     );
     expect(screen.getByText(/Nothing scheduled for this day/)).toBeTruthy();
-    fireEvent.press(screen.getByRole('tab', {name: /Settings/}));
+    await openPreferences();
     expect(screen.getByDisplayValue('Saved')).toBeTruthy();
     expect(local.repository.save).not.toHaveBeenCalled();
   });
@@ -173,7 +233,7 @@ describe('Phase 01 anonymous foundation', () => {
       .mockRejectedValueOnce(new Error('write failed'));
     try {
       render(<App repositoryFactory={local.factory} now={now} />);
-      fireEvent.press(await screen.findByRole('tab', {name: /Settings/}));
+      await openPreferences();
       fireEvent.changeText(
         screen.getByLabelText('Nickname (optional)'),
         'Keep me',
@@ -204,7 +264,7 @@ describe('Phase 01 anonymous foundation', () => {
           timeStamp: 0,
         });
       });
-      await screen.findByText("You're set, Keep me.");
+      await screen.findByText('Keep me');
       expect(screen.queryByText(/You have unsaved preferences/)).toBeNull();
     } finally {
       subscription.mockRestore();
@@ -227,8 +287,8 @@ describe('Phase 01 anonymous foundation', () => {
         now={now}
       />,
     );
-    fireEvent.press(await screen.findByRole('tab', {name: /Settings/}));
-    // Today legitimately opens the production planner before Settings. The
+    await openPreferences();
+    // Calendar legitimately opens the production planner before Profile. The
     // guarded QA harness must not cause an additional open until discard.
     expect(factory).toHaveBeenCalledTimes(1);
     factory.mockClear();
@@ -247,30 +307,32 @@ describe('Phase 01 anonymous foundation', () => {
     expect(factory).toHaveBeenCalledTimes(1);
   });
 
-  it('keeps Today usable when the device cannot format the saved timezone', async () => {
+  it('keeps Calendar usable when the device cannot format the saved timezone', async () => {
     const local = store({
-      ...defaultPreferences('Asia/Manila'),
+      ...defaultPreferences('Pacific/Chatham'),
       onboardingCompletedAt: now().toISOString(),
     });
+    // Use a zone not already present in scheduleTime's bounded formatter cache.
+    // The failure must occur in a new formatter, rather than reusing a valid one.
     const original = Intl.DateTimeFormat;
     const format = jest
       .spyOn(Intl, 'DateTimeFormat')
       .mockImplementation((locales, options) => {
-        if (options?.dateStyle === 'full') {
+        if (options?.timeZone === 'Pacific/Chatham') {
           throw new RangeError('device timezone data unavailable');
         }
         return new original(locales, options);
       });
     try {
       render(<App repositoryFactory={local.factory} now={now} />);
-      await screen.findByText('2026-10-21 (UTC)');
+      await screen.findByRole('radio', {name: 'Calendar display: Week'});
       expect(
-        screen.getByText(/This device could not format the saved timezone/),
+        screen.getByText(/device clock or timezone could not provide/),
       ).toBeTruthy();
-      fireEvent.press(
-        screen.getByRole('button', {name: 'Adjust my preferences'}),
+      await openPreferences();
+      expect(screen.getByLabelText('Timezone').props.value).toBe(
+        'Pacific/Chatham',
       );
-      expect(screen.getByLabelText('Timezone').props.value).toBe('Asia/Manila');
       expect(local.repository.save).not.toHaveBeenCalled();
     } finally {
       format.mockRestore();
@@ -293,7 +355,7 @@ describe('Phase 01 anonymous foundation', () => {
         now={now}
       />,
     );
-    fireEvent.press(await screen.findByRole('tab', {name: /Settings/}));
+    await openPreferences();
     expect(
       screen.queryByRole('button', {name: 'Open data test harness'}),
     ).toBeNull();
@@ -308,7 +370,7 @@ describe('Phase 01 anonymous foundation', () => {
         now={now}
       />,
     );
-    fireEvent.press(await screen.findByRole('tab', {name: /Settings/}));
+    await openPreferences();
     expect(plannerFactory).toHaveBeenCalledTimes(1);
     plannerFactory.mockClear();
     fireEvent.press(
@@ -328,20 +390,24 @@ describe('Phase 01 anonymous foundation', () => {
       onboardingCompletedAt: now().toISOString(),
     });
     render(<App repositoryFactory={local.factory} now={now} />);
-    await screen.findByText(
-      /Android alerts are off or notifications are blocked/,
-    );
-    fireEvent.press(screen.getByRole('button', {name: 'Add task'}));
+    await expectCalendarDeliveryWarning();
+    openAddMenu('Add task');
     fireEvent.changeText(screen.getByLabelText('Title'), 'Keep planner draft');
-    fireEvent.press(screen.getByRole('tab', {name: /Settings/}));
+    fireEvent.press(screen.getByRole('tab', {name: /Profile/}));
     expect(screen.getByText(/You have unsaved planner changes/)).toBeTruthy();
     fireEvent.press(screen.getByRole('button', {name: 'Keep editing planner'}));
     expect(screen.getByDisplayValue('Keep planner draft')).toBeTruthy();
-    fireEvent.press(screen.getByRole('tab', {name: /Settings/}));
+    fireEvent.press(screen.getByRole('tab', {name: /Profile/}));
     fireEvent.press(
       screen.getByRole('button', {
         name: 'Discard planner changes and continue',
       }),
+    );
+    expect(
+      screen.getByRole('button', {name: 'Scheduling & Reminder Preferences'}),
+    ).toBeTruthy();
+    fireEvent.press(
+      screen.getByRole('button', {name: 'Scheduling & Reminder Preferences'}),
     );
     expect(screen.getByRole('button', {name: 'Save preferences'})).toBeTruthy();
     expect(screen.queryByDisplayValue('Keep planner draft')).toBeNull();
@@ -370,14 +436,12 @@ describe('Phase 01 anonymous foundation', () => {
       />,
     );
     try {
-      await screen.findByText(
-        /Android alerts are off or notifications are blocked/,
-      );
+      await expectCalendarDeliveryWarning();
       await waitFor(() => expect(reconcile).toHaveBeenCalledTimes(1));
       reconcile.mockRejectedValueOnce(
         new Error('Native reminder service unavailable'),
       );
-      fireEvent.press(screen.getByRole('button', {name: 'Add task'}));
+      openAddMenu('Add task');
       fireEvent.changeText(
         screen.getByLabelText('Title'),
         'Synthetic delivery recovery',
@@ -427,10 +491,8 @@ describe('Phase 01 anonymous foundation', () => {
       onboardingCompletedAt: now().toISOString(),
     });
     render(<App repositoryFactory={local.factory} now={now} />);
-    await screen.findByText(
-      /Android alerts are off or notifications are blocked/,
-    );
-    fireEvent.press(screen.getByRole('button', {name: 'Add event'}));
+    await expectCalendarDeliveryWarning();
+    openAddMenu('Add event');
     fireEvent.changeText(screen.getByLabelText('Title'), 'Keep weekly draft');
     act(() => {
       subscription.mock.calls.at(-1)?.[1]({
@@ -452,7 +514,7 @@ describe('Phase 01 anonymous foundation', () => {
     fireEvent.press(
       screen.getByRole('button', {name: 'Discard planner changes'}),
     );
-    expect(screen.getByRole('button', {name: 'Add event'})).toBeTruthy();
+    expect(screen.getByRole('button', {name: 'Add new item'})).toBeTruthy();
     expect(screen.queryByDisplayValue('Keep weekly draft')).toBeNull();
     expect(local.repository.save).not.toHaveBeenCalled();
   });
@@ -469,7 +531,7 @@ describe('Phase 01 anonymous foundation', () => {
     expect(screen.getAllByRole('tab')).toHaveLength(4);
     view.unmount();
     render(<App repositoryFactory={local.factory} now={now} />);
-    await screen.findByText("You're set, Student.");
+    await screen.findByRole('radio', {name: 'Calendar display: Week'});
     expect(screen.queryByText('Your student secretary')).toBeNull();
   });
   it('retains input and blocks navigation after a failed save, then permits retry', async () => {
@@ -485,7 +547,9 @@ describe('Phase 01 anonymous foundation', () => {
     expect(screen.getByDisplayValue('Kai')).toBeTruthy();
     expect(screen.queryAllByRole('tab')).toHaveLength(0);
     fireEvent.press(screen.getByRole('button', {name: 'Finish setup'}));
-    await screen.findByText("You're set, Kai.");
+    await screen.findByRole('radio', {name: 'Calendar display: Week'});
+    fireEvent.press(screen.getByRole('tab', {name: /Profile/}));
+    expect(screen.getByText('Kai')).toBeTruthy();
   });
   it('validates a timezone without writing invalid preferences', async () => {
     const local = store();
@@ -521,8 +585,9 @@ describe('Phase 01 anonymous foundation', () => {
     fireEvent.press(await screen.findByRole('tab', {name: /Calendar/}));
     await screen.findByText(/Nothing scheduled for this day/);
     fireEvent.press(screen.getByRole('tab', {name: /Chat/}));
-    await screen.findByText(/Every change needs review/);
-    fireEvent.press(screen.getByRole('tab', {name: /Settings/}));
+    await screen.findByText('LAFINA Assistant');
+    expect(screen.getByRole('button', {name: 'Send message'})).toBeEnabled();
+    await openPreferences();
     fireEvent.press(screen.getByRole('radio', {name: 'Appearance: Dark'}));
     fireEvent.press(
       screen.getByRole('radio', {name: 'Reply preference: Both'}),

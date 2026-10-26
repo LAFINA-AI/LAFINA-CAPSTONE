@@ -1,0 +1,10 @@
+{
+  "utc": "2026-10-26T21:05:21.211547+00:00",
+  "sourceFiles": 290,
+  "apks": 7,
+  "sourceOrApkDrift": [],
+  "credentialPatternHitsWithoutValues": [],
+  "credentialScanLimit": "Pattern scan, not complete secret detection; no pasted secrets intentionally persisted.",
+  "graphify": "NOT RUN: CLI unavailable",
+  "substitute": "Final preflight AST:61TS modules, no cycles/forbidden dependencies; ADR022 Mermaid. Not a Kotlin/C++ dynamic call graph."
+}

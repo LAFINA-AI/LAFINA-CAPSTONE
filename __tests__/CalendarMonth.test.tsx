@@ -124,7 +124,7 @@ describe('calendar month presentation', () => {
           onRouteChange={jest.fn()}
         />,
       );
-      await screen.findByText(/Android alerts are off/);
+      await screen.findByRole('button', {name: 'Reminder delivery details'});
       await act(async () => {
         fireEvent.press(screen.getByRole('radio', {name: 'Day: 2026-10-23'}));
       });
@@ -141,11 +141,11 @@ describe('calendar month presentation', () => {
       expect(snapshot).not.toHaveBeenCalled();
       await act(async () => {
         fireEvent.press(
-          screen.getByRole('radio', {name: 'Calendar display: Day'}),
+          screen.getByRole('radio', {name: 'Calendar display: Month'}),
         );
       });
-      expect(screen.queryByRole('button', {name: 'Next month'})).toBeNull();
-      expect(screen.getByRole('button', {name: 'Next week'})).toBeTruthy();
+      expect(screen.queryByRole('button', {name: 'Next week'})).toBeNull();
+      expect(screen.getByRole('button', {name: 'Next month'})).toBeTruthy();
     } finally {
       fixture.close();
     }

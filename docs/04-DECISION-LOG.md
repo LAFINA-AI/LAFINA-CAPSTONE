@@ -16,6 +16,8 @@
 | ADR-012 | Separate student and future business products; no shared runtime dependency | ACCEPTED | Phase 00 import graph |
 | ADR-019 | Explicit hold, on-device-only recognizer and optional verified Whisper; local draft review | IMPLEMENTED direction; acceptance pending | Phase06 actual build, offline engine/device and performance evidence |
 | ADR-020 | Pure deterministic commands, strict intents and private confirmed executor; transient chat | IMPLEMENTED direction; acceptance pending | Phase07 retained first/regression corpus, transaction/UI tests and actual offline device review |
+| ADR-021 | Selective incoming presentation integration on the retained offline core | IMPLEMENTED; device acceptance pending | Pinned data/native audits and Phase07.1 integration report |
+| ADR-022 | Nol reference shell, local schema3 Notes and persisted display preferences | IMPLEMENTED; device acceptance pending | Current UI/migration/native compatibility evidence and Phase07.1 Nol UI report |
 
 Every change to these requires a short ADR in `docs/decisions/` using template, with rejected alternatives, rationale, effects on quality/performance, exact benchmark and approval. Never turn a provisional into accepted silently. If Android platform restrictions invalidate a design, stop and present alternatives for approval.
 
@@ -181,3 +183,23 @@ are excluded. Upstream history is retained; no automatic foreign-database import
 or production-service connection is performed. Pasted credentials were not saved
 or used; owner rotation is required. See the [integration report](reports/phase-07-1-report.md).
 Phase08 and physical acceptance remain separate human gates.
+
+## Phase07.1 Nol UI follow-up — 2026-10-27
+
+The owner explicitly requested `Nol-branch` and supplied the intended screen
+references. Pulling finds Nol/main at the already merged `9c183a2`; this follow-up
+corrects the prior presentation selection, without importing the replacement app
+root, account runtime or incompatible database. [ADR-022](decisions/ADR-022-nol-ui-local-notes.md)
+records Chat/Calendar/Notes/Profile, the non-recording central mic entry, one
+semantic theme and exact SVG rendering dependency.
+
+Local notes are an additive schema2→3 migration, with version/receipt fences,
+20-record pages and exact Profile counts. Native reminders accept schemas2/3
+with unchanged planner/job semantics. Calendar display choices persist through
+the existing settings snapshot; absent legacy keys retain24h/Monday behavior.
+Earlier reports/baselines remain historical evidence. The
+[host notes cohort](benchmarks/phase-07-1-nol-ui-notes.md) is not a phone or
+legacy-speed result. Current executed gates/restoration and outstanding human
+checks belong in [the follow-up report](reports/phase-07-1-nol-ui-report.md).
+Phase08, backend work and physical-device acceptance are not approved by this UI
+authorization.

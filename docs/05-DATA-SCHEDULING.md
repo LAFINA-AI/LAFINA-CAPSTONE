@@ -6,6 +6,44 @@ Scheduling and all reminders must be functional in airplane mode, without accoun
 
 ## Minimal domain entities (adapt as needed)
 
+### Implemented schema3 notes addition — Phase07.1
+
+The authoritative file remains `lafina-capstone.sqlite`. Version0→1→2→3
+migrations run inside one synchronous transaction. The schema2→3 step adds only
+`notes` and two indexes; it preserves all prior tables, settings JSON, planner
+rows, native jobs/registrations and operation receipts. A failure rolls back DDL
+and `user_version`; failed rollback quarantines the connection. Native reminder
+readers accept schema2 or3, reject unknown future versions and never read/write
+notes. Do not downgrade/reset an existing schema3 installation.
+
+| Actual note column | Meaning/constraint |
+|---|---|
+| `id` | Stable source ID; repository IDs derive from a validated operation token |
+| `title`, `body` | Required trimmed title up to160 Unicode characters; body up to10000, with multiline text preserved |
+| `category`, `pinned` | Personal/Coursework; explicit boolean pin state |
+| `version` | Positive integer; edits/deletes require the saved expected version |
+| `created_at`, `updated_at`, `deleted_at` | UTC timestamps; deletion creates a tombstone |
+
+Create/edit/delete and their receipt are atomic and retry-idempotent. The shared
+receipt fingerprint separates note operations from planner operations; retry does
+not mean a deleted note is recreated. Notes page/search uses parameterized SQL,
+literal escaped wildcard punctuation, a validated100-character search and at
+most20 exposed rows (21 SQL rows detect the next page). Indexes
+`notes_visible_order` and `notes_category_order` support list/filter order; body
+substring search may scan history. Profile counts use exact live note and
+completed-task `COUNT(*)` queries rather than page length.
+
+Clock format and first-weekday preferences live in the existing `app_settings`
+JSON, separate from stored UTC/date-only scheduling values. Old missing display
+keys default to24h/Monday; invalid supplied values fail validation. No account,
+audio/transcript store, schema17 import, second database or online service is added.
+See [ADR-022](decisions/ADR-022-nol-ui-local-notes.md),
+[host measurements and limits](benchmarks/phase-07-1-nol-ui-notes.md) and the
+[current report](reports/phase-07-1-nol-ui-report.md). Physical-device acceptance
+and complete privacy purge/export remain separate work.
+
+### Earlier conceptual entity inventory
+
 | Entity | Essential fields |
 |---|---|
 | `LocalProfile` | stable `localProfileId`, optional display name, timezone, onboardingCompletedAt, preferences |

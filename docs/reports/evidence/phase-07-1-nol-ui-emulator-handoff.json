@@ -1,0 +1,143 @@
+{
+  "phase": "07.1 Nol UI follow-up",
+  "initial": {
+    "utc": "2026-10-27T04:17:07.612502+08:00",
+    "connectivity": {
+      "airplane_mode_on": "0",
+      "wifi_on": "1",
+      "mobile_data": "1"
+    },
+    "microphoneGranted": true,
+    "version": "0.7.1-data-qa",
+    "display": {
+      "size": "Physical size: 1080x2400",
+      "fontScale": "1.0"
+    }
+  },
+  "cases": [
+    {
+      "name": "pre-upgrade-synthetic-seed",
+      "status": "PASS",
+      "detail": "Created only QA72 retained through reviewed/confirmed Chat on installed0.7.1-data-qa, for a real upgrade persistence check.",
+      "apkSha256": null,
+      "utc": "2026-10-27T04:18:37.220512+08:00"
+    },
+    {
+      "name": "v2-v3-upgrade-preserves-task",
+      "status": "PASS",
+      "detail": "The confirmed pre-upgrade QA72 retained task remained in native SQLite after0.7.1\u21920.7.2 and additive schema3 initialization. No uninstall/reset/import.",
+      "apkSha256": "83931992d046555b8e2b59b18496a22b609c73d2328aabfed6d19782a01cd915",
+      "utc": "2026-10-27T04:29:15.230386+08:00"
+    },
+    {
+      "name": "reference-profile-real-controls",
+      "status": "PASS",
+      "detail": "Anonymous profile, static SVG gradient, synthetic QA Student avatar and exact local counts rendered. Original private nickname/theme retained only in ignored local restoration file.",
+      "apkSha256": "83931992d046555b8e2b59b18496a22b609c73d2328aabfed6d19782a01cd915",
+      "utc": "2026-10-27T04:30:59.774278+08:00"
+    },
+    {
+      "name": "profile-display-switches",
+      "status": "PASS",
+      "detail": "Changed persisted clock format and Monday/Sunday week preference through actual switches; original normalized24h/Monday settings recorded for restoration.",
+      "apkSha256": "83931992d046555b8e2b59b18496a22b609c73d2328aabfed6d19782a01cd915",
+      "utc": "2026-10-27T04:31:08.983309+08:00"
+    },
+    {
+      "name": "native-note-create",
+      "status": "PASS",
+      "detail": "Saved one synthetic pinned Coursework note to schema3 through explicit Save.",
+      "apkSha256": "83931992d046555b8e2b59b18496a22b609c73d2328aabfed6d19782a01cd915",
+      "utc": "2026-10-27T04:37:49.72329+08:00"
+    },
+    {
+      "name": "dirty-note-mic-guard-no-auto-recording",
+      "status": "PASS",
+      "detail": "Dirty-note mic navigation required Keep/Discard. Keep retained draft; Discard opened speech input without recording. AppOps reported no active microphone.",
+      "apkSha256": "83931992d046555b8e2b59b18496a22b609c73d2328aabfed6d19782a01cd915",
+      "utc": "2026-10-27T04:38:54.114948+08:00"
+    },
+    {
+      "name": "native-note-edit-back-delete",
+      "status": "PASS",
+      "detail": "Saved an edit, verified clean-editor Android Back returns to list, then confirmed deletion of only QA72 lecture. Native alert labels were uppercase; the driver matched their displayed text. Notes returned to empty.",
+      "apkSha256": "83931992d046555b8e2b59b18496a22b609c73d2328aabfed6d19782a01cd915",
+      "utc": "2026-10-27T04:41:11.267786+08:00"
+    },
+    {
+      "name": "real-calendar-occurrence-details",
+      "status": "PASS",
+      "detail": "A confirmed synthetic one-hour event appeared on the selected date in the actual timeline; tapping it opened saved details. New renderer uses the current paged repository.",
+      "apkSha256": "83931992d046555b8e2b59b18496a22b609c73d2328aabfed6d19782a01cd915",
+      "utc": "2026-10-27T04:42:06.187048+08:00"
+    },
+    {
+      "name": "manual-editor-navigation-guard",
+      "status": "PASS",
+      "detail": "New floating add menu opened the existing task editor; dirty navigation still required an explicit Keep/Discard decision.",
+      "apkSha256": "83931992d046555b8e2b59b18496a22b609c73d2328aabfed6d19782a01cd915",
+      "utc": "2026-10-27T04:42:39.069688+08:00"
+    },
+    {
+      "name": "new-chat-confirmation-and-refusal",
+      "status": "PASS",
+      "detail": "Create and exact correction needed review/Confirm; ambiguous mixed and bulk commands did not offer a mutation. No cloud/model dependency.",
+      "apkSha256": "83931992d046555b8e2b59b18496a22b609c73d2328aabfed6d19782a01cd915",
+      "utc": "2026-10-27T04:45:37.277069+08:00"
+    },
+    {
+      "name": "central-mic-draft-only",
+      "status": "PASS",
+      "detail": "Final APK central mic opened visible panel; manual draft copied only to composer. Send produced separate review; Discard saved no item. No microphone capture/speech accuracy claim.",
+      "apkSha256": "0edc3b64d46759d355f7ce2e02a43e395915f0b2b6a81c5ffe04355950cc87f6",
+      "utc": "2026-10-26T20:54:06.562655+00:00"
+    },
+    {
+      "name": "native-jsi-isolated-migration-notes-checks",
+      "status": "PASS",
+      "detail": "Final APK native JSI checks passed migration/settings, paired rollback/idempotency, ACK vs completion, Notes create/replay/delete and integrity. Dedicated synthetic QA DB only. No alarm/audio delivery tested.",
+      "apkSha256": "0edc3b64d46759d355f7ce2e02a43e395915f0b2b6a81c5ffe04355950cc87f6",
+      "utc": "2026-10-26T20:56:28.131835+00:00"
+    },
+    {
+      "name": "narrow-large-font-smoke",
+      "status": "PASS",
+      "detail": "At840x2000/font1.3 the actual Calendar/Notes add controls, scrollable Profile switches and Chat composer remained visible/reachable. Screenshot review is separate from TalkBack/full accessibility acceptance.",
+      "apkSha256": "0edc3b64d46759d355f7ce2e02a43e395915f0b2b6a81c5ffe04355950cc87f6",
+      "utc": "2026-10-26T20:59:28.529576+00:00"
+    },
+    {
+      "name": "final-state-restored",
+      "status": "PASS",
+      "detail": "Restored private nickname, Dark theme,24h/Monday display, original radios/font/display. Reply Text and deliveryOFF unchanged. Owned confirmed fixtures deleted; app open on Calendar; host micOFF and no active app recording.",
+      "apkSha256": "0edc3b64d46759d355f7ce2e02a43e395915f0b2b6a81c5ffe04355950cc87f6",
+      "utc": "2026-10-26T21:01:57.167382+00:00"
+    }
+  ],
+  "sourceBase": "589508d18257c91103056fc8c6ebce5e88c513d3",
+  "nolBranch": "9c183a20eca2377b5e54f219c5f83460b18af81b",
+  "limits": [
+    "API37 emulator, not physical phone; host microphone off; no actual speech/quality/lowRAM claim."
+  ],
+  "originalTheme": "Dark",
+  "originalReplyMode": "Text",
+  "automationNotes": [
+    "Pre-upgrade helper inherited a0.7.0 caption; corrected to actual package-metadata-verified0.7.1. No measurement/versionrecord was substituted.",
+    "Note deletion confirmation used uppercase native Android button text DELETE NOTE. The first exact-case test tap failed; corrected only driver label matching, then verified note removal.",
+    "Instrumentation ends the activity; first UI attempt omitted reopening. Reopened without resetting data.",
+    "Emulator hardware-keyboard mode: Back/Escape closed the Modal; corrected driver to tap Use draft directly, then verified copy/Send/Discard. A stale exact result phrase also caused driver scrolling; actual SQLite PASS text was inspected and asserted. No source fix or fabricated pass.",
+    "A final run-as content-provider read was denied by Android ACCESS_CONTENT_PROVIDERS_EXTERNALLY enforcement. No permission bypass/grant attempted; verified deliveryOFF using the visible Reminder delivery settings instead. Installed APK hash checked independently."
+  ],
+  "installedVersion": "0.7.2-data-qa",
+  "installedApkSha256": "0edc3b64d46759d355f7ce2e02a43e395915f0b2b6a81c5ffe04355950cc87f6",
+  "initialInstalledApkSha256": "83931992d046555b8e2b59b18496a22b609c73d2328aabfed6d19782a01cd915",
+  "initialInstalledAtUtc": "2026-10-27T04:23:20.065116+08:00",
+  "finalInstallationEvidence": "phase-07-1-nol-ui-instrumentation-final.log;44 native tests on final installed APK before final UI checks",
+  "screenshots": [
+    "phase-07-1-nol-ui-calendar-week-light.png",
+    "phase-07-1-nol-ui-calendar-month-light.png",
+    "phase-07-1-nol-ui-notes-light.png",
+    "phase-07-1-nol-ui-profile-light.png",
+    "phase-07-1-nol-ui-chat-light.png"
+  ]
+}

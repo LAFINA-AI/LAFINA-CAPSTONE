@@ -1,0 +1,391 @@
+
+> lafina-capstone@0.7.2 preflight
+> npm run typecheck && npm run lint && npm run format:check && npm test && npm run check:architecture
+
+
+> lafina-capstone@0.7.2 typecheck
+> tsc --noEmit
+
+
+> lafina-capstone@0.7.2 lint
+> eslint src __tests__ index.js --max-warnings 0
+
+
+> lafina-capstone@0.7.2 format:check
+> prettier --check src __tests__ scripts *.js *.json .github/workflows/*.yml
+
+Checking formatting...
+All matched files use Prettier code style!
+
+> lafina-capstone@0.7.2 test
+> jest --runInBand
+
+FAIL __tests__/App.test.tsx (11.803 s)
+  ● Phase 01 anonymous foundation › keeps the data harness out of release and opens QA storage only on demand with a recoverable error
+
+    Unable to find an element with role: button, name: Back to preferences
+
+    <RNCSafeAreaView>
+      <View>
+        <View>
+          <RCTScrollView>
+            <View>
+              <View>
+                <View>
+                  <View
+                    accessibilityRole="button"
+                    accessibilityState={
+                      {
+                        "disabled": false,
+                      }
+                    }
+                    accessible={true}
+                  >
+                    <Text>
+                      Back to profile
+                    </Text>
+                  </View>
+                </View>
+                <View>
+                  <Text
+                    accessibilityRole="alert"
+                  >
+                    Planner storage could not be opened. Saved data has not been reset.
+                  </Text>
+                  <View
+                    accessibilityRole="button"
+                    accessibilityState={
+                      {
+                        "disabled": false,
+                      }
+                    }
+                    accessible={true}
+                  >
+                    <Text>
+                      Retry opening planner
+                    </Text>
+                  </View>
+                </View>
+              </View>
+            </View>
+          </RCTScrollView>
+        </View>
+      </View>
+      <View>
+        <View
+          accessibilityRole="tablist"
+        >
+          <View
+            accessibilityLabel="Chat"
+            accessibilityRole="tab"
+            accessibilityState={
+              {
+                "disabled": false,
+                "selected": false,
+              }
+            }
+            accessible={true}
+          >
+            <View
+              accessible={false}
+            >
+              <View />
+            </View>
+          </View>
+          <View
+            accessibilityLabel="Calendar"
+            accessibilityRole="tab"
+            accessibilityState={
+              {
+                "disabled": false,
+                "selected": false,
+              }
+            }
+            accessible={true}
+          >
+            <View
+              accessible={false}
+            >
+              <View />
+              <View />
+            </View>
+          </View>
+          <View>
+            <View
+              accessibilityHint="Opens editable speech input. Recording starts only while you hold the talk button."
+              accessibilityLabel="Open voice assistant"
+              accessibilityRole="button"
+              accessibilityState={
+                {
+                  "disabled": false,
+                }
+              }
+              accessible={true}
+            >
+              <View
+                accessible={false}
+              >
+                <View />
+                <View />
+              </View>
+            </View>
+          </View>
+          <View
+            accessibilityLabel="Notes"
+            accessibilityRole="tab"
+            accessibilityState={
+              {
+                "disabled": false,
+                "selected": false,
+              }
+            }
+            accessible={true}
+          >
+            <View
+              accessible={false}
+            >
+              <View />
+            </View>
+          </View>
+          <View
+            accessibilityLabel="Profile"
+            accessibilityRole="tab"
+            accessibilityState={
+              {
+                "disabled": false,
+                "selected": true,
+              }
+            }
+            accessible={true}
+          >
+            <View
+              accessible={false}
+            >
+              <View />
+              <View />
+            </View>
+            <Text>
+              Profile
+            </Text>
+          </View>
+        </View>
+      </View>
+    </RNCSafeAreaView>
+
+      382 |     );
+      383 |     await waitFor(() => expect(plannerFactory).toHaveBeenCalledTimes(2));
+    > 384 |     fireEvent.press(screen.getByRole('button', {name: 'Back to preferences'}));
+          |                            ^
+      385 |     expect(screen.getByRole('button', {name: 'Save preferences'})).toBeTruthy();
+      386 |   });
+      387 |   it('guards a dirty production planner form when switching tabs until discard is confirmed', async () => {
+
+      at Object.getByRole (__tests__/App.test.tsx:384:28)
+      at asyncGeneratorStep (node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+      at _next (node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
+
+PASS __tests__/AppSpeech.test.tsx
+PASS __tests__/NotesScreen.test.tsx
+PASS __tests__/PlannerScreen.test.tsx
+PASS __tests__/ProfileScreen.test.tsx
+PASS __tests__/SpeechInputPanel.test.tsx
+PASS __tests__/ChatScreen.test.tsx
+PASS __tests__/SpeechSettings.test.tsx
+PASS __tests__/AppNotesNavigation.test.tsx
+PASS __tests__/ReminderSettings.test.tsx
+PASS __tests__/ReplyMessage.test.tsx
+PASS __tests__/plannerQueries.test.ts
+PASS __tests__/AppDictation.test.tsx
+PASS __tests__/calendarTimeline.test.tsx
+PASS __tests__/plannerRepository.test.ts
+PASS __tests__/PlannerHarness.test.tsx
+PASS __tests__/PlannerForm.test.tsx
+PASS __tests__/CalendarMonth.test.tsx
+PASS __tests__/PreferencesForm.test.tsx
+PASS __tests__/commandSession.test.ts
+PASS __tests__/intents.test.ts
+PASS __tests__/notesRepository.test.ts
+PASS __tests__/scheduleTime.test.ts
+PASS __tests__/speechToText.test.ts
+PASS __tests__/plannerMigrations.test.ts
+PASS __tests__/notesMigrations.test.ts
+PASS __tests__/storage.test.ts
+PASS __tests__/speechMetrics.test.js
+PASS __tests__/textToSpeech.test.ts
+PASS __tests__/reminders.test.ts
+PASS __tests__/dateTimePicker.test.ts
+PASS __tests__/formatOverviewDate.test.ts
+PASS __tests__/plannerDisplay.test.ts
+PASS __tests__/preferences.test.ts
+
+Summary of all failing tests
+FAIL __tests__/App.test.tsx (11.803 s)
+  ● Phase 01 anonymous foundation › keeps the data harness out of release and opens QA storage only on demand with a recoverable error
+
+    Unable to find an element with role: button, name: Back to preferences
+
+    <RNCSafeAreaView>
+      <View>
+        <View>
+          <RCTScrollView>
+            <View>
+              <View>
+                <View>
+                  <View
+                    accessibilityRole="button"
+                    accessibilityState={
+                      {
+                        "disabled": false,
+                      }
+                    }
+                    accessible={true}
+                  >
+                    <Text>
+                      Back to profile
+                    </Text>
+                  </View>
+                </View>
+                <View>
+                  <Text
+                    accessibilityRole="alert"
+                  >
+                    Planner storage could not be opened. Saved data has not been reset.
+                  </Text>
+                  <View
+                    accessibilityRole="button"
+                    accessibilityState={
+                      {
+                        "disabled": false,
+                      }
+                    }
+                    accessible={true}
+                  >
+                    <Text>
+                      Retry opening planner
+                    </Text>
+                  </View>
+                </View>
+              </View>
+            </View>
+          </RCTScrollView>
+        </View>
+      </View>
+      <View>
+        <View
+          accessibilityRole="tablist"
+        >
+          <View
+            accessibilityLabel="Chat"
+            accessibilityRole="tab"
+            accessibilityState={
+              {
+                "disabled": false,
+                "selected": false,
+              }
+            }
+            accessible={true}
+          >
+            <View
+              accessible={false}
+            >
+              <View />
+            </View>
+          </View>
+          <View
+            accessibilityLabel="Calendar"
+            accessibilityRole="tab"
+            accessibilityState={
+              {
+                "disabled": false,
+                "selected": false,
+              }
+            }
+            accessible={true}
+          >
+            <View
+              accessible={false}
+            >
+              <View />
+              <View />
+            </View>
+          </View>
+          <View>
+            <View
+              accessibilityHint="Opens editable speech input. Recording starts only while you hold the talk button."
+              accessibilityLabel="Open voice assistant"
+              accessibilityRole="button"
+              accessibilityState={
+                {
+                  "disabled": false,
+                }
+              }
+              accessible={true}
+            >
+              <View
+                accessible={false}
+              >
+                <View />
+                <View />
+              </View>
+            </View>
+          </View>
+          <View
+            accessibilityLabel="Notes"
+            accessibilityRole="tab"
+            accessibilityState={
+              {
+                "disabled": false,
+                "selected": false,
+              }
+            }
+            accessible={true}
+          >
+            <View
+              accessible={false}
+            >
+              <View />
+            </View>
+          </View>
+          <View
+            accessibilityLabel="Profile"
+            accessibilityRole="tab"
+            accessibilityState={
+              {
+                "disabled": false,
+                "selected": true,
+              }
+            }
+            accessible={true}
+          >
+            <View
+              accessible={false}
+            >
+              <View />
+              <View />
+            </View>
+            <Text>
+              Profile
+            </Text>
+          </View>
+        </View>
+      </View>
+    </RNCSafeAreaView>
+
+      382 |     );
+      383 |     await waitFor(() => expect(plannerFactory).toHaveBeenCalledTimes(2));
+    > 384 |     fireEvent.press(screen.getByRole('button', {name: 'Back to preferences'}));
+          |                            ^
+      385 |     expect(screen.getByRole('button', {name: 'Save preferences'})).toBeTruthy();
+      386 |   });
+      387 |   it('guards a dirty production planner form when switching tabs until discard is confirmed', async () => {
+
+      at Object.getByRole (__tests__/App.test.tsx:384:28)
+      at asyncGeneratorStep (node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+      at _next (node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
+
+
+Test Suites: 1 failed, 33 passed, 34 total
+Tests:       1 failed, 519 passed, 520 total
+Snapshots:   0 total
+Time:        35.768 s, estimated 75 s
+Ran all test suites.

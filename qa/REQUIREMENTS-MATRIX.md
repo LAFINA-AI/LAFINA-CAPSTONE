@@ -1,6 +1,6 @@
-# Requirements-to-phase traceability — through Phase07.1 integration
+# Requirements-to-phase traceability — through Phase07.1 Nol UI follow-up
 
-Updated through Phase07.1,2026-10-26 Asia/Manila. F-001/F-002 have implementation,
+Updated through Phase07.1,2026-10-27 Asia/Manila. F-001/F-002 have implementation,
 automated and emulator evidence; physical-device acceptance is still pending.
 Future test IDs remain planned, not executed tests. Phase ownership does not grant
 approval. F-001–F-015 remain offline MUSTs. No physical phone has been tested; an API37 emulator supplied the separately labeled native and planner evidence.
@@ -8,9 +8,9 @@ approval. F-001–F-015 remain offline MUSTs. No physical phone has been tested;
 | ID | Confirmed scope | Owner phase | Planned automated evidence | Human/device evidence | Status |
 |---|---|---:|---|---|---|
 | F-001 | Anonymous offline onboarding; no account | 01 | App.test.tsx completion/retry/validation tests PASS | Release preview offline emulator exercised; physical phone pending | IMPLEMENTED, DEVICE PENDING |
-| F-002 | Local theme/voice/lead/snooze/quiet-hour preferences | 01 | App.test.tsx + storage.test.ts real host-SQLite reopen/failed-write tests PASS | Native emulator persistence exercised; physical phone pending | IMPLEMENTED, DEVICE PENDING |
+| F-002 | Local theme/voice/lead/snooze/quiet-hour and calendar display preferences | 01,07.1 | App/storage/preferences/Profile tests cover persistence, legacy display defaults, invalid values and serialized switch writes | Earlier persistence exercised; current display/native outcomes in Nol UI report; physical phone pending | IMPLEMENTED, DEVICE PENDING |
 | F-003 | Manual task/event CRUD | 02,04 | Repository + PlannerForm/PlannerScreen real host-SQLite/UI tests PASS; manual forms implemented | Emulator outcomes in Phase 04 report; physical phone pending | IMPLEMENTED, DEVICE PENDING |
-| F-004 | Month selector, week/day calendar and paged tasks reflect mutations | 04,07.1 | plannerQueries/PlannerScreen plus CalendarMonth cover date selection, leap/month bounds, create/edit/delete, paging and carry-in | Integrated emulator month/day/detail and mutation checks in Phase07.1 report; physical pending | IMPLEMENTED, DEVICE PENDING |
+| F-004 | Month/Week selector, paged day timeline and tasks reflect mutations | 04,07.1 | plannerQueries/PlannerScreen, CalendarMonth and calendarTimeline cover date selection, week-start, display format, overlap/carry-in, mutations and paging | Current native/UI outcomes in Nol UI report; physical pending | IMPLEMENTED, DEVICE PENDING |
 | F-005 | Reminder/job create/update/cancel | 02,03 | Paired SQL/generation tests; native reconciliation and identity tests, see Phase03 report | Emulator outcomes in report; physical pending | IMPLEMENTED, DEVICE PENDING |
 | F-006 | Native due notification/alarm within OS limits | 03,08 | AlarmManager adapter, capability/denial and native store tests | Locked/background/idle/API/OEM drift still requires phone | IMPLEMENTED, DEVICE PENDING |
 | F-007 | Conditional simulated-call UI + notification fallback | 03,04 | Explicit FSI opt-in and eligible intent; same-screen notification fallback | API30/33/34+ phone permission matrix pending | IMPLEMENTED, DEVICE PENDING |
@@ -23,7 +23,7 @@ approval. F-001–F-015 remain offline MUSTs. No physical phone has been tested;
 | F-014 | Restart/reboot/permission/time recovery | 03,08 | Native stale/duplicate/source fencing, restore receivers and launch/resume reconciliation | Emulator outcomes separately logged; phone/OEM checks pending | IMPLEMENTED, DEVICE PENDING |
 | F-015 | No internet/server dependency for offline core | 01–08 | OFF-01 import boundary/failed-adapter paths | Full lifecycle airplane mode/traffic review | PLANNED |
 | F-016 | Bounded weekly classes with timezone semantics | 02,04 | Weekly form/domain/windowed-query DST fixtures PASS, even without reminders | Whole-series manual UI; phone review required | IMPLEMENTED, DEVICE PENDING, SHOULD |
-| F-017 | Inspect/delete local data; export only if reviewed | 01,04 | Phase01 settings inspection/reopen implemented; full local-data deletion/export later | Full privacy walkthrough pending | PARTIAL, SHOULD |
+| F-017 | Inspect/delete local items and notes; export only if reviewed | 01,04,07.1 | Notes repository/UI and frozen schema2→3 migration tests cover CRUD, tombstones, stale edits, receipts, search/paging and prior-data preservation; full purge/export later | Current Notes/upgrade checks in Nol UI report; full privacy/phone walkthrough pending | PARTIAL, SHOULD |
 | F-018 | Optional Gemini via secure backend | 09 | API-01 timeout/429/abuse/secret isolation | Opt-in/offline fallback after 08 review | DEFERRED |
 | F-019 | Verified handbook sources/revision/pages/refusal | 10 | RAG-01 100+ reviewed citation/abstention cases | Adviser/source-rights review | DEFERRED |
 | F-020 | Online handbook toggle/status/source UI | 10 | ONLINE-01 unavailable/offline/source display | Offline unavailable, true page/edition | DEFERRED |
@@ -33,16 +33,23 @@ approval. F-001–F-015 remain offline MUSTs. No physical phone has been tested;
 | Low-end priority | Test 2–3 GB ARM64 Android11+ where available, ~4 GB reference and newer OS; report CPU/RAM/startup/battery | Confirmed user preference; no certified RAM floor/32-bit support |
 | Performance | Same-device old/new cold/warm n/p50/p95/peak/failures, TTS quality, STT WER, alarms/battery | BASELINE NOT RUN; protocol in docs/benchmarks |
 | Theme/accessibility | Central semantic light/dark tokens, keyboard/TalkBack/large font/manual states | Theme implemented; selected200% font emulator checks pass; physical/TalkBack pending |
-| Architecture/quality | Strict TS, tested migrations/state machines, native instrumentation, documented contracts/ADRs, import checks | Phase07.1 preflight464 tests/28 suites and AST46 modules PASS; current62 JVM tests/7 inspected APKs and42 API37 functional instrumentation tests PASS; installed hash verified; integration restoration/evidence in Phase07.1 report; ADR-013–021 document boundaries. |
+| Architecture/quality | Strict TS, tested migrations/state machines, native instrumentation, documented contracts/ADRs, import checks | Nol UI full preflight520 tests/34 suites and AST61 modules PASS; exact native/build/emulator/restoration evidence in current report. Earlier464/28,62 JVM and42 Android cohorts remain historical; ADR-013–022 document boundaries. |
+| Authorized local Notes/UI follow-up | Chat/Calendar/Notes/Profile shell; non-recording mic entry; exact saved counts | NotesScreen/AppNotesNavigation, notesRepository/notesMigrations, ProfileScreen and calendarTimeline tests; notes host cohort600 measured calls/0 failures. Physical acceptance not inferred. |
 | Privacy/provenance | No credentials/private data/audio in repo; reviewed model/library terms and attribution | Source-owner authorization recorded; details/third-party review pending |
-| Phase gating | One approved phase, factual report and explicit stop | Phase07 explicitly approved; owner separately authorized07.1 integration/audit; earlier physical-phone checks pending;08–11 unapproved |
+| Phase gating | One approved phase, factual report and explicit stop | Phase07 explicitly approved; owner separately authorized07.1 integration/audit and Nol screenshot UI follow-up; earlier physical-phone checks pending;08–11 unapproved |
 
 Explicitly excluded: registration/login/accounts/passwords, business roles/team
 management, subscriptions/paywall, unrelated LAFINA Skills, Gmail/account calendar
 sync, meeting capture, document generation, generic autonomous agents, always-on
 mic/wake word, official portal integration, whole-app/history/database/model copying,
-and broad UI redesign. Kokoro is excluded from initial MVP. Gemini/RAG remain
+and unrelated UI redesign beyond the approved Nol reference follow-up. Kokoro is excluded from initial MVP. Gemini/RAG remain
 post-08 only; no backend may become an offline dependency.
+
+Current follow-up scope/evidence: [Nol UI report](../docs/reports/phase-07-1-nol-ui-report.md),
+[ADR-022](../docs/decisions/ADR-022-nol-ui-local-notes.md),
+[manual checks](PHASE-07-1-NOL-UI-MANUAL.md) and
+[host notes benchmark](../docs/benchmarks/phase-07-1-nol-ui-notes.md).
+These additions do not relabel future offline/device acceptance as passed.
 
 ## Phase 01 evidence update
 

@@ -1,0 +1,17 @@
+PASS __tests__/NotesScreen.test.tsx (7.647 s)
+  Notes screen with actual repository SQL
+    √ shows the requested empty Notes presentation with supported filters and no AI promise (1745 ms)
+    √ creates, edits, pins and filters a durable local note without auto-saving drafts (167 ms)
+    √ searches literal punctuation and note body; compact display retains opening controls (80 ms)
+    √ keeps a dirty editor on Back until explicit discard and reports clean subroutes (123 ms)
+    √ requires explicit deletion confirmation and never deletes on cancellation (54 ms)
+    √ retains the draft and stable operation token after a storage error then retries (56 ms)
+    √ shows validation failure without losing entered text or saving (43 ms)
+    √ recovers a failed open visibly rather than presenting fake empty storage success (30 ms)
+    √ pages saved notes without an unbounded accumulating list (89 ms)
+
+Test Suites: 1 passed, 1 total
+Tests:       9 passed, 9 total
+Snapshots:   0 total
+Time:        8.053 s
+Ran all test suites matching /__tests__\\NotesScreen.test.tsx/i.

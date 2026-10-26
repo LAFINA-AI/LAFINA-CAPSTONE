@@ -197,7 +197,7 @@ describe('capstone planner migrations using real host SQLite', () => {
 
   it('creates a fresh versioned schema, one anonymous profile and required indices', () => {
     initializePlannerDatabase(sql, now);
-    expect(sql.execute('PRAGMA user_version')).toEqual([{user_version: 2}]);
+    expect(sql.execute('PRAGMA user_version')).toEqual([{user_version: 3}]);
     expect(sql.execute('PRAGMA foreign_keys')).toEqual([{foreign_keys: 1}]);
     expect(sql.execute('PRAGMA busy_timeout')).toEqual([{timeout: 5000}]);
     expect(sql.execute('SELECT * FROM local_profile')).toEqual([
@@ -246,7 +246,7 @@ describe('capstone planner migrations using real host SQLite', () => {
     seedVersionOne();
     const before = existingRows();
     initializePlannerDatabase(sql, '2026-10-23T00:00:00.000Z');
-    expect(sql.execute('PRAGMA user_version')).toEqual([{user_version: 2}]);
+    expect(sql.execute('PRAGMA user_version')).toEqual([{user_version: 3}]);
     expect(existingRows()).toEqual({
       ...before,
       reminder_jobs: before.reminder_jobs!.map(row => ({
@@ -370,7 +370,7 @@ describe('capstone planner migrations using real host SQLite', () => {
         ),
       ).toEqual([]);
       initializePlannerDatabase(sql, now);
-      expect(sql.execute('PRAGMA user_version')).toEqual([{user_version: 2}]);
+      expect(sql.execute('PRAGMA user_version')).toEqual([{user_version: 3}]);
       expect(sql.execute('PRAGMA integrity_check')).toEqual([
         {integrity_check: 'ok'},
       ]);
@@ -400,7 +400,7 @@ describe('capstone planner migrations using real host SQLite', () => {
       {payload},
     ]);
     initializePlannerDatabase(sql, now);
-    expect(sql.execute('PRAGMA user_version')).toEqual([{user_version: 2}]);
+    expect(sql.execute('PRAGMA user_version')).toEqual([{user_version: 3}]);
   });
 
   it('keeps derived registration identities after source removal and constrains delivery settings', () => {
@@ -472,15 +472,15 @@ describe('capstone planner migrations using real host SQLite', () => {
         ),
       ).toEqual([{name: 'app_settings'}]);
       initializePlannerDatabase(sql, now);
-      expect(sql.execute('PRAGMA user_version')).toEqual([{user_version: 2}]);
+      expect(sql.execute('PRAGMA user_version')).toEqual([{user_version: 3}]);
     },
   );
 
   it('refuses a future schema without rewriting its data or version', () => {
     const payload = seedSettings();
-    sql.execute('PRAGMA user_version = 3');
+    sql.execute('PRAGMA user_version = 4');
     expect(() => initializePlannerDatabase(sql, now)).toThrow('newer');
-    expect(sql.execute('PRAGMA user_version')).toEqual([{user_version: 3}]);
+    expect(sql.execute('PRAGMA user_version')).toEqual([{user_version: 4}]);
     expect(sql.execute('SELECT payload FROM app_settings')).toEqual([
       {payload},
     ]);

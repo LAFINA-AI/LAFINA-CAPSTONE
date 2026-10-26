@@ -109,6 +109,19 @@ class ReminderStoreTest {
     assertEquals("SCHEDULED", scalar("SELECT status FROM reminders"))
   }
 
+  @Test fun additiveNotesSchemaKeepsNativeReminderCompatibility() {
+    execute("PRAGMA user_version=3")
+    assertEquals("PENDING", store.get(identity)!!.status)
+    assertEquals("TODO", scalar("SELECT status FROM tasks"))
+    assertEquals("3", scalar("PRAGMA user_version"))
+  }
+
+  @Test fun unknownFutureSchemaIsRejectedWithoutChangingVersion() {
+    execute("PRAGMA user_version=4")
+    assertEquals("SCHEMA_NOT_READY", assertThrows(RecoverableStoreException::class.java) { store.listCurrent() }.code)
+    assertEquals("4", scalar("PRAGMA user_version"))
+  }
+
   @Test fun nonDeleteJournalIsRejectedWithoutSwitchingMode() {
     val params = SQLiteDatabase.OpenParams.Builder().setOpenFlags(SQLiteDatabase.OPEN_READWRITE)
       .setJournalMode("PERSIST").build()

@@ -1,0 +1,14 @@
+
+> lafina-capstone@0.7.2 test
+> jest --runInBand --runTestsByPath __tests__/App.test.tsx __tests__/AppSpeech.test.tsx __tests__/AppDictation.test.tsx __tests__/AppNotesNavigation.test.tsx
+
+PASS __tests__/App.test.tsx (9.827 s)
+PASS __tests__/AppSpeech.test.tsx
+PASS __tests__/AppNotesNavigation.test.tsx
+PASS __tests__/AppDictation.test.tsx
+
+Test Suites: 4 passed, 4 total
+Tests:       29 passed, 29 total
+Snapshots:   0 total
+Time:        13.984 s, estimated 16 s
+Ran all test suites within paths "__tests__/App.test.tsx", "__tests__/AppSpeech.test.tsx", "__tests__/AppDictation.test.tsx", "__tests__/AppNotesNavigation.test.tsx".

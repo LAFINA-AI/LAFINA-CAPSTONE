@@ -50,4 +50,31 @@ describe('local preference validation', () => {
       ),
     ).toThrow();
   });
+  it('loads older snapshots with preserved calendar defaults and rejects malformed display options', () => {
+    const legacy = {...defaultPreferences('Asia/Manila')} as Record<
+      string,
+      unknown
+    >;
+    delete legacy.clockFormat;
+    delete legacy.weekStartsMonday;
+    expect(decodePreferences(JSON.stringify(legacy))).toMatchObject({
+      clockFormat: '24h',
+      weekStartsMonday: true,
+    });
+    expect(() =>
+      decodePreferences(JSON.stringify({...legacy, clockFormat: 'cloud'})),
+    ).toThrow();
+    expect(() =>
+      decodePreferences(JSON.stringify({...legacy, weekStartsMonday: 'yes'})),
+    ).toThrow();
+    expect(
+      decodePreferences(
+        JSON.stringify({
+          ...legacy,
+          clockFormat: '12h',
+          weekStartsMonday: false,
+        }),
+      ),
+    ).toMatchObject({clockFormat: '12h', weekStartsMonday: false});
+  });
 });

@@ -3,10 +3,11 @@ import {
   AppState,
   BackHandler,
   Image,
+  Keyboard,
+  Platform,
   KeyboardAvoidingView,
   Modal,
   NativeModules,
-  Pressable,
   ScrollView,
   StatusBar,
   StyleSheet,
@@ -30,7 +31,6 @@ import type {AlarmClient} from '../core/native/reminders';
 import {reconcilePlanner} from '../core/native/reconcilePlanner';
 import {openPreferences} from '../core/storage/openPreferences';
 import {openPlanner} from '../core/storage/openPlanner';
-import {runPlannerSqlChecks} from '../core/storage/runPlannerSqlChecks';
 import {ThemeContext, useTheme} from '../core/theme/ThemeContext';
 import {
   dimensions,
@@ -39,25 +39,38 @@ import {
   typography,
 } from '../core/theme/theme';
 import {Button, Message} from '../core/ui/controls';
-import {formatOverviewDate} from '../core/ui/formatOverviewDate';
 import {PreferencesForm} from '../features/onboarding/PreferencesForm';
-import {PlannerHarness} from '../features/scheduling/PlannerHarness';
 import {ReminderSettings} from '../features/reminders/ReminderSettings';
 import {PlannerScreen} from '../features/calendar/PlannerScreen';
 import {SpeechSettings} from '../features/settings/SpeechSettings';
 import {useLocalPreferences} from './useLocalPreferences';
+import {StudentTabBar} from './StudentTabBar';
+import {ProfileScreen} from '../features/settings/ProfileScreen';
+import {PlannerDiagnostics} from '../features/settings/PlannerDiagnostics';
+import {NotesScreen} from '../features/notes/NotesScreen';
+import {openNotes} from '../core/storage/openNotes';
+import type {NotesRepository} from '../core/domain/notes';
 
 const systemNow = () => new Date();
-type Tab = 'Today' | 'Calendar' | 'Chat' | 'Settings';
-const tabs: Tab[] = ['Today', 'Calendar', 'Chat', 'Settings'];
+type Tab = 'Today' | 'Calendar' | 'Chat' | 'Notes' | 'Settings';
 type SettingsNavigation =
   | {kind: 'tab'; tab: Tab}
-  | {kind: 'planner' | 'retake' | 'reminders' | 'speech' | 'preferences'};
+  | {
+      kind:
+        | 'planner'
+        | 'retake'
+        | 'reminders'
+        | 'speech'
+        | 'preferences'
+        | 'profile'
+        | 'voice';
+    };
 
 export function App({
   repositoryFactory = openPreferences,
   now = systemNow,
   plannerFactory = openPlanner,
+  notesFactory = openNotes,
   showPlannerHarness = NativeModules.CapstoneBuild?.plannerHarnessEnabled ===
     true,
   reminderClient = alarmClient,
@@ -70,6 +83,7 @@ export function App({
   repositoryFactory?: () => PreferencesRepository;
   now?: () => Date;
   plannerFactory?: () => PlannerRepository;
+  notesFactory?: () => NotesRepository;
   showPlannerHarness?: boolean;
   reminderClient?: AlarmClient;
   showReminderSettings?: boolean;
@@ -80,7 +94,7 @@ export function App({
 }) {
   const {state, save, retry} = useLocalPreferences(repositoryFactory);
   const scheme = useColorScheme();
-  const [tab, setTab] = useState<Tab>('Today');
+  const [tab, setTab] = useState<Tab>('Calendar');
   const [confirmRetake, setConfirmRetake] = useState(false);
   const [resetError, setResetError] = useState(false);
   const [resetBusy, setResetBusy] = useState(false);
@@ -88,6 +102,35 @@ export function App({
   const [plannerTools, setPlannerTools] = useState(false);
   const [reminderTools, setReminderTools] = useState(false);
   const [speechTools, setSpeechTools] = useState(false);
+  const [preferencesTools, setPreferencesTools] = useState(false);
+  const [panelParent, setPanelParent] = useState<'profile' | 'preferences'>(
+    'profile',
+  );
+  const [voiceRequest, setVoiceRequest] = useState(0);
+  const [notesDirty, setNotesDirty] = useState(false);
+  const [notesSubscreen, setNotesSubscreen] = useState(false);
+  const [notesBackRequest, setNotesBackRequest] = useState(0);
+  const [notesRevision, setNotesRevision] = useState(0);
+  const [pendingNotesNavigation, setPendingNotesNavigation] =
+    useState<SettingsNavigation | null>(null);
+  const [keyboardOpen, setKeyboardOpen] = useState(false);
+  const [counts, setCounts] = useState<{
+    completedTasks: number;
+    notes: number;
+  } | null>(null);
+  useEffect(() => {
+    const show = Keyboard.addListener('keyboardDidShow', () =>
+      setKeyboardOpen(true),
+    );
+    const hide = Keyboard.addListener('keyboardDidHide', () =>
+      setKeyboardOpen(false),
+    );
+    return () => {
+      show.remove();
+      hide.remove();
+    };
+  }, []);
+
   const [reply, setReply] = useState<WrittenReply | null>(null);
   const replySequence = useRef(0);
   const publishReply = useCallback((text: string) => {
@@ -168,25 +211,44 @@ export function App({
   const [settingsRevision, setSettingsRevision] = useState(0);
   const preferences = state.kind === 'ready' ? state.preferences : null;
   const theme = resolveTheme(preferences?.theme ?? 'system', scheme);
-  const performNavigation = useCallback((destination: SettingsNavigation) => {
-    setReply(null);
-    setPendingPlannerNavigation(null);
-    setPlannerDirty(false);
-    setPlannerSubscreen(false);
-    setPlannerRevision(value => value + 1);
-    setPendingNavigation(null);
-    setSettingsDraft({dirty: false, saving: false});
-    setSettingsRevision(value => value + 1);
-    setConfirmRetake(destination.kind === 'retake');
-    setReminderTools(destination.kind === 'reminders');
-    setSpeechTools(destination.kind === 'speech');
-    if (destination.kind === 'tab') {
-      setTab(destination.tab);
-      setPlannerTools(false);
-    } else if (destination.kind === 'planner') {
-      setPlannerTools(true);
-    }
-  }, []);
+  const performNavigation = useCallback(
+    (destination: SettingsNavigation) => {
+      if (
+        destination.kind === 'planner' ||
+        destination.kind === 'reminders' ||
+        destination.kind === 'speech'
+      ) {
+        setPanelParent(preferencesTools ? 'preferences' : 'profile');
+      }
+      setReply(null);
+      setPendingPlannerNavigation(null);
+      setPlannerDirty(false);
+      setPlannerSubscreen(false);
+      setPlannerRevision(value => value + 1);
+      setPendingNotesNavigation(null);
+      setNotesDirty(false);
+      setNotesSubscreen(false);
+      setNotesRevision(value => value + 1);
+      setPendingNavigation(null);
+      setSettingsDraft({dirty: false, saving: false});
+      setSettingsRevision(value => value + 1);
+      setConfirmRetake(destination.kind === 'retake');
+      setReminderTools(destination.kind === 'reminders');
+      setSpeechTools(destination.kind === 'speech');
+      setPlannerTools(destination.kind === 'planner');
+      setPreferencesTools(
+        destination.kind === 'preferences' || destination.kind === 'retake',
+      );
+      if (destination.kind === 'voice') {
+        setTab('Chat');
+        setVoiceRequest(value => value + 1);
+      } else {
+        setVoiceRequest(0);
+        setTab(destination.kind === 'tab' ? destination.tab : 'Settings');
+      }
+    },
+    [preferencesTools],
+  );
   const requestNavigation = useCallback(
     (destination: SettingsNavigation) => {
       if (settingsDraft.saving || resetBusy) {
@@ -197,12 +259,18 @@ export function App({
         destination.tab === tab &&
         !plannerTools &&
         !reminderTools &&
-        !speechTools
+        !speechTools &&
+        !preferencesTools &&
+        !notesSubscreen
       ) {
         return;
       }
       if ((tab === 'Today' || tab === 'Calendar') && plannerDirty) {
         setPendingPlannerNavigation(destination);
+        return;
+      }
+      if (tab === 'Notes' && notesDirty) {
+        setPendingNotesNavigation(destination);
         return;
       }
       if (
@@ -219,6 +287,9 @@ export function App({
     [
       settingsDraft,
       plannerDirty,
+      notesDirty,
+      notesSubscreen,
+      preferencesTools,
       resetBusy,
       tab,
       plannerTools,
@@ -236,40 +307,45 @@ export function App({
     if (!plannerDirty) setPendingPlannerNavigation(null);
   }, [plannerDirty]);
   useEffect(() => {
+    if (!notesDirty) setPendingNotesNavigation(null);
+  }, [notesDirty]);
+  useEffect(() => {
     const handler = BackHandler.addEventListener('hardwareBackPress', () => {
-      if (settingsDraft.saving || resetBusy) {
-        return true;
-      }
+      if (settingsDraft.saving || resetBusy) return true;
       if (pendingPlannerNavigation) {
         setPendingPlannerNavigation(null);
         return true;
       }
-      if ((tab === 'Today' || tab === 'Calendar') && plannerSubscreen) {
-        setPlannerBackRequest(value => value + 1);
+      if (pendingNotesNavigation) {
+        setPendingNotesNavigation(null);
         return true;
       }
       if (pendingNavigation) {
         setPendingNavigation(null);
         return true;
       }
-      if (speechTools) {
-        requestNavigation({kind: 'preferences'});
+      if ((tab === 'Today' || tab === 'Calendar') && plannerSubscreen) {
+        setPlannerBackRequest(value => value + 1);
         return true;
       }
-      if (plannerTools) {
-        setPlannerTools(false);
-        return true;
-      }
-      if (reminderTools) {
-        setReminderTools(false);
+      if (tab === 'Notes' && notesSubscreen) {
+        setNotesBackRequest(value => value + 1);
         return true;
       }
       if (confirmRetake) {
         setConfirmRetake(false);
         return true;
       }
-      if (tab !== 'Today') {
-        requestNavigation({kind: 'tab', tab: 'Today'});
+      if (speechTools || reminderTools || plannerTools) {
+        requestNavigation({kind: panelParent});
+        return true;
+      }
+      if (preferencesTools) {
+        requestNavigation({kind: 'profile'});
+        return true;
+      }
+      if (tab !== 'Calendar') {
+        requestNavigation({kind: 'tab', tab: 'Calendar'});
         return true;
       }
       return false;
@@ -281,13 +357,25 @@ export function App({
     plannerTools,
     reminderTools,
     speechTools,
+    preferencesTools,
+    panelParent,
     settingsDraft.saving,
     resetBusy,
     pendingNavigation,
     pendingPlannerNavigation,
+    pendingNotesNavigation,
     plannerSubscreen,
+    notesSubscreen,
     requestNavigation,
   ]);
+  useEffect(() => {
+    if (state.kind !== 'ready' || tab !== 'Settings') return;
+    try {
+      setCounts(notesFactory().counts());
+    } catch {
+      setCounts(null);
+    }
+  }, [state.kind, tab, notesFactory]);
   async function retake() {
     if (!preferences) {
       return;
@@ -296,7 +384,8 @@ export function App({
     try {
       await save({...preferences, onboardingCompletedAt: null});
       setConfirmRetake(false);
-      setTab('Today');
+      setTab('Calendar');
+      setPreferencesTools(false);
       setResetError(false);
     } catch {
       setResetError(true);
@@ -305,561 +394,410 @@ export function App({
     }
   }
   const onboarded = preferences?.onboardingCompletedAt != null;
+  let content;
+  if (state.kind === 'loading') {
+    content = (
+      <Page>
+        <Message text="Opening your local planner…" />
+      </Page>
+    );
+  } else if (state.kind === 'error') {
+    content = (
+      <Page>
+        <Message
+          error
+          text="Local settings could not be opened. Your saved data has not been reset. Try again."
+        />
+        <Button label="Retry opening settings" onPress={retry} />
+      </Page>
+    );
+  } else if (!onboarded) {
+    content = (
+      <Page>
+        <View style={styles.brandRow}>
+          <Image
+            source={require('../assets/lafina_app_logo.png')}
+            style={styles.brandImage}
+            accessible={false}
+          />
+          <Text style={[styles.brand, {color: theme.colors.primary}]}>
+            LAFINA / STUDENT
+          </Text>
+        </View>
+        <PreferencesForm
+          initial={state.preferences}
+          onboarding
+          onSave={async next => {
+            await save({...next, onboardingCompletedAt: now().toISOString()});
+            setTab('Calendar');
+            setPreferencesTools(false);
+          }}
+        />
+      </Page>
+    );
+  } else if (tab === 'Settings') {
+    content =
+      preferencesTools || speechTools || reminderTools || plannerTools ? (
+        <Page>
+          <View style={styles.panelBack}>
+            <Button
+              label={
+                preferencesTools || panelParent === 'profile'
+                  ? 'Back to profile'
+                  : 'Back to preferences'
+              }
+              secondary
+              disabled={settingsDraft.saving || resetBusy}
+              onPress={() =>
+                requestNavigation({
+                  kind: preferencesTools ? 'profile' : panelParent,
+                })
+              }
+            />
+          </View>
+          {speechTools ? (
+            <View style={styles.padded}>
+              <SpeechSettings
+                client={speechAdapter}
+                showDiagnostics={showPlannerHarness}
+                options={speechPreferences(state.preferences)}
+                replyMode={state.preferences.replyMode}
+                onDraftStateChange={setSettingsDraft}
+                onSave={async options => {
+                  await save({
+                    ...state.preferences,
+                    tts: options,
+                  });
+                }}
+              />
+            </View>
+          ) : reminderTools ? (
+            <View style={styles.padded}>
+              <ReminderSettings
+                client={reminderClient}
+                plannerFactory={plannerWithAlarms}
+                showQa={showPlannerHarness}
+              />
+            </View>
+          ) : plannerTools && showPlannerHarness ? (
+            <View style={styles.padded}>
+              <PlannerDiagnostics
+                factory={
+                  showReminderSettings ? plannerWithAlarms : plannerFactory
+                }
+                timezone={state.preferences.timezone}
+              />
+            </View>
+          ) : (
+            <>
+              {showReminderSettings ? (
+                <View style={styles.padded}>
+                  <Button
+                    label="Reminder delivery"
+                    secondary
+                    disabled={settingsDraft.saving || resetBusy}
+                    onPress={() => requestNavigation({kind: 'reminders'})}
+                  />
+                </View>
+              ) : null}
+              {showSpeechSettings ? (
+                <View style={styles.padded}>
+                  <Button
+                    label="Offline speech settings"
+                    secondary
+                    disabled={settingsDraft.saving || resetBusy}
+                    onPress={() => requestNavigation({kind: 'speech'})}
+                  />
+                </View>
+              ) : null}
+              {showPlannerHarness ? (
+                <View style={styles.padded}>
+                  <Button
+                    label="Open data test harness"
+                    secondary
+                    disabled={settingsDraft.saving || resetBusy}
+                    onPress={() => requestNavigation({kind: 'planner'})}
+                  />
+                </View>
+              ) : null}
+              <PreferencesForm
+                key={settingsRevision}
+                initial={state.preferences}
+                onboarding={false}
+                onSave={save}
+                onDraftStateChange={setSettingsDraft}
+              />
+              <View style={styles.padded}>
+                {confirmRetake ? (
+                  <>
+                    <Message text="Reopen setup? Your preferences will be kept. This does not erase local data." />
+                    <Button
+                      label={
+                        resetBusy ? 'Reopening setup…' : 'Reopen onboarding'
+                      }
+                      disabled={resetBusy}
+                      onPress={() => {
+                        void retake();
+                      }}
+                    />
+                    <Button
+                      label="Keep current setup"
+                      secondary
+                      disabled={resetBusy}
+                      onPress={() => setConfirmRetake(false)}
+                    />
+                  </>
+                ) : (
+                  <Button
+                    label="Review onboarding"
+                    secondary
+                    disabled={settingsDraft.saving || resetBusy}
+                    onPress={() => requestNavigation({kind: 'retake'})}
+                  />
+                )}
+                {resetError ? (
+                  <Message
+                    error
+                    text="Setup could not be reopened. Your current preferences are unchanged. Try again."
+                  />
+                ) : null}
+                {__DEV__ ? (
+                  <>
+                    <Button
+                      label={
+                        diagnostics ? 'Hide diagnostics' : 'Show diagnostics'
+                      }
+                      secondary
+                      onPress={() => setDiagnostics(value => !value)}
+                    />
+                    {diagnostics ? (
+                      <Message text="Local settings and planner: SQLite. Reminder status is in Reminder delivery. Offline commands require review; optional Android TTS and hold-to-talk use native adapters. No cloud engine is configured." />
+                    ) : null}
+                  </>
+                ) : null}
+              </View>
+            </>
+          )}
+        </Page>
+      ) : (
+        <Page>
+          <ProfileScreen
+            preferences={state.preferences}
+            counts={counts}
+            onPreferences={() => requestNavigation({kind: 'preferences'})}
+            onReminders={() => requestNavigation({kind: 'reminders'})}
+            onSpeech={() => requestNavigation({kind: 'speech'})}
+            onPlannerTools={
+              showPlannerHarness
+                ? () => requestNavigation({kind: 'planner'})
+                : undefined
+            }
+            onClockFormat={async clockFormat => {
+              await save({...state.preferences, clockFormat});
+            }}
+            onWeekStartsMonday={async weekStartsMonday => {
+              await save({...state.preferences, weekStartsMonday});
+            }}
+            onSavingChange={saving => setSettingsDraft({dirty: false, saving})}
+          />
+        </Page>
+      );
+  } else if (tab === 'Notes') {
+    content = (
+      <NotesScreen
+        key={notesRevision}
+        factory={notesFactory}
+        now={now}
+        backRequest={notesBackRequest}
+        onDraftStateChange={setNotesDirty}
+        onRouteChange={setNotesSubscreen}
+      />
+    );
+  } else if (tab === 'Chat') {
+    content = (
+      <ChatScreen
+        factory={showReminderSettings ? plannerWithAlarms : plannerFactory}
+        preferences={state.preferences}
+        now={now}
+        speech={speechAdapter}
+        speechInput={speechInputAdapter}
+        showSpeechInput={showSpeechInput}
+        showDiagnostics={showPlannerHarness}
+        voiceRequest={voiceRequest}
+      />
+    );
+  } else {
+    content = (
+      <PlannerScreen
+        key={`${tab}_${plannerRevision}`}
+        mode={tab}
+        preferences={state.preferences}
+        factory={showReminderSettings ? plannerWithAlarms : plannerFactory}
+        reminderClient={reminderClient}
+        deliveryRevision={deliveryRevision}
+        now={now}
+        backRequest={plannerBackRequest}
+        onDraftStateChange={setPlannerDirty}
+        onRouteChange={setPlannerSubscreen}
+        onSaved={kind =>
+          publishReply(
+            kind === 'task'
+              ? 'Your task is saved on this phone.'
+              : 'Your event is saved on this phone.',
+          )
+        }
+      />
+    );
+  }
   return (
     <SafeAreaProvider>
       <ThemeContext.Provider value={theme}>
-        <StatusBar barStyle={theme.dark ? 'light-content' : 'dark-content'} />
-        <Modal
-          visible={pendingPlannerNavigation !== null}
-          transparent={false}
-          onRequestClose={() => setPendingPlannerNavigation(null)}
-        >
-          <View
-            accessibilityViewIsModal
-            style={[
-              styles.plannerModal,
-              {backgroundColor: theme.colors.background},
-            ]}
-          >
-            <Message text="You have unsaved planner changes. Keep editing or discard them before leaving." />
-            <Button
-              label="Keep editing planner"
-              secondary
-              onPress={() => setPendingPlannerNavigation(null)}
-            />
-            <Button
-              label="Discard planner changes and continue"
-              onPress={() => {
-                if (pendingPlannerNavigation)
-                  performNavigation(pendingPlannerNavigation);
-              }}
-            />
-          </View>
-        </Modal>
-        <Modal
-          testID="voice-navigation-confirmation"
-          visible={speechTools && pendingNavigation !== null}
-          transparent={false}
-          onRequestClose={() => setPendingNavigation(null)}
-        >
-          <View
-            accessibilityViewIsModal
-            style={[
-              styles.plannerModal,
-              {backgroundColor: theme.colors.background},
-            ]}
-          >
-            <Message text="You have unsaved voice options. Keep editing or discard them before leaving." />
-            <Button
-              label="Stay in voice settings"
-              secondary
-              onPress={() => setPendingNavigation(null)}
-            />
-            <Button
-              label="Discard voice options and continue"
-              onPress={() => {
-                if (pendingNavigation) performNavigation(pendingNavigation);
-              }}
-            />
-          </View>
-        </Modal>
+        <StatusBar
+          barStyle={theme.dark ? 'light-content' : 'dark-content'}
+          backgroundColor={theme.colors.background}
+        />
         <SafeAreaView
           style={[styles.root, {backgroundColor: theme.colors.background}]}
         >
-          <View style={styles.root}>
-            <KeyboardAvoidingView style={styles.root}>
-              <ScrollView
-                style={styles.viewport}
-                key={onboarded ? tab : 'onboarding'}
-                keyboardShouldPersistTaps="handled"
-                contentContainerStyle={styles.scroll}
-              >
-                <View style={styles.content}>
-                  <View style={styles.brandRow}>
-                    <Image
-                      source={require('../assets/lafina_app_logo.png')}
-                      style={styles.brandImage}
-                      accessible={false}
-                      resizeMode="contain"
-                    />
-                    <View>
-                      <Text
-                        style={[styles.brand, {color: theme.colors.primary}]}
-                      >
-                        LAFINA
-                      </Text>
-                      <Text
-                        style={[
-                          styles.brandCaption,
-                          {color: theme.colors.muted},
-                        ]}
-                      >
-                        Student planner · Offline
-                      </Text>
-                    </View>
-                  </View>
-                  {state.kind === 'loading' ? (
-                    <Message text="Opening your local planner…" />
-                  ) : state.kind === 'error' ? (
-                    <View style={styles.padded}>
-                      <Message
-                        error
-                        text="Local settings could not be opened. Your saved data has not been reset. Try again."
-                      />
-                      <Button label="Retry opening settings" onPress={retry} />
-                    </View>
-                  ) : !onboarded ? (
-                    <PreferencesForm
-                      initial={state.preferences}
-                      onboarding
-                      onSave={async next => {
-                        await save({
-                          ...next,
-                          onboardingCompletedAt: now().toISOString(),
-                        });
-                        setTab('Today');
-                      }}
-                    />
-                  ) : (
-                    <>
-                      {reply && !speechTools && tab !== 'Chat' ? (
-                        <View style={styles.padded}>
-                          <ReplyMessage
-                            reply={reply}
-                            mode={state.preferences.replyMode}
-                            options={speechPreferences(state.preferences)}
-                            client={speechAdapter}
-                          />
-                        </View>
-                      ) : null}
-                      {alarmError ? (
-                        <Message
-                          error
-                          text="Android reminder delivery needs attention. Your planner changes stay saved. Open Settings → Reminder delivery to check permissions and retry."
-                        />
-                      ) : null}
-                      {tab === 'Settings' ? (
-                        speechTools && showSpeechSettings ? (
-                          <View style={styles.padded}>
-                            <Button
-                              label="Back to preferences"
-                              secondary
-                              disabled={settingsDraft.saving}
-                              onPress={() =>
-                                requestNavigation({kind: 'preferences'})
-                              }
-                            />
-                            <SpeechSettings
-                              client={speechAdapter}
-                              showDiagnostics={showPlannerHarness}
-                              options={speechPreferences(state.preferences)}
-                              replyMode={state.preferences.replyMode}
-                              onDraftStateChange={setSettingsDraft}
-                              onSave={async options => {
-                                await save({
-                                  ...state.preferences,
-                                  tts: options,
-                                });
-                              }}
-                            />
-                          </View>
-                        ) : reminderTools && showReminderSettings ? (
-                          <View style={styles.padded}>
-                            <Button
-                              label="Back to preferences"
-                              secondary
-                              onPress={() => setReminderTools(false)}
-                            />
-                            <ReminderSettings
-                              client={reminderClient}
-                              plannerFactory={plannerWithAlarms}
-                              showQa={showPlannerHarness}
-                            />
-                          </View>
-                        ) : plannerTools && showPlannerHarness ? (
-                          <View style={styles.padded}>
-                            <Button
-                              label="Back to preferences"
-                              secondary
-                              onPress={() => setPlannerTools(false)}
-                            />
-                            <PlannerTools
-                              factory={
-                                showReminderSettings
-                                  ? plannerWithAlarms
-                                  : plannerFactory
-                              }
-                              timezone={state.preferences.timezone}
-                            />
-                          </View>
-                        ) : (
-                          <>
-                            {pendingNavigation ? (
-                              <View style={styles.padded}>
-                                <Message text="You have unsaved preferences. Keep editing or discard them before leaving." />
-                                <Button
-                                  label="Stay in Settings"
-                                  secondary
-                                  onPress={() => setPendingNavigation(null)}
-                                />
-                                <Button
-                                  label="Discard preferences and continue"
-                                  secondary
-                                  onPress={() =>
-                                    performNavigation(pendingNavigation)
-                                  }
-                                />
-                              </View>
-                            ) : null}
-                            {showReminderSettings ? (
-                              <View style={styles.padded}>
-                                <Button
-                                  label="Reminder delivery"
-                                  secondary
-                                  disabled={settingsDraft.saving || resetBusy}
-                                  onPress={() =>
-                                    requestNavigation({kind: 'reminders'})
-                                  }
-                                />
-                              </View>
-                            ) : null}
-                            {showSpeechSettings ? (
-                              <View style={styles.padded}>
-                                <Button
-                                  label="Offline speech settings"
-                                  secondary
-                                  disabled={settingsDraft.saving || resetBusy}
-                                  onPress={() =>
-                                    requestNavigation({kind: 'speech'})
-                                  }
-                                />
-                              </View>
-                            ) : null}
-                            {showPlannerHarness ? (
-                              <View style={styles.padded}>
-                                <Button
-                                  label="Open data test harness"
-                                  secondary
-                                  disabled={settingsDraft.saving || resetBusy}
-                                  onPress={() =>
-                                    requestNavigation({kind: 'planner'})
-                                  }
-                                />
-                              </View>
-                            ) : null}
-                            <PreferencesForm
-                              key={settingsRevision}
-                              initial={state.preferences}
-                              onboarding={false}
-                              onSave={save}
-                              onDraftStateChange={setSettingsDraft}
-                            />
-                            <View style={styles.padded}>
-                              {confirmRetake ? (
-                                <>
-                                  <Message text="Reopen setup? Your preferences will be kept. This does not erase local data." />
-                                  <Button
-                                    label={
-                                      resetBusy
-                                        ? 'Reopening setup…'
-                                        : 'Reopen onboarding'
-                                    }
-                                    disabled={resetBusy}
-                                    onPress={() => {
-                                      void retake();
-                                    }}
-                                  />
-                                  <Button
-                                    label="Keep current setup"
-                                    secondary
-                                    disabled={resetBusy}
-                                    onPress={() => setConfirmRetake(false)}
-                                  />
-                                </>
-                              ) : (
-                                <Button
-                                  label="Review onboarding"
-                                  secondary
-                                  disabled={settingsDraft.saving || resetBusy}
-                                  onPress={() =>
-                                    requestNavigation({kind: 'retake'})
-                                  }
-                                />
-                              )}
-                              {resetError ? (
-                                <Message
-                                  error
-                                  text="Setup could not be reopened. Your current preferences are unchanged. Try again."
-                                />
-                              ) : null}
-                              {__DEV__ ? (
-                                <>
-                                  <Button
-                                    label={
-                                      diagnostics
-                                        ? 'Hide diagnostics'
-                                        : 'Show diagnostics'
-                                    }
-                                    secondary
-                                    onPress={() =>
-                                      setDiagnostics(value => !value)
-                                    }
-                                  />
-                                  {diagnostics ? (
-                                    <Message text="Local settings and planner: SQLite. Reminder status is in Reminder delivery. Offline commands require review; optional Android TTS and hold-to-talk use native adapters. No cloud engine is configured." />
-                                  ) : null}
-                                </>
-                              ) : null}
-                            </View>
-                          </>
-                        )
-                      ) : tab === 'Today' || tab === 'Calendar' ? (
-                        <>
-                          {tab === 'Today' ? (
-                            <Overview
-                              tab="Today"
-                              nickname={state.preferences.nickname}
-                              timezone={state.preferences.timezone}
-                              date={now()}
-                              onSettings={() =>
-                                requestNavigation({
-                                  kind: 'tab',
-                                  tab: 'Settings',
-                                })
-                              }
-                            />
-                          ) : null}
-                          <PlannerScreen
-                            key={`${tab}_${plannerRevision}`}
-                            mode={tab}
-                            preferences={state.preferences}
-                            factory={
-                              showReminderSettings
-                                ? plannerWithAlarms
-                                : plannerFactory
-                            }
-                            reminderClient={reminderClient}
-                            deliveryRevision={deliveryRevision}
-                            now={now}
-                            backRequest={plannerBackRequest}
-                            onDraftStateChange={setPlannerDirty}
-                            onRouteChange={setPlannerSubscreen}
-                            onSaved={kind =>
-                              publishReply(
-                                kind === 'task'
-                                  ? 'Your task is saved on this phone.'
-                                  : 'Your event is saved on this phone.',
-                              )
-                            }
-                          />
-                        </>
-                      ) : (
-                        <ChatScreen
-                          factory={
-                            showReminderSettings
-                              ? plannerWithAlarms
-                              : plannerFactory
-                          }
-                          preferences={state.preferences}
-                          now={now}
-                          speech={speechAdapter}
-                          speechInput={speechInputAdapter}
-                          showSpeechInput={showSpeechInput}
-                          showDiagnostics={showPlannerHarness}
-                        />
-                      )}
-                    </>
-                  )}
-                </View>
-              </ScrollView>
-            </KeyboardAvoidingView>
-            {onboarded ? (
-              <View
-                accessible={false}
-                collapsable={false}
-                style={[
-                  styles.tabs,
-                  {
-                    backgroundColor: theme.colors.surface,
-                    borderColor: theme.colors.border,
-                  },
-                ]}
-              >
-                {tabs.map(item => (
-                  <Pressable
-                    key={item}
-                    accessibilityRole="tab"
-                    accessibilityState={{
-                      selected: tab === item,
-                      disabled: settingsDraft.saving || resetBusy,
-                    }}
-                    disabled={settingsDraft.saving || resetBusy}
-                    onPress={() => {
-                      requestNavigation({kind: 'tab', tab: item});
-                    }}
-                    style={[
-                      styles.tab,
-                      {
-                        backgroundColor:
-                          tab === item
-                            ? theme.colors.selected
-                            : theme.colors.surface,
-                      },
-                    ]}
-                  >
-                    <Text
-                      style={[
-                        styles.tabText,
-                        {
-                          color:
-                            tab === item
-                              ? theme.colors.primary
-                              : theme.colors.muted,
-                        },
-                      ]}
-                    >
-                      {tab === item ? '• ' : ''}
-                      {item}
-                    </Text>
-                  </Pressable>
-                ))}
+          <KeyboardAvoidingView
+            style={styles.root}
+            behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+          >
+            {alarmError ? (
+              <View style={styles.banner}>
+                <Message
+                  error
+                  text="Android reminder delivery needs attention. Your planner changes stay saved. Open Profile → Reminder delivery to check permissions and retry."
+                />
               </View>
             ) : null}
-          </View>
+            {reply && (tab === 'Calendar' || tab === 'Today') ? (
+              <View style={styles.banner}>
+                <ReplyMessage
+                  reply={reply}
+                  mode={preferences?.replyMode ?? 'text'}
+                  options={speechPreferences(preferences!)}
+                  client={speechAdapter}
+                />
+              </View>
+            ) : null}
+            <View style={styles.root}>{content}</View>
+          </KeyboardAvoidingView>
+          {onboarded && !keyboardOpen ? (
+            <StudentTabBar
+              tab={tab}
+              disabled={settingsDraft.saving || resetBusy}
+              onTab={value => requestNavigation({kind: 'tab', tab: value})}
+              onVoice={() => requestNavigation({kind: 'voice'})}
+            />
+          ) : null}
         </SafeAreaView>
+        <NavigationConfirmation
+          visible={pendingPlannerNavigation !== null}
+          message="You have unsaved planner changes. Keep editing or discard them before leaving."
+          keepLabel="Keep editing planner"
+          discardLabel="Discard planner changes and continue"
+          onKeep={() => setPendingPlannerNavigation(null)}
+          onDiscard={() => {
+            if (pendingPlannerNavigation)
+              performNavigation(pendingPlannerNavigation);
+          }}
+        />
+        <NavigationConfirmation
+          visible={pendingNotesNavigation !== null}
+          message="You have unsaved note changes. Keep editing or discard them before leaving."
+          keepLabel="Keep editing note"
+          discardLabel="Discard note changes and continue"
+          onKeep={() => setPendingNotesNavigation(null)}
+          onDiscard={() => {
+            if (pendingNotesNavigation)
+              performNavigation(pendingNotesNavigation);
+          }}
+        />
+        <NavigationConfirmation
+          testID={
+            speechTools
+              ? 'voice-navigation-confirmation'
+              : 'preferences-navigation-confirmation'
+          }
+          visible={pendingNavigation !== null}
+          message={
+            speechTools
+              ? 'You have unsaved voice options. Keep editing or discard them before leaving.'
+              : 'You have unsaved preferences. Keep editing or discard them before leaving.'
+          }
+          keepLabel={
+            speechTools ? 'Stay in voice settings' : 'Stay in Settings'
+          }
+          discardLabel={
+            speechTools
+              ? 'Discard voice options and continue'
+              : 'Discard preferences and continue'
+          }
+          onKeep={() => setPendingNavigation(null)}
+          onDiscard={() => {
+            if (pendingNavigation) performNavigation(pendingNavigation);
+          }}
+        />
       </ThemeContext.Provider>
     </SafeAreaProvider>
   );
 }
 
-function PlannerTools({
-  factory,
-  timezone,
-}: {
-  factory: () => PlannerRepository;
-  timezone: string;
-}) {
-  const [repository, setRepository] = useState<PlannerRepository | null>(null);
-  const [failed, setFailed] = useState(false);
-  const [attempt, setAttempt] = useState(0);
-  const [sqlResult, setSqlResult] = useState('');
-  const [sqlBusy, setSqlBusy] = useState(false);
-  useEffect(() => {
-    try {
-      setRepository(factory());
-      setFailed(false);
-    } catch {
-      setFailed(true);
-    }
-  }, [factory, attempt]);
-  if (failed) {
-    return (
-      <>
-        <Message
-          error
-          text="Planner storage could not be opened. Saved data has not been reset."
-        />
-        <Button
-          label="Retry opening planner"
-          onPress={() => setAttempt(value => value + 1)}
-        />
-      </>
-    );
-  }
-  return repository ? (
-    <>
-      <Button
-        label={
-          sqlBusy ? 'Checking isolated SQLite…' : 'Run isolated SQLite checks'
-        }
-        disabled={sqlBusy}
-        secondary
-        onPress={() => {
-          setSqlBusy(true);
-          void runPlannerSqlChecks()
-            .then(setSqlResult)
-            .catch(() =>
-              setSqlResult(
-                'FAIL: native SQLite QA checks could not finish. Student data was not changed.',
-              ),
-            )
-            .finally(() => setSqlBusy(false));
-        }}
-      />
-      {sqlResult ? (
-        <Message text={sqlResult} error={sqlResult.startsWith('FAIL')} />
-      ) : null}
-      <PlannerHarness repository={repository} timezone={timezone} />
-    </>
-  ) : (
-    <Message text="Opening planner storage…" />
+function Page({children}: {children: React.ReactNode}) {
+  return (
+    <ScrollView
+      style={styles.root}
+      keyboardShouldPersistTaps="handled"
+      contentContainerStyle={styles.page}
+    >
+      <View style={styles.pageContent}>{children}</View>
+    </ScrollView>
   );
 }
-
-function Overview({
-  tab,
-  nickname,
-  timezone,
-  date,
-  onSettings,
+function NavigationConfirmation({
+  visible,
+  message,
+  keepLabel,
+  discardLabel,
+  onKeep,
+  onDiscard,
+  testID,
 }: {
-  tab: Exclude<Tab, 'Settings'>;
-  nickname: string;
-  timezone: string;
-  date: Date;
-  onSettings: () => void;
+  visible: boolean;
+  message: string;
+  keepLabel: string;
+  discardLabel: string;
+  onKeep: () => void;
+  onDiscard: () => void;
+  testID?: string;
 }) {
   const {colors} = useTheme();
-  const formattedDate = formatOverviewDate(date, timezone);
   return (
-    <View style={styles.padded}>
-      <Text
-        accessibilityRole="header"
-        style={[styles.title, {color: colors.text}]}
+    <Modal visible={visible} testID={testID} onRequestClose={onKeep}>
+      <SafeAreaView
+        accessibilityViewIsModal
+        style={[styles.confirmation, {backgroundColor: colors.background}]}
       >
-        {tab === 'Today' ? `You're set, ${nickname || 'Student'}.` : tab}
-      </Text>
-      {tab === 'Today' ? (
-        <>
-          <Message text={formattedDate.text} />
-          {formattedDate.warning ? (
-            <Message text={formattedDate.warning} error />
-          ) : null}
-          <Text style={[styles.heading, {color: colors.text}]}>
-            A quieter place for your academic plans.
-          </Text>
-          <Message text="Plan your academic day below. Review Android reminder delivery in Settings." />
-          <Message
-            text={`Timezone: ${timezone}. No account or connection required.`}
-          />
-          <Button label="Adjust my preferences" onPress={onSettings} />
-        </>
-      ) : (
-        <>
-          <Message
-            text={
-              tab === 'Calendar'
-                ? 'Your academic calendar will appear here. Creating tasks, events and reminders is not available yet.'
-                : 'Review a local text or speech draft here. Automatic scheduling commands are not available yet.'
-            }
-          />
-          <Message text="Your local preferences remain available in Settings." />
-        </>
-      )}
-    </View>
+        <Message text={message} />
+        <Button label={keepLabel} secondary onPress={onKeep} />
+        <Button label={discardLabel} onPress={onDiscard} />
+      </SafeAreaView>
+    </Modal>
   );
 }
-
 const styles = StyleSheet.create({
-  plannerModal: {flex: 1, justifyContent: 'center', padding: spacing.lg},
   root: {flex: 1},
-  viewport: {flex: 1, overflow: 'hidden'},
-  scroll: {flexGrow: 1},
-  content: {
+  page: {flexGrow: 1},
+  pageContent: {
     width: '100%',
     maxWidth: dimensions.contentMax,
     alignSelf: 'center',
   },
+  padded: {padding: spacing.lg},
+  panelBack: {paddingHorizontal: spacing.md, paddingTop: spacing.sm},
+  banner: {paddingHorizontal: spacing.md, paddingTop: spacing.sm},
+  confirmation: {flex: 1, justifyContent: 'center', padding: spacing.lg},
   brandRow: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -867,45 +805,5 @@ const styles = StyleSheet.create({
     padding: spacing.lg,
   },
   brandImage: {width: 48, height: 48},
-  brandCaption: {fontSize: typography.small},
-  brand: {
-    fontSize: typography.small,
-    fontWeight: '700',
-    letterSpacing: 1,
-  },
-  padded: {padding: spacing.lg},
-  title: {
-    fontSize: typography.title,
-    fontWeight: '700',
-    marginBottom: spacing.md,
-  },
-  heading: {
-    fontSize: typography.heading,
-    fontWeight: '600',
-    marginBottom: spacing.md,
-  },
-  tabs: {
-    // Adapted from incoming CustomTabBar at 9c183a2; stays in normal layout
-    // so the final planner controls are never hidden beneath an overlay.
-    flexShrink: 0,
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    borderWidth: dimensions.border,
-    borderRadius: dimensions.navigationRadius,
-    marginHorizontal: spacing.md,
-    marginBottom: spacing.md,
-    marginTop: spacing.sm,
-    maxWidth: dimensions.contentMax,
-    alignSelf: 'center',
-    width: '92%',
-    padding: spacing.sm,
-  },
-  tab: {
-    flexGrow: 1,
-    minHeight: dimensions.control,
-    justifyContent: 'center',
-    padding: spacing.sm,
-    borderRadius: dimensions.navigationRadius,
-  },
-  tabText: {fontSize: typography.small, fontWeight: '600', textAlign: 'center'},
+  brand: {fontSize: typography.small, fontWeight: '700', letterSpacing: 1},
 });

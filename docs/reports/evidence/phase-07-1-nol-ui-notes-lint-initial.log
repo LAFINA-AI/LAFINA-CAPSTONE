@@ -1,0 +1,9 @@
+
+C:\L3mxr\Github Repositories\LAFINA-CAPSTONE\src\core\storage\notesRepository.ts
+   21:5  warning  Unexpected control character(s) in regular expression: \x00, \x1f                          no-control-regex
+   24:5  warning  Unexpected control character(s) in regular expression: \x00, \x08, \x0b, \x0c, \x0e, \x1f  no-control-regex
+  164:9  warning  Unexpected control character(s) in regular expression: \x00, \x1f                          no-control-regex
+
+✖ 3 problems (0 errors, 3 warnings)
+
+ESLint found too many warnings (maximum: 0).

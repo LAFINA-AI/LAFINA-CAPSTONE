@@ -1,5 +1,13 @@
 import {useCallback, useEffect, useRef, useState} from 'react';
-import {AppState, Modal, StyleSheet, Text, View} from 'react-native';
+import {
+  AppState,
+  Modal,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  View,
+} from 'react-native';
 import type {
   AcademicEvent,
   PlannerRepository,
@@ -10,7 +18,8 @@ import {assertDate} from '../../core/domain/scheduleTime';
 import {dateTimePicker} from '../../core/native/dateTimePicker';
 import type {AlarmClient} from '../../core/native/reminders';
 import {useTheme} from '../../core/theme/ThemeContext';
-import {spacing, typography} from '../../core/theme/theme';
+import {dimensions, spacing, typography} from '../../core/theme/theme';
+import {Icon} from '../../core/ui/Icon';
 import {Button, Choice, Field, Message} from '../../core/ui/controls';
 import {PlannerForm} from '../scheduling/PlannerForm';
 import type {PlannerSaveDraft} from '../scheduling/PlannerForm';
@@ -22,15 +31,17 @@ import {
   operationToken,
   plannerDateWarning,
   shiftDate,
-  weekDates,
 } from './plannerDisplay';
 import {CalendarMonth} from './CalendarMonth';
+import {CalendarHeader} from './CalendarHeader';
+import {CalendarWeek} from './CalendarWeek';
+import {DayTimeline} from './DayTimeline';
+import {shiftCalendarMonth} from './calendarMonthModel';
 
 const systemNow = () => new Date();
 type Editor = {kind: 'task' | 'event'; initial: Task | AcademicEvent | null};
 /** Production manual planner. Native alarms remain optional effects after durable writes. */
 export function PlannerScreen({
-  mode,
   preferences,
   factory,
   reminderClient,
@@ -61,9 +72,16 @@ export function PlannerScreen({
   );
   const [dateDraft, setDateDraft] = useState(date);
   const [view, setView] = useState<'agenda' | 'tasks'>('agenda');
-  const [calendarView, setCalendarView] = useState<'month' | 'day'>('month');
-  const [clockFormat, setClockFormat] = useState<'12h' | '24h'>('24h');
-  const [displayOptions, setDisplayOptions] = useState(false);
+  const [calendarView, setCalendarView] = useState<'month' | 'week'>('week');
+  const [clockFormat, setClockFormat] = useState<'12h' | '24h'>(
+    preferences.clockFormat,
+  );
+  const [addMenu, setAddMenu] = useState(false);
+  const [tools, setTools] = useState(false);
+  useEffect(
+    () => setClockFormat(preferences.clockFormat),
+    [preferences.clockFormat],
+  );
   const [dateTools, setDateTools] = useState(false);
   const [taskFilter, setTaskFilter] = useState<'active' | 'completed' | 'all'>(
     'active',
@@ -182,7 +200,7 @@ export function PlannerScreen({
     return () => {
       active = false;
     };
-  }, [reminderClient, revision]);
+  }, [reminderClient, revision, deliveryRevision]);
   useEffect(() => {
     const listener = AppState.addEventListener('change', state => {
       if (state === 'active') refresh();
@@ -193,19 +211,21 @@ export function PlannerScreen({
     onDraftStateChange(dirty);
   }, [dirty, onDraftStateChange]);
   useEffect(() => {
-    onRouteChange(editor !== null || selection !== null);
-  }, [editor, selection, onRouteChange]);
+    onRouteChange(editor !== null || selection !== null || addMenu || tools);
+  }, [editor, selection, addMenu, tools, onRouteChange]);
   const previousBack = useRef(backRequest);
   useEffect(() => {
     if (previousBack.current === backRequest) return;
     previousBack.current = backRequest;
-    if (editor && dirty) setConfirmBack(true);
+    if (addMenu) setAddMenu(false);
+    else if (tools) setTools(false);
+    else if (editor && dirty) setConfirmBack(true);
     else {
       setEditor(null);
       setSelection(null);
       setDirty(false);
     }
-  }, [backRequest, editor, dirty]);
+  }, [backRequest, editor, dirty, addMenu, tools]);
   function chooseDate(next: string) {
     try {
       assertDate(next);
@@ -277,7 +297,7 @@ export function PlannerScreen({
   }
   if (!repository)
     return (
-      <View style={styles.section}>
+      <View style={styles.padded}>
         <Message
           error={!!error}
           text={error || 'Opening your local planner…'}
@@ -290,98 +310,428 @@ export function PlannerScreen({
         ) : null}
       </View>
     );
+  if (editor || selection)
+    return (
+      <ScrollView
+        style={styles.screen}
+        contentContainerStyle={styles.padded}
+        keyboardShouldPersistTaps="handled"
+      >
+        {clockWarning ? <Message error text={clockWarning} /> : null}
+        {notice ? <Message text={notice} /> : null}
+        {editor ? (
+          <>
+            <Modal
+              visible={confirmBack}
+              onRequestClose={() => setConfirmBack(false)}
+            >
+              <View
+                accessibilityViewIsModal
+                style={[
+                  styles.confirmation,
+                  {backgroundColor: colors.background},
+                ]}
+              >
+                <Message text="Leave this form and discard unsaved changes?" />
+                <Button
+                  label="Keep editing planner"
+                  secondary
+                  onPress={() => setConfirmBack(false)}
+                />
+                <Button
+                  label="Discard planner changes"
+                  onPress={() => {
+                    setConfirmBack(false);
+                    setEditor(null);
+                    setDirty(false);
+                  }}
+                />
+              </View>
+            </Modal>
+            <PlannerForm
+              now={now}
+              key={editor.initial?.id ?? editor.kind}
+              initial={editor.initial}
+              kind={editor.kind}
+              date={date}
+              preferences={preferences}
+              clockFormat={clockFormat}
+              onSave={save}
+              onCancel={() => {
+                setDirty(false);
+                setEditor(null);
+              }}
+              onDraftStateChange={setDirty}
+            />
+          </>
+        ) : selection ? (
+          <PlannerItemDetails
+            repository={repository}
+            selection={selection}
+            refreshSignal={revision + deliveryRevision}
+            timezone={preferences.timezone}
+            clockFormat={clockFormat}
+            snoozeMinutes={preferences.snoozeMinutes}
+            onEdit={item => {
+              setEditor({kind: selection.kind, initial: item});
+              setDirty(false);
+            }}
+            onBack={() => {
+              setSelection(null);
+              refresh();
+            }}
+            onChanged={refresh}
+          />
+        ) : null}
+      </ScrollView>
+    );
+
+  const openItem = (item: {kind: 'task' | 'event'; id: string}) =>
+    setSelection({kind: item.kind, id: item.id});
+  const month = calendarView === 'month';
+  const previousDisabled = month
+    ? date.slice(0, 7) <= '2000-01'
+    : date <= '2000-01-07';
+  const nextDisabled = month
+    ? date.slice(0, 7) >= '2100-12'
+    : date >= '2100-12-25';
+  const chooseNativeDate = () => {
+    void dateTimePicker
+      .pickDate(date)
+      .then(next => {
+        if (mounted.current && next) chooseDate(next);
+      })
+      .catch(() => {
+        if (mounted.current) {
+          setTools(true);
+          setDateTools(true);
+          setError(
+            'The Android date picker is unavailable. Enter the agenda date manually.',
+          );
+        }
+      });
+  };
+  const pageControls = (
+    <>
+      {cursors.length > 1 || agenda?.nextCursor ? (
+        <Message text="This is one page of the selected day. Use the page controls to see every item." />
+      ) : null}
+      {cursors.length > 1 ? (
+        <Button
+          label="Previous agenda page"
+          secondary
+          onPress={() => setCursors(value => value.slice(0, -1))}
+        />
+      ) : null}
+      {agenda?.nextCursor ? (
+        <Button
+          label="Next agenda page"
+          secondary
+          onPress={() => {
+            const next = agenda.nextCursor;
+            if (next) setCursors(value => [...value, next]);
+          }}
+        />
+      ) : null}
+    </>
+  );
+  const empty = !error && agenda?.items.length === 0 && cursors.length === 1;
   return (
-    <View style={styles.section}>
-      {clockWarning ? <Message error text={clockWarning} /> : null}
-      {notice ? <Message text={notice} /> : null}
-      <Message text={delivery} error={deliveryWarning} />
-      {editor ? (
-        <>
-          <Modal
-            visible={confirmBack}
-            onRequestClose={() => setConfirmBack(false)}
+    <View style={[styles.screen, {backgroundColor: colors.background}]}>
+      <View style={styles.chrome}>
+        <CalendarHeader
+          date={date}
+          weekStartsMonday={preferences.weekStartsMonday}
+          mode={calendarView}
+          onMode={setCalendarView}
+          onPrevious={() =>
+            month ? chooseDate(shiftCalendarMonth(date, -1)) : move(-7)
+          }
+          onNext={() =>
+            month ? chooseDate(shiftCalendarMonth(date, 1)) : move(7)
+          }
+          onToday={() => chooseDate(localToday(now(), preferences.timezone))}
+          onChoose={chooseNativeDate}
+          previousDisabled={previousDisabled}
+          nextDisabled={nextDisabled}
+        />
+        <View style={styles.actions}>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={
+              view === 'tasks' ? 'Back to calendar' : 'All tasks'
+            }
+            onPress={() => {
+              setView(view === 'tasks' ? 'agenda' : 'tasks');
+              refresh();
+            }}
+            style={[styles.action, {borderColor: colors.border}]}
           >
-            <View
-              accessibilityViewIsModal
+            <Icon
+              name={view === 'tasks' ? 'calendar' : 'check'}
+              size={18}
+              color={colors.text}
+            />
+            <Text style={[styles.actionLabel, {color: colors.text}]}>
+              {view === 'tasks' ? 'Calendar' : 'All tasks'}
+            </Text>
+          </Pressable>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Calendar tools"
+            onPress={() => setTools(true)}
+            style={[styles.action, {borderColor: colors.border}]}
+          >
+            <Icon name="settings" size={18} color={colors.text} />
+            <Text style={[styles.actionLabel, {color: colors.text}]}>
+              Tools
+            </Text>
+          </Pressable>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Reminder delivery details"
+            onPress={() => setTools(true)}
+            style={[styles.deliveryBadge, {backgroundColor: colors.subtle}]}
+          >
+            <Text
               style={[
-                styles.confirmation,
-                {backgroundColor: colors.background},
+                styles.deliveryLabel,
+                {color: deliveryWarning ? colors.danger : colors.muted},
               ]}
             >
-              <Message text="Leave this form and discard unsaved changes?" />
-              <Button
-                label="Keep editing planner"
-                secondary
-                onPress={() => setConfirmBack(false)}
-              />
-              <Button
-                label="Discard planner changes"
-                onPress={() => {
-                  setConfirmBack(false);
-                  setEditor(null);
-                  setDirty(false);
-                }}
-              />
-            </View>
-          </Modal>
-          <PlannerForm
-            now={now}
-            key={editor.initial?.id ?? editor.kind}
-            initial={editor.initial}
-            kind={editor.kind}
-            date={date}
-            preferences={preferences}
-            clockFormat={clockFormat}
-            onSave={save}
-            onCancel={() => {
-              setDirty(false);
-              setEditor(null);
-            }}
-            onDraftStateChange={setDirty}
-          />
-        </>
-      ) : selection ? (
-        <PlannerItemDetails
-          repository={repository}
-          selection={selection}
-          refreshSignal={revision + deliveryRevision}
-          timezone={preferences.timezone}
-          clockFormat={clockFormat}
-          snoozeMinutes={preferences.snoozeMinutes}
-          onEdit={item => {
-            setEditor({kind: selection.kind, initial: item});
-            setDirty(false);
-          }}
-          onBack={() => {
-            setSelection(null);
-            refresh();
-          }}
-          onChanged={refresh}
-        />
-      ) : (
-        <>
+              {deliveryWarning ? 'Alerts limited' : 'Alerts ready'}
+            </Text>
+          </Pressable>
+        </View>
+        {clockWarning ? <Message error text={clockWarning} /> : null}
+        {error ? <Message error text={error} /> : null}
+        {view === 'agenda' ? pageControls : null}
+      </View>
+      {view === 'tasks' ? (
+        <ScrollView style={styles.screen} contentContainerStyle={styles.list}>
           <Text
             accessibilityRole="header"
             style={[styles.heading, {color: colors.text}]}
           >
-            {mode === 'Today' ? 'Your academic day' : 'Calendar'}
+            All tasks
           </Text>
-          <Message
-            text={`Local planner · ${preferences.timezone}. No account or connection needed.`}
-          />
-          <Button
-            label="Add task"
-            onPress={() => {
-              setNotice('');
-              setEditor({kind: 'task', initial: null});
+          <Choice
+            label="Task filter"
+            value={taskFilter}
+            options={[
+              {value: 'active', label: 'Active'},
+              {value: 'completed', label: 'Completed'},
+              {value: 'all', label: 'All'},
+            ]}
+            onChange={value => {
+              setTaskFilter(value);
+              setTaskOffset(0);
             }}
           />
+          {tasks?.items.length === 0 ? (
+            <Message text="No tasks in this filter. Add your first academic task." />
+          ) : null}
+          {tasks?.items.map(task => (
+            <Pressable
+              key={task.id}
+              accessibilityRole="button"
+              accessibilityLabel={`Task: ${task.title}`}
+              onPress={() => openItem({kind: 'task', id: task.id})}
+              style={[
+                styles.item,
+                {backgroundColor: colors.surface, borderColor: colors.border},
+              ]}
+            >
+              <Text style={[styles.itemTitle, {color: colors.text}]}>
+                {task.title}
+              </Text>
+              <Text
+                style={[styles.itemDetail, {color: colors.muted}]}
+              >{`${task.status.replace(/_/g, ' ')} · ${
+                task.dueAt
+                  ? displayInstant(
+                      task.dueAt,
+                      preferences.timezone,
+                      clockFormat,
+                    )
+                  : task.dueDate ?? 'No due date'
+              }`}</Text>
+            </Pressable>
+          ))}
+          {taskOffset > 0 ? (
+            <Button
+              label="Previous task page"
+              secondary
+              onPress={() => setTaskOffset(value => Math.max(0, value - 20))}
+            />
+          ) : null}
+          {tasks?.hasMore ? (
+            <Button
+              label="Next task page"
+              secondary
+              onPress={() => setTaskOffset(value => value + 20)}
+            />
+          ) : null}
+        </ScrollView>
+      ) : month ? (
+        <ScrollView style={styles.screen} contentContainerStyle={styles.list}>
+          <CalendarMonth
+            selectedDate={date}
+            today={localToday(now(), preferences.timezone)}
+            onSelect={chooseDate}
+            showHeader={false}
+            weekStartsMonday={preferences.weekStartsMonday}
+          />
+          <Text
+            accessibilityRole="header"
+            style={[styles.heading, {color: colors.text}]}
+          >
+            {date}
+          </Text>
+          {empty ? (
+            <Message text="Nothing scheduled for this day. Undated tasks are in All tasks." />
+          ) : null}
+          {agenda?.items.map(item => (
+            <Pressable
+              key={item.key}
+              accessibilityRole="button"
+              accessibilityLabel={`${
+                item.kind === 'task' ? 'Task' : 'Event'
+              }: ${item.title}`}
+              onPress={() => openItem(item)}
+              style={[
+                styles.item,
+                {backgroundColor: colors.surface, borderColor: colors.border},
+              ]}
+            >
+              <Text style={[styles.itemTitle, {color: colors.text}]}>
+                {item.title}
+              </Text>
+              <Text style={[styles.itemDetail, {color: colors.muted}]}>
+                {item.at
+                  ? displayInstant(item.at, preferences.timezone, clockFormat)
+                  : 'Date only'}{' '}
+                · {item.status.replace(/_/g, ' ')}
+              </Text>
+            </Pressable>
+          ))}
+        </ScrollView>
+      ) : (
+        <>
+          <View style={styles.chrome}>
+            <CalendarWeek
+              date={date}
+              onSelect={chooseDate}
+              weekStartsMonday={preferences.weekStartsMonday}
+            />
+          </View>
+          {empty ? (
+            <Text style={[styles.empty, {color: colors.muted}]}>
+              Nothing scheduled for this day.
+            </Text>
+          ) : null}
+          {!error ? (
+            <View style={styles.timeline}>
+              <DayTimeline
+                items={agenda?.items ?? []}
+                date={date}
+                timezone={preferences.timezone}
+                clockFormat={clockFormat}
+                now={now()}
+                onSelect={openItem}
+              />
+            </View>
+          ) : null}
+        </>
+      )}
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel="Add new item"
+        onPress={() => setAddMenu(true)}
+        style={[
+          styles.fab,
+          {backgroundColor: colors.brand, shadowColor: colors.shadow},
+        ]}
+      >
+        <Icon name="plus" size={30} color={colors.onBrand} />
+      </Pressable>
+      <Modal
+        visible={addMenu}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setAddMenu(false)}
+      >
+        <View accessibilityViewIsModal style={styles.modalBackdrop}>
+          <View
+            pointerEvents="none"
+            style={[
+              StyleSheet.absoluteFill,
+              styles.backdropTint,
+              {backgroundColor: colors.shadow},
+            ]}
+          />
+          <View
+            style={[
+              styles.modalCard,
+              {backgroundColor: colors.surface, borderColor: colors.border},
+            ]}
+          >
+            <Text
+              accessibilityRole="header"
+              style={[styles.heading, {color: colors.text}]}
+            >
+              Create new
+            </Text>
+            <Button
+              label="Add task"
+              onPress={() => {
+                setAddMenu(false);
+                setNotice('');
+                setEditor({kind: 'task', initial: null});
+              }}
+            />
+            <Button
+              label="Add event"
+              secondary
+              onPress={() => {
+                setAddMenu(false);
+                setNotice('');
+                setEditor({kind: 'event', initial: null});
+              }}
+            />
+            <Button
+              label="Cancel"
+              secondary
+              onPress={() => setAddMenu(false)}
+            />
+          </View>
+        </View>
+      </Modal>
+      <Modal visible={tools} onRequestClose={() => setTools(false)}>
+        <ScrollView
+          style={[styles.screen, {backgroundColor: colors.background}]}
+          contentContainerStyle={styles.padded}
+          keyboardShouldPersistTaps="handled"
+        >
+          <Text
+            accessibilityRole="header"
+            style={[styles.heading, {color: colors.text}]}
+          >
+            Calendar tools
+          </Text>
+          <Message text={`Timezone: ${preferences.timezone}`} />
+          <Message text={delivery} error={deliveryWarning} />
           <Button
-            label="Add event"
+            label="Open Android reminder settings"
             secondary
             onPress={() => {
-              setNotice('');
-              setEditor({kind: 'event', initial: null});
+              void reminderClient
+                .openSettings('notifications')
+                .catch(() =>
+                  setError(
+                    'Android reminder settings could not be opened. Open the app settings manually.',
+                  ),
+                );
             }}
           />
           <Choice
@@ -393,257 +743,146 @@ export function PlannerScreen({
             ]}
             onChange={value => {
               setView(value);
-              setTaskOffset(0);
-              setCursors([undefined]);
+              setTools(false);
+              refresh();
+            }}
+          />
+          <Choice
+            label="Clock display (this view)"
+            value={clockFormat}
+            options={[
+              {value: '24h', label: '24 hour'},
+              {value: '12h', label: '12 hour'},
+            ]}
+            onChange={setClockFormat}
+          />
+          <Button
+            label="Refresh planner"
+            secondary
+            onPress={() => {
+              refresh();
+              setTools(false);
             }}
           />
           <Button
-            label={displayOptions ? 'Hide display options' : 'Display options'}
+            label={dateTools ? 'Hide date controls' : 'Go to another date'}
             secondary
-            onPress={() => setDisplayOptions(value => !value)}
+            onPress={() => setDateTools(value => !value)}
           />
-          {displayOptions ? (
-            <Choice
-              label="Clock display (this view)"
-              value={clockFormat}
-              options={[
-                {value: '24h', label: '24 hour'},
-                {value: '12h', label: '12 hour'},
-              ]}
-              onChange={setClockFormat}
-            />
-          ) : null}
-          <Button label="Refresh planner" secondary onPress={refresh} />
-          {error ? <Message error text={error} /> : null}
-          {view === 'agenda' ? (
+          {dateTools ? (
             <>
-              {mode === 'Calendar' ? (
-                <>
-                  <Choice
-                    label="Calendar display"
-                    value={calendarView}
-                    options={[
-                      {value: 'month', label: 'Month'},
-                      {value: 'day', label: 'Day'},
-                    ]}
-                    onChange={setCalendarView}
-                  />
-                  {calendarView === 'month' ? (
-                    <CalendarMonth
-                      selectedDate={date}
-                      today={localToday(now(), preferences.timezone)}
-                      onSelect={chooseDate}
-                    />
-                  ) : null}
-                </>
-              ) : null}
-              <Button
-                label={dateTools ? 'Hide date controls' : 'Go to another date'}
-                secondary
-                onPress={() => setDateTools(value => !value)}
+              <Field
+                label="Agenda date"
+                value={dateDraft}
+                onChangeText={setDateDraft}
+                placeholder="YYYY-MM-DD"
               />
-              {dateTools ? (
-                <>
-                  <Field
-                    label="Agenda date"
-                    value={dateDraft}
-                    onChangeText={setDateDraft}
-                    placeholder="YYYY-MM-DD"
-                  />
-                  <Button
-                    label="Go to date"
-                    secondary
-                    onPress={() => chooseDate(dateDraft)}
-                  />
-                  <Button
-                    label="Choose agenda date"
-                    secondary
-                    onPress={() => {
-                      void dateTimePicker
-                        .pickDate(date)
-                        .then(next => {
-                          if (mounted.current && next) chooseDate(next);
-                        })
-                        .catch(() => {
-                          if (mounted.current)
-                            setError(
-                              'The Android date picker is unavailable. Enter the agenda date manually.',
-                            );
-                        });
-                    }}
-                  />
-                </>
-              ) : null}
-              {mode === 'Today' || calendarView === 'day' ? (
-                <>
-                  <View style={styles.navigation}>
-                    <View style={styles.navButton}>
-                      <Button
-                        label="Previous week"
-                        secondary
-                        onPress={() => move(-7)}
-                      />
-                    </View>
-                    <View style={styles.navButton}>
-                      <Button
-                        label="Today"
-                        secondary
-                        onPress={() =>
-                          chooseDate(localToday(now(), preferences.timezone))
-                        }
-                      />
-                    </View>
-                    <View style={styles.navButton}>
-                      <Button
-                        label="Next week"
-                        secondary
-                        onPress={() => move(7)}
-                      />
-                    </View>
-                  </View>
-                  <Choice
-                    label="Day"
-                    value={date}
-                    options={weekDates(date).map(day => ({
-                      value: day,
-                      label: `${
-                        ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'][
-                          new Date(`${day}T12:00:00.000Z`).getUTCDay()
-                        ]
-                      } ${day.slice(8)}`,
-                      accessibilityLabel: `Day: ${day}`,
-                    }))}
-                    onChange={chooseDate}
-                  />
-                </>
-              ) : null}
-              <Text
-                accessibilityRole="header"
-                style={[styles.heading, {color: colors.text}]}
-              >
-                {date}
-              </Text>
-              {agenda?.items.length === 0 ? (
-                <Message text="Nothing scheduled for this day. Undated tasks are in the Tasks view." />
-              ) : null}
-              {agenda?.items.map(item => (
-                <View key={item.key}>
-                  <Button
-                    label={`${item.kind === 'task' ? 'Task' : 'Event'}: ${
-                      item.title
-                    }`}
-                    secondary
-                    onPress={() => setSelection({kind: item.kind, id: item.id})}
-                  />
-                  <Message
-                    text={`${
-                      item.at
-                        ? displayInstant(
-                            item.at,
-                            preferences.timezone,
-                            clockFormat,
-                          )
-                        : `${item.date} · date only`
-                    } · ${item.status.replace(/_/g, ' ')}`}
-                  />
-                  {item.endAt ? (
-                    <Message
-                      text={`Ends ${displayInstant(
-                        item.endAt,
-                        preferences.timezone,
-                        clockFormat,
-                      )}`}
-                    />
-                  ) : null}
-                </View>
-              ))}
-              {cursors.length > 1 ? (
-                <Button
-                  label="Previous agenda page"
-                  secondary
-                  onPress={() => setCursors(value => value.slice(0, -1))}
-                />
-              ) : null}
-              {agenda?.nextCursor ? (
-                <Button
-                  label="Next agenda page"
-                  secondary
-                  onPress={() => {
-                    const next = agenda.nextCursor;
-                    if (next) setCursors(value => [...value, next]);
-                  }}
-                />
-              ) : null}
-            </>
-          ) : (
-            <>
-              <Choice
-                label="Task filter"
-                value={taskFilter}
-                options={[
-                  {value: 'active', label: 'Active'},
-                  {value: 'completed', label: 'Completed'},
-                  {value: 'all', label: 'All'},
-                ]}
-                onChange={value => {
-                  setTaskFilter(value);
-                  setTaskOffset(0);
+              <Button
+                label="Go to date"
+                secondary
+                onPress={() => {
+                  try {
+                    assertDate(dateDraft);
+                    chooseDate(dateDraft);
+                    setTools(false);
+                  } catch {
+                    setError(
+                      'Choose a real calendar date between 2000 and 2100.',
+                    );
+                  }
                 }}
               />
-              {tasks?.items.length === 0 ? (
-                <Message text="No tasks in this filter. Add your first academic task." />
-              ) : null}
-              {tasks?.items.map(task => (
-                <View key={task.id}>
-                  <Button
-                    label={`Task: ${task.title}`}
-                    secondary
-                    onPress={() => setSelection({kind: 'task', id: task.id})}
-                  />
-                  <Message
-                    text={`${task.status.replace(/_/g, ' ')} · ${
-                      task.dueAt
-                        ? displayInstant(
-                            task.dueAt,
-                            preferences.timezone,
-                            clockFormat,
-                          )
-                        : task.dueDate ?? 'No due date'
-                    }`}
-                  />
-                </View>
-              ))}
-              {taskOffset > 0 ? (
-                <Button
-                  label="Previous task page"
-                  secondary
-                  onPress={() =>
-                    setTaskOffset(value => Math.max(0, value - 20))
-                  }
-                />
-              ) : null}
-              {tasks?.hasMore ? (
-                <Button
-                  label="Next task page"
-                  secondary
-                  onPress={() => setTaskOffset(value => value + 20)}
-                />
-              ) : null}
+              <Button
+                label="Choose agenda date"
+                secondary
+                onPress={chooseNativeDate}
+              />
             </>
-          )}
-        </>
-      )}
+          ) : null}
+          {error ? <Message error text={error} /> : null}
+          <Button
+            label="Close calendar tools"
+            onPress={() => setTools(false)}
+          />
+        </ScrollView>
+      </Modal>
     </View>
   );
 }
 const styles = StyleSheet.create({
-  section: {padding: spacing.lg},
+  backdropTint: {opacity: 0.25},
+  screen: {flex: 1},
+  padded: {padding: spacing.lg, paddingBottom: spacing.xl},
+  chrome: {paddingHorizontal: spacing.md, paddingTop: spacing.xs},
+  list: {padding: spacing.md, paddingBottom: 100},
   heading: {
     fontSize: typography.heading,
     fontWeight: '700',
     marginBottom: spacing.md,
   },
-  navigation: {flexDirection: 'row', gap: spacing.sm},
-  navButton: {flex: 1},
+  actions: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    alignItems: 'center',
+    gap: spacing.sm,
+    marginTop: spacing.sm,
+  },
+  action: {
+    flexDirection: 'row',
+    gap: spacing.xs,
+    minHeight: dimensions.control,
+    borderWidth: dimensions.border,
+    borderRadius: dimensions.radius,
+    paddingHorizontal: spacing.sm,
+    alignItems: 'center',
+    justifyContent: 'center',
+    flexGrow: 1,
+  },
+  actionLabel: {fontSize: typography.small, fontWeight: '500'},
+  deliveryBadge: {
+    minHeight: dimensions.control,
+    paddingHorizontal: spacing.sm,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: dimensions.radius,
+    flexGrow: 1,
+  },
+  deliveryLabel: {fontSize: typography.caption, fontWeight: '600'},
+  timeline: {flex: 1, paddingHorizontal: spacing.md},
+  empty: {
+    fontSize: typography.caption,
+    paddingHorizontal: spacing.md,
+    paddingTop: spacing.xs,
+  },
+  item: {
+    minHeight: dimensions.control,
+    borderWidth: dimensions.border,
+    borderRadius: dimensions.radius,
+    padding: spacing.md,
+    marginBottom: spacing.sm,
+    gap: spacing.xs,
+  },
+  itemTitle: {fontSize: typography.body, fontWeight: '600'},
+  itemDetail: {fontSize: typography.small},
+  fab: {
+    position: 'absolute',
+    bottom: spacing.md,
+    right: spacing.md,
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    alignItems: 'center',
+    justifyContent: 'center',
+    elevation: 4,
+    shadowOpacity: 0.2,
+    shadowOffset: {width: 0, height: 2},
+    shadowRadius: 4,
+  },
+  modalBackdrop: {flex: 1, justifyContent: 'center', padding: spacing.lg},
+  modalCard: {
+    borderWidth: dimensions.border,
+    borderRadius: dimensions.radius,
+    padding: spacing.lg,
+  },
   confirmation: {flex: 1, justifyContent: 'center', padding: spacing.lg},
 });

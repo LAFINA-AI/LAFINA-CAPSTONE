@@ -1,5 +1,15 @@
 import {useCallback, useEffect, useRef, useState} from 'react';
-import {AppState, StyleSheet, Text, TextInput, View} from 'react-native';
+import {
+  AppState,
+  Modal,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  View,
+} from 'react-native';
+import {SafeAreaView} from 'react-native-safe-area-context';
 import {
   createCommandSession,
   type CommandReply,
@@ -16,6 +26,7 @@ import type {SpeechClient} from '../../core/native/textToSpeech';
 import {useTheme} from '../../core/theme/ThemeContext';
 import {dimensions, spacing, typography} from '../../core/theme/theme';
 import {Button, Message} from '../../core/ui/controls';
+import {Icon} from '../../core/ui/Icon';
 import {ReplyMessage, type WrittenReply} from '../../core/voice/ReplyMessage';
 import {SpeechInputPanel} from './SpeechInputPanel';
 
@@ -34,6 +45,7 @@ export function ChatScreen({
   speechInput,
   showSpeechInput,
   showDiagnostics,
+  voiceRequest = 0,
 }: {
   factory: () => PlannerRepository;
   preferences: Preferences;
@@ -42,6 +54,8 @@ export function ChatScreen({
   speechInput: SpeechInputClient;
   showSpeechInput: boolean;
   showDiagnostics: boolean;
+  /** Opens the visible review panel only; capture still needs a hold gesture. */
+  voiceRequest?: number;
 }) {
   const {colors} = useTheme();
   const latest = useRef({preferences, now});
@@ -57,6 +71,15 @@ export function ChatScreen({
   const [messages, setMessages] = useState<MessageRow[]>([]);
   const [reading, setReading] = useState<WrittenReply | null>(null);
   const [voiceOpen, setVoiceOpen] = useState(false);
+  const [toolsOpen, setToolsOpen] = useState(false);
+  const conversation = useRef<ScrollView>(null);
+  const previousVoiceRequest = useRef(0);
+
+  useEffect(() => {
+    if (voiceRequest === previousVoiceRequest.current) return;
+    previousVoiceRequest.current = voiceRequest;
+    if (voiceRequest > 0 && showSpeechInput) setVoiceOpen(true);
+  }, [voiceRequest, showSpeechInput]);
 
   useEffect(() => {
     setReady(false);
@@ -151,166 +174,306 @@ export function ChatScreen({
   }
 
   return (
-    <View style={styles.section}>
-      <Text
-        accessibilityRole="header"
-        style={[styles.title, {color: colors.text}]}
-      >
-        Chat
-      </Text>
-      <Message
-        text={`Offline planner · ${preferences.timezone}. Every change needs review and a Confirm change tap. Messages stay on this screen only (up to 40); leaving Chat clears them. Typing always works without speech.`}
-      />
-      <Text style={[styles.label, {color: colors.text}]}>Message</Text>
-      <TextInput
-        accessibilityLabel="Message"
-        value={composer}
-        onChangeText={changeComposer}
-        maxLength={2000}
-        multiline
-        autoCorrect={false}
-        style={[
-          styles.input,
-          {
-            color: colors.text,
-            backgroundColor: colors.field,
-            borderColor: colors.border,
-          },
-        ]}
-      />
-      <Button label="Send message" disabled={!ready} onPress={send} />
-      {error ? <Message error text={error} /> : null}
-      {!ready ? (
-        <Button
-          label="Retry chat"
-          secondary
-          onPress={() => setAttempt(value => value + 1)}
-        />
-      ) : null}
-      {review ? (
-        <View
-          accessibilityLabel="Command review"
-          style={[
-            styles.review,
-            {borderColor: colors.border, backgroundColor: colors.selected},
-          ]}
+    <View style={[styles.section, {backgroundColor: colors.background}]}>
+      <View style={styles.toolbar}>
+        <Text style={[styles.status, {color: colors.muted}]}>
+          Offline · {preferences.timezone}
+        </Text>
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="Chat tools"
+          accessibilityState={{expanded: toolsOpen}}
+          onPress={() => setToolsOpen(value => !value)}
+          style={styles.iconButton}
         >
-          <Text
-            accessibilityRole="header"
-            style={[styles.heading, {color: colors.text}]}
-          >
-            Review this change
-          </Text>
-          <Message text={review.summary} />
-          <Message text="No change is saved until you confirm. Android alert delivery still depends on permissions and quiet hours." />
-          <Button label="Confirm change" onPress={confirm} />
+          <Icon name="more" size={24} color={colors.muted} />
+        </Pressable>
+      </View>
+      {toolsOpen ? (
+        <View style={[styles.tools, {backgroundColor: colors.surface}]}>
           <Button
-            label="Discard change"
+            label="Show planner help"
             secondary
             onPress={() => {
               session.current?.cancel();
               setReview(null);
-              append(
-                'assistant',
-                'Review discarded. No planner change was made.',
-              );
+              append('assistant', plannerHelp);
+              setToolsOpen(false);
             }}
+          />
+          <Button
+            label="Clear conversation"
+            secondary
+            onPress={() => {
+              clear();
+              setToolsOpen(false);
+            }}
+          />
+          <Text style={[styles.status, {color: colors.muted}]}>
+            Messages stay in this view only. Leaving Chat clears them.
+          </Text>
+        </View>
+      ) : null}
+      <ScrollView
+        ref={conversation}
+        style={styles.conversation}
+        contentContainerStyle={styles.conversationContent}
+        keyboardShouldPersistTaps="handled"
+        onContentSizeChange={() =>
+          conversation.current?.scrollToEnd({animated: false})
+        }
+      >
+        {messages.length === 0 ? (
+          <View style={styles.empty}>
+            <Text
+              accessibilityRole="header"
+              style={[styles.title, {color: colors.text}]}
+            >
+              LAFINA Assistant
+            </Text>
+            <Text style={[styles.subtitle, {color: colors.muted}]}>
+              Your offline academic scheduling assistant.
+            </Text>
+          </View>
+        ) : null}
+        {messages.map(row => (
+          <View
+            key={row.id}
+            style={[
+              styles.bubble,
+              row.role === 'user' ? styles.userBubble : styles.assistantBubble,
+              {
+                backgroundColor:
+                  row.role === 'user' ? colors.selected : colors.surface,
+              },
+            ]}
+          >
+            {row.role === 'assistant' && row.id === reading?.id ? (
+              <ReplyMessage
+                reply={reading}
+                mode={preferences.replyMode}
+                options={speechPreferences(preferences)}
+                client={speech}
+              />
+            ) : (
+              <Text
+                accessibilityLabel={`${
+                  row.role === 'user' ? 'You' : 'LAFINA'
+                }: ${row.text}`}
+                style={[styles.messageText, {color: colors.text}]}
+              >
+                {row.text}
+              </Text>
+            )}
+          </View>
+        ))}
+        {review ? (
+          <View
+            accessibilityLabel="Command review"
+            style={[
+              styles.review,
+              {borderColor: colors.border, backgroundColor: colors.surface},
+            ]}
+          >
+            <Text
+              accessibilityRole="header"
+              style={[styles.heading, {color: colors.text}]}
+            >
+              Review this change
+            </Text>
+            <Message text={review.summary} />
+            <Text style={[styles.reviewHint, {color: colors.muted}]}>
+              Confirm to save. Android alert delivery depends on permissions and
+              quiet hours.
+            </Text>
+            <Button label="Confirm change" onPress={confirm} />
+            <Button
+              label="Discard change"
+              secondary
+              onPress={() => {
+                session.current?.cancel();
+                setReview(null);
+                append(
+                  'assistant',
+                  'Review discarded. No planner change was made.',
+                );
+              }}
+            />
+          </View>
+        ) : null}
+      </ScrollView>
+      {error ? (
+        <View style={styles.notice}>
+          <Message error text={error} />
+        </View>
+      ) : null}
+      {!ready ? (
+        <View style={styles.notice}>
+          <Button
+            label="Retry chat"
+            secondary
+            onPress={() => setAttempt(value => value + 1)}
           />
         </View>
       ) : null}
-      <Button
-        label="Show planner help"
-        secondary
-        onPress={() => {
-          session.current?.cancel();
-          setReview(null);
-          append('assistant', plannerHelp);
-        }}
-      />
-      {showSpeechInput ? (
-        <Button
-          label={voiceOpen ? 'Hide speech input' : 'Show speech input'}
-          secondary
-          onPress={() => setVoiceOpen(value => !value)}
-        />
-      ) : null}
-      {voiceOpen && showSpeechInput ? (
-        <SpeechInputPanel
-          client={speechInput}
-          showDiagnostics={showDiagnostics}
-          onDraftReady={text => {
-            changeComposer(text);
-            setVoiceOpen(false);
-          }}
-          onBeforeCapture={async () => {
-            setReading(null);
-            session.current?.cancel();
-            setReview(null);
-            await speech.stop('speech_input');
-            await speech.dispose();
-          }}
-        />
-      ) : null}
-      <Button label="Clear conversation" secondary onPress={clear} />
-      <Text
-        accessibilityRole="header"
-        style={[styles.heading, {color: colors.text}]}
+      <View
+        style={[
+          styles.composer,
+          {backgroundColor: colors.surface, borderColor: colors.border},
+        ]}
       >
-        Conversation · latest first
-      </Text>
-      {[...messages].reverse().map(row => (
-        <View
-          key={row.id}
+        {showSpeechInput ? (
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Show speech input"
+            onPress={() => setVoiceOpen(true)}
+            style={styles.iconButton}
+          >
+            <Icon name="mic" size={23} color={colors.accent} />
+          </Pressable>
+        ) : null}
+        <TextInput
+          accessibilityLabel="Message"
+          placeholder="Message LAFINA…"
+          placeholderTextColor={colors.muted}
+          value={composer}
+          onChangeText={changeComposer}
+          maxLength={2000}
+          multiline
+          autoCorrect={false}
+          style={[styles.input, {color: colors.text}]}
+        />
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="Send message"
+          accessibilityState={{disabled: !ready}}
+          disabled={!ready}
+          onPress={send}
           style={[
-            styles.bubble,
-            row.role === 'user' ? styles.userBubble : styles.assistantBubble,
-            {
-              backgroundColor:
-                row.role === 'user' ? colors.selected : colors.surface,
-              borderColor: colors.border,
-            },
+            styles.send,
+            {backgroundColor: ready ? colors.accent : colors.disabled},
           ]}
         >
-          <Text style={[styles.label, {color: colors.muted}]}>
-            {row.role === 'user' ? 'You' : 'LAFINA'}
-          </Text>
-          {row.role === 'assistant' && row.id === reading?.id ? (
-            <ReplyMessage
-              reply={reading}
-              mode={preferences.replyMode}
-              options={speechPreferences(preferences)}
-              client={speech}
-            />
-          ) : (
-            <Message text={row.text} />
-          )}
-        </View>
-      ))}
+          <Icon
+            name="send"
+            size={22}
+            color={ready ? colors.onBrand : colors.muted}
+          />
+        </Pressable>
+      </View>
+      {voiceOpen && showSpeechInput ? (
+        <Modal
+          visible
+          onRequestClose={() => setVoiceOpen(false)}
+          animationType="slide"
+        >
+          <SafeAreaView
+            style={[styles.voiceModal, {backgroundColor: colors.background}]}
+          >
+            <View style={styles.voiceToolbar}>
+              <Text
+                accessibilityRole="header"
+                style={[styles.heading, {color: colors.text}]}
+              >
+                Speech input
+              </Text>
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel="Hide speech input"
+                onPress={() => setVoiceOpen(false)}
+                style={styles.iconButton}
+              >
+                <Icon name="close" size={24} color={colors.text} />
+              </Pressable>
+            </View>
+            <ScrollView keyboardShouldPersistTaps="handled">
+              <SpeechInputPanel
+                client={speechInput}
+                showDiagnostics={showDiagnostics}
+                onDraftReady={text => {
+                  changeComposer(text);
+                  setVoiceOpen(false);
+                }}
+                onBeforeCapture={async () => {
+                  setReading(null);
+                  session.current?.cancel();
+                  setReview(null);
+                  await speech.stop('speech_input');
+                  await speech.dispose();
+                }}
+              />
+            </ScrollView>
+          </SafeAreaView>
+        </Modal>
+      ) : null}
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  section: {padding: spacing.lg},
-  title: {
-    fontSize: typography.title,
-    fontWeight: '700',
-    marginBottom: spacing.md,
+  section: {flex: 1},
+  toolbar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: spacing.md,
   },
+  status: {fontSize: typography.small, flexShrink: 1},
+  tools: {
+    padding: spacing.md,
+    marginHorizontal: spacing.md,
+    borderRadius: dimensions.radius,
+  },
+  conversation: {flex: 1},
+  conversationContent: {flexGrow: 1, padding: spacing.md},
+  empty: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: spacing.md,
+  },
+  title: {
+    fontSize: typography.heading,
+    fontWeight: '700',
+    marginBottom: spacing.sm,
+  },
+  subtitle: {fontSize: typography.body, textAlign: 'center', lineHeight: 24},
   heading: {
     fontSize: typography.heading,
     fontWeight: '600',
-    marginVertical: spacing.md,
+    marginBottom: spacing.sm,
   },
-  label: {fontSize: typography.label, marginBottom: spacing.sm},
-  input: {
-    minHeight: dimensions.control * 2,
+  messageText: {fontSize: typography.body, lineHeight: 24},
+  composer: {
+    flexDirection: 'row',
+    alignItems: 'flex-end',
     borderWidth: dimensions.border,
-    borderRadius: dimensions.radius,
-    padding: spacing.md,
+    borderRadius: dimensions.navigationRadius,
+    marginHorizontal: spacing.md,
+    marginBottom: spacing.md,
+    padding: spacing.xs,
+  },
+  iconButton: {
+    minWidth: dimensions.control,
+    minHeight: dimensions.control,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  send: {
+    width: dimensions.control,
+    minHeight: dimensions.control,
+    borderRadius: dimensions.navigationRadius,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  input: {
+    flex: 1,
+    minHeight: dimensions.control,
+    maxHeight: dimensions.control * 3,
+    paddingHorizontal: spacing.sm,
+    paddingVertical: spacing.sm,
     fontSize: typography.body,
     textAlignVertical: 'top',
-    marginBottom: spacing.sm,
   },
   review: {
     borderWidth: dimensions.border,
@@ -318,13 +481,25 @@ const styles = StyleSheet.create({
     padding: spacing.md,
     marginVertical: spacing.md,
   },
+  reviewHint: {
+    fontSize: typography.small,
+    lineHeight: 21,
+    marginBottom: spacing.md,
+  },
   bubble: {
-    maxWidth: '95%',
-    borderWidth: dimensions.border,
-    borderRadius: dimensions.radius,
+    maxWidth: '90%',
+    borderRadius: dimensions.radius * 1.5,
     padding: spacing.md,
     marginVertical: spacing.sm,
   },
   userBubble: {alignSelf: 'flex-end'},
   assistantBubble: {alignSelf: 'flex-start'},
+  notice: {paddingHorizontal: spacing.md},
+  voiceModal: {flex: 1},
+  voiceToolbar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: spacing.lg,
+  },
 });

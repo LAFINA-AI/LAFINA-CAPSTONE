@@ -1,6 +1,6 @@
 import type {LocalSqlConnection} from './preferencesRepository';
 
-const SCHEMA_VERSION = 2;
+const SCHEMA_VERSION = 3;
 const activeTransactions = new WeakSet<LocalSqlConnection>();
 const failedConnections = new WeakSet<LocalSqlConnection>();
 
@@ -167,6 +167,20 @@ const versionTwoStatements = [
   )`,
 ];
 
+const versionThreeStatements = [
+  `CREATE TABLE notes (
+    id TEXT PRIMARY KEY NOT NULL CHECK (length(trim(id)) > 0),
+    title TEXT NOT NULL CHECK (length(trim(title)) BETWEEN 1 AND 160),
+    body TEXT NOT NULL CHECK (length(body) <= 10000),
+    category TEXT NOT NULL CHECK (category IN ('Personal','Coursework')),
+    pinned INTEGER NOT NULL CHECK (pinned IN (0,1)),
+    version INTEGER NOT NULL CHECK (typeof(version)='integer' AND version >= 1),
+    created_at TEXT NOT NULL, updated_at TEXT NOT NULL, deleted_at TEXT
+  )`,
+  'CREATE INDEX notes_visible_order ON notes(deleted_at,pinned DESC,updated_at DESC,id)',
+  'CREATE INDEX notes_category_order ON notes(category,deleted_at,pinned DESC,updated_at DESC,id)',
+];
+
 /** Migrates only capstone data. Unsupported future schemas are never rewritten. */
 export function initializePlannerDatabase(
   db: LocalSqlConnection,
@@ -198,19 +212,27 @@ export function initializePlannerDatabase(
       ]);
       db.execute('PRAGMA user_version = 1');
     }
-    for (const statement of versionTwoStatements) {
-      db.execute(statement);
+    if (version < 2) {
+      for (const statement of versionTwoStatements) {
+        db.execute(statement);
+      }
+      if (version === 1) {
+        // Phase 02 rings were data simulations with no Android notification or
+        // deadline. End those paired simulations rather than inventing delivery.
+        db.execute(
+          "UPDATE reminder_jobs SET status='MISSED',delivery_state='UNAVAILABLE',delivery_reason='LEGACY_SIMULATION_ENDED' WHERE status='RINGING' AND reminder_id IN (SELECT id FROM reminders WHERE status='RINGING')",
+        );
+        db.execute(
+          "UPDATE reminders SET status='MISSED',version=version+1,last_outcome_at=COALESCE(last_outcome_at,?) WHERE status='RINGING' AND id IN (SELECT reminder_id FROM reminder_jobs WHERE status='MISSED' AND delivery_reason='LEGACY_SIMULATION_ENDED')",
+          [nowUtc],
+        );
+      }
+      db.execute('PRAGMA user_version = 2');
     }
-    if (version === 1) {
-      // Phase 02 rings were data simulations with no Android notification or
-      // deadline. End those paired simulations rather than inventing delivery.
-      db.execute(
-        "UPDATE reminder_jobs SET status='MISSED',delivery_state='UNAVAILABLE',delivery_reason='LEGACY_SIMULATION_ENDED' WHERE status='RINGING' AND reminder_id IN (SELECT id FROM reminders WHERE status='RINGING')",
-      );
-      db.execute(
-        "UPDATE reminders SET status='MISSED',version=version+1,last_outcome_at=COALESCE(last_outcome_at,?) WHERE status='RINGING' AND id IN (SELECT reminder_id FROM reminder_jobs WHERE status='MISSED' AND delivery_reason='LEGACY_SIMULATION_ENDED')",
-        [nowUtc],
-      );
+    // Notes are additive only. Existing settings, records, native jobs and
+    // receipts are untouched; native reminder readers accept both v2 and v3.
+    for (const statement of versionThreeStatements) {
+      db.execute(statement);
     }
     // The version is committed with all DDL and data, so a retry sees no half migration.
     db.execute(`PRAGMA user_version = ${SCHEMA_VERSION}`);

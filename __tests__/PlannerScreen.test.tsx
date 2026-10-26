@@ -57,11 +57,18 @@ function client(): AlarmClient {
   };
 }
 async function press(name: string) {
-  // A mutation/Back action can also refresh async Android capabilities. Await
-  // that UI turn rather than ending at the synchronous SQLite assertion.
-  await act(async () => {
-    fireEvent.press(screen.getByRole('button', {name}));
-  });
+  if (
+    (name === 'Add task' || name === 'Add event') &&
+    !screen.queryByRole('button', {name})
+  )
+    await act(async () =>
+      fireEvent.press(screen.getByRole('button', {name: 'Add new item'})),
+    );
+  if (name === 'Go to another date' && !screen.queryByRole('button', {name}))
+    await act(async () =>
+      fireEvent.press(screen.getByRole('button', {name: 'Calendar tools'})),
+    );
+  await act(async () => fireEvent.press(screen.getByRole('button', {name})));
 }
 describe('production manual planner with real host SQLite', () => {
   let fixture: ReturnType<typeof createPlannerFixture>;
@@ -104,7 +111,7 @@ describe('production manual planner with real host SQLite', () => {
   }
   it('saves an undated task with delivery blocked, finds it in Tasks, explicitly completes and undoes, edits and confirms deletion', async () => {
     setup();
-    await screen.findByText(/Android alerts are off/);
+    await screen.findByRole('button', {name: 'Reminder delivery details'});
     await press('Add task');
     fireEvent.changeText(
       screen.getByLabelText('Title'),
@@ -133,7 +140,7 @@ describe('production manual planner with real host SQLite', () => {
     await press('Save task');
     await screen.findByRole('header', {name: 'Read revised chapter'});
     await press('Back to planner');
-    fireEvent.press(screen.getByRole('radio', {name: 'Planner view: Tasks'}));
+    fireEvent.press(screen.getByRole('button', {name: 'All tasks'}));
     await press('Task: Read revised chapter');
     await press('Delete task');
     await press('Keep item');
@@ -151,7 +158,7 @@ describe('production manual planner with real host SQLite', () => {
       .mocked(view.alarms.reconcile)
       .mockRejectedValue(new Error('native unavailable'));
     await screen.findByText(/Nothing scheduled/);
-    await screen.findByText(/Android alerts are off/);
+    await screen.findByRole('button', {name: 'Reminder delivery details'});
     await press('Add event');
     fireEvent.changeText(screen.getByLabelText('Title'), 'Calculus exam');
     fireEvent(
@@ -199,7 +206,7 @@ describe('production manual planner with real host SQLite', () => {
     );
     const listen = jest.spyOn(AppState, 'addEventListener');
     setup();
-    await screen.findByText(/Android alerts are off/);
+    await screen.findByRole('button', {name: 'Reminder delivery details'});
     await press(`Task: ${task.title}`);
     await screen.findByText('Alert: RINGING. Delivery: UNAVAILABLE.');
     fixture.repository.reminderAction(
@@ -278,7 +285,7 @@ describe('production manual planner with real host SQLite', () => {
       reminderLeadMinutes: 15,
     });
     const view = setup();
-    await screen.findByText(/Android alerts are off/);
+    await screen.findByRole('button', {name: 'Reminder delivery details'});
     await press(`Task: ${task.title}`);
     await screen.findByText('Alert: SCHEDULED. Delivery: UNAVAILABLE.');
     expect(
@@ -308,8 +315,8 @@ describe('production manual planner with real host SQLite', () => {
       });
     setup();
     await screen.findByText(/Nothing scheduled/);
-    await screen.findByText(/Android alerts are off/);
-    fireEvent.press(screen.getByRole('radio', {name: 'Planner view: Tasks'}));
+    await screen.findByRole('button', {name: 'Reminder delivery details'});
+    fireEvent.press(screen.getByRole('button', {name: 'All tasks'}));
     expect(screen.getAllByRole('button', {name: /^Task: Task/})).toHaveLength(
       20,
     );
@@ -335,7 +342,7 @@ describe('production manual planner with real host SQLite', () => {
       />,
     );
     expect(await screen.findByText(/This is a fallback view/)).toBeTruthy();
-    await screen.findByText(/Android alerts are off/);
+    await screen.findByRole('button', {name: 'Reminder delivery details'});
     expect(screen.getByRole('radio', {name: 'Day: 2000-01-01'})).toBeTruthy();
   });
 });

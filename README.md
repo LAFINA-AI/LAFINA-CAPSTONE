@@ -7,20 +7,26 @@ core. No registration, login, accounts, business roles, subscriptions or teams.
 Low-end device performance is a priority; minimum RAM/ABI support will be stated
 only after real-device validation.
 
-**Current state: Phase07.1 selective integration; device validation pending.**
-The incoming main rewrite is audited and selectively integrated on the existing
-offline data/native core. Calendar adds a month selector above the paged day
-agenda, with reviewed branding, rounded navigation and one light/dark theme.
-See the [integration report](docs/reports/phase-07-1-report.md),
+**Current state: Phase07.1 Nol UI follow-up; device validation pending.**
+The shell now follows the owner's reference: **Chat, Calendar, Notes, Profile**
+and a central microphone that opens editable speech input without recording.
+Calendar has Month/Week controls and a paged day timeline. Notes has real local
+create/edit/delete, search, pin and category filters; Profile shows actual saved
+counts and persisted clock/week-start choices. Dirty editors guard tabs, Back
+and the mic. One semantic light/dark theme serves all screens.
+See the [current follow-up report](docs/reports/phase-07-1-nol-ui-report.md),
+[current manual checks](qa/PHASE-07-1-NOL-UI-MANUAL.md),
+[ADR-022](docs/decisions/ADR-022-nol-ui-local-notes.md),
+and the earlier [integration report](docs/reports/phase-07-1-report.md),
 [data audit](docs/audits/phase-07-1-data-audit.md),
 [native audit](docs/audits/phase-07-1-native-audit.md),
 [integration decision](docs/decisions/ADR-021-selective-upstream-integration.md)
 and [manual upgrade checks](qa/PHASE-07-1-MANUAL.md).
-Today and Calendar support a month/week/day agenda, undated/date-only/timed tasks,
+Calendar supports a month/week/day agenda, undated/date-only/timed tasks,
 events and bounded weekly classes. Add/edit/delete items, explicitly complete or
 reopen tasks, and inspect/acknowledge/snooze/cancel reminders without AI or internet.
 Android date/time pickers have typed-entry fallbacks; display supports 12/24 hour
-time. Settings exposes Android reminder permissions and delivery diagnostics.
+time. Profile links to preferences, Android reminder permissions and diagnostics.
 AlarmManager opens the simulated reminder screen through an eligible full-screen
 alert or notification. Optional Android system TTS adds installed offline-voice
 selection, a visible preview and Stop control, spoken canned planner replies and
@@ -32,13 +38,13 @@ command. Chat's explicit Send, exact action review and Confirm change can create
 move, complete/delete or acknowledge/snooze a uniquely identified item. Queries
 and Repeat are read-only. Android on-device recognition is conditional;
 reviewed local Whisper Tiny is an explicit optional model-bearing build.
-The owner explicitly approved Phase07. Phase08 acceptance work, backend and online
+The owner approved Phase07 and this Phase07.1 integration/UI follow-up. Phase08 acceptance work, backend and online
 models remain deferred. Earlier phone acceptance is not implied.
 
 Start with [AGENTS.md](AGENTS.md), [the charter](docs/00-PROJECT-CHARTER.md),
 [requirements](docs/01-PRODUCT-REQUIREMENTS.md), and the
 [Phase 00 report](docs/reports/phase-00-report.md) for pinned-source evidence.
-For current work read [Phase07 report](docs/reports/phase-07-report.md),
+For the retained core read [Phase07 report](docs/reports/phase-07-report.md),
 [confirmed-command decision](docs/decisions/ADR-020-confirmed-offline-commands.md),
 [command manual checks](qa/PHASE-07-MANUAL.md),
 [frozen command evaluation](docs/benchmarks/phase-07-intents.md),
@@ -85,7 +91,10 @@ Use Node **24.19.0**, npm **11.17.0** and **JDK17**. Android: min SDK30,
 compile/target36, Build Tools36.0.0, NDK27.1.12297006, Gradle9.3.1 (checksum pinned),
 Kotlin plugin2.1.20. Exact dependency pins are in package.json/package-lock.json.
 OP-SQLite stores settings and planner records in one `lafina-capstone.sqlite`.
-Migration0→1→2 preserves Phase01 settings. Android framework SQLite accesses the
+Migration0→1→2→3 preserves earlier settings/planner/jobs and adds only local notes
+and their indexes at schema3. Native reminder readers accept schemas2/3 and reject
+unknown future versions. Do not downgrade a schema3 installation to an older app.
+Android framework SQLite accesses the
 same file only in a private reminder process using DELETE journaling (ADR-015).
 Never copy the legacy DB.
 
@@ -115,8 +124,12 @@ RECORD_AUDIO, requested only at visible use, and recognition-service visibility.
 No telephony, background-microphone/foreground service or network permission is
 intended in bundled QA/release; current APK inspection belongs to the phase report.
 
-The completed Phase07 preflight cohort passed453 tests/27 suites and44-module AST
-checks. The current model-bearing x86_64 dataQa upgrade and42 API37 functional
+Current UI/notes automation and Android outcomes are recorded in the
+[follow-up report](docs/reports/phase-07-1-nol-ui-report.md). The new notes
+[host benchmark](docs/benchmarks/phase-07-1-nol-ui-notes.md) is file-backed
+synthetic SQLite evidence, not phone memory/battery or a legacy speed comparison.
+The historical Phase07 preflight cohort passed453 tests/27 suites and44-module AST
+checks. That model-bearing x86_64 dataQa upgrade and42 API37 functional
 instrumentation tests are verified; offline emulator create/move/query/refusal,
 review cancellation/persistence and named ringing-reminder ACK were exercised.
 Event/TTS/speech-copy/final restoration outcomes belong to the phase report.
@@ -131,8 +144,8 @@ tests and42 API37 emulator instrumentation tests passed. Six checked synthetic
 English PCM clips passed real local Whisper decoding with WER0, median2,939ms
 and p953,206ms for model preparation/loading/decoding. These are not real-mic,
 phone, accent or release-to-result measurements. Current UI/restoration and
-physical-phone outcomes are recorded separately in the phase report. For offline Phase07 review,
-use the completed report's verified ABI-matching **0.7.0-data-qa** hash from
+physical-phone outcomes are recorded separately in the phase report. For current offline review,
+use the follow-up report's verified ABI-matching **0.7.2-data-qa** hash from
 `android/app/build/outputs/apk/dataQa/` with `adb install -r`, then open
 **Chat**. Type a command in **Message**, **Send message**, inspect the exact
 review and **Confirm change**. For spoken emulator tests, deliberately enable
@@ -142,15 +155,15 @@ Open **Show speech input** and choose **Whisper local model** if the Android
 candidate's local language is unavailable. Review/edit recognized words, copy to
 Draft and **Use draft in chat**; Send and Confirm remain separate. Native
 answered-reminder drafts remain local-only and cannot execute Chat commands.
-**Today** and **Calendar** retain manual tasks/events. Enable Android delivery and
-notification access explicitly in **Settings → Reminder delivery**, then schedule
+**Calendar** retains manual tasks/events. Enable Android delivery and
+notification access explicitly in **Profile → Reminder delivery**, then schedule
 a timed item with a reminder. **Open data test harness** retains storage
 review tools. The APK bundles JS with development support off,
 enables test controls through a native build flag, and preserves the existing
 preview's app ID/settings. It is a private debuggable QA build, not a public
 release. Release hides the harness; debug requires Metro. See the manual checklist
 for exact commands, ACK-versus-completion checks, Android limits and permission fallbacks.
-Open **Settings → Offline speech settings** for installed voices, rate/pitch,
+Open **Profile → Voice & Text-to-Speech** for installed voices, rate/pitch,
 explicit preview, setup guidance and Stop. Set the general reply preference to
 Text, Voice or Both, then send a query or confirm a reviewed change. Written
 confirmation must not wait for speech; **Stop reading reply** retains text and
@@ -185,13 +198,15 @@ STT, audible TTS or physical-phone alarm behavior. Native SQLite, speech policy 
 are separate from host tests. `npm run check:architecture` checks the TS import graph, pure domain,
 offline dependency boundaries and main manifest. Graphify is not installed.
 The CI workflow is provided; remote execution is not implied by local checks.
-Known inherited dependency advisories remain open in the
-[provenance/security ledger](docs/third-party/phase-01-provenance.md); passing
-preflight is not a clean security scan or publication approval.
+Historical advisories remain documented in the
+[earlier security ledger](docs/third-party/phase-01-provenance.md). The
+[current dependency provenance](docs/third-party/phase-07-1-nol-ui-provenance.md)
+records the SVG dependency and point-in-time advisory remediation; passing
+preflight is not a complete security scan or publication approval.
 
 No local settings, audio, transcripts or private data are uploaded. Uninstall or
 clearing storage removes this device's settings and planner; backups are disabled. Reopen
-onboarding in Settings to keep preferences while reviewing setup. Item deletion
+onboarding under Profile's scheduling preferences to keep preferences while reviewing setup. Item deletion
 currently hides the item and retains cancellation tombstones; complete privacy
 purge controls are later work. Optional voice choices extend the existing local
 preferences payload; missing old fields receive defaults without a DB migration.

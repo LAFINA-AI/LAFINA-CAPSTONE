@@ -38,7 +38,10 @@ function dateParts(date: string) {
 }
 
 /** Date-only values never pass through the device's timezone. Monday starts the grid. */
-export function calendarMonth(date: string): {
+export function calendarMonth(
+  date: string,
+  weekStartsMonday = true,
+): {
   title: string;
   cells: Array<string | null>;
 } {
@@ -46,7 +49,9 @@ export function calendarMonth(date: string): {
   // setUTCFullYear avoids JavaScript's special interpretation of years 00–99.
   const first = new Date(0);
   first.setUTCFullYear(year, month - 1, 1);
-  const offset = (first.getUTCDay() + 6) % 7;
+  const offset = weekStartsMonday
+    ? (first.getUTCDay() + 6) % 7
+    : first.getUTCDay();
   const days = monthLength(year, month);
   const prefix = `${String(year).padStart(4, '0')}-${String(month).padStart(
     2,

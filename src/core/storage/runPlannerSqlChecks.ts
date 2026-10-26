@@ -1,6 +1,7 @@
 import {open} from '@op-engineering/op-sqlite';
 import {initializePlannerDatabase} from './plannerDatabase';
 import {createPlannerRepository} from './plannerRepository';
+import {createNotesRepository} from './notesRepository';
 import {createPreferencesRepository} from './preferencesRepository';
 import type {LocalSqlConnection} from './preferencesRepository';
 import {defaultPreferences} from '../domain/preferences';
@@ -27,6 +28,7 @@ export async function runPlannerSqlChecks(): Promise<string> {
       'events',
       'operation_receipts',
       'chat_messages',
+      'notes',
     ]) {
       db.execute(`DELETE FROM ${table}`);
     }
@@ -121,12 +123,36 @@ export async function runPlannerSqlChecks(): Promise<string> {
       }) === 'applied' && repository.snapshot().jobs[0]?.attemptCount === 1,
       'duplicate outcome',
     );
+    const notes = createNotesRepository(db, {now: () => command.draft.dueAt!});
+    const noteCommand = {
+      token: 'native_qa_note',
+      draft: {
+        title: 'Synthetic note SQL check',
+        body: 'Local only',
+        category: 'Coursework' as const,
+        pinned: true,
+      },
+    };
+    const note = notes.create(noteCommand);
+    check(
+      notes.create(noteCommand).id === note.id && notes.counts().notes === 1,
+      'notes idempotent create',
+    );
+    notes.delete({
+      token: 'native_qa_note_delete',
+      id: note.id,
+      expectedVersion: note.version,
+    });
+    check(
+      notes.counts().notes === 0 && notes.get(note.id) === null,
+      'notes soft delete',
+    );
     check(
       db.execute('PRAGMA integrity_check')[0]?.integrity_check === 'ok',
       'integrity',
     );
     check(db.execute('PRAGMA foreign_key_check').length === 0, 'foreign keys');
-    return 'PASS: native SQLite migration replay/settings preservation, paired rollback, create retry, ACK vs task completion, duplicate outcome, integrity and foreign keys. Synthetic QA DB only. No alarm/audio delivery tested.';
+    return 'PASS: native SQLite migration replay/settings preservation, paired rollback, create retry, ACK vs task completion, duplicate outcome, notes create/replay/delete, integrity and foreign keys. Synthetic QA DB only. No alarm/audio delivery tested.';
   } finally {
     native.close();
   }

@@ -1,0 +1,975 @@
+
+> lafina-capstone@0.7.1 test
+> jest --runInBand --runTestsByPath __tests__/App.test.tsx __tests__/AppSpeech.test.tsx __tests__/AppDictation.test.tsx
+
+FAIL __tests__/App.test.tsx (13.395 s)
+  ● Phase 01 anonymous foundation › keeps Calendar usable when the device cannot format the saved timezone
+
+    Unable to find an element with text: /device clock or timezone could not provide/
+
+    <RNCSafeAreaView>
+      <View>
+        <View>
+          <View>
+            <View>
+              <View>
+                <View>
+                  <View
+                    accessibilityLabel="Choose calendar date"
+                    accessibilityRole="button"
+                    accessible={true}
+                  >
+                    <Text>
+                      Oct 18 – Oct 24, 2026
+                    </Text>
+                    <View
+                      accessible={false}
+                    >
+                      <View />
+                    </View>
+                  </View>
+                  <View>
+                    <View
+                      accessibilityLabel="Previous week"
+                      accessibilityRole="button"
+                      accessibilityState={
+                        {
+                          "disabled": false,
+                        }
+                      }
+                      accessible={true}
+                    >
+                      <View
+                        accessible={false}
+                      >
+                        <View />
+                      </View>
+                    </View>
+                    <View
+                      accessibilityRole="button"
+                      accessible={true}
+                    >
+                      <Text>
+                        Today
+                      </Text>
+                    </View>
+                    <View
+                      accessibilityLabel="Next week"
+                      accessibilityRole="button"
+                      accessibilityState={
+                        {
+                          "disabled": false,
+                        }
+                      }
+                      accessible={true}
+                    >
+                      <View
+                        accessible={false}
+                      >
+                        <View />
+                      </View>
+                    </View>
+                  </View>
+                </View>
+                <View>
+                  <View
+                    accessibilityLabel="Calendar display: Month"
+                    accessibilityRole="radio"
+                    accessibilityState={
+                      {
+                        "checked": false,
+                      }
+                    }
+                    accessible={true}
+                  >
+                    <Text>
+                      Month
+                    </Text>
+                  </View>
+                  <View
+                    accessibilityLabel="Calendar display: Week"
+                    accessibilityRole="radio"
+                    accessibilityState={
+                      {
+                        "checked": true,
+                      }
+                    }
+                    accessible={true}
+                  >
+                    <Text>
+                      Week
+                    </Text>
+                  </View>
+                </View>
+              </View>
+              <View>
+                <View
+                  accessibilityLabel="All tasks"
+                  accessibilityRole="button"
+                  accessible={true}
+                >
+                  <View
+                    accessible={false}
+                  >
+                    <View />
+                  </View>
+                  <Text>
+                    All tasks
+                  </Text>
+                </View>
+                <View
+                  accessibilityLabel="Calendar tools"
+                  accessibilityRole="button"
+                  accessible={true}
+                >
+                  <View
+                    accessible={false}
+                  >
+                    <View />
+                    <View />
+                    <View />
+                    <View />
+                  </View>
+                  <Text>
+                    Tools
+                  </Text>
+                </View>
+                <View
+                  accessibilityLabel="Reminder delivery details"
+                  accessibilityRole="button"
+                  accessible={true}
+                >
+                  <Text>
+                    Alerts limited
+                  </Text>
+                </View>
+              </View>
+            </View>
+            <View>
+              <RCTScrollView>
+                <View>
+                  <View
+                    accessibilityLabel="Day: 2026-10-18"
+                    accessibilityRole="radio"
+                    accessibilityState={
+                      {
+                        "checked": false,
+                      }
+                    }
+                    accessible={true}
+                  >
+                    <Text>
+                      Sun
+                    </Text>
+                    <Text>
+                      18
+                    </Text>
+                  </View>
+                  <View
+                    accessibilityLabel="Day: 2026-10-19"
+                    accessibilityRole="radio"
+                    accessibilityState={
+                      {
+                        "checked": false,
+                      }
+                    }
+                    accessible={true}
+                  >
+                    <Text>
+                      Mon
+                    </Text>
+                    <Text>
+                      19
+                    </Text>
+                  </View>
+                  <View
+                    accessibilityLabel="Day: 2026-10-20"
+                    accessibilityRole="radio"
+                    accessibilityState={
+                      {
+                        "checked": false,
+                      }
+                    }
+                    accessible={true}
+                  >
+                    <Text>
+                      Tue
+                    </Text>
+                    <Text>
+                      20
+                    </Text>
+                  </View>
+                  <View
+                    accessibilityLabel="Day: 2026-10-21"
+                    accessibilityRole="radio"
+                    accessibilityState={
+                      {
+                        "checked": true,
+                      }
+                    }
+                    accessible={true}
+                  >
+                    <Text>
+                      Wed
+                    </Text>
+                    <Text>
+                      21
+                    </Text>
+                    <View />
+                  </View>
+                  <View
+                    accessibilityLabel="Day: 2026-10-22"
+                    accessibilityRole="radio"
+                    accessibilityState={
+                      {
+                        "checked": false,
+                      }
+                    }
+                    accessible={true}
+                  >
+                    <Text>
+                      Thu
+                    </Text>
+                    <Text>
+                      22
+                    </Text>
+                  </View>
+                  <View
+                    accessibilityLabel="Day: 2026-10-23"
+                    accessibilityRole="radio"
+                    accessibilityState={
+                      {
+                        "checked": false,
+                      }
+                    }
+                    accessible={true}
+                  >
+                    <Text>
+                      Fri
+                    </Text>
+                    <Text>
+                      23
+                    </Text>
+                  </View>
+                  <View
+                    accessibilityLabel="Day: 2026-10-24"
+                    accessibilityRole="radio"
+                    accessibilityState={
+                      {
+                        "checked": false,
+                      }
+                    }
+                    accessible={true}
+                  >
+                    <Text>
+                      Sat
+                    </Text>
+                    <Text>
+                      24
+                    </Text>
+                  </View>
+                </View>
+              </RCTScrollView>
+            </View>
+            <Text>
+              Nothing scheduled for this day.
+            </Text>
+            <View>
+              <View>
+                <RCTScrollView>
+                  <View>
+                    <RCTScrollView
+                      testID="calendar-day-timeline"
+                    >
+                      <View>
+                        <View>
+                          <View
+                            pointerEvents="none"
+                          >
+                            <Text>
+                              00:00
+                            </Text>
+                            <View />
+                          </View>
+                          <View
+                            pointerEvents="none"
+                          >
+                            <Text>
+                              01:00
+                            </Text>
+                            <View />
+                          </View>
+                          <View
+                            pointerEvents="none"
+                          >
+                            <Text>
+                              02:00
+                            </Text>
+                            <View />
+                          </View>
+                          <View
+                            pointerEvents="none"
+                          >
+                            <Text>
+                              03:00
+                            </Text>
+                            <View />
+                          </View>
+                          <View
+                            pointerEvents="none"
+                          >
+                            <Text>
+                              04:00
+                            </Text>
+                            <View />
+                          </View>
+                          <View
+                            pointerEvents="none"
+                          >
+                            <Text>
+                              05:00
+                            </Text>
+                            <View />
+                          </View>
+                          <View
+                            pointerEvents="none"
+                          >
+                            <Text>
+                              06:00
+                            </Text>
+                            <View />
+                          </View>
+                          <View
+                            pointerEvents="none"
+                          >
+                            <Text>
+                              07:00
+                            </Text>
+                            <View />
+                          </View>
+                          <View
+                            pointerEvents="none"
+                          >
+                            <Text>
+                              08:00
+                            </Text>
+                            <View />
+                          </View>
+                          <View
+                            pointerEvents="none"
+                          >
+                            <Text>
+                              09:00
+                            </Text>
+                            <View />
+                          </View>
+                          <View
+                            pointerEvents="none"
+                          >
+                            <Text>
+                              10:00
+                            </Text>
+                            <View />
+                          </View>
+                          <View
+                            pointerEvents="none"
+                          >
+                            <Text>
+                              11:00
+                            </Text>
+                            <View />
+                          </View>
+                          <View
+                            pointerEvents="none"
+                          >
+                            <Text>
+                              12:00
+                            </Text>
+                            <View />
+                          </View>
+                          <View
+                            pointerEvents="none"
+                          >
+                            <Text>
+                              13:00
+                            </Text>
+                            <View />
+                          </View>
+                          <View
+                            pointerEvents="none"
+                          >
+                            <Text>
+                              14:00
+                            </Text>
+                            <View />
+                          </View>
+                          <View
+                            pointerEvents="none"
+                          >
+                            <Text>
+                              15:00
+                            </Text>
+                            <View />
+                          </View>
+                          <View
+                            pointerEvents="none"
+                          >
+                            <Text>
+                              16:00
+                            </Text>
+                            <View />
+                          </View>
+                          <View
+                            pointerEvents="none"
+                          >
+                            <Text>
+                              17:00
+                            </Text>
+                            <View />
+                          </View>
+                          <View
+                            pointerEvents="none"
+                          >
+                            <Text>
+                              18:00
+                            </Text>
+                            <View />
+                          </View>
+                          <View
+                            pointerEvents="none"
+                          >
+                            <Text>
+                              19:00
+                            </Text>
+                            <View />
+                          </View>
+                          <View
+                            pointerEvents="none"
+                          >
+                            <Text>
+                              20:00
+                            </Text>
+                            <View />
+                          </View>
+                          <View
+                            pointerEvents="none"
+                          >
+                            <Text>
+                              21:00
+                            </Text>
+                            <View />
+                          </View>
+                          <View
+                            pointerEvents="none"
+                          >
+                            <Text>
+                              22:00
+                            </Text>
+                            <View />
+                          </View>
+                          <View
+                            pointerEvents="none"
+                          >
+                            <Text>
+                              23:00
+                            </Text>
+                            <View />
+                          </View>
+                          <View
+                            pointerEvents="none"
+                          >
+                            <Text>
+                              00:00
+                            </Text>
+                            <View />
+                          </View>
+                          <View>
+                            <View
+                              pointerEvents="none"
+                              testID="calendar-current-time"
+                            >
+                              <View />
+                            </View>
+                          </View>
+                        </View>
+                      </View>
+                    </RCTScrollView>
+                  </View>
+                </RCTScrollView>
+              </View>
+            </View>
+            <View
+              accessibilityLabel="Add new item"
+              accessibilityRole="button"
+              accessible={true}
+            >
+              <View
+                accessible={false}
+              >
+                <View />
+              </View>
+            </View>
+          </View>
+        </View>
+      </View>
+      <View>
+        <View
+          accessibilityRole="tablist"
+        >
+          <View
+            accessibilityLabel="Chat"
+            accessibilityRole="tab"
+            accessibilityState={
+              {
+                "disabled": false,
+                "selected": false,
+              }
+            }
+            accessible={true}
+          >
+            <View
+              accessible={false}
+            >
+              <View />
+            </View>
+          </View>
+          <View
+            accessibilityLabel="Calendar"
+            accessibilityRole="tab"
+            accessibilityState={
+              {
+                "disabled": false,
+                "selected": true,
+              }
+            }
+            accessible={true}
+          >
+            <View
+              accessible={false}
+            >
+              <View />
+              <View />
+            </View>
+            <Text>
+              Calendar
+            </Text>
+          </View>
+          <View>
+            <View
+              accessibilityHint="Opens editable speech input. Recording starts only while you hold the talk button."
+              accessibilityLabel="Open voice assistant"
+              accessibilityRole="button"
+              accessibilityState={
+                {
+                  "disabled": false,
+                }
+              }
+              accessible={true}
+            >
+              <View
+                accessible={false}
+              >
+                <View />
+                <View />
+              </View>
+            </View>
+          </View>
+          <View
+            accessibilityLabel="Notes"
+            accessibilityRole="tab"
+            accessibilityState={
+              {
+                "disabled": false,
+                "selected": false,
+              }
+            }
+            accessible={true}
+          >
+            <View
+              accessible={false}
+            >
+              <View />
+            </View>
+          </View>
+          <View
+            accessibilityLabel="Profile"
+            accessibilityRole="tab"
+            accessibilityState={
+              {
+                "disabled": false,
+                "selected": false,
+              }
+            }
+            accessible={true}
+          >
+            <View
+              accessible={false}
+            >
+              <View />
+              <View />
+            </View>
+          </View>
+        </View>
+      </View>
+    </RNCSafeAreaView>
+
+      283 |       await screen.findByRole('radio', {name: 'Calendar display: Week'});
+      284 |       expect(
+    > 285 |         screen.getByText(/device clock or timezone could not provide/),
+          |                ^
+      286 |       ).toBeTruthy();
+      287 |       await openPreferences();
+      288 |       expect(screen.getByLabelText('Timezone').props.value).toBe('Asia/Manila');
+
+      at Object.getByText (__tests__/App.test.tsx:285:16)
+      at asyncGeneratorStep (node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+      at _next (node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
+
+FAIL __tests__/AppSpeech.test.tsx
+  ● App speech integration with synthetic adapters, not audible device proof › guards Android Back from voice settings and keeps the edited speed until an explicit discard
+
+    Unable to find an element with role: button, name: Save preferences
+
+    <RNCSafeAreaView>
+      <View>
+        <View>
+          <RCTScrollView>
+            <View>
+              <View>
+                <View>
+                  <View
+                    accessible={false}
+                  >
+                    <View>
+                      <View>
+                        <View>
+                          <View />
+                          <View />
+                          <View />
+                        </View>
+                      </View>
+                      <View />
+                    </View>
+                  </View>
+                  <View>
+                    <View>
+                      <Text>
+                        SS
+                      </Text>
+                    </View>
+                    <Text
+                      accessibilityRole="header"
+                    >
+                      Synthetic student
+                    </Text>
+                    <Text>
+                      Your planner, on this phone
+                    </Text>
+                  </View>
+                  <View>
+                    <View>
+                      <View>
+                        <Text>
+                          —
+                        </Text>
+                        <Text>
+                          Tasks Done
+                        </Text>
+                      </View>
+                      <View>
+                        <Text>
+                          —
+                        </Text>
+                        <Text>
+                          Notes Saved
+                        </Text>
+                      </View>
+                      <View>
+                        <Text>
+                          Offline
+                        </Text>
+                        <Text>
+                          Local only
+                        </Text>
+                      </View>
+                    </View>
+                    <Text>
+                      Saved counts are unavailable. Your data has not been reset.
+                    </Text>
+                    <Text>
+                      PREFERENCES
+                    </Text>
+                    <View>
+                      <View
+                        accessibilityHint="25 min lead · 7 min snooze"
+                        accessibilityLabel="Scheduling & Reminder Preferences"
+                        accessibilityRole="button"
+                        accessible={true}
+                      >
+                        <View>
+                          <Text>
+                            Scheduling & Reminder Preferences
+                          </Text>
+                          <Text>
+                            25 min lead · 7 min snooze
+                          </Text>
+                        </View>
+                        <View
+                          accessible={false}
+                        >
+                          <View />
+                        </View>
+                      </View>
+                      <View>
+                        <Text>
+                          24-Hour Time Format
+                        </Text>
+                        <RCTSwitch
+                          accessibilityLabel="24-Hour Time Format"
+                          accessibilityRole="switch"
+                          accessibilityState={
+                            {
+                              "checked": true,
+                              "disabled": false,
+                            }
+                          }
+                          value={true}
+                        />
+                      </View>
+                      <View>
+                        <Text>
+                          Week Starts on Monday
+                        </Text>
+                        <RCTSwitch
+                          accessibilityLabel="Week Starts on Monday"
+                          accessibilityRole="switch"
+                          accessibilityState={
+                            {
+                              "checked": true,
+                              "disabled": false,
+                            }
+                          }
+                          value={true}
+                        />
+                      </View>
+                      <View
+                        accessibilityHint="Dark"
+                        accessibilityLabel="Appearance"
+                        accessibilityRole="button"
+                        accessible={true}
+                      >
+                        <View>
+                          <Text>
+                            Appearance
+                          </Text>
+                          <Text>
+                            Dark
+                          </Text>
+                        </View>
+                        <View
+                          accessible={false}
+                        >
+                          <View />
+                        </View>
+                      </View>
+                      <View
+                        accessibilityHint="Asia/Manila"
+                        accessibilityLabel="Timezone"
+                        accessibilityRole="button"
+                        accessible={true}
+                      >
+                        <View>
+                          <Text>
+                            Timezone
+                          </Text>
+                          <Text>
+                            Asia/Manila
+                          </Text>
+                        </View>
+                        <View
+                          accessible={false}
+                        >
+                          <View />
+                        </View>
+                      </View>
+                    </View>
+                    <Text>
+                      AI & VOICE
+                    </Text>
+                    <View>
+                      <View
+                        accessibilityHint="Android offline voice"
+                        accessibilityLabel="Voice & Text-to-Speech"
+                        accessibilityRole="button"
+                        accessible={true}
+                      >
+                        <View>
+                          <Text>
+                            Voice & Text-to-Speech
+                          </Text>
+                          <Text>
+                            Android offline voice
+                          </Text>
+                        </View>
+                        <View
+                          accessible={false}
+                        >
+                          <View />
+                        </View>
+                      </View>
+                    </View>
+                    <Text>
+                      NOTIFICATIONS
+                    </Text>
+                    <View>
+                      <View
+                        accessibilityHint="Permissions & quiet hours"
+                        accessibilityLabel="Reminder delivery"
+                        accessibilityRole="button"
+                        accessible={true}
+                      >
+                        <View>
+                          <Text>
+                            Reminder delivery
+                          </Text>
+                          <Text>
+                            Permissions & quiet hours
+                          </Text>
+                        </View>
+                        <View
+                          accessible={false}
+                        >
+                          <View />
+                        </View>
+                      </View>
+                    </View>
+                    <Text>
+                      Schedules, notes and preferences stay on this phone. No registration is needed.
+                    </Text>
+                  </View>
+                </View>
+              </View>
+            </View>
+          </RCTScrollView>
+        </View>
+      </View>
+      <View>
+        <View
+          accessibilityRole="tablist"
+        >
+          <View
+            accessibilityLabel="Chat"
+            accessibilityRole="tab"
+            accessibilityState={
+              {
+                "disabled": false,
+                "selected": false,
+              }
+            }
+            accessible={true}
+          >
+            <View
+              accessible={false}
+            >
+              <View />
+            </View>
+          </View>
+          <View
+            accessibilityLabel="Calendar"
+            accessibilityRole="tab"
+            accessibilityState={
+              {
+                "disabled": false,
+                "selected": false,
+              }
+            }
+            accessible={true}
+          >
+            <View
+              accessible={false}
+            >
+              <View />
+              <View />
+            </View>
+          </View>
+          <View>
+            <View
+              accessibilityHint="Opens editable speech input. Recording starts only while you hold the talk button."
+              accessibilityLabel="Open voice assistant"
+              accessibilityRole="button"
+              accessibilityState={
+                {
+                  "disabled": false,
+                }
+              }
+              accessible={true}
+            >
+              <View
+                accessible={false}
+              >
+                <View />
+                <View />
+              </View>
+            </View>
+          </View>
+          <View
+            accessibilityLabel="Notes"
+            accessibilityRole="tab"
+            accessibilityState={
+              {
+                "disabled": false,
+                "selected": false,
+              }
+            }
+            accessible={true}
+          >
+            <View
+              accessible={false}
+            >
+              <View />
+            </View>
+          </View>
+          <View
+            accessibilityLabel="Profile"
+            accessibilityRole="tab"
+            accessibilityState={
+              {
+                "disabled": false,
+                "selected": true,
+              }
+            }
+            accessible={true}
+          >
+            <View
+              accessible={false}
+            >
+              <View />
+              <View />
+            </View>
+            <Text>
+              Profile
+            </Text>
+          </View>
+        </View>
+      </View>
+    </RNCSafeAreaView>
+
+      370 |       screen.getByRole('button', {name: 'Discard voice options and continue'}),
+      371 |     );
+    > 372 |     expect(screen.getByRole('button', {name: 'Save preferences'})).toBeTruthy();
+          |                   ^
+      373 |     expect(local.repository.save).not.toHaveBeenCalled();
+      374 |   });
+      375 |
+
+      at Object.getByRole (__tests__/AppSpeech.test.tsx:372:19)
+      at asyncGeneratorStep (node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+      at _next (node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
+
+PASS __tests__/AppDictation.test.tsx
+
+Test Suites: 2 failed, 1 passed, 3 total
+Tests:       2 failed, 24 passed, 26 total
+Snapshots:   0 total
+Time:        17.045 s, estimated 27 s
+Ran all test suites within paths "__tests__/App.test.tsx", "__tests__/AppSpeech.test.tsx", "__tests__/AppDictation.test.tsx".

@@ -189,6 +189,7 @@ it('clears conversation and pending review without deleting saved planner data',
     send('Add task retained');
     fireEvent.press(screen.getByRole('button', {name: 'Confirm change'}));
     send('Delete task "retained"');
+    fireEvent.press(screen.getByRole('button', {name: 'Chat tools'}));
     fireEvent.press(screen.getByRole('button', {name: 'Clear conversation'}));
     expect(screen.queryByRole('button', {name: 'Confirm change'})).toBeNull();
     expect(f.repository.tasksPage({filter: 'all'}).items).toHaveLength(1);
@@ -198,6 +199,45 @@ it('clears conversation and pending review without deleting saved planner data',
     );
     send('Repeat');
     expect(screen.queryByText(/Saved task/)).toBeNull();
+  } finally {
+    f.cleanup();
+  }
+});
+
+it('opens speech review from the central mic request without capturing or changing the planner', async () => {
+  const f = setup();
+  try {
+    expect(screen.getByText('LAFINA Assistant')).toBeTruthy();
+    expect(screen.queryByLabelText('Draft text')).toBeNull();
+    f.view.rerender(<ChatScreen {...f.props} voiceRequest={1} />);
+    await screen.findByLabelText('Draft text');
+    expect(f.stt.start).not.toHaveBeenCalled();
+    expect(f.repository.tasksPage({filter: 'all'}).items).toEqual([]);
+    fireEvent.press(screen.getByRole('button', {name: 'Hide speech input'}));
+    expect(screen.queryByLabelText('Draft text')).toBeNull();
+    f.view.rerender(<ChatScreen {...f.props} voiceRequest={1} />);
+    expect(screen.queryByLabelText('Draft text')).toBeNull();
+    expect(screen.getByLabelText('Message')).toBeTruthy();
+  } finally {
+    f.cleanup();
+  }
+});
+
+it('keeps planner help in chat tools and renders its written reply without a planner write', () => {
+  const f = setup();
+  try {
+    expect(
+      screen.queryByRole('button', {name: 'Show planner help'}),
+    ).toBeNull();
+    fireEvent.press(screen.getByRole('button', {name: 'Chat tools'}));
+    fireEvent.press(screen.getByRole('button', {name: 'Show planner help'}));
+    expect(
+      screen.getByText(/Use Calendar to add a class or task/),
+    ).toBeTruthy();
+    expect(f.repository.tasksPage({filter: 'all'}).items).toEqual([]);
+    expect(
+      screen.queryByRole('button', {name: 'Show planner help'}),
+    ).toBeNull();
   } finally {
     f.cleanup();
   }

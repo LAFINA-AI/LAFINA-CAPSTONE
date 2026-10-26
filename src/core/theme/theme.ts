@@ -3,17 +3,27 @@ import type {Preferences} from '../domain/preferences';
 const light = {
   // Warm canvas and neutral cards adapted from the incoming LAFINA UI.
   // Retain accessible foreground/accent pairs rather than its low-contrast red.
-  background: '#FAF9F6',
+  background: '#FAF9F7',
   surface: '#FFFFFF',
   text: '#252329',
   muted: '#615D66',
-  primary: '#B8002E',
+  primary: '#CC3747',
   onPrimary: '#FFFFFF',
   border: '#D7D1D4',
   selected: '#FCE6EB',
   danger: '#A6142B',
   field: '#FFFFFF',
   disabled: '#EBE6E8',
+  accent: '#F75A5A',
+  brand: '#E6003A',
+  onBrand: '#FFFFFF',
+  shadow: '#000000',
+  timeline: '#FCF5F2',
+  timelineLine: '#ECE6E3',
+  subtle: '#F0F0F0',
+  profileStart: '#FFE082',
+  profileMid: '#FF8B80',
+  profileEnd: '#C66BB2',
 };
 const dark: typeof light = {
   background: '#121212',
@@ -27,6 +37,16 @@ const dark: typeof light = {
   danger: '#FFB0B8',
   field: '#1C1C1E',
   disabled: '#37313A',
+  accent: '#FF8F96',
+  brand: '#E6003A',
+  onBrand: '#FFFFFF',
+  shadow: '#000000',
+  timeline: '#211B1D',
+  timelineLine: '#363034',
+  subtle: '#29272C',
+  profileStart: '#B77B2B',
+  profileMid: '#B73F61',
+  profileEnd: '#884895',
 };
 export const spacing = {xs: 4, sm: 8, md: 16, lg: 24, xl: 32} as const;
 export const typography = {
@@ -34,7 +54,10 @@ export const typography = {
   small: 14,
   title: 28,
   heading: 20,
+  section: 18,
   label: 16,
+  caption: 12,
+  display: 32,
 } as const;
 export const dimensions = {
   control: 48,
@@ -42,6 +65,9 @@ export const dimensions = {
   navigationRadius: 36,
   border: 1,
   contentMax: 640,
+  tabBarHeight: 76,
+  microphone: 64,
+  cardRadius: 20,
 } as const;
 
 export interface Theme {

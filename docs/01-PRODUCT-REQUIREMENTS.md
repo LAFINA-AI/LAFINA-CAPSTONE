@@ -33,6 +33,15 @@
 
 ## UX stories
 
+The owner's Phase07.1 Nol-reference follow-up adds a local Notes screen and
+Chat/Calendar/Notes/Profile shell under [ADR-022](decisions/ADR-022-nol-ui-local-notes.md).
+Notes support explicit CRUD/search/pin/Personal–Coursework categories and retain
+local privacy semantics; Profile uses actual task/note counts and saved calendar
+display choices. These supplementary UI functions do not create an account,
+authorize cloud services or replace any existing stable requirement ID. Full
+export/purge and physical-device acceptance remain separate gates; current
+evidence is in [the follow-up report](reports/phase-07-1-nol-ui-report.md).
+
 - As a student, I can open the app without signing up and immediately create a reminder in airplane mode.
 - As a student, I can hold the microphone, say a date/time command, release and review a recognized transcript; ambiguous dates ask me to confirm before saving.
 - As a student, I can hear 'You have a class in 15 minutes' through a call-like alert and snooze or acknowledge even if speech processing fails.

@@ -1,0 +1,8 @@
+
+> lafina-capstone@0.7.1 typecheck
+> tsc --noEmit
+
+src/core/storage/plannerDatabase.ts(235,5): error TS1005: ',' expected.
+src/core/storage/plannerDatabase.ts(240,4): error TS1128: Declaration or statement expected.
+src/core/storage/plannerDatabase.ts(241,1): error TS1128: Declaration or statement expected.
+src/features/calendar/PlannerScreen.tsx(433,1): error TS1005: '}' expected.

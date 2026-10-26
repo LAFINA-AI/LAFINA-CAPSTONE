@@ -1,0 +1,585 @@
+
+> lafina-capstone@0.7.2 test
+> jest --runInBand --runTestsByPath __tests__/App.test.tsx __tests__/AppSpeech.test.tsx __tests__/AppDictation.test.tsx __tests__/AppNotesNavigation.test.tsx
+
+FAIL __tests__/App.test.tsx (31.812 s)
+  ● Phase 01 anonymous foundation › keeps the data harness out of release and opens QA storage only on demand with a recoverable error
+
+    Unable to find an element with role: button, name: Back to preferences
+
+    <RNCSafeAreaView>
+      <View>
+        <View>
+          <RCTScrollView>
+            <View>
+              <View>
+                <View>
+                  <View
+                    accessibilityRole="button"
+                    accessibilityState={
+                      {
+                        "disabled": false,
+                      }
+                    }
+                    accessible={true}
+                  >
+                    <Text>
+                      Back to profile
+                    </Text>
+                  </View>
+                </View>
+                <View>
+                  <Text
+                    accessibilityRole="alert"
+                  >
+                    Planner storage could not be opened. Saved data has not been reset.
+                  </Text>
+                  <View
+                    accessibilityRole="button"
+                    accessibilityState={
+                      {
+                        "disabled": false,
+                      }
+                    }
+                    accessible={true}
+                  >
+                    <Text>
+                      Retry opening planner
+                    </Text>
+                  </View>
+                </View>
+              </View>
+            </View>
+          </RCTScrollView>
+        </View>
+      </View>
+      <View>
+        <View
+          accessibilityRole="tablist"
+        >
+          <View
+            accessibilityLabel="Chat"
+            accessibilityRole="tab"
+            accessibilityState={
+              {
+                "disabled": false,
+                "selected": false,
+              }
+            }
+            accessible={true}
+          >
+            <View
+              accessible={false}
+            >
+              <View />
+            </View>
+          </View>
+          <View
+            accessibilityLabel="Calendar"
+            accessibilityRole="tab"
+            accessibilityState={
+              {
+                "disabled": false,
+                "selected": false,
+              }
+            }
+            accessible={true}
+          >
+            <View
+              accessible={false}
+            >
+              <View />
+              <View />
+            </View>
+          </View>
+          <View>
+            <View
+              accessibilityHint="Opens editable speech input. Recording starts only while you hold the talk button."
+              accessibilityLabel="Open voice assistant"
+              accessibilityRole="button"
+              accessibilityState={
+                {
+                  "disabled": false,
+                }
+              }
+              accessible={true}
+            >
+              <View
+                accessible={false}
+              >
+                <View />
+                <View />
+              </View>
+            </View>
+          </View>
+          <View
+            accessibilityLabel="Notes"
+            accessibilityRole="tab"
+            accessibilityState={
+              {
+                "disabled": false,
+                "selected": false,
+              }
+            }
+            accessible={true}
+          >
+            <View
+              accessible={false}
+            >
+              <View />
+            </View>
+          </View>
+          <View
+            accessibilityLabel="Profile"
+            accessibilityRole="tab"
+            accessibilityState={
+              {
+                "disabled": false,
+                "selected": true,
+              }
+            }
+            accessible={true}
+          >
+            <View
+              accessible={false}
+            >
+              <View />
+              <View />
+            </View>
+            <Text>
+              Profile
+            </Text>
+          </View>
+        </View>
+      </View>
+    </RNCSafeAreaView>
+
+      382 |     );
+      383 |     await waitFor(() => expect(plannerFactory).toHaveBeenCalledTimes(2));
+    > 384 |     fireEvent.press(screen.getByRole('button', {name: 'Back to preferences'}));
+          |                            ^
+      385 |     expect(screen.getByRole('button', {name: 'Save preferences'})).toBeTruthy();
+      386 |   });
+      387 |   it('guards a dirty production planner form when switching tabs until discard is confirmed', async () => {
+
+      at Object.getByRole (__tests__/App.test.tsx:384:28)
+      at asyncGeneratorStep (node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+      at _next (node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
+
+FAIL __tests__/AppSpeech.test.tsx
+  ● App speech integration with synthetic adapters, not audible device proof › saves optional voice settings without replacing existing schema-1 preferences or speaking
+
+    Unable to find an element with role: button, name: Back to preferences
+
+    <RNCSafeAreaView>
+      <View>
+        <View>
+          <RCTScrollView>
+            <View>
+              <View>
+                <View>
+                  <View
+                    accessibilityRole="button"
+                    accessibilityState={
+                      {
+                        "disabled": false,
+                      }
+                    }
+                    accessible={true}
+                  >
+                    <Text>
+                      Back to profile
+                    </Text>
+                  </View>
+                </View>
+                <View>
+                  <View>
+                    <Text
+                      accessibilityRole="header"
+                    >
+                      Offline speech
+                    </Text>
+                    <Text
+                      accessibilityRole="text"
+                    >
+                      Android system voices read text on this phone. Only installed voices reported as offline are offered. No voice is played when this screen opens. Text and manual controls remain available.
+                    </Text>
+                    <Text
+                      accessibilityRole="text"
+                    >
+                      Saved reply preference: Text and voice. The preview below is a separate action.
+                    </Text>
+                    <Text
+                      accessibilityRole="text"
+                    >
+                      Voice options saved on this phone.
+                    </Text>
+                    <View
+                      accessibilityRole="button"
+                      accessibilityState={
+                        {
+                          "disabled": false,
+                        }
+                      }
+                      accessible={true}
+                    >
+                      <Text>
+                        Refresh installed voices
+                      </Text>
+                    </View>
+                    <View>
+                      <Text>
+                        Speech engine
+                      </Text>
+                      <View>
+                        <View
+                          accessibilityLabel="Speech engine: Synthetic engine"
+                          accessibilityRole="radio"
+                          accessibilityState={
+                            {
+                              "checked": true,
+                              "disabled": false,
+                            }
+                          }
+                          accessible={true}
+                        >
+                          <Text>
+                            ● 
+                            Synthetic engine
+                          </Text>
+                        </View>
+                      </View>
+                    </View>
+                    <View>
+                      <Text>
+                        Installed offline voice
+                      </Text>
+                      <View>
+                        <View
+                          accessibilityLabel="Installed offline voice: en-US · synthetic-offline-english"
+                          accessibilityRole="radio"
+                          accessibilityState={
+                            {
+                              "checked": true,
+                              "disabled": false,
+                            }
+                          }
+                          accessible={true}
+                        >
+                          <Text>
+                            ● 
+                            en-US · synthetic-offline-english
+                          </Text>
+                        </View>
+                      </View>
+                    </View>
+                    <View>
+                      <Text>
+                        Speech speed
+                      </Text>
+                      <View>
+                        <View
+                          accessibilityLabel="Speech speed: Slow"
+                          accessibilityRole="radio"
+                          accessibilityState={
+                            {
+                              "checked": true,
+                              "disabled": false,
+                            }
+                          }
+                          accessible={true}
+                        >
+                          <Text>
+                            ● 
+                            Slow
+                          </Text>
+                        </View>
+                        <View
+                          accessibilityLabel="Speech speed: Normal"
+                          accessibilityRole="radio"
+                          accessibilityState={
+                            {
+                              "checked": false,
+                              "disabled": false,
+                            }
+                          }
+                          accessible={true}
+                        >
+                          <Text>
+                            ○ 
+                            Normal
+                          </Text>
+                        </View>
+                        <View
+                          accessibilityLabel="Speech speed: Fast"
+                          accessibilityRole="radio"
+                          accessibilityState={
+                            {
+                              "checked": false,
+                              "disabled": false,
+                            }
+                          }
+                          accessible={true}
+                        >
+                          <Text>
+                            ○ 
+                            Fast
+                          </Text>
+                        </View>
+                      </View>
+                    </View>
+                    <View>
+                      <Text>
+                        Voice pitch
+                      </Text>
+                      <View>
+                        <View
+                          accessibilityLabel="Voice pitch: Lower"
+                          accessibilityRole="radio"
+                          accessibilityState={
+                            {
+                              "checked": false,
+                              "disabled": false,
+                            }
+                          }
+                          accessible={true}
+                        >
+                          <Text>
+                            ○ 
+                            Lower
+                          </Text>
+                        </View>
+                        <View
+                          accessibilityLabel="Voice pitch: Normal"
+                          accessibilityRole="radio"
+                          accessibilityState={
+                            {
+                              "checked": false,
+                              "disabled": false,
+                            }
+                          }
+                          accessible={true}
+                        >
+                          <Text>
+                            ○ 
+                            Normal
+                          </Text>
+                        </View>
+                        <View
+                          accessibilityLabel="Voice pitch: Higher"
+                          accessibilityRole="radio"
+                          accessibilityState={
+                            {
+                              "checked": true,
+                              "disabled": false,
+                            }
+                          }
+                          accessible={true}
+                        >
+                          <Text>
+                            ● 
+                            Higher
+                          </Text>
+                        </View>
+                      </View>
+                    </View>
+                    <View
+                      accessibilityRole="button"
+                      accessibilityState={
+                        {
+                          "disabled": false,
+                        }
+                      }
+                      accessible={true}
+                    >
+                      <Text>
+                        Save voice options
+                      </Text>
+                    </View>
+                    <Text
+                      accessibilityRole="header"
+                    >
+                      Voice preview
+                    </Text>
+                    <Text
+                      accessibilityRole="text"
+                    >
+                      Reminder: your study session starts soon. Your task stays open until you mark it complete.
+                    </Text>
+                    <Text
+                      accessibilityRole="text"
+                    >
+                      A preview may play through this device's speaker. Check its volume and your surroundings before playing.
+                    </Text>
+                    <View
+                      accessibilityRole="button"
+                      accessibilityState={
+                        {
+                          "disabled": false,
+                        }
+                      }
+                      accessible={true}
+                    >
+                      <Text>
+                        Play voice preview
+                      </Text>
+                    </View>
+                    <View
+                      accessibilityRole="button"
+                      accessibilityState={
+                        {
+                          "disabled": true,
+                        }
+                      }
+                      accessible={true}
+                    >
+                      <Text>
+                        Stop voice preview
+                      </Text>
+                    </View>
+                    <View
+                      accessibilityRole="button"
+                      accessibilityState={
+                        {
+                          "disabled": false,
+                        }
+                      }
+                      accessible={true}
+                    >
+                      <Text>
+                        Open Android speech settings
+                      </Text>
+                    </View>
+                    <Text
+                      accessibilityRole="text"
+                    >
+                      Check the preview in airplane mode. An offline flag alone does not prove this engine is audible or works offline on your phone. If speech fails or is interrupted, the text stays visible.
+                    </Text>
+                  </View>
+                </View>
+              </View>
+            </View>
+          </RCTScrollView>
+        </View>
+      </View>
+      <View>
+        <View
+          accessibilityRole="tablist"
+        >
+          <View
+            accessibilityLabel="Chat"
+            accessibilityRole="tab"
+            accessibilityState={
+              {
+                "disabled": false,
+                "selected": false,
+              }
+            }
+            accessible={true}
+          >
+            <View
+              accessible={false}
+            >
+              <View />
+            </View>
+          </View>
+          <View
+            accessibilityLabel="Calendar"
+            accessibilityRole="tab"
+            accessibilityState={
+              {
+                "disabled": false,
+                "selected": false,
+              }
+            }
+            accessible={true}
+          >
+            <View
+              accessible={false}
+            >
+              <View />
+              <View />
+            </View>
+          </View>
+          <View>
+            <View
+              accessibilityHint="Opens editable speech input. Recording starts only while you hold the talk button."
+              accessibilityLabel="Open voice assistant"
+              accessibilityRole="button"
+              accessibilityState={
+                {
+                  "disabled": false,
+                }
+              }
+              accessible={true}
+            >
+              <View
+                accessible={false}
+              >
+                <View />
+                <View />
+              </View>
+            </View>
+          </View>
+          <View
+            accessibilityLabel="Notes"
+            accessibilityRole="tab"
+            accessibilityState={
+              {
+                "disabled": false,
+                "selected": false,
+              }
+            }
+            accessible={true}
+          >
+            <View
+              accessible={false}
+            >
+              <View />
+            </View>
+          </View>
+          <View
+            accessibilityLabel="Profile"
+            accessibilityRole="tab"
+            accessibilityState={
+              {
+                "disabled": false,
+                "selected": true,
+              }
+            }
+            accessible={true}
+          >
+            <View
+              accessible={false}
+            >
+              <View />
+              <View />
+            </View>
+            <Text>
+              Profile
+            </Text>
+          </View>
+        </View>
+      </View>
+    </RNCSafeAreaView>
+
+      285 |     expect(local.repository.save).toHaveBeenCalledTimes(1);
+      286 |     expect(client.speak).not.toHaveBeenCalled();
+    > 287 |     fireEvent.press(screen.getByRole('button', {name: 'Back to preferences'}));
+          |                            ^
+      288 |     expect(screen.getByDisplayValue(local.initial.nickname)).toBeTruthy();
+      289 |     expect(screen.queryByText(/You have unsaved voice options/)).toBeNull();
+      290 |   });
+
+      at Object.getByRole (__tests__/AppSpeech.test.tsx:287:28)
+      at asyncGeneratorStep (node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+      at _next (node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
+
+PASS __tests__/AppNotesNavigation.test.tsx
+PASS __tests__/AppDictation.test.tsx
+
+Test Suites: 2 failed, 2 passed, 4 total
+Tests:       2 failed, 27 passed, 29 total
+Snapshots:   0 total
+Time:        40.911 s
+Ran all test suites within paths "__tests__/App.test.tsx", "__tests__/AppSpeech.test.tsx", "__tests__/AppDictation.test.tsx", "__tests__/AppNotesNavigation.test.tsx".

@@ -1,0 +1,12 @@
+
+> lafina-capstone@0.7.1 test
+> jest --runInBand --runTestsByPath __tests__/ChatScreen.test.tsx __tests__/ProfileScreen.test.tsx
+
+PASS __tests__/ProfileScreen.test.tsx
+PASS __tests__/ChatScreen.test.tsx
+
+Test Suites: 2 passed, 2 total
+Tests:       17 passed, 17 total
+Snapshots:   0 total
+Time:        7.473 s, estimated 19 s
+Ran all test suites within paths "__tests__/ChatScreen.test.tsx", "__tests__/ProfileScreen.test.tsx".

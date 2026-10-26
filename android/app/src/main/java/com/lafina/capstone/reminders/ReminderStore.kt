@@ -342,7 +342,8 @@ class ReminderStore(
       if (!cursor.moveToFirst()) throw RecoverableStoreException("SCHEMA_UNREADABLE")
       cursor.getInt(0)
     }
-    if (version != 2) throw RecoverableStoreException("SCHEMA_NOT_READY")
+    // Schema 3 adds JS-only notes; reminder tables/identities are unchanged.
+    if (version !in 2..3) throw RecoverableStoreException("SCHEMA_NOT_READY")
     val mode = db.rawQuery("PRAGMA journal_mode", null).use { cursor ->
       if (!cursor.moveToFirst()) "" else cursor.getString(0)
     }

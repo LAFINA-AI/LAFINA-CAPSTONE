@@ -1,0 +1,120 @@
+  console.error
+    An update to VirtualizedList inside a test was not wrapped in act(...).
+    
+    When testing, code that causes React state updates should be wrapped into act(...):
+    
+    act(() => {
+      /* fire events that update state */
+    });
+    /* assert on the output */
+    
+    This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+
+      at node_modules/react-test-renderer/cjs/react-test-renderer.development.js:14402:19
+      at runWithFiberInDEV (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:2315:13)
+      at warnIfUpdatesNotWrappedWithActDEV (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:14401:9)
+      at scheduleUpdateOnFiber (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:12086:9)
+      at Object.enqueueSetState (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:16926:13)
+      at VirtualizedList.Object.<anonymous>.process.env.NODE_ENV.Component.setState (node_modules/react/cjs/react.development.js:655:20)
+      at apply (node_modules/@react-native/virtualized-lists/Lists/StateSafePureComponent.js:12:32)
+      at VirtualizedList.setState (node_modules/@react-native/virtualized-lists/Lists/StateSafePureComponent.js:40:7)
+      at VirtualizedList.setState [as _updateCellsToRender] (node_modules/@react-native/virtualized-lists/Lists/VirtualizedList.js:1909:10)
+      at Timeout._updateCellsToRender [as _onTimeout] (node_modules/@react-native/virtualized-lists/Lists/VirtualizedList.js:1806:16)
+
+  console.error
+    An update to VirtualizedList inside a test was not wrapped in act(...).
+    
+    When testing, code that causes React state updates should be wrapped into act(...):
+    
+    act(() => {
+      /* fire events that update state */
+    });
+    /* assert on the output */
+    
+    This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+
+      at node_modules/react-test-renderer/cjs/react-test-renderer.development.js:14402:19
+      at runWithFiberInDEV (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:2315:13)
+      at warnIfUpdatesNotWrappedWithActDEV (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:14401:9)
+      at scheduleUpdateOnFiber (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:12086:9)
+      at Object.enqueueSetState (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:16926:13)
+      at VirtualizedList.Object.<anonymous>.process.env.NODE_ENV.Component.setState (node_modules/react/cjs/react.development.js:655:20)
+      at apply (node_modules/@react-native/virtualized-lists/Lists/StateSafePureComponent.js:12:32)
+      at VirtualizedList.setState (node_modules/@react-native/virtualized-lists/Lists/StateSafePureComponent.js:40:7)
+      at VirtualizedList.setState [as _updateCellsToRender] (node_modules/@react-native/virtualized-lists/Lists/VirtualizedList.js:1909:10)
+      at Timeout._updateCellsToRender [as _onTimeout] (node_modules/@react-native/virtualized-lists/Lists/VirtualizedList.js:1806:16)
+
+FAIL __tests__/NotesScreen.test.tsx (6.727 s)
+  Notes screen with actual repository SQL
+    √ shows the requested empty Notes presentation with supported filters and no AI promise (2552 ms)
+    √ creates, edits, pins and filters a durable local note without auto-saving drafts (231 ms)
+    √ searches literal punctuation and note body; compact display retains opening controls (108 ms)
+    √ keeps a dirty editor on Back until explicit discard and reports clean subroutes (301 ms)
+    √ requires explicit deletion confirmation and never deletes on cancellation (50 ms)
+    × retains the draft and stable operation token after a storage error then retries (34 ms)
+    × shows validation failure without losing entered text or saving (37 ms)
+    × recovers a failed open visibly rather than presenting fake empty storage success (19 ms)
+    √ pages saved notes without an unbounded accumulating list (112 ms)
+
+  ● Notes screen with actual repository SQL › retains the draft and stable operation token after a storage error then retries
+
+    expect(element).toHaveTextContent()
+
+    Expected element to have text content:
+      could not be saved
+    Received:
+      Your note could not be saved. Keep your draft and retry.
+
+      165 |     fireEvent.changeText(screen.getByLabelText('Note title'), 'Keep draft');
+      166 |     press('Save note');
+    > 167 |     expect(screen.getByRole('alert')).toHaveTextContent('could not be saved');
+          |                                       ^
+      168 |     expect(screen.getByLabelText('Note title').props.value).toBe('Keep draft');
+      169 |     press('Save note');
+      170 |     expect(create.mock.calls[1]?.[0].token).toBe(
+
+      at Object.toHaveTextContent (__tests__/NotesScreen.test.tsx:167:39)
+
+  ● Notes screen with actual repository SQL › shows validation failure without losing entered text or saving
+
+    expect(element).toHaveTextContent()
+
+    Expected element to have text content:
+      Enter a title
+    Received:
+      Enter a title (1–160 characters) and note text up to 10000 characters.
+
+      179 |     fireEvent.changeText(screen.getByLabelText('Note text'), 'Body retained');
+      180 |     press('Save note');
+    > 181 |     expect(screen.getByRole('alert')).toHaveTextContent('Enter a title');
+          |                                       ^
+      182 |     expect(screen.getByLabelText('Note text').props.value).toBe(
+      183 |       'Body retained',
+      184 |     );
+
+      at Object.toHaveTextContent (__tests__/NotesScreen.test.tsx:181:39)
+
+  ● Notes screen with actual repository SQL › recovers a failed open visibly rather than presenting fake empty storage success
+
+    expect(element).toHaveTextContent()
+
+    Expected element to have text content:
+      could not open
+    Received:
+      Notes could not open local storage. Retry without clearing app data.
+
+      200 |       />,
+      201 |     );
+    > 202 |     expect(screen.getByRole('alert')).toHaveTextContent('could not open');
+          |                                       ^
+      203 |     expect(screen.queryByText('No notes found')).toBeNull();
+      204 |     expect(screen.getByRole('button', {name: 'Add note'})).toBeDisabled();
+      205 |     press('Retry notes');
+
+      at Object.toHaveTextContent (__tests__/NotesScreen.test.tsx:202:39)
+
+Test Suites: 1 failed, 1 total
+Tests:       3 failed, 6 passed, 9 total
+Snapshots:   0 total
+Time:        7.019 s
+Ran all test suites matching /__tests__\\NotesScreen.test.tsx/i.

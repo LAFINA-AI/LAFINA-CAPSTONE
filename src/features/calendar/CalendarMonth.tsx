@@ -25,10 +25,14 @@ export function CalendarMonth({
   selectedDate,
   today,
   onSelect,
+  showHeader = true,
+  weekStartsMonday = true,
 }: {
   selectedDate: string;
   today: string;
   onSelect: (date: string) => void;
+  showHeader?: boolean;
+  weekStartsMonday?: boolean;
 }) {
   const {colors} = useTheme();
   const {fontScale} = useWindowDimensions();
@@ -37,47 +41,55 @@ export function CalendarMonth({
   const navigationButton = {
     minWidth: Math.ceil(dimensions.control * 2.25 * fontScale),
   };
-  const month = calendarMonth(selectedDate);
+  const month = calendarMonth(selectedDate, weekStartsMonday);
+  const weekdays = weekStartsMonday
+    ? weekdayNames
+    : ['Sun', ...weekdayNames.slice(0, 6)];
   const previousDisabled = selectedDate.slice(0, 7) <= minimumDate.slice(0, 7);
   const nextDisabled = selectedDate.slice(0, 7) >= maximumDate.slice(0, 7);
   return (
     <View style={styles.section}>
-      <Text
-        accessibilityRole="header"
-        style={[styles.title, {color: colors.text}]}
-      >
-        {month.title}
-      </Text>
-      <View style={styles.navigation}>
-        <View style={[styles.navButton, navigationButton]}>
-          <Button
-            label="Previous month"
-            secondary
-            disabled={previousDisabled}
-            onPress={() => {
-              if (!previousDisabled)
-                onSelect(shiftCalendarMonth(selectedDate, -1));
-            }}
-          />
-        </View>
-        <View style={[styles.navButton, navigationButton]}>
-          <Button label="Today" secondary onPress={() => onSelect(today)} />
-        </View>
-        <View style={[styles.navButton, navigationButton]}>
-          <Button
-            label="Next month"
-            secondary
-            disabled={nextDisabled}
-            onPress={() => {
-              if (!nextDisabled) onSelect(shiftCalendarMonth(selectedDate, 1));
-            }}
-          />
-        </View>
-      </View>
+      {showHeader ? (
+        <>
+          <Text
+            accessibilityRole="header"
+            style={[styles.title, {color: colors.text}]}
+          >
+            {month.title}
+          </Text>
+          <View style={styles.navigation}>
+            <View style={[styles.navButton, navigationButton]}>
+              <Button
+                label="Previous month"
+                secondary
+                disabled={previousDisabled}
+                onPress={() => {
+                  if (!previousDisabled)
+                    onSelect(shiftCalendarMonth(selectedDate, -1));
+                }}
+              />
+            </View>
+            <View style={[styles.navButton, navigationButton]}>
+              <Button label="Today" secondary onPress={() => onSelect(today)} />
+            </View>
+            <View style={[styles.navButton, navigationButton]}>
+              <Button
+                label="Next month"
+                secondary
+                disabled={nextDisabled}
+                onPress={() => {
+                  if (!nextDisabled)
+                    onSelect(shiftCalendarMonth(selectedDate, 1));
+                }}
+              />
+            </View>
+          </View>
+        </>
+      ) : null}
       <ScrollView horizontal contentContainerStyle={styles.gridContent}>
         <View style={styles.grid}>
           <View style={styles.row}>
-            {weekdayNames.map(day => (
+            {weekdays.map(day => (
               <Text key={day} style={[styles.weekday, {color: colors.muted}]}>
                 {day}
               </Text>

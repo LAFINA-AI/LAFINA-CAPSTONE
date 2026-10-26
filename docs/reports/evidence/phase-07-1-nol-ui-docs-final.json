@@ -1,0 +1,11 @@
+{
+  "utc": "2026-10-26T21:05:21.835924+00:00",
+  "branch": "codex/phase-07-1-nol-ui",
+  "baseCommit": "589508d18257c91103056fc8c6ebce5e88c513d3",
+  "incomingNolCommit": "9c183a20eca2377b5e54f219c5f83460b18af81b",
+  "nolIsAncestor": true,
+  "changedMarkdownLocalLinksChecked": 127,
+  "missingLinks": [],
+  "notesBenchmarkHashesChecked": 7,
+  "notesBenchmarkSourceDrift": []
+}
