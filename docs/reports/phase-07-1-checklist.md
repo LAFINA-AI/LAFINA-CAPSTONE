@@ -20,7 +20,8 @@ approved offline core, not authorization for Phase 08 or online services.
   layout and speech-draft copy/discard pass, plus native alarm ACK/taskTODO.
 - [x] Restore emulator settings and remove only new synthetic test fixtures.
 - [x] Save report, ADR, provenance, evidence and full manual checklist.
-- [ ] Save final local merge/verification commits and final integrity record.
+- [x] Save local merge `ac6ea2a`, preserving checkpoint/upstream ancestry; final
+  documentation/verification commit records report links and current hashes.
 - [ ] Physical phone/real speech/low-RAM acceptance — HUMAN REQUIRED.
 
 Pasted production credentials are not saved or used. Owner must revoke/rotate

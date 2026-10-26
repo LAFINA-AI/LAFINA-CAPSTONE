@@ -1,0 +1,57 @@
+{
+  "phase": "07.1",
+  "recordedAtUtc": "2026-10-26T15:49:24.125044+00:00",
+  "branch": "codex/phase-07-1-integration",
+  "integrationCommit": "ac6ea2a0fbe693c67289491c1b0179cbfee9ebdc",
+  "parents": [
+    "0d06b24f0e650df03baf4e0f6abbe5e385e48916",
+    "9c183a20eca2377b5e54f219c5f83460b18af81b"
+  ],
+  "upstreamAncestorVerified": true,
+  "localMain": "b3eefb853be7c658a38186d330eb8aaf4be8eea2",
+  "remotePushed": false,
+  "retainedCorePaths": [
+    "AGENTS.md",
+    "src/core/domain",
+    "src/core/storage",
+    "src/core/ai",
+    "src/core/native",
+    "src/core/voice",
+    "android/app/src/main/java",
+    "android/app/src/main/cpp",
+    "android/app/src/main/AndroidManifest.xml"
+  ],
+  "retainedCoreDiff": [],
+  "sourceFiles": 266,
+  "sourceDrift": [],
+  "artifacts": 7,
+  "artifactDrift": [],
+  "localMarkdownLinks": 146,
+  "brokenLinks": [],
+  "candidateSecretScan": {
+    "textFiles": 601,
+    "findings": [],
+    "scope": "Current tracked/untracked nonignored candidate text, not a whole-history/gitleaks audit or provider rotation."
+  },
+  "verificationCommands": {
+    "sourceWhitespace": "git diff --cached --check -- src __tests__ scripts android package.json package-lock.json",
+    "sourceResult": "PASS",
+    "rawEvidenceWhitespace": "Full unconfigured check flags intentional Markdown hard breaks/raw tool-log trailing blanks; logs preserved byte-for-byte. Invocation-only whitespace exclusions used; no persistent Git policy changed."
+  },
+  "finalInstalledApkSha256": "91772a0767fe5dc57f4b2e4d50271cdfb0ab8d6d26b9e470cdae42855916f026",
+  "files": {
+    "docs\\reports\\evidence\\phase-07-1-source-hashes-reviewed.json": "433f4b34611e40af8a937e690dbf9b3411aa04bdbb014afa94e66884650c9763",
+    "docs\\reports\\evidence\\phase-07-1-artifacts-reviewed.json": "4fd35916d44ba54fca2318ec9fd7e0564e18db9b02692b30f4db148772688501",
+    "docs\\reports\\evidence\\phase-07-1-emulator-cleanup.json": "7b795d28ab82262e2dab5a846341e99481103044fc719e4bc86d0d16183a347b",
+    "docs\\reports\\phase-07-1-report.md": "d5ca3e2f20dba77c3e16b0c5e6084bfc41be95a36d43de4c4efac65f3f741a93",
+    "docs\\reports\\evidence\\phase-07-1-preflight-final.log": "ccca698b73835adaaa87d682636cf57ac15cec5076ef11f7d0eac9051d9ab97a",
+    "docs\\reports\\evidence\\phase-07-1-android-reviewed.log": "badcde28a959fe630d43f417177152724180d531b9a333513431901127a4fa64",
+    "docs\\reports\\evidence\\phase-07-1-instrumentation-final.log": "22c6fe7862e3a768caa16d4e62f2aab76feccad6899cf731f5fe9db79ca64f89"
+  },
+  "status": "AWAITING DEVICE VALIDATION",
+  "limitations": [
+    "No physical Android phone, live ASR accuracy, audible quality, low-RAM/PSS/startup/battery/OEM delivery acceptance.",
+    "Final documentation verification commit may follow; application source/artifact hashes are frozen here.",
+    "Phase08 remains unapproved; no backend credentials saved/used."
+  ]
+}

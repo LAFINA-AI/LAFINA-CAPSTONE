@@ -3,6 +3,9 @@
 **Branch:** `codex/phase-07-1-integration`  
 **Checkpoint:** `0d06b24f0e650df03baf4e0f6abbe5e385e48916`  
 **Incoming:** `9c183a20eca2377b5e54f219c5f83460b18af81b`  
+**Integration commit:** `ac6ea2a0fbe693c67289491c1b0179cbfee9ebdc` (local merge;
+parents are the saved checkpoint and incoming revision). A final documentation/
+verification commit records this result without changing application source.
 **Date:** 2026-10-26, Asia/Manila; exact UTC run times in evidence.  
 **Device:** existing Medium_Phone, `sdk_gphone16k_x86_64`, API37 beta,
 x86_64/16KiB-page emulator (`emulator-5554`); no physical phone.  
@@ -32,6 +35,7 @@ git pull --no-commit --no-ff origin main
 # 73 conflicts recorded. Resolve replacement conflicts to the saved checkpoint:
 git restore --source=0d06b24f0e650df03baf4e0f6abbe5e385e48916 --staged --worktree -- .
 # Then selectively adapt reviewed presentation and save the merge locally.
+git commit -m "merge: integrate reviewed LAFINA presentation with confirmed offline core"
 ```
 
 The [pull log](evidence/phase-07-1-pull.log),
@@ -162,6 +166,13 @@ matched old/new performance or physical reliability. The
 [cleanup ledger](evidence/phase-07-1-emulator-cleanup.json) retains the two raw
 timestamps and the sample limitation.
 
+Final [integrity/merge verification](evidence/phase-07-1-final-integrity.json)
+checks all266 source hashes and7 APKs, retained core content, document links,
+current candidate secret patterns and actual merge parents/ancestry. Strict
+source `git diff --check` passes. The broad whitespace check flags intentional
+Markdown hard breaks and raw tool-log trailing spaces/blank EOF lines; preserve
+those logs byte-for-byte rather than rewriting hashed diagnostic evidence.
+
 ## 6. Emulator-visible checks / cleanup
 
 [Current ledger](evidence/phase-07-1-emulator-handoff.json) distinguishes synthetic
@@ -254,7 +265,7 @@ import and out-of-scope cloud/accounts remain deferred. No Phase08 begins.
 - [x] Current emulator visible checks/restoration finalized.
 - [ ] Physical phone acceptance completed/human-confirmed.
 - [x] Disallowed incoming runtime excluded; existing offline data/core retained.
-- [ ] Final links, evidence/source integrity and local merge commit recorded.
+- [x] Final links, evidence/source integrity and local merge commit recorded.
 
 **STATUS: AWAITING DEVICE VALIDATION**  
 **STOPPED — awaiting explicit human approval for Phase08**
