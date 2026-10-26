@@ -8,6 +8,68 @@ react {
 }
 
 def targetAbis = (project.findProperty('reactNativeArchitectures') ?: 'arm64-v8a,x86_64').split(',')
+// Explicit optional artifact: no model download or machine-local implicit inclusion.
+def whisperAssetDirectory = project.findProperty('whisperModelDir') ? file(project.property('whisperModelDir')) : null
+// Synthetic benchmark clips are test-only assets, never application voice data.
+def sttCorpusDirectory = project.findProperty('sttCorpusDir') ? file(project.property('sttCorpusDir')) : null
+if (sttCorpusDirectory != null) {
+    def expectedCorpus = new File(rootDir.parentFile, 'docs/benchmarks/phase-06-synthetic-audio.json')
+    def stagedCorpus = new File(sttCorpusDirectory, 'corpus-manifest.json')
+    if (!expectedCorpus.isFile() || !stagedCorpus.isFile() || !java.util.Arrays.equals(expectedCorpus.bytes, stagedCorpus.bytes)) {
+        throw new GradleException('Synthetic corpus manifest differs from the reviewed local-only benchmark cohort.')
+    }
+    def corpus = new groovy.json.JsonSlurper().parse(expectedCorpus)
+    def expectedIds = ['assignment', 'biology', 'today', 'calculus', 'cancel', 'complete'] as Set
+    if (corpus.kind != 'SYNTHETIC_WINDOWS_SAPI_AUDIO_NO_MICROPHONE' ||
+        corpus.samples.size() != expectedIds.size() || (corpus.samples.collect { it.id } as Set) != expectedIds) {
+        throw new GradleException('The optional corpus must contain the six reviewed synthetic fixtures.')
+    }
+    def allowedCorpusAssets = (corpus.samples.collect { it.file } + ['corpus-manifest.json']) as Set
+    fileTree(sttCorpusDirectory).files.each { asset ->
+        def relativeAsset = sttCorpusDirectory.toPath().relativize(asset.toPath()).toString().replace('\\', '/')
+        if (!allowedCorpusAssets.contains(relativeAsset)) {
+            throw new GradleException('An unreviewed file is present in the optional synthetic corpus directory.')
+        }
+    }
+    corpus.samples.each { sample ->
+        def clip = new File(sttCorpusDirectory, sample.file)
+        if (!clip.isFile() || clip.length() != sample.bytes ||
+            java.security.MessageDigest.getInstance('SHA-256').digest(clip.bytes).encodeHex().toString() != sample.sha256) {
+            throw new GradleException('Synthetic corpus clip checksum/size differs from the reviewed fixture.')
+        }
+    }
+}
+if (whisperAssetDirectory != null) {
+    def allowedWhisperAssets = ['stt/ggml-tiny-q5_1.bin', 'stt/WHISPER-MODEL-LICENSE.txt', 'stt/model-manifest.json'] as Set
+    fileTree(whisperAssetDirectory).files.each { asset ->
+        def relativeAsset = whisperAssetDirectory.toPath().relativize(asset.toPath()).toString().replace('\\', '/')
+        if (!allowedWhisperAssets.contains(relativeAsset)) {
+            throw new GradleException('Optional Whisper asset directory contains an unreviewed file; inspect before building.')
+        }
+    }
+    if (!new File(whisperAssetDirectory, 'stt/WHISPER-MODEL-LICENSE.txt').isFile() ||
+        !new File(whisperAssetDirectory, 'stt/model-manifest.json').isFile()) {
+        throw new GradleException('The pinned model must be accompanied by its license and provenance manifest.')
+    }
+    def modelLicense = new File(whisperAssetDirectory, 'stt/WHISPER-MODEL-LICENSE.txt')
+    if (java.security.MessageDigest.getInstance('SHA-256').digest(modelLicense.bytes).encodeHex().toString() !=
+        'b5d65a59060e68c4ff940e1eddfa6f94b2d68fdf58ed7f4dd57721c997e35e9d') {
+        throw new GradleException('The staged model license differs from the reviewed MIT notice.')
+    }
+    def whisperModel = new File(whisperAssetDirectory, 'stt/ggml-tiny-q5_1.bin')
+    if (!whisperModel.isFile() || whisperModel.length() != 32152673L) {
+        throw new GradleException('Stage the reviewed Whisper model with scripts/prepare-whisper-model.ps1 first.')
+    }
+    def whisperDigest = java.security.MessageDigest.getInstance('SHA-256')
+    whisperModel.withInputStream { input ->
+        byte[] buffer = new byte[65536]
+        int count
+        while ((count = input.read(buffer)) > 0) { whisperDigest.update(buffer, 0, count) }
+    }
+    if (whisperDigest.digest().encodeHex().toString() != '818710568da3ca15689e31a743197b520007872ff9576237bda97bd1b469c3d7') {
+        throw new GradleException('Whisper model checksum differs from the reviewed artifact.')
+    }
+}
 // ARMv7 has not been compiled or validated on a 32-bit phone. Opt in explicitly.
 if (targetAbis.contains('armeabi-v7a') && project.findProperty('enableExperimentalArmv7') != 'true') {
     throw new GradleException('ARMv7 is experimental: add -PenableExperimentalArmv7=true to validate it separately.')
@@ -22,11 +84,32 @@ android {
         applicationId 'com.lafina.capstone'
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        versionCode 3
-        versionName '0.3.0'
+        versionCode 7
+        versionName '0.7.0'
         testInstrumentationRunner 'androidx.test.runner.AndroidJUnitRunner'
         buildConfigField 'boolean', 'ENABLE_PLANNER_HARNESS', 'false'
+        buildConfigField 'boolean', 'WHISPER_MODEL_INCLUDED', whisperAssetDirectory != null ? 'true' : 'false'
+        externalNativeBuild {
+            cmake {
+                arguments '-DANDROID_SUPPORT_FLEXIBLE_PAGE_SIZES=ON'
+            }
+        }
     }
+    externalNativeBuild {
+        cmake {
+            path file('src/main/cpp/CMakeLists.txt')
+            version '3.22.1'
+        }
+    }
+    sourceSets {
+        main {
+            if (whisperAssetDirectory != null) { assets.srcDir whisperAssetDirectory }
+        }
+        androidTest {
+            if (sttCorpusDirectory != null) { assets.srcDir sttCorpusDirectory }
+        }
+    }
+    androidResources { noCompress += 'bin' }
     // Separate ABI APKs avoid shipping other architectures to a low-end phone.
     splits {
         abi {

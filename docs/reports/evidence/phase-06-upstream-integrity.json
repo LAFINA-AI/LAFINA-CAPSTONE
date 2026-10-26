@@ -1,0 +1,23 @@
+{
+  "recordedAtUtc": "2026-10-25T16:52:43.996249+00:00",
+  "phase": "06",
+  "kind": "STATIC_UPSTREAM_ARTIFACT_INTEGRITY_NOT_BUILD_OR_DEVICE_PROOF",
+  "upstream": "https://github.com/ggml-org/whisper.cpp",
+  "revision": "d1be6fde11ac6e0407606b4e42fe72d34add8037",
+  "archiveSha256": "6be93b881acb415c5a25d0ef85bb6a488099de0296e072e22a66d50f20ec40b9",
+  "upstreamSelectedFileCount": 95,
+  "selectedFilesMatchArchive": true,
+  "selectedFilesMatchManifest": true,
+  "runtimeNoticeMatchesUpstreamLicense": true,
+  "runtimeNoticeSha256": "94f29bbed6a22c35b992c5c6ebf0e7c92f13b836b90f36f461c9cf2f0f1d010d",
+  "model": {
+    "bytes": 32152673,
+    "sha256": "818710568da3ca15689e31a743197b520007872ff9576237bda97bd1b469c3d7",
+    "publisherRevision": "fb5ed9369c26eaf08392504d8446da431e0fffb9"
+  },
+  "limits": [
+    "Read-only local archive/source/model comparison, not independently reproduced model conversion/quantization.",
+    "No inference, native build, microphone, device accuracy or performance test performed by this integrity check.",
+    "Downloaded archive/model remain ignored; only selected upstream source/license and metadata are versioned."
+  ]
+}

@@ -110,6 +110,57 @@ export interface UpcomingItem {
   date: string | null;
   occurrenceKey: string;
 }
+export interface PlannerPage<T> {
+  items: T[];
+  hasMore: boolean;
+}
+export interface TaskPageQuery {
+  filter: 'active' | 'completed' | 'all';
+  offset?: number;
+  limit?: number;
+}
+export interface AgendaQuery {
+  fromDate: string;
+  toDate: string;
+  timezone: string;
+  after?: string;
+  limit?: number;
+  includeCompleted?: boolean;
+}
+/** One source occurrence. Ongoing events are grouped on the first visible date. */
+export interface AgendaItem {
+  key: string;
+  kind: 'task' | 'event';
+  id: string;
+  title: string;
+  date: string;
+  at: string | null;
+  endAt: string | null;
+  occurrenceKey: string;
+  status: string;
+  timezone: string;
+}
+export interface AgendaPage {
+  items: AgendaItem[];
+  nextCursor: string | null;
+}
+export interface ReminderPageQuery {
+  kind: 'task' | 'event';
+  id: string;
+  offset?: number;
+  limit?: number;
+}
+export interface ReminderWithJob {
+  reminder: Reminder;
+  job: ReminderJob;
+}
+/** Exact-title command lookup; IDs and versions are resolved from saved rows. */
+export interface PlannerCommandTarget {
+  kind: 'task' | 'event';
+  id: string;
+  title: string;
+  version: number;
+}
 export interface ChatMessage {
   id: string;
   createdAt: string;
@@ -121,6 +172,15 @@ export interface ChatMessage {
 export interface PlannerRepository {
   /** Debug-only finite view, capped at 500 rows per table. Product UI must use paged/windowed APIs. */
   snapshot(): PlannerSnapshot;
+  getTask(id: string): Task | null;
+  getEvent(id: string): AcademicEvent | null;
+  findTargets(query: {
+    kind: 'task' | 'event';
+    title: string;
+  }): PlannerPage<PlannerCommandTarget>;
+  tasksPage(query: TaskPageQuery): PlannerPage<Task>;
+  agendaPage(query: AgendaQuery): AgendaPage;
+  reminderPage(query: ReminderPageQuery): PlannerPage<ReminderWithJob>;
   createTask(command: Mutation<TaskDraft>): Task;
   updateTask(command: Edit<TaskDraft>): Task;
   deleteTask(command: Target): void;

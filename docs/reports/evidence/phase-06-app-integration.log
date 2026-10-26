@@ -1,0 +1,346 @@
+FAIL __tests__/AppDictation.test.tsx (8.832 s)
+  ● keeps the real planner unchanged when an unavailable offline engine leaves a manual draft for review
+
+    Unable to find an element with text: /Draft confirmed/
+
+    <RNCSafeAreaView>
+      <View>
+        <View>
+          <RCTScrollView>
+            <View>
+              <View>
+                <Text>
+                  LAFINA
+                   
+                  <Text>
+                     / STUDENT
+                  </Text>
+                </Text>
+                <View>
+                  <Text
+                    accessibilityRole="header"
+                  >
+                    Chat
+                  </Text>
+                  <Text
+                    accessibilityRole="text"
+                  >
+                    Review a local text or speech draft here. Automatic scheduling commands are not available yet.
+                  </Text>
+                  <Text
+                    accessibilityRole="text"
+                  >
+                    Your local preferences remain available in Settings.
+                  </Text>
+                </View>
+                <View>
+                  <View
+                    accessibilityRole="button"
+                    accessibilityState={
+                      {
+                        "disabled": false,
+                      }
+                    }
+                    accessible={true}
+                  >
+                    <Text>
+                      Show planner help
+                    </Text>
+                  </View>
+                  <Text
+                    accessibilityRole="text"
+                  >
+                    This button gives a fixed help reply. It does not interpret commands or change your schedule.
+                  </Text>
+                  <View>
+                    <Text
+                      accessibilityRole="header"
+                    >
+                      Offline speech draft
+                    </Text>
+                    <Text
+                      accessibilityRole="text"
+                    >
+                      Hold to speak, release to transcribe, then review the words. This screen does not create or change tasks. Drafts and transcripts are not saved; leaving Chat clears them. You can always type instead.
+                    </Text>
+                    <View>
+                      <Text>
+                        Draft text
+                      </Text>
+                      <TextInput
+                        accessibilityLabel="Draft text"
+                        editable={true}
+                        value="cancel my library reminder"
+                      />
+                    </View>
+                    <View
+                      accessibilityRole="button"
+                      accessibilityState={
+                        {
+                          "disabled": false,
+                        }
+                      }
+                      accessible={true}
+                    >
+                      <Text>
+                        Confirm draft text
+                      </Text>
+                    </View>
+                    <Text
+                      accessibilityRole="text"
+                    >
+                      Draft text confirmed on this screen. No task, event or reminder has been created or changed. Scheduling commands are not available in this phase.
+                    </Text>
+                    <View>
+                      <Text>
+                        Speech language
+                      </Text>
+                      <View>
+                        <View
+                          accessibilityLabel="Speech language: English"
+                          accessibilityRole="radio"
+                          accessibilityState={
+                            {
+                              "checked": true,
+                              "disabled": false,
+                            }
+                          }
+                          accessible={true}
+                        >
+                          <Text>
+                            ● 
+                            English
+                          </Text>
+                        </View>
+                        <View
+                          accessibilityLabel="Speech language: Filipino"
+                          accessibilityRole="radio"
+                          accessibilityState={
+                            {
+                              "checked": false,
+                              "disabled": false,
+                            }
+                          }
+                          accessible={true}
+                        >
+                          <Text>
+                            ○ 
+                            Filipino
+                          </Text>
+                        </View>
+                      </View>
+                    </View>
+                    <View>
+                      <Text>
+                        Offline speech engine
+                      </Text>
+                      <View>
+                        <View
+                          accessibilityLabel="Offline speech engine: Automatic"
+                          accessibilityRole="radio"
+                          accessibilityState={
+                            {
+                              "checked": true,
+                              "disabled": false,
+                            }
+                          }
+                          accessible={true}
+                        >
+                          <Text>
+                            ● 
+                            Automatic
+                          </Text>
+                        </View>
+                        <View
+                          accessibilityLabel="Offline speech engine: Android on-device"
+                          accessibilityRole="radio"
+                          accessibilityState={
+                            {
+                              "checked": false,
+                              "disabled": false,
+                            }
+                          }
+                          accessible={true}
+                        >
+                          <Text>
+                            ○ 
+                            Android on-device
+                          </Text>
+                        </View>
+                        <View
+                          accessibilityLabel="Offline speech engine: Whisper local model"
+                          accessibilityRole="radio"
+                          accessibilityState={
+                            {
+                              "checked": false,
+                              "disabled": false,
+                            }
+                          }
+                          accessible={true}
+                        >
+                          <Text>
+                            ○ 
+                            Whisper local model
+                          </Text>
+                        </View>
+                      </View>
+                    </View>
+                    <Text
+                      accessibilityRole="text"
+                    >
+                      Automatic selects a candidate offline engine. Android on-device support depends on the phone and installed language data; Whisper requires the verified local model. Availability checks do not prove recognition works for your language. No online recognizer or automatic language download is used. If a language fails, release and try another engine or type.
+                    </Text>
+                    <Text
+                      accessibilityRole="text"
+                    >
+                      Offline speech is unavailable on this device or build. Check Android speech settings or keep using the draft text field.
+                    </Text>
+                    <View
+                      accessibilityRole="button"
+                      accessibilityState={
+                        {
+                          "disabled": false,
+                        }
+                      }
+                      accessible={true}
+                    >
+                      <Text>
+                        Refresh offline speech options
+                      </Text>
+                    </View>
+                    <Text
+                      accessibilityRole="text"
+                    >
+                      Hold the microphone button to prepare offline speech. Recording starts only while you keep holding.
+                    </Text>
+                    <View
+                      accessibilityHint="Keep your finger pressed while recording; release to transcribe. A permission prompt requires another hold afterward."
+                      accessibilityLabel="Hold to talk"
+                      accessibilityRole="button"
+                      accessibilityState={
+                        {
+                          "busy": false,
+                          "disabled": true,
+                        }
+                      }
+                      accessible={true}
+                    >
+                      <Text>
+                        Hold to talk
+                      </Text>
+                    </View>
+                    <View
+                      accessibilityRole="button"
+                      accessibilityState={
+                        {
+                          "disabled": true,
+                        }
+                      }
+                      accessible={true}
+                    >
+                      <Text>
+                        Cancel speech input
+                      </Text>
+                    </View>
+                    <View
+                      accessibilityRole="button"
+                      accessibilityState={
+                        {
+                          "disabled": false,
+                        }
+                      }
+                      accessible={true}
+                    >
+                      <Text>
+                        Open Android speech settings
+                      </Text>
+                    </View>
+                  </View>
+                </View>
+              </View>
+            </View>
+          </RCTScrollView>
+        </View>
+        <View
+          accessible={false}
+        >
+          <View
+            accessibilityRole="tab"
+            accessibilityState={
+              {
+                "disabled": false,
+                "selected": false,
+              }
+            }
+            accessible={true}
+          >
+            <Text>
+              Today
+            </Text>
+          </View>
+          <View
+            accessibilityRole="tab"
+            accessibilityState={
+              {
+                "disabled": false,
+                "selected": false,
+              }
+            }
+            accessible={true}
+          >
+            <Text>
+              Calendar
+            </Text>
+          </View>
+          <View
+            accessibilityRole="tab"
+            accessibilityState={
+              {
+                "disabled": false,
+                "selected": true,
+              }
+            }
+            accessible={true}
+          >
+            <Text>
+              • 
+              Chat
+            </Text>
+          </View>
+          <View
+            accessibilityRole="tab"
+            accessibilityState={
+              {
+                "disabled": false,
+                "selected": false,
+              }
+            }
+            accessible={true}
+          >
+            <Text>
+              Settings
+            </Text>
+          </View>
+        </View>
+      </View>
+    </RNCSafeAreaView>
+
+      61 |     fireEvent.press(screen.getByRole('button', {name: 'Confirm draft text'}));
+      62 |     expect(screen.getByDisplayValue('cancel my library reminder')).toBeTruthy();
+    > 63 |     expect(screen.getByText(/Draft confirmed/)).toBeTruthy();
+         |                   ^
+      64 |     expect(fixture.repository.tasksPage({filter: 'active'}).items).toHaveLength(
+      65 |       0,
+      66 |     );
+
+      at Object.getByText (__tests__/AppDictation.test.tsx:63:19)
+      at asyncGeneratorStep (node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+      at _next (node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
+
+PASS __tests__/AppSpeech.test.tsx
+
+Test Suites: 1 failed, 1 passed, 2 total
+Tests:       1 failed, 8 passed, 9 total
+Snapshots:   0 total
+Time:        11.15 s
+Ran all test suites matching /__tests__\\AppDictation.test.tsx|__tests__\\AppSpeech.test.tsx/i.

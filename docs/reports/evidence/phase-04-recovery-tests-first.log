@@ -1,0 +1,283 @@
+
+> lafina-capstone@0.1.0 test
+> jest --runInBand --runTestsByPath __tests__/App.test.tsx
+
+FAIL __tests__/App.test.tsx (7.553 s)
+  Phase 01 anonymous foundation
+    √ opens saved preferences even if the runtime timezone lookup throws (1944 ms)
+    √ uses UTC for fresh setup when system timezone discovery fails (62 ms)
+    √ keeps Settings mounted while a preference save is outstanding (245 ms)
+    √ guards tab navigation and preserves edits until discard is confirmed (144 ms)
+    √ guards hardware Back with unsaved preferences and clears dirty state only after a successful save (296 ms)
+    √ guards opening the test harness while Settings has a draft (72 ms)
+    √ keeps Today usable when the device cannot format the saved timezone (77 ms)
+    √ keeps the data harness out of release and opens QA storage only on demand with a recoverable error (185 ms)
+    √ guards a dirty production planner form when switching tabs until discard is confirmed (146 ms)
+    × keeps a committed task after native reconcile fails and clears the old delivery error after the next successful mutation without resuming (140 ms)
+    √ guards hardware Back in a dirty production event form and preserves it when staying (165 ms)
+    √ saves anonymous setup only on completion and persists across remount (207 ms)
+    √ retains input and blocks navigation after a failed save, then permits retry (201 ms)
+    √ validates a timezone without writing invalid preferences (78 ms)
+    √ recovers from failed storage initialization instead of using volatile defaults (61 ms)
+    √ updates theme/settings, shows honest placeholders and reopens setup without losing preferences (265 ms)
+    √ does not advance until an outstanding save resolves (141 ms)
+
+  ● Phase 01 anonymous foundation › keeps a committed task after native reconcile fails and clears the old delivery error after the next successful mutation without resuming
+
+    Unable to find an element with text: Task · IN_PROGRESS
+
+    <RNCSafeAreaView>
+      <View>
+        <View>
+          <RCTScrollView>
+            <View>
+              <View>
+                <Text>
+                  LAFINA
+                   
+                  <Text>
+                     / STUDENT
+                  </Text>
+                </Text>
+                <View>
+                  <Text
+                    accessibilityRole="header"
+                  >
+                    You're set, Student.
+                  </Text>
+                  <Text
+                    accessibilityRole="text"
+                  >
+                    Wednesday, October 21, 2026
+                  </Text>
+                  <Text>
+                    A quieter place for your academic plans.
+                  </Text>
+                  <Text
+                    accessibilityRole="text"
+                  >
+                    Plan your academic day below. Review Android reminder delivery in Settings.
+                  </Text>
+                  <Text
+                    accessibilityRole="text"
+                  >
+                    Timezone: UTC. No account or connection required.
+                  </Text>
+                  <View
+                    accessibilityRole="button"
+                    accessibilityState={
+                      {
+                        "disabled": false,
+                      }
+                    }
+                    accessible={true}
+                  >
+                    <Text>
+                      Adjust my preferences
+                    </Text>
+                  </View>
+                </View>
+                <View>
+                  <Text
+                    accessibilityRole="text"
+                  >
+                    Saved on this phone. Reminder registration does not prove delivery.
+                  </Text>
+                  <Text
+                    accessibilityRole="alert"
+                  >
+                    Android alerts are off or notifications are blocked. Items still save locally. Open Settings → Reminder delivery to enable alerts.
+                  </Text>
+                  <View>
+                    <View
+                      accessibilityRole="button"
+                      accessibilityState={
+                        {
+                          "disabled": false,
+                        }
+                      }
+                      accessible={true}
+                    >
+                      <Text>
+                        Back to planner
+                      </Text>
+                    </View>
+                    <Text
+                      accessibilityRole="text"
+                    >
+                      Task is in progress.
+                    </Text>
+                    <View
+                      accessibilityRole="button"
+                      accessibilityState={
+                        {
+                          "disabled": false,
+                        }
+                      }
+                      accessible={true}
+                    >
+                      <Text>
+                        Refresh item
+                      </Text>
+                    </View>
+                    <Text
+                      accessibilityRole="header"
+                    >
+                      Synthetic delivery recovery
+                    </Text>
+                    <Text
+                      accessibilityRole="text"
+                    >
+                      Task · IN PROGRESS
+                    </Text>
+                    <Text
+                      accessibilityRole="text"
+                    >
+                      No due date
+                    </Text>
+                    <Text
+                      accessibilityRole="text"
+                    >
+                      Schedule timezone: UTC. Display timezone: UTC.
+                    </Text>
+                    <View
+                      accessibilityRole="button"
+                      accessibilityState={
+                        {
+                          "disabled": false,
+                        }
+                      }
+                      accessible={true}
+                    >
+                      <Text>
+                        Edit task
+                      </Text>
+                    </View>
+                    <View
+                      accessibilityRole="button"
+                      accessibilityState={
+                        {
+                          "disabled": false,
+                        }
+                      }
+                      accessible={true}
+                    >
+                      <Text>
+                        Mark task complete
+                      </Text>
+                    </View>
+                    <View
+                      accessibilityRole="button"
+                      accessibilityState={
+                        {
+                          "disabled": false,
+                        }
+                      }
+                      accessible={true}
+                    >
+                      <Text>
+                        Delete task
+                      </Text>
+                    </View>
+                    <Text
+                      accessibilityRole="header"
+                    >
+                      Reminders
+                    </Text>
+                    <Text
+                      accessibilityRole="text"
+                    >
+                      Acknowledging an alert never completes a task. Snooze changes the next alert time, not the academic deadline. Android delivery remains subject to permissions and device settings.
+                    </Text>
+                    <Text
+                      accessibilityRole="text"
+                    >
+                      No reminders for this item. Edit a timed item to add one.
+                    </Text>
+                  </View>
+                </View>
+              </View>
+            </View>
+          </RCTScrollView>
+        </View>
+        <View
+          accessible={false}
+        >
+          <View
+            accessibilityRole="tab"
+            accessibilityState={
+              {
+                "disabled": false,
+                "selected": true,
+              }
+            }
+            accessible={true}
+          >
+            <Text>
+              • 
+              Today
+            </Text>
+          </View>
+          <View
+            accessibilityRole="tab"
+            accessibilityState={
+              {
+                "disabled": false,
+                "selected": false,
+              }
+            }
+            accessible={true}
+          >
+            <Text>
+              Calendar
+            </Text>
+          </View>
+          <View
+            accessibilityRole="tab"
+            accessibilityState={
+              {
+                "disabled": false,
+                "selected": false,
+              }
+            }
+            accessible={true}
+          >
+            <Text>
+              Chat
+            </Text>
+          </View>
+          <View
+            accessibilityRole="tab"
+            accessibilityState={
+              {
+                "disabled": false,
+                "selected": false,
+              }
+            }
+            accessible={true}
+          >
+            <Text>
+              Settings
+            </Text>
+          </View>
+        </View>
+      </View>
+    </RNCSafeAreaView>
+
+      408 |         ).toBeNull();
+      409 |       });
+    > 410 |       expect(screen.getByText('Task · IN_PROGRESS')).toBeTruthy();
+          |                     ^
+      411 |       expect(
+      412 |         fixture.repository.tasksPage({filter: 'active'}).items,
+      413 |       ).toHaveLength(1);
+
+      at Object.getByText (__tests__/App.test.tsx:410:21)
+      at asyncGeneratorStep (node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+      at _next (node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
+
+Test Suites: 1 failed, 1 total
+Tests:       1 failed, 16 passed, 17 total
+Snapshots:   0 total
+Time:        7.769 s
+Ran all test suites within paths "__tests__/App.test.tsx".

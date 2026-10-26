@@ -1,0 +1,107 @@
+
+> lafina-capstone@0.1.0 preflight
+> npm run typecheck && npm run lint && npm run format:check && npm test && npm run check:architecture
+
+
+> lafina-capstone@0.1.0 typecheck
+> tsc --noEmit
+
+
+> lafina-capstone@0.1.0 lint
+> eslint src __tests__ index.js --max-warnings 0
+
+
+> lafina-capstone@0.1.0 format:check
+> prettier --check src __tests__ scripts *.js *.json .github/workflows/*.yml
+
+Checking formatting...
+All matched files use Prettier code style!
+
+> lafina-capstone@0.1.0 test
+> jest --runInBand
+
+PASS __tests__/PlannerScreen.test.tsx (9.686 s)
+  ● Console
+
+    console.error
+      An update to PlannerScreen inside a test was not wrapped in act(...).
+      
+      When testing, code that causes React state updates should be wrapped into act(...):
+      
+      act(() => {
+        /* fire events that update state */
+      });
+      /* assert on the output */
+      
+      This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+
+      153 |         if (!active) return;
+      154 |         const blocked = !value.enabled || !value.notifications;
+    > 155 |         setDeliveryWarning(
+          |         ^
+      156 |           blocked || !value.exact || value.channelImportance < 3,
+      157 |         );
+      158 |         setDelivery(
+
+      at node_modules/react-test-renderer/cjs/react-test-renderer.development.js:14402:19
+      at runWithFiberInDEV (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:2315:13)
+      at warnIfUpdatesNotWrappedWithActDEV (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:14401:9)
+      at scheduleUpdateOnFiber (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:12086:9)
+      at dispatchSetStateInternal (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:6208:13)
+      at dispatchSetState (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:6165:7)
+      at setDeliveryWarning (src/features/calendar/PlannerScreen.tsx:155:9)
+
+    console.error
+      An update to PlannerScreen inside a test was not wrapped in act(...).
+      
+      When testing, code that causes React state updates should be wrapped into act(...):
+      
+      act(() => {
+        /* fire events that update state */
+      });
+      /* assert on the output */
+      
+      This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+
+      156 |           blocked || !value.exact || value.channelImportance < 3,
+      157 |         );
+    > 158 |         setDelivery(
+          |         ^
+      159 |           blocked
+      160 |             ? 'Android alerts are off or notifications are blocked. Items still save locally. Open Settings → Reminder delivery to enable alerts.'
+      161 |             : !value.exact
+
+      at node_modules/react-test-renderer/cjs/react-test-renderer.development.js:14402:19
+      at runWithFiberInDEV (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:2315:13)
+      at warnIfUpdatesNotWrappedWithActDEV (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:14401:9)
+      at scheduleUpdateOnFiber (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:12086:9)
+      at dispatchSetStateInternal (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:6208:13)
+      at dispatchSetState (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:6165:7)
+      at setDelivery (src/features/calendar/PlannerScreen.tsx:158:9)
+
+PASS __tests__/App.test.tsx
+PASS __tests__/PlannerForm.test.tsx
+PASS __tests__/plannerQueries.test.ts
+PASS __tests__/ReminderSettings.test.tsx
+PASS __tests__/plannerRepository.test.ts
+PASS __tests__/PlannerHarness.test.tsx
+PASS __tests__/plannerDisplay.test.ts
+PASS __tests__/dateTimePicker.test.ts
+PASS __tests__/PreferencesForm.test.tsx
+PASS __tests__/reminders.test.ts
+PASS __tests__/plannerMigrations.test.ts
+PASS __tests__/storage.test.ts
+PASS __tests__/scheduleTime.test.ts
+PASS __tests__/preferences.test.ts
+PASS __tests__/formatOverviewDate.test.ts
+
+Test Suites: 16 passed, 16 total
+Tests:       206 passed, 206 total
+Snapshots:   0 total
+Time:        23.028 s, estimated 40 s
+Ran all test suites.
+
+> lafina-capstone@0.1.0 check:architecture
+> node scripts/check-architecture.mjs
+
+PASS: 32 TypeScript modules; no import cycles or forbidden offline dependencies; Phase 04 native permissions/process boundaries checked.

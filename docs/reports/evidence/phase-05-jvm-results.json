@@ -1,0 +1,63 @@
+{
+  "phase": "05",
+  "recordedAtUtc": "2026-10-25T06:34:53.2613068Z",
+  "label": "JVM_UNIT_TEST_XML_NOT_ANDROID_DEVICE_TESTS",
+  "buildLog": "docs/reports/evidence/phase-05-android-recovered.log",
+  "totals": {
+    "suites": 4,
+    "tests": 42,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0,
+    "durationSeconds": 0.118
+  },
+  "suites": [
+    {
+      "suite": "com.lafina.capstone.reminders.AlarmRegistrationPolicyTest",
+      "timestamp": "2026-10-25T06:32:47.543Z",
+      "sourceXml": "android/app/build/test-results/testDataQaUnitTest/TEST-com.lafina.capstone.reminders.AlarmRegistrationPolicyTest.xml",
+      "sourceXmlSha256": "39c82707093d4b5673d330e8083105c75954c988315be6a6eb5ee278c7b827c0",
+      "tests": 8,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "durationSeconds": 0.037
+    },
+    {
+      "suite": "com.lafina.capstone.reminders.ReminderIdentityKeyTest",
+      "timestamp": "2026-10-25T06:32:47.582Z",
+      "sourceXml": "android/app/build/test-results/testDataQaUnitTest/TEST-com.lafina.capstone.reminders.ReminderIdentityKeyTest.xml",
+      "sourceXmlSha256": "1f4d09e3dca9a0bad0711d8eeed2f6016f88eabd805985f9186ee7d68bc4f378",
+      "tests": 3,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "durationSeconds": 0.029
+    },
+    {
+      "suite": "com.lafina.capstone.reminders.ReminderPolicyTest",
+      "timestamp": "2026-10-25T06:32:47.616Z",
+      "sourceXml": "android/app/build/test-results/testDataQaUnitTest/TEST-com.lafina.capstone.reminders.ReminderPolicyTest.xml",
+      "sourceXmlSha256": "ea9f39de8be47a0e7f5df15632bc1747d2d03994e3b0c39fc074c4af2f02d2b2",
+      "tests": 19,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "durationSeconds": 0.026
+    },
+    {
+      "suite": "com.lafina.capstone.voice.SpeechPolicyTest",
+      "timestamp": "2026-10-25T06:32:47.645Z",
+      "sourceXml": "android/app/build/test-results/testDataQaUnitTest/TEST-com.lafina.capstone.voice.SpeechPolicyTest.xml",
+      "sourceXmlSha256": "50b222177c0402a47944f70dcfc2463e0361cf6f8e296c6f45efd1b29bebb49d",
+      "tests": 12,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "durationSeconds": 0.026
+    }
+  ],
+  "taskLines": [
+    "> Task :app:testDataQaUnitTest"
+  ]
+}

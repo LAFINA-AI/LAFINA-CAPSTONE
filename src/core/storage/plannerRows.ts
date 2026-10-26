@@ -10,7 +10,7 @@ import {
   validateLead,
   validateTask,
 } from '../domain/plannerValidation';
-import {assertUtc} from '../domain/scheduleTime';
+import {assertUtc, localDateTime, localToUtc} from '../domain/scheduleTime';
 
 type Row = Record<string, unknown>;
 
@@ -68,7 +68,10 @@ export function decodeTask(row: Row): Task {
   assertUtc(task.updatedAt);
   return task;
 }
-export function decodeEvent(row: Row): AcademicEvent {
+export function decodeEvent(
+  row: Row,
+  options: {validateSeries?: boolean} = {},
+): AcademicEvent {
   const recurrence = nullable(row, 'recurrence');
   const event: AcademicEvent = {
     id: str(row, 'id'),
@@ -90,7 +93,34 @@ export function decodeEvent(row: Row): AcademicEvent {
     createdAt: str(row, 'created_at'),
     updatedAt: str(row, 'updated_at'),
   };
-  validateEvent(event, event.reminderLeadMinutes);
+  if (options.validateSeries !== false || event.recurrence === null) {
+    validateEvent(event, event.reminderLeadMinutes);
+  } else {
+    // Product window queries must not expand an entire year merely to decode
+    // each row. Preserve structural/start validation; requested occurrences
+    // are still resolved strictly (including DST gaps/folds) by the query.
+    validateEvent({...event, recurrence: null}, event.reminderLeadMinutes);
+    const local = localDateTime(event.startAt, event.timezone);
+    const firstDate = Date.parse(`${local.date}T00:00:00.000Z`);
+    const lastDate = Date.parse(`${event.recurrence.untilDate}T00:00:00.000Z`);
+    const days = (lastDate - firstDate) / 86400000 + 1;
+    if (
+      days < 1 ||
+      days > 366 ||
+      Date.parse(event.endAt) - Date.parse(event.startAt) > 86400000 ||
+      new Date(event.startAt).getUTCSeconds() !== 0 ||
+      new Date(event.startAt).getUTCMilliseconds() !== 0 ||
+      !event.recurrence.weekdays.includes(new Date(firstDate).getUTCDay()) ||
+      localToUtc(
+        local.date,
+        local.time,
+        event.timezone,
+        event.recurrence.fold,
+      ) !== event.startAt
+    ) {
+      throw new Error('Invalid stored weekly class bounds or starting time.');
+    }
+  }
   assertUtc(event.createdAt);
   assertUtc(event.updatedAt);
   return event;

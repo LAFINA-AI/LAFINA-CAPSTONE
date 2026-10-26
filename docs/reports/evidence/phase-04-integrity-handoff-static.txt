@@ -1,0 +1,19 @@
+Phase04 handoff static integrity - 2026-10-24T14:52:15.1701585Z
+Build:BUILD SUCCESSFUL in 2m 17s; 320 actionable tasks: 27 executed, 293 up-to-date
+Build SHA256:41ef9a1e32b9344a4f0429d99ec2af1d68a520c5bfcce2e0740f614eefe67c04
+Branch:codex/phase-04-manual-planner
+Base:b3eefb853be7c658a38186d330eb8aaf4be8eea2
+SOURCE HASHES/BYTES:PASS 111 files;0 mismatches.
+CHANGED SINCE REVIEWED SOURCE COHORT:src/features/onboarding/PreferencesForm.tsx
+APK HASHES/BYTES:PASS 7 APKs;0 mismatches; aapt2 permissions/badging inspected.
+BENCHMARK SOURCE HASHES:PASS docs/benchmarks/phase-04-queries-host-student.json;10 files;0 mismatches; existing measurements preserved.
+BENCHMARK SOURCE HASHES:PASS docs/benchmarks/phase-04-queries-host-current.json;10 files;0 mismatches; existing measurements preserved.
+JVM XML HASHES:PASS 3 suites;0 mismatches.
+JVM XML ACTUAL COUNTS:30 tests;0 failures;0 errors;0 skipped;0.152 sec.
+JVM TASK IN HANDOFF BUILD:UP-TO-DATE; reused actual initial Phase04 XML, not rerun.
+MANIFEST SHA256:phase-04-artifacts-handoff.json;fb6eaa5a82e01bf9111e40446e194694c2b223040271cb6cd8075246d85286a1
+MANIFEST SHA256:phase-04-source-hashes-handoff.json;488a13e4e99870c60c849139c3e799e352239064b8c5e9eb1ca158bef8bf857a
+MANIFEST SHA256:phase-04-jvm-results-handoff.json;458778110d29e50c6182b2e1e6af51540e65fe67da29b07842d5dd0fdf864e4e
+Historical manifests/source/benchmark cohorts preserved unchanged.
+NOT RUN BY THIS CHECK: tests, builds, ADB/UI actions, physical-phone checks, Android performance measurements.
+LIMITATION: hashes describe this handoff source/build cohort; no installed-app or native-feature functional claim is inferred.

@@ -1,0 +1,7 @@
+__tests__/SpeechInputPanel.test.tsx(31,5): error TS2322: Type 'Mock<Promise<{ accepted: boolean; sessionId: string; engine: string; }>, [sessionId: string], any>' is not assignable to type '(sessionId: string, language: SpeechInputLanguage, engine: SpeechInputEnginePreference) => Promise<SpeechInputAcceptance>'.
+  Type 'Promise<{ accepted: boolean; sessionId: string; engine: string; }>' is not assignable to type 'Promise<SpeechInputAcceptance>'.
+    Type '{ accepted: boolean; sessionId: string; engine: string; }' is not assignable to type 'SpeechInputAcceptance'.
+      Types of property 'engine' are incompatible.
+        Type 'string' is not assignable to type 'SpeechInputEngine | undefined'.
+__tests__/SpeechInputPanel.test.tsx(175,9): error TS2322: Type 'Promise<void>' is not assignable to type 'Promise<undefined>'.
+  Type 'void' is not assignable to type 'undefined'.

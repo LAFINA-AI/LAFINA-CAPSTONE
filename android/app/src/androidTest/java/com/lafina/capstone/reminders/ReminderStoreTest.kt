@@ -57,6 +57,45 @@ class ReminderStoreTest {
     assertEquals("WRONG_DATABASE_PROCESS", error.code)
   }
 
+  @Test fun missingAndTextOnlySpeechPreferencesNeverEnableReminderAudio() {
+    assertFalse(store.speechPreferences().enabled)
+    execute("INSERT INTO app_settings VALUES(1,'{\"schemaVersion\":1,\"replyMode\":\"text\"}')")
+    assertFalse(store.speechPreferences().enabled)
+    assertNull(store.speechPreferences().options)
+  }
+
+  @Test fun legacyVoicePreferenceUsesSafeOfflineSelectionDefaultsWithoutWritingSettings() {
+    val payload = "{\"schemaVersion\":1,\"replyMode\":\"voice\"}"
+    open().use { it.execSQL("INSERT INTO app_settings VALUES(1,?)", arrayOf(payload)) }
+    val preferences = store.speechPreferences()
+    assertTrue(preferences.enabled)
+    assertEquals("en-US", preferences.options!!.languageTag)
+    assertNull(preferences.options.enginePackage)
+    assertNull(preferences.options.voiceName)
+    assertEquals(payload, scalar("SELECT payload FROM app_settings"))
+    assertEquals("TODO", scalar("SELECT status FROM tasks"))
+  }
+
+  @Test fun explicitSpeechOptionsAreReadFromTheSharedPreferencePayload() {
+    val payload = "{\"schemaVersion\":1,\"replyMode\":\"both\",\"tts\":{\"enginePackage\":\"test.engine\",\"voiceName\":\"offline\",\"languageTag\":\"fil-PH\",\"rate\":0.75,\"pitch\":1.25}}"
+    open().use { it.execSQL("INSERT INTO app_settings VALUES(1,?)", arrayOf(payload)) }
+    val preferences = store.speechPreferences()
+    assertTrue(preferences.enabled)
+    assertEquals("test.engine", preferences.options!!.enginePackage)
+    assertEquals("offline", preferences.options.voiceName)
+    assertEquals("fil-PH", preferences.options.languageTag)
+    assertEquals(0.75, preferences.options.rate, 0.0)
+    assertEquals(1.25, preferences.options.pitch, 0.0)
+  }
+
+  @Test fun malformedSpeechPreferencesDisableOnlyAudioWithoutChangingReminderOrTask() {
+    execute("INSERT INTO app_settings VALUES(1,'{\"schemaVersion\":1,\"replyMode\":\"both\",\"tts\":{\"rate\":\"1\"}}')")
+    assertFalse(store.speechPreferences().enabled)
+    assertEquals("INVALID_SPEECH_PREFERENCES", store.speechPreferences().reason)
+    assertEquals("PENDING", store.get(identity)!!.status)
+    assertEquals("TODO", scalar("SELECT status FROM tasks"))
+  }
+
   @Test fun missingDatabaseIsNeverCreated() {
     val absent = "lafina-phase03-test-${UUID.randomUUID()}.sqlite"
     assertThrows(RecoverableStoreException::class.java) { ReminderStore(context, absent).settings() }

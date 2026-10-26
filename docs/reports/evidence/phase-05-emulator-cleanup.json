@@ -1,0 +1,22 @@
+{
+  "utc": "2026-10-25T07:01:52.765106+00:00",
+  "restored": true,
+  "physical": false,
+  "connectivity": {
+    "airplane_mode_on": "0",
+    "wifi_on": "1",
+    "mobile_data": "1"
+  },
+  "replyMode": "text",
+  "deliveryEnabled": false,
+  "fullScreenEnabled": false,
+  "fullScreenObservation": "Never changed during Phase05; inherited OFF Phase04 state.",
+  "nativeCounts": "Native jobs: 0 pending, 0 ringing, 0 registered, 0 failed. Registration does not prove delivery.",
+  "installedApkSha256": "8b06f7033a79f0837ba392d2c183d8eefbbbdb0baa78ace3b605b15890e99a21",
+  "sourceCohort": "phase-05-source-hashes-handoff.json",
+  "artifactCohort": "phase-05-artifacts-handoff.json",
+  "speechPreferences": "New Phase05 local voice selection retained: com.google.android.tts / en-US-language / en-US / rate1 / pitch1. This optional field did not exist before Phase05.",
+  "preserved": "No user/legacy data cleared; original theme/timezone/lead/snooze/quiet hours retained. Removed only new QA05 manual-save task and newly created synthetic alarm through UI deletion.",
+  "leftOpen": "Chat with fixed help in Text mode; no active speech or test jobs.",
+  "physicalPhone": "NOT RUN"
+}

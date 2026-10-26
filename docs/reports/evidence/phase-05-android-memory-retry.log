@@ -1,0 +1,61 @@
+To honour the JVM settings for this build a single-use Daemon process will be forked. For more on this, please refer to https://docs.gradle.org/9.3.1/userguide/gradle_daemon.html#sec:disabling_the_daemon in the Gradle documentation.
+Daemon will be stopped at the end of the build 
+> Task :gradle-plugin:settings-plugin:checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :gradle-plugin:shared:checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :gradle-plugin:shared:compileKotlin UP-TO-DATE
+> Task :gradle-plugin:shared:compileJava NO-SOURCE
+> Task :gradle-plugin:shared:processResources NO-SOURCE
+> Task :gradle-plugin:shared:classes UP-TO-DATE
+> Task :gradle-plugin:shared:jar
+> Task :gradle-plugin:settings-plugin:compileKotlin UP-TO-DATE
+> Task :gradle-plugin:settings-plugin:compileJava NO-SOURCE
+> Task :gradle-plugin:settings-plugin:pluginDescriptors UP-TO-DATE
+> Task :gradle-plugin:settings-plugin:processResources
+> Task :gradle-plugin:settings-plugin:classes
+> Task :gradle-plugin:settings-plugin:jar
+> Task :gradle-plugin:react-native-gradle-plugin:checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :gradle-plugin:react-native-gradle-plugin:compileKotlin UP-TO-DATE
+> Task :gradle-plugin:react-native-gradle-plugin:compileJava NO-SOURCE
+> Task :gradle-plugin:react-native-gradle-plugin:pluginDescriptors UP-TO-DATE
+> Task :gradle-plugin:react-native-gradle-plugin:processResources
+> Task :gradle-plugin:react-native-gradle-plugin:classes
+> Task :gradle-plugin:react-native-gradle-plugin:jar
+The message received from the daemon indicates that the daemon has disappeared.
+Build request sent: Build{id=59c80720-e10a-4cec-b10c-2e9a10b60a31, currentDir=C:\L3mxr\Github Repositories\LAFINA-CAPSTONE}
+Attempting to read last messages from the daemon log...
+Daemon pid: 36272
+  log file: C:\Users\USER-PC\.gradle\daemon\9.3.1\daemon-36272.out.log
+----- Last 20 lines from daemon log file - daemon-36272.out.log -----
+2026-10-25T00:47:07.236+0800 [DEBUG] [org.gradle.launcher.daemon.server.DefaultIncomingConnectionHandler] Starting executing command: Build{id=59c80720-e10a-4cec-b10c-2e9a10b60a31, currentDir=C:\L3mxr\Github Repositories\LAFINA-CAPSTONE} with connection: socket connection from /127.0.0.1:49710 to /127.0.0.1:49711.
+2026-10-25T00:47:07.239+0800 [DEBUG] [org.gradle.launcher.daemon.server.DaemonStateCoordinator] Command execution: started DaemonCommandExecution[command = Build{id=59c80720-e10a-4cec-b10c-2e9a10b60a31, currentDir=C:\L3mxr\Github Repositories\LAFINA-CAPSTONE}, connection = DefaultDaemonConnection: socket connection from /127.0.0.1:49710 to /127.0.0.1:49711] after 0.0025666666666666667 minutes of idle
+2026-10-25T00:47:07.239+0800 [INFO] [org.gradle.launcher.daemon.server.DaemonRegistryUpdater] Marking the daemon as busy, address: [b69e2cc4-5e6d-4b64-bf35-241908435a55 port:49710, addresses:[localhost/127.0.0.1]]
+2026-10-25T00:47:07.239+0800 [DEBUG] [org.gradle.launcher.daemon.registry.PersistentDaemonRegistry] Marking busy by address: [b69e2cc4-5e6d-4b64-bf35-241908435a55 port:49710, addresses:[localhost/127.0.0.1]]
+2026-10-25T00:47:07.241+0800 [DEBUG] [org.gradle.cache.internal.DefaultFileLockManager] Waiting to acquire exclusive lock on daemon addresses registry.
+2026-10-25T00:47:07.242+0800 [DEBUG] [org.gradle.cache.internal.DefaultFileLockManager] Lock acquired on daemon addresses registry.
+2026-10-25T00:47:07.243+0800 [DEBUG] [org.gradle.cache.internal.DefaultFileLockManager] Releasing lock on daemon addresses registry.
+2026-10-25T00:47:07.243+0800 [DEBUG] [org.gradle.launcher.daemon.server.DaemonStateCoordinator] resetting idle timer
+2026-10-25T00:47:07.243+0800 [DEBUG] [org.gradle.launcher.daemon.server.DaemonStateCoordinator] daemon is running. Sleeping until state changes.
+2026-10-25T00:47:07.245+0800 [INFO] [org.gradle.launcher.daemon.server.exec.StartBuildOrRespondWithBusy] Daemon is about to start building Build{id=59c80720-e10a-4cec-b10c-2e9a10b60a31, currentDir=C:\L3mxr\Github Repositories\LAFINA-CAPSTONE}. Dispatching build started information...
+2026-10-25T00:47:07.245+0800 [DEBUG] [org.gradle.launcher.daemon.server.SynchronizedDispatchConnection] thread 24: dispatching org.gradle.launcher.daemon.protocol.BuildStarted@5a7882e3
+2026-10-25T00:47:07.246+0800 [DEBUG] [org.gradle.launcher.daemon.server.exec.EstablishBuildEnvironment] Configuring env variables: [USERDOMAIN_ROAMINGPROFILE, BROWSER_USE_ACCESS_VERIFYING_IDENTITY, PROCESSOR_LEVEL, GIT_PAGER, ALLUSERSPROFILE, CODEX_MCP_NODE_PATH, CODEX_SHELL, PROCESSOR_ARCHITECTURE, ANDROID_HOME, PSModulePath, SystemDrive, GH_PAGER, CODEX_CLI_PATH, CODEX_APP_TOOLS_PIPE_PATH, COLORTERM, DIRNAME, USERNAME, CODEX_TASK_WORKSPACE_VERIFYING_IDENTITY, ProgramFiles(x86), CODEX_INTERNAL_ORIGINATOR_OVERRIDE, APP_HOME, CODEX_SAGE_BACKFILL_TRACKER_TAB_REUSE, CODEX_SANDBOX_NETWORK_DISABLED, DEFAULT_JVM_OPTS, PATHEXT, SHELL, DriverData, PAGER, CODEX_PERMISSION_PROFILE, CODEX_WINDOWS_SANDBOX_PACKAGE_FAMILY, LOG_FORMAT, ProgramData, ProgramW6432, HOMEPATH, LC_ALL, PROCESSOR_IDENTIFIER, ProgramFiles, PUBLIC, ZSH_TMUX_AUTOSTARTED, windir, LC_CTYPE, CODEX_SESSION_ID, LOCALAPPDATA, ChocolateyLastPathUpdate, USERDOMAIN, LOGONSERVER, JAVA_HOME, PROMPT, RUST_LOG, TERM, LANG, OneDrive, =C:, APPDATA, CODEX_APPLY_PATCH_PRESERVE_LINE_ENDINGS, JAVA_EXE, ChocolateyInstall, CODEX_THREAD_ID, NO_COLOR, VBOX_MSI_INSTALL_PATH, CODEX_CI, CommonProgramFiles, Path, DISABLE_AUTO_UPDATE, OS, COMPUTERNAME, CODEX_TOOL_CALL_ID, FREETOKEN_FT_BIN, PROCESSOR_REVISION, CommonProgramW6432, ComSpec, APP_BASE_NAME, ZSH_TMUX_AUTOSTART, SystemRoot, TEMP, HOMEDRIVE, USERPROFILE, TMP, CommonProgramFiles(x86), CODEX_TECTONIC_PATH, CODEX_VERSION, NUMBER_OF_PROCESSORS, HOME]
+2026-10-25T00:47:07.251+0800 [DEBUG] [org.gradle.launcher.daemon.server.exec.LogToClient] About to start relaying all logs to the client via the connection.
+2026-10-25T00:47:07.252+0800 [INFO] [org.gradle.launcher.daemon.server.exec.LogToClient] The client will now receive all logging from the daemon (pid: 36272). The daemon log file: C:\Users\USER-PC\.gradle\daemon\9.3.1\daemon-36272.out.log
+2026-10-25T00:47:07.253+0800 [DEBUG] [org.gradle.launcher.daemon.server.exec.RequestStopIfSingleUsedDaemon] Requesting daemon stop after processing Build{id=59c80720-e10a-4cec-b10c-2e9a10b60a31, currentDir=C:\L3mxr\Github Repositories\LAFINA-CAPSTONE}
+2026-10-25T00:47:07.253+0800 [LIFECYCLE] [org.gradle.launcher.daemon.server.DaemonStateCoordinator] Daemon will be stopped at the end of the build 
+2026-10-25T00:47:07.253+0800 [DEBUG] [org.gradle.launcher.daemon.server.DaemonStateCoordinator] Stop as soon as idle requested. The daemon is busy
+2026-10-25T00:47:07.253+0800 [DEBUG] [org.gradle.launcher.daemon.server.DaemonStateCoordinator] daemon stop has been requested. Sleeping until state changes.
+2026-10-25T00:47:07.259+0800 [DEBUG] [org.gradle.launcher.daemon.server.exec.ExecuteBuild] The daemon has started executing the build.
+2026-10-25T00:47:07.259+0800 [DEBUG] [org.gradle.launcher.daemon.server.exec.ExecuteBuild] Executing build with daemon context: DefaultDaemonContext[uid=9fe4b0ee-f373-4b57-b634-414c6066ae00,javaHome=C:\Program Files\Microsoft\jdk-17.0.20.101-hotspot,javaVersion=17,javaVendor=Microsoft,daemonRegistryDir=C:\Users\USER-PC\.gradle\daemon,pid=36272,idleTimeout=120000,priority=NORMAL,applyInstrumentationAgent=true,nativeServicesMode=ENABLED,daemonOpts=-XX:MaxMetaspaceSize=384m,-XX:+UseSerialGC,-Xms64m,-Xmx1024m,-Dfile.encoding=UTF-8,-Duser.country=PH,-Duser.language=en,-Duser.variant]----- End of the daemon log -----
+
+JVM crash log found: file:///C:/L3mxr/Github%20Repositories/LAFINA-CAPSTONE/hs_err_pid36272.log
+
+FAILURE: Build failed with an exception.
+
+* What went wrong:
+Gradle build daemon disappeared unexpectedly (it may have been killed or may have crashed)
+
+* Try:
+> Run with --stacktrace option to get the stack trace.
+> Run with --info or --debug option to get more log output.
+> Run with --scan to get full insights from a Build Scan (powered by Develocity).
+> Get more help at https://help.gradle.org.

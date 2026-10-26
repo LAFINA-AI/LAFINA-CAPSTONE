@@ -5,11 +5,13 @@ import com.facebook.react.bridge.NativeModule
 import com.facebook.react.bridge.ReactApplicationContext
 import com.facebook.react.bridge.ReactContextBaseJavaModule
 import com.facebook.react.uimanager.ViewManager
+import com.lafina.capstone.voice.SystemSpeechModule
+import com.lafina.capstone.voice.SystemSpeechInputModule
 
 /** A build flag only; no database, device identifier or planner content crosses this module. */
 class CapstoneBuildPackage : ReactPackage {
   override fun createNativeModules(context: ReactApplicationContext): List<NativeModule> =
-    listOf(CapstoneBuildModule(context))
+    listOf(CapstoneBuildModule(context), DateTimePickerModule(context), SystemSpeechModule(context), SystemSpeechInputModule(context))
 
   override fun createViewManagers(context: ReactApplicationContext): List<ViewManager<*, *>> =
     emptyList()

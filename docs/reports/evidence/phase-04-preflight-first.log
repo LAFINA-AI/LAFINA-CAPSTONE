@@ -1,0 +1,18 @@
+
+> lafina-capstone@0.1.0 preflight
+> npm run typecheck && npm run lint && npm run format:check && npm test && npm run check:architecture
+
+
+> lafina-capstone@0.1.0 typecheck
+> tsc --noEmit
+
+
+> lafina-capstone@0.1.0 lint
+> eslint src __tests__ index.js --max-warnings 0
+
+
+C:\L3mxr\Github Repositories\LAFINA-CAPSTONE\src\features\scheduling\PlannerItemDetails.tsx
+  65:6  error  React Hook useEffect has a missing dependency: 'selection'. Either include it or remove the dependency array. If 'setReminders' needs the current value of 'selection', you can also switch to useReducer instead of useState and read 'selection' in the reducer  react-hooks/exhaustive-deps
+
+✖ 1 problem (1 error, 0 warnings)
+

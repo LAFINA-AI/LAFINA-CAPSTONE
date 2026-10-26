@@ -1,0 +1,117 @@
+{
+  "schemaVersion": 1,
+  "generatedAtUtc": "2026-10-25T17:25:05.216Z",
+  "label": "SYNTHETIC_DIRECT_PCM_ACCURACY_AND_LOAD_DECODE_NOT_REAL_MICROPHONE",
+  "input": "docs/benchmarks/phase-06-whisper-emulator-initial.json",
+  "inputSha256": "b041a375704f43f11c005d0013de7ba324f20eb75b3f5c44a2ea450a2a448cd3",
+  "modelSha256": "818710568da3ca15689e31a743197b520007872ff9576237bda97bd1b469c3d7",
+  "device": {
+    "model": "sdk_gphone16k_x86_64",
+    "api": 37,
+    "abis": [
+      "x86_64",
+      "arm64-v8a"
+    ]
+  },
+  "appVersion": "0.6.0-data-qa",
+  "modelCachePresentBefore": false,
+  "results": {
+    "n": 6,
+    "referenceWords": 36,
+    "errors": 0,
+    "wer": 0,
+    "normalizedExactMatchRate": 1,
+    "samples": [
+      {
+        "id": "assignment",
+        "referenceWords": 7,
+        "hypothesisWords": 7,
+        "substitutions": 0,
+        "deletions": 0,
+        "insertions": 0,
+        "errors": 0,
+        "wer": 0,
+        "normalizedExactMatch": true
+      },
+      {
+        "id": "biology",
+        "referenceWords": 8,
+        "hypothesisWords": 8,
+        "substitutions": 0,
+        "deletions": 0,
+        "insertions": 0,
+        "errors": 0,
+        "wer": 0,
+        "normalizedExactMatch": true
+      },
+      {
+        "id": "today",
+        "referenceWords": 5,
+        "hypothesisWords": 5,
+        "substitutions": 0,
+        "deletions": 0,
+        "insertions": 0,
+        "errors": 0,
+        "wer": 0,
+        "normalizedExactMatch": true
+      },
+      {
+        "id": "calculus",
+        "referenceWords": 7,
+        "hypothesisWords": 7,
+        "substitutions": 0,
+        "deletions": 0,
+        "insertions": 0,
+        "errors": 0,
+        "wer": 0,
+        "normalizedExactMatch": true
+      },
+      {
+        "id": "cancel",
+        "referenceWords": 4,
+        "hypothesisWords": 4,
+        "substitutions": 0,
+        "deletions": 0,
+        "insertions": 0,
+        "errors": 0,
+        "wer": 0,
+        "normalizedExactMatch": true
+      },
+      {
+        "id": "complete",
+        "referenceWords": 5,
+        "hypothesisWords": 5,
+        "substitutions": 0,
+        "deletions": 0,
+        "insertions": 0,
+        "errors": 0,
+        "wer": 0,
+        "normalizedExactMatch": true
+      }
+    ]
+  },
+  "failures": [],
+  "allRequestTimings": {
+    "n": 6,
+    "p50Ms": 2939,
+    "p95NearestRankMs": 3206,
+    "minMs": 2875,
+    "maxMs": 3206
+  },
+  "successfulRequestTimings": {
+    "n": 6,
+    "p50Ms": 2939,
+    "p95NearestRankMs": 3206,
+    "minMs": 2875,
+    "maxMs": 3206
+  },
+  "sampledMaxProcessPssKiB": 167689,
+  "limitations": [
+    "All six rows, including empty/error outcomes, contribute to WER and exact-text rate.",
+    "Exact phrase match is not intent parsing or successful scheduling; Phase07 has not started.",
+    "Timings include model preparation/verification/load/decode from supplied PCM, not hold/release capture or human speech.",
+    "One decoder is loaded/freed per request; OS disk/page caches may be warm.",
+    "Synthetic English SAPI voice does not establish Filipino accents, noisy rooms, phone capture, interruption, battery or low-RAM quality.",
+    "PSS maxima are sampled instrumentation-process observations, not absolute whole-app peaks."
+  ]
+}

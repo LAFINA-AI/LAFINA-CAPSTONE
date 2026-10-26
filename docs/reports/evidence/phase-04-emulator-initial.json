@@ -1,0 +1,63 @@
+{
+  "utc": "2026-10-23T01:00:05.467667+00:00",
+  "device": {
+    "model": "sdk_gphone16k_x86_64",
+    "api": 37,
+    "abi": "x86_64",
+    "physical": false
+  },
+  "version": "0.4.0-data-qa",
+  "installedApkSha256": "f4cb59e616c749689d0888132a9ef365ac69f9226f1411889d63f392b9eaac6e",
+  "checks": [
+    {
+      "check": "manual undated save with delivery off",
+      "result": "PASS",
+      "utc": "2026-10-23T01:02:10.007605+00:00",
+      "observed": "Created ordinary Calendar task offline via productionform; persisted detail showsTODO/no due date with deliverydisabled warning. No QA harness creation or directSQL used."
+    },
+    {
+      "check": "manual invalid date retains draft",
+      "result": "PASS",
+      "utc": "2026-10-23T01:02:54.445092+00:00",
+      "observed": "Productionedit rejectedFebruary31 with visiblevalidation; typedtitle/date remainededitable and nofalseSaved state shown."
+    },
+    {
+      "check": "native Android date picker confirm and cancel",
+      "result": "PASS",
+      "utc": "2026-10-23T01:05:31.721718+00:00",
+      "observed": "Opened real Android DatePickerDialog from ordinary form. Cancel kept draft unchanged; confirmingFeb12,2027 returnedsameYYYY-MM-DD components. NativeUIactual,notmock."
+    },
+    {
+      "check": "manual date-only edit and explicit completion undo",
+      "result": "PASS",
+      "utc": "2026-10-23T01:06:02.511756+00:00",
+      "observed": "Savedvaliddate-only change, markedtaskCOMPLETED explicitly, thenUndo completion restoredTODO. No timedalarm wasinvented."
+    },
+    {
+      "check": "offline force-stop/reopen manual persistence",
+      "result": "PASS",
+      "utc": "2026-10-23T01:06:53.115265+00:00",
+      "observed": "After actual force-stop andfreshlaunch offline, ordinaryTasks view locatedtheeditedtaskwithTODO/date-onlyFeb12,2027 preserved. Priorpreferences/onboarding remainedsaved; noreset/login."
+    },
+    {
+      "check": "native Android 12-hour time picker",
+      "result": "PASS",
+      "utc": "2026-10-23T01:10:49.576015+00:00",
+      "observed": "PM selection returned canonical 21:00; ordinary saved task detail displays 9:00 PM in the selected view."
+    }
+  ],
+  "samples": [],
+  "physicalPhone": "NOT RUN",
+  "automationAttempts": [
+    {
+      "utc": "2026-10-23T01:15:01.611508+00:00",
+      "result": "DRIVER_LOOKUP_FAILED",
+      "observed": "Weekly form attempt stopped before save: the driver required an 85px-high target and skipped the visible native Switch. UI labels confirmed Repeat weekly remained present. Reduced driver lookup threshold; no application code changed."
+    },
+    {
+      "utc": "2026-10-23T01:16:05Z",
+      "result": "DRAFT_VALIDATION_STOP",
+      "observed": "Weekly draft was not saved: validation reported Weekly classes must last at most 24 hours. The driver did not capture the end-date field after entry, so cause was not established. Recheck with readback of every field; no PASS claimed."
+    }
+  ]
+}

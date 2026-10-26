@@ -1,0 +1,32 @@
+FAIL __tests__/ChatScreen.test.tsx (11.93 s)
+  ● offers retry and retains typed text when local storage cannot open
+
+    AggregateError:
+
+      222 |   const f = setup();
+      223 |   try {
+    > 224 |     f.view.rerender(
+          |            ^
+      225 |       <ChatScreen
+      226 |         {...f.props}
+      227 |         factory={() => {
+
+      at aggregateErrors (node_modules/react/cjs/react.development.js:551:11)
+      at Object.<anonymous>.process.env.NODE_ENV.exports.act (node_modules/react/cjs/react.development.js:897:24)
+      at actImplementation (node_modules/@testing-library/react-native/src/act.ts:30:25)
+      at Object.rerender (node_modules/@testing-library/react-native/src/render.tsx:104:13)
+      at Object.rerender (__tests__/ChatScreen.test.tsx:224:12)
+      at asyncGeneratorStep (node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+      at _next (node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
+      at node_modules/@babel/runtime/helpers/asyncToGenerator.js:22:7
+      at Object.<anonymous> (node_modules/@babel/runtime/helpers/asyncToGenerator.js:14:12)
+
+PASS __tests__/App.test.tsx (11.018 s)
+PASS __tests__/AppSpeech.test.tsx
+PASS __tests__/AppDictation.test.tsx
+
+Test Suites: 1 failed, 3 passed, 4 total
+Tests:       1 failed, 36 passed, 37 total
+Snapshots:   0 total
+Time:        26.418 s
+Ran all test suites matching /__tests__\\ChatScreen.test.tsx|__tests__\\AppDictation.test.tsx|__tests__\\AppSpeech.test.tsx|__tests__\\App.test.tsx/i.

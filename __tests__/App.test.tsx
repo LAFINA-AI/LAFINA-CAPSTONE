@@ -6,14 +6,43 @@ import {
   waitFor,
 } from '@testing-library/react-native';
 import {BackHandler} from 'react-native';
+jest.mock('../src/core/storage/openPlanner', () => ({
+  openPlanner: () => ({
+    getTask: jest.fn(() => null),
+    getEvent: jest.fn(() => null),
+    tasksPage: jest.fn(() => ({items: [], hasMore: false})),
+    agendaPage: jest.fn(() => ({items: [], nextCursor: null})),
+    reminderPage: jest.fn(() => ({items: [], hasMore: false})),
+  }),
+}));
 import {App} from '../src/app/App';
+import {alarmClient} from '../src/core/native/reminders';
 import {defaultPreferences} from '../src/core/domain/preferences';
 import type {
   Preferences,
   PreferencesRepository,
 } from '../src/core/domain/preferences';
+import {createPlannerFixture} from './helpers/plannerFixtures';
 
 const now = () => new Date('2026-10-21T00:00:00.000Z');
+beforeEach(() => {
+  // Foundation tests use a resolved, explicitly disabled adapter. No mock
+  // validates Android delivery; planner UI must remain usable without it.
+  jest.spyOn(alarmClient, 'capabilities').mockResolvedValue({
+    sdk: 30,
+    enabled: false,
+    notifications: false,
+    exact: false,
+    fullScreen: false,
+    fullScreenEnabled: false,
+    channelImportance: 0,
+  });
+});
+afterEach(async () => {
+  await act(async () => {});
+  jest.restoreAllMocks();
+});
+
 function store(initial: Preferences | null = null) {
   let saved = initial;
   const repository: PreferencesRepository = {
@@ -98,15 +127,14 @@ describe('Phase 01 anonymous foundation', () => {
     });
     fireEvent.press(screen.getByRole('tab', {name: /Calendar/}));
     expect(screen.getByDisplayValue('Saving draft')).toBeTruthy();
-    expect(
-      screen.queryByText(/Your academic calendar will appear here/),
-    ).toBeNull();
+    expect(screen.queryByText(/Nothing scheduled for this day/)).toBeNull();
     finish?.();
     await screen.findByText('Preferences saved on this phone.');
     fireEvent.press(screen.getByRole('tab', {name: /Calendar/}));
-    expect(
-      screen.getByText(/Your academic calendar will appear here/),
-    ).toBeTruthy();
+    expect(screen.getByText(/Nothing scheduled for this day/)).toBeTruthy();
+    await screen.findByText(
+      /Android alerts are off or notifications are blocked/,
+    );
     expect(screen.queryByText(/You have unsaved preferences/)).toBeNull();
   });
 
@@ -128,9 +156,7 @@ describe('Phase 01 anonymous foundation', () => {
     fireEvent.press(
       screen.getByRole('button', {name: 'Discard preferences and continue'}),
     );
-    expect(
-      screen.getByText(/Your academic calendar will appear here/),
-    ).toBeTruthy();
+    expect(screen.getByText(/Nothing scheduled for this day/)).toBeTruthy();
     fireEvent.press(screen.getByRole('tab', {name: /Settings/}));
     expect(screen.getByDisplayValue('Saved')).toBeTruthy();
     expect(local.repository.save).not.toHaveBeenCalled();
@@ -202,6 +228,10 @@ describe('Phase 01 anonymous foundation', () => {
       />,
     );
     fireEvent.press(await screen.findByRole('tab', {name: /Settings/}));
+    // Today legitimately opens the production planner before Settings. The
+    // guarded QA harness must not cause an additional open until discard.
+    expect(factory).toHaveBeenCalledTimes(1);
+    factory.mockClear();
     fireEvent.changeText(
       screen.getByLabelText('Default snooze (minutes)'),
       '20',
@@ -247,7 +277,7 @@ describe('Phase 01 anonymous foundation', () => {
     }
   });
 
-  it('keeps the data harness out of release and opens QA storage lazily with a recoverable error', async () => {
+  it('keeps the data harness out of release and opens QA storage only on demand with a recoverable error', async () => {
     const local = store({
       ...defaultPreferences('Asia/Manila'),
       onboardingCompletedAt: now().toISOString(),
@@ -267,8 +297,9 @@ describe('Phase 01 anonymous foundation', () => {
     expect(
       screen.queryByRole('button', {name: 'Open data test harness'}),
     ).toBeNull();
-    expect(plannerFactory).not.toHaveBeenCalled();
+    expect(plannerFactory).toHaveBeenCalledTimes(1);
     view.unmount();
+    plannerFactory.mockClear();
     render(
       <App
         repositoryFactory={local.factory}
@@ -278,6 +309,8 @@ describe('Phase 01 anonymous foundation', () => {
       />,
     );
     fireEvent.press(await screen.findByRole('tab', {name: /Settings/}));
+    expect(plannerFactory).toHaveBeenCalledTimes(1);
+    plannerFactory.mockClear();
     fireEvent.press(
       screen.getByRole('button', {name: 'Open data test harness'}),
     );
@@ -288,6 +321,140 @@ describe('Phase 01 anonymous foundation', () => {
     await waitFor(() => expect(plannerFactory).toHaveBeenCalledTimes(2));
     fireEvent.press(screen.getByRole('button', {name: 'Back to preferences'}));
     expect(screen.getByRole('button', {name: 'Save preferences'})).toBeTruthy();
+  });
+  it('guards a dirty production planner form when switching tabs until discard is confirmed', async () => {
+    const local = store({
+      ...defaultPreferences('Asia/Manila'),
+      onboardingCompletedAt: now().toISOString(),
+    });
+    render(<App repositoryFactory={local.factory} now={now} />);
+    await screen.findByText(
+      /Android alerts are off or notifications are blocked/,
+    );
+    fireEvent.press(screen.getByRole('button', {name: 'Add task'}));
+    fireEvent.changeText(screen.getByLabelText('Title'), 'Keep planner draft');
+    fireEvent.press(screen.getByRole('tab', {name: /Settings/}));
+    expect(screen.getByText(/You have unsaved planner changes/)).toBeTruthy();
+    fireEvent.press(screen.getByRole('button', {name: 'Keep editing planner'}));
+    expect(screen.getByDisplayValue('Keep planner draft')).toBeTruthy();
+    fireEvent.press(screen.getByRole('tab', {name: /Settings/}));
+    fireEvent.press(
+      screen.getByRole('button', {
+        name: 'Discard planner changes and continue',
+      }),
+    );
+    expect(screen.getByRole('button', {name: 'Save preferences'})).toBeTruthy();
+    expect(screen.queryByDisplayValue('Keep planner draft')).toBeNull();
+    expect(local.repository.save).not.toHaveBeenCalled();
+  });
+
+  it('keeps a committed task after native reconcile fails and clears the old delivery error after the next successful mutation without resuming', async () => {
+    const fixture = createPlannerFixture();
+    const local = store({
+      ...defaultPreferences('UTC'),
+      onboardingCompletedAt: now().toISOString(),
+    });
+    const capabilities = await alarmClient.capabilities();
+    const reconcile = jest.spyOn(alarmClient, 'reconcile').mockResolvedValue({
+      ...capabilities,
+      scheduled: 0,
+      cancelled: 0,
+      failed: 0,
+    });
+    const view = render(
+      <App
+        repositoryFactory={local.factory}
+        plannerFactory={() => fixture.repository}
+        now={now}
+        showReminderSettings
+      />,
+    );
+    try {
+      await screen.findByText(
+        /Android alerts are off or notifications are blocked/,
+      );
+      await waitFor(() => expect(reconcile).toHaveBeenCalledTimes(1));
+      reconcile.mockRejectedValueOnce(
+        new Error('Native reminder service unavailable'),
+      );
+      fireEvent.press(screen.getByRole('button', {name: 'Add task'}));
+      fireEvent.changeText(
+        screen.getByLabelText('Title'),
+        'Synthetic delivery recovery',
+      );
+      await act(async () => {
+        fireEvent.press(screen.getByRole('button', {name: 'Save task'}));
+      });
+      expect(
+        screen.getByRole('header', {name: 'Synthetic delivery recovery'}),
+      ).toBeTruthy();
+      expect(
+        await screen.findByText(/Android reminder delivery needs attention/),
+      ).toBeTruthy();
+      expect(reconcile).toHaveBeenCalledTimes(2);
+      const saved = fixture.repository.tasksPage({filter: 'active'}).items;
+      expect(saved).toHaveLength(1);
+      expect(saved[0]?.status).toBe('TODO');
+
+      // No AppState bounce: a second durable manual mutation alone retries the
+      // adapter. Its success must clear the earlier failure banner immediately.
+      await act(async () => {
+        fireEvent.press(screen.getByRole('button', {name: 'Start task'}));
+      });
+      await waitFor(() => expect(reconcile).toHaveBeenCalledTimes(3));
+      await waitFor(() => {
+        expect(
+          screen.queryByText(/Android reminder delivery needs attention/),
+        ).toBeNull();
+      });
+      expect(screen.getByText('Task · IN PROGRESS')).toBeTruthy();
+      expect(
+        fixture.repository.tasksPage({filter: 'active'}).items,
+      ).toHaveLength(1);
+      expect(fixture.repository.getTask(saved[0]!.id)?.status).toBe(
+        'IN_PROGRESS',
+      );
+    } finally {
+      view.unmount();
+      fixture.close();
+    }
+  });
+
+  it('guards hardware Back in a dirty production event form and preserves it when staying', async () => {
+    const subscription = jest.spyOn(BackHandler, 'addEventListener');
+    const local = store({
+      ...defaultPreferences('Asia/Manila'),
+      onboardingCompletedAt: now().toISOString(),
+    });
+    render(<App repositoryFactory={local.factory} now={now} />);
+    await screen.findByText(
+      /Android alerts are off or notifications are blocked/,
+    );
+    fireEvent.press(screen.getByRole('button', {name: 'Add event'}));
+    fireEvent.changeText(screen.getByLabelText('Title'), 'Keep weekly draft');
+    act(() => {
+      subscription.mock.calls.at(-1)?.[1]({
+        type: 'hardwareBackPress',
+        timeStamp: 0,
+      });
+    });
+    expect(
+      screen.getByText('Leave this form and discard unsaved changes?'),
+    ).toBeTruthy();
+    fireEvent.press(screen.getByRole('button', {name: 'Keep editing planner'}));
+    expect(screen.getByDisplayValue('Keep weekly draft')).toBeTruthy();
+    act(() => {
+      subscription.mock.calls.at(-1)?.[1]({
+        type: 'hardwareBackPress',
+        timeStamp: 0,
+      });
+    });
+    fireEvent.press(
+      screen.getByRole('button', {name: 'Discard planner changes'}),
+    );
+    expect(screen.getByRole('button', {name: 'Add event'})).toBeTruthy();
+    expect(screen.queryByDisplayValue('Keep weekly draft')).toBeNull();
+    expect(local.repository.save).not.toHaveBeenCalled();
   });
   it('saves anonymous setup only on completion and persists across remount', async () => {
     const local = store();
@@ -352,11 +519,9 @@ describe('Phase 01 anonymous foundation', () => {
     });
     render(<App repositoryFactory={local.factory} now={now} />);
     fireEvent.press(await screen.findByRole('tab', {name: /Calendar/}));
-    await screen.findByText(/Your academic calendar will appear here/);
+    await screen.findByText(/Nothing scheduled for this day/);
     fireEvent.press(screen.getByRole('tab', {name: /Chat/}));
-    await screen.findByText(
-      /Text commands and hold-to-talk are not available yet/,
-    );
+    await screen.findByText(/Every change needs review/);
     fireEvent.press(screen.getByRole('tab', {name: /Settings/}));
     fireEvent.press(screen.getByRole('radio', {name: 'Appearance: Dark'}));
     fireEvent.press(

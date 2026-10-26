@@ -1,0 +1,22 @@
+Phase05 final static integrity — 2026-10-25T07:05:20.4787616Z
+SOURCE:PASS;123 files;0 hash/byte mismatches.
+ARTIFACTS:PASS;7 APKs;0 hash/byte mismatches;bundled permission metadata checked.
+BUILD:PASS;phase-05-android-handoff.log;2m33s;320 tasks;27 executed;293 up-to-date.
+JVM:PASS;42 tests/4 suites;0 failures/errors/skips;0.118s XML. Handoff task UP-TO-DATE; unchanged native tests reused from recovered execution.
+PREFLIGHT:PASS;263 tests/20 suites;18.982s;strict TS/lint/format/35-module AST gates pass.
+ANDROID INSTRUMENTATION:PASS;31 tests;4.265s;API37 x86_64 emulator;not physical audibility proof.
+EMULATOR UI/RESTORATION:PASS;8 final UI checks;installed APK SHA matches;original radios restored;Text/delivery OFF/FSI OFF;0 active/failed native jobs.
+PILOT:5 frozen initial-APK callback samples;source difference to final cohort is App.tsx/AppSpeech.test.tsx only. Native bridge/policy/preview unchanged. Not fresh final-APK measurements.
+MEMORY:3 sequential ready-idle emulator PSS snapshots recorded;not peak/release-phone/low-RAM/energy proof.
+DOC LINKS:PASS;145 local links across 13 documents;0 missing targets.
+GIT DIFF CHECK:PASS;no whitespace errors. No commit/push/legacy mutation performed.
+PHYSICAL PHONE / FIRST AUDIBLE / PHONE FOCUS / BATTERY / PEAK / MATCHED KOKORO:NOT RUN. HUMAN VALIDATION REQUIRED. Phase06 not started.
+SHA256:docs/reports/evidence/phase-05-source-hashes-handoff.json;4b236b13b0cfb45b08ab7c03ba5ab80b9af905f3715c10366f0883cffbb8ce5a
+SHA256:docs/reports/evidence/phase-05-artifacts-handoff.json;d001f2c69fc746a08fb33bedf7a08f79cf5fc40181575bef8c087788ec9da902
+SHA256:docs/reports/evidence/phase-05-preflight-verified.log;ad3b65fbcf1ef72f4ac34b53ef8f35664187c55525732ce5633fed7703cf6300
+SHA256:docs/reports/evidence/phase-05-instrumentation-handoff.log;fdcce45a50263f7943abccc7917c78aebd7cfc422fb37ddf4240d6a6a7922aed
+SHA256:docs/reports/evidence/phase-05-emulator-handoff.json;927533febddcf7fbc762ca127008aa4f1a1b04bba79483531fa94eb10c53e89e
+SHA256:docs/reports/evidence/phase-05-emulator-cleanup.json;5c7dc79f8a4255e5f3268ade74c1e2fd24014225663e2dc23e07d8deaf6745f2
+SHA256:docs/benchmarks/phase-05-system-tts-emulator.json;b31919feea2939d572e19a23462d775d56c3b3d4976a1fbd38f30f1ddbd6bdab
+SHA256:docs/benchmarks/phase-05-memory-snapshot.json;b92ebbe8e04f345a6c54dac2b1b4aa42df97ea765dbcf012e32e443a21ea626b
+SHA256:docs/reports/phase-05-report.md;b67721fa2404b0c8d81ef2167a29811f3ef2fa982ca60df16f0bc1f197bdb3b0

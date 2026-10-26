@@ -30,6 +30,7 @@ import {
   oneOf,
 } from './plannerRows';
 import {createReminderOperations} from './reminderOperations';
+import {createPlannerQueries} from './plannerQueries';
 import type {LocalSqlConnection} from './preferencesRepository';
 
 const systemClock: Clock = {now: () => new Date().toISOString()};
@@ -200,6 +201,7 @@ export function createPlannerRepository(
     return event;
   }
   return {
+    ...createPlannerQueries(db),
     snapshot() {
       const tasks = db.execute(
         'SELECT * FROM tasks WHERE deleted_at IS NULL ORDER BY created_at,id LIMIT 501',
@@ -218,7 +220,7 @@ export function createPlannerRepository(
       );
       return {
         tasks: tasks.slice(0, 500).map(decodeTask),
-        events: events.slice(0, 500).map(decodeEvent),
+        events: events.slice(0, 500).map(row => decodeEvent(row)),
         reminders: pendingReminders.slice(0, 500).map(decodeReminder),
         jobs: jobs.slice(0, 500).map(decodeJob),
         ...(truncated ? {truncated: true} : {}),

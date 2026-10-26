@@ -1,0 +1,21 @@
+{
+  "utc": "2026-10-26T00:50:50.785295+00:00",
+  "kind": "STATIC_SOURCE_ARTIFACT_DOCUMENT_CHECK_NOT_HUMAN_DEVICE_PASS",
+  "sourceCount": 249,
+  "sourceDrift": [],
+  "sourceManifest": "docs/reports/evidence/phase-06-source-hashes-initial.json",
+  "sourceManifestSha256": "4bb0a0824e4999be4e98d17ce914030161e70ab5abdf132f690dfc7034a608b6",
+  "apkCount": 7,
+  "apkDrift": [],
+  "artifactManifestSha256": "c5f0856e27223ff80e96a805c346ad3d8457de42014074e7207576b775c17f41",
+  "localMarkdownLinksChecked": 181,
+  "brokenLocalLinks": [],
+  "reportSha256": "60bf18b127c994a7ed5a1ea62675a4d20e2db2fe0180add9db71c8f65f1f8ef7",
+  "cleanupSha256": "f960fbf91479efccbd107ec79529237fb15eb128ffa3b5eaf492ce9ed5f0f913",
+  "verifiedPreflightSha256": "b3c1ce5f56ad571a49b5d0d560f5853c3fac383893c6d6e6f87fb6a0070d45a1",
+  "limitations": [
+    "No new application edits after tested249-file cohort; docs/local UI helper corrections only.",
+    "Physical speech and full successful microphone-to-transcript acceptance remain HUMAN REQUIRED.",
+    "Graphify unavailable; actual AST check is separate."
+  ]
+}

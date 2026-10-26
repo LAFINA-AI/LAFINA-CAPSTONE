@@ -6,6 +6,8 @@ import android.database.Cursor
 import android.database.DatabaseErrorHandler
 import android.database.sqlite.SQLiteDatabase
 import com.lafina.capstone.BuildConfig
+import com.lafina.capstone.voice.ReminderSpeechPreferences
+import com.lafina.capstone.voice.SystemSpeech
 import org.json.JSONObject
 import java.time.LocalDate
 
@@ -51,6 +53,23 @@ class ReminderStore(
       if (!cursor.moveToFirst()) return@use "system"
       val theme = try { JSONObject(cursor.text("payload")).opt("theme") } catch (_: Exception) { null }
       if (theme is String && theme in listOf("system", "light", "dark")) theme else "system"
+    }
+  }
+
+  /** Fixed preference read in :reminders only. Corruption disables speech, never schedules a write. */
+  fun speechPreferences(): ReminderSpeechPreferences = transaction { db ->
+    db.rawQuery("SELECT payload FROM app_settings WHERE id=1", null).use { cursor ->
+      if (!cursor.moveToFirst()) return@use ReminderSpeechPreferences(false)
+      try {
+        val value = JSONObject(cursor.text("payload"))
+        require(value.get("schemaVersion") == 1)
+        when (value.getString("replyMode")) {
+          "text" -> ReminderSpeechPreferences(false)
+          "voice", "both" -> ReminderSpeechPreferences(true,
+            SystemSpeech.options(if (value.has("tts")) value.getJSONObject("tts") else JSONObject()))
+          else -> ReminderSpeechPreferences(false, reason = "INVALID_SPEECH_PREFERENCES")
+        }
+      } catch (_: Exception) { ReminderSpeechPreferences(false, reason = "INVALID_SPEECH_PREFERENCES") }
     }
   }
 

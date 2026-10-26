@@ -1,0 +1,27 @@
+{
+  "utc": "2026-10-26T00:36:43.472148+00:00",
+  "emulatorVersion": "37.1.11.0",
+  "systemImage": "API37 beta, x86_64,16KiB pages",
+  "events": [
+    {
+      "attempt": "virtual-audio",
+      "result": "NOT VERIFIED",
+      "details": "RPC_STREAM_ERROR and ADB255 with emulator process exit. No transcript/capture PASS; host microphone disabled."
+    },
+    {
+      "attempt": "software graphics restart",
+      "result": "HOST STARTUP FAILURE",
+      "details": "Failed to load opengl32sw; fallback then crash-report consent dialog. No app assertion involved."
+    },
+    {
+      "attempt": "host GLES, Vulkan off",
+      "result": "RESTARTED",
+      "details": "Used launch-only crash-report-mode never, no-metrics and no-display-layout to bypass prior crash dialog; no reports uploaded. Final state recorded separately."
+    }
+  ],
+  "limits": [
+    "Not proof that app caused host crash.",
+    "Does not invalidate earlier independent direct PCM benchmark or completed instrumentation.",
+    "No data wipe, emulator replacement or model/source change."
+  ]
+}

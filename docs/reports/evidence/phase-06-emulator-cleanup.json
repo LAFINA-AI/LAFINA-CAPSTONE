@@ -1,0 +1,38 @@
+{
+  "utc": "2026-10-26T00:48:33.149391+00:00",
+  "installedApkSha256": "84665ac178a315f539effeb32c632795acbd73a6493ff16bf693b3740741afbb",
+  "version": "0.6.0-data-qa",
+  "device": {
+    "model": "sdk_gphone16k_x86_64",
+    "api": 37,
+    "abi": "x86_64",
+    "physical": false
+  },
+  "restoredConnectivity": {
+    "airplane_mode_on": "0",
+    "wifi_on": "1",
+    "mobile_data": "1"
+  },
+  "microphonePermission": false,
+  "microphoneAppOpsRunning": false,
+  "hostMicrophoneProbe": {
+    "method": "getMicrophoneState",
+    "grpcStatus": 0,
+    "realAudioEnabled": false,
+    "source": "read-only-local-loopback"
+  },
+  "nativeDeliveryEnabled": false,
+  "remainingNativeCounts": {
+    "pending": 0,
+    "ringing": 0,
+    "registered": 0,
+    "failed": 0
+  },
+  "foreground": "Chat",
+  "newPhase06Fixtures": "Both synthetic tasks explicitly deleted through UI; historical fixtures preserved.",
+  "limitations": [
+    "End-to-end spoken transcript from virtual microphone NOT VERIFIED; direct PCM benchmark is separate.",
+    "No physical ARM64/API30/accent/call/battery/low-RAM acceptance.",
+    "Host microphone left disabled; owner must enable emulator host input deliberately or use a physical phone."
+  ]
+}

@@ -1,0 +1,145 @@
+{
+  "utc": "2026-10-24T14:51:56.702795+00:00",
+  "device": {
+    "model": "sdk_gphone16k_x86_64",
+    "api": 37,
+    "abi": "x86_64",
+    "physical": false
+  },
+  "version": "0.4.0-data-qa",
+  "installedApkSha256": "668d7957695b96ea7d69c8efb7b40f2e7cf8a56783808f41e8476cac57cd5ee5",
+  "checks": [
+    {
+      "check": "upgrade and native permission preconditions",
+      "result": "PASS",
+      "utc": "2026-10-24T14:52:50.084434+00:00",
+      "observed": "Handoff APK upgraded without clearing data. Saved preferences/onboarding remained available. Enabled delivery temporarily; API 37 reports notifications and exact timing allowed, full-screen off, quiet hours off."
+    },
+    {
+      "check": "ordinary timed task saved and registered offline",
+      "result": "PASS",
+      "utc": "2026-10-24T14:55:39.080746+00:00",
+      "observed": "Created QA04 offline deadline through normal task form, UTC 2026-10-24 14:57, explicit reminder lead 0. Detail retains TODO and shows the same next alert. Airplane on; Wi-Fi/mobile data off."
+    },
+    {
+      "check": "ordinary timed task saved and registered offline",
+      "result": "PASS",
+      "utc": "2026-10-24T15:00:28.194740+00:00",
+      "observed": "Created QA04 offline deadline retry through normal task form, UTC 2026-10-24 15:02, explicit reminder lead 0. Detail retains TODO and shows the same next alert. Airplane on; Wi-Fi/mobile data off."
+    },
+    {
+      "check": "manual planner to background Android notification offline",
+      "result": "PASS",
+      "utc": "2026-10-24T15:02:04.913937+00:00",
+      "observed": "Synthetic normal-form reminder appeared in Android notification state while Home was foreground. No QA quick-create or direct SQL injection was used."
+    },
+    {
+      "check": "native snooze refreshes selected planner detail",
+      "result": "PASS",
+      "utc": "2026-10-24T15:02:34.716229+00:00",
+      "observed": "Tapped the real Android reminder, used native Snooze 10 minutes, reopened MainActivity. Existing selected detail automatically refreshed to SNOOZED and new next-alert time; underlying task remains TODO. Original alert 2026-10-24 \u00b7 15:02; next alert 2026-10-24 \u00b7 15:12"
+    },
+    {
+      "check": "separate completion and undo without alert replay",
+      "result": "PASS",
+      "utc": "2026-10-24T15:08:09.836189+00:00",
+      "observed": "Explicit completion cancelled the earlier outstanding snoozed alert. Reopening that unhandled occurrence could rearm it, as existing policy permits. After its response window expired to MISSED, completion and Undo restored TODO while the reminder stayed MISSED; no further replay was created."
+    },
+    {
+      "check": "manual bounded weekly class with verified fields",
+      "result": "PASS",
+      "utc": "2026-10-24T15:10:27.330724+00:00",
+      "observed": "Created UTC Monday/Wednesday class from 2027-02-01 through 2027-02-10 inclusive, 09:00\u201310:00, reminders off. Every input was read back from its EditText. Production detail confirms the weekly-series end and whole-series edit/delete behavior."
+    },
+    {
+      "check": "weekly class agenda navigates two school weeks",
+      "result": "PASS",
+      "utc": "2026-10-24T15:11:26.480435+00:00",
+      "observed": "Selected 2027-02-01 in ordinary Calendar and found the weekly event; Next week selected 2027-02-08 and found the same series. No reminder dependency or direct SQL used."
+    },
+    {
+      "check": "weekly inclusive final day and next-day exclusion",
+      "result": "PASS",
+      "utc": "2026-10-24T15:12:50.838461+00:00",
+      "observed": "Calendar showed the Wednesday class on 2027-02-10, the inclusive final date, and no class on 2027-02-11. The event has no reminder and remains available in offline agenda."
+    },
+    {
+      "check": "manual timed save with Android notification permission revoked",
+      "result": "PASS",
+      "utc": "2026-10-24T15:14:16.164470+00:00",
+      "observed": "Actually revoked POST_NOTIFICATIONS on API37, reopened offline and saved a normal timed task with explicit reminder. Item persisted TODO with a blocked-notifications warning; no alert guarantee was shown."
+    },
+    {
+      "check": "production delete confirmation and keep-item path",
+      "result": "PASS",
+      "utc": "2026-10-24T15:14:39.957338+00:00",
+      "observed": "On the synthetic blocked-permission task, Keep item cancelled deletion, then Confirm delete removed only that item and cancelled its outstanding reminder."
+    },
+    {
+      "check": "final emulator controls restored and no active jobs",
+      "result": "PASS",
+      "utc": "2026-10-24T15:16:55.832615+00:00",
+      "observed": "Restored delivery off, full-screen off, POST_NOTIFICATIONS allowed and exact timing allowed. Native diagnostics show zero pending/ringing/registered/failed jobs. Quiet-hours preference was observed off and never changed. Only synthetic task/event fixtures were touched."
+    }
+  ],
+  "samples": [
+    {
+      "event": "NOTIFICATION_POSTED",
+      "atUtc": "2026-10-24T15:03:49.324Z",
+      "plannedAt": "2026-10-24T15:02:00.000Z",
+      "lagMs": 109324.0,
+      "scenario": "Undo completion rearmed an unhandled recent-overdue occurrence; interval starts at original due time"
+    },
+    {
+      "event": "CLAIM_RING",
+      "atUtc": "2026-10-24T15:03:49.270Z",
+      "plannedAt": "2026-10-24T15:02:00.000Z",
+      "lagMs": 109270.0,
+      "scenario": "Undo completion rearmed an unhandled recent-overdue occurrence; interval starts at original due time"
+    },
+    {
+      "event": "NOTIFICATION_POSTED",
+      "atUtc": "2026-10-24T15:02:00.047Z",
+      "plannedAt": "2026-10-24T15:02:00.000Z",
+      "lagMs": 47.0,
+      "scenario": "ordinary offline manual reminder; Home foreground"
+    },
+    {
+      "event": "CLAIM_RING",
+      "atUtc": "2026-10-24T15:02:00.014Z",
+      "plannedAt": "2026-10-24T15:02:00.000Z",
+      "lagMs": 14.0,
+      "scenario": "ordinary offline manual reminder; Home foreground"
+    }
+  ],
+  "physicalPhone": "NOT RUN",
+  "automationAttempts": [
+    {
+      "utc": "2026-10-24T14:53:55.916924+00:00",
+      "result": "DRIVER_CONCURRENCY_STOP",
+      "observed": "Two UI-driver sessions overlapped before a task was created; uiautomator exited 137. Both sessions stopped and original radios restored. This is a driver failure, not an app pass or app defect."
+    },
+    {
+      "utc": "2026-10-24T14:58:57.956632+00:00",
+      "result": "REDACTED_OBSERVER_AND_EXPIRED_RECOVERY",
+      "observed": "The first timed reminder was present in dumpsys notification --noredact at 14:57:46Z. The driver had polled default redacted output and timed out at due+30s; recovery reached the shade after the 60s ringing window and found no alert. Retry uses unredacted output only in private memory and publishes only the synthetic observation. No app-delivery failure rate or successful snooze is inferred from this attempt."
+    },
+    {
+      "utc": "2026-10-24T15:06:37.029778+00:00",
+      "result": "INCORRECT_UNDO_EXPECTATION",
+      "observed": "Completion cancelled the snoozed alert as expected. The driver then incorrectly expected Undo to preserve CANCELLED. Existing source policy rearms unhandled occurrences when a task is reopened; only ACKNOWLEDGED/MISSED occurrences are protected from replay. The recent original deadline rang again. No source change inferred; validate the terminal-outcome case and clarify docs."
+    }
+  ],
+  "priorCohort": "phase-04-emulator-initial.json",
+  "instrumentation": "phase-04-instrumentation-handoff.log",
+  "timeoutEvents": [
+    "RING_TIMEOUT \u00b7 2026-10-24T15:04:49.279Z \u00b7 planned 2026-10-24T15:04:49.270Z",
+    "RING_TIMEOUT \u00b7 2026-10-24T14:58:00.051Z \u00b7 planned 2026-10-24T14:58:00.025Z"
+  ],
+  "timingLimitations": [
+    "Diagnostic labels show only the most recent 10 native events; this is not a complete trace of every attempt.",
+    "UTC planned due to native claim/post timestamp is not first visible or audible latency.",
+    "The ordinary event and deliberate overdue rearm are different scenarios; do not pool a percentile or infer a reliability rate.",
+    "Original observer failure and older first-reminder timestamps remain separately recorded; no missing samples are fabricated."
+  ]
+}

@@ -1,0 +1,17 @@
+Phase04 static integrity evidence — 2026-10-23T01:04:47.234Z
+Branch: codex/phase-04-manual-planner
+Base commit: b3eefb853be7c658a38186d330eb8aaf4be8eea2
+HEAD commit: b3eefb853be7c658a38186d330eb8aaf4be8eea2
+Manifest: docs/reports/evidence/phase-04-source-hashes.json
+Manifest SHA256: 769ad3ba7ef6e28e5761d5fd6058b942a300ac06adb9106e0171a193b885c5ae
+SOURCE HASHES: PASS 111 files; 0 mismatches.
+APK HASHES/BYTES: PASS 7 built artifacts; 0 mismatches.
+BENCHMARK SOURCE HASHES: PASS docs/benchmarks/phase-04-queries-host-student.json; 10 files; 0 mismatches.
+BENCHMARK SOURCE HASHES: PASS docs/benchmarks/phase-04-queries-host-current.json; 10 files; 0 mismatches.
+JVM SOURCE XML HASHES: PASS 3 suites; 0 mismatches.
+LOCAL DOCUMENT TARGETS: PASS 11 documents; 69 local link occurrences; 0 missing/invalid targets.
+PREFLIGHT LOG INSPECTION: PASS existing phase-04-preflight-complete.log records207 tests/16 suites; tests were NOT rerun for this check.
+INSTRUMENTATION LOG INSPECTION: PASS existing phase-04-instrumentation.log records23 tests/9.202seconds; instrumentation was NOT rerun for this check.
+REPORT DRAFT NOTE: Pending integration rows still present when this static record was created; root will finalize actual device/build/handoff rows.
+NOT RUN BY THIS CHECK: builds, tests, UI automation, ADB operations, physical-phone checks, Android performance measurements.
+LIMITATION: These are static source/artifact/log/target checks. No physical-phone or emulator functional success is inferred from hashes.

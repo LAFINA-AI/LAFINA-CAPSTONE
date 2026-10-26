@@ -14,6 +14,8 @@
 | ADR-010 | USTP RAG initially ported from Pinecone/legacy Python | DEFERRED | Phase 10 citations/quality/license review |
 | ADR-011 | Minimal UI, use legacy patterns + semantic theme | ACCEPTED | Phase 01 usability |
 | ADR-012 | Separate student and future business products; no shared runtime dependency | ACCEPTED | Phase 00 import graph |
+| ADR-019 | Explicit hold, on-device-only recognizer and optional verified Whisper; local draft review | IMPLEMENTED direction; acceptance pending | Phase06 actual build, offline engine/device and performance evidence |
+| ADR-020 | Pure deterministic commands, strict intents and private confirmed executor; transient chat | IMPLEMENTED direction; acceptance pending | Phase07 retained first/regression corpus, transaction/UI tests and actual offline device review |
 
 Every change to these requires a short ADR in `docs/decisions/` using template, with rejected alternatives, rationale, effects on quality/performance, exact benchmark and approval. Never turn a provisional into accepted silently. If Android platform restrictions invalidate a design, stop and present alternatives for approval.
 
@@ -74,3 +76,90 @@ the private process/SQLite journal boundary, consent and platform fallbacks.
 findings, bounded QA reads, Settings draft protection, UTC fallback and experimental
 ARMv7 gating. Physical checks remain pending; approval is not fabricated device
 evidence. Phase04 is not authorized.
+
+## Phase 04 record — 2026-10-23
+
+Owner requested independent verification/fixes of the new Antigravity report and
+wrote “you can proceed to phase 04.” This explicit natural-language approval
+authorizes only Phase 04; it does not certify missing physical-device checks.
+The starting checkout was clean `main` at `b3eefb8`, containing the owner's prior
+Phase 02/03 commit. Changes use `codex/phase-04-manual-planner`.
+
+[ADR-016](decisions/ADR-016-planner-queries.md) records bounded production reads
+and measured synthetic host workloads; [ADR-017](decisions/ADR-017-manual-planner-ui.md)
+records manual form/navigation/native-picker and save/delivery boundaries. No
+new runtime dependency, schema migration, voice engine or cloud service is added.
+The [external-audit verification](audits/phase-04-independent-audit.md) corrects
+unsupported safety, memory, permission, coverage and performance claims. No
+legacy code/assets were copied. Actual outcomes belong to the Phase 04 report.
+Phase 05 remained unapproved at that handoff; the later record below supersedes
+that phase authorization only.
+
+## Phase 05 record — 2026-10-25
+
+Owner explicitly answered **`APPROVE PHASE 05`** to beginning Android system
+text-to-speech while leaving physical-phone validation pending. No Phase 05
+source edits preceded that exact approval. Branch
+`codex/phase-05-system-tts` retains uncommitted Phase 04 work; its frozen
+111-file handoff manifest distinguishes the prior source from the new phase.
+No commit, push, legacy write or model distribution is implied.
+
+[ADR-018](decisions/ADR-018-system-tts.md) implements ADR-005's system TTS
+direction: lazy native ownership, installed offline-voice metadata checks,
+bounded replacement/diagnostics, focus and lifecycle cancellation, compatible
+local preferences and readable text in every mode. Visible reminders and canned
+planner replies use this adapter; no STT, intent execution, generative model,
+Kokoro cache or network dependency is introduced. Caching remains deferred for
+lack of measured benefit. [The pinned legacy audit](audits/phase-05-legacy-tts.md)
+records reviewed paths and why Kokoro assets/runtime were not ported.
+
+Implementation and callback evidence do not complete phone audibility, offline
+quality, focus, performance or matched Kokoro validation. Exact outcomes belong
+to [the Phase 05 report](reports/phase-05-report.md). The previous phone gates
+remain pending; Phase 06 requires separate explicit approval.
+
+## Phase06 record —2026-10-26 continuation
+
+Owner explicitly wrote **`APPROVE PHASE 06`**, reviewed Phase05 and requested
+emulator installation plus manual checks. Work uses `codex/phase-06-offline-stt`,
+retaining uncommitted Phase04/05 source and the frozen preceding manifest. This
+does not turn earlier physical-phone gates into PASS or authorize Phase07.
+
+[ADR-019](decisions/ADR-019-offline-stt.md) implements the conditional direction
+of ADR-006: explicit hold, permission-at-use/fresh hold after grant, one
+cross-process lease, on-device-only Android factory and optional checked
+Whisper Tiny fallback. Failure ends a hold; fallback never reopens the mic
+silently. A local draft remains independent of engine availability and has no
+scheduling side effect. Native Answer/ACK precedes optional visible dictation
+and still leaves the task incomplete.
+
+[Model/runtime provenance](third-party/phase-06-provenance.md) records reviewed
+MIT source, exact optional weights/notice hashes, no application downloader and
+the separate test-corpus flag. Source/model availability is not an accuracy,
+performance or low-RAM acceptance result. [The Phase06 report](reports/phase-06-report.md)
+records actual executed gates and missing phone/benchmark evidence. No engine
+winner, resident decoder/cache benefit or old/new speedup is assumed.
+
+## Phase07 record — 2026-10-26
+
+Owner explicitly wrote **`APPROVE PHASE 07`**, reviewed Phase06, requested emulator
+execution and a manual checklist. Work uses `codex/phase-07-offline-intents` and
+preserves uncommitted Phase04–06 changes. The frozen Phase06 source manifest is
+the prior cohort; neither approval nor a new parser score closes physical speech,
+low-RAM, alarm or TTS acceptance. Phase08 remains unapproved.
+
+[ADR-020](decisions/ADR-020-confirmed-offline-commands.md) implements ADR-007's
+rules-first direction: pure anchored English grammar, selected-timezone/strict
+intent validation, bounded exact target resolution and one private expiring
+confirmation session. Existing transactions/receipts own writes; optional speech
+and post-commit Android reconciliation stay outside the transaction. ACK never
+completes a task. Chat is capped at40 memory-only messages; no new history or
+privacy setting, model, schema migration, permission or runtime dependency is added.
+
+The independently frozen first64-case evaluation was62/64 exact, with two
+undated-title suffix mismatches preserved. The unchanged-label post-fix64/64 run
+is regression evidence, not a new held-out estimate. Host parsing timings do not
+measure Android UI, alarm, STT, physical PSS or battery. The
+[pinned review](audits/phase-07-legacy-intents.md) found no verified legacy model
+inference to justify importing SmolLM2. Actual complete gates/build/emulator
+outcomes and remaining human checks belong to [the Phase07 report](reports/phase-07-report.md).

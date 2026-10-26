@@ -1,4 +1,8 @@
-/** Speech/intent contracts remain unimplemented. Native alarms use the validated
+/** Minimal domain ports for engine-independent work. Phase 05's richer system TTS
+ * lifecycle/voice adapter is in core/native/textToSpeech (ADR-018). Phase06
+ * speech sessions use core/native/speechToText. Phase07's strict contextual
+ * intent boundary and confirmed executor live in core/ai.
+ * Native alarms use the validated
  * durable-row reconciliation boundary in core/native/reminders (ADR-015).
  */
 export type Capability = {available: false; reason: string} | {available: true};
@@ -22,9 +26,4 @@ export interface TextToSpeechPort {
   capability(): Promise<Capability>;
   speak(utteranceId: string, text: string): Promise<void>;
   stop(): Promise<void>;
-}
-export interface IntentParserPort {
-  parse(
-    text: string,
-  ): Promise<{kind: 'unavailable' | 'clarification'; message: string}>;
 }

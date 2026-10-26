@@ -1,0 +1,33 @@
+{
+  "utc": "2026-10-25T06:59:42.153604+00:00",
+  "label": "ONE_EMULATOR_READY_IDLE_PSS_SNAPSHOT_NOT_PEAK",
+  "apkSha256": "8b06f7033a79f0837ba392d2c183d8eefbbbdb0baa78ace3b605b15890e99a21",
+  "sourceManifest": "../reports/evidence/phase-05-source-hashes-handoff.json",
+  "device": {
+    "model": "sdk_gphone16k_x86_64",
+    "api": 37,
+    "abi": "x86_64",
+    "physical": false
+  },
+  "condition": "Main app visible in speech settings after successful voice inventory; no utterance playing. Native reminder process may remain cached after earlier QA. Vendor service not forcibly stopped. Radios offline.",
+  "command": "adb shell ps -A -o PID,NAME; adb shell dumpsys meminfo <observed-pid>",
+  "samples": [
+    {
+      "process": "com.google.android.tts",
+      "pssKiB": 148142
+    },
+    {
+      "process": "com.lafina.capstone",
+      "pssKiB": 109589
+    },
+    {
+      "process": "com.lafina.capstone:reminders",
+      "pssKiB": 43308
+    }
+  ],
+  "limitations": [
+    "One sequential cross-process snapshot, not synchronized peak, allocation trace, low-RAM or physical phone evidence.",
+    "No battery/energy measure, cold-service guarantee or matched Kokoro control.",
+    "Only currently observed matching process names; may omit external/shared engine helpers."
+  ]
+}

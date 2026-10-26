@@ -1,0 +1,91 @@
+
+> lafina-capstone@0.1.0 preflight
+> npm run typecheck && npm run lint && npm run format:check && npm test && npm run check:architecture
+
+
+> lafina-capstone@0.1.0 typecheck
+> tsc --noEmit
+
+
+> lafina-capstone@0.1.0 lint
+> eslint src __tests__ index.js --max-warnings 0
+
+
+> lafina-capstone@0.1.0 format:check
+> prettier --check src __tests__ scripts *.js *.json .github/workflows/*.yml
+
+Checking formatting...
+All matched files use Prettier code style!
+
+> lafina-capstone@0.1.0 test
+> jest --runInBand
+
+PASS __tests__/AppSpeech.test.tsx (15.975 s)
+FAIL __tests__/App.test.tsx (20.735 s)
+  ● Phase 01 anonymous foundation › saves anonymous setup only on completion and persists across remount
+
+    Unable to find an element with text: Your student secretary
+
+    <RNCSafeAreaView>
+      <View>
+        <View>
+          <RCTScrollView>
+            <View>
+              <View>
+                <Text>
+                  LAFINA
+                   
+                  <Text>
+                     / STUDENT
+                  </Text>
+                </Text>
+                <Text
+                  accessibilityRole="text"
+                >
+                  Opening your local planner…
+                </Text>
+              </View>
+            </View>
+          </RCTScrollView>
+        </View>
+      </View>
+    </RNCSafeAreaView>
+
+      460 |     const local = store();
+      461 |     const view = render(<App repositoryFactory={local.factory} now={now} />);
+    > 462 |     await screen.findByText('Your student secretary');
+          |                  ^
+      463 |     expect(local.repository.save).not.toHaveBeenCalled();
+      464 |     await finishSetup();
+      465 |     expect(local.current()).toMatchObject({
+
+      at Object.findByText (__tests__/App.test.tsx:462:18)
+      at asyncGeneratorStep (node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+      at _next (node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
+      at node_modules/@babel/runtime/helpers/asyncToGenerator.js:22:7
+      at Object.<anonymous> (node_modules/@babel/runtime/helpers/asyncToGenerator.js:14:12)
+
+PASS __tests__/SpeechSettings.test.tsx
+PASS __tests__/PlannerScreen.test.tsx
+PASS __tests__/ReminderSettings.test.tsx
+PASS __tests__/plannerQueries.test.ts
+PASS __tests__/ReplyMessage.test.tsx
+PASS __tests__/PlannerForm.test.tsx
+PASS __tests__/plannerRepository.test.ts
+PASS __tests__/PlannerHarness.test.tsx
+PASS __tests__/PreferencesForm.test.tsx
+PASS __tests__/plannerMigrations.test.ts
+PASS __tests__/scheduleTime.test.ts
+PASS __tests__/storage.test.ts
+PASS __tests__/reminders.test.ts
+PASS __tests__/textToSpeech.test.ts
+PASS __tests__/plannerDisplay.test.ts
+PASS __tests__/preferences.test.ts
+PASS __tests__/dateTimePicker.test.ts
+PASS __tests__/formatOverviewDate.test.ts
+
+Test Suites: 1 failed, 19 passed, 20 total
+Tests:       1 failed, 262 passed, 263 total
+Snapshots:   0 total
+Time:        53.464 s
+Ran all test suites.

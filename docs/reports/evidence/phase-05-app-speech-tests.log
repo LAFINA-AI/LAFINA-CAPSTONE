@@ -1,0 +1,20 @@
+
+> lafina-capstone@0.1.0 test
+> jest --runInBand --runTestsByPath __tests__/AppSpeech.test.tsx
+
+PASS __tests__/AppSpeech.test.tsx (10.719 s)
+  App speech integration with synthetic adapters, not audible device proof
+    √ shows canned help in default text mode without initializing speech or changing a schedule (3580 ms)
+    √ renders the voice written reply while initialization is pending and retains it when no offline voice is available (96 ms)
+    √ renders the both written reply while initialization is pending and retains it when no offline voice is available (91 ms)
+    √ preserves exactly one real SQLite task and its written confirmation when post-save speech initialization rejects (211 ms)
+    √ saves optional voice settings without replacing existing schema-1 preferences or speaking (360 ms)
+    √ guards tab navigation from edited voice options and discards only after confirmation (373 ms)
+    √ guards Android Back from voice settings and keeps the edited speed until an explicit discard (267 ms)
+    √ protects a general preference draft before entering the speech subpage (194 ms)
+
+Test Suites: 1 passed, 1 total
+Tests:       8 passed, 8 total
+Snapshots:   0 total
+Time:        10.998 s
+Ran all test suites within paths "__tests__/AppSpeech.test.tsx".

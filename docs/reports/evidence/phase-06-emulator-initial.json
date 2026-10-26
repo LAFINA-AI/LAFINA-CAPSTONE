@@ -1,0 +1,22 @@
+{
+  "utc": "2026-10-25T17:20:23.879817+00:00",
+  "device": {
+    "model": "sdk_gphone16k_x86_64",
+    "api": 37,
+    "abi": "x86_64",
+    "pageSizeBytes": 16384,
+    "physical": false
+  },
+  "connectivity": {
+    "airplane_mode_on": "0",
+    "wifi_on": "1",
+    "mobile_data": "1"
+  },
+  "microphonePermission": false,
+  "hostMicrophone": "Explicitly disabled on this fresh emulator launch; no host-audio flag was used. No status query available; will remain disabled.",
+  "sourceCohort": "phase-06-source-hashes-initial.json",
+  "artifactCohort": "phase-06-artifacts-initial.json",
+  "checks": [],
+  "samples": [],
+  "previousAppVersion": "0.5.0-data-qa"
+}

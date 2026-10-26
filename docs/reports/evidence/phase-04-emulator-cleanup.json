@@ -1,0 +1,33 @@
+{
+  "utc": "2026-10-24T15:16:56.775198+00:00",
+  "restored": true,
+  "device": {
+    "model": "sdk_gphone16k_x86_64",
+    "api": 37,
+    "abi": "x86_64",
+    "pageSizeBytes": 16384,
+    "kernelMemTotalKiB": 4008368,
+    "physical": false
+  },
+  "connectivity": {
+    "airplane_mode_on": "0",
+    "wifi_on": "1",
+    "mobile_data": "1"
+  },
+  "deliveryEnabled": false,
+  "fullScreenEnabled": false,
+  "notificationsAllowed": true,
+  "exactTimingAllowed": true,
+  "quietHoursPreference": "Observed off before tests; never modified",
+  "nativeCounts": {
+    "pending": 0,
+    "ringing": 0,
+    "registered": 0,
+    "failed": 0
+  },
+  "nativeCountObservation": "Native jobs: 0 pending, 0 ringing, 0 registered, 0 failed. Registration does not prove delivery.",
+  "sourceCohort": "phase-04-source-hashes-handoff.json",
+  "artifactCohort": "phase-04-artifacts-handoff.json",
+  "retainedFixtures": "Synthetic QA04 study/deadline tasks and reminder histories; weekly class February 1\u201310 2027. Blocked-permission test task deleted via confirmation. No user/legacy data reset.",
+  "physicalPhone": "NOT RUN"
+}

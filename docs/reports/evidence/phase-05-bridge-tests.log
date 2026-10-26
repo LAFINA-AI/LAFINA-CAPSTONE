@@ -1,0 +1,28 @@
+
+> lafina-capstone@0.1.0 test
+> jest --runInBand --runTestsByPath __tests__/textToSpeech.test.ts
+
+PASS __tests__/textToSpeech.test.ts
+  system speech interoperability and compatible voice preferences
+    √ keeps older schema-1 settings unchanged and derives lazy local defaults (7 ms)
+    √ rejects invalid persisted voice options without rewriting other settings: null (21 ms)
+    √ rejects invalid persisted voice options without rewriting other settings: {} (2 ms)
+    √ rejects invalid persisted voice options without rewriting other settings: {"enginePackage": "https://engine.example", "languageTag": "en-US", "pitch": 1, "rate": 1, "voiceName": null} (1 ms)
+    √ rejects invalid persisted voice options without rewriting other settings: {"enginePackage": null, "languageTag": "en-US", "pitch": 1, "rate": 1, "voiceName": ""} (1 ms)
+    √ rejects invalid persisted voice options without rewriting other settings: {"enginePackage": null, "languageTag": "en_US", "pitch": 1, "rate": 1, "voiceName": null} (1 ms)
+    √ rejects invalid persisted voice options without rewriting other settings: {"enginePackage": null, "languageTag": "en-US", "pitch": 1, "rate": "1", "voiceName": null}
+    √ rejects invalid persisted voice options without rewriting other settings: {"enginePackage": null, "languageTag": "en-US", "pitch": 1, "rate": 0.49, "voiceName": null} (1 ms)
+    √ rejects invalid persisted voice options without rewriting other settings: {"enginePackage": null, "languageTag": "en-US", "pitch": 2.01, "rate": 1, "voiceName": null} (1 ms)
+    √ has an honest missing-native fallback and harmless cleanup (2 ms)
+    √ passes validated options and accepts only an installed offline selection (6 ms)
+    √ rejects oversized/malformed native inventories rather than claiming speech is ready (3 ms)
+    √ validates request identity and text before sending it to the platform (3 ms)
+    √ distinguishes immediate acceptance from later start/done callbacks and strips transcript fields (2 ms)
+    √ fails malformed native events toward text and stops the current request (1 ms)
+    √ bounds native event history and validates setup results and stop reasons (2 ms)
+
+Test Suites: 1 passed, 1 total
+Tests:       16 passed, 16 total
+Snapshots:   0 total
+Time:        3.339 s
+Ran all test suites within paths "__tests__/textToSpeech.test.ts".

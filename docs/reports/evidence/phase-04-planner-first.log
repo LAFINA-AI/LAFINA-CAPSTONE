@@ -1,0 +1,270 @@
+
+> lafina-capstone@0.1.0 test
+> jest --runInBand --runTestsByPath __tests__/PlannerScreen.test.tsx __tests__/plannerDisplay.test.ts __tests__/dateTimePicker.test.ts
+
+FAIL __tests__/PlannerScreen.test.tsx (10.641 s)
+  ● production manual planner with real host SQLite › creates a manual timed event into the day agenda, changes the date without drift, and keeps its save when native reconcile rejects
+
+    Unable to find an element with role: header, name: Calculus exam
+
+    <View>
+      <Text
+        accessibilityRole="alert"
+      >
+        Android alerts are off or notifications are blocked. Items still save locally. Open Settings → Reminder delivery to enable alerts.
+      </Text>
+      <View>
+        <Text
+          accessibilityRole="header"
+        >
+          New
+           
+          event
+        </Text>
+        <View>
+          <Text>
+            Title
+          </Text>
+          <TextInput
+            accessibilityLabel="Title"
+            editable={true}
+            value="Calculus exam"
+          />
+        </View>
+        <View>
+          <Text>
+            Notes
+          </Text>
+          <TextInput
+            accessibilityLabel="Notes"
+            editable={true}
+            value=""
+          />
+        </View>
+        <View>
+          <Text>
+            Timezone
+          </Text>
+          <TextInput
+            accessibilityLabel="Timezone"
+            editable={true}
+            placeholder="Asia/Manila"
+            value="UTC"
+          />
+        </View>
+        <View>
+          <View>
+            <Text>
+              Start date
+            </Text>
+            <TextInput
+              accessibilityLabel="Start date"
+              editable={true}
+              placeholder="YYYY-MM-DD"
+              value="2026-10-22"
+            />
+          </View>
+          <View
+            accessibilityRole="button"
+            accessibilityState={
+              {
+                "disabled": false,
+              }
+            }
+            accessible={true}
+          >
+            <Text>
+              Choose start date
+            </Text>
+          </View>
+        </View>
+        <View>
+          <View>
+            <Text>
+              Start time
+            </Text>
+            <TextInput
+              accessibilityLabel="Start time"
+              editable={true}
+              placeholder="HH:mm (24-hour entry)"
+              value="09:00"
+            />
+          </View>
+          <Text
+            accessibilityRole="text"
+          >
+            09:00
+          </Text>
+          <View
+            accessibilityRole="button"
+            accessibilityState={
+              {
+                "disabled": false,
+              }
+            }
+            accessible={true}
+          >
+            <Text>
+              Choose start time
+            </Text>
+          </View>
+        </View>
+        <View>
+          <View>
+            <Text>
+              End date
+            </Text>
+            <TextInput
+              accessibilityLabel="End date"
+              editable={true}
+              placeholder="YYYY-MM-DD"
+              value="2026-10-22"
+            />
+          </View>
+          <View
+            accessibilityRole="button"
+            accessibilityState={
+              {
+                "disabled": false,
+              }
+            }
+            accessible={true}
+          >
+            <Text>
+              Choose end date
+            </Text>
+          </View>
+        </View>
+        <View>
+          <View>
+            <Text>
+              End time
+            </Text>
+            <TextInput
+              accessibilityLabel="End time"
+              editable={true}
+              placeholder="HH:mm (24-hour entry)"
+              value="10:00"
+            />
+          </View>
+          <Text
+            accessibilityRole="text"
+          >
+            10:00
+          </Text>
+          <View
+            accessibilityRole="button"
+            accessibilityState={
+              {
+                "disabled": false,
+              }
+            }
+            accessible={true}
+          >
+            <Text>
+              Choose end time
+            </Text>
+          </View>
+        </View>
+        <View>
+          <Text>
+            Repeat weekly
+          </Text>
+          <RCTSwitch
+            accessibilityLabel="Repeat weekly"
+            accessibilityRole="switch"
+            value={false}
+          />
+        </View>
+        <View>
+          <Text>
+            Remind me
+          </Text>
+          <RCTSwitch
+            accessibilityLabel="Remind me"
+            accessibilityRole="switch"
+            value={true}
+          />
+        </View>
+        <View>
+          <Text>
+            Reminder lead (minutes)
+          </Text>
+          <TextInput
+            accessibilityLabel="Reminder lead (minutes)"
+            editable={true}
+            value="0"
+          />
+        </View>
+        <Text
+          accessibilityRole="text"
+        >
+          Reminder delivery depends on Android permissions and device settings. Saving a schedule does not guarantee an alert.
+        </Text>
+        <Text
+          accessibilityRole="alert"
+        >
+          This schedule or its reminder time is in the past. A recent reminder may alert immediately; older reminders may be marked missed. Save it anyway?
+        </Text>
+        <View
+          accessibilityRole="button"
+          accessibilityState={
+            {
+              "disabled": false,
+            }
+          }
+          accessible={true}
+        >
+          <Text>
+            Save past schedule
+          </Text>
+        </View>
+        <View
+          accessibilityRole="button"
+          accessibilityState={
+            {
+              "disabled": false,
+            }
+          }
+          accessible={true}
+        >
+          <Text>
+            Keep editing schedule
+          </Text>
+        </View>
+        <View
+          accessibilityRole="button"
+          accessibilityState={
+            {
+              "disabled": false,
+            }
+          }
+          accessible={true}
+        >
+          <Text>
+            Cancel editing
+          </Text>
+        </View>
+      </View>
+    </View>
+
+      155 |     fireEvent.changeText(screen.getByLabelText('Reminder lead (minutes)'), '0');
+      156 |     press('Save event');
+    > 157 |     await screen.findByRole('header', {name: 'Calculus exam'});
+          |                  ^
+      158 |     expect(fixture.repository.snapshot().jobs).toHaveLength(1);
+      159 |     await waitFor(() => expect(view.failure).toHaveBeenCalled());
+      160 |     press('Back to planner');
+
+      at Object.findByRole (__tests__/PlannerScreen.test.tsx:157:18)
+      at asyncGeneratorStep (node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+      at _next (node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
+
+PASS __tests__/plannerDisplay.test.ts
+PASS __tests__/dateTimePicker.test.ts
+
+Test Suites: 1 failed, 2 passed, 3 total
+Tests:       1 failed, 13 passed, 14 total
+Snapshots:   0 total
+Time:        11.583 s
+Ran all test suites within paths "__tests__/PlannerScreen.test.tsx", "__tests__/plannerDisplay.test.ts", "__tests__/dateTimePicker.test.ts".

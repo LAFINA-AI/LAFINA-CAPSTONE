@@ -1,0 +1,10 @@
+{
+  "utc": "2026-10-23T01:11:15.3066221Z",
+  "graphifyAvailable": false,
+  "check": "Get-Command graphify",
+  "result": "NOT RUN: Graphify CLI unavailable on PATH",
+  "substitute": "AST import-cycle/offline boundary check and Mermaid architecture diagrams",
+  "substituteEvidence": "docs/reports/evidence/phase-04-preflight.log",
+  "recordedAstModules": 32,
+  "limits": "AST check covers its configured TypeScript/native boundaries; it is not a full Kotlin dependency graph or native correctness proof."
+}

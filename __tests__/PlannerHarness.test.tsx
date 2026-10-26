@@ -54,6 +54,12 @@ function injectedRepository() {
     ],
   };
   const repository: PlannerRepository = {
+    findTargets: jest.fn(() => ({items: [], hasMore: false})),
+    getTask: jest.fn(() => null),
+    getEvent: jest.fn(() => null),
+    tasksPage: jest.fn(() => ({items: [], hasMore: false})),
+    agendaPage: jest.fn(() => ({items: [], nextCursor: null})),
+    reminderPage: jest.fn(() => ({items: [], hasMore: false})),
     snapshot: jest.fn(() => snapshot),
     createTask: jest.fn(command => ({
       ...task,

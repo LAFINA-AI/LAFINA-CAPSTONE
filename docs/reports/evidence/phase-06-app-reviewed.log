@@ -1,0 +1,8 @@
+PASS __tests__/AppDictation.test.tsx (6.031 s)
+PASS __tests__/AppSpeech.test.tsx
+
+Test Suites: 2 passed, 2 total
+Tests:       9 passed, 9 total
+Snapshots:   0 total
+Time:        8.31 s, estimated 11 s
+Ran all test suites matching /__tests__\\AppDictation.test.tsx|__tests__\\AppSpeech.test.tsx/i.

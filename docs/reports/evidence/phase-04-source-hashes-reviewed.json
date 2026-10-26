@@ -1,0 +1,610 @@
+{
+  "schemaVersion": 1,
+  "phase": "04",
+  "recordedAtUtc": "2026-10-23T01:14:10.645Z",
+  "label": "REVIEWED_WORKING_TREE_SOURCE_AND_BUILD_CONFIG_SHA256_NOT_DEVICE_VALIDATION",
+  "supersedesForCurrentBuild": "docs/reports/evidence/phase-04-source-hashes.json",
+  "branch": "codex/phase-04-manual-planner",
+  "baseCommit": "b3eefb853be7c658a38186d330eb8aaf4be8eea2",
+  "headCommit": "b3eefb853be7c658a38186d330eb8aaf4be8eea2",
+  "buildLog": "docs/reports/evidence/phase-04-android-reviewed.log",
+  "buildLogSha256": "c064320c2cb76ad3faf4b736e9ab814b50f4bfcb29bfd755f93b2de673993d6f",
+  "sourceScope": {
+    "directories": [
+      "src",
+      "__tests__",
+      "scripts",
+      "android/app/src",
+      ".github/workflows"
+    ],
+    "configFiles": [
+      "AGENTS.md",
+      ".eslintrc.js",
+      ".gitignore",
+      ".prettierignore",
+      ".prettierrc.js",
+      "app.json",
+      "babel.config.js",
+      "index.js",
+      "jest.config.js",
+      "jest.setup.js",
+      "metro.config.js",
+      "package.json",
+      "package-lock.json",
+      "tsconfig.json",
+      "android/build.gradle",
+      "android/settings.gradle",
+      "android/gradle.properties",
+      "android/gradlew",
+      "android/gradlew.bat",
+      "android/gradle/wrapper/gradle-wrapper.jar",
+      "android/gradle/wrapper/gradle-wrapper.properties",
+      "android/app/build.gradle",
+      "android/app/proguard-rules.pro"
+    ],
+    "excluded": "No .local, live databases, credentials, environment-local SDK paths, build outputs, dependency trees, legacy checkout, or document drafts. Hash metadata only; no file contents embedded."
+  },
+  "fileCount": 111,
+  "files": [
+    {
+      "path": ".eslintrc.js",
+      "bytes": 397,
+      "sha256": "f50564ce6a125d6e6c97d5806202a85cc200a6f8c907c701f53caa696d4d1923"
+    },
+    {
+      "path": ".github/workflows/phase-01.yml",
+      "bytes": 1156,
+      "sha256": "0e29f00313f1972b710ca859b9cf1236a13817f56512e2d9a02c03e45291fc0c"
+    },
+    {
+      "path": ".gitignore",
+      "bytes": 967,
+      "sha256": "e4169eb830e70b2f920ad3f59df7265139a10bc4b97cd2bd6eb6822ad40dba66"
+    },
+    {
+      "path": ".prettierignore",
+      "bytes": 142,
+      "sha256": "3161ad37ffdcac3870a9bb72b5c945eac304c60875f73269e002f1151f1ed66d"
+    },
+    {
+      "path": ".prettierrc.js",
+      "bytes": 144,
+      "sha256": "c2af1e78396f433642da6f47394382293078ff97c55f871f953dae1e4407081d"
+    },
+    {
+      "path": "AGENTS.md",
+      "bytes": 10286,
+      "sha256": "b3f7ec7ad9923834a8c4bf6a814b460bb8313b4c93664d9328637fd676790581"
+    },
+    {
+      "path": "__tests__/App.test.tsx",
+      "bytes": 22562,
+      "sha256": "9cb56710459ad650c016738f1d3f536d5bafb79809dcdffadda8d7500e7f6062"
+    },
+    {
+      "path": "__tests__/PlannerForm.test.tsx",
+      "bytes": 14034,
+      "sha256": "e12d108226b0682492d761c21d94b8e3c8437bda85022739ca2c7f6d6f28ee94"
+    },
+    {
+      "path": "__tests__/PlannerHarness.test.tsx",
+      "bytes": 10638,
+      "sha256": "f29b70ba34a38dd12a96c79846a77c0b82f15d30dba8aaa9893bb62be828a947"
+    },
+    {
+      "path": "__tests__/PlannerScreen.test.tsx",
+      "bytes": 12266,
+      "sha256": "2e63af4ab3d09dac26644f649bbcfd354f2f4fe0ee650eff2155bfa3da643f7e"
+    },
+    {
+      "path": "__tests__/PreferencesForm.test.tsx",
+      "bytes": 1841,
+      "sha256": "fddbe34acbab91b02ae3f77187cced3f9326f3be4a8f5256b05c36693d3aae19"
+    },
+    {
+      "path": "__tests__/ReminderSettings.test.tsx",
+      "bytes": 12860,
+      "sha256": "f96a6e880ed2a40ba47505fe5c9c9d563cc083592177ac0f73069f5c80082681"
+    },
+    {
+      "path": "__tests__/dateTimePicker.test.ts",
+      "bytes": 1313,
+      "sha256": "a4ab7959c4edf57cd8284b2a72a4d342c7f0724d58686fa4cb451f32f4314556"
+    },
+    {
+      "path": "__tests__/formatOverviewDate.test.ts",
+      "bytes": 941,
+      "sha256": "4534e5532b7f9dd4f9a445928ee0e04604096b227277e1949a19e2e50a4baa58"
+    },
+    {
+      "path": "__tests__/helpers/plannerFixtures.ts",
+      "bytes": 2269,
+      "sha256": "b19292a399be0be983226028a60213234b50f99574f07330215e99a3f9d14e11"
+    },
+    {
+      "path": "__tests__/helpers/sqlite.ts",
+      "bytes": 523,
+      "sha256": "70fd0f2c012dce6fbdfe677526c85f94e8d75e2a32c5d72ffbcc6dd628243a01"
+    },
+    {
+      "path": "__tests__/plannerDisplay.test.ts",
+      "bytes": 1382,
+      "sha256": "4efd81ac0fe728587bf91711cbb8cc9c29b4a50f3b0f51ef4bf0b923d1a1f571"
+    },
+    {
+      "path": "__tests__/plannerMigrations.test.ts",
+      "bytes": 26216,
+      "sha256": "e3b5a5e22e3ea3f2ebac8516e4c403d147f25f3deec18c0cabe9abb8633a113e"
+    },
+    {
+      "path": "__tests__/plannerQueries.test.ts",
+      "bytes": 17067,
+      "sha256": "ce78904fcd2e9a23053261f7e7d078ff103c28524f6fc61a7eb488646d2ef51e"
+    },
+    {
+      "path": "__tests__/plannerRepository.test.ts",
+      "bytes": 36729,
+      "sha256": "12bf3efa7c2203654f3b0285d37d4b53fb4ddd08ebafa9a6df754494cb7399aa"
+    },
+    {
+      "path": "__tests__/preferences.test.ts",
+      "bytes": 1781,
+      "sha256": "fb0f2c39655fa17cb5911e2a5908ddce9c246529bc1fc41626f2e1e47b822a2b"
+    },
+    {
+      "path": "__tests__/reminders.test.ts",
+      "bytes": 5505,
+      "sha256": "cd1108304646208f5f8ce68a0f97ac3a06d4bd5557f082e13df16e7133231016"
+    },
+    {
+      "path": "__tests__/scheduleTime.test.ts",
+      "bytes": 9041,
+      "sha256": "3c90f9818ef60819d96262fe472d360adc443f40d9a8f3c9b1288daedcf2080c"
+    },
+    {
+      "path": "__tests__/storage.test.ts",
+      "bytes": 3096,
+      "sha256": "fee0108a209113a75e3729ecb4cf9fac92ee6995b267a9aebfb4e34513ee71df"
+    },
+    {
+      "path": "android/app/build.gradle",
+      "bytes": 2843,
+      "sha256": "bfa00990d5c1b9a4d7b0c9c37c02812fe88c40cc1245149f7cb3a9950c3df63a"
+    },
+    {
+      "path": "android/app/proguard-rules.pro",
+      "bytes": 445,
+      "sha256": "75d4a0dca0e84d4e3302416528a535b4c9dba7be9d8946b4b9e98cd21cb05316"
+    },
+    {
+      "path": "android/app/src/androidTest/java/com/lafina/capstone/reminders/ReminderIntentsTest.kt",
+      "bytes": 2101,
+      "sha256": "b7b9de8a8f48ef26ae5e14ce4b674518899c5e59835397494ef7bd38ece675a9"
+    },
+    {
+      "path": "android/app/src/androidTest/java/com/lafina/capstone/reminders/ReminderStoreTest.kt",
+      "bytes": 15528,
+      "sha256": "ecb06b6759f9aed55731aafe18dc37e57194920146288ff913ecb5c7df2f3499"
+    },
+    {
+      "path": "android/app/src/dataQa/AndroidManifest.xml",
+      "bytes": 324,
+      "sha256": "16616028237521c6915a2a3d71fca11cbe8a63950e025134275a6ad43632ec39"
+    },
+    {
+      "path": "android/app/src/debug/AndroidManifest.xml",
+      "bytes": 382,
+      "sha256": "dc99912454cb56893443c27fa514bd6dcf80c1259d994fd2ef6fc46223bcbbc8"
+    },
+    {
+      "path": "android/app/src/main/AndroidManifest.xml",
+      "bytes": 2665,
+      "sha256": "b78a03a189280c0c190a82b621a959ea3479170b774ec8a86fd1ea921332ef24"
+    },
+    {
+      "path": "android/app/src/main/java/com/lafina/capstone/CapstoneBuildPackage.kt",
+      "bytes": 967,
+      "sha256": "99e1e1a6ac9a50e3bf9fd38335b7357be161715e0c69fe4bb21833fa652bb33e"
+    },
+    {
+      "path": "android/app/src/main/java/com/lafina/capstone/DateTimePickerModule.kt",
+      "bytes": 3151,
+      "sha256": "b4dcd754a7aa3a7154c95fd4b1371e61b9091d02e09670bb7c11b0535d57a5be"
+    },
+    {
+      "path": "android/app/src/main/java/com/lafina/capstone/MainActivity.kt",
+      "bytes": 882,
+      "sha256": "da5345fe14f648a32b25187d06ed371965007dbdc758a1452708e8766638a4f5"
+    },
+    {
+      "path": "android/app/src/main/java/com/lafina/capstone/MainApplication.kt",
+      "bytes": 1004,
+      "sha256": "31766bb2b76e0210105f2ee2f242162d95497872f6c44cc68a94f4692b95abfb"
+    },
+    {
+      "path": "android/app/src/main/java/com/lafina/capstone/reminders/AlarmRegistrationPolicy.kt",
+      "bytes": 1172,
+      "sha256": "72a854b3f3214a9857b0faef42f9a9a9417ae767efc8492f4b5af5c609806895"
+    },
+    {
+      "path": "android/app/src/main/java/com/lafina/capstone/reminders/ReminderActivity.kt",
+      "bytes": 7224,
+      "sha256": "0c5055580ea57a3a6d898dd100c00666b011fd3b2896b27446fc1535b14379d8"
+    },
+    {
+      "path": "android/app/src/main/java/com/lafina/capstone/reminders/ReminderCapabilities.kt",
+      "bytes": 2782,
+      "sha256": "7a3d8c7b9f33ca2f9044faadd0ecd2a92e0dcd619a5a385ee4a58ff24f47895d"
+    },
+    {
+      "path": "android/app/src/main/java/com/lafina/capstone/reminders/ReminderIdentityKey.kt",
+      "bytes": 620,
+      "sha256": "db6c7554086e28219ae86a873b65be27db3c041b707c7aaee3cc3ae678d70b20"
+    },
+    {
+      "path": "android/app/src/main/java/com/lafina/capstone/reminders/ReminderIntents.kt",
+      "bytes": 2346,
+      "sha256": "6b3db34a8af1ac32c08fbcb271d244240b03dc2cfb938951c910c23155f10807"
+    },
+    {
+      "path": "android/app/src/main/java/com/lafina/capstone/reminders/ReminderModels.kt",
+      "bytes": 1472,
+      "sha256": "016a0cdbcddf789310d095f370b5762e4893e8fe2a2853b9471b5d2a995c2cbb"
+    },
+    {
+      "path": "android/app/src/main/java/com/lafina/capstone/reminders/ReminderNotifications.kt",
+      "bytes": 2550,
+      "sha256": "95f347a1b3277f4ead3422c6e1b10a2ae401f71ac7f5122685d79cdd55d4ee3c"
+    },
+    {
+      "path": "android/app/src/main/java/com/lafina/capstone/reminders/ReminderPackage.kt",
+      "bytes": 4909,
+      "sha256": "f428f43cf62508f4c364564582158f821f440708dd3b0d9e74544717c43f29d7"
+    },
+    {
+      "path": "android/app/src/main/java/com/lafina/capstone/reminders/ReminderPolicy.kt",
+      "bytes": 4392,
+      "sha256": "78fe66523200cb023baa6a272fc3100169796af4d42e40a0343cf295599d3174"
+    },
+    {
+      "path": "android/app/src/main/java/com/lafina/capstone/reminders/ReminderProvider.kt",
+      "bytes": 2928,
+      "sha256": "c41889d12b7b5eae6d7e303b515e778e7280769d25ff3bbc6dbce163c77283dc"
+    },
+    {
+      "path": "android/app/src/main/java/com/lafina/capstone/reminders/ReminderReceiver.kt",
+      "bytes": 2348,
+      "sha256": "23e2ca7146e362bd16979de84e69764ea5800818bbf3026fefd30d2181efb453"
+    },
+    {
+      "path": "android/app/src/main/java/com/lafina/capstone/reminders/ReminderRuntime.kt",
+      "bytes": 11410,
+      "sha256": "6f5b6600bd403144981ee6d8ace767ddc238a7fd18cd36a4293f3d12d62cf8c8"
+    },
+    {
+      "path": "android/app/src/main/java/com/lafina/capstone/reminders/ReminderStore.kt",
+      "bytes": 27453,
+      "sha256": "9f164f9e765a6de0c1f24531507c74a113d20895e4a515b6fd9e008477ff3e57"
+    },
+    {
+      "path": "android/app/src/main/res/drawable/ic_launcher.xml",
+      "bytes": 472,
+      "sha256": "82a1b2994e940fa816ef942d15c080ade0e736848d93652a6eb4dd78535f2984"
+    },
+    {
+      "path": "android/app/src/main/res/drawable/ic_reminder.xml",
+      "bytes": 374,
+      "sha256": "0bd2aeb91fe983fcc65d60ea632f39f8d667ea4c9676ae1a09cad8f5ac2b697d"
+    },
+    {
+      "path": "android/app/src/main/res/drawable/rn_edit_text_material.xml",
+      "bytes": 1954,
+      "sha256": "a0ffe99c6c5b933311be2b56a1769600dcdca909289cb4446e58cac2b6c27c7c"
+    },
+    {
+      "path": "android/app/src/main/res/values-night/reminders.xml",
+      "bytes": 465,
+      "sha256": "2a20ddae134279892269aee749c3400e70ef1acbcf55880d750783c898dc850c"
+    },
+    {
+      "path": "android/app/src/main/res/values/colors.xml",
+      "bytes": 137,
+      "sha256": "3e4d6443f848dc26fbbadf7983442464103bedaee98e23f87070ca266f50b601"
+    },
+    {
+      "path": "android/app/src/main/res/values/reminders.xml",
+      "bytes": 695,
+      "sha256": "7e1cbd63ae3f1819ea87c51979bb25b4311adca2d732062fcbbcea470879b879"
+    },
+    {
+      "path": "android/app/src/main/res/values/strings.xml",
+      "bytes": 81,
+      "sha256": "053d8dbf13b9c470074330cdd21fd398d34821e9c69e93f2f44d566bd9d3ea36"
+    },
+    {
+      "path": "android/app/src/main/res/values/styles.xml",
+      "bytes": 291,
+      "sha256": "3f162a05aded30eefe69f1f420a598a0fecebdabfdb6c72e24bba2dff82f2e1c"
+    },
+    {
+      "path": "android/app/src/test/java/com/lafina/capstone/reminders/AlarmRegistrationPolicyTest.kt",
+      "bytes": 4507,
+      "sha256": "1b36abc653a2a215dac16176a5e6b3067385c0fd404f2b5648aa76ff8f4b94cd"
+    },
+    {
+      "path": "android/app/src/test/java/com/lafina/capstone/reminders/ReminderIdentityKeyTest.kt",
+      "bytes": 1728,
+      "sha256": "0990d30a1395caee820076497da461c6026be0cd823de57a1f98b23205c1741e"
+    },
+    {
+      "path": "android/app/src/test/java/com/lafina/capstone/reminders/ReminderPolicyTest.kt",
+      "bytes": 5933,
+      "sha256": "fb4e81a9bc2694a6cafe55209ba33e295ade38ca15af7ffc45d9c4600c42608a"
+    },
+    {
+      "path": "android/build.gradle",
+      "bytes": 568,
+      "sha256": "d48ff922fceb3b558ea85b37711cbb11ce167c6aaaa124c5dc137fd5d8e93f7f"
+    },
+    {
+      "path": "android/gradle.properties",
+      "bytes": 293,
+      "sha256": "efcf68d0f677d98884c1a8445637576622abcb01839209ef20d6de915d79f3eb"
+    },
+    {
+      "path": "android/gradle/wrapper/gradle-wrapper.jar",
+      "bytes": 46175,
+      "sha256": "b3a875ddc1f044746e1b1a55f645584505f4a10438c1afea9f15e92a7c42ec13"
+    },
+    {
+      "path": "android/gradle/wrapper/gradle-wrapper.properties",
+      "bytes": 347,
+      "sha256": "b708d0b414fc6fbf35639b5eefa240e4c493c8e0e850e6cd14ca00f16c2c00e4"
+    },
+    {
+      "path": "android/gradlew",
+      "bytes": 8866,
+      "sha256": "5901fd800994ef6b176e86345b1c980ea8918e1c557e06967fef8fffd555a49d"
+    },
+    {
+      "path": "android/gradlew.bat",
+      "bytes": 3093,
+      "sha256": "982f1b2979dd2d13505c11e92192ab43eef338242ca61587f86f8d7fbc86f67b"
+    },
+    {
+      "path": "android/settings.gradle",
+      "bytes": 351,
+      "sha256": "75c81375496a79dd6099deaaaf79d1e0a1f14460469d1270eaea8094288de250"
+    },
+    {
+      "path": "app.json",
+      "bytes": 62,
+      "sha256": "4c013e4343d762c163535460af50e4e567832b09ce9a078d3efd9154837360df"
+    },
+    {
+      "path": "babel.config.js",
+      "bytes": 75,
+      "sha256": "bdf7ee2f8288a26bdc7b6258896138fa30f10dec91392c17f35717ded6dea089"
+    },
+    {
+      "path": "index.js",
+      "bytes": 178,
+      "sha256": "356f3b86c98b6159fefd9d0b4ca03e59a311bfa6bbb0694fd33a5234040a6cf1"
+    },
+    {
+      "path": "jest.config.js",
+      "bytes": 578,
+      "sha256": "4d63321daade3979db511c092edcf2a14f0c135e52bc56e0afca15dfd11b9f6f"
+    },
+    {
+      "path": "jest.setup.js",
+      "bytes": 359,
+      "sha256": "e84670ea86eaec11f1fc31c9e9a7e6460b343890237908f15df3e1acc67efdd4"
+    },
+    {
+      "path": "metro.config.js",
+      "bytes": 310,
+      "sha256": "4b1b348a911295201046cf37fe162f551720927cd1ca0dfefeb7ce8b37282ff0"
+    },
+    {
+      "path": "package-lock.json",
+      "bytes": 445063,
+      "sha256": "15633833de6d099ff4443c71ab3232f08a8425b672a3ded5115f7d5576c7a892"
+    },
+    {
+      "path": "package.json",
+      "bytes": 1765,
+      "sha256": "5ae50bcfabfb3aa8c4e7015abc3f49d9b1554adddce00bda1c7e0c9006052ed4"
+    },
+    {
+      "path": "scripts/benchmark-planner-queries.cjs",
+      "bytes": 13443,
+      "sha256": "99c2f2f009b4df5bc3cd3bfa7ffe8e21ffe1b68bdc4d6317afaeb0ec0f65f03a"
+    },
+    {
+      "path": "scripts/benchmark-planner.cjs",
+      "bytes": 14196,
+      "sha256": "46152657ca704b228db5fc9ba5fb179dc8f12ec54fc05d08e2412829160ec60d"
+    },
+    {
+      "path": "scripts/check-architecture.mjs",
+      "bytes": 4265,
+      "sha256": "46082053c9e3fea82d791b65f7ffa297cd28d1fea16f7f6106c07a1a4334dac6"
+    },
+    {
+      "path": "scripts/doctor.mjs",
+      "bytes": 1558,
+      "sha256": "a49782209dd63eac14accd2cc3cbe1e225e2ad0165e72bc24bc37820ba95f920"
+    },
+    {
+      "path": "src/app/App.tsx",
+      "bytes": 27742,
+      "sha256": "89e1d864827fab4cc37dbd1439d3e3d8119027be8daef6a5c800b6ac4cbbefbb"
+    },
+    {
+      "path": "src/app/useLocalPreferences.ts",
+      "bytes": 2002,
+      "sha256": "fa5467cd627dd5958ce58f9334ebcfd0682e73aaf0c2b9ccbf9bdaf487bb2833"
+    },
+    {
+      "path": "src/core/domain/planner.ts",
+      "bytes": 4640,
+      "sha256": "47085a952cad67319bd863ef9d978e784ab757c038ac01eb9a4349347432d628"
+    },
+    {
+      "path": "src/core/domain/plannerValidation.ts",
+      "bytes": 4286,
+      "sha256": "16ec9cf4ea42d128ee719a266990f10db3329708e1e9454e1db17f032a9d2cd4"
+    },
+    {
+      "path": "src/core/domain/ports.ts",
+      "bytes": 1010,
+      "sha256": "d7156bc25e1aa6146c63fcb26aabc4452d503154767f870240759157fa0d0b25"
+    },
+    {
+      "path": "src/core/domain/preferences.ts",
+      "bytes": 3771,
+      "sha256": "f651e5cbb076ca05471bfba64a8e8607efdf99a27e9c422459e86f28f1cb699a"
+    },
+    {
+      "path": "src/core/domain/scheduleTime.ts",
+      "bytes": 9136,
+      "sha256": "fec01b2a5be69a4bdb2188cb2b67c5dcd022c86a4b56673bd449a557ebf4c14e"
+    },
+    {
+      "path": "src/core/native/dateTimePicker.ts",
+      "bytes": 1420,
+      "sha256": "7af9ee026d19d9fe7d867bfd6ab638518744b7b92689656cf8b0dd165810b24f"
+    },
+    {
+      "path": "src/core/native/reconcilePlanner.ts",
+      "bytes": 1352,
+      "sha256": "7e7197610d158162dfc6888374aa10624a276c3a548cfb5b96554b32c2af99c1"
+    },
+    {
+      "path": "src/core/native/reminders.ts",
+      "bytes": 6498,
+      "sha256": "ce1857ffe3cc4d8224c98c385723752780cb1c4d3916fe5b1c5699c877df6ff3"
+    },
+    {
+      "path": "src/core/storage/openLocalDatabase.ts",
+      "bytes": 1220,
+      "sha256": "9d377209de95afa31bfdeed126046d2a0520759bca2b969a0d84308896f0154a"
+    },
+    {
+      "path": "src/core/storage/openPlanner.ts",
+      "bytes": 206,
+      "sha256": "7a707df7c431cf8fb8524a65f6bcf082c865c51adbc27b2f0c13b1ec196570f4"
+    },
+    {
+      "path": "src/core/storage/openPreferences.ts",
+      "bytes": 410,
+      "sha256": "2a7b8b710fed00db6301fb13233590edf14c902ad3a2d9db0fea6cfa5cf838d5"
+    },
+    {
+      "path": "src/core/storage/plannerDatabase.ts",
+      "bytes": 9354,
+      "sha256": "23af3679cdee0e7f2b32e467c50c22928da63622e146044ce776ea3c6a994065"
+    },
+    {
+      "path": "src/core/storage/plannerQueries.ts",
+      "bytes": 14198,
+      "sha256": "451b6f2ea43d9b0a3719b38fb65cca7f5e3513d85399e843188205618b7b0053"
+    },
+    {
+      "path": "src/core/storage/plannerRepository.ts",
+      "bytes": 15920,
+      "sha256": "a83cd742a3c8389b48da031671a2f728d70e5e9f70831d5f8a8080e793adf87b"
+    },
+    {
+      "path": "src/core/storage/plannerRows.ts",
+      "bytes": 5567,
+      "sha256": "09f53943acb78fa038ec39874a8c480c9b359cc0f8f54d2c9675ee066adea79e"
+    },
+    {
+      "path": "src/core/storage/preferencesRepository.ts",
+      "bytes": 1533,
+      "sha256": "376890b7f211c6b10af31f9dabe8e54c990c02d52a3bcdfaef95ffac870dccdb"
+    },
+    {
+      "path": "src/core/storage/reminderOperations.ts",
+      "bytes": 7540,
+      "sha256": "8bdbe01930ce99e015464262500836ac0f34e2f3acfc884860f4ba63a58d0c94"
+    },
+    {
+      "path": "src/core/storage/runPlannerSqlChecks.ts",
+      "bytes": 4403,
+      "sha256": "2483113ce1d5b6e8fdecc4b62bcf0f6243125378c402deb15e9a89b4c9a87dbe"
+    },
+    {
+      "path": "src/core/theme/ThemeContext.tsx",
+      "bytes": 284,
+      "sha256": "e97c5e0a0bdcc60e958168e4b4bb902c5cfc8674f4e563cd46357cd49b9f91b7"
+    },
+    {
+      "path": "src/core/theme/theme.ts",
+      "bytes": 1257,
+      "sha256": "f82f132583112dd5d712373f646f6394b68f29ce1737e5861d18d88efcdc9a39"
+    },
+    {
+      "path": "src/core/ui/controls.tsx",
+      "bytes": 5207,
+      "sha256": "f60192d3acaf2d5897e78d3ea4ae78bf424f4411be3a9119ee3b852933cadd14"
+    },
+    {
+      "path": "src/core/ui/formatOverviewDate.ts",
+      "bytes": 807,
+      "sha256": "fde9b88e77e06fcdb936a1bef40a7d094a71c41a947286bbd6c0e183713fcbf7"
+    },
+    {
+      "path": "src/features/calendar/PlannerScreen.tsx",
+      "bytes": 20212,
+      "sha256": "4f648fd281f2a0f96e72b3bcec3945a423cef3712d35c6262a191f803a5f4dfa"
+    },
+    {
+      "path": "src/features/calendar/plannerDisplay.ts",
+      "bytes": 2365,
+      "sha256": "9946f146e9db61c47a3d8a6cfb063a77ab218b38e9c442823f3a1c97567575b3"
+    },
+    {
+      "path": "src/features/onboarding/PreferencesForm.tsx",
+      "bytes": 10724,
+      "sha256": "08808c5fbe2c2f025b81afc0ecdaf4e7304c281456783b49a0032b7ce775f688"
+    },
+    {
+      "path": "src/features/reminders/ReminderSettings.tsx",
+      "bytes": 14157,
+      "sha256": "b67db53d95d65092c572c89abdac7026fee355e4bb35fec597d4d43ac1b3096c"
+    },
+    {
+      "path": "src/features/scheduling/PlannerForm.tsx",
+      "bytes": 14962,
+      "sha256": "436e8374818edfd24061816cd78f224f2b4d302428333214e7ca65524e12ac48"
+    },
+    {
+      "path": "src/features/scheduling/PlannerHarness.tsx",
+      "bytes": 22158,
+      "sha256": "83233c557404f40530e525dcbb96c331beb15d4ff849dc7ef565f0141f45e50e"
+    },
+    {
+      "path": "src/features/scheduling/PlannerItemDetails.tsx",
+      "bytes": 12018,
+      "sha256": "ccebe7b0aa9a96a022146b2267e9f44bf6830cfdb8955e26bee5a6ba1ea55291"
+    },
+    {
+      "path": "src/features/scheduling/plannerFormModel.ts",
+      "bytes": 6570,
+      "sha256": "1b4ae0a5c8bf05cc1780fb4963acb2be7ff74a2ea5d4c41f2a805b85b8601b88"
+    },
+    {
+      "path": "tsconfig.json",
+      "bytes": 433,
+      "sha256": "46c361963b18de0c5332c8d187c8ac064b58a75680c33f5184832e5649c83822"
+    }
+  ],
+  "limitations": [
+    "Current working source cohort, including tests/config; HEAD/base does not include uncommitted Phase04 changes.",
+    "Hash verification does not certify physical phone behavior.",
+    "No source/build/APK/emulator mutations during this collection; older evidence remains unchanged."
+  ]
+}

@@ -1,0 +1,99 @@
+{
+  "utc": "2026-10-25T17:25:05.027638+00:00",
+  "device": {
+    "model": "sdk_gphone16k_x86_64",
+    "api": 37,
+    "abi": "x86_64",
+    "pageSizeBytes": 16384,
+    "physical": false,
+    "kernelMemTotalKiB": 4008368
+  },
+  "connectivity": {
+    "airplane_mode_on": "1",
+    "wifi_on": "0",
+    "mobile_data": "0"
+  },
+  "microphonePermission": false,
+  "hostMicrophone": "Disabled explicitly; read-only local gRPC probe verified realAudioEnabled false at handoff.",
+  "sourceCohort": "phase-06-source-hashes-initial.json",
+  "artifactCohort": "phase-06-artifacts-initial.json",
+  "checks": [
+    {
+      "check": "microphone-denial-recovery",
+      "result": "PASS",
+      "utc": "2026-10-26T00:27:46.496688+00:00",
+      "observed": "First explicit hold requested Android permission; denial returned to a readable typing fallback without starting capture."
+    },
+    {
+      "check": "manual-draft-no-scheduling-side-effect",
+      "result": "PASS",
+      "utc": "2026-10-26T00:31:06.994697+00:00",
+      "observed": "With microphone denied, a synthetic task saved offline. Confirming delete QA06 keep this task in the Chat draft did not delete or complete it: detail remained TODO. Explicitly deleted only QA06 fixture afterward; leaving Chat cleared the draft. Initial driver selector corrected from title-only to Task-prefixed accessibility label."
+    },
+    {
+      "check": "permission-grant-does-not-capture",
+      "result": "PASS",
+      "utc": "2026-10-26T00:32:05.294650+00:00",
+      "observed": "Granted Android microphone permission following a visible hold; panel required a fresh hold and remained idle. No automatic recording after permission grant."
+    },
+    {
+      "check": "android-on-device-language-refusal",
+      "result": "PASS",
+      "utc": "2026-10-26T00:40:23.296835+00:00",
+      "observed": "Explicit Android on-device engine hold in airplane mode returned selected-language-unavailable guidance and idle microphone; candidate availability did not imply installed English support. Android recognizer accuracy benchmark NOT RUN."
+    },
+    {
+      "check": "whisper-silence-recovery",
+      "result": "PASS",
+      "utc": "2026-10-26T00:40:56.631939+00:00",
+      "observed": "Explicit four-second visible Whisper hold with host microphone disabled ended in no-speech fallback; manual typing stayed available. No recognition accuracy claim."
+    },
+    {
+      "check": "native-answered-draft-ack-separate",
+      "result": "PASS",
+      "utc": "2026-10-26T00:43:01.394934+00:00",
+      "observed": "Real synthetic AlarmManager alert opened through QA control; Answer durably ACKed and showed optional local draft. Confirmed manual destructive words without schedule action. Reminder/job ACKNOWLEDGED while underlying task remained TODO; no automatic mic on Answer."
+    },
+    {
+      "check": "native-fixture-cleanup",
+      "result": "PASS",
+      "utc": "2026-10-26T00:43:11.478493+00:00",
+      "observed": "Deleted only this Phase06 synthetic reminder task and restored delivery OFF."
+    },
+    {
+      "check": "active-hold-home-cancellation",
+      "result": "PASS",
+      "utc": "2026-10-26T00:44:49.689558+00:00",
+      "observed": "With host microphone disabled, explicit foreground Whisper touch-down showed Recording now and AppOps running. Home removed running microphone use; reopening showed hidden-screen cancellation with no auto-resume. No speech accuracy claim."
+    }
+  ],
+  "samples": [],
+  "previousAppVersion": "0.5.0-data-qa",
+  "originalConnectivity": {
+    "airplane_mode_on": "0",
+    "wifi_on": "1",
+    "mobile_data": "1"
+  },
+  "installedApkSha256": "84665ac178a315f539effeb32c632795acbd73a6493ff16bf693b3740741afbb",
+  "directPcmBenchmark": "../../benchmarks/phase-06-whisper-emulator-initial.json",
+  "speechCapabilitiesObservation": [
+    "QA speech input: API 37; on-device candidate available; Whisper asset candidate available; microphone permission not allowed. Capability is not an accuracy or offline listening test."
+  ],
+  "incompleteChecks": [
+    {
+      "check": "virtual-microphone-hold-injection",
+      "result": "NOT VERIFIED",
+      "utc": "2026-10-26T00:33:11.569168+00:00",
+      "observed": "Emulator process exited during concurrent synthetic injectAudio and visible hold. Helper returned RPC_STREAM_ERROR; ADB swipe exited255; no transcript or capture PASS. Earlier direct PCM benchmark is a separate completed cohort. No host audio enabled."
+    }
+  ],
+  "finalState": "phase-06-emulator-cleanup.json",
+  "silentHoldObservation": {
+    "engine": "whisper",
+    "outcome": "NO_SPEECH fallback",
+    "recordingMs": 3955,
+    "transcriptionMs": 69,
+    "sampleCount": 1,
+    "limit": "Silent error path; not recognition or performance acceptance."
+  }
+}

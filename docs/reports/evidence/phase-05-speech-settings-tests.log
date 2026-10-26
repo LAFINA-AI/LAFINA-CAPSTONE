@@ -1,0 +1,26 @@
+
+> lafina-capstone@0.1.0 test
+> jest --runInBand --runTestsByPath __tests__/SpeechSettings.test.tsx
+
+PASS __tests__/SpeechSettings.test.tsx (5.565 s)
+  offline speech settings with injected adapters, not audible device proof
+    √ inspects voices without autoplay or saving and offers installed offline voices only (391 ms)
+    √ keeps text visible and offers setup when no installed offline voice is available (145 ms)
+    √ uses one explicit preview request and distinguishes acceptance, playback callbacks and audibility (158 ms)
+    √ retains text and permits retry after rejected requests and engine errors (162 ms)
+    √ stops immediately, ignores late callbacks and can start a fresh preview (211 ms)
+    √ stops on background entry without autoplay when returning to the app (157 ms)
+    √ stops when the saved reply preference changes to text (154 ms)
+    √ unsubscribes and releases the speech session on unmount, including stop failures (137 ms)
+    √ enqueues disposal before a new session initializes even when the old stop promise is delayed (155 ms)
+    √ reports unsaved changes for parent navigation guards and clears them only after a durable save (217 ms)
+    √ saves explicit offline voice and tuning only on request and keeps selections on save failure (203 ms)
+    √ refreshes the selected engine and voice without playing or silently saving (140 ms)
+    √ offers recovery after initialization failure and never sends text to an unavailable engine (138 ms)
+    √ does not speak if an offline voice disappears while preparing the preview (139 ms)
+
+Test Suites: 1 passed, 1 total
+Tests:       14 passed, 14 total
+Snapshots:   0 total
+Time:        5.778 s, estimated 8 s
+Ran all test suites within paths "__tests__/SpeechSettings.test.tsx".

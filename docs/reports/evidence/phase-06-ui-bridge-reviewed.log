@@ -1,0 +1,8 @@
+PASS __tests__/SpeechInputPanel.test.tsx (19.751 s)
+PASS __tests__/speechToText.test.ts
+
+Test Suites: 2 passed, 2 total
+Tests:       39 passed, 39 total
+Snapshots:   0 total
+Time:        22.695 s
+Ran all test suites matching /__tests__\\SpeechInputPanel.test.tsx|__tests__\\speechToText.test.ts/i.

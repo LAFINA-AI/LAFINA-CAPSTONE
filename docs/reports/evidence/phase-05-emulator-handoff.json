@@ -1,0 +1,77 @@
+{
+  "utc": "2026-10-25T06:49:52.711195+00:00",
+  "device": {
+    "model": "sdk_gphone16k_x86_64",
+    "api": "37",
+    "abi": "x86_64",
+    "pageSizeBytes": "16384",
+    "physical": false
+  },
+  "connectivity": {
+    "airplane_mode_on": "1",
+    "wifi_on": "0",
+    "mobile_data": "0"
+  },
+  "checks": [
+    {
+      "check": "voice-draft-hardware-back-visible-dialog",
+      "result": "PASS",
+      "utc": "2026-10-25T06:50:34.062984+00:00",
+      "observed": "Android Back from scrolled speed controls immediately displayed a modal without scrolling; Stay retained Fast draft and Discard returned to preferences. No draft speed persisted."
+    },
+    {
+      "check": "text-mode-canned-help",
+      "result": "PASS",
+      "utc": "2026-10-25T06:51:41.140920+00:00",
+      "observed": "Text-mode fixed planner help remained visible with no voice status or Stop control. No microphone/commands implemented."
+    },
+    {
+      "check": "voice-mode-canned-help-stop",
+      "result": "PASS",
+      "utc": "2026-10-25T06:52:26.096614+00:00",
+      "observed": "Voice mode displayed written help plus cancellable optional speech; Stop retained the written reply."
+    },
+    {
+      "check": "both-mode-home-cancellation",
+      "result": "PASS",
+      "utc": "2026-10-25T06:53:10.654869+00:00",
+      "observed": "Both mode retained written help; Home/reopen showed foreground ownership cancellation with no automatic replay."
+    },
+    {
+      "check": "offline-manual-save-with-optional-speech",
+      "result": "PASS",
+      "utc": "2026-10-25T06:54:12.208230+00:00",
+      "observed": "Both-mode manual undated task saved offline and written confirmation/detail remained available independently of optional speech. Deleted only QA05 speech save through confirmation. No stopwatch latency claimed."
+    },
+    {
+      "check": "visible-native-reminder-reading-stop-ack",
+      "result": "PASS",
+      "utc": "2026-10-25T06:55:33.589516+00:00",
+      "observed": "Real AlarmManager synthetic job rang while app was backgrounded offline. Opened visible native screen via QA control; live engine reading/finished callback shown. Stop retained actions; Answer produced ACKNOWLEDGED reminder/job while task remained TODO. Audibility NOT VERIFIED."
+    },
+    {
+      "check": "synthetic-reminder-cleanup",
+      "result": "PASS",
+      "utc": "2026-10-25T06:55:44.353474+00:00",
+      "observed": "Deleted only the newly created synthetic native reminder task and restored reminder delivery OFF."
+    },
+    {
+      "check": "handoff-restoration",
+      "result": "PASS",
+      "utc": "2026-10-25T07:01:52.766265+00:00",
+      "observed": "Text mode, reminder delivery OFF, original airplane0/WiFi1/data1 restored and zero pending/ringing/registered/failed jobs observed. Current installed APK hash verified; app left open in Chat. New offline voice selection retained; original planner data preserved."
+    }
+  ],
+  "samples": [],
+  "sourceCohort": "phase-05-source-hashes-handoff.json",
+  "artifactCohort": "phase-05-artifacts-handoff.json",
+  "limitations": [
+    "ADB automation, not human listening or physical phone proof."
+  ],
+  "originalConnectivity": {
+    "airplane_mode_on": "0",
+    "wifi_on": "1",
+    "mobile_data": "1"
+  },
+  "installedApkSha256": "8b06f7033a79f0837ba392d2c183d8eefbbbdb0baa78ace3b605b15890e99a21"
+}

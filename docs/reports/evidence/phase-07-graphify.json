@@ -1,0 +1,7 @@
+{
+  "available": false,
+  "result": "NOT RUN: Graphify CLI unavailable",
+  "substitute": "TypeScript AST cycle/offline checks and ADR-020 Mermaid; not a full Kotlin/C++ graph",
+  "phase": "07",
+  "utc": "2026-10-26T01:16:01.5735810Z"
+}

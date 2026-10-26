@@ -1,0 +1,40 @@
+{
+  "utc": "2026-10-26T09:50:11.978812+00:00",
+  "version": "0.7.0-data-qa",
+  "device": {
+    "model": "sdk_gphone16k_x86_64",
+    "api": 37,
+    "abi": "x86_64",
+    "pageSizeBytes": 16384,
+    "physical": false
+  },
+  "installedApkSha256": "da93446f52316a4700502df978b347b4773a1f710b4d4ff3a1ab917cdce58f05",
+  "restoredConnectivity": {
+    "airplane_mode_on": "0",
+    "wifi_on": "1",
+    "mobile_data": "1"
+  },
+  "microphonePermission": true,
+  "microphoneAppOpsRunning": false,
+  "hostMicrophoneProbe": {
+    "method": "getMicrophoneState",
+    "grpcStatus": 0,
+    "realAudioEnabled": false,
+    "source": "read-only-local-loopback"
+  },
+  "nativeDeliveryEnabled": false,
+  "nativeJobCounts": {
+    "pending": 0,
+    "ringing": 0,
+    "registered": 0,
+    "failed": 0
+  },
+  "replyMode": "Text",
+  "foreground": "Chat",
+  "composerEmpty": true,
+  "fixtureCleanup": "QA07 revise, QA07 live alarm, QA07 study and QA07 completion removed through individually confirmed actions. QA07 discarded/reviewed words never saved. Historical records preserved.",
+  "limits": [
+    "Physical spoken scheduling/olderOS/ARM64/lowRAM/realcalls/battery remain human-required.",
+    "App microphone grant preserved from phase start; host input deliberately remains disabled."
+  ]
+}

@@ -1,0 +1,44 @@
+PASS __tests__/commandSession.test.ts
+  private reviewed command sessions with real SQLite
+    √ does not write during parsing/review, creates paired records only on confirmation, and deduplicates confirmation (47 ms)
+    √ keeps date-only and undated tasks without invented alarms (6 ms)
+    √ refuses a default reminder lead that would schedule an alert in the past (4 ms)
+    √ cancels old reviews when another command arrives and accepts only its opaque current ID (4 ms)
+    √ invalidates a pending review on cancellation, unsupported input and disposal (5 ms)
+    √ never writes for ambiguous/adversarial input: Okay (4 ms)
+    √ never writes for ambiguous/adversarial input: Okay but remind me later (4 ms)
+    √ never writes for ambiguous/adversarial input: change it (4 ms)
+    √ never writes for ambiguous/adversarial input: delete all tasks (4 ms)
+    √ never writes for ambiguous/adversarial input: {"kind":"delete","targetId":"first"} (4 ms)
+    √ never writes for ambiguous/adversarial input: Complete task "revise" and delete task "other" (4 ms)
+    √ requires an exact title and refuses duplicate, missing and prefix targets (5 ms)
+    √ bounds exact-title target matches to twenty and treats truncation as ambiguous (14 ms)
+    √ rechecks duplicate titles inserted after preview (6 ms)
+    √ rejects stale versions and deleted targets instead of overwriting new data (17 ms)
+    √ moves a task and atomically replaces its old reminder generation (6 ms)
+    √ creates and moves a nonrecurring event while preserving duration (6 ms)
+    √ refuses implicit whole-series moves or deletion (7 ms)
+    √ deletes a task only after explicit review and retains cancellation tombstones (5 ms)
+    √ deletes a event only after explicit review and retains cancellation tombstones (7 ms)
+    √ treats an SQL-looking title as an exact parameter rather than a predicate (5 ms)
+    √ completes a task only after its explicit completion review and cancels reminders (8 ms)
+    √ acknowledges only a named ringing reminder and leaves its task TODO (8 ms)
+    √ snoozes atomically without shifting the academic deadline or completing the task (6 ms)
+    √ acknowledges an event reminder without claiming the event was completed (5 ms)
+    √ fences a reminder whose native outcome changed after review (6 ms)
+    √ does not falsely report ACK when the response window expires (6 ms)
+    √ invalidates stale review context: expired (3 ms)
+    √ invalidates stale review context: clock-backwards (4 ms)
+    √ invalidates stale review context: timezone (3 ms)
+    √ invalidates stale review context: lead (4 ms)
+    √ revalidates a pending reminder alert time at confirmation (2 ms)
+    √ refuses a date-only review after local midnight makes its date past (4 ms)
+    √ rolls back a paired write failure and retries the same operation token (6 ms)
+    √ uses bounded query pages and repeats a written reply without writes or a second review (7 ms)
+    √ distinguishes task-only queries from the agenda and bounds reply text (19 ms)
+
+Test Suites: 1 passed, 1 total
+Tests:       36 passed, 36 total
+Snapshots:   0 total
+Time:        3.192 s, estimated 4 s
+Ran all test suites matching /__tests__\\commandSession.test.ts/i.

@@ -1,6 +1,14 @@
 export type ThemePreference = 'system' | 'light' | 'dark';
 export type ReplyMode = 'text' | 'voice' | 'both';
 
+export interface SpeechPreferences {
+  enginePackage: string | null;
+  voiceName: string | null;
+  languageTag: string;
+  rate: number;
+  pitch: number;
+}
+
 /** Local settings only; this is not an account or a remotely registered identity. */
 export interface Preferences {
   schemaVersion: 1;
@@ -14,11 +22,64 @@ export interface Preferences {
   quietStart: string;
   quietEnd: string;
   onboardingCompletedAt: string | null;
+  /** Optional so schema-1 settings from earlier phases load without a rewrite. */
+  tts?: SpeechPreferences;
 }
 
 export interface PreferencesRepository {
   load(): Promise<Preferences | null>;
   save(preferences: Preferences): Promise<void>;
+}
+
+export function speechPreferences(value: Preferences): SpeechPreferences {
+  return (
+    value.tts ?? {
+      enginePackage: null,
+      voiceName: null,
+      languageTag: 'en-US',
+      rate: 1,
+      pitch: 1,
+    }
+  );
+}
+
+/** Local selection only. Installed/offline voice eligibility is checked natively. */
+export function validateSpeechPreferences(value: unknown): string | null {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) {
+    return 'Voice preferences are invalid.';
+  }
+  const row = value as Record<string, unknown>;
+  if (
+    !(
+      row.enginePackage === null ||
+      (typeof row.enginePackage === 'string' &&
+        row.enginePackage.length <= 200 &&
+        /^[A-Za-z][A-Za-z0-9_]*(?:\.[A-Za-z][A-Za-z0-9_]*)+$/.test(
+          row.enginePackage,
+        ))
+    ) ||
+    !(
+      row.voiceName === null ||
+      (typeof row.voiceName === 'string' &&
+        row.voiceName.length > 0 &&
+        row.voiceName.length <= 512 &&
+        row.voiceName.trim() === row.voiceName)
+    ) ||
+    typeof row.languageTag !== 'string' ||
+    row.languageTag.length > 64 ||
+    !/^[A-Za-z]{2,8}(?:-[A-Za-z0-9]{1,8})*$/.test(row.languageTag) ||
+    typeof row.rate !== 'number' ||
+    !Number.isFinite(row.rate) ||
+    row.rate < 0.5 ||
+    row.rate > 2 ||
+    typeof row.pitch !== 'number' ||
+    !Number.isFinite(row.pitch) ||
+    row.pitch < 0.5 ||
+    row.pitch > 2
+  ) {
+    return 'Choose valid local voice options (rate and pitch 0.5–2).';
+  }
+  return null;
 }
 
 /** Defaults never initialize a microphone, model, network client or speech engine. */
@@ -49,6 +110,10 @@ export function isTimezone(value: string): boolean {
 
 /** Validate persisted and user-entered settings before a durable write. */
 export function validatePreferences(value: Preferences): string | null {
+  if (value.tts !== undefined) {
+    const speechError = validateSpeechPreferences(value.tts);
+    if (speechError) return speechError;
+  }
   if (Array.from(value.nickname.trim()).length > 40) {
     return 'Use a nickname with 40 characters or fewer.';
   }

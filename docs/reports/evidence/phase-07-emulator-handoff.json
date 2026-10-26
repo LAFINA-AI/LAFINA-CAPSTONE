@@ -1,0 +1,140 @@
+{
+  "utc": "2026-10-26T09:22:12.866665+00:00",
+  "device": {
+    "model": "sdk_gphone16k_x86_64",
+    "api": 37,
+    "abi": "x86_64",
+    "pageSizeBytes": 16384,
+    "physical": false
+  },
+  "originalConnectivity": {
+    "airplane_mode_on": "0",
+    "wifi_on": "1",
+    "mobile_data": "1"
+  },
+  "microphonePermission": true,
+  "previousVersion": "0.6.0-data-qa",
+  "hostMicrophoneProbe": {
+    "method": "getMicrophoneState",
+    "grpcStatus": 0,
+    "realAudioEnabled": false,
+    "source": "read-only-local-loopback"
+  },
+  "sourceCohort": "phase-07-source-hashes-initial.json",
+  "artifactCohort": "phase-07-artifacts-initial.json",
+  "checks": [
+    {
+      "check": "offline-reviewed-create",
+      "result": "PASS",
+      "utc": "2026-10-26T09:26:24.644404+00:00",
+      "observed": "Typed remind command showed explicit normalized date/time/timezone and lead. Only Confirm change produced saved-task outcome in current native SQLite-backed app; Android delivery remains a separate check."
+    },
+    {
+      "check": "offline-query-and-correct",
+      "result": "PASS",
+      "utc": "2026-10-26T09:28:17.378539+00:00",
+      "observed": "Dated query found the synthetic TODO task at19:00. An exact quoted-title move required another preview/confirmation; subsequent query showed20:00 in the selected timezone."
+    },
+    {
+      "check": "ambiguous-negative-and-bulk-refusal",
+      "result": "PASS",
+      "utc": "2026-10-26T09:30:07.883949+00:00",
+      "observed": "Conflicting okay/later, bareFriday, negatedACK and bulkdelete produced guidance without a mutation review/confirmation. The synthetic saved task remained independently queryable afterward."
+    },
+    {
+      "check": "pending-review-home-cancel",
+      "result": "PASS",
+      "utc": "2026-10-26T09:31:02.402500+00:00",
+      "observed": "Home while a create review was pending removed its confirm action. Returning did not save it; attempting an exact delete of that synthetic title confirmed no saved item existed."
+    },
+    {
+      "check": "force-stop-data-vs-transient-chat",
+      "result": "PASS",
+      "utc": "2026-10-26T09:33:18.223037+00:00",
+      "observed": "After app force-stop and offline reopen, the confirmed synthetic task/time persisted in SQLite. Composer/history were cleared and no pending review or command auto-executed."
+    },
+    {
+      "check": "chat-command-real-alarm-ack-todo",
+      "result": "PASS",
+      "utc": "2026-10-26T09:35:56.420961+00:00",
+      "observed": "A confirmed Chat reminder created a real native timed alert while app was backgrounded offline. Named explicit ACK required a review of the uniquely ringing reminder; confirmation acknowledged it. Subsequent task query still showed TODO."
+    },
+    {
+      "check": "live-alarm-fixture-deleted",
+      "result": "PASS",
+      "utc": "2026-10-26T09:36:24.804989+00:00",
+      "observed": "Deleted only the newly created QA07 live alarm through a separately confirmed Chat action."
+    },
+    {
+      "check": "offline-event-create-move-delete",
+      "result": "PASS",
+      "utc": "2026-10-26T09:39:18.043735+00:00",
+      "observed": "Created a synthetic one-hour event after review; exact-title move preview preserved the end duration; confirmed move then separately reviewed/deleted only that event."
+    },
+    {
+      "check": "explicit-delete-cleanup",
+      "result": "PASS",
+      "utc": "2026-10-26T09:40:14.201070+00:00",
+      "observed": "Exact single-task deletion required a separate preview and Confirm change. A subsequent delete lookup found no live synthetic source; cancelled reminder tombstones are retained by existing domain policy."
+    },
+    {
+      "check": "optional-system-tts-stop",
+      "result": "PASS",
+      "utc": "2026-10-26T09:41:15.140877+00:00",
+      "observed": "Both-mode fixed planner help retained its written reply; explicit Stop reading reply produced stopped state. No audible quality or physical-phone TTS claim. Original output mode recorded for restoration."
+    },
+    {
+      "check": "reviewed-speech-draft-copy-not-execution",
+      "result": "PASS",
+      "utc": "2026-10-26T09:44:54.572683+00:00",
+      "observed": "With host microphone off, manual fallback in the speech panel copied reviewed words to the Chat composer only. Send then showed a separate change review; Discard left no synthetic task. Actual spoken recognition remains human-required."
+    },
+    {
+      "check": "explicit-completion-separate-from-ack",
+      "result": "PASS",
+      "utc": "2026-10-26T09:46:32.475668+00:00",
+      "observed": "A separately reviewed Complete task command marked the synthetic source COMPLETED; completed-task query verified it. The live reminder ACK had kept its different source TODO. Deleted only the completion fixture with another confirmed action."
+    },
+    {
+      "check": "native-settings-and-fixture-cleanup",
+      "result": "PASS",
+      "utc": "2026-10-26T09:49:31.275489+00:00",
+      "observed": "Restored original Android reminder delivery setting. App diagnostics counted {'pending': 0, 'ringing': 0, 'registered': 0, 'failed': 0}. Only newly created QA07 fixtures were deleted through confirmed UI actions."
+    }
+  ],
+  "samples": [
+    {
+      "event": "NOTIFICATION_POSTED",
+      "atUtc": "2026-10-26T09:34:56.019Z",
+      "plannedAt": "2026-10-26T09:34:55.933Z",
+      "lagMs": 86.0
+    },
+    {
+      "event": "CLAIM_RING",
+      "atUtc": "2026-10-26T09:34:55.962Z",
+      "plannedAt": "2026-10-26T09:34:55.933Z",
+      "lagMs": 29.0
+    }
+  ],
+  "installedApkSha256": "da93446f52316a4700502df978b347b4773a1f710b4d4ff3a1ab917cdce58f05",
+  "testConnectivity": {
+    "airplane_mode_on": "1",
+    "wifi_on": "0",
+    "mobile_data": "0"
+  },
+  "version": "0.7.0-data-qa",
+  "setupNote": "Initial immediate radio-state read had not settled; subsequent assertion verified all three offline settings. Original values preserved.",
+  "createReview": "Create task \"QA07 revise\": 2026-10-27 at 19:00 (GMT; 2026-10-27T19:00:00.000Z). Reminder 15 minutes before.",
+  "liveAlarm": {
+    "sourceTitle": "QA07 live alarm",
+    "dueAt": "2026-10-26T09:49:55.933Z",
+    "leadMinutes": 15,
+    "plannedAt": "2026-10-26T09:34:55.933000Z",
+    "originalDeliveryEnabled": false
+  },
+  "originalReplyMode": "Text",
+  "finalState": "phase-07-emulator-cleanup.json",
+  "automationNotes": [
+    "Initial speech-copy driver found the visible label before its editor was in view. Corrected only the ignored UI test selector; subsequent copy/discard assertion passed, with no application source change."
+  ]
+}

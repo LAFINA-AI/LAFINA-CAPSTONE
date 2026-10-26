@@ -104,7 +104,7 @@ export function PreferencesForm({
         {onboarding && step === 0 ? (
           <>
             <Message text="Keep your academic plans on this phone. No account, email or internet connection is needed." />
-            <Message text="You stay in control. Calendar tools, reminders and voice features will arrive in later updates. This build sets up your local preferences." />
+            <Message text="You stay in control. Plan tasks and classes locally. Android reminders and optional offline system voices have visible controls and text fallbacks." />
             <Message text="Nothing is uploaded. You can change these preferences or reopen setup in Settings." />
             <Button label="Set up my planner" onPress={() => setStep(1)} />
           </>
@@ -170,7 +170,7 @@ export function PreferencesForm({
                 {value: 'both', label: 'Both'},
               ]}
             />
-            <Message text="Voice replies are not available yet. Your preference is saved; this build uses text." />
+            <Message text="Text is the default. Voice and Both can read confirmations and visible reminders using an installed offline system voice. Written text stays available if speech fails. Check Offline speech settings for a preview." />
             <View style={styles.switchRow}>
               <Text style={[styles.label, {color: theme.colors.text}]}>
                 Quiet hours preference
@@ -198,7 +198,7 @@ export function PreferencesForm({
                   onChangeText={value => change('quietEnd', value)}
                   maxLength={5}
                 />
-                <Message text="These times will be used when reminders become available. They do not change Android Do Not Disturb." />
+                <Message text="Quiet hours can defer reminder alerts. They do not change Android Do Not Disturb." />
               </>
             ) : null}
             <PermissionNotice />

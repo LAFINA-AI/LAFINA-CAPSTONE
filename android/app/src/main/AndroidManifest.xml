@@ -5,6 +5,18 @@
     <uses-permission android:name="android.permission.USE_FULL_SCREEN_INTENT" />
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
     <uses-permission android:name="android.permission.VIBRATE" />
+    <!-- Requested only at a visible hold-to-talk action; no background mic service. -->
+    <uses-permission android:name="android.permission.RECORD_AUDIO" />
+
+    <!-- Visibility of installed TTS services on Android 11+; no network permission. -->
+    <queries>
+      <intent>
+        <action android:name="android.intent.action.TTS_SERVICE" />
+      </intent>
+      <intent>
+        <action android:name="android.speech.RecognitionService" />
+      </intent>
+    </queries>
 
     <application
       android:name=".MainApplication"

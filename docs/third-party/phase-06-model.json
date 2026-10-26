@@ -1,0 +1,28 @@
+{
+  "schemaVersion": 1,
+  "model": "Whisper Tiny multilingual Q5_1 GGML",
+  "asset": "stt/ggml-tiny-q5_1.bin",
+  "bytes": 32152673,
+  "sha256": "818710568da3ca15689e31a743197b520007872ff9576237bda97bd1b469c3d7",
+  "publisher": "ggerganov/whisper.cpp",
+  "repositoryRevision": "fb5ed9369c26eaf08392504d8446da431e0fffb9",
+  "sourceUrl": "https://huggingface.co/ggerganov/whisper.cpp/resolve/fb5ed9369c26eaf08392504d8446da431e0fffb9/ggml-tiny-q5_1.bin",
+  "pointerUrl": "https://huggingface.co/ggerganov/whisper.cpp/raw/fb5ed9369c26eaf08392504d8446da431e0fffb9/ggml-tiny-q5_1.bin",
+  "modelCardUrl": "https://huggingface.co/ggerganov/whisper.cpp/blob/fb5ed9369c26eaf08392504d8446da431e0fffb9/README.md",
+  "license": "MIT; original OpenAI Whisper model, converted/quantized by whisper.cpp publisher",
+  "originalLicenseUrl": "https://github.com/openai/whisper/blob/v20250625/LICENSE",
+  "runtime": {
+    "repository": "https://github.com/ggml-org/whisper.cpp",
+    "revision": "d1be6fde11ac6e0407606b4e42fe72d34add8037",
+    "version": "1.9.5",
+    "sourceArchiveSha256": "6be93b881acb415c5a25d0ef85bb6a488099de0296e072e22a66d50f20ec40b9",
+    "selectionManifest": "../../android/app/src/main/cpp/third_party/whisper.cpp/SOURCE-MANIFEST.json"
+  },
+  "constraints": [
+    "Binary remains ignored and is included only through an explicit build asset-directory flag.",
+    "No application network permission, download client, automatic model update or cloud fallback.",
+    "32,152,673 bytes is model payload size, not APK delta or peak runtime memory.",
+    "Tiny multilingual supports en/tl selection but accuracy, accents and low-RAM feasibility require actual measurements.",
+    "Original/converted artifact provenance is from the publisher's pinned model card and content hash, not a claim of independently reproducing quantization."
+  ]
+}

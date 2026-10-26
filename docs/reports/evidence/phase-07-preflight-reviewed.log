@@ -1,0 +1,60 @@
+
+> lafina-capstone@0.1.0 preflight
+> npm run typecheck && npm run lint && npm run format:check && npm test && npm run check:architecture
+
+
+> lafina-capstone@0.1.0 typecheck
+> tsc --noEmit
+
+
+> lafina-capstone@0.1.0 lint
+> eslint src __tests__ index.js --max-warnings 0
+
+
+> lafina-capstone@0.1.0 format:check
+> prettier --check src __tests__ scripts *.js *.json .github/workflows/*.yml
+
+Checking formatting...
+All matched files use Prettier code style!
+
+> lafina-capstone@0.1.0 test
+> jest --runInBand
+
+PASS __tests__/App.test.tsx (20.185 s)
+PASS __tests__/ChatScreen.test.tsx
+PASS __tests__/intents.test.ts
+PASS __tests__/SpeechInputPanel.test.tsx
+PASS __tests__/commandSession.test.ts
+PASS __tests__/AppSpeech.test.tsx
+PASS __tests__/SpeechSettings.test.tsx
+PASS __tests__/ReminderSettings.test.tsx
+PASS __tests__/PlannerScreen.test.tsx
+PASS __tests__/ReplyMessage.test.tsx
+PASS __tests__/plannerQueries.test.ts
+PASS __tests__/PlannerForm.test.tsx
+PASS __tests__/AppDictation.test.tsx
+PASS __tests__/plannerRepository.test.ts
+PASS __tests__/PlannerHarness.test.tsx
+PASS __tests__/PreferencesForm.test.tsx
+PASS __tests__/plannerMigrations.test.ts
+PASS __tests__/scheduleTime.test.ts
+PASS __tests__/storage.test.ts
+PASS __tests__/textToSpeech.test.ts
+PASS __tests__/reminders.test.ts
+PASS __tests__/speechToText.test.ts
+PASS __tests__/speechMetrics.test.js
+PASS __tests__/preferences.test.ts
+PASS __tests__/plannerDisplay.test.ts
+PASS __tests__/dateTimePicker.test.ts
+PASS __tests__/formatOverviewDate.test.ts
+
+Test Suites: 27 passed, 27 total
+Tests:       452 passed, 452 total
+Snapshots:   0 total
+Time:        42.336 s
+Ran all test suites.
+
+> lafina-capstone@0.1.0 check:architecture
+> node scripts/check-architecture.mjs
+
+PASS: 44 TypeScript modules; no import cycles or forbidden offline dependencies; Phase 06 offline permissions, speech visibility, recognizer factories and process boundaries checked.

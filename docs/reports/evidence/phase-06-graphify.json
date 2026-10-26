@@ -1,0 +1,9 @@
+{
+  "phase": "06",
+  "recordedAtUtc": "2026-10-25T17:06:28.6718120Z",
+  "graphifyAvailable": false,
+  "check": "Get-Command graphify",
+  "substitute": "Executed TypeScript AST cycle/offline/native-boundary check and ADR-019 Mermaid diagram",
+  "limits": "Not a full C++/Kotlin source graph or microphone/recognition proof.",
+  "result": "NOT RUN: Graphify CLI unavailable on PATH"
+}

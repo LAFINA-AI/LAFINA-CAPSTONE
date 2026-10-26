@@ -1,0 +1,19 @@
+{
+  "schemaVersion": 1,
+  "kind": "SYNTHETIC_TEXT_ONLY_NOT_HUMAN_ACCENT_CORPUS",
+  "language": "en-US",
+  "samples": [
+    {"id": "assignment", "reference": "remind me to submit the assignment tomorrow"},
+    {"id": "biology", "reference": "add a study session for biology on friday"},
+    {"id": "today", "reference": "show my tasks for today"},
+    {"id": "calculus", "reference": "move the calculus lecture to monday morning"},
+    {"id": "cancel", "reference": "cancel my library reminder"},
+    {"id": "complete", "reference": "mark the reading task complete"}
+  ],
+  "limitations": [
+    "Synthetic commands never execute scheduling mutations in Phase06.",
+    "A synthesized English voice does not represent Filipino-accented speech, real microphones, noise or phone interruption.",
+    "No recorded student audio or transcripts are included.",
+    "Number words and digits are different tokens; punctuation/case normalized only."
+  ]
+}

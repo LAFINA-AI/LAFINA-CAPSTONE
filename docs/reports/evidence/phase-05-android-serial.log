@@ -1,0 +1,170 @@
+To honour the JVM settings for this build a single-use Daemon process will be forked. For more on this, please refer to https://docs.gradle.org/9.3.1/userguide/gradle_daemon.html#sec:disabling_the_daemon in the Gradle documentation.
+Daemon will be stopped at the end of the build 
+> Task :gradle-plugin:settings-plugin:checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :gradle-plugin:shared:checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :gradle-plugin:shared:compileKotlin UP-TO-DATE
+> Task :gradle-plugin:shared:compileJava NO-SOURCE
+> Task :gradle-plugin:shared:processResources NO-SOURCE
+> Task :gradle-plugin:shared:classes UP-TO-DATE
+> Task :gradle-plugin:shared:jar UP-TO-DATE
+> Task :gradle-plugin:settings-plugin:compileKotlin UP-TO-DATE
+> Task :gradle-plugin:settings-plugin:compileJava NO-SOURCE
+> Task :gradle-plugin:settings-plugin:pluginDescriptors UP-TO-DATE
+> Task :gradle-plugin:settings-plugin:processResources UP-TO-DATE
+> Task :gradle-plugin:settings-plugin:classes UP-TO-DATE
+> Task :gradle-plugin:settings-plugin:jar UP-TO-DATE
+> Task :gradle-plugin:react-native-gradle-plugin:checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :gradle-plugin:react-native-gradle-plugin:compileKotlin UP-TO-DATE
+> Task :gradle-plugin:react-native-gradle-plugin:compileJava NO-SOURCE
+> Task :gradle-plugin:react-native-gradle-plugin:pluginDescriptors UP-TO-DATE
+> Task :gradle-plugin:react-native-gradle-plugin:processResources UP-TO-DATE
+> Task :gradle-plugin:react-native-gradle-plugin:classes UP-TO-DATE
+> Task :gradle-plugin:react-native-gradle-plugin:jar UP-TO-DATE
+> Task :app:checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :app:generateAutolinkingNewArchitectureFiles UP-TO-DATE
+> Task :app:generateAutolinkingPackageList UP-TO-DATE
+> Task :app:generateCodegenSchemaFromJavaScript SKIPPED
+> Task :app:generateCodegenArtifactsFromSchema SKIPPED
+> Task :app:generateReactNativeEntryPoint UP-TO-DATE
+> Task :op-engineering_op-sqlite:generateCodegenSchemaFromJavaScript UP-TO-DATE
+> Task :op-engineering_op-sqlite:generateCodegenArtifactsFromSchema UP-TO-DATE
+> Task :op-engineering_op-sqlite:prepareHeaders
+> Task :op-engineering_op-sqlite:preBuild
+> Task :react-native-safe-area-context:generateCodegenSchemaFromJavaScript UP-TO-DATE
+> Task :react-native-safe-area-context:generateCodegenArtifactsFromSchema UP-TO-DATE
+> Task :react-native-safe-area-context:preBuild UP-TO-DATE
+> Task :app:preBuild
+> Task :app:preDataQaBuild
+> Task :app:generateDataQaBuildConfig UP-TO-DATE
+> Task :op-engineering_op-sqlite:preDebugBuild
+> Task :op-engineering_op-sqlite:writeDebugAarMetadata UP-TO-DATE
+> Task :react-native-safe-area-context:preDebugBuild UP-TO-DATE
+> Task :react-native-safe-area-context:writeDebugAarMetadata UP-TO-DATE
+> Task :app:checkDataQaAarMetadata UP-TO-DATE
+
+> Task :app:createBundleDataQaJsAndAssets
+
+                        ????????
+                     ??????????????
+                  ????????????????????
+                 ??????????????????????
+                 ??????????????????????
+                 ??????????????????????
+                 ??????????????????????
+                 ??????????????????????
+                 ??????????????????????
+                  ????????????????????
+                     ??????????????
+                        ????????
+
+
+ WARN  the transform cache was reset.
+                Welcome to Metro v0.84.6
+              Fast - Scalable - Integrated
+
+
+transform[stderr]: (node:37824) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+transform[stderr]: (Use `node --trace-warnings ...` to show where the warning was created)
+transform[stderr]: 
+transform[stderr]: 
+transform[stderr]: #
+transform[stderr]: # Fatal process out of memory: Zone
+transform[stderr]: #
+transform[stderr]: 
+transform[stderr]: 
+transform[stderr]: #
+transform[stderr]: # Fatal process out of memory: Zone
+transform[stderr]: #
+transform[stderr]: ----- Native stack trace -----
+transform[stderr]: 
+transform[stderr]: ----- Native stack trace -----
+transform[stderr]: 
+transform[stderr]:  1: 00007FF6D2B3E51D 
+transform[stderr]:  2: 00007FF6D1F9F966 
+transform[stderr]:  3: 00007FF6D181DC75 
+transform[stderr]:  4: 00007FF6D1195BC6 
+transform[stderr]:  5: 00007FF6D241E3EA 
+transform[stderr]:  6: 00007FF6D241DADB 
+transform[stderr]:  7: 00007FF6D241CF9D 
+transform[stderr]:  8: 00007FF6D241CA74 
+transform[stderr]:  9: 00007FF6D241C001 
+transform[stderr]: 10: 00007FF6D241BD5F 
+transform[stderr]: 11: 00007FF6D222A9B6 
+transform[stderr]: 12: 00007FF6D22296D0 
+transform[stderr]: 13: 00007FF6D1FFFDFB 
+transform[stderr]: 14: 00007FF6D0E8CB26 
+transform[stderr]: 15: 00007FF6D0E88263 
+transform[stderr]: 16: 00007FF6D0E87B49 
+transform[stderr]: 17: 00007FF6D200F2CF 
+transform[stderr]: 18: 00007FF6D2B3954B 
+transform[stderr]: 19: 00007FF6D1873136 
+transform[stderr]: 20: 00007FF6D2F335B3 
+transform[stderr]: 21: 00007FFDE09DDDA7 
+transform[stderr]: 22: 00007FFDE187EE4C 
+transform[stderr]: 
+transform[stderr]: 
+transform[stderr]: #
+transform[stderr]: # Fatal process out of memory: Zone
+transform[stderr]: #
+transform[stderr]: ----- Native stack trace -----
+transform[stderr]: 
+transform[stderr]:  1: 00007FF6D2B3E51D 
+transform[stderr]:  2: 00007FF6D1F9F966 
+transform[stderr]:  3: 00007FF6D181DC75 
+transform[stderr]:  4: 00007FF6D1195BC6 
+transform[stderr]:  5: 00007FF6D241E3EA 
+transform[stderr]:  6: 00007FF6D241DADB 
+transform[stderr]:  7: 00007FF6D241CF9D 
+transform[stderr]:  8: 00007FF6D241CA74 
+transform[stderr]:  9: 00007FF6D241C001 
+transform[stderr]: 10: 00007FF6D241BD5F 
+transform[stderr]: 11: 00007FF6D222A9B6 
+transform[stderr]: 12: 00007FF6D22296D0 
+transform[stderr]: 13: 00007FF6D1FFFDFB 
+transform[stderr]: 14: 00007FF6D0E8CB26 
+transform[stderr]: 15: 00007FF6D0E88263 
+transform[stderr]: 16: 00007FF6D0E87B49 
+transform[stderr]: 17: 00007FF6D200F2CF 
+transform[stderr]: 18: 00007FF6D2B3954B 
+transform[stderr]: 19: 00007FF6D1873136 
+transform[stderr]: 20: 00007FF6D2F335B3 
+transform[stderr]: 21: 00007FFDE09DDDA7 
+transform[stderr]: 22: 00007FFDE187EE4C 
+transform[stderr]: 
+transform[stderr]: <--- Last few GCs --->
+transform[stderr]: 
+transform[stderr]: [9716:000001C882DD5000]      430 ms: Scavenge 13.3 (18.5) -> 12.3 (27.5) MB, pooled: 0 MB, 1.34 / 0.00 ms  (average mu = 1.000, current mu = 1.000) allocation failure; 
+transform[stderr]: [9716:000001C882DD5000]      436 ms: Scavenge 18.4 (27.5) -> 17.3 (29.7) MB, pooled: 0 MB, 1.94 / 0.00 ms  (average mu = 1.000, current mu = 1.000) allocation failure; 
+transform[stderr]: [9716:000001C882DD5000]      536 ms: Scavenge 21.2 (30.0) -> 18.9 (34.7) MB, pooled: 6 MB, 3.19 / 0.00 ms  (average mu = 1.000, current mu = 1.000) allocation failure; 
+transform[stderr]: 
+transform[stderr]: (node:15884) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+transform[stderr]: (Use `node --trace-warnings ...` to show where the warning was created)
+Error: A jest worker process (pid=9716) was terminated by another process: signal=SIGTERM, exitCode=null. Operating system logs may contain more information on why this occurred.
+    at ChildProcessWorker._onExit (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE\node_modules\jest-worker\build\workers\ChildProcessWorker.js:370:23)
+    at ChildProcess.emit (node:events:509:28)
+error node_modules\react-native\index.js: A jest worker process (pid=9716) was terminated by another process: signal=SIGTERM, exitCode=null. Operating system logs may contain more information on why this occurred.
+
+> Task :app:createBundleDataQaJsAndAssets FAILED
+
+[Incubating] Problems report is available at: file:///C:/L3mxr/Github%20Repositories/LAFINA-CAPSTONE/android/build/reports/problems/problems-report.html
+
+FAILURE: Build failed with an exception.
+
+* What went wrong:
+Execution failed for task ':app:createBundleDataQaJsAndAssets'.
+> Process 'command 'cmd'' finished with non-zero exit value 1
+
+* Try:
+> Run with --stacktrace option to get the stack trace.
+> Run with --info or --debug option to get more log output.
+> Run with --scan to get full insights from a Build Scan (powered by Develocity).
+> Get more help at https://help.gradle.org.
+
+Deprecated Gradle features were used in this build, making it incompatible with Gradle 10.
+
+You can use '--warning-mode all' to show the individual deprecation warnings and determine if they come from your own scripts or plugins.
+
+For more on this, please refer to https://docs.gradle.org/9.3.1/userguide/command_line_interface.html#sec:command_line_warnings in the Gradle documentation.
+
+BUILD FAILED in 2m 24s
+23 actionable tasks: 2 executed, 21 up-to-date

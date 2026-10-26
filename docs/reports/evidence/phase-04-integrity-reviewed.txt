@@ -1,0 +1,16 @@
+Phase04 reviewed static integrity — 2026-10-23T01:14:10.645Z
+Branch:codex/phase-04-manual-planner
+Base:b3eefb853be7c658a38186d330eb8aaf4be8eea2
+HEAD:b3eefb853be7c658a38186d330eb8aaf4be8eea2
+Source manifest:docs/reports/evidence/phase-04-source-hashes-reviewed.json
+Source manifest SHA256:daf5acaa69edd91e6ce3673941c368a95dac21e4937d0c10f831343949d009c4
+SOURCE HASHES:PASS 111 files;0 mismatches.
+APK HASHES/BYTES:PASS 7 APKs;0 mismatches.
+BENCHMARK SOURCE HASHES:PASS docs/benchmarks/phase-04-queries-host-student.json;10 files;0 mismatches.
+BENCHMARK SOURCE HASHES:PASS docs/benchmarks/phase-04-queries-host-current.json;10 files;0 mismatches.
+JVM XML HASHES:PASS 3 suites;0 mismatches.
+JVM XML ACTUAL COUNTS:30 tests;0 failures;0 errors;0 skipped.
+BUILD LOG INSPECTION:existing phase-04-android-reviewed.log ends BUILD SUCCESSFUL in1m19s (320tasks,27executed/293up-to-date); build not rerun by this collection.
+Historical manifests/source/benchmark cohorts preserved unchanged.
+NOT RUN BY THIS CHECK:tests, builds, ADB/UI actions, physical-phone checks, Android performance measurements.
+LIMITATION:hashes describe this reviewed source/build cohort; no installed-app or native-feature functional claim is inferred.

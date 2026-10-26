@@ -101,7 +101,11 @@ export function Choice<T extends string>({
 }: {
   label: string;
   value: T;
-  options: ReadonlyArray<{value: T; label: string}>;
+  options: ReadonlyArray<{
+    value: T;
+    label: string;
+    accessibilityLabel?: string;
+  }>;
   onChange: (value: T) => void;
   disabled?: boolean;
 }) {
@@ -114,7 +118,9 @@ export function Choice<T extends string>({
           <Pressable
             key={option.value}
             accessibilityRole="radio"
-            accessibilityLabel={`${label}: ${option.label}`}
+            accessibilityLabel={
+              option.accessibilityLabel ?? `${label}: ${option.label}`
+            }
             accessibilityState={{checked: value === option.value, disabled}}
             disabled={disabled}
             onPress={() => onChange(option.value)}

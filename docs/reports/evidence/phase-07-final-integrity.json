@@ -1,0 +1,22 @@
+{
+  "utc": "2026-10-26T09:58:05.906003+00:00",
+  "kind": "STATIC_SOURCE_ARTIFACT_DOCUMENT_CHECK_NOT_PHYSICAL_DEVICE_PASS",
+  "sourceCount": 260,
+  "sourceDrift": [],
+  "sourceManifestSha256": "d41cbe826e5a5f16fe3e0072847bf6e85c2dd984a3cd43fcf7c814b093fb1301",
+  "apkCount": 7,
+  "apkDrift": [],
+  "artifactManifestSha256": "76319b551d674babd304245cdf4cc4ad779b11e88192821d6f72d5ad3ee14c1c",
+  "frozenCorpusSha256": "41ff335b5c20c054ba98b626cc21058fc8d1208f1c9e6a1b6e0196021c16e6ef",
+  "reviewedParserSourceDrift": [],
+  "localMarkdownLinksChecked": 164,
+  "brokenLocalLinks": [],
+  "reportSha256": "e497f773e9521ba11c8973ad83da133a0910317bfbc005a3c7f64a6950f6c345",
+  "cleanupSha256": "4234e3d8c2f33e93fff16445a773e97021c741581a6e7ce16d73f7d7a3766424",
+  "finalPreflightSha256": "ac0abb51df0dbab08f3d33cc624f3c1dc8291f7adb20f48762602e487671d512",
+  "limits": [
+    "No application/source edits after the tested260-file cohort; documentation and ignored UI helper corrections only.",
+    "Physical speech, olderOS/ARM64/lowRAM/realcalls/battery and matched legacy comparison remain HUMAN REQUIRED / NOT RUN.",
+    "Graphify unavailable; executed TypeScript AST substitute is separate."
+  ]
+}

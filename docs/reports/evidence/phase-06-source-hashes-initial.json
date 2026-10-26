@@ -1,0 +1,1439 @@
+{
+  "phase": "06",
+  "cohort": "initial",
+  "recordedAtUtc": "2026-10-25T17:14:48.7393088Z",
+  "branch": "codex/phase-06-offline-stt",
+  "baseCommit": "b3eefb853be7c658a38186d330eb8aaf4be8eea2",
+  "priorPhaseManifest": "phase-05-source-hashes-handoff.json",
+  "sourceScope": {
+    "directories": [
+      "src",
+      "__tests__",
+      "scripts",
+      "android/app/src",
+      ".github/workflows"
+    ],
+    "configFiles": [
+      "AGENTS.md",
+      ".eslintrc.js",
+      ".gitignore",
+      ".prettierignore",
+      ".prettierrc.js",
+      "app.json",
+      "babel.config.js",
+      "index.js",
+      "jest.config.js",
+      "jest.setup.js",
+      "metro.config.js",
+      "package.json",
+      "package-lock.json",
+      "tsconfig.json",
+      "android/build.gradle",
+      "android/settings.gradle",
+      "android/gradle.properties",
+      "android/gradlew",
+      "android/gradlew.bat",
+      "android/gradle/wrapper/gradle-wrapper.jar",
+      "android/gradle/wrapper/gradle-wrapper.properties",
+      "android/app/build.gradle",
+      "android/app/proguard-rules.pro",
+      "docs/third-party/phase-06-model.json",
+      "docs/benchmarks/phase-06-corpus.json",
+      "docs/benchmarks/phase-06-synthetic-audio.json"
+    ],
+    "excluded": "No local model/audio bytes, live databases, secrets, dependencies or build outputs; hash metadata only."
+  },
+  "fileCount": 249,
+  "files": [
+    {
+      "path": "__tests__/App.test.tsx",
+      "bytes": 22561,
+      "sha256": "83af17034bd7c8ff0b4941e848f3aadf47cbcc6da8f0dfcd568015e08a4d050c"
+    },
+    {
+      "path": "__tests__/AppDictation.test.tsx",
+      "bytes": 2785,
+      "sha256": "f61156bca273f72889d3cab7d1bc2a7d406316efe6cdcce111117f78cbcbfdbc"
+    },
+    {
+      "path": "__tests__/AppSpeech.test.tsx",
+      "bytes": 13401,
+      "sha256": "4c10442ac34af6c2c82906623b7cfc96ac23116a7fcc3235b836379b8e74fba6"
+    },
+    {
+      "path": "__tests__/dateTimePicker.test.ts",
+      "bytes": 1313,
+      "sha256": "a4ab7959c4edf57cd8284b2a72a4d342c7f0724d58686fa4cb451f32f4314556"
+    },
+    {
+      "path": "__tests__/formatOverviewDate.test.ts",
+      "bytes": 941,
+      "sha256": "4534e5532b7f9dd4f9a445928ee0e04604096b227277e1949a19e2e50a4baa58"
+    },
+    {
+      "path": "__tests__/helpers/plannerFixtures.ts",
+      "bytes": 2269,
+      "sha256": "b19292a399be0be983226028a60213234b50f99574f07330215e99a3f9d14e11"
+    },
+    {
+      "path": "__tests__/helpers/sqlite.ts",
+      "bytes": 523,
+      "sha256": "70fd0f2c012dce6fbdfe677526c85f94e8d75e2a32c5d72ffbcc6dd628243a01"
+    },
+    {
+      "path": "__tests__/plannerDisplay.test.ts",
+      "bytes": 1382,
+      "sha256": "4efd81ac0fe728587bf91711cbb8cc9c29b4a50f3b0f51ef4bf0b923d1a1f571"
+    },
+    {
+      "path": "__tests__/PlannerForm.test.tsx",
+      "bytes": 14034,
+      "sha256": "e12d108226b0682492d761c21d94b8e3c8437bda85022739ca2c7f6d6f28ee94"
+    },
+    {
+      "path": "__tests__/PlannerHarness.test.tsx",
+      "bytes": 10638,
+      "sha256": "f29b70ba34a38dd12a96c79846a77c0b82f15d30dba8aaa9893bb62be828a947"
+    },
+    {
+      "path": "__tests__/plannerMigrations.test.ts",
+      "bytes": 26216,
+      "sha256": "e3b5a5e22e3ea3f2ebac8516e4c403d147f25f3deec18c0cabe9abb8633a113e"
+    },
+    {
+      "path": "__tests__/plannerQueries.test.ts",
+      "bytes": 17067,
+      "sha256": "ce78904fcd2e9a23053261f7e7d078ff103c28524f6fc61a7eb488646d2ef51e"
+    },
+    {
+      "path": "__tests__/plannerRepository.test.ts",
+      "bytes": 36729,
+      "sha256": "12bf3efa7c2203654f3b0285d37d4b53fb4ddd08ebafa9a6df754494cb7399aa"
+    },
+    {
+      "path": "__tests__/PlannerScreen.test.tsx",
+      "bytes": 12266,
+      "sha256": "2e63af4ab3d09dac26644f649bbcfd354f2f4fe0ee650eff2155bfa3da643f7e"
+    },
+    {
+      "path": "__tests__/preferences.test.ts",
+      "bytes": 1781,
+      "sha256": "fb0f2c39655fa17cb5911e2a5908ddce9c246529bc1fc41626f2e1e47b822a2b"
+    },
+    {
+      "path": "__tests__/PreferencesForm.test.tsx",
+      "bytes": 1841,
+      "sha256": "fddbe34acbab91b02ae3f77187cced3f9326f3be4a8f5256b05c36693d3aae19"
+    },
+    {
+      "path": "__tests__/reminders.test.ts",
+      "bytes": 5505,
+      "sha256": "cd1108304646208f5f8ce68a0f97ac3a06d4bd5557f082e13df16e7133231016"
+    },
+    {
+      "path": "__tests__/ReminderSettings.test.tsx",
+      "bytes": 12860,
+      "sha256": "f96a6e880ed2a40ba47505fe5c9c9d563cc083592177ac0f73069f5c80082681"
+    },
+    {
+      "path": "__tests__/ReplyMessage.test.tsx",
+      "bytes": 17883,
+      "sha256": "4cf833e57d14ea0a98294b7595354be8bb6fe2273a9e256142c24b35e9fd0ca2"
+    },
+    {
+      "path": "__tests__/scheduleTime.test.ts",
+      "bytes": 9041,
+      "sha256": "3c90f9818ef60819d96262fe472d360adc443f40d9a8f3c9b1288daedcf2080c"
+    },
+    {
+      "path": "__tests__/SpeechInputPanel.test.tsx",
+      "bytes": 14549,
+      "sha256": "f19743f07f75bba2a5fcdfaa3c1cbca409d014ca260bfb8a8abefce069f31356"
+    },
+    {
+      "path": "__tests__/speechMetrics.test.js",
+      "bytes": 1918,
+      "sha256": "1fdf6457b0d540dff683bc8a0eb8ee27ae29d4c9b1e20eee3010ed3dc68cf8f0"
+    },
+    {
+      "path": "__tests__/SpeechSettings.test.tsx",
+      "bytes": 17670,
+      "sha256": "ee728601f88ef2d625a6e0de6f8d291d791482a2fff696b05a7a5078e370b76f"
+    },
+    {
+      "path": "__tests__/speechToText.test.ts",
+      "bytes": 8312,
+      "sha256": "e1145ad363e808285bef63bd703c4557d372dd219624d7443cb09bbd55d743bc"
+    },
+    {
+      "path": "__tests__/storage.test.ts",
+      "bytes": 3096,
+      "sha256": "fee0108a209113a75e3729ecb4cf9fac92ee6995b267a9aebfb4e34513ee71df"
+    },
+    {
+      "path": "__tests__/textToSpeech.test.ts",
+      "bytes": 7232,
+      "sha256": "263b1a59d74842858018564faac28477bbcf3258fbbfed4e60027fedf1bbafbb"
+    },
+    {
+      "path": ".eslintrc.js",
+      "bytes": 397,
+      "sha256": "f50564ce6a125d6e6c97d5806202a85cc200a6f8c907c701f53caa696d4d1923"
+    },
+    {
+      "path": ".github/workflows/phase-01.yml",
+      "bytes": 1156,
+      "sha256": "0e29f00313f1972b710ca859b9cf1236a13817f56512e2d9a02c03e45291fc0c"
+    },
+    {
+      "path": ".gitignore",
+      "bytes": 967,
+      "sha256": "e4169eb830e70b2f920ad3f59df7265139a10bc4b97cd2bd6eb6822ad40dba66"
+    },
+    {
+      "path": ".prettierignore",
+      "bytes": 142,
+      "sha256": "3161ad37ffdcac3870a9bb72b5c945eac304c60875f73269e002f1151f1ed66d"
+    },
+    {
+      "path": ".prettierrc.js",
+      "bytes": 144,
+      "sha256": "c2af1e78396f433642da6f47394382293078ff97c55f871f953dae1e4407081d"
+    },
+    {
+      "path": "AGENTS.md",
+      "bytes": 10286,
+      "sha256": "b3f7ec7ad9923834a8c4bf6a814b460bb8313b4c93664d9328637fd676790581"
+    },
+    {
+      "path": "android/app/build.gradle",
+      "bytes": 7811,
+      "sha256": "3dfb570c521cef226a02d5d668a23e3cc21c0cfe68ec8ec9e6f32792f871cf5c"
+    },
+    {
+      "path": "android/app/proguard-rules.pro",
+      "bytes": 445,
+      "sha256": "75d4a0dca0e84d4e3302416528a535b4c9dba7be9d8946b4b9e98cd21cb05316"
+    },
+    {
+      "path": "android/app/src/androidTest/java/com/lafina/capstone/reminders/ReminderIntentsTest.kt",
+      "bytes": 2101,
+      "sha256": "b7b9de8a8f48ef26ae5e14ce4b674518899c5e59835397494ef7bd38ece675a9"
+    },
+    {
+      "path": "android/app/src/androidTest/java/com/lafina/capstone/reminders/ReminderStoreTest.kt",
+      "bytes": 17687,
+      "sha256": "93f14d195d299beb6fdcc5585a7cd8e39f17eb5eca1fb26d43e19adfd49d3d90"
+    },
+    {
+      "path": "android/app/src/androidTest/java/com/lafina/capstone/voice/SpeechInputTest.kt",
+      "bytes": 3437,
+      "sha256": "ebabd9b3c52ff6180a474fe3439b7e8087504f157a8451f111940f00c59f8ee2"
+    },
+    {
+      "path": "android/app/src/androidTest/java/com/lafina/capstone/voice/SystemSpeechTest.kt",
+      "bytes": 3395,
+      "sha256": "9c5dbcca5e0b53ab0ec1f9ccdb33a623271b9f1ae9c1ae471fba099f5e15b343"
+    },
+    {
+      "path": "android/app/src/androidTest/java/com/lafina/capstone/voice/WhisperCorpusBenchmarkTest.kt",
+      "bytes": 6629,
+      "sha256": "7e35678772575fdd4969a568ff702d28c44098c743b8d8aceefeb9408f454af2"
+    },
+    {
+      "path": "android/app/src/androidTest/java/com/lafina/capstone/voice/WhisperTranscriberTest.kt",
+      "bytes": 2833,
+      "sha256": "a39b124c6d4b11d21f616082be0b3c1c34ab11c2bef2405493bb2597f0cfaab4"
+    },
+    {
+      "path": "android/app/src/dataQa/AndroidManifest.xml",
+      "bytes": 324,
+      "sha256": "16616028237521c6915a2a3d71fca11cbe8a63950e025134275a6ad43632ec39"
+    },
+    {
+      "path": "android/app/src/debug/AndroidManifest.xml",
+      "bytes": 382,
+      "sha256": "dc99912454cb56893443c27fa514bd6dcf80c1259d994fd2ef6fc46223bcbbc8"
+    },
+    {
+      "path": "android/app/src/main/AndroidManifest.xml",
+      "bytes": 3154,
+      "sha256": "619f71855746d95ab10c90cd5ee5b450a204128be8e45381341ed268fe82e917"
+    },
+    {
+      "path": "android/app/src/main/assets/licenses/WHISPER-CPP-MIT.txt",
+      "bytes": 1078,
+      "sha256": "94f29bbed6a22c35b992c5c6ebf0e7c92f13b836b90f36f461c9cf2f0f1d010d"
+    },
+    {
+      "path": "android/app/src/main/cpp/CMakeLists.txt",
+      "bytes": 3041,
+      "sha256": "c057c878d0358444b2fa37a064f8b253744365ec6814e777598aef44ca8607a3"
+    },
+    {
+      "path": "android/app/src/main/cpp/jni/whisper_jni.cpp",
+      "bytes": 7922,
+      "sha256": "f715b0507920661aa037eeb23c65508045f845d2653f5638c27a113435433110"
+    },
+    {
+      "path": "android/app/src/main/cpp/third_party/whisper.cpp/ggml/cmake/common.cmake",
+      "bytes": 5109,
+      "sha256": "2294619f8cd3d2dcdb95d1817e19c33f9d9449b59b1278f66be72fb600a4b53f"
+    },
+    {
+      "path": "android/app/src/main/cpp/third_party/whisper.cpp/ggml/cmake/FindNCCL.cmake",
+      "bytes": 964,
+      "sha256": "496ad9fbb75ce307f8142ed2dc8fa1ea1baaaef70e51b8d0b153ebd191b650f8"
+    },
+    {
+      "path": "android/app/src/main/cpp/third_party/whisper.cpp/ggml/cmake/ggml-config.cmake.in",
+      "bytes": 8018,
+      "sha256": "021c2a163b30e5c4b2130540fbd76f9f0d6a61b756ccc33c2ed9a48936181264"
+    },
+    {
+      "path": "android/app/src/main/cpp/third_party/whisper.cpp/ggml/cmake/GitVars.cmake",
+      "bytes": 717,
+      "sha256": "411507be4e991f2afc0007905a95bbf848176a282189d0e27d7df1d48974290d"
+    },
+    {
+      "path": "android/app/src/main/cpp/third_party/whisper.cpp/ggml/CMakeLists.txt",
+      "bytes": 21801,
+      "sha256": "c1d1d55416664981ea61e33b28a0dfdd36064659f15661d3a500b0de98d59ce4"
+    },
+    {
+      "path": "android/app/src/main/cpp/third_party/whisper.cpp/ggml/include/ggml-alloc.h",
+      "bytes": 3689,
+      "sha256": "d114067f9099c4a0e2bbc0625c676d4894d9cf0ea27168ee072c7de0e71bb51d"
+    },
+    {
+      "path": "android/app/src/main/cpp/third_party/whisper.cpp/ggml/include/ggml-backend.h",
+      "bytes": 25776,
+      "sha256": "5791edae1fb7622027621d15bc7a160198bd3b75ed8f96d06cb7b85e2b873756"
+    },
+    {
+      "path": "android/app/src/main/cpp/third_party/whisper.cpp/ggml/include/ggml-blas.h",
+      "bytes": 586,
+      "sha256": "e76cb8594dc9866d99e7d63191b9fff6ab8b50244b4a28ce3af0f962964a6b5b"
+    },
+    {
+      "path": "android/app/src/main/cpp/third_party/whisper.cpp/ggml/include/ggml-cann.h",
+      "bytes": 4553,
+      "sha256": "2cdb134f27fe5c4ec19d52f1eb58f5355aa42b8f54bf385f0e487501c5df7362"
+    },
+    {
+      "path": "android/app/src/main/cpp/third_party/whisper.cpp/ggml/include/ggml-cpp.h",
+      "bytes": 1652,
+      "sha256": "bc15ba002c68685df23faae42df0d2b3d58032011f88b649021ab92485862c72"
+    },
+    {
+      "path": "android/app/src/main/cpp/third_party/whisper.cpp/ggml/include/ggml-cpu.h",
+      "bytes": 7753,
+      "sha256": "316279e004cdeb8e6ef78599acb602bf79a8abdf897fed9fd1914808c1518c6e"
+    },
+    {
+      "path": "android/app/src/main/cpp/third_party/whisper.cpp/ggml/include/ggml-cuda.h",
+      "bytes": 1565,
+      "sha256": "9cbfcea49f6da4d07f41dc22fa8dbf870825faaa2a68e34e65fe30ea6c41e042"
+    },
+    {
+      "path": "android/app/src/main/cpp/third_party/whisper.cpp/ggml/include/ggml-et.h",
+      "bytes": 887,
+      "sha256": "33118c0642b8059a99ea930fd4e4a045e78ccb41760b173ede221f1297c35977"
+    },
+    {
+      "path": "android/app/src/main/cpp/third_party/whisper.cpp/ggml/include/ggml-hexagon.h",
+      "bytes": 351,
+      "sha256": "b2c12bac390f14707b16bdd27c8c75ce4f075ed509c729ee28fd4f03b17e7375"
+    },
+    {
+      "path": "android/app/src/main/cpp/third_party/whisper.cpp/ggml/include/ggml-metal.h",
+      "bytes": 2141,
+      "sha256": "322f36cd30f3e9e7aad7b5b9bc63078012fd0b7706ac4e24f5721b604f3d8980"
+    },
+    {
+      "path": "android/app/src/main/cpp/third_party/whisper.cpp/ggml/include/ggml-opencl.h",
+      "bytes": 581,
+      "sha256": "8e443e1aa9c8bc6e0cf116c4cc3f42f4858938fa15e65b06bc07b26686e1233a"
+    },
+    {
+      "path": "android/app/src/main/cpp/third_party/whisper.cpp/ggml/include/ggml-openvino.h",
+      "bytes": 1034,
+      "sha256": "c2e3f301e28ad815b4285888aad6130808a77e6acb4e8b558de63a648cf9743e"
+    },
+    {
+      "path": "android/app/src/main/cpp/third_party/whisper.cpp/ggml/include/ggml-opt.h",
+      "bytes": 14040,
+      "sha256": "3586de1bc8a934b5c72339e2b6937b0641e8f149b512231e666f67de0736eea2"
+    },
+    {
+      "path": "android/app/src/main/cpp/third_party/whisper.cpp/ggml/include/ggml-rpc.h",
+      "bytes": 1184,
+      "sha256": "196d2a7434f0abdb01f13c5360e0b118b9f2d66c6452e3a7a844fbecc890205c"
+    },
+    {
+      "path": "android/app/src/main/cpp/third_party/whisper.cpp/ggml/include/ggml-sycl.h",
+      "bytes": 2492,
+      "sha256": "728e4f15d0853d63feb95dd596821c750181c26995fff57fe035e964e70fd85f"
+    },
+    {
+      "path": "android/app/src/main/cpp/third_party/whisper.cpp/ggml/include/ggml-virtgpu.h",
+      "bytes": 194,
+      "sha256": "ed231e7db3f0f58b84073f5ee67f9ec9d63046d1a7ed091c36a6cfe9f685a463"
+    },
+    {
+      "path": "android/app/src/main/cpp/third_party/whisper.cpp/ggml/include/ggml-vulkan.h",
+      "bytes": 952,
+      "sha256": "7eae5dad2cc7bb4d3eca828539f441816d5fd59fdc7b224d49aa229fc7b7248c"
+    },
+    {
+      "path": "android/app/src/main/cpp/third_party/whisper.cpp/ggml/include/ggml-webgpu.h",
+      "bytes": 328,
+      "sha256": "a91d855313a9e85e75ba597ff869a267247dea936a2c0faef03aeb7f1ea6e79c"
+    },
+    {
+      "path": "android/app/src/main/cpp/third_party/whisper.cpp/ggml/include/ggml-zdnn.h",
+      "bytes": 361,
+      "sha256": "13e42214e6743abeb250b1ec9aa4be386a9f778d644001dbbb51e3f778bd84a9"
+    },
+    {
+      "path": "android/app/src/main/cpp/third_party/whisper.cpp/ggml/include/ggml-zendnn.h",
+      "bytes": 498,
+      "sha256": "2cb034b842438281616ce647232d922fb224450323f0d422d2af567c334aa8ff"
+    },
+    {
+      "path": "android/app/src/main/cpp/third_party/whisper.cpp/ggml/include/ggml.h",
+      "bytes": 116144,
+      "sha256": "12ee71f99db7db9b353bc02b1fbb57c344ee17c01ac5fb7952b41a637a747ea9"
+    },
+    {
+      "path": "android/app/src/main/cpp/third_party/whisper.cpp/ggml/include/gguf.h",
+      "bytes": 11355,
+      "sha256": "e56714aab702e5ce62ee587a409643c08f7e93e8fbb77f48ef7cc85075f96fa4"
+    },
+    {
+      "path": "android/app/src/main/cpp/third_party/whisper.cpp/ggml/src/CMakeLists.txt",
+      "bytes": 26989,
+      "sha256": "38ddf053a1adfc14bb84b7722e3c4ec01909694f7e51e32013f36e7a324fa4f0"
+    },
+    {
+      "path": "android/app/src/main/cpp/third_party/whisper.cpp/ggml/src/ggml-alloc.c",
+      "bytes": 45068,
+      "sha256": "9664bda3e9c4223f5c94ebfeb3c0381f0065a5091ddae707c09a800f7e419a39"
+    },
+    {
+      "path": "android/app/src/main/cpp/third_party/whisper.cpp/ggml/src/ggml-backend-dl.cpp",
+      "bytes": 1051,
+      "sha256": "acd76df8b83bcdef6807bc7b0520f57b379d61b4ff1027c04aa4d140d16ad07f"
+    },
+    {
+      "path": "android/app/src/main/cpp/third_party/whisper.cpp/ggml/src/ggml-backend-dl.h",
+      "bytes": 791,
+      "sha256": "225bd83a197c4e8b5f985717176824d1144e2b74a79f04838f51b84115c14dc5"
+    },
+    {
+      "path": "android/app/src/main/cpp/third_party/whisper.cpp/ggml/src/ggml-backend-impl.h",
+      "bytes": 15095,
+      "sha256": "4e861c8e23d3d7b0d99d8e0836e68564af58f8597d75d7bbb732857d7a632fa7"
+    },
+    {
+      "path": "android/app/src/main/cpp/third_party/whisper.cpp/ggml/src/ggml-backend-meta.cpp",
+      "bytes": 119562,
+      "sha256": "f459c44d86a19a7c7be01663f2bcaf64f6b9dc486f28b10e8eba13328c82299f"
+    },
+    {
+      "path": "android/app/src/main/cpp/third_party/whisper.cpp/ggml/src/ggml-backend-reg.cpp",
+      "bytes": 18555,
+      "sha256": "0f63c69ad083e0744872f57d59d049b069283303f5bbc646222907d779afe4d1"
+    },
+    {
+      "path": "android/app/src/main/cpp/third_party/whisper.cpp/ggml/src/ggml-backend.cpp",
+      "bytes": 105561,
+      "sha256": "cdb79f2937aa147084a76f949adc0eb760ad1883e0ccc015bb4e0f599c89bd5f"
+    },
+    {
+      "path": "android/app/src/main/cpp/third_party/whisper.cpp/ggml/src/ggml-common.h",
+      "bytes": 135161,
+      "sha256": "0061131b615c5721fc88a78feeb22c1f8c450f1c2646a317d80796a653bf595c"
+    },
+    {
+      "path": "android/app/src/main/cpp/third_party/whisper.cpp/ggml/src/ggml-cpu/amx/amx.cpp",
+      "bytes": 8404,
+      "sha256": "0d1641ce16917e3f6260ff74523b158bb823599bbf76cbf9aedcc9d365de84d4"
+    },
+    {
+      "path": "android/app/src/main/cpp/third_party/whisper.cpp/ggml/src/ggml-cpu/amx/amx.h",
+      "bytes": 202,
+      "sha256": "9d098ceee6a8114d4a660ff269064a27aa25b8a4f205d1e6984d17bec5104f0d"
+    },
+    {
+      "path": "android/app/src/main/cpp/third_party/whisper.cpp/ggml/src/ggml-cpu/amx/common.h",
+      "bytes": 2675,
+      "sha256": "c694f6bb066a820b717f986914b0d112dca0d8d3a1e239e958fce30c864751c3"
+    },
+    {
+      "path": "android/app/src/main/cpp/third_party/whisper.cpp/ggml/src/ggml-cpu/amx/mmq.cpp",
+      "bytes": 108216,
+      "sha256": "0f95c80e0300eca3b3a3df07272042fee708425e19cd5f2c4cba7b253b26d226"
+    },
+    {
+      "path": "android/app/src/main/cpp/third_party/whisper.cpp/ggml/src/ggml-cpu/amx/mmq.h",
+      "bytes": 397,
+      "sha256": "bd33d0713b12daf9eedea1619dd715619baaa36b98c44ec754d532909d80933a"
+    },
+    {
+      "path": "android/app/src/main/cpp/third_party/whisper.cpp/ggml/src/ggml-cpu/arch-fallback.h",
+      "bytes": 23209,
+      "sha256": "021e6efbd5b67194b291303b42e847a6426296e1f244b88cf8f0ab2003c5e271"
+    },
+    {
+      "path": "android/app/src/main/cpp/third_party/whisper.cpp/ggml/src/ggml-cpu/arch/arm/cpu-feats.cpp",
+      "bytes": 926,
+      "sha256": "a8691f7fb8f41f707d68566a168196b5ff7743090b0b486a0be998df6476c511"
+    },
+    {
+      "path": "android/app/src/main/cpp/third_party/whisper.cpp/ggml/src/ggml-cpu/arch/arm/quants.c",
+      "bytes": 217556,
+      "sha256": "a4d3cfdea82b73c0086f63ad9f698e536117a1c25f2f266fc9cd6e7f51deab1b"
+    },
+    {
+      "path": "android/app/src/main/cpp/third_party/whisper.cpp/ggml/src/ggml-cpu/arch/arm/repack.cpp",
+      "bytes": 269785,
+      "sha256": "6a96da05d38f693bcf259ef063c0e4adf762c006a92252fd83133f7cf626b76d"
+    },
+    {
+      "path": "android/app/src/main/cpp/third_party/whisper.cpp/ggml/src/ggml-cpu/arch/x86/cpu-feats.cpp",
+      "bytes": 10727,
+      "sha256": "b0f6aaaeb0b12a4f3e15ceec14d0c2031633f91e864a6c15954a001d6390f6d4"
+    },
+    {
+      "path": "android/app/src/main/cpp/third_party/whisper.cpp/ggml/src/ggml-cpu/arch/x86/quants.c",
+      "bytes": 197407,
+      "sha256": "3c489fdc77e3ab484a5f188bff9c60c0e9483c951ed65c1a562a04c249d5628e"
+    },
+    {
+      "path": "android/app/src/main/cpp/third_party/whisper.cpp/ggml/src/ggml-cpu/arch/x86/repack.cpp",
+      "bytes": 665038,
+      "sha256": "c69735f83caf854172cac78eed2cbc022ef81c077e5f6aca55a49d3404a02331"
+    },
+    {
+      "path": "android/app/src/main/cpp/third_party/whisper.cpp/ggml/src/ggml-cpu/binary-ops.cpp",
+      "bytes": 6709,
+      "sha256": "2df261aadce36a20f5e3bf6961d4ca27b8c2d461afc41488361ee6ad09c1730d"
+    },
+    {
+      "path": "android/app/src/main/cpp/third_party/whisper.cpp/ggml/src/ggml-cpu/binary-ops.h",
+      "bytes": 518,
+      "sha256": "5915519c4e2227db28239b2a5d3b8a5f9022730cc0ddb7880b24748ee78cd1f9"
+    },
+    {
+      "path": "android/app/src/main/cpp/third_party/whisper.cpp/ggml/src/ggml-cpu/cmake/FindSIMD.cmake",
+      "bytes": 2651,
+      "sha256": "c36807121bb1452dfb1ab39a7b366bd49f454c49b43b1df4b7c54f038c824d49"
+    },
+    {
+      "path": "android/app/src/main/cpp/third_party/whisper.cpp/ggml/src/ggml-cpu/cmake/FindSMTIME.cmake",
+      "bytes": 2075,
+      "sha256": "81fc6290d1b2fdc30746c222fe993cc7403942ca388f9db0c5885ef568929adb"
+    },
+    {
+      "path": "android/app/src/main/cpp/third_party/whisper.cpp/ggml/src/ggml-cpu/CMakeLists.txt",
+      "bytes": 32900,
+      "sha256": "158a405edbd0855602fd22ae14df9bc252fd10e5219cf77d4e21c9872ae2ef75"
+    },
+    {
+      "path": "android/app/src/main/cpp/third_party/whisper.cpp/ggml/src/ggml-cpu/common.h",
+      "bytes": 2333,
+      "sha256": "db7c19747a28c819d18922aa43b91b224df3730e424e6d8a4cf4fd16bfb1db14"
+    },
+    {
+      "path": "android/app/src/main/cpp/third_party/whisper.cpp/ggml/src/ggml-cpu/ggml-cpu-impl.h",
+      "bytes": 13752,
+      "sha256": "785a19aac84bd35671d34b1986b920baadccdf61cd8b81e787028f6ac24cae60"
+    },
+    {
+      "path": "android/app/src/main/cpp/third_party/whisper.cpp/ggml/src/ggml-cpu/ggml-cpu.c",
+      "bytes": 132440,
+      "sha256": "45b22f8c83b2cbccabfc2f81a38ef8a5810223e1ce366b7c6f77d42faa5cc6f3"
+    },
+    {
+      "path": "android/app/src/main/cpp/third_party/whisper.cpp/ggml/src/ggml-cpu/ggml-cpu.cpp",
+      "bytes": 25005,
+      "sha256": "ccf382d3fbf126b5ddb5850a0a970656fb24e00587da4003419439277c91cd01"
+    },
+    {
+      "path": "android/app/src/main/cpp/third_party/whisper.cpp/ggml/src/ggml-cpu/hbm.cpp",
+      "bytes": 2156,
+      "sha256": "e5cf5c8327f99ccb58461d8416e27bc38da01d9bd450e48f3df69bd34a81a47c"
+    },
+    {
+      "path": "android/app/src/main/cpp/third_party/whisper.cpp/ggml/src/ggml-cpu/hbm.h",
+      "bytes": 155,
+      "sha256": "340c84ac6a1c83d2218a15d6d71c1efb6ba1a5517162c2fde4baa0a9204af26b"
+    },
+    {
+      "path": "android/app/src/main/cpp/third_party/whisper.cpp/ggml/src/ggml-cpu/ops.cpp",
+      "bytes": 425708,
+      "sha256": "215d16e7ebbb4066920e2d7a5f7ea6c46636d298aedd553e00f0b3ebb0d59305"
+    },
+    {
+      "path": "android/app/src/main/cpp/third_party/whisper.cpp/ggml/src/ggml-cpu/ops.h",
+      "bytes": 10249,
+      "sha256": "2727d0414c23f1d06ade33d277c3ca1f0726c7902642c0e36d839c20781b1694"
+    },
+    {
+      "path": "android/app/src/main/cpp/third_party/whisper.cpp/ggml/src/ggml-cpu/quants.c",
+      "bytes": 45124,
+      "sha256": "a61f1011e49d05b5f99d352b158d5b8e36cf008294bb0db309f72bdd7f1d4e35"
+    },
+    {
+      "path": "android/app/src/main/cpp/third_party/whisper.cpp/ggml/src/ggml-cpu/quants.h",
+      "bytes": 10862,
+      "sha256": "918d6755b3e601ec7bb83c7dbf1d73304490651ccbb4072b0d31a2b45df751da"
+    },
+    {
+      "path": "android/app/src/main/cpp/third_party/whisper.cpp/ggml/src/ggml-cpu/repack.cpp",
+      "bytes": 213604,
+      "sha256": "5fa9f24cc2631609f40fa47a64078f77dccbe9f327711af91af671cd29b8b87d"
+    },
+    {
+      "path": "android/app/src/main/cpp/third_party/whisper.cpp/ggml/src/ggml-cpu/repack.h",
+      "bytes": 21341,
+      "sha256": "d392cb13586c8c9177f6a0f75a75936882d09b9a70e6d989cedb3dd79f3c752a"
+    },
+    {
+      "path": "android/app/src/main/cpp/third_party/whisper.cpp/ggml/src/ggml-cpu/simd-gemm.h",
+      "bytes": 8816,
+      "sha256": "e82a07445059ec4a4c7d8dd75a2663d459025274d817be3f83c1f5989a79208d"
+    },
+    {
+      "path": "android/app/src/main/cpp/third_party/whisper.cpp/ggml/src/ggml-cpu/simd-mappings.h",
+      "bytes": 55790,
+      "sha256": "a936298928e4dcfc1b61fb9e99cf8a152572b413e30f38dc8e7c3211ee9cb6a0"
+    },
+    {
+      "path": "android/app/src/main/cpp/third_party/whisper.cpp/ggml/src/ggml-cpu/tiled/tiled-kernel.cpp",
+      "bytes": 36853,
+      "sha256": "8f81a18b9a210fac732ecac020b048184edfe2c5e74a5cc95c4df89e60bc8f13"
+    },
+    {
+      "path": "android/app/src/main/cpp/third_party/whisper.cpp/ggml/src/ggml-cpu/tiled/tiled-kernel.h",
+      "bytes": 9547,
+      "sha256": "0d729f5a6b4cd1584bd181fbc882e39f64fd41bf66ac1a9c009025d2b09ff23e"
+    },
+    {
+      "path": "android/app/src/main/cpp/third_party/whisper.cpp/ggml/src/ggml-cpu/tiled/tiled.cpp",
+      "bytes": 58049,
+      "sha256": "a5d92ce8f617696778e225de6658180649143fec3792c5cfef84170641f2d06e"
+    },
+    {
+      "path": "android/app/src/main/cpp/third_party/whisper.cpp/ggml/src/ggml-cpu/tiled/tiled.h",
+      "bytes": 1387,
+      "sha256": "684aaa5320e20eadfc799c8ce04c52bf7c0d32b323f395de59ce469bda254a72"
+    },
+    {
+      "path": "android/app/src/main/cpp/third_party/whisper.cpp/ggml/src/ggml-cpu/traits.cpp",
+      "bytes": 1231,
+      "sha256": "a85bd3ff50c91cb67d14221988544664dfe5975db0811b330dc4a2f385239de4"
+    },
+    {
+      "path": "android/app/src/main/cpp/third_party/whisper.cpp/ggml/src/ggml-cpu/traits.h",
+      "bytes": 1157,
+      "sha256": "26e1b41879091a663325848aa82a4023b459fd1e688b3b0e2a9bde3e72a3a764"
+    },
+    {
+      "path": "android/app/src/main/cpp/third_party/whisper.cpp/ggml/src/ggml-cpu/unary-ops.cpp",
+      "bytes": 11555,
+      "sha256": "e63b382766f1b8c5ded1577be9704e85cb4e9cd24584f3e1474911a40146df33"
+    },
+    {
+      "path": "android/app/src/main/cpp/third_party/whisper.cpp/ggml/src/ggml-cpu/unary-ops.h",
+      "bytes": 2442,
+      "sha256": "280b7979055079d43bdde7790a7290bf04f75640481c59abc2364c46d6ac6d8e"
+    },
+    {
+      "path": "android/app/src/main/cpp/third_party/whisper.cpp/ggml/src/ggml-cpu/vec.cpp",
+      "bytes": 25373,
+      "sha256": "31e43ec66a1e2920a549dd2f71e6ce474e68f2fc298c4d2942404ca327e763d1"
+    },
+    {
+      "path": "android/app/src/main/cpp/third_party/whisper.cpp/ggml/src/ggml-cpu/vec.h",
+      "bytes": 68484,
+      "sha256": "885a50e405f20f75ea70cb7fb062934812beffc9229ddb56a003aa150163d2fa"
+    },
+    {
+      "path": "android/app/src/main/cpp/third_party/whisper.cpp/ggml/src/ggml-feats.h",
+      "bytes": 4885,
+      "sha256": "4490179fd8c6df80fe29fc602ed7236eb828c51e9c379efb0dd510cb5cb81fec"
+    },
+    {
+      "path": "android/app/src/main/cpp/third_party/whisper.cpp/ggml/src/ggml-impl.h",
+      "bytes": 25821,
+      "sha256": "43564db0238aebb7ed68501e346c194866b5dac218d1d37b26baff9f458c00d3"
+    },
+    {
+      "path": "android/app/src/main/cpp/third_party/whisper.cpp/ggml/src/ggml-opt.cpp",
+      "bytes": 42081,
+      "sha256": "e35fd27856e37f3611d3bc6f17ee963be51bfe92bec96fad0a9fa2c7ebbe9c46"
+    },
+    {
+      "path": "android/app/src/main/cpp/third_party/whisper.cpp/ggml/src/ggml-quants.c",
+      "bytes": 226847,
+      "sha256": "5574a2dccf7c07e75b143733e04a5412d3d8c819e7945f5217a7b83a2b2ff8ab"
+    },
+    {
+      "path": "android/app/src/main/cpp/third_party/whisper.cpp/ggml/src/ggml-quants.h",
+      "bytes": 9803,
+      "sha256": "28ae5fca1f3be636b36cd6c4fa2ca74fd42d229bfbd5352eaf66f3727bb8a6da"
+    },
+    {
+      "path": "android/app/src/main/cpp/third_party/whisper.cpp/ggml/src/ggml-threading.cpp",
+      "bytes": 250,
+      "sha256": "13a18d885393722b7c9f42d4cf8575a4d41699926d656f78a867fa4fac9dad20"
+    },
+    {
+      "path": "android/app/src/main/cpp/third_party/whisper.cpp/ggml/src/ggml-threading.h",
+      "bytes": 198,
+      "sha256": "9652729043ed91482392c1aa08af5d813190d0ace2e7982d2539d28240ab8d8b"
+    },
+    {
+      "path": "android/app/src/main/cpp/third_party/whisper.cpp/ggml/src/ggml-version.h.in",
+      "bytes": 95,
+      "sha256": "2b6f26259bfc6768229c90b127fee770f60271e74f4513d7abecb5900fa0b112"
+    },
+    {
+      "path": "android/app/src/main/cpp/third_party/whisper.cpp/ggml/src/ggml.c",
+      "bytes": 261112,
+      "sha256": "7e8bf2b60598b50d718f46aa3c36c9293b10f4e7dfde6844f0693e6fc976d505"
+    },
+    {
+      "path": "android/app/src/main/cpp/third_party/whisper.cpp/ggml/src/ggml.cpp",
+      "bytes": 738,
+      "sha256": "64e6b5c8d716ae8697e45481a7153540be01f721be2dc7e753aa47b36a69c753"
+    },
+    {
+      "path": "android/app/src/main/cpp/third_party/whisper.cpp/ggml/src/gguf.cpp",
+      "bytes": 58995,
+      "sha256": "7505d6a434dc740941a682fd3b476ef9bd9893ab76adf18c9969daa528bd5be5"
+    },
+    {
+      "path": "android/app/src/main/cpp/third_party/whisper.cpp/include/whisper.h",
+      "bytes": 37439,
+      "sha256": "a7d19f7feb5be52426628ff07e0602de28a30dc4312d0d0603e1e536753f76dd"
+    },
+    {
+      "path": "android/app/src/main/cpp/third_party/whisper.cpp/LICENSE",
+      "bytes": 1078,
+      "sha256": "94f29bbed6a22c35b992c5c6ebf0e7c92f13b836b90f36f461c9cf2f0f1d010d"
+    },
+    {
+      "path": "android/app/src/main/cpp/third_party/whisper.cpp/README.md",
+      "bytes": 40988,
+      "sha256": "43451813ec96b5ea286c6d676f467bdffb053224c110c257ce3d67d911e774e7"
+    },
+    {
+      "path": "android/app/src/main/cpp/third_party/whisper.cpp/SOURCE-MANIFEST.json",
+      "bytes": 16428,
+      "sha256": "cb1c655c571a3526cc12eb70d62e8b61cfe6e9762dde6773947c846867503ea5"
+    },
+    {
+      "path": "android/app/src/main/cpp/third_party/whisper.cpp/src/aneforge/whisper-aneforge.cpp",
+      "bytes": 6768,
+      "sha256": "2946310c28ff5cf14634691078542b9286a2d8ba27929104179a87dec2f763aa"
+    },
+    {
+      "path": "android/app/src/main/cpp/third_party/whisper.cpp/src/aneforge/whisper-aneforge.h",
+      "bytes": 952,
+      "sha256": "9870672ab5115132b47de746a588bb38915abf1c0adc6e49de9603fca0e44c1f"
+    },
+    {
+      "path": "android/app/src/main/cpp/third_party/whisper.cpp/src/whisper-arch.h",
+      "bytes": 9212,
+      "sha256": "f35cf51d54c4df7e1c504ba8ef3f06012ba483459ddf2a5cba533deb7b85c239"
+    },
+    {
+      "path": "android/app/src/main/cpp/third_party/whisper.cpp/src/whisper.cpp",
+      "bytes": 344329,
+      "sha256": "891168a838301bd2baa5e8b87422a854dafeeb7da914d40a2e4c6bf33ff448ed"
+    },
+    {
+      "path": "android/app/src/main/java/com/lafina/capstone/CapstoneBuildPackage.kt",
+      "bytes": 1139,
+      "sha256": "4a485f87b68c9094172977f4bfab52ea4e785289fffd2bae4598deeb62638c72"
+    },
+    {
+      "path": "android/app/src/main/java/com/lafina/capstone/DateTimePickerModule.kt",
+      "bytes": 3151,
+      "sha256": "b4dcd754a7aa3a7154c95fd4b1371e61b9091d02e09670bb7c11b0535d57a5be"
+    },
+    {
+      "path": "android/app/src/main/java/com/lafina/capstone/MainActivity.kt",
+      "bytes": 882,
+      "sha256": "da5345fe14f648a32b25187d06ed371965007dbdc758a1452708e8766638a4f5"
+    },
+    {
+      "path": "android/app/src/main/java/com/lafina/capstone/MainApplication.kt",
+      "bytes": 1004,
+      "sha256": "31766bb2b76e0210105f2ee2f242162d95497872f6c44cc68a94f4692b95abfb"
+    },
+    {
+      "path": "android/app/src/main/java/com/lafina/capstone/reminders/AlarmRegistrationPolicy.kt",
+      "bytes": 1172,
+      "sha256": "72a854b3f3214a9857b0faef42f9a9a9417ae767efc8492f4b5af5c609806895"
+    },
+    {
+      "path": "android/app/src/main/java/com/lafina/capstone/reminders/ReminderActivity.kt",
+      "bytes": 12839,
+      "sha256": "46dbe409a33c64f9e2d2d3cfb016e7fe56c1ad2d5ba7c20f56bf35da21f8004e"
+    },
+    {
+      "path": "android/app/src/main/java/com/lafina/capstone/reminders/ReminderCapabilities.kt",
+      "bytes": 2782,
+      "sha256": "7a3d8c7b9f33ca2f9044faadd0ecd2a92e0dcd619a5a385ee4a58ff24f47895d"
+    },
+    {
+      "path": "android/app/src/main/java/com/lafina/capstone/reminders/ReminderIdentityKey.kt",
+      "bytes": 620,
+      "sha256": "db6c7554086e28219ae86a873b65be27db3c041b707c7aaee3cc3ae678d70b20"
+    },
+    {
+      "path": "android/app/src/main/java/com/lafina/capstone/reminders/ReminderIntents.kt",
+      "bytes": 2346,
+      "sha256": "6b3db34a8af1ac32c08fbcb271d244240b03dc2cfb938951c910c23155f10807"
+    },
+    {
+      "path": "android/app/src/main/java/com/lafina/capstone/reminders/ReminderModels.kt",
+      "bytes": 1472,
+      "sha256": "016a0cdbcddf789310d095f370b5762e4893e8fe2a2853b9471b5d2a995c2cbb"
+    },
+    {
+      "path": "android/app/src/main/java/com/lafina/capstone/reminders/ReminderNotifications.kt",
+      "bytes": 2550,
+      "sha256": "95f347a1b3277f4ead3422c6e1b10a2ae401f71ac7f5122685d79cdd55d4ee3c"
+    },
+    {
+      "path": "android/app/src/main/java/com/lafina/capstone/reminders/ReminderPackage.kt",
+      "bytes": 4909,
+      "sha256": "f428f43cf62508f4c364564582158f821f440708dd3b0d9e74544717c43f29d7"
+    },
+    {
+      "path": "android/app/src/main/java/com/lafina/capstone/reminders/ReminderPolicy.kt",
+      "bytes": 4392,
+      "sha256": "78fe66523200cb023baa6a272fc3100169796af4d42e40a0343cf295599d3174"
+    },
+    {
+      "path": "android/app/src/main/java/com/lafina/capstone/reminders/ReminderPresentation.kt",
+      "bytes": 776,
+      "sha256": "2ca4b32b6653329d12c191b393916e262f9768c8fe86d47cebf4a2b04f2a0b28"
+    },
+    {
+      "path": "android/app/src/main/java/com/lafina/capstone/reminders/ReminderProvider.kt",
+      "bytes": 2928,
+      "sha256": "c41889d12b7b5eae6d7e303b515e778e7280769d25ff3bbc6dbce163c77283dc"
+    },
+    {
+      "path": "android/app/src/main/java/com/lafina/capstone/reminders/ReminderReceiver.kt",
+      "bytes": 2348,
+      "sha256": "23e2ca7146e362bd16979de84e69764ea5800818bbf3026fefd30d2181efb453"
+    },
+    {
+      "path": "android/app/src/main/java/com/lafina/capstone/reminders/ReminderRuntime.kt",
+      "bytes": 11410,
+      "sha256": "6f5b6600bd403144981ee6d8ace767ddc238a7fd18cd36a4293f3d12d62cf8c8"
+    },
+    {
+      "path": "android/app/src/main/java/com/lafina/capstone/reminders/ReminderStore.kt",
+      "bytes": 28493,
+      "sha256": "bce8769d5e83dbb845613b39e96b68262c5fa466bf1f09113ccfa8f3e726d9be"
+    },
+    {
+      "path": "android/app/src/main/java/com/lafina/capstone/voice/AnsweredDictationPanel.kt",
+      "bytes": 7382,
+      "sha256": "897199f6d89fa42a46ad6bd413a1a6cebc06bf970efdd9fcee2d97c2af97a821"
+    },
+    {
+      "path": "android/app/src/main/java/com/lafina/capstone/voice/MicrophoneLease.kt",
+      "bytes": 1194,
+      "sha256": "fedf38ce7ced114665c72d38069e526ef4baa8820d8605b5e200401b0b744712"
+    },
+    {
+      "path": "android/app/src/main/java/com/lafina/capstone/voice/PcmCapture.kt",
+      "bytes": 4650,
+      "sha256": "da5afe59fbace713be34d28f3dcba64c96c40a9ec04cce13d92bf9ff5ef41b0d"
+    },
+    {
+      "path": "android/app/src/main/java/com/lafina/capstone/voice/SpeechInput.kt",
+      "bytes": 16975,
+      "sha256": "9c395daf1c1b5ac28b995e74fd435f9dfb3ac95b3218cd20d038f68ee73416e7"
+    },
+    {
+      "path": "android/app/src/main/java/com/lafina/capstone/voice/SpeechInputPolicy.kt",
+      "bytes": 3631,
+      "sha256": "32369cb80efb5540a4148bb3904a07962d847818e593001deea0e80d9a6a6c5a"
+    },
+    {
+      "path": "android/app/src/main/java/com/lafina/capstone/voice/SpeechPolicy.kt",
+      "bytes": 3731,
+      "sha256": "156baded026a20ef48420f0db525543074a949f0f357328f3b9e717da7f29500"
+    },
+    {
+      "path": "android/app/src/main/java/com/lafina/capstone/voice/SystemSpeech.kt",
+      "bytes": 15026,
+      "sha256": "709115729112fa4ff94354c2332a6c07ffd20d527d971e15f0e8d4d9c8069418"
+    },
+    {
+      "path": "android/app/src/main/java/com/lafina/capstone/voice/SystemSpeechInputModule.kt",
+      "bytes": 4146,
+      "sha256": "4bfc692db26dba42cdacc27eb755a00c7018fb96e9859d22f6eaddb7324677d5"
+    },
+    {
+      "path": "android/app/src/main/java/com/lafina/capstone/voice/SystemSpeechModule.kt",
+      "bytes": 3739,
+      "sha256": "6acf05701877e94afeaa777da36e91ef82fbfc094703471adc449d5c50fb4a64"
+    },
+    {
+      "path": "android/app/src/main/java/com/lafina/capstone/voice/WhisperTranscriber.kt",
+      "bytes": 5079,
+      "sha256": "0678b7c09c1d03b217a9cff4446612be002027e397d56adf9d8115fc01f6a354"
+    },
+    {
+      "path": "android/app/src/main/res/drawable/ic_launcher.xml",
+      "bytes": 472,
+      "sha256": "82a1b2994e940fa816ef942d15c080ade0e736848d93652a6eb4dd78535f2984"
+    },
+    {
+      "path": "android/app/src/main/res/drawable/ic_reminder.xml",
+      "bytes": 374,
+      "sha256": "0bd2aeb91fe983fcc65d60ea632f39f8d667ea4c9676ae1a09cad8f5ac2b697d"
+    },
+    {
+      "path": "android/app/src/main/res/drawable/rn_edit_text_material.xml",
+      "bytes": 1954,
+      "sha256": "a0ffe99c6c5b933311be2b56a1769600dcdca909289cb4446e58cac2b6c27c7c"
+    },
+    {
+      "path": "android/app/src/main/res/values-night/reminders.xml",
+      "bytes": 465,
+      "sha256": "2a20ddae134279892269aee749c3400e70ef1acbcf55880d750783c898dc850c"
+    },
+    {
+      "path": "android/app/src/main/res/values/colors.xml",
+      "bytes": 137,
+      "sha256": "3e4d6443f848dc26fbbadf7983442464103bedaee98e23f87070ca266f50b601"
+    },
+    {
+      "path": "android/app/src/main/res/values/reminders.xml",
+      "bytes": 695,
+      "sha256": "7e1cbd63ae3f1819ea87c51979bb25b4311adca2d732062fcbbcea470879b879"
+    },
+    {
+      "path": "android/app/src/main/res/values/strings.xml",
+      "bytes": 81,
+      "sha256": "053d8dbf13b9c470074330cdd21fd398d34821e9c69e93f2f44d566bd9d3ea36"
+    },
+    {
+      "path": "android/app/src/main/res/values/styles.xml",
+      "bytes": 291,
+      "sha256": "3f162a05aded30eefe69f1f420a598a0fecebdabfdb6c72e24bba2dff82f2e1c"
+    },
+    {
+      "path": "android/app/src/test/java/com/lafina/capstone/reminders/AlarmRegistrationPolicyTest.kt",
+      "bytes": 4507,
+      "sha256": "1b36abc653a2a215dac16176a5e6b3067385c0fd404f2b5648aa76ff8f4b94cd"
+    },
+    {
+      "path": "android/app/src/test/java/com/lafina/capstone/reminders/ReminderIdentityKeyTest.kt",
+      "bytes": 1728,
+      "sha256": "0990d30a1395caee820076497da461c6026be0cd823de57a1f98b23205c1741e"
+    },
+    {
+      "path": "android/app/src/test/java/com/lafina/capstone/reminders/ReminderPolicyTest.kt",
+      "bytes": 5933,
+      "sha256": "fb4e81a9bc2694a6cafe55209ba33e295ade38ca15af7ffc45d9c4600c42608a"
+    },
+    {
+      "path": "android/app/src/test/java/com/lafina/capstone/reminders/ReminderPresentationTest.kt",
+      "bytes": 2100,
+      "sha256": "2eb6fd84ada7824532320078d2d6e485379ec975e29aa96678d90611ae4fb5eb"
+    },
+    {
+      "path": "android/app/src/test/java/com/lafina/capstone/voice/SpeechInputPolicyTest.kt",
+      "bytes": 6457,
+      "sha256": "003918b579c839f0ac9011a83d13437ec801ec831d4351f0f747f6789ae5130f"
+    },
+    {
+      "path": "android/app/src/test/java/com/lafina/capstone/voice/SpeechPolicyTest.kt",
+      "bytes": 5383,
+      "sha256": "5168c097059cae3dbb7bfeccb13302dd23ee8f3125bc3cb24104bd5b30193f1c"
+    },
+    {
+      "path": "android/build.gradle",
+      "bytes": 568,
+      "sha256": "d48ff922fceb3b558ea85b37711cbb11ce167c6aaaa124c5dc137fd5d8e93f7f"
+    },
+    {
+      "path": "android/gradle.properties",
+      "bytes": 293,
+      "sha256": "efcf68d0f677d98884c1a8445637576622abcb01839209ef20d6de915d79f3eb"
+    },
+    {
+      "path": "android/gradle/wrapper/gradle-wrapper.jar",
+      "bytes": 46175,
+      "sha256": "b3a875ddc1f044746e1b1a55f645584505f4a10438c1afea9f15e92a7c42ec13"
+    },
+    {
+      "path": "android/gradle/wrapper/gradle-wrapper.properties",
+      "bytes": 347,
+      "sha256": "b708d0b414fc6fbf35639b5eefa240e4c493c8e0e850e6cd14ca00f16c2c00e4"
+    },
+    {
+      "path": "android/gradlew",
+      "bytes": 8866,
+      "sha256": "5901fd800994ef6b176e86345b1c980ea8918e1c557e06967fef8fffd555a49d"
+    },
+    {
+      "path": "android/gradlew.bat",
+      "bytes": 3093,
+      "sha256": "982f1b2979dd2d13505c11e92192ab43eef338242ca61587f86f8d7fbc86f67b"
+    },
+    {
+      "path": "android/settings.gradle",
+      "bytes": 351,
+      "sha256": "75c81375496a79dd6099deaaaf79d1e0a1f14460469d1270eaea8094288de250"
+    },
+    {
+      "path": "app.json",
+      "bytes": 62,
+      "sha256": "4c013e4343d762c163535460af50e4e567832b09ce9a078d3efd9154837360df"
+    },
+    {
+      "path": "babel.config.js",
+      "bytes": 75,
+      "sha256": "bdf7ee2f8288a26bdc7b6258896138fa30f10dec91392c17f35717ded6dea089"
+    },
+    {
+      "path": "docs/benchmarks/phase-06-corpus.json",
+      "bytes": 944,
+      "sha256": "b1becac49cde5d919f33632fe742bf560084496de45e5a5e9db35735dc369d40"
+    },
+    {
+      "path": "docs/benchmarks/phase-06-synthetic-audio.json",
+      "bytes": 3270,
+      "sha256": "a3ff1eac9e11eac6c5f79d33d98b21e9960520683a7958464b39a6ba9cf11412"
+    },
+    {
+      "path": "docs/third-party/phase-06-model.json",
+      "bytes": 1840,
+      "sha256": "687d956a58189eb341f896782943a455428cbd7f68bbba1f440cf508be161edc"
+    },
+    {
+      "path": "index.js",
+      "bytes": 178,
+      "sha256": "356f3b86c98b6159fefd9d0b4ca03e59a311bfa6bbb0694fd33a5234040a6cf1"
+    },
+    {
+      "path": "jest.config.js",
+      "bytes": 578,
+      "sha256": "4d63321daade3979db511c092edcf2a14f0c135e52bc56e0afca15dfd11b9f6f"
+    },
+    {
+      "path": "jest.setup.js",
+      "bytes": 359,
+      "sha256": "e84670ea86eaec11f1fc31c9e9a7e6460b343890237908f15df3e1acc67efdd4"
+    },
+    {
+      "path": "metro.config.js",
+      "bytes": 489,
+      "sha256": "40c60d1840914bd10e265d1828d906594ff8481026141a8b5c626a37b03615bf"
+    },
+    {
+      "path": "package-lock.json",
+      "bytes": 445063,
+      "sha256": "15633833de6d099ff4443c71ab3232f08a8425b672a3ded5115f7d5576c7a892"
+    },
+    {
+      "path": "package.json",
+      "bytes": 1765,
+      "sha256": "5ae50bcfabfb3aa8c4e7015abc3f49d9b1554adddce00bda1c7e0c9006052ed4"
+    },
+    {
+      "path": "scripts/benchmark-planner-queries.cjs",
+      "bytes": 13443,
+      "sha256": "99c2f2f009b4df5bc3cd3bfa7ffe8e21ffe1b68bdc4d6317afaeb0ec0f65f03a"
+    },
+    {
+      "path": "scripts/benchmark-planner.cjs",
+      "bytes": 14196,
+      "sha256": "46152657ca704b228db5fc9ba5fb179dc8f12ec54fc05d08e2412829160ec60d"
+    },
+    {
+      "path": "scripts/check-architecture.mjs",
+      "bytes": 5154,
+      "sha256": "71342b1d25f844b5dea30db9b9654bbe9955e392895429537ef15ea396104ce3"
+    },
+    {
+      "path": "scripts/doctor.mjs",
+      "bytes": 1558,
+      "sha256": "a49782209dd63eac14accd2cc3cbe1e225e2ad0165e72bc24bc37820ba95f920"
+    },
+    {
+      "path": "scripts/evaluate-stt.cjs",
+      "bytes": 4220,
+      "sha256": "5ce9a2c4d6beed31f8c0e68e6fc81ef16109eb2560ea943f9e06689f332c6a11"
+    },
+    {
+      "path": "scripts/generate-stt-synthetic-corpus.ps1",
+      "bytes": 2431,
+      "sha256": "6f1829208e4c4c82a681b338f764935dfc87af1c51940d057261d2f966506a2b"
+    },
+    {
+      "path": "scripts/prepare-whisper-model.ps1",
+      "bytes": 1581,
+      "sha256": "8dc3cf535f44539ac1e3dd49aa2d74369e4bd8dee019bde5dda2ec6e9d71209c"
+    },
+    {
+      "path": "scripts/stt-metrics.cjs",
+      "bytes": 2733,
+      "sha256": "282df6c8584f3ba233f3c6316650a105bb8afec0d4b433beb3c8f7d87ca4427a"
+    },
+    {
+      "path": "src/app/App.tsx",
+      "bytes": 34251,
+      "sha256": "0dd1ca8083abfd41d867e579ef680b94f2ef8d7de5012f4df1d2b848105856c3"
+    },
+    {
+      "path": "src/app/useLocalPreferences.ts",
+      "bytes": 2002,
+      "sha256": "fa5467cd627dd5958ce58f9334ebcfd0682e73aaf0c2b9ccbf9bdaf487bb2833"
+    },
+    {
+      "path": "src/core/domain/planner.ts",
+      "bytes": 4640,
+      "sha256": "47085a952cad67319bd863ef9d978e784ab757c038ac01eb9a4349347432d628"
+    },
+    {
+      "path": "src/core/domain/plannerValidation.ts",
+      "bytes": 4286,
+      "sha256": "16ec9cf4ea42d128ee719a266990f10db3329708e1e9454e1db17f032a9d2cd4"
+    },
+    {
+      "path": "src/core/domain/ports.ts",
+      "bytes": 1208,
+      "sha256": "bcc9bac005bb635dd0fbca5e3e98f7a0f374c9b78f6b9f72130e4729b4111478"
+    },
+    {
+      "path": "src/core/domain/preferences.ts",
+      "bytes": 5744,
+      "sha256": "540bc39d241f51a86d848ee49af59e80186142a32381aca8acd554a1e187f711"
+    },
+    {
+      "path": "src/core/domain/scheduleTime.ts",
+      "bytes": 9136,
+      "sha256": "fec01b2a5be69a4bdb2188cb2b67c5dcd022c86a4b56673bd449a557ebf4c14e"
+    },
+    {
+      "path": "src/core/native/dateTimePicker.ts",
+      "bytes": 1420,
+      "sha256": "7af9ee026d19d9fe7d867bfd6ab638518744b7b92689656cf8b0dd165810b24f"
+    },
+    {
+      "path": "src/core/native/reconcilePlanner.ts",
+      "bytes": 1352,
+      "sha256": "7e7197610d158162dfc6888374aa10624a276c3a548cfb5b96554b32c2af99c1"
+    },
+    {
+      "path": "src/core/native/reminders.ts",
+      "bytes": 6498,
+      "sha256": "ce1857ffe3cc4d8224c98c385723752780cb1c4d3916fe5b1c5699c877df6ff3"
+    },
+    {
+      "path": "src/core/native/speechToText.ts",
+      "bytes": 9825,
+      "sha256": "c0cd39f1f69f0113971189df55200697ecbffe88fd664db46c76f7e4cfa32b7f"
+    },
+    {
+      "path": "src/core/native/textToSpeech.ts",
+      "bytes": 8101,
+      "sha256": "c7f2f8c7a5231b0f542ab5345d7870bd4da84ff4289d1ea7629cc3c03d9bfd0d"
+    },
+    {
+      "path": "src/core/storage/openLocalDatabase.ts",
+      "bytes": 1220,
+      "sha256": "9d377209de95afa31bfdeed126046d2a0520759bca2b969a0d84308896f0154a"
+    },
+    {
+      "path": "src/core/storage/openPlanner.ts",
+      "bytes": 206,
+      "sha256": "7a707df7c431cf8fb8524a65f6bcf082c865c51adbc27b2f0c13b1ec196570f4"
+    },
+    {
+      "path": "src/core/storage/openPreferences.ts",
+      "bytes": 410,
+      "sha256": "2a7b8b710fed00db6301fb13233590edf14c902ad3a2d9db0fea6cfa5cf838d5"
+    },
+    {
+      "path": "src/core/storage/plannerDatabase.ts",
+      "bytes": 9354,
+      "sha256": "23af3679cdee0e7f2b32e467c50c22928da63622e146044ce776ea3c6a994065"
+    },
+    {
+      "path": "src/core/storage/plannerQueries.ts",
+      "bytes": 14198,
+      "sha256": "451b6f2ea43d9b0a3719b38fb65cca7f5e3513d85399e843188205618b7b0053"
+    },
+    {
+      "path": "src/core/storage/plannerRepository.ts",
+      "bytes": 15920,
+      "sha256": "a83cd742a3c8389b48da031671a2f728d70e5e9f70831d5f8a8080e793adf87b"
+    },
+    {
+      "path": "src/core/storage/plannerRows.ts",
+      "bytes": 5567,
+      "sha256": "09f53943acb78fa038ec39874a8c480c9b359cc0f8f54d2c9675ee066adea79e"
+    },
+    {
+      "path": "src/core/storage/preferencesRepository.ts",
+      "bytes": 1533,
+      "sha256": "376890b7f211c6b10af31f9dabe8e54c990c02d52a3bcdfaef95ffac870dccdb"
+    },
+    {
+      "path": "src/core/storage/reminderOperations.ts",
+      "bytes": 7540,
+      "sha256": "8bdbe01930ce99e015464262500836ac0f34e2f3acfc884860f4ba63a58d0c94"
+    },
+    {
+      "path": "src/core/storage/runPlannerSqlChecks.ts",
+      "bytes": 4403,
+      "sha256": "2483113ce1d5b6e8fdecc4b62bcf0f6243125378c402deb15e9a89b4c9a87dbe"
+    },
+    {
+      "path": "src/core/theme/theme.ts",
+      "bytes": 1257,
+      "sha256": "f82f132583112dd5d712373f646f6394b68f29ce1737e5861d18d88efcdc9a39"
+    },
+    {
+      "path": "src/core/theme/ThemeContext.tsx",
+      "bytes": 284,
+      "sha256": "e97c5e0a0bdcc60e958168e4b4bb902c5cfc8674f4e563cd46357cd49b9f91b7"
+    },
+    {
+      "path": "src/core/ui/controls.tsx",
+      "bytes": 5207,
+      "sha256": "f60192d3acaf2d5897e78d3ea4ae78bf424f4411be3a9119ee3b852933cadd14"
+    },
+    {
+      "path": "src/core/ui/formatOverviewDate.ts",
+      "bytes": 807,
+      "sha256": "fde9b88e77e06fcdb936a1bef40a7d094a71c41a947286bbd6c0e183713fcbf7"
+    },
+    {
+      "path": "src/core/voice/ReplyMessage.tsx",
+      "bytes": 3927,
+      "sha256": "828800ed3af7511ea2f84b821ce0065de1742d85c5ff71bf9e072c17bf33e2c8"
+    },
+    {
+      "path": "src/features/calendar/plannerDisplay.ts",
+      "bytes": 2365,
+      "sha256": "9946f146e9db61c47a3d8a6cfb063a77ab218b38e9c442823f3a1c97567575b3"
+    },
+    {
+      "path": "src/features/calendar/PlannerScreen.tsx",
+      "bytes": 20522,
+      "sha256": "efefce54d1917244113d5fef4a0a303b60c0bedd18a5c27361284712b52f8277"
+    },
+    {
+      "path": "src/features/chat/SpeechInputPanel.tsx",
+      "bytes": 10088,
+      "sha256": "8b5eb45ad9f44d5a08ca3d7638051c0ae130e343c7a53b9f537538921e415c9d"
+    },
+    {
+      "path": "src/features/chat/useSpeechInputSession.ts",
+      "bytes": 12288,
+      "sha256": "d2d3904c06de568825de5511f1a1132c3862fddf9ec31674af8db370f97290cf"
+    },
+    {
+      "path": "src/features/onboarding/PreferencesForm.tsx",
+      "bytes": 10842,
+      "sha256": "3fc8a894848d7ca7fa1653bd37fa323da639c47823ea8f897fada9f9d1cd19ae"
+    },
+    {
+      "path": "src/features/reminders/ReminderSettings.tsx",
+      "bytes": 14157,
+      "sha256": "b67db53d95d65092c572c89abdac7026fee355e4bb35fec597d4d43ac1b3096c"
+    },
+    {
+      "path": "src/features/scheduling/PlannerForm.tsx",
+      "bytes": 14962,
+      "sha256": "436e8374818edfd24061816cd78f224f2b4d302428333214e7ca65524e12ac48"
+    },
+    {
+      "path": "src/features/scheduling/plannerFormModel.ts",
+      "bytes": 6570,
+      "sha256": "1b4ae0a5c8bf05cc1780fb4963acb2be7ff74a2ea5d4c41f2a805b85b8601b88"
+    },
+    {
+      "path": "src/features/scheduling/PlannerHarness.tsx",
+      "bytes": 22158,
+      "sha256": "83233c557404f40530e525dcbb96c331beb15d4ff849dc7ef565f0141f45e50e"
+    },
+    {
+      "path": "src/features/scheduling/PlannerItemDetails.tsx",
+      "bytes": 12018,
+      "sha256": "ccebe7b0aa9a96a022146b2267e9f44bf6830cfdb8955e26bee5a6ba1ea55291"
+    },
+    {
+      "path": "src/features/settings/SpeechSettings.tsx",
+      "bytes": 15188,
+      "sha256": "0914730c127fbbc127697a3bae122b0975eb36dc6e77dbb007e3324e898b78e3"
+    },
+    {
+      "path": "tsconfig.json",
+      "bytes": 433,
+      "sha256": "46c361963b18de0c5332c8d187c8ac064b58a75680c33f5184832e5649c83822"
+    }
+  ],
+  "changedSincePhase05": [
+    "__tests__/App.test.tsx",
+    "__tests__/AppSpeech.test.tsx",
+    "android/app/build.gradle",
+    "android/app/src/main/AndroidManifest.xml",
+    "android/app/src/main/java/com/lafina/capstone/CapstoneBuildPackage.kt",
+    "android/app/src/main/java/com/lafina/capstone/reminders/ReminderActivity.kt",
+    "scripts/check-architecture.mjs",
+    "src/app/App.tsx",
+    "src/core/domain/ports.ts"
+  ],
+  "addedSincePhase05": [
+    "__tests__/AppDictation.test.tsx",
+    "__tests__/SpeechInputPanel.test.tsx",
+    "__tests__/speechMetrics.test.js",
+    "__tests__/speechToText.test.ts",
+    "android/app/src/androidTest/java/com/lafina/capstone/voice/SpeechInputTest.kt",
+    "android/app/src/androidTest/java/com/lafina/capstone/voice/WhisperCorpusBenchmarkTest.kt",
+    "android/app/src/androidTest/java/com/lafina/capstone/voice/WhisperTranscriberTest.kt",
+    "android/app/src/main/assets/licenses/WHISPER-CPP-MIT.txt",
+    "android/app/src/main/cpp/CMakeLists.txt",
+    "android/app/src/main/cpp/jni/whisper_jni.cpp",
+    "android/app/src/main/cpp/third_party/whisper.cpp/ggml/cmake/common.cmake",
+    "android/app/src/main/cpp/third_party/whisper.cpp/ggml/cmake/FindNCCL.cmake",
+    "android/app/src/main/cpp/third_party/whisper.cpp/ggml/cmake/ggml-config.cmake.in",
+    "android/app/src/main/cpp/third_party/whisper.cpp/ggml/cmake/GitVars.cmake",
+    "android/app/src/main/cpp/third_party/whisper.cpp/ggml/CMakeLists.txt",
+    "android/app/src/main/cpp/third_party/whisper.cpp/ggml/include/ggml-alloc.h",
+    "android/app/src/main/cpp/third_party/whisper.cpp/ggml/include/ggml-backend.h",
+    "android/app/src/main/cpp/third_party/whisper.cpp/ggml/include/ggml-blas.h",
+    "android/app/src/main/cpp/third_party/whisper.cpp/ggml/include/ggml-cann.h",
+    "android/app/src/main/cpp/third_party/whisper.cpp/ggml/include/ggml-cpp.h",
+    "android/app/src/main/cpp/third_party/whisper.cpp/ggml/include/ggml-cpu.h",
+    "android/app/src/main/cpp/third_party/whisper.cpp/ggml/include/ggml-cuda.h",
+    "android/app/src/main/cpp/third_party/whisper.cpp/ggml/include/ggml-et.h",
+    "android/app/src/main/cpp/third_party/whisper.cpp/ggml/include/ggml-hexagon.h",
+    "android/app/src/main/cpp/third_party/whisper.cpp/ggml/include/ggml-metal.h",
+    "android/app/src/main/cpp/third_party/whisper.cpp/ggml/include/ggml-opencl.h",
+    "android/app/src/main/cpp/third_party/whisper.cpp/ggml/include/ggml-openvino.h",
+    "android/app/src/main/cpp/third_party/whisper.cpp/ggml/include/ggml-opt.h",
+    "android/app/src/main/cpp/third_party/whisper.cpp/ggml/include/ggml-rpc.h",
+    "android/app/src/main/cpp/third_party/whisper.cpp/ggml/include/ggml-sycl.h",
+    "android/app/src/main/cpp/third_party/whisper.cpp/ggml/include/ggml-virtgpu.h",
+    "android/app/src/main/cpp/third_party/whisper.cpp/ggml/include/ggml-vulkan.h",
+    "android/app/src/main/cpp/third_party/whisper.cpp/ggml/include/ggml-webgpu.h",
+    "android/app/src/main/cpp/third_party/whisper.cpp/ggml/include/ggml-zdnn.h",
+    "android/app/src/main/cpp/third_party/whisper.cpp/ggml/include/ggml-zendnn.h",
+    "android/app/src/main/cpp/third_party/whisper.cpp/ggml/include/ggml.h",
+    "android/app/src/main/cpp/third_party/whisper.cpp/ggml/include/gguf.h",
+    "android/app/src/main/cpp/third_party/whisper.cpp/ggml/src/CMakeLists.txt",
+    "android/app/src/main/cpp/third_party/whisper.cpp/ggml/src/ggml-alloc.c",
+    "android/app/src/main/cpp/third_party/whisper.cpp/ggml/src/ggml-backend-dl.cpp",
+    "android/app/src/main/cpp/third_party/whisper.cpp/ggml/src/ggml-backend-dl.h",
+    "android/app/src/main/cpp/third_party/whisper.cpp/ggml/src/ggml-backend-impl.h",
+    "android/app/src/main/cpp/third_party/whisper.cpp/ggml/src/ggml-backend-meta.cpp",
+    "android/app/src/main/cpp/third_party/whisper.cpp/ggml/src/ggml-backend-reg.cpp",
+    "android/app/src/main/cpp/third_party/whisper.cpp/ggml/src/ggml-backend.cpp",
+    "android/app/src/main/cpp/third_party/whisper.cpp/ggml/src/ggml-common.h",
+    "android/app/src/main/cpp/third_party/whisper.cpp/ggml/src/ggml-cpu/amx/amx.cpp",
+    "android/app/src/main/cpp/third_party/whisper.cpp/ggml/src/ggml-cpu/amx/amx.h",
+    "android/app/src/main/cpp/third_party/whisper.cpp/ggml/src/ggml-cpu/amx/common.h",
+    "android/app/src/main/cpp/third_party/whisper.cpp/ggml/src/ggml-cpu/amx/mmq.cpp",
+    "android/app/src/main/cpp/third_party/whisper.cpp/ggml/src/ggml-cpu/amx/mmq.h",
+    "android/app/src/main/cpp/third_party/whisper.cpp/ggml/src/ggml-cpu/arch-fallback.h",
+    "android/app/src/main/cpp/third_party/whisper.cpp/ggml/src/ggml-cpu/arch/arm/cpu-feats.cpp",
+    "android/app/src/main/cpp/third_party/whisper.cpp/ggml/src/ggml-cpu/arch/arm/quants.c",
+    "android/app/src/main/cpp/third_party/whisper.cpp/ggml/src/ggml-cpu/arch/arm/repack.cpp",
+    "android/app/src/main/cpp/third_party/whisper.cpp/ggml/src/ggml-cpu/arch/x86/cpu-feats.cpp",
+    "android/app/src/main/cpp/third_party/whisper.cpp/ggml/src/ggml-cpu/arch/x86/quants.c",
+    "android/app/src/main/cpp/third_party/whisper.cpp/ggml/src/ggml-cpu/arch/x86/repack.cpp",
+    "android/app/src/main/cpp/third_party/whisper.cpp/ggml/src/ggml-cpu/binary-ops.cpp",
+    "android/app/src/main/cpp/third_party/whisper.cpp/ggml/src/ggml-cpu/binary-ops.h",
+    "android/app/src/main/cpp/third_party/whisper.cpp/ggml/src/ggml-cpu/cmake/FindSIMD.cmake",
+    "android/app/src/main/cpp/third_party/whisper.cpp/ggml/src/ggml-cpu/cmake/FindSMTIME.cmake",
+    "android/app/src/main/cpp/third_party/whisper.cpp/ggml/src/ggml-cpu/CMakeLists.txt",
+    "android/app/src/main/cpp/third_party/whisper.cpp/ggml/src/ggml-cpu/common.h",
+    "android/app/src/main/cpp/third_party/whisper.cpp/ggml/src/ggml-cpu/ggml-cpu-impl.h",
+    "android/app/src/main/cpp/third_party/whisper.cpp/ggml/src/ggml-cpu/ggml-cpu.c",
+    "android/app/src/main/cpp/third_party/whisper.cpp/ggml/src/ggml-cpu/ggml-cpu.cpp",
+    "android/app/src/main/cpp/third_party/whisper.cpp/ggml/src/ggml-cpu/hbm.cpp",
+    "android/app/src/main/cpp/third_party/whisper.cpp/ggml/src/ggml-cpu/hbm.h",
+    "android/app/src/main/cpp/third_party/whisper.cpp/ggml/src/ggml-cpu/ops.cpp",
+    "android/app/src/main/cpp/third_party/whisper.cpp/ggml/src/ggml-cpu/ops.h",
+    "android/app/src/main/cpp/third_party/whisper.cpp/ggml/src/ggml-cpu/quants.c",
+    "android/app/src/main/cpp/third_party/whisper.cpp/ggml/src/ggml-cpu/quants.h",
+    "android/app/src/main/cpp/third_party/whisper.cpp/ggml/src/ggml-cpu/repack.cpp",
+    "android/app/src/main/cpp/third_party/whisper.cpp/ggml/src/ggml-cpu/repack.h",
+    "android/app/src/main/cpp/third_party/whisper.cpp/ggml/src/ggml-cpu/simd-gemm.h",
+    "android/app/src/main/cpp/third_party/whisper.cpp/ggml/src/ggml-cpu/simd-mappings.h",
+    "android/app/src/main/cpp/third_party/whisper.cpp/ggml/src/ggml-cpu/tiled/tiled-kernel.cpp",
+    "android/app/src/main/cpp/third_party/whisper.cpp/ggml/src/ggml-cpu/tiled/tiled-kernel.h",
+    "android/app/src/main/cpp/third_party/whisper.cpp/ggml/src/ggml-cpu/tiled/tiled.cpp",
+    "android/app/src/main/cpp/third_party/whisper.cpp/ggml/src/ggml-cpu/tiled/tiled.h",
+    "android/app/src/main/cpp/third_party/whisper.cpp/ggml/src/ggml-cpu/traits.cpp",
+    "android/app/src/main/cpp/third_party/whisper.cpp/ggml/src/ggml-cpu/traits.h",
+    "android/app/src/main/cpp/third_party/whisper.cpp/ggml/src/ggml-cpu/unary-ops.cpp",
+    "android/app/src/main/cpp/third_party/whisper.cpp/ggml/src/ggml-cpu/unary-ops.h",
+    "android/app/src/main/cpp/third_party/whisper.cpp/ggml/src/ggml-cpu/vec.cpp",
+    "android/app/src/main/cpp/third_party/whisper.cpp/ggml/src/ggml-cpu/vec.h",
+    "android/app/src/main/cpp/third_party/whisper.cpp/ggml/src/ggml-feats.h",
+    "android/app/src/main/cpp/third_party/whisper.cpp/ggml/src/ggml-impl.h",
+    "android/app/src/main/cpp/third_party/whisper.cpp/ggml/src/ggml-opt.cpp",
+    "android/app/src/main/cpp/third_party/whisper.cpp/ggml/src/ggml-quants.c",
+    "android/app/src/main/cpp/third_party/whisper.cpp/ggml/src/ggml-quants.h",
+    "android/app/src/main/cpp/third_party/whisper.cpp/ggml/src/ggml-threading.cpp",
+    "android/app/src/main/cpp/third_party/whisper.cpp/ggml/src/ggml-threading.h",
+    "android/app/src/main/cpp/third_party/whisper.cpp/ggml/src/ggml-version.h.in",
+    "android/app/src/main/cpp/third_party/whisper.cpp/ggml/src/ggml.c",
+    "android/app/src/main/cpp/third_party/whisper.cpp/ggml/src/ggml.cpp",
+    "android/app/src/main/cpp/third_party/whisper.cpp/ggml/src/gguf.cpp",
+    "android/app/src/main/cpp/third_party/whisper.cpp/include/whisper.h",
+    "android/app/src/main/cpp/third_party/whisper.cpp/LICENSE",
+    "android/app/src/main/cpp/third_party/whisper.cpp/README.md",
+    "android/app/src/main/cpp/third_party/whisper.cpp/SOURCE-MANIFEST.json",
+    "android/app/src/main/cpp/third_party/whisper.cpp/src/aneforge/whisper-aneforge.cpp",
+    "android/app/src/main/cpp/third_party/whisper.cpp/src/aneforge/whisper-aneforge.h",
+    "android/app/src/main/cpp/third_party/whisper.cpp/src/whisper-arch.h",
+    "android/app/src/main/cpp/third_party/whisper.cpp/src/whisper.cpp",
+    "android/app/src/main/java/com/lafina/capstone/reminders/ReminderPresentation.kt",
+    "android/app/src/main/java/com/lafina/capstone/voice/AnsweredDictationPanel.kt",
+    "android/app/src/main/java/com/lafina/capstone/voice/MicrophoneLease.kt",
+    "android/app/src/main/java/com/lafina/capstone/voice/PcmCapture.kt",
+    "android/app/src/main/java/com/lafina/capstone/voice/SpeechInput.kt",
+    "android/app/src/main/java/com/lafina/capstone/voice/SpeechInputPolicy.kt",
+    "android/app/src/main/java/com/lafina/capstone/voice/SystemSpeechInputModule.kt",
+    "android/app/src/main/java/com/lafina/capstone/voice/WhisperTranscriber.kt",
+    "android/app/src/test/java/com/lafina/capstone/reminders/ReminderPresentationTest.kt",
+    "android/app/src/test/java/com/lafina/capstone/voice/SpeechInputPolicyTest.kt",
+    "docs/benchmarks/phase-06-corpus.json",
+    "docs/benchmarks/phase-06-synthetic-audio.json",
+    "docs/third-party/phase-06-model.json",
+    "scripts/evaluate-stt.cjs",
+    "scripts/generate-stt-synthetic-corpus.ps1",
+    "scripts/prepare-whisper-model.ps1",
+    "scripts/stt-metrics.cjs",
+    "src/core/native/speechToText.ts",
+    "src/features/chat/SpeechInputPanel.tsx",
+    "src/features/chat/useSpeechInputSession.ts"
+  ],
+  "buildLog": "docs/reports/evidence/phase-06-android-cmake-fix.log",
+  "buildLogSha256": "d69f519ed7e4cbb4995c69887fe742d3044ef664c20962c70369a6a51189f75e",
+  "limitations": [
+    "Prior phases remain uncommitted; compare this cohort to frozen Phase05 hashes rather than cumulative Git diff.",
+    "Source hashes do not establish microphone, phone or offline recognition behavior."
+  ]
+}

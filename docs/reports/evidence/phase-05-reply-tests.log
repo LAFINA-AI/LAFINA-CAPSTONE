@@ -1,0 +1,12 @@
+
+> lafina-capstone@0.1.0 test
+> jest --runInBand --runTestsByPath __tests__/ReplyMessage.test.tsx __tests__/SpeechSettings.test.tsx
+
+PASS __tests__/ReplyMessage.test.tsx (5.5 s)
+PASS __tests__/SpeechSettings.test.tsx
+
+Test Suites: 2 passed, 2 total
+Tests:       31 passed, 31 total
+Snapshots:   0 total
+Time:        8.855 s, estimated 16 s
+Ran all test suites within paths "__tests__/ReplyMessage.test.tsx", "__tests__/SpeechSettings.test.tsx".

@@ -1,0 +1,35 @@
+{
+  "utc": "2026-10-25T06:36:30.3851752Z",
+  "device": {
+    "model": "sdk_gphone16k_x86_64",
+    "api": "37",
+    "abi": "x86_64",
+    "pageSizeBytes": "16384",
+    "physical": false
+  },
+  "connectivity": {
+    "airplane_mode_on": "0",
+    "wifi_on": "1",
+    "mobile_data": "1"
+  },
+  "checks": [
+    {
+      "check": "explicit-preview-stop",
+      "result": "PASS",
+      "utc": "2026-10-25T06:40:54.465413+00:00",
+      "observed": "Preview Stop returned UI to idle and retained written phrase; no audibility/stop-latency claim."
+    },
+    {
+      "check": "voice-preferences-reopen",
+      "result": "PASS",
+      "utc": "2026-10-25T06:41:57.206307+00:00",
+      "observed": "Saved offline en-US-language Google engine selection, Normal speed/pitch survived app force-stop/reopen. Existing planner data retained."
+    }
+  ],
+  "samples": [],
+  "sourceCohort": "phase-05-source-hashes.json",
+  "artifactCohort": "phase-05-artifacts.json",
+  "limitations": [
+    "ADB automation, not human listening or physical phone proof."
+  ]
+}

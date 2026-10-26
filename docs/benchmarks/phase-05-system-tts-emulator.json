@@ -1,0 +1,99 @@
+{
+  "phase": "05",
+  "utc": "2026-10-25T06:38:37.924488+00:00",
+  "label": "EMULATOR_NATIVE_CALLBACK_TIMINGS_NOT_AUDIBILITY",
+  "device": {
+    "model": "sdk_gphone16k_x86_64",
+    "api": 37,
+    "abi": "x86_64",
+    "physical": false
+  },
+  "apkSha256": "46e3e4acb863cf496429e286951f9000f941181a9fb1e6b537cca45a6119e0c5",
+  "sourceManifest": "../reports/evidence/phase-05-source-hashes.json",
+  "enginePackageSelection": "com.google.android.tts",
+  "engineVersion": "googletts.google-speech-apk_20260511.02_p3.919856684",
+  "engineVersionCode": 210645709,
+  "voice": "en-US-language",
+  "languageTag": "en-US",
+  "rate": 1,
+  "pitch": 1,
+  "phrase": "Reminder: your study session starts soon. Your task stays open until you mark it complete.",
+  "network": {
+    "airplane_mode_on": "1",
+    "wifi_on": "0",
+    "mobile_data": "0"
+  },
+  "samples": [
+    {
+      "index": 1,
+      "utc": "2026-10-25T06:38:54.869021+00:00",
+      "condition": "new client initialization; vendor service not forcibly stopped",
+      "initializationMs": 1234.0,
+      "requestToOnStartMs": 342.0,
+      "terminalObservation": "Stop preview became disabled; UI path idle",
+      "audibility": "NOT VERIFIED"
+    },
+    {
+      "index": 2,
+      "utc": "2026-10-25T06:39:11.488360+00:00",
+      "condition": "new client initialization; vendor service not forcibly stopped",
+      "initializationMs": 1148.0,
+      "requestToOnStartMs": 243.0,
+      "terminalObservation": "Stop preview became disabled; UI path idle",
+      "audibility": "NOT VERIFIED"
+    },
+    {
+      "index": 3,
+      "utc": "2026-10-25T06:39:28.077542+00:00",
+      "condition": "new client initialization; vendor service not forcibly stopped",
+      "initializationMs": 1094.0,
+      "requestToOnStartMs": 254.0,
+      "terminalObservation": "Stop preview became disabled; UI path idle",
+      "audibility": "NOT VERIFIED"
+    },
+    {
+      "index": 4,
+      "utc": "2026-10-25T06:39:44.651599+00:00",
+      "condition": "new client initialization; vendor service not forcibly stopped",
+      "initializationMs": 1091.0,
+      "requestToOnStartMs": 259.0,
+      "terminalObservation": "Stop preview became disabled; UI path idle",
+      "audibility": "NOT VERIFIED"
+    },
+    {
+      "index": 5,
+      "utc": "2026-10-25T06:40:01.940596+00:00",
+      "condition": "new client initialization; vendor service not forcibly stopped",
+      "initializationMs": 1187.0,
+      "requestToOnStartMs": 247.0,
+      "terminalObservation": "Stop preview became disabled; UI path idle",
+      "audibility": "NOT VERIFIED"
+    }
+  ],
+  "failures": [],
+  "limitations": [
+    "onStart is an Android engine playback callback, not first audible speech or verified intelligibility.",
+    "Each preview initializes a new client; repeated samples may use a warm vendor service. No cold vendor-service claim.",
+    "UI/ADB automation cannot certify physical phone focus, hearing, battery or low-RAM behavior.",
+    "No matched legacy Kokoro baseline. No speedup claim.",
+    "No audio capture or personal text used."
+  ],
+  "summary": {
+    "initialization": {
+      "n": 5,
+      "p50Ms": 1148.0,
+      "p95NearestRankMs": 1234.0,
+      "minMs": 1091.0,
+      "maxMs": 1234.0
+    },
+    "requestToOnStart": {
+      "n": 5,
+      "p50Ms": 254.0,
+      "p95NearestRankMs": 342.0,
+      "minMs": 243.0,
+      "maxMs": 342.0
+    },
+    "failures": 0,
+    "note": "Exploratory five-sample emulator cohort; p95 is the largest sample, not a phone acceptance claim."
+  }
+}

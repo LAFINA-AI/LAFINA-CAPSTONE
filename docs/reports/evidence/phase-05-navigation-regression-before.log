@@ -1,0 +1,35 @@
+FAIL __tests__/AppSpeech.test.tsx (8.353 s)
+  App speech integration with synthetic adapters, not audible device proof
+    √ shows canned help in default text mode without initializing speech or changing a schedule (2333 ms)
+    √ renders the voice written reply while initialization is pending and retains it when no offline voice is available (77 ms)
+    √ renders the both written reply while initialization is pending and retains it when no offline voice is available (72 ms)
+    √ preserves exactly one real SQLite task and its written confirmation when post-save speech initialization rejects (179 ms)
+    √ saves optional voice settings without replacing existing schema-1 preferences or speaking (324 ms)
+    √ guards tab navigation from edited voice options and discards only after confirmation (326 ms)
+    × guards Android Back from voice settings and keeps the edited speed until an explicit discard (204 ms)
+    √ protects a general preference draft before entering the speech subpage (178 ms)
+
+  ● App speech integration with synthetic adapters, not audible device proof › guards Android Back from voice settings and keeps the edited speed until an explicit discard
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: true
+    Received: false
+
+      340 |             dialog.props.testID === 'voice-navigation-confirmation',
+      341 |         ),
+    > 342 |     ).toBe(true);
+          |       ^
+      343 |     fireEvent.press(
+      344 |       screen.getByRole('button', {name: 'Stay in voice settings'}),
+      345 |     );
+
+      at Object.toBe (__tests__/AppSpeech.test.tsx:342:7)
+      at asyncGeneratorStep (node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+      at _next (node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
+
+Test Suites: 1 failed, 1 total
+Tests:       1 failed, 7 passed, 8 total
+Snapshots:   0 total
+Time:        8.653 s
+Ran all test suites matching /__tests__\\AppSpeech.test.tsx/i.

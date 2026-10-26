@@ -1,0 +1,29 @@
+
+> lafina-capstone@0.1.0 test
+> jest --runInBand --runTestsByPath __tests__/App.test.tsx
+
+PASS __tests__/App.test.tsx (8.833 s)
+  Phase 01 anonymous foundation
+    √ opens saved preferences even if the runtime timezone lookup throws (2459 ms)
+    √ uses UTC for fresh setup when system timezone discovery fails (75 ms)
+    √ keeps Settings mounted while a preference save is outstanding (275 ms)
+    √ guards tab navigation and preserves edits until discard is confirmed (201 ms)
+    √ guards hardware Back with unsaved preferences and clears dirty state only after a successful save (322 ms)
+    √ guards opening the test harness while Settings has a draft (117 ms)
+    √ keeps Today usable when the device cannot format the saved timezone (79 ms)
+    √ keeps the data harness out of release and opens QA storage only on demand with a recoverable error (194 ms)
+    √ guards a dirty production planner form when switching tabs until discard is confirmed (137 ms)
+    √ keeps a committed task after native reconcile fails and clears the old delivery error after the next successful mutation without resuming (126 ms)
+    √ guards hardware Back in a dirty production event form and preserves it when staying (165 ms)
+    √ saves anonymous setup only on completion and persists across remount (182 ms)
+    √ retains input and blocks navigation after a failed save, then permits retry (203 ms)
+    √ validates a timezone without writing invalid preferences (76 ms)
+    √ recovers from failed storage initialization instead of using volatile defaults (62 ms)
+    √ updates theme/settings, shows honest placeholders and reopens setup without losing preferences (281 ms)
+    √ does not advance until an outstanding save resolves (140 ms)
+
+Test Suites: 1 passed, 1 total
+Tests:       17 passed, 17 total
+Snapshots:   0 total
+Time:        9.075 s
+Ran all test suites within paths "__tests__/App.test.tsx".

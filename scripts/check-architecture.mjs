@@ -119,13 +119,37 @@ const allowedPermissions = new Set([
   'USE_FULL_SCREEN_INTENT',
   'RECEIVE_BOOT_COMPLETED',
   'VIBRATE',
+  'RECORD_AUDIO',
 ]);
 for (const [, permission] of manifest.matchAll(
   /<uses-permission\s+android:name="android\.permission\.([A-Z_]+)"/g,
 )) {
   if (!allowedPermissions.has(permission)) {
     errors.push(
-      `Phase 03 release permission outside approved alarm scope: ${permission}`,
+      `Phase 06 release permission outside approved offline scope: ${permission}`,
+    );
+  }
+}
+const queries = manifest.match(/<queries>[\s\S]*?<\/queries>/)?.[0] ?? '';
+if (!queries.includes('android.intent.action.TTS_SERVICE')) {
+  errors.push(
+    'Android 11+ offline speech needs installed TTS service visibility',
+  );
+}
+if (!queries.includes('android.speech.RecognitionService')) {
+  errors.push('Android offline recognizer service visibility is missing');
+}
+for (const file of fs.readdirSync(
+  'android/app/src/main/java/com/lafina/capstone/voice',
+)) {
+  if (!file.endsWith('.kt')) continue;
+  const source = fs.readFileSync(
+    `android/app/src/main/java/com/lafina/capstone/voice/${file}`,
+    'utf8',
+  );
+  if (/SpeechRecognizer\.createSpeechRecognizer\s*\(/.test(source)) {
+    errors.push(
+      `Generic potentially network speech recognizer forbidden: ${file}`,
     );
   }
 }
@@ -146,6 +170,6 @@ if (errors.length) {
   process.exitCode = 1;
 } else {
   console.log(
-    `PASS: ${files.length} TypeScript modules; no import cycles or forbidden offline dependencies; Phase 03 native permissions/process boundaries checked.`,
+    `PASS: ${files.length} TypeScript modules; no import cycles or forbidden offline dependencies; Phase 06 offline permissions, speech visibility, recognizer factories and process boundaries checked.`,
   );
 }

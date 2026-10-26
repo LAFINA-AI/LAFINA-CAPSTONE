@@ -1,0 +1,79 @@
+{
+  "phase": "07",
+  "recordedAtUtc": "2026-10-26T09:20:08.9707899Z",
+  "buildLog": "docs/reports/evidence/phase-07-android-initial.log",
+  "taskLines": [
+    "> Task :app:testDataQaUnitTest"
+  ],
+  "totals": {
+    "suites": 6,
+    "tests": 62,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0,
+    "seconds": 0.172
+  },
+  "suites": [
+    {
+      "suite": "com.lafina.capstone.reminders.AlarmRegistrationPolicyTest",
+      "tests": 8,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "seconds": 0.049,
+      "sourceXml": "android/app/build/test-results/testDataQaUnitTest/TEST-com.lafina.capstone.reminders.AlarmRegistrationPolicyTest.xml",
+      "sourceXmlSha256": "7432dda0c11fd92d021a652bbf5aa1257801c152f118ea04434ce42e54bd4b8a"
+    },
+    {
+      "suite": "com.lafina.capstone.reminders.ReminderIdentityKeyTest",
+      "tests": 3,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "seconds": 0.035,
+      "sourceXml": "android/app/build/test-results/testDataQaUnitTest/TEST-com.lafina.capstone.reminders.ReminderIdentityKeyTest.xml",
+      "sourceXmlSha256": "de2049d0330c4f3300d5acfe440e91cd7138a6b1308816ed4c76cda0937141a5"
+    },
+    {
+      "suite": "com.lafina.capstone.reminders.ReminderPolicyTest",
+      "tests": 19,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "seconds": 0.038,
+      "sourceXml": "android/app/build/test-results/testDataQaUnitTest/TEST-com.lafina.capstone.reminders.ReminderPolicyTest.xml",
+      "sourceXmlSha256": "5b740ff1e25dd9c36d28054ca7f1bc5bc32052bc88d0e4fe37374571e02d579c"
+    },
+    {
+      "suite": "com.lafina.capstone.reminders.ReminderPresentationTest",
+      "tests": 5,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "seconds": 0.003,
+      "sourceXml": "android/app/build/test-results/testDataQaUnitTest/TEST-com.lafina.capstone.reminders.ReminderPresentationTest.xml",
+      "sourceXmlSha256": "9696f93242496a98484b258247e22fb89a49ee3146a3ea9efcd759e836e983d6"
+    },
+    {
+      "suite": "com.lafina.capstone.voice.SpeechInputPolicyTest",
+      "tests": 15,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "seconds": 0.024,
+      "sourceXml": "android/app/build/test-results/testDataQaUnitTest/TEST-com.lafina.capstone.voice.SpeechInputPolicyTest.xml",
+      "sourceXmlSha256": "6d05429b2a710ad92f945af3b53096ab976541b852a537c6b280db911a9db620"
+    },
+    {
+      "suite": "com.lafina.capstone.voice.SpeechPolicyTest",
+      "tests": 12,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "seconds": 0.023,
+      "sourceXml": "android/app/build/test-results/testDataQaUnitTest/TEST-com.lafina.capstone.voice.SpeechPolicyTest.xml",
+      "sourceXmlSha256": "2f4bd2d1a4e6ea1e497c830373a9e6886909904c5714d85e4ec39d0036434b31"
+    }
+  ],
+  "limit": "JVM tests; UP-TO-DATE means XML reused from earlier current-native execution, not fresh device behavior."
+}

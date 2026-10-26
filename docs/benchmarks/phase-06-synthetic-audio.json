@@ -1,0 +1,65 @@
+{
+    "schemaVersion":  1,
+    "kind":  "SYNTHETIC_WINDOWS_SAPI_AUDIO_NO_MICROPHONE",
+    "recordedAtUtc":  "2026-10-25T09:00:10.7189862Z",
+    "voice":  {
+                  "name":  "Microsoft David Desktop",
+                  "culture":  "en-US",
+                  "description":  "Microsoft David Desktop - English (United States)"
+              },
+    "audio":  {
+                  "format":  "WAV PCM signed16 little-endian",
+                  "sampleRate":  16000,
+                  "channels":  1
+              },
+    "samples":  [
+                    {
+                        "id":  "assignment",
+                        "reference":  "remind me to submit the assignment tomorrow",
+                        "file":  "assignment.wav",
+                        "bytes":  99246,
+                        "sha256":  "5fea3c575e26e6473ea3b89d9e4e66944ad432c82ac316e9d7a0722094698527"
+                    },
+                    {
+                        "id":  "biology",
+                        "reference":  "add a study session for biology on friday",
+                        "file":  "biology.wav",
+                        "bytes":  111086,
+                        "sha256":  "e8d7c8df3c93b3313db5bf36feb85d24e4539e7743dcf458fc20400853706ba3"
+                    },
+                    {
+                        "id":  "today",
+                        "reference":  "show my tasks for today",
+                        "file":  "today.wav",
+                        "bytes":  75086,
+                        "sha256":  "6544ffdee9ca3076a9e4b37310d383b808eeaa1e277c96a948a79c649e776545"
+                    },
+                    {
+                        "id":  "calculus",
+                        "reference":  "move the calculus lecture to monday morning",
+                        "file":  "calculus.wav",
+                        "bytes":  101166,
+                        "sha256":  "8fdc03ac0b372776d182f871dddeb8849b2ea3de077ffe92b3975adde5b4d489"
+                    },
+                    {
+                        "id":  "cancel",
+                        "reference":  "cancel my library reminder",
+                        "file":  "cancel.wav",
+                        "bytes":  82926,
+                        "sha256":  "d5b64bd67c9ada954fa56e08d28d9bd2ea76cd077504c5fcd3f1c996750dae34"
+                    },
+                    {
+                        "id":  "complete",
+                        "reference":  "mark the reading task complete",
+                        "file":  "complete.wav",
+                        "bytes":  81486,
+                        "sha256":  "e18fff815ef94d600e8a07c349eddcb9ec576d80350d78789d859f9b6428605c"
+                    }
+                ],
+    "limitations":  [
+                        "Generated locally by installed Windows SAPI using fixed public synthetic text; no microphone, student voice or cloud request.",
+                        "WAV files remain ignored local/test assets, not public redistribution.",
+                        "This voice is not a Filipino accent, real microphone or noisy room sample.",
+                        "Direct PCM inference does not measure hold capture or Android platform recognizer accuracy."
+                    ]
+}

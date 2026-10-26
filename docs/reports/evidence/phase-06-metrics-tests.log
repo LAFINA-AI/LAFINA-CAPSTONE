@@ -1,0 +1,13 @@
+PASS __tests__/speechMetrics.test.js
+  word error metrics, not speech-engine or intent proof
+    √ normalizes case/punctuation/Unicode but preserves number wording differences (6 ms)
+    √ separates substitution, deletion and insertion (1 ms)
+    √ does not turn silence/deletion into an accurate transcript (1 ms)
+    √ can report WER over one and uses corpus word totals rather than mean WER (3 ms)
+    √ bounds input and rejects an empty corpus (9 ms)
+
+Test Suites: 1 passed, 1 total
+Tests:       5 passed, 5 total
+Snapshots:   0 total
+Time:        1.782 s
+Ran all test suites matching /__tests__\\speechMetrics.test.js/i.

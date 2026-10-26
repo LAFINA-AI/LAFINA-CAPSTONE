@@ -1,0 +1,18 @@
+PASS __tests__/ChatScreen.test.tsx (6.078 s)
+  √ reviews a timed task before one durable save, then queries it without saving chat history (820 ms)
+  √ invalidates a pending action when the composer changes or a review is discarded (64 ms)
+  √ keeps ambiguous or destructive bulk words inert: Remind me to revise Friday at 7 PM (20 ms)
+  √ keeps ambiguous or destructive bulk words inert: Okay but remind me later (18 ms)
+  √ keeps ambiguous or destructive bulk words inert: do not acknowledge (23 ms)
+  √ keeps ambiguous or destructive bulk words inert: delete all tasks (19 ms)
+  √ copies reviewed speech draft to the composer without parsing or writing until Send and Confirm (66 ms)
+  √ keeps a durable result and manual composer usable when optional TTS rejects (94 ms)
+  √ clears conversation and pending review without deleting saved planner data (60 ms)
+  √ cancels an unconfirmed review on background without a write (28 ms)
+  √ offers retry and retains typed text when local storage cannot open (26 ms)
+
+Test Suites: 1 passed, 1 total
+Tests:       11 passed, 11 total
+Snapshots:   0 total
+Time:        6.357 s
+Ran all test suites matching /__tests__\\ChatScreen.test.tsx/i.

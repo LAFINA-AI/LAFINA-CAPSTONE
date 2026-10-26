@@ -1,0 +1,9 @@
+{
+  "check": "Get-Command graphify",
+  "substitute": "AST import-cycle/offline boundary check and Mermaid ADR-018 architecture diagram",
+  "result": "NOT RUN: Graphify CLI unavailable on PATH",
+  "limits": "Configured TypeScript and native boundary checks, not a complete Kotlin graph or Android functional proof.",
+  "recordedAtUtc": "2026-10-25T06:32:30.6406152Z",
+  "phase": "05",
+  "graphifyAvailable": false
+}

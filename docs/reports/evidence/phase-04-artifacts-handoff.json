@@ -1,0 +1,179 @@
+{
+  "schemaVersion": 1,
+  "phase": "04",
+  "recordedAtUtc": "2026-10-24T14:52:15.1701585Z",
+  "label": "HANDOFF_LOCAL_BUILT_APK_METADATA_NOT_INSTALL_OR_DEVICE_VALIDATION",
+  "supersedesForCurrentBuild": "docs/reports/evidence/phase-04-artifacts-reviewed.json",
+  "tool": "Android SDK build-tools36.0.0 aapt2.exe",
+  "commands": [
+    "aapt2 dump permissions <apk>",
+    "aapt2 dump badging <apk>",
+    "Get-FileHash -Algorithm SHA256 <apk>"
+  ],
+  "buildLog": "docs/reports/evidence/phase-04-android-handoff.log",
+  "buildLogSha256": "41ef9a1e32b9344a4f0429d99ec2af1d68a520c5bfcce2e0740f614eefe67c04",
+  "buildResult": "BUILD SUCCESSFUL in 2m 17s; 320 actionable tasks: 27 executed, 293 up-to-date",
+  "artifacts": [
+    {
+      "path": "android/app/build/outputs/apk/androidTest/dataQa/app-dataQa-androidTest.apk",
+      "bytes": 873020,
+      "sha256": "71f9548a95060c8b26613797d149ae859e12c1dbd65c54732a0f46599f282318",
+      "lastWriteUtc": "2026-10-22T17:14:05.9565889Z",
+      "packageMetadata": "package: name='com.lafina.capstone.test' versionCode='' versionName='' platformBuildVersionName='16' platformBuildVersionCode='36' compileSdkVersion='36' compileSdkVersionCodename='16'",
+      "launchableActivity": [],
+      "nativeCode": [],
+      "permissions": [
+        "package: com.lafina.capstone.test",
+        "uses-permission: name='android.permission.REORDER_TASKS'"
+      ]
+    },
+    {
+      "path": "android/app/build/outputs/apk/dataQa/app-arm64-v8a-dataQa.apk",
+      "bytes": 50853635,
+      "sha256": "00c853256b30f19d7c048291c4fc25fcca153acc3712689c5236395685f46b9f",
+      "lastWriteUtc": "2026-10-24T14:50:48.5052467Z",
+      "packageMetadata": "package: name='com.lafina.capstone' versionCode='4' versionName='0.4.0-data-qa' platformBuildVersionName='16' platformBuildVersionCode='36' compileSdkVersion='36' compileSdkVersionCodename='16'",
+      "launchableActivity": [
+        "launchable-activity: name='com.lafina.capstone.MainActivity'  label='LAFINA Capstone' icon=''"
+      ],
+      "nativeCode": [
+        "native-code: 'arm64-v8a'"
+      ],
+      "permissions": [
+        "package: com.lafina.capstone",
+        "uses-permission: name='android.permission.POST_NOTIFICATIONS'",
+        "uses-permission: name='android.permission.SCHEDULE_EXACT_ALARM'",
+        "uses-permission: name='android.permission.USE_FULL_SCREEN_INTENT'",
+        "uses-permission: name='android.permission.RECEIVE_BOOT_COMPLETED'",
+        "uses-permission: name='android.permission.VIBRATE'",
+        "permission: com.lafina.capstone.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION",
+        "uses-permission: name='com.lafina.capstone.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION'"
+      ]
+    },
+    {
+      "path": "android/app/build/outputs/apk/dataQa/app-x86_64-dataQa.apk",
+      "bytes": 50373959,
+      "sha256": "668d7957695b96ea7d69c8efb7b40f2e7cf8a56783808f41e8476cac57cd5ee5",
+      "lastWriteUtc": "2026-10-24T14:50:48.5052467Z",
+      "packageMetadata": "package: name='com.lafina.capstone' versionCode='4' versionName='0.4.0-data-qa' platformBuildVersionName='16' platformBuildVersionCode='36' compileSdkVersion='36' compileSdkVersionCodename='16'",
+      "launchableActivity": [
+        "launchable-activity: name='com.lafina.capstone.MainActivity'  label='LAFINA Capstone' icon=''"
+      ],
+      "nativeCode": [
+        "native-code: 'x86_64'"
+      ],
+      "permissions": [
+        "package: com.lafina.capstone",
+        "uses-permission: name='android.permission.POST_NOTIFICATIONS'",
+        "uses-permission: name='android.permission.SCHEDULE_EXACT_ALARM'",
+        "uses-permission: name='android.permission.USE_FULL_SCREEN_INTENT'",
+        "uses-permission: name='android.permission.RECEIVE_BOOT_COMPLETED'",
+        "uses-permission: name='android.permission.VIBRATE'",
+        "permission: com.lafina.capstone.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION",
+        "uses-permission: name='com.lafina.capstone.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION'"
+      ]
+    },
+    {
+      "path": "android/app/build/outputs/apk/debug/app-arm64-v8a-debug.apk",
+      "bytes": 48453920,
+      "sha256": "2f269346c815be932ac7a91158e6200fed58cc82919d0beec6e62e4dbac0f0cd",
+      "lastWriteUtc": "2026-10-23T00:52:49.6345927Z",
+      "packageMetadata": "package: name='com.lafina.capstone.debug' versionCode='4' versionName='0.4.0' platformBuildVersionName='16' platformBuildVersionCode='36' compileSdkVersion='36' compileSdkVersionCodename='16'",
+      "launchableActivity": [
+        "launchable-activity: name='com.lafina.capstone.MainActivity'  label='LAFINA Capstone' icon=''"
+      ],
+      "nativeCode": [
+        "native-code: 'arm64-v8a'"
+      ],
+      "permissions": [
+        "package: com.lafina.capstone.debug",
+        "uses-permission: name='android.permission.INTERNET'",
+        "uses-permission: name='android.permission.POST_NOTIFICATIONS'",
+        "uses-permission: name='android.permission.SCHEDULE_EXACT_ALARM'",
+        "uses-permission: name='android.permission.USE_FULL_SCREEN_INTENT'",
+        "uses-permission: name='android.permission.RECEIVE_BOOT_COMPLETED'",
+        "uses-permission: name='android.permission.VIBRATE'",
+        "uses-permission: name='android.permission.SYSTEM_ALERT_WINDOW'",
+        "permission: com.lafina.capstone.debug.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION",
+        "uses-permission: name='com.lafina.capstone.debug.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION'"
+      ]
+    },
+    {
+      "path": "android/app/build/outputs/apk/debug/app-x86_64-debug.apk",
+      "bytes": 47974244,
+      "sha256": "88408e4ec8f4d74cea7925c06cd05c879f83ccfdbe7dd14c6f39296b7a08d92c",
+      "lastWriteUtc": "2026-10-23T00:52:49.6345927Z",
+      "packageMetadata": "package: name='com.lafina.capstone.debug' versionCode='4' versionName='0.4.0' platformBuildVersionName='16' platformBuildVersionCode='36' compileSdkVersion='36' compileSdkVersionCodename='16'",
+      "launchableActivity": [
+        "launchable-activity: name='com.lafina.capstone.MainActivity'  label='LAFINA Capstone' icon=''"
+      ],
+      "nativeCode": [
+        "native-code: 'x86_64'"
+      ],
+      "permissions": [
+        "package: com.lafina.capstone.debug",
+        "uses-permission: name='android.permission.INTERNET'",
+        "uses-permission: name='android.permission.POST_NOTIFICATIONS'",
+        "uses-permission: name='android.permission.SCHEDULE_EXACT_ALARM'",
+        "uses-permission: name='android.permission.USE_FULL_SCREEN_INTENT'",
+        "uses-permission: name='android.permission.RECEIVE_BOOT_COMPLETED'",
+        "uses-permission: name='android.permission.VIBRATE'",
+        "uses-permission: name='android.permission.SYSTEM_ALERT_WINDOW'",
+        "permission: com.lafina.capstone.debug.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION",
+        "uses-permission: name='com.lafina.capstone.debug.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION'"
+      ]
+    },
+    {
+      "path": "android/app/build/outputs/apk/release/app-arm64-v8a-release.apk",
+      "bytes": 27407609,
+      "sha256": "ae1798aa2bfa4cee45715b0444852ec99cf7e758e0dede90ca6b96b399a73c39",
+      "lastWriteUtc": "2026-10-24T14:51:15.1335385Z",
+      "packageMetadata": "package: name='com.lafina.capstone' versionCode='4' versionName='0.4.0-preview' platformBuildVersionName='16' platformBuildVersionCode='36' compileSdkVersion='36' compileSdkVersionCodename='16'",
+      "launchableActivity": [
+        "launchable-activity: name='com.lafina.capstone.MainActivity'  label='LAFINA Capstone' icon=''"
+      ],
+      "nativeCode": [
+        "native-code: 'arm64-v8a'"
+      ],
+      "permissions": [
+        "package: com.lafina.capstone",
+        "uses-permission: name='android.permission.POST_NOTIFICATIONS'",
+        "uses-permission: name='android.permission.SCHEDULE_EXACT_ALARM'",
+        "uses-permission: name='android.permission.USE_FULL_SCREEN_INTENT'",
+        "uses-permission: name='android.permission.RECEIVE_BOOT_COMPLETED'",
+        "uses-permission: name='android.permission.VIBRATE'",
+        "permission: com.lafina.capstone.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION",
+        "uses-permission: name='com.lafina.capstone.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION'"
+      ]
+    },
+    {
+      "path": "android/app/build/outputs/apk/release/app-x86_64-release.apk",
+      "bytes": 27765893,
+      "sha256": "ed298d64e98460208744e58d06675d456123d61cd86518d5541fdbc23f6baf7b",
+      "lastWriteUtc": "2026-10-24T14:51:15.1289852Z",
+      "packageMetadata": "package: name='com.lafina.capstone' versionCode='4' versionName='0.4.0-preview' platformBuildVersionName='16' platformBuildVersionCode='36' compileSdkVersion='36' compileSdkVersionCodename='16'",
+      "launchableActivity": [
+        "launchable-activity: name='com.lafina.capstone.MainActivity'  label='LAFINA Capstone' icon=''"
+      ],
+      "nativeCode": [
+        "native-code: 'x86_64'"
+      ],
+      "permissions": [
+        "package: com.lafina.capstone",
+        "uses-permission: name='android.permission.POST_NOTIFICATIONS'",
+        "uses-permission: name='android.permission.SCHEDULE_EXACT_ALARM'",
+        "uses-permission: name='android.permission.USE_FULL_SCREEN_INTENT'",
+        "uses-permission: name='android.permission.RECEIVE_BOOT_COMPLETED'",
+        "uses-permission: name='android.permission.VIBRATE'",
+        "permission: com.lafina.capstone.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION",
+        "uses-permission: name='com.lafina.capstone.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION'"
+      ]
+    }
+  ],
+  "limitations": [
+    "Read-only collection after the handoff build completed; no rebuild/test/emulator action during collection.",
+    "Local developer/preview signing only; not publishing.",
+    "Physical ARM64 phone behavior remains NOT RUN.",
+    "This metadata does not establish which APK is installed; emulator installation evidence is separate."
+  ]
+}

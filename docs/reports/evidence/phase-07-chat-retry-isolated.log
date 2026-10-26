@@ -1,0 +1,18 @@
+PASS __tests__/ChatScreen.test.tsx
+  √ offers retry and retains typed text when local storage cannot open (905 ms)
+  ○ skipped reviews a timed task before one durable save, then queries it without saving chat history
+  ○ skipped invalidates a pending action when the composer changes or a review is discarded
+  ○ skipped keeps ambiguous or destructive bulk words inert: Remind me to revise Friday at 7 PM
+  ○ skipped keeps ambiguous or destructive bulk words inert: Okay but remind me later
+  ○ skipped keeps ambiguous or destructive bulk words inert: do not acknowledge
+  ○ skipped keeps ambiguous or destructive bulk words inert: delete all tasks
+  ○ skipped copies reviewed speech draft to the composer without parsing or writing until Send and Confirm
+  ○ skipped keeps a durable result and manual composer usable when optional TTS rejects
+  ○ skipped clears conversation and pending review without deleting saved planner data
+  ○ skipped cancels an unconfirmed review on background without a write
+
+Test Suites: 1 passed, 1 total
+Tests:       10 skipped, 1 passed, 11 total
+Snapshots:   0 total
+Time:        3.938 s, estimated 12 s
+Ran all test suites matching /__tests__\\ChatScreen.test.tsx/i with tests matching "offers retry".

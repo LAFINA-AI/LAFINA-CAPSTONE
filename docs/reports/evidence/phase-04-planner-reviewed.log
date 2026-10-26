@@ -1,0 +1,19 @@
+
+> lafina-capstone@0.1.0 test
+> jest --runInBand --runTestsByPath __tests__/PlannerScreen.test.tsx
+
+PASS __tests__/PlannerScreen.test.tsx (10.198 s)
+  production manual planner with real host SQLite
+    √ saves an undated task with delivery blocked, finds it in Tasks, explicitly completes and undoes, edits and confirms deletion (3297 ms)
+    √ creates a manual timed event into the day agenda, changes the date without drift, and keeps its save when native reconcile rejects (440 ms)
+    √ refreshes detail state after native snooze on foreground and never completes the task on ACK (195 ms)
+    √ shows database action failure without a false ignored/expired notice and hides stale controls after read failure (50 ms)
+    √ refreshes registration details on reconcile completion without changing the academic deadline (147 ms)
+    √ pages beyond20 visible tasks without omitting the second page (241 ms)
+    √ shows a bounded renderable fallback for a clock outside planner dates (46 ms)
+
+Test Suites: 1 passed, 1 total
+Tests:       7 passed, 7 total
+Snapshots:   0 total
+Time:        10.729 s
+Ran all test suites within paths "__tests__/PlannerScreen.test.tsx".
