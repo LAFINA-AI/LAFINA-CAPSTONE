@@ -151,7 +151,7 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
         'Synthesizing…',
         'Synthesizing text to speech. Keep media volume up.',
       );
-      const result = await provider.speakText('Hey! This is LAFINA. Text to speech is working.');
+      const result = await provider.speakText('Hey! This is lafina. Text to speech is working.');
       if (result.source === 'gemini') {
         Alert.alert(
           'TTS Test (Gemini 3.1 Flash)',
