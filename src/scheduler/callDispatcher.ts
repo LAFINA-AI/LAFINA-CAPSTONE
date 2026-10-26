@@ -95,7 +95,7 @@ const getSnoozeConfirmation = (minutes: number): string =>
   `Snoozed for ${minutes} minutes.`;
 
 const buildAnnouncement = (task: string): string =>
-  `Hey! This is LAFINA. Your scheduled reminder is "${task}". Choose one of the two responses shown on screen at any time.`;
+  `Hey! This is lafina. Your scheduled reminder is "${task}". Choose one of the two responses shown on screen at any time.`;
 
 const warmCallResponseAudio = async (): Promise<void> => {
   try {
