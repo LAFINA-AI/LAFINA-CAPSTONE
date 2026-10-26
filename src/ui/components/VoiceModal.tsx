@@ -25,9 +25,7 @@ import {
 } from '../../ai/native/speechCapture';
 import type { OfflineSpeechCaptureHandle } from '../../ai/native/speechCapture';
 import { ensureMicrophonePermission } from '../../ai/stt/sttService';
-import { notesStore } from '../../storage/notesStore';
-import { tasksStore } from '../../storage/tasksStore';
-import { generateId } from '../../utils';
+import { intentService } from '../../ai/nlu';
 
 export interface VoiceModalProps {
   visible: boolean;
@@ -50,68 +48,18 @@ const STATUS_TEXT: Record<VoiceState, string> = {
   error: 'That didn’t work',
 };
 
-const executeDefaultCommand = (command: string, userId: string): string => {
+const executeDefaultCommand = async (command: string, userId: string): Promise<string> => {
   const trimmed = command.trim();
   if (!trimmed) {
     return 'What would you like me to do?';
   }
-
-  // 1. Note command: "note: buy books", "take a note buy milk", "note finish lab"
-  if (/^(?:take\s+a\s+)?note(?::|\s+that\s+|\s+about\s+|\s+)/i.test(trimmed)) {
-    const noteBody = trimmed
-      .replace(/^(?:take\s+a\s+)?note(?::|\s+that\s+|\s+about\s+|\s*)/i, '')
-      .trim();
-    const id = generateId('note');
-    notesStore.insert({
-      id,
-      userId,
-      title: 'Voice Note',
-      body: noteBody || 'Empty note contents.',
-      isPinned: false,
-      tags: ['AI Transcribed'],
-      category: 'General',
-      isVoiceTranscribed: true,
-    });
-    return "I've saved that note for you.";
+  try {
+    const result = await intentService.processAndExecuteIntent(userId, trimmed);
+    return result.reply;
+  } catch (err) {
+    console.error('NLU execution error:', err);
+    return `Heard: "${trimmed}"`;
   }
-
-  // 2. Complete task command: "complete task math hw", "finish science assignment"
-  if (/^(?:complete|finish|done with)\s+/i.test(trimmed)) {
-    const taskTitleQuery = trimmed
-      .replace(/^(?:complete|finish|done with)\s+(?:task\s+)?/i, '')
-      .trim()
-      .toLowerCase();
-    const tasks = tasksStore.getAllTasks(userId);
-    const matched = tasks.find(
-      (t) => !t.isCompleted && t.title.toLowerCase().includes(taskTitleQuery),
-    );
-    if (matched) {
-      tasksStore.updateTask({ id: matched.id, isCompleted: true });
-      return `Marked "${matched.title}" as completed.`;
-    }
-  }
-
-  // 3. Task / ToDo command: "task: study physics", "add task submit paper", "todo review notes"
-  if (/^(?:add\s+)?(?:task|todo)(?::|\s+)/i.test(trimmed)) {
-    const taskTitle = trimmed
-      .replace(/^(?:add\s+)?(?:task|todo)(?::|\s*)/i, '')
-      .trim();
-    if (taskTitle) {
-      const taskId = generateId('task');
-      tasksStore.insertTask({
-        id: taskId,
-        userId,
-        title: taskTitle,
-        isCompleted: false,
-        priority: 'Medium',
-        category: 'Academic',
-        notes: 'Created via offline voice command',
-      });
-      return `Added task "${taskTitle}".`;
-    }
-  }
-
-  return `Heard: "${trimmed}"`;
 };
 
 export const VoiceModal: React.FC<VoiceModalProps> = ({
@@ -362,7 +310,7 @@ export const VoiceModal: React.FC<VoiceModalProps> = ({
       if (onCommand) {
         reply = await Promise.resolve(onCommand(finalTranscript, userId));
       } else {
-        reply = executeDefaultCommand(finalTranscript, userId);
+        reply = await executeDefaultCommand(finalTranscript, userId);
       }
 
       setAiReply(reply);
@@ -404,7 +352,7 @@ export const VoiceModal: React.FC<VoiceModalProps> = ({
         if (onCommand) {
           reply = await Promise.resolve(onCommand(command, userId));
         } else {
-          reply = executeDefaultCommand(command, userId);
+          reply = await executeDefaultCommand(command, userId);
         }
 
         setAiReply(reply);

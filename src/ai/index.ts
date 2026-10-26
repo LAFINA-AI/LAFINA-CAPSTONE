@@ -41,3 +41,5 @@ export {
   hasOfflineSpeechCapture,
   getActiveOfflineCaptureId,
 } from './native/speechCapture';
+
+export * from './nlu';

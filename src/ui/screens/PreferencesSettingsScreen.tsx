@@ -9,7 +9,15 @@ import {
   View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Bell, ChevronLeft } from 'lucide-react-native';
+import { Bell, ChevronLeft, Download, Sparkles, Trash2 } from 'lucide-react-native';
+import {
+  getModelStatus,
+  downloadQwenModel,
+  cancelModelDownload,
+  deleteQwenModel,
+  type ModelStatus,
+  type ModelDownloadProgress,
+} from '../../ai/nlu';
 import { preferencesStore } from '../../storage';
 import type {
   LongestClassGap,
@@ -156,7 +164,58 @@ export const PreferencesSettingsScreen: React.FC<PreferencesSettingsScreenProps>
   const [error, setError] = useState<string | null>(null);
   const [permissionModalVisible, setPermissionModalVisible] = useState(false);
   const [permissionStatus, setPermissionStatus] = useState<ReminderPermissionStatus | null>(null);
+  const [modelStatus, setModelStatus] = useState<ModelStatus | null>(null);
+  const [downloadProgress, setDownloadProgress] = useState<ModelDownloadProgress | null>(null);
+  const [isDownloading, setIsDownloading] = useState(false);
   const { colors } = useTheme();
+
+  React.useEffect(() => {
+    void getModelStatus().then(setModelStatus);
+  }, []);
+
+  const handleStartDownload = async () => {
+    setIsDownloading(true);
+    setDownloadProgress({ bytesWritten: 0, contentLength: 397800000, percent: 0, status: 'downloading' });
+    try {
+      await downloadQwenModel((prog) => {
+        setDownloadProgress(prog);
+      });
+      const updated = await getModelStatus();
+      setModelStatus(updated);
+      setIsDownloading(false);
+      setDownloadProgress(null);
+      Alert.alert('AI Model Ready', 'Qwen2.5-0.5B model is downloaded and ready for offline voice intelligence!');
+    } catch (err: any) {
+      setIsDownloading(false);
+      setDownloadProgress(null);
+      Alert.alert('Download Error', err?.message || 'Could not download model. Check internet connection.');
+    }
+  };
+
+  const handleCancelDownload = async () => {
+    await cancelModelDownload();
+    setIsDownloading(false);
+    setDownloadProgress(null);
+  };
+
+  const handleDeleteModel = () => {
+    Alert.alert(
+      'Remove Offline AI Model',
+      'Are you sure you want to delete the on-device AI model? LAFINA will continue working using high-accuracy fast-path parsing.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Delete',
+          style: 'destructive',
+          onPress: async () => {
+            await deleteQwenModel();
+            const updated = await getModelStatus();
+            setModelStatus(updated);
+          },
+        },
+      ],
+    );
+  };
 
   const handleOpenPermissions = async () => {
     try {
@@ -304,6 +363,88 @@ export const PreferencesSettingsScreen: React.FC<PreferencesSettingsScreenProps>
             selectedValues={[longestClassGap]}
             onSelect={(value) => setLongestClassGap(value as LongestClassGap)}
           />
+        </View>
+
+        <View style={[styles.card, Shadows.card, { backgroundColor: colors.cardBg }]}>
+          <View style={styles.cardHeaderRow}>
+            <Text style={[styles.sectionTitle, { color: colors.textPrimary, marginBottom: 0 }]}>
+              Offline Voice Intelligence
+            </Text>
+            <View
+              style={[
+                styles.badge,
+                {
+                  backgroundColor: modelStatus?.isDownloaded
+                    ? 'rgba(46, 204, 113, 0.15)'
+                    : 'rgba(52, 152, 219, 0.15)',
+                },
+              ]}
+            >
+              <Text
+                style={[
+                  styles.badgeText,
+                  { color: modelStatus?.isDownloaded ? '#2ECC71' : colors.blue },
+                ]}
+              >
+                {modelStatus?.isDownloaded ? 'Ready (On-Device)' : 'Fast-Path Only'}
+              </Text>
+            </View>
+          </View>
+
+          <Text style={[styles.permissionHelperText, { color: colors.textSecondary, marginTop: 8 }]}>
+            {modelStatus?.isDownloaded
+              ? 'Qwen2.5-0.5B model is active on-device. Speech commands are smartly parsed offline with contextual title and parameter extraction.'
+              : 'Download the lightweight on-device AI model (Qwen2.5-0.5B, ~398 MB) to enable contextual speech parsing completely offline.'}
+          </Text>
+
+          {isDownloading ? (
+            <View style={styles.downloadProgressContainer}>
+              <View style={styles.progressBarBackground}>
+                <View
+                  style={[
+                    styles.progressBarFill,
+                    { width: `${downloadProgress?.percent || 0}%`, backgroundColor: colors.blue },
+                  ]}
+                />
+              </View>
+              <View style={styles.progressRow}>
+                <Text style={[styles.progressText, { color: colors.textSecondary }]}>
+                  Downloading: {downloadProgress?.percent || 0}% (
+                  {Math.round((downloadProgress?.bytesWritten || 0) / (1024 * 1024))} /{' '}
+                  {Math.round((downloadProgress?.contentLength || 397800000) / (1024 * 1024))} MB)
+                </Text>
+                <TouchableOpacity onPress={() => void handleCancelDownload()}>
+                  <Text style={[styles.cancelDownloadText, { color: colors.error }]}>Cancel</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          ) : modelStatus?.isDownloaded ? (
+            <View style={styles.modelActionsRow}>
+              <View style={styles.modelInfoCol}>
+                <Sparkles size={16} color="#2ECC71" />
+                <Text style={[styles.modelSizeText, { color: colors.textSecondary }]}>
+                  {Math.round((modelStatus.fileSizeBytes || 0) / (1024 * 1024))} MB on disk
+                </Text>
+              </View>
+              <TouchableOpacity
+                style={[styles.deleteModelButton, { borderColor: colors.error }]}
+                onPress={handleDeleteModel}
+              >
+                <Trash2 size={15} color={colors.error} />
+                <Text style={[styles.deleteModelText, { color: colors.error }]}>Remove Model</Text>
+              </TouchableOpacity>
+            </View>
+          ) : (
+            <TouchableOpacity
+              style={[styles.permissionButton, { borderColor: colors.blue, marginTop: 4 }]}
+              onPress={() => void handleStartDownload()}
+            >
+              <Download size={18} color={colors.blue} />
+              <Text style={[styles.permissionButtonText, { color: colors.blue }]}>
+                Download AI Model (~398 MB)
+              </Text>
+            </TouchableOpacity>
+          )}
         </View>
 
         <View style={[styles.card, Shadows.card, { backgroundColor: colors.cardBg }]}>
@@ -456,5 +597,78 @@ const styles = StyleSheet.create({
     fontFamily: Fonts.body,
     fontSize: 13,
     fontWeight: '700',
+  },
+  cardHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 4,
+  },
+  badge: {
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: Layout.borderRadiusPill,
+  },
+  badgeText: {
+    fontFamily: Fonts.body,
+    fontSize: 11,
+    fontWeight: '700',
+  },
+  downloadProgressContainer: {
+    marginTop: 8,
+  },
+  progressBarBackground: {
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: 'rgba(150, 150, 150, 0.2)',
+    overflow: 'hidden',
+  },
+  progressBarFill: {
+    height: '100%',
+    borderRadius: 4,
+  },
+  progressRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginTop: 6,
+  },
+  progressText: {
+    fontFamily: Fonts.body,
+    fontSize: 12,
+  },
+  cancelDownloadText: {
+    fontFamily: Fonts.body,
+    fontSize: 12,
+    fontWeight: 'bold',
+  },
+  modelActionsRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginTop: 10,
+  },
+  modelInfoCol: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  modelSizeText: {
+    fontFamily: Fonts.body,
+    fontSize: 12,
+  },
+  deleteModelButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderWidth: 1,
+    borderRadius: Layout.borderRadiusButton,
+  },
+  deleteModelText: {
+    fontFamily: Fonts.body,
+    fontSize: 12,
+    fontWeight: '600',
   },
 });
