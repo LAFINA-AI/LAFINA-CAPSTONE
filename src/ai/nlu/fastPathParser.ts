@@ -1,5 +1,62 @@
 import type { ExtractedIntent, ParsedIntentType } from './types';
 
+/** Dictionary mapping spoken number words to integers. */
+export const NUMBER_WORDS: Record<string, number> = {
+  a: 1,
+  an: 1,
+  one: 1,
+  two: 2,
+  three: 3,
+  four: 4,
+  five: 5,
+  six: 6,
+  seven: 7,
+  eight: 8,
+  nine: 9,
+  ten: 10,
+  eleven: 11,
+  twelve: 12,
+  thirteen: 13,
+  fourteen: 14,
+  fifteen: 15,
+  sixteen: 16,
+  seventeen: 17,
+  eighteen: 18,
+  nineteen: 19,
+  twenty: 20,
+  thirty: 30,
+  forty: 40,
+  fifty: 50,
+  sixty: 60,
+  couple: 2,
+  few: 5,
+};
+
+/** Parses spoken number words (e.g. "five", "twenty-five") or raw digits into a number. */
+export function parseNumberWordOrDigits(token: string | null | undefined): number | null {
+  if (!token) return null;
+  const trimmed = token.trim().toLowerCase();
+  if (/^\d+$/.test(trimmed)) {
+    return parseInt(trimmed, 10);
+  }
+  if (NUMBER_WORDS[trimmed] !== undefined) {
+    return NUMBER_WORDS[trimmed];
+  }
+  const parts = trimmed.split(/[\s-]+/);
+  if (parts.length === 2 && NUMBER_WORDS[parts[0]] && NUMBER_WORDS[parts[1]]) {
+    const tens = NUMBER_WORDS[parts[0]];
+    const ones = NUMBER_WORDS[parts[1]];
+    if (tens >= 20 && tens <= 90 && ones >= 1 && ones <= 9) {
+      return tens + ones;
+    }
+  }
+  return null;
+}
+
+/** Regex pattern matching digits or spoken number words including compounds. */
+export const NUM_WORDS_PATTERN =
+  '(?:\\d+|(?:twenty|thirty|forty|fifty|sixty)(?:[\\s-]+(?:one|two|three|four|five|six|seven|eight|nine))|one|two|three|four|five|six|seven|eight|nine|ten|eleven|twelve|thirteen|fourteen|fifteen|sixteen|seventeen|eighteen|nineteen|twenty|thirty|forty|fifty|sixty|couple|few|a|an)';
+
 /** Formats a Date object to YYYY-MM-DD in local time. */
 export function formatLocalDate(date: Date): string {
   const year = date.getFullYear();
@@ -92,17 +149,84 @@ export function parseDateAndTime(text: string, referenceDate: Date = new Date())
     }
   }
 
-  // Relative offset: "in 15 minutes", "in 2 hours"
-  const relativeTimeMatch = /\bin\s+(\d+)\s*(minute|minutes|min|mins|hour|hours|hr|hrs)\b/i.exec(lower);
-  if (relativeTimeMatch) {
-    const amount = parseInt(relativeTimeMatch[1], 10);
-    const unit = relativeTimeMatch[2].toLowerCase();
-    const isHour = unit.startsWith('hour') || unit.startsWith('hr');
-    const offsetMs = amount * (isHour ? 3600000 : 60000);
-    const target = new Date(referenceDate.getTime() + offsetMs);
+  // Relative days: "in 2 days", "in two days", "3 days from now"
+  if (!date) {
+    const relDayRegex = new RegExp(
+      `\\b(?:(?:in|after)\\s+(${NUM_WORDS_PATTERN})\\s+days?(?:\\s+(?:from\\s+now|later))?|(${NUM_WORDS_PATTERN})\\s+days?\\s+(?:from\\s+now|later))\\b`,
+      'i',
+    );
+    const relativeDayMatch = relDayRegex.exec(lower);
+    if (relativeDayMatch) {
+      const dayToken = relativeDayMatch[1] || relativeDayMatch[2];
+      const days = parseNumberWordOrDigits(dayToken);
+      if (days !== null && days > 0) {
+        const d = new Date(referenceDate);
+        d.setDate(d.getDate() + days);
+        date = formatLocalDate(d);
+        matchedText.push(relativeDayMatch[0]);
+      }
+    }
+  }
+
+  // Relative time expressions:
+  // "in half an hour", "half an hour from now", "half an hour later", "half hour from now"
+  const halfHourMatch = /\b(?:in\s+)?(?:about\s+)?half\s+(?:an?\s+)?hour(?:\s+(?:from\s+now|later))?\b/i.exec(lower);
+  if (halfHourMatch && !time) {
+    const target = new Date(referenceDate.getTime() + 30 * 60000);
     date = formatLocalDate(target);
     time = formatLocalTime(target.getHours(), target.getMinutes());
-    matchedText.push(relativeTimeMatch[0]);
+    matchedText.push(halfHourMatch[0]);
+  }
+
+  // "in an hour", "an hour from now", "an hour later"
+  const anHourMatch = /\b(?:in\s+)?(?:about\s+)?an\s+hour(?:\s+(?:from\s+now|later))?\b/i.exec(lower);
+  if (anHourMatch && !time) {
+    const target = new Date(referenceDate.getTime() + 60 * 60000);
+    date = formatLocalDate(target);
+    time = formatLocalTime(target.getHours(), target.getMinutes());
+    matchedText.push(anHourMatch[0]);
+  }
+
+  // "a couple minutes from now", "in a couple minutes", "a couple of minutes"
+  const coupleMatch = /\b(?:in\s+)?(?:about\s+)?(?:a\s+)?couple(?:\s+of)?\s*(?:minutes?|mins?)(?:\s+(?:from\s+now|later))?\b/i.exec(lower);
+  if (coupleMatch && !time) {
+    const target = new Date(referenceDate.getTime() + 2 * 60000);
+    date = formatLocalDate(target);
+    time = formatLocalTime(target.getHours(), target.getMinutes());
+    matchedText.push(coupleMatch[0]);
+  }
+
+  // "a few minutes from now", "in a few minutes", "few minutes later"
+  const fewMatch = /\b(?:in\s+)?(?:about\s+)?(?:a\s+)?few\s*(?:minutes?|mins?)(?:\s+(?:from\s+now|later))?\b/i.exec(lower);
+  if (fewMatch && !time) {
+    const target = new Date(referenceDate.getTime() + 5 * 60000);
+    date = formatLocalDate(target);
+    time = formatLocalTime(target.getHours(), target.getMinutes());
+    matchedText.push(fewMatch[0]);
+  }
+
+  // General relative offset:
+  // "in 5 minutes", "in five minutes", "after 10 minutes", "five minutes from now", "10 minutes later", etc.
+  if (!time) {
+    const relRegex = new RegExp(
+      `\\b(?:(?:in|after)\\s+(?:about\\s+)?(${NUM_WORDS_PATTERN})\\s*(minutes?|mins?|hours?|hrs?)(?:\\s+(?:from\\s+now|later))?|(${NUM_WORDS_PATTERN})\\s*(minutes?|mins?|hours?|hrs?)\\s+(?:from\\s+now|later))\\b`,
+      'i',
+    );
+    const relMatch = relRegex.exec(lower);
+    if (relMatch) {
+      const numToken = relMatch[1] || relMatch[3];
+      const unitToken = relMatch[2] || relMatch[4];
+      const amount = parseNumberWordOrDigits(numToken);
+      if (amount !== null && amount > 0) {
+        const unit = unitToken.toLowerCase();
+        const isHour = unit.startsWith('hour') || unit.startsWith('hr');
+        const offsetMs = amount * (isHour ? 3600000 : 60000);
+        const target = new Date(referenceDate.getTime() + offsetMs);
+        date = formatLocalDate(target);
+        time = formatLocalTime(target.getHours(), target.getMinutes());
+        matchedText.push(relMatch[0]);
+      }
+    }
   }
 
   // Time range: "from 9 to 11 am", "9am - 11am", "from 14:00 to 16:00"
@@ -134,11 +258,12 @@ export function parseDateAndTime(text: string, referenceDate: Date = new Date())
     matchedText.push(rangeMatch[0]);
   }
 
-  // Single time: "at 3pm", "3:30 pm", "at 14:00"
+  // Single time: "at 3pm", "3:30 pm", "at nine am", "at 14:00"
   if (!time) {
-    const singleTimeMatch = /\b(?:at\s+)?(\d{1,2})(?::(\d{2}))?\s*(am|pm)\b/i.exec(lower);
+    const singleTimeMatch = /\b(?:at\s+)?(\d{1,2}|one|two|three|four|five|six|seven|eight|nine|ten|eleven|twelve)(?::(\d{2}))?\s*(am|pm)\b/i.exec(lower);
     if (singleTimeMatch) {
-      let hour = parseInt(singleTimeMatch[1], 10);
+      const rawHour = singleTimeMatch[1];
+      let hour = parseNumberWordOrDigits(rawHour) ?? parseInt(rawHour, 10);
       const min = singleTimeMatch[2] ? parseInt(singleTimeMatch[2], 10) : 0;
       const meridiem = singleTimeMatch[3].toLowerCase();
       if (meridiem === 'pm' && hour < 12) hour += 12;
@@ -166,7 +291,8 @@ export function parseIntentFastPath(
   const lower = normalized.toLowerCase();
 
   // 1. Call Responses / Acknowledge
-  if (/^(i(?:'m| am)? done|i did it|finished|got it|okay|ok|understood|acknowledged|thanks?)\b/i.test(lower)) {
+  const isAck = /^(?:i(?:'m| am)? done|i did it|finished|got it|okay|ok|understood|acknowledged|thanks?)(?:[,.!\s]+(?:thanks?|bye))?[\s.!,]*$/i.test(lower);
+  if (isAck) {
     return {
       intent: 'acknowledge',
       title: null,
@@ -184,9 +310,11 @@ export function parseIntentFastPath(
   }
 
   // 2. Call Responses / Snooze
-  const snoozeMatch = /\b(?:snooze|remind me in|give me)\s*(?:for\s+)?(\d+)?\s*(minute|minutes|min|mins)?\b/i.exec(lower);
+  // Snooze responses occur when a reminder call is active. If the user specifies an action ("for a coffee", "to study"), it is a new reminder.
+  const snoozeMatch = /^\s*(?:please\s+)?(?:snooze(?:\s+for)?|give me|remind me in)\s*([a-z0-9-]+)?\s*(?:minute|minutes|min|mins)?[\s.!,]*$/i.exec(lower);
   if (snoozeMatch || /^\s*snooze\b/i.test(lower)) {
-    const mins = snoozeMatch && snoozeMatch[1] ? parseInt(snoozeMatch[1], 10) : 10;
+    const parsedMins = snoozeMatch && snoozeMatch[1] ? parseNumberWordOrDigits(snoozeMatch[1]) : null;
+    const mins = parsedMins !== null && parsedMins > 0 ? parsedMins : 10;
     return {
       intent: 'snooze',
       title: null,
@@ -291,15 +419,24 @@ export function parseIntentFastPath(
 
   cleanTitle = cleanTitle.replace(/^(?:task|event|time\s*block|reminder|note)\s*[:\s,-]*(?:for|to|about)?\s*[:\s,-]*/i, '');
 
-  // Strip matched date/time phrases
-  for (const match of dt.matchedText) {
+  // Strip matched date/time phrases (longest first to avoid partial replacements)
+  const sortedMatches = [...dt.matchedText].sort((a, b) => b.length - a.length);
+  for (const match of sortedMatches) {
     cleanTitle = cleanTitle.replace(new RegExp(`\\b${escapeRegExp(match)}\\b`, 'gi'), '');
   }
 
-  // Strip lingering prepositions at edges (ensuring word boundaries)
+  // Strip lingering leading prepositions and articles (e.g. "for a coffee" -> "coffee", "to submit" -> "submit")
   cleanTitle = cleanTitle
-    .replace(/^[\s,:-]*(?:\b(?:on|at|by|for|starting|with|to)\b[\s,:-]*)+/i, '')
-    .replace(/(?:[\s,:-]*\b(?:on|at|by|for|starting|with|to)\b)+[\s,:-]*$/i, '')
+    .replace(/^[\s,:-]*(?:\b(?:on|at|by|for|starting|with|to|about|regarding|of)\b[\s,:-]*(?:(?:a|an|the)\b[\s,:-]*)?)+/i, '');
+
+  // Strip bare leading article for action items
+  if (intentType !== 'create_note') {
+    cleanTitle = cleanTitle.replace(/^[\s,:-]*(?:a|an|the)\b[\s,:-]*/i, '');
+  }
+
+  // Strip lingering trailing prepositions at edges
+  cleanTitle = cleanTitle
+    .replace(/(?:[\s,:-]*\b(?:on|at|by|for|starting|with|to|about|regarding|of)\b)+[\s,:-]*$/i, '')
     .replace(/^[\s,;:-]+|[\s,;:-]+$/g, '')
     .replace(/\s+/g, ' ')
     .trim();

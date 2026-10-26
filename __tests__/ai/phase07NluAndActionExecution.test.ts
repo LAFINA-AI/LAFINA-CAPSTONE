@@ -79,11 +79,32 @@ describe('Phase 07: Smart Hybrid On-Device NLU & Action Execution', () => {
       const amTime = parseDateAndTime('class at 9am', fixedDate);
       expect(amTime.time).toBe('09:00');
 
+      const wordTime = parseDateAndTime('meeting at nine am', fixedDate);
+      expect(wordTime.time).toBe('09:00');
+
       const pmTime = parseDateAndTime('review session at 3:15 pm', fixedDate);
       expect(pmTime.time).toBe('15:15');
 
       const military = parseDateAndTime('consultation at 14:45', fixedDate);
       expect(military.time).toBe('14:45');
+    });
+
+    test('extracts relative durations with number words and offsets accurately', () => {
+      const fiveMins = parseDateAndTime('remind me five minutes from now', fixedDate);
+      expect(fiveMins.date).toBe('2026-10-27');
+      expect(fiveMins.time).toBe('08:35');
+
+      const tenMins = parseDateAndTime('in ten minutes', fixedDate);
+      expect(tenMins.time).toBe('08:40');
+
+      const halfHour = parseDateAndTime('in half an hour', fixedDate);
+      expect(halfHour.time).toBe('09:00');
+
+      const anHour = parseDateAndTime('an hour from now', fixedDate);
+      expect(anHour.time).toBe('09:30');
+
+      const twoDays = parseDateAndTime('in two days', fixedDate);
+      expect(twoDays.date).toBe('2026-10-29');
     });
 
     test('extracts time ranges and computes duration minutes', () => {
@@ -142,6 +163,39 @@ describe('Phase 07: Smart Hybrid On-Device NLU & Action Execution', () => {
       expect(result.category).toBe('Academic');
     });
 
+    test('parses relative reminder commands and strips prepositions to isolate clean titles', () => {
+      // Direct user case: "Remind me five minutes from now for a coffee"
+      const coffeeResult = parseIntentFastPath(
+        'Remind me five minutes from now for a coffee',
+        fixedDate,
+      );
+      expect(coffeeResult.intent).toBe('create_reminder');
+      expect(coffeeResult.title).toBe('Coffee');
+      expect(coffeeResult.date).toBe('2026-10-27');
+      expect(coffeeResult.time).toBe('08:35');
+      expect(coffeeResult.category).toBe('Personal');
+
+      // Coffee break variation with "in ten minutes"
+      const coffeeBreakResult = parseIntentFastPath(
+        'Remind me in ten minutes for a coffee break',
+        fixedDate,
+      );
+      expect(coffeeBreakResult.intent).toBe('create_reminder');
+      expect(coffeeBreakResult.title).toBe('Coffee break');
+      expect(coffeeBreakResult.date).toBe('2026-10-27');
+      expect(coffeeBreakResult.time).toBe('08:40');
+
+      // Academic variation with "in half an hour"
+      const studyResult = parseIntentFastPath(
+        'Remind me in half an hour to review lecture notes',
+        fixedDate,
+      );
+      expect(studyResult.intent).toBe('create_reminder');
+      expect(studyResult.title).toBe('Review lecture notes');
+      expect(studyResult.time).toBe('09:00');
+      expect(studyResult.category).toBe('Academic');
+    });
+
     test('parses call response intents (acknowledge, snooze, reschedule)', () => {
       const ack = parseIntentFastPath('I did it, thanks!');
       expect(ack.intent).toBe('acknowledge');
@@ -149,6 +203,10 @@ describe('Phase 07: Smart Hybrid On-Device NLU & Action Execution', () => {
       const snooze = parseIntentFastPath('Snooze for 15 minutes');
       expect(snooze.intent).toBe('snooze');
       expect(snooze.snoozeMinutes).toBe(15);
+
+      const snoozeWord = parseIntentFastPath('Snooze for five minutes');
+      expect(snoozeWord.intent).toBe('snooze');
+      expect(snoozeWord.snoozeMinutes).toBe(5);
 
       const resched = parseIntentFastPath('Reschedule to tomorrow at 4pm', fixedDate);
       expect(resched.intent).toBe('reschedule');
