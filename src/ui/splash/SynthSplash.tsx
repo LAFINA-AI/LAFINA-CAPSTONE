@@ -5,7 +5,7 @@ import React, {
   useRef,
   useState,
 } from 'react';
-import { Image, StyleSheet, useWindowDimensions, View } from 'react-native';
+import { StyleSheet, useWindowDimensions, View } from 'react-native';
 import Svg, { Defs, LinearGradient, Path, Stop } from 'react-native-svg';
 import { useTheme } from '../contexts/ThemeContext';
 import {
@@ -19,7 +19,7 @@ import {
   type SplashLook,
 } from './synthWave';
 
-const lafinaSplashLogo = require('../../assets/new_lafina_app_logo/lafina_app_logo.png');
+
 
 const STRAND_COUNT = 9;
 const POINT_STEP = 6;
@@ -169,15 +169,6 @@ export const SynthSplash: React.FC<SynthSplashProps> = ({
           )}
         </Svg>
       </View>
-
-      <View style={styles.footer}>
-        <Image
-          source={lafinaSplashLogo}
-          style={styles.logo}
-          resizeMode="contain"
-          accessibilityLabel="LAFINA"
-        />
-      </View>
     </View>
   );
 };
@@ -191,14 +182,5 @@ const styles = StyleSheet.create({
   canvas: {
     alignItems: 'center',
     justifyContent: 'center',
-  },
-  footer: {
-    position: 'absolute',
-    bottom: 60,
-    alignItems: 'center',
-  },
-  logo: {
-    width: 120,
-    height: 114,
-  },
+  }
 });

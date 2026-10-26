@@ -3,9 +3,9 @@ import {
   View,
   StyleSheet,
   ScrollView,
-  SafeAreaView,
   StatusBar,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { Layout } from '../theme';
 import { userStore, behaviorStore, preferencesStore } from '../../storage';
 import type {

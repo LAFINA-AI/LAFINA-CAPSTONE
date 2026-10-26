@@ -456,8 +456,8 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     paddingHorizontal: 16,
-    paddingTop: 16,
-    paddingBottom: 100, // Account for floating bottom tab bar
+    paddingTop: 12,
+    paddingBottom: 140, // Account for elevated floating bottom tab bar
   },
   topHeaderRow: {
     flexDirection: 'row',

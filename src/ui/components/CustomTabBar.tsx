@@ -1,5 +1,6 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, Pressable, StyleSheet } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Colors, Fonts, Layout, Shadows } from '../theme';
 import { useTheme } from '../contexts/ThemeContext';
 import { useThemedStyles } from '../theme/createThemedStyles';
@@ -42,6 +43,8 @@ export const CustomTabBar: React.FC<CustomTabBarProps> = ({
 }) => {
   const { colors } = useTheme();
   const themed = useThemedStyles(getTabThemedStyles);
+  const insets = useSafeAreaInsets();
+  const bottomOffset = Math.max(insets.bottom, 12) + 14;
 
   const renderTab = (
     tab: TabType,
@@ -83,7 +86,10 @@ export const CustomTabBar: React.FC<CustomTabBarProps> = ({
   };
 
   return (
-    <View style={styles.outerContainer} accessible={false}>
+    <View
+      style={[styles.outerContainer, { bottom: bottomOffset }]}
+      accessible={false}
+    >
       <View
         style={[styles.container, themed.container]}
         accessibilityRole="tablist"

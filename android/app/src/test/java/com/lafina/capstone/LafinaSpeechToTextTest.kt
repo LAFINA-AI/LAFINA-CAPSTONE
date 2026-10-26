@@ -21,7 +21,7 @@ class LafinaSpeechToTextTest {
 
   @Test
   fun `whisper bridge specifies standard student speech model asset`() {
-    assertEquals("models/ggml-tiny.en-q5_1.bin", LafinaWhisperBridge.MODEL_ASSET)
+    assertEquals("models/ggml-base.en-q5_1.bin", LafinaWhisperBridge.MODEL_ASSET)
     val bridgeMethods = LafinaWhisperBridge::class.java.declaredMethods.map { it.name }
     assertTrue(bridgeMethods.contains("initContext"))
     assertTrue(bridgeMethods.contains("transcribe"))

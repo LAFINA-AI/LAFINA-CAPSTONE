@@ -514,7 +514,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   contentContainer: {
-    paddingBottom: 24,
+    paddingBottom: 140,
   },
   headerBackground: {
     width: '100%',

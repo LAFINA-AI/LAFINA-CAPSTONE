@@ -56,7 +56,7 @@ npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 
-# Model binaries require a later explicit provenance/size decision.
+# Model binaries: Kokoro ONNX binaries are strictly forbidden. Whisper & Silero VAD are student-scope offline STT.
 *.gguf
 *.ggml
 *.onnx
@@ -64,5 +64,5 @@ yarn-error.log*
 *.apk
 *.aab
 
-!android/app/src/main/assets/models/ggml-tiny.en-q5_1.bin
+!android/app/src/main/assets/models/ggml-base.en-q5_1.bin
 !android/app/src/main/assets/models/silero_vad.onnx

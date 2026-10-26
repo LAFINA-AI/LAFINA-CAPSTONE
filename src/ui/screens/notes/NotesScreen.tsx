@@ -188,7 +188,7 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     paddingHorizontal: 16,
-    paddingTop: 16,
+    paddingTop: 12,
   },
   header: {
     flexDirection: 'row',
@@ -224,7 +224,7 @@ const styles = StyleSheet.create({
     marginLeft: 8,
   },
   notesList: {
-    paddingBottom: 120,
+    paddingBottom: 140,
   },
   notesListScroll: {
     flex: 1,

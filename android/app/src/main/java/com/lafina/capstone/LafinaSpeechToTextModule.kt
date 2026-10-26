@@ -42,7 +42,7 @@ object LafinaWhisperBridge {
     }
   }
 
-  const val MODEL_ASSET = "models/ggml-tiny.en-q5_1.bin"
+  const val MODEL_ASSET = "models/ggml-base.en-q5_1.bin"
 
   external fun initContext(assetManager: android.content.res.AssetManager, assetPath: String): Long
   external fun transcribe(

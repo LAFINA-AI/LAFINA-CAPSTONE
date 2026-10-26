@@ -1,6 +1,5 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import {
-  SafeAreaView,
   StatusBar,
   StyleSheet,
   View,
@@ -11,7 +10,7 @@ import {
   PermissionsAndroid,
   Platform,
 } from 'react-native';
-import { SafeAreaProvider } from 'react-native-safe-area-context';
+import { SafeAreaProvider, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Fonts, useThemedStyles } from './src/ui/theme';
 import {
   initDatabase,
@@ -84,6 +83,12 @@ function AppContent({
   // Reminder Permission State
   const [permissionStatus, setPermissionStatus] = useState<ReminderPermissionStatus | null>(null);
   const [permissionModalVisible, setPermissionModalVisible] = useState(false);
+
+  const insets = useSafeAreaInsets();
+  const topInset = Math.max(
+    insets.top,
+    Platform.OS === 'android' ? (StatusBar.currentHeight || 24) : 0,
+  );
 
   const { colors } = useTheme();
   const themed = useThemedStyles(getThemedStyles);
@@ -434,63 +439,67 @@ function AppContent({
   }
 
   return (
-    <SafeAreaProvider>
-      <SafeAreaView style={[styles.safeContainer, themed.safeContainer]}>
-        <StatusBar barStyle={colors.statusBarStyle} backgroundColor={colors.background} />
+    <View
+      style={[
+        styles.safeContainer,
+        themed.safeContainer,
+        { paddingTop: topInset + 6 },
+      ]}
+    >
+      <StatusBar barStyle={colors.statusBarStyle} backgroundColor={colors.background} />
 
-        <View style={styles.content}>{renderScreen()}</View>
+      <View style={styles.content}>{renderScreen()}</View>
 
-        {!isKeyboardVisible && (
-          <CustomTabBar
-            activeTab={activeTab}
-            onTabPress={setActiveTab}
-            onMicPress={() => setVoiceVisible(true)}
-          />
-        )}
-
-        <VoiceModal
-          visible={voiceVisible}
-          userId={userId || 'local_guest_user'}
-          onClose={(didUpdate) => {
-            setVoiceVisible(false);
-            if (didUpdate) {
-              setRefreshTrigger((prev) => prev + 1);
-            }
-          }}
+      {!isKeyboardVisible && (
+        <CustomTabBar
+          activeTab={activeTab}
+          onTabPress={setActiveTab}
+          onMicPress={() => setVoiceVisible(true)}
         />
+      )}
 
-        {tourOpen && (
-          <ProductTour
-            steps={buildTourSteps({ isGuest: userStore.isGuest(userId), isPro: hasPro })}
-            onNavigate={setActiveTab}
-            onFinish={finishTour}
-          />
-        )}
+      <VoiceModal
+        visible={voiceVisible}
+        userId={userId || 'local_guest_user'}
+        onClose={(didUpdate) => {
+          setVoiceVisible(false);
+          if (didUpdate) {
+            setRefreshTrigger((prev) => prev + 1);
+          }
+        }}
+      />
 
-        {/* Proactive Incoming Reminder Call */}
-        <IncomingCallScreen
-          visible={callVisible}
-          reminderId={callReminderId}
-          task={callTask}
-          userId={userId}
-          initialAction={callAction}
-          onClose={() => {
-            setCallVisible(false);
-            triggerRefresh();
-          }}
+      {tourOpen && (
+        <ProductTour
+          steps={buildTourSteps({ isGuest: userStore.isGuest(userId), isPro: hasPro })}
+          onNavigate={setActiveTab}
+          onFinish={finishTour}
         />
+      )}
 
-        {/* Reminder Permissions Educational / Onboarding Modal */}
-        <ReminderPermissionModal
-          visible={permissionModalVisible}
-          status={permissionStatus}
-          onClose={() => setPermissionModalVisible(false)}
-          onRefreshStatus={() => {
-            void getReminderPermissionStatus().then(setPermissionStatus);
-          }}
-        />
-      </SafeAreaView>
-    </SafeAreaProvider>
+      {/* Proactive Incoming Reminder Call */}
+      <IncomingCallScreen
+        visible={callVisible}
+        reminderId={callReminderId}
+        task={callTask}
+        userId={userId}
+        initialAction={callAction}
+        onClose={() => {
+          setCallVisible(false);
+          triggerRefresh();
+        }}
+      />
+
+      {/* Reminder Permissions Educational / Onboarding Modal */}
+      <ReminderPermissionModal
+        visible={permissionModalVisible}
+        status={permissionStatus}
+        onClose={() => setPermissionModalVisible(false)}
+        onRefreshStatus={() => {
+          void getReminderPermissionStatus().then(setPermissionStatus);
+        }}
+      />
+    </View>
   );
 }
 
@@ -520,9 +529,11 @@ export function App() {
   const [userId, setUserId] = useState<string | null>(null);
 
   return (
-    <ThemeProvider userId={userId}>
-      <AppContent userId={userId} setUserId={setUserId} />
-    </ThemeProvider>
+    <SafeAreaProvider>
+      <ThemeProvider userId={userId}>
+        <AppContent userId={userId} setUserId={setUserId} />
+      </ThemeProvider>
+    </SafeAreaProvider>
   );
 }
 
