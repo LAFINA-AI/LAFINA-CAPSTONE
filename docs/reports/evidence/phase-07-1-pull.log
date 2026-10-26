@@ -1,0 +1,136 @@
+From https://github.com/LAFINA-AI/LAFINA-CAPSTONE
+ * branch            main       -> FETCH_HEAD
+Auto-merging __tests__/App.test.tsx
+CONFLICT (content): Merge conflict in __tests__/App.test.tsx
+CONFLICT (modify/delete): __tests__/PlannerHarness.test.tsx deleted in 9c183a20eca2377b5e54f219c5f83460b18af81b and modified in HEAD.  Version HEAD of __tests__/PlannerHarness.test.tsx left in tree.
+CONFLICT (modify/delete): __tests__/ReminderSettings.test.tsx deleted in 9c183a20eca2377b5e54f219c5f83460b18af81b and modified in HEAD.  Version HEAD of __tests__/ReminderSettings.test.tsx left in tree.
+Auto-merging android/app/build.gradle
+CONFLICT (content): Merge conflict in android/app/build.gradle
+CONFLICT (modify/delete): android/app/src/androidTest/java/com/lafina/capstone/reminders/ReminderStoreTest.kt deleted in 9c183a20eca2377b5e54f219c5f83460b18af81b and modified in HEAD.  Version HEAD of android/app/src/androidTest/java/com/lafina/capstone/reminders/ReminderStoreTest.kt left in tree.
+Auto-merging android/app/src/main/AndroidManifest.xml
+CONFLICT (content): Merge conflict in android/app/src/main/AndroidManifest.xml
+Auto-merging android/app/src/main/cpp/CMakeLists.txt
+CONFLICT (add/add): Merge conflict in android/app/src/main/cpp/CMakeLists.txt
+Auto-merging android/app/src/main/cpp/third_party/whisper.cpp/ggml/CMakeLists.txt
+CONFLICT (add/add): Merge conflict in android/app/src/main/cpp/third_party/whisper.cpp/ggml/CMakeLists.txt
+Auto-merging android/app/src/main/cpp/third_party/whisper.cpp/ggml/cmake/common.cmake
+CONFLICT (add/add): Merge conflict in android/app/src/main/cpp/third_party/whisper.cpp/ggml/cmake/common.cmake
+Auto-merging android/app/src/main/cpp/third_party/whisper.cpp/ggml/cmake/ggml-config.cmake.in
+CONFLICT (add/add): Merge conflict in android/app/src/main/cpp/third_party/whisper.cpp/ggml/cmake/ggml-config.cmake.in
+Auto-merging android/app/src/main/cpp/third_party/whisper.cpp/ggml/include/ggml-alloc.h
+CONFLICT (add/add): Merge conflict in android/app/src/main/cpp/third_party/whisper.cpp/ggml/include/ggml-alloc.h
+Auto-merging android/app/src/main/cpp/third_party/whisper.cpp/ggml/include/ggml-backend.h
+CONFLICT (add/add): Merge conflict in android/app/src/main/cpp/third_party/whisper.cpp/ggml/include/ggml-backend.h
+Auto-merging android/app/src/main/cpp/third_party/whisper.cpp/ggml/include/ggml-cpu.h
+CONFLICT (add/add): Merge conflict in android/app/src/main/cpp/third_party/whisper.cpp/ggml/include/ggml-cpu.h
+Auto-merging android/app/src/main/cpp/third_party/whisper.cpp/ggml/include/ggml-cuda.h
+CONFLICT (add/add): Merge conflict in android/app/src/main/cpp/third_party/whisper.cpp/ggml/include/ggml-cuda.h
+Auto-merging android/app/src/main/cpp/third_party/whisper.cpp/ggml/include/ggml-rpc.h
+CONFLICT (add/add): Merge conflict in android/app/src/main/cpp/third_party/whisper.cpp/ggml/include/ggml-rpc.h
+Auto-merging android/app/src/main/cpp/third_party/whisper.cpp/ggml/include/ggml-sycl.h
+CONFLICT (add/add): Merge conflict in android/app/src/main/cpp/third_party/whisper.cpp/ggml/include/ggml-sycl.h
+Auto-merging android/app/src/main/cpp/third_party/whisper.cpp/ggml/include/ggml-zdnn.h
+CONFLICT (add/add): Merge conflict in android/app/src/main/cpp/third_party/whisper.cpp/ggml/include/ggml-zdnn.h
+Auto-merging android/app/src/main/cpp/third_party/whisper.cpp/ggml/include/ggml.h
+CONFLICT (add/add): Merge conflict in android/app/src/main/cpp/third_party/whisper.cpp/ggml/include/ggml.h
+Auto-merging android/app/src/main/cpp/third_party/whisper.cpp/ggml/include/gguf.h
+CONFLICT (add/add): Merge conflict in android/app/src/main/cpp/third_party/whisper.cpp/ggml/include/gguf.h
+Auto-merging android/app/src/main/cpp/third_party/whisper.cpp/ggml/src/CMakeLists.txt
+CONFLICT (add/add): Merge conflict in android/app/src/main/cpp/third_party/whisper.cpp/ggml/src/CMakeLists.txt
+Auto-merging android/app/src/main/cpp/third_party/whisper.cpp/ggml/src/ggml-alloc.c
+CONFLICT (add/add): Merge conflict in android/app/src/main/cpp/third_party/whisper.cpp/ggml/src/ggml-alloc.c
+Auto-merging android/app/src/main/cpp/third_party/whisper.cpp/ggml/src/ggml-backend-impl.h
+CONFLICT (add/add): Merge conflict in android/app/src/main/cpp/third_party/whisper.cpp/ggml/src/ggml-backend-impl.h
+Auto-merging android/app/src/main/cpp/third_party/whisper.cpp/ggml/src/ggml-backend-meta.cpp
+CONFLICT (add/add): Merge conflict in android/app/src/main/cpp/third_party/whisper.cpp/ggml/src/ggml-backend-meta.cpp
+Auto-merging android/app/src/main/cpp/third_party/whisper.cpp/ggml/src/ggml-backend-reg.cpp
+CONFLICT (add/add): Merge conflict in android/app/src/main/cpp/third_party/whisper.cpp/ggml/src/ggml-backend-reg.cpp
+Auto-merging android/app/src/main/cpp/third_party/whisper.cpp/ggml/src/ggml-backend.cpp
+CONFLICT (add/add): Merge conflict in android/app/src/main/cpp/third_party/whisper.cpp/ggml/src/ggml-backend.cpp
+Auto-merging android/app/src/main/cpp/third_party/whisper.cpp/ggml/src/ggml-common.h
+CONFLICT (add/add): Merge conflict in android/app/src/main/cpp/third_party/whisper.cpp/ggml/src/ggml-common.h
+Auto-merging android/app/src/main/cpp/third_party/whisper.cpp/ggml/src/ggml-cpu/CMakeLists.txt
+CONFLICT (add/add): Merge conflict in android/app/src/main/cpp/third_party/whisper.cpp/ggml/src/ggml-cpu/CMakeLists.txt
+Auto-merging android/app/src/main/cpp/third_party/whisper.cpp/ggml/src/ggml-cpu/amx/amx.cpp
+CONFLICT (add/add): Merge conflict in android/app/src/main/cpp/third_party/whisper.cpp/ggml/src/ggml-cpu/amx/amx.cpp
+Auto-merging android/app/src/main/cpp/third_party/whisper.cpp/ggml/src/ggml-cpu/amx/mmq.cpp
+CONFLICT (add/add): Merge conflict in android/app/src/main/cpp/third_party/whisper.cpp/ggml/src/ggml-cpu/amx/mmq.cpp
+Auto-merging android/app/src/main/cpp/third_party/whisper.cpp/ggml/src/ggml-cpu/arch-fallback.h
+CONFLICT (add/add): Merge conflict in android/app/src/main/cpp/third_party/whisper.cpp/ggml/src/ggml-cpu/arch-fallback.h
+Auto-merging android/app/src/main/cpp/third_party/whisper.cpp/ggml/src/ggml-cpu/arch/arm/cpu-feats.cpp
+CONFLICT (add/add): Merge conflict in android/app/src/main/cpp/third_party/whisper.cpp/ggml/src/ggml-cpu/arch/arm/cpu-feats.cpp
+Auto-merging android/app/src/main/cpp/third_party/whisper.cpp/ggml/src/ggml-cpu/arch/arm/quants.c
+CONFLICT (add/add): Merge conflict in android/app/src/main/cpp/third_party/whisper.cpp/ggml/src/ggml-cpu/arch/arm/quants.c
+Auto-merging android/app/src/main/cpp/third_party/whisper.cpp/ggml/src/ggml-cpu/arch/arm/repack.cpp
+CONFLICT (add/add): Merge conflict in android/app/src/main/cpp/third_party/whisper.cpp/ggml/src/ggml-cpu/arch/arm/repack.cpp
+Auto-merging android/app/src/main/cpp/third_party/whisper.cpp/ggml/src/ggml-cpu/arch/x86/quants.c
+CONFLICT (add/add): Merge conflict in android/app/src/main/cpp/third_party/whisper.cpp/ggml/src/ggml-cpu/arch/x86/quants.c
+Auto-merging android/app/src/main/cpp/third_party/whisper.cpp/ggml/src/ggml-cpu/ggml-cpu-impl.h
+CONFLICT (add/add): Merge conflict in android/app/src/main/cpp/third_party/whisper.cpp/ggml/src/ggml-cpu/ggml-cpu-impl.h
+Auto-merging android/app/src/main/cpp/third_party/whisper.cpp/ggml/src/ggml-cpu/ggml-cpu.c
+CONFLICT (add/add): Merge conflict in android/app/src/main/cpp/third_party/whisper.cpp/ggml/src/ggml-cpu/ggml-cpu.c
+Auto-merging android/app/src/main/cpp/third_party/whisper.cpp/ggml/src/ggml-cpu/ggml-cpu.cpp
+CONFLICT (add/add): Merge conflict in android/app/src/main/cpp/third_party/whisper.cpp/ggml/src/ggml-cpu/ggml-cpu.cpp
+Auto-merging android/app/src/main/cpp/third_party/whisper.cpp/ggml/src/ggml-cpu/hbm.cpp
+CONFLICT (add/add): Merge conflict in android/app/src/main/cpp/third_party/whisper.cpp/ggml/src/ggml-cpu/hbm.cpp
+Auto-merging android/app/src/main/cpp/third_party/whisper.cpp/ggml/src/ggml-cpu/ops.cpp
+CONFLICT (add/add): Merge conflict in android/app/src/main/cpp/third_party/whisper.cpp/ggml/src/ggml-cpu/ops.cpp
+Auto-merging android/app/src/main/cpp/third_party/whisper.cpp/ggml/src/ggml-cpu/ops.h
+CONFLICT (add/add): Merge conflict in android/app/src/main/cpp/third_party/whisper.cpp/ggml/src/ggml-cpu/ops.h
+Auto-merging android/app/src/main/cpp/third_party/whisper.cpp/ggml/src/ggml-cpu/quants.c
+CONFLICT (add/add): Merge conflict in android/app/src/main/cpp/third_party/whisper.cpp/ggml/src/ggml-cpu/quants.c
+Auto-merging android/app/src/main/cpp/third_party/whisper.cpp/ggml/src/ggml-cpu/quants.h
+CONFLICT (add/add): Merge conflict in android/app/src/main/cpp/third_party/whisper.cpp/ggml/src/ggml-cpu/quants.h
+Auto-merging android/app/src/main/cpp/third_party/whisper.cpp/ggml/src/ggml-cpu/repack.cpp
+CONFLICT (add/add): Merge conflict in android/app/src/main/cpp/third_party/whisper.cpp/ggml/src/ggml-cpu/repack.cpp
+Auto-merging android/app/src/main/cpp/third_party/whisper.cpp/ggml/src/ggml-cpu/repack.h
+CONFLICT (add/add): Merge conflict in android/app/src/main/cpp/third_party/whisper.cpp/ggml/src/ggml-cpu/repack.h
+Auto-merging android/app/src/main/cpp/third_party/whisper.cpp/ggml/src/ggml-cpu/simd-gemm.h
+CONFLICT (add/add): Merge conflict in android/app/src/main/cpp/third_party/whisper.cpp/ggml/src/ggml-cpu/simd-gemm.h
+Auto-merging android/app/src/main/cpp/third_party/whisper.cpp/ggml/src/ggml-cpu/simd-mappings.h
+CONFLICT (add/add): Merge conflict in android/app/src/main/cpp/third_party/whisper.cpp/ggml/src/ggml-cpu/simd-mappings.h
+Auto-merging android/app/src/main/cpp/third_party/whisper.cpp/ggml/src/ggml-cpu/vec.cpp
+CONFLICT (add/add): Merge conflict in android/app/src/main/cpp/third_party/whisper.cpp/ggml/src/ggml-cpu/vec.cpp
+Auto-merging android/app/src/main/cpp/third_party/whisper.cpp/ggml/src/ggml-cpu/vec.h
+CONFLICT (add/add): Merge conflict in android/app/src/main/cpp/third_party/whisper.cpp/ggml/src/ggml-cpu/vec.h
+Auto-merging android/app/src/main/cpp/third_party/whisper.cpp/ggml/src/ggml-impl.h
+CONFLICT (add/add): Merge conflict in android/app/src/main/cpp/third_party/whisper.cpp/ggml/src/ggml-impl.h
+Auto-merging android/app/src/main/cpp/third_party/whisper.cpp/ggml/src/ggml-quants.c
+CONFLICT (add/add): Merge conflict in android/app/src/main/cpp/third_party/whisper.cpp/ggml/src/ggml-quants.c
+Auto-merging android/app/src/main/cpp/third_party/whisper.cpp/ggml/src/ggml-quants.h
+CONFLICT (add/add): Merge conflict in android/app/src/main/cpp/third_party/whisper.cpp/ggml/src/ggml-quants.h
+Auto-merging android/app/src/main/cpp/third_party/whisper.cpp/ggml/src/ggml.c
+CONFLICT (add/add): Merge conflict in android/app/src/main/cpp/third_party/whisper.cpp/ggml/src/ggml.c
+Auto-merging android/app/src/main/cpp/third_party/whisper.cpp/ggml/src/gguf.cpp
+CONFLICT (add/add): Merge conflict in android/app/src/main/cpp/third_party/whisper.cpp/ggml/src/gguf.cpp
+Auto-merging android/app/src/main/cpp/third_party/whisper.cpp/include/whisper.h
+CONFLICT (add/add): Merge conflict in android/app/src/main/cpp/third_party/whisper.cpp/include/whisper.h
+Auto-merging android/app/src/main/cpp/third_party/whisper.cpp/src/whisper.cpp
+CONFLICT (add/add): Merge conflict in android/app/src/main/cpp/third_party/whisper.cpp/src/whisper.cpp
+Auto-merging android/app/src/main/java/com/lafina/capstone/CapstoneBuildPackage.kt
+CONFLICT (content): Merge conflict in android/app/src/main/java/com/lafina/capstone/CapstoneBuildPackage.kt
+CONFLICT (modify/delete): android/app/src/main/java/com/lafina/capstone/reminders/ReminderActivity.kt deleted in 9c183a20eca2377b5e54f219c5f83460b18af81b and modified in HEAD.  Version HEAD of android/app/src/main/java/com/lafina/capstone/reminders/ReminderActivity.kt left in tree.
+CONFLICT (modify/delete): android/app/src/main/java/com/lafina/capstone/reminders/ReminderStore.kt deleted in 9c183a20eca2377b5e54f219c5f83460b18af81b and modified in HEAD.  Version HEAD of android/app/src/main/java/com/lafina/capstone/reminders/ReminderStore.kt left in tree.
+Auto-merging docs/reports/phase-04-checklist.md
+CONFLICT (add/add): Merge conflict in docs/reports/phase-04-checklist.md
+Auto-merging docs/reports/phase-04-report.md
+CONFLICT (add/add): Merge conflict in docs/reports/phase-04-report.md
+Auto-merging docs/reports/phase-05-checklist.md
+CONFLICT (add/add): Merge conflict in docs/reports/phase-05-checklist.md
+Auto-merging docs/reports/phase-05-report.md
+CONFLICT (add/add): Merge conflict in docs/reports/phase-05-report.md
+Auto-merging docs/reports/phase-06-checklist.md
+CONFLICT (add/add): Merge conflict in docs/reports/phase-06-checklist.md
+Auto-merging docs/reports/phase-06-report.md
+CONFLICT (add/add): Merge conflict in docs/reports/phase-06-report.md
+Auto-merging scripts/check-architecture.mjs
+CONFLICT (content): Merge conflict in scripts/check-architecture.mjs
+CONFLICT (modify/delete): src/app/App.tsx deleted in 9c183a20eca2377b5e54f219c5f83460b18af81b and modified in HEAD.  Version HEAD of src/app/App.tsx left in tree.
+CONFLICT (modify/delete): src/core/domain/planner.ts deleted in 9c183a20eca2377b5e54f219c5f83460b18af81b and modified in HEAD.  Version HEAD of src/core/domain/planner.ts left in tree.
+CONFLICT (modify/delete): src/core/domain/ports.ts deleted in 9c183a20eca2377b5e54f219c5f83460b18af81b and modified in HEAD.  Version HEAD of src/core/domain/ports.ts left in tree.
+CONFLICT (modify/delete): src/core/domain/preferences.ts deleted in 9c183a20eca2377b5e54f219c5f83460b18af81b and modified in HEAD.  Version HEAD of src/core/domain/preferences.ts left in tree.
+CONFLICT (modify/delete): src/core/storage/plannerRepository.ts deleted in 9c183a20eca2377b5e54f219c5f83460b18af81b and modified in HEAD.  Version HEAD of src/core/storage/plannerRepository.ts left in tree.
+CONFLICT (modify/delete): src/core/storage/plannerRows.ts deleted in 9c183a20eca2377b5e54f219c5f83460b18af81b and modified in HEAD.  Version HEAD of src/core/storage/plannerRows.ts left in tree.
+CONFLICT (modify/delete): src/core/ui/controls.tsx deleted in 9c183a20eca2377b5e54f219c5f83460b18af81b and modified in HEAD.  Version HEAD of src/core/ui/controls.tsx left in tree.
+CONFLICT (modify/delete): src/features/onboarding/PreferencesForm.tsx deleted in 9c183a20eca2377b5e54f219c5f83460b18af81b and modified in HEAD.  Version HEAD of src/features/onboarding/PreferencesForm.tsx left in tree.
+Automatic merge failed; fix conflicts and then commit the result.

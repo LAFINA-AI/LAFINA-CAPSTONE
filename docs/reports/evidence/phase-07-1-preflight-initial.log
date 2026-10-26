@@ -1,0 +1,95 @@
+
+> lafina-capstone@0.7.1 preflight
+> npm run typecheck && npm run lint && npm run format:check && npm test && npm run check:architecture
+
+
+> lafina-capstone@0.7.1 typecheck
+> tsc --noEmit
+
+
+> lafina-capstone@0.7.1 lint
+> eslint src __tests__ index.js --max-warnings 0
+
+
+> lafina-capstone@0.7.1 format:check
+> prettier --check src __tests__ scripts *.js *.json .github/workflows/*.yml
+
+Checking formatting...
+All matched files use Prettier code style!
+
+> lafina-capstone@0.7.1 test
+> jest --runInBand
+
+FAIL __tests__/App.test.tsx (7.575 s)
+  ● Phase 01 anonymous foundation › saves anonymous setup only on completion and persists across remount
+
+    expect(received).toBeNull()
+
+    Received: {"_fiber": {"_debugHookTypes": null, "_debugInfo": null, "_debugNeedsRemount": false, "_debugOwner": [FiberNode], "_debugStack": [Error: react-stack-top-frame], "_debugTask": null, "actualDuration": 0, "actualStartTime": 1793010994396, "alternate": null, "child": [FiberNode], "childLanes": 0, "deletions": null, "dependencies": null, "elementType": "Text", "flags": 0, "index": 0, "key": null, "lanes": 0, "memoizedProps": [Object], "memoizedState": null, "mode": 3, "pendingProps": [Object], "ref": null, "refCleanup": null, "return": [FiberNode], "selfBaseDuration": 0, "sibling": null, "stateNode": [Object], "subtreeFlags": 0, "tag": 5, "treeBaseDuration": 0, "type": "Text", "updateQueue": null}}
+
+      471 |     render(<App repositoryFactory={local.factory} now={now} />);
+      472 |     await screen.findByText("You're set, Student.");
+    > 473 |     expect(screen.queryByText('Your student secretary')).toBeNull();
+          |                                                          ^
+      474 |   });
+      475 |   it('retains input and blocks navigation after a failed save, then permits retry', async () => {
+      476 |     const local = store();
+
+      at Object.toBeNull (__tests__/App.test.tsx:473:58)
+      at asyncGeneratorStep (node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+      at _next (node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
+
+PASS __tests__/PlannerScreen.test.tsx
+PASS __tests__/SpeechInputPanel.test.tsx
+PASS __tests__/CalendarMonth.test.tsx
+PASS __tests__/SpeechSettings.test.tsx
+PASS __tests__/AppSpeech.test.tsx
+PASS __tests__/ReminderSettings.test.tsx
+PASS __tests__/plannerQueries.test.ts
+PASS __tests__/PlannerForm.test.tsx
+PASS __tests__/ReplyMessage.test.tsx
+PASS __tests__/PlannerHarness.test.tsx
+PASS __tests__/plannerRepository.test.ts
+PASS __tests__/ChatScreen.test.tsx
+PASS __tests__/AppDictation.test.tsx
+PASS __tests__/PreferencesForm.test.tsx
+PASS __tests__/commandSession.test.ts
+PASS __tests__/plannerMigrations.test.ts
+PASS __tests__/intents.test.ts
+PASS __tests__/storage.test.ts
+PASS __tests__/scheduleTime.test.ts
+PASS __tests__/textToSpeech.test.ts
+PASS __tests__/plannerDisplay.test.ts
+PASS __tests__/speechToText.test.ts
+PASS __tests__/reminders.test.ts
+PASS __tests__/dateTimePicker.test.ts
+PASS __tests__/speechMetrics.test.js
+PASS __tests__/preferences.test.ts
+PASS __tests__/formatOverviewDate.test.ts
+
+Summary of all failing tests
+FAIL __tests__/App.test.tsx (7.575 s)
+  ● Phase 01 anonymous foundation › saves anonymous setup only on completion and persists across remount
+
+    expect(received).toBeNull()
+
+    Received: {"_fiber": {"_debugHookTypes": null, "_debugInfo": null, "_debugNeedsRemount": false, "_debugOwner": [FiberNode], "_debugStack": [Error: react-stack-top-frame], "_debugTask": null, "actualDuration": 0, "actualStartTime": 1793010994396, "alternate": null, "child": [FiberNode], "childLanes": 0, "deletions": null, "dependencies": null, "elementType": "Text", "flags": 0, "index": 0, "key": null, "lanes": 0, "memoizedProps": [Object], "memoizedState": null, "mode": 3, "pendingProps": [Object], "ref": null, "refCleanup": null, "return": [FiberNode], "selfBaseDuration": 0, "sibling": null, "stateNode": [Object], "subtreeFlags": 0, "tag": 5, "treeBaseDuration": 0, "type": "Text", "updateQueue": null}}
+
+      471 |     render(<App repositoryFactory={local.factory} now={now} />);
+      472 |     await screen.findByText("You're set, Student.");
+    > 473 |     expect(screen.queryByText('Your student secretary')).toBeNull();
+          |                                                          ^
+      474 |   });
+      475 |   it('retains input and blocks navigation after a failed save, then permits retry', async () => {
+      476 |     const local = store();
+
+      at Object.toBeNull (__tests__/App.test.tsx:473:58)
+      at asyncGeneratorStep (node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+      at _next (node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
+
+
+Test Suites: 1 failed, 27 passed, 28 total
+Tests:       1 failed, 463 passed, 464 total
+Snapshots:   0 total
+Time:        23.074 s, estimated 41 s
+Ran all test suites.

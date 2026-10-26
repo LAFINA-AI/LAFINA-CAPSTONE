@@ -204,3 +204,24 @@ physical speech, reminder or low-end-phone risks.
 [current report](../docs/reports/phase-07-report.md) record these decisions and
 actual outcomes. Optional NLU model use remains unjustified by measured benefit;
 there is no cloud fallback in offline commands.
+
+
+## Phase07.1 integration risks — 2026-10-26
+
+- Incoming replacement DB/schema17 does not migrate capstoneSQLite2. Current
+  DB/runtime is preserved; foreign installations need an explicit separate
+  migration/ownership design. No automatic import or reset.
+- Upstream source probes reproduce falseACK, empty-success storage and transaction
+  regressions. Those engines are excluded, not patched in a dormant second tree.
+- Larger incoming models and expanded native/network graph have no matched
+  low-RAM evidence; existing verified asset path/runtime retained. Physical
+  memory/battery/real speech/OEM delivery remain pending.
+- Pasted production credentials are exposed. They were not saved or used; owner
+  must revoke/rotate provider, database, admin and deployment credentials.
+- Incoming commits/model blobs remain in Git history, even though excluded from
+  the integrated build. No force push/history rewrite or remote publication.
+- Brand/code authorization is recorded, detailed attribution/publication terms
+  still pending. Calendar month cells are selectors with no invented counts.
+
+See [integration report](../docs/reports/phase-07-1-report.md) and
+[data/native audits](../docs/audits/phase-07-1-data-audit.md).

@@ -1,0 +1,221 @@
+{
+  "phase": "07.1",
+  "initial": {
+    "utc": "2026-10-26T10:38:32.645773+00:00",
+    "connectivity": {
+      "airplane_mode_on": "0",
+      "wifi_on": "1",
+      "mobile_data": "1"
+    },
+    "microphoneGranted": true,
+    "version": "0.7.0-data-qa",
+    "device": {
+      "model": "sdk_gphone16k_x86_64",
+      "api": "37",
+      "pageSize": "16384"
+    }
+  },
+  "cases": [
+    {
+      "name": "pre-upgrade-synthetic-seed",
+      "status": "PASS",
+      "detail": "Created only QA071 retained through reviewed/confirmed Chat on installed0.7.0-data-qa, for a real upgrade persistence check.",
+      "utc": "2026-10-26T10:46:14.253220+00:00"
+    },
+    {
+      "name": "upgrade-retains-confirmed-data",
+      "status": "PASS",
+      "detail": "After install -r of0.7.1-data-qa, existing synthetic QA071 retained stayed TODO in the same native SQLite database. No uninstall/reset/import performed.",
+      "utc": "2026-10-26T10:48:52.269731+00:00"
+    },
+    {
+      "name": "month-selection-paged-detail",
+      "status": "PASS",
+      "detail": "Default Month grid selected 2026-10-27 exactly; existing paged agenda exposed the synthetic task and detail kept its same date-only value.",
+      "utc": "2026-10-26T15:05:40.807142+00:00"
+    },
+    {
+      "name": "month-navigation-roundtrip",
+      "status": "PASS",
+      "detail": "Next/Previous month returned to the same selected date. Month grid is a selector; current day-page remains authoritative.",
+      "utc": "2026-10-26T15:06:10.442397+00:00"
+    },
+    {
+      "name": "day-mode-preserved",
+      "status": "PASS",
+      "detail": "Switching Calendar display to Day revealed the existing week navigation without a second data store.",
+      "utc": "2026-10-26T15:06:19.992021+00:00"
+    },
+    {
+      "name": "calendar-fixture-cleanup",
+      "status": "PASS",
+      "detail": "Removed only the new date-only QA071 calendar task through explicit Chat review/confirmation.",
+      "utc": "2026-10-26T15:06:59.817888+00:00"
+    },
+    {
+      "name": "offline-reviewed-create",
+      "status": "PASS",
+      "detail": "Typed remind command showed explicit normalized date/time/timezone and lead. Only Confirm change produced saved-task outcome in current native SQLite-backed app; Android delivery remains a separate check.",
+      "utc": "2026-10-26T15:08:15.788099+00:00"
+    },
+    {
+      "name": "offline-query-and-correct",
+      "status": "PASS",
+      "detail": "Dated query found the synthetic TODO task at19:00. An exact quoted-title move required another preview/confirmation; subsequent query showed20:00 in the selected timezone.",
+      "utc": "2026-10-26T15:09:27.925311+00:00"
+    },
+    {
+      "name": "ambiguous-negative-and-bulk-refusal",
+      "status": "PASS",
+      "detail": "Conflicting okay/later, bareFriday, negatedACK and bulkdelete produced guidance without a mutation review/confirmation. The synthetic saved task remained independently queryable afterward.",
+      "utc": "2026-10-26T15:11:12.277200+00:00"
+    },
+    {
+      "name": "pending-review-home-cancel",
+      "status": "PASS",
+      "detail": "Home while a create review was pending removed its confirm action. Returning did not save it; attempting an exact delete of that synthetic title confirmed no saved item existed.",
+      "utc": "2026-10-26T15:12:02.398172+00:00"
+    },
+    {
+      "name": "force-stop-data-vs-transient-chat",
+      "status": "PASS",
+      "detail": "After app force-stop and offline reopen, the confirmed synthetic task/time persisted in SQLite. Composer/history were cleared and no pending review or command auto-executed.",
+      "utc": "2026-10-26T15:12:33.590424+00:00"
+    },
+    {
+      "name": "offline-event-create-move-delete",
+      "status": "PASS",
+      "detail": "Created a synthetic one-hour event after review; exact-title move preview preserved the end duration; confirmed move then separately reviewed/deleted only that event.",
+      "utc": "2026-10-26T15:14:09.542610+00:00"
+    },
+    {
+      "name": "explicit-completion-separate-from-ack",
+      "status": "PASS",
+      "detail": "A separately reviewed Complete task command marked the synthetic source COMPLETED; completed-task query verified it. The live reminder ACK had kept its different source TODO. Deleted only the completion fixture with another confirmed action.",
+      "utc": "2026-10-26T15:15:50.153525+00:00"
+    },
+    {
+      "name": "rounded-tabs-and-hardware-back-dirty-guard",
+      "status": "PASS",
+      "detail": "Unsaved appearance change required an explicit stay/discard decision through both rounded navigation and Android Back. Discard left original saved preferences intact.",
+      "utc": "2026-10-26T15:16:56.187612+00:00"
+    },
+    {
+      "name": "alternate-theme-calendar",
+      "status": "PASS",
+      "detail": "Saved the alternate light/dark appearance and operated Next/Previous month without losing semantic controls. Original appearance will be restored.",
+      "utc": "2026-10-26T15:17:58.528772+00:00"
+    },
+    {
+      "name": "display-restored-after-narrow-test",
+      "status": "PASS",
+      "detail": "Restored original display size and font scale; app reopened on Chat. Original saved theme was already restored by preceding style-check finally block.",
+      "utc": "2026-10-26T15:24:16.450903+00:00"
+    },
+    {
+      "name": "large-font-and-narrow-calendar",
+      "status": "PASS",
+      "detail": "After closing the app before applying display changes, font scale1.3 and840x2000 override retained the selected Calendar tab, Month mode and Next/Previous month. This is emulator-only; physical accessibility still pending.",
+      "utc": "2026-10-26T15:25:29.610671+00:00"
+    },
+    {
+      "name": "display-restored-after-narrow-test",
+      "status": "PASS",
+      "detail": "Restored original display size and font scale; app reopened on Chat. Original saved theme was already restored by preceding style-check finally block.",
+      "utc": "2026-10-26T15:25:46.028104+00:00"
+    },
+    {
+      "name": "chat-command-real-alarm-ack-todo",
+      "status": "PASS",
+      "detail": "A confirmed Chat reminder created a real native timed alert while app was backgrounded offline. Named explicit ACK required a review of the uniquely ringing reminder; confirmation acknowledged it. Subsequent task query still showed TODO.",
+      "utc": "2026-10-26T15:29:21.126966+00:00"
+    },
+    {
+      "name": "live-alarm-fixture-deleted",
+      "status": "PASS",
+      "detail": "Deleted only the newly created QA071 live alarm through a separately confirmed Chat action.",
+      "utc": "2026-10-26T15:29:47.196146+00:00"
+    },
+    {
+      "name": "optional-system-tts-stop",
+      "status": "PASS",
+      "detail": "Both-mode fixed planner help retained its written reply; explicit Stop reading reply produced stopped state. No audible quality or physical-phone TTS claim. Original output mode recorded for restoration.",
+      "utc": "2026-10-26T15:32:15.948100+00:00"
+    },
+    {
+      "name": "final-large-font-and-narrow-calendar",
+      "status": "PASS",
+      "detail": "After closing the app before applying display changes, font scale1.3 and840x2000 override retained the selected Calendar tab, Month mode and Next/Previous month. This is emulator-only; physical accessibility still pending.",
+      "apkSha256": "91772a0767fe5dc57f4b2e4d50271cdfb0ab8d6d26b9e470cdae42855916f026",
+      "utc": "2026-10-26T15:37:26.097855+00:00"
+    },
+    {
+      "name": "final-display-restored-after-narrow-test",
+      "status": "PASS",
+      "detail": "Restored original display size and font scale; app reopened on Chat. Original saved theme was already restored by preceding style-check finally block.",
+      "apkSha256": "91772a0767fe5dc57f4b2e4d50271cdfb0ab8d6d26b9e470cdae42855916f026",
+      "utc": "2026-10-26T15:37:42.603702+00:00"
+    },
+    {
+      "name": "reviewed-speech-draft-copy-not-execution",
+      "status": "PASS",
+      "detail": "With host microphone off, manual fallback in the speech panel copied reviewed words to the Chat composer only. Send then showed a separate change review; Discard left no synthetic task. Actual spoken recognition remains human-required.",
+      "apkSha256": "91772a0767fe5dc57f4b2e4d50271cdfb0ab8d6d26b9e470cdae42855916f026",
+      "utc": "2026-10-26T15:38:52.483553+00:00"
+    },
+    {
+      "name": "remaining-owned-fixtures-cleaned",
+      "status": "PASS",
+      "detail": "Removed QA071 revise through a separately confirmed single-task deletion; QA071 retained was removed if still present. Prior calendar/event/completion/live-alarm fixtures had individually confirmed deletion; discarded speech/background drafts were never saved. No broad deletion or data reset.",
+      "apkSha256": "91772a0767fe5dc57f4b2e4d50271cdfb0ab8d6d26b9e470cdae42855916f026",
+      "utc": "2026-10-26T15:41:31.728147+00:00"
+    },
+    {
+      "name": "native-delivery-and-counters-restored",
+      "status": "PASS",
+      "detail": "Restored original delivery option and read native job counts in visible QA UI: {\"pending\": 0, \"ringing\": 0, \"registered\": 0, \"failed\": 0}. Only owned fixtures were targeted; any other historical records remain.",
+      "apkSha256": "91772a0767fe5dc57f4b2e4d50271cdfb0ab8d6d26b9e470cdae42855916f026",
+      "utc": "2026-10-26T15:42:36.614475+00:00"
+    }
+  ],
+  "limits": [
+    "Emulator, not physical phone; no actual speech or audible-quality certification."
+  ],
+  "automationNotes": [
+    "Initial snapshot used unsupported pm check-permission; recovered with dumpsys metadata. External content CLI could not access private provider even under run-as on this emulator; no app permission changed. Diagnostics will be read in the visible QA UI.",
+    "First upgrade-check selected Chat before the cold React navigation had settled; the ignored driver was changed to wait for visible tabs. The actual upgrade persistence assertion then passed.",
+    "After the owner resumed hours later, the emulator was closed. Reopened the same Medium_Phone AVD without wipe; initial instrumentation attempt before reopening was NOT RUN.",
+    "The ignored artifact helper initially referred to a renamed corpus path; corrected to the unchanged Phase07 corpus before recording manifests. No application source change.",
+    "Two initial large-font/narrow-screen attempts could not locate month controls. Inspection showed the test helper swiped at fixed y1650, inside the wrapped bottom navigation on a2000px-high screen. Changed only ignored test-helper swipe coordinates to use actual display dimensions and scroll above navigation. Both initial attempts restored original display/theme in cleanup; application source unchanged.",
+    "Initial manual speech-copy test reached the real change review but tried to tap Discard before scrolling its button into view. Corrected only the ignored UI helper; review was never confirmed. Final rebuilt installation invalidated that transient review."
+  ],
+  "installedApkSha256": "91772a0767fe5dc57f4b2e4d50271cdfb0ab8d6d26b9e470cdae42855916f026",
+  "installedVersion": "0.7.1-data-qa",
+  "installedAtUtc": "2026-10-26T10:46:57.462006+00:00",
+  "createReview": "Create task \"QA071 revise\": 2026-10-27 at 19:00 (GMT; 2026-10-27T19:00:00.000Z). Reminder 15 minutes before.",
+  "originalTheme": "Dark",
+  "originalDisplay": {
+    "size": "Physical size: 1080x2400",
+    "fontScale": "1.0"
+  },
+  "liveAlarm": {
+    "sourceTitle": "QA071 live alarm",
+    "dueAt": "2026-10-26T15:43:23.120Z",
+    "leadMinutes": 15,
+    "plannedAt": "2026-10-26T15:28:23.120000Z",
+    "originalDeliveryEnabled": false
+  },
+  "originalReplyMode": "Text",
+  "layoutCorrection": {
+    "reason": "Initial narrow/large-font screenshot showed month navigation labels breaking into fragments despite functional controls.",
+    "change": "CalendarMonth uses fontScale-derived minimum navigation widths and wrapping whole buttons; no data/native/command changes.",
+    "initialApkSha256": "9e63c9841a243b48902cb72f586aa53c276368d6d7ce81b5d9343bb50f0fc5d2",
+    "initialCohort": "phase-07-1-artifacts-initial.json",
+    "finalCohort": "phase-07-1-artifacts-reviewed.json",
+    "finalPreflight": "phase-07-1-preflight-final.log",
+    "finalBuild": "phase-07-1-android-reviewed.log"
+  },
+  "initialInstalledApkSha256": "9e63c9841a243b48902cb72f586aa53c276368d6d7ce81b5d9343bb50f0fc5d2",
+  "finalInstalledAtUtc": "2026-10-26T15:35:10.972774+00:00",
+  "finalState": "phase-07-1-emulator-cleanup.json"
+}

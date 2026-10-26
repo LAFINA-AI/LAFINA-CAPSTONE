@@ -1,0 +1,98 @@
+{
+  "schemaVersion": 1,
+  "capturedAtUtc": "2026-10-26T10:34:51.782Z",
+  "upstreamRevision": "9c183a20eca2377b5e54f219c5f83460b18af81b",
+  "node": "v24.19.0",
+  "typescript": "5.9.3",
+  "scope": "Actual upstream pure helper declarations extracted through TypeScript AST; no complete app, database, network, model, audio, AlarmManager or Android execution.",
+  "sources": [
+    {
+      "file": "src/scheduler/callDispatcher.ts",
+      "sha256": "6a2b0fd80751ab253f8044ccd1de2d9bbbdc3d59f9e4a30e12b9eb01b51bc0e7",
+      "declarations": [
+        "normalizeCallCommand",
+        "editDistance",
+        "isNearKeyword",
+        "detectCallKeyword"
+      ]
+    },
+    {
+      "file": "src/ai/tts/ttsService.ts",
+      "sha256": "376eb885138442864df832a3ee18742f919d66552f809da19d13edc47d21ac3f",
+      "declarations": [
+        "selectOfflineVoice"
+      ]
+    }
+  ],
+  "callCommands": [
+    {
+      "text": "acknowledge",
+      "actual": {
+        "intent": "acknowledge",
+        "minutes": null
+      }
+    },
+    {
+      "text": "do not acknowledge",
+      "actual": {
+        "intent": "acknowledge",
+        "minutes": null
+      }
+    },
+    {
+      "text": "do not snooze",
+      "actual": {
+        "intent": "snooze",
+        "minutes": null
+      }
+    },
+    {
+      "text": "acknowledge but remind me later",
+      "actual": {
+        "intent": "acknowledge",
+        "minutes": null
+      }
+    },
+    {
+      "text": "knowledge",
+      "actual": {
+        "intent": "acknowledge",
+        "minutes": null
+      }
+    },
+    {
+      "text": "snooze for 10 minutes",
+      "actual": {
+        "intent": "snooze",
+        "minutes": 10
+      }
+    }
+  ],
+  "voiceWithoutNetworkFlag": {
+    "input": [
+      {
+        "id": "unknown-network-flag",
+        "language": "en-US"
+      }
+    ],
+    "actual": {
+      "id": "unknown-network-flag",
+      "language": "en-US"
+    }
+  },
+  "javaHashCollision": [
+    {
+      "id": "FB",
+      "hash": 2236
+    },
+    {
+      "id": "Ea",
+      "hash": 2236
+    }
+  ],
+  "limitations": [
+    "The hash calculation is the Java String hash algorithm on these ASCII examples; no PendingIntent was registered.",
+    "These probes reproduce defects, not passing safety acceptance tests.",
+    "Incoming Android builds, native inference and physical-device behavior were NOT RUN by this audit."
+  ]
+}

@@ -1,0 +1,292 @@
+{
+  "phase": "07.1",
+  "cohort": "reviewed",
+  "recordedAtUtc": "2026-10-26T15:32:50.7374608Z",
+  "buildLog": "docs/reports/evidence/phase-07-1-android-reviewed.log",
+  "buildLogSha256": "badcde28a959fe630d43f417177152724180d531b9a333513431901127a4fa64",
+  "buildResult": [
+    "BUILD SUCCESSFUL in 2m 31s",
+    "315 actionable tasks: 27 executed, 288 up-to-date"
+  ],
+  "configuration": "arm64-v8a,x86_64; explicit verified whisperModelDir; sttCorpusDir test-only; single Gradle and Ninja compile/link pools",
+  "artifacts": [
+    {
+      "path": "android/app/build/outputs/apk/androidTest/dataQa/app-dataQa-androidTest.apk",
+      "bytes": 1490221,
+      "sha256": "a36b9237ccfe8781bc368f31dcc0e0115d4e790afc708bba48d097adb6976f59",
+      "packageMetadata": "package: name='com.lafina.capstone.test' versionCode='' versionName='' platformBuildVersionName='16' platformBuildVersionCode='36' compileSdkVersion='36' compileSdkVersionCodename='16'",
+      "nativeCode": [],
+      "permissions": [
+        "package: com.lafina.capstone.test",
+        "uses-permission: name='android.permission.REORDER_TASKS'"
+      ],
+      "model": null,
+      "syntheticFixtures": [
+        "assets/assignment.wav",
+        "assets/biology.wav",
+        "assets/calculus.wav",
+        "assets/cancel.wav",
+        "assets/complete.wav",
+        "assets/today.wav"
+      ],
+      "newJniElf": [],
+      "modelMitNotice": false,
+      "cppMitNotice": false
+    },
+    {
+      "path": "android/app/build/outputs/apk/dataQa/app-arm64-v8a-dataQa.apk",
+      "bytes": 84984593,
+      "sha256": "82388d8f0cabdf7d5764920119d3d880cdb19f95a674974e1b8505eb4dc36225",
+      "packageMetadata": "package: name='com.lafina.capstone' versionCode='8' versionName='0.7.1-data-qa' platformBuildVersionName='16' platformBuildVersionCode='36' compileSdkVersion='36' compileSdkVersionCodename='16'",
+      "nativeCode": [
+        "native-code: 'arm64-v8a'"
+      ],
+      "permissions": [
+        "package: com.lafina.capstone",
+        "uses-permission: name='android.permission.POST_NOTIFICATIONS'",
+        "uses-permission: name='android.permission.SCHEDULE_EXACT_ALARM'",
+        "uses-permission: name='android.permission.USE_FULL_SCREEN_INTENT'",
+        "uses-permission: name='android.permission.RECEIVE_BOOT_COMPLETED'",
+        "uses-permission: name='android.permission.VIBRATE'",
+        "uses-permission: name='android.permission.RECORD_AUDIO'",
+        "permission: com.lafina.capstone.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION",
+        "uses-permission: name='com.lafina.capstone.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION'"
+      ],
+      "model": {
+        "bytes": 32152673,
+        "compressedBytes": 32152673,
+        "sha256": "818710568da3ca15689e31a743197b520007872ff9576237bda97bd1b469c3d7"
+      },
+      "syntheticFixtures": [],
+      "newJniElf": [
+        {
+          "entry": "lib/arm64-v8a/libcapstone_whisper.so",
+          "loadSegments": [
+            "  LOAD           0x000000 0x0000000000000000 0x0000000000000000 0x057ab8 0x057ab8 R   0x4000",
+            "  LOAD           0x057ac0 0x000000000005bac0 0x000000000005bac0 0x110680 0x110680 R E 0x4000",
+            "  LOAD           0x168140 0x0000000000170140 0x0000000000170140 0x003358 0x003ec0 RW  0x4000",
+            "  LOAD           0x16b498 0x0000000000177498 0x0000000000177498 0x000148 0x082908 RW  0x4000"
+          ],
+          "sha256": "f8bca44a3221a34dd6233cfbe5510498a622a11fb86e407171ed4f73a671e572",
+          "result": "PASS: every LOAD alignment at least16384 bytes"
+        }
+      ],
+      "modelMitNotice": true,
+      "cppMitNotice": true
+    },
+    {
+      "path": "android/app/build/outputs/apk/dataQa/app-x86_64-dataQa.apk",
+      "bytes": 84767058,
+      "sha256": "91772a0767fe5dc57f4b2e4d50271cdfb0ab8d6d26b9e470cdae42855916f026",
+      "packageMetadata": "package: name='com.lafina.capstone' versionCode='8' versionName='0.7.1-data-qa' platformBuildVersionName='16' platformBuildVersionCode='36' compileSdkVersion='36' compileSdkVersionCodename='16'",
+      "nativeCode": [
+        "native-code: 'x86_64'"
+      ],
+      "permissions": [
+        "package: com.lafina.capstone",
+        "uses-permission: name='android.permission.POST_NOTIFICATIONS'",
+        "uses-permission: name='android.permission.SCHEDULE_EXACT_ALARM'",
+        "uses-permission: name='android.permission.USE_FULL_SCREEN_INTENT'",
+        "uses-permission: name='android.permission.RECEIVE_BOOT_COMPLETED'",
+        "uses-permission: name='android.permission.VIBRATE'",
+        "uses-permission: name='android.permission.RECORD_AUDIO'",
+        "permission: com.lafina.capstone.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION",
+        "uses-permission: name='com.lafina.capstone.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION'"
+      ],
+      "model": {
+        "bytes": 32152673,
+        "compressedBytes": 32152673,
+        "sha256": "818710568da3ca15689e31a743197b520007872ff9576237bda97bd1b469c3d7"
+      },
+      "syntheticFixtures": [],
+      "newJniElf": [
+        {
+          "entry": "lib/x86_64/libcapstone_whisper.so",
+          "loadSegments": [
+            "  LOAD           0x000000 0x0000000000000000 0x0000000000000000 0x04f3d0 0x04f3d0 R   0x4000",
+            "  LOAD           0x04f3d0 0x00000000000533d0 0x00000000000533d0 0x155f40 0x155f40 R E 0x4000",
+            "  LOAD           0x1a5310 0x00000000001ad310 0x00000000001ad310 0x0031e0 0x003cf0 RW  0x4000",
+            "  LOAD           0x1a84f0 0x00000000001b44f0 0x00000000001b44f0 0x000150 0x082910 RW  0x4000"
+          ],
+          "sha256": "9b28fd2a16f2d43e0cfdc1b0ab456a80eaebcf3bcfedb8c6b799cb8bb9e90559",
+          "result": "PASS: every LOAD alignment at least16384 bytes"
+        }
+      ],
+      "modelMitNotice": true,
+      "cppMitNotice": true
+    },
+    {
+      "path": "android/app/build/outputs/apk/debug/app-arm64-v8a-debug.apk",
+      "bytes": 82249035,
+      "sha256": "1c8d805778355780beda4974f3678fd4c450b1e9c23972123208b5a48890d6f2",
+      "packageMetadata": "package: name='com.lafina.capstone.debug' versionCode='8' versionName='0.7.1' platformBuildVersionName='16' platformBuildVersionCode='36' compileSdkVersion='36' compileSdkVersionCodename='16'",
+      "nativeCode": [
+        "native-code: 'arm64-v8a'"
+      ],
+      "permissions": [
+        "package: com.lafina.capstone.debug",
+        "uses-permission: name='android.permission.INTERNET'",
+        "uses-permission: name='android.permission.POST_NOTIFICATIONS'",
+        "uses-permission: name='android.permission.SCHEDULE_EXACT_ALARM'",
+        "uses-permission: name='android.permission.USE_FULL_SCREEN_INTENT'",
+        "uses-permission: name='android.permission.RECEIVE_BOOT_COMPLETED'",
+        "uses-permission: name='android.permission.VIBRATE'",
+        "uses-permission: name='android.permission.RECORD_AUDIO'",
+        "uses-permission: name='android.permission.SYSTEM_ALERT_WINDOW'",
+        "permission: com.lafina.capstone.debug.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION",
+        "uses-permission: name='com.lafina.capstone.debug.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION'"
+      ],
+      "model": {
+        "bytes": 32152673,
+        "compressedBytes": 32152673,
+        "sha256": "818710568da3ca15689e31a743197b520007872ff9576237bda97bd1b469c3d7"
+      },
+      "syntheticFixtures": [],
+      "newJniElf": [
+        {
+          "entry": "lib/arm64-v8a/libcapstone_whisper.so",
+          "loadSegments": [
+            "  LOAD           0x000000 0x0000000000000000 0x0000000000000000 0x057ab8 0x057ab8 R   0x4000",
+            "  LOAD           0x057ac0 0x000000000005bac0 0x000000000005bac0 0x110680 0x110680 R E 0x4000",
+            "  LOAD           0x168140 0x0000000000170140 0x0000000000170140 0x003358 0x003ec0 RW  0x4000",
+            "  LOAD           0x16b498 0x0000000000177498 0x0000000000177498 0x000148 0x082908 RW  0x4000"
+          ],
+          "sha256": "f8bca44a3221a34dd6233cfbe5510498a622a11fb86e407171ed4f73a671e572",
+          "result": "PASS: every LOAD alignment at least16384 bytes"
+        }
+      ],
+      "modelMitNotice": true,
+      "cppMitNotice": true
+    },
+    {
+      "path": "android/app/build/outputs/apk/debug/app-x86_64-debug.apk",
+      "bytes": 82031500,
+      "sha256": "d5213f4cfd891a6fc55c952c10771c2324aa8f2a12c2b1b7ceaf8ebf6eecec21",
+      "packageMetadata": "package: name='com.lafina.capstone.debug' versionCode='8' versionName='0.7.1' platformBuildVersionName='16' platformBuildVersionCode='36' compileSdkVersion='36' compileSdkVersionCodename='16'",
+      "nativeCode": [
+        "native-code: 'x86_64'"
+      ],
+      "permissions": [
+        "package: com.lafina.capstone.debug",
+        "uses-permission: name='android.permission.INTERNET'",
+        "uses-permission: name='android.permission.POST_NOTIFICATIONS'",
+        "uses-permission: name='android.permission.SCHEDULE_EXACT_ALARM'",
+        "uses-permission: name='android.permission.USE_FULL_SCREEN_INTENT'",
+        "uses-permission: name='android.permission.RECEIVE_BOOT_COMPLETED'",
+        "uses-permission: name='android.permission.VIBRATE'",
+        "uses-permission: name='android.permission.RECORD_AUDIO'",
+        "uses-permission: name='android.permission.SYSTEM_ALERT_WINDOW'",
+        "permission: com.lafina.capstone.debug.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION",
+        "uses-permission: name='com.lafina.capstone.debug.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION'"
+      ],
+      "model": {
+        "bytes": 32152673,
+        "compressedBytes": 32152673,
+        "sha256": "818710568da3ca15689e31a743197b520007872ff9576237bda97bd1b469c3d7"
+      },
+      "syntheticFixtures": [],
+      "newJniElf": [
+        {
+          "entry": "lib/x86_64/libcapstone_whisper.so",
+          "loadSegments": [
+            "  LOAD           0x000000 0x0000000000000000 0x0000000000000000 0x04f3d0 0x04f3d0 R   0x4000",
+            "  LOAD           0x04f3d0 0x00000000000533d0 0x00000000000533d0 0x155f40 0x155f40 R E 0x4000",
+            "  LOAD           0x1a5310 0x00000000001ad310 0x00000000001ad310 0x0031e0 0x003cf0 RW  0x4000",
+            "  LOAD           0x1a84f0 0x00000000001b44f0 0x00000000001b44f0 0x000150 0x082910 RW  0x4000"
+          ],
+          "sha256": "9b28fd2a16f2d43e0cfdc1b0ab456a80eaebcf3bcfedb8c6b799cb8bb9e90559",
+          "result": "PASS: every LOAD alignment at least16384 bytes"
+        }
+      ],
+      "modelMitNotice": true,
+      "cppMitNotice": true
+    },
+    {
+      "path": "android/app/build/outputs/apk/release/app-arm64-v8a-release.apk",
+      "bytes": 60857825,
+      "sha256": "f07f43d3a20bac2cc06aaa6b61c54ef6ab78650e588768423491ca3466d2b095",
+      "packageMetadata": "package: name='com.lafina.capstone' versionCode='8' versionName='0.7.1-preview' platformBuildVersionName='16' platformBuildVersionCode='36' compileSdkVersion='36' compileSdkVersionCodename='16'",
+      "nativeCode": [
+        "native-code: 'arm64-v8a'"
+      ],
+      "permissions": [
+        "package: com.lafina.capstone",
+        "uses-permission: name='android.permission.POST_NOTIFICATIONS'",
+        "uses-permission: name='android.permission.SCHEDULE_EXACT_ALARM'",
+        "uses-permission: name='android.permission.USE_FULL_SCREEN_INTENT'",
+        "uses-permission: name='android.permission.RECEIVE_BOOT_COMPLETED'",
+        "uses-permission: name='android.permission.VIBRATE'",
+        "uses-permission: name='android.permission.RECORD_AUDIO'",
+        "permission: com.lafina.capstone.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION",
+        "uses-permission: name='com.lafina.capstone.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION'"
+      ],
+      "model": {
+        "bytes": 32152673,
+        "compressedBytes": 32152673,
+        "sha256": "818710568da3ca15689e31a743197b520007872ff9576237bda97bd1b469c3d7"
+      },
+      "syntheticFixtures": [],
+      "newJniElf": [
+        {
+          "entry": "lib/arm64-v8a/libcapstone_whisper.so",
+          "loadSegments": [
+            "  LOAD           0x000000 0x0000000000000000 0x0000000000000000 0x035db0 0x035db0 R   0x4000",
+            "  LOAD           0x035db0 0x0000000000039db0 0x0000000000039db0 0x0b49d0 0x0b49d0 R E 0x4000",
+            "  LOAD           0x0ea780 0x00000000000f2780 0x00000000000f2780 0x002d28 0x003880 RW  0x4000",
+            "  LOAD           0x0ed4a8 0x00000000000f94a8 0x00000000000f94a8 0x000130 0x082818 RW  0x4000"
+          ],
+          "sha256": "9cb8840c22b0c491b023dc558fd0d03d0faa04911d5ca3e372a6c6de846c07f2",
+          "result": "PASS: every LOAD alignment at least16384 bytes"
+        }
+      ],
+      "modelMitNotice": true,
+      "cppMitNotice": true
+    },
+    {
+      "path": "android/app/build/outputs/apk/release/app-x86_64-release.apk",
+      "bytes": 61445482,
+      "sha256": "b882f723beb8835c0172c630e301bef1097d6124692a9ce96b84f97dc9d23a6d",
+      "packageMetadata": "package: name='com.lafina.capstone' versionCode='8' versionName='0.7.1-preview' platformBuildVersionName='16' platformBuildVersionCode='36' compileSdkVersion='36' compileSdkVersionCodename='16'",
+      "nativeCode": [
+        "native-code: 'x86_64'"
+      ],
+      "permissions": [
+        "package: com.lafina.capstone",
+        "uses-permission: name='android.permission.POST_NOTIFICATIONS'",
+        "uses-permission: name='android.permission.SCHEDULE_EXACT_ALARM'",
+        "uses-permission: name='android.permission.USE_FULL_SCREEN_INTENT'",
+        "uses-permission: name='android.permission.RECEIVE_BOOT_COMPLETED'",
+        "uses-permission: name='android.permission.VIBRATE'",
+        "uses-permission: name='android.permission.RECORD_AUDIO'",
+        "permission: com.lafina.capstone.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION",
+        "uses-permission: name='com.lafina.capstone.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION'"
+      ],
+      "model": {
+        "bytes": 32152673,
+        "compressedBytes": 32152673,
+        "sha256": "818710568da3ca15689e31a743197b520007872ff9576237bda97bd1b469c3d7"
+      },
+      "syntheticFixtures": [],
+      "newJniElf": [
+        {
+          "entry": "lib/x86_64/libcapstone_whisper.so",
+          "loadSegments": [
+            "  LOAD           0x000000 0x0000000000000000 0x0000000000000000 0x037554 0x037554 R   0x4000",
+            "  LOAD           0x037560 0x000000000003b560 0x000000000003b560 0x0ea130 0x0ea130 R E 0x4000",
+            "  LOAD           0x121690 0x0000000000129690 0x0000000000129690 0x002bc8 0x003970 RW  0x4000",
+            "  LOAD           0x124260 0x0000000000130260 0x0000000000130260 0x000138 0x082840 RW  0x4000"
+          ],
+          "sha256": "73c16a07606d0e90f168b45d3e4c74249c3edbc93a1c863bf929fac6c7775ef9",
+          "result": "PASS: every LOAD alignment at least16384 bytes"
+        }
+      ],
+      "modelMitNotice": true,
+      "cppMitNotice": true
+    }
+  ],
+  "limitations": [
+    "Development-signed local review builds, not publication.",
+    "APK/ELF metadata is not installed device validation or measured recognition.",
+    "No physical ARM64 phone claim; all phone acceptance remains pending."
+  ]
+}

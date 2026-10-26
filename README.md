@@ -7,8 +7,16 @@ core. No registration, login, accounts, business roles, subscriptions or teams.
 Low-end device performance is a priority; minimum RAM/ABI support will be stated
 only after real-device validation.
 
-**Current state: Phase07 confirmed offline chat commands implemented; device validation pending.**
-Today and Calendar now support a week/day agenda, undated/date-only/timed tasks,
+**Current state: Phase07.1 selective integration; device validation pending.**
+The incoming main rewrite is audited and selectively integrated on the existing
+offline data/native core. Calendar adds a month selector above the paged day
+agenda, with reviewed branding, rounded navigation and one light/dark theme.
+See the [integration report](docs/reports/phase-07-1-report.md),
+[data audit](docs/audits/phase-07-1-data-audit.md),
+[native audit](docs/audits/phase-07-1-native-audit.md),
+[integration decision](docs/decisions/ADR-021-selective-upstream-integration.md)
+and [manual upgrade checks](qa/PHASE-07-1-MANUAL.md).
+Today and Calendar support a month/week/day agenda, undated/date-only/timed tasks,
 events and bounded weekly classes. Add/edit/delete items, explicitly complete or
 reopen tasks, and inspect/acknowledge/snooze/cancel reminders without AI or internet.
 Android date/time pickers have typed-entry fallbacks; display supports 12/24 hour
@@ -51,8 +59,11 @@ Use [phase instructions](phases/PHASE-07.md) and
 [the report template](templates/PHASE-REPORT.md) for one phase at a time.
 
 Legacy reference: [LAFINA at the pinned revision](https://github.com/LAFINA-AI/LAFINA/tree/f7e70aec54e6d16e627f444f2a67114cbfb07b5e).
-The legacy repository is read-only and is not a runtime dependency. No legacy code,
-credentials, database, model binaries or dependency tree have been imported.
+The legacy repository is read-only and is not a runtime dependency. Incoming
+reviewed calendar/navigation presentation and one brand image are adapted under
+the owner's recorded reuse authorization. Legacy credentials, databases, bundled
+model binaries, account modules and dependency trees are not imported into the
+integrated runtime. Upstream model binaries remain in its Git history.
 
 Android system offline-capable TTS is implemented; actual phone audibility remains
 unverified. Eligible voices must report installed data and no network requirement;

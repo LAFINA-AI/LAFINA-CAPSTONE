@@ -1,6 +1,6 @@
-# Requirements-to-phase traceability — through Phase07 implementation
+# Requirements-to-phase traceability — through Phase07.1 integration
 
-Updated through Phase07,2026-10-26 Asia/Manila. F-001/F-002 have implementation,
+Updated through Phase07.1,2026-10-26 Asia/Manila. F-001/F-002 have implementation,
 automated and emulator evidence; physical-device acceptance is still pending.
 Future test IDs remain planned, not executed tests. Phase ownership does not grant
 approval. F-001–F-015 remain offline MUSTs. No physical phone has been tested; an API37 emulator supplied the separately labeled native and planner evidence.
@@ -10,7 +10,7 @@ approval. F-001–F-015 remain offline MUSTs. No physical phone has been tested;
 | F-001 | Anonymous offline onboarding; no account | 01 | App.test.tsx completion/retry/validation tests PASS | Release preview offline emulator exercised; physical phone pending | IMPLEMENTED, DEVICE PENDING |
 | F-002 | Local theme/voice/lead/snooze/quiet-hour preferences | 01 | App.test.tsx + storage.test.ts real host-SQLite reopen/failed-write tests PASS | Native emulator persistence exercised; physical phone pending | IMPLEMENTED, DEVICE PENDING |
 | F-003 | Manual task/event CRUD | 02,04 | Repository + PlannerForm/PlannerScreen real host-SQLite/UI tests PASS; manual forms implemented | Emulator outcomes in Phase 04 report; physical phone pending | IMPLEMENTED, DEVICE PENDING |
-| F-004 | Week/day calendar and paged tasks reflect mutations | 04 | plannerQueries/PlannerScreen tests cover create/edit/delete, dates, paging and carry-in | Airplane-mode emulator evidence separate; physical pending | IMPLEMENTED, DEVICE PENDING |
+| F-004 | Month selector, week/day calendar and paged tasks reflect mutations | 04,07.1 | plannerQueries/PlannerScreen plus CalendarMonth cover date selection, leap/month bounds, create/edit/delete, paging and carry-in | Integrated emulator month/day/detail and mutation checks in Phase07.1 report; physical pending | IMPLEMENTED, DEVICE PENDING |
 | F-005 | Reminder/job create/update/cancel | 02,03 | Paired SQL/generation tests; native reconciliation and identity tests, see Phase03 report | Emulator outcomes in report; physical pending | IMPLEMENTED, DEVICE PENDING |
 | F-006 | Native due notification/alarm within OS limits | 03,08 | AlarmManager adapter, capability/denial and native store tests | Locked/background/idle/API/OEM drift still requires phone | IMPLEMENTED, DEVICE PENDING |
 | F-007 | Conditional simulated-call UI + notification fallback | 03,04 | Explicit FSI opt-in and eligible intent; same-screen notification fallback | API30/33/34+ phone permission matrix pending | IMPLEMENTED, DEVICE PENDING |
@@ -33,9 +33,9 @@ approval. F-001–F-015 remain offline MUSTs. No physical phone has been tested;
 | Low-end priority | Test 2–3 GB ARM64 Android11+ where available, ~4 GB reference and newer OS; report CPU/RAM/startup/battery | Confirmed user preference; no certified RAM floor/32-bit support |
 | Performance | Same-device old/new cold/warm n/p50/p95/peak/failures, TTS quality, STT WER, alarms/battery | BASELINE NOT RUN; protocol in docs/benchmarks |
 | Theme/accessibility | Central semantic light/dark tokens, keyboard/TalkBack/large font/manual states | Theme implemented; selected200% font emulator checks pass; physical/TalkBack pending |
-| Architecture/quality | Strict TS, tested migrations/state machines, native instrumentation, documented contracts/ADRs, import checks | Final Phase07 preflight453 tests/27 suites and AST44 modules PASS; current62 JVM tests/7 inspected APKs and42 API37 functional instrumentation tests PASS; installed hash verified, final integrity/restoration in report; ADR-013–020 document boundaries. |
+| Architecture/quality | Strict TS, tested migrations/state machines, native instrumentation, documented contracts/ADRs, import checks | Phase07.1 preflight464 tests/28 suites and AST46 modules PASS; current62 JVM tests/7 inspected APKs and42 API37 functional instrumentation tests PASS; installed hash verified; integration restoration/evidence in Phase07.1 report; ADR-013–021 document boundaries. |
 | Privacy/provenance | No credentials/private data/audio in repo; reviewed model/library terms and attribution | Source-owner authorization recorded; details/third-party review pending |
-| Phase gating | One approved phase, factual report and explicit stop | Phase07 explicitly approved; earlier physical-phone checks pending;08–11 unapproved |
+| Phase gating | One approved phase, factual report and explicit stop | Phase07 explicitly approved; owner separately authorized07.1 integration/audit; earlier physical-phone checks pending;08–11 unapproved |
 
 Explicitly excluded: registration/login/accounts/passwords, business roles/team
 management, subscriptions/paywall, unrelated LAFINA Skills, Gmail/account calendar

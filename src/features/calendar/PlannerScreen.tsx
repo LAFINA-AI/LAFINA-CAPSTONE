@@ -24,6 +24,7 @@ import {
   shiftDate,
   weekDates,
 } from './plannerDisplay';
+import {CalendarMonth} from './CalendarMonth';
 
 const systemNow = () => new Date();
 type Editor = {kind: 'task' | 'event'; initial: Task | AcademicEvent | null};
@@ -60,6 +61,7 @@ export function PlannerScreen({
   );
   const [dateDraft, setDateDraft] = useState(date);
   const [view, setView] = useState<'agenda' | 'tasks'>('agenda');
+  const [calendarView, setCalendarView] = useState<'month' | 'day'>('month');
   const [clockFormat, setClockFormat] = useState<'12h' | '24h'>('24h');
   const [displayOptions, setDisplayOptions] = useState(false);
   const [dateTools, setDateTools] = useState(false);
@@ -415,6 +417,26 @@ export function PlannerScreen({
           {error ? <Message error text={error} /> : null}
           {view === 'agenda' ? (
             <>
+              {mode === 'Calendar' ? (
+                <>
+                  <Choice
+                    label="Calendar display"
+                    value={calendarView}
+                    options={[
+                      {value: 'month', label: 'Month'},
+                      {value: 'day', label: 'Day'},
+                    ]}
+                    onChange={setCalendarView}
+                  />
+                  {calendarView === 'month' ? (
+                    <CalendarMonth
+                      selectedDate={date}
+                      today={localToday(now(), preferences.timezone)}
+                      onSelect={chooseDate}
+                    />
+                  ) : null}
+                </>
+              ) : null}
               <Button
                 label={dateTools ? 'Hide date controls' : 'Go to another date'}
                 secondary
@@ -452,41 +474,49 @@ export function PlannerScreen({
                   />
                 </>
               ) : null}
-              <View style={styles.navigation}>
-                <View style={styles.navButton}>
-                  <Button
-                    label="Previous week"
-                    secondary
-                    onPress={() => move(-7)}
+              {mode === 'Today' || calendarView === 'day' ? (
+                <>
+                  <View style={styles.navigation}>
+                    <View style={styles.navButton}>
+                      <Button
+                        label="Previous week"
+                        secondary
+                        onPress={() => move(-7)}
+                      />
+                    </View>
+                    <View style={styles.navButton}>
+                      <Button
+                        label="Today"
+                        secondary
+                        onPress={() =>
+                          chooseDate(localToday(now(), preferences.timezone))
+                        }
+                      />
+                    </View>
+                    <View style={styles.navButton}>
+                      <Button
+                        label="Next week"
+                        secondary
+                        onPress={() => move(7)}
+                      />
+                    </View>
+                  </View>
+                  <Choice
+                    label="Day"
+                    value={date}
+                    options={weekDates(date).map(day => ({
+                      value: day,
+                      label: `${
+                        ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'][
+                          new Date(`${day}T12:00:00.000Z`).getUTCDay()
+                        ]
+                      } ${day.slice(8)}`,
+                      accessibilityLabel: `Day: ${day}`,
+                    }))}
+                    onChange={chooseDate}
                   />
-                </View>
-                <View style={styles.navButton}>
-                  <Button
-                    label="Today"
-                    secondary
-                    onPress={() =>
-                      chooseDate(localToday(now(), preferences.timezone))
-                    }
-                  />
-                </View>
-                <View style={styles.navButton}>
-                  <Button label="Next week" secondary onPress={() => move(7)} />
-                </View>
-              </View>
-              <Choice
-                label="Day"
-                value={date}
-                options={weekDates(date).map(day => ({
-                  value: day,
-                  label: `${
-                    ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'][
-                      new Date(`${day}T12:00:00.000Z`).getUTCDay()
-                    ]
-                  } ${day.slice(8)}`,
-                  accessibilityLabel: `Day: ${day}`,
-                }))}
-                onChange={chooseDate}
-              />
+                </>
+              ) : null}
               <Text
                 accessibilityRole="header"
                 style={[styles.heading, {color: colors.text}]}

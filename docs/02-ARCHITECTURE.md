@@ -1,5 +1,23 @@
 # 02 — Proposed Application Architecture
 
+## Phase 07.1 selective integration
+
+[ADR-021](decisions/ADR-021-selective-upstream-integration.md) keeps the existing
+single SQLite schema2, native services, strict command-session boundary and theme.
+The incoming rewrite at `9c183a2` is not a second runtime. Calendar's adapted
+month grid emits date-only selections into the existing20-item day agenda; its
+maximum42cells contain no full-history reads or guessed item counts. Narrow
+screens horizontally scroll only the grid to preserve48dp date targets. Rounded
+navigation stays in normal layout and uses current dirty-form guards. One static
+decorative brand asset is a leaf in the import graph, not executable code.
+
+No incoming auth/cloud/sync/updater/database/model dependency is accepted.
+Upgrades of our existing package keep `lafina-capstone.sqlite`; incoming
+`lafina.db` schema17 needs a separate explicitly designed import if required.
+See [data](audits/phase-07-1-data-audit.md) and
+[native](audits/phase-07-1-native-audit.md) audits and the
+[integration report](reports/phase-07-1-report.md).
+
 ## Implemented through Phase07 — confirmed commands; device acceptance pending
 
 [ADR-020](decisions/ADR-020-confirmed-offline-commands.md) adds pure `core/ai`

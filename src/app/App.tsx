@@ -2,6 +2,7 @@ import {useCallback, useEffect, useRef, useState} from 'react';
 import {
   AppState,
   BackHandler,
+  Image,
   KeyboardAvoidingView,
   Modal,
   NativeModules,
@@ -374,10 +375,29 @@ export function App({
                 contentContainerStyle={styles.scroll}
               >
                 <View style={styles.content}>
-                  <Text style={[styles.brand, {color: theme.colors.primary}]}>
-                    LAFINA{' '}
-                    <Text style={{color: theme.colors.muted}}> / STUDENT</Text>
-                  </Text>
+                  <View style={styles.brandRow}>
+                    <Image
+                      source={require('../assets/lafina_app_logo.png')}
+                      style={styles.brandImage}
+                      accessible={false}
+                      resizeMode="contain"
+                    />
+                    <View>
+                      <Text
+                        style={[styles.brand, {color: theme.colors.primary}]}
+                      >
+                        LAFINA
+                      </Text>
+                      <Text
+                        style={[
+                          styles.brandCaption,
+                          {color: theme.colors.muted},
+                        ]}
+                      >
+                        Student planner · Offline
+                      </Text>
+                    </View>
+                  </View>
                   {state.kind === 'loading' ? (
                     <Message text="Opening your local planner…" />
                   ) : state.kind === 'error' ? (
@@ -840,11 +860,18 @@ const styles = StyleSheet.create({
     maxWidth: dimensions.contentMax,
     alignSelf: 'center',
   },
+  brandRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.md,
+    padding: spacing.lg,
+  },
+  brandImage: {width: 48, height: 48},
+  brandCaption: {fontSize: typography.small},
   brand: {
     fontSize: typography.small,
     fontWeight: '700',
     letterSpacing: 1,
-    padding: spacing.lg,
   },
   padded: {padding: spacing.lg},
   title: {
@@ -858,18 +885,27 @@ const styles = StyleSheet.create({
     marginBottom: spacing.md,
   },
   tabs: {
+    // Adapted from incoming CustomTabBar at 9c183a2; stays in normal layout
+    // so the final planner controls are never hidden beneath an overlay.
     flexShrink: 0,
     flexDirection: 'row',
     flexWrap: 'wrap',
-    borderTopWidth: dimensions.border,
-    padding: spacing.xs,
+    borderWidth: dimensions.border,
+    borderRadius: dimensions.navigationRadius,
+    marginHorizontal: spacing.md,
+    marginBottom: spacing.md,
+    marginTop: spacing.sm,
+    maxWidth: dimensions.contentMax,
+    alignSelf: 'center',
+    width: '92%',
+    padding: spacing.sm,
   },
   tab: {
     flexGrow: 1,
     minHeight: dimensions.control,
     justifyContent: 'center',
     padding: spacing.sm,
-    borderRadius: dimensions.radius,
+    borderRadius: dimensions.navigationRadius,
   },
   tabText: {fontSize: typography.small, fontWeight: '600', textAlign: 'center'},
 });

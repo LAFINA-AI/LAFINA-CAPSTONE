@@ -1,0 +1,58 @@
+{
+  "phase": "07.1",
+  "utc": "2026-10-26T15:43:14.580314+00:00",
+  "version": "0.7.1-data-qa",
+  "installedApkSha256": "91772a0767fe5dc57f4b2e4d50271cdfb0ab8d6d26b9e470cdae42855916f026",
+  "device": {
+    "model": "sdk_gphone16k_x86_64",
+    "api": "37",
+    "pageSize": "16384"
+  },
+  "restoredConnectivity": {
+    "airplane_mode_on": "0",
+    "wifi_on": "1",
+    "mobile_data": "1"
+  },
+  "microphoneGranted": true,
+  "microphoneAppOpsRunning": false,
+  "hostMicrophoneProbe": {
+    "method": "getMicrophoneState",
+    "grpcStatus": 0,
+    "realAudioEnabled": false,
+    "source": "read-only-local-loopback"
+  },
+  "nativeDeliveryEnabled": false,
+  "nativeJobCounts": {
+    "pending": 0,
+    "ringing": 0,
+    "registered": 0,
+    "failed": 0
+  },
+  "theme": "Dark",
+  "replyMode": "Text",
+  "display": {
+    "size": "Physical size: 1080x2400",
+    "fontScale": "1.0"
+  },
+  "foreground": "Chat",
+  "composerEmpty": true,
+  "nativeAlarmTrace": [
+    {
+      "event": "NOTIFICATION_POSTED",
+      "atUtc": "2026-10-26T15:28:23.200Z",
+      "plannedAt": "2026-10-26T15:28:23.120Z",
+      "lagMs": 80.0
+    },
+    {
+      "event": "CLAIM_RING",
+      "atUtc": "2026-10-26T15:28:23.144Z",
+      "plannedAt": "2026-10-26T15:28:23.120Z",
+      "lagMs": 24.0
+    }
+  ],
+  "traceLimit": "One synthetic alarm; native claim/API-post metadata only, not audible/render latency, p50/p95 or physical reliability. Empty trace means timing not captured.",
+  "fixtureCleanup": "Only owned QA071 fixtures deleted; discarded drafts never confirmed; no uninstall, broad deletion or private DB export.",
+  "limits": [
+    "Actual speech, sound quality, physical ARM64/low-RAM/olderAPI/OEM/reboot/Doze/battery remain human-required."
+  ]
+}

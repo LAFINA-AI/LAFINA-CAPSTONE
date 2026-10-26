@@ -1,0 +1,116 @@
+{
+  "schemaVersion": 1,
+  "measuredAtUtc": "2026-10-26T10:34:05.082Z",
+  "incomingRevision": "9c183a20eca2377b5e54f219c5f83460b18af81b",
+  "command": "node scripts/audit-incoming-data.cjs --output docs/reports/evidence/phase-07-1-incoming-data-probes.json",
+  "runtime": {
+    "node": "v24.19.0",
+    "typescript": "5.9.3"
+  },
+  "boundaries": {
+    "networkUsed": false,
+    "appExecuted": false,
+    "nativeDatabaseUsed": false,
+    "deviceUsed": false,
+    "credentialsUsed": false,
+    "inputs": "Synthetic strings, inert in-memory module/SQLite stubs only",
+    "claim": "Source-level regression reproductions, not Android device proof"
+  },
+  "sources": [
+    {
+      "path": "src/storage/database.ts",
+      "blob": "b2513670ecf504b1fae3e046337df7f72b53b7e7",
+      "sha256": "1269323e9b41b69fdb986066179a5d398d404bbb07f7adfca36aadb1647c5c49"
+    },
+    {
+      "path": "src/scheduler/callDispatcher.ts",
+      "blob": "36077ba55efa43899f80f073567af79467907f3f",
+      "sha256": "6a2b0fd80751ab253f8044ccd1de2d9bbbdc3d59f9e4a30e12b9eb01b51bc0e7"
+    },
+    {
+      "path": "src/storage/remindersStore.ts",
+      "blob": "383f2a16fa9122696e07dc9c2bc33b3d42451aa8",
+      "sha256": "425e979434e8c09035f11652ca76b9b323d594c9592b8f07defe31a2f4340f1f"
+    }
+  ],
+  "probes": {
+    "failedOpen": {
+      "fallback": true,
+      "transactionReturn": "accepted",
+      "afterCommitCalled": true,
+      "writeRowsAffected": 0,
+      "finding": "Reports success despite unavailable durable storage"
+    },
+    "asynchronousTransaction": {
+      "beforePromiseSettlement": [
+        "BEGIN IMMEDIATE TRANSACTION",
+        "COMMIT"
+      ],
+      "afterPromiseSettlement": [
+        "BEGIN IMMEDIATE TRANSACTION",
+        "COMMIT",
+        "SYNTHETIC ASYNC WRITE"
+      ],
+      "finding": "Async write executes after COMMIT"
+    },
+    "callParser": [
+      {
+        "syntheticText": "do not acknowledge",
+        "detected": {
+          "intent": "acknowledge",
+          "minutes": null
+        }
+      },
+      {
+        "syntheticText": "I did not acknowledge",
+        "detected": {
+          "intent": "acknowledge",
+          "minutes": null
+        }
+      },
+      {
+        "syntheticText": "acknowledge later",
+        "detected": {
+          "intent": "acknowledge",
+          "minutes": null
+        }
+      },
+      {
+        "syntheticText": "do not snooze",
+        "detected": {
+          "intent": "snooze",
+          "minutes": null
+        }
+      },
+      {
+        "syntheticText": "snooze zero minutes",
+        "detected": {
+          "intent": "snooze",
+          "minutes": null
+        }
+      },
+      {
+        "syntheticText": "okay but remind me later",
+        "detected": null
+      }
+    ],
+    "positiveAckSeparation": {
+      "statements": [
+        "UPDATE reminders SET status = 'acknowledged', updated_at = ? WHERE id = ?",
+        "SELECT * FROM reminders WHERE id = ?"
+      ],
+      "updatesTask": false,
+      "finding": "Incoming ACK correctly updates reminder without completing task",
+      "limitation": "Stub records SQL, not actual native persistence"
+    },
+    "calendarDateExpression": {
+      "selectedLocalDate": "2026-10-27T00:00:00+08:00",
+      "expression": "new Date(localDate).toISOString().split('T')[0]",
+      "actual": "2026-10-26",
+      "expectedSelectedDate": "2026-10-27",
+      "finding": "UTC slicing changes selected local date",
+      "limitation": "Expression reproduction; calendar UI not executed"
+    }
+  },
+  "assertions": "PASS: all asserted incoming behaviors reproduced"
+}

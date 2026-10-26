@@ -1,0 +1,16 @@
+{
+  "phase": "07.1",
+  "utc": "2026-10-26T15:07:54.780946+00:00",
+  "graphifyExecutable": null,
+  "graphify": "NOT RUN: CLI not installed",
+  "substitute": {
+    "command": "npm run check:architecture",
+    "result": "PASS:46TypeScriptmodules, no cycles, no forbidden dependencies; static image verified inside src.",
+    "log": "phase-07-1-preflight-reviewed.log",
+    "diagram": "docs/decisions/ADR-021-selective-upstream-integration.md"
+  },
+  "limitations": [
+    "AST graph covers TS imports, not a complete Kotlin/C++ dynamic call graph.",
+    "Mermaid/source review is not Graphify execution."
+  ]
+}

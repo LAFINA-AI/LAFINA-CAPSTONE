@@ -72,6 +72,13 @@ for (const file of files) {
     }
     if (specifier.startsWith('.')) {
       const base = path.resolve(path.dirname(file), specifier);
+      // Static local images are leaf assets, never executable graph modules.
+      if (/\.(png|jpg|jpeg|webp)$/.test(specifier)) {
+        if (!base.startsWith(root + path.sep) || !fs.existsSync(base)) {
+          errors.push(`${file}: missing or out-of-source image ${specifier}`);
+        }
+        continue;
+      }
       const target = [
         base + '.ts',
         base + '.tsx',

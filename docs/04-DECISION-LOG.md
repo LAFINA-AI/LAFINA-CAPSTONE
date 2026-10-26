@@ -163,3 +163,21 @@ measure Android UI, alarm, STT, physical PSS or battery. The
 [pinned review](audits/phase-07-legacy-intents.md) found no verified legacy model
 inference to justify importing SmolLM2. Actual complete gates/build/emulator
 outcomes and remaining human checks belong to [the Phase07 report](reports/phase-07-report.md).
+
+## Phase 07.1 integration — 2026-10-26
+
+Owner requested a pull, thorough audit and integration of the friend's incoming
+rewrite before Phase08. Saved all prior work in checkpoint `0d06b24`, pulled
+`9c183a2` into `codex/phase-07-1-integration`, and resolved73 conflicts using the
+reviewed offline core. [ADR-021](decisions/ADR-021-selective-upstream-integration.md)
+records the selective integration: calendar month presentation, rounded tabs,
+brand image and semantic theme. Schema2, current data filename, confirmed intent
+session and native alarm/speech implementations remain authoritative.
+
+Incoming storage fallback/async transaction/date/falseACK regressions were
+reproduced in inert source probes. Account/cloud/sync/updater code, duplicate
+native services, incompatible schema17 database and unbenchmarked larger models
+are excluded. Upstream history is retained; no automatic foreign-database import
+or production-service connection is performed. Pasted credentials were not saved
+or used; owner rotation is required. See the [integration report](reports/phase-07-1-report.md).
+Phase08 and physical acceptance remain separate human gates.
