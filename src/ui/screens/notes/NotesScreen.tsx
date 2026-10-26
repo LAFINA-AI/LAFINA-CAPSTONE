@@ -10,6 +10,7 @@ import {
   Alert,
 } from 'react-native';
 import { pick } from '@react-native-documents/picker';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { FileText, Plus, Search, Grid, List, X } from 'lucide-react-native';
 import { useTheme } from '../../contexts/ThemeContext';
 import { Colors, Shadows } from '../../theme';
@@ -25,6 +26,8 @@ export const NotesScreen: React.FC<NotesScreenProps> = ({
   onRefresh,
 }) => {
   const { colors } = useTheme();
+  const insets = useSafeAreaInsets();
+  const fabBottom = Math.max(insets.bottom, 12) + 90;
   const data = useNotesData({ userId, refreshTrigger, onRefresh });
 
   const keyExtractor = useCallback((item: Note) => item.id, []);
@@ -144,7 +147,10 @@ export const NotesScreen: React.FC<NotesScreenProps> = ({
       )}
 
       {/* FAB */}
-      <TouchableOpacity style={[styles.fab, Shadows.card]} onPress={data.openNewNote}>
+      <TouchableOpacity
+        style={[styles.fab, Shadows.card, { bottom: fabBottom }]}
+        onPress={data.openNewNote}
+      >
         <Plus size={24} color={colors.white} />
       </TouchableOpacity>
 
@@ -224,7 +230,7 @@ const styles = StyleSheet.create({
     marginLeft: 8,
   },
   notesList: {
-    paddingBottom: 140,
+    paddingBottom: 190,
   },
   notesListScroll: {
     flex: 1,

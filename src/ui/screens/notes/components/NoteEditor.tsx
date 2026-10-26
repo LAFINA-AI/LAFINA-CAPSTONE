@@ -10,9 +10,12 @@ import {
   Image,
   ActivityIndicator,
   PanResponder,
+  Platform,
+  StatusBar,
   Vibration,
   Animated,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import {
   Bold,
   CheckSquare,
@@ -196,6 +199,11 @@ export const NoteEditor: React.FC<NoteEditorProps> = ({
   customCategories = [], onAddCategory, onDeleteCategory, onUpdateCategory,
 }) => {
   const { colors } = useTheme();
+  const insets = useSafeAreaInsets();
+  const topInset = Math.max(
+    insets.top,
+    Platform.OS === 'android' ? (StatusBar.currentHeight || 24) : 0,
+  );
 
   /** False while writing, true while reading — where to-dos can be ticked. */
   const [preview, setPreview] = useState(false);
@@ -284,10 +292,19 @@ export const NoteEditor: React.FC<NoteEditorProps> = ({
   };
 
   return (
-    <Modal visible={visible} animationType="slide" transparent={false}>
+    <Modal visible={visible} animationType="slide" transparent={false} statusBarTranslucent>
+      <StatusBar barStyle={colors.statusBarStyle} backgroundColor={colors.background} />
       <View style={[styles.editorContainer, { backgroundColor: colors.background }]}>
         {/* Header */}
-        <View style={[styles.editorHeader, { borderBottomColor: colors.border }]}>
+        <View
+          style={[
+            styles.editorHeader,
+            {
+              borderBottomColor: colors.border,
+              paddingTop: topInset + 10,
+            },
+          ]}
+        >
           <TouchableOpacity onPress={onDelete} style={styles.deleteNoteBtn} disabled={!editingNote || isEditingCats}>
             <Text style={[styles.deleteNoteText, (!editingNote || isEditingCats) && { opacity: 0.3 }]}>Delete</Text>
           </TouchableOpacity>
@@ -626,7 +643,15 @@ export const NoteEditor: React.FC<NoteEditorProps> = ({
         )}
 
         {/* AI Actions */}
-        <View style={[styles.aiActionsStrip, { backgroundColor: colors.cardBg }]}>
+        <View
+          style={[
+            styles.aiActionsStrip,
+            {
+              backgroundColor: colors.cardBg,
+              paddingBottom: Math.max(insets.bottom, 10),
+            },
+          ]}
+        >
           {AI_ACTIONS.map(({ action, label, icon: Icon }) => (
             <TouchableOpacity
               key={action}

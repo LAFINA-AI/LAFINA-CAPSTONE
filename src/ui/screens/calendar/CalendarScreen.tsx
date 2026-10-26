@@ -7,6 +7,7 @@ import {
   Modal,
 } from 'react-native';
 import DateTimePicker from '@react-native-community/datetimepicker';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Plus, ChevronLeft, ChevronRight, ChevronDown, Upload, Download, Layers, Clock, CheckSquare, FileText } from 'lucide-react-native';
 import { useTheme } from '../../contexts/ThemeContext';
 import { Colors, Shadows } from '../../theme';
@@ -37,6 +38,8 @@ export const CalendarScreen: React.FC<CalendarScreenProps> = ({
   onViewModeChange: propOnViewModeChange,
 }) => {
   const { colors } = useTheme();
+  const insets = useSafeAreaInsets();
+  const fabBottom = Math.max(insets.bottom, 12) + 90;
 
   const [fabMenuVisible, setFabMenuVisible] = useState(false);
   const [noteModalVisible, setNoteModalVisible] = useState(false);
@@ -323,7 +326,7 @@ export const CalendarScreen: React.FC<CalendarScreenProps> = ({
 
       {/* FAB */}
       <TouchableOpacity
-        style={[styles.fab, Shadows.card]}
+        style={[styles.fab, Shadows.card, { bottom: fabBottom }]}
         onPress={handleFABPress}
         accessibilityLabel="Add New Item"
         accessibilityRole="button"
@@ -457,7 +460,7 @@ const styles = StyleSheet.create({
     flex: 1,
     paddingHorizontal: 16,
     paddingTop: 12,
-    paddingBottom: 140, // Account for elevated floating bottom tab bar
+    paddingBottom: 190, // Account for elevated floating bottom tab bar and FAB
   },
   topHeaderRow: {
     flexDirection: 'row',
