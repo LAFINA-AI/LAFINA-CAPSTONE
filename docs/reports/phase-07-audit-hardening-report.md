@@ -3,6 +3,7 @@
 **Branch/base:** `codex/phase-07-audit-hardening` / `a186bfceeb05db038bb0b7a2a35b6fe17d1fab62`.
 **Date:** 2026-10-27 Asia/Manila; exact UTC timestamps in evidence.
 **Audit preservation commit:** `0ff4002` (original report plus25 evidence files).
+**Implementation/evidence commit:** `c63088739510e8d0bef003060ddc1512c6d1d1c0`.
 **Candidate:**0.7.3-data-qa, versionCode10, same capstone package/schema3.
 **Device:** Medium_Phone API37 beta `sdk_gphone16k_x86_64`,16KiB; no physical phone.
 **Status:** AWAITING DEVICE VALIDATION; available automated/emulator checks and
@@ -133,6 +134,14 @@ git push -u origin codex/phase-07-audit-hardening
 
 No push/PR/merge, remote main edit, tag/protection change or co-developer message
 is performed. A same-disk/local commit does not resolve off-machine backup risk.
+
+Final repository-state note: `.codex/skills/graphify/` and `.graphifyignore`
+appeared as untracked setup files during this run (file timestamps around
+04:59UTC). They were not part of the hardening edits, were not staged, and remain
+untouched. The working tree therefore has these unrelated untracked paths; no
+clean-tree claim is made. No Graphify execution is inferred from configuration
+files appearing: the earlier CLI-availability check and AST substitute remain
+the actual evidence. Review that setup separately if it is to be adopted.
 
 ## 6. Manual verification / emulator restoration
 
