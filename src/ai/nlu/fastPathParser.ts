@@ -351,11 +351,17 @@ export function parseIntentFastPath(
   }
 
   // 4. Schedule Query
-  if (/\b(?:what(?:'s| is) (?:on )?(?:my )?(?:schedule|calendar|tasks)|show (?:my )?(?:schedule|calendar|tasks))\b/i.test(lower)) {
+  const isActionCommand = /^(?:please\s+)?(?:remind\s+me|set\s+a\s+reminder|add\s+task|create\s+task|take\s+a\s+note|save\s+note|note\s+down)\b/i.test(lower);
+  const isScheduleQuery =
+    /\b(?:what(?:'s| is| are) (?:on |in )?(?:my )?(?:schedule|calendar|agenda|plans?|tasks?|events?|classes?)|what(?:'s| is| are) (?:my )?(?:schedule|agenda|plans?|tasks?|events?|classes?)|what(?:'s| is) (?:happening|upcoming|planned)|what (?:do i have|have i got|i have)|what (?:tasks?|events?|classes?|plans?) (?:do i have|have i got|i have)|what does my (?:day|schedule) look|how(?:'s| is| does) my (?:schedule|day)(?: look(?:ing)?)?|do i have (?:anything|any (?:tasks?|events?|classes?|plans?))|is there anything (?:on |in )?(?:my )?(?:schedule|calendar|agenda)|is anything (?:scheduled|planned)|(?:show|check|tell me|read(?: out)?|list|get|view)(?: me)? (?:what(?:'s| is| are) (?:on |in )?)?(?:my |today'?s |tomorrow'?s )?(?:schedule|calendar|agenda|tasks?|plans?|events?)|my schedule|today'?s schedule|tomorrow'?s schedule|any (?:plans?|tasks?|events?|classes?) (?:for |on )?(?:today|tomorrow))\b/i.test(lower);
+
+  if (isScheduleQuery && !isActionCommand) {
+    const dt = parseDateAndTime(normalized, referenceDate);
+    const targetDate = dt.date || formatLocalDate(referenceDate);
     return {
       intent: 'query_schedule',
       title: null,
-      date: formatLocalDate(referenceDate),
+      date: targetDate,
       time: null,
       endTime: null,
       durationMinutes: null,

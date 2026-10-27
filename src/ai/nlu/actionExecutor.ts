@@ -2,11 +2,73 @@ import { tasksStore, timeBlocksStore, remindersStore, notesStore } from '../../s
 import { scheduleReminderAlarm, acknowledgeReminderAction, snoozeReminderAction } from '../../scheduler';
 import { generateId } from '../../utils';
 import { formatLocalDate } from './fastPathParser';
+import { ttsService } from '../tts/ttsService';
 import type { ValidatedIntent, NluActionResult } from './types';
 
 export interface ActionExecutorOptions {
   activeReminderId?: string;
   referenceDate?: Date;
+  speakResult?: boolean;
+}
+
+function format12HourTime(timeStr?: string | null): string {
+  if (!timeStr) return '';
+  const match = /^(\d{1,2}):(\d{2})$/.exec(timeStr.trim());
+  if (!match) return timeStr;
+  let hour = parseInt(match[1], 10);
+  const min = parseInt(match[2], 10);
+  const meridiem = hour >= 12 ? 'PM' : 'AM';
+  hour = hour % 12;
+  if (hour === 0) hour = 12;
+  const minStr = min < 10 ? `0${min}` : `${min}`;
+  return `${hour}:${minStr} ${meridiem}`;
+}
+
+function formatListWithAnd(items: string[]): string {
+  if (items.length === 0) return '';
+  if (items.length === 1) return items[0];
+  if (items.length === 2) return `${items[0]} and ${items[1]}`;
+  return `${items.slice(0, -1).join(', ')}, and ${items[items.length - 1]}`;
+}
+
+function formatSpokenDayLabel(targetDateStr: string, refDate: Date): string {
+  const todayFormatted = formatLocalDate(refDate);
+
+  const tomorrow = new Date(refDate);
+  tomorrow.setDate(tomorrow.getDate() + 1);
+  const tomorrowFormatted = formatLocalDate(tomorrow);
+
+  const yesterday = new Date(refDate);
+  yesterday.setDate(yesterday.getDate() - 1);
+  const yesterdayFormatted = formatLocalDate(yesterday);
+
+  if (targetDateStr === todayFormatted) {
+    return 'Today';
+  }
+  if (targetDateStr === tomorrowFormatted) {
+    return 'Tomorrow';
+  }
+  if (targetDateStr === yesterdayFormatted) {
+    return 'Yesterday';
+  }
+
+  const parts = targetDateStr.split('-');
+  if (parts.length === 3) {
+    const year = parseInt(parts[0], 10);
+    const month = parseInt(parts[1], 10) - 1;
+    const day = parseInt(parts[2], 10);
+    const d = new Date(year, month, day);
+    if (!isNaN(d.getTime())) {
+      const weekdays = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+      const months = [
+        'January', 'February', 'March', 'April', 'May', 'June',
+        'July', 'August', 'September', 'October', 'November', 'December',
+      ];
+      return `On ${weekdays[d.getDay()]}, ${months[d.getMonth()]} ${d.getDate()}`;
+    }
+  }
+
+  return `For ${targetDateStr}`;
 }
 
 /** Executes validated NLU intents against local SQLite stores and native scheduler. */
@@ -259,24 +321,120 @@ export async function executeNluAction(
     }
 
     case 'query_schedule': {
-      const targetDate = intent.date || todayStr;
+      const refDate = options.referenceDate || new Date();
+      const targetDate = intent.date || formatLocalDate(refDate);
+      const dayLabel = formatSpokenDayLabel(targetDate, refDate);
+
       const tasks = tasksStore.getAllTasks(userId).filter((t) => !t.isCompleted && t.dueDate === targetDate);
       const blocks = timeBlocksStore.getAll(userId).filter((b) => b.date === targetDate);
+      const events = tasksStore.getAllEvents(userId).filter((e) => e.date === targetDate);
 
-      let summary = `For ${targetDate}: `;
-      if (tasks.length === 0 && blocks.length === 0) {
-        summary += 'You have no scheduled tasks or time blocks. Your schedule is clear!';
+      const totalCount = tasks.length + blocks.length + events.length;
+
+      let summary = '';
+      if (totalCount === 0) {
+        summary = `${dayLabel}, your schedule is completely clear! You have no tasks, events, or time blocks.`;
       } else {
-        const parts: string[] = [];
+        const countParts: string[] = [];
         if (tasks.length > 0) {
-          const taskNames = tasks.map((t) => `"${t.title}"${t.dueTime ? ` at ${t.dueTime}` : ''}`).join(', ');
-          parts.push(`${tasks.length} task${tasks.length > 1 ? 's' : ''} (${taskNames})`);
+          countParts.push(`${tasks.length} task${tasks.length > 1 ? 's' : ''}`);
         }
         if (blocks.length > 0) {
-          const blockNames = blocks.map((b) => `"${b.title}" (${b.startTime}-${b.endTime})`).join(', ');
-          parts.push(`${blocks.length} time block${blocks.length > 1 ? 's' : ''} (${blockNames})`);
+          countParts.push(`${blocks.length} time block${blocks.length > 1 ? 's' : ''}`);
         }
-        summary += `You have ${parts.join(' and ')}.`;
+        if (events.length > 0) {
+          countParts.push(`${events.length} event${events.length > 1 ? 's' : ''}`);
+        }
+
+        interface TimedItem {
+          title: string;
+          timeStr: string;
+          spokenDetail: string;
+        }
+
+        const timedItems: TimedItem[] = [];
+        const allDayTasks: string[] = [];
+
+        for (const b of blocks) {
+          const startSpoken = format12HourTime(b.startTime);
+          const endSpoken = b.endTime && b.endTime !== b.startTime ? format12HourTime(b.endTime) : '';
+          const timePhrase = endSpoken ? `from ${startSpoken} to ${endSpoken}` : `at ${startSpoken}`;
+          timedItems.push({
+            title: b.title,
+            timeStr: b.startTime || '00:00',
+            spokenDetail: `${b.title} ${timePhrase}`,
+          });
+        }
+
+        for (const e of events) {
+          const startSpoken = format12HourTime(e.startTime);
+          const endSpoken = e.endTime && e.endTime !== e.startTime ? format12HourTime(e.endTime) : '';
+          const timePhrase = endSpoken ? `from ${startSpoken} to ${endSpoken}` : `at ${startSpoken}`;
+          timedItems.push({
+            title: e.title,
+            timeStr: e.startTime || '00:00',
+            spokenDetail: `${e.title} ${timePhrase}`,
+          });
+        }
+
+        for (const t of tasks) {
+          if (t.dueTime) {
+            const dueSpoken = format12HourTime(t.dueTime);
+            timedItems.push({
+              title: t.title,
+              timeStr: t.dueTime,
+              spokenDetail: `${t.title} at ${dueSpoken}`,
+            });
+          } else {
+            allDayTasks.push(t.title);
+          }
+        }
+
+        // Chronological sort by start/due time
+        timedItems.sort((a, b) => a.timeStr.localeCompare(b.timeStr));
+
+        const countSentence = `${dayLabel} you have ${formatListWithAnd(countParts)}:`;
+
+        if (timedItems.length === 0 && allDayTasks.length > 0) {
+          summary = `${countSentence} ${formatListWithAnd(allDayTasks.map((t) => `"${t}"`))}.`;
+        } else if (timedItems.length === 1 && allDayTasks.length === 0) {
+          summary = `${countSentence} ${timedItems[0].spokenDetail}.`;
+        } else if (timedItems.length === 2 && allDayTasks.length === 0) {
+          summary = `${countSentence} First, ${timedItems[0].spokenDetail}. Then, ${timedItems[1].spokenDetail}.`;
+        } else if (timedItems.length > 2 && allDayTasks.length === 0) {
+          const parts = timedItems.map((item, idx) => {
+            if (idx === 0) return `First, ${item.spokenDetail}.`;
+            if (idx === timedItems.length - 1) return `Finally, ${item.spokenDetail}.`;
+            return `Next, ${item.spokenDetail}.`;
+          });
+          summary = `${countSentence} ${parts.join(' ')}`;
+        } else {
+          // Mixed: timed items and all-day tasks
+          let timedSentence = '';
+          if (timedItems.length === 1) {
+            timedSentence = timedItems[0].spokenDetail + '.';
+          } else if (timedItems.length === 2) {
+            timedSentence = `First, ${timedItems[0].spokenDetail}. Then, ${timedItems[1].spokenDetail}.`;
+          } else {
+            const parts = timedItems.map((item, idx) => {
+              if (idx === 0) return `First, ${item.spokenDetail}.`;
+              if (idx === timedItems.length - 1) return `Finally, ${item.spokenDetail}.`;
+              return `Next, ${item.spokenDetail}.`;
+            });
+            timedSentence = parts.join(' ');
+          }
+
+          const allDaySentence = `You also have ${allDayTasks.length} all-day task${allDayTasks.length > 1 ? 's' : ''}: ${formatListWithAnd(allDayTasks.map((t) => `"${t}"`))}.`;
+          summary = `${countSentence} ${timedSentence} ${allDaySentence}`;
+        }
+      }
+
+      if (options.speakResult) {
+        try {
+          await ttsService.speak(summary);
+        } catch (e) {
+          console.warn('[ActionExecutor] TTS playback error:', e);
+        }
       }
 
       return {

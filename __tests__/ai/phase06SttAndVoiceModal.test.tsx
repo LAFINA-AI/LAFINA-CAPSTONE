@@ -17,6 +17,7 @@ import { notesStore } from '../../src/storage/notesStore';
 import { tasksStore } from '../../src/storage/tasksStore';
 import { userStore } from '../../src/storage/userStore';
 import { initDatabase } from '../../src/storage/dbInit';
+import { ttsService } from '../../src/ai/tts/ttsService';
 
 describe('Phase 06: Push-to-Talk Offline STT & VoiceModal', () => {
   const mockUserId = 'test-student-voice-user';
@@ -246,6 +247,26 @@ describe('Phase 06: Push-to-Talk Offline STT & VoiceModal', () => {
       );
 
       insertTaskSpy.mockRestore();
+    });
+
+    test('speaks aloud schedule query reply via react-native-tts', async () => {
+      const speakSpy = jest.spyOn(ttsService, 'speak');
+      const onClose = jest.fn();
+
+      const { getByTestId, findByTestId } = render(
+        <ThemeProvider userId={mockUserId}>
+          <VoiceModal visible={true} userId={mockUserId} onClose={onClose} />
+        </ThemeProvider>,
+      );
+
+      const input = getByTestId('voice-text-input');
+      fireEvent.changeText(input, "What's on my schedule today?");
+      fireEvent.press(getByTestId('voice-send-button'));
+
+      const reply = await findByTestId('voice-reply');
+      expect(reply).toBeTruthy();
+      expect(speakSpy).toHaveBeenCalled();
+      speakSpy.mockRestore();
     });
 
     test('invokes custom onTranscript and onCommand handlers if supplied', async () => {

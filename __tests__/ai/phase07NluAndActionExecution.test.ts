@@ -20,6 +20,7 @@ import {
   notesStore,
   initDatabase,
 } from '../../src/storage';
+import { ttsService } from '../../src/ai/tts/ttsService';
 
 jest.mock('react-native-fs', () => {
   const files: Record<string, { size: number }> = {};
@@ -214,10 +215,45 @@ describe('Phase 07: Smart Hybrid On-Device NLU & Action Execution', () => {
       expect(resched.time).toBe('16:00');
     });
 
-    test('parses schedule query intent', () => {
-      const query = parseIntentFastPath("What's on my schedule today?", fixedDate);
-      expect(query.intent).toBe('query_schedule');
-      expect(query.date).toBe('2026-10-27');
+    test('parses schedule query intent and diverse conversational edge cases', () => {
+      // Standard query
+      const queryToday = parseIntentFastPath("What's on my schedule today?", fixedDate);
+      expect(queryToday.intent).toBe('query_schedule');
+      expect(queryToday.date).toBe('2026-10-27');
+
+      // Tomorrow query
+      const queryTomorrow = parseIntentFastPath("What do I have tomorrow?", fixedDate);
+      expect(queryTomorrow.intent).toBe('query_schedule');
+      expect(queryTomorrow.date).toBe('2026-10-28');
+
+      // Weekday query
+      const queryFriday = parseIntentFastPath("What is on my calendar on Friday?", fixedDate);
+      expect(queryFriday.intent).toBe('query_schedule');
+      expect(queryFriday.date).toBe('2026-10-30');
+
+      // "What do I have" / "Do I have anything" variations
+      expect(parseIntentFastPath("What do I have today?", fixedDate).intent).toBe('query_schedule');
+      expect(parseIntentFastPath("Do I have anything today?", fixedDate).intent).toBe('query_schedule');
+      expect(parseIntentFastPath("Do I have any tasks today?", fixedDate).intent).toBe('query_schedule');
+      expect(parseIntentFastPath("Do I have any classes today?", fixedDate).intent).toBe('query_schedule');
+      expect(parseIntentFastPath("Is anything scheduled today?", fixedDate).intent).toBe('query_schedule');
+
+      // Imperative "show / check / read / tell me" commands
+      expect(parseIntentFastPath("Show my schedule", fixedDate).intent).toBe('query_schedule');
+      expect(parseIntentFastPath("Check my schedule", fixedDate).intent).toBe('query_schedule');
+      expect(parseIntentFastPath("Check my calendar", fixedDate).intent).toBe('query_schedule');
+      expect(parseIntentFastPath("Tell me what's on my schedule", fixedDate).intent).toBe('query_schedule');
+      expect(parseIntentFastPath("Read out my schedule today", fixedDate).intent).toBe('query_schedule');
+
+      // Conversational queries
+      expect(parseIntentFastPath("How's my schedule looking today?", fixedDate).intent).toBe('query_schedule');
+      expect(parseIntentFastPath("What does my day look like?", fixedDate).intent).toBe('query_schedule');
+      expect(parseIntentFastPath("What are my plans for today?", fixedDate).intent).toBe('query_schedule');
+
+      // Action commands with schedule words must NOT be hijacked
+      const reminderCmd = parseIntentFastPath("Remind me to check my schedule tomorrow", fixedDate);
+      expect(reminderCmd.intent).toBe('create_reminder');
+      expect(reminderCmd.title).toBe('Check my schedule');
     });
   });
 
@@ -388,7 +424,7 @@ describe('Phase 07: Smart Hybrid On-Device NLU & Action Execution', () => {
     });
 
     test('executes query_schedule and provides spoken schedule summary', async () => {
-      const validated = validateIntent({
+      const validatedTomorrow = validateIntent({
         intent: 'query_schedule',
         title: null,
         date: '2026-10-28',
@@ -400,13 +436,82 @@ describe('Phase 07: Smart Hybrid On-Device NLU & Action Execution', () => {
         snoozeMinutes: null,
         confidence: 0.95,
         source: 'fast_path',
-        rawTranscript: 'what is on my schedule',
+        rawTranscript: 'what is on my schedule tomorrow',
       });
 
-      const result = await executeNluAction(testUserId, validated, { referenceDate: fixedDate });
-      expect(result.success).toBe(true);
-      expect(result.intent).toBe('query_schedule');
-      expect(result.reply).toContain('Finish Physics Laboratory Report');
+      const resultTomorrow = await executeNluAction(testUserId, validatedTomorrow, { referenceDate: fixedDate });
+      expect(resultTomorrow.success).toBe(true);
+      expect(resultTomorrow.intent).toBe('query_schedule');
+      // Natural 12-hour spoken format: "Tomorrow you have 1 task: Finish Physics Laboratory Report at 2:00 PM."
+      expect(resultTomorrow.reply).toContain('Tomorrow you have 1 task');
+      expect(resultTomorrow.reply).toContain('Finish Physics Laboratory Report at 2:00 PM');
+
+      // Test empty schedule day
+      const validatedEmpty = validateIntent({
+        intent: 'query_schedule',
+        title: null,
+        date: '2026-10-27',
+        time: null,
+        endTime: null,
+        durationMinutes: null,
+        category: 'Academic',
+        details: null,
+        snoozeMinutes: null,
+        confidence: 0.95,
+        source: 'fast_path',
+        rawTranscript: "what's on my schedule today",
+      });
+
+      const resultEmpty = await executeNluAction(testUserId, validatedEmpty, { referenceDate: fixedDate });
+      expect(resultEmpty.success).toBe(true);
+      expect(resultEmpty.reply).toContain('Today, your schedule is completely clear!');
+
+      // Add multiple items to 2026-10-27 and verify chronological ordering
+      timeBlocksStore.insert({
+        id: 'tb-test-chron-1',
+        userId: testUserId,
+        title: 'Algorithms Lecture',
+        date: '2026-10-27',
+        startTime: '09:00',
+        endTime: '10:30',
+        color: '#4F46E5',
+        category: 'Academic',
+      });
+
+      tasksStore.insertTask({
+        id: 'task-test-chron-2',
+        userId: testUserId,
+        title: 'Submit Operating Systems Assignment',
+        dueDate: '2026-10-27',
+        dueTime: '16:00',
+        isCompleted: false,
+        priority: 'High',
+        category: 'Academic',
+      });
+
+      tasksStore.insertEvent({
+        id: 'event-test-chron-3',
+        userId: testUserId,
+        title: 'Dean Consultation',
+        date: '2026-10-27',
+        startTime: '13:00',
+        endTime: '14:00',
+      });
+
+      const speakSpy = jest.spyOn(ttsService, 'speak');
+      const resultMulti = await executeNluAction(
+        testUserId,
+        validatedEmpty,
+        { referenceDate: fixedDate, speakResult: true },
+      );
+
+      expect(resultMulti.success).toBe(true);
+      expect(resultMulti.reply).toContain('Today you have 1 task, 1 time block, and 1 event');
+      expect(resultMulti.reply).toContain('First, Algorithms Lecture from 9:00 AM to 10:30 AM.');
+      expect(resultMulti.reply).toContain('Next, Dean Consultation from 1:00 PM to 2:00 PM.');
+      expect(resultMulti.reply).toContain('Finally, Submit Operating Systems Assignment at 4:00 PM.');
+      expect(speakSpy).toHaveBeenCalledWith(resultMulti.reply);
+      speakSpy.mockRestore();
     });
   });
 

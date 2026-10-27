@@ -26,6 +26,7 @@ import {
 import type { OfflineSpeechCaptureHandle } from '../../ai/native/speechCapture';
 import { ensureMicrophonePermission } from '../../ai/stt/sttService';
 import { intentService } from '../../ai/nlu';
+import { ttsService } from '../../ai/tts/ttsService';
 
 export interface VoiceModalProps {
   visible: boolean;
@@ -35,7 +36,7 @@ export interface VoiceModalProps {
   onCommand?: (command: string, userId: string) => string | Promise<string>;
 }
 
-export type VoiceState = 'idle' | 'listening' | 'processing' | 'success' | 'error';
+export type VoiceState = 'idle' | 'listening' | 'processing' | 'speaking' | 'success' | 'error';
 
 const WAVE_BAR_COUNT = 11;
 
@@ -44,6 +45,7 @@ const STATUS_TEXT: Record<VoiceState, string> = {
   idle: 'Hold the mic button to talk',
   listening: 'Listening… let go when you’re done',
   processing: 'Working on it…',
+  speaking: 'Reading aloud…',
   success: 'Done',
   error: 'That didn’t work',
 };
@@ -104,8 +106,14 @@ export const VoiceModal: React.FC<VoiceModalProps> = ({
     return () => {
       timers.forEach((id) => clearTimeout(id));
       timers.clear();
+      void ttsService.stop();
     };
   }, []);
+
+  const handleDismiss = useCallback(() => {
+    void ttsService.stop();
+    onClose(false);
+  }, [onClose]);
 
   const { colors } = useTheme();
   const themed = useThemedStyles(getVoiceThemedStyles);
@@ -314,15 +322,24 @@ export const VoiceModal: React.FC<VoiceModalProps> = ({
       }
 
       setAiReply(reply);
-      setVoiceState('success');
+      setVoiceState('speaking');
 
-      safeSetTimeout(() => {
-        if (activeCaptureRef.current === uiCaptureId) {
-          onClose(true);
-          setVoiceState('idle');
-          setInputText('');
-        }
-      }, VOICE_SUCCESS_DELAY_MS);
+      try {
+        await ttsService.speak(reply);
+      } catch (err) {
+        console.warn('[VoiceModal] TTS playback error:', err);
+      }
+
+      if (activeCaptureRef.current === uiCaptureId) {
+        setVoiceState('success');
+        safeSetTimeout(() => {
+          if (activeCaptureRef.current === uiCaptureId) {
+            onClose(true);
+            setVoiceState('idle');
+            setInputText('');
+          }
+        }, VOICE_SUCCESS_DELAY_MS);
+      }
     } catch (error) {
       console.error('Failed to process offline Whisper capture:', error);
       if (speechCaptureRef.current?.captureId === capture.captureId) {
@@ -356,15 +373,24 @@ export const VoiceModal: React.FC<VoiceModalProps> = ({
         }
 
         setAiReply(reply);
-        setVoiceState('success');
+        setVoiceState('speaking');
 
-        safeSetTimeout(() => {
-          if (activeCaptureRef.current === uiCaptureId) {
-            onClose(true);
-            setVoiceState('idle');
-            setInputText('');
-          }
-        }, VOICE_SUCCESS_DELAY_MS);
+        try {
+          await ttsService.speak(reply);
+        } catch (err) {
+          console.warn('[VoiceModal] TTS playback error:', err);
+        }
+
+        if (activeCaptureRef.current === uiCaptureId) {
+          setVoiceState('success');
+          safeSetTimeout(() => {
+            if (activeCaptureRef.current === uiCaptureId) {
+              onClose(true);
+              setVoiceState('idle');
+              setInputText('');
+            }
+          }, VOICE_SUCCESS_DELAY_MS);
+        }
       } catch (err) {
         console.error(err);
         triggerErrorShake('idle');
@@ -376,7 +402,7 @@ export const VoiceModal: React.FC<VoiceModalProps> = ({
   const listening = voiceState === 'listening';
 
   const micColor =
-    voiceState === 'success'
+    voiceState === 'success' || voiceState === 'speaking'
       ? colors.success
       : voiceState === 'error'
       ? colors.error
@@ -387,7 +413,7 @@ export const VoiceModal: React.FC<VoiceModalProps> = ({
   const statusColor =
     voiceState === 'error'
       ? colors.error
-      : voiceState === 'success'
+      : voiceState === 'success' || voiceState === 'speaking'
       ? colors.success
       : listening
       ? colors.primary
@@ -398,12 +424,12 @@ export const VoiceModal: React.FC<VoiceModalProps> = ({
       transparent
       animationType="fade"
       visible={visible}
-      onRequestClose={() => onClose(false)}
+      onRequestClose={handleDismiss}
     >
       <TouchableOpacity
         style={[styles.overlay, themed.overlay]}
         activeOpacity={1}
-        onPress={() => onClose(false)}
+        onPress={handleDismiss}
         testID="voice-modal-backdrop"
       >
         <TouchableOpacity
@@ -417,7 +443,7 @@ export const VoiceModal: React.FC<VoiceModalProps> = ({
           {/* Close button */}
           <TouchableOpacity
             style={[styles.closeButton, themed.closeButton]}
-            onPress={() => onClose(false)}
+            onPress={handleDismiss}
             accessibilityRole="button"
             accessibilityLabel="Close voice assistant"
             testID="voice-modal-close"
