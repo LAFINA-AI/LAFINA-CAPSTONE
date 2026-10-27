@@ -1,0 +1,11 @@
+# Graphify scope for LAFINA-CAPSTONE (gitignore syntax; .gitignore is applied first).
+# Third-party vendored source: reviewed separately via SOURCE-MANIFEST.json, not app architecture.
+android/app/src/main/cpp/third_party/
+# Bundled third-party notice texts.
+android/app/src/main/assets/licenses/
+# Raw evidence logs/screenshots/JSON cohorts and large benchmark samples are records, not design.
+docs/reports/evidence/
+docs/benchmarks/*.json
+# Lockfile and binary/brand assets.
+package-lock.json
+*.png

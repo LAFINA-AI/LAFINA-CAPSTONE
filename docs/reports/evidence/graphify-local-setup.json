@@ -1,0 +1,67 @@
+{
+  "utc": "2026-10-27T06:31:03.640948+00:00",
+  "scope": "Graphify development tooling only; Phase08 not started",
+  "uv": "0.13.6",
+  "package": {
+    "package": "graphifyy",
+    "version": "0.9.96",
+    "repository": "https://github.com/Graphify-Labs/graphify",
+    "publishingCommit": "dac063456bc1f5d92354ec3936fd9dd1513a83f3",
+    "wheelSha256": "bbef4c79b5905f45e384a7ca49417cd6c131d4774f280037159dd6cf4c425e29",
+    "installedPackageFilesChecked": 233,
+    "mismatches": [],
+    "python": "3.12.14",
+    "license": "Apache-2.0",
+    "noticeEntries": [
+      "graphifyy-0.9.96.dist-info/licenses/LICENSE",
+      "graphifyy-0.9.96.dist-info/licenses/LICENSE-MIT",
+      "graphifyy-0.9.96.dist-info/licenses/NOTICE"
+    ]
+  },
+  "command": "C:/Users/USER-PC/.local/bin/graphify.exe",
+  "userPathPersisted": true,
+  "existingCodexProcessNeedsRestartForPlainCommand": true,
+  "projectInstaller": "graphify install --project --platform codex",
+  "agentsBytesUnchangedFromOwnerSetup": true,
+  "graphifySections": 1,
+  "hook": {
+    "command": "graphify hook-check",
+    "smokeExitCode": 0,
+    "behavior": "vendor-defined no-op; AGENTS supplies guidance, no auto enforcement/update"
+  },
+  "graph": {
+    "nodes": 2528,
+    "edges": 5349,
+    "communities": 187,
+    "schema": {
+      "schema_version": 1,
+      "graphify_version": "0.9.96"
+    },
+    "graphSha256": "d974af41cf4c47482ad5e14cd5eb2b553b7b5296bd9b4e0b5b35a215977ab15e",
+    "ignored": true,
+    "initialExtractedFiles": 298,
+    "cachedRefreshFiles": 299,
+    "cachedRefreshHits": 181,
+    "cachedRefreshPercent": 60,
+    "limitations": [
+      "Partial tree-sitter parsing: app/build.gradle, ReminderStoreTest.kt, SpeechInput.kt",
+      "19files yielded no symbols;22unsupported skipped",
+      "Graph is navigation, not compiler/runtime/physical-device proof"
+    ]
+  },
+  "checks": {
+    "boundedQueryBudget": 700,
+    "focusedExplain": "CommandSession:7connections, source commandSession.ts:L25",
+    "path": "ChatScreen.tsx imports_from commandSession.ts",
+    "astUpdate": "PASS; local structural extraction, no semantic/cloud command",
+    "applicationUnchanged": true,
+    "missingDocumentationLinks": []
+  },
+  "logsLocal": [
+    ".local/graphify-tool-install.log",
+    ".local/graphify-project-install.log",
+    ".local/graphify-update-initial.log",
+    ".local/graphify-update-cache-check.log",
+    ".local/graphify-bounded-query.log"
+  ]
+}
