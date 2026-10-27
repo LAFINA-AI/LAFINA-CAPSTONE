@@ -1,0 +1,324 @@
+{
+ "modelManifest": {
+  "schemaVersion": 1,
+  "model": "Whisper Tiny multilingual Q5_1 GGML",
+  "asset": "stt/ggml-tiny-q5_1.bin",
+  "bytes": 32152673,
+  "sha256": "818710568da3ca15689e31a743197b520007872ff9576237bda97bd1b469c3d7",
+  "publisher": "ggerganov/whisper.cpp",
+  "repositoryRevision": "fb5ed9369c26eaf08392504d8446da431e0fffb9",
+  "sourceUrl": "https://huggingface.co/ggerganov/whisper.cpp/resolve/fb5ed9369c26eaf08392504d8446da431e0fffb9/ggml-tiny-q5_1.bin",
+  "pointerUrl": "https://huggingface.co/ggerganov/whisper.cpp/raw/fb5ed9369c26eaf08392504d8446da431e0fffb9/ggml-tiny-q5_1.bin",
+  "modelCardUrl": "https://huggingface.co/ggerganov/whisper.cpp/blob/fb5ed9369c26eaf08392504d8446da431e0fffb9/README.md",
+  "license": "MIT; original OpenAI Whisper model, converted/quantized by whisper.cpp publisher",
+  "originalLicenseUrl": "https://github.com/openai/whisper/blob/v20250625/LICENSE",
+  "runtime": {
+   "repository": "https://github.com/ggml-org/whisper.cpp",
+   "revision": "d1be6fde11ac6e0407606b4e42fe72d34add8037",
+   "version": "1.9.5",
+   "sourceArchiveSha256": "6be93b881acb415c5a25d0ef85bb6a488099de0296e072e22a66d50f20ec40b9",
+   "selectionManifest": "../../android/app/src/main/cpp/third_party/whisper.cpp/SOURCE-MANIFEST.json"
+  },
+  "constraints": [
+   "Binary remains ignored and is included only through an explicit build asset-directory flag.",
+   "No application network permission, download client, automatic model update or cloud fallback.",
+   "32,152,673 bytes is model payload size, not APK delta or peak runtime memory.",
+   "Tiny multilingual supports en/tl selection but accuracy, accents and low-RAM feasibility require actual measurements.",
+   "Original/converted artifact provenance is from the publisher's pinned model card and content hash, not a claim of independently reproducing quantization."
+  ]
+ },
+ "apks": [
+  {
+   "apk": "androidTest/dataQa/app-dataQa-androidTest.apk",
+   "package": "com.lafina.capstone.test",
+   "versionName": null,
+   "versionCode": null,
+   "minSdk": "30",
+   "targetSdk": "36",
+   "permissions": [
+    "android.permission.REORDER_TASKS"
+   ],
+   "debuggable": "true",
+   "allowBackup": null,
+   "usesCleartext": null,
+   "nativeLibs": 0,
+   "nativeLoadAlignBelow16K": [],
+   "storedNotZip16KAligned": [],
+   "abis": [],
+   "assets": [
+    "assets/assignment.wav",
+    "assets/biology.wav",
+    "assets/calculus.wav",
+    "assets/cancel.wav",
+    "assets/complete.wav",
+    "assets/corpus-manifest.json",
+    "assets/today.wav"
+   ],
+   "licenseAssets": []
+  },
+  {
+   "apk": "dataQa/app-arm64-v8a-dataQa.apk",
+   "package": "com.lafina.capstone",
+   "versionName": "0.7.2-data-qa",
+   "versionCode": "9",
+   "minSdk": "30",
+   "targetSdk": "36",
+   "permissions": [
+    "android.permission.POST_NOTIFICATIONS",
+    "android.permission.RECEIVE_BOOT_COMPLETED",
+    "android.permission.RECORD_AUDIO",
+    "android.permission.SCHEDULE_EXACT_ALARM",
+    "android.permission.USE_FULL_SCREEN_INTENT",
+    "android.permission.VIBRATE",
+    "com.lafina.capstone.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION"
+   ],
+   "debuggable": "true",
+   "allowBackup": "false",
+   "usesCleartext": "false",
+   "nativeLibs": 14,
+   "nativeLoadAlignBelow16K": [],
+   "storedNotZip16KAligned": [],
+   "abis": [
+    "arm64-v8a"
+   ],
+   "assets": [
+    "assets/stt/WHISPER-MODEL-LICENSE.txt",
+    "assets/stt/ggml-tiny-q5_1.bin",
+    "assets/stt/model-manifest.json",
+    "assets/index.android.bundle"
+   ],
+   "licenseAssets": [
+    "assets/licenses/REACT-NATIVE-SVG-NOTICES.txt",
+    "assets/licenses/WHISPER-CPP-MIT.txt"
+   ],
+   "modelAssets": [
+    {
+     "name": "assets/stt/ggml-tiny-q5_1.bin",
+     "bytes": 32152673,
+     "sha256": "818710568da3ca15689e31a743197b520007872ff9576237bda97bd1b469c3d7"
+    }
+   ]
+  },
+  {
+   "apk": "dataQa/app-x86_64-dataQa.apk",
+   "package": "com.lafina.capstone",
+   "versionName": "0.7.2-data-qa",
+   "versionCode": "9",
+   "minSdk": "30",
+   "targetSdk": "36",
+   "permissions": [
+    "android.permission.POST_NOTIFICATIONS",
+    "android.permission.RECEIVE_BOOT_COMPLETED",
+    "android.permission.RECORD_AUDIO",
+    "android.permission.SCHEDULE_EXACT_ALARM",
+    "android.permission.USE_FULL_SCREEN_INTENT",
+    "android.permission.VIBRATE",
+    "com.lafina.capstone.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION"
+   ],
+   "debuggable": "true",
+   "allowBackup": "false",
+   "usesCleartext": "false",
+   "nativeLibs": 14,
+   "nativeLoadAlignBelow16K": [],
+   "storedNotZip16KAligned": [],
+   "abis": [
+    "x86_64"
+   ],
+   "assets": [
+    "assets/stt/WHISPER-MODEL-LICENSE.txt",
+    "assets/stt/ggml-tiny-q5_1.bin",
+    "assets/stt/model-manifest.json",
+    "assets/index.android.bundle"
+   ],
+   "licenseAssets": [
+    "assets/licenses/REACT-NATIVE-SVG-NOTICES.txt",
+    "assets/licenses/WHISPER-CPP-MIT.txt"
+   ],
+   "modelAssets": [
+    {
+     "name": "assets/stt/ggml-tiny-q5_1.bin",
+     "bytes": 32152673,
+     "sha256": "818710568da3ca15689e31a743197b520007872ff9576237bda97bd1b469c3d7"
+    }
+   ]
+  },
+  {
+   "apk": "debug/app-arm64-v8a-debug.apk",
+   "package": "com.lafina.capstone.debug",
+   "versionName": "0.7.2",
+   "versionCode": "9",
+   "minSdk": "30",
+   "targetSdk": "36",
+   "permissions": [
+    "android.permission.INTERNET",
+    "android.permission.POST_NOTIFICATIONS",
+    "android.permission.RECEIVE_BOOT_COMPLETED",
+    "android.permission.RECORD_AUDIO",
+    "android.permission.SCHEDULE_EXACT_ALARM",
+    "android.permission.SYSTEM_ALERT_WINDOW",
+    "android.permission.USE_FULL_SCREEN_INTENT",
+    "android.permission.VIBRATE",
+    "com.lafina.capstone.debug.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION"
+   ],
+   "debuggable": "true",
+   "allowBackup": "false",
+   "usesCleartext": "true",
+   "nativeLibs": 14,
+   "nativeLoadAlignBelow16K": [],
+   "storedNotZip16KAligned": [],
+   "abis": [
+    "arm64-v8a"
+   ],
+   "assets": [
+    "assets/stt/WHISPER-MODEL-LICENSE.txt",
+    "assets/stt/ggml-tiny-q5_1.bin",
+    "assets/stt/model-manifest.json"
+   ],
+   "licenseAssets": [
+    "assets/licenses/WHISPER-CPP-MIT.txt",
+    "assets/licenses/REACT-NATIVE-SVG-NOTICES.txt"
+   ],
+   "modelAssets": [
+    {
+     "name": "assets/stt/ggml-tiny-q5_1.bin",
+     "bytes": 32152673,
+     "sha256": "818710568da3ca15689e31a743197b520007872ff9576237bda97bd1b469c3d7"
+    }
+   ]
+  },
+  {
+   "apk": "debug/app-x86_64-debug.apk",
+   "package": "com.lafina.capstone.debug",
+   "versionName": "0.7.2",
+   "versionCode": "9",
+   "minSdk": "30",
+   "targetSdk": "36",
+   "permissions": [
+    "android.permission.INTERNET",
+    "android.permission.POST_NOTIFICATIONS",
+    "android.permission.RECEIVE_BOOT_COMPLETED",
+    "android.permission.RECORD_AUDIO",
+    "android.permission.SCHEDULE_EXACT_ALARM",
+    "android.permission.SYSTEM_ALERT_WINDOW",
+    "android.permission.USE_FULL_SCREEN_INTENT",
+    "android.permission.VIBRATE",
+    "com.lafina.capstone.debug.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION"
+   ],
+   "debuggable": "true",
+   "allowBackup": "false",
+   "usesCleartext": "true",
+   "nativeLibs": 14,
+   "nativeLoadAlignBelow16K": [],
+   "storedNotZip16KAligned": [],
+   "abis": [
+    "x86_64"
+   ],
+   "assets": [
+    "assets/stt/WHISPER-MODEL-LICENSE.txt",
+    "assets/stt/ggml-tiny-q5_1.bin",
+    "assets/stt/model-manifest.json"
+   ],
+   "licenseAssets": [
+    "assets/licenses/WHISPER-CPP-MIT.txt",
+    "assets/licenses/REACT-NATIVE-SVG-NOTICES.txt"
+   ],
+   "modelAssets": [
+    {
+     "name": "assets/stt/ggml-tiny-q5_1.bin",
+     "bytes": 32152673,
+     "sha256": "818710568da3ca15689e31a743197b520007872ff9576237bda97bd1b469c3d7"
+    }
+   ]
+  },
+  {
+   "apk": "release/app-arm64-v8a-release.apk",
+   "package": "com.lafina.capstone",
+   "versionName": "0.7.2-preview",
+   "versionCode": "9",
+   "minSdk": "30",
+   "targetSdk": "36",
+   "permissions": [
+    "android.permission.POST_NOTIFICATIONS",
+    "android.permission.RECEIVE_BOOT_COMPLETED",
+    "android.permission.RECORD_AUDIO",
+    "android.permission.SCHEDULE_EXACT_ALARM",
+    "android.permission.USE_FULL_SCREEN_INTENT",
+    "android.permission.VIBRATE",
+    "com.lafina.capstone.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION"
+   ],
+   "debuggable": null,
+   "allowBackup": "false",
+   "usesCleartext": "false",
+   "nativeLibs": 14,
+   "nativeLoadAlignBelow16K": [],
+   "storedNotZip16KAligned": [],
+   "abis": [
+    "arm64-v8a"
+   ],
+   "assets": [
+    "assets/dexopt/baseline.prof",
+    "assets/dexopt/baseline.profm",
+    "assets/index.android.bundle",
+    "assets/stt/WHISPER-MODEL-LICENSE.txt",
+    "assets/stt/ggml-tiny-q5_1.bin",
+    "assets/stt/model-manifest.json"
+   ],
+   "licenseAssets": [
+    "assets/licenses/REACT-NATIVE-SVG-NOTICES.txt",
+    "assets/licenses/WHISPER-CPP-MIT.txt"
+   ],
+   "modelAssets": [
+    {
+     "name": "assets/stt/ggml-tiny-q5_1.bin",
+     "bytes": 32152673,
+     "sha256": "818710568da3ca15689e31a743197b520007872ff9576237bda97bd1b469c3d7"
+    }
+   ]
+  },
+  {
+   "apk": "release/app-x86_64-release.apk",
+   "package": "com.lafina.capstone",
+   "versionName": "0.7.2-preview",
+   "versionCode": "9",
+   "minSdk": "30",
+   "targetSdk": "36",
+   "permissions": [
+    "android.permission.POST_NOTIFICATIONS",
+    "android.permission.RECEIVE_BOOT_COMPLETED",
+    "android.permission.RECORD_AUDIO",
+    "android.permission.SCHEDULE_EXACT_ALARM",
+    "android.permission.USE_FULL_SCREEN_INTENT",
+    "android.permission.VIBRATE",
+    "com.lafina.capstone.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION"
+   ],
+   "debuggable": null,
+   "allowBackup": "false",
+   "usesCleartext": "false",
+   "nativeLibs": 14,
+   "nativeLoadAlignBelow16K": [],
+   "storedNotZip16KAligned": [],
+   "abis": [
+    "x86_64"
+   ],
+   "assets": [
+    "assets/dexopt/baseline.prof",
+    "assets/dexopt/baseline.profm",
+    "assets/index.android.bundle",
+    "assets/stt/WHISPER-MODEL-LICENSE.txt",
+    "assets/stt/ggml-tiny-q5_1.bin",
+    "assets/stt/model-manifest.json"
+   ],
+   "licenseAssets": [
+    "assets/licenses/REACT-NATIVE-SVG-NOTICES.txt",
+    "assets/licenses/WHISPER-CPP-MIT.txt"
+   ],
+   "modelAssets": [
+    {
+     "name": "assets/stt/ggml-tiny-q5_1.bin",
+     "bytes": 32152673,
+     "sha256": "818710568da3ca15689e31a743197b520007872ff9576237bda97bd1b469c3d7"
+    }
+   ]
+  }
+ ]
+}

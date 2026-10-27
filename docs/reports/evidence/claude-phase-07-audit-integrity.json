@@ -1,0 +1,131 @@
+{
+ "manifest": "docs/reports/evidence/phase-07-1-nol-ui-source-hashes-reviewed.json",
+ "files": 290,
+ "matchLF": 139,
+ "matchCRLF": 150,
+ "matchDiskStaged": [
+  "docs/benchmarks/phase-06-synthetic-audio.json"
+ ],
+ "mismatch": [],
+ "apks": [
+  {
+   "path": "android/app/build/outputs/apk/androidTest/dataQa/app-dataQa-androidTest.apk",
+   "reportedSha256": "84e123e4bcf5d791f1378d78fb68c09b3975b46937c39af3d64014649f40b601",
+   "freshSha256": "84e123e4bcf5d791f1378d78fb68c09b3975b46937c39af3d64014649f40b601",
+   "match": true
+  },
+  {
+   "path": "android/app/build/outputs/apk/dataQa/app-arm64-v8a-dataQa.apk",
+   "reportedSha256": "9e19a5b1bb6b49461b3de34d27cb6555d558a8ba22c5f0f82006c9b8b3ec5a75",
+   "freshSha256": "9e19a5b1bb6b49461b3de34d27cb6555d558a8ba22c5f0f82006c9b8b3ec5a75",
+   "match": true
+  },
+  {
+   "path": "android/app/build/outputs/apk/dataQa/app-x86_64-dataQa.apk",
+   "reportedSha256": "0edc3b64d46759d355f7ce2e02a43e395915f0b2b6a81c5ffe04355950cc87f6",
+   "freshSha256": "0edc3b64d46759d355f7ce2e02a43e395915f0b2b6a81c5ffe04355950cc87f6",
+   "match": true
+  },
+  {
+   "path": "android/app/build/outputs/apk/debug/app-arm64-v8a-debug.apk",
+   "reportedSha256": "2265afc2b73bbcfcf65fd83ce111c95632031f3dd5eef1e381e1e29558e56a24",
+   "freshSha256": "2265afc2b73bbcfcf65fd83ce111c95632031f3dd5eef1e381e1e29558e56a24",
+   "match": true
+  },
+  {
+   "path": "android/app/build/outputs/apk/debug/app-x86_64-debug.apk",
+   "reportedSha256": "22825f094fb2f178fa18cf23e9109e28b98f846e943b31beb810922b53a0527b",
+   "freshSha256": "22825f094fb2f178fa18cf23e9109e28b98f846e943b31beb810922b53a0527b",
+   "match": true
+  },
+  {
+   "path": "android/app/build/outputs/apk/release/app-arm64-v8a-release.apk",
+   "reportedSha256": "8b38f17c2dad7ad3a36c3d0de80b6f97a2b0a5c0cd59f28c9d00705d30449596",
+   "freshSha256": "8b38f17c2dad7ad3a36c3d0de80b6f97a2b0a5c0cd59f28c9d00705d30449596",
+   "match": true
+  },
+  {
+   "path": "android/app/build/outputs/apk/release/app-x86_64-release.apk",
+   "reportedSha256": "2c6b69d4dead9b335488bdd2e787d078c7aa08a0b239ee7fbcb3c8ed944d9cd9",
+   "freshSha256": "2c6b69d4dead9b335488bdd2e787d078c7aa08a0b239ee7fbcb3c8ed944d9cd9",
+   "match": true
+  }
+ ],
+ "notesBenchmarkSourceHashes": {
+  "scripts/benchmark-notes.cjs": true,
+  "package-lock.json": true,
+  "src/core/storage/plannerDatabase.ts": true,
+  "src/core/storage/notesRepository.ts": true,
+  "src/core/domain/plannerValidation.ts": true,
+  "src/core/domain/scheduleTime.ts": true,
+  "src/core/storage/plannerRows.ts": true
+ },
+ "notesBenchmarkRecomputedFromRawSamples": {
+  "note_create_transaction": {
+   "n": 100,
+   "p50": 5.3679,
+   "p95": 6.3229,
+   "max": 26.5516,
+   "reported": {
+    "p50": 5.3679,
+    "p95": 6.3229,
+    "max": 26.5516
+   }
+  },
+  "note_edit_transaction": {
+   "n": 100,
+   "p50": 4.7885,
+   "p95": 5.9581,
+   "max": 27.4369,
+   "reported": {
+    "p50": 4.7885,
+    "p95": 5.9581,
+    "max": 27.4369
+   }
+  },
+  "notes_first_page_20": {
+   "n": 100,
+   "p50": 0.6167,
+   "p95": 0.9038,
+   "max": 2.9305,
+   "reported": {
+    "p50": 0.6167,
+    "p95": 0.9038,
+    "max": 2.9305
+   }
+  },
+  "notes_body_search_page_20": {
+   "n": 100,
+   "p50": 0.6256,
+   "p95": 0.989,
+   "max": 1.1435,
+   "reported": {
+    "p50": 0.6256,
+    "p95": 0.989,
+    "max": 1.1435
+   }
+  },
+  "notes_body_search_no_match": {
+   "n": 100,
+   "p50": 0.6275,
+   "p95": 0.8397,
+   "max": 0.9832,
+   "reported": {
+    "p50": 0.6275,
+    "p95": 0.8397,
+    "max": 0.9832
+   }
+  },
+  "profile_exact_counts": {
+   "n": 100,
+   "p50": 0.5051,
+   "p95": 0.7144,
+   "max": 0.9835,
+   "reported": {
+    "p50": 0.5051,
+    "p95": 0.7144,
+    "max": 0.9835
+   }
+  }
+ }
+}

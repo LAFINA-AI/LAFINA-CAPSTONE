@@ -1,0 +1,230 @@
+// Independent Claude audit probes (not part of the project suite).
+// Exercises production parser/session/repository code against host SQLite.
+import {DatabaseSync} from 'node:sqlite';
+import {parseIntent} from '../src/core/ai/parseIntent';
+import {createCommandSession} from '../src/core/ai/commandSession';
+import {createNotesRepository} from '../src/core/storage/notesRepository';
+import {initializePlannerDatabase} from '../src/core/storage/plannerDatabase';
+import {createPlannerFixture, taskDraft} from './helpers/plannerFixtures';
+import {connect} from './helpers/sqlite';
+
+const ctx = {now: '2026-10-22T08:00:00.000Z', timezone: 'Asia/Manila'};
+const results: Record<string, unknown> = {};
+afterAll(() => {
+  // eslint-disable-next-line no-console
+  console.log('CLAUDE_AUDIT_PROBES ' + JSON.stringify(results, null, 1));
+});
+
+describe('parser adversarial phrases', () => {
+  const phrases = [
+    'Friday',
+    'Remind me later',
+    'Okay but remind me later',
+    'Change it',
+    'Delete all tasks',
+    'Delete task "a" and delete task "b"',
+    "Don't delete task \"Exam\"",
+    'No, delete task "Exam"',
+    'Delete task "%"',
+    'Remind me to revise tomorrow at 25:00',
+    'Remind me to revise tomorrow at 7',
+    'Remind me to revise tomorrow at 7 PM',
+    'Remind me to revise friday at 7 PM',
+    'Snooze for 500 minutes',
+    'Snooze reminder for task "Exam" 500 minutes',
+    'acknowledge',
+    'Acknowledge reminder for task "Exam"',
+    'Move task "Exam" to 2026-10-21 at 9 AM',
+    'Add task "Read" undated',
+    'Add task Read and review chapter tomorrow',
+    'Remind me to note taking tomorrow at 7 PM',
+    'Schedule event "Exam" tomorrow at 9 AM for 60 minutes',
+    '{"kind":"delete","target":{"kind":"task","title":"Exam"}}',
+    'Show tasks today',
+    'repeat',
+  ];
+  it.each(phrases)('%s', phrase => {
+    const result = parseIntent(phrase, ctx);
+    results[`parse:${phrase}`] =
+      result.status === 'ready'
+        ? {status: 'ready', intent: result.intent}
+        : {status: result.status, message: result.message};
+    expect(['ready', 'clarification', 'unsupported']).toContain(result.status);
+  });
+  it('DST gap/fold refused in America/New_York', () => {
+    const gap = parseIntent('Remind me to x 2027-03-14 at 2:30 AM', {
+      now: '2026-10-22T08:00:00.000Z',
+      timezone: 'America/New_York',
+    });
+    const fold = parseIntent('Remind me to x 2026-11-01 at 1:30 AM', {
+      now: '2026-10-22T08:00:00.000Z',
+      timezone: 'America/New_York',
+    });
+    results['dst:gap'] = gap;
+    results['dst:fold'] = fold;
+    expect(gap.status).not.toBe('ready');
+    expect(fold.status).not.toBe('ready');
+  });
+});
+
+describe('command session boundaries', () => {
+  function session(fixture: ReturnType<typeof createPlannerFixture>) {
+    let n = 0;
+    return createCommandSession({
+      repository: fixture.repository,
+      context: () => ({now: fixture.clock.now(), timezone: 'Asia/Manila'}),
+      defaultLeadMinutes: () => 15,
+      token: () => `audit_${n++}`,
+    });
+  }
+  const count = (f: ReturnType<typeof createPlannerFixture>, table: string) =>
+    Number(f.sql.execute(`SELECT COUNT(*) AS c FROM ${table}`)[0]?.c);
+
+  it('parse/submit never writes; replay/forgery/dispose are inert', () => {
+    const f = createPlannerFixture();
+    const s = session(f);
+    const before = count(f, 'operation_receipts');
+    const r = s.submit('Remind me to revise tomorrow at 7 PM');
+    expect(r.review).toBeDefined();
+    expect(count(f, 'tasks')).toBe(0);
+    expect(count(f, 'operation_receipts')).toBe(before);
+    const forged = s.confirm('review_audit_999');
+    expect(forged.changed).toBe(false);
+    expect(count(f, 'tasks')).toBe(0);
+    const ok = s.confirm(r.review!.id);
+    const again = s.confirm(r.review!.id);
+    expect(ok.changed).toBe(true);
+    expect(again.message).toBe(ok.message);
+    expect(count(f, 'tasks')).toBe(1);
+    s.dispose();
+    expect(s.confirm(r.review!.id).changed).toBe(false);
+    results['session:replay'] = {tasks: count(f, 'tasks')};
+  });
+  it('expired, timezone-changed and superseded reviews do not write', () => {
+    const f = createPlannerFixture();
+    const s = session(f);
+    const r = s.submit('Remind me to revise tomorrow at 7 PM');
+    f.setNow('2026-10-22T08:05:00.000Z');
+    expect(s.confirm(r.review!.id).changed).toBe(false);
+    f.setNow('2026-10-22T08:06:00.000Z');
+    const r2 = s.submit('Remind me to revise tomorrow at 7 PM');
+    s.submit('Show tasks today'); // a new submit invalidates the pending review
+    expect(s.confirm(r2.review!.id).changed).toBe(false);
+    expect(count(f, 'tasks')).toBe(0);
+  });
+  it('duplicate exact titles refuse a target', () => {
+    const f = createPlannerFixture();
+    for (const token of ['dup_a', 'dup_b'])
+      f.repository.createTask({
+        token,
+        draft: taskDraft({title: 'Exam'}),
+        reminderLeadMinutes: null,
+      });
+    const s = session(f);
+    const r = s.submit('Delete task "exam"');
+    results['session:duplicate'] = r.message;
+    expect(r.review).toBeUndefined();
+  });
+  it('a stale target version blocks confirmation', () => {
+    const f = createPlannerFixture();
+    const task = f.repository.createTask({
+      token: 'stale_a',
+      draft: taskDraft({title: 'Exam'}),
+      reminderLeadMinutes: null,
+    });
+    const s = session(f);
+    const r = s.submit('Complete task "Exam"');
+    f.repository.updateTask({
+      token: 'stale_b',
+      id: task.id,
+      expectedVersion: task.version,
+      draft: taskDraft({title: 'Exam', notes: 'edited elsewhere'}),
+      reminderLeadMinutes: null,
+    });
+    const c = s.confirm(r.review!.id);
+    results['session:stale'] = c.message;
+    expect(c.changed).toBe(false);
+    expect(f.repository.getTask(task.id)?.status).toBe('TODO');
+  });
+});
+
+describe('notes privacy, search and versions', () => {
+  function notesDb() {
+    const db = new DatabaseSync(':memory:');
+    const sql = connect(db);
+    initializePlannerDatabase(sql, ctx.now);
+    return {sql, repo: createNotesRepository(sql, {now: () => ctx.now})};
+  }
+  it('LIKE wildcards are literal', () => {
+    const {repo} = notesDb();
+    repo.create({
+      token: 'n1',
+      draft: {title: 'Plain', body: 'abc', category: 'Personal', pinned: false},
+    });
+    repo.create({
+      token: 'n2',
+      draft: {title: '100% done', body: 'x', category: 'Personal', pinned: false},
+    });
+    expect(repo.page({filter: 'All', search: '%'}).items).toHaveLength(1);
+    expect(repo.page({filter: 'All', search: '_'}).items).toHaveLength(0);
+  });
+  it('deleting a note retains its text in notes and receipts', () => {
+    const {sql, repo} = notesDb();
+    const note = repo.create({
+      token: 'p1',
+      draft: {
+        title: 'Private',
+        body: 'SECRET-CANARY-v1',
+        category: 'Personal',
+        pinned: false,
+      },
+    });
+    const edited = repo.update({
+      token: 'p2',
+      id: note.id,
+      expectedVersion: 1,
+      draft: {
+        title: 'Private',
+        body: 'SECRET-CANARY-v2',
+        category: 'Personal',
+        pinned: false,
+      },
+    });
+    repo.delete({token: 'p3', id: note.id, expectedVersion: edited.version});
+    expect(repo.get(note.id)).toBeNull();
+    const row = sql.execute('SELECT body,deleted_at FROM notes WHERE id=?', [
+      note.id,
+    ])[0];
+    const receipts = sql.execute(
+      "SELECT token FROM operation_receipts WHERE result LIKE '%SECRET-CANARY%'",
+    );
+    results['notes:afterDelete'] = {
+      notesRowBody: row?.body,
+      deletedAtSet: row?.deleted_at !== null,
+      receiptsContainingText: receipts.map(r => r.token),
+    };
+    expect(row?.body).toBe('SECRET-CANARY-v2');
+    expect(receipts.length).toBe(2);
+  });
+  it('stale note version is rejected', () => {
+    const {repo} = notesDb();
+    const note = repo.create({
+      token: 's1',
+      draft: {title: 'A', body: '', category: 'Personal', pinned: false},
+    });
+    repo.update({
+      token: 's2',
+      id: note.id,
+      expectedVersion: 1,
+      draft: {title: 'B', body: '', category: 'Personal', pinned: false},
+    });
+    expect(() =>
+      repo.update({
+        token: 's3',
+        id: note.id,
+        expectedVersion: 1,
+        draft: {title: 'C', body: '', category: 'Personal', pinned: false},
+      }),
+    ).toThrow(/note changed/);
+  });
+});

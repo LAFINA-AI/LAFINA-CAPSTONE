@@ -1,0 +1,42 @@
+import sys,zipfile,hashlib,json,io,glob,os,logging
+logging.disable(logging.CRITICAL)
+from loguru import logger; logger.remove()
+from androguard.core.apk import APK
+from elftools.elf.elffile import ELFFile
+base='/mnt/user-data/uploads/LAFINA-CAPSTONE/android/app/build/outputs/apk/'
+model=json.load(open('/home/claude/audit/wt/docs/third-party/phase-06-model.json'))
+res=[]
+for p in sorted(glob.glob(base+'**/*.apk',recursive=True)):
+    a=APK(p); z=zipfile.ZipFile(p)
+    r={'apk':p.replace(base,''),'package':a.get_package(),'versionName':a.get_androidversion_name(),'versionCode':a.get_androidversion_code(),
+       'minSdk':a.get_min_sdk_version(),'targetSdk':a.get_target_sdk_version(),'permissions':sorted(a.get_permissions()),
+       'debuggable':a.get_attribute_value('application','debuggable'),'allowBackup':a.get_attribute_value('application','allowBackup'),
+       'usesCleartext':a.get_attribute_value('application','usesCleartextTraffic')}
+    so=[]
+    for info in z.infolist():
+        if info.filename.endswith('.so'):
+            data=z.read(info)
+            elf=ELFFile(io.BytesIO(data))
+            aligns=sorted({seg['p_align'] for seg in elf.iter_segments() if seg['p_type']=='PT_LOAD'})
+            # header offset of local file data for zip alignment
+            import struct
+            fh=open(p,'rb'); fh.seek(info.header_offset); lh=fh.read(30); fh.close(); n,e=struct.unpack('<HH',lh[26:30]); hdr=info.header_offset+30+n+e
+            so.append({'name':info.filename,'loadAlign':aligns,'stored':info.compress_type==0,'zipDataOffsetMod16K':hdr%16384 if info.compress_type==0 else None})
+    r['nativeLibs']=len(so)
+    r['nativeLoadAlignBelow16K']=[s['name'] for s in so if min(s['loadAlign'])<16384]
+    r['storedNotZip16KAligned']=[s['name'] for s in so if s['stored'] and s['zipDataOffsetMod16K']!=0]
+    r['abis']=sorted({s['name'].split('/')[1] for s in so})
+    assets=[n for n in z.namelist() if n.startswith('assets/')]
+    r['assets']=[n for n in assets if not n.startswith('assets/licenses')][:20]
+    r['licenseAssets']=[n for n in assets if n.startswith('assets/licenses')]
+    for n in assets:
+        if n.endswith('.bin') or 'ggml' in n or 'whisper' in n.lower() and not n.endswith('.txt'):
+            h=hashlib.sha256(z.read(n)).hexdigest(); r.setdefault('modelAssets',[]).append({'name':n,'bytes':z.getinfo(n).file_size,'sha256':h})
+    res.append(r)
+json.dump({'modelManifest':model,'apks':res},open('/home/claude/audit/evidence/apk-inspection.json','w'),indent=1)
+for r in res:
+    print(r['apk'], r['package'], r['versionName'], r['versionCode'], 'min',r['minSdk'],'target',r['targetSdk'],'dbg',r['debuggable'],'backup',r['allowBackup'])
+    print('   perms:', [x.replace('android.permission.','') for x in r['permissions']])
+    print('   so:', r['nativeLibs'], r['abis'], 'align<16K:', r['nativeLoadAlignBelow16K'][:6], 'storedMisaligned:', r['storedNotZip16KAligned'][:4])
+    print('   model:', r.get('modelAssets'), 'licenses:', r['licenseAssets'])
+print(json.dumps(model)[:600])

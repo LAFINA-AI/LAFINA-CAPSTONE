@@ -1,0 +1,43 @@
+{
+ "command": "npx react-native bundle --platform android --dev false --minify false --entry-file index.js (container, Metro 0.84.6, a186bfc)",
+ "note": "Module graph of a fresh release-mode Metro bundle built from the audited source; not the Gradle-built Hermes bundle. Release APK Hermes string table also contains no boolbase/nth-check/css-select strings.",
+ "packagesInBundle": {
+  "(app source)": 61,
+  "@babel/runtime": 29,
+  "@op-engineering/op-sqlite": 3,
+  "@react-native/assets-registry": 2,
+  "@react-native/js-polyfills": 2,
+  "@react-native/normalize-colors": 1,
+  "@react-native/virtualized-lists": 15,
+  "abort-controller": 1,
+  "base64-js": 1,
+  "event-target-shim": 1,
+  "invariant": 1,
+  "memoize-one": 1,
+  "metro-runtime": 1,
+  "nullthrows": 1,
+  "promise": 3,
+  "react": 4,
+  "react-native": 451,
+  "react-native-safe-area-context": 9,
+  "react-native-svg": 112,
+  "regenerator-runtime": 1,
+  "scheduler": 2,
+  "stacktrace-parser": 1,
+  "whatwg-fetch": 1
+ },
+ "reactNativeSvgTransitivesPresent": {
+  "css-select": false,
+  "css-tree": false,
+  "boolbase": false,
+  "nth-check": false,
+  "css-what": false,
+  "domutils": false,
+  "domhandler": false,
+  "dom-serializer": false,
+  "domelementtype": false,
+  "entities": false,
+  "mdn-data": false,
+  "source-map": false
+ }
+}

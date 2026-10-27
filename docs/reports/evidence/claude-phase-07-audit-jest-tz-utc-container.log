@@ -1,0 +1,10 @@
+# TZ=UTC jest only; 2026-10-26T21:28:27Z
+PASS __tests__/speechMetrics.test.js
+PASS __tests__/formatOverviewDate.test.ts
+
+Test Suites: 34 passed, 34 total
+Tests:       520 passed, 520 total
+Snapshots:   0 total
+Time:        18.782 s, estimated 28 s
+Ran all test suites.
+EXIT 0

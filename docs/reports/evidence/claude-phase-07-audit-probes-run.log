@@ -1,0 +1,37 @@
+# 2026-10-26T21:43:01Z npx jest __tests__/claudeAuditProbe.test.ts (container clone of a186bfc; probe file not added to the user's repo)
+PASS __tests__/claudeAuditProbe.test.ts
+    ✓ Friday (22 ms)
+    ✓ Remind me later (2 ms)
+    ✓ Okay but remind me later (1 ms)
+    ✓ Change it (1 ms)
+    ✓ Delete all tasks
+    ✓ Delete task "a" and delete task "b" (1 ms)
+    ✓ Don't delete task "Exam"
+    ✓ No, delete task "Exam"
+    ✓ Delete task "%" (1 ms)
+    ✓ Remind me to revise tomorrow at 25:00 (4 ms)
+    ✓ Remind me to revise tomorrow at 7 (1 ms)
+    ✓ Remind me to revise tomorrow at 7 PM (1 ms)
+    ✓ Remind me to revise friday at 7 PM
+    ✓ Snooze for 500 minutes
+    ✓ Snooze reminder for task "Exam" 500 minutes
+    ✓ acknowledge (1 ms)
+    ✓ Acknowledge reminder for task "Exam"
+    ✓ Move task "Exam" to 2026-10-21 at 9 AM (1 ms)
+    ✓ Add task "Read" undated
+    ✓ Add task Read and review chapter tomorrow
+    ✓ Remind me to note taking tomorrow at 7 PM (1 ms)
+    ✓ Schedule event "Exam" tomorrow at 9 AM for 60 minutes
+    ✓ {"kind":"delete","target":{"kind":"task","title":"Exam"}} (1 ms)
+    ✓ Show tasks today
+    ✓ repeat (1 ms)
+    ✓ DST gap/fold refused in America/New_York (1 ms)
+    ✓ parse/submit never writes; replay/forgery/dispose are inert (9 ms)
+    ✓ expired, timezone-changed and superseded reviews do not write (5 ms)
+    ✓ duplicate exact titles refuse a target (3 ms)
+    ✓ a stale target version blocks confirmation (5 ms)
+    ✓ LIKE wildcards are literal (4 ms)
+    ✓ deleting a note retains its text in notes and receipts (4 ms)
+    ✓ stale note version is rejected (29 ms)
+Test Suites: 1 passed, 1 total
+Tests:       33 passed, 33 total

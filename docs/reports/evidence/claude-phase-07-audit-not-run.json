@@ -1,0 +1,36 @@
+{
+  "auditUtc": "2026-10-26T21:20Z to 2026-10-26T22:10Z (2026-10-27 05:20-06:10 Asia/Manila)",
+  "auditEnvironment": {
+    "executionHost": "Anthropic cloud Linux container (x86_64, 2 vCPU, 8 GiB), Ubuntu 24.04 userland, kernel 6.18",
+    "node": "v24.19.0 (installed from npm package node-linux-x64@24.19.0)",
+    "npm": "11.17.0",
+    "repositoryAccess": "Read-only staging of .git and selected files from the Windows checkout through the Claude desktop device bridge; reconstruction verified with git fsck --connectivity-only (3 dangling trees, no missing objects)",
+    "windowsShell": "UNAVAILABLE: the device bridge in this session exposed list/stage/commit file tools only (no device shell). Computer use resolves terminals/IDEs at click-only tier and the standalone emulator window did not resolve as an application; no typing into a terminal was attempted."
+  },
+  "notRun": [
+    {"check": "npm run doctor on the Windows host (JDK/SDK/NDK detection)", "status": "NOT RUN", "substitute": "doctor ran in the container: Node 24.19.0 OK; JDK/SDK absent there by design"},
+    {"check": "Bounded Gradle build (:app:testDataQaUnitTest, assembleDebug/DataQa/Release, assembleDataQaAndroidTest; ARM64+x86_64)", "status": "NOT RUN", "reason": "no Windows shell; container has no Android SDK/NDK and no verified model/corpus assets", "substitute": "existing 7 APKs re-hashed (all match report) and inspected; fresh release-mode Metro JS bundle built from audited source"},
+    {"check": "62 JVM tests", "status": "NOT RUN (fresh)", "historical": "phase-07-1-nol-ui-jvm-results-reviewed.json"},
+    {"check": "44 native instrumentation tests on emulator-5554", "status": "NOT RUN (fresh)", "historical": "phase-07-1-nol-ui-instrumentation-final.log"},
+    {"check": "Emulator discovery (adb devices -l), install -r, APK hash on device, end-to-end UI paths, fixture cleanup", "status": "NOT RUN", "note": "No device data, settings, microphone or radios were touched"},
+    {"check": "Whisper corpus benchmark / any speech accuracy or latency", "status": "NOT RUN"},
+    {"check": "Physical phone: ARM64/API30/31, low-RAM, Doze/OEM/reboot, real speech/accents, TTS audibility, calls/audio focus, PSS/startup/battery", "status": "NOT RUN / HUMAN REQUIRED"},
+    {"check": "TalkBack, physical soft-keyboard combinations, large-text visual review", "status": "NOT RUN / HUMAN REQUIRED", "note": "Final screenshots inspected only"},
+    {"check": "Graphify", "status": "NOT RUN", "reason": "not installed; npm run check:architecture (61 TS modules, no cycles/forbidden deps) used as limited substitute"},
+    {"check": "Legacy pinned revision f7e70aec re-verification", "status": "NOT RUN", "note": "Local legacy checkout HEAD abb35ac5 (unchanged since Phase00 record); GitHub API access for LAFINA-AI/LAFINA not enabled in this session. No legacy file content, .env or lafina.db was read."}
+  ],
+  "fresh": [
+    "npm ci --ignore-scripts from the unchanged lockfile (0 vulnerabilities reported)",
+    "npm run doctor (container)",
+    "npm run preflight: typecheck, lint, format:check, 520 Jest tests/34 suites, AST check 61 modules — PASS (TZ=Asia/Manila)",
+    "jest --runInBand under TZ=UTC — 520/34 PASS",
+    "33 independent audit probes against production parser/session/notes code with host SQLite — PASS (they assert the observed behavior, including the note-retention defect)",
+    "npm audit / npm audit --omit=dev / npm ls dependency graph",
+    "release-mode Metro bundle + module-graph analysis",
+    "APK hash, manifest/permission, ABI, 16 KiB ELF and zip alignment, model checksum, notice-asset inspection of the 7 existing APKs",
+    "290-file source hash manifest re-verification",
+    "notes host benchmark fresh cohort (Linux container) and parser regression run (64/64)",
+    "re-run of the incoming-defect probe scripts (results identical to the recorded cohorts)",
+    "pattern secret scan of HEAD and all reachable history"
+  ]
+}

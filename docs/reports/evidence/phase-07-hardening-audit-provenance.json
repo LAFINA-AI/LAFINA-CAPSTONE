@@ -1,0 +1,143 @@
+{
+  "utc": "2026-10-27T04:47:03.589537+00:00",
+  "baseline": "a186bfceeb05db038bb0b7a2a35b6fe17d1fab62",
+  "auditScope": "Independent historical Claude report plus25 evidencefiles; preserved unchanged.",
+  "fileCount": 26,
+  "files": [
+    {
+      "path": "docs/reports/phase-07-independent-claude-audit.md",
+      "bytes": 37552,
+      "sha256": "6c950ffcf12e454bec62cf094dac86511f578036cafd33c2b56768c47b287790"
+    },
+    {
+      "path": "docs/reports/evidence/claude-phase-07-audit-apk-inspect.py.txt",
+      "bytes": 3035,
+      "sha256": "281f91d1b8ee7468120a9b9d9cde8564edf4944d4897800c0697177e97448aa5"
+    },
+    {
+      "path": "docs/reports/evidence/claude-phase-07-audit-apk-inspection.json",
+      "bytes": 10171,
+      "sha256": "1afca0d5d93eae078c5733f290bdebbc21b1145909643febe2eb6d3900b94edb"
+    },
+    {
+      "path": "docs/reports/evidence/claude-phase-07-audit-contrast.json",
+      "bytes": 2473,
+      "sha256": "868e4bd4f4c25c08c07ff8bd0df96a26de8259eb57cd95fa74b9d410b3737e6a"
+    },
+    {
+      "path": "docs/reports/evidence/claude-phase-07-audit-dependencies.log",
+      "bytes": 3573,
+      "sha256": "f271651f4df26925462c662142151375f4fa73938a7b4f6e080c7b38b760343b"
+    },
+    {
+      "path": "docs/reports/evidence/claude-phase-07-audit-doctor-container.log",
+      "bytes": 921,
+      "sha256": "5cad26435fd855ea647a844306f8fd3bd57b30f94f17fc9db20e46feab1e025d"
+    },
+    {
+      "path": "docs/reports/evidence/claude-phase-07-audit-incoming-data-probes-rerun.json",
+      "bytes": 3550,
+      "sha256": "8ffc3c28c464afb10602a81d2ae03e69f13948cc672f7bf40d4ab8ab83030cb4"
+    },
+    {
+      "path": "docs/reports/evidence/claude-phase-07-audit-incoming-data-probes-rerun.log",
+      "bytes": 105,
+      "sha256": "3e1cf3aed2e584024a32f56d72e5212e3f3857d568471cc15ea182db745ea1f7"
+    },
+    {
+      "path": "docs/reports/evidence/claude-phase-07-audit-incoming-native-probes-rerun.json",
+      "bytes": 2342,
+      "sha256": "e80c52a6281f9e9f26ce25b765cc0b1d6c4d00728665c33fe9424ec0e0dba07a"
+    },
+    {
+      "path": "docs/reports/evidence/claude-phase-07-audit-incoming-native-probes-rerun.log",
+      "bytes": 96,
+      "sha256": "2cf05e529644b93d3a6f18c136ad109e0f45b16944a1394db83bb3f08456b18d"
+    },
+    {
+      "path": "docs/reports/evidence/claude-phase-07-audit-incoming-reconciliation.json",
+      "bytes": 9908,
+      "sha256": "bef559050d491e417935203c61af8720af0f108e5ef48342795b5a69abe36a68"
+    },
+    {
+      "path": "docs/reports/evidence/claude-phase-07-audit-integrity.json",
+      "bytes": 3652,
+      "sha256": "f9229681ef284ab1c13224c4fe66ac447b35de34e52425a4b7ee24ccb55d64ea"
+    },
+    {
+      "path": "docs/reports/evidence/claude-phase-07-audit-intents-regression-linux.json",
+      "bytes": 378074,
+      "sha256": "82eab5080d996488cc528aba630dc3d4cba0b5a611188b7c71bba4c6f12b172a"
+    },
+    {
+      "path": "docs/reports/evidence/claude-phase-07-audit-intents-regression-linux.log",
+      "bytes": 790,
+      "sha256": "65dc361962d29965bea4dc23e628ef06d3b7de49935368cdb31be0907273972d"
+    },
+    {
+      "path": "docs/reports/evidence/claude-phase-07-audit-jest-tz-utc-container.log",
+      "bytes": 276,
+      "sha256": "ef79503faebfe4b80c6ab0dcf061c6b08893211abcd5707ca207f4997b06018f"
+    },
+    {
+      "path": "docs/reports/evidence/claude-phase-07-audit-js-bundle-modules.json",
+      "bytes": 1293,
+      "sha256": "e57153cd56b3d30ea554eb39066a1b114e351e57c0732076c9cceed91e5e79e0"
+    },
+    {
+      "path": "docs/reports/evidence/claude-phase-07-audit-not-run.json",
+      "bytes": 3953,
+      "sha256": "5b2a90e732af0a0f499e573f458b6a1bbe7bf51e5861d51a0392816fd4aaf5dc"
+    },
+    {
+      "path": "docs/reports/evidence/claude-phase-07-audit-notes-host-linux.json",
+      "bytes": 125202,
+      "sha256": "76e4146ed26bbe578c8de352306acfe68eae7df7de0c53c56447d14448d4e864"
+    },
+    {
+      "path": "docs/reports/evidence/claude-phase-07-audit-notes-host-linux.log",
+      "bytes": 126,
+      "sha256": "45adcb84c87d4f1b20ee2adb74573b39a9a81aa7410a08d68dfaf32c2ff60e57"
+    },
+    {
+      "path": "docs/reports/evidence/claude-phase-07-audit-preflight-container.log",
+      "bytes": 2333,
+      "sha256": "0c562c8c0cf862242b37d22286baa13b7812feff0a4ab54b4d91d8b17a76e487"
+    },
+    {
+      "path": "docs/reports/evidence/claude-phase-07-audit-probe-results.json",
+      "bytes": 5679,
+      "sha256": "5854d21fa6d4981a893b9c8a0e7bdba3afca2f63ffcd507157100aa2b84637be"
+    },
+    {
+      "path": "docs/reports/evidence/claude-phase-07-audit-probes-run.log",
+      "bytes": 1737,
+      "sha256": "163d05ddde3563472f93155e50c38d26f2aad3ad31f372c316aefdacd87f9e8c"
+    },
+    {
+      "path": "docs/reports/evidence/claude-phase-07-audit-probes.test.ts.txt",
+      "bytes": 8326,
+      "sha256": "6c57ed40ab2d217d210f721075c01a4692a2e21728cd014e18730618661cd411"
+    },
+    {
+      "path": "docs/reports/evidence/claude-phase-07-audit-repo-state.txt",
+      "bytes": 7537,
+      "sha256": "575f127381235caaa173c118bac5c7c61694e1c29b5ca6f428454b0fdf94ad4b"
+    },
+    {
+      "path": "docs/reports/evidence/claude-phase-07-audit-secret-scan.py.txt",
+      "bytes": 1845,
+      "sha256": "bc713222cd2b853acd586c532857d19df6c8c7779d53b345c285925a10e2b98d"
+    },
+    {
+      "path": "docs/reports/evidence/claude-phase-07-audit-secret-scan.txt",
+      "bytes": 1057,
+      "sha256": "677756360479cdf84fa3f2211bf13d7ed5826d11d1115fb4becd2e03f15ca2c8"
+    }
+  ],
+  "credentialPatternHitsWithoutValues": [],
+  "limits": [
+    "Pattern scan, not complete secret detection.",
+    "Cloud tests are historical audit results, not fresh Windows/Android proof."
+  ]
+}

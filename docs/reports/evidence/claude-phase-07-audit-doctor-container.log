@@ -1,0 +1,20 @@
+# cwd: container clone of a186bfc; node v24.19.0; npm 11.17.0; 2026-10-26T21:27:25Z
+$ npm run doctor
+
+> lafina-capstone@0.7.2 doctor
+> node scripts/doctor.mjs
+
+Node: v24.19.0; expected 24.19.x
+JAVA_HOME: not set / not verified
+Android SDK: set ANDROID_HOME to installed SDK
+platforms/android-36: not found
+build-tools/36.0.0: not found
+ndk/27.1.12297006: not found
+cmake/3.22.1: not found
+Picked up JAVA_TOOL_OPTIONS: <container proxy/truststore settings redacted>
+openjdk version "21.0.12.1" 2026-08-18
+OpenJDK Runtime Environment (build 21.0.12.1+1-1-24.04.4-Ubuntu)
+OpenJDK 64-Bit Server VM (build 21.0.12.1+1-1-24.04.4-Ubuntu, mixed mode, sharing)
+Device tests: run adb devices -l locally; do not commit serials. A host inventory is not native build or device proof.
+App models/backend: not required by Phase 01. Graphify: not installed; npm run check:architecture is the reproducible import/cycle substitute.
+EXIT 0

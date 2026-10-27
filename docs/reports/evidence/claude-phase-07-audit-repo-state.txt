@@ -1,0 +1,100 @@
+# Claude independent audit — repository state (read from a staged copy of the user's .git; no command ran in the user's checkout)
+audit_utc: 2026-10-26T21:42:31Z
+method: .git refs/packs/index staged read-only from C:\L3mxr\Github Repositories\LAFINA-CAPSTONE via device bridge; working tree compared by index stat (size+mtime) and Windows directory listings
+
+HEAD file: ref: refs/heads/codex/phase-07-1-nol-ui
+HEAD commit: a186bfceeb05db038bb0b7a2a35b6fe17d1fab62  2026-10-27 05:05:24 +0800 CyberSphinxxx feat: align Nol student UI with confirmed local services
+branch tip codex/phase-07-1-nol-ui: a186bfceeb05db038bb0b7a2a35b6fe17d1fab62
+branch tip codex/phase-07-1-integration: 589508d18257c91103056fc8c6ebce5e88c513d3
+local main: b3eefb853be7c658a38186d330eb8aaf4be8eea2
+
+[remote]
+https://github.com/LAFINA-AI/LAFINA-CAPSTONE.git
++refs/heads/*:refs/remotes/origin/*
+tracking for codex/phase-07-1-nol-ui: none (no upstream configured)
+
+[local remote-tracking refs as found]
+refs/remotes/origin/HEAD 9c183a20eca2377b5e54f219c5f83460b18af81b
+refs/remotes/origin/Nol-branch 9c183a20eca2377b5e54f219c5f83460b18af81b
+refs/remotes/origin/agy-development-cont 9c183a20eca2377b5e54f219c5f83460b18af81b
+refs/remotes/origin/main 9c183a20eca2377b5e54f219c5f83460b18af81b
+refs/tags/v0.1.0 b972c04ca068c6da6be614400202a3afcc281f19
+refs/tags/v0.2.0 4b1980853f612c6ebf1ae29a32376b87cce69938
+refs/tags/v0.3.0 1e0d4480bcf03cf5f39da493cd6bf26f77f23798
+refs/tags/v0.4.0 214ce4934639ca92e0209713bf9416d43e9daafb
+refs/tags/v0.5.0 bc77c3a9d5e5f200751a9dfe8f45d5d13b815670
+
+[FETCH_HEAD as found]
+9c183a20eca2377b5e54f219c5f83460b18af81b		branch 'Nol-branch' of https://github.com/LAFINA-AI/LAFINA-CAPSTONE
+[ORIG_HEAD as found] 589508d18257c91103056fc8c6ebce5e88c513d3
+
+[fresh remote metadata] $ git ls-remote https://github.com/LAFINA-AI/LAFINA-CAPSTONE.git  (run 2026-10-26T21:24:10Z)
+9c183a20eca2377b5e54f219c5f83460b18af81b	HEAD
+9c183a20eca2377b5e54f219c5f83460b18af81b	refs/heads/Nol-branch
+9c183a20eca2377b5e54f219c5f83460b18af81b	refs/heads/agy-development-cont
+9c183a20eca2377b5e54f219c5f83460b18af81b	refs/heads/main
+b972c04ca068c6da6be614400202a3afcc281f19	refs/tags/v0.1.0
+7d4105e8803279810584f61a01f1ab3dada1bace	refs/tags/v0.1.0^{}
+4b1980853f612c6ebf1ae29a32376b87cce69938	refs/tags/v0.2.0
+b3eefb853be7c658a38186d330eb8aaf4be8eea2	refs/tags/v0.2.0^{}
+1e0d4480bcf03cf5f39da493cd6bf26f77f23798	refs/tags/v0.3.0
+214ce4934639ca92e0209713bf9416d43e9daafb	refs/tags/v0.4.0
+bc77c3a9d5e5f200751a9dfe8f45d5d13b815670	refs/tags/v0.5.0
+$ git fetch origin main Nol-branch  (in the container copy only; user's refs untouched)
+result: origin/main=9c183a20eca2377b5e54f219c5f83460b18af81b origin/Nol-branch=9c183a20eca2377b5e54f219c5f83460b18af81b; no new commits beyond 9c183a2
+remote branches do NOT contain codex/* or 0d06b24/ac6ea2a/589508d/a186bfc (reviewed history exists only locally)
+
+[working tree]
+tracked files: 724; Windows index staged-vs-HEAD diff: none
+all 724 tracked file mtimes <= index write time (1793048724077 ms); android/ tree stat-identical to index; no unignored untracked files found in listed directories
+290 frozen source hashes (phase-07-1-nol-ui-source-hashes-reviewed.json) re-matched; 4 working files re-hashed from disk (App.tsx, package-lock.json, phase-06-synthetic-audio.json) identical
+ignored local-only items present: .local/, .phase01-template/, LAFINA_CAPSTONE_Codex_Phase_Gated_Handoff/, prompts/, START_HERE.md, STARTING_PROMPT.md, node_modules/, android build outputs
+note: .git/refs/codex/turn-diffs/checkpoints/... created 2026-10-26T21:20:58Z (Codex tool snapshot ref, not a working-tree change)
+conclusion: CLEAN at a186bfceeb05db038bb0b7a2a35b6fe17d1fab62 (matches expected handoff)
+
+[ancestry]
+ac6ea2a parents: 0d06b24f0e650df03baf4e0f6abbe5e385e48916 9c183a20eca2377b5e54f219c5f83460b18af81b
+merge-base(0d06b24,9c183a2): b3eefb853be7c658a38186d330eb8aaf4be8eea2
+9c183a2 is ancestor of HEAD: yes
+commits b3eefb8..9c183a2: 12
+
+[diff stats]
+b3eefb8..0d06b24:  370 files changed, 170520 insertions(+), 276 deletions(-)
+b3eefb8..9c183a2:  1417 files changed, 434526 insertions(+), 11598 deletions(-)
+0d06b24..ac6ea2a:  59 files changed, 13139 insertions(+), 60 deletions(-)
+9c183a2..ac6ea2a:  1685 files changed, 102125 insertions(+), 341730 deletions(-)
+ac6ea2a..589508d:  3 files changed, 71 insertions(+), 2 deletions(-)
+589508d..a186bfc:  100 files changed, 18323 insertions(+), 1243 deletions(-)
+0d06b24..a186bfc:  147 files changed, 31371 insertions(+), 1143 deletions(-)
+0d06b24..ac6ea2a non-doc paths:
+   __tests__/CalendarMonth.test.tsx            | 153 ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+   android/app/build.gradle                    |   4 +--
+   package.json                                |   2 +-
+   scripts/audit-incoming-data.cjs             | 218 ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+   scripts/audit-incoming-native.cjs           | 102 +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+   scripts/check-architecture.mjs              |   7 +++++
+   src/app/App.tsx                             |  52 ++++++++++++++++++++++++++++++------
+   src/assets/lafina_app_logo.png              | Bin 0 -> 118291 bytes
+   src/core/theme/theme.ts                     |  11 +++++---
+   src/features/calendar/CalendarMonth.tsx     | 169 ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+   src/features/calendar/PlannerScreen.tsx     |  98 ++++++++++++++++++++++++++++++++++++++++++++-----------------------
+   src/features/calendar/calendarMonthModel.ts |  79 ++++++++++++++++++++++++++++++++++++++++++++++++++++++
+   12 files changed, 846 insertions(+), 49 deletions(-)
+0d06b24..a186bfc core/native paths:
+   android/app/src/main/assets/licenses/REACT-NATIVE-SVG-NOTICES.txt        | 343 +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+   android/app/src/main/java/com/lafina/capstone/reminders/ReminderStore.kt |   3 +-
+   src/core/domain/notes.ts                                                 |  40 ++++++++++++++
+   src/core/domain/preferences.ts                                           |  19 ++++++-
+   src/core/storage/notesRepository.ts                                      | 298 +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+   src/core/storage/openNotes.ts                                            |   6 +++
+   src/core/storage/plannerDatabase.ts                                      |  48 ++++++++++++-----
+   src/core/storage/runPlannerSqlChecks.ts                                  |  28 +++++++++-
+   src/core/theme/theme.ts                                                  |  39 ++++++++++++--
+   src/core/ui/Icon.tsx                                                     | 156 ++++++++++++++++++++++++++++++++++++++++++++++++++++++
+   10 files changed, 959 insertions(+), 21 deletions(-)
+conflict markers in HEAD: 0
+test files removed vs checkpoint: 0
+static it/test count: 0d06b24=282 HEAD=329; Kotlin @Test: 0d06b24=105 HEAD=107
+historical reports/benchmarks modified after their phase: none (b3eefb8..HEAD for phase 00-03 docs; 0d06b24..HEAD only additions)
+incoming src files absent from HEAD: 141
+schema17/lafina.db references in HEAD src/android/scripts: 0; fetch()/http(s) URLs in src: 0

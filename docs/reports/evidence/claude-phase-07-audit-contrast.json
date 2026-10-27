@@ -1,0 +1,115 @@
+{
+ "method": "WCAG 2.x relative-luminance contrast from src/core/theme/theme.ts tokens (static calculation, not a device rendering)",
+ "pairs": [
+  {
+   "theme": "dark",
+   "use": "Chat Send icon onBrand on accent",
+   "fg": "#FFFFFF",
+   "bg": "#FF8F96",
+   "ratio": 2.18,
+   "where": "src/features/chat/ChatScreen.tsx:354-360",
+   "meets3to1": false,
+   "meets4_5to1": false
+  },
+  {
+   "theme": "light",
+   "use": "Chat Send icon onBrand on accent",
+   "fg": "#FFFFFF",
+   "bg": "#F75A5A",
+   "ratio": 3.2,
+   "where": "same",
+   "meets3to1": true,
+   "meets4_5to1": false
+  },
+  {
+   "theme": "dark",
+   "use": "Notes add FAB onPrimary on accent",
+   "fg": "#3C0011",
+   "bg": "#FF8F96",
+   "ratio": 8.02,
+   "where": "src/features/notes/NotesList.tsx:219-224",
+   "meets3to1": true,
+   "meets4_5to1": true
+  },
+  {
+   "theme": "light",
+   "use": "Notes add FAB onPrimary on accent",
+   "fg": "#FFFFFF",
+   "bg": "#F75A5A",
+   "ratio": 3.2,
+   "where": "same",
+   "meets3to1": true,
+   "meets4_5to1": false
+  },
+  {
+   "theme": "both",
+   "use": "Mic/Calendar FAB onBrand on brand",
+   "fg": "#FFFFFF",
+   "bg": "#E6003A",
+   "ratio": 4.75,
+   "where": "StudentTabBar.tsx:86, PlannerScreen.tsx:656",
+   "meets3to1": true,
+   "meets4_5to1": true
+  },
+  {
+   "theme": "light",
+   "use": "Selected tab icon accent on surface",
+   "fg": "#F75A5A",
+   "bg": "#FFFFFF",
+   "ratio": 3.2,
+   "where": "StudentTabBar.tsx:45",
+   "meets3to1": true,
+   "meets4_5to1": false
+  },
+  {
+   "theme": "dark",
+   "use": "Selected tab icon accent on surface",
+   "fg": "#FF8F96",
+   "bg": "#1C1C1E",
+   "ratio": 7.8,
+   "where": "same",
+   "meets3to1": true,
+   "meets4_5to1": true
+  },
+  {
+   "theme": "light",
+   "use": "muted text on background",
+   "fg": "#615D66",
+   "bg": "#FAF9F7",
+   "ratio": 6.11,
+   "where": "",
+   "meets3to1": true,
+   "meets4_5to1": true
+  },
+  {
+   "theme": "dark",
+   "use": "muted text on background",
+   "fg": "#C3BDC6",
+   "bg": "#121212",
+   "ratio": 10.18,
+   "where": "",
+   "meets3to1": true,
+   "meets4_5to1": true
+  },
+  {
+   "theme": "light",
+   "use": "\"Alerts limited\" danger on subtle",
+   "fg": "#A6142B",
+   "bg": "#F0F0F0",
+   "ratio": 6.69,
+   "where": "PlannerScreen.tsx:494-502",
+   "meets3to1": true,
+   "meets4_5to1": true
+  },
+  {
+   "theme": "dark",
+   "use": "\"Alerts limited\" danger on subtle",
+   "fg": "#FFB0B8",
+   "bg": "#29272C",
+   "ratio": 8.55,
+   "where": "same",
+   "meets3to1": true,
+   "meets4_5to1": true
+  }
+ ]
+}

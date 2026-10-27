@@ -1,0 +1,286 @@
+{
+ "incoming": "9c183a20eca2377b5e54f219c5f83460b18af81b",
+ "base": "b3eefb853be7c658a38186d330eb8aaf4be8eea2",
+ "totalPaths": 1417,
+ "areas": {
+  "Build/config/root app": {
+   "decision": "Restored to checkpoint; incoming INTERNET/FGS permissions not adopted",
+   "paths": 20,
+   "added": 7,
+   "modified": 12,
+   "deleted": 1,
+   "examples": [
+    ".eslintrc.js",
+    ".github/workflows/phase-01.yml",
+    ".gitignore",
+    "App.tsx"
+   ]
+  },
+  "Incoming docs/phase rewrites/AGENTS scope change": {
+   "decision": "Not adopted; owner governance docs retained",
+   "paths": 22,
+   "added": 7,
+   "modified": 15,
+   "deleted": 0,
+   "examples": [
+    "AGENTS.md",
+    "docs/releases/v0.3.0.md",
+    "docs/reports/phase-01-report.md",
+    "docs/reports/phase-02-report.md"
+   ]
+  },
+  "Incoming tests (and deletion of capstone tests)": {
+   "decision": "Capstone suites restored; incoming tests targeted excluded modules",
+   "paths": 30,
+   "added": 12,
+   "modified": 1,
+   "deleted": 17,
+   "examples": [
+    "__mocks__/fileMock.js",
+    "__mocks__/opSqliteMock.js",
+    "__mocks__/opSqliteWorker.js",
+    "__tests__/App.test.tsx"
+   ]
+  },
+  "Voice modal with direct mutations; JS call screen": {
+   "decision": "Intentionally excluded; existing review/confirm + native ReminderActivity",
+   "paths": 5,
+   "added": 5,
+   "modified": 0,
+   "deleted": 0,
+   "examples": [
+    "__tests__/ai/phase06SttAndVoiceModal.test.tsx",
+    "src/ui/components/VoiceModal.tsx",
+    "src/ui/components/call/CallAnsweredView.tsx",
+    "src/ui/components/call/ReminderPermissionModal.tsx"
+   ]
+  },
+  "Incoming JS poller + SharedPreferences alarm scheduler/call dispatcher": {
+   "decision": "Intentionally excluded; existing native reminder runtime kept (competing scheduler avoided)",
+   "paths": 16,
+   "added": 16,
+   "modified": 0,
+   "deleted": 0,
+   "examples": [
+    "android/app/src/androidTest/java/com/lafina/capstone/LafinaReminderAndroidTest.kt",
+    "android/app/src/main/java/com/lafina/capstone/LafinaReminderModule.kt",
+    "android/app/src/main/java/com/lafina/capstone/LafinaReminderReceiver.kt",
+    "android/app/src/main/java/com/lafina/capstone/LafinaReminderService.kt"
+   ]
+  },
+  "Silero VAD ONNX model": {
+   "decision": "Intentionally excluded (unreviewed model/ONNX runtime)",
+   "paths": 1,
+   "added": 1,
+   "modified": 0,
+   "deleted": 0,
+   "examples": [
+    "android/app/src/main/assets/models/silero_vad.onnx"
+   ]
+  },
+  "Incoming JNI/CMake": {
+   "decision": "Preserved through equivalent existing implementation (jni/whisper_jni.cpp)",
+   "paths": 2,
+   "added": 2,
+   "modified": 0,
+   "deleted": 0,
+   "examples": [
+    "android/app/src/main/cpp/CMakeLists.txt",
+    "android/app/src/main/cpp/whisper_jni.cc"
+   ]
+  },
+  "Vendor whisper.cpp (incoming revision)": {
+   "decision": "Preserved via existing reviewed vendor copy (Phase06 SOURCE-MANIFEST); incoming copy not used",
+   "paths": 1129,
+   "added": 1129,
+   "modified": 0,
+   "deleted": 0,
+   "examples": [
+    "android/app/src/main/cpp/third_party/whisper.cpp/AUTHORS",
+    "android/app/src/main/cpp/third_party/whisper.cpp/CMakeLists.txt",
+    "android/app/src/main/cpp/third_party/whisper.cpp/LICENSE",
+    "android/app/src/main/cpp/third_party/whisper.cpp/cmake/DefaultTargetOptions.cmake"
+   ]
+  },
+  "Incoming network/audio/keystore native modules": {
+   "decision": "Intentionally excluded (cloud/auth support)",
+   "paths": 4,
+   "added": 4,
+   "modified": 0,
+   "deleted": 0,
+   "examples": [
+    "android/app/src/main/java/com/lafina/capstone/AndroidConnectivityModule.kt",
+    "android/app/src/main/java/com/lafina/capstone/AndroidKeystoreModule.kt",
+    "android/app/src/main/java/com/lafina/capstone/LafinaAudioPlayerModule.kt",
+    "android/app/src/test/java/com/lafina/capstone/LafinaAudioPlayerTest.kt"
+   ]
+  },
+  "Splash, auth backdrop, onboarding/product tour, theme-reveal animation": {
+   "decision": "Excluded: auth screens by scope; splash/tour/theme-reveal undocumented omission",
+   "paths": 21,
+   "added": 21,
+   "modified": 0,
+   "deleted": 0,
+   "examples": [
+    "android/app/src/main/java/com/lafina/capstone/LafinaGrainientView.kt",
+    "android/app/src/main/java/com/lafina/capstone/LafinaGrainientViewManager.kt",
+    "android/app/src/main/java/com/lafina/capstone/LafinaThemeRevealModule.kt",
+    "src/ui/components/auth/AuthBackdrop.tsx"
+   ]
+  },
+  "Incoming STT/TTS services (Base.en+VAD, react-native-tts, Gemini cloud TTS)": {
+   "decision": "Intentionally excluded; existing offline STT/system TTS kept",
+   "paths": 7,
+   "added": 7,
+   "modified": 0,
+   "deleted": 0,
+   "examples": [
+    "android/app/src/main/java/com/lafina/capstone/LafinaSpeechToTextModule.kt",
+    "android/app/src/test/java/com/lafina/capstone/LafinaSpeechToTextTest.kt",
+    "src/ai/index.ts",
+    "src/ai/native/speechCapture.ts"
+   ]
+  },
+  "Launcher icon set/colors": {
+   "decision": "Not adopted (existing vector launcher); undocumented",
+   "paths": 18,
+   "added": 17,
+   "modified": 1,
+   "deleted": 0,
+   "examples": [
+    "android/app/src/main/res/mipmap-anydpi-v26/ic_launcher.xml",
+    "android/app/src/main/res/mipmap-anydpi-v26/ic_launcher_round.xml",
+    "android/app/src/main/res/mipmap-hdpi/ic_launcher.png",
+    "android/app/src/main/res/mipmap-hdpi/ic_launcher_foreground.png"
+   ]
+  },
+  "Brand assets": {
+   "decision": "Adapted: one logo; others (splash/icons) not used",
+   "paths": 10,
+   "added": 10,
+   "modified": 0,
+   "deleted": 0,
+   "examples": [
+    "src/assets/arc_screen_xml.ts",
+    "src/assets/icon.png",
+    "src/assets/lafina_app_logo.png",
+    "src/assets/lafina_default_logo.png"
+   ]
+  },
+  "Accounts, cloud, sync, self-updater": {
+   "decision": "Intentionally excluded by project scope",
+   "paths": 25,
+   "added": 25,
+   "modified": 0,
+   "deleted": 0,
+   "examples": [
+    "src/cloud/accountLinkService.ts",
+    "src/cloud/authService.ts",
+    "src/cloud/cloudClient.ts",
+    "src/cloud/entitlements.ts"
+   ]
+  },
+  "Tab bar and theme system": {
+   "decision": "Adapted into StudentTabBar + existing semantic theme (no second provider)",
+   "paths": 13,
+   "added": 12,
+   "modified": 0,
+   "deleted": 1,
+   "examples": [
+    "src/core/theme/ThemeContext.tsx",
+    "src/ui/components/CustomTabBar.tsx",
+    "src/ui/contexts/ThemeContext.tsx",
+    "src/ui/theme/categoryColors.ts"
+   ]
+  },
+  "Incoming lafina.db schema17 storage layer": {
+   "decision": "Intentionally excluded (incompatible DB); notes re-implemented locally",
+   "paths": 17,
+   "added": 17,
+   "modified": 0,
+   "deleted": 0,
+   "examples": [
+    "src/storage/behaviorStore.ts",
+    "src/storage/calendarVisibilityStore.ts",
+    "src/storage/chatStore.ts",
+    "src/storage/database.ts"
+   ]
+  },
+  "Calendar screens (Month/Week/Day, add modals, time blocks, holidays, layers, ICS import)": {
+   "decision": "Adapted: Month/Week/timeline composition; Excluded/undocumented: time blocks, PH holidays, layers, overdue section, quick toggle; ICS import excluded",
+   "paths": 17,
+   "added": 17,
+   "modified": 0,
+   "deleted": 0,
+   "examples": [
+    "src/ui/components/calendar/CalendarLayersModal.tsx",
+    "src/ui/screens/calendar/CalendarScreen.tsx",
+    "src/ui/screens/calendar/components/AddBlockModal.tsx",
+    "src/ui/screens/calendar/components/AddTaskEventModal.tsx"
+   ]
+  },
+  "Profile (stats, avatar file/camera, privacy modal, updater item, Pro tag)": {
+   "decision": "Adapted: identity/stats/settings rows; excluded: camera avatar, updater, Pro",
+   "paths": 7,
+   "added": 7,
+   "modified": 0,
+   "deleted": 0,
+   "examples": [
+    "src/ui/components/profile/AppUpdateItem.tsx",
+    "src/ui/components/profile/PrivacyModal.tsx",
+    "src/ui/components/profile/ProfileStats.tsx",
+    "src/ui/components/profile/SettingItem.tsx"
+   ]
+  },
+  "Preferences settings screen": {
+   "decision": "Preserved via existing PreferencesForm",
+   "paths": 1,
+   "added": 1,
+   "modified": 0,
+   "deleted": 0,
+   "examples": [
+    "src/ui/screens/PreferencesSettingsScreen.tsx"
+   ]
+  },
+  "Notes screens (rich text, checklists, images, tags, drag reorder, grid)": {
+   "decision": "Adapted: list/search/pin/2 categories/CRUD; Undocumented omissions: rich text/checklist, tags, custom categories, drag reorder; images intentionally excluded",
+   "paths": 12,
+   "added": 12,
+   "modified": 0,
+   "deleted": 0,
+   "examples": [
+    "src/ui/screens/notes/NotesScreen.tsx",
+    "src/ui/screens/notes/components/NoteBody.tsx",
+    "src/ui/screens/notes/components/NoteCard.tsx",
+    "src/ui/screens/notes/components/NoteEditor.tsx"
+   ]
+  },
+  "Incoming deletion/replacement of capstone core (Kotlin reminders, core domain/storage/ui, app root)": {
+   "decision": "Reverted: checkpoint core retained unchanged (git diff 0d06b24..a186bfc touches only additive notes/schema3/theme/icon files)",
+   "paths": 39,
+   "added": 0,
+   "modified": 3,
+   "deleted": 36,
+   "examples": [
+    "android/app/src/main/java/com/lafina/capstone/CapstoneBuildPackage.kt",
+    "android/app/src/main/java/com/lafina/capstone/MainActivity.kt",
+    "android/app/src/main/java/com/lafina/capstone/MainApplication.kt",
+    "android/app/src/main/java/com/lafina/capstone/reminders/AlarmRegistrationPolicy.kt",
+    "android/app/src/main/java/com/lafina/capstone/reminders/ReminderActivity.kt",
+    "android/app/src/main/java/com/lafina/capstone/reminders/ReminderCapabilities.kt"
+   ]
+  },
+  "Whisper Base.en Q5_1 model binary": {
+   "decision": "Intentionally excluded (unreviewed larger model); remains in upstream history only",
+   "paths": 1,
+   "added": 1,
+   "modified": 0,
+   "deleted": 0,
+   "examples": [
+    "android/app/src/main/assets/models/ggml-base.en-q5_1.bin"
+   ]
+  }
+ },
+ "unclassified": [],
+ "method": "Path-prefix classification of `git diff --name-status b3eefb8 9c183a2` (Claude audit, 2026-10-27). Area decision cross-checked against current tree (a186bfc) and ADR-021/022; see report section 3."
+}
