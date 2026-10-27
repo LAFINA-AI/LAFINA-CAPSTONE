@@ -21,7 +21,7 @@ export function formatOverviewDate(
         ? `${date.toISOString().slice(0, 10)} (UTC)`
         : 'Date unavailable',
       warning: validDate
-        ? 'This device could not format the saved timezone. Showing the UTC date; check your timezone in Settings.'
+        ? 'This device could not format the saved timezone. Showing the UTC date; check your timezone in Profile → Scheduling & Reminder Preferences.'
         : 'The current date is unavailable. Check the device clock in Android settings.',
     };
   }

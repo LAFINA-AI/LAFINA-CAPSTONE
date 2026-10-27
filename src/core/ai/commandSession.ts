@@ -63,7 +63,7 @@ function future(at: string, context: IntentContext, lead: number | null) {
     Date.parse(at) - lead * 60_000 <= Date.parse(context.now)
   ) {
     throw new Error(
-      'The reminder lead would put its alert in the past. Choose a later time or change the default lead in Settings.',
+      'The reminder lead would put its alert in the past. Choose a later time or change the default lead in Profile → Scheduling & Reminder Preferences.',
     );
   }
 }

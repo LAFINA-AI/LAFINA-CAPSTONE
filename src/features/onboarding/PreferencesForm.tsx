@@ -105,7 +105,7 @@ export function PreferencesForm({
           <>
             <Message text="Keep your academic plans on this phone. No account, email or internet connection is needed." />
             <Message text="You stay in control. Plan tasks and classes locally. Android reminders and optional offline system voices have visible controls and text fallbacks." />
-            <Message text="Nothing is uploaded. You can change these preferences or reopen setup in Settings." />
+            <Message text="Nothing is uploaded. You can change these preferences or reopen setup in Profile → Scheduling & Reminder Preferences." />
             <Button label="Set up my planner" onPress={() => setStep(1)} />
           </>
         ) : (

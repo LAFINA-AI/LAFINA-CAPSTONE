@@ -1,0 +1,1017 @@
+{
+  "utc": "2026-10-27T05:00:41.602532+00:00",
+  "nativeApks": [
+    {
+      "apk": "android/app/build/outputs/apk/dataQa/app-arm64-v8a-dataQa.apk",
+      "libraries": [
+        {
+          "entry": "lib/arm64-v8a/libappmodules.so",
+          "loadAlignments": [
+            16384,
+            16384,
+            16384,
+            16384
+          ],
+          "compression": 0,
+          "zipPayloadAligned16KiB": true,
+          "pass": true
+        },
+        {
+          "entry": "lib/arm64-v8a/libc++_shared.so",
+          "loadAlignments": [
+            16384,
+            16384,
+            16384,
+            16384
+          ],
+          "compression": 0,
+          "zipPayloadAligned16KiB": true,
+          "pass": true
+        },
+        {
+          "entry": "lib/arm64-v8a/libcapstone_whisper.so",
+          "loadAlignments": [
+            16384,
+            16384,
+            16384,
+            16384
+          ],
+          "compression": 0,
+          "zipPayloadAligned16KiB": true,
+          "pass": true
+        },
+        {
+          "entry": "lib/arm64-v8a/libfbjni.so",
+          "loadAlignments": [
+            16384,
+            16384,
+            16384
+          ],
+          "compression": 0,
+          "zipPayloadAligned16KiB": true,
+          "pass": true
+        },
+        {
+          "entry": "lib/arm64-v8a/libhermestooling.so",
+          "loadAlignments": [
+            16384,
+            16384,
+            16384
+          ],
+          "compression": 0,
+          "zipPayloadAligned16KiB": true,
+          "pass": true
+        },
+        {
+          "entry": "lib/arm64-v8a/libhermesvm.so",
+          "loadAlignments": [
+            16384,
+            16384,
+            16384
+          ],
+          "compression": 0,
+          "zipPayloadAligned16KiB": true,
+          "pass": true
+        },
+        {
+          "entry": "lib/arm64-v8a/libimagepipeline.so",
+          "loadAlignments": [
+            16384,
+            16384,
+            16384
+          ],
+          "compression": 0,
+          "zipPayloadAligned16KiB": true,
+          "pass": true
+        },
+        {
+          "entry": "lib/arm64-v8a/libjsi.so",
+          "loadAlignments": [
+            16384,
+            16384,
+            16384
+          ],
+          "compression": 0,
+          "zipPayloadAligned16KiB": true,
+          "pass": true
+        },
+        {
+          "entry": "lib/arm64-v8a/libnative-filters.so",
+          "loadAlignments": [
+            16384,
+            16384,
+            16384
+          ],
+          "compression": 0,
+          "zipPayloadAligned16KiB": true,
+          "pass": true
+        },
+        {
+          "entry": "lib/arm64-v8a/libnative-imagetranscoder.so",
+          "loadAlignments": [
+            16384,
+            16384,
+            16384
+          ],
+          "compression": 0,
+          "zipPayloadAligned16KiB": true,
+          "pass": true
+        },
+        {
+          "entry": "lib/arm64-v8a/libop-sqlite.so",
+          "loadAlignments": [
+            16384,
+            16384,
+            16384,
+            16384
+          ],
+          "compression": 0,
+          "zipPayloadAligned16KiB": true,
+          "pass": true
+        },
+        {
+          "entry": "lib/arm64-v8a/libreact_codegen_rnsvg.so",
+          "loadAlignments": [
+            16384,
+            16384,
+            16384,
+            16384
+          ],
+          "compression": 0,
+          "zipPayloadAligned16KiB": true,
+          "pass": true
+        },
+        {
+          "entry": "lib/arm64-v8a/libreact_codegen_safeareacontext.so",
+          "loadAlignments": [
+            16384,
+            16384,
+            16384,
+            16384
+          ],
+          "compression": 0,
+          "zipPayloadAligned16KiB": true,
+          "pass": true
+        },
+        {
+          "entry": "lib/arm64-v8a/libreactnative.so",
+          "loadAlignments": [
+            16384,
+            16384,
+            16384
+          ],
+          "compression": 0,
+          "zipPayloadAligned16KiB": true,
+          "pass": true
+        }
+      ]
+    },
+    {
+      "apk": "android/app/build/outputs/apk/dataQa/app-x86_64-dataQa.apk",
+      "libraries": [
+        {
+          "entry": "lib/x86_64/libappmodules.so",
+          "loadAlignments": [
+            16384,
+            16384,
+            16384,
+            16384
+          ],
+          "compression": 0,
+          "zipPayloadAligned16KiB": true,
+          "pass": true
+        },
+        {
+          "entry": "lib/x86_64/libc++_shared.so",
+          "loadAlignments": [
+            16384,
+            16384,
+            16384,
+            16384
+          ],
+          "compression": 0,
+          "zipPayloadAligned16KiB": true,
+          "pass": true
+        },
+        {
+          "entry": "lib/x86_64/libcapstone_whisper.so",
+          "loadAlignments": [
+            16384,
+            16384,
+            16384,
+            16384
+          ],
+          "compression": 0,
+          "zipPayloadAligned16KiB": true,
+          "pass": true
+        },
+        {
+          "entry": "lib/x86_64/libfbjni.so",
+          "loadAlignments": [
+            16384,
+            16384,
+            16384
+          ],
+          "compression": 0,
+          "zipPayloadAligned16KiB": true,
+          "pass": true
+        },
+        {
+          "entry": "lib/x86_64/libhermestooling.so",
+          "loadAlignments": [
+            16384,
+            16384,
+            16384
+          ],
+          "compression": 0,
+          "zipPayloadAligned16KiB": true,
+          "pass": true
+        },
+        {
+          "entry": "lib/x86_64/libhermesvm.so",
+          "loadAlignments": [
+            16384,
+            16384,
+            16384
+          ],
+          "compression": 0,
+          "zipPayloadAligned16KiB": true,
+          "pass": true
+        },
+        {
+          "entry": "lib/x86_64/libimagepipeline.so",
+          "loadAlignments": [
+            16384,
+            16384,
+            16384
+          ],
+          "compression": 0,
+          "zipPayloadAligned16KiB": true,
+          "pass": true
+        },
+        {
+          "entry": "lib/x86_64/libjsi.so",
+          "loadAlignments": [
+            16384,
+            16384,
+            16384
+          ],
+          "compression": 0,
+          "zipPayloadAligned16KiB": true,
+          "pass": true
+        },
+        {
+          "entry": "lib/x86_64/libnative-filters.so",
+          "loadAlignments": [
+            16384,
+            16384,
+            16384
+          ],
+          "compression": 0,
+          "zipPayloadAligned16KiB": true,
+          "pass": true
+        },
+        {
+          "entry": "lib/x86_64/libnative-imagetranscoder.so",
+          "loadAlignments": [
+            16384,
+            16384,
+            16384
+          ],
+          "compression": 0,
+          "zipPayloadAligned16KiB": true,
+          "pass": true
+        },
+        {
+          "entry": "lib/x86_64/libop-sqlite.so",
+          "loadAlignments": [
+            16384,
+            16384,
+            16384,
+            16384
+          ],
+          "compression": 0,
+          "zipPayloadAligned16KiB": true,
+          "pass": true
+        },
+        {
+          "entry": "lib/x86_64/libreact_codegen_rnsvg.so",
+          "loadAlignments": [
+            16384,
+            16384,
+            16384,
+            16384
+          ],
+          "compression": 0,
+          "zipPayloadAligned16KiB": true,
+          "pass": true
+        },
+        {
+          "entry": "lib/x86_64/libreact_codegen_safeareacontext.so",
+          "loadAlignments": [
+            16384,
+            16384,
+            16384,
+            16384
+          ],
+          "compression": 0,
+          "zipPayloadAligned16KiB": true,
+          "pass": true
+        },
+        {
+          "entry": "lib/x86_64/libreactnative.so",
+          "loadAlignments": [
+            16384,
+            16384,
+            16384
+          ],
+          "compression": 0,
+          "zipPayloadAligned16KiB": true,
+          "pass": true
+        }
+      ]
+    },
+    {
+      "apk": "android/app/build/outputs/apk/debug/app-arm64-v8a-debug.apk",
+      "libraries": [
+        {
+          "entry": "lib/arm64-v8a/libappmodules.so",
+          "loadAlignments": [
+            16384,
+            16384,
+            16384,
+            16384
+          ],
+          "compression": 0,
+          "zipPayloadAligned16KiB": true,
+          "pass": true
+        },
+        {
+          "entry": "lib/arm64-v8a/libc++_shared.so",
+          "loadAlignments": [
+            16384,
+            16384,
+            16384,
+            16384
+          ],
+          "compression": 0,
+          "zipPayloadAligned16KiB": true,
+          "pass": true
+        },
+        {
+          "entry": "lib/arm64-v8a/libcapstone_whisper.so",
+          "loadAlignments": [
+            16384,
+            16384,
+            16384,
+            16384
+          ],
+          "compression": 0,
+          "zipPayloadAligned16KiB": true,
+          "pass": true
+        },
+        {
+          "entry": "lib/arm64-v8a/libfbjni.so",
+          "loadAlignments": [
+            16384,
+            16384,
+            16384
+          ],
+          "compression": 0,
+          "zipPayloadAligned16KiB": true,
+          "pass": true
+        },
+        {
+          "entry": "lib/arm64-v8a/libhermestooling.so",
+          "loadAlignments": [
+            16384,
+            16384,
+            16384
+          ],
+          "compression": 0,
+          "zipPayloadAligned16KiB": true,
+          "pass": true
+        },
+        {
+          "entry": "lib/arm64-v8a/libhermesvm.so",
+          "loadAlignments": [
+            16384,
+            16384,
+            16384
+          ],
+          "compression": 0,
+          "zipPayloadAligned16KiB": true,
+          "pass": true
+        },
+        {
+          "entry": "lib/arm64-v8a/libimagepipeline.so",
+          "loadAlignments": [
+            16384,
+            16384,
+            16384
+          ],
+          "compression": 0,
+          "zipPayloadAligned16KiB": true,
+          "pass": true
+        },
+        {
+          "entry": "lib/arm64-v8a/libjsi.so",
+          "loadAlignments": [
+            16384,
+            16384,
+            16384
+          ],
+          "compression": 0,
+          "zipPayloadAligned16KiB": true,
+          "pass": true
+        },
+        {
+          "entry": "lib/arm64-v8a/libnative-filters.so",
+          "loadAlignments": [
+            16384,
+            16384,
+            16384
+          ],
+          "compression": 0,
+          "zipPayloadAligned16KiB": true,
+          "pass": true
+        },
+        {
+          "entry": "lib/arm64-v8a/libnative-imagetranscoder.so",
+          "loadAlignments": [
+            16384,
+            16384,
+            16384
+          ],
+          "compression": 0,
+          "zipPayloadAligned16KiB": true,
+          "pass": true
+        },
+        {
+          "entry": "lib/arm64-v8a/libop-sqlite.so",
+          "loadAlignments": [
+            16384,
+            16384,
+            16384,
+            16384
+          ],
+          "compression": 0,
+          "zipPayloadAligned16KiB": true,
+          "pass": true
+        },
+        {
+          "entry": "lib/arm64-v8a/libreact_codegen_rnsvg.so",
+          "loadAlignments": [
+            16384,
+            16384,
+            16384,
+            16384
+          ],
+          "compression": 0,
+          "zipPayloadAligned16KiB": true,
+          "pass": true
+        },
+        {
+          "entry": "lib/arm64-v8a/libreact_codegen_safeareacontext.so",
+          "loadAlignments": [
+            16384,
+            16384,
+            16384,
+            16384
+          ],
+          "compression": 0,
+          "zipPayloadAligned16KiB": true,
+          "pass": true
+        },
+        {
+          "entry": "lib/arm64-v8a/libreactnative.so",
+          "loadAlignments": [
+            16384,
+            16384,
+            16384
+          ],
+          "compression": 0,
+          "zipPayloadAligned16KiB": true,
+          "pass": true
+        }
+      ]
+    },
+    {
+      "apk": "android/app/build/outputs/apk/debug/app-x86_64-debug.apk",
+      "libraries": [
+        {
+          "entry": "lib/x86_64/libappmodules.so",
+          "loadAlignments": [
+            16384,
+            16384,
+            16384,
+            16384
+          ],
+          "compression": 0,
+          "zipPayloadAligned16KiB": true,
+          "pass": true
+        },
+        {
+          "entry": "lib/x86_64/libc++_shared.so",
+          "loadAlignments": [
+            16384,
+            16384,
+            16384,
+            16384
+          ],
+          "compression": 0,
+          "zipPayloadAligned16KiB": true,
+          "pass": true
+        },
+        {
+          "entry": "lib/x86_64/libcapstone_whisper.so",
+          "loadAlignments": [
+            16384,
+            16384,
+            16384,
+            16384
+          ],
+          "compression": 0,
+          "zipPayloadAligned16KiB": true,
+          "pass": true
+        },
+        {
+          "entry": "lib/x86_64/libfbjni.so",
+          "loadAlignments": [
+            16384,
+            16384,
+            16384
+          ],
+          "compression": 0,
+          "zipPayloadAligned16KiB": true,
+          "pass": true
+        },
+        {
+          "entry": "lib/x86_64/libhermestooling.so",
+          "loadAlignments": [
+            16384,
+            16384,
+            16384
+          ],
+          "compression": 0,
+          "zipPayloadAligned16KiB": true,
+          "pass": true
+        },
+        {
+          "entry": "lib/x86_64/libhermesvm.so",
+          "loadAlignments": [
+            16384,
+            16384,
+            16384
+          ],
+          "compression": 0,
+          "zipPayloadAligned16KiB": true,
+          "pass": true
+        },
+        {
+          "entry": "lib/x86_64/libimagepipeline.so",
+          "loadAlignments": [
+            16384,
+            16384,
+            16384
+          ],
+          "compression": 0,
+          "zipPayloadAligned16KiB": true,
+          "pass": true
+        },
+        {
+          "entry": "lib/x86_64/libjsi.so",
+          "loadAlignments": [
+            16384,
+            16384,
+            16384
+          ],
+          "compression": 0,
+          "zipPayloadAligned16KiB": true,
+          "pass": true
+        },
+        {
+          "entry": "lib/x86_64/libnative-filters.so",
+          "loadAlignments": [
+            16384,
+            16384,
+            16384
+          ],
+          "compression": 0,
+          "zipPayloadAligned16KiB": true,
+          "pass": true
+        },
+        {
+          "entry": "lib/x86_64/libnative-imagetranscoder.so",
+          "loadAlignments": [
+            16384,
+            16384,
+            16384
+          ],
+          "compression": 0,
+          "zipPayloadAligned16KiB": true,
+          "pass": true
+        },
+        {
+          "entry": "lib/x86_64/libop-sqlite.so",
+          "loadAlignments": [
+            16384,
+            16384,
+            16384,
+            16384
+          ],
+          "compression": 0,
+          "zipPayloadAligned16KiB": true,
+          "pass": true
+        },
+        {
+          "entry": "lib/x86_64/libreact_codegen_rnsvg.so",
+          "loadAlignments": [
+            16384,
+            16384,
+            16384,
+            16384
+          ],
+          "compression": 0,
+          "zipPayloadAligned16KiB": true,
+          "pass": true
+        },
+        {
+          "entry": "lib/x86_64/libreact_codegen_safeareacontext.so",
+          "loadAlignments": [
+            16384,
+            16384,
+            16384,
+            16384
+          ],
+          "compression": 0,
+          "zipPayloadAligned16KiB": true,
+          "pass": true
+        },
+        {
+          "entry": "lib/x86_64/libreactnative.so",
+          "loadAlignments": [
+            16384,
+            16384,
+            16384
+          ],
+          "compression": 0,
+          "zipPayloadAligned16KiB": true,
+          "pass": true
+        }
+      ]
+    },
+    {
+      "apk": "android/app/build/outputs/apk/release/app-arm64-v8a-release.apk",
+      "libraries": [
+        {
+          "entry": "lib/arm64-v8a/libappmodules.so",
+          "loadAlignments": [
+            16384,
+            16384,
+            16384,
+            16384
+          ],
+          "compression": 0,
+          "zipPayloadAligned16KiB": true,
+          "pass": true
+        },
+        {
+          "entry": "lib/arm64-v8a/libc++_shared.so",
+          "loadAlignments": [
+            16384,
+            16384,
+            16384,
+            16384
+          ],
+          "compression": 0,
+          "zipPayloadAligned16KiB": true,
+          "pass": true
+        },
+        {
+          "entry": "lib/arm64-v8a/libcapstone_whisper.so",
+          "loadAlignments": [
+            16384,
+            16384,
+            16384,
+            16384
+          ],
+          "compression": 0,
+          "zipPayloadAligned16KiB": true,
+          "pass": true
+        },
+        {
+          "entry": "lib/arm64-v8a/libfbjni.so",
+          "loadAlignments": [
+            16384,
+            16384,
+            16384
+          ],
+          "compression": 0,
+          "zipPayloadAligned16KiB": true,
+          "pass": true
+        },
+        {
+          "entry": "lib/arm64-v8a/libhermestooling.so",
+          "loadAlignments": [
+            16384,
+            16384,
+            16384
+          ],
+          "compression": 0,
+          "zipPayloadAligned16KiB": true,
+          "pass": true
+        },
+        {
+          "entry": "lib/arm64-v8a/libhermesvm.so",
+          "loadAlignments": [
+            16384,
+            16384,
+            16384
+          ],
+          "compression": 0,
+          "zipPayloadAligned16KiB": true,
+          "pass": true
+        },
+        {
+          "entry": "lib/arm64-v8a/libimagepipeline.so",
+          "loadAlignments": [
+            16384,
+            16384,
+            16384
+          ],
+          "compression": 0,
+          "zipPayloadAligned16KiB": true,
+          "pass": true
+        },
+        {
+          "entry": "lib/arm64-v8a/libjsi.so",
+          "loadAlignments": [
+            16384,
+            16384,
+            16384
+          ],
+          "compression": 0,
+          "zipPayloadAligned16KiB": true,
+          "pass": true
+        },
+        {
+          "entry": "lib/arm64-v8a/libnative-filters.so",
+          "loadAlignments": [
+            16384,
+            16384,
+            16384
+          ],
+          "compression": 0,
+          "zipPayloadAligned16KiB": true,
+          "pass": true
+        },
+        {
+          "entry": "lib/arm64-v8a/libnative-imagetranscoder.so",
+          "loadAlignments": [
+            16384,
+            16384,
+            16384
+          ],
+          "compression": 0,
+          "zipPayloadAligned16KiB": true,
+          "pass": true
+        },
+        {
+          "entry": "lib/arm64-v8a/libop-sqlite.so",
+          "loadAlignments": [
+            16384,
+            16384,
+            16384,
+            16384
+          ],
+          "compression": 0,
+          "zipPayloadAligned16KiB": true,
+          "pass": true
+        },
+        {
+          "entry": "lib/arm64-v8a/libreact_codegen_rnsvg.so",
+          "loadAlignments": [
+            16384,
+            16384,
+            16384,
+            16384
+          ],
+          "compression": 0,
+          "zipPayloadAligned16KiB": true,
+          "pass": true
+        },
+        {
+          "entry": "lib/arm64-v8a/libreact_codegen_safeareacontext.so",
+          "loadAlignments": [
+            16384,
+            16384,
+            16384,
+            16384
+          ],
+          "compression": 0,
+          "zipPayloadAligned16KiB": true,
+          "pass": true
+        },
+        {
+          "entry": "lib/arm64-v8a/libreactnative.so",
+          "loadAlignments": [
+            16384,
+            16384,
+            16384
+          ],
+          "compression": 0,
+          "zipPayloadAligned16KiB": true,
+          "pass": true
+        }
+      ]
+    },
+    {
+      "apk": "android/app/build/outputs/apk/release/app-x86_64-release.apk",
+      "libraries": [
+        {
+          "entry": "lib/x86_64/libappmodules.so",
+          "loadAlignments": [
+            16384,
+            16384,
+            16384,
+            16384
+          ],
+          "compression": 0,
+          "zipPayloadAligned16KiB": true,
+          "pass": true
+        },
+        {
+          "entry": "lib/x86_64/libc++_shared.so",
+          "loadAlignments": [
+            16384,
+            16384,
+            16384,
+            16384
+          ],
+          "compression": 0,
+          "zipPayloadAligned16KiB": true,
+          "pass": true
+        },
+        {
+          "entry": "lib/x86_64/libcapstone_whisper.so",
+          "loadAlignments": [
+            16384,
+            16384,
+            16384,
+            16384
+          ],
+          "compression": 0,
+          "zipPayloadAligned16KiB": true,
+          "pass": true
+        },
+        {
+          "entry": "lib/x86_64/libfbjni.so",
+          "loadAlignments": [
+            16384,
+            16384,
+            16384
+          ],
+          "compression": 0,
+          "zipPayloadAligned16KiB": true,
+          "pass": true
+        },
+        {
+          "entry": "lib/x86_64/libhermestooling.so",
+          "loadAlignments": [
+            16384,
+            16384,
+            16384
+          ],
+          "compression": 0,
+          "zipPayloadAligned16KiB": true,
+          "pass": true
+        },
+        {
+          "entry": "lib/x86_64/libhermesvm.so",
+          "loadAlignments": [
+            16384,
+            16384,
+            16384
+          ],
+          "compression": 0,
+          "zipPayloadAligned16KiB": true,
+          "pass": true
+        },
+        {
+          "entry": "lib/x86_64/libimagepipeline.so",
+          "loadAlignments": [
+            16384,
+            16384,
+            16384
+          ],
+          "compression": 0,
+          "zipPayloadAligned16KiB": true,
+          "pass": true
+        },
+        {
+          "entry": "lib/x86_64/libjsi.so",
+          "loadAlignments": [
+            16384,
+            16384,
+            16384
+          ],
+          "compression": 0,
+          "zipPayloadAligned16KiB": true,
+          "pass": true
+        },
+        {
+          "entry": "lib/x86_64/libnative-filters.so",
+          "loadAlignments": [
+            16384,
+            16384,
+            16384
+          ],
+          "compression": 0,
+          "zipPayloadAligned16KiB": true,
+          "pass": true
+        },
+        {
+          "entry": "lib/x86_64/libnative-imagetranscoder.so",
+          "loadAlignments": [
+            16384,
+            16384,
+            16384
+          ],
+          "compression": 0,
+          "zipPayloadAligned16KiB": true,
+          "pass": true
+        },
+        {
+          "entry": "lib/x86_64/libop-sqlite.so",
+          "loadAlignments": [
+            16384,
+            16384,
+            16384,
+            16384
+          ],
+          "compression": 0,
+          "zipPayloadAligned16KiB": true,
+          "pass": true
+        },
+        {
+          "entry": "lib/x86_64/libreact_codegen_rnsvg.so",
+          "loadAlignments": [
+            16384,
+            16384,
+            16384,
+            16384
+          ],
+          "compression": 0,
+          "zipPayloadAligned16KiB": true,
+          "pass": true
+        },
+        {
+          "entry": "lib/x86_64/libreact_codegen_safeareacontext.so",
+          "loadAlignments": [
+            16384,
+            16384,
+            16384,
+            16384
+          ],
+          "compression": 0,
+          "zipPayloadAligned16KiB": true,
+          "pass": true
+        },
+        {
+          "entry": "lib/x86_64/libreactnative.so",
+          "loadAlignments": [
+            16384,
+            16384,
+            16384
+          ],
+          "compression": 0,
+          "zipPayloadAligned16KiB": true,
+          "pass": true
+        }
+      ]
+    }
+  ],
+  "nativeFailures": [],
+  "freshReleaseGraph": {
+    "map": "android/app/build/intermediates/sourcemaps/react/release/index.android.bundle.packager.map",
+    "sha256": "380f2754c5fd5687dc6f83454bf2fc3a012f8e39f7a92f7931a55582f18929db",
+    "sourceCount": 704,
+    "targetModuleSourceCounts": {
+      "react-native-svg": 112,
+      "css-select": 0,
+      "css-tree": 0,
+      "boolbase": 0,
+      "nth-check": 0,
+      "css-what": 0,
+      "domutils": 0,
+      "domhandler": 0,
+      "dom-serializer": 0,
+      "domelementtype": 0,
+      "entities": 0,
+      "mdn-data": 0,
+      "source-map": 0
+    },
+    "limit": "Fresh release packager source map describes the bundled JS graph, not native/source/npm distribution obligations. Notices retained."
+  }
+}

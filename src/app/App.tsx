@@ -727,7 +727,7 @@ export function App({
               : 'You have unsaved preferences. Keep editing or discard them before leaving.'
           }
           keepLabel={
-            speechTools ? 'Stay in voice settings' : 'Stay in Settings'
+            speechTools ? 'Stay in voice settings' : 'Stay in preferences'
           }
           discardLabel={
             speechTools

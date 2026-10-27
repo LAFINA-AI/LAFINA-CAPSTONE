@@ -13,6 +13,9 @@ describe('Today date display fallback', () => {
     );
     expect(result.text).toBe('2026-10-21 (UTC)');
     expect(result.warning).toMatch(/saved timezone/);
+    expect(result.warning).toContain(
+      'Profile → Scheduling & Reminder Preferences',
+    );
   });
   it('keeps an invalid device date recoverable', () => {
     expect(formatOverviewDate(new Date(NaN), 'Asia/Manila')).toEqual({

@@ -1,0 +1,12 @@
+src\features\chat\ChatScreen.tsx 552ms
+__tests__\themeContrast.test.ts 31ms
+__tests__\ChatScreen.test.tsx 100ms
+PASS __tests__/ChatScreen.test.tsx (10.143 s)
+PASS __tests__/themeContrast.test.ts
+
+Test Suites: 2 passed, 2 total
+Tests:       19 passed, 19 total
+Snapshots:   0 total
+Time:        10.936 s, estimated 14 s
+Ran all test suites matching /__tests__\\themeContrast.test.ts|__tests__\\ChatScreen.test.tsx/i.
+Jest exit: 0; ESLint exit: 0

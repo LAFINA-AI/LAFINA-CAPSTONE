@@ -394,7 +394,7 @@ describe('App speech integration with synthetic adapters, not audible device pro
     );
     expect(screen.getByText(/You have unsaved preferences/)).toBeTruthy();
     expect(client.initialize).not.toHaveBeenCalled();
-    fireEvent.press(screen.getByRole('button', {name: 'Stay in Settings'}));
+    fireEvent.press(screen.getByRole('button', {name: 'Stay in preferences'}));
     expect(screen.getByDisplayValue('Unsaved synthetic draft')).toBeTruthy();
     fireEvent.press(
       screen.getByRole('button', {name: 'Offline speech settings'}),

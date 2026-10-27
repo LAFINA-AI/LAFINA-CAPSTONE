@@ -144,18 +144,98 @@ describe('Notes screen with actual repository SQL', () => {
     expect(props.onRouteChange).toHaveBeenLastCalledWith(false);
   });
 
-  it('requires explicit deletion confirmation and never deletes on cancellation', () => {
-    jest.spyOn(Alert, 'alert').mockImplementation(() => {});
-    const note = repository.create({token: 'delete_me', draft});
+  it('discloses saved-text and previous-version retention before saving or removing a note', () => {
     setup();
+    press('Add note');
+    const disclosure = screen.getByText(
+      /Saved note text and previous saved versions stay/,
+    );
+    expect(disclosure).toHaveTextContent(/private app database/);
+    expect(disclosure).toHaveTextContent(/including after you remove a note/);
+    expect(disclosure).toHaveTextContent(
+      /hides it from Notes and Profile counts/,
+    );
+    expect(disclosure).toHaveTextContent(/does not permanently erase the text/);
+    expect(screen.queryByRole('button', {name: 'Remove note'})).toBeNull();
+    fireEvent.changeText(
+      screen.getByLabelText('Note title'),
+      'Retention fixture',
+    );
+    press('Save note');
+    press('Open note: Retention fixture');
+    expect(
+      screen.getByText(/Saved note text and previous saved versions stay/),
+    ).toBeTruthy();
+    expect(screen.getByRole('button', {name: 'Remove note'})).toBeTruthy();
+    expect(screen.queryByRole('button', {name: 'Delete note'})).toBeNull();
+  });
+
+  it('cancels removal without discarding a draft, then hides only after informed confirmation and retains saved revisions', () => {
+    jest.spyOn(Alert, 'alert').mockImplementation(() => {});
+    const previousBody = 'PUBLIC-SYNTHETIC-CANARY-v1';
+    const savedBody = 'PUBLIC-SYNTHETIC-CANARY-v2';
+    const unsavedBody = 'PUBLIC-SYNTHETIC-CANARY-unsaved';
+    const note = repository.create({
+      token: 'canary_create',
+      draft: {...draft, body: previousBody},
+    });
+    repository.update({
+      token: 'canary_edit',
+      id: note.id,
+      expectedVersion: note.version,
+      draft: {...draft, body: savedBody},
+    });
+    const receiptsBefore = fixture.sql.execute(
+      'SELECT * FROM operation_receipts ORDER BY token',
+    );
+    const {props} = setup();
     press('Open note: Synthetic note');
-    press('Delete note');
+    fireEvent.changeText(screen.getByLabelText('Note text'), unsavedBody);
+    press('Remove note');
+    expect(Alert.alert).toHaveBeenLastCalledWith(
+      'Remove this note?',
+      "This hides the note from Notes and Profile counts. Saved text and previous saved versions stay in this phone's private app database. This is not permanent erasure. Unsaved changes will be discarded.",
+      [
+        expect.objectContaining({text: 'Cancel', style: 'cancel'}),
+        expect.objectContaining({text: 'Remove note', style: 'destructive'}),
+      ],
+    );
     alertButton('Cancel');
-    expect(repository.get(note.id)).not.toBeNull();
-    press('Delete note');
-    alertButton('Delete note');
+    expect(repository.get(note.id)).toMatchObject({
+      body: savedBody,
+      version: 2,
+    });
+    expect(
+      fixture.sql.execute('SELECT * FROM operation_receipts ORDER BY token'),
+    ).toEqual(receiptsBefore);
+    expect(screen.getByLabelText('Note text').props.value).toBe(unsavedBody);
+    expect(props.onDraftStateChange).toHaveBeenLastCalledWith(true);
+    press('Remove note');
+    alertButton('Remove note');
     expect(repository.get(note.id)).toBeNull();
+    expect(repository.counts()).toEqual({completedTasks: 0, notes: 0});
     expect(screen.getByText('No notes found')).toBeTruthy();
+    expect(props.onDraftStateChange).toHaveBeenLastCalledWith(false);
+    expect(
+      fixture.sql.execute(
+        'SELECT body,version,deleted_at FROM notes WHERE id=?',
+        [note.id],
+      ),
+    ).toEqual([{body: savedBody, version: 3, deleted_at: fixtureNow}]);
+    const savedReceipts = fixture.sql.execute(
+      'SELECT fingerprint,result FROM operation_receipts WHERE token IN (?,?) ORDER BY token',
+      ['canary_create', 'canary_edit'],
+    );
+    expect(savedReceipts).toHaveLength(2);
+    savedReceipts.forEach((receipt, index) => {
+      const expected = index === 0 ? previousBody : savedBody;
+      expect(JSON.parse(String(receipt.fingerprint)).payload.draft.body).toBe(
+        expected,
+      );
+      expect(JSON.parse(String(receipt.result)).body).toBe(expected);
+      expect(String(receipt.fingerprint)).not.toContain(unsavedBody);
+      expect(String(receipt.result)).not.toContain(unsavedBody);
+    });
   });
 
   it('retains the draft and stable operation token after a storage error then retries', () => {

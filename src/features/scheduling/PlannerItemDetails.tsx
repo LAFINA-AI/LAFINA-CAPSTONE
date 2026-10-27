@@ -296,7 +296,7 @@ export function PlannerItemDetails({
               job.deliveryState === 'FAILED' ? (
                 <Message
                   error
-                  text="Delivery is unavailable or needs attention. Review Settings → Reminder delivery. The item remains saved."
+                  text="Delivery is unavailable or needs attention. Review Profile → Reminder delivery. The item remains saved."
                 />
               ) : null}
               {job.status === 'RINGING' ? (

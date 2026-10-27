@@ -1,0 +1,27 @@
+{
+  "utc": "2026-10-27T05:13:52.866053+00:00",
+  "themeRestored": "Dark",
+  "clock24Unchanged": true,
+  "weekMondayUnchanged": true,
+  "nicknameTimezoneLeadSnoozeReply": "saved values unchanged; only a synthetic lead draft was edited then discarded",
+  "deliveryEnabled": "OFF; never toggled in this hardening pass",
+  "connectivity": {
+    "airplane_mode_on": "0",
+    "wifi_on": "1",
+    "mobile_data": "1"
+  },
+  "fontScale": "1.0",
+  "displaySize": "Physical size: 1080x2400",
+  "microphoneGrantPreserved": true,
+  "hostMicrophone": "OFF",
+  "activeAppRecording": false,
+  "cleanup": "Only ledger-owned synthetic note/task removed through confirmed UI; no reset/uninstall/broad deletion.",
+  "openScreen": "Calendar",
+  "limits": [
+    "Note tombstone and receipt history remain as disclosed.",
+    "No physical phone, real speech/audibility or low-RAM acceptance."
+  ],
+  "finalInstalledApkSha256": "5f635943bb3ef20a97d7f2561189ae9dbb1a3cf06740e5c6bd749867ed63db1a",
+  "installedApkMatchesBuild": true,
+  "deliveryEnabledVerified": false
+}

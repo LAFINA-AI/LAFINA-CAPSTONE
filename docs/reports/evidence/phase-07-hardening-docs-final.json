@@ -1,0 +1,13 @@
+{
+  "utc": "2026-10-27T05:16:25.778066+00:00",
+  "branch": "codex/phase-07-audit-hardening",
+  "baseline": "a186bfceeb05db038bb0b7a2a35b6fe17d1fab62",
+  "auditCommit": "0ff4002",
+  "remoteMain": "9c183a20eca2377b5e54f219c5f83460b18af81b",
+  "remoteNol": "9c183a20eca2377b5e54f219c5f83460b18af81b",
+  "nolIsAncestor": true,
+  "localMarkdownLinksChecked": 126,
+  "missingLinks": [],
+  "unchangedStorageDomainNative": true,
+  "noticeAssetSha256": "314bcb8e160602e0fb75c14ccdd0ea7240b8dc9576e40310d9b55290780efa48"
+}

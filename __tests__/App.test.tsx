@@ -210,7 +210,7 @@ describe('Phase 01 anonymous foundation', () => {
     fireEvent.press(screen.getByRole('tab', {name: /Calendar/}));
     expect(screen.getByText(/You have unsaved preferences/)).toBeTruthy();
     expect(screen.getByDisplayValue('Draft')).toBeTruthy();
-    fireEvent.press(screen.getByRole('button', {name: 'Stay in Settings'}));
+    fireEvent.press(screen.getByRole('button', {name: 'Stay in preferences'}));
     expect(screen.getByDisplayValue('Draft')).toBeTruthy();
     fireEvent.press(screen.getByRole('tab', {name: /Calendar/}));
     fireEvent.press(
@@ -245,7 +245,9 @@ describe('Phase 01 anonymous foundation', () => {
         });
       });
       expect(screen.getByText(/You have unsaved preferences/)).toBeTruthy();
-      fireEvent.press(screen.getByRole('button', {name: 'Stay in Settings'}));
+      fireEvent.press(
+        screen.getByRole('button', {name: 'Stay in preferences'}),
+      );
       fireEvent.press(screen.getByRole('button', {name: 'Save preferences'}));
       await screen.findByText(/Your settings could not be saved/);
       act(() => {
@@ -255,7 +257,9 @@ describe('Phase 01 anonymous foundation', () => {
         });
       });
       expect(screen.getByText(/You have unsaved preferences/)).toBeTruthy();
-      fireEvent.press(screen.getByRole('button', {name: 'Stay in Settings'}));
+      fireEvent.press(
+        screen.getByRole('button', {name: 'Stay in preferences'}),
+      );
       fireEvent.press(screen.getByRole('button', {name: 'Save preferences'}));
       await screen.findByText('Preferences saved on this phone.');
       act(() => {

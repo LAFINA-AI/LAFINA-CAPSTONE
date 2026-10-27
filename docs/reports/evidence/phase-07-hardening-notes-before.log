@@ -1,0 +1,325 @@
+FAIL __tests__/NotesScreen.test.tsx (23.181 s)
+  Notes screen with actual repository SQL
+    √ shows the requested empty Notes presentation with supported filters and no AI promise (5713 ms)
+    √ creates, edits, pins and filters a durable local note without auto-saving drafts (382 ms)
+    √ searches literal punctuation and note body; compact display retains opening controls (103 ms)
+    √ keeps a dirty editor on Back until explicit discard and reports clean subroutes (175 ms)
+    × discloses saved-text and previous-version retention before saving or removing a note (42 ms)
+    × cancels removal without discarding a draft, then hides only after informed confirmation and retains saved revisions (52 ms)
+    √ retains the draft and stable operation token after a storage error then retries (68 ms)
+    √ shows validation failure without losing entered text or saving (54 ms)
+    √ recovers a failed open visibly rather than presenting fake empty storage success (39 ms)
+    √ pages saved notes without an unbounded accumulating list (131 ms)
+
+  ● Notes screen with actual repository SQL › discloses saved-text and previous-version retention before saving or removing a note
+
+    Unable to find an element with text: /Saved note text and previous saved versions stay/
+
+    <View>
+      <View>
+        <View
+          accessibilityLabel="Back to notes"
+          accessibilityRole="button"
+          accessibilityState={
+            {
+              "disabled": false,
+            }
+          }
+          accessible={true}
+        >
+          <View
+            accessible={false}
+          >
+            <View />
+          </View>
+        </View>
+        <Text
+          accessibilityRole="header"
+        >
+          New note
+        </Text>
+      </View>
+      <RCTScrollView>
+        <View>
+          <View>
+            <Text>
+              Note title
+            </Text>
+            <TextInput
+              accessibilityLabel="Note title"
+              value=""
+            />
+          </View>
+          <Text>
+            Note text
+          </Text>
+          <TextInput
+            accessibilityLabel="Note text"
+            placeholder="Write your note…"
+            value=""
+          />
+          <View>
+            <Text>
+              Category
+            </Text>
+            <View>
+              <View
+                accessibilityLabel="Category: Personal"
+                accessibilityRole="radio"
+                accessibilityState={
+                  {
+                    "checked": true,
+                    "disabled": false,
+                  }
+                }
+                accessible={true}
+              >
+                <Text>
+                  ● 
+                  Personal
+                </Text>
+              </View>
+              <View
+                accessibilityLabel="Category: Coursework"
+                accessibilityRole="radio"
+                accessibilityState={
+                  {
+                    "checked": false,
+                    "disabled": false,
+                  }
+                }
+                accessible={true}
+              >
+                <Text>
+                  ○ 
+                  Coursework
+                </Text>
+              </View>
+            </View>
+          </View>
+          <View
+            accessibilityLabel="Pin note"
+            accessibilityRole="checkbox"
+            accessibilityState={
+              {
+                "checked": false,
+              }
+            }
+            accessible={true}
+          >
+            <View
+              accessible={false}
+            >
+              <View />
+            </View>
+            <Text>
+              Pin note
+            </Text>
+          </View>
+          <View
+            accessibilityRole="button"
+            accessibilityState={
+              {
+                "disabled": false,
+              }
+            }
+            accessible={true}
+          >
+            <Text>
+              Save note
+            </Text>
+          </View>
+          <View
+            accessibilityRole="button"
+            accessibilityState={
+              {
+                "disabled": false,
+              }
+            }
+            accessible={true}
+          >
+            <Text>
+              Close editor
+            </Text>
+          </View>
+        </View>
+      </RCTScrollView>
+    </View>
+
+      148 |     setup();
+      149 |     press('Add note');
+    > 150 |     const disclosure = screen.getByText(
+          |                               ^
+      151 |       /Saved note text and previous saved versions stay/,
+      152 |     );
+      153 |     expect(disclosure).toHaveTextContent(/private app database/);
+
+      at Object.getByText (__tests__/NotesScreen.test.tsx:150:31)
+
+  ● Notes screen with actual repository SQL › cancels removal without discarding a draft, then hides only after informed confirmation and retains saved revisions
+
+    Unable to find an element with role: button, name: Remove note
+
+    <View>
+      <View>
+        <View
+          accessibilityLabel="Back to notes"
+          accessibilityRole="button"
+          accessibilityState={
+            {
+              "disabled": false,
+            }
+          }
+          accessible={true}
+        >
+          <View
+            accessible={false}
+          >
+            <View />
+          </View>
+        </View>
+        <Text
+          accessibilityRole="header"
+        >
+          Edit note
+        </Text>
+        <View
+          accessibilityLabel="Delete note"
+          accessibilityRole="button"
+          accessibilityState={
+            {
+              "disabled": false,
+            }
+          }
+          accessible={true}
+        >
+          <View
+            accessible={false}
+          >
+            <View />
+          </View>
+        </View>
+      </View>
+      <RCTScrollView>
+        <View>
+          <View>
+            <Text>
+              Note title
+            </Text>
+            <TextInput
+              accessibilityLabel="Note title"
+              value="Synthetic note"
+            />
+          </View>
+          <Text>
+            Note text
+          </Text>
+          <TextInput
+            accessibilityLabel="Note text"
+            placeholder="Write your note…"
+            value="PUBLIC-SYNTHETIC-CANARY-unsaved"
+          />
+          <View>
+            <Text>
+              Category
+            </Text>
+            <View>
+              <View
+                accessibilityLabel="Category: Personal"
+                accessibilityRole="radio"
+                accessibilityState={
+                  {
+                    "checked": true,
+                    "disabled": false,
+                  }
+                }
+                accessible={true}
+              >
+                <Text>
+                  ● 
+                  Personal
+                </Text>
+              </View>
+              <View
+                accessibilityLabel="Category: Coursework"
+                accessibilityRole="radio"
+                accessibilityState={
+                  {
+                    "checked": false,
+                    "disabled": false,
+                  }
+                }
+                accessible={true}
+              >
+                <Text>
+                  ○ 
+                  Coursework
+                </Text>
+              </View>
+            </View>
+          </View>
+          <View
+            accessibilityLabel="Pin note"
+            accessibilityRole="checkbox"
+            accessibilityState={
+              {
+                "checked": false,
+              }
+            }
+            accessible={true}
+          >
+            <View
+              accessible={false}
+            >
+              <View />
+            </View>
+            <Text>
+              Pin note
+            </Text>
+          </View>
+          <View
+            accessibilityRole="button"
+            accessibilityState={
+              {
+                "disabled": false,
+              }
+            }
+            accessible={true}
+          >
+            <Text>
+              Save note
+            </Text>
+          </View>
+          <View
+            accessibilityRole="button"
+            accessibilityState={
+              {
+                "disabled": false,
+              }
+            }
+            accessible={true}
+          >
+            <Text>
+              Discard changes
+            </Text>
+          </View>
+        </View>
+      </RCTScrollView>
+    </View>
+
+      41 |   }
+      42 |   function press(name: string) {
+    > 43 |     fireEvent.press(screen.getByRole('button', {name}));
+         |                            ^
+      44 |   }
+      45 |   function alertButton(name: string) {
+      46 |     const calls = (Alert.alert as jest.Mock).mock.calls;
+
+      at getByRole (__tests__/NotesScreen.test.tsx:43:28)
+      at Object.press (__tests__/NotesScreen.test.tsx:194:5)
+
+Test Suites: 1 failed, 1 total
+Tests:       2 failed, 8 passed, 10 total
+Snapshots:   0 total
+Time:        25.915 s
+Ran all test suites matching /__tests__\\NotesScreen.test.tsx/i.

@@ -4,27 +4,49 @@ Phase08 is not approved. Agent/emulator evidence does not certify a physical
 phone, spoken recognition, sound quality, OEM restrictions or low-RAM operation.
 Use synthetic titles only; do not publish personal schedules or voice recordings.
 
+This checklist describes the original **0.7.1-data-qa / schema2** integration
+cohort. It is not an instruction to downgrade a later installation. For the
+current shell/schema3 use [the Nol UI checklist](PHASE-07-1-NOL-UI-MANUAL.md);
+the subsequent **0.7.3-data-qa** audit-hardening candidate is covered by the
+[hardening checklist](PHASE-07-HARDENING-MANUAL.md) and
+[hardening report](../docs/reports/phase-07-audit-hardening-report.md).
+
 ## Install / preserve data
 
-The integrated application uses the existing `com.lafina.capstone` package and
-`lafina-capstone.sqlite` schema2. Upgrade with the same development signing key;
-do not uninstall or clear data. A signature mismatch requires a deliberate
-backup/import plan, not deletion of the existing installation.
+Both our bundled QA/release-preview app and the friend's incoming Nol build at
+`9c183a20eca2377b5e54f219c5f83460b18af81b` declare the **same Android package**,
+`com.lafina.capstone`. Our debug variant uses `com.lafina.capstone.debug`.
+The original integrated app uses `lafina-capstone.sqlite` schema2; the Nol UI
+follow-up adds schema3. Incoming Nol uses a different database file,
+`lafina.db`, schema17. There is **no automatic import** between those stores.
+
+Both source configurations use development/debug signing, but actual signing
+compatibility is **UNKNOWN** until the installed build's certificate and the
+candidate APK's certificate are compared. Do not assume they match or differ.
+A matching package name alone proves neither signing nor database compatibility.
+If this device runs Nol or its installation lineage is unknown, stop before
+installation and request an explicit data-preservation/migration plan. Even a
+signature-compatible replacement can leave Nol data unavailable in this UI.
+
+Use `install -r` only for a known prior capstone installation with compatible
+signing and a supported forward schema upgrade. If installation fails, retain
+the original installation and record the error. **Do not uninstall, clear data,
+force a downgrade, overwrite/import a database or change signing as a workaround.**
+No backup/import/export workflow is implemented by this phase.
 
 ```powershell
 $adb = "$env:LOCALAPPDATA/Android/Sdk/platform-tools/adb.exe"
 & $adb devices -l
-# Existing x86_64 emulator:
+# Only after the package, signing and capstone-lineage checks above:
+# Existing x86_64 emulator, candidate APK matching its report's cohort/hash:
 & $adb -s emulator-5554 install -r android/app/build/outputs/apk/dataQa/app-x86_64-dataQa.apk
 & $adb -s emulator-5554 shell am start -W -n com.lafina.capstone/.MainActivity
 # For a dedicated ARM64 phone use its serial and app-arm64-v8a-dataQa.apk instead.
 ```
 
-Expected version: `0.7.1-data-qa`. Incoming friend's installations using a
-different package, signing key or `lafina.db` schema17 have **no automatic import**
-in this change. Do not overwrite or delete that database. Supply its installation
-details separately if an explicit migration is needed; do not share student data
-in the repository.
+Historical expected version for this checklist: `0.7.1-data-qa`. Do not install
+that older build over schema3. Supply only installation metadata if compatibility
+needs investigation; never publish student databases, schedules or signing keys.
 
 ## Concrete checks
 

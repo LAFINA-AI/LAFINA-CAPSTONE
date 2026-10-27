@@ -203,3 +203,20 @@ legacy-speed result. Current executed gates/restoration and outstanding human
 checks belong in [the follow-up report](reports/phase-07-1-nol-ui-report.md).
 Phase08, backend work and physical-device acceptance are not approved by this UI
 authorization.
+
+## Phase07/07.1 audit hardening — 2026-10-27
+
+The owner authorized fixes and local emulator verification after the independent
+Claude audit; Phase08 remains unapproved. Note removal now explicitly discloses
+retained saved text/history. Schema3, tombstones and operation receipts (including
+their canonical JSON fingerprints) are preserved; permanent erasure needs a
+separate retention/idempotency design. Send uses the existing contrasting
+foreground token, and app recovery copy names the actual Profile routes.
+
+The upgrade guidance distinguishes package identity, signing certificates and
+database lineage. Same-package Nol schema17 is not automatically imported;
+certificate compatibility is unknown without actual artifact comparison. ADR022
+enumerates incoming presentation features not adopted; no Phase08 commitment is
+inferred. Notices remain intact with runtime/source scope qualified. See the
+[hardening report](reports/phase-07-audit-hardening-report.md) and
+[manual checklist](../qa/PHASE-07-HARDENING-MANUAL.md) for current evidence and limits.

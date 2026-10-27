@@ -195,12 +195,12 @@ export function NotesScreen({
     }
     const target = editor.original;
     Alert.alert(
-      'Delete this note?',
-      'This removes the saved note and any unsaved changes.',
+      'Remove this note?',
+      "This hides the note from Notes and Profile counts. Saved text and previous saved versions stay in this phone's private app database. This is not permanent erasure. Unsaved changes will be discarded.",
       [
         {text: 'Cancel', style: 'cancel'},
         {
-          text: 'Delete note',
+          text: 'Remove note',
           style: 'destructive',
           onPress: () => {
             if (!mounted.current) {
@@ -217,7 +217,7 @@ export function NotesScreen({
               closeEditor();
             } catch {
               setError(
-                'This note could not be deleted. Keep your draft and reopen the saved note before retrying.',
+                'This note could not be removed. Keep your draft and reopen the saved note before retrying.',
               );
             }
           },

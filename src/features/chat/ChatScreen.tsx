@@ -357,7 +357,7 @@ export function ChatScreen({
           <Icon
             name="send"
             size={22}
-            color={ready ? colors.onBrand : colors.muted}
+            color={ready ? colors.onPrimary : colors.muted}
           />
         </Pressable>
       </View>

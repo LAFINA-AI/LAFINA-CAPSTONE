@@ -4,13 +4,17 @@ import {
   render,
   screen,
   waitFor,
+  within,
 } from '@testing-library/react-native';
-import {AppState} from 'react-native';
+import {AppState, StyleSheet} from 'react-native';
 import {ChatScreen} from '../src/features/chat/ChatScreen';
 import {defaultPreferences} from '../src/core/domain/preferences';
 import type {SpeechClient} from '../src/core/native/textToSpeech';
 import type {SpeechInputClient} from '../src/core/native/speechToText';
 import {createPlannerFixture} from './helpers/plannerFixtures';
+import {ThemeContext} from '../src/core/theme/ThemeContext';
+import {resolveTheme} from '../src/core/theme/theme';
+import {Icon} from '../src/core/ui/Icon';
 
 function speech(): SpeechClient {
   return {
@@ -47,7 +51,7 @@ function send(text: string) {
   fireEvent.changeText(screen.getByLabelText('Message'), text);
   fireEvent.press(screen.getByRole('button', {name: 'Send message'}));
 }
-function setup(voice = false) {
+function setup(voice = false, appearance?: 'light' | 'dark') {
   const fixture = createPlannerFixture();
   const tts = speech();
   const stt = input();
@@ -65,7 +69,15 @@ function setup(voice = false) {
     showSpeechInput: true,
     showDiagnostics: false,
   };
-  const view = render(<ChatScreen {...props} />);
+  const view = render(
+    appearance ? (
+      <ThemeContext.Provider value={resolveTheme(appearance, null)}>
+        <ChatScreen {...props} />
+      </ThemeContext.Provider>
+    ) : (
+      <ChatScreen {...props} />
+    ),
+  );
   return {
     ...fixture,
     tts,
@@ -78,6 +90,26 @@ function setup(voice = false) {
     },
   };
 }
+
+it.each(['light', 'dark'] as const)(
+  'renders the enabled Send icon with the verified foreground/background pair in %s mode',
+  async appearance => {
+    const fixture = setup(false, appearance);
+    try {
+      const button = screen.getByRole('button', {name: 'Send message'});
+      await waitFor(() => expect(button).toBeEnabled());
+      const icon = within(button).UNSAFE_getByType(Icon);
+      const svg = icon.findByProps({viewBox: '0 0 24 24'});
+      const {colors} = resolveTheme(appearance, null);
+      expect(StyleSheet.flatten(button.props.style).backgroundColor).toBe(
+        colors.accent,
+      );
+      expect(svg.props.stroke).toBe(colors.onPrimary);
+    } finally {
+      fixture.cleanup();
+    }
+  },
+);
 
 it('reviews a timed task before one durable save, then queries it without saving chat history', async () => {
   const f = setup();

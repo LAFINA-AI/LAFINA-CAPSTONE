@@ -33,6 +33,26 @@ most20 exposed rows (21 SQL rows detect the next page). Indexes
 substring search may scan history. Profile counts use exact live note and
 completed-task `COUNT(*)` queries rather than page length.
 
+### Notes retention and removal semantics
+
+Removing a note updates its tombstone/version and hides it from public `get`,
+page/search and counts; it does **not** permanently delete its saved content.
+The `notes` row retains title/body. Each successful create/edit also stores the
+returned saved note in `operation_receipts.result`; its `fingerprint` contains
+the canonical JSON payload, including the complete saved title/body, rather than
+a cryptographic hash. Earlier saved revisions can remain in these receipts even
+after a note is edited or removed. The delete receipt itself returns null and
+identifies the target/version, but does not remove older receipts.
+
+These copies support retry/idempotency and are local to the same app-private
+database. They have no automatic expiry, scheduled cleanup or user-accessible
+permanent-purge mechanism in this phase. Do not describe row hiding, a zero live
+count or an empty search as erasure. The removal confirmation/privacy copy must
+disclose retention before the user agrees. Unsaved editor text is not a new
+saved revision merely because the editor is open. Avoid sensitive test notes;
+complete purge, retention deadlines and export require separately approved
+design and tests, not an assumption that Phase08 will add them.
+
 Clock format and first-weekday preferences live in the existing `app_settings`
 JSON, separate from stored UTC/date-only scheduling values. Old missing display
 keys default to24h/Monday; invalid supplied values fail validation. No account,
@@ -41,6 +61,13 @@ See [ADR-022](decisions/ADR-022-nol-ui-local-notes.md),
 [host measurements and limits](benchmarks/phase-07-1-nol-ui-notes.md) and the
 [current report](reports/phase-07-1-nol-ui-report.md). Physical-device acceptance
 and complete privacy purge/export remain separate work.
+
+Incoming Nol's `lafina.db` schema17 is not an earlier version of this schema and
+has no automatic import. Both apps use the same `com.lafina.capstone` Android
+package; database lineage must be established independently of package identity
+and signing compatibility. Keep unknown/Nol installations intact rather than
+uninstalling, clearing, downgrading or replacing their database. See the
+[manual preservation boundary](../qa/PHASE-07-1-NOL-UI-MANUAL.md).
 
 ### Earlier conceptual entity inventory
 

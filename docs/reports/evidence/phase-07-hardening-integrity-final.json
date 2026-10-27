@@ -1,0 +1,11 @@
+{
+  "utc": "2026-10-27T05:16:25.376001+00:00",
+  "sourceFiles": 291,
+  "apks": 7,
+  "preservedAuditFiles": 26,
+  "sourceApkOrOriginalAuditDrift": [],
+  "credentialPatternHitsWithoutValues": [],
+  "credentialScanLimit": "Pattern scan of current tracked/new text, not complete secret detection. No private DB/audio/model bytes included.",
+  "graphify": "NOT RUN: Get-Command graphify found no CLI",
+  "architectureSubstitute": "Full preflight61TS modules, no cycles/forbidden deps; existing ADR022 Mermaid, not complete native call graph."
+}

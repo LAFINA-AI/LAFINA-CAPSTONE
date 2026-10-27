@@ -181,9 +181,9 @@ export function PlannerScreen({
         );
         setDelivery(
           blocked
-            ? 'Android alerts are off or notifications are blocked. Items still save locally. Open Settings → Reminder delivery to enable alerts.'
+            ? 'Android alerts are off or notifications are blocked. Items still save locally. Open Profile → Reminder delivery to enable alerts.'
             : !value.exact
-            ? 'Android alerts use inexact timing and may be delayed. Review Settings → Reminder delivery.'
+            ? 'Android alerts use inexact timing and may be delayed. Review Profile → Reminder delivery.'
             : value.channelImportance < 3
             ? 'The reminder channel is muted or low priority. Review Android reminder settings.'
             : 'Android reminder access is allowed. Device settings, quiet hours and battery restrictions can still delay or silence alerts.',
@@ -193,7 +193,7 @@ export function PlannerScreen({
         if (active) {
           setDeliveryWarning(true);
           setDelivery(
-            'Android delivery status could not be checked. Items still save locally; review Settings → Reminder delivery.',
+            'Android delivery status could not be checked. Items still save locally; review Profile → Reminder delivery.',
           );
         }
       });

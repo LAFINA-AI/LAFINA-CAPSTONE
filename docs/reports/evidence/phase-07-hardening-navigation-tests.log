@@ -1,0 +1,11 @@
+PASS __tests__/App.test.tsx (14.972 s)
+PASS __tests__/AppSpeech.test.tsx
+PASS __tests__/PlannerScreen.test.tsx
+PASS __tests__/commandSession.test.ts
+PASS __tests__/formatOverviewDate.test.ts
+
+Test Suites: 5 passed, 5 total
+Tests:       73 passed, 73 total
+Snapshots:   0 total
+Time:        19.799 s, estimated 25 s
+Ran all test suites matching /__tests__\\PlannerScreen.test.tsx|__tests__\\App.test.tsx|__tests__\\AppSpeech.test.tsx|__tests__\\formatOverviewDate.test.ts|__tests__\\commandSession.test.ts/i.

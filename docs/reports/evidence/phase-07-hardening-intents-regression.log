@@ -1,0 +1,29 @@
+{
+  "saved": "docs/benchmarks/phase-07-hardening-intents-host.json",
+  "evaluation": "regression",
+  "sourceDrift": [],
+  "summary": {
+    "cases": 64,
+    "readyLabelCases": 32,
+    "refusalLabelCases": 32,
+    "exactPasses": 64,
+    "intentOrRefusalMatches": 64,
+    "metadataValidCases": 64,
+    "selectedSlotMatches": 88,
+    "selectedSlotTotal": 88,
+    "falseAckCasesOnRefusalLabels": 0,
+    "falseSchedulingCasesOnRefusalLabels": 0,
+    "unsafeReadyCasesOnRefusalLabels": 0,
+    "thrownCases": 0,
+    "repeatedFailedCalls": 0,
+    "nondeterministicCases": 0,
+    "failedCaseIds": [],
+    "aggregateLatencyMs": {
+      "n": 6400,
+      "p50": 0.025899999999978718,
+      "p95": 0.2579000000000633,
+      "min": 0.003499999999803549,
+      "max": 4.180299999999988
+    }
+  }
+}

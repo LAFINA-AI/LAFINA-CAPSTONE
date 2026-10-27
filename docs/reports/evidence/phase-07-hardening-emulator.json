@@ -1,0 +1,136 @@
+{
+  "phase": "07/07.1 audit hardening",
+  "utc": "2026-10-27T04:51:01.575738+00:00",
+  "baseline": "a186bfceeb05db038bb0b7a2a35b6fe17d1fab62",
+  "device": {
+    "avd": "Medium_Phone",
+    "model": "sdk_gphone16k_x86_64",
+    "sdk": "37",
+    "pageSize": "16384"
+  },
+  "initialInstalledVersion": "0.7.2-data-qa",
+  "initialInstalledApkSha256": "0edc3b64d46759d355f7ce2e02a43e395915f0b2b6a81c5ffe04355950cc87f6",
+  "installedApkSha256": "5f635943bb3ef20a97d7f2561189ae9dbb1a3cf06740e5c6bd749867ed63db1a",
+  "cases": [
+    {
+      "name": "pre-upgrade-native-note",
+      "status": "PASS",
+      "detail": "Saved only the ledger-owned synthetic note on the existing0.7.2 installation for upgrade preservation. No reset or real note removal.",
+      "apkSha256": "0edc3b64d46759d355f7ce2e02a43e395915f0b2b6a81c5ffe04355950cc87f6",
+      "utc": "2026-10-27T04:52:52.978969+00:00"
+    },
+    {
+      "name": "upgrade-preserves-native-note",
+      "status": "PASS",
+      "detail": "The exact owned note/body survived0.7.2\u21920.7.3 upgrade without uninstall, reset or schema change.",
+      "apkSha256": "5f635943bb3ef20a97d7f2561189ae9dbb1a3cf06740e5c6bd749867ed63db1a",
+      "utc": "2026-10-27T04:59:43.840594+00:00"
+    },
+    {
+      "name": "note-removal-disclosure-cancel-confirm",
+      "status": "PASS",
+      "detail": "Actual editor and native dialog disclosed retained saved text/versions and nonpermanent erasure. Cancel preserved an unsaved draft; confirmed Remove hid only the exact owned note from search. Storage retention itself is verified separately by real-SQLite tests.",
+      "apkSha256": "5f635943bb3ef20a97d7f2561189ae9dbb1a3cf06740e5c6bd749867ed63db1a",
+      "utc": "2026-10-27T05:00:41.364615+00:00"
+    },
+    {
+      "name": "owned-note-cleanup",
+      "status": "PASS",
+      "detail": "Only ledger-owned synthetic note removed; search is cleared. Android UI tree exposes the placeholder as text for an empty Search notes field; corrected driver readback expectation, no app change. Documented tombstone/history remain locally.",
+      "apkSha256": "5f635943bb3ef20a97d7f2561189ae9dbb1a3cf06740e5c6bd749867ed63db1a",
+      "utc": "2026-10-27T05:03:42.370531+00:00"
+    },
+    {
+      "name": "profile-recovery-instructions",
+      "status": "PASS",
+      "detail": "Actual Calendar delivery warning points to Profile \u2192 Reminder delivery; Android system settings remain distinct.",
+      "apkSha256": "5f635943bb3ef20a97d7f2561189ae9dbb1a3cf06740e5c6bd749867ed63db1a",
+      "utc": "2026-10-27T05:03:58.891753+00:00"
+    },
+    {
+      "name": "send-light-dark-rendering",
+      "status": "PASS",
+      "detail": "Final enabled Send control rendered in both actual themes; screenshots inspected separately and WCAG math/render-token tests recorded separately.",
+      "apkSha256": "5f635943bb3ef20a97d7f2561189ae9dbb1a3cf06740e5c6bd749867ed63db1a",
+      "utc": "2026-10-27T05:06:06.479652+00:00"
+    },
+    {
+      "name": "confirmed-chat-real-sqlite",
+      "status": "PASS",
+      "detail": "Typed create needed explicit review/Confirm and the task appeared through the native persisted query.",
+      "apkSha256": "5f635943bb3ef20a97d7f2561189ae9dbb1a3cf06740e5c6bd749867ed63db1a",
+      "utc": "2026-10-27T05:06:48.649697+00:00"
+    },
+    {
+      "name": "ambiguous-and-bulk-refusal",
+      "status": "PASS",
+      "detail": "Mixed/vague later and bulk-delete commands offered no Confirm change; no unsafe mutation.",
+      "apkSha256": "5f635943bb3ef20a97d7f2561189ae9dbb1a3cf06740e5c6bd749867ed63db1a",
+      "utc": "2026-10-27T05:07:40.788992+00:00"
+    },
+    {
+      "name": "owned-task-cleanup",
+      "status": "PASS",
+      "detail": "Confirmed exact deletion of only the QA73 retained task fixture; no broad deletion.",
+      "apkSha256": "5f635943bb3ef20a97d7f2561189ae9dbb1a3cf06740e5c6bd749867ed63db1a",
+      "utc": "2026-10-27T05:08:23.777714+00:00"
+    },
+    {
+      "name": "mic-panel-draft-review-discard",
+      "status": "PASS",
+      "detail": "Central mic opened visible input only. Manually entered draft copied to composer; Send produced separate review; Discard did not confirm a task. No active app microphone; no live speech/accuracy claim.",
+      "apkSha256": "5f635943bb3ef20a97d7f2561189ae9dbb1a3cf06740e5c6bd749867ed63db1a",
+      "utc": "2026-10-27T05:09:15.027551+00:00"
+    },
+    {
+      "name": "isolated-jsi-checks",
+      "status": "PASS",
+      "detail": "Current Android JSI driver passed dedicated synthetic SQLite migration/settings/rollback/idempotency/ACK-vs-completion/Notes/integrity checks. No reset of the student database or claim of alarm/audio delivery.",
+      "apkSha256": "5f635943bb3ef20a97d7f2561189ae9dbb1a3cf06740e5c6bd749867ed63db1a",
+      "utc": "2026-10-27T05:09:44.468064+00:00"
+    },
+    {
+      "name": "large-text-disclosure-and-dirty-note-guard",
+      "status": "PASS",
+      "detail": "At original1080x2400/font1.3, new retention disclosure and Save were reachable by scrolling. Actual dirty-note tab guard Keep retained the unsaved title; Discard left without saving. No screen-reader/full accessibility claim.",
+      "apkSha256": "5f635943bb3ef20a97d7f2561189ae9dbb1a3cf06740e5c6bd749867ed63db1a",
+      "utc": "2026-10-27T05:11:45.934575+00:00"
+    },
+    {
+      "name": "renamed-preferences-guard",
+      "status": "PASS",
+      "detail": "Actual Stay in preferences retained a changed synthetic lead draft; explicit Discard returned to Calendar without saving it. Original saved preferences remain.",
+      "apkSha256": "5f635943bb3ef20a97d7f2561189ae9dbb1a3cf06740e5c6bd749867ed63db1a",
+      "utc": "2026-10-27T05:12:47.232322+00:00"
+    },
+    {
+      "name": "final-restoration",
+      "status": "PASS",
+      "detail": "Original theme/radios/display preserved/restored; clock/week unchanged, nickname and other private settings untouched. Host micOFF and no active recording; app open on Calendar.",
+      "apkSha256": "5f635943bb3ef20a97d7f2561189ae9dbb1a3cf06740e5c6bd749867ed63db1a",
+      "utc": "2026-10-27T05:13:52.867388+00:00"
+    },
+    {
+      "name": "final-installed-delivery-state",
+      "status": "PASS",
+      "detail": "Final installed APK hash matches inspected0.7.3 candidate; visible Reminder delivery screen confirms deliveryOFF. Known original app/data retained, no recording or broad deletion; returned to Calendar.",
+      "apkSha256": "5f635943bb3ef20a97d7f2561189ae9dbb1a3cf06740e5c6bd749867ed63db1a",
+      "utc": "2026-10-27T05:15:15.845802+00:00"
+    }
+  ],
+  "limits": [
+    "Actual API37beta emulator, not physical/low-RAM proof. Host microphone off."
+  ],
+  "installedVersion": "0.7.3-data-qa",
+  "candidateInstalledAtUtc": "2026-10-27T04:59:18.902561+00:00",
+  "installedApkMatchesBuild": true,
+  "nativeInstrumentation": {
+    "tests": 44,
+    "seconds": 6.317,
+    "result": "PASS",
+    "log": "phase-07-hardening-instrumentation-initial.log"
+  },
+  "automationNotes": [
+    "After successful note remove/cancel test, empty-search readback returned placeholder Search notes. Driver assertion corrected; note cleanup verified without repeating removal or touching other notes."
+  ]
+}

@@ -40,7 +40,7 @@ export function NoteEditor({
           {existing ? 'Edit note' : 'New note'}
         </Text>
         {existing && (
-          <IconButton name="trash" label="Delete note" onPress={onRemove} />
+          <IconButton name="trash" label="Remove note" onPress={onRemove} />
         )}
       </View>
       <ScrollView
@@ -97,6 +97,7 @@ export function NoteEditor({
             {draft.pinned ? 'Pinned' : 'Pin note'}
           </Text>
         </Pressable>
+        <Message text="Saved note text and previous saved versions stay in this phone's private app database, including after you remove a note. Removing a note hides it from Notes and Profile counts; it does not permanently erase the text." />
         {error && <Message text={error} error />}
         <Button label="Save note" onPress={onSave} />
         <Button

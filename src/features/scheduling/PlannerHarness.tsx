@@ -381,7 +381,7 @@ export function PlannerHarness({
   return (
     <View>
       <Text style={headingStyle}>Phase 03 reminder test tool</Text>
-      <Message text="Debug only. These controls change local data. When Android reminder delivery is enabled, saved changes can schedule or cancel real notifications and simulated reminder alerts. Calendar screens arrive in a later phase." />
+      <Message text="Debug only. These controls change local data. When Android reminder delivery is enabled, saved changes can schedule or cancel real notifications and simulated reminder alerts. Use Calendar for the regular planner controls." />
       <Button
         label="Reload planner storage"
         secondary

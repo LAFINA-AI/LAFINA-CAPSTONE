@@ -7,15 +7,17 @@ core. No registration, login, accounts, business roles, subscriptions or teams.
 Low-end device performance is a priority; minimum RAM/ABI support will be stated
 only after real-device validation.
 
-**Current state: Phase07.1 Nol UI follow-up; device validation pending.**
+**Current state: Phase07/07.1 audit hardening; device validation pending.**
 The shell now follows the owner's reference: **Chat, Calendar, Notes, Profile**
 and a central microphone that opens editable speech input without recording.
 Calendar has Month/Week controls and a paged day timeline. Notes has real local
-create/edit/delete, search, pin and category filters; Profile shows actual saved
+create/edit/remove, search, pin and category filters; Profile shows actual saved
 counts and persisted clock/week-start choices. Dirty editors guard tabs, Back
 and the mic. One semantic light/dark theme serves all screens.
-See the [current follow-up report](docs/reports/phase-07-1-nol-ui-report.md),
-[current manual checks](qa/PHASE-07-1-NOL-UI-MANUAL.md),
+See the [audit-hardening report](docs/reports/phase-07-audit-hardening-report.md),
+[hardening manual checks](qa/PHASE-07-HARDENING-MANUAL.md),
+the historical [Nol UI report](docs/reports/phase-07-1-nol-ui-report.md),
+[UI manual checks](qa/PHASE-07-1-NOL-UI-MANUAL.md),
 [ADR-022](docs/decisions/ADR-022-nol-ui-local-notes.md),
 and the earlier [integration report](docs/reports/phase-07-1-report.md),
 [data audit](docs/audits/phase-07-1-data-audit.md),
@@ -38,8 +40,11 @@ command. Chat's explicit Send, exact action review and Confirm change can create
 move, complete/delete or acknowledge/snooze a uniquely identified item. Queries
 and Repeat are read-only. Android on-device recognition is conditional;
 reviewed local Whisper Tiny is an explicit optional model-bearing build.
-The owner approved Phase07 and this Phase07.1 integration/UI follow-up. Phase08 acceptance work, backend and online
-models remain deferred. Earlier phone acceptance is not implied.
+The owner approved Phase07, this Phase07.1 integration/UI follow-up and the
+subsequent audit hardening. Phase08 acceptance work, backend and online models
+remain unapproved. Earlier phone acceptance is not implied. The
+[non-adopted incoming features](docs/decisions/ADR-022-nol-ui-local-notes.md#non-adopted-incoming-features)
+are deliberate omissions, not promises for Phase08.
 
 Start with [AGENTS.md](AGENTS.md), [the charter](docs/00-PROJECT-CHARTER.md),
 [requirements](docs/01-PRODUCT-REQUIREMENTS.md), and the
@@ -124,6 +129,16 @@ RECORD_AUDIO, requested only at visible use, and recognition-service visibility.
 No telephony, background-microphone/foreground service or network permission is
 intended in bundled QA/release; current APK inspection belongs to the phase report.
 
+Incoming **Nol-branch** at `9c183a2` is also a capstone build with package
+`com.lafina.capstone`; it is not the older LAFINA package mentioned above. Its
+`lafina.db` schema17 is not automatically imported into our schema3 store.
+Actual signing compatibility is **UNKNOWN** until both certificates are verified;
+debug signing configuration does not establish matching or differing keys.
+Keep any Nol/unknown installation intact and obtain a preservation plan before
+replacement. Use `install -r` only for a known compatible capstone upgrade.
+Do not uninstall, clear data, force a downgrade or replace/import a database to
+bypass a signature/schema failure. See [installation checks](qa/PHASE-07-1-NOL-UI-MANUAL.md).
+
 Current UI/notes automation and Android outcomes are recorded in the
 [follow-up report](docs/reports/phase-07-1-nol-ui-report.md). The new notes
 [host benchmark](docs/benchmarks/phase-07-1-nol-ui-notes.md) is file-backed
@@ -145,7 +160,7 @@ English PCM clips passed real local Whisper decoding with WER0, median2,939ms
 and p953,206ms for model preparation/loading/decoding. These are not real-mic,
 phone, accent or release-to-result measurements. Current UI/restoration and
 physical-phone outcomes are recorded separately in the phase report. For current offline review,
-use the follow-up report's verified ABI-matching **0.7.2-data-qa** hash from
+use the current hardening report's verified ABI-matching **0.7.3-data-qa** hash from
 `android/app/build/outputs/apk/dataQa/` with `adb install -r`, then open
 **Chat**. Type a command in **Message**, **Send message**, inspect the exact
 review and **Confirm change**. For spoken emulator tests, deliberately enable
@@ -207,8 +222,13 @@ preflight is not a complete security scan or publication approval.
 No local settings, audio, transcripts or private data are uploaded. Uninstall or
 clearing storage removes this device's settings and planner; backups are disabled. Reopen
 onboarding under Profile's scheduling preferences to keep preferences while reviewing setup. Item deletion
-currently hides the item and retains cancellation tombstones; complete privacy
-purge controls are later work. Optional voice choices extend the existing local
+currently hides the item and retains cancellation tombstones. Notes removal is
+also **not permanent erasure**: saved text remains in the notes row and earlier
+create/edit `operation_receipts.result` and canonical-JSON `fingerprint` copies,
+including previous saved revisions. No automatic expiry, receipt cleanup or
+permanent-purge UI exists. See [retention details](docs/05-DATA-SCHEDULING.md#notes-retention-and-removal-semantics).
+Complete privacy purge/export needs separately approved work; no Phase08 promise
+is implied. Optional voice choices extend the existing local
 preferences payload; missing old fields receive defaults without a DB migration.
 Quiet hours retain the existing native reminder policy.
 

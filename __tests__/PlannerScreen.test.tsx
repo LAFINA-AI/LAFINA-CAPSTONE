@@ -109,6 +109,17 @@ describe('production manual planner with real host SQLite', () => {
       repository,
     };
   }
+  it('directs blocked-alert recovery to Profile without confusing it with Android Settings', async () => {
+    const view = setup();
+    await screen.findByRole('button', {name: 'Reminder delivery details'});
+    await press('Reminder delivery details');
+    expect(
+      screen.getByText(/Open Profile → Reminder delivery to enable alerts/),
+    ).toBeTruthy();
+    expect(screen.queryByText(/Settings → Reminder delivery/)).toBeNull();
+    await press('Open Android reminder settings');
+    expect(view.alarms.openSettings).toHaveBeenCalledWith('notifications');
+  });
   it('saves an undated task with delivery blocked, finds it in Tasks, explicitly completes and undoes, edits and confirms deletion', async () => {
     setup();
     await screen.findByRole('button', {name: 'Reminder delivery details'});

@@ -1,0 +1,23 @@
+{
+  "measuredAtUtc": "2026-10-27T04:45:39.226Z",
+  "method": "WCAG sRGB relative luminance; contrast=(Lmax+0.05)/(Lmin+0.05)",
+  "criterion": "enabled non-text Send icon >=3:1; does not certify all UI text or screen-reader behavior",
+  "samples": [
+    {
+      "mode": "light",
+      "background": "#F75A5A",
+      "oldForeground": "#FFFFFF",
+      "oldRatio": 3.1988134863608098,
+      "newForeground": "#FFFFFF",
+      "newRatio": 3.1988134863608098
+    },
+    {
+      "mode": "dark",
+      "background": "#FF8F96",
+      "oldForeground": "#FFFFFF",
+      "oldRatio": 2.1826377303732434,
+      "newForeground": "#3C0011",
+      "newRatio": 8.016312379502544
+    }
+  ]
+}

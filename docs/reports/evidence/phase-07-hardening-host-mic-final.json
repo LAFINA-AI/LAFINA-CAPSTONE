@@ -1,0 +1,1 @@
+{"method":"getMicrophoneState","grpcStatus":0,"realAudioEnabled":false,"source":"read-only-local-loopback"}

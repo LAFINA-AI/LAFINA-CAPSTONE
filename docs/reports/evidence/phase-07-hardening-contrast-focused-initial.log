@@ -1,0 +1,355 @@
+src\features\chat\ChatScreen.tsx 310ms
+__tests__\themeContrast.test.ts 13ms
+__tests__\ChatScreen.test.tsx 43ms
+PASS __tests__/themeContrast.test.ts
+FAIL __tests__/ChatScreen.test.tsx (10.011 s)
+  ● opens speech review from the central mic request without capturing or changing the planner
+
+    Unable to find node on an unmounted component.
+
+    <View>
+      <View>
+        <Text>
+          Offline · 
+          Asia/Manila
+        </Text>
+        <View
+          accessibilityLabel="Chat tools"
+          accessibilityRole="button"
+          accessibilityState={
+            {
+              "expanded": false,
+            }
+          }
+          accessible={true}
+        >
+          <View
+            accessible={false}
+          >
+            <View />
+            <View />
+            <View />
+          </View>
+        </View>
+      </View>
+      <RCTScrollView>
+        <View>
+          <View>
+            <Text
+              accessibilityRole="header"
+            >
+              LAFINA Assistant
+            </Text>
+            <Text>
+              Your offline academic scheduling assistant.
+            </Text>
+          </View>
+        </View>
+      </RCTScrollView>
+      <View>
+        <View
+          accessibilityLabel="Show speech input"
+          accessibilityRole="button"
+          accessible={true}
+        >
+          <View
+            accessible={false}
+          >
+            <View />
+            <View />
+          </View>
+        </View>
+        <TextInput
+          accessibilityLabel="Message"
+          placeholder="Message LAFINA…"
+          value=""
+        />
+        <View
+          accessibilityLabel="Send message"
+          accessibilityRole="button"
+          accessibilityState={
+            {
+              "disabled": false,
+            }
+          }
+          accessible={true}
+        >
+          <View
+            accessible={false}
+          >
+            <View />
+          </View>
+        </View>
+      </View>
+      <Modal>
+        <RNCSafeAreaView>
+          <View>
+            <Text
+              accessibilityRole="header"
+            >
+              Speech input
+            </Text>
+            <View
+              accessibilityLabel="Hide speech input"
+              accessibilityRole="button"
+              accessible={true}
+            >
+              <View
+                accessible={false}
+              >
+                <View />
+              </View>
+            </View>
+          </View>
+          <RCTScrollView>
+            <View>
+              <View>
+                <Text
+                  accessibilityRole="header"
+                >
+                  Offline speech draft
+                </Text>
+                <Text
+                  accessibilityRole="text"
+                >
+                  Hold to speak, release, and review the words. Copy your draft into chat, then send it for a separate command review. Recording alone never changes your planner. These drafts are cleared when you leave Chat.
+                </Text>
+                <View>
+                  <Text>
+                    Draft text
+                  </Text>
+                  <TextInput
+                    accessibilityLabel="Draft text"
+                    editable={true}
+                    value=""
+                  />
+                </View>
+                <View
+                  accessibilityRole="button"
+                  accessibilityState={
+                    {
+                      "disabled": false,
+                    }
+                  }
+                  accessible={true}
+                >
+                  <Text>
+                    Use draft in chat
+                  </Text>
+                </View>
+                <View>
+                  <Text>
+                    Speech language
+                  </Text>
+                  <View>
+                    <View
+                      accessibilityLabel="Speech language: English"
+                      accessibilityRole="radio"
+                      accessibilityState={
+                        {
+                          "checked": true,
+                          "disabled": false,
+                        }
+                      }
+                      accessible={true}
+                    >
+                      <Text>
+                        ● 
+                        English
+                      </Text>
+                    </View>
+                    <View
+                      accessibilityLabel="Speech language: Filipino"
+                      accessibilityRole="radio"
+                      accessibilityState={
+                        {
+                          "checked": false,
+                          "disabled": false,
+                        }
+                      }
+                      accessible={true}
+                    >
+                      <Text>
+                        ○ 
+                        Filipino
+                      </Text>
+                    </View>
+                  </View>
+                </View>
+                <View>
+                  <Text>
+                    Offline speech engine
+                  </Text>
+                  <View>
+                    <View
+                      accessibilityLabel="Offline speech engine: Automatic"
+                      accessibilityRole="radio"
+                      accessibilityState={
+                        {
+                          "checked": true,
+                          "disabled": false,
+                        }
+                      }
+                      accessible={true}
+                    >
+                      <Text>
+                        ● 
+                        Automatic
+                      </Text>
+                    </View>
+                    <View
+                      accessibilityLabel="Offline speech engine: Android on-device"
+                      accessibilityRole="radio"
+                      accessibilityState={
+                        {
+                          "checked": false,
+                          "disabled": false,
+                        }
+                      }
+                      accessible={true}
+                    >
+                      <Text>
+                        ○ 
+                        Android on-device
+                      </Text>
+                    </View>
+                    <View
+                      accessibilityLabel="Offline speech engine: Whisper local model"
+                      accessibilityRole="radio"
+                      accessibilityState={
+                        {
+                          "checked": false,
+                          "disabled": false,
+                        }
+                      }
+                      accessible={true}
+                    >
+                      <Text>
+                        ○ 
+                        Whisper local model
+                      </Text>
+                    </View>
+                  </View>
+                </View>
+                <Text
+                  accessibilityRole="text"
+                >
+                  Automatic selects a candidate offline engine. Android on-device support depends on the phone and installed language data; Whisper requires the verified local model. Availability checks do not prove recognition works for your language. No online recognizer or automatic language download is used. If a language fails, release and try another engine or type.
+                </Text>
+                <Text
+                  accessibilityRole="text"
+                >
+                  Offline speech is unavailable on this device or build. Check Android speech settings or keep using the draft text field.
+                </Text>
+                <View
+                  accessibilityRole="button"
+                  accessibilityState={
+                    {
+                      "disabled": false,
+                    }
+                  }
+                  accessible={true}
+                >
+                  <Text>
+                    Refresh offline speech options
+                  </Text>
+                </View>
+                <Text
+                  accessibilityRole="text"
+                >
+                  Hold the microphone button to prepare offline speech. Recording starts only while you keep holding.
+                </Text>
+                <View
+                  accessibilityHint="Keep your finger pressed while recording; release to transcribe. A permission prompt requires another hold afterward."
+                  accessibilityLabel="Hold to talk"
+                  accessibilityRole="button"
+                  accessibilityState={
+                    {
+                      "busy": false,
+                      "disabled": true,
+                    }
+                  }
+                  accessible={true}
+                >
+                  <Text>
+                    Hold to talk
+                  </Text>
+                </View>
+                <View
+                  accessibilityRole="button"
+                  accessibilityState={
+                    {
+                      "disabled": true,
+                    }
+                  }
+                  accessible={true}
+                >
+                  <Text>
+                    Cancel speech input
+                  </Text>
+                </View>
+                <View
+                  accessibilityRole="button"
+                  accessibilityState={
+                    {
+                      "disabled": false,
+                    }
+                  }
+                  accessible={true}
+                >
+                  <Text>
+                    Open Android speech settings
+                  </Text>
+                </View>
+              </View>
+            </View>
+          </RCTScrollView>
+        </RNCSafeAreaView>
+      </Modal>
+    </View>
+
+      239 |     expect(screen.queryByLabelText('Draft text')).toBeNull();
+      240 |     f.view.rerender(<ChatScreen {...f.props} voiceRequest={1} />);
+    > 241 |     await screen.findByLabelText('Draft text');
+          |                  ^
+      242 |     expect(f.stt.start).not.toHaveBeenCalled();
+      243 |     expect(f.repository.tasksPage({filter: 'all'}).items).toEqual([]);
+      244 |     fireEvent.press(screen.getByRole('button', {name: 'Hide speech input'}));
+
+      at Object.findByLabelText (__tests__/ChatScreen.test.tsx:241:18)
+      at asyncGeneratorStep (node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+      at _next (node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
+      at node_modules/@babel/runtime/helpers/asyncToGenerator.js:22:7
+      at Object.<anonymous> (node_modules/@babel/runtime/helpers/asyncToGenerator.js:14:12)
+
+  ● offers retry and retains typed text when local storage cannot open
+
+    Unable to find node on an unmounted component.
+
+      300 |       />,
+      301 |     );
+    > 302 |     expect(screen.getByText(/local planner could not open/)).toBeTruthy();
+          |                   ^
+      303 |     fireEvent.changeText(
+      304 |       screen.getByLabelText('Message'),
+      305 |       'Add task keep draft',
+
+      at findCurrentFiberUsingSlowPath (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:177:17)
+      at ReactTestInstance.Object.<anonymous>.process.env.NODE_ENV._proto._currentFiber (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:17197:23)
+      at ReactTestInstance.get (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:17303:39)
+      at children (node_modules/@testing-library/react-native/src/helpers/find-all.ts:48:8)
+      at findAllInternal (node_modules/@testing-library/react-native/src/helpers/find-all.ts:24:19)
+      at queryAllByTextFn (node_modules/@testing-library/react-native/src/queries/text.ts:22:19)
+      at Object.getFn [as getByText] (node_modules/@testing-library/react-native/src/queries/make-queries.ts:154:48)
+      at Object.getByText (__tests__/ChatScreen.test.tsx:302:19)
+      at asyncGeneratorStep (node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+      at _next (node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
+      at node_modules/@babel/runtime/helpers/asyncToGenerator.js:22:7
+      at Object.<anonymous> (node_modules/@babel/runtime/helpers/asyncToGenerator.js:14:12)
+
+Test Suites: 1 failed, 1 passed, 2 total
+Tests:       2 failed, 17 passed, 19 total
+Snapshots:   0 total
+Time:        14.256 s
+Ran all test suites matching /__tests__\\themeContrast.test.ts|__tests__\\ChatScreen.test.tsx/i.
+Jest exit: 1; ESLint exit: 0
