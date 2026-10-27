@@ -1,5 +1,11 @@
 import { tasksStore, timeBlocksStore, remindersStore, notesStore } from '../../storage';
-import { scheduleReminderAlarm, acknowledgeReminderAction, snoozeReminderAction } from '../../scheduler';
+import type { Task, TimeBlock, Note } from '../../storage';
+import {
+  scheduleReminderAlarm,
+  cancelReminderAlarm,
+  acknowledgeReminderAction,
+  snoozeReminderAction,
+} from '../../scheduler';
 import { generateId } from '../../utils';
 import { formatLocalDate } from './fastPathParser';
 import { ttsService } from '../tts/ttsService';
@@ -69,6 +75,156 @@ function formatSpokenDayLabel(targetDateStr: string, refDate: Date): string {
   }
 
   return `For ${targetDateStr}`;
+}
+
+function normalizeForMatch(text: string | null | undefined): string {
+  if (!text) return '';
+  return text
+    .toLowerCase()
+    .replace(/[^\w\s]/g, ' ')
+    .replace(
+      /\b(?:my|the|a|an|this|that|task|tasks|todo|time\s*block|timeblock|study\s*block|focus\s*block|block|blocks|note|notes|reminder|reminders|event|events|for|about|to|on|at|in)\b/g,
+      ' ',
+    )
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+function isRecentReference(query: string | null | undefined): boolean {
+  if (!query) return false;
+  return /^(?:last|latest|recent|previous|that|this|it)$/i.test(normalizeForMatch(query));
+}
+
+function scoreEntityMatch(
+  candidateTitle: string,
+  candidateDate: string | null | undefined,
+  candidateTime: string | null | undefined,
+  targetTitle: string | null | undefined,
+  targetDate: string | null | undefined,
+  targetTime: string | null | undefined,
+): number {
+  const normCandidate = normalizeForMatch(candidateTitle);
+  const normQuery = normalizeForMatch(targetTitle);
+
+  let score = 0;
+
+  if (normQuery && normCandidate) {
+    if (normCandidate === normQuery) {
+      score += 100;
+    } else if (normCandidate.includes(normQuery) || normQuery.includes(normCandidate)) {
+      score += 80;
+    } else {
+      const queryWords = normQuery.split(' ').filter(Boolean);
+      const candWords = new Set(normCandidate.split(' ').filter(Boolean));
+      if (queryWords.length > 0) {
+        const matchedWords = queryWords.filter((w) => candWords.has(w)).length;
+        const ratio = matchedWords / queryWords.length;
+        if (ratio >= 0.5) {
+          score += Math.round(ratio * 65);
+        }
+      }
+    }
+  }
+
+  if (targetTime && candidateTime && candidateTime === targetTime) {
+    score += normQuery ? 40 : 75;
+  }
+
+  if (targetDate && candidateDate && candidateDate === targetDate) {
+    score += normQuery || targetTime ? 20 : 50;
+  }
+
+  return score;
+}
+
+function findMatchingTask(
+  tasks: Task[],
+  targetTitle: string | null | undefined,
+  targetDate: string | null | undefined,
+  targetTime: string | null | undefined,
+): { task: Task | null; score: number } {
+  if (tasks.length === 0) return { task: null, score: 0 };
+  if (isRecentReference(targetTitle)) {
+    const sorted = [...tasks].sort((a, b) => (b.createdAt || '').localeCompare(a.createdAt || ''));
+    return { task: sorted[0], score: 70 };
+  }
+
+  let bestTask: Task | null = null;
+  let bestScore = 0;
+  for (const t of tasks) {
+    const score = scoreEntityMatch(t.title, t.dueDate, t.dueTime, targetTitle, targetDate, targetTime);
+    if (score > bestScore) {
+      bestScore = score;
+      bestTask = t;
+    }
+  }
+  return { task: bestScore >= 30 ? bestTask : null, score: bestScore };
+}
+
+function findMatchingTimeBlock(
+  blocks: TimeBlock[],
+  targetTitle: string | null | undefined,
+  targetDate: string | null | undefined,
+  targetTime: string | null | undefined,
+): { block: TimeBlock | null; score: number } {
+  if (blocks.length === 0) return { block: null, score: 0 };
+  if (isRecentReference(targetTitle)) {
+    const sorted = [...blocks].sort((a, b) => (b.createdAt || '').localeCompare(a.createdAt || ''));
+    return { block: sorted[0], score: 70 };
+  }
+
+  let bestBlock: TimeBlock | null = null;
+  let bestScore = 0;
+  for (const b of blocks) {
+    const score = scoreEntityMatch(b.title, b.date, b.startTime, targetTitle, targetDate, targetTime);
+    if (score > bestScore) {
+      bestScore = score;
+      bestBlock = b;
+    }
+  }
+  return { block: bestScore >= 30 ? bestBlock : null, score: bestScore };
+}
+
+function findMatchingNote(
+  notes: Note[],
+  targetTitle: string | null | undefined,
+): { note: Note | null; score: number } {
+  if (notes.length === 0) return { note: null, score: 0 };
+  if (isRecentReference(targetTitle)) {
+    const sorted = [...notes].sort((a, b) => (b.updatedAt || '').localeCompare(a.updatedAt || ''));
+    return { note: sorted[0], score: 70 };
+  }
+
+  let bestNote: Note | null = null;
+  let bestScore = 0;
+  for (const n of notes) {
+    const titleScore = scoreEntityMatch(n.title, null, null, targetTitle, null, null);
+    const bodyScore = scoreEntityMatch(n.body, null, null, targetTitle, null, null) * 0.7;
+    const score = Math.max(titleScore, bodyScore);
+    if (score > bestScore) {
+      bestScore = score;
+      bestNote = n;
+    }
+  }
+  return { note: bestScore >= 30 ? bestNote : null, score: bestScore };
+}
+
+function computeDurationMinutes(startTime: string, endTime: string): number {
+  const sMatch = /^(\d{1,2}):(\d{2})$/.exec(startTime);
+  const eMatch = /^(\d{1,2}):(\d{2})$/.exec(endTime);
+  if (!sMatch || !eMatch) return 60;
+  const sMin = parseInt(sMatch[1], 10) * 60 + parseInt(sMatch[2], 10);
+  let eMin = parseInt(eMatch[1], 10) * 60 + parseInt(eMatch[2], 10);
+  if (eMin <= sMin) eMin += 24 * 60;
+  return eMin - sMin;
+}
+
+function addMinutesToTime(startTime: string, durationMinutes: number): string {
+  const [h, m] = startTime.split(':').map((v) => parseInt(v, 10));
+  const totalMin = h * 60 + m + durationMinutes;
+  const endH = Math.floor(totalMin / 60) % 24;
+  const endM = totalMin % 60;
+  return `${String(endH).padStart(2, '0')}:${String(endM).padStart(2, '0')}`;
 }
 
 /** Executes validated NLU intents against local SQLite stores and native scheduler. */
@@ -153,12 +309,8 @@ export async function executeNluAction(
       // Compute endTime from duration if not present
       let endTime = intent.endTime;
       if (!endTime) {
-        const [h, m] = startTime.split(':').map((v) => parseInt(v, 10));
         const dur = intent.durationMinutes || 60;
-        const totalMin = h * 60 + m + dur;
-        const endH = Math.min(23, Math.floor(totalMin / 60));
-        const endM = totalMin % 60;
-        endTime = `${String(endH).padStart(2, '0')}:${String(endM).padStart(2, '0')}`;
+        endTime = addMinutesToTime(startTime, dur);
       }
 
       timeBlocksStore.insert({
@@ -259,6 +411,325 @@ export async function executeNluAction(
         entityType: 'note',
         entityId: noteId,
         reply: `Saved note: "${noteTitle}".`,
+      };
+    }
+
+    case 'delete_time_block': {
+      const targetTitle = intent.targetTitle || intent.title;
+      const targetTime = intent.targetTime || intent.time;
+      const allBlocks = timeBlocksStore.getAll(userId);
+      const { block } = findMatchingTimeBlock(allBlocks, targetTitle, intent.date, targetTime);
+
+      if (!block) {
+        return {
+          success: false,
+          intent: 'delete_time_block',
+          entityType: 'time_block',
+          reply: `Could not find a time block matching "${targetTitle || targetTime || 'that request'}".`,
+          error: 'Time block not found.',
+        };
+      }
+
+      timeBlocksStore.delete(block.id);
+      return {
+        success: true,
+        intent: 'delete_time_block',
+        entityType: 'time_block',
+        entityId: block.id,
+        reply: `Removed time block: "${block.title}".`,
+      };
+    }
+
+    case 'delete_note': {
+      const targetTitle = intent.targetTitle || intent.title;
+      const allNotes = notesStore.getAll(userId);
+      const { note } = findMatchingNote(allNotes, targetTitle);
+
+      if (!note) {
+        return {
+          success: false,
+          intent: 'delete_note',
+          entityType: 'note',
+          reply: `Could not find a note matching "${targetTitle || 'that request'}".`,
+          error: 'Note not found.',
+        };
+      }
+
+      notesStore.delete(note.id);
+      return {
+        success: true,
+        intent: 'delete_note',
+        entityType: 'note',
+        entityId: note.id,
+        reply: `Deleted note: "${note.title}".`,
+      };
+    }
+
+    case 'delete_task': {
+      const targetTitle = intent.targetTitle || intent.title;
+      const targetTime = intent.targetTime || intent.time;
+      const allTasks = tasksStore.getAllTasks(userId);
+      const taskMatch = findMatchingTask(allTasks, targetTitle, intent.date, targetTime);
+
+      // If targetEntityType is 'any' (user said e.g. "Cancel my Coffee Break"), check if a time block or note is a better match
+      if (intent.targetEntityType === 'any') {
+        const allBlocks = timeBlocksStore.getAll(userId);
+        const blockMatch = findMatchingTimeBlock(allBlocks, targetTitle, intent.date, targetTime);
+        if (blockMatch.block && blockMatch.score > taskMatch.score) {
+          timeBlocksStore.delete(blockMatch.block.id);
+          return {
+            success: true,
+            intent: 'delete_time_block',
+            entityType: 'time_block',
+            entityId: blockMatch.block.id,
+            reply: `Removed time block: "${blockMatch.block.title}".`,
+          };
+        }
+
+        if (!taskMatch.task && !blockMatch.block) {
+          const allNotes = notesStore.getAll(userId);
+          const noteMatch = findMatchingNote(allNotes, targetTitle);
+          if (noteMatch.note) {
+            notesStore.delete(noteMatch.note.id);
+            return {
+              success: true,
+              intent: 'delete_note',
+              entityType: 'note',
+              entityId: noteMatch.note.id,
+              reply: `Deleted note: "${noteMatch.note.title}".`,
+            };
+          }
+        }
+      }
+
+      if (taskMatch.task) {
+        tasksStore.deleteTask(taskMatch.task.id);
+        return {
+          success: true,
+          intent: 'delete_task',
+          entityType: 'task',
+          entityId: taskMatch.task.id,
+          reply: `Removed task: "${taskMatch.task.title}".`,
+        };
+      }
+
+      // Check standalone reminders if no task row matched
+      const allReminders = remindersStore.getPendingReminders(userId);
+      const normQuery = normalizeForMatch(targetTitle);
+      const matchedReminder = allReminders.find(
+        (r) => normQuery && normalizeForMatch(r.task).includes(normQuery),
+      );
+      if (matchedReminder) {
+        remindersStore.deleteReminder(matchedReminder.id);
+        try {
+          await cancelReminderAlarm(matchedReminder.id);
+        } catch (e) {
+          console.warn('Failed to cancel alarm for deleted reminder:', e);
+        }
+        return {
+          success: true,
+          intent: 'delete_task',
+          entityType: 'reminder',
+          entityId: matchedReminder.id,
+          reply: `Cancelled reminder: "${matchedReminder.task}".`,
+        };
+      }
+
+      return {
+        success: false,
+        intent: 'delete_task',
+        entityType: 'task',
+        reply: `Could not find a task matching "${targetTitle || targetTime || 'that request'}".`,
+        error: 'Task not found.',
+      };
+    }
+
+    case 'update_time_block': {
+      const targetTitle = intent.targetTitle || intent.title;
+      const allBlocks = timeBlocksStore.getAll(userId);
+      const { block } = findMatchingTimeBlock(allBlocks, targetTitle, null, intent.targetTime);
+
+      if (!block) {
+        return {
+          success: false,
+          intent: 'update_time_block',
+          entityType: 'time_block',
+          reply: `Could not find a time block matching "${targetTitle || intent.targetTime || 'that request'}".`,
+          error: 'Time block not found.',
+        };
+      }
+
+      const updatedTitle = intent.newTitle || block.title;
+      const updatedDate = intent.date || block.date;
+      const updatedStart = intent.time || block.startTime;
+      let updatedEnd = intent.endTime || block.endTime;
+
+      if (!intent.endTime) {
+        if (intent.durationMinutes) {
+          updatedEnd = addMinutesToTime(updatedStart, intent.durationMinutes);
+        } else if (intent.time) {
+          const origDur = computeDurationMinutes(block.startTime, block.endTime);
+          updatedEnd = addMinutesToTime(updatedStart, origDur);
+        }
+      }
+
+      timeBlocksStore.update({
+        id: block.id,
+        title: updatedTitle,
+        date: updatedDate,
+        startTime: updatedStart,
+        endTime: updatedEnd,
+      });
+
+      return {
+        success: true,
+        intent: 'update_time_block',
+        entityType: 'time_block',
+        entityId: block.id,
+        reply: `Updated time block: "${updatedTitle}" on ${updatedDate} from ${updatedStart} to ${updatedEnd}.`,
+      };
+    }
+
+    case 'update_note': {
+      const targetTitle = intent.targetTitle || intent.title;
+      const allNotes = notesStore.getAll(userId);
+      const { note } = findMatchingNote(allNotes, targetTitle);
+
+      if (!note) {
+        return {
+          success: false,
+          intent: 'update_note',
+          entityType: 'note',
+          reply: `Could not find a note matching "${targetTitle || 'that request'}".`,
+          error: 'Note not found.',
+        };
+      }
+
+      const updatedTitle = intent.newTitle || note.title;
+      const isAppend = intent.category === 'APPEND';
+      const updatedBody = intent.details
+        ? isAppend && note.body
+          ? `${note.body}\n${intent.details}`
+          : intent.details
+        : note.body;
+
+      notesStore.update({
+        id: note.id,
+        title: updatedTitle,
+        body: updatedBody,
+      });
+
+      return {
+        success: true,
+        intent: 'update_note',
+        entityType: 'note',
+        entityId: note.id,
+        reply: `Updated note: "${updatedTitle}".`,
+      };
+    }
+
+    case 'update_task': {
+      const targetTitle = intent.targetTitle || intent.title;
+      const allTasks = tasksStore.getAllTasks(userId);
+      const taskMatch = findMatchingTask(allTasks, targetTitle, null, intent.targetTime);
+
+      // If targetEntityType === 'any' (e.g. "Move Coffee Break to 3pm"), check if a time block is a better match
+      if (intent.targetEntityType === 'any' && !intent.isCompleted) {
+        const allBlocks = timeBlocksStore.getAll(userId);
+        const blockMatch = findMatchingTimeBlock(allBlocks, targetTitle, null, intent.targetTime);
+        if (blockMatch.block && blockMatch.score > taskMatch.score) {
+          const b = blockMatch.block;
+          const updatedTitle = intent.newTitle || b.title;
+          const updatedDate = intent.date || b.date;
+          const updatedStart = intent.time || b.startTime;
+          let updatedEnd = intent.endTime || b.endTime;
+          if (!intent.endTime) {
+            if (intent.durationMinutes) {
+              updatedEnd = addMinutesToTime(updatedStart, intent.durationMinutes);
+            } else if (intent.time) {
+              const origDur = computeDurationMinutes(b.startTime, b.endTime);
+              updatedEnd = addMinutesToTime(updatedStart, origDur);
+            }
+          }
+          timeBlocksStore.update({
+            id: b.id,
+            title: updatedTitle,
+            date: updatedDate,
+            startTime: updatedStart,
+            endTime: updatedEnd,
+          });
+          return {
+            success: true,
+            intent: 'update_time_block',
+            entityType: 'time_block',
+            entityId: b.id,
+            reply: `Updated time block: "${updatedTitle}" on ${updatedDate} from ${updatedStart} to ${updatedEnd}.`,
+          };
+        }
+      }
+
+      if (!taskMatch.task) {
+        return {
+          success: false,
+          intent: 'update_task',
+          entityType: 'task',
+          reply: `Could not find a task matching "${targetTitle || intent.targetTime || 'that request'}".`,
+          error: 'Task not found.',
+        };
+      }
+
+      const task = taskMatch.task;
+      if (intent.isCompleted === true) {
+        tasksStore.updateTask({
+          id: task.id,
+          isCompleted: true,
+        });
+        return {
+          success: true,
+          intent: 'update_task',
+          entityType: 'task',
+          entityId: task.id,
+          reply: `Marked task "${task.title}" as completed.`,
+        };
+      }
+
+      const updatedTitle = intent.newTitle || task.title;
+      const updatedDate = intent.date || task.dueDate || todayStr;
+      const updatedTime = intent.time !== null ? intent.time : task.dueTime;
+
+      tasksStore.updateTask({
+        id: task.id,
+        title: updatedTitle,
+        dueDate: updatedDate,
+        dueTime: updatedTime,
+      });
+
+      // Also update or create a reminder if dueTime is present
+      if (updatedTime) {
+        const pendingReminders = remindersStore.getPendingReminders(userId);
+        const linkedRem = pendingReminders.find(
+          (r) => normalizeForMatch(r.task) === normalizeForMatch(task.title),
+        );
+        const scheduledAt = `${updatedDate}T${updatedTime}:00`;
+        const scheduledMs = new Date(scheduledAt).getTime();
+        if (linkedRem && Number.isFinite(scheduledMs) && scheduledMs > Date.now()) {
+          const triggerAt = new Date(scheduledMs).toISOString();
+          try {
+            remindersStore.updateReminderTriggerAt(linkedRem.id, triggerAt);
+            await scheduleReminderAlarm(linkedRem.id, updatedTitle, triggerAt);
+          } catch (e) {
+            console.warn('Failed to update task reminder alarm:', e);
+          }
+        }
+      }
+
+      const timeSuffix = updatedTime ? ` at ${updatedTime}` : '';
+      return {
+        success: true,
+        intent: 'update_task',
+        entityType: 'task',
+        entityId: task.id,
+        reply: `Updated task: "${updatedTitle}" for ${updatedDate}${timeSuffix}.`,
       };
     }
 
@@ -450,7 +921,7 @@ export async function executeNluAction(
       return {
         success: true,
         intent: intent.intent,
-        reply: "Hey! I'm LAFINA. You can ask me to add tasks, schedule study blocks, set reminders, or take notes.",
+        reply: "Hey! I'm LAFINA. You can ask me to add, update, or remove tasks, time blocks, reminders, or notes.",
       };
     }
   }

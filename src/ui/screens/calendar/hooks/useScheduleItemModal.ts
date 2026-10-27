@@ -83,7 +83,7 @@ export const useScheduleItemModal = (options: UseScheduleItemModalOptions): Sche
       Alert.alert('Error', 'Please enter a title.');
       return;
     }
-    if (modalType === 'event' && form.time > form.endTime) {
+    if (modalType === 'event' && form.endTime !== '00:00' && form.time > form.endTime) {
       Alert.alert('Invalid Time Range', 'Start time cannot be after end time.');
       return;
     }

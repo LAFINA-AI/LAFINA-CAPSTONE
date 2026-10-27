@@ -59,10 +59,12 @@ object LafinaWhisperBridge {
   external fun freeContext(contextPointer: Long)
 }
 
-private class SileroVadProcessor(private val reactContext: ReactApplicationContext) : AutoCloseable {
+internal class SileroVadProcessor(private val reactContext: ReactApplicationContext) : AutoCloseable {
   private val environment = OrtEnvironment.getEnvironment()
   private val session: OrtSession
-  private var state = FloatArray(2 * 1 * 128)
+  private var state = FloatArray(STATE_SIZE)
+  private var context = FloatArray(CONTEXT_SIZE)
+  private val inputWindow = FloatArray(INPUT_WINDOW_SIZE)
 
   init {
     val modelFile = File(reactContext.cacheDir, "silero_vad_16k_op15.onnx")
@@ -79,13 +81,16 @@ private class SileroVadProcessor(private val reactContext: ReactApplicationConte
 
   fun reset() {
     state.fill(0f)
+    context.fill(0f)
+    inputWindow.fill(0f)
   }
 
   fun probability(frame: FloatArray): Float {
+    val preparedInput = buildContextualInputWindow(context, frame, inputWindow)
     val inputTensor = OnnxTensor.createTensor(
       environment,
-      FloatBuffer.wrap(frame),
-      longArrayOf(1, frame.size.toLong())
+      FloatBuffer.wrap(preparedInput),
+      longArrayOf(1, preparedInput.size.toLong())
     )
     val stateTensor = OnnxTensor.createTensor(
       environment,
@@ -108,6 +113,7 @@ private class SileroVadProcessor(private val reactContext: ReactApplicationConte
         val probability = (result[0] as OnnxTensor).floatBuffer.get(0)
         val stateBuffer = (result[1] as OnnxTensor).floatBuffer
         stateBuffer.get(state, 0, minOf(state.size, stateBuffer.remaining()))
+        updateRollingContext(context, frame)
         return probability
       }
     } finally {
@@ -122,7 +128,52 @@ private class SileroVadProcessor(private val reactContext: ReactApplicationConte
   }
 
   companion object {
-    private const val SAMPLE_RATE = 16_000
+    const val SAMPLE_RATE = 16_000
+    const val FRAME_SIZE = 512
+    const val CONTEXT_SIZE = 64
+    const val INPUT_WINDOW_SIZE = CONTEXT_SIZE + FRAME_SIZE
+    const val STATE_SIZE = 2 * 1 * 128
+
+    internal fun buildContextualInputWindow(
+      context: FloatArray,
+      frame: FloatArray,
+      reusableWindow: FloatArray? = null
+    ): FloatArray {
+      val windowSize = context.size + frame.size
+      val target = if (reusableWindow != null && reusableWindow.size == windowSize) {
+        reusableWindow
+      } else {
+        FloatArray(windowSize)
+      }
+      context.copyInto(target, destinationOffset = 0, startIndex = 0, endIndex = context.size)
+      frame.copyInto(target, destinationOffset = context.size, startIndex = 0, endIndex = frame.size)
+      return target
+    }
+
+    internal fun updateRollingContext(context: FloatArray, frame: FloatArray) {
+      if (frame.size >= context.size) {
+        frame.copyInto(
+          context,
+          destinationOffset = 0,
+          startIndex = frame.size - context.size,
+          endIndex = frame.size
+        )
+      } else {
+        val shift = frame.size
+        context.copyInto(
+          context,
+          destinationOffset = 0,
+          startIndex = shift,
+          endIndex = context.size
+        )
+        frame.copyInto(
+          context,
+          destinationOffset = context.size - shift,
+          startIndex = 0,
+          endIndex = shift
+        )
+      }
+    }
   }
 }
 
@@ -221,6 +272,11 @@ class LafinaSpeechToTextModule(private val reactContext: ReactApplicationContext
       CONTEXT_MAIN_MIC
     }
     val bargeIn = options.hasKey("bargeIn") && options.getBoolean("bargeIn")
+    val useHardwareAudioEffects = if (options.hasKey("hardwareNoiseSuppression")) {
+      options.getBoolean("hardwareNoiseSuppression")
+    } else {
+      bargeIn
+    }
     if (!activeCaptureId.compareAndSet(null, captureId)) {
       promise.reject("CAPTURE_BUSY", "Another offline speech capture is already active.")
       return
@@ -231,7 +287,13 @@ class LafinaSpeechToTextModule(private val reactContext: ReactApplicationContext
     executor.execute {
       try {
         val captureStartedAt = System.currentTimeMillis()
-        val captured = captureUtterance(captureId, mode, bargeIn, captureContext)
+        val captured = captureUtterance(
+          captureId,
+          mode,
+          bargeIn,
+          captureContext,
+          useHardwareAudioEffects
+        )
         val captureDurationMs = System.currentTimeMillis() - captureStartedAt
         Log.i(
           TAG,
@@ -307,7 +369,8 @@ class LafinaSpeechToTextModule(private val reactContext: ReactApplicationContext
     captureId: String,
     mode: String,
     bargeIn: Boolean,
-    captureContext: String
+    captureContext: String,
+    useHardwareAudioEffects: Boolean = bargeIn
   ): CapturedAudio {
     val isReminderCall = captureContext == CONTEXT_REMINDER_CALL
     val minimumBuffer = AudioRecord.getMinBufferSize(
@@ -342,7 +405,7 @@ class LafinaSpeechToTextModule(private val reactContext: ReactApplicationContext
       null
     }
     val noiseSuppressor = try {
-      if (NoiseSuppressor.isAvailable()) {
+      if (useHardwareAudioEffects && NoiseSuppressor.isAvailable()) {
         NoiseSuppressor.create(recorder.audioSessionId)?.apply { enabled = true }
       } else {
         null
@@ -351,7 +414,7 @@ class LafinaSpeechToTextModule(private val reactContext: ReactApplicationContext
       null
     }
     val automaticGainControl = try {
-      if (AutomaticGainControl.isAvailable()) {
+      if (useHardwareAudioEffects && AutomaticGainControl.isAvailable()) {
         AutomaticGainControl.create(recorder.audioSessionId)?.apply { enabled = true }
       } else {
         null
@@ -471,9 +534,17 @@ class LafinaSpeechToTextModule(private val reactContext: ReactApplicationContext
 
         val speechProbability = vad.probability(normalized)
         maxVadProbability = max(maxVadProbability, speechProbability)
+        if (speechProbability < VAD_NOISE_UPDATE_THRESHOLD) {
+          val boundedRms = minOf(rms, MAX_NOISE_FLOOR_RMS)
+          noiseFloorRms =
+            NOISE_FLOOR_HISTORY * noiseFloorRms +
+            (1f - NOISE_FLOOR_HISTORY) * boundedRms
+        }
+
         val energyThreshold = max(MIN_SPEECH_RMS, noiseFloorRms * ENERGY_NOISE_MULTIPLIER)
         val boundaryEnergyLooksLikeSpeech =
           (!bargeIn || isReminderCall) &&
+            speechProbability >= VAD_ENERGY_ASSIST_START_MIN_PROB &&
             rms >= energyThreshold &&
             framePeak >= MIN_SPEECH_PEAK
         if (boundaryEnergyLooksLikeSpeech) {
@@ -500,12 +571,6 @@ class LafinaSpeechToTextModule(private val reactContext: ReactApplicationContext
           } else {
             speechEvidenceFrames = max(0, speechEvidenceFrames - 1)
             if (speechEvidenceFrames == 0) speechCandidateStartSample = -1
-            if (speechProbability < VAD_NOISE_UPDATE_THRESHOLD) {
-              val boundedRms = minOf(rms, MAX_NOISE_FLOOR_RMS)
-              noiseFloorRms =
-                NOISE_FLOOR_HISTORY * noiseFloorRms +
-                (1f - NOISE_FLOOR_HISTORY) * boundedRms
-            }
           }
           if (speechEvidenceFrames >= speechEvidenceFramesRequired) {
             speechDetected = true
@@ -522,9 +587,11 @@ class LafinaSpeechToTextModule(private val reactContext: ReactApplicationContext
             })
           }
         } else {
-          val voiceContinues =
-            speechProbability >= VAD_END_THRESHOLD ||
+          val energyContinues =
+            speechProbability >= VAD_ENERGY_ASSIST_CONTINUE_MIN_PROB &&
             rms >= max(MIN_CONTINUING_SPEECH_RMS, noiseFloorRms * CONTINUING_ENERGY_MULTIPLIER)
+          val voiceContinues =
+            speechProbability >= VAD_END_THRESHOLD || energyContinues
           if (voiceContinues) {
             silenceFramesAfterSpeech = 0
             speechEndStreamSample = streamFrameEnd
@@ -587,32 +654,8 @@ class LafinaSpeechToTextModule(private val reactContext: ReactApplicationContext
     )
   }
 
-  private fun prepareForWhisper(samples: FloatArray): FloatArray {
-    val outputSize = max(samples.size, WHISPER_MIN_SAMPLES)
-    val output = FloatArray(outputSize)
-    if (samples.isEmpty()) return output
-
-    var mean = 0.0
-    for (sample in samples) mean += sample
-    mean /= samples.size
-
-    var squaredSum = 0.0
-    for (sample in samples) {
-      val centered = sample - mean.toFloat()
-      squaredSum += centered * centered
-    }
-    val rms = sqrt(squaredSum / samples.size).toFloat()
-    val gain = if (rms > 0f && rms < TARGET_WHISPER_RMS) {
-      (TARGET_WHISPER_RMS / rms).coerceAtMost(MAX_WHISPER_INPUT_GAIN)
-    } else {
-      1f
-    }
-
-    for (index in samples.indices) {
-      output[index] = ((samples[index] - mean.toFloat()) * gain).coerceIn(-1f, 1f)
-    }
-    return output
-  }
+  internal fun prepareForWhisper(samples: FloatArray): FloatArray =
+    prepareSamplesForWhisper(samples)
 
   private fun resultMap(
     captureId: String,
@@ -693,18 +736,20 @@ class LafinaSpeechToTextModule(private val reactContext: ReactApplicationContext
     private const val MAIN_WAIT_FOR_SPEECH_SECONDS = 12
     private const val REMINDER_WAIT_FOR_SPEECH_SECONDS = 20
     private const val MAX_UTTERANCE_SECONDS = 15
-    private const val CALL_COMMAND_LIMIT_SECONDS = 2
+    private const val CALL_COMMAND_LIMIT_SECONDS = 4
     private const val MANUAL_CAPTURE_LIMIT_SECONDS = 30
-    private const val MAIN_SILENCE_AFTER_SPEECH_MS = 1_200
-    private const val CALL_COMMAND_SILENCE_AFTER_SPEECH_MS = 400
-    private const val PRE_ROLL_SAMPLES = 4_800
+    private const val MAIN_SILENCE_AFTER_SPEECH_MS = 1_350
+    private const val CALL_COMMAND_SILENCE_AFTER_SPEECH_MS = 650
+    private const val PRE_ROLL_SAMPLES = 5_760
     private const val VAD_START_THRESHOLD = 0.35f
     private const val VAD_END_THRESHOLD = 0.20f
     private const val VAD_NOISE_UPDATE_THRESHOLD = 0.15f
+    private const val VAD_ENERGY_ASSIST_START_MIN_PROB = 0.12f
+    private const val VAD_ENERGY_ASSIST_CONTINUE_MIN_PROB = 0.08f
     private const val MIN_SPEECH_EVIDENCE_FRAMES = 3
     private const val CALL_SPEECH_EVIDENCE_FRAMES = 2
     private const val INITIAL_NOISE_FLOOR_RMS = 0.003f
-    private const val MAX_NOISE_FLOOR_RMS = 0.03f
+    private const val MAX_NOISE_FLOOR_RMS = 0.06f
     private const val NOISE_FLOOR_HISTORY = 0.95f
     private const val ENERGY_NOISE_MULTIPLIER = 2.8f
     private const val CONTINUING_ENERGY_MULTIPLIER = 1.6f
@@ -715,8 +760,10 @@ class LafinaSpeechToTextModule(private val reactContext: ReactApplicationContext
     private const val MIN_MANUAL_CAPTURE_SAMPLES = SAMPLE_RATE / 4
     private const val TARGET_WHISPER_RMS = 0.10f
     private const val MAX_WHISPER_INPUT_GAIN = 6f
+    private const val HIGH_PASS_ALPHA = 0.9695f
+    private const val SOFT_CLIP_THRESHOLD = 0.85f
     private const val WHISPER_MIN_SAMPLES = SAMPLE_RATE
-    private const val WHISPER_SPEECH_MARGIN_MS = 250
+    private const val WHISPER_SPEECH_MARGIN_MS = 360
     private const val WHISPER_SPEECH_MARGIN_SAMPLES =
       SAMPLE_RATE * WHISPER_SPEECH_MARGIN_MS / 1_000
     private const val MODE_AUTOMATIC = "automatic"
@@ -724,5 +771,47 @@ class LafinaSpeechToTextModule(private val reactContext: ReactApplicationContext
     private const val CONTEXT_MAIN_MIC = "main_mic"
     private const val CONTEXT_REMINDER_CALL = "reminder_call"
     private const val WHISPER_MODEL_ASSET = LafinaWhisperBridge.MODEL_ASSET
+
+    internal fun softLimitSample(value: Float): Float {
+      val absVal = abs(value)
+      if (absVal <= SOFT_CLIP_THRESHOLD) return value
+      val sign = if (value >= 0f) 1f else -1f
+      val excess = absVal - SOFT_CLIP_THRESHOLD
+      val headroom = 1f - SOFT_CLIP_THRESHOLD
+      val compressed = SOFT_CLIP_THRESHOLD + headroom * (excess / (excess + headroom))
+      return (sign * compressed).coerceIn(-1f, 1f)
+    }
+
+    internal fun prepareSamplesForWhisper(samples: FloatArray): FloatArray {
+      val outputSize = max(samples.size, WHISPER_MIN_SAMPLES)
+      val output = FloatArray(outputSize)
+      if (samples.isEmpty()) return output
+
+      // 80 Hz first-order high-pass filter removes DC offset and low-frequency fan/AC/mic rumble
+      // while preserving fundamental voice frequencies and accented formants (85 Hz - 8000 Hz).
+      var prevInput = samples[0]
+      var prevOutput = 0f
+      var squaredSum = 0.0
+      for (index in samples.indices) {
+        val input = samples[index]
+        val filtered = HIGH_PASS_ALPHA * (prevOutput + input - prevInput)
+        prevInput = input
+        prevOutput = filtered
+        output[index] = filtered
+        squaredSum += filtered.toDouble() * filtered.toDouble()
+      }
+
+      val rms = sqrt(squaredSum / samples.size).toFloat()
+      val gain = if (rms > 0f && rms < TARGET_WHISPER_RMS) {
+        (TARGET_WHISPER_RMS / rms).coerceAtMost(MAX_WHISPER_INPUT_GAIN)
+      } else {
+        1f
+      }
+
+      for (index in samples.indices) {
+        output[index] = softLimitSample(output[index] * gain)
+      }
+      return output
+    }
   }
 }

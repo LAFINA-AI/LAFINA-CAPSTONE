@@ -10,16 +10,24 @@
 namespace {
 constexpr const char *kTag = "LafinaWhisper";
 constexpr const char *kAcademicPrompt =
-    "Set a schedule. Set a schedule at 4:15 PM today. Acknowledge. Acknowledged. Snooze. "
-    "Snooze for ten minutes. Academic scheduling words include reminder, assignment, class, "
-    "exam, quiz, project, study, meeting, today, tomorrow, morning, afternoon, evening, AM, "
-    "and PM.";
+    "LAFINA academic voice assistant for USTP students. Add a task, create a time block, set a "
+    "reminder, or create a note. Cancel, remove, delete, update, or rename a task, time block, "
+    "or note. Create a time block from 9 AM to 12 noon. Create a task at 7:30 AM today. Remind "
+    "me in 30 minutes to submit my capstone project. What is my schedule for today and tomorrow? "
+    "Laboratory, lecture, midterm, finals, quiz, exam, assignment, homework, deadline, professor, "
+    "syllabus, study, meeting, today, tomorrow, morning, afternoon, evening, tonight, noon, "
+    "midnight, AM, and PM. Acknowledge, acknowledged, snooze, snooze for ten minutes, dismiss, "
+    "got it, okay.";
 constexpr const char *kCallCommandPrompt =
-    "Acknowledged. Snoozed. Acknowledge. Snooze.";
+    "Acknowledge. Acknowledged. Snooze. Snoozed. Snooze for five minutes. Snooze for ten "
+    "minutes. Dismiss. Got it. Okay.";
 
-constexpr float kDisabledNoSpeechThreshold = 1.0f;
+constexpr float kNoSpeechThreshold = 0.65f;
+constexpr float kHardSegmentNoSpeechLimit = 0.85f;
+constexpr float kAccentTolerantLogprobThreshold = -1.25f;
+constexpr float kHallucinationEntropyThreshold = 2.40f;
 constexpr int kCallCommandAudioContext = 128;
-constexpr int kCallCommandMaxTokens = 8;
+constexpr int kCallCommandMaxTokens = 12;
 
 size_t assetRead(void *context, void *output, size_t size) {
   return static_cast<size_t>(AAsset_read(static_cast<AAsset *>(context), output, size));
@@ -114,15 +122,17 @@ Java_com_lafina_LafinaWhisperBridge_transcribe(
   params.suppress_blank = true;
   params.suppress_nst = true;
   params.temperature = 0.0f;
+  // Disable temperature fallback when best_of=1 so accented or noisy speech never falls back
+  // to high-temperature random sampling (0.2..1.0) that hallucinates unrelated words.
+  params.temperature_inc = 0.0f;
+  params.entropy_thold = kHallucinationEntropyThreshold;
+  params.logprob_thold = kAccentTolerantLogprobThreshold;
+  params.no_speech_thold = kNoSpeechThreshold;
   const bool isCommandMode = commandMode == JNI_TRUE;
   params.max_tokens = isCommandMode ? kCallCommandMaxTokens : 96;
   params.audio_ctx = isCommandMode ? kCallCommandAudioContext : 0;
   params.initial_prompt = isCommandMode ? kCallCommandPrompt : kAcademicPrompt;
   params.greedy.best_of = 1;
-  // Silero VAD has already gated and trimmed this audio. Whisper.cpp suppresses a
-  // segment only when no_speech_prob is strictly greater than this threshold and
-  // its average log probability is low, so 1.0 disables the redundant gate.
-  params.no_speech_thold = kDisabledNoSpeechThreshold;
   params.n_threads = std::clamp(static_cast<int>(requestedThreads), 1, 4);
   std::string transcript;
   __android_log_print(
@@ -138,6 +148,10 @@ Java_com_lafina_LafinaWhisperBridge_transcribe(
   if (result == 0) {
     const int segmentCount = whisper_full_n_segments(context);
     for (int index = 0; index < segmentCount; ++index) {
+      const float noSpeechProb = whisper_full_get_segment_no_speech_prob(context, index);
+      if (noSpeechProb > kHardSegmentNoSpeechLimit) {
+        continue;
+      }
       const std::string segment = trim(whisper_full_get_segment_text(context, index));
       if (segment.empty()) continue;
       if (!transcript.empty()) transcript += " ";
@@ -182,11 +196,14 @@ Java_com_lafina_LafinaWhisperBridge_transcribeWithTimestamps(
   params.suppress_blank = true;
   params.suppress_nst = true;
   params.temperature = 0.0f;
+  params.temperature_inc = 0.0f;
+  params.entropy_thold = kHallucinationEntropyThreshold;
+  params.logprob_thold = kAccentTolerantLogprobThreshold;
+  params.no_speech_thold = kNoSpeechThreshold;
   params.max_tokens = 256;
   params.audio_ctx = 0;
   params.initial_prompt = kAcademicPrompt;
   params.greedy.best_of = 1;
-  params.no_speech_thold = kDisabledNoSpeechThreshold;
   params.n_threads = std::clamp(static_cast<int>(requestedThreads), 1, 4);
 
   const int result = whisper_full(context, params, audio, sampleCount);
@@ -197,6 +214,10 @@ Java_com_lafina_LafinaWhisperBridge_transcribeWithTimestamps(
     const int segmentCount = whisper_full_n_segments(context);
     bool first = true;
     for (int index = 0; index < segmentCount; ++index) {
+      const float noSpeechProb = whisper_full_get_segment_no_speech_prob(context, index);
+      if (noSpeechProb > kHardSegmentNoSpeechLimit) {
+        continue;
+      }
       const std::string segmentText = trim(whisper_full_get_segment_text(context, index));
       if (segmentText.empty()) continue;
       const int64_t t0 = static_cast<int64_t>(whisper_full_get_segment_t0(context, index)) * 10;

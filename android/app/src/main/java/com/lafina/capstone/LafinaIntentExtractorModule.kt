@@ -157,8 +157,31 @@ class LafinaIntentExtractorModule(reactContext: ReactApplicationContext) :
 
     val prompt = """
       <|im_start|>system
-      You are LAFINA's on-device academic NLU extractor. Extract student intent from speech into JSON:
-      {"intent":"create_task"|"create_time_block"|"create_reminder"|"create_note"|"acknowledge"|"snooze"|"reschedule", "title":string, "date":string|null, "time":string|null, "category":"Academic"|"Personal"}.
+      You are LAFINA's on-device academic NLU extractor. Extract student intent from speech into valid JSON only.
+
+      CRITICAL TITLE RULES:
+      1. Rewrite "title" into a concise, clean Title Case noun phrase or imperative verb phrase (2 to 6 words).
+      2. Strip ALL dates, times, relative time words ("tomorrow", "morrow", "tmrw", "today", "tonight", "9am", "at 2pm", "in 10 minutes", "after class").
+      3. Strip ALL command prefixes and conversational filler ("remind me to", "I need to", "I have to", "don't forget to", "add a task for", "create a timeblock for", "please").
+
+      JSON SCHEMA:
+      {"intent":"create_task"|"create_time_block"|"create_reminder"|"create_note"|"query_schedule"|"acknowledge"|"snooze"|"reschedule", "title":string|null, "date":string|null, "time":string|null, "category":"Academic"|"Personal"}
+
+      FEW-SHOT EXAMPLES:
+      User: Morrow 9am coffee break
+      Assistant: {"intent":"create_task","title":"Coffee Break","date":null,"time":"09:00","category":"Personal"}
+
+      User: I need to finish studying for my operating systems midterm tomorrow at 8pm
+      Assistant: {"intent":"create_task","title":"Study for Operating Systems Midterm","date":null,"time":"20:00","category":"Academic"}
+
+      User: Remind me in ten minutes for a coffee break
+      Assistant: {"intent":"create_reminder","title":"Coffee Break","date":null,"time":null,"category":"Personal"}
+
+      User: Create a timeblock from 9am to 12 noon for thesis writing
+      Assistant: {"intent":"create_time_block","title":"Thesis Writing","date":null,"time":"09:00","category":"Academic"}
+
+      User: What is my schedule for today
+      Assistant: {"intent":"query_schedule","title":null,"date":null,"time":null,"category":"Academic"}
       <|im_end|>
       <|im_start|>user
       $transcript
@@ -175,6 +198,30 @@ class LafinaIntentExtractorModule(reactContext: ReactApplicationContext) :
       return jsonCandidate
     }
     return null
+  }
+
+  private fun cleanTitleFallback(text: String): String {
+    var cleaned = text.trim()
+    cleaned = cleaned.replace(
+      Regex(
+        "^(?:please\\s+)?(?:i\\s+(?:really\\s+)?(?:need|have|got|want)\\s+to\\s+|i\\s+(?:really\\s+)?gotta\\s+|don'?t\\s+forget\\s+(?:to\\s+)?|make\\s+sure\\s+(?:i\\s+|to\\s+)?|remind\\s+me\\s+(?:to\\s+|for\\s+)?|set\\s+a?\\s*reminder\\s+(?:to\\s+|for\\s+)?|create\\s+a?\\s*(?:time\\s*block|timeblock|task|reminder|note)\\s*(?:for\\s+|to\\s+)?|add\\s+a?\\s*(?:time\\s*block|timeblock|study\\s+block|task|reminder|note)\\s*(?:for\\s+|to\\s+)?)+",
+        RegexOption.IGNORE_CASE
+      ),
+      ""
+    )
+    cleaned = cleaned.replace(
+      Regex(
+        "\\b(?:to-?morrow|morrow|tmrw|today|tonight|this\\s+(?:morning|afternoon|evening|weekend)|next\\s+(?:week|monday|tuesday|wednesday|thursday|friday|saturday|sunday)|(?:on\\s+)?(?:monday|tuesday|wednesday|thursday|friday|saturday|sunday)|(?:at|from|by|around)\\s+\\d{1,4}(?::\\d{2})?\\s*(?:am|pm|noon|midnight)?|\\d{1,4}(?::\\d{2})?\\s*(?:am|pm)|(?:after|before)\\s+(?:class|school|lunch|dinner|work))\\b",
+        RegexOption.IGNORE_CASE
+      ),
+      " "
+    )
+    cleaned = cleaned
+      .replace(Regex("^(?:finish|start)\\s+studying\\b", RegexOption.IGNORE_CASE), "study")
+      .replace(Regex("^[\\s,;:-]+|[\\s,;:-]+$"), "")
+      .replace(Regex("\\s+"), " ")
+      .trim()
+    return if (cleaned.isNotEmpty()) cleaned else text.trim()
   }
 
   private fun executeFastPath(text: String): String {
@@ -208,20 +255,35 @@ class LafinaIntentExtractorModule(reactContext: ReactApplicationContext) :
       }.toString()
     }
 
-    // 3. Fallback generic intent
+    // 3. Schedule query / audit
+    if (Regex("\\b(what(?:'s|s| is| are) (?:on |in |for )?(?:my )?(?:schedule|calendar|agenda|plans?|tasks?)|schedule audit|audit my schedule|check my schedule|show my schedule|tell me my schedule|what do i have)\\b").containsMatchIn(lower)) {
+      return JSONObject().apply {
+        put("intent", "query_schedule")
+        put("title", JSONObject.NULL)
+        put("date", JSONObject.NULL)
+        put("time", JSONObject.NULL)
+        put("duration_minutes", JSONObject.NULL)
+        put("status", "success")
+        put("reply", "Checking schedule.")
+      }.toString()
+    }
+
+    // 4. Fallback generic intent
     var intent = "create_task"
     if (lower.contains("remind me") || lower.contains("reminder")) intent = "create_reminder"
-    else if (lower.contains("time block") || lower.contains("block")) intent = "create_time_block"
+    else if (lower.contains("time block") || lower.contains("timeblock") || lower.contains("block")) intent = "create_time_block"
     else if (lower.contains("note")) intent = "create_note"
+
+    val distilledTitle = cleanTitleFallback(text)
 
     return JSONObject().apply {
       put("intent", intent)
-      put("title", text)
+      put("title", distilledTitle)
       put("date", JSONObject.NULL)
       put("time", JSONObject.NULL)
       put("duration_minutes", JSONObject.NULL)
       put("status", "success")
-      put("reply", "Processed: $text")
+      put("reply", "Processed: $distilledTitle")
     }.toString()
   }
 

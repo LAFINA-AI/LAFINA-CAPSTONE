@@ -88,7 +88,7 @@ export const useTimeBlockModal = (options: UseTimeBlockModalOptions): TimeBlockM
       Alert.alert('Error', 'Please enter a title.');
       return;
     }
-    if (form.startTime > form.endTime) {
+    if (form.endTime !== '00:00' && form.startTime > form.endTime) {
       Alert.alert('Invalid Time Range', 'Start time cannot be after end time.');
       return;
     }

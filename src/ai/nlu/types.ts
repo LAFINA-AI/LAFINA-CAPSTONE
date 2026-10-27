@@ -3,12 +3,20 @@ export type ParsedIntentType =
   | 'create_time_block'
   | 'create_reminder'
   | 'create_note'
+  | 'update_task'
+  | 'update_time_block'
+  | 'update_note'
+  | 'delete_task'
+  | 'delete_time_block'
+  | 'delete_note'
   | 'acknowledge'
   | 'snooze'
   | 'reschedule'
   | 'query_schedule'
   | 'chat'
   | 'out_of_scope';
+
+export type CrudTargetEntityType = 'task' | 'time_block' | 'note' | 'reminder' | 'any';
 
 export interface ExtractedIntent {
   intent: ParsedIntentType;
@@ -23,6 +31,12 @@ export interface ExtractedIntent {
   confidence: number; // 0.0 to 1.0
   source: 'fast_path' | 'on_device_slm' | 'cloud';
   rawTranscript: string;
+  /** Optional CRUD target fields for update/delete operations. */
+  targetTitle?: string | null;
+  targetTime?: string | null;
+  newTitle?: string | null;
+  isCompleted?: boolean | null;
+  targetEntityType?: CrudTargetEntityType | null;
 }
 
 export interface ValidatedIntent extends ExtractedIntent {
@@ -54,9 +68,14 @@ export interface ModelStatus {
   modelName: string;
 }
 
+const TIME_FORMAT_REGEX = /^([01]\d|2[0-3]):([0-5]\d)$/;
+const DATE_FORMAT_REGEX = /^\d{4}-\d{2}-\d{2}$/;
+
 /** Validates and clamps an extracted intent to ensure strict schema compliance before DB execution. */
 export function validateIntent(intent: ExtractedIntent): ValidatedIntent {
   const sanitizedTitle = (intent.title || '').trim();
+  const sanitizedTargetTitle = (intent.targetTitle || '').trim();
+  const sanitizedNewTitle = (intent.newTitle || '').trim();
 
   // Call responses
   if (intent.intent === 'acknowledge') {
@@ -69,7 +88,7 @@ export function validateIntent(intent: ExtractedIntent): ValidatedIntent {
   }
 
   if (intent.intent === 'reschedule') {
-    if (!intent.time && !intent.date) {
+    if (!intent.time && !intent.date && !intent.durationMinutes) {
       return {
         ...intent,
         isValid: false,
@@ -87,17 +106,8 @@ export function validateIntent(intent: ExtractedIntent): ValidatedIntent {
     return { ...intent, isValid: true };
   }
 
-  // Scheduling & note intents require a non-empty title
-  if (!sanitizedTitle) {
-    return {
-      ...intent,
-      isValid: false,
-      validationError: 'Title cannot be empty for task, event, reminder, or note creation.',
-    };
-  }
-
-  // Validate time format (HH:mm)
-  if (intent.time && !/^([01]\d|2[0-3]):([0-5]\d)$/.test(intent.time)) {
+  // Validate time & date formats whenever present
+  if (intent.time && !TIME_FORMAT_REGEX.test(intent.time)) {
     return {
       ...intent,
       isValid: false,
@@ -105,7 +115,7 @@ export function validateIntent(intent: ExtractedIntent): ValidatedIntent {
     };
   }
 
-  if (intent.endTime && !/^([01]\d|2[0-3]):([0-5]\d)$/.test(intent.endTime)) {
+  if (intent.endTime && !TIME_FORMAT_REGEX.test(intent.endTime)) {
     return {
       ...intent,
       isValid: false,
@@ -113,12 +123,80 @@ export function validateIntent(intent: ExtractedIntent): ValidatedIntent {
     };
   }
 
-  // Validate date format (YYYY-MM-DD)
-  if (intent.date && !/^\d{4}-\d{2}-\d{2}$/.test(intent.date)) {
+  if (intent.targetTime && !TIME_FORMAT_REGEX.test(intent.targetTime)) {
+    return {
+      ...intent,
+      isValid: false,
+      validationError: `Invalid target time format: ${intent.targetTime}. Expected HH:mm.`,
+    };
+  }
+
+  if (intent.date && !DATE_FORMAT_REGEX.test(intent.date)) {
     return {
       ...intent,
       isValid: false,
       validationError: `Invalid date format: ${intent.date}. Expected YYYY-MM-DD.`,
+    };
+  }
+
+  // Delete / Cancel / Remove intents
+  if (
+    intent.intent === 'delete_task' ||
+    intent.intent === 'delete_time_block' ||
+    intent.intent === 'delete_note'
+  ) {
+    if (!sanitizedTargetTitle && !sanitizedTitle && !intent.targetTime && !intent.time && !intent.date) {
+      return {
+        ...intent,
+        isValid: false,
+        validationError: 'Please specify which item you want to remove or cancel.',
+      };
+    }
+    return {
+      ...intent,
+      title: sanitizedTitle || sanitizedTargetTitle || null,
+      targetTitle: sanitizedTargetTitle || sanitizedTitle || null,
+      isValid: true,
+    };
+  }
+
+  // Update / Edit / Move / Complete intents
+  if (
+    intent.intent === 'update_task' ||
+    intent.intent === 'update_time_block' ||
+    intent.intent === 'update_note'
+  ) {
+    const hasTarget = Boolean(sanitizedTargetTitle || sanitizedTitle || intent.targetTime);
+    const hasMutation = Boolean(
+      intent.time ||
+        intent.endTime ||
+        intent.date ||
+        sanitizedNewTitle ||
+        intent.details ||
+        typeof intent.isCompleted === 'boolean',
+    );
+    if (!hasTarget && !hasMutation) {
+      return {
+        ...intent,
+        isValid: false,
+        validationError: 'Please specify which item to update and the new changes.',
+      };
+    }
+    return {
+      ...intent,
+      title: sanitizedTitle || sanitizedTargetTitle || null,
+      targetTitle: sanitizedTargetTitle || sanitizedTitle || null,
+      newTitle: sanitizedNewTitle || null,
+      isValid: true,
+    };
+  }
+
+  // Creation intents require a non-empty title
+  if (!sanitizedTitle) {
+    return {
+      ...intent,
+      isValid: false,
+      validationError: 'Title cannot be empty for task, event, reminder, or note creation.',
     };
   }
 
