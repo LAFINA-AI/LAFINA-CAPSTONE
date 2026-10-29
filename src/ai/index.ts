@@ -43,3 +43,5 @@ export {
 } from './native/speechCapture';
 
 export * from './nlu';
+export * from './chatOrchestrator';
+

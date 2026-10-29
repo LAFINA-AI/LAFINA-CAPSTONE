@@ -1,4 +1,5 @@
 import { db } from './database';
+import { generateId } from '../utils';
 
 export interface ChatAttachment {
   uri: string;
@@ -81,6 +82,33 @@ export const chatStore = {
       console.error('Error fetching chat messages:', error);
       return [];
     }
+  },
+
+  addMessage: (
+    userId: string,
+    sender: 'user' | 'assistant',
+    content: string,
+    attachment?: ChatAttachment | null,
+  ): ChatMessage => {
+    const sessionId = chatStore.ensureDefaultSession(userId);
+    const id = generateId('msg');
+    const now = new Date().toISOString();
+    chatStore.insertMessage({
+      id,
+      sessionId,
+      sender,
+      content,
+      attachment,
+    });
+    return {
+      id,
+      sessionId,
+      sender,
+      content,
+      attachment: attachment || null,
+      createdAt: now,
+      updatedAt: now,
+    };
   },
 
   insertMessage: (msg: {

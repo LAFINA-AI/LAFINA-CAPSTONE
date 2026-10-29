@@ -698,6 +698,43 @@ export function parseDateAndTime(text: string, referenceDate: Date = new Date())
     }
   }
 
+  // Explicit ISO date: "2026-10-31", "on 2026-10-31"
+  if (!date) {
+    const isoDateMatch = /\b(\d{4}-\d{2}-\d{2})\b/.exec(lower);
+    if (isoDateMatch) {
+      date = isoDateMatch[1];
+      matchedText.push(isoDateMatch[0]);
+    }
+  }
+
+  // Month name and day: e.g. "on October 31", "Oct 31", "October 31st"
+  if (!date) {
+    const monthRegex = /\b(?:on\s+)?(january|february|march|april|may|june|july|august|september|october|november|december|jan|feb|mar|apr|jun|jul|aug|sep|sept|oct|nov|dec)\s+(\d{1,2})(?:st|nd|rd|th)?(?:\s*,?\s*(\d{4}))?\b/i;
+    const monthMatch = monthRegex.exec(lower);
+    if (monthMatch) {
+      const monthNames = [
+        'january', 'february', 'march', 'april', 'may', 'june',
+        'july', 'august', 'september', 'october', 'november', 'december',
+      ];
+      const monthShort = [
+        'jan', 'feb', 'mar', 'apr', 'may', 'jun',
+        'jul', 'aug', 'sep', 'oct', 'nov', 'dec',
+      ];
+      const mStr = monthMatch[1].toLowerCase();
+      let mIdx = monthNames.indexOf(mStr);
+      if (mIdx === -1) mIdx = monthShort.indexOf(mStr.slice(0, 3));
+      if (mIdx !== -1) {
+        const dNum = parseInt(monthMatch[2], 10);
+        const yNum = monthMatch[3] ? parseInt(monthMatch[3], 10) : referenceDate.getFullYear();
+        if (dNum >= 1 && dNum <= 31) {
+          const d = new Date(yNum, mIdx, dNum);
+          date = formatLocalDate(d);
+          matchedText.push(monthMatch[0]);
+        }
+      }
+    }
+  }
+
   // Weekdays: e.g. "next Monday", "this Friday", "on Wednesday"
   const weekdayMatch = /\b(?:on\s+|this\s+|next\s+)?(monday|tuesday|wednesday|thursday|friday|saturday|sunday)\b/i.exec(lower);
   if (weekdayMatch && !date) {

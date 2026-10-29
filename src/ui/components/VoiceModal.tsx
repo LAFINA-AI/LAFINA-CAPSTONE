@@ -25,7 +25,7 @@ import {
 } from '../../ai/native/speechCapture';
 import type { OfflineSpeechCaptureHandle } from '../../ai/native/speechCapture';
 import { ensureMicrophonePermission } from '../../ai/stt/sttService';
-import { intentService } from '../../ai/nlu';
+import { chatOrchestrator } from '../../ai/chatOrchestrator';
 import { ttsService } from '../../ai/tts/ttsService';
 
 export interface VoiceModalProps {
@@ -56,10 +56,10 @@ const executeDefaultCommand = async (command: string, userId: string): Promise<s
     return 'What would you like me to do?';
   }
   try {
-    const result = await intentService.processAndExecuteIntent(userId, trimmed);
+    const result = await chatOrchestrator.processMessage(userId, trimmed);
     return result.reply;
   } catch (err) {
-    console.error('NLU execution error:', err);
+    console.error('Chat orchestrator execution error:', err);
     return `Heard: "${trimmed}"`;
   }
 };

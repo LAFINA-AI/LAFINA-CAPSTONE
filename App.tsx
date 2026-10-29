@@ -42,6 +42,7 @@ import { createSyncScheduler } from './src/sync/syncScheduler';
 import { appUpdater } from './src/updates';
 
 // Screens & UI
+import { ChatScreen } from './src/ui/screens/ChatScreen';
 import { ProfileScreen } from './src/ui/screens/ProfileScreen';
 import { CalendarScreen } from './src/ui/screens/calendar';
 import { NotesScreen } from './src/ui/screens/notes';
@@ -337,13 +338,6 @@ function AppContent({
     setActiveTab('calendar');
   };
 
-  const renderPlaceholderScreen = (title: string, subtitle: string) => (
-    <View style={[styles.errorScreen, themed.errorScreen]}>
-      <Text style={[styles.placeholderTitle, themed.text]}>{title}</Text>
-      <Text style={[styles.placeholderSubtitle, themed.mutedText]}>{subtitle}</Text>
-    </View>
-  );
-
   const renderScreen = () => {
     if (!userId) {
       return (
@@ -354,9 +348,12 @@ function AppContent({
     }
     switch (activeTab) {
       case 'chat':
-        return renderPlaceholderScreen(
-          'LAFINA Assistant',
-          'Offline scheduling & USTP Student Handbook assistant.',
+        return (
+          <ChatScreen
+            userId={userId}
+            refreshTrigger={refreshTrigger}
+            onRefresh={triggerRefresh}
+          />
         );
       case 'calendar':
         return (
