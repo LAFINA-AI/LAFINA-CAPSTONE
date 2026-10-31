@@ -1,0 +1,75 @@
+{
+  "kind": "SIX_PINNED_SYNTHETIC_GENERAL_CORPUS_ANALYSIS",
+  "source": "docs/benchmarks/phase-08-input-loss-general-corpus.json",
+  "atUtc": "2026-10-30T00:10:59.967862+00:00",
+  "samples": [
+    {
+      "id": "assignment",
+      "words": 7,
+      "wordErrors": 0,
+      "normalizedExact": true,
+      "outcome": "RESULT",
+      "durationMs": 3412,
+      "sampledMaxPssKiB": 151752
+    },
+    {
+      "id": "biology",
+      "words": 8,
+      "wordErrors": 0,
+      "normalizedExact": true,
+      "outcome": "RESULT",
+      "durationMs": 3050,
+      "sampledMaxPssKiB": 167237
+    },
+    {
+      "id": "today",
+      "words": 5,
+      "wordErrors": 0,
+      "normalizedExact": true,
+      "outcome": "RESULT",
+      "durationMs": 2962,
+      "sampledMaxPssKiB": 169613
+    },
+    {
+      "id": "calculus",
+      "words": 7,
+      "wordErrors": 0,
+      "normalizedExact": true,
+      "outcome": "RESULT",
+      "durationMs": 2983,
+      "sampledMaxPssKiB": 168334
+    },
+    {
+      "id": "cancel",
+      "words": 4,
+      "wordErrors": 0,
+      "normalizedExact": true,
+      "outcome": "RESULT",
+      "durationMs": 3260,
+      "sampledMaxPssKiB": 167731
+    },
+    {
+      "id": "complete",
+      "words": 5,
+      "wordErrors": 0,
+      "normalizedExact": true,
+      "outcome": "RESULT",
+      "durationMs": 2961,
+      "sampledMaxPssKiB": 168191
+    }
+  ],
+  "totalReferences": 6,
+  "normalizedExactCount": 6,
+  "referenceWords": 36,
+  "wordErrors": 0,
+  "medianPrepareLoadDecodeMs": 3016.5,
+  "maxPrepareLoadDecodeMs": 3412,
+  "maxSampledPssKiB": 169613,
+  "microphoneUsed": false,
+  "physicalDeviceValidation": "NOT_RUN",
+  "limits": [
+    "Six synthetic clips only; no human WER, stable p95, phone performance or microphone quality claim.",
+    "GENERAL greedy path, cached model; each decoder loads/frees. Sampled PSS is not absolute peak."
+  ],
+  "wordErrorRate": 0.0
+}

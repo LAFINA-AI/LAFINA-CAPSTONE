@@ -1,0 +1,7 @@
+Saved docs\benchmarks\phase-08-input-loss-planner-host.json (HOST_ONLY_IN_MEMORY_SQLITE_SYNTHETIC).
+create_task_reminder_job_transaction: n=100, p50=0.3786ms, p95=0.5819ms, errors=0
+edit_task_metadata_transaction: n=100, p50=0.4185ms, p95=0.6337ms, errors=0
+ring_reminder_transaction: n=100, p50=0.297ms, p95=0.4362ms, errors=0
+acknowledge_reminder_transaction: n=100, p50=0.1691ms, p95=0.331ms, errors=0
+snooze_reminder_transaction: n=100, p50=0.1686ms, p95=0.2425ms, errors=0
+weekly_expand_366_calendar_dates: n=10, p50=31.5225ms, p95=42.7644ms, errors=0

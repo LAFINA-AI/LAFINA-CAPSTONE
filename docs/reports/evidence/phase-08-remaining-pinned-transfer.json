@@ -1,0 +1,17 @@
+{
+  "kind": "TWO_EXACT_PINNED_SYNTHETIC_DECODER_INPUTS",
+  "status": "PASS",
+  "rows": [
+    {
+      "id": "acknowledge",
+      "bytes": 72206,
+      "sha256": "e10b92f68d6a188bc19b44bd327aa91747d58d4a257510d786a14dc45a4e0a3c"
+    },
+    {
+      "id": "snooze",
+      "bytes": 74286,
+      "sha256": "fd762146a51062b7d5deef1cda58b2607d8b3aa4694bde4c76d9820701e5f42a"
+    }
+  ],
+  "removeWithFinalHashGuardedRestoration": true
+}

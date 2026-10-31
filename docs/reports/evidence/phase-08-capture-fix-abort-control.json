@@ -1,0 +1,25 @@
+{
+  "kind": "INTENTIONAL_PRODUCER_ABORT_NEGATIVE_CONTROL",
+  "status": "PASS",
+  "parentCaseExpectedFailure": "docs/reports/evidence/phase-08-emulator-expansion/ex20261028/20261030T112852369580Z-A03-microphone.json",
+  "parentCaseSha256": "7e0429ef5b26e0218b4a05de6399d113c302b99c2a28773285ef4f32bd0ccb06",
+  "sourceRpcAttempted": false,
+  "producerAborted": true,
+  "copyReviewConfirmationBlocked": true,
+  "ownedAckOrSnoozeEvents": 0,
+  "activeJobs": 0,
+  "registrations": 0,
+  "hostOffAtEnd": true,
+  "fixtureCleanup": "EXACT_OWNED_TITLE_REVIEWED_UI",
+  "gateCleanup": [
+    {
+      "file": "qa08-microphone-1833530.gate",
+      "status": "EXACT_ABORT_REMOVED_OR_ABSENT"
+    },
+    {
+      "file": "qa08-microphone-1833530.gate.tmp",
+      "status": "EXACT_ABORT_REMOVED_OR_ABSENT"
+    }
+  ],
+  "physicalDeviceValidation": "NOT_RUN"
+}

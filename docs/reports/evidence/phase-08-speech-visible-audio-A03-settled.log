@@ -1,0 +1,29 @@
+{"at": "2026-10-28T23:17:11.552979+00:00", "event": "invocation_started"}
+{"at": "2026-10-28T23:17:24.230984+00:00", "event": "ui_driver", "kind": "OPT_IN_SYNTHETIC_FIXTURE_UI_DRIVER", "mode": "compose", "outcome": "PASS", "stages": ["activity_launch_requested", "safe_qa08_composer_replaced", "command_review_visible", "command_confirmation_closed"], "launch": "DIRECT_PRIVATE_ACTIVITY_INTENT_NOT_NOTIFICATION_TAP", "limits": "UI only; root verifies SQL separately. No live speech, audio or physical-phone acceptance."}
+{"at": "2026-10-28T23:17:24.763697+00:00", "event": "owned_fixture_create", "title": "QA08 EX ex20261028 A03M_20261028T231710641971Z", "rows": [{"taskId": "task:cmd_mvsqicej_0_zbo8vyj6uz9", "taskStatus": "TODO", "deletedAt": null, "jobId": "job:reminder:task:cmd_mvsqicej_0_zbo8vyj6uz9|2026-10-28T23:18:21.354Z", "occurrenceKey": "task:cmd_mvsqicej_0_zbo8vyj6uz9|2026-10-28T23:18:21.354Z", "generation": 1, "jobStatus": "PENDING", "reminderStatus": "SCHEDULED", "runAt": "2026-10-28T23:18:21.354Z", "deadline": null, "deliveryState": "REGISTERED", "registrations": 1}], "tombstonesRetained": false}
+{"status": "PASS", "evidence": "docs/reports/evidence/phase-08-emulator-expansion/ex20261028/20261028T231711549707Z-0fa4bce9-compose.json"}
+
+{"at": "2026-10-28T23:17:25.095156+00:00", "event": "invocation_started"}
+{"at": "2026-10-28T23:18:23.787732+00:00", "event": "requested_owned_status_observed", "title": "QA08 EX ex20261028 A03M_20261028T231710641971Z", "status": "RINGING", "polls": 25, "rows": [{"taskId": "task:cmd_mvsqicej_0_zbo8vyj6uz9", "taskStatus": "TODO", "deletedAt": null, "jobId": "job:reminder:task:cmd_mvsqicej_0_zbo8vyj6uz9|2026-10-28T23:18:21.354Z", "occurrenceKey": "task:cmd_mvsqicej_0_zbo8vyj6uz9|2026-10-28T23:18:21.354Z", "generation": 1, "jobStatus": "RINGING", "reminderStatus": "RINGING", "runAt": "2026-10-28T23:18:21.354Z", "deadline": "2026-10-28T23:19:21.824Z", "deliveryState": "REGISTERED", "registrations": 1}]}
+{"status": "PASS", "evidence": "docs/reports/evidence/phase-08-emulator-expansion/ex20261028/20261028T231725092340Z-71710f1c-wait.json"}
+
+{"at": "2026-10-28T23:18:24.525350+00:00", "event": "invocation_started"}
+{"at": "2026-10-28T23:18:25.553512+00:00", "event": "owned_fixture_state", "title": "QA08 EX ex20261028 A03M_20261028T231710641971Z", "rows": [{"taskId": "task:cmd_mvsqicej_0_zbo8vyj6uz9", "taskStatus": "TODO", "deletedAt": null, "jobId": "job:reminder:task:cmd_mvsqicej_0_zbo8vyj6uz9|2026-10-28T23:18:21.354Z", "occurrenceKey": "task:cmd_mvsqicej_0_zbo8vyj6uz9|2026-10-28T23:18:21.354Z", "generation": 1, "jobStatus": "RINGING", "reminderStatus": "RINGING", "runAt": "2026-10-28T23:18:21.354Z", "deadline": "2026-10-28T23:19:21.824Z", "deliveryState": "REGISTERED", "registrations": 1}]}
+{"status": "PASS", "evidence": "docs/reports/evidence/phase-08-emulator-expansion/ex20261028/20261028T231824521043Z-89598191-state.json"}
+
+{"at": "2026-10-28T23:18:44.630988+00:00", "event": "invocation_started"}
+{"at": "2026-10-28T23:18:58.488692+00:00", "event": "ui_driver", "kind": "OPT_IN_SYNTHETIC_FIXTURE_UI_DRIVER", "mode": "compose", "outcome": "PASS", "stages": ["activity_launch_requested", "safe_qa08_composer_replaced", "command_review_visible", "command_confirmation_closed"], "launch": "DIRECT_PRIVATE_ACTIVITY_INTENT_NOT_NOTIFICATION_TAP", "limits": "UI only; root verifies SQL separately. No live speech, audio or physical-phone acceptance."}
+{"at": "2026-10-28T23:18:58.975741+00:00", "event": "owned_fixture_delete", "title": "QA08 EX ex20261028 A03M_20261028T231710641971Z", "rows": [{"taskId": "task:cmd_mvsqicej_0_zbo8vyj6uz9", "taskStatus": "CANCELLED", "deletedAt": "2026-10-28T23:18:55.538Z", "jobId": "job:reminder:task:cmd_mvsqicej_0_zbo8vyj6uz9|2026-10-28T23:18:21.354Z", "occurrenceKey": "task:cmd_mvsqicej_0_zbo8vyj6uz9|2026-10-28T23:18:21.354Z", "generation": 2, "jobStatus": "CANCELLED", "reminderStatus": "CANCELLED", "runAt": "2026-10-28T23:18:21.354Z", "deadline": null, "deliveryState": "UNAVAILABLE", "registrations": 0}], "tombstonesRetained": true}
+{"status": "PASS", "evidence": "docs/reports/evidence/phase-08-emulator-expansion/ex20261028/20261028T231844629246Z-279a9df6-cleanup.json"}
+
+{"case": "A03", "status": "FAIL_OR_UNSUPPORTED_REVIEW_REQUIRED", "evidence": "docs/reports/evidence/phase-08-emulator-expansion/ex20261028/20261028T231710641971Z-A03-microphone.json"}
+Traceback (most recent call last):
+  File "C:\L3mxr\Github Repositories\LAFINA-CAPSTONE\.local\phase08-microphone-root.py", line 370, in <module>
+    execute(arguments.case, trial=trial, trials=arguments.repeat, injection_delay_ms=arguments.injection_delay_ms)
+    ~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\L3mxr\Github Repositories\LAFINA-CAPSTONE\.local\phase08-microphone-root.py", line 273, in execute
+    check(process.returncode == 0 and "OK (1 test)" in output, "INSTRUMENTATION_FAILED_PRIVATE_LOG")
+    ~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\L3mxr\Github Repositories\LAFINA-CAPSTONE\.local\phase08-microphone-root.py", line 104, in check
+    raise RuntimeError(code)
+RuntimeError: INSTRUMENTATION_FAILED_PRIVATE_LOG

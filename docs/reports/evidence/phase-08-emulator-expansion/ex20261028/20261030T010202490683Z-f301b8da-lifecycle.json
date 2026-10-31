@@ -1,0 +1,66 @@
+{
+  "schemaVersion": 1,
+  "runId": "ex20261028",
+  "invocation": "20261030T010202490683Z-f301b8da",
+  "command": "lifecycle",
+  "startedAt": "2026-10-30T01:02:02.491808+00:00",
+  "status": "PASS",
+  "scope": "Explicit emulator UI driver plus independent read-only SQLite snapshots",
+  "physicalAcceptance": "HUMAN_REQUIRED",
+  "events": [
+    {
+      "at": "2026-10-30T01:02:02.492989+00:00",
+      "event": "invocation_started"
+    },
+    {
+      "at": "2026-10-30T01:03:00.560380+00:00",
+      "event": "ui_driver",
+      "kind": "OPT_IN_SYNTHETIC_FIXTURE_UI_DRIVER",
+      "mode": "expired-review",
+      "outcome": "PASS",
+      "stages": [
+        "activity_launch_requested",
+        "owned_fixture_title_observed",
+        "answer_control_revealed",
+        "answer_response_visible",
+        "response_review_visible",
+        "expired_confirmation_node_attempted"
+      ],
+      "launch": "DIRECT_PRIVATE_ACTIVITY_INTENT_NOT_NOTIFICATION_TAP",
+      "limits": "UI only; root verifies SQL separately. No live speech, audio or physical-phone acceptance."
+    },
+    {
+      "at": "2026-10-30T01:03:02.504492+00:00",
+      "event": "independent_owned_state_after_ui",
+      "title": "QA08 EX ex20261028 IL20261030T010042973022Z-3f8899 A29",
+      "rows": [
+        {
+          "taskId": "task:cmd_mvu9nfgf_0_eryf43jdgnw",
+          "taskStatus": "TODO",
+          "deletedAt": null,
+          "jobId": "job:reminder:task:cmd_mvu9nfgf_0_eryf43jdgnw|2026-10-30T01:01:57.466Z",
+          "occurrenceKey": "task:cmd_mvu9nfgf_0_eryf43jdgnw|2026-10-30T01:01:57.466Z",
+          "generation": 1,
+          "jobStatus": "MISSED",
+          "reminderStatus": "MISSED",
+          "runAt": "2026-10-30T01:01:57.466Z",
+          "deadline": null,
+          "deliveryState": "UNAVAILABLE",
+          "registrations": 0
+        }
+      ]
+    },
+    {
+      "at": "2026-10-30T01:03:02.505495+00:00",
+      "event": "independent_response_state_assertion_passed",
+      "mode": "expired-review",
+      "taskStillTodo": true
+    }
+  ],
+  "limits": [
+    "Direct private Activity intents do not certify actual notification taps or full-screen delivery.",
+    "No live microphone, audibility, physical phone, OEM or battery acceptance is implied."
+  ],
+  "completedAt": "2026-10-30T01:03:02.506604+00:00",
+  "passScope": "Requested bounded runner operation only; inspect case assertions and physical gates separately"
+}

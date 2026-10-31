@@ -1,0 +1,246 @@
+{
+  "kind": "PHASE08_ROOT_OPT_IN_EXTRA_REGRESSIONS",
+  "status": "COMPLETED_SCOPED_EXTRA_ASSERTIONS",
+  "startedAtUtc": "2026-10-30T09:07:17.683771+00:00",
+  "steps": [
+    {
+      "id": "floor-offset",
+      "status": "PASS",
+      "startedAtUtc": "2026-10-30T09:07:17.753684+00:00",
+      "controllerPid": 6580,
+      "lastControllerHeartbeatUtc": "2026-10-30T09:08:17.781519+00:00",
+      "controllerExitCode": 0,
+      "privateControllerLog": {
+        "path": ".local/phase08-input-loss-extra-20261030T090717682741Z-4c1b2c/floor-offset.log",
+        "sha256": "316a077806b1e24d26c62b891690340b5f5fffdc4d3d662ed4dd42a435b2d2c2"
+      },
+      "evidence": [
+        {
+          "path": "docs/reports/evidence/phase-08-speech-decoder-inputloss-final-floor0-offset0.json",
+          "sha256": "99004aa27d4c3df916483063c5e8fedb7c07b13f4065b4ffbb6501428d768b3c"
+        },
+        {
+          "path": "docs/reports/evidence/phase-08-speech-decoder-inputloss-final-floor0-offset250.json",
+          "sha256": "19e238d73e9147c61772fbd1e2adf492e8cffee81cec0cfeb7fca310b4d7caed"
+        },
+        {
+          "path": "docs/reports/evidence/phase-08-speech-decoder-inputloss-final-floor0-offset500.json",
+          "sha256": "1f04e44074cab5b4d84bcfea55ecc4a7f8e23c063f38cd3e75024a2f08aa1800"
+        },
+        {
+          "path": "docs/reports/evidence/phase-08-speech-decoder-inputloss-final-floor0-offset1000.json",
+          "sha256": "3afba35e075ddd2376d1a91893ad32d2254343b9fd63c17a12598f53fe0b930c"
+        },
+        {
+          "path": "docs/reports/evidence/phase-08-speech-decoder-inputloss-final-floor8-offset0.json",
+          "sha256": "97f28fd3d982445ab9c32f2cbdf6f0cfb82622f7926052d68a56eeb47fedb0d7"
+        },
+        {
+          "path": "docs/reports/evidence/phase-08-speech-decoder-inputloss-final-floor8-offset250.json",
+          "sha256": "cf30cc96a7ea1223797bf0f0d4e202be9c5f0b3f7c2f22908b7dea2dc2a48a0d"
+        },
+        {
+          "path": "docs/reports/evidence/phase-08-speech-decoder-inputloss-final-floor8-offset500.json",
+          "sha256": "156a9b8fff269577f8dd3b20fe8af7823344981abb525bdb6b260f3e9d11b09c"
+        },
+        {
+          "path": "docs/reports/evidence/phase-08-speech-decoder-inputloss-final-floor8-offset1000.json",
+          "sha256": "29fe1d20f2df464ce06a96a018c0d1149b382b28cf56b0639d932d55cc0031d4"
+        }
+      ],
+      "exactDecoderCalls": 16,
+      "invocations": 8,
+      "completedAtUtc": "2026-10-30T09:08:28.819505+00:00"
+    },
+    {
+      "id": "good-capture-replay-1",
+      "status": "PASS",
+      "startedAtUtc": "2026-10-30T09:08:28.879007+00:00",
+      "controllerPid": 35492,
+      "controllerExitCode": 0,
+      "privateControllerLog": {
+        "path": ".local/phase08-input-loss-extra-20261030T090717682741Z-4c1b2c/good-capture-replay-1.log",
+        "sha256": "bda7b8ed6fd4f237f0943a8c74344faefaed6cac38e2a89950d11a2a2d0ccec0"
+      },
+      "evidence": {
+        "path": "docs/reports/evidence/phase-08-remaining-replay-inputloss-final-1.json",
+        "sha256": "a8a2a3f6f9318f13af908e782b0f921efe83e0a49244dbd2342877a4a22aa969"
+      },
+      "expectedResponseMatched": true,
+      "deviceCaptureFilesAbsent": true,
+      "completedAtUtc": "2026-10-30T09:08:34.609315+00:00"
+    },
+    {
+      "id": "good-capture-replay-2",
+      "status": "PASS",
+      "startedAtUtc": "2026-10-30T09:08:34.671850+00:00",
+      "controllerPid": 35176,
+      "controllerExitCode": 0,
+      "privateControllerLog": {
+        "path": ".local/phase08-input-loss-extra-20261030T090717682741Z-4c1b2c/good-capture-replay-2.log",
+        "sha256": "ee130f407d09b68e34f9f88ccc2d2494459ee99db4cedc1d773fefc51a19e6b0"
+      },
+      "evidence": {
+        "path": "docs/reports/evidence/phase-08-remaining-replay-inputloss-final-2.json",
+        "sha256": "e27018aad80a11aa9a8a56964a31efd7369e350afab966fc4762db3e189ff151"
+      },
+      "expectedResponseMatched": true,
+      "deviceCaptureFilesAbsent": true,
+      "completedAtUtc": "2026-10-30T09:08:41.441235+00:00"
+    },
+    {
+      "id": "good-capture-replay-3",
+      "status": "PASS",
+      "startedAtUtc": "2026-10-30T09:08:41.512759+00:00",
+      "controllerPid": 35664,
+      "controllerExitCode": 0,
+      "privateControllerLog": {
+        "path": ".local/phase08-input-loss-extra-20261030T090717682741Z-4c1b2c/good-capture-replay-3.log",
+        "sha256": "56fee90d4615fc20941238b06939b51dcdd1299c1fdf72a20e19a8b493da2625"
+      },
+      "evidence": {
+        "path": "docs/reports/evidence/phase-08-remaining-replay-inputloss-final-3.json",
+        "sha256": "745fa66e34933b8af0112e05508fb8ae5618daf9cd422bb74bc8fafa9ab8a2ef"
+      },
+      "expectedResponseMatched": true,
+      "deviceCaptureFilesAbsent": true,
+      "completedAtUtc": "2026-10-30T09:08:48.916740+00:00"
+    },
+    {
+      "id": "good-capture-replay-4",
+      "status": "PASS",
+      "startedAtUtc": "2026-10-30T09:08:48.982586+00:00",
+      "controllerPid": 27148,
+      "controllerExitCode": 0,
+      "privateControllerLog": {
+        "path": ".local/phase08-input-loss-extra-20261030T090717682741Z-4c1b2c/good-capture-replay-4.log",
+        "sha256": "213ea485ca68b31d7fe9daca8c542c5d39ea01faa5b8e89315c2d3bf0416917a"
+      },
+      "evidence": {
+        "path": "docs/reports/evidence/phase-08-remaining-replay-inputloss-final-4.json",
+        "sha256": "2b6b72fa0f23e7f239872005850cc557b4903fb9161a3ccb084d17daa496c037"
+      },
+      "expectedResponseMatched": true,
+      "deviceCaptureFilesAbsent": true,
+      "completedAtUtc": "2026-10-30T09:08:55.145155+00:00"
+    },
+    {
+      "id": "tts-callbacks",
+      "status": "PASS",
+      "startedAtUtc": "2026-10-30T09:08:55.207996+00:00",
+      "controllerPid": 22952,
+      "lastControllerHeartbeatUtc": "2026-10-30T09:09:35.247062+00:00",
+      "controllerExitCode": 0,
+      "privateControllerLog": {
+        "path": ".local/phase08-input-loss-extra-20261030T090717682741Z-4c1b2c/tts-callbacks.log",
+        "sha256": "22f606bb0f62021e868aa3bc37218530bd9b155d7f3ae54f3d6da414bc95417a"
+      },
+      "evidence": {
+        "path": "docs/reports/evidence/phase-08-input-loss-tts-probes.json",
+        "sha256": "7e30b2865e2396373b4fb94874021e9ef1b1a4906bf9361a340e87f224d41d50"
+      },
+      "modes": [
+        {
+          "mode": "inventory",
+          "observedStatus": "OFFLINE_VOICE_AVAILABLE"
+        },
+        {
+          "mode": "speak",
+          "observedStatus": "UTTERANCE_CALLBACKS_VERIFIED"
+        },
+        {
+          "mode": "profile-voice",
+          "observedStatus": "UTTERANCE_CALLBACKS_VERIFIED"
+        },
+        {
+          "mode": "stop",
+          "observedStatus": "REQUEST_CANCELLED"
+        },
+        {
+          "mode": "cancel-init",
+          "observedStatus": "UNAVAILABLE"
+        },
+        {
+          "mode": "missing-engine",
+          "observedStatus": "UNAVAILABLE"
+        }
+      ],
+      "audibility": "NOT_RUN",
+      "completedAtUtc": "2026-10-30T09:09:45.641005+00:00"
+    }
+  ],
+  "events": [
+    {
+      "event": "dispatch_and_isolated_mic_lease_absence_verified",
+      "stepIndex": 1,
+      "atUtc": "2026-10-30T09:07:17.752838+00:00"
+    },
+    {
+      "event": "dispatch_and_isolated_mic_lease_absence_verified",
+      "stepIndex": "1-after",
+      "atUtc": "2026-10-30T09:08:28.818358+00:00"
+    },
+    {
+      "event": "dispatch_and_isolated_mic_lease_absence_verified",
+      "stepIndex": 2,
+      "atUtc": "2026-10-30T09:08:28.877821+00:00"
+    },
+    {
+      "event": "dispatch_and_isolated_mic_lease_absence_verified",
+      "stepIndex": "2-after",
+      "atUtc": "2026-10-30T09:08:34.608080+00:00"
+    },
+    {
+      "event": "dispatch_and_isolated_mic_lease_absence_verified",
+      "stepIndex": 3,
+      "atUtc": "2026-10-30T09:08:34.670913+00:00"
+    },
+    {
+      "event": "dispatch_and_isolated_mic_lease_absence_verified",
+      "stepIndex": "3-after",
+      "atUtc": "2026-10-30T09:08:41.440099+00:00"
+    },
+    {
+      "event": "dispatch_and_isolated_mic_lease_absence_verified",
+      "stepIndex": 4,
+      "atUtc": "2026-10-30T09:08:41.512059+00:00"
+    },
+    {
+      "event": "dispatch_and_isolated_mic_lease_absence_verified",
+      "stepIndex": "4-after",
+      "atUtc": "2026-10-30T09:08:48.915410+00:00"
+    },
+    {
+      "event": "dispatch_and_isolated_mic_lease_absence_verified",
+      "stepIndex": 5,
+      "atUtc": "2026-10-30T09:08:48.981708+00:00"
+    },
+    {
+      "event": "dispatch_and_isolated_mic_lease_absence_verified",
+      "stepIndex": "5-after",
+      "atUtc": "2026-10-30T09:08:55.144031+00:00"
+    },
+    {
+      "event": "dispatch_and_isolated_mic_lease_absence_verified",
+      "stepIndex": 6,
+      "atUtc": "2026-10-30T09:08:55.206874+00:00"
+    },
+    {
+      "event": "dispatch_and_isolated_mic_lease_absence_verified",
+      "stepIndex": "6-after",
+      "atUtc": "2026-10-30T09:09:45.639297+00:00"
+    }
+  ],
+  "physicalDeviceValidation": "NOT_RUN",
+  "signedHumanReview": false,
+  "stableOfflineReleaseApproved": false,
+  "v05": "NOT_RUN_OWNER_DEFERRED",
+  "audibility": "NOT_RUN",
+  "rawTranscriptsStoredInBatchEvidence": false,
+  "privateEvidence": ".local/phase08-input-loss-extra-20261030T090717682741Z-4c1b2c",
+  "generalCorpus": "NOT_RERUN_SEPARATE_EXISTING_6_OF_6",
+  "originalUserStateRestorationRequiredSeparately": true,
+  "completedAtUtc": "2026-10-30T09:09:45.641963+00:00",
+  "remainingStepsNotRun": [],
+  "ownedBatchLockRemoved": true
+}

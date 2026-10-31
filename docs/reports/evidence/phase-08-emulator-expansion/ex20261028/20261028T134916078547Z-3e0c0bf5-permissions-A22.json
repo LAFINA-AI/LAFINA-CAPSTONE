@@ -1,0 +1,23 @@
+{
+  "schemaVersion": 1,
+  "runId": "ex20261028",
+  "invocation": "20261028T134916078547Z-3e0c0bf5",
+  "command": "permissions-A22",
+  "startedAt": "2026-10-28T13:49:16.079293+00:00",
+  "status": "PASS",
+  "scope": "Explicit emulator UI driver plus independent read-only SQLite snapshots",
+  "physicalAcceptance": "HUMAN_REQUIRED",
+  "events": [
+    {
+      "at": "2026-10-28T13:49:16.080464+00:00",
+      "event": "invocation_started"
+    }
+  ],
+  "limits": [
+    "Direct private Activity intents do not certify actual notification taps or full-screen delivery.",
+    "No live microphone, audibility, physical phone, OEM or battery acceptance is implied."
+  ],
+  "completedAt": "2026-10-28T13:52:16.169716+00:00",
+  "caseEvidence": "docs/reports/evidence/phase-08-emulator-expansion/ex20261028/20261028T214916077134-8fa8c3-A22-permissions.json",
+  "restoration": "PASS"
+}

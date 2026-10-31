@@ -1,9 +1,11 @@
-# Requirements-to-phase traceability — through Phase07.1 Nol UI follow-up
+# Requirements-to-phase traceability — through approved Phase08
 
-Updated through Phase07.1,2026-10-27 Asia/Manila. F-001/F-002 have implementation,
+Updated through approved Phase08,2026-10-31 Asia/Manila. F-001/F-002 have implementation,
 automated and emulator evidence; physical-device acceptance is still pending.
 Future test IDs remain planned, not executed tests. Phase ownership does not grant
-approval. F-001–F-015 remain offline MUSTs. No physical phone has been tested; an API37 emulator supplied the separately labeled native and planner evidence.
+approval. F-001–F-015 remain offline MUSTs. No physical phone has been tested; an API 37 emulator supplied the separately labeled native and planner evidence.
+
+Current stable-emulator follow-up (2026-10-31): [report](../docs/reports/phase-08-stable-emulator-report.md), [stable ledger](../docs/reports/evidence/phase-08-stable-case-ledger.json); aggregate unchanged 45/2/1, A03/V03 failures coincide with observed emulator audio-path faults (localization, not an established root cause), STATUS BLOCKED. Low-load H3b comparison: NOT RUN (host admission unmet; [record](../docs/reports/evidence/phase-08-stable-lowload1-not-run.json)). Previous capture follow-up: [report](../docs/reports/phase-08-capture-fix-report.md), [ledger](../docs/reports/evidence/phase-08-capture-fix-case-ledger.json); 45 PASS / 2 FAIL / 1 NOT RUN.44 prior scoped passes retained plus10 selected affected trials. Historical suites were not rerun here. Source RPC eligibility is not recognition/capture proof. V05 owner-deferred; all48 physical rows NOT RUN, human review NOT SIGNED; stable release and Phase09+ unapproved.
 
 | ID | Confirmed scope | Owner phase | Planned automated evidence | Human/device evidence | Status |
 |---|---|---:|---|---|---|
@@ -13,13 +15,13 @@ approval. F-001–F-015 remain offline MUSTs. No physical phone has been tested;
 | F-004 | Month/Week selector, paged day timeline and tasks reflect mutations | 04,07.1 | plannerQueries/PlannerScreen, CalendarMonth and calendarTimeline cover date selection, week-start, display format, overlap/carry-in, mutations and paging | Current native/UI outcomes in Nol UI report; physical pending | IMPLEMENTED, DEVICE PENDING |
 | F-005 | Reminder/job create/update/cancel | 02,03 | Paired SQL/generation tests; native reconciliation and identity tests, see Phase03 report | Emulator outcomes in report; physical pending | IMPLEMENTED, DEVICE PENDING |
 | F-006 | Native due notification/alarm within OS limits | 03,08 | AlarmManager adapter, capability/denial and native store tests | Locked/background/idle/API/OEM drift still requires phone | IMPLEMENTED, DEVICE PENDING |
-| F-007 | Conditional simulated-call UI + notification fallback | 03,04 | Explicit FSI opt-in and eligible intent; same-screen notification fallback | API30/33/34+ phone permission matrix pending | IMPLEMENTED, DEVICE PENDING |
+| F-007 | Conditional simulated-call UI + notification fallback | 03,04,08 | Explicit FSI opt-in and eligible intent; same-screen notification fallback | API30/33/34+ phone permission matrix pending | IMPLEMENTED, DEVICE PENDING |
 | F-008 | ACK independent of completion; atomic snooze | 02,04,08 | Paired SQL tests + manual detail ACK/snooze/completion/undo/foreground refresh tests PASS | Ordinary planner emulator flow in Phase 04 report; phone pending | IMPLEMENTED, DEVICE PENDING |
 | F-009 | Validated offline typed scheduling commands | 07 | Pure parser/strict validator; confirmed commandSession against real host SQLite; Chat UI tests and frozen text evaluation implemented, actual current gates in Phase07 report | Current Phase07 offline emulator create/move/query/refusal/persistence and live named ringing ACK exercised; remaining emulator and physical spoken/device acceptance in report | IMPLEMENTED, DEVICE PENDING |
-| F-010 | Visible hold-to-talk offline STT | 06 | Typed bridge/session/UI denial/release/stale/cancel tests, native lease/policy tests and synthetic WER harness implemented; actual results in Phase06 report | Real hold/offline recognizer/Whisper, accents/noise/API30/newer/low-RAM/call review pending; direct synthetic PCM is separate | IMPLEMENTED, NATIVE/DEVICE ACCEPTANCE PENDING |
-| F-011 | Android system offline-capable TTS default | 05 | Strict typed bridge, offline/not-installed rejection, bounded replacement, timeout/cancel and lifecycle tests implemented; see Phase 05 report for executed native outcomes | Airplane-mode audibility, missing voice, quality, interruption and actual phone timing pending | IMPLEMENTED, DEVICE PENDING |
-| F-012 | Immediate durable text reply; optional voice | 05,07 | Confirmed commands/queries feed written replies; optional system TTS does not gate repository mutation; current Chat/App gate evidence in Phase07 report | Text/Voice/Both audibility, focus loss and rapid responses on phone pending | IMPLEMENTED COMMAND OUTPUT, DEVICE PENDING |
-| F-013 | Rules first; ambiguity/contradiction safe | 07 | Exact grammar/JSON-shaped validation, refusal suite, expiring target/version/generation reviews; first text corpus62/64 and retained regression64/64, zero unsafe-ready proposals on32 refusal labels | Contradictory/misrecognized spoken inputs, exact date/target review and physical-device no-false-action checks pending | IMPLEMENTED, DEVICE PENDING |
+| F-010 | Visible hold-to-talk offline STT | 06,08 | Typed bridge/session/UI denial/release/stale/cancel tests, native lease/policy tests and synthetic WER harness implemented; actual results in Phase06 report | Current scoped capture follow-up: 45 PASS / 2 FAIL / 1 NOT RUN in the Phase08 capture-fix report; failures and producer/native/preflight layers retained. Physical live speech, accents/noise/API30/newer/low-RAM/audibility remain pending. | IMPLEMENTED, NATIVE/DEVICE ACCEPTANCE PENDING |
+| F-011 | Android system offline-capable TTS default | 05,08 | Strict typed bridge, offline/not-installed rejection, bounded replacement, timeout/cancel and lifecycle tests implemented; see Phase 05 report for executed native outcomes | Airplane-mode audibility, missing voice, quality, interruption and actual phone timing pending | IMPLEMENTED, DEVICE PENDING |
+| F-012 | Immediate durable text reply; optional voice | 05,07,08 | Confirmed commands/queries feed written replies; optional system TTS does not gate repository mutation; current Chat/App gate evidence in Phase07 report | Text/Voice/Both audibility, focus loss and rapid responses on phone pending | IMPLEMENTED COMMAND OUTPUT, DEVICE PENDING |
+| F-013 | Rules first; ambiguity/contradiction safe | 07,08 | Exact grammar/JSON-shaped validation, refusal suite, expiring target/version/generation reviews; first text corpus62/64 and retained regression64/64, zero unsafe-ready proposals on32 refusal labels | Contradictory/misrecognized spoken inputs, exact date/target review and physical-device no-false-action checks pending | IMPLEMENTED, DEVICE PENDING |
 | F-014 | Restart/reboot/permission/time recovery | 03,08 | Native stale/duplicate/source fencing, restore receivers and launch/resume reconciliation | Emulator outcomes separately logged; phone/OEM checks pending | IMPLEMENTED, DEVICE PENDING |
 | F-015 | No internet/server dependency for offline core | 01–08 | OFF-01 import boundary/failed-adapter paths | Full lifecycle airplane mode/traffic review | PLANNED |
 | F-016 | Bounded weekly classes with timezone semantics | 02,04 | Weekly form/domain/windowed-query DST fixtures PASS, even without reminders | Whole-series manual UI; phone review required | IMPLEMENTED, DEVICE PENDING, SHOULD |
@@ -36,7 +38,33 @@ approval. F-001–F-015 remain offline MUSTs. No physical phone has been tested;
 | Architecture/quality | Strict TS, tested migrations/state machines, native instrumentation, documented contracts/ADRs, import checks | Nol UI full preflight520 tests/34 suites and AST61 modules PASS; exact native/build/emulator/restoration evidence in current report. Earlier464/28,62 JVM and42 Android cohorts remain historical; ADR-013–022 document boundaries. |
 | Authorized local Notes/UI follow-up | Chat/Calendar/Notes/Profile shell; non-recording mic entry; exact saved counts | NotesScreen/AppNotesNavigation, notesRepository/notesMigrations, ProfileScreen and calendarTimeline tests; notes host cohort600 measured calls/0 failures. Physical acceptance not inferred. |
 | Privacy/provenance | No credentials/private data/audio in repo; reviewed model/library terms and attribution | Source-owner authorization recorded; details/third-party review pending |
-| Phase gating | One approved phase, factual report and explicit stop | Phase07 explicitly approved; owner separately authorized07.1 integration/audit and Nol screenshot UI follow-up; earlier physical-phone checks pending;08–11 unapproved |
+| Phase gating | One approved phase, factual report and explicit stop | Phase08 explicitly approved in chat; its implementation/report do not certify the pending physical gate. Phases09–11 remain unapproved. |
+
+## Phase08 integration and release decision
+
+[Original implementation report](../docs/reports/phase-08-report.md),
+[current input-loss report](../docs/reports/phase-08-input-loss-report.md),
+[historical emulator expansion](../docs/reports/phase-08-emulator-expansion-report.md),
+[expansion case matrix](../docs/reports/evidence/phase-08-emulator-expansion-matrix.json),
+[F-001–F-017 release gate](../docs/reports/phase-08-offline-core-release-gate.md),
+[native flow contract](../docs/phase-08-offline-loop.md) and
+[phone matrix](PHASE-08-MANUAL.md) are authoritative for this cohort.
+F-006/F-007/F-008/F-010/F-011/F-012/F-014 now share the foreground native
+response flow: Answer without ACK, optional offline TTS, explicit mic or manual
+input, strict ACK/snooze review, guarded transaction and reconciliation/close.
+F-015 still has no full physical offline lifecycle acceptance. F-016/F-017
+remain SHOULD/partial; no purge/export or unapproved features are added.
+All prior table physical-pending statuses remain pending; fresh automation and
+emulator outcomes belong in the linked report, not inferred from this table.
+The fresh input-loss campaign exercised all47 runnable cases:44PASS/3FAIL/1NOT RUN
+across51 retained terminal attempts. A03 misrecognized ACK, V03's second repeated
+trial failed transport/privacy checks, and V04's second repeated trial captured no
+signal despite gRPC0/hostOFF. V05 remains owner-deferred. Direct decoder controls,
+16 floor/offset calls, four saved-capture replays, six GENERAL clips and six TTS
+callback conditions passed; these do not resolve actual capture failures or human
+voice/audibility. Final restoration passed10checks against three original baselines.
+Every physical row and the unsigned release gate remain pending. Historical
+cohorts and all failures remain in their reports and the current ledger.
 
 Explicitly excluded: registration/login/accounts/passwords, business roles/team
 management, subscriptions/paywall, unrelated LAFINA Skills, Gmail/account calendar

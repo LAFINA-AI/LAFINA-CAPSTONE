@@ -1,0 +1,51 @@
+{
+  "kind": "BOUNDED_EMPTY_MAIN_NAVIGATION_HOST_REGRESSION",
+  "status": "PASS",
+  "checks": [
+    {
+      "check": "ready",
+      "status": "PASS",
+      "observations": 1,
+      "taps": 1
+    },
+    {
+      "check": "cached_empty_then_ready",
+      "status": "PASS",
+      "observations": 2,
+      "taps": 1
+    },
+    {
+      "check": "three_empty_fail",
+      "status": "PASS",
+      "observations": 3,
+      "taps": 0
+    },
+    {
+      "check": "unknown_content_fail",
+      "status": "PASS",
+      "observations": 1,
+      "taps": 0
+    },
+    {
+      "check": "ambiguous_chat_fail",
+      "status": "PASS",
+      "observations": 1,
+      "taps": 0
+    },
+    {
+      "check": "bounds_fail",
+      "status": "PASS",
+      "observations": 1,
+      "taps": 0
+    }
+  ],
+  "dispatcher": {
+    "path": ".local/phase08-capture-fix-reviewed-ready-affected.py",
+    "sha256": "43ea034266cd839a73f68da45b7214c8da18990e7369bacaa265988a8a270eaf"
+  },
+  "cachedEmptyHierarchySha256": "47ac89a0900653e058a724ee0544b0b32f1128a8b403377effae463ab02d0066",
+  "sourceSubmissionRetries": 0,
+  "recordingRetries": 0,
+  "physicalDeviceValidation": "NOT_RUN",
+  "limits": "Isolated method tests with cached empty hierarchy and synthetic controls; actual next cohort remains required."
+}

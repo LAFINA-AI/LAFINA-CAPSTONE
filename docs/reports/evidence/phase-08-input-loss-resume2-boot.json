@@ -1,0 +1,20 @@
+{
+  "kind": "PRESERVED_EXISTING_AVD_RELAUNCH",
+  "pid": 24076,
+  "args": [
+    "C:/Users/USER-PC/AppData/Local/Android/Sdk/emulator/emulator.exe",
+    "-avd",
+    "Medium_Phone",
+    "-port",
+    "5554",
+    "-no-window",
+    "-no-snapshot-load",
+    "-no-snapshot-save",
+    "-grpc",
+    "8554",
+    "-grpc-use-token"
+  ],
+  "dataReset": false,
+  "status": "STARTED",
+  "physicalDeviceValidation": "NOT_RUN"
+}

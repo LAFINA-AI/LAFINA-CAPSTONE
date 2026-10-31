@@ -1,0 +1,236 @@
+{
+  "kind": "PHASE08_ROOT_SERIAL_ALL_CASE_DISPATCH",
+  "status": "COMPLETED_WITH_FAILURES_OR_NOT_RUN",
+  "startedAtUtc": "2026-10-30T20:53:17.724937+00:00",
+  "ownershipRunId": "ex20261028",
+  "rootBaseline": ".local/phase08-capture-fix-baseline.json",
+  "rootBaselineSha256": "0eb690aa8562a3accf3145509a97dfc3423770cc44d44bc7e5193c04169c911e",
+  "selectedCases": [
+    "A03",
+    "V03",
+    "V04"
+  ],
+  "all47RunnableCasesSelected": false,
+  "attempts": [
+    {
+      "case": "A03",
+      "trial": 1,
+      "status": "FAIL",
+      "startedAtUtc": "2026-10-30T20:53:26.480472+00:00",
+      "log": "docs/reports/evidence/phase-08-capture-fix-host-gpu-cold1-20261030T205317724025Z-9354cd-A03-trial1.log",
+      "events": [
+        {
+          "event": "chat_navigation_precondition",
+          "atUtc": "2026-10-30T20:53:37.718941+00:00",
+          "exactVisibleOwnedAppControl": true,
+          "privateContentNotEmitted": true,
+          "writesToStorage": false
+        }
+      ],
+      "physicalAcceptance": "NOT_RUN",
+      "restoration": "VERIFIED_WORKING_TEST_BASELINE",
+      "controllerExitCode": 1,
+      "controllerEvidence": "docs/reports/evidence/phase-08-emulator-expansion/ex20261028/20261030T205338144113Z-A03-microphone.json",
+      "controllerEvidenceSha256": "243139165390e885a673af7b5e0b7b433ecc9edc3a83be58d56c3593cf49d08c",
+      "sourceStatus": "FAIL_OR_UNSUPPORTED_REVIEW_REQUIRED",
+      "originalNonDiagnosticRowsEqual": true,
+      "originalPreferencePayloadEqual": true,
+      "fullPermissionsSettingsAudioAndTtsEqual": true,
+      "activeJobs": 0,
+      "registrations": 0,
+      "hostMicrophoneDisabledAtEnd": true,
+      "completedAtUtc": "2026-10-30T20:55:38.071314+00:00",
+      "privateEvidence": ".local/phase-08-capture-fix-host-gpu-cold1-20261030T205317724025Z-9354cd/A03-1-20261030T205326478334Z-6a1816"
+    },
+    {
+      "case": "V03",
+      "trial": 1,
+      "status": "FAIL",
+      "startedAtUtc": "2026-10-30T20:55:38.078837+00:00",
+      "log": "docs/reports/evidence/phase-08-capture-fix-host-gpu-cold1-20261030T205317724025Z-9354cd-V03-trial1.log",
+      "events": [
+        {
+          "event": "empty_main_surface_readiness_observation",
+          "atUtc": "2026-10-30T20:55:47.785465+00:00",
+          "observation": 1,
+          "sourceControllerNotLaunched": true,
+          "privateContentNotEmitted": true
+        },
+        {
+          "event": "chat_navigation_precondition",
+          "atUtc": "2026-10-30T20:55:51.247840+00:00",
+          "exactVisibleOwnedAppControl": true,
+          "privateContentNotEmitted": true,
+          "writesToStorage": false
+        }
+      ],
+      "physicalAcceptance": "NOT_RUN",
+      "restoration": "VERIFIED_WORKING_TEST_BASELINE",
+      "controllerExitCode": 1,
+      "controllerEvidence": "docs/reports/evidence/phase-08-emulator-expansion/ex20261028/20261030T205551784902Z-V03-microphone.json",
+      "controllerEvidenceSha256": "884da7577d7acba48c9060983d21146db8c8856be567ac5d4f6d565b0dd9ca79",
+      "sourceStatus": "FAIL_OR_UNSUPPORTED_REVIEW_REQUIRED",
+      "originalNonDiagnosticRowsEqual": true,
+      "originalPreferencePayloadEqual": true,
+      "fullPermissionsSettingsAudioAndTtsEqual": true,
+      "activeJobs": 0,
+      "registrations": 0,
+      "hostMicrophoneDisabledAtEnd": true,
+      "completedAtUtc": "2026-10-30T20:57:39.412271+00:00",
+      "privateEvidence": ".local/phase-08-capture-fix-host-gpu-cold1-20261030T205317724025Z-9354cd/V03-1-20261030T205538075543Z-4fb0b3"
+    },
+    {
+      "case": "V03",
+      "trial": 2,
+      "status": "FAIL",
+      "startedAtUtc": "2026-10-30T20:57:39.416490+00:00",
+      "log": "docs/reports/evidence/phase-08-capture-fix-host-gpu-cold1-20261030T205317724025Z-9354cd-V03-trial2.log",
+      "events": [
+        {
+          "event": "empty_main_surface_readiness_observation",
+          "atUtc": "2026-10-30T20:57:49.347955+00:00",
+          "observation": 1,
+          "sourceControllerNotLaunched": true,
+          "privateContentNotEmitted": true
+        },
+        {
+          "event": "chat_navigation_precondition",
+          "atUtc": "2026-10-30T20:57:52.930347+00:00",
+          "exactVisibleOwnedAppControl": true,
+          "privateContentNotEmitted": true,
+          "writesToStorage": false
+        }
+      ],
+      "physicalAcceptance": "NOT_RUN",
+      "restoration": "VERIFIED_WORKING_TEST_BASELINE",
+      "controllerExitCode": 1,
+      "controllerEvidence": "docs/reports/evidence/phase-08-emulator-expansion/ex20261028/20261030T205753249610Z-V03-microphone.json",
+      "controllerEvidenceSha256": "7248699a8ce605d141bbb25c2bbc01e5813df97e81317b0ecc0db27b43afedf0",
+      "sourceStatus": "FAIL_OR_UNSUPPORTED_REVIEW_REQUIRED",
+      "originalNonDiagnosticRowsEqual": true,
+      "originalPreferencePayloadEqual": true,
+      "fullPermissionsSettingsAudioAndTtsEqual": true,
+      "activeJobs": 0,
+      "registrations": 0,
+      "hostMicrophoneDisabledAtEnd": true,
+      "completedAtUtc": "2026-10-30T20:59:46.286303+00:00",
+      "privateEvidence": ".local/phase-08-capture-fix-host-gpu-cold1-20261030T205317724025Z-9354cd/V03-2-20261030T205739414309Z-163cd2"
+    },
+    {
+      "case": "V04",
+      "trial": 1,
+      "status": "PASS",
+      "startedAtUtc": "2026-10-30T20:59:46.292679+00:00",
+      "log": "docs/reports/evidence/phase-08-capture-fix-host-gpu-cold1-20261030T205317724025Z-9354cd-V04-trial1.log",
+      "events": [
+        {
+          "event": "empty_main_surface_readiness_observation",
+          "atUtc": "2026-10-30T20:59:55.430451+00:00",
+          "observation": 1,
+          "sourceControllerNotLaunched": true,
+          "privateContentNotEmitted": true
+        },
+        {
+          "event": "chat_navigation_precondition",
+          "atUtc": "2026-10-30T20:59:59.327842+00:00",
+          "exactVisibleOwnedAppControl": true,
+          "privateContentNotEmitted": true,
+          "writesToStorage": false
+        }
+      ],
+      "physicalAcceptance": "NOT_RUN",
+      "restoration": "VERIFIED_WORKING_TEST_BASELINE",
+      "controllerExitCode": 0,
+      "controllerEvidence": "docs/reports/evidence/phase-08-emulator-expansion/ex20261028/20261030T205959763871Z-V04-microphone.json",
+      "controllerEvidenceSha256": "220b05d47c5a399803a23ff268b671db0af0f15e435eea665101a5b081e91b94",
+      "sourceStatus": "PASS",
+      "originalNonDiagnosticRowsEqual": true,
+      "originalPreferencePayloadEqual": true,
+      "fullPermissionsSettingsAudioAndTtsEqual": true,
+      "activeJobs": 0,
+      "registrations": 0,
+      "hostMicrophoneDisabledAtEnd": true,
+      "completedAtUtc": "2026-10-30T21:01:58.641990+00:00",
+      "privateEvidence": ".local/phase-08-capture-fix-host-gpu-cold1-20261030T205317724025Z-9354cd/V04-1-20261030T205946290017Z-105648"
+    },
+    {
+      "case": "V04",
+      "trial": 2,
+      "status": "PASS",
+      "startedAtUtc": "2026-10-30T21:01:58.645766+00:00",
+      "log": "docs/reports/evidence/phase-08-capture-fix-host-gpu-cold1-20261030T205317724025Z-9354cd-V04-trial2.log",
+      "events": [
+        {
+          "event": "empty_main_surface_readiness_observation",
+          "atUtc": "2026-10-30T21:02:06.927184+00:00",
+          "observation": 1,
+          "sourceControllerNotLaunched": true,
+          "privateContentNotEmitted": true
+        },
+        {
+          "event": "chat_navigation_precondition",
+          "atUtc": "2026-10-30T21:02:10.608835+00:00",
+          "exactVisibleOwnedAppControl": true,
+          "privateContentNotEmitted": true,
+          "writesToStorage": false
+        }
+      ],
+      "physicalAcceptance": "NOT_RUN",
+      "restoration": "VERIFIED_WORKING_TEST_BASELINE",
+      "controllerExitCode": 0,
+      "controllerEvidence": "docs/reports/evidence/phase-08-emulator-expansion/ex20261028/20261030T210211307141Z-V04-microphone.json",
+      "controllerEvidenceSha256": "31899e9dd2ba59d0699967e4eec61b3920807d60870c01a1ac5d1f664748aaf8",
+      "sourceStatus": "PASS",
+      "originalNonDiagnosticRowsEqual": true,
+      "originalPreferencePayloadEqual": true,
+      "fullPermissionsSettingsAudioAndTtsEqual": true,
+      "activeJobs": 0,
+      "registrations": 0,
+      "hostMicrophoneDisabledAtEnd": true,
+      "completedAtUtc": "2026-10-30T21:04:08.159068+00:00",
+      "privateEvidence": ".local/phase-08-capture-fix-host-gpu-cold1-20261030T205317724025Z-9354cd/V04-2-20261030T210158643575Z-57df4f"
+    }
+  ],
+  "cases": [
+    {
+      "id": "A03",
+      "status": "FAIL",
+      "attemptCount": 1,
+      "physicalAcceptance": "NOT_RUN"
+    },
+    {
+      "id": "V03",
+      "status": "FAIL",
+      "attemptCount": 2,
+      "physicalAcceptance": "NOT_RUN"
+    },
+    {
+      "id": "V04",
+      "status": "PASS",
+      "attemptCount": 2,
+      "physicalAcceptance": "NOT_RUN"
+    }
+  ],
+  "deferredCases": [
+    {
+      "id": "V05",
+      "status": "NOT_RUN",
+      "ownerDecision": "Keep V05 pending until suitable audio is available"
+    }
+  ],
+  "physicalDeviceValidation": "NOT_RUN",
+  "signedHumanReview": false,
+  "originalUserStateRestorationRequiredAfterDispatcher": true,
+  "passScope": "Selected current emulator assertions only; all failures retained. Per-case restore is to the working test state, not original human acceptance.",
+  "bootstrapOriginalRowsPreserved": true,
+  "workingTestProfileObserved": true,
+  "airplaneModeWifiMobileOffObserved": true,
+  "originalStateRestoreRequired": true,
+  "setupLog": "docs/reports/evidence/phase-08-capture-fix-host-gpu-cold1-20261030T205317724025Z-9354cd-SETUP-trial1.log",
+  "counts": {
+    "PASS": 1,
+    "FAIL": 2,
+    "NOT_RUN": 0
+  },
+  "completedAtUtc": "2026-10-30T21:04:08.162584+00:00"
+}

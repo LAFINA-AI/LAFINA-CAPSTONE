@@ -1,0 +1,32 @@
+{
+  "kind": "PREDECLARED_ISOLATED_SDK_CAPTURE_PAIR",
+  "status": "COMPLETED_ALL_OUTCOMES_RETAINED",
+  "plannedTrials": 2,
+  "engine": "37.2.13",
+  "appCandidate": "98ed4f5fb6311d64b96381b08e99fb19a5f243c21fd078fd4ea4a774bcdd2d23",
+  "startedAtUtc": "2026-10-29T23:24:03.969926+00:00",
+  "physicalDeviceValidation": "NOT_RUN",
+  "rows": [
+    {
+      "trial": 1,
+      "controllerExit": 0,
+      "caseStatus": "FAIL_OR_UNSUPPORTED_REVIEW_REQUIRED",
+      "caseEvidence": "docs/reports/evidence/phase-08-emulator-expansion/ex20261028/20261029T232405058235Z-A03-microphone.json",
+      "cleanupAndMicRestorationConfirmed": true,
+      "captureEvidence": [
+        "docs/reports/evidence/phase-08-native-fidelity-20261029T232404252824Z.json"
+      ]
+    },
+    {
+      "trial": 2,
+      "controllerExit": 0,
+      "caseStatus": "PASS",
+      "caseEvidence": "docs/reports/evidence/phase-08-emulator-expansion/ex20261028/20261029T232549139771Z-A03-microphone.json",
+      "cleanupAndMicRestorationConfirmed": true,
+      "captureEvidence": [
+        "docs/reports/evidence/phase-08-native-fidelity-20261029T232548460841Z.json"
+      ]
+    }
+  ],
+  "completedAtUtc": "2026-10-29T23:27:30.686755+00:00"
+}

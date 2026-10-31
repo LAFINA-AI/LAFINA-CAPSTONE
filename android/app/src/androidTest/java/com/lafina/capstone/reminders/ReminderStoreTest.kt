@@ -150,6 +150,147 @@ class ReminderStoreTest {
     assertEquals("TODO", scalar("SELECT status FROM tasks"))
   }
 
+  @Test fun reviewedResponseRejectsTitleEditsWithoutMutatingTheCurrentRing() {
+    execute("PRAGMA user_version=3")
+    store.claimDue(identity, at, true)
+    val reviewed = store.get(identity)!!
+    execute("UPDATE tasks SET title='Changed synthetic class',version=version+1")
+    val changed = store.get(identity)!!
+    val events = scalar("SELECT count(*) FROM native_alarm_events")
+    for (action in listOf(ReminderAction.ACK, ReminderAction.SNOOZE)) {
+      val result = store.action(identity, action, nowUtc = "2026-10-23T04:00:10.000Z",
+        expectedSourceVersion = reviewed.sourceVersion, expectedRingingDeadline = reviewed.ringingDeadline)
+      assertFalse(result.applied)
+      assertEquals(changed, result.record)
+    }
+    assertEquals(changed, store.get(identity))
+    assertEquals("RINGING", scalar("SELECT status FROM reminders"))
+    assertEquals("TODO", scalar("SELECT status FROM tasks"))
+    assertEquals(events, scalar("SELECT count(*) FROM native_alarm_events"))
+  }
+
+  @Test fun reviewedResponseRequiresTheDisplayedDeadlineEvenBeforeItExpires() {
+    execute("PRAGMA user_version=3")
+    store.claimDue(identity, at, true)
+    val reviewed = store.get(identity)!!
+    val events = scalar("SELECT count(*) FROM native_alarm_events")
+    for (action in listOf(ReminderAction.ACK, ReminderAction.SNOOZE)) {
+      assertFalse(store.action(identity, action, nowUtc = "2026-10-23T04:00:10.000Z",
+        expectedSourceVersion = reviewed.sourceVersion,
+        expectedRingingDeadline = "2026-10-23T04:02:00.000Z").applied)
+    }
+    assertEquals(reviewed, store.get(identity))
+    assertEquals(events, scalar("SELECT count(*) FROM native_alarm_events"))
+  }
+
+  @Test fun reviewedAcknowledgementIsIdempotentAndNeverCompletesTheTask() {
+    execute("PRAGMA user_version=3")
+    store.claimDue(identity, at, true)
+    val reviewed = store.get(identity)!!
+    repeat(2) { attempt ->
+      assertEquals(attempt == 0, store.action(identity, ReminderAction.ACK,
+        nowUtc = "2026-10-23T04:00:10.000Z", expectedSourceVersion = reviewed.sourceVersion,
+        expectedRingingDeadline = reviewed.ringingDeadline).applied)
+    }
+    assertEquals("ACKNOWLEDGED", scalar("SELECT status FROM reminders"))
+    assertEquals("ACKNOWLEDGED", scalar("SELECT status FROM reminder_jobs"))
+    assertEquals("TODO", scalar("SELECT status FROM tasks"))
+    assertEquals("1", scalar("SELECT count(*) FROM native_alarm_events WHERE event='ACTION_ACK'"))
+  }
+
+  @Test fun reviewedSnoozeHasOneNewGenerationAndPairedStateDespiteRepeatedConfirmation() {
+    execute("PRAGMA user_version=3")
+    store.claimDue(identity, at, true)
+    val reviewed = store.get(identity)!!
+    repeat(2) { attempt ->
+      assertEquals(attempt == 0, store.action(identity, ReminderAction.SNOOZE, 5,
+        nowUtc = "2026-10-23T04:00:10.000Z", expectedSourceVersion = reviewed.sourceVersion,
+        expectedRingingDeadline = reviewed.ringingDeadline).applied)
+    }
+    val next = store.get(identity.copy(generation = 2))!!
+    assertEquals("2026-10-23T04:05:10.000Z", next.runAt)
+    assertEquals("SNOOZED", next.reminderStatus)
+    assertEquals("PENDING", next.status)
+    assertNull(store.get(identity))
+    assertEquals("TODO", scalar("SELECT status FROM tasks"))
+    assertEquals("1", scalar("SELECT count(*) FROM reminder_jobs"))
+    assertEquals("1", scalar("SELECT count(*) FROM native_alarm_events WHERE event='ACTION_SNOOZE'"))
+  }
+
+  @Test fun reviewedResponseCannotExtendAnExpiredResponseWindow() {
+    execute("PRAGMA user_version=3")
+    store.claimDue(identity, at, true)
+    val reviewed = store.get(identity)!!
+    assertFalse(store.action(identity, ReminderAction.SNOOZE, 5,
+      nowUtc = "2026-10-23T04:01:00.000Z", expectedSourceVersion = reviewed.sourceVersion,
+      expectedRingingDeadline = reviewed.ringingDeadline).applied)
+    assertEquals("MISSED", scalar("SELECT status FROM reminders"))
+    assertEquals("MISSED", scalar("SELECT status FROM reminder_jobs"))
+    assertEquals("1", scalar("SELECT generation FROM reminder_jobs"))
+    assertEquals("TODO", scalar("SELECT status FROM tasks"))
+    assertEquals("0", scalar("SELECT count(*) FROM native_alarm_events WHERE event='ACTION_SNOOZE'"))
+  }
+
+  @Test fun reviewedActionRollsBackBothStatesWhenThePairedJobWriteFails() {
+    execute("PRAGMA user_version=3")
+    store.claimDue(identity, at, true)
+    val reviewed = store.get(identity)!!
+    val events = scalar("SELECT count(*) FROM native_alarm_events")
+    execute("CREATE TRIGGER reject_response BEFORE UPDATE ON reminder_jobs BEGIN SELECT RAISE(ABORT,'synthetic response rollback'); END")
+    assertThrows(RecoverableStoreException::class.java) {
+      store.action(identity, ReminderAction.ACK, nowUtc = "2026-10-23T04:00:10.000Z",
+        expectedSourceVersion = reviewed.sourceVersion, expectedRingingDeadline = reviewed.ringingDeadline)
+    }
+    assertEquals(reviewed, store.get(identity))
+    assertEquals("RINGING", scalar("SELECT status FROM reminders"))
+    assertEquals("TODO", scalar("SELECT status FROM tasks"))
+    assertEquals(events, scalar("SELECT count(*) FROM native_alarm_events"))
+  }
+
+  @Test fun spokenSnoozeReachesSQLiteOnlyAfterTheExactReviewIsConsumed() {
+    execute("PRAGMA user_version=3")
+    store.claimDue(identity, at, true)
+    val reviewed = store.get(identity)!!
+    val session = ReminderResponseSession(reviewed, at, 0L)
+    val command = ReminderResponsePolicy.parse("Snooze for five minutes.")!!
+    val review = session.prepare(command, "2026-10-23T04:00:10.000Z", 10_000L)!!
+    assertEquals(reviewed, store.get(identity))
+    assertTrue(session.consume(review, "2026-10-23T04:00:11.000Z", 11_000L))
+    assertTrue(store.action(reviewed.identity, review.command.action, review.command.minutes,
+      "2026-10-23T04:00:11.000Z", reviewed.sourceVersion, reviewed.ringingDeadline).applied)
+    assertFalse(session.consume(review, "2026-10-23T04:00:11.000Z", 11_000L))
+    val snoozed = store.get(identity.copy(generation = 2))!!
+    assertEquals("2026-10-23T04:05:11.000Z", snoozed.runAt)
+    assertEquals("SNOOZED", snoozed.reminderStatus)
+    assertEquals("PENDING", snoozed.status)
+    assertEquals("TODO", scalar("SELECT status FROM tasks"))
+    assertEquals("1", scalar("SELECT count(*) FROM reminder_jobs"))
+  }
+
+  @Test fun competingReviewedResponseSessionsHaveOneDurableWinner() {
+    execute("PRAGMA user_version=3")
+    store.claimDue(identity, at, true)
+    val reviewed = store.get(identity)!!
+    val first = ReminderResponseSession(reviewed, at, 0L)
+    val second = ReminderResponseSession(reviewed, at, 0L)
+    val ack = first.prepare(ReminderResponsePolicy.parse("acknowledge this reminder")!!,
+      "2026-10-23T04:00:10.000Z", 10_000L)!!
+    val snooze = second.prepare(ReminderResponsePolicy.parse("snooze 15 minutes")!!,
+      "2026-10-23T04:00:10.000Z", 10_000L)!!
+    assertTrue(first.consume(ack, "2026-10-23T04:00:11.000Z", 11_000L))
+    assertTrue(second.consume(snooze, "2026-10-23T04:00:11.000Z", 11_000L))
+    assertTrue(store.action(identity, ack.command.action, ack.command.minutes,
+      "2026-10-23T04:00:11.000Z", reviewed.sourceVersion, reviewed.ringingDeadline).applied)
+    assertFalse(store.action(identity, snooze.command.action, snooze.command.minutes,
+      "2026-10-23T04:00:11.000Z", reviewed.sourceVersion, reviewed.ringingDeadline).applied)
+    assertEquals("ACKNOWLEDGED", scalar("SELECT status FROM reminders"))
+    assertEquals("ACKNOWLEDGED", scalar("SELECT status FROM reminder_jobs"))
+    assertEquals("1", scalar("SELECT generation FROM reminder_jobs"))
+    assertEquals("TODO", scalar("SELECT status FROM tasks"))
+    assertEquals("1", scalar("SELECT count(*) FROM native_alarm_events WHERE event='ACTION_ACK'"))
+    assertEquals("0", scalar("SELECT count(*) FROM native_alarm_events WHERE event='ACTION_SNOOZE'"))
+  }
+
   @Test fun repeatedOrStaleCallbacksDoNotIncrementAttempts() {
     assertEquals(ClaimKind.STALE, store.claimDue(identity.copy(generation = 2), at, true).kind)
     assertEquals(ClaimKind.STALE, store.claimDue(identity.copy(occurrenceKey = "other"), at, true).kind)

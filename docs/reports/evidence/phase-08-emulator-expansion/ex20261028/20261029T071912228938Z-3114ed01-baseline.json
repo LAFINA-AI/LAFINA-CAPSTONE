@@ -1,0 +1,29 @@
+{
+  "schemaVersion": 1,
+  "runId": "ex20261028",
+  "invocation": "20261029T071912228938Z-3114ed01",
+  "command": "baseline",
+  "startedAt": "2026-10-29T07:19:12.233521+00:00",
+  "status": "PASS",
+  "scope": "Explicit emulator UI driver plus independent read-only SQLite snapshots",
+  "physicalAcceptance": "HUMAN_REQUIRED",
+  "events": [
+    {
+      "at": "2026-10-29T07:19:12.237565+00:00",
+      "event": "invocation_started"
+    },
+    {
+      "at": "2026-10-29T07:19:15.031887+00:00",
+      "event": "fresh_baseline_captured",
+      "schema": 3,
+      "preferencesSha256": "4571b589c736a245b881f28b22698b42e62b0691bf11401d627b1b2613f4ec04",
+      "activeJobs": 0
+    }
+  ],
+  "limits": [
+    "Direct private Activity intents do not certify actual notification taps or full-screen delivery.",
+    "No live microphone, audibility, physical phone, OEM or battery acceptance is implied."
+  ],
+  "completedAt": "2026-10-29T07:19:15.033143+00:00",
+  "passScope": "Requested bounded runner operation only; inspect case assertions and physical gates separately"
+}

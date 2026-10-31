@@ -1,0 +1,9 @@
+{
+  "kind": "ROOT_REVIEW_READ_ONLY_BOOTSTRAP_STOP",
+  "failedEvidence": "docs/reports/evidence/phase-08-input-loss-all-cases-final-clean-20261030T000953637635Z-f37ac3.json",
+  "actualCasesStarted": 0,
+  "deviceMutationsStarted": false,
+  "reason": "Parser matched global Awake and nested numeric wakefulness; now anchored to exact global symbolic field.",
+  "ownLockRemovedAfterTerminalHostControllerReview": true,
+  "physicalDeviceValidation": "NOT_RUN"
+}

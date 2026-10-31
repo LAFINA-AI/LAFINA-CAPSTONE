@@ -1,0 +1,187 @@
+{
+  "kind": "PHASE08_LOWLOAD_ADMISSION_AND_PRESERVED_DATA_BOOT",
+  "status": "ADMISSION_UNMET_NO_LAUNCH",
+  "startedAtUtc": "2026-10-31T09:43:22.615619+00:00",
+  "avd": "LAFINA_Phase08_API35",
+  "api": 35,
+  "runId": "st20261031",
+  "thresholds": {
+    "admission": {
+      "windowSeconds": 30,
+      "availableMiBMin": 6656,
+      "commitAvailableGiBMin": 7.5,
+      "cpuTotalPctMedianMax": 15.0,
+      "cpuTotalPctP95Max": 30.0,
+      "hardPagesPerSecMedianMax": 25.0,
+      "hardPagesPerSecP95Max": 250.0,
+      "schedProbeMaxLateMsMax": 30.0,
+      "schedProbeP99LateMsMedianMax": 2.0,
+      "telemetryCpuPctOfHostMeanMax": 1.0,
+      "sampleGapSecondsMax": 3.0
+    },
+    "stabilization": {
+      "minSecondsAfterBootCompleted": 300,
+      "windowSeconds": 60,
+      "emulatorCpuPctMedianMax": 12.0,
+      "maxWaitSeconds": 1200
+    }
+  },
+  "emulatorArguments": [
+    "-avd",
+    "LAFINA_Phase08_API35",
+    "-port",
+    "5554",
+    "-no-window",
+    "-no-snapshot-load",
+    "-no-snapshot-save",
+    "-gpu",
+    "host",
+    "-memory",
+    "2048",
+    "-cores",
+    "4",
+    "-grpc",
+    "8554",
+    "-grpc-use-token",
+    "-audio",
+    "none"
+  ],
+  "hostAudioInputAllowed": false,
+  "originalAvdTargeted": false,
+  "noInstallUninstallResetOrDataReplacement": true,
+  "physicalDeviceValidation": "NOT_RUN",
+  "events": [
+    {
+      "event": "saved_guest_identity_verified_before_launch",
+      "atUtc": "2026-10-31T09:43:23.473651+00:00",
+      "monotonicNs": 229334406169100
+    }
+  ],
+  "preLaunch": {
+    "avdConfig": {
+      "target": "android-35",
+      "abi.type": "x86_64",
+      "image.sysdir.1": "system-images\\android-35\\google_apis\\x86_64\\",
+      "hw.cpu.ncore": "4",
+      "hw.ramSize": "2G",
+      "tag.id": "google_apis",
+      "hw.audioInput": "yes",
+      "hw.audioOutput": "yes"
+    },
+    "engineRevision": "37.2.13",
+    "lockFilesPresentNotTouched": [
+      "multiinstance.lock"
+    ],
+    "runningEngines": 0,
+    "connectedDevices": 0
+  },
+  "admission": {
+    "metrics": {
+      "samples": 31,
+      "durationSeconds": 29.979,
+      "maxSampleGapSeconds": 1.02,
+      "firstUtc": "2026-10-31T09:42:52.571076+00:00",
+      "lastUtc": "2026-10-31T09:43:22.549832+00:00",
+      "cpuTotalPct": {
+        "min": 26.458,
+        "median": 44.667,
+        "p95": 70.968,
+        "max": 71.219,
+        "mean": 46.124
+      },
+      "nonEmulatorCpuPct": {
+        "min": 25.937,
+        "median": 44.276,
+        "p95": 70.568,
+        "max": 70.708,
+        "mean": 45.628
+      },
+      "emulatorCpuPct": {
+        "min": 0.0,
+        "median": 0.0,
+        "p95": 0.0,
+        "max": 0.0,
+        "mean": 0.0
+      },
+      "harnessCpuPct": {
+        "min": 0.0,
+        "median": 0.0,
+        "p95": 0.0,
+        "max": 0.0,
+        "mean": 0.0
+      },
+      "telemetryCpuPct": {
+        "min": 0.0,
+        "median": 0.521,
+        "p95": 0.781,
+        "max": 0.781,
+        "mean": 0.496
+      },
+      "attributedOtherCpuPct": {
+        "min": 14.708,
+        "median": 23.18,
+        "p95": 32.045,
+        "max": 34.891,
+        "mean": 23.669
+      },
+      "availableMiB": {
+        "min": 2292.0,
+        "median": 2506.0,
+        "p95": 2661.0,
+        "max": 2716.0,
+        "mean": 2515.548
+      },
+      "commitAvailableGiB": {
+        "min": 2.962,
+        "median": 3.157,
+        "p95": 3.243,
+        "max": 3.317,
+        "mean": 3.152
+      },
+      "hardPagesPerSec": {
+        "min": 49.988,
+        "median": 360.142,
+        "p95": 8122.362,
+        "max": 8162.554,
+        "mean": 1128.177
+      },
+      "pageReadsPerSec": {
+        "min": 4.001,
+        "median": 29.011,
+        "p95": 601.805,
+        "max": 629.041,
+        "mean": 105.158
+      },
+      "emulatorPrivateWorkingSetMiB": {
+        "min": 0.0,
+        "median": 0.0,
+        "p95": 0.0,
+        "max": 0.0,
+        "mean": 0.0
+      },
+      "schedProbeMaxLateMs": {
+        "min": 0.91,
+        "median": 1.804,
+        "p95": 15.857,
+        "max": 27.913,
+        "mean": 3.691
+      },
+      "schedProbeP99LateMs": {
+        "min": 0.768,
+        "median": 0.933,
+        "p95": 4.273,
+        "max": 4.511,
+        "mean": 1.295
+      }
+    },
+    "met": false,
+    "violations": [
+      "AVAILABLE_MEMORY",
+      "AVAILABLE_COMMIT",
+      "CPU_cpuTotalPct",
+      "HARD_PAGING"
+    ]
+  },
+  "completedAtUtc": "2026-10-31T09:43:23.491619+00:00",
+  "privateEvidence": ".local/phase08-lowload-20261031T094218Z/boot"
+}

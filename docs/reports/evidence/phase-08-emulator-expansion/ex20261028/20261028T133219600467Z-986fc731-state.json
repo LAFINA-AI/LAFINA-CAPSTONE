@@ -1,0 +1,43 @@
+{
+  "schemaVersion": 1,
+  "runId": "ex20261028",
+  "invocation": "20261028T133219600467Z-986fc731",
+  "command": "state",
+  "startedAt": "2026-10-28T13:32:19.601570+00:00",
+  "status": "PASS",
+  "scope": "Explicit emulator UI driver plus independent read-only SQLite snapshots",
+  "physicalAcceptance": "HUMAN_REQUIRED",
+  "events": [
+    {
+      "at": "2026-10-28T13:32:19.602750+00:00",
+      "event": "invocation_started"
+    },
+    {
+      "at": "2026-10-28T13:32:20.451139+00:00",
+      "event": "owned_fixture_state",
+      "title": "QA08 EX ex20261028 A12P_20261028T133047934871Z",
+      "rows": [
+        {
+          "taskId": "task:cmd_mvs5kax4_0_735dm038f3g",
+          "taskStatus": "TODO",
+          "deletedAt": null,
+          "jobId": "job:reminder:task:cmd_mvs5kax4_0_735dm038f3g|2026-10-28T13:32:00.808Z",
+          "occurrenceKey": "task:cmd_mvs5kax4_0_735dm038f3g|2026-10-28T13:32:00.808Z",
+          "generation": 1,
+          "jobStatus": "ACKNOWLEDGED",
+          "reminderStatus": "ACKNOWLEDGED",
+          "runAt": "2026-10-28T13:32:00.808Z",
+          "deadline": null,
+          "deliveryState": "UNAVAILABLE",
+          "registrations": 0
+        }
+      ]
+    }
+  ],
+  "limits": [
+    "Direct private Activity intents do not certify actual notification taps or full-screen delivery.",
+    "No live microphone, audibility, physical phone, OEM or battery acceptance is implied."
+  ],
+  "completedAt": "2026-10-28T13:32:20.452077+00:00",
+  "passScope": "Requested bounded runner operation only; inspect case assertions and physical gates separately"
+}

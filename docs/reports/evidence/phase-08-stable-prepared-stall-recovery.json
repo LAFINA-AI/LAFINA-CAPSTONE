@@ -1,0 +1,28 @@
+{
+  "kind": "PHASE08_STABLE_PREPARED_HEADER_STALL_RECOVERY",
+  "startedAtUtc": "2026-10-31T00:02:31.005133+00:00",
+  "newAvd": "LAFINA_Phase08_API35",
+  "verifiedWindowsProcesses": [
+    {
+      "pid": 25000,
+      "name": "emulator.exe"
+    },
+    {
+      "pid": 32784,
+      "name": "qemu-system-x86_64-headless.exe"
+    }
+  ],
+  "originalAvdTargeted": false,
+  "dataResetUninstallReplacementOrLockDeletion": false,
+  "fourReadOnlyDeviceQueriesTimedOut": true,
+  "physicalDeviceValidation": "NOT_RUN",
+  "gracefulStopRequested": true,
+  "gracefulStopTimedOut": true,
+  "status": "OWNED_NEW_VM_STOPPED_AFTER_GRACEFUL_TIMEOUT",
+  "verifiedEngineForceStopPid": 32784,
+  "launcherCleanupConditionalPid": 25000,
+  "onlyExpectedSdkPathAndNewAvdProcessesTargeted": true,
+  "savedDiskRecovery": "docs/reports/evidence/phase-08-stable-saved-disk-recovery.json",
+  "ownedFixtureReviewedCleanup": "docs/reports/evidence/phase-08-emulator-expansion/st20261031/20261031T000931338754Z-a5f090e1-cleanup.json",
+  "completedAtUtc": "2026-10-31T00:13:04.490263+00:00"
+}

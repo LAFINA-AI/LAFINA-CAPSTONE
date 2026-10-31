@@ -1,0 +1,13 @@
+{"event": "preboot_host_state_unavailable", "hostState": "UNAVAILABLE", "reason": "DISCOVERY_MUST_IDENTIFY_ONE_EMULATOR", "runningIniCount": 0, "testsExecuted": false}
+{"at": "2026-10-29T08:28:55.960151+00:00", "event": "invocation_started"}
+{"event": "baseline_verified", "activeJobs": 0, "registrations": 0, "schema": 3, "preferencesSha256": "56cb51e031be21e41c7dcbd2df79a6db86803d5051e27aa3db5a0f1f55605486", "hostMicrophoneStateBefore": "UNAVAILABLE", "testsExecuted": false, "installedApkSha256": "8b7396102835bed7dea90995439a088d34ef3d8f442283ddb91df67c874ad218"}
+{"event": "disconnected_waiting_for_userdata_flush", "seconds": 8}
+{"event": "single_hidden_cold_boot_launched", "pid": 32660}
+{"event": "waiting_for_boot", "elapsedSeconds": 31.0}
+{"event": "waiting_for_boot", "elapsedSeconds": 60.2}
+{"event": "waiting_for_boot", "elapsedSeconds": 90.1}
+{"event": "waiting_for_boot", "elapsedSeconds": 121.3}
+{"event": "waiting_for_boot", "elapsedSeconds": 151.0}
+{"event": "preserved_data_cold_boot_verified", "status": "PASS", "activeJobs": 0, "registrations": 0, "schema": 3}
+{"status": "PASS", "evidence": "docs/reports/evidence/phase-08-emulator-expansion/ex20261028/20261029T082855953141Z-469d4c10-remaining-preserved-reboot.json"}
+{"status": "PASS", "evidence": "docs/reports/evidence/phase-08-remaining-preserved-reboot-grpc.json", "physicalDeviceValidation": "NOT_RUN"}

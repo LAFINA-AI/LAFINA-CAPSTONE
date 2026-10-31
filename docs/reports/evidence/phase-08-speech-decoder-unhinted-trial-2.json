@@ -1,0 +1,51 @@
+{
+  "kind": "PHASE08_DIRECT_PINNED_RESPONSE_DECODER_NOT_MICROPHONE",
+  "status": "SYNTHETIC_REFERENCE_MISMATCH",
+  "api": 37,
+  "deviceModel": "sdk_gphone16k_x86_64",
+  "appVersion": "0.8.0-data-qa",
+  "samples": [
+    {
+      "id": "acknowledge",
+      "outcome": "RESULT",
+      "normalizedExactRef": false,
+      "normalizedExpectedResponse": false,
+      "normalizedSha256": "30598fc529e49dff373887b2fdc2eaff1bd00000c6ba0ace29e69a8107880f81",
+      "charCount": 25,
+      "normalizedIsAcknowledged": false,
+      "normalizedIsAcknowledge": false,
+      "commandParsedExpected": false,
+      "audioDurationMs": 2255,
+      "totalPrepareLoadDecodeMs": 3567
+    },
+    {
+      "id": "snooze",
+      "outcome": "RESULT",
+      "normalizedExactRef": false,
+      "normalizedExpectedResponse": false,
+      "normalizedSha256": "6095e7ca6ecd777604a4a91968d301086da858c594db2ac8f9c004a123daf52d",
+      "charCount": 20,
+      "normalizedIsAcknowledged": false,
+      "normalizedIsAcknowledge": false,
+      "commandParsedExpected": false,
+      "audioDurationMs": 2320,
+      "totalPrepareLoadDecodeMs": 3469
+    }
+  ],
+  "modelSha256": "818710568da3ca15689e31a743197b520007872ff9576237bda97bd1b469c3d7",
+  "normalization": "ASCII lowercase; replace non-alphanumeric/non-space with spaces; collapse whitespace",
+  "microphoneOpened": false,
+  "actionsExecuted": false,
+  "rawTranscriptEmitted": true,
+  "syntheticPaddingEachSideMs": 0,
+  "syntheticNoiseFloorPcm": 0,
+  "vocabulary": "GENERAL",
+  "limits": "Two fixed synthetic Zira clips; direct decoder only. No capture/transport, human speech, audibility, physical-phone or model-change claim.",
+  "allDecoded": true,
+  "allNormalizedReferencesExact": false,
+  "allExpectedResponsesMatched": false,
+  "rawTranscriptStoredInPublicEvidence": false,
+  "privateDiagnosticLog": ".local/phase08-speech-diagnostics/decoder-unhinted-trial-2.log",
+  "recordedAtUtc": "2026-10-29T03:39:48.294190+00:00",
+  "junitExecutionPassed": true
+}

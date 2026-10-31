@@ -1,0 +1,129 @@
+{
+  "kind": "PHASE08_OBSERVABILITY_HOST_INVALID_ARGUMENT_GUARDS",
+  "status": "PASS",
+  "atUtc": "2026-10-30T07:03:47.332500+00:00",
+  "previousGuardEvidence": {
+    "path": "docs/reports/evidence/phase-08-input-loss-initialization-host-guards.json",
+    "sha256": "c509e478c9fbca8cac1fac4c5201a7dca7d187014bf5ad4a01b3aedf942c3706"
+  },
+  "script": {
+    "path": "scripts/phase08-emulator-audio.mjs",
+    "sha256": "c4f82a9190e1c754e076e8f207dc1f76c568ed6417ed7207bc42cabe01906b2f"
+  },
+  "checks": [
+    {
+      "arguments": [
+        "--serial",
+        "emulator-5554",
+        "--initialize-input"
+      ],
+      "expectedReason": "INJECTION_FLAG_REQUIRED",
+      "actualReason": "INJECTION_FLAG_REQUIRED",
+      "status": "PASS",
+      "exitCode": 2,
+      "microphoneStateRead": false,
+      "injectionAttempted": false,
+      "sourceStreamAttempted": false,
+      "inputInitializationAttempted": false,
+      "hostInputEnableRequested": false,
+      "stderrEmpty": true
+    },
+    {
+      "arguments": [
+        "--serial",
+        "emulator-5554",
+        "--initialize-input",
+        "--initialize-input"
+      ],
+      "expectedReason": "DUPLICATE_ARGUMENT",
+      "actualReason": "DUPLICATE_ARGUMENT",
+      "status": "PASS",
+      "exitCode": 2,
+      "microphoneStateRead": false,
+      "injectionAttempted": false,
+      "sourceStreamAttempted": false,
+      "inputInitializationAttempted": false,
+      "hostInputEnableRequested": false,
+      "stderrEmpty": true
+    },
+    {
+      "arguments": [
+        "--serial",
+        "emulator-5554",
+        "--initialize-input",
+        "true"
+      ],
+      "expectedReason": "INVALID_ARGUMENT",
+      "actualReason": "INVALID_ARGUMENT",
+      "status": "PASS",
+      "exitCode": 2,
+      "microphoneStateRead": false,
+      "injectionAttempted": false,
+      "sourceStreamAttempted": false,
+      "inputInitializationAttempted": false,
+      "hostInputEnableRequested": false,
+      "stderrEmpty": true
+    },
+    {
+      "arguments": [
+        "--serial",
+        "emulator-5554",
+        "--inject",
+        "--initialize-input",
+        "--padding-ms",
+        "2000"
+      ],
+      "expectedReason": "PADDING_MUST_BE_INTEGER_ZERO_TO_1000_MS",
+      "actualReason": "PADDING_MUST_BE_INTEGER_ZERO_TO_1000_MS",
+      "status": "PASS",
+      "exitCode": 2,
+      "microphoneStateRead": false,
+      "injectionAttempted": false,
+      "sourceStreamAttempted": false,
+      "inputInitializationAttempted": false,
+      "hostInputEnableRequested": false,
+      "stderrEmpty": true
+    },
+    {
+      "arguments": [
+        "--serial",
+        "emulator-5554",
+        "--inject",
+        "--initialize-input",
+        "--gain-permille",
+        "1"
+      ],
+      "expectedReason": "SYNTHETIC_GAIN_MUST_BE_500_OR_1000_PERMILLE",
+      "actualReason": "SYNTHETIC_GAIN_MUST_BE_500_OR_1000_PERMILLE",
+      "status": "PASS",
+      "exitCode": 2,
+      "microphoneStateRead": false,
+      "injectionAttempted": false,
+      "sourceStreamAttempted": false,
+      "inputInitializationAttempted": false,
+      "hostInputEnableRequested": false,
+      "stderrEmpty": true
+    },
+    {
+      "arguments": [
+        "--serial",
+        "not-a-device",
+        "--initialize-input"
+      ],
+      "expectedReason": "EXPLICIT_EMULATOR_SERIAL_REQUIRED",
+      "actualReason": "EXPLICIT_EMULATOR_SERIAL_REQUIRED",
+      "status": "PASS",
+      "exitCode": 2,
+      "microphoneStateRead": false,
+      "injectionAttempted": false,
+      "sourceStreamAttempted": false,
+      "inputInitializationAttempted": false,
+      "hostInputEnableRequested": false,
+      "stderrEmpty": true
+    }
+  ],
+  "deviceCallsExecuted": false,
+  "loopbackConnectionAttempted": false,
+  "scope": "Six invalid argument combinations rejected before installed-schema/discovery/session setup; host-only. No live injection failure path or emulator behavior exercised.",
+  "physicalDeviceValidation": "NOT_RUN"
+}

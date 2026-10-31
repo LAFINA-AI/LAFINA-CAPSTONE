@@ -1,0 +1,99 @@
+{
+  "kind": "PARENT_SYNTHETIC_VISIBLE_MICROPHONE_CASE",
+  "case": "A03",
+  "status": "FAIL_OR_UNSUPPORTED_REVIEW_REQUIRED",
+  "startedAtUtc": "2026-10-31T02:25:41.689300+00:00",
+  "events": [
+    {
+      "event": "host_microphone_double_false_before",
+      "atUtc": "2026-10-31T02:25:41.772395+00:00",
+      "elapsedMonotonicSeconds": 0.0831105999823194,
+      "status": "HOST_MICROPHONE_DISABLED"
+    },
+    {
+      "event": "owned_fixture_before",
+      "atUtc": "2026-10-31T02:26:49.594220+00:00",
+      "elapsedMonotonicSeconds": 67.90493999997852,
+      "rows": [
+        {
+          "taskId": "task:cmd_mvvs4cd1_0_90zfxwd3wv4",
+          "taskStatus": "TODO",
+          "deletedAt": null,
+          "jobId": "job:reminder:task:cmd_mvvs4cd1_0_90zfxwd3wv4|2026-10-31T02:26:45.877Z",
+          "occurrenceKey": "task:cmd_mvvs4cd1_0_90zfxwd3wv4|2026-10-31T02:26:45.877Z",
+          "generation": 1,
+          "jobStatus": "RINGING",
+          "reminderStatus": "RINGING",
+          "runAt": "2026-10-31T02:26:45.877Z",
+          "deadline": "2026-10-31T02:27:46.253Z",
+          "deliveryState": "REGISTERED",
+          "registrations": 1
+        }
+      ]
+    }
+  ],
+  "rawTranscriptEmitted": true,
+  "rawTranscriptStoredInPublicEvidence": false,
+  "physicalSpeech": "NOT_RUN",
+  "audibility": "NOT_RUN",
+  "ttsInterruption": "NOT_RUN",
+  "scope": "Real visible hold/capture with only pinned synthetic PCM when explicitly selected; no live host input or physical speech acceptance",
+  "trialIndex": 1,
+  "requestedIndependentTrials": 1,
+  "syntheticInjectionDelayMs": 0,
+  "syntheticTransportPaddingEachSideMs": 1000,
+  "syntheticTransportGainPermille": 500,
+  "producerStrategy": "ANCHORED_REALTIME_SINGLE_RPC_NATIVE_TIMESTAMP_NO_ROUTE_OBSERVER",
+  "producerControl": "normal",
+  "sourceProducer": {
+    "sourceProcessLaunchRequested": false,
+    "sourceProcessLaunched": false,
+    "sourceStreamAttempted": false,
+    "sourceStreamCompleted": false,
+    "sourceSubmissionOutcome": "NOT_SUBMITTED"
+  },
+  "sourceTransportEligibleForRecognitionCheck": false,
+  "nativeReferenceComparisonObserved": false,
+  "nativeReferenceComparisonMatched": null,
+  "nativeStrictReferenceAssertionAttempted": null,
+  "nativeStrictReferenceAssertionOutcome": "UNKNOWN",
+  "gatePublication": {
+    "published": false,
+    "marker": null,
+    "intentionallyAbsent": false
+  },
+  "syntheticRepeatAliasOf": null,
+  "reason": "PRIVATE_MICROPHONE_FAILURE_LOG_SAVED",
+  "errorType": "RuntimeError",
+  "nativeDriver": {
+    "observed": true,
+    "outcome": "FAIL",
+    "details": {
+      "rawTranscriptEmitted": false,
+      "producerAbortMarkerObserved": false,
+      "producerAuthorizationRequired": true,
+      "hostMicrophoneDisabledConfirmedByRoot": true,
+      "producerAborted": false,
+      "producerAuthorizationBlocked": false,
+      "visibleHoldCount": 1,
+      "firstHoldFailureCode": "LANGUAGE_UNAVAILABLE"
+    },
+    "stages": [
+      "actual_pointer_up_sent_in_finally"
+    ]
+  },
+  "nativeGate": {
+    "producerAbortMarkerObserved": false,
+    "producerAuthorizationRequired": true,
+    "producerAborted": false,
+    "producerAuthorizationBlocked": false,
+    "visibleHoldCount": 1
+  },
+  "failureLayer": "SOURCE_PRODUCER_OR_PRIVACY_GUARD",
+  "microphonePermissionRestoration": "EXACT_FRESH_BASELINE_VERIFIED",
+  "fixtureCleanup": "EXACT_OWNED_TITLE_REVIEWED_UI",
+  "hostMicrophoneDisabledAtEnd": true,
+  "completedAtUtc": "2026-10-31T02:27:02.910705+00:00",
+  "elapsedMonotonicSeconds": 81.2214184999757,
+  "privateEvidence": ".local/phase08-microphone-20261031T022541688282Z-A03"
+}

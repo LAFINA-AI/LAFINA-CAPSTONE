@@ -1,0 +1,24 @@
+{"at": "2026-10-28T23:14:20.212760+00:00", "event": "invocation_started"}
+{"at": "2026-10-28T23:14:50.932597+00:00", "event": "ui_driver", "kind": "OPT_IN_SYNTHETIC_FIXTURE_UI_DRIVER", "mode": "compose", "outcome": "FAIL", "stages": ["activity_launch_requested"], "launch": "DIRECT_PRIVATE_ACTIVITY_INTENT_NOT_NOTIFICATION_TAP", "limits": "UI only; root verifies SQL separately. No live speech, audio or physical-phone acceptance.", "errorClass": "AssertionError"}
+{"at": "2026-10-28T23:14:50.939384+00:00", "event": "operation_failed", "errorCode": "UI_DRIVER_DID_NOT_REPORT_PASS", "errorType": "RuntimeError"}
+{"status": "FAIL", "evidence": "docs/reports/evidence/phase-08-emulator-expansion/ex20261028/20261028T231420209273Z-8e39bf98-compose.json"}
+
+{"at": "2026-10-28T23:14:53.234970+00:00", "event": "invocation_started"}
+{"at": "2026-10-28T23:14:54.128737+00:00", "event": "operation_failed", "errorCode": "OWNED_TASK_NOT_FOUND", "errorType": "RuntimeError"}
+{"status": "FAIL", "evidence": "docs/reports/evidence/phase-08-emulator-expansion/ex20261028/20261028T231453220726Z-08da6b8a-cleanup.json"}
+
+{"case": "A03", "status": "FAIL", "evidence": "docs/reports/evidence/phase-08-emulator-expansion/ex20261028/20261028T231415503203Z-A03-microphone.json"}
+Traceback (most recent call last):
+  File "C:\L3mxr\Github Repositories\LAFINA-CAPSTONE\.local\phase08-microphone-root.py", line 370, in <module>
+    execute(arguments.case, trial=trial, trials=arguments.repeat, injection_delay_ms=arguments.injection_delay_ms)
+    ~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\L3mxr\Github Repositories\LAFINA-CAPSTONE\.local\phase08-microphone-root.py", line 188, in execute
+    H.create(case + "M_" + stamp)
+    ~~~~~~~~^^^^^^^^^^^^^^^^^^^^^
+  File "C:\L3mxr\Github Repositories\LAFINA-CAPSTONE\.local\phase08-expanded-root.py", line 20, in create
+    t=title(case);call("compose","--action","create","--title",t,"--minutes",str(minutes));return t
+                  ~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\L3mxr\Github Repositories\LAFINA-CAPSTONE\.local\phase08-expanded-root.py", line 12, in call
+    if p.returncode: raise RuntimeError("Suite command failed: "+str(args))
+                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+RuntimeError: Suite command failed: ('compose', '--action', 'create', '--title', 'QA08 EX ex20261028 A03M_20261028T231415503203Z', '--minutes', '1')

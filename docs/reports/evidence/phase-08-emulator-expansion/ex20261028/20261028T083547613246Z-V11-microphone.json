@@ -1,0 +1,109 @@
+{
+  "kind": "PARENT_SYNTHETIC_VISIBLE_MICROPHONE_CASE",
+  "case": "V11",
+  "status": "PASS",
+  "startedAtUtc": "2026-10-28T08:35:47.614134+00:00",
+  "events": [
+    {
+      "event": "host_microphone_double_false_before",
+      "atUtc": "2026-10-28T08:35:47.830588+00:00",
+      "elapsedMonotonicSeconds": 0.2164718999993056,
+      "status": "HOST_MICROPHONE_DISABLED"
+    },
+    {
+      "event": "owned_fixture_before",
+      "atUtc": "2026-10-28T08:36:59.755985+00:00",
+      "elapsedMonotonicSeconds": 72.14187219997984,
+      "rows": [
+        {
+          "taskId": "task:cmd_mvrv0ule_0_2jbs1bl63f",
+          "taskStatus": "TODO",
+          "deletedAt": null,
+          "jobId": "job:reminder:task:cmd_mvrv0ule_0_2jbs1bl63f|2026-10-28T08:36:57.025Z",
+          "occurrenceKey": "task:cmd_mvrv0ule_0_2jbs1bl63f|2026-10-28T08:36:57.025Z",
+          "generation": 1,
+          "jobStatus": "RINGING",
+          "reminderStatus": "RINGING",
+          "runAt": "2026-10-28T08:36:57.025Z",
+          "deadline": "2026-10-28T08:37:57.551Z",
+          "deliveryState": "REGISTERED",
+          "registrations": 1
+        }
+      ]
+    },
+    {
+      "event": "real_visible_recording_stage_observed",
+      "atUtc": "2026-10-28T08:37:06.677380+00:00",
+      "elapsedMonotonicSeconds": 79.06325979999383,
+      "recordingVisible": true
+    },
+    {
+      "event": "pinned_today_pcm_stream_completed",
+      "atUtc": "2026-10-28T08:37:10.738345+00:00",
+      "elapsedMonotonicSeconds": 83.12422919998062,
+      "grpcStatus": 0
+    },
+    {
+      "event": "microphone_driver_completed",
+      "atUtc": "2026-10-28T08:37:17.807450+00:00",
+      "elapsedMonotonicSeconds": 90.19333369997912,
+      "stages": [
+        "activity_launch_requested",
+        "owned_fixture_title_observed",
+        "answer_control_revealed",
+        "answer_response_visible",
+        "actual_pointer_up_sent_in_finally",
+        "actual_pointer_down_and_visible_recording_observed",
+        "actual_pointer_up_sent_in_finally",
+        "explicit_copy_edit_and_unsupported_response_refusal_observed"
+      ],
+      "details": {
+        "hostMicrophoneDisabledConfirmedByRoot": true,
+        "rawTranscriptEmitted": false,
+        "visibleHoldCount": 2,
+        "recordingVisible": true,
+        "recognizedCharacterCount": 24,
+        "recognizedNormalizedMatchesSyntheticToday": true,
+        "transcriptReady": true
+      }
+    },
+    {
+      "event": "independent_sql_unchanged_ringing_todo",
+      "atUtc": "2026-10-28T08:37:19.437495+00:00",
+      "elapsedMonotonicSeconds": 91.82337949998328,
+      "rows": [
+        {
+          "taskId": "task:cmd_mvrv0ule_0_2jbs1bl63f",
+          "taskStatus": "TODO",
+          "deletedAt": null,
+          "jobId": "job:reminder:task:cmd_mvrv0ule_0_2jbs1bl63f|2026-10-28T08:36:57.025Z",
+          "occurrenceKey": "task:cmd_mvrv0ule_0_2jbs1bl63f|2026-10-28T08:36:57.025Z",
+          "generation": 1,
+          "jobStatus": "RINGING",
+          "reminderStatus": "RINGING",
+          "runAt": "2026-10-28T08:36:57.025Z",
+          "deadline": "2026-10-28T08:37:57.551Z",
+          "deliveryState": "REGISTERED",
+          "registrations": 1
+        }
+      ]
+    },
+    {
+      "event": "host_microphone_double_false_after",
+      "atUtc": "2026-10-28T08:37:19.590969+00:00",
+      "elapsedMonotonicSeconds": 91.97685669999919,
+      "status": "HOST_MICROPHONE_DISABLED"
+    }
+  ],
+  "rawTranscriptEmitted": false,
+  "physicalSpeech": "NOT_RUN",
+  "audibility": "NOT_RUN",
+  "ttsInterruption": "NOT_RUN",
+  "scope": "Real visible hold/capture permission/lifecycle; no live host input, ACK or snooze speech corpus",
+  "microphonePermissionRestoration": "EXACT_FRESH_BASELINE_VERIFIED",
+  "fixtureCleanup": "EXACT_OWNED_TITLE_REVIEWED_UI",
+  "hostMicrophoneDisabledAtEnd": true,
+  "completedAtUtc": "2026-10-28T08:37:34.282692+00:00",
+  "elapsedMonotonicSeconds": 106.66857750000781,
+  "privateEvidence": ".local/phase08-microphone-20261028T083547613246Z-V11"
+}

@@ -1,0 +1,110 @@
+{
+  "kind": "PARENT_SYNTHETIC_VISIBLE_MICROPHONE_CASE",
+  "case": "V10",
+  "status": "PASS",
+  "startedAtUtc": "2026-10-28T14:18:21.060519+00:00",
+  "events": [
+    {
+      "event": "host_microphone_double_false_before",
+      "atUtc": "2026-10-28T14:18:21.274474+00:00",
+      "elapsedMonotonicSeconds": 0.2139778999844566,
+      "status": "HOST_MICROPHONE_DISABLED"
+    },
+    {
+      "event": "owned_fixture_before",
+      "atUtc": "2026-10-28T14:19:37.106977+00:00",
+      "elapsedMonotonicSeconds": 76.04647780000232,
+      "rows": [
+        {
+          "taskId": "task:cmd_mvs79evw_0_fb5qn70jkst",
+          "taskStatus": "TODO",
+          "deletedAt": null,
+          "jobId": "job:reminder:task:cmd_mvs79evw_0_fb5qn70jkst|2026-10-28T14:19:31.964Z",
+          "occurrenceKey": "task:cmd_mvs79evw_0_fb5qn70jkst|2026-10-28T14:19:31.964Z",
+          "generation": 1,
+          "jobStatus": "RINGING",
+          "reminderStatus": "RINGING",
+          "runAt": "2026-10-28T14:19:31.964Z",
+          "deadline": "2026-10-28T14:20:32.608Z",
+          "deliveryState": "REGISTERED",
+          "registrations": 1
+        }
+      ]
+    },
+    {
+      "event": "real_visible_recording_stage_observed",
+      "atUtc": "2026-10-28T14:19:45.768075+00:00",
+      "elapsedMonotonicSeconds": 84.70757699999376,
+      "recordingVisible": true
+    },
+    {
+      "event": "no_pcm_injected",
+      "atUtc": "2026-10-28T14:19:46.069825+00:00",
+      "elapsedMonotonicSeconds": 85.00934679998318,
+      "silenceHoldSeconds": 0.3
+    },
+    {
+      "event": "microphone_driver_completed",
+      "atUtc": "2026-10-28T14:19:46.842200+00:00",
+      "elapsedMonotonicSeconds": 85.78170359999058,
+      "stages": [
+        "activity_launch_requested",
+        "owned_fixture_title_observed",
+        "answer_control_revealed",
+        "answer_response_visible",
+        "actual_pointer_up_sent_in_finally",
+        "actual_pointer_down_and_visible_recording_observed",
+        "cancel_clicked_while_pointer_held",
+        "actual_pointer_up_sent_in_finally"
+      ],
+      "details": {
+        "hostMicrophoneDisabledConfirmedByRoot": true,
+        "rawTranscriptEmitted": false,
+        "visibleHoldCount": 2,
+        "recordingVisible": true,
+        "manualDraftPreservedAfterCancel": true
+      }
+    },
+    {
+      "event": "independent_sql_unchanged_ringing_todo",
+      "atUtc": "2026-10-28T14:19:49.170494+00:00",
+      "elapsedMonotonicSeconds": 88.10999019999872,
+      "rows": [
+        {
+          "taskId": "task:cmd_mvs79evw_0_fb5qn70jkst",
+          "taskStatus": "TODO",
+          "deletedAt": null,
+          "jobId": "job:reminder:task:cmd_mvs79evw_0_fb5qn70jkst|2026-10-28T14:19:31.964Z",
+          "occurrenceKey": "task:cmd_mvs79evw_0_fb5qn70jkst|2026-10-28T14:19:31.964Z",
+          "generation": 1,
+          "jobStatus": "RINGING",
+          "reminderStatus": "RINGING",
+          "runAt": "2026-10-28T14:19:31.964Z",
+          "deadline": "2026-10-28T14:20:32.608Z",
+          "deliveryState": "REGISTERED",
+          "registrations": 1
+        }
+      ]
+    },
+    {
+      "event": "host_microphone_double_false_after",
+      "atUtc": "2026-10-28T14:19:49.407633+00:00",
+      "elapsedMonotonicSeconds": 88.34713639999973,
+      "status": "HOST_MICROPHONE_DISABLED"
+    }
+  ],
+  "rawTranscriptEmitted": false,
+  "physicalSpeech": "NOT_RUN",
+  "audibility": "NOT_RUN",
+  "ttsInterruption": "NOT_RUN",
+  "scope": "Real visible hold/capture with only pinned synthetic PCM when explicitly selected; no live host input or physical speech acceptance",
+  "trialIndex": 1,
+  "requestedIndependentTrials": 1,
+  "syntheticRepeatAliasOf": null,
+  "microphonePermissionRestoration": "EXACT_FRESH_BASELINE_VERIFIED",
+  "fixtureCleanup": "EXACT_OWNED_TITLE_REVIEWED_UI",
+  "hostMicrophoneDisabledAtEnd": true,
+  "completedAtUtc": "2026-10-28T14:20:06.952973+00:00",
+  "elapsedMonotonicSeconds": 105.89247299998533,
+  "privateEvidence": ".local/phase08-microphone-20261028T141821059848Z-V10"
+}

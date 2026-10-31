@@ -1,0 +1,333 @@
+{
+  "kind": "PHASE08_STABLE_LOWLOAD_COMPARISON_PLAN",
+  "createdAtUtc": "2026-10-31T09:42:18.864014+00:00",
+  "status": "FROZEN_BEFORE_DEVICE_MUTATION",
+  "frozenBeforeAnyLowLoadRecognitionResult": true,
+  "avd": "LAFINA_Phase08_API35",
+  "api": 35,
+  "runId": "st20261031",
+  "originalAvdTargetedForTrials": false,
+  "question": "Under a declared, measured low host-load condition, do the A03/V03 emulator spoken-ACK failures and guest HAL faults recur on the null1 platform?",
+  "hypothesis": {
+    "id": "H3b",
+    "text": "Host scheduling/memory contention contributes to the emulator audio-path stalls observed in sdk1/null1.",
+    "interpretation": [
+      "Recurring HAL faults under a met low-load condition would argue against host load as a necessary condition (not against every load contribution).",
+      "Absence of faults in five trials is consistent with H3b but does not establish it or show that the intermittent loss is repaired.",
+      "Any trial whose own window violates the load condition is reported as such; it is not a low-load trial."
+    ]
+  },
+  "singleChange": "Host load condition only (owner-reduced host workload). No model, grammar, threshold, production capture, parent, audio fixture, gain/padding, pacing guard or deadline change.",
+  "platform": {
+    "engine": ".local/phase08-emulator-37.2.13/emulator/emulator.exe (Pkg.Revision 37.2.13, isolated)",
+    "avdRegistry": ".local/phase08-stable-device-v2/avd-registry",
+    "emulatorArguments": [
+      "-avd",
+      "LAFINA_Phase08_API35",
+      "-port",
+      "5554",
+      "-no-window",
+      "-no-snapshot-load",
+      "-no-snapshot-save",
+      "-gpu",
+      "host",
+      "-memory",
+      "2048",
+      "-cores",
+      "4",
+      "-grpc",
+      "8554",
+      "-grpc-use-token",
+      "-audio",
+      "none"
+    ],
+    "matchesNull1Arguments": true,
+    "null1BootRecord": "docs/reports/evidence/phase-08-stable-nullaudio1-boot.json",
+    "null1RecordedLaunchParams": ".local/phase08-stable-device-v2/userdata.avd/emu-launch-params.txt (inspected: identical arguments incl. -audio none)",
+    "hostAudioInputAllowed": false,
+    "liveHostMicrophone": "NEVER_ENABLED"
+  },
+  "declaredDifferencesFromNull1": [
+    "Launch from a stopped guest (null1 followed an identity-checked kill of a running guest and an 8 s wait).",
+    "The guest boots at its own restored baseline (airplane 0, Wi-Fi 1, mobile data 1). The working state (airplane 1/Wi-Fi 0/data 0, lead 0, reply text, quiet hours off, delivery on, full-screen off) is applied by allow-listed radio commands and the reviewed suite configure right after the baseline is verified; null1 inherited it. The guest is briefly online during boot.",
+    "Bounded stabilization wait (>=300 s after boot_completed and idle emulator CPU) before preflight; null1 started its probe minutes after boot.",
+    "No probe trial before the cohort (null1 ran an excluded A03 probe); no additional recognition probe is authorized.",
+    "Host-load preflight and pre-trial gates, fresh per-trial clock probes, ownership checks and explicit stop rules (null1 had none of these)."
+  ],
+  "hostMachine": {
+    "logicalProcessors": 12,
+    "physicalCores": 6,
+    "totalPhysicalMemoryGiB": 15.19,
+    "securityProtections": "Defender and other protections stay enabled; the agent terminates no user application"
+  },
+  "thresholds": {
+    "admission": {
+      "windowSeconds": 30,
+      "availableMiBMin": 6656,
+      "commitAvailableGiBMin": 7.5,
+      "cpuTotalPctMedianMax": 15.0,
+      "cpuTotalPctP95Max": 30.0,
+      "hardPagesPerSecMedianMax": 25.0,
+      "hardPagesPerSecP95Max": 250.0,
+      "schedProbeMaxLateMsMax": 30.0,
+      "schedProbeP99LateMsMedianMax": 2.0,
+      "telemetryCpuPctOfHostMeanMax": 1.0,
+      "sampleGapSecondsMax": 3.0
+    },
+    "guest": {
+      "windowSeconds": 60,
+      "availableMiBMin": 3072,
+      "commitAvailableGiBMin": 4.0,
+      "nonEmulatorCpuPctMedianMax": 12.0,
+      "nonEmulatorCpuPctP95Max": 25.0,
+      "hardPagesPerSecMedianMax": 25.0,
+      "hardPagesPerSecP95Max": 250.0,
+      "schedProbeMaxLateMsMax": 30.0,
+      "schedProbeP99LateMsMedianMax": 2.0,
+      "telemetryCpuPctOfHostMeanMax": 1.0,
+      "sampleGapSecondsMax": 3.0
+    },
+    "pretrial": {
+      "windowSeconds": 20
+    },
+    "stabilization": {
+      "minSecondsAfterBootCompleted": 300,
+      "windowSeconds": 60,
+      "emulatorCpuPctMedianMax": 12.0,
+      "maxWaitSeconds": 1200
+    },
+    "clock": {
+      "probes": 21,
+      "perTrialProbes": 7,
+      "minRoundTripMsMax": 250.0
+    }
+  },
+  "thresholdRationale": {
+    "admission": "Pre-launch, guest stopped, >=30 s. Available memory >=6.5 GiB = SDK-effective guest RAM 2.5 GiB + 1 GiB emulator/GPU overhead + 3 GiB post-boot floor. Available commit >=7.5 GiB = 3.5 GiB guest+overhead + 4 GiB floor. Total CPU median <=15% / p95 <=30% of 12 logical CPUs before the guest adds load. Hard paging median <=25/s, p95 <=250/s. Scheduling probe (2 ms sleeps) max lateness <=30 ms (under one third of the 100 ms producer guard) and median per-second p99 <=2 ms.",
+    "guest": "Post-boot preflight (>=60 s) and every pre-trial window (last 20 s). Available memory >=3 GiB (~20% of RAM) and commit >=4 GiB so guest RAM is not paged. Non-emulator CPU (processor total minus emulator, harness and telemetry; keeps unattributed kernel/DPC time) median <=12% / p95 <=25%, leaving >=5 logical CPUs beyond the 4 vCPUs and helpers. Same paging and scheduling limits; telemetry <=1% of host CPU; no sample gap >3 s.",
+    "stabilization": ">=300 s after boot_completed and emulator median CPU <=12% of host over 60 s, bounded at 20 min.",
+    "clock": "21 adb date probes; the minimum-RTT probe gives offset +/- RTT/2 (the guest read lies inside the host interval); 7 probes before and after each trial. The old +0.44 s offset is not reused."
+  },
+  "measuredBeforeFreezing": "Host-only sampler test (40 s, no emulator) before freezing: available memory median ~0.6 GiB, hard paging up to ~6500 pages/s, total CPU median 29%, scheduling probe max 18.5 ms; sampler mean CPU 0.39% of host. The host did not meet the admission condition then.",
+  "telemetry": {
+    "helper": ".local/phase08_host_telemetry.py",
+    "interval": "1 s PDH counters plus a 2 ms scheduling-latency probe thread; UTC and system-wide monotonic (QPC) per row",
+    "counters": [
+      "\\Processor(_Total)\\% Processor Time",
+      "\\Memory\\Available MBytes",
+      "\\Memory\\Committed Bytes",
+      "\\Memory\\Commit Limit",
+      "\\Memory\\Pages/sec",
+      "\\Memory\\Page Reads/sec",
+      "\\Paging File(_Total)\\% Usage",
+      "\\System\\Processor Queue Length",
+      "\\Process(*)\\% Processor Time",
+      "\\Process(*)\\ID Process",
+      "\\Process(*)\\Working Set - Private"
+    ],
+    "classification": "emulator = qemu-system*/emulator.exe/netsimd.exe; harness = descendants of registered helper PIDs plus adb.exe; telemetry = sampler; other = everything else",
+    "privacy": "Counters and process image names only; raw JSONL private under .local; public evidence gets aggregates only. No command lines (except the emulator engine line verified for audio arguments), window titles or user data.",
+    "coverage": "Admission, boot stabilization, preflight, every trial and restoration.",
+    "limit": "1 s CPU averages cannot rule out short stalls; the probe measures its own host thread, not emulator threads."
+  },
+  "order": [
+    [
+      "A03",
+      1
+    ],
+    [
+      "V03",
+      1
+    ],
+    [
+      "V03",
+      2
+    ],
+    [
+      "V04",
+      1
+    ],
+    [
+      "V04",
+      2
+    ]
+  ],
+  "fixtures": "Independent fresh registered fixtures per trial through the unchanged reviewed parent",
+  "protocolPreserved": [
+    "pinned fixtures acknowledge.wav/snooze.wav",
+    "gain 500 permille, padding 1000 ms each side, delay 0",
+    "anchored 20 ms realtime single-RPC sender with 100 ms lateness/lag guards",
+    "native gate 12 s, production capture 15 s, ringing 60 s",
+    "fresh visible hold; Answer does not ACK or record",
+    "host microphone double-false checks",
+    "exact native reference comparison",
+    "explicit copy, Review, Confirm",
+    "independent SQLite assertions; ACK leaves task TODO; snooze one replacement generation"
+  ],
+  "stopRules": {
+    "stop": [
+      "guest stall or outstanding controller (240 s bound)",
+      "pre-recording UI obstruction/failure",
+      "unknown controller ownership (test process, active instrumentation or foreign emulator-port client)",
+      "privacy guard (host microphone not OFF after source or at end) or restoration failure",
+      "missing essential telemetry (stale sampler, >3 s gap, or no HAL record for a trial that reached Recording)",
+      "producer pacing abort (lateness/lag guard or literal ABORT)",
+      "preflight or pre-trial low-load condition not met within 120 s",
+      "unclassified parent outcome"
+    ],
+    "continueAfterCleanup": [
+      "PASS",
+      "COMPLETED_RECOGNITION_MISMATCH (source RPC completed host-OFF, gate ALLOW, reference mismatch)",
+      "NO_AUDIO_SIGNAL"
+    ],
+    "remainingSlots": "NOT_RUN; no silent retry, replacement trial, probe or second cohort",
+    "reporting": "HAL faults and load-condition violations are reported separately and never change a trial status or erase an end-to-end failure; invalid recognition trials are not ASR accuracy results."
+  },
+  "comparisonWithNull1": "Same evidence layers per trial: generator bytes offered, RPC outcome, visible Recording, native gate, captured signal (HAL record, energy ratio), recognition (reference comparison), review/Confirm, durable SQL; plus host load (absent for null1).",
+  "restoration": [
+    ".local/phase08-stable-final-restore.py --run --output docs/reports/evidence/phase-08-stable-lowload-restoration.json",
+    ".local/phase08-lowload-switch-to-original.py --run --output docs/reports/evidence/phase-08-stable-lowload-switch-to-original.json",
+    ".local/phase08-capture-fix-restoration-sha-root.py --output docs/reports/evidence/phase-08-stable-lowload-original-after.json (read-only)",
+    "identity-checked emu kill of Medium_Phone; zero engines",
+    "stop telemetry"
+  ],
+  "ifAdmissionUnmet": "No launch. Ask the owner for one concrete action (close non-essential applications, keeping Defender and security protections on) and wait; never relabel a busy run as low load.",
+  "sources": [
+    {
+      "path": ".local/phase08_host_telemetry.py",
+      "sha256": "1820b177620afc480141e0bf53b97f371fd21c3b68a8314cebd45e669b53c42c"
+    },
+    {
+      "path": ".local/phase08_lowload_common.py",
+      "sha256": "d7af59144bbd34c0560eb8d79e743bc4cdb1ca2afefe54e4857e397a02a27fac"
+    },
+    {
+      "path": ".local/phase08-lowload-boot.py",
+      "sha256": "29d4590050d5fbeac3870ff2c500636c9948c6f435d8186b4762a9cbcd92d458"
+    },
+    {
+      "path": ".local/phase08-lowload-cohort.py",
+      "sha256": "a723067fca91c20fed034885833ff8e2653ff241c51001a8702af9eab3c7dd30"
+    },
+    {
+      "path": ".local/phase08-lowload-switch-to-original.py",
+      "sha256": "12df89b429fdec1c58836652a087b6d2dddf34f6e199ac949021ae7d9f3eb992"
+    },
+    {
+      "path": ".local/phase08_hal_integrity.py",
+      "sha256": "3cd6db5b9df180e110f083eb3a2dcd19e861393726387adeb4ccc1704f74ec36"
+    },
+    {
+      "path": ".local/phase08-stable-hal-cohort.py",
+      "sha256": "3a40225004622d1ed0385b548bc1e468b2e5db7183472dedaf10e0854fb79a53"
+    },
+    {
+      "path": ".local/phase08-stable-audio-cold.py",
+      "sha256": "09eacdae4ebf0cee2fa124cd13067c9330c63b3cfdaf183254b3a337fff35868"
+    },
+    {
+      "path": ".local/phase08-stable-mic.py",
+      "sha256": "2f8277c226f136271620e57aa0654065cd27ec7e668c234fb5d8fa56307ceb6a"
+    },
+    {
+      "path": ".local/phase08-capture-fix-reviewed-mic.py",
+      "sha256": "8aef5281eb541fd2bafdbf323e2c0e3a14ead86aac37e3b68fb355c10f81c4c9"
+    },
+    {
+      "path": ".local/phase08-stable-final-restore.py",
+      "sha256": "ac2922a786a0af2ae0e20833adc9650435ec0edabaef0c63c003e436c0bbf825"
+    },
+    {
+      "path": ".local/phase08-capture-fix-restoration-sha-root.py",
+      "sha256": "2125fa1aad40601c8a0f90f417462dabfbb5b428e36c4ca5b29aedbbfcfac8bc"
+    },
+    {
+      "path": "scripts/phase08-emulator-audio.mjs",
+      "sha256": "a5231b7b4acd700107ffed234f58781cb5c83e56f1daee87a51f6189fe86c95d"
+    },
+    {
+      "path": "scripts/phase08-emulator-suite.py",
+      "sha256": "d2da81890b16227132cf71eb68403fb749bb1f420e1045406c7e864649d736ad"
+    },
+    {
+      "path": ".local/phase08-corpus/acknowledge.wav",
+      "sha256": "e10b92f68d6a188bc19b44bd327aa91747d58d4a257510d786a14dc45a4e0a3c"
+    },
+    {
+      "path": ".local/phase08-corpus/snooze.wav",
+      "sha256": "fd762146a51062b7d5deef1cda58b2607d8b3aa4694bde4c76d9820701e5f42a"
+    }
+  ],
+  "reviewedSourceLedger": {
+    "path": "docs/reports/evidence/phase-08-capture-fix-source-hashes-final.json",
+    "count": 33,
+    "allEqualAtFreeze": true
+  },
+  "hostApks": [
+    {
+      "path": "android/app/build/outputs/apk/androidTest/dataQa/app-dataQa-androidTest.apk",
+      "sha256": "abb103afe1dab0bef0646734d126391a355cf2a1a7fb664401544db57b71b0a9",
+      "equalAtFreeze": true
+    },
+    {
+      "path": "android/app/build/outputs/apk/dataQa/app-arm64-v8a-dataQa.apk",
+      "sha256": "8e23905948af3ad89563dacdd0e988d997b912505c41251ddf85b5f0dccf2335",
+      "equalAtFreeze": true
+    },
+    {
+      "path": "android/app/build/outputs/apk/dataQa/app-x86_64-dataQa.apk",
+      "sha256": "7300f2aefeb8d5f90882655d46435b100a12531e16a7c70df4f81230f4160454",
+      "equalAtFreeze": true
+    },
+    {
+      "path": "android/app/build/outputs/apk/debug/app-arm64-v8a-debug.apk",
+      "sha256": "6dbbcd0f5356d5e8e206d3ed0f0bd5e02e3ddfa14e636de44315cad798e13c15",
+      "equalAtFreeze": true
+    },
+    {
+      "path": "android/app/build/outputs/apk/debug/app-x86_64-debug.apk",
+      "sha256": "7d51b72c5deae1f1d5ca00dd1eb197647a77f49e23f223b9c9bbb1c8eb1189cb",
+      "equalAtFreeze": true
+    },
+    {
+      "path": "android/app/build/outputs/apk/release/app-arm64-v8a-release.apk",
+      "sha256": "08349ff74b27d22643d964e36182faa5dcbbff7a8b1d05e2298f4a36c18c6231",
+      "equalAtFreeze": true
+    },
+    {
+      "path": "android/app/build/outputs/apk/release/app-x86_64-release.apk",
+      "sha256": "53ab1dcca4a52af79bb3344c01667538f36e21594393333ed624d6a52b22a7b7",
+      "equalAtFreeze": true
+    }
+  ],
+  "installedCandidateExpected": {
+    "com.lafina.capstone": "7300f2aefeb8d5f90882655d46435b100a12531e16a7c70df4f81230f4160454",
+    "com.lafina.capstone.test": "abb103afe1dab0bef0646734d126391a355cf2a1a7fb664401544db57b71b0a9"
+  },
+  "priorEvidence": [
+    {
+      "path": "docs/reports/evidence/phase-08-stable-null-audio-plan.json",
+      "sha256": "61ef9b833c665e0780b9ee0ae5419a3a4944518fd078b6542dc8db637e537b5b"
+    },
+    {
+      "path": "docs/reports/evidence/phase-08-stable-null1-20261031T022535065671Z-9fbf9f.json",
+      "sha256": "83b648894c6a6df4e54cc427c6fb4d8a0aa3d1e618dfa507d682be6b92719301"
+    },
+    {
+      "path": "docs/reports/evidence/phase-08-stable-claims-correction.json",
+      "sha256": "36ff839900d30780f335c04051f3516c411a6633a5ed6ff674f03bb3f619bbb2"
+    },
+    {
+      "path": "docs/reports/evidence/phase-08-stable-final-restoration-verified.json",
+      "sha256": "cba58ad54ff59636010ebb814ab04253163bf7b78208f4f79f5a89da5a1b9001"
+    },
+    {
+      "path": "docs/reports/evidence/phase-08-stable-original-after.json",
+      "sha256": "39cfb3ac847dfcd5bb9bffbccd563280df1a21d8ff60c0a4a4300c99bcc40db2"
+    }
+  ],
+  "physicalDeviceValidation": "NOT_RUN",
+  "v05": "NOT_RUN_OWNER_DEFERRED",
+  "phase09": "NOT_STARTED",
+  "limits": "Five trials bound only this cohort under these conditions. Even five passes would not show that intermittent audio loss is repaired, and do not pass Phase 08."
+}

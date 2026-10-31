@@ -1,0 +1,68 @@
+{
+  "kind": "ROOT_REAL_FAILURE_CONDITION_UI",
+  "case": "A27",
+  "status": "FAIL",
+  "atUtc": "2026-10-29T07:37:13.927865+00:00",
+  "events": [
+    {
+      "event": "host_microphone_disabled_before",
+      "atUtc": "2026-10-29T07:37:14.093980+00:00",
+      "verified": true
+    },
+    {
+      "event": "independent_sql_before",
+      "atUtc": "2026-10-29T07:38:25.272530+00:00",
+      "rows": [
+        {
+          "taskId": "task:cmd_mvt8dc9i_0_viw5mv3y0h",
+          "taskStatus": "TODO",
+          "deletedAt": null,
+          "jobId": "job:reminder:task:cmd_mvt8dc9i_0_viw5mv3y0h|2026-10-29T07:38:20.981Z",
+          "occurrenceKey": "task:cmd_mvt8dc9i_0_viw5mv3y0h|2026-10-29T07:38:20.981Z",
+          "generation": 1,
+          "jobStatus": "RINGING",
+          "reminderStatus": "RINGING",
+          "runAt": "2026-10-29T07:38:20.981Z",
+          "deadline": "2026-10-29T07:39:21.331Z",
+          "deliveryState": "REGISTERED",
+          "registrations": 1
+        }
+      ]
+    },
+    {
+      "event": "actual_failure_ui_result",
+      "atUtc": "2026-10-29T07:38:38.979214+00:00",
+      "driver": {
+        "kind": "OPT_IN_SYNTHETIC_FIXTURE_UI_DRIVER",
+        "mode": "record-audio-interruption",
+        "outcome": "FAIL",
+        "stages": [
+          "activity_launch_requested",
+          "owned_fixture_title_observed",
+          "answer_control_revealed",
+          "answer_response_visible"
+        ],
+        "launch": "DIRECT_PRIVATE_ACTIVITY_INTENT_NOT_NOTIFICATION_TAP",
+        "limits": "UI only; root verifies SQL separately. No live speech, audio or physical-phone acceptance.",
+        "errorClass": "AssertionError",
+        "details": {
+          "hostMicrophoneDisabledConfirmedByRoot": true,
+          "rawTranscriptEmitted": false,
+          "noConfirmationClicked": true,
+          "audioModeBefore": 0,
+          "firstHoldFailureCode": "LANGUAGE_UNAVAILABLE",
+          "audioModeAfter": 0,
+          "exactAudioModeRestored": true
+        }
+      }
+    }
+  ],
+  "physicalDeviceValidation": "NOT_RUN",
+  "noDeviceDatabaseWrites": true,
+  "reason": "PRIVATE_FAILURE_LOG_SAVED",
+  "fixtureCleanup": "EXACT_OWNED_UI_SOFT_REMOVAL",
+  "hostMicrophoneDisabledAtEnd": true,
+  "completedAtUtc": "2026-10-29T07:38:52.302602+00:00",
+  "engineEnabledStateRestoration": [],
+  "privateEvidence": ".local/phase08-remaining-failure-20261029T073713927368Z-A27"
+}

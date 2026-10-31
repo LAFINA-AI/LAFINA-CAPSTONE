@@ -1,0 +1,34 @@
+{
+  "phase": "08",
+  "candidate": "0.8.0 / versionCode 11 / schema 3",
+  "status": "AWAITING_DEVICE_VALIDATION",
+  "physicalDevicesTested": [],
+  "certifiedPhysicalAlarmCount": 0,
+  "certifiedLiveVoiceInteractionCount": 0,
+  "phoneMetrics": {
+    "sttReleaseToResultP50Ms": null,
+    "sttReleaseToResultP95Ms": null,
+    "ttsRequestToAudibleP50Ms": null,
+    "ttsRequestToAudibleP95Ms": null,
+    "fullInteractionP50Ms": null,
+    "fullInteractionP95Ms": null,
+    "peakPssKiB": null,
+    "releaseStartupMs": null,
+    "alarmDriftMs": null,
+    "batteryMeasurements": null
+  },
+  "matchedOldNewPhysicalBaseline": "NOT_RUN",
+  "emulator": {
+    "model": "sdk_gphone16k_x86_64",
+    "api": 37,
+    "apiIsBeta": true,
+    "testedApkAbi": "x86_64",
+    "pageSizeBytes": 16384,
+    "physicalArm64Acceptance": false,
+    "componentBenchmark": "phase-08-native-response-emulator-final.json",
+    "liveSpeechAndAudibility": "NOT_RUN"
+  },
+  "requiredProtocol": "phase-08-device-protocol.md",
+  "humanChecklist": "../../qa/PHASE-08-MANUAL.md",
+  "limits": "Null measurements mean NOT RUN, not zero latency/resource use. Emulator, synthetic component and mocked outcomes do not certify phones."
+}

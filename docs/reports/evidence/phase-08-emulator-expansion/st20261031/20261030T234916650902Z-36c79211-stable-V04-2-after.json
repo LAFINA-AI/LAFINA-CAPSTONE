@@ -1,0 +1,21 @@
+{
+  "schemaVersion": 1,
+  "runId": "st20261031",
+  "invocation": "20261030T234916650902Z-36c79211",
+  "command": "stable-V04-2-after",
+  "startedAt": "2026-10-30T23:49:16.652035+00:00",
+  "status": "PASS",
+  "scope": "Read-only stable-guest snapshot; not a speech result",
+  "physicalAcceptance": "HUMAN_REQUIRED",
+  "events": [
+    {
+      "at": "2026-10-30T23:49:16.653382+00:00",
+      "event": "invocation_started"
+    }
+  ],
+  "limits": [
+    "Direct private Activity intents do not certify actual notification taps or full-screen delivery.",
+    "No live microphone, audibility, physical phone, OEM or battery acceptance is implied."
+  ],
+  "completedAt": "2026-10-30T23:49:17.677956+00:00"
+}

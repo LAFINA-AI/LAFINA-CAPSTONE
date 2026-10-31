@@ -1,0 +1,77 @@
+{
+  "schemaVersion": 1,
+  "runId": "ex20261028",
+  "invocation": "20261030T002946650375Z-3872c5a3",
+  "command": "lifecycle",
+  "startedAt": "2026-10-30T00:29:46.651002+00:00",
+  "status": "PASS",
+  "scope": "Explicit emulator UI driver plus independent read-only SQLite snapshots",
+  "physicalAcceptance": "HUMAN_REQUIRED",
+  "events": [
+    {
+      "at": "2026-10-30T00:29:46.652118+00:00",
+      "event": "invocation_started"
+    },
+    {
+      "at": "2026-10-30T00:29:51.240727+00:00",
+      "event": "ui_driver",
+      "kind": "OPT_IN_SYNTHETIC_FIXTURE_UI_DRIVER",
+      "mode": "remove-main-task",
+      "outcome": "PASS",
+      "stages": [
+        "activity_launch_requested",
+        "main_task_removed_via_app_task_api"
+      ],
+      "launch": "APP_OWNED_TASK_API_NOT_RECENTS_GESTURE",
+      "limits": "UI only; root verifies SQL separately. No live speech, audio or physical-phone acceptance."
+    },
+    {
+      "at": "2026-10-30T00:29:51.606276+00:00",
+      "event": "independent_owned_state_after_ui",
+      "title": "QA08 EX ex20261028 IL20261030T002934706348Z-38ed1c A13",
+      "rows": [
+        {
+          "taskId": "task:cmd_mvu8j9cy_0_3lgk48x276e",
+          "taskStatus": "TODO",
+          "deletedAt": null,
+          "jobId": "job:reminder:task:cmd_mvu8j9cy_0_3lgk48x276e|2026-10-30T00:31:43.330Z",
+          "occurrenceKey": "task:cmd_mvu8j9cy_0_3lgk48x276e|2026-10-30T00:31:43.330Z",
+          "generation": 1,
+          "jobStatus": "PENDING",
+          "reminderStatus": "SCHEDULED",
+          "runAt": "2026-10-30T00:31:43.330Z",
+          "deadline": null,
+          "deliveryState": "REGISTERED",
+          "registrations": 1
+        }
+      ]
+    },
+    {
+      "at": "2026-10-30T00:29:51.607019+00:00",
+      "event": "app_owned_main_task_removal_preserved_exact_pending_todo",
+      "rows": [
+        {
+          "taskId": "task:cmd_mvu8j9cy_0_3lgk48x276e",
+          "taskStatus": "TODO",
+          "deletedAt": null,
+          "jobId": "job:reminder:task:cmd_mvu8j9cy_0_3lgk48x276e|2026-10-30T00:31:43.330Z",
+          "occurrenceKey": "task:cmd_mvu8j9cy_0_3lgk48x276e|2026-10-30T00:31:43.330Z",
+          "generation": 1,
+          "jobStatus": "PENDING",
+          "reminderStatus": "SCHEDULED",
+          "runAt": "2026-10-30T00:31:43.330Z",
+          "deadline": null,
+          "deliveryState": "REGISTERED",
+          "registrations": 1
+        }
+      ],
+      "scope": "AppTask.finishAndRemoveTask only; not a System UI Recents gesture or OEM certification"
+    }
+  ],
+  "limits": [
+    "Direct private Activity intents do not certify actual notification taps or full-screen delivery.",
+    "No live microphone, audibility, physical phone, OEM or battery acceptance is implied."
+  ],
+  "completedAt": "2026-10-30T00:29:51.607609+00:00",
+  "passScope": "Requested bounded runner operation only; inspect case assertions and physical gates separately"
+}

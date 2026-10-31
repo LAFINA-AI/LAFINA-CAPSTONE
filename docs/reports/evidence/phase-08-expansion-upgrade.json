@@ -1,0 +1,111 @@
+{
+  "scope": "Existing emulator install-r after OPEN intent fix; snapshots read-only",
+  "apkPaths": [
+    "android/app/build/outputs/apk/dataQa/app-x86_64-dataQa.apk",
+    "android/app/build/outputs/apk/androidTest/dataQa/app-dataQa-androidTest.apk"
+  ],
+  "installationOutcome": "Both checked install-r subprocesses completed before the initial host comparison raised TypeError. Corrected readonly comparison then passed.",
+  "initialHostComparisonError": "Tuple row factory was incompatible with dict(row); fixed with sqlite3.Row. No device mutation performed by comparison.",
+  "preferencesPayloadExactlyEqual": true,
+  "nativeDeliveryExactlyEqual": true,
+  "originalRowComparison": {
+    "app_settings": {
+      "baselineCount": 1,
+      "currentCount": 1,
+      "originalRowsMissingOrChanged": 0,
+      "addedRows": 0,
+      "separatelyChecked": true,
+      "boundedDiagnosticHistory": false
+    },
+    "chat_messages": {
+      "baselineCount": 0,
+      "currentCount": 0,
+      "originalRowsMissingOrChanged": 0,
+      "addedRows": 0,
+      "separatelyChecked": false,
+      "boundedDiagnosticHistory": false
+    },
+    "events": {
+      "baselineCount": 4,
+      "currentCount": 4,
+      "originalRowsMissingOrChanged": 0,
+      "addedRows": 0,
+      "separatelyChecked": false,
+      "boundedDiagnosticHistory": false
+    },
+    "local_profile": {
+      "baselineCount": 1,
+      "currentCount": 1,
+      "originalRowsMissingOrChanged": 0,
+      "addedRows": 0,
+      "separatelyChecked": false,
+      "boundedDiagnosticHistory": false
+    },
+    "native_alarm_events": {
+      "baselineCount": 200,
+      "currentCount": 200,
+      "originalRowsMissingOrChanged": 0,
+      "addedRows": 0,
+      "separatelyChecked": false,
+      "boundedDiagnosticHistory": true
+    },
+    "native_alarm_registrations": {
+      "baselineCount": 0,
+      "currentCount": 0,
+      "originalRowsMissingOrChanged": 0,
+      "addedRows": 0,
+      "separatelyChecked": false,
+      "boundedDiagnosticHistory": false
+    },
+    "native_delivery_settings": {
+      "baselineCount": 1,
+      "currentCount": 1,
+      "originalRowsMissingOrChanged": 0,
+      "addedRows": 0,
+      "separatelyChecked": true,
+      "boundedDiagnosticHistory": false
+    },
+    "notes": {
+      "baselineCount": 2,
+      "currentCount": 2,
+      "originalRowsMissingOrChanged": 0,
+      "addedRows": 0,
+      "separatelyChecked": false,
+      "boundedDiagnosticHistory": false
+    },
+    "operation_receipts": {
+      "baselineCount": 137,
+      "currentCount": 137,
+      "originalRowsMissingOrChanged": 0,
+      "addedRows": 0,
+      "separatelyChecked": false,
+      "boundedDiagnosticHistory": false
+    },
+    "reminder_jobs": {
+      "baselineCount": 56,
+      "currentCount": 56,
+      "originalRowsMissingOrChanged": 0,
+      "addedRows": 0,
+      "separatelyChecked": false,
+      "boundedDiagnosticHistory": false
+    },
+    "reminders": {
+      "baselineCount": 56,
+      "currentCount": 56,
+      "originalRowsMissingOrChanged": 0,
+      "addedRows": 0,
+      "separatelyChecked": false,
+      "boundedDiagnosticHistory": false
+    },
+    "tasks": {
+      "baselineCount": 58,
+      "currentCount": 58,
+      "originalRowsMissingOrChanged": 0,
+      "addedRows": 0,
+      "separatelyChecked": false,
+      "boundedDiagnosticHistory": false
+    }
+  },
+  "appDataCleared": false,
+  "uninstalled": false
+}

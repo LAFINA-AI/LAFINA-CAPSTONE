@@ -1,0 +1,21 @@
+{
+  "kind": "PHASE08_SEPARATE_PINNED_SYNTHETIC_DIAGNOSTIC",
+  "createdAtUtc": "2026-10-30T21:20:28.671116+00:00",
+  "diagnosticStatus": "FAIL_OR_UNSUPPORTED_REVIEW_REQUIRED",
+  "analysisCategory": "NO_AUDIO_SIGNAL_NO_LEXICAL_HYPOTHESIS_AVAILABLE",
+  "parentEvidence": {
+    "path": "docs/reports/evidence/phase-08-emulator-expansion/ex20261028/20261030T211751888225Z-A03-microphone.json",
+    "sha256": "1b2b3f4cc6565a4b3c241d2de24578007e67276e49f894351c3e5bf2f2a97ab2"
+  },
+  "plan": "docs/reports/evidence/phase-08-capture-fix-pinned-hypothesis-plan.json",
+  "excludedFromFinalTenComparisonCounts": true,
+  "rawTranscriptPublished": false,
+  "rawAudioExported": false,
+  "actualHypothesisEmpty": true,
+  "sourceSubmissionOutcome": "SOURCE_RPC_COMPLETED_HOST_OFF",
+  "nativeTerminalFailure": "NO_AUDIO_SIGNAL",
+  "hostMicrophoneDisabledAtEnd": true,
+  "fixtureCleanup": "EXACT_OWNED_TITLE_REVIEWED_UI",
+  "physicalDeviceValidation": "NOT_RUN",
+  "interpretation": "The one diagnostic reproduced missing usable input. It does not explain previous signal-present mismatches and justifies no reference/signal/model relaxation. No additional unchanged retry is scheduled."
+}

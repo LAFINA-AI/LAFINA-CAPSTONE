@@ -1,0 +1,29 @@
+{
+  "saved": "docs/benchmarks/phase-08-input-loss-command-regression.json",
+  "evaluation": "regression",
+  "sourceDrift": [],
+  "summary": {
+    "cases": 64,
+    "readyLabelCases": 32,
+    "refusalLabelCases": 32,
+    "exactPasses": 64,
+    "intentOrRefusalMatches": 64,
+    "metadataValidCases": 64,
+    "selectedSlotMatches": 88,
+    "selectedSlotTotal": 88,
+    "falseAckCasesOnRefusalLabels": 0,
+    "falseSchedulingCasesOnRefusalLabels": 0,
+    "unsafeReadyCasesOnRefusalLabels": 0,
+    "thrownCases": 0,
+    "repeatedFailedCalls": 0,
+    "nondeterministicCases": 0,
+    "failedCaseIds": [],
+    "aggregateLatencyMs": {
+      "n": 6400,
+      "p50": 0.018300000000067485,
+      "p95": 0.19029999999997926,
+      "min": 0.003199999999992542,
+      "max": 2.331800000000044
+    }
+  }
+}

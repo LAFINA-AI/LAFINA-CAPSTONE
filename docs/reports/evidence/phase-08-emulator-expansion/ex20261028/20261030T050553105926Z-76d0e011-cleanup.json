@@ -1,0 +1,28 @@
+{
+  "schemaVersion": 1,
+  "runId": "ex20261028",
+  "invocation": "20261030T050553105926Z-76d0e011",
+  "command": "cleanup",
+  "startedAt": "2026-10-30T05:05:53.107721+00:00",
+  "status": "FAIL",
+  "scope": "Explicit emulator UI driver plus independent read-only SQLite snapshots",
+  "physicalAcceptance": "HUMAN_REQUIRED",
+  "events": [
+    {
+      "at": "2026-10-30T05:05:53.108772+00:00",
+      "event": "invocation_started"
+    },
+    {
+      "at": "2026-10-30T05:05:55.300713+00:00",
+      "event": "operation_failed",
+      "errorCode": "ADB_COMMAND_FAILED_PRIVATE_LOG_SAVED",
+      "errorType": "RuntimeError"
+    }
+  ],
+  "limits": [
+    "Direct private Activity intents do not certify actual notification taps or full-screen delivery.",
+    "No live microphone, audibility, physical phone, OEM or battery acceptance is implied."
+  ],
+  "completedAt": "2026-10-30T05:05:55.301260+00:00",
+  "errorCode": "ADB_COMMAND_FAILED_PRIVATE_LOG_SAVED"
+}

@@ -1,0 +1,129 @@
+{
+  "schemaVersion": 1,
+  "runId": "st20261031",
+  "invocation": "20261031T024317961888Z-49923811",
+  "command": "compare",
+  "startedAt": "2026-10-31T02:43:17.962773+00:00",
+  "status": "PASS",
+  "scope": "Explicit emulator UI driver plus independent read-only SQLite snapshots",
+  "physicalAcceptance": "HUMAN_REQUIRED",
+  "events": [
+    {
+      "at": "2026-10-31T02:43:17.963399+00:00",
+      "event": "invocation_started"
+    },
+    {
+      "at": "2026-10-31T02:43:18.264591+00:00",
+      "event": "baseline_comparison",
+      "completePreferenceValuesEqual": true,
+      "exactPreferencePayloadHashEqual": true,
+      "nativeDeliveryEqual": true,
+      "originalRowComparison": {
+        "app_settings": {
+          "baselineCount": 1,
+          "currentCount": 1,
+          "originalRowsMissingOrChanged": 0,
+          "addedRows": 0,
+          "separatelyChecked": true,
+          "boundedDiagnosticHistory": false
+        },
+        "chat_messages": {
+          "baselineCount": 0,
+          "currentCount": 0,
+          "originalRowsMissingOrChanged": 0,
+          "addedRows": 0,
+          "separatelyChecked": false,
+          "boundedDiagnosticHistory": false
+        },
+        "events": {
+          "baselineCount": 0,
+          "currentCount": 0,
+          "originalRowsMissingOrChanged": 0,
+          "addedRows": 0,
+          "separatelyChecked": false,
+          "boundedDiagnosticHistory": false
+        },
+        "local_profile": {
+          "baselineCount": 1,
+          "currentCount": 1,
+          "originalRowsMissingOrChanged": 0,
+          "addedRows": 0,
+          "separatelyChecked": false,
+          "boundedDiagnosticHistory": false
+        },
+        "native_alarm_events": {
+          "baselineCount": 0,
+          "currentCount": 117,
+          "originalRowsMissingOrChanged": 0,
+          "addedRows": 117,
+          "separatelyChecked": false,
+          "boundedDiagnosticHistory": true
+        },
+        "native_alarm_registrations": {
+          "baselineCount": 0,
+          "currentCount": 0,
+          "originalRowsMissingOrChanged": 0,
+          "addedRows": 0,
+          "separatelyChecked": false,
+          "boundedDiagnosticHistory": false
+        },
+        "native_delivery_settings": {
+          "baselineCount": 1,
+          "currentCount": 1,
+          "originalRowsMissingOrChanged": 0,
+          "addedRows": 0,
+          "separatelyChecked": true,
+          "boundedDiagnosticHistory": false
+        },
+        "notes": {
+          "baselineCount": 0,
+          "currentCount": 0,
+          "originalRowsMissingOrChanged": 0,
+          "addedRows": 0,
+          "separatelyChecked": false,
+          "boundedDiagnosticHistory": false
+        },
+        "operation_receipts": {
+          "baselineCount": 0,
+          "currentCount": 56,
+          "originalRowsMissingOrChanged": 0,
+          "addedRows": 56,
+          "separatelyChecked": false,
+          "boundedDiagnosticHistory": false
+        },
+        "reminder_jobs": {
+          "baselineCount": 0,
+          "currentCount": 28,
+          "originalRowsMissingOrChanged": 0,
+          "addedRows": 28,
+          "separatelyChecked": false,
+          "boundedDiagnosticHistory": false
+        },
+        "reminders": {
+          "baselineCount": 0,
+          "currentCount": 28,
+          "originalRowsMissingOrChanged": 0,
+          "addedRows": 28,
+          "separatelyChecked": false,
+          "boundedDiagnosticHistory": false
+        },
+        "tasks": {
+          "baselineCount": 0,
+          "currentCount": 28,
+          "originalRowsMissingOrChanged": 0,
+          "addedRows": 28,
+          "separatelyChecked": false,
+          "boundedDiagnosticHistory": false
+        }
+      },
+      "ownedFixturesSoftRemovedAndInactive": true,
+      "osPermissionRadioTimeAudioPowerRestoration": "PARENT_MUST_VERIFY_SEPARATELY"
+    }
+  ],
+  "limits": [
+    "Direct private Activity intents do not certify actual notification taps or full-screen delivery.",
+    "No live microphone, audibility, physical phone, OEM or battery acceptance is implied."
+  ],
+  "completedAt": "2026-10-31T02:43:18.266098+00:00",
+  "passScope": "Requested bounded runner operation only; inspect case assertions and physical gates separately"
+}

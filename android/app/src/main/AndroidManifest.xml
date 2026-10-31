@@ -45,6 +45,7 @@
         </intent-filter>
       </receiver>
       <activity android:name=".reminders.ReminderActivity" android:exported="false" android:process=":reminders"
+        android:taskAffinity="${applicationId}.reminders"
         android:theme="@style/ReminderTheme" android:excludeFromRecents="true" />
       <activity
         android:name=".MainActivity"

@@ -1,0 +1,10 @@
+flow interrupted
+Traceback (most recent call last):
+  File "C:\L3mxr\Github Repositories\LAFINA-CAPSTONE\.local\phase08_flow.py", line 98, in <module>
+    create(title)
+  File "C:\L3mxr\Github Repositories\LAFINA-CAPSTONE\.local\phase08_flow.py", line 64, in create
+    chat('Remind me to '+title+' in 2 minutes')
+  File "C:\L3mxr\Github Repositories\LAFINA-CAPSTONE\.local\phase08_flow.py", line 54, in chat
+    assert q.find('Message').get('text','') in ('','Message'), 'Preserve unknown existing chat draft'
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: Preserve unknown existing chat draft

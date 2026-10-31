@@ -1,0 +1,165 @@
+{
+  "kind": "PHASE08_PRESERVED_DATA_COLD_BOOT",
+  "status": "PASS",
+  "verificationKind": "PRESERVATION_REVERIFICATION_AFTER_INSTALLED_APK_TRANSFER_TIMEOUT",
+  "startedAtUtc": "2026-10-30T16:52:36.911365+00:00",
+  "verificationStartedAtUtc": "2026-10-30T17:05:41.919956+00:00",
+  "originalBootFailure": {
+    "path": "docs/reports/evidence/phase-08-capture-fix-anchored-cold-2.json",
+    "sha256": "541dfc382633f3cfe924f2ec4d8b45b1c9aa51ecc0a2d8547623784e895d676c"
+  },
+  "originalSuiteFailure": {
+    "path": "docs/reports/evidence/phase-08-emulator-expansion/ex20261028/20261030T165238237221Z-98d386b3-capture-fix-anchored-cold-2.json",
+    "sha256": "9d81580961957db6149677f4ab3f521b19acc9f5bb95945c621014cb8b014bda"
+  },
+  "originalFailureLayer": "AFTER_BOOT_INSTALLED_APK_TRANSFER_TIMEOUT",
+  "originalFailureRetained": true,
+  "bootWithinOriginalTimeLimitCertified": false,
+  "serial": "emulator-5554",
+  "avd": "Medium_Phone",
+  "emulatorArguments": [
+    "-avd",
+    "Medium_Phone",
+    "-port",
+    "5554",
+    "-no-window",
+    "-no-snapshot-load",
+    "-no-snapshot-save",
+    "-grpc",
+    "8554",
+    "-grpc-use-token"
+  ],
+  "originalLaunchPidRecorded": 39284,
+  "emulatorLifecycleActionsIssued": false,
+  "appInstallResetOrSettingsMutationsIssued": false,
+  "physicalDeviceValidation": "NOT_RUN",
+  "beforeSnapshot": {
+    "privatePath": ".local/phase08-emulator-suite/ex20261028/20261030T165238237221Z-98d386b3/snapshot-1/snapshot.sqlite",
+    "sha256": "b2bcb440d9f1f5ce2b858ac4e454d4f399af38ac39179cedb0c8d9da3c1ab0ea",
+    "bytes": 782336
+  },
+  "events": [
+    {
+      "event": "existing_boot_preservation_reverified_after_apk_transfer_timeout",
+      "atUtc": "2026-10-30T17:05:49.057857+00:00",
+      "status": "PASS",
+      "activeJobs": 0,
+      "registrations": 0,
+      "schema": 3
+    }
+  ],
+  "testsExecuted": false,
+  "noAppDataResetOrInstall": true,
+  "originalNonDiagnosticRowsEqual": true,
+  "originalRowComparison": {
+    "app_settings": {
+      "baselineCount": 1,
+      "currentCount": 1,
+      "originalRowsMissingOrChanged": 0,
+      "addedRows": 0,
+      "separatelyChecked": true,
+      "boundedDiagnosticHistory": false
+    },
+    "chat_messages": {
+      "baselineCount": 0,
+      "currentCount": 0,
+      "originalRowsMissingOrChanged": 0,
+      "addedRows": 0,
+      "separatelyChecked": false,
+      "boundedDiagnosticHistory": false
+    },
+    "events": {
+      "baselineCount": 4,
+      "currentCount": 4,
+      "originalRowsMissingOrChanged": 0,
+      "addedRows": 0,
+      "separatelyChecked": false,
+      "boundedDiagnosticHistory": false
+    },
+    "local_profile": {
+      "baselineCount": 1,
+      "currentCount": 1,
+      "originalRowsMissingOrChanged": 0,
+      "addedRows": 0,
+      "separatelyChecked": false,
+      "boundedDiagnosticHistory": false
+    },
+    "native_alarm_events": {
+      "baselineCount": 200,
+      "currentCount": 200,
+      "originalRowsMissingOrChanged": 0,
+      "addedRows": 0,
+      "separatelyChecked": false,
+      "boundedDiagnosticHistory": true
+    },
+    "native_alarm_registrations": {
+      "baselineCount": 0,
+      "currentCount": 0,
+      "originalRowsMissingOrChanged": 0,
+      "addedRows": 0,
+      "separatelyChecked": false,
+      "boundedDiagnosticHistory": false
+    },
+    "native_delivery_settings": {
+      "baselineCount": 1,
+      "currentCount": 1,
+      "originalRowsMissingOrChanged": 0,
+      "addedRows": 0,
+      "separatelyChecked": true,
+      "boundedDiagnosticHistory": false
+    },
+    "notes": {
+      "baselineCount": 2,
+      "currentCount": 2,
+      "originalRowsMissingOrChanged": 0,
+      "addedRows": 0,
+      "separatelyChecked": false,
+      "boundedDiagnosticHistory": false
+    },
+    "operation_receipts": {
+      "baselineCount": 467,
+      "currentCount": 467,
+      "originalRowsMissingOrChanged": 0,
+      "addedRows": 0,
+      "separatelyChecked": false,
+      "boundedDiagnosticHistory": false
+    },
+    "reminder_jobs": {
+      "baselineCount": 221,
+      "currentCount": 221,
+      "originalRowsMissingOrChanged": 0,
+      "addedRows": 0,
+      "separatelyChecked": false,
+      "boundedDiagnosticHistory": false
+    },
+    "reminders": {
+      "baselineCount": 221,
+      "currentCount": 221,
+      "originalRowsMissingOrChanged": 0,
+      "addedRows": 0,
+      "separatelyChecked": false,
+      "boundedDiagnosticHistory": false
+    },
+    "tasks": {
+      "baselineCount": 223,
+      "currentCount": 223,
+      "originalRowsMissingOrChanged": 0,
+      "addedRows": 0,
+      "separatelyChecked": false,
+      "boundedDiagnosticHistory": false
+    }
+  },
+  "fullPreferencesEqual": true,
+  "nativeDeliveryEqual": true,
+  "radiosAndAutomaticTimeSettingsEqual": true,
+  "installedApkEqual": true,
+  "installedApkSha256": "7300f2aefeb8d5f90882655d46435b100a12531e16a7c70df4f81230f4160454",
+  "hostMicrophoneDisabledAfterBootAndAtFinalCheck": true,
+  "installedApkVerification": "READONLY_DEVICE_SHA256SUM",
+  "originalBeforePreferencesSha256": "56cb51e031be21e41c7dcbd2df79a6db86803d5051e27aa3db5a0f1f55605486",
+  "activeJobs": 0,
+  "registrations": 0,
+  "schema": 3,
+  "completedAtUtc": "2026-10-30T17:05:49.065562+00:00",
+  "privateEvidence": ".local/phase08-capture-fix-cold2-reverification-20261030T170541919263Z"
+}

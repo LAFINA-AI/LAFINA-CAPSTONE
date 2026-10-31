@@ -1,0 +1,22 @@
+{
+  "kind": "PHASE08_SINGLE_PINNED_HYPOTHESIS_DIAGNOSTIC_PLAN",
+  "createdAtUtc": "2026-10-30T21:12:23.904969+00:00",
+  "independentFreshAttempts": 1,
+  "case": "A03",
+  "after": "After both fixed five-trial host-GPU campaigns complete",
+  "existingOptIn": "--diagnose-synthetic",
+  "noNativeOrSenderSourceChange": true,
+  "onlyPinnedSyntheticFixture": true,
+  "sourceGainPermille": 500,
+  "sourcePaddingMs": 1000,
+  "sourceDelayMs": 0,
+  "strictReferenceAndConfirmationGuardsRemain": true,
+  "privateHypothesisOnly": true,
+  "publicRawTranscript": false,
+  "audioExport": false,
+  "excludedFromFinalTenComparisonCounts": true,
+  "question": "Inspect a single actual synthetic hypothesis to distinguish lexical mismatch from unusable input; passing this diagnostic does not replace prior failures",
+  "physicalDeviceValidation": "NOT_RUN",
+  "v05": "OWNER_DEFERRED_NOT_RUN",
+  "controllerSha256": "8aef5281eb541fd2bafdbf323e2c0e3a14ead86aac37e3b68fb355c10f81c4c9"
+}

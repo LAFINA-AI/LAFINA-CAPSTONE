@@ -1,0 +1,176 @@
+{
+  "schemaVersion": 1,
+  "kind": "DERIVED_SMALL_SYNTHETIC_CORPUS_ANALYSIS_NOT_HUMAN_SPEECH",
+  "analyzedAtUtc": "2026-10-28T03:18:21.737Z",
+  "source": {
+    "file": "phase-08-expanded-whisper-emulator.json",
+    "sha256": "c5b4fb0d5ffc591bf7b4d586aa296f0b20073de556860d78a915b2e46f112260",
+    "cohort": "ex20261028_0306",
+    "startedAtUtc": "2026-10-28T03:11:27.109842Z",
+    "finishedAtUtc": "2026-10-28T03:11:48.076144Z"
+  },
+  "environment": {
+    "appVersion": "0.8.0-data-qa",
+    "api": 37,
+    "deviceModel": "sdk_gphone16k_x86_64",
+    "reportedAbis": [
+      "x86_64",
+      "arm64-v8a"
+    ],
+    "modelSha256": "818710568da3ca15689e31a743197b520007872ff9576237bda97bd1b469c3d7",
+    "modelBytes": 32152673,
+    "modelCachePresentBefore": true,
+    "voice": {
+      "name": "Microsoft David Desktop",
+      "culture": "en-US",
+      "description": "Microsoft David Desktop - English (United States)"
+    }
+  },
+  "method": {
+    "normalization": "Unicode NFKC; lowercase; replace Unicode punctuation/symbols with spaces; collapse whitespace; tokenize on whitespace.",
+    "wer": "Word-level Levenshtein distance (substitutions + deletions + insertions) / reference word count. Corpus WER uses pooled word counts, not average clip WER.",
+    "alignmentTieBreak": "Prefer matching diagonal; then substitution, deletion, insertion.",
+    "median": "Sorted observations; arithmetic mean of two middle values for even n.",
+    "p95": "Nearest-rank empirical percentile: sorted[ceil(0.95*n)-1]. For n=6 this is the maximum and is not a stable tail estimate.",
+    "latency": "Existing totalPrepareLoadDecodeMs combines preparation, model loading and decoding. Components cannot be separately attributed. One observation per fixed clip, no repeated-trial inference."
+  },
+  "summary": {
+    "sampleCount": 6,
+    "resultCount": 6,
+    "normalizedExactMatchCount": 6,
+    "referenceWordCount": 36,
+    "substitutions": 0,
+    "deletions": 0,
+    "insertions": 0,
+    "editDistance": 0,
+    "normalizedCorpusWer": 0,
+    "normalizedCorpusWerPercent": 0,
+    "totalSyntheticAudioMs": 17210
+  },
+  "totalPrepareLoadDecodeMs": {
+    "n": 6,
+    "min": 3111,
+    "median": 3281,
+    "mean": 3451,
+    "p95NearestRank": 4345,
+    "max": 4345,
+    "sum": 20706
+  },
+  "sampledProcessPss": {
+    "maxKiB": 168776,
+    "maxMiB": 164.8203125,
+    "intervalMs": 200,
+    "totalPolls": 102,
+    "limits": "Sampled target-process PSS can miss transient peaks. Not absolute peak, whole UI pipeline/device memory, phone RAM suitability, or battery evidence."
+  },
+  "samples": [
+    {
+      "id": "assignment",
+      "outcome": "RESULT",
+      "referenceWordCount": 7,
+      "hypothesisWordCount": 7,
+      "substitutions": 0,
+      "deletions": 0,
+      "insertions": 0,
+      "editDistance": 0,
+      "normalizedWer": 0,
+      "normalizedExactMatch": true,
+      "totalPrepareLoadDecodeMs": 4345,
+      "sampledMaxPssKiB": 151808,
+      "memoryPolls": 21,
+      "memoryIntervalMs": 200
+    },
+    {
+      "id": "biology",
+      "outcome": "RESULT",
+      "referenceWordCount": 8,
+      "hypothesisWordCount": 8,
+      "substitutions": 0,
+      "deletions": 0,
+      "insertions": 0,
+      "editDistance": 0,
+      "normalizedWer": 0,
+      "normalizedExactMatch": true,
+      "totalPrepareLoadDecodeMs": 3519,
+      "sampledMaxPssKiB": 168124,
+      "memoryPolls": 17,
+      "memoryIntervalMs": 200
+    },
+    {
+      "id": "today",
+      "outcome": "RESULT",
+      "referenceWordCount": 5,
+      "hypothesisWordCount": 5,
+      "substitutions": 0,
+      "deletions": 0,
+      "insertions": 0,
+      "editDistance": 0,
+      "normalizedWer": 0,
+      "normalizedExactMatch": true,
+      "totalPrepareLoadDecodeMs": 3335,
+      "sampledMaxPssKiB": 168776,
+      "memoryPolls": 17,
+      "memoryIntervalMs": 200
+    },
+    {
+      "id": "calculus",
+      "outcome": "RESULT",
+      "referenceWordCount": 7,
+      "hypothesisWordCount": 7,
+      "substitutions": 0,
+      "deletions": 0,
+      "insertions": 0,
+      "editDistance": 0,
+      "normalizedWer": 0,
+      "normalizedExactMatch": true,
+      "totalPrepareLoadDecodeMs": 3169,
+      "sampledMaxPssKiB": 167509,
+      "memoryPolls": 16,
+      "memoryIntervalMs": 200
+    },
+    {
+      "id": "cancel",
+      "outcome": "RESULT",
+      "referenceWordCount": 4,
+      "hypothesisWordCount": 4,
+      "substitutions": 0,
+      "deletions": 0,
+      "insertions": 0,
+      "editDistance": 0,
+      "normalizedWer": 0,
+      "normalizedExactMatch": true,
+      "totalPrepareLoadDecodeMs": 3227,
+      "sampledMaxPssKiB": 167097,
+      "memoryPolls": 16,
+      "memoryIntervalMs": 200
+    },
+    {
+      "id": "complete",
+      "outcome": "RESULT",
+      "referenceWordCount": 5,
+      "hypothesisWordCount": 5,
+      "substitutions": 0,
+      "deletions": 0,
+      "insertions": 0,
+      "editDistance": 0,
+      "normalizedWer": 0,
+      "normalizedExactMatch": true,
+      "totalPrepareLoadDecodeMs": 3111,
+      "sampledMaxPssKiB": 167569,
+      "memoryPolls": 15,
+      "memoryIntervalMs": 200
+    }
+  ],
+  "limits": [
+    "No microphone/capture or Android recognizer accuracy measured.",
+    "Each request loads/frees its decoder; warm disk/page caches may remain.",
+    "Sampled process PSS is not absolute peak, whole UI pipeline memory or phone battery.",
+    "Synthetic English SAPI voice is not Filipino-accented speech or a noise study.",
+    "No scheduling command executes; hypotheses are synthetic benchmark output only.",
+    "Only six fixed synthetic English clips from one installed Windows SAPI voice; normalized exact matches are not a human-speech accuracy estimate.",
+    "No ACK or snooze utterance exists in this corpus. The today clip can test visible capture/ambiguous fallback only; it cannot establish ACK/snooze recognition.",
+    "Direct PCM decoding bypasses microphone/AudioRecord capture, Android platform recognizer and reminder interaction. No scheduling side effects execute.",
+    "A single x86_64 emulator run with a pre-existing model cache cannot establish physical ARM64, low-memory phone, OEM behavior, battery or audibility results.",
+    "No comparison baseline or performance improvement claim is derived."
+  ]
+}

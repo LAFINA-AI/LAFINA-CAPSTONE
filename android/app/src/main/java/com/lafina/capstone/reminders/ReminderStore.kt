@@ -131,6 +131,8 @@ class ReminderStore(
     action: ReminderAction,
     minutes: Int = 10,
     nowUtc: String,
+    expectedSourceVersion: Int? = null,
+    expectedRingingDeadline: String? = null,
   ): ActionResult {
     validate(identity, nowUtc)
     if (action == ReminderAction.SNOOZE) require(minutes in 1..120) { "INVALID_SNOOZE" }
@@ -139,6 +141,12 @@ class ReminderStore(
       if (!record.sourceValid) {
         cancelInvalidSource(db, record, nowUtc)
         return@transaction ActionResult(false, currentById(db, identity.jobId))
+      }
+      // Foreground reviews are snapshots. Check their source/deadline in the same
+      // transaction as the paired write, including title edits that keep identity.
+      if ((expectedSourceVersion != null && expectedSourceVersion != record.sourceVersion) ||
+        (expectedRingingDeadline != null && expectedRingingDeadline != record.ringingDeadline)) {
+        return@transaction ActionResult(false, record)
       }
       if (record.status in TERMINAL || record.reminderStatus in TERMINAL) {
         return@transaction ActionResult(false, record)

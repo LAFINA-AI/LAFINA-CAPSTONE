@@ -1,0 +1,22 @@
+{
+  "schemaVersion": 1,
+  "runId": "ex20261028",
+  "invocation": "20261029T081558360447Z-55b9eb73",
+  "command": "remaining-preserved-reboot",
+  "startedAt": "2026-10-29T08:15:58.362006+00:00",
+  "status": "FAIL",
+  "scope": "Explicit emulator UI driver plus independent read-only SQLite snapshots",
+  "physicalAcceptance": "HUMAN_REQUIRED",
+  "events": [
+    {
+      "at": "2026-10-29T08:15:58.363772+00:00",
+      "event": "invocation_started"
+    }
+  ],
+  "limits": [
+    "Direct private Activity intents do not certify actual notification taps or full-screen delivery.",
+    "No live microphone, audibility, physical phone, OEM or battery acceptance is implied."
+  ],
+  "completedAt": "2026-10-29T08:17:37.437280+00:00",
+  "errorCode": "PRESERVED_REBOOT_GUARD_FAILED"
+}

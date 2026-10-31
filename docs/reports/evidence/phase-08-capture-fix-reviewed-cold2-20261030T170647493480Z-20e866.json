@@ -1,0 +1,153 @@
+{
+  "kind": "PHASE08_ROOT_SERIAL_ALL_CASE_DISPATCH",
+  "status": "COMPLETED_WITH_FAILURES_OR_NOT_RUN",
+  "startedAtUtc": "2026-10-30T17:06:47.495951+00:00",
+  "ownershipRunId": "ex20261028",
+  "rootBaseline": ".local/phase08-capture-fix-baseline.json",
+  "rootBaselineSha256": "0eb690aa8562a3accf3145509a97dfc3423770cc44d44bc7e5193c04169c911e",
+  "selectedCases": [
+    "A03",
+    "V03",
+    "V04"
+  ],
+  "all47RunnableCasesSelected": false,
+  "attempts": [
+    {
+      "case": "A03",
+      "trial": 1,
+      "status": "FAIL",
+      "startedAtUtc": "2026-10-30T17:06:55.496991+00:00",
+      "log": "docs/reports/evidence/phase-08-capture-fix-reviewed-cold2-20261030T170647493480Z-20e866-A03-trial1.log",
+      "events": [],
+      "physicalAcceptance": "NOT_RUN",
+      "restoration": "VERIFIED_WORKING_TEST_BASELINE",
+      "errorCode": "TimeoutExpired",
+      "originalNonDiagnosticRowsEqual": true,
+      "originalPreferencePayloadEqual": true,
+      "fullPermissionsSettingsAudioAndTtsEqual": true,
+      "activeJobs": 0,
+      "registrations": 0,
+      "hostMicrophoneDisabledAtEnd": true,
+      "completedAtUtc": "2026-10-30T17:07:08.521422+00:00",
+      "privateEvidence": ".local/phase-08-capture-fix-reviewed-cold2-20261030T170647493480Z-20e866/A03-1-20261030T170655494586Z-b119e2"
+    },
+    {
+      "case": "V03",
+      "trial": 1,
+      "status": "FAIL",
+      "startedAtUtc": "2026-10-30T17:07:08.525424+00:00",
+      "log": "docs/reports/evidence/phase-08-capture-fix-reviewed-cold2-20261030T170647493480Z-20e866-V03-trial1.log",
+      "events": [],
+      "physicalAcceptance": "NOT_RUN",
+      "restoration": "VERIFIED_WORKING_TEST_BASELINE",
+      "errorCode": "EXACT_VISIBLE_CHAT_NAVIGATION_REQUIRED",
+      "originalNonDiagnosticRowsEqual": true,
+      "originalPreferencePayloadEqual": true,
+      "fullPermissionsSettingsAudioAndTtsEqual": true,
+      "activeJobs": 0,
+      "registrations": 0,
+      "hostMicrophoneDisabledAtEnd": true,
+      "completedAtUtc": "2026-10-30T17:07:20.150753+00:00",
+      "privateEvidence": ".local/phase-08-capture-fix-reviewed-cold2-20261030T170647493480Z-20e866/V03-1-20261030T170708523994Z-8d4fd4"
+    },
+    {
+      "case": "V03",
+      "trial": 2,
+      "status": "FAIL",
+      "startedAtUtc": "2026-10-30T17:07:20.153841+00:00",
+      "log": "docs/reports/evidence/phase-08-capture-fix-reviewed-cold2-20261030T170647493480Z-20e866-V03-trial2.log",
+      "events": [],
+      "physicalAcceptance": "NOT_RUN",
+      "restoration": "VERIFIED_WORKING_TEST_BASELINE",
+      "errorCode": "EXACT_VISIBLE_CHAT_NAVIGATION_REQUIRED",
+      "originalNonDiagnosticRowsEqual": true,
+      "originalPreferencePayloadEqual": true,
+      "fullPermissionsSettingsAudioAndTtsEqual": true,
+      "activeJobs": 0,
+      "registrations": 0,
+      "hostMicrophoneDisabledAtEnd": true,
+      "completedAtUtc": "2026-10-30T17:07:30.919894+00:00",
+      "privateEvidence": ".local/phase-08-capture-fix-reviewed-cold2-20261030T170647493480Z-20e866/V03-2-20261030T170720152402Z-a0dbc1"
+    },
+    {
+      "case": "V04",
+      "trial": 1,
+      "status": "FAIL",
+      "startedAtUtc": "2026-10-30T17:07:30.923709+00:00",
+      "log": "docs/reports/evidence/phase-08-capture-fix-reviewed-cold2-20261030T170647493480Z-20e866-V04-trial1.log",
+      "events": [],
+      "physicalAcceptance": "NOT_RUN",
+      "restoration": "VERIFIED_WORKING_TEST_BASELINE",
+      "errorCode": "EXACT_VISIBLE_CHAT_NAVIGATION_REQUIRED",
+      "originalNonDiagnosticRowsEqual": true,
+      "originalPreferencePayloadEqual": true,
+      "fullPermissionsSettingsAudioAndTtsEqual": true,
+      "activeJobs": 0,
+      "registrations": 0,
+      "hostMicrophoneDisabledAtEnd": true,
+      "completedAtUtc": "2026-10-30T17:07:40.747733+00:00",
+      "privateEvidence": ".local/phase-08-capture-fix-reviewed-cold2-20261030T170647493480Z-20e866/V04-1-20261030T170730922466Z-127ba4"
+    },
+    {
+      "case": "V04",
+      "trial": 2,
+      "status": "FAIL",
+      "startedAtUtc": "2026-10-30T17:07:40.751082+00:00",
+      "log": "docs/reports/evidence/phase-08-capture-fix-reviewed-cold2-20261030T170647493480Z-20e866-V04-trial2.log",
+      "events": [],
+      "physicalAcceptance": "NOT_RUN",
+      "restoration": "VERIFIED_WORKING_TEST_BASELINE",
+      "errorCode": "TimeoutExpired",
+      "originalNonDiagnosticRowsEqual": true,
+      "originalPreferencePayloadEqual": true,
+      "fullPermissionsSettingsAudioAndTtsEqual": true,
+      "activeJobs": 0,
+      "registrations": 0,
+      "hostMicrophoneDisabledAtEnd": true,
+      "completedAtUtc": "2026-10-30T17:08:07.375128+00:00",
+      "privateEvidence": ".local/phase-08-capture-fix-reviewed-cold2-20261030T170647493480Z-20e866/V04-2-20261030T170740749771Z-89ec7d"
+    }
+  ],
+  "cases": [
+    {
+      "id": "A03",
+      "status": "FAIL",
+      "attemptCount": 1,
+      "physicalAcceptance": "NOT_RUN"
+    },
+    {
+      "id": "V03",
+      "status": "FAIL",
+      "attemptCount": 2,
+      "physicalAcceptance": "NOT_RUN"
+    },
+    {
+      "id": "V04",
+      "status": "FAIL",
+      "attemptCount": 2,
+      "physicalAcceptance": "NOT_RUN"
+    }
+  ],
+  "deferredCases": [
+    {
+      "id": "V05",
+      "status": "NOT_RUN",
+      "ownerDecision": "Keep V05 pending until suitable audio is available"
+    }
+  ],
+  "physicalDeviceValidation": "NOT_RUN",
+  "signedHumanReview": false,
+  "originalUserStateRestorationRequiredAfterDispatcher": true,
+  "passScope": "Selected current emulator assertions only; all failures retained. Per-case restore is to the working test state, not original human acceptance.",
+  "bootstrapOriginalRowsPreserved": true,
+  "workingTestProfileObserved": true,
+  "airplaneModeWifiMobileOffObserved": true,
+  "originalStateRestoreRequired": true,
+  "setupLog": "docs/reports/evidence/phase-08-capture-fix-reviewed-cold2-20261030T170647493480Z-20e866-SETUP-trial1.log",
+  "counts": {
+    "PASS": 0,
+    "FAIL": 3,
+    "NOT_RUN": 0
+  },
+  "completedAtUtc": "2026-10-30T17:08:07.389730+00:00"
+}

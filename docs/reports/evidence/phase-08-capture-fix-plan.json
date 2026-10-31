@@ -1,0 +1,13 @@
+{
+  "scope": "A03/V03/V04 only; V05/physical pending",
+  "strategy": "single source RPC, no half-closed initializer or live route polling, same pinned PCM gain500/pad1000, extra onset delay0; actual native READY time, source deadline within native8s gate",
+  "predeclaredCohorts": 2,
+  "casesPerCohort": {
+    "A03": 1,
+    "V03": 2,
+    "V04": 2
+  },
+  "rootCauseEstablished": false,
+  "physicalDeviceValidation": "NOT_RUN",
+  "v05": "OWNER_DEFERRED_NOT_RUN"
+}

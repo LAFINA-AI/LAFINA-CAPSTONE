@@ -1,0 +1,218 @@
+{
+  "kind": "CHECKSUM_VERIFIED_SYNTHETIC_CAPTURE_BOUNDARY_ALIGNMENT_ANALYSIS",
+  "status": "ANALYSIS_COMPLETE_ASR_NOT_EVALUATED",
+  "recordedAtUtc": "2026-10-29T08:33:56.570839+00:00",
+  "method": "Read-only host NumPy analysis of pinned S16LE source and two privately retained actual reminder captures; exact integer boundaries; full-source FFT correlation and least-squares gain. No decoder or device invocation.",
+  "source": {
+    "fixtureId": "acknowledge",
+    "kind": "PINNED_SYNTHETIC_WINDOWS_SAPI_ZIRA_NO_HUMAN_AUDIO",
+    "metadata": "docs/benchmarks/phase-08-synthetic-response-audio.json",
+    "privateWav": ".local/phase08-corpus/acknowledge.wav",
+    "wavBytes": 72206,
+    "wavSha256": "e10b92f68d6a188bc19b44bd327aa91747d58d4a257510d786a14dc45a4e0a3c",
+    "pcmFrames": 36080,
+    "pcmSha256": "caee746c5e32b09684df5466b38a22d63c982f4fea09ec5b7c631f527bac7cf3",
+    "sampleRate": 16000,
+    "channels": 1,
+    "sampleFormat": "S16LE",
+    "peakPcm": 19069,
+    "firstNonzeroIndex": 1280,
+    "lastNonzeroIndex": 24393
+  },
+  "profileComparison": {
+    "raw16Reference": {
+      "rule": "abs(samplePcm) >= 16",
+      "historicalSourceLedger": "docs/reports/evidence/phase-08-speech-floor-source-hashes-final.json",
+      "historicalCppPath": "android/app/src/main/cpp/jni/whisper_jni.cpp",
+      "historicalCppSha256": "ab2967a3da34cd59a04f4c72a259f1cca6b1b374e34023a99873a2e8d2e250ce",
+      "currentSourceBytesNotCertifiedByThisAnalysis": true
+    },
+    "candidateRelative": {
+      "rule": "abs(samplePcm) >= max(16, 0.001 * max(abs(capturedPcm)))",
+      "amplitudesUnchanged": true,
+      "asrNotInvoked": true
+    },
+    "unchangedContext": {
+      "retainedBeforeFirstSignalFrames": 4000,
+      "retainedAfterLastSignalFrames": 12000,
+      "firstSignalAnchorFrames": 5520,
+      "lastSignalTrailingContextFrames": 16000,
+      "sampleRate": 16000,
+      "milliseconds": {
+        "retainedBefore": 250,
+        "retainedAfter": 750,
+        "firstSignalAnchor": 345,
+        "trailingContext": 1000
+      }
+    },
+    "formula": "begin=max(0,first-4000); end=min(N,last+1+12000); leading=5520-(first-begin); trailing=16000-(end-last-1); normalizedFrames=end-begin+leading+trailing; sourceStartInNormalized=fitLag+leading-begin"
+  },
+  "captures": [
+    {
+      "cohort": "n20261029T025728002381Z",
+      "createdAtUtc": "2026-10-29T02:59:14.364377Z",
+      "provenance": {
+        "captureKind": "DATAQA_EXPLICIT_EMULATOR_SYNTHETIC_CAPTURE",
+        "publicCaptureMetadata": "docs/reports/evidence/phase-08-native-fidelity-20261029T025728002381Z.json",
+        "privateFolder": ".local/phase08-fidelity-native-20261029T025728002381Z",
+        "privateMetadataFile": "capture.json",
+        "metadataFileSha256": "49d9236f6680f7c27a7550ce0b055472f0f84411cd913b16cfad940c1b63e762",
+        "privatePcmFile": "captured.pcm",
+        "sourceFixtureId": "acknowledge",
+        "sourceWavSha256": "e10b92f68d6a188bc19b44bd327aa91747d58d4a257510d786a14dc45a4e0a3c",
+        "recordedTransportGainPermille": 1000,
+        "recordedTransportPaddingEachSideMs": 1000,
+        "historicalCaseControllerExitCode": 1
+      },
+      "pcmBytes": 148480,
+      "pcmFrames": 74240,
+      "pcmSha256": "8f8ba701c8847efbbb8d4ced5e7f5f9fa1ef8106678d0efd249fcafaa795ebd8",
+      "peakPcm": 32767.0,
+      "positive32767Samples": 64,
+      "negative32768Samples": 0,
+      "sourceFit": {
+        "integerLagFrames": 31104,
+        "integerLagMs": 1944.0,
+        "crossCorrelationPeakParabolicOffsetFrames": -0.00011653087314659989,
+        "leastSquaresGainNoIntercept": 1.9948190588967751,
+        "cosineSimilarityFullSourceWindow": 0.9999034057408994,
+        "prefixBeforeMappedSourceFirstNonzeroPeakPcm": 8.0,
+        "fitUsesCompleteSourceWindow": true
+      },
+      "profiles": {
+        "raw16": {
+          "thresholdPcm": 16.0,
+          "effectiveIntegerMinimumAbsPcm": 16,
+          "firstSignalIndex": 32545,
+          "lastSignalIndex": 55440,
+          "firstSignalMappedSourceIndex": 1441,
+          "lastSignalMappedSourceIndex": 24336,
+          "retainedBeginIndex": 28545,
+          "retainedEndExclusive": 67441,
+          "leadingAddedFrames": 1520,
+          "trailingAddedFrames": 4000,
+          "normalizedFrames": 44416,
+          "normalizedMs": 2776.0,
+          "sourceStartInNormalizedFrames": 4079,
+          "sourceStartInNormalizedMs": 254.9375,
+          "sourceFirstNonzeroInNormalizedFrames": 5359,
+          "sourceFirstNonzeroInNormalizedMs": 334.9375
+        },
+        "candidateRelative": {
+          "thresholdPcm": 32.767,
+          "effectiveIntegerMinimumAbsPcm": 33,
+          "firstSignalIndex": 32631,
+          "lastSignalIndex": 55424,
+          "firstSignalMappedSourceIndex": 1527,
+          "lastSignalMappedSourceIndex": 24320,
+          "retainedBeginIndex": 28631,
+          "retainedEndExclusive": 67425,
+          "leadingAddedFrames": 1520,
+          "trailingAddedFrames": 4000,
+          "normalizedFrames": 44314,
+          "normalizedMs": 2769.625,
+          "sourceStartInNormalizedFrames": 3993,
+          "sourceStartInNormalizedMs": 249.5625,
+          "sourceFirstNonzeroInNormalizedFrames": 5273,
+          "sourceFirstNonzeroInNormalizedMs": 329.5625
+        }
+      }
+    },
+    {
+      "cohort": "n20261029T031904526676Z",
+      "createdAtUtc": "2026-10-29T03:20:24.523362Z",
+      "provenance": {
+        "captureKind": "DATAQA_EXPLICIT_EMULATOR_SYNTHETIC_CAPTURE",
+        "publicCaptureMetadata": "docs/reports/evidence/phase-08-native-fidelity-20261029T031904526676Z.json",
+        "privateFolder": ".local/phase08-fidelity-native-20261029T031904526676Z",
+        "privateMetadataFile": "capture.json",
+        "metadataFileSha256": "303f5eac4dbe2ecf129357c5885169ae3c1a1daa3ec66ab9fa1a550be48364e0",
+        "privatePcmFile": "captured.pcm",
+        "sourceFixtureId": "acknowledge",
+        "sourceWavSha256": "e10b92f68d6a188bc19b44bd327aa91747d58d4a257510d786a14dc45a4e0a3c",
+        "recordedTransportGainPermille": 500,
+        "recordedTransportPaddingEachSideMs": 1000,
+        "historicalCaseControllerExitCode": 0
+      },
+      "pcmBytes": 118272,
+      "pcmFrames": 59136,
+      "pcmSha256": "0c57d5582f51df5ab9a2b5f8026811aadf5595eecaf2a807cb82b94efaf792ce",
+      "peakPcm": 19070.0,
+      "positive32767Samples": 0,
+      "negative32768Samples": 0,
+      "sourceFit": {
+        "integerLagFrames": 16076,
+        "integerLagMs": 1004.75,
+        "crossCorrelationPeakParabolicOffsetFrames": 1.8668698188097038e-06,
+        "leastSquaresGainNoIntercept": 1.0000780411468617,
+        "cosineSimilarityFullSourceWindow": 0.9999999872780848,
+        "prefixBeforeMappedSourceFirstNonzeroPeakPcm": 8.0,
+        "fitUsesCompleteSourceWindow": true
+      },
+      "profiles": {
+        "raw16": {
+          "thresholdPcm": 16.0,
+          "effectiveIntegerMinimumAbsPcm": 16,
+          "firstSignalIndex": 17599,
+          "lastSignalIndex": 40401,
+          "firstSignalMappedSourceIndex": 1523,
+          "lastSignalMappedSourceIndex": 24325,
+          "retainedBeginIndex": 13599,
+          "retainedEndExclusive": 52402,
+          "leadingAddedFrames": 1520,
+          "trailingAddedFrames": 4000,
+          "normalizedFrames": 44323,
+          "normalizedMs": 2770.1875,
+          "sourceStartInNormalizedFrames": 3997,
+          "sourceStartInNormalizedMs": 249.8125,
+          "sourceFirstNonzeroInNormalizedFrames": 5277,
+          "sourceFirstNonzeroInNormalizedMs": 329.8125
+        },
+        "candidateRelative": {
+          "thresholdPcm": 19.07,
+          "effectiveIntegerMinimumAbsPcm": 20,
+          "firstSignalIndex": 17603,
+          "lastSignalIndex": 40396,
+          "firstSignalMappedSourceIndex": 1527,
+          "lastSignalMappedSourceIndex": 24320,
+          "retainedBeginIndex": 13603,
+          "retainedEndExclusive": 52397,
+          "leadingAddedFrames": 1520,
+          "trailingAddedFrames": 4000,
+          "normalizedFrames": 44314,
+          "normalizedMs": 2769.625,
+          "sourceStartInNormalizedFrames": 3993,
+          "sourceStartInNormalizedMs": 249.5625,
+          "sourceFirstNonzeroInNormalizedFrames": 5273,
+          "sourceFirstNonzeroInNormalizedMs": 329.5625
+        }
+      }
+    }
+  ],
+  "microphoneOpened": false,
+  "actionsExecuted": false,
+  "rawAudioStoredInPublicEvidence": false,
+  "rawHypothesesStoredInPublicEvidence": false,
+  "physicalDeviceValidation": "NOT_RUN",
+  "limits": [
+    "Exactly two actual synthetic emulator ACK captures; no phone, human speech, other utterance or noise robustness certification.",
+    "The captures are historical; this numeric analysis does not rerun their original UI conditions or any current candidate ASR.",
+    "The relative threshold removes the measured boundary mismatch for these two captures only; no claim that recognition is fixed.",
+    "The older transport-gain1000 capture retains gain near two and clipping; neither rule normalizes amplitudes or removes clipping.",
+    "Parabolic cross-correlation offset is a local estimator, not a hardware resampler phase measurement.",
+    "Private source/capture files were read only; no PCM or WAV output was generated."
+  ],
+  "summary": {
+    "raw16SourceAlignmentDifferenceFrames": 82,
+    "raw16SourceAlignmentDifferenceMs": 5.125,
+    "candidateRelativeSourceAlignmentDifferenceFrames": 0,
+    "candidateRelativeSourceAlignmentDifferenceMs": 0.0,
+    "candidateRelativeMappedFirstSourceIndex": 1527,
+    "candidateRelativeMappedLastSourceIndex": 24320,
+    "candidateRelativeNormalizedFramesEach": 44314,
+    "candidateRelativeNormalizedMsEach": 2769.625,
+    "raw16NormalizedLengthDifferenceFrames": 93,
+    "bothMeasuredPrefixNoisePeaksPcm": 8,
+    "interpretation": "Amplitude-dependent raw-threshold anchoring differs by82frames/5.125ms. Candidate relative threshold gives identical mapped boundaries and normalized lengths on these two files. It does not establish recognition improvement."
+  }
+}

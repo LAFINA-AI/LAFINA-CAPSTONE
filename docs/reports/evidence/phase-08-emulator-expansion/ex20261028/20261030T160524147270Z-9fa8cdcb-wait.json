@@ -1,0 +1,45 @@
+{
+  "schemaVersion": 1,
+  "runId": "ex20261028",
+  "invocation": "20261030T160524147270Z-9fa8cdcb",
+  "command": "wait",
+  "startedAt": "2026-10-30T16:05:24.147899+00:00",
+  "status": "PASS",
+  "scope": "Explicit emulator UI driver plus independent read-only SQLite snapshots",
+  "physicalAcceptance": "HUMAN_REQUIRED",
+  "events": [
+    {
+      "at": "2026-10-30T16:05:24.148914+00:00",
+      "event": "invocation_started"
+    },
+    {
+      "at": "2026-10-30T16:06:22.116785+00:00",
+      "event": "requested_owned_status_observed",
+      "title": "QA08 EX ex20261028 V03M_20261030T160512028792Z",
+      "status": "RINGING",
+      "polls": 26,
+      "rows": [
+        {
+          "taskId": "task:cmd_mvv5yh2d_0_p8wnpqcyl7n",
+          "taskStatus": "TODO",
+          "deletedAt": null,
+          "jobId": "job:reminder:task:cmd_mvv5yh2d_0_p8wnpqcyl7n|2026-10-30T16:06:20.484Z",
+          "occurrenceKey": "task:cmd_mvv5yh2d_0_p8wnpqcyl7n|2026-10-30T16:06:20.484Z",
+          "generation": 1,
+          "jobStatus": "RINGING",
+          "reminderStatus": "RINGING",
+          "runAt": "2026-10-30T16:06:20.484Z",
+          "deadline": "2026-10-30T16:07:20.798Z",
+          "deliveryState": "REGISTERED",
+          "registrations": 1
+        }
+      ]
+    }
+  ],
+  "limits": [
+    "Direct private Activity intents do not certify actual notification taps or full-screen delivery.",
+    "No live microphone, audibility, physical phone, OEM or battery acceptance is implied."
+  ],
+  "completedAt": "2026-10-30T16:06:22.122616+00:00",
+  "passScope": "Requested bounded runner operation only; inspect case assertions and physical gates separately"
+}

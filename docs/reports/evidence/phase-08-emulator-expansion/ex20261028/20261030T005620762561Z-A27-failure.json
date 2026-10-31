@@ -1,0 +1,105 @@
+{
+  "kind": "ROOT_REAL_FAILURE_CONDITION_UI",
+  "case": "A27",
+  "status": "PASS",
+  "atUtc": "2026-10-30T00:56:20.763362+00:00",
+  "events": [
+    {
+      "event": "host_microphone_disabled_before",
+      "atUtc": "2026-10-30T00:56:20.868877+00:00",
+      "verified": true
+    },
+    {
+      "event": "independent_sql_before",
+      "atUtc": "2026-10-30T00:57:32.722648+00:00",
+      "rows": [
+        {
+          "taskId": "task:cmd_mvu9hn2d_0_2gmounywqmb",
+          "taskStatus": "TODO",
+          "deletedAt": null,
+          "jobId": "job:reminder:task:cmd_mvu9hn2d_0_2gmounywqmb|2026-10-30T00:57:27.397Z",
+          "occurrenceKey": "task:cmd_mvu9hn2d_0_2gmounywqmb|2026-10-30T00:57:27.397Z",
+          "generation": 1,
+          "jobStatus": "RINGING",
+          "reminderStatus": "RINGING",
+          "runAt": "2026-10-30T00:57:27.397Z",
+          "deadline": "2026-10-30T00:58:28.168Z",
+          "deliveryState": "REGISTERED",
+          "registrations": 1
+        }
+      ]
+    },
+    {
+      "event": "actual_failure_ui_result",
+      "atUtc": "2026-10-30T00:57:50.000308+00:00",
+      "driver": {
+        "kind": "OPT_IN_SYNTHETIC_FIXTURE_UI_DRIVER",
+        "mode": "record-audio-interruption",
+        "outcome": "PASS",
+        "stages": [
+          "activity_launch_requested",
+          "owned_fixture_title_observed",
+          "answer_control_revealed",
+          "answer_response_visible",
+          "actual_pointer_down_sent",
+          "actual_pointer_up_sent_in_finally",
+          "visible_hold_1_ended_without_recording",
+          "actual_pointer_down_sent",
+          "actual_pointer_hold_and_recording_observed",
+          "actual_pointer_up_sent_in_finally",
+          "actual_audio_mode_failure_released_pointer_mode_restored_no_late_result",
+          "typed_and_both_manual_review_dialogs_opened_then_cancelled"
+        ],
+        "launch": "DIRECT_PRIVATE_ACTIVITY_INTENT_NOT_NOTIFICATION_TAP",
+        "limits": "UI only; root verifies SQL separately. No live speech, audio or physical-phone acceptance.",
+        "details": {
+          "hostMicrophoneDisabledConfirmedByRoot": true,
+          "rawTranscriptEmitted": false,
+          "noConfirmationClicked": true,
+          "audioModeBefore": 0,
+          "firstHoldFailureCode": "LANGUAGE_UNAVAILABLE",
+          "recordingVisibleBeforeInterruption": true,
+          "visibleHoldCount": 2,
+          "nonNormalAudioModeObservedDuringRecording": true,
+          "failureCode": "AUDIO_INTERRUPTED",
+          "audioModeAfter": 0,
+          "exactAudioModeRestored": true,
+          "testAudioPermissionAdopted": true,
+          "noLateRecognizedResultObserved": true,
+          "recordingAbsentAfterFailure": true,
+          "typedReviewAvailable": true,
+          "manualAckReviewAvailable": true,
+          "manualSnoozeReviewAvailable": true,
+          "allReviewsCancelledWithoutConfirmation": true
+        }
+      }
+    },
+    {
+      "event": "independent_sql_unchanged",
+      "atUtc": "2026-10-30T00:57:52.505795+00:00",
+      "rows": [
+        {
+          "taskId": "task:cmd_mvu9hn2d_0_2gmounywqmb",
+          "taskStatus": "TODO",
+          "deletedAt": null,
+          "jobId": "job:reminder:task:cmd_mvu9hn2d_0_2gmounywqmb|2026-10-30T00:57:27.397Z",
+          "occurrenceKey": "task:cmd_mvu9hn2d_0_2gmounywqmb|2026-10-30T00:57:27.397Z",
+          "generation": 1,
+          "jobStatus": "RINGING",
+          "reminderStatus": "RINGING",
+          "runAt": "2026-10-30T00:57:27.397Z",
+          "deadline": "2026-10-30T00:58:28.168Z",
+          "deliveryState": "REGISTERED",
+          "registrations": 1
+        }
+      ]
+    }
+  ],
+  "physicalDeviceValidation": "NOT_RUN",
+  "noDeviceDatabaseWrites": true,
+  "fixtureCleanup": "EXACT_OWNED_UI_SOFT_REMOVAL",
+  "hostMicrophoneDisabledAtEnd": true,
+  "completedAtUtc": "2026-10-30T00:58:16.316145+00:00",
+  "engineEnabledStateRestoration": [],
+  "privateEvidence": ".local/phase08-remaining-failure-20261030T005620762561Z-A27"
+}

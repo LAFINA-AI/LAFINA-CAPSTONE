@@ -1,0 +1,658 @@
+{
+  "kind": "PHASE08_SCOPED_SYNTHETIC_RPC_AND_MICROPHONE_PROTOCOL_REVIEW",
+  "createdAtUtc": "2026-10-30T05:44:40.964159+00:00",
+  "status": "READ_ONLY_REVIEW_NO_CAUSAL_FIX_CLAIM",
+  "currentClient": {
+    "path": "scripts/phase08-emulator-audio.mjs",
+    "sha256": "549cd6941f734ee855a19103b7fc4d33ec9437c0a0f2b56bfacb16a269eb3b2b"
+  },
+  "installedPrimaryProtocol": {
+    "path": "C:\\Users\\USER-PC\\AppData\\Local\\Android\\Sdk\\emulator\\lib\\emulator_controller.proto",
+    "sha256": "1d62c6bcad5f06621f90ec2bf26c661ba769ccd0f1416b5314d25a68e04eee5f",
+    "sdkVersionFromRoot": "37.1.11"
+  },
+  "observations": [
+    {
+      "id": "V03",
+      "sourceCaseEvidence": "docs/reports/evidence/phase-08-emulator-expansion/ex20261028/20261030T053107369003Z-V03-microphone.json",
+      "caseStatus": "FAIL_OR_UNSUPPORTED_REVIEW_REQUIRED",
+      "streamResult": {
+        "status": "BLOCKED",
+        "reason": "HOST_MICROPHONE_ENABLED_AFTER_ABORT",
+        "injectionAttempted": true,
+        "inputInitializationAttempted": true,
+        "inputInitializationStimulusBytes": 0,
+        "inputInitializationGrpcStatus": 0,
+        "hostInputEnableRequested": false,
+        "hostMicrophoneEnabledBefore": false,
+        "hostMicrophoneEnabledAfterInitialization": false,
+        "hostMicrophoneEnabledAfter": true,
+        "derivedPcmSha256": "978ad1ae355fde64b9f684c5d8ba609750c51ebe5b12a021a460f7156ea24e76",
+        "injectedDurationMs": 4255,
+        "audioDeliveryMode": "BLOCKING_SERVER_PACED",
+        "clientWallclockThrottling": false
+      },
+      "sourceSuccessStatusAbsent": true,
+      "driverMetadata": [
+        {
+          "field": "phase08_microphone_ui_stage",
+          "outcome": "HOLD_UNAVAILABLE",
+          "errorClass": null,
+          "details": {
+            "holdCount": 1,
+            "failureCode": "LANGUAGE_UNAVAILABLE"
+          }
+        },
+        {
+          "field": "phase08_microphone_ui_stage",
+          "outcome": "READY",
+          "errorClass": null,
+          "details": {
+            "holdCount": 2,
+            "observedAtUtc": "2026-10-30T05:32:41.461717Z",
+            "recordingVisible": true
+          }
+        },
+        {
+          "field": "phase08_microphone_ui_driver",
+          "outcome": "FAIL",
+          "errorClass": "AssertionError",
+          "details": {
+            "visibleHoldCount": 2,
+            "firstHoldFailureCode": "LANGUAGE_UNAVAILABLE",
+            "recordingVisible": true
+          }
+        }
+      ],
+      "visibleProofObservedAtUtc": "2026-10-30T05:32:42.664098+00:00",
+      "events": [
+        {
+          "event": "host_microphone_double_false_before",
+          "atUtc": "2026-10-30T05:31:07.498763+00:00",
+          "elapsedMonotonicSeconds": 0.12838059999921825
+        },
+        {
+          "event": "owned_fixture_before",
+          "atUtc": "2026-10-30T05:32:27.421201+00:00",
+          "elapsedMonotonicSeconds": 80.05087259999709
+        },
+        {
+          "event": "real_visible_recording_stage_observed",
+          "atUtc": "2026-10-30T05:32:42.139931+00:00",
+          "elapsedMonotonicSeconds": 94.76955559999624
+        },
+        {
+          "event": "deliberate_synthetic_onset_delay",
+          "atUtc": "2026-10-30T05:32:42.652673+00:00",
+          "elapsedMonotonicSeconds": 95.28231739999319,
+          "delayMs": 500
+        }
+      ],
+      "routeTimingMetadata": {
+        "route-0-audio-timing.json": {
+          "startedAtUtc": "2026-10-30T05:32:42.668237+00:00",
+          "endedAtUtc": "2026-10-30T05:32:43.163376+00:00",
+          "exitCode": 0
+        },
+        "route-0-media.audio_policy-timing.json": {
+          "startedAtUtc": "2026-10-30T05:32:47.051162+00:00",
+          "endedAtUtc": "2026-10-30T05:32:49.498725+00:00",
+          "exitCode": 0
+        },
+        "route-1-audio-timing.json": {
+          "startedAtUtc": "2026-10-30T05:32:49.718343+00:00",
+          "endedAtUtc": "2026-10-30T05:32:50.132223+00:00",
+          "exitCode": 0
+        },
+        "route-1-media.audio_flinger-timing.json": {
+          "startedAtUtc": "2026-10-30T05:32:50.138753+00:00",
+          "endedAtUtc": "2026-10-30T05:32:50.847276+00:00",
+          "exitCode": 0
+        },
+        "route-1-media.audio_policy-timing.json": {
+          "startedAtUtc": "2026-10-30T05:32:50.848248+00:00",
+          "endedAtUtc": "2026-10-30T05:32:51.712632+00:00",
+          "exitCode": 0
+        },
+        "route-2-audio-timing.json": {
+          "startedAtUtc": "2026-10-30T05:32:51.936006+00:00",
+          "endedAtUtc": "2026-10-30T05:32:53.893596+00:00",
+          "exitCode": 0
+        },
+        "route-2-media.audio_flinger-timing.json": {
+          "startedAtUtc": "2026-10-30T05:32:53.897246+00:00",
+          "endedAtUtc": "2026-10-30T05:32:55.024324+00:00",
+          "exitCode": 0
+        },
+        "route-2-media.audio_policy-timing.json": {
+          "startedAtUtc": "2026-10-30T05:32:55.025293+00:00",
+          "endedAtUtc": "2026-10-30T05:32:55.581369+00:00",
+          "exitCode": 0
+        },
+        "route-3-audio-timing.json": {
+          "startedAtUtc": "2026-10-30T05:32:55.796706+00:00",
+          "endedAtUtc": "2026-10-30T05:32:56.073413+00:00",
+          "exitCode": 0
+        },
+        "route-3-media.audio_flinger-timing.json": {
+          "startedAtUtc": "2026-10-30T05:32:56.076008+00:00",
+          "endedAtUtc": "2026-10-30T05:32:56.344933+00:00",
+          "exitCode": 0
+        },
+        "route-3-media.audio_policy-timing.json": {
+          "startedAtUtc": "2026-10-30T05:32:56.346083+00:00",
+          "endedAtUtc": "2026-10-30T05:32:56.588612+00:00",
+          "exitCode": 0
+        },
+        "route-4-audio-timing.json": {
+          "startedAtUtc": "2026-10-30T05:32:56.794326+00:00",
+          "endedAtUtc": "2026-10-30T05:32:57.249527+00:00",
+          "exitCode": 0
+        },
+        "route-4-media.audio_flinger-timing.json": {
+          "startedAtUtc": "2026-10-30T05:32:57.253651+00:00",
+          "endedAtUtc": "2026-10-30T05:32:57.743121+00:00",
+          "exitCode": 0
+        },
+        "route-4-media.audio_policy-timing.json": {
+          "startedAtUtc": "2026-10-30T05:32:57.746887+00:00",
+          "endedAtUtc": "2026-10-30T05:32:57.994982+00:00",
+          "exitCode": 0
+        }
+      },
+      "finalHostRestoration": [
+        {
+          "status": "HOST_MICROPHONE_DISABLED",
+          "before": false,
+          "after": false
+        }
+      ]
+    },
+    {
+      "id": "V04",
+      "sourceCaseEvidence": "docs/reports/evidence/phase-08-emulator-expansion/ex20261028/20261030T053542115544Z-V04-microphone.json",
+      "caseStatus": "FAIL_OR_UNSUPPORTED_REVIEW_REQUIRED",
+      "streamResult": {
+        "status": "SYNTHETIC_STREAM_COMPLETED",
+        "injectionAttempted": true,
+        "inputInitializationAttempted": true,
+        "inputInitializationStimulusBytes": 0,
+        "inputInitializationGrpcStatus": 0,
+        "injectionGrpcStatus": 0,
+        "hostInputEnableRequested": false,
+        "hostMicrophoneEnabledBefore": false,
+        "hostMicrophoneEnabledAfterInitialization": false,
+        "hostMicrophoneEnabledAfter": false,
+        "derivedPcmSha256": "b79942a41b4b7765b0edb9a0117a56f276136ddc8de900dcf9c8eb968a208423",
+        "injectedDurationMs": 4320,
+        "audioDeliveryMode": "BLOCKING_SERVER_PACED",
+        "clientWallclockThrottling": false
+      },
+      "sourceSuccessStatusAbsent": false,
+      "driverMetadata": [
+        {
+          "field": "phase08_microphone_ui_stage",
+          "outcome": "HOLD_UNAVAILABLE",
+          "errorClass": null,
+          "details": {
+            "holdCount": 1,
+            "failureCode": "LANGUAGE_UNAVAILABLE"
+          }
+        },
+        {
+          "field": "phase08_microphone_ui_stage",
+          "outcome": "READY",
+          "errorClass": null,
+          "details": {
+            "holdCount": 2,
+            "observedAtUtc": "2026-10-30T05:37:12.492579Z",
+            "recordingVisible": true
+          }
+        },
+        {
+          "field": "phase08_microphone_ui_driver",
+          "outcome": "FAIL",
+          "errorClass": "AssertionError",
+          "details": {
+            "visibleHoldCount": 2,
+            "firstHoldFailureCode": "LANGUAGE_UNAVAILABLE",
+            "recordingVisible": true,
+            "recognizedCharacterCount": 0,
+            "recognizedNormalizedSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          }
+        }
+      ],
+      "visibleProofObservedAtUtc": "2026-10-30T05:37:13.690359+00:00",
+      "events": [
+        {
+          "event": "host_microphone_double_false_before",
+          "atUtc": "2026-10-30T05:35:42.337091+00:00",
+          "elapsedMonotonicSeconds": 0.21822090000205208
+        },
+        {
+          "event": "owned_fixture_before",
+          "atUtc": "2026-10-30T05:37:01.479273+00:00",
+          "elapsedMonotonicSeconds": 79.36033920000773
+        },
+        {
+          "event": "real_visible_recording_stage_observed",
+          "atUtc": "2026-10-30T05:37:13.165204+00:00",
+          "elapsedMonotonicSeconds": 91.04625590000069
+        },
+        {
+          "event": "deliberate_synthetic_onset_delay",
+          "atUtc": "2026-10-30T05:37:13.684425+00:00",
+          "elapsedMonotonicSeconds": 91.56551080000645,
+          "delayMs": 500
+        },
+        {
+          "event": "pinned_response_pcm_stream_completed",
+          "atUtc": "2026-10-30T05:37:19.670813+00:00",
+          "elapsedMonotonicSeconds": 97.55186639999738
+        }
+      ],
+      "routeTimingMetadata": {
+        "route-0-audio-timing.json": {
+          "startedAtUtc": "2026-10-30T05:37:13.699708+00:00",
+          "endedAtUtc": "2026-10-30T05:37:14.080767+00:00",
+          "exitCode": 0
+        },
+        "route-0-media.audio_flinger-timing.json": {
+          "startedAtUtc": "2026-10-30T05:37:14.083785+00:00",
+          "endedAtUtc": "2026-10-30T05:37:14.518880+00:00",
+          "exitCode": 0
+        },
+        "route-0-media.audio_policy-timing.json": {
+          "startedAtUtc": "2026-10-30T05:37:14.520109+00:00",
+          "endedAtUtc": "2026-10-30T05:37:14.794931+00:00",
+          "exitCode": 0
+        },
+        "route-1-audio-timing.json": {
+          "startedAtUtc": "2026-10-30T05:37:15.010551+00:00",
+          "endedAtUtc": "2026-10-30T05:37:15.633296+00:00",
+          "exitCode": 0
+        },
+        "route-1-media.audio_flinger-timing.json": {
+          "startedAtUtc": "2026-10-30T05:37:15.635553+00:00",
+          "endedAtUtc": "2026-10-30T05:37:15.989000+00:00",
+          "exitCode": 0
+        },
+        "route-1-media.audio_policy-timing.json": {
+          "startedAtUtc": "2026-10-30T05:37:15.990424+00:00",
+          "endedAtUtc": "2026-10-30T05:37:16.251402+00:00",
+          "exitCode": 0
+        },
+        "route-2-audio-timing.json": {
+          "startedAtUtc": "2026-10-30T05:37:16.465766+00:00",
+          "endedAtUtc": "2026-10-30T05:37:16.835975+00:00",
+          "exitCode": 0
+        },
+        "route-2-media.audio_flinger-timing.json": {
+          "startedAtUtc": "2026-10-30T05:37:16.837179+00:00",
+          "endedAtUtc": "2026-10-30T05:37:17.194276+00:00",
+          "exitCode": 0
+        },
+        "route-2-media.audio_policy-timing.json": {
+          "startedAtUtc": "2026-10-30T05:37:17.195274+00:00",
+          "endedAtUtc": "2026-10-30T05:37:17.384267+00:00",
+          "exitCode": 0
+        },
+        "route-3-audio-timing.json": {
+          "startedAtUtc": "2026-10-30T05:37:17.587222+00:00",
+          "endedAtUtc": "2026-10-30T05:37:17.747133+00:00",
+          "exitCode": 0
+        },
+        "route-3-media.audio_flinger-timing.json": {
+          "startedAtUtc": "2026-10-30T05:37:17.748099+00:00",
+          "endedAtUtc": "2026-10-30T05:37:17.886709+00:00",
+          "exitCode": 0
+        },
+        "route-3-media.audio_policy-timing.json": {
+          "startedAtUtc": "2026-10-30T05:37:17.887735+00:00",
+          "endedAtUtc": "2026-10-30T05:37:18.015743+00:00",
+          "exitCode": 0
+        },
+        "route-4-audio-timing.json": {
+          "startedAtUtc": "2026-10-30T05:37:18.225167+00:00",
+          "endedAtUtc": "2026-10-30T05:37:18.414440+00:00",
+          "exitCode": 0
+        },
+        "route-4-media.audio_flinger-timing.json": {
+          "startedAtUtc": "2026-10-30T05:37:18.415681+00:00",
+          "endedAtUtc": "2026-10-30T05:37:18.579662+00:00",
+          "exitCode": 0
+        },
+        "route-4-media.audio_policy-timing.json": {
+          "startedAtUtc": "2026-10-30T05:37:18.580834+00:00",
+          "endedAtUtc": "2026-10-30T05:37:18.722924+00:00",
+          "exitCode": 0
+        },
+        "route-5-audio-timing.json": {
+          "startedAtUtc": "2026-10-30T05:37:18.926615+00:00",
+          "endedAtUtc": "2026-10-30T05:37:19.149008+00:00",
+          "exitCode": 0
+        },
+        "route-5-media.audio_flinger-timing.json": {
+          "startedAtUtc": "2026-10-30T05:37:19.150294+00:00",
+          "endedAtUtc": "2026-10-30T05:37:19.281145+00:00",
+          "exitCode": 0
+        },
+        "route-5-media.audio_policy-timing.json": {
+          "startedAtUtc": "2026-10-30T05:37:19.282771+00:00",
+          "endedAtUtc": "2026-10-30T05:37:19.426097+00:00",
+          "exitCode": 0
+        }
+      },
+      "finalHostRestoration": [
+        {
+          "status": "HOST_MICROPHONE_DISABLED",
+          "before": false,
+          "after": false
+        }
+      ]
+    }
+  ],
+  "v03ErrorReportingFacts": [
+    {
+      "clientLines": [
+        591,
+        593,
+        605,
+        606,
+        612,
+        614,
+        621
+      ],
+      "fact": "injectionAttempted is set before optional initialization. Initializer status0 and host-after-initialization false are known; a proof freshness check still precedes the actual source RPC. The absent source success status establishes no successful RPC return, not whether source RPC entry or payload writes occurred."
+    },
+    {
+      "clientLines": [
+        622,
+        623,
+        626,
+        630,
+        634,
+        648,
+        650
+      ],
+      "fact": "Initializer/proof/source failure is saved as injectionError. A subsequent final-host false requirement runs before that error is rethrown. A true final host setting therefore replaces the original error with HOST_MICROPHONE_ENABLED_AFTER_ABORT, losing the earlier source/proof/RPC error and its potential gRPC code in current output."
+    },
+    {
+      "clientLines": [
+        277,
+        292,
+        301,
+        318,
+        320,
+        333,
+        339,
+        342
+      ],
+      "fact": "RPC has fixed redacted transport/deadline/status/request errors and cancels the HTTP2 request on error. No per-method start time, bytes queued/written, original error stage or preserved secondary error is emitted in the current trial output. Available route/proof timestamps cannot reconstruct the lost source-call stage."
+    }
+  ],
+  "installedProtocolConclusions": [
+    {
+      "lines": [
+        339
+      ],
+      "shortExactQuote": "Subsequent `AudioFormat` changes are ignored.",
+      "conclusion": "The installed contract honors the first received format only. Repeated identical format is redundant; the contract does not say that it reinitializes or flushes the forwarder."
+    },
+    {
+      "lines": [
+        1565,
+        1566,
+        1567,
+        1568,
+        1569
+      ],
+      "conclusion": "Default blocking delivery lets the client push without its own throttle. Experimental real-time delivery has different overwrite semantics."
+    },
+    {
+      "lines": [
+        1589,
+        1592,
+        1593
+      ],
+      "conclusion": "AudioPacket includes a capture-epoch-microsecond timestamp. This schema does not state that injection is paced by this timestamp."
+    },
+    {
+      "lines": [
+        350,
+        351,
+        353,
+        354,
+        1599,
+        1600,
+        1601
+      ],
+      "shortExactQuote": "Whether or not host microphone access is enabled",
+      "conclusion": "getMicrophoneState reports a setting, and setMicrophoneState changes that setting. OFF does not certify virtual-source readiness; ON does not establish actual host recording, who changed it, or a host-enable API call."
+    }
+  ],
+  "currentProducerFacts": {
+    "lines": [
+      483,
+      490,
+      492,
+      493,
+      494,
+      497,
+      499
+    ],
+    "fact": "audioPackets repeats the same formatField on every <=640-byte PCM chunk, sets Date.now()*1000 per yielded chunk and uses default blocking mode. The source has no setMicrophoneState RPC invocation; method calls inspected are getMicrophoneState and injectAudio. No state-changing RPC was invoked during this review."
+  },
+  "upstreamImplementationSeparateFromInstalledBinary": [
+    {
+      "url": "https://android.googlesource.com/platform/external/qemu/+/refs/heads/emu-master-dev/android/android-grpc/services/emulator-controller/server/src/android/emulation/control/EmulatorService.cpp",
+      "observedBlob": "1478faac7e566b7d8ef9ab5d1a69aa6d448feae7",
+      "sourceLinesApprox": [
+        567,
+        600,
+        618,
+        644
+      ],
+      "interpretation": "This public implementation creates QemuAudioInputStream once from the first packet format, then loops over packet audio. Later format/timestamp are not consulted in that loop. It corroborates the format contract but was not mapped to installed37.1.11."
+    },
+    {
+      "url": "https://android.googlesource.com/platform/external/qemu/+/refs/heads/emu-master-dev/android/android-grpc/services/emulator-controller/server/src/android/emulation/control/audio/AudioStream.cpp",
+      "observedBlob": "9963496e402b5e830a53368ee395e606698fbd1e",
+      "sourceLinesApprox": [
+        70,
+        75,
+        109,
+        117,
+        120
+      ],
+      "interpretation": "This public input stream registers a virtual AudioCaptureEngine capturer on construction and stops it on destruction. Those emulator-side operations are separate from app AudioRecord. It is not proof of installed setter/reset semantics."
+    }
+  ],
+  "openSetterQuestion": {
+    "installedSchemaDefinesHostGateOnly": true,
+    "installed37_1_11SetterImplementationMapped": false,
+    "upstreamServiceInspectedHasNoSetterMethod": true,
+    "conclusion": "No evidence here establishes that sending false resets/reselects a forwarder, repairs route health or starts/stops app recording. Treat an explicit false reset as an untested hypothesis until an implementation mapped to the installed binary or controlled evidence exists; no call was made."
+  },
+  "limitsAndNextEvidence": [
+    "V04 has a separate counterexample: successful initializer and source RPC with all recorded host states OFF but native NO_AUDIO_SIGNAL. Format-only initialization is not a reliable input fix.",
+    "V03 final host-ON is a recorded configuration observation, followed later by OFF/OFF restoration. No actual host capture or enabling-call cause is inferred.",
+    "If reporting is changed later, preserve both original injectionError code/stage and final host observation, plus explicit sourceRpcStarted/completed and method timing/byte counters; retain strict abort and visible-interaction guards, without retries or hidden capture. This recommendation was not implemented.",
+    "V05 and all physical-device, real speech/audibility and phone-performance checks remain NOT RUN."
+  ],
+  "evidenceSources": {
+    "docs/reports/evidence/phase-08-emulator-expansion/ex20261028/20261030T053107369003Z-V03-microphone.json": {
+      "sha256": "aa0630ba93ce4403ccf8e292286cd11420548100019815f92082501eba9f97ee",
+      "bytes": 2639
+    },
+    ".local/phase08-microphone-20261030T053107369003Z-V03/synthetic-injection.log": {
+      "sha256": "3ec80cce75fce82745b8ecbc5264dd9d0659619af5b0f359580a803b52434781",
+      "bytes": 1006
+    },
+    ".local/phase08-microphone-20261030T053107369003Z-V03/instrumentation.log": {
+      "sha256": "6e0878edfa4d01789fdf2960d7d0b21df1210948e244f1058fc3df3b31a7d637",
+      "bytes": 5769
+    },
+    ".local/phase08-microphone-20261030T053107369003Z-V03/host-final-restoration.log": {
+      "sha256": "03e24f4bbdb40850707799004ce4e334b17b7c14a136a5a6efd3184a5b87b313",
+      "bytes": 420
+    },
+    ".local/phase08-microphone-20261030T053107369003Z-V03/visible-proof.json": {
+      "sha256": "14383b6b72de124e3d9d406ff40bb1ad26e9fb65c3cac4885efaa352951b5f01",
+      "bytes": 204
+    },
+    ".local/phase08-microphone-20261030T053107369003Z-V03/route-0-audio-timing.json": {
+      "sha256": "b3c7caa77f167fb32ef567d7aba2774dc5fce52dd2b0e35a04e31555541039fc",
+      "bytes": 117
+    },
+    ".local/phase08-microphone-20261030T053107369003Z-V03/route-0-media.audio_policy-timing.json": {
+      "sha256": "c2b576184c983135cceb2389fb9d693c10ec4e8341f4bd96cc740ce73ed3a60a",
+      "bytes": 117
+    },
+    ".local/phase08-microphone-20261030T053107369003Z-V03/route-1-audio-timing.json": {
+      "sha256": "77de9ed1cdc7725826dcca0f9bbe833eefc6cdb99dd9e2230125a92da0a62089",
+      "bytes": 117
+    },
+    ".local/phase08-microphone-20261030T053107369003Z-V03/route-1-media.audio_flinger-timing.json": {
+      "sha256": "019c780ced6a78de0f00cc1a02ae75a5f63bb3447cec1e02af1955bff00aeb40",
+      "bytes": 117
+    },
+    ".local/phase08-microphone-20261030T053107369003Z-V03/route-1-media.audio_policy-timing.json": {
+      "sha256": "3f0a76de628cb316052d18d9c1af32b863c82be65357dde6fb904a6da35f8424",
+      "bytes": 117
+    },
+    ".local/phase08-microphone-20261030T053107369003Z-V03/route-2-audio-timing.json": {
+      "sha256": "f057af955e0f25a3eab559982e153f02ff3e184eae1077bbbe1b4e4b20423e8f",
+      "bytes": 117
+    },
+    ".local/phase08-microphone-20261030T053107369003Z-V03/route-2-media.audio_flinger-timing.json": {
+      "sha256": "91c83ea04463ff7c63f06b6ee88b22cac1aa190961fcb1bb6c75627d07b23475",
+      "bytes": 117
+    },
+    ".local/phase08-microphone-20261030T053107369003Z-V03/route-2-media.audio_policy-timing.json": {
+      "sha256": "85a049714d3804784d26038d51ca30bf45d7777a97c7c56dd3541ab9632b9aaa",
+      "bytes": 117
+    },
+    ".local/phase08-microphone-20261030T053107369003Z-V03/route-3-audio-timing.json": {
+      "sha256": "391558d3c1edb4c63add993ae77c5272e651cec5c46dce192ee725ead50a53e2",
+      "bytes": 117
+    },
+    ".local/phase08-microphone-20261030T053107369003Z-V03/route-3-media.audio_flinger-timing.json": {
+      "sha256": "abf976fa434c5dc525057aeafb7433f7f131eac2805da592719a5888ee2a3cb9",
+      "bytes": 117
+    },
+    ".local/phase08-microphone-20261030T053107369003Z-V03/route-3-media.audio_policy-timing.json": {
+      "sha256": "891b40921223374e3ec47f70a0ca176da2c82f46faa8ee016fb16700cd5b6c9a",
+      "bytes": 117
+    },
+    ".local/phase08-microphone-20261030T053107369003Z-V03/route-4-audio-timing.json": {
+      "sha256": "441dbc5eccc466c93cdf92334a192df71f8dd04218305e43aa6205e4f8f4b244",
+      "bytes": 117
+    },
+    ".local/phase08-microphone-20261030T053107369003Z-V03/route-4-media.audio_flinger-timing.json": {
+      "sha256": "3fb12bc9be0b311ea75c3476e43d44ed232c0e236f3b322a276f472fc198469c",
+      "bytes": 117
+    },
+    ".local/phase08-microphone-20261030T053107369003Z-V03/route-4-media.audio_policy-timing.json": {
+      "sha256": "174ebeb2eab30720edb2ebf8356d8c62ceb58ee886de81e747f57191293ce4a6",
+      "bytes": 117
+    },
+    "docs/reports/evidence/phase-08-emulator-expansion/ex20261028/20261030T053542115544Z-V04-microphone.json": {
+      "sha256": "42ff028027c3d5abfe3d603f4cc8b785bf0f801ae9880a495397c7350ba1f64e",
+      "bytes": 3120
+    },
+    ".local/phase08-microphone-20261030T053542115544Z-V04/synthetic-injection.log": {
+      "sha256": "0b848db032d909a505bf739ad5f17c976faccf109236b7e758252a588b4c8f55",
+      "bytes": 998
+    },
+    ".local/phase08-microphone-20261030T053542115544Z-V04/instrumentation.log": {
+      "sha256": "401067da95cf4850c86c6ba88ece096181c55f55445471573b33442939dd56ed",
+      "bytes": 4897
+    },
+    ".local/phase08-microphone-20261030T053542115544Z-V04/host-final-restoration.log": {
+      "sha256": "03e24f4bbdb40850707799004ce4e334b17b7c14a136a5a6efd3184a5b87b313",
+      "bytes": 420
+    },
+    ".local/phase08-microphone-20261030T053542115544Z-V04/visible-proof.json": {
+      "sha256": "3fdf76500af65896e5fb9b3a0284b218c280e1e30e1c1a48a32cb0faff70800e",
+      "bytes": 204
+    },
+    ".local/phase08-microphone-20261030T053542115544Z-V04/route-0-audio-timing.json": {
+      "sha256": "5666f10ef940158e0937baafecf0dc5285d26b0f92e174a2aa39836ac2374e05",
+      "bytes": 117
+    },
+    ".local/phase08-microphone-20261030T053542115544Z-V04/route-0-media.audio_flinger-timing.json": {
+      "sha256": "f4ea3d1971f829e2619db46c56a378e8726597068d35875d560c25b33f0fb73f",
+      "bytes": 117
+    },
+    ".local/phase08-microphone-20261030T053542115544Z-V04/route-0-media.audio_policy-timing.json": {
+      "sha256": "9e8cdf355d169ea98bf6fde76295082df8e562abf8b7958ebd71b9b9139a4885",
+      "bytes": 117
+    },
+    ".local/phase08-microphone-20261030T053542115544Z-V04/route-1-audio-timing.json": {
+      "sha256": "fa53951a8ce58caa8e78fcf9014b857858660362e8483a55fdf63fb0b9c3b2e5",
+      "bytes": 117
+    },
+    ".local/phase08-microphone-20261030T053542115544Z-V04/route-1-media.audio_flinger-timing.json": {
+      "sha256": "f33155228788cc42b0fea8789f425891a2ec6521252e6f862893bfb6da066c43",
+      "bytes": 117
+    },
+    ".local/phase08-microphone-20261030T053542115544Z-V04/route-1-media.audio_policy-timing.json": {
+      "sha256": "8599c1a1a0d4fcb3019742810b1c85b7e402c3eaea1c7e5faa73e28debccb83b",
+      "bytes": 117
+    },
+    ".local/phase08-microphone-20261030T053542115544Z-V04/route-2-audio-timing.json": {
+      "sha256": "e653083ea37421b17c6ba742838959e8799e03938bf2b11a6ef5f3d310a0ae13",
+      "bytes": 117
+    },
+    ".local/phase08-microphone-20261030T053542115544Z-V04/route-2-media.audio_flinger-timing.json": {
+      "sha256": "7214e391c51be32c84b670167cc982ad1488dbff4cec9492791638a43d40cfb4",
+      "bytes": 117
+    },
+    ".local/phase08-microphone-20261030T053542115544Z-V04/route-2-media.audio_policy-timing.json": {
+      "sha256": "c276862593e76bf2b6ba417af8771d695f0d2f83b4b2a515a18492f60666654f",
+      "bytes": 117
+    },
+    ".local/phase08-microphone-20261030T053542115544Z-V04/route-3-audio-timing.json": {
+      "sha256": "e6a82f536b2dc6aeaaf618258143b6608272885e13c8578ba483bf194abcdccb",
+      "bytes": 117
+    },
+    ".local/phase08-microphone-20261030T053542115544Z-V04/route-3-media.audio_flinger-timing.json": {
+      "sha256": "81f2ffd6bf1375ddd17ba9a3b8050b994ce625d09b0e196ae68801dd9ec726e9",
+      "bytes": 117
+    },
+    ".local/phase08-microphone-20261030T053542115544Z-V04/route-3-media.audio_policy-timing.json": {
+      "sha256": "c96495290c2e347300b0532173c3ea276d3f547b34c27d73c66934a93bfef7b4",
+      "bytes": 117
+    },
+    ".local/phase08-microphone-20261030T053542115544Z-V04/route-4-audio-timing.json": {
+      "sha256": "dd746af72003ead51e6d47b412c41e403e3b96bd4bc8ed0753583d50abdeb620",
+      "bytes": 117
+    },
+    ".local/phase08-microphone-20261030T053542115544Z-V04/route-4-media.audio_flinger-timing.json": {
+      "sha256": "044f5dbf1f21b60379f9402a5f179c9d0d0484fa9b094e15ce5c353064985324",
+      "bytes": 117
+    },
+    ".local/phase08-microphone-20261030T053542115544Z-V04/route-4-media.audio_policy-timing.json": {
+      "sha256": "583517131240c7e8226e83fc8e41ec31914c493f174bb60049b6427622ff2e79",
+      "bytes": 117
+    },
+    ".local/phase08-microphone-20261030T053542115544Z-V04/route-5-audio-timing.json": {
+      "sha256": "bc5f4ca9f109a1b9240da0448c0dc4e5ac0512662eac39ca91b7166df0226034",
+      "bytes": 117
+    },
+    ".local/phase08-microphone-20261030T053542115544Z-V04/route-5-media.audio_flinger-timing.json": {
+      "sha256": "f4931bf4007277aa8e1500f0972c3e37eeb38ea83fd15749bb1913c895ec7a24",
+      "bytes": 117
+    },
+    ".local/phase08-microphone-20261030T053542115544Z-V04/route-5-media.audio_policy-timing.json": {
+      "sha256": "8b6dbbcb16a7226ce4f7562f071d7b7e5ba1c7264c531fbf02944ec010c64a15",
+      "bytes": 117
+    }
+  },
+  "sourceEdits": 0,
+  "deviceCalls": 0,
+  "rawAudioRead": false,
+  "rawTranscriptEmitted": false,
+  "tokenOrKeyMaterialReadOrEmitted": false
+}

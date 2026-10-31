@@ -1,0 +1,179 @@
+{
+  "kind": "PHASE08_FINAL_HOST_INTEGRITY",
+  "scope": "INTEGRITY_ONLY",
+  "status": "PASS",
+  "startedAtUtc": "2026-10-29T03:47:02.105808+00:00",
+  "phaseNotPassed": true,
+  "stableOfflineReleaseApproved": false,
+  "physicalDeviceValidation": "NOT_RUN",
+  "liveHumanSpeechCertified": false,
+  "checks": [
+    {
+      "check": "source_and_apk_ledgers",
+      "status": "PASS",
+      "sourceLedger": "docs/reports/evidence/phase-08-speech-floor-source-hashes-final.json",
+      "artifactLedger": "docs/reports/evidence/phase-08-speech-floor-artifacts-final.json",
+      "sourceFilesVerified": 29,
+      "apkFilesVerified": 7,
+      "candidateSha256": "ccc79ceda3a033d222917c54a6c68cd5d9d13c5c2d1f7cf3b6f3672c60f0ff6c"
+    },
+    {
+      "check": "final_restoration_and_closed_matrix",
+      "status": "PASS",
+      "matrixStatus": "CLOSED_EMULATOR_EVIDENCE_PHYSICAL_PENDING",
+      "statusCountsVerified": {
+        "PASS": 38,
+        "NOT_RUN": 10
+      },
+      "physicalCountsZero": true,
+      "candidateHashMatches": true,
+      "installedTargetMatches": true,
+      "originalAsrCasesNowPass": [
+        "A03",
+        "A06"
+      ],
+      "historicalFailuresPreserved": true,
+      "phaseNotPassed": true
+    },
+    {
+      "check": "public_json_syntax",
+      "status": "PASS",
+      "publicJsonFilesParsed": 508,
+      "historicalNonterminalRecordsRetained": 0
+    },
+    {
+      "check": "current_document_links_and_gates",
+      "status": "PASS",
+      "documentsVerified": [
+        {
+          "path": "docs/02-ARCHITECTURE.md",
+          "sha256": "d50888e9629fc1581b9c8ad78b8cef7b970c2bebbd938797de44ae9ca19a9a10",
+          "localLinksChecked": 30
+        },
+        {
+          "path": "docs/benchmarks/phase-08-device-protocol.md",
+          "sha256": "07104649654adc9fe063eca0bbc0573806bb969c228ae72d542aad1464671ec5",
+          "localLinksChecked": 1
+        },
+        {
+          "path": "docs/benchmarks/phase-08-emulator-voice-protocol.md",
+          "sha256": "2229f26c7f4b3a4e1c043f3643244c04397bc82a5c30147950b1ca0e85b98e58",
+          "localLinksChecked": 1
+        },
+        {
+          "path": "docs/decisions/ADR-023-foreground-reminder-response.md",
+          "sha256": "0ccefb6a81b46bdb408f871d3613c566caa1719e3edeb9a7114e460df990dc96",
+          "localLinksChecked": 4
+        },
+        {
+          "path": "docs/decisions/ADR-024-reminder-speech-vocabulary.md",
+          "sha256": "34c2f8f19792a10463707b02eca30fc5477d749a25d5b5a10cceb0b0772b6a8f",
+          "localLinksChecked": 5
+        },
+        {
+          "path": "docs/phase-08-offline-loop.md",
+          "sha256": "0239369bfee95f622f27720125f6375c0fedb67603945f09df263e57cb51c489",
+          "localLinksChecked": 7
+        },
+        {
+          "path": "docs/reports/CURRENT-STATUS.md",
+          "sha256": "31e4266b8f964a04e0abca15ddab674dd064cbae8319b903bb3624d7a8918fb5",
+          "localLinksChecked": 18
+        },
+        {
+          "path": "docs/reports/evidence/phase-08-notification-harness-finding.md",
+          "sha256": "1248d7b4aff1853d0e4227035615bcf050e66de552c7c914cc9e13b77af5e606",
+          "localLinksChecked": 4
+        },
+        {
+          "path": "docs/reports/evidence/phase-08-reminder-reopen-finding.md",
+          "sha256": "e6f2f45d7826eb4ca4fb5d72ca6593f2eded3cfd9a59e7b2fec9899084825d13",
+          "localLinksChecked": 11
+        },
+        {
+          "path": "docs/reports/phase-08-emulator-expansion-report.md",
+          "sha256": "2894d29af4be1e09c2655195b56a0eff8ee8fc302e0ce08de3d97479d0a46d0e",
+          "localLinksChecked": 43
+        },
+        {
+          "path": "docs/reports/phase-08-offline-core-release-gate.md",
+          "sha256": "9697e491cd32ff7d238db7d28da0c39455b92015dc48899429f3f6eab7de6574",
+          "localLinksChecked": 4
+        },
+        {
+          "path": "docs/reports/phase-08-report.md",
+          "sha256": "8d821edac5a8ab3c912d631af4ff2974fa21026bcd421c09b4e417e741235cbc",
+          "localLinksChecked": 48
+        },
+        {
+          "path": "docs/reports/phase-08-speech-correction-report.md",
+          "sha256": "2702dbda6e61d0b4868f0e60cd7b60f0e2690b90c1f51f88f72e5873174f6030",
+          "localLinksChecked": 44
+        },
+        {
+          "path": "qa/PHASE-08-EMULATOR-EXPANSION.md",
+          "sha256": "4fe0923dc77966b9c0a94d69099ab06ec575f392f15da489d358017a0db78c86",
+          "localLinksChecked": 5
+        },
+        {
+          "path": "qa/PHASE-08-EXECUTION.md",
+          "sha256": "cf3bc14dadabce0963e2fd5cac710372733a8e9871c74e4ecc3fb2ec81caa82b",
+          "localLinksChecked": 4
+        },
+        {
+          "path": "qa/PHASE-08-MANUAL.md",
+          "sha256": "effd6df66b8e8ba93c61f8e8fb139874a4708d1769a0ef6c175007e778fe6a7b",
+          "localLinksChecked": 4
+        },
+        {
+          "path": "qa/REQUIREMENTS-MATRIX.md",
+          "sha256": "a0de8b21a961388648f756bb6e62ea4652c10e555505cf4de589796126c8e226",
+          "localLinksChecked": 13
+        },
+        {
+          "path": "README.md",
+          "sha256": "0ace6ddf0008e3df89ce3b22f8c7e7b89c786011a39e55fae2052beaf4339899",
+          "localLinksChecked": 48
+        }
+      ],
+      "physicalRowsStillNotRun": 48,
+      "humanGateUnsigned": true
+    },
+    {
+      "check": "git_identity_whitespace_and_artifact_names",
+      "status": "PASS",
+      "branch": "codex/phase-07-audit-hardening",
+      "head": "98bef88c3ae0fabee677c1466417fc34c0af738c",
+      "dirtyWorkingTreeExpected": true,
+      "gitDiffCheckPassed": true,
+      "gitVisiblePathsScreened": 1882,
+      "filenameScreenOnly": true,
+      "ignoredPrivateArtifactsExcludedByGit": true
+    }
+  ],
+  "errors": [],
+  "limits": [
+    "Integrity does not mean all emulator scenarios passed or that the offline phase passed.",
+    "Historical nonterminal JSON labels are retained, not treated as currently running processes.",
+    "Filename screening is not a content-level secret or personal-data audit.",
+    "No device interaction, build/test rerun, publication or source rewrite occurs here."
+  ],
+  "priorAsrFailuresPreserved": [
+    "A03",
+    "A06"
+  ],
+  "physicalSpeechAcceptance": "NOT_RUN",
+  "matrixCounts": {
+    "alarmCases": 36,
+    "voiceCases": 12,
+    "emulatorPass": 38,
+    "emulatorFail": 0,
+    "emulatorNotRun": 10,
+    "certifiedPhysicalAlarms": 0,
+    "certifiedLiveHumanVoiceInteractions": 0
+  },
+  "historicalNonterminalEvidenceRecords": [],
+  "missingLocalMarkdownLinks": [],
+  "suspiciousGitVisibleArtifactPaths": [],
+  "completedAtUtc": "2026-10-29T03:47:03.714259+00:00"
+}

@@ -1,0 +1,21 @@
+{
+  "schemaVersion": 1,
+  "runId": "ex20261028",
+  "invocation": "20261030T113434794310Z-f2c86764",
+  "command": "capture-fix-abort-control-readonly",
+  "startedAt": "2026-10-30T11:34:34.796503+00:00",
+  "status": "PASS",
+  "scope": "Intentional abort control only; not an A03 voice pass",
+  "physicalAcceptance": "HUMAN_REQUIRED",
+  "events": [
+    {
+      "at": "2026-10-30T11:34:34.798856+00:00",
+      "event": "invocation_started"
+    }
+  ],
+  "limits": [
+    "Direct private Activity intents do not certify actual notification taps or full-screen delivery.",
+    "No live microphone, audibility, physical phone, OEM or battery acceptance is implied."
+  ],
+  "completedAt": "2026-10-30T11:34:36.169284+00:00"
+}

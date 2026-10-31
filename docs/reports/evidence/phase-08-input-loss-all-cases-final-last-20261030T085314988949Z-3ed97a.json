@@ -1,0 +1,343 @@
+{
+  "kind": "PHASE08_ROOT_SERIAL_ALL_CASE_DISPATCH",
+  "status": "PASS_SELECTED_EMULATOR_ASSERTIONS",
+  "startedAtUtc": "2026-10-30T08:53:14.989832+00:00",
+  "ownershipRunId": "ex20261028",
+  "rootBaseline": ".local/phase08-input-loss-baseline.json",
+  "rootBaselineSha256": "a7af4d7db3b3b90828a52738b6e103a9121a3ab061f75107a981bf20c2a2adf4",
+  "selectedCases": [
+    "A36",
+    "V08",
+    "V09",
+    "V10",
+    "V11",
+    "V12"
+  ],
+  "all47RunnableCasesSelected": false,
+  "attempts": [
+    {
+      "case": "A36",
+      "trial": 1,
+      "status": "PASS",
+      "startedAtUtc": "2026-10-30T08:53:24.308153+00:00",
+      "log": "docs/reports/evidence/phase-08-input-loss-all-cases-final-last-20261030T085314988949Z-3ed97a-A36-trial1.log",
+      "events": [
+        {
+          "event": "custom_clock_precondition",
+          "atUtc": "2026-10-30T08:53:29.102123+00:00",
+          "hostGuestOffsetWithinFiveSeconds": true
+        },
+        {
+          "event": "chat_navigation_precondition",
+          "atUtc": "2026-10-30T08:53:43.179966+00:00",
+          "exactVisibleOwnedAppControl": true,
+          "privateContentNotEmitted": true,
+          "writesToStorage": false
+        },
+        {
+          "event": "owned_fixture_created",
+          "atUtc": "2026-10-30T08:53:56.521862+00:00",
+          "title": "QA08 EX ex20261028 IL20261030T085324288794Z-13ed08 A36"
+        },
+        {
+          "event": "stale_private_open_foreground_precondition",
+          "atUtc": "2026-10-30T08:55:05.302803+00:00",
+          "actualMainForegroundObserved": true,
+          "actualNotificationTap": false,
+          "savedExactOldIdentity": true
+        },
+        {
+          "event": "actual_notification_snooze_duplicate_old_open_one_replacement",
+          "atUtc": "2026-10-30T08:55:12.713563+00:00",
+          "jobStatus": "PENDING",
+          "reminderStatus": "SNOOZED",
+          "taskStillTodo": true,
+          "generation": 2,
+          "registrations": 1,
+          "duplicateActionNodeAttempted": true,
+          "oneReplacement": true,
+          "stalePrivateOldOpenNoMutation": true,
+          "oldNotificationTap": "NOT_RUN"
+        },
+        {
+          "event": "chat_navigation_precondition",
+          "atUtc": "2026-10-30T08:55:20.260041+00:00",
+          "exactVisibleOwnedAppControl": true,
+          "privateContentNotEmitted": true,
+          "writesToStorage": false
+        }
+      ],
+      "physicalAcceptance": "NOT_RUN",
+      "restoration": "VERIFIED_WORKING_TEST_BASELINE",
+      "originalNonDiagnosticRowsEqual": true,
+      "originalPreferencePayloadEqual": true,
+      "fullPermissionsSettingsAudioAndTtsEqual": true,
+      "activeJobs": 0,
+      "registrations": 0,
+      "hostMicrophoneDisabledAtEnd": true,
+      "completedAtUtc": "2026-10-30T08:55:34.347325+00:00",
+      "privateEvidence": ".local/phase-08-input-loss-all-cases-final-last-20261030T085314988949Z-3ed97a/A36-1-20261030T085324288794Z-13ed08"
+    },
+    {
+      "case": "V08",
+      "trial": 1,
+      "status": "PASS",
+      "startedAtUtc": "2026-10-30T08:55:34.350415+00:00",
+      "log": "docs/reports/evidence/phase-08-input-loss-all-cases-final-last-20261030T085314988949Z-3ed97a-V08-trial1.log",
+      "events": [
+        {
+          "event": "custom_clock_precondition",
+          "atUtc": "2026-10-30T08:55:36.358954+00:00",
+          "hostGuestOffsetWithinFiveSeconds": true
+        },
+        {
+          "event": "chat_navigation_precondition",
+          "atUtc": "2026-10-30T08:55:43.562086+00:00",
+          "exactVisibleOwnedAppControl": true,
+          "privateContentNotEmitted": true,
+          "writesToStorage": false
+        },
+        {
+          "event": "owned_fixture_created",
+          "atUtc": "2026-10-30T08:55:54.885198+00:00",
+          "title": "QA08 EX ex20261028 IL20261030T085534348867Z-43b6e1 V08_1"
+        },
+        {
+          "event": "fixed_typed_refusal_exact_owned_row_unchanged",
+          "atUtc": "2026-10-30T08:57:02.935524+00:00",
+          "typedPhraseIndex": 1,
+          "noConfirmation": true,
+          "freshIndependentFixture": true
+        },
+        {
+          "event": "chat_navigation_precondition",
+          "atUtc": "2026-10-30T08:57:09.351578+00:00",
+          "exactVisibleOwnedAppControl": true,
+          "privateContentNotEmitted": true,
+          "writesToStorage": false
+        },
+        {
+          "event": "owned_fixture_created",
+          "atUtc": "2026-10-30T08:57:19.842255+00:00",
+          "title": "QA08 EX ex20261028 IL20261030T085534348867Z-43b6e1 V08_2"
+        },
+        {
+          "event": "fixed_typed_refusal_exact_owned_row_unchanged",
+          "atUtc": "2026-10-30T08:58:27.534504+00:00",
+          "typedPhraseIndex": 2,
+          "noConfirmation": true,
+          "freshIndependentFixture": true
+        },
+        {
+          "event": "chat_navigation_precondition",
+          "atUtc": "2026-10-30T08:58:33.507473+00:00",
+          "exactVisibleOwnedAppControl": true,
+          "privateContentNotEmitted": true,
+          "writesToStorage": false
+        },
+        {
+          "event": "owned_fixture_created",
+          "atUtc": "2026-10-30T08:58:43.615888+00:00",
+          "title": "QA08 EX ex20261028 IL20261030T085534348867Z-43b6e1 V08_3"
+        },
+        {
+          "event": "fixed_typed_refusal_exact_owned_row_unchanged",
+          "atUtc": "2026-10-30T08:59:51.432402+00:00",
+          "typedPhraseIndex": 3,
+          "noConfirmation": true,
+          "freshIndependentFixture": true
+        },
+        {
+          "event": "fixed_typed_refusal_scope_preserved_draft_and_exact_sql",
+          "atUtc": "2026-10-30T08:59:51.432429+00:00",
+          "typedPhraseCount": 3,
+          "independentlyOwnedFixtures": 3,
+          "allTypedPhrasesCompleted": true,
+          "noConfirmation": true,
+          "liveVoiceRecognition": "NOT_RUN",
+          "bulkDeleteAllLiteral": "EXECUTED_TYPED_ONLY",
+          "scope": "TYPED_SINGLE_AND_BULK_TASK_DELETE_AND_COMPLETION_REFUSAL"
+        },
+        {
+          "event": "chat_navigation_precondition",
+          "atUtc": "2026-10-30T08:59:57.920656+00:00",
+          "exactVisibleOwnedAppControl": true,
+          "privateContentNotEmitted": true,
+          "writesToStorage": false
+        },
+        {
+          "event": "chat_navigation_precondition",
+          "atUtc": "2026-10-30T09:00:15.676953+00:00",
+          "exactVisibleOwnedAppControl": true,
+          "privateContentNotEmitted": true,
+          "writesToStorage": false
+        },
+        {
+          "event": "chat_navigation_precondition",
+          "atUtc": "2026-10-30T09:00:32.700116+00:00",
+          "exactVisibleOwnedAppControl": true,
+          "privateContentNotEmitted": true,
+          "writesToStorage": false
+        }
+      ],
+      "physicalAcceptance": "NOT_RUN",
+      "restoration": "VERIFIED_WORKING_TEST_BASELINE",
+      "originalNonDiagnosticRowsEqual": true,
+      "originalPreferencePayloadEqual": true,
+      "fullPermissionsSettingsAudioAndTtsEqual": true,
+      "activeJobs": 0,
+      "registrations": 0,
+      "hostMicrophoneDisabledAtEnd": true,
+      "completedAtUtc": "2026-10-30T09:00:44.890854+00:00",
+      "privateEvidence": ".local/phase-08-input-loss-all-cases-final-last-20261030T085314988949Z-3ed97a/V08-1-20261030T085534348867Z-43b6e1"
+    },
+    {
+      "case": "V09",
+      "trial": 1,
+      "status": "PASS",
+      "startedAtUtc": "2026-10-30T09:00:44.893909+00:00",
+      "log": "docs/reports/evidence/phase-08-input-loss-all-cases-final-last-20261030T085314988949Z-3ed97a-V09-trial1.log",
+      "events": [],
+      "physicalAcceptance": "NOT_RUN",
+      "restoration": "VERIFIED_WORKING_TEST_BASELINE",
+      "controllerExitCode": 0,
+      "controllerEvidence": "docs/reports/evidence/phase-08-emulator-expansion/ex20261028/20261030T090047045110Z-V09-microphone.json",
+      "controllerEvidenceSha256": "25f2123beb0e7d31432d6d915dae4e7fae55f41d45f6b1c24b6d9a88de69d5f5",
+      "sourceStatus": "PASS",
+      "originalNonDiagnosticRowsEqual": true,
+      "originalPreferencePayloadEqual": true,
+      "fullPermissionsSettingsAudioAndTtsEqual": true,
+      "activeJobs": 0,
+      "registrations": 0,
+      "hostMicrophoneDisabledAtEnd": true,
+      "completedAtUtc": "2026-10-30T09:02:21.654135+00:00",
+      "privateEvidence": ".local/phase-08-input-loss-all-cases-final-last-20261030T085314988949Z-3ed97a/V09-1-20261030T090044892705Z-0f152b"
+    },
+    {
+      "case": "V10",
+      "trial": 1,
+      "status": "PASS",
+      "startedAtUtc": "2026-10-30T09:02:21.657550+00:00",
+      "log": "docs/reports/evidence/phase-08-input-loss-all-cases-final-last-20261030T085314988949Z-3ed97a-V10-trial1.log",
+      "events": [],
+      "physicalAcceptance": "NOT_RUN",
+      "restoration": "VERIFIED_WORKING_TEST_BASELINE",
+      "controllerExitCode": 0,
+      "controllerEvidence": "docs/reports/evidence/phase-08-emulator-expansion/ex20261028/20261030T090223743761Z-V10-microphone.json",
+      "controllerEvidenceSha256": "a4ab848e139df2da1c5536f77feeba65cdb7e625ff5e805e509fa802cd9020a1",
+      "sourceStatus": "PASS",
+      "originalNonDiagnosticRowsEqual": true,
+      "originalPreferencePayloadEqual": true,
+      "fullPermissionsSettingsAudioAndTtsEqual": true,
+      "activeJobs": 0,
+      "registrations": 0,
+      "hostMicrophoneDisabledAtEnd": true,
+      "completedAtUtc": "2026-10-30T09:03:54.738143+00:00",
+      "privateEvidence": ".local/phase-08-input-loss-all-cases-final-last-20261030T085314988949Z-3ed97a/V10-1-20261030T090221656250Z-b7bfdc"
+    },
+    {
+      "case": "V11",
+      "trial": 1,
+      "status": "PASS",
+      "startedAtUtc": "2026-10-30T09:03:54.741452+00:00",
+      "log": "docs/reports/evidence/phase-08-input-loss-all-cases-final-last-20261030T085314988949Z-3ed97a-V11-trial1.log",
+      "events": [],
+      "physicalAcceptance": "NOT_RUN",
+      "restoration": "VERIFIED_WORKING_TEST_BASELINE",
+      "controllerExitCode": 0,
+      "controllerEvidence": "docs/reports/evidence/phase-08-emulator-expansion/ex20261028/20261030T090356846697Z-V11-microphone.json",
+      "controllerEvidenceSha256": "1939837efc2492a22d3a4a7ba80b1d55db2b5c542fc0e0a2641e44acb1f744e0",
+      "sourceStatus": "PASS",
+      "originalNonDiagnosticRowsEqual": true,
+      "originalPreferencePayloadEqual": true,
+      "fullPermissionsSettingsAudioAndTtsEqual": true,
+      "activeJobs": 0,
+      "registrations": 0,
+      "hostMicrophoneDisabledAtEnd": true,
+      "completedAtUtc": "2026-10-30T09:05:36.536420+00:00",
+      "privateEvidence": ".local/phase-08-input-loss-all-cases-final-last-20261030T085314988949Z-3ed97a/V11-1-20261030T090354740169Z-8633b9"
+    },
+    {
+      "case": "V12",
+      "trial": 1,
+      "status": "PASS",
+      "startedAtUtc": "2026-10-30T09:05:36.539859+00:00",
+      "log": "docs/reports/evidence/phase-08-input-loss-all-cases-final-last-20261030T085314988949Z-3ed97a-V12-trial1.log",
+      "events": [],
+      "physicalAcceptance": "NOT_RUN",
+      "restoration": "VERIFIED_WORKING_TEST_BASELINE",
+      "controllerExitCode": 0,
+      "controllerEvidence": "docs/reports/evidence/phase-08-emulator-expansion/ex20261028/20261030T090538689241Z-V12-microphone.json",
+      "controllerEvidenceSha256": "7525c34876c492ac9a12b1ce12cb8833c3740f3a0e8411792caa0256ba3c6474",
+      "sourceStatus": "PASS",
+      "originalNonDiagnosticRowsEqual": true,
+      "originalPreferencePayloadEqual": true,
+      "fullPermissionsSettingsAudioAndTtsEqual": true,
+      "activeJobs": 0,
+      "registrations": 0,
+      "hostMicrophoneDisabledAtEnd": true,
+      "completedAtUtc": "2026-10-30T09:07:08.212573+00:00",
+      "privateEvidence": ".local/phase-08-input-loss-all-cases-final-last-20261030T085314988949Z-3ed97a/V12-1-20261030T090536538378Z-da93e5"
+    }
+  ],
+  "cases": [
+    {
+      "id": "A36",
+      "status": "PASS",
+      "attemptCount": 1,
+      "physicalAcceptance": "NOT_RUN"
+    },
+    {
+      "id": "V08",
+      "status": "PASS",
+      "attemptCount": 1,
+      "physicalAcceptance": "NOT_RUN"
+    },
+    {
+      "id": "V09",
+      "status": "PASS",
+      "attemptCount": 1,
+      "physicalAcceptance": "NOT_RUN"
+    },
+    {
+      "id": "V10",
+      "status": "PASS",
+      "attemptCount": 1,
+      "physicalAcceptance": "NOT_RUN"
+    },
+    {
+      "id": "V11",
+      "status": "PASS",
+      "attemptCount": 1,
+      "physicalAcceptance": "NOT_RUN"
+    },
+    {
+      "id": "V12",
+      "status": "PASS",
+      "attemptCount": 1,
+      "physicalAcceptance": "NOT_RUN"
+    }
+  ],
+  "deferredCases": [
+    {
+      "id": "V05",
+      "status": "NOT_RUN",
+      "ownerDecision": "Keep V05 pending until suitable audio is available"
+    }
+  ],
+  "physicalDeviceValidation": "NOT_RUN",
+  "signedHumanReview": false,
+  "originalUserStateRestorationRequiredAfterDispatcher": true,
+  "passScope": "Selected current emulator assertions only; all failures retained. Per-case restore is to the working test state, not original human acceptance.",
+  "bootstrapOriginalRowsPreserved": true,
+  "workingTestProfileObserved": true,
+  "airplaneModeWifiMobileOffObserved": true,
+  "originalStateRestoreRequired": true,
+  "setupLog": "docs/reports/evidence/phase-08-input-loss-all-cases-final-last-20261030T085314988949Z-3ed97a-SETUP-trial1.log",
+  "counts": {
+    "PASS": 6,
+    "FAIL": 0,
+    "NOT_RUN": 0
+  },
+  "completedAtUtc": "2026-10-30T09:07:08.214836+00:00"
+}

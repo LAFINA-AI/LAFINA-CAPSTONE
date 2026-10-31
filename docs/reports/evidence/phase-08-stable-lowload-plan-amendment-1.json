@@ -1,0 +1,21 @@
+{
+  "kind": "PHASE08_STABLE_LOWLOAD_PLAN_AMENDMENT",
+  "createdAtUtc": "2026-10-31T09:49:25.512977+00:00",
+  "amends": {
+    "path": "docs/reports/evidence/phase-08-stable-lowload-plan-20261031T094218Z.json",
+    "sha256": "48f4092228afbd8236ab963b1df571fd93c775e7777ce0efb5dd208d227f90c3"
+  },
+  "frozenPlanUnchanged": true,
+  "beforeAnyDeviceMutation": true,
+  "beforeAnyLowLoadRecognitionResult": true,
+  "change": {
+    "path": ".local/phase08-lowload-boot.py",
+    "oldSha256": "29d4590050d5fbeac3870ff2c500636c9948c6f435d8186b4762a9cbcd92d458",
+    "newSha256": "ba1afbf820457c2ead327b75222c571948177c359569bfee67b28d239c551daf",
+    "diff": "private log folder 'boot' -> 'boot-<output stem>' (the fixed name already existed from admission-1)"
+  },
+  "trigger": "Admission-2 invocation raised FileExistsError before writing evidence or issuing any device call; no admission evaluation or launch happened in that invocation.",
+  "thresholdsChanged": false,
+  "protocolChanged": false,
+  "stopRulesChanged": false
+}

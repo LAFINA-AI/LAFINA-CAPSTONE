@@ -1,0 +1,82 @@
+{
+  "kind": "PHASE08_PRESERVED_DATA_COLD_BOOT",
+  "status": "PASS",
+  "startedAtUtc": "2026-10-30T20:50:53.953076+00:00",
+  "serial": "emulator-5554",
+  "avd": "Medium_Phone",
+  "emulatorArguments": [
+    "-avd",
+    "Medium_Phone",
+    "-port",
+    "5554",
+    "-no-window",
+    "-no-snapshot-load",
+    "-no-snapshot-save",
+    "-grpc",
+    "8554",
+    "-grpc-use-token",
+    "-gpu",
+    "host"
+  ],
+  "noAppDataResetOrInstall": true,
+  "physicalDeviceValidation": "NOT_RUN",
+  "sourceSenderUnchanged": true,
+  "temporaryGraphicsOverride": true,
+  "savedAvdConfigEdited": false,
+  "events": [
+    {
+      "event": "single_hidden_cold_boot_launched",
+      "atUtc": "2026-10-30T20:50:54.005186+00:00",
+      "pid": 18688
+    },
+    {
+      "event": "waiting_for_boot",
+      "atUtc": "2026-10-30T20:51:19.774359+00:00",
+      "elapsedSeconds": 25.8
+    },
+    {
+      "event": "waiting_for_boot",
+      "atUtc": "2026-10-30T20:51:45.514364+00:00",
+      "elapsedSeconds": 51.5
+    },
+    {
+      "event": "waiting_for_boot",
+      "atUtc": "2026-10-30T20:52:11.005289+00:00",
+      "elapsedSeconds": 77.0
+    },
+    {
+      "event": "preserved_device_ready",
+      "atUtc": "2026-10-30T20:52:43.176598+00:00",
+      "renderer": [
+        "GLES: Google (NVIDIA Corporation), Android Emulator OpenGL ES Translator (NVIDIA GeForce RTX 3060 Laptop GPU/PCIe/SSE2), OpenGL ES 3.1 (4.5.0 NVIDIA 610.88)"
+      ]
+    }
+  ],
+  "originalNonDiagnosticRowsEqual": true,
+  "fullWorkingPreferencesEqual": true,
+  "nativeDeliveryEqual": true,
+  "radiosAndAutomaticTimeSettingsEqual": true,
+  "installedApkEqual": true,
+  "installedApkSha256": "7300f2aefeb8d5f90882655d46435b100a12531e16a7c70df4f81230f4160454",
+  "hostMicrophoneDisabledAfterBootAndAtFinalCheck": true,
+  "activeJobs": 0,
+  "registrations": 0,
+  "schema": 3,
+  "rendererSummary": [
+    "GLES: Google (NVIDIA Corporation), Android Emulator OpenGL ES Translator (NVIDIA GeForce RTX 3060 Laptop GPU/PCIe/SSE2), OpenGL ES 3.1 (4.5.0 NVIDIA 610.88)"
+  ],
+  "completedAtUtc": "2026-10-30T20:52:43.180429+00:00",
+  "privateEvidence": ".local/phase08-host-gpu-boot-20261030T205053952507Z",
+  "fullPreferencesEqual": true,
+  "preferenceComparisonBasis": "COMPLETE_EXPECTED_WORKING_PROFILE_ORIGINAL_BASELINE_WITH_PREDECLARED_LEAD_ZERO_ONLY",
+  "sourceBootRecord": {
+    "path": "docs/reports/evidence/phase-08-capture-fix-host-gpu-boot-20261030T205053952507Z.json",
+    "sha256": "27f7bfa5aef6ffb6ce1a45ae262b35186d92dd41c5b361adbefebd46dfe0f574"
+  },
+  "previousVerifiedWorkingProfile": {
+    "path": "docs/reports/evidence/phase-08-capture-fix-reviewed-cold2-after-wait-20261030T171520515816Z-e50d85.json",
+    "sha256": "680919a095924fe86df16c849d8af90b649e16a1b73eeb0da51b608d2570eee1"
+  },
+  "comparisonAliasOnlyNoAdditionalDeviceActions": true,
+  "notOriginalUserPreferenceRestoration": true
+}

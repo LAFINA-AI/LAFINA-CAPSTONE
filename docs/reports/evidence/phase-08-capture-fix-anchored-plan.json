@@ -1,0 +1,45 @@
+{
+  "kind": "PREDECLARED_REVIEWED_ANCHORED_COMPARISON",
+  "createdAtUtc": "2026-10-30T16:36:35.221509+00:00",
+  "cohorts": 2,
+  "perCohort": {
+    "A03": 1,
+    "V03": 2,
+    "V04": 2
+  },
+  "totalTrials": 10,
+  "coldBootEvidencePaths": [
+    "docs/reports/evidence/phase-08-capture-fix-anchored-cold-1.json",
+    "docs/reports/evidence/phase-08-capture-fix-anchored-cold-2.json"
+  ],
+  "labels": [
+    "reviewed-cold1",
+    "reviewed-cold2"
+  ],
+  "controller": ".local/phase08-capture-fix-reviewed-mic.py",
+  "dispatcher": ".local/phase08-capture-fix-reviewed-affected.py",
+  "inputs": {
+    "path": "docs/reports/evidence/phase-08-capture-fix-reviewed-inputs.json",
+    "sha256": "d78bd0416f442f59fde385914a71975aaee1a920bc44df354d2f326e14746d35"
+  },
+  "prerequisiteReview": {
+    "path": "docs/reports/evidence/phase-08-capture-fix-harness-review.json",
+    "sha256": "96ec785617070860cf56796a3d2785e3b2982c619d6a1219127f42eb13b2596d"
+  },
+  "samePinnedPcm": true,
+  "gainPermille": 500,
+  "paddingEachSideMs": 1000,
+  "extraOnsetDelayMs": 0,
+  "delivery": "MODE_REAL_TIME=1; <=200ms prefill; max(original20ms deadline,lastOffer+5ms); unchanged100ms packet/cumulative lag abort",
+  "nativeGateMs": 12000,
+  "productionCaptureCapMs": 15000,
+  "originalRingDeadlineMs": 60000,
+  "automaticRecording": false,
+  "hostInputEnableRequested": false,
+  "halfClosedInitializer": false,
+  "concurrentRouteDumps": false,
+  "failedEarlierExperimentsRetained": true,
+  "v05": "OWNER_DEFERRED_NOT_RUN",
+  "physicalDeviceValidation": "NOT_RUN",
+  "signedHumanReview": false
+}

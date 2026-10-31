@@ -1,0 +1,29 @@
+{
+  "kind": "ACTUAL_REMINDER_PINNED_SYNTHETIC_FIDELITY_DIAGNOSTIC",
+  "case": "A03",
+  "capture": {
+    "kind": "DATAQA_EXPLICIT_EMULATOR_SYNTHETIC_CAPTURE",
+    "cohort": "n20261029T235416876736Z",
+    "fixtureId": "acknowledge",
+    "sourceWavSha256": "e10b92f68d6a188bc19b44bd327aa91747d58d4a257510d786a14dc45a4e0a3c",
+    "createdAtUtc": "2026-10-29T23:55:38.438894Z",
+    "vocabulary": "REMINDER_RESPONSE",
+    "sampleRate": 16000,
+    "frames": 74752,
+    "pcmFile": "qa08-native-capture-n20261029T235416876736Z.pcm",
+    "bytes": 149504,
+    "sha256": "aa075db5d5c1659ce7c09fa034a67c516feb850eaf3d494793f9bb1632e959dd",
+    "nonzeroFrames": 36747,
+    "rms": 0.06728056269598864,
+    "peak": 0.5819702,
+    "physicalDeviceValidation": "NOT_RUN",
+    "rootMustFetchPrivatelyAndRemoveExactFiles": true
+  },
+  "caseControllerExitCode": 0,
+  "privateEvidence": ".local/phase08-fidelity-native-20261029T235416876736Z",
+  "transportGainPermille": 500,
+  "transportPaddingEachSideMs": 1000,
+  "exactOwnedDevicePcmAndMetadataRemoved": true,
+  "rawAudioOrHypothesisStoredPublicly": false,
+  "physicalDeviceValidation": "NOT_RUN"
+}

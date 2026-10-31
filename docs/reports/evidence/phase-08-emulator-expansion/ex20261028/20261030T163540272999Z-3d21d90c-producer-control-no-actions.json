@@ -1,0 +1,21 @@
+{
+  "schemaVersion": 1,
+  "runId": "ex20261028",
+  "invocation": "20261030T163540272999Z-3d21d90c",
+  "command": "producer-control-no-actions",
+  "startedAt": "2026-10-30T16:35:40.275803+00:00",
+  "status": "PASS",
+  "scope": "Intentional producer control; no recognition-accuracy claim",
+  "physicalAcceptance": "HUMAN_REQUIRED",
+  "events": [
+    {
+      "at": "2026-10-30T16:35:40.277251+00:00",
+      "event": "invocation_started"
+    }
+  ],
+  "limits": [
+    "Direct private Activity intents do not certify actual notification taps or full-screen delivery.",
+    "No live microphone, audibility, physical phone, OEM or battery acceptance is implied."
+  ],
+  "completedAt": "2026-10-30T16:35:40.845878+00:00"
+}

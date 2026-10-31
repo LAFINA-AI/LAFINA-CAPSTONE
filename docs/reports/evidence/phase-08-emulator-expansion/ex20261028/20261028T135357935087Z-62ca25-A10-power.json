@@ -1,0 +1,119 @@
+{
+  "kind": "PARENT_CONTROLLED_POWER_EMULATOR_CASE",
+  "case": "A10",
+  "runId": "ex20261028",
+  "status": "PASS",
+  "startedAtUtc": "2026-10-28T13:53:57.936164+00:00",
+  "events": [
+    {
+      "event": "fresh_power_baseline_captured",
+      "hostAtUtc": "2026-10-28T13:53:58.675083+00:00",
+      "elapsedMonotonicSeconds": 0.7389404999848921,
+      "battery": {
+        "AC powered": true,
+        "USB powered": false,
+        "Wireless powered": false,
+        "Dock powered": false,
+        "updatesStopped": false
+      },
+      "wakefulness": "Awake",
+      "saverFlags": {},
+      "deepIdle": "ACTIVE",
+      "forcedIdle": false
+    },
+    {
+      "event": "fixture_created_via_reviewed_chat",
+      "hostAtUtc": "2026-10-28T13:54:15.427038+00:00",
+      "elapsedMonotonicSeconds": 17.49089339998318,
+      "title": "QA08 EX ex20261028 A10offlinefinal",
+      "rows": [
+        {
+          "taskId": "task:cmd_mvs6e2e4_0_7mfw06pz6bp",
+          "taskStatus": "TODO",
+          "deletedAt": null,
+          "jobId": "job:reminder:task:cmd_mvs6e2e4_0_7mfw06pz6bp|2026-10-28T13:55:09.435Z",
+          "occurrenceKey": "task:cmd_mvs6e2e4_0_7mfw06pz6bp|2026-10-28T13:55:09.435Z",
+          "generation": 1,
+          "jobStatus": "PENDING",
+          "reminderStatus": "SCHEDULED",
+          "runAt": "2026-10-28T13:55:09.435Z",
+          "deadline": null,
+          "deliveryState": "REGISTERED",
+          "registrations": 1
+        }
+      ]
+    },
+    {
+      "event": "forced_doze_confirmed",
+      "hostAtUtc": "2026-10-28T13:54:18.575107+00:00",
+      "elapsedMonotonicSeconds": 20.638971899985336,
+      "deepIdle": "IDLE",
+      "timingCertified": false
+    },
+    {
+      "event": "due_state_while_forced_doze",
+      "hostAtUtc": "2026-10-28T13:55:20.553121+00:00",
+      "elapsedMonotonicSeconds": 82.61698869999964,
+      "rows": [
+        {
+          "taskId": "task:cmd_mvs6e2e4_0_7mfw06pz6bp",
+          "taskStatus": "TODO",
+          "deletedAt": null,
+          "jobId": "job:reminder:task:cmd_mvs6e2e4_0_7mfw06pz6bp|2026-10-28T13:55:09.435Z",
+          "occurrenceKey": "task:cmd_mvs6e2e4_0_7mfw06pz6bp|2026-10-28T13:55:09.435Z",
+          "generation": 1,
+          "jobStatus": "RINGING",
+          "reminderStatus": "RINGING",
+          "runAt": "2026-10-28T13:55:09.435Z",
+          "deadline": "2026-10-28T13:56:10.047Z",
+          "deliveryState": "REGISTERED",
+          "registrations": 1
+        }
+      ],
+      "timingCertified": false
+    },
+    {
+      "event": "actual_notification_reviewed_ack",
+      "hostAtUtc": "2026-10-28T13:55:45.554310+00:00",
+      "elapsedMonotonicSeconds": 107.61816889999318,
+      "rows": [
+        {
+          "taskId": "task:cmd_mvs6e2e4_0_7mfw06pz6bp",
+          "taskStatus": "TODO",
+          "deletedAt": null,
+          "jobId": "job:reminder:task:cmd_mvs6e2e4_0_7mfw06pz6bp|2026-10-28T13:55:09.435Z",
+          "occurrenceKey": "task:cmd_mvs6e2e4_0_7mfw06pz6bp|2026-10-28T13:55:09.435Z",
+          "generation": 1,
+          "jobStatus": "ACKNOWLEDGED",
+          "reminderStatus": "ACKNOWLEDGED",
+          "runAt": "2026-10-28T13:55:09.435Z",
+          "deadline": null,
+          "deliveryState": "UNAVAILABLE",
+          "registrations": 0
+        }
+      ],
+      "scope": "Forced Doze observation plus explicit wake/Main reconciliation recovery; no natural-idle or punctuality claim"
+    },
+    {
+      "event": "selected_power_baseline_restored",
+      "hostAtUtc": "2026-10-28T13:56:06.929942+00:00",
+      "elapsedMonotonicSeconds": 128.9938161999744,
+      "battery": {
+        "AC powered": true,
+        "USB powered": false,
+        "Wireless powered": false,
+        "Dock powered": false,
+        "updatesStopped": false
+      },
+      "wakefulness": "Awake",
+      "saverFlags": {},
+      "deepIdle": "ACTIVE",
+      "globalSettingsExact": true
+    }
+  ],
+  "physicalDeviceValidation": "NOT_RUN",
+  "restoration": "PASS",
+  "restorationErrors": [],
+  "completedAtUtc": "2026-10-28T13:56:06.931052+00:00",
+  "elapsedMonotonicSeconds": 128.9949066999834
+}

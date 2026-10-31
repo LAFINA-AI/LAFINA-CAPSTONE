@@ -1,0 +1,48 @@
+{
+  "kind": "PHASE08_GENERATED_ZERO_PRIMER_EXPERIMENT_PLAN",
+  "createdAtUtc": "2026-10-31T00:13:04.491444+00:00",
+  "attempts": 1,
+  "case": "V03",
+  "avd": "LAFINA_Phase08_API35",
+  "why": "Empty-header reservation stalled the SDK/guest before visible Recording. Test a nonempty, generated-zero primer while reserving the same synthetic channel; actual pinned stimulus remains behind fresh visible proof.",
+  "generatedSilenceBeforeProofOnly": true,
+  "sourceStimulusBytesBeforeVisibleProof": 0,
+  "hostMicrophoneEnableRequested": false,
+  "appMicrophoneStart": "Only the unchanged deliberate native pointer interaction; producer cannot start app recording",
+  "primerPreparationBounds": {
+    "maxWallMs": 20000,
+    "maxBytesOffered": 640000,
+    "packetPcmBytes": 640
+  },
+  "nativeGateMs": 12000,
+  "productionCaptureMs": 15000,
+  "independentSourceDeadlineUnchanged": true,
+  "samePinnedSourceGainPaddingAndStrictReference": true,
+  "hostTests": {
+    "pass": 6,
+    "total": 6,
+    "log": "docs/reports/evidence/phase-08-stable-primed-host-tests.log",
+    "sdkOrAudioDevicesUsed": false
+  },
+  "modelParserThresholdOrAppCodeChanged": false,
+  "emptyHeaderRejectedAndFailureRetained": true,
+  "physicalDeviceValidation": "NOT_RUN",
+  "sources": [
+    {
+      "path": ".local/phase08-primed-audio.mjs",
+      "sha256": "acd0f120a5ec403860097fc6f201dcb67d1700061eb6ce22ecba6bc0ad60b99c"
+    },
+    {
+      "path": ".local/phase08-primed-audio.test.mjs",
+      "sha256": "92615346291d7bbc88a18dff23211265d2af59febc7a11e442df0f79e44d3592"
+    },
+    {
+      "path": ".local/phase08-stable-primed-parent.py",
+      "sha256": "325451239f24d28d2cadac4757ee267a9beef8ce506b9465f624f648b9715639"
+    },
+    {
+      "path": ".local/phase08-stable-primed-diagnostic.py",
+      "sha256": "7a8c3ae22c8d24fd8849e4f50be10569f10e2c692d33e9fb9abe1030bb2820b5"
+    }
+  ]
+}

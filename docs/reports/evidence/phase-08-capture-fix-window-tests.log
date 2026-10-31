@@ -1,0 +1,14 @@
+✔ source deadline and final checks fit the native eight-second gate (1.4682ms)
+✔ last admissible ACK window includes the documented 300ms drain (1.3269ms)
+✔ late native READY cannot be made fresh by waiting longer (0.2238ms)
+✔ limited clock skew consumes reserve without extending the gate (0.2368ms)
+✔ invalid time and sample durations fail before a source can be submitted (0.4787ms)
+✔ import is inert and does not start discovery or microphone RPCs (79.9248ms)
+ℹ tests 6
+ℹ suites 0
+ℹ pass 6
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 218.4305

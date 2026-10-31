@@ -1,0 +1,3 @@
+{"case": "negative", "status": "PASS", "tests": 1}
+{"case": "native", "status": "PASS", "tests": 52}
+{"case": "general-corpus", "status": "PASS", "tests": 1}

@@ -1,0 +1,24 @@
+{
+  "kind": "PHASE08_STABLE_GUEST_FINAL_RESTORATION",
+  "status": "FAIL",
+  "startedAtUtc": "2026-10-31T02:41:37.469664+00:00",
+  "avd": "LAFINA_Phase08_API35",
+  "api": 35,
+  "runId": "st20261031",
+  "baseline": {
+    "path": ".local/phase08-emulator-suite/st20261031/baseline.json",
+    "sha256": "2e9cd7f56885524e955d6854d7abbc4e98a0c5855e2116a8c1bdbe21e518a05d"
+  },
+  "originalAvdTargeted": false,
+  "physicalDeviceValidation": "NOT_RUN",
+  "changes": [
+    "preferences/delivery restored through reviewed Settings UI (suite restore-preferences)",
+    "global.airplane_mode_on: 1 -> 0",
+    "global.wifi_on: 0 -> 1",
+    "global.mobile_data: 0 -> 1"
+  ],
+  "checks": {},
+  "reason": "AUDIO_STATE_DIFFERS_PRESERVED",
+  "completedAtUtc": "2026-10-31T02:42:02.765297+00:00",
+  "privateEvidence": ".local/phase08-stable-final-restore-20261031T024137466982Z"
+}

@@ -1,0 +1,63 @@
+{
+  "kind": "PARENT_SYNTHETIC_VISIBLE_MICROPHONE_CASE",
+  "case": "V04",
+  "status": "FAIL_OR_UNSUPPORTED_REVIEW_REQUIRED",
+  "startedAtUtc": "2026-10-30T16:08:34.518643+00:00",
+  "events": [
+    {
+      "event": "host_microphone_double_false_before",
+      "atUtc": "2026-10-30T16:08:34.619517+00:00",
+      "elapsedMonotonicSeconds": 0.10088829998858273,
+      "status": "HOST_MICROPHONE_DISABLED"
+    },
+    {
+      "event": "owned_fixture_before",
+      "atUtc": "2026-10-30T16:09:42.997463+00:00",
+      "elapsedMonotonicSeconds": 68.47883759997785,
+      "rows": [
+        {
+          "taskId": "task:cmd_mvv62qun_0_j7xjg7avyxp",
+          "taskStatus": "TODO",
+          "deletedAt": null,
+          "jobId": "job:reminder:task:cmd_mvv62qun_0_j7xjg7avyxp|2026-10-30T16:09:39.791Z",
+          "occurrenceKey": "task:cmd_mvv62qun_0_j7xjg7avyxp|2026-10-30T16:09:39.791Z",
+          "generation": 1,
+          "jobStatus": "RINGING",
+          "reminderStatus": "RINGING",
+          "runAt": "2026-10-30T16:09:39.791Z",
+          "deadline": "2026-10-30T16:10:40.086Z",
+          "deliveryState": "REGISTERED",
+          "registrations": 1
+        }
+      ]
+    },
+    {
+      "event": "real_visible_recording_stage_observed",
+      "atUtc": "2026-10-30T16:09:48.081116+00:00",
+      "elapsedMonotonicSeconds": 73.56249290000414,
+      "recordingVisible": true
+    }
+  ],
+  "rawTranscriptEmitted": false,
+  "rawTranscriptStoredInPublicEvidence": false,
+  "physicalSpeech": "NOT_RUN",
+  "audibility": "NOT_RUN",
+  "ttsInterruption": "NOT_RUN",
+  "scope": "Real visible hold/capture with only pinned synthetic PCM when explicitly selected; no live host input or physical speech acceptance",
+  "trialIndex": 1,
+  "requestedIndependentTrials": 1,
+  "syntheticInjectionDelayMs": 0,
+  "syntheticTransportPaddingEachSideMs": 1000,
+  "syntheticTransportGainPermille": 500,
+  "producerStrategy": "REALTIME_PACED_SINGLE_RPC_NATIVE_TIMESTAMP_NO_ROUTE_OBSERVER",
+  "syntheticRepeatAliasOf": "A06",
+  "reason": "PRIVATE_MICROPHONE_FAILURE_LOG_SAVED",
+  "errorType": "RuntimeError",
+  "gateCleanup": "EXACT_OWNED_MARKERS_REMOVED_OR_ABSENT",
+  "microphonePermissionRestoration": "EXACT_FRESH_BASELINE_VERIFIED",
+  "fixtureCleanup": "EXACT_OWNED_TITLE_REVIEWED_UI",
+  "hostMicrophoneDisabledAtEnd": true,
+  "completedAtUtc": "2026-10-30T16:10:01.381386+00:00",
+  "elapsedMonotonicSeconds": 86.86276679998264,
+  "privateEvidence": ".local/phase08-microphone-20261030T160834517963Z-V04"
+}

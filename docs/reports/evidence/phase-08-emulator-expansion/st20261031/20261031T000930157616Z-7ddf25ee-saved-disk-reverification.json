@@ -1,0 +1,21 @@
+{
+  "schemaVersion": 1,
+  "runId": "st20261031",
+  "invocation": "20261031T000930157616Z-7ddf25ee",
+  "command": "saved-disk-reverification",
+  "startedAt": "2026-10-31T00:09:30.158712+00:00",
+  "status": "PASS",
+  "scope": "Saved disk and privacy verification only; cleanup still required",
+  "physicalAcceptance": "HUMAN_REQUIRED",
+  "events": [
+    {
+      "at": "2026-10-31T00:09:30.161602+00:00",
+      "event": "invocation_started"
+    }
+  ],
+  "limits": [
+    "Direct private Activity intents do not certify actual notification taps or full-screen delivery.",
+    "No live microphone, audibility, physical phone, OEM or battery acceptance is implied."
+  ],
+  "completedAt": "2026-10-31T00:09:31.009476+00:00"
+}

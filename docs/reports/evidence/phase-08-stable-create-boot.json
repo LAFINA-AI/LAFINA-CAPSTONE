@@ -1,0 +1,14 @@
+{
+  "kind": "PHASE08_SEPARATE_STABLE_AVD_CREATION",
+  "status": "FAIL",
+  "startedAtUtc": "2026-10-30T22:55:51.284583+00:00",
+  "avd": "LAFINA_Phase08_API35",
+  "serial": "emulator-5554",
+  "physicalDeviceValidation": "NOT_RUN",
+  "originalAvd": "Medium_Phone",
+  "originalDataCopiedOrReplaced": false,
+  "originalAppInstallOrResetIssued": false,
+  "events": [],
+  "reason": "ISOLATED_AVD_CREATE_FAILED",
+  "completedAtUtc": "2026-10-30T22:56:08.122383+00:00"
+}

@@ -1,0 +1,52 @@
+{
+  "device": "Medium_Phone / sdk_gphone16k_x86_64 / API37 beta / 16KiB",
+  "build": "0.8.0-data-qa / code11",
+  "scope": "Actual emulator UI and storage; no physical/live speech/audibility acceptance",
+  "events": [
+    {
+      "check": "created QA08 native ack",
+      "status": "PASS",
+      "state": [
+        {
+          "taskId": "task:cmd_mvquzu8r_0_bae57kl9rvd",
+          "taskStatus": "TODO",
+          "deletedAt": null,
+          "jobId": "job:reminder:task:cmd_mvquzu8r_0_bae57kl9rvd|2026-10-27T15:49:23.697Z",
+          "occurrenceKey": "task:cmd_mvquzu8r_0_bae57kl9rvd|2026-10-27T15:49:23.697Z",
+          "generation": 1,
+          "jobStatus": "PENDING",
+          "reminderStatus": "SCHEDULED",
+          "runAt": "2026-10-27T15:49:23.697Z",
+          "deadline": null,
+          "deliveryState": "UNAVAILABLE",
+          "registrations": 0
+        }
+      ]
+    },
+    {
+      "check": "Answer without ACK or automatic recording QA08 native ack",
+      "status": "PASS",
+      "state": [
+        {
+          "taskId": "task:cmd_mvquzu8r_0_bae57kl9rvd",
+          "taskStatus": "TODO",
+          "deletedAt": null,
+          "jobId": "job:reminder:task:cmd_mvquzu8r_0_bae57kl9rvd|2026-10-27T15:49:23.697Z",
+          "occurrenceKey": "task:cmd_mvquzu8r_0_bae57kl9rvd|2026-10-27T15:49:23.697Z",
+          "generation": 1,
+          "jobStatus": "RINGING",
+          "reminderStatus": "RINGING",
+          "runAt": "2026-10-27T15:49:23.697Z",
+          "deadline": "2026-10-27T15:50:23.863Z",
+          "deliveryState": "REGISTERED",
+          "registrations": 1
+        }
+      ]
+    },
+    {
+      "check": "flow interrupted",
+      "status": "FAIL",
+      "error": "Control not found: Response not understood"
+    }
+  ]
+}

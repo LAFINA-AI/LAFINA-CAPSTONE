@@ -1,0 +1,25 @@
+INSTRUMENTATION_STATUS: class=com.lafina.capstone.voice.Phase08VoiceProbeTest
+INSTRUMENTATION_STATUS: current=1
+INSTRUMENTATION_STATUS: id=AndroidJUnitRunner
+INSTRUMENTATION_STATUS: numtests=1
+INSTRUMENTATION_STATUS: stream=
+com.lafina.capstone.voice.Phase08VoiceProbeTest:
+INSTRUMENTATION_STATUS: test=probeForegroundOfflineSpeech
+INSTRUMENTATION_STATUS_CODE: 1
+INSTRUMENTATION_STATUS: phase08_voice_probe={"kind":"PHASE08_REAL_SYSTEM_TTS_FOREGROUND_CAPABILITY_PROBE","mode":"cancel_init","status":"UNAVAILABLE","api":37,"model":"sdk_gphone16k_x86_64","abis":["x86_64","arm64-v8a"],"languageTag":"en-US","microphoneOpened":false,"voiceDownloaded":false,"physicalAudibilityVerified":false,"textKind":"FIXED_SYNTHETIC_QA08","foregroundEvidence":"MainActivity_RESUMED_AND_ACTIVE_WINDOW_PACKAGE","foregroundConfirmed":true,"inventory":{"available":false,"reason":"USER_STOPPED","enginePackage":null,"engines":[],"voices":[],"selectedVoiceName":null,"initializationMs":null},"reason":"USER_STOPPED","playbackAttempted":false,"events":[],"totalProbeMs":1364}
+INSTRUMENTATION_STATUS_CODE: 0
+INSTRUMENTATION_STATUS: class=com.lafina.capstone.voice.Phase08VoiceProbeTest
+INSTRUMENTATION_STATUS: current=1
+INSTRUMENTATION_STATUS: id=AndroidJUnitRunner
+INSTRUMENTATION_STATUS: numtests=1
+INSTRUMENTATION_STATUS: stream=.
+INSTRUMENTATION_STATUS: test=probeForegroundOfflineSpeech
+INSTRUMENTATION_STATUS_CODE: 0
+INSTRUMENTATION_RESULT: stream=
+
+Time: 2.98
+
+OK (1 test)
+
+
+INSTRUMENTATION_CODE: -1

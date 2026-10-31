@@ -1,0 +1,200 @@
+{
+  "kind": "PHASE08_FINAL_HOST_INTEGRITY",
+  "scope": "INTEGRITY_ONLY",
+  "status": "PASS",
+  "startedAtUtc": "2026-10-29T14:33:41.473822+00:00",
+  "phaseNotPassed": true,
+  "stableOfflineReleaseApproved": false,
+  "physicalDeviceValidation": "NOT_RUN",
+  "liveHumanSpeechCertified": false,
+  "checks": [
+    {
+      "check": "source_and_apk_ledgers",
+      "status": "PASS",
+      "sourceLedger": "docs/reports/evidence/phase-08-remaining-relative-source-hashes-final.json",
+      "artifactLedger": "docs/reports/evidence/phase-08-remaining-relative-artifacts-final.json",
+      "sourceFilesVerified": 31,
+      "apkFilesVerified": 7,
+      "candidateSha256": "7300f2aefeb8d5f90882655d46435b100a12531e16a7c70df4f81230f4160454"
+    },
+    {
+      "check": "final_restoration_and_closed_matrix",
+      "status": "PASS",
+      "matrixStatus": "CLOSED_EMULATOR_EVIDENCE_PHYSICAL_PENDING",
+      "statusCountsVerified": {
+        "PASS": 47,
+        "NOT_RUN": 1
+      },
+      "physicalCountsZero": true,
+      "candidateHashMatches": true,
+      "installedTargetMatches": true,
+      "originalAsrCasesNowPass": [
+        "A03",
+        "A06"
+      ],
+      "historicalFailuresPreserved": true,
+      "phaseNotPassed": true
+    },
+    {
+      "check": "public_json_syntax",
+      "status": "PASS",
+      "publicJsonFilesParsed": 685,
+      "historicalNonterminalRecordsRetained": 1
+    },
+    {
+      "check": "current_document_links_and_gates",
+      "status": "PASS",
+      "documentsVerified": [
+        {
+          "path": "docs/02-ARCHITECTURE.md",
+          "sha256": "27c395e726ccecff14e678208bd9e8ae1fa5dc19a6d25513990ceb84293e8ecd",
+          "localLinksChecked": 32
+        },
+        {
+          "path": "docs/benchmarks/phase-08-device-protocol.md",
+          "sha256": "07104649654adc9fe063eca0bbc0573806bb969c228ae72d542aad1464671ec5",
+          "localLinksChecked": 1
+        },
+        {
+          "path": "docs/benchmarks/phase-08-emulator-voice-protocol.md",
+          "sha256": "2229f26c7f4b3a4e1c043f3643244c04397bc82a5c30147950b1ca0e85b98e58",
+          "localLinksChecked": 1
+        },
+        {
+          "path": "docs/decisions/ADR-023-foreground-reminder-response.md",
+          "sha256": "0ccefb6a81b46bdb408f871d3613c566caa1719e3edeb9a7114e460df990dc96",
+          "localLinksChecked": 4
+        },
+        {
+          "path": "docs/decisions/ADR-024-reminder-speech-vocabulary.md",
+          "sha256": "840d88c2d003126ee2127d42012dd6a5803747aa4f0f8b93e136c665b01e3065",
+          "localLinksChecked": 7
+        },
+        {
+          "path": "docs/phase-08-offline-loop.md",
+          "sha256": "57bcaa42c8589fd192e66947ab2c43fe7f481c90a0e19c9ec28d915a567e839b",
+          "localLinksChecked": 7
+        },
+        {
+          "path": "docs/reports/CURRENT-STATUS.md",
+          "sha256": "5f7c3634f1dc84fb32ec0fcbd74ce47d2c3910acd1683cd62c7e5867b11ac441",
+          "localLinksChecked": 18
+        },
+        {
+          "path": "docs/reports/evidence/phase-08-notification-harness-finding.md",
+          "sha256": "1248d7b4aff1853d0e4227035615bcf050e66de552c7c914cc9e13b77af5e606",
+          "localLinksChecked": 4
+        },
+        {
+          "path": "docs/reports/evidence/phase-08-remaining-audio-transport-finding.md",
+          "sha256": "5d4658dd21e01a0448d66c1d594fc634c4942941a694d93627185873c113e37a",
+          "localLinksChecked": 9
+        },
+        {
+          "path": "docs/reports/evidence/phase-08-reminder-reopen-finding.md",
+          "sha256": "e6f2f45d7826eb4ca4fb5d72ca6593f2eded3cfd9a59e7b2fec9899084825d13",
+          "localLinksChecked": 11
+        },
+        {
+          "path": "docs/reports/phase-08-emulator-expansion-report.md",
+          "sha256": "6537a4c82ff5de3eea7d20e8e964269fc6f8f676cf49e9c952621d99047c6068",
+          "localLinksChecked": 43
+        },
+        {
+          "path": "docs/reports/phase-08-offline-core-release-gate.md",
+          "sha256": "9697e491cd32ff7d238db7d28da0c39455b92015dc48899429f3f6eab7de6574",
+          "localLinksChecked": 4
+        },
+        {
+          "path": "docs/reports/phase-08-remaining-emulator-report.md",
+          "sha256": "0e206e4cb6a545945d4475087d15f0692b11c2eca8eeacba78e1ce84c2251f47",
+          "localLinksChecked": 40
+        },
+        {
+          "path": "docs/reports/phase-08-report.md",
+          "sha256": "9ee884bc5c6cad41f2b113a455a2b1bae23fccf90b18c5cab102178e19203b5a",
+          "localLinksChecked": 49
+        },
+        {
+          "path": "docs/reports/phase-08-speech-correction-report.md",
+          "sha256": "95064f20b4e51fd2561b7a7b1a59071ee92bbf9604072de6b2ec2ef3417b455b",
+          "localLinksChecked": 46
+        },
+        {
+          "path": "qa/PHASE-08-EMULATOR-EXPANSION.md",
+          "sha256": "65ac1ee36cf422cee6445303483c9a1db12f8ece4f590a8da57ec0deef001ed4",
+          "localLinksChecked": 6
+        },
+        {
+          "path": "qa/PHASE-08-EXECUTION.md",
+          "sha256": "1c03f289c45838892939bcc77ba93825ff9810eb208d80818ff591931ff5fe98",
+          "localLinksChecked": 6
+        },
+        {
+          "path": "qa/PHASE-08-MANUAL.md",
+          "sha256": "b5cc642df296bc43fb1572a82032916559da0cb889cc6c88915ac90f94594988",
+          "localLinksChecked": 4
+        },
+        {
+          "path": "qa/REQUIREMENTS-MATRIX.md",
+          "sha256": "187a4d29f05efb04efe245b710c8029c1cbef300ce319e1de4f67eac645090a0",
+          "localLinksChecked": 13
+        },
+        {
+          "path": "README.md",
+          "sha256": "0ace6ddf0008e3df89ce3b22f8c7e7b89c786011a39e55fae2052beaf4339899",
+          "localLinksChecked": 48
+        }
+      ],
+      "physicalRowsStillNotRun": 48,
+      "humanGateUnsigned": true
+    },
+    {
+      "check": "git_identity_whitespace_and_artifact_names",
+      "status": "PASS",
+      "branch": "codex/phase-07-audit-hardening",
+      "head": "98bef88c3ae0fabee677c1466417fc34c0af738c",
+      "dirtyWorkingTreeExpected": true,
+      "gitDiffCheckPassed": true,
+      "gitVisiblePathsScreened": 2210,
+      "filenameScreenOnly": true,
+      "ignoredPrivateArtifactsExcludedByGit": true
+    }
+  ],
+  "errors": [],
+  "limits": [
+    "Integrity does not mean all emulator scenarios passed or that the offline phase passed.",
+    "Historical nonterminal JSON labels are retained, not treated as currently running processes.",
+    "Filename screening is not a content-level secret or personal-data audit.",
+    "No device interaction, build/test rerun, publication or source rewrite occurs here."
+  ],
+  "v05OwnerDeferred": true,
+  "remainingCaseCounts": {
+    "PASS": 9,
+    "NOT_RUN": 1
+  },
+  "priorAsrFailuresPreserved": [
+    "A03",
+    "A06"
+  ],
+  "physicalSpeechAcceptance": "NOT_RUN",
+  "matrixCounts": {
+    "alarmCases": 36,
+    "voiceCases": 12,
+    "emulatorPass": 47,
+    "emulatorFail": 0,
+    "emulatorNotRun": 1,
+    "certifiedPhysicalAlarms": 0,
+    "certifiedLiveHumanVoiceInteractions": 0
+  },
+  "historicalNonterminalEvidenceRecords": [
+    {
+      "path": "docs/reports/evidence/phase-08-remaining-case-ledger-interim.json",
+      "recordedStatus": "RUNNING",
+      "interpretation": "Historical unfinished evidence record; no live-process claim"
+    }
+  ],
+  "missingLocalMarkdownLinks": [],
+  "suspiciousGitVisibleArtifactPaths": [],
+  "completedAtUtc": "2026-10-29T14:33:53.325825+00:00"
+}

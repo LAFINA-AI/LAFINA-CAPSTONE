@@ -1,0 +1,16 @@
+{
+  "kind": "PHASE08_STABLE_PRIMER_SAVED_DISK_REVERIFICATION",
+  "startedAtUtc": "2026-10-31T00:24:57.858501+00:00",
+  "status": "PASS",
+  "originalAvdTargeted": false,
+  "resetUninstallOrDataReplacement": false,
+  "schema": 3,
+  "databaseQuickCheck": "ok",
+  "privateSnapshot": ".local/phase08-emulator-suite/st20261031/20261031T002457859608Z-9dfcf86c/snapshot-1/snapshot.sqlite",
+  "snapshotSha256": "1554af1ee6cac0c3f1fcbd6aefb02e9bc3da794e8f929e71a7ad486f26e2ad36",
+  "hostMicrophoneDisabled": true,
+  "exactOwnedFixtureReviewedRemoval": true,
+  "activeJobs": 0,
+  "registrations": 0,
+  "completedAtUtc": "2026-10-31T00:25:13.799129+00:00"
+}

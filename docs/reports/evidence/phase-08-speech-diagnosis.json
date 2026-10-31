@@ -1,0 +1,360 @@
+{
+  "kind": "PHASE08_SPOKEN_RESPONSE_DIAGNOSIS",
+  "recordedAtUtc": "2026-10-28T23:17:48.026312+00:00",
+  "physicalDeviceValidation": "NOT_RUN",
+  "fixedAudioManifest": "docs/benchmarks/phase-08-synthetic-response-audio.json",
+  "variants": [
+    {
+      "candidate": "GENERAL_GREEDY_UNHINTED",
+      "additionalPaddingEachSideMs": 0,
+      "observation": {
+        "kind": "PHASE08_DIRECT_PINNED_RESPONSE_DECODER_NOT_MICROPHONE",
+        "status": "SYNTHETIC_REFERENCE_MISMATCH",
+        "api": 37,
+        "deviceModel": "sdk_gphone16k_x86_64",
+        "appVersion": "0.8.0-data-qa",
+        "samples": [
+          {
+            "id": "acknowledge",
+            "outcome": "RESULT",
+            "normalizedExactRef": false,
+            "normalizedSha256": "30598fc529e49dff373887b2fdc2eaff1bd00000c6ba0ace29e69a8107880f81",
+            "charCount": 25,
+            "normalizedIsAcknowledged": false,
+            "normalizedIsAcknowledge": false,
+            "commandParsedExpected": false,
+            "audioDurationMs": 2255,
+            "totalPrepareLoadDecodeMs": 4693
+          },
+          {
+            "id": "snooze",
+            "outcome": "RESULT",
+            "normalizedExactRef": false,
+            "normalizedSha256": "6095e7ca6ecd777604a4a91968d301086da858c594db2ac8f9c004a123daf52d",
+            "charCount": 20,
+            "normalizedIsAcknowledged": false,
+            "normalizedIsAcknowledge": false,
+            "commandParsedExpected": false,
+            "audioDurationMs": 2320,
+            "totalPrepareLoadDecodeMs": 4501
+          }
+        ],
+        "modelSha256": "818710568da3ca15689e31a743197b520007872ff9576237bda97bd1b469c3d7",
+        "normalization": "ASCII lowercase; replace non-alphanumeric/non-space with spaces; collapse whitespace",
+        "microphoneOpened": false,
+        "actionsExecuted": false,
+        "rawTranscriptEmitted": true,
+        "syntheticPaddingEachSideMs": 0,
+        "limits": "Two fixed synthetic Zira clips; direct decoder only. No capture/transport, human speech, audibility, physical-phone or model-change claim.",
+        "allDecoded": true,
+        "allNormalizedReferencesExact": false,
+        "rawTranscriptStoredInPublicEvidence": false
+      }
+    },
+    {
+      "candidate": "GENERAL_GREEDY_UNHINTED",
+      "additionalPaddingEachSideMs": 250,
+      "observation": {
+        "kind": "PHASE08_DIRECT_PINNED_RESPONSE_DECODER_NOT_MICROPHONE",
+        "status": "SYNTHETIC_REFERENCE_MISMATCH",
+        "api": 37,
+        "deviceModel": "sdk_gphone16k_x86_64",
+        "appVersion": "0.8.0-data-qa",
+        "samples": [
+          {
+            "id": "acknowledge",
+            "outcome": "RESULT",
+            "normalizedExactRef": false,
+            "normalizedSha256": "409fa8d2e03b0ef1d9d20165ced591e3e85eb657330416b30ac3ac9578459878",
+            "charCount": 23,
+            "normalizedIsAcknowledged": false,
+            "normalizedIsAcknowledge": false,
+            "commandParsedExpected": false,
+            "audioDurationMs": 2255,
+            "totalPrepareLoadDecodeMs": 4411
+          },
+          {
+            "id": "snooze",
+            "outcome": "RESULT",
+            "normalizedExactRef": false,
+            "normalizedSha256": "6095e7ca6ecd777604a4a91968d301086da858c594db2ac8f9c004a123daf52d",
+            "charCount": 20,
+            "normalizedIsAcknowledged": false,
+            "normalizedIsAcknowledge": false,
+            "commandParsedExpected": false,
+            "audioDurationMs": 2320,
+            "totalPrepareLoadDecodeMs": 4670
+          }
+        ],
+        "modelSha256": "818710568da3ca15689e31a743197b520007872ff9576237bda97bd1b469c3d7",
+        "normalization": "ASCII lowercase; replace non-alphanumeric/non-space with spaces; collapse whitespace",
+        "microphoneOpened": false,
+        "actionsExecuted": false,
+        "rawTranscriptEmitted": true,
+        "syntheticPaddingEachSideMs": 250,
+        "limits": "Two fixed synthetic Zira clips; direct decoder only. No capture/transport, human speech, audibility, physical-phone or model-change claim.",
+        "allDecoded": true,
+        "allNormalizedReferencesExact": false,
+        "rawTranscriptStoredInPublicEvidence": false
+      }
+    },
+    {
+      "candidate": "GENERAL_GREEDY_UNHINTED",
+      "additionalPaddingEachSideMs": 500,
+      "observation": {
+        "kind": "PHASE08_DIRECT_PINNED_RESPONSE_DECODER_NOT_MICROPHONE",
+        "status": "SYNTHETIC_REFERENCE_MISMATCH",
+        "api": 37,
+        "deviceModel": "sdk_gphone16k_x86_64",
+        "appVersion": "0.8.0-data-qa",
+        "samples": [
+          {
+            "id": "acknowledge",
+            "outcome": "RESULT",
+            "normalizedExactRef": false,
+            "normalizedSha256": "30598fc529e49dff373887b2fdc2eaff1bd00000c6ba0ace29e69a8107880f81",
+            "charCount": 25,
+            "normalizedIsAcknowledged": false,
+            "normalizedIsAcknowledge": false,
+            "commandParsedExpected": false,
+            "audioDurationMs": 2255,
+            "totalPrepareLoadDecodeMs": 4529
+          },
+          {
+            "id": "snooze",
+            "outcome": "RESULT",
+            "normalizedExactRef": false,
+            "normalizedSha256": "6095e7ca6ecd777604a4a91968d301086da858c594db2ac8f9c004a123daf52d",
+            "charCount": 20,
+            "normalizedIsAcknowledged": false,
+            "normalizedIsAcknowledge": false,
+            "commandParsedExpected": false,
+            "audioDurationMs": 2320,
+            "totalPrepareLoadDecodeMs": 4399
+          }
+        ],
+        "modelSha256": "818710568da3ca15689e31a743197b520007872ff9576237bda97bd1b469c3d7",
+        "normalization": "ASCII lowercase; replace non-alphanumeric/non-space with spaces; collapse whitespace",
+        "microphoneOpened": false,
+        "actionsExecuted": false,
+        "rawTranscriptEmitted": true,
+        "syntheticPaddingEachSideMs": 500,
+        "limits": "Two fixed synthetic Zira clips; direct decoder only. No capture/transport, human speech, audibility, physical-phone or model-change claim.",
+        "allDecoded": true,
+        "allNormalizedReferencesExact": false,
+        "rawTranscriptStoredInPublicEvidence": false
+      }
+    },
+    {
+      "candidate": "GENERAL_GREEDY_UNHINTED",
+      "additionalPaddingEachSideMs": 1000,
+      "observation": {
+        "kind": "PHASE08_DIRECT_PINNED_RESPONSE_DECODER_NOT_MICROPHONE",
+        "status": "SYNTHETIC_REFERENCE_MISMATCH",
+        "api": 37,
+        "deviceModel": "sdk_gphone16k_x86_64",
+        "appVersion": "0.8.0-data-qa",
+        "samples": [
+          {
+            "id": "acknowledge",
+            "outcome": "RESULT",
+            "normalizedExactRef": false,
+            "normalizedSha256": "30598fc529e49dff373887b2fdc2eaff1bd00000c6ba0ace29e69a8107880f81",
+            "charCount": 25,
+            "normalizedIsAcknowledged": false,
+            "normalizedIsAcknowledge": false,
+            "commandParsedExpected": false,
+            "audioDurationMs": 2255,
+            "totalPrepareLoadDecodeMs": 4855
+          },
+          {
+            "id": "snooze",
+            "outcome": "RESULT",
+            "normalizedExactRef": false,
+            "normalizedSha256": "79f92bb0a0594af00ac541b8a9bfb4675c5c1803e64eaffbf9b682cb0e4ed743",
+            "charCount": 22,
+            "normalizedIsAcknowledged": false,
+            "normalizedIsAcknowledge": false,
+            "commandParsedExpected": false,
+            "audioDurationMs": 2320,
+            "totalPrepareLoadDecodeMs": 5544
+          }
+        ],
+        "modelSha256": "818710568da3ca15689e31a743197b520007872ff9576237bda97bd1b469c3d7",
+        "normalization": "ASCII lowercase; replace non-alphanumeric/non-space with spaces; collapse whitespace",
+        "microphoneOpened": false,
+        "actionsExecuted": false,
+        "rawTranscriptEmitted": true,
+        "syntheticPaddingEachSideMs": 1000,
+        "limits": "Two fixed synthetic Zira clips; direct decoder only. No capture/transport, human speech, audibility, physical-phone or model-change claim.",
+        "allDecoded": true,
+        "allNormalizedReferencesExact": false,
+        "rawTranscriptStoredInPublicEvidence": false
+      }
+    },
+    {
+      "candidate": "REMINDER_HINT_BEAM3_BEFORE_PRODUCTION_PADDING",
+      "additionalPaddingEachSideMs": 250,
+      "observation": {
+        "kind": "PHASE08_DIRECT_PINNED_RESPONSE_DECODER_NOT_MICROPHONE",
+        "status": "EXACT_SYNTHETIC_REFERENCES",
+        "api": 37,
+        "deviceModel": "sdk_gphone16k_x86_64",
+        "appVersion": "0.8.0-data-qa",
+        "samples": [
+          {
+            "id": "acknowledge",
+            "outcome": "RESULT",
+            "normalizedExactRef": true,
+            "normalizedExpectedResponse": true,
+            "normalizedSha256": "3ff7afe3c554c78bf5659e1bd62f0f752db537ac3ef41828ab34327e4d41b41c",
+            "charCount": 26,
+            "normalizedIsAcknowledged": false,
+            "normalizedIsAcknowledge": false,
+            "commandParsedExpected": true,
+            "audioDurationMs": 2255,
+            "totalPrepareLoadDecodeMs": 5963
+          },
+          {
+            "id": "snooze",
+            "outcome": "RESULT",
+            "normalizedExactRef": true,
+            "normalizedExpectedResponse": true,
+            "normalizedSha256": "d5be13051081b4297756b7a891183d265913606d8b87d5bdf9486c18833ded0f",
+            "charCount": 23,
+            "normalizedIsAcknowledged": false,
+            "normalizedIsAcknowledge": false,
+            "commandParsedExpected": true,
+            "audioDurationMs": 2320,
+            "totalPrepareLoadDecodeMs": 5710
+          }
+        ],
+        "modelSha256": "818710568da3ca15689e31a743197b520007872ff9576237bda97bd1b469c3d7",
+        "normalization": "ASCII lowercase; replace non-alphanumeric/non-space with spaces; collapse whitespace",
+        "microphoneOpened": false,
+        "actionsExecuted": false,
+        "rawTranscriptEmitted": true,
+        "syntheticPaddingEachSideMs": 250,
+        "vocabulary": "REMINDER_RESPONSE",
+        "limits": "Two fixed synthetic Zira clips; direct decoder only. No capture/transport, human speech, audibility, physical-phone or model-change claim.",
+        "allDecoded": true,
+        "allNormalizedReferencesExact": true,
+        "allExpectedResponsesMatched": true,
+        "rawTranscriptStoredInPublicEvidence": false
+      }
+    },
+    {
+      "candidate": "REMINDER_HINT_BEAM3_BEFORE_PRODUCTION_PADDING",
+      "additionalPaddingEachSideMs": 500,
+      "observation": {
+        "kind": "PHASE08_DIRECT_PINNED_RESPONSE_DECODER_NOT_MICROPHONE",
+        "status": "SYNTHETIC_REFERENCE_MISMATCH",
+        "api": 37,
+        "deviceModel": "sdk_gphone16k_x86_64",
+        "appVersion": "0.8.0-data-qa",
+        "samples": [
+          {
+            "id": "acknowledge",
+            "outcome": "RESULT",
+            "normalizedExactRef": false,
+            "normalizedExpectedResponse": false,
+            "normalizedSha256": "30598fc529e49dff373887b2fdc2eaff1bd00000c6ba0ace29e69a8107880f81",
+            "charCount": 25,
+            "normalizedIsAcknowledged": false,
+            "normalizedIsAcknowledge": false,
+            "commandParsedExpected": false,
+            "audioDurationMs": 2255,
+            "totalPrepareLoadDecodeMs": 5702
+          },
+          {
+            "id": "snooze",
+            "outcome": "RESULT",
+            "normalizedExactRef": true,
+            "normalizedExpectedResponse": true,
+            "normalizedSha256": "d5be13051081b4297756b7a891183d265913606d8b87d5bdf9486c18833ded0f",
+            "charCount": 23,
+            "normalizedIsAcknowledged": false,
+            "normalizedIsAcknowledge": false,
+            "commandParsedExpected": true,
+            "audioDurationMs": 2320,
+            "totalPrepareLoadDecodeMs": 5583
+          }
+        ],
+        "modelSha256": "818710568da3ca15689e31a743197b520007872ff9576237bda97bd1b469c3d7",
+        "normalization": "ASCII lowercase; replace non-alphanumeric/non-space with spaces; collapse whitespace",
+        "microphoneOpened": false,
+        "actionsExecuted": false,
+        "rawTranscriptEmitted": true,
+        "syntheticPaddingEachSideMs": 500,
+        "vocabulary": "REMINDER_RESPONSE",
+        "limits": "Two fixed synthetic Zira clips; direct decoder only. No capture/transport, human speech, audibility, physical-phone or model-change claim.",
+        "allDecoded": true,
+        "allNormalizedReferencesExact": false,
+        "allExpectedResponsesMatched": false,
+        "rawTranscriptStoredInPublicEvidence": false
+      }
+    },
+    {
+      "candidate": "REMINDER_HINT_BEAM3_BEFORE_PRODUCTION_PADDING",
+      "additionalPaddingEachSideMs": 1000,
+      "observation": {
+        "kind": "PHASE08_DIRECT_PINNED_RESPONSE_DECODER_NOT_MICROPHONE",
+        "status": "SYNTHETIC_REFERENCE_MISMATCH",
+        "api": 37,
+        "deviceModel": "sdk_gphone16k_x86_64",
+        "appVersion": "0.8.0-data-qa",
+        "samples": [
+          {
+            "id": "acknowledge",
+            "outcome": "RESULT",
+            "normalizedExactRef": false,
+            "normalizedExpectedResponse": false,
+            "normalizedSha256": "30598fc529e49dff373887b2fdc2eaff1bd00000c6ba0ace29e69a8107880f81",
+            "charCount": 25,
+            "normalizedIsAcknowledged": false,
+            "normalizedIsAcknowledge": false,
+            "commandParsedExpected": false,
+            "audioDurationMs": 2255,
+            "totalPrepareLoadDecodeMs": 5510
+          },
+          {
+            "id": "snooze",
+            "outcome": "RESULT",
+            "normalizedExactRef": true,
+            "normalizedExpectedResponse": true,
+            "normalizedSha256": "d5be13051081b4297756b7a891183d265913606d8b87d5bdf9486c18833ded0f",
+            "charCount": 23,
+            "normalizedIsAcknowledged": false,
+            "normalizedIsAcknowledge": false,
+            "commandParsedExpected": true,
+            "audioDurationMs": 2320,
+            "totalPrepareLoadDecodeMs": 5318
+          }
+        ],
+        "modelSha256": "818710568da3ca15689e31a743197b520007872ff9576237bda97bd1b469c3d7",
+        "normalization": "ASCII lowercase; replace non-alphanumeric/non-space with spaces; collapse whitespace",
+        "microphoneOpened": false,
+        "actionsExecuted": false,
+        "rawTranscriptEmitted": true,
+        "syntheticPaddingEachSideMs": 1000,
+        "vocabulary": "REMINDER_RESPONSE",
+        "limits": "Two fixed synthetic Zira clips; direct decoder only. No capture/transport, human speech, audibility, physical-phone or model-change claim.",
+        "allDecoded": true,
+        "allNormalizedReferencesExact": false,
+        "allExpectedResponsesMatched": false,
+        "rawTranscriptStoredInPublicEvidence": false
+      }
+    }
+  ],
+  "otherCandidates": [
+    "docs/reports/evidence/phase-08-speech-decoder-hinted-initial.json",
+    "docs/reports/evidence/phase-08-speech-decoder-beam-initial.json",
+    "docs/reports/evidence/phase-08-speech-decoder-boundary-initial.json"
+  ],
+  "limits": [
+    "No raw hypotheses or audio in this public diagnostic. All inputs are fixed pinned synthetic clips.",
+    "Greedy padding alone failed; hint alone fixed only snooze; beam without boundary context still failed ACK.",
+    "A successful single alignment does not establish robustness to capture timing or human speech.",
+    "Audio-disabled emulator captures are not decoder-quality failures and remain separate failed attempts."
+  ]
+}

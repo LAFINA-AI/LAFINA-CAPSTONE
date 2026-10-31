@@ -1,0 +1,62 @@
+{
+  "kind": "PHASE08_STABLE_FOLLOWUP_SOURCE_AND_ARTIFACT_LEDGER",
+  "createdAtUtc": "2026-10-31T02:46:43.415307+00:00",
+  "baseHead": "98bef88c3ae0fabee677c1466417fc34c0af738c",
+  "reviewedSources": {
+    "ledger": "docs/reports/evidence/phase-08-capture-fix-source-hashes-final.json",
+    "count": 33,
+    "allEqual": true
+  },
+  "hostApks": {
+    "ledger": "docs/reports/evidence/phase-08-capture-fix-artifacts-final.json",
+    "count": 7,
+    "allEqual": true
+  },
+  "installedCandidateBothGuests": {
+    "com.lafina.capstone": "7300f2aefeb8d5f90882655d46435b100a12531e16a7c70df4f81230f4160454",
+    "com.lafina.capstone.test (API35 guest)": "abb103afe1dab0bef0646734d126391a355cf2a1a7fb664401544db57b71b0a9"
+  },
+  "installedEvidence": [
+    "docs/reports/evidence/phase-08-stable-nullaudio1-boot.json",
+    "docs/reports/evidence/phase-08-stable-original-after.json"
+  ],
+  "productionTestOrPublicHarnessSourceChanged": false,
+  "newCandidateBuilt": false,
+  "modelChanged": false,
+  "newPrivateIgnoredHelpers": [
+    {
+      "path": ".local/phase08_hal_integrity.py",
+      "sha256": "3cd6db5b9df180e110f083eb3a2dcd19e861393726387adeb4ccc1704f74ec36"
+    },
+    {
+      "path": ".local/phase08-stable-hal-retrospective.py",
+      "sha256": "db0fb4b038dc0659af2f9059ac1bc9a7ef597aab6da29c09a03c419903ef7905"
+    },
+    {
+      "path": ".local/phase08-stable-audio-cold.py",
+      "sha256": "09eacdae4ebf0cee2fa124cd13067c9330c63b3cfdaf183254b3a337fff35868"
+    },
+    {
+      "path": ".local/phase08-stable-hal-cohort.py",
+      "sha256": "3a40225004622d1ed0385b548bc1e468b2e5db7183472dedaf10e0854fb79a53"
+    },
+    {
+      "path": ".local/phase08-stable-fallback-smoke-v2.py",
+      "sha256": "b31cf04d44663b42a917edb60192fbb5b7cc579399b57afa20c0c4b12377f9b3"
+    },
+    {
+      "path": ".local/phase08-stable-final-restore.py",
+      "sha256": "ac2922a786a0af2ae0e20833adc9650435ec0edabaef0c63c003e436c0bbf825"
+    },
+    {
+      "path": ".local/phase08-stable-switch-to-original.py",
+      "sha256": "6ff79b61217035cc6d775b6fc9cedb44845e9377f219376c16234d7e22841e61"
+    },
+    {
+      "path": ".local/phase08-stable-fallback-smoke.py",
+      "sha256": "b3a06684cade16a55697d31b78b8e2dda066d28daf6348a61230e8ff13122cda"
+    }
+  ],
+  "note": "The prepared phase08-stable-fallback-smoke.py was never executed and is retained unchanged; v2 corrects its A04 expectation.",
+  "physicalDeviceValidation": "NOT_RUN"
+}

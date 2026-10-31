@@ -1,0 +1,138 @@
+{
+  "kind": "PARENT_CONTROLLED_POWER_EMULATOR_CASE",
+  "case": "A08",
+  "runId": "ex20261028",
+  "status": "PASS",
+  "startedAtUtc": "2026-10-29T07:22:00.134625+00:00",
+  "events": [
+    {
+      "event": "explicit_supported_lock_security_probe",
+      "hostAtUtc": "2026-10-29T07:22:00.786646+00:00",
+      "elapsedMonotonicSeconds": 0.6520428000003449,
+      "command": "cmd lock_settings is-user-secure --user 0",
+      "isUserSecure": false
+    },
+    {
+      "event": "fresh_power_baseline_captured",
+      "hostAtUtc": "2026-10-29T07:22:00.787724+00:00",
+      "elapsedMonotonicSeconds": 0.6531178000004729,
+      "battery": {
+        "AC powered": true,
+        "USB powered": false,
+        "Wireless powered": false,
+        "Dock powered": false,
+        "updatesStopped": false
+      },
+      "wakefulness": "Awake",
+      "saverFlags": {
+        "batterySavingStatsFullEnabled": false
+      },
+      "deepIdle": "ACTIVE",
+      "forcedIdle": false
+    },
+    {
+      "event": "fixture_created_via_reviewed_chat",
+      "hostAtUtc": "2026-10-29T07:22:12.551911+00:00",
+      "elapsedMonotonicSeconds": 12.41731019999861,
+      "title": "QA08 EX ex20261028 A08remain1029",
+      "rows": [
+        {
+          "taskId": "task:cmd_mvt7tr1b_0_4031ksfjr9e",
+          "taskStatus": "TODO",
+          "deletedAt": null,
+          "jobId": "job:reminder:task:cmd_mvt7tr1b_0_4031ksfjr9e|2026-10-29T07:23:07.006Z",
+          "occurrenceKey": "task:cmd_mvt7tr1b_0_4031ksfjr9e|2026-10-29T07:23:07.006Z",
+          "generation": 1,
+          "jobStatus": "PENDING",
+          "reminderStatus": "SCHEDULED",
+          "runAt": "2026-10-29T07:23:07.006Z",
+          "deadline": null,
+          "deliveryState": "REGISTERED",
+          "registrations": 1
+        }
+      ]
+    },
+    {
+      "event": "unsecured_keyguard_and_noninteractive_observed",
+      "hostAtUtc": "2026-10-29T07:22:14.979530+00:00",
+      "elapsedMonotonicSeconds": 14.84492820000014,
+      "keyguard": {
+        "showing": true,
+        "secure": false
+      },
+      "wakefulness": "Asleep",
+      "fullPhysicalScreenOffCertified": false
+    },
+    {
+      "event": "due_sql_observed_before_explicit_wake",
+      "hostAtUtc": "2026-10-29T07:23:12.603167+00:00",
+      "elapsedMonotonicSeconds": 72.46857199999795,
+      "rows": [
+        {
+          "taskId": "task:cmd_mvt7tr1b_0_4031ksfjr9e",
+          "taskStatus": "TODO",
+          "deletedAt": null,
+          "jobId": "job:reminder:task:cmd_mvt7tr1b_0_4031ksfjr9e|2026-10-29T07:23:07.006Z",
+          "occurrenceKey": "task:cmd_mvt7tr1b_0_4031ksfjr9e|2026-10-29T07:23:07.006Z",
+          "generation": 1,
+          "jobStatus": "RINGING",
+          "reminderStatus": "RINGING",
+          "runAt": "2026-10-29T07:23:07.006Z",
+          "deadline": "2026-10-29T07:24:07.555Z",
+          "deliveryState": "REGISTERED",
+          "registrations": 1
+        }
+      ],
+      "keyguard": {
+        "showing": true,
+        "secure": false
+      },
+      "wakefulness": "Asleep"
+    },
+    {
+      "event": "actual_notification_reviewed_ack",
+      "hostAtUtc": "2026-10-29T07:23:30.257447+00:00",
+      "elapsedMonotonicSeconds": 90.12284999999974,
+      "rows": [
+        {
+          "taskId": "task:cmd_mvt7tr1b_0_4031ksfjr9e",
+          "taskStatus": "TODO",
+          "deletedAt": null,
+          "jobId": "job:reminder:task:cmd_mvt7tr1b_0_4031ksfjr9e|2026-10-29T07:23:07.006Z",
+          "occurrenceKey": "task:cmd_mvt7tr1b_0_4031ksfjr9e|2026-10-29T07:23:07.006Z",
+          "generation": 1,
+          "jobStatus": "ACKNOWLEDGED",
+          "reminderStatus": "ACKNOWLEDGED",
+          "runAt": "2026-10-29T07:23:07.006Z",
+          "deadline": null,
+          "deliveryState": "UNAVAILABLE",
+          "registrations": 0
+        }
+      ],
+      "scope": "Unsecured emulator keyguard notification fallback; no physical lock-screen/full-screen certification"
+    },
+    {
+      "event": "selected_power_baseline_restored",
+      "hostAtUtc": "2026-10-29T07:23:52.331367+00:00",
+      "elapsedMonotonicSeconds": 112.19677049999882,
+      "battery": {
+        "AC powered": true,
+        "USB powered": false,
+        "Wireless powered": false,
+        "Dock powered": false,
+        "updatesStopped": false
+      },
+      "wakefulness": "Awake",
+      "saverFlags": {
+        "batterySavingStatsFullEnabled": false
+      },
+      "deepIdle": "ACTIVE",
+      "globalSettingsExact": true
+    }
+  ],
+  "physicalDeviceValidation": "NOT_RUN",
+  "restoration": "PASS",
+  "restorationErrors": [],
+  "completedAtUtc": "2026-10-29T07:23:52.332594+00:00",
+  "elapsedMonotonicSeconds": 112.19800849999592
+}

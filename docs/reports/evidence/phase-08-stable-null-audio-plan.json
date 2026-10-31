@@ -1,0 +1,121 @@
+{
+  "kind": "PHASE08_STABLE_NULL_AUDIO_BACKEND_PLAN",
+  "createdAtUtc": "2026-10-31T02:22:20.306597+00:00",
+  "status": "FROZEN_BEFORE_DEVICE_MUTATION",
+  "avd": "LAFINA_Phase08_API35",
+  "api": 35,
+  "runId": "st20261031",
+  "engine": "isolated Google emulator 37.2.13",
+  "originalAvdTargeted": false,
+  "diagnosis": {
+    "evidence": [
+      {
+        "path": "docs/reports/evidence/phase-08-stable-hal-integrity-retrospective.json",
+        "sha256": "c34fba1792f6fd0123c0d9c6155ec7407d5709d7bb0f9dcec9a190bbfb0af8d3"
+      }
+    ],
+    "failingLayer": "EMULATOR_VIRTUAL_SOUND_DEVICE (virtio-snd via ranchu audio HAL)",
+    "observations": [
+      "All 5 retained sdk1 trials: host producer pacing within guards (max lateness 16-24 ms); source RPC completed, host input OFF, gate ALLOW.",
+      "Every failing trial had guest HAL virtual-sound I/O errors inside the capture window; neither passing trial had any (A03/1: 22 playback EIO; V03/1: 13 capture EIO; V03/2: 48 capture EIO).",
+      "HAL late-frame silence insertions: V03/1 1456 ms, V03/2 5088 ms; passes 96-112 ms (startup only).",
+      "Captured/fixture energy ratio is exactly 4.000 (lossless, time-stretched) for V03/1 and both passes, 3.913 (loss) for A03/1 and 0 for V03/2.",
+      "V03/2 capture I/O errors began about 1.8 s before its injection RPC started (guest clock offset +0.44 s), so they are not producer-caused.",
+      "Direct decoder on the clean pinned ACK fixture is exact and deterministic across offsets 0/250/500/1000 ms, floors 0/8 and three repeats (retained phase-08-speech-decoder-* evidence).",
+      "App capture is faithful to what the HAL delivers (exact energy); decoder, gate and confirmation layers are not implicated by these failures."
+    ],
+    "hypotheses": [
+      {
+        "id": "H1",
+        "text": "Producer pacing/overwrite in MODE_REAL_TIME corrupts speech",
+        "status": "NOT_SUPPORTED: failures occur with on-time pacing and before injection"
+      },
+      {
+        "id": "H2",
+        "text": "Decoder nondeterminism/alignment on intact PCM",
+        "status": "REFUTED_FOR_RETAINED_FAILURES: clean fixture deterministic; failing captures were not intact in time"
+      },
+      {
+        "id": "H3",
+        "text": "Emulator virtual sound device stalls/I-O errors (host audio backend clocks virtio-snd)",
+        "status": "SUPPORTED_BY_CORRELATION; backend cause UNPROVEN; tested below"
+      }
+    ]
+  },
+  "change": {
+    "layer": "TEST_PLATFORM_ONLY",
+    "description": "Launch the isolated engine with '-audio none' (null host audio backend; distinct from -no-audio) so virtio-snd timing does not depend on Windows DirectSound devices.",
+    "productionSourceChanged": false,
+    "testSourceChanged": false,
+    "publicHarnessChanged": false,
+    "installedCandidateUnchanged": true,
+    "hostAudioInputAllowed": false,
+    "liveHostMicrophone": "NEVER_ENABLED"
+  },
+  "installedCandidate": {
+    "com.lafina.capstone": "7300f2aefeb8d5f90882655d46435b100a12531e16a7c70df4f81230f4160454",
+    "com.lafina.capstone.test": "abb103afe1dab0bef0646734d126391a355cf2a1a7fb664401544db57b71b0a9"
+  },
+  "protocol": [
+    "Boot nullaudio1: preserved-data cold boot with -audio none; verify running engine command line, identity, host input OFF, rows/preferences/settings/APKs unchanged.",
+    "Probe: A03 once via the unchanged reviewed parent (excluded from the frozen comparison, retained).",
+    "Cohort 1 (only if probe delivered injected PCM): fixed order A03/1, V03/1, V03/2, V04/1, V04/2 with fresh registered fixtures.",
+    "Boot nullaudio2 then Cohort 2 with the same order (only if Cohort 1 does not repeat the same failure signature).",
+    "Each trial: unchanged reviewed parent assertions (exact pinned reference, copy/review/Confirm, paired SQL, zero registrations), restoration checks, plus a read-only HAL record that never changes status."
+  ],
+  "stopRules": [
+    "Probe NO_AUDIO with zero captured energy and no device I/O error: injection unsupported under null backend -> stop, record, reboot defaultaudio1.",
+    "Probe or Cohort 1 shows a virtual-sound device I/O error: H3 backend hypothesis refuted -> do not run Cohort 2; record and restore.",
+    "Cohort 1 repeats a lexical/no-signal failure with nothing changed -> Cohort 2 NOT RUN.",
+    "Any guest stall/pre-recording UI failure: stop issuing audio trials; bounded recovery per handoff section 4."
+  ],
+  "sources": [
+    {
+      "path": ".local/phase08-stable-audio-cold.py",
+      "sha256": "09eacdae4ebf0cee2fa124cd13067c9330c63b3cfdaf183254b3a337fff35868"
+    },
+    {
+      "path": ".local/phase08-stable-hal-cohort.py",
+      "sha256": "3a40225004622d1ed0385b548bc1e468b2e5db7183472dedaf10e0854fb79a53"
+    },
+    {
+      "path": ".local/phase08_hal_integrity.py",
+      "sha256": "3cd6db5b9df180e110f083eb3a2dcd19e861393726387adeb4ccc1704f74ec36"
+    },
+    {
+      "path": ".local/phase08-stable-sdk-cohort.py",
+      "sha256": "e05b7daebbb24238bd51a8503a3e12bf09ecfcfe53c1a097c974b780bb1eee84"
+    },
+    {
+      "path": ".local/phase08-stable-sdk-cold.py",
+      "sha256": "7d6e12e74de50fdf9c227be0158aec3c1262e01f7f48bb93efff13ccb918e56d"
+    },
+    {
+      "path": ".local/phase08-stable-mic.py",
+      "sha256": "2f8277c226f136271620e57aa0654065cd27ec7e668c234fb5d8fa56307ceb6a"
+    },
+    {
+      "path": ".local/phase08-capture-fix-reviewed-mic.py",
+      "sha256": "8aef5281eb541fd2bafdbf323e2c0e3a14ead86aac37e3b68fb355c10f81c4c9"
+    },
+    {
+      "path": "scripts/phase08-emulator-audio.mjs",
+      "sha256": "a5231b7b4acd700107ffed234f58781cb5c83e56f1daee87a51f6189fe86c95d"
+    },
+    {
+      "path": "scripts/phase08-emulator-suite.py",
+      "sha256": "d2da81890b16227132cf71eb68403fb749bb1f420e1045406c7e864649d736ad"
+    },
+    {
+      "path": ".local/phase08-corpus/acknowledge.wav",
+      "sha256": "e10b92f68d6a188bc19b44bd327aa91747d58d4a257510d786a14dc45a4e0a3c"
+    },
+    {
+      "path": ".local/phase08-corpus/snooze.wav",
+      "sha256": "fd762146a51062b7d5deef1cda58b2607d8b3aa4694bde4c76d9820701e5f42a"
+    }
+  ],
+  "physicalDeviceValidation": "NOT_RUN",
+  "v05": "NOT_RUN_OWNER_DEFERRED",
+  "limits": "Emulator transport experiment only. No phone accuracy, audibility or performance claim; no new model, prompt, threshold or grammar change."
+}

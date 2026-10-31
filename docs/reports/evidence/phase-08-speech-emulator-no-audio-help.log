@@ -1,0 +1,27 @@
+
+  use '-no-audio' to disable all audio support in the emulator. this may be
+  unfortunately be necessary in some cases:
+
+  * at least two users have reported that their Windows machine rebooted
+    instantly unless they used this option when starting the emulator.
+    it is very likely that the problem comes from buggy audio drivers.
+
+  * on some Linux machines, the emulator might get stuck at startup with
+    audio support enabled. this problem is hard to reproduce, but seems to
+    be related too to flaky ALSA / audio driver support.
+
+  on Linux, another option is to try to change the default audio backend
+  used by the emulator. you can do that by setting the QEMU_AUDIO_DRV
+  environment variables to one of the following values:
+
+    alsa        (use the ALSA backend)
+    esd         (use the EsounD backend)
+    sdl         (use the SDL audio backend, no audio input supported)
+    oss         (use the OSS backend)
+    none        (do not support audio)
+
+  the very brave can also try to use distinct backends for audio input
+  and audio outputs, this is possible by selecting one of the above values
+  into the QEMU_AUDIO_OUT_DRV and QEMU_AUDIO_IN_DRV environment variables.
+
+

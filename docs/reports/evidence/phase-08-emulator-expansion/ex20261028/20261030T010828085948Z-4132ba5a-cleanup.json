@@ -1,0 +1,41 @@
+{
+  "schemaVersion": 1,
+  "runId": "ex20261028",
+  "invocation": "20261030T010828085948Z-4132ba5a",
+  "command": "cleanup",
+  "startedAt": "2026-10-30T01:08:28.087390+00:00",
+  "status": "FAIL",
+  "scope": "Explicit emulator UI driver plus independent read-only SQLite snapshots",
+  "physicalAcceptance": "HUMAN_REQUIRED",
+  "events": [
+    {
+      "at": "2026-10-30T01:08:28.089429+00:00",
+      "event": "invocation_started"
+    },
+    {
+      "at": "2026-10-30T01:08:48.872369+00:00",
+      "event": "ui_driver",
+      "kind": "OPT_IN_SYNTHETIC_FIXTURE_UI_DRIVER",
+      "mode": "compose",
+      "outcome": "FAIL",
+      "stages": [
+        "activity_launch_requested"
+      ],
+      "launch": "DIRECT_PRIVATE_ACTIVITY_INTENT_NOT_NOTIFICATION_TAP",
+      "limits": "UI only; root verifies SQL separately. No live speech, audio or physical-phone acceptance.",
+      "errorClass": "AssertionError"
+    },
+    {
+      "at": "2026-10-30T01:08:48.890439+00:00",
+      "event": "operation_failed",
+      "errorCode": "UI_DRIVER_DID_NOT_REPORT_PASS",
+      "errorType": "RuntimeError"
+    }
+  ],
+  "limits": [
+    "Direct private Activity intents do not certify actual notification taps or full-screen delivery.",
+    "No live microphone, audibility, physical phone, OEM or battery acceptance is implied."
+  ],
+  "completedAt": "2026-10-30T01:08:48.891456+00:00",
+  "errorCode": "UI_DRIVER_DID_NOT_REPORT_PASS"
+}

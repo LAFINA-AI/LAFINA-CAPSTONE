@@ -1,0 +1,252 @@
+{
+  "kind": "PHASE08_INPUT_LOSS_EXTRA_ISOLATED_HOST_HARNESSES",
+  "status": "PASS",
+  "startedAtUtc": "2026-10-29T23:06:08.242736+00:00",
+  "physicalDeviceValidation": "NOT_RUN",
+  "v05": "OWNER_DEFERRED_NOT_RUN",
+  "deviceCallsExecuted": false,
+  "sourceEditsMade": false,
+  "appDatabaseOpened": false,
+  "limits": [
+    "Host synthetic observations only, not Android/phone performance or durability acceptance.",
+    "Concurrent diagnostic build/emulator boot may contend for resources; no comparative speed claims."
+  ],
+  "checks": [
+    {
+      "case": "planner",
+      "command": [
+        "node",
+        "scripts/benchmark-planner.cjs",
+        "--output",
+        "docs/benchmarks/phase-08-input-loss-planner-host.json"
+      ],
+      "startedAtUtc": "2026-10-29T23:06:08.243866+00:00",
+      "finishedAtUtc": "2026-10-29T23:06:10.442242+00:00",
+      "executionWallSeconds": 2.198,
+      "exitCode": 0,
+      "log": "docs/reports/evidence/phase-08-input-loss-planner-host.log",
+      "logSha256": "8e49abed2749fdb1855ea1095ba695021141a879ed2afe6e5f9c72ec78003747",
+      "evidence": "docs/benchmarks/phase-08-input-loss-planner-host.json",
+      "status": "PASS",
+      "evidenceSha256": "0544d83652f51e77acd0562c77a10464fee2cc5809e356c91856020946aabbc4",
+      "label": "HOST_ONLY_IN_MEMORY_SQLITE_SYNTHETIC",
+      "metrics": {
+        "create_task_reminder_job_transaction": {
+          "errorCount": 0,
+          "successfulSampleCount": 100
+        },
+        "edit_task_metadata_transaction": {
+          "errorCount": 0,
+          "successfulSampleCount": 100
+        },
+        "ring_reminder_transaction": {
+          "errorCount": 0,
+          "successfulSampleCount": 100
+        },
+        "acknowledge_reminder_transaction": {
+          "errorCount": 0,
+          "successfulSampleCount": 100
+        },
+        "snooze_reminder_transaction": {
+          "errorCount": 0,
+          "successfulSampleCount": 100
+        },
+        "weekly_expand_366_calendar_dates": {
+          "errorCount": 0,
+          "successfulSampleCount": 10
+        }
+      },
+      "integrity": {
+        "tasks": 220,
+        "reminders": 220,
+        "jobs": 220,
+        "acknowledgedReminders": 110,
+        "snoozedReminders": 110,
+        "tasksStillTodo": true,
+        "nativeDeliveryState": "UNAVAILABLE"
+      },
+      "result": null,
+      "totalFailures": null,
+      "cleanupComplete": null,
+      "sourceDrift": null,
+      "metricCount": 6,
+      "measuredSuccessfulCalls": 510,
+      "combinedMeasuredAndWarmupFailures": 0
+    },
+    {
+      "case": "queries-student",
+      "command": [
+        "node",
+        "scripts/benchmark-planner-queries.cjs",
+        "--cohort",
+        "student",
+        "--output",
+        "docs/benchmarks/phase-08-input-loss-queries-student-host.json"
+      ],
+      "startedAtUtc": "2026-10-29T23:06:10.454208+00:00",
+      "finishedAtUtc": "2026-10-29T23:06:12.994713+00:00",
+      "executionWallSeconds": 2.541,
+      "exitCode": 0,
+      "log": "docs/reports/evidence/phase-08-input-loss-queries-student-host.log",
+      "logSha256": "6235c2fe98f6df4bfeae803415005e5111c6995bfcbb4fe04b234400256835d2",
+      "evidence": "docs/benchmarks/phase-08-input-loss-queries-student-host.json",
+      "status": "PASS",
+      "evidenceSha256": "9c062d80e44844daf2153b10720e81738719ee5e7f7f8e61e7853e331a219962",
+      "label": "HOST_ONLY_SYNTHETIC_PRODUCT_QUERIES",
+      "metrics": {
+        "tasks_active_first_page": {
+          "errorCount": 0,
+          "successfulSampleCount": 50
+        },
+        "tasks_completed_first_page": {
+          "errorCount": 0,
+          "successfulSampleCount": 50
+        },
+        "agenda_day_first_page": {
+          "errorCount": 0,
+          "successfulSampleCount": 50
+        },
+        "agenda_day_next_page": {
+          "errorCount": 0,
+          "successfulSampleCount": 50
+        },
+        "agenda_week_first_page": {
+          "errorCount": 0,
+          "successfulSampleCount": 50
+        },
+        "reminder_history_first_page": {
+          "errorCount": 0,
+          "successfulSampleCount": 50
+        }
+      },
+      "integrity": null,
+      "result": null,
+      "totalFailures": null,
+      "cleanupComplete": null,
+      "sourceDrift": null,
+      "metricCount": 6,
+      "measuredSuccessfulCalls": 300,
+      "combinedMeasuredAndWarmupFailures": 0
+    },
+    {
+      "case": "queries-stress",
+      "command": [
+        "node",
+        "scripts/benchmark-planner-queries.cjs",
+        "--cohort",
+        "stress",
+        "--output",
+        "docs/benchmarks/phase-08-input-loss-queries-stress-host.json"
+      ],
+      "startedAtUtc": "2026-10-29T23:06:13.007872+00:00",
+      "finishedAtUtc": "2026-10-29T23:06:29.907009+00:00",
+      "executionWallSeconds": 16.899,
+      "exitCode": 0,
+      "log": "docs/reports/evidence/phase-08-input-loss-queries-stress-host.log",
+      "logSha256": "b5a36fe3b7a52c566105828150ea7eeac55efec341870875cdb1ee9380e6ce1e",
+      "evidence": "docs/benchmarks/phase-08-input-loss-queries-stress-host.json",
+      "status": "PASS",
+      "evidenceSha256": "91c3174202b75d84f1b9055519de47c73f4d33a430f43bfc565328df94d85b8c",
+      "label": "HOST_ONLY_SYNTHETIC_PRODUCT_QUERIES",
+      "metrics": {
+        "tasks_active_first_page": {
+          "errorCount": 0,
+          "successfulSampleCount": 50
+        },
+        "tasks_completed_first_page": {
+          "errorCount": 0,
+          "successfulSampleCount": 50
+        },
+        "agenda_day_first_page": {
+          "errorCount": 0,
+          "successfulSampleCount": 50
+        },
+        "agenda_day_next_page": {
+          "errorCount": 0,
+          "successfulSampleCount": 50
+        },
+        "agenda_week_first_page": {
+          "errorCount": 0,
+          "successfulSampleCount": 50
+        },
+        "reminder_history_first_page": {
+          "errorCount": 0,
+          "successfulSampleCount": 50
+        }
+      },
+      "integrity": null,
+      "result": null,
+      "totalFailures": null,
+      "cleanupComplete": null,
+      "sourceDrift": null,
+      "metricCount": 6,
+      "measuredSuccessfulCalls": 300,
+      "combinedMeasuredAndWarmupFailures": 0
+    },
+    {
+      "case": "notes",
+      "command": [
+        "node",
+        "scripts/benchmark-notes.cjs",
+        "--output",
+        "docs/benchmarks/phase-08-input-loss-notes-host.json"
+      ],
+      "startedAtUtc": "2026-10-29T23:06:29.924769+00:00",
+      "finishedAtUtc": "2026-10-29T23:06:34.827325+00:00",
+      "executionWallSeconds": 4.903,
+      "exitCode": 0,
+      "log": "docs/reports/evidence/phase-08-input-loss-notes-host.log",
+      "logSha256": "2a33898c16496252d6af2badcb88e97575368699c54658f64ef8495919a16bfb",
+      "evidence": "docs/benchmarks/phase-08-input-loss-notes-host.json",
+      "status": "PASS",
+      "evidenceSha256": "24011a1a0dfe1afbb5caec8e2525b2259b843ea84f868f94fd0b08d897af3309",
+      "label": "HOST_ONLY_SYNTHETIC_FILE_BACKED_NOTES",
+      "metrics": {
+        "note_create_transaction": {
+          "failureCount": 0,
+          "warmupFailures": [],
+          "successfulSampleCount": 100
+        },
+        "note_edit_transaction": {
+          "failureCount": 0,
+          "warmupFailures": [],
+          "successfulSampleCount": 100
+        },
+        "notes_first_page_20": {
+          "failureCount": 0,
+          "warmupFailures": [],
+          "successfulSampleCount": 100
+        },
+        "notes_body_search_page_20": {
+          "failureCount": 0,
+          "warmupFailures": [],
+          "successfulSampleCount": 100
+        },
+        "notes_body_search_no_match": {
+          "failureCount": 0,
+          "warmupFailures": [],
+          "successfulSampleCount": 100
+        },
+        "profile_exact_counts": {
+          "failureCount": 0,
+          "warmupFailures": [],
+          "successfulSampleCount": 100
+        }
+      },
+      "integrity": {
+        "sqlite": "ok",
+        "foreignKeyViolations": 0
+      },
+      "result": "PASS",
+      "totalFailures": 0,
+      "cleanupComplete": true,
+      "sourceDrift": [],
+      "metricCount": 6,
+      "measuredSuccessfulCalls": 600,
+      "combinedMeasuredAndWarmupFailures": 0
+    }
+  ],
+  "completedAtUtc": "2026-10-29T23:06:34.850924+00:00",
+  "evidenceHashesVerified": true,
+  "finalIntegrityCheckedAtUtc": "2026-10-29T23:07:10.553630+00:00"
+}

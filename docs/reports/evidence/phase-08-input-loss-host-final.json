@@ -1,0 +1,31 @@
+{
+  "status": "PASS",
+  "scope": "Fresh final host preflight on current shipping-source checkout; no Android, emulator, physical-device, audio, or V05 validation",
+  "command": "npm run preflight",
+  "startedAtUtc": "2026-10-30T00:05:39.241170+00:00",
+  "completedAtUtc": "2026-10-30T00:08:11.227861+00:00",
+  "exitCode": 0,
+  "logPath": "docs/reports/evidence/phase-08-input-loss-preflight-final.log",
+  "jest": {
+    "passedSuites": 35,
+    "totalSuites": 35,
+    "passedTests": 528,
+    "totalTests": 528
+  },
+  "checks": {
+    "typecheck": "PASS",
+    "lint": "PASS",
+    "format": "PASS",
+    "jest": "PASS",
+    "architecture": "PASS"
+  },
+  "unchangedRegressionAndStorageBenchmarksRepeated": false,
+  "pending": [
+    "V05 reviewed consented/public local-accent recording",
+    "Physical-device validation"
+  ],
+  "limitations": [
+    "Host mocks and parser tests do not prove physical speech, audibility, OEM behavior, battery use, or device performance."
+  ],
+  "logSha256": "b6396e305ab26979e3ae9c0edf45b3fc31eedc24dde00a9d5569ee67677aa665"
+}

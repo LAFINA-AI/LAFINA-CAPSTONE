@@ -1,0 +1,2296 @@
+{
+  "schemaVersion": 1,
+  "runId": "ex20261028",
+  "createdFor": "Approved Phase08 emulator expansion; user requested further emulator development/testing.",
+  "status": "CLOSED_EMULATOR_EVIDENCE_WITH_FAILURES_PHYSICAL_PENDING",
+  "sourceManual": "qa/PHASE-08-MANUAL.md",
+  "executionProtocol": "qa/PHASE-08-EMULATOR-EXPANSION.md",
+  "historicalReference": "docs/reports/phase-08-report.md",
+  "inheritHistoricalResults": false,
+  "resultVocabulary": [
+    "NOT_RUN",
+    "PASS",
+    "FAIL"
+  ],
+  "candidate": {
+    "head": "98bef88c3ae0fabee677c1466417fc34c0af738c",
+    "workingDiffReference": "docs/reports/evidence/phase-08-capture-fix-source-hashes-final.json",
+    "apkSha256": "7300f2aefeb8d5f90882655d46435b100a12531e16a7c70df4f81230f4160454",
+    "versionName": "0.8.0-data-qa",
+    "versionCode": 11,
+    "schemaVersion": 3,
+    "cohortNotes": "Production QA7300 unchanged; current test APK/source ledgers bind the reviewed diagnostics and sender.44 prior scoped passes retained;10 final affected trials explicitly selected."
+  },
+  "device": {
+    "model": "sdk_gphone16k_x86_64",
+    "api": 37,
+    "apiIsPreview": true,
+    "testedApkAbi": "x86_64",
+    "pageSizeBytes": 16384
+  },
+  "baseline": {
+    "status": "CAPTURED",
+    "privateSnapshotReference": ".local/phase08-emulator-suite/ex20261028/baseline.json",
+    "redactedSummaryEvidence": "docs/reports/evidence/phase-08-emulator-expansion/ex20261028/20261028T032221396266Z-87a91f5d-baseline.json",
+    "unrelatedActiveJobsChecked": true,
+    "originalPreferencesHash": "4571b589c736a245b881f28b22698b42e62b0691bf11401d627b1b2613f4ec04",
+    "permissionFlagsAndAppOpsCaptured": true,
+    "radiosTimeDisplayAudioAndPowerCaptured": true
+  },
+  "counts": {
+    "alarmCases": 36,
+    "voiceCases": 12,
+    "emulatorPass": 45,
+    "emulatorFail": 2,
+    "emulatorNotRun": 1,
+    "certifiedPhysicalAlarms": 0,
+    "certifiedLiveHumanVoiceInteractions": 0
+  },
+  "cases": [
+    {
+      "id": "A01",
+      "group": "alarm",
+      "scenario": "Foreground, manual ACK review/Confirm",
+      "emulatorFeasibility": "FEASIBLE",
+      "procedure": "Use the actual due activity manual ACK control, review and Confirm.",
+      "expected": "Exactly one ACK; task stays TODO; closes",
+      "requiredEvidence": [
+        "fresh_case_log",
+        "actual_condition_observed",
+        "visible_ui_outcome",
+        "independent_real_sqlite_state"
+      ],
+      "passScope": "EMULATOR_ONLY_ACTUAL_SYSTEMUI_NOTIFICATION",
+      "status": "PASS",
+      "reason": null,
+      "observations": "Fresh emulator assertions and independent state checks completed; see current ledger. Existing narrow scope and physical limits still apply.",
+      "evidence": [
+        "docs/reports/evidence/phase-08-input-loss-case-ledger.json",
+        "docs/reports/evidence/phase-08-input-loss-all-cases-final-clean2-20261030T001025501835Z-e65204-A01-trial1.log"
+      ],
+      "limitations": [
+        "Phone interaction/accessibility remains pending."
+      ],
+      "physicalAcceptance": "NOT_RUN",
+      "candidateCohort": "INPUT_LOSS_20261030_CLEAN_APK",
+      "historicalResultBeforeInputLoss": {
+        "status": "PASS",
+        "observations": "Actual owned Android notification body -> manual ACK review/Confirm; independent paired ACKNOWLEDGED, task TODO and registrations 0.",
+        "evidence": [
+          "docs/reports/evidence/phase-08-emulator-expansion/ex20261028/20261028T033204472775Z-9e1c81bd-notification.json"
+        ],
+        "candidateCohort": "EXPANSION_BEFORE_FINAL_TASK_ISOLATION"
+      },
+      "attemptCount": 1,
+      "originalFailedAttemptCount": 0,
+      "stableGuestApi35": {
+        "status": "PASS",
+        "note": "API35 stable guest: manual ACK smoke PASS (ACKNOWLEDGED/TODO, zero registrations), phase-08-stable-fallback-smoke.json.",
+        "ledger": "docs/reports/evidence/phase-08-stable-case-ledger.json"
+      }
+    },
+    {
+      "id": "A02",
+      "group": "alarm",
+      "scenario": "Answer, typed `acknowledge`, review/Confirm",
+      "emulatorFeasibility": "FEASIBLE",
+      "procedure": "Answer, inspect unchanged durable state, type ACK and confirm its exact review.",
+      "expected": "Answer alone saves nothing; confirmed ACK once",
+      "requiredEvidence": [
+        "fresh_case_log",
+        "actual_condition_observed",
+        "visible_ui_outcome",
+        "independent_real_sqlite_state"
+      ],
+      "passScope": "EMULATOR_ONLY_ACTUAL_SYSTEMUI_NOTIFICATION",
+      "status": "PASS",
+      "reason": null,
+      "observations": "Fresh emulator assertions and independent state checks completed; see current ledger. Existing narrow scope and physical limits still apply.",
+      "evidence": [
+        "docs/reports/evidence/phase-08-input-loss-case-ledger.json",
+        "docs/reports/evidence/phase-08-input-loss-all-cases-final-clean2-20261030T001025501835Z-e65204-A02-trial1.log"
+      ],
+      "limitations": [
+        "Typed input does not establish STT."
+      ],
+      "physicalAcceptance": "NOT_RUN",
+      "candidateCohort": "INPUT_LOSS_20261030_CLEAN_APK",
+      "historicalResultBeforeInputLoss": {
+        "status": "PASS",
+        "observations": "Actual notification body -> Answer -> typed ACK review/Confirm; independent paired ACKNOWLEDGED, task TODO and registrations 0.",
+        "evidence": [
+          "docs/reports/evidence/phase-08-emulator-expansion/ex20261028/20261028T033219459655Z-ef01355d-notification.json"
+        ],
+        "candidateCohort": "EXPANSION_BEFORE_FINAL_TASK_ISOLATION"
+      },
+      "attemptCount": 1,
+      "originalFailedAttemptCount": 0,
+      "stableGuestApi35": {
+        "status": "PASS",
+        "note": "API35 stable guest: typed ACK smoke PASS (ACKNOWLEDGED/TODO, zero registrations), phase-08-stable-fallback-smoke.json.",
+        "ledger": "docs/reports/evidence/phase-08-stable-case-ledger.json"
+      }
+    },
+    {
+      "id": "A03",
+      "group": "alarm",
+      "scenario": "Answer, visible hold and spoken ACK, review/Confirm",
+      "emulatorFeasibility": "CONDITIONAL",
+      "procedure": "Use proven synthetic virtual input during an explicit visible hold, copy/review transcript, then ACK.",
+      "expected": "No auto mic; reviewed ACK only",
+      "requiredEvidence": [
+        "fresh_case_log",
+        "actual_condition_observed",
+        "visible_ui_outcome",
+        "independent_real_sqlite_state",
+        "proven_audio_input_or_engine_layer_and_host_mic_off"
+      ],
+      "passScope": "PINNED_SYNTHETIC_VISIBLE_HOLD_COPY_REVIEW_CONFIRM_REAL_SQL_ONLY",
+      "status": "FAIL",
+      "reason": "PREDECLARED_SYNTHETIC_TRIAL_FAILURES_OR_NOT_RUN_RETAINED",
+      "observations": "All2 predeclared trials across two preserved-data cold boots retained; outcome FAIL. See exact layer evidence; no physical acceptance.",
+      "evidence": [
+        "docs/reports/evidence/phase-08-capture-fix-case-ledger.json",
+        "docs/reports/evidence/phase-08-emulator-expansion/ex20261028/20261030T205338144113Z-A03-microphone.json",
+        "docs/reports/evidence/phase-08-emulator-expansion/ex20261028/20261030T210729924062Z-A03-microphone.json"
+      ],
+      "limitations": [
+        "Two pinned synthetic clips with calibrated virtual transport only; no human acoustic accuracy or physical acceptance.",
+        "Other durations, aliases, quiet/noisy phone speech and live interactions remain NOT_RUN."
+      ],
+      "physicalAcceptance": "NOT_RUN",
+      "candidateCohort": "CAPTURE_FIX_HOST_GPU_ANCHORED_REALTIME_TWO_COLD_COHORTS",
+      "priorSpeechFailure": {
+        "status": "FAIL",
+        "reason": "EXPECTED_SYNTHETIC_ACK_REFERENCE_NOT_RECOGNIZED",
+        "observations": "Actual visible recording and pinned synthetic ACK stream were observed, but recognized text did not match the expected supported reference. The guarded test refused confirmation; this does not establish voice ACK completion.",
+        "evidence": [
+          "docs/reports/evidence/phase-08-emulator-expansion/ex20261028/20261028T085722241630Z-A03-microphone.json",
+          "docs/reports/evidence/phase-08-emulator-expansion/ex20261028/20261028T091901673877Z-A03-microphone.json",
+          "docs/reports/evidence/phase-08-response-direct-decoder.log"
+        ],
+        "limitations": [
+          "Synthetic virtual transport is not live speech. The separate direct decoder also returned a mismatching hypothesis; no unsupported grammar/model change was made.",
+          "Physical speech and device validation remain NOT_RUN."
+        ],
+        "candidateCohort": "FINAL_TASK_ISOLATED_CANDIDATE"
+      },
+      "historicalResultBeforeInputLoss": {
+        "status": "PASS",
+        "observations": "Two independent fresh fixtures passed actual visible recording, exact pinned response, explicit copy/review/Confirm and independent paired SQLite state. ACK leaves task TODO and zero registrations.",
+        "evidence": [
+          "docs/reports/evidence/phase-08-emulator-expansion/ex20261028/20261029T033036756641Z-A03-microphone.json",
+          "docs/reports/evidence/phase-08-emulator-expansion/ex20261028/20261029T033224741928Z-A03-microphone.json"
+        ],
+        "candidateCohort": "FINAL_SPEECH_FLOOR_CANDIDATE"
+      },
+      "attemptCount": 2,
+      "originalFailedAttemptCount": 1,
+      "historicalResultBeforeCaptureFix": {
+        "status": "FAIL",
+        "reason": "SIGNAL_PRESENT_EXACT_RECOGNITION_FAILURE",
+        "observations": "Completed synthetic stream, real signal and wrong recognized words; exact reference guard prevented confirmation. Cleanup and restoration verified.",
+        "evidence": [
+          "docs/reports/evidence/phase-08-input-loss-case-ledger.json",
+          "docs/reports/evidence/phase-08-input-loss-all-cases-final-clean2-20261030T001025501835Z-e65204-A03-trial1.log",
+          "docs/reports/evidence/phase-08-emulator-expansion/ex20261028/20261030T001337622504Z-A03-microphone.json"
+        ],
+        "candidateCohort": "INPUT_LOSS_20261030_CLEAN_APK",
+        "attemptCount": 1
+      },
+      "finalFailedAttemptCount": 2,
+      "stableGuestApi35": {
+        "status": "FAIL",
+        "note": "API35 stable guest: FAIL retained (4 comparison attempts: 1 PASS, 3 FAIL). Failures attributed to emulator virtual-sound device faults, a pre-recording heads-up overlay, or HAL not recorded; see phase-08-stable-case-ledger.json.",
+        "ledger": "docs/reports/evidence/phase-08-stable-case-ledger.json"
+      }
+    },
+    {
+      "id": "A04",
+      "group": "alarm",
+      "scenario": "Manual snooze review/Confirm",
+      "emulatorFeasibility": "FEASIBLE",
+      "procedure": "Confirm the manual snooze and inspect paired statuses, generation and future registration.",
+      "expected": "One future job; task stays TODO",
+      "requiredEvidence": [
+        "fresh_case_log",
+        "actual_condition_observed",
+        "visible_ui_outcome",
+        "independent_real_sqlite_state"
+      ],
+      "passScope": "EMULATOR_ONLY_TYPED_MANUAL_UI_SQL",
+      "status": "PASS",
+      "reason": null,
+      "observations": "Fresh emulator assertions and independent state checks completed; see current ledger. Existing narrow scope and physical limits still apply.",
+      "evidence": [
+        "docs/reports/evidence/phase-08-input-loss-case-ledger.json",
+        "docs/reports/evidence/phase-08-input-loss-all-cases-final-clean2-20261030T001025501835Z-e65204-A04-trial1.log"
+      ],
+      "limitations": [
+        "Private Activity entry is not notification tapping. Physical replacement delivery remains pending."
+      ],
+      "physicalAcceptance": "NOT_RUN",
+      "candidateCohort": "INPUT_LOSS_20261030_CLEAN_APK",
+      "historicalResultBeforeInputLoss": {
+        "status": "PASS",
+        "observations": "Actual due state then direct private native Activity; manual snooze review/Confirm produced generation 2 PENDING/SNOOZED, task TODO and one future registration.",
+        "evidence": [
+          "docs/reports/evidence/phase-08-emulator-expansion/ex20261028/20261028T033231296654Z-23b1f054-response.json"
+        ],
+        "candidateCohort": "EXPANSION_BEFORE_FINAL_TASK_ISOLATION"
+      },
+      "attemptCount": 1,
+      "originalFailedAttemptCount": 0,
+      "stableGuestApi35": {
+        "status": "PASS",
+        "note": "API35 stable guest: manual snooze smoke PASS (PENDING/SNOOZED generation 2, one registration, 602.6 s ahead), phase-08-stable-fallback-smoke.json.",
+        "ledger": "docs/reports/evidence/phase-08-stable-case-ledger.json"
+      }
+    },
+    {
+      "id": "A05",
+      "group": "alarm",
+      "scenario": "Answer, typed `snooze 10 minutes`, Confirm",
+      "emulatorFeasibility": "FEASIBLE",
+      "procedure": "Type the supported ten-minute snooze, review exact duration and confirm once.",
+      "expected": "One ten-minute snooze; no duplicate",
+      "requiredEvidence": [
+        "fresh_case_log",
+        "actual_condition_observed",
+        "visible_ui_outcome",
+        "independent_real_sqlite_state"
+      ],
+      "passScope": "EMULATOR_ONLY_TYPED_MANUAL_UI_SQL",
+      "status": "PASS",
+      "reason": null,
+      "observations": "Fresh emulator assertions and independent state checks completed; see current ledger. Existing narrow scope and physical limits still apply.",
+      "evidence": [
+        "docs/reports/evidence/phase-08-input-loss-case-ledger.json",
+        "docs/reports/evidence/phase-08-input-loss-all-cases-final-clean2-20261030T001025501835Z-e65204-A05-trial1.log"
+      ],
+      "limitations": [
+        "Typed input does not establish STT; no phone timing claim."
+      ],
+      "physicalAcceptance": "NOT_RUN",
+      "candidateCohort": "INPUT_LOSS_20261030_CLEAN_APK",
+      "historicalResultBeforeInputLoss": {
+        "status": "PASS",
+        "observations": "Typed supported ten-minute snooze review/Confirm produced generation 2 PENDING/SNOOZED, task TODO and one future registration.",
+        "evidence": [
+          "docs/reports/evidence/phase-08-emulator-expansion/ex20261028/20261028T033528043031Z-f80c0e75-lifecycle.json"
+        ],
+        "candidateCohort": "EXPANSION_BEFORE_FINAL_TASK_ISOLATION"
+      },
+      "attemptCount": 1,
+      "originalFailedAttemptCount": 0
+    },
+    {
+      "id": "A06",
+      "group": "alarm",
+      "scenario": "Answer, spoken supported snooze, Confirm",
+      "emulatorFeasibility": "CONDITIONAL",
+      "procedure": "Inject only reviewed public synthetic speech through a proven virtual mic; review the snooze.",
+      "expected": "Same atomic result as manual snooze",
+      "requiredEvidence": [
+        "fresh_case_log",
+        "actual_condition_observed",
+        "visible_ui_outcome",
+        "independent_real_sqlite_state",
+        "proven_audio_input_or_engine_layer_and_host_mic_off"
+      ],
+      "passScope": "PINNED_SYNTHETIC_VISIBLE_HOLD_COPY_REVIEW_CONFIRM_REAL_SQL_ONLY",
+      "status": "PASS",
+      "reason": null,
+      "observations": "Fresh emulator assertions and independent state checks completed; see current ledger. Existing narrow scope and physical limits still apply.",
+      "evidence": [
+        "docs/reports/evidence/phase-08-input-loss-case-ledger.json",
+        "docs/reports/evidence/phase-08-input-loss-all-cases-final-clean2-20261030T001025501835Z-e65204-A06-trial1.log",
+        "docs/reports/evidence/phase-08-emulator-expansion/ex20261028/20261030T001812094508Z-A06-microphone.json"
+      ],
+      "limitations": [
+        "Two pinned synthetic clips with calibrated virtual transport only; no human acoustic accuracy or physical acceptance.",
+        "Other durations, aliases, quiet/noisy phone speech and live interactions remain NOT_RUN."
+      ],
+      "physicalAcceptance": "NOT_RUN",
+      "candidateCohort": "INPUT_LOSS_20261030_CLEAN_APK",
+      "priorSpeechFailure": {
+        "status": "FAIL",
+        "reason": "SYNTHETIC_SNOOZE_CAPTURE_OR_REFERENCE_GUARD_FAILED",
+        "observations": "Visible recording and the pinned synthetic snooze stream were observed, but the captured result did not satisfy the exact supported-reference guard (NO_AUDIO_SIGNAL in this attempt). No snooze confirmation was executed.",
+        "evidence": [
+          "docs/reports/evidence/phase-08-emulator-expansion/ex20261028/20261028T092052781194Z-A06-microphone.json",
+          "docs/reports/evidence/phase-08-response-direct-decoder.log"
+        ],
+        "limitations": [
+          "The separate direct decoder returned a nonmatching snooze hypothesis, so the emulator outcome is not attributed solely to transport.",
+          "No real microphone/acoustics or physical acceptance is established."
+        ],
+        "candidateCohort": "FINAL_TASK_ISOLATED_CANDIDATE"
+      },
+      "historicalResultBeforeInputLoss": {
+        "status": "PASS",
+        "observations": "Two independent fresh fixtures passed with 500ms onset delay, exact ten-minute recognized response/review/Confirm, task TODO, generation +1 and exactly one replacement registration with independently checked ten-minute timing.",
+        "evidence": [
+          "docs/reports/evidence/phase-08-emulator-expansion/ex20261028/20261029T033423418166Z-A06-microphone.json",
+          "docs/reports/evidence/phase-08-emulator-expansion/ex20261028/20261029T033607692630Z-A06-microphone.json"
+        ],
+        "candidateCohort": "FINAL_SPEECH_FLOOR_CANDIDATE"
+      },
+      "attemptCount": 1,
+      "originalFailedAttemptCount": 0
+    },
+    {
+      "id": "A07",
+      "group": "alarm",
+      "scenario": "Background/unlocked",
+      "emulatorFeasibility": "FEASIBLE",
+      "procedure": "Background without force-stop, wait due, inspect and open the actual OS notification.",
+      "expected": "Notification/eligible reminder UI; controls work",
+      "requiredEvidence": [
+        "fresh_case_log",
+        "actual_condition_observed",
+        "visible_ui_outcome",
+        "independent_real_sqlite_state",
+        "actual_system_notification_interaction_or_explicit_narrower_scope"
+      ],
+      "passScope": "EMULATOR_ONLY_BACKGROUND_ACTUAL_NOTIFICATION_SQL",
+      "status": "PASS",
+      "reason": null,
+      "observations": "Fresh emulator assertions and independent state checks completed; see current ledger. Existing narrow scope and physical limits still apply.",
+      "evidence": [
+        "docs/reports/evidence/phase-08-input-loss-case-ledger.json",
+        "docs/reports/evidence/phase-08-input-loss-all-cases-final-clean2-20261030T001025501835Z-e65204-A07-trial1.log",
+        "docs/reports/evidence/phase-08-emulator-expansion/ex20261028/20261030T001953995550Z-platform-A07.json"
+      ],
+      "limitations": [
+        "One API 37 preview x86_64 AVD; physical OEM background delivery remains pending."
+      ],
+      "physicalAcceptance": "NOT_RUN",
+      "candidateCohort": "INPUT_LOSS_20261030_CLEAN_APK",
+      "historicalResultBeforeInputLoss": {
+        "status": "PASS",
+        "observations": "App was backgrounded with HOME before due; independent due RINGING then actual notification body -> typed ACK confirmed; task TODO and registrations 0.",
+        "evidence": [
+          "docs/reports/evidence/phase-08-emulator-expansion/ex20261028/20261028T081508342200Z-platform-A07.json",
+          "docs/reports/evidence/phase-08-emulator-expansion/ex20261028/20261028T081624171403Z-796b48c6-notification.json"
+        ],
+        "candidateCohort": "EXPANSION_BEFORE_FINAL_TASK_ISOLATION"
+      },
+      "attemptCount": 1,
+      "originalFailedAttemptCount": 0
+    },
+    {
+      "id": "A08",
+      "group": "alarm",
+      "scenario": "Background/locked",
+      "emulatorFeasibility": "CONDITIONAL",
+      "procedure": "Lock the existing emulator, wait due and inspect OS-permitted presentation.",
+      "expected": "OS-permitted notification/call-style presentation",
+      "requiredEvidence": [
+        "fresh_case_log",
+        "actual_condition_observed",
+        "visible_ui_outcome",
+        "independent_real_sqlite_state",
+        "actual_system_notification_interaction_or_explicit_narrower_scope"
+      ],
+      "passScope": "Unsecured keyguard/noninteractive due condition and actual notification opened; reviewed ACK/task TODO/zero registrations. No secure-lock/full-screen/OEM claim.",
+      "status": "PASS",
+      "reason": null,
+      "observations": "Fresh emulator assertions and independent state checks completed; see current ledger. Existing narrow scope and physical limits still apply.",
+      "evidence": [
+        "docs/reports/evidence/phase-08-input-loss-case-ledger.json",
+        "docs/reports/evidence/phase-08-input-loss-all-cases-final-clean2-20261030T001025501835Z-e65204-A08-trial1.log",
+        "docs/reports/evidence/phase-08-emulator-expansion/ex20261028/20261030T002125832629Z-48c999-A08-power.json"
+      ],
+      "limitations": [
+        "No physical secured-lock or OEM behavior is established."
+      ],
+      "physicalAcceptance": "NOT_RUN",
+      "candidateCohort": "INPUT_LOSS_20261030_CLEAN_APK",
+      "latestScopedApkSha256": "ccc79ceda3a033d222917c54a6c68cd5d9d13c5c2d1f7cf3b6f3672c60f0ff6c",
+      "remainingAttemptEvidence": "docs/reports/evidence/phase-08-remaining-case-ledger.json",
+      "historicalResultBeforeInputLoss": {
+        "status": "PASS",
+        "observations": "Latest scoped attempt outcome; all recorded failures are retained in the remaining-case ledger.",
+        "evidence": [
+          "docs/reports/evidence/phase-08-emulator-expansion/ex20261028/20261028T135242700364Z-ecabe1-A08-power.json",
+          "docs/reports/evidence/phase-08-emulator-expansion/ex20261028/20261029T072200133653Z-6cbc5a-A08-power.json"
+        ],
+        "candidateCohort": "MIXED_EXPLICIT_REMAINING_CASE_COHORTS"
+      },
+      "attemptCount": 1,
+      "originalFailedAttemptCount": 0
+    },
+    {
+      "id": "A09",
+      "group": "alarm",
+      "scenario": "Screen off",
+      "emulatorFeasibility": "CONDITIONAL",
+      "procedure": "Turn emulator screen off before due and record actual wake/presentation and drift.",
+      "expected": "Wake/presentation only within OS limits; record drift",
+      "requiredEvidence": [
+        "fresh_case_log",
+        "actual_condition_observed",
+        "visible_ui_outcome",
+        "independent_real_sqlite_state",
+        "actual_system_notification_interaction_or_explicit_narrower_scope"
+      ],
+      "passScope": "EMULATOR_ONLY_NONINTERACTIVE_ACTUAL_NOTIFICATION_SQL",
+      "status": "PASS",
+      "reason": null,
+      "observations": "Fresh emulator assertions and independent state checks completed; see current ledger. Existing narrow scope and physical limits still apply.",
+      "evidence": [
+        "docs/reports/evidence/phase-08-input-loss-case-ledger.json",
+        "docs/reports/evidence/phase-08-input-loss-all-cases-final-clean2-20261030T001025501835Z-e65204-A09-trial1.log",
+        "docs/reports/evidence/phase-08-emulator-expansion/ex20261028/20261030T002303188872Z-platform-A09.json"
+      ],
+      "limitations": [
+        "This certifies the observed virtual noninteractive condition, not physical hardware screen-off/wake or OEM delivery."
+      ],
+      "physicalAcceptance": "NOT_RUN",
+      "candidateCohort": "INPUT_LOSS_20261030_CLEAN_APK",
+      "networkCondition": "RESUMED_AIRPLANE_ON_WIFI_MOBILE_OFF_NO_DEFAULT_NETWORK",
+      "historicalResultBeforeInputLoss": {
+        "status": "PASS",
+        "observations": "Retry established noninteractive Asleep with HAL interactive mode false before due. Independent paired RINGING was observed, then actual notification body -> typed ACK review/Confirm produced paired ACKNOWLEDGED, task TODO and registrations 0. Initial condition-establishment failure remains preserved.",
+        "evidence": [
+          "docs/reports/evidence/phase-08-emulator-expansion/ex20261028/20261028T081659284797Z-platform-A09.json",
+          "docs/reports/evidence/phase-08-emulator-expansion/ex20261028/20261028T132856425519Z-platform-A09.json",
+          "docs/reports/evidence/phase-08-resumed-platform-A09.log",
+          "docs/reports/evidence/phase-08-expansion-resume-offline.json"
+        ],
+        "candidateCohort": "FINAL_TASK_ISOLATED_CANDIDATE"
+      },
+      "attemptCount": 1,
+      "originalFailedAttemptCount": 0
+    },
+    {
+      "id": "A10",
+      "group": "alarm",
+      "scenario": "Idle/Doze on a test phone",
+      "emulatorFeasibility": "CONDITIONAL",
+      "procedure": "Confirm forced Doze state, wait due, record any throttling, then unforce and observe recovery.",
+      "expected": "Record delivery/drift and capability limits",
+      "requiredEvidence": [
+        "fresh_case_log",
+        "actual_condition_observed",
+        "visible_ui_outcome",
+        "independent_real_sqlite_state"
+      ],
+      "passScope": "EMULATOR_ONLY_FORCED_DEEP_IDLE_DUE_OBSERVATION_AND_RECOVERY_SQL",
+      "status": "PASS",
+      "reason": null,
+      "observations": "Fresh emulator assertions and independent state checks completed; see current ledger. Existing narrow scope and physical limits still apply.",
+      "evidence": [
+        "docs/reports/evidence/phase-08-input-loss-case-ledger.json",
+        "docs/reports/evidence/phase-08-input-loss-all-cases-final-clean2-20261030T001025501835Z-e65204-A10-trial1.log",
+        "docs/reports/evidence/phase-08-emulator-expansion/ex20261028/20261030T002438254211Z-fbe6a4-A10-power.json"
+      ],
+      "limitations": [
+        "Forced virtual deep IDLE is not natural or physical OEM Doze.",
+        "Timing, natural-idle delivery, physical energy and phone battery behavior are not certified."
+      ],
+      "physicalAcceptance": "NOT_RUN",
+      "candidateCohort": "INPUT_LOSS_20261030_CLEAN_APK",
+      "networkCondition": "RESUMED_AIRPLANE_ON_WIFI_MOBILE_OFF_NO_DEFAULT_NETWORK",
+      "historicalResultBeforeInputLoss": {
+        "status": "PASS",
+        "observations": "Forced deep IDLE was confirmed before due. Independent SQL observed paired RINGING/task TODO while forced idle remained active. Explicit unforce/wake/Main recovery and actual notification ACK review/Confirm then produced paired ACKNOWLEDGED, task TODO and registrations 0. Selected power/battery/global settings were restored.",
+        "evidence": [
+          "docs/reports/evidence/phase-08-emulator-expansion/ex20261028/20261028T135357935087Z-62ca25-A10-power.json",
+          "docs/reports/evidence/phase-08-expansion-resume-offline.json"
+        ],
+        "candidateCohort": "FINAL_TASK_ISOLATED_CANDIDATE"
+      },
+      "attemptCount": 1,
+      "originalFailedAttemptCount": 0
+    },
+    {
+      "id": "A11",
+      "group": "alarm",
+      "scenario": "Battery saver enabled",
+      "emulatorFeasibility": "CONDITIONAL",
+      "procedure": "Establish battery saver on this image, wait due and inspect honest delivery constraints.",
+      "expected": "Honest constraints; no false delivered/ACK claim",
+      "requiredEvidence": [
+        "fresh_case_log",
+        "actual_condition_observed",
+        "visible_ui_outcome",
+        "independent_real_sqlite_state"
+      ],
+      "passScope": "EMULATOR_ONLY_CONFIRMED_BATTERY_SAVER_ACTUAL_NOTIFICATION_SQL",
+      "status": "PASS",
+      "reason": null,
+      "observations": "Fresh emulator assertions and independent state checks completed; see current ledger. Existing narrow scope and physical limits still apply.",
+      "evidence": [
+        "docs/reports/evidence/phase-08-input-loss-case-ledger.json",
+        "docs/reports/evidence/phase-08-input-loss-all-cases-final-clean2-20261030T001025501835Z-e65204-A11-trial1.log",
+        "docs/reports/evidence/phase-08-emulator-expansion/ex20261028/20261030T002626640673Z-2b427a-A11-power.json"
+      ],
+      "limitations": [
+        "The initial unsupported condition parser is preserved as NOT_RUN, not relabeled a product delivery failure.",
+        "Simulated battery saver is not energy measurement, natural phone power policy or a punctuality guarantee."
+      ],
+      "physicalAcceptance": "NOT_RUN",
+      "candidateCohort": "INPUT_LOSS_20261030_CLEAN_APK",
+      "networkCondition": "RESUMED_AIRPLANE_ON_WIFI_MOBILE_OFF_NO_DEFAULT_NETWORK",
+      "historicalResultBeforeInputLoss": {
+        "status": "PASS",
+        "observations": "Initial attempt could not confirm saver activity with its legacy dump-field parser and was recorded NOT_RUN with restoration PASS. A fresh-fixture retry confirmed the API37 Battery saving stats ON row and low_power 1, observed paired RINGING under the confirmed saver, then actual notification ACK produced paired ACKNOWLEDGED, task TODO and registrations 0. Saver OFF, baseline power/battery and selected global settings were restored.",
+        "evidence": [
+          "docs/reports/evidence/phase-08-emulator-expansion/ex20261028/20261028T135607243823Z-d53054-A11-power.json",
+          "docs/reports/evidence/phase-08-emulator-expansion/ex20261028/20261028T135734121580Z-9416e9-A11-power.json",
+          "docs/reports/evidence/phase-08-resumed-power-A11-stats-retry.log",
+          "docs/reports/evidence/phase-08-expansion-resume-offline.json"
+        ],
+        "candidateCohort": "FINAL_TASK_ISOLATED_CANDIDATE"
+      },
+      "attemptCount": 1,
+      "originalFailedAttemptCount": 0
+    },
+    {
+      "id": "A12",
+      "group": "alarm",
+      "scenario": "OS removes background process before due",
+      "emulatorFeasibility": "CONDITIONAL",
+      "procedure": "Background then kill only safe-to-kill capstone processes; verify PID loss and due recovery.",
+      "expected": "Durable record recovers within OS limits",
+      "requiredEvidence": [
+        "fresh_case_log",
+        "actual_condition_observed",
+        "visible_ui_outcome",
+        "independent_real_sqlite_state"
+      ],
+      "passScope": "EMULATOR_ONLY_SAFE_BACKGROUND_PROCESS_KILL_RECOVERY_SQL",
+      "status": "PASS",
+      "reason": null,
+      "observations": "Fresh emulator assertions and independent state checks completed; see current ledger. Existing narrow scope and physical limits still apply.",
+      "evidence": [
+        "docs/reports/evidence/phase-08-input-loss-case-ledger.json",
+        "docs/reports/evidence/phase-08-input-loss-all-cases-final-clean2-20261030T001025501835Z-e65204-A12-trial1.log",
+        "docs/reports/evidence/phase-08-emulator-expansion/ex20261028/20261030T002804831651Z-platform-A12.json"
+      ],
+      "limitations": [
+        "am kill is not force-stop or genuine phone low-memory eviction; no physical process-pressure acceptance is established."
+      ],
+      "physicalAcceptance": "NOT_RUN",
+      "candidateCohort": "INPUT_LOSS_20261030_CLEAN_APK",
+      "networkCondition": "RESUMED_AIRPLANE_ON_WIFI_MOBILE_OFF_NO_DEFAULT_NETWORK",
+      "historicalResultBeforeInputLoss": {
+        "status": "PASS",
+        "observations": "After backgrounding, safe am kill removed the previously observed app PIDs. At due, paired RINGING recovered; actual notification body -> typed ACK review/Confirm produced paired ACKNOWLEDGED, task TODO and registrations 0.",
+        "evidence": [
+          "docs/reports/evidence/phase-08-emulator-expansion/ex20261028/20261028T133047934871Z-platform-A12.json",
+          "docs/reports/evidence/phase-08-resumed-platform-A12.log",
+          "docs/reports/evidence/phase-08-expansion-resume-offline.json"
+        ],
+        "candidateCohort": "FINAL_TASK_ISOLATED_CANDIDATE"
+      },
+      "attemptCount": 1,
+      "originalFailedAttemptCount": 0
+    },
+    {
+      "id": "A13",
+      "group": "alarm",
+      "scenario": "Swipe app from recents before due",
+      "emulatorFeasibility": "FEASIBLE",
+      "procedure": "Remove the app task from recents and wait for the alarm.",
+      "expected": "Record OEM behavior; no invented delivery guarantee",
+      "requiredEvidence": [
+        "fresh_case_log",
+        "actual_condition_observed",
+        "visible_ui_outcome",
+        "independent_real_sqlite_state"
+      ],
+      "passScope": "EMULATOR_ONLY_OWN_MAIN_TASK_FINISH_AND_REMOVE_API_PENDING_DELIVERY_NOTIFICATION_ACK",
+      "status": "PASS",
+      "reason": null,
+      "observations": "Fresh emulator assertions and independent state checks completed; see current ledger. Existing narrow scope and physical limits still apply.",
+      "evidence": [
+        "docs/reports/evidence/phase-08-input-loss-case-ledger.json",
+        "docs/reports/evidence/phase-08-input-loss-all-cases-final-clean2-20261030T001025501835Z-e65204-A13-trial1.log"
+      ],
+      "limitations": [
+        "Actual System UI Recents swipe gesture and physical/OEM recents behavior were NOT_RUN.",
+        "An app-task API removal is not a force-stop or physical low-memory kill."
+      ],
+      "physicalAcceptance": "NOT_RUN",
+      "candidateCohort": "INPUT_LOSS_20261030_CLEAN_APK",
+      "networkCondition": "RESUMED_AIRPLANE_ON_WIFI_MOBILE_OFF_NO_DEFAULT_NETWORK",
+      "originalManualScenarioFullyCovered": false,
+      "historicalResultBeforeInputLoss": {
+        "status": "PASS",
+        "observations": "Removed only the app-owned MainActivity task via appTasks finishAndRemoveTask after verifying base/top activity. Independent pending SCHEDULED/TODO generation1 and one registration remained unchanged. The reminder actually became due, current System UI notification typed review/Confirm ACK produced paired ACKNOWLEDGED, task TODO and zero registrations; the owned fixture was then soft removed through reviewed UI.",
+        "evidence": [
+          "docs/reports/evidence/phase-08-emulator-expansion/ex20261028/20261028T143221665248Z-113171ff-lifecycle.json",
+          "docs/reports/evidence/phase-08-emulator-expansion/ex20261028/20261028T143321437353Z-ae0b2168-notification.json",
+          "docs/reports/evidence/phase-08-resumed-task-removal.log"
+        ],
+        "candidateCohort": "FINAL_TASK_ISOLATED_CANDIDATE"
+      },
+      "attemptCount": 1,
+      "originalFailedAttemptCount": 0
+    },
+    {
+      "id": "A14",
+      "group": "alarm",
+      "scenario": "Force-stop before due, then reopen after due",
+      "emulatorFeasibility": "FEASIBLE",
+      "procedure": "Force-stop before due, observe the restriction, then explicitly reopen and inspect reconciliation.",
+      "expected": "No promise while force-stopped; reopen reconciles",
+      "requiredEvidence": [
+        "fresh_case_log",
+        "actual_condition_observed",
+        "visible_ui_outcome",
+        "independent_real_sqlite_state"
+      ],
+      "passScope": "EMULATOR_ONLY_FORCE_STOP_SUPPRESSION_AND_EXPLICIT_REOPEN_SQL",
+      "status": "PASS",
+      "reason": null,
+      "observations": "Fresh emulator assertions and independent state checks completed; see current ledger. Existing narrow scope and physical limits still apply.",
+      "evidence": [
+        "docs/reports/evidence/phase-08-input-loss-case-ledger.json",
+        "docs/reports/evidence/phase-08-input-loss-all-cases-final-clean2-20261030T001025501835Z-e65204-A14-trial1.log",
+        "docs/reports/evidence/phase-08-emulator-expansion/ex20261028/20261030T003209239710Z-platform-A14.json"
+      ],
+      "limitations": [
+        "No delivery is promised while Android keeps the package force-stopped. This is one preview-API AVD recovery observation."
+      ],
+      "physicalAcceptance": "NOT_RUN",
+      "candidateCohort": "INPUT_LOSS_20261030_CLEAN_APK",
+      "networkCondition": "RESUMED_AIRPLANE_ON_WIFI_MOBILE_OFF_NO_DEFAULT_NETWORK",
+      "historicalResultBeforeInputLoss": {
+        "status": "PASS",
+        "observations": "Force-stopped state was verified and notification/delivery remained suppressed beyond due, with paired PENDING/SCHEDULED. Explicit Main reopening recovered paired RINGING; actual notification ACK confirmation produced paired ACKNOWLEDGED, task TODO and registrations 0.",
+        "evidence": [
+          "docs/reports/evidence/phase-08-emulator-expansion/ex20261028/20261028T133251277777Z-platform-A14.json",
+          "docs/reports/evidence/phase-08-resumed-platform-A14.log",
+          "docs/reports/evidence/phase-08-expansion-resume-offline.json"
+        ],
+        "candidateCohort": "FINAL_TASK_ISOLATED_CANDIDATE"
+      },
+      "attemptCount": 1,
+      "originalFailedAttemptCount": 0
+    },
+    {
+      "id": "A15",
+      "group": "alarm",
+      "scenario": "Reboot before due; unlock phone as required",
+      "emulatorFeasibility": "FEASIBLE",
+      "procedure": "Reboot the existing AVD without wiping, unlock as required and inspect one restored alarm.",
+      "expected": "Restore/reconcile once; record locked-boot limits",
+      "requiredEvidence": [
+        "fresh_case_log",
+        "actual_condition_observed",
+        "visible_ui_outcome",
+        "independent_real_sqlite_state"
+      ],
+      "passScope": "EMULATOR_ONLY_REBOOT_EVENTUAL_RECOVERY_SQL",
+      "status": "PASS",
+      "reason": null,
+      "observations": "Fresh emulator assertions and independent state checks completed; see current ledger. Existing narrow scope and physical limits still apply.",
+      "evidence": [
+        "docs/reports/evidence/phase-08-input-loss-case-ledger.json",
+        "docs/reports/evidence/phase-08-input-loss-all-cases-final-clean2-20261030T001025501835Z-e65204-A15-trial1.log",
+        "docs/reports/evidence/phase-08-emulator-expansion/ex20261028/20261030T003353614405Z-platform-A15.json"
+      ],
+      "limitations": [
+        "Recovery was delayed: the recorded response deadline is consistent with a ringing window beginning around 13:38:12.567Z (~71 seconds after due); the independent RINGING observation was ~75 seconds after due.",
+        "No physical secured-unlock, OEM reboot timing or prompt-delivery guarantee is established."
+      ],
+      "physicalAcceptance": "NOT_RUN",
+      "candidateCohort": "INPUT_LOSS_20261030_CLEAN_APK",
+      "networkCondition": "RESUMED_AIRPLANE_ON_WIFI_MOBILE_OFF_NO_DEFAULT_NETWORK",
+      "historicalResultBeforeInputLoss": {
+        "status": "PASS",
+        "observations": "A real guest reboot was confirmed by changed boot identity and boot-completed state. Due was 13:37:01.460Z; paired RINGING was independently observed at 13:38:16.858Z, followed by actual notification ACK confirmation with task TODO and registrations 0. This establishes eventual recovery, not punctual delivery.",
+        "evidence": [
+          "docs/reports/evidence/phase-08-emulator-expansion/ex20261028/20261028T133449099796Z-platform-A15.json",
+          "docs/reports/evidence/phase-08-resumed-platform-A15.log",
+          "docs/reports/evidence/phase-08-expansion-resume-offline.json"
+        ],
+        "candidateCohort": "FINAL_TASK_ISOLATED_CANDIDATE"
+      },
+      "attemptCount": 1,
+      "originalFailedAttemptCount": 0
+    },
+    {
+      "id": "A16",
+      "group": "alarm",
+      "scenario": "Restart app with an outstanding alarm",
+      "emulatorFeasibility": "FEASIBLE",
+      "procedure": "Restart with an outstanding alarm and inspect its original durable identity and registrations.",
+      "expected": "Existing reminder/job survives without duplicates",
+      "requiredEvidence": [
+        "fresh_case_log",
+        "actual_condition_observed",
+        "visible_ui_outcome",
+        "independent_real_sqlite_state"
+      ],
+      "passScope": "EMULATOR_ONLY_PROCESS_RESTART_PENDING_REGISTRATION_SQL",
+      "status": "PASS",
+      "reason": null,
+      "observations": "Fresh emulator assertions and independent state checks completed; see current ledger. Existing narrow scope and physical limits still apply.",
+      "evidence": [
+        "docs/reports/evidence/phase-08-input-loss-case-ledger.json",
+        "docs/reports/evidence/phase-08-input-loss-all-cases-final-clean2-20261030T001025501835Z-e65204-A16-trial1.log",
+        "docs/reports/evidence/phase-08-emulator-expansion/ex20261028/20261030T003631031154Z-platform-A16.json"
+      ],
+      "limitations": [
+        "Controlled am kill/relaunch does not certify physical low-memory eviction or every OEM restart policy."
+      ],
+      "physicalAcceptance": "NOT_RUN",
+      "candidateCohort": "INPUT_LOSS_20261030_CLEAN_APK",
+      "networkCondition": "RESUMED_AIRPLANE_ON_WIFI_MOBILE_OFF_NO_DEFAULT_NETWORK",
+      "historicalResultBeforeInputLoss": {
+        "status": "PASS",
+        "observations": "App was backgrounded and safe am kill removed the old PIDs. Explicit Main relaunch retained paired PENDING/SCHEDULED, original UTC due time/generation and exactly one local registration; actual due then notification ACK review/Confirm produced paired ACKNOWLEDGED, task TODO and registrations 0.",
+        "evidence": [
+          "docs/reports/evidence/phase-08-emulator-expansion/ex20261028/20261028T133854824040Z-platform-A16.json",
+          "docs/reports/evidence/phase-08-resumed-platform-A16.log",
+          "docs/reports/evidence/phase-08-expansion-resume-offline.json"
+        ],
+        "candidateCohort": "FINAL_TASK_ISOLATED_CANDIDATE"
+      },
+      "attemptCount": 1,
+      "originalFailedAttemptCount": 0
+    },
+    {
+      "id": "A17",
+      "group": "alarm",
+      "scenario": "Change wall clock forward across due",
+      "emulatorFeasibility": "CONDITIONAL",
+      "procedure": "Capture automatic time, change only emulator wall time forward across due and inspect late policy.",
+      "expected": "Reconcile consistent state; record late policy",
+      "requiredEvidence": [
+        "fresh_case_log",
+        "actual_condition_observed",
+        "visible_ui_outcome",
+        "independent_real_sqlite_state"
+      ],
+      "passScope": "EMULATOR_ONLY_ACTUAL_FORWARD_CLOCK_TIME_SET_RECONCILIATION_SQL",
+      "status": "PASS",
+      "reason": null,
+      "observations": "Fresh emulator assertions and independent state checks completed; see current ledger. Existing narrow scope and physical limits still apply.",
+      "evidence": [
+        "docs/reports/evidence/phase-08-input-loss-case-ledger.json",
+        "docs/reports/evidence/phase-08-input-loss-all-cases-final-clean2-20261030T001025501835Z-e65204-A17-trial1.log",
+        "docs/reports/evidence/phase-08-emulator-expansion/ex20261028/20261030T003807703435Z-A17-clock.json"
+      ],
+      "limitations": [
+        "One bounded virtual clock jump and reconciliation path, not physical OS/OEM timing or arbitrary clock changes."
+      ],
+      "physicalAcceptance": "NOT_RUN",
+      "candidateCohort": "INPUT_LOSS_20261030_CLEAN_APK",
+      "networkCondition": "RESUMED_AIRPLANE_ON_WIFI_MOBILE_OFF_NO_DEFAULT_NETWORK",
+      "historicalResultBeforeInputLoss": {
+        "status": "PASS",
+        "observations": "Actual guest wall clock advanced 120 seconds across the owned pending reminder due time. Real TIME_SET reconciliation produced paired RINGING; actual notification body -> typed ACK review/Confirm then produced paired ACKNOWLEDGED, task TODO and registrations 0. Original host clock offset was restored to second resolution with four-second tolerance, automatic time 1 and GMT; exact owned fixture was cleaned via reviewed UI.",
+        "evidence": [
+          "docs/reports/evidence/phase-08-emulator-expansion/ex20261028/20261028T135946672200Z-A17-clock.json",
+          "docs/reports/evidence/phase-08-resumed-clock-A17.log",
+          "docs/reports/evidence/phase-08-expansion-resume-offline.json"
+        ],
+        "candidateCohort": "FINAL_TASK_ISOLATED_CANDIDATE"
+      },
+      "attemptCount": 1,
+      "originalFailedAttemptCount": 0
+    },
+    {
+      "id": "A18",
+      "group": "alarm",
+      "scenario": "Change wall clock backward before due",
+      "emulatorFeasibility": "CONDITIONAL",
+      "procedure": "Move only emulator wall time backward; verify review expiry and no duplicated/cross-target action.",
+      "expected": "No duplicate/stale ACK; record actual timing",
+      "requiredEvidence": [
+        "fresh_case_log",
+        "actual_condition_observed",
+        "visible_ui_outcome",
+        "independent_real_sqlite_state"
+      ],
+      "passScope": "EMULATOR_ONLY_ACTUAL_BACKWARD_CLOCK_DURING_RINGING_REVIEW_SQL",
+      "status": "PASS",
+      "reason": null,
+      "observations": "Fresh emulator assertions and independent state checks completed; see current ledger. Existing narrow scope and physical limits still apply.",
+      "evidence": [
+        "docs/reports/evidence/phase-08-input-loss-case-ledger.json",
+        "docs/reports/evidence/phase-08-input-loss-all-cases-final-clean2-20261030T001025501835Z-e65204-A18-trial1.log",
+        "docs/reports/evidence/phase-08-emulator-expansion/ex20261028/20261030T003851009068Z-A18-clock.json"
+      ],
+      "limitations": [
+        "Original manual scenario of moving the clock backward BEFORE due remains NOT_RUN. This PASS covers a real backward jump DURING a ringing response review only.",
+        "One preview-API AVD; physical clock-change/OEM acceptance remains pending."
+      ],
+      "physicalAcceptance": "NOT_RUN",
+      "candidateCohort": "INPUT_LOSS_20261030_CLEAN_APK",
+      "networkCondition": "RESUMED_AIRPLANE_ON_WIFI_MOBILE_OFF_NO_DEFAULT_NETWORK",
+      "originalManualScenarioFullyCovered": false,
+      "historicalResultBeforeInputLoss": {
+        "status": "PASS",
+        "observations": "Narrower case: after actual due and visible ACK review, guest clock moved backward 120 seconds. Real TIME_SET reconciliation retired the original paired RINGING reminder/job to MISSED. Attempting cached old Confirm did not ACK: independent paired MISSED, task TODO and registrations 0 remained. Original host clock offset was restored to second resolution with four-second tolerance, automatic time 1 and GMT; exact owned fixture was cleaned via reviewed UI.",
+        "evidence": [
+          "docs/reports/evidence/phase-08-emulator-expansion/ex20261028/20261028T140041182600Z-A18-clock.json",
+          "docs/reports/evidence/phase-08-resumed-clock-A18.log",
+          "docs/reports/evidence/phase-08-expansion-resume-offline.json"
+        ],
+        "candidateCohort": "FINAL_TASK_ISOLATED_CANDIDATE"
+      },
+      "attemptCount": 1,
+      "originalFailedAttemptCount": 0
+    },
+    {
+      "id": "A19",
+      "group": "alarm",
+      "scenario": "Change timezone before due",
+      "emulatorFeasibility": "CONDITIONAL",
+      "procedure": "Change emulator timezone and inspect UTC storage plus displayed schedule semantics.",
+      "expected": "Stored instant/defined timezone semantics preserved",
+      "requiredEvidence": [
+        "fresh_case_log",
+        "actual_condition_observed",
+        "visible_ui_outcome",
+        "independent_real_sqlite_state"
+      ],
+      "passScope": "EMULATOR_ONLY_ACTUAL_TIMEZONE_CHANGE_UTC_INSTANT_SQL",
+      "status": "PASS",
+      "reason": null,
+      "observations": "Fresh emulator assertions and independent state checks completed; see current ledger. Existing narrow scope and physical limits still apply.",
+      "evidence": [
+        "docs/reports/evidence/phase-08-input-loss-case-ledger.json",
+        "docs/reports/evidence/phase-08-input-loss-all-cases-final-clean2-20261030T001025501835Z-e65204-A19-trial1.log",
+        "docs/reports/evidence/phase-08-emulator-expansion/ex20261028/20261030T004023794358Z-platform-A19.json"
+      ],
+      "limitations": [
+        "One fixed task instant across a real guest timezone change; weekly recurring/DST behavior and physical OEM acceptance are not established."
+      ],
+      "physicalAcceptance": "NOT_RUN",
+      "candidateCohort": "INPUT_LOSS_20261030_CLEAN_APK",
+      "networkCondition": "RESUMED_AIRPLANE_ON_WIFI_MOBILE_OFF_NO_DEFAULT_NETWORK",
+      "historicalResultBeforeInputLoss": {
+        "status": "PASS",
+        "observations": "Actual guest timezone changed GMT -> Asia/Manila (+8 hours) before due. Independent SQL preserved the original UTC runAt, generation and single registration. Actual due then notification ACK review/Confirm produced paired ACKNOWLEDGED, task TODO and registrations 0. GMT and automatic-timezone 1 were restored to baseline.",
+        "evidence": [
+          "docs/reports/evidence/phase-08-emulator-expansion/ex20261028/20261028T134048027340Z-platform-A19.json",
+          "docs/reports/evidence/phase-08-resumed-platform-A19.log",
+          "docs/reports/evidence/phase-08-expansion-resume-offline.json"
+        ],
+        "candidateCohort": "FINAL_TASK_ISOLATED_CANDIDATE"
+      },
+      "attemptCount": 1,
+      "originalFailedAttemptCount": 0
+    },
+    {
+      "id": "A20",
+      "group": "alarm",
+      "scenario": "Revoke notification permission before due",
+      "emulatorFeasibility": "FEASIBLE",
+      "procedure": "Capture grant flags/AppOps, revoke notification access and inspect warning/manual fallback at due.",
+      "expected": "Clear delivery warning/manual planner fallback",
+      "requiredEvidence": [
+        "fresh_case_log",
+        "actual_condition_observed",
+        "visible_ui_outcome",
+        "independent_real_sqlite_state"
+      ],
+      "passScope": "EMULATOR_ONLY_NOTIFICATION_DENIAL_HONEST_STATE_MANUAL_CLEANUP",
+      "status": "PASS",
+      "reason": null,
+      "observations": "Fresh emulator assertions and independent state checks completed; see current ledger. Existing narrow scope and physical limits still apply.",
+      "evidence": [
+        "docs/reports/evidence/phase-08-input-loss-case-ledger.json",
+        "docs/reports/evidence/phase-08-input-loss-all-cases-final-clean2-20261030T001025501835Z-e65204-A20-trial1.log",
+        "docs/reports/evidence/phase-08-emulator-expansion/ex20261028/20261030T084156803524-adbf63-A20-permissions.json"
+      ],
+      "limitations": [
+        "This verifies honest blocked-delivery state and manual cleanup, not successful alarm delivery under denied permission.",
+        "Physical permission-dialog/OEM behavior remains pending."
+      ],
+      "physicalAcceptance": "NOT_RUN",
+      "candidateCohort": "INPUT_LOSS_20261030_CLEAN_APK",
+      "networkCondition": "RESUMED_AIRPLANE_ON_WIFI_MOBILE_OFF_NO_DEFAULT_NETWORK",
+      "historicalResultBeforeInputLoss": {
+        "status": "PASS",
+        "observations": "Notification permission denial was held through actual due; no owned notification was active. Independent state remained PENDING/SCHEDULED, task TODO, UNAVAILABLE/NOTIFICATIONS_BLOCKED, notifiedAt null and registrations 0. The exact fixture was cleaned through reviewed Chat while denial remained in effect, then permission/grant flags and settings were restored.",
+        "evidence": [
+          "docs/reports/evidence/phase-08-emulator-expansion/ex20261028/20261028T214308635541-dbf8ce-A20-permissions.json",
+          "docs/reports/evidence/phase-08-emulator-expansion/ex20261028/20261028T134308638553Z-92befaab-permissions-A20.json",
+          "docs/reports/evidence/phase-08-expansion-resume-offline.json"
+        ],
+        "candidateCohort": "FINAL_TASK_ISOLATED_CANDIDATE"
+      },
+      "attemptCount": 1,
+      "originalFailedAttemptCount": 0
+    },
+    {
+      "id": "A21",
+      "group": "alarm",
+      "scenario": "Deny/revoke exact-alarm access before due",
+      "emulatorFeasibility": "CONDITIONAL",
+      "procedure": "Establish denied exact-alarm special access with supported controls and inspect actual scheduling fallback.",
+      "expected": "Capability guidance; record fallback/constraints",
+      "requiredEvidence": [
+        "fresh_case_log",
+        "actual_condition_observed",
+        "visible_ui_outcome",
+        "independent_real_sqlite_state"
+      ],
+      "passScope": "EMULATOR_ONLY_EXACT_ACCESS_DENIAL_INEXACT_REGISTRATION_RECOVERY",
+      "status": "PASS",
+      "reason": null,
+      "observations": "Fresh emulator assertions and independent state checks completed; see current ledger. Existing narrow scope and physical limits still apply.",
+      "evidence": [
+        "docs/reports/evidence/phase-08-input-loss-case-ledger.json",
+        "docs/reports/evidence/phase-08-input-loss-all-cases-final-clean2-20261030T001025501835Z-e65204-A21-trial1.log",
+        "docs/reports/evidence/phase-08-emulator-expansion/ex20261028/20261030T084402618646-c132f6-A21-permissions.json"
+      ],
+      "limitations": [
+        "Main reopen recovery is not punctual inexact-alarm delivery; no timing guarantee or physical access-settings UI claim is established."
+      ],
+      "physicalAcceptance": "NOT_RUN",
+      "candidateCohort": "INPUT_LOSS_20261030_CLEAN_APK",
+      "networkCondition": "RESUMED_AIRPLANE_ON_WIFI_MOBILE_OFF_NO_DEFAULT_NETWORK",
+      "historicalResultBeforeInputLoss": {
+        "status": "PASS",
+        "observations": "UID SCHEDULE_EXACT_ALARM AppOp was observed ignore. The real native registration reported INEXACT; explicit Main reopen/reconciliation recovered the owned reminder and actual notification ACK was verified. AppOp allow, permission flags and other captured settings were restored exactly.",
+        "evidence": [
+          "docs/reports/evidence/phase-08-emulator-expansion/ex20261028/20261028T214600800036-a1b39e-A21-permissions.json",
+          "docs/reports/evidence/phase-08-emulator-expansion/ex20261028/20261028T134600802413Z-0c9b2656-permissions-A21.json",
+          "docs/reports/evidence/phase-08-expansion-resume-offline.json"
+        ],
+        "candidateCohort": "FINAL_TASK_ISOLATED_CANDIDATE"
+      },
+      "attemptCount": 1,
+      "originalFailedAttemptCount": 0
+    },
+    {
+      "id": "A22",
+      "group": "alarm",
+      "scenario": "Deny full-screen access before due",
+      "emulatorFeasibility": "CONDITIONAL",
+      "procedure": "Deny full-screen access and observe the actual OS notification fallback.",
+      "expected": "Notification fallback, no forced full-screen claim",
+      "requiredEvidence": [
+        "fresh_case_log",
+        "actual_condition_observed",
+        "visible_ui_outcome",
+        "independent_real_sqlite_state",
+        "actual_system_notification_interaction_or_explicit_narrower_scope"
+      ],
+      "passScope": "EMULATOR_ONLY_FSI_APP_OP_DENIAL_ACTUAL_NOTIFICATION_FALLBACK",
+      "status": "PASS",
+      "reason": null,
+      "observations": "Fresh emulator assertions and independent state checks completed; see current ledger. Existing narrow scope and physical limits still apply.",
+      "evidence": [
+        "docs/reports/evidence/phase-08-input-loss-case-ledger.json",
+        "docs/reports/evidence/phase-08-input-loss-all-cases-final-clean2-20261030T001025501835Z-e65204-A22-trial1.log",
+        "docs/reports/evidence/phase-08-emulator-expansion/ex20261028/20261030T084625764640-9ba968-A22-permissions.json"
+      ],
+      "limitations": [
+        "This verifies notification fallback on this AVD; physical lock-screen/full-screen eligibility and OEM behavior remain pending."
+      ],
+      "physicalAcceptance": "NOT_RUN",
+      "candidateCohort": "INPUT_LOSS_20261030_CLEAN_APK",
+      "networkCondition": "RESUMED_AIRPLANE_ON_WIFI_MOBILE_OFF_NO_DEFAULT_NETWORK",
+      "historicalResultBeforeInputLoss": {
+        "status": "PASS",
+        "observations": "UID USE_FULL_SCREEN_INTENT AppOp was observed ignore with full-screen preference enabled. The actual System UI notification body remained usable and its ACK was verified. AppOp allow, full-screen preference and captured settings were restored.",
+        "evidence": [
+          "docs/reports/evidence/phase-08-emulator-expansion/ex20261028/20261028T214916077134-8fa8c3-A22-permissions.json",
+          "docs/reports/evidence/phase-08-emulator-expansion/ex20261028/20261028T134916078547Z-3e0c0bf5-permissions-A22.json",
+          "docs/reports/evidence/phase-08-expansion-resume-offline.json"
+        ],
+        "candidateCohort": "FINAL_TASK_ISOLATED_CANDIDATE"
+      },
+      "attemptCount": 1,
+      "originalFailedAttemptCount": 0
+    },
+    {
+      "id": "A23",
+      "group": "alarm",
+      "scenario": "Deny mic on answered screen",
+      "emulatorFeasibility": "FEASIBLE",
+      "procedure": "Deny mic, deliberately request input and finish a typed/manual reviewed action.",
+      "expected": "Typed and manual reviewed actions still work",
+      "requiredEvidence": [
+        "fresh_case_log",
+        "actual_condition_observed",
+        "visible_ui_outcome",
+        "independent_real_sqlite_state"
+      ],
+      "passScope": "EMULATOR_ONLY_MIC_DENIAL_NO_AUTO_RECORDING_MANUAL_DRAFT_SQL",
+      "status": "PASS",
+      "reason": null,
+      "observations": "Fresh emulator assertions and independent state checks completed; see current ledger. Existing narrow scope and physical limits still apply.",
+      "evidence": [
+        "docs/reports/evidence/phase-08-input-loss-case-ledger.json",
+        "docs/reports/evidence/phase-08-input-loss-all-cases-final-clean2-20261030T001025501835Z-e65204-A23-trial1.log",
+        "docs/reports/evidence/phase-08-emulator-expansion/ex20261028/20261030T004838925421Z-A23-microphone.json"
+      ],
+      "limitations": [
+        "Narrow manual-draft availability and no-auto-recording assertions; confirmed manual ACK/snooze after the permission flow was NOT_RUN.",
+        "Host microphone OFF before/after, exact permission restoration and owned fixture cleanup were verified; no live human speech or physical phone acceptance."
+      ],
+      "physicalAcceptance": "NOT_RUN",
+      "candidateCohort": "INPUT_LOSS_20261030_CLEAN_APK",
+      "networkCondition": "RESUMED_AIRPLANE_ON_WIFI_MOBILE_OFF_NO_DEFAULT_NETWORK",
+      "testHarnessCohort": "PERMISSION_SURFACE_EXISTING_WINDOW_RETRY",
+      "historicalResultBeforeInputLoss": {
+        "status": "PASS",
+        "observations": "Initial driver reopen/Answer timeout remains preserved. Corrected opt-in driver retry handled actual microphone denial after pointer release, deliberately clicked the returned visible Answer control and found manual draft available. No automatic recording was observed. Independent SQL stayed paired RINGING/task TODO with unchanged deadline/generation and one registration; no reminder action was applied.",
+        "evidence": [
+          "docs/reports/evidence/phase-08-emulator-expansion/ex20261028/20261028T140255397719Z-A23-microphone.json",
+          "docs/reports/evidence/phase-08-emulator-expansion/ex20261028/20261028T141241769529Z-A23-microphone.json",
+          "docs/reports/evidence/phase-08-permission-ui-mic-fallback-A23.log"
+        ],
+        "candidateCohort": "FINAL_TASK_ISOLATED_CANDIDATE"
+      },
+      "attemptCount": 1,
+      "originalFailedAttemptCount": 0
+    },
+    {
+      "id": "A24",
+      "group": "alarm",
+      "scenario": "Grant mic, then release before permission returns",
+      "emulatorFeasibility": "CONDITIONAL",
+      "procedure": "Release visible hold before a permission grant; grant and verify no capture until a fresh hold.",
+      "expected": "No recording until a new explicit hold",
+      "requiredEvidence": [
+        "fresh_case_log",
+        "actual_condition_observed",
+        "visible_ui_outcome",
+        "independent_real_sqlite_state"
+      ],
+      "passScope": "EMULATOR_ONLY_RELEASE_BEFORE_MIC_GRANT_NO_AUTO_RECORDING_MANUAL_DRAFT_SQL",
+      "status": "PASS",
+      "reason": null,
+      "observations": "Fresh emulator assertions and independent state checks completed; see current ledger. Existing narrow scope and physical limits still apply.",
+      "evidence": [
+        "docs/reports/evidence/phase-08-input-loss-case-ledger.json",
+        "docs/reports/evidence/phase-08-input-loss-all-cases-final-clean2-20261030T001025501835Z-e65204-A24-trial1.log",
+        "docs/reports/evidence/phase-08-emulator-expansion/ex20261028/20261030T005014696741Z-A24-microphone.json"
+      ],
+      "limitations": [
+        "Narrow manual-draft availability and no-auto-recording assertions; confirmed manual ACK/snooze after the permission flow was NOT_RUN.",
+        "Host microphone OFF before/after, exact permission restoration and owned fixture cleanup were verified; no live human speech or physical phone acceptance."
+      ],
+      "physicalAcceptance": "NOT_RUN",
+      "candidateCohort": "INPUT_LOSS_20261030_CLEAN_APK",
+      "testHarnessCohort": "PERMISSION_SURFACE_EXISTING_WINDOW_RETRY",
+      "networkCondition": "RESUMED_AIRPLANE_ON_WIFI_MOBILE_OFF_NO_DEFAULT_NETWORK",
+      "historicalResultBeforeInputLoss": {
+        "status": "PASS",
+        "observations": "Pointer was released before the permission surface returned, microphone permission was granted, and the returned reminder required visible Answer interaction. Manual draft was available and no automatic recording was observed. Independent SQL stayed paired RINGING/task TODO with unchanged deadline/generation and one registration; no reminder action was applied.",
+        "evidence": [
+          "docs/reports/evidence/phase-08-emulator-expansion/ex20261028/20261028T141441466629Z-A24-microphone.json",
+          "docs/reports/evidence/phase-08-permission-ui-mic-fallback-A24.log"
+        ],
+        "candidateCohort": "FINAL_TASK_ISOLATED_CANDIDATE"
+      },
+      "attemptCount": 1,
+      "originalFailedAttemptCount": 0
+    },
+    {
+      "id": "A25",
+      "group": "alarm",
+      "scenario": "Remove/disable offline TTS voice using reversible OS settings",
+      "emulatorFeasibility": "CONDITIONAL",
+      "procedure": "Use a reversible unavailable voice/engine condition and verify text/manual fallback without network selection.",
+      "expected": "Text/manual controls remain usable; no network voice",
+      "requiredEvidence": [
+        "fresh_case_log",
+        "actual_condition_observed",
+        "visible_ui_outcome",
+        "independent_real_sqlite_state"
+      ],
+      "passScope": "Actual zero enabled TTS services and unavailable offline-voice UI; typed/manual reviews cancelled; independent SQL unchanged; exact engine inventory/state restored.",
+      "status": "PASS",
+      "reason": null,
+      "observations": "Fresh emulator assertions and independent state checks completed; see current ledger. Existing narrow scope and physical limits still apply.",
+      "evidence": [
+        "docs/reports/evidence/phase-08-input-loss-case-ledger.json",
+        "docs/reports/evidence/phase-08-input-loss-all-cases-final-clean2-20261030T001025501835Z-e65204-A25-trial1.log",
+        "docs/reports/evidence/phase-08-emulator-expansion/ex20261028/20261030T005156501615Z-A25-failure.json"
+      ],
+      "limitations": [
+        "Invalid explicit engine is narrower than removed offline voice data; record which condition ran."
+      ],
+      "physicalAcceptance": "NOT_RUN",
+      "candidateCohort": "INPUT_LOSS_20261030_CLEAN_APK",
+      "latestScopedApkSha256": "ccc79ceda3a033d222917c54a6c68cd5d9d13c5c2d1f7cf3b6f3672c60f0ff6c",
+      "remainingAttemptEvidence": "docs/reports/evidence/phase-08-remaining-case-ledger.json",
+      "historicalResultBeforeInputLoss": {
+        "status": "PASS",
+        "observations": "Latest scoped attempt outcome; all recorded failures are retained in the remaining-case ledger.",
+        "evidence": [
+          "docs/reports/evidence/phase-08-emulator-expansion/ex20261028/20261029T074017125079Z-A25-failure.json"
+        ],
+        "candidateCohort": "MIXED_EXPLICIT_REMAINING_CASE_COHORTS"
+      },
+      "attemptCount": 1,
+      "originalFailedAttemptCount": 0
+    },
+    {
+      "id": "A26",
+      "group": "alarm",
+      "scenario": "STT unavailable/offline recognizer fails",
+      "emulatorFeasibility": "CONDITIONAL",
+      "procedure": "Establish a genuinely unavailable offline STT route and verify recoverable error/manual actions.",
+      "expected": "Typed/manual controls remain; no silent mutation",
+      "requiredEvidence": [
+        "fresh_case_log",
+        "actual_condition_observed",
+        "visible_ui_outcome",
+        "independent_real_sqlite_state"
+      ],
+      "passScope": "Actual communication mode before hold blocked capture; preserved draft and working typed/manual reviews with unchanged SQL. Not removed Whisper/vendor engine absence.",
+      "status": "PASS",
+      "reason": null,
+      "observations": "Fresh emulator assertions and independent state checks completed; see current ledger. Existing narrow scope and physical limits still apply.",
+      "evidence": [
+        "docs/reports/evidence/phase-08-input-loss-case-ledger.json",
+        "docs/reports/evidence/phase-08-input-loss-all-cases-final-clean2-20261030T001025501835Z-e65204-A26-trial1.log",
+        "docs/reports/evidence/phase-08-emulator-expansion/ex20261028/20261030T005434844176Z-A26-failure.json"
+      ],
+      "limitations": [
+        "Vendor recognizer and physical capture remain pending."
+      ],
+      "physicalAcceptance": "NOT_RUN",
+      "candidateCohort": "INPUT_LOSS_20261030_CLEAN_APK",
+      "latestScopedApkSha256": "ccc79ceda3a033d222917c54a6c68cd5d9d13c5c2d1f7cf3b6f3672c60f0ff6c",
+      "remainingAttemptEvidence": "docs/reports/evidence/phase-08-remaining-case-ledger.json",
+      "historicalResultBeforeInputLoss": {
+        "status": "PASS",
+        "observations": "Latest scoped attempt outcome; all recorded failures are retained in the remaining-case ledger.",
+        "evidence": [
+          "docs/reports/evidence/phase-08-emulator-expansion/ex20261028/20261029T073138056128Z-A26-failure.json"
+        ],
+        "candidateCohort": "MIXED_EXPLICIT_REMAINING_CASE_COHORTS"
+      },
+      "attemptCount": 1,
+      "originalFailedAttemptCount": 0
+    },
+    {
+      "id": "A27",
+      "group": "alarm",
+      "scenario": "Audio-focus loss/real call during TTS or recording",
+      "emulatorFeasibility": "CONDITIONAL",
+      "procedure": "Use a synthetic audio-focus/audio-mode interruption and check stop/release and late-result fencing.",
+      "expected": "Speech stops/releases appropriately; no late action",
+      "requiredEvidence": [
+        "fresh_case_log",
+        "actual_condition_observed",
+        "visible_ui_outcome",
+        "independent_real_sqlite_state"
+      ],
+      "passScope": "Actual Recording before OS audio-mode change; visible cancellation/failure, no late transcript, preserved draft and cancelled manual/typed reviews; unchanged SQL and exact audio-mode restore.",
+      "status": "PASS",
+      "reason": null,
+      "observations": "Fresh emulator assertions and independent state checks completed; see current ledger. Existing narrow scope and physical limits still apply.",
+      "evidence": [
+        "docs/reports/evidence/phase-08-input-loss-case-ledger.json",
+        "docs/reports/evidence/phase-08-input-loss-all-cases-final-clean2-20261030T001025501835Z-e65204-A27-trial1.log",
+        "docs/reports/evidence/phase-08-emulator-expansion/ex20261028/20261030T005620762561Z-A27-failure.json"
+      ],
+      "limitations": [
+        "Not a real cellular call, Bluetooth route or OEM audio validation."
+      ],
+      "physicalAcceptance": "NOT_RUN",
+      "candidateCohort": "INPUT_LOSS_20261030_CLEAN_APK",
+      "latestScopedApkSha256": "7300f2aefeb8d5f90882655d46435b100a12531e16a7c70df4f81230f4160454",
+      "remainingAttemptEvidence": "docs/reports/evidence/phase-08-remaining-case-ledger.json",
+      "historicalResultBeforeInputLoss": {
+        "status": "PASS",
+        "observations": "Latest scoped attempt outcome; all recorded failures are retained in the remaining-case ledger.",
+        "evidence": [
+          "docs/reports/evidence/phase-08-emulator-expansion/ex20261028/20261029T073713927368Z-A27-failure.json",
+          "docs/reports/evidence/phase-08-emulator-expansion/ex20261028/20261029T080044271660Z-A27-failure.json",
+          "docs/reports/evidence/phase-08-emulator-expansion/ex20261028/20261029T135723220391Z-A27-failure.json",
+          "docs/reports/evidence/phase-08-emulator-expansion/ex20261028/20261029T142119182799Z-A27-failure.json"
+        ],
+        "candidateCohort": "MIXED_EXPLICIT_REMAINING_CASE_COHORTS"
+      },
+      "attemptCount": 1,
+      "originalFailedAttemptCount": 0
+    },
+    {
+      "id": "A28",
+      "group": "alarm",
+      "scenario": "Background then resume during recognition/review",
+      "emulatorFeasibility": "FEASIBLE",
+      "procedure": "Background and resume during review and, if synthetic capture is proven, during recognition.",
+      "expected": "Old capture/review invalidated; explicit fresh action",
+      "requiredEvidence": [
+        "fresh_case_log",
+        "actual_condition_observed",
+        "visible_ui_outcome",
+        "independent_real_sqlite_state"
+      ],
+      "passScope": "EMULATOR_ONLY_PAUSE_ACTUAL_NOTIFICATION_REOPEN_SQL",
+      "status": "PASS",
+      "reason": null,
+      "observations": "Fresh emulator assertions and independent state checks completed; see current ledger. Existing narrow scope and physical limits still apply.",
+      "evidence": [
+        "docs/reports/evidence/phase-08-input-loss-case-ledger.json",
+        "docs/reports/evidence/phase-08-input-loss-all-cases-final-clean2-20261030T001025501835Z-e65204-A28-trial1.log"
+      ],
+      "limitations": [
+        "Covers review pause/resume and actual notification reopening, not live recognition interruption or every OEM task policy.",
+        "Earlier failed attempts and intermediate CLEAR_TOP-only pass remain separate cohorts."
+      ],
+      "physicalAcceptance": "NOT_RUN",
+      "candidateCohort": "INPUT_LOSS_20261030_CLEAN_APK",
+      "historicalResultBeforeInputLoss": {
+        "status": "PASS",
+        "observations": "Initial runs exposed a real reminder task-reopening defect. Final task-isolated candidate reopens through the actual owned notification; retired review cannot confirm, fresh Answer/review is required, original deadline and paired RINGING/task TODO remain, and the exact owned unsent Main Chat draft is preserved.",
+        "evidence": [
+          "docs/reports/evidence/phase-08-emulator-expansion/ex20261028/20261028T080843092781Z-674e33cb-lifecycle.json",
+          "docs/reports/evidence/phase-08-emulator-expansion/ex20261028/20261028T082317454692Z-a97264be-lifecycle.json",
+          "docs/reports/evidence/phase-08-emulator-expansion/ex20261028/20261028T083514224330Z-5c0ef41b-lifecycle.json",
+          "docs/reports/evidence/phase-08-emulator-expansion/ex20261028/20261028T085626184134Z-aa534138-lifecycle.json",
+          "docs/reports/evidence/phase-08-emulator-expansion/ex20261028/20261028T091739207196Z-7d375720-lifecycle.json"
+        ],
+        "candidateCohort": "FINAL_TASK_ISOLATED_CANDIDATE"
+      },
+      "attemptCount": 1,
+      "originalFailedAttemptCount": 0
+    },
+    {
+      "id": "A29",
+      "group": "alarm",
+      "scenario": "Let response window expire, then attempt an old confirmation",
+      "emulatorFeasibility": "FEASIBLE",
+      "procedure": "Keep a pending review beyond the original response deadline and attempt old confirmation.",
+      "expected": "Stale action refused; durable state reconciled",
+      "requiredEvidence": [
+        "fresh_case_log",
+        "actual_condition_observed",
+        "visible_ui_outcome",
+        "independent_real_sqlite_state"
+      ],
+      "passScope": "EMULATOR_ONLY_REAL_DEADLINE_EXPIRED_REVIEW_SQL",
+      "status": "PASS",
+      "reason": null,
+      "observations": "Fresh emulator assertions and independent state checks completed; see current ledger. Existing narrow scope and physical limits still apply.",
+      "evidence": [
+        "docs/reports/evidence/phase-08-input-loss-case-ledger.json",
+        "docs/reports/evidence/phase-08-input-loss-all-cases-final-clean2-20261030T001025501835Z-e65204-A29-trial1.log"
+      ],
+      "limitations": [
+        "Direct private Activity entry; this does not establish notification tapping or physical timing."
+      ],
+      "physicalAcceptance": "NOT_RUN",
+      "candidateCohort": "INPUT_LOSS_20261030_CLEAN_APK",
+      "networkCondition": "RESUMED_AIRPLANE_ON_WIFI_MOBILE_OFF_NO_DEFAULT_NETWORK",
+      "historicalResultBeforeInputLoss": {
+        "status": "PASS",
+        "observations": "Visible old ACK review was held across the actual original response deadline. Attempting its old Confirm node could not ACK; independent paired reminder/job MISSED, task TODO and registrations 0. Exact owned fixture was subsequently soft-removed via reviewed UI.",
+        "evidence": [
+          "docs/reports/evidence/phase-08-emulator-expansion/ex20261028/20261028T132648449015Z-20c6fe86-lifecycle.json",
+          "docs/reports/evidence/phase-08-expanded-extra-cases.json",
+          "docs/reports/evidence/phase-08-expanded-lifecycle-offline.log",
+          "docs/reports/evidence/phase-08-expansion-resume-offline.json"
+        ],
+        "candidateCohort": "FINAL_TASK_ISOLATED_CANDIDATE"
+      },
+      "attemptCount": 1,
+      "originalFailedAttemptCount": 0
+    },
+    {
+      "id": "A30",
+      "group": "alarm",
+      "scenario": "Rapid double Confirm or repeated notification action",
+      "emulatorFeasibility": "FEASIBLE",
+      "procedure": "Repeat Confirm/current notification action rapidly and inspect one durable transition/job.",
+      "expected": "At most one durable transition/job",
+      "requiredEvidence": [
+        "fresh_case_log",
+        "actual_condition_observed",
+        "visible_ui_outcome",
+        "independent_real_sqlite_state"
+      ],
+      "passScope": "EMULATOR_ONLY_TYPED_MANUAL_UI_SQL",
+      "status": "PASS",
+      "reason": null,
+      "observations": "Fresh emulator assertions and independent state checks completed; see current ledger. Existing narrow scope and physical limits still apply.",
+      "evidence": [
+        "docs/reports/evidence/phase-08-input-loss-case-ledger.json",
+        "docs/reports/evidence/phase-08-input-loss-all-cases-final-clean2-20261030T001025501835Z-e65204-A30-trial1.log"
+      ],
+      "limitations": [
+        "One UI duplicate attempt does not certify all physical tap timings."
+      ],
+      "physicalAcceptance": "NOT_RUN",
+      "candidateCohort": "INPUT_LOSS_20261030_CLEAN_APK",
+      "historicalResultBeforeInputLoss": {
+        "status": "PASS",
+        "observations": "Cached visible Confirm node was attempted twice; independent state has paired ACKNOWLEDGED, task TODO and registrations 0.",
+        "evidence": [
+          "docs/reports/evidence/phase-08-emulator-expansion/ex20261028/20261028T033545125831Z-d4c3787f-lifecycle.json"
+        ],
+        "candidateCohort": "EXPANSION_BEFORE_FINAL_TASK_ISOLATION"
+      },
+      "attemptCount": 1,
+      "originalFailedAttemptCount": 0
+    },
+    {
+      "id": "A31",
+      "group": "alarm",
+      "scenario": "Two alarms due together; open/replace first screen with second",
+      "emulatorFeasibility": "FEASIBLE",
+      "procedure": "Schedule two due alarms, replace/open the first with the second and verify exact identity/title/state.",
+      "expected": "Correct identity; no cross-reminder action/transcript",
+      "requiredEvidence": [
+        "fresh_case_log",
+        "actual_condition_observed",
+        "visible_ui_outcome",
+        "independent_real_sqlite_state"
+      ],
+      "passScope": "EMULATOR_ONLY_OVERLAPPING_RINGING_WINDOWS_REPLACEMENT_SQL",
+      "status": "PASS",
+      "reason": null,
+      "observations": "Original harness failure retained; fresh full case passed after reviewed cleanup/foreground preconditions. Application policy unchanged. See hash-bound root review in ledger.",
+      "evidence": [
+        "docs/reports/evidence/phase-08-input-loss-case-ledger.json",
+        "docs/reports/evidence/phase-08-input-loss-all-cases-final-clean2-20261030T001025501835Z-e65204-A31-trial1.log",
+        "docs/reports/evidence/phase-08-input-loss-all-cases-final-clean-resumed-20261030T051327524941Z-a645d7-A31-trial1.log"
+      ],
+      "limitations": [
+        "Not an exact-same-instant alarm collision; exact simultaneous broadcasts remain NOT_RUN.",
+        "Private Activity replacement and x86_64 AVD behavior do not establish physical OEM presentation."
+      ],
+      "physicalAcceptance": "NOT_RUN",
+      "candidateCohort": "INPUT_LOSS_20261030_CLEAN_APK",
+      "networkCondition": "RESUMED_AIRPLANE_ON_WIFI_MOBILE_OFF_NO_DEFAULT_NETWORK",
+      "historicalResultBeforeInputLoss": {
+        "status": "PASS",
+        "observations": "Two actual due reminders had overlapping ringing windows. Opening the second target invalidated the first target review; an old confirmation could not mutate either. Independent SQL left both paired RINGING/task TODO with original identities/deadlines. Both exact owned fixtures were subsequently soft-removed via reviewed UI.",
+        "evidence": [
+          "docs/reports/evidence/phase-08-emulator-expansion/ex20261028/20261028T132622255356Z-11d8ed44-lifecycle.json",
+          "docs/reports/evidence/phase-08-expanded-extra-cases.json",
+          "docs/reports/evidence/phase-08-expanded-lifecycle-offline.log",
+          "docs/reports/evidence/phase-08-expansion-resume-offline.json"
+        ],
+        "candidateCohort": "FINAL_TASK_ISOLATED_CANDIDATE"
+      },
+      "attemptCount": 2,
+      "originalFailedAttemptCount": 1
+    },
+    {
+      "id": "A32",
+      "group": "alarm",
+      "scenario": "Edit/delete the exact source item before confirming old review",
+      "emulatorFeasibility": "FEASIBLE",
+      "procedure": "Edit/delete exactly the reviewed QA08 source before old Confirm; verify stale snapshot refusal.",
+      "expected": "Stale/invalid source rejected; no orphan action",
+      "requiredEvidence": [
+        "fresh_case_log",
+        "actual_condition_observed",
+        "visible_ui_outcome",
+        "independent_real_sqlite_state"
+      ],
+      "passScope": "EMULATOR_ONLY_REVIEWED_SOURCE_DELETION_SQL",
+      "status": "PASS",
+      "reason": null,
+      "observations": "Fresh emulator assertions and independent state checks completed; see current ledger. Existing narrow scope and physical limits still apply.",
+      "evidence": [
+        "docs/reports/evidence/phase-08-input-loss-case-ledger.json",
+        "docs/reports/evidence/phase-08-input-loss-all-cases-final-clean-resumed-20261030T051327524941Z-a645d7-A32-trial1.log"
+      ],
+      "limitations": [
+        "Source-deletion branch only. Source-edit branch is NOT_RUN; physical interaction remains pending."
+      ],
+      "physicalAcceptance": "NOT_RUN",
+      "candidateCohort": "INPUT_LOSS_20261030_CLEAN_APK",
+      "historicalResultBeforeInputLoss": {
+        "status": "PASS",
+        "observations": "Exact owned source was removed via reviewed Chat while old ACK review existed; old confirmation was attempted and rejected, task/reminder/job CANCELLED, generation advanced and registrations 0.",
+        "evidence": [
+          "docs/reports/evidence/phase-08-emulator-expansion/ex20261028/20261028T082339492950Z-1beeb76a-lifecycle.json"
+        ],
+        "candidateCohort": "EXPANSION_BEFORE_FINAL_TASK_ISOLATION"
+      },
+      "attemptCount": 1,
+      "originalFailedAttemptCount": 0
+    },
+    {
+      "id": "A33",
+      "group": "alarm",
+      "scenario": "Snooze, then allow the replacement alarm to become due",
+      "emulatorFeasibility": "FEASIBLE",
+      "procedure": "Allow one snoozed replacement to become due, then replay the old identity and inspect one current alert.",
+      "expected": "One replacement presentation; original cannot mutate it",
+      "requiredEvidence": [
+        "fresh_case_log",
+        "actual_condition_observed",
+        "visible_ui_outcome",
+        "independent_real_sqlite_state"
+      ],
+      "passScope": "EMULATOR_ONLY_ONE_MINUTE_SNOOZE_REDELIVERY_STALE_GENERATION_REJECTED_SQL",
+      "status": "PASS",
+      "reason": null,
+      "observations": "Fresh emulator assertions and independent state checks completed; see current ledger. Existing narrow scope and physical limits still apply.",
+      "evidence": [
+        "docs/reports/evidence/phase-08-input-loss-case-ledger.json",
+        "docs/reports/evidence/phase-08-input-loss-all-cases-final-clean-resumed-20261030T051327524941Z-a645d7-A33-trial1.log"
+      ],
+      "limitations": [
+        "One-minute replacement and stale direct OPEN identity; physical timing/OEM behavior and every snooze-collision schedule remain pending."
+      ],
+      "physicalAcceptance": "NOT_RUN",
+      "candidateCohort": "INPUT_LOSS_20261030_CLEAN_APK",
+      "networkCondition": "RESUMED_AIRPLANE_ON_WIFI_MOBILE_OFF_NO_DEFAULT_NETWORK",
+      "historicalResultBeforeInputLoss": {
+        "status": "PASS",
+        "observations": "Reviewed typed one-minute snooze produced generation 2 and its replacement actually became due. Opening the stale generation-1 identity was rejected without changing generation 2. The actual current notification body -> reviewed typed ACK then produced paired ACKNOWLEDGED, task TODO and registrations 0. Exact owned fixture was cleaned via reviewed UI.",
+        "evidence": [
+          "docs/reports/evidence/phase-08-emulator-expansion/ex20261028/20261028T142655252699Z-c2912ec5-lifecycle.json",
+          "docs/reports/evidence/phase-08-emulator-expansion/ex20261028/20261028T142819293387Z-5d19640a-notification.json",
+          "docs/reports/evidence/phase-08-expanded-custom-stale-open-1793197688232447600.log",
+          "docs/reports/evidence/phase-08-resumed-more-snooze_replay.log",
+          "docs/reports/evidence/phase-08-expanded-extra-cases.json"
+        ],
+        "candidateCohort": "FINAL_TASK_ISOLATED_CANDIDATE"
+      },
+      "attemptCount": 1,
+      "originalFailedAttemptCount": 0
+    },
+    {
+      "id": "A34",
+      "group": "alarm",
+      "scenario": "TalkBack, large text and soft keyboard during manual response",
+      "emulatorFeasibility": "PARTIAL",
+      "procedure": "Test large font, software keyboard and semantic accessibility actions with required controls reachable.",
+      "expected": "All actions/review/Cancel reachable and clearly named",
+      "requiredEvidence": [
+        "fresh_case_log",
+        "actual_condition_observed",
+        "visible_ui_outcome",
+        "independent_real_sqlite_state"
+      ],
+      "passScope": "EMULATOR_ONLY_FONT_SCALE_TWO_ACCESSIBILITY_REACHABILITY_MANUAL_ACK_SQL",
+      "status": "PASS",
+      "reason": null,
+      "observations": "Fresh emulator assertions and independent state checks completed; see current ledger. Existing narrow scope and physical limits still apply.",
+      "evidence": [
+        "docs/reports/evidence/phase-08-input-loss-case-ledger.json",
+        "docs/reports/evidence/phase-08-input-loss-all-cases-final-clean-resumed-20261030T051327524941Z-a645d7-A34-trial1.log"
+      ],
+      "limitations": [
+        "TalkBack, human visual/accessibility judgment and explicit soft-keyboard interaction were NOT_RUN.",
+        "Accessibility-node reachability on this AVD does not certify physical usability."
+      ],
+      "physicalAcceptance": "NOT_RUN",
+      "candidateCohort": "INPUT_LOSS_20261030_CLEAN_APK",
+      "networkCondition": "RESUMED_AIRPLANE_ON_WIFI_MOBILE_OFF_NO_DEFAULT_NETWORK",
+      "originalManualScenarioFullyCovered": false,
+      "historicalResultBeforeInputLoss": {
+        "status": "PASS",
+        "observations": "Guest font scale 2.0 was applied. Accessibility scrolling/reachability exposed manual response controls; reviewed manual ACK produced paired ACKNOWLEDGED, task TODO and registrations 0. Font scale was restored to baseline 1.0 and exact owned fixture was cleaned via reviewed UI.",
+        "evidence": [
+          "docs/reports/evidence/phase-08-emulator-expansion/ex20261028/20261028T143007086888Z-971f408a-lifecycle.json",
+          "docs/reports/evidence/phase-08-emulator-expansion/ex20261028/20261028T143018601588Z-5f28483b-lifecycle.json",
+          "docs/reports/evidence/phase-08-resumed-more-large_font.log",
+          "docs/reports/evidence/phase-08-expanded-extra-cases.json"
+        ],
+        "candidateCohort": "FINAL_TASK_ISOLATED_CANDIDATE"
+      },
+      "attemptCount": 1,
+      "originalFailedAttemptCount": 0
+    },
+    {
+      "id": "A35",
+      "group": "alarm",
+      "scenario": "Explicit notification ACK action, including duplicate tap",
+      "emulatorFeasibility": "FEASIBLE",
+      "procedure": "Press the actual notification ACK action twice and inspect ACK once with task TODO.",
+      "expected": "Current identity ACK once; task stays TODO; no activity review required",
+      "requiredEvidence": [
+        "fresh_case_log",
+        "actual_condition_observed",
+        "visible_ui_outcome",
+        "independent_real_sqlite_state",
+        "actual_system_notification_interaction_or_explicit_narrower_scope"
+      ],
+      "passScope": "EMULATOR_ONLY_ACTUAL_SYSTEMUI_ACTION_REPLAY_SQL",
+      "status": "PASS",
+      "reason": null,
+      "observations": "Fresh emulator assertions and independent state checks completed; see current ledger. Existing narrow scope and physical limits still apply.",
+      "evidence": [
+        "docs/reports/evidence/phase-08-input-loss-case-ledger.json",
+        "docs/reports/evidence/phase-08-input-loss-all-cases-final-clean-resumed-20261030T051327524941Z-a645d7-A35-trial1.log"
+      ],
+      "limitations": [
+        "Barrier does not call reconcile or repair SQL; process-stop race diagnosis is a supported inference, not a captured exact interruption trace.",
+        "Physical/OEM notification action acceptance remains pending."
+      ],
+      "physicalAcceptance": "NOT_RUN",
+      "candidateCohort": "INPUT_LOSS_20261030_CLEAN_APK",
+      "historicalResultBeforeInputLoss": {
+        "status": "PASS",
+        "observations": "Actual owned System UI ACK action plus cached-node replay; existing provider capabilities lock barrier allows async receiver completion before instrumentation teardown. Final independent paired ACKNOWLEDGED, task TODO and registrations 0. Initial partial-state harness failure is retained.",
+        "evidence": [
+          "docs/reports/evidence/phase-08-emulator-expansion/ex20261028/20261028T033555858446Z-79131ca4-notification.json",
+          "docs/reports/evidence/phase-08-emulator-expansion/ex20261028/20261028T080611353825Z-c61918e1-notification.json",
+          "docs/reports/evidence/phase-08-emulator-expansion/ex20261028/20261028T091805074651Z-935238d2-notification.json",
+          "docs/reports/evidence/phase-08-notification-harness-finding.md"
+        ],
+        "candidateCohort": "FINAL_TASK_ISOLATED_CANDIDATE"
+      },
+      "attemptCount": 1,
+      "originalFailedAttemptCount": 0
+    },
+    {
+      "id": "A36",
+      "group": "alarm",
+      "scenario": "Explicit notification snooze action, then old notification tap",
+      "emulatorFeasibility": "FEASIBLE",
+      "procedure": "Press actual notification snooze then attempt its old notification identity; verify one replacement.",
+      "expected": "One replacement job; old identity cannot change it",
+      "requiredEvidence": [
+        "fresh_case_log",
+        "actual_condition_observed",
+        "visible_ui_outcome",
+        "independent_real_sqlite_state",
+        "actual_system_notification_interaction_or_explicit_narrower_scope"
+      ],
+      "passScope": "EMULATOR_ONLY_ACTUAL_SYSTEMUI_ACTION_REPLAY_SQL",
+      "status": "PASS",
+      "reason": null,
+      "observations": "Original harness failure retained; fresh full case passed after reviewed cleanup/foreground preconditions. Application policy unchanged. See hash-bound root review in ledger.",
+      "evidence": [
+        "docs/reports/evidence/phase-08-input-loss-case-ledger.json",
+        "docs/reports/evidence/phase-08-input-loss-all-cases-final-clean-resumed-20261030T051327524941Z-a645d7-A36-trial1.log",
+        "docs/reports/evidence/phase-08-input-loss-all-cases-final-last-20261030T085314988949Z-3ed97a-A36-trial1.log"
+      ],
+      "limitations": [
+        "Replacement due delivery is a separate case; no physical timing claim."
+      ],
+      "physicalAcceptance": "NOT_RUN",
+      "candidateCohort": "INPUT_LOSS_20261030_CLEAN_APK",
+      "historicalResultBeforeInputLoss": {
+        "status": "PASS",
+        "observations": "Actual owned System UI snooze action plus cached-node replay; independent generation 2 PENDING/SNOOZED, task TODO and exactly one future registration.",
+        "evidence": [
+          "docs/reports/evidence/phase-08-emulator-expansion/ex20261028/20261028T080828947376Z-9880d4cd-notification.json"
+        ],
+        "candidateCohort": "EXPANSION_BEFORE_FINAL_TASK_ISOLATION"
+      },
+      "attemptCount": 2,
+      "originalFailedAttemptCount": 1
+    },
+    {
+      "id": "V01",
+      "group": "voice",
+      "scenario": "Clear `acknowledge`",
+      "emulatorFeasibility": "CONDITIONAL",
+      "procedure": "Supported ACK through proven synthetic virtual input and explicit transcript review.",
+      "expected": "Review exact ACK; no mutation until Confirm",
+      "requiredEvidence": [
+        "fresh_case_log",
+        "actual_condition_observed",
+        "visible_ui_outcome",
+        "independent_real_sqlite_state",
+        "proven_audio_input_or_engine_layer_and_host_mic_off"
+      ],
+      "passScope": "Pinned synthetic ACK through actual visible hold/capture, copy/review/Confirm, paired ACK/task TODO/zero registrations.",
+      "status": "PASS",
+      "reason": null,
+      "observations": "Fresh emulator assertions and independent state checks completed; see current ledger. Existing narrow scope and physical limits still apply.",
+      "evidence": [
+        "docs/reports/evidence/phase-08-input-loss-case-ledger.json",
+        "docs/reports/evidence/phase-08-input-loss-all-cases-final-clean-resumed-20261030T051327524941Z-a645d7-V01-trial1.log",
+        "docs/reports/evidence/phase-08-emulator-expansion/ex20261028/20261030T052542974866Z-V01-microphone.json"
+      ],
+      "limitations": [
+        "Typed text/direct PCM cannot certify this microphone-path equivalent."
+      ],
+      "physicalAcceptance": "NOT_RUN",
+      "candidateCohort": "INPUT_LOSS_20261030_CLEAN_APK",
+      "latestScopedApkSha256": "7300f2aefeb8d5f90882655d46435b100a12531e16a7c70df4f81230f4160454",
+      "remainingAttemptEvidence": "docs/reports/evidence/phase-08-remaining-case-ledger.json",
+      "historicalResultBeforeInputLoss": {
+        "status": "PASS",
+        "observations": "Latest scoped attempt outcome; all recorded failures are retained in the remaining-case ledger.",
+        "evidence": [
+          "docs/reports/evidence/phase-08-emulator-expansion/ex20261028/20261029T072440511962Z-V01-microphone.json",
+          "docs/reports/evidence/phase-08-emulator-expansion/ex20261028/20261029T072825307558Z-V01-microphone.json",
+          "docs/reports/evidence/phase-08-emulator-expansion/ex20261028/20261029T135956086055Z-V01-microphone.json",
+          "docs/reports/evidence/phase-08-emulator-expansion/ex20261028/20261029T142355292045Z-V01-microphone.json"
+        ],
+        "candidateCohort": "MIXED_EXPLICIT_REMAINING_CASE_COHORTS"
+      },
+      "attemptCount": 1,
+      "originalFailedAttemptCount": 0
+    },
+    {
+      "id": "V02",
+      "group": "voice",
+      "scenario": "Clear `snooze 10 minutes`",
+      "emulatorFeasibility": "CONDITIONAL",
+      "procedure": "Supported snooze through proven synthetic virtual input, then confirm exact duration.",
+      "expected": "Review exact supported snooze duration",
+      "requiredEvidence": [
+        "fresh_case_log",
+        "actual_condition_observed",
+        "visible_ui_outcome",
+        "independent_real_sqlite_state",
+        "proven_audio_input_or_engine_layer_and_host_mic_off"
+      ],
+      "passScope": "Pinned synthetic ten-minute snooze through actual visible hold/capture, copy/review/Confirm, generation+1/task TODO/one replacement at independently checked time.",
+      "status": "PASS",
+      "reason": null,
+      "observations": "Fresh emulator assertions and independent state checks completed; see current ledger. Existing narrow scope and physical limits still apply.",
+      "evidence": [
+        "docs/reports/evidence/phase-08-input-loss-case-ledger.json",
+        "docs/reports/evidence/phase-08-input-loss-all-cases-final-clean-resumed-20261030T051327524941Z-a645d7-V02-trial1.log",
+        "docs/reports/evidence/phase-08-emulator-expansion/ex20261028/20261030T052726555219Z-V02-microphone.json"
+      ],
+      "limitations": [
+        "Real acoustics/voice quality remain pending."
+      ],
+      "physicalAcceptance": "NOT_RUN",
+      "candidateCohort": "INPUT_LOSS_20261030_CLEAN_APK",
+      "latestScopedApkSha256": "ccc79ceda3a033d222917c54a6c68cd5d9d13c5c2d1f7cf3b6f3672c60f0ff6c",
+      "remainingAttemptEvidence": "docs/reports/evidence/phase-08-remaining-case-ledger.json",
+      "historicalResultBeforeInputLoss": {
+        "status": "PASS",
+        "observations": "Latest scoped attempt outcome; all recorded failures are retained in the remaining-case ledger.",
+        "evidence": [
+          "docs/reports/evidence/phase-08-emulator-expansion/ex20261028/20261029T074514532353Z-V02-microphone.json"
+        ],
+        "candidateCohort": "MIXED_EXPLICIT_REMAINING_CASE_COHORTS"
+      },
+      "attemptCount": 1,
+      "originalFailedAttemptCount": 0
+    },
+    {
+      "id": "V03",
+      "group": "voice",
+      "scenario": "Repeat supported ACK in quiet conditions",
+      "emulatorFeasibility": "CONDITIONAL",
+      "procedure": "Repeat identical synthetic ACK attempts with all failures retained.",
+      "expected": "Same bounded action; task stays TODO",
+      "requiredEvidence": [
+        "fresh_case_log",
+        "actual_condition_observed",
+        "visible_ui_outcome",
+        "independent_real_sqlite_state",
+        "proven_audio_input_or_engine_layer_and_host_mic_off"
+      ],
+      "passScope": "Two independent repeated pinned synthetic ACK flows; review/Confirm and paired SQL checks. Earlier failures remain; no speaker variation/quiet human claim.",
+      "status": "FAIL",
+      "reason": "PREDECLARED_SYNTHETIC_TRIAL_FAILURES_OR_NOT_RUN_RETAINED",
+      "observations": "All4 predeclared trials across two preserved-data cold boots retained; outcome FAIL. See exact layer evidence; no physical acceptance.",
+      "evidence": [
+        "docs/reports/evidence/phase-08-capture-fix-case-ledger.json",
+        "docs/reports/evidence/phase-08-emulator-expansion/ex20261028/20261030T205551784902Z-V03-microphone.json",
+        "docs/reports/evidence/phase-08-emulator-expansion/ex20261028/20261030T205753249610Z-V03-microphone.json",
+        "docs/reports/evidence/phase-08-emulator-expansion/ex20261028/20261030T210937583606Z-V03-microphone.json",
+        "docs/reports/evidence/phase-08-emulator-expansion/ex20261028/20261030T211135653500Z-V03-microphone.json"
+      ],
+      "limitations": [
+        "Not real speaker variation or live speech acceptance."
+      ],
+      "physicalAcceptance": "NOT_RUN",
+      "candidateCohort": "CAPTURE_FIX_HOST_GPU_ANCHORED_REALTIME_TWO_COLD_COHORTS",
+      "latestScopedApkSha256": "6ebb44a64a7b3ec7d2c586323094af62354c3b50225aab933085ff44a230dd06",
+      "remainingAttemptEvidence": "docs/reports/evidence/phase-08-remaining-case-ledger.json",
+      "historicalResultBeforeInputLoss": {
+        "status": "PASS",
+        "observations": "Latest scoped attempt outcome; all recorded failures are retained in the remaining-case ledger.",
+        "evidence": [
+          "docs/reports/evidence/phase-08-emulator-expansion/ex20261028/20261029T140154997326Z-V03-microphone.json",
+          "docs/reports/evidence/phase-08-emulator-expansion/ex20261028/20261029T140353132735Z-V03-microphone.json"
+        ],
+        "candidateCohort": "MIXED_EXPLICIT_REMAINING_CASE_COHORTS"
+      },
+      "attemptCount": 4,
+      "originalFailedAttemptCount": 1,
+      "historicalResultBeforeCaptureFix": {
+        "status": "FAIL",
+        "reason": "REPEATED_ACK_SECOND_TRIAL_TRANSPORT_OR_PRIVACY_CHECK_FAILURE",
+        "observations": "Trial1 passed. Trial2 reported host input ON at final check, masking an earlier injection error; source-RPC start/completion cannot be recovered from that old output. Client requested no enable. No action confirmed; final host OFF and restoration verified.",
+        "evidence": [
+          "docs/reports/evidence/phase-08-input-loss-case-ledger.json",
+          "docs/reports/evidence/phase-08-input-loss-all-cases-final-clean-resumed-20261030T051327524941Z-a645d7-V03-trial1.log",
+          "docs/reports/evidence/phase-08-emulator-expansion/ex20261028/20261030T052912259822Z-V03-microphone.json",
+          "docs/reports/evidence/phase-08-input-loss-all-cases-final-clean-resumed-20261030T051327524941Z-a645d7-V03-trial2.log",
+          "docs/reports/evidence/phase-08-emulator-expansion/ex20261028/20261030T053107369003Z-V03-microphone.json"
+        ],
+        "candidateCohort": "INPUT_LOSS_20261030_CLEAN_APK",
+        "attemptCount": 2
+      },
+      "finalFailedAttemptCount": 3,
+      "stableGuestApi35": {
+        "status": "FAIL",
+        "note": "API35 stable guest: FAIL retained (8 comparison attempts: 2 PASS, 6 FAIL). See phase-08-stable-case-ledger.json derived layers.",
+        "ledger": "docs/reports/evidence/phase-08-stable-case-ledger.json"
+      }
+    },
+    {
+      "id": "V04",
+      "group": "voice",
+      "scenario": "Repeat supported snooze in quiet conditions",
+      "emulatorFeasibility": "CONDITIONAL",
+      "procedure": "Repeat identical synthetic snooze attempts and inspect one future job per confirmed case.",
+      "expected": "One future reminder after Confirm",
+      "requiredEvidence": [
+        "fresh_case_log",
+        "actual_condition_observed",
+        "visible_ui_outcome",
+        "independent_real_sqlite_state",
+        "proven_audio_input_or_engine_layer_and_host_mic_off"
+      ],
+      "passScope": "Two independent repeated pinned synthetic ten-minute snooze flows; review/Confirm and exact replacement-time/paired SQL checks.",
+      "status": "PASS",
+      "reason": "PREDECLARED_SYNTHETIC_TRIAL_ASSERTIONS_PASSED",
+      "observations": "All4 predeclared trials across two preserved-data cold boots retained; outcome PASS. See exact layer evidence; no physical acceptance.",
+      "evidence": [
+        "docs/reports/evidence/phase-08-capture-fix-case-ledger.json",
+        "docs/reports/evidence/phase-08-emulator-expansion/ex20261028/20261030T205959763871Z-V04-microphone.json",
+        "docs/reports/evidence/phase-08-emulator-expansion/ex20261028/20261030T210211307141Z-V04-microphone.json",
+        "docs/reports/evidence/phase-08-emulator-expansion/ex20261028/20261030T211331703662Z-V04-microphone.json",
+        "docs/reports/evidence/phase-08-emulator-expansion/ex20261028/20261030T211528745132Z-V04-microphone.json"
+      ],
+      "limitations": [
+        "Physical repeated-delivery reliability remains pending."
+      ],
+      "physicalAcceptance": "NOT_RUN",
+      "candidateCohort": "CAPTURE_FIX_HOST_GPU_ANCHORED_REALTIME_TWO_COLD_COHORTS",
+      "latestScopedApkSha256": "6ebb44a64a7b3ec7d2c586323094af62354c3b50225aab933085ff44a230dd06",
+      "remainingAttemptEvidence": "docs/reports/evidence/phase-08-remaining-case-ledger.json",
+      "historicalResultBeforeInputLoss": {
+        "status": "PASS",
+        "observations": "Latest scoped attempt outcome; all recorded failures are retained in the remaining-case ledger.",
+        "evidence": [
+          "docs/reports/evidence/phase-08-emulator-expansion/ex20261028/20261029T140546768437Z-V04-microphone.json",
+          "docs/reports/evidence/phase-08-emulator-expansion/ex20261028/20261029T140741900136Z-V04-microphone.json"
+        ],
+        "candidateCohort": "MIXED_EXPLICIT_REMAINING_CASE_COHORTS"
+      },
+      "attemptCount": 4,
+      "originalFailedAttemptCount": 1,
+      "historicalResultBeforeCaptureFix": {
+        "status": "FAIL",
+        "reason": "REPEATED_SNOOZE_SECOND_TRIAL_NO_AUDIO_SIGNAL",
+        "observations": "Trial1 passed. Trial2 completed initializer and source RPCs with host OFF throughout but actual app capture had NO_AUDIO_SIGNAL; no command confirmed. Restoration verified.",
+        "evidence": [
+          "docs/reports/evidence/phase-08-input-loss-case-ledger.json",
+          "docs/reports/evidence/phase-08-input-loss-all-cases-final-clean-resumed-20261030T051327524941Z-a645d7-V04-trial1.log",
+          "docs/reports/evidence/phase-08-emulator-expansion/ex20261028/20261030T053333196427Z-V04-microphone.json",
+          "docs/reports/evidence/phase-08-input-loss-all-cases-final-clean-resumed-20261030T051327524941Z-a645d7-V04-trial2.log",
+          "docs/reports/evidence/phase-08-emulator-expansion/ex20261028/20261030T053542115544Z-V04-microphone.json"
+        ],
+        "candidateCohort": "INPUT_LOSS_20261030_CLEAN_APK",
+        "attemptCount": 2
+      },
+      "finalFailedAttemptCount": 0,
+      "stableGuestApi35": {
+        "status": "PASS",
+        "note": "API35 stable guest: 7 PASS / 0 FAIL / 1 NOT RUN slot across four cohorts; see phase-08-stable-case-ledger.json.",
+        "ledger": "docs/reports/evidence/phase-08-stable-case-ledger.json"
+      }
+    },
+    {
+      "id": "V05",
+      "group": "voice",
+      "scenario": "Local accent with supported response",
+      "emulatorFeasibility": "CONDITIONAL",
+      "procedure": "Use a public/consented accent corpus only if actually available and reviewed.",
+      "expected": "Review actual transcript; correct or refuse safely",
+      "requiredEvidence": [
+        "fresh_case_log",
+        "actual_condition_observed",
+        "visible_ui_outcome",
+        "independent_real_sqlite_state",
+        "proven_audio_input_or_engine_layer_and_host_mic_off"
+      ],
+      "passScope": "NOT RUN by explicit owner decision; reviewed public/consented local-accent recording unavailable.",
+      "status": "NOT_RUN",
+      "reason": "OWNER_DEFERRED_REVIEWED_ACCENT_AUDIO",
+      "observations": "Owner: Keep V05 pending until suitable audio is available.",
+      "evidence": [
+        "docs/reports/evidence/phase-08-input-loss-case-ledger.json"
+      ],
+      "limitations": [
+        "A generic synthesizer voice cannot be labelled a local-accent evaluation."
+      ],
+      "physicalAcceptance": "NOT_RUN",
+      "candidateCohort": "INPUT_LOSS_20261030_CLEAN_APK",
+      "latestScopedApkSha256": null,
+      "remainingAttemptEvidence": "docs/reports/evidence/phase-08-remaining-case-ledger.json",
+      "ownerDecision": "Keep V05 pending until suitable audio is available",
+      "historicalResultBeforeInputLoss": {
+        "status": "NOT_RUN",
+        "observations": "Latest scoped attempt outcome; all recorded failures are retained in the remaining-case ledger.",
+        "evidence": [],
+        "candidateCohort": "MIXED_EXPLICIT_REMAINING_CASE_COHORTS"
+      },
+      "attemptCount": 0,
+      "originalFailedAttemptCount": 0
+    },
+    {
+      "id": "V06",
+      "group": "voice",
+      "scenario": "Moderate background noise",
+      "emulatorFeasibility": "CONDITIONAL",
+      "procedure": "Use reviewed public PCM plus documented synthetic noise if actually available.",
+      "expected": "Wrong/uncertain words never silently act",
+      "requiredEvidence": [
+        "fresh_case_log",
+        "actual_condition_observed",
+        "visible_ui_outcome",
+        "independent_real_sqlite_state",
+        "proven_audio_input_or_engine_layer_and_host_mic_off"
+      ],
+      "passScope": "One defined 20dB synthetic-noise snooze through visible capture/review/Confirm and exact paired SQL/time checks; not room-noise/human acoustic tolerance.",
+      "status": "PASS",
+      "reason": null,
+      "observations": "Fresh emulator assertions and independent state checks completed; see current ledger. Existing narrow scope and physical limits still apply.",
+      "evidence": [
+        "docs/reports/evidence/phase-08-input-loss-case-ledger.json",
+        "docs/reports/evidence/phase-08-input-loss-all-cases-final-clean-resumed-20261030T051327524941Z-a645d7-V06-trial1.log",
+        "docs/reports/evidence/phase-08-emulator-expansion/ex20261028/20261030T053757962084Z-V06-microphone.json"
+      ],
+      "limitations": [
+        "Not real-room/device microphone behavior."
+      ],
+      "physicalAcceptance": "NOT_RUN",
+      "candidateCohort": "INPUT_LOSS_20261030_CLEAN_APK",
+      "latestScopedApkSha256": "6ebb44a64a7b3ec7d2c586323094af62354c3b50225aab933085ff44a230dd06",
+      "remainingAttemptEvidence": "docs/reports/evidence/phase-08-remaining-case-ledger.json",
+      "historicalResultBeforeInputLoss": {
+        "status": "PASS",
+        "observations": "Latest scoped attempt outcome; all recorded failures are retained in the remaining-case ledger.",
+        "evidence": [
+          "docs/reports/evidence/phase-08-emulator-expansion/ex20261028/20261029T074823777794Z-V06-microphone.json",
+          "docs/reports/evidence/phase-08-emulator-expansion/ex20261028/20261029T140930466578Z-V06-microphone.json"
+        ],
+        "candidateCohort": "MIXED_EXPLICIT_REMAINING_CASE_COHORTS"
+      },
+      "attemptCount": 1,
+      "originalFailedAttemptCount": 0
+    },
+    {
+      "id": "V07",
+      "group": "voice",
+      "scenario": "`Okay but remind me later`",
+      "emulatorFeasibility": "PARTIAL",
+      "procedure": "Test typed ambiguous text; add synthetic-input path only when proven.",
+      "expected": "Ambiguity refused; manual options offered",
+      "requiredEvidence": [
+        "fresh_case_log",
+        "actual_condition_observed",
+        "visible_ui_outcome",
+        "independent_real_sqlite_state"
+      ],
+      "passScope": "EMULATOR_ONLY_TYPED_AMBIGUOUS_NATIVE_RESPONSE_REFUSAL_SQL",
+      "status": "PASS",
+      "reason": null,
+      "observations": "Fresh emulator assertions and independent state checks completed; see current ledger. Existing narrow scope and physical limits still apply.",
+      "evidence": [
+        "docs/reports/evidence/phase-08-input-loss-case-ledger.json",
+        "docs/reports/evidence/phase-08-input-loss-all-cases-final-clean-resumed-20261030T051327524941Z-a645d7-V07-trial1.log"
+      ],
+      "limitations": [
+        "Typed ambiguity refusal only; spoken recognition and the original live voice scenario remain NOT_RUN."
+      ],
+      "physicalAcceptance": "NOT_RUN",
+      "candidateCohort": "INPUT_LOSS_20261030_CLEAN_APK",
+      "networkCondition": "RESUMED_AIRPLANE_ON_WIFI_MOBILE_OFF_NO_DEFAULT_NETWORK",
+      "originalManualScenarioFullyCovered": false,
+      "historicalResultBeforeInputLoss": {
+        "status": "PASS",
+        "observations": "Typed actual native response `okay but remind me later` was refused, with the draft preserved for manual editing. Independent SQL stayed paired RINGING/task TODO with unchanged identity/deadline/generation and one registration. Exact owned fixture was cleaned via reviewed UI.",
+        "evidence": [
+          "docs/reports/evidence/phase-08-emulator-expansion/ex20261028/20261028T142412185602Z-ded86ee9-lifecycle.json",
+          "docs/reports/evidence/phase-08-resumed-more-refusals.log",
+          "docs/reports/evidence/phase-08-expanded-extra-cases.json"
+        ],
+        "candidateCohort": "FINAL_TASK_ISOLATED_CANDIDATE"
+      },
+      "attemptCount": 1,
+      "originalFailedAttemptCount": 0
+    },
+    {
+      "id": "V08",
+      "group": "voice",
+      "scenario": "`Delete all tasks`",
+      "emulatorFeasibility": "PARTIAL",
+      "procedure": "Test typed destructive text refusal; optionally add proven synthetic-input path.",
+      "expected": "Unsupported/destructive response refused",
+      "requiredEvidence": [
+        "fresh_case_log",
+        "actual_condition_observed",
+        "visible_ui_outcome",
+        "independent_real_sqlite_state"
+      ],
+      "passScope": "EMULATOR_ONLY_TYPED_SINGLE_TASK_DELETE_AND_COMPLETION_REFUSAL_SQL",
+      "status": "PASS",
+      "reason": null,
+      "observations": "Fresh emulator assertions and independent state checks completed; see current ledger. Existing narrow scope and physical limits still apply.",
+      "evidence": [
+        "docs/reports/evidence/phase-08-input-loss-case-ledger.json",
+        "docs/reports/evidence/phase-08-input-loss-all-cases-final-last-20261030T085314988949Z-3ed97a-V08-trial1.log"
+      ],
+      "limitations": [
+        "The original literal `Delete all tasks` was NOT_RUN in this expansion.",
+        "Typed single-task deletion/completion refusal only; spoken variants and physical voice acceptance remain NOT_RUN."
+      ],
+      "physicalAcceptance": "NOT_RUN",
+      "candidateCohort": "INPUT_LOSS_20261030_CLEAN_APK",
+      "networkCondition": "RESUMED_AIRPLANE_ON_WIFI_MOBILE_OFF_NO_DEFAULT_NETWORK",
+      "originalManualScenarioFullyCovered": false,
+      "historicalResultBeforeInputLoss": {
+        "status": "PASS",
+        "observations": "Typed native responses `delete this task` and `mark this task complete` were each refused, with drafts preserved for editing. Independent SQL remained paired RINGING/task TODO with unchanged identities/deadlines/generations and one registration per fixture. Both exact owned fixtures were cleaned through reviewed UI.",
+        "evidence": [
+          "docs/reports/evidence/phase-08-emulator-expansion/ex20261028/20261028T142427789312Z-59305ab9-lifecycle.json",
+          "docs/reports/evidence/phase-08-emulator-expansion/ex20261028/20261028T142443338493Z-9b6fbc0d-lifecycle.json",
+          "docs/reports/evidence/phase-08-resumed-more-refusals.log",
+          "docs/reports/evidence/phase-08-expanded-extra-cases.json"
+        ],
+        "candidateCohort": "FINAL_TASK_ISOLATED_CANDIDATE"
+      },
+      "attemptCount": 1,
+      "originalFailedAttemptCount": 0
+    },
+    {
+      "id": "V09",
+      "group": "voice",
+      "scenario": "Silence/short release/no ready recording",
+      "emulatorFeasibility": "CONDITIONAL",
+      "procedure": "Deliberate visible hold with verified synthetic silence/short release; verify manual fallback.",
+      "expected": "Recoverable feedback; manual response works",
+      "requiredEvidence": [
+        "fresh_case_log",
+        "actual_condition_observed",
+        "visible_ui_outcome",
+        "independent_real_sqlite_state",
+        "proven_audio_input_or_engine_layer_and_host_mic_off"
+      ],
+      "passScope": "EMULATOR_ONLY_ONE_SECOND_VISIBLE_SILENT_CAPTURE_NO_ACTION_SQL",
+      "status": "PASS",
+      "reason": null,
+      "observations": "Fresh emulator assertions and independent state checks completed; see current ledger. Existing narrow scope and physical limits still apply.",
+      "evidence": [
+        "docs/reports/evidence/phase-08-input-loss-case-ledger.json",
+        "docs/reports/evidence/phase-08-input-loss-all-cases-final-last-20261030T085314988949Z-3ed97a-V09-trial1.log",
+        "docs/reports/evidence/phase-08-emulator-expansion/ex20261028/20261030T090047045110Z-V09-microphone.json"
+      ],
+      "limitations": [
+        "Long silence, final-frame behavior and release-before-ready variants were NOT_RUN.",
+        "Host microphone OFF before/after, exact microphone-permission restoration and owned fixture cleanup were verified. No live human speech, audibility or physical-device acceptance."
+      ],
+      "physicalAcceptance": "NOT_RUN",
+      "candidateCohort": "INPUT_LOSS_20261030_CLEAN_APK",
+      "testHarnessCohort": "PERMISSION_SURFACE_EXISTING_WINDOW_RETRY",
+      "networkCondition": "RESUMED_AIRPLANE_ON_WIFI_MOBILE_OFF_NO_DEFAULT_NETWORK",
+      "originalManualScenarioFullyCovered": false,
+      "historicalResultBeforeInputLoss": {
+        "status": "PASS",
+        "observations": "A fresh explicit hold reached actual visible Recording through the existing Whisper fallback, with no PCM injection or live host input. The selected approximately one-second silent hold/release returned zero recognized characters and no transcript/review/action. Independent SQL stayed paired RINGING/task TODO with original generation/deadline and one registration.",
+        "evidence": [
+          "docs/reports/evidence/phase-08-emulator-expansion/ex20261028/20261028T141630766597Z-V09-microphone.json",
+          "docs/reports/evidence/phase-08-permission-ui-mic-fallback-V09.log"
+        ],
+        "candidateCohort": "FINAL_TASK_ISOLATED_CANDIDATE"
+      },
+      "attemptCount": 1,
+      "originalFailedAttemptCount": 0
+    },
+    {
+      "id": "V10",
+      "group": "voice",
+      "scenario": "Cancel while preparing/recording/transcribing",
+      "emulatorFeasibility": "CONDITIONAL",
+      "procedure": "Cancel actual prepare/capture/decode in a safe synthetic setup and reject late results.",
+      "expected": "Mic releases; late result cannot mutate/review",
+      "requiredEvidence": [
+        "fresh_case_log",
+        "actual_condition_observed",
+        "visible_ui_outcome",
+        "independent_real_sqlite_state",
+        "proven_audio_input_or_engine_layer_and_host_mic_off"
+      ],
+      "passScope": "EMULATOR_ONLY_CANCEL_DURING_VISIBLE_RECORDING_MANUAL_DRAFT_SQL",
+      "status": "PASS",
+      "reason": null,
+      "observations": "Fresh emulator assertions and independent state checks completed; see current ledger. Existing narrow scope and physical limits still apply.",
+      "evidence": [
+        "docs/reports/evidence/phase-08-input-loss-case-ledger.json",
+        "docs/reports/evidence/phase-08-input-loss-all-cases-final-last-20261030T085314988949Z-3ed97a-V10-trial1.log",
+        "docs/reports/evidence/phase-08-emulator-expansion/ex20261028/20261030T090223743761Z-V10-microphone.json"
+      ],
+      "limitations": [
+        "Covers cancellation during Recording only; preparing/transcribing cancellation variants were NOT_RUN.",
+        "Immediate OS AudioRecord shutdown was not independently sampled in this case.",
+        "Host microphone OFF before/after, exact microphone-permission restoration and owned fixture cleanup were verified. No live human speech, audibility or physical-device acceptance."
+      ],
+      "physicalAcceptance": "NOT_RUN",
+      "candidateCohort": "INPUT_LOSS_20261030_CLEAN_APK",
+      "testHarnessCohort": "PERMISSION_SURFACE_EXISTING_WINDOW_RETRY",
+      "networkCondition": "RESUMED_AIRPLANE_ON_WIFI_MOBILE_OFF_NO_DEFAULT_NETWORK",
+      "originalManualScenarioFullyCovered": false,
+      "historicalResultBeforeInputLoss": {
+        "status": "PASS",
+        "observations": "A fresh explicit hold reached actual visible Recording through the existing Whisper fallback. Cancel was clicked while the pointer remained held, then the pointer was released. Existing manual draft was preserved and independent SQL stayed paired RINGING/task TODO with original generation/deadline and one registration; no reminder action was applied.",
+        "evidence": [
+          "docs/reports/evidence/phase-08-emulator-expansion/ex20261028/20261028T141821059848Z-V10-microphone.json",
+          "docs/reports/evidence/phase-08-permission-ui-mic-fallback-V10.log"
+        ],
+        "candidateCohort": "FINAL_TASK_ISOLATED_CANDIDATE"
+      },
+      "attemptCount": 1,
+      "originalFailedAttemptCount": 0
+    },
+    {
+      "id": "V11",
+      "group": "voice",
+      "scenario": "Speak then edit text before review/Confirm",
+      "emulatorFeasibility": "PARTIAL",
+      "procedure": "Edit after a real synthetic transcript if available, otherwise separately test typed draft changes.",
+      "expected": "Visible reviewed text governs; old proposal invalid",
+      "requiredEvidence": [
+        "fresh_case_log",
+        "actual_condition_observed",
+        "visible_ui_outcome",
+        "independent_real_sqlite_state"
+      ],
+      "passScope": "EMULATOR_ONLY_SYNTHETIC_VIRTUAL_MIC_COPY_EDIT_REFUSAL_SQL",
+      "status": "PASS",
+      "reason": null,
+      "observations": "Fresh emulator assertions and independent state checks completed; see current ledger. Existing narrow scope and physical limits still apply.",
+      "evidence": [
+        "docs/reports/evidence/phase-08-input-loss-case-ledger.json",
+        "docs/reports/evidence/phase-08-input-loss-all-cases-final-last-20261030T085314988949Z-3ed97a-V11-trial1.log",
+        "docs/reports/evidence/phase-08-emulator-expansion/ex20261028/20261030T090356846697Z-V11-microphone.json"
+      ],
+      "limitations": [
+        "Narrower edit/refusal branch using a today clip: no voice ACK/snooze action or final accepted action confirmation.",
+        "Synthetic virtual input is not live human speech; audibility and physical interaction remain NOT_RUN."
+      ],
+      "physicalAcceptance": "NOT_RUN",
+      "candidateCohort": "INPUT_LOSS_20261030_CLEAN_APK",
+      "historicalResultBeforeInputLoss": {
+        "status": "PASS",
+        "observations": "After Android on-device LANGUAGE_UNAVAILABLE, a fresh explicit hold used bundled Whisper. Pinned synthetic today clip was captured through visible real recording, exact normalized reference matched, explicit Copy/edit and unsupported response refusal were observed; SQL stayed paired RINGING/task TODO. Host real microphone was false before and after.",
+        "evidence": [
+          "docs/reports/evidence/phase-08-emulator-expansion/ex20261028/20261028T081139982087Z-V11-microphone.json",
+          "docs/reports/evidence/phase-08-emulator-expansion/ex20261028/20261028T082700973289Z-V11-microphone.json",
+          "docs/reports/evidence/phase-08-emulator-expansion/ex20261028/20261028T083547613246Z-V11-microphone.json"
+        ],
+        "candidateCohort": "EXPANSION_BEFORE_FINAL_TASK_ISOLATION"
+      },
+      "attemptCount": 1,
+      "originalFailedAttemptCount": 0
+    },
+    {
+      "id": "V12",
+      "group": "voice",
+      "scenario": "Stop TTS, explicitly hold mic, then cancel action review",
+      "emulatorFeasibility": "CONDITIONAL",
+      "procedure": "Stop actual offline TTS then deliberate synthetic-input hold and cancel review.",
+      "expected": "No TTS/mic ownership conflict; no saved action",
+      "requiredEvidence": [
+        "fresh_case_log",
+        "actual_condition_observed",
+        "visible_ui_outcome",
+        "independent_real_sqlite_state",
+        "proven_audio_input_or_engine_layer_and_host_mic_off"
+      ],
+      "passScope": "EMULATOR_ONLY_HOME_DURING_VISIBLE_RECORDING_UI_CANCELLATION_SQL",
+      "status": "PASS",
+      "reason": null,
+      "observations": "Fresh emulator assertions and independent state checks completed; see current ledger. Existing narrow scope and physical limits still apply.",
+      "evidence": [
+        "docs/reports/evidence/phase-08-input-loss-case-ledger.json",
+        "docs/reports/evidence/phase-08-input-loss-all-cases-final-last-20261030T085314988949Z-3ed97a-V12-trial1.log",
+        "docs/reports/evidence/phase-08-emulator-expansion/ex20261028/20261030T090538689241Z-V12-microphone.json"
+      ],
+      "limitations": [
+        "Narrow background/UI-cancellation case only. Original scenario of Stop TTS then explicit hold and cancelled action review remains NOT_RUN.",
+        "Immediate OS AudioRecord shutdown was not independently sampled in this case.",
+        "Host microphone OFF before/after, exact microphone-permission restoration and owned fixture cleanup were verified. No live human speech, audibility or physical-device acceptance."
+      ],
+      "physicalAcceptance": "NOT_RUN",
+      "candidateCohort": "INPUT_LOSS_20261030_CLEAN_APK",
+      "testHarnessCohort": "PERMISSION_SURFACE_EXISTING_WINDOW_RETRY",
+      "networkCondition": "RESUMED_AIRPLANE_ON_WIFI_MOBILE_OFF_NO_DEFAULT_NETWORK",
+      "originalManualScenarioFullyCovered": false,
+      "historicalResultBeforeInputLoss": {
+        "status": "PASS",
+        "observations": "A fresh explicit hold reached actual visible Recording through the existing Whisper fallback. HOME was requested while held, the pointer was released, and reopening observed no Recording UI. Independent SQL stayed paired RINGING/task TODO with original generation/deadline and one registration; no reminder action was applied.",
+        "evidence": [
+          "docs/reports/evidence/phase-08-emulator-expansion/ex20261028/20261028T142007268552Z-V12-microphone.json",
+          "docs/reports/evidence/phase-08-permission-ui-mic-fallback-V12.log"
+        ],
+        "candidateCohort": "FINAL_TASK_ISOLATED_CANDIDATE"
+      },
+      "attemptCount": 1,
+      "originalFailedAttemptCount": 0
+    }
+  ],
+  "voiceLayerDefinitions": {
+    "TYPED_TEXT_REVIEW_STATE": "Parser/review/SQLite semantics; not STT.",
+    "DIRECT_PCM_ENGINE": "Actual decoder/model on the exact public clips; bypasses capture and visible hold.",
+    "SYNTHETIC_VIRTUAL_MIC": "Only after synthetic injection and actual app capture are observed with host input OFF.",
+    "TTS_ENGINE_CALLBACKS": "Installed offline selection plus actual callback events; not audible/intelligible output.",
+    "PHYSICAL_LIVE_VOICE": "NOT_RUN / HUMAN_REQUIRED; cannot be replaced by emulator evidence."
+  },
+  "restoration": {
+    "status": "PASS",
+    "evidence": [
+      "docs/reports/evidence/phase-08-capture-fix-restoration-final.json"
+    ],
+    "checksPassed": 10,
+    "fourBaselinesCompared": true,
+    "physicalDeviceValidation": "NOT_RUN",
+    "sourceAndArtifactIdentity": [
+      "docs/reports/evidence/phase-08-capture-fix-source-hashes-final.json",
+      "docs/reports/evidence/phase-08-capture-fix-artifacts-final.json"
+    ]
+  },
+  "physicalGate": {
+    "status": "AWAITING_DEVICE_VALIDATION",
+    "signedHumanReview": false,
+    "stableOfflineReleaseApproved": false,
+    "pending": [
+      "Physical ARM64 and low-memory phones",
+      "Minimum/newer Android phone coverage",
+      "Live microphone/acoustics/accents/noise",
+      "Audibility/intelligibility and physical audio routes",
+      "OEM/Natural Doze/reboot behavior",
+      "Human TalkBack/usability",
+      "Matched phone startup/PSS/battery/alarm drift",
+      "At least30physical alarms and10live interactions per test voice"
+    ]
+  },
+  "limits": [
+    "A private Activity launch does not prove System UI notification tapping or full-screen eligibility.",
+    "Null metrics and empty evidence mean NOT_RUN, not successful zero-cost work.",
+    "Do not publish private settings values, student records, real audio, phone serials or unrestricted system dumps.",
+    "No uninstall, clear-data, downgrade, database replacement, cloud dependency or next-phase authorization."
+  ],
+  "lastEvidenceReconciliationUtc": "2026-10-31T02:47:40.159029+00:00",
+  "reconciliationNotes": [
+    "Current aggregate unchanged at 45PASS/2FAIL/1NOT_RUN: the separate API35 guest reproduces A03/V03 FAIL and V04 PASS; A01/A02/A04 manual/typed fallbacks PASS there.",
+    "Failing layer for retained A03/V03 failures with HAL records: emulator virtual-sound (virtio-snd/ranchu HAL) capture or playback I/O errors with HAL silence insertion; app capture energy exact, decoder deterministic on clean PCM.",
+    "Null host audio backend (-audio none) experiment refuted the host-backend hypothesis; second null cohort NOT RUN by frozen stop rule.",
+    "Platforms are not mixed into an accuracy denominator; V05 owner-deferred; all physical rows NOT RUN."
+  ],
+  "supplementaryTtsEvidence": "docs/reports/evidence/phase-08-input-loss-tts-probes.json",
+  "speechCorrection": {
+    "atUtc": "2026-10-29T03:44:43.221557+00:00",
+    "report": "docs/reports/phase-08-speech-correction-report.md",
+    "historicalFailedMatrix": "docs/reports/evidence/phase-08-emulator-expansion-matrix-pre-speech.json",
+    "finalVisibleTrials": 4,
+    "all48PhysicalRowsStillNotRun": true,
+    "liveHumanAcceptanceCertified": false,
+    "negativeControlEvidence": "docs/reports/evidence/phase-08-speech-final-negative-controls.json",
+    "decoderOffsetEvidence": "docs/reports/evidence/phase-08-speech-floor-offset-results.json"
+  },
+  "remainingCaseEvidence": "docs/reports/evidence/phase-08-capture-fix-case-ledger.json",
+  "historicalReconciliationNotesBeforeInputLoss": [
+    "Per-row scoped outcomes and candidate cohorts remain explicit; other rows were not rerun on final speech APKs.",
+    "A03/A06 now each passed two independent final-candidate synthetic visible trials with exact review and SQLite checks.",
+    "Original direct/visible recognition failures and subsequent failed candidates remain preserved; no human voice acceptance follows.",
+    "Final 10-check restoration PASS; original rows/preferences/settings preserved, zero active jobs/registrations and no active recording.",
+    "Earlier TTS callback probes remain historical and do not close combined interruption or human audibility gates.",
+    "Remaining ten cases reconciled with all attempts preserved; V05 explicitly owner-deferred. All48 physical rows NOT_RUN and release gate unsigned."
+  ],
+  "historicalRemainingCaseEvidence": "docs/reports/evidence/phase-08-remaining-case-ledger.json",
+  "currentReport": "docs/reports/phase-08-stable-emulator-report.md",
+  "historicalReconciliationNotesBeforeCaptureFix": [
+    "Current results:44PASS,3FAIL(A03,V03,V04),1NOT_RUN(V05). All47 runnable cases represented across51 retained terminal attempts plus separately preserved partial V08 interruption.",
+    "A31 cleanup-only and A36 foreground-precondition failures retained and narrowly superseded only after fresh full PASS; no A03/V03/V04 promotion.",
+    "Final restoration10/10PASS; source/APK identity and three original baselines verified. All48physical rows NOT_RUN; human release unsigned."
+  ],
+  "historicalRestorationBeforeCaptureFix": {
+    "status": "PASS",
+    "evidence": [
+      "docs/reports/evidence/phase-08-input-loss-restoration-final.json"
+    ],
+    "checksPassed": 10,
+    "originalNonDiagnosticRowsUnchanged": true,
+    "threeBaselinesCompared": true,
+    "completePreferencesRestored": true,
+    "nativeDeliveryAndFullScreenRestored": true,
+    "grantFlagsAndAppOpsRestored": true,
+    "radiosRestored": true,
+    "recordedFontScreenKeyboardSettingsRestored": true,
+    "automaticTimeTimezoneAndClockOffsetRestored": true,
+    "forcedIdleAndBatteryOverridesRestored": true,
+    "noActiveRecording": true,
+    "activeOwnedJobs": 0,
+    "registrations": 0,
+    "installedApkHashVerified": true,
+    "volume": "NOT_MUTATED_NOT_COMPARED",
+    "foregroundScreen": "Profile UI restoration exercised; no later active-window certification"
+  },
+  "captureFixEvidence": {
+    "ledger": "docs/reports/evidence/phase-08-capture-fix-case-ledger.json",
+    "retainedBaselineLedger": {
+      "path": "docs/reports/evidence/phase-08-input-loss-case-ledger.json",
+      "sha256": "1f534f43ec4fc77d2bf4ff457f1263f7a92a9f987028c1827a8dfcbffc3d629b"
+    },
+    "captureCampaigns": [
+      {
+        "path": "docs/reports/evidence/phase-08-capture-fix-host-gpu-cold1-20261030T205317724025Z-9354cd.json",
+        "sha256": "bc5e7e57fbef221b40a10ba6fff8d726000a0c217072a3514065ebd05b97c947"
+      },
+      {
+        "path": "docs/reports/evidence/phase-08-capture-fix-host-gpu-cold2-20261030T210707359332Z-e16ad6.json",
+        "sha256": "991f118a766a0804aef065832130ef50f0869e95ab9413634564aa85e5cf9b97"
+      }
+    ],
+    "captureColdBoots": [
+      {
+        "path": "docs/reports/evidence/phase-08-capture-fix-host-gpu-cold-1-verification-complete.json",
+        "sha256": "68fefdf6936722649371b16bdaf0b8301f7e65f43a9a8144207affe8d92ac760"
+      },
+      {
+        "path": "docs/reports/evidence/phase-08-capture-fix-host-gpu-cold-2.json",
+        "sha256": "3f3846da8e854665b218fc6c5b1684ffefea8f28fd4f59fc2cc1d42cf678ba1a"
+      }
+    ],
+    "primaryMatrixArchive": {
+      "path": "docs/reports/evidence/phase-08-emulator-expansion-matrix-pre-capture-fix.json",
+      "sha256": "7d2614a884c8385d08225fd23877888d16648e318fbb43d304d4526dc48b976c"
+    }
+  },
+  "stableGuestEvidence": {
+    "ledger": {
+      "path": "docs/reports/evidence/phase-08-stable-case-ledger.json",
+      "sha256": "7dbf22f22f8207bf68af017bca32cbf59f242e9531ae4d3011c283618bc7852c"
+    },
+    "report": "docs/reports/phase-08-stable-emulator-report.md",
+    "halRetrospective": "docs/reports/evidence/phase-08-stable-hal-integrity-retrospective.json",
+    "nullAudioPlan": "docs/reports/evidence/phase-08-stable-null-audio-plan.json",
+    "preReconciliationArchive": {
+      "path": "docs/reports/evidence/phase-08-emulator-expansion-matrix-pre-stable.json",
+      "sha256": "b195033f734741a4a83e32bd2a4d74d280e7c67b86139c056047ebe0ae678b2a"
+    },
+    "platform": "LAFINA_Phase08_API35, Android 15/API35, x86_64, 4 KiB pages; reported separately from the original Medium_Phone guest",
+    "caseStatusOnApi35": {
+      "A01": "PASS",
+      "A02": "PASS",
+      "A03": "FAIL",
+      "A04": "PASS",
+      "V03": "FAIL",
+      "V04": "PASS"
+    },
+    "restoration": {
+      "api35": "docs/reports/evidence/phase-08-stable-final-restoration-verified.json",
+      "original": "docs/reports/evidence/phase-08-stable-original-after.json",
+      "originalChecksPassed": 10
+    }
+  },
+  "historicalReconciliationNotesBeforeStable": [
+    "Current aggregate 45PASS/2FAIL/1NOT_RUN:44 retained scoped passes plus explicit ten affected trials; V05 owner-deferred.",
+    "Two final host-GPU anchored-transport cohorts selected by explicit paths; all earlier8s/blocking/rebased/reviewed software-graphics outcomes retained separately. The extra private hypothesis diagnostic is excluded from these ten scores.",
+    "Producer RPC eligibility, literal ABORT, authorization failure and native reference comparison are separate overlapping layers; no ASR accuracy rate.",
+    "Final restoration10/10PASS; all48 physical rows NOT_RUN, human release unsigned and stable release/Phase09+ unapproved."
+  ]
+}

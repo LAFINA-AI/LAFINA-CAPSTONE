@@ -1,0 +1,22 @@
+{
+  "schemaVersion": 1,
+  "runId": "ex20261028",
+  "invocation": "20261030T163658422641Z-0e9a5a46",
+  "command": "capture-fix-anchored-cold-1",
+  "startedAt": "2026-10-30T16:36:58.423897+00:00",
+  "status": "PASS",
+  "scope": "Explicit emulator UI driver plus independent read-only SQLite snapshots",
+  "physicalAcceptance": "HUMAN_REQUIRED",
+  "events": [
+    {
+      "at": "2026-10-30T16:36:58.424919+00:00",
+      "event": "invocation_started"
+    }
+  ],
+  "limits": [
+    "Direct private Activity intents do not certify actual notification taps or full-screen delivery.",
+    "No live microphone, audibility, physical phone, OEM or battery acceptance is implied."
+  ],
+  "completedAt": "2026-10-30T16:38:51.648285+00:00",
+  "passScope": "Preserved-data cold boot only; no speech or physical validation"
+}

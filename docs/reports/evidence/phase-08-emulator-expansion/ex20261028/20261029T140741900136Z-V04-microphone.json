@@ -1,0 +1,141 @@
+{
+  "kind": "PARENT_SYNTHETIC_VISIBLE_MICROPHONE_CASE",
+  "case": "V04",
+  "status": "PASS",
+  "startedAtUtc": "2026-10-29T14:07:41.901985+00:00",
+  "events": [
+    {
+      "event": "host_microphone_double_false_before",
+      "atUtc": "2026-10-29T14:07:42.029834+00:00",
+      "elapsedMonotonicSeconds": 0.12787440000101924,
+      "status": "HOST_MICROPHONE_DISABLED"
+    },
+    {
+      "event": "owned_fixture_before",
+      "atUtc": "2026-10-29T14:08:54.214484+00:00",
+      "elapsedMonotonicSeconds": 72.31252219999442,
+      "rows": [
+        {
+          "taskId": "task:cmd_mvtmbiqf_0_nb42hbc5xp",
+          "taskStatus": "TODO",
+          "deletedAt": null,
+          "jobId": "job:reminder:task:cmd_mvtmbiqf_0_nb42hbc5xp|2026-10-29T14:08:50.678Z",
+          "occurrenceKey": "task:cmd_mvtmbiqf_0_nb42hbc5xp|2026-10-29T14:08:50.678Z",
+          "generation": 1,
+          "jobStatus": "RINGING",
+          "reminderStatus": "RINGING",
+          "runAt": "2026-10-29T14:08:50.678Z",
+          "deadline": "2026-10-29T14:09:51.134Z",
+          "deliveryState": "REGISTERED",
+          "registrations": 1
+        }
+      ]
+    },
+    {
+      "event": "real_visible_recording_stage_observed",
+      "atUtc": "2026-10-29T14:09:01.143770+00:00",
+      "elapsedMonotonicSeconds": 79.24181029999454,
+      "recordingVisible": true
+    },
+    {
+      "event": "deliberate_synthetic_onset_delay",
+      "atUtc": "2026-10-29T14:09:01.647798+00:00",
+      "elapsedMonotonicSeconds": 79.74584750000213,
+      "delayMs": 500
+    },
+    {
+      "event": "pinned_response_pcm_stream_completed",
+      "atUtc": "2026-10-29T14:09:05.344257+00:00",
+      "elapsedMonotonicSeconds": 83.4422990000021,
+      "grpcStatus": 0,
+      "fixture": {
+        "fixtureId": "snooze",
+        "sha256": "fd762146a51062b7d5deef1cda58b2607d8b3aa4694bde4c76d9820701e5f42a",
+        "bytes": 74286,
+        "voiceName": "Microsoft Zira Desktop",
+        "source": "phase-08-synthetic-response-audio.json"
+      }
+    },
+    {
+      "event": "microphone_driver_completed",
+      "atUtc": "2026-10-29T14:09:12.788000+00:00",
+      "elapsedMonotonicSeconds": 90.88603969999531,
+      "stages": [
+        "activity_launch_requested",
+        "owned_fixture_title_observed",
+        "answer_control_revealed",
+        "answer_response_visible",
+        "actual_pointer_up_sent_in_finally",
+        "actual_pointer_down_and_visible_recording_observed",
+        "actual_pointer_up_sent_in_finally",
+        "recognized_ten_minute_snooze_exact_review_verified_before_confirm",
+        "synthetic_response_explicitly_confirmed_and_window_closed"
+      ],
+      "details": {
+        "hostMicrophoneDisabledConfirmedByRoot": true,
+        "rawTranscriptEmitted": false,
+        "visibleHoldCount": 2,
+        "recordingVisible": true,
+        "recognizedCharacterCount": 23,
+        "recognizedNormalizedIsAcknowledged": false,
+        "recognizedNormalizedIsAcknowledge": false,
+        "recognizedNormalizedMatchesSyntheticToday": false,
+        "recognizedNormalizedMatchesSyntheticAcknowledge": false,
+        "recognizedNormalizedMatchesSyntheticSnooze": true,
+        "transcriptReady": true,
+        "expectedReviewMatchedBeforeConfirm": true,
+        "explicitConfirmationClicked": true,
+        "normalReminderWindowClosed": true
+      }
+    },
+    {
+      "event": "independent_sql_synthetic_voice_ten_minute_snooze",
+      "atUtc": "2026-10-29T14:09:14.876421+00:00",
+      "elapsedMonotonicSeconds": 92.97445350000635,
+      "rows": [
+        {
+          "taskId": "task:cmd_mvtmbiqf_0_nb42hbc5xp",
+          "taskStatus": "TODO",
+          "deletedAt": null,
+          "jobId": "job:reminder:task:cmd_mvtmbiqf_0_nb42hbc5xp|2026-10-29T14:08:50.678Z",
+          "occurrenceKey": "task:cmd_mvtmbiqf_0_nb42hbc5xp|2026-10-29T14:08:50.678Z",
+          "generation": 2,
+          "jobStatus": "PENDING",
+          "reminderStatus": "SNOOZED",
+          "runAt": "2026-10-29T14:19:10.933Z",
+          "deadline": null,
+          "deliveryState": "REGISTERED",
+          "registrations": 1
+        }
+      ],
+      "actionAtUtc": "2026-10-29T14:09:10.933Z",
+      "runAt": "2026-10-29T14:19:10.933Z",
+      "eventGeneration": 1,
+      "exactActionPlusTenMinutes": true
+    },
+    {
+      "event": "host_microphone_double_false_after",
+      "atUtc": "2026-10-29T14:09:15.061028+00:00",
+      "elapsedMonotonicSeconds": 93.15906499999983,
+      "status": "HOST_MICROPHONE_DISABLED"
+    }
+  ],
+  "rawTranscriptEmitted": false,
+  "rawTranscriptStoredInPublicEvidence": false,
+  "physicalSpeech": "NOT_RUN",
+  "audibility": "NOT_RUN",
+  "ttsInterruption": "NOT_RUN",
+  "scope": "Real visible hold/capture with only pinned synthetic PCM when explicitly selected; no live host input or physical speech acceptance",
+  "trialIndex": 2,
+  "requestedIndependentTrials": 2,
+  "syntheticInjectionDelayMs": 500,
+  "syntheticTransportPaddingEachSideMs": 1000,
+  "syntheticTransportGainPermille": 500,
+  "syntheticRepeatAliasOf": "A06",
+  "microphonePermissionRestoration": "EXACT_FRESH_BASELINE_VERIFIED",
+  "fixtureCleanup": "EXACT_OWNED_TITLE_REVIEWED_UI",
+  "hostMicrophoneDisabledAtEnd": true,
+  "completedAtUtc": "2026-10-29T14:09:30.119880+00:00",
+  "elapsedMonotonicSeconds": 108.21791969999322,
+  "privateEvidence": ".local/phase08-microphone-20261029T140741900136Z-V04"
+}

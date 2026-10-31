@@ -1,0 +1,14 @@
+✔ only generated zeros precede fresh proof; source and deadline remain gated (24.8139ms)
+✔ invalid proof rejects every nonzero source byte (2.613ms)
+✔ cancellation before proof stops source (1.0695ms)
+✔ stale proof does not arm source deadline (13.8587ms)
+✔ insufficient native window rejects source after the zero primer (2.1223ms)
+✔ source byte count excludes primer and complete PCM is unchanged (13.9879ms)
+ℹ tests 6
+ℹ suites 0
+ℹ pass 6
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 232.2541

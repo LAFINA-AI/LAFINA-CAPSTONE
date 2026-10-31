@@ -1,0 +1,52 @@
+{
+  "kind": "PHASE08_PRESERVED_DATA_COLD_BOOT",
+  "status": "RUNNING",
+  "startedAtUtc": "2026-10-29T15:10:22.793877+00:00",
+  "serial": "emulator-5554",
+  "avd": "Medium_Phone",
+  "physicalDeviceValidation": "NOT_RUN",
+  "emulatorArguments": [
+    "-avd",
+    "Medium_Phone",
+    "-port",
+    "5554",
+    "-no-window",
+    "-no-snapshot-load",
+    "-no-snapshot-save",
+    "-grpc",
+    "8554",
+    "-grpc-use-token",
+    "-debug",
+    "audio,audioin,time"
+  ],
+  "events": [
+    {
+      "event": "baseline_verified",
+      "atUtc": "2026-10-29T15:10:48.023825+00:00",
+      "activeJobs": 0,
+      "registrations": 0,
+      "schema": 3,
+      "preferencesSha256": "56cb51e031be21e41c7dcbd2df79a6db86803d5051e27aa3db5a0f1f55605486",
+      "hostMicrophoneStateBefore": "DISABLED",
+      "testsExecuted": false,
+      "installedApkSha256": "7300f2aefeb8d5f90882655d46435b100a12531e16a7c70df4f81230f4160454"
+    },
+    {
+      "event": "disconnected_waiting_for_userdata_flush",
+      "atUtc": "2026-10-29T15:11:00.677004+00:00",
+      "seconds": 8
+    },
+    {
+      "event": "single_hidden_cold_boot_launched",
+      "atUtc": "2026-10-29T15:11:08.702789+00:00",
+      "pid": 2328
+    },
+    {
+      "event": "waiting_for_boot",
+      "atUtc": "2026-10-29T15:11:39.558586+00:00",
+      "elapsedSeconds": 30.9
+    }
+  ],
+  "noAppDataResetOrInstall": true,
+  "hostMicrophoneStateBefore": "DISABLED"
+}

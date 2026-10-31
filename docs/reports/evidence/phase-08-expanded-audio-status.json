@@ -1,0 +1,1 @@
+{"kind":"PHASE08_LOOPBACK_EMULATOR_AUDIO_PROBE","status":"HOST_MICROPHONE_DISABLED","microphoneStateRead":true,"hostInputEnableRequested":false,"audioCaptured":false,"recordingsSaved":false,"recognitionVerified":false,"audibilityVerified":false,"injectAudioInterfaceDeclared":true,"hostMicrophoneEnabledBefore":false,"hostMicrophoneEnabledAfter":false,"injectionAttempted":false}

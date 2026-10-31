@@ -1,0 +1,15 @@
+device UI cleanup-notification-driver
+owned fixture removed QA08 final ack
+device UI ack-create
+created QA08 device ack
+actual due ringing and notification posted QA08 device ack
+device UI answer-no-ack
+Answer leaves durable ring and task TODO
+device UI interrupted
+Traceback (most recent call last):
+  File "C:\L3mxr\Github Repositories\LAFINA-CAPSTONE\.local\phase08_device_ui.py", line 78, in <module>
+    instrument('ack','typed-ack',row=row,title=title)
+  File "C:\L3mxr\Github Repositories\LAFINA-CAPSTONE\.local\phase08_device_ui.py", line 39, in instrument
+    assert data['outcome']=='PASS' and 'OK (1 test)' in text, data
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: {'kind': 'OPT_IN_SYNTHETIC_FIXTURE_UI_DRIVER', 'mode': 'ack', 'outcome': 'FAIL', 'stages': ['activity_launch_requested', 'answer_response_visible', 'ambiguous_response_refused'], 'launch': 'DIRECT_PRIVATE_ACTIVITY_INTENT_NOT_NOTIFICATION_TAP', 'limits': 'UI only; root verifies SQL separately. No live speech, audio or physical-phone acceptance.', 'errorClass': 'AssertionError'}

@@ -1,0 +1,112 @@
+{
+  "createdUtc": "2026-10-28T13:20:54.737924+00:00",
+  "outcome": "PASS",
+  "scope": "Fresh archive of final task-isolated candidate JVM XML; no test rerun by this archival operation. XML generated during phase-08-expansion-android-task-isolation.log build.",
+  "buildLog": "docs/reports/evidence/phase-08-expansion-android-task-isolation.log",
+  "rows": [
+    {
+      "suite": "com.lafina.capstone.reminders.AlarmRegistrationPolicyTest",
+      "tests": 8,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "seconds": 0.042,
+      "timestamp": "2026-10-28T09:06:45.851Z",
+      "xml": "android/app/build/test-results/testDataQaUnitTest/TEST-com.lafina.capstone.reminders.AlarmRegistrationPolicyTest.xml",
+      "xmlBytes": 1763,
+      "xmlSha256": "5977812999687b1905e22807cef6de121087d43cac3165aa7a2ca7a632dbdd64"
+    },
+    {
+      "suite": "com.lafina.capstone.reminders.ReminderIdentityKeyTest",
+      "tests": 3,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "seconds": 0.034,
+      "timestamp": "2026-10-28T09:06:45.896Z",
+      "xml": "android/app/build/test-results/testDataQaUnitTest/TEST-com.lafina.capstone.reminders.ReminderIdentityKeyTest.xml",
+      "xmlBytes": 789,
+      "xmlSha256": "8d17d1f4a21c9820e7d9c4373af0e9712e0042ac3fa799e4b4e3546f8262d1d4"
+    },
+    {
+      "suite": "com.lafina.capstone.reminders.ReminderPolicyTest",
+      "tests": 19,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "seconds": 0.034,
+      "timestamp": "2026-10-28T09:06:45.936Z",
+      "xml": "android/app/build/test-results/testDataQaUnitTest/TEST-com.lafina.capstone.reminders.ReminderPolicyTest.xml",
+      "xmlBytes": 2931,
+      "xmlSha256": "ed2499141b25ce8d6bbf082c0433c8fee8771298c2294aa157ddc9bf7e549b24"
+    },
+    {
+      "suite": "com.lafina.capstone.reminders.ReminderPresentationTest",
+      "tests": 5,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "seconds": 0.002,
+      "timestamp": "2026-10-28T09:06:45.972Z",
+      "xml": "android/app/build/test-results/testDataQaUnitTest/TEST-com.lafina.capstone.reminders.ReminderPresentationTest.xml",
+      "xmlBytes": 1142,
+      "xmlSha256": "7c016ef43cd2d01dd54a6bc81c8443a479cfe1eb18c5fec4a43ccdcf044fe9de"
+    },
+    {
+      "suite": "com.lafina.capstone.reminders.ReminderResponsePolicyTest",
+      "tests": 8,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "seconds": 0.021,
+      "timestamp": "2026-10-28T09:06:45.976Z",
+      "xml": "android/app/build/test-results/testDataQaUnitTest/TEST-com.lafina.capstone.reminders.ReminderResponsePolicyTest.xml",
+      "xmlBytes": 1590,
+      "xmlSha256": "3a9ebe0eab8389903139d632463d7a7494c9a06c51e1f1a07d2b7fb7e8ca76e6"
+    },
+    {
+      "suite": "com.lafina.capstone.reminders.ReminderResponseSessionTest",
+      "tests": 11,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "seconds": 0.007,
+      "timestamp": "2026-10-28T09:06:46.001Z",
+      "xml": "android/app/build/test-results/testDataQaUnitTest/TEST-com.lafina.capstone.reminders.ReminderResponseSessionTest.xml",
+      "xmlBytes": 2071,
+      "xmlSha256": "76eda0c07dd1237b02ef0b83da2afba31adb7ef0420a54250a4bb32d317cf9ca"
+    },
+    {
+      "suite": "com.lafina.capstone.voice.SpeechInputPolicyTest",
+      "tests": 15,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "seconds": 0.021,
+      "timestamp": "2026-10-28T09:06:46.012Z",
+      "xml": "android/app/build/test-results/testDataQaUnitTest/TEST-com.lafina.capstone.voice.SpeechInputPolicyTest.xml",
+      "xmlBytes": 2590,
+      "xmlSha256": "c12ef3e4c9fb64b75d3ad794cb020c3144ee369e9d8f78381643a0c045db5d0c"
+    },
+    {
+      "suite": "com.lafina.capstone.voice.SpeechPolicyTest",
+      "tests": 12,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "seconds": 0.023,
+      "timestamp": "2026-10-28T09:06:46.037Z",
+      "xml": "android/app/build/test-results/testDataQaUnitTest/TEST-com.lafina.capstone.voice.SpeechPolicyTest.xml",
+      "xmlBytes": 2016,
+      "xmlSha256": "3d6f6c00afc423f4294e42439105e3949b65b63ee7bc6703cc22a39baa5ba5fa"
+    }
+  ],
+  "suiteCount": 8,
+  "totals": {
+    "tests": 81,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0,
+    "seconds": 0.184
+  }
+}

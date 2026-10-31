@@ -1,0 +1,26 @@
+{
+  "scope": "Predeclared realtime comparison; no promotion from single passes",
+  "cohorts": 2,
+  "perCohort": {
+    "A03": 1,
+    "V03": 2,
+    "V04": 2
+  },
+  "sameSourcePcm": true,
+  "gainPermille": 500,
+  "paddingEachSideMs": 1000,
+  "extraOnsetDelayMs": 0,
+  "delivery": "MODE_REAL_TIME=1, max200ms prefill, monotonic20ms packets, no catchup bursts, abort>100ms packet delay/cumulative drift",
+  "nativeGateMs": 12000,
+  "productionCaptureCapMs": 15000,
+  "hostInputEnableRequested": false,
+  "automaticRecording": false,
+  "halfClosedInitializer": false,
+  "concurrentRouteDumps": false,
+  "v05": "OWNER_DEFERRED_NOT_RUN",
+  "physicalDeviceValidation": "NOT_RUN",
+  "baselineBlockingReports": [
+    "phase-08-capture-fix-v2-cold1-20261030T104102270535Z-4b24ea.json",
+    "phase-08-capture-fix-v2-cold2-20261030T110131628559Z-204897.json"
+  ]
+}

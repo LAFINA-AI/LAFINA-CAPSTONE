@@ -1,0 +1,9 @@
+created QA08 native ack
+Answer without ACK or automatic recording QA08 native ack
+flow interrupted
+Traceback (most recent call last):
+  File "C:\L3mxr\Github Repositories\LAFINA-CAPSTONE\.local\phase08_flow.py", line 101, in <module>
+    q.find('Response not understood')
+  File "C:\L3mxr\Github Repositories\LAFINA-CAPSTONE\.local\phase08_qa.py", line 32, in find
+    raise AssertionError('Control not found: ' + label)
+AssertionError: Control not found: Response not understood

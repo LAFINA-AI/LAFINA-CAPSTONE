@@ -1,0 +1,43 @@
+{
+  "kind": "PHASE08_PREPARED_FORMAT_HEADER_EXPERIMENT_PLAN",
+  "createdAtUtc": "2026-10-30T23:54:08.386950+00:00",
+  "avd": "LAFINA_Phase08_API35",
+  "attempts": 1,
+  "case": "V03",
+  "hypothesis": "Current injection opens after AudioRecord is already recording; offering only the format header earlier may select the synthetic input source before native capture opens. This is a hypothesis, not a mapped-binary or vendor-cause claim.",
+  "headerBeforeNativeDriver": true,
+  "pcmBeforeFreshVisibleProof": false,
+  "actualMicrophoneStarts": "Only existing deliberate visible pointer interaction in native UI test",
+  "hostInputEnableRequested": false,
+  "independentSourceDeadlineArmedAfterProof": true,
+  "pendingHeaderDeadlineMs": 25000,
+  "nativeGateMs": 12000,
+  "productionCaptureMs": 15000,
+  "samePinnedAudioGainPaddingAndStrictReference": true,
+  "hostPreparedOrderTests": {
+    "tests": 6,
+    "pass": 6,
+    "audioDevicesOrSdkUsed": false,
+    "log": "docs/reports/evidence/phase-08-stable-prepared-host-tests.log"
+  },
+  "candidateOrModelChanged": false,
+  "physicalDeviceValidation": "NOT_RUN",
+  "sources": [
+    {
+      "path": ".local/phase08-prepared-audio.mjs",
+      "sha256": "a98bd84510f8a18db9a2d2961e0a32d35964901fe0ba788e4ad1eec939c1b205"
+    },
+    {
+      "path": ".local/phase08-prepared-audio.test.mjs",
+      "sha256": "36c5a6e57a8ea4981fc6af5f96fe91fa58f4a3a7a6c46ecef7569b92c00c0666"
+    },
+    {
+      "path": ".local/phase08-stable-prepared-parent.py",
+      "sha256": "44494eff9022d6d07ef1a5c265ee66246f1f671665561fab3e6cdd99f0a6fde2"
+    },
+    {
+      "path": ".local/phase08-stable-prepared-diagnostic.py",
+      "sha256": "2c187460684b17865bb97950b900f76952c0035c7e89a71bafa67f9c2ac897b5"
+    }
+  ]
+}

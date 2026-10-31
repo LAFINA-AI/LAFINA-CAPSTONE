@@ -1,0 +1,31 @@
+{
+  "kind": "SYNTHETIC_NATIVE_RESPONSE_POLICY",
+  "component": "parse + new session + reviewed one-shot consume or refusal",
+  "sampleCount": 1200,
+  "corpusSize": 12,
+  "acceptedSamples": 600,
+  "refusalSamples": 600,
+  "warmupCount": 240,
+  "failures": 0,
+  "warmupFailures": 0,
+  "p50Microseconds": 127.9,
+  "p95Microseconds": 253,
+  "maxMicroseconds": 732.2,
+  "deviceModel": "sdk_gphone16k_x86_64",
+  "api": 37,
+  "abis": [
+    "x86_64",
+    "arm64-v8a"
+  ],
+  "limits": [
+    "Synthetic fixed UTC and elapsed clocks; no real deadline or alarm delivery measured.",
+    "No real SQLite, UI, audio, STT/TTS, microphone, network or full interaction measured.",
+    "No startup, peak RAM, battery, physical-phone or old/new performance comparison.",
+    "Emulator/DataQa timing is observational; no speed improvement is claimed."
+  ],
+  "sourceLog": "docs/reports/evidence/phase-08-input-loss-native.log",
+  "sourceLogSha256": "74a247ec5a7ab70cfad3712667ee8b71812d88fde11659fff03e926475ea7717",
+  "recordedAtUtc": "2026-10-30T05:15:50.085149+00:00",
+  "physicalDeviceValidation": "NOT_RUN",
+  "status": "PASS_FIXED_POLICY_ONLY"
+}

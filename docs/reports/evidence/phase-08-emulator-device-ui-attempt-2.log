@@ -1,0 +1,14 @@
+device UI cleanup-label-driver
+owned fixture removed QA08 device ack
+device UI ack-create
+created QA08 accepted ack
+actual due ringing and notification posted QA08 accepted ack
+device UI answer-no-ack
+Answer leaves durable ring and task TODO
+device UI typed-ack
+device UI interrupted
+Traceback (most recent call last):
+  File "C:\L3mxr\Github Repositories\LAFINA-CAPSTONE\.local\phase08_device_ui.py", line 81, in <module>
+    assert rows[0]['jobStatus']=='ACKNOWLEDGED' and rows[0]['reminderStatus']=='ACKNOWLEDGED' and rows[0]['taskStatus']=='TODO',rows
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: [{'taskId': 'task:cmd_mvqxfs31_0_nmjrxnhndmh', 'taskStatus': 'TODO', 'deletedAt': None, 'jobId': 'job:reminder:task:cmd_mvqxfs31_0_nmjrxnhndmh|2026-10-27T16:56:46.668Z', 'occurrenceKey': 'task:cmd_mvqxfs31_0_nmjrxnhndmh|2026-10-27T16:56:46.668Z', 'generation': 1, 'jobStatus': 'RINGING', 'reminderStatus': 'RINGING', 'runAt': '2026-10-27T16:56:46.668Z', 'deadline': '2026-10-27T16:57:47.523Z', 'deliveryState': 'REGISTERED', 'registrations': 1}]

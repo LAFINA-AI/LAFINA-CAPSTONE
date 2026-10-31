@@ -1,0 +1,65 @@
+{
+  "kind": "PHASE08_ROOT_CAMPAIGN_RECONCILIATION_REVIEW",
+  "signedHumanReview": false,
+  "physicalDeviceValidation": "NOT_RUN",
+  "reviewedStoppedCampaigns": [
+    {
+      "campaign": "docs/reports/evidence/phase-08-input-loss-all-cases-final-clean2-20261030T001025501835Z-e65204.json",
+      "sha256": "0eae7d251d7d07d212aa6393adaf019117618ba8bcf71f2f0ee308abb83e59db",
+      "restorationEvidence": "docs/reports/evidence/phase-08-input-loss-restoration-final.json",
+      "restorationEvidenceSha256": "e4ed5b87c9dbdf5affdb4ab1db4ab4ec2c5b9a09426da7de47865d7dc6be517c",
+      "originalStateRestoredOrWorkingBaselineVerified": true,
+      "noOutstandingController": true
+    },
+    {
+      "campaign": "docs/reports/evidence/phase-08-input-loss-resumed-interruption-reviewed.json",
+      "sha256": "eb994ef9df0e2273e8bef4d926c04f089bfe1a78caf2a6b199c488b8ee70f531",
+      "restorationEvidence": "docs/reports/evidence/phase-08-input-loss-restoration-final.json",
+      "restorationEvidenceSha256": "e4ed5b87c9dbdf5affdb4ab1db4ab4ec2c5b9a09426da7de47865d7dc6be517c",
+      "originalStateRestoredOrWorkingBaselineVerified": true,
+      "noOutstandingController": true
+    }
+  ],
+  "supersededHarnessFailures": [
+    {
+      "case": "A31",
+      "failureScope": "HARNESS_CLEANUP_ONLY",
+      "failedCampaign": "docs/reports/evidence/phase-08-input-loss-all-cases-final-clean2-20261030T001025501835Z-e65204.json",
+      "failedTrial": 1,
+      "freshPassingCampaign": "docs/reports/evidence/phase-08-input-loss-resumed-interruption-reviewed.json",
+      "reason": "Overlapping-reminder assertions passed; an expiring ring interrupted owned UI cleanup. Exact remaining fixture cleanup and original working state were independently verified before the fresh A31 PASS. Application policy unchanged.",
+      "reviewEvidence": [
+        {
+          "path": "docs/reports/evidence/phase-08-input-loss-all-cases-root-review-restoration-20261030T051221428855Z-4d429b.json",
+          "sha256": "dfb446c0ed33178c9de01ab9c36babdb3ec2b6f4ae3cf0569fa1d0629cdf15b2"
+        },
+        {
+          "path": "docs/reports/evidence/phase-08-input-loss-restoration-final.json",
+          "sha256": "e4ed5b87c9dbdf5affdb4ab1db4ab4ec2c5b9a09426da7de47865d7dc6be517c"
+        }
+      ]
+    },
+    {
+      "case": "A36",
+      "failureScope": "HARNESS_FOREGROUND_PRECONDITION_ONLY",
+      "failedCampaign": "docs/reports/evidence/phase-08-input-loss-resumed-interruption-reviewed.json",
+      "failedTrial": 1,
+      "freshPassingCampaign": "docs/reports/evidence/phase-08-input-loss-all-cases-final-last-20261030T085314988949Z-3ed97a.json",
+      "reason": "Original stale-private-open UI timed out with SystemUI focus and zero app nodes after verified notification snooze. Fresh test explicitly collapsed the shade, established Main foreground and reopened the exact saved old identity; one replacement remained unchanged. Actual stale notification tap is not claimed.",
+      "reviewEvidence": [
+        {
+          "path": "docs/reports/evidence/phase-08-input-loss-all-cases-final-clean-resumed-20261030T051327524941Z-a645d7-A36-trial1.log",
+          "sha256": "8a4fc14b20a57fa63b38637e58c097e8e32624a4287187affa7a583d4ebd1fd0"
+        },
+        {
+          "path": "docs/reports/evidence/phase-08-input-loss-all-cases-final-last-20261030T085314988949Z-3ed97a-A36-trial1.log",
+          "sha256": "290ce631b9e2287c42e85adb39f1ce07d60122d64cfc9c9158442a8a3eb94852"
+        },
+        {
+          "path": "docs/reports/evidence/phase-08-input-loss-restoration-final.json",
+          "sha256": "e4ed5b87c9dbdf5affdb4ab1db4ab4ec2c5b9a09426da7de47865d7dc6be517c"
+        }
+      ]
+    }
+  ]
+}

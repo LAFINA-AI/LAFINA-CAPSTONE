@@ -1,0 +1,174 @@
+{
+  "kind": "PHASE08_PRESERVED_DATA_COLD_BOOT",
+  "status": "PASS",
+  "startedAtUtc": "2026-10-29T23:47:28.170573+00:00",
+  "serial": "emulator-5554",
+  "avd": "Medium_Phone",
+  "physicalDeviceValidation": "NOT_RUN",
+  "emulatorArguments": [
+    "-avd",
+    "Medium_Phone",
+    "-port",
+    "5554",
+    "-no-window",
+    "-no-snapshot-load",
+    "-no-snapshot-save",
+    "-grpc",
+    "8554",
+    "-grpc-use-token"
+  ],
+  "events": [
+    {
+      "event": "baseline_verified",
+      "atUtc": "2026-10-29T23:47:35.263917+00:00",
+      "activeJobs": 0,
+      "registrations": 0,
+      "schema": 3,
+      "preferencesSha256": "56cb51e031be21e41c7dcbd2df79a6db86803d5051e27aa3db5a0f1f55605486",
+      "hostMicrophoneStateBefore": "DISABLED",
+      "testsExecuted": false,
+      "installedApkSha256": "98ed4f5fb6311d64b96381b08e99fb19a5f243c21fd078fd4ea4a774bcdd2d23"
+    },
+    {
+      "event": "disconnected_waiting_for_userdata_flush",
+      "atUtc": "2026-10-29T23:47:42.828137+00:00",
+      "seconds": 8
+    },
+    {
+      "event": "single_hidden_cold_boot_launched",
+      "atUtc": "2026-10-29T23:47:50.841023+00:00",
+      "pid": 23588
+    },
+    {
+      "event": "waiting_for_boot",
+      "atUtc": "2026-10-29T23:48:21.922141+00:00",
+      "elapsedSeconds": 31.1
+    },
+    {
+      "event": "waiting_for_boot",
+      "atUtc": "2026-10-29T23:48:51.087765+00:00",
+      "elapsedSeconds": 60.2
+    },
+    {
+      "event": "preserved_data_cold_boot_verified",
+      "atUtc": "2026-10-29T23:49:29.596954+00:00",
+      "status": "PASS",
+      "activeJobs": 0,
+      "registrations": 0,
+      "schema": 3
+    }
+  ],
+  "noAppDataResetOrInstall": true,
+  "hostMicrophoneStateBefore": "DISABLED",
+  "originalNonDiagnosticRowsEqual": true,
+  "originalRowComparison": {
+    "app_settings": {
+      "baselineCount": 1,
+      "currentCount": 1,
+      "originalRowsMissingOrChanged": 0,
+      "addedRows": 0,
+      "separatelyChecked": true,
+      "boundedDiagnosticHistory": false
+    },
+    "chat_messages": {
+      "baselineCount": 0,
+      "currentCount": 0,
+      "originalRowsMissingOrChanged": 0,
+      "addedRows": 0,
+      "separatelyChecked": false,
+      "boundedDiagnosticHistory": false
+    },
+    "events": {
+      "baselineCount": 4,
+      "currentCount": 4,
+      "originalRowsMissingOrChanged": 0,
+      "addedRows": 0,
+      "separatelyChecked": false,
+      "boundedDiagnosticHistory": false
+    },
+    "local_profile": {
+      "baselineCount": 1,
+      "currentCount": 1,
+      "originalRowsMissingOrChanged": 0,
+      "addedRows": 0,
+      "separatelyChecked": false,
+      "boundedDiagnosticHistory": false
+    },
+    "native_alarm_events": {
+      "baselineCount": 200,
+      "currentCount": 200,
+      "originalRowsMissingOrChanged": 0,
+      "addedRows": 0,
+      "separatelyChecked": false,
+      "boundedDiagnosticHistory": true
+    },
+    "native_alarm_registrations": {
+      "baselineCount": 0,
+      "currentCount": 0,
+      "originalRowsMissingOrChanged": 0,
+      "addedRows": 0,
+      "separatelyChecked": false,
+      "boundedDiagnosticHistory": false
+    },
+    "native_delivery_settings": {
+      "baselineCount": 1,
+      "currentCount": 1,
+      "originalRowsMissingOrChanged": 0,
+      "addedRows": 0,
+      "separatelyChecked": true,
+      "boundedDiagnosticHistory": false
+    },
+    "notes": {
+      "baselineCount": 2,
+      "currentCount": 2,
+      "originalRowsMissingOrChanged": 0,
+      "addedRows": 0,
+      "separatelyChecked": false,
+      "boundedDiagnosticHistory": false
+    },
+    "operation_receipts": {
+      "baselineCount": 291,
+      "currentCount": 291,
+      "originalRowsMissingOrChanged": 0,
+      "addedRows": 0,
+      "separatelyChecked": false,
+      "boundedDiagnosticHistory": false
+    },
+    "reminder_jobs": {
+      "baselineCount": 133,
+      "currentCount": 133,
+      "originalRowsMissingOrChanged": 0,
+      "addedRows": 0,
+      "separatelyChecked": false,
+      "boundedDiagnosticHistory": false
+    },
+    "reminders": {
+      "baselineCount": 133,
+      "currentCount": 133,
+      "originalRowsMissingOrChanged": 0,
+      "addedRows": 0,
+      "separatelyChecked": false,
+      "boundedDiagnosticHistory": false
+    },
+    "tasks": {
+      "baselineCount": 135,
+      "currentCount": 135,
+      "originalRowsMissingOrChanged": 0,
+      "addedRows": 0,
+      "separatelyChecked": false,
+      "boundedDiagnosticHistory": false
+    }
+  },
+  "fullPreferencesEqual": true,
+  "nativeDeliveryEqual": true,
+  "radiosAndAutomaticTimeSettingsEqual": true,
+  "installedApkEqual": true,
+  "installedApkSha256": "98ed4f5fb6311d64b96381b08e99fb19a5f243c21fd078fd4ea4a774bcdd2d23",
+  "hostMicrophoneDisabledAfterBootAndAtFinalCheck": true,
+  "unsecuredKeyguardOnlyDismissed": true,
+  "activeJobs": 0,
+  "registrations": 0,
+  "schema": 3,
+  "completedAtUtc": "2026-10-29T23:49:29.601814+00:00",
+  "privateEvidence": ".local/phase08-input-loss-original-initialized-reboot-2-grpc-20261029T234728170535Z"
+}

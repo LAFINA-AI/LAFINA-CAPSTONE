@@ -1,0 +1,20 @@
+com.lafina.capstone.reminders.ReminderResponseUiTest:INSTRUMENTATION_STATUS: phase08_ui_driver={"kind":"OPT_IN_SYNTHETIC_FIXTURE_UI_DRIVER","mode":"ack","outcome":"FAIL","stages":["activity_launch_requested","answer_response_visible","ambiguous_response_refused"],"launch":"DIRECT_PRIVATE_ACTIVITY_INTENT_NOT_NOTIFICATION_TAP","limits":"UI only; root verifies SQL separately. No live speech, audio or physical-phone acceptance.","errorClass":"AssertionError"}
+INSTRUMENTATION_STATUS_CODE: 0
+
+Error in driveReviewedReminderResponseForExplicitSyntheticFixture(com.lafina.capstone.reminders.ReminderResponseUiTest):
+java.lang.AssertionError: QA08_UI_ACTION_NOT_AVAILABLE: Keep editing
+	at com.lafina.capstone.reminders.ReminderResponseUiTest.click(ReminderResponseUiTest.kt:193)
+	at com.lafina.capstone.reminders.ReminderResponseUiTest.nativeResponse(ReminderResponseUiTest.kt:104)
+	at com.lafina.capstone.reminders.ReminderResponseUiTest.driveReviewedReminderResponseForExplicitSyntheticFixture(ReminderResponseUiTest.kt:37)
+
+
+Time: 16.86
+There was 1 failure:
+1) driveReviewedReminderResponseForExplicitSyntheticFixture(com.lafina.capstone.reminders.ReminderResponseUiTest)
+java.lang.AssertionError: QA08_UI_ACTION_NOT_AVAILABLE: Keep editing
+	at com.lafina.capstone.reminders.ReminderResponseUiTest.click(ReminderResponseUiTest.kt:193)
+	at com.lafina.capstone.reminders.ReminderResponseUiTest.nativeResponse(ReminderResponseUiTest.kt:104)
+	at com.lafina.capstone.reminders.ReminderResponseUiTest.driveReviewedReminderResponseForExplicitSyntheticFixture(ReminderResponseUiTest.kt:37)
+
+FAILURES!!!
+Tests run: 1,  Failures: 1

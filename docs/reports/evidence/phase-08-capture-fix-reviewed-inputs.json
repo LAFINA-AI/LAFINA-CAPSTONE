@@ -1,0 +1,39 @@
+{
+  "kind": "REVIEWED_COMPARISON_SOURCE_INPUTS",
+  "status": "FROZEN_PENDING_GATE_CONTROLS",
+  "files": [
+    {
+      "path": "scripts/phase08-emulator-audio.mjs",
+      "bytes": 33856,
+      "sha256": "a5231b7b4acd700107ffed234f58781cb5c83e56f1daee87a51f6189fe86c95d"
+    },
+    {
+      "path": "scripts/phase08-emulator-audio.test.mjs",
+      "bytes": 2682,
+      "sha256": "557856bfd2becbe65007cf308fac4621eb20b5171ec97c5a9104d07dbe4c6a3b"
+    },
+    {
+      "path": "scripts/phase08-emulator-audio-realtime.test.mjs",
+      "bytes": 24804,
+      "sha256": "c8f4d7c6a4bda3e68f5af5db46e3f83d2cc8a2f4ea6b9568c9dbc15ccf194708"
+    },
+    {
+      "path": "android/app/src/androidTest/java/com/lafina/capstone/reminders/ReminderMicrophoneUiTest.kt",
+      "bytes": 21565,
+      "sha256": "04d0c04e45216ff54c4a76a5b920d075a5c58ca746ed01a832ef55200b3fe2bb"
+    },
+    {
+      "path": ".local/phase08-capture-fix-reviewed-mic.py",
+      "bytes": 44728,
+      "sha256": "8aef5281eb541fd2bafdbf323e2c0e3a14ead86aac37e3b68fb355c10f81c4c9"
+    },
+    {
+      "path": ".local/phase08-capture-fix-reviewed-affected.py",
+      "bytes": 39094,
+      "sha256": "2922484ac8dedbc7526460d34f0eb4cd78612e29ff2940e500cdc6ea5b92ae43"
+    }
+  ],
+  "testApkSha256": "abb103afe1dab0bef0646734d126391a355cf2a1a7fb664401544db57b71b0a9",
+  "productionApkSha256": "7300f2aefeb8d5f90882655d46435b100a12531e16a7c70df4f81230f4160454",
+  "physicalDeviceValidation": "NOT_RUN"
+}

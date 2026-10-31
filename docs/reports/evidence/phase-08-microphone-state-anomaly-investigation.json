@@ -1,0 +1,414 @@
+{
+  "kind": "PHASE08_MICROPHONE_STATE_ANOMALY_INVESTIGATION",
+  "createdAtUtc": "2026-10-31T10:39:52.270786+00:00",
+  "derivedRecord": true,
+  "rawEvidenceRewritten": false,
+  "scope": "Host-only harness investigation. No emulator launched, no audio injected, host microphone never enabled, no physical phone. Raw logs, tokens and transcripts stay private.",
+  "checkout": {
+    "branch": "codex/phase-07-audit-hardening",
+    "head": "98bef88c3ae0fabee677c1466417fc34c0af738c"
+  },
+  "question": "Why did the producer read host microphone access as enabled after a lateness abort, and is there a harness defect?",
+  "protocolDefinition": {
+    "sdkProtos": [
+      {
+        "path": "%LOCALAPPDATA%/Android/Sdk/emulator/lib/emulator_controller.proto",
+        "revision": "37.1.11",
+        "sha256": "1d62c6bcad5f06621f90ec2bf26c661ba769ccd0f1416b5314d25a68e04eee5f"
+      },
+      {
+        "path": ".local/phase08-emulator-37.2.13/emulator/lib/emulator_controller.proto",
+        "revision": "37.2.13",
+        "sha256": "564e00a929e7e4a7af78269a738ea715f32d88c0fc9f92659bb8a1251c9d558f"
+      }
+    ],
+    "microphoneState": "message MicrophoneState { // Whether or not host microphone access is enabled\n bool realAudioEnabled = 1; }",
+    "streamNotificationComment": "MicrophoneState: Reports changes in the microphone state (currently whether host microphone access is allowed)",
+    "rpcs": [
+      "getMicrophoneState(Empty) returns (MicrophoneState)",
+      "setMicrophoneState(MicrophoneState) returns (Empty)",
+      "injectAudio(stream AudioPacket) returns (Empty)"
+    ],
+    "injectAudioNotes": "Circular buffer ~300 ms; on stream closure writes silence for up to 300 ms; FAILED_PRECONDITION if another microphone is already active. Nothing documents the state reported during or after a cancelled stream.",
+    "versionDifference": "Only an unrelated DisplayPowerModeNotification differs between 37.1.11 and 37.2.13; MicrophoneState, AudioPacket and injectAudio are identical.",
+    "meaning": "Field 1 reports whether host microphone access is enabled/allowed. It is not a capture or audio-level indicator. Proto3 default false is encoded as an absent field."
+  },
+  "incidents": [
+    {
+      "incident": "null1 V03/2 (LAFINA_Phase08_API35, isolated emulator 37.2.13, -audio none)",
+      "parentRecord": {
+        "path": "docs/reports/evidence/phase-08-emulator-expansion/st20261031/20261031T022854123198Z-V03-microphone.json",
+        "sha256": "a720ffba7606f5f2c23371b2e8d778ed58fd0eee30a25a48c2ba53f1f18c42a5"
+      },
+      "cohortRecord": {
+        "path": "docs/reports/evidence/phase-08-stable-null1-20261031T022535065671Z-9fbf9f.json",
+        "sha256": "83b648894c6a6df4e54cc427c6fb4d8a0aa3d1e618dfa507d682be6b92719301"
+      },
+      "observed": {
+        "hostMicrophoneEnabledBefore": false,
+        "injectionFailureReason": "SYNTHETIC_REALTIME_LATE",
+        "abortKind": "PACKET_LATENESS",
+        "maxLatenessMs": 112.7,
+        "packetsOffered": 176,
+        "sourceBytesOffered": 112640,
+        "hostMicrophoneEnabledAfterSourceRead": true,
+        "producerStatus": "BLOCKED",
+        "producerReason": "HOST_MICROPHONE_ENABLED_AFTER_ABORT",
+        "sourceSubmissionOutcome": "SOURCE_RPC_ABORTED",
+        "gateMarker": "ABORT",
+        "nativeGateDecision": "BLOCK_PRODUCER_ABORT",
+        "producerAuthorizedConfirmation": false,
+        "parentFailureLayer": "SOURCE_PRODUCER_OR_PRIVACY_GUARD",
+        "parentFinalCheckOff": true,
+        "cohortRowFields": {
+          "hostMicrophoneDisabledAtEnd": true,
+          "carriesEnabledObservation": false
+        }
+      },
+      "timelineUtc": [
+        {
+          "at": "2026-10-31T02:28:54.372758+00:00",
+          "what": "parent double-false host check before the case (OFF, OFF)",
+          "source": "parent event"
+        },
+        {
+          "at": "2026-10-31T02:30:07.252406+00:00",
+          "what": "real visible Recording observed; producer launched with fresh proof",
+          "source": "parent event"
+        },
+        {
+          "at": "2026-10-31T02:30:10.926562+00:00",
+          "what": "producer process exited (log written after exit); the cancelled-stream state read returned enabled shortly before this",
+          "source": "private file mtime (upper bound for the read)"
+        },
+        {
+          "at": "2026-10-31T02:30:11.160812+00:00",
+          "what": "parent published ABORT (never ALLOW); native gate BLOCK_PRODUCER_ABORT; hold released ~20 ms later",
+          "source": "parent gatePublication"
+        },
+        {
+          "at": "2026-10-31T02:30:14.852558+00:00",
+          "what": "microphone permission/AppOps restored",
+          "source": "private file mtime"
+        },
+        {
+          "at": "2026-10-31T02:30:35.479805+00:00",
+          "what": "parent final status probe: OFF, OFF",
+          "source": "private file mtime"
+        }
+      ]
+    },
+    {
+      "incident": "capture-fix reviewed-cold2-after-wait A03/1 (original Medium_Phone, global emulator 37.1.11, default audio backend)",
+      "parentRecord": {
+        "path": "docs/reports/evidence/phase-08-emulator-expansion/ex20261028/20261030T171533340781Z-A03-microphone.json",
+        "sha256": "ec70a8ebd9fab1420e829a9859f5812e96512ab0e64fb95ea7919f95f00e9a08"
+      },
+      "cohortRecord": {
+        "path": "docs/reports/evidence/phase-08-capture-fix-reviewed-cold2-after-wait-20261030T171520515816Z-e50d85.json",
+        "sha256": "680919a095924fe86df16c849d8af90b649e16a1b73eeb0da51b608d2570eee1"
+      },
+      "observed": {
+        "hostMicrophoneEnabledBefore": false,
+        "injectionFailureReason": "SYNTHETIC_REALTIME_LATE",
+        "abortKind": "PACKET_LATENESS",
+        "maxLatenessMs": 110.4,
+        "packetsOffered": 125,
+        "sourceBytesOffered": 80000,
+        "hostMicrophoneEnabledAfterSourceRead": true,
+        "producerStatus": "BLOCKED",
+        "producerReason": "HOST_MICROPHONE_ENABLED_AFTER_ABORT",
+        "sourceSubmissionOutcome": "SOURCE_RPC_ABORTED",
+        "gateMarker": "ABORT",
+        "nativeGateDecision": "BLOCK_PRODUCER_ABORT",
+        "producerAuthorizedConfirmation": false,
+        "parentFailureLayer": "SOURCE_PRODUCER_OR_PRIVACY_GUARD",
+        "parentFinalCheckOff": true,
+        "cohortRowFields": {
+          "hostMicrophoneDisabledAtEnd": true,
+          "carriesEnabledObservation": false
+        }
+      },
+      "timelineUtc": [
+        {
+          "at": "2026-10-30T17:15:33.532838+00:00",
+          "what": "parent double-false host check before the case (OFF, OFF)",
+          "source": "parent event"
+        },
+        {
+          "at": "2026-10-30T17:17:09.128400+00:00",
+          "what": "real visible Recording observed; producer launched with fresh proof",
+          "source": "parent event"
+        },
+        {
+          "at": "2026-10-30T17:17:12.043063+00:00",
+          "what": "producer process exited (log written after exit); the cancelled-stream state read returned enabled shortly before this",
+          "source": "private file mtime (upper bound for the read)"
+        },
+        {
+          "at": "2026-10-30T17:17:12.551982+00:00",
+          "what": "parent published ABORT (never ALLOW); native gate BLOCK_PRODUCER_ABORT; hold released ~20 ms later",
+          "source": "parent gatePublication"
+        },
+        {
+          "at": "2026-10-30T17:17:16.890381+00:00",
+          "what": "microphone permission/AppOps restored",
+          "source": "private file mtime"
+        },
+        {
+          "at": "2026-10-30T17:17:37.242692+00:00",
+          "what": "parent final status probe: OFF, OFF",
+          "source": "private file mtime"
+        }
+      ]
+    },
+    {
+      "incident": "capture-fix host-gpu-cold1 V03/2 (original Medium_Phone, global emulator 37.1.11, default audio backend)",
+      "parentRecord": {
+        "path": "docs/reports/evidence/phase-08-emulator-expansion/ex20261028/20261030T205753249610Z-V03-microphone.json",
+        "sha256": "7248699a8ce605d141bbb25c2bbc01e5813df97e81317b0ecc0db27b43afedf0"
+      },
+      "cohortRecord": {
+        "path": "docs/reports/evidence/phase-08-capture-fix-host-gpu-cold1-20261030T205317724025Z-9354cd.json",
+        "sha256": "bc5e7e57fbef221b40a10ba6fff8d726000a0c217072a3514065ebd05b97c947"
+      },
+      "observed": {
+        "hostMicrophoneEnabledBefore": false,
+        "injectionFailureReason": "SYNTHETIC_REALTIME_LATE",
+        "abortKind": "PACKET_LATENESS",
+        "maxLatenessMs": 102.9,
+        "packetsOffered": 88,
+        "sourceBytesOffered": 56320,
+        "hostMicrophoneEnabledAfterSourceRead": true,
+        "producerStatus": "BLOCKED",
+        "producerReason": "HOST_MICROPHONE_ENABLED_AFTER_ABORT",
+        "sourceSubmissionOutcome": "SOURCE_RPC_ABORTED",
+        "gateMarker": "ABORT",
+        "nativeGateDecision": "BLOCK_PRODUCER_ABORT",
+        "producerAuthorizedConfirmation": false,
+        "parentFailureLayer": "SOURCE_PRODUCER_OR_PRIVACY_GUARD",
+        "parentFinalCheckOff": true,
+        "cohortRowFields": {
+          "hostMicrophoneDisabledAtEnd": true,
+          "carriesEnabledObservation": false
+        }
+      },
+      "timelineUtc": [
+        {
+          "at": "2026-10-30T20:57:53.478611+00:00",
+          "what": "parent double-false host check before the case (OFF, OFF)",
+          "source": "parent event"
+        },
+        {
+          "at": "2026-10-30T20:59:19.003778+00:00",
+          "what": "real visible Recording observed; producer launched with fresh proof",
+          "source": "parent event"
+        },
+        {
+          "at": "2026-10-30T20:59:21.458833+00:00",
+          "what": "producer process exited (log written after exit); the cancelled-stream state read returned enabled shortly before this",
+          "source": "private file mtime (upper bound for the read)"
+        },
+        {
+          "at": "2026-10-30T20:59:22.023666+00:00",
+          "what": "parent published ABORT (never ALLOW); native gate BLOCK_PRODUCER_ABORT; hold released ~20 ms later",
+          "source": "parent gatePublication"
+        },
+        {
+          "at": "2026-10-30T20:59:26.765899+00:00",
+          "what": "microphone permission/AppOps restored",
+          "source": "private file mtime"
+        },
+        {
+          "at": "2026-10-30T20:59:42.755273+00:00",
+          "what": "parent final status probe: OFF, OFF",
+          "source": "private file mtime"
+        }
+      ]
+    }
+  ],
+  "survey": {
+    "method": "All retained parent records with a sourceProducer block under docs/reports/evidence (read-only scan)",
+    "completedStreamsAfterReadFalse": 37,
+    "abortedStreamsAfterReadTrue": 3,
+    "abortedStreamsAfterReadFalse": 0,
+    "notSubmitted": 6,
+    "allOutcomeCounts": {
+      "NOT_SUBMITTED|after=None": 6,
+      "SOURCE_RPC_ABORTED|after=True": 3,
+      "SOURCE_RPC_COMPLETED_HOST_OFF|after=False": 37
+    }
+  },
+  "observed": [
+    "All three retained source-stream aborts were client-side realtime lateness aborts (102.9-112.7 ms over a 100 ms guard). In each, the next state read (500 ms deadline, issued right after the client cancelled the stream with RST_STREAM CANCEL) returned realAudioEnabled=true.",
+    "All 37 retained completed source streams read false afterwards; that read happens after the server finished the RPC.",
+    "Each time the producer failed closed (BLOCKED, HOST_MICROPHONE_ENABLED_AFTER_ABORT), kept the pacing code in injectionFailureReason, and reported SOURCE_RPC_ABORTED.",
+    "Each time the parent raised HOST_INPUT_NOT_CONFIRMED_DISABLED, published ABORT (never ALLOW), and the native gate recorded BLOCK_PRODUCER_ABORT with producerAuthorizedConfirmation=false; no review/Confirm ran.",
+    "The next state observation, the parent final status probe 21-25 s later after permission restoration and fixture cleanup, read OFF, OFF. No reading exists in between.",
+    "No code in scripts/ or any private helper sends setMicrophoneState; the producer issues only getMicrophoneState (empty request) and injectAudio (AudioPacket fields only); hostInputEnableRequested is never set true.",
+    "Both incidents on the original guest used the default host audio backend; null1 used -audio none (no host audio backend configured).",
+    "Windows microphone usage record (CapabilityAccessManager, read-only): the only emulator entry is the global windowed qemu-system-x86_64.exe, last used 2026-10-01 for ~2 s. There is no entry for the headless engine (global or isolated) used by every -no-window run.",
+    "Original-guest V03/2: the app capture that ended at 20:59:22.102 UTC (spanning the enabled reading) holds near-silence (rms 7.1e-05, ~-83 dBFS; energy ~2.7e-04 against ~331 for an intact fixture capture). null1 V03/2: captured energy exactly 4.000001 x the fixture energy, consistent with fixture samples plus digital zeros."
+  ],
+  "inferred": [
+    "The enabled reading is tied to client cancellation of injectAudio (3/3 aborted, 0/37 completed) and is followed by OFF within <=25 s. Most consistent with emulator-side state reported while or after the cancelled injection is torn down. The mechanism is not established.",
+    "A harness enable request, parse error, stale or cross-stream response, wrong instance, or field overwrite is not supported by the code, the protocol framing or the host tests below.",
+    "Live host microphone capture is not supported by the available evidence: no host backend in null1, no Windows microphone-usage record for the headless engines, and near-silent capture in the one original-guest abort with retained capture metadata. It is not proven impossible for the two default-backend incidents."
+  ],
+  "unknown": [
+    "Which component set realAudioEnabled=true, and why",
+    "How long it stayed true (bounded only by the next OFF read 21-25 s later)",
+    "Whether the emulator routed any host audio during that interval on the default-backend guest (no direct capture log for the host side)",
+    "Whether an external gRPC client (none known) could have toggled it; no host connection inventory exists for those minutes, but the 3/3 timing correlation with the harness's own cancel argues against coincidence"
+  ],
+  "hypotheses": [
+    {
+      "id": "M1",
+      "text": "Harness requested host-input enablement",
+      "status": "NOT SUPPORTED: no setMicrophoneState call exists; tests show only read-only/empty state requests in every path"
+    },
+    {
+      "id": "M2",
+      "text": "Malformed/stale/cross-stream response parsed as true",
+      "status": "NOT SUPPORTED: one HTTP/2 stream per RPC, exact single-frame length check, field 1 must be varint 0/1; true needs explicit bytes 08 01; malformed reads fail closed in tests"
+    },
+    {
+      "id": "M3",
+      "text": "Wrong emulator instance",
+      "status": "NOT SUPPORTED: single discovery file and serial match required; same session as the OFF before-read; one engine running each time"
+    },
+    {
+      "id": "M4",
+      "text": "Evidence-field overwrite in the producer/parent",
+      "status": "NOT SUPPORTED: the producer assigns once; the parent keeps it in sourceProducer and the final check in a separate field"
+    },
+    {
+      "id": "M5",
+      "text": "Emulator reports access enabled while/after a client-cancelled injection is torn down",
+      "status": "CONSISTENT WITH ALL OBSERVATIONS; mechanism UNPROVEN (needs emulator source review or a separately approved controlled experiment)"
+    },
+    {
+      "id": "M6",
+      "text": "Live host microphone audio was captured",
+      "status": "NOT SUPPORTED BY EVIDENCE; NOT EXCLUDED for the two default-backend incidents"
+    }
+  ],
+  "findings": [
+    {
+      "id": "F1",
+      "kind": "NO_DEFECT_DEMONSTRATED",
+      "component": "scripts/phase08-emulator-audio.mjs",
+      "summary": "Fails closed on enabled, unknown, malformed and timed-out reads; keeps the original pacing/RPC error alongside the privacy error; never requests enablement; completed streams with a non-OFF later read are not counted as host-OFF submissions."
+    },
+    {
+      "id": "F2",
+      "kind": "NO_DEFECT_DEMONSTRATED",
+      "component": ".local/phase08-capture-fix-reviewed-mic.py",
+      "summary": "Its real node_audio/release_gate code blocks on every failing producer output, publishes ABORT, and a later authorization cannot replace a published ABORT; unknown after-state stays absent, never coerced to OFF."
+    },
+    {
+      "id": "F3",
+      "kind": "DEMONSTRATED_SUMMARY_DEFECT",
+      "component": "historical cohort summaries (capture-fix cohort helpers; .local/phase08-stable-sdk-cohort.py / phase08-stable-hal-cohort.py)",
+      "summary": "Cohort rows for all three incidents record only hostMicrophoneDisabledAtEnd=true and omit the earlier enabled observation kept in the parent record. Ledgers and reports built on those rows then described host input as OFF (capture-fix report and stable report v1).",
+      "fix": "Historical helpers and records are retained unchanged. The current cohort helper (.local/phase08-lowload-cohort.py, frozen in the low-load plan before this investigation) carries rpc.hostMicrophoneEnabledAfter next to parent.hostMicrophoneDisabledAtEnd and stops on PRIVACY_GUARD; a regression test now locks that in. Summary corrections are recorded here and in the stable report."
+    },
+    {
+      "id": "F4",
+      "kind": "LATENT_GAP_NO_OBSERVED_EFFECT",
+      "component": "scripts/phase08-emulator-audio.mjs verifyInstalledSchema",
+      "summary": "The schema check reads the global SDK proto, not the running engine's. The relevant definitions are identical for 37.1.11/37.2.13, so the anomaly is unaffected. Not changed; binding it to the running engine is a separate decision."
+    },
+    {
+      "id": "F5",
+      "kind": "BOUNDED_EXPOSURE_BY_DESIGN",
+      "component": "parent sequencing",
+      "summary": "After the enabled read, the app recording continued ~0.3-0.6 s until the ABORT gate released the hold; the state then went unobserved ~21-25 s until the final probe. Not changed (not a demonstrated defect); recorded as a limitation."
+    }
+  ],
+  "changes": {
+    "productionCodeChanged": false,
+    "producerChanged": false,
+    "parentChanged": false,
+    "cohortHelpersChanged": false,
+    "pacingChanged": false,
+    "newTests": [
+      {
+        "path": "scripts/phase08-emulator-audio-privacy.test.mjs",
+        "sha256": "5f71ee42b9316ea0d0df0741ef3e3c73ddb062ae64e693e47e1c2a2ca4f1ac05"
+      },
+      {
+        "path": ".local/test_phase08_privacy_harness.py",
+        "sha256": "d5f34f1e2c7255a7e88642a4d344e91447a1a010ce331f848a1f6b2eb0bc8a2a"
+      }
+    ],
+    "reviewedSourceLedger": {
+      "path": "docs/reports/evidence/phase-08-capture-fix-source-hashes-final.json",
+      "count": 33,
+      "allEqual": true,
+      "note": "No reviewed source changed; the two test files are additions outside that ledger"
+    },
+    "hostApks": {
+      "ledger": "docs/reports/evidence/phase-08-capture-fix-artifacts-final.json",
+      "count": 7,
+      "allEqual": true
+    }
+  },
+  "tests": [
+    {
+      "command": "node --test scripts/phase08-emulator-audio.test.mjs scripts/phase08-emulator-audio-realtime.test.mjs scripts/phase08-emulator-audio-privacy.test.mjs",
+      "result": "41 tests, 41 pass, 0 fail, 0 skipped (30 existing + 11 new)",
+      "log": ".local/phase08-privacy-node-tests.log (private)"
+    },
+    {
+      "command": "python -I .local/test_phase08_privacy_harness.py -v",
+      "result": "9 tests, 9 pass, 0 skipped",
+      "log": ".local/phase08-privacy-python-tests.log (private)"
+    },
+    {
+      "command": "npx prettier --check scripts/phase08-emulator-audio-privacy.test.mjs",
+      "result": "PASS"
+    },
+    {
+      "command": "npx eslint scripts/phase08-emulator-audio-privacy.test.mjs",
+      "result": "NOT APPLICABLE: the repo ESLint parser rejects import.meta in every existing .mjs script (pre-existing)"
+    },
+    {
+      "command": "Windows real-clock pacing dry run",
+      "result": "NOT RUN: pacing code unchanged"
+    }
+  ],
+  "coverage": {
+    "1 OFF->OFF": "node status + source tests",
+    "2 lateness abort then enabled": "node source test; python retained-incident test",
+    "3 enabled then later OFF preserved": "python cohort-summary tests (parent + current cohort layers)",
+    "4 failed/malformed/timed-out read": "node 8 before-read cases + post-abort hang + post-completion invalid; python unknown-after",
+    "5 valid default false": "node four encodings",
+    "6 original pacing error kept": "node + python",
+    "7 no ALLOW/confirmation after failure": "python real release_gate (ABORT only, ABORT immutable); node exit 2 / non-HOST_OFF outcome",
+    "8 no enable request": "node mock records every request path/body; python status-probe run arguments"
+  },
+  "gates": {
+    "spokenAckReliability": "UNRESOLVED",
+    "newEmulatorRecognitionTrial": "NONE_RUN",
+    "lowLoadComparison": "NOT_RUN",
+    "v05": "NOT_RUN_OWNER_DEFERRED",
+    "physicalRows": "48 NOT_RUN",
+    "humanAcceptance": "NOT_SIGNED",
+    "phase09": "NOT_APPROVED"
+  },
+  "priorEvidence": [
+    {
+      "path": "docs/reports/evidence/phase-08-stable-claims-correction.json",
+      "sha256": "36ff839900d30780f335c04051f3516c411a6633a5ed6ff674f03bb3f619bbb2"
+    },
+    {
+      "path": "docs/reports/evidence/phase-08-capture-fix-host-gpu-cold1-signal.json",
+      "sha256": "f7661958aba2f3ccf71c1b1c572b27269437933ef627caee5fd6fa867e579658"
+    },
+    {
+      "path": "docs/reports/phase-08-capture-fix-report.md",
+      "sha256": "039578fe71bf364b83dd116c045cdb89d021e4efc18065ff07a097d4655e0e5e"
+    }
+  ]
+}

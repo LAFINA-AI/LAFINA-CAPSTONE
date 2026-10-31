@@ -92,7 +92,7 @@ jstring utf8_result(JNIEnv *env, const std::string &value) {
 
 extern "C" JNIEXPORT jstring JNICALL
 Java_com_lafina_capstone_voice_WhisperTranscriber_transcribeNative(
-    JNIEnv *env, jobject, jstring model_path, jfloatArray input, jstring language,
+    JNIEnv *env, jobject, jstring model_path, jfloatArray input, jstring language, jboolean reminder_vocabulary,
     jobject cancellation) {
   try {
   std::unique_lock<std::mutex> ownership(inference_mutex, std::try_to_lock);
@@ -141,7 +141,8 @@ Java_com_lafina_capstone_voice_WhisperTranscriber_transcribeNative(
     if (!state.check()) context.reset(whisper_init_from_file_with_params(path.c_str(), options));
     if (context == nullptr && !state.stopped.load()) fail(env, "WHISPER_MODEL_LOAD_FAILED");
     if (context != nullptr && !state.check()) {
-      auto params = whisper_full_default_params(WHISPER_SAMPLING_GREEDY);
+      const bool reminder = reminder_vocabulary == JNI_TRUE && lang == "en";
+      auto params = whisper_full_default_params(reminder ? WHISPER_SAMPLING_BEAM_SEARCH : WHISPER_SAMPLING_GREEDY);
       params.n_threads = 2;
       params.language = lang.c_str();
       params.translate = false;
@@ -158,12 +159,50 @@ Java_com_lafina_capstone_voice_WhisperTranscriber_transcribeNative(
       params.temperature = 0.0f;
       params.temperature_inc = 0.0f;
       params.greedy.best_of = 1;
+      params.beam_search.beam_size = 3;
       params.max_tokens = 128;
-      params.initial_prompt = nullptr;
+      // Short isolated words can be decoded as common sound-alikes ("news" for
+      // "snooze"). This fixed vocabulary is scoped to the answered reminder,
+      // never user text. It biases spelling, not actions; output still needs
+      // explicit copy, exact policy validation, review and human confirmation.
+      params.initial_prompt = reminder
+          ? "Acknowledge this reminder. Snooze for ten minutes." : nullptr;
       params.abort_callback = should_abort;
       params.abort_callback_user_data = &state;
       // Keep the upstream no-speech threshold, unlike legacy's disabled gate.
-      const int result = whisper_full(context.get(), params, audio.data(), count);
+      // Preserve a small, fixed boundary context for short isolated responses.
+      // This is decoder-only silence, not extra recording or a rewritten word.
+      // Keep the original 15-second input limit and cancellation/decode deadline.
+      size_t begin = 0;
+      size_t end = audio.size();
+      size_t leading_context = 4000;
+      size_t trailing_context = 4000;
+      if (reminder) {
+        // Measured emulator capture has <=8 PCM units of low-level noise in silence.
+        // A raw threshold shifts the same waveform's anchor when input gain changes.
+        // Keep the measured absolute floor and scale it with the captured peak;
+        // retain 250ms before and 750ms after the selected signal boundary.
+        float peak = 0.0f;
+        for (const float value : audio) peak = std::max(peak, std::abs(value));
+        const float boundary_floor = std::max(16.0f / 32768.0f, peak * 0.001f);
+        const auto signal = [boundary_floor](float value) { return std::abs(value) >= boundary_floor; };
+        const auto first = std::find_if(audio.begin(), audio.end(), signal);
+        if (first != audio.end()) {
+          const auto last = std::find_if(audio.rbegin(), audio.rend(), signal);
+          const size_t first_signal = static_cast<size_t>(first - audio.begin());
+          const size_t last_signal = audio.size() - 1 - static_cast<size_t>(last - audio.rbegin());
+          begin = first_signal > 4000 ? first_signal - 4000 : 0;
+          end = std::min(audio.size(), last_signal + 1 + 12000);
+          leading_context = 5520 - (first_signal - begin); // signal anchor at 345ms
+          trailing_context = 16000 - (end - last_signal - 1); // one second after last signal
+        }
+      }
+      // This is a bounded signal-floor profile, not semantic correction or a
+      // voice-activity/phone-accuracy guarantee. General transcription is untouched.
+      AudioBuffer bounded_audio(reminder ? end - begin + leading_context + trailing_context : 0);
+      if (reminder) std::copy(audio.begin() + begin, audio.begin() + end, bounded_audio.values.begin() + leading_context);
+      const auto &decoder_audio = reminder ? bounded_audio.values : audio;
+      const int result = whisper_full(context.get(), params, decoder_audio.data(), static_cast<int>(decoder_audio.size()));
       if (!state.check()) {
         if (result != 0) fail(env, "WHISPER_INFERENCE_FAILED");
         else for (int i = 0; i < whisper_full_n_segments(context.get()); ++i) {

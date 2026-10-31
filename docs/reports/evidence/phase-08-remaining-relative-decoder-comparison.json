@@ -1,0 +1,240 @@
+{
+  "kind": "PHASE08_MATCHED_PINNED_DECODER_COMPARISON",
+  "recordedAtUtc": "2026-10-29T14:28:57.967709+00:00",
+  "device": "sdk_gphone16k_x86_64",
+  "api": 37,
+  "modelSha256": "818710568da3ca15689e31a743197b520007872ff9576237bda97bd1b469c3d7",
+  "rows": [
+    {
+      "trial": 1,
+      "vocabulary": "GENERAL",
+      "evidence": "docs/reports/evidence/phase-08-speech-decoder-relative-general-trial-1.json",
+      "samples": [
+        {
+          "id": "acknowledge",
+          "outcome": "RESULT",
+          "normalizedExactRef": false,
+          "normalizedExpectedResponse": false,
+          "normalizedSha256": "30598fc529e49dff373887b2fdc2eaff1bd00000c6ba0ace29e69a8107880f81",
+          "charCount": 25,
+          "normalizedIsAcknowledged": false,
+          "normalizedIsAcknowledge": false,
+          "commandParsedExpected": false,
+          "audioDurationMs": 2255,
+          "totalPrepareLoadDecodeMs": 5165
+        },
+        {
+          "id": "snooze",
+          "outcome": "RESULT",
+          "normalizedExactRef": false,
+          "normalizedExpectedResponse": false,
+          "normalizedSha256": "6095e7ca6ecd777604a4a91968d301086da858c594db2ac8f9c004a123daf52d",
+          "charCount": 20,
+          "normalizedIsAcknowledged": false,
+          "normalizedIsAcknowledge": false,
+          "commandParsedExpected": false,
+          "audioDurationMs": 2320,
+          "totalPrepareLoadDecodeMs": 4802
+        }
+      ],
+      "sampledProcessMaxPssKiB": 166617,
+      "memoryPolls": 13,
+      "memoryRequestedIntervalMs": 500,
+      "memorySamplingIncludesAdbOverhead": true
+    },
+    {
+      "trial": 1,
+      "vocabulary": "REMINDER_RESPONSE",
+      "evidence": "docs/reports/evidence/phase-08-speech-decoder-relative-hinted-trial-1.json",
+      "samples": [
+        {
+          "id": "acknowledge",
+          "outcome": "RESULT",
+          "normalizedExactRef": true,
+          "normalizedExpectedResponse": true,
+          "normalizedSha256": "3ff7afe3c554c78bf5659e1bd62f0f752db537ac3ef41828ab34327e4d41b41c",
+          "charCount": 26,
+          "normalizedIsAcknowledged": false,
+          "normalizedIsAcknowledge": false,
+          "commandParsedExpected": true,
+          "audioDurationMs": 2255,
+          "totalPrepareLoadDecodeMs": 4272
+        },
+        {
+          "id": "snooze",
+          "outcome": "RESULT",
+          "normalizedExactRef": true,
+          "normalizedExpectedResponse": true,
+          "normalizedSha256": "d5be13051081b4297756b7a891183d265913606d8b87d5bdf9486c18833ded0f",
+          "charCount": 23,
+          "normalizedIsAcknowledged": false,
+          "normalizedIsAcknowledge": false,
+          "commandParsedExpected": true,
+          "audioDurationMs": 2320,
+          "totalPrepareLoadDecodeMs": 4132
+        }
+      ],
+      "sampledProcessMaxPssKiB": 164184,
+      "memoryPolls": 13,
+      "memoryRequestedIntervalMs": 500,
+      "memorySamplingIncludesAdbOverhead": true
+    },
+    {
+      "trial": 2,
+      "vocabulary": "GENERAL",
+      "evidence": "docs/reports/evidence/phase-08-speech-decoder-relative-general-trial-2.json",
+      "samples": [
+        {
+          "id": "acknowledge",
+          "outcome": "RESULT",
+          "normalizedExactRef": false,
+          "normalizedExpectedResponse": false,
+          "normalizedSha256": "30598fc529e49dff373887b2fdc2eaff1bd00000c6ba0ace29e69a8107880f81",
+          "charCount": 25,
+          "normalizedIsAcknowledged": false,
+          "normalizedIsAcknowledge": false,
+          "commandParsedExpected": false,
+          "audioDurationMs": 2255,
+          "totalPrepareLoadDecodeMs": 4553
+        },
+        {
+          "id": "snooze",
+          "outcome": "RESULT",
+          "normalizedExactRef": false,
+          "normalizedExpectedResponse": false,
+          "normalizedSha256": "6095e7ca6ecd777604a4a91968d301086da858c594db2ac8f9c004a123daf52d",
+          "charCount": 20,
+          "normalizedIsAcknowledged": false,
+          "normalizedIsAcknowledge": false,
+          "commandParsedExpected": false,
+          "audioDurationMs": 2320,
+          "totalPrepareLoadDecodeMs": 4481
+        }
+      ],
+      "sampledProcessMaxPssKiB": 164276,
+      "memoryPolls": 12,
+      "memoryRequestedIntervalMs": 500,
+      "memorySamplingIncludesAdbOverhead": true
+    },
+    {
+      "trial": 2,
+      "vocabulary": "REMINDER_RESPONSE",
+      "evidence": "docs/reports/evidence/phase-08-speech-decoder-relative-hinted-trial-2.json",
+      "samples": [
+        {
+          "id": "acknowledge",
+          "outcome": "RESULT",
+          "normalizedExactRef": true,
+          "normalizedExpectedResponse": true,
+          "normalizedSha256": "3ff7afe3c554c78bf5659e1bd62f0f752db537ac3ef41828ab34327e4d41b41c",
+          "charCount": 26,
+          "normalizedIsAcknowledged": false,
+          "normalizedIsAcknowledge": false,
+          "commandParsedExpected": true,
+          "audioDurationMs": 2255,
+          "totalPrepareLoadDecodeMs": 4219
+        },
+        {
+          "id": "snooze",
+          "outcome": "RESULT",
+          "normalizedExactRef": true,
+          "normalizedExpectedResponse": true,
+          "normalizedSha256": "d5be13051081b4297756b7a891183d265913606d8b87d5bdf9486c18833ded0f",
+          "charCount": 23,
+          "normalizedIsAcknowledged": false,
+          "normalizedIsAcknowledge": false,
+          "commandParsedExpected": true,
+          "audioDurationMs": 2320,
+          "totalPrepareLoadDecodeMs": 4918
+        }
+      ],
+      "sampledProcessMaxPssKiB": 185875,
+      "memoryPolls": 13,
+      "memoryRequestedIntervalMs": 500,
+      "memorySamplingIncludesAdbOverhead": true
+    },
+    {
+      "trial": 3,
+      "vocabulary": "GENERAL",
+      "evidence": "docs/reports/evidence/phase-08-speech-decoder-relative-general-trial-3.json",
+      "samples": [
+        {
+          "id": "acknowledge",
+          "outcome": "RESULT",
+          "normalizedExactRef": false,
+          "normalizedExpectedResponse": false,
+          "normalizedSha256": "30598fc529e49dff373887b2fdc2eaff1bd00000c6ba0ace29e69a8107880f81",
+          "charCount": 25,
+          "normalizedIsAcknowledged": false,
+          "normalizedIsAcknowledge": false,
+          "commandParsedExpected": false,
+          "audioDurationMs": 2255,
+          "totalPrepareLoadDecodeMs": 4428
+        },
+        {
+          "id": "snooze",
+          "outcome": "RESULT",
+          "normalizedExactRef": false,
+          "normalizedExpectedResponse": false,
+          "normalizedSha256": "6095e7ca6ecd777604a4a91968d301086da858c594db2ac8f9c004a123daf52d",
+          "charCount": 20,
+          "normalizedIsAcknowledged": false,
+          "normalizedIsAcknowledge": false,
+          "commandParsedExpected": false,
+          "audioDurationMs": 2320,
+          "totalPrepareLoadDecodeMs": 3986
+        }
+      ],
+      "sampledProcessMaxPssKiB": 164494,
+      "memoryPolls": 12,
+      "memoryRequestedIntervalMs": 500,
+      "memorySamplingIncludesAdbOverhead": true
+    },
+    {
+      "trial": 3,
+      "vocabulary": "REMINDER_RESPONSE",
+      "evidence": "docs/reports/evidence/phase-08-speech-decoder-relative-hinted-trial-3.json",
+      "samples": [
+        {
+          "id": "acknowledge",
+          "outcome": "RESULT",
+          "normalizedExactRef": true,
+          "normalizedExpectedResponse": true,
+          "normalizedSha256": "3ff7afe3c554c78bf5659e1bd62f0f752db537ac3ef41828ab34327e4d41b41c",
+          "charCount": 26,
+          "normalizedIsAcknowledged": false,
+          "normalizedIsAcknowledge": false,
+          "commandParsedExpected": true,
+          "audioDurationMs": 2255,
+          "totalPrepareLoadDecodeMs": 4728
+        },
+        {
+          "id": "snooze",
+          "outcome": "RESULT",
+          "normalizedExactRef": true,
+          "normalizedExpectedResponse": true,
+          "normalizedSha256": "d5be13051081b4297756b7a891183d265913606d8b87d5bdf9486c18833ded0f",
+          "charCount": 23,
+          "normalizedIsAcknowledged": false,
+          "normalizedIsAcknowledge": false,
+          "commandParsedExpected": true,
+          "audioDurationMs": 2320,
+          "totalPrepareLoadDecodeMs": 4319
+        }
+      ],
+      "sampledProcessMaxPssKiB": 176654,
+      "memoryPolls": 13,
+      "memoryRequestedIntervalMs": 500,
+      "memorySamplingIncludesAdbOverhead": true
+    }
+  ],
+  "physicalDeviceValidation": "NOT_RUN",
+  "microphoneOpened": false,
+  "actionsExecuted": false,
+  "limits": [
+    "Three trials/two fixed clips per mode; synthetic accuracy only.",
+    "DataQa emulator, cached model, paired alternating modes; no phone performance claim.",
+    "PSS sampled across each invocation, not absolute peak or full interactive UI memory.",
+    "ADB observer overhead; no stable p95/tail or speed improvement claim."
+  ]
+}

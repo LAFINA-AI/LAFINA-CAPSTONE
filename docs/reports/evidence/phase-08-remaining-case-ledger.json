@@ -1,0 +1,359 @@
+{
+  "kind": "PHASE08_REMAINING_CASE_FINAL_LEDGER",
+  "status": "CLOSED_EMULATOR_EVIDENCE_PHYSICAL_PENDING",
+  "recordedAtUtc": "2026-10-29T14:31:13.480252+00:00",
+  "inProgress": false,
+  "scope": "Closed actual remaining-case attempts. Status is latest scoped outcome; all failures remain. Synthetic emulator outcomes never certify human speech or phones.",
+  "caseIds": [
+    "A08",
+    "A25",
+    "A26",
+    "A27",
+    "V01",
+    "V02",
+    "V03",
+    "V04",
+    "V05",
+    "V06"
+  ],
+  "counts": {
+    "PASS": 9,
+    "FAIL": 0,
+    "NOT_RUN": 1
+  },
+  "attemptCount": 18,
+  "physicalDeviceValidation": "NOT_RUN",
+  "certifiedPhysicalAlarms": 0,
+  "certifiedLiveHumanVoiceInteractions": 0,
+  "signedHumanReview": false,
+  "stableOfflineReleaseApproved": false,
+  "rawAudioOrHypothesesIncluded": false,
+  "primaryMatrixModified": true,
+  "priorMatrixArchive": {
+    "path": "docs/reports/evidence/phase-08-emulator-expansion-matrix-pre-remaining.json",
+    "status": "CREATED_EXCLUSIVE_BYTE_COPY",
+    "archiveSha256": "63d9df7d7dcce04c72df39982155f731fe4b4042d27ec16ee6e3b393d0b945ba",
+    "sourceSha256AtCopy": "63d9df7d7dcce04c72df39982155f731fe4b4042d27ec16ee6e3b393d0b945ba",
+    "identicalAtSnapshot": true
+  },
+  "cases": [
+    {
+      "id": "A08",
+      "status": "PASS",
+      "attempts": [
+        {
+          "evidence": "docs/reports/evidence/phase-08-emulator-expansion/ex20261028/20261029T072200133653Z-6cbc5a-A08-power.json",
+          "sourceStatus": "PASS",
+          "assessment": "PASS",
+          "sourceSha256": "7791bbc78fe1137f2cfbb3ba6a37aff38ed1cb646074c70c2ff1cda56555b315",
+          "physicalAcceptance": "NOT_RUN",
+          "startedAtUtc": "2026-10-29T07:22:00.134625+00:00",
+          "completedAtUtc": "2026-10-29T07:23:52.332594+00:00",
+          "fixtureCleanup": null,
+          "hostMicrophoneDisabledAtEnd": null
+        }
+      ],
+      "physicalAcceptance": "NOT_RUN",
+      "liveHumanAcceptanceCertified": false,
+      "passScope": "Unsecured keyguard/noninteractive due condition and actual notification opened; reviewed ACK/task TODO/zero registrations. No secure-lock/full-screen/OEM claim.",
+      "priorFailedAttemptsRetained": 0,
+      "latestScopedApkSha256": "ccc79ceda3a033d222917c54a6c68cd5d9d13c5c2d1f7cf3b6f3672c60f0ff6c"
+    },
+    {
+      "id": "A25",
+      "status": "PASS",
+      "attempts": [
+        {
+          "evidence": "docs/reports/evidence/phase-08-emulator-expansion/ex20261028/20261029T074017125079Z-A25-failure.json",
+          "sourceStatus": "PASS",
+          "assessment": "PASS",
+          "sourceSha256": "64731ef35dba72aa466f478aadc8461c43c5fdfc40203169f8548abfe0499563",
+          "physicalAcceptance": "NOT_RUN",
+          "startedAtUtc": "2026-10-29T07:40:17.125861+00:00",
+          "completedAtUtc": "2026-10-29T07:43:19.352825+00:00",
+          "fixtureCleanup": "EXACT_OWNED_UI_SOFT_REMOVAL",
+          "hostMicrophoneDisabledAtEnd": true
+        }
+      ],
+      "physicalAcceptance": "NOT_RUN",
+      "liveHumanAcceptanceCertified": false,
+      "passScope": "Actual zero enabled TTS services and unavailable offline-voice UI; typed/manual reviews cancelled; independent SQL unchanged; exact engine inventory/state restored.",
+      "priorFailedAttemptsRetained": 0,
+      "latestScopedApkSha256": "ccc79ceda3a033d222917c54a6c68cd5d9d13c5c2d1f7cf3b6f3672c60f0ff6c"
+    },
+    {
+      "id": "A26",
+      "status": "PASS",
+      "attempts": [
+        {
+          "evidence": "docs/reports/evidence/phase-08-emulator-expansion/ex20261028/20261029T073138056128Z-A26-failure.json",
+          "sourceStatus": "PASS",
+          "assessment": "PASS",
+          "sourceSha256": "f49ca15ef2b29754600491451313bba00572464a37bb27eda46570a864e76800",
+          "physicalAcceptance": "NOT_RUN",
+          "startedAtUtc": "2026-10-29T07:31:38.056755+00:00",
+          "completedAtUtc": "2026-10-29T07:33:35.532787+00:00",
+          "fixtureCleanup": "EXACT_OWNED_UI_SOFT_REMOVAL",
+          "hostMicrophoneDisabledAtEnd": true
+        }
+      ],
+      "physicalAcceptance": "NOT_RUN",
+      "liveHumanAcceptanceCertified": false,
+      "passScope": "Actual communication mode before hold blocked capture; preserved draft and working typed/manual reviews with unchanged SQL. Not removed Whisper/vendor engine absence.",
+      "priorFailedAttemptsRetained": 0,
+      "latestScopedApkSha256": "ccc79ceda3a033d222917c54a6c68cd5d9d13c5c2d1f7cf3b6f3672c60f0ff6c"
+    },
+    {
+      "id": "A27",
+      "status": "PASS",
+      "attempts": [
+        {
+          "evidence": "docs/reports/evidence/phase-08-emulator-expansion/ex20261028/20261029T073713927368Z-A27-failure.json",
+          "sourceStatus": "FAIL",
+          "assessment": "FAIL",
+          "sourceSha256": "f65b438a8afc2aee5373e2000abeec3e1456ef5560b55a552b19791d28f5b0b3",
+          "physicalAcceptance": "NOT_RUN",
+          "startedAtUtc": "2026-10-29T07:37:13.927865+00:00",
+          "completedAtUtc": "2026-10-29T07:38:52.302602+00:00",
+          "fixtureCleanup": "EXACT_OWNED_UI_SOFT_REMOVAL",
+          "hostMicrophoneDisabledAtEnd": true
+        },
+        {
+          "evidence": "docs/reports/evidence/phase-08-emulator-expansion/ex20261028/20261029T080044271660Z-A27-failure.json",
+          "sourceStatus": "FAIL",
+          "assessment": "FAIL",
+          "sourceSha256": "28447483b7b28e23999a83a98e16ff1514174f61850f69bf4ca40c2f45b14a0f",
+          "physicalAcceptance": "NOT_RUN",
+          "startedAtUtc": "2026-10-29T08:00:44.272205+00:00",
+          "completedAtUtc": "2026-10-29T08:02:15.565328+00:00",
+          "fixtureCleanup": "EXACT_OWNED_UI_SOFT_REMOVAL",
+          "hostMicrophoneDisabledAtEnd": true
+        },
+        {
+          "evidence": "docs/reports/evidence/phase-08-emulator-expansion/ex20261028/20261029T135723220391Z-A27-failure.json",
+          "sourceStatus": "FAIL",
+          "assessment": "FAIL",
+          "sourceSha256": "6f4dfa213eb6b6d191f7f35912f1503b77bcc6c26e7869c076c229197f6b0db3",
+          "physicalAcceptance": "NOT_RUN",
+          "startedAtUtc": "2026-10-29T13:57:23.221380+00:00",
+          "completedAtUtc": "2026-10-29T13:59:25.880701+00:00",
+          "fixtureCleanup": "EXACT_OWNED_UI_SOFT_REMOVAL",
+          "hostMicrophoneDisabledAtEnd": true
+        },
+        {
+          "evidence": "docs/reports/evidence/phase-08-emulator-expansion/ex20261028/20261029T142119182799Z-A27-failure.json",
+          "sourceStatus": "PASS",
+          "assessment": "PASS",
+          "sourceSha256": "3c7f8a2023efaa5bbba00e5ddbff43141102f59d2043f8de292aa0db20e46af5",
+          "physicalAcceptance": "NOT_RUN",
+          "startedAtUtc": "2026-10-29T14:21:19.183500+00:00",
+          "completedAtUtc": "2026-10-29T14:23:02.622192+00:00",
+          "fixtureCleanup": "EXACT_OWNED_UI_SOFT_REMOVAL",
+          "hostMicrophoneDisabledAtEnd": true
+        }
+      ],
+      "physicalAcceptance": "NOT_RUN",
+      "liveHumanAcceptanceCertified": false,
+      "passScope": "Actual Recording before OS audio-mode change; visible cancellation/failure, no late transcript, preserved draft and cancelled manual/typed reviews; unchanged SQL and exact audio-mode restore.",
+      "priorFailedAttemptsRetained": 3,
+      "latestScopedApkSha256": "7300f2aefeb8d5f90882655d46435b100a12531e16a7c70df4f81230f4160454"
+    },
+    {
+      "id": "V01",
+      "status": "PASS",
+      "attempts": [
+        {
+          "evidence": "docs/reports/evidence/phase-08-emulator-expansion/ex20261028/20261029T072440511962Z-V01-microphone.json",
+          "sourceStatus": "FAIL_OR_UNSUPPORTED_REVIEW_REQUIRED",
+          "assessment": "FAIL",
+          "sourceSha256": "d558340224a176045d1ca830d4e344c3b9cf50bc74e9de87eadd949b9d3ae28a",
+          "physicalAcceptance": "NOT_RUN",
+          "startedAtUtc": "2026-10-29T07:24:40.514321+00:00",
+          "completedAtUtc": "2026-10-29T07:26:48.331292+00:00",
+          "fixtureCleanup": "EXACT_OWNED_TITLE_REVIEWED_UI",
+          "hostMicrophoneDisabledAtEnd": true
+        },
+        {
+          "evidence": "docs/reports/evidence/phase-08-emulator-expansion/ex20261028/20261029T072825307558Z-V01-microphone.json",
+          "sourceStatus": "FAIL_OR_UNSUPPORTED_REVIEW_REQUIRED",
+          "assessment": "FAIL",
+          "sourceSha256": "6ca89b32ed7daac0ec162641c82341939178aa8bacee6e40f7366c2fbfd6cf78",
+          "physicalAcceptance": "NOT_RUN",
+          "startedAtUtc": "2026-10-29T07:28:25.308228+00:00",
+          "completedAtUtc": "2026-10-29T07:30:12.553058+00:00",
+          "fixtureCleanup": "EXACT_OWNED_TITLE_REVIEWED_UI",
+          "hostMicrophoneDisabledAtEnd": true
+        },
+        {
+          "evidence": "docs/reports/evidence/phase-08-emulator-expansion/ex20261028/20261029T135956086055Z-V01-microphone.json",
+          "sourceStatus": "FAIL_OR_UNSUPPORTED_REVIEW_REQUIRED",
+          "assessment": "FAIL",
+          "sourceSha256": "0b11c38408cfd109de1ab84b2799bdd058c94aa8ed0f61153fc751a08c49fb1f",
+          "physicalAcceptance": "NOT_RUN",
+          "startedAtUtc": "2026-10-29T13:59:56.087409+00:00",
+          "completedAtUtc": "2026-10-29T14:01:54.567537+00:00",
+          "fixtureCleanup": "EXACT_OWNED_TITLE_REVIEWED_UI",
+          "hostMicrophoneDisabledAtEnd": true
+        },
+        {
+          "evidence": "docs/reports/evidence/phase-08-emulator-expansion/ex20261028/20261029T142355292045Z-V01-microphone.json",
+          "sourceStatus": "PASS",
+          "assessment": "PASS",
+          "sourceSha256": "7f0413d2f41a7a1bea9a9259dee1c5c851163082942dc5640df8941803376149",
+          "physicalAcceptance": "NOT_RUN",
+          "startedAtUtc": "2026-10-29T14:23:55.292851+00:00",
+          "completedAtUtc": "2026-10-29T14:25:35.155839+00:00",
+          "fixtureCleanup": "EXACT_OWNED_TITLE_REVIEWED_UI",
+          "hostMicrophoneDisabledAtEnd": true
+        }
+      ],
+      "physicalAcceptance": "NOT_RUN",
+      "liveHumanAcceptanceCertified": false,
+      "passScope": "Pinned synthetic ACK through actual visible hold/capture, copy/review/Confirm, paired ACK/task TODO/zero registrations.",
+      "priorFailedAttemptsRetained": 3,
+      "latestScopedApkSha256": "7300f2aefeb8d5f90882655d46435b100a12531e16a7c70df4f81230f4160454"
+    },
+    {
+      "id": "V02",
+      "status": "PASS",
+      "attempts": [
+        {
+          "evidence": "docs/reports/evidence/phase-08-emulator-expansion/ex20261028/20261029T074514532353Z-V02-microphone.json",
+          "sourceStatus": "PASS",
+          "assessment": "PASS",
+          "sourceSha256": "763aa9ad1fc511897d3bdd86bdfc0f6c753965f71bb46b584934d1ab5a9cdebb",
+          "physicalAcceptance": "NOT_RUN",
+          "startedAtUtc": "2026-10-29T07:45:14.533501+00:00",
+          "completedAtUtc": "2026-10-29T07:47:24.785692+00:00",
+          "fixtureCleanup": "EXACT_OWNED_TITLE_REVIEWED_UI",
+          "hostMicrophoneDisabledAtEnd": true
+        }
+      ],
+      "physicalAcceptance": "NOT_RUN",
+      "liveHumanAcceptanceCertified": false,
+      "passScope": "Pinned synthetic ten-minute snooze through actual visible hold/capture, copy/review/Confirm, generation+1/task TODO/one replacement at independently checked time.",
+      "priorFailedAttemptsRetained": 0,
+      "latestScopedApkSha256": "ccc79ceda3a033d222917c54a6c68cd5d9d13c5c2d1f7cf3b6f3672c60f0ff6c"
+    },
+    {
+      "id": "V03",
+      "status": "PASS",
+      "attempts": [
+        {
+          "evidence": "docs/reports/evidence/phase-08-emulator-expansion/ex20261028/20261029T140154997326Z-V03-microphone.json",
+          "sourceStatus": "PASS",
+          "assessment": "PASS",
+          "sourceSha256": "69e5957a40d2f72e12b381a6ac3883c19556b5545df41706a833d4bcf90720f2",
+          "physicalAcceptance": "NOT_RUN",
+          "startedAtUtc": "2026-10-29T14:01:54.998435+00:00",
+          "completedAtUtc": "2026-10-29T14:03:53.129677+00:00",
+          "fixtureCleanup": "EXACT_OWNED_TITLE_REVIEWED_UI",
+          "hostMicrophoneDisabledAtEnd": true
+        },
+        {
+          "evidence": "docs/reports/evidence/phase-08-emulator-expansion/ex20261028/20261029T140353132735Z-V03-microphone.json",
+          "sourceStatus": "PASS",
+          "assessment": "PASS",
+          "sourceSha256": "40797a9f1da5416a7b3aeafd3328f3ff6a607d6e5fe877ca556713f7203f32fa",
+          "physicalAcceptance": "NOT_RUN",
+          "startedAtUtc": "2026-10-29T14:03:53.134009+00:00",
+          "completedAtUtc": "2026-10-29T14:05:46.325850+00:00",
+          "fixtureCleanup": "EXACT_OWNED_TITLE_REVIEWED_UI",
+          "hostMicrophoneDisabledAtEnd": true
+        }
+      ],
+      "physicalAcceptance": "NOT_RUN",
+      "liveHumanAcceptanceCertified": false,
+      "passScope": "Two independent repeated pinned synthetic ACK flows; review/Confirm and paired SQL checks. Earlier failures remain; no speaker variation/quiet human claim.",
+      "priorFailedAttemptsRetained": 0,
+      "latestScopedApkSha256": "6ebb44a64a7b3ec7d2c586323094af62354c3b50225aab933085ff44a230dd06"
+    },
+    {
+      "id": "V04",
+      "status": "PASS",
+      "attempts": [
+        {
+          "evidence": "docs/reports/evidence/phase-08-emulator-expansion/ex20261028/20261029T140546768437Z-V04-microphone.json",
+          "sourceStatus": "PASS",
+          "assessment": "PASS",
+          "sourceSha256": "40b76bef1ce5423cdb26c39514aad2085d18f45fba63c61e31f27cc53c6e97f0",
+          "physicalAcceptance": "NOT_RUN",
+          "startedAtUtc": "2026-10-29T14:05:46.769425+00:00",
+          "completedAtUtc": "2026-10-29T14:07:41.898725+00:00",
+          "fixtureCleanup": "EXACT_OWNED_TITLE_REVIEWED_UI",
+          "hostMicrophoneDisabledAtEnd": true
+        },
+        {
+          "evidence": "docs/reports/evidence/phase-08-emulator-expansion/ex20261028/20261029T140741900136Z-V04-microphone.json",
+          "sourceStatus": "PASS",
+          "assessment": "PASS",
+          "sourceSha256": "65196d61ad93d04d8d02384823310738810f786c1f2f69c98f39ebc758a5f8d3",
+          "physicalAcceptance": "NOT_RUN",
+          "startedAtUtc": "2026-10-29T14:07:41.901985+00:00",
+          "completedAtUtc": "2026-10-29T14:09:30.119880+00:00",
+          "fixtureCleanup": "EXACT_OWNED_TITLE_REVIEWED_UI",
+          "hostMicrophoneDisabledAtEnd": true
+        }
+      ],
+      "physicalAcceptance": "NOT_RUN",
+      "liveHumanAcceptanceCertified": false,
+      "passScope": "Two independent repeated pinned synthetic ten-minute snooze flows; review/Confirm and exact replacement-time/paired SQL checks.",
+      "priorFailedAttemptsRetained": 0,
+      "latestScopedApkSha256": "6ebb44a64a7b3ec7d2c586323094af62354c3b50225aab933085ff44a230dd06"
+    },
+    {
+      "id": "V05",
+      "status": "NOT_RUN",
+      "attempts": [],
+      "physicalAcceptance": "NOT_RUN",
+      "liveHumanAcceptanceCertified": false,
+      "passScope": "NOT RUN by explicit owner decision; reviewed public/consented local-accent recording unavailable.",
+      "priorFailedAttemptsRetained": 0,
+      "ownerDecision": {
+        "decision": "Keep V05 pending until suitable audio is available",
+        "reviewedPublicOrConsentedAccentRequired": true
+      },
+      "latestScopedApkSha256": null
+    },
+    {
+      "id": "V06",
+      "status": "PASS",
+      "attempts": [
+        {
+          "evidence": "docs/reports/evidence/phase-08-emulator-expansion/ex20261028/20261029T074823777794Z-V06-microphone.json",
+          "sourceStatus": "FAIL_OR_UNSUPPORTED_REVIEW_REQUIRED",
+          "assessment": "FAIL",
+          "sourceSha256": "3777dc29d5aa4689118bd88c11b8bc4e00d0314bd018bd66c82f147ceb4d958a",
+          "physicalAcceptance": "NOT_RUN",
+          "startedAtUtc": "2026-10-29T07:48:23.780390+00:00",
+          "completedAtUtc": "2026-10-29T07:50:35.776145+00:00",
+          "fixtureCleanup": "EXACT_OWNED_TITLE_REVIEWED_UI",
+          "hostMicrophoneDisabledAtEnd": true
+        },
+        {
+          "evidence": "docs/reports/evidence/phase-08-emulator-expansion/ex20261028/20261029T140930466578Z-V06-microphone.json",
+          "sourceStatus": "PASS",
+          "assessment": "PASS",
+          "sourceSha256": "86ece54eb52dcd17d5ec92e47833ba3040ef3aa620e686a48bd5bef862931822",
+          "physicalAcceptance": "NOT_RUN",
+          "startedAtUtc": "2026-10-29T14:09:30.467508+00:00",
+          "completedAtUtc": "2026-10-29T14:11:26.002767+00:00",
+          "fixtureCleanup": "EXACT_OWNED_TITLE_REVIEWED_UI",
+          "hostMicrophoneDisabledAtEnd": true
+        }
+      ],
+      "physicalAcceptance": "NOT_RUN",
+      "liveHumanAcceptanceCertified": false,
+      "passScope": "One defined 20dB synthetic-noise snooze through visible capture/review/Confirm and exact paired SQL/time checks; not room-noise/human acoustic tolerance.",
+      "priorFailedAttemptsRetained": 1,
+      "latestScopedApkSha256": "6ebb44a64a7b3ec7d2c586323094af62354c3b50225aab933085ff44a230dd06"
+    }
+  ],
+  "limits": [
+    "PASS is limited to the explicit emulator condition and evidence cohort; no physical acceptance is inferred.",
+    "Failed condition establishment, absent signal and captured reference mismatch remain distinct and are not converted to PASS.",
+    "Diagnostic A03 captures/replays and unrelated cases are excluded from this canonical ten-case count.",
+    "Private-log references explain fixed metadata provenance only; raw hypotheses/audio/log content are not included.",
+    "The parent owns primary matrix, report, manual checklist and final restoration updates."
+  ]
+}

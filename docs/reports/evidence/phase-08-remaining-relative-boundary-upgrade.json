@@ -1,0 +1,109 @@
+{
+  "kind": "PHASE08_SPEECH_UPGRADE",
+  "atUtc": "2026-10-29T08:34:17.270222+00:00",
+  "status": "PASS",
+  "physicalDeviceValidation": "NOT_RUN",
+  "originalNonDiagnosticRowsEqual": true,
+  "fullPreferencesEqual": true,
+  "nativeDeliveryEqual": true,
+  "schema": 3,
+  "originalRowComparison": {
+    "app_settings": {
+      "baselineCount": 1,
+      "currentCount": 1,
+      "originalRowsMissingOrChanged": 0,
+      "addedRows": 0,
+      "separatelyChecked": true,
+      "boundedDiagnosticHistory": false
+    },
+    "chat_messages": {
+      "baselineCount": 0,
+      "currentCount": 0,
+      "originalRowsMissingOrChanged": 0,
+      "addedRows": 0,
+      "separatelyChecked": false,
+      "boundedDiagnosticHistory": false
+    },
+    "events": {
+      "baselineCount": 4,
+      "currentCount": 4,
+      "originalRowsMissingOrChanged": 0,
+      "addedRows": 0,
+      "separatelyChecked": false,
+      "boundedDiagnosticHistory": false
+    },
+    "local_profile": {
+      "baselineCount": 1,
+      "currentCount": 1,
+      "originalRowsMissingOrChanged": 0,
+      "addedRows": 0,
+      "separatelyChecked": false,
+      "boundedDiagnosticHistory": false
+    },
+    "native_alarm_events": {
+      "baselineCount": 200,
+      "currentCount": 200,
+      "originalRowsMissingOrChanged": 0,
+      "addedRows": 0,
+      "separatelyChecked": false,
+      "boundedDiagnosticHistory": true
+    },
+    "native_alarm_registrations": {
+      "baselineCount": 0,
+      "currentCount": 0,
+      "originalRowsMissingOrChanged": 0,
+      "addedRows": 0,
+      "separatelyChecked": false,
+      "boundedDiagnosticHistory": false
+    },
+    "native_delivery_settings": {
+      "baselineCount": 1,
+      "currentCount": 1,
+      "originalRowsMissingOrChanged": 0,
+      "addedRows": 0,
+      "separatelyChecked": true,
+      "boundedDiagnosticHistory": false
+    },
+    "notes": {
+      "baselineCount": 2,
+      "currentCount": 2,
+      "originalRowsMissingOrChanged": 0,
+      "addedRows": 0,
+      "separatelyChecked": false,
+      "boundedDiagnosticHistory": false
+    },
+    "operation_receipts": {
+      "baselineCount": 259,
+      "currentCount": 259,
+      "originalRowsMissingOrChanged": 0,
+      "addedRows": 0,
+      "separatelyChecked": false,
+      "boundedDiagnosticHistory": false
+    },
+    "reminder_jobs": {
+      "baselineCount": 117,
+      "currentCount": 117,
+      "originalRowsMissingOrChanged": 0,
+      "addedRows": 0,
+      "separatelyChecked": false,
+      "boundedDiagnosticHistory": false
+    },
+    "reminders": {
+      "baselineCount": 117,
+      "currentCount": 117,
+      "originalRowsMissingOrChanged": 0,
+      "addedRows": 0,
+      "separatelyChecked": false,
+      "boundedDiagnosticHistory": false
+    },
+    "tasks": {
+      "baselineCount": 119,
+      "currentCount": 119,
+      "originalRowsMissingOrChanged": 0,
+      "addedRows": 0,
+      "separatelyChecked": false,
+      "boundedDiagnosticHistory": false
+    }
+  },
+  "qaSha256": "6ebb44a64a7b3ec7d2c586323094af62354c3b50225aab933085ff44a230dd06"
+}

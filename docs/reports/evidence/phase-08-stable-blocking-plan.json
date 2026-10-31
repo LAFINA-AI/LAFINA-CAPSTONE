@@ -1,0 +1,18 @@
+{
+  "kind": "PHASE08_STABLE_DEFAULT_BLOCKING_AUDIO_COMPARISON_PLAN",
+  "createdAtUtc": "2026-10-30T23:32:59.447559+00:00",
+  "avd": "LAFINA_Phase08_API35",
+  "initialDiagnostics": 1,
+  "case": "V03",
+  "diagnoseSynthetic": true,
+  "variableChanged": "SDK default blocking audio delivery mode only; same source/gain/padding, native timestamp budget, visible gesture, reference and Confirm",
+  "why": "Stable realtime diagnostic captured a lexical substitution despite source completion. Do not whitelist or coerce wrong words into ACK.",
+  "productionOrNativeTestCodeChanges": false,
+  "modelChanges": false,
+  "initialParentSha256": "8aef5281eb541fd2bafdbf323e2c0e3a14ead86aac37e3b68fb355c10f81c4c9",
+  "blockingParentSha256": "9021b4f475174b3fcd33ac8581b8f6ab1e7953ae71e44d07fcde00ddadd29e39",
+  "blockingWrapperSha256": "a1b3e184ca31831d53c3859ab80d0cccb41a9bfe107f069164dac36738e13c71",
+  "referenceFailure": "docs/reports/evidence/phase-08-emulator-expansion/st20261031/20261030T232911134896Z-V03-microphone.json",
+  "physicalDeviceValidation": "NOT_RUN",
+  "v05": "OWNER_DEFERRED_NOT_RUN"
+}

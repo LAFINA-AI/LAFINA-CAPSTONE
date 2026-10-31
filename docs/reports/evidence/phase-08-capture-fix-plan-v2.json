@@ -1,0 +1,20 @@
+{
+  "scope": "A03/V03/V04 affected-case acceptance only",
+  "supersededPlan": {
+    "path": "docs/reports/evidence/phase-08-capture-fix-plan.json",
+    "sha256": "9d114f0de72f5f0d7604c9e6521740bc881609038c7f16506230f3ff29dc4dd3"
+  },
+  "priorExperiment": "First8s-gate cold cohort: A03 blocked before source; V03both/V04both passed. Retained without promotion. Second8s cohort NOT_RUN because source budget cannot reliably fit cold startup.",
+  "nativeTestGateMs": 12000,
+  "productionMaxCaptureMs": 15000,
+  "productionReminderDeadlineChanged": false,
+  "strategy": "No route observer or half-closed initializer; actual native READY timestamp; one sourceRPC, unchanged pinned PCM gain500/pad1000, delay0; gate-budgeted deadline and strictOFFguards",
+  "predeclaredCohorts": 2,
+  "casesPerCohort": {
+    "A03": 1,
+    "V03": 2,
+    "V04": 2
+  },
+  "physicalDeviceValidation": "NOT_RUN",
+  "v05": "OWNER_DEFERRED_NOT_RUN"
+}

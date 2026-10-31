@@ -1,0 +1,74 @@
+{
+  "kind": "PHASE08_SEPARATE_STABLE_AVD_CREATION",
+  "status": "PASS",
+  "startedAtUtc": "2026-10-30T22:57:47.014719+00:00",
+  "avd": "LAFINA_Phase08_API35",
+  "serial": "emulator-5554",
+  "physicalDeviceValidation": "NOT_RUN",
+  "originalAvd": "Medium_Phone",
+  "originalDataCopiedOrReplaced": false,
+  "originalAppInstallOrResetIssued": false,
+  "events": [
+    {
+      "event": "isolated_avd_created",
+      "atUtc": "2026-10-30T22:57:49.693003+00:00",
+      "package": "system-images;android-35;google_apis;x86_64",
+      "savedOriginalConfigurationEdited": false
+    },
+    {
+      "event": "original_gracefully_stopped_data_preserved",
+      "atUtc": "2026-10-30T22:57:54.288423+00:00"
+    },
+    {
+      "event": "single_new_stable_guest_launched",
+      "atUtc": "2026-10-30T22:58:02.304350+00:00",
+      "pid": 7156
+    },
+    {
+      "event": "waiting_for_stable_boot",
+      "atUtc": "2026-10-30T22:58:27.736710+00:00",
+      "elapsedSeconds": 25.4
+    },
+    {
+      "event": "waiting_for_stable_boot",
+      "atUtc": "2026-10-30T22:58:53.640086+00:00",
+      "elapsedSeconds": 51.3
+    },
+    {
+      "event": "waiting_for_stable_boot",
+      "atUtc": "2026-10-30T22:59:19.110683+00:00",
+      "elapsedSeconds": 76.8
+    },
+    {
+      "event": "waiting_for_stable_boot",
+      "atUtc": "2026-10-30T22:59:45.043116+00:00",
+      "elapsedSeconds": 102.7
+    }
+  ],
+  "emulatorArguments": [
+    "-avd",
+    "LAFINA_Phase08_API35",
+    "-port",
+    "5554",
+    "-no-window",
+    "-no-snapshot-load",
+    "-no-snapshot-save",
+    "-gpu",
+    "host",
+    "-memory",
+    "2048",
+    "-cores",
+    "4",
+    "-grpc",
+    "8554",
+    "-grpc-use-token"
+  ],
+  "api": "35",
+  "release": "15",
+  "abi": "x86_64",
+  "pageSize": "4096",
+  "hostMicrophoneDisabledAtBoot": true,
+  "originalAvdDataDirectoryPreserved": true,
+  "newAppNotYetInstalled": true,
+  "completedAtUtc": "2026-10-30T22:59:58.031537+00:00"
+}

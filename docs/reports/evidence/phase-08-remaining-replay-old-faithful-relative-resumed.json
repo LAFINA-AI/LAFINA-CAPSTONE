@@ -1,0 +1,35 @@
+{
+  "kind": "PHASE08_ROOT_EXACT_SYNTHETIC_CAPTURE_REPLAY",
+  "status": "FAIL",
+  "startedAtUtc": "2026-10-29T13:54:08.175314+00:00",
+  "cohort": "n20261029T031904526676Z",
+  "fixtureId": "acknowledge",
+  "privateEvidence": ".local/phase08-fidelity-native-20261029T031904526676Z",
+  "capturePcmSha256": "0c57d5582f51df5ab9a2b5f8026811aadf5595eecaf2a807cb82b94efaf792ce",
+  "captureMetadataSha256": "303f5eac4dbe2ecf129357c5885169ae3c1a1daa3ec66ab9fa1a550be48364e0",
+  "captureFrames": 59136,
+  "captureBytes": 118272,
+  "sourceWavSha256": "e10b92f68d6a188bc19b44bd327aa91747d58d4a257510d786a14dc45a4e0a3c",
+  "requireExpected": true,
+  "junitExecutionPassed": false,
+  "errors": [
+    "UNKNOWN_DEVICE_BYTES_PRESERVED"
+  ],
+  "microphoneOpened": false,
+  "actionsExecuted": false,
+  "rawTranscriptStoredInPublicEvidence": false,
+  "physicalDeviceValidation": "NOT_RUN",
+  "files": [],
+  "cleanup": [
+    {
+      "name": "no_backup/qa08-native-capture-n20261029T031904526676Z.pcm",
+      "status": "EXACT_HASH_REMOVED_AND_ABSENT"
+    },
+    {
+      "name": "no_backup/qa08-native-capture-n20261029T031904526676Z.json",
+      "status": "ALREADY_ABSENT"
+    }
+  ],
+  "completedAtUtc": "2026-10-29T13:54:09.758038+00:00",
+  "deviceCaptureFilesAbsent": true
+}

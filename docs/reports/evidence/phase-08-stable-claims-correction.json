@@ -1,0 +1,133 @@
+{
+  "kind": "PHASE08_STABLE_REPORT_CLAIMS_CORRECTION",
+  "createdAtUtc": "2026-10-31T09:30:22.289593+00:00",
+  "requestedBy": "owner (2026-10-31 continuation prompt)",
+  "derivedRecord": true,
+  "rawEvidenceRewritten": false,
+  "trialResultsChanged": false,
+  "countsChanged": false,
+  "unrevisedReport": {
+    "path": "docs/reports/evidence/phase-08-stable-emulator-report-v1-before-correction.md",
+    "sha256": "468ef7f7998ae4b259053adb8fc3ff00b6f003c2b3c5538ef9387885d45d4aca"
+  },
+  "boundEvidence": [
+    {
+      "path": "docs/reports/evidence/phase-08-stable-null-audio-plan.json",
+      "sha256": "61ef9b833c665e0780b9ee0ae5419a3a4944518fd078b6542dc8db637e537b5b"
+    },
+    {
+      "path": "docs/reports/evidence/phase-08-stable-hal-integrity-retrospective.json",
+      "sha256": "c34fba1792f6fd0123c0d9c6155ec7407d5709d7bb0f9dcec9a190bbfb0af8d3"
+    },
+    {
+      "path": "docs/reports/evidence/phase-08-stable-null1-20261031T022535065671Z-9fbf9f.json",
+      "sha256": "83b648894c6a6df4e54cc427c6fb4d8a0aa3d1e618dfa507d682be6b92719301"
+    },
+    {
+      "path": "docs/reports/evidence/phase-08-emulator-expansion/st20261031/20261031T022541688282Z-A03-microphone.json",
+      "sha256": "21876e664d27aab311dc2643a25e0af221e412e70f45f2c4b1dbfa3d60151953"
+    },
+    {
+      "path": "docs/reports/evidence/phase-08-emulator-expansion/st20261031/20261031T022854123198Z-V03-microphone.json",
+      "sha256": "a720ffba7606f5f2c23371b2e8d778ed58fd0eee30a25a48c2ba53f1f18c42a5"
+    },
+    {
+      "path": "docs/reports/evidence/phase-08-stable-case-ledger.json",
+      "sha256": "7dbf22f22f8207bf68af017bca32cbf59f242e9531ae4d3011c283618bc7852c"
+    }
+  ],
+  "corrections": [
+    {
+      "id": "C1",
+      "v1": "Intact-energy failures had their samples re-timed, not lost; identical samples would give identical decoder input",
+      "corrected": "Matching total energy does not establish sample-for-sample fidelity, sample order, timing integrity or identical decoder input; captured PCM was not retained or compared."
+    },
+    {
+      "id": "C2",
+      "v1": "A03/1 energy 3.913 = approximately 2% speech lost",
+      "corrected": "An approximately 2% energy deficit is consistent with partial loss, attenuation or clipping; it does not measure the fraction of speech samples lost."
+    },
+    {
+      "id": "C3",
+      "v1": "Not the decoder",
+      "corrected": "Clean-fixture decoder runs establish results only for those tested inputs; decoder or application issues on actual captured PCM are not ruled out."
+    },
+    {
+      "id": "C4",
+      "v1": "The app records exactly what the HAL delivers",
+      "corrected": "Captured total energy shows no net amplitude loss at that layer, not sample-level fidelity."
+    },
+    {
+      "id": "C5",
+      "v1": "Failing layer: the emulator virtual sound device",
+      "corrected": "Evidence-supported localization: observed HAL I/O errors and silence insertions coincide with every failing sdk1 capture and neither pass and strongly implicate the emulator audio path; the root cause is not fully established."
+    },
+    {
+      "id": "C6",
+      "v1": "A reliable emulator ACK gate is not achievable by app changes",
+      "corrected": "Removed. Whether an application or harness change could make emulator ACK testing reliable is not established either way."
+    },
+    {
+      "id": "C7",
+      "v1": "H3a host audio backend hypothesis refuted",
+      "corrected": "Removing the host backend (-audio none) did not eliminate the faults, so the backend is not a necessary condition; this does not exclude every possible backend contribution."
+    },
+    {
+      "id": "C8",
+      "v1": "Producer not implicated; V03/2 faults began 1.8 s before injection (offset +0.44 s)",
+      "corrected": "The ordering relies on one post-cohort clock probe without stated uncertainty; offsets differ by boot (null1 -1.04 to -1.09 s). It is an inference, not a measured certainty."
+    },
+    {
+      "id": "C9",
+      "v1": "Host input stayed OFF (double false before/after every trial)",
+      "corrected": "Parent double-false checks passed before/after every trial, but in null1 V03/2 the producer read the emulator microphone state as enabled immediately after its lateness abort and failed closed (HOST_MICROPHONE_ENABLED_AFTER_ABORT); the parent end check read OFF.",
+      "evidence": "docs/reports/evidence/phase-08-emulator-expansion/st20261031/20261031T022854123198Z-V03-microphone.json"
+    }
+  ],
+  "protocolDeviations": [
+    {
+      "id": "D1",
+      "cohort": "null1",
+      "planRule": "Any guest stall/pre-recording UI failure: stop issuing audio trials; bounded recovery per handoff section 4.",
+      "triggeringTrial": {
+        "case": "A03",
+        "trial": 1,
+        "layer": "PRE_RECORDING_UI_FAILURE (targeted input injection refused: window not owned by the app; CAPTURE_DID_NOT_REACH_VISIBLE_RECORDING)",
+        "evidence": "docs/reports/evidence/phase-08-emulator-expansion/st20261031/20261031T022541688282Z-A03-microphone.json"
+      },
+      "postDeviationTrials": [
+        [
+          "V03",
+          1
+        ],
+        [
+          "V03",
+          2
+        ],
+        [
+          "V04",
+          1
+        ],
+        [
+          "V04",
+          2
+        ]
+      ],
+      "cause": "The reviewed cohort helper had no status-based stop; it continued after any normal terminal parent record.",
+      "handling": "All results retained unchanged; the four trials are labelled post-deviation and were run outside the frozen plan. The low-load cohort helper implements the stop rules explicitly."
+    }
+  ],
+  "affectedCurrentSummaries": [
+    "docs/reports/phase-08-stable-emulator-report.md",
+    "docs/reports/CURRENT-STATUS.md",
+    "docs/reports/phase-08-report.md",
+    "docs/reports/phase-08-offline-core-release-gate.md",
+    "qa/PHASE-08-EXECUTION.md",
+    "qa/PHASE-08-MANUAL.md",
+    "qa/REQUIREMENTS-MATRIX.md",
+    "docs/phase-08-offline-loop.md",
+    "docs/reports/evidence/phase-08-emulator-expansion-matrix.json (stableGuestEvidence text, corrected at reconciliation after archive)"
+  ],
+  "physicalDeviceValidation": "NOT_RUN",
+  "v05": "NOT_RUN_OWNER_DEFERRED"
+}

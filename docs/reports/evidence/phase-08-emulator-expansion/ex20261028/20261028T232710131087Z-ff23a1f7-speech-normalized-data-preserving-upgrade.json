@@ -1,0 +1,22 @@
+{
+  "schemaVersion": 1,
+  "runId": "ex20261028",
+  "invocation": "20261028T232710131087Z-ff23a1f7",
+  "command": "speech-normalized-data-preserving-upgrade",
+  "startedAt": "2026-10-28T23:27:10.132804+00:00",
+  "status": "PASS",
+  "scope": "Explicit emulator UI driver plus independent read-only SQLite snapshots",
+  "physicalAcceptance": "HUMAN_REQUIRED",
+  "events": [
+    {
+      "at": "2026-10-28T23:27:10.134428+00:00",
+      "event": "invocation_started"
+    }
+  ],
+  "limits": [
+    "Direct private Activity intents do not certify actual notification taps or full-screen delivery.",
+    "No live microphone, audibility, physical phone, OEM or battery acceptance is implied."
+  ],
+  "completedAt": "2026-10-28T23:27:17.522446+00:00",
+  "passScope": "Data-preserving speech QA/test install-r upgrade only"
+}

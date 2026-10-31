@@ -1,0 +1,9 @@
+{
+  "kind": "PRESERVED_EXISTING_AVD_RESUME",
+  "status": "BOOTED_PENDING_BASELINE_AND_HOST_OFF_CHECK",
+  "avd": "Medium_Phone",
+  "noWipeNoLockRemovalNoInstall": true,
+  "physicalDeviceValidation": "NOT_RUN",
+  "launcherPid": 17120,
+  "elapsedSeconds": 61.5
+}

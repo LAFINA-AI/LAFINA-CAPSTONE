@@ -1,0 +1,58 @@
+{"at": "2026-10-30T05:24:03.355741+00:00", "event": "invocation_started"}
+{"at": "2026-10-30T05:24:11.688596+00:00", "event": "ui_driver", "kind": "OPT_IN_SYNTHETIC_FIXTURE_UI_DRIVER", "mode": "compose", "outcome": "PASS", "stages": ["activity_launch_requested", "safe_qa08_composer_replaced", "command_review_visible", "command_confirmation_closed"], "launch": "DIRECT_PRIVATE_ACTIVITY_INTENT_NOT_NOTIFICATION_TAP", "limits": "UI only; root verifies SQL separately. No live speech, audio or physical-phone acceptance."}
+{"at": "2026-10-30T05:24:12.164614+00:00", "event": "owned_fixture_create", "title": "QA08 EX ex20261028 IL20261030T052400311546Z-d09177 A36", "rows": [{"taskId": "task:cmd_mvuj1w5b_0_ij6e0u5v0b", "taskStatus": "TODO", "deletedAt": null, "jobId": "job:reminder:task:cmd_mvuj1w5b_0_ij6e0u5v0b|2026-10-30T05:25:08.830Z", "occurrenceKey": "task:cmd_mvuj1w5b_0_ij6e0u5v0b|2026-10-30T05:25:08.830Z", "generation": 1, "jobStatus": "PENDING", "reminderStatus": "SCHEDULED", "runAt": "2026-10-30T05:25:08.830Z", "deadline": null, "deliveryState": "REGISTERED", "registrations": 1}], "tombstonesRetained": false}
+{"status": "PASS", "evidence": "docs/reports/evidence/phase-08-emulator-expansion/ex20261028/20261030T052403348238Z-a20e00b2-compose.json"}
+{"at": "2026-10-30T05:24:12.380168+00:00", "event": "invocation_started"}
+{"at": "2026-10-30T05:25:11.719891+00:00", "event": "requested_owned_status_observed", "title": "QA08 EX ex20261028 IL20261030T052400311546Z-d09177 A36", "status": "RINGING", "polls": 26, "rows": [{"taskId": "task:cmd_mvuj1w5b_0_ij6e0u5v0b", "taskStatus": "TODO", "deletedAt": null, "jobId": "job:reminder:task:cmd_mvuj1w5b_0_ij6e0u5v0b|2026-10-30T05:25:08.830Z", "occurrenceKey": "task:cmd_mvuj1w5b_0_ij6e0u5v0b|2026-10-30T05:25:08.830Z", "generation": 1, "jobStatus": "RINGING", "reminderStatus": "RINGING", "runAt": "2026-10-30T05:25:08.830Z", "deadline": "2026-10-30T05:26:09.136Z", "deliveryState": "REGISTERED", "registrations": 1}]}
+{"status": "PASS", "evidence": "docs/reports/evidence/phase-08-emulator-expansion/ex20261028/20261030T052412377995Z-a0aa5c05-wait.json"}
+{"at": "2026-10-30T05:25:12.230116+00:00", "event": "invocation_started"}
+{"at": "2026-10-30T05:25:16.340789+00:00", "event": "ui_driver", "kind": "OPT_IN_SYNTHETIC_FIXTURE_UI_DRIVER", "mode": "snooze", "outcome": "PASS", "stages": ["exact_owned_notification_action_clicked", "same_systemui_action_node_replayed", "read_only_remote_store_barrier_completed", "owned_notification_action_dispatched"], "launch": "ACTUAL_SYSTEMUI_NOTIFICATION_SHADE", "limits": "UI only; root verifies SQL separately. No live speech, audio or physical-phone acceptance."}
+{"at": "2026-10-30T05:25:16.813057+00:00", "event": "independent_owned_state_after_system_notification", "title": "QA08 EX ex20261028 IL20261030T052400311546Z-d09177 A36", "rows": [{"taskId": "task:cmd_mvuj1w5b_0_ij6e0u5v0b", "taskStatus": "TODO", "deletedAt": null, "jobId": "job:reminder:task:cmd_mvuj1w5b_0_ij6e0u5v0b|2026-10-30T05:25:08.830Z", "occurrenceKey": "task:cmd_mvuj1w5b_0_ij6e0u5v0b|2026-10-30T05:25:08.830Z", "generation": 2, "jobStatus": "PENDING", "reminderStatus": "SNOOZED", "runAt": "2026-10-30T05:35:15.092Z", "deadline": null, "deliveryState": "REGISTERED", "registrations": 1}], "entry": "ACTUAL_SYSTEMUI_NOTIFICATION_SHADE"}
+{"at": "2026-10-30T05:25:16.813510+00:00", "event": "independent_response_state_assertion_passed", "mode": "snooze", "taskStillTodo": true}
+{"status": "PASS", "evidence": "docs/reports/evidence/phase-08-emulator-expansion/ex20261028/20261030T052512228261Z-361757a9-notification.json"}
+INSTRUMENTATION_STATUS: class=com.lafina.capstone.reminders.ReminderLifecycleUiTest
+INSTRUMENTATION_STATUS: current=1
+INSTRUMENTATION_STATUS: id=AndroidJUnitRunner
+INSTRUMENTATION_STATUS: numtests=1
+INSTRUMENTATION_STATUS: stream=
+com.lafina.capstone.reminders.ReminderLifecycleUiTest:
+INSTRUMENTATION_STATUS: test=driveExplicitLifecycleCase
+INSTRUMENTATION_STATUS_CODE: 1
+INSTRUMENTATION_STATUS: phase08_ui_diagnostic={"reason":"WAIT_FOR_TIMEOUT","requestedControl":"ended_recovery","activePackage":"com.android.systemui","activeRootClass":"android.widget.FrameLayout","visibleKnownControls":[],"appNodeCount":0,"appNodeClasses":[]}
+INSTRUMENTATION_STATUS_CODE: 0
+INSTRUMENTATION_STATUS: phase08_lifecycle_ui_driver={"kind":"OPT_IN_SYNTHETIC_FIXTURE_UI_DRIVER","mode":"stale-open","outcome":"FAIL","stages":["activity_launch_requested"],"launch":"DIRECT_PRIVATE_ACTIVITY_INTENT_NOT_NOTIFICATION_TAP","limits":"UI only; root verifies SQL separately. No live speech, audio or physical-phone acceptance.","errorClass":"AssertionError","uiDiagnostic":{"reason":"WAIT_FOR_TIMEOUT","requestedControl":"ended_recovery","activePackage":"com.android.systemui","activeRootClass":"android.widget.FrameLayout","visibleKnownControls":[],"appNodeCount":0,"appNodeClasses":[]}}
+INSTRUMENTATION_STATUS_CODE: 0
+INSTRUMENTATION_STATUS: class=com.lafina.capstone.reminders.ReminderLifecycleUiTest
+INSTRUMENTATION_STATUS: current=1
+INSTRUMENTATION_STATUS: id=AndroidJUnitRunner
+INSTRUMENTATION_STATUS: numtests=1
+INSTRUMENTATION_STATUS: stack=java.lang.AssertionError: QA08_UI_LABEL_NOT_AVAILABLE: This reminder has ended. Your planner remains available.
+	at com.lafina.capstone.reminders.Qa08UiDriver.waitFor(Qa08UiDriver.kt:166)
+	at com.lafina.capstone.reminders.ReminderLifecycleUiTest.driveExplicitLifecycleCase(ReminderLifecycleUiTest.kt:43)
+
+INSTRUMENTATION_STATUS: stream=
+Error in driveExplicitLifecycleCase(com.lafina.capstone.reminders.ReminderLifecycleUiTest):
+java.lang.AssertionError: QA08_UI_LABEL_NOT_AVAILABLE: This reminder has ended. Your planner remains available.
+	at com.lafina.capstone.reminders.Qa08UiDriver.waitFor(Qa08UiDriver.kt:166)
+	at com.lafina.capstone.reminders.ReminderLifecycleUiTest.driveExplicitLifecycleCase(ReminderLifecycleUiTest.kt:43)
+
+INSTRUMENTATION_STATUS: test=driveExplicitLifecycleCase
+INSTRUMENTATION_STATUS_CODE: -2
+INSTRUMENTATION_RESULT: stream=
+
+Time: 10.252
+There was 1 failure:
+1) driveExplicitLifecycleCase(com.lafina.capstone.reminders.ReminderLifecycleUiTest)
+java.lang.AssertionError: QA08_UI_LABEL_NOT_AVAILABLE: This reminder has ended. Your planner remains available.
+	at com.lafina.capstone.reminders.Qa08UiDriver.waitFor(Qa08UiDriver.kt:166)
+	at com.lafina.capstone.reminders.ReminderLifecycleUiTest.driveExplicitLifecycleCase(ReminderLifecycleUiTest.kt:43)
+
+FAILURES!!!
+Tests run: 1,  Failures: 1
+
+
+INSTRUMENTATION_CODE: -1
+{"at": "2026-10-30T05:25:29.622279+00:00", "event": "invocation_started"}
+{"at": "2026-10-30T05:25:37.436943+00:00", "event": "ui_driver", "kind": "OPT_IN_SYNTHETIC_FIXTURE_UI_DRIVER", "mode": "compose", "outcome": "PASS", "stages": ["activity_launch_requested", "safe_qa08_composer_replaced", "command_review_visible", "command_confirmation_closed"], "launch": "DIRECT_PRIVATE_ACTIVITY_INTENT_NOT_NOTIFICATION_TAP", "limits": "UI only; root verifies SQL separately. No live speech, audio or physical-phone acceptance."}
+{"at": "2026-10-30T05:25:37.948181+00:00", "event": "owned_fixture_delete", "title": "QA08 EX ex20261028 IL20261030T052400311546Z-d09177 A36", "rows": [{"taskId": "task:cmd_mvuj1w5b_0_ij6e0u5v0b", "taskStatus": "CANCELLED", "deletedAt": "2026-10-30T05:25:34.844Z", "jobId": "job:reminder:task:cmd_mvuj1w5b_0_ij6e0u5v0b|2026-10-30T05:25:08.830Z", "occurrenceKey": "task:cmd_mvuj1w5b_0_ij6e0u5v0b|2026-10-30T05:25:08.830Z", "generation": 3, "jobStatus": "CANCELLED", "reminderStatus": "CANCELLED", "runAt": "2026-10-30T05:35:15.092Z", "deadline": null, "deliveryState": "UNAVAILABLE", "registrations": 0}], "tombstonesRetained": true}
+{"status": "PASS", "evidence": "docs/reports/evidence/phase-08-emulator-expansion/ex20261028/20261030T052529619990Z-6f1d1f58-cleanup.json"}

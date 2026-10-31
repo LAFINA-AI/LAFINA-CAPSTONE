@@ -1,0 +1,563 @@
+{
+  "apks": [
+    {
+      "path": "android/app/build/outputs/apk/androidTest/dataQa/app-dataQa-androidTest.apk",
+      "bytes": 1498833,
+      "sha256": "075e6141acf5d9c1ef3d0c6e7b4085bd7f57fbe4ea7a2bb8f8432756592bcff4",
+      "identity": "package: name='com.lafina.capstone.test' versionCode='' versionName='' platformBuildVersionName='16' platformBuildVersionCode='36' compileSdkVersion='36' compileSdkVersionCodename='16'",
+      "permissions": [
+        "package: com.lafina.capstone.test",
+        "uses-permission: name='android.permission.REORDER_TASKS'"
+      ],
+      "nativeLibraries": [],
+      "modelSha256": null
+    },
+    {
+      "path": "android/app/build/outputs/apk/dataQa/app-arm64-v8a-dataQa.apk",
+      "bytes": 88626756,
+      "sha256": "3e474c681a8a060219d154310c16ddd008e6aa71cb3d5bbc5848cb320edb5b4e",
+      "identity": "package: name='com.lafina.capstone' versionCode='11' versionName='0.8.0-data-qa' platformBuildVersionName='16' platformBuildVersionCode='36' compileSdkVersion='36' compileSdkVersionCodename='16'",
+      "permissions": [
+        "package: com.lafina.capstone",
+        "uses-permission: name='android.permission.POST_NOTIFICATIONS'",
+        "uses-permission: name='android.permission.SCHEDULE_EXACT_ALARM'",
+        "uses-permission: name='android.permission.USE_FULL_SCREEN_INTENT'",
+        "uses-permission: name='android.permission.RECEIVE_BOOT_COMPLETED'",
+        "uses-permission: name='android.permission.VIBRATE'",
+        "uses-permission: name='android.permission.RECORD_AUDIO'",
+        "permission: com.lafina.capstone.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION",
+        "uses-permission: name='com.lafina.capstone.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION'"
+      ],
+      "nativeLibraries": [
+        {
+          "name": "lib/arm64-v8a/libappmodules.so",
+          "minLoadAlignment": 16384,
+          "zipAlignment16KiB": true
+        },
+        {
+          "name": "lib/arm64-v8a/libc++_shared.so",
+          "minLoadAlignment": 16384,
+          "zipAlignment16KiB": true
+        },
+        {
+          "name": "lib/arm64-v8a/libcapstone_whisper.so",
+          "minLoadAlignment": 16384,
+          "zipAlignment16KiB": true
+        },
+        {
+          "name": "lib/arm64-v8a/libfbjni.so",
+          "minLoadAlignment": 16384,
+          "zipAlignment16KiB": true
+        },
+        {
+          "name": "lib/arm64-v8a/libhermestooling.so",
+          "minLoadAlignment": 16384,
+          "zipAlignment16KiB": true
+        },
+        {
+          "name": "lib/arm64-v8a/libhermesvm.so",
+          "minLoadAlignment": 16384,
+          "zipAlignment16KiB": true
+        },
+        {
+          "name": "lib/arm64-v8a/libimagepipeline.so",
+          "minLoadAlignment": 16384,
+          "zipAlignment16KiB": true
+        },
+        {
+          "name": "lib/arm64-v8a/libjsi.so",
+          "minLoadAlignment": 16384,
+          "zipAlignment16KiB": true
+        },
+        {
+          "name": "lib/arm64-v8a/libnative-filters.so",
+          "minLoadAlignment": 16384,
+          "zipAlignment16KiB": true
+        },
+        {
+          "name": "lib/arm64-v8a/libnative-imagetranscoder.so",
+          "minLoadAlignment": 16384,
+          "zipAlignment16KiB": true
+        },
+        {
+          "name": "lib/arm64-v8a/libop-sqlite.so",
+          "minLoadAlignment": 16384,
+          "zipAlignment16KiB": true
+        },
+        {
+          "name": "lib/arm64-v8a/libreact_codegen_rnsvg.so",
+          "minLoadAlignment": 16384,
+          "zipAlignment16KiB": true
+        },
+        {
+          "name": "lib/arm64-v8a/libreact_codegen_safeareacontext.so",
+          "minLoadAlignment": 16384,
+          "zipAlignment16KiB": true
+        },
+        {
+          "name": "lib/arm64-v8a/libreactnative.so",
+          "minLoadAlignment": 16384,
+          "zipAlignment16KiB": true
+        }
+      ],
+      "modelSha256": "818710568da3ca15689e31a743197b520007872ff9576237bda97bd1b469c3d7"
+    },
+    {
+      "path": "android/app/build/outputs/apk/dataQa/app-x86_64-dataQa.apk",
+      "bytes": 88523906,
+      "sha256": "66cbf524c3b9cc180ecf03ae5dab87020948b9e6c6f7dcec166f7c9e942e384c",
+      "identity": "package: name='com.lafina.capstone' versionCode='11' versionName='0.8.0-data-qa' platformBuildVersionName='16' platformBuildVersionCode='36' compileSdkVersion='36' compileSdkVersionCodename='16'",
+      "permissions": [
+        "package: com.lafina.capstone",
+        "uses-permission: name='android.permission.POST_NOTIFICATIONS'",
+        "uses-permission: name='android.permission.SCHEDULE_EXACT_ALARM'",
+        "uses-permission: name='android.permission.USE_FULL_SCREEN_INTENT'",
+        "uses-permission: name='android.permission.RECEIVE_BOOT_COMPLETED'",
+        "uses-permission: name='android.permission.VIBRATE'",
+        "uses-permission: name='android.permission.RECORD_AUDIO'",
+        "permission: com.lafina.capstone.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION",
+        "uses-permission: name='com.lafina.capstone.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION'"
+      ],
+      "nativeLibraries": [
+        {
+          "name": "lib/x86_64/libappmodules.so",
+          "minLoadAlignment": 16384,
+          "zipAlignment16KiB": true
+        },
+        {
+          "name": "lib/x86_64/libc++_shared.so",
+          "minLoadAlignment": 16384,
+          "zipAlignment16KiB": true
+        },
+        {
+          "name": "lib/x86_64/libcapstone_whisper.so",
+          "minLoadAlignment": 16384,
+          "zipAlignment16KiB": true
+        },
+        {
+          "name": "lib/x86_64/libfbjni.so",
+          "minLoadAlignment": 16384,
+          "zipAlignment16KiB": true
+        },
+        {
+          "name": "lib/x86_64/libhermestooling.so",
+          "minLoadAlignment": 16384,
+          "zipAlignment16KiB": true
+        },
+        {
+          "name": "lib/x86_64/libhermesvm.so",
+          "minLoadAlignment": 16384,
+          "zipAlignment16KiB": true
+        },
+        {
+          "name": "lib/x86_64/libimagepipeline.so",
+          "minLoadAlignment": 16384,
+          "zipAlignment16KiB": true
+        },
+        {
+          "name": "lib/x86_64/libjsi.so",
+          "minLoadAlignment": 16384,
+          "zipAlignment16KiB": true
+        },
+        {
+          "name": "lib/x86_64/libnative-filters.so",
+          "minLoadAlignment": 16384,
+          "zipAlignment16KiB": true
+        },
+        {
+          "name": "lib/x86_64/libnative-imagetranscoder.so",
+          "minLoadAlignment": 16384,
+          "zipAlignment16KiB": true
+        },
+        {
+          "name": "lib/x86_64/libop-sqlite.so",
+          "minLoadAlignment": 16384,
+          "zipAlignment16KiB": true
+        },
+        {
+          "name": "lib/x86_64/libreact_codegen_rnsvg.so",
+          "minLoadAlignment": 16384,
+          "zipAlignment16KiB": true
+        },
+        {
+          "name": "lib/x86_64/libreact_codegen_safeareacontext.so",
+          "minLoadAlignment": 16384,
+          "zipAlignment16KiB": true
+        },
+        {
+          "name": "lib/x86_64/libreactnative.so",
+          "minLoadAlignment": 16384,
+          "zipAlignment16KiB": true
+        }
+      ],
+      "modelSha256": "818710568da3ca15689e31a743197b520007872ff9576237bda97bd1b469c3d7"
+    },
+    {
+      "path": "android/app/build/outputs/apk/debug/app-arm64-v8a-debug.apk",
+      "bytes": 86973192,
+      "sha256": "8ab203a489a416ef70dd13f2b293709d8fae1d0c95d3a4d82fe2d0475b269e2b",
+      "identity": "package: name='com.lafina.capstone.debug' versionCode='11' versionName='0.8.0' platformBuildVersionName='16' platformBuildVersionCode='36' compileSdkVersion='36' compileSdkVersionCodename='16'",
+      "permissions": [
+        "package: com.lafina.capstone.debug",
+        "uses-permission: name='android.permission.INTERNET'",
+        "uses-permission: name='android.permission.POST_NOTIFICATIONS'",
+        "uses-permission: name='android.permission.SCHEDULE_EXACT_ALARM'",
+        "uses-permission: name='android.permission.USE_FULL_SCREEN_INTENT'",
+        "uses-permission: name='android.permission.RECEIVE_BOOT_COMPLETED'",
+        "uses-permission: name='android.permission.VIBRATE'",
+        "uses-permission: name='android.permission.RECORD_AUDIO'",
+        "uses-permission: name='android.permission.SYSTEM_ALERT_WINDOW'",
+        "permission: com.lafina.capstone.debug.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION",
+        "uses-permission: name='com.lafina.capstone.debug.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION'"
+      ],
+      "nativeLibraries": [
+        {
+          "name": "lib/arm64-v8a/libappmodules.so",
+          "minLoadAlignment": 16384,
+          "zipAlignment16KiB": true
+        },
+        {
+          "name": "lib/arm64-v8a/libc++_shared.so",
+          "minLoadAlignment": 16384,
+          "zipAlignment16KiB": true
+        },
+        {
+          "name": "lib/arm64-v8a/libcapstone_whisper.so",
+          "minLoadAlignment": 16384,
+          "zipAlignment16KiB": true
+        },
+        {
+          "name": "lib/arm64-v8a/libfbjni.so",
+          "minLoadAlignment": 16384,
+          "zipAlignment16KiB": true
+        },
+        {
+          "name": "lib/arm64-v8a/libhermestooling.so",
+          "minLoadAlignment": 16384,
+          "zipAlignment16KiB": true
+        },
+        {
+          "name": "lib/arm64-v8a/libhermesvm.so",
+          "minLoadAlignment": 16384,
+          "zipAlignment16KiB": true
+        },
+        {
+          "name": "lib/arm64-v8a/libimagepipeline.so",
+          "minLoadAlignment": 16384,
+          "zipAlignment16KiB": true
+        },
+        {
+          "name": "lib/arm64-v8a/libjsi.so",
+          "minLoadAlignment": 16384,
+          "zipAlignment16KiB": true
+        },
+        {
+          "name": "lib/arm64-v8a/libnative-filters.so",
+          "minLoadAlignment": 16384,
+          "zipAlignment16KiB": true
+        },
+        {
+          "name": "lib/arm64-v8a/libnative-imagetranscoder.so",
+          "minLoadAlignment": 16384,
+          "zipAlignment16KiB": true
+        },
+        {
+          "name": "lib/arm64-v8a/libop-sqlite.so",
+          "minLoadAlignment": 16384,
+          "zipAlignment16KiB": true
+        },
+        {
+          "name": "lib/arm64-v8a/libreact_codegen_rnsvg.so",
+          "minLoadAlignment": 16384,
+          "zipAlignment16KiB": true
+        },
+        {
+          "name": "lib/arm64-v8a/libreact_codegen_safeareacontext.so",
+          "minLoadAlignment": 16384,
+          "zipAlignment16KiB": true
+        },
+        {
+          "name": "lib/arm64-v8a/libreactnative.so",
+          "minLoadAlignment": 16384,
+          "zipAlignment16KiB": true
+        }
+      ],
+      "modelSha256": "818710568da3ca15689e31a743197b520007872ff9576237bda97bd1b469c3d7"
+    },
+    {
+      "path": "android/app/build/outputs/apk/debug/app-x86_64-debug.apk",
+      "bytes": 86870342,
+      "sha256": "674ff0ad4a1f397cc38faa88923371f8717b300421a2dc477622ba9c8e0a6fd4",
+      "identity": "package: name='com.lafina.capstone.debug' versionCode='11' versionName='0.8.0' platformBuildVersionName='16' platformBuildVersionCode='36' compileSdkVersion='36' compileSdkVersionCodename='16'",
+      "permissions": [
+        "package: com.lafina.capstone.debug",
+        "uses-permission: name='android.permission.INTERNET'",
+        "uses-permission: name='android.permission.POST_NOTIFICATIONS'",
+        "uses-permission: name='android.permission.SCHEDULE_EXACT_ALARM'",
+        "uses-permission: name='android.permission.USE_FULL_SCREEN_INTENT'",
+        "uses-permission: name='android.permission.RECEIVE_BOOT_COMPLETED'",
+        "uses-permission: name='android.permission.VIBRATE'",
+        "uses-permission: name='android.permission.RECORD_AUDIO'",
+        "uses-permission: name='android.permission.SYSTEM_ALERT_WINDOW'",
+        "permission: com.lafina.capstone.debug.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION",
+        "uses-permission: name='com.lafina.capstone.debug.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION'"
+      ],
+      "nativeLibraries": [
+        {
+          "name": "lib/x86_64/libappmodules.so",
+          "minLoadAlignment": 16384,
+          "zipAlignment16KiB": true
+        },
+        {
+          "name": "lib/x86_64/libc++_shared.so",
+          "minLoadAlignment": 16384,
+          "zipAlignment16KiB": true
+        },
+        {
+          "name": "lib/x86_64/libcapstone_whisper.so",
+          "minLoadAlignment": 16384,
+          "zipAlignment16KiB": true
+        },
+        {
+          "name": "lib/x86_64/libfbjni.so",
+          "minLoadAlignment": 16384,
+          "zipAlignment16KiB": true
+        },
+        {
+          "name": "lib/x86_64/libhermestooling.so",
+          "minLoadAlignment": 16384,
+          "zipAlignment16KiB": true
+        },
+        {
+          "name": "lib/x86_64/libhermesvm.so",
+          "minLoadAlignment": 16384,
+          "zipAlignment16KiB": true
+        },
+        {
+          "name": "lib/x86_64/libimagepipeline.so",
+          "minLoadAlignment": 16384,
+          "zipAlignment16KiB": true
+        },
+        {
+          "name": "lib/x86_64/libjsi.so",
+          "minLoadAlignment": 16384,
+          "zipAlignment16KiB": true
+        },
+        {
+          "name": "lib/x86_64/libnative-filters.so",
+          "minLoadAlignment": 16384,
+          "zipAlignment16KiB": true
+        },
+        {
+          "name": "lib/x86_64/libnative-imagetranscoder.so",
+          "minLoadAlignment": 16384,
+          "zipAlignment16KiB": true
+        },
+        {
+          "name": "lib/x86_64/libop-sqlite.so",
+          "minLoadAlignment": 16384,
+          "zipAlignment16KiB": true
+        },
+        {
+          "name": "lib/x86_64/libreact_codegen_rnsvg.so",
+          "minLoadAlignment": 16384,
+          "zipAlignment16KiB": true
+        },
+        {
+          "name": "lib/x86_64/libreact_codegen_safeareacontext.so",
+          "minLoadAlignment": 16384,
+          "zipAlignment16KiB": true
+        },
+        {
+          "name": "lib/x86_64/libreactnative.so",
+          "minLoadAlignment": 16384,
+          "zipAlignment16KiB": true
+        }
+      ],
+      "modelSha256": "818710568da3ca15689e31a743197b520007872ff9576237bda97bd1b469c3d7"
+    },
+    {
+      "path": "android/app/build/outputs/apk/release/app-arm64-v8a-release.apk",
+      "bytes": 62940224,
+      "sha256": "2af38639fec5e6bb48bea9c16532099416c357610a59ad67eef0082626d54bc5",
+      "identity": "package: name='com.lafina.capstone' versionCode='11' versionName='0.8.0-preview' platformBuildVersionName='16' platformBuildVersionCode='36' compileSdkVersion='36' compileSdkVersionCodename='16'",
+      "permissions": [
+        "package: com.lafina.capstone",
+        "uses-permission: name='android.permission.POST_NOTIFICATIONS'",
+        "uses-permission: name='android.permission.SCHEDULE_EXACT_ALARM'",
+        "uses-permission: name='android.permission.USE_FULL_SCREEN_INTENT'",
+        "uses-permission: name='android.permission.RECEIVE_BOOT_COMPLETED'",
+        "uses-permission: name='android.permission.VIBRATE'",
+        "uses-permission: name='android.permission.RECORD_AUDIO'",
+        "permission: com.lafina.capstone.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION",
+        "uses-permission: name='com.lafina.capstone.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION'"
+      ],
+      "nativeLibraries": [
+        {
+          "name": "lib/arm64-v8a/libappmodules.so",
+          "minLoadAlignment": 16384,
+          "zipAlignment16KiB": true
+        },
+        {
+          "name": "lib/arm64-v8a/libc++_shared.so",
+          "minLoadAlignment": 16384,
+          "zipAlignment16KiB": true
+        },
+        {
+          "name": "lib/arm64-v8a/libcapstone_whisper.so",
+          "minLoadAlignment": 16384,
+          "zipAlignment16KiB": true
+        },
+        {
+          "name": "lib/arm64-v8a/libfbjni.so",
+          "minLoadAlignment": 16384,
+          "zipAlignment16KiB": true
+        },
+        {
+          "name": "lib/arm64-v8a/libhermestooling.so",
+          "minLoadAlignment": 16384,
+          "zipAlignment16KiB": true
+        },
+        {
+          "name": "lib/arm64-v8a/libhermesvm.so",
+          "minLoadAlignment": 16384,
+          "zipAlignment16KiB": true
+        },
+        {
+          "name": "lib/arm64-v8a/libimagepipeline.so",
+          "minLoadAlignment": 16384,
+          "zipAlignment16KiB": true
+        },
+        {
+          "name": "lib/arm64-v8a/libjsi.so",
+          "minLoadAlignment": 16384,
+          "zipAlignment16KiB": true
+        },
+        {
+          "name": "lib/arm64-v8a/libnative-filters.so",
+          "minLoadAlignment": 16384,
+          "zipAlignment16KiB": true
+        },
+        {
+          "name": "lib/arm64-v8a/libnative-imagetranscoder.so",
+          "minLoadAlignment": 16384,
+          "zipAlignment16KiB": true
+        },
+        {
+          "name": "lib/arm64-v8a/libop-sqlite.so",
+          "minLoadAlignment": 16384,
+          "zipAlignment16KiB": true
+        },
+        {
+          "name": "lib/arm64-v8a/libreact_codegen_rnsvg.so",
+          "minLoadAlignment": 16384,
+          "zipAlignment16KiB": true
+        },
+        {
+          "name": "lib/arm64-v8a/libreact_codegen_safeareacontext.so",
+          "minLoadAlignment": 16384,
+          "zipAlignment16KiB": true
+        },
+        {
+          "name": "lib/arm64-v8a/libreactnative.so",
+          "minLoadAlignment": 16384,
+          "zipAlignment16KiB": true
+        }
+      ],
+      "modelSha256": "818710568da3ca15689e31a743197b520007872ff9576237bda97bd1b469c3d7"
+    },
+    {
+      "path": "android/app/build/outputs/apk/release/app-x86_64-release.apk",
+      "bytes": 63658950,
+      "sha256": "6f357fffbdee89a87311f5f97828098514d43aa8826070079a0a4909c1914ec2",
+      "identity": "package: name='com.lafina.capstone' versionCode='11' versionName='0.8.0-preview' platformBuildVersionName='16' platformBuildVersionCode='36' compileSdkVersion='36' compileSdkVersionCodename='16'",
+      "permissions": [
+        "package: com.lafina.capstone",
+        "uses-permission: name='android.permission.POST_NOTIFICATIONS'",
+        "uses-permission: name='android.permission.SCHEDULE_EXACT_ALARM'",
+        "uses-permission: name='android.permission.USE_FULL_SCREEN_INTENT'",
+        "uses-permission: name='android.permission.RECEIVE_BOOT_COMPLETED'",
+        "uses-permission: name='android.permission.VIBRATE'",
+        "uses-permission: name='android.permission.RECORD_AUDIO'",
+        "permission: com.lafina.capstone.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION",
+        "uses-permission: name='com.lafina.capstone.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION'"
+      ],
+      "nativeLibraries": [
+        {
+          "name": "lib/x86_64/libappmodules.so",
+          "minLoadAlignment": 16384,
+          "zipAlignment16KiB": true
+        },
+        {
+          "name": "lib/x86_64/libc++_shared.so",
+          "minLoadAlignment": 16384,
+          "zipAlignment16KiB": true
+        },
+        {
+          "name": "lib/x86_64/libcapstone_whisper.so",
+          "minLoadAlignment": 16384,
+          "zipAlignment16KiB": true
+        },
+        {
+          "name": "lib/x86_64/libfbjni.so",
+          "minLoadAlignment": 16384,
+          "zipAlignment16KiB": true
+        },
+        {
+          "name": "lib/x86_64/libhermestooling.so",
+          "minLoadAlignment": 16384,
+          "zipAlignment16KiB": true
+        },
+        {
+          "name": "lib/x86_64/libhermesvm.so",
+          "minLoadAlignment": 16384,
+          "zipAlignment16KiB": true
+        },
+        {
+          "name": "lib/x86_64/libimagepipeline.so",
+          "minLoadAlignment": 16384,
+          "zipAlignment16KiB": true
+        },
+        {
+          "name": "lib/x86_64/libjsi.so",
+          "minLoadAlignment": 16384,
+          "zipAlignment16KiB": true
+        },
+        {
+          "name": "lib/x86_64/libnative-filters.so",
+          "minLoadAlignment": 16384,
+          "zipAlignment16KiB": true
+        },
+        {
+          "name": "lib/x86_64/libnative-imagetranscoder.so",
+          "minLoadAlignment": 16384,
+          "zipAlignment16KiB": true
+        },
+        {
+          "name": "lib/x86_64/libop-sqlite.so",
+          "minLoadAlignment": 16384,
+          "zipAlignment16KiB": true
+        },
+        {
+          "name": "lib/x86_64/libreact_codegen_rnsvg.so",
+          "minLoadAlignment": 16384,
+          "zipAlignment16KiB": true
+        },
+        {
+          "name": "lib/x86_64/libreact_codegen_safeareacontext.so",
+          "minLoadAlignment": 16384,
+          "zipAlignment16KiB": true
+        },
+        {
+          "name": "lib/x86_64/libreactnative.so",
+          "minLoadAlignment": 16384,
+          "zipAlignment16KiB": true
+        }
+      ],
+      "modelSha256": "818710568da3ca15689e31a743197b520007872ff9576237bda97bd1b469c3d7"
+    }
+  ],
+  "apkCount": 7,
+  "nativeLibraryCount": 84,
+  "scope": "Static APK/model/permission/alignment checks; no physical-device delivery or performance proof."
+}

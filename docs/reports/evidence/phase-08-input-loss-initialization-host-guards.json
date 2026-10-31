@@ -1,0 +1,81 @@
+{
+  "status": "PASS",
+  "checks": [
+    {
+      "arguments": [
+        "--serial",
+        "emulator-5554",
+        "--initialize-input"
+      ],
+      "expectedReason": "INJECTION_FLAG_REQUIRED",
+      "status": "PASS",
+      "microphoneStateRead": false,
+      "injectionAttempted": false
+    },
+    {
+      "arguments": [
+        "--serial",
+        "emulator-5554",
+        "--initialize-input",
+        "--initialize-input"
+      ],
+      "expectedReason": "DUPLICATE_ARGUMENT",
+      "status": "PASS",
+      "microphoneStateRead": false,
+      "injectionAttempted": false
+    },
+    {
+      "arguments": [
+        "--serial",
+        "emulator-5554",
+        "--initialize-input",
+        "true"
+      ],
+      "expectedReason": "INVALID_ARGUMENT",
+      "status": "PASS",
+      "microphoneStateRead": false,
+      "injectionAttempted": false
+    },
+    {
+      "arguments": [
+        "--serial",
+        "emulator-5554",
+        "--inject",
+        "--initialize-input",
+        "--padding-ms",
+        "2000"
+      ],
+      "expectedReason": "PADDING_MUST_BE_INTEGER_ZERO_TO_1000_MS",
+      "status": "PASS",
+      "microphoneStateRead": false,
+      "injectionAttempted": false
+    },
+    {
+      "arguments": [
+        "--serial",
+        "emulator-5554",
+        "--inject",
+        "--initialize-input",
+        "--gain-permille",
+        "1"
+      ],
+      "expectedReason": "SYNTHETIC_GAIN_MUST_BE_500_OR_1000_PERMILLE",
+      "status": "PASS",
+      "microphoneStateRead": false,
+      "injectionAttempted": false
+    },
+    {
+      "arguments": [
+        "--serial",
+        "not-a-device",
+        "--initialize-input"
+      ],
+      "expectedReason": "EXPLICIT_EMULATOR_SERIAL_REQUIRED",
+      "status": "PASS",
+      "microphoneStateRead": false,
+      "injectionAttempted": false
+    }
+  ],
+  "deviceCallsExecuted": false,
+  "physicalDeviceValidation": "NOT_RUN"
+}

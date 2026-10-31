@@ -1,0 +1,383 @@
+{
+  "kind": "PHASE08_ABORT_CLASSIFICATION_FIX",
+  "createdAtUtc": "2026-10-31T11:37:13.068687+00:00",
+  "derivedRecord": true,
+  "scope": "Host-only evidence-classification fix. No emulator, ADB/device call, audio injection, microphone access or phone.",
+  "defect": {
+    "component": ".local/phase08-lowload-cohort.py classify()",
+    "line": "... or marker == 'ABORT'",
+    "summary": "Any gate ABORT marker added PRODUCER_PACING_ABORT. ABORT is a stop/authorization decision and does not establish why the producer failed.",
+    "reproductions": [
+      {
+        "scenario": "completed stream, then enabled state, gate ABORT",
+        "before": {
+          "layer": "PRODUCER_PACING_ABORT",
+          "flags": [
+            "PRODUCER_PACING_ABORT",
+            "PRIVACY_GUARD"
+          ],
+          "stops": true
+        },
+        "after": {
+          "layer": "PRIVACY_GUARD",
+          "flags": [
+            "PRIVACY_GUARD"
+          ],
+          "stops": true
+        }
+      },
+      {
+        "scenario": "RPC rejection (gRPC 9), host OFF, gate ABORT",
+        "before": {
+          "layer": "PRODUCER_PACING_ABORT",
+          "flags": [
+            "PRODUCER_PACING_ABORT"
+          ],
+          "stops": true
+        },
+        "after": {
+          "layer": "SOURCE_RPC_FAILURE",
+          "flags": [
+            "SOURCE_RPC_FAILURE"
+          ],
+          "stops": true
+        }
+      },
+      {
+        "scenario": "ABORT with no known cause",
+        "before": {
+          "layer": "PRODUCER_PACING_ABORT",
+          "flags": [
+            "PRODUCER_PACING_ABORT"
+          ],
+          "stops": true
+        },
+        "after": {
+          "layer": "GATE_ABORT_UNEXPLAINED",
+          "flags": [
+            "GATE_ABORT_UNEXPLAINED"
+          ],
+          "stops": true
+        }
+      },
+      {
+        "scenario": "contradictory PASS status with ABORT",
+        "before": {
+          "layer": "PRODUCER_PACING_ABORT",
+          "flags": [
+            "PRODUCER_PACING_ABORT"
+          ],
+          "stops": true
+        },
+        "after": {
+          "layer": "GATE_ABORT_UNEXPLAINED",
+          "flags": [
+            "GATE_ABORT_UNEXPLAINED"
+          ],
+          "stops": true
+        }
+      }
+    ],
+    "stopDecisionBefore": "Every reproduced case already stopped; the defect was the stated reason, not the stop decision."
+  },
+  "fix": {
+    "summary": "Pacing only from explicit evidence (sourceTransport.lateAbort is True, or injectionFailureReason SYNTHETIC_REALTIME_LATE/SYNTHETIC_REALTIME_DRIFT); other source/RPC failures flag SOURCE_RPC_FAILURE; an ABORT nothing explains flags GATE_ABORT_UNEXPLAINED. Every flag outside CONTINUE still stops the cohort.",
+    "precedence": [
+      "PRE_RECORDING_UI_FAILURE",
+      "PRODUCER_PACING_ABORT",
+      "SOURCE_RPC_FAILURE",
+      "PRIVACY_GUARD",
+      "GATE_ABORT_UNEXPLAINED"
+    ],
+    "precedenceRule": "Flags follow pipeline order; all applicable flags are kept and the first is the primary reason. PRODUCER_PACING_ABORT and SOURCE_RPC_FAILURE are exclusive (pacing explains the source abort). GATE_ABORT_UNEXPLAINED is added only when no other flag applies.",
+    "continueSetUnchanged": true,
+    "continueSet": [
+      "COMPLETED_RECOGNITION_MISMATCH",
+      "NO_AUDIO_SIGNAL",
+      "PASS"
+    ],
+    "notChanged": [
+      "scripts/phase08-emulator-audio.mjs (sender)",
+      "parent and native gate",
+      "timing limits/pacing",
+      "grammar/models/confirmation rules",
+      "any trial result"
+    ]
+  },
+  "beforeAfterSynthetic": [
+    {
+      "scenario": "genuine pacing abort",
+      "before": {
+        "layer": "PRODUCER_PACING_ABORT",
+        "flags": [
+          "PRODUCER_PACING_ABORT"
+        ],
+        "stops": true
+      },
+      "after": {
+        "layer": "PRODUCER_PACING_ABORT",
+        "flags": [
+          "PRODUCER_PACING_ABORT"
+        ],
+        "stops": true
+      }
+    },
+    {
+      "scenario": "completed stream, then enabled state, gate ABORT",
+      "before": {
+        "layer": "PRODUCER_PACING_ABORT",
+        "flags": [
+          "PRODUCER_PACING_ABORT",
+          "PRIVACY_GUARD"
+        ],
+        "stops": true
+      },
+      "after": {
+        "layer": "PRIVACY_GUARD",
+        "flags": [
+          "PRIVACY_GUARD"
+        ],
+        "stops": true
+      }
+    },
+    {
+      "scenario": "RPC rejection (gRPC 9), host OFF, gate ABORT",
+      "before": {
+        "layer": "PRODUCER_PACING_ABORT",
+        "flags": [
+          "PRODUCER_PACING_ABORT"
+        ],
+        "stops": true
+      },
+      "after": {
+        "layer": "SOURCE_RPC_FAILURE",
+        "flags": [
+          "SOURCE_RPC_FAILURE"
+        ],
+        "stops": true
+      }
+    },
+    {
+      "scenario": "pacing abort plus enabled state",
+      "before": {
+        "layer": "PRODUCER_PACING_ABORT",
+        "flags": [
+          "PRODUCER_PACING_ABORT",
+          "PRIVACY_GUARD"
+        ],
+        "stops": true
+      },
+      "after": {
+        "layer": "PRODUCER_PACING_ABORT",
+        "flags": [
+          "PRODUCER_PACING_ABORT",
+          "PRIVACY_GUARD"
+        ],
+        "stops": true
+      }
+    },
+    {
+      "scenario": "ABORT with no known cause",
+      "before": {
+        "layer": "PRODUCER_PACING_ABORT",
+        "flags": [
+          "PRODUCER_PACING_ABORT"
+        ],
+        "stops": true
+      },
+      "after": {
+        "layer": "GATE_ABORT_UNEXPLAINED",
+        "flags": [
+          "GATE_ABORT_UNEXPLAINED"
+        ],
+        "stops": true
+      }
+    },
+    {
+      "scenario": "contradictory PASS status with ABORT",
+      "before": {
+        "layer": "PRODUCER_PACING_ABORT",
+        "flags": [
+          "PRODUCER_PACING_ABORT"
+        ],
+        "stops": true
+      },
+      "after": {
+        "layer": "GATE_ABORT_UNEXPLAINED",
+        "flags": [
+          "GATE_ABORT_UNEXPLAINED"
+        ],
+        "stops": true
+      }
+    }
+  ],
+  "retainedRecords": {
+    "classified": 43,
+    "changed": 0,
+    "changedRecords": [],
+    "threeIncidents": [
+      {
+        "path": "docs/reports/evidence/phase-08-emulator-expansion/ex20261028/20261030T171533340781Z-A03-microphone.json",
+        "before": [
+          "PRODUCER_PACING_ABORT",
+          [
+            "PRODUCER_PACING_ABORT",
+            "PRIVACY_GUARD"
+          ]
+        ],
+        "after": [
+          "PRODUCER_PACING_ABORT",
+          [
+            "PRODUCER_PACING_ABORT",
+            "PRIVACY_GUARD"
+          ]
+        ],
+        "changed": false
+      },
+      {
+        "path": "docs/reports/evidence/phase-08-emulator-expansion/ex20261028/20261030T205753249610Z-V03-microphone.json",
+        "before": [
+          "PRODUCER_PACING_ABORT",
+          [
+            "PRODUCER_PACING_ABORT",
+            "PRIVACY_GUARD"
+          ]
+        ],
+        "after": [
+          "PRODUCER_PACING_ABORT",
+          [
+            "PRODUCER_PACING_ABORT",
+            "PRIVACY_GUARD"
+          ]
+        ],
+        "changed": false
+      },
+      {
+        "path": "docs/reports/evidence/phase-08-emulator-expansion/st20261031/20261031T022854123198Z-V03-microphone.json",
+        "before": [
+          "PRODUCER_PACING_ABORT",
+          [
+            "PRODUCER_PACING_ABORT",
+            "PRIVACY_GUARD"
+          ]
+        ],
+        "after": [
+          "PRODUCER_PACING_ABORT",
+          [
+            "PRODUCER_PACING_ABORT",
+            "PRIVACY_GUARD"
+          ]
+        ],
+        "changed": false
+      }
+    ]
+  },
+  "historicalPreservation": {
+    "boundByInvestigation": {
+      "docs/reports/evidence/phase-08-emulator-expansion/st20261031/20261031T022854123198Z-V03-microphone.json": {
+        "sha256": "a720ffba7606f5f2c23371b2e8d778ed58fd0eee30a25a48c2ba53f1f18c42a5",
+        "unchanged": true
+      },
+      "docs/reports/evidence/phase-08-emulator-expansion/ex20261028/20261030T171533340781Z-A03-microphone.json": {
+        "sha256": "ec70a8ebd9fab1420e829a9859f5812e96512ab0e64fb95ea7919f95f00e9a08",
+        "unchanged": true
+      },
+      "docs/reports/evidence/phase-08-emulator-expansion/ex20261028/20261030T205753249610Z-V03-microphone.json": {
+        "sha256": "7248699a8ce605d141bbb25c2bbc01e5813df97e81317b0ecc0db27b43afedf0",
+        "unchanged": true
+      },
+      "docs/reports/evidence/phase-08-stable-null1-20261031T022535065671Z-9fbf9f.json": {
+        "sha256": "83b648894c6a6df4e54cc427c6fb4d8a0aa3d1e618dfa507d682be6b92719301",
+        "unchanged": true
+      },
+      "docs/reports/evidence/phase-08-capture-fix-reviewed-cold2-after-wait-20261030T171520515816Z-e50d85.json": {
+        "sha256": "680919a095924fe86df16c849d8af90b649e16a1b73eeb0da51b608d2570eee1",
+        "unchanged": true
+      },
+      "docs/reports/evidence/phase-08-capture-fix-host-gpu-cold1-20261030T205317724025Z-9354cd.json": {
+        "sha256": "bc5e7e57fbef221b40a10ba6fff8d726000a0c217072a3514065ebd05b97c947",
+        "unchanged": true
+      }
+    },
+    "trialResultsChanged": false,
+    "rawEvidenceRewritten": false
+  },
+  "helperIdentity": {
+    "path": ".local/phase08-lowload-cohort.py",
+    "planBoundSha256": "a723067fca91c20fed034885833ff8e2653ff241c51001a8702af9eab3c7dd30",
+    "preFixSha256": "a723067fca91c20fed034885833ff8e2653ff241c51001a8702af9eab3c7dd30",
+    "newSha256": "24adb808925d5e18168c16dd848004c7cbb1525f4d4af823ed3d69128be25372",
+    "preservedPreFixCopy": ".local/phase08-lowload-cohort.pre-abort-fix.py (byte-identical to the plan-bound helper)",
+    "frozenPlan": {
+      "path": "docs/reports/evidence/phase-08-stable-lowload-plan-20261031T094218Z.json",
+      "sha256": "48f4092228afbd8236ab963b1df571fd93c775e7777ce0efb5dd208d227f90c3",
+      "describesModifiedHelper": false,
+      "note": "The frozen low-load plan and its amendments bind the pre-fix helper hash. They do not describe or authorize a run with the modified helper; any future run needs a new, separately approved plan."
+    }
+  },
+  "changedFiles": [
+    {
+      "path": ".local/phase08-lowload-cohort.py",
+      "sha256": "24adb808925d5e18168c16dd848004c7cbb1525f4d4af823ed3d69128be25372"
+    },
+    {
+      "path": ".local/test_phase08_privacy_harness.py",
+      "previousSha256": "d5f34f1e2c7255a7e88642a4d344e91447a1a010ce331f848a1f6b2eb0bc8a2a",
+      "sha256": "0b3aa98c1298a330a6057dfa06f7406a871ddcdc234e2dbaff6652cd5951230f"
+    }
+  ],
+  "unchangedFiles": [
+    {
+      "path": "scripts/phase08-emulator-audio.mjs",
+      "sha256": "a5231b7b4acd700107ffed234f58781cb5c83e56f1daee87a51f6189fe86c95d"
+    },
+    {
+      "path": "scripts/phase08-emulator-audio-privacy.test.mjs",
+      "sha256": "5f71ee42b9316ea0d0df0741ef3e3c73ddb062ae64e693e47e1c2a2ca4f1ac05"
+    }
+  ],
+  "tests": [
+    {
+      "command": "python -I .local/test_phase08_privacy_harness.py (unpatched helper, tests written first)",
+      "result": "17 run, 12 pass, 5 FAIL (all five: false PRODUCER_PACING_ABORT)",
+      "log": ".local/phase08-abort-fix-tests-before.log (private)"
+    },
+    {
+      "command": "final test file run against the preserved pre-fix copy (module swapped in a wrapper)",
+      "result": "17 run, 12 pass, 5 FAIL (same five)",
+      "log": ".local/phase08-abort-fix-tests-before-final.log (private)",
+      "note": "After the first run the synthetic builder was corrected: its parent-status parameter had captured producer status values. classify() does not read producer status, so labels were unaffected; the corrected builder reproduces the same five failures."
+    },
+    {
+      "command": "python -I .local/test_phase08_privacy_harness.py -v (patched helper)",
+      "result": "17 run, 17 pass, 0 fail, 0 skipped (9 existing + 8 new)",
+      "log": ".local/phase08-abort-fix-tests-after.log (private)"
+    },
+    {
+      "command": "node --test scripts/phase08-emulator-audio.test.mjs scripts/phase08-emulator-audio-realtime.test.mjs scripts/phase08-emulator-audio-privacy.test.mjs",
+      "result": "41 tests, 41 pass, 0 fail, 0 skipped (sender unchanged)",
+      "log": ".local/phase08-abort-fix-node-tests.log (private)"
+    },
+    {
+      "command": "Android build, emulator tests, real-clock pacing dry run",
+      "result": "NOT RUN (classification-only change; pacing unchanged)"
+    }
+  ],
+  "gates": {
+    "scope": "Evidence classification only",
+    "microphoneStateMechanism": "UNPROVEN",
+    "spokenAckReliability": "UNRESOLVED",
+    "emulatorRecognitionTest": "NONE_RUN",
+    "lowLoadComparison": "NOT_RUN",
+    "v05": "NOT_RUN_OWNER_DEFERRED",
+    "physicalRows": "48 NOT_RUN",
+    "humanAcceptance": "NOT_SIGNED",
+    "phase09": "NOT_APPROVED"
+  },
+  "priorRecords": [
+    {
+      "path": "docs/reports/evidence/phase-08-microphone-state-anomaly-investigation.json",
+      "sha256": "882095ef9980a7c7e05cfa62833e12859a6dffa8903e4b64600d876f366f9414"
+    }
+  ]
+}

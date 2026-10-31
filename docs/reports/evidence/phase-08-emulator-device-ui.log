@@ -1,0 +1,25 @@
+device UI cleanup-stale-window-driver
+owned fixture removed QA08 accepted ack
+device UI ack-create
+created QA08 focused ack
+actual due ringing and notification posted QA08 focused ack
+device UI answer-no-ack
+Answer leaves durable ring and task TODO
+device UI typed-ack
+confirmed typed ACK leaves task TODO
+device UI ack-cleanup
+owned fixture removed QA08 focused ack
+device UI snooze-create
+created QA08 focused snooze
+actual due ringing and notification posted QA08 focused snooze
+device UI manual-snooze
+confirmed manual snooze advances one paired generation
+device UI snooze-cleanup
+owned fixture removed QA08 focused snooze
+device UI timeout-create
+created QA08 focused timeout
+actual due ringing and notification posted QA08 focused timeout
+device UI original-timeout
+Answer keeps original response timeout and task TODO
+device UI timeout-cleanup
+owned fixture removed QA08 focused timeout

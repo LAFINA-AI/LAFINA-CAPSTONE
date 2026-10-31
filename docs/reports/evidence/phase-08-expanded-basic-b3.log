@@ -1,0 +1,48 @@
+{"at": "2026-10-28T08:07:16.262148+00:00", "event": "invocation_started"}
+{"at": "2026-10-28T08:07:29.333033+00:00", "event": "ui_driver", "kind": "OPT_IN_SYNTHETIC_FIXTURE_UI_DRIVER", "mode": "compose", "outcome": "PASS", "stages": ["activity_launch_requested", "safe_qa08_composer_replaced", "command_review_visible", "command_confirmation_closed"], "launch": "DIRECT_PRIVATE_ACTIVITY_INTENT_NOT_NOTIFICATION_TAP", "limits": "UI only; root verifies SQL separately. No live speech, audio or physical-phone acceptance."}
+{"at": "2026-10-28T08:07:29.845957+00:00", "event": "owned_fixture_create", "title": "QA08 EX ex20261028 A36", "rows": [{"taskId": "task:cmd_mvru06zn_0_uiwwtrd7nw8", "taskStatus": "TODO", "deletedAt": null, "jobId": "job:reminder:task:cmd_mvru06zn_0_uiwwtrd7nw8|2026-10-28T08:08:26.819Z", "occurrenceKey": "task:cmd_mvru06zn_0_uiwwtrd7nw8|2026-10-28T08:08:26.819Z", "generation": 1, "jobStatus": "PENDING", "reminderStatus": "SCHEDULED", "runAt": "2026-10-28T08:08:26.819Z", "deadline": null, "deliveryState": "REGISTERED", "registrations": 1}], "tombstonesRetained": false}
+{"status": "PASS", "evidence": "docs/reports/evidence/phase-08-emulator-expansion/ex20261028/20261028T080716260744Z-56d09248-compose.json"}
+
+{"at": "2026-10-28T08:07:30.083665+00:00", "event": "invocation_started"}
+{"at": "2026-10-28T08:07:43.361619+00:00", "event": "ui_driver", "kind": "OPT_IN_SYNTHETIC_FIXTURE_UI_DRIVER", "mode": "compose", "outcome": "PASS", "stages": ["activity_launch_requested", "safe_qa08_composer_replaced", "command_review_visible", "command_confirmation_closed"], "launch": "DIRECT_PRIVATE_ACTIVITY_INTENT_NOT_NOTIFICATION_TAP", "limits": "UI only; root verifies SQL separately. No live speech, audio or physical-phone acceptance."}
+{"at": "2026-10-28T08:07:44.045639+00:00", "event": "owned_fixture_create", "title": "QA08 EX ex20261028 A28", "rows": [{"taskId": "task:cmd_mvru0i0a_0_9c76zu2i1u", "taskStatus": "TODO", "deletedAt": null, "jobId": "job:reminder:task:cmd_mvru0i0a_0_9c76zu2i1u|2026-10-28T08:08:41.097Z", "occurrenceKey": "task:cmd_mvru0i0a_0_9c76zu2i1u|2026-10-28T08:08:41.097Z", "generation": 1, "jobStatus": "PENDING", "reminderStatus": "SCHEDULED", "runAt": "2026-10-28T08:08:41.097Z", "deadline": null, "deliveryState": "REGISTERED", "registrations": 1}], "tombstonesRetained": false}
+{"status": "PASS", "evidence": "docs/reports/evidence/phase-08-emulator-expansion/ex20261028/20261028T080730082229Z-8efcf722-compose.json"}
+
+{"at": "2026-10-28T08:07:44.336339+00:00", "event": "invocation_started"}
+{"at": "2026-10-28T08:07:57.720669+00:00", "event": "ui_driver", "kind": "OPT_IN_SYNTHETIC_FIXTURE_UI_DRIVER", "mode": "compose", "outcome": "PASS", "stages": ["activity_launch_requested", "safe_qa08_composer_replaced", "command_review_visible", "command_confirmation_closed"], "launch": "DIRECT_PRIVATE_ACTIVITY_INTENT_NOT_NOTIFICATION_TAP", "limits": "UI only; root verifies SQL separately. No live speech, audio or physical-phone acceptance."}
+{"at": "2026-10-28T08:07:58.280057+00:00", "event": "owned_fixture_create", "title": "QA08 EX ex20261028 A32", "rows": [{"taskId": "task:cmd_mvru0t4w_0_q82rhm7gbf", "taskStatus": "TODO", "deletedAt": null, "jobId": "job:reminder:task:cmd_mvru0t4w_0_q82rhm7gbf|2026-10-28T08:08:55.519Z", "occurrenceKey": "task:cmd_mvru0t4w_0_q82rhm7gbf|2026-10-28T08:08:55.519Z", "generation": 1, "jobStatus": "PENDING", "reminderStatus": "SCHEDULED", "runAt": "2026-10-28T08:08:55.519Z", "deadline": null, "deliveryState": "REGISTERED", "registrations": 1}], "tombstonesRetained": false}
+{"status": "PASS", "evidence": "docs/reports/evidence/phase-08-emulator-expansion/ex20261028/20261028T080744334793Z-efe27984-compose.json"}
+
+{"at": "2026-10-28T08:07:58.522977+00:00", "event": "invocation_started"}
+{"at": "2026-10-28T08:08:28.716758+00:00", "event": "requested_owned_status_observed", "title": "QA08 EX ex20261028 A36", "status": "RINGING", "polls": 13, "rows": [{"taskId": "task:cmd_mvru06zn_0_uiwwtrd7nw8", "taskStatus": "TODO", "deletedAt": null, "jobId": "job:reminder:task:cmd_mvru06zn_0_uiwwtrd7nw8|2026-10-28T08:08:26.819Z", "occurrenceKey": "task:cmd_mvru06zn_0_uiwwtrd7nw8|2026-10-28T08:08:26.819Z", "generation": 1, "jobStatus": "RINGING", "reminderStatus": "RINGING", "runAt": "2026-10-28T08:08:26.819Z", "deadline": "2026-10-28T08:09:27.385Z", "deliveryState": "REGISTERED", "registrations": 1}]}
+{"status": "PASS", "evidence": "docs/reports/evidence/phase-08-emulator-expansion/ex20261028/20261028T080758521281Z-8475d489-wait.json"}
+
+{"at": "2026-10-28T08:08:28.950164+00:00", "event": "invocation_started"}
+{"at": "2026-10-28T08:08:35.454585+00:00", "event": "ui_driver", "kind": "OPT_IN_SYNTHETIC_FIXTURE_UI_DRIVER", "mode": "snooze", "outcome": "PASS", "stages": ["exact_owned_notification_action_clicked", "same_systemui_action_node_replayed", "read_only_remote_store_barrier_completed", "owned_notification_action_dispatched"], "launch": "ACTUAL_SYSTEMUI_NOTIFICATION_SHADE", "limits": "UI only; root verifies SQL separately. No live speech, audio or physical-phone acceptance."}
+{"at": "2026-10-28T08:08:35.954073+00:00", "event": "independent_owned_state_after_system_notification", "title": "QA08 EX ex20261028 A36", "rows": [{"taskId": "task:cmd_mvru06zn_0_uiwwtrd7nw8", "taskStatus": "TODO", "deletedAt": null, "jobId": "job:reminder:task:cmd_mvru06zn_0_uiwwtrd7nw8|2026-10-28T08:08:26.819Z", "occurrenceKey": "task:cmd_mvru06zn_0_uiwwtrd7nw8|2026-10-28T08:08:26.819Z", "generation": 2, "jobStatus": "PENDING", "reminderStatus": "SNOOZED", "runAt": "2026-10-28T08:18:34.821Z", "deadline": null, "deliveryState": "REGISTERED", "registrations": 1}], "entry": "ACTUAL_SYSTEMUI_NOTIFICATION_SHADE"}
+{"at": "2026-10-28T08:08:35.954773+00:00", "event": "independent_response_state_assertion_passed", "mode": "snooze", "taskStillTodo": true}
+{"status": "PASS", "evidence": "docs/reports/evidence/phase-08-emulator-expansion/ex20261028/20261028T080828947376Z-9880d4cd-notification.json"}
+
+{"at": "2026-10-28T08:08:36.196949+00:00", "event": "invocation_started"}
+{"at": "2026-10-28T08:08:42.857552+00:00", "event": "requested_owned_status_observed", "title": "QA08 EX ex20261028 A28", "status": "RINGING", "polls": 3, "rows": [{"taskId": "task:cmd_mvru0i0a_0_9c76zu2i1u", "taskStatus": "TODO", "deletedAt": null, "jobId": "job:reminder:task:cmd_mvru0i0a_0_9c76zu2i1u|2026-10-28T08:08:41.097Z", "occurrenceKey": "task:cmd_mvru0i0a_0_9c76zu2i1u|2026-10-28T08:08:41.097Z", "generation": 1, "jobStatus": "RINGING", "reminderStatus": "RINGING", "runAt": "2026-10-28T08:08:41.097Z", "deadline": "2026-10-28T08:09:41.661Z", "deliveryState": "REGISTERED", "registrations": 1}]}
+{"status": "PASS", "evidence": "docs/reports/evidence/phase-08-emulator-expansion/ex20261028/20261028T080836189948Z-8e0b9b30-wait.json"}
+
+{"at": "2026-10-28T08:08:43.095954+00:00", "event": "invocation_started"}
+{"at": "2026-10-28T08:09:04.486129+00:00", "event": "ui_driver", "kind": "OPT_IN_SYNTHETIC_FIXTURE_UI_DRIVER", "mode": "review-pause", "outcome": "FAIL", "stages": ["activity_launch_requested", "answer_response_visible", "response_review_visible", "activity_launch_requested", "paused_confirmation_node_attempted", "activity_launch_requested"], "launch": "DIRECT_PRIVATE_ACTIVITY_INTENT_NOT_NOTIFICATION_TAP", "limits": "UI only; root verifies SQL separately. No live speech, audio or physical-phone acceptance.", "errorClass": "AssertionError"}
+{"at": "2026-10-28T08:09:04.502410+00:00", "event": "operation_failed", "errorCode": "UI_DRIVER_DID_NOT_REPORT_PASS", "errorType": "RuntimeError"}
+{"status": "FAIL", "evidence": "docs/reports/evidence/phase-08-emulator-expansion/ex20261028/20261028T080843092781Z-674e33cb-lifecycle.json"}
+
+Traceback (most recent call last):
+  File "C:\L3mxr\Github Repositories\LAFINA-CAPSTONE\.local\phase08-expanded-root.py", line 35, in <module>
+    if __name__=="__main__":basic(sys.argv[1])
+                            ~~~~~^^^^^^^^^^^^^
+  File "C:\L3mxr\Github Repositories\LAFINA-CAPSTONE\.local\phase08-expanded-root.py", line 33, in basic
+    wait(t);drive(t,kind,mode,*args)
+            ~~~~~^^^^^^^^^^^^^^^^^^^
+  File "C:\L3mxr\Github Repositories\LAFINA-CAPSTONE\.local\phase08-expanded-root.py", line 22, in drive
+    def drive(t,kind,mode,*args):return call(kind,"--title",t,"--mode",mode,*args)
+                                        ~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\L3mxr\Github Repositories\LAFINA-CAPSTONE\.local\phase08-expanded-root.py", line 12, in call
+    if p.returncode: raise RuntimeError("Suite command failed: "+str(args))
+                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+RuntimeError: Suite command failed: ('lifecycle', '--title', 'QA08 EX ex20261028 A28', '--mode', 'review-pause')

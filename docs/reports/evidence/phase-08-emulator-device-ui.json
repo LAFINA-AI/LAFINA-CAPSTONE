@@ -1,0 +1,460 @@
+{
+  "candidate": "0.8.0-data-qa / code11",
+  "device": "Medium_Phone / sdk_gphone16k_x86_64 / API37 beta / 16KiB",
+  "entry": "Actual AlarmManager due\u2192persisted ringing/notification posted\u2192test-UID private intent opening",
+  "limits": [
+    "No final system notification-tap certification",
+    "No live speech/audibility/physical-phone acceptance"
+  ],
+  "events": [
+    {
+      "check": "device UI cleanup-stale-window-driver",
+      "utc": "2026-10-27T17:06:12.172616+00:00",
+      "status": "PASS",
+      "driver": {
+        "kind": "OPT_IN_SYNTHETIC_FIXTURE_UI_DRIVER",
+        "mode": "compose",
+        "outcome": "PASS",
+        "stages": [
+          "activity_launch_requested",
+          "safe_qa08_composer_replaced",
+          "command_review_visible",
+          "command_confirmation_closed"
+        ],
+        "launch": "DIRECT_PRIVATE_ACTIVITY_INTENT_NOT_NOTIFICATION_TAP",
+        "limits": "UI only; root verifies SQL separately. No live speech, audio or physical-phone acceptance."
+      },
+      "evidence": "phase-08-ui-focused-cleanup-stale-window-driver.log"
+    },
+    {
+      "check": "owned fixture removed QA08 accepted ack",
+      "utc": "2026-10-27T17:06:12.283834+00:00",
+      "status": "PASS",
+      "tombstoneRetained": true,
+      "activeRegistrations": 0
+    },
+    {
+      "check": "device UI ack-create",
+      "utc": "2026-10-27T17:06:21.778677+00:00",
+      "status": "PASS",
+      "driver": {
+        "kind": "OPT_IN_SYNTHETIC_FIXTURE_UI_DRIVER",
+        "mode": "compose",
+        "outcome": "PASS",
+        "stages": [
+          "activity_launch_requested",
+          "safe_qa08_composer_replaced",
+          "command_review_visible",
+          "command_confirmation_closed"
+        ],
+        "launch": "DIRECT_PRIVATE_ACTIVITY_INTENT_NOT_NOTIFICATION_TAP",
+        "limits": "UI only; root verifies SQL separately. No live speech, audio or physical-phone acceptance."
+      },
+      "evidence": "phase-08-ui-focused-ack-create.log"
+    },
+    {
+      "check": "created QA08 focused ack",
+      "utc": "2026-10-27T17:06:21.922657+00:00",
+      "status": "PASS",
+      "state": [
+        {
+          "taskId": "task:cmd_mvqxtbre_0_dw4h9q1450o",
+          "taskStatus": "TODO",
+          "deletedAt": null,
+          "jobId": "job:reminder:task:cmd_mvqxtbre_0_dw4h9q1450o|2026-10-27T17:07:18.698Z",
+          "occurrenceKey": "task:cmd_mvqxtbre_0_dw4h9q1450o|2026-10-27T17:07:18.698Z",
+          "generation": 1,
+          "jobStatus": "PENDING",
+          "reminderStatus": "SCHEDULED",
+          "runAt": "2026-10-27T17:07:18.698Z",
+          "deadline": null,
+          "deliveryState": "REGISTERED",
+          "registrations": 1
+        }
+      ]
+    },
+    {
+      "check": "actual due ringing and notification posted QA08 focused ack",
+      "utc": "2026-10-27T17:07:21.092562+00:00",
+      "status": "PASS",
+      "state": [
+        {
+          "taskId": "task:cmd_mvqxtbre_0_dw4h9q1450o",
+          "taskStatus": "TODO",
+          "deletedAt": null,
+          "jobId": "job:reminder:task:cmd_mvqxtbre_0_dw4h9q1450o|2026-10-27T17:07:18.698Z",
+          "occurrenceKey": "task:cmd_mvqxtbre_0_dw4h9q1450o|2026-10-27T17:07:18.698Z",
+          "generation": 1,
+          "jobStatus": "RINGING",
+          "reminderStatus": "RINGING",
+          "runAt": "2026-10-27T17:07:18.698Z",
+          "deadline": "2026-10-27T17:08:19.146Z",
+          "deliveryState": "REGISTERED",
+          "registrations": 1
+        }
+      ],
+      "notifiedAt": "2026-10-27T17:07:19.298Z"
+    },
+    {
+      "check": "device UI answer-no-ack",
+      "utc": "2026-10-27T17:07:25.897072+00:00",
+      "status": "PASS",
+      "driver": {
+        "kind": "OPT_IN_SYNTHETIC_FIXTURE_UI_DRIVER",
+        "mode": "answer",
+        "outcome": "PASS",
+        "stages": [
+          "activity_launch_requested",
+          "answer_response_visible",
+          "no_active_recording_configuration"
+        ],
+        "launch": "DIRECT_PRIVATE_ACTIVITY_INTENT_NOT_NOTIFICATION_TAP",
+        "limits": "UI only; root verifies SQL separately. No live speech, audio or physical-phone acceptance."
+      },
+      "evidence": "phase-08-ui-focused-answer-no-ack.log"
+    },
+    {
+      "check": "Answer leaves durable ring and task TODO",
+      "utc": "2026-10-27T17:07:26.054891+00:00",
+      "status": "PASS",
+      "state": [
+        {
+          "taskId": "task:cmd_mvqxtbre_0_dw4h9q1450o",
+          "taskStatus": "TODO",
+          "deletedAt": null,
+          "jobId": "job:reminder:task:cmd_mvqxtbre_0_dw4h9q1450o|2026-10-27T17:07:18.698Z",
+          "occurrenceKey": "task:cmd_mvqxtbre_0_dw4h9q1450o|2026-10-27T17:07:18.698Z",
+          "generation": 1,
+          "jobStatus": "RINGING",
+          "reminderStatus": "RINGING",
+          "runAt": "2026-10-27T17:07:18.698Z",
+          "deadline": "2026-10-27T17:08:19.146Z",
+          "deliveryState": "REGISTERED",
+          "registrations": 1
+        }
+      ]
+    },
+    {
+      "check": "device UI typed-ack",
+      "utc": "2026-10-27T17:07:35.933290+00:00",
+      "status": "PASS",
+      "driver": {
+        "kind": "OPT_IN_SYNTHETIC_FIXTURE_UI_DRIVER",
+        "mode": "ack",
+        "outcome": "PASS",
+        "stages": [
+          "activity_launch_requested",
+          "answer_response_visible",
+          "ambiguous_response_refused",
+          "ack_review_cancelled",
+          "ack_confirmed_screen_closed"
+        ],
+        "launch": "DIRECT_PRIVATE_ACTIVITY_INTENT_NOT_NOTIFICATION_TAP",
+        "limits": "UI only; root verifies SQL separately. No live speech, audio or physical-phone acceptance."
+      },
+      "evidence": "phase-08-ui-focused-typed-ack.log"
+    },
+    {
+      "check": "confirmed typed ACK leaves task TODO",
+      "utc": "2026-10-27T17:07:36.048125+00:00",
+      "status": "PASS",
+      "state": [
+        {
+          "taskId": "task:cmd_mvqxtbre_0_dw4h9q1450o",
+          "taskStatus": "TODO",
+          "deletedAt": null,
+          "jobId": "job:reminder:task:cmd_mvqxtbre_0_dw4h9q1450o|2026-10-27T17:07:18.698Z",
+          "occurrenceKey": "task:cmd_mvqxtbre_0_dw4h9q1450o|2026-10-27T17:07:18.698Z",
+          "generation": 1,
+          "jobStatus": "ACKNOWLEDGED",
+          "reminderStatus": "ACKNOWLEDGED",
+          "runAt": "2026-10-27T17:07:18.698Z",
+          "deadline": null,
+          "deliveryState": "UNAVAILABLE",
+          "registrations": 0
+        }
+      ]
+    },
+    {
+      "check": "device UI ack-cleanup",
+      "utc": "2026-10-27T17:07:44.992274+00:00",
+      "status": "PASS",
+      "driver": {
+        "kind": "OPT_IN_SYNTHETIC_FIXTURE_UI_DRIVER",
+        "mode": "compose",
+        "outcome": "PASS",
+        "stages": [
+          "activity_launch_requested",
+          "safe_qa08_composer_replaced",
+          "command_review_visible",
+          "command_confirmation_closed"
+        ],
+        "launch": "DIRECT_PRIVATE_ACTIVITY_INTENT_NOT_NOTIFICATION_TAP",
+        "limits": "UI only; root verifies SQL separately. No live speech, audio or physical-phone acceptance."
+      },
+      "evidence": "phase-08-ui-focused-ack-cleanup.log"
+    },
+    {
+      "check": "owned fixture removed QA08 focused ack",
+      "utc": "2026-10-27T17:07:45.115173+00:00",
+      "status": "PASS",
+      "tombstoneRetained": true,
+      "activeRegistrations": 0
+    },
+    {
+      "check": "device UI snooze-create",
+      "utc": "2026-10-27T17:07:54.343615+00:00",
+      "status": "PASS",
+      "driver": {
+        "kind": "OPT_IN_SYNTHETIC_FIXTURE_UI_DRIVER",
+        "mode": "compose",
+        "outcome": "PASS",
+        "stages": [
+          "activity_launch_requested",
+          "safe_qa08_composer_replaced",
+          "command_review_visible",
+          "command_confirmation_closed"
+        ],
+        "launch": "DIRECT_PRIVATE_ACTIVITY_INTENT_NOT_NOTIFICATION_TAP",
+        "limits": "UI only; root verifies SQL separately. No live speech, audio or physical-phone acceptance."
+      },
+      "evidence": "phase-08-ui-focused-snooze-create.log"
+    },
+    {
+      "check": "created QA08 focused snooze",
+      "utc": "2026-10-27T17:07:54.503643+00:00",
+      "status": "PASS",
+      "state": [
+        {
+          "taskId": "task:cmd_mvqxvbbu_0_m0dyy98r2pd",
+          "taskStatus": "TODO",
+          "deletedAt": null,
+          "jobId": "job:reminder:task:cmd_mvqxvbbu_0_m0dyy98r2pd|2026-10-27T17:08:51.450Z",
+          "occurrenceKey": "task:cmd_mvqxvbbu_0_m0dyy98r2pd|2026-10-27T17:08:51.450Z",
+          "generation": 1,
+          "jobStatus": "PENDING",
+          "reminderStatus": "SCHEDULED",
+          "runAt": "2026-10-27T17:08:51.450Z",
+          "deadline": null,
+          "deliveryState": "REGISTERED",
+          "registrations": 1
+        }
+      ]
+    },
+    {
+      "check": "actual due ringing and notification posted QA08 focused snooze",
+      "utc": "2026-10-27T17:08:53.448292+00:00",
+      "status": "PASS",
+      "state": [
+        {
+          "taskId": "task:cmd_mvqxvbbu_0_m0dyy98r2pd",
+          "taskStatus": "TODO",
+          "deletedAt": null,
+          "jobId": "job:reminder:task:cmd_mvqxvbbu_0_m0dyy98r2pd|2026-10-27T17:08:51.450Z",
+          "occurrenceKey": "task:cmd_mvqxvbbu_0_m0dyy98r2pd|2026-10-27T17:08:51.450Z",
+          "generation": 1,
+          "jobStatus": "RINGING",
+          "reminderStatus": "RINGING",
+          "runAt": "2026-10-27T17:08:51.450Z",
+          "deadline": "2026-10-27T17:09:51.916Z",
+          "deliveryState": "REGISTERED",
+          "registrations": 1
+        }
+      ],
+      "notifiedAt": "2026-10-27T17:08:52.048Z"
+    },
+    {
+      "check": "device UI manual-snooze",
+      "utc": "2026-10-27T17:09:01.146705+00:00",
+      "status": "PASS",
+      "driver": {
+        "kind": "OPT_IN_SYNTHETIC_FIXTURE_UI_DRIVER",
+        "mode": "snooze",
+        "outcome": "PASS",
+        "stages": [
+          "activity_launch_requested",
+          "answer_response_visible",
+          "snooze_review_visible",
+          "snooze_confirmed_screen_closed"
+        ],
+        "launch": "DIRECT_PRIVATE_ACTIVITY_INTENT_NOT_NOTIFICATION_TAP",
+        "limits": "UI only; root verifies SQL separately. No live speech, audio or physical-phone acceptance."
+      },
+      "evidence": "phase-08-ui-focused-manual-snooze.log"
+    },
+    {
+      "check": "confirmed manual snooze advances one paired generation",
+      "utc": "2026-10-27T17:09:01.343790+00:00",
+      "status": "PASS",
+      "state": [
+        {
+          "taskId": "task:cmd_mvqxvbbu_0_m0dyy98r2pd",
+          "taskStatus": "TODO",
+          "deletedAt": null,
+          "jobId": "job:reminder:task:cmd_mvqxvbbu_0_m0dyy98r2pd|2026-10-27T17:08:51.450Z",
+          "occurrenceKey": "task:cmd_mvqxvbbu_0_m0dyy98r2pd|2026-10-27T17:08:51.450Z",
+          "generation": 2,
+          "jobStatus": "PENDING",
+          "reminderStatus": "SNOOZED",
+          "runAt": "2026-10-27T17:18:58.449Z",
+          "deadline": null,
+          "deliveryState": "REGISTERED",
+          "registrations": 1
+        }
+      ]
+    },
+    {
+      "check": "device UI snooze-cleanup",
+      "utc": "2026-10-27T17:09:11.030803+00:00",
+      "status": "PASS",
+      "driver": {
+        "kind": "OPT_IN_SYNTHETIC_FIXTURE_UI_DRIVER",
+        "mode": "compose",
+        "outcome": "PASS",
+        "stages": [
+          "activity_launch_requested",
+          "safe_qa08_composer_replaced",
+          "command_review_visible",
+          "command_confirmation_closed"
+        ],
+        "launch": "DIRECT_PRIVATE_ACTIVITY_INTENT_NOT_NOTIFICATION_TAP",
+        "limits": "UI only; root verifies SQL separately. No live speech, audio or physical-phone acceptance."
+      },
+      "evidence": "phase-08-ui-focused-snooze-cleanup.log"
+    },
+    {
+      "check": "owned fixture removed QA08 focused snooze",
+      "utc": "2026-10-27T17:09:11.194503+00:00",
+      "status": "PASS",
+      "tombstoneRetained": true,
+      "activeRegistrations": 0
+    },
+    {
+      "check": "device UI timeout-create",
+      "utc": "2026-10-27T17:09:20.752077+00:00",
+      "status": "PASS",
+      "driver": {
+        "kind": "OPT_IN_SYNTHETIC_FIXTURE_UI_DRIVER",
+        "mode": "compose",
+        "outcome": "PASS",
+        "stages": [
+          "activity_launch_requested",
+          "safe_qa08_composer_replaced",
+          "command_review_visible",
+          "command_confirmation_closed"
+        ],
+        "launch": "DIRECT_PRIVATE_ACTIVITY_INTENT_NOT_NOTIFICATION_TAP",
+        "limits": "UI only; root verifies SQL separately. No live speech, audio or physical-phone acceptance."
+      },
+      "evidence": "phase-08-ui-focused-timeout-create.log"
+    },
+    {
+      "check": "created QA08 focused timeout",
+      "utc": "2026-10-27T17:09:20.876448+00:00",
+      "status": "PASS",
+      "state": [
+        {
+          "taskId": "task:cmd_mvqxx62o_0_ed0h3gexib7",
+          "taskStatus": "TODO",
+          "deletedAt": null,
+          "jobId": "job:reminder:task:cmd_mvqxx62o_0_ed0h3gexib7|2026-10-27T17:10:17.951Z",
+          "occurrenceKey": "task:cmd_mvqxx62o_0_ed0h3gexib7|2026-10-27T17:10:17.951Z",
+          "generation": 1,
+          "jobStatus": "PENDING",
+          "reminderStatus": "SCHEDULED",
+          "runAt": "2026-10-27T17:10:17.951Z",
+          "deadline": null,
+          "deliveryState": "REGISTERED",
+          "registrations": 1
+        }
+      ]
+    },
+    {
+      "check": "actual due ringing and notification posted QA08 focused timeout",
+      "utc": "2026-10-27T17:10:19.854774+00:00",
+      "status": "PASS",
+      "state": [
+        {
+          "taskId": "task:cmd_mvqxx62o_0_ed0h3gexib7",
+          "taskStatus": "TODO",
+          "deletedAt": null,
+          "jobId": "job:reminder:task:cmd_mvqxx62o_0_ed0h3gexib7|2026-10-27T17:10:17.951Z",
+          "occurrenceKey": "task:cmd_mvqxx62o_0_ed0h3gexib7|2026-10-27T17:10:17.951Z",
+          "generation": 1,
+          "jobStatus": "RINGING",
+          "reminderStatus": "RINGING",
+          "runAt": "2026-10-27T17:10:17.951Z",
+          "deadline": "2026-10-27T17:11:18.374Z",
+          "deliveryState": "REGISTERED",
+          "registrations": 1
+        }
+      ],
+      "notifiedAt": "2026-10-27T17:10:18.507Z"
+    },
+    {
+      "check": "device UI original-timeout",
+      "utc": "2026-10-27T17:11:19.334664+00:00",
+      "status": "PASS",
+      "driver": {
+        "kind": "OPT_IN_SYNTHETIC_FIXTURE_UI_DRIVER",
+        "mode": "timeout",
+        "outcome": "PASS",
+        "stages": [
+          "activity_launch_requested",
+          "answer_response_visible",
+          "response_window_end_visible"
+        ],
+        "launch": "DIRECT_PRIVATE_ACTIVITY_INTENT_NOT_NOTIFICATION_TAP",
+        "limits": "UI only; root verifies SQL separately. No live speech, audio or physical-phone acceptance."
+      },
+      "evidence": "phase-08-ui-focused-original-timeout.log"
+    },
+    {
+      "check": "Answer keeps original response timeout and task TODO",
+      "utc": "2026-10-27T17:11:19.481381+00:00",
+      "status": "PASS",
+      "state": [
+        {
+          "taskId": "task:cmd_mvqxx62o_0_ed0h3gexib7",
+          "taskStatus": "TODO",
+          "deletedAt": null,
+          "jobId": "job:reminder:task:cmd_mvqxx62o_0_ed0h3gexib7|2026-10-27T17:10:17.951Z",
+          "occurrenceKey": "task:cmd_mvqxx62o_0_ed0h3gexib7|2026-10-27T17:10:17.951Z",
+          "generation": 1,
+          "jobStatus": "MISSED",
+          "reminderStatus": "MISSED",
+          "runAt": "2026-10-27T17:10:17.951Z",
+          "deadline": null,
+          "deliveryState": "UNAVAILABLE",
+          "registrations": 0
+        }
+      ]
+    },
+    {
+      "check": "device UI timeout-cleanup",
+      "utc": "2026-10-27T17:11:28.781505+00:00",
+      "status": "PASS",
+      "driver": {
+        "kind": "OPT_IN_SYNTHETIC_FIXTURE_UI_DRIVER",
+        "mode": "compose",
+        "outcome": "PASS",
+        "stages": [
+          "activity_launch_requested",
+          "safe_qa08_composer_replaced",
+          "command_review_visible",
+          "command_confirmation_closed"
+        ],
+        "launch": "DIRECT_PRIVATE_ACTIVITY_INTENT_NOT_NOTIFICATION_TAP",
+        "limits": "UI only; root verifies SQL separately. No live speech, audio or physical-phone acceptance."
+      },
+      "evidence": "phase-08-ui-focused-timeout-cleanup.log"
+    },
+    {
+      "check": "owned fixture removed QA08 focused timeout",
+      "utc": "2026-10-27T17:11:28.949785+00:00",
+      "status": "PASS",
+      "tombstoneRetained": true,
+      "activeRegistrations": 0
+    }
+  ]
+}

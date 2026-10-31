@@ -1,0 +1,45 @@
+{
+  "kind": "PHASE08_TEMPORARY_HOST_GPU_COMPARISON_PLAN",
+  "createdAtUtc": "2026-10-30T20:53:09.630995+00:00",
+  "cohorts": 2,
+  "trialsEach": 5,
+  "order": [
+    "A03/1",
+    "V03/1",
+    "V03/2",
+    "V04/1",
+    "V04/2"
+  ],
+  "change": "Temporary -gpu host launch override only; saved AVD configuration and 2048MiB/four cores retained",
+  "actualRenderer": "NVIDIA GeForce RTX 3060 Laptop GPU",
+  "sameSavedAvd": "Medium_Phone",
+  "sourceGainPermille": 500,
+  "sourcePaddingMs": 1000,
+  "injectionDelayMs": 0,
+  "productionAppUnchanged": true,
+  "nativeGateMs": 12000,
+  "sourceMaxLagMs": 100,
+  "physicalDeviceValidation": "NOT_RUN",
+  "v05": "OWNER_DEFERRED_NOT_RUN",
+  "priorFailuresRetained": true,
+  "hostMicEnableRequested": false,
+  "firstBootEvidence": "docs/reports/evidence/phase-08-capture-fix-host-gpu-boot-20261030T205053952507Z.json",
+  "sources": [
+    {
+      "path": ".local/phase08-capture-fix-reviewed-ready-affected.py",
+      "sha256": "43ea034266cd839a73f68da45b7214c8da18990e7369bacaa265988a8a270eaf"
+    },
+    {
+      "path": ".local/phase08-capture-fix-reviewed-mic.py",
+      "sha256": "8aef5281eb541fd2bafdbf323e2c0e3a14ead86aac37e3b68fb355c10f81c4c9"
+    },
+    {
+      "path": "scripts/phase08-emulator-audio.mjs",
+      "sha256": "a5231b7b4acd700107ffed234f58781cb5c83e56f1daee87a51f6189fe86c95d"
+    },
+    {
+      "path": "android/app/src/androidTest/java/com/lafina/capstone/reminders/ReminderMicrophoneUiTest.kt",
+      "sha256": "04d0c04e45216ff54c4a76a5b920d075a5c58ca746ed01a832ef55200b3fe2bb"
+    }
+  ]
+}

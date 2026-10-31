@@ -1,0 +1,25 @@
+INSTRUMENTATION_STATUS: class=com.lafina.capstone.voice.Phase08ResponseDecoderProbeTest
+INSTRUMENTATION_STATUS: current=1
+INSTRUMENTATION_STATUS: id=AndroidJUnitRunner
+INSTRUMENTATION_STATUS: numtests=1
+INSTRUMENTATION_STATUS: stream=
+com.lafina.capstone.voice.Phase08ResponseDecoderProbeTest:
+INSTRUMENTATION_STATUS: test=reminderVocabularyDoesNotTurnUnsupportedSpeechIntoCommands
+INSTRUMENTATION_STATUS_CODE: 1
+INSTRUMENTATION_STATUS: phase08_response_negative_controls={"kind":"PHASE08_HINTED_DECODER_UNSUPPORTED_SPEECH_CONTROLS","vocabulary":"REMINDER_RESPONSE","samples":[{"id":"today","noResponseCommandProposed":true,"emptyTranscript":false,"normalizedExactRef":true,"totalPrepareLoadDecodeMs":3588},{"id":"cancel","noResponseCommandProposed":true,"emptyTranscript":false,"normalizedExactRef":true,"totalPrepareLoadDecodeMs":3636},{"id":"complete","noResponseCommandProposed":true,"emptyTranscript":false,"normalizedExactRef":true,"totalPrepareLoadDecodeMs":3702},{"id":"digital-silence-max-15s","noResponseCommandProposed":true,"emptyTranscript":false,"normalizedExactRef":null,"totalPrepareLoadDecodeMs":3690}],"modelSha256":"818710568da3ca15689e31a743197b520007872ff9576237bda97bd1b469c3d7","microphoneOpened":false,"actionsExecuted":false,"rawTranscriptEmitted":false,"physicalDeviceValidation":"NOT_RUN","status":"NO_RESPONSE_COMMANDS_PROPOSED"}
+INSTRUMENTATION_STATUS_CODE: 0
+INSTRUMENTATION_STATUS: class=com.lafina.capstone.voice.Phase08ResponseDecoderProbeTest
+INSTRUMENTATION_STATUS: current=1
+INSTRUMENTATION_STATUS: id=AndroidJUnitRunner
+INSTRUMENTATION_STATUS: numtests=1
+INSTRUMENTATION_STATUS: stream=.
+INSTRUMENTATION_STATUS: test=reminderVocabularyDoesNotTurnUnsupportedSpeechIntoCommands
+INSTRUMENTATION_STATUS_CODE: 0
+INSTRUMENTATION_RESULT: stream=
+
+Time: 14.764
+
+OK (1 test)
+
+
+INSTRUMENTATION_CODE: -1

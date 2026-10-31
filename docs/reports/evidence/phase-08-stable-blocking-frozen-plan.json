@@ -1,0 +1,63 @@
+{
+  "kind": "PHASE08_STABLE_BLOCKING_FROZEN_TWO_COLD_COHORT_PLAN",
+  "createdAtUtc": "2026-10-30T23:35:58.198929+00:00",
+  "cohorts": [
+    "block1",
+    "block2"
+  ],
+  "orderEach": [
+    [
+      "A03",
+      1
+    ],
+    [
+      "V03",
+      1
+    ],
+    [
+      "V03",
+      2
+    ],
+    [
+      "V04",
+      1
+    ],
+    [
+      "V04",
+      2
+    ]
+  ],
+  "avd": "LAFINA_Phase08_API35",
+  "deliveryMode": "SDK_DEFAULT_BLOCKING_SERVER_PACED",
+  "privateHypothesisDiagnostic": "Enabled after recognition for every pinned synthetic trial; never published; does not alter decoding or reference gates",
+  "inputConditions": "gain500/padding1000ms per side/delay0; same canonical clips and12s native coordination gate",
+  "uiPreflightDumpDeadlineSeconds": 15,
+  "captureAndRecognitionSafetyLimitsUnchanged": true,
+  "candidateChanged": false,
+  "initialBlockingDiagnostic": "docs/reports/evidence/phase-08-emulator-expansion/st20261031/20261030T233315975319Z-V03-microphone.json",
+  "earlierRealtimeAttemptsRetained": true,
+  "physicalDeviceValidation": "NOT_RUN",
+  "v05": "OWNER_DEFERRED_NOT_RUN",
+  "sources": [
+    {
+      "path": ".local/phase08-stable-blocking-cohort.py",
+      "sha256": "5e8ff4d08d6625f763a8f8621edcbfb54bd9bb0951d14ac4193ba10c35655d6b"
+    },
+    {
+      "path": ".local/phase08-stable-blocking-mic.py",
+      "sha256": "fe65a8b08a175499229979a2c399497ad846dd4dc40f398de33c0f157e023a62"
+    },
+    {
+      "path": ".local/phase08-stable-blocking-parent.py",
+      "sha256": "9021b4f475174b3fcd33ac8581b8f6ab1e7953ae71e44d07fcde00ddadd29e39"
+    },
+    {
+      "path": ".local/phase08-stable-blocking-cold.py",
+      "sha256": "07cab0e35d69e6350e290fc948c338d221475e8ac87590096f1c7f8e8d465ee2"
+    },
+    {
+      "path": "scripts/phase08-emulator-audio.mjs",
+      "sha256": "a5231b7b4acd700107ffed234f58781cb5c83e56f1daee87a51f6189fe86c95d"
+    }
+  ]
+}
