@@ -65,3 +65,25 @@ yarn-error.log*
 *.apk
 *.aab
 
+
+# Phase 08 evidence noise, untracked on 2026-11-01 (copies stay local).
+# Emulator step logs in these two finished runs repeat their same-name .json
+# records field for field. The kept logs either hold events their JSON lacks
+# (interrupted runs) or are linked from a report. New run folders stay tracked:
+# a step log is the only record when a run dies before writing its JSON.
+docs/reports/evidence/phase-08-emulator-expansion/ex20261028/*.log
+docs/reports/evidence/phase-08-emulator-expansion/st20261031/*.log
+!docs/reports/evidence/phase-08-emulator-expansion/ex20261028/20261028T033555858446Z-79131ca4-notification.log
+!docs/reports/evidence/phase-08-emulator-expansion/ex20261028/20261028T080611353825Z-c61918e1-notification.log
+!docs/reports/evidence/phase-08-emulator-expansion/ex20261028/20261029T151024150749Z-41f0e6f4-input-loss-debug-reboot-2.log
+!docs/reports/evidence/phase-08-emulator-expansion/ex20261028/20261030T051010522054Z-942b5cdc-input-loss-serial-dispatch-readonly-snapshots.log
+!docs/reports/evidence/phase-08-emulator-expansion/ex20261028/20261030T051327539958Z-b622d6eb-input-loss-serial-dispatch-readonly-snapshots.log
+!docs/reports/evidence/phase-08-emulator-expansion/ex20261028/20261030T054555272852Z-0be8d565-wait.log
+# Phase 08 build/install/format/graphify console logs that no report cites.
+# Logs a report links stay tracked; to cite a new one, use `git add -f`.
+docs/reports/evidence/phase-08-*build*.log
+docs/reports/evidence/phase-08-*install*.log
+docs/reports/evidence/phase-08-*format*.log
+docs/reports/evidence/phase-08-*graphify*.log
+!docs/reports/evidence/phase-08-expanded-driver-build.log
+!docs/reports/evidence/phase-08-ui-driver-build.log

@@ -1,3 +1,0 @@
-{"at": "2026-10-28T08:08:43.095954+00:00", "event": "invocation_started"}
-{"at": "2026-10-28T08:09:04.486129+00:00", "event": "ui_driver", "kind": "OPT_IN_SYNTHETIC_FIXTURE_UI_DRIVER", "mode": "review-pause", "outcome": "FAIL", "stages": ["activity_launch_requested", "answer_response_visible", "response_review_visible", "activity_launch_requested", "paused_confirmation_node_attempted", "activity_launch_requested"], "launch": "DIRECT_PRIVATE_ACTIVITY_INTENT_NOT_NOTIFICATION_TAP", "limits": "UI only; root verifies SQL separately. No live speech, audio or physical-phone acceptance.", "errorClass": "AssertionError"}
-{"at": "2026-10-28T08:09:04.502410+00:00", "event": "operation_failed", "errorCode": "UI_DRIVER_DID_NOT_REPORT_PASS", "errorType": "RuntimeError"}

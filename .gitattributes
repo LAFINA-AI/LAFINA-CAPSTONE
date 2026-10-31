@@ -1,0 +1,4 @@
+# Machine-written evidence and benchmark output: GitHub collapses these in PR
+# diffs so reviewers see code first. Files stay tracked and searchable.
+docs/reports/evidence/** linguist-generated=true
+docs/benchmarks/*.json linguist-generated=true

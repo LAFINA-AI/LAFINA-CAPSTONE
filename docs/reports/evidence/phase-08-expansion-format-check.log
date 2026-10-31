@@ -1,6 +1,0 @@
-
-> lafina-capstone@0.8.0 format:check
-> prettier --check src __tests__ scripts *.js *.json .github/workflows/*.yml
-
-Checking formatting...
-All matched files use Prettier code style!

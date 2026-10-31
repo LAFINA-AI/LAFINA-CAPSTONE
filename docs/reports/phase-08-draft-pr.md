@@ -117,9 +117,18 @@ Everything below is relative to `98bef88`. There are 17 modified tracked files a
   - three `qa/PHASE-08-*.md` checklists;
   - 22 `docs/benchmarks/phase-08-*` files;
   - nine Phase 08 reports.
-- Evidence: 3,416 files under `docs/reports/evidence/`, including 1,640 `.log`
-  files (sanitized structured event logs plus build and test logs). 2,690 of
+- Evidence: 2,083 files under `docs/reports/evidence/`, including 306 `.log`
+  files (sanitized structured event logs plus build and test logs). 1,438 of
   these files are under `phase-08-emulator-expansion/`.
+- Size cleanup (2026-11-01, follow-up commit): 1,334 logs were untracked and
+  added to `.gitignore`; local copies remain. No remaining file references them.
+  - 1,252 emulator step logs that repeat their same-name `.json` record field
+    for field. Six logs stay: four hold events their JSON lacks, two are linked
+    from a report.
+  - 82 build, install, format and Graphify console logs that no report cites.
+    The two that record build failures stay.
+  - A new `.gitattributes` marks evidence and benchmark JSON as generated, so
+    GitHub collapses them in the diff.
 
 **Not included (ignored, private, local only)**
 - Diagnostic controllers and helpers under `.local/`:
