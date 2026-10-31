@@ -13,11 +13,14 @@ import android.widget.TextView
 import com.lafina.capstone.R
 import org.json.JSONObject
 
-/** Optional, transient dictation after a durable ACK. No voice text reaches scheduling/storage. */
+/** Foreground input only: text proposes a response; the owner validates and confirms it. */
 class AnsweredDictationPanel(
   private val activity: Activity,
   private val themedContext: Context,
   private val visible: () -> Boolean,
+  private val beforeCapture: () -> Boolean,
+  private val onReview: (String) -> Unit,
+  private val onEdit: () -> Unit,
 ) {
   private var session: String? = null
   private var held = false
@@ -26,7 +29,7 @@ class AnsweredDictationPanel(
   private var status: TextView? = null
   private var recognized: EditText? = null
   private var draft: EditText? = null
-  private val input = SpeechInput(themedContext, visible, ::event)
+  private val input = SpeechInput(themedContext, visible, ::event, WhisperVocabulary.REMINDER_RESPONSE)
 
   fun attach(parent: LinearLayout) {
     fun label(value: String): TextView = TextView(themedContext).apply {
@@ -54,16 +57,23 @@ class AnsweredDictationPanel(
       setOnClickListener { action() }
       parent.addView(this, LinearLayout.LayoutParams(-1, -2))
     }
-    label("The alert is acknowledged; the task is still open. Optional dictation is only a draft. Nothing said here changes your schedule.")
-    label("Hold while speaking; release to transcribe offline. No microphone starts when you answer. Closing this screen clears these unsaved words.")
+    label("Answer has not acknowledged this alert. Say or type acknowledge, snooze, or snooze for 5 minutes. Review and confirm before anything changes. The task stays open.")
+    label("Hold while speaking; release to transcribe offline. No microphone starts when you answer. The original response deadline still applies; closing clears unsaved words.")
     status = label("Type a draft or hold the microphone. An offline engine and microphone permission are required for speech.").apply {
       accessibilityLiveRegion = android.view.View.ACCESSIBILITY_LIVE_REGION_POLITE
     }
     label("Draft text")
     draft = editor("Reminder draft text")
-    button("Confirm draft text") {
+    draft?.addTextChangedListener(object : android.text.TextWatcher {
+      override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) = Unit
+      override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) { onEdit() }
+      override fun afterTextChanged(s: android.text.Editable?) = Unit
+    })
+    button("Review response") {
+      cancel("REVIEW_REQUESTED")
       status?.text = if (draft?.text?.toString()?.trim().isNullOrEmpty()) "Type or review some words first."
-        else "Draft confirmed on this screen. It has not changed your schedule and is not saved."
+        else "Reviewing your response. Only a separate confirmation can save it."
+      onReview(draft?.text?.toString().orEmpty())
     }
     button("Hold to talk") {}.apply {
       contentDescription = "Hold to talk in answered reminder"
@@ -83,12 +93,15 @@ class AnsweredDictationPanel(
     button("Replace draft with recognized speech") {
       val value = recognized?.text?.toString().orEmpty()
       if (value.isBlank()) status?.text = "No recognized words are ready. You can type instead."
-      else { draft?.setText(value); status?.text = "Words copied to your draft. Review before confirming; nothing has been scheduled." }
+      else { draft?.setText(value); status?.text = "Words copied to your draft. Tap Review response; no reminder action has been saved." }
     }
   }
 
   private fun begin() {
     if (!visible() || session != null) return
+    // Stop/cancel TTS initialization before requesting permission or owning the mic.
+    if (!beforeCapture()) return
+    onEdit()
     if (activity.checkSelfPermission(Manifest.permission.RECORD_AUDIO) != PackageManager.PERMISSION_GRANTED) {
       held = false
       status?.text = "Allow microphone access if you want dictation, then hold again. Typing remains available."
@@ -134,9 +147,13 @@ class AnsweredDictationPanel(
       "transcribing" -> "Microphone stopped. Transcribing locally; your typed draft remains available."
       "result" -> {
         recognized?.setText(value.optString("transcript").take(2000))
-        "Speech recognized. Review the words, then explicitly copy them into your draft. Nothing was scheduled."
+        "Speech recognized. Review the words, explicitly copy them into your draft, then tap Review response. No action was saved."
       }
-      "cancelled" -> "Speech input stopped. Your typed draft is still available."
+      "cancelled" -> when (val reason = value.optString("reason")) {
+        "AUDIO_INTERRUPTED", "AUDIO_FOCUS_LOST" ->
+          "Speech input stopped ($reason). Your typed draft is still available."
+        else -> "Speech input stopped. Your typed draft is still available."
+      }
       else -> "Speech input could not finish (${value.optString("reason", "UNAVAILABLE")}). Keep typing or try another hold."
     }
     if (phase in listOf("result", "error", "cancelled")) {

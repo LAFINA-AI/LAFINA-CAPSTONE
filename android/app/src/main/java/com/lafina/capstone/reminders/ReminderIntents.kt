@@ -21,6 +21,13 @@ object ReminderIntents {
     Intent(context, if (kind == OPEN) ReminderActivity::class.java else ReminderReceiver::class.java)
       .setAction("${context.packageName}.reminder.$kind")
       .setData(Uri.parse(key(context.packageName, identity, kind)))
+      .apply {
+        // If Chat was opened above a reminder, NEW_TASK alone can bring that
+        // task forward with Chat still on top. Reopen the actual reminder and
+        // let onNewIntent retire old reviews without extending its deadline.
+        if (kind == OPEN) addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or
+          Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP)
+      }
 
   fun identity(context: Context, intent: Intent): ReminderIdentity? {
     val data = intent.data ?: return null

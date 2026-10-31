@@ -16,6 +16,8 @@ import android.speech.RecognitionSupport
 import android.speech.RecognitionSupportCallback
 import android.speech.RecognizerIntent
 import android.speech.SpeechRecognizer
+import android.util.Log
+import com.lafina.capstone.BuildConfig
 import org.json.JSONObject
 import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
@@ -26,6 +28,7 @@ class SpeechInput(
   context: Context,
   private val visible: () -> Boolean,
   private val onEvent: (JSONObject) -> Unit = {},
+  private val vocabulary: WhisperVocabulary = WhisperVocabulary.GENERAL,
 ) {
   private val app = context.applicationContext
   private val handler = Handler(Looper.getMainLooper())
@@ -201,10 +204,14 @@ class SpeechInput(
         var samples: FloatArray? = null
         try {
           samples = capture.read(run.holding, run.cancelled)
+          if (BuildConfig.BUILD_TYPE == "dataQa") {
+            val energy = samples.sumOf { it.toDouble() * it }
+            Log.d("CapstoneStt", "capture vocabulary=${vocabulary.name} frames=${samples.size} nonzero=${samples.count { it != 0f }} rms=${kotlin.math.sqrt(energy / maxOf(1, samples.size))}")
+          }
           if (run.cancelled.get()) return@execute
           handler.post { if (current(run)) { run.holding.set(false); beginTranscribing(run) } }
           if (!SpeechInputPolicy.hasAudioSignal(samples)) throw CaptureFailure("NO_AUDIO_SIGNAL")
-          val text = SpeechInputPolicy.transcript(WhisperTranscriber.transcribe(app, samples, run.language) { run.cancelled.get() })
+          val text = SpeechInputPolicy.transcript(WhisperTranscriber.transcribe(app, samples, run.language, vocabulary) { run.cancelled.get() })
           if (!run.cancelled.get()) handler.post {
             if (live(run)) { if (text == null) fail(run, "NO_SPEECH") else finish(run, "result", transcript = text) }
           }

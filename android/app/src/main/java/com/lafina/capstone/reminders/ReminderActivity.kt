@@ -1,12 +1,14 @@
 package com.lafina.capstone.reminders
 
 import android.app.Activity
+import android.app.AlertDialog
 import android.content.Context
 import android.content.Intent
 import android.content.res.Configuration
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
+import android.os.SystemClock
 import android.view.View
 import android.view.ContextThemeWrapper
 import android.view.WindowInsets
@@ -22,7 +24,7 @@ import com.lafina.capstone.voice.SystemSpeech
 import com.lafina.capstone.voice.AnsweredDictationPanel
 import java.time.Instant
 
-/** Simulated alert; optional foreground hold-to-talk is offered only after durable ACK. */
+/** Simulated alert. Answer opens a bounded response session; only confirmation changes delivery. */
 class ReminderActivity : Activity() {
   private val handler = Handler(Looper.getMainLooper())
   private var identity: ReminderIdentity? = null
@@ -31,11 +33,14 @@ class ReminderActivity : Activity() {
   private var deadlineTask: Runnable? = null
   private var screenContext: Context = this
   private var resumed = false
-  private var spokenIdentity: ReminderIdentity? = null
   private var speechSequence = 0L
+  private var speechEpoch = 0L
   private var speechStatus: TextView? = null
   private lateinit var speech: SystemSpeech
   private var answeredPanel: AnsweredDictationPanel? = null
+  private var response: ReminderResponseSession? = null
+  private var reviewDialog: AlertDialog? = null
+  private var windowDeadlineElapsed: Long? = null
 
   override fun onCreate(savedInstanceState: Bundle?) {
     super.onCreate(savedInstanceState)
@@ -58,19 +63,19 @@ class ReminderActivity : Activity() {
   override fun onResume() {
     super.onResume()
     resumed = true
-    if (answeredPanel == null) loadRecord()
+    loadRecord()
   }
 
   override fun onNewIntent(intent: Intent) {
     super.onNewIntent(intent)
     setIntent(intent)
-    speech.release("REMINDER_CHANGED")
-    answeredPanel?.release()
-    answeredPanel = null
+    retireResponse("REMINDER_CHANGED")
     finishingAction = false
     deadlineTask?.let(handler::removeCallbacks)
     deadlineTask = null
-    identity = ReminderIntents.identity(this, intent)
+    val nextIdentity = ReminderIntents.identity(this, intent)
+    if (nextIdentity != identity) windowDeadlineElapsed = null
+    identity = nextIdentity
     presentation.replace(identity)
     loadRecord()
   }
@@ -88,7 +93,11 @@ class ReminderActivity : Activity() {
           val config = Configuration(resources.configuration)
           if (appearance != "system") config.uiMode = (config.uiMode and Configuration.UI_MODE_NIGHT_MASK.inv()) or
             (if (appearance == "dark") Configuration.UI_MODE_NIGHT_YES else Configuration.UI_MODE_NIGHT_NO)
-          screenContext = ContextThemeWrapper(createConfigurationContext(config), R.style.ReminderTheme)
+          // Keep Activity as the base so dialogs inherit its window token.
+          // A configuration Context alone can style views but cannot own a dialog.
+          screenContext = ContextThemeWrapper(this@ReminderActivity, R.style.ReminderTheme).apply {
+            applyOverrideConfiguration(config)
+          }
           val lightBars = WindowInsetsController.APPEARANCE_LIGHT_STATUS_BARS or WindowInsetsController.APPEARANCE_LIGHT_NAVIGATION_BARS
           val dark = (config.uiMode and Configuration.UI_MODE_NIGHT_MASK) == Configuration.UI_MODE_NIGHT_YES
           window.insetsController?.setSystemBarsAppearance(if (dark) 0 else lightBars, lightBars)
@@ -149,9 +158,7 @@ class ReminderActivity : Activity() {
     presentation.invalidate()
     deadlineTask?.let(handler::removeCallbacks)
     deadlineTask = null
-    answeredPanel?.release()
-    answeredPanel = null
-    speech.release("REMINDER_ENDED")
+    retireResponse("REMINDER_ENDED")
     container().apply {
       text("LAFINA · ACADEMIC REMINDER", 16f)
       text(message, 22f)
@@ -160,14 +167,21 @@ class ReminderActivity : Activity() {
   }
 
   private fun showReminder(record: ReminderRecord, deadline: Instant, preferences: ReminderSpeechPreferences) {
+    retireResponse("REMINDER_RELOADED")
+    finishingAction = false
+    val elapsed = SystemClock.elapsedRealtime()
+    val candidateDeadline = elapsed + (deadline.toEpochMilli() - System.currentTimeMillis()).coerceIn(0, 60_000)
+    windowDeadlineElapsed = minOf(windowDeadlineElapsed ?: candidateDeadline, candidateDeadline)
+    response = ReminderResponseSession(record, ReminderPolicy.format(Instant.now()), elapsed,
+      maxWindowMillis = (windowDeadlineElapsed!! - elapsed).coerceAtLeast(0))
     container().apply {
       text("SIMULATED REMINDER · NOT A PHONE CALL", 14f)
       text(record.title, 28f)
       text("Acknowledge this alert or snooze it. This does not complete the underlying task.")
       text("No microphone is active. The reminder closes after its 60-second response window.", 16f)
-      speechStatus = text(if (preferences.enabled) "Offline voice will read this visible reminder when available."
+      speechStatus = text(if (preferences.enabled) "Answer to hear this reminder with an installed offline voice."
         else if (preferences.reason != null) "Speech settings could not be read. The reminder controls remain available."
-        else "Voice is off in Settings. This reminder remains available as text.", 16f)
+        else "Voice is off in Profile. This reminder remains available as text.", 16f)
       if (preferences.enabled) {
         button("Read reminder") { readReminder(record, preferences) }
         button("Stop reading") {
@@ -176,48 +190,96 @@ class ReminderActivity : Activity() {
         }
         button("Android speech settings") { speech.release("SETTINGS_OPENED"); SystemSpeech.openSettings(this@ReminderActivity) }
       }
-      button("Answer (acknowledge)") { applyAction(ReminderAction.ACK, offerDictation = true) }
-      button("Snooze 10 minutes") { applyAction(ReminderAction.SNOOZE) }
-      button("Acknowledge / Dismiss") { applyAction(ReminderAction.ACK) }
+      button("Answer") { showAnswered(record, deadline, preferences) }
+      button("Snooze 10 minutes") { reviewResponse(ReminderResponseCommand(ReminderAction.SNOOZE)) }
+      button("Acknowledge / Dismiss") { reviewResponse(ReminderResponseCommand(ReminderAction.ACK)) }
     }
-    if (preferences.enabled && spokenIdentity != record.identity) {
-      spokenIdentity = record.identity
-      readReminder(record, preferences)
-    }
+    scheduleDeadline(record, deadline)
+  }
+
+  private fun scheduleDeadline(record: ReminderRecord, deadline: Instant) {
     deadlineTask?.let(handler::removeCallbacks)
     val viewTicket = presentation.ticket()
     val id = record.identity
     deadlineTask = Runnable {
-      if (!currentView(viewTicket)) return@Runnable
+      if (!currentView(viewTicket) || finishingAction) return@Runnable
+      finishingAction = true
+      retireResponse("RESPONSE_TIMEOUT")
       ReminderRuntime.worker.execute {
         try {
-          val result = ReminderRuntime.withStore(applicationContext) { it.timeout(id, ReminderPolicy.format(deadline), ReminderPolicy.format(Instant.now())) }
+          val result = ReminderRuntime.withStore(applicationContext) {
+            val now = ReminderPolicy.format(Instant.now())
+            // Elapsed time still ends the visible window if the wall clock moved back.
+            if (Instant.now() < deadline) it.action(id, ReminderAction.MISS, nowUtc = now,
+              expectedSourceVersion = record.sourceVersion, expectedRingingDeadline = record.ringingDeadline)
+            else it.timeout(id, ReminderPolicy.format(deadline), now)
+          }
           if (result.applied) ReminderRuntime.cancelIdentity(applicationContext, id)
           ReminderRuntime.reconcile(applicationContext)
           runOnUiThread {
             if (!currentView(viewTicket)) return@runOnUiThread
-            if (result.applied || result.record?.status != "RINGING") finish() else loadRecord()
+            showMessage("The response window ended. Open Calendar to review this reminder; the task was not completed.")
           }
-        } catch (_: Exception) { android.util.Log.e("CapstoneReminders", "VISIBLE_TIMEOUT_FAILED") }
+        } catch (_: Exception) {
+          android.util.Log.e("CapstoneReminders", "VISIBLE_TIMEOUT_FAILED")
+          runOnUiThread { if (currentView(viewTicket)) showMessage("The response window ended. Reminder status could not be verified; review Calendar.") }
+        }
       }
-    }.also { handler.postDelayed(it, maxOf(1, deadline.toEpochMilli() - System.currentTimeMillis())) }
+    }.also { handler.postDelayed(it, maxOf(1, minOf(deadline.toEpochMilli() - System.currentTimeMillis(),
+      (windowDeadlineElapsed ?: SystemClock.elapsedRealtime()) - SystemClock.elapsedRealtime()))) }
   }
 
-  private fun applyAction(action: ReminderAction, offerDictation: Boolean = false) {
-    if (finishingAction) return
+  private fun reviewResponse(command: ReminderResponseCommand) {
+    if (!resumed || finishingAction) return
+    val session = response ?: return
+    val now = ReminderPolicy.format(Instant.now())
+    val review = session.prepare(command, now, SystemClock.elapsedRealtime()) ?: run {
+      showMessage("This response window has ended. Review Calendar; no response was confirmed.")
+      return
+    }
+    reviewDialog?.dismiss()
+    stopSpeech("RESPONSE_REVIEW")
+    answeredPanel?.cancel("RESPONSE_REVIEW")
+    val ticket = presentation.ticket()
+    reviewDialog = AlertDialog.Builder(screenContext)
+      .setTitle("Review reminder response")
+      .setMessage("${session.record.title}\n\n${ReminderResponsePolicy.review(command)}\nOnly this reminder is affected.")
+      .setNegativeButton("Keep editing") { _, _ -> session.cancelReview() }
+      .setPositiveButton("Confirm") { _, _ ->
+        if (resumed && currentView(ticket) && response === session &&
+          session.consume(review, ReminderPolicy.format(Instant.now()), SystemClock.elapsedRealtime())) applyAction(session, command)
+        else if (currentView(ticket)) showMessage("The review expired. Open Calendar to check the reminder.")
+      }.setOnCancelListener { session.cancelReview() }.create().also { it.show() }
+  }
+
+  private fun applyAction(session: ReminderResponseSession, command: ReminderResponseCommand) {
+    if (finishingAction || response !== session) return
     finishingAction = true
-    speech.stop("REMINDER_ACTION")
-    val id = identity ?: run { finish(); return }
+    stopSpeech("REMINDER_ACTION")
+    answeredPanel?.release()
+    val id = session.record.identity
     val viewTicket = presentation.ticket()
     findViewById<View>(android.R.id.content).isEnabled = false
     ReminderRuntime.worker.execute {
       try {
-        val result = ReminderRuntime.withStore(applicationContext) { it.action(id, action, nowUtc = ReminderPolicy.format(Instant.now())) }
-        if (result.applied) ReminderRuntime.cancelIdentity(applicationContext, id)
-        ReminderRuntime.reconcile(applicationContext)
+        val result = ReminderRuntime.withStore(applicationContext) {
+          it.action(id, command.action, minutes = command.minutes, nowUtc = ReminderPolicy.format(Instant.now()),
+            expectedSourceVersion = session.record.sourceVersion, expectedRingingDeadline = session.record.ringingDeadline)
+        }
+        // A committed action stays committed even if subsequent OS reconciliation fails.
+        var deliveryWarning = false
+        try { if (result.applied) ReminderRuntime.cancelIdentity(applicationContext, id) }
+        catch (_: Exception) { deliveryWarning = true }
+        try {
+          ReminderRuntime.reconcile(applicationContext)
+          if (result.applied && command.action == ReminderAction.SNOOZE) {
+            val current = result.record?.identity?.let { next -> ReminderRuntime.withStore(applicationContext) { it.get(next) } }
+            if (current == null || current.deliveryState in listOf("UNAVAILABLE", "FAILED")) deliveryWarning = true
+          }
+        } catch (_: Exception) { deliveryWarning = true }
         runOnUiThread {
           if (!currentView(viewTicket)) return@runOnUiThread
-          if (result.applied && offerDictation && action == ReminderAction.ACK) showAnswered()
+          if (result.applied && deliveryWarning) showMessage("Your ${if (command.action == ReminderAction.SNOOZE) "snooze" else "acknowledgement"} was saved. Android delivery could not be verified. Check Calendar and Profile → Reminder delivery. The task is still open.")
           else if (result.applied) finish()
           else { finishingAction = false; showMessage("This reminder has already changed. No action was applied.") }
         }
@@ -225,29 +287,52 @@ class ReminderActivity : Activity() {
         runOnUiThread {
           if (currentView(viewTicket)) {
             finishingAction = false
-            showMessage("The action was not saved. Reopen the reminder or use your planner.")
+            showMessage("The action could not be verified. Review Calendar before retrying; the task was not completed.")
           }
         }
       }
     }
   }
 
-  private fun showAnswered() {
-    // Retire already queued ringing timeouts/loads, not just future Handler callbacks.
+  private fun showAnswered(record: ReminderRecord, deadline: Instant, preferences: ReminderSpeechPreferences) {
+    if (finishingAction || response?.active(ReminderPolicy.format(Instant.now()), SystemClock.elapsedRealtime()) != true) return
+    // Answer retires old presentation callbacks, but does not write ACK or extend the deadline.
     presentation.invalidate()
     deadlineTask?.let(handler::removeCallbacks)
     deadlineTask = null
-    speech.release("ANSWERED")
+    stopSpeech("ANSWERED")
     finishingAction = false
     answeredPanel?.release()
     val answeredTicket = presentation.ticket()
-    val panel = AnsweredDictationPanel(this, screenContext) { resumed && currentView(answeredTicket) }
+    val panel = AnsweredDictationPanel(this, screenContext,
+      visible = { resumed && !finishingAction && currentView(answeredTicket) &&
+        response?.active(ReminderPolicy.format(Instant.now()), SystemClock.elapsedRealtime()) == true },
+      beforeCapture = { stopSpeech("MICROPHONE_REQUESTED"); response?.active(ReminderPolicy.format(Instant.now()), SystemClock.elapsedRealtime()) == true },
+      onReview = { text ->
+        val command = ReminderResponsePolicy.parse(text)
+        if (command != null) reviewResponse(command)
+        else reviewDialog = AlertDialog.Builder(screenContext).setTitle("Response not understood")
+          .setMessage("Use acknowledge, snooze, or snooze for 5 minutes (1–120). Nothing was changed. You can also use the reminder buttons.")
+          .setPositiveButton("Keep editing", null).show()
+      },
+      onEdit = { response?.cancelReview(); reviewDialog?.dismiss(); reviewDialog = null })
     answeredPanel = panel
     container().apply {
-      text("ALERT ACKNOWLEDGED", 24f)
+      text("REMINDER RESPONSE", 24f)
+      text(record.title, 28f)
+      speechStatus = text(if (preferences.enabled) "Preparing the offline voice. Manual response controls are available."
+        else "Voice is unavailable or off in Profile. Use text or the reminder buttons.", 16f)
+      if (preferences.enabled) {
+        button("Read reminder") { panel.cancel("READ_REMINDER"); readReminder(record, preferences) }
+        button("Stop reading") { stopSpeech("USER_STOPPED") }
+      }
       panel.attach(this)
-      button("Close answered reminder") { finish() }
+      button("Acknowledge / Dismiss") { reviewResponse(ReminderResponseCommand(ReminderAction.ACK)) }
+      button("Snooze 10 minutes") { reviewResponse(ReminderResponseCommand(ReminderAction.SNOOZE)) }
+      button("Close without responding") { finish() }
     }
+    scheduleDeadline(record, deadline)
+    if (preferences.enabled) readReminder(record, preferences)
   }
 
   override fun onRequestPermissionsResult(requestCode: Int, permissions: Array<out String>, grantResults: IntArray) {
@@ -260,8 +345,10 @@ class ReminderActivity : Activity() {
   private fun readReminder(record: ReminderRecord, preferences: ReminderSpeechPreferences) {
     val options = preferences.options ?: return
     if (!resumed || finishingAction || identity != record.identity) return
+    val viewTicket = presentation.ticket()
+    val epoch = ++speechEpoch
     speech.initialize(options) { inventory ->
-      if (!resumed || finishingAction || identity != record.identity) return@initialize
+      if (epoch != speechEpoch || !resumed || finishingAction || !currentView(viewTicket) || identity != record.identity) return@initialize
       if (!inventory.optBoolean("available")) {
         speechStatus?.text = "An installed offline voice is unavailable. Review Android speech settings or use the visible controls."
       } else {
@@ -273,19 +360,37 @@ class ReminderActivity : Activity() {
 
   override fun onPause() {
     resumed = false
-    answeredPanel?.release()
-    speech.release("REMINDER_HIDDEN")
+    presentation.invalidate()
+    deadlineTask?.let(handler::removeCallbacks)
+    deadlineTask = null
+    retireResponse("REMINDER_HIDDEN")
+    finishingAction = false
     super.onPause()
   }
 
   override fun onDestroy() {
     presentation.invalidate()
     deadlineTask?.let(handler::removeCallbacks)
-    answeredPanel?.release()
-    speech.release("REMINDER_DESTROYED")
+    retireResponse("REMINDER_DESTROYED")
     super.onDestroy()
   }
 
   private fun currentView(ticket: ReminderViewTicket): Boolean =
     !isFinishing && !isDestroyed && presentation.accepts(ticket)
+
+  private fun stopSpeech(reason: String) {
+    speechEpoch++
+    speech.stop(reason)
+  }
+
+  private fun retireResponse(reason: String) {
+    response?.close()
+    response = null
+    reviewDialog?.dismiss()
+    reviewDialog = null
+    answeredPanel?.release()
+    answeredPanel = null
+    speechEpoch++
+    speech.release(reason)
+  }
 }

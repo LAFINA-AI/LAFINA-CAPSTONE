@@ -8,6 +8,9 @@ import java.io.FileInputStream
 import java.io.FileOutputStream
 import java.security.MessageDigest
 
+/** Fixed local vocabulary only; never schedule text, user drafts or arbitrary decoder prompts. */
+enum class WhisperVocabulary { GENERAL, REMINDER_RESPONSE }
+
 /** Optional, checksum-pinned offline model. No microphone, network or retained decoder. */
 object WhisperTranscriber {
   const val MODEL_ASSET = "stt/ggml-tiny-q5_1.bin"
@@ -32,6 +35,7 @@ object WhisperTranscriber {
     context: Context,
     samples: FloatArray,
     language: String,
+    vocabulary: WhisperVocabulary = WhisperVocabulary.GENERAL,
     cancelled: () -> Boolean,
   ): String {
     check(Looper.myLooper() != Looper.getMainLooper()) { "WHISPER_WORKER_REQUIRED" }
@@ -53,7 +57,8 @@ object WhisperTranscriber {
           check(!cancelled()) { "WHISPER_CANCELLED_OR_TIMEOUT" }
           val model = verifiedModel(context, cancelled)
           check(!cancelled()) { "WHISPER_CANCELLED_OR_TIMEOUT" }
-          return transcribeNative(model.absolutePath, samples, languageCode, Cancellation(cancelled))
+          return transcribeNative(model.absolutePath, samples, languageCode,
+            vocabulary == WhisperVocabulary.REMINDER_RESPONSE && languageCode == "en", Cancellation(cancelled))
             .trim().also { check(it.length <= 2000) { "WHISPER_OUTPUT_LIMIT" } }
         }
       }
@@ -122,6 +127,7 @@ object WhisperTranscriber {
     modelPath: String,
     samples: FloatArray,
     language: String,
+    reminderVocabulary: Boolean,
     cancellation: Cancellation,
   ): String
 }
