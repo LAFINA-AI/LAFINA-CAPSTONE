@@ -1,0 +1,33 @@
+{
+  "kind": "PHASE08_HOST_AND_EMULATOR_FREEZE_DIAGNOSIS",
+  "observedAtUtc": "2026-10-30T20:55:04.570831+00:00",
+  "previousEmulatorCurrentlyAvailable": false,
+  "previousDaemonRequiredStartup": true,
+  "previousTerminationCause": "UNKNOWN_NOT_PROVEN_CRASH",
+  "priorSystemUiAnrObserved": true,
+  "hostReadOnlyObservation": {
+    "totalVisibleMemoryGiB": 15.19,
+    "freePhysicalMemoryGiB": 3.52,
+    "logicalProcessors": 12,
+    "cpuPercent": 19,
+    "emulatorProcessPresent": false
+  },
+  "savedAvd": {
+    "name": "Medium_Phone",
+    "ramMiB": 2048,
+    "cores": 4,
+    "gpuMode": "auto",
+    "systemImage": "android-37.2-beta3/google_apis_playstore_ps16k/x86_64"
+  },
+  "priorActualRenderer": "SwiftShader GLES / llvmpipe Vulkan",
+  "availableHostGpu": [
+    "NVIDIA GeForce RTX 3060 Laptop GPU",
+    "AMD Radeon Graphics"
+  ],
+  "virtualization": "WHPX_INSTALLED_USABLE",
+  "temporaryChange": "-gpu host for fresh preserved-data launch; no RAM/core or saved configuration edit",
+  "source": "Installed emulator -help-gpu and -accel-check; read-only host/CIM and cached prior emulator startup lines",
+  "officialGraphicsReference": "https://developer.android.com/studio/run/emulator-acceleration",
+  "causalLimit": "Resource observation was made with emulator absent; does not measure prior active load or prove cause of freezes/audio loss",
+  "physicalDeviceValidation": "NOT_RUN"
+}

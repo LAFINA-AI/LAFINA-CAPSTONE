@@ -1,0 +1,5021 @@
+{
+  "schemaVersion": 1,
+  "phase": "07.1",
+  "label": "HOST_ONLY_SYNTHETIC_FILE_BACKED_NOTES",
+  "startedAtUtc": "2026-10-29T23:06:30.306Z",
+  "finishedAtUtc": "2026-10-29T23:06:34.776Z",
+  "elapsedSeconds": 4.46825,
+  "command": "node scripts/benchmark-notes.cjs --output docs/benchmarks/phase-08-input-loss-notes-host.json",
+  "sourceSha256": {
+    "scripts/benchmark-notes.cjs": "7c10c070bc99a3fbbca7788a12b0ad5b18d948010c04ebce2a32dec7612130e1",
+    "package-lock.json": "69271db3be98140e29fe4a1b6def9b92b912048c1dcac8d2cd704b76cd47e828",
+    "src/core/storage/plannerDatabase.ts": "52c80fd17a334171ecba4f809a4717984217a0ed33e0560994a01962163dc8bf",
+    "src/core/storage/notesRepository.ts": "d62d997ae0bbd424e33933ebfde026ad7708e2eaaae54ae933ef11e59b3fec68",
+    "src/core/domain/plannerValidation.ts": "152b163de49055751138e7a249587354573b54748b721f4349cba02db39fcf58",
+    "src/core/domain/scheduleTime.ts": "173158d03a5e13b88318f90a56275d94a32bd7944547ac12ee434687591faa28",
+    "src/core/storage/plannerRows.ts": "09f53943acb78fa038ec39874a8c480c9b359cc0f8f54d2c9675ee066adea79e"
+  },
+  "loadedTypescript": [
+    "src/core/storage/plannerDatabase.ts",
+    "src/core/storage/notesRepository.ts",
+    "src/core/domain/plannerValidation.ts",
+    "src/core/domain/scheduleTime.ts",
+    "src/core/storage/plannerRows.ts"
+  ],
+  "sourceDrift": [],
+  "environment": {
+    "node": "v24.19.0",
+    "sqlite": "3.53.3",
+    "typescript": "5.9.3",
+    "platform": "win32",
+    "architecture": "x64",
+    "osRelease": "10.0.26300",
+    "cpuModel": "AMD Ryzen 5 6600H with Radeon Graphics         ",
+    "logicalCpuCount": 12,
+    "hostTotalMemoryBytes": 16312721408,
+    "hostFreeMemoryBefore": 1218863104,
+    "hostFreeMemoryAfter": 1282945024
+  },
+  "conditions": {
+    "database": "Fresh isolated .local temporary SQLite file, schema3; closed and removed after measurements. Never opens app/student data.",
+    "journalMode": "delete",
+    "synchronous": 2,
+    "fixture": {
+      "notes": 500,
+      "bodyBaseCharacters": 368,
+      "bodySuffixCharacters": 11,
+      "categories": {
+        "Personal": 250,
+        "Coursework": 250
+      },
+      "pinned": 50,
+      "tasks": 200,
+      "completedTasks": 40
+    },
+    "sampling": "5 untimed-cohort warmup calls plus 100 measured calls per metric; six metrics. Create adds 105 notes; edit updates one seeded note 105 times. Page/count metrics therefore observe 605 live notes. Warmup failures are retained.",
+    "timer": "performance.now(); includes production validation/transaction/SQL prepare/decoding/receipt work and file commit for mutations. Assertions, fixture/migration/TS compilation and cleanup are outside each measured call.",
+    "percentiles": "Nearest rank ceil(p*n) over successful samples; all 100 measured samples including failures retained; durations rounded to six decimals.",
+    "controls": "No forced GC, cache eviction or background-process isolation. Concurrent capstone development/build activity was not stopped. Host scheduling, filesystem cache and device firmware durability are uncontrolled.",
+    "limits": "Page20 bounds returned JS records (SQLite may return 21 to detect hasMore), not SQL scan cost. LIKE body search can scan history. File-backed FULL synchronous is a host configuration, not Android/JSI or power-loss proof.",
+    "exclusions": "No Android device, UI rendering, native alarm, speech/audio, cloud/backend, private data, battery, startup, peak PSS, low-RAM acceptance or old/new speed comparison."
+  },
+  "metrics": {
+    "note_create_transaction": {
+      "warmups": 5,
+      "attempted": 100,
+      "succeeded": 100,
+      "failureCount": 0,
+      "warmupFailures": [],
+      "latencyMs": {
+        "n": 100,
+        "min": 10.7087,
+        "p50": 15.0676,
+        "p95": 24.0319,
+        "max": 45.534
+      },
+      "rawSamples": [
+        {
+          "index": 0,
+          "durationMs": 15.3487,
+          "sqlCalls": 5,
+          "rowsReturned": 0,
+          "largestSingleSqlResult": 0,
+          "failure": null
+        },
+        {
+          "index": 1,
+          "durationMs": 11.3088,
+          "sqlCalls": 5,
+          "rowsReturned": 0,
+          "largestSingleSqlResult": 0,
+          "failure": null
+        },
+        {
+          "index": 2,
+          "durationMs": 16.5227,
+          "sqlCalls": 5,
+          "rowsReturned": 0,
+          "largestSingleSqlResult": 0,
+          "failure": null
+        },
+        {
+          "index": 3,
+          "durationMs": 11.7196,
+          "sqlCalls": 5,
+          "rowsReturned": 0,
+          "largestSingleSqlResult": 0,
+          "failure": null
+        },
+        {
+          "index": 4,
+          "durationMs": 18.2626,
+          "sqlCalls": 5,
+          "rowsReturned": 0,
+          "largestSingleSqlResult": 0,
+          "failure": null
+        },
+        {
+          "index": 5,
+          "durationMs": 18.0019,
+          "sqlCalls": 5,
+          "rowsReturned": 0,
+          "largestSingleSqlResult": 0,
+          "failure": null
+        },
+        {
+          "index": 6,
+          "durationMs": 11.5945,
+          "sqlCalls": 5,
+          "rowsReturned": 0,
+          "largestSingleSqlResult": 0,
+          "failure": null
+        },
+        {
+          "index": 7,
+          "durationMs": 18.2803,
+          "sqlCalls": 5,
+          "rowsReturned": 0,
+          "largestSingleSqlResult": 0,
+          "failure": null
+        },
+        {
+          "index": 8,
+          "durationMs": 14.9335,
+          "sqlCalls": 5,
+          "rowsReturned": 0,
+          "largestSingleSqlResult": 0,
+          "failure": null
+        },
+        {
+          "index": 9,
+          "durationMs": 11.6215,
+          "sqlCalls": 5,
+          "rowsReturned": 0,
+          "largestSingleSqlResult": 0,
+          "failure": null
+        },
+        {
+          "index": 10,
+          "durationMs": 11.4858,
+          "sqlCalls": 5,
+          "rowsReturned": 0,
+          "largestSingleSqlResult": 0,
+          "failure": null
+        },
+        {
+          "index": 11,
+          "durationMs": 21.8662,
+          "sqlCalls": 5,
+          "rowsReturned": 0,
+          "largestSingleSqlResult": 0,
+          "failure": null
+        },
+        {
+          "index": 12,
+          "durationMs": 15.237,
+          "sqlCalls": 5,
+          "rowsReturned": 0,
+          "largestSingleSqlResult": 0,
+          "failure": null
+        },
+        {
+          "index": 13,
+          "durationMs": 15.2227,
+          "sqlCalls": 5,
+          "rowsReturned": 0,
+          "largestSingleSqlResult": 0,
+          "failure": null
+        },
+        {
+          "index": 14,
+          "durationMs": 21.3325,
+          "sqlCalls": 5,
+          "rowsReturned": 0,
+          "largestSingleSqlResult": 0,
+          "failure": null
+        },
+        {
+          "index": 15,
+          "durationMs": 11.3653,
+          "sqlCalls": 5,
+          "rowsReturned": 0,
+          "largestSingleSqlResult": 0,
+          "failure": null
+        },
+        {
+          "index": 16,
+          "durationMs": 15.0676,
+          "sqlCalls": 5,
+          "rowsReturned": 0,
+          "largestSingleSqlResult": 0,
+          "failure": null
+        },
+        {
+          "index": 17,
+          "durationMs": 13.9675,
+          "sqlCalls": 5,
+          "rowsReturned": 0,
+          "largestSingleSqlResult": 0,
+          "failure": null
+        },
+        {
+          "index": 18,
+          "durationMs": 13.0959,
+          "sqlCalls": 5,
+          "rowsReturned": 0,
+          "largestSingleSqlResult": 0,
+          "failure": null
+        },
+        {
+          "index": 19,
+          "durationMs": 14.3589,
+          "sqlCalls": 5,
+          "rowsReturned": 0,
+          "largestSingleSqlResult": 0,
+          "failure": null
+        },
+        {
+          "index": 20,
+          "durationMs": 14.5269,
+          "sqlCalls": 5,
+          "rowsReturned": 0,
+          "largestSingleSqlResult": 0,
+          "failure": null
+        },
+        {
+          "index": 21,
+          "durationMs": 13.1503,
+          "sqlCalls": 5,
+          "rowsReturned": 0,
+          "largestSingleSqlResult": 0,
+          "failure": null
+        },
+        {
+          "index": 22,
+          "durationMs": 11.7677,
+          "sqlCalls": 5,
+          "rowsReturned": 0,
+          "largestSingleSqlResult": 0,
+          "failure": null
+        },
+        {
+          "index": 23,
+          "durationMs": 19.2691,
+          "sqlCalls": 5,
+          "rowsReturned": 0,
+          "largestSingleSqlResult": 0,
+          "failure": null
+        },
+        {
+          "index": 24,
+          "durationMs": 12.6069,
+          "sqlCalls": 5,
+          "rowsReturned": 0,
+          "largestSingleSqlResult": 0,
+          "failure": null
+        },
+        {
+          "index": 25,
+          "durationMs": 12.77,
+          "sqlCalls": 5,
+          "rowsReturned": 0,
+          "largestSingleSqlResult": 0,
+          "failure": null
+        },
+        {
+          "index": 26,
+          "durationMs": 14.7124,
+          "sqlCalls": 5,
+          "rowsReturned": 0,
+          "largestSingleSqlResult": 0,
+          "failure": null
+        },
+        {
+          "index": 27,
+          "durationMs": 10.7901,
+          "sqlCalls": 5,
+          "rowsReturned": 0,
+          "largestSingleSqlResult": 0,
+          "failure": null
+        },
+        {
+          "index": 28,
+          "durationMs": 11.8955,
+          "sqlCalls": 5,
+          "rowsReturned": 0,
+          "largestSingleSqlResult": 0,
+          "failure": null
+        },
+        {
+          "index": 29,
+          "durationMs": 19.3001,
+          "sqlCalls": 5,
+          "rowsReturned": 0,
+          "largestSingleSqlResult": 0,
+          "failure": null
+        },
+        {
+          "index": 30,
+          "durationMs": 17.9351,
+          "sqlCalls": 5,
+          "rowsReturned": 0,
+          "largestSingleSqlResult": 0,
+          "failure": null
+        },
+        {
+          "index": 31,
+          "durationMs": 11.5848,
+          "sqlCalls": 5,
+          "rowsReturned": 0,
+          "largestSingleSqlResult": 0,
+          "failure": null
+        },
+        {
+          "index": 32,
+          "durationMs": 14.1393,
+          "sqlCalls": 5,
+          "rowsReturned": 0,
+          "largestSingleSqlResult": 0,
+          "failure": null
+        },
+        {
+          "index": 33,
+          "durationMs": 15.2428,
+          "sqlCalls": 5,
+          "rowsReturned": 0,
+          "largestSingleSqlResult": 0,
+          "failure": null
+        },
+        {
+          "index": 34,
+          "durationMs": 11.5837,
+          "sqlCalls": 5,
+          "rowsReturned": 0,
+          "largestSingleSqlResult": 0,
+          "failure": null
+        },
+        {
+          "index": 35,
+          "durationMs": 15.7016,
+          "sqlCalls": 5,
+          "rowsReturned": 0,
+          "largestSingleSqlResult": 0,
+          "failure": null
+        },
+        {
+          "index": 36,
+          "durationMs": 18.5125,
+          "sqlCalls": 5,
+          "rowsReturned": 0,
+          "largestSingleSqlResult": 0,
+          "failure": null
+        },
+        {
+          "index": 37,
+          "durationMs": 21.9285,
+          "sqlCalls": 5,
+          "rowsReturned": 0,
+          "largestSingleSqlResult": 0,
+          "failure": null
+        },
+        {
+          "index": 38,
+          "durationMs": 19.9539,
+          "sqlCalls": 5,
+          "rowsReturned": 0,
+          "largestSingleSqlResult": 0,
+          "failure": null
+        },
+        {
+          "index": 39,
+          "durationMs": 11.0239,
+          "sqlCalls": 5,
+          "rowsReturned": 0,
+          "largestSingleSqlResult": 0,
+          "failure": null
+        },
+        {
+          "index": 40,
+          "durationMs": 16.205,
+          "sqlCalls": 5,
+          "rowsReturned": 0,
+          "largestSingleSqlResult": 0,
+          "failure": null
+        },
+        {
+          "index": 41,
+          "durationMs": 19.2825,
+          "sqlCalls": 5,
+          "rowsReturned": 0,
+          "largestSingleSqlResult": 0,
+          "failure": null
+        },
+        {
+          "index": 42,
+          "durationMs": 11.0302,
+          "sqlCalls": 5,
+          "rowsReturned": 0,
+          "largestSingleSqlResult": 0,
+          "failure": null
+        },
+        {
+          "index": 43,
+          "durationMs": 16.3796,
+          "sqlCalls": 5,
+          "rowsReturned": 0,
+          "largestSingleSqlResult": 0,
+          "failure": null
+        },
+        {
+          "index": 44,
+          "durationMs": 11.6945,
+          "sqlCalls": 5,
+          "rowsReturned": 0,
+          "largestSingleSqlResult": 0,
+          "failure": null
+        },
+        {
+          "index": 45,
+          "durationMs": 45.534,
+          "sqlCalls": 5,
+          "rowsReturned": 0,
+          "largestSingleSqlResult": 0,
+          "failure": null
+        },
+        {
+          "index": 46,
+          "durationMs": 11.3774,
+          "sqlCalls": 5,
+          "rowsReturned": 0,
+          "largestSingleSqlResult": 0,
+          "failure": null
+        },
+        {
+          "index": 47,
+          "durationMs": 17.8908,
+          "sqlCalls": 5,
+          "rowsReturned": 0,
+          "largestSingleSqlResult": 0,
+          "failure": null
+        },
+        {
+          "index": 48,
+          "durationMs": 17.136,
+          "sqlCalls": 5,
+          "rowsReturned": 0,
+          "largestSingleSqlResult": 0,
+          "failure": null
+        },
+        {
+          "index": 49,
+          "durationMs": 10.7087,
+          "sqlCalls": 5,
+          "rowsReturned": 0,
+          "largestSingleSqlResult": 0,
+          "failure": null
+        },
+        {
+          "index": 50,
+          "durationMs": 20.5926,
+          "sqlCalls": 5,
+          "rowsReturned": 0,
+          "largestSingleSqlResult": 0,
+          "failure": null
+        },
+        {
+          "index": 51,
+          "durationMs": 11.3283,
+          "sqlCalls": 5,
+          "rowsReturned": 0,
+          "largestSingleSqlResult": 0,
+          "failure": null
+        },
+        {
+          "index": 52,
+          "durationMs": 33.3827,
+          "sqlCalls": 5,
+          "rowsReturned": 0,
+          "largestSingleSqlResult": 0,
+          "failure": null
+        },
+        {
+          "index": 53,
+          "durationMs": 24.0319,
+          "sqlCalls": 5,
+          "rowsReturned": 0,
+          "largestSingleSqlResult": 0,
+          "failure": null
+        },
+        {
+          "index": 54,
+          "durationMs": 12.1689,
+          "sqlCalls": 5,
+          "rowsReturned": 0,
+          "largestSingleSqlResult": 0,
+          "failure": null
+        },
+        {
+          "index": 55,
+          "durationMs": 16.4904,
+          "sqlCalls": 5,
+          "rowsReturned": 0,
+          "largestSingleSqlResult": 0,
+          "failure": null
+        },
+        {
+          "index": 56,
+          "durationMs": 12.6025,
+          "sqlCalls": 5,
+          "rowsReturned": 0,
+          "largestSingleSqlResult": 0,
+          "failure": null
+        },
+        {
+          "index": 57,
+          "durationMs": 24.843,
+          "sqlCalls": 5,
+          "rowsReturned": 0,
+          "largestSingleSqlResult": 0,
+          "failure": null
+        },
+        {
+          "index": 58,
+          "durationMs": 18.4171,
+          "sqlCalls": 5,
+          "rowsReturned": 0,
+          "largestSingleSqlResult": 0,
+          "failure": null
+        },
+        {
+          "index": 59,
+          "durationMs": 14.7626,
+          "sqlCalls": 5,
+          "rowsReturned": 0,
+          "largestSingleSqlResult": 0,
+          "failure": null
+        },
+        {
+          "index": 60,
+          "durationMs": 23.5778,
+          "sqlCalls": 5,
+          "rowsReturned": 0,
+          "largestSingleSqlResult": 0,
+          "failure": null
+        },
+        {
+          "index": 61,
+          "durationMs": 17.7712,
+          "sqlCalls": 5,
+          "rowsReturned": 0,
+          "largestSingleSqlResult": 0,
+          "failure": null
+        },
+        {
+          "index": 62,
+          "durationMs": 15.4653,
+          "sqlCalls": 5,
+          "rowsReturned": 0,
+          "largestSingleSqlResult": 0,
+          "failure": null
+        },
+        {
+          "index": 63,
+          "durationMs": 18.1635,
+          "sqlCalls": 5,
+          "rowsReturned": 0,
+          "largestSingleSqlResult": 0,
+          "failure": null
+        },
+        {
+          "index": 64,
+          "durationMs": 14.7487,
+          "sqlCalls": 5,
+          "rowsReturned": 0,
+          "largestSingleSqlResult": 0,
+          "failure": null
+        },
+        {
+          "index": 65,
+          "durationMs": 14.6384,
+          "sqlCalls": 5,
+          "rowsReturned": 0,
+          "largestSingleSqlResult": 0,
+          "failure": null
+        },
+        {
+          "index": 66,
+          "durationMs": 13.3809,
+          "sqlCalls": 5,
+          "rowsReturned": 0,
+          "largestSingleSqlResult": 0,
+          "failure": null
+        },
+        {
+          "index": 67,
+          "durationMs": 20.7104,
+          "sqlCalls": 5,
+          "rowsReturned": 0,
+          "largestSingleSqlResult": 0,
+          "failure": null
+        },
+        {
+          "index": 68,
+          "durationMs": 11.2797,
+          "sqlCalls": 5,
+          "rowsReturned": 0,
+          "largestSingleSqlResult": 0,
+          "failure": null
+        },
+        {
+          "index": 69,
+          "durationMs": 11.7384,
+          "sqlCalls": 5,
+          "rowsReturned": 0,
+          "largestSingleSqlResult": 0,
+          "failure": null
+        },
+        {
+          "index": 70,
+          "durationMs": 27.6864,
+          "sqlCalls": 5,
+          "rowsReturned": 0,
+          "largestSingleSqlResult": 0,
+          "failure": null
+        },
+        {
+          "index": 71,
+          "durationMs": 12.2823,
+          "sqlCalls": 5,
+          "rowsReturned": 0,
+          "largestSingleSqlResult": 0,
+          "failure": null
+        },
+        {
+          "index": 72,
+          "durationMs": 15.5304,
+          "sqlCalls": 5,
+          "rowsReturned": 0,
+          "largestSingleSqlResult": 0,
+          "failure": null
+        },
+        {
+          "index": 73,
+          "durationMs": 19.7056,
+          "sqlCalls": 5,
+          "rowsReturned": 0,
+          "largestSingleSqlResult": 0,
+          "failure": null
+        },
+        {
+          "index": 74,
+          "durationMs": 14.0872,
+          "sqlCalls": 5,
+          "rowsReturned": 0,
+          "largestSingleSqlResult": 0,
+          "failure": null
+        },
+        {
+          "index": 75,
+          "durationMs": 20.0186,
+          "sqlCalls": 5,
+          "rowsReturned": 0,
+          "largestSingleSqlResult": 0,
+          "failure": null
+        },
+        {
+          "index": 76,
+          "durationMs": 14.2829,
+          "sqlCalls": 5,
+          "rowsReturned": 0,
+          "largestSingleSqlResult": 0,
+          "failure": null
+        },
+        {
+          "index": 77,
+          "durationMs": 21.6241,
+          "sqlCalls": 5,
+          "rowsReturned": 0,
+          "largestSingleSqlResult": 0,
+          "failure": null
+        },
+        {
+          "index": 78,
+          "durationMs": 13.1094,
+          "sqlCalls": 5,
+          "rowsReturned": 0,
+          "largestSingleSqlResult": 0,
+          "failure": null
+        },
+        {
+          "index": 79,
+          "durationMs": 11.9799,
+          "sqlCalls": 5,
+          "rowsReturned": 0,
+          "largestSingleSqlResult": 0,
+          "failure": null
+        },
+        {
+          "index": 80,
+          "durationMs": 16.5252,
+          "sqlCalls": 5,
+          "rowsReturned": 0,
+          "largestSingleSqlResult": 0,
+          "failure": null
+        },
+        {
+          "index": 81,
+          "durationMs": 17.643,
+          "sqlCalls": 5,
+          "rowsReturned": 0,
+          "largestSingleSqlResult": 0,
+          "failure": null
+        },
+        {
+          "index": 82,
+          "durationMs": 10.916,
+          "sqlCalls": 5,
+          "rowsReturned": 0,
+          "largestSingleSqlResult": 0,
+          "failure": null
+        },
+        {
+          "index": 83,
+          "durationMs": 13.1263,
+          "sqlCalls": 5,
+          "rowsReturned": 0,
+          "largestSingleSqlResult": 0,
+          "failure": null
+        },
+        {
+          "index": 84,
+          "durationMs": 23.7236,
+          "sqlCalls": 5,
+          "rowsReturned": 0,
+          "largestSingleSqlResult": 0,
+          "failure": null
+        },
+        {
+          "index": 85,
+          "durationMs": 15.6619,
+          "sqlCalls": 5,
+          "rowsReturned": 0,
+          "largestSingleSqlResult": 0,
+          "failure": null
+        },
+        {
+          "index": 86,
+          "durationMs": 13.1238,
+          "sqlCalls": 5,
+          "rowsReturned": 0,
+          "largestSingleSqlResult": 0,
+          "failure": null
+        },
+        {
+          "index": 87,
+          "durationMs": 15.9544,
+          "sqlCalls": 5,
+          "rowsReturned": 0,
+          "largestSingleSqlResult": 0,
+          "failure": null
+        },
+        {
+          "index": 88,
+          "durationMs": 20.264,
+          "sqlCalls": 5,
+          "rowsReturned": 0,
+          "largestSingleSqlResult": 0,
+          "failure": null
+        },
+        {
+          "index": 89,
+          "durationMs": 12.6929,
+          "sqlCalls": 5,
+          "rowsReturned": 0,
+          "largestSingleSqlResult": 0,
+          "failure": null
+        },
+        {
+          "index": 90,
+          "durationMs": 12.1416,
+          "sqlCalls": 5,
+          "rowsReturned": 0,
+          "largestSingleSqlResult": 0,
+          "failure": null
+        },
+        {
+          "index": 91,
+          "durationMs": 21.4896,
+          "sqlCalls": 5,
+          "rowsReturned": 0,
+          "largestSingleSqlResult": 0,
+          "failure": null
+        },
+        {
+          "index": 92,
+          "durationMs": 16.1627,
+          "sqlCalls": 5,
+          "rowsReturned": 0,
+          "largestSingleSqlResult": 0,
+          "failure": null
+        },
+        {
+          "index": 93,
+          "durationMs": 12.7549,
+          "sqlCalls": 5,
+          "rowsReturned": 0,
+          "largestSingleSqlResult": 0,
+          "failure": null
+        },
+        {
+          "index": 94,
+          "durationMs": 14.3236,
+          "sqlCalls": 5,
+          "rowsReturned": 0,
+          "largestSingleSqlResult": 0,
+          "failure": null
+        },
+        {
+          "index": 95,
+          "durationMs": 25.7631,
+          "sqlCalls": 5,
+          "rowsReturned": 0,
+          "largestSingleSqlResult": 0,
+          "failure": null
+        },
+        {
+          "index": 96,
+          "durationMs": 13.0546,
+          "sqlCalls": 5,
+          "rowsReturned": 0,
+          "largestSingleSqlResult": 0,
+          "failure": null
+        },
+        {
+          "index": 97,
+          "durationMs": 23.6874,
+          "sqlCalls": 5,
+          "rowsReturned": 0,
+          "largestSingleSqlResult": 0,
+          "failure": null
+        },
+        {
+          "index": 98,
+          "durationMs": 12.4726,
+          "sqlCalls": 5,
+          "rowsReturned": 0,
+          "largestSingleSqlResult": 0,
+          "failure": null
+        },
+        {
+          "index": 99,
+          "durationMs": 18.378,
+          "sqlCalls": 5,
+          "rowsReturned": 0,
+          "largestSingleSqlResult": 0,
+          "failure": null
+        }
+      ],
+      "datasetBefore": {
+        "notes": 500,
+        "receipts": 0
+      },
+      "datasetAfter": {
+        "notes": 605,
+        "receipts": 105
+      }
+    },
+    "note_edit_transaction": {
+      "warmups": 5,
+      "attempted": 100,
+      "succeeded": 100,
+      "failureCount": 0,
+      "warmupFailures": [],
+      "latencyMs": {
+        "n": 100,
+        "min": 10.5502,
+        "p50": 15.6839,
+        "p95": 35.7882,
+        "max": 42.3387
+      },
+      "rawSamples": [
+        {
+          "index": 0,
+          "durationMs": 10.5502,
+          "sqlCalls": 6,
+          "rowsReturned": 1,
+          "largestSingleSqlResult": 1,
+          "failure": null
+        },
+        {
+          "index": 1,
+          "durationMs": 11.7075,
+          "sqlCalls": 6,
+          "rowsReturned": 1,
+          "largestSingleSqlResult": 1,
+          "failure": null
+        },
+        {
+          "index": 2,
+          "durationMs": 14.1894,
+          "sqlCalls": 6,
+          "rowsReturned": 1,
+          "largestSingleSqlResult": 1,
+          "failure": null
+        },
+        {
+          "index": 3,
+          "durationMs": 12.0838,
+          "sqlCalls": 6,
+          "rowsReturned": 1,
+          "largestSingleSqlResult": 1,
+          "failure": null
+        },
+        {
+          "index": 4,
+          "durationMs": 17.5269,
+          "sqlCalls": 6,
+          "rowsReturned": 1,
+          "largestSingleSqlResult": 1,
+          "failure": null
+        },
+        {
+          "index": 5,
+          "durationMs": 15.0307,
+          "sqlCalls": 6,
+          "rowsReturned": 1,
+          "largestSingleSqlResult": 1,
+          "failure": null
+        },
+        {
+          "index": 6,
+          "durationMs": 12.3327,
+          "sqlCalls": 6,
+          "rowsReturned": 1,
+          "largestSingleSqlResult": 1,
+          "failure": null
+        },
+        {
+          "index": 7,
+          "durationMs": 14.1427,
+          "sqlCalls": 6,
+          "rowsReturned": 1,
+          "largestSingleSqlResult": 1,
+          "failure": null
+        },
+        {
+          "index": 8,
+          "durationMs": 20.9657,
+          "sqlCalls": 6,
+          "rowsReturned": 1,
+          "largestSingleSqlResult": 1,
+          "failure": null
+        },
+        {
+          "index": 9,
+          "durationMs": 11.2046,
+          "sqlCalls": 6,
+          "rowsReturned": 1,
+          "largestSingleSqlResult": 1,
+          "failure": null
+        },
+        {
+          "index": 10,
+          "durationMs": 11.2395,
+          "sqlCalls": 6,
+          "rowsReturned": 1,
+          "largestSingleSqlResult": 1,
+          "failure": null
+        },
+        {
+          "index": 11,
+          "durationMs": 18.0189,
+          "sqlCalls": 6,
+          "rowsReturned": 1,
+          "largestSingleSqlResult": 1,
+          "failure": null
+        },
+        {
+          "index": 12,
+          "durationMs": 18.791,
+          "sqlCalls": 6,
+          "rowsReturned": 1,
+          "largestSingleSqlResult": 1,
+          "failure": null
+        },
+        {
+          "index": 13,
+          "durationMs": 12.2067,
+          "sqlCalls": 6,
+          "rowsReturned": 1,
+          "largestSingleSqlResult": 1,
+          "failure": null
+        },
+        {
+          "index": 14,
+          "durationMs": 15.0926,
+          "sqlCalls": 6,
+          "rowsReturned": 1,
+          "largestSingleSqlResult": 1,
+          "failure": null
+        },
+        {
+          "index": 15,
+          "durationMs": 11.8938,
+          "sqlCalls": 6,
+          "rowsReturned": 1,
+          "largestSingleSqlResult": 1,
+          "failure": null
+        },
+        {
+          "index": 16,
+          "durationMs": 17.0929,
+          "sqlCalls": 6,
+          "rowsReturned": 1,
+          "largestSingleSqlResult": 1,
+          "failure": null
+        },
+        {
+          "index": 17,
+          "durationMs": 14.4516,
+          "sqlCalls": 6,
+          "rowsReturned": 1,
+          "largestSingleSqlResult": 1,
+          "failure": null
+        },
+        {
+          "index": 18,
+          "durationMs": 12.0147,
+          "sqlCalls": 6,
+          "rowsReturned": 1,
+          "largestSingleSqlResult": 1,
+          "failure": null
+        },
+        {
+          "index": 19,
+          "durationMs": 23.4725,
+          "sqlCalls": 6,
+          "rowsReturned": 1,
+          "largestSingleSqlResult": 1,
+          "failure": null
+        },
+        {
+          "index": 20,
+          "durationMs": 11.5356,
+          "sqlCalls": 6,
+          "rowsReturned": 1,
+          "largestSingleSqlResult": 1,
+          "failure": null
+        },
+        {
+          "index": 21,
+          "durationMs": 22.9102,
+          "sqlCalls": 6,
+          "rowsReturned": 1,
+          "largestSingleSqlResult": 1,
+          "failure": null
+        },
+        {
+          "index": 22,
+          "durationMs": 11.8946,
+          "sqlCalls": 6,
+          "rowsReturned": 1,
+          "largestSingleSqlResult": 1,
+          "failure": null
+        },
+        {
+          "index": 23,
+          "durationMs": 16.5394,
+          "sqlCalls": 6,
+          "rowsReturned": 1,
+          "largestSingleSqlResult": 1,
+          "failure": null
+        },
+        {
+          "index": 24,
+          "durationMs": 11.9464,
+          "sqlCalls": 6,
+          "rowsReturned": 1,
+          "largestSingleSqlResult": 1,
+          "failure": null
+        },
+        {
+          "index": 25,
+          "durationMs": 15.1363,
+          "sqlCalls": 6,
+          "rowsReturned": 1,
+          "largestSingleSqlResult": 1,
+          "failure": null
+        },
+        {
+          "index": 26,
+          "durationMs": 17.7683,
+          "sqlCalls": 6,
+          "rowsReturned": 1,
+          "largestSingleSqlResult": 1,
+          "failure": null
+        },
+        {
+          "index": 27,
+          "durationMs": 11.285,
+          "sqlCalls": 6,
+          "rowsReturned": 1,
+          "largestSingleSqlResult": 1,
+          "failure": null
+        },
+        {
+          "index": 28,
+          "durationMs": 21.4139,
+          "sqlCalls": 6,
+          "rowsReturned": 1,
+          "largestSingleSqlResult": 1,
+          "failure": null
+        },
+        {
+          "index": 29,
+          "durationMs": 18.6199,
+          "sqlCalls": 6,
+          "rowsReturned": 1,
+          "largestSingleSqlResult": 1,
+          "failure": null
+        },
+        {
+          "index": 30,
+          "durationMs": 21.3103,
+          "sqlCalls": 6,
+          "rowsReturned": 1,
+          "largestSingleSqlResult": 1,
+          "failure": null
+        },
+        {
+          "index": 31,
+          "durationMs": 10.832,
+          "sqlCalls": 6,
+          "rowsReturned": 1,
+          "largestSingleSqlResult": 1,
+          "failure": null
+        },
+        {
+          "index": 32,
+          "durationMs": 14.2714,
+          "sqlCalls": 6,
+          "rowsReturned": 1,
+          "largestSingleSqlResult": 1,
+          "failure": null
+        },
+        {
+          "index": 33,
+          "durationMs": 10.9665,
+          "sqlCalls": 6,
+          "rowsReturned": 1,
+          "largestSingleSqlResult": 1,
+          "failure": null
+        },
+        {
+          "index": 34,
+          "durationMs": 10.5589,
+          "sqlCalls": 6,
+          "rowsReturned": 1,
+          "largestSingleSqlResult": 1,
+          "failure": null
+        },
+        {
+          "index": 35,
+          "durationMs": 14.827,
+          "sqlCalls": 6,
+          "rowsReturned": 1,
+          "largestSingleSqlResult": 1,
+          "failure": null
+        },
+        {
+          "index": 36,
+          "durationMs": 13.6129,
+          "sqlCalls": 6,
+          "rowsReturned": 1,
+          "largestSingleSqlResult": 1,
+          "failure": null
+        },
+        {
+          "index": 37,
+          "durationMs": 22.0055,
+          "sqlCalls": 6,
+          "rowsReturned": 1,
+          "largestSingleSqlResult": 1,
+          "failure": null
+        },
+        {
+          "index": 38,
+          "durationMs": 17.0871,
+          "sqlCalls": 6,
+          "rowsReturned": 1,
+          "largestSingleSqlResult": 1,
+          "failure": null
+        },
+        {
+          "index": 39,
+          "durationMs": 14.2797,
+          "sqlCalls": 6,
+          "rowsReturned": 1,
+          "largestSingleSqlResult": 1,
+          "failure": null
+        },
+        {
+          "index": 40,
+          "durationMs": 26.4944,
+          "sqlCalls": 6,
+          "rowsReturned": 1,
+          "largestSingleSqlResult": 1,
+          "failure": null
+        },
+        {
+          "index": 41,
+          "durationMs": 17.8962,
+          "sqlCalls": 6,
+          "rowsReturned": 1,
+          "largestSingleSqlResult": 1,
+          "failure": null
+        },
+        {
+          "index": 42,
+          "durationMs": 14.2956,
+          "sqlCalls": 6,
+          "rowsReturned": 1,
+          "largestSingleSqlResult": 1,
+          "failure": null
+        },
+        {
+          "index": 43,
+          "durationMs": 19.5752,
+          "sqlCalls": 6,
+          "rowsReturned": 1,
+          "largestSingleSqlResult": 1,
+          "failure": null
+        },
+        {
+          "index": 44,
+          "durationMs": 28.5568,
+          "sqlCalls": 6,
+          "rowsReturned": 1,
+          "largestSingleSqlResult": 1,
+          "failure": null
+        },
+        {
+          "index": 45,
+          "durationMs": 15.6903,
+          "sqlCalls": 6,
+          "rowsReturned": 1,
+          "largestSingleSqlResult": 1,
+          "failure": null
+        },
+        {
+          "index": 46,
+          "durationMs": 14.0059,
+          "sqlCalls": 6,
+          "rowsReturned": 1,
+          "largestSingleSqlResult": 1,
+          "failure": null
+        },
+        {
+          "index": 47,
+          "durationMs": 13.8053,
+          "sqlCalls": 6,
+          "rowsReturned": 1,
+          "largestSingleSqlResult": 1,
+          "failure": null
+        },
+        {
+          "index": 48,
+          "durationMs": 22.0485,
+          "sqlCalls": 6,
+          "rowsReturned": 1,
+          "largestSingleSqlResult": 1,
+          "failure": null
+        },
+        {
+          "index": 49,
+          "durationMs": 15.1222,
+          "sqlCalls": 6,
+          "rowsReturned": 1,
+          "largestSingleSqlResult": 1,
+          "failure": null
+        },
+        {
+          "index": 50,
+          "durationMs": 14.2749,
+          "sqlCalls": 6,
+          "rowsReturned": 1,
+          "largestSingleSqlResult": 1,
+          "failure": null
+        },
+        {
+          "index": 51,
+          "durationMs": 13.0536,
+          "sqlCalls": 6,
+          "rowsReturned": 1,
+          "largestSingleSqlResult": 1,
+          "failure": null
+        },
+        {
+          "index": 52,
+          "durationMs": 12.8199,
+          "sqlCalls": 6,
+          "rowsReturned": 1,
+          "largestSingleSqlResult": 1,
+          "failure": null
+        },
+        {
+          "index": 53,
+          "durationMs": 13.041,
+          "sqlCalls": 6,
+          "rowsReturned": 1,
+          "largestSingleSqlResult": 1,
+          "failure": null
+        },
+        {
+          "index": 54,
+          "durationMs": 13.0463,
+          "sqlCalls": 6,
+          "rowsReturned": 1,
+          "largestSingleSqlResult": 1,
+          "failure": null
+        },
+        {
+          "index": 55,
+          "durationMs": 19.7997,
+          "sqlCalls": 6,
+          "rowsReturned": 1,
+          "largestSingleSqlResult": 1,
+          "failure": null
+        },
+        {
+          "index": 56,
+          "durationMs": 11.0584,
+          "sqlCalls": 6,
+          "rowsReturned": 1,
+          "largestSingleSqlResult": 1,
+          "failure": null
+        },
+        {
+          "index": 57,
+          "durationMs": 15.6839,
+          "sqlCalls": 6,
+          "rowsReturned": 1,
+          "largestSingleSqlResult": 1,
+          "failure": null
+        },
+        {
+          "index": 58,
+          "durationMs": 21.9715,
+          "sqlCalls": 6,
+          "rowsReturned": 1,
+          "largestSingleSqlResult": 1,
+          "failure": null
+        },
+        {
+          "index": 59,
+          "durationMs": 29.9977,
+          "sqlCalls": 6,
+          "rowsReturned": 1,
+          "largestSingleSqlResult": 1,
+          "failure": null
+        },
+        {
+          "index": 60,
+          "durationMs": 42.3387,
+          "sqlCalls": 6,
+          "rowsReturned": 1,
+          "largestSingleSqlResult": 1,
+          "failure": null
+        },
+        {
+          "index": 61,
+          "durationMs": 19.9606,
+          "sqlCalls": 6,
+          "rowsReturned": 1,
+          "largestSingleSqlResult": 1,
+          "failure": null
+        },
+        {
+          "index": 62,
+          "durationMs": 25.1274,
+          "sqlCalls": 6,
+          "rowsReturned": 1,
+          "largestSingleSqlResult": 1,
+          "failure": null
+        },
+        {
+          "index": 63,
+          "durationMs": 35.7882,
+          "sqlCalls": 6,
+          "rowsReturned": 1,
+          "largestSingleSqlResult": 1,
+          "failure": null
+        },
+        {
+          "index": 64,
+          "durationMs": 28.8425,
+          "sqlCalls": 6,
+          "rowsReturned": 1,
+          "largestSingleSqlResult": 1,
+          "failure": null
+        },
+        {
+          "index": 65,
+          "durationMs": 22.3433,
+          "sqlCalls": 6,
+          "rowsReturned": 1,
+          "largestSingleSqlResult": 1,
+          "failure": null
+        },
+        {
+          "index": 66,
+          "durationMs": 28.0268,
+          "sqlCalls": 6,
+          "rowsReturned": 1,
+          "largestSingleSqlResult": 1,
+          "failure": null
+        },
+        {
+          "index": 67,
+          "durationMs": 42.2691,
+          "sqlCalls": 6,
+          "rowsReturned": 1,
+          "largestSingleSqlResult": 1,
+          "failure": null
+        },
+        {
+          "index": 68,
+          "durationMs": 25.7912,
+          "sqlCalls": 6,
+          "rowsReturned": 1,
+          "largestSingleSqlResult": 1,
+          "failure": null
+        },
+        {
+          "index": 69,
+          "durationMs": 12.1513,
+          "sqlCalls": 6,
+          "rowsReturned": 1,
+          "largestSingleSqlResult": 1,
+          "failure": null
+        },
+        {
+          "index": 70,
+          "durationMs": 13.0059,
+          "sqlCalls": 6,
+          "rowsReturned": 1,
+          "largestSingleSqlResult": 1,
+          "failure": null
+        },
+        {
+          "index": 71,
+          "durationMs": 22.2434,
+          "sqlCalls": 6,
+          "rowsReturned": 1,
+          "largestSingleSqlResult": 1,
+          "failure": null
+        },
+        {
+          "index": 72,
+          "durationMs": 28.5053,
+          "sqlCalls": 6,
+          "rowsReturned": 1,
+          "largestSingleSqlResult": 1,
+          "failure": null
+        },
+        {
+          "index": 73,
+          "durationMs": 37.7703,
+          "sqlCalls": 6,
+          "rowsReturned": 1,
+          "largestSingleSqlResult": 1,
+          "failure": null
+        },
+        {
+          "index": 74,
+          "durationMs": 42.3144,
+          "sqlCalls": 6,
+          "rowsReturned": 1,
+          "largestSingleSqlResult": 1,
+          "failure": null
+        },
+        {
+          "index": 75,
+          "durationMs": 12.4985,
+          "sqlCalls": 6,
+          "rowsReturned": 1,
+          "largestSingleSqlResult": 1,
+          "failure": null
+        },
+        {
+          "index": 76,
+          "durationMs": 16.0041,
+          "sqlCalls": 6,
+          "rowsReturned": 1,
+          "largestSingleSqlResult": 1,
+          "failure": null
+        },
+        {
+          "index": 77,
+          "durationMs": 25.5513,
+          "sqlCalls": 6,
+          "rowsReturned": 1,
+          "largestSingleSqlResult": 1,
+          "failure": null
+        },
+        {
+          "index": 78,
+          "durationMs": 22.7091,
+          "sqlCalls": 6,
+          "rowsReturned": 1,
+          "largestSingleSqlResult": 1,
+          "failure": null
+        },
+        {
+          "index": 79,
+          "durationMs": 11.0027,
+          "sqlCalls": 6,
+          "rowsReturned": 1,
+          "largestSingleSqlResult": 1,
+          "failure": null
+        },
+        {
+          "index": 80,
+          "durationMs": 41.8998,
+          "sqlCalls": 6,
+          "rowsReturned": 1,
+          "largestSingleSqlResult": 1,
+          "failure": null
+        },
+        {
+          "index": 81,
+          "durationMs": 22.2707,
+          "sqlCalls": 6,
+          "rowsReturned": 1,
+          "largestSingleSqlResult": 1,
+          "failure": null
+        },
+        {
+          "index": 82,
+          "durationMs": 18.5557,
+          "sqlCalls": 6,
+          "rowsReturned": 1,
+          "largestSingleSqlResult": 1,
+          "failure": null
+        },
+        {
+          "index": 83,
+          "durationMs": 14.9724,
+          "sqlCalls": 6,
+          "rowsReturned": 1,
+          "largestSingleSqlResult": 1,
+          "failure": null
+        },
+        {
+          "index": 84,
+          "durationMs": 23.4765,
+          "sqlCalls": 6,
+          "rowsReturned": 1,
+          "largestSingleSqlResult": 1,
+          "failure": null
+        },
+        {
+          "index": 85,
+          "durationMs": 19.3982,
+          "sqlCalls": 6,
+          "rowsReturned": 1,
+          "largestSingleSqlResult": 1,
+          "failure": null
+        },
+        {
+          "index": 86,
+          "durationMs": 23.492,
+          "sqlCalls": 6,
+          "rowsReturned": 1,
+          "largestSingleSqlResult": 1,
+          "failure": null
+        },
+        {
+          "index": 87,
+          "durationMs": 14.5266,
+          "sqlCalls": 6,
+          "rowsReturned": 1,
+          "largestSingleSqlResult": 1,
+          "failure": null
+        },
+        {
+          "index": 88,
+          "durationMs": 11.1205,
+          "sqlCalls": 6,
+          "rowsReturned": 1,
+          "largestSingleSqlResult": 1,
+          "failure": null
+        },
+        {
+          "index": 89,
+          "durationMs": 17.5772,
+          "sqlCalls": 6,
+          "rowsReturned": 1,
+          "largestSingleSqlResult": 1,
+          "failure": null
+        },
+        {
+          "index": 90,
+          "durationMs": 14.3875,
+          "sqlCalls": 6,
+          "rowsReturned": 1,
+          "largestSingleSqlResult": 1,
+          "failure": null
+        },
+        {
+          "index": 91,
+          "durationMs": 30.9123,
+          "sqlCalls": 6,
+          "rowsReturned": 1,
+          "largestSingleSqlResult": 1,
+          "failure": null
+        },
+        {
+          "index": 92,
+          "durationMs": 14.7715,
+          "sqlCalls": 6,
+          "rowsReturned": 1,
+          "largestSingleSqlResult": 1,
+          "failure": null
+        },
+        {
+          "index": 93,
+          "durationMs": 26.1866,
+          "sqlCalls": 6,
+          "rowsReturned": 1,
+          "largestSingleSqlResult": 1,
+          "failure": null
+        },
+        {
+          "index": 94,
+          "durationMs": 11.6777,
+          "sqlCalls": 6,
+          "rowsReturned": 1,
+          "largestSingleSqlResult": 1,
+          "failure": null
+        },
+        {
+          "index": 95,
+          "durationMs": 11.4198,
+          "sqlCalls": 6,
+          "rowsReturned": 1,
+          "largestSingleSqlResult": 1,
+          "failure": null
+        },
+        {
+          "index": 96,
+          "durationMs": 21.1769,
+          "sqlCalls": 6,
+          "rowsReturned": 1,
+          "largestSingleSqlResult": 1,
+          "failure": null
+        },
+        {
+          "index": 97,
+          "durationMs": 11.5229,
+          "sqlCalls": 6,
+          "rowsReturned": 1,
+          "largestSingleSqlResult": 1,
+          "failure": null
+        },
+        {
+          "index": 98,
+          "durationMs": 11.2619,
+          "sqlCalls": 6,
+          "rowsReturned": 1,
+          "largestSingleSqlResult": 1,
+          "failure": null
+        },
+        {
+          "index": 99,
+          "durationMs": 18.4639,
+          "sqlCalls": 6,
+          "rowsReturned": 1,
+          "largestSingleSqlResult": 1,
+          "failure": null
+        }
+      ],
+      "datasetBefore": {
+        "notes": 605,
+        "receipts": 105
+      },
+      "datasetAfter": {
+        "notes": 605,
+        "receipts": 210
+      }
+    },
+    "notes_first_page_20": {
+      "warmups": 5,
+      "attempted": 100,
+      "succeeded": 100,
+      "failureCount": 0,
+      "warmupFailures": [],
+      "latencyMs": {
+        "n": 100,
+        "min": 0.6655,
+        "p50": 0.9714,
+        "p95": 1.3816,
+        "max": 3.7581
+      },
+      "rawSamples": [
+        {
+          "index": 0,
+          "durationMs": 1.1401,
+          "sqlCalls": 1,
+          "rowsReturned": 21,
+          "largestSingleSqlResult": 21,
+          "failure": null
+        },
+        {
+          "index": 1,
+          "durationMs": 1.211,
+          "sqlCalls": 1,
+          "rowsReturned": 21,
+          "largestSingleSqlResult": 21,
+          "failure": null
+        },
+        {
+          "index": 2,
+          "durationMs": 1.2756,
+          "sqlCalls": 1,
+          "rowsReturned": 21,
+          "largestSingleSqlResult": 21,
+          "failure": null
+        },
+        {
+          "index": 3,
+          "durationMs": 1.3477,
+          "sqlCalls": 1,
+          "rowsReturned": 21,
+          "largestSingleSqlResult": 21,
+          "failure": null
+        },
+        {
+          "index": 4,
+          "durationMs": 1.3521,
+          "sqlCalls": 1,
+          "rowsReturned": 21,
+          "largestSingleSqlResult": 21,
+          "failure": null
+        },
+        {
+          "index": 5,
+          "durationMs": 1.3231,
+          "sqlCalls": 1,
+          "rowsReturned": 21,
+          "largestSingleSqlResult": 21,
+          "failure": null
+        },
+        {
+          "index": 6,
+          "durationMs": 1.1873,
+          "sqlCalls": 1,
+          "rowsReturned": 21,
+          "largestSingleSqlResult": 21,
+          "failure": null
+        },
+        {
+          "index": 7,
+          "durationMs": 1.2137,
+          "sqlCalls": 1,
+          "rowsReturned": 21,
+          "largestSingleSqlResult": 21,
+          "failure": null
+        },
+        {
+          "index": 8,
+          "durationMs": 0.866,
+          "sqlCalls": 1,
+          "rowsReturned": 21,
+          "largestSingleSqlResult": 21,
+          "failure": null
+        },
+        {
+          "index": 9,
+          "durationMs": 0.9804,
+          "sqlCalls": 1,
+          "rowsReturned": 21,
+          "largestSingleSqlResult": 21,
+          "failure": null
+        },
+        {
+          "index": 10,
+          "durationMs": 1.5167,
+          "sqlCalls": 1,
+          "rowsReturned": 21,
+          "largestSingleSqlResult": 21,
+          "failure": null
+        },
+        {
+          "index": 11,
+          "durationMs": 1.205,
+          "sqlCalls": 1,
+          "rowsReturned": 21,
+          "largestSingleSqlResult": 21,
+          "failure": null
+        },
+        {
+          "index": 12,
+          "durationMs": 1.0286,
+          "sqlCalls": 1,
+          "rowsReturned": 21,
+          "largestSingleSqlResult": 21,
+          "failure": null
+        },
+        {
+          "index": 13,
+          "durationMs": 0.9276,
+          "sqlCalls": 1,
+          "rowsReturned": 21,
+          "largestSingleSqlResult": 21,
+          "failure": null
+        },
+        {
+          "index": 14,
+          "durationMs": 0.7952,
+          "sqlCalls": 1,
+          "rowsReturned": 21,
+          "largestSingleSqlResult": 21,
+          "failure": null
+        },
+        {
+          "index": 15,
+          "durationMs": 0.8748,
+          "sqlCalls": 1,
+          "rowsReturned": 21,
+          "largestSingleSqlResult": 21,
+          "failure": null
+        },
+        {
+          "index": 16,
+          "durationMs": 1.016,
+          "sqlCalls": 1,
+          "rowsReturned": 21,
+          "largestSingleSqlResult": 21,
+          "failure": null
+        },
+        {
+          "index": 17,
+          "durationMs": 1.5692,
+          "sqlCalls": 1,
+          "rowsReturned": 21,
+          "largestSingleSqlResult": 21,
+          "failure": null
+        },
+        {
+          "index": 18,
+          "durationMs": 1.3809,
+          "sqlCalls": 1,
+          "rowsReturned": 21,
+          "largestSingleSqlResult": 21,
+          "failure": null
+        },
+        {
+          "index": 19,
+          "durationMs": 1.2859,
+          "sqlCalls": 1,
+          "rowsReturned": 21,
+          "largestSingleSqlResult": 21,
+          "failure": null
+        },
+        {
+          "index": 20,
+          "durationMs": 3.7581,
+          "sqlCalls": 1,
+          "rowsReturned": 21,
+          "largestSingleSqlResult": 21,
+          "failure": null
+        },
+        {
+          "index": 21,
+          "durationMs": 1.3038,
+          "sqlCalls": 1,
+          "rowsReturned": 21,
+          "largestSingleSqlResult": 21,
+          "failure": null
+        },
+        {
+          "index": 22,
+          "durationMs": 1.3663,
+          "sqlCalls": 1,
+          "rowsReturned": 21,
+          "largestSingleSqlResult": 21,
+          "failure": null
+        },
+        {
+          "index": 23,
+          "durationMs": 1.2517,
+          "sqlCalls": 1,
+          "rowsReturned": 21,
+          "largestSingleSqlResult": 21,
+          "failure": null
+        },
+        {
+          "index": 24,
+          "durationMs": 1.1117,
+          "sqlCalls": 1,
+          "rowsReturned": 21,
+          "largestSingleSqlResult": 21,
+          "failure": null
+        },
+        {
+          "index": 25,
+          "durationMs": 0.9978,
+          "sqlCalls": 1,
+          "rowsReturned": 21,
+          "largestSingleSqlResult": 21,
+          "failure": null
+        },
+        {
+          "index": 26,
+          "durationMs": 0.9286,
+          "sqlCalls": 1,
+          "rowsReturned": 21,
+          "largestSingleSqlResult": 21,
+          "failure": null
+        },
+        {
+          "index": 27,
+          "durationMs": 1.301,
+          "sqlCalls": 1,
+          "rowsReturned": 21,
+          "largestSingleSqlResult": 21,
+          "failure": null
+        },
+        {
+          "index": 28,
+          "durationMs": 1.2911,
+          "sqlCalls": 1,
+          "rowsReturned": 21,
+          "largestSingleSqlResult": 21,
+          "failure": null
+        },
+        {
+          "index": 29,
+          "durationMs": 1.3626,
+          "sqlCalls": 1,
+          "rowsReturned": 21,
+          "largestSingleSqlResult": 21,
+          "failure": null
+        },
+        {
+          "index": 30,
+          "durationMs": 1.3002,
+          "sqlCalls": 1,
+          "rowsReturned": 21,
+          "largestSingleSqlResult": 21,
+          "failure": null
+        },
+        {
+          "index": 31,
+          "durationMs": 1.1644,
+          "sqlCalls": 1,
+          "rowsReturned": 21,
+          "largestSingleSqlResult": 21,
+          "failure": null
+        },
+        {
+          "index": 32,
+          "durationMs": 1.1641,
+          "sqlCalls": 1,
+          "rowsReturned": 21,
+          "largestSingleSqlResult": 21,
+          "failure": null
+        },
+        {
+          "index": 33,
+          "durationMs": 0.854,
+          "sqlCalls": 1,
+          "rowsReturned": 21,
+          "largestSingleSqlResult": 21,
+          "failure": null
+        },
+        {
+          "index": 34,
+          "durationMs": 0.8337,
+          "sqlCalls": 1,
+          "rowsReturned": 21,
+          "largestSingleSqlResult": 21,
+          "failure": null
+        },
+        {
+          "index": 35,
+          "durationMs": 1.1716,
+          "sqlCalls": 1,
+          "rowsReturned": 21,
+          "largestSingleSqlResult": 21,
+          "failure": null
+        },
+        {
+          "index": 36,
+          "durationMs": 1.2952,
+          "sqlCalls": 1,
+          "rowsReturned": 21,
+          "largestSingleSqlResult": 21,
+          "failure": null
+        },
+        {
+          "index": 37,
+          "durationMs": 1.3745,
+          "sqlCalls": 1,
+          "rowsReturned": 21,
+          "largestSingleSqlResult": 21,
+          "failure": null
+        },
+        {
+          "index": 38,
+          "durationMs": 1.218,
+          "sqlCalls": 1,
+          "rowsReturned": 21,
+          "largestSingleSqlResult": 21,
+          "failure": null
+        },
+        {
+          "index": 39,
+          "durationMs": 1.3476,
+          "sqlCalls": 1,
+          "rowsReturned": 21,
+          "largestSingleSqlResult": 21,
+          "failure": null
+        },
+        {
+          "index": 40,
+          "durationMs": 1.3816,
+          "sqlCalls": 1,
+          "rowsReturned": 21,
+          "largestSingleSqlResult": 21,
+          "failure": null
+        },
+        {
+          "index": 41,
+          "durationMs": 1.528,
+          "sqlCalls": 1,
+          "rowsReturned": 21,
+          "largestSingleSqlResult": 21,
+          "failure": null
+        },
+        {
+          "index": 42,
+          "durationMs": 0.7191,
+          "sqlCalls": 1,
+          "rowsReturned": 21,
+          "largestSingleSqlResult": 21,
+          "failure": null
+        },
+        {
+          "index": 43,
+          "durationMs": 1.1262,
+          "sqlCalls": 1,
+          "rowsReturned": 21,
+          "largestSingleSqlResult": 21,
+          "failure": null
+        },
+        {
+          "index": 44,
+          "durationMs": 0.6655,
+          "sqlCalls": 1,
+          "rowsReturned": 21,
+          "largestSingleSqlResult": 21,
+          "failure": null
+        },
+        {
+          "index": 45,
+          "durationMs": 0.7659,
+          "sqlCalls": 1,
+          "rowsReturned": 21,
+          "largestSingleSqlResult": 21,
+          "failure": null
+        },
+        {
+          "index": 46,
+          "durationMs": 0.866,
+          "sqlCalls": 1,
+          "rowsReturned": 21,
+          "largestSingleSqlResult": 21,
+          "failure": null
+        },
+        {
+          "index": 47,
+          "durationMs": 1.0065,
+          "sqlCalls": 1,
+          "rowsReturned": 21,
+          "largestSingleSqlResult": 21,
+          "failure": null
+        },
+        {
+          "index": 48,
+          "durationMs": 1.0957,
+          "sqlCalls": 1,
+          "rowsReturned": 21,
+          "largestSingleSqlResult": 21,
+          "failure": null
+        },
+        {
+          "index": 49,
+          "durationMs": 0.8674,
+          "sqlCalls": 1,
+          "rowsReturned": 21,
+          "largestSingleSqlResult": 21,
+          "failure": null
+        },
+        {
+          "index": 50,
+          "durationMs": 0.7562,
+          "sqlCalls": 1,
+          "rowsReturned": 21,
+          "largestSingleSqlResult": 21,
+          "failure": null
+        },
+        {
+          "index": 51,
+          "durationMs": 0.7839,
+          "sqlCalls": 1,
+          "rowsReturned": 21,
+          "largestSingleSqlResult": 21,
+          "failure": null
+        },
+        {
+          "index": 52,
+          "durationMs": 0.8267,
+          "sqlCalls": 1,
+          "rowsReturned": 21,
+          "largestSingleSqlResult": 21,
+          "failure": null
+        },
+        {
+          "index": 53,
+          "durationMs": 0.78,
+          "sqlCalls": 1,
+          "rowsReturned": 21,
+          "largestSingleSqlResult": 21,
+          "failure": null
+        },
+        {
+          "index": 54,
+          "durationMs": 0.7145,
+          "sqlCalls": 1,
+          "rowsReturned": 21,
+          "largestSingleSqlResult": 21,
+          "failure": null
+        },
+        {
+          "index": 55,
+          "durationMs": 0.7061,
+          "sqlCalls": 1,
+          "rowsReturned": 21,
+          "largestSingleSqlResult": 21,
+          "failure": null
+        },
+        {
+          "index": 56,
+          "durationMs": 0.7242,
+          "sqlCalls": 1,
+          "rowsReturned": 21,
+          "largestSingleSqlResult": 21,
+          "failure": null
+        },
+        {
+          "index": 57,
+          "durationMs": 0.9422,
+          "sqlCalls": 1,
+          "rowsReturned": 21,
+          "largestSingleSqlResult": 21,
+          "failure": null
+        },
+        {
+          "index": 58,
+          "durationMs": 0.8389,
+          "sqlCalls": 1,
+          "rowsReturned": 21,
+          "largestSingleSqlResult": 21,
+          "failure": null
+        },
+        {
+          "index": 59,
+          "durationMs": 1.0273,
+          "sqlCalls": 1,
+          "rowsReturned": 21,
+          "largestSingleSqlResult": 21,
+          "failure": null
+        },
+        {
+          "index": 60,
+          "durationMs": 0.9179,
+          "sqlCalls": 1,
+          "rowsReturned": 21,
+          "largestSingleSqlResult": 21,
+          "failure": null
+        },
+        {
+          "index": 61,
+          "durationMs": 0.8136,
+          "sqlCalls": 1,
+          "rowsReturned": 21,
+          "largestSingleSqlResult": 21,
+          "failure": null
+        },
+        {
+          "index": 62,
+          "durationMs": 0.7901,
+          "sqlCalls": 1,
+          "rowsReturned": 21,
+          "largestSingleSqlResult": 21,
+          "failure": null
+        },
+        {
+          "index": 63,
+          "durationMs": 1.6999,
+          "sqlCalls": 1,
+          "rowsReturned": 21,
+          "largestSingleSqlResult": 21,
+          "failure": null
+        },
+        {
+          "index": 64,
+          "durationMs": 1.0458,
+          "sqlCalls": 1,
+          "rowsReturned": 21,
+          "largestSingleSqlResult": 21,
+          "failure": null
+        },
+        {
+          "index": 65,
+          "durationMs": 0.8187,
+          "sqlCalls": 1,
+          "rowsReturned": 21,
+          "largestSingleSqlResult": 21,
+          "failure": null
+        },
+        {
+          "index": 66,
+          "durationMs": 0.7926,
+          "sqlCalls": 1,
+          "rowsReturned": 21,
+          "largestSingleSqlResult": 21,
+          "failure": null
+        },
+        {
+          "index": 67,
+          "durationMs": 0.728,
+          "sqlCalls": 1,
+          "rowsReturned": 21,
+          "largestSingleSqlResult": 21,
+          "failure": null
+        },
+        {
+          "index": 68,
+          "durationMs": 0.7618,
+          "sqlCalls": 1,
+          "rowsReturned": 21,
+          "largestSingleSqlResult": 21,
+          "failure": null
+        },
+        {
+          "index": 69,
+          "durationMs": 0.6968,
+          "sqlCalls": 1,
+          "rowsReturned": 21,
+          "largestSingleSqlResult": 21,
+          "failure": null
+        },
+        {
+          "index": 70,
+          "durationMs": 0.7285,
+          "sqlCalls": 1,
+          "rowsReturned": 21,
+          "largestSingleSqlResult": 21,
+          "failure": null
+        },
+        {
+          "index": 71,
+          "durationMs": 0.7153,
+          "sqlCalls": 1,
+          "rowsReturned": 21,
+          "largestSingleSqlResult": 21,
+          "failure": null
+        },
+        {
+          "index": 72,
+          "durationMs": 0.7582,
+          "sqlCalls": 1,
+          "rowsReturned": 21,
+          "largestSingleSqlResult": 21,
+          "failure": null
+        },
+        {
+          "index": 73,
+          "durationMs": 0.7529,
+          "sqlCalls": 1,
+          "rowsReturned": 21,
+          "largestSingleSqlResult": 21,
+          "failure": null
+        },
+        {
+          "index": 74,
+          "durationMs": 0.7496,
+          "sqlCalls": 1,
+          "rowsReturned": 21,
+          "largestSingleSqlResult": 21,
+          "failure": null
+        },
+        {
+          "index": 75,
+          "durationMs": 0.7632,
+          "sqlCalls": 1,
+          "rowsReturned": 21,
+          "largestSingleSqlResult": 21,
+          "failure": null
+        },
+        {
+          "index": 76,
+          "durationMs": 1.0753,
+          "sqlCalls": 1,
+          "rowsReturned": 21,
+          "largestSingleSqlResult": 21,
+          "failure": null
+        },
+        {
+          "index": 77,
+          "durationMs": 0.698,
+          "sqlCalls": 1,
+          "rowsReturned": 21,
+          "largestSingleSqlResult": 21,
+          "failure": null
+        },
+        {
+          "index": 78,
+          "durationMs": 0.9799,
+          "sqlCalls": 1,
+          "rowsReturned": 21,
+          "largestSingleSqlResult": 21,
+          "failure": null
+        },
+        {
+          "index": 79,
+          "durationMs": 1.2798,
+          "sqlCalls": 1,
+          "rowsReturned": 21,
+          "largestSingleSqlResult": 21,
+          "failure": null
+        },
+        {
+          "index": 80,
+          "durationMs": 1.0108,
+          "sqlCalls": 1,
+          "rowsReturned": 21,
+          "largestSingleSqlResult": 21,
+          "failure": null
+        },
+        {
+          "index": 81,
+          "durationMs": 0.8169,
+          "sqlCalls": 1,
+          "rowsReturned": 21,
+          "largestSingleSqlResult": 21,
+          "failure": null
+        },
+        {
+          "index": 82,
+          "durationMs": 1.2793,
+          "sqlCalls": 1,
+          "rowsReturned": 21,
+          "largestSingleSqlResult": 21,
+          "failure": null
+        },
+        {
+          "index": 83,
+          "durationMs": 1.2597,
+          "sqlCalls": 1,
+          "rowsReturned": 21,
+          "largestSingleSqlResult": 21,
+          "failure": null
+        },
+        {
+          "index": 84,
+          "durationMs": 1.3692,
+          "sqlCalls": 1,
+          "rowsReturned": 21,
+          "largestSingleSqlResult": 21,
+          "failure": null
+        },
+        {
+          "index": 85,
+          "durationMs": 0.9714,
+          "sqlCalls": 1,
+          "rowsReturned": 21,
+          "largestSingleSqlResult": 21,
+          "failure": null
+        },
+        {
+          "index": 86,
+          "durationMs": 0.891,
+          "sqlCalls": 1,
+          "rowsReturned": 21,
+          "largestSingleSqlResult": 21,
+          "failure": null
+        },
+        {
+          "index": 87,
+          "durationMs": 1.1606,
+          "sqlCalls": 1,
+          "rowsReturned": 21,
+          "largestSingleSqlResult": 21,
+          "failure": null
+        },
+        {
+          "index": 88,
+          "durationMs": 1.307,
+          "sqlCalls": 1,
+          "rowsReturned": 21,
+          "largestSingleSqlResult": 21,
+          "failure": null
+        },
+        {
+          "index": 89,
+          "durationMs": 0.9452,
+          "sqlCalls": 1,
+          "rowsReturned": 21,
+          "largestSingleSqlResult": 21,
+          "failure": null
+        },
+        {
+          "index": 90,
+          "durationMs": 0.8792,
+          "sqlCalls": 1,
+          "rowsReturned": 21,
+          "largestSingleSqlResult": 21,
+          "failure": null
+        },
+        {
+          "index": 91,
+          "durationMs": 0.7605,
+          "sqlCalls": 1,
+          "rowsReturned": 21,
+          "largestSingleSqlResult": 21,
+          "failure": null
+        },
+        {
+          "index": 92,
+          "durationMs": 0.861,
+          "sqlCalls": 1,
+          "rowsReturned": 21,
+          "largestSingleSqlResult": 21,
+          "failure": null
+        },
+        {
+          "index": 93,
+          "durationMs": 0.7613,
+          "sqlCalls": 1,
+          "rowsReturned": 21,
+          "largestSingleSqlResult": 21,
+          "failure": null
+        },
+        {
+          "index": 94,
+          "durationMs": 0.7492,
+          "sqlCalls": 1,
+          "rowsReturned": 21,
+          "largestSingleSqlResult": 21,
+          "failure": null
+        },
+        {
+          "index": 95,
+          "durationMs": 0.7576,
+          "sqlCalls": 1,
+          "rowsReturned": 21,
+          "largestSingleSqlResult": 21,
+          "failure": null
+        },
+        {
+          "index": 96,
+          "durationMs": 0.8149,
+          "sqlCalls": 1,
+          "rowsReturned": 21,
+          "largestSingleSqlResult": 21,
+          "failure": null
+        },
+        {
+          "index": 97,
+          "durationMs": 0.7206,
+          "sqlCalls": 1,
+          "rowsReturned": 21,
+          "largestSingleSqlResult": 21,
+          "failure": null
+        },
+        {
+          "index": 98,
+          "durationMs": 0.7983,
+          "sqlCalls": 1,
+          "rowsReturned": 21,
+          "largestSingleSqlResult": 21,
+          "failure": null
+        },
+        {
+          "index": 99,
+          "durationMs": 0.816,
+          "sqlCalls": 1,
+          "rowsReturned": 21,
+          "largestSingleSqlResult": 21,
+          "failure": null
+        }
+      ],
+      "datasetBefore": {
+        "notes": 605,
+        "receipts": 210
+      },
+      "datasetAfter": {
+        "notes": 605,
+        "receipts": 210
+      }
+    },
+    "notes_body_search_page_20": {
+      "warmups": 5,
+      "attempted": 100,
+      "succeeded": 100,
+      "failureCount": 0,
+      "warmupFailures": [],
+      "latencyMs": {
+        "n": 100,
+        "min": 0.6989,
+        "p50": 1.1334,
+        "p95": 1.6133,
+        "max": 2.4074
+      },
+      "rawSamples": [
+        {
+          "index": 0,
+          "durationMs": 0.7585,
+          "sqlCalls": 1,
+          "rowsReturned": 21,
+          "largestSingleSqlResult": 21,
+          "failure": null
+        },
+        {
+          "index": 1,
+          "durationMs": 1.1852,
+          "sqlCalls": 1,
+          "rowsReturned": 21,
+          "largestSingleSqlResult": 21,
+          "failure": null
+        },
+        {
+          "index": 2,
+          "durationMs": 0.9552,
+          "sqlCalls": 1,
+          "rowsReturned": 21,
+          "largestSingleSqlResult": 21,
+          "failure": null
+        },
+        {
+          "index": 3,
+          "durationMs": 0.8354,
+          "sqlCalls": 1,
+          "rowsReturned": 21,
+          "largestSingleSqlResult": 21,
+          "failure": null
+        },
+        {
+          "index": 4,
+          "durationMs": 0.8755,
+          "sqlCalls": 1,
+          "rowsReturned": 21,
+          "largestSingleSqlResult": 21,
+          "failure": null
+        },
+        {
+          "index": 5,
+          "durationMs": 0.8648,
+          "sqlCalls": 1,
+          "rowsReturned": 21,
+          "largestSingleSqlResult": 21,
+          "failure": null
+        },
+        {
+          "index": 6,
+          "durationMs": 0.842,
+          "sqlCalls": 1,
+          "rowsReturned": 21,
+          "largestSingleSqlResult": 21,
+          "failure": null
+        },
+        {
+          "index": 7,
+          "durationMs": 0.7839,
+          "sqlCalls": 1,
+          "rowsReturned": 21,
+          "largestSingleSqlResult": 21,
+          "failure": null
+        },
+        {
+          "index": 8,
+          "durationMs": 0.7517,
+          "sqlCalls": 1,
+          "rowsReturned": 21,
+          "largestSingleSqlResult": 21,
+          "failure": null
+        },
+        {
+          "index": 9,
+          "durationMs": 0.7125,
+          "sqlCalls": 1,
+          "rowsReturned": 21,
+          "largestSingleSqlResult": 21,
+          "failure": null
+        },
+        {
+          "index": 10,
+          "durationMs": 0.752,
+          "sqlCalls": 1,
+          "rowsReturned": 21,
+          "largestSingleSqlResult": 21,
+          "failure": null
+        },
+        {
+          "index": 11,
+          "durationMs": 0.7164,
+          "sqlCalls": 1,
+          "rowsReturned": 21,
+          "largestSingleSqlResult": 21,
+          "failure": null
+        },
+        {
+          "index": 12,
+          "durationMs": 0.7214,
+          "sqlCalls": 1,
+          "rowsReturned": 21,
+          "largestSingleSqlResult": 21,
+          "failure": null
+        },
+        {
+          "index": 13,
+          "durationMs": 0.7465,
+          "sqlCalls": 1,
+          "rowsReturned": 21,
+          "largestSingleSqlResult": 21,
+          "failure": null
+        },
+        {
+          "index": 14,
+          "durationMs": 0.7073,
+          "sqlCalls": 1,
+          "rowsReturned": 21,
+          "largestSingleSqlResult": 21,
+          "failure": null
+        },
+        {
+          "index": 15,
+          "durationMs": 0.7155,
+          "sqlCalls": 1,
+          "rowsReturned": 21,
+          "largestSingleSqlResult": 21,
+          "failure": null
+        },
+        {
+          "index": 16,
+          "durationMs": 0.8402,
+          "sqlCalls": 1,
+          "rowsReturned": 21,
+          "largestSingleSqlResult": 21,
+          "failure": null
+        },
+        {
+          "index": 17,
+          "durationMs": 0.7649,
+          "sqlCalls": 1,
+          "rowsReturned": 21,
+          "largestSingleSqlResult": 21,
+          "failure": null
+        },
+        {
+          "index": 18,
+          "durationMs": 0.6989,
+          "sqlCalls": 1,
+          "rowsReturned": 21,
+          "largestSingleSqlResult": 21,
+          "failure": null
+        },
+        {
+          "index": 19,
+          "durationMs": 0.7739,
+          "sqlCalls": 1,
+          "rowsReturned": 21,
+          "largestSingleSqlResult": 21,
+          "failure": null
+        },
+        {
+          "index": 20,
+          "durationMs": 0.7695,
+          "sqlCalls": 1,
+          "rowsReturned": 21,
+          "largestSingleSqlResult": 21,
+          "failure": null
+        },
+        {
+          "index": 21,
+          "durationMs": 1.0171,
+          "sqlCalls": 1,
+          "rowsReturned": 21,
+          "largestSingleSqlResult": 21,
+          "failure": null
+        },
+        {
+          "index": 22,
+          "durationMs": 1.2841,
+          "sqlCalls": 1,
+          "rowsReturned": 21,
+          "largestSingleSqlResult": 21,
+          "failure": null
+        },
+        {
+          "index": 23,
+          "durationMs": 1.3627,
+          "sqlCalls": 1,
+          "rowsReturned": 21,
+          "largestSingleSqlResult": 21,
+          "failure": null
+        },
+        {
+          "index": 24,
+          "durationMs": 1.4527,
+          "sqlCalls": 1,
+          "rowsReturned": 21,
+          "largestSingleSqlResult": 21,
+          "failure": null
+        },
+        {
+          "index": 25,
+          "durationMs": 1.2743,
+          "sqlCalls": 1,
+          "rowsReturned": 21,
+          "largestSingleSqlResult": 21,
+          "failure": null
+        },
+        {
+          "index": 26,
+          "durationMs": 1.1993,
+          "sqlCalls": 1,
+          "rowsReturned": 21,
+          "largestSingleSqlResult": 21,
+          "failure": null
+        },
+        {
+          "index": 27,
+          "durationMs": 1.2232,
+          "sqlCalls": 1,
+          "rowsReturned": 21,
+          "largestSingleSqlResult": 21,
+          "failure": null
+        },
+        {
+          "index": 28,
+          "durationMs": 1.2404,
+          "sqlCalls": 1,
+          "rowsReturned": 21,
+          "largestSingleSqlResult": 21,
+          "failure": null
+        },
+        {
+          "index": 29,
+          "durationMs": 1.2922,
+          "sqlCalls": 1,
+          "rowsReturned": 21,
+          "largestSingleSqlResult": 21,
+          "failure": null
+        },
+        {
+          "index": 30,
+          "durationMs": 1.2694,
+          "sqlCalls": 1,
+          "rowsReturned": 21,
+          "largestSingleSqlResult": 21,
+          "failure": null
+        },
+        {
+          "index": 31,
+          "durationMs": 1.28,
+          "sqlCalls": 1,
+          "rowsReturned": 21,
+          "largestSingleSqlResult": 21,
+          "failure": null
+        },
+        {
+          "index": 32,
+          "durationMs": 1.3222,
+          "sqlCalls": 1,
+          "rowsReturned": 21,
+          "largestSingleSqlResult": 21,
+          "failure": null
+        },
+        {
+          "index": 33,
+          "durationMs": 1.6179,
+          "sqlCalls": 1,
+          "rowsReturned": 21,
+          "largestSingleSqlResult": 21,
+          "failure": null
+        },
+        {
+          "index": 34,
+          "durationMs": 1.1881,
+          "sqlCalls": 1,
+          "rowsReturned": 21,
+          "largestSingleSqlResult": 21,
+          "failure": null
+        },
+        {
+          "index": 35,
+          "durationMs": 0.792,
+          "sqlCalls": 1,
+          "rowsReturned": 21,
+          "largestSingleSqlResult": 21,
+          "failure": null
+        },
+        {
+          "index": 36,
+          "durationMs": 1.3165,
+          "sqlCalls": 1,
+          "rowsReturned": 21,
+          "largestSingleSqlResult": 21,
+          "failure": null
+        },
+        {
+          "index": 37,
+          "durationMs": 1.1607,
+          "sqlCalls": 1,
+          "rowsReturned": 21,
+          "largestSingleSqlResult": 21,
+          "failure": null
+        },
+        {
+          "index": 38,
+          "durationMs": 0.8948,
+          "sqlCalls": 1,
+          "rowsReturned": 21,
+          "largestSingleSqlResult": 21,
+          "failure": null
+        },
+        {
+          "index": 39,
+          "durationMs": 0.9867,
+          "sqlCalls": 1,
+          "rowsReturned": 21,
+          "largestSingleSqlResult": 21,
+          "failure": null
+        },
+        {
+          "index": 40,
+          "durationMs": 1.1562,
+          "sqlCalls": 1,
+          "rowsReturned": 21,
+          "largestSingleSqlResult": 21,
+          "failure": null
+        },
+        {
+          "index": 41,
+          "durationMs": 1.1903,
+          "sqlCalls": 1,
+          "rowsReturned": 21,
+          "largestSingleSqlResult": 21,
+          "failure": null
+        },
+        {
+          "index": 42,
+          "durationMs": 1.331,
+          "sqlCalls": 1,
+          "rowsReturned": 21,
+          "largestSingleSqlResult": 21,
+          "failure": null
+        },
+        {
+          "index": 43,
+          "durationMs": 1.2045,
+          "sqlCalls": 1,
+          "rowsReturned": 21,
+          "largestSingleSqlResult": 21,
+          "failure": null
+        },
+        {
+          "index": 44,
+          "durationMs": 1.8921,
+          "sqlCalls": 1,
+          "rowsReturned": 21,
+          "largestSingleSqlResult": 21,
+          "failure": null
+        },
+        {
+          "index": 45,
+          "durationMs": 1.3058,
+          "sqlCalls": 1,
+          "rowsReturned": 21,
+          "largestSingleSqlResult": 21,
+          "failure": null
+        },
+        {
+          "index": 46,
+          "durationMs": 1.6133,
+          "sqlCalls": 1,
+          "rowsReturned": 21,
+          "largestSingleSqlResult": 21,
+          "failure": null
+        },
+        {
+          "index": 47,
+          "durationMs": 1.285,
+          "sqlCalls": 1,
+          "rowsReturned": 21,
+          "largestSingleSqlResult": 21,
+          "failure": null
+        },
+        {
+          "index": 48,
+          "durationMs": 1.4261,
+          "sqlCalls": 1,
+          "rowsReturned": 21,
+          "largestSingleSqlResult": 21,
+          "failure": null
+        },
+        {
+          "index": 49,
+          "durationMs": 1.3695,
+          "sqlCalls": 1,
+          "rowsReturned": 21,
+          "largestSingleSqlResult": 21,
+          "failure": null
+        },
+        {
+          "index": 50,
+          "durationMs": 1.4087,
+          "sqlCalls": 1,
+          "rowsReturned": 21,
+          "largestSingleSqlResult": 21,
+          "failure": null
+        },
+        {
+          "index": 51,
+          "durationMs": 1.1538,
+          "sqlCalls": 1,
+          "rowsReturned": 21,
+          "largestSingleSqlResult": 21,
+          "failure": null
+        },
+        {
+          "index": 52,
+          "durationMs": 1.2354,
+          "sqlCalls": 1,
+          "rowsReturned": 21,
+          "largestSingleSqlResult": 21,
+          "failure": null
+        },
+        {
+          "index": 53,
+          "durationMs": 1.4176,
+          "sqlCalls": 1,
+          "rowsReturned": 21,
+          "largestSingleSqlResult": 21,
+          "failure": null
+        },
+        {
+          "index": 54,
+          "durationMs": 1.4018,
+          "sqlCalls": 1,
+          "rowsReturned": 21,
+          "largestSingleSqlResult": 21,
+          "failure": null
+        },
+        {
+          "index": 55,
+          "durationMs": 1.4741,
+          "sqlCalls": 1,
+          "rowsReturned": 21,
+          "largestSingleSqlResult": 21,
+          "failure": null
+        },
+        {
+          "index": 56,
+          "durationMs": 0.9216,
+          "sqlCalls": 1,
+          "rowsReturned": 21,
+          "largestSingleSqlResult": 21,
+          "failure": null
+        },
+        {
+          "index": 57,
+          "durationMs": 0.9085,
+          "sqlCalls": 1,
+          "rowsReturned": 21,
+          "largestSingleSqlResult": 21,
+          "failure": null
+        },
+        {
+          "index": 58,
+          "durationMs": 1.3297,
+          "sqlCalls": 1,
+          "rowsReturned": 21,
+          "largestSingleSqlResult": 21,
+          "failure": null
+        },
+        {
+          "index": 59,
+          "durationMs": 1.4002,
+          "sqlCalls": 1,
+          "rowsReturned": 21,
+          "largestSingleSqlResult": 21,
+          "failure": null
+        },
+        {
+          "index": 60,
+          "durationMs": 1.2235,
+          "sqlCalls": 1,
+          "rowsReturned": 21,
+          "largestSingleSqlResult": 21,
+          "failure": null
+        },
+        {
+          "index": 61,
+          "durationMs": 0.9506,
+          "sqlCalls": 1,
+          "rowsReturned": 21,
+          "largestSingleSqlResult": 21,
+          "failure": null
+        },
+        {
+          "index": 62,
+          "durationMs": 0.7425,
+          "sqlCalls": 1,
+          "rowsReturned": 21,
+          "largestSingleSqlResult": 21,
+          "failure": null
+        },
+        {
+          "index": 63,
+          "durationMs": 0.7921,
+          "sqlCalls": 1,
+          "rowsReturned": 21,
+          "largestSingleSqlResult": 21,
+          "failure": null
+        },
+        {
+          "index": 64,
+          "durationMs": 1.0403,
+          "sqlCalls": 1,
+          "rowsReturned": 21,
+          "largestSingleSqlResult": 21,
+          "failure": null
+        },
+        {
+          "index": 65,
+          "durationMs": 1.1935,
+          "sqlCalls": 1,
+          "rowsReturned": 21,
+          "largestSingleSqlResult": 21,
+          "failure": null
+        },
+        {
+          "index": 66,
+          "durationMs": 1.0766,
+          "sqlCalls": 1,
+          "rowsReturned": 21,
+          "largestSingleSqlResult": 21,
+          "failure": null
+        },
+        {
+          "index": 67,
+          "durationMs": 1.4435,
+          "sqlCalls": 1,
+          "rowsReturned": 21,
+          "largestSingleSqlResult": 21,
+          "failure": null
+        },
+        {
+          "index": 68,
+          "durationMs": 1.5229,
+          "sqlCalls": 1,
+          "rowsReturned": 21,
+          "largestSingleSqlResult": 21,
+          "failure": null
+        },
+        {
+          "index": 69,
+          "durationMs": 1.3125,
+          "sqlCalls": 1,
+          "rowsReturned": 21,
+          "largestSingleSqlResult": 21,
+          "failure": null
+        },
+        {
+          "index": 70,
+          "durationMs": 1.0711,
+          "sqlCalls": 1,
+          "rowsReturned": 21,
+          "largestSingleSqlResult": 21,
+          "failure": null
+        },
+        {
+          "index": 71,
+          "durationMs": 0.9971,
+          "sqlCalls": 1,
+          "rowsReturned": 21,
+          "largestSingleSqlResult": 21,
+          "failure": null
+        },
+        {
+          "index": 72,
+          "durationMs": 1.3584,
+          "sqlCalls": 1,
+          "rowsReturned": 21,
+          "largestSingleSqlResult": 21,
+          "failure": null
+        },
+        {
+          "index": 73,
+          "durationMs": 0.9388,
+          "sqlCalls": 1,
+          "rowsReturned": 21,
+          "largestSingleSqlResult": 21,
+          "failure": null
+        },
+        {
+          "index": 74,
+          "durationMs": 1.01,
+          "sqlCalls": 1,
+          "rowsReturned": 21,
+          "largestSingleSqlResult": 21,
+          "failure": null
+        },
+        {
+          "index": 75,
+          "durationMs": 1.0462,
+          "sqlCalls": 1,
+          "rowsReturned": 21,
+          "largestSingleSqlResult": 21,
+          "failure": null
+        },
+        {
+          "index": 76,
+          "durationMs": 0.991,
+          "sqlCalls": 1,
+          "rowsReturned": 21,
+          "largestSingleSqlResult": 21,
+          "failure": null
+        },
+        {
+          "index": 77,
+          "durationMs": 0.7639,
+          "sqlCalls": 1,
+          "rowsReturned": 21,
+          "largestSingleSqlResult": 21,
+          "failure": null
+        },
+        {
+          "index": 78,
+          "durationMs": 1.2934,
+          "sqlCalls": 1,
+          "rowsReturned": 21,
+          "largestSingleSqlResult": 21,
+          "failure": null
+        },
+        {
+          "index": 79,
+          "durationMs": 1.0351,
+          "sqlCalls": 1,
+          "rowsReturned": 21,
+          "largestSingleSqlResult": 21,
+          "failure": null
+        },
+        {
+          "index": 80,
+          "durationMs": 1.1274,
+          "sqlCalls": 1,
+          "rowsReturned": 21,
+          "largestSingleSqlResult": 21,
+          "failure": null
+        },
+        {
+          "index": 81,
+          "durationMs": 1.1263,
+          "sqlCalls": 1,
+          "rowsReturned": 21,
+          "largestSingleSqlResult": 21,
+          "failure": null
+        },
+        {
+          "index": 82,
+          "durationMs": 0.9855,
+          "sqlCalls": 1,
+          "rowsReturned": 21,
+          "largestSingleSqlResult": 21,
+          "failure": null
+        },
+        {
+          "index": 83,
+          "durationMs": 0.9354,
+          "sqlCalls": 1,
+          "rowsReturned": 21,
+          "largestSingleSqlResult": 21,
+          "failure": null
+        },
+        {
+          "index": 84,
+          "durationMs": 1.2688,
+          "sqlCalls": 1,
+          "rowsReturned": 21,
+          "largestSingleSqlResult": 21,
+          "failure": null
+        },
+        {
+          "index": 85,
+          "durationMs": 1.8073,
+          "sqlCalls": 1,
+          "rowsReturned": 21,
+          "largestSingleSqlResult": 21,
+          "failure": null
+        },
+        {
+          "index": 86,
+          "durationMs": 1.6695,
+          "sqlCalls": 1,
+          "rowsReturned": 21,
+          "largestSingleSqlResult": 21,
+          "failure": null
+        },
+        {
+          "index": 87,
+          "durationMs": 2.4074,
+          "sqlCalls": 1,
+          "rowsReturned": 21,
+          "largestSingleSqlResult": 21,
+          "failure": null
+        },
+        {
+          "index": 88,
+          "durationMs": 1.4448,
+          "sqlCalls": 1,
+          "rowsReturned": 21,
+          "largestSingleSqlResult": 21,
+          "failure": null
+        },
+        {
+          "index": 89,
+          "durationMs": 1.3685,
+          "sqlCalls": 1,
+          "rowsReturned": 21,
+          "largestSingleSqlResult": 21,
+          "failure": null
+        },
+        {
+          "index": 90,
+          "durationMs": 0.9086,
+          "sqlCalls": 1,
+          "rowsReturned": 21,
+          "largestSingleSqlResult": 21,
+          "failure": null
+        },
+        {
+          "index": 91,
+          "durationMs": 1.3697,
+          "sqlCalls": 1,
+          "rowsReturned": 21,
+          "largestSingleSqlResult": 21,
+          "failure": null
+        },
+        {
+          "index": 92,
+          "durationMs": 1.0097,
+          "sqlCalls": 1,
+          "rowsReturned": 21,
+          "largestSingleSqlResult": 21,
+          "failure": null
+        },
+        {
+          "index": 93,
+          "durationMs": 0.9558,
+          "sqlCalls": 1,
+          "rowsReturned": 21,
+          "largestSingleSqlResult": 21,
+          "failure": null
+        },
+        {
+          "index": 94,
+          "durationMs": 0.8452,
+          "sqlCalls": 1,
+          "rowsReturned": 21,
+          "largestSingleSqlResult": 21,
+          "failure": null
+        },
+        {
+          "index": 95,
+          "durationMs": 0.9101,
+          "sqlCalls": 1,
+          "rowsReturned": 21,
+          "largestSingleSqlResult": 21,
+          "failure": null
+        },
+        {
+          "index": 96,
+          "durationMs": 0.9034,
+          "sqlCalls": 1,
+          "rowsReturned": 21,
+          "largestSingleSqlResult": 21,
+          "failure": null
+        },
+        {
+          "index": 97,
+          "durationMs": 1.1334,
+          "sqlCalls": 1,
+          "rowsReturned": 21,
+          "largestSingleSqlResult": 21,
+          "failure": null
+        },
+        {
+          "index": 98,
+          "durationMs": 1.548,
+          "sqlCalls": 1,
+          "rowsReturned": 21,
+          "largestSingleSqlResult": 21,
+          "failure": null
+        },
+        {
+          "index": 99,
+          "durationMs": 1.4124,
+          "sqlCalls": 1,
+          "rowsReturned": 21,
+          "largestSingleSqlResult": 21,
+          "failure": null
+        }
+      ],
+      "datasetBefore": {
+        "notes": 605,
+        "receipts": 210
+      },
+      "datasetAfter": {
+        "notes": 605,
+        "receipts": 210
+      }
+    },
+    "notes_body_search_no_match": {
+      "warmups": 5,
+      "attempted": 100,
+      "succeeded": 100,
+      "failureCount": 0,
+      "warmupFailures": [],
+      "latencyMs": {
+        "n": 100,
+        "min": 0.6525,
+        "p50": 1.0504,
+        "p95": 1.502,
+        "max": 1.5654
+      },
+      "rawSamples": [
+        {
+          "index": 0,
+          "durationMs": 1.2997,
+          "sqlCalls": 1,
+          "rowsReturned": 0,
+          "largestSingleSqlResult": 0,
+          "failure": null
+        },
+        {
+          "index": 1,
+          "durationMs": 1.474,
+          "sqlCalls": 1,
+          "rowsReturned": 0,
+          "largestSingleSqlResult": 0,
+          "failure": null
+        },
+        {
+          "index": 2,
+          "durationMs": 0.8492,
+          "sqlCalls": 1,
+          "rowsReturned": 0,
+          "largestSingleSqlResult": 0,
+          "failure": null
+        },
+        {
+          "index": 3,
+          "durationMs": 1.2505,
+          "sqlCalls": 1,
+          "rowsReturned": 0,
+          "largestSingleSqlResult": 0,
+          "failure": null
+        },
+        {
+          "index": 4,
+          "durationMs": 1.0607,
+          "sqlCalls": 1,
+          "rowsReturned": 0,
+          "largestSingleSqlResult": 0,
+          "failure": null
+        },
+        {
+          "index": 5,
+          "durationMs": 1.0447,
+          "sqlCalls": 1,
+          "rowsReturned": 0,
+          "largestSingleSqlResult": 0,
+          "failure": null
+        },
+        {
+          "index": 6,
+          "durationMs": 0.8949,
+          "sqlCalls": 1,
+          "rowsReturned": 0,
+          "largestSingleSqlResult": 0,
+          "failure": null
+        },
+        {
+          "index": 7,
+          "durationMs": 0.9483,
+          "sqlCalls": 1,
+          "rowsReturned": 0,
+          "largestSingleSqlResult": 0,
+          "failure": null
+        },
+        {
+          "index": 8,
+          "durationMs": 0.876,
+          "sqlCalls": 1,
+          "rowsReturned": 0,
+          "largestSingleSqlResult": 0,
+          "failure": null
+        },
+        {
+          "index": 9,
+          "durationMs": 0.9265,
+          "sqlCalls": 1,
+          "rowsReturned": 0,
+          "largestSingleSqlResult": 0,
+          "failure": null
+        },
+        {
+          "index": 10,
+          "durationMs": 0.8552,
+          "sqlCalls": 1,
+          "rowsReturned": 0,
+          "largestSingleSqlResult": 0,
+          "failure": null
+        },
+        {
+          "index": 11,
+          "durationMs": 0.9936,
+          "sqlCalls": 1,
+          "rowsReturned": 0,
+          "largestSingleSqlResult": 0,
+          "failure": null
+        },
+        {
+          "index": 12,
+          "durationMs": 0.9597,
+          "sqlCalls": 1,
+          "rowsReturned": 0,
+          "largestSingleSqlResult": 0,
+          "failure": null
+        },
+        {
+          "index": 13,
+          "durationMs": 0.9633,
+          "sqlCalls": 1,
+          "rowsReturned": 0,
+          "largestSingleSqlResult": 0,
+          "failure": null
+        },
+        {
+          "index": 14,
+          "durationMs": 1.126,
+          "sqlCalls": 1,
+          "rowsReturned": 0,
+          "largestSingleSqlResult": 0,
+          "failure": null
+        },
+        {
+          "index": 15,
+          "durationMs": 1.374,
+          "sqlCalls": 1,
+          "rowsReturned": 0,
+          "largestSingleSqlResult": 0,
+          "failure": null
+        },
+        {
+          "index": 16,
+          "durationMs": 1.4761,
+          "sqlCalls": 1,
+          "rowsReturned": 0,
+          "largestSingleSqlResult": 0,
+          "failure": null
+        },
+        {
+          "index": 17,
+          "durationMs": 1.3515,
+          "sqlCalls": 1,
+          "rowsReturned": 0,
+          "largestSingleSqlResult": 0,
+          "failure": null
+        },
+        {
+          "index": 18,
+          "durationMs": 1.1614,
+          "sqlCalls": 1,
+          "rowsReturned": 0,
+          "largestSingleSqlResult": 0,
+          "failure": null
+        },
+        {
+          "index": 19,
+          "durationMs": 0.9511,
+          "sqlCalls": 1,
+          "rowsReturned": 0,
+          "largestSingleSqlResult": 0,
+          "failure": null
+        },
+        {
+          "index": 20,
+          "durationMs": 0.8945,
+          "sqlCalls": 1,
+          "rowsReturned": 0,
+          "largestSingleSqlResult": 0,
+          "failure": null
+        },
+        {
+          "index": 21,
+          "durationMs": 0.9522,
+          "sqlCalls": 1,
+          "rowsReturned": 0,
+          "largestSingleSqlResult": 0,
+          "failure": null
+        },
+        {
+          "index": 22,
+          "durationMs": 0.913,
+          "sqlCalls": 1,
+          "rowsReturned": 0,
+          "largestSingleSqlResult": 0,
+          "failure": null
+        },
+        {
+          "index": 23,
+          "durationMs": 0.9121,
+          "sqlCalls": 1,
+          "rowsReturned": 0,
+          "largestSingleSqlResult": 0,
+          "failure": null
+        },
+        {
+          "index": 24,
+          "durationMs": 0.9572,
+          "sqlCalls": 1,
+          "rowsReturned": 0,
+          "largestSingleSqlResult": 0,
+          "failure": null
+        },
+        {
+          "index": 25,
+          "durationMs": 0.8897,
+          "sqlCalls": 1,
+          "rowsReturned": 0,
+          "largestSingleSqlResult": 0,
+          "failure": null
+        },
+        {
+          "index": 26,
+          "durationMs": 1.0577,
+          "sqlCalls": 1,
+          "rowsReturned": 0,
+          "largestSingleSqlResult": 0,
+          "failure": null
+        },
+        {
+          "index": 27,
+          "durationMs": 1.1414,
+          "sqlCalls": 1,
+          "rowsReturned": 0,
+          "largestSingleSqlResult": 0,
+          "failure": null
+        },
+        {
+          "index": 28,
+          "durationMs": 1.0504,
+          "sqlCalls": 1,
+          "rowsReturned": 0,
+          "largestSingleSqlResult": 0,
+          "failure": null
+        },
+        {
+          "index": 29,
+          "durationMs": 1.43,
+          "sqlCalls": 1,
+          "rowsReturned": 0,
+          "largestSingleSqlResult": 0,
+          "failure": null
+        },
+        {
+          "index": 30,
+          "durationMs": 1.3546,
+          "sqlCalls": 1,
+          "rowsReturned": 0,
+          "largestSingleSqlResult": 0,
+          "failure": null
+        },
+        {
+          "index": 31,
+          "durationMs": 1.4131,
+          "sqlCalls": 1,
+          "rowsReturned": 0,
+          "largestSingleSqlResult": 0,
+          "failure": null
+        },
+        {
+          "index": 32,
+          "durationMs": 1.5433,
+          "sqlCalls": 1,
+          "rowsReturned": 0,
+          "largestSingleSqlResult": 0,
+          "failure": null
+        },
+        {
+          "index": 33,
+          "durationMs": 1.4208,
+          "sqlCalls": 1,
+          "rowsReturned": 0,
+          "largestSingleSqlResult": 0,
+          "failure": null
+        },
+        {
+          "index": 34,
+          "durationMs": 1.5228,
+          "sqlCalls": 1,
+          "rowsReturned": 0,
+          "largestSingleSqlResult": 0,
+          "failure": null
+        },
+        {
+          "index": 35,
+          "durationMs": 1.5654,
+          "sqlCalls": 1,
+          "rowsReturned": 0,
+          "largestSingleSqlResult": 0,
+          "failure": null
+        },
+        {
+          "index": 36,
+          "durationMs": 1.502,
+          "sqlCalls": 1,
+          "rowsReturned": 0,
+          "largestSingleSqlResult": 0,
+          "failure": null
+        },
+        {
+          "index": 37,
+          "durationMs": 1.3843,
+          "sqlCalls": 1,
+          "rowsReturned": 0,
+          "largestSingleSqlResult": 0,
+          "failure": null
+        },
+        {
+          "index": 38,
+          "durationMs": 1.198,
+          "sqlCalls": 1,
+          "rowsReturned": 0,
+          "largestSingleSqlResult": 0,
+          "failure": null
+        },
+        {
+          "index": 39,
+          "durationMs": 1.4113,
+          "sqlCalls": 1,
+          "rowsReturned": 0,
+          "largestSingleSqlResult": 0,
+          "failure": null
+        },
+        {
+          "index": 40,
+          "durationMs": 1.2844,
+          "sqlCalls": 1,
+          "rowsReturned": 0,
+          "largestSingleSqlResult": 0,
+          "failure": null
+        },
+        {
+          "index": 41,
+          "durationMs": 1.1689,
+          "sqlCalls": 1,
+          "rowsReturned": 0,
+          "largestSingleSqlResult": 0,
+          "failure": null
+        },
+        {
+          "index": 42,
+          "durationMs": 0.7291,
+          "sqlCalls": 1,
+          "rowsReturned": 0,
+          "largestSingleSqlResult": 0,
+          "failure": null
+        },
+        {
+          "index": 43,
+          "durationMs": 1.107,
+          "sqlCalls": 1,
+          "rowsReturned": 0,
+          "largestSingleSqlResult": 0,
+          "failure": null
+        },
+        {
+          "index": 44,
+          "durationMs": 1.1798,
+          "sqlCalls": 1,
+          "rowsReturned": 0,
+          "largestSingleSqlResult": 0,
+          "failure": null
+        },
+        {
+          "index": 45,
+          "durationMs": 0.6894,
+          "sqlCalls": 1,
+          "rowsReturned": 0,
+          "largestSingleSqlResult": 0,
+          "failure": null
+        },
+        {
+          "index": 46,
+          "durationMs": 1.2178,
+          "sqlCalls": 1,
+          "rowsReturned": 0,
+          "largestSingleSqlResult": 0,
+          "failure": null
+        },
+        {
+          "index": 47,
+          "durationMs": 1.1194,
+          "sqlCalls": 1,
+          "rowsReturned": 0,
+          "largestSingleSqlResult": 0,
+          "failure": null
+        },
+        {
+          "index": 48,
+          "durationMs": 1.0196,
+          "sqlCalls": 1,
+          "rowsReturned": 0,
+          "largestSingleSqlResult": 0,
+          "failure": null
+        },
+        {
+          "index": 49,
+          "durationMs": 1.2484,
+          "sqlCalls": 1,
+          "rowsReturned": 0,
+          "largestSingleSqlResult": 0,
+          "failure": null
+        },
+        {
+          "index": 50,
+          "durationMs": 0.7383,
+          "sqlCalls": 1,
+          "rowsReturned": 0,
+          "largestSingleSqlResult": 0,
+          "failure": null
+        },
+        {
+          "index": 51,
+          "durationMs": 0.7034,
+          "sqlCalls": 1,
+          "rowsReturned": 0,
+          "largestSingleSqlResult": 0,
+          "failure": null
+        },
+        {
+          "index": 52,
+          "durationMs": 0.9951,
+          "sqlCalls": 1,
+          "rowsReturned": 0,
+          "largestSingleSqlResult": 0,
+          "failure": null
+        },
+        {
+          "index": 53,
+          "durationMs": 1.3553,
+          "sqlCalls": 1,
+          "rowsReturned": 0,
+          "largestSingleSqlResult": 0,
+          "failure": null
+        },
+        {
+          "index": 54,
+          "durationMs": 1.3217,
+          "sqlCalls": 1,
+          "rowsReturned": 0,
+          "largestSingleSqlResult": 0,
+          "failure": null
+        },
+        {
+          "index": 55,
+          "durationMs": 1.1346,
+          "sqlCalls": 1,
+          "rowsReturned": 0,
+          "largestSingleSqlResult": 0,
+          "failure": null
+        },
+        {
+          "index": 56,
+          "durationMs": 0.9813,
+          "sqlCalls": 1,
+          "rowsReturned": 0,
+          "largestSingleSqlResult": 0,
+          "failure": null
+        },
+        {
+          "index": 57,
+          "durationMs": 1.0008,
+          "sqlCalls": 1,
+          "rowsReturned": 0,
+          "largestSingleSqlResult": 0,
+          "failure": null
+        },
+        {
+          "index": 58,
+          "durationMs": 0.6525,
+          "sqlCalls": 1,
+          "rowsReturned": 0,
+          "largestSingleSqlResult": 0,
+          "failure": null
+        },
+        {
+          "index": 59,
+          "durationMs": 1.2756,
+          "sqlCalls": 1,
+          "rowsReturned": 0,
+          "largestSingleSqlResult": 0,
+          "failure": null
+        },
+        {
+          "index": 60,
+          "durationMs": 1.5425,
+          "sqlCalls": 1,
+          "rowsReturned": 0,
+          "largestSingleSqlResult": 0,
+          "failure": null
+        },
+        {
+          "index": 61,
+          "durationMs": 1.1339,
+          "sqlCalls": 1,
+          "rowsReturned": 0,
+          "largestSingleSqlResult": 0,
+          "failure": null
+        },
+        {
+          "index": 62,
+          "durationMs": 0.9741,
+          "sqlCalls": 1,
+          "rowsReturned": 0,
+          "largestSingleSqlResult": 0,
+          "failure": null
+        },
+        {
+          "index": 63,
+          "durationMs": 1.0019,
+          "sqlCalls": 1,
+          "rowsReturned": 0,
+          "largestSingleSqlResult": 0,
+          "failure": null
+        },
+        {
+          "index": 64,
+          "durationMs": 0.8712,
+          "sqlCalls": 1,
+          "rowsReturned": 0,
+          "largestSingleSqlResult": 0,
+          "failure": null
+        },
+        {
+          "index": 65,
+          "durationMs": 0.8921,
+          "sqlCalls": 1,
+          "rowsReturned": 0,
+          "largestSingleSqlResult": 0,
+          "failure": null
+        },
+        {
+          "index": 66,
+          "durationMs": 0.9431,
+          "sqlCalls": 1,
+          "rowsReturned": 0,
+          "largestSingleSqlResult": 0,
+          "failure": null
+        },
+        {
+          "index": 67,
+          "durationMs": 0.8134,
+          "sqlCalls": 1,
+          "rowsReturned": 0,
+          "largestSingleSqlResult": 0,
+          "failure": null
+        },
+        {
+          "index": 68,
+          "durationMs": 0.8896,
+          "sqlCalls": 1,
+          "rowsReturned": 0,
+          "largestSingleSqlResult": 0,
+          "failure": null
+        },
+        {
+          "index": 69,
+          "durationMs": 1.3515,
+          "sqlCalls": 1,
+          "rowsReturned": 0,
+          "largestSingleSqlResult": 0,
+          "failure": null
+        },
+        {
+          "index": 70,
+          "durationMs": 1.5103,
+          "sqlCalls": 1,
+          "rowsReturned": 0,
+          "largestSingleSqlResult": 0,
+          "failure": null
+        },
+        {
+          "index": 71,
+          "durationMs": 1.3189,
+          "sqlCalls": 1,
+          "rowsReturned": 0,
+          "largestSingleSqlResult": 0,
+          "failure": null
+        },
+        {
+          "index": 72,
+          "durationMs": 1.1255,
+          "sqlCalls": 1,
+          "rowsReturned": 0,
+          "largestSingleSqlResult": 0,
+          "failure": null
+        },
+        {
+          "index": 73,
+          "durationMs": 1.4893,
+          "sqlCalls": 1,
+          "rowsReturned": 0,
+          "largestSingleSqlResult": 0,
+          "failure": null
+        },
+        {
+          "index": 74,
+          "durationMs": 1.2108,
+          "sqlCalls": 1,
+          "rowsReturned": 0,
+          "largestSingleSqlResult": 0,
+          "failure": null
+        },
+        {
+          "index": 75,
+          "durationMs": 1.0699,
+          "sqlCalls": 1,
+          "rowsReturned": 0,
+          "largestSingleSqlResult": 0,
+          "failure": null
+        },
+        {
+          "index": 76,
+          "durationMs": 0.9793,
+          "sqlCalls": 1,
+          "rowsReturned": 0,
+          "largestSingleSqlResult": 0,
+          "failure": null
+        },
+        {
+          "index": 77,
+          "durationMs": 0.9943,
+          "sqlCalls": 1,
+          "rowsReturned": 0,
+          "largestSingleSqlResult": 0,
+          "failure": null
+        },
+        {
+          "index": 78,
+          "durationMs": 1.0267,
+          "sqlCalls": 1,
+          "rowsReturned": 0,
+          "largestSingleSqlResult": 0,
+          "failure": null
+        },
+        {
+          "index": 79,
+          "durationMs": 0.9501,
+          "sqlCalls": 1,
+          "rowsReturned": 0,
+          "largestSingleSqlResult": 0,
+          "failure": null
+        },
+        {
+          "index": 80,
+          "durationMs": 1.2915,
+          "sqlCalls": 1,
+          "rowsReturned": 0,
+          "largestSingleSqlResult": 0,
+          "failure": null
+        },
+        {
+          "index": 81,
+          "durationMs": 0.9918,
+          "sqlCalls": 1,
+          "rowsReturned": 0,
+          "largestSingleSqlResult": 0,
+          "failure": null
+        },
+        {
+          "index": 82,
+          "durationMs": 1.4321,
+          "sqlCalls": 1,
+          "rowsReturned": 0,
+          "largestSingleSqlResult": 0,
+          "failure": null
+        },
+        {
+          "index": 83,
+          "durationMs": 1.4095,
+          "sqlCalls": 1,
+          "rowsReturned": 0,
+          "largestSingleSqlResult": 0,
+          "failure": null
+        },
+        {
+          "index": 84,
+          "durationMs": 1.3139,
+          "sqlCalls": 1,
+          "rowsReturned": 0,
+          "largestSingleSqlResult": 0,
+          "failure": null
+        },
+        {
+          "index": 85,
+          "durationMs": 1.4733,
+          "sqlCalls": 1,
+          "rowsReturned": 0,
+          "largestSingleSqlResult": 0,
+          "failure": null
+        },
+        {
+          "index": 86,
+          "durationMs": 1.2544,
+          "sqlCalls": 1,
+          "rowsReturned": 0,
+          "largestSingleSqlResult": 0,
+          "failure": null
+        },
+        {
+          "index": 87,
+          "durationMs": 0.976,
+          "sqlCalls": 1,
+          "rowsReturned": 0,
+          "largestSingleSqlResult": 0,
+          "failure": null
+        },
+        {
+          "index": 88,
+          "durationMs": 0.9945,
+          "sqlCalls": 1,
+          "rowsReturned": 0,
+          "largestSingleSqlResult": 0,
+          "failure": null
+        },
+        {
+          "index": 89,
+          "durationMs": 0.9287,
+          "sqlCalls": 1,
+          "rowsReturned": 0,
+          "largestSingleSqlResult": 0,
+          "failure": null
+        },
+        {
+          "index": 90,
+          "durationMs": 0.9535,
+          "sqlCalls": 1,
+          "rowsReturned": 0,
+          "largestSingleSqlResult": 0,
+          "failure": null
+        },
+        {
+          "index": 91,
+          "durationMs": 1.029,
+          "sqlCalls": 1,
+          "rowsReturned": 0,
+          "largestSingleSqlResult": 0,
+          "failure": null
+        },
+        {
+          "index": 92,
+          "durationMs": 1.0014,
+          "sqlCalls": 1,
+          "rowsReturned": 0,
+          "largestSingleSqlResult": 0,
+          "failure": null
+        },
+        {
+          "index": 93,
+          "durationMs": 0.9795,
+          "sqlCalls": 1,
+          "rowsReturned": 0,
+          "largestSingleSqlResult": 0,
+          "failure": null
+        },
+        {
+          "index": 94,
+          "durationMs": 0.9849,
+          "sqlCalls": 1,
+          "rowsReturned": 0,
+          "largestSingleSqlResult": 0,
+          "failure": null
+        },
+        {
+          "index": 95,
+          "durationMs": 0.9086,
+          "sqlCalls": 1,
+          "rowsReturned": 0,
+          "largestSingleSqlResult": 0,
+          "failure": null
+        },
+        {
+          "index": 96,
+          "durationMs": 0.803,
+          "sqlCalls": 1,
+          "rowsReturned": 0,
+          "largestSingleSqlResult": 0,
+          "failure": null
+        },
+        {
+          "index": 97,
+          "durationMs": 1.2975,
+          "sqlCalls": 1,
+          "rowsReturned": 0,
+          "largestSingleSqlResult": 0,
+          "failure": null
+        },
+        {
+          "index": 98,
+          "durationMs": 1.1639,
+          "sqlCalls": 1,
+          "rowsReturned": 0,
+          "largestSingleSqlResult": 0,
+          "failure": null
+        },
+        {
+          "index": 99,
+          "durationMs": 1.0296,
+          "sqlCalls": 1,
+          "rowsReturned": 0,
+          "largestSingleSqlResult": 0,
+          "failure": null
+        }
+      ],
+      "datasetBefore": {
+        "notes": 605,
+        "receipts": 210
+      },
+      "datasetAfter": {
+        "notes": 605,
+        "receipts": 210
+      }
+    },
+    "profile_exact_counts": {
+      "warmups": 5,
+      "attempted": 100,
+      "succeeded": 100,
+      "failureCount": 0,
+      "warmupFailures": [],
+      "latencyMs": {
+        "n": 100,
+        "min": 0.475,
+        "p50": 0.9848,
+        "p95": 1.2408,
+        "max": 1.4373
+      },
+      "rawSamples": [
+        {
+          "index": 0,
+          "durationMs": 0.5258,
+          "sqlCalls": 2,
+          "rowsReturned": 2,
+          "largestSingleSqlResult": 1,
+          "failure": null
+        },
+        {
+          "index": 1,
+          "durationMs": 0.6985,
+          "sqlCalls": 2,
+          "rowsReturned": 2,
+          "largestSingleSqlResult": 1,
+          "failure": null
+        },
+        {
+          "index": 2,
+          "durationMs": 1.1528,
+          "sqlCalls": 2,
+          "rowsReturned": 2,
+          "largestSingleSqlResult": 1,
+          "failure": null
+        },
+        {
+          "index": 3,
+          "durationMs": 0.7648,
+          "sqlCalls": 2,
+          "rowsReturned": 2,
+          "largestSingleSqlResult": 1,
+          "failure": null
+        },
+        {
+          "index": 4,
+          "durationMs": 0.9309,
+          "sqlCalls": 2,
+          "rowsReturned": 2,
+          "largestSingleSqlResult": 1,
+          "failure": null
+        },
+        {
+          "index": 5,
+          "durationMs": 0.8243,
+          "sqlCalls": 2,
+          "rowsReturned": 2,
+          "largestSingleSqlResult": 1,
+          "failure": null
+        },
+        {
+          "index": 6,
+          "durationMs": 1.0139,
+          "sqlCalls": 2,
+          "rowsReturned": 2,
+          "largestSingleSqlResult": 1,
+          "failure": null
+        },
+        {
+          "index": 7,
+          "durationMs": 0.7462,
+          "sqlCalls": 2,
+          "rowsReturned": 2,
+          "largestSingleSqlResult": 1,
+          "failure": null
+        },
+        {
+          "index": 8,
+          "durationMs": 0.8499,
+          "sqlCalls": 2,
+          "rowsReturned": 2,
+          "largestSingleSqlResult": 1,
+          "failure": null
+        },
+        {
+          "index": 9,
+          "durationMs": 1.0993,
+          "sqlCalls": 2,
+          "rowsReturned": 2,
+          "largestSingleSqlResult": 1,
+          "failure": null
+        },
+        {
+          "index": 10,
+          "durationMs": 0.9601,
+          "sqlCalls": 2,
+          "rowsReturned": 2,
+          "largestSingleSqlResult": 1,
+          "failure": null
+        },
+        {
+          "index": 11,
+          "durationMs": 0.9352,
+          "sqlCalls": 2,
+          "rowsReturned": 2,
+          "largestSingleSqlResult": 1,
+          "failure": null
+        },
+        {
+          "index": 12,
+          "durationMs": 0.9568,
+          "sqlCalls": 2,
+          "rowsReturned": 2,
+          "largestSingleSqlResult": 1,
+          "failure": null
+        },
+        {
+          "index": 13,
+          "durationMs": 0.9848,
+          "sqlCalls": 2,
+          "rowsReturned": 2,
+          "largestSingleSqlResult": 1,
+          "failure": null
+        },
+        {
+          "index": 14,
+          "durationMs": 0.8954,
+          "sqlCalls": 2,
+          "rowsReturned": 2,
+          "largestSingleSqlResult": 1,
+          "failure": null
+        },
+        {
+          "index": 15,
+          "durationMs": 1.196,
+          "sqlCalls": 2,
+          "rowsReturned": 2,
+          "largestSingleSqlResult": 1,
+          "failure": null
+        },
+        {
+          "index": 16,
+          "durationMs": 1.0481,
+          "sqlCalls": 2,
+          "rowsReturned": 2,
+          "largestSingleSqlResult": 1,
+          "failure": null
+        },
+        {
+          "index": 17,
+          "durationMs": 0.9698,
+          "sqlCalls": 2,
+          "rowsReturned": 2,
+          "largestSingleSqlResult": 1,
+          "failure": null
+        },
+        {
+          "index": 18,
+          "durationMs": 0.8877,
+          "sqlCalls": 2,
+          "rowsReturned": 2,
+          "largestSingleSqlResult": 1,
+          "failure": null
+        },
+        {
+          "index": 19,
+          "durationMs": 1.1213,
+          "sqlCalls": 2,
+          "rowsReturned": 2,
+          "largestSingleSqlResult": 1,
+          "failure": null
+        },
+        {
+          "index": 20,
+          "durationMs": 1.1084,
+          "sqlCalls": 2,
+          "rowsReturned": 2,
+          "largestSingleSqlResult": 1,
+          "failure": null
+        },
+        {
+          "index": 21,
+          "durationMs": 1.0048,
+          "sqlCalls": 2,
+          "rowsReturned": 2,
+          "largestSingleSqlResult": 1,
+          "failure": null
+        },
+        {
+          "index": 22,
+          "durationMs": 0.8625,
+          "sqlCalls": 2,
+          "rowsReturned": 2,
+          "largestSingleSqlResult": 1,
+          "failure": null
+        },
+        {
+          "index": 23,
+          "durationMs": 0.9634,
+          "sqlCalls": 2,
+          "rowsReturned": 2,
+          "largestSingleSqlResult": 1,
+          "failure": null
+        },
+        {
+          "index": 24,
+          "durationMs": 0.8506,
+          "sqlCalls": 2,
+          "rowsReturned": 2,
+          "largestSingleSqlResult": 1,
+          "failure": null
+        },
+        {
+          "index": 25,
+          "durationMs": 0.5662,
+          "sqlCalls": 2,
+          "rowsReturned": 2,
+          "largestSingleSqlResult": 1,
+          "failure": null
+        },
+        {
+          "index": 26,
+          "durationMs": 0.6346,
+          "sqlCalls": 2,
+          "rowsReturned": 2,
+          "largestSingleSqlResult": 1,
+          "failure": null
+        },
+        {
+          "index": 27,
+          "durationMs": 0.6087,
+          "sqlCalls": 2,
+          "rowsReturned": 2,
+          "largestSingleSqlResult": 1,
+          "failure": null
+        },
+        {
+          "index": 28,
+          "durationMs": 0.7562,
+          "sqlCalls": 2,
+          "rowsReturned": 2,
+          "largestSingleSqlResult": 1,
+          "failure": null
+        },
+        {
+          "index": 29,
+          "durationMs": 0.5641,
+          "sqlCalls": 2,
+          "rowsReturned": 2,
+          "largestSingleSqlResult": 1,
+          "failure": null
+        },
+        {
+          "index": 30,
+          "durationMs": 0.4768,
+          "sqlCalls": 2,
+          "rowsReturned": 2,
+          "largestSingleSqlResult": 1,
+          "failure": null
+        },
+        {
+          "index": 31,
+          "durationMs": 0.475,
+          "sqlCalls": 2,
+          "rowsReturned": 2,
+          "largestSingleSqlResult": 1,
+          "failure": null
+        },
+        {
+          "index": 32,
+          "durationMs": 0.6845,
+          "sqlCalls": 2,
+          "rowsReturned": 2,
+          "largestSingleSqlResult": 1,
+          "failure": null
+        },
+        {
+          "index": 33,
+          "durationMs": 0.7763,
+          "sqlCalls": 2,
+          "rowsReturned": 2,
+          "largestSingleSqlResult": 1,
+          "failure": null
+        },
+        {
+          "index": 34,
+          "durationMs": 0.7413,
+          "sqlCalls": 2,
+          "rowsReturned": 2,
+          "largestSingleSqlResult": 1,
+          "failure": null
+        },
+        {
+          "index": 35,
+          "durationMs": 1.0555,
+          "sqlCalls": 2,
+          "rowsReturned": 2,
+          "largestSingleSqlResult": 1,
+          "failure": null
+        },
+        {
+          "index": 36,
+          "durationMs": 0.6935,
+          "sqlCalls": 2,
+          "rowsReturned": 2,
+          "largestSingleSqlResult": 1,
+          "failure": null
+        },
+        {
+          "index": 37,
+          "durationMs": 0.7145,
+          "sqlCalls": 2,
+          "rowsReturned": 2,
+          "largestSingleSqlResult": 1,
+          "failure": null
+        },
+        {
+          "index": 38,
+          "durationMs": 0.9412,
+          "sqlCalls": 2,
+          "rowsReturned": 2,
+          "largestSingleSqlResult": 1,
+          "failure": null
+        },
+        {
+          "index": 39,
+          "durationMs": 0.9476,
+          "sqlCalls": 2,
+          "rowsReturned": 2,
+          "largestSingleSqlResult": 1,
+          "failure": null
+        },
+        {
+          "index": 40,
+          "durationMs": 1.0053,
+          "sqlCalls": 2,
+          "rowsReturned": 2,
+          "largestSingleSqlResult": 1,
+          "failure": null
+        },
+        {
+          "index": 41,
+          "durationMs": 1.1303,
+          "sqlCalls": 2,
+          "rowsReturned": 2,
+          "largestSingleSqlResult": 1,
+          "failure": null
+        },
+        {
+          "index": 42,
+          "durationMs": 0.7495,
+          "sqlCalls": 2,
+          "rowsReturned": 2,
+          "largestSingleSqlResult": 1,
+          "failure": null
+        },
+        {
+          "index": 43,
+          "durationMs": 0.7882,
+          "sqlCalls": 2,
+          "rowsReturned": 2,
+          "largestSingleSqlResult": 1,
+          "failure": null
+        },
+        {
+          "index": 44,
+          "durationMs": 0.8596,
+          "sqlCalls": 2,
+          "rowsReturned": 2,
+          "largestSingleSqlResult": 1,
+          "failure": null
+        },
+        {
+          "index": 45,
+          "durationMs": 0.9049,
+          "sqlCalls": 2,
+          "rowsReturned": 2,
+          "largestSingleSqlResult": 1,
+          "failure": null
+        },
+        {
+          "index": 46,
+          "durationMs": 0.8186,
+          "sqlCalls": 2,
+          "rowsReturned": 2,
+          "largestSingleSqlResult": 1,
+          "failure": null
+        },
+        {
+          "index": 47,
+          "durationMs": 0.7676,
+          "sqlCalls": 2,
+          "rowsReturned": 2,
+          "largestSingleSqlResult": 1,
+          "failure": null
+        },
+        {
+          "index": 48,
+          "durationMs": 1.0026,
+          "sqlCalls": 2,
+          "rowsReturned": 2,
+          "largestSingleSqlResult": 1,
+          "failure": null
+        },
+        {
+          "index": 49,
+          "durationMs": 1.1343,
+          "sqlCalls": 2,
+          "rowsReturned": 2,
+          "largestSingleSqlResult": 1,
+          "failure": null
+        },
+        {
+          "index": 50,
+          "durationMs": 1.0022,
+          "sqlCalls": 2,
+          "rowsReturned": 2,
+          "largestSingleSqlResult": 1,
+          "failure": null
+        },
+        {
+          "index": 51,
+          "durationMs": 1.0356,
+          "sqlCalls": 2,
+          "rowsReturned": 2,
+          "largestSingleSqlResult": 1,
+          "failure": null
+        },
+        {
+          "index": 52,
+          "durationMs": 0.9297,
+          "sqlCalls": 2,
+          "rowsReturned": 2,
+          "largestSingleSqlResult": 1,
+          "failure": null
+        },
+        {
+          "index": 53,
+          "durationMs": 0.6864,
+          "sqlCalls": 2,
+          "rowsReturned": 2,
+          "largestSingleSqlResult": 1,
+          "failure": null
+        },
+        {
+          "index": 54,
+          "durationMs": 0.8886,
+          "sqlCalls": 2,
+          "rowsReturned": 2,
+          "largestSingleSqlResult": 1,
+          "failure": null
+        },
+        {
+          "index": 55,
+          "durationMs": 0.9824,
+          "sqlCalls": 2,
+          "rowsReturned": 2,
+          "largestSingleSqlResult": 1,
+          "failure": null
+        },
+        {
+          "index": 56,
+          "durationMs": 0.9468,
+          "sqlCalls": 2,
+          "rowsReturned": 2,
+          "largestSingleSqlResult": 1,
+          "failure": null
+        },
+        {
+          "index": 57,
+          "durationMs": 0.8449,
+          "sqlCalls": 2,
+          "rowsReturned": 2,
+          "largestSingleSqlResult": 1,
+          "failure": null
+        },
+        {
+          "index": 58,
+          "durationMs": 0.8622,
+          "sqlCalls": 2,
+          "rowsReturned": 2,
+          "largestSingleSqlResult": 1,
+          "failure": null
+        },
+        {
+          "index": 59,
+          "durationMs": 1.1422,
+          "sqlCalls": 2,
+          "rowsReturned": 2,
+          "largestSingleSqlResult": 1,
+          "failure": null
+        },
+        {
+          "index": 60,
+          "durationMs": 1.2821,
+          "sqlCalls": 2,
+          "rowsReturned": 2,
+          "largestSingleSqlResult": 1,
+          "failure": null
+        },
+        {
+          "index": 61,
+          "durationMs": 1.2207,
+          "sqlCalls": 2,
+          "rowsReturned": 2,
+          "largestSingleSqlResult": 1,
+          "failure": null
+        },
+        {
+          "index": 62,
+          "durationMs": 1.2902,
+          "sqlCalls": 2,
+          "rowsReturned": 2,
+          "largestSingleSqlResult": 1,
+          "failure": null
+        },
+        {
+          "index": 63,
+          "durationMs": 1.2154,
+          "sqlCalls": 2,
+          "rowsReturned": 2,
+          "largestSingleSqlResult": 1,
+          "failure": null
+        },
+        {
+          "index": 64,
+          "durationMs": 1.209,
+          "sqlCalls": 2,
+          "rowsReturned": 2,
+          "largestSingleSqlResult": 1,
+          "failure": null
+        },
+        {
+          "index": 65,
+          "durationMs": 1.1446,
+          "sqlCalls": 2,
+          "rowsReturned": 2,
+          "largestSingleSqlResult": 1,
+          "failure": null
+        },
+        {
+          "index": 66,
+          "durationMs": 1.2263,
+          "sqlCalls": 2,
+          "rowsReturned": 2,
+          "largestSingleSqlResult": 1,
+          "failure": null
+        },
+        {
+          "index": 67,
+          "durationMs": 1.0661,
+          "sqlCalls": 2,
+          "rowsReturned": 2,
+          "largestSingleSqlResult": 1,
+          "failure": null
+        },
+        {
+          "index": 68,
+          "durationMs": 0.7763,
+          "sqlCalls": 2,
+          "rowsReturned": 2,
+          "largestSingleSqlResult": 1,
+          "failure": null
+        },
+        {
+          "index": 69,
+          "durationMs": 0.9856,
+          "sqlCalls": 2,
+          "rowsReturned": 2,
+          "largestSingleSqlResult": 1,
+          "failure": null
+        },
+        {
+          "index": 70,
+          "durationMs": 0.8847,
+          "sqlCalls": 2,
+          "rowsReturned": 2,
+          "largestSingleSqlResult": 1,
+          "failure": null
+        },
+        {
+          "index": 71,
+          "durationMs": 0.8527,
+          "sqlCalls": 2,
+          "rowsReturned": 2,
+          "largestSingleSqlResult": 1,
+          "failure": null
+        },
+        {
+          "index": 72,
+          "durationMs": 1.0695,
+          "sqlCalls": 2,
+          "rowsReturned": 2,
+          "largestSingleSqlResult": 1,
+          "failure": null
+        },
+        {
+          "index": 73,
+          "durationMs": 1.4373,
+          "sqlCalls": 2,
+          "rowsReturned": 2,
+          "largestSingleSqlResult": 1,
+          "failure": null
+        },
+        {
+          "index": 74,
+          "durationMs": 1.0069,
+          "sqlCalls": 2,
+          "rowsReturned": 2,
+          "largestSingleSqlResult": 1,
+          "failure": null
+        },
+        {
+          "index": 75,
+          "durationMs": 1.2114,
+          "sqlCalls": 2,
+          "rowsReturned": 2,
+          "largestSingleSqlResult": 1,
+          "failure": null
+        },
+        {
+          "index": 76,
+          "durationMs": 1.2415,
+          "sqlCalls": 2,
+          "rowsReturned": 2,
+          "largestSingleSqlResult": 1,
+          "failure": null
+        },
+        {
+          "index": 77,
+          "durationMs": 1.0403,
+          "sqlCalls": 2,
+          "rowsReturned": 2,
+          "largestSingleSqlResult": 1,
+          "failure": null
+        },
+        {
+          "index": 78,
+          "durationMs": 1.1128,
+          "sqlCalls": 2,
+          "rowsReturned": 2,
+          "largestSingleSqlResult": 1,
+          "failure": null
+        },
+        {
+          "index": 79,
+          "durationMs": 1.0283,
+          "sqlCalls": 2,
+          "rowsReturned": 2,
+          "largestSingleSqlResult": 1,
+          "failure": null
+        },
+        {
+          "index": 80,
+          "durationMs": 1.1468,
+          "sqlCalls": 2,
+          "rowsReturned": 2,
+          "largestSingleSqlResult": 1,
+          "failure": null
+        },
+        {
+          "index": 81,
+          "durationMs": 1.089,
+          "sqlCalls": 2,
+          "rowsReturned": 2,
+          "largestSingleSqlResult": 1,
+          "failure": null
+        },
+        {
+          "index": 82,
+          "durationMs": 1.0616,
+          "sqlCalls": 2,
+          "rowsReturned": 2,
+          "largestSingleSqlResult": 1,
+          "failure": null
+        },
+        {
+          "index": 83,
+          "durationMs": 0.9893,
+          "sqlCalls": 2,
+          "rowsReturned": 2,
+          "largestSingleSqlResult": 1,
+          "failure": null
+        },
+        {
+          "index": 84,
+          "durationMs": 1.159,
+          "sqlCalls": 2,
+          "rowsReturned": 2,
+          "largestSingleSqlResult": 1,
+          "failure": null
+        },
+        {
+          "index": 85,
+          "durationMs": 1.0248,
+          "sqlCalls": 2,
+          "rowsReturned": 2,
+          "largestSingleSqlResult": 1,
+          "failure": null
+        },
+        {
+          "index": 86,
+          "durationMs": 1.163,
+          "sqlCalls": 2,
+          "rowsReturned": 2,
+          "largestSingleSqlResult": 1,
+          "failure": null
+        },
+        {
+          "index": 87,
+          "durationMs": 1.0879,
+          "sqlCalls": 2,
+          "rowsReturned": 2,
+          "largestSingleSqlResult": 1,
+          "failure": null
+        },
+        {
+          "index": 88,
+          "durationMs": 0.9941,
+          "sqlCalls": 2,
+          "rowsReturned": 2,
+          "largestSingleSqlResult": 1,
+          "failure": null
+        },
+        {
+          "index": 89,
+          "durationMs": 1.2323,
+          "sqlCalls": 2,
+          "rowsReturned": 2,
+          "largestSingleSqlResult": 1,
+          "failure": null
+        },
+        {
+          "index": 90,
+          "durationMs": 0.8611,
+          "sqlCalls": 2,
+          "rowsReturned": 2,
+          "largestSingleSqlResult": 1,
+          "failure": null
+        },
+        {
+          "index": 91,
+          "durationMs": 0.9932,
+          "sqlCalls": 2,
+          "rowsReturned": 2,
+          "largestSingleSqlResult": 1,
+          "failure": null
+        },
+        {
+          "index": 92,
+          "durationMs": 0.9089,
+          "sqlCalls": 2,
+          "rowsReturned": 2,
+          "largestSingleSqlResult": 1,
+          "failure": null
+        },
+        {
+          "index": 93,
+          "durationMs": 1.1003,
+          "sqlCalls": 2,
+          "rowsReturned": 2,
+          "largestSingleSqlResult": 1,
+          "failure": null
+        },
+        {
+          "index": 94,
+          "durationMs": 1.0361,
+          "sqlCalls": 2,
+          "rowsReturned": 2,
+          "largestSingleSqlResult": 1,
+          "failure": null
+        },
+        {
+          "index": 95,
+          "durationMs": 1.0416,
+          "sqlCalls": 2,
+          "rowsReturned": 2,
+          "largestSingleSqlResult": 1,
+          "failure": null
+        },
+        {
+          "index": 96,
+          "durationMs": 1.2408,
+          "sqlCalls": 2,
+          "rowsReturned": 2,
+          "largestSingleSqlResult": 1,
+          "failure": null
+        },
+        {
+          "index": 97,
+          "durationMs": 1.1779,
+          "sqlCalls": 2,
+          "rowsReturned": 2,
+          "largestSingleSqlResult": 1,
+          "failure": null
+        },
+        {
+          "index": 98,
+          "durationMs": 1.3004,
+          "sqlCalls": 2,
+          "rowsReturned": 2,
+          "largestSingleSqlResult": 1,
+          "failure": null
+        },
+        {
+          "index": 99,
+          "durationMs": 0.7419,
+          "sqlCalls": 2,
+          "rowsReturned": 2,
+          "largestSingleSqlResult": 1,
+          "failure": null
+        }
+      ],
+      "datasetBefore": {
+        "notes": 605,
+        "receipts": 210
+      },
+      "datasetAfter": {
+        "notes": 605,
+        "receipts": 210
+      }
+    }
+  },
+  "finalCounts": {
+    "completedTasks": 40,
+    "notes": 605,
+    "receipts": 210,
+    "tasks": 200
+  },
+  "integrity": {
+    "sqlite": "ok",
+    "foreignKeyViolations": 0
+  },
+  "cleanupComplete": true,
+  "totalFailures": 0,
+  "result": "PASS"
+}

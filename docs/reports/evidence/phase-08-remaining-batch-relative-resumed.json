@@ -1,0 +1,47 @@
+{
+  "kind": "ROOT_SEQUENTIAL_SYNTHETIC_VOICE_CASES",
+  "status": "COMPLETED_WITH_FAILURES",
+  "startedAtUtc": "2026-10-29T13:59:55.784744+00:00",
+  "physicalDeviceValidation": "NOT_RUN",
+  "rows": [
+    {
+      "case": "V01",
+      "status": "FAIL",
+      "attempts": 1,
+      "evidence": [
+        "docs/reports/evidence/phase-08-emulator-expansion/ex20261028/20261029T135956086055Z-V01-microphone.json"
+      ],
+      "cleanupAndMicRestorationConfirmed": true
+    },
+    {
+      "case": "V03",
+      "status": "PASS",
+      "attempts": 2,
+      "evidence": [
+        "docs/reports/evidence/phase-08-emulator-expansion/ex20261028/20261029T140154997326Z-V03-microphone.json",
+        "docs/reports/evidence/phase-08-emulator-expansion/ex20261028/20261029T140353132735Z-V03-microphone.json"
+      ],
+      "cleanupAndMicRestorationConfirmed": true
+    },
+    {
+      "case": "V04",
+      "status": "PASS",
+      "attempts": 2,
+      "evidence": [
+        "docs/reports/evidence/phase-08-emulator-expansion/ex20261028/20261029T140546768437Z-V04-microphone.json",
+        "docs/reports/evidence/phase-08-emulator-expansion/ex20261028/20261029T140741900136Z-V04-microphone.json"
+      ],
+      "cleanupAndMicRestorationConfirmed": true
+    },
+    {
+      "case": "V06",
+      "status": "PASS",
+      "attempts": 1,
+      "evidence": [
+        "docs/reports/evidence/phase-08-emulator-expansion/ex20261028/20261029T140930466578Z-V06-microphone.json"
+      ],
+      "cleanupAndMicRestorationConfirmed": true
+    }
+  ],
+  "completedAtUtc": "2026-10-29T14:11:26.056511+00:00"
+}

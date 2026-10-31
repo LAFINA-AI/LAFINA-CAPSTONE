@@ -1,0 +1,7 @@
+Saved docs\benchmarks\phase-08-input-loss-queries-student-host.json
+tasks_active_first_page: n=50, p50=0.455ms, p95=0.7638ms, errors=0
+tasks_completed_first_page: n=50, p50=0.3465ms, p95=0.4771ms, errors=0
+agenda_day_first_page: n=50, p50=6.9658ms, p95=9.7809ms, errors=0
+agenda_day_next_page: n=50, p50=6.665ms, p95=8.9105ms, errors=0
+agenda_week_first_page: n=50, p50=9.4623ms, p95=12.6627ms, errors=0
+reminder_history_first_page: n=50, p50=0.3922ms, p95=0.7406ms, errors=0

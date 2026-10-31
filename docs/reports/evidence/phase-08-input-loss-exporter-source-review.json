@@ -1,0 +1,90 @@
+{
+  "kind": "PHASE08_ARCHIVED_SYNTHETIC_EXPORTER_READ_ONLY_SOURCE_REVIEW",
+  "createdAtUtc": "2026-10-30T05:30:55.533435+00:00",
+  "status": "BOUNDED_SOURCE_CONCLUSION_CALL_SITE_NOT_INDEPENDENTLY_RETAINED",
+  "scope": "Archived exporter only. No restore, source edit, device call, build, raw audio read or live capture.",
+  "archivedSource": {
+    "path": ".local/phase08-diagnostic-source/SyntheticCaptureDiagnostics.kt",
+    "sha256": "128f6bd3480a957891a4c773e239496d10a0c4d782c45ee5f2feb08dd9d7f3f0",
+    "bytes": 4643,
+    "lines": 81
+  },
+  "closedComparisonUnchanged": {
+    "path": "docs/reports/evidence/phase-08-input-loss-clean-ack-comparison.json",
+    "sha256": "3c8d9f832aee593366bb749fd9a42b52fd5322db0f0f0ae0d490f46711f24bfe"
+  },
+  "sourceSpans": [
+    {
+      "source": ".local/phase08-diagnostic-source/SyntheticCaptureDiagnostics.kt",
+      "firstLine": 26,
+      "lastLine": 30,
+      "exactSource": "  fun exportIfRequested(context: Context, samples: FloatArray, vocabulary: WhisperVocabulary) {\n    if (BuildConfig.BUILD_TYPE != \"dataQa\" || Build.HARDWARE !in setOf(\"ranchu\", \"goldfish\")) return\n    val directory = context.noBackupFilesDir.canonicalFile\n    val request = File(directory, REQUEST)\n    if (!request.isFile) return",
+      "interpretation": "The function accepts the caller FloatArray and vocabulary, returns Unit, and exits unless explicit DataQa/emulator/request gates hold."
+    },
+    {
+      "source": ".local/phase08-diagnostic-source/SyntheticCaptureDiagnostics.kt",
+      "firstLine": 45,
+      "lastLine": 50,
+      "exactSource": "      val source = File(directory, \"qa08-response-corpus/$fixture.wav\").canonicalFile\n      require(source.parentFile == File(directory, \"qa08-response-corpus\") && source.length() == pin.first)\n      require(digest(source.readBytes()) == pin.second && data.getString(\"sourceWavSha256\") == pin.second)\n      require(samples.size <= SpeechInputPolicy.MAX_SAMPLES && samples.all { it.isFinite() && it in -1f..1f })\n      // Consume once before writing. No capture is started by this request.\n      require(request.delete())",
+      "interpretation": "Reads and verifies the pinned source WAV and validates captured FloatArray contents/size. Consumes the one-shot request file. Validation iterates samples; no element assignment occurs."
+    },
+    {
+      "source": ".local/phase08-diagnostic-source/SyntheticCaptureDiagnostics.kt",
+      "firstLine": 51,
+      "lastLine": 59,
+      "exactSource": "      val pcm = File(directory, \"qa08-native-capture-$cohort.pcm\")\n      val metadata = File(directory, \"qa08-native-capture-$cohort.json\")\n      require(pcm.canonicalFile.parentFile == directory && metadata.canonicalFile.parentFile == directory)\n      require(!pcm.exists() && !metadata.exists())\n      val bytes = ByteBuffer.allocate(samples.size * 2).order(ByteOrder.LITTLE_ENDIAN).apply {\n        samples.forEach { putShort((it * 32768f).toInt().coerceIn(-32768, 32767).toShort()) }\n      }.array()\n      try {\n        Files.newOutputStream(pcm.toPath(), StandardOpenOption.CREATE_NEW, StandardOpenOption.WRITE).use { it.write(bytes) }",
+      "interpretation": "Allocates a distinct ByteBuffer/byte array and serializes each Float sample as a clamped PCM16 value into that separate buffer. The conversion changes exported representation, not the original FloatArray. Writes use CREATE_NEW."
+    },
+    {
+      "source": ".local/phase08-diagnostic-source/SyntheticCaptureDiagnostics.kt",
+      "firstLine": 60,
+      "lastLine": 72,
+      "exactSource": "        val result = JSONObject().put(\"kind\", \"DATAQA_EXPLICIT_EMULATOR_SYNTHETIC_CAPTURE\")\n          .put(\"cohort\", cohort).put(\"fixtureId\", fixture).put(\"sourceWavSha256\", pin.second)\n          .put(\"createdAtUtc\", now.toString()).put(\"vocabulary\", vocabulary.name)\n          .put(\"sampleRate\", SpeechInputPolicy.SAMPLE_RATE).put(\"frames\", samples.size)\n          .put(\"pcmFile\", pcm.name).put(\"bytes\", bytes.size).put(\"sha256\", digest(bytes))\n          .put(\"nonzeroFrames\", samples.count { it != 0f })\n          .put(\"rms\", sqrt(samples.sumOf { it.toDouble() * it } / maxOf(1, samples.size)))\n          .put(\"peak\", samples.maxOfOrNull { abs(it) } ?: 0f)\n          .put(\"physicalDeviceValidation\", \"NOT_RUN\").put(\"rootMustFetchPrivatelyAndRemoveExactFiles\", true)\n        Files.newOutputStream(metadata.toPath(), StandardOpenOption.CREATE_NEW, StandardOpenOption.WRITE).use {\n          it.write(result.toString(2).toByteArray(Charsets.UTF_8))\n        }\n      } finally { bytes.fill(0) }",
+      "interpretation": "Vocabulary is read only through name; frames/nonzero/RMS/peak are read from samples. Metadata and local PCM bytes are written. The finally block clears bytes, the separately allocated byte array, not samples."
+    },
+    {
+      "source": ".local/phase08-diagnostic-source/SyntheticCaptureDiagnostics.kt",
+      "firstLine": 73,
+      "lastLine": 80,
+      "exactSource": "    } catch (failure: Exception) {\n      // Diagnostics never change normal recording, recognition or manual fallback behavior.\n      Log.d(\"CapstoneStt\", \"synthetic diagnostic not exported: ${failure.javaClass.simpleName}\")\n    }\n  }\n\n  private fun digest(bytes: ByteArray): String = MessageDigest.getInstance(\"SHA-256\").digest(bytes)\n    .joinToString(\"\") { \"%02x\".format(it.toInt() and 255) }",
+      "interpretation": "Ordinary Exception failures are caught and logged by class name. The digest helper returns SHA256 text; it does not modify captured samples."
+    }
+  ],
+  "findings": {
+    "capturedFloatArrayElementWritesInExporter": false,
+    "returnedReplacementSampleBuffer": false,
+    "normalizesOrScalesOriginalCapturedFloatArray": false,
+    "roundTripsExportedPcmBackIntoCallerSamples": false,
+    "engineSelectionOrDecoderInvocationInExporter": false,
+    "decoderSettingsOrProfileMutationInExporter": false,
+    "vocabularyUse": "Reads vocabulary.name for metadata only",
+    "policyUse": "Reads MAX_SAMPLES and SAMPLE_RATE constants only",
+    "observableSideEffects": [
+      "Reads request JSON and pinned WAV bytes",
+      "Deletes the exact one-shot request",
+      "Allocates and fills a separate PCM16 byte array",
+      "Writes new owned PCM and JSON files",
+      "Reads samples for validation/hash metadata statistics",
+      "Clears only the temporary PCM byte array",
+      "Logs ordinary failure class names"
+    ],
+    "boundedConclusion": "The archived exporter implementation itself does not mutate the captured FloatArray, select an engine, change decoder settings/profile, or feed its PCM16 serialization back to the caller. This rules out those direct mutations in this file, not all differences between the diagnostic and clean builds."
+  },
+  "callSiteProvenance": {
+    "exactSavedCallSiteAvailable": false,
+    "rootReportedHistory": "One SyntheticCaptureDiagnostics.exportIfRequested(...) statement was removed from SpeechInput.kt; root byte-verified the archived exporter.",
+    "limitation": "The exact removed statement, its placement/arguments and the complete diagnostic-versus-clean source diff were not independently retained here. No replacement call site was reconstructed or restored. Caller behavior therefore remains conditional on the reported single diagnostic call."
+  },
+  "remainingConfounds": [
+    "Synchronous validation, file reads/hashes, allocation, statistics and file writes can add timing/memory/I/O work even without changing samples. No timing or cache effect is quantified by this static review.",
+    "Four diagnostic passes used APK98ed4f5fb6311d64b96381b08e99fb19a5f243c21fd078fd4ea4a774bcdd2d23; the retained clean A03 failure used APK7300f2aefeb8d5f90882655d46435b100a12531e16a7c70df4f81230f4160454.",
+    "The clean failed capture lacks exported PCM/profile-buffer identity in the scoped artifacts, so captured input/profile variation versus decoder/runtime state is still unresolved.",
+    "No causal explanation, reliable workaround/fix, new corpus/grammar or physical-phone accuracy claim follows from this source review."
+  ],
+  "deviceCalls": 0,
+  "sourceEdits": 0,
+  "rawAudioRead": false,
+  "rawTranscriptEmitted": false,
+  "physicalDeviceValidation": "NOT_RUN",
+  "V05": "OWNER_DEFERRED_NOT_RUN"
+}

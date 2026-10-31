@@ -1,0 +1,27 @@
+{
+  "schemaVersion": 1,
+  "runId": "ex20261028",
+  "invocation": "20261030T051745924366Z-126c4914",
+  "command": "cleanup",
+  "startedAt": "2026-10-30T05:17:45.925612+00:00",
+  "status": "PASS",
+  "scope": "Explicit emulator UI driver plus independent read-only SQLite snapshots",
+  "physicalAcceptance": "HUMAN_REQUIRED",
+  "events": [
+    {
+      "at": "2026-10-30T05:17:45.926531+00:00",
+      "event": "invocation_started"
+    },
+    {
+      "at": "2026-10-30T05:17:46.351030+00:00",
+      "event": "owned_fixture_already_soft_removed",
+      "title": "QA08 EX ex20261028 IL20261030T051622505477Z-a91b6a A32"
+    }
+  ],
+  "limits": [
+    "Direct private Activity intents do not certify actual notification taps or full-screen delivery.",
+    "No live microphone, audibility, physical phone, OEM or battery acceptance is implied."
+  ],
+  "completedAt": "2026-10-30T05:17:46.351439+00:00",
+  "passScope": "Requested bounded runner operation only; inspect case assertions and physical gates separately"
+}

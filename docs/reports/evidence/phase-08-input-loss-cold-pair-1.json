@@ -1,0 +1,231 @@
+{
+  "kind": "PREDECLARED_VISIBLE_CAPTURE_PAIR",
+  "status": "COMPLETED_ALL_OUTCOMES_RETAINED",
+  "startedAtUtc": "2026-10-29T14:59:13.615607+00:00",
+  "plannedTrials": 2,
+  "physicalDeviceValidation": "NOT_RUN",
+  "hostMicrophoneEnableRequested": false,
+  "rows": [
+    {
+      "trial": 1,
+      "executionExit": 1,
+      "caseExecutionPassed": false,
+      "caseEvidence": "docs/reports/evidence/phase-08-emulator-expansion/ex20261028/20261029T145913949381Z-V01-microphone.json",
+      "sourceStatus": "FAIL_OR_UNSUPPORTED_REVIEW_REQUIRED",
+      "captureAndReview": {
+        "recordingVisible": true,
+        "visibleHoldCount": 2,
+        "transcriptReady": false,
+        "recognizedCharacterCount": 0,
+        "recognizedNormalizedSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "recognizedNormalizedMatchesSyntheticAcknowledge": false,
+        "terminalFailureCode": "NO_AUDIO_SIGNAL"
+      },
+      "captureMetrics": [
+        {
+          "atEpochSeconds": 1793286050.058,
+          "vocabulary": "REMINDER_RESPONSE",
+          "frames": 81152,
+          "nonzero": 4159,
+          "rms": 3.478836670116267e-05
+        }
+      ],
+      "privateRouteSnapshots": [
+        {
+          "name": "route-0-audio.txt",
+          "bytes": 32587,
+          "sha256": "3e77491b237ea20d4e9a751ccfaa8bfa57815a2adce0365e816e1ba5ff5b9081"
+        },
+        {
+          "name": "route-0-media.audio_flinger.txt",
+          "bytes": 24206,
+          "sha256": "f94b974a3ee57399fa6bd29d3c52cd4269e10dce190e23e7955cb81791433a3f"
+        },
+        {
+          "name": "route-0-media.audio_policy.txt",
+          "bytes": 42828,
+          "sha256": "627cd9b15ae0e79677d0e1197c2a75bbc12d53a42559c282e2d53e3ba4b35a4b"
+        },
+        {
+          "name": "route-1-audio.txt",
+          "bytes": 32587,
+          "sha256": "960376f30768fdaee3d6a4609caa1f7af9df01af572bf148c122aa456f9b1f6d"
+        },
+        {
+          "name": "route-1-media.audio_flinger.txt",
+          "bytes": 24215,
+          "sha256": "22d09ba1c96a4eb650a1e081881e70454d966e538319fa3ed478c699fedb5cce"
+        },
+        {
+          "name": "route-1-media.audio_policy.txt",
+          "bytes": 42885,
+          "sha256": "7514cbc1d425f8f5d332a12fdcd75bddf12f8d69cfae31d8b9351c11e778e661"
+        },
+        {
+          "name": "route-2-audio.txt",
+          "bytes": 32587,
+          "sha256": "1a4adca615d09f04bbc3ca4320763a07b2015c257dbc53953039d897b727e9b6"
+        },
+        {
+          "name": "route-2-media.audio_flinger.txt",
+          "bytes": 24174,
+          "sha256": "400ac6a7e7c45ef50fc1bb7821f980f58aa94c02cf6a771fc5ba1e54846024f5"
+        },
+        {
+          "name": "route-2-media.audio_policy.txt",
+          "bytes": 42895,
+          "sha256": "4eca5547fc6c5916874b600e392da350d1a17464f9b10d5da4d88a0e61af62a9"
+        },
+        {
+          "name": "route-3-audio.txt",
+          "bytes": 32587,
+          "sha256": "19796e99cb837a7385c0cd984e017cc2ecd07c1838c2212191b6fe9be936aaf0"
+        },
+        {
+          "name": "route-3-media.audio_flinger.txt",
+          "bytes": 24087,
+          "sha256": "8b73d0205f750e8e50aa5b4afd415a9f6d3005771d68ebcd30e73a9db3acb882"
+        },
+        {
+          "name": "route-3-media.audio_policy.txt",
+          "bytes": 42895,
+          "sha256": "2869caf1c165e2482e7c30d7272ec292ed16dacc288d56beb5a86cf31af41b83"
+        },
+        {
+          "name": "route-4-audio.txt",
+          "bytes": 32587,
+          "sha256": "1f98e1140c2f680bbacb16fa44336c9068ddc332ab59f92e17e12b5dedc8b712"
+        },
+        {
+          "name": "route-4-media.audio_flinger.txt",
+          "bytes": 24085,
+          "sha256": "3ac5f19b00712a521f69f79cc0c9db81fb0e8d1984a6391e0db1f3fde2051b70"
+        },
+        {
+          "name": "route-4-media.audio_policy.txt",
+          "bytes": 42895,
+          "sha256": "1ddcb8bd36e5155d16645ca7a169952674062ae9939a2b7e609bcb9e01d68b05"
+        }
+      ],
+      "cleanupAndMicRestorationConfirmed": true
+    },
+    {
+      "trial": 2,
+      "executionExit": 1,
+      "caseExecutionPassed": false,
+      "caseEvidence": "docs/reports/evidence/phase-08-emulator-expansion/ex20261028/20261029T150113956051Z-V01-microphone.json",
+      "sourceStatus": "FAIL_OR_UNSUPPORTED_REVIEW_REQUIRED",
+      "captureAndReview": {
+        "recordingVisible": true,
+        "visibleHoldCount": 2,
+        "transcriptReady": true,
+        "recognizedCharacterCount": 25,
+        "recognizedNormalizedSha256": "30598fc529e49dff373887b2fdc2eaff1bd00000c6ba0ace29e69a8107880f81",
+        "recognizedNormalizedMatchesSyntheticAcknowledge": false
+      },
+      "captureMetrics": [
+        {
+          "atEpochSeconds": 1793286161.723,
+          "vocabulary": "REMINDER_RESPONSE",
+          "frames": 78080,
+          "nonzero": 41338,
+          "rms": 0.06577333359792437
+        }
+      ],
+      "privateRouteSnapshots": [
+        {
+          "name": "route-0-audio.txt",
+          "bytes": 34618,
+          "sha256": "5d5db3213235d9f08c0fb807991a321f1b1c15f91e5008a501a4193d5fab10d5"
+        },
+        {
+          "name": "route-0-media.audio_flinger.txt",
+          "bytes": 35419,
+          "sha256": "b8758d8e2142b1403777f43e2631ef1bc5bb4988f3fd7ebea931c619b7ac79bd"
+        },
+        {
+          "name": "route-0-media.audio_policy.txt",
+          "bytes": 42906,
+          "sha256": "184accd6555f4b67ba49a80a18ee343b9c0ffd98236176d87442831d3af7136d"
+        },
+        {
+          "name": "route-1-audio.txt",
+          "bytes": 34618,
+          "sha256": "80d0c217112dc5b9968e69181e6312a38ab76b8aa4eb70473ecf56b8927989d4"
+        },
+        {
+          "name": "route-1-media.audio_flinger.txt",
+          "bytes": 35476,
+          "sha256": "3c00dec572701aec39a85bd196b63dea056811740aff47a5f1a9f90f9ebe7d33"
+        },
+        {
+          "name": "route-1-media.audio_policy.txt",
+          "bytes": 42905,
+          "sha256": "1029073395ec44ba44844b38136b804c4707e437f940713f63117e10b52f6ed7"
+        },
+        {
+          "name": "route-2-audio.txt",
+          "bytes": 34618,
+          "sha256": "cba684253cc68e50d267e53628cc6c7a0bb746e895ad2c8d19ee5e7b9cc1701c"
+        },
+        {
+          "name": "route-2-media.audio_flinger.txt",
+          "bytes": 35786,
+          "sha256": "4a5f841b7cf102cc541a212dbf4072a6531e20500576ff3a5cc948e67029850c"
+        },
+        {
+          "name": "route-2-media.audio_policy.txt",
+          "bytes": 42906,
+          "sha256": "49b1414bf864962ed0c2a18cc1bb81c1cb39fcbf7a8ac2087100745c5ea3d766"
+        },
+        {
+          "name": "route-3-audio.txt",
+          "bytes": 34618,
+          "sha256": "f70aa757f6991618a91b637a3552ef1c5bd80c88a7d71754d5f3621dd5a29a7d"
+        },
+        {
+          "name": "route-3-media.audio_flinger.txt",
+          "bytes": 35849,
+          "sha256": "0d97697317e9652875881a772d645df701ab03476b91e7f9fa9aefd92400031d"
+        },
+        {
+          "name": "route-3-media.audio_policy.txt",
+          "bytes": 42908,
+          "sha256": "02834f893ac07f8a4a53cb7b50699934d881959d11087e1c060097e57c4d6a43"
+        },
+        {
+          "name": "route-4-audio.txt",
+          "bytes": 34618,
+          "sha256": "219b07e14cca58489b222cf0b8510bac9d8c922bd9a87784fbbaf6be8bd35990"
+        },
+        {
+          "name": "route-4-media.audio_flinger.txt",
+          "bytes": 36023,
+          "sha256": "8f301bd3843cbf93d2012ac10548435c6edd1e748cec8277b613ea1020e15e70"
+        },
+        {
+          "name": "route-4-media.audio_policy.txt",
+          "bytes": 42906,
+          "sha256": "7dd1471f09d91dbc0ef669a07328b8ffbd4d38fb833d3f9a0df779f202340f7a"
+        },
+        {
+          "name": "route-5-audio.txt",
+          "bytes": 34618,
+          "sha256": "b58a56ab2c8ec6234f68d01a14618ffaa4964eb623c839e97dfae4c23bc94b77"
+        },
+        {
+          "name": "route-5-media.audio_flinger.txt",
+          "bytes": 36080,
+          "sha256": "e6b319b66c840c562051404a2872c1af7d577d612ef21490ea05469f88158fc0"
+        },
+        {
+          "name": "route-5-media.audio_policy.txt",
+          "bytes": 42908,
+          "sha256": "55dd683eed9658a23dee71afd72a3b8dabf606a2669b1702f95ca91c925a6bfb"
+        }
+      ],
+      "cleanupAndMicRestorationConfirmed": true
+    }
+  ],
+  "completedAtUtc": "2026-10-29T15:03:02.453192+00:00"
+}

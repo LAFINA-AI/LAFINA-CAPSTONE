@@ -1,0 +1,53 @@
+{
+  "kind": "PHASE08_STABLE_GENERATED_ZERO_PRIMER_RECOVERY",
+  "startedAtUtc": "2026-10-31T00:22:52.922297+00:00",
+  "status": "SAME_DISK_BOOTED_REVERIFICATION_PENDING",
+  "originalAvdTargeted": false,
+  "userdataResetOrReplacement": false,
+  "events": [
+    {
+      "event": "graceful_stop_timed_out",
+      "atUtc": "2026-10-31T00:23:02.196104+00:00"
+    },
+    {
+      "event": "verified_owned_vm_process_stopped",
+      "atUtc": "2026-10-31T00:23:03.008416+00:00",
+      "pid": 18088
+    },
+    {
+      "event": "verified_owned_vm_process_stopped",
+      "atUtc": "2026-10-31T00:23:03.865582+00:00",
+      "pid": 18892
+    },
+    {
+      "event": "same_saved_disk_launched",
+      "atUtc": "2026-10-31T00:23:11.881383+00:00",
+      "pid": 35344
+    },
+    {
+      "event": "waiting_for_boot",
+      "atUtc": "2026-10-31T00:23:37.280660+00:00",
+      "elapsed": 25.4
+    },
+    {
+      "event": "waiting_for_boot",
+      "atUtc": "2026-10-31T00:24:03.050977+00:00",
+      "elapsed": 51.2
+    },
+    {
+      "event": "guest_identity_verified",
+      "atUtc": "2026-10-31T00:24:06.654509+00:00"
+    }
+  ],
+  "verifiedOwnedProcesses": [
+    {
+      "pid": 18892,
+      "name": "emulator.exe"
+    },
+    {
+      "pid": 18088,
+      "name": "qemu-system-x86_64-headless.exe"
+    }
+  ],
+  "completedAtUtc": "2026-10-31T00:24:06.653223+00:00"
+}

@@ -1,0 +1,77 @@
+{
+  "kind": "PARENT_SYNTHETIC_VISIBLE_MICROPHONE_CASE",
+  "case": "A03",
+  "status": "FAIL_OR_UNSUPPORTED_REVIEW_REQUIRED",
+  "startedAtUtc": "2026-10-28T23:17:10.643750+00:00",
+  "events": [
+    {
+      "event": "host_microphone_double_false_before",
+      "atUtc": "2026-10-28T23:17:10.922611+00:00",
+      "elapsedMonotonicSeconds": 0.27888589999929536,
+      "status": "HOST_MICROPHONE_DISABLED"
+    },
+    {
+      "event": "owned_fixture_before",
+      "atUtc": "2026-10-28T23:18:25.607563+00:00",
+      "elapsedMonotonicSeconds": 74.96383720000085,
+      "rows": [
+        {
+          "taskId": "task:cmd_mvsqicej_0_zbo8vyj6uz9",
+          "taskStatus": "TODO",
+          "deletedAt": null,
+          "jobId": "job:reminder:task:cmd_mvsqicej_0_zbo8vyj6uz9|2026-10-28T23:18:21.354Z",
+          "occurrenceKey": "task:cmd_mvsqicej_0_zbo8vyj6uz9|2026-10-28T23:18:21.354Z",
+          "generation": 1,
+          "jobStatus": "RINGING",
+          "reminderStatus": "RINGING",
+          "runAt": "2026-10-28T23:18:21.354Z",
+          "deadline": "2026-10-28T23:19:21.824Z",
+          "deliveryState": "REGISTERED",
+          "registrations": 1
+        }
+      ]
+    },
+    {
+      "event": "real_visible_recording_stage_observed",
+      "atUtc": "2026-10-28T23:18:35.106708+00:00",
+      "elapsedMonotonicSeconds": 84.46299699999872,
+      "recordingVisible": true
+    },
+    {
+      "event": "deliberate_synthetic_onset_delay",
+      "atUtc": "2026-10-28T23:18:35.616783+00:00",
+      "elapsedMonotonicSeconds": 84.97307559999899,
+      "delayMs": 500
+    },
+    {
+      "event": "pinned_response_pcm_stream_completed",
+      "atUtc": "2026-10-28T23:18:39.789845+00:00",
+      "elapsedMonotonicSeconds": 89.14611679999871,
+      "grpcStatus": 0,
+      "fixture": {
+        "fixtureId": "acknowledge",
+        "sha256": "e10b92f68d6a188bc19b44bd327aa91747d58d4a257510d786a14dc45a4e0a3c",
+        "bytes": 72206,
+        "voiceName": "Microsoft Zira Desktop",
+        "source": "phase-08-synthetic-response-audio.json"
+      }
+    }
+  ],
+  "rawTranscriptEmitted": false,
+  "physicalSpeech": "NOT_RUN",
+  "audibility": "NOT_RUN",
+  "ttsInterruption": "NOT_RUN",
+  "scope": "Real visible hold/capture with only pinned synthetic PCM when explicitly selected; no live host input or physical speech acceptance",
+  "trialIndex": 1,
+  "requestedIndependentTrials": 1,
+  "syntheticInjectionDelayMs": 500,
+  "syntheticRepeatAliasOf": null,
+  "reason": "PRIVATE_MICROPHONE_FAILURE_LOG_SAVED",
+  "errorType": "RuntimeError",
+  "microphonePermissionRestoration": "EXACT_FRESH_BASELINE_VERIFIED",
+  "fixtureCleanup": "EXACT_OWNED_TITLE_REVIEWED_UI",
+  "hostMicrophoneDisabledAtEnd": true,
+  "completedAtUtc": "2026-10-28T23:18:59.158165+00:00",
+  "elapsedMonotonicSeconds": 108.51443749999817,
+  "privateEvidence": ".local/phase08-microphone-20261028T231710641971Z-A03"
+}

@@ -1,0 +1,85 @@
+{
+  "kind": "PARENT_CONTROLLED_PLATFORM_EMULATOR_CASE",
+  "case": "A15",
+  "status": "PASS",
+  "startedAtUtc": "2026-10-28T13:34:49.101038+00:00",
+  "events": [
+    {
+      "atUtc": "2026-10-28T13:35:06.915814+00:00",
+      "elapsedMonotonicSeconds": 17.814767900010338,
+      "event": "fixture_created_via_reviewed_chat",
+      "title": "QA08 EX ex20261028 A15P_20261028T133449099796Z",
+      "rows": [
+        {
+          "taskId": "task:cmd_mvs5pglx_0_oaiun2hhlq",
+          "taskStatus": "TODO",
+          "deletedAt": null,
+          "jobId": "job:reminder:task:cmd_mvs5pglx_0_oaiun2hhlq|2026-10-28T13:37:01.460Z",
+          "occurrenceKey": "task:cmd_mvs5pglx_0_oaiun2hhlq|2026-10-28T13:37:01.460Z",
+          "generation": 1,
+          "jobStatus": "PENDING",
+          "reminderStatus": "SCHEDULED",
+          "runAt": "2026-10-28T13:37:01.460Z",
+          "deadline": null,
+          "deliveryState": "REGISTERED",
+          "registrations": 1
+        }
+      ]
+    },
+    {
+      "atUtc": "2026-10-28T13:36:47.212236+00:00",
+      "elapsedMonotonicSeconds": 118.11119289998896,
+      "event": "guest_reboot_boot_completed_and_unsecured_unlock_requested"
+    },
+    {
+      "atUtc": "2026-10-28T13:38:16.858143+00:00",
+      "elapsedMonotonicSeconds": 207.75709679999272,
+      "event": "owned_ring_observed_independently",
+      "rows": [
+        {
+          "taskId": "task:cmd_mvs5pglx_0_oaiun2hhlq",
+          "taskStatus": "TODO",
+          "deletedAt": null,
+          "jobId": "job:reminder:task:cmd_mvs5pglx_0_oaiun2hhlq|2026-10-28T13:37:01.460Z",
+          "occurrenceKey": "task:cmd_mvs5pglx_0_oaiun2hhlq|2026-10-28T13:37:01.460Z",
+          "generation": 1,
+          "jobStatus": "RINGING",
+          "reminderStatus": "RINGING",
+          "runAt": "2026-10-28T13:37:01.460Z",
+          "deadline": "2026-10-28T13:39:12.567Z",
+          "deliveryState": "REGISTERED",
+          "registrations": 0
+        }
+      ]
+    },
+    {
+      "atUtc": "2026-10-28T13:38:36.151568+00:00",
+      "elapsedMonotonicSeconds": 227.05051309999544,
+      "event": "actual_notification_typed_ack_task_not_completed",
+      "rows": [
+        {
+          "taskId": "task:cmd_mvs5pglx_0_oaiun2hhlq",
+          "taskStatus": "TODO",
+          "deletedAt": null,
+          "jobId": "job:reminder:task:cmd_mvs5pglx_0_oaiun2hhlq|2026-10-28T13:37:01.460Z",
+          "occurrenceKey": "task:cmd_mvs5pglx_0_oaiun2hhlq|2026-10-28T13:37:01.460Z",
+          "generation": 1,
+          "jobStatus": "ACKNOWLEDGED",
+          "reminderStatus": "ACKNOWLEDGED",
+          "runAt": "2026-10-28T13:37:01.460Z",
+          "deadline": null,
+          "deliveryState": "UNAVAILABLE",
+          "registrations": 0
+        }
+      ]
+    }
+  ],
+  "physicalDeviceValidation": "NOT_RUN",
+  "audibilityValidation": "NOT_RUN",
+  "restoration": [
+    "exact_owned_fixture_cleaned_via_reviewed_ui"
+  ],
+  "completedAtUtc": "2026-10-28T13:38:54.461163+00:00",
+  "elapsedMonotonicSeconds": 245.36011350000626,
+  "privateSystemEvidence": ".local/phase08-platform/20261028T133449099796Z-A15"
+}

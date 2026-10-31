@@ -1,0 +1,13 @@
+{
+  "device": "Medium_Phone / sdk_gphone16k_x86_64 / API37 beta / 16KiB",
+  "build": "0.8.0-data-qa / code11",
+  "scope": "Actual emulator UI and storage; no physical/live speech/audibility acceptance",
+  "events": [
+    {
+      "check": "removed only owned fixture QA08 native ack",
+      "status": "PASS",
+      "tombstoneRetained": true,
+      "activeRegistrationCount": 0
+    }
+  ]
+}

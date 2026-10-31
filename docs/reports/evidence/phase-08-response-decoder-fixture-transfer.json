@@ -1,0 +1,16 @@
+{
+  "scope": "Pinned synthetic files only; no database write, no microphone",
+  "initialTransferFailure": "tee echoed into exec-in output and stopped at 12286 bytes. Only that checksum-verified owned partial was repaired using dd; both complete files independently verified.",
+  "files": [
+    {
+      "fixture": "acknowledge",
+      "bytes": 72206,
+      "sha256": "e10b92f68d6a188bc19b44bd327aa91747d58d4a257510d786a14dc45a4e0a3c"
+    },
+    {
+      "fixture": "snooze",
+      "bytes": 74286,
+      "sha256": "fd762146a51062b7d5deef1cda58b2607d8b3aa4694bde4c76d9820701e5f42a"
+    }
+  ]
+}

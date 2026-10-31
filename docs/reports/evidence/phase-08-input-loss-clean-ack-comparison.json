@@ -1,0 +1,2669 @@
+{
+  "kind": "PHASE08_SCOPED_CLEAN_ACK_FAILURE_VS_FOUR_DIAGNOSTIC_PASSES",
+  "createdAtUtc": "2026-10-30T05:18:54.494392+00:00",
+  "status": "COMPARISON_ONLY_NO_CAUSAL_OR_FIX_CLAIM",
+  "scope": "Named clean failed A03 and four initialized diagnostic A03 passes from the two paired reports; existing files only, no device calls or source changes.",
+  "trialCount": 5,
+  "trials": [
+    {
+      "label": "clean_failed_A03",
+      "caseEvidence": "docs/reports/evidence/phase-08-emulator-expansion/ex20261028/20261030T001337622504Z-A03-microphone.json",
+      "status": "FAIL_OR_UNSUPPORTED_REVIEW_REQUIRED",
+      "appCandidateSha256": "7300f2aefeb8d5f90882655d46435b100a12531e16a7c70df4f81230f4160454",
+      "appCandidateProvenance": "root-verified clean installed candidate supplied in task",
+      "emulatorSdkVersion": "37.1.11",
+      "driverLaunch": "DIRECT_PRIVATE_ACTIVITY_INTENT_NOT_NOTIFICATION_TAP",
+      "holdStages": [
+        {
+          "outcome": "HOLD_UNAVAILABLE",
+          "holdCount": 1,
+          "failureCode": "LANGUAGE_UNAVAILABLE"
+        },
+        {
+          "outcome": "READY",
+          "holdCount": 2,
+          "failureCode": null
+        }
+      ],
+      "visibleHoldCount": 2,
+      "firstHoldFailureCode": "LANGUAGE_UNAVAILABLE",
+      "recognizedCharacterCount": 25,
+      "recognizedNormalizedSha256": "30598fc529e49dff373887b2fdc2eaff1bd00000c6ba0ace29e69a8107880f81",
+      "matchesPinnedAck": false,
+      "nativeReadyAtUtc": "2026-10-30T00:14:51.318316+00:00",
+      "hostObservedReadyAfterNativeMs": 155.691,
+      "sourceStreamCompletedAfterNativeReadyMs": 4450.429,
+      "controllerElapsedMonotonicSeconds": 94.1429930000013,
+      "injection": {
+        "status": "SYNTHETIC_STREAM_COMPLETED",
+        "fixtureId": "acknowledge",
+        "fixtureSha256": "e10b92f68d6a188bc19b44bd327aa91747d58d4a257510d786a14dc45a4e0a3c",
+        "syntheticDurationMs": 2255,
+        "transportGainPermille": 500,
+        "leadingPaddingMs": 1000,
+        "trailingPaddingMs": 1000,
+        "injectedDurationMs": 4255,
+        "derivedPcmSha256": "978ad1ae355fde64b9f684c5d8ba609750c51ebe5b12a021a460f7156ea24e76",
+        "audioDeliveryMode": "BLOCKING_SERVER_PACED",
+        "clientWallclockThrottling": false,
+        "visibleRecordingProofChecked": true,
+        "inputInitializationAttempted": true,
+        "inputInitializationStimulusBytes": 0,
+        "inputInitializationGrpcStatus": 0,
+        "injectionGrpcStatus": 0,
+        "hostInputEnableRequested": false,
+        "hostMicrophoneEnabledBefore": false,
+        "hostMicrophoneEnabledAfterInitialization": false,
+        "hostMicrophoneEnabledAfter": false,
+        "recognitionVerified": false,
+        "audibilityVerified": false
+      },
+      "events": [
+        {
+          "event": "host_microphone_double_false_before",
+          "atUtc": "2026-10-30T00:13:37.715407+00:00",
+          "elapsedMonotonicSeconds": 0.09213250000902917
+        },
+        {
+          "event": "owned_fixture_before",
+          "atUtc": "2026-10-30T00:14:46.153013+00:00",
+          "elapsedMonotonicSeconds": 68.52974270000414
+        },
+        {
+          "event": "real_visible_recording_stage_observed",
+          "atUtc": "2026-10-30T00:14:51.474007+00:00",
+          "elapsedMonotonicSeconds": 73.85073720000219
+        },
+        {
+          "event": "deliberate_synthetic_onset_delay",
+          "atUtc": "2026-10-30T00:14:51.977622+00:00",
+          "elapsedMonotonicSeconds": 74.35436130000744
+        },
+        {
+          "event": "pinned_response_pcm_stream_completed",
+          "atUtc": "2026-10-30T00:14:55.768745+00:00",
+          "elapsedMonotonicSeconds": 78.14547570000286
+        }
+      ],
+      "routeSamples": [
+        {
+          "sample": 0,
+          "audioSnapshotTiming": {
+            "startedAtUtc": "2026-10-30T00:14:51.985010+00:00",
+            "endedAtUtc": "2026-10-30T00:14:52.059512+00:00",
+            "exitCode": 0
+          },
+          "flingerSnapshotTiming": {
+            "startedAtUtc": "2026-10-30T00:14:52.060289+00:00",
+            "endedAtUtc": "2026-10-30T00:14:52.124824+00:00",
+            "exitCode": 0
+          },
+          "flingerStartAfterNativeReadyMs": 741.973,
+          "flingerSnapshotWallMs": 64.535,
+          "currentInputThreads": 1,
+          "activeAppRecordings": 1,
+          "recordingNotSilenced": true,
+          "inputStandby": "no",
+          "inputSampleRateHz": 16000,
+          "channelCount": 1,
+          "halFrameCount": 256,
+          "halBufferBytes": 512,
+          "halFormat": "AUDIO_FORMAT_PCM_16_BIT",
+          "inputDevice": "AUDIO_DEVICE_IN_BUILTIN_MIC",
+          "sourceId": 6,
+          "sourceName": "AUDIO_SOURCE_VOICE_RECOGNITION",
+          "pendingConfigEvents": "none",
+          "framesReadAtSample": 12800,
+          "hardwareSilenced": "no",
+          "requestedModes": [
+            "MODE_NORMAL"
+          ],
+          "actualModes": [
+            "MODE_NORMAL"
+          ],
+          "signalPowerHistory": {
+            "resolutionMs": 50,
+            "printedSampleValues": 15,
+            "minimumPrintedDb": -83.9,
+            "maximumPrintedDb": -76.3,
+            "printedValuesAboveMinus40Db": 0,
+            "firstPrintedAboveMinus40AtUtc": null,
+            "firstPrintedAboveMinus40AfterNativeReadyMs": null
+          }
+        },
+        {
+          "sample": 1,
+          "audioSnapshotTiming": {
+            "startedAtUtc": "2026-10-30T00:14:52.393240+00:00",
+            "endedAtUtc": "2026-10-30T00:14:52.455564+00:00",
+            "exitCode": 0
+          },
+          "flingerSnapshotTiming": {
+            "startedAtUtc": "2026-10-30T00:14:52.456363+00:00",
+            "endedAtUtc": "2026-10-30T00:14:52.515302+00:00",
+            "exitCode": 0
+          },
+          "flingerStartAfterNativeReadyMs": 1138.047,
+          "flingerSnapshotWallMs": 58.939,
+          "currentInputThreads": 1,
+          "activeAppRecordings": 1,
+          "recordingNotSilenced": true,
+          "inputStandby": "no",
+          "inputSampleRateHz": 16000,
+          "channelCount": 1,
+          "halFrameCount": 256,
+          "halBufferBytes": 512,
+          "halFormat": "AUDIO_FORMAT_PCM_16_BIT",
+          "inputDevice": "AUDIO_DEVICE_IN_BUILTIN_MIC",
+          "sourceId": 6,
+          "sourceName": "AUDIO_SOURCE_VOICE_RECOGNITION",
+          "pendingConfigEvents": "none",
+          "framesReadAtSample": 18944,
+          "hardwareSilenced": "no",
+          "requestedModes": [
+            "MODE_NORMAL"
+          ],
+          "actualModes": [
+            "MODE_NORMAL"
+          ],
+          "signalPowerHistory": {
+            "resolutionMs": 50,
+            "printedSampleValues": 18,
+            "minimumPrintedDb": -104.3,
+            "maximumPrintedDb": -76.3,
+            "printedValuesAboveMinus40Db": 0,
+            "firstPrintedAboveMinus40AtUtc": null,
+            "firstPrintedAboveMinus40AfterNativeReadyMs": null
+          }
+        },
+        {
+          "sample": 2,
+          "audioSnapshotTiming": {
+            "startedAtUtc": "2026-10-30T00:14:52.785823+00:00",
+            "endedAtUtc": "2026-10-30T00:14:52.848843+00:00",
+            "exitCode": 0
+          },
+          "flingerSnapshotTiming": {
+            "startedAtUtc": "2026-10-30T00:14:52.849638+00:00",
+            "endedAtUtc": "2026-10-30T00:14:52.913392+00:00",
+            "exitCode": 0
+          },
+          "flingerStartAfterNativeReadyMs": 1531.322,
+          "flingerSnapshotWallMs": 63.754,
+          "currentInputThreads": 1,
+          "activeAppRecordings": 1,
+          "recordingNotSilenced": true,
+          "inputStandby": "no",
+          "inputSampleRateHz": 16000,
+          "channelCount": 1,
+          "halFrameCount": 256,
+          "halBufferBytes": 512,
+          "halFormat": "AUDIO_FORMAT_PCM_16_BIT",
+          "inputDevice": "AUDIO_DEVICE_IN_BUILTIN_MIC",
+          "sourceId": 6,
+          "sourceName": "AUDIO_SOURCE_VOICE_RECOGNITION",
+          "pendingConfigEvents": "none",
+          "framesReadAtSample": 25344,
+          "hardwareSilenced": "no",
+          "requestedModes": [
+            "MODE_NORMAL"
+          ],
+          "actualModes": [
+            "MODE_NORMAL"
+          ],
+          "signalPowerHistory": {
+            "resolutionMs": 50,
+            "printedSampleValues": 18,
+            "minimumPrintedDb": -104.3,
+            "maximumPrintedDb": -76.3,
+            "printedValuesAboveMinus40Db": 0,
+            "firstPrintedAboveMinus40AtUtc": null,
+            "firstPrintedAboveMinus40AfterNativeReadyMs": null
+          }
+        },
+        {
+          "sample": 3,
+          "audioSnapshotTiming": {
+            "startedAtUtc": "2026-10-30T00:14:53.193409+00:00",
+            "endedAtUtc": "2026-10-30T00:14:53.274184+00:00",
+            "exitCode": 0
+          },
+          "flingerSnapshotTiming": {
+            "startedAtUtc": "2026-10-30T00:14:53.275620+00:00",
+            "endedAtUtc": "2026-10-30T00:14:53.347232+00:00",
+            "exitCode": 0
+          },
+          "flingerStartAfterNativeReadyMs": 1957.304,
+          "flingerSnapshotWallMs": 71.612,
+          "currentInputThreads": 1,
+          "activeAppRecordings": 1,
+          "recordingNotSilenced": true,
+          "inputStandby": "no",
+          "inputSampleRateHz": 16000,
+          "channelCount": 1,
+          "halFrameCount": 256,
+          "halBufferBytes": 512,
+          "halFormat": "AUDIO_FORMAT_PCM_16_BIT",
+          "inputDevice": "AUDIO_DEVICE_IN_BUILTIN_MIC",
+          "sourceId": 6,
+          "sourceName": "AUDIO_SOURCE_VOICE_RECOGNITION",
+          "pendingConfigEvents": "none",
+          "framesReadAtSample": 32256,
+          "hardwareSilenced": "no",
+          "requestedModes": [
+            "MODE_NORMAL"
+          ],
+          "actualModes": [
+            "MODE_NORMAL"
+          ],
+          "signalPowerHistory": {
+            "resolutionMs": 50,
+            "printedSampleValues": 18,
+            "minimumPrintedDb": -104.3,
+            "maximumPrintedDb": -76.3,
+            "printedValuesAboveMinus40Db": 0,
+            "firstPrintedAboveMinus40AtUtc": null,
+            "firstPrintedAboveMinus40AfterNativeReadyMs": null
+          }
+        },
+        {
+          "sample": 4,
+          "audioSnapshotTiming": {
+            "startedAtUtc": "2026-10-30T00:14:53.615103+00:00",
+            "endedAtUtc": "2026-10-30T00:14:53.679265+00:00",
+            "exitCode": 0
+          },
+          "flingerSnapshotTiming": {
+            "startedAtUtc": "2026-10-30T00:14:53.679914+00:00",
+            "endedAtUtc": "2026-10-30T00:14:53.741895+00:00",
+            "exitCode": 0
+          },
+          "flingerStartAfterNativeReadyMs": 2361.598,
+          "flingerSnapshotWallMs": 61.981,
+          "currentInputThreads": 1,
+          "activeAppRecordings": 1,
+          "recordingNotSilenced": true,
+          "inputStandby": "no",
+          "inputSampleRateHz": 16000,
+          "channelCount": 1,
+          "halFrameCount": 256,
+          "halBufferBytes": 512,
+          "halFormat": "AUDIO_FORMAT_PCM_16_BIT",
+          "inputDevice": "AUDIO_DEVICE_IN_BUILTIN_MIC",
+          "sourceId": 6,
+          "sourceName": "AUDIO_SOURCE_VOICE_RECOGNITION",
+          "pendingConfigEvents": "none",
+          "framesReadAtSample": 38656,
+          "hardwareSilenced": "no",
+          "requestedModes": [
+            "MODE_NORMAL"
+          ],
+          "actualModes": [
+            "MODE_NORMAL"
+          ],
+          "signalPowerHistory": {
+            "resolutionMs": 50,
+            "printedSampleValues": 26,
+            "minimumPrintedDb": -104.3,
+            "maximumPrintedDb": -14.4,
+            "printedValuesAboveMinus40Db": 6,
+            "firstPrintedAboveMinus40AtUtc": "2026-10-30T00:14:53.144000+00:00",
+            "firstPrintedAboveMinus40AfterNativeReadyMs": 1825.684
+          }
+        },
+        {
+          "sample": 5,
+          "audioSnapshotTiming": {
+            "startedAtUtc": "2026-10-30T00:14:54.007324+00:00",
+            "endedAtUtc": "2026-10-30T00:14:54.074435+00:00",
+            "exitCode": 0
+          },
+          "flingerSnapshotTiming": {
+            "startedAtUtc": "2026-10-30T00:14:54.075304+00:00",
+            "endedAtUtc": "2026-10-30T00:14:54.162396+00:00",
+            "exitCode": 0
+          },
+          "flingerStartAfterNativeReadyMs": 2756.988,
+          "flingerSnapshotWallMs": 87.092,
+          "currentInputThreads": 1,
+          "activeAppRecordings": 1,
+          "recordingNotSilenced": true,
+          "inputStandby": "no",
+          "inputSampleRateHz": 16000,
+          "channelCount": 1,
+          "halFrameCount": 256,
+          "halBufferBytes": 512,
+          "halFormat": "AUDIO_FORMAT_PCM_16_BIT",
+          "inputDevice": "AUDIO_DEVICE_IN_BUILTIN_MIC",
+          "sourceId": 6,
+          "sourceName": "AUDIO_SOURCE_VOICE_RECOGNITION",
+          "pendingConfigEvents": "none",
+          "framesReadAtSample": 45312,
+          "hardwareSilenced": "no",
+          "requestedModes": [
+            "MODE_NORMAL"
+          ],
+          "actualModes": [
+            "MODE_NORMAL"
+          ],
+          "signalPowerHistory": {
+            "resolutionMs": 50,
+            "printedSampleValues": 35,
+            "minimumPrintedDb": -104.3,
+            "maximumPrintedDb": -14.4,
+            "printedValuesAboveMinus40Db": 15,
+            "firstPrintedAboveMinus40AtUtc": "2026-10-30T00:14:53.144000+00:00",
+            "firstPrintedAboveMinus40AfterNativeReadyMs": 1825.684
+          }
+        }
+      ],
+      "capturedPcmMetadata": [],
+      "decoderRuntimeMetadata": {
+        "selectedEngineLogged": false,
+        "modelShaLoggedPerDecode": false,
+        "decoderSettingsLoggedPerDecode": false,
+        "modelPrepareLoadDecodeDurationsLogged": false,
+        "capturedVocabulary": "NOT_EXPORTED_IN_CLEAN_CANDIDATE"
+      },
+      "diagnosticWrapperLogScan": [],
+      "rawAudioReadByComparison": false,
+      "rawTranscriptEmittedByComparison": false
+    },
+    {
+      "label": "diagnostic_pass_pair_1_trial_1",
+      "caseEvidence": "docs/reports/evidence/phase-08-emulator-expansion/ex20261028/20261029T234133577064Z-A03-microphone.json",
+      "status": "PASS",
+      "appCandidateSha256": "98ed4f5fb6311d64b96381b08e99fb19a5f243c21fd078fd4ea4a774bcdd2d23",
+      "appCandidateProvenance": "paired report appCandidate",
+      "emulatorSdkVersion": "37.1.11",
+      "driverLaunch": "DIRECT_PRIVATE_ACTIVITY_INTENT_NOT_NOTIFICATION_TAP",
+      "holdStages": [
+        {
+          "outcome": "HOLD_UNAVAILABLE",
+          "holdCount": 1,
+          "failureCode": "LANGUAGE_UNAVAILABLE"
+        },
+        {
+          "outcome": "READY",
+          "holdCount": 2,
+          "failureCode": null
+        }
+      ],
+      "visibleHoldCount": 2,
+      "firstHoldFailureCode": "LANGUAGE_UNAVAILABLE",
+      "recognizedCharacterCount": 26,
+      "recognizedNormalizedSha256": "3ff7afe3c554c78bf5659e1bd62f0f752db537ac3ef41828ab34327e4d41b41c",
+      "matchesPinnedAck": true,
+      "nativeReadyAtUtc": "2026-10-29T23:42:54.861366+00:00",
+      "hostObservedReadyAfterNativeMs": 490.16,
+      "sourceStreamCompletedAfterNativeReadyMs": 4962.06,
+      "controllerElapsedMonotonicSeconds": 106.83244159999595,
+      "injection": {
+        "status": "SYNTHETIC_STREAM_COMPLETED",
+        "fixtureId": "acknowledge",
+        "fixtureSha256": "e10b92f68d6a188bc19b44bd327aa91747d58d4a257510d786a14dc45a4e0a3c",
+        "syntheticDurationMs": 2255,
+        "transportGainPermille": 500,
+        "leadingPaddingMs": 1000,
+        "trailingPaddingMs": 1000,
+        "injectedDurationMs": 4255,
+        "derivedPcmSha256": "978ad1ae355fde64b9f684c5d8ba609750c51ebe5b12a021a460f7156ea24e76",
+        "audioDeliveryMode": "BLOCKING_SERVER_PACED",
+        "clientWallclockThrottling": false,
+        "visibleRecordingProofChecked": true,
+        "inputInitializationAttempted": true,
+        "inputInitializationStimulusBytes": 0,
+        "inputInitializationGrpcStatus": 0,
+        "injectionGrpcStatus": 0,
+        "hostInputEnableRequested": false,
+        "hostMicrophoneEnabledBefore": false,
+        "hostMicrophoneEnabledAfterInitialization": false,
+        "hostMicrophoneEnabledAfter": false,
+        "recognitionVerified": false,
+        "audibilityVerified": false
+      },
+      "events": [
+        {
+          "event": "host_microphone_double_false_before",
+          "atUtc": "2026-10-29T23:41:33.717465+00:00",
+          "elapsedMonotonicSeconds": 0.13829429999168497
+        },
+        {
+          "event": "owned_fixture_before",
+          "atUtc": "2026-10-29T23:42:48.975990+00:00",
+          "elapsedMonotonicSeconds": 75.39682269998593
+        },
+        {
+          "event": "real_visible_recording_stage_observed",
+          "atUtc": "2026-10-29T23:42:55.351526+00:00",
+          "elapsedMonotonicSeconds": 81.77235929999733
+        },
+        {
+          "event": "deliberate_synthetic_onset_delay",
+          "atUtc": "2026-10-29T23:42:55.854448+00:00",
+          "elapsedMonotonicSeconds": 82.27528669999447
+        },
+        {
+          "event": "pinned_response_pcm_stream_completed",
+          "atUtc": "2026-10-29T23:42:59.823426+00:00",
+          "elapsedMonotonicSeconds": 86.24426309998671
+        },
+        {
+          "event": "microphone_driver_completed",
+          "atUtc": "2026-10-29T23:43:06.862781+00:00",
+          "elapsedMonotonicSeconds": 93.28361709999444
+        },
+        {
+          "event": "independent_sql_synthetic_voice_ack_task_todo",
+          "atUtc": "2026-10-29T23:43:08.024011+00:00",
+          "elapsedMonotonicSeconds": 94.44483909998962
+        },
+        {
+          "event": "host_microphone_double_false_after",
+          "atUtc": "2026-10-29T23:43:08.135786+00:00",
+          "elapsedMonotonicSeconds": 94.5566184999916
+        }
+      ],
+      "routeSamples": [
+        {
+          "sample": 0,
+          "audioSnapshotTiming": {
+            "startedAtUtc": "2026-10-29T23:42:55.856673+00:00",
+            "endedAtUtc": "2026-10-29T23:42:55.986009+00:00",
+            "exitCode": 0
+          },
+          "flingerSnapshotTiming": {
+            "startedAtUtc": "2026-10-29T23:42:55.986837+00:00",
+            "endedAtUtc": "2026-10-29T23:42:56.085968+00:00",
+            "exitCode": 0
+          },
+          "flingerStartAfterNativeReadyMs": 1125.471,
+          "flingerSnapshotWallMs": 99.131,
+          "currentInputThreads": 1,
+          "activeAppRecordings": 1,
+          "recordingNotSilenced": true,
+          "inputStandby": "no",
+          "inputSampleRateHz": 16000,
+          "channelCount": 1,
+          "halFrameCount": 256,
+          "halBufferBytes": 512,
+          "halFormat": "AUDIO_FORMAT_PCM_16_BIT",
+          "inputDevice": "AUDIO_DEVICE_IN_BUILTIN_MIC",
+          "sourceId": 6,
+          "sourceName": "AUDIO_SOURCE_VOICE_RECOGNITION",
+          "pendingConfigEvents": "none",
+          "framesReadAtSample": 14848,
+          "hardwareSilenced": "no",
+          "requestedModes": [
+            "MODE_NORMAL"
+          ],
+          "actualModes": [
+            "MODE_NORMAL"
+          ],
+          "signalPowerHistory": {
+            "resolutionMs": 50,
+            "printedSampleValues": 17,
+            "minimumPrintedDb": -98.7,
+            "maximumPrintedDb": -76.0,
+            "printedValuesAboveMinus40Db": 0,
+            "firstPrintedAboveMinus40AtUtc": null,
+            "firstPrintedAboveMinus40AfterNativeReadyMs": null
+          }
+        },
+        {
+          "sample": 1,
+          "audioSnapshotTiming": {
+            "startedAtUtc": "2026-10-29T23:42:56.379965+00:00",
+            "endedAtUtc": "2026-10-29T23:42:56.499866+00:00",
+            "exitCode": 0
+          },
+          "flingerSnapshotTiming": {
+            "startedAtUtc": "2026-10-29T23:42:56.500582+00:00",
+            "endedAtUtc": "2026-10-29T23:42:56.576026+00:00",
+            "exitCode": 0
+          },
+          "flingerStartAfterNativeReadyMs": 1639.216,
+          "flingerSnapshotWallMs": 75.444,
+          "currentInputThreads": 1,
+          "activeAppRecordings": 1,
+          "recordingNotSilenced": true,
+          "inputStandby": "no",
+          "inputSampleRateHz": 16000,
+          "channelCount": 1,
+          "halFrameCount": 256,
+          "halBufferBytes": 512,
+          "halFormat": "AUDIO_FORMAT_PCM_16_BIT",
+          "inputDevice": "AUDIO_DEVICE_IN_BUILTIN_MIC",
+          "sourceId": 6,
+          "sourceName": "AUDIO_SOURCE_VOICE_RECOGNITION",
+          "pendingConfigEvents": "none",
+          "framesReadAtSample": 22784,
+          "hardwareSilenced": "no",
+          "requestedModes": [
+            "MODE_NORMAL"
+          ],
+          "actualModes": [
+            "MODE_NORMAL"
+          ],
+          "signalPowerHistory": {
+            "resolutionMs": 50,
+            "printedSampleValues": 20,
+            "minimumPrintedDb": -98.7,
+            "maximumPrintedDb": -76.0,
+            "printedValuesAboveMinus40Db": 0,
+            "firstPrintedAboveMinus40AtUtc": null,
+            "firstPrintedAboveMinus40AfterNativeReadyMs": null
+          }
+        },
+        {
+          "sample": 2,
+          "audioSnapshotTiming": {
+            "startedAtUtc": "2026-10-29T23:42:56.850310+00:00",
+            "endedAtUtc": "2026-10-29T23:42:56.932954+00:00",
+            "exitCode": 0
+          },
+          "flingerSnapshotTiming": {
+            "startedAtUtc": "2026-10-29T23:42:56.933752+00:00",
+            "endedAtUtc": "2026-10-29T23:42:57.006873+00:00",
+            "exitCode": 0
+          },
+          "flingerStartAfterNativeReadyMs": 2072.386,
+          "flingerSnapshotWallMs": 73.121,
+          "currentInputThreads": 1,
+          "activeAppRecordings": 1,
+          "recordingNotSilenced": true,
+          "inputStandby": "no",
+          "inputSampleRateHz": 16000,
+          "channelCount": 1,
+          "halFrameCount": 256,
+          "halBufferBytes": 512,
+          "halFormat": "AUDIO_FORMAT_PCM_16_BIT",
+          "inputDevice": "AUDIO_DEVICE_IN_BUILTIN_MIC",
+          "sourceId": 6,
+          "sourceName": "AUDIO_SOURCE_VOICE_RECOGNITION",
+          "pendingConfigEvents": "none",
+          "framesReadAtSample": 29440,
+          "hardwareSilenced": "no",
+          "requestedModes": [
+            "MODE_NORMAL"
+          ],
+          "actualModes": [
+            "MODE_NORMAL"
+          ],
+          "signalPowerHistory": {
+            "resolutionMs": 50,
+            "printedSampleValues": 20,
+            "minimumPrintedDb": -98.7,
+            "maximumPrintedDb": -76.0,
+            "printedValuesAboveMinus40Db": 0,
+            "firstPrintedAboveMinus40AtUtc": null,
+            "firstPrintedAboveMinus40AfterNativeReadyMs": null
+          }
+        },
+        {
+          "sample": 3,
+          "audioSnapshotTiming": {
+            "startedAtUtc": "2026-10-29T23:42:57.283989+00:00",
+            "endedAtUtc": "2026-10-29T23:42:57.365762+00:00",
+            "exitCode": 0
+          },
+          "flingerSnapshotTiming": {
+            "startedAtUtc": "2026-10-29T23:42:57.366429+00:00",
+            "endedAtUtc": "2026-10-29T23:42:57.441028+00:00",
+            "exitCode": 0
+          },
+          "flingerStartAfterNativeReadyMs": 2505.063,
+          "flingerSnapshotWallMs": 74.599,
+          "currentInputThreads": 1,
+          "activeAppRecordings": 1,
+          "recordingNotSilenced": true,
+          "inputStandby": "no",
+          "inputSampleRateHz": 16000,
+          "channelCount": 1,
+          "halFrameCount": 256,
+          "halBufferBytes": 512,
+          "halFormat": "AUDIO_FORMAT_PCM_16_BIT",
+          "inputDevice": "AUDIO_DEVICE_IN_BUILTIN_MIC",
+          "sourceId": 6,
+          "sourceName": "AUDIO_SOURCE_VOICE_RECOGNITION",
+          "pendingConfigEvents": "none",
+          "framesReadAtSample": 36608,
+          "hardwareSilenced": "no",
+          "requestedModes": [
+            "MODE_NORMAL"
+          ],
+          "actualModes": [
+            "MODE_NORMAL"
+          ],
+          "signalPowerHistory": {
+            "resolutionMs": 50,
+            "printedSampleValues": 22,
+            "minimumPrintedDb": -98.7,
+            "maximumPrintedDb": -19.3,
+            "printedValuesAboveMinus40Db": 2,
+            "firstPrintedAboveMinus40AtUtc": "2026-10-29T23:42:56.869000+00:00",
+            "firstPrintedAboveMinus40AfterNativeReadyMs": 2007.634
+          }
+        },
+        {
+          "sample": 4,
+          "audioSnapshotTiming": {
+            "startedAtUtc": "2026-10-29T23:42:57.720994+00:00",
+            "endedAtUtc": "2026-10-29T23:42:57.803525+00:00",
+            "exitCode": 0
+          },
+          "flingerSnapshotTiming": {
+            "startedAtUtc": "2026-10-29T23:42:57.804443+00:00",
+            "endedAtUtc": "2026-10-29T23:42:57.900061+00:00",
+            "exitCode": 0
+          },
+          "flingerStartAfterNativeReadyMs": 2943.077,
+          "flingerSnapshotWallMs": 95.618,
+          "currentInputThreads": 1,
+          "activeAppRecordings": 1,
+          "recordingNotSilenced": true,
+          "inputStandby": "no",
+          "inputSampleRateHz": 16000,
+          "channelCount": 1,
+          "halFrameCount": 256,
+          "halBufferBytes": 512,
+          "halFormat": "AUDIO_FORMAT_PCM_16_BIT",
+          "inputDevice": "AUDIO_DEVICE_IN_BUILTIN_MIC",
+          "sourceId": 6,
+          "sourceName": "AUDIO_SOURCE_VOICE_RECOGNITION",
+          "pendingConfigEvents": "none",
+          "framesReadAtSample": 43776,
+          "hardwareSilenced": "no",
+          "requestedModes": [
+            "MODE_NORMAL"
+          ],
+          "actualModes": [
+            "MODE_NORMAL"
+          ],
+          "signalPowerHistory": {
+            "resolutionMs": 50,
+            "printedSampleValues": 31,
+            "minimumPrintedDb": -98.7,
+            "maximumPrintedDb": -14.4,
+            "printedValuesAboveMinus40Db": 10,
+            "firstPrintedAboveMinus40AtUtc": "2026-10-29T23:42:56.869000+00:00",
+            "firstPrintedAboveMinus40AfterNativeReadyMs": 2007.634
+          }
+        },
+        {
+          "sample": 5,
+          "audioSnapshotTiming": {
+            "startedAtUtc": "2026-10-29T23:42:58.184874+00:00",
+            "endedAtUtc": "2026-10-29T23:42:58.289789+00:00",
+            "exitCode": 0
+          },
+          "flingerSnapshotTiming": {
+            "startedAtUtc": "2026-10-29T23:42:58.290563+00:00",
+            "endedAtUtc": "2026-10-29T23:42:58.373639+00:00",
+            "exitCode": 0
+          },
+          "flingerStartAfterNativeReadyMs": 3429.197,
+          "flingerSnapshotWallMs": 83.076,
+          "currentInputThreads": 1,
+          "activeAppRecordings": 1,
+          "recordingNotSilenced": true,
+          "inputStandby": "no",
+          "inputSampleRateHz": 16000,
+          "channelCount": 1,
+          "halFrameCount": 256,
+          "halBufferBytes": 512,
+          "halFormat": "AUDIO_FORMAT_PCM_16_BIT",
+          "inputDevice": "AUDIO_DEVICE_IN_BUILTIN_MIC",
+          "sourceId": 6,
+          "sourceName": "AUDIO_SOURCE_VOICE_RECOGNITION",
+          "pendingConfigEvents": "none",
+          "framesReadAtSample": 51456,
+          "hardwareSilenced": "no",
+          "requestedModes": [
+            "MODE_NORMAL"
+          ],
+          "actualModes": [
+            "MODE_NORMAL"
+          ],
+          "signalPowerHistory": {
+            "resolutionMs": 50,
+            "printedSampleValues": 40,
+            "minimumPrintedDb": -98.7,
+            "maximumPrintedDb": -14.4,
+            "printedValuesAboveMinus40Db": 19,
+            "firstPrintedAboveMinus40AtUtc": "2026-10-29T23:42:56.869000+00:00",
+            "firstPrintedAboveMinus40AfterNativeReadyMs": 2007.634
+          }
+        }
+      ],
+      "capturedPcmMetadata": [
+        {
+          "evidence": "docs/reports/evidence/phase-08-native-fidelity-20261029T234132608201Z.json",
+          "createdAtUtc": "2026-10-29T23:42:59.568886Z",
+          "vocabulary": "REMINDER_RESPONSE",
+          "sampleRate": 16000,
+          "frames": 76544,
+          "bytes": 153088,
+          "sha256": "c6bd2cd9888439ba99c9596b11e924c7a0cfc4e5514c4828afbdbf86a32566a3",
+          "nonzeroFrames": 36820,
+          "rms": 0.06648833193414713,
+          "peak": 0.5819702
+        }
+      ],
+      "decoderRuntimeMetadata": {
+        "selectedEngineLogged": false,
+        "modelShaLoggedPerDecode": false,
+        "decoderSettingsLoggedPerDecode": false,
+        "modelPrepareLoadDecodeDurationsLogged": false,
+        "capturedVocabulary": "REMINDER_RESPONSE"
+      },
+      "diagnosticWrapperLogScan": [
+        {
+          "requestMetadataKind": "EXPLICIT_PINNED_SYNTHETIC_EMULATOR_DIAGNOSTIC",
+          "prepareTermOccurrences": 0,
+          "warmTermOccurrences": 0,
+          "WhisperTermOccurrences": 0,
+          "modelTermOccurrences": 0,
+          "limitation": "Term absence in this wrapper log is not proof that no model preparation occurred elsewhere."
+        }
+      ],
+      "rawAudioReadByComparison": false,
+      "rawTranscriptEmittedByComparison": false
+    },
+    {
+      "label": "diagnostic_pass_pair_1_trial_2",
+      "caseEvidence": "docs/reports/evidence/phase-08-emulator-expansion/ex20261028/20261029T234321942549Z-A03-microphone.json",
+      "status": "PASS",
+      "appCandidateSha256": "98ed4f5fb6311d64b96381b08e99fb19a5f243c21fd078fd4ea4a774bcdd2d23",
+      "appCandidateProvenance": "paired report appCandidate",
+      "emulatorSdkVersion": "37.1.11",
+      "driverLaunch": "DIRECT_PRIVATE_ACTIVITY_INTENT_NOT_NOTIFICATION_TAP",
+      "holdStages": [
+        {
+          "outcome": "HOLD_UNAVAILABLE",
+          "holdCount": 1,
+          "failureCode": "LANGUAGE_UNAVAILABLE"
+        },
+        {
+          "outcome": "READY",
+          "holdCount": 2,
+          "failureCode": null
+        }
+      ],
+      "visibleHoldCount": 2,
+      "firstHoldFailureCode": "LANGUAGE_UNAVAILABLE",
+      "recognizedCharacterCount": 26,
+      "recognizedNormalizedSha256": "3ff7afe3c554c78bf5659e1bd62f0f752db537ac3ef41828ab34327e4d41b41c",
+      "matchesPinnedAck": true,
+      "nativeReadyAtUtc": "2026-10-29T23:44:38.493735+00:00",
+      "hostObservedReadyAfterNativeMs": 461.345,
+      "sourceStreamCompletedAfterNativeReadyMs": 5021.393,
+      "controllerElapsedMonotonicSeconds": 105.21768499999598,
+      "injection": {
+        "status": "SYNTHETIC_STREAM_COMPLETED",
+        "fixtureId": "acknowledge",
+        "fixtureSha256": "e10b92f68d6a188bc19b44bd327aa91747d58d4a257510d786a14dc45a4e0a3c",
+        "syntheticDurationMs": 2255,
+        "transportGainPermille": 500,
+        "leadingPaddingMs": 1000,
+        "trailingPaddingMs": 1000,
+        "injectedDurationMs": 4255,
+        "derivedPcmSha256": "978ad1ae355fde64b9f684c5d8ba609750c51ebe5b12a021a460f7156ea24e76",
+        "audioDeliveryMode": "BLOCKING_SERVER_PACED",
+        "clientWallclockThrottling": false,
+        "visibleRecordingProofChecked": true,
+        "inputInitializationAttempted": true,
+        "inputInitializationStimulusBytes": 0,
+        "inputInitializationGrpcStatus": 0,
+        "injectionGrpcStatus": 0,
+        "hostInputEnableRequested": false,
+        "hostMicrophoneEnabledBefore": false,
+        "hostMicrophoneEnabledAfterInitialization": false,
+        "hostMicrophoneEnabledAfter": false,
+        "recognitionVerified": false,
+        "audibilityVerified": false
+      },
+      "events": [
+        {
+          "event": "host_microphone_double_false_before",
+          "atUtc": "2026-10-29T23:43:22.050687+00:00",
+          "elapsedMonotonicSeconds": 0.10724549999576993
+        },
+        {
+          "event": "owned_fixture_before",
+          "atUtc": "2026-10-29T23:44:32.196876+00:00",
+          "elapsedMonotonicSeconds": 70.25343850000354
+        },
+        {
+          "event": "real_visible_recording_stage_observed",
+          "atUtc": "2026-10-29T23:44:38.955080+00:00",
+          "elapsedMonotonicSeconds": 77.01163910000469
+        },
+        {
+          "event": "deliberate_synthetic_onset_delay",
+          "atUtc": "2026-10-29T23:44:39.463092+00:00",
+          "elapsedMonotonicSeconds": 77.51966380000522
+        },
+        {
+          "event": "pinned_response_pcm_stream_completed",
+          "atUtc": "2026-10-29T23:44:43.515128+00:00",
+          "elapsedMonotonicSeconds": 81.57169219999923
+        },
+        {
+          "event": "microphone_driver_completed",
+          "atUtc": "2026-10-29T23:44:51.436331+00:00",
+          "elapsedMonotonicSeconds": 89.4928915000055
+        },
+        {
+          "event": "independent_sql_synthetic_voice_ack_task_todo",
+          "atUtc": "2026-10-29T23:44:52.763033+00:00",
+          "elapsedMonotonicSeconds": 90.81960139999865
+        },
+        {
+          "event": "host_microphone_double_false_after",
+          "atUtc": "2026-10-29T23:44:52.891473+00:00",
+          "elapsedMonotonicSeconds": 90.94803440000396
+        }
+      ],
+      "routeSamples": [
+        {
+          "sample": 0,
+          "audioSnapshotTiming": {
+            "startedAtUtc": "2026-10-29T23:44:39.470561+00:00",
+            "endedAtUtc": "2026-10-29T23:44:39.637509+00:00",
+            "exitCode": 0
+          },
+          "flingerSnapshotTiming": {
+            "startedAtUtc": "2026-10-29T23:44:39.638087+00:00",
+            "endedAtUtc": "2026-10-29T23:44:39.778536+00:00",
+            "exitCode": 0
+          },
+          "flingerStartAfterNativeReadyMs": 1144.352,
+          "flingerSnapshotWallMs": 140.449,
+          "currentInputThreads": 1,
+          "activeAppRecordings": 1,
+          "recordingNotSilenced": true,
+          "inputStandby": "no",
+          "inputSampleRateHz": 16000,
+          "channelCount": 1,
+          "halFrameCount": 256,
+          "halBufferBytes": 512,
+          "halFormat": "AUDIO_FORMAT_PCM_16_BIT",
+          "inputDevice": "AUDIO_DEVICE_IN_BUILTIN_MIC",
+          "sourceId": 6,
+          "sourceName": "AUDIO_SOURCE_VOICE_RECOGNITION",
+          "pendingConfigEvents": "none",
+          "framesReadAtSample": 17664,
+          "hardwareSilenced": "no",
+          "requestedModes": [
+            "MODE_NORMAL"
+          ],
+          "actualModes": [
+            "MODE_NORMAL"
+          ],
+          "signalPowerHistory": {
+            "resolutionMs": 50,
+            "printedSampleValues": 21,
+            "minimumPrintedDb": -89.2,
+            "maximumPrintedDb": -76.0,
+            "printedValuesAboveMinus40Db": 0,
+            "firstPrintedAboveMinus40AtUtc": null,
+            "firstPrintedAboveMinus40AfterNativeReadyMs": null
+          }
+        },
+        {
+          "sample": 1,
+          "audioSnapshotTiming": {
+            "startedAtUtc": "2026-10-29T23:44:40.074822+00:00",
+            "endedAtUtc": "2026-10-29T23:44:40.259352+00:00",
+            "exitCode": 0
+          },
+          "flingerSnapshotTiming": {
+            "startedAtUtc": "2026-10-29T23:44:40.260167+00:00",
+            "endedAtUtc": "2026-10-29T23:44:40.350290+00:00",
+            "exitCode": 0
+          },
+          "flingerStartAfterNativeReadyMs": 1766.432,
+          "flingerSnapshotWallMs": 90.123,
+          "currentInputThreads": 1,
+          "activeAppRecordings": 1,
+          "recordingNotSilenced": true,
+          "inputStandby": "no",
+          "inputSampleRateHz": 16000,
+          "channelCount": 1,
+          "halFrameCount": 256,
+          "halBufferBytes": 512,
+          "halFormat": "AUDIO_FORMAT_PCM_16_BIT",
+          "inputDevice": "AUDIO_DEVICE_IN_BUILTIN_MIC",
+          "sourceId": 6,
+          "sourceName": "AUDIO_SOURCE_VOICE_RECOGNITION",
+          "pendingConfigEvents": "none",
+          "framesReadAtSample": 26880,
+          "hardwareSilenced": "no",
+          "requestedModes": [
+            "MODE_NORMAL"
+          ],
+          "actualModes": [
+            "MODE_NORMAL"
+          ],
+          "signalPowerHistory": {
+            "resolutionMs": 50,
+            "printedSampleValues": 25,
+            "minimumPrintedDb": -89.2,
+            "maximumPrintedDb": -76.0,
+            "printedValuesAboveMinus40Db": 0,
+            "firstPrintedAboveMinus40AtUtc": null,
+            "firstPrintedAboveMinus40AfterNativeReadyMs": null
+          }
+        },
+        {
+          "sample": 2,
+          "audioSnapshotTiming": {
+            "startedAtUtc": "2026-10-29T23:44:40.652800+00:00",
+            "endedAtUtc": "2026-10-29T23:44:40.766928+00:00",
+            "exitCode": 0
+          },
+          "flingerSnapshotTiming": {
+            "startedAtUtc": "2026-10-29T23:44:40.768614+00:00",
+            "endedAtUtc": "2026-10-29T23:44:40.869976+00:00",
+            "exitCode": 0
+          },
+          "flingerStartAfterNativeReadyMs": 2274.879,
+          "flingerSnapshotWallMs": 101.362,
+          "currentInputThreads": 1,
+          "activeAppRecordings": 1,
+          "recordingNotSilenced": true,
+          "inputStandby": "no",
+          "inputSampleRateHz": 16000,
+          "channelCount": 1,
+          "halFrameCount": 256,
+          "halBufferBytes": 512,
+          "halFormat": "AUDIO_FORMAT_PCM_16_BIT",
+          "inputDevice": "AUDIO_DEVICE_IN_BUILTIN_MIC",
+          "sourceId": 6,
+          "sourceName": "AUDIO_SOURCE_VOICE_RECOGNITION",
+          "pendingConfigEvents": "none",
+          "framesReadAtSample": 35072,
+          "hardwareSilenced": "no",
+          "requestedModes": [
+            "MODE_NORMAL"
+          ],
+          "actualModes": [
+            "MODE_NORMAL"
+          ],
+          "signalPowerHistory": {
+            "resolutionMs": 50,
+            "printedSampleValues": 25,
+            "minimumPrintedDb": -89.2,
+            "maximumPrintedDb": -76.0,
+            "printedValuesAboveMinus40Db": 0,
+            "firstPrintedAboveMinus40AtUtc": null,
+            "firstPrintedAboveMinus40AfterNativeReadyMs": null
+          }
+        },
+        {
+          "sample": 3,
+          "audioSnapshotTiming": {
+            "startedAtUtc": "2026-10-29T23:44:41.166314+00:00",
+            "endedAtUtc": "2026-10-29T23:44:41.262908+00:00",
+            "exitCode": 0
+          },
+          "flingerSnapshotTiming": {
+            "startedAtUtc": "2026-10-29T23:44:41.264212+00:00",
+            "endedAtUtc": "2026-10-29T23:44:41.368895+00:00",
+            "exitCode": 0
+          },
+          "flingerStartAfterNativeReadyMs": 2770.477,
+          "flingerSnapshotWallMs": 104.683,
+          "currentInputThreads": 1,
+          "activeAppRecordings": 1,
+          "recordingNotSilenced": true,
+          "inputStandby": "no",
+          "inputSampleRateHz": 16000,
+          "channelCount": 1,
+          "halFrameCount": 256,
+          "halBufferBytes": 512,
+          "halFormat": "AUDIO_FORMAT_PCM_16_BIT",
+          "inputDevice": "AUDIO_DEVICE_IN_BUILTIN_MIC",
+          "sourceId": 6,
+          "sourceName": "AUDIO_SOURCE_VOICE_RECOGNITION",
+          "pendingConfigEvents": "none",
+          "framesReadAtSample": 43008,
+          "hardwareSilenced": "no",
+          "requestedModes": [
+            "MODE_NORMAL"
+          ],
+          "actualModes": [
+            "MODE_NORMAL"
+          ],
+          "signalPowerHistory": {
+            "resolutionMs": 50,
+            "printedSampleValues": 31,
+            "minimumPrintedDb": -89.2,
+            "maximumPrintedDb": -14.8,
+            "printedValuesAboveMinus40Db": 4,
+            "firstPrintedAboveMinus40AtUtc": "2026-10-29T23:44:40.587000+00:00",
+            "firstPrintedAboveMinus40AfterNativeReadyMs": 2093.265
+          }
+        },
+        {
+          "sample": 4,
+          "audioSnapshotTiming": {
+            "startedAtUtc": "2026-10-29T23:44:41.663087+00:00",
+            "endedAtUtc": "2026-10-29T23:44:41.765250+00:00",
+            "exitCode": 0
+          },
+          "flingerSnapshotTiming": {
+            "startedAtUtc": "2026-10-29T23:44:41.766212+00:00",
+            "endedAtUtc": "2026-10-29T23:44:41.845673+00:00",
+            "exitCode": 0
+          },
+          "flingerStartAfterNativeReadyMs": 3272.477,
+          "flingerSnapshotWallMs": 79.461,
+          "currentInputThreads": 1,
+          "activeAppRecordings": 1,
+          "recordingNotSilenced": true,
+          "inputStandby": "no",
+          "inputSampleRateHz": 16000,
+          "channelCount": 1,
+          "halFrameCount": 256,
+          "halBufferBytes": 512,
+          "halFormat": "AUDIO_FORMAT_PCM_16_BIT",
+          "inputDevice": "AUDIO_DEVICE_IN_BUILTIN_MIC",
+          "sourceId": 6,
+          "sourceName": "AUDIO_SOURCE_VOICE_RECOGNITION",
+          "pendingConfigEvents": "none",
+          "framesReadAtSample": 50688,
+          "hardwareSilenced": "no",
+          "requestedModes": [
+            "MODE_NORMAL"
+          ],
+          "actualModes": [
+            "MODE_NORMAL"
+          ],
+          "signalPowerHistory": {
+            "resolutionMs": 50,
+            "printedSampleValues": 41,
+            "minimumPrintedDb": -89.2,
+            "maximumPrintedDb": -14.4,
+            "printedValuesAboveMinus40Db": 14,
+            "firstPrintedAboveMinus40AtUtc": "2026-10-29T23:44:40.587000+00:00",
+            "firstPrintedAboveMinus40AfterNativeReadyMs": 2093.265
+          }
+        },
+        {
+          "sample": 5,
+          "audioSnapshotTiming": {
+            "startedAtUtc": "2026-10-29T23:44:42.143997+00:00",
+            "endedAtUtc": "2026-10-29T23:44:42.228668+00:00",
+            "exitCode": 0
+          },
+          "flingerSnapshotTiming": {
+            "startedAtUtc": "2026-10-29T23:44:42.229413+00:00",
+            "endedAtUtc": "2026-10-29T23:44:42.323493+00:00",
+            "exitCode": 0
+          },
+          "flingerStartAfterNativeReadyMs": 3735.678,
+          "flingerSnapshotWallMs": 94.08,
+          "currentInputThreads": 1,
+          "activeAppRecordings": 1,
+          "recordingNotSilenced": true,
+          "inputStandby": "no",
+          "inputSampleRateHz": 16000,
+          "channelCount": 1,
+          "halFrameCount": 256,
+          "halBufferBytes": 512,
+          "halFormat": "AUDIO_FORMAT_PCM_16_BIT",
+          "inputDevice": "AUDIO_DEVICE_IN_BUILTIN_MIC",
+          "sourceId": 6,
+          "sourceName": "AUDIO_SOURCE_VOICE_RECOGNITION",
+          "pendingConfigEvents": "none",
+          "framesReadAtSample": 58368,
+          "hardwareSilenced": "no",
+          "requestedModes": [
+            "MODE_NORMAL"
+          ],
+          "actualModes": [
+            "MODE_NORMAL"
+          ],
+          "signalPowerHistory": {
+            "resolutionMs": 50,
+            "printedSampleValues": 50,
+            "minimumPrintedDb": -89.2,
+            "maximumPrintedDb": -14.4,
+            "printedValuesAboveMinus40Db": 23,
+            "firstPrintedAboveMinus40AtUtc": "2026-10-29T23:44:40.587000+00:00",
+            "firstPrintedAboveMinus40AfterNativeReadyMs": 2093.265
+          }
+        }
+      ],
+      "capturedPcmMetadata": [
+        {
+          "evidence": "docs/reports/evidence/phase-08-native-fidelity-20261029T234321253754Z.json",
+          "createdAtUtc": "2026-10-29T23:44:43.291012Z",
+          "vocabulary": "REMINDER_RESPONSE",
+          "sampleRate": 16000,
+          "frames": 79616,
+          "bytes": 159232,
+          "sha256": "16acfeb1adf99dc2eeed5779b1e1e33ef341cefa910028a7b6eecfb8d24562bf",
+          "nonzeroFrames": 40478,
+          "rms": 0.0651929899091104,
+          "peak": 0.5819702
+        }
+      ],
+      "decoderRuntimeMetadata": {
+        "selectedEngineLogged": false,
+        "modelShaLoggedPerDecode": false,
+        "decoderSettingsLoggedPerDecode": false,
+        "modelPrepareLoadDecodeDurationsLogged": false,
+        "capturedVocabulary": "REMINDER_RESPONSE"
+      },
+      "diagnosticWrapperLogScan": [
+        {
+          "requestMetadataKind": "EXPLICIT_PINNED_SYNTHETIC_EMULATOR_DIAGNOSTIC",
+          "prepareTermOccurrences": 0,
+          "warmTermOccurrences": 0,
+          "WhisperTermOccurrences": 0,
+          "modelTermOccurrences": 0,
+          "limitation": "Term absence in this wrapper log is not proof that no model preparation occurred elsewhere."
+        }
+      ],
+      "rawAudioReadByComparison": false,
+      "rawTranscriptEmittedByComparison": false
+    },
+    {
+      "label": "diagnostic_pass_pair_2_trial_1",
+      "caseEvidence": "docs/reports/evidence/phase-08-emulator-expansion/ex20261028/20261029T235234235416Z-A03-microphone.json",
+      "status": "PASS",
+      "appCandidateSha256": "98ed4f5fb6311d64b96381b08e99fb19a5f243c21fd078fd4ea4a774bcdd2d23",
+      "appCandidateProvenance": "paired report appCandidate",
+      "emulatorSdkVersion": "37.1.11",
+      "driverLaunch": "DIRECT_PRIVATE_ACTIVITY_INTENT_NOT_NOTIFICATION_TAP",
+      "holdStages": [
+        {
+          "outcome": "HOLD_UNAVAILABLE",
+          "holdCount": 1,
+          "failureCode": "LANGUAGE_UNAVAILABLE"
+        },
+        {
+          "outcome": "READY",
+          "holdCount": 2,
+          "failureCode": null
+        }
+      ],
+      "visibleHoldCount": 2,
+      "firstHoldFailureCode": "LANGUAGE_UNAVAILABLE",
+      "recognizedCharacterCount": 26,
+      "recognizedNormalizedSha256": "3ff7afe3c554c78bf5659e1bd62f0f752db537ac3ef41828ab34327e4d41b41c",
+      "matchesPinnedAck": true,
+      "nativeReadyAtUtc": "2026-10-29T23:53:50.900877+00:00",
+      "hostObservedReadyAfterNativeMs": 154.754,
+      "sourceStreamCompletedAfterNativeReadyMs": 4545.097,
+      "controllerElapsedMonotonicSeconds": 101.85370560000592,
+      "injection": {
+        "status": "SYNTHETIC_STREAM_COMPLETED",
+        "fixtureId": "acknowledge",
+        "fixtureSha256": "e10b92f68d6a188bc19b44bd327aa91747d58d4a257510d786a14dc45a4e0a3c",
+        "syntheticDurationMs": 2255,
+        "transportGainPermille": 500,
+        "leadingPaddingMs": 1000,
+        "trailingPaddingMs": 1000,
+        "injectedDurationMs": 4255,
+        "derivedPcmSha256": "978ad1ae355fde64b9f684c5d8ba609750c51ebe5b12a021a460f7156ea24e76",
+        "audioDeliveryMode": "BLOCKING_SERVER_PACED",
+        "clientWallclockThrottling": false,
+        "visibleRecordingProofChecked": true,
+        "inputInitializationAttempted": true,
+        "inputInitializationStimulusBytes": 0,
+        "inputInitializationGrpcStatus": 0,
+        "injectionGrpcStatus": 0,
+        "hostInputEnableRequested": false,
+        "hostMicrophoneEnabledBefore": false,
+        "hostMicrophoneEnabledAfterInitialization": false,
+        "hostMicrophoneEnabledAfter": false,
+        "recognitionVerified": false,
+        "audibilityVerified": false
+      },
+      "events": [
+        {
+          "event": "host_microphone_double_false_before",
+          "atUtc": "2026-10-29T23:52:34.415107+00:00",
+          "elapsedMonotonicSeconds": 0.1783360000117682
+        },
+        {
+          "event": "owned_fixture_before",
+          "atUtc": "2026-10-29T23:53:44.101217+00:00",
+          "elapsedMonotonicSeconds": 69.86445300000196
+        },
+        {
+          "event": "real_visible_recording_stage_observed",
+          "atUtc": "2026-10-29T23:53:51.055631+00:00",
+          "elapsedMonotonicSeconds": 76.81886460000533
+        },
+        {
+          "event": "deliberate_synthetic_onset_delay",
+          "atUtc": "2026-10-29T23:53:51.567339+00:00",
+          "elapsedMonotonicSeconds": 77.3306256000069
+        },
+        {
+          "event": "pinned_response_pcm_stream_completed",
+          "atUtc": "2026-10-29T23:53:55.445974+00:00",
+          "elapsedMonotonicSeconds": 81.20920420000039
+        },
+        {
+          "event": "microphone_driver_completed",
+          "atUtc": "2026-10-29T23:54:02.478951+00:00",
+          "elapsedMonotonicSeconds": 88.24218040000414
+        },
+        {
+          "event": "independent_sql_synthetic_voice_ack_task_todo",
+          "atUtc": "2026-10-29T23:54:03.589096+00:00",
+          "elapsedMonotonicSeconds": 89.35234779999882
+        },
+        {
+          "event": "host_microphone_double_false_after",
+          "atUtc": "2026-10-29T23:54:03.705505+00:00",
+          "elapsedMonotonicSeconds": 89.46873150000465
+        }
+      ],
+      "routeSamples": [
+        {
+          "sample": 0,
+          "audioSnapshotTiming": {
+            "startedAtUtc": "2026-10-29T23:53:51.570348+00:00",
+            "endedAtUtc": "2026-10-29T23:53:51.700429+00:00",
+            "exitCode": 0
+          },
+          "flingerSnapshotTiming": {
+            "startedAtUtc": "2026-10-29T23:53:51.701232+00:00",
+            "endedAtUtc": "2026-10-29T23:53:51.805290+00:00",
+            "exitCode": 0
+          },
+          "flingerStartAfterNativeReadyMs": 800.355,
+          "flingerSnapshotWallMs": 104.058,
+          "currentInputThreads": 1,
+          "activeAppRecordings": 1,
+          "recordingNotSilenced": true,
+          "inputStandby": "no",
+          "inputSampleRateHz": 16000,
+          "channelCount": 1,
+          "halFrameCount": 256,
+          "halBufferBytes": 512,
+          "halFormat": "AUDIO_FORMAT_PCM_16_BIT",
+          "inputDevice": "AUDIO_DEVICE_IN_BUILTIN_MIC",
+          "sourceId": 6,
+          "sourceName": "AUDIO_SOURCE_VOICE_RECOGNITION",
+          "pendingConfigEvents": "none",
+          "framesReadAtSample": 12544,
+          "hardwareSilenced": "no",
+          "requestedModes": [
+            "MODE_NORMAL"
+          ],
+          "actualModes": [
+            "MODE_NORMAL"
+          ],
+          "signalPowerHistory": {
+            "resolutionMs": 50,
+            "printedSampleValues": 14,
+            "minimumPrintedDb": -77.1,
+            "maximumPrintedDb": -76.3,
+            "printedValuesAboveMinus40Db": 0,
+            "firstPrintedAboveMinus40AtUtc": null,
+            "firstPrintedAboveMinus40AfterNativeReadyMs": null
+          }
+        },
+        {
+          "sample": 1,
+          "audioSnapshotTiming": {
+            "startedAtUtc": "2026-10-29T23:53:52.088722+00:00",
+            "endedAtUtc": "2026-10-29T23:53:52.172389+00:00",
+            "exitCode": 0
+          },
+          "flingerSnapshotTiming": {
+            "startedAtUtc": "2026-10-29T23:53:52.173120+00:00",
+            "endedAtUtc": "2026-10-29T23:53:52.248904+00:00",
+            "exitCode": 0
+          },
+          "flingerStartAfterNativeReadyMs": 1272.243,
+          "flingerSnapshotWallMs": 75.784,
+          "currentInputThreads": 1,
+          "activeAppRecordings": 1,
+          "recordingNotSilenced": true,
+          "inputStandby": "no",
+          "inputSampleRateHz": 16000,
+          "channelCount": 1,
+          "halFrameCount": 256,
+          "halBufferBytes": 512,
+          "halFormat": "AUDIO_FORMAT_PCM_16_BIT",
+          "inputDevice": "AUDIO_DEVICE_IN_BUILTIN_MIC",
+          "sourceId": 6,
+          "sourceName": "AUDIO_SOURCE_VOICE_RECOGNITION",
+          "pendingConfigEvents": "none",
+          "framesReadAtSample": 19456,
+          "hardwareSilenced": "no",
+          "requestedModes": [
+            "MODE_NORMAL"
+          ],
+          "actualModes": [
+            "MODE_NORMAL"
+          ],
+          "signalPowerHistory": {
+            "resolutionMs": 50,
+            "printedSampleValues": 16,
+            "minimumPrintedDb": -97.3,
+            "maximumPrintedDb": -76.3,
+            "printedValuesAboveMinus40Db": 0,
+            "firstPrintedAboveMinus40AtUtc": null,
+            "firstPrintedAboveMinus40AfterNativeReadyMs": null
+          }
+        },
+        {
+          "sample": 2,
+          "audioSnapshotTiming": {
+            "startedAtUtc": "2026-10-29T23:53:52.523748+00:00",
+            "endedAtUtc": "2026-10-29T23:53:52.617038+00:00",
+            "exitCode": 0
+          },
+          "flingerSnapshotTiming": {
+            "startedAtUtc": "2026-10-29T23:53:52.618099+00:00",
+            "endedAtUtc": "2026-10-29T23:53:52.713468+00:00",
+            "exitCode": 0
+          },
+          "flingerStartAfterNativeReadyMs": 1717.222,
+          "flingerSnapshotWallMs": 95.369,
+          "currentInputThreads": 1,
+          "activeAppRecordings": 1,
+          "recordingNotSilenced": true,
+          "inputStandby": "no",
+          "inputSampleRateHz": 16000,
+          "channelCount": 1,
+          "halFrameCount": 256,
+          "halBufferBytes": 512,
+          "halFormat": "AUDIO_FORMAT_PCM_16_BIT",
+          "inputDevice": "AUDIO_DEVICE_IN_BUILTIN_MIC",
+          "sourceId": 6,
+          "sourceName": "AUDIO_SOURCE_VOICE_RECOGNITION",
+          "pendingConfigEvents": "none",
+          "framesReadAtSample": 26880,
+          "hardwareSilenced": "no",
+          "requestedModes": [
+            "MODE_NORMAL"
+          ],
+          "actualModes": [
+            "MODE_NORMAL"
+          ],
+          "signalPowerHistory": {
+            "resolutionMs": 50,
+            "printedSampleValues": 16,
+            "minimumPrintedDb": -97.3,
+            "maximumPrintedDb": -76.3,
+            "printedValuesAboveMinus40Db": 0,
+            "firstPrintedAboveMinus40AtUtc": null,
+            "firstPrintedAboveMinus40AfterNativeReadyMs": null
+          }
+        },
+        {
+          "sample": 3,
+          "audioSnapshotTiming": {
+            "startedAtUtc": "2026-10-29T23:53:53.037178+00:00",
+            "endedAtUtc": "2026-10-29T23:53:53.168932+00:00",
+            "exitCode": 0
+          },
+          "flingerSnapshotTiming": {
+            "startedAtUtc": "2026-10-29T23:53:53.169969+00:00",
+            "endedAtUtc": "2026-10-29T23:53:53.271730+00:00",
+            "exitCode": 0
+          },
+          "flingerStartAfterNativeReadyMs": 2269.092,
+          "flingerSnapshotWallMs": 101.761,
+          "currentInputThreads": 1,
+          "activeAppRecordings": 1,
+          "recordingNotSilenced": true,
+          "inputStandby": "no",
+          "inputSampleRateHz": 16000,
+          "channelCount": 1,
+          "halFrameCount": 256,
+          "halBufferBytes": 512,
+          "halFormat": "AUDIO_FORMAT_PCM_16_BIT",
+          "inputDevice": "AUDIO_DEVICE_IN_BUILTIN_MIC",
+          "sourceId": 6,
+          "sourceName": "AUDIO_SOURCE_VOICE_RECOGNITION",
+          "pendingConfigEvents": "none",
+          "framesReadAtSample": 35840,
+          "hardwareSilenced": "no",
+          "requestedModes": [
+            "MODE_NORMAL"
+          ],
+          "actualModes": [
+            "MODE_NORMAL"
+          ],
+          "signalPowerHistory": {
+            "resolutionMs": 50,
+            "printedSampleValues": 21,
+            "minimumPrintedDb": -97.3,
+            "maximumPrintedDb": -14.4,
+            "printedValuesAboveMinus40Db": 3,
+            "firstPrintedAboveMinus40AtUtc": "2026-10-29T23:53:52.838000+00:00",
+            "firstPrintedAboveMinus40AfterNativeReadyMs": 1937.123
+          }
+        },
+        {
+          "sample": 4,
+          "audioSnapshotTiming": {
+            "startedAtUtc": "2026-10-29T23:53:53.569297+00:00",
+            "endedAtUtc": "2026-10-29T23:53:53.663378+00:00",
+            "exitCode": 0
+          },
+          "flingerSnapshotTiming": {
+            "startedAtUtc": "2026-10-29T23:53:53.663987+00:00",
+            "endedAtUtc": "2026-10-29T23:53:53.761303+00:00",
+            "exitCode": 0
+          },
+          "flingerStartAfterNativeReadyMs": 2763.11,
+          "flingerSnapshotWallMs": 97.316,
+          "currentInputThreads": 1,
+          "activeAppRecordings": 1,
+          "recordingNotSilenced": true,
+          "inputStandby": "no",
+          "inputSampleRateHz": 16000,
+          "channelCount": 1,
+          "halFrameCount": 256,
+          "halBufferBytes": 512,
+          "halFormat": "AUDIO_FORMAT_PCM_16_BIT",
+          "inputDevice": "AUDIO_DEVICE_IN_BUILTIN_MIC",
+          "sourceId": 6,
+          "sourceName": "AUDIO_SOURCE_VOICE_RECOGNITION",
+          "pendingConfigEvents": "none",
+          "framesReadAtSample": 43776,
+          "hardwareSilenced": "no",
+          "requestedModes": [
+            "MODE_NORMAL"
+          ],
+          "actualModes": [
+            "MODE_NORMAL"
+          ],
+          "signalPowerHistory": {
+            "resolutionMs": 50,
+            "printedSampleValues": 31,
+            "minimumPrintedDb": -97.3,
+            "maximumPrintedDb": -14.4,
+            "printedValuesAboveMinus40Db": 13,
+            "firstPrintedAboveMinus40AtUtc": "2026-10-29T23:53:52.838000+00:00",
+            "firstPrintedAboveMinus40AfterNativeReadyMs": 1937.123
+          }
+        },
+        {
+          "sample": 5,
+          "audioSnapshotTiming": {
+            "startedAtUtc": "2026-10-29T23:53:54.036927+00:00",
+            "endedAtUtc": "2026-10-29T23:53:54.125410+00:00",
+            "exitCode": 0
+          },
+          "flingerSnapshotTiming": {
+            "startedAtUtc": "2026-10-29T23:53:54.126053+00:00",
+            "endedAtUtc": "2026-10-29T23:53:54.190064+00:00",
+            "exitCode": 0
+          },
+          "flingerStartAfterNativeReadyMs": 3225.176,
+          "flingerSnapshotWallMs": 64.011,
+          "currentInputThreads": 1,
+          "activeAppRecordings": 1,
+          "recordingNotSilenced": true,
+          "inputStandby": "no",
+          "inputSampleRateHz": 16000,
+          "channelCount": 1,
+          "halFrameCount": 256,
+          "halBufferBytes": 512,
+          "halFormat": "AUDIO_FORMAT_PCM_16_BIT",
+          "inputDevice": "AUDIO_DEVICE_IN_BUILTIN_MIC",
+          "sourceId": 6,
+          "sourceName": "AUDIO_SOURCE_VOICE_RECOGNITION",
+          "pendingConfigEvents": "none",
+          "framesReadAtSample": 50688,
+          "hardwareSilenced": "no",
+          "requestedModes": [
+            "MODE_NORMAL"
+          ],
+          "actualModes": [
+            "MODE_NORMAL"
+          ],
+          "signalPowerHistory": {
+            "resolutionMs": 50,
+            "printedSampleValues": 40,
+            "minimumPrintedDb": -97.3,
+            "maximumPrintedDb": -14.4,
+            "printedValuesAboveMinus40Db": 22,
+            "firstPrintedAboveMinus40AtUtc": "2026-10-29T23:53:52.838000+00:00",
+            "firstPrintedAboveMinus40AfterNativeReadyMs": 1937.123
+          }
+        }
+      ],
+      "capturedPcmMetadata": [
+        {
+          "evidence": "docs/reports/evidence/phase-08-native-fidelity-20261029T235233509042Z.json",
+          "createdAtUtc": "2026-10-29T23:53:55.499533Z",
+          "vocabulary": "REMINDER_RESPONSE",
+          "sampleRate": 16000,
+          "frames": 72704,
+          "bytes": 145408,
+          "sha256": "f79142a894aa1ccf3f2b9a037793b157fe0070e0352e3f0cf56230d2f03106b7",
+          "nonzeroFrames": 34839,
+          "rms": 0.06822159033149314,
+          "peak": 0.5819702
+        }
+      ],
+      "decoderRuntimeMetadata": {
+        "selectedEngineLogged": false,
+        "modelShaLoggedPerDecode": false,
+        "decoderSettingsLoggedPerDecode": false,
+        "modelPrepareLoadDecodeDurationsLogged": false,
+        "capturedVocabulary": "REMINDER_RESPONSE"
+      },
+      "diagnosticWrapperLogScan": [
+        {
+          "requestMetadataKind": "EXPLICIT_PINNED_SYNTHETIC_EMULATOR_DIAGNOSTIC",
+          "prepareTermOccurrences": 0,
+          "warmTermOccurrences": 0,
+          "WhisperTermOccurrences": 0,
+          "modelTermOccurrences": 0,
+          "limitation": "Term absence in this wrapper log is not proof that no model preparation occurred elsewhere."
+        }
+      ],
+      "rawAudioReadByComparison": false,
+      "rawTranscriptEmittedByComparison": false
+    },
+    {
+      "label": "diagnostic_pass_pair_2_trial_2",
+      "caseEvidence": "docs/reports/evidence/phase-08-emulator-expansion/ex20261028/20261029T235417518923Z-A03-microphone.json",
+      "status": "PASS",
+      "appCandidateSha256": "98ed4f5fb6311d64b96381b08e99fb19a5f243c21fd078fd4ea4a774bcdd2d23",
+      "appCandidateProvenance": "paired report appCandidate",
+      "emulatorSdkVersion": "37.1.11",
+      "driverLaunch": "DIRECT_PRIVATE_ACTIVITY_INTENT_NOT_NOTIFICATION_TAP",
+      "holdStages": [
+        {
+          "outcome": "HOLD_UNAVAILABLE",
+          "holdCount": 1,
+          "failureCode": "LANGUAGE_UNAVAILABLE"
+        },
+        {
+          "outcome": "READY",
+          "holdCount": 2,
+          "failureCode": null
+        }
+      ],
+      "visibleHoldCount": 2,
+      "firstHoldFailureCode": "LANGUAGE_UNAVAILABLE",
+      "recognizedCharacterCount": 26,
+      "recognizedNormalizedSha256": "3ff7afe3c554c78bf5659e1bd62f0f752db537ac3ef41828ab34327e4d41b41c",
+      "matchesPinnedAck": true,
+      "nativeReadyAtUtc": "2026-10-29T23:55:33.854250+00:00",
+      "hostObservedReadyAfterNativeMs": 153.009,
+      "sourceStreamCompletedAfterNativeReadyMs": 4561.794,
+      "controllerElapsedMonotonicSeconds": 100.6594366000063,
+      "injection": {
+        "status": "SYNTHETIC_STREAM_COMPLETED",
+        "fixtureId": "acknowledge",
+        "fixtureSha256": "e10b92f68d6a188bc19b44bd327aa91747d58d4a257510d786a14dc45a4e0a3c",
+        "syntheticDurationMs": 2255,
+        "transportGainPermille": 500,
+        "leadingPaddingMs": 1000,
+        "trailingPaddingMs": 1000,
+        "injectedDurationMs": 4255,
+        "derivedPcmSha256": "978ad1ae355fde64b9f684c5d8ba609750c51ebe5b12a021a460f7156ea24e76",
+        "audioDeliveryMode": "BLOCKING_SERVER_PACED",
+        "clientWallclockThrottling": false,
+        "visibleRecordingProofChecked": true,
+        "inputInitializationAttempted": true,
+        "inputInitializationStimulusBytes": 0,
+        "inputInitializationGrpcStatus": 0,
+        "injectionGrpcStatus": 0,
+        "hostInputEnableRequested": false,
+        "hostMicrophoneEnabledBefore": false,
+        "hostMicrophoneEnabledAfterInitialization": false,
+        "hostMicrophoneEnabledAfter": false,
+        "recognitionVerified": false,
+        "audibilityVerified": false
+      },
+      "events": [
+        {
+          "event": "host_microphone_double_false_before",
+          "atUtc": "2026-10-29T23:54:17.632923+00:00",
+          "elapsedMonotonicSeconds": 0.1132182000001194
+        },
+        {
+          "event": "owned_fixture_before",
+          "atUtc": "2026-10-29T23:55:27.636404+00:00",
+          "elapsedMonotonicSeconds": 70.11670500000764
+        },
+        {
+          "event": "real_visible_recording_stage_observed",
+          "atUtc": "2026-10-29T23:55:34.007259+00:00",
+          "elapsedMonotonicSeconds": 76.48755200000596
+        },
+        {
+          "event": "deliberate_synthetic_onset_delay",
+          "atUtc": "2026-10-29T23:55:34.512700+00:00",
+          "elapsedMonotonicSeconds": 76.99299870000686
+        },
+        {
+          "event": "pinned_response_pcm_stream_completed",
+          "atUtc": "2026-10-29T23:55:38.416044+00:00",
+          "elapsedMonotonicSeconds": 80.89634150000347
+        },
+        {
+          "event": "microphone_driver_completed",
+          "atUtc": "2026-10-29T23:55:45.080274+00:00",
+          "elapsedMonotonicSeconds": 87.56056539999554
+        },
+        {
+          "event": "independent_sql_synthetic_voice_ack_task_todo",
+          "atUtc": "2026-10-29T23:55:45.951923+00:00",
+          "elapsedMonotonicSeconds": 88.43221210000047
+        },
+        {
+          "event": "host_microphone_double_false_after",
+          "atUtc": "2026-10-29T23:55:46.052487+00:00",
+          "elapsedMonotonicSeconds": 88.53278209999553
+        }
+      ],
+      "routeSamples": [
+        {
+          "sample": 0,
+          "audioSnapshotTiming": {
+            "startedAtUtc": "2026-10-29T23:55:34.519249+00:00",
+            "endedAtUtc": "2026-10-29T23:55:34.649841+00:00",
+            "exitCode": 0
+          },
+          "flingerSnapshotTiming": {
+            "startedAtUtc": "2026-10-29T23:55:34.651108+00:00",
+            "endedAtUtc": "2026-10-29T23:55:34.738302+00:00",
+            "exitCode": 0
+          },
+          "flingerStartAfterNativeReadyMs": 796.858,
+          "flingerSnapshotWallMs": 87.194,
+          "currentInputThreads": 1,
+          "activeAppRecordings": 1,
+          "recordingNotSilenced": true,
+          "inputStandby": "no",
+          "inputSampleRateHz": 16000,
+          "channelCount": 1,
+          "halFrameCount": 256,
+          "halBufferBytes": 512,
+          "halFormat": "AUDIO_FORMAT_PCM_16_BIT",
+          "inputDevice": "AUDIO_DEVICE_IN_BUILTIN_MIC",
+          "sourceId": 6,
+          "sourceName": "AUDIO_SOURCE_VOICE_RECOGNITION",
+          "pendingConfigEvents": "none",
+          "framesReadAtSample": 14080,
+          "hardwareSilenced": "no",
+          "requestedModes": [
+            "MODE_NORMAL"
+          ],
+          "actualModes": [
+            "MODE_NORMAL"
+          ],
+          "signalPowerHistory": {
+            "resolutionMs": 50,
+            "printedSampleValues": 16,
+            "minimumPrintedDb": -77.9,
+            "maximumPrintedDb": -76.1,
+            "printedValuesAboveMinus40Db": 0,
+            "firstPrintedAboveMinus40AtUtc": null,
+            "firstPrintedAboveMinus40AfterNativeReadyMs": null
+          }
+        },
+        {
+          "sample": 1,
+          "audioSnapshotTiming": {
+            "startedAtUtc": "2026-10-29T23:55:35.059446+00:00",
+            "endedAtUtc": "2026-10-29T23:55:35.141890+00:00",
+            "exitCode": 0
+          },
+          "flingerSnapshotTiming": {
+            "startedAtUtc": "2026-10-29T23:55:35.143020+00:00",
+            "endedAtUtc": "2026-10-29T23:55:35.230075+00:00",
+            "exitCode": 0
+          },
+          "flingerStartAfterNativeReadyMs": 1288.77,
+          "flingerSnapshotWallMs": 87.055,
+          "currentInputThreads": 1,
+          "activeAppRecordings": 1,
+          "recordingNotSilenced": true,
+          "inputStandby": "no",
+          "inputSampleRateHz": 16000,
+          "channelCount": 1,
+          "halFrameCount": 256,
+          "halBufferBytes": 512,
+          "halFormat": "AUDIO_FORMAT_PCM_16_BIT",
+          "inputDevice": "AUDIO_DEVICE_IN_BUILTIN_MIC",
+          "sourceId": 6,
+          "sourceName": "AUDIO_SOURCE_VOICE_RECOGNITION",
+          "pendingConfigEvents": "none",
+          "framesReadAtSample": 22016,
+          "hardwareSilenced": "no",
+          "requestedModes": [
+            "MODE_NORMAL"
+          ],
+          "actualModes": [
+            "MODE_NORMAL"
+          ],
+          "signalPowerHistory": {
+            "resolutionMs": 50,
+            "printedSampleValues": 19,
+            "minimumPrintedDb": -102.9,
+            "maximumPrintedDb": -76.1,
+            "printedValuesAboveMinus40Db": 0,
+            "firstPrintedAboveMinus40AtUtc": null,
+            "firstPrintedAboveMinus40AfterNativeReadyMs": null
+          }
+        },
+        {
+          "sample": 2,
+          "audioSnapshotTiming": {
+            "startedAtUtc": "2026-10-29T23:55:35.497683+00:00",
+            "endedAtUtc": "2026-10-29T23:55:35.571221+00:00",
+            "exitCode": 0
+          },
+          "flingerSnapshotTiming": {
+            "startedAtUtc": "2026-10-29T23:55:35.572247+00:00",
+            "endedAtUtc": "2026-10-29T23:55:35.646576+00:00",
+            "exitCode": 0
+          },
+          "flingerStartAfterNativeReadyMs": 1717.997,
+          "flingerSnapshotWallMs": 74.329,
+          "currentInputThreads": 1,
+          "activeAppRecordings": 1,
+          "recordingNotSilenced": true,
+          "inputStandby": "no",
+          "inputSampleRateHz": 16000,
+          "channelCount": 1,
+          "halFrameCount": 256,
+          "halBufferBytes": 512,
+          "halFormat": "AUDIO_FORMAT_PCM_16_BIT",
+          "inputDevice": "AUDIO_DEVICE_IN_BUILTIN_MIC",
+          "sourceId": 6,
+          "sourceName": "AUDIO_SOURCE_VOICE_RECOGNITION",
+          "pendingConfigEvents": "none",
+          "framesReadAtSample": 28672,
+          "hardwareSilenced": "no",
+          "requestedModes": [
+            "MODE_NORMAL"
+          ],
+          "actualModes": [
+            "MODE_NORMAL"
+          ],
+          "signalPowerHistory": {
+            "resolutionMs": 50,
+            "printedSampleValues": 19,
+            "minimumPrintedDb": -102.9,
+            "maximumPrintedDb": -76.1,
+            "printedValuesAboveMinus40Db": 0,
+            "firstPrintedAboveMinus40AtUtc": null,
+            "firstPrintedAboveMinus40AfterNativeReadyMs": null
+          }
+        },
+        {
+          "sample": 3,
+          "audioSnapshotTiming": {
+            "startedAtUtc": "2026-10-29T23:55:35.923183+00:00",
+            "endedAtUtc": "2026-10-29T23:55:36.002987+00:00",
+            "exitCode": 0
+          },
+          "flingerSnapshotTiming": {
+            "startedAtUtc": "2026-10-29T23:55:36.004356+00:00",
+            "endedAtUtc": "2026-10-29T23:55:36.075289+00:00",
+            "exitCode": 0
+          },
+          "flingerStartAfterNativeReadyMs": 2150.106,
+          "flingerSnapshotWallMs": 70.933,
+          "currentInputThreads": 1,
+          "activeAppRecordings": 1,
+          "recordingNotSilenced": true,
+          "inputStandby": "no",
+          "inputSampleRateHz": 16000,
+          "channelCount": 1,
+          "halFrameCount": 256,
+          "halBufferBytes": 512,
+          "halFormat": "AUDIO_FORMAT_PCM_16_BIT",
+          "inputDevice": "AUDIO_DEVICE_IN_BUILTIN_MIC",
+          "sourceId": 6,
+          "sourceName": "AUDIO_SOURCE_VOICE_RECOGNITION",
+          "pendingConfigEvents": "none",
+          "framesReadAtSample": 35584,
+          "hardwareSilenced": "no",
+          "requestedModes": [
+            "MODE_NORMAL"
+          ],
+          "actualModes": [
+            "MODE_NORMAL"
+          ],
+          "signalPowerHistory": {
+            "resolutionMs": 50,
+            "printedSampleValues": 21,
+            "minimumPrintedDb": -102.9,
+            "maximumPrintedDb": -19.3,
+            "printedValuesAboveMinus40Db": 2,
+            "firstPrintedAboveMinus40AtUtc": "2026-10-29T23:55:35.797000+00:00",
+            "firstPrintedAboveMinus40AfterNativeReadyMs": 1942.75
+          }
+        },
+        {
+          "sample": 4,
+          "audioSnapshotTiming": {
+            "startedAtUtc": "2026-10-29T23:55:36.345716+00:00",
+            "endedAtUtc": "2026-10-29T23:55:36.418077+00:00",
+            "exitCode": 0
+          },
+          "flingerSnapshotTiming": {
+            "startedAtUtc": "2026-10-29T23:55:36.418702+00:00",
+            "endedAtUtc": "2026-10-29T23:55:36.488626+00:00",
+            "exitCode": 0
+          },
+          "flingerStartAfterNativeReadyMs": 2564.452,
+          "flingerSnapshotWallMs": 69.924,
+          "currentInputThreads": 1,
+          "activeAppRecordings": 1,
+          "recordingNotSilenced": true,
+          "inputStandby": "no",
+          "inputSampleRateHz": 16000,
+          "channelCount": 1,
+          "halFrameCount": 256,
+          "halBufferBytes": 512,
+          "halFormat": "AUDIO_FORMAT_PCM_16_BIT",
+          "inputDevice": "AUDIO_DEVICE_IN_BUILTIN_MIC",
+          "sourceId": 6,
+          "sourceName": "AUDIO_SOURCE_VOICE_RECOGNITION",
+          "pendingConfigEvents": "none",
+          "framesReadAtSample": 41984,
+          "hardwareSilenced": "no",
+          "requestedModes": [
+            "MODE_NORMAL"
+          ],
+          "actualModes": [
+            "MODE_NORMAL"
+          ],
+          "signalPowerHistory": {
+            "resolutionMs": 50,
+            "printedSampleValues": 29,
+            "minimumPrintedDb": -102.9,
+            "maximumPrintedDb": -14.4,
+            "printedValuesAboveMinus40Db": 8,
+            "firstPrintedAboveMinus40AtUtc": "2026-10-29T23:55:35.797000+00:00",
+            "firstPrintedAboveMinus40AfterNativeReadyMs": 1942.75
+          }
+        },
+        {
+          "sample": 5,
+          "audioSnapshotTiming": {
+            "startedAtUtc": "2026-10-29T23:55:36.768419+00:00",
+            "endedAtUtc": "2026-10-29T23:55:36.850027+00:00",
+            "exitCode": 0
+          },
+          "flingerSnapshotTiming": {
+            "startedAtUtc": "2026-10-29T23:55:36.850810+00:00",
+            "endedAtUtc": "2026-10-29T23:55:36.919729+00:00",
+            "exitCode": 0
+          },
+          "flingerStartAfterNativeReadyMs": 2996.56,
+          "flingerSnapshotWallMs": 68.919,
+          "currentInputThreads": 1,
+          "activeAppRecordings": 1,
+          "recordingNotSilenced": true,
+          "inputStandby": "no",
+          "inputSampleRateHz": 16000,
+          "channelCount": 1,
+          "halFrameCount": 256,
+          "halBufferBytes": 512,
+          "halFormat": "AUDIO_FORMAT_PCM_16_BIT",
+          "inputDevice": "AUDIO_DEVICE_IN_BUILTIN_MIC",
+          "sourceId": 6,
+          "sourceName": "AUDIO_SOURCE_VOICE_RECOGNITION",
+          "pendingConfigEvents": "none",
+          "framesReadAtSample": 48896,
+          "hardwareSilenced": "no",
+          "requestedModes": [
+            "MODE_NORMAL"
+          ],
+          "actualModes": [
+            "MODE_NORMAL"
+          ],
+          "signalPowerHistory": {
+            "resolutionMs": 50,
+            "printedSampleValues": 38,
+            "minimumPrintedDb": -102.9,
+            "maximumPrintedDb": -14.4,
+            "printedValuesAboveMinus40Db": 17,
+            "firstPrintedAboveMinus40AtUtc": "2026-10-29T23:55:35.797000+00:00",
+            "firstPrintedAboveMinus40AfterNativeReadyMs": 1942.75
+          }
+        }
+      ],
+      "capturedPcmMetadata": [
+        {
+          "evidence": "docs/reports/evidence/phase-08-native-fidelity-20261029T235416876736Z.json",
+          "createdAtUtc": "2026-10-29T23:55:38.438894Z",
+          "vocabulary": "REMINDER_RESPONSE",
+          "sampleRate": 16000,
+          "frames": 74752,
+          "bytes": 149504,
+          "sha256": "aa075db5d5c1659ce7c09fa034a67c516feb850eaf3d494793f9bb1632e959dd",
+          "nonzeroFrames": 36747,
+          "rms": 0.06728056269598864,
+          "peak": 0.5819702
+        }
+      ],
+      "decoderRuntimeMetadata": {
+        "selectedEngineLogged": false,
+        "modelShaLoggedPerDecode": false,
+        "decoderSettingsLoggedPerDecode": false,
+        "modelPrepareLoadDecodeDurationsLogged": false,
+        "capturedVocabulary": "REMINDER_RESPONSE"
+      },
+      "diagnosticWrapperLogScan": [
+        {
+          "requestMetadataKind": "EXPLICIT_PINNED_SYNTHETIC_EMULATOR_DIAGNOSTIC",
+          "prepareTermOccurrences": 0,
+          "warmTermOccurrences": 0,
+          "WhisperTermOccurrences": 0,
+          "modelTermOccurrences": 0,
+          "limitation": "Term absence in this wrapper log is not proof that no model preparation occurred elsewhere."
+        }
+      ],
+      "rawAudioReadByComparison": false,
+      "rawTranscriptEmittedByComparison": false
+    }
+  ],
+  "findings": [
+    "All five trials have the same first hold LANGUAGE_UNAVAILABLE, release, then second explicit hold with visible Recording. That sequence does not uniquely identify the failed trial.",
+    "Outgoing fixture/body hashes, gain 500, 1000ms padding each side, blocking delivery, zero-source-byte initialization gRPC0, source gRPC0 and host input OFF checks match across all five.",
+    "The clean failure has one active unsilenced mono 16k PCM16 VOICE_RECOGNITION input at every sampled point, progressing frame counts and signal-power values reaching -14.4 dB, also reached by all four passes. This is not evidence of a floor-only capture.",
+    "The clean failure READY/stream-completion timing overlaps the later two diagnostic passes closely; the earlier two passes are slower. These samples do not isolate a simple cold-first or extra-delay explanation.",
+    "All four PASS captures used diagnostic APK 98ed4f5fb6311d64b96381b08e99fb19a5f243c21fd078fd4ea4a774bcdd2d23 with a temporary exporter/hook. The clean failure used different APK 7300f2aefeb8d5f90882655d46435b100a12531e16a7c70df4f81230f4160454 after hook removal. Build/hook and actual captured-buffer differences remain confounded."
+  ],
+  "measurementLimits": [
+    "AudioFlinger signal-power history is a sampled route diagnostic, not a saved waveform or proof of complete correct source PCM inside the app. Printed sum(...) summaries are excluded from sample counts/statistics.",
+    "The clean failed capture has no saved PCM or final capture metrics here, so its full capture/profile-derived buffer cannot be compared with the four diagnostic PCM captures.",
+    "These files do not explicitly record selected runtime decoder engine, model hash/settings, cache state, or model-prepare/decode durations for each call. The same first-hold sequence alone does not prove equivalent decoder warm state.",
+    "Cold-boot grouping of the two paired reports is from root run notes; the paired report metadata itself does not identify a boot ID.",
+    "Power values are AudioFlinger signal level in dB; no phone battery/CPU power or performance measurement is claimed.",
+    "V05 and every physical-device, human speech/accent/audibility and phone-performance gate remain NOT RUN. The 47-case campaign result is outside this scoped comparison."
+  ],
+  "nextDiagnosticCandidate": "If another diagnostic is needed, capture privacy-safe engine/model/profile identity and captured/derived-buffer hashes and boundaries at one failing actual synthetic decode, with timing and no warm-up/retry added. Separately replay the exact owned synthetic buffer in an isolated decoder to distinguish input/profile variation from decoder state. This is a proposed diagnostic, not an executed action or established remedy; do not alter corpus/grammar or infer phone accuracy.",
+  "evidenceSources": {
+    "docs/reports/evidence/phase-08-input-loss-initialized-capture-pair.json": {
+      "sha256": "e4d2869d5c6476b0e16cf9dac3fe3678de23a49a260ecaa59abaf4c1f920f6ce",
+      "bytes": 1205
+    },
+    "docs/reports/evidence/phase-08-input-loss-initialized-capture-pair-2b.json": {
+      "sha256": "0483acaf5958e4a3cd0bafae31afe8a54650880b30f0f3ca37d896d51f17d34e",
+      "bytes": 1205
+    },
+    "docs/reports/evidence/phase-08-emulator-expansion/ex20261028/20261030T001337622504Z-A03-microphone.json": {
+      "sha256": "1350288c9238c4e9ce8d57672764bbaf28cb58db0ee46efce70454b9348fdc8d",
+      "bytes": 3122
+    },
+    ".local/phase08-microphone-20261030T001337622504Z-A03/instrumentation.log": {
+      "sha256": "26742cb2a1aaa3ae3145a12cf85607d245c5ea0db2455ef9eb0d7d66bb466d9a",
+      "bytes": 4855
+    },
+    ".local/phase08-microphone-20261030T001337622504Z-A03/synthetic-injection.log": {
+      "sha256": "d61dcdf06cea2259c93bb94bdb8efb862d8bc34f06ba1de0f6ef238a75dd5a51",
+      "bytes": 1003
+    },
+    ".local/phase08-microphone-20261030T001337622504Z-A03/route-0-audio.txt": {
+      "sha256": "ff2780783dba773a3096dd411e1d1e677f56260683f69313ae6c4c24c8322450",
+      "bytes": 39349
+    },
+    ".local/phase08-microphone-20261030T001337622504Z-A03/route-0-audio-timing.json": {
+      "sha256": "8e169379bb1c6f888f3a587d286ee22f6e58a7d3d42617a39eae3178f545da35",
+      "bytes": 117
+    },
+    ".local/phase08-microphone-20261030T001337622504Z-A03/route-0-media.audio_flinger.txt": {
+      "sha256": "4aa1d6cccce662cd51781d27a79c0d0f8312179de8dfa94361b052a7dde34ad2",
+      "bytes": 44939
+    },
+    ".local/phase08-microphone-20261030T001337622504Z-A03/route-0-media.audio_flinger-timing.json": {
+      "sha256": "e2fb497c61b8e0bffafce2913895287f41c10ff96241eb5f4fee8e8171cacf99",
+      "bytes": 117
+    },
+    ".local/phase08-microphone-20261030T001337622504Z-A03/route-1-audio.txt": {
+      "sha256": "87b8c571761bd0389361d6fa3f4e2d7d098eb43f4920d4744e1f749a197e3ddf",
+      "bytes": 39348
+    },
+    ".local/phase08-microphone-20261030T001337622504Z-A03/route-1-audio-timing.json": {
+      "sha256": "e2aae179b53e72591356a2ab01b10ff7884526e84432e84f45a1ed39c05c5105",
+      "bytes": 117
+    },
+    ".local/phase08-microphone-20261030T001337622504Z-A03/route-1-media.audio_flinger.txt": {
+      "sha256": "ae4265294ac209c0a18e05c889178769bc9308f103fbf03e1eb3d3e9c679fbea",
+      "bytes": 45355
+    },
+    ".local/phase08-microphone-20261030T001337622504Z-A03/route-1-media.audio_flinger-timing.json": {
+      "sha256": "f50d1b385b2c702eceb102056d8d8f7cbca06fc23b7d69591eb940d4939cb770",
+      "bytes": 117
+    },
+    ".local/phase08-microphone-20261030T001337622504Z-A03/route-2-audio.txt": {
+      "sha256": "9c3653ebdc77463f4307968cd1a50bacda4e33086a67499e04f2fcc3a72567ca",
+      "bytes": 39347
+    },
+    ".local/phase08-microphone-20261030T001337622504Z-A03/route-2-audio-timing.json": {
+      "sha256": "9e7f63ee47b54ab3a5090000adbbe50772eda312cbb3e6e0686ce804baf50c2e",
+      "bytes": 117
+    },
+    ".local/phase08-microphone-20261030T001337622504Z-A03/route-2-media.audio_flinger.txt": {
+      "sha256": "bb1cf1d4ff554b133dad16f3f799679928094a051eaa843808df990a2d2ef3c2",
+      "bytes": 45367
+    },
+    ".local/phase08-microphone-20261030T001337622504Z-A03/route-2-media.audio_flinger-timing.json": {
+      "sha256": "29ff565b0357d707f6df78ee567bc9a4058e68909f56d9e17c24fbac2b68cce8",
+      "bytes": 117
+    },
+    ".local/phase08-microphone-20261030T001337622504Z-A03/route-3-audio.txt": {
+      "sha256": "4777b5626dde954d4afb811d8efeab737b2caf8f8867761ae3301e54f1ff7e25",
+      "bytes": 39347
+    },
+    ".local/phase08-microphone-20261030T001337622504Z-A03/route-3-audio-timing.json": {
+      "sha256": "08634679a6073fc74b38cff169e5b2ca733d632fcad44608b98bafb5300d7f9a",
+      "bytes": 117
+    },
+    ".local/phase08-microphone-20261030T001337622504Z-A03/route-3-media.audio_flinger.txt": {
+      "sha256": "c39bc2305f597395fdccae7570d2410306f4b65d4a8468f2e6336bbb7fa99e60",
+      "bytes": 45369
+    },
+    ".local/phase08-microphone-20261030T001337622504Z-A03/route-3-media.audio_flinger-timing.json": {
+      "sha256": "8a92d45ce7630afbc687bff0a6d6638e826066dfa0f077dcea0ed48518d534ab",
+      "bytes": 117
+    },
+    ".local/phase08-microphone-20261030T001337622504Z-A03/route-4-audio.txt": {
+      "sha256": "77084350304697c6b17bfe9c70c889c2c8ebca201077c1a7204cd8967b956a88",
+      "bytes": 39205
+    },
+    ".local/phase08-microphone-20261030T001337622504Z-A03/route-4-audio-timing.json": {
+      "sha256": "0582323c48882628a96d7fc33c36fa7f8b0df5963d0bfd37385a5d9d0a5f3395",
+      "bytes": 117
+    },
+    ".local/phase08-microphone-20261030T001337622504Z-A03/route-4-media.audio_flinger.txt": {
+      "sha256": "9a4ba3243c8b46f675af9febd8a0637640c2bb6f53abfea711b7aa7d22034490",
+      "bytes": 45428
+    },
+    ".local/phase08-microphone-20261030T001337622504Z-A03/route-4-media.audio_flinger-timing.json": {
+      "sha256": "a48155321a2c4f6856df62afe66cf2ef9da906ab232d7b5a604254269e9a9472",
+      "bytes": 117
+    },
+    ".local/phase08-microphone-20261030T001337622504Z-A03/route-5-audio.txt": {
+      "sha256": "3406adea10c2d48ed28a661dca4ebad4bf9c179d2b7ac50732211a75e5879dfe",
+      "bytes": 39205
+    },
+    ".local/phase08-microphone-20261030T001337622504Z-A03/route-5-audio-timing.json": {
+      "sha256": "91c9354a76acda25844d634e6f4ef585dfd37ae4ca734e00ba3f144d3f102f4d",
+      "bytes": 117
+    },
+    ".local/phase08-microphone-20261030T001337622504Z-A03/route-5-media.audio_flinger.txt": {
+      "sha256": "e3c18049d567410bfb14ae94f2718b80826d5b41340d280d99be56644ecee76b",
+      "bytes": 45573
+    },
+    ".local/phase08-microphone-20261030T001337622504Z-A03/route-5-media.audio_flinger-timing.json": {
+      "sha256": "d07b12384d06f007b63bb8cb81c7cd7a8770a9114e91c9515226b00428694add",
+      "bytes": 117
+    },
+    "docs/reports/evidence/phase-08-emulator-expansion/ex20261028/20261029T234133577064Z-A03-microphone.json": {
+      "sha256": "7b56dc73e1e0be51e4ad6858c7d674c62d32563ce72fdd2ba0892398f28052e7",
+      "bytes": 5351
+    },
+    ".local/phase08-microphone-20261029T234133577064Z-A03/instrumentation.log": {
+      "sha256": "bbf3ecff73b90de4988b92df41737a2edd41220f30d2a36b0158d1ac45cacd18",
+      "bytes": 3629
+    },
+    ".local/phase08-microphone-20261029T234133577064Z-A03/synthetic-injection.log": {
+      "sha256": "d61dcdf06cea2259c93bb94bdb8efb862d8bc34f06ba1de0f6ef238a75dd5a51",
+      "bytes": 1003
+    },
+    ".local/phase08-microphone-20261029T234133577064Z-A03/route-0-audio.txt": {
+      "sha256": "6eae48ceee4c3661420423632663e37ce07627576b35e80c9996dd7f98f25f5d",
+      "bytes": 32517
+    },
+    ".local/phase08-microphone-20261029T234133577064Z-A03/route-0-audio-timing.json": {
+      "sha256": "9d9a5608af78b816461557e3c2bbeb8489fb484d34e0137502b7459666b583cc",
+      "bytes": 117
+    },
+    ".local/phase08-microphone-20261029T234133577064Z-A03/route-0-media.audio_flinger.txt": {
+      "sha256": "0deadff05087ecfb60f797d89a017a8048ed571b1aac4abf0ceae1121b06b2c5",
+      "bytes": 24298
+    },
+    ".local/phase08-microphone-20261029T234133577064Z-A03/route-0-media.audio_flinger-timing.json": {
+      "sha256": "97d01b1edc1648d9261aaa219163e168f897f87750909a8e10747b257f1c8115",
+      "bytes": 117
+    },
+    ".local/phase08-microphone-20261029T234133577064Z-A03/route-1-audio.txt": {
+      "sha256": "9a0438181b57d5e87091e75823e97173b0109e3b019efe02df4aa16bf371f446",
+      "bytes": 32517
+    },
+    ".local/phase08-microphone-20261029T234133577064Z-A03/route-1-audio-timing.json": {
+      "sha256": "1c91879f21c170dad6802c4981c29586a3461cae9a1c319a6b07e7d96df08676",
+      "bytes": 117
+    },
+    ".local/phase08-microphone-20261029T234133577064Z-A03/route-1-media.audio_flinger.txt": {
+      "sha256": "d63d15755c697d9c2f9826c1226a351cd61fb540b84cef862d86ec653a5934e8",
+      "bytes": 24696
+    },
+    ".local/phase08-microphone-20261029T234133577064Z-A03/route-1-media.audio_flinger-timing.json": {
+      "sha256": "1130646d7b536230da33eb994b41e0c86cfa4b6331b8b22c7c9b74c20a0c0e29",
+      "bytes": 117
+    },
+    ".local/phase08-microphone-20261029T234133577064Z-A03/route-2-audio.txt": {
+      "sha256": "3af5262c730f1ce04651cac252d3295db76a129d8bdde246c505758ffa6a062f",
+      "bytes": 32517
+    },
+    ".local/phase08-microphone-20261029T234133577064Z-A03/route-2-audio-timing.json": {
+      "sha256": "f68de5a8a67fd387535d1356745b34981ff199343e34f435a197958ddc26f0fb",
+      "bytes": 117
+    },
+    ".local/phase08-microphone-20261029T234133577064Z-A03/route-2-media.audio_flinger.txt": {
+      "sha256": "5a16d9a6f934b6d546c6efbe6a3037e6040832a9347123b3d002e126466fd817",
+      "bytes": 24701
+    },
+    ".local/phase08-microphone-20261029T234133577064Z-A03/route-2-media.audio_flinger-timing.json": {
+      "sha256": "c0346e6ca1b71fe93bca7ec9280d20e482326bee288dca15fe1d976eab518525",
+      "bytes": 117
+    },
+    ".local/phase08-microphone-20261029T234133577064Z-A03/route-3-audio.txt": {
+      "sha256": "77f9ac4bd48d395a047afb3922b272684b31fc87404849a0994f7a081f1053f5",
+      "bytes": 32517
+    },
+    ".local/phase08-microphone-20261029T234133577064Z-A03/route-3-audio-timing.json": {
+      "sha256": "0a6dbfc37287fc276a7f06c8acc3152a773e391e6808fc9a3335957603c4db90",
+      "bytes": 117
+    },
+    ".local/phase08-microphone-20261029T234133577064Z-A03/route-3-media.audio_flinger.txt": {
+      "sha256": "97ca073c06b78fc448dc53b9ae1151d3db7b0bd15f95b94920cd7dce3481b7d7",
+      "bytes": 24785
+    },
+    ".local/phase08-microphone-20261029T234133577064Z-A03/route-3-media.audio_flinger-timing.json": {
+      "sha256": "2e7a53511fdba522487fb2bba807c20b033cd5b28c1a4b6c9a09ac5b26c7d976",
+      "bytes": 117
+    },
+    ".local/phase08-microphone-20261029T234133577064Z-A03/route-4-audio.txt": {
+      "sha256": "60994a691009e812764354e93ff20d1bb74fcdab9066ef0f0cffcd3d27a34212",
+      "bytes": 32517
+    },
+    ".local/phase08-microphone-20261029T234133577064Z-A03/route-4-audio-timing.json": {
+      "sha256": "c225e050dc6fbadddabfeebede5bfdd406af18538fa38c72bd9200af82810f49",
+      "bytes": 117
+    },
+    ".local/phase08-microphone-20261029T234133577064Z-A03/route-4-media.audio_flinger.txt": {
+      "sha256": "da78cf02fef8afb69cdb2c5d6a8b51970eac67fce30365eb8088275c3c98785a",
+      "bytes": 24867
+    },
+    ".local/phase08-microphone-20261029T234133577064Z-A03/route-4-media.audio_flinger-timing.json": {
+      "sha256": "a0a90e4b746b36ba4aed2ecf7892948af12518a0b32d2c1298dbd8338055f97d",
+      "bytes": 117
+    },
+    ".local/phase08-microphone-20261029T234133577064Z-A03/route-5-audio.txt": {
+      "sha256": "38214a4512a6c0cccf81ae018a3dff5cbaecdf2c1cdd5cae3f80d1b7e923090d",
+      "bytes": 32517
+    },
+    ".local/phase08-microphone-20261029T234133577064Z-A03/route-5-audio-timing.json": {
+      "sha256": "801d9dbed39851086c0b812a37525911852a72f18db0f1d34583c360aeae5131",
+      "bytes": 117
+    },
+    ".local/phase08-microphone-20261029T234133577064Z-A03/route-5-media.audio_flinger.txt": {
+      "sha256": "a912772bf6bca8f9f6dae45117aa7795639c3121c3bbe9ec056367a31d4a8401",
+      "bytes": 24881
+    },
+    ".local/phase08-microphone-20261029T234133577064Z-A03/route-5-media.audio_flinger-timing.json": {
+      "sha256": "2fa4d0572e2d061d6b0d5fb75b572d1cbf89c90bc0ea777ac77cc83cab80771d",
+      "bytes": 117
+    },
+    "docs/reports/evidence/phase-08-native-fidelity-20261029T234132608201Z.json": {
+      "sha256": "77192da7debb1045723dc59d3d47d53a49b1aaff41220e8f20665dd11e7a2a4a",
+      "bytes": 1156
+    },
+    ".local/phase08-fidelity-native-20261029T234132608201Z/request.json": {
+      "sha256": "4aa5546e5431ad569753cb7bb01d15927296c0536aa519dd84747d3b5179ac42",
+      "bytes": 359
+    },
+    ".local/phase08-fidelity-native-20261029T234132608201Z/parent.log": {
+      "sha256": "53f31280edf2305724da81269f6d1a11d9c7139d01569d106ab989db9c2ef52c",
+      "bytes": 5173
+    },
+    "docs/reports/evidence/phase-08-emulator-expansion/ex20261028/20261029T234321942549Z-A03-microphone.json": {
+      "sha256": "78963dfb169e7dbb2d0e8a8fad0409f0b794a137f2608258a323f522f60196c1",
+      "bytes": 5351
+    },
+    ".local/phase08-microphone-20261029T234321942549Z-A03/instrumentation.log": {
+      "sha256": "b4f43bb360e9205f7b5ef0140830148656a4be9b53664dcf8e0a17f9ff816f60",
+      "bytes": 3629
+    },
+    ".local/phase08-microphone-20261029T234321942549Z-A03/synthetic-injection.log": {
+      "sha256": "d61dcdf06cea2259c93bb94bdb8efb862d8bc34f06ba1de0f6ef238a75dd5a51",
+      "bytes": 1003
+    },
+    ".local/phase08-microphone-20261029T234321942549Z-A03/route-0-audio.txt": {
+      "sha256": "2356c7a249f928bbafa5f3b30e461b717cf1bd9204b3ad6861300f81687a4f8c",
+      "bytes": 34548
+    },
+    ".local/phase08-microphone-20261029T234321942549Z-A03/route-0-audio-timing.json": {
+      "sha256": "85b69d11cbd602510529467a312a1ab0fe40b7cc00dcad3ddb4bc3f6e5660127",
+      "bytes": 117
+    },
+    ".local/phase08-microphone-20261029T234321942549Z-A03/route-0-media.audio_flinger.txt": {
+      "sha256": "536deb9cd9db8d50d61367754337246e4095d3bc35bd8945325c6117cf51d980",
+      "bytes": 38117
+    },
+    ".local/phase08-microphone-20261029T234321942549Z-A03/route-0-media.audio_flinger-timing.json": {
+      "sha256": "8cd01994575262bb973136837cb493b049e2341d86230553dcc24939353ef51e",
+      "bytes": 117
+    },
+    ".local/phase08-microphone-20261029T234321942549Z-A03/route-1-audio.txt": {
+      "sha256": "361a7dd89c27fb61bb3a18375f2df369774ba06107e9134a2bac81cc6d905032",
+      "bytes": 34548
+    },
+    ".local/phase08-microphone-20261029T234321942549Z-A03/route-1-audio-timing.json": {
+      "sha256": "39c7da34e64b131a8b6d31243616617997f06fa10427c068e10479d15a200041",
+      "bytes": 117
+    },
+    ".local/phase08-microphone-20261029T234321942549Z-A03/route-1-media.audio_flinger.txt": {
+      "sha256": "f2216f25ab7a6cbb2d78cf1e292b7a5b0a8c597feed031c634e3b4718c7a8ab3",
+      "bytes": 38526
+    },
+    ".local/phase08-microphone-20261029T234321942549Z-A03/route-1-media.audio_flinger-timing.json": {
+      "sha256": "8e3d017c457c7893d9a6277af0f795cfb0464f4389d15e1f3175dca8a72cdc75",
+      "bytes": 117
+    },
+    ".local/phase08-microphone-20261029T234321942549Z-A03/route-2-audio.txt": {
+      "sha256": "efc93b59a869dcb68e60d618fcd4737ab881afe0dde74e5e5854465aac8934a6",
+      "bytes": 34548
+    },
+    ".local/phase08-microphone-20261029T234321942549Z-A03/route-2-audio-timing.json": {
+      "sha256": "95c9bd1effb4d630350b72a5c41c127105d206d6b4986c66f9d1779f5dd4f870",
+      "bytes": 117
+    },
+    ".local/phase08-microphone-20261029T234321942549Z-A03/route-2-media.audio_flinger.txt": {
+      "sha256": "5cb7bed98c7f1fde036b394f73d4e1a2464ca7569b6c2977cba06d0d2cefc2dd",
+      "bytes": 38539
+    },
+    ".local/phase08-microphone-20261029T234321942549Z-A03/route-2-media.audio_flinger-timing.json": {
+      "sha256": "dce4340e405e74ce806513db6e8639099b331625777f3475fbd17bfb775e5ebb",
+      "bytes": 117
+    },
+    ".local/phase08-microphone-20261029T234321942549Z-A03/route-3-audio.txt": {
+      "sha256": "f1610100a58160b2f5cb4ea95857766cba494f90448fb63aabdf99619d9ab390",
+      "bytes": 34548
+    },
+    ".local/phase08-microphone-20261029T234321942549Z-A03/route-3-audio-timing.json": {
+      "sha256": "1f6528f1ccabe8da950e46809744eeb36320ed7cb9eea7aa47a2f8188a821977",
+      "bytes": 117
+    },
+    ".local/phase08-microphone-20261029T234321942549Z-A03/route-3-media.audio_flinger.txt": {
+      "sha256": "164e1af3ed12b8eee8aa75ce78979705a20f05e590e7f6be0d93644b27fd0802",
+      "bytes": 38613
+    },
+    ".local/phase08-microphone-20261029T234321942549Z-A03/route-3-media.audio_flinger-timing.json": {
+      "sha256": "64eb9ba2fa2cf53d63feb37e7d065ed02ab2878f7822b7a4cd4b6f4115056c57",
+      "bytes": 117
+    },
+    ".local/phase08-microphone-20261029T234321942549Z-A03/route-4-audio.txt": {
+      "sha256": "6c2e0a72a36b97107ea799b916f326914484686709cac93426a2d16a814fa70d",
+      "bytes": 34548
+    },
+    ".local/phase08-microphone-20261029T234321942549Z-A03/route-4-audio-timing.json": {
+      "sha256": "666da1a3d7fa5be751aa45ba31773c2b22b43700cab57c46159efbae443752b1",
+      "bytes": 117
+    },
+    ".local/phase08-microphone-20261029T234321942549Z-A03/route-4-media.audio_flinger.txt": {
+      "sha256": "2cb695cf9157f2d3a51e2041ed61a40fe8a2d9302f4e39457fe95c64abc45d56",
+      "bytes": 38684
+    },
+    ".local/phase08-microphone-20261029T234321942549Z-A03/route-4-media.audio_flinger-timing.json": {
+      "sha256": "9c4ab229f5dae26f76dceeacf9aa3f4893ef52eac2677f7e3efdba413c2fe92b",
+      "bytes": 117
+    },
+    ".local/phase08-microphone-20261029T234321942549Z-A03/route-5-audio.txt": {
+      "sha256": "5c0bd711c4d034ebef1c5f83f8e36b6b98b94b2a7b6c9631bd85db4beaddc500",
+      "bytes": 34548
+    },
+    ".local/phase08-microphone-20261029T234321942549Z-A03/route-5-audio-timing.json": {
+      "sha256": "0b9c32d35b0b4cfdb0caa0bb3ca7fd3633ffe86526f1469641804595b20b164d",
+      "bytes": 117
+    },
+    ".local/phase08-microphone-20261029T234321942549Z-A03/route-5-media.audio_flinger.txt": {
+      "sha256": "297a568cf6af191636dae3b87ab854d9d72e7c409d21a4f4272e5eec7384abd7",
+      "bytes": 38804
+    },
+    ".local/phase08-microphone-20261029T234321942549Z-A03/route-5-media.audio_flinger-timing.json": {
+      "sha256": "c74984c47577982e6b86e8975f420e760161aab367af2465139e59702cf44ae1",
+      "bytes": 117
+    },
+    "docs/reports/evidence/phase-08-native-fidelity-20261029T234321253754Z.json": {
+      "sha256": "2405a5742e1c4717a984959c179674e1a6bc17f0b806334a8fb3523cebce27a6",
+      "bytes": 1155
+    },
+    ".local/phase08-fidelity-native-20261029T234321253754Z/request.json": {
+      "sha256": "1180abeea6b49d21bf5f3c5fc3acac9e359225714ecfa6793939888696dbce2a",
+      "bytes": 359
+    },
+    ".local/phase08-fidelity-native-20261029T234321253754Z/parent.log": {
+      "sha256": "8283c4cf1fd13d7ef8b1873bb4adc2bdaefd847adc4b3ff4b975ede6dfb16604",
+      "bytes": 5173
+    },
+    "docs/reports/evidence/phase-08-emulator-expansion/ex20261028/20261029T235234235416Z-A03-microphone.json": {
+      "sha256": "0c0e08b945b32d804f3146608afd503475140371267d11379e117f88f9e1cc82",
+      "bytes": 5344
+    },
+    ".local/phase08-microphone-20261029T235234235416Z-A03/instrumentation.log": {
+      "sha256": "82075406d60defb91310bde7f041f84a56bb83599ca1daff285024e14701fd32",
+      "bytes": 3629
+    },
+    ".local/phase08-microphone-20261029T235234235416Z-A03/synthetic-injection.log": {
+      "sha256": "d61dcdf06cea2259c93bb94bdb8efb862d8bc34f06ba1de0f6ef238a75dd5a51",
+      "bytes": 1003
+    },
+    ".local/phase08-microphone-20261029T235234235416Z-A03/route-0-audio.txt": {
+      "sha256": "feec9fd22b767d028f4b23091df1cb85814fd80eeecccaeb54fd6196f2f87831",
+      "bytes": 32738
+    },
+    ".local/phase08-microphone-20261029T235234235416Z-A03/route-0-audio-timing.json": {
+      "sha256": "d7851b45538d9955a8947356551c9dec4c16d1db0e655287f94c5de9f4677ea4",
+      "bytes": 117
+    },
+    ".local/phase08-microphone-20261029T235234235416Z-A03/route-0-media.audio_flinger.txt": {
+      "sha256": "ce865fe3645eab1ed61e089e69a3e86cb14b221bb96317f503904625a05a40dd",
+      "bytes": 24031
+    },
+    ".local/phase08-microphone-20261029T235234235416Z-A03/route-0-media.audio_flinger-timing.json": {
+      "sha256": "ff5a2f3775117ae0da077cb5e86e9cde9d88fac96fb366e17a7d6421f3d43b3d",
+      "bytes": 117
+    },
+    ".local/phase08-microphone-20261029T235234235416Z-A03/route-1-audio.txt": {
+      "sha256": "e2b8493579af7f2167a10028de12e9594a2788fcc8086955a386d889d9630f8e",
+      "bytes": 32596
+    },
+    ".local/phase08-microphone-20261029T235234235416Z-A03/route-1-audio-timing.json": {
+      "sha256": "0fa922a816c53288e3cb7b7965e8b27e8ed54809e38d9533dc9fdfb3e42d179e",
+      "bytes": 117
+    },
+    ".local/phase08-microphone-20261029T235234235416Z-A03/route-1-media.audio_flinger.txt": {
+      "sha256": "04281ccafa6ae340b9246220f1f3ac9d1cee966291cef3e77ded3394a7390920",
+      "bytes": 24384
+    },
+    ".local/phase08-microphone-20261029T235234235416Z-A03/route-1-media.audio_flinger-timing.json": {
+      "sha256": "dac0187bf07fad56357deea2a49f94caa4fb69f534bbaa54be3b9e1b8457bdce",
+      "bytes": 117
+    },
+    ".local/phase08-microphone-20261029T235234235416Z-A03/route-2-audio.txt": {
+      "sha256": "ef82d4e33ce1930e9c0e2b3842d92ae89834c0387811c44e3221563f86b74d4f",
+      "bytes": 32596
+    },
+    ".local/phase08-microphone-20261029T235234235416Z-A03/route-2-audio-timing.json": {
+      "sha256": "d80e2d6153a18118fba6dbd2112c73c4bd661e7172d5b052c7dbbbaa76d27bed",
+      "bytes": 117
+    },
+    ".local/phase08-microphone-20261029T235234235416Z-A03/route-2-media.audio_flinger.txt": {
+      "sha256": "d290a0defb30b9e732d583c880b4ea5dff40ef2daa02d330cf3fc7d8bf01a17b",
+      "bytes": 24387
+    },
+    ".local/phase08-microphone-20261029T235234235416Z-A03/route-2-media.audio_flinger-timing.json": {
+      "sha256": "ab9c1839463567a15406b8ae0393553c4d579cdba8789c83de632e3babe40d05",
+      "bytes": 117
+    },
+    ".local/phase08-microphone-20261029T235234235416Z-A03/route-3-audio.txt": {
+      "sha256": "26554e626daf3d6af6e6b394e61e734f02a62606cf49c20b2e5aa23502d579e9",
+      "bytes": 32596
+    },
+    ".local/phase08-microphone-20261029T235234235416Z-A03/route-3-audio-timing.json": {
+      "sha256": "2850c05d9a3cf1a4601a3f6bf81ad3e174a593c6d7ec68ccbd4deda127047264",
+      "bytes": 117
+    },
+    ".local/phase08-microphone-20261029T235234235416Z-A03/route-3-media.audio_flinger.txt": {
+      "sha256": "ff660c21ec67ce1b72094a0ce132287567ad54f199922ae21711cf10deec50bc",
+      "bytes": 24489
+    },
+    ".local/phase08-microphone-20261029T235234235416Z-A03/route-3-media.audio_flinger-timing.json": {
+      "sha256": "b85acca6addd9eb157e821024262704f4484499f2bb2e7721b013596006e5ffb",
+      "bytes": 117
+    },
+    ".local/phase08-microphone-20261029T235234235416Z-A03/route-4-audio.txt": {
+      "sha256": "2ecda7abfb03ce07dc04c0c16ad5a72c1aec301bc85d7219a072364dd11a8f9f",
+      "bytes": 32596
+    },
+    ".local/phase08-microphone-20261029T235234235416Z-A03/route-4-audio-timing.json": {
+      "sha256": "ad9b7fd7bc830e449b4fdd57f3dd4d414315056b27950e4e6f774e1596ae1635",
+      "bytes": 117
+    },
+    ".local/phase08-microphone-20261029T235234235416Z-A03/route-4-media.audio_flinger.txt": {
+      "sha256": "4dee1fa3b74bd9da72c871d87ff114796c0a009ee9d9f8cad04cf0edf3324b84",
+      "bytes": 24596
+    },
+    ".local/phase08-microphone-20261029T235234235416Z-A03/route-4-media.audio_flinger-timing.json": {
+      "sha256": "e50c00b28b9ad0a6e491b8264373f805f1cc8a6c03831596a6c42cdc642c60fd",
+      "bytes": 117
+    },
+    ".local/phase08-microphone-20261029T235234235416Z-A03/route-5-audio.txt": {
+      "sha256": "fdfb2e1b9ff4648de16930578bf8e365927e4bd49a1ed863533920b2bf1a9350",
+      "bytes": 32596
+    },
+    ".local/phase08-microphone-20261029T235234235416Z-A03/route-5-audio-timing.json": {
+      "sha256": "749eabd5d020e59ccb7487e7f7187b88322b6b70e95c5684f40d13731ae31a2b",
+      "bytes": 117
+    },
+    ".local/phase08-microphone-20261029T235234235416Z-A03/route-5-media.audio_flinger.txt": {
+      "sha256": "8877a0a83bccbf330bba6803efe0eaac99552f8688c5e5c09e7a4ca1ac67685d",
+      "bytes": 24644
+    },
+    ".local/phase08-microphone-20261029T235234235416Z-A03/route-5-media.audio_flinger-timing.json": {
+      "sha256": "02eb7fea9d11d2558ee4d61ad27d05f02fb5055cf2d2aced3005760696f92cf7",
+      "bytes": 117
+    },
+    "docs/reports/evidence/phase-08-native-fidelity-20261029T235233509042Z.json": {
+      "sha256": "c7f150610870312959116dfbe7231b3b0dfaa24aea6976b1fb6aa7d693cdc725",
+      "bytes": 1156
+    },
+    ".local/phase08-fidelity-native-20261029T235233509042Z/request.json": {
+      "sha256": "cee904efe704c43f8351eba2092878b43fa6e9e145061142c206907e2898075c",
+      "bytes": 359
+    },
+    ".local/phase08-fidelity-native-20261029T235233509042Z/parent.log": {
+      "sha256": "90a5479ef51accc077c3489cdd6f3a1028c6c1a381e3fcb160cdf1fb7c611bd9",
+      "bytes": 5158
+    },
+    "docs/reports/evidence/phase-08-emulator-expansion/ex20261028/20261029T235417518923Z-A03-microphone.json": {
+      "sha256": "a565b5899a0652942d9fbddd56f9a146de43a76dd5d95758c7fd568dbe061b78",
+      "bytes": 5350
+    },
+    ".local/phase08-microphone-20261029T235417518923Z-A03/instrumentation.log": {
+      "sha256": "db882852acf5c748de57bcf946afba2aeceff6aefb884dd06f8649f02b643b44",
+      "bytes": 3628
+    },
+    ".local/phase08-microphone-20261029T235417518923Z-A03/synthetic-injection.log": {
+      "sha256": "d61dcdf06cea2259c93bb94bdb8efb862d8bc34f06ba1de0f6ef238a75dd5a51",
+      "bytes": 1003
+    },
+    ".local/phase08-microphone-20261029T235417518923Z-A03/route-0-audio.txt": {
+      "sha256": "8b08da9befdb5a77c2dc71bf79aac962131a1e6451360b20705d651992cc65ca",
+      "bytes": 34627
+    },
+    ".local/phase08-microphone-20261029T235417518923Z-A03/route-0-audio-timing.json": {
+      "sha256": "6f1337017423ae5d55db11595f15a31502697116deb3ea25e342f3905b8bd118",
+      "bytes": 117
+    },
+    ".local/phase08-microphone-20261029T235417518923Z-A03/route-0-media.audio_flinger.txt": {
+      "sha256": "e70996006faef17f9171edd772c679fe8d4b5eb082b241299b4717b35607679b",
+      "bytes": 37512
+    },
+    ".local/phase08-microphone-20261029T235417518923Z-A03/route-0-media.audio_flinger-timing.json": {
+      "sha256": "422d9db2bbff385b4af3e04f382af4167b373461dc80020953fc6af3fcd361ef",
+      "bytes": 117
+    },
+    ".local/phase08-microphone-20261029T235417518923Z-A03/route-1-audio.txt": {
+      "sha256": "f568a934293c69848ce39362609c66258fdf6f336de6809f22466b4dbd7aef8d",
+      "bytes": 34627
+    },
+    ".local/phase08-microphone-20261029T235417518923Z-A03/route-1-audio-timing.json": {
+      "sha256": "e098e2808941adacb55fa94a80daa6b7f72614cdd9bdfafd69399975f743f4ec",
+      "bytes": 117
+    },
+    ".local/phase08-microphone-20261029T235417518923Z-A03/route-1-media.audio_flinger.txt": {
+      "sha256": "73938848ed7d0fb4d749bf28b3319c278247fc211821a68904e56759845a354f",
+      "bytes": 37898
+    },
+    ".local/phase08-microphone-20261029T235417518923Z-A03/route-1-media.audio_flinger-timing.json": {
+      "sha256": "3225896dbf09f8d9048ce2bbd11361974e3ded3ae25a2d117c437276e1a540b8",
+      "bytes": 117
+    },
+    ".local/phase08-microphone-20261029T235417518923Z-A03/route-2-audio.txt": {
+      "sha256": "0f69be298b2ea1a598b8626ccc172f22cb5f681d6fcb818c90cb18a8d19f6d38",
+      "bytes": 34627
+    },
+    ".local/phase08-microphone-20261029T235417518923Z-A03/route-2-audio-timing.json": {
+      "sha256": "29f97a259d7182f3096f6d990994679e362d479a46bbd8844d81fd44fee6eb4f",
+      "bytes": 117
+    },
+    ".local/phase08-microphone-20261029T235417518923Z-A03/route-2-media.audio_flinger.txt": {
+      "sha256": "33e1632ec342366eb4377f9c79fcdbbad870c699b98cb1faf8d42bcc9c6c0d04",
+      "bytes": 37896
+    },
+    ".local/phase08-microphone-20261029T235417518923Z-A03/route-2-media.audio_flinger-timing.json": {
+      "sha256": "a3b02a9b49ba50f3555be1a793840349a0d1f7c3a22ea409861bdf1fc09fd74d",
+      "bytes": 117
+    },
+    ".local/phase08-microphone-20261029T235417518923Z-A03/route-3-audio.txt": {
+      "sha256": "824610d9a6c801b44e785b4714b725457840f1aad0eecd79cf564db5c10f895a",
+      "bytes": 34627
+    },
+    ".local/phase08-microphone-20261029T235417518923Z-A03/route-3-audio-timing.json": {
+      "sha256": "7d395b6550d9427de3b2d5a8f3e9559780341c2f4d47e0718d1896a2872c1092",
+      "bytes": 117
+    },
+    ".local/phase08-microphone-20261029T235417518923Z-A03/route-3-media.audio_flinger.txt": {
+      "sha256": "878fa3934465006a76ec1aa50ba5cf84de915293756ceded645253eb242c6bfc",
+      "bytes": 37980
+    },
+    ".local/phase08-microphone-20261029T235417518923Z-A03/route-3-media.audio_flinger-timing.json": {
+      "sha256": "c2147f54a0ea3bb73158b367dc95e318d50998cef44577a65231a7e8758c8f5a",
+      "bytes": 117
+    },
+    ".local/phase08-microphone-20261029T235417518923Z-A03/route-4-audio.txt": {
+      "sha256": "4d9d5e3a74d217eda5c2c9b30cc9985476f4477e9856d251e31afa06c08cc80b",
+      "bytes": 34627
+    },
+    ".local/phase08-microphone-20261029T235417518923Z-A03/route-4-audio-timing.json": {
+      "sha256": "6804607a28a3d59e0c706600c08b7f08dedcf20f05e1322b4f411cc827309024",
+      "bytes": 117
+    },
+    ".local/phase08-microphone-20261029T235417518923Z-A03/route-4-media.audio_flinger.txt": {
+      "sha256": "d8bc775fa3010f0a4c18d10f569921b29124cf8b9f4bc8bebf02218b7fbe3f26",
+      "bytes": 38016
+    },
+    ".local/phase08-microphone-20261029T235417518923Z-A03/route-4-media.audio_flinger-timing.json": {
+      "sha256": "0493109e500ec2eb005660f5f7661b495cc8477d6e623fd342a8e8dcf603dd9d",
+      "bytes": 117
+    },
+    ".local/phase08-microphone-20261029T235417518923Z-A03/route-5-audio.txt": {
+      "sha256": "b1f9daf085c1bc6443695c7b520538d6459139651e14653887d02d467a259e6a",
+      "bytes": 34627
+    },
+    ".local/phase08-microphone-20261029T235417518923Z-A03/route-5-audio-timing.json": {
+      "sha256": "e7152fcfcdef2fcf85821ba74d2c2cd4a0b11351e55f776695bbb30e7bbb8cdc",
+      "bytes": 117
+    },
+    ".local/phase08-microphone-20261029T235417518923Z-A03/route-5-media.audio_flinger.txt": {
+      "sha256": "0ca53bcbffda3996e56fa7c29ef1c64b5767ab7c7c5d1d6c31157b8a1176162b",
+      "bytes": 38084
+    },
+    ".local/phase08-microphone-20261029T235417518923Z-A03/route-5-media.audio_flinger-timing.json": {
+      "sha256": "db049ba9bd8a8e9de4fc7cd6473bea6adc0238938798d8f30348b2c61f0346f5",
+      "bytes": 117
+    },
+    "docs/reports/evidence/phase-08-native-fidelity-20261029T235416876736Z.json": {
+      "sha256": "0a29b8d322d2ee30ee019a544b926dd0244039a3a6086fd2a5209a5987561e02",
+      "bytes": 1156
+    },
+    ".local/phase08-fidelity-native-20261029T235416876736Z/request.json": {
+      "sha256": "9eca4471db097ccdd80d1a4d28bf4f80df4d7cc7414e3cea3d3a7da0b1e66aa8",
+      "bytes": 359
+    },
+    ".local/phase08-fidelity-native-20261029T235416876736Z/parent.log": {
+      "sha256": "f262f348d2112fa24f8a9ad45af4778f3bbedc0b5270ecb1d1b42fbdb954ed0b",
+      "bytes": 5173
+    }
+  },
+  "physicalDeviceValidation": "NOT_RUN",
+  "V05": "OWNER_DEFERRED_NOT_RUN",
+  "deviceCalls": 0,
+  "sourceEdits": 0,
+  "currentSourceSha256": {
+    "android/app/src/main/java/com/lafina/capstone/voice/SpeechInput.kt": "87ec7daddc04d7279ffa529e6e241a0c1b982a82cf89f629d0399ba105bc5787",
+    "android/app/src/main/java/com/lafina/capstone/voice/SpeechInputPolicy.kt": "32369cb80efb5540a4148bb3904a07962d847818e593001deea0e80d9a6a6c5a",
+    "android/app/src/main/java/com/lafina/capstone/voice/WhisperTranscriber.kt": "870418590f822998197c09aa5a1b21c54a2134d0ca3b1f37cbea1781fc9fe3df",
+    "android/app/src/main/java/com/lafina/capstone/voice/PcmCapture.kt": "da5afe59fbace713be34d28f3dcba64c96c40a9ec04cce13d92bf9ff5ef41b0d",
+    "android/app/src/main/java/com/lafina/capstone/voice/AnsweredDictationPanel.kt": "b922b60faf8d651fc47b436fa7ee2d7313d28eda691b71195e117ecbff9d7ec7",
+    "android/app/src/main/java/com/lafina/capstone/voice/SystemSpeechInputModule.kt": "4bfc692db26dba42cdacc27eb755a00c7018fb96e9859d22f6eaddb7324677d5",
+    "android/app/src/main/cpp/jni/whisper_jni.cpp": "f2eab2ff4f717220e962daa7d486dee057c113c9f20be6f4f8ef3ca3d4512a25"
+  },
+  "staticSourceContext": [
+    {
+      "references": {
+        "android/app/src/main/java/com/lafina/capstone/voice/SpeechInput.kt": [
+          36,
+          159,
+          172
+        ],
+        "android/app/src/main/java/com/lafina/capstone/voice/SpeechInputPolicy.kt": [
+          18
+        ],
+        "android/app/src/main/java/com/lafina/capstone/voice/AnsweredDictationPanel.kt": [
+          117
+        ]
+      },
+      "fact": "Bare LANGUAGE_UNAVAILABLE belongs to the Android recognizer/support path and marks the language failed on that per-panel SpeechInput instance. The next new explicit auto hold chooses Whisper if available. It is not automatic in-session fallthrough."
+    },
+    {
+      "references": {
+        "android/app/src/main/java/com/lafina/capstone/voice/SpeechInput.kt": [
+          77,
+          195,
+          206,
+          213,
+          214
+        ],
+        "android/app/src/main/java/com/lafina/capstone/voice/WhisperTranscriber.kt": [
+          19,
+          35,
+          74
+        ]
+      },
+      "fact": "Every start checks Whisper availability, which may initialize the JNI library and inspect model asset length before engine choice. The first Android-failure path does not call Whisper transcribe. Model verification/copy/hash and native decoder context work are reached only after capture.read and the signal gate. This does not establish equal OS/library/cache state."
+    },
+    {
+      "references": {
+        "android/app/src/main/cpp/jni/whisper_jni.cpp": [
+          132,
+          136,
+          144,
+          180
+        ],
+        "android/app/src/main/java/com/lafina/capstone/voice/SpeechInputPolicy.kt": [
+          7,
+          9
+        ]
+      },
+      "fact": "Current source creates a CPU native decoder context per call; English reminder configuration is beam 3, temperature 0, 2 threads, no_context, fixed local hint and relative signal-boundary profile. JNI deadline is 30 seconds; the separate aggregate transcription timeout is 60 seconds, with 15-second capture. These are static configuration facts, not per-trial measured settings/load durations."
+    },
+    {
+      "references": {
+        "android/app/src/main/java/com/lafina/capstone/voice/SpeechInput.kt": [
+          286
+        ],
+        "android/app/src/main/java/com/lafina/capstone/voice/SystemSpeechInputModule.kt": [
+          18
+        ],
+        "android/app/src/main/java/com/lafina/capstone/voice/AnsweredDictationPanel.kt": [
+          32
+        ]
+      },
+      "fact": "SpeechInput events can carry session/type/engine/elapsed/reason and aggregate recording/transcription timing. The React module owns a separate GENERAL instance; the native reminder owns its private REMINDER_RESPONSE instance and consumes events for UI. These trial files do not expose its full decoder event stream or model-load/cache telemetry."
+    }
+  ],
+  "sourceContextLimit": "Source reviewed in a bounded graph-first read-only subtask; hashes rechecked while finalizing this newly reserved comparison artifact. No source edits or device action performed."
+}

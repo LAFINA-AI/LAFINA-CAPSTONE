@@ -1,0 +1,38 @@
+{
+  "case": "A22",
+  "runId": "ex20261028",
+  "startedAt": "2026-10-28T13:49:16.077618+00:00",
+  "status": "PASS",
+  "physicalAcceptance": "HUMAN_REQUIRED",
+  "events": [
+    {
+      "at": "2026-10-28T13:49:17.204288+00:00",
+      "event": "fresh_private_case_baseline_captured",
+      "permissionFlagsCaptured": true,
+      "appOpLevel": "uid"
+    },
+    {
+      "at": "2026-10-28T13:49:17.451884+00:00",
+      "event": "app_op_observed",
+      "operation": "USE_FULL_SCREEN_INTENT",
+      "level": "uid",
+      "mode": "ignore"
+    },
+    {
+      "at": "2026-10-28T13:51:25.500928+00:00",
+      "event": "fsi_appop_denied_actual_notification_fallback_ack",
+      "fullScreenPreference": true,
+      "scope": "Actual System UI body interaction; no physical lock-screen claim"
+    },
+    {
+      "at": "2026-10-28T13:51:39.924125+00:00",
+      "event": "app_op_observed",
+      "operation": "USE_FULL_SCREEN_INTENT",
+      "level": "uid",
+      "mode": "allow"
+    }
+  ],
+  "restoration": "PASS",
+  "restorationErrors": [],
+  "completedAt": "2026-10-28T13:52:16.168453+00:00"
+}

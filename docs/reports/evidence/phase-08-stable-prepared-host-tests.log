@@ -1,0 +1,14 @@
+✔ header only is offered before pending visible proof (38.3947ms)
+✔ invalid visible proof supplies no PCM and never arms source deadline (1.0812ms)
+✔ rejected proof/cancellation supplies no PCM (0.3735ms)
+✔ stale proof cannot enter source window (0.3725ms)
+✔ insufficient remaining native gate cannot send PCM (0.4267ms)
+✔ full source still uses blocking packets with exact offered PCM byte count (0.8635ms)
+ℹ tests 6
+ℹ suites 0
+ℹ pass 6
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 219.3436

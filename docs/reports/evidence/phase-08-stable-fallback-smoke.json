@@ -1,0 +1,75 @@
+{
+  "kind": "PHASE08_STABLE_MANUAL_TYPED_FALLBACK_SMOKE",
+  "status": "PASS",
+  "startedAtUtc": "2026-10-31T02:36:12.144342+00:00",
+  "avd": "LAFINA_Phase08_API35",
+  "api": 35,
+  "runId": "st20261031",
+  "physicalDeviceValidation": "NOT_RUN",
+  "cases": [
+    {
+      "case": "A01",
+      "kind": "notification",
+      "mode": "open-manual-ack",
+      "status": "PASS",
+      "taskStatus": "TODO",
+      "jobStatus": "ACKNOWLEDGED",
+      "reminderStatus": "ACKNOWLEDGED",
+      "generation": 1,
+      "registrations": 0,
+      "actualUiReviewConfirm": true,
+      "exactOwnedFixtureReviewedCleanup": true
+    },
+    {
+      "case": "A02",
+      "kind": "notification",
+      "mode": "open-typed-ack",
+      "status": "PASS",
+      "taskStatus": "TODO",
+      "jobStatus": "ACKNOWLEDGED",
+      "reminderStatus": "ACKNOWLEDGED",
+      "generation": 1,
+      "registrations": 0,
+      "actualUiReviewConfirm": true,
+      "exactOwnedFixtureReviewedCleanup": true
+    },
+    {
+      "case": "A04",
+      "kind": "response",
+      "mode": "snooze",
+      "status": "PASS",
+      "replacementRunAtSecondsAfterConfirm": 602.6,
+      "taskStatus": "TODO",
+      "jobStatus": "PENDING",
+      "reminderStatus": "SNOOZED",
+      "generation": 2,
+      "registrations": 1,
+      "actualUiReviewConfirm": true,
+      "exactOwnedFixtureReviewedCleanup": true
+    }
+  ],
+  "noSpeechOrAudibilityAcceptance": true,
+  "microphoneUsed": false,
+  "harness": [
+    {
+      "path": ".local/phase08-stable-fallback-smoke-v2.py",
+      "sha256": "b31cf04d44663b42a917edb60192fbb5b7cc579399b57afa20c0c4b12377f9b3"
+    },
+    {
+      "path": ".local/phase08-stable-mic.py",
+      "sha256": "2f8277c226f136271620e57aa0654065cd27ec7e668c234fb5d8fa56307ceb6a"
+    },
+    {
+      "path": ".local/phase08-capture-fix-reviewed-mic.py",
+      "sha256": "8aef5281eb541fd2bafdbf323e2c0e3a14ead86aac37e3b68fb355c10f81c4c9"
+    },
+    {
+      "path": "scripts/phase08-emulator-suite.py",
+      "sha256": "d2da81890b16227132cf71eb68403fb749bb1f420e1045406c7e864649d736ad"
+    }
+  ],
+  "workingBaselineRestored": true,
+  "activeJobsAtEnd": 0,
+  "registrationsAtEnd": 0,
+  "completedAtUtc": "2026-10-31T02:41:19.340976+00:00"
+}

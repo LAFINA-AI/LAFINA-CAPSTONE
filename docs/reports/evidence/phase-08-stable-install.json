@@ -1,0 +1,25 @@
+{
+  "kind": "PHASE08_STABLE_FRESH_CANDIDATE_INSTALL",
+  "status": "PASS",
+  "completedAtUtc": "2026-10-30T23:02:31.256266+00:00",
+  "avd": "LAFINA_Phase08_API35",
+  "api": 35,
+  "physicalDeviceValidation": "NOT_RUN",
+  "apks": [
+    {
+      "path": "android/app/build/outputs/apk/dataQa/app-x86_64-dataQa.apk",
+      "sha256": "7300f2aefeb8d5f90882655d46435b100a12531e16a7c70df4f81230f4160454",
+      "installedHashMatches": true
+    },
+    {
+      "path": "android/app/build/outputs/apk/androidTest/dataQa/app-dataQa-androidTest.apk",
+      "sha256": "abb103afe1dab0bef0646734d126391a355cf2a1a7fb664401544db57b71b0a9",
+      "installedHashMatches": true
+    }
+  ],
+  "originalAvdNotTargeted": true,
+  "noUninstallClearResetOrDatabaseCopy": true,
+  "postInstallGuardFinding": "API35 is-user-secure command unsupported; initial install completed both APKs before stopping. Already-unlocked state verified via dumpsys trust; no lock dismissal or credential bypass issued.",
+  "initialAbsencePreflight": "API35 pm path exits1 for absent packages; replaced by successful empty filtered pm list packages before any installation.",
+  "privateOnboardingUi": ".local/phase08-stable-device-v2/first-onboarding-ui.xml"
+}

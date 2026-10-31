@@ -1,0 +1,7 @@
+Saved docs\benchmarks\phase-08-input-loss-queries-stress-host.json
+tasks_active_first_page: n=50, p50=2.6441ms, p95=4.0506ms, errors=0
+tasks_completed_first_page: n=50, p50=2.0176ms, p95=2.6227ms, errors=0
+agenda_day_first_page: n=50, p50=59.2612ms, p95=78.1525ms, errors=0
+agenda_day_next_page: n=50, p50=70.6837ms, p95=77.9097ms, errors=0
+agenda_week_first_page: n=50, p50=119.1111ms, p95=131.408ms, errors=0
+reminder_history_first_page: n=50, p50=1.0871ms, p95=1.2769ms, errors=0

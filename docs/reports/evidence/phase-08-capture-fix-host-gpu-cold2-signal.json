@@ -1,0 +1,120 @@
+{
+  "kind": "PHASE08_POST_BATCH_NUMERIC_CAPTURE_LOG_REVIEW",
+  "createdAtUtc": "2026-10-30T21:17:41.964880+00:00",
+  "campaign": {
+    "path": "docs/reports/evidence/phase-08-capture-fix-host-gpu-cold2-20261030T210707359332Z-e16ad6.json",
+    "sha256": "991f118a766a0804aef065832130ef50f0869e95ab9413634564aa85e5cf9b97"
+  },
+  "captures": [
+    {
+      "case": "A03",
+      "trial": 1,
+      "status": "FAIL",
+      "sourceOutcome": "SOURCE_RPC_COMPLETED_HOST_OFF",
+      "nativeTerminalFailure": null,
+      "nativeReferenceMatched": false,
+      "captureMetadata": [
+        {
+          "epoch": 1793394541.854,
+          "vocabulary": "REMINDER_RESPONSE",
+          "frames": 83456,
+          "nonzero": 32571,
+          "rms": 0.0636754716260699
+        }
+      ],
+      "parentEvidence": {
+        "path": "docs/reports/evidence/phase-08-emulator-expansion/ex20261028/20261030T210729924062Z-A03-microphone.json",
+        "sha256": "88f7972437027729f3494f8f9ed3930a6a2ed8000adcc217d6d9c6ea13cb662d"
+      }
+    },
+    {
+      "case": "V03",
+      "trial": 1,
+      "status": "PASS",
+      "sourceOutcome": "SOURCE_RPC_COMPLETED_HOST_OFF",
+      "nativeTerminalFailure": null,
+      "nativeReferenceMatched": true,
+      "captureMetadata": [
+        {
+          "epoch": 1793394659.629,
+          "vocabulary": "REMINDER_RESPONSE",
+          "frames": 82432,
+          "nonzero": 30427,
+          "rms": 0.06406974635520073
+        }
+      ],
+      "parentEvidence": {
+        "path": "docs/reports/evidence/phase-08-emulator-expansion/ex20261028/20261030T210937583606Z-V03-microphone.json",
+        "sha256": "41935c92f28ac4fc1de5bf21558cdf4dc7f76fcbd70b6adeffdcf862db2c0653"
+      }
+    },
+    {
+      "case": "V03",
+      "trial": 2,
+      "status": "FAIL",
+      "sourceOutcome": "SOURCE_RPC_COMPLETED_HOST_OFF",
+      "nativeTerminalFailure": null,
+      "nativeReferenceMatched": false,
+      "captureMetadata": [
+        {
+          "epoch": 1793394778.464,
+          "vocabulary": "REMINDER_RESPONSE",
+          "frames": 81664,
+          "nonzero": 32827,
+          "rms": 0.06437031474568038
+        }
+      ],
+      "parentEvidence": {
+        "path": "docs/reports/evidence/phase-08-emulator-expansion/ex20261028/20261030T211135653500Z-V03-microphone.json",
+        "sha256": "cc8ca243461ee39cdb9cdf2545a5eb2f819359c168a392741d99f18c1660d5b6"
+      }
+    },
+    {
+      "case": "V04",
+      "trial": 1,
+      "status": "PASS",
+      "sourceOutcome": "SOURCE_RPC_COMPLETED_HOST_OFF",
+      "nativeTerminalFailure": null,
+      "nativeReferenceMatched": true,
+      "captureMetadata": [
+        {
+          "epoch": 1793394892.82,
+          "vocabulary": "REMINDER_RESPONSE",
+          "frames": 81920,
+          "nonzero": 32946,
+          "rms": 0.06389811491373859
+        }
+      ],
+      "parentEvidence": {
+        "path": "docs/reports/evidence/phase-08-emulator-expansion/ex20261028/20261030T211331703662Z-V04-microphone.json",
+        "sha256": "1f27fdad730d276c97308336e0d0c37f7d953b69f98e3a2bbad562fe920e9ac4"
+      }
+    },
+    {
+      "case": "V04",
+      "trial": 2,
+      "status": "PASS",
+      "sourceOutcome": "SOURCE_RPC_COMPLETED_HOST_OFF",
+      "nativeTerminalFailure": null,
+      "nativeReferenceMatched": true,
+      "captureMetadata": [
+        {
+          "epoch": 1793395010.381,
+          "vocabulary": "REMINDER_RESPONSE",
+          "frames": 82944,
+          "nonzero": 33412,
+          "rms": 0.06350245855007362
+        }
+      ],
+      "parentEvidence": {
+        "path": "docs/reports/evidence/phase-08-emulator-expansion/ex20261028/20261030T211528745132Z-V04-microphone.json",
+        "sha256": "b62bc930ba1488c2a9e8a239f1f5abe2d8ece4b7d9a9eabbb380484a31af0475"
+      }
+    }
+  ],
+  "rawAudioExported": false,
+  "rawTranscriptPublished": false,
+  "liveCaptureObserverUsed": false,
+  "physicalDeviceValidation": "NOT_RUN",
+  "interpretation": "Cached numeric DataQa capture diagnostics within each parent time window. No PCM fidelity, delivery, vendor-cause or physical speech certification."
+}

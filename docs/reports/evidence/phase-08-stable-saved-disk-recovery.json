@@ -1,0 +1,22 @@
+{
+  "kind": "PHASE08_STABLE_SAVED_DISK_RECOVERY",
+  "status": "PASS_SAME_DISK_DATABASE_AND_HOST_INPUT_REVERIFIED",
+  "startedAtUtc": "2026-10-31T00:06:32.183235+00:00",
+  "avd": "LAFINA_Phase08_API35",
+  "physicalDeviceValidation": "NOT_RUN",
+  "sameUserdataDisk": true,
+  "resetSnapshotDeleteUninstallDatabaseReplacement": false,
+  "originalAvdTargeted": false,
+  "initialVerificationAbortedBeforeDatabaseRead": true,
+  "initialMainLaunchNonzero": true,
+  "laterNormalMainLaunchSucceeded": true,
+  "noAdditionalLifecycleOrInstallAction": true,
+  "schema": 3,
+  "databaseQuickCheck": "ok",
+  "taskRows": 13,
+  "snapshot": ".local/phase08-emulator-suite/st20261031/20261031T000930157616Z-7ddf25ee/snapshot-1/snapshot.sqlite",
+  "workingPreferencesPreserved": true,
+  "hostMicrophoneDisabled": true,
+  "completedAtUtc": "2026-10-31T00:09:31.008631+00:00",
+  "ownedFixtureCleanupStillRequired": true
+}

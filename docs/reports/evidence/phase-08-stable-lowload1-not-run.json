@@ -1,0 +1,357 @@
+{
+  "kind": "PHASE08_STABLE_LOWLOAD_FIVE_TRIAL_COHORT",
+  "status": "NOT_RUN_LOW_LOAD_ADMISSION_UNMET",
+  "createdAtUtc": "2026-10-31T10:03:54.226592+00:00",
+  "avd": "LAFINA_Phase08_API35",
+  "api": 35,
+  "runId": "st20261031",
+  "plan": {
+    "path": "docs/reports/evidence/phase-08-stable-lowload-plan-20261031T094218Z.json",
+    "sha256": "48f4092228afbd8236ab963b1df571fd93c775e7777ce0efb5dd208d227f90c3"
+  },
+  "amendments": [
+    {
+      "path": "docs/reports/evidence/phase-08-stable-lowload-plan-amendment-1.json",
+      "sha256": "7d66988e7ba56cdc586a2a58544c7cea54f06a9dd22abb0b7972eb8d6fcc32bf"
+    },
+    {
+      "path": "docs/reports/evidence/phase-08-stable-lowload-plan-amendment-2.json",
+      "sha256": "9b5818885d852921b899e37dcc5a8f78bccf67848153c140c28a0413547e30fa"
+    }
+  ],
+  "admissions": [
+    {
+      "path": "docs/reports/evidence/phase-08-stable-lowload-admission-1.json",
+      "sha256": "98865c92701c516d70bf9f975badf089a5389ff24e59837da6fb96162dc61754",
+      "status": "ADMISSION_UNMET_NO_LAUNCH",
+      "met": false,
+      "violations": [
+        "AVAILABLE_MEMORY",
+        "AVAILABLE_COMMIT",
+        "CPU_cpuTotalPct",
+        "HARD_PAGING"
+      ],
+      "launchAttempted": false,
+      "metrics": {
+        "samples": 31,
+        "durationSeconds": 29.979,
+        "firstUtc": "2026-10-31T09:42:52.571076+00:00",
+        "lastUtc": "2026-10-31T09:43:22.549832+00:00",
+        "availableMiB": {
+          "min": 2292.0,
+          "median": 2506.0,
+          "p95": 2661.0,
+          "max": 2716.0,
+          "mean": 2515.548
+        },
+        "commitAvailableGiB": {
+          "min": 2.962,
+          "median": 3.157,
+          "p95": 3.243,
+          "max": 3.317,
+          "mean": 3.152
+        },
+        "cpuTotalPct": {
+          "min": 26.458,
+          "median": 44.667,
+          "p95": 70.968,
+          "max": 71.219,
+          "mean": 46.124
+        },
+        "hardPagesPerSec": {
+          "min": 49.988,
+          "median": 360.142,
+          "p95": 8122.362,
+          "max": 8162.554,
+          "mean": 1128.177
+        },
+        "schedProbeMaxLateMs": {
+          "min": 0.91,
+          "median": 1.804,
+          "p95": 15.857,
+          "max": 27.913,
+          "mean": 3.691
+        },
+        "schedProbeP99LateMs": {
+          "min": 0.768,
+          "median": 0.933,
+          "p95": 4.273,
+          "max": 4.511,
+          "mean": 1.295
+        }
+      }
+    },
+    {
+      "path": "docs/reports/evidence/phase-08-stable-lowload-admission-2-boot.json",
+      "sha256": "e9da7e30ad6b739e62cc81ae9eaaf753fbcf391cb64df4ef598b7bab77ee324d",
+      "status": "ADMISSION_UNMET_NO_LAUNCH",
+      "met": false,
+      "violations": [
+        "AVAILABLE_MEMORY",
+        "AVAILABLE_COMMIT",
+        "CPU_cpuTotalPct",
+        "HARD_PAGING"
+      ],
+      "launchAttempted": false,
+      "metrics": {
+        "samples": 31,
+        "durationSeconds": 30.0,
+        "firstUtc": "2026-10-31T09:49:02.541514+00:00",
+        "lastUtc": "2026-10-31T09:49:32.541066+00:00",
+        "availableMiB": {
+          "min": 1834.0,
+          "median": 1892.0,
+          "p95": 2042.0,
+          "max": 2048.0,
+          "mean": 1920.742
+        },
+        "commitAvailableGiB": {
+          "min": 5.486,
+          "median": 5.534,
+          "p95": 5.613,
+          "max": 5.616,
+          "mean": 5.544
+        },
+        "cpuTotalPct": {
+          "min": 7.284,
+          "median": 15.499,
+          "p95": 29.301,
+          "max": 34.088,
+          "mean": 17.335
+        },
+        "hardPagesPerSec": {
+          "min": 0.0,
+          "median": 144.969,
+          "p95": 21027.823,
+          "max": 26042.859,
+          "mean": 1981.936
+        },
+        "schedProbeMaxLateMs": {
+          "min": 0.795,
+          "median": 1.156,
+          "p95": 1.471,
+          "max": 1.611,
+          "mean": 1.205
+        },
+        "schedProbeP99LateMs": {
+          "min": 0.695,
+          "median": 0.814,
+          "p95": 0.944,
+          "max": 1.008,
+          "mean": 0.822
+        }
+      }
+    },
+    {
+      "path": "docs/reports/evidence/phase-08-stable-lowload-admission-3.json",
+      "sha256": "3dda6d25806d3f90563a3a8cc62ab428b81bc5f382d913907de8d2ef2db2e873",
+      "status": "ADMISSION_UNMET_NO_LAUNCH",
+      "met": false,
+      "violations": [
+        "AVAILABLE_MEMORY",
+        "HARD_PAGING"
+      ],
+      "launchAttempted": false,
+      "metrics": {
+        "samples": 31,
+        "durationSeconds": 29.998,
+        "firstUtc": "2026-10-31T10:02:28.892954+00:00",
+        "lastUtc": "2026-10-31T10:02:58.890628+00:00",
+        "availableMiB": {
+          "min": 6159.0,
+          "median": 6252.0,
+          "p95": 6260.0,
+          "max": 6262.0,
+          "mean": 6245.548
+        },
+        "commitAvailableGiB": {
+          "min": 15.706,
+          "median": 15.778,
+          "p95": 15.827,
+          "max": 15.828,
+          "mean": 15.774
+        },
+        "cpuTotalPct": {
+          "min": 3.127,
+          "median": 7.532,
+          "p95": 15.517,
+          "max": 18.219,
+          "mean": 8.723
+        },
+        "hardPagesPerSec": {
+          "min": 0.0,
+          "median": 4.001,
+          "p95": 3248.903,
+          "max": 4550.571,
+          "mean": 400.322
+        },
+        "schedProbeMaxLateMs": {
+          "min": 0.756,
+          "median": 0.971,
+          "p95": 1.947,
+          "max": 5.191,
+          "mean": 1.136
+        },
+        "schedProbeP99LateMs": {
+          "min": 0.606,
+          "median": 0.729,
+          "p95": 0.849,
+          "max": 0.888,
+          "mean": 0.733
+        }
+      }
+    }
+  ],
+  "admissionNotes": [
+    "Admission 1 ran before any owner action. Admission 2 ran after the owner closed a game client. Admission 3 ran after the owner exited further applications; two remaining applications could not be closed.",
+    "Admissions 1-2 used the first telemetry file, whose per-process attribution was unreliable (amendment 2). Their failing metrics (available memory, commit, total CPU, paging) come from unaffected scalar counters. Admission 2 showed telemetry CPU 0.0 because of that defect; the sampler process-time counter gives 0.45% of host for that run.",
+    "An admission-2 invocation that failed with FileExistsError before any evaluation or device call is recorded in amendment 1 and produced no evidence file."
+  ],
+  "ownerActions": {
+    "firstDoneUtc": "2026-10-31T09:48:08Z",
+    "secondDoneUtc": "2026-10-31T09:53:14Z",
+    "remainingApplicationsCouldNotBeClosedUtc": "2026-10-31T10:02:55Z",
+    "agentTerminatedApplications": false,
+    "securityProtectionsKeptEnabled": true,
+    "note": "Process names stay in private telemetry; categories only here (IDE, network simulator, browser, chat/voice apps, game client)."
+  },
+  "attempts": [],
+  "notRun": [
+    {
+      "case": "A03",
+      "trial": 1,
+      "status": "NOT_RUN",
+      "reason": "LOW_LOAD_ADMISSION_UNMET_NO_LAUNCH"
+    },
+    {
+      "case": "V03",
+      "trial": 1,
+      "status": "NOT_RUN",
+      "reason": "LOW_LOAD_ADMISSION_UNMET_NO_LAUNCH"
+    },
+    {
+      "case": "V03",
+      "trial": 2,
+      "status": "NOT_RUN",
+      "reason": "LOW_LOAD_ADMISSION_UNMET_NO_LAUNCH"
+    },
+    {
+      "case": "V04",
+      "trial": 1,
+      "status": "NOT_RUN",
+      "reason": "LOW_LOAD_ADMISSION_UNMET_NO_LAUNCH"
+    },
+    {
+      "case": "V04",
+      "trial": 2,
+      "status": "NOT_RUN",
+      "reason": "LOW_LOAD_ADMISSION_UNMET_NO_LAUNCH"
+    }
+  ],
+  "counts": {
+    "PASS": 0,
+    "FAIL": 0,
+    "NOT_RUN": 5
+  },
+  "deviceMutation": {
+    "guestLaunched": false,
+    "emulatorEnginesStarted": 0,
+    "installUninstallDataClearOrSnapshotReset": false,
+    "fixturesCreated": 0,
+    "settingsChanged": false
+  },
+  "telemetry": {
+    "files": [
+      ".local/phase08-lowload-20261031T094218Z/host-telemetry.jsonl (520 samples; attribution unreliable, see amendment 2)",
+      ".local/phase08-lowload-20261031T094218Z/host-telemetry-2.jsonl (727 samples; attribution aligned)"
+    ],
+    "private": true,
+    "samplerCpuPctOfHost": {
+      "first": 0.453,
+      "second": 0.242
+    },
+    "correctedRunWholeWindow": {
+      "samples": 727,
+      "durationSeconds": 725.993,
+      "maxSampleGapSeconds": 1.065,
+      "attributedSamples": 727,
+      "availableMiB": {
+        "min": 1847.0,
+        "median": 5598.0,
+        "p95": 6254.0,
+        "max": 6326.0,
+        "mean": 5362.124
+      },
+      "commitAvailableGiB": {
+        "min": 5.204,
+        "median": 14.569,
+        "p95": 15.816,
+        "max": 15.901,
+        "mean": 13.846
+      },
+      "cpuTotalPct": {
+        "min": 0.508,
+        "median": 5.362,
+        "p95": 21.222,
+        "max": 59.242,
+        "mean": 7.641
+      },
+      "nonEmulatorCpuPct": {
+        "min": 0.0,
+        "median": 5.085,
+        "p95": 20.831,
+        "max": 58.721,
+        "mean": 7.373
+      },
+      "hardPagesPerSec": {
+        "min": 0.0,
+        "median": 0.0,
+        "p95": 1879.725,
+        "max": 89575.134,
+        "mean": 878.794
+      },
+      "schedProbeMaxLateMs": {
+        "min": 0.607,
+        "median": 1.066,
+        "p95": 1.59,
+        "max": 101.449,
+        "mean": 1.598
+      },
+      "schedProbeP99LateMs": {
+        "min": 0.556,
+        "median": 0.787,
+        "p95": 0.93,
+        "max": 3.373,
+        "mean": 0.78
+      },
+      "telemetryCpuPct": {
+        "min": 0.13,
+        "median": 0.26,
+        "p95": 0.41,
+        "max": 44.392,
+        "mean": 0.302
+      }
+    },
+    "clockAlignment": "NOT_MEASURED (no guest launched)"
+  },
+  "closingChecks": {
+    "emulatorEnginesRunning": 0,
+    "adbDevices": 0,
+    "helperProcessesAlive": 0,
+    "emulatorPortClients": 0,
+    "hostMicrophone": "No emulator ran this session; -allow-host-audio never used",
+    "activeRecording": "NONE (no guest running)",
+    "ownedJobsOrRegistrations": "NONE created this session",
+    "savedGuestsUntouched": {
+      "method": "Host-side newest-file timestamp in each AVD directory (read-only)",
+      "api35NewestUtc": "2026-10-31T02:44:44Z",
+      "originalMedium_PhoneNewestUtc": "2026-10-31T02:46:15Z",
+      "bothBeforeThisSession": true,
+      "guestSideCheckers": "NOT_RUN: no guest was launched; last guest-side verification remains the previous session (API35 restoration-verified PASS; original checker 10/10)"
+    }
+  },
+  "comparisonWithNull1": "Not possible: no low-load trial ran. Evidence layers remain those of null1 and sdk1 only. H3b (host contention) is untested, neither supported nor refuted.",
+  "physicalDeviceValidation": "NOT_RUN",
+  "v05": "NOT_RUN_OWNER_DEFERRED",
+  "phase09": "NOT_STARTED"
+}

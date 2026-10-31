@@ -1,0 +1,22 @@
+{
+  "schemaVersion": 1,
+  "runId": "ex20261028",
+  "invocation": "20261031T024543352683Z-5d6bf048",
+  "command": "final-restoration-check",
+  "startedAt": "2026-10-31T02:45:43.353959+00:00",
+  "status": "PASS",
+  "scope": "Explicit emulator UI driver plus independent read-only SQLite snapshots",
+  "physicalAcceptance": "HUMAN_REQUIRED",
+  "events": [
+    {
+      "at": "2026-10-31T02:45:43.355058+00:00",
+      "event": "invocation_started"
+    }
+  ],
+  "limits": [
+    "Direct private Activity intents do not certify actual notification taps or full-screen delivery.",
+    "No live microphone, audibility, physical phone, OEM or battery acceptance is implied."
+  ],
+  "completedAt": "2026-10-31T02:46:01.622473+00:00",
+  "finalRestorationEvidence": "docs/reports/evidence/phase-08-stable-original-after.json"
+}

@@ -1,0 +1,87 @@
+{
+  "createdUtc": "2026-10-27T16:13:06.049485+00:00",
+  "baselineCommit": "98bef88c3ae0fabee677c1466417fc34c0af738c",
+  "branch": "codex/phase-07-audit-hardening",
+  "scope": "Changed tracked source/config/test files, new native Kotlin source/tests and package root metadata only. Documentation/reports/evidence, private data, ignored model binaries and build output are excluded.",
+  "fileCount": 13,
+  "files": [
+    {
+      "path": ".gitignore",
+      "bytes": 977,
+      "sha256": "cd0634ca4221e00b42c7275feeca276c473aa99298d575bdb8e345de10b82d13",
+      "trackedAtHead": true
+    },
+    {
+      "path": "android/app/build.gradle",
+      "bytes": 7812,
+      "sha256": "3dc525aade784801d963d001bc5177e613f4a5f5c445530e620d1fe5a3de9223",
+      "trackedAtHead": true
+    },
+    {
+      "path": "android/app/src/androidTest/java/com/lafina/capstone/reminders/ReminderResponseBenchmarkTest.kt",
+      "bytes": 4481,
+      "sha256": "48f63c44b2cf36fdf087155d22bfbb3f051ac30251d757d05f70111874371da9",
+      "trackedAtHead": false
+    },
+    {
+      "path": "android/app/src/androidTest/java/com/lafina/capstone/reminders/ReminderStoreTest.kt",
+      "bytes": 26541,
+      "sha256": "4cfaac8cef3bb6877717d654d4a95fc22dd3faf9953506073dac0d5a2a8c65f6",
+      "trackedAtHead": true
+    },
+    {
+      "path": "android/app/src/main/java/com/lafina/capstone/reminders/ReminderActivity.kt",
+      "bytes": 19502,
+      "sha256": "775bfd8725bf58c3155e337d4d9099d4e3b47142e7fbe2d4c64541b808f7a10b",
+      "trackedAtHead": true
+    },
+    {
+      "path": "android/app/src/main/java/com/lafina/capstone/reminders/ReminderResponsePolicy.kt",
+      "bytes": 2136,
+      "sha256": "bdb2243e716a4c0186069d32867617de04aa561fb7cbb2b44bf3839c5e595ee3",
+      "trackedAtHead": false
+    },
+    {
+      "path": "android/app/src/main/java/com/lafina/capstone/reminders/ReminderResponseSession.kt",
+      "bytes": 2414,
+      "sha256": "81d8963e836da855bb2c6ed078aac0a368257a44dfabc091c19aa1399534a4ae",
+      "trackedAtHead": false
+    },
+    {
+      "path": "android/app/src/main/java/com/lafina/capstone/reminders/ReminderStore.kt",
+      "bytes": 29632,
+      "sha256": "cb8debfa7e3fc13f41e54b9fd4dcd89732d280c2d8e9fb2d6c41227e60e6df02",
+      "trackedAtHead": true
+    },
+    {
+      "path": "android/app/src/main/java/com/lafina/capstone/voice/AnsweredDictationPanel.kt",
+      "bytes": 8121,
+      "sha256": "e3b6acedf02ec8cc14a0082ee9f22e7bd6513f1bc3dfcd8e9c315b80ad20044e",
+      "trackedAtHead": true
+    },
+    {
+      "path": "android/app/src/test/java/com/lafina/capstone/reminders/ReminderResponsePolicyTest.kt",
+      "bytes": 4362,
+      "sha256": "3a30cef2f73bac9a46b13c07f49042cbc4ad07edffa32cffc93ed6ed47296a91",
+      "trackedAtHead": false
+    },
+    {
+      "path": "android/app/src/test/java/com/lafina/capstone/reminders/ReminderResponseSessionTest.kt",
+      "bytes": 5128,
+      "sha256": "53d9adbc6ec77cc276502926bc1b7077f05ec8693a9ffdca3b2a70edbce8920a",
+      "trackedAtHead": false
+    },
+    {
+      "path": "package-lock.json",
+      "bytes": 450596,
+      "sha256": "69271db3be98140e29fe4a1b6def9b92b912048c1dcac8d2cd704b76cd47e828",
+      "trackedAtHead": true
+    },
+    {
+      "path": "package.json",
+      "bytes": 1801,
+      "sha256": "a9b8ed056fb889a42243ecbb7332a6af9e9ae8353767b72ae8486ea2ddef54d2",
+      "trackedAtHead": true
+    }
+  ]
+}

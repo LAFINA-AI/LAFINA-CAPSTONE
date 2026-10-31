@@ -1,0 +1,98 @@
+{
+  "kind": "JVM_XML_RESULTS_ARCHIVE",
+  "buildLog": "docs/reports/evidence/phase-08-speech-boundary-build.log",
+  "suites": [
+    {
+      "file": "TEST-com.lafina.capstone.reminders.AlarmRegistrationPolicyTest.xml",
+      "name": "com.lafina.capstone.reminders.AlarmRegistrationPolicyTest",
+      "tests": "8",
+      "skipped": "0",
+      "failures": "0",
+      "errors": "0",
+      "timestamp": "2026-10-28T22:53:02.016Z",
+      "hostname": "DESKTOP-C32FQUT",
+      "time": "0.055"
+    },
+    {
+      "file": "TEST-com.lafina.capstone.reminders.ReminderIdentityKeyTest.xml",
+      "name": "com.lafina.capstone.reminders.ReminderIdentityKeyTest",
+      "tests": "3",
+      "skipped": "0",
+      "failures": "0",
+      "errors": "0",
+      "timestamp": "2026-10-28T22:53:02.075Z",
+      "hostname": "DESKTOP-C32FQUT",
+      "time": "0.061"
+    },
+    {
+      "file": "TEST-com.lafina.capstone.reminders.ReminderPolicyTest.xml",
+      "name": "com.lafina.capstone.reminders.ReminderPolicyTest",
+      "tests": "19",
+      "skipped": "0",
+      "failures": "0",
+      "errors": "0",
+      "timestamp": "2026-10-28T22:53:02.142Z",
+      "hostname": "DESKTOP-C32FQUT",
+      "time": "0.081"
+    },
+    {
+      "file": "TEST-com.lafina.capstone.reminders.ReminderPresentationTest.xml",
+      "name": "com.lafina.capstone.reminders.ReminderPresentationTest",
+      "tests": "5",
+      "skipped": "0",
+      "failures": "0",
+      "errors": "0",
+      "timestamp": "2026-10-28T22:53:02.227Z",
+      "hostname": "DESKTOP-C32FQUT",
+      "time": "0.003"
+    },
+    {
+      "file": "TEST-com.lafina.capstone.reminders.ReminderResponsePolicyTest.xml",
+      "name": "com.lafina.capstone.reminders.ReminderResponsePolicyTest",
+      "tests": "8",
+      "skipped": "0",
+      "failures": "0",
+      "errors": "0",
+      "timestamp": "2026-10-28T22:53:02.234Z",
+      "hostname": "DESKTOP-C32FQUT",
+      "time": "0.027"
+    },
+    {
+      "file": "TEST-com.lafina.capstone.reminders.ReminderResponseSessionTest.xml",
+      "name": "com.lafina.capstone.reminders.ReminderResponseSessionTest",
+      "tests": "11",
+      "skipped": "0",
+      "failures": "0",
+      "errors": "0",
+      "timestamp": "2026-10-28T22:53:02.266Z",
+      "hostname": "DESKTOP-C32FQUT",
+      "time": "0.008"
+    },
+    {
+      "file": "TEST-com.lafina.capstone.voice.SpeechInputPolicyTest.xml",
+      "name": "com.lafina.capstone.voice.SpeechInputPolicyTest",
+      "tests": "15",
+      "skipped": "0",
+      "failures": "0",
+      "errors": "0",
+      "timestamp": "2026-10-28T22:53:02.279Z",
+      "hostname": "DESKTOP-C32FQUT",
+      "time": "0.032"
+    },
+    {
+      "file": "TEST-com.lafina.capstone.voice.SpeechPolicyTest.xml",
+      "name": "com.lafina.capstone.voice.SpeechPolicyTest",
+      "tests": "12",
+      "skipped": "0",
+      "failures": "0",
+      "errors": "0",
+      "timestamp": "2026-10-28T22:53:02.316Z",
+      "hostname": "DESKTOP-C32FQUT",
+      "time": "0.035"
+    }
+  ],
+  "tests": 81,
+  "failures": 0,
+  "errors": 0,
+  "skipped": 0
+}

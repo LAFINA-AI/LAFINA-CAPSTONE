@@ -1,0 +1,28 @@
+{
+  "status": "TESTED_NOT_ADOPTED",
+  "candidateVersion": "37.2.13",
+  "installedSdkVersion": "37.1.11",
+  "installedSdkReplaced": false,
+  "originalEngineRestored": true,
+  "reason": "The first cold capture still contained only the measured low-level floor; a later trial passed. No input-loss repair demonstrated.",
+  "rows": [
+    {
+      "trial": 1,
+      "caseStatus": "FAIL_OR_UNSUPPORTED_REVIEW_REQUIRED",
+      "rms": 5.1547548115801424e-05,
+      "peak": 0.00024414062,
+      "frames": 74496,
+      "evidence": "docs/reports/evidence/phase-08-native-fidelity-20261029T232404252824Z.json"
+    },
+    {
+      "trial": 2,
+      "caseStatus": "PASS",
+      "rms": 0.06983873740980415,
+      "peak": 0.5819702,
+      "frames": 69376,
+      "evidence": "docs/reports/evidence/phase-08-native-fidelity-20261029T232548460841Z.json"
+    }
+  ],
+  "evidence": "docs/reports/evidence/phase-08-input-loss-isolated-sdk-capture-pair.json",
+  "physicalDeviceValidation": "NOT_RUN"
+}

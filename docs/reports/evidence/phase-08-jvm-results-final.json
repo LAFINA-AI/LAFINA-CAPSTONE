@@ -1,0 +1,103 @@
+{
+  "createdUtc": "2026-10-27T16:13:06.049485+00:00",
+  "sourceBuildLog": "docs/reports/evidence/phase-08-android-final.log",
+  "suiteCount": 8,
+  "totals": {
+    "tests": 81,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0,
+    "timeSeconds": 0.922
+  },
+  "suites": [
+    {
+      "path": "android/app/build/test-results/testDataQaUnitTest/TEST-com.lafina.capstone.reminders.AlarmRegistrationPolicyTest.xml",
+      "name": "com.lafina.capstone.reminders.AlarmRegistrationPolicyTest",
+      "tests": 8,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "timeSeconds": 0.228,
+      "timestampUtc": "2026-10-27T16:00:00.029Z",
+      "sha256": "8fe0fbe8b05b4136cf78d1bfd3b50b5d00d5e4ed93c7abda04f52d54048b4737"
+    },
+    {
+      "path": "android/app/build/test-results/testDataQaUnitTest/TEST-com.lafina.capstone.reminders.ReminderIdentityKeyTest.xml",
+      "name": "com.lafina.capstone.reminders.ReminderIdentityKeyTest",
+      "tests": 3,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "timeSeconds": 0.141,
+      "timestampUtc": "2026-10-27T16:00:00.276Z",
+      "sha256": "1ca60c1733d73b520f317e52f27381539725be520800a259ad47798a82033b9e"
+    },
+    {
+      "path": "android/app/build/test-results/testDataQaUnitTest/TEST-com.lafina.capstone.reminders.ReminderPolicyTest.xml",
+      "name": "com.lafina.capstone.reminders.ReminderPolicyTest",
+      "tests": 19,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "timeSeconds": 0.165,
+      "timestampUtc": "2026-10-27T16:00:00.432Z",
+      "sha256": "57b0f23911744983aafc37b0aef7607bfc4d8332fa004e27ba1770b27854caeb"
+    },
+    {
+      "path": "android/app/build/test-results/testDataQaUnitTest/TEST-com.lafina.capstone.reminders.ReminderPresentationTest.xml",
+      "name": "com.lafina.capstone.reminders.ReminderPresentationTest",
+      "tests": 5,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "timeSeconds": 0.006,
+      "timestampUtc": "2026-10-27T16:00:00.609Z",
+      "sha256": "ede2264ef4509a7a930469ef7a615a6a61de41a44900022a3179ee564299b7dc"
+    },
+    {
+      "path": "android/app/build/test-results/testDataQaUnitTest/TEST-com.lafina.capstone.reminders.ReminderResponsePolicyTest.xml",
+      "name": "com.lafina.capstone.reminders.ReminderResponsePolicyTest",
+      "tests": 8,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "timeSeconds": 0.131,
+      "timestampUtc": "2026-10-27T16:00:00.628Z",
+      "sha256": "d2c0fc316b4007645b0630e6b0d6af9e19d70fe3d47a414b8e6911049fc8822b"
+    },
+    {
+      "path": "android/app/build/test-results/testDataQaUnitTest/TEST-com.lafina.capstone.reminders.ReminderResponseSessionTest.xml",
+      "name": "com.lafina.capstone.reminders.ReminderResponseSessionTest",
+      "tests": 11,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "timeSeconds": 0.045,
+      "timestampUtc": "2026-10-27T16:00:00.770Z",
+      "sha256": "4a09a1a56f0c7887f32f5c644632dccef433cdfb13c76559c8bc2adce8b99c35"
+    },
+    {
+      "path": "android/app/build/test-results/testDataQaUnitTest/TEST-com.lafina.capstone.voice.SpeechInputPolicyTest.xml",
+      "name": "com.lafina.capstone.voice.SpeechInputPolicyTest",
+      "tests": 15,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "timeSeconds": 0.085,
+      "timestampUtc": "2026-10-27T16:00:00.829Z",
+      "sha256": "fc605c552bac5bf2402ed47b01745c0ab62593c4b99f6b6b62097677962830f1"
+    },
+    {
+      "path": "android/app/build/test-results/testDataQaUnitTest/TEST-com.lafina.capstone.voice.SpeechPolicyTest.xml",
+      "name": "com.lafina.capstone.voice.SpeechPolicyTest",
+      "tests": 12,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "timeSeconds": 0.121,
+      "timestampUtc": "2026-10-27T16:00:00.930Z",
+      "sha256": "51a0561a4b0426429fb08c54cf86ab5aaae25812e7bac88703932c81ac5223f0"
+    }
+  ],
+  "scope": "Actual current Gradle JUnit XML for testDataQaUnitTest; JVM policy/session tests, not Android speech/delivery or physical-phone acceptance."
+}

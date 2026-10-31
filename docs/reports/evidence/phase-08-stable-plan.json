@@ -1,0 +1,29 @@
+{
+  "kind": "PHASE08_SEPARATE_STABLE_ANDROID_CONTINUATION_PLAN",
+  "createdAtUtc": "2026-10-30T22:58:35.754548+00:00",
+  "originalAvd": "Medium_Phone",
+  "newAvd": "LAFINA_Phase08_API35",
+  "newUserdataAndRegistry": "Separate ignored .local/phase08-stable-device-v2 paths",
+  "guest": "Stable Android15 API35 Google APIs x86_64 revision9",
+  "emulatorBinary": "Existing SDK37.1.11, not upgraded",
+  "initialAppSha256": "7300f2aefeb8d5f90882655d46435b100a12531e16a7c70df4f81230f4160454",
+  "testApkSha256": "abb103afe1dab0bef0646734d126391a355cf2a1a7fb664401544db57b71b0a9",
+  "stage1": "Install identical existing candidate only on new AVD; anonymous synthetic onboarding; separate run/baseline; initial ACK diagnostics A03/V03",
+  "stage2": "Make only evidence-supported correction if a defect is found; strict reference/signal/producer guards and explicit Confirm remain",
+  "stage3": "Freeze candidate and run two cold cohorts: A03 once, V03 twice, V04 twice each; preserve all failures",
+  "sourceGainPermille": 500,
+  "sourcePaddingEachSideMs": 1000,
+  "sourceDelayMs": 0,
+  "deliveryMode": "realtime anchored20ms spacing5ms with unchanged100ms guards",
+  "nativeGateMs": 12000,
+  "noNewModelOrThresholdRelaxationPlanned": true,
+  "newGuestPermissionSetup": "Explicit positive-path QA grants and UID foreground/package allow modes, recorded before per-case baselines",
+  "existingAppResetUninstallDataReplacementOrClone": false,
+  "sourceLedgerBefore": {
+    "path": "docs/reports/evidence/phase-08-capture-fix-source-hashes-final.json",
+    "verifiedFiles": 33
+  },
+  "v05": "Keep V05 pending until suitable audio is available",
+  "physicalDeviceValidation": "NOT_RUN",
+  "phase09Approved": false
+}

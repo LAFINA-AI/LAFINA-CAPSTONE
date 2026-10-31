@@ -1,0 +1,24 @@
+{
+  "fromVersion": "0.7.3-data-qa",
+  "toVersion": "0.8.0-data-qa",
+  "versionCode": 11,
+  "certificatesMatch": true,
+  "candidateSha256": "66cbf524c3b9cc180ecf03ae5dab87020948b9e6c6f7dcec166f7c9e942e384c",
+  "install": "Performing Streamed Install\r\nSuccess",
+  "persistentBaselineUnchanged": true,
+  "after": {
+    "schema": 3,
+    "preferencesSha256": "4571b589c736a245b881f28b22698b42e62b0691bf11401d627b1b2613f4ec04",
+    "counts": {
+      "tasks": 33,
+      "events": 4,
+      "notes": 2,
+      "reminders": 31,
+      "reminder_jobs": 31
+    },
+    "delivery": [
+      0,
+      0
+    ]
+  }
+}

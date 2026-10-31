@@ -1,0 +1,70 @@
+{
+  "kind": "PHASE08_INPUT_LOSS_HOST_AUTOMATED_CHECKS",
+  "status": "PASS",
+  "recordedAtUtc": "2026-10-29T14:53:23.595053+00:00",
+  "physicalDeviceValidation": "NOT_RUN",
+  "v05": "OWNER_DEFERRED_NOT_RUN",
+  "deviceCallsExecuted": false,
+  "appBuildsExecuted": false,
+  "sourceEditsMade": false,
+  "checks": [
+    {
+      "command": "npm run preflight",
+      "exitCode": 0,
+      "log": "docs/reports/evidence/phase-08-input-loss-preflight.log",
+      "logSha256": "eab2432ab07676b2bb8058a34b14eef130005f4162526dc5d95570c4a89387b0",
+      "typecheck": "PASS",
+      "lint": "PASS",
+      "format": "PASS",
+      "jest": {
+        "tests": 528,
+        "suites": 35,
+        "failures": 0
+      },
+      "architecture": {
+        "status": "PASS",
+        "typeScriptModules": 61,
+        "cycles": 0,
+        "forbiddenOfflineDependencies": 0
+      }
+    },
+    {
+      "command": "node scripts/benchmark-intents.cjs --evaluation regression --output docs/benchmarks/phase-08-input-loss-command-regression.json",
+      "exitCode": 0,
+      "log": "docs/reports/evidence/phase-08-input-loss-frozen-command-regression.log",
+      "evidence": "docs/benchmarks/phase-08-input-loss-command-regression.json",
+      "sha256": "fb8b41ee5d2bfe42d9fa7e2264a769bf590945eab8a796cd2fc80ec2c5d3ca67",
+      "summary": {
+        "cases": 64,
+        "readyLabelCases": 32,
+        "refusalLabelCases": 32,
+        "exactPasses": 64,
+        "intentOrRefusalMatches": 64,
+        "metadataValidCases": 64,
+        "selectedSlotMatches": 88,
+        "selectedSlotTotal": 88,
+        "falseAckCasesOnRefusalLabels": 0,
+        "falseSchedulingCasesOnRefusalLabels": 0,
+        "unsafeReadyCasesOnRefusalLabels": 0,
+        "thrownCases": 0,
+        "repeatedFailedCalls": 0,
+        "nondeterministicCases": 0,
+        "failedCaseIds": [],
+        "aggregateLatencyMs": {
+          "n": 6400,
+          "p50": 0.018300000000067485,
+          "p95": 0.19029999999997926,
+          "min": 0.003199999999992542,
+          "max": 2.331800000000044
+        }
+      },
+      "sourceDrift": [],
+      "scope": "Frozen synthetic text parser regression; no command executor, DB, microphone, model or network."
+    }
+  ],
+  "limits": [
+    "These checks describe the source at execution time. Later edited files need appropriate fresh checks.",
+    "Jest and host parser results do not certify Android audio, device alarms, human speech, audibility, phone performance or physical acceptance.",
+    "Planner/query/notes performance harnesses were inspected but not executed during this host-test task; default Android/opt-in emulator runs belong to root."
+  ]
+}

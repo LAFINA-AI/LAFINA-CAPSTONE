@@ -1,0 +1,21 @@
+{
+  "kind": "PHASE08_STABLE_REALTIME_DIAGNOSTIC_FINDING",
+  "createdAtUtc": "2026-10-30T23:37:29.103019+00:00",
+  "status": "LEXICAL_SUBSTITUTION_CONFIRMED_GUARDS_BLOCKED_ACTION",
+  "parentEvidence": {
+    "path": "docs/reports/evidence/phase-08-emulator-expansion/st20261031/20261030T232911134896Z-V03-microphone.json",
+    "sha256": "84f0b7cebb514638bfaf6253eb695e3f0d963c079816955dfe073017d351a175"
+  },
+  "actualDiagnosticAttempts": 1,
+  "remainingPlannedDiagnosticAttemptsNotRun": 2,
+  "stopOnFirstFailureHonored": true,
+  "sourceOutcome": "SOURCE_RPC_COMPLETED_HOST_OFF",
+  "normalizedExpectedMatch": false,
+  "unsupportedWordNotMappedToAck": true,
+  "rawTranscriptPublished": false,
+  "noAudioExport": true,
+  "modelParserThresholdOrConfirmationChange": false,
+  "originalAvdTargeted": false,
+  "physicalDeviceValidation": "NOT_RUN",
+  "interpretation": "Private pinned-synthetic hypothesis revealed a genuine lexical substitution. This is distinct from NO_AUDIO_SIGNAL, producer abort or harmless punctuation; no automatic semantic correction is introduced."
+}

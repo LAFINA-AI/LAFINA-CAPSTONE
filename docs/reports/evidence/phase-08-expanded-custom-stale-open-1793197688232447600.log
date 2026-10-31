@@ -1,0 +1,25 @@
+INSTRUMENTATION_STATUS: class=com.lafina.capstone.reminders.ReminderLifecycleUiTest
+INSTRUMENTATION_STATUS: current=1
+INSTRUMENTATION_STATUS: id=AndroidJUnitRunner
+INSTRUMENTATION_STATUS: numtests=1
+INSTRUMENTATION_STATUS: stream=
+com.lafina.capstone.reminders.ReminderLifecycleUiTest:
+INSTRUMENTATION_STATUS: test=driveExplicitLifecycleCase
+INSTRUMENTATION_STATUS_CODE: 1
+INSTRUMENTATION_STATUS: phase08_lifecycle_ui_driver={"kind":"OPT_IN_SYNTHETIC_FIXTURE_UI_DRIVER","mode":"stale-open","outcome":"PASS","stages":["activity_launch_requested","stale_identity_rejected"],"launch":"DIRECT_PRIVATE_ACTIVITY_INTENT_NOT_NOTIFICATION_TAP","limits":"UI only; root verifies SQL separately. No live speech, audio or physical-phone acceptance."}
+INSTRUMENTATION_STATUS_CODE: 0
+INSTRUMENTATION_STATUS: class=com.lafina.capstone.reminders.ReminderLifecycleUiTest
+INSTRUMENTATION_STATUS: current=1
+INSTRUMENTATION_STATUS: id=AndroidJUnitRunner
+INSTRUMENTATION_STATUS: numtests=1
+INSTRUMENTATION_STATUS: stream=.
+INSTRUMENTATION_STATUS: test=driveExplicitLifecycleCase
+INSTRUMENTATION_STATUS_CODE: 0
+INSTRUMENTATION_RESULT: stream=
+
+Time: 3.402
+
+OK (1 test)
+
+
+INSTRUMENTATION_CODE: -1

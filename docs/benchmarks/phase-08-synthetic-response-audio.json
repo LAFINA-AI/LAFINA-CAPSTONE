@@ -1,0 +1,48 @@
+{
+  "limitations": [
+    "Fixed public synthetic text only; no microphone, human recording, cloud request, voice/model download or new dependency.",
+    "WAV files and private manifest remain ignored local fixtures; no audio redistribution.",
+    "Synthetic voice recognition does not establish human speech quality, Filipino accents, noise robustness, audibility or physical-phone validation.",
+    "Generating fixtures is not evidence that emulator capture, recognition or confirmation was executed."
+  ],
+  "samples": [
+    {
+      "id": "acknowledge",
+      "reference": "acknowledge this reminder",
+      "bytes": 72206,
+      "sha256": "e10b92f68d6a188bc19b44bd327aa91747d58d4a257510d786a14dc45a4e0a3c",
+      "file": "acknowledge.wav"
+    },
+    {
+      "id": "snooze",
+      "reference": "snooze for ten minutes",
+      "bytes": 74286,
+      "sha256": "fd762146a51062b7d5deef1cda58b2607d8b3aa4694bde4c76d9820701e5f42a",
+      "file": "snooze.wav"
+    }
+  ],
+  "schemaVersion": 1,
+  "audio": {
+    "channels": 1,
+    "format": "WAV PCM signed16 little-endian",
+    "sampleRate": 16000,
+    "bitsPerSample": 16
+  },
+  "generatedAtUtc": "2026-10-28T08:46:28.4390424Z",
+  "purpose": "Explicit Phase 08 synthetic ACK/snooze UI integration verification only",
+  "generator": {
+    "is64BitProcess": true,
+    "powershellVersion": "7.6.5",
+    "voiceSelectionNote": "This runtime enumerated Microsoft Zira Desktop; Microsoft David Desktop was unavailable in this runtime. Zira was explicitly authorized for this distinct two-clip cohort.",
+    "api": "Installed Windows System.Speech.Synthesis.SpeechSynthesizer"
+  },
+  "voice": {
+    "description": "Microsoft Zira Desktop - English (United States)",
+    "culture": "en-US",
+    "name": "Microsoft Zira Desktop",
+    "volume": 100,
+    "rate": 0
+  },
+  "kind": "SYNTHETIC_WINDOWS_SAPI_AUDIO_NO_MICROPHONE",
+  "provenance": "Same local output-file-only SAPI method as docs/third-party/phase-06-provenance.md#synthetic-evaluation-data; distinct actual installed Zira voice, not historical David corpus."
+}

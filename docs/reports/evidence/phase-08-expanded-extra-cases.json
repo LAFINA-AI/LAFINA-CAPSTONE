@@ -1,0 +1,56 @@
+{
+  "run": "ex20261028",
+  "scope": "Actual emulator only; physical acceptance HUMAN_REQUIRED",
+  "events": [
+    {
+      "case": "A31",
+      "status": "PASS",
+      "utc": "2026-10-28T13:26:46.030747+00:00",
+      "monotonic": 231674.6030567,
+      "scope": "Two overlapping ringing windows; old confirmation rejected after new target; not exact-same-instant alarm collision"
+    },
+    {
+      "case": "A29",
+      "status": "PASS",
+      "utc": "2026-10-28T13:27:36.605365+00:00",
+      "monotonic": 231725.1776544,
+      "scope": "Actual original deadline expiry; old Confirm node attempted; paired MISSED/taskTODO"
+    },
+    {
+      "case": "V07",
+      "status": "PASS",
+      "utc": "2026-10-28T14:24:23.148733+00:00",
+      "monotonic": 235131.7210355,
+      "scope": "Typed actual native UI refusal only; no voice accuracy claimed"
+    },
+    {
+      "case": "V08",
+      "status": "PASS",
+      "utc": "2026-10-28T14:24:40.093212+00:00",
+      "monotonic": 235148.6655144,
+      "scope": "Typed actual native UI refusal only; no voice accuracy claimed"
+    },
+    {
+      "case": "V08completion",
+      "status": "PASS",
+      "utc": "2026-10-28T14:24:55.345299+00:00",
+      "monotonic": 235163.917592,
+      "scope": "Typed actual native UI refusal only; no voice accuracy claimed"
+    },
+    {
+      "case": "A33",
+      "status": "PASS",
+      "utc": "2026-10-28T14:28:34.937452+00:00",
+      "monotonic": 235383.5097575,
+      "scope": "One-minute snooze replacement actually due; stale generation1 open rejected without changing generation2; actual current notification reviewed ACK",
+      "evidence": "docs/reports/evidence/phase-08-expanded-custom-stale-open-1793197688232447600.log"
+    },
+    {
+      "case": "A34",
+      "status": "PASS",
+      "utc": "2026-10-28T14:30:29.785217+00:00",
+      "monotonic": 235498.3575515,
+      "scope": "Font scale2.0 and accessibility scrolling/reachability; manual reviewed ACK; no TalkBack certification or explicit soft keyboard check"
+    }
+  ]
+}

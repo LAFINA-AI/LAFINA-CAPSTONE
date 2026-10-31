@@ -1,0 +1,340 @@
+{
+  "kind": "HOST_VERIFIED_FOUR_FORMAT_INITIALIZED_DIAGNOSTIC_CAPTURES",
+  "status": "FOUR_DIAGNOSTIC_CAPTURES_VERIFIED",
+  "createdAtUtc": "2026-10-30T05:11:13.871326+00:00",
+  "diagnosticAppCandidateSha256": "98ed4f5fb6311d64b96381b08e99fb19a5f243c21fd078fd4ea4a774bcdd2d23",
+  "emulatorEngine": "37.1.11",
+  "coldBoots": [
+    {
+      "path": "docs/reports/evidence/phase-08-input-loss-original-initialized-reboot-1.json",
+      "sha256": "3d480850ad34d56ec3657c12b01e43167e5d6ab73632e22bfa7ca9301654ddbc",
+      "status": "PASS",
+      "startedAtUtc": "2026-10-29T23:37:33.946959+00:00",
+      "completedAtUtc": "2026-10-29T23:39:46.823502+00:00",
+      "preservedDataAndSettingsVerified": true,
+      "snapshotLoadAndSaveDisabled": true
+    },
+    {
+      "path": "docs/reports/evidence/phase-08-input-loss-original-initialized-reboot-2.json",
+      "sha256": "31eb4de046597ba0285db6ac4b4fcecffd79a424c8fdc0e5faaeebc22ad6410f",
+      "status": "PASS",
+      "startedAtUtc": "2026-10-29T23:47:28.170573+00:00",
+      "completedAtUtc": "2026-10-29T23:49:29.601814+00:00",
+      "preservedDataAndSettingsVerified": true,
+      "snapshotLoadAndSaveDisabled": true
+    }
+  ],
+  "predeclaredPairs": [
+    {
+      "path": "docs/reports/evidence/phase-08-input-loss-initialized-capture-pair.json",
+      "sha256": "e4d2869d5c6476b0e16cf9dac3fe3678de23a49a260ecaa59abaf4c1f920f6ce",
+      "startedAtUtc": "2026-10-29T23:41:32.116942+00:00",
+      "completedAtUtc": "2026-10-29T23:45:08.009776+00:00",
+      "plannedTrials": 2
+    },
+    {
+      "path": "docs/reports/evidence/phase-08-input-loss-initialized-capture-pair-2b.json",
+      "sha256": "0483acaf5958e4a3cd0bafae31afe8a54650880b30f0f3ca37d896d51f17d34e",
+      "startedAtUtc": "2026-10-29T23:52:33.340090+00:00",
+      "completedAtUtc": "2026-10-29T23:55:58.830292+00:00",
+      "plannedTrials": 2
+    }
+  ],
+  "captureCount": 4,
+  "diagnosticCasePasses": 4,
+  "sourceWav": {
+    "path": ".local/phase08-corpus/acknowledge.wav",
+    "sha256": "e10b92f68d6a188bc19b44bd327aa91747d58d4a257510d786a14dc45a4e0a3c"
+  },
+  "derivedInjectedPcmSha256": "978ad1ae355fde64b9f684c5d8ba609750c51ebe5b12a021a460f7156ea24e76",
+  "transportGainPermille": 500,
+  "transportPaddingEachSideMs": 1000,
+  "rows": [
+    {
+      "coldBoot": 1,
+      "trial": 1,
+      "case": "A03",
+      "status": "PASS",
+      "caseEvidence": {
+        "path": "docs/reports/evidence/phase-08-emulator-expansion/ex20261028/20261029T234133577064Z-A03-microphone.json",
+        "sha256": "7b56dc73e1e0be51e4ad6858c7d674c62d32563ce72fdd2ba0892398f28052e7"
+      },
+      "captureEvidence": {
+        "path": "docs/reports/evidence/phase-08-native-fidelity-20261029T234132608201Z.json",
+        "sha256": "77192da7debb1045723dc59d3d47d53a49b1aaff41220e8f20665dd11e7a2a4a"
+      },
+      "fidelityAnalysis": {
+        "path": "docs/reports/evidence/phase-08-fidelity-analysis-native-20261029T234132608201Z.json",
+        "sha256": "991e3b98f1e62d1bea7e73144803cf29ba6fadbeec87289de6fd2fbfbfa5c2be"
+      },
+      "privateCaptureMetadata": {
+        "path": ".local/phase08-fidelity-native-20261029T234132608201Z/capture.json",
+        "sha256": "ec81b3eeaa57a69920d0b2f9ec669716940389ca5f8dabc408d832d37bd8cb53"
+      },
+      "privateCapturedPcm": {
+        "path": ".local/phase08-fidelity-native-20261029T234132608201Z/captured.pcm",
+        "sha256": "c6bd2cd9888439ba99c9596b11e924c7a0cfc4e5514c4828afbdbf86a32566a3"
+      },
+      "privateNodeInjectionLog": {
+        "path": ".local/phase08-microphone-20261029T234133577064Z-A03/synthetic-injection.log",
+        "sha256": "d61dcdf06cea2259c93bb94bdb8efb862d8bc34f06ba1de0f6ef238a75dd5a51"
+      },
+      "capture": {
+        "cohort": "n20261029T234132608201Z",
+        "frames": 76544,
+        "bytes": 153088,
+        "sha256": "c6bd2cd9888439ba99c9596b11e924c7a0cfc4e5514c4828afbdbf86a32566a3",
+        "sampleRate": 16000
+      },
+      "initialization": {
+        "inputInitializationAttempted": true,
+        "inputInitializationStimulusBytes": 0,
+        "inputInitializationGrpcStatus": 0,
+        "hostMicrophoneEnabledBefore": false,
+        "hostMicrophoneEnabledAfterInitialization": false,
+        "hostMicrophoneEnabledAfter": false,
+        "injectionGrpcStatus": 0,
+        "derivedPcmSha256": "978ad1ae355fde64b9f684c5d8ba609750c51ebe5b12a021a460f7156ea24e76"
+      },
+      "fidelity": {
+        "normalizedCorrelation": 0.9999999872780848,
+        "leastSquaresGain": 1.0000780411468617,
+        "normalizedResidualRms": 0.00015951122282010106,
+        "capturedClippedSamples": 0,
+        "bestLagFrames": 33789,
+        "bestLagMs": 2111.8125
+      },
+      "recognitionAndReconciliation": {
+        "exactSyntheticAckMatch": true,
+        "explicitReviewAndConfirmation": true,
+        "sameTaskAndOccurrence": true,
+        "taskRemainedTodo": true,
+        "jobAndReminderAcknowledged": true,
+        "registrations": 0,
+        "deadline": null
+      },
+      "exactOwnedFixtureCleanupAndPermissionRestorationVerified": true,
+      "physicalDeviceValidation": "NOT_RUN"
+    },
+    {
+      "coldBoot": 1,
+      "trial": 2,
+      "case": "A03",
+      "status": "PASS",
+      "caseEvidence": {
+        "path": "docs/reports/evidence/phase-08-emulator-expansion/ex20261028/20261029T234321942549Z-A03-microphone.json",
+        "sha256": "78963dfb169e7dbb2d0e8a8fad0409f0b794a137f2608258a323f522f60196c1"
+      },
+      "captureEvidence": {
+        "path": "docs/reports/evidence/phase-08-native-fidelity-20261029T234321253754Z.json",
+        "sha256": "2405a5742e1c4717a984959c179674e1a6bc17f0b806334a8fb3523cebce27a6"
+      },
+      "fidelityAnalysis": {
+        "path": "docs/reports/evidence/phase-08-fidelity-analysis-native-20261029T234321253754Z.json",
+        "sha256": "20923af98a019f51456842e43183ce027096cee47c930fa0ed4f6d75a07e4f27"
+      },
+      "privateCaptureMetadata": {
+        "path": ".local/phase08-fidelity-native-20261029T234321253754Z/capture.json",
+        "sha256": "bb2cad79c120398f56a36a83dabc6794db42bdfa751fc2ee70cbeb86cfe4f390"
+      },
+      "privateCapturedPcm": {
+        "path": ".local/phase08-fidelity-native-20261029T234321253754Z/captured.pcm",
+        "sha256": "16acfeb1adf99dc2eeed5779b1e1e33ef341cefa910028a7b6eecfb8d24562bf"
+      },
+      "privateNodeInjectionLog": {
+        "path": ".local/phase08-microphone-20261029T234321942549Z-A03/synthetic-injection.log",
+        "sha256": "d61dcdf06cea2259c93bb94bdb8efb862d8bc34f06ba1de0f6ef238a75dd5a51"
+      },
+      "capture": {
+        "cohort": "n20261029T234321253754Z",
+        "frames": 79616,
+        "bytes": 159232,
+        "sha256": "16acfeb1adf99dc2eeed5779b1e1e33ef341cefa910028a7b6eecfb8d24562bf",
+        "sampleRate": 16000
+      },
+      "initialization": {
+        "inputInitializationAttempted": true,
+        "inputInitializationStimulusBytes": 0,
+        "inputInitializationGrpcStatus": 0,
+        "hostMicrophoneEnabledBefore": false,
+        "hostMicrophoneEnabledAfterInitialization": false,
+        "hostMicrophoneEnabledAfter": false,
+        "injectionGrpcStatus": 0,
+        "derivedPcmSha256": "978ad1ae355fde64b9f684c5d8ba609750c51ebe5b12a021a460f7156ea24e76"
+      },
+      "fidelity": {
+        "normalizedCorrelation": 0.9999999872780848,
+        "leastSquaresGain": 1.0000780411468617,
+        "normalizedResidualRms": 0.00015951122282010106,
+        "capturedClippedSamples": 0,
+        "bestLagFrames": 37035,
+        "bestLagMs": 2314.6875
+      },
+      "recognitionAndReconciliation": {
+        "exactSyntheticAckMatch": true,
+        "explicitReviewAndConfirmation": true,
+        "sameTaskAndOccurrence": true,
+        "taskRemainedTodo": true,
+        "jobAndReminderAcknowledged": true,
+        "registrations": 0,
+        "deadline": null
+      },
+      "exactOwnedFixtureCleanupAndPermissionRestorationVerified": true,
+      "physicalDeviceValidation": "NOT_RUN"
+    },
+    {
+      "coldBoot": 2,
+      "trial": 1,
+      "case": "A03",
+      "status": "PASS",
+      "caseEvidence": {
+        "path": "docs/reports/evidence/phase-08-emulator-expansion/ex20261028/20261029T235234235416Z-A03-microphone.json",
+        "sha256": "0c0e08b945b32d804f3146608afd503475140371267d11379e117f88f9e1cc82"
+      },
+      "captureEvidence": {
+        "path": "docs/reports/evidence/phase-08-native-fidelity-20261029T235233509042Z.json",
+        "sha256": "c7f150610870312959116dfbe7231b3b0dfaa24aea6976b1fb6aa7d693cdc725"
+      },
+      "fidelityAnalysis": {
+        "path": "docs/reports/evidence/phase-08-fidelity-analysis-native-20261029T235233509042Z.json",
+        "sha256": "92b5f894cd30e95def90fdc01d059aa014a0d281765c31083c94298a2b8f8dcd"
+      },
+      "privateCaptureMetadata": {
+        "path": ".local/phase08-fidelity-native-20261029T235233509042Z/capture.json",
+        "sha256": "04d2f209c2728f6dfa0e84f0fc17e1661b4792b674d9bc5c60abed71e657f468"
+      },
+      "privateCapturedPcm": {
+        "path": ".local/phase08-fidelity-native-20261029T235233509042Z/captured.pcm",
+        "sha256": "f79142a894aa1ccf3f2b9a037793b157fe0070e0352e3f0cf56230d2f03106b7"
+      },
+      "privateNodeInjectionLog": {
+        "path": ".local/phase08-microphone-20261029T235234235416Z-A03/synthetic-injection.log",
+        "sha256": "d61dcdf06cea2259c93bb94bdb8efb862d8bc34f06ba1de0f6ef238a75dd5a51"
+      },
+      "capture": {
+        "cohort": "n20261029T235233509042Z",
+        "frames": 72704,
+        "bytes": 145408,
+        "sha256": "f79142a894aa1ccf3f2b9a037793b157fe0070e0352e3f0cf56230d2f03106b7",
+        "sampleRate": 16000
+      },
+      "initialization": {
+        "inputInitializationAttempted": true,
+        "inputInitializationStimulusBytes": 0,
+        "inputInitializationGrpcStatus": 0,
+        "hostMicrophoneEnabledBefore": false,
+        "hostMicrophoneEnabledAfterInitialization": false,
+        "hostMicrophoneEnabledAfter": false,
+        "injectionGrpcStatus": 0,
+        "derivedPcmSha256": "978ad1ae355fde64b9f684c5d8ba609750c51ebe5b12a021a460f7156ea24e76"
+      },
+      "fidelity": {
+        "normalizedCorrelation": 0.9999999872780849,
+        "leastSquaresGain": 1.0000780411468617,
+        "normalizedResidualRms": 0.00015951122282010106,
+        "capturedClippedSamples": 0,
+        "bestLagFrames": 30336,
+        "bestLagMs": 1896.0
+      },
+      "recognitionAndReconciliation": {
+        "exactSyntheticAckMatch": true,
+        "explicitReviewAndConfirmation": true,
+        "sameTaskAndOccurrence": true,
+        "taskRemainedTodo": true,
+        "jobAndReminderAcknowledged": true,
+        "registrations": 0,
+        "deadline": null
+      },
+      "exactOwnedFixtureCleanupAndPermissionRestorationVerified": true,
+      "physicalDeviceValidation": "NOT_RUN"
+    },
+    {
+      "coldBoot": 2,
+      "trial": 2,
+      "case": "A03",
+      "status": "PASS",
+      "caseEvidence": {
+        "path": "docs/reports/evidence/phase-08-emulator-expansion/ex20261028/20261029T235417518923Z-A03-microphone.json",
+        "sha256": "a565b5899a0652942d9fbddd56f9a146de43a76dd5d95758c7fd568dbe061b78"
+      },
+      "captureEvidence": {
+        "path": "docs/reports/evidence/phase-08-native-fidelity-20261029T235416876736Z.json",
+        "sha256": "0a29b8d322d2ee30ee019a544b926dd0244039a3a6086fd2a5209a5987561e02"
+      },
+      "fidelityAnalysis": {
+        "path": "docs/reports/evidence/phase-08-fidelity-analysis-native-20261029T235416876736Z.json",
+        "sha256": "52058b68b1bd6d1db91ddc0527bb1d59721bf592aaa79ef0eabd52d6eaa0ac6d"
+      },
+      "privateCaptureMetadata": {
+        "path": ".local/phase08-fidelity-native-20261029T235416876736Z/capture.json",
+        "sha256": "252ac15b666837c9802bb9dd29b64a3d887452b7c3f0739e62ca17d849f4895d"
+      },
+      "privateCapturedPcm": {
+        "path": ".local/phase08-fidelity-native-20261029T235416876736Z/captured.pcm",
+        "sha256": "aa075db5d5c1659ce7c09fa034a67c516feb850eaf3d494793f9bb1632e959dd"
+      },
+      "privateNodeInjectionLog": {
+        "path": ".local/phase08-microphone-20261029T235417518923Z-A03/synthetic-injection.log",
+        "sha256": "d61dcdf06cea2259c93bb94bdb8efb862d8bc34f06ba1de0f6ef238a75dd5a51"
+      },
+      "capture": {
+        "cohort": "n20261029T235416876736Z",
+        "frames": 74752,
+        "bytes": 149504,
+        "sha256": "aa075db5d5c1659ce7c09fa034a67c516feb850eaf3d494793f9bb1632e959dd",
+        "sampleRate": 16000
+      },
+      "initialization": {
+        "inputInitializationAttempted": true,
+        "inputInitializationStimulusBytes": 0,
+        "inputInitializationGrpcStatus": 0,
+        "hostMicrophoneEnabledBefore": false,
+        "hostMicrophoneEnabledAfterInitialization": false,
+        "hostMicrophoneEnabledAfter": false,
+        "injectionGrpcStatus": 0,
+        "derivedPcmSha256": "978ad1ae355fde64b9f684c5d8ba609750c51ebe5b12a021a460f7156ea24e76"
+      },
+      "fidelity": {
+        "normalizedCorrelation": 0.9999999872780848,
+        "leastSquaresGain": 1.0000780411468617,
+        "normalizedResidualRms": 0.00015951122282010106,
+        "capturedClippedSamples": 0,
+        "bestLagFrames": 32427,
+        "bestLagMs": 2026.6875
+      },
+      "recognitionAndReconciliation": {
+        "exactSyntheticAckMatch": true,
+        "explicitReviewAndConfirmation": true,
+        "sameTaskAndOccurrence": true,
+        "taskRemainedTodo": true,
+        "jobAndReminderAcknowledged": true,
+        "registrations": 0,
+        "deadline": null
+      },
+      "exactOwnedFixtureCleanupAndPermissionRestorationVerified": true,
+      "physicalDeviceValidation": "NOT_RUN"
+    }
+  ],
+  "stoppedBeforeDeviceCallRecord": {
+    "path": "docs/reports/evidence/phase-08-input-loss-initialized-capture-pair-2.json",
+    "sha256": "eab5d20693b86b071b99df32124225934c5da20778811b2fb2bc75deec739c59"
+  },
+  "metrics": {
+    "correlationMinimum": 0.9999999872780848,
+    "correlationMaximum": 0.9999999872780849,
+    "normalizedResidualRmsMaximum": 0.00015951122282010106,
+    "totalClippedSamples": 0
+  },
+  "hostOnlyAggregation": true,
+  "newDeviceCalls": 0,
+  "rawAudioOrTranscriptsStoredInThisSummary": false,
+  "physicalDeviceValidation": "NOT_RUN",
+  "localAccentV05": "NOT_RUN_OWNER_DEFERRED",
+  "reliableInputLossFixEstablished": false,
+  "limits": [
+    "Four predeclared captures on the temporary diagnostic APK only; this is not final clean-candidate regression acceptance.",
+    "This cohort does not erase historical failures or subsequent clean-candidate A03 recognition failure.",
+    "Synthetic waveform alignment and exact recognition in four trials do not establish intermittent input-loss resolution.",
+    "No human accent, audibility, physical-device, OEM reminder, low-memory or battery acceptance."
+  ]
+}

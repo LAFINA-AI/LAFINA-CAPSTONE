@@ -1,0 +1,40 @@
+{
+  "kind": "PARENT_CONTROLLED_PLATFORM_EMULATOR_CASE",
+  "case": "A09",
+  "status": "FAIL",
+  "startedAtUtc": "2026-10-28T08:16:59.285303+00:00",
+  "events": [
+    {
+      "atUtc": "2026-10-28T08:17:17.154905+00:00",
+      "elapsedMonotonicSeconds": 17.869603500002995,
+      "event": "fixture_created_via_reviewed_chat",
+      "title": "QA08 EX ex20261028 A09P_20261028T081659284797Z",
+      "rows": [
+        {
+          "taskId": "task:cmd_mvrucred_0_dcciuy8jndq",
+          "taskStatus": "TODO",
+          "deletedAt": null,
+          "jobId": "job:reminder:task:cmd_mvrucred_0_dcciuy8jndq|2026-10-28T08:18:13.140Z",
+          "occurrenceKey": "task:cmd_mvrucred_0_dcciuy8jndq|2026-10-28T08:18:13.140Z",
+          "generation": 1,
+          "jobStatus": "PENDING",
+          "reminderStatus": "SCHEDULED",
+          "runAt": "2026-10-28T08:18:13.140Z",
+          "deadline": null,
+          "deliveryState": "REGISTERED",
+          "registrations": 1
+        }
+      ]
+    }
+  ],
+  "physicalDeviceValidation": "NOT_RUN",
+  "audibilityValidation": "NOT_RUN",
+  "reason": "PRIVATE_PLATFORM_FAILURE_LOG_SAVED",
+  "errorType": "RuntimeError",
+  "restoration": [
+    "exact_owned_fixture_cleaned_via_reviewed_ui"
+  ],
+  "completedAtUtc": "2026-10-28T08:17:39.765779+00:00",
+  "elapsedMonotonicSeconds": 40.48049020001781,
+  "privateSystemEvidence": ".local/phase08-platform/20261028T081659284797Z-A09"
+}

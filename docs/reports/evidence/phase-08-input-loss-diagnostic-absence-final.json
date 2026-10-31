@@ -1,0 +1,56 @@
+{
+  "status": "PASS",
+  "atUtc": "2026-10-30T00:09:48.114423+00:00",
+  "sourceExporterAndCallAbsent": true,
+  "apks": [
+    {
+      "path": "android/app/build/outputs/apk/androidTest/dataQa/app-dataQa-androidTest.apk",
+      "sha256": "945fa582d8896848fbe9a9b9745fc4cea997be4bb95eee426d39bc174c2034b9",
+      "dexFilesChecked": 5,
+      "removedDiagnosticNamesAbsent": true
+    },
+    {
+      "path": "android/app/build/outputs/apk/dataQa/app-arm64-v8a-dataQa.apk",
+      "sha256": "8e23905948af3ad89563dacdd0e988d997b912505c41251ddf85b5f0dccf2335",
+      "dexFilesChecked": 12,
+      "removedDiagnosticNamesAbsent": true
+    },
+    {
+      "path": "android/app/build/outputs/apk/dataQa/app-x86_64-dataQa.apk",
+      "sha256": "7300f2aefeb8d5f90882655d46435b100a12531e16a7c70df4f81230f4160454",
+      "dexFilesChecked": 12,
+      "removedDiagnosticNamesAbsent": true
+    },
+    {
+      "path": "android/app/build/outputs/apk/debug/app-arm64-v8a-debug.apk",
+      "sha256": "6dbbcd0f5356d5e8e206d3ed0f0bd5e02e3ddfa14e636de44315cad798e13c15",
+      "dexFilesChecked": 12,
+      "removedDiagnosticNamesAbsent": true
+    },
+    {
+      "path": "android/app/build/outputs/apk/debug/app-x86_64-debug.apk",
+      "sha256": "7d51b72c5deae1f1d5ca00dd1eb197647a77f49e23f223b9c9bbb1c8eb1189cb",
+      "dexFilesChecked": 12,
+      "removedDiagnosticNamesAbsent": true
+    },
+    {
+      "path": "android/app/build/outputs/apk/release/app-arm64-v8a-release.apk",
+      "sha256": "08349ff74b27d22643d964e36182faa5dcbbff7a8b1d05e2298f4a36c18c6231",
+      "dexFilesChecked": 2,
+      "removedDiagnosticNamesAbsent": true
+    },
+    {
+      "path": "android/app/build/outputs/apk/release/app-x86_64-release.apk",
+      "sha256": "53ab1dcca4a52af79bb3344c01667538f36e21594393333ed624d6a52b22a7b7",
+      "dexFilesChecked": 2,
+      "removedDiagnosticNamesAbsent": true
+    }
+  ],
+  "removedIdentifiers": [
+    "SyntheticCaptureDiagnostics",
+    "Phase08NativeCaptureProbeTest",
+    "qa08-synthetic-diagnostic-request.json"
+  ],
+  "replayTestIsExplicitOptInAndDoesNotCapture": true,
+  "physicalDeviceValidation": "NOT_RUN"
+}

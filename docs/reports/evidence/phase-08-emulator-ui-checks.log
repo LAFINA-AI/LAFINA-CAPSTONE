@@ -1,0 +1,8 @@
+Traceback (most recent call last):
+  File "<stdin>", line 6, in <module>
+  File "C:\L3mxr\Github Repositories\LAFINA-CAPSTONE\.local\phase08_flow.py", line 88, in remove
+    chat('Delete task '+title)
+  File "C:\L3mxr\Github Repositories\LAFINA-CAPSTONE\.local\phase08_flow.py", line 54, in chat
+    assert q.find('Message').get('text','') in ('','Message','Message LAFINA�'), 'Preserve unknown existing chat draft'
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: Preserve unknown existing chat draft

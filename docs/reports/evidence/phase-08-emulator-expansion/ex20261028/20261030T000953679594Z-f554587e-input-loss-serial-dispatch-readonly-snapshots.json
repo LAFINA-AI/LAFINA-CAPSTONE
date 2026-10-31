@@ -1,0 +1,23 @@
+{
+  "schemaVersion": 1,
+  "runId": "ex20261028",
+  "invocation": "20261030T000953679594Z-f554587e",
+  "command": "input-loss-serial-dispatch-readonly-snapshots",
+  "startedAt": "2026-10-30T00:09:53.680354+00:00",
+  "status": "STOPPED_BOOTSTRAP_OR_DISPATCH_ERROR",
+  "scope": "Explicit emulator UI driver plus independent read-only SQLite snapshots",
+  "physicalAcceptance": "HUMAN_REQUIRED",
+  "events": [
+    {
+      "at": "2026-10-30T00:09:53.681091+00:00",
+      "event": "invocation_started"
+    }
+  ],
+  "limits": [
+    "Direct private Activity intents do not certify actual notification taps or full-screen delivery.",
+    "No live microphone, audibility, physical phone, OEM or battery acceptance is implied."
+  ],
+  "completedAt": "2026-10-30T00:09:55.255987+00:00",
+  "serialDispatcherEvidence": "docs/reports/evidence/phase-08-input-loss-all-cases-final-clean-20261030T000953637635Z-f37ac3.json",
+  "physicalDeviceValidation": "NOT_RUN"
+}

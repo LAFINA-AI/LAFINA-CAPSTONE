@@ -1,0 +1,508 @@
+{
+  "kind": "PHASE08_FINAL_ROOT_RESTORATION",
+  "status": "PASS",
+  "startedAtUtc": "2026-10-30T22:53:31.365413+00:00",
+  "physicalDeviceValidation": "NOT_RUN",
+  "checks": [
+    {
+      "check": "explicit_emulator_ready",
+      "status": "PASS"
+    },
+    {
+      "check": "owned_fixture_cleanup",
+      "status": "PASS",
+      "ownedTitlesReviewed": 198,
+      "ownedVisibleFixturesCleaned": 0,
+      "cleanupMethod": "Exact registered titles via reviewed Chat soft removal; no SQL writes"
+    },
+    {
+      "check": "preference_restore",
+      "status": "PASS",
+      "reviewedUiRestoreRequested": false
+    },
+    {
+      "check": "known_settings",
+      "status": "PASS",
+      "allExplicitBaselineSettingsEqual": true,
+      "knownSettingsRestoredCount": 0,
+      "timezoneEqual": true,
+      "guestWithinFiveSecondsOfHost": true,
+      "clockSetTimeIssued": false,
+      "remainingBaselineAllRecordedSettingsAndTimezoneEqual": true,
+      "inputLossBaselineAllRecordedSettingsAndTimezoneEqual": true,
+      "captureFixBaselineAllRecordedSettingsAndTimezoneEqual": true
+    },
+    {
+      "check": "permission_and_appop_modes",
+      "status": "PASS",
+      "fourPermissionGrantsAndAllFlagsEqual": true,
+      "threeTouchedAppOpModesEqual": true,
+      "appOpHistoryTimestampsCompared": false
+    },
+    {
+      "check": "power_baseline",
+      "status": "PASS",
+      "batterySourceAndOverrideEqualBaseline": true,
+      "forcedIdleOff": true,
+      "batterySaverOff": true,
+      "batterySaverOffVerifiedBy": "UNIQUE_SPECIFIC_STATS_OFF_ROW",
+      "blanketResetOrUnforceIssued": false
+    },
+    {
+      "check": "database_baseline",
+      "status": "PASS",
+      "originalNonDiagnosticRowsEqual": true,
+      "originalRowComparison": {
+        "app_settings": {
+          "baselineCount": 1,
+          "currentCount": 1,
+          "originalRowsMissingOrChanged": 0,
+          "addedRows": 0,
+          "separatelyChecked": true,
+          "boundedDiagnosticHistory": false
+        },
+        "chat_messages": {
+          "baselineCount": 0,
+          "currentCount": 0,
+          "originalRowsMissingOrChanged": 0,
+          "addedRows": 0,
+          "separatelyChecked": false,
+          "boundedDiagnosticHistory": false
+        },
+        "events": {
+          "baselineCount": 4,
+          "currentCount": 4,
+          "originalRowsMissingOrChanged": 0,
+          "addedRows": 0,
+          "separatelyChecked": false,
+          "boundedDiagnosticHistory": false
+        },
+        "local_profile": {
+          "baselineCount": 1,
+          "currentCount": 1,
+          "originalRowsMissingOrChanged": 0,
+          "addedRows": 0,
+          "separatelyChecked": false,
+          "boundedDiagnosticHistory": false
+        },
+        "native_alarm_events": {
+          "baselineCount": 164,
+          "currentCount": 200,
+          "originalRowsMissingOrChanged": 164,
+          "addedRows": 200,
+          "separatelyChecked": false,
+          "boundedDiagnosticHistory": true
+        },
+        "native_alarm_registrations": {
+          "baselineCount": 0,
+          "currentCount": 0,
+          "originalRowsMissingOrChanged": 0,
+          "addedRows": 0,
+          "separatelyChecked": false,
+          "boundedDiagnosticHistory": false
+        },
+        "native_delivery_settings": {
+          "baselineCount": 1,
+          "currentCount": 1,
+          "originalRowsMissingOrChanged": 0,
+          "addedRows": 0,
+          "separatelyChecked": true,
+          "boundedDiagnosticHistory": false
+        },
+        "notes": {
+          "baselineCount": 2,
+          "currentCount": 2,
+          "originalRowsMissingOrChanged": 0,
+          "addedRows": 0,
+          "separatelyChecked": false,
+          "boundedDiagnosticHistory": false
+        },
+        "operation_receipts": {
+          "baselineCount": 101,
+          "currentCount": 495,
+          "originalRowsMissingOrChanged": 0,
+          "addedRows": 394,
+          "separatelyChecked": false,
+          "boundedDiagnosticHistory": false
+        },
+        "reminder_jobs": {
+          "baselineCount": 38,
+          "currentCount": 235,
+          "originalRowsMissingOrChanged": 0,
+          "addedRows": 197,
+          "separatelyChecked": false,
+          "boundedDiagnosticHistory": false
+        },
+        "reminders": {
+          "baselineCount": 38,
+          "currentCount": 235,
+          "originalRowsMissingOrChanged": 0,
+          "addedRows": 197,
+          "separatelyChecked": false,
+          "boundedDiagnosticHistory": false
+        },
+        "tasks": {
+          "baselineCount": 40,
+          "currentCount": 237,
+          "originalRowsMissingOrChanged": 0,
+          "addedRows": 197,
+          "separatelyChecked": false,
+          "boundedDiagnosticHistory": false
+        }
+      },
+      "remainingBaselineNonDiagnosticRowsEqual": true,
+      "remainingBaselineRowComparison": {
+        "app_settings": {
+          "baselineCount": 1,
+          "currentCount": 1,
+          "originalRowsMissingOrChanged": 0,
+          "addedRows": 0,
+          "separatelyChecked": true,
+          "boundedDiagnosticHistory": false
+        },
+        "chat_messages": {
+          "baselineCount": 0,
+          "currentCount": 0,
+          "originalRowsMissingOrChanged": 0,
+          "addedRows": 0,
+          "separatelyChecked": false,
+          "boundedDiagnosticHistory": false
+        },
+        "events": {
+          "baselineCount": 4,
+          "currentCount": 4,
+          "originalRowsMissingOrChanged": 0,
+          "addedRows": 0,
+          "separatelyChecked": false,
+          "boundedDiagnosticHistory": false
+        },
+        "local_profile": {
+          "baselineCount": 1,
+          "currentCount": 1,
+          "originalRowsMissingOrChanged": 0,
+          "addedRows": 0,
+          "separatelyChecked": false,
+          "boundedDiagnosticHistory": false
+        },
+        "native_alarm_events": {
+          "baselineCount": 200,
+          "currentCount": 200,
+          "originalRowsMissingOrChanged": 200,
+          "addedRows": 200,
+          "separatelyChecked": false,
+          "boundedDiagnosticHistory": true
+        },
+        "native_alarm_registrations": {
+          "baselineCount": 0,
+          "currentCount": 0,
+          "originalRowsMissingOrChanged": 0,
+          "addedRows": 0,
+          "separatelyChecked": false,
+          "boundedDiagnosticHistory": false
+        },
+        "native_delivery_settings": {
+          "baselineCount": 1,
+          "currentCount": 1,
+          "originalRowsMissingOrChanged": 0,
+          "addedRows": 0,
+          "separatelyChecked": true,
+          "boundedDiagnosticHistory": false
+        },
+        "notes": {
+          "baselineCount": 2,
+          "currentCount": 2,
+          "originalRowsMissingOrChanged": 0,
+          "addedRows": 0,
+          "separatelyChecked": false,
+          "boundedDiagnosticHistory": false
+        },
+        "operation_receipts": {
+          "baselineCount": 239,
+          "currentCount": 495,
+          "originalRowsMissingOrChanged": 0,
+          "addedRows": 256,
+          "separatelyChecked": false,
+          "boundedDiagnosticHistory": false
+        },
+        "reminder_jobs": {
+          "baselineCount": 107,
+          "currentCount": 235,
+          "originalRowsMissingOrChanged": 0,
+          "addedRows": 128,
+          "separatelyChecked": false,
+          "boundedDiagnosticHistory": false
+        },
+        "reminders": {
+          "baselineCount": 107,
+          "currentCount": 235,
+          "originalRowsMissingOrChanged": 0,
+          "addedRows": 128,
+          "separatelyChecked": false,
+          "boundedDiagnosticHistory": false
+        },
+        "tasks": {
+          "baselineCount": 109,
+          "currentCount": 237,
+          "originalRowsMissingOrChanged": 0,
+          "addedRows": 128,
+          "separatelyChecked": false,
+          "boundedDiagnosticHistory": false
+        }
+      },
+      "remainingBaselineFullPreferencesAndPayloadEqual": true,
+      "remainingBaselineDeliveryEqual": true,
+      "inputLossBaselineNonDiagnosticRowsEqual": true,
+      "inputLossBaselineRowComparison": {
+        "app_settings": {
+          "baselineCount": 1,
+          "currentCount": 1,
+          "originalRowsMissingOrChanged": 0,
+          "addedRows": 0,
+          "separatelyChecked": true,
+          "boundedDiagnosticHistory": false
+        },
+        "chat_messages": {
+          "baselineCount": 0,
+          "currentCount": 0,
+          "originalRowsMissingOrChanged": 0,
+          "addedRows": 0,
+          "separatelyChecked": false,
+          "boundedDiagnosticHistory": false
+        },
+        "events": {
+          "baselineCount": 4,
+          "currentCount": 4,
+          "originalRowsMissingOrChanged": 0,
+          "addedRows": 0,
+          "separatelyChecked": false,
+          "boundedDiagnosticHistory": false
+        },
+        "local_profile": {
+          "baselineCount": 1,
+          "currentCount": 1,
+          "originalRowsMissingOrChanged": 0,
+          "addedRows": 0,
+          "separatelyChecked": false,
+          "boundedDiagnosticHistory": false
+        },
+        "native_alarm_events": {
+          "baselineCount": 200,
+          "currentCount": 200,
+          "originalRowsMissingOrChanged": 200,
+          "addedRows": 200,
+          "separatelyChecked": false,
+          "boundedDiagnosticHistory": true
+        },
+        "native_alarm_registrations": {
+          "baselineCount": 0,
+          "currentCount": 0,
+          "originalRowsMissingOrChanged": 0,
+          "addedRows": 0,
+          "separatelyChecked": false,
+          "boundedDiagnosticHistory": false
+        },
+        "native_delivery_settings": {
+          "baselineCount": 1,
+          "currentCount": 1,
+          "originalRowsMissingOrChanged": 0,
+          "addedRows": 0,
+          "separatelyChecked": true,
+          "boundedDiagnosticHistory": false
+        },
+        "notes": {
+          "baselineCount": 2,
+          "currentCount": 2,
+          "originalRowsMissingOrChanged": 0,
+          "addedRows": 0,
+          "separatelyChecked": false,
+          "boundedDiagnosticHistory": false
+        },
+        "operation_receipts": {
+          "baselineCount": 277,
+          "currentCount": 495,
+          "originalRowsMissingOrChanged": 0,
+          "addedRows": 218,
+          "separatelyChecked": false,
+          "boundedDiagnosticHistory": false
+        },
+        "reminder_jobs": {
+          "baselineCount": 126,
+          "currentCount": 235,
+          "originalRowsMissingOrChanged": 0,
+          "addedRows": 109,
+          "separatelyChecked": false,
+          "boundedDiagnosticHistory": false
+        },
+        "reminders": {
+          "baselineCount": 126,
+          "currentCount": 235,
+          "originalRowsMissingOrChanged": 0,
+          "addedRows": 109,
+          "separatelyChecked": false,
+          "boundedDiagnosticHistory": false
+        },
+        "tasks": {
+          "baselineCount": 128,
+          "currentCount": 237,
+          "originalRowsMissingOrChanged": 0,
+          "addedRows": 109,
+          "separatelyChecked": false,
+          "boundedDiagnosticHistory": false
+        }
+      },
+      "inputLossBaselineFullPreferencesAndPayloadEqual": true,
+      "inputLossBaselineDeliveryEqual": true,
+      "captureFixBaselineNonDiagnosticRowsEqual": true,
+      "captureFixBaselineRowComparison": {
+        "app_settings": {
+          "baselineCount": 1,
+          "currentCount": 1,
+          "originalRowsMissingOrChanged": 0,
+          "addedRows": 0,
+          "separatelyChecked": true,
+          "boundedDiagnosticHistory": false
+        },
+        "chat_messages": {
+          "baselineCount": 0,
+          "currentCount": 0,
+          "originalRowsMissingOrChanged": 0,
+          "addedRows": 0,
+          "separatelyChecked": false,
+          "boundedDiagnosticHistory": false
+        },
+        "events": {
+          "baselineCount": 4,
+          "currentCount": 4,
+          "originalRowsMissingOrChanged": 0,
+          "addedRows": 0,
+          "separatelyChecked": false,
+          "boundedDiagnosticHistory": false
+        },
+        "local_profile": {
+          "baselineCount": 1,
+          "currentCount": 1,
+          "originalRowsMissingOrChanged": 0,
+          "addedRows": 0,
+          "separatelyChecked": false,
+          "boundedDiagnosticHistory": false
+        },
+        "native_alarm_events": {
+          "baselineCount": 200,
+          "currentCount": 200,
+          "originalRowsMissingOrChanged": 170,
+          "addedRows": 170,
+          "separatelyChecked": false,
+          "boundedDiagnosticHistory": true
+        },
+        "native_alarm_registrations": {
+          "baselineCount": 0,
+          "currentCount": 0,
+          "originalRowsMissingOrChanged": 0,
+          "addedRows": 0,
+          "separatelyChecked": false,
+          "boundedDiagnosticHistory": false
+        },
+        "native_delivery_settings": {
+          "baselineCount": 1,
+          "currentCount": 1,
+          "originalRowsMissingOrChanged": 0,
+          "addedRows": 0,
+          "separatelyChecked": true,
+          "boundedDiagnosticHistory": false
+        },
+        "notes": {
+          "baselineCount": 2,
+          "currentCount": 2,
+          "originalRowsMissingOrChanged": 0,
+          "addedRows": 0,
+          "separatelyChecked": false,
+          "boundedDiagnosticHistory": false
+        },
+        "operation_receipts": {
+          "baselineCount": 411,
+          "currentCount": 495,
+          "originalRowsMissingOrChanged": 0,
+          "addedRows": 84,
+          "separatelyChecked": false,
+          "boundedDiagnosticHistory": false
+        },
+        "reminder_jobs": {
+          "baselineCount": 193,
+          "currentCount": 235,
+          "originalRowsMissingOrChanged": 0,
+          "addedRows": 42,
+          "separatelyChecked": false,
+          "boundedDiagnosticHistory": false
+        },
+        "reminders": {
+          "baselineCount": 193,
+          "currentCount": 235,
+          "originalRowsMissingOrChanged": 0,
+          "addedRows": 42,
+          "separatelyChecked": false,
+          "boundedDiagnosticHistory": false
+        },
+        "tasks": {
+          "baselineCount": 195,
+          "currentCount": 237,
+          "originalRowsMissingOrChanged": 0,
+          "addedRows": 42,
+          "separatelyChecked": false,
+          "boundedDiagnosticHistory": false
+        }
+      },
+      "captureFixBaselineFullPreferencesAndPayloadEqual": true,
+      "captureFixBaselineDeliveryEqual": true,
+      "fullPreferencesEqual": true,
+      "exactPreferencePayloadHashEqual": true,
+      "nativeDeliveryAndFullScreenOff": true,
+      "ownedRowCount": 197,
+      "allOwnedFixturesSoftRemoved": true,
+      "activeJobs": 0,
+      "registrations": 0,
+      "schema": 3
+    },
+    {
+      "check": "audio_shutdown",
+      "status": "PASS",
+      "hostMicrophoneDisabledBeforeAndAfter": true,
+      "recordActivityMonitorHasNoActiveConfigurations": true,
+      "closedHistoricalRecordingIds": 6,
+      "historicalSessionsLastEventStop": true,
+      "activeAudioRecordingConfigurationObserved": false,
+      "audibilityTested": false,
+      "requestedAndActualAudioModeNormal": true,
+      "googleTtsEnabledSettingExactOriginalZero": true,
+      "ttsEnabledComponentInventoryExactOriginal": true,
+      "ttsEngineInventoryCount": 1,
+      "ttsEngineMutationIssued": false
+    },
+    {
+      "check": "decoder_fixture_cleanup",
+      "status": "PASS",
+      "exactPinnedFilesRemoved": 0,
+      "alreadyAbsentPinnedFiles": 2,
+      "otherFilesRemoved": 0,
+      "temporaryRequestAndCaptureExportsAbsent": true,
+      "matchedDiagnosticFiles": 0,
+      "diagnosticAbsenceReadOnly": true
+    },
+    {
+      "check": "candidate_artifacts",
+      "status": "PASS",
+      "allSevenHostApkHashesEqual": true,
+      "allThirtyThreeSourceHashesEqual": true,
+      "installedApkMatchesFinalX86DataQa": true,
+      "installedApkSha256": "7300f2aefeb8d5f90882655d46435b100a12531e16a7c70df4f81230f4160454"
+    }
+  ],
+  "errors": [],
+  "requestedMutationSwitches": {
+    "knownSettingsAndModes": false,
+    "ownedFixtureReviewedCleanup": false,
+    "preferenceReviewedRestore": false,
+    "twoPinnedDecoderFilesRemoval": false
+  },
+  "scope": "Original capstone data/prefs and explicitly tested emulator settings; no physical acceptance",
+  "completedAtUtc": "2026-10-30T22:53:46.442572+00:00"
+}

@@ -1,0 +1,114 @@
+{
+  "kind": "PHASE08_RELATIVE_BOUNDARY_OFFSET_FLOOR_CONTROLS",
+  "status": "PASS",
+  "recordedAtUtc": "2026-10-29T14:01:30.340228+00:00",
+  "invocations": 8,
+  "decoderCalls": 16,
+  "exactReferences": 16,
+  "independentlyParsedExpected": 16,
+  "physicalDeviceValidation": "NOT_RUN",
+  "microphoneOpened": false,
+  "actionsExecuted": false,
+  "rows": [
+    {
+      "floorPcm": 0,
+      "offsetMs": 0,
+      "evidence": "docs/reports/evidence/phase-08-speech-decoder-relative-floor0-offset0.json",
+      "sha256": "c4e38c7f73f0d6750bd14722250f8a60ca52f3b201584298d3dc319856f9c4ed",
+      "exactReferences": 2,
+      "independentlyParsedExpected": 2,
+      "decodeMs": [
+        4429,
+        3924
+      ]
+    },
+    {
+      "floorPcm": 0,
+      "offsetMs": 250,
+      "evidence": "docs/reports/evidence/phase-08-speech-decoder-relative-floor0-offset250.json",
+      "sha256": "71498f0b2d087776dc7487b3abea065d429b38758edde5586086ca769464a8dd",
+      "exactReferences": 2,
+      "independentlyParsedExpected": 2,
+      "decodeMs": [
+        4202,
+        4228
+      ]
+    },
+    {
+      "floorPcm": 0,
+      "offsetMs": 500,
+      "evidence": "docs/reports/evidence/phase-08-speech-decoder-relative-floor0-offset500.json",
+      "sha256": "53d657151713f7624d6263ee8e00680b57d9e9da7a5cd47b383389487d1816fd",
+      "exactReferences": 2,
+      "independentlyParsedExpected": 2,
+      "decodeMs": [
+        4059,
+        4295
+      ]
+    },
+    {
+      "floorPcm": 0,
+      "offsetMs": 1000,
+      "evidence": "docs/reports/evidence/phase-08-speech-decoder-relative-floor0-offset1000.json",
+      "sha256": "ca633eeba166681af0ec4178664d34b3a9c5d5259dab552983639f1cbbc1804b",
+      "exactReferences": 2,
+      "independentlyParsedExpected": 2,
+      "decodeMs": [
+        5009,
+        5181
+      ]
+    },
+    {
+      "floorPcm": 8,
+      "offsetMs": 0,
+      "evidence": "docs/reports/evidence/phase-08-speech-decoder-relative-floor8-offset0.json",
+      "sha256": "4df1afd9379087a89bd45f9a278919df0da3f63ce3457915e5a8de6884b3f97b",
+      "exactReferences": 2,
+      "independentlyParsedExpected": 2,
+      "decodeMs": [
+        5682,
+        5782
+      ]
+    },
+    {
+      "floorPcm": 8,
+      "offsetMs": 250,
+      "evidence": "docs/reports/evidence/phase-08-speech-decoder-relative-floor8-offset250.json",
+      "sha256": "7c46b3d15485944828d43ea21a33448fee422c3a39644e1a7d0b9333ee97c1e6",
+      "exactReferences": 2,
+      "independentlyParsedExpected": 2,
+      "decodeMs": [
+        4631,
+        4580
+      ]
+    },
+    {
+      "floorPcm": 8,
+      "offsetMs": 500,
+      "evidence": "docs/reports/evidence/phase-08-speech-decoder-relative-floor8-offset500.json",
+      "sha256": "5e086364e16758f5a0241185914f86c774387d873a23d6ac875f655929e717a2",
+      "exactReferences": 2,
+      "independentlyParsedExpected": 2,
+      "decodeMs": [
+        4679,
+        4378
+      ]
+    },
+    {
+      "floorPcm": 8,
+      "offsetMs": 1000,
+      "evidence": "docs/reports/evidence/phase-08-speech-decoder-relative-floor8-offset1000.json",
+      "sha256": "13fb7ae21458b28bedc91b069e34a1807576b9d93652fd4fe6b094befc30dd39",
+      "exactReferences": 2,
+      "independentlyParsedExpected": 2,
+      "decodeMs": [
+        4534,
+        4783
+      ]
+    }
+  ],
+  "limits": [
+    "Two pinned synthetic clips only. Does not establish live speech accuracy, mic transport or phone performance.",
+    "Each invocation loads/frees the pinned model. No stable p95 or speed improvement is claimed."
+  ]
+}

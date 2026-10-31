@@ -1,0 +1,59 @@
+{
+  "schemaVersion": 1,
+  "runId": "ex20261028",
+  "invocation": "20261028T140024767529Z-a34de910",
+  "command": "cleanup",
+  "startedAt": "2026-10-28T14:00:24.768693+00:00",
+  "status": "PASS",
+  "scope": "Explicit emulator UI driver plus independent read-only SQLite snapshots",
+  "physicalAcceptance": "HUMAN_REQUIRED",
+  "events": [
+    {
+      "at": "2026-10-28T14:00:24.770077+00:00",
+      "event": "invocation_started"
+    },
+    {
+      "at": "2026-10-28T14:00:40.278734+00:00",
+      "event": "ui_driver",
+      "kind": "OPT_IN_SYNTHETIC_FIXTURE_UI_DRIVER",
+      "mode": "compose",
+      "outcome": "PASS",
+      "stages": [
+        "activity_launch_requested",
+        "safe_qa08_composer_replaced",
+        "command_review_visible",
+        "command_confirmation_closed"
+      ],
+      "launch": "DIRECT_PRIVATE_ACTIVITY_INTENT_NOT_NOTIFICATION_TAP",
+      "limits": "UI only; root verifies SQL separately. No live speech, audio or physical-phone acceptance."
+    },
+    {
+      "at": "2026-10-28T14:00:40.884843+00:00",
+      "event": "owned_fixture_delete",
+      "title": "QA08 EX ex20261028 A17C_20261028T135946672200Z",
+      "rows": [
+        {
+          "taskId": "task:cmd_mvs6li92_0_l79zsyrm50j",
+          "taskStatus": "CANCELLED",
+          "deletedAt": "2026-10-28T14:00:36.427Z",
+          "jobId": "job:reminder:task:cmd_mvs6li92_0_l79zsyrm50j|2026-10-28T14:00:56.582Z",
+          "occurrenceKey": "task:cmd_mvs6li92_0_l79zsyrm50j|2026-10-28T14:00:56.582Z",
+          "generation": 1,
+          "jobStatus": "ACKNOWLEDGED",
+          "reminderStatus": "ACKNOWLEDGED",
+          "runAt": "2026-10-28T14:00:56.582Z",
+          "deadline": null,
+          "deliveryState": "UNAVAILABLE",
+          "registrations": 0
+        }
+      ],
+      "tombstonesRetained": true
+    }
+  ],
+  "limits": [
+    "Direct private Activity intents do not certify actual notification taps or full-screen delivery.",
+    "No live microphone, audibility, physical phone, OEM or battery acceptance is implied."
+  ],
+  "completedAt": "2026-10-28T14:00:40.886027+00:00",
+  "passScope": "Requested bounded runner operation only; inspect case assertions and physical gates separately"
+}

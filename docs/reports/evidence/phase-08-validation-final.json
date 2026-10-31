@@ -1,0 +1,21 @@
+{
+  "createdUtc": "2026-10-28T01:44:25.369490+00:00",
+  "status": "PASS",
+  "head": "98bef88c3ae0fabee677c1466417fc34c0af738c",
+  "branch": "codex/phase-07-audit-hardening",
+  "sourceFilesChecked": 14,
+  "sourceHashesMatch": true,
+  "apksChecked": 7,
+  "apkHashesMatch": true,
+  "changedMarkdownFilesChecked": 11,
+  "missingLocalLinks": [],
+  "changedJsonFilesParsed": 24,
+  "diffWhitespaceCheck": "PASS",
+  "emulatorUiInvocationsPassed": 11,
+  "originalPreferencesAndNonDiagnosticRowsRestored": true,
+  "ownedTasksRemoved": 7,
+  "activeJobs": 0,
+  "alarmRegistrations": 0,
+  "physicalValidation": "NOT_RUN / HUMAN_REQUIRED",
+  "scope": "Hash/link/format/restoration verification; not a comprehensive security audit or device acceptance."
+}

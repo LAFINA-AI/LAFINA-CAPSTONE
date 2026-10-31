@@ -1,0 +1,31 @@
+{
+  "kind": "PREDECLARED_RESUME_AFTER_SYSTEM_UI_ANR",
+  "blockedBatch": {
+    "path": "docs/reports/evidence/phase-08-capture-fix-reviewed-cold2-20261030T170647493480Z-20e866.json",
+    "sha256": "78aba4408dab330b9e79341db192a8a2bc7771547ef2811193d2360690138b1a"
+  },
+  "blockedBatchSourceSubmissions": 0,
+  "blockedBatchNativeVoiceComparisons": 0,
+  "blockedBatchFailuresRetained": true,
+  "observedRecovery": {
+    "path": "docs/reports/evidence/phase-08-capture-fix-system-ui-anr.json",
+    "sha256": "3a42a3570b73a0eb2c13e1625dd93bdc57067ddce4d53b3e80a2d15bb296c840"
+  },
+  "selectedSecondBoot": {
+    "path": "docs/reports/evidence/phase-08-capture-fix-anchored-cold-2-verified.json",
+    "sha256": "6c25e2b972df1cca041a1aef20687afc5270a1a63af56f50e5564b78f049dab3"
+  },
+  "nextLabel": "reviewed-cold2-after-wait",
+  "nextCases": {
+    "A03": 1,
+    "V03": 2,
+    "V04": 2
+  },
+  "rationale": "Rerun only the batch that never reached microphone/controller launch, after one observed System UI Wait action restored exact Chat navigation. No recognition failure is discarded or silently retried.",
+  "sourceSenderChanged": false,
+  "sourcePcmChanged": false,
+  "nativeTestChanged": false,
+  "visibleMicrophoneControllerChanged": false,
+  "physicalDeviceValidation": "NOT_RUN",
+  "v05": "OWNER_DEFERRED_NOT_RUN"
+}

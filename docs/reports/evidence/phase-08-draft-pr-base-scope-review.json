@@ -1,0 +1,453 @@
+{
+  "kind": "PHASE08_DRAFT_PR_BASE_SCOPE_REVIEW",
+  "verifiedAtUtc": "2026-10-31T18:36:33.394035+00:00",
+  "derivedRecord": true,
+  "prExists": false,
+  "scope": "Local draft-PR preparation only. Read-only remote inspection (git ls-remote and unauthenticated public GitHub REST reads). No fetch into or update of existing refs, no clone of origin/main, no staging, commit, push, branch creation or PR. No emulator, device, build or test-suite run. No application, test or harness code changed.",
+  "draftDescription": "docs/reports/phase-08-draft-pr.md",
+  "draftTitle": "Draft: Phase 08 offline reminder response — validation pending",
+  "local": {
+    "branch": "codex/phase-07-audit-hardening",
+    "head": "98bef88c3ae0fabee677c1466417fc34c0af738c",
+    "headTree": "0ff0b032c37c6ec64b92c25609dace332f43bae6",
+    "matchesExpectedBase": true,
+    "stagedFiles": 0,
+    "trackedModified": 17,
+    "trackedDeleted": 0,
+    "untrackedBeforePackage": 3474,
+    "newFilesAddedByThisPackage": [
+      "docs/reports/evidence/phase-08-draft-pr-base-scope-review.json",
+      "docs/reports/phase-08-draft-pr.md"
+    ],
+    "statusFingerprintBeforePackage": {
+      "porcelainEntriesCollapsed": 802,
+      "md5": "31e00377319815c63c6c60ebded79819",
+      "note": "Equals the 2026-11-01 documentation checkpoint state (800 earlier entries plus its 2 new evidence files); no newer owner work was found."
+    },
+    "localBranchMain": "b3eefb853be7c658a38186d330eb8aaf4be8eea2 (stale local branch; not used as a base)"
+  },
+  "remote": {
+    "name": "origin",
+    "url": "https://github.com/LAFINA-AI/LAFINA-CAPSTONE.git",
+    "embeddedCredentials": false,
+    "repository": "LAFINA-AI/LAFINA-CAPSTONE",
+    "visibility": "public",
+    "defaultBranch": "main",
+    "pushedAt": "2026-10-29T18:07:00Z",
+    "existingPullRequests": 0,
+    "heads": {
+      "main": "98bef88c3ae0fabee677c1466417fc34c0af738c",
+      "codex/phase-07-audit-hardening": "98bef88c3ae0fabee677c1466417fc34c0af738c",
+      "Nol-branch": "9c183a20eca2377b5e54f219c5f83460b18af81b",
+      "agy-development-cont": "df508dadfe0cb0058736f4c3f6eee534749e1e32",
+      "HEAD": "98bef88c3ae0fabee677c1466417fc34c0af738c"
+    },
+    "tags": [
+      "v0.1.0",
+      "v0.2.0",
+      "v0.3.0",
+      "v0.4.0",
+      "v0.5.0"
+    ],
+    "pushActivity": [
+      {
+        "at": "2026-10-26T10:17:42Z",
+        "type": "push",
+        "ref": "main",
+        "before": "be25db8ba",
+        "after": "9c183a20e",
+        "actor": "NBlancs"
+      },
+      {
+        "at": "2026-10-26T10:57:13Z",
+        "type": "branch_creation",
+        "ref": "Nol-branch",
+        "after": "9c183a20e",
+        "actor": "NBlancs"
+      },
+      {
+        "at": "2026-10-26T16:02:46Z",
+        "type": "branch_creation",
+        "ref": "agy-development-cont",
+        "after": "9c183a20e",
+        "actor": "NBlancs"
+      },
+      {
+        "at": "2026-10-27T15:05:49Z",
+        "type": "branch_creation",
+        "ref": "codex/phase-07-audit-hardening",
+        "after": "98bef88c3",
+        "actor": "CyberSphinxxx"
+      },
+      {
+        "at": "2026-10-27T15:06:31Z",
+        "type": "push (not force_push)",
+        "ref": "main",
+        "before": "9c183a20e",
+        "after": "98bef88c3",
+        "actor": "CyberSphinxxx"
+      },
+      {
+        "at": "2026-10-27T20:06:03Z",
+        "type": "push",
+        "ref": "agy-development-cont",
+        "before": "9c183a20e",
+        "after": "52408d5d4",
+        "actor": "NBlancs"
+      },
+      {
+        "at": "2026-10-29T18:07:00Z",
+        "type": "push",
+        "ref": "agy-development-cont",
+        "before": "52408d5d4",
+        "after": "df508dadf",
+        "actor": "NBlancs"
+      }
+    ],
+    "localTrackingRefNote": "Local refs/remotes/origin/agy-development-cont is stale (9c183a2); it was not updated."
+  },
+  "ancestryAndCompatibility": {
+    "remoteMainTreeEqualsLocalHeadTree": true,
+    "remoteCommit98bef88": {
+      "tree": "0ff0b032c37c6ec64b92c25609dace332f43bae6",
+      "parent": "97436803a"
+    },
+    "nolBranchIsAncestorOfMain": true,
+    "mergeBase_98bef88_9c183a2": "9c183a20eca2377b5e54f219c5f83460b18af81b",
+    "mainVsAgyDevelopmentCont": {
+      "status": "diverged",
+      "agyAheadBy": 6,
+      "agyBehindBy": 8,
+      "mergeBase": "9c183a20e",
+      "agyCommitSubjects": [
+        "feat(phase-07): smart hybrid NLU, Qwen2.5-0.5B dynamic asset download, ...",
+        "fix(nlu): support spoken number words in relative times ...",
+        "fix(calendar): fix manual time block creation date timezone offset ...",
+        "feat(ai): schedule query voice recognition and TTS read-aloud ...",
+        "feat: phase 07 hardening of TTS",
+        "feat(chat): Phase 08 end-to-end offline student assistant and ChatScreen ..."
+      ],
+      "filesChangedFromMergeBase": {
+        "count": 38,
+        "modified": 20,
+        "added": 18,
+        "topLevel": {
+          "src": 24,
+          "android": 6,
+          "__tests__": 4,
+          "docs": 3,
+          "App.tsx": 1
+        }
+      },
+      "assessment": "A separate teammate line built on the replacement application (9c183a2), with its own Phase 08 work and a dynamic model download. It does not contain the reviewed capstone commits and is not a compatible base."
+    },
+    "projectedDiffAgainstMain": {
+      "modifiedFiles": 17,
+      "deletedFiles": 0,
+      "newFilesBeforePackage": 3474,
+      "replacesOrRebuildsApplication": false,
+      "note": "Because remote main is the same commit as the local base, the diff is exactly the Phase 08 working-tree changes."
+    }
+  },
+  "baseRecommendation": {
+    "status": "RECOMMENDED_WITH_PRECONDITIONS",
+    "base": {
+      "branch": "main",
+      "commit": "98bef88c3ae0fabee677c1466417fc34c0af738c"
+    },
+    "head": "A new branch from 98bef88 carrying the Phase 08 changes; the owner chooses the name. Not created.",
+    "evidence": [
+      "git ls-remote: refs/heads/main and HEAD = 98bef88c3ae0fabee677c1466417fc34c0af738c",
+      "GitHub API: default branch main; remote commit 98bef88 has tree 0ff0b032..., identical to the local HEAD tree",
+      "GitHub activity: main moved 9c183a2 -> 98bef88 by a normal push from the owner's account on 2026-10-27; local check confirms 9c183a2 is an ancestor of 98bef88",
+      "The 8 reviewed capstone commits 9c183a2..98bef88 (0d06b24, ac6ea2a merge, 589508d, a186bfc, 0ff4002, c630887, 9743680, 98bef88) are main's tip lineage; agy-development-cont is behind main by exactly these 8"
+    ],
+    "preconditions": [
+      "Re-run the read-only base check immediately before publishing; main must still be 98bef88 or a reviewed descendant.",
+      "Coordinate with the owner of agy-development-cont before or after merging, because it changes overlapping areas with a separate Phase 08 implementation."
+    ],
+    "historicalNoteSuperseded": "The earlier handoff note that main pointed to 9c183a2 and that reviewed work was unpushed is outdated for main (as of 2026-10-27T15:06:31Z). The Phase 08 work itself remains uncommitted and unpushed."
+  },
+  "intendedScope": {
+    "trackedModified": [
+      ".gitignore",
+      "README.md",
+      "android/app/build.gradle",
+      "android/app/src/androidTest/java/com/lafina/capstone/reminders/ReminderStoreTest.kt",
+      "android/app/src/main/AndroidManifest.xml",
+      "android/app/src/main/cpp/jni/whisper_jni.cpp",
+      "android/app/src/main/java/com/lafina/capstone/reminders/ReminderActivity.kt",
+      "android/app/src/main/java/com/lafina/capstone/reminders/ReminderIntents.kt",
+      "android/app/src/main/java/com/lafina/capstone/reminders/ReminderStore.kt",
+      "android/app/src/main/java/com/lafina/capstone/voice/AnsweredDictationPanel.kt",
+      "android/app/src/main/java/com/lafina/capstone/voice/SpeechInput.kt",
+      "android/app/src/main/java/com/lafina/capstone/voice/WhisperTranscriber.kt",
+      "docs/02-ARCHITECTURE.md",
+      "docs/reports/CURRENT-STATUS.md",
+      "package-lock.json",
+      "package.json",
+      "qa/REQUIREMENTS-MATRIX.md"
+    ],
+    "newCodeTestsAndScripts": [
+      "android/app/src/androidTest/java/com/lafina/capstone/reminders/Qa08UiDriver.kt",
+      "android/app/src/androidTest/java/com/lafina/capstone/reminders/ReminderFailureUiTest.kt",
+      "android/app/src/androidTest/java/com/lafina/capstone/reminders/ReminderLifecycleUiTest.kt",
+      "android/app/src/androidTest/java/com/lafina/capstone/reminders/ReminderMicrophoneUiTest.kt",
+      "android/app/src/androidTest/java/com/lafina/capstone/reminders/ReminderNotificationUiTest.kt",
+      "android/app/src/androidTest/java/com/lafina/capstone/reminders/ReminderResponseBenchmarkTest.kt",
+      "android/app/src/androidTest/java/com/lafina/capstone/reminders/ReminderResponseUiTest.kt",
+      "android/app/src/androidTest/java/com/lafina/capstone/reminders/ReminderSettingsUiTest.kt",
+      "android/app/src/androidTest/java/com/lafina/capstone/voice/Phase08ResponseDecoderProbeTest.kt",
+      "android/app/src/androidTest/java/com/lafina/capstone/voice/Phase08SyntheticReplayTest.kt",
+      "android/app/src/androidTest/java/com/lafina/capstone/voice/Phase08VoiceProbeTest.kt",
+      "android/app/src/main/java/com/lafina/capstone/reminders/ReminderResponsePolicy.kt",
+      "android/app/src/main/java/com/lafina/capstone/reminders/ReminderResponseSession.kt",
+      "android/app/src/test/java/com/lafina/capstone/reminders/ReminderResponsePolicyTest.kt",
+      "android/app/src/test/java/com/lafina/capstone/reminders/ReminderResponseSessionTest.kt",
+      "scripts/phase08-emulator-audio-privacy.test.mjs",
+      "scripts/phase08-emulator-audio-realtime.test.mjs",
+      "scripts/phase08-emulator-audio.mjs",
+      "scripts/phase08-emulator-audio.test.mjs",
+      "scripts/phase08-emulator-suite.py",
+      "scripts/verify-phase08-apks.py"
+    ],
+    "newDocsReportsQa": {
+      "count": 37,
+      "files": [
+        "docs/benchmarks/phase-08-device-protocol.md",
+        "docs/benchmarks/phase-08-device-status.json",
+        "docs/benchmarks/phase-08-emulator-voice-protocol.md",
+        "docs/benchmarks/phase-08-expanded-whisper-analysis.json",
+        "docs/benchmarks/phase-08-expanded-whisper-emulator.json",
+        "docs/benchmarks/phase-08-input-loss-command-regression.json",
+        "docs/benchmarks/phase-08-input-loss-general-corpus-analysis.json",
+        "docs/benchmarks/phase-08-input-loss-general-corpus.json",
+        "docs/benchmarks/phase-08-input-loss-native-response-emulator.json",
+        "docs/benchmarks/phase-08-input-loss-notes-host.json",
+        "docs/benchmarks/phase-08-input-loss-planner-host.json",
+        "docs/benchmarks/phase-08-input-loss-queries-stress-host.json",
+        "docs/benchmarks/phase-08-input-loss-queries-student-host.json",
+        "docs/benchmarks/phase-08-intents-host.json",
+        "docs/benchmarks/phase-08-native-response-emulator-final.json",
+        "docs/benchmarks/phase-08-native-response-emulator.json",
+        "docs/benchmarks/phase-08-remaining-relative-general-corpus-analysis.json",
+        "docs/benchmarks/phase-08-remaining-relative-general-corpus.json",
+        "docs/benchmarks/phase-08-speech-general-corpus-analysis.json",
+        "docs/benchmarks/phase-08-speech-general-corpus.json",
+        "docs/benchmarks/phase-08-synthetic-noise-audio.json",
+        "docs/benchmarks/phase-08-synthetic-response-audio.json",
+        "docs/decisions/ADR-023-foreground-reminder-response.md",
+        "docs/decisions/ADR-024-reminder-speech-vocabulary.md",
+        "docs/phase-08-offline-loop.md",
+        "docs/reports/phase-08-capture-fix-report.md",
+        "docs/reports/phase-08-claude-code-handoff-20261031.md",
+        "docs/reports/phase-08-emulator-expansion-report.md",
+        "docs/reports/phase-08-input-loss-report.md",
+        "docs/reports/phase-08-offline-core-release-gate.md",
+        "docs/reports/phase-08-remaining-emulator-report.md",
+        "docs/reports/phase-08-report.md",
+        "docs/reports/phase-08-speech-correction-report.md",
+        "docs/reports/phase-08-stable-emulator-report.md",
+        "qa/PHASE-08-EMULATOR-EXPANSION.md",
+        "qa/PHASE-08-EXECUTION.md",
+        "qa/PHASE-08-MANUAL.md"
+      ]
+    },
+    "newEvidence": {
+      "count": 3416,
+      "underPhase08EmulatorExpansion": 2690,
+      "logFiles": {
+        "evidence root": 382,
+        "phase-08-emulator-expansion/ex20261028": 1069,
+        "phase-08-emulator-expansion/st20261031": 189
+      }
+    },
+    "untrackedByExtension": {
+      "kt": 15,
+      "md": 25,
+      "json": 1788,
+      "log": 1640,
+      "mjs": 4,
+      "py": 2
+    },
+    "totalUntrackedMiB": 12.63,
+    "allUntrackedReportFilesArePhase08": true
+  },
+  "excludedPrivateOrIgnored": {
+    "note": "Ignored by .gitignore and not part of the PR; nothing was copied, deleted or promoted.",
+    "categories": [
+      ".local/ (about 299 SQLite snapshots, 263 Python helpers, 110 logs, 37 screenshots, 36 native libraries, private JSON/markdown/scripts)",
+      "android/build, android/.gradle, android/app build outputs and APKs",
+      "node_modules/, graphify-out/, scripts/__pycache__/",
+      "prompts/, START_HERE.md, STARTING_PROMPT.md, the phase-gated handoff folder, .phase01-template"
+    ],
+    "privateHelpersReferencedByPublicDocs": [
+      ".local/phase08-capture-fix-reviewed-mic.py (reviewed emulator parent controller)",
+      ".local/phase08-stable-sdk-cohort.py, .local/phase08-stable-hal-cohort.py, .local/phase08-stable-audio-cold.py",
+      ".local/phase08-lowload-cohort.py (ABORT-classification fix; sha256 24adb808925d5e18168c16dd848004c7cbb1525f4d4af823ed3d69128be25372)",
+      ".local/test_phase08_privacy_harness.py (Python 17-test suite; sha256 0b3aa98c1298a330a6057dfa06f7406a871ddcdc234e2dbaff6652cd5951230f)",
+      ".local/phase08_hal_integrity.py, .local/phase08_host_telemetry.py, low-load boot/common/switch helpers, restore/switch/smoke helpers"
+    ],
+    "reproductionLimits": [
+      "The ABORT-classification fix and its Python tests are not in the PR; reviewers cannot rerun Python 17/17 from the PR.",
+      "Emulator cohorts depend on private .local controllers and private Whisper model/corpus assets (pinned by checksum in the build).",
+      "Some public reports name .local paths and include an absolute Windows SDK/host path in commands."
+    ]
+  },
+  "sensitiveContentScan": {
+    "scope": "All untracked files before this package",
+    "patternsWithZeroHits": [
+      "private key blocks",
+      "GitHub tokens",
+      "Google API keys",
+      "bearer tokens",
+      "authorization headers",
+      "email addresses",
+      "owner real-name strings",
+      "SQLite files",
+      "WAV audio"
+    ],
+    "reviewedHits": [
+      {
+        "pattern": "grpc.token assignment",
+        "files": 1,
+        "finding": "test template placeholder ${TOKEN} in scripts/phase08-emulator-audio-privacy.test.mjs; not a credential"
+      },
+      {
+        "pattern": "Windows user-profile path (C:\\Users\\USER-PC)",
+        "files": 7,
+        "finding": "host path disclosure in commands/boot records (e.g. docs/reports/phase-08-report.md); generic machine account name; owner review suggested"
+      },
+      {
+        "pattern": "emulator serial emulator-55xx",
+        "files": 41,
+        "finding": "virtual device serials; not personal data"
+      }
+    ],
+    "transcripts": "Only two 'hypothesis' keys found in evidence; inputs are synthetic pinned fixtures. Owner skim recommended before publication.",
+    "binaries": "Untracked extensions are json, log, md, kt, mjs and py only; no models, APKs or build output.",
+    "aiToolNamesInScope": "7 existing files name the AI coding tool used in earlier sessions and 5 name Codex, as provenance; no Co-Authored-By or generated-by trailers found. The new package adds no AI branding.",
+    "lineEndings": "Git warns that three files (whisper_jni.cpp, AnsweredDictationPanel.kt, WhisperTranscriber.kt) are LF in the working tree with core.autocrlf=true; content-neutral, noted for review."
+  },
+  "identities": {
+    "reviewedSourceLedger": {
+      "path": "docs/reports/evidence/phase-08-capture-fix-source-hashes-final.json",
+      "sha256": "f31d876cb07d909f6ab18fde1f75e84d15902833b2a21bf66d35a4533d8b57e3",
+      "note": "34 public entries; all matched the working tree during this review; none ignored"
+    },
+    "apkLedger": {
+      "path": "docs/reports/evidence/phase-08-capture-fix-artifacts-final.json",
+      "sha256": "161c0fa4b01a9ce21b68a6943a021ab3da93fd0e18ae42be09aa4e88275d7673"
+    },
+    "apksFromReports": {
+      "installedX86_64DataQa": "7300f2aefeb8d5f90882655d46435b100a12531e16a7c70df4f81230f4160454",
+      "diagnosticTestApk": "abb103af… (see APK ledger)",
+      "arm64DataQaForPhoneChecklist": "8e23905948af3ad89563dacdd0e988d997b912505c41251ddf85b5f0dccf2335",
+      "note": "APKs are build outputs and are not part of the PR."
+    },
+    "sender": {
+      "path": "scripts/phase08-emulator-audio.mjs",
+      "sha256": "a5231b7b4acd700107ffed234f58781cb5c83e56f1daee87a51f6189fe86c95d"
+    },
+    "privacyHostTest": {
+      "path": "scripts/phase08-emulator-audio-privacy.test.mjs",
+      "sha256": "5f71ee42b9316ea0d0df0741ef3e3c73ddb062ae64e693e47e1c2a2ca4f1ac05"
+    },
+    "authoritativeDocs": [
+      {
+        "path": "docs/reports/CURRENT-STATUS.md",
+        "sha256": "78278deeb143d28d1edccb97db0c69173fba2ebf100b3fd122e2499472891923"
+      },
+      {
+        "path": "docs/reports/phase-08-report.md",
+        "sha256": "20c53a8e92f98f49dbcbc9f48700e6fb5a209531e95ab6632fd44bcecb71d647"
+      },
+      {
+        "path": "docs/reports/phase-08-offline-core-release-gate.md",
+        "sha256": "ff82ccf620c6bbf00324e2ecbb3a9168b209b275fe4734e39c9601ac2ef87705"
+      },
+      {
+        "path": "docs/reports/phase-08-stable-emulator-report.md",
+        "sha256": "e123e5dd7ec60b930a7414205c5c9169a68b582ef1d503048cfd93250bc197d0"
+      },
+      {
+        "path": "docs/reports/evidence/phase-08-abort-classification-fix.json",
+        "sha256": "5f253000f42dfad35ccac9bcf4a8ec67bb25cbe4a8c590cb41ae46799b3edbeb"
+      },
+      {
+        "path": "docs/reports/evidence/phase-08-microphone-state-emulator-source-review.json",
+        "sha256": "597c8d1000fc4f74ab5364b13080512ea4ff8ca7c2e594fdc1fab92f647a6806"
+      },
+      {
+        "path": "docs/reports/evidence/phase-08-stable-case-ledger-v2.json",
+        "sha256": "78df88fabc75b788a9bb656ece1d6faf119a12d6eacb2fe97f384466b1195182"
+      },
+      {
+        "path": "docs/reports/evidence/phase-08-emulator-expansion-matrix.json",
+        "sha256": "bca58789cee363d3231f1d1eb578588b92496bdf93d81c5fb0ea7a10edbcf3d9"
+      },
+      {
+        "path": "qa/PHASE-08-MANUAL.md",
+        "sha256": "7abde61045a9f664e79a2f5fc15f95bc3300836283a682cb6d25459d3862f325"
+      }
+    ]
+  },
+  "authorship": {
+    "gitUserName": {
+      "global": "matches the GitHub account's public profile name",
+      "repoLocal": "CyberSphinxxx (overrides global in this repository)",
+      "effectiveInThisRepo": "CyberSphinxxx"
+    },
+    "gitUserEmail": "configured; identical in global and repo-local scope; value not recorded here",
+    "githubAccount": {
+      "login": "CyberSphinxxx",
+      "id": 138680080,
+      "verification": "GitHub associates commit 98bef88 author and committer with CyberSphinxxx, so the configured email is linked to that account",
+      "credentialManagerAccounts": [
+        "CyberSphinxxx"
+      ],
+      "githubCli": "not installed; no authenticated API session was used",
+      "pushAccessObserved": "the same account pushed main and created codex/phase-07-audit-hardening on 2026-10-27"
+    },
+    "recentCommitTrailers": "No Co-Authored-By trailers in the last 20 commits",
+    "commitSigning": "commit.gpgsign unset; existing commits unsigned",
+    "readiness": "READY_WITH_OWNER_CONFIRMATION",
+    "ownerAttention": [
+      "Confirm whether commits should show the handle (repo-local user.name) or the real name (global user.name). No configuration was changed.",
+      "The PR author will be whichever account opens it; no PR author is assigned by this task."
+    ]
+  },
+  "blockersBeforePublication": [
+    "Owner's explicit authorization to stage, commit, push and open a draft PR, plus a head branch name.",
+    "A fresh read-only base re-check (main at 98bef88 or a reviewed descendant).",
+    "Coordination with the agy-development-cont owner.",
+    "Correct the stale CURRENT-STATUS remote note (main and push state).",
+    "Decide the evidence volume (3,416 evidence files, about 12.6 MiB of new files) and review host-path and session-tool wording.",
+    "Confirm commit identity."
+  ],
+  "gates": {
+    "phase08": "BLOCKED",
+    "spokenAckReliabilityA03V03": "UNRESOLVED",
+    "microphoneFlagAnomaly": "SOURCE_SUPPORTED_EXPLANATION; UNCONFIRMED_ON_INSTALLED_BINARIES",
+    "hostCapture": "UNPROVEN",
+    "failClosedGuards": "UNCHANGED",
+    "lowLoadComparison": "NOT_RUN",
+    "frozenLowLoadPlan": "DOES_NOT_DESCRIBE_MODIFIED_CLASSIFIER",
+    "v05": "OWNER_DEFERRED",
+    "physicalRows": "48 NOT_RUN",
+    "humanAcceptance": "NOT_SIGNED",
+    "phase09": "NOT_APPROVED"
+  },
+  "actionsNotTaken": {
+    "staged": false,
+    "committed": false,
+    "pushed": false,
+    "prOpened": false,
+    "fetchedOrUpdatedRefs": false,
+    "branchCreated": false,
+    "gitConfigChanged": false,
+    "emulatorOrDeviceUsed": false,
+    "testsOrBuildsRun": false,
+    "legacyRepoTouched": false
+  }
+}

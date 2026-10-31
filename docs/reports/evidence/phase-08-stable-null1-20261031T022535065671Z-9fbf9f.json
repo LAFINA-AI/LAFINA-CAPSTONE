@@ -1,0 +1,264 @@
+{
+  "kind": "PHASE08_STABLE_AUDIO_BACKEND_HAL_RECORDED_FIVE_TRIAL_COHORT",
+  "runningEngineAudioNone": true,
+  "hostAudioInputAllowed": false,
+  "excludedFromFrozenComparison": false,
+  "status": "COMPLETED_WITH_FAILURES",
+  "startedAtUtc": "2026-10-31T02:25:35.066066+00:00",
+  "avd": "LAFINA_Phase08_API35",
+  "api": 35,
+  "runId": "st20261031",
+  "physicalDeviceValidation": "NOT_RUN",
+  "signedHumanReview": false,
+  "attempts": [
+    {
+      "case": "A03",
+      "trial": 1,
+      "status": "FAIL",
+      "startedAtUtc": "2026-10-31T02:25:41.451378+00:00",
+      "physicalAcceptance": "NOT_RUN",
+      "restoration": "VERIFIED_WORKING_TEST_BASELINE",
+      "controllerEvidence": "docs/reports/evidence/phase-08-emulator-expansion/st20261031/20261031T022541688282Z-A03-microphone.json",
+      "controllerEvidenceSha256": "21876e664d27aab311dc2643a25e0af221e412e70f45f2c4b1dbfa3d60151953",
+      "sourceStatus": "FAIL_OR_UNSUPPORTED_REVIEW_REQUIRED",
+      "sourceOutcome": "NOT_SUBMITTED",
+      "guestAudioHal": {
+        "kind": "GUEST_AUDIO_HAL_CAPTURE_INTEGRITY",
+        "case": "A03",
+        "captureLinesInTrialWindow": 0,
+        "rawAudioRead": false,
+        "transcriptRead": false,
+        "affectsTrialStatus": false,
+        "status": "NO_SINGLE_CAPTURE_LINE",
+        "guestMinusHostClockOffsetSeconds": -1.089
+      },
+      "originalNonDiagnosticRowsEqual": true,
+      "fullPreferencePayloadEqual": true,
+      "permissionsAppOpsAndRadioSettingsEqual": true,
+      "activeJobs": 0,
+      "registrations": 0,
+      "hostMicrophoneDisabledAtEnd": true,
+      "completedAtUtc": "2026-10-31T02:27:03.910254+00:00"
+    },
+    {
+      "case": "V03",
+      "trial": 1,
+      "status": "FAIL",
+      "startedAtUtc": "2026-10-31T02:27:09.956302+00:00",
+      "physicalAcceptance": "NOT_RUN",
+      "restoration": "VERIFIED_WORKING_TEST_BASELINE",
+      "controllerEvidence": "docs/reports/evidence/phase-08-emulator-expansion/st20261031/20261031T022710205654Z-V03-microphone.json",
+      "controllerEvidenceSha256": "3e42ebbf12ac64fa33122e433fcf93cf48e8670e7b6fcd391787d75a7f9693e6",
+      "sourceStatus": "FAIL_OR_UNSUPPORTED_REVIEW_REQUIRED",
+      "sourceOutcome": "SOURCE_RPC_COMPLETED_HOST_OFF",
+      "guestAudioHal": {
+        "kind": "GUEST_AUDIO_HAL_CAPTURE_INTEGRITY",
+        "case": "V03",
+        "captureLinesInTrialWindow": 1,
+        "rawAudioRead": false,
+        "transcriptRead": false,
+        "affectsTrialStatus": false,
+        "status": "OBSERVED",
+        "captureFrames": 80128,
+        "captureNonzeroSamples": 31382,
+        "capturedEnergy": 338.3778,
+        "pinnedFixtureEnergyAtTransportGain": 84.5944,
+        "energyRatioToFixtureAtTransportGain": 4.000003,
+        "lateSilenceInsertions": 80,
+        "lateSilenceInsertedMs": 1280.0,
+        "captureReadIoErrors": 11,
+        "playbackWriteIoErrors": 0,
+        "playbackDeviceStallCorrections": 0,
+        "anyVirtualAudioDeviceIoError": true,
+        "windowDefinition": "capture line minus frames/16000 s minus 0.5 s, guest clock",
+        "guestMinusHostClockOffsetSeconds": -1.089
+      },
+      "originalNonDiagnosticRowsEqual": true,
+      "fullPreferencePayloadEqual": true,
+      "permissionsAppOpsAndRadioSettingsEqual": true,
+      "activeJobs": 0,
+      "registrations": 0,
+      "hostMicrophoneDisabledAtEnd": true,
+      "completedAtUtc": "2026-10-31T02:28:46.165511+00:00"
+    },
+    {
+      "case": "V03",
+      "trial": 2,
+      "status": "FAIL",
+      "startedAtUtc": "2026-10-31T02:28:53.531882+00:00",
+      "physicalAcceptance": "NOT_RUN",
+      "restoration": "VERIFIED_WORKING_TEST_BASELINE",
+      "controllerEvidence": "docs/reports/evidence/phase-08-emulator-expansion/st20261031/20261031T022854123198Z-V03-microphone.json",
+      "controllerEvidenceSha256": "a720ffba7606f5f2c23371b2e8d778ed58fd0eee30a25a48c2ba53f1f18c42a5",
+      "sourceStatus": "FAIL_OR_UNSUPPORTED_REVIEW_REQUIRED",
+      "sourceOutcome": "SOURCE_RPC_ABORTED",
+      "guestAudioHal": {
+        "kind": "GUEST_AUDIO_HAL_CAPTURE_INTEGRITY",
+        "case": "V03",
+        "captureLinesInTrialWindow": 1,
+        "rawAudioRead": false,
+        "transcriptRead": false,
+        "affectsTrialStatus": false,
+        "status": "OBSERVED",
+        "captureFrames": 65536,
+        "captureNonzeroSamples": 29352,
+        "capturedEnergy": 338.3777,
+        "pinnedFixtureEnergyAtTransportGain": 84.5944,
+        "energyRatioToFixtureAtTransportGain": 4.000001,
+        "lateSilenceInsertions": 1,
+        "lateSilenceInsertedMs": 16.0,
+        "captureReadIoErrors": 0,
+        "playbackWriteIoErrors": 0,
+        "playbackDeviceStallCorrections": 0,
+        "anyVirtualAudioDeviceIoError": false,
+        "windowDefinition": "capture line minus frames/16000 s minus 0.5 s, guest clock",
+        "guestMinusHostClockOffsetSeconds": -1.04
+      },
+      "originalNonDiagnosticRowsEqual": true,
+      "fullPreferencePayloadEqual": true,
+      "permissionsAppOpsAndRadioSettingsEqual": true,
+      "activeJobs": 0,
+      "registrations": 0,
+      "hostMicrophoneDisabledAtEnd": true,
+      "completedAtUtc": "2026-10-31T02:30:38.772978+00:00"
+    },
+    {
+      "case": "V04",
+      "trial": 1,
+      "status": "PASS",
+      "startedAtUtc": "2026-10-31T02:30:51.680587+00:00",
+      "physicalAcceptance": "NOT_RUN",
+      "restoration": "VERIFIED_WORKING_TEST_BASELINE",
+      "controllerEvidence": "docs/reports/evidence/phase-08-emulator-expansion/st20261031/20261031T023052643145Z-V04-microphone.json",
+      "controllerEvidenceSha256": "88a11fee48917385a85d688f21a1d320244c1e99a7c2f1f9064e2b693ca0fd31",
+      "sourceStatus": "PASS",
+      "sourceOutcome": "SOURCE_RPC_COMPLETED_HOST_OFF",
+      "guestAudioHal": {
+        "kind": "GUEST_AUDIO_HAL_CAPTURE_INTEGRITY",
+        "case": "V04",
+        "captureLinesInTrialWindow": 1,
+        "rawAudioRead": false,
+        "transcriptRead": false,
+        "affectsTrialStatus": false,
+        "status": "OBSERVED",
+        "captureFrames": 76800,
+        "captureNonzeroSamples": 29541,
+        "capturedEnergy": 334.4768,
+        "pinnedFixtureEnergyAtTransportGain": 83.6192,
+        "energyRatioToFixtureAtTransportGain": 4.000002,
+        "lateSilenceInsertions": 1,
+        "lateSilenceInsertedMs": 16.0,
+        "captureReadIoErrors": 0,
+        "playbackWriteIoErrors": 0,
+        "playbackDeviceStallCorrections": 0,
+        "anyVirtualAudioDeviceIoError": false,
+        "windowDefinition": "capture line minus frames/16000 s minus 0.5 s, guest clock",
+        "guestMinusHostClockOffsetSeconds": -1.09
+      },
+      "originalNonDiagnosticRowsEqual": true,
+      "fullPreferencePayloadEqual": true,
+      "permissionsAppOpsAndRadioSettingsEqual": true,
+      "activeJobs": 0,
+      "registrations": 0,
+      "hostMicrophoneDisabledAtEnd": true,
+      "completedAtUtc": "2026-10-31T02:32:34.920574+00:00"
+    },
+    {
+      "case": "V04",
+      "trial": 2,
+      "status": "PASS",
+      "startedAtUtc": "2026-10-31T02:32:41.090561+00:00",
+      "physicalAcceptance": "NOT_RUN",
+      "restoration": "VERIFIED_WORKING_TEST_BASELINE",
+      "controllerEvidence": "docs/reports/evidence/phase-08-emulator-expansion/st20261031/20261031T023241328045Z-V04-microphone.json",
+      "controllerEvidenceSha256": "be10ae5c16ba8069ecb78e3f53f14d4f1aa544c3b452da664d8277cae730029a",
+      "sourceStatus": "PASS",
+      "sourceOutcome": "SOURCE_RPC_COMPLETED_HOST_OFF",
+      "guestAudioHal": {
+        "kind": "GUEST_AUDIO_HAL_CAPTURE_INTEGRITY",
+        "case": "V04",
+        "captureLinesInTrialWindow": 1,
+        "rawAudioRead": false,
+        "transcriptRead": false,
+        "affectsTrialStatus": false,
+        "status": "OBSERVED",
+        "captureFrames": 77824,
+        "captureNonzeroSamples": 30598,
+        "capturedEnergy": 334.4768,
+        "pinnedFixtureEnergyAtTransportGain": 83.6192,
+        "energyRatioToFixtureAtTransportGain": 4.000002,
+        "lateSilenceInsertions": 1,
+        "lateSilenceInsertedMs": 16.0,
+        "captureReadIoErrors": 0,
+        "playbackWriteIoErrors": 0,
+        "playbackDeviceStallCorrections": 0,
+        "anyVirtualAudioDeviceIoError": false,
+        "windowDefinition": "capture line minus frames/16000 s minus 0.5 s, guest clock",
+        "guestMinusHostClockOffsetSeconds": -1.087
+      },
+      "originalNonDiagnosticRowsEqual": true,
+      "fullPreferencePayloadEqual": true,
+      "permissionsAppOpsAndRadioSettingsEqual": true,
+      "activeJobs": 0,
+      "registrations": 0,
+      "hostMicrophoneDisabledAtEnd": true,
+      "completedAtUtc": "2026-10-31T02:34:22.366285+00:00"
+    }
+  ],
+  "plannedOrder": [
+    [
+      "A03",
+      1
+    ],
+    [
+      "V03",
+      1
+    ],
+    [
+      "V03",
+      2
+    ],
+    [
+      "V04",
+      1
+    ],
+    [
+      "V04",
+      2
+    ]
+  ],
+  "originalAvdTargeted": false,
+  "diagnosticRawHypothesesEnabledForAllTrials": true,
+  "harnessSources": [
+    {
+      "path": ".local/phase08-stable-hal-cohort.py",
+      "sha256": "3a40225004622d1ed0385b548bc1e468b2e5db7183472dedaf10e0854fb79a53"
+    },
+    {
+      "path": ".local/phase08_hal_integrity.py",
+      "sha256": "3cd6db5b9df180e110f083eb3a2dcd19e861393726387adeb4ccc1704f74ec36"
+    },
+    {
+      "path": ".local/phase08-stable-sdk-cohort.py",
+      "sha256": "e05b7daebbb24238bd51a8503a3e12bf09ecfcfe53c1a097c974b780bb1eee84"
+    },
+    {
+      "path": ".local/phase08-stable-mic.py",
+      "sha256": "2f8277c226f136271620e57aa0654065cd27ec7e668c234fb5d8fa56307ceb6a"
+    },
+    {
+      "path": ".local/phase08-capture-fix-reviewed-mic.py",
+      "sha256": "8aef5281eb541fd2bafdbf323e2c0e3a14ead86aac37e3b68fb355c10f81c4c9"
+    },
+    {
+      "path": "scripts/phase08-emulator-audio.mjs",
+      "sha256": "a5231b7b4acd700107ffed234f58781cb5c83e56f1daee87a51f6189fe86c95d"
+    }
+  ],
+  "counts": {
+    "PASS": 2,
+    "FAIL": 3
+  },
+  "completedAtUtc": "2026-10-31T02:34:22.366971+00:00",
+  "privateEvidence": ".local/phase08-stable-null1-20261031T022535065671Z-9fbf9f"
+}

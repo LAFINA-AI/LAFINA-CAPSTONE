@@ -1,0 +1,245 @@
+{
+  "kind": "PHASE08_FINAL_HOST_INTEGRITY",
+  "scope": "INTEGRITY_ONLY",
+  "status": "PASS",
+  "startedAtUtc": "2026-10-30T09:22:26.912729+00:00",
+  "phaseNotPassed": true,
+  "stableOfflineReleaseApproved": false,
+  "physicalDeviceValidation": "NOT_RUN",
+  "liveHumanSpeechCertified": false,
+  "checks": [
+    {
+      "check": "source_and_apk_ledgers",
+      "status": "PASS",
+      "sourceLedger": "docs/reports/evidence/phase-08-input-loss-source-hashes-observability.json",
+      "artifactLedger": "docs/reports/evidence/phase-08-input-loss-artifacts-final.json",
+      "sourceFilesVerified": 31,
+      "apkFilesVerified": 7,
+      "candidateSha256": "7300f2aefeb8d5f90882655d46435b100a12531e16a7c70df4f81230f4160454"
+    },
+    {
+      "check": "final_restoration_and_closed_matrix",
+      "status": "PASS",
+      "matrixStatus": "CLOSED_EMULATOR_EVIDENCE_WITH_FAILURES_PHYSICAL_PENDING",
+      "statusCountsVerified": {
+        "PASS": 44,
+        "FAIL": 3,
+        "NOT_RUN": 1
+      },
+      "physicalCountsZero": true,
+      "candidateHashMatches": true,
+      "installedTargetMatches": true,
+      "originalAsrCaseOutcomes": {
+        "A03": "FAIL",
+        "A06": "PASS"
+      },
+      "historicalFailuresPreserved": true,
+      "caseSummary": "docs/reports/evidence/phase-08-input-loss-case-ledger.json",
+      "caseSummarySha256": "1f534f43ec4fc77d2bf4ff457f1263f7a92a9f987028c1827a8dfcbffc3d629b",
+      "all47RunnableCasesRepresented": true,
+      "phaseNotPassed": true
+    },
+    {
+      "check": "public_json_syntax",
+      "status": "PASS",
+      "publicJsonFilesParsed": 1185,
+      "historicalNonterminalRecordsRetained": 7
+    },
+    {
+      "check": "current_document_links_and_gates",
+      "status": "PASS",
+      "documentsVerified": [
+        {
+          "path": "docs/02-ARCHITECTURE.md",
+          "sha256": "f62d90ec147593b57645e936e045a380f74789bf5cc3a204704394168d70441e",
+          "localLinksChecked": 32
+        },
+        {
+          "path": "docs/benchmarks/phase-08-device-protocol.md",
+          "sha256": "07104649654adc9fe063eca0bbc0573806bb969c228ae72d542aad1464671ec5",
+          "localLinksChecked": 1
+        },
+        {
+          "path": "docs/benchmarks/phase-08-emulator-voice-protocol.md",
+          "sha256": "694f017de352f454727c673504109d8f8a28ba415959c6dc7689e4cc18495fd5",
+          "localLinksChecked": 6
+        },
+        {
+          "path": "docs/decisions/ADR-023-foreground-reminder-response.md",
+          "sha256": "0ccefb6a81b46bdb408f871d3613c566caa1719e3edeb9a7114e460df990dc96",
+          "localLinksChecked": 4
+        },
+        {
+          "path": "docs/decisions/ADR-024-reminder-speech-vocabulary.md",
+          "sha256": "1e1a4882c1912049c47d3a02223b3378c1548d553fafcc0573186a2deb81f5a5",
+          "localLinksChecked": 11
+        },
+        {
+          "path": "docs/phase-08-offline-loop.md",
+          "sha256": "1026f0bc4db99c427ac3f096f58d470ad6b3db859c059dfd9bfe44361041799a",
+          "localLinksChecked": 12
+        },
+        {
+          "path": "docs/reports/CURRENT-STATUS.md",
+          "sha256": "c4a5a988919d83a9e3b65622683d66bc75483890a1520555bbddc86128afaa48",
+          "localLinksChecked": 25
+        },
+        {
+          "path": "docs/reports/evidence/phase-08-notification-harness-finding.md",
+          "sha256": "1248d7b4aff1853d0e4227035615bcf050e66de552c7c914cc9e13b77af5e606",
+          "localLinksChecked": 4
+        },
+        {
+          "path": "docs/reports/evidence/phase-08-remaining-audio-transport-finding.md",
+          "sha256": "5d4658dd21e01a0448d66c1d594fc634c4942941a694d93627185873c113e37a",
+          "localLinksChecked": 9
+        },
+        {
+          "path": "docs/reports/evidence/phase-08-reminder-reopen-finding.md",
+          "sha256": "e6f2f45d7826eb4ca4fb5d72ca6593f2eded3cfd9a59e7b2fec9899084825d13",
+          "localLinksChecked": 11
+        },
+        {
+          "path": "docs/reports/phase-08-emulator-expansion-report.md",
+          "sha256": "6537a4c82ff5de3eea7d20e8e964269fc6f8f676cf49e9c952621d99047c6068",
+          "localLinksChecked": 43
+        },
+        {
+          "path": "docs/reports/phase-08-input-loss-report.md",
+          "sha256": "09520dbc945f8bd5d568d40312a1f0a65548c100acb09843089746691699a625",
+          "localLinksChecked": 39
+        },
+        {
+          "path": "docs/reports/phase-08-offline-core-release-gate.md",
+          "sha256": "7067d3eaa2842e8b6966b4391cab95ce662b82832e5bdd7fe6408503a90837c8",
+          "localLinksChecked": 5
+        },
+        {
+          "path": "docs/reports/phase-08-remaining-emulator-report.md",
+          "sha256": "813d8c6f1c1dfe54e05d18083499bfbbd5e573dba9676d6255ffaaf704544eee",
+          "localLinksChecked": 42
+        },
+        {
+          "path": "docs/reports/phase-08-report.md",
+          "sha256": "18882888f772ea325906253800f55000bd4e2a3c8c6a7eb314d2cdc65ceac618",
+          "localLinksChecked": 49
+        },
+        {
+          "path": "docs/reports/phase-08-speech-correction-report.md",
+          "sha256": "69a9281d27ae82ef6f89e43d6f442151a4284d648ff13b35f67d27d1fd1ec84a",
+          "localLinksChecked": 46
+        },
+        {
+          "path": "qa/PHASE-08-EMULATOR-EXPANSION.md",
+          "sha256": "65ac1ee36cf422cee6445303483c9a1db12f8ece4f590a8da57ec0deef001ed4",
+          "localLinksChecked": 6
+        },
+        {
+          "path": "qa/PHASE-08-EXECUTION.md",
+          "sha256": "0321ed5d985ab6456dc4688dcea63a0620d4725d1a4add30115515537494e1b1",
+          "localLinksChecked": 8
+        },
+        {
+          "path": "qa/PHASE-08-MANUAL.md",
+          "sha256": "e4d54d162b244fb11d145a9f6628c3626e8b02a06adb0ea76a772b0937e13a80",
+          "localLinksChecked": 10
+        },
+        {
+          "path": "qa/REQUIREMENTS-MATRIX.md",
+          "sha256": "f15e1625470266977805bd39559808a1a25f37dbc5b2595ce7f5b0cd8e3abf19",
+          "localLinksChecked": 13
+        },
+        {
+          "path": "README.md",
+          "sha256": "534b3f6682802acda6d75864435d6dc5f1ef25eb29efa1a9dcc23241a89b183c",
+          "localLinksChecked": 48
+        }
+      ],
+      "physicalRowsStillNotRun": 48,
+      "humanGateUnsigned": true
+    },
+    {
+      "check": "git_identity_whitespace_and_artifact_names",
+      "status": "PASS",
+      "branch": "codex/phase-07-audit-hardening",
+      "head": "98bef88c3ae0fabee677c1466417fc34c0af738c",
+      "dirtyWorkingTreeExpected": true,
+      "gitDiffCheckPassed": true,
+      "gitVisiblePathsScreened": 3168,
+      "filenameScreenOnly": true,
+      "ignoredPrivateArtifactsExcludedByGit": true
+    }
+  ],
+  "errors": [],
+  "limits": [
+    "Integrity does not mean all emulator scenarios passed or that the offline phase passed.",
+    "Historical nonterminal JSON labels are retained, not treated as currently running processes.",
+    "Filename screening is not a content-level secret or personal-data audit.",
+    "No device interaction, build/test rerun, publication or source rewrite occurs here."
+  ],
+  "priorAsrFailuresPreserved": [
+    "A03",
+    "A06"
+  ],
+  "originalAsrCaseOutcomes": {
+    "A03": "FAIL",
+    "A06": "PASS"
+  },
+  "physicalSpeechAcceptance": "NOT_RUN",
+  "matrixCounts": {
+    "alarmCases": 36,
+    "voiceCases": 12,
+    "emulatorPass": 44,
+    "emulatorFail": 3,
+    "emulatorNotRun": 1,
+    "certifiedPhysicalAlarms": 0,
+    "certifiedLiveHumanVoiceInteractions": 0
+  },
+  "freshCaseSummary": "docs/reports/evidence/phase-08-input-loss-case-ledger.json",
+  "freshCaseCounts": {
+    "PASS": 44,
+    "FAIL": 3,
+    "NOT_RUN": 1
+  },
+  "v05OwnerDeferred": true,
+  "historicalNonterminalEvidenceRecords": [
+    {
+      "path": "docs/reports/evidence/phase-08-emulator-expansion/ex20261028/20261029T151024150749Z-41f0e6f4-input-loss-debug-reboot-2.json",
+      "recordedStatus": "RUNNING",
+      "interpretation": "Historical unfinished evidence record; no live-process claim"
+    },
+    {
+      "path": "docs/reports/evidence/phase-08-emulator-expansion/ex20261028/20261030T051010522054Z-942b5cdc-input-loss-serial-dispatch-readonly-snapshots.json",
+      "recordedStatus": "RUNNING",
+      "interpretation": "Historical unfinished evidence record; no live-process claim"
+    },
+    {
+      "path": "docs/reports/evidence/phase-08-emulator-expansion/ex20261028/20261030T051327539958Z-b622d6eb-input-loss-serial-dispatch-readonly-snapshots.json",
+      "recordedStatus": "RUNNING",
+      "interpretation": "Historical unfinished evidence record; no live-process claim"
+    },
+    {
+      "path": "docs/reports/evidence/phase-08-emulator-expansion/ex20261028/20261030T054555272852Z-0be8d565-wait.json",
+      "recordedStatus": "RUNNING",
+      "interpretation": "Historical unfinished evidence record; no live-process claim"
+    },
+    {
+      "path": "docs/reports/evidence/phase-08-input-loss-all-cases-final-clean-resumed-20261030T051327524941Z-a645d7.json",
+      "recordedStatus": "RUNNING",
+      "interpretation": "Historical unfinished evidence record; no live-process claim"
+    },
+    {
+      "path": "docs/reports/evidence/phase-08-input-loss-debug-reboot-2.json",
+      "recordedStatus": "RUNNING",
+      "interpretation": "Historical unfinished evidence record; no live-process claim"
+    },
+    {
+      "path": "docs/reports/evidence/phase-08-remaining-case-ledger-interim.json",
+      "recordedStatus": "RUNNING",
+      "interpretation": "Historical unfinished evidence record; no live-process claim"
+    }
+  ],
+  "missingLocalMarkdownLinks": [],
+  "suspiciousGitVisibleArtifactPaths": [],
+  "completedAtUtc": "2026-10-30T09:22:29.062668+00:00"
+}

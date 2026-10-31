@@ -1,0 +1,66 @@
+{
+  "kind": "PHASE08_STABLE_PRESERVED_DATA_COLD_BOOT",
+  "status": "PASS",
+  "startedAtUtc": "2026-10-30T23:36:03.343078+00:00",
+  "avd": "LAFINA_Phase08_API35",
+  "api": 35,
+  "physicalDeviceValidation": "NOT_RUN",
+  "originalAvdTargeted": false,
+  "noInstallUninstallResetOrDataReplacement": true,
+  "events": [
+    {
+      "event": "stable_guest_stopped_preserving_userdata",
+      "atUtc": "2026-10-30T23:36:09.004300+00:00"
+    },
+    {
+      "event": "single_stable_cold_launch",
+      "atUtc": "2026-10-30T23:36:17.020385+00:00",
+      "pid": 25000
+    },
+    {
+      "event": "waiting_for_stable_boot",
+      "atUtc": "2026-10-30T23:36:42.680802+00:00",
+      "elapsedSeconds": 25.7
+    },
+    {
+      "event": "waiting_for_stable_boot",
+      "atUtc": "2026-10-30T23:37:09.332355+00:00",
+      "elapsedSeconds": 52.3
+    }
+  ],
+  "beforeSnapshot": {
+    "privatePath": ".local/phase08-emulator-suite/st20261031/20261030T233605014826Z-3de378af/snapshot-1/snapshot.sqlite",
+    "sha256": "bae393db9a962a529419fe55a658858339d498df325e22843e4f9fe476b3f687"
+  },
+  "emulatorArguments": [
+    "-avd",
+    "LAFINA_Phase08_API35",
+    "-port",
+    "5554",
+    "-no-window",
+    "-no-snapshot-load",
+    "-no-snapshot-save",
+    "-gpu",
+    "host",
+    "-memory",
+    "2048",
+    "-cores",
+    "4",
+    "-grpc",
+    "8554",
+    "-grpc-use-token"
+  ],
+  "originalNonDiagnosticRowsEqual": true,
+  "fullPreferencePayloadEqual": true,
+  "nativeDeliveryEqual": true,
+  "radiosAndAutomaticTimeEqual": true,
+  "installedApksEqual": true,
+  "installedApkHashes": {
+    "com.lafina.capstone": "7300f2aefeb8d5f90882655d46435b100a12531e16a7c70df4f81230f4160454",
+    "com.lafina.capstone.test": "abb103afe1dab0bef0646734d126391a355cf2a1a7fb664401544db57b71b0a9"
+  },
+  "hostMicrophoneDisabledAfterBootAndAtEnd": true,
+  "activeJobs": 0,
+  "registrations": 0,
+  "completedAtUtc": "2026-10-30T23:37:52.739305+00:00"
+}

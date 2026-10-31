@@ -1,0 +1,63 @@
+{
+  "schemaVersion": 1,
+  "runId": "ex20261028",
+  "invocation": "20261029T074239314573Z-c93aa95c",
+  "command": "configure",
+  "startedAt": "2026-10-29T07:42:39.315888+00:00",
+  "status": "PASS",
+  "scope": "Explicit emulator UI driver plus independent read-only SQLite snapshots",
+  "physicalAcceptance": "HUMAN_REQUIRED",
+  "events": [
+    {
+      "at": "2026-10-29T07:42:39.317021+00:00",
+      "event": "invocation_started"
+    },
+    {
+      "at": "2026-10-29T07:43:04.442019+00:00",
+      "event": "ui_driver",
+      "kind": "OPT_IN_SYNTHETIC_FIXTURE_UI_DRIVER",
+      "mode": "preferences",
+      "outcome": "PASS",
+      "stages": [
+        "activity_launch_requested",
+        "saved_preferences_open",
+        "only_lead_reply_quiet_controls_saved"
+      ],
+      "launch": "DIRECT_PRIVATE_ACTIVITY_INTENT_NOT_NOTIFICATION_TAP",
+      "limits": "UI only; root verifies SQL separately. No live speech, audio or physical-phone acceptance."
+    },
+    {
+      "at": "2026-10-29T07:43:05.521011+00:00",
+      "event": "only_requested_preference_keys_changed",
+      "keys": [
+        "leadMinutes",
+        "quietHoursEnabled",
+        "replyMode"
+      ]
+    },
+    {
+      "at": "2026-10-29T07:43:18.600476+00:00",
+      "event": "ui_driver",
+      "kind": "OPT_IN_SYNTHETIC_FIXTURE_UI_DRIVER",
+      "mode": "delivery",
+      "outcome": "PASS",
+      "stages": [
+        "activity_launch_requested",
+        "saved_preferences_open",
+        "explicit_delivery_and_full_screen_preferences_applied"
+      ],
+      "launch": "DIRECT_PRIVATE_ACTIVITY_INTENT_NOT_NOTIFICATION_TAP",
+      "limits": "UI only; root verifies SQL separately. No live speech, audio or physical-phone acceptance."
+    },
+    {
+      "at": "2026-10-29T07:43:19.123379+00:00",
+      "event": "requested_native_delivery_flags_verified"
+    }
+  ],
+  "limits": [
+    "Direct private Activity intents do not certify actual notification taps or full-screen delivery.",
+    "No live microphone, audibility, physical phone, OEM or battery acceptance is implied."
+  ],
+  "completedAt": "2026-10-29T07:43:19.123931+00:00",
+  "passScope": "Requested bounded runner operation only; inspect case assertions and physical gates separately"
+}

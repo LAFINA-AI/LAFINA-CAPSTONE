@@ -1,0 +1,125 @@
+{
+  "kind": "FILTERED_EXISTING_DATAQA_CAPTURE_STATS",
+  "cohort": "docs/reports/evidence/phase-08-capture-fix-v2-cold1-20261030T104102270535Z-4b24ea.json",
+  "cohortSha256": "9679bc81fd282ee1ef4161b7a84e1ee726881ab34ca9489a5c3e53474ffbcfe8",
+  "rows": [
+    {
+      "case": "A03",
+      "trial": 1,
+      "status": "PASS",
+      "capture": {
+        "epoch": 1793356971.443,
+        "frames": 68608,
+        "nonzero": 32165,
+        "rms": 0.0702285289914043
+      },
+      "sourceStreamAttempted": true,
+      "sourceGrpcStatus": 0,
+      "hostBefore": false,
+      "hostAfter": false,
+      "window": {
+        "ageMs": 370,
+        "sourceDeadlineMs": 8255,
+        "finalCheckDeadlineMs": 500,
+        "nativeGateMs": 12000
+      },
+      "controllerEvidence": "docs/reports/evidence/phase-08-emulator-expansion/ex20261028/20261030T104117569055Z-A03-microphone.json",
+      "privateNodeLogSha256": "82a3703699681b621f7e71ebccd443fc9b654d55416e02f465efb777f16a1f58"
+    },
+    {
+      "case": "V03",
+      "trial": 1,
+      "status": "FAIL",
+      "capture": {
+        "epoch": 1793357101.152,
+        "frames": 65280,
+        "nonzero": 2799,
+        "rms": 3.084100180512259e-05
+      },
+      "sourceStreamAttempted": true,
+      "sourceGrpcStatus": 0,
+      "hostBefore": false,
+      "hostAfter": false,
+      "window": {
+        "ageMs": 382,
+        "sourceDeadlineMs": 8255,
+        "finalCheckDeadlineMs": 500,
+        "nativeGateMs": 12000
+      },
+      "controllerEvidence": "docs/reports/evidence/phase-08-emulator-expansion/ex20261028/20261030T104331936934Z-V03-microphone.json",
+      "privateNodeLogSha256": "d2e798e7e067445ea27539cf596d514d0824746a68e50044a148f06255cb6134"
+    },
+    {
+      "case": "V03",
+      "trial": 2,
+      "status": "PASS",
+      "capture": {
+        "epoch": 1793357207.907,
+        "frames": 66304,
+        "nonzero": 33719,
+        "rms": 0.07143829950801481
+      },
+      "sourceStreamAttempted": true,
+      "sourceGrpcStatus": 0,
+      "hostBefore": false,
+      "hostAfter": false,
+      "window": {
+        "ageMs": 345,
+        "sourceDeadlineMs": 8255,
+        "finalCheckDeadlineMs": 500,
+        "nativeGateMs": 12000
+      },
+      "controllerEvidence": "docs/reports/evidence/phase-08-emulator-expansion/ex20261028/20261030T104527419492Z-V03-microphone.json",
+      "privateNodeLogSha256": "b67cf3b1d8214c7d48f09da04ee637892ce6097f181d28928a788720bb67028a"
+    },
+    {
+      "case": "V04",
+      "trial": 1,
+      "status": "PASS",
+      "capture": {
+        "epoch": 1793357322.179,
+        "frames": 64512,
+        "nonzero": 31153,
+        "rms": 0.07200501447483804
+      },
+      "sourceStreamAttempted": true,
+      "sourceGrpcStatus": 0,
+      "hostBefore": false,
+      "hostAfter": false,
+      "window": {
+        "ageMs": 189,
+        "sourceDeadlineMs": 8320,
+        "finalCheckDeadlineMs": 500,
+        "nativeGateMs": 12000
+      },
+      "controllerEvidence": "docs/reports/evidence/phase-08-emulator-expansion/ex20261028/20261030T104720823884Z-V04-microphone.json",
+      "privateNodeLogSha256": "c7f27b7e1eddb9d2cce1f641011ec8bbc9c1f9cbe33dfd34b63885580dc6e18d"
+    },
+    {
+      "case": "V04",
+      "trial": 2,
+      "status": "PASS",
+      "capture": {
+        "epoch": 1793357432.292,
+        "frames": 65280,
+        "nonzero": 32410,
+        "rms": 0.07158020556672698
+      },
+      "sourceStreamAttempted": true,
+      "sourceGrpcStatus": 0,
+      "hostBefore": false,
+      "hostAfter": false,
+      "window": {
+        "ageMs": 125,
+        "sourceDeadlineMs": 8320,
+        "finalCheckDeadlineMs": 500,
+        "nativeGateMs": 12000
+      },
+      "controllerEvidence": "docs/reports/evidence/phase-08-emulator-expansion/ex20261028/20261030T104911242066Z-V04-microphone.json",
+      "privateNodeLogSha256": "67f40b3f9f84b2639ee18313a45a5e6cabe214758cce9c60afae1ca1300c8ae8"
+    }
+  ],
+  "privateLogSha256": "5e0038e2864301bc5f3a4ec6fd4c8f3ab9a1a542ed8b761d74d8dbd5d940cb1a",
+  "rawAudioReadOrExported": false,
+  "physicalDeviceValidation": "NOT_RUN"
+}

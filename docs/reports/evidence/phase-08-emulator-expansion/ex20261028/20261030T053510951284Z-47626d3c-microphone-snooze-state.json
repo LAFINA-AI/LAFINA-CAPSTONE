@@ -1,0 +1,30 @@
+{
+  "schemaVersion": 1,
+  "runId": "ex20261028",
+  "invocation": "20261030T053510951284Z-47626d3c",
+  "command": "microphone-snooze-state",
+  "startedAt": "2026-10-30T05:35:10.953308+00:00",
+  "status": "PASS",
+  "scope": "Explicit emulator UI driver plus independent read-only SQLite snapshots",
+  "physicalAcceptance": "HUMAN_REQUIRED",
+  "events": [
+    {
+      "at": "2026-10-30T05:35:10.955348+00:00",
+      "event": "invocation_started"
+    },
+    {
+      "at": "2026-10-30T05:35:11.799724+00:00",
+      "event": "owned_synthetic_snooze_time_verified",
+      "actionAtUtc": "2026-10-30T05:35:06.766Z",
+      "runAt": "2026-10-30T05:45:06.766Z",
+      "eventGeneration": 1,
+      "exactActionPlusTenMinutes": true
+    }
+  ],
+  "limits": [
+    "Direct private Activity intents do not certify actual notification taps or full-screen delivery.",
+    "No live microphone, audibility, physical phone, OEM or battery acceptance is implied."
+  ],
+  "completedAt": "2026-10-30T05:35:11.800586+00:00",
+  "passScope": "Owned ACTION_SNOOZE time plus exactly ten minutes; not physical delivery"
+}

@@ -1,0 +1,2 @@
+{"at": "2026-10-30T05:05:53.108772+00:00", "event": "invocation_started"}
+{"at": "2026-10-30T05:05:55.300713+00:00", "event": "operation_failed", "errorCode": "ADB_COMMAND_FAILED_PRIVATE_LOG_SAVED", "errorType": "RuntimeError"}

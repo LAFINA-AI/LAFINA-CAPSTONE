@@ -1,0 +1,155 @@
+{
+  "kind": "PHASE08_STABLE_ISOLATED_SDK_REALTIME_FIVE_TRIAL_COHORT",
+  "status": "COMPLETED_WITH_FAILURES",
+  "startedAtUtc": "2026-10-31T00:27:19.401598+00:00",
+  "avd": "LAFINA_Phase08_API35",
+  "api": 35,
+  "runId": "st20261031",
+  "physicalDeviceValidation": "NOT_RUN",
+  "signedHumanReview": false,
+  "attempts": [
+    {
+      "case": "A03",
+      "trial": 1,
+      "status": "FAIL",
+      "startedAtUtc": "2026-10-31T00:27:27.206388+00:00",
+      "physicalAcceptance": "NOT_RUN",
+      "restoration": "VERIFIED_WORKING_TEST_BASELINE",
+      "controllerEvidence": "docs/reports/evidence/phase-08-emulator-expansion/st20261031/20261031T002727823463Z-A03-microphone.json",
+      "controllerEvidenceSha256": "978f77e2fe9dbb8c1f22d269ba2133b1899d61988cb556924132adbd93021089",
+      "sourceStatus": "FAIL_OR_UNSUPPORTED_REVIEW_REQUIRED",
+      "sourceOutcome": "SOURCE_RPC_COMPLETED_HOST_OFF",
+      "originalNonDiagnosticRowsEqual": true,
+      "fullPreferencePayloadEqual": true,
+      "permissionsAppOpsAndRadioSettingsEqual": true,
+      "activeJobs": 0,
+      "registrations": 0,
+      "hostMicrophoneDisabledAtEnd": true,
+      "completedAtUtc": "2026-10-31T00:29:30.599079+00:00"
+    },
+    {
+      "case": "V03",
+      "trial": 1,
+      "status": "FAIL",
+      "startedAtUtc": "2026-10-31T00:29:38.865776+00:00",
+      "physicalAcceptance": "NOT_RUN",
+      "restoration": "VERIFIED_WORKING_TEST_BASELINE",
+      "controllerEvidence": "docs/reports/evidence/phase-08-emulator-expansion/st20261031/20261031T002939409784Z-V03-microphone.json",
+      "controllerEvidenceSha256": "68b16053336946c4f4460052674a2bc84e976749c2da36d0b123389f1a4ca0e2",
+      "sourceStatus": "FAIL_OR_UNSUPPORTED_REVIEW_REQUIRED",
+      "sourceOutcome": "SOURCE_RPC_COMPLETED_HOST_OFF",
+      "originalNonDiagnosticRowsEqual": true,
+      "fullPreferencePayloadEqual": true,
+      "permissionsAppOpsAndRadioSettingsEqual": true,
+      "activeJobs": 0,
+      "registrations": 0,
+      "hostMicrophoneDisabledAtEnd": true,
+      "completedAtUtc": "2026-10-31T00:31:22.855788+00:00"
+    },
+    {
+      "case": "V03",
+      "trial": 2,
+      "status": "FAIL",
+      "startedAtUtc": "2026-10-31T00:31:31.838561+00:00",
+      "physicalAcceptance": "NOT_RUN",
+      "restoration": "VERIFIED_WORKING_TEST_BASELINE",
+      "controllerEvidence": "docs/reports/evidence/phase-08-emulator-expansion/st20261031/20261031T003132317739Z-V03-microphone.json",
+      "controllerEvidenceSha256": "1c140d523acf75a151f51d028ea43e02b87fa85120d56b032526856071213d39",
+      "sourceStatus": "FAIL_OR_UNSUPPORTED_REVIEW_REQUIRED",
+      "sourceOutcome": "SOURCE_RPC_COMPLETED_HOST_OFF",
+      "originalNonDiagnosticRowsEqual": true,
+      "fullPreferencePayloadEqual": true,
+      "permissionsAppOpsAndRadioSettingsEqual": true,
+      "activeJobs": 0,
+      "registrations": 0,
+      "hostMicrophoneDisabledAtEnd": true,
+      "completedAtUtc": "2026-10-31T00:33:09.038890+00:00"
+    },
+    {
+      "case": "V04",
+      "trial": 1,
+      "status": "PASS",
+      "startedAtUtc": "2026-10-31T00:33:16.820283+00:00",
+      "physicalAcceptance": "NOT_RUN",
+      "restoration": "VERIFIED_WORKING_TEST_BASELINE",
+      "controllerEvidence": "docs/reports/evidence/phase-08-emulator-expansion/st20261031/20261031T003317264881Z-V04-microphone.json",
+      "controllerEvidenceSha256": "460f1bdeb10dda014baa955888caf2055f62fd0ec6fbcdab002b9b28905424cb",
+      "sourceStatus": "PASS",
+      "sourceOutcome": "SOURCE_RPC_COMPLETED_HOST_OFF",
+      "originalNonDiagnosticRowsEqual": true,
+      "fullPreferencePayloadEqual": true,
+      "permissionsAppOpsAndRadioSettingsEqual": true,
+      "activeJobs": 0,
+      "registrations": 0,
+      "hostMicrophoneDisabledAtEnd": true,
+      "completedAtUtc": "2026-10-31T00:35:06.759185+00:00"
+    },
+    {
+      "case": "V04",
+      "trial": 2,
+      "status": "PASS",
+      "startedAtUtc": "2026-10-31T00:35:15.525289+00:00",
+      "physicalAcceptance": "NOT_RUN",
+      "restoration": "VERIFIED_WORKING_TEST_BASELINE",
+      "controllerEvidence": "docs/reports/evidence/phase-08-emulator-expansion/st20261031/20261031T003515964033Z-V04-microphone.json",
+      "controllerEvidenceSha256": "b06264850ba60be4a5508181953bb92d12e1668e9935fab8b837344fb61afad1",
+      "sourceStatus": "PASS",
+      "sourceOutcome": "SOURCE_RPC_COMPLETED_HOST_OFF",
+      "originalNonDiagnosticRowsEqual": true,
+      "fullPreferencePayloadEqual": true,
+      "permissionsAppOpsAndRadioSettingsEqual": true,
+      "activeJobs": 0,
+      "registrations": 0,
+      "hostMicrophoneDisabledAtEnd": true,
+      "completedAtUtc": "2026-10-31T00:37:04.148818+00:00"
+    }
+  ],
+  "plannedOrder": [
+    [
+      "A03",
+      1
+    ],
+    [
+      "V03",
+      1
+    ],
+    [
+      "V03",
+      2
+    ],
+    [
+      "V04",
+      1
+    ],
+    [
+      "V04",
+      2
+    ]
+  ],
+  "originalAvdTargeted": false,
+  "diagnosticRawHypothesesEnabledForAllTrials": true,
+  "harnessSources": [
+    {
+      "path": ".local/phase08-stable-sdk-cohort.py",
+      "sha256": "e05b7daebbb24238bd51a8503a3e12bf09ecfcfe53c1a097c974b780bb1eee84"
+    },
+    {
+      "path": ".local/phase08-stable-mic.py",
+      "sha256": "2f8277c226f136271620e57aa0654065cd27ec7e668c234fb5d8fa56307ceb6a"
+    },
+    {
+      "path": ".local/phase08-capture-fix-reviewed-mic.py",
+      "sha256": "8aef5281eb541fd2bafdbf323e2c0e3a14ead86aac37e3b68fb355c10f81c4c9"
+    },
+    {
+      "path": "scripts/phase08-emulator-audio.mjs",
+      "sha256": "a5231b7b4acd700107ffed234f58781cb5c83e56f1daee87a51f6189fe86c95d"
+    }
+  ],
+  "counts": {
+    "PASS": 2,
+    "FAIL": 3
+  },
+  "completedAtUtc": "2026-10-31T00:37:04.150138+00:00",
+  "privateEvidence": ".local/phase08-stable-sdk1-20261031T002719400928Z-b70212"
+}

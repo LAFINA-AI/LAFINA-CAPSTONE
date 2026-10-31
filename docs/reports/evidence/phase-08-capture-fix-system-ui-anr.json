@@ -1,0 +1,17 @@
+{
+  "kind": "OBSERVED_SYSTEM_UI_ANR_PREFLIGHT_RECOVERY",
+  "status": "PASS_VISIBLE_WAIT_RESTORED_CHAT_SURFACE",
+  "atUtc": "2026-10-30T17:14:05.746657+00:00",
+  "blockedCampaign": "docs/reports/evidence/phase-08-capture-fix-reviewed-cold2-20261030T170647493480Z-20e866.json",
+  "observedDialog": "System UI isn't responding",
+  "observedDialogPackage": "android",
+  "action": "EXACT_OBSERVED_WAIT_CONTROL_ONCE",
+  "sourceRpcAttemptedInBlockedBatch": false,
+  "recordingAttemptedInBlockedBatch": false,
+  "blockedBatchAttempts": 5,
+  "privateBeforeHierarchySha256": "825cab90ef5387c7fd7c4f32e95ea5f42b603675ef3eabdeeeb4ccc8135702c4",
+  "chatControlCountAfterWait": 1,
+  "noAppDataReset": true,
+  "emulatorRestarted": false,
+  "physicalDeviceValidation": "NOT_RUN"
+}

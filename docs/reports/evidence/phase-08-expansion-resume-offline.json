@@ -1,0 +1,22 @@
+{
+  "kind": "PHASE08_RESUMED_SAVED_AVD_OFFLINE_CONDITION",
+  "atUtc": "2026-10-28T13:23:23.838321+00:00",
+  "status": "PASS",
+  "serial": "emulator-5554",
+  "metadata": {
+    "ro.product.model": "sdk_gphone16k_x86_64",
+    "ro.build.version.sdk": "37",
+    "ro.product.cpu.abi": "x86_64"
+  },
+  "pageSizeBytes": 16384,
+  "radios": {
+    "airplane_mode_on": "1",
+    "wifi_on": "0",
+    "mobile_data": "0"
+  },
+  "activeDefaultNetwork": "none",
+  "installedApkSha256": "80f6a89ab7c783a58cca55b46a668faae8a3d8d709d104aeb64b6559860b13f7",
+  "appDataCleared": false,
+  "physicalDeviceValidation": "NOT_RUN",
+  "originalRadiosRestoration": "PENDING_FINAL_CLEANUP"
+}

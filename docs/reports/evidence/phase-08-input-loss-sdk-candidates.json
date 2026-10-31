@@ -1,0 +1,40 @@
+{
+  "source": "https://dl.google.com/android/repository/repository2-3.xml",
+  "xmlSha256": "fb1bd2fcd70b6116519563f1ff96cc578381e4e29237ab05ec8920f0864a7955",
+  "windowsEmulators": [
+    {
+      "revision": {
+        "major": "37",
+        "minor": "3",
+        "micro": "6"
+      },
+      "channel": "channel-2",
+      "host": "windows",
+      "archive": {
+        "size": "460366285",
+        "checksum": {
+          "type": "sha1",
+          "value": "a77fc745377fc3224255706fd8b77a5066756047"
+        },
+        "url": "emulator-windows_x64-16696583.zip"
+      }
+    },
+    {
+      "revision": {
+        "major": "37",
+        "minor": "2",
+        "micro": "13"
+      },
+      "channel": "channel-0",
+      "host": "windows",
+      "archive": {
+        "size": "455344678",
+        "checksum": {
+          "type": "sha1",
+          "value": "4d7268aa7787c640ad892844e6c9a5f159e91ad3"
+        },
+        "url": "emulator-windows_x64-16740729.zip"
+      }
+    }
+  ]
+}

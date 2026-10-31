@@ -1,0 +1,74 @@
+{
+  "kind": "PINNED_ACK_SNOOZE_OFFSET_AND_MEASURED_FLOOR_REGRESSION",
+  "invocations": 8,
+  "realDecoderCalls": 16,
+  "rows": [
+    {
+      "path": "docs/reports/evidence/phase-08-speech-decoder-floor0-offset0.json",
+      "status": "EXACT_SYNTHETIC_REFERENCES",
+      "floorPcm": 0,
+      "paddingMs": 0,
+      "junitExecutionPassed": true,
+      "allExpectedResponsesMatched": true
+    },
+    {
+      "path": "docs/reports/evidence/phase-08-speech-decoder-floor0-offset250.json",
+      "status": "EXACT_SYNTHETIC_REFERENCES",
+      "floorPcm": 0,
+      "paddingMs": 250,
+      "junitExecutionPassed": true,
+      "allExpectedResponsesMatched": true
+    },
+    {
+      "path": "docs/reports/evidence/phase-08-speech-decoder-floor0-offset500.json",
+      "status": "EXACT_SYNTHETIC_REFERENCES",
+      "floorPcm": 0,
+      "paddingMs": 500,
+      "junitExecutionPassed": true,
+      "allExpectedResponsesMatched": true
+    },
+    {
+      "path": "docs/reports/evidence/phase-08-speech-decoder-floor0-offset1000.json",
+      "status": "EXACT_SYNTHETIC_REFERENCES",
+      "floorPcm": 0,
+      "paddingMs": 1000,
+      "junitExecutionPassed": true,
+      "allExpectedResponsesMatched": true
+    },
+    {
+      "path": "docs/reports/evidence/phase-08-speech-decoder-floor8-offset0.json",
+      "status": "EXACT_SYNTHETIC_REFERENCES",
+      "floorPcm": 8,
+      "paddingMs": 0,
+      "junitExecutionPassed": true,
+      "allExpectedResponsesMatched": true
+    },
+    {
+      "path": "docs/reports/evidence/phase-08-speech-decoder-floor8-offset250.json",
+      "status": "EXACT_SYNTHETIC_REFERENCES",
+      "floorPcm": 8,
+      "paddingMs": 250,
+      "junitExecutionPassed": true,
+      "allExpectedResponsesMatched": true
+    },
+    {
+      "path": "docs/reports/evidence/phase-08-speech-decoder-floor8-offset500.json",
+      "status": "EXACT_SYNTHETIC_REFERENCES",
+      "floorPcm": 8,
+      "paddingMs": 500,
+      "junitExecutionPassed": true,
+      "allExpectedResponsesMatched": true
+    },
+    {
+      "path": "docs/reports/evidence/phase-08-speech-decoder-floor8-offset1000.json",
+      "status": "EXACT_SYNTHETIC_REFERENCES",
+      "floorPcm": 8,
+      "paddingMs": 1000,
+      "junitExecutionPassed": true,
+      "allExpectedResponsesMatched": true
+    }
+  ],
+  "physicalDeviceValidation": "NOT_RUN",
+  "microphoneOpened": false,
+  "actionsExecuted": false
+}

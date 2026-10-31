@@ -1,0 +1,23 @@
+{
+  "schemaVersion": 1,
+  "runId": "ex20261028",
+  "invocation": "20261030T160316123046Z-5c2cd77b",
+  "command": "input-loss-serial-dispatch-readonly-snapshots",
+  "startedAt": "2026-10-30T16:03:16.124380+00:00",
+  "status": "COMPLETED_WITH_FAILURES_OR_NOT_RUN",
+  "scope": "Explicit emulator UI driver plus independent read-only SQLite snapshots",
+  "physicalAcceptance": "HUMAN_REQUIRED",
+  "events": [
+    {
+      "at": "2026-10-30T16:03:16.125772+00:00",
+      "event": "invocation_started"
+    }
+  ],
+  "limits": [
+    "Direct private Activity intents do not certify actual notification taps or full-screen delivery.",
+    "No live microphone, audibility, physical phone, OEM or battery acceptance is implied."
+  ],
+  "completedAt": "2026-10-30T16:11:57.928292+00:00",
+  "serialDispatcherEvidence": "docs/reports/evidence/phase-08-capture-fix-rt-cold1-20261030T160316104069Z-3fd239.json",
+  "physicalDeviceValidation": "NOT_RUN"
+}

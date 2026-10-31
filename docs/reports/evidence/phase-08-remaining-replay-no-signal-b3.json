@@ -1,0 +1,60 @@
+{
+  "kind": "PHASE08_ROOT_EXACT_SYNTHETIC_CAPTURE_REPLAY",
+  "status": "PASS",
+  "startedAtUtc": "2026-10-29T07:59:59.560408+00:00",
+  "cohort": "n20261029T075318475782Z",
+  "fixtureId": "acknowledge",
+  "privateEvidence": ".local/phase08-fidelity-native-20261029T075318475782Z",
+  "capturePcmSha256": "a248a7a2584ad951a79589950effbdaf5bddd89bcbdf93db26b039efb4615484",
+  "captureMetadataSha256": "b6c1ad2acfb6427827d33564546c90ca9835e1dbe6668edb4c6e21a32b73c088",
+  "captureFrames": 75776,
+  "captureBytes": 151552,
+  "sourceWavSha256": "e10b92f68d6a188bc19b44bd327aa91747d58d4a257510d786a14dc45a4e0a3c",
+  "requireExpected": false,
+  "junitExecutionPassed": true,
+  "errors": [],
+  "microphoneOpened": false,
+  "actionsExecuted": false,
+  "rawTranscriptStoredInPublicEvidence": false,
+  "physicalDeviceValidation": "NOT_RUN",
+  "files": [
+    {
+      "name": "no_backup/qa08-native-capture-n20261029T075318475782Z.pcm",
+      "bytes": 151552,
+      "sha256": "a248a7a2584ad951a79589950effbdaf5bddd89bcbdf93db26b039efb4615484",
+      "preexistingIdentical": false,
+      "copiedOnlyIfAbsent": true
+    },
+    {
+      "name": "no_backup/qa08-native-capture-n20261029T075318475782Z.json",
+      "bytes": 682,
+      "sha256": "b6c1ad2acfb6427827d33564546c90ca9835e1dbe6668edb4c6e21a32b73c088",
+      "preexistingIdentical": false,
+      "copiedOnlyIfAbsent": true
+    }
+  ],
+  "cleanup": [
+    {
+      "name": "no_backup/qa08-native-capture-n20261029T075318475782Z.pcm",
+      "status": "EXACT_HASH_REMOVED_AND_ABSENT"
+    },
+    {
+      "name": "no_backup/qa08-native-capture-n20261029T075318475782Z.json",
+      "status": "EXACT_HASH_REMOVED_AND_ABSENT"
+    }
+  ],
+  "recognitionQuality": {
+    "status": "SYNTHETIC_REFERENCE_MISMATCH",
+    "decoderProducedResult": true,
+    "normalizedExactReference": false,
+    "normalizedExpectedResponse": false,
+    "commandParsedExpected": false,
+    "charCount": 38,
+    "totalPrepareLoadDecodeMs": 4282,
+    "totalValidationAndDecodeMs": 4409,
+    "normalizedSha256": "4f928e6e523cb628d1d03fac8dbcf3f86fec62d1f948ef84cb76964fc0c5fde8"
+  },
+  "expectedResponseMatched": false,
+  "completedAtUtc": "2026-10-29T08:00:06.209386+00:00",
+  "deviceCaptureFilesAbsent": true
+}

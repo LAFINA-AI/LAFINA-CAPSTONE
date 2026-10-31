@@ -1,0 +1,54 @@
+{
+  "schemaVersion": 1,
+  "runId": "ex20261028",
+  "invocation": "20261029T034345677378Z-2bda265a",
+  "command": "final-restoration-check",
+  "startedAt": "2026-10-29T03:43:45.678095+00:00",
+  "status": "PASS",
+  "scope": "Explicit emulator UI driver plus independent read-only SQLite snapshots",
+  "physicalAcceptance": "HUMAN_REQUIRED",
+  "events": [
+    {
+      "at": "2026-10-29T03:43:45.679131+00:00",
+      "event": "invocation_started"
+    },
+    {
+      "at": "2026-10-29T03:44:01.000500+00:00",
+      "event": "ui_driver",
+      "kind": "OPT_IN_SYNTHETIC_FIXTURE_UI_DRIVER",
+      "mode": "preferences",
+      "outcome": "PASS",
+      "stages": [
+        "activity_launch_requested",
+        "saved_preferences_open",
+        "only_lead_reply_quiet_controls_saved"
+      ],
+      "launch": "DIRECT_PRIVATE_ACTIVITY_INTENT_NOT_NOTIFICATION_TAP",
+      "limits": "UI only; root verifies SQL separately. No live speech, audio or physical-phone acceptance."
+    },
+    {
+      "at": "2026-10-29T03:44:11.675830+00:00",
+      "event": "ui_driver",
+      "kind": "OPT_IN_SYNTHETIC_FIXTURE_UI_DRIVER",
+      "mode": "delivery",
+      "outcome": "PASS",
+      "stages": [
+        "activity_launch_requested",
+        "saved_preferences_open",
+        "explicit_delivery_and_full_screen_preferences_applied"
+      ],
+      "launch": "DIRECT_PRIVATE_ACTIVITY_INTENT_NOT_NOTIFICATION_TAP",
+      "limits": "UI only; root verifies SQL separately. No live speech, audio or physical-phone acceptance."
+    },
+    {
+      "at": "2026-10-29T03:44:12.108316+00:00",
+      "event": "baseline_preferences_and_delivery_restored_through_ui"
+    }
+  ],
+  "limits": [
+    "Direct private Activity intents do not certify actual notification taps or full-screen delivery.",
+    "No live microphone, audibility, physical phone, OEM or battery acceptance is implied."
+  ],
+  "completedAt": "2026-10-29T03:44:23.114689+00:00",
+  "finalRestorationEvidence": "docs/reports/evidence/phase-08-speech-floor-restoration-verified.json"
+}

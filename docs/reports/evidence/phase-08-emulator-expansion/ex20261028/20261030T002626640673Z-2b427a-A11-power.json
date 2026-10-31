@@ -1,0 +1,135 @@
+{
+  "kind": "PARENT_CONTROLLED_POWER_EMULATOR_CASE",
+  "case": "A11",
+  "runId": "ex20261028",
+  "status": "PASS",
+  "startedAtUtc": "2026-10-30T00:26:26.641295+00:00",
+  "events": [
+    {
+      "event": "explicit_supported_lock_security_probe",
+      "hostAtUtc": "2026-10-30T00:26:27.056293+00:00",
+      "elapsedMonotonicSeconds": 0.4150182000012137,
+      "command": "cmd lock_settings is-user-secure --user 0",
+      "isUserSecure": false
+    },
+    {
+      "event": "fresh_power_baseline_captured",
+      "hostAtUtc": "2026-10-30T00:26:27.057119+00:00",
+      "elapsedMonotonicSeconds": 0.4158391000091797,
+      "battery": {
+        "AC powered": true,
+        "USB powered": false,
+        "Wireless powered": false,
+        "Dock powered": false,
+        "updatesStopped": false
+      },
+      "wakefulness": "Awake",
+      "saverFlags": {
+        "batterySavingStatsFullEnabled": false
+      },
+      "deepIdle": "ACTIVE",
+      "forcedIdle": false
+    },
+    {
+      "event": "fixture_created_via_reviewed_chat",
+      "hostAtUtc": "2026-10-30T00:26:36.648576+00:00",
+      "elapsedMonotonicSeconds": 10.00730029999977,
+      "title": "QA08 EX ex20261028 A11ila277969fd962",
+      "rows": [
+        {
+          "taskId": "task:cmd_mvu8f6rc_0_vo6jqloajmn",
+          "taskStatus": "TODO",
+          "deletedAt": null,
+          "jobId": "job:reminder:task:cmd_mvu8f6rc_0_vo6jqloajmn|2026-10-30T00:27:33.336Z",
+          "occurrenceKey": "task:cmd_mvu8f6rc_0_vo6jqloajmn|2026-10-30T00:27:33.336Z",
+          "generation": 1,
+          "jobStatus": "PENDING",
+          "reminderStatus": "SCHEDULED",
+          "runAt": "2026-10-30T00:27:33.336Z",
+          "deadline": null,
+          "deliveryState": "REGISTERED",
+          "registrations": 1
+        }
+      ]
+    },
+    {
+      "event": "battery_saver_active_confirmed",
+      "hostAtUtc": "2026-10-30T00:26:37.171216+00:00",
+      "elapsedMonotonicSeconds": 10.529939400003059,
+      "lowPowerSetting": "1",
+      "saverFlags": {
+        "batterySavingStatsFullEnabled": true
+      }
+    },
+    {
+      "event": "due_state_under_confirmed_saver",
+      "hostAtUtc": "2026-10-30T00:27:36.876345+00:00",
+      "elapsedMonotonicSeconds": 70.2350632000016,
+      "rows": [
+        {
+          "taskId": "task:cmd_mvu8f6rc_0_vo6jqloajmn",
+          "taskStatus": "TODO",
+          "deletedAt": null,
+          "jobId": "job:reminder:task:cmd_mvu8f6rc_0_vo6jqloajmn|2026-10-30T00:27:33.336Z",
+          "occurrenceKey": "task:cmd_mvu8f6rc_0_vo6jqloajmn|2026-10-30T00:27:33.336Z",
+          "generation": 1,
+          "jobStatus": "RINGING",
+          "reminderStatus": "RINGING",
+          "runAt": "2026-10-30T00:27:33.336Z",
+          "deadline": "2026-10-30T00:28:33.702Z",
+          "deliveryState": "REGISTERED",
+          "registrations": 1
+        }
+      ],
+      "saverFlags": {
+        "batterySavingStatsFullEnabled": true
+      },
+      "timingCertified": false
+    },
+    {
+      "event": "actual_notification_reviewed_ack",
+      "hostAtUtc": "2026-10-30T00:27:46.214436+00:00",
+      "elapsedMonotonicSeconds": 79.57315860000381,
+      "rows": [
+        {
+          "taskId": "task:cmd_mvu8f6rc_0_vo6jqloajmn",
+          "taskStatus": "TODO",
+          "deletedAt": null,
+          "jobId": "job:reminder:task:cmd_mvu8f6rc_0_vo6jqloajmn|2026-10-30T00:27:33.336Z",
+          "occurrenceKey": "task:cmd_mvu8f6rc_0_vo6jqloajmn|2026-10-30T00:27:33.336Z",
+          "generation": 1,
+          "jobStatus": "ACKNOWLEDGED",
+          "reminderStatus": "ACKNOWLEDGED",
+          "runAt": "2026-10-30T00:27:33.336Z",
+          "deadline": null,
+          "deliveryState": "UNAVAILABLE",
+          "registrations": 0
+        }
+      ],
+      "scope": "Confirmed emulator battery saver plus actual notification ACK; no phone battery/energy claim"
+    },
+    {
+      "event": "selected_power_baseline_restored",
+      "hostAtUtc": "2026-10-30T00:28:00.705812+00:00",
+      "elapsedMonotonicSeconds": 94.06454289999965,
+      "battery": {
+        "AC powered": true,
+        "USB powered": false,
+        "Wireless powered": false,
+        "Dock powered": false,
+        "updatesStopped": false
+      },
+      "wakefulness": "Awake",
+      "saverFlags": {
+        "batterySavingStatsFullEnabled": false
+      },
+      "deepIdle": "ACTIVE",
+      "globalSettingsExact": true
+    }
+  ],
+  "physicalDeviceValidation": "NOT_RUN",
+  "restoration": "PASS",
+  "restorationErrors": [],
+  "completedAtUtc": "2026-10-30T00:28:00.706828+00:00",
+  "elapsedMonotonicSeconds": 94.06554690000485
+}

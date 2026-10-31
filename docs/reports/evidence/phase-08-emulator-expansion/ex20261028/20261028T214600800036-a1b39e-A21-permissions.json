@@ -1,0 +1,43 @@
+{
+  "case": "A21",
+  "runId": "ex20261028",
+  "startedAt": "2026-10-28T13:46:00.800854+00:00",
+  "status": "PASS",
+  "physicalAcceptance": "HUMAN_REQUIRED",
+  "events": [
+    {
+      "at": "2026-10-28T13:46:01.663854+00:00",
+      "event": "fresh_private_case_baseline_captured",
+      "permissionFlagsCaptured": true,
+      "appOpLevel": "uid"
+    },
+    {
+      "at": "2026-10-28T13:46:01.866547+00:00",
+      "event": "app_op_observed",
+      "operation": "SCHEDULE_EXACT_ALARM",
+      "level": "uid",
+      "mode": "ignore"
+    },
+    {
+      "at": "2026-10-28T13:46:55.709067+00:00",
+      "event": "inexact_registration_observed",
+      "precision": "INEXACT",
+      "timingCertified": false
+    },
+    {
+      "at": "2026-10-28T13:48:21.689026+00:00",
+      "event": "inexact_recovery_ack_verified",
+      "scope": "Main reopen/reconciliation recovery, not punctuality"
+    },
+    {
+      "at": "2026-10-28T13:48:35.747436+00:00",
+      "event": "app_op_observed",
+      "operation": "SCHEDULE_EXACT_ALARM",
+      "level": "uid",
+      "mode": "allow"
+    }
+  ],
+  "restoration": "PASS",
+  "restorationErrors": [],
+  "completedAt": "2026-10-28T13:49:15.661889+00:00"
+}

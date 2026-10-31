@@ -1,0 +1,38 @@
+{
+  "kind": "PHASE08_STABLE_LOWLOAD_PLAN_AMENDMENT",
+  "createdAtUtc": "2026-10-31T09:51:30.042665+00:00",
+  "amends": {
+    "path": "docs/reports/evidence/phase-08-stable-lowload-plan-20261031T094218Z.json",
+    "sha256": "48f4092228afbd8236ab963b1df571fd93c775e7777ce0efb5dd208d227f90c3"
+  },
+  "previousAmendment": {
+    "path": "docs/reports/evidence/phase-08-stable-lowload-plan-amendment-1.json",
+    "sha256": "7d66988e7ba56cdc586a2a58544c7cea54f06a9dd22abb0b7972eb8d6fcc32bf"
+  },
+  "frozenPlanUnchanged": true,
+  "beforeAnyDeviceMutation": true,
+  "beforeAnyLowLoadRecognitionResult": true,
+  "thresholdValuesChanged": false,
+  "protocolChanged": false,
+  "stopRulesChanged": false,
+  "defect": "PDH process arrays return one item per process, but processes sharing an image name share one instance name; the sampler keyed items by name, so duplicates collapsed (120 of ~300 processes kept). Per-process CPU attribution (emulator/harness/telemetry/other) was therefore unreliable; the telemetry self-CPU read 0.0 in admission-2 although its own process-time counter showed ~0.47% of host.",
+  "unaffected": "Processor total, available memory, commit, paging and scheduling-probe values come from separate scalar counters/threads and remain valid; both admission refusals (memory, commit, total CPU, paging) stand.",
+  "changes": [
+    {
+      "path": ".local/phase08_host_telemetry.py",
+      "oldSha256": "1820b177620afc480141e0bf53b97f371fd21c3b68a8314cebd45e669b53c42c",
+      "newSha256": "cb9a4ff0a02681238d31d0daa7ab47f95144df8dd555dcc69450680a1e9d5099",
+      "diff": "Pair cpu/pid/private arrays by position after verifying identical instance names; misaligned samples carry no attribution (processAttribution field)."
+    },
+    {
+      "path": ".local/phase08_lowload_common.py",
+      "oldSha256": "d7af59144bbd34c0560eb8d79e743bc4cdb1ca2afefe54e4857e397a02a27fac",
+      "newSha256": "cc21632fadd7bf5eeea4110bcaac58f0dda60b27beec4a047d0414136209b97b",
+      "diff": "Metrics skip unattributed samples; evaluation adds PROCESS_ATTRIBUTION_MISSING (<90% attributed samples) and guards absent CPU/telemetry metrics. THRESHOLDS unchanged."
+    }
+  ],
+  "telemetry": {
+    "first": ".local/phase08-lowload-20261031T094218Z/host-telemetry.jsonl (stopped and retained; attribution fields unreliable)",
+    "second": ".local/phase08-lowload-20261031T094218Z/host-telemetry-2.jsonl"
+  }
+}

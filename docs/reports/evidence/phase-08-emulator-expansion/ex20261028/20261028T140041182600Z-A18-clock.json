@@ -1,0 +1,126 @@
+{
+  "kind": "PARENT_CONTROLLED_GUEST_CLOCK_CASE",
+  "case": "A18",
+  "status": "PASS",
+  "startedAtUtc": "2026-10-28T14:00:41.183575+00:00",
+  "events": [
+    {
+      "event": "original_clock_baseline_captured",
+      "hostAtUtc": "2026-10-28T14:00:41.509732+00:00",
+      "elapsedMonotonicSeconds": 0.3261785999929998,
+      "guestSeconds": 1793196040,
+      "autoTimeOne": true,
+      "timezoneGmt": true
+    },
+    {
+      "event": "owned_pending_fixture_created_via_reviewed_chat",
+      "hostAtUtc": "2026-10-28T14:00:56.420662+00:00",
+      "elapsedMonotonicSeconds": 15.237108000001172,
+      "rows": [
+        {
+          "taskId": "task:cmd_mvs6mnwi_0_4uvygs4blp5",
+          "taskStatus": "TODO",
+          "deletedAt": null,
+          "jobId": "job:reminder:task:cmd_mvs6mnwi_0_4uvygs4blp5|2026-10-28T14:01:50.562Z",
+          "occurrenceKey": "task:cmd_mvs6mnwi_0_4uvygs4blp5|2026-10-28T14:01:50.562Z",
+          "generation": 1,
+          "jobStatus": "PENDING",
+          "reminderStatus": "SCHEDULED",
+          "runAt": "2026-10-28T14:01:50.562Z",
+          "deadline": null,
+          "deliveryState": "REGISTERED",
+          "registrations": 1
+        }
+      ]
+    },
+    {
+      "event": "actual_due_ringing_before_review",
+      "hostAtUtc": "2026-10-28T14:01:55.586768+00:00",
+      "elapsedMonotonicSeconds": 74.40321489999769,
+      "rows": [
+        {
+          "taskId": "task:cmd_mvs6mnwi_0_4uvygs4blp5",
+          "taskStatus": "TODO",
+          "deletedAt": null,
+          "jobId": "job:reminder:task:cmd_mvs6mnwi_0_4uvygs4blp5|2026-10-28T14:01:50.562Z",
+          "occurrenceKey": "task:cmd_mvs6mnwi_0_4uvygs4blp5|2026-10-28T14:01:50.562Z",
+          "generation": 1,
+          "jobStatus": "RINGING",
+          "reminderStatus": "RINGING",
+          "runAt": "2026-10-28T14:01:50.562Z",
+          "deadline": "2026-10-28T14:02:51.114Z",
+          "deliveryState": "REGISTERED",
+          "registrations": 1
+        }
+      ]
+    },
+    {
+      "event": "real_ack_review_visible_before_clock_mutation",
+      "hostAtUtc": "2026-10-28T14:02:02.970514+00:00",
+      "elapsedMonotonicSeconds": 81.7869592999923
+    },
+    {
+      "event": "backward_clock_observation",
+      "hostAtUtc": "2026-10-28T14:02:03.391074+00:00",
+      "elapsedMonotonicSeconds": 82.20752269998775,
+      "guestBeforeSeconds": 1793196121,
+      "guestAfterSeconds": 1793196001,
+      "observedDeltaSeconds": -120
+    },
+    {
+      "event": "real_time_set_retired_original_ringing_during_review",
+      "hostAtUtc": "2026-10-28T14:02:06.003169+00:00",
+      "elapsedMonotonicSeconds": 84.81961700000102,
+      "rows": [
+        {
+          "taskId": "task:cmd_mvs6mnwi_0_4uvygs4blp5",
+          "taskStatus": "TODO",
+          "deletedAt": null,
+          "jobId": "job:reminder:task:cmd_mvs6mnwi_0_4uvygs4blp5|2026-10-28T14:01:50.562Z",
+          "occurrenceKey": "task:cmd_mvs6mnwi_0_4uvygs4blp5|2026-10-28T14:01:50.562Z",
+          "generation": 1,
+          "jobStatus": "MISSED",
+          "reminderStatus": "MISSED",
+          "runAt": "2026-10-28T14:01:50.562Z",
+          "deadline": null,
+          "deliveryState": "UNAVAILABLE",
+          "registrations": 0
+        }
+      ]
+    },
+    {
+      "event": "old_confirm_attempt_did_not_ack_or_change_missed_todo",
+      "hostAtUtc": "2026-10-28T14:02:09.625533+00:00",
+      "elapsedMonotonicSeconds": 88.44198219999089,
+      "rows": [
+        {
+          "taskId": "task:cmd_mvs6mnwi_0_4uvygs4blp5",
+          "taskStatus": "TODO",
+          "deletedAt": null,
+          "jobId": "job:reminder:task:cmd_mvs6mnwi_0_4uvygs4blp5|2026-10-28T14:01:50.562Z",
+          "occurrenceKey": "task:cmd_mvs6mnwi_0_4uvygs4blp5|2026-10-28T14:01:50.562Z",
+          "generation": 1,
+          "jobStatus": "MISSED",
+          "reminderStatus": "MISSED",
+          "runAt": "2026-10-28T14:01:50.562Z",
+          "deadline": null,
+          "deliveryState": "UNAVAILABLE",
+          "registrations": 0
+        }
+      ]
+    },
+    {
+      "event": "guest_clock_original_host_offset_and_auto_time_restored",
+      "hostAtUtc": "2026-10-28T14:02:10.621472+00:00",
+      "elapsedMonotonicSeconds": 89.4379216999805,
+      "guestSeconds": 1793196129,
+      "autoTimeOne": true
+    }
+  ],
+  "physicalDeviceValidation": "NOT_RUN",
+  "clockRestoration": "VERIFIED_TO_SECOND_RESOLUTION_WITH_FOUR_SECOND_TOLERANCE",
+  "fixtureCleanup": "EXACT_OWNED_TITLE_REVIEWED_UI",
+  "completedAtUtc": "2026-10-28T14:02:27.517368+00:00",
+  "elapsedMonotonicSeconds": 106.3338187999907,
+  "privateEvidence": ".local/phase08-clock-20261028T140041182600Z-A18"
+}

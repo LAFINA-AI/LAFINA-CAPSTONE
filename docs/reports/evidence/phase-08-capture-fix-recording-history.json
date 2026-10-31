@@ -1,0 +1,70 @@
+{
+  "kind": "CACHED_ANDROID_RECORDING_HISTORY_REVIEW",
+  "status": "RECORDED",
+  "noDeviceCallsInThisReview": true,
+  "attempts": [
+    {
+      "attempt": "A03-1-",
+      "privateCacheSha256": "8a0dc6ff6418a2d913db20db12fb7a059448e318467195708022558eee4ac246",
+      "latestOwnedRecordingEvents": [
+        {
+          "event": "stop",
+          "reportedNotSilenced": true,
+          "voiceRecognitionSource": true
+        }
+      ]
+    },
+    {
+      "attempt": "V03-1-",
+      "privateCacheSha256": "d206113a4998463dc88ac93092659f768898aafe8800191e322a0038d184e082",
+      "latestOwnedRecordingEvents": [
+        {
+          "event": "start",
+          "reportedNotSilenced": true,
+          "voiceRecognitionSource": true
+        },
+        {
+          "event": "stop",
+          "reportedNotSilenced": true,
+          "voiceRecognitionSource": true
+        }
+      ]
+    },
+    {
+      "attempt": "V04-1-",
+      "privateCacheSha256": "0fbe392a82a7cd0347fc5085dcfab2a81fe7b583782c8ceef75f87facb612637",
+      "latestOwnedRecordingEvents": [
+        {
+          "event": "start",
+          "reportedNotSilenced": true,
+          "voiceRecognitionSource": true
+        },
+        {
+          "event": "stop",
+          "reportedNotSilenced": true,
+          "voiceRecognitionSource": true
+        }
+      ]
+    },
+    {
+      "attempt": "V04-2-",
+      "privateCacheSha256": "4d80a336bfaa0ba1bbeb3a53f96e666be099e00947b23ccbfc8f5ee73a642c5e",
+      "latestOwnedRecordingEvents": [
+        {
+          "event": "start",
+          "reportedNotSilenced": true,
+          "voiceRecognitionSource": true
+        },
+        {
+          "event": "stop",
+          "reportedNotSilenced": true,
+          "voiceRecognitionSource": true
+        }
+      ]
+    }
+  ],
+  "rawSystemDumpsPublished": false,
+  "audioExported": false,
+  "interpretation": "Cached owned recording events report VOICE_RECOGNITION and not silenced. These event endpoints do not certify continuous PCM delivery or identify a vendor root cause. No production audio-source/model/threshold change is supported by this evidence.",
+  "physicalDeviceValidation": "NOT_RUN"
+}

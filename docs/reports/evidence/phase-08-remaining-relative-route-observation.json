@@ -1,0 +1,44 @@
+{
+  "kind": "PHASE08_BOUNDED_READONLY_ROUTE_OBSERVATION",
+  "status": "PASS_OBSERVATION_ONLY",
+  "recordedAtUtc": "2026-10-29T14:27:38.055317+00:00",
+  "caseEvidence": "docs/reports/evidence/phase-08-emulator-expansion/ex20261028/20261029T142355292045Z-V01-microphone.json",
+  "privateEvidence": ".local/phase08-microphone-20261029T142355292045Z-V01",
+  "snapshots": [
+    {
+      "snapshot": 0,
+      "activeRecordingConfigurations": 1,
+      "ownVoiceRecognition16000Mono16BitObserved": true,
+      "ownCaptureNotSilenced": true,
+      "builtInMicInputObserved": true,
+      "privateAudioDumpSha256": "afb5a9ff3da82d88a1a197251aec823ac4cd4f034670843a83bd261b407a4c35",
+      "privateFlingerDumpSha256": "653d6ea4d30439d682962b3b53d5bebda5fc5e9b8c0f37c550d7d1d8b9a9d157"
+    },
+    {
+      "snapshot": 1,
+      "activeRecordingConfigurations": 1,
+      "ownVoiceRecognition16000Mono16BitObserved": true,
+      "ownCaptureNotSilenced": true,
+      "builtInMicInputObserved": true,
+      "privateAudioDumpSha256": "b7b81c3c101ef078b45022a2132321005e56b138d3b67b5f1e70274674b516a4",
+      "privateFlingerDumpSha256": "f6db7057bd0512a2501d2d7c14e154cdc7ad651a8b87f051e1d9629935dfc51e"
+    },
+    {
+      "snapshot": 2,
+      "activeRecordingConfigurations": 1,
+      "ownVoiceRecognition16000Mono16BitObserved": true,
+      "ownCaptureNotSilenced": true,
+      "builtInMicInputObserved": true,
+      "privateAudioDumpSha256": "7289e47bdf88c5f2719a6148bba4ddc59adba157087f46cc0815eab628633c5f",
+      "privateFlingerDumpSha256": "82986976c89fbceadb98ce31dc9370802ea3ae3842f6f29068307b39b726ca8b"
+    }
+  ],
+  "rawDumpEmitted": false,
+  "microphoneOpenedByObserver": false,
+  "physicalDeviceValidation": "NOT_RUN",
+  "limits": [
+    "Only the passing final ACK retry was observed. No failed/pass route pair or installed SDK root cause was established.",
+    "Observer reads state and adds ADB overhead. It never controls, starts or restarts recording.",
+    "Built-in mic is an Android virtual route label, not proof of real host audio capture."
+  ]
+}

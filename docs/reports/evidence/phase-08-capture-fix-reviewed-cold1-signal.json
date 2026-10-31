@@ -1,0 +1,90 @@
+{
+  "kind": "REVIEWED_COLD1_CAPTURE_SIGNAL_METADATA",
+  "status": "RECORDED_TWO_CAPTURES_WITH_NO_USABLE_SIGNAL",
+  "campaign": {
+    "path": "docs/reports/evidence/phase-08-capture-fix-reviewed-cold1-20261030T163938708973Z-913d95.json",
+    "sha256": "07e57a6ea9ad5dce5157c0f4960bb934633874860563e5fc1b3eb13518758588"
+  },
+  "sourceRpcsCompletedHostOff": 4,
+  "noAudioSignalCaptures": 2,
+  "matchedReviewedConfirmedActions": 2,
+  "preControllerNavigationFailures": 1,
+  "captures": [
+    {
+      "case": "A03",
+      "trial": 1,
+      "status": "PASS",
+      "sourceOutcome": "SOURCE_RPC_COMPLETED_HOST_OFF",
+      "nativeTerminalFailure": null,
+      "nativeGateDecision": "ALLOW",
+      "captureMetadata": {
+        "vocabulary": "REMINDER_RESPONSE",
+        "frames": 78592,
+        "nonzero": 28833,
+        "rms": 0.0656162971290035
+      },
+      "parentEvidence": {
+        "path": "docs/reports/evidence/phase-08-emulator-expansion/ex20261028/20261030T163946945919Z-A03-microphone.json",
+        "sha256": "c66c52b6b68c9a20904d049b30dd15f3cc6cf2801899dcb7dc59ff03a62d1675"
+      }
+    },
+    {
+      "case": "V03",
+      "trial": 1,
+      "status": "FAIL",
+      "sourceOutcome": "SOURCE_RPC_COMPLETED_HOST_OFF",
+      "nativeTerminalFailure": "NO_AUDIO_SIGNAL",
+      "nativeGateDecision": "ALLOW",
+      "captureMetadata": {
+        "vocabulary": "REMINDER_RESPONSE",
+        "frames": 85248,
+        "nonzero": 831,
+        "rms": 1.2500768607797895e-05
+      },
+      "parentEvidence": {
+        "path": "docs/reports/evidence/phase-08-emulator-expansion/ex20261028/20261030T164136725978Z-V03-microphone.json",
+        "sha256": "f0b6ea62665672eb4376b7ee6506b5a5d62f41869773935a30d249d6f42a41cc"
+      }
+    },
+    {
+      "case": "V04",
+      "trial": 1,
+      "status": "PASS",
+      "sourceOutcome": "SOURCE_RPC_COMPLETED_HOST_OFF",
+      "nativeTerminalFailure": null,
+      "nativeGateDecision": "ALLOW",
+      "captureMetadata": {
+        "vocabulary": "REMINDER_RESPONSE",
+        "frames": 80384,
+        "nonzero": 28618,
+        "rms": 0.06450570752702672
+      },
+      "parentEvidence": {
+        "path": "docs/reports/evidence/phase-08-emulator-expansion/ex20261028/20261030T164329557493Z-V04-microphone.json",
+        "sha256": "2f69a80172ee61526dd63283d325f5b2649500bdea9d4cdf18ff41b6154c23fb"
+      }
+    },
+    {
+      "case": "V04",
+      "trial": 2,
+      "status": "FAIL",
+      "sourceOutcome": "SOURCE_RPC_COMPLETED_HOST_OFF",
+      "nativeTerminalFailure": "NO_AUDIO_SIGNAL",
+      "nativeGateDecision": "ALLOW",
+      "captureMetadata": {
+        "vocabulary": "REMINDER_RESPONSE",
+        "frames": 79872,
+        "nonzero": 2559,
+        "rms": 2.5803037853162184e-05
+      },
+      "parentEvidence": {
+        "path": "docs/reports/evidence/phase-08-emulator-expansion/ex20261028/20261030T164521457814Z-V04-microphone.json",
+        "sha256": "d81a24be2dc546cda77a63dc4f30d99293805e0efc9d9ed89b465ac6256aa040"
+      }
+    }
+  ],
+  "rawAudioExported": false,
+  "rawTranscriptPublished": false,
+  "physicalDeviceValidation": "NOT_RUN",
+  "interpretation": "Both empty captures have RMS below3e-5; passing captures are about0.065. Source-RPC completion/clock health did not establish delivery into app capture. Do not weaken signal/reference guards or label these producer aborts/word-recognition errors."
+}

@@ -1,0 +1,72 @@
+{
+  "kind": "PHASE08_SEPARATE_STABLE_IMAGE_PROVISION",
+  "status": "PASS",
+  "startedAtUtc": "2026-10-30T22:50:59.760878+00:00",
+  "physicalDeviceValidation": "NOT_RUN",
+  "sdkRoot": "C:\\Users\\USER-PC\\AppData\\Local\\Android\\Sdk",
+  "package": "system-images;android-35;google_apis;x86_64",
+  "toolUrl": "https://dl.google.com/android/repository/commandlinetools-win-15859902_latest.zip",
+  "expectedToolSha256": "90ae805d20434428bffcb699c290860f19bb5f66a67e6b330067e3de801fb04a",
+  "toolSourceReference": "https://developer.android.com/studio#command-line-tools-only",
+  "onlyNamedImageInstallRequested": true,
+  "updatesUninstallsDeviceActionsRequested": false,
+  "events": [
+    {
+      "event": "official_tools_checksum_verified",
+      "atUtc": "2026-10-30T22:51:04.838982+00:00",
+      "sha256": "90ae805d20434428bffcb699c290860f19bb5f66a67e6b330067e3de801fb04a",
+      "bytes": 155655386
+    },
+    {
+      "event": "stable_image_install_start",
+      "atUtc": "2026-10-30T22:51:04.840217+00:00",
+      "package": "system-images;android-35;google_apis;x86_64"
+    },
+    {
+      "event": "stable_image_install_wait",
+      "atUtc": "2026-10-30T22:51:24.901207+00:00",
+      "elapsedSeconds": 20
+    },
+    {
+      "event": "stable_image_install_wait",
+      "atUtc": "2026-10-30T22:51:44.902665+00:00",
+      "elapsedSeconds": 40
+    },
+    {
+      "event": "stable_image_install_wait",
+      "atUtc": "2026-10-30T22:52:04.904533+00:00",
+      "elapsedSeconds": 60
+    },
+    {
+      "event": "stable_image_install_wait",
+      "atUtc": "2026-10-30T22:52:24.915238+00:00",
+      "elapsedSeconds": 80
+    },
+    {
+      "event": "stable_image_install_wait",
+      "atUtc": "2026-10-30T22:52:44.917084+00:00",
+      "elapsedSeconds": 100
+    },
+    {
+      "event": "stable_image_install_wait",
+      "atUtc": "2026-10-30T22:53:04.918826+00:00",
+      "elapsedSeconds": 120
+    },
+    {
+      "event": "stable_image_install_wait",
+      "atUtc": "2026-10-30T22:53:24.920760+00:00",
+      "elapsedSeconds": 140
+    },
+    {
+      "event": "stable_image_install_wait",
+      "atUtc": "2026-10-30T22:53:44.922156+00:00",
+      "elapsedSeconds": 160
+    }
+  ],
+  "installedImage": "C:\\Users\\USER-PC\\AppData\\Local\\Android\\Sdk\\system-images\\android-35\\google_apis\\x86_64",
+  "packageXmlSha256": "5395f4a285b66c18cd5fcecadde8974bc9566a124162af5b00862926201306d2",
+  "sourcePropertiesSha256": "809a6f5103c048607257f03f18e22dd740137e9009c99d4a496de846b6ee3412",
+  "existingAvdEdited": false,
+  "appInstallOrDataMutationIssued": false,
+  "completedAtUtc": "2026-10-30T22:53:44.962600+00:00"
+}

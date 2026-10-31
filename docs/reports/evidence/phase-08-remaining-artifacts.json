@@ -1,0 +1,1675 @@
+{
+  "createdUtc": "2026-10-29T07:26:33.788316+00:00",
+  "outcome": "PASS",
+  "previousCohort": "docs/reports/evidence/phase-08-speech-floor-artifacts-final.json",
+  "verifier": "scripts/verify-phase08-apks.py",
+  "aapt2Version": "",
+  "apks": [
+    {
+      "path": "android/app/build/outputs/apk/androidTest/dataQa/app-dataQa-androidTest.apk",
+      "bytes": 1701069,
+      "sha256": "4193b3514f5535bf9bb35e3f7bb30a30dd69e5f95ad0233522b0fb4581874956",
+      "modifiedUtc": "2026-10-29T07:25:09.426398+00:00",
+      "identity": "package: name='com.lafina.capstone.test' versionCode='' versionName='' platformBuildVersionName='16' platformBuildVersionCode='36' compileSdkVersion='36' compileSdkVersionCodename='16'",
+      "permissions": [
+        "package: com.lafina.capstone.test",
+        "uses-permission: name='android.permission.REORDER_TASKS'"
+      ],
+      "identityMatchesPrevious": true,
+      "internetPermissionPresent": false,
+      "nativeLibraries": [],
+      "modelSha256": null,
+      "modelAssetsAbsent": true,
+      "unchangedDuringInspection": true,
+      "changedFromPreviousCohort": true
+    },
+    {
+      "path": "android/app/build/outputs/apk/dataQa/app-arm64-v8a-dataQa.apk",
+      "bytes": 90309970,
+      "sha256": "b88700cdfb31be9857dce14173c976a816a78ca7e2f712a4436bbe9fe55fd6c4",
+      "modifiedUtc": "2026-10-29T03:27:28.520386+00:00",
+      "identity": "package: name='com.lafina.capstone' versionCode='11' versionName='0.8.0-data-qa' platformBuildVersionName='16' platformBuildVersionCode='36' compileSdkVersion='36' compileSdkVersionCodename='16'",
+      "permissions": [
+        "package: com.lafina.capstone",
+        "uses-permission: name='android.permission.POST_NOTIFICATIONS'",
+        "uses-permission: name='android.permission.SCHEDULE_EXACT_ALARM'",
+        "uses-permission: name='android.permission.USE_FULL_SCREEN_INTENT'",
+        "uses-permission: name='android.permission.RECEIVE_BOOT_COMPLETED'",
+        "uses-permission: name='android.permission.VIBRATE'",
+        "uses-permission: name='android.permission.RECORD_AUDIO'",
+        "permission: com.lafina.capstone.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION",
+        "uses-permission: name='com.lafina.capstone.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION'"
+      ],
+      "identityMatchesPrevious": true,
+      "internetPermissionPresent": false,
+      "nativeLibraries": [
+        {
+          "name": "lib/arm64-v8a/libappmodules.so",
+          "elfClass": 64,
+          "elfMachine": 183,
+          "loadAlignments": [
+            16384,
+            16384,
+            16384,
+            16384
+          ],
+          "minLoadAlignment": 16384,
+          "loadAddressOffsetCongruent": true,
+          "zipCompression": 0,
+          "zipStored": true,
+          "zipDataOffset": 14565376,
+          "zipAlignment16KiB": true
+        },
+        {
+          "name": "lib/arm64-v8a/libc++_shared.so",
+          "elfClass": 64,
+          "elfMachine": 183,
+          "loadAlignments": [
+            16384,
+            16384,
+            16384,
+            16384
+          ],
+          "minLoadAlignment": 16384,
+          "loadAddressOffsetCongruent": true,
+          "zipCompression": 0,
+          "zipStored": true,
+          "zipDataOffset": 17186816,
+          "zipAlignment16KiB": true
+        },
+        {
+          "name": "lib/arm64-v8a/libfbjni.so",
+          "elfClass": 64,
+          "elfMachine": 183,
+          "loadAlignments": [
+            16384,
+            16384,
+            16384
+          ],
+          "minLoadAlignment": 16384,
+          "loadAddressOffsetCongruent": true,
+          "zipCompression": 0,
+          "zipStored": true,
+          "zipDataOffset": 19972096,
+          "zipAlignment16KiB": true
+        },
+        {
+          "name": "lib/arm64-v8a/libhermestooling.so",
+          "elfClass": 64,
+          "elfMachine": 183,
+          "loadAlignments": [
+            16384,
+            16384,
+            16384
+          ],
+          "minLoadAlignment": 16384,
+          "loadAddressOffsetCongruent": true,
+          "zipCompression": 0,
+          "zipStored": true,
+          "zipDataOffset": 20152320,
+          "zipAlignment16KiB": true
+        },
+        {
+          "name": "lib/arm64-v8a/libhermesvm.so",
+          "elfClass": 64,
+          "elfMachine": 183,
+          "loadAlignments": [
+            16384,
+            16384,
+            16384
+          ],
+          "minLoadAlignment": 16384,
+          "loadAddressOffsetCongruent": true,
+          "zipCompression": 0,
+          "zipStored": true,
+          "zipDataOffset": 20725760,
+          "zipAlignment16KiB": true
+        },
+        {
+          "name": "lib/arm64-v8a/libimagepipeline.so",
+          "elfClass": 64,
+          "elfMachine": 183,
+          "loadAlignments": [
+            16384,
+            16384,
+            16384
+          ],
+          "minLoadAlignment": 16384,
+          "loadAddressOffsetCongruent": true,
+          "zipCompression": 0,
+          "zipStored": true,
+          "zipDataOffset": 24444928,
+          "zipAlignment16KiB": true
+        },
+        {
+          "name": "lib/arm64-v8a/libjsi.so",
+          "elfClass": 64,
+          "elfMachine": 183,
+          "loadAlignments": [
+            16384,
+            16384,
+            16384
+          ],
+          "minLoadAlignment": 16384,
+          "loadAddressOffsetCongruent": true,
+          "zipCompression": 0,
+          "zipStored": true,
+          "zipDataOffset": 24461312,
+          "zipAlignment16KiB": true
+        },
+        {
+          "name": "lib/arm64-v8a/libnative-filters.so",
+          "elfClass": 64,
+          "elfMachine": 183,
+          "loadAlignments": [
+            16384,
+            16384,
+            16384
+          ],
+          "minLoadAlignment": 16384,
+          "loadAddressOffsetCongruent": true,
+          "zipCompression": 0,
+          "zipStored": true,
+          "zipDataOffset": 25411584,
+          "zipAlignment16KiB": true
+        },
+        {
+          "name": "lib/arm64-v8a/libnative-imagetranscoder.so",
+          "elfClass": 64,
+          "elfMachine": 183,
+          "loadAlignments": [
+            16384,
+            16384,
+            16384
+          ],
+          "minLoadAlignment": 16384,
+          "loadAddressOffsetCongruent": true,
+          "zipCompression": 0,
+          "zipStored": true,
+          "zipDataOffset": 25444352,
+          "zipAlignment16KiB": true
+        },
+        {
+          "name": "lib/arm64-v8a/libop-sqlite.so",
+          "elfClass": 64,
+          "elfMachine": 183,
+          "loadAlignments": [
+            16384,
+            16384,
+            16384,
+            16384
+          ],
+          "minLoadAlignment": 16384,
+          "loadAddressOffsetCongruent": true,
+          "zipCompression": 0,
+          "zipStored": true,
+          "zipDataOffset": 26034176,
+          "zipAlignment16KiB": true
+        },
+        {
+          "name": "lib/arm64-v8a/libreact_codegen_rnsvg.so",
+          "elfClass": 64,
+          "elfMachine": 183,
+          "loadAlignments": [
+            16384,
+            16384,
+            16384,
+            16384
+          ],
+          "minLoadAlignment": 16384,
+          "loadAddressOffsetCongruent": true,
+          "zipCompression": 0,
+          "zipStored": true,
+          "zipDataOffset": 27803648,
+          "zipAlignment16KiB": true
+        },
+        {
+          "name": "lib/arm64-v8a/libreact_codegen_safeareacontext.so",
+          "elfClass": 64,
+          "elfMachine": 183,
+          "loadAlignments": [
+            16384,
+            16384,
+            16384,
+            16384
+          ],
+          "minLoadAlignment": 16384,
+          "loadAddressOffsetCongruent": true,
+          "zipCompression": 0,
+          "zipStored": true,
+          "zipDataOffset": 30130176,
+          "zipAlignment16KiB": true
+        },
+        {
+          "name": "lib/arm64-v8a/libreactnative.so",
+          "elfClass": 64,
+          "elfMachine": 183,
+          "loadAlignments": [
+            16384,
+            16384,
+            16384
+          ],
+          "minLoadAlignment": 16384,
+          "loadAddressOffsetCongruent": true,
+          "zipCompression": 0,
+          "zipStored": true,
+          "zipDataOffset": 30720000,
+          "zipAlignment16KiB": true
+        },
+        {
+          "name": "lib/arm64-v8a/libcapstone_whisper.so",
+          "elfClass": 64,
+          "elfMachine": 183,
+          "loadAlignments": [
+            16384,
+            16384,
+            16384,
+            16384
+          ],
+          "minLoadAlignment": 16384,
+          "loadAddressOffsetCongruent": true,
+          "zipCompression": 0,
+          "zipStored": true,
+          "zipDataOffset": 88768512,
+          "zipAlignment16KiB": true
+        }
+      ],
+      "modelSha256": "818710568da3ca15689e31a743197b520007872ff9576237bda97bd1b469c3d7",
+      "modelAsset": "assets/stt/ggml-tiny-q5_1.bin",
+      "modelBytes": 32152673,
+      "modelLicenseSha256": "b5d65a59060e68c4ff940e1eddfa6f94b2d68fdf58ed7f4dd57721c997e35e9d",
+      "modelManifestSha256": "687d956a58189eb341f896782943a455428cbd7f68bbba1f440cf508be161edc",
+      "reviewedLicenseNotices": [
+        {
+          "name": "assets/licenses/WHISPER-CPP-MIT.txt",
+          "bytes": 1078,
+          "sha256": "94f29bbed6a22c35b992c5c6ebf0e7c92f13b836b90f36f461c9cf2f0f1d010d"
+        },
+        {
+          "name": "assets/licenses/REACT-NATIVE-SVG-NOTICES.txt",
+          "bytes": 21297,
+          "sha256": "314bcb8e160602e0fb75c14ccdd0ea7240b8dc9576e40310d9b55290780efa48"
+        }
+      ],
+      "unchangedDuringInspection": true,
+      "changedFromPreviousCohort": false
+    },
+    {
+      "path": "android/app/build/outputs/apk/dataQa/app-x86_64-dataQa.apk",
+      "bytes": 90461640,
+      "sha256": "ccc79ceda3a033d222917c54a6c68cd5d9d13c5c2d1f7cf3b6f3672c60f0ff6c",
+      "modifiedUtc": "2026-10-29T03:27:28.291245+00:00",
+      "identity": "package: name='com.lafina.capstone' versionCode='11' versionName='0.8.0-data-qa' platformBuildVersionName='16' platformBuildVersionCode='36' compileSdkVersion='36' compileSdkVersionCodename='16'",
+      "permissions": [
+        "package: com.lafina.capstone",
+        "uses-permission: name='android.permission.POST_NOTIFICATIONS'",
+        "uses-permission: name='android.permission.SCHEDULE_EXACT_ALARM'",
+        "uses-permission: name='android.permission.USE_FULL_SCREEN_INTENT'",
+        "uses-permission: name='android.permission.RECEIVE_BOOT_COMPLETED'",
+        "uses-permission: name='android.permission.VIBRATE'",
+        "uses-permission: name='android.permission.RECORD_AUDIO'",
+        "permission: com.lafina.capstone.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION",
+        "uses-permission: name='com.lafina.capstone.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION'"
+      ],
+      "identityMatchesPrevious": true,
+      "internetPermissionPresent": false,
+      "nativeLibraries": [
+        {
+          "name": "lib/x86_64/libappmodules.so",
+          "elfClass": 64,
+          "elfMachine": 62,
+          "loadAlignments": [
+            16384,
+            16384,
+            16384,
+            16384
+          ],
+          "minLoadAlignment": 16384,
+          "loadAddressOffsetCongruent": true,
+          "zipCompression": 0,
+          "zipStored": true,
+          "zipDataOffset": 14565376,
+          "zipAlignment16KiB": true
+        },
+        {
+          "name": "lib/x86_64/libc++_shared.so",
+          "elfClass": 64,
+          "elfMachine": 62,
+          "loadAlignments": [
+            16384,
+            16384,
+            16384,
+            16384
+          ],
+          "minLoadAlignment": 16384,
+          "loadAddressOffsetCongruent": true,
+          "zipCompression": 0,
+          "zipStored": true,
+          "zipDataOffset": 17154048,
+          "zipAlignment16KiB": true
+        },
+        {
+          "name": "lib/x86_64/libfbjni.so",
+          "elfClass": 64,
+          "elfMachine": 62,
+          "loadAlignments": [
+            16384,
+            16384,
+            16384
+          ],
+          "minLoadAlignment": 16384,
+          "loadAddressOffsetCongruent": true,
+          "zipCompression": 0,
+          "zipStored": true,
+          "zipDataOffset": 20168704,
+          "zipAlignment16KiB": true
+        },
+        {
+          "name": "lib/x86_64/libhermestooling.so",
+          "elfClass": 64,
+          "elfMachine": 62,
+          "loadAlignments": [
+            16384,
+            16384,
+            16384
+          ],
+          "minLoadAlignment": 16384,
+          "loadAddressOffsetCongruent": true,
+          "zipCompression": 0,
+          "zipStored": true,
+          "zipDataOffset": 20348928,
+          "zipAlignment16KiB": true
+        },
+        {
+          "name": "lib/x86_64/libhermesvm.so",
+          "elfClass": 64,
+          "elfMachine": 62,
+          "loadAlignments": [
+            16384,
+            16384,
+            16384
+          ],
+          "minLoadAlignment": 16384,
+          "loadAddressOffsetCongruent": true,
+          "zipCompression": 0,
+          "zipStored": true,
+          "zipDataOffset": 20889600,
+          "zipAlignment16KiB": true
+        },
+        {
+          "name": "lib/x86_64/libimagepipeline.so",
+          "elfClass": 64,
+          "elfMachine": 62,
+          "loadAlignments": [
+            16384,
+            16384,
+            16384
+          ],
+          "minLoadAlignment": 16384,
+          "loadAddressOffsetCongruent": true,
+          "zipCompression": 0,
+          "zipStored": true,
+          "zipDataOffset": 24920064,
+          "zipAlignment16KiB": true
+        },
+        {
+          "name": "lib/x86_64/libjsi.so",
+          "elfClass": 64,
+          "elfMachine": 62,
+          "loadAlignments": [
+            16384,
+            16384,
+            16384
+          ],
+          "minLoadAlignment": 16384,
+          "loadAddressOffsetCongruent": true,
+          "zipCompression": 0,
+          "zipStored": true,
+          "zipDataOffset": 24936448,
+          "zipAlignment16KiB": true
+        },
+        {
+          "name": "lib/x86_64/libnative-filters.so",
+          "elfClass": 64,
+          "elfMachine": 62,
+          "loadAlignments": [
+            16384,
+            16384,
+            16384
+          ],
+          "minLoadAlignment": 16384,
+          "loadAddressOffsetCongruent": true,
+          "zipCompression": 0,
+          "zipStored": true,
+          "zipDataOffset": 25870336,
+          "zipAlignment16KiB": true
+        },
+        {
+          "name": "lib/x86_64/libnative-imagetranscoder.so",
+          "elfClass": 64,
+          "elfMachine": 62,
+          "loadAlignments": [
+            16384,
+            16384,
+            16384
+          ],
+          "minLoadAlignment": 16384,
+          "loadAddressOffsetCongruent": true,
+          "zipCompression": 0,
+          "zipStored": true,
+          "zipDataOffset": 25903104,
+          "zipAlignment16KiB": true
+        },
+        {
+          "name": "lib/x86_64/libop-sqlite.so",
+          "elfClass": 64,
+          "elfMachine": 62,
+          "loadAlignments": [
+            16384,
+            16384,
+            16384,
+            16384
+          ],
+          "minLoadAlignment": 16384,
+          "loadAddressOffsetCongruent": true,
+          "zipCompression": 0,
+          "zipStored": true,
+          "zipDataOffset": 26624000,
+          "zipAlignment16KiB": true
+        },
+        {
+          "name": "lib/x86_64/libreact_codegen_rnsvg.so",
+          "elfClass": 64,
+          "elfMachine": 62,
+          "loadAlignments": [
+            16384,
+            16384,
+            16384,
+            16384
+          ],
+          "minLoadAlignment": 16384,
+          "loadAddressOffsetCongruent": true,
+          "zipCompression": 0,
+          "zipStored": true,
+          "zipDataOffset": 28393472,
+          "zipAlignment16KiB": true
+        },
+        {
+          "name": "lib/x86_64/libreact_codegen_safeareacontext.so",
+          "elfClass": 64,
+          "elfMachine": 62,
+          "loadAlignments": [
+            16384,
+            16384,
+            16384,
+            16384
+          ],
+          "minLoadAlignment": 16384,
+          "loadAddressOffsetCongruent": true,
+          "zipCompression": 0,
+          "zipStored": true,
+          "zipDataOffset": 30851072,
+          "zipAlignment16KiB": true
+        },
+        {
+          "name": "lib/x86_64/libreactnative.so",
+          "elfClass": 64,
+          "elfMachine": 62,
+          "loadAlignments": [
+            16384,
+            16384,
+            16384
+          ],
+          "minLoadAlignment": 16384,
+          "loadAddressOffsetCongruent": true,
+          "zipCompression": 0,
+          "zipStored": true,
+          "zipDataOffset": 31424512,
+          "zipAlignment16KiB": true
+        },
+        {
+          "name": "lib/x86_64/libcapstone_whisper.so",
+          "elfClass": 64,
+          "elfMachine": 62,
+          "loadAlignments": [
+            16384,
+            16384,
+            16384,
+            16384
+          ],
+          "minLoadAlignment": 16384,
+          "loadAddressOffsetCongruent": true,
+          "zipCompression": 0,
+          "zipStored": true,
+          "zipDataOffset": 88670208,
+          "zipAlignment16KiB": true
+        }
+      ],
+      "modelSha256": "818710568da3ca15689e31a743197b520007872ff9576237bda97bd1b469c3d7",
+      "modelAsset": "assets/stt/ggml-tiny-q5_1.bin",
+      "modelBytes": 32152673,
+      "modelLicenseSha256": "b5d65a59060e68c4ff940e1eddfa6f94b2d68fdf58ed7f4dd57721c997e35e9d",
+      "modelManifestSha256": "687d956a58189eb341f896782943a455428cbd7f68bbba1f440cf508be161edc",
+      "reviewedLicenseNotices": [
+        {
+          "name": "assets/licenses/WHISPER-CPP-MIT.txt",
+          "bytes": 1078,
+          "sha256": "94f29bbed6a22c35b992c5c6ebf0e7c92f13b836b90f36f461c9cf2f0f1d010d"
+        },
+        {
+          "name": "assets/licenses/REACT-NATIVE-SVG-NOTICES.txt",
+          "bytes": 21297,
+          "sha256": "314bcb8e160602e0fb75c14ccdd0ea7240b8dc9576e40310d9b55290780efa48"
+        }
+      ],
+      "unchangedDuringInspection": true,
+      "changedFromPreviousCohort": false
+    },
+    {
+      "path": "android/app/build/outputs/apk/debug/app-arm64-v8a-debug.apk",
+      "bytes": 88654954,
+      "sha256": "36fefd3821a4ab22a2d27205dd7b5b3ab54e11e8a543fae116aaeae32ea055e6",
+      "modifiedUtc": "2026-10-29T03:28:13.907226+00:00",
+      "identity": "package: name='com.lafina.capstone.debug' versionCode='11' versionName='0.8.0' platformBuildVersionName='16' platformBuildVersionCode='36' compileSdkVersion='36' compileSdkVersionCodename='16'",
+      "permissions": [
+        "package: com.lafina.capstone.debug",
+        "uses-permission: name='android.permission.INTERNET'",
+        "uses-permission: name='android.permission.POST_NOTIFICATIONS'",
+        "uses-permission: name='android.permission.SCHEDULE_EXACT_ALARM'",
+        "uses-permission: name='android.permission.USE_FULL_SCREEN_INTENT'",
+        "uses-permission: name='android.permission.RECEIVE_BOOT_COMPLETED'",
+        "uses-permission: name='android.permission.VIBRATE'",
+        "uses-permission: name='android.permission.RECORD_AUDIO'",
+        "uses-permission: name='android.permission.SYSTEM_ALERT_WINDOW'",
+        "permission: com.lafina.capstone.debug.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION",
+        "uses-permission: name='com.lafina.capstone.debug.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION'"
+      ],
+      "identityMatchesPrevious": true,
+      "internetPermissionPresent": true,
+      "nativeLibraries": [
+        {
+          "name": "lib/arm64-v8a/libappmodules.so",
+          "elfClass": 64,
+          "elfMachine": 183,
+          "loadAlignments": [
+            16384,
+            16384,
+            16384,
+            16384
+          ],
+          "minLoadAlignment": 16384,
+          "loadAddressOffsetCongruent": true,
+          "zipCompression": 0,
+          "zipStored": true,
+          "zipDataOffset": 14565376,
+          "zipAlignment16KiB": true
+        },
+        {
+          "name": "lib/arm64-v8a/libc++_shared.so",
+          "elfClass": 64,
+          "elfMachine": 183,
+          "loadAlignments": [
+            16384,
+            16384,
+            16384,
+            16384
+          ],
+          "minLoadAlignment": 16384,
+          "loadAddressOffsetCongruent": true,
+          "zipCompression": 0,
+          "zipStored": true,
+          "zipDataOffset": 17186816,
+          "zipAlignment16KiB": true
+        },
+        {
+          "name": "lib/arm64-v8a/libfbjni.so",
+          "elfClass": 64,
+          "elfMachine": 183,
+          "loadAlignments": [
+            16384,
+            16384,
+            16384
+          ],
+          "minLoadAlignment": 16384,
+          "loadAddressOffsetCongruent": true,
+          "zipCompression": 0,
+          "zipStored": true,
+          "zipDataOffset": 19972096,
+          "zipAlignment16KiB": true
+        },
+        {
+          "name": "lib/arm64-v8a/libhermestooling.so",
+          "elfClass": 64,
+          "elfMachine": 183,
+          "loadAlignments": [
+            16384,
+            16384,
+            16384
+          ],
+          "minLoadAlignment": 16384,
+          "loadAddressOffsetCongruent": true,
+          "zipCompression": 0,
+          "zipStored": true,
+          "zipDataOffset": 20152320,
+          "zipAlignment16KiB": true
+        },
+        {
+          "name": "lib/arm64-v8a/libhermesvm.so",
+          "elfClass": 64,
+          "elfMachine": 183,
+          "loadAlignments": [
+            16384,
+            16384,
+            16384
+          ],
+          "minLoadAlignment": 16384,
+          "loadAddressOffsetCongruent": true,
+          "zipCompression": 0,
+          "zipStored": true,
+          "zipDataOffset": 20725760,
+          "zipAlignment16KiB": true
+        },
+        {
+          "name": "lib/arm64-v8a/libimagepipeline.so",
+          "elfClass": 64,
+          "elfMachine": 183,
+          "loadAlignments": [
+            16384,
+            16384,
+            16384
+          ],
+          "minLoadAlignment": 16384,
+          "loadAddressOffsetCongruent": true,
+          "zipCompression": 0,
+          "zipStored": true,
+          "zipDataOffset": 24444928,
+          "zipAlignment16KiB": true
+        },
+        {
+          "name": "lib/arm64-v8a/libjsi.so",
+          "elfClass": 64,
+          "elfMachine": 183,
+          "loadAlignments": [
+            16384,
+            16384,
+            16384
+          ],
+          "minLoadAlignment": 16384,
+          "loadAddressOffsetCongruent": true,
+          "zipCompression": 0,
+          "zipStored": true,
+          "zipDataOffset": 24461312,
+          "zipAlignment16KiB": true
+        },
+        {
+          "name": "lib/arm64-v8a/libnative-filters.so",
+          "elfClass": 64,
+          "elfMachine": 183,
+          "loadAlignments": [
+            16384,
+            16384,
+            16384
+          ],
+          "minLoadAlignment": 16384,
+          "loadAddressOffsetCongruent": true,
+          "zipCompression": 0,
+          "zipStored": true,
+          "zipDataOffset": 25411584,
+          "zipAlignment16KiB": true
+        },
+        {
+          "name": "lib/arm64-v8a/libnative-imagetranscoder.so",
+          "elfClass": 64,
+          "elfMachine": 183,
+          "loadAlignments": [
+            16384,
+            16384,
+            16384
+          ],
+          "minLoadAlignment": 16384,
+          "loadAddressOffsetCongruent": true,
+          "zipCompression": 0,
+          "zipStored": true,
+          "zipDataOffset": 25444352,
+          "zipAlignment16KiB": true
+        },
+        {
+          "name": "lib/arm64-v8a/libop-sqlite.so",
+          "elfClass": 64,
+          "elfMachine": 183,
+          "loadAlignments": [
+            16384,
+            16384,
+            16384,
+            16384
+          ],
+          "minLoadAlignment": 16384,
+          "loadAddressOffsetCongruent": true,
+          "zipCompression": 0,
+          "zipStored": true,
+          "zipDataOffset": 26034176,
+          "zipAlignment16KiB": true
+        },
+        {
+          "name": "lib/arm64-v8a/libreact_codegen_rnsvg.so",
+          "elfClass": 64,
+          "elfMachine": 183,
+          "loadAlignments": [
+            16384,
+            16384,
+            16384,
+            16384
+          ],
+          "minLoadAlignment": 16384,
+          "loadAddressOffsetCongruent": true,
+          "zipCompression": 0,
+          "zipStored": true,
+          "zipDataOffset": 27803648,
+          "zipAlignment16KiB": true
+        },
+        {
+          "name": "lib/arm64-v8a/libreact_codegen_safeareacontext.so",
+          "elfClass": 64,
+          "elfMachine": 183,
+          "loadAlignments": [
+            16384,
+            16384,
+            16384,
+            16384
+          ],
+          "minLoadAlignment": 16384,
+          "loadAddressOffsetCongruent": true,
+          "zipCompression": 0,
+          "zipStored": true,
+          "zipDataOffset": 30130176,
+          "zipAlignment16KiB": true
+        },
+        {
+          "name": "lib/arm64-v8a/libreactnative.so",
+          "elfClass": 64,
+          "elfMachine": 183,
+          "loadAlignments": [
+            16384,
+            16384,
+            16384
+          ],
+          "minLoadAlignment": 16384,
+          "loadAddressOffsetCongruent": true,
+          "zipCompression": 0,
+          "zipStored": true,
+          "zipDataOffset": 30720000,
+          "zipAlignment16KiB": true
+        },
+        {
+          "name": "lib/arm64-v8a/libcapstone_whisper.so",
+          "elfClass": 64,
+          "elfMachine": 183,
+          "loadAlignments": [
+            16384,
+            16384,
+            16384,
+            16384
+          ],
+          "minLoadAlignment": 16384,
+          "loadAddressOffsetCongruent": true,
+          "zipCompression": 0,
+          "zipStored": true,
+          "zipDataOffset": 87113728,
+          "zipAlignment16KiB": true
+        }
+      ],
+      "modelSha256": "818710568da3ca15689e31a743197b520007872ff9576237bda97bd1b469c3d7",
+      "modelAsset": "assets/stt/ggml-tiny-q5_1.bin",
+      "modelBytes": 32152673,
+      "modelLicenseSha256": "b5d65a59060e68c4ff940e1eddfa6f94b2d68fdf58ed7f4dd57721c997e35e9d",
+      "modelManifestSha256": "687d956a58189eb341f896782943a455428cbd7f68bbba1f440cf508be161edc",
+      "reviewedLicenseNotices": [
+        {
+          "name": "assets/licenses/WHISPER-CPP-MIT.txt",
+          "bytes": 1078,
+          "sha256": "94f29bbed6a22c35b992c5c6ebf0e7c92f13b836b90f36f461c9cf2f0f1d010d"
+        },
+        {
+          "name": "assets/licenses/REACT-NATIVE-SVG-NOTICES.txt",
+          "bytes": 21297,
+          "sha256": "314bcb8e160602e0fb75c14ccdd0ea7240b8dc9576e40310d9b55290780efa48"
+        }
+      ],
+      "unchangedDuringInspection": true,
+      "changedFromPreviousCohort": false
+    },
+    {
+      "path": "android/app/build/outputs/apk/debug/app-x86_64-debug.apk",
+      "bytes": 88806624,
+      "sha256": "08c23a66d29ad6fdd4aadd3746f6782f5d5a36e176518f8606292cbb9ea62802",
+      "modifiedUtc": "2026-10-29T03:28:13.726932+00:00",
+      "identity": "package: name='com.lafina.capstone.debug' versionCode='11' versionName='0.8.0' platformBuildVersionName='16' platformBuildVersionCode='36' compileSdkVersion='36' compileSdkVersionCodename='16'",
+      "permissions": [
+        "package: com.lafina.capstone.debug",
+        "uses-permission: name='android.permission.INTERNET'",
+        "uses-permission: name='android.permission.POST_NOTIFICATIONS'",
+        "uses-permission: name='android.permission.SCHEDULE_EXACT_ALARM'",
+        "uses-permission: name='android.permission.USE_FULL_SCREEN_INTENT'",
+        "uses-permission: name='android.permission.RECEIVE_BOOT_COMPLETED'",
+        "uses-permission: name='android.permission.VIBRATE'",
+        "uses-permission: name='android.permission.RECORD_AUDIO'",
+        "uses-permission: name='android.permission.SYSTEM_ALERT_WINDOW'",
+        "permission: com.lafina.capstone.debug.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION",
+        "uses-permission: name='com.lafina.capstone.debug.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION'"
+      ],
+      "identityMatchesPrevious": true,
+      "internetPermissionPresent": true,
+      "nativeLibraries": [
+        {
+          "name": "lib/x86_64/libappmodules.so",
+          "elfClass": 64,
+          "elfMachine": 62,
+          "loadAlignments": [
+            16384,
+            16384,
+            16384,
+            16384
+          ],
+          "minLoadAlignment": 16384,
+          "loadAddressOffsetCongruent": true,
+          "zipCompression": 0,
+          "zipStored": true,
+          "zipDataOffset": 14565376,
+          "zipAlignment16KiB": true
+        },
+        {
+          "name": "lib/x86_64/libc++_shared.so",
+          "elfClass": 64,
+          "elfMachine": 62,
+          "loadAlignments": [
+            16384,
+            16384,
+            16384,
+            16384
+          ],
+          "minLoadAlignment": 16384,
+          "loadAddressOffsetCongruent": true,
+          "zipCompression": 0,
+          "zipStored": true,
+          "zipDataOffset": 17154048,
+          "zipAlignment16KiB": true
+        },
+        {
+          "name": "lib/x86_64/libfbjni.so",
+          "elfClass": 64,
+          "elfMachine": 62,
+          "loadAlignments": [
+            16384,
+            16384,
+            16384
+          ],
+          "minLoadAlignment": 16384,
+          "loadAddressOffsetCongruent": true,
+          "zipCompression": 0,
+          "zipStored": true,
+          "zipDataOffset": 20168704,
+          "zipAlignment16KiB": true
+        },
+        {
+          "name": "lib/x86_64/libhermestooling.so",
+          "elfClass": 64,
+          "elfMachine": 62,
+          "loadAlignments": [
+            16384,
+            16384,
+            16384
+          ],
+          "minLoadAlignment": 16384,
+          "loadAddressOffsetCongruent": true,
+          "zipCompression": 0,
+          "zipStored": true,
+          "zipDataOffset": 20348928,
+          "zipAlignment16KiB": true
+        },
+        {
+          "name": "lib/x86_64/libhermesvm.so",
+          "elfClass": 64,
+          "elfMachine": 62,
+          "loadAlignments": [
+            16384,
+            16384,
+            16384
+          ],
+          "minLoadAlignment": 16384,
+          "loadAddressOffsetCongruent": true,
+          "zipCompression": 0,
+          "zipStored": true,
+          "zipDataOffset": 20889600,
+          "zipAlignment16KiB": true
+        },
+        {
+          "name": "lib/x86_64/libimagepipeline.so",
+          "elfClass": 64,
+          "elfMachine": 62,
+          "loadAlignments": [
+            16384,
+            16384,
+            16384
+          ],
+          "minLoadAlignment": 16384,
+          "loadAddressOffsetCongruent": true,
+          "zipCompression": 0,
+          "zipStored": true,
+          "zipDataOffset": 24920064,
+          "zipAlignment16KiB": true
+        },
+        {
+          "name": "lib/x86_64/libjsi.so",
+          "elfClass": 64,
+          "elfMachine": 62,
+          "loadAlignments": [
+            16384,
+            16384,
+            16384
+          ],
+          "minLoadAlignment": 16384,
+          "loadAddressOffsetCongruent": true,
+          "zipCompression": 0,
+          "zipStored": true,
+          "zipDataOffset": 24936448,
+          "zipAlignment16KiB": true
+        },
+        {
+          "name": "lib/x86_64/libnative-filters.so",
+          "elfClass": 64,
+          "elfMachine": 62,
+          "loadAlignments": [
+            16384,
+            16384,
+            16384
+          ],
+          "minLoadAlignment": 16384,
+          "loadAddressOffsetCongruent": true,
+          "zipCompression": 0,
+          "zipStored": true,
+          "zipDataOffset": 25870336,
+          "zipAlignment16KiB": true
+        },
+        {
+          "name": "lib/x86_64/libnative-imagetranscoder.so",
+          "elfClass": 64,
+          "elfMachine": 62,
+          "loadAlignments": [
+            16384,
+            16384,
+            16384
+          ],
+          "minLoadAlignment": 16384,
+          "loadAddressOffsetCongruent": true,
+          "zipCompression": 0,
+          "zipStored": true,
+          "zipDataOffset": 25903104,
+          "zipAlignment16KiB": true
+        },
+        {
+          "name": "lib/x86_64/libop-sqlite.so",
+          "elfClass": 64,
+          "elfMachine": 62,
+          "loadAlignments": [
+            16384,
+            16384,
+            16384,
+            16384
+          ],
+          "minLoadAlignment": 16384,
+          "loadAddressOffsetCongruent": true,
+          "zipCompression": 0,
+          "zipStored": true,
+          "zipDataOffset": 26624000,
+          "zipAlignment16KiB": true
+        },
+        {
+          "name": "lib/x86_64/libreact_codegen_rnsvg.so",
+          "elfClass": 64,
+          "elfMachine": 62,
+          "loadAlignments": [
+            16384,
+            16384,
+            16384,
+            16384
+          ],
+          "minLoadAlignment": 16384,
+          "loadAddressOffsetCongruent": true,
+          "zipCompression": 0,
+          "zipStored": true,
+          "zipDataOffset": 28393472,
+          "zipAlignment16KiB": true
+        },
+        {
+          "name": "lib/x86_64/libreact_codegen_safeareacontext.so",
+          "elfClass": 64,
+          "elfMachine": 62,
+          "loadAlignments": [
+            16384,
+            16384,
+            16384,
+            16384
+          ],
+          "minLoadAlignment": 16384,
+          "loadAddressOffsetCongruent": true,
+          "zipCompression": 0,
+          "zipStored": true,
+          "zipDataOffset": 30851072,
+          "zipAlignment16KiB": true
+        },
+        {
+          "name": "lib/x86_64/libreactnative.so",
+          "elfClass": 64,
+          "elfMachine": 62,
+          "loadAlignments": [
+            16384,
+            16384,
+            16384
+          ],
+          "minLoadAlignment": 16384,
+          "loadAddressOffsetCongruent": true,
+          "zipCompression": 0,
+          "zipStored": true,
+          "zipDataOffset": 31424512,
+          "zipAlignment16KiB": true
+        },
+        {
+          "name": "lib/x86_64/libcapstone_whisper.so",
+          "elfClass": 64,
+          "elfMachine": 62,
+          "loadAlignments": [
+            16384,
+            16384,
+            16384,
+            16384
+          ],
+          "minLoadAlignment": 16384,
+          "loadAddressOffsetCongruent": true,
+          "zipCompression": 0,
+          "zipStored": true,
+          "zipDataOffset": 87015424,
+          "zipAlignment16KiB": true
+        }
+      ],
+      "modelSha256": "818710568da3ca15689e31a743197b520007872ff9576237bda97bd1b469c3d7",
+      "modelAsset": "assets/stt/ggml-tiny-q5_1.bin",
+      "modelBytes": 32152673,
+      "modelLicenseSha256": "b5d65a59060e68c4ff940e1eddfa6f94b2d68fdf58ed7f4dd57721c997e35e9d",
+      "modelManifestSha256": "687d956a58189eb341f896782943a455428cbd7f68bbba1f440cf508be161edc",
+      "reviewedLicenseNotices": [
+        {
+          "name": "assets/licenses/WHISPER-CPP-MIT.txt",
+          "bytes": 1078,
+          "sha256": "94f29bbed6a22c35b992c5c6ebf0e7c92f13b836b90f36f461c9cf2f0f1d010d"
+        },
+        {
+          "name": "assets/licenses/REACT-NATIVE-SVG-NOTICES.txt",
+          "bytes": 21297,
+          "sha256": "314bcb8e160602e0fb75c14ccdd0ea7240b8dc9576e40310d9b55290780efa48"
+        }
+      ],
+      "unchangedDuringInspection": true,
+      "changedFromPreviousCohort": false
+    },
+    {
+      "path": "android/app/build/outputs/apk/release/app-arm64-v8a-release.apk",
+      "bytes": 62940236,
+      "sha256": "b2142ad34503aec10b13644f20f99f4336747d5b8222f50d2350e6ea4688025f",
+      "modifiedUtc": "2026-10-29T03:29:40.677813+00:00",
+      "identity": "package: name='com.lafina.capstone' versionCode='11' versionName='0.8.0-preview' platformBuildVersionName='16' platformBuildVersionCode='36' compileSdkVersion='36' compileSdkVersionCodename='16'",
+      "permissions": [
+        "package: com.lafina.capstone",
+        "uses-permission: name='android.permission.POST_NOTIFICATIONS'",
+        "uses-permission: name='android.permission.SCHEDULE_EXACT_ALARM'",
+        "uses-permission: name='android.permission.USE_FULL_SCREEN_INTENT'",
+        "uses-permission: name='android.permission.RECEIVE_BOOT_COMPLETED'",
+        "uses-permission: name='android.permission.VIBRATE'",
+        "uses-permission: name='android.permission.RECORD_AUDIO'",
+        "permission: com.lafina.capstone.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION",
+        "uses-permission: name='com.lafina.capstone.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION'"
+      ],
+      "identityMatchesPrevious": true,
+      "internetPermissionPresent": false,
+      "nativeLibraries": [
+        {
+          "name": "lib/arm64-v8a/libappmodules.so",
+          "elfClass": 64,
+          "elfMachine": 183,
+          "loadAlignments": [
+            16384,
+            16384,
+            16384,
+            16384
+          ],
+          "minLoadAlignment": 16384,
+          "loadAddressOffsetCongruent": true,
+          "zipCompression": 0,
+          "zipStored": true,
+          "zipDataOffset": 11927552,
+          "zipAlignment16KiB": true
+        },
+        {
+          "name": "lib/arm64-v8a/libc++_shared.so",
+          "elfClass": 64,
+          "elfMachine": 183,
+          "loadAlignments": [
+            16384,
+            16384,
+            16384,
+            16384
+          ],
+          "minLoadAlignment": 16384,
+          "loadAddressOffsetCongruent": true,
+          "zipCompression": 0,
+          "zipStored": true,
+          "zipDataOffset": 12812288,
+          "zipAlignment16KiB": true
+        },
+        {
+          "name": "lib/arm64-v8a/libcapstone_whisper.so",
+          "elfClass": 64,
+          "elfMachine": 183,
+          "loadAlignments": [
+            16384,
+            16384,
+            16384,
+            16384
+          ],
+          "minLoadAlignment": 16384,
+          "loadAddressOffsetCongruent": true,
+          "zipCompression": 0,
+          "zipStored": true,
+          "zipDataOffset": 14106624,
+          "zipAlignment16KiB": true
+        },
+        {
+          "name": "lib/arm64-v8a/libfbjni.so",
+          "elfClass": 64,
+          "elfMachine": 183,
+          "loadAlignments": [
+            16384,
+            16384,
+            16384
+          ],
+          "minLoadAlignment": 16384,
+          "loadAddressOffsetCongruent": true,
+          "zipCompression": 0,
+          "zipStored": true,
+          "zipDataOffset": 15089664,
+          "zipAlignment16KiB": true
+        },
+        {
+          "name": "lib/arm64-v8a/libhermestooling.so",
+          "elfClass": 64,
+          "elfMachine": 183,
+          "loadAlignments": [
+            16384,
+            16384,
+            16384
+          ],
+          "minLoadAlignment": 16384,
+          "loadAddressOffsetCongruent": true,
+          "zipCompression": 0,
+          "zipStored": true,
+          "zipDataOffset": 15269888,
+          "zipAlignment16KiB": true
+        },
+        {
+          "name": "lib/arm64-v8a/libhermesvm.so",
+          "elfClass": 64,
+          "elfMachine": 183,
+          "loadAlignments": [
+            16384,
+            16384,
+            16384
+          ],
+          "minLoadAlignment": 16384,
+          "loadAddressOffsetCongruent": true,
+          "zipCompression": 0,
+          "zipStored": true,
+          "zipDataOffset": 15417344,
+          "zipAlignment16KiB": true
+        },
+        {
+          "name": "lib/arm64-v8a/libimagepipeline.so",
+          "elfClass": 64,
+          "elfMachine": 183,
+          "loadAlignments": [
+            16384,
+            16384,
+            16384
+          ],
+          "minLoadAlignment": 16384,
+          "loadAddressOffsetCongruent": true,
+          "zipCompression": 0,
+          "zipStored": true,
+          "zipDataOffset": 17907712,
+          "zipAlignment16KiB": true
+        },
+        {
+          "name": "lib/arm64-v8a/libjsi.so",
+          "elfClass": 64,
+          "elfMachine": 183,
+          "loadAlignments": [
+            16384,
+            16384,
+            16384
+          ],
+          "minLoadAlignment": 16384,
+          "loadAddressOffsetCongruent": true,
+          "zipCompression": 0,
+          "zipStored": true,
+          "zipDataOffset": 17924096,
+          "zipAlignment16KiB": true
+        },
+        {
+          "name": "lib/arm64-v8a/libnative-filters.so",
+          "elfClass": 64,
+          "elfMachine": 183,
+          "loadAlignments": [
+            16384,
+            16384,
+            16384
+          ],
+          "minLoadAlignment": 16384,
+          "loadAddressOffsetCongruent": true,
+          "zipCompression": 0,
+          "zipStored": true,
+          "zipDataOffset": 18350080,
+          "zipAlignment16KiB": true
+        },
+        {
+          "name": "lib/arm64-v8a/libnative-imagetranscoder.so",
+          "elfClass": 64,
+          "elfMachine": 183,
+          "loadAlignments": [
+            16384,
+            16384,
+            16384
+          ],
+          "minLoadAlignment": 16384,
+          "loadAddressOffsetCongruent": true,
+          "zipCompression": 0,
+          "zipStored": true,
+          "zipDataOffset": 18382848,
+          "zipAlignment16KiB": true
+        },
+        {
+          "name": "lib/arm64-v8a/libop-sqlite.so",
+          "elfClass": 64,
+          "elfMachine": 183,
+          "loadAlignments": [
+            16384,
+            16384,
+            16384,
+            16384
+          ],
+          "minLoadAlignment": 16384,
+          "loadAddressOffsetCongruent": true,
+          "zipCompression": 0,
+          "zipStored": true,
+          "zipDataOffset": 18972672,
+          "zipAlignment16KiB": true
+        },
+        {
+          "name": "lib/arm64-v8a/libreact_codegen_rnsvg.so",
+          "elfClass": 64,
+          "elfMachine": 183,
+          "loadAlignments": [
+            16384,
+            16384,
+            16384,
+            16384
+          ],
+          "minLoadAlignment": 16384,
+          "loadAddressOffsetCongruent": true,
+          "zipCompression": 0,
+          "zipStored": true,
+          "zipDataOffset": 20561920,
+          "zipAlignment16KiB": true
+        },
+        {
+          "name": "lib/arm64-v8a/libreact_codegen_safeareacontext.so",
+          "elfClass": 64,
+          "elfMachine": 183,
+          "loadAlignments": [
+            16384,
+            16384,
+            16384,
+            16384
+          ],
+          "minLoadAlignment": 16384,
+          "loadAddressOffsetCongruent": true,
+          "zipCompression": 0,
+          "zipStored": true,
+          "zipDataOffset": 21364736,
+          "zipAlignment16KiB": true
+        },
+        {
+          "name": "lib/arm64-v8a/libreactnative.so",
+          "elfClass": 64,
+          "elfMachine": 183,
+          "loadAlignments": [
+            16384,
+            16384,
+            16384
+          ],
+          "minLoadAlignment": 16384,
+          "loadAddressOffsetCongruent": true,
+          "zipCompression": 0,
+          "zipStored": true,
+          "zipDataOffset": 21528576,
+          "zipAlignment16KiB": true
+        }
+      ],
+      "modelSha256": "818710568da3ca15689e31a743197b520007872ff9576237bda97bd1b469c3d7",
+      "modelAsset": "assets/stt/ggml-tiny-q5_1.bin",
+      "modelBytes": 32152673,
+      "modelLicenseSha256": "b5d65a59060e68c4ff940e1eddfa6f94b2d68fdf58ed7f4dd57721c997e35e9d",
+      "modelManifestSha256": "687d956a58189eb341f896782943a455428cbd7f68bbba1f440cf508be161edc",
+      "reviewedLicenseNotices": [
+        {
+          "name": "assets/licenses/WHISPER-CPP-MIT.txt",
+          "bytes": 1078,
+          "sha256": "94f29bbed6a22c35b992c5c6ebf0e7c92f13b836b90f36f461c9cf2f0f1d010d"
+        },
+        {
+          "name": "assets/licenses/REACT-NATIVE-SVG-NOTICES.txt",
+          "bytes": 21297,
+          "sha256": "314bcb8e160602e0fb75c14ccdd0ea7240b8dc9576e40310d9b55290780efa48"
+        }
+      ],
+      "unchangedDuringInspection": true,
+      "changedFromPreviousCohort": false
+    },
+    {
+      "path": "android/app/build/outputs/apk/release/app-x86_64-release.apk",
+      "bytes": 63658962,
+      "sha256": "3913ad94e42b4050728f18926b561a176f20d25537a15cf3766a67a590eab39c",
+      "modifiedUtc": "2026-10-29T03:29:40.282353+00:00",
+      "identity": "package: name='com.lafina.capstone' versionCode='11' versionName='0.8.0-preview' platformBuildVersionName='16' platformBuildVersionCode='36' compileSdkVersion='36' compileSdkVersionCodename='16'",
+      "permissions": [
+        "package: com.lafina.capstone",
+        "uses-permission: name='android.permission.POST_NOTIFICATIONS'",
+        "uses-permission: name='android.permission.SCHEDULE_EXACT_ALARM'",
+        "uses-permission: name='android.permission.USE_FULL_SCREEN_INTENT'",
+        "uses-permission: name='android.permission.RECEIVE_BOOT_COMPLETED'",
+        "uses-permission: name='android.permission.VIBRATE'",
+        "uses-permission: name='android.permission.RECORD_AUDIO'",
+        "permission: com.lafina.capstone.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION",
+        "uses-permission: name='com.lafina.capstone.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION'"
+      ],
+      "identityMatchesPrevious": true,
+      "internetPermissionPresent": false,
+      "nativeLibraries": [
+        {
+          "name": "lib/x86_64/libappmodules.so",
+          "elfClass": 64,
+          "elfMachine": 62,
+          "loadAlignments": [
+            16384,
+            16384,
+            16384,
+            16384
+          ],
+          "minLoadAlignment": 16384,
+          "loadAddressOffsetCongruent": true,
+          "zipCompression": 0,
+          "zipStored": true,
+          "zipDataOffset": 11927552,
+          "zipAlignment16KiB": true
+        },
+        {
+          "name": "lib/x86_64/libc++_shared.so",
+          "elfClass": 64,
+          "elfMachine": 62,
+          "loadAlignments": [
+            16384,
+            16384,
+            16384,
+            16384
+          ],
+          "minLoadAlignment": 16384,
+          "loadAddressOffsetCongruent": true,
+          "zipCompression": 0,
+          "zipStored": true,
+          "zipDataOffset": 12861440,
+          "zipAlignment16KiB": true
+        },
+        {
+          "name": "lib/x86_64/libcapstone_whisper.so",
+          "elfClass": 64,
+          "elfMachine": 62,
+          "loadAlignments": [
+            16384,
+            16384,
+            16384,
+            16384
+          ],
+          "minLoadAlignment": 16384,
+          "loadAddressOffsetCongruent": true,
+          "zipCompression": 0,
+          "zipStored": true,
+          "zipDataOffset": 14123008,
+          "zipAlignment16KiB": true
+        },
+        {
+          "name": "lib/x86_64/libfbjni.so",
+          "elfClass": 64,
+          "elfMachine": 62,
+          "loadAlignments": [
+            16384,
+            16384,
+            16384
+          ],
+          "minLoadAlignment": 16384,
+          "loadAddressOffsetCongruent": true,
+          "zipCompression": 0,
+          "zipStored": true,
+          "zipDataOffset": 15335424,
+          "zipAlignment16KiB": true
+        },
+        {
+          "name": "lib/x86_64/libhermestooling.so",
+          "elfClass": 64,
+          "elfMachine": 62,
+          "loadAlignments": [
+            16384,
+            16384,
+            16384
+          ],
+          "minLoadAlignment": 16384,
+          "loadAddressOffsetCongruent": true,
+          "zipCompression": 0,
+          "zipStored": true,
+          "zipDataOffset": 15515648,
+          "zipAlignment16KiB": true
+        },
+        {
+          "name": "lib/x86_64/libhermesvm.so",
+          "elfClass": 64,
+          "elfMachine": 62,
+          "loadAlignments": [
+            16384,
+            16384,
+            16384
+          ],
+          "minLoadAlignment": 16384,
+          "loadAddressOffsetCongruent": true,
+          "zipCompression": 0,
+          "zipStored": true,
+          "zipDataOffset": 15663104,
+          "zipAlignment16KiB": true
+        },
+        {
+          "name": "lib/x86_64/libimagepipeline.so",
+          "elfClass": 64,
+          "elfMachine": 62,
+          "loadAlignments": [
+            16384,
+            16384,
+            16384
+          ],
+          "minLoadAlignment": 16384,
+          "loadAddressOffsetCongruent": true,
+          "zipCompression": 0,
+          "zipStored": true,
+          "zipDataOffset": 18268160,
+          "zipAlignment16KiB": true
+        },
+        {
+          "name": "lib/x86_64/libjsi.so",
+          "elfClass": 64,
+          "elfMachine": 62,
+          "loadAlignments": [
+            16384,
+            16384,
+            16384
+          ],
+          "minLoadAlignment": 16384,
+          "loadAddressOffsetCongruent": true,
+          "zipCompression": 0,
+          "zipStored": true,
+          "zipDataOffset": 18284544,
+          "zipAlignment16KiB": true
+        },
+        {
+          "name": "lib/x86_64/libnative-filters.so",
+          "elfClass": 64,
+          "elfMachine": 62,
+          "loadAlignments": [
+            16384,
+            16384,
+            16384
+          ],
+          "minLoadAlignment": 16384,
+          "loadAddressOffsetCongruent": true,
+          "zipCompression": 0,
+          "zipStored": true,
+          "zipDataOffset": 18710528,
+          "zipAlignment16KiB": true
+        },
+        {
+          "name": "lib/x86_64/libnative-imagetranscoder.so",
+          "elfClass": 64,
+          "elfMachine": 62,
+          "loadAlignments": [
+            16384,
+            16384,
+            16384
+          ],
+          "minLoadAlignment": 16384,
+          "loadAddressOffsetCongruent": true,
+          "zipCompression": 0,
+          "zipStored": true,
+          "zipDataOffset": 18743296,
+          "zipAlignment16KiB": true
+        },
+        {
+          "name": "lib/x86_64/libop-sqlite.so",
+          "elfClass": 64,
+          "elfMachine": 62,
+          "loadAlignments": [
+            16384,
+            16384,
+            16384,
+            16384
+          ],
+          "minLoadAlignment": 16384,
+          "loadAddressOffsetCongruent": true,
+          "zipCompression": 0,
+          "zipStored": true,
+          "zipDataOffset": 19464192,
+          "zipAlignment16KiB": true
+        },
+        {
+          "name": "lib/x86_64/libreact_codegen_rnsvg.so",
+          "elfClass": 64,
+          "elfMachine": 62,
+          "loadAlignments": [
+            16384,
+            16384,
+            16384,
+            16384
+          ],
+          "minLoadAlignment": 16384,
+          "loadAddressOffsetCongruent": true,
+          "zipCompression": 0,
+          "zipStored": true,
+          "zipDataOffset": 21086208,
+          "zipAlignment16KiB": true
+        },
+        {
+          "name": "lib/x86_64/libreact_codegen_safeareacontext.so",
+          "elfClass": 64,
+          "elfMachine": 62,
+          "loadAlignments": [
+            16384,
+            16384,
+            16384,
+            16384
+          ],
+          "minLoadAlignment": 16384,
+          "loadAddressOffsetCongruent": true,
+          "zipCompression": 0,
+          "zipStored": true,
+          "zipDataOffset": 21970944,
+          "zipAlignment16KiB": true
+        },
+        {
+          "name": "lib/x86_64/libreactnative.so",
+          "elfClass": 64,
+          "elfMachine": 62,
+          "loadAlignments": [
+            16384,
+            16384,
+            16384
+          ],
+          "minLoadAlignment": 16384,
+          "loadAddressOffsetCongruent": true,
+          "zipCompression": 0,
+          "zipStored": true,
+          "zipDataOffset": 22134784,
+          "zipAlignment16KiB": true
+        }
+      ],
+      "modelSha256": "818710568da3ca15689e31a743197b520007872ff9576237bda97bd1b469c3d7",
+      "modelAsset": "assets/stt/ggml-tiny-q5_1.bin",
+      "modelBytes": 32152673,
+      "modelLicenseSha256": "b5d65a59060e68c4ff940e1eddfa6f94b2d68fdf58ed7f4dd57721c997e35e9d",
+      "modelManifestSha256": "687d956a58189eb341f896782943a455428cbd7f68bbba1f440cf508be161edc",
+      "reviewedLicenseNotices": [
+        {
+          "name": "assets/licenses/WHISPER-CPP-MIT.txt",
+          "bytes": 1078,
+          "sha256": "94f29bbed6a22c35b992c5c6ebf0e7c92f13b836b90f36f461c9cf2f0f1d010d"
+        },
+        {
+          "name": "assets/licenses/REACT-NATIVE-SVG-NOTICES.txt",
+          "bytes": 21297,
+          "sha256": "314bcb8e160602e0fb75c14ccdd0ea7240b8dc9576e40310d9b55290780efa48"
+        }
+      ],
+      "unchangedDuringInspection": true,
+      "changedFromPreviousCohort": false
+    }
+  ],
+  "apkCount": 7,
+  "productionApkCount": 6,
+  "nativeLibraryCount": 84,
+  "verifiedModelSha256": "818710568da3ca15689e31a743197b520007872ff9576237bda97bd1b469c3d7",
+  "verifiedModelBytes": 32152673,
+  "allNativeLibrariesElf64And16KiBAligned": true,
+  "allSixApplicationApksHavePinnedModelAndReviewedNotices": true,
+  "qaAndReleaseHaveNoInternetPermission": true,
+  "changedFromPreviousCohort": [
+    "android/app/build/outputs/apk/androidTest/dataQa/app-dataQa-androidTest.apk"
+  ],
+  "errors": [],
+  "commands": [
+    "aapt2 dump badging <apk>",
+    "aapt2 dump permissions <apk>"
+  ],
+  "nativeInspection": "ELF64 PT_LOAD p_align and address/offset congruence parsed with struct; stored ZIP local-header payload offsets checked modulo 16384.",
+  "scope": "Fresh read-only static inspection of seven current post-expansion APKs. Does not prove device delivery, microphone audibility, performance, release signing or upgrade compatibility. Historical evidence was not overwritten."
+}

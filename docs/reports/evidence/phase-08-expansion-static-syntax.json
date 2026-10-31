@@ -1,0 +1,18 @@
+{
+  "createdUtc": "2026-10-28T13:21:12.482990+00:00",
+  "outcome": "PASS",
+  "checks": [
+    {
+      "command": "node --check scripts/phase08-emulator-audio.mjs",
+      "nodeVersion": "v24.19.0",
+      "exitCode": 0,
+      "sourceSha256": "89b3835ed9fb4db7cdd653f194445493b5835180d9e9a755a90bd6a9b739a4ef"
+    },
+    {
+      "command": "Python ast.parse for scripts/phase08-emulator-suite.py and scripts/verify-phase08-apks.py",
+      "outcome": "PASS",
+      "evidence": "docs/reports/evidence/phase-08-expansion-source-hashes.json"
+    }
+  ],
+  "scope": "Host parsing only; no app execution, device validation or microphone access."
+}

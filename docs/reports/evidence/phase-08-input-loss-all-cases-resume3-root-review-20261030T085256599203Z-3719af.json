@@ -1,0 +1,44 @@
+{
+  "kind": "PHASE08_ROOT_SERIAL_ALL_CASE_DISPATCH",
+  "status": "ROOT_REVIEW_RESTORATION_VERIFIED",
+  "startedAtUtc": "2026-10-30T08:52:56.599985+00:00",
+  "ownershipRunId": "ex20261028",
+  "rootBaseline": ".local/phase08-input-loss-baseline.json",
+  "rootBaselineSha256": "a7af4d7db3b3b90828a52738b6e103a9121a3ab061f75107a981bf20c2a2adf4",
+  "selectedCases": [],
+  "all47RunnableCasesSelected": false,
+  "attempts": [],
+  "cases": [],
+  "deferredCases": [
+    {
+      "id": "V05",
+      "status": "NOT_RUN",
+      "ownerDecision": "Keep V05 pending until suitable audio is available"
+    }
+  ],
+  "physicalDeviceValidation": "NOT_RUN",
+  "signedHumanReview": false,
+  "originalUserStateRestorationRequiredAfterDispatcher": true,
+  "passScope": "Selected current emulator assertions only; all failures retained. Per-case restore is to the working test state, not original human acceptance.",
+  "stoppedCampaign": "docs/reports/evidence/phase-08-input-loss-all-cases-final-clean-resumed-20261030T051327524941Z-a645d7.json",
+  "case": "V08",
+  "priorAttemptStatusPreserved": true,
+  "checks": {
+    "case": "V08_INTERRUPTION_REVIEW",
+    "trial": 1,
+    "status": "PASS",
+    "startedAtUtc": "2026-10-30T08:52:56.657822+00:00",
+    "log": "docs/reports/evidence/phase-08-input-loss-all-cases-resume3-root-review-20261030T085256599203Z-3719af-V08_INTERRUPTION_REVIEW-trial1.log",
+    "events": [],
+    "physicalAcceptance": "NOT_RUN",
+    "restoration": "VERIFIED_WORKING_TEST_BASELINE",
+    "originalNonDiagnosticRowsEqual": true,
+    "originalPreferencePayloadEqual": true,
+    "fullPermissionsSettingsAudioAndTtsEqual": true,
+    "activeJobs": 0,
+    "registrations": 0,
+    "hostMicrophoneDisabledAtEnd": true
+  },
+  "dispatchLockRemovedAfterRootReview": true,
+  "completedAtUtc": "2026-10-30T08:53:13.975523+00:00"
+}

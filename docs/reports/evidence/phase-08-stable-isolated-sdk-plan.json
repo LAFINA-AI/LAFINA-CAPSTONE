@@ -1,0 +1,53 @@
+{
+  "kind": "PHASE08_STABLE_ISOLATED_SDK_COMPARISON_PLAN",
+  "createdAtUtc": "2026-10-31T00:25:24.659140+00:00",
+  "plannedTrials": 5,
+  "order": [
+    "A03/1",
+    "V03/1",
+    "V03/2",
+    "V04/1",
+    "V04/2"
+  ],
+  "engine": "37.2.13",
+  "guest": "LAFINA_Phase08_API35",
+  "guestApi": 35,
+  "sourceMode": "realtime",
+  "why": "Stable API35 image alone and SDK-default blocking did not repair input loss. One final bounded comparison changes only the already verified isolated SDK engine, retaining the reviewed real-time source, native gate and exact-reference/review checks.",
+  "appModelParserThresholdOrCaptureLimitsChanged": false,
+  "installedSdkReplaced": false,
+  "originalGuestTargeted": false,
+  "allOutcomesRetained": true,
+  "noSuccessOnlyRetries": true,
+  "stopIfRestorationOrControllerUnknown": true,
+  "physicalDeviceValidation": "NOT_RUN",
+  "hostMicrophoneEnableRequested": false,
+  "sourceProvenance": "docs/reports/evidence/phase-08-input-loss-isolated-sdk.json",
+  "signatureEvidence": "docs/reports/evidence/phase-08-input-loss-sdk-signature.json",
+  "sources": [
+    {
+      "path": ".local/phase08-stable-sdk-cold.py",
+      "sha256": "7d6e12e74de50fdf9c227be0158aec3c1262e01f7f48bb93efff13ccb918e56d"
+    },
+    {
+      "path": ".local/phase08-stable-sdk-cohort.py",
+      "sha256": "e05b7daebbb24238bd51a8503a3e12bf09ecfcfe53c1a097c974b780bb1eee84"
+    },
+    {
+      "path": ".local/phase08-stable-mic.py",
+      "sha256": "2f8277c226f136271620e57aa0654065cd27ec7e668c234fb5d8fa56307ceb6a"
+    },
+    {
+      "path": ".local/phase08-capture-fix-reviewed-mic.py",
+      "sha256": "8aef5281eb541fd2bafdbf323e2c0e3a14ead86aac37e3b68fb355c10f81c4c9"
+    },
+    {
+      "path": "scripts/phase08-emulator-audio.mjs",
+      "sha256": "a5231b7b4acd700107ffed234f58781cb5c83e56f1daee87a51f6189fe86c95d"
+    },
+    {
+      "path": ".local/phase08-emulator-37.2.13/emulator/emulator.exe",
+      "sha256": "06af3c5da3c2cef7266822fe653f54371fc746d78db6f4282e1b2338a70970c8"
+    }
+  ]
+}

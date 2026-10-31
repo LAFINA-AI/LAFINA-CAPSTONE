@@ -1,0 +1,109 @@
+{
+  "kind": "DIRECT_SYNTHETIC_PCM_EMULATOR_OR_DEVICE_NOT_MICROPHONE",
+  "cohort": "ex20261028_0306",
+  "startedAtUtc": "2026-10-28T03:11:27.109842Z",
+  "modelSha256": "818710568da3ca15689e31a743197b520007872ff9576237bda97bd1b469c3d7",
+  "modelBytes": 32152673,
+  "appVersion": "0.8.0-data-qa",
+  "api": 37,
+  "deviceModel": "sdk_gphone16k_x86_64",
+  "abis": [
+    "x86_64",
+    "arm64-v8a"
+  ],
+  "modelCachePresentBefore": true,
+  "sampleRate": 16000,
+  "voice": {
+    "name": "Microsoft David Desktop",
+    "culture": "en-US",
+    "description": "Microsoft David Desktop - English (United States)"
+  },
+  "samples": [
+    {
+      "id": "assignment",
+      "reference": "remind me to submit the assignment tomorrow",
+      "audioSha256": "5fea3c575e26e6473ea3b89d9e4e66944ad432c82ac316e9d7a0722094698527",
+      "audioSamples": 49600,
+      "audioDurationMs": 3100,
+      "hypothesis": "Remind me to submit the assignment tomorrow.",
+      "outcome": "RESULT",
+      "totalPrepareLoadDecodeMs": 4345,
+      "sampledMaxPssKiB": 151808,
+      "memoryPolls": 21,
+      "memoryIntervalMs": 200
+    },
+    {
+      "id": "biology",
+      "reference": "add a study session for biology on friday",
+      "audioSha256": "e8d7c8df3c93b3313db5bf36feb85d24e4539e7743dcf458fc20400853706ba3",
+      "audioSamples": 55520,
+      "audioDurationMs": 3470,
+      "hypothesis": "Add a study session for biology on Friday.",
+      "outcome": "RESULT",
+      "totalPrepareLoadDecodeMs": 3519,
+      "sampledMaxPssKiB": 168124,
+      "memoryPolls": 17,
+      "memoryIntervalMs": 200
+    },
+    {
+      "id": "today",
+      "reference": "show my tasks for today",
+      "audioSha256": "6544ffdee9ca3076a9e4b37310d383b808eeaa1e277c96a948a79c649e776545",
+      "audioSamples": 37520,
+      "audioDurationMs": 2345,
+      "hypothesis": "Show my tasks for today.",
+      "outcome": "RESULT",
+      "totalPrepareLoadDecodeMs": 3335,
+      "sampledMaxPssKiB": 168776,
+      "memoryPolls": 17,
+      "memoryIntervalMs": 200
+    },
+    {
+      "id": "calculus",
+      "reference": "move the calculus lecture to monday morning",
+      "audioSha256": "8fdc03ac0b372776d182f871dddeb8849b2ea3de077ffe92b3975adde5b4d489",
+      "audioSamples": 50560,
+      "audioDurationMs": 3160,
+      "hypothesis": "Move the calculus lecture to Monday morning.",
+      "outcome": "RESULT",
+      "totalPrepareLoadDecodeMs": 3169,
+      "sampledMaxPssKiB": 167509,
+      "memoryPolls": 16,
+      "memoryIntervalMs": 200
+    },
+    {
+      "id": "cancel",
+      "reference": "cancel my library reminder",
+      "audioSha256": "d5b64bd67c9ada954fa56e08d28d9bd2ea76cd077504c5fcd3f1c996750dae34",
+      "audioSamples": 41440,
+      "audioDurationMs": 2590,
+      "hypothesis": "cancel my library reminder.",
+      "outcome": "RESULT",
+      "totalPrepareLoadDecodeMs": 3227,
+      "sampledMaxPssKiB": 167097,
+      "memoryPolls": 16,
+      "memoryIntervalMs": 200
+    },
+    {
+      "id": "complete",
+      "reference": "mark the reading task complete",
+      "audioSha256": "e18fff815ef94d600e8a07c349eddcb9ec576d80350d78789d859f9b6428605c",
+      "audioSamples": 40720,
+      "audioDurationMs": 2545,
+      "hypothesis": "Mark the reading task complete.",
+      "outcome": "RESULT",
+      "totalPrepareLoadDecodeMs": 3111,
+      "sampledMaxPssKiB": 167569,
+      "memoryPolls": 15,
+      "memoryIntervalMs": 200
+    }
+  ],
+  "limits": [
+    "No microphone\/capture or Android recognizer accuracy measured.",
+    "Each request loads\/frees its decoder; warm disk\/page caches may remain.",
+    "Sampled process PSS is not absolute peak, whole UI pipeline memory or phone battery.",
+    "Synthetic English SAPI voice is not Filipino-accented speech or a noise study.",
+    "No scheduling command executes; hypotheses are synthetic benchmark output only."
+  ],
+  "finishedAtUtc": "2026-10-28T03:11:48.076144Z"
+}

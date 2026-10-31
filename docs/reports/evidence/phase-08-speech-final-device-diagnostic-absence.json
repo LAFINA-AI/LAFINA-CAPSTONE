@@ -1,0 +1,8 @@
+{
+  "atUtc": "2026-10-29T03:40:54.857991+00:00",
+  "status": "PASS",
+  "temporaryRequestAndCaptureExportsAbsent": true,
+  "matchedDiagnosticFiles": 0,
+  "noDeviceMutation": true,
+  "physicalDeviceValidation": "NOT_RUN"
+}

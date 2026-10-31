@@ -1,0 +1,883 @@
+{
+  "kind": "PHASE08_MICROPHONE_STATE_EMULATOR_SOURCE_REVIEW",
+  "createdAtUtc": "2026-10-31T18:05:45.063058+00:00",
+  "derivedRecord": true,
+  "rawEvidenceRewritten": false,
+  "scope": "Documentation and derived-evidence checkpoint only. Interprets retained Phase 08 evidence against public Android emulator source. No emulator launch or emulator-executable invocation, no ADB/device call, audio injection, microphone access, build, installation, test-suite rerun or runtime experiment. Downloaded public source was read as text and never executed. No application, harness or test source changed. No experiment is authorized or begun by this record.",
+  "checkout": {
+    "branch": "codex/phase-07-audit-hardening",
+    "head": "98bef88c3ae0fabee677c1466417fc34c0af738c",
+    "dirtyTreePreserved": true
+  },
+  "provenance": {
+    "publicSourceReview": "Claude Code read-only review (2026-10-31/2026-11-01) of android.googlesource.com/platform/external/qemu through Gitiles and a blob-filtered sparse git clone. Text copies were retained outside the repository (session scratchpad); none is committed here.",
+    "independentVerification": "Reported by the owner: Codex independently fetched the cited code from Google's repository and confirmed that the retained copies matched. This record cites that statement and does not reproduce it.",
+    "retainedCopyCheckThisCheckpoint": "The git blob ID of each retained copy was recomputed with git hash-object and equals the blob ID recorded from the public tree for that revision (wholeFileBlobIds below)."
+  },
+  "shippedBinaries": [
+    {
+      "revision": "37.1.11",
+      "buildId": "15917651",
+      "location": "global SDK %LOCALAPPDATA%/Android/Sdk/emulator",
+      "sourcePropertiesSha256": "ee589ca350515c29dc3bad30dd5ebe8efb11d1a50c17c8815125d3c4bd12a3a8",
+      "logBanner": "Android emulator version 37.1.11.0 (build_id 15917651) (CL:N/A)",
+      "releaseNotes": "37.1.11 Stable, Jul 30 2026 (developer.android.com/studio/releases/emulator)",
+      "incidents": [
+        "original Medium_Phone A03/1 (2026-10-30)",
+        "original Medium_Phone V03/2 (2026-10-30)"
+      ],
+      "audioBackend": "default (recorded as DirectSound in the stable-emulator report, H3a); not re-verified here"
+    },
+    {
+      "revision": "37.2.13",
+      "buildId": "16740729",
+      "location": ".local/phase08-emulator-37.2.13/emulator (isolated, ignored)",
+      "sourcePropertiesSha256": "f7562ee75ef359fc20b64727a0977c6306c6bac2dab60c8d7ced7c9e372a7cc7",
+      "provenanceRecord": {
+        "path": "docs/reports/evidence/phase-08-input-loss-isolated-sdk.json",
+        "sha256": "c82388211670aa5924bf763a95ffd989a7fc0a324b41c7b8aea139e36eb06ed4"
+      },
+      "releaseNotes": "37.2.13 Patch, Oct 28 2026; lists only Issue #568480829 (OpenGL ES host memory leak)",
+      "incidents": [
+        "LAFINA_Phase08_API35 null1 V03/2 (2026-10-31)"
+      ],
+      "audioBackend": "-audio none (engine command line verified at boot)",
+      "bootRecord": {
+        "path": "docs/reports/evidence/phase-08-stable-nullaudio1-boot.json",
+        "sha256": "8971df714a04d1f3ca3da373620eab05870d402e8b6aca34887bb985fc31ff44"
+      }
+    }
+  ],
+  "binaryInspection": "The two installed headless engine binaries were scanned as bytes for strings only (never executed): both contain 'QEMU emulator version 2.12.0' and the injectAudio error strings 'There can be only one microphone active' and 'Unable to register microphone.'. This is consistent with, not proof of, the reviewed code.",
+  "sourceMatchToShippedBinaries": {
+    "status": "NOT_LOCATED_OR_MATCHED",
+    "detail": "No public commit was located or matched to build 15917651 or 16740729 during this review; the binaries report CL:N/A. This describes the review's result. It is not a claim that the exact source is unavailable publicly.",
+    "consequence": "Every source finding below describes the reviewed public revisions. Whether the shipped binaries contain the same code is unverified, so the mechanism on the shipped binaries remains unconfirmed."
+  },
+  "reviewedRevisions": [
+    {
+      "id": "R0",
+      "commit": "2ad4df62a73f (abbreviated)",
+      "role": "37.1.1 Canary version bump; comparison bracket only"
+    },
+    {
+      "id": "R1",
+      "commit": "3f4160f6871e832fe62ea9cb51be8c1c495d2dbb",
+      "date": "2026-07-06",
+      "subject": "Merge \"Bump Emulator to 37.1.8 Canary\"",
+      "role": "Source of the public snap of build 15813814 into emu-37-1-release. Closest located public candidate before 37.1.11; correspondence to build 15917651 unverified."
+    },
+    {
+      "id": "R2a",
+      "commit": "ba0a47b5e8f501108816ba11937d6e26bb5cca7c",
+      "role": "first emu-37-2 snap source; comparison bracket only"
+    },
+    {
+      "id": "R2",
+      "commit": "8aaadeb1fea1202b287f1b8361f764a98950a27e",
+      "date": "2026-09-22",
+      "subject": "Bump Emulator to 37.2.12 Stable",
+      "role": "Source of the public snap of build 16427917 into emu-37-2-release. Closest located public candidate before 37.2.13; correspondence to build 16740729 unverified. Primary citation revision."
+    },
+    {
+      "id": "TIP",
+      "commit": "cf0f40a0aad1aa3fca68f2f89372525c8d28ca68",
+      "date": "2026-10-27",
+      "subject": "Snap for 16696583 from 3b1a57de4ca5 to stage-aosp-emu-main-release (emu-main-dev, 37.3.6)",
+      "role": "Later code, for comparison only"
+    }
+  ],
+  "laterUpstreamChanges": [
+    {
+      "commit": "1ac571c9780abc7c23aec02a5dd5a22efa490d2c",
+      "url": "https://android.googlesource.com/platform/external/qemu/+/1ac571c9780abc7c23aec02a5dd5a22efa490d2c",
+      "authorDate": "2026-09-25",
+      "commitDate": "2026-10-05",
+      "subject": "Synchronize QEMU audio capture and input forwarder with VmLock",
+      "bug": "557288006",
+      "files": [
+        "android-qemu2-glue/audio-capturer.cpp",
+        "android-qemu2-glue/qemu-vm-operations-impl.cpp",
+        "android/android-grpc/services/emulator-controller/server/include/android/emulation/control/audio/AudioStream.h",
+        "android/android-grpc/services/emulator-controller/server/src/android/emulation/control/audio/AudioStream.cpp",
+        "audio/audio_forwarder.c"
+      ],
+      "messageExcerpt": "Audio capture and input streams are started and stopped from gRPC worker threads without holding the QEMU Big Lock (VmLock), racing with audio_timer on the QEMU main loop and with concurrent stream start/stop calls that can overwrite saved voice state in the audio forwarder. ... only stop streams in ~AudioStreamCapturer() that successfully started."
+    },
+    {
+      "commit": "a6c0b4f60ee75af6ff6a4f10f2634eddad62dd93",
+      "url": "https://android.googlesource.com/platform/external/qemu/+/a6c0b4f60ee75af6ff6a4f10f2634eddad62dd93",
+      "authorDate": "2026-10-14",
+      "commitDate": "2026-10-16",
+      "subject": "Avoid acquiring VmLock in real-audio state operations",
+      "bug": "557288006",
+      "files": [
+        "android-qemu2-glue/qemu-vm-operations-impl.cpp",
+        "audio/audio.c"
+      ],
+      "summary": "Accesses the allow_real_audio flag in audio/audio.c atomically and drops the VmLock from the real-audio vm operations (fixes a lock-order deadlock introduced by 1ac571c9780)."
+    }
+  ],
+  "laterChangesVsShippedBuilds": "Neither commit is in R1 or R2. 37.1.11 (released 2026-07-30) predates both commits' authorship. 37.2.13 (released 2026-10-28) postdates both; whether either is included is UNKNOWN. In both R2 and TIP the forwarder still sets the flag true on enable and restores the saved value on disable.",
+  "comparisons": {
+    "method": "Whole-file comparison by git blob ID across R0/R1/R2a/R2/TIP (10-hex prefixes from the public tree; full IDs recomputed from retained copies where available). Function- or region-level comparison by SHA-256 or text diff of extracted spans from retained R1/R2/TIP copies.",
+    "wholeFileBlobIds": [
+      {
+        "path": "android/android-grpc/services/emulator-controller/server/src/android/emulation/control/EmulatorService.cpp",
+        "R0": "a01af420d0",
+        "R1": "59fcef6d3a93004b403cf508fd6a8615aba60b46",
+        "R2a": "59fcef6d3a",
+        "R2": "d11ea56b5af9ed2ffb4d783c1e6fc4cfd3bef336",
+        "TIP": "254d6d181079418ef59019396eb0f18560d8e5f6",
+        "R1vsR2": "DIFFER"
+      },
+      {
+        "path": "android-qemu2-glue/qemu-vm-operations-impl.cpp",
+        "R0": "821743c30e",
+        "R1": "803916310b4cee55c7c60e28c2ed1d6ba708d3f0",
+        "R2a": "803916310b",
+        "R2": "c302244bbfdc7c85e0284f793d7b1070d992b627",
+        "TIP": "57e83837d1",
+        "R1vsR2": "DIFFER"
+      },
+      {
+        "path": "android-qemu2-glue/main.cpp",
+        "R0": "acc5e95313",
+        "R1": "b6de85fd4ed97d1f63b13d643ee002a3506410b1",
+        "R2a": "b6de85fd4e",
+        "R2": "0d771bf1caede47d528699a814ed5c629bc15460",
+        "TIP": "f1d9e3b2f1",
+        "R1vsR2": "DIFFER"
+      },
+      {
+        "path": "vl.c",
+        "R0": "38bfae8e49",
+        "R1": "38bfae8e49d93a24a987768f15975f2fade0b508",
+        "R2a": "38bfae8e49",
+        "R2": "43a8b8bbcb5069a8e3cf70ffc1992efd141609b0",
+        "TIP": "bb401e612581f646853ef47bde33313364861801",
+        "R1vsR2": "DIFFER"
+      },
+      {
+        "path": "android/android-emu/android/console.cpp",
+        "R0": "81a0883282",
+        "R1": "818c16ff2662e99ee35630e87501094a4659f818",
+        "R2a": "818c16ff26",
+        "R2": "5af5eeadb5e97c3e5a100e24c5f8ff06131c1a2b",
+        "TIP": "5af5eeadb5",
+        "R1vsR2": "DIFFER"
+      },
+      {
+        "path": "audio/audio_forwarder.c",
+        "R0": "3ab282c877",
+        "R1": "3ab282c877",
+        "R2a": "3ab282c877",
+        "R2": "3ab282c877f640f2996519601da0b02da1beacef",
+        "TIP": "7a60a62315ac65453e7bae38bfded9ce5bba2ec7",
+        "R1vsR2": "IDENTICAL"
+      },
+      {
+        "path": "audio/audio.c",
+        "R0": "4f526a7631",
+        "R1": "4f526a7631",
+        "R2a": "4f526a7631",
+        "R2": "4f526a7631c1211e0b6d50e3634fa8980140b610",
+        "TIP": "a805d3ff80dcdc5bff2c3cfb8d2a9d76f3f30910",
+        "R1vsR2": "IDENTICAL"
+      },
+      {
+        "path": "android/android-grpc/services/emulator-controller/server/src/android/emulation/control/audio/AudioStream.cpp",
+        "R0": "9963496e40",
+        "R1": "9963496e40",
+        "R2a": "9963496e40",
+        "R2": "9963496e402b5e830a53368ee395e606698fbd1e",
+        "TIP": "dcdabc0e4bc5ff009e40addb16aadfe56e864e90",
+        "R1vsR2": "IDENTICAL"
+      },
+      {
+        "path": "android/android-grpc/services/emulator-controller/server/include/android/emulation/control/audio/AudioStream.h",
+        "R0": "6a243c1b4a",
+        "R1": "6a243c1b4a",
+        "R2a": "6a243c1b4a",
+        "R2": "6a243c1b4a4e850334b97c88b53a64cfb4726bdc",
+        "TIP": "a411ba949ac9fa6eb132109b56154cdaa95fd7f9",
+        "R1vsR2": "IDENTICAL"
+      },
+      {
+        "path": "android-qemu2-glue/audio-capturer.cpp",
+        "R0": "14f3f4849e",
+        "R1": "14f3f4849e",
+        "R2a": "14f3f4849e",
+        "R2": "14f3f4849eb8b983d77ca551793e6a4e964e12f6",
+        "TIP": "060b5f11c2a2ffb1a126305981a388a0df851208",
+        "R1vsR2": "IDENTICAL"
+      },
+      {
+        "path": "android-qemu2-glue/audio-capturer.h",
+        "R0": "17ed75ccaf",
+        "R1": "17ed75ccaf",
+        "R2a": "17ed75ccaf",
+        "R2": "17ed75ccaf",
+        "TIP": "17ed75ccaf25c2220d5a2139e11a80e8f738c837",
+        "R1vsR2": "IDENTICAL"
+      },
+      {
+        "path": "android/android-emu/android/emulation/AudioCaptureEngine.cpp",
+        "R0": "c129dedc0a",
+        "R1": "c129dedc0a",
+        "R2a": "c129dedc0a",
+        "R2": "c129dedc0a",
+        "TIP": "c129dedc0a",
+        "R1vsR2": "IDENTICAL"
+      },
+      {
+        "path": "audio/audio_forwarder.h",
+        "R0": "3aff4d6fa4",
+        "R1": "3aff4d6fa4",
+        "R2a": "3aff4d6fa4",
+        "R2": "3aff4d6fa4",
+        "TIP": "3aff4d6fa40dcd77fa49da8fc59dd47dfea04ba2",
+        "R1vsR2": "IDENTICAL"
+      },
+      {
+        "path": "audio/noaudio.c",
+        "R0": "1bfebeca7d",
+        "R1": "1bfebeca7d",
+        "R2a": "1bfebeca7d",
+        "R2": "1bfebeca7d",
+        "TIP": "1bfebeca7da966710bf2d5904ac2e384613b091e",
+        "R1vsR2": "IDENTICAL"
+      },
+      {
+        "path": "audio/dsoundaudio.c",
+        "R0": "3ed73a30d1",
+        "R1": "3ed73a30d1",
+        "R2a": "3ed73a30d1",
+        "R2": "3ed73a30d1",
+        "TIP": "3ed73a30d1e3f9097256a93eb5cbd797c74ac154",
+        "R1vsR2": "IDENTICAL"
+      },
+      {
+        "path": "hw/audio/virtio-snd.c",
+        "R0": "22315a8060",
+        "R1": "62511ba220",
+        "R2a": "62511ba220",
+        "R2": "62511ba220",
+        "TIP": "62511ba220e0baea6aec8494fd0cb68ecef26499",
+        "R1vsR2": "IDENTICAL (changed R0 to R1)"
+      }
+    ],
+    "functionOrRegionLevel": [
+      {
+        "file": "android/android-grpc/services/emulator-controller/server/src/android/emulation/control/EmulatorService.cpp",
+        "span": "injectAudio method text, from 'Status injectAudio(' up to the next method 'Status streamAudio('",
+        "sha256": "779e262b59fc3323d2e1116a45e1554ad2a9e99f9756d42af32288e04ba4ac85",
+        "result": "IDENTICAL at R1, R2 and TIP",
+        "r2Lines": "641-720"
+      },
+      {
+        "file": "android/android-grpc/services/emulator-controller/server/src/android/emulation/control/EmulatorService.cpp",
+        "span": "setMicrophoneState and getMicrophoneState method text",
+        "sha256": "20d11c5a43d47867202e717920c714f35e04901b7d4509732c1d5f2c0faa833f",
+        "result": "IDENTICAL at R1, R2 and TIP",
+        "r2Lines": "769-783"
+      },
+      {
+        "file": "android-qemu2-glue/qemu-vm-operations-impl.cpp",
+        "span": "real-audio publisher comment through allow_real_audio notifyListeners",
+        "result": "IDENTICAL text R1/R2 (diff)",
+        "r1Line": 1048,
+        "r2Line": 1053
+      },
+      {
+        "file": "android-qemu2-glue/main.cpp",
+        "span": "8 lines from the '-audio none' check ('-no-audio', '-allow-host-audio')",
+        "sha256": "aa0008473d7ffe46864debf100020fbb7d0d0bbd47b3bba849be3e50b021217f",
+        "result": "IDENTICAL R1/R2",
+        "r1Line": 2026,
+        "r2Line": 2022
+      },
+      {
+        "file": "vl.c",
+        "span": "case QEMU_OPTION_audio_none: set_audio_drv(\"none\")",
+        "result": "IDENTICAL text R1/R2",
+        "r1Line": 3790,
+        "r2Line": 3786
+      },
+      {
+        "file": "vl.c",
+        "span": "case QEMU_OPTION_allow_host_audio (4 lines)",
+        "sha256": "01ca5f6a6082fa209a8708d6f79233fc02e2f4f110b4fb6989dbb0b935e972b1",
+        "result": "IDENTICAL R1/R2",
+        "r1Line": 4538,
+        "r2Line": 4534
+      },
+      {
+        "file": "android/android-emu/android/console.cpp",
+        "span": "do_avd_hostmicon/do_avd_hostmicoff (12 lines)",
+        "sha256": "4e2805272c88aeb3f6a77b7e4e70c561742848741fb7e182b5e12f973be691bb",
+        "result": "IDENTICAL R1/R2"
+      }
+    ],
+    "limits": "EmulatorService.cpp, qemu-vm-operations-impl.cpp, main.cpp, vl.c and console.cpp differ as whole files between R1 and R2. Matching the cited functions or regions does not mean the containing files match; the other differences were not reviewed for this question. The '-no-audio' to QEMU_OPTION_audio_none mapping was read in qemu-options.hx at TIP (line 439) only."
+  },
+  "protocolWording": {
+    "preserved": "Both local SDK protos (37.1.11 and 37.2.13) define MicrophoneState.realAudioEnabled as \"Whether or not host microphone access is enabled\" (hashes in the investigation record). That wording is preserved.",
+    "implementationNote": "In the reviewed public implementation, getMicrophoneState returns the audio core's real-audio flag, and the injected-audio forwarder also sets that flag true while an injectAudio stream is active. This documents implementation behaviour at the reviewed revisions; it does not redefine the protocol and was not verified on the shipped binaries."
+  },
+  "observedRuntimeFacts": [
+    "3/3 retained source-stream aborts were client-side realtime lateness aborts (102.9-112.7 ms over a 100 ms guard). In each, the producer cancelled the injectAudio stream (HTTP/2 RST_STREAM CANCEL, scripts/phase08-emulator-audio.mjs:343) and the next getMicrophoneState read (500 ms deadline, :936-944) returned realAudioEnabled=true.",
+    "37/37 retained completed streams read false afterwards; for those the producer reads only after the RPC ends with HTTP 200 and grpc-status 0 (:366-378).",
+    "In each incident the next state observation, 21-25 s later, read OFF, OFF. No reading exists in between.",
+    "Before-reads were false. No harness code sends setMicrophoneState, and -allow-host-audio was not used.",
+    "null1 V03/2 ran on isolated 37.2.13 with -audio none; A03/1 and V03/2 on the original guest ran on global 37.1.11 with the default backend.",
+    "The producer failed closed (HOST_MICROPHONE_ENABLED_AFTER_ABORT), the parent published ABORT and the native gate recorded BLOCK_PRODUCER_ABORT each time."
+  ],
+  "verifiedPublicSourceBehaviour": [
+    {
+      "id": "S1",
+      "statement": "getMicrophoneState returns the emulator's real-audio flag.",
+      "revisions": "R1, R2, TIP (method text identical)",
+      "refs": [
+        {
+          "revision": "8aaadeb1fea1202b287f1b8361f764a98950a27e",
+          "path": "android/android-grpc/services/emulator-controller/server/src/android/emulation/control/EmulatorService.cpp",
+          "line": 777,
+          "what": "EmulatorService::getMicrophoneState -> vm->isRealAudioAllowed()",
+          "url": "https://android.googlesource.com/platform/external/qemu/+/8aaadeb1fea1202b287f1b8361f764a98950a27e/android/android-grpc/services/emulator-controller/server/src/android/emulation/control/EmulatorService.cpp#777"
+        },
+        {
+          "revision": "8aaadeb1fea1202b287f1b8361f764a98950a27e",
+          "path": "android-qemu2-glue/qemu-vm-operations-impl.cpp",
+          "line": 1071,
+          "what": "is_real_audio_allowed -> qemu_is_real_audio_allowed",
+          "url": "https://android.googlesource.com/platform/external/qemu/+/8aaadeb1fea1202b287f1b8361f764a98950a27e/android-qemu2-glue/qemu-vm-operations-impl.cpp#1071"
+        },
+        {
+          "revision": "8aaadeb1fea1202b287f1b8361f764a98950a27e",
+          "path": "audio/audio.c",
+          "line": 1207,
+          "what": "static bool allow_real_audio = false",
+          "url": "https://android.googlesource.com/platform/external/qemu/+/8aaadeb1fea1202b287f1b8361f764a98950a27e/audio/audio.c#1207"
+        },
+        {
+          "revision": "8aaadeb1fea1202b287f1b8361f764a98950a27e",
+          "path": "audio/audio.c",
+          "line": 1213,
+          "what": "qemu_is_real_audio_allowed",
+          "url": "https://android.googlesource.com/platform/external/qemu/+/8aaadeb1fea1202b287f1b8361f764a98950a27e/audio/audio.c#1213"
+        }
+      ]
+    },
+    {
+      "id": "S2",
+      "statement": "audio_forwarder_enable saves the previous flag, disables the previous input voice, sets the flag true and activates the injected-audio voice.",
+      "revisions": "R1/R2 (identical file); TIP keeps the same sequence (lines 109, 112, 135, 137) under a mutex",
+      "refs": [
+        {
+          "revision": "8aaadeb1fea1202b287f1b8361f764a98950a27e",
+          "path": "audio/audio_forwarder.c",
+          "line": 83,
+          "what": "audio_forwarder_enable",
+          "url": "https://android.googlesource.com/platform/external/qemu/+/8aaadeb1fea1202b287f1b8361f764a98950a27e/audio/audio_forwarder.c#83"
+        },
+        {
+          "revision": "8aaadeb1fea1202b287f1b8361f764a98950a27e",
+          "path": "audio/audio_forwarder.c",
+          "line": 104,
+          "what": "g_prev_is_real_audio_allowed = qemu_is_real_audio_allowed()",
+          "url": "https://android.googlesource.com/platform/external/qemu/+/8aaadeb1fea1202b287f1b8361f764a98950a27e/audio/audio_forwarder.c#104"
+        },
+        {
+          "revision": "8aaadeb1fea1202b287f1b8361f764a98950a27e",
+          "path": "audio/audio_forwarder.c",
+          "line": 106,
+          "what": "AUD_set_active_in(g_prev_sw, 0)",
+          "url": "https://android.googlesource.com/platform/external/qemu/+/8aaadeb1fea1202b287f1b8361f764a98950a27e/audio/audio_forwarder.c#106"
+        },
+        {
+          "revision": "8aaadeb1fea1202b287f1b8361f764a98950a27e",
+          "path": "audio/audio_forwarder.c",
+          "line": 127,
+          "what": "qemu_allow_real_audio(true) ('gRPC means we will allow audio for now')",
+          "url": "https://android.googlesource.com/platform/external/qemu/+/8aaadeb1fea1202b287f1b8361f764a98950a27e/audio/audio_forwarder.c#127"
+        },
+        {
+          "revision": "8aaadeb1fea1202b287f1b8361f764a98950a27e",
+          "path": "audio/audio_forwarder.c",
+          "line": 128,
+          "what": "AUD_set_active_in(g_active_sw, 1)",
+          "url": "https://android.googlesource.com/platform/external/qemu/+/8aaadeb1fea1202b287f1b8361f764a98950a27e/audio/audio_forwarder.c#128"
+        }
+      ]
+    },
+    {
+      "id": "S3",
+      "statement": "Teardown re-activates the previous input voice and subsequently restores the saved flag value. It does not unconditionally set false.",
+      "revisions": "R1/R2; TIP same order (lines 174 then 181)",
+      "refs": [
+        {
+          "revision": "8aaadeb1fea1202b287f1b8361f764a98950a27e",
+          "path": "audio/audio_forwarder.c",
+          "line": 132,
+          "what": "audio_forwarder_disable",
+          "url": "https://android.googlesource.com/platform/external/qemu/+/8aaadeb1fea1202b287f1b8361f764a98950a27e/audio/audio_forwarder.c#132"
+        },
+        {
+          "revision": "8aaadeb1fea1202b287f1b8361f764a98950a27e",
+          "path": "audio/audio_forwarder.c",
+          "line": 157,
+          "what": "AUD_set_active_in(g_prev_sw, 1)",
+          "url": "https://android.googlesource.com/platform/external/qemu/+/8aaadeb1fea1202b287f1b8361f764a98950a27e/audio/audio_forwarder.c#157"
+        },
+        {
+          "revision": "8aaadeb1fea1202b287f1b8361f764a98950a27e",
+          "path": "audio/audio_forwarder.c",
+          "line": 162,
+          "what": "qemu_allow_real_audio(g_prev_is_real_audio_allowed)",
+          "url": "https://android.googlesource.com/platform/external/qemu/+/8aaadeb1fea1202b287f1b8361f764a98950a27e/audio/audio_forwarder.c#162"
+        },
+        {
+          "revision": "cf0f40a0aad1aa3fca68f2f89372525c8d28ca68",
+          "path": "audio/audio_forwarder.c",
+          "line": 181,
+          "what": "TIP: same restore of the saved value",
+          "url": "https://android.googlesource.com/platform/external/qemu/+/cf0f40a0aad1aa3fca68f2f89372525c8d28ca68/audio/audio_forwarder.c#181"
+        }
+      ]
+    },
+    {
+      "id": "S4",
+      "statement": "The reviewed audio path uses the flag as a guest-input mute gate: AUD_read applies mute_microphone to data returned to the guest when the flag is false. In the reviewed files the flag is not consulted when host input devices are opened, started or stopped; DirectSound starts and stops capture on voice enable/disable. The flag alone does not establish whether a host device is open or recording.",
+      "revisions": "R1/R2 (audio.c, dsoundaudio.c identical); TIP makes the flag atomic",
+      "refs": [
+        {
+          "revision": "8aaadeb1fea1202b287f1b8361f764a98950a27e",
+          "path": "audio/audio.c",
+          "line": 1349,
+          "what": "AUD_read",
+          "url": "https://android.googlesource.com/platform/external/qemu/+/8aaadeb1fea1202b287f1b8361f764a98950a27e/audio/audio.c#1349"
+        },
+        {
+          "revision": "8aaadeb1fea1202b287f1b8361f764a98950a27e",
+          "path": "audio/audio.c",
+          "line": 1363,
+          "what": "if (!allow_real_audio) mute_microphone(...)",
+          "url": "https://android.googlesource.com/platform/external/qemu/+/8aaadeb1fea1202b287f1b8361f764a98950a27e/audio/audio.c#1363"
+        },
+        {
+          "revision": "8aaadeb1fea1202b287f1b8361f764a98950a27e",
+          "path": "audio/audio.c",
+          "line": 1324,
+          "what": "mute_microphone",
+          "url": "https://android.googlesource.com/platform/external/qemu/+/8aaadeb1fea1202b287f1b8361f764a98950a27e/audio/audio.c#1324"
+        },
+        {
+          "revision": "8aaadeb1fea1202b287f1b8361f764a98950a27e",
+          "path": "audio/audio.c",
+          "line": 1422,
+          "what": "AUD_set_active_in -> ctl_in VOICE_ENABLE/VOICE_DISABLE (1439/1456)",
+          "url": "https://android.googlesource.com/platform/external/qemu/+/8aaadeb1fea1202b287f1b8361f764a98950a27e/audio/audio.c#1422"
+        },
+        {
+          "revision": "8aaadeb1fea1202b287f1b8361f764a98950a27e",
+          "path": "audio/dsoundaudio.c",
+          "line": 626,
+          "what": "IDirectSoundCaptureBuffer_Start on VOICE_ENABLE",
+          "url": "https://android.googlesource.com/platform/external/qemu/+/8aaadeb1fea1202b287f1b8361f764a98950a27e/audio/dsoundaudio.c#626"
+        },
+        {
+          "revision": "8aaadeb1fea1202b287f1b8361f764a98950a27e",
+          "path": "audio/dsoundaudio.c",
+          "line": 639,
+          "what": "IDirectSoundCaptureBuffer_Stop on VOICE_DISABLE",
+          "url": "https://android.googlesource.com/platform/external/qemu/+/8aaadeb1fea1202b287f1b8361f764a98950a27e/audio/dsoundaudio.c#639"
+        },
+        {
+          "revision": "8aaadeb1fea1202b287f1b8361f764a98950a27e",
+          "path": "hw/audio/virtio-snd.c",
+          "line": 774,
+          "what": "guest input stream open -> AUD_open_in, then AUD_set_active_in (781)",
+          "url": "https://android.googlesource.com/platform/external/qemu/+/8aaadeb1fea1202b287f1b8361f764a98950a27e/hw/audio/virtio-snd.c#774"
+        },
+        {
+          "revision": "8aaadeb1fea1202b287f1b8361f764a98950a27e",
+          "path": "hw/audio/virtio-snd.c",
+          "line": 1740,
+          "what": "AUD_read in the input callback",
+          "url": "https://android.googlesource.com/platform/external/qemu/+/8aaadeb1fea1202b287f1b8361f764a98950a27e/hw/audio/virtio-snd.c#1740"
+        }
+      ]
+    },
+    {
+      "id": "S5",
+      "statement": "injectAudio creates the forwarder-backed input stream after the first packet, reads until the client ends or the call is cancelled, runs a silence-drain loop bounded by a 300 ms wall-clock timeout, and returns; the stream object's destructor then stops the input engine, which calls audio_forwarder_disable. The flag is therefore true for the stream's lifetime and restored during server-side teardown.",
+      "revisions": "injectAudio text identical R1/R2/TIP; AudioStream.cpp and audio-capturer.cpp identical R1/R2",
+      "refs": [
+        {
+          "revision": "8aaadeb1fea1202b287f1b8361f764a98950a27e",
+          "path": "android/android-grpc/services/emulator-controller/server/src/android/emulation/control/EmulatorService.cpp",
+          "line": 641,
+          "what": "injectAudio; one-microphone guard at 647",
+          "url": "https://android.googlesource.com/platform/external/qemu/+/8aaadeb1fea1202b287f1b8361f764a98950a27e/android/android-grpc/services/emulator-controller/server/src/android/emulation/control/EmulatorService.cpp#641"
+        },
+        {
+          "revision": "8aaadeb1fea1202b287f1b8361f764a98950a27e",
+          "path": "android/android-grpc/services/emulator-controller/server/src/android/emulation/control/EmulatorService.cpp",
+          "line": 675,
+          "what": "QemuAudioInputStream aos(pkt.format(), 100ms, audioQueueTime=300ms)",
+          "url": "https://android.googlesource.com/platform/external/qemu/+/8aaadeb1fea1202b287f1b8361f764a98950a27e/android/android-grpc/services/emulator-controller/server/src/android/emulation/control/EmulatorService.cpp#675"
+        },
+        {
+          "revision": "8aaadeb1fea1202b287f1b8361f764a98950a27e",
+          "path": "android/android-grpc/services/emulator-controller/server/src/android/emulation/control/EmulatorService.cpp",
+          "line": 680,
+          "what": "read loop with IsCancelled",
+          "url": "https://android.googlesource.com/platform/external/qemu/+/8aaadeb1fea1202b287f1b8361f764a98950a27e/android/android-grpc/services/emulator-controller/server/src/android/emulation/control/EmulatorService.cpp#680"
+        },
+        {
+          "revision": "8aaadeb1fea1202b287f1b8361f764a98950a27e",
+          "path": "android/android-grpc/services/emulator-controller/server/src/android/emulation/control/EmulatorService.cpp",
+          "line": 708,
+          "what": "silence drain; timeout = now + audioQueueTime (710), loop at 716",
+          "url": "https://android.googlesource.com/platform/external/qemu/+/8aaadeb1fea1202b287f1b8361f764a98950a27e/android/android-grpc/services/emulator-controller/server/src/android/emulation/control/EmulatorService.cpp#708"
+        },
+        {
+          "revision": "8aaadeb1fea1202b287f1b8361f764a98950a27e",
+          "path": "android/android-grpc/services/emulator-controller/server/src/android/emulation/control/EmulatorService.cpp",
+          "line": 719,
+          "what": "return Status::OK; locals destroyed afterwards",
+          "url": "https://android.googlesource.com/platform/external/qemu/+/8aaadeb1fea1202b287f1b8361f764a98950a27e/android/android-grpc/services/emulator-controller/server/src/android/emulation/control/EmulatorService.cpp#719"
+        },
+        {
+          "revision": "8aaadeb1fea1202b287f1b8361f764a98950a27e",
+          "path": "android/android-grpc/services/emulator-controller/server/src/android/emulation/control/audio/AudioStream.cpp",
+          "line": 117,
+          "what": "AudioStreamCapturer ctor -> engine start",
+          "url": "https://android.googlesource.com/platform/external/qemu/+/8aaadeb1fea1202b287f1b8361f764a98950a27e/android/android-grpc/services/emulator-controller/server/src/android/emulation/control/audio/AudioStream.cpp#117"
+        },
+        {
+          "revision": "8aaadeb1fea1202b287f1b8361f764a98950a27e",
+          "path": "android/android-grpc/services/emulator-controller/server/src/android/emulation/control/audio/AudioStream.cpp",
+          "line": 121,
+          "what": "AudioStreamCapturer dtor -> engine stop (unconditional at R2)",
+          "url": "https://android.googlesource.com/platform/external/qemu/+/8aaadeb1fea1202b287f1b8361f764a98950a27e/android/android-grpc/services/emulator-controller/server/src/android/emulation/control/audio/AudioStream.cpp#121"
+        },
+        {
+          "revision": "8aaadeb1fea1202b287f1b8361f764a98950a27e",
+          "path": "android-qemu2-glue/audio-capturer.cpp",
+          "line": 190,
+          "what": "QemuAudioInputEngine::start -> audio_forwarder_enable (no VmLock at R2)",
+          "url": "https://android.googlesource.com/platform/external/qemu/+/8aaadeb1fea1202b287f1b8361f764a98950a27e/android-qemu2-glue/audio-capturer.cpp#190"
+        },
+        {
+          "revision": "8aaadeb1fea1202b287f1b8361f764a98950a27e",
+          "path": "android-qemu2-glue/audio-capturer.cpp",
+          "line": 196,
+          "what": "QemuAudioInputEngine::stop -> audio_forwarder_disable (no VmLock at R2)",
+          "url": "https://android.googlesource.com/platform/external/qemu/+/8aaadeb1fea1202b287f1b8361f764a98950a27e/android-qemu2-glue/audio-capturer.cpp#196"
+        }
+      ]
+    },
+    {
+      "id": "S6",
+      "statement": "Other writers of the flag: setMicrophoneState, console 'avd hostmicon'/'avd hostmicoff', '-allow-host-audio', and the windowed Qt microphone page. The forwarder writes the flag directly, not through the vm-ops wrapper that notifies real-audio listeners.",
+      "refs": [
+        {
+          "revision": "8aaadeb1fea1202b287f1b8361f764a98950a27e",
+          "path": "android/android-grpc/services/emulator-controller/server/src/android/emulation/control/EmulatorService.cpp",
+          "line": 769,
+          "what": "setMicrophoneState -> vm->allowRealAudio",
+          "url": "https://android.googlesource.com/platform/external/qemu/+/8aaadeb1fea1202b287f1b8361f764a98950a27e/android/android-grpc/services/emulator-controller/server/src/android/emulation/control/EmulatorService.cpp#769"
+        },
+        {
+          "revision": "8aaadeb1fea1202b287f1b8361f764a98950a27e",
+          "path": "android-qemu2-glue/qemu-vm-operations-impl.cpp",
+          "line": 1075,
+          "what": "allow_real_audio wrapper; notifies listeners on change (1081)",
+          "url": "https://android.googlesource.com/platform/external/qemu/+/8aaadeb1fea1202b287f1b8361f764a98950a27e/android-qemu2-glue/qemu-vm-operations-impl.cpp#1075"
+        },
+        {
+          "revision": "8aaadeb1fea1202b287f1b8361f764a98950a27e",
+          "path": "android/android-emu/android/console.cpp",
+          "line": 3001,
+          "what": "do_avd_hostmicon / do_avd_hostmicoff (3007)",
+          "url": "https://android.googlesource.com/platform/external/qemu/+/8aaadeb1fea1202b287f1b8361f764a98950a27e/android/android-emu/android/console.cpp#3001"
+        },
+        {
+          "revision": "8aaadeb1fea1202b287f1b8361f764a98950a27e",
+          "path": "vl.c",
+          "line": 4534,
+          "what": "-allow-host-audio -> qemu_allow_real_audio(true)",
+          "url": "https://android.googlesource.com/platform/external/qemu/+/8aaadeb1fea1202b287f1b8361f764a98950a27e/vl.c#4534"
+        }
+      ]
+    },
+    {
+      "id": "S7",
+      "statement": "'-audio none' becomes '-no-audio', which selects the 'none' audio driver; that driver's input read clears the buffer.",
+      "refs": [
+        {
+          "revision": "8aaadeb1fea1202b287f1b8361f764a98950a27e",
+          "path": "android-qemu2-glue/main.cpp",
+          "line": 2022,
+          "what": "opts->audio == 'none' -> -no-audio",
+          "url": "https://android.googlesource.com/platform/external/qemu/+/8aaadeb1fea1202b287f1b8361f764a98950a27e/android-qemu2-glue/main.cpp#2022"
+        },
+        {
+          "revision": "cf0f40a0aad1aa3fca68f2f89372525c8d28ca68",
+          "path": "qemu-options.hx",
+          "line": 439,
+          "what": "DEF(\"no-audio\", ..., QEMU_OPTION_audio_none)",
+          "url": "https://android.googlesource.com/platform/external/qemu/+/cf0f40a0aad1aa3fca68f2f89372525c8d28ca68/qemu-options.hx#439"
+        },
+        {
+          "revision": "8aaadeb1fea1202b287f1b8361f764a98950a27e",
+          "path": "vl.c",
+          "line": 3786,
+          "what": "QEMU_OPTION_audio_none -> set_audio_drv(\"none\")",
+          "url": "https://android.googlesource.com/platform/external/qemu/+/8aaadeb1fea1202b287f1b8361f764a98950a27e/vl.c#3786"
+        },
+        {
+          "revision": "8aaadeb1fea1202b287f1b8361f764a98950a27e",
+          "path": "audio/noaudio.c",
+          "line": 120,
+          "what": "no_read clears the buffer (128)",
+          "url": "https://android.googlesource.com/platform/external/qemu/+/8aaadeb1fea1202b287f1b8361f764a98950a27e/audio/noaudio.c#120"
+        }
+      ]
+    },
+    {
+      "id": "S8",
+      "statement": "At R1/R2 the input engine start/stop and the forwarder enable path take neither VmLock nor the forwarder mutex (disable takes only the mutex). Upstream 1ac571c later describes this as racing with audio_timer and with concurrent start/stop that can overwrite saved forwarder state; TIP serializes start/stop with VmLock and the forwarder mutex.",
+      "refs": [
+        {
+          "revision": "8aaadeb1fea1202b287f1b8361f764a98950a27e",
+          "path": "android-qemu2-glue/audio-capturer.cpp",
+          "line": 154,
+          "what": "QemuAudioInputEngine::start (no lock)",
+          "url": "https://android.googlesource.com/platform/external/qemu/+/8aaadeb1fea1202b287f1b8361f764a98950a27e/android-qemu2-glue/audio-capturer.cpp#154"
+        },
+        {
+          "revision": "8aaadeb1fea1202b287f1b8361f764a98950a27e",
+          "path": "audio/audio_forwarder.c",
+          "line": 88,
+          "what": "enable initializes but does not lock g_deactivation_mutex",
+          "url": "https://android.googlesource.com/platform/external/qemu/+/8aaadeb1fea1202b287f1b8361f764a98950a27e/audio/audio_forwarder.c#88"
+        },
+        {
+          "revision": "8aaadeb1fea1202b287f1b8361f764a98950a27e",
+          "path": "audio/audio_forwarder.c",
+          "line": 134,
+          "what": "disable locks g_deactivation_mutex only",
+          "url": "https://android.googlesource.com/platform/external/qemu/+/8aaadeb1fea1202b287f1b8361f764a98950a27e/audio/audio_forwarder.c#134"
+        },
+        {
+          "revision": "1ac571c9780abc7c23aec02a5dd5a22efa490d2c",
+          "url": "https://android.googlesource.com/platform/external/qemu/+/1ac571c9780abc7c23aec02a5dd5a22efa490d2c",
+          "what": "later synchronization fix"
+        },
+        {
+          "revision": "a6c0b4f60ee75af6ff6a4f10f2634eddad62dd93",
+          "url": "https://android.googlesource.com/platform/external/qemu/+/a6c0b4f60ee75af6ff6a4f10f2634eddad62dd93",
+          "what": "later atomic-flag fix"
+        }
+      ]
+    }
+  ],
+  "timingQualification": {
+    "statement": "'About 300 ms' is source-level behaviour: the reviewed drain loop's wall-clock timeout is audioQueueTime (300 ms). It is not a measured duration, it is not the whole teardown time, and it is not a guaranteed exposure window for the installed binaries.",
+    "dependency": "Whether the loop ends early (toWrite reaching zero) or runs to the timeout depends on the ring buffer's capacity and write semantics. In the RingStreambuf reviewed (aemu main 3c1ced8a3694) capacity is rounded to a power of two and capacity() returns size-1, so a 512-byte decrement would not land on zero for the producer's 16 kHz mono 16-bit format and the loop would run to the timeout. The RingStreambuf version linked into 37.1.11/37.2.13 is UNVERIFIED.",
+    "refs": [
+      {
+        "revision": "8aaadeb1fea1202b287f1b8361f764a98950a27e",
+        "path": "android/android-grpc/services/emulator-controller/server/src/android/emulation/control/EmulatorService.cpp",
+        "line": 710,
+        "what": "timeout = now + audioQueueTime",
+        "url": "https://android.googlesource.com/platform/external/qemu/+/8aaadeb1fea1202b287f1b8361f764a98950a27e/android/android-grpc/services/emulator-controller/server/src/android/emulation/control/EmulatorService.cpp#710"
+      },
+      {
+        "url": "https://android.googlesource.com/platform/hardware/google/aemu/+/3c1ced8a369417db591eb7cd083af5bb2c317975/base/RingStreambuf.cpp#28",
+        "what": "capacity rounded up to next power of two"
+      },
+      {
+        "url": "https://android.googlesource.com/platform/hardware/google/aemu/+/3c1ced8a369417db591eb7cd083af5bb2c317975/base/include/aemu/base/streams/RingStreambuf.h#75",
+        "what": "capacity() returns size - 1"
+      }
+    ],
+    "grpcOrdering": "That a synchronous gRPC C++ handler's status is sent after the handler returns and its locals are destroyed is general gRPC behaviour; the gRPC version bundled in the shipped binaries was not verified."
+  },
+  "inferences": [
+    "Source-supported explanation: in the reviewed source the flag is true for the whole injectAudio lifetime and is restored only during server-side teardown. A client that cancels and immediately reads can be answered before that teardown completes; a client that waits for a completed RPC's status observes the state after handler cleanup. This is consistent with the retained 3/3 post-abort true and 37/37 post-completion false readings and with OFF at the next check.",
+    "On this explanation the true reading is the forwarder's own temporary setting, present during every injection, and cancellation only moves the observation earlier. That is an inference from reviewed public source, not a runtime observation.",
+    "No external writer (setMicrophoneState from another client, console hostmicon, -allow-host-audio, the Qt page) is needed to explain the readings. That does not prove none occurred."
+  ],
+  "unknowns": [
+    "Whether the shipped 37.1.11/37.2.13 binaries contain the reviewed forwarder, injectAudio and teardown code.",
+    "Whether 37.2.13 includes 1ac571c and/or a6c0b4f.",
+    "How long the flag stayed true in each incident (only bounded by the next OFF read 21-25 s later).",
+    "Whether the start/stop race described by 1ac571c, or another transient race, occurred in any incident. A final OFF reading does not rule out an earlier transient race.",
+    "Whether any live host audio was captured or reached the guest in any run.",
+    "The linked RingStreambuf and gRPC versions."
+  ],
+  "hostCaptureAssessment": {
+    "actualObservations": [
+      "No harness enable request was found.",
+      "The flag read true transiently after each of the 3 client aborts.",
+      "The flag read false at the next check 21-25 s later.",
+      "Actual host capture is unproven: it was neither demonstrated nor excluded."
+    ],
+    "sourceObservations": [
+      "During forwarding (reviewed source) the guest's input voice is the forwarder's and the previous voice is deactivated with its pcm info cleared, so in that state the flag gates forwarded synthetic samples.",
+      "At teardown the previous voice is re-activated (forwarder line 157) before the saved flag is restored (line 162); at R1/R2 this runs without VmLock while the main loop may service audio. The reviewed source therefore permits a short interval in which a re-activated previous voice could be read while the flag is still true. Whether that happened, and whether it carried host samples, is unknown.",
+      "For -audio none the reviewed 'none' driver has no host-device input path. This was not verified on the shipped 37.2.13 binary.",
+      "For the default backend the reviewed DirectSound driver starts and stops capture on voice enable/disable, independent of the flag. So a false flag means 'guest input muted' in the reviewed source, not 'host device closed'."
+    ],
+    "notClaimed": [
+      "That live host capture happened.",
+      "That host capture was impossible on every backend.",
+      "That the readings were harmless."
+    ],
+    "runtimeEvidenceLimits": "Windows' microphone-usage record has no entry for the headless engines; that absence is not proof of no capture. Captured-energy figures do not establish sample-level content."
+  },
+  "correctedStatements": [
+    {
+      "source": "Claude Code chat review 2026-10-31 (not a repository file)",
+      "was": "All traced files are byte-identical across 37.1.1, R1 and R2.",
+      "now": "Scoped: the 11 files marked IDENTICAL in wholeFileBlobIds match at R1 and R2. EmulatorService.cpp, qemu-vm-operations-impl.cpp, main.cpp, vl.c and console.cpp differ as whole files between R1 and R2; only the cited functions/regions in them were shown to match."
+    },
+    {
+      "source": "Claude Code chat review 2026-10-31",
+      "was": "The drain lasts the full ~300 ms; the window is about 300 ms or more.",
+      "now": "See timingQualification: a source-level timeout bound, not a measured or guaranteed window; the linked RingStreambuf is unverified."
+    },
+    {
+      "source": "Claude Code chat review 2026-10-31",
+      "was": "The exact source is not public.",
+      "now": "The exact shipped source was not located or matched."
+    },
+    {
+      "source": "Claude Code chat review 2026-10-31",
+      "was": "The final OFF contradicts the overwrite race, so it is excluded.",
+      "now": "A final OFF reading does not rule out an earlier transient race; whether one occurred is unknown."
+    },
+    {
+      "source": "Claude Code chat review 2026-10-31",
+      "was": "Source gives no way for host samples to reach the guest under -audio none; exposure on the default backend is unlikely.",
+      "now": "Reviewed source has no host-device input for the 'none' driver (unverified on the shipped binary). Runtime evidence does not establish whether host capture happened, and no claim of impossibility or harmlessness is made."
+    },
+    {
+      "source": "docs/reports/CURRENT-STATUS.md, 2026-10-31 investigation section",
+      "was": "Host input was **not OFF throughout**.",
+      "now": "Actual observations only: no harness enable request; flag true transiently after each abort; false at the next check; host capture unproven."
+    },
+    {
+      "source": "docs/reports/phase-08-stable-emulator-report.md, section 5 privacy bullet",
+      "was": "Host microphone state was not OFF throughout. ... Which component set the state, and for how long, is unknown.",
+      "now": "Same actual observations; reviewed public source shows the forwarder sets the flag during injection; shipped-binary mechanism and duration unconfirmed."
+    },
+    {
+      "source": "README.md",
+      "was": "Synthetic emulator regressions use pinned audio and keep host microphone input OFF.",
+      "now": "They never request host microphone input; the emulator's flag can still read enabled around an injection."
+    }
+  ],
+  "historicalResultsUnchanged": {
+    "rerunInThisTask": false,
+    "abortClassificationFix": "Python 17/17 and Node 41/41 passed at the time and were independently verified then; the preserved pre-fix classifier reproduced 5 regression failures; all 43 retained classifications remained unchanged.",
+    "newEmulatorRecognitionResult": "NONE",
+    "record": {
+      "path": "docs/reports/evidence/phase-08-abort-classification-fix.json",
+      "sha256": "5f253000f42dfad35ccac9bcf4a8ec67bb25cbe4a8c590cb41ae46799b3edbeb"
+    }
+  },
+  "harness": {
+    "failClosedGuardsChanged": false,
+    "producerChanged": false,
+    "parentChanged": false,
+    "cohortHelpersChanged": false,
+    "testsChanged": false,
+    "applicationCodeChanged": false,
+    "producer": {
+      "path": "scripts/phase08-emulator-audio.mjs",
+      "sha256": "a5231b7b4acd700107ffed234f58781cb5c83e56f1daee87a51f6189fe86c95d",
+      "note": "sender hash a5231b7b... unchanged"
+    },
+    "approvedHarnessChange": "NONE",
+    "approvedExperiment": "NONE"
+  },
+  "interpretedEvidence": [
+    {
+      "path": "docs/reports/evidence/phase-08-microphone-state-anomaly-investigation.json",
+      "sha256": "882095ef9980a7c7e05cfa62833e12859a6dffa8903e4b64600d876f366f9414",
+      "note": "unchanged; this record qualifies its M5/M6 statements"
+    },
+    {
+      "path": "docs/reports/evidence/phase-08-abort-classification-fix.json",
+      "sha256": "5f253000f42dfad35ccac9bcf4a8ec67bb25cbe4a8c590cb41ae46799b3edbeb",
+      "note": "unchanged"
+    },
+    {
+      "path": "docs/reports/evidence/phase-08-emulator-expansion/st20261031/20261031T022854123198Z-V03-microphone.json",
+      "sha256": "a720ffba7606f5f2c23371b2e8d778ed58fd0eee30a25a48c2ba53f1f18c42a5",
+      "note": "parent record, unchanged"
+    },
+    {
+      "path": "docs/reports/evidence/phase-08-emulator-expansion/ex20261028/20261030T171533340781Z-A03-microphone.json",
+      "sha256": "ec70a8ebd9fab1420e829a9859f5812e96512ab0e64fb95ea7919f95f00e9a08",
+      "note": "parent record, unchanged"
+    },
+    {
+      "path": "docs/reports/evidence/phase-08-emulator-expansion/ex20261028/20261030T205753249610Z-V03-microphone.json",
+      "sha256": "7248699a8ce605d141bbb25c2bbc01e5813df97e81317b0ecc0db27b43afedf0",
+      "note": "parent record, unchanged"
+    },
+    {
+      "path": "docs/reports/evidence/phase-08-stable-claims-correction.json",
+      "sha256": "36ff839900d30780f335c04051f3516c411a6633a5ed6ff674f03bb3f619bbb2",
+      "note": "unchanged"
+    },
+    {
+      "path": "docs/reports/evidence/phase-08-stable-lowload-plan-20261031T094218Z.json",
+      "sha256": "48f4092228afbd8236ab963b1df571fd93c775e7777ce0efb5dd208d227f90c3",
+      "note": "frozen plan, unchanged; does not describe the modified classifier"
+    }
+  ],
+  "documentsUpdated": [
+    {
+      "path": "docs/reports/CURRENT-STATUS.md",
+      "preEditSha256": "a82b759f5a516cde414eeef854141aa48dc2da194380a0287c01c29bb120f96c"
+    },
+    {
+      "path": "docs/reports/phase-08-stable-emulator-report.md",
+      "preEditSha256": "14b87286764d421b26bd0235c0b3864e61ca42ec1b027d04c40605e44b8a5cf5",
+      "archive": {
+        "path": "docs/reports/evidence/phase-08-stable-emulator-report-v2-before-source-review.md",
+        "sha256": "14b87286764d421b26bd0235c0b3864e61ca42ec1b027d04c40605e44b8a5cf5",
+        "note": "byte-identical pre-edit copy"
+      }
+    },
+    {
+      "path": "qa/PHASE-08-EXECUTION.md",
+      "preEditSha256": "6236d0568e4a826d9abf106ba2f31e7b92d57aa62c236c10b4bad5c2cb7aa9e0"
+    },
+    {
+      "path": "README.md",
+      "preEditSha256": "cbe4a0458fa0b792ca6f41686ed6abdff812fd0c5b1bc49d2f0bb75bed0fd77f"
+    }
+  ],
+  "conclusion": "The microphone-flag anomaly has a source-supported explanation at the reviewed public revisions, with shipped-binary uncertainty. Fail-closed guards remain unchanged.",
+  "gates": {
+    "microphoneStateMechanism": "SOURCE_SUPPORTED_AT_REVIEWED_REVISIONS; UNCONFIRMED_ON_SHIPPED_BINARIES",
+    "hostCapture": "UNPROVEN",
+    "spokenAckReliabilityA03V03": "UNRESOLVED",
+    "newEmulatorRecognitionTrial": "NONE_RUN",
+    "lowLoadComparison": "NOT_RUN",
+    "frozenLowLoadPlan": "DOES_NOT_DESCRIBE_MODIFIED_CLASSIFIER",
+    "v05": "NOT_RUN_OWNER_DEFERRED",
+    "physicalRows": "48 NOT_RUN",
+    "humanAcceptance": "NOT_SIGNED",
+    "phase09": "NOT_APPROVED",
+    "status": "BLOCKED"
+  }
+}

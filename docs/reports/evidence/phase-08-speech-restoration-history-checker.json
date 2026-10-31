@@ -1,0 +1,12 @@
+{
+  "atUtc": "2026-10-29T03:43:41.403237+00:00",
+  "status": "PASS",
+  "checks": {
+    "observed_closed_history_accepted": true,
+    "last_stop_missing_rejected": true,
+    "unknown_line_rejected": true,
+    "configuration_rejected": true
+  },
+  "closedObservedRecordingIds": 15,
+  "scope": "Host-only parser checks against exact observed API37 history and unsafe variants; no device mutation."
+}

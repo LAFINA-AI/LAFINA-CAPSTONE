@@ -1,0 +1,8 @@
+{
+  "status": "PASS",
+  "installed": {
+    "com.lafina.capstone": "7300f2aefeb8d5f90882655d46435b100a12531e16a7c70df4f81230f4160454",
+    "com.lafina.capstone.test": "6928c3d9a004314d67a2da0c17adaa32438d9cd1460fbdf56f96971cae90b19c"
+  },
+  "physicalDeviceValidation": "NOT_RUN"
+}

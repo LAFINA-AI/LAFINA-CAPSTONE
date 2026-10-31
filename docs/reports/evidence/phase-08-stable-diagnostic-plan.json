@@ -1,0 +1,20 @@
+{
+  "kind": "PHASE08_STABLE_BOUNDED_PRIVATE_HYPOTHESIS_DIAGNOSTIC_PLAN",
+  "createdAtUtc": "2026-10-30T23:28:57.541975+00:00",
+  "case": "V03",
+  "maxFreshFixtures": 3,
+  "stopOnFirstFail": true,
+  "why": "Reference mismatch with completed source stream on initial stable cohort; actual hypothesis needed before a source correction",
+  "allReferenceSignalGateAndConfirmChecksUnchanged": true,
+  "hypothesesPrivateOnly": true,
+  "audioExport": false,
+  "excludedFromFinalComparison": true,
+  "uiPreflightFix": "Increase bounded dump timeout5s to15s before fixture creation; no recognition/capture timeout change",
+  "firstFrozenCohortSource": {
+    "privatePath": ".local/phase08-stable-cohort-first-frozen.py",
+    "sha256": "24a80b31788c9d159a3093946a01b2fc071145bacc8af6e41f17626eca3add01"
+  },
+  "partialCohort": "docs/reports/evidence/phase-08-stable-cold1-20261030T231624920058Z-89a48d.json",
+  "fifthSlot": "NOT_RUN_PRE_RECORDING_UI_DUMP_TIMEOUT",
+  "physicalDeviceValidation": "NOT_RUN"
+}

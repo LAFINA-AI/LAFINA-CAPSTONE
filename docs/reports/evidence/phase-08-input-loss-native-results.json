@@ -1,0 +1,14 @@
+{
+  "kind": "ORDINARY_NATIVE_SUITE_LOG_VERIFICATION",
+  "status": "PASS",
+  "tests": 53,
+  "assumptionOrSkippedCodes": 0,
+  "instrumentationStatusCodeCounts": {
+    "1": 53,
+    "0": 54
+  },
+  "customBenchmarkStatusAddsOneCodeZero": true,
+  "sourceLog": "docs/reports/evidence/phase-08-input-loss-native.log",
+  "sourceLogSha256": "74a247ec5a7ab70cfad3712667ee8b71812d88fde11659fff03e926475ea7717",
+  "physicalDeviceValidation": "NOT_RUN"
+}

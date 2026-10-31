@@ -1,0 +1,9 @@
+{
+  "status": "PASS",
+  "wireMessagesUnchanged": true,
+  "oldProtoSha256": "1d62c6bcad5f06621f90ec2bf26c661ba769ccd0f1416b5314d25a68e04eee5f",
+  "newProtoSha256": "564e00a929e7e4a7af78269a738ea715f32d88c0fc9f92659bb8a1251c9d558f",
+  "newEngineVersion": "37.2.13",
+  "installedSdkVersion": "37.1.11",
+  "clientAudioTransportCodeUnchanged": true
+}

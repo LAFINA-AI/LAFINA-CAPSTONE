@@ -1,0 +1,65 @@
+{
+  "status": "PASS",
+  "recordedAtUtc": "2026-10-30T00:09:48.114423+00:00",
+  "suites": 8,
+  "tests": 81,
+  "failures": 0,
+  "errors": 0,
+  "skipped": 0,
+  "source": "phase-08-input-loss-final-build.log",
+  "buildLogSha256": "73c0cbc7c3d8b6e2525f8b71b0aab18d7b300eff2e65d5d83c897f88719a7f35",
+  "taskExecutedInFinalBuild": true,
+  "taskUpToDateSkipped": false,
+  "xmlFiles": [
+    {
+      "path": "android/app/build/test-results/testDataQaUnitTest/TEST-com.lafina.capstone.reminders.AlarmRegistrationPolicyTest.xml",
+      "bytes": 1761,
+      "sha256": "dbe6d6a743d419d73d0ac1eee3e828bc4815e4806e3dc2cbb39d1fe178210047",
+      "modifiedAtUtc": "2026-10-30T00:06:24.396965+00:00"
+    },
+    {
+      "path": "android/app/build/test-results/testDataQaUnitTest/TEST-com.lafina.capstone.reminders.ReminderIdentityKeyTest.xml",
+      "bytes": 791,
+      "sha256": "f04ec178022b1925e90677b84942a0c09d592a2bed689bcc4559f1d0bcc358a0",
+      "modifiedAtUtc": "2026-10-30T00:06:24.390925+00:00"
+    },
+    {
+      "path": "android/app/build/test-results/testDataQaUnitTest/TEST-com.lafina.capstone.reminders.ReminderPolicyTest.xml",
+      "bytes": 2933,
+      "sha256": "b9a98459ca2064d511f99bead7dc9e31c0a047ce9674611033944f5222fa3fdc",
+      "modifiedAtUtc": "2026-10-30T00:06:24.392257+00:00"
+    },
+    {
+      "path": "android/app/build/test-results/testDataQaUnitTest/TEST-com.lafina.capstone.reminders.ReminderPresentationTest.xml",
+      "bytes": 1140,
+      "sha256": "ab4c09db4ba153beb3aa2eab61fe48819b3cffa85a076be889d0b229490ae1d9",
+      "modifiedAtUtc": "2026-10-30T00:06:24.392257+00:00"
+    },
+    {
+      "path": "android/app/build/test-results/testDataQaUnitTest/TEST-com.lafina.capstone.reminders.ReminderResponsePolicyTest.xml",
+      "bytes": 1586,
+      "sha256": "014fb4aaf35013037f0aa06d11c847bb87764264091a59360ed5f4cbd5c4cce4",
+      "modifiedAtUtc": "2026-10-30T00:06:24.393762+00:00"
+    },
+    {
+      "path": "android/app/build/test-results/testDataQaUnitTest/TEST-com.lafina.capstone.reminders.ReminderResponseSessionTest.xml",
+      "bytes": 2075,
+      "sha256": "82c5fe8a8e3f50315f84d67f0ee9138925b3475f64bb395db4ed8d8f06415c4e",
+      "modifiedAtUtc": "2026-10-30T00:06:24.394936+00:00"
+    },
+    {
+      "path": "android/app/build/test-results/testDataQaUnitTest/TEST-com.lafina.capstone.voice.SpeechInputPolicyTest.xml",
+      "bytes": 2586,
+      "sha256": "555c940ad2c98e731b401f42707fc7236874125eeac1f21f35b36544026d8a60",
+      "modifiedAtUtc": "2026-10-30T00:06:24.395441+00:00"
+    },
+    {
+      "path": "android/app/build/test-results/testDataQaUnitTest/TEST-com.lafina.capstone.voice.SpeechPolicyTest.xml",
+      "bytes": 2019,
+      "sha256": "a9413111544905f00b77ce60dc6f7ea42d63f0e513943483274565ed21853d24",
+      "modifiedAtUtc": "2026-10-30T00:06:24.396965+00:00"
+    }
+  ],
+  "testsExecutedByMetadataHelper": false,
+  "physicalDeviceValidation": "NOT_RUN"
+}

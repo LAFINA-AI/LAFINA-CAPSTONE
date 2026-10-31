@@ -1,0 +1,16 @@
+{
+  "kind": "ISOLATED_OFFICIAL_EMULATOR_CANDIDATE",
+  "status": "VERIFIED_CANDIDATE_NOT_YET_EXECUTED",
+  "startedAtUtc": "2026-10-29T23:16:17.089408+00:00",
+  "revision": "37.2.13",
+  "buildId": "16740729",
+  "source": "https://dl.google.com/android/repository/emulator-windows_x64-16740729.zip",
+  "installedSdkReplaced": false,
+  "newLicenseAcceptancePerformed": false,
+  "physicalDeviceValidation": "NOT_RUN",
+  "bytes": 455344678,
+  "archiveSha1": "4d7268aa7787c640ad892844e6c9a5f159e91ad3",
+  "archiveSha256": "625276a1d3ac6b15d00f8aad5e233e7dc3a7cb71435f97d64e3be298399e171d",
+  "extraction": ".local/phase08-emulator-37.2.13",
+  "completedAtUtc": "2026-10-29T23:16:56.369964+00:00"
+}

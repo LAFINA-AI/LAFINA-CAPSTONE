@@ -1,0 +1,45 @@
+{
+  "kind": "PHASE08_STABLE_GUEST_FINAL_RESTORATION",
+  "status": "PASS",
+  "startedAtUtc": "2026-10-31T02:42:55.361131+00:00",
+  "avd": "LAFINA_Phase08_API35",
+  "api": 35,
+  "runId": "st20261031",
+  "baseline": {
+    "path": ".local/phase08-emulator-suite/st20261031/baseline.json",
+    "sha256": "2e9cd7f56885524e955d6854d7abbc4e98a0c5855e2116a8c1bdbe21e518a05d"
+  },
+  "originalAvdTargeted": false,
+  "physicalDeviceValidation": "NOT_RUN",
+  "changes": [
+    "preferences/delivery restored through reviewed Settings UI (suite restore-preferences)"
+  ],
+  "checks": {
+    "identity": true,
+    "hostMicrophoneDisabledBeforeAndAtEnd": true,
+    "noActiveAppRecording": true,
+    "completePreferencePayloadDeliveryOriginalRowsAndOwnedFixturesInactive": "SUITE_COMPARE_PASS",
+    "allBaselineSettingsEqual": true,
+    "timezoneEqual": true,
+    "guestClockWithinFiveSeconds": true,
+    "clockSetTimeIssued": false,
+    "permissionsEqual": true,
+    "appOpsEqual": true,
+    "powerStateEqual": true,
+    "audioRingerAndBaselineStreamIndexesEqual": true,
+    "audioAdditionalSystemInitializedDeviceIndexes": {
+      "STREAM_MUSIC": {
+        "80 (bt_a2dp)": "2",
+        "100 (bt_a2dp_hp)": "2",
+        "4000000 (usb_headset)": "3",
+        "20000000 (ble_headset)": "2",
+        "20000002 (ble_broadcast)": "2"
+      }
+    },
+    "audioAdditionalIndexesNote": "Absent device types initialized by AudioService; no harness/app volume command exists; not overwritten",
+    "qa08PrefixedNoBackupEntries": [],
+    "gateMarkersRemaining": 0
+  },
+  "completedAtUtc": "2026-10-31T02:43:18.362289+00:00",
+  "privateEvidence": ".local/phase08-stable-final-restore-20261031T024255358408Z"
+}

@@ -1,0 +1,12 @@
+{
+  "kind": "PREDECLARED_FORMAT_INITIALIZED_CAPTURE_PAIR",
+  "status": "STOPPED_BEFORE_DEVICE_CALL",
+  "plannedTrials": 2,
+  "engine": "37.1.11",
+  "appCandidate": "98ed4f5fb6311d64b96381b08e99fb19a5f243c21fd078fd4ea4a774bcdd2d23",
+  "startedAtUtc": "2026-10-29T23:51:42.374977+00:00",
+  "physicalDeviceValidation": "NOT_RUN",
+  "rows": [],
+  "errorCode": "COPIED_CONTROLLER_PATH_MISSING",
+  "actualTrialsStarted": 0
+}

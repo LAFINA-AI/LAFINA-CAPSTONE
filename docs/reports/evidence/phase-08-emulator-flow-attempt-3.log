@@ -1,0 +1,15 @@
+created QA08 final ack
+flow interrupted
+Traceback (most recent call last):
+  File "C:\L3mxr\Github Repositories\LAFINA-CAPSTONE\.local\phase08_flow.py", line 153, in <module>
+    main()
+  File "C:\L3mxr\Github Repositories\LAFINA-CAPSTONE\.local\phase08_flow.py", line 106, in main
+    create(title)
+  File "C:\L3mxr\Github Repositories\LAFINA-CAPSTONE\.local\phase08_flow.py", line 87, in create
+    q.tap('Answer')
+  File "C:\L3mxr\Github Repositories\LAFINA-CAPSTONE\.local\phase08_qa.py", line 35, in tap
+    node = find(label)
+           ^^^^^^^^^^^
+  File "C:\L3mxr\Github Repositories\LAFINA-CAPSTONE\.local\phase08_qa.py", line 32, in find
+    raise AssertionError('Control not found: ' + label)
+AssertionError: Control not found: Answer

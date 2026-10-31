@@ -1,0 +1,52 @@
+{
+  "kind": "PHASE08_STABLE_POSITIVE_TEST_PREPARATION",
+  "createdAtUtc": "2026-10-30T23:08:50.131305+00:00",
+  "avd": "LAFINA_Phase08_API35",
+  "runId": "st20261031",
+  "separateBaseline": ".local/phase08-emulator-suite/st20261031/baseline.json",
+  "guestApi": 35,
+  "guestRelease": "15",
+  "pageSize": 4096,
+  "requestedMemoryMiB": 2048,
+  "actualHardwareQemuMemoryMiB": 2560,
+  "guestMemTotalKiB": 2531956,
+  "memoryLimit": "Requested and effective RAM differ; no matched-memory performance claim",
+  "radios": {
+    "airplane_mode_on": "1",
+    "wifi_on": "0",
+    "mobile_data": "0"
+  },
+  "mobileDataCompatibilityFinding": "On this no-SIM API35 guest svc data disable left mobile_data=1; the default was explicitly set0 after the actual service/radios were disabled.",
+  "notificationAndMicPermissions": "Explicitly granted on this new QA guest before its baseline; capture still requires visible hold",
+  "recordAudioAppOps": {
+    "uid": "foreground",
+    "package": "allow"
+  },
+  "exactAlarmMode": "allow",
+  "fullScreenMode": "ignore",
+  "stayOnWhilePluggedIn": "1",
+  "screenOffTimeout": "2147483647",
+  "uiSetup": "Anonymous default preferences saved through visible Finish setup; lead0/text/quietfalse/deliveryON/FSIOFF applied through reviewed UI with SQL verification",
+  "originalAvdTargeted": false,
+  "physicalDeviceValidation": "NOT_RUN",
+  "hostEmulator": "37.1.11 stable, verified against Android release notes; existing binary not upgraded",
+  "hostReleaseReference": "https://developer.android.com/studio/releases/emulator",
+  "sourcePaths": [
+    {
+      "path": ".local/phase08-stable-mic.py",
+      "sha256": "2f8277c226f136271620e57aa0654065cd27ec7e668c234fb5d8fa56307ceb6a"
+    },
+    {
+      "path": ".local/phase08-capture-fix-reviewed-mic.py",
+      "sha256": "8aef5281eb541fd2bafdbf323e2c0e3a14ead86aac37e3b68fb355c10f81c4c9"
+    },
+    {
+      "path": "scripts/phase08-emulator-suite.py",
+      "sha256": "d2da81890b16227132cf71eb68403fb749bb1f420e1045406c7e864649d736ad"
+    },
+    {
+      "path": "scripts/phase08-emulator-audio.mjs",
+      "sha256": "a5231b7b4acd700107ffed234f58781cb5c83e56f1daee87a51f6189fe86c95d"
+    }
+  ]
+}

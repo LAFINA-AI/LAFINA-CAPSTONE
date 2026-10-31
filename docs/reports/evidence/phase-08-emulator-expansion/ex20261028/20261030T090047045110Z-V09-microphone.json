@@ -1,0 +1,120 @@
+{
+  "kind": "PARENT_SYNTHETIC_VISIBLE_MICROPHONE_CASE",
+  "case": "V09",
+  "status": "PASS",
+  "startedAtUtc": "2026-10-30T09:00:47.046124+00:00",
+  "events": [
+    {
+      "event": "host_microphone_double_false_before",
+      "atUtc": "2026-10-30T09:00:47.146155+00:00",
+      "elapsedMonotonicSeconds": 0.10004879999905825,
+      "status": "HOST_MICROPHONE_DISABLED"
+    },
+    {
+      "event": "owned_fixture_before",
+      "atUtc": "2026-10-30T09:01:57.281015+00:00",
+      "elapsedMonotonicSeconds": 70.23491319999448,
+      "rows": [
+        {
+          "taskId": "task:cmd_mvuqso5f_0_u71wwzu6ude",
+          "taskStatus": "TODO",
+          "deletedAt": null,
+          "jobId": "job:reminder:task:cmd_mvuqso5f_0_u71wwzu6ude|2026-10-30T09:01:55.491Z",
+          "occurrenceKey": "task:cmd_mvuqso5f_0_u71wwzu6ude|2026-10-30T09:01:55.491Z",
+          "generation": 1,
+          "jobStatus": "RINGING",
+          "reminderStatus": "RINGING",
+          "runAt": "2026-10-30T09:01:55.491Z",
+          "deadline": "2026-10-30T09:02:55.858Z",
+          "deliveryState": "REGISTERED",
+          "registrations": 1
+        }
+      ]
+    },
+    {
+      "event": "real_visible_recording_stage_observed",
+      "atUtc": "2026-10-30T09:02:03.692304+00:00",
+      "elapsedMonotonicSeconds": 76.6462007999944,
+      "recordingVisible": true
+    },
+    {
+      "event": "no_pcm_injected",
+      "atUtc": "2026-10-30T09:02:04.693572+00:00",
+      "elapsedMonotonicSeconds": 77.64747779999743,
+      "silenceHoldSeconds": 1.0
+    },
+    {
+      "event": "microphone_driver_completed",
+      "atUtc": "2026-10-30T09:02:05.439544+00:00",
+      "elapsedMonotonicSeconds": 78.39344089999213,
+      "stages": [
+        "activity_launch_requested",
+        "owned_fixture_title_observed",
+        "answer_control_revealed",
+        "answer_response_visible",
+        "actual_pointer_up_sent_in_finally",
+        "actual_pointer_down_and_visible_recording_observed",
+        "actual_pointer_up_sent_in_finally"
+      ],
+      "details": {
+        "hostMicrophoneDisabledConfirmedByRoot": true,
+        "rawTranscriptEmitted": false,
+        "visibleHoldCount": 2,
+        "recordingVisible": true,
+        "recognizedCharacterCount": 0,
+        "recognizedNormalizedIsAcknowledged": false,
+        "recognizedNormalizedIsAcknowledge": false,
+        "recognizedNormalizedMatchesSyntheticToday": false,
+        "recognizedNormalizedMatchesSyntheticAcknowledge": false,
+        "recognizedNormalizedMatchesSyntheticSnooze": false,
+        "transcriptReady": false
+      }
+    },
+    {
+      "event": "independent_sql_unchanged_ringing_todo",
+      "atUtc": "2026-10-30T09:02:07.009618+00:00",
+      "elapsedMonotonicSeconds": 79.96351180001511,
+      "rows": [
+        {
+          "taskId": "task:cmd_mvuqso5f_0_u71wwzu6ude",
+          "taskStatus": "TODO",
+          "deletedAt": null,
+          "jobId": "job:reminder:task:cmd_mvuqso5f_0_u71wwzu6ude|2026-10-30T09:01:55.491Z",
+          "occurrenceKey": "task:cmd_mvuqso5f_0_u71wwzu6ude|2026-10-30T09:01:55.491Z",
+          "generation": 1,
+          "jobStatus": "RINGING",
+          "reminderStatus": "RINGING",
+          "runAt": "2026-10-30T09:01:55.491Z",
+          "deadline": "2026-10-30T09:02:55.858Z",
+          "deliveryState": "REGISTERED",
+          "registrations": 1
+        }
+      ]
+    },
+    {
+      "event": "host_microphone_double_false_after",
+      "atUtc": "2026-10-30T09:02:07.122198+00:00",
+      "elapsedMonotonicSeconds": 80.07609370001592,
+      "status": "HOST_MICROPHONE_DISABLED"
+    }
+  ],
+  "rawTranscriptEmitted": false,
+  "rawTranscriptStoredInPublicEvidence": false,
+  "physicalSpeech": "NOT_RUN",
+  "audibility": "NOT_RUN",
+  "ttsInterruption": "NOT_RUN",
+  "scope": "Real visible hold/capture with only pinned synthetic PCM when explicitly selected; no live host input or physical speech acceptance",
+  "trialIndex": 1,
+  "requestedIndependentTrials": 1,
+  "syntheticInjectionDelayMs": 500,
+  "syntheticTransportPaddingEachSideMs": 1000,
+  "syntheticTransportGainPermille": 500,
+  "formatOnlyInputInitializationRequested": false,
+  "syntheticRepeatAliasOf": null,
+  "microphonePermissionRestoration": "EXACT_FRESH_BASELINE_VERIFIED",
+  "fixtureCleanup": "EXACT_OWNED_TITLE_REVIEWED_UI",
+  "hostMicrophoneDisabledAtEnd": true,
+  "completedAtUtc": "2026-10-30T09:02:19.662201+00:00",
+  "elapsedMonotonicSeconds": 92.61609980001231,
+  "privateEvidence": ".local/phase08-microphone-20261030T090047045110Z-V09"
+}

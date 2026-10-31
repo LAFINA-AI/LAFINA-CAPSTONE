@@ -1,0 +1,74 @@
+[
+  {
+    "name": "com.lafina.capstone.reminders.AlarmRegistrationPolicyTest",
+    "tests": 8,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0,
+    "time": 0.102,
+    "modifiedUtc": "2026-10-27T15:19:20.1745879Z"
+  },
+  {
+    "name": "com.lafina.capstone.reminders.ReminderIdentityKeyTest",
+    "tests": 3,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0,
+    "time": 0.068,
+    "modifiedUtc": "2026-10-27T15:19:20.1623421Z"
+  },
+  {
+    "name": "com.lafina.capstone.reminders.ReminderPolicyTest",
+    "tests": 19,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0,
+    "time": 0.102,
+    "modifiedUtc": "2026-10-27T15:19:20.1647206Z"
+  },
+  {
+    "name": "com.lafina.capstone.reminders.ReminderPresentationTest",
+    "tests": 5,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0,
+    "time": 0.01,
+    "modifiedUtc": "2026-10-27T15:19:20.1647206Z"
+  },
+  {
+    "name": "com.lafina.capstone.reminders.ReminderResponsePolicyTest",
+    "tests": 8,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0,
+    "time": 0.047,
+    "modifiedUtc": "2026-10-27T15:19:20.1667564Z"
+  },
+  {
+    "name": "com.lafina.capstone.reminders.ReminderResponseSessionTest",
+    "tests": 11,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0,
+    "time": 0.026,
+    "modifiedUtc": "2026-10-27T15:19:20.1687776Z"
+  },
+  {
+    "name": "com.lafina.capstone.voice.SpeechInputPolicyTest",
+    "tests": 15,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0,
+    "time": 0.048,
+    "modifiedUtc": "2026-10-27T15:19:20.1697903Z"
+  },
+  {
+    "name": "com.lafina.capstone.voice.SpeechPolicyTest",
+    "tests": 12,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0,
+    "time": 0.075,
+    "modifiedUtc": "2026-10-27T15:19:20.1708473Z"
+  }
+]

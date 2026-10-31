@@ -1,0 +1,46 @@
+{
+  "case": "A20",
+  "runId": "ex20261028",
+  "startedAt": "2026-10-30T00:41:56.804220+00:00",
+  "status": "PASS",
+  "physicalAcceptance": "HUMAN_REQUIRED",
+  "events": [
+    {
+      "at": "2026-10-30T00:41:57.358721+00:00",
+      "event": "fresh_private_case_baseline_captured",
+      "permissionFlagsCaptured": true,
+      "appOpLevel": null
+    },
+    {
+      "at": "2026-10-30T00:43:30.379441+00:00",
+      "event": "owned_active_notification_absent"
+    },
+    {
+      "at": "2026-10-30T00:43:30.380420+00:00",
+      "event": "post_denial_held_through_due",
+      "state": [
+        {
+          "taskId": "task:cmd_mvu8ziqm_0_ddr4kcwue0k",
+          "taskStatus": "TODO",
+          "deletedAt": null,
+          "jobId": "job:reminder:task:cmd_mvu8ziqm_0_ddr4kcwue0k|2026-10-30T00:43:21.982Z",
+          "occurrenceKey": "task:cmd_mvu8ziqm_0_ddr4kcwue0k|2026-10-30T00:43:21.982Z",
+          "generation": 1,
+          "jobStatus": "PENDING",
+          "reminderStatus": "SCHEDULED",
+          "runAt": "2026-10-30T00:43:21.982Z",
+          "deadline": null,
+          "deliveryState": "UNAVAILABLE",
+          "registrations": 0,
+          "deliveryReason": "NOTIFICATIONS_BLOCKED",
+          "notifiedAt": null,
+          "precision": []
+        }
+      ],
+      "scope": "No ring/post observed; exact fixture Chat cleanup remains available"
+    }
+  ],
+  "restoration": "PASS",
+  "restorationErrors": [],
+  "completedAt": "2026-10-30T00:43:58.251812+00:00"
+}

@@ -1,0 +1,107 @@
+{
+  "status": "PASS",
+  "summary": {
+    "schema": 3,
+    "preferencesSha256": "4571b589c736a245b881f28b22698b42e62b0691bf11401d627b1b2613f4ec04",
+    "counts": {
+      "tasks": 40,
+      "events": 4,
+      "notes": 2,
+      "reminders": 38,
+      "reminder_jobs": 38
+    },
+    "delivery": [
+      0,
+      0
+    ]
+  },
+  "radioSettingsRestored": {
+    "airplane_mode_on": "0",
+    "wifi_on": "1",
+    "mobile_data": "1"
+  },
+  "originalRows": [
+    {
+      "table": "app_settings",
+      "originalRows": 1,
+      "unchangedOriginalRows": 1,
+      "allOriginalRowsUnchanged": true
+    },
+    {
+      "table": "local_profile",
+      "originalRows": 1,
+      "unchangedOriginalRows": 1,
+      "allOriginalRowsUnchanged": true
+    },
+    {
+      "table": "tasks",
+      "originalRows": 33,
+      "unchangedOriginalRows": 33,
+      "allOriginalRowsUnchanged": true
+    },
+    {
+      "table": "events",
+      "originalRows": 4,
+      "unchangedOriginalRows": 4,
+      "allOriginalRowsUnchanged": true
+    },
+    {
+      "table": "reminders",
+      "originalRows": 31,
+      "unchangedOriginalRows": 31,
+      "allOriginalRowsUnchanged": true
+    },
+    {
+      "table": "reminder_jobs",
+      "originalRows": 31,
+      "unchangedOriginalRows": 31,
+      "allOriginalRowsUnchanged": true
+    },
+    {
+      "table": "operation_receipts",
+      "originalRows": 87,
+      "unchangedOriginalRows": 87,
+      "allOriginalRowsUnchanged": true
+    },
+    {
+      "table": "chat_messages",
+      "originalRows": 0,
+      "unchangedOriginalRows": 0,
+      "allOriginalRowsUnchanged": true
+    },
+    {
+      "table": "native_delivery_settings",
+      "originalRows": 1,
+      "unchangedOriginalRows": 1,
+      "allOriginalRowsUnchanged": true
+    },
+    {
+      "table": "native_alarm_registrations",
+      "originalRows": 0,
+      "unchangedOriginalRows": 0,
+      "allOriginalRowsUnchanged": true
+    },
+    {
+      "table": "native_alarm_events",
+      "originalRows": 134,
+      "unchangedOriginalRows": 134,
+      "allOriginalRowsUnchanged": true
+    },
+    {
+      "table": "notes",
+      "originalRows": 2,
+      "unchangedOriginalRows": 2,
+      "allOriginalRowsUnchanged": true
+    }
+  ],
+  "allOriginalNonDiagnosticRowsUnchanged": true,
+  "newOwnedTaskCount": 7,
+  "newOwnedTasksAllRemoved": true,
+  "activeJobs": 0,
+  "alarmRegistrations": 0,
+  "recordAudioActive": false,
+  "finalInstalledApkSha256": "dee84d363d44ab58befdbc7ee7aa2d36fe7c568381e4c90e8680ac888d154a4e",
+  "foreground": "Calendar",
+  "privatePreferenceValuesDisclosed": false,
+  "retention": "Owned synthetic tombstones and operation history remain; no purge or data reset."
+}

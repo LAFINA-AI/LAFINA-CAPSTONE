@@ -1,0 +1,5 @@
+Re-extracting code files in . (no LLM needed)...
+[graphify watch] 22 file(s) not classified (no supported extension or shebang), skipped: .gitignore, .graphifyignore, .prettierignore, AndroidManifest.xml, PERFORMANCE-BENCHMARK.csv, PHONE-TEST-RESULTS.csv (+16 more)
+  AST cache: 207/331 files served from cache (62%); 124 to extract
+  AST extraction: 100/124 uncached files (80%) [12 workers]
+  AST extraction: 124/124 uncached files (100%) [12 workers]

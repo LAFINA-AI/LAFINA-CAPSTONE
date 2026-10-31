@@ -1,0 +1,10 @@
+{
+  "kind": "INSTALLED_AUTHORIZATION_TEST_APK_IDENTITY",
+  "status": "PASS",
+  "package": "com.lafina.capstone.test",
+  "bytes": 1765109,
+  "installedSha256": "33b9aa0788008cb9f8b3f721a82fd43cf252024f74e74af460be761f3b5dbea9",
+  "hostSha256": "33b9aa0788008cb9f8b3f721a82fd43cf252024f74e74af460be761f3b5dbea9",
+  "hostPath": "android/app/build/outputs/apk/androidTest/dataQa/app-dataQa-androidTest.apk",
+  "physicalDeviceValidation": "NOT_RUN"
+}

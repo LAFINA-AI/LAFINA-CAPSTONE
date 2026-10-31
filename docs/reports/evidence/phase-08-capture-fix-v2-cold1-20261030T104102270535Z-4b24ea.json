@@ -1,0 +1,208 @@
+{
+  "kind": "PHASE08_ROOT_SERIAL_ALL_CASE_DISPATCH",
+  "status": "COMPLETED_WITH_FAILURES_OR_NOT_RUN",
+  "startedAtUtc": "2026-10-30T10:41:02.271174+00:00",
+  "ownershipRunId": "ex20261028",
+  "rootBaseline": ".local/phase08-capture-fix-baseline.json",
+  "rootBaselineSha256": "0eb690aa8562a3accf3145509a97dfc3423770cc44d44bc7e5193c04169c911e",
+  "selectedCases": [
+    "A03",
+    "V03",
+    "V04"
+  ],
+  "all47RunnableCasesSelected": false,
+  "attempts": [
+    {
+      "case": "A03",
+      "trial": 1,
+      "status": "PASS",
+      "startedAtUtc": "2026-10-30T10:41:08.509289+00:00",
+      "log": "docs/reports/evidence/phase-08-capture-fix-v2-cold1-20261030T104102270535Z-4b24ea-A03-trial1.log",
+      "events": [
+        {
+          "event": "chat_navigation_precondition",
+          "atUtc": "2026-10-30T10:41:17.285905+00:00",
+          "exactVisibleOwnedAppControl": true,
+          "privateContentNotEmitted": true,
+          "writesToStorage": false
+        }
+      ],
+      "physicalAcceptance": "NOT_RUN",
+      "restoration": "VERIFIED_WORKING_TEST_BASELINE",
+      "controllerExitCode": 0,
+      "controllerEvidence": "docs/reports/evidence/phase-08-emulator-expansion/ex20261028/20261030T104117569055Z-A03-microphone.json",
+      "controllerEvidenceSha256": "b377ef270b8c4d440bffce64a56a137bd97cc36c00264480d925d081f8b9bce6",
+      "sourceStatus": "PASS",
+      "originalNonDiagnosticRowsEqual": true,
+      "originalPreferencePayloadEqual": true,
+      "fullPermissionsSettingsAudioAndTtsEqual": true,
+      "activeJobs": 0,
+      "registrations": 0,
+      "hostMicrophoneDisabledAtEnd": true,
+      "completedAtUtc": "2026-10-30T10:43:19.078033+00:00",
+      "privateEvidence": ".local/phase-08-capture-fix-v2-cold1-20261030T104102270535Z-4b24ea/A03-1-20261030T104108507673Z-215aaf"
+    },
+    {
+      "case": "V03",
+      "trial": 1,
+      "status": "FAIL",
+      "startedAtUtc": "2026-10-30T10:43:19.082241+00:00",
+      "log": "docs/reports/evidence/phase-08-capture-fix-v2-cold1-20261030T104102270535Z-4b24ea-V03-trial1.log",
+      "events": [
+        {
+          "event": "chat_navigation_precondition",
+          "atUtc": "2026-10-30T10:43:30.679558+00:00",
+          "exactVisibleOwnedAppControl": true,
+          "privateContentNotEmitted": true,
+          "writesToStorage": false
+        }
+      ],
+      "physicalAcceptance": "NOT_RUN",
+      "restoration": "VERIFIED_WORKING_TEST_BASELINE",
+      "controllerExitCode": 1,
+      "controllerEvidence": "docs/reports/evidence/phase-08-emulator-expansion/ex20261028/20261030T104331936934Z-V03-microphone.json",
+      "controllerEvidenceSha256": "9325c42b4261c4acf4e913cf671a2359b1b19485b14e119ab2a2c2696f163c4a",
+      "sourceStatus": "FAIL_OR_UNSUPPORTED_REVIEW_REQUIRED",
+      "originalNonDiagnosticRowsEqual": true,
+      "originalPreferencePayloadEqual": true,
+      "fullPermissionsSettingsAudioAndTtsEqual": true,
+      "activeJobs": 0,
+      "registrations": 0,
+      "hostMicrophoneDisabledAtEnd": true,
+      "completedAtUtc": "2026-10-30T10:45:17.903005+00:00",
+      "privateEvidence": ".local/phase-08-capture-fix-v2-cold1-20261030T104102270535Z-4b24ea/V03-1-20261030T104319080129Z-316c59"
+    },
+    {
+      "case": "V03",
+      "trial": 2,
+      "status": "PASS",
+      "startedAtUtc": "2026-10-30T10:45:17.906031+00:00",
+      "log": "docs/reports/evidence/phase-08-capture-fix-v2-cold1-20261030T104102270535Z-4b24ea-V03-trial2.log",
+      "events": [
+        {
+          "event": "chat_navigation_precondition",
+          "atUtc": "2026-10-30T10:45:27.036816+00:00",
+          "exactVisibleOwnedAppControl": true,
+          "privateContentNotEmitted": true,
+          "writesToStorage": false
+        }
+      ],
+      "physicalAcceptance": "NOT_RUN",
+      "restoration": "VERIFIED_WORKING_TEST_BASELINE",
+      "controllerExitCode": 0,
+      "controllerEvidence": "docs/reports/evidence/phase-08-emulator-expansion/ex20261028/20261030T104527419492Z-V03-microphone.json",
+      "controllerEvidenceSha256": "3cafcc8e99bf09be4ba26409297bd18ad75f639633dae042f72f712d764b2c56",
+      "sourceStatus": "PASS",
+      "originalNonDiagnosticRowsEqual": true,
+      "originalPreferencePayloadEqual": true,
+      "fullPermissionsSettingsAudioAndTtsEqual": true,
+      "activeJobs": 0,
+      "registrations": 0,
+      "hostMicrophoneDisabledAtEnd": true,
+      "completedAtUtc": "2026-10-30T10:47:11.927773+00:00",
+      "privateEvidence": ".local/phase-08-capture-fix-v2-cold1-20261030T104102270535Z-4b24ea/V03-2-20261030T104517904594Z-c2ccdf"
+    },
+    {
+      "case": "V04",
+      "trial": 1,
+      "status": "PASS",
+      "startedAtUtc": "2026-10-30T10:47:11.930866+00:00",
+      "log": "docs/reports/evidence/phase-08-capture-fix-v2-cold1-20261030T104102270535Z-4b24ea-V04-trial1.log",
+      "events": [
+        {
+          "event": "chat_navigation_precondition",
+          "atUtc": "2026-10-30T10:47:20.429785+00:00",
+          "exactVisibleOwnedAppControl": true,
+          "privateContentNotEmitted": true,
+          "writesToStorage": false
+        }
+      ],
+      "physicalAcceptance": "NOT_RUN",
+      "restoration": "VERIFIED_WORKING_TEST_BASELINE",
+      "controllerExitCode": 0,
+      "controllerEvidence": "docs/reports/evidence/phase-08-emulator-expansion/ex20261028/20261030T104720823884Z-V04-microphone.json",
+      "controllerEvidenceSha256": "94f88918afb11d1f8c4a675c6a1dbfe1bcbe303dbe103ecadb9a45b5cbb020a4",
+      "sourceStatus": "PASS",
+      "originalNonDiagnosticRowsEqual": true,
+      "originalPreferencePayloadEqual": true,
+      "fullPermissionsSettingsAudioAndTtsEqual": true,
+      "activeJobs": 0,
+      "registrations": 0,
+      "hostMicrophoneDisabledAtEnd": true,
+      "completedAtUtc": "2026-10-30T10:49:03.038986+00:00",
+      "privateEvidence": ".local/phase-08-capture-fix-v2-cold1-20261030T104102270535Z-4b24ea/V04-1-20261030T104711929477Z-c3ad08"
+    },
+    {
+      "case": "V04",
+      "trial": 2,
+      "status": "PASS",
+      "startedAtUtc": "2026-10-30T10:49:03.040735+00:00",
+      "log": "docs/reports/evidence/phase-08-capture-fix-v2-cold1-20261030T104102270535Z-4b24ea-V04-trial2.log",
+      "events": [
+        {
+          "event": "chat_navigation_precondition",
+          "atUtc": "2026-10-30T10:49:11.029536+00:00",
+          "exactVisibleOwnedAppControl": true,
+          "privateContentNotEmitted": true,
+          "writesToStorage": false
+        }
+      ],
+      "physicalAcceptance": "NOT_RUN",
+      "restoration": "VERIFIED_WORKING_TEST_BASELINE",
+      "controllerExitCode": 0,
+      "controllerEvidence": "docs/reports/evidence/phase-08-emulator-expansion/ex20261028/20261030T104911242066Z-V04-microphone.json",
+      "controllerEvidenceSha256": "88ad4e5922d8a69dc955de6550df717bc3234dc7b1ca4f8724669617af172653",
+      "sourceStatus": "PASS",
+      "originalNonDiagnosticRowsEqual": true,
+      "originalPreferencePayloadEqual": true,
+      "fullPermissionsSettingsAudioAndTtsEqual": true,
+      "activeJobs": 0,
+      "registrations": 0,
+      "hostMicrophoneDisabledAtEnd": true,
+      "completedAtUtc": "2026-10-30T10:50:56.474078+00:00",
+      "privateEvidence": ".local/phase-08-capture-fix-v2-cold1-20261030T104102270535Z-4b24ea/V04-2-20261030T104903039861Z-2e7e1e"
+    }
+  ],
+  "cases": [
+    {
+      "id": "A03",
+      "status": "PASS",
+      "attemptCount": 1,
+      "physicalAcceptance": "NOT_RUN"
+    },
+    {
+      "id": "V03",
+      "status": "FAIL",
+      "attemptCount": 2,
+      "physicalAcceptance": "NOT_RUN"
+    },
+    {
+      "id": "V04",
+      "status": "PASS",
+      "attemptCount": 2,
+      "physicalAcceptance": "NOT_RUN"
+    }
+  ],
+  "deferredCases": [
+    {
+      "id": "V05",
+      "status": "NOT_RUN",
+      "ownerDecision": "Keep V05 pending until suitable audio is available"
+    }
+  ],
+  "physicalDeviceValidation": "NOT_RUN",
+  "signedHumanReview": false,
+  "originalUserStateRestorationRequiredAfterDispatcher": true,
+  "passScope": "Selected current emulator assertions only; all failures retained. Per-case restore is to the working test state, not original human acceptance.",
+  "bootstrapOriginalRowsPreserved": true,
+  "workingTestProfileObserved": true,
+  "airplaneModeWifiMobileOffObserved": true,
+  "originalStateRestoreRequired": true,
+  "setupLog": "docs/reports/evidence/phase-08-capture-fix-v2-cold1-20261030T104102270535Z-4b24ea-SETUP-trial1.log",
+  "counts": {
+    "PASS": 2,
+    "FAIL": 1,
+    "NOT_RUN": 0
+  },
+  "completedAtUtc": "2026-10-30T10:50:56.476277+00:00"
+}

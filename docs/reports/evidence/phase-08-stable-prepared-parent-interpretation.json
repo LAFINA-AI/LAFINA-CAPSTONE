@@ -1,0 +1,30 @@
+{
+  "kind": "PHASE08_DERIVED_PREPARED_PARENT_INTERPRETATION",
+  "createdAtUtc": "2026-10-31T02:28:43.991431+00:00",
+  "rawRecord": {
+    "path": "docs/reports/evidence/phase-08-emulator-expansion/st20261031/20261030T235426192867Z-V03-microphone.json",
+    "sha256": "b3bb89391e2f87118e3a8447a5e221106d99768bd5da96eb018f3218b2514f66",
+    "rewritten": false
+  },
+  "rawFieldsAsRecorded": {
+    "sourceProcessLaunchRequested": false,
+    "sourceProcessLaunched": false,
+    "sourceStreamAttempted": false,
+    "sourceSubmissionOutcome": "NOT_SUBMITTED"
+  },
+  "correctedInterpretation": {
+    "preparationNodeProcessLaunched": true,
+    "evidence": [
+      "raw event format_header_offered_before_native_driver (pcmBytesOffered=0, sdkRegistrationAcknowledged=false)",
+      "private prepared-stream.log written by the preparation process: PREPARED_HEADER_OFFERED_NOT_SDK_ACK, RPC_DEADLINE_EXCEEDED, NOT_SUBMITTED"
+    ],
+    "privatePreparationLogSha256": "157e54c21b228fee45752f59c80626edd636af6189bfdb00fc2f3257eaa41179",
+    "pinnedSpeechStreamSubmitted": false,
+    "pcmBytesOffered": 0,
+    "formatHeaderOfferIsSdkRegistrationAcknowledgement": false,
+    "recognitionLayerReached": false,
+    "classification": "PRE_RECORDING_FAILURE_NOT_RUN_FOR_RECOGNITION (visible recording stage not reached)"
+  },
+  "note": "The parent recorded only the speech-source process fields; the earlier preparation process was a separate launch. Historical raw result retained unchanged; this derived record supersedes only its interpretation.",
+  "physicalDeviceValidation": "NOT_RUN"
+}

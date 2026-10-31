@@ -1,0 +1,11 @@
+{
+  "kind": "PHASE08_STABLE_PRIMER_PREFLIGHT_FINDING",
+  "atUtc": "2026-10-31T00:14:38.732371+00:00",
+  "status": "NOT_RUN_PREPARATION_NOT_STARTED",
+  "observedSurface": "Seven empty non-clickable nodes belonging only to capstone after cold Main startup",
+  "sdkSourceProcessStarted": false,
+  "fixtureCreated": false,
+  "microphoneStarted": false,
+  "fix": "Bounded three-observation wait only for observed empty app surface; unknown or ambiguous UI fails. No audio timing or guard change.",
+  "physicalDeviceValidation": "NOT_RUN"
+}

@@ -1,0 +1,36 @@
+{
+  "kind": "PINNED_SYNTHETIC_CAPTURE_FIDELITY_FFT_ANALYSIS",
+  "sourceManifest": "docs/benchmarks/phase-08-synthetic-response-audio.json",
+  "sourceWavSha256": "e10b92f68d6a188bc19b44bd327aa91747d58d4a257510d786a14dc45a4e0a3c",
+  "capturedPcmSha256": "16acfeb1adf99dc2eeed5779b1e1e33ef341cefa910028a7b6eecfb8d24562bf",
+  "fixture": "acknowledge",
+  "capturedFrames": 79616,
+  "sourceFrames": 36080,
+  "bestLagFrames": 37035,
+  "bestLagMs": 2314.6875,
+  "normalizedCorrelation": 0.9999999872780848,
+  "leastSquaresGain": 1.0000780411468617,
+  "normalizedResidualRms": 0.00015951122282010106,
+  "capturedPeakPcm": 19070,
+  "capturedClippedSamples": 0,
+  "prefixFrames": 37035,
+  "prefixPeakPcm": 8,
+  "prefixRmsPcm": 3.32504031165324,
+  "prefixNonzeroFraction": 0.43496692318077496,
+  "firstAbovePcmThresholdFrames": {
+    "1": 512,
+    "2": 512,
+    "4": 1344,
+    "8": 1536,
+    "16": 38558,
+    "32": 38562,
+    "64": 38570,
+    "100": 38655
+  },
+  "firstNonzeroFrame": 512,
+  "limits": [
+    "Known synthetic waveform comparison only; no human audio or phone acceptance.",
+    "Scalar alignment/gain/error metrics do not certify recognition or realistic acoustics.",
+    "FFT analysis uses an already-installed local Graphify Python NumPy dependency; mobile dependencies unchanged."
+  ]
+}

@@ -1,0 +1,28 @@
+{
+  "kind": "SECOND_COHORT_PREFLIGHT_NAVIGATION_SUPPLEMENT",
+  "status": "PREDECLARED_BEFORE_SECOND_COHORT",
+  "originalPlan": {
+    "path": "docs/reports/evidence/phase-08-capture-fix-anchored-plan.json",
+    "sha256": "8be8e7a0a0aff62dfc74be46a3e177ad51308af40c3ac4a6938c163fdb69517d"
+  },
+  "firstCampaign": {
+    "path": "docs/reports/evidence/phase-08-capture-fix-reviewed-cold1-20261030T163938708973Z-913d95.json",
+    "sha256": "07e57a6ea9ad5dce5157c0f4960bb934633874860563e5fc1b3eb13518758588"
+  },
+  "firstCampaignUnchangedAndFailuresRetained": true,
+  "secondDispatcher": ".local/phase08-capture-fix-reviewed-ready-affected.py",
+  "navigationRegression": {
+    "path": "docs/reports/evidence/phase-08-capture-fix-navigation-readiness.json",
+    "sha256": "e616cc0149765bf4b139de7f6676ef2a514372520b25a107a963525f7ac69ef1"
+  },
+  "reason": "Cached Main tree contained only7empty non-clickable app nodes. am start -W does not prove React content readiness. Allow at most3observations/12second deadline only on an empty app surface; exact Chat control and bounds still required.",
+  "sourceSenderChanged": false,
+  "nativeTestApkChanged": false,
+  "microphoneControllerChanged": false,
+  "sourcePcmChanged": false,
+  "sourceSubmissionRetries": 0,
+  "recordingRetries": 0,
+  "secondCohortStillFiveOriginalPlannedTrials": true,
+  "v05": "OWNER_DEFERRED_NOT_RUN",
+  "physicalDeviceValidation": "NOT_RUN"
+}

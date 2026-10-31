@@ -1,0 +1,96 @@
+{
+  "kind": "PHASE08_STABLE_AUDIO_BACKEND_HAL_RECORDED_PROBE",
+  "runningEngineAudioNone": true,
+  "hostAudioInputAllowed": false,
+  "excludedFromFrozenComparison": true,
+  "status": "PASS",
+  "startedAtUtc": "2026-10-31T02:23:33.343597+00:00",
+  "avd": "LAFINA_Phase08_API35",
+  "api": 35,
+  "runId": "st20261031",
+  "physicalDeviceValidation": "NOT_RUN",
+  "signedHumanReview": false,
+  "attempts": [
+    {
+      "case": "A03",
+      "trial": 1,
+      "status": "PASS",
+      "startedAtUtc": "2026-10-31T02:23:37.288425+00:00",
+      "physicalAcceptance": "NOT_RUN",
+      "restoration": "VERIFIED_WORKING_TEST_BASELINE",
+      "controllerEvidence": "docs/reports/evidence/phase-08-emulator-expansion/st20261031/20261031T022337563315Z-A03-microphone.json",
+      "controllerEvidenceSha256": "d5f3a157fe289c2e58f28815efe1ae0be1ec98af8dc2373b84b07832375b09ab",
+      "sourceStatus": "PASS",
+      "sourceOutcome": "SOURCE_RPC_COMPLETED_HOST_OFF",
+      "guestAudioHal": {
+        "kind": "GUEST_AUDIO_HAL_CAPTURE_INTEGRITY",
+        "case": "A03",
+        "captureLinesInTrialWindow": 1,
+        "rawAudioRead": false,
+        "transcriptRead": false,
+        "affectsTrialStatus": false,
+        "status": "OBSERVED",
+        "captureFrames": 78080,
+        "captureNonzeroSamples": 30573,
+        "capturedEnergy": 338.3778,
+        "pinnedFixtureEnergyAtTransportGain": 84.5944,
+        "energyRatioToFixtureAtTransportGain": 4.000002,
+        "lateSilenceInsertions": 1,
+        "lateSilenceInsertedMs": 16.0,
+        "captureReadIoErrors": 0,
+        "playbackWriteIoErrors": 0,
+        "playbackDeviceStallCorrections": 0,
+        "anyVirtualAudioDeviceIoError": false,
+        "windowDefinition": "capture line minus frames/16000 s minus 0.5 s, guest clock",
+        "guestMinusHostClockOffsetSeconds": -1.086
+      },
+      "originalNonDiagnosticRowsEqual": true,
+      "fullPreferencePayloadEqual": true,
+      "permissionsAppOpsAndRadioSettingsEqual": true,
+      "activeJobs": 0,
+      "registrations": 0,
+      "hostMicrophoneDisabledAtEnd": true,
+      "completedAtUtc": "2026-10-31T02:25:14.206164+00:00"
+    }
+  ],
+  "plannedOrder": [
+    [
+      "A03",
+      1
+    ]
+  ],
+  "originalAvdTargeted": false,
+  "diagnosticRawHypothesesEnabledForAllTrials": true,
+  "harnessSources": [
+    {
+      "path": ".local/phase08-stable-hal-cohort.py",
+      "sha256": "3a40225004622d1ed0385b548bc1e468b2e5db7183472dedaf10e0854fb79a53"
+    },
+    {
+      "path": ".local/phase08_hal_integrity.py",
+      "sha256": "3cd6db5b9df180e110f083eb3a2dcd19e861393726387adeb4ccc1704f74ec36"
+    },
+    {
+      "path": ".local/phase08-stable-sdk-cohort.py",
+      "sha256": "e05b7daebbb24238bd51a8503a3e12bf09ecfcfe53c1a097c974b780bb1eee84"
+    },
+    {
+      "path": ".local/phase08-stable-mic.py",
+      "sha256": "2f8277c226f136271620e57aa0654065cd27ec7e668c234fb5d8fa56307ceb6a"
+    },
+    {
+      "path": ".local/phase08-capture-fix-reviewed-mic.py",
+      "sha256": "8aef5281eb541fd2bafdbf323e2c0e3a14ead86aac37e3b68fb355c10f81c4c9"
+    },
+    {
+      "path": "scripts/phase08-emulator-audio.mjs",
+      "sha256": "a5231b7b4acd700107ffed234f58781cb5c83e56f1daee87a51f6189fe86c95d"
+    }
+  ],
+  "counts": {
+    "PASS": 1,
+    "FAIL": 0
+  },
+  "completedAtUtc": "2026-10-31T02:25:14.206655+00:00",
+  "privateEvidence": ".local/phase08-stable-nullprobe-20261031T022333343243Z-99a1d2"
+}

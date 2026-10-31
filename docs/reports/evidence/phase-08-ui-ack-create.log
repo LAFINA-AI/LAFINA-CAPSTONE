@@ -1,0 +1,7 @@
+com.lafina.capstone.reminders.ReminderResponseUiTest:INSTRUMENTATION_STATUS: phase08_ui_driver={"kind":"OPT_IN_SYNTHETIC_FIXTURE_UI_DRIVER","mode":"compose","outcome":"PASS","stages":["activity_launch_requested","safe_qa08_composer_replaced","command_review_visible","command_confirmation_closed"],"launch":"DIRECT_PRIVATE_ACTIVITY_INTENT_NOT_NOTIFICATION_TAP","limits":"UI only; root verifies SQL separately. No live speech, audio or physical-phone acceptance."}
+INSTRUMENTATION_STATUS_CODE: 0
+.
+
+Time: 12.19
+
+OK (1 test)

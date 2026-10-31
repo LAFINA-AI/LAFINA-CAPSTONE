@@ -1,0 +1,41 @@
+{
+  "atUtc": "2026-10-29T03:30:13.383140+00:00",
+  "status": "PASS",
+  "apks": [
+    {
+      "path": "android/app/build/outputs/apk/dataQa/app-arm64-v8a-dataQa.apk",
+      "sha256": "b88700cdfb31be9857dce14173c976a816a78ca7e2f712a4436bbe9fe55fd6c4",
+      "removedDiagnosticNamesAbsent": true
+    },
+    {
+      "path": "android/app/build/outputs/apk/dataQa/app-x86_64-dataQa.apk",
+      "sha256": "ccc79ceda3a033d222917c54a6c68cd5d9d13c5c2d1f7cf3b6f3672c60f0ff6c",
+      "removedDiagnosticNamesAbsent": true
+    },
+    {
+      "path": "android/app/build/outputs/apk/debug/app-arm64-v8a-debug.apk",
+      "sha256": "36fefd3821a4ab22a2d27205dd7b5b3ab54e11e8a543fae116aaeae32ea055e6",
+      "removedDiagnosticNamesAbsent": true
+    },
+    {
+      "path": "android/app/build/outputs/apk/debug/app-x86_64-debug.apk",
+      "sha256": "08c23a66d29ad6fdd4aadd3746f6782f5d5a36e176518f8606292cbb9ea62802",
+      "removedDiagnosticNamesAbsent": true
+    },
+    {
+      "path": "android/app/build/outputs/apk/release/app-arm64-v8a-release.apk",
+      "sha256": "b2142ad34503aec10b13644f20f99f4336747d5b8222f50d2350e6ea4688025f",
+      "removedDiagnosticNamesAbsent": true
+    },
+    {
+      "path": "android/app/build/outputs/apk/release/app-x86_64-release.apk",
+      "sha256": "3913ad94e42b4050728f18926b561a176f20d25537a15cf3766a67a590eab39c",
+      "removedDiagnosticNamesAbsent": true
+    },
+    {
+      "path": "android/app/build/outputs/apk/androidTest/dataQa/app-dataQa-androidTest.apk",
+      "sha256": "c8cd924c8d3b2a91e252eca27e981ce6a5842a710f27e80313559bc447efc53e",
+      "removedDiagnosticNamesAbsent": true
+    }
+  ]
+}

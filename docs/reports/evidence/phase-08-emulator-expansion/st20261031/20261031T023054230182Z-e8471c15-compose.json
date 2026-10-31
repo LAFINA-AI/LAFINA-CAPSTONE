@@ -1,0 +1,59 @@
+{
+  "schemaVersion": 1,
+  "runId": "st20261031",
+  "invocation": "20261031T023054230182Z-e8471c15",
+  "command": "compose",
+  "startedAt": "2026-10-31T02:30:54.233311+00:00",
+  "status": "PASS",
+  "scope": "Explicit emulator UI driver plus independent read-only SQLite snapshots",
+  "physicalAcceptance": "HUMAN_REQUIRED",
+  "events": [
+    {
+      "at": "2026-10-31T02:30:54.235340+00:00",
+      "event": "invocation_started"
+    },
+    {
+      "at": "2026-10-31T02:31:08.856958+00:00",
+      "event": "ui_driver",
+      "kind": "OPT_IN_SYNTHETIC_FIXTURE_UI_DRIVER",
+      "mode": "compose",
+      "outcome": "PASS",
+      "stages": [
+        "activity_launch_requested",
+        "safe_qa08_composer_replaced",
+        "command_review_visible",
+        "command_confirmation_closed"
+      ],
+      "launch": "DIRECT_PRIVATE_ACTIVITY_INTENT_NOT_NOTIFICATION_TAP",
+      "limits": "UI only; root verifies SQL separately. No live speech, audio or physical-phone acceptance."
+    },
+    {
+      "at": "2026-10-31T02:31:09.504838+00:00",
+      "event": "owned_fixture_create",
+      "title": "QA08 EX st20261031 V04M_20261031T023052643145Z",
+      "rows": [
+        {
+          "taskId": "task:cmd_mvvsb6o9_0_hbbor49563f",
+          "taskStatus": "TODO",
+          "deletedAt": null,
+          "jobId": "job:reminder:task:cmd_mvvsb6o9_0_hbbor49563f|2026-10-31T02:32:05.096Z",
+          "occurrenceKey": "task:cmd_mvvsb6o9_0_hbbor49563f|2026-10-31T02:32:05.096Z",
+          "generation": 1,
+          "jobStatus": "PENDING",
+          "reminderStatus": "SCHEDULED",
+          "runAt": "2026-10-31T02:32:05.096Z",
+          "deadline": null,
+          "deliveryState": "REGISTERED",
+          "registrations": 1
+        }
+      ],
+      "tombstonesRetained": false
+    }
+  ],
+  "limits": [
+    "Direct private Activity intents do not certify actual notification taps or full-screen delivery.",
+    "No live microphone, audibility, physical phone, OEM or battery acceptance is implied."
+  ],
+  "completedAt": "2026-10-31T02:31:09.506022+00:00",
+  "passScope": "Requested bounded runner operation only; inspect case assertions and physical gates separately"
+}

@@ -1,0 +1,34 @@
+✔ pure options default to blocking and retain explicit injection flags (3.0923ms)
+✔ invalid delivery modes are rejected by pure parsing and format generation (0.523ms)
+✔ every injection-only argument requires --inject, even with --help (0.2754ms)
+✔ realtime initialization is rejected before any live environment access (0.1316ms)
+✔ protobuf format bytes preserve default blocking and add only realtime mode=1 (0.68ms)
+✔ nominal and rebased deadlines cap prefill and never schedule catch-up packets (0.2986ms)
+✔ default blocking packets are byte-identical to legacy and never touch pacing clocks (2.0511ms)
+✔ realtime offers at most 200 ms immediately, then spaces packets by 20 ms (2.1863ms)
+✔ shorter approved prefill and partial input report bounded actual prefill (3.258ms)
+✔ every source byte is offered exactly once, including empty and final partial packets (4.766ms)
+✔ 80 ms oversleep rebases subsequent offers instead of dumping a backlog (1.0764ms)
+✔ exactly 100 ms lateness and cumulative lag are permitted (0.9995ms)
+✔ 101 ms lateness aborts before the next packet or any of its source bytes (1.6694ms)
+✔ cumulative 1 ms slips permit 100 ms, then abort at 101 ms without extra bytes (17.95ms)
+✔ prefill interrupted by consumer delay distinguishes planned from actual offered bytes (1.0173ms)
+✔ invalid realtime prefill is rejected before any clock or wall-time call (0.6643ms)
+✔ invalid generator mode is rejected before packet, clock or wall-time activity (0.1953ms)
+✔ import is inert in a child process with no configured environment (94.1923ms)
+✔ CLI rejects invalid options without SDK discovery or environment configuration (833.3313ms)
+✔ source deadline and final checks fit the native twelve-second gate (1.1668ms)
+✔ last admissible ACK window includes the documented 300ms drain (0.6777ms)
+✔ late native READY cannot be made fresh by waiting longer (0.1577ms)
+✔ limited clock skew consumes reserve without extending the gate (0.1521ms)
+✔ invalid time and sample durations fail before a source can be submitted (0.2054ms)
+✔ import is inert and does not start discovery or microphone RPCs (78.2907ms)
+✔ producer gate matches native coordination without extending production capture (1.3485ms)
+ℹ tests 26
+ℹ suites 0
+ℹ pass 26
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 1103.6889

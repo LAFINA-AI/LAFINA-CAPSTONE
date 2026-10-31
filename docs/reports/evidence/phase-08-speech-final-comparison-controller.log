@@ -1,0 +1,6 @@
+{"trial": 1, "vocabulary": "GENERAL", "status": "SYNTHETIC_REFERENCE_MISMATCH", "sampledMaxPssKiB": 166102}
+{"trial": 1, "vocabulary": "REMINDER_RESPONSE", "status": "EXACT_SYNTHETIC_REFERENCES", "sampledMaxPssKiB": 185822}
+{"trial": 2, "vocabulary": "GENERAL", "status": "SYNTHETIC_REFERENCE_MISMATCH", "sampledMaxPssKiB": 164606}
+{"trial": 2, "vocabulary": "REMINDER_RESPONSE", "status": "EXACT_SYNTHETIC_REFERENCES", "sampledMaxPssKiB": 185871}
+{"trial": 3, "vocabulary": "GENERAL", "status": "SYNTHETIC_REFERENCE_MISMATCH", "sampledMaxPssKiB": 167247}
+{"trial": 3, "vocabulary": "REMINDER_RESPONSE", "status": "EXACT_SYNTHETIC_REFERENCES", "sampledMaxPssKiB": 163712}

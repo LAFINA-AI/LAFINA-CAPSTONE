@@ -1,6 +1,27 @@
 # 02 — Proposed Application Architecture
 
-## Current Phase07.1 Nol UI follow-up
+## Current Phase08 native offline reminder response
+
+The approved [Phase08 contract](phase-08-offline-loop.md) and
+[ADR-023](decisions/ADR-023-foreground-reminder-response.md) integrate the native
+`:reminders` screen without bootstrapping React Native. Answer opens a bounded
+response session without ACK. Installed offline system TTS and explicit visible
+hold-to-talk/manual controls feed a strict ACK/snooze proposal and review.
+Confirmation is single-use; existing SQLite transactions check identity,
+source version and deadline, then Android alarms reconcile. ACK never completes
+the task. No schema/model/dependency change; physical release acceptance remains
+pending in the [release gate](reports/phase-08-offline-core-release-gate.md).
+
+[ADR-024](decisions/ADR-024-reminder-speech-vocabulary.md) scopes a fixed local
+Whisper vocabulary, bounded beam and floor-aware signal-boundary context to the
+answered English reminder. Its `max(16/32768, capturedPeak * 0.001)` threshold and retained 250ms/750ms
+margins are documented in that ADR; quiet/noisy phone speech remains unvalidated.
+Chat/general transcription retains its existing decoder path.
+Recognized text still needs explicit copy, strict validation, review and Confirm.
+The [remaining-case report](reports/phase-08-remaining-emulator-report.md)
+separates synthetic emulator results from pending phone accuracy/performance.
+
+## Earlier Phase07.1 Nol UI follow-up
 
 [ADR-022](decisions/ADR-022-nol-ui-local-notes.md) implements the owner's
 Chat/Calendar/Notes/Profile composition and central microphone around the retained
@@ -25,7 +46,7 @@ is imported. `react-native-svg@15.15.5` renders local outline shapes and one sta
 Profile gradient; current provenance/build checks are separate from device QA.
 See the [follow-up report](reports/phase-07-1-nol-ui-report.md),
 [data design](05-DATA-SCHEDULING.md) and
-[manual checks](../qa/PHASE-07-1-NOL-UI-MANUAL.md). Phase08 remains unapproved.
+[manual checks](../qa/PHASE-07-1-NOL-UI-MANUAL.md). See the current Phase08 record above.
 
 ## Earlier Phase07.1 selective integration
 
@@ -146,6 +167,13 @@ milestone, not first audible output. See [Phase 05 report](reports/phase-05-repo
 for actual executed evidence and [the phone checklist](../qa/PHASE-05-MANUAL.md).
 Intent execution and online services remain deferred; recognition is the
 conditional Phase06 adapter above and still requires device acceptance.
+
+The current reminder-response boundary profile and its synthetic-only validation
+are specified in [ADR024](decisions/ADR-024-reminder-speech-vocabulary.md) and the
+[remaining-case report](reports/phase-08-remaining-emulator-report.md). A visible
+audio-interruption cancellation now names that reason while preserving the draft
+and manual controls. No automatic microphone restart or command confirmation is
+added; physical speech and audio-route validation remain pending.
 
 ## Manual planner retained from Phase 04
 

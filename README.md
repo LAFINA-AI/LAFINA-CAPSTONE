@@ -7,7 +7,14 @@ core. No registration, login, accounts, business roles, subscriptions or teams.
 Low-end device performance is a priority; minimum RAM/ABI support will be stated
 only after real-device validation.
 
-**Current state: Phase07/07.1 audit hardening; device validation pending.**
+**Current state: approved Phase08 offline reminder integration; device validation pending.**
+Answer now opens a response window without acknowledging the alert. Optional
+offline TTS, explicit hold-to-talk or typed input, and manual buttons lead to a
+reviewed ACK/snooze, atomic persistence and Android reconciliation. ACK keeps the
+task open. See the [current verification report](docs/reports/phase-08-stable-emulator-report.md),
+[Phase08 report](docs/reports/phase-08-report.md),
+[offline release gate](docs/reports/phase-08-offline-core-release-gate.md) and
+[phone checklist](qa/PHASE-08-MANUAL.md). Physical acceptance is still pending.
 The shell now follows the owner's reference: **Chat, Calendar, Notes, Profile**
 and a central microphone that opens editable speech input without recording.
 Calendar has Month/Week controls and a paged day timeline. Notes has real local
@@ -34,15 +41,15 @@ alert or notification. Optional Android system TTS adds installed offline-voice
 selection, a visible preview and Stop control, spoken canned planner replies and
 visible reminder reading. Text is the default and stays readable in every output
 mode. Chat adds explicit hold/release input, editable recognized text and a manual
-draft that remains usable on speech failure. The native Answer action offers an
-optional visible draft after durable acknowledgement. Speech alone never runs a
+draft that remains usable on speech failure. The native Answer action opens a
+bounded, visible response draft before acknowledgement. Speech alone never runs a
 command. Chat's explicit Send, exact action review and Confirm change can create,
 move, complete/delete or acknowledge/snooze a uniquely identified item. Queries
 and Repeat are read-only. Android on-device recognition is conditional;
 reviewed local Whisper Tiny is an explicit optional model-bearing build.
 The owner approved Phase07, this Phase07.1 integration/UI follow-up and the
-subsequent audit hardening. Phase08 acceptance work, backend and online models
-remain unapproved. Earlier phone acceptance is not implied. The
+subsequent audit hardening, and explicitly approved Phase08. Backend and online
+models remain gated by the offline release decision. Earlier phone acceptance is not implied. The
 [non-adopted incoming features](docs/decisions/ADR-022-nol-ui-local-notes.md#non-adopted-incoming-features)
 are deliberate omissions, not promises for Phase08.
 
@@ -66,7 +73,7 @@ For the retained core read [Phase07 report](docs/reports/phase-07-report.md),
 [manual planner architecture](docs/phase-04-manual-planner.md),
 [native architecture/schema](docs/phase-03-native-reminders.md) and
 [manual Android checklist](qa/PHASE-04-MANUAL.md).
-Use [phase instructions](phases/PHASE-07.md) and
+Use [phase instructions](phases/PHASE-08.md) and
 [the report template](templates/PHASE-REPORT.md) for one phase at a time.
 
 Legacy reference: [LAFINA at the pinned revision](https://github.com/LAFINA-AI/LAFINA/tree/f7e70aec54e6d16e627f444f2a67114cbfb07b5e).
@@ -160,16 +167,20 @@ English PCM clips passed real local Whisper decoding with WER0, median2,939ms
 and p953,206ms for model preparation/loading/decoding. These are not real-mic,
 phone, accent or release-to-result measurements. Current UI/restoration and
 physical-phone outcomes are recorded separately in the phase report. For current offline review,
-use the current hardening report's verified ABI-matching **0.7.3-data-qa** hash from
+use the Phase08 report's ABI-matching **0.8.0-data-qa** hash from
 `android/app/build/outputs/apk/dataQa/` with `adb install -r`, then open
 **Chat**. Type a command in **Message**, **Send message**, inspect the exact
-review and **Confirm change**. For spoken emulator tests, deliberately enable
-host microphone input and check app permission. Host input is deliberately off;
+review and **Confirm change**. Synthetic emulator regressions use pinned audio
+and never request host microphone input; the emulator's host-access flag can
+still read enabled around an injection (see the Phase08 stable-emulator report).
+A deliberate live emulator speech check
+requires user-controlled host input and app permission. Host input is off;
 Phase07 started with app microphone permission already allowed and preserves it.
 Open **Show speech input** and choose **Whisper local model** if the Android
 candidate's local language is unavailable. Review/edit recognized words, copy to
 Draft and **Use draft in chat**; Send and Confirm remain separate. Native
-answered-reminder drafts remain local-only and cannot execute Chat commands.
+answered-reminder drafts remain local-only and can propose only this reminder's
+ACK/snooze through a separate review and Confirm; they cannot execute Chat commands.
 **Calendar** retains manual tasks/events. Enable Android delivery and
 notification access explicitly in **Profile → Reminder delivery**, then schedule
 a timed item with a reminder. **Open data test harness** retains storage

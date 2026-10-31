@@ -1,0 +1,38 @@
+✔ source abort and final guard failure cannot count as recognition trials (1.8553ms)
+✔ pure options default to blocking and retain explicit injection flags (2.7755ms)
+✔ invalid delivery modes are rejected by pure parsing and format generation (0.9454ms)
+✔ every injection-only argument requires --inject, even with --help (0.7489ms)
+✔ realtime initialization is rejected before any live environment access (0.5538ms)
+✔ protobuf format bytes preserve default blocking and add only realtime mode=1 (0.3484ms)
+✔ anchored deadlines cap prefill and enforce a five-ms recovery floor (0.2928ms)
+✔ default blocking packets are byte-identical to legacy and never touch pacing clocks (2.5021ms)
+✔ realtime offers at most 200 ms immediately, then spaces packets by 20 ms (2.9204ms)
+✔ shorter approved prefill and partial input report bounded actual prefill (8.1915ms)
+✔ every source byte is offered exactly once, including empty and final partial packets (10.1257ms)
+✔ 80 ms oversleep recovers to anchored timing without an immediate backlog flush (3.525ms)
+✔ exactly 100 ms lateness and cumulative lag are permitted (1.3832ms)
+✔ 101 ms lateness aborts before the next packet or any of its source bytes (1.9683ms)
+✔ recurring one-ms oversleep stays anchored instead of accumulating drift (21.1563ms)
+✔ sustained six and twelve-ms oversleep preserve all PCM with bounded lag and spacing (23.8511ms)
+✔ recurring six-through-twelve-ms oversleep remains bounded across a full capture (38.6784ms)
+✔ consumer delays still trip cumulative guard above100ms before extra source bytes (4.6107ms)
+✔ prefill interrupted by consumer delay distinguishes planned from actual offered bytes (1.3753ms)
+✔ invalid realtime prefill is rejected before any clock or wall-time call (1.0907ms)
+✔ invalid generator mode is rejected before packet, clock or wall-time activity (0.2158ms)
+✔ import is inert in a child process with no configured environment (115.583ms)
+✔ CLI rejects invalid options without SDK discovery or environment configuration (1013.9281ms)
+✔ source deadline and final checks fit the native twelve-second gate (1.1124ms)
+✔ last admissible ACK window includes the documented 300ms drain (1.1702ms)
+✔ late native READY cannot be made fresh by waiting longer (0.2564ms)
+✔ limited clock skew consumes reserve without extending the gate (0.2954ms)
+✔ invalid time and sample durations fail before a source can be submitted (0.318ms)
+✔ import is inert and does not start discovery or microphone RPCs (111.2186ms)
+✔ producer gate matches native coordination without extending production capture (1.474ms)
+ℹ tests 30
+ℹ suites 0
+ℹ pass 30
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 1448.0909

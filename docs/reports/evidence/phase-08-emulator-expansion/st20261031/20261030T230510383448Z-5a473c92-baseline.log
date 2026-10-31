@@ -1,0 +1,2 @@
+{"at": "2026-10-30T23:05:10.387115+00:00", "event": "invocation_started"}
+{"at": "2026-10-30T23:05:12.545811+00:00", "event": "fresh_baseline_captured", "schema": 3, "preferencesSha256": "e1f6b7b293fe371428d72b85a1de02d703dc5ee44db511cc85c5aa561d7648ca", "activeJobs": 0}

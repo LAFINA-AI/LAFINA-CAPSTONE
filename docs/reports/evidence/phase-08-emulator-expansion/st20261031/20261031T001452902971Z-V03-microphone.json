@@ -1,0 +1,83 @@
+{
+  "kind": "PARENT_SYNTHETIC_VISIBLE_MICROPHONE_CASE",
+  "case": "V03",
+  "status": "FAIL",
+  "startedAtUtc": "2026-10-31T00:14:52.904264+00:00",
+  "events": [
+    {
+      "event": "host_microphone_double_false_before",
+      "atUtc": "2026-10-31T00:14:53.111944+00:00",
+      "elapsedMonotonicSeconds": 0.20769989999826066,
+      "status": "HOST_MICROPHONE_DISABLED"
+    },
+    {
+      "event": "owned_fixture_before",
+      "atUtc": "2026-10-31T00:16:06.260189+00:00",
+      "elapsedMonotonicSeconds": 73.35595089997514,
+      "rows": [
+        {
+          "taskId": "task:cmd_mvvng7o9_0_0ggasndel4aj",
+          "taskStatus": "TODO",
+          "deletedAt": null,
+          "jobId": "job:reminder:task:cmd_mvvng7o9_0_0ggasndel4aj|2026-10-31T00:16:01.593Z",
+          "occurrenceKey": "task:cmd_mvvng7o9_0_0ggasndel4aj|2026-10-31T00:16:01.593Z",
+          "generation": 1,
+          "jobStatus": "RINGING",
+          "reminderStatus": "RINGING",
+          "runAt": "2026-10-31T00:16:01.593Z",
+          "deadline": "2026-10-31T00:17:02.197Z",
+          "deliveryState": "REGISTERED",
+          "registrations": 1
+        }
+      ]
+    },
+    {
+      "event": "generated_zero_primer_offered_before_native_driver",
+      "atUtc": "2026-10-31T00:16:06.520290+00:00",
+      "elapsedMonotonicSeconds": 73.61605630000122,
+      "sourceStimulusBytesOffered": 0,
+      "sdkRegistrationAcknowledged": false
+    }
+  ],
+  "rawTranscriptEmitted": true,
+  "rawTranscriptStoredInPublicEvidence": false,
+  "physicalSpeech": "NOT_RUN",
+  "audibility": "NOT_RUN",
+  "ttsInterruption": "NOT_RUN",
+  "scope": "Real visible hold/capture with only pinned synthetic PCM when explicitly selected; no live host input or physical speech acceptance",
+  "trialIndex": 1,
+  "requestedIndependentTrials": 1,
+  "syntheticInjectionDelayMs": 0,
+  "syntheticTransportPaddingEachSideMs": 1000,
+  "syntheticTransportGainPermille": 500,
+  "producerStrategy": "GENERATED_ZERO_PRIMER_BLOCKING_SOURCE_AFTER_VISIBLE_PROOF",
+  "producerControl": "normal",
+  "sourceProducer": {
+    "sourceProcessLaunchRequested": true,
+    "sourceProcessLaunched": true,
+    "sourceStreamAttempted": false,
+    "sourceStreamCompleted": false,
+    "sourceSubmissionOutcome": "NOT_SUBMITTED"
+  },
+  "sourceTransportEligibleForRecognitionCheck": false,
+  "nativeReferenceComparisonObserved": false,
+  "nativeReferenceComparisonMatched": null,
+  "nativeStrictReferenceAssertionAttempted": null,
+  "nativeStrictReferenceAssertionOutcome": "UNKNOWN",
+  "gatePublication": {
+    "published": false,
+    "marker": null,
+    "intentionallyAbsent": false
+  },
+  "syntheticRepeatAliasOf": "A03",
+  "preparation": {
+    "headerOfferedBeforeNativeDriver": true,
+    "sourceStimulusBytesBeforeVisibleProof": 0,
+    "generatedZeroPrimerOnlyBeforeProof": true,
+    "sdkRegistrationAcknowledged": false,
+    "hostInputEnableRequested": false
+  },
+  "reason": "PRIVATE_MICROPHONE_FAILURE_LOG_SAVED",
+  "errorType": "RuntimeError",
+  "outstandingPreparedSourcePid": 39172
+}

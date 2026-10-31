@@ -1,0 +1,21 @@
+{
+  "schemaVersion": 1,
+  "runId": "st20261031",
+  "invocation": "20261030T231322633996Z-4ff65b7f",
+  "command": "cold1-preserved-boot",
+  "startedAt": "2026-10-30T23:13:22.635091+00:00",
+  "status": "PASS",
+  "scope": "Preserved-data stable cold boot only; not speech validation",
+  "physicalAcceptance": "HUMAN_REQUIRED",
+  "events": [
+    {
+      "at": "2026-10-30T23:13:22.636379+00:00",
+      "event": "invocation_started"
+    }
+  ],
+  "limits": [
+    "Direct private Activity intents do not certify actual notification taps or full-screen delivery.",
+    "No live microphone, audibility, physical phone, OEM or battery acceptance is implied."
+  ],
+  "completedAt": "2026-10-30T23:14:40.243867+00:00"
+}

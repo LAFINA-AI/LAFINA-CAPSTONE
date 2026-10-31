@@ -1,0 +1,190 @@
+{
+  "createdUtc": "2026-10-31T00:27:59.670611+00:00",
+  "baseHead": "98bef88c3ae0fabee677c1466417fc34c0af738c",
+  "sourceCount": 33,
+  "files": [
+    {
+      "path": ".gitignore",
+      "bytes": 977,
+      "sha256": "cd0634ca4221e00b42c7275feeca276c473aa99298d575bdb8e345de10b82d13"
+    },
+    {
+      "path": "android/app/build.gradle",
+      "bytes": 7812,
+      "sha256": "3dc525aade784801d963d001bc5177e613f4a5f5c445530e620d1fe5a3de9223"
+    },
+    {
+      "path": "android/app/src/androidTest/java/com/lafina/capstone/reminders/Qa08UiDriver.kt",
+      "bytes": 13056,
+      "sha256": "544859300428f2bff181602dbb11b2b9947de272d2a4a4fdb410ff46ed4767d6"
+    },
+    {
+      "path": "android/app/src/androidTest/java/com/lafina/capstone/reminders/ReminderFailureUiTest.kt",
+      "bytes": 12323,
+      "sha256": "6009cc51f00530e44848d4d5408092ea71d8e0153debcf1b05edadbbdca98552"
+    },
+    {
+      "path": "android/app/src/androidTest/java/com/lafina/capstone/reminders/ReminderLifecycleUiTest.kt",
+      "bytes": 13489,
+      "sha256": "10a5b4c57f8d95e2a78dc12c9193941f17fc84bf4c36b6dc8119ee8d5ec51cf2"
+    },
+    {
+      "path": "android/app/src/androidTest/java/com/lafina/capstone/reminders/ReminderMicrophoneUiTest.kt",
+      "bytes": 21565,
+      "sha256": "04d0c04e45216ff54c4a76a5b920d075a5c58ca746ed01a832ef55200b3fe2bb"
+    },
+    {
+      "path": "android/app/src/androidTest/java/com/lafina/capstone/reminders/ReminderNotificationUiTest.kt",
+      "bytes": 9176,
+      "sha256": "deb977eff3a8be003b16e668f80baf0b106b7a132d6b32185e94c698ea025049"
+    },
+    {
+      "path": "android/app/src/androidTest/java/com/lafina/capstone/reminders/ReminderResponseBenchmarkTest.kt",
+      "bytes": 4481,
+      "sha256": "48f63c44b2cf36fdf087155d22bfbb3f051ac30251d757d05f70111874371da9"
+    },
+    {
+      "path": "android/app/src/androidTest/java/com/lafina/capstone/reminders/ReminderResponseUiTest.kt",
+      "bytes": 5476,
+      "sha256": "0ed445c739a431c71e78130e4aff3f7e8726848a06a1ede0c552cc8e9cd010ae"
+    },
+    {
+      "path": "android/app/src/androidTest/java/com/lafina/capstone/reminders/ReminderSettingsUiTest.kt",
+      "bytes": 4158,
+      "sha256": "062872d91e3c3abde81ebdb72f79b32f91df5cc97d040023ee2874f7dc53c470"
+    },
+    {
+      "path": "android/app/src/androidTest/java/com/lafina/capstone/reminders/ReminderStoreTest.kt",
+      "bytes": 26541,
+      "sha256": "4cfaac8cef3bb6877717d654d4a95fc22dd3faf9953506073dac0d5a2a8c65f6"
+    },
+    {
+      "path": "android/app/src/androidTest/java/com/lafina/capstone/voice/Phase08ResponseDecoderProbeTest.kt",
+      "bytes": 11964,
+      "sha256": "b72a10105d82623d07776d939b4af9dda03429462212db5572f9809622399475"
+    },
+    {
+      "path": "android/app/src/androidTest/java/com/lafina/capstone/voice/Phase08SyntheticReplayTest.kt",
+      "bytes": 7713,
+      "sha256": "19e770a5835f1c76e5342aaec9d4e85c14e0f122ee86a16cf9974ff44fb1a4c7"
+    },
+    {
+      "path": "android/app/src/androidTest/java/com/lafina/capstone/voice/Phase08VoiceProbeTest.kt",
+      "bytes": 9241,
+      "sha256": "156f61e7108cfca5fc4b29eb675392bc435b3b282517b4e64f003c7dd665cb4e"
+    },
+    {
+      "path": "android/app/src/main/AndroidManifest.xml",
+      "bytes": 3213,
+      "sha256": "4f173088e4dc3ba3ac88a5180e452407adfa31a251a3963e4da3c7b51d5dda78"
+    },
+    {
+      "path": "android/app/src/main/cpp/jni/whisper_jni.cpp",
+      "bytes": 10725,
+      "sha256": "f2eab2ff4f717220e962daa7d486dee057c113c9f20be6f4f8ef3ca3d4512a25"
+    },
+    {
+      "path": "android/app/src/main/java/com/lafina/capstone/reminders/ReminderActivity.kt",
+      "bytes": 19502,
+      "sha256": "775bfd8725bf58c3155e337d4d9099d4e3b47142e7fbe2d4c64541b808f7a10b"
+    },
+    {
+      "path": "android/app/src/main/java/com/lafina/capstone/reminders/ReminderIntents.kt",
+      "bytes": 2806,
+      "sha256": "bea238f77ce71680195b51cab0e71f9c3a434d44976c4bbdf58366526e89ca5b"
+    },
+    {
+      "path": "android/app/src/main/java/com/lafina/capstone/reminders/ReminderResponsePolicy.kt",
+      "bytes": 2136,
+      "sha256": "bdb2243e716a4c0186069d32867617de04aa561fb7cbb2b44bf3839c5e595ee3"
+    },
+    {
+      "path": "android/app/src/main/java/com/lafina/capstone/reminders/ReminderResponseSession.kt",
+      "bytes": 2414,
+      "sha256": "81d8963e836da855bb2c6ed078aac0a368257a44dfabc091c19aa1399534a4ae"
+    },
+    {
+      "path": "android/app/src/main/java/com/lafina/capstone/reminders/ReminderStore.kt",
+      "bytes": 29632,
+      "sha256": "cb8debfa7e3fc13f41e54b9fd4dcd89732d280c2d8e9fb2d6c41227e60e6df02"
+    },
+    {
+      "path": "android/app/src/main/java/com/lafina/capstone/voice/AnsweredDictationPanel.kt",
+      "bytes": 8362,
+      "sha256": "b922b60faf8d651fc47b436fa7ee2d7313d28eda691b71195e117ecbff9d7ec7"
+    },
+    {
+      "path": "android/app/src/main/java/com/lafina/capstone/voice/SpeechInput.kt",
+      "bytes": 17780,
+      "sha256": "87ec7daddc04d7279ffa529e6e241a0c1b982a82cf89f629d0399ba105bc5787"
+    },
+    {
+      "path": "android/app/src/main/java/com/lafina/capstone/voice/WhisperTranscriber.kt",
+      "bytes": 5422,
+      "sha256": "870418590f822998197c09aa5a1b21c54a2134d0ca3b1f37cbea1781fc9fe3df"
+    },
+    {
+      "path": "android/app/src/test/java/com/lafina/capstone/reminders/ReminderResponsePolicyTest.kt",
+      "bytes": 4362,
+      "sha256": "3a30cef2f73bac9a46b13c07f49042cbc4ad07edffa32cffc93ed6ed47296a91"
+    },
+    {
+      "path": "android/app/src/test/java/com/lafina/capstone/reminders/ReminderResponseSessionTest.kt",
+      "bytes": 5128,
+      "sha256": "53d9adbc6ec77cc276502926bc1b7077f05ec8693a9ffdca3b2a70edbce8920a"
+    },
+    {
+      "path": "package-lock.json",
+      "bytes": 450596,
+      "sha256": "69271db3be98140e29fe4a1b6def9b92b912048c1dcac8d2cd704b76cd47e828"
+    },
+    {
+      "path": "package.json",
+      "bytes": 1801,
+      "sha256": "a9b8ed056fb889a42243ecbb7332a6af9e9ae8353767b72ae8486ea2ddef54d2"
+    },
+    {
+      "path": "scripts/phase08-emulator-audio-realtime.test.mjs",
+      "bytes": 24804,
+      "sha256": "c8f4d7c6a4bda3e68f5af5db46e3f83d2cc8a2f4ea6b9568c9dbc15ccf194708"
+    },
+    {
+      "path": "scripts/phase08-emulator-audio.mjs",
+      "bytes": 33856,
+      "sha256": "a5231b7b4acd700107ffed234f58781cb5c83e56f1daee87a51f6189fe86c95d"
+    },
+    {
+      "path": "scripts/phase08-emulator-audio.test.mjs",
+      "bytes": 2682,
+      "sha256": "557856bfd2becbe65007cf308fac4621eb20b5171ec97c5a9104d07dbe4c6a3b"
+    },
+    {
+      "path": "scripts/phase08-emulator-suite.py",
+      "bytes": 38366,
+      "sha256": "d2da81890b16227132cf71eb68403fb749bb1f420e1045406c7e864649d736ad"
+    },
+    {
+      "path": "scripts/verify-phase08-apks.py",
+      "bytes": 14469,
+      "sha256": "ad508ec7f4c79bfe68cb744796c644548909aefb80fb775634adb56f2e78d88c"
+    }
+  ],
+  "comparedWith": {
+    "path": "docs/reports/evidence/phase-08-input-loss-source-hashes-observability.json",
+    "sha256": "785fd433ea3689bdc7a7afa90b6b894c11eea066ac56655dc3afc12738bcc318"
+  },
+  "changedPriorPaths": [
+    "android/app/src/androidTest/java/com/lafina/capstone/reminders/ReminderMicrophoneUiTest.kt",
+    "scripts/phase08-emulator-audio.mjs"
+  ],
+  "unchangedPriorReviewedEntries": 29,
+  "newPaths": [
+    "scripts/phase08-emulator-audio.test.mjs",
+    "scripts/phase08-emulator-audio-realtime.test.mjs"
+  ],
+  "scope": "Source identities, not new test execution; 29 unchanged entries include tests/tools, not 29 production files",
+  "physicalDeviceValidation": "NOT_RUN",
+  "previousCohort": "docs/reports/evidence/phase-08-capture-fix-source-hashes-final.json",
+  "all33PreviousSourceHashesEqual": true,
+  "productionTestOrPublicHarnessSourceChangedThisFollowup": false
+}

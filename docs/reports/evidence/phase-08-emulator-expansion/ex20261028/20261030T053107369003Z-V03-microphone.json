@@ -1,0 +1,68 @@
+{
+  "kind": "PARENT_SYNTHETIC_VISIBLE_MICROPHONE_CASE",
+  "case": "V03",
+  "status": "FAIL_OR_UNSUPPORTED_REVIEW_REQUIRED",
+  "startedAtUtc": "2026-10-30T05:31:07.370399+00:00",
+  "events": [
+    {
+      "event": "host_microphone_double_false_before",
+      "atUtc": "2026-10-30T05:31:07.498763+00:00",
+      "elapsedMonotonicSeconds": 0.12838059999921825,
+      "status": "HOST_MICROPHONE_DISABLED"
+    },
+    {
+      "event": "owned_fixture_before",
+      "atUtc": "2026-10-30T05:32:27.421201+00:00",
+      "elapsedMonotonicSeconds": 80.05087259999709,
+      "rows": [
+        {
+          "taskId": "task:cmd_mvujb525_0_kd83ymz4b5j",
+          "taskStatus": "TODO",
+          "deletedAt": null,
+          "jobId": "job:reminder:task:cmd_mvujb525_0_kd83ymz4b5j|2026-10-30T05:32:20.284Z",
+          "occurrenceKey": "task:cmd_mvujb525_0_kd83ymz4b5j|2026-10-30T05:32:20.284Z",
+          "generation": 1,
+          "jobStatus": "RINGING",
+          "reminderStatus": "RINGING",
+          "runAt": "2026-10-30T05:32:20.284Z",
+          "deadline": "2026-10-30T05:33:21.038Z",
+          "deliveryState": "REGISTERED",
+          "registrations": 1
+        }
+      ]
+    },
+    {
+      "event": "real_visible_recording_stage_observed",
+      "atUtc": "2026-10-30T05:32:42.139931+00:00",
+      "elapsedMonotonicSeconds": 94.76955559999624,
+      "recordingVisible": true
+    },
+    {
+      "event": "deliberate_synthetic_onset_delay",
+      "atUtc": "2026-10-30T05:32:42.652673+00:00",
+      "elapsedMonotonicSeconds": 95.28231739999319,
+      "delayMs": 500
+    }
+  ],
+  "rawTranscriptEmitted": false,
+  "rawTranscriptStoredInPublicEvidence": false,
+  "physicalSpeech": "NOT_RUN",
+  "audibility": "NOT_RUN",
+  "ttsInterruption": "NOT_RUN",
+  "scope": "Real visible hold/capture with only pinned synthetic PCM when explicitly selected; no live host input or physical speech acceptance",
+  "trialIndex": 1,
+  "requestedIndependentTrials": 1,
+  "syntheticInjectionDelayMs": 500,
+  "syntheticTransportPaddingEachSideMs": 1000,
+  "syntheticTransportGainPermille": 500,
+  "formatOnlyInputInitializationRequested": true,
+  "syntheticRepeatAliasOf": "A03",
+  "reason": "PRIVATE_MICROPHONE_FAILURE_LOG_SAVED",
+  "errorType": "RuntimeError",
+  "microphonePermissionRestoration": "EXACT_FRESH_BASELINE_VERIFIED",
+  "fixtureCleanup": "EXACT_OWNED_TITLE_REVIEWED_UI",
+  "hostMicrophoneDisabledAtEnd": true,
+  "completedAtUtc": "2026-10-30T05:33:25.568226+00:00",
+  "elapsedMonotonicSeconds": 138.19816359999822,
+  "privateEvidence": ".local/phase08-microphone-20261030T053107369003Z-V03"
+}

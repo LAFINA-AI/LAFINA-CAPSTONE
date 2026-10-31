@@ -1,0 +1,75 @@
+{
+  "schemaVersion": 1,
+  "kind": "SYNTHETIC_DERIVED_NOISE_NO_MICROPHONE",
+  "generatedAtUtc": "2026-10-29T07:20:00.453525+00:00",
+  "purpose": "Phase08 V06 defined synthetic noise stimulus only; generation is not execution evidence",
+  "sourceManifest": "docs/benchmarks/phase-08-synthetic-response-audio.json",
+  "privateDirectory": ".local/phase08-noise-corpus",
+  "generator": ".local/phase08-create-noise-fixtures.py",
+  "audio": {
+    "sampleRate": 16000,
+    "channels": 1,
+    "bitsPerSample": 16,
+    "format": "WAV PCM signed16 little-endian"
+  },
+  "noise": {
+    "distribution": "deterministic centered uniform pseudorandom white noise",
+    "algorithm": "xorshift32: x^=x<<13; x^=x>>17; x^=x<<5, uint32 mask after shifts; u=2*x/4294967295-1; subtract whole-clip mean; scale to source RMS / 10; Python round-to-even mixture quantization",
+    "targetSnrDb": 20.0,
+    "snrDefinition": "20*log10(RMS(original PCM) / RMS(quantized mixture minus original PCM)), over original full utterance frames",
+    "window": "Noise over every original utterance frame only. Optional transport pre/post-roll is separate and remains digital zero. No real-room/acoustic claim."
+  },
+  "provenance": "Derivatives of unchanged pinned local Windows Zira SAPI outputs from fixed public synthetic text. No human recordings, new voice/model, internet source or dependency. Original license/provenance limitations remain; WAVs are private and not redistributed.",
+  "limitations": [
+    "20 dB is the exact defined synthetic noise condition, not a standardized real-world moderate-noise rating.",
+    "No local accent, room acoustics, echo, device microphone noise or human recognition validation.",
+    "No ADB, virtual input, capture, transcription or command confirmation executed by this generator.",
+    "Original WAV files and public/private source manifests are not modified."
+  ],
+  "samples": [
+    {
+      "id": "acknowledge-noise20",
+      "reference": "acknowledge this reminder",
+      "file": "acknowledge-noise20.wav",
+      "bytes": 72206,
+      "sha256": "3235f10ec2b31e321c859ed70b451221f8ce4c9f6b03604b664057b9cd6ea8b9",
+      "sourceId": "acknowledge",
+      "sourceBytes": 72206,
+      "sourceSha256": "e10b92f68d6a188bc19b44bd327aa91747d58d4a257510d786a14dc45a4e0a3c",
+      "seedHex": "0x8c0ffee",
+      "seedUnsigned": 146866158,
+      "frames": 36080,
+      "durationMs": 2255.0,
+      "targetSnrDb": 20.0,
+      "measuredQuantizedSnrDb": 19.999930057106884,
+      "sourceRmsPcm": 3173.098711207996,
+      "addedNoiseRmsPcm": 317.3124262603054,
+      "sourcePeakAbsPcm": 19069,
+      "derivedPeakAbsPcm": 18952,
+      "clippedSamples": 0,
+      "derivedPcmSha256": "c3d7ddeb7f7dbf83de1aa31fd81fee467bd3b641e290d896125c25d6f66df969"
+    },
+    {
+      "id": "snooze-noise20",
+      "reference": "snooze for ten minutes",
+      "file": "snooze-noise20.wav",
+      "bytes": 74286,
+      "sha256": "69c5ce0bff4f67d6a20e7ead38d52287fb5751ec7f4fa14aaf3c71c6e26d8e50",
+      "sourceId": "snooze",
+      "sourceBytes": 74286,
+      "sourceSha256": "fd762146a51062b7d5deef1cda58b2607d8b3aa4694bde4c76d9820701e5f42a",
+      "seedHex": "0x8c0ffef",
+      "seedUnsigned": 146866159,
+      "frames": 37120,
+      "durationMs": 2320.0,
+      "targetSnrDb": 20.0,
+      "measuredQuantizedSnrDb": 19.99996031958116,
+      "sourceRmsPcm": 3110.251345492677,
+      "addedNoiseRmsPcm": 311.02655543259846,
+      "sourcePeakAbsPcm": 19156,
+      "derivedPeakAbsPcm": 18999,
+      "clippedSamples": 0,
+      "derivedPcmSha256": "55fa76e8e1e4223ef11c8665330fe30ce88f415f420c2a962e94045c8bc4e204"
+    }
+  ]
+}

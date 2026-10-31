@@ -1,0 +1,39 @@
+{
+  "kind": "FOCUSED_HARNESS_REVIEW_BEFORE_COMPARISON",
+  "status": "PASS",
+  "completedAtUtc": "2026-10-30T16:36:35.219801+00:00",
+  "checks": {
+    "anchoredPacingHostTests": 30,
+    "windowsRealClockDryRuns": 5,
+    "negativeGateControls": 3,
+    "sourceCountersExplicitlyGeneratorYields": true,
+    "plannedDurationSeparatedFromSourceCompletion": true,
+    "producerAbortSeparatedFromAuthorizationFailureAndTimeout": true,
+    "nativeMonotonicWaitDiagnosticsObserved": true
+  },
+  "inputs": {
+    "path": "docs/reports/evidence/phase-08-capture-fix-reviewed-inputs.json",
+    "sha256": "d78bd0416f442f59fde385914a71975aaee1a920bc44df354d2f326e14746d35"
+  },
+  "hostTests": {
+    "path": "docs/reports/evidence/phase-08-capture-fix-reviewed-host-tests.log",
+    "sha256": "a79ac4a947da1bfb223c53c74e79c44216ba967e18476730c71b043398aa1b2c"
+  },
+  "windowsClock": {
+    "path": "docs/reports/evidence/phase-08-capture-fix-windows-clock.json",
+    "sha256": "0dacedd2d14336bb725f0e45e05bad6da47a5396732454943afe3cfe887c2c79"
+  },
+  "nativeGateControls": {
+    "path": "docs/reports/evidence/phase-08-capture-fix-reviewed-controls.json",
+    "sha256": "34e7844435ecbb8b9feaea693b77f2c9c963f68d3ebe74c3e60919357c3738bc"
+  },
+  "format": {
+    "path": "docs/reports/evidence/phase-08-capture-fix-reviewed-format.log",
+    "sha256": "f20510a9da4717c51c4cffee6d0dd88d6c9a723d0a83711d01216f5b48961283"
+  },
+  "comparisonMayProceed": true,
+  "recognitionTrialsCompletedByTheseChecks": 0,
+  "phasePassed": false,
+  "physicalDeviceValidation": "NOT_RUN",
+  "v05": "OWNER_DEFERRED_NOT_RUN"
+}

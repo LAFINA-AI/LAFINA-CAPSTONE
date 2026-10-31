@@ -1,0 +1,44 @@
+{
+  "kind": "PHASE08_STABLE_GUEST_STOP_AND_ORIGINAL_REOPEN",
+  "status": "PASS",
+  "startedAtUtc": "2026-10-31T02:44:42.156108+00:00",
+  "events": [
+    {
+      "event": "stable_guest_gracefully_stopped_userdata_preserved",
+      "atUtc": "2026-10-31T02:44:46.513966+00:00"
+    },
+    {
+      "event": "single_original_cold_launch",
+      "atUtc": "2026-10-31T02:44:51.552260+00:00",
+      "pid": 17772
+    }
+  ],
+  "originalEmulator": "installed SDK emulator (global AVD registry)",
+  "originalArguments": [
+    "-avd",
+    "Medium_Phone",
+    "-port",
+    "5554",
+    "-no-window",
+    "-no-snapshot-load",
+    "-no-snapshot-save",
+    "-grpc",
+    "8554",
+    "-grpc-use-token",
+    "-gpu",
+    "host"
+  ],
+  "noInstallUninstallResetOrDataReplacement": true,
+  "physicalDeviceValidation": "NOT_RUN",
+  "originalIdentity": {
+    "avd": "Medium_Phone",
+    "sdk": "37",
+    "codename": "REL",
+    "abi": "x86_64",
+    "pageSize": "16384"
+  },
+  "hostMicrophoneDisabled": true,
+  "elapsedBootSeconds": 44.5,
+  "completedAtUtc": "2026-10-31T02:45:36.080695+00:00",
+  "privateEvidence": ".local/phase08-stable-switch-20261031T024442155685Z"
+}
