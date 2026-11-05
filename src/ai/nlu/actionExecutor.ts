@@ -484,11 +484,14 @@ export async function executeNluAction(
         ? new Date(Date.now() + 60000).toISOString()
         : new Date(scheduledTimeMs).toISOString();
 
+      const recurrenceTag = intent.recurrenceRule ? `[RRULE:${intent.recurrenceRule}] ` : '';
+      const reminderDesc = `${recurrenceTag}${intent.details || ''}`.trim() || null;
+
       remindersStore.insertReminder({
         id: reminderId,
         userId,
         task: reminderTitle,
-        description: intent.details || null,
+        description: reminderDesc,
         scheduledAt: triggerAt,
         triggerAt,
         status: 'pending',
@@ -507,7 +510,7 @@ export async function executeNluAction(
         priority: 'High',
         category: intent.category || 'Academic',
         notes: intent.details || null,
-        recurrenceRule: null,
+        recurrenceRule: intent.recurrenceRule || null,
       });
 
       try {
@@ -516,12 +519,27 @@ export async function executeNluAction(
         console.warn('Failed to schedule exact native alarm:', e);
       }
 
+      let recurrenceNote = '';
+      if (intent.recurrenceRule) {
+        if (/BYDAY=MO/i.test(intent.recurrenceRule)) recurrenceNote = ', repeating every Monday';
+        else if (/BYDAY=TU/i.test(intent.recurrenceRule)) recurrenceNote = ', repeating every Tuesday';
+        else if (/BYDAY=WE/i.test(intent.recurrenceRule)) recurrenceNote = ', repeating every Wednesday';
+        else if (/BYDAY=TH/i.test(intent.recurrenceRule)) recurrenceNote = ', repeating every Thursday';
+        else if (/BYDAY=FR/i.test(intent.recurrenceRule)) recurrenceNote = ', repeating every Friday';
+        else if (/BYDAY=SA/i.test(intent.recurrenceRule)) recurrenceNote = ', repeating every Saturday';
+        else if (/BYDAY=SU/i.test(intent.recurrenceRule)) recurrenceNote = ', repeating every Sunday';
+        else if (/FREQ=DAILY/i.test(intent.recurrenceRule)) recurrenceNote = ', repeating daily';
+        else if (/FREQ=WEEKLY/i.test(intent.recurrenceRule)) recurrenceNote = ', repeating weekly';
+        else if (/FREQ=MONTHLY/i.test(intent.recurrenceRule)) recurrenceNote = ', repeating monthly';
+        else recurrenceNote = ', repeating';
+      }
+
       return {
         success: true,
         intent: 'create_reminder',
         entityType: 'reminder',
         entityId: reminderId,
-        reply: `Reminder set: "${reminderTitle}" on ${remDate} at ${format12HourTime(remTime)}.`,
+        reply: `Reminder set: "${reminderTitle}" on ${remDate} at ${format12HourTime(remTime)}${recurrenceNote}.`,
       };
     }
 
@@ -675,6 +693,50 @@ export async function executeNluAction(
         targetTime,
         intent.endTime,
       );
+
+      // If user specifically targeted a reminder, prioritize matching pending reminders
+      if (intent.targetEntityType === 'reminder') {
+        const allReminders = remindersStore.getPendingReminders(userId);
+        const normQuery = normalizeForMatch(targetTitle);
+        const matchedReminder = allReminders.find((r) => {
+          if (normQuery && normalizeForMatch(r.task).includes(normQuery)) {
+            return true;
+          }
+          if (targetTime) {
+            const remDate = new Date(r.scheduledAt || r.triggerAt);
+            if (!isNaN(remDate.getTime())) {
+              const remTimeStr = `${String(remDate.getHours()).padStart(2, '0')}:${String(remDate.getMinutes()).padStart(2, '0')}`;
+              if (remTimeStr === targetTime) return true;
+            }
+          }
+          return false;
+        });
+
+        if (matchedReminder) {
+          remindersStore.deleteReminder(matchedReminder.id);
+          try {
+            await cancelReminderAlarm(matchedReminder.id);
+          } catch (e) {
+            console.warn('Failed to cancel alarm for deleted reminder:', e);
+          }
+          const matchingTask = allTasks.find((t) => {
+            if (normQuery && normalizeForMatch(t.title).includes(normQuery)) return true;
+            if (normalizeForMatch(t.title) === normalizeForMatch(matchedReminder.task)) return true;
+            if (targetTime && t.dueTime === targetTime) return true;
+            return false;
+          });
+          if (matchingTask) {
+            tasksStore.deleteTask(matchingTask.id);
+          }
+          return {
+            success: true,
+            intent: 'delete_task',
+            entityType: 'reminder',
+            entityId: matchedReminder.id,
+            reply: `Cancelled reminder: "${matchedReminder.task}".`,
+          };
+        }
+      }
 
       // If targetEntityType is 'any' (user said e.g. "Cancel my Coffee Date" or "Cancel at 2pm"),
       // pick the highest-scoring entity across tasks, events, and time blocks
@@ -1225,6 +1287,91 @@ export async function executeNluAction(
 
     case 'query_schedule': {
       const refDate = options.referenceDate || new Date();
+
+      if (intent.dateRange === 'this_week' || intent.dateRange === 'next_week') {
+        const isNextWeek = intent.dateRange === 'next_week';
+        const dayOfWeek = refDate.getDay(); // 0 = Sunday, 1 = Monday, ...
+        const diffToMon = dayOfWeek === 0 ? -6 : 1 - dayOfWeek;
+        const weekStart = new Date(refDate);
+        weekStart.setDate(refDate.getDate() + diffToMon + (isNextWeek ? 7 : 0));
+        weekStart.setHours(0, 0, 0, 0);
+
+        const weekDates: string[] = [];
+        for (let i = 0; i < 7; i++) {
+          const d = new Date(weekStart);
+          d.setDate(weekStart.getDate() + i);
+          weekDates.push(formatLocalDate(d));
+        }
+        const weekDateSet = new Set(weekDates);
+
+        const allTasks = tasksStore
+          .getAllTasks(userId)
+          .filter((t) => !t.isCompleted && t.dueDate && weekDateSet.has(t.dueDate));
+        const allBlocks = timeBlocksStore.getAll(userId).filter((b) => weekDateSet.has(b.date));
+        const allEvents = tasksStore.getAllEvents(userId).filter((e) => weekDateSet.has(e.date));
+
+        const totalCount = allTasks.length + allBlocks.length + allEvents.length;
+        const rangeLabel = isNextWeek ? 'Next week' : 'This week';
+
+        if (totalCount === 0) {
+          return {
+            success: true,
+            intent: 'query_schedule',
+            reply: `${rangeLabel}, your schedule is completely clear! You have no tasks, events, or time blocks.`,
+          };
+        }
+
+        const dayNames = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+        const daySummaries: string[] = [];
+
+        for (let i = 0; i < 7; i++) {
+          const dateStr = weekDates[i];
+          const dayName = dayNames[i];
+          const dayTasks = allTasks.filter((t) => t.dueDate === dateStr);
+          const dayBlocks = allBlocks.filter((b) => b.date === dateStr);
+          const dayEvents = allEvents.filter((e) => e.date === dateStr);
+
+          const dayItems: string[] = [];
+          for (const b of dayBlocks) {
+            const timeDesc =
+              b.endTime && b.endTime !== b.startTime
+                ? `from ${format12HourTime(b.startTime)} to ${format12HourTime(b.endTime)}`
+                : `at ${format12HourTime(b.startTime)}`;
+            dayItems.push(`${b.title} ${timeDesc}`);
+          }
+          for (const e of dayEvents) {
+            const timeDesc =
+              e.endTime && e.endTime !== e.startTime
+                ? `from ${format12HourTime(e.startTime)} to ${format12HourTime(e.endTime)}`
+                : `at ${format12HourTime(e.startTime)}`;
+            dayItems.push(`${e.title} ${timeDesc}`);
+          }
+          for (const t of dayTasks) {
+            if (t.dueTime) {
+              dayItems.push(`${t.title} at ${format12HourTime(t.dueTime)}`);
+            } else {
+              dayItems.push(t.title);
+            }
+          }
+
+          if (dayItems.length > 0) {
+            daySummaries.push(`On ${dayName}: ${formatListWithAnd(dayItems)}.`);
+          }
+        }
+
+        const countParts: string[] = [];
+        if (allTasks.length > 0) countParts.push(`${allTasks.length} task${allTasks.length > 1 ? 's' : ''}`);
+        if (allBlocks.length > 0) countParts.push(`${allBlocks.length} time block${allBlocks.length > 1 ? 's' : ''}`);
+        if (allEvents.length > 0) countParts.push(`${allEvents.length} event${allEvents.length > 1 ? 's' : ''}`);
+
+        const summary = `${rangeLabel} you have ${formatListWithAnd(countParts)} scheduled: ${daySummaries.join(' ')}`;
+        return {
+          success: true,
+          intent: 'query_schedule',
+          reply: summary,
+        };
+      }
+
       const targetDate = intent.date || formatLocalDate(refDate);
       const dayLabel = formatSpokenDayLabel(targetDate, refDate);
 

@@ -1,5 +1,7 @@
 import { remindersStore } from '../storage/remindersStore';
+import { getOccurrences } from '../storage/rruleHelper';
 import { deletePreCachedReminderAudio } from '../ai/tts/ttsService';
+import { generateId } from '../utils';
 import { getReminderPreferences } from './userPreferences';
 import {
   cancelReminderAlarm,
@@ -120,6 +122,51 @@ export const acknowledgeReminderAction = async (
     }
   } catch (err) {
     console.warn('[ReminderActions] Error finding duplicate reminders to acknowledge:', err);
+  }
+
+  // If this reminder is recurring, automatically schedule the next occurrence
+  try {
+    const rruleMatch = /\[RRULE:([^\]]+)\]/.exec(reminder.description || '');
+    if (rruleMatch) {
+      const rruleStr = rruleMatch[1].trim();
+      const remDate = new Date(reminder.scheduledAt || reminder.triggerAt);
+      if (!isNaN(remDate.getTime())) {
+        const y = remDate.getFullYear();
+        const m = String(remDate.getMonth() + 1).padStart(2, '0');
+        const d = String(remDate.getDate()).padStart(2, '0');
+        const startDateStr = `${y}-${m}-${d}`;
+        const hoursStr = String(remDate.getHours()).padStart(2, '0');
+        const minsStr = String(remDate.getMinutes()).padStart(2, '0');
+        const timeStr = `${hoursStr}:${minsStr}`;
+
+        const nextDay = new Date(remDate);
+        nextDay.setDate(nextDay.getDate() + 1);
+        nextDay.setHours(0, 0, 0, 0);
+        const sixtyDaysAhead = new Date(nextDay);
+        sixtyDaysAhead.setDate(sixtyDaysAhead.getDate() + 60);
+
+        const occurrences = getOccurrences(startDateStr, rruleStr, nextDay, sixtyDaysAhead);
+        if (occurrences.length > 0) {
+          const nextDateStr = occurrences[0];
+          const nextTriggerAt = new Date(`${nextDateStr}T${timeStr}:00`).toISOString();
+          const nextReminderId = generateId('rem');
+
+          remindersStore.insertReminder({
+            id: nextReminderId,
+            userId,
+            task: reminder.task,
+            description: reminder.description,
+            scheduledAt: nextTriggerAt,
+            triggerAt: nextTriggerAt,
+            status: 'pending',
+            preCastAudioPath: null,
+          });
+          await scheduleReminderAlarm(nextReminderId, reminder.task, nextTriggerAt);
+        }
+      }
+    }
+  } catch (err) {
+    console.warn('[ReminderActions] Failed to schedule next recurring reminder:', err);
   }
 
   return {

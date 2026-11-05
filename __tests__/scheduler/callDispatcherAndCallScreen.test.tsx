@@ -71,6 +71,23 @@ describe('Call Dispatcher, Simulated Incoming Call & Permission Subsystem', () =
       expect(detectCallKeyword('snooze 10 mins')).toEqual({ intent: 'snooze', minutes: 10 });
     });
 
+    it('detects natural conversational snooze commands with minutes and relative offsets', () => {
+      expect(detectCallKeyword('remind me again in 5 minutes')).toEqual({ intent: 'snooze', minutes: 5 });
+      expect(detectCallKeyword('remind you again in 5 minutes')).toEqual({ intent: 'snooze', minutes: 5 });
+      expect(detectCallKeyword('call me back in 10 minutes')).toEqual({ intent: 'snooze', minutes: 10 });
+      expect(detectCallKeyword('give me five minutes')).toEqual({ intent: 'snooze', minutes: 5 });
+      expect(detectCallKeyword('remind me later')).toEqual({ intent: 'snooze', minutes: null });
+      expect(detectCallKeyword('remind me again')).toEqual({ intent: 'snooze', minutes: null });
+      expect(detectCallKeyword('call me later')).toEqual({ intent: 'snooze', minutes: null });
+    });
+
+    it('detects natural conversational acknowledge phrases', () => {
+      expect(detectCallKeyword('got it')).toEqual({ intent: 'acknowledge', minutes: null });
+      expect(detectCallKeyword('understood')).toEqual({ intent: 'acknowledge', minutes: null });
+      expect(detectCallKeyword("i'm on it")).toEqual({ intent: 'acknowledge', minutes: null });
+      expect(detectCallKeyword('im on it')).toEqual({ intent: 'acknowledge', minutes: null });
+    });
+
     it('detects fuzzy close matches via edit distance', () => {
       expect(detectCallKeyword('acknowlege')).toEqual({ intent: 'acknowledge', minutes: null });
       expect(detectCallKeyword('knowledged')).toEqual({ intent: 'acknowledge', minutes: null });

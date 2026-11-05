@@ -352,6 +352,42 @@ export function detectCategory(text: string): string {
   return 'Personal';
 }
 
+/** Detects recurrence rules (e.g. "repeats every Monday", "every week", "daily") as standard iCalendar RRULE strings. */
+export function extractRecurrenceRule(text: string): string | null {
+  const lower = text.toLowerCase();
+  if (/\b(?:repeats?|repeating|every)\s+mondays?\b/i.test(lower)) {
+    return 'RRULE:FREQ=WEEKLY;BYDAY=MO';
+  }
+  if (/\b(?:repeats?|repeating|every)\s+tuesdays?\b/i.test(lower)) {
+    return 'RRULE:FREQ=WEEKLY;BYDAY=TU';
+  }
+  if (/\b(?:repeats?|repeating|every)\s+wednesdays?\b/i.test(lower)) {
+    return 'RRULE:FREQ=WEEKLY;BYDAY=WE';
+  }
+  if (/\b(?:repeats?|repeating|every)\s+thursdays?\b/i.test(lower)) {
+    return 'RRULE:FREQ=WEEKLY;BYDAY=TH';
+  }
+  if (/\b(?:repeats?|repeating|every)\s+fridays?\b/i.test(lower)) {
+    return 'RRULE:FREQ=WEEKLY;BYDAY=FR';
+  }
+  if (/\b(?:repeats?|repeating|every)\s+saturdays?\b/i.test(lower)) {
+    return 'RRULE:FREQ=WEEKLY;BYDAY=SA';
+  }
+  if (/\b(?:repeats?|repeating|every)\s+sundays?\b/i.test(lower)) {
+    return 'RRULE:FREQ=WEEKLY;BYDAY=SU';
+  }
+  if (/\b(?:every\s+day|daily|repeats?\s+daily)\b/i.test(lower)) {
+    return 'RRULE:FREQ=DAILY';
+  }
+  if (/\b(?:every\s+week|weekly|repeats?\s+weekly)\b/i.test(lower)) {
+    return 'RRULE:FREQ=WEEKLY';
+  }
+  if (/\b(?:every\s+month|monthly|repeats?\s+monthly)\b/i.test(lower)) {
+    return 'RRULE:FREQ=MONTHLY';
+  }
+  return null;
+}
+
 type EndpointMeridiem = 'am' | 'pm' | 'noon' | 'midnight' | 'night' | null;
 
 interface ParsedTimeEndpoint {
@@ -735,8 +771,8 @@ export function parseDateAndTime(text: string, referenceDate: Date = new Date())
     }
   }
 
-  // Weekdays: e.g. "next Monday", "this Friday", "on Wednesday"
-  const weekdayMatch = /\b(?:on\s+|this\s+|next\s+)?(monday|tuesday|wednesday|thursday|friday|saturday|sunday)\b/i.exec(lower);
+  // Weekdays: e.g. "next Monday", "this Friday", "on Wednesday", "every Monday"
+  const weekdayMatch = /\b(?:on\s+|this\s+|next\s+|every\s+)?(monday|tuesday|wednesday|thursday|friday|saturday|sunday)\b/i.exec(lower);
   if (weekdayMatch && !date) {
     const days = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
     const targetDayIndex = days.indexOf(weekdayMatch[1].toLowerCase());
@@ -750,6 +786,37 @@ export function parseDateAndTime(text: string, referenceDate: Date = new Date())
       d.setDate(d.getDate() + diff);
       date = formatLocalDate(d);
       matchedText.push(weekdayMatch[0]);
+    }
+  }
+
+  // "next week" / "this coming week"
+  if (!date) {
+    const nextWeekMatch = /\b(?:(?:for|in|on)\s+)?(?:next\s+week|this\s+coming\s+week)\b/i.exec(lower);
+    if (nextWeekMatch) {
+      const currentDayIndex = referenceDate.getDay();
+      let daysUntilNextMonday = (8 - currentDayIndex) % 7;
+      if (daysUntilNextMonday === 0) daysUntilNextMonday = 7;
+      const d = new Date(referenceDate);
+      d.setDate(d.getDate() + daysUntilNextMonday);
+      date = formatLocalDate(d);
+      matchedText.push(nextWeekMatch[0]);
+    }
+  }
+
+  // "this weekend" / "next weekend"
+  if (!date) {
+    const weekendMatch = /\b(?:(?:for|on|over)\s+)?(?:this\s+weekend|next\s+weekend)\b/i.exec(lower);
+    if (weekendMatch) {
+      const isNext = /\bnext\b/i.test(weekendMatch[0]);
+      const currentDayIndex = referenceDate.getDay();
+      let daysUntilSaturday = (6 - currentDayIndex + 7) % 7;
+      if (daysUntilSaturday === 0 && isNext) daysUntilSaturday = 7;
+      else if (daysUntilSaturday === 0) daysUntilSaturday = 0;
+      else if (isNext) daysUntilSaturday += 7;
+      const d = new Date(referenceDate);
+      d.setDate(d.getDate() + daysUntilSaturday);
+      date = formatLocalDate(d);
+      matchedText.push(weekendMatch[0]);
     }
   }
 
@@ -1070,7 +1137,14 @@ function classifyCrudEntityType(text: string): {
       updateIntent: 'update_note',
     };
   }
-  if (/\b(?:tasks?|todos?|to-dos?|reminders?|alarms?)\b/i.test(text)) {
+  if (/\b(?:reminders?|alarms?)\b/i.test(text)) {
+    return {
+      entityType: 'reminder',
+      deleteIntent: 'delete_task',
+      updateIntent: 'update_task',
+    };
+  }
+  if (/\b(?:tasks?|todos?|to-dos?)\b/i.test(text)) {
     return {
       entityType: 'task',
       deleteIntent: 'delete_task',
@@ -1113,6 +1187,12 @@ function cleanCrudTargetTitle(
       '',
     )
     .replace(
+      /\b(?:(?:that|which|you|i)\s+)?(?:just\s+)?(?:created|made|added|scheduled|set\s+up)\s+(?:earlier|previously|before|recently)\b/gi,
+      ' ',
+    )
+    .replace(/\b(?:earlier|previously|before|recently)\b/gi, ' ')
+    .replace(/\b(?:recurring|repeated|repeats?|one-time|single)\b/gi, ' ')
+    .replace(
       /\b(?:what\s+i\s+have(?:\s+scheduled)?|what(?:'s|s|\s+is)\s+(?:scheduled|on\s+my\s+schedule|on\s+my\s+calendar)|whatever\s+is(?:\s+scheduled)?|time\s*blocks?|timeblocks?|study\s*blocks?|focus\s*blocks?|work\s*blocks?|blocks?|tasks?|todos?|to-dos?|reminders?|alarms?|notes?|events?|appointments?)\b/gi,
       ' ',
     )
@@ -1150,7 +1230,7 @@ function cleanCrudTargetTitle(
     cleaned = withoutLeadingSchedule;
   } else if (
     hasDateTime &&
-    /^(?:schedule|scheduled|calendar|agenda|plan|plans|item|items|thing|things|activity|anything|everything|something|what)$/i.test(
+    /^(?:schedule|scheduled|calendar|agenda|plan|plans|item|items|thing|things|activity|anything|everything|something|what|reminder|reminders|task|tasks)$/i.test(
       cleaned,
     )
   ) {
@@ -1238,11 +1318,15 @@ export function parseIntentFastPath(
     );
 
   const isScheduleQuery =
-    /\b(?:what(?:'s|s| is| are) (?:on |in |for )?(?:my |the )?(?:schedule|calendar|agenda|plans?|tasks?|todos?|events?|time\s*blocks?|blocks?|reminders?|classes?)|what(?:'s|s| is) (?:happening|upcoming|planned|scheduled|on\s+deck)|what (?:do i have|have i got|i have|am i doing|do i need to do)|what (?:tasks?|todos?|events?|time\s*blocks?|blocks?|reminders?|classes?|plans?|items?) (?:do i have|have i got|i have|are due|are scheduled|are on)|what does my (?:day|schedule|calendar|morning|afternoon|evening|week) look|how(?:'s|s| is| does) my (?:schedule|day|calendar|agenda)(?: look(?:ing)?)?|do i have (?:anything|any (?:tasks?|todos?|events?|time\s*blocks?|blocks?|reminders?|classes?|plans?))|is there anything (?:on |in |for )?(?:my |the )?(?:schedule|calendar|agenda)|is anything (?:scheduled|planned|due)|am i (?:free|busy|available)|(?:audit|check|show|tell(?:\s+me)?|give(?:\s+me)?|read(?:\s+out)?|list|get|view|review|summarize|brief(?:\s+me(?:\s+on)?)?)(?:\s+me)?\s+(?:what(?:'s|s| is| are)\s+(?:on\s+|in\s+)?)?(?:a\s+|my\s+|the\s+|today'?s\s+|tomorrow'?s\s+)?(?:schedule(?:\s+audit)?|calendar|agenda|tasks?|todos?|time\s*blocks?|plans?|events?)|schedule\s+audit|my\s+schedule|today'?s\s+schedule|tomorrow'?s\s+schedule|^schedule\s+(?:for\s+)?(?:today|to-?morrow|morrow|tonight|monday|tuesday|wednesday|thursday|friday|saturday|sunday)|any\s+(?:plans?|tasks?|events?|time\s*blocks?|classes?)\s+(?:for\s+|on\s+)?(?:today|to-?morrow|morrow|tonight))\b/i.test(
+    /\b(?:what(?:'s|s| is| are) (?:on |in |for )?(?:my |the )?(?:schedule|calendar|agenda|plans?|tasks?|todos?|events?|time\s*blocks?|blocks?|reminders?|classes?)|what(?:'s|s| is) (?:happening|upcoming|planned|scheduled|on\s+deck)|what (?:do i have|have i got|i have|am i doing|do i need to do)|what (?:tasks?|todos?|events?|time\s*blocks?|blocks?|reminders?|classes?|plans?|items?) (?:do i have|have i got|i have|are due|are scheduled|are on)|what does my (?:day|schedule|calendar|morning|afternoon|evening|week) look|how(?:'s|s| is| does) my (?:schedule|day|calendar|agenda)(?: look(?:ing)?)?|do i have (?:anything|any (?:tasks?|todos?|events?|time\s*blocks?|blocks?|reminders?|classes?|plans?))|is there anything (?:on |in |for )?(?:my |the )?(?:schedule|calendar|agenda)|is anything (?:scheduled|planned|due)|am i (?:free|busy|available)|(?:audit|check|show|tell(?:\s+me)?|give(?:\s+me)?|read(?:\s+out)?|list|get|view|review|summarize|brief(?:\s+me(?:\s+on)?)?)(?:\s+(?:me|you|us))?\s+(?:what(?:'s|s| is| are)\s+(?:on\s+|in\s+)?)?(?:everything|all|a\s+|my\s+|the\s+|today'?s\s+|tomorrow'?s\s+)?(?:schedule(?:\s+audit)?|calendar|agenda|tasks?|todos?|time\s*blocks?|plans?|events?|scheduled|planned)|(?:show|tell|list|view|read|summarize|give)\s+(?:me|you|us\s+)?(?:everything|all|what(?:'s|\s+is))\s+(?:that(?:'s|\s+is)\s+)?(?:scheduled|planned|on\s+(?:my\s+|the\s+)?(?:schedule|calendar|agenda))|(?:everything|anything)\s+scheduled\s+(?:for\s+)?(?:this|next)\s+week|(?:this|next)\s+week(?:'?s)?\s+(?:schedule|agenda|calendar|plans?|tasks?)|what\s+do\s+i\s+have\s+(?:scheduled\s+)?(?:this|next)\s+week|schedule\s+audit|my\s+schedule|today'?s\s+schedule|tomorrow'?s\s+schedule|^schedule\s+(?:for\s+)?(?:today|to-?morrow|morrow|tonight|monday|tuesday|wednesday|thursday|friday|saturday|sunday)|any\s+(?:plans?|tasks?|events?|time\s*blocks?|classes?)\s+(?:for\s+|on\s+)?(?:today|to-?morrow|morrow|tonight))\b/i.test(
       commandLower,
     );
 
   if (isScheduleQuery && !isExplicitMutationStart) {
+    const isThisWeek = /\b(?:this\s+week|for\s+the\s+week|upcoming\s+week)\b/i.test(commandLower);
+    const isNextWeek = /\b(?:next\s+week)\b/i.test(commandLower);
+    const dateRange: 'this_week' | 'next_week' | null = isNextWeek ? 'next_week' : isThisWeek ? 'this_week' : null;
+
     const dt = parseDateAndTime(normalized, referenceDate);
     const targetDate = dt.date || formatLocalDate(referenceDate);
     return {
@@ -1258,6 +1342,7 @@ export function parseIntentFastPath(
       confidence: 0.96,
       source: 'fast_path',
       rawTranscript: transcript,
+      dateRange,
     };
   }
 
@@ -1729,14 +1814,20 @@ export function parseIntentFastPath(
     );
   }
 
-  // Strip lingering leading prepositions and articles (e.g. "for a coffee" -> "coffee", "to submit" -> "submit")
+  // Strip recurring repetition phrases from title: e.g. "that repeats every Monday", "repeating every week", "every Monday"
+  cleanTitle = cleanTitle
+    .replace(/\b(?:that\s+repeats?|repeating|repeats?)\s+(?:every|each|on)?\b/gi, ' ')
+    .replace(/\bevery\s+(?:monday|tuesday|wednesday|thursday|friday|saturday|sunday|day|week|month)\b/gi, ' ')
+    .replace(/\bthat\s+repeats?\b/gi, ' ');
+
+  // Strip lingering leading prepositions and articles/possessives (e.g. "for a coffee" -> "coffee", "for your class" -> "class", "to submit" -> "submit")
   cleanTitle = cleanTitle.replace(
-    /^[\s,:-]*(?:\b(?:on|at|by|for|from|between|starting|with|to|about|regarding|of|called|titled|named)\b[\s,:-]*(?:(?:a|an|the)\b[\s,:-]*)?)+/i,
+    /^[\s,:-]*(?:\b(?:on|at|by|for|from|between|starting|with|to|about|regarding|of|called|titled|named)\b[\s,:-]*(?:(?:a|an|the|your|my|our)\b[\s,:-]*)?)+/i,
     '',
   );
 
-  // Strip bare leading article for action items
-  cleanTitle = cleanTitle.replace(/^[\s,:-]*(?:a|an|the)\b[\s,:-]*/i, '');
+  // Strip bare leading article or possessive pronoun for action items
+  cleanTitle = cleanTitle.replace(/^[\s,:-]*(?:a|an|the|your|my|our)\b[\s,:-]*/i, '');
 
   // Strip lingering trailing prepositions and punctuation at edges (including trailing periods)
   cleanTitle = cleanTitle
@@ -1787,6 +1878,7 @@ export function parseIntentFastPath(
     category,
     details: finalDetails,
     snoozeMinutes: null,
+    recurrenceRule: extractRecurrenceRule(normalized) || undefined,
     confidence,
     source: 'fast_path',
     rawTranscript: transcript,

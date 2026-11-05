@@ -25,6 +25,7 @@ import {
   notesStore,
   initDatabase,
 } from '../../src/storage';
+import { acknowledgeReminderAction } from '../../src/scheduler';
 import { ttsService } from '../../src/ai/tts/ttsService';
 
 jest.mock('react-native-fs', () => {
@@ -1314,6 +1315,167 @@ describe('Phase 07: Smart Hybrid On-Device NLU & Action Execution', () => {
       );
       expect(cancelRecent.success).toBe(true);
       expect(tasksStore.getAllTasks(cancelUser)).toHaveLength(0);
+    });
+  });
+
+  describe('Student Assistant Evaluation Scenario Audit & Verification', () => {
+    const studentUser = 'scenario-audit-student';
+    // Monday, Nov 2, 2026, 09:00:00
+    const fixedRefMonday = new Date(2026, 10, 2, 9, 0, 0);
+
+    beforeEach(async () => {
+      await initDatabase();
+      tasksStore.getAllTasks(studentUser).forEach((t) => tasksStore.deleteTask(t.id));
+      tasksStore.getAllEvents(studentUser).forEach((e) => tasksStore.deleteEvent(e.id));
+      timeBlocksStore.getAll(studentUser).forEach((b) => timeBlocksStore.delete(b.id));
+      remindersStore.getAllReminders(studentUser).forEach((r) => remindersStore.deleteReminder(r.id));
+    });
+
+    it('Scenario 1: Simple reminder — "Create a reminder for your Software Engineering final exam this Friday at 2 PM."', async () => {
+      const transcript = 'Create a reminder for your Software Engineering final exam this Friday at 2 PM.';
+      const parsed = parseIntentFastPath(transcript, fixedRefMonday);
+      expect(parsed.intent).toBe('create_reminder');
+      expect(parsed.title?.toLowerCase()).toContain('software engineering final exam');
+      expect(parsed.date).toBe('2026-11-06'); // Friday
+      expect(parsed.time).toBe('14:00'); // 2 PM
+
+      const result = await intentService.processAndExecuteIntent(studentUser, transcript, {
+        referenceDate: fixedRefMonday,
+      });
+      expect(result.success).toBe(true);
+      expect(result.entityType).toBe('reminder');
+
+      const reminders = remindersStore.getPendingReminders(studentUser);
+      expect(reminders).toHaveLength(1);
+      expect(reminders[0].task.toLowerCase()).toContain('software engineering final exam');
+      expect(new Date(reminders[0].scheduledAt).getTime()).toBe(new Date('2026-11-06T14:00:00').getTime());
+
+      const tasks = tasksStore.getAllTasks(studentUser);
+      expect(tasks).toHaveLength(1);
+      expect(tasks[0].dueDate).toBe('2026-11-06');
+      expect(tasks[0].dueTime).toBe('14:00');
+    });
+
+    it('Scenario 2: Recurring reminder — "Create a reminder that repeats every Monday for your 8 AM class."', async () => {
+      const transcript = 'Create a reminder that repeats every Monday for your 8 AM class.';
+      const parsed = parseIntentFastPath(transcript, fixedRefMonday);
+      expect(parsed.intent).toBe('create_reminder');
+      expect(parsed.recurrenceRule).toBe('RRULE:FREQ=WEEKLY;BYDAY=MO');
+      expect(parsed.time).toBe('08:00');
+      expect(parsed.date).toBe('2026-11-09'); // Next Monday
+
+      const result = await intentService.processAndExecuteIntent(studentUser, transcript, {
+        referenceDate: fixedRefMonday,
+      });
+      expect(result.success).toBe(true);
+      expect(result.reply).toContain('repeating every Monday');
+
+      const reminders = remindersStore.getPendingReminders(studentUser);
+      expect(reminders).toHaveLength(1);
+      expect(reminders[0].description).toContain('[RRULE:RRULE:FREQ=WEEKLY;BYDAY=MO]');
+
+      // Acknowledging the recurring reminder automatically creates and schedules the subsequent Monday occurrence
+      const firstReminderId = reminders[0].id;
+      const ackResult = await acknowledgeReminderAction(firstReminderId, studentUser);
+      expect(ackResult.ok).toBe(true);
+
+      const updatedFirst = remindersStore.getReminderById(firstReminderId);
+      expect(updatedFirst?.status).toBe('acknowledged');
+
+      const pendingAfterAck = remindersStore.getPendingReminders(studentUser);
+      expect(pendingAfterAck).toHaveLength(1);
+      expect(pendingAfterAck[0].id).not.toBe(firstReminderId);
+      expect(new Date(pendingAfterAck[0].scheduledAt).getTime()).toBe(new Date('2026-11-16T08:00:00').getTime()); // Second Monday
+    });
+
+    it('Scenario 3: View queue — "Ask LAFINA to show you everything scheduled this week."', async () => {
+      const fixedRefWed = new Date(2026, 10, 4, 10, 0, 0); // Wed Nov 4, 2026
+
+      // Prepopulate items during this week (Mon Nov 2 - Sun Nov 8)
+      tasksStore.insertTask({
+        id: 'task-mon-1',
+        userId: studentUser,
+        title: 'Algorithms Homework',
+        dueDate: '2026-11-02',
+        dueTime: '09:00',
+        isCompleted: false,
+        priority: 'High',
+        category: 'Academic',
+      });
+      tasksStore.insertEvent({
+        id: 'event-wed-1',
+        userId: studentUser,
+        title: 'Database Systems Lecture',
+        date: '2026-11-04',
+        startTime: '13:00',
+        endTime: '15:00',
+      });
+      timeBlocksStore.insert({
+        id: 'block-fri-1',
+        userId: studentUser,
+        title: 'Capstone Focus Session',
+        date: '2026-11-06',
+        startTime: '16:00',
+        endTime: '18:00',
+        color: '#3498DB',
+        category: 'Academic',
+      });
+
+      const transcript = 'Ask LAFINA to show you everything scheduled this week.';
+      const parsed = parseIntentFastPath(transcript, fixedRefWed);
+      expect(parsed.intent).toBe('query_schedule');
+      expect(parsed.dateRange).toBe('this_week');
+
+      const result = await intentService.processAndExecuteIntent(studentUser, transcript, {
+        referenceDate: fixedRefWed,
+      });
+      expect(result.success).toBe(true);
+      expect(result.reply).toContain('This week you have');
+      expect(result.reply).toContain('On Monday: Algorithms Homework at 9:00 AM.');
+      expect(result.reply).toContain('On Wednesday: Database Systems Lecture from 1:00 PM to 3:00 PM.');
+      expect(result.reply).toContain('On Friday: Capstone Focus Session from 4:00 PM to 6:00 PM.');
+    });
+
+    it('Scenario 6: Cancel — "Cancel the recurring 8 AM reminder you created earlier."', async () => {
+      // First create the recurring 8 AM reminder
+      await intentService.processAndExecuteIntent(
+        studentUser,
+        'Create a reminder that repeats every Monday for your 8 AM class.',
+        { referenceDate: fixedRefMonday },
+      );
+      expect(remindersStore.getPendingReminders(studentUser)).toHaveLength(1);
+
+      const cancelTranscript = 'Cancel the recurring 8 AM reminder you created earlier.';
+      const parsed = parseIntentFastPath(cancelTranscript, fixedRefMonday);
+      expect(parsed.intent).toBe('delete_task');
+      expect(parsed.targetEntityType).toBe('reminder');
+      expect(parsed.targetTime).toBe('08:00');
+
+      const result = await intentService.processAndExecuteIntent(studentUser, cancelTranscript, {
+        referenceDate: fixedRefMonday,
+      });
+      expect(result.success).toBe(true);
+      expect(result.entityType).toBe('reminder');
+      expect(result.reply).toContain('Cancelled reminder');
+      expect(remindersStore.getPendingReminders(studentUser)).toHaveLength(0);
+    });
+
+    it('Scenario 8: Ambiguous date — "Create a reminder for your project deadline next week."', async () => {
+      const transcript = 'Create a reminder for your project deadline next week.';
+      const parsed = parseIntentFastPath(transcript, fixedRefMonday);
+      expect(parsed.intent).toBe('create_reminder');
+      expect(parsed.date).toBe('2026-11-09'); // Resolves to Monday of next week
+      expect(parsed.title?.toLowerCase()).toBe('project deadline');
+
+      const result = await intentService.processAndExecuteIntent(studentUser, transcript, {
+        referenceDate: fixedRefMonday,
+      });
+      expect(result.success).toBe(true);
+      expect(result.entityType).toBe('reminder');
+      const reminders = remindersStore.getPendingReminders(studentUser);
+      expect(reminders).toHaveLength(1);
+      expect(new Date(reminders[0].scheduledAt).getTime()).toBe(new Date('2026-11-09T09:00:00').getTime());
+      expect(reminders[0].task).toBe('Project deadline');
     });
   });
 });

@@ -241,6 +241,27 @@ const isNearKeyword = (
     ),
   );
 
+const CALL_SPOKEN_NUMBERS: Record<string, number> = {
+  one: 1,
+  two: 2,
+  three: 3,
+  four: 4,
+  five: 5,
+  six: 6,
+  seven: 7,
+  eight: 8,
+  nine: 9,
+  ten: 10,
+  eleven: 11,
+  twelve: 12,
+  fifteen: 15,
+  twenty: 20,
+  thirty: 30,
+  forty: 40,
+  fifty: 50,
+  sixty: 60,
+};
+
 /**
  * Detects supported reminder-call keywords from speech text.
  */
@@ -249,17 +270,32 @@ export const detectCallKeyword = (transcript: string): CallCommand | null => {
   if (!normalized) return null;
 
   const acknowledgeExact =
-    /\b(?:ac?k?nowledg?(?:e|ed|es|ing|ement|ment)?|nowledg?(?:e|ed|es|ing)?)\b/.test(
+    /\b(?:ac?k?nowledg?(?:e|ed|es|ing|ement|ment)?|nowledg?(?:e|ed|es|ing)?|got\s+it|understood|i'?m\s+on\s+it|on\s+it)\b/i.test(
       normalized,
     );
-  const snoozeExact = /\bsnooz(?:e|ed)\b/.test(normalized);
+  const snoozeExact = /\bsnooz(?:e|ed)\b/i.test(normalized);
   if (acknowledgeExact && snoozeExact) return null;
   if (acknowledgeExact) {
     return { intent: 'acknowledge', minutes: null };
   }
 
+  // 1. Explicit or natural snooze with minute specification (e.g. "snooze for 5 minutes", "remind me in 5 minutes", "remind me again in five minutes", "call me back in 10 minutes", "give me 5 minutes")
+  const naturalMinuteMatch = normalized.match(
+    /\b(?:snooz(?:e|ed)|remind\s+(?:(?:me|you)\s+)?(?:again\s+)?|call\s+(?:(?:me|you)\s+)?(?:back\s+)?|give\s+(?:me|us)|in)\s*(?:for\s+)?(\d{1,3}|one|two|three|four|five|six|seven|eight|nine|ten|eleven|twelve|fifteen|twenty|thirty|forty|fifty|sixty)\s*(?:minutes?|mins?)\b/i,
+  );
+  if (naturalMinuteMatch?.[1]) {
+    const rawVal = naturalMinuteMatch[1].toLowerCase();
+    const minutes = /^\d+$/.test(rawVal)
+      ? Number.parseInt(rawVal, 10)
+      : CALL_SPOKEN_NUMBERS[rawVal] || 10;
+    if (minutes >= 1 && minutes <= 120) {
+      return { intent: 'snooze', minutes };
+    }
+  }
+
+  // 2. Exact snooze without minutes
   const snoozeMatch = normalized.match(
-    /\bsnooz(?:e|ed)\b(?:\s+(?:it|this|reminder))?(?:\s+(?:for\s+)?(\d{1,3})(?:\s*(?:minutes?|mins?))?)?/,
+    /\bsnooz(?:e|ed)\b(?:\s+(?:it|this|reminder))?(?:\s+(?:for\s+)?(\d{1,3})(?:\s*(?:minutes?|mins?))?)?/i,
   );
   if (snoozeExact && !snoozeMatch?.[1]) {
     return { intent: 'snooze', minutes: null };
@@ -270,6 +306,16 @@ export const detectCallKeyword = (transcript: string): CallCommand | null => {
     return { intent: 'snooze', minutes };
   }
 
+  // 3. Natural conversational snooze without minute count (e.g. "remind me again", "remind me later", "call me back later", "postpone")
+  const naturalSnoozeWithoutMinutes =
+    /\b(?:remind\s+(?:me|you)\s+again|remind\s+(?:me|you)\s+later|call\s+(?:me|you)\s+later|call\s+(?:me|you)\s+back|postpone)\b/i.test(
+      normalized,
+    );
+  if (naturalSnoozeWithoutMinutes) {
+    return { intent: 'snooze', minutes: null };
+  }
+
+  // 4. Token near-matching fallback
   const tokens = normalized
     .split(' ')
     .filter(
