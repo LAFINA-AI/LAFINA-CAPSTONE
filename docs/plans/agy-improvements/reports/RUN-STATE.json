@@ -2,19 +2,19 @@
   "schema_version": 1,
   "pack_prepared_date": "2026-11-06",
   "timezone": "Asia/Manila",
-  "run_id": null,
-  "run_status": "NOT_STARTED",
+  "run_id": "agy-port-20261106",
+  "run_status": "IN_PROGRESS",
   "model_requested": "claude-opus-5-5",
-  "actual_model": null,
+  "actual_model": "claude-opus-5-5",
   "base_branch": "agy-development-cont",
   "audited_base_head": "b9433dc39d172f30ba26ea68e4a9c9eedd922407",
-  "actual_base_head": null,
+  "actual_base_head": "b9433dc39d172f30ba26ea68e4a9c9eedd922407",
   "work_branch": "codex/agy-preservation-improvements",
-  "worktree": null,
+  "worktree": "C:/L3mxr/Github Repositories/LAFINA-CAPSTONE-agy-development-cont",
   "donor_head": "0d4bbe39e106c29fb90792cf5d2f916b5c0d6480",
   "last_tested_head": null,
-  "last_committed_head": null,
-  "current_phase": null,
+  "last_committed_head": "5f0ac399308bcbc8a432672bfa4976826eba9a4d",
+  "current_phase": "AGY-PORT-00",
   "phases": [
     {
       "id": "AGY-PORT-00",
@@ -52,18 +52,22 @@
         29,
         30
       ],
-      "implementation": "NOT_STARTED",
-      "automated": "NOT_RUN",
-      "build": "NOT_RUN",
+      "implementation": "CODE_COMPLETE",
+      "automated": "PASS",
+      "build": "PASS",
       "device": "NOT_RUN",
       "live_service": "NOT_RUN",
-      "base_head": null,
-      "tested_head": null,
-      "result_commit": null,
-      "report": null,
-      "evidence": [],
-      "continuation": null,
-      "notes": []
+      "base_head": "b9433dc39d172f30ba26ea68e4a9c9eedd922407",
+      "tested_head": "b9433dc+worktree",
+      "result_commit": "5f0ac399308bcbc8a432672bfa4976826eba9a4d",
+      "report": "phase-00-baseline.md",
+      "evidence": [
+        "evidence/agy-port-20261106/phase-00/"
+      ],
+      "continuation": "NEXT_PHASE",
+      "notes": [
+        "Builds need JDK 17 and an X: subst alias of this checkout"
+      ]
     },
     {
       "id": "AGY-PORT-01",

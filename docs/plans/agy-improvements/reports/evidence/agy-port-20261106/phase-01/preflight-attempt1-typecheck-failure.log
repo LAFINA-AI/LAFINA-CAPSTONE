@@ -1,0 +1,9 @@
+
+> lafina-capstone@1.3.4 preflight
+> npm run typecheck && npm run lint && npm test && npm run check:architecture
+
+
+> lafina-capstone@1.3.4 typecheck
+> tsc --noEmit
+
+__tests__/ui/storageRecovery.test.tsx(134,10): error TS2741: Property 'userId' is missing in type '{ children: Element; }' but required in type '{ userId: string | null; refreshTrigger?: number | undefined; children: ReactNode; }'.

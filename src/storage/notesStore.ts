@@ -1,5 +1,5 @@
-import { db, DatabaseTransaction } from './database';
-import { syncOutboxStore } from './syncOutboxStore';
+import {db, DatabaseTransaction} from './database';
+import {syncOutboxStore} from './syncOutboxStore';
 
 export interface Note {
   id: string;
@@ -55,9 +55,8 @@ const notePayload = (row: StoredNoteRow): Record<string, unknown> => ({
 });
 
 const enqueueNoteUpdate = (id: string, tx: DatabaseTransaction): void => {
-  const row = tx.executeSync('SELECT * FROM notes WHERE id = ?', [id]).rows?.[0] as
-    | StoredNoteRow
-    | undefined;
+  const row = tx.executeSync('SELECT * FROM notes WHERE id = ?', [id])
+    .rows?.[0] as StoredNoteRow | undefined;
   if (!row) return;
   const userId = String(row.user_id);
   syncOutboxStore.enqueueMutation(
@@ -87,12 +86,14 @@ export const notesStore = {
   },
 
   insert: (
-    note: Omit<Note, 'createdAt' | 'updatedAt' | 'deletedAt' | 'sortOrder'> & { sortOrder?: number },
+    note: Omit<Note, 'createdAt' | 'updatedAt' | 'deletedAt' | 'sortOrder'> & {
+      sortOrder?: number;
+    },
   ): void => {
     const now = new Date().toISOString();
     const tagsJson = JSON.stringify(note.tags);
     try {
-      db.transactionSync((tx) => {
+      db.transactionSync(tx => {
         let finalSortOrder = note.sortOrder;
         if (finalSortOrder === undefined) {
           const maxOrder = tx.executeSync(
@@ -145,23 +146,23 @@ export const notesStore = {
     }
   },
 
-  update: (note: Partial<Note> & { id: string }): void => {
+  update: (note: Partial<Note> & {id: string}): void => {
     const now = new Date().toISOString();
     const sets: string[] = [];
     const params: any[] = [];
 
-    const fields: { key: keyof Note; col: string; type?: string }[] = [
-      { key: 'title', col: 'title' },
-      { key: 'body', col: 'body' },
-      { key: 'isPinned', col: 'is_pinned', type: 'boolean' },
-      { key: 'tags', col: 'tags', type: 'json' },
-      { key: 'category', col: 'category' },
-      { key: 'isVoiceTranscribed', col: 'is_voice_transcribed', type: 'boolean' },
-      { key: 'imageUri', col: 'image_uri' },
-      { key: 'sortOrder', col: 'sort_order' },
+    const fields: {key: keyof Note; col: string; type?: string}[] = [
+      {key: 'title', col: 'title'},
+      {key: 'body', col: 'body'},
+      {key: 'isPinned', col: 'is_pinned', type: 'boolean'},
+      {key: 'tags', col: 'tags', type: 'json'},
+      {key: 'category', col: 'category'},
+      {key: 'isVoiceTranscribed', col: 'is_voice_transcribed', type: 'boolean'},
+      {key: 'imageUri', col: 'image_uri'},
+      {key: 'sortOrder', col: 'sort_order'},
     ];
 
-    fields.forEach(({ key, col, type }) => {
+    fields.forEach(({key, col, type}) => {
       if (note[key] !== undefined) {
         sets.push(`${col} = ?`);
         if (type === 'boolean') {
@@ -179,11 +180,16 @@ export const notesStore = {
     sets.push('updated_at = ?');
     params.push(now);
     params.push(note.id);
-    const hasCloudChange = Object.keys(note).some((key) => key !== 'id' && key !== 'imageUri');
+    const hasCloudChange = Object.keys(note).some(
+      key => key !== 'id' && key !== 'imageUri',
+    );
 
     try {
-      db.transactionSync((tx) => {
-        tx.executeSync(`UPDATE notes SET ${sets.join(', ')} WHERE id = ?`, params);
+      db.transactionSync(tx => {
+        tx.executeSync(
+          `UPDATE notes SET ${sets.join(', ')} WHERE id = ?`,
+          params,
+        );
         if (hasCloudChange) enqueueNoteUpdate(note.id, tx);
       });
     } catch (error) {
@@ -192,11 +198,11 @@ export const notesStore = {
     }
   },
 
-  updateOrder: (notesOrder: { id: string; sortOrder: number }[]): void => {
+  updateOrder: (notesOrder: {id: string; sortOrder: number}[]): void => {
     try {
       const now = new Date().toISOString();
-      db.transactionSync((tx) => {
-        notesOrder.forEach((item) => {
+      db.transactionSync(tx => {
+        notesOrder.forEach(item => {
           tx.executeSync(
             `UPDATE notes SET sort_order = ?, updated_at = ? WHERE id = ?`,
             [item.sortOrder, now, item.id],
@@ -206,13 +212,17 @@ export const notesStore = {
       });
     } catch (error) {
       console.error('Error batch updating notes order:', error);
+      throw error;
     }
   },
 
   delete: (id: string, tx?: DatabaseTransaction): void => {
     const now = new Date().toISOString();
     const applyDelete = (executor: DatabaseTransaction): void => {
-      const row = executor.executeSync('SELECT user_id FROM notes WHERE id = ?', [id]).rows?.[0];
+      const row = executor.executeSync(
+        'SELECT user_id FROM notes WHERE id = ?',
+        [id],
+      ).rows?.[0];
       if (!row) return;
       executor.executeSync(
         `UPDATE notes SET deleted_at = ?, updated_at = ? WHERE id = ?`,
@@ -239,14 +249,16 @@ export const notesStore = {
     }
   },
 
-  getCustomCategories: (userId: string): { name: string; color: string }[] => {
+  getCustomCategories: (userId: string): {name: string; color: string}[] => {
     try {
       const result = db.executeSync(
         `SELECT name, color FROM custom_categories
          WHERE user_id = ? AND deleted_at IS NULL ORDER BY created_at ASC`,
         [userId],
       );
-      return result.rows ? result.rows.map((row: any) => ({ name: row.name, color: row.color })) : [];
+      return result.rows
+        ? result.rows.map((row: any) => ({name: row.name, color: row.color}))
+        : [];
     } catch (error) {
       console.error('Error fetching custom categories:', error);
       return [];
@@ -257,7 +269,7 @@ export const notesStore = {
     const id = 'cat_' + Math.random().toString(36).substr(2, 9);
     const now = new Date().toISOString();
     try {
-      db.transactionSync((tx) => {
+      db.transactionSync(tx => {
         tx.executeSync(
           `INSERT INTO custom_categories (id, user_id, name, color, created_at, updated_at)
            VALUES (?, ?, ?, ?, ?, ?)`,
@@ -268,7 +280,7 @@ export const notesStore = {
           'custom_category',
           id,
           'create',
-          { name, color },
+          {name, color},
           'account',
           userId,
           tx,
@@ -282,7 +294,7 @@ export const notesStore = {
 
   deleteCustomCategory: (userId: string, name: string): void => {
     try {
-      db.transactionSync((tx) => {
+      db.transactionSync(tx => {
         const rows =
           tx.executeSync(
             `SELECT id FROM custom_categories
@@ -290,7 +302,7 @@ export const notesStore = {
             [userId, name],
           ).rows ?? [];
         const now = new Date().toISOString();
-        rows.forEach((row) => {
+        rows.forEach(row => {
           const id = String(row.id);
           tx.executeSync(
             `UPDATE custom_categories SET deleted_at = ?, updated_at = ? WHERE id = ?`,
@@ -314,9 +326,14 @@ export const notesStore = {
     }
   },
 
-  updateCustomCategory: (userId: string, oldName: string, newName: string, color: string): void => {
+  updateCustomCategory: (
+    userId: string,
+    oldName: string,
+    newName: string,
+    color: string,
+  ): void => {
     try {
-      db.transactionSync((tx) => {
+      db.transactionSync(tx => {
         const categoryRows =
           tx.executeSync(
             `SELECT id FROM custom_categories
@@ -340,19 +357,19 @@ export const notesStore = {
            WHERE user_id = ? AND category = ? AND deleted_at IS NULL`,
           [newName, now, userId, oldName],
         );
-        categoryRows.forEach((row) =>
+        categoryRows.forEach(row =>
           syncOutboxStore.enqueueMutation(
             userId,
             'custom_category',
             String(row.id),
             'update',
-            { name: newName, color },
+            {name: newName, color},
             'account',
             userId,
             tx,
           ),
         );
-        affectedNotes.forEach((row) => enqueueNoteUpdate(String(row.id), tx));
+        affectedNotes.forEach(row => enqueueNoteUpdate(String(row.id), tx));
       });
     } catch (error) {
       console.error('Error updating custom category:', error);

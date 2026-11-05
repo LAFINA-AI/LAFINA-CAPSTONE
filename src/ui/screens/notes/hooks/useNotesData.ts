@@ -230,7 +230,12 @@ export const useNotesData = (options: UseNotesDataOptions) => {
     const latestNotes = notesRef.current;
     const unpinnedNotes = latestNotes.filter(n => !n.isPinned);
     const orderUpdates = unpinnedNotes.map((note, idx) => ({ id: note.id, sortOrder: idx }));
-    notesStore.updateOrder(orderUpdates);
+    let orderSaved = true;
+    try {
+      notesStore.updateOrder(orderUpdates);
+    } catch {
+      orderSaved = false;
+    }
 
     activeDragIdRef.current = null;
     setActiveDragId(null);
@@ -238,8 +243,12 @@ export const useNotesData = (options: UseNotesDataOptions) => {
     dragOffsetRef.current = { x: 0, y: 0 };
     dragStartLayoutRef.current = null;
     setRenderGen(g => g + 1);
+    if (!orderSaved) {
+      loadNotes();
+      Alert.alert('Note order not saved', 'Your notes keep their previous order. Please try again.');
+    }
     onRefresh();
-  }, [onRefresh]);
+  }, [loadNotes, onRefresh]);
 
   const handleDragRelease = useCallback(() => {
     handleDragEnd();
@@ -333,30 +342,36 @@ export const useNotesData = (options: UseNotesDataOptions) => {
     }
     const titleStr = noteTitle.trim() || 'Untitled Note';
 
-    if (editingNote) {
-      const bodyUnchanged =
-        isHtmlBody(editingNote.body) && noteBody === noteBodyToMarkdown(editingNote.body);
-      notesStore.update({
-        id: editingNote.id,
-        title: titleStr,
-        body: bodyUnchanged ? editingNote.body : noteBody,
-        category: noteCategory,
-        isPinned: isPinned,
-        tags: noteTags,
-        imageUri: imageUri,
-      });
-    } else {
-      notesStore.insert({
-        id: generateId('note'),
-        userId,
-        title: titleStr,
-        body: noteBody,
-        category: noteCategory,
-        isPinned: isPinned,
-        tags: isVoice ? ['AI Transcribed'] : noteTags,
-        isVoiceTranscribed: isVoice,
-        imageUri: imageUri,
-      });
+    try {
+      if (editingNote) {
+        const bodyUnchanged =
+          isHtmlBody(editingNote.body) && noteBody === noteBodyToMarkdown(editingNote.body);
+        notesStore.update({
+          id: editingNote.id,
+          title: titleStr,
+          body: bodyUnchanged ? editingNote.body : noteBody,
+          category: noteCategory,
+          isPinned: isPinned,
+          tags: noteTags,
+          imageUri: imageUri,
+        });
+      } else {
+        notesStore.insert({
+          id: generateId('note'),
+          userId,
+          title: titleStr,
+          body: noteBody,
+          category: noteCategory,
+          isPinned: isPinned,
+          tags: isVoice ? ['AI Transcribed'] : noteTags,
+          isVoiceTranscribed: isVoice,
+          imageUri: imageUri,
+        });
+      }
+    } catch {
+      // The editor stays open so the student's text is not lost.
+      Alert.alert('Note not saved', 'Your text is still here. Please try again.');
+      return;
     }
 
     setEditorVisible(false);

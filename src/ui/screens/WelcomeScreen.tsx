@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import {
   View,
   Text,
@@ -24,11 +24,21 @@ export const WelcomeScreen: React.FC<WelcomeScreenProps> = ({
   onNavigateToRegister,
 }) => {
   const themed = useThemedStyles(getWelcomeThemedStyles);
+  const [startFailed, setStartFailed] = useState(false);
 
   const handleGetStarted = () => {
-    const guest = userStore.createGuestUser();
-    userStore.setCurrentUser(guest.id);
-    onGetStarted(guest.id);
+    let guestId: string;
+    try {
+      const guest = userStore.createGuestUser();
+      userStore.setCurrentUser(guest.id);
+      guestId = guest.id;
+    } catch (error) {
+      console.error('Could not start guest mode:', error);
+      setStartFailed(true);
+      return;
+    }
+    setStartFailed(false);
+    onGetStarted(guestId);
   };
 
   return (
@@ -55,6 +65,12 @@ export const WelcomeScreen: React.FC<WelcomeScreenProps> = ({
             No account needed
           </Text>
         </TouchableOpacity>
+
+        {startFailed ? (
+          <Text accessibilityLiveRegion="polite" style={[styles.errorText, themed.errorText]}>
+            LAFINA couldn’t save your guest profile, so nothing was started. Please try again.
+          </Text>
+        ) : null}
 
         <View style={styles.dividerRow}>
           <View style={[styles.dividerLine, themed.dividerLine]} />
@@ -95,9 +111,16 @@ const getWelcomeThemedStyles = (colors: ThemeColors) => ({
   secondaryButtonText: { color: colors.textPrimary },
   footerText: { color: colors.textSecondary },
   loginLink: { color: colors.blue },
+  errorText: { color: colors.error },
 });
 
 const styles = StyleSheet.create({
+  errorText: {
+    fontFamily: Fonts.body,
+    fontSize: 13,
+    textAlign: 'center',
+    marginTop: 12,
+  },
   container: {
     flexGrow: 1,
     justifyContent: 'center',
