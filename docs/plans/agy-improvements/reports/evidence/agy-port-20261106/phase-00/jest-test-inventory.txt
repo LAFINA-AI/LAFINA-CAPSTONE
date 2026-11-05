@@ -1,0 +1,16 @@
+__tests__/App.test.tsx
+__tests__/ai/phase05TtsAndCloudSpeech.test.ts
+__tests__/ai/phase06SttAndVoiceModal.test.tsx
+__tests__/ai/phase07NluAndActionExecution.test.ts
+__tests__/ai/phase08ChatAndOrchestrator.test.tsx
+__tests__/ai/phase09OnlineDocsAndMeetings.test.tsx
+__tests__/ai/phase10HandbookRAG.test.tsx
+__tests__/ai/ttsService.test.ts
+__tests__/preservation/agyPreservedContracts.test.ts
+__tests__/scheduler/callDispatcherAndCallScreen.test.tsx
+__tests__/scheduler/phase03ReminderScheduler.test.ts
+__tests__/storage/phase01Storage.test.ts
+__tests__/storage/phase02CalendarAndNotes.test.ts
+__tests__/ui/phase01AuthAndProfileScreens.test.tsx
+__tests__/ui/phase01ThemeAndTour.test.tsx
+__tests__/ui/phase02CalendarAndNotesScreens.test.tsx

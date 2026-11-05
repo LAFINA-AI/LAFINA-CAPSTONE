@@ -1,0 +1,2 @@
+Analysis-only TypeScript: 5.9.3
+PASS: 179 TypeScript modules checked; 0 import cycles, 0 forbidden business/Gmail/study-tool/Kokoro dependencies.

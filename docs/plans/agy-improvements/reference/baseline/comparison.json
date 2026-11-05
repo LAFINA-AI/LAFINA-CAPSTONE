@@ -1,0 +1,25 @@
+{
+  "timestamp_utc": "2026-11-05T16:53:59.051990+00:00",
+  "target": {
+    "path": "C:\\L3mxr\\Github Repositories\\LAFINA-CAPSTONE-agy-development-cont",
+    "head": "b9433dc39d172f30ba26ea68e4a9c9eedd922407",
+    "branch": "agy-development-cont",
+    "status_before_evidence": "?? docs/reports/evidence/agy-ustp-comparison-20261106/"
+  },
+  "donor": {
+    "path": "C:\\L3mxr\\Github Repositories\\LAFINA\\LAFINA",
+    "head": "0d4bbe39e106c29fb90792cf5d2f916b5c0d6480",
+    "branch": "feat/capstone-remaining",
+    "status": "M docs/capstone-improvements-in-ustp.md\n?? docs/plans/capstone-remaining/",
+    "inventory_sha256": "527b0f7e2653f9ceb8c849b2d44a9b153b81f17e82caf7837a8c7eddf9318106"
+  },
+  "scope": "Git-tracked src/, __tests__/, scripts/ with ts,tsx,js,mjs,cjs,py suffixes; working-tree content; BOM removed and CRLF normalized; not a merge-conflict count",
+  "counts": {
+    "target": 198,
+    "donor": 475,
+    "different": 151,
+    "donor_only": 304,
+    "target_only": 27,
+    "identical": 20
+  }
+}
