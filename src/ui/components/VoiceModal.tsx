@@ -27,6 +27,9 @@ import type { OfflineSpeechCaptureHandle } from '../../ai/native/speechCapture';
 import { ensureMicrophonePermission } from '../../ai/stt/sttService';
 import { chatOrchestrator } from '../../ai/chatOrchestrator';
 import { ttsService } from '../../ai/tts/ttsService';
+import type { PrepareResult } from '../../ai/nlu/commandReview';
+import { useCommandReview } from '../hooks/useCommandReview';
+import { CommandReviewCard } from './chat/CommandReviewCard';
 
 export interface VoiceModalProps {
   visible: boolean;
@@ -36,7 +39,14 @@ export interface VoiceModalProps {
   onCommand?: (command: string, userId: string) => string | Promise<string>;
 }
 
-export type VoiceState = 'idle' | 'listening' | 'processing' | 'speaking' | 'success' | 'error';
+export type VoiceState =
+  | 'idle'
+  | 'listening'
+  | 'processing'
+  | 'speaking'
+  | 'review'
+  | 'success'
+  | 'error';
 
 const WAVE_BAR_COUNT = 11;
 
@@ -46,21 +56,30 @@ const STATUS_TEXT: Record<VoiceState, string> = {
   listening: 'Listening… let go when you’re done',
   processing: 'Working on it…',
   speaking: 'Reading aloud…',
+  review: 'Check the details, then confirm',
   success: 'Done',
   error: 'That didn’t work',
 };
 
-const executeDefaultCommand = async (command: string, userId: string): Promise<string> => {
+interface CommandOutcome {
+  reply: string;
+  /** A planner change waiting for Confirm (AGY-PORT 04); nothing was written yet. */
+  review?: PrepareResult;
+}
+
+const executeDefaultCommand = async (command: string, userId: string): Promise<CommandOutcome> => {
   const trimmed = command.trim();
   if (!trimmed) {
-    return 'What would you like me to do?';
+    return { reply: 'What would you like me to do?' };
   }
   try {
-    const result = await chatOrchestrator.processMessage(userId, trimmed);
-    return result.reply;
+    const result = await chatOrchestrator.processMessage(userId, trimmed, {
+      reviewSurface: 'voice',
+    });
+    return { reply: result.reply, review: result.review };
   } catch (err) {
     console.error('Chat orchestrator execution error:', err);
-    return `Heard: "${trimmed}"`;
+    return { reply: `Heard: "${trimmed}"` };
   }
 };
 
@@ -110,8 +129,15 @@ export const VoiceModal: React.FC<VoiceModalProps> = ({
     };
   }, []);
 
+  // AGY-PORT 04: a planner change waits on this card until the student confirms.
+  const review = useCommandReview(userId, 'voice');
+  const reviewRef = useRef(review);
+  reviewRef.current = review;
+
   const handleDismiss = useCallback(() => {
     void ttsService.stop();
+    // Closing the sheet never confirms; it discards the open proposal.
+    reviewRef.current.cancel();
     onClose(false);
   }, [onClose]);
 
@@ -167,6 +193,7 @@ export const VoiceModal: React.FC<VoiceModalProps> = ({
 
   useEffect(() => {
     if (!visible) {
+      reviewRef.current.cancel({ silent: true });
       pressActiveRef.current = false;
       activeCaptureRef.current += 1;
       const capture = speechCaptureRef.current;
@@ -247,6 +274,76 @@ export const VoiceModal: React.FC<VoiceModalProps> = ({
     [safeSetTimeout, shakeAnim],
   );
 
+  const runCommand = useCallback(
+    async (command: string): Promise<CommandOutcome> => {
+      if (onCommand) {
+        return { reply: await Promise.resolve(onCommand(command, userId)) };
+      }
+      return executeDefaultCommand(command, userId);
+    },
+    [onCommand, userId],
+  );
+
+  /**
+   * Shows and speaks the reply. Returns true when a review card is now waiting,
+   * in which case the sheet stays open and nothing closes it automatically.
+   */
+  const presentOutcome = useCallback(
+    async (outcome: CommandOutcome, uiCaptureId: number): Promise<boolean> => {
+      setAiReply(outcome.reply);
+      const waiting = outcome.review?.status === 'proposal';
+      if (waiting) reviewRef.current.present(outcome.review);
+      setVoiceState('speaking');
+
+      try {
+        await ttsService.speak(outcome.reply);
+      } catch (err) {
+        console.warn('[VoiceModal] TTS playback error:', err);
+      }
+
+      if (waiting) {
+        if (activeCaptureRef.current === uiCaptureId) setVoiceState('review');
+        return true;
+      }
+      return false;
+    },
+    [],
+  );
+
+  const handleConfirmReview = useCallback(async () => {
+    const uiCaptureId = activeCaptureRef.current;
+    const decision = await reviewRef.current.confirm();
+    if (!decision || activeCaptureRef.current !== uiCaptureId) return;
+    const applied = decision.outcome?.status === 'applied';
+    setAiReply(decision.reply);
+    setVoiceState('speaking');
+    try {
+      await ttsService.speak(decision.reply);
+    } catch (err) {
+      console.warn('[VoiceModal] TTS playback error:', err);
+    }
+    if (activeCaptureRef.current !== uiCaptureId) return;
+    if (!applied) {
+      setVoiceState('idle');
+      return;
+    }
+    setVoiceState('success');
+    safeSetTimeout(() => {
+      if (activeCaptureRef.current === uiCaptureId) {
+        onClose(true);
+        setVoiceState('idle');
+        setInputText('');
+      }
+    }, VOICE_SUCCESS_DELAY_MS);
+  }, [onClose, safeSetTimeout]);
+
+  const handleCancelReview = useCallback(() => {
+    const decision = reviewRef.current.cancel();
+    if (!decision) return;
+    setAiReply(decision.reply);
+    setVoiceState('idle');
+  }, []);
+
   // Push-To-Talk: Press & Hold down mic button to speak
   const handlePressIn = useCallback(async () => {
     pressActiveRef.current = true;
@@ -314,21 +411,8 @@ export const VoiceModal: React.FC<VoiceModalProps> = ({
         onTranscript(finalTranscript);
       }
 
-      let reply = '';
-      if (onCommand) {
-        reply = await Promise.resolve(onCommand(finalTranscript, userId));
-      } else {
-        reply = await executeDefaultCommand(finalTranscript, userId);
-      }
-
-      setAiReply(reply);
-      setVoiceState('speaking');
-
-      try {
-        await ttsService.speak(reply);
-      } catch (err) {
-        console.warn('[VoiceModal] TTS playback error:', err);
-      }
+      const outcome = await runCommand(finalTranscript);
+      if (await presentOutcome(outcome, uiCaptureId)) return;
 
       if (activeCaptureRef.current === uiCaptureId) {
         setVoiceState('success');
@@ -348,7 +432,7 @@ export const VoiceModal: React.FC<VoiceModalProps> = ({
       setNotice('Speech recognition could not finish. Please try again.');
       triggerErrorShake('idle');
     }
-  }, [onClose, onCommand, onTranscript, safeSetTimeout, triggerErrorShake, userId]);
+  }, [onClose, onTranscript, presentOutcome, runCommand, safeSetTimeout, triggerErrorShake]);
 
   const handleCommandProcess = async (command: string) => {
     if (!command.trim()) return;
@@ -365,21 +449,8 @@ export const VoiceModal: React.FC<VoiceModalProps> = ({
           onTranscript(command);
         }
 
-        let reply = '';
-        if (onCommand) {
-          reply = await Promise.resolve(onCommand(command, userId));
-        } else {
-          reply = await executeDefaultCommand(command, userId);
-        }
-
-        setAiReply(reply);
-        setVoiceState('speaking');
-
-        try {
-          await ttsService.speak(reply);
-        } catch (err) {
-          console.warn('[VoiceModal] TTS playback error:', err);
-        }
+        const outcome = await runCommand(command);
+        if (await presentOutcome(outcome, uiCaptureId)) return;
 
         if (activeCaptureRef.current === uiCaptureId) {
           setVoiceState('success');
@@ -579,6 +650,20 @@ export const VoiceModal: React.FC<VoiceModalProps> = ({
               </View>
               <Text style={[styles.replyText, themed.replyText]}>{aiReply}</Text>
             </View>
+          ) : null}
+
+          {review.proposal ? (
+            <CommandReviewCard
+              proposal={review.proposal}
+              expired={review.expired}
+              busy={review.busy}
+              onConfirm={() => {
+                void handleConfirmReview();
+              }}
+              onCancel={handleCancelReview}
+              onDismiss={review.dismiss}
+              testIDPrefix="voice-review"
+            />
           ) : null}
 
           {/* Keyboard input fallback */}

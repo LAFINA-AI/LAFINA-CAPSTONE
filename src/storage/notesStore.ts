@@ -71,6 +71,15 @@ const enqueueNoteUpdate = (id: string, tx: DatabaseTransaction): void => {
   );
 };
 
+/** Uses the caller's transaction when given (reviewed commands), else its own. */
+const runWrite = (
+  executor: DatabaseTransaction | undefined,
+  write: (tx: DatabaseTransaction) => void,
+): void => {
+  if (executor) write(executor);
+  else db.transactionSync(write);
+};
+
 export const notesStore = {
   getAll: (userId: string): Note[] => {
     try {
@@ -89,11 +98,12 @@ export const notesStore = {
     note: Omit<Note, 'createdAt' | 'updatedAt' | 'deletedAt' | 'sortOrder'> & {
       sortOrder?: number;
     },
+    executor?: DatabaseTransaction,
   ): void => {
     const now = new Date().toISOString();
     const tagsJson = JSON.stringify(note.tags);
     try {
-      db.transactionSync(tx => {
+      runWrite(executor, tx => {
         let finalSortOrder = note.sortOrder;
         if (finalSortOrder === undefined) {
           const maxOrder = tx.executeSync(
@@ -146,7 +156,7 @@ export const notesStore = {
     }
   },
 
-  update: (note: Partial<Note> & {id: string}): void => {
+  update: (note: Partial<Note> & {id: string}, executor?: DatabaseTransaction): void => {
     const now = new Date().toISOString();
     const sets: string[] = [];
     const params: any[] = [];
@@ -185,7 +195,7 @@ export const notesStore = {
     );
 
     try {
-      db.transactionSync(tx => {
+      runWrite(executor, tx => {
         tx.executeSync(
           `UPDATE notes SET ${sets.join(', ')} WHERE id = ?`,
           params,

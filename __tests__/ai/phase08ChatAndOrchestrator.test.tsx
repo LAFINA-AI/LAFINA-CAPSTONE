@@ -17,6 +17,25 @@ import { ttsService } from '../../src/ai/tts/ttsService';
 import { ChatScreen } from '../../src/ui/screens/ChatScreen';
 import { ThemeProvider } from '../../src/ui/contexts/ThemeContext';
 
+/**
+ * AGY-PORT 04 (PF05 intentional change): assistant-proposed planner changes now
+ * return a review and write nothing until Confirm. These helpers keep the
+ * original end-to-end expectations while going through prepare + confirm.
+ */
+const confirmProposal = async (
+  userId: string,
+  result: Awaited<ReturnType<typeof chatOrchestrator.processMessage>>,
+) => {
+  expect(result.review?.status).toBe('proposal');
+  if (result.review?.status !== 'proposal') throw new Error('expected a proposal');
+  const decision = await chatOrchestrator.confirmReview(
+    userId,
+    result.review.proposal.operationId,
+  );
+  expect(decision.outcome?.status).toBe('applied');
+  return decision;
+};
+
 describe('Phase 08: End-to-End Offline Student Assistant & ChatScreen Integration', () => {
   const testUserId = 'test-student-phase08';
   const fixedDate = new Date(2026, 9, 30, 8, 30, 0); // Friday, Oct 30, 2026 08:30
@@ -100,7 +119,10 @@ describe('Phase 08: End-to-End Offline Student Assistant & ChatScreen Integratio
       );
 
       expect(result.intent.intent).toBe('create_note');
-      expect(result.reply).toContain('Saved note');
+      // Nothing is saved before Confirm.
+      expect(notesStore.getAll(testUserId).length).toBe(initialNoteCount);
+      const decision = await confirmProposal(testUserId, result);
+      expect(decision.reply).toContain('Saved note');
 
       const updatedNotes = notesStore.getAll(testUserId);
       expect(updatedNotes.length).toBe(initialNoteCount + 1);
@@ -119,14 +141,19 @@ describe('Phase 08: End-to-End Offline Student Assistant & ChatScreen Integratio
       );
 
       expect(result.intent.intent).toBe('create_task');
-      expect(result.actionResult?.success).toBe(true);
+      expect(
+        tasksStore.getAllTasks(testUserId).some((t) => t.title.toLowerCase().includes('physics lab')),
+      ).toBe(false);
+      expect(chatStore.getMessages(testUserId).length).toBe(2);
+      await confirmProposal(testUserId, result);
 
       const tasks = tasksStore.getAllTasks(testUserId);
       const created = tasks.find((t) => t.title.toLowerCase().includes('physics lab'));
       expect(created).toBeDefined();
 
+      // User message, the review summary, and the confirmed outcome.
       const messages = chatStore.getMessages(testUserId);
-      expect(messages.length).toBe(2);
+      expect(messages.length).toBe(3);
     });
 
     test('detects schedule conflicts and recommends available daytime slots', async () => {
@@ -170,7 +197,10 @@ describe('Phase 08: End-to-End Offline Student Assistant & ChatScreen Integratio
         'Add study block for Algorithms from 11am to 1pm on 2026-10-31',
         { referenceDate: fixedDate, forceSchedule: true },
       );
-      expect(forceResult.actionResult?.success).toBe(true);
+      const forced = await confirmProposal(testUserId, forceResult);
+      expect(forced.outcome?.status === 'applied' && forced.outcome.receipt.entityType).toBe(
+        'time_block',
+      );
     });
 
     test('executes schedule queries and speaks reply when speakReply is true', async () => {
@@ -198,10 +228,11 @@ describe('Phase 08: End-to-End Offline Student Assistant & ChatScreen Integratio
         "So let's schedule at 2 PM for a coffee date.",
         { referenceDate: fixedDate },
       );
-      expect(schedRes.actionResult?.success).toBe(true);
-      expect(schedRes.reply).toContain('"Coffee Date"');
-      expect(schedRes.reply).toContain('at 2:00 PM');
-      expect(schedRes.reply).not.toContain('14:00');
+      expect(tasksStore.getAllTasks(cancelChatUser)).toHaveLength(0);
+      const scheduled = await confirmProposal(cancelChatUser, schedRes);
+      expect(scheduled.reply).toContain('"Coffee Date"');
+      expect(scheduled.reply).toContain('at 2:00 PM');
+      expect(scheduled.reply).not.toContain('14:00');
       const createdTasks = tasksStore.getAllTasks(cancelChatUser);
       expect(createdTasks).toHaveLength(1);
       expect(createdTasks[0].dueTime).toBe('14:00');
@@ -212,8 +243,9 @@ describe('Phase 08: End-to-End Offline Student Assistant & ChatScreen Integratio
         'Cancel my 2 PM task',
         { referenceDate: fixedDate },
       );
-      expect(cancelTaskRes.actionResult?.success).toBe(true);
-      expect(cancelTaskRes.reply).toContain('Removed task: "Coffee Date"');
+      expect(tasksStore.getAllTasks(cancelChatUser)).toHaveLength(1);
+      const cancelled = await confirmProposal(cancelChatUser, cancelTaskRes);
+      expect(cancelled.reply).toContain('Removed task: "Coffee Date"');
       expect(tasksStore.getAllTasks(cancelChatUser)).toHaveLength(0);
 
       // 3. Insert an event and delete it by name through ChatOrchestrator
@@ -230,8 +262,10 @@ describe('Phase 08: End-to-End Offline Student Assistant & ChatScreen Integratio
         'Delete my Faculty Consultation event',
         { referenceDate: fixedDate },
       );
-      expect(deleteEventRes.actionResult?.success).toBe(true);
-      expect(deleteEventRes.actionResult?.entityType).toBe('event');
+      const deletedEvent = await confirmProposal(cancelChatUser, deleteEventRes);
+      expect(
+        deletedEvent.outcome?.status === 'applied' && deletedEvent.outcome.receipt.entityType,
+      ).toBe('event');
       expect(tasksStore.getAllEvents(cancelChatUser)).toHaveLength(0);
     });
   });

@@ -20,6 +20,7 @@ import {
 } from '../constants';
 import {migrateChatOwnership} from './chatOwnership';
 import {migrateReminderDelivery} from './deliverySchema';
+import {migrateAssistantOperations} from './assistantOperationSchema';
 
 export interface SchemaMigration {
   /** The `user_version` this step produces. */
@@ -51,6 +52,14 @@ export const SCHEMA_MIGRATIONS: readonly SchemaMigration[] = [
       'Local reminder delivery jobs, generations and redacted delivery events (AGY-PORT 03)',
     up: tx => {
       migrateReminderDelivery(tx);
+    },
+  },
+  {
+    version: 20,
+    description:
+      'Local entity revisions and assistant operation receipts for reviewed commands (AGY-PORT 04)',
+    up: tx => {
+      migrateAssistantOperations(tx);
     },
   },
 ];

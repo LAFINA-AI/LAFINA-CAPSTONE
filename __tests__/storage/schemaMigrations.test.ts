@@ -124,7 +124,7 @@ describe('schema migrations', () => {
     expect(readUserVersion(first)).toBe(CURRENT_SCHEMA_VERSION);
     first.close();
 
-    // Schemas 18-19 only add: every schema-17 column of every row is unchanged.
+    // Schemas 18-20 only add: every schema-17 column of every row is unchanged.
     const afterUpgrade = inspect(path, snapshotAllRows);
     const projected = inspect(path, c => snapshotSchema17Columns(c, schema17Columns));
     for (const [table, rows] of Object.entries(before)) {
@@ -132,10 +132,16 @@ describe('schema migrations', () => {
     }
     const added = Object.keys(afterUpgrade).filter(t => !(t in before));
     expect(added).toEqual([
+      'assistant_operation_receipts',
       'chat_legacy_quarantine',
+      'entity_local_revisions',
       'reminder_delivery_events',
       'reminder_delivery_jobs',
     ]);
+    // Schema 20 (AGY-PORT 04) starts empty: a missing revision row means 0, and
+    // no receipt exists before a reviewed command is confirmed.
+    expect(afterUpgrade.entity_local_revisions).toEqual([]);
+    expect(afterUpgrade.assistant_operation_receipts).toEqual([]);
     // Schema 19 backfills one delivery job per reminder, owned by its owner,
     // with no events and nothing added to the outbox.
     expect(
@@ -195,6 +201,59 @@ describe('schema migrations', () => {
     await initDatabase(new DatabaseService(() => second));
     second.close();
     expect(inspect(path, snapshotAllRows)).toEqual(afterUpgrade);
+  });
+
+  test('schema 20 revisions follow every writer of the upgraded fixture and stay off the wire', async () => {
+    const path = legacyFile();
+    const connection = openSqliteFile(path);
+    await initDatabase(new DatabaseService(() => connection));
+    const revision = (type: string, id: string): number =>
+      Number(
+        connection.executeSync(
+          'SELECT revision FROM entity_local_revisions WHERE entity_type = ? AND entity_id = ?',
+          [type, id],
+        ).rows[0]?.revision ?? 0,
+      );
+    expect(revision('task', 't-a')).toBe(0);
+    // Raw writes, as a sync pull or an older code path would make them.
+    connection.executeSync("UPDATE tasks SET title = 'Pulled title' WHERE id = 't-a'");
+    connection.executeSync("UPDATE events SET location = 'Room 2' WHERE id = 'e-a'");
+    connection.executeSync("UPDATE time_blocks SET notes = 'x' WHERE id = 'b-a'");
+    connection.executeSync("UPDATE notes SET body = 'y' WHERE id = 'n-b'");
+    connection.executeSync("UPDATE reminders SET task = task || ' (edited)' WHERE id = 'r-b'");
+    expect([
+      revision('task', 't-a'),
+      revision('event', 'e-a'),
+      revision('time_block', 'b-a'),
+      revision('note', 'n-b'),
+      revision('reminder', 'r-b'),
+    ]).toEqual([1, 1, 1, 1, 1]);
+    // Rewriting identical values (a sync echo) or touching only updated_at is
+    // not a change, so it leaves open reviews valid.
+    connection.executeSync(
+      "UPDATE tasks SET title = title, due_date = due_date, updated_at = '2030-01-01T00:00:00.000Z' WHERE id = 't-a'",
+    );
+    expect(revision('task', 't-a')).toBe(1);
+    // The speech cache path is background bookkeeping, not a change to the reminder.
+    connection.executeSync(
+      "UPDATE reminders SET precast_audio_path = '/tmp/a.wav' WHERE id = 'r-b'",
+    );
+    expect(revision('reminder', 'r-b')).toBe(1);
+    // A guest rekey moves ownership, which is a change a review must notice.
+    connection.executeSync(
+      "UPDATE tasks SET user_id = 'someone-else' WHERE user_id = ?",
+      [FIXTURE_GUEST],
+    );
+    const guestTask = connection.executeSync(
+      "SELECT id FROM tasks WHERE user_id = 'someone-else'",
+    ).rows[0];
+    expect(revision('task', String(guestTask.id))).toBe(1);
+    // Nothing about revisions reaches the outbox.
+    const payloads = connection
+      .executeSync('SELECT payload FROM sync_outbox')
+      .rows.map(row => String(row.payload));
+    expect(payloads.some(payload => /revision/.test(payload))).toBe(false);
+    connection.close();
   });
 
   test('stores read upgraded data through the real module stack', async () => {

@@ -1,5 +1,6 @@
 import { db, DatabaseTransaction } from './database';
 import { syncOutboxStore } from './syncOutboxStore';
+import { remindersForSource } from './sourceReminders';
 
 export interface Task {
   id: string;
@@ -140,6 +141,42 @@ export const tasksStore = {
     }
   },
 
+  /**
+   * One page of open tasks that have no due date (AGY-PORT 04), oldest first.
+   * Keyset-paged on (created_at, id) so long lists stay bounded. Throws on a
+   * read failure so the screen can say so instead of showing an empty list.
+   */
+  getUndatedTasksPage: (
+    userId: string,
+    options: { limit?: number; after?: string | null } = {},
+  ): { items: Task[]; nextCursor: string | null } => {
+    const limit = Math.max(1, Math.min(100, Math.floor(options.limit ?? 20)));
+    let afterCreated: string | null = null;
+    let afterId: string | null = null;
+    if (options.after) {
+      const split = options.after.indexOf('|');
+      if (split <= 0) throw new Error('Invalid undated task cursor.');
+      afterCreated = options.after.slice(0, split);
+      afterId = options.after.slice(split + 1);
+    }
+    const rows =
+      db.executeSync(
+        `SELECT * FROM tasks
+          WHERE user_id = ? AND deleted_at IS NULL AND is_completed = 0
+            AND (due_date IS NULL OR due_date = '')
+            AND (? IS NULL OR created_at > ? OR (created_at = ? AND id > ?))
+          ORDER BY created_at ASC, id ASC
+          LIMIT ?`,
+        [userId, afterCreated, afterCreated, afterCreated, afterId, limit + 1],
+      ).rows || [];
+    const items = rows.slice(0, limit).map(mapRowToTask);
+    const last = items[items.length - 1];
+    return {
+      items,
+      nextCursor: rows.length > limit && last ? `${last.createdAt}|${last.id}` : null,
+    };
+  },
+
   insertTask: (
     task: Omit<Task, 'createdAt' | 'updatedAt' | 'deletedAt'>,
     executor?: DatabaseTransaction,
@@ -193,7 +230,7 @@ export const tasksStore = {
     }
   },
 
-  updateTask: (task: Partial<Task> & { id: string }): void => {
+  updateTask: (task: Partial<Task> & { id: string }, executor?: DatabaseTransaction): void => {
     const now = new Date().toISOString();
     const sets: string[] = [];
     const params: any[] = [];
@@ -227,57 +264,58 @@ export const tasksStore = {
     params.push(task.id);
 
     const cleanupRows: ReminderCleanupRow[] = [];
-    try {
-      db.transactionSync((tx) => {
-        tx.executeSync(`UPDATE tasks SET ${sets.join(', ')} WHERE id = ?`, params);
-        const row = tx.executeSync('SELECT * FROM tasks WHERE id = ?', [task.id]).rows?.[0] as
-          | StoredSyncRow
-          | undefined;
-        if (row) {
-          const userId = String(row.user_id);
-          syncOutboxStore.enqueueMutation(
-            userId,
-            'task',
-            task.id,
-            'update',
-            taskPayload(row),
-            'account',
-            userId,
-            tx,
-          );
+    const applyUpdate = (tx: DatabaseTransaction): void => {
+      tx.executeSync(`UPDATE tasks SET ${sets.join(', ')} WHERE id = ?`, params);
+      const row = tx.executeSync('SELECT * FROM tasks WHERE id = ?', [task.id]).rows?.[0] as
+        | StoredSyncRow
+        | undefined;
+      if (row) {
+        const userId = String(row.user_id);
+        syncOutboxStore.enqueueMutation(
+          userId,
+          'task',
+          task.id,
+          'update',
+          taskPayload(row),
+          'account',
+          userId,
+          tx,
+        );
 
-          if (row.is_completed === 1) {
-            const taskTitle = String(row.title);
-            const remindersResult = tx.executeSync(
-              `SELECT id, precast_audio_path FROM reminders WHERE user_id = ? AND task = ? AND deleted_at IS NULL AND status IN ('pending', 'snoozed', 'triggered')`,
-              [userId, taskTitle],
+        if (row.is_completed === 1) {
+          const reminders = remindersForSource(tx, userId, 'task', task.id, row.title, [
+            'pending',
+            'snoozed',
+            'triggered',
+          ]);
+          for (const rem of reminders) {
+            tx.executeSync(
+              `UPDATE reminders SET status = 'acknowledged', updated_at = ? WHERE id = ?`,
+              [now, rem.id],
             );
-            const reminders = remindersResult.rows || [];
-            for (const rem of reminders) {
-              tx.executeSync(
-                `UPDATE reminders SET status = 'acknowledged', updated_at = ? WHERE id = ?`,
-                [now, rem.id],
-              );
-              syncOutboxStore.enqueueMutation(
-                userId,
-                'reminder',
-                String(rem.id),
-                'update',
-                { status: 'acknowledged' },
-                'account',
-                userId,
-                tx,
-              );
-              cleanupRows.push({
-                id: String(rem.id),
-                preCastAudioPath:
-                  typeof rem.precast_audio_path === 'string' ? rem.precast_audio_path : null,
-              });
-            }
+            syncOutboxStore.enqueueMutation(
+              userId,
+              'reminder',
+              String(rem.id),
+              'update',
+              { status: 'acknowledged' },
+              'account',
+              userId,
+              tx,
+            );
+            cleanupRows.push({
+              id: String(rem.id),
+              preCastAudioPath:
+                typeof rem.precast_audio_path === 'string' ? rem.precast_audio_path : null,
+            });
           }
         }
-        scheduleReminderCleanup(tx, cleanupRows, 'updateTaskCompleted');
-      });
+      }
+      scheduleReminderCleanup(tx, cleanupRows, 'updateTaskCompleted');
+    };
+    try {
+      if (executor) applyUpdate(executor);
+      else db.transactionSync(applyUpdate);
     } catch (error) {
       console.error('Error updating task:', error);
       throw error;
@@ -302,11 +340,10 @@ export const tasksStore = {
       const userId = String(taskRow.user_id);
       syncOutboxStore.enqueueMutation(userId, 'task', id, 'delete', {}, 'account', userId, executor);
 
-      const remindersResult = executor.executeSync(
-        `SELECT id, precast_audio_path FROM reminders WHERE user_id = ? AND task = ? AND deleted_at IS NULL AND status IN ('pending', 'snoozed')`,
-        [userId, taskRow.title],
-      );
-      const reminders = remindersResult.rows || [];
+      const reminders = remindersForSource(executor, userId, 'task', id, taskRow.title, [
+        'pending',
+        'snoozed',
+      ]);
 
       for (const reminder of reminders) {
         executor.executeSync(
@@ -406,7 +443,7 @@ export const tasksStore = {
     }
   },
 
-  updateEvent: (event: Partial<Event> & { id: string }): void => {
+  updateEvent: (event: Partial<Event> & { id: string }, executor?: DatabaseTransaction): void => {
     const now = new Date().toISOString();
     const sets: string[] = [];
     const params: any[] = [];
@@ -434,25 +471,27 @@ export const tasksStore = {
     params.push(now);
     params.push(event.id);
 
+    const applyUpdate = (tx: DatabaseTransaction): void => {
+      tx.executeSync(`UPDATE events SET ${sets.join(', ')} WHERE id = ?`, params);
+      const row = tx.executeSync('SELECT * FROM events WHERE id = ?', [event.id]).rows?.[0] as
+        | StoredSyncRow
+        | undefined;
+      if (row) {
+        syncOutboxStore.enqueueMutation(
+          String(row.user_id),
+          'event',
+          event.id,
+          'update',
+          eventPayload(row),
+          'account',
+          String(row.user_id),
+          tx,
+        );
+      }
+    };
     try {
-      db.transactionSync((tx) => {
-        tx.executeSync(`UPDATE events SET ${sets.join(', ')} WHERE id = ?`, params);
-        const row = tx.executeSync('SELECT * FROM events WHERE id = ?', [event.id]).rows?.[0] as
-          | StoredSyncRow
-          | undefined;
-        if (row) {
-          syncOutboxStore.enqueueMutation(
-            String(row.user_id),
-            'event',
-            event.id,
-            'update',
-            eventPayload(row),
-            'account',
-            String(row.user_id),
-            tx,
-          );
-        }
-      });
+      if (executor) applyUpdate(executor);
+      else db.transactionSync(applyUpdate);
     } catch (error) {
       console.error('Error updating event:', error);
       throw error;
@@ -476,11 +515,10 @@ export const tasksStore = {
       );
       const userId = String(eventRow.user_id);
       syncOutboxStore.enqueueMutation(userId, 'event', id, 'delete', {}, 'account', userId, executor);
-      const reminders =
-        executor.executeSync(
-          `SELECT id, precast_audio_path FROM reminders WHERE user_id = ? AND task = ? AND deleted_at IS NULL AND status IN ('pending', 'snoozed')`,
-          [userId, eventRow.title],
-        ).rows || [];
+      const reminders = remindersForSource(executor, userId, 'event', id, eventRow.title, [
+        'pending',
+        'snoozed',
+      ]);
       for (const reminder of reminders) {
         executor.executeSync(
           `UPDATE reminders SET deleted_at = ?, updated_at = ? WHERE id = ?`,

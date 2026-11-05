@@ -1,5 +1,6 @@
 import { db, DatabaseTransaction } from './database';
 import { syncOutboxStore } from './syncOutboxStore';
+import { remindersForSource } from './sourceReminders';
 
 export interface TimeBlock {
   id: string;
@@ -147,7 +148,7 @@ export const timeBlocksStore = {
     }
   },
 
-  update: (block: Partial<TimeBlock> & { id: string }): void => {
+  update: (block: Partial<TimeBlock> & { id: string }, executor?: DatabaseTransaction): void => {
     const now = new Date().toISOString();
     const sets: string[] = [];
     const params: any[] = [];
@@ -176,26 +177,28 @@ export const timeBlocksStore = {
     params.push(now);
     params.push(block.id);
 
+    const applyUpdate = (tx: DatabaseTransaction): void => {
+      tx.executeSync(`UPDATE time_blocks SET ${sets.join(', ')} WHERE id = ?`, params);
+      const row = tx.executeSync('SELECT * FROM time_blocks WHERE id = ?', [block.id]).rows?.[0] as
+        | StoredSyncRow
+        | undefined;
+      if (row) {
+        const userId = String(row.user_id);
+        syncOutboxStore.enqueueMutation(
+          userId,
+          'time_block',
+          block.id,
+          'update',
+          timeBlockPayload(row),
+          'account',
+          userId,
+          tx,
+        );
+      }
+    };
     try {
-      db.transactionSync((tx) => {
-        tx.executeSync(`UPDATE time_blocks SET ${sets.join(', ')} WHERE id = ?`, params);
-        const row = tx.executeSync('SELECT * FROM time_blocks WHERE id = ?', [block.id]).rows?.[0] as
-          | StoredSyncRow
-          | undefined;
-        if (row) {
-          const userId = String(row.user_id);
-          syncOutboxStore.enqueueMutation(
-            userId,
-            'time_block',
-            block.id,
-            'update',
-            timeBlockPayload(row),
-            'account',
-            userId,
-            tx,
-          );
-        }
-      });
+      if (executor) applyUpdate(executor);
+      else db.transactionSync(applyUpdate);
     } catch (error) {
       console.error('Error updating time block:', error);
       throw error;
@@ -228,11 +231,10 @@ export const timeBlocksStore = {
         executor,
       );
 
-      const reminders =
-        executor.executeSync(
-          `SELECT id, precast_audio_path FROM reminders WHERE user_id = ? AND task = ? AND deleted_at IS NULL AND status IN ('pending', 'snoozed')`,
-          [userId, blockRow.title],
-        ).rows || [];
+      const reminders = remindersForSource(executor, userId, 'time_block', id, blockRow.title, [
+        'pending',
+        'snoozed',
+      ]);
       for (const reminder of reminders) {
         executor.executeSync(
           `UPDATE reminders SET deleted_at = ?, updated_at = ? WHERE id = ?`,

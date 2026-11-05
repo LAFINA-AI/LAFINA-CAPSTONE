@@ -1,0 +1,40 @@
+ M App.tsx
+ M __tests__/ai/phase06SttAndVoiceModal.test.tsx
+ M __tests__/ai/phase08ChatAndOrchestrator.test.tsx
+ M __tests__/storage/schemaMigrations.test.ts
+ M docs/plans/agy-improvements/reports/PRESERVED-FEATURES.md
+ M docs/plans/agy-improvements/reports/RUN-STATE.json
+ M docs/plans/agy-improvements/reports/autonomous-run-log.md
+ M scripts/check-architecture.mjs
+ M src/ai/chatOrchestrator.ts
+ M src/ai/nlu/actionExecutor.ts
+ M src/ai/nlu/index.ts
+ M src/ai/nlu/intentService.ts
+ M src/storage/dbInit.ts
+ M src/storage/index.ts
+ M src/storage/notesStore.ts
+ M src/storage/remindersStore.ts
+ M src/storage/tasksStore.ts
+ M src/storage/timeBlocksStore.ts
+ M src/ui/components/VoiceModal.tsx
+ M src/ui/screens/ChatScreen.tsx
+ M src/ui/screens/calendar/CalendarScreen.tsx
+ M src/ui/screens/calendar/hooks/useScheduleItemModal.ts
+?? AGY-IMPROVEMENTS-MANIFEST.json
+?? AGY-IMPROVEMENTS-START.md
+?? __tests__/ai/agyPort04ReviewedCommands.test.ts
+?? __tests__/ui/agyPort04ReviewUi.test.tsx
+?? agy-improvements/
+?? docs/decisions/ADR-018-reviewed-commands-revisions-receipts.md
+?? docs/plans/agy-improvements/reports/evidence/agy-port-20261106/phase-04/
+?? docs/plans/agy-improvements/reports/phase-04-reviews.md
+?? docs/reports/agy-ustp-comparison-20261106.md
+?? docs/reports/evidence/agy-ustp-comparison-20261106/
+?? src/ai/nlu/commandReview.ts
+?? src/ai/nlu/intentRoutes.ts
+?? src/storage/assistantOperationSchema.ts
+?? src/storage/assistantOperationStore.ts
+?? src/storage/sourceReminders.ts
+?? src/ui/components/chat/CommandReviewCard.tsx
+?? src/ui/hooks/
+?? src/ui/screens/calendar/components/UndatedTasksModal.tsx

@@ -63,6 +63,7 @@ import { AuthBackdrop } from './src/ui/components/auth/AuthBackdrop';
 import { ProductTour } from './src/ui/tour/ProductTour';
 import { buildTourSteps } from './src/ui/tour/tourSteps';
 import { VoiceModal } from './src/ui/components/VoiceModal';
+import { endReviewSession } from './src/ai/nlu/commandReview';
 
 function AppContent({
   userId,
@@ -145,6 +146,9 @@ function AppContent({
     const previous = previousUserRef.current;
     previousUserRef.current = userId;
     if (previous === userId) return;
+    // Open assistant reviews never outlive the account they were prepared for
+    // (AGY-PORT 04): sign-out, sign-in and account switch all end them.
+    endReviewSession();
     if (callOwnerRef.current && callOwnerRef.current !== userId) {
       callOwnerRef.current = null;
       setCallVisible(false);

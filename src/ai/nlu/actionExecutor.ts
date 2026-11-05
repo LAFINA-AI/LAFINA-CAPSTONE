@@ -18,7 +18,7 @@ export interface ActionExecutorOptions {
   speakResult?: boolean;
 }
 
-function format12HourTime(timeStr?: string | null): string {
+export function format12HourTime(timeStr?: string | null): string {
   if (!timeStr) return '';
   const match = /^(\d{1,2}):(\d{2})/.exec(timeStr.trim());
   if (!match) return timeStr;
@@ -38,7 +38,7 @@ function formatListWithAnd(items: string[]): string {
   return `${items.slice(0, -1).join(', ')}, and ${items[items.length - 1]}`;
 }
 
-function formatSpokenDayLabel(targetDateStr: string, refDate: Date): string {
+export function formatSpokenDayLabel(targetDateStr: string, refDate: Date): string {
   const todayFormatted = formatLocalDate(refDate);
 
   const tomorrow = new Date(refDate);
@@ -78,7 +78,7 @@ function formatSpokenDayLabel(targetDateStr: string, refDate: Date): string {
   return `For ${targetDateStr}`;
 }
 
-function normalizeForMatch(text: string | null | undefined): string {
+export function normalizeForMatch(text: string | null | undefined): string {
   if (!text) return '';
   return text
     .toLowerCase()
@@ -91,7 +91,7 @@ function normalizeForMatch(text: string | null | undefined): string {
     .trim();
 }
 
-function normalizeRawWords(text: string | null | undefined): string {
+export function normalizeRawWords(text: string | null | undefined): string {
   if (!text) return '';
   return text
     .toLowerCase()
@@ -101,7 +101,7 @@ function normalizeRawWords(text: string | null | undefined): string {
     .trim();
 }
 
-function isRecentReference(query: string | null | undefined): boolean {
+export function isRecentReference(query: string | null | undefined): boolean {
   if (!query) return false;
   const cleaned = query
     .toLowerCase()
@@ -125,7 +125,7 @@ function parseTimeMinutes(timeStr: string | null | undefined): number | null {
   return h * 60 + mins;
 }
 
-function scoreEntityMatch(
+export function scoreEntityMatch(
   candidateTitle: string,
   candidateDate: string | null | undefined,
   candidateTime: string | null | undefined,
@@ -347,7 +347,7 @@ function findMatchingNote(
   return { note: bestScore >= 30 ? bestNote : null, score: bestScore };
 }
 
-function computeDurationMinutes(startTime: string, endTime: string): number {
+export function computeDurationMinutes(startTime: string, endTime: string): number {
   const sMatch = /^(\d{1,2}):(\d{2})$/.exec(startTime);
   const eMatch = /^(\d{1,2}):(\d{2})$/.exec(endTime);
   if (!sMatch || !eMatch) return 60;
@@ -357,7 +357,7 @@ function computeDurationMinutes(startTime: string, endTime: string): number {
   return eMin - sMin;
 }
 
-function addMinutesToTime(startTime: string, durationMinutes: number): string {
+export function addMinutesToTime(startTime: string, durationMinutes: number): string {
   const [h, m] = startTime.split(':').map((v) => parseInt(v, 10));
   const totalMin = h * 60 + m + durationMinutes;
   const endH = Math.floor(totalMin / 60) % 24;

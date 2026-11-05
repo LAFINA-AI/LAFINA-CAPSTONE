@@ -36,8 +36,38 @@ const FORBIDDEN_SPECIFIER_PATTERNS = [
   },
 ];
 
+// AGY-PORT 04: assistant writes are reviewed. The unreviewed end-to-end
+// helper is test-only, and the direct executor is reachable only from its own
+// module, the NLU barrel and the orchestrator's read-only route.
+const UNREVIEWED_WRITERS = [
+  {
+    name: 'processAndExecuteIntent',
+    allowed: new Set(['ai/nlu/intentService.ts']),
+  },
+  {
+    name: 'executeNluAction',
+    allowed: new Set([
+      'ai/nlu/actionExecutor.ts',
+      'ai/nlu/intentService.ts',
+      'ai/nlu/index.ts',
+      'ai/chatOrchestrator.ts',
+    ]),
+  },
+];
+
 for (const file of files) {
   const content = fs.readFileSync(file, 'utf8');
+  const relative = path.relative(root, file).split(path.sep).join('/');
+  for (const writer of UNREVIEWED_WRITERS) {
+    if (
+      !writer.allowed.has(relative) &&
+      new RegExp(`\\b${writer.name}\\b`).test(content)
+    ) {
+      errors.push(
+        `${relative}: references ${writer.name}, which writes without a review (AGY-PORT 04)`,
+      );
+    }
+  }
   if (/kokoro-v0_19|af_bella\.bin|LafinaTTSModule/.test(content)) {
     errors.push(
       `${path.relative(root, file)}: references forbidden Kokoro 82M TTS artifact or module`,
