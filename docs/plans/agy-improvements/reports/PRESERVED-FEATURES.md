@@ -19,3 +19,11 @@ Baseline command: `npx jest --runInBand` gave 16 suites and 194 tests, all passi
 | PF11 | Reminder calls and identity | PASS: `phase03`, `callDispatcherAndCallScreen`, preservation PF11 | reminder native module, poller | Pending | NOT_RUN |
 | PF12 | Data/error/privacy recovery | PARTIAL: rollback covered by PF03; a production no-op storage fallback is a known defect that AGY-PORT 01 fixes | `database`, `dbInit` | Pending | NOT_RUN |
 | PF13 | Android/native/update identity | PASS: preservation PF13 (static identity checks) | `build.gradle`, manifest | Pending | NOT_RUN |
+
+## Per-phase results
+
+| Phase | Tested state | PF results (host automation) | Notes |
+|---|---|---|---|
+| 01 | 5f0ac39 + worktree, committed 8ab83b2 | PF01-PF04, PF07, PF08, PF12 PASS; PF12 no-op storage fallback fixed | preflight 248 |
+| 02 | 8ab83b2 + worktree, committed aec3703 | PF01-PF07, PF10, PF12 PASS | Intentional: pre-upgrade shared Chat history is quarantined when ownership is ambiguous. preflight 279 |
+| 03 | aec3703 + worktree | PF01-PF04, PF09, PF11-PF13 PASS | Intentional: a snooze is saved and retried when Android rejects the alarm; boot restore skips alarms more than 15 minutes late. Jest 316, Kotlin 24, debug build PASS. Instrumentation compiled once, before the review follow-up changed `LafinaReminderModule.kt` |

@@ -19,6 +19,7 @@ import {
   DEFAULT_QUIET_HOURS,
 } from '../constants';
 import {migrateChatOwnership} from './chatOwnership';
+import {migrateReminderDelivery} from './deliverySchema';
 
 export interface SchemaMigration {
   /** The `user_version` this step produces. */
@@ -42,6 +43,14 @@ export const SCHEMA_MIGRATIONS: readonly SchemaMigration[] = [
       'Owner-bound Chat sessions, durable message order, citation metadata, legacy quarantine (AGY-PORT 02)',
     up: tx => {
       migrateChatOwnership(tx);
+    },
+  },
+  {
+    version: 19,
+    description:
+      'Local reminder delivery jobs, generations and redacted delivery events (AGY-PORT 03)',
+    up: tx => {
+      migrateReminderDelivery(tx);
     },
   },
 ];

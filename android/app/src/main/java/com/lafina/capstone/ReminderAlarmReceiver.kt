@@ -4,12 +4,12 @@ import android.content.Context
 import android.content.Intent
 
 /**
- * Dedicated broadcast receiver for AlarmManager reminder triggers.
+ * Dedicated broadcast receiver for AlarmManager reminder triggers. It uses the
+ * same identity claim as LafinaReminderReceiver, so a stale or duplicate
+ * broadcast cannot post a call.
  */
 class ReminderAlarmReceiver : LafinaReminderReceiver() {
   override fun onReceive(context: Context, intent: Intent) {
-    val reminderId = intent.getStringExtra("reminderId") ?: return
-    val task = intent.getStringExtra("task") ?: ""
-    LafinaReminderModule.handleAlarmTrigger(context, reminderId, task)
+    LafinaReminderModule.handleTriggerIntent(context, intent)
   }
 }

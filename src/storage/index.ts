@@ -48,6 +48,18 @@ export type {
 } from './preferencesStore';
 export {remindersStore} from './remindersStore';
 export type {Reminder, ReminderStatus} from './remindersStore';
+export {
+  deliveryStore,
+  deliveryIdentityUri,
+  deliveryNotificationTag,
+  DeliveryFenceError,
+} from './deliveryStore';
+export type {
+  DeliveryFenceReason,
+  DeliveryIdentity,
+  DeliveryJob,
+  ReminderSourceType,
+} from './deliveryStore';
 export {syncOutboxStore} from './syncOutboxStore';
 export type {OutboxItem} from './syncOutboxStore';
 export {syncMetadataStore} from './syncMetadataStore';

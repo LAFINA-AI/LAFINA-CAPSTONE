@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
   StatusBar,
   StyleSheet,
@@ -19,8 +19,6 @@ import {
   userStore,
   syncOutboxStore,
   productTourStore,
-  remindersStore,
-  tasksStore,
 } from './src/storage';
 import { CustomTabBar, TabType } from './src/ui/components/CustomTabBar';
 import { StorageRecoveryScreen } from './src/ui/screens/StorageRecoveryScreen';
@@ -34,12 +32,13 @@ import {
   stopReminderPoller,
   consumePendingNativeCall,
   getReminderPermissionStatus,
-  reconcileReminderAlarms,
-  cancelReminderAlarm,
-  finishNativeIncomingCall,
+  reconcileReminderDelivery,
+  admitReminderCall,
+  disconnectCall,
   EVENT_CALL_TRIGGER,
 } from './src/scheduler';
 import type {
+  CallRequest,
   NativeCallAction,
   NativeCallTrigger,
   ReminderPermissionStatus,
@@ -91,6 +90,10 @@ function AppContent({
   const [callReminderId, setCallReminderId] = useState('');
   const [callTask, setCallTask] = useState('');
   const [callAction, setCallAction] = useState<NativeCallAction>('call');
+  // Delivery identity captured when the call is admitted; every action is fenced by it.
+  const [callGeneration, setCallGeneration] = useState<number | null>(null);
+  const callOwnerRef = useRef<string | null>(null);
+  const previousUserRef = useRef<string | null>(null);
 
   // Reminder Permission State
   const [permissionStatus, setPermissionStatus] = useState<ReminderPermissionStatus | null>(null);
@@ -120,6 +123,39 @@ function AppContent({
     };
   }, []);
 
+  // One admission path for every call source: owner + captured identity fence first.
+  const presentCall = useCallback(
+    (request: CallRequest): boolean => {
+      const admission = admitReminderCall(request, userId);
+      if (!admission.admitted) return false;
+      callOwnerRef.current = admission.reminder.userId;
+      setCallReminderId(admission.reminder.id);
+      setCallTask(admission.task);
+      setCallAction(admission.action);
+      setCallGeneration(admission.generation);
+      setCallVisible(true);
+      return true;
+    },
+    [userId],
+  );
+
+  // Account switch or logout retires the previous owner's call UI, speech and
+  // native registrations; their jobs stay in SQLite for a later return.
+  useEffect(() => {
+    const previous = previousUserRef.current;
+    previousUserRef.current = userId;
+    if (previous === userId) return;
+    if (callOwnerRef.current && callOwnerRef.current !== userId) {
+      callOwnerRef.current = null;
+      setCallVisible(false);
+      setCallGeneration(null);
+      disconnectCall();
+    }
+    if (previous && !userId) {
+      void reconcileReminderDelivery(null);
+    }
+  }, [userId]);
+
   useEffect(() => {
     if (!userId) {
       stopReminderPoller();
@@ -136,7 +172,7 @@ function AppContent({
   useEffect(() => {
     if (!userId) return;
 
-    void reconcileReminderAlarms(remindersStore.getPendingReminders(userId));
+    void reconcileReminderDelivery(userId);
 
     void (async (): Promise<void> => {
       try {
@@ -164,113 +200,30 @@ function AppContent({
     })();
 
     void consumePendingNativeCall().then((payload) => {
-      if (!payload) return;
-      const reminder = remindersStore.getReminderById(payload.reminderId);
-      if (!reminder || reminder.userId !== userId) return;
-
-      // If reminder was already acknowledged, missed, or the underlying task completed, dismiss native call and suppress popup
-      if (reminder.status === 'acknowledged' || reminder.status === 'missed') {
-        void finishNativeIncomingCall(reminder.id);
-        void cancelReminderAlarm(reminder.id);
-        return;
-      }
-
-      const activeUserId = userId || 'local_guest_user';
-      const matchingTasks = tasksStore.getAllTasks(activeUserId);
-      const isTaskDone = matchingTasks.some(
-        (t) => t.isCompleted && t.title.trim().toLowerCase() === reminder.task.trim().toLowerCase(),
-      );
-      if (isTaskDone) {
-        remindersStore.acknowledgeReminder(reminder.id);
-        void cancelReminderAlarm(reminder.id);
-        void finishNativeIncomingCall(reminder.id);
-        return;
-      }
-
-      const allReminders = remindersStore.getAllReminders(activeUserId);
-      const wasAlreadyAck = allReminders.some(
-        (r) =>
-          r.id !== reminder.id &&
-          r.status === 'acknowledged' &&
-          r.task.trim().toLowerCase() === reminder.task.trim().toLowerCase(),
-      );
-      if (wasAlreadyAck) {
-        remindersStore.acknowledgeReminder(reminder.id);
-        void cancelReminderAlarm(reminder.id);
-        void finishNativeIncomingCall(reminder.id);
-        return;
-      }
-
-      setIsLoading(false);
-      setCallReminderId(reminder.id);
-      setCallTask(payload.task || reminder.task);
-      setCallAction(payload.action);
-      setCallVisible(true);
+      if (payload && presentCall(payload)) setIsLoading(false);
     });
-  }, [userId]);
+  }, [userId, presentCall]);
 
   // Listen for both foreground scheduler events and native alarm/activity intents
   useEffect(() => {
-    const showCall = (event: { reminderId: string; task?: string; action?: NativeCallAction }): void => {
-      const reminder = remindersStore.getReminderById(event.reminderId);
-      if (!reminder || (userId && reminder.userId !== userId)) return;
-
-      // Suppress call popup if reminder is already acknowledged or missed
-      if (reminder.status === 'acknowledged' || reminder.status === 'missed') {
-        void finishNativeIncomingCall(reminder.id);
-        void cancelReminderAlarm(reminder.id);
-        return;
-      }
-
-      // Suppress if matching task is already completed
-      const activeUserId = userId || reminder.userId || 'local_guest_user';
-      const matchingTasks = tasksStore.getAllTasks(activeUserId);
-      const isTaskDone = matchingTasks.some(
-        (t) => t.isCompleted && t.title.trim().toLowerCase() === reminder.task.trim().toLowerCase(),
-      );
-      if (isTaskDone) {
-        remindersStore.acknowledgeReminder(reminder.id);
-        void cancelReminderAlarm(reminder.id);
-        void finishNativeIncomingCall(reminder.id);
-        return;
-      }
-
-      // Suppress if another reminder with this task/event title has already been acknowledged
-      const allReminders = remindersStore.getAllReminders(activeUserId);
-      const wasAlreadyAck = allReminders.some(
-        (r) =>
-          r.id !== reminder.id &&
-          r.status === 'acknowledged' &&
-          r.task.trim().toLowerCase() === reminder.task.trim().toLowerCase(),
-      );
-      if (wasAlreadyAck) {
-        remindersStore.acknowledgeReminder(reminder.id);
-        void cancelReminderAlarm(reminder.id);
-        void finishNativeIncomingCall(reminder.id);
-        return;
-      }
-
-      setCallReminderId(reminder.id);
-      setCallTask(event.task || reminder.task);
-      setCallAction(event.action || 'call');
-      setCallVisible(true);
-    };
-
     const foregroundSubscription = DeviceEventEmitter.addListener(
       EVENT_CALL_TRIGGER,
-      (event: { reminderId: string; task: string }) =>
-        showCall({ ...event, action: 'call' }),
+      (event: CallRequest) => {
+        presentCall({ ...event, action: 'call' });
+      },
     );
     const nativeSubscription = DeviceEventEmitter.addListener(
       'LAFINA_NATIVE_CALL_TRIGGER',
-      (event: NativeCallTrigger) => showCall(event),
+      (event: NativeCallTrigger) => {
+        presentCall(event);
+      },
     );
 
     return () => {
       foregroundSubscription.remove();
       nativeSubscription.remove();
     };
-  }, [userId]);
+  }, [presentCall]);
 
   const setupApp = useCallback(async () => {
     try {
@@ -354,13 +307,7 @@ function AppContent({
       startReminderPoller(userId);
       void rescheduleUserReminders(userId);
       void consumePendingNativeCall().then((payload) => {
-        if (!payload) return;
-        const reminder = remindersStore.getReminderById(payload.reminderId);
-        if (!reminder || reminder.userId !== userId) return;
-        setCallReminderId(reminder.id);
-        setCallTask(payload.task || reminder.task);
-        setCallAction(payload.action);
-        setCallVisible(true);
+        if (payload) presentCall(payload);
       });
       void getReminderPermissionStatus().then((status) => {
         if (status) setPermissionStatus(status);
@@ -384,7 +331,7 @@ function AppContent({
       unsubscribeNetInfo();
       scheduler.dispose();
     };
-  }, [userId, setRefreshTrigger]);
+  }, [userId, setRefreshTrigger, presentCall]);
 
   const triggerRefresh = useCallback(() => {
     setRefreshTrigger((prev) => prev + 1);
@@ -603,7 +550,9 @@ function AppContent({
         task={callTask}
         userId={userId}
         initialAction={callAction}
+        deliveryGeneration={callGeneration}
         onClose={() => {
+          callOwnerRef.current = null;
           setCallVisible(false);
           triggerRefresh();
         }}
