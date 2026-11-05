@@ -133,7 +133,7 @@ export const AddTaskEventModal: React.FC<AddTaskEventModalProps> = ({ state, tim
                 <DateTimePicker
                   value={timeStringToDate(state.form.time)}
                   mode="time"
-                  is24Hour={timeFormat24h}
+                  is24Hour={false}
                   display="default"
                   onChange={(_event, date) => {
                     state.setShowTimePicker(false);
@@ -158,7 +158,7 @@ export const AddTaskEventModal: React.FC<AddTaskEventModalProps> = ({ state, tim
                   <DateTimePicker
                     value={timeStringToDate(state.form.endTime)}
                     mode="time"
-                    is24Hour={timeFormat24h}
+                    is24Hour={false}
                     display="default"
                     onChange={(_event, date) => {
                       state.setShowEndTimePicker(false);

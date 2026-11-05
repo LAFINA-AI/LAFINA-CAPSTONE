@@ -53,11 +53,23 @@ interface PreferenceOptionGroupProps {
   onSelect: (value: string) => void;
 }
 
+const formatTo12Hour = (time24: string): string => {
+  if (!time24) return '';
+  const parts = time24.split(':');
+  if (parts.length < 2) return time24;
+  const hour = parseInt(parts[0], 10);
+  const minStr = parts[1];
+  if (isNaN(hour)) return time24;
+  const ampm = hour >= 12 ? 'PM' : 'AM';
+  const displayHour = hour % 12 === 0 ? 12 : hour % 12;
+  return `${displayHour}:${minStr} ${ampm}`;
+};
+
 const WAKE_OPTIONS: PreferenceOption[] = ['05:00', '06:00', '07:00', '08:00', '09:00'].map(
-  (value) => ({ label: value, value }),
+  (value) => ({ label: formatTo12Hour(value), value }),
 );
 const SLEEP_OPTIONS: PreferenceOption[] = ['21:00', '22:00', '23:00', '00:00', '01:00'].map(
-  (value) => ({ label: value, value }),
+  (value) => ({ label: formatTo12Hour(value), value }),
 );
 const STUDY_OPTIONS: PreferenceOption[] = [
   { label: 'Morning', value: 'morning' },
@@ -231,14 +243,14 @@ export const PreferencesSettingsScreen: React.FC<PreferencesSettingsScreenProps>
     () =>
       WAKE_OPTIONS.some((option) => option.value === wakeTime)
         ? WAKE_OPTIONS
-        : [{ label: `Current: ${wakeTime}`, value: wakeTime }, ...WAKE_OPTIONS],
+        : [{ label: `Current: ${formatTo12Hour(wakeTime)}`, value: wakeTime }, ...WAKE_OPTIONS],
     [wakeTime],
   );
   const sleepOptions = useMemo(
     () =>
       SLEEP_OPTIONS.some((option) => option.value === sleepTime)
         ? SLEEP_OPTIONS
-        : [{ label: `Current: ${sleepTime}`, value: sleepTime }, ...SLEEP_OPTIONS],
+        : [{ label: `Current: ${formatTo12Hour(sleepTime)}`, value: sleepTime }, ...SLEEP_OPTIONS],
     [sleepTime],
   );
 

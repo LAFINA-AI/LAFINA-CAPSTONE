@@ -146,6 +146,52 @@ describe('Phase 08: End-to-End Offline Student Assistant & ChatScreen Integratio
 
       speakSpy.mockRestore();
     });
+
+    test('executes cancel/delete and update commands for tasks, events, and time blocks via chatOrchestrator', async () => {
+      const cancelChatUser = 'test-student-phase08-cancel';
+
+      // 1. Schedule a coffee date via conversational prompt
+      const schedRes = await chatOrchestrator.processMessage(
+        cancelChatUser,
+        "So let's schedule at 2 PM for a coffee date.",
+        { referenceDate: fixedDate },
+      );
+      expect(schedRes.actionResult?.success).toBe(true);
+      expect(schedRes.reply).toContain('"Coffee Date"');
+      expect(schedRes.reply).toContain('at 2:00 PM');
+      expect(schedRes.reply).not.toContain('14:00');
+      const createdTasks = tasksStore.getAllTasks(cancelChatUser);
+      expect(createdTasks).toHaveLength(1);
+      expect(createdTasks[0].dueTime).toBe('14:00');
+
+      // 2. Cancel the coffee date by time through ChatOrchestrator
+      const cancelTaskRes = await chatOrchestrator.processMessage(
+        cancelChatUser,
+        'Cancel my 2 PM task',
+        { referenceDate: fixedDate },
+      );
+      expect(cancelTaskRes.actionResult?.success).toBe(true);
+      expect(cancelTaskRes.reply).toContain('Removed task: "Coffee Date"');
+      expect(tasksStore.getAllTasks(cancelChatUser)).toHaveLength(0);
+
+      // 3. Insert an event and delete it by name through ChatOrchestrator
+      tasksStore.insertEvent({
+        id: 'ev-phase08-cancel',
+        userId: cancelChatUser,
+        title: 'Faculty Consultation',
+        date: '2026-10-30',
+        startTime: '15:00',
+        endTime: '16:00',
+      });
+      const deleteEventRes = await chatOrchestrator.processMessage(
+        cancelChatUser,
+        'Delete my Faculty Consultation event',
+        { referenceDate: fixedDate },
+      );
+      expect(deleteEventRes.actionResult?.success).toBe(true);
+      expect(deleteEventRes.actionResult?.entityType).toBe('event');
+      expect(tasksStore.getAllEvents(cancelChatUser)).toHaveLength(0);
+    });
   });
 
   describe('3. ChatScreen Component & User Interactions', () => {

@@ -63,7 +63,7 @@ export const buildProfileSyncPayload = (
       typeof preferences?.longest_class_gap === 'string'
         ? preferences.longest_class_gap
         : DEFAULT_LONGEST_GAP,
-    time_format_24h: user?.time_format_24h === 1,
+    time_format_24h: false,
     week_starts_monday: user?.week_starts_monday === 1,
     dark_mode: user?.dark_mode === 1,
   };

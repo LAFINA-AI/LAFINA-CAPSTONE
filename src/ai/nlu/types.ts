@@ -16,7 +16,7 @@ export type ParsedIntentType =
   | 'chat'
   | 'out_of_scope';
 
-export type CrudTargetEntityType = 'task' | 'time_block' | 'note' | 'reminder' | 'any';
+export type CrudTargetEntityType = 'task' | 'time_block' | 'event' | 'note' | 'reminder' | 'any';
 
 export interface ExtractedIntent {
   intent: ParsedIntentType;
@@ -47,7 +47,7 @@ export interface ValidatedIntent extends ExtractedIntent {
 export interface NluActionResult {
   success: boolean;
   intent: ParsedIntentType;
-  entityType?: 'task' | 'time_block' | 'reminder' | 'note';
+  entityType?: 'task' | 'time_block' | 'event' | 'reminder' | 'note';
   entityId?: string;
   reply: string;
   error?: string;

@@ -27,10 +27,8 @@ export const timeToMinutes = (time: string): number => {
 export const formatLocalDate = (date: Date): string =>
   `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
 
-export const hourLabel = (hour: number, timeFormat24h: boolean): string =>
-  timeFormat24h
-    ? `${String(hour % 24).padStart(2, '0')}:00`
-    : `${hour % 12 || 12} ${hour >= 12 && hour < 24 ? 'PM' : 'AM'}`;
+export const hourLabel = (hour: number, _timeFormat24h?: boolean): string =>
+  `${hour % 12 || 12} ${hour >= 12 && hour < 24 ? 'PM' : 'AM'}`;
 
 export interface TimedInterval {
   id: string;

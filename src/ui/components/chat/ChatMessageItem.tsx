@@ -42,8 +42,9 @@ export const ChatMessageItem: React.FC<ChatMessageItemProps> = ({ item, onSpeak 
   };
 
   const formattedTime = new Date(item.createdAt).toLocaleTimeString([], {
-    hour: '2-digit',
+    hour: 'numeric',
     minute: '2-digit',
+    hour12: true,
   });
 
   return (

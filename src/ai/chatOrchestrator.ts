@@ -219,6 +219,12 @@ export class ChatOrchestrator {
         validated.intent === 'create_time_block' ||
         validated.intent === 'create_reminder' ||
         validated.intent === 'create_note' ||
+        validated.intent === 'update_task' ||
+        validated.intent === 'update_time_block' ||
+        validated.intent === 'update_note' ||
+        validated.intent === 'delete_task' ||
+        validated.intent === 'delete_time_block' ||
+        validated.intent === 'delete_note' ||
         validated.intent === 'query_schedule' ||
         validated.intent === 'acknowledge' ||
         validated.intent === 'snooze' ||

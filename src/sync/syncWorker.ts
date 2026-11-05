@@ -312,7 +312,7 @@ const applyProfile = (
      WHERE id = ?`,
     [
       username,
-      booleanOrDefault(payload, 'time_format_24h', false) ? 1 : 0,
+      0,
       booleanOrDefault(payload, 'week_starts_monday', false) ? 1 : 0,
       booleanOrDefault(payload, 'dark_mode', false) ? 1 : 0,
       change.updatedAt,

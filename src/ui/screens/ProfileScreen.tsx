@@ -88,7 +88,6 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
   const [notesCount, setNotesCount] = useState(0);
   const [voiceCommandsCount, setVoiceCommandsCount] = useState(0);
 
-  const [timeFormat24h, setTimeFormat24h] = useState(false);
   const [weekStartsMonday, setWeekStartsMonday] = useState(false);
   const [summaryStyleDetailed, setSummaryStyleDetailed] = useState(false);
   const [dailyBriefingEnabled, setDailyBriefingEnabled] = useState(true);
@@ -114,9 +113,6 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
   const loadSettings = () => {
     setCurrentUser(userStore.getUserById(userId));
 
-    const is24h = userStore.get24HourFormat(userId);
-    setTimeFormat24h(is24h);
-
     const mondayStart = userStore.getWeekStartsMonday(userId);
     setWeekStartsMonday(mondayStart);
 
@@ -124,12 +120,6 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
     setPreferenceSummary(
       `${preferences.reminderLeadMinutes} min, ${getSnoozePreferenceLabel(preferences)}`,
     );
-  };
-
-  const handleToggleTimeFormat = (value: boolean) => {
-    setTimeFormat24h(value);
-    userStore.set24HourFormat(userId, value);
-    onRefresh();
   };
 
   const handleToggleWeekStart = (value: boolean) => {
@@ -374,13 +364,6 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
               type="link"
               valueText={preferenceSummary}
               onPress={() => setPreferencesVisible(true)}
-            />
-            <View style={[styles.settingDivider, themed.settingDivider]} />
-            <SettingItem
-              text="24-Hour Time Format"
-              type="toggle"
-              value={timeFormat24h}
-              onValueChange={handleToggleTimeFormat}
             />
             <View style={[styles.settingDivider, themed.settingDivider]} />
             <SettingItem

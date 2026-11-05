@@ -23,22 +23,18 @@ export const dateToTimeString = (d: Date): string => {
   return `${h}:${m}`;
 };
 
-/** Format a "HH:MM" 24-hour string for display based on format setting. */
-export const formatTimeForDisplay = (timeStr: string, is24Hour: boolean): string => {
+/** Format a "HH:MM" 24-hour string strictly in 12-hour AM/PM display format. */
+export const formatTimeForDisplay = (timeStr: string, _is24Hour?: boolean): string => {
   if (!timeStr) return '';
   const [hStr, mStr] = timeStr.split(':');
   const h = parseInt(hStr, 10);
   const m = parseInt(mStr, 10);
   if (isNaN(h) || isNaN(m)) return timeStr;
 
-  if (is24Hour) {
-    return `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}`;
-  } else {
-    const ampm = h >= 12 ? 'PM' : 'AM';
-    const displayHour = h % 12 === 0 ? 12 : h % 12;
-    const displayMin = m.toString().padStart(2, '0');
-    return `${displayHour.toString().padStart(2, '0')}:${displayMin} ${ampm}`;
-  }
+  const ampm = h >= 12 ? 'PM' : 'AM';
+  const displayHour = h % 12 === 0 ? 12 : h % 12;
+  const displayMin = m.toString().padStart(2, '0');
+  return `${displayHour.toString().padStart(2, '0')}:${displayMin} ${ampm}`;
 };
 
 /** Get header title for the calendar based on view mode and selected date. */

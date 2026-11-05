@@ -55,7 +55,7 @@ export const buildTourSteps = ({ isGuest }: TourAudience): TourStep[] => [
     title: isGuest ? 'Your guest session' : 'Profile & settings',
     body: isGuest
       ? 'Guest data lives on this phone. Create an account from here when you want it on your other devices — nothing you have made is lost in the swap.'
-      : 'Reminder preferences, time format, dark mode and your photo all live here. Your data syncs when you are signed in and online.',
+      : 'Reminder preferences, dark mode and your photo all live here. Your data syncs when you are signed in and online.',
     anchor: 'tab-profile',
     tab: 'profile',
   },

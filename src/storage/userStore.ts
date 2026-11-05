@@ -32,7 +32,7 @@ const mapStoredUser = (row: StoredUserRow): User => ({
   email: typeof row.email === 'string' ? row.email : null,
   role: typeof row.role === 'string' ? row.role : 'student',
   isNewUser: row.is_new_user === 1,
-  timeFormat24h: row.time_format_24h === 1,
+  timeFormat24h: false,
   weekStartsMonday: row.week_starts_monday === 1,
   darkModeEnabled: row.dark_mode === 1,
   cloudAccountId:
@@ -424,34 +424,23 @@ export const userStore = {
     }
   },
 
-  get24HourFormat: (userId: string): boolean => {
-    try {
-      const result = db.executeSync(
-        `SELECT time_format_24h FROM users WHERE id = ?`,
-        [userId]
-      );
-      if (result.rows && result.rows.length > 0) {
-        return !!result.rows[0].time_format_24h;
-      }
-      return false;
-    } catch (error) {
-      console.error('Error fetching 24-hour time format setting:', error);
-      return false;
-    }
+  get24HourFormat: (_userId: string): boolean => {
+    // 12-hour format is strictly enforced across the application.
+    return false;
   },
 
-  set24HourFormat: (userId: string, enabled: boolean): void => {
+  set24HourFormat: (userId: string, _enabled: boolean): void => {
     const now = new Date().toISOString();
     try {
       db.transactionSync((tx) => {
         tx.executeSync(
-          `UPDATE users SET time_format_24h = ?, updated_at = ? WHERE id = ?`,
-          [enabled ? 1 : 0, now, userId],
+          `UPDATE users SET time_format_24h = 0, updated_at = ? WHERE id = ?`,
+          [now, userId],
         );
         enqueueProfileMutation(userId, 'update', tx);
       });
     } catch (error) {
-      console.error('Error saving 24-hour time format setting:', error);
+      console.error('Error saving time format setting:', error);
       throw error;
     }
   },

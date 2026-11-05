@@ -709,7 +709,7 @@ describe('Phase 07: Smart Hybrid On-Device NLU & Action Execution', () => {
 
       expect(result.success).toBe(true);
       expect(result.intent).toBe('create_time_block');
-      expect(result.reply).toContain('from 09:00 to 12:00');
+      expect(result.reply).toContain('from 9:00 AM to 12:00 PM');
 
       const blocks = timeBlocksStore.getAll(testUserId);
       const coffeeBlock = blocks.find((b) => b.title === 'Coffee break');
@@ -1140,6 +1140,140 @@ describe('Phase 07: Smart Hybrid On-Device NLU & Action Execution', () => {
       expect(deleteN.success).toBe(true);
       expect(deleteN.intent).toBe('delete_note');
       expect(notesStore.getAll(crudUser)).toHaveLength(0);
+    });
+
+    test('distills clean titles from conversational scheduling prompts and cancels/deletes tasks, events, and time blocks by name or time', async () => {
+      const cancelUser = 'test-student-cancel-hardening';
+
+      // 1. Conversational prompt from screenshot: "So let's schedule at 2 PM for a coffee date."
+      const coffeeCreate = await intentService.processAndExecuteIntent(
+        cancelUser,
+        "So let's schedule at 2 PM for a coffee date.",
+        { referenceDate: fixedDate },
+      );
+      expect(coffeeCreate.success).toBe(true);
+      expect(coffeeCreate.intent).toBe('create_task');
+      expect(coffeeCreate.reply).toContain('"Coffee Date"');
+      let tasks = tasksStore.getAllTasks(cancelUser);
+      expect(tasks).toHaveLength(1);
+      expect(tasks[0].title).toBe('Coffee Date');
+      expect(tasks[0].dueTime).toBe('14:00');
+
+      // 2. Cancel task by time ("Cancel what I have at 2 PM")
+      const cancelByTime = await intentService.processAndExecuteIntent(
+        cancelUser,
+        'Cancel what I have at 2 PM',
+        { referenceDate: fixedDate },
+      );
+      expect(cancelByTime.success).toBe(true);
+      expect(tasksStore.getAllTasks(cancelUser)).toHaveLength(0);
+
+      // 3. Legacy noisy task titles ("Schedule ." at 1:00 PM and "Schedule for a Coffee Date." at 2:00 PM)
+      tasksStore.insertTask({
+        id: 'legacy-schedule-dot',
+        userId: cancelUser,
+        title: 'Schedule .',
+        dueDate: '2026-10-27',
+        dueTime: '13:00',
+        isCompleted: false,
+        priority: 'Medium',
+        category: 'Personal',
+      });
+      tasksStore.insertTask({
+        id: 'legacy-coffee-dot',
+        userId: cancelUser,
+        title: 'Schedule for a Coffee Date.',
+        dueDate: '2026-10-27',
+        dueTime: '14:00',
+        isCompleted: false,
+        priority: 'Medium',
+        category: 'Personal',
+      });
+
+      // Delete the 1 PM legacy task by time ("Delete my 1 PM schedule")
+      const delete1Pm = await intentService.processAndExecuteIntent(
+        cancelUser,
+        'Delete my 1 PM schedule',
+        { referenceDate: fixedDate },
+      );
+      expect(delete1Pm.success).toBe(true);
+      expect(tasksStore.getAllTasks(cancelUser).map((t) => t.id)).toEqual(['legacy-coffee-dot']);
+
+      // Cancel the 2 PM legacy task by name ("I want to cancel the coffee date")
+      const cancelCoffee = await intentService.processAndExecuteIntent(
+        cancelUser,
+        'I want to cancel the coffee date',
+        { referenceDate: fixedDate },
+      );
+      expect(cancelCoffee.success).toBe(true);
+      expect(tasksStore.getAllTasks(cancelUser)).toHaveLength(0);
+
+      // 4. Cancel / Delete calendar events by name and by time
+      tasksStore.insertEvent({
+        id: 'ev-cancel-1',
+        userId: cancelUser,
+        title: 'Department Assembly',
+        date: '2026-10-27',
+        startTime: '10:00',
+        endTime: '11:30',
+      });
+      tasksStore.insertEvent({
+        id: 'ev-cancel-2',
+        userId: cancelUser,
+        title: 'Thesis Panel Defense',
+        date: '2026-10-27',
+        startTime: '15:00',
+        endTime: '16:30',
+      });
+
+      const cancelEvByName = await intentService.processAndExecuteIntent(
+        cancelUser,
+        'Cancel event Department Assembly',
+        { referenceDate: fixedDate },
+      );
+      expect(cancelEvByName.success).toBe(true);
+      expect(cancelEvByName.entityType).toBe('event');
+      expect(tasksStore.getAllEvents(cancelUser).map((e) => e.id)).toEqual(['ev-cancel-2']);
+
+      const deleteEvByTime = await intentService.processAndExecuteIntent(
+        cancelUser,
+        'Delete my 3 PM event',
+        { referenceDate: fixedDate },
+      );
+      expect(deleteEvByTime.success).toBe(true);
+      expect(deleteEvByTime.entityType).toBe('event');
+      expect(tasksStore.getAllEvents(cancelUser)).toHaveLength(0);
+
+      // 5. Cancel / Delete time block by start time and by recent reference ("Cancel that")
+      await intentService.processAndExecuteIntent(
+        cancelUser,
+        'Create a time block from 4pm to 6pm for Capstone Debugging',
+        { referenceDate: fixedDate },
+      );
+      expect(timeBlocksStore.getAll(cancelUser)).toHaveLength(1);
+
+      const deleteTbByTime = await intentService.processAndExecuteIntent(
+        cancelUser,
+        'Delete my 4 PM time block',
+        { referenceDate: fixedDate },
+      );
+      expect(deleteTbByTime.success).toBe(true);
+      expect(timeBlocksStore.getAll(cancelUser)).toHaveLength(0);
+
+      await intentService.processAndExecuteIntent(
+        cancelUser,
+        'Add task at 5 PM for Laundry',
+        { referenceDate: fixedDate },
+      );
+      expect(tasksStore.getAllTasks(cancelUser)).toHaveLength(1);
+
+      const cancelRecent = await intentService.processAndExecuteIntent(
+        cancelUser,
+        'Cancel that',
+        { referenceDate: fixedDate },
+      );
+      expect(cancelRecent.success).toBe(true);
+      expect(tasksStore.getAllTasks(cancelUser)).toHaveLength(0);
     });
   });
 });

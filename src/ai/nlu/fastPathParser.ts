@@ -1020,12 +1020,43 @@ export function parseDateAndTime(text: string, referenceDate: Date = new Date())
   return { date, time, endTime, durationMinutes, matchedText };
 }
 
+function stripConversationalCommandPrefix(text: string): string {
+  let result = text.trim();
+  let prev = '';
+  while (result !== prev) {
+    prev = result;
+    result = result
+      .replace(
+        /^(?:(?:uh|um|er|ah|hey|hi|hello|okay|ok|yo|so|well|actually|honestly|alright|now|then|never\s*mind)\s*[,.!:-]*\s*)+/i,
+        '',
+      )
+      .replace(/^lafina\s*[,.!:-]*\s*/i, '')
+      .replace(
+        /^(?:(?:can|could|would|will|may)\s+(?:you|we)\s+(?:please\s+)?(?:help\s+me\s+(?:to\s+)?)?|please\s+(?:help\s+me\s+(?:to\s+)?)?|help\s+me\s+(?:to\s+)?)/i,
+        '',
+      )
+      .replace(
+        /^(?:(?:(?:i|we)\s+)(?:really\s+|just\s+)?(?:want|need|would\s+like)\s+(?:you\s+)?to\s+|(?:i['’]?d|we['’]?d)\s+like\s+(?:you\s+)?to\s+|let['’]?s\s+(?:just\s+|go\s+ahead\s+and\s+)?|go\s+ahead\s+and\s+)(?=(?:cancel|remove|delete|clear|erase|drop|scratch|discard|unschedule|wipe|get\s+rid\s+of|take\s+off|call\s+off|cross\s+off|cross\s+out|update|edit|change|modify|move|reschedule|shift|push\s+back|postpone|rename|complete|check\s+off|tick\s+off|mark|schedule|add|create|set|make|put|book|plan|remind|take\s+a?\s*note|save\s+a?\s*note|write\s+a?\s*note|note\s+down|write\s+down|jot\s+down)\b)/i,
+        '',
+      )
+      .trim();
+  }
+  return result;
+}
+
 function classifyCrudEntityType(text: string): {
   entityType: CrudTargetEntityType;
   deleteIntent: 'delete_task' | 'delete_time_block' | 'delete_note';
   updateIntent: 'update_task' | 'update_time_block' | 'update_note';
 } {
-  if (/\b(?:time\s*blocks?|timeblocks?|study\s*blocks?|focus\s*blocks?|work\s*blocks?|blocks?|events?)\b/i.test(text)) {
+  if (/\b(?:events?|appointments?)\b/i.test(text)) {
+    return {
+      entityType: 'event',
+      deleteIntent: 'delete_time_block',
+      updateIntent: 'update_time_block',
+    };
+  }
+  if (/\b(?:time\s*blocks?|timeblocks?|study\s*blocks?|focus\s*blocks?|work\s*blocks?|blocks?)\b/i.test(text)) {
     return {
       entityType: 'time_block',
       deleteIntent: 'delete_time_block',
@@ -1053,30 +1084,80 @@ function classifyCrudEntityType(text: string): {
   };
 }
 
-function cleanCrudTargetTitle(rawTarget: string, matchedDateTimeTokens: string[] = []): string {
-  let cleaned = rawTarget;
+function cleanCrudTargetTitle(
+  rawTarget: string,
+  matchedDateTimeTokens: string[] = [],
+  hasDateTime: boolean = false,
+): string {
+  let cleaned = stripConversationalCommandPrefix(rawTarget);
+
+  // Strip trailing "from my schedule / calendar" or trailing ", cancel it / delete that"
+  cleaned = cleaned
+    .replace(
+      /(?:,\s*|\s+and\s+|\s+please\s+|\s+)(?:cancel|delete|remove|unschedule)\s+(?:it|that|this|them)[\s.!?]*$/i,
+      ' ',
+    )
+    .replace(
+      /\s+(?:from|off|on|in)\s+(?:my\s+|the\s+)?(?:schedule|calendar|agenda|list|tasks?|events?|time\s*blocks?)\b[\s.!?]*$/i,
+      ' ',
+    );
+
   const sortedMatches = [...matchedDateTimeTokens].sort((a, b) => b.length - a.length);
   for (const m of sortedMatches) {
     cleaned = cleaned.replace(new RegExp(`\\b${escapeRegExp(m)}\\b`, 'gi'), ' ');
   }
-  cleaned = cleaned
+
+  cleaned = stripConversationalCommandPrefix(cleaned)
     .replace(
-      /^(?:(?:hey|hi|okay|ok)\s+(?:lafina\s*)?[,.!]?\s*)?(?:(?:can|could|would|will)\s+you\s+)?(?:please\s+)?/i,
+      /^(?:cancel|remove|delete|clear|erase|drop|scratch|discard|unschedule|wipe|get\s+rid\s+of|take\s+off|call\s+off|cross\s+off|cross\s+out|update|edit|change|modify|move|reschedule|shift|push\s+back|postpone|rename|complete|finish|check\s+off|tick\s+off|mark)\b\s*/i,
       '',
     )
     .replace(
-      /^(?:cancel|remove|delete|clear|erase|drop|scratch|get\s+rid\s+of|update|edit|change|modify|move|reschedule|shift|push\s+back|postpone|rename|complete|finish|check\s+off|tick\s+off|mark)\b\s*/i,
-      '',
-    )
-    .replace(
-      /\b(?:time\s*blocks?|timeblocks?|study\s*blocks?|focus\s*blocks?|work\s*blocks?|blocks?|tasks?|todos?|to-dos?|reminders?|alarms?|notes?|events?)\b/gi,
+      /\b(?:what\s+i\s+have(?:\s+scheduled)?|what(?:'s|s|\s+is)\s+(?:scheduled|on\s+my\s+schedule|on\s+my\s+calendar)|whatever\s+is(?:\s+scheduled)?|time\s*blocks?|timeblocks?|study\s*blocks?|focus\s*blocks?|work\s*blocks?|blocks?|tasks?|todos?|to-dos?|reminders?|alarms?|notes?|events?|appointments?)\b/gi,
       ' ',
     )
-    .replace(/^(?:[\s,:-]*(?:my|the|a|an|this|that|our|called|titled|named|for|about|of|to|on|at|from)\b)+/gi, '')
-    .replace(/(?:[\s,:-]*\b(?:called|titled|named|for|about|of|to|on|at|from|my|the|a|an)\b)+$/gi, '')
-    .replace(/^[\s,;:'"“”‘’:-]+|[\s,;:'"“”‘’:-]+$/g, '')
     .replace(/\s+/g, ' ')
     .trim();
+
+  // Check if the remaining target is a recent-reference token ("that", "this", "it", "last", "latest", "recent", "previous")
+  const recentCandidate = cleaned
+    .replace(/^(?:[\s,.:;!?-]*(?:my|the|a|an|our|for|about|of|to|on|at|from)\b)+/gi, '')
+    .replace(/(?:[\s,.:;!?-]*\b(?:one|item|thing|for|about|of|to|on|at|from|my|the|a|an)\b)+$/gi, '')
+    .replace(/^[\s,.;:!?'"“”‘’:-]+|[\s,.;:!?'"“”‘’:-]+$/g, '')
+    .trim();
+  if (!hasDateTime && /^(?:last|latest|recent|previous|that|this|it)$/i.test(recentCandidate)) {
+    return recentCandidate;
+  }
+
+  cleaned = cleaned
+    .replace(
+      /^(?:[\s,:-]*(?:my|the|a|an|this|that|it|our|called|titled|named|scheduled|for|about|of|to|on|at|from|in|around|by)\b)+/gi,
+      '',
+    )
+    .replace(
+      /(?:[\s,:-]*\b(?:called|titled|named|scheduled|for|about|of|to|on|at|from|in|around|by|my|the|a|an|this|that|it)\b)+$/gi,
+      '',
+    )
+    .replace(/^[\s,.;:!?'"“”‘’:-]+|[\s,.;:!?'"“”‘’:-]+$/g, '')
+    .replace(/\s+/g, ' ')
+    .trim();
+
+  // Strip leading "schedule for (a/an/the)" when followed by actual title words (e.g. "schedule for a coffee date" -> "coffee date")
+  const withoutLeadingSchedule = cleaned
+    .replace(/^(?:schedule|scheduled|plan|plans|item|items|activity|session)\s+(?:(?:for|to|about|on|at)\s+)?(?:(?:a|an|the|my)\s+)?/i, '')
+    .trim();
+  if (withoutLeadingSchedule.length > 0 && withoutLeadingSchedule.toLowerCase() !== cleaned.toLowerCase()) {
+    cleaned = withoutLeadingSchedule;
+  } else if (
+    hasDateTime &&
+    /^(?:schedule|scheduled|calendar|agenda|plan|plans|item|items|thing|things|activity|anything|everything|something|what)$/i.test(
+      cleaned,
+    )
+  ) {
+    // When a time or date was specified ("Cancel my 2pm schedule"), generic words shouldn't block time matching
+    cleaned = '';
+  }
+
   return cleaned;
 }
 
@@ -1088,10 +1169,8 @@ export function parseIntentFastPath(
   const normalized = normalizeSpeech(transcript);
   const lower = normalized.toLowerCase();
 
-  // Strip polite/conversational invocation prefixes for command matching ("Hey Lafina, can you please...")
-  const commandLower = lower
-    .replace(/^(?:(?:hey|hi|hello|okay|ok|yo)\s+)?(?:lafina\s*[,.!]?\s*)?(?:(?:can|could|would|will)\s+you\s+)?(?:please\s+)?/i, '')
-    .trim();
+  // Strip polite/conversational invocation prefixes for command matching ("Hey Lafina, can you please...", "I want to...", "So let's...")
+  const commandLower = stripConversationalCommandPrefix(lower);
 
   // 1. Call Responses / Acknowledge
   const isAck = /^(?:i(?:'m| am)? done|i did it|finished|got it|okay|ok|understood|acknowledged|thanks?)(?:[,.!\s]+(?:thanks?|bye))?[\s.!,]*$/i.test(lower);
@@ -1136,7 +1215,7 @@ export function parseIntentFastPath(
   // 3. Schedule Audit & Schedule Query
   // Must run BEFORE CRUD/Creation intents unless the utterance starts with an explicit creation/mutation command
   const isExplicitMutationStart =
-    /^(?:remind\s+me|set\s+(?:a\s+|an\s+)?reminder|add\s+|create\s+|make\s+|take\s+(?:a\s+)?note|save\s+(?:a\s+)?note|note\s+down|write\s+down|jot\s+down|cancel\s+|remove\s+|delete\s+|update\s+|edit\s+|rename\s+|reschedule\s+|move\s+|postpone\s+|push\s+back\s+|complete\s+|finish\s+|mark\s+)/i.test(
+    /^(?:remind\s+me|set\s+(?:a\s+|an\s+|up\s+)?(?:reminder|task|event|time\s*block)|add\s+|create\s+|make\s+|schedule\s+(?!audit\b|(?:for\s+)?(?:today|to-?morrow|morrow|tonight|monday|tuesday|wednesday|thursday|friday|saturday|sunday)[\s.!?]*$)|book\s+|plan\s+|take\s+(?:a\s+)?note|save\s+(?:a\s+)?note|note\s+down|write\s+down|jot\s+down|cancel\b|remove\b|delete\b|clear\b|erase\b|drop\b|scratch\b|discard\b|unschedule\b|wipe\b|get\s+rid\s+of\b|take\s+off\b|call\s+off\b|cross\s+off\b|cross\s+out\b|update\s+|edit\s+|rename\s+|reschedule\s+|move\s+|postpone\s+|push\s+back\s+|complete\s+|finish\s+|mark\s+)/i.test(
       commandLower,
     );
 
@@ -1182,13 +1261,30 @@ export function parseIntentFastPath(
     };
   }
 
-  // 5. CRUD: Delete / Cancel / Remove Time Block, Task, or Note
+  // 5. CRUD: Delete / Cancel / Remove Time Block, Event, Task, Reminder, or Note
+  const isCreationStart =
+    /^(?:remind\s+me|set\s+(?:a\s+|an\s+|new\s+)?reminder|(?:create|add|make|take|save|write|jot)\s+(?:a\s+|an\s+|new\s+|quick\s+)?(?:note|task|todo|time\s*block|timeblock|study\s*block|event)|note\s+down|write\s+down|jot\s+down)\b/i.test(
+      commandLower,
+    );
   const isDeleteCommand =
-    /^(?:cancel|remove|delete|clear|erase|drop|scratch|get\s+rid\s+of)\b/i.test(commandLower);
+    /^(?:cancel|remove|delete|clear|erase|drop|scratch|discard|unschedule|wipe|get\s+rid\s+of|take\s+off|call\s+off|cross\s+off|cross\s+out)\b/i.test(
+      commandLower,
+    ) ||
+    (!isCreationStart &&
+      (/(?:,\s*|\s+and\s+|\s+please\s+|\s+)(?:cancel|delete|remove|unschedule)\s+(?:it|that|this|them)[\s.!?]*$/i.test(
+        commandLower,
+      ) ||
+        /\b(?:cancel|delete|remove|unschedule)\s+(?:my|the|this|that|all)\s+(?:tasks?|todos?|to-dos?|events?|appointments?|time\s*blocks?|timeblocks?|study\s*blocks?|focus\s*blocks?|work\s*blocks?|blocks?|reminders?|alarms?|schedule|plans?|notes?)\b/i.test(
+          commandLower,
+        )));
   if (isDeleteCommand) {
     const { entityType, deleteIntent } = classifyCrudEntityType(commandLower);
-    const dt = deleteIntent === 'delete_note' ? { date: null, time: null, endTime: null, durationMinutes: null, matchedText: [] } : parseDateAndTime(normalized, referenceDate);
-    const targetTitle = cleanCrudTargetTitle(normalized, dt.matchedText);
+    const dt =
+      deleteIntent === 'delete_note'
+        ? { date: null, time: null, endTime: null, durationMinutes: null, matchedText: [] }
+        : parseDateAndTime(normalized, referenceDate);
+    const hasDateTime = Boolean(dt.time || dt.date);
+    const targetTitle = cleanCrudTargetTitle(normalized, dt.matchedText, hasDateTime);
     const formattedTarget = targetTitle ? targetTitle.charAt(0).toUpperCase() + targetTitle.slice(1) : null;
 
     return {
@@ -1563,17 +1659,11 @@ export function parseIntentFastPath(
   }
 
   // Clean title by stripping command prefixes and matched date/time tokens
-  let cleanTitle = normalized;
-
-  // Strip polite/assistant framing at start
-  cleanTitle = cleanTitle.replace(
-    /^(?:(?:hey|hi|hello|okay|ok)\s+(?:lafina\s*)?[,.!]?\s*)?(?:(?:can|could|would|will)\s+you\s+)?(?:please\s+)?/i,
-    '',
-  );
+  let cleanTitle = stripConversationalCommandPrefix(normalized);
 
   // Strip command verb + optional article/adjective + entity noun
   cleanTitle = cleanTitle.replace(
-    /^(?:remind\s+me(?:\s+to\b)?|set\s+(?:a\s+|an\s+|new\s+)?reminder\s*(?:to\b|for\b)?|(?:(?:create|add|set(?:\s+up)?|schedule|make|put)\s+)?(?:a\s+|an\s+|the\s+)?(?:new\s+)?(?:time\s*blocks?|timeblocks?|study\s*blocks?|focus\s*blocks?|work\s*blocks?|block\s+time|block\s+out|blocks?|tasks?|todos?|to-dos?|reminders?|events?|notes?)|add|create|schedule|set(?:\s+up)?)\s*[:\s,-]*(?:(?:a|an|the|new)\s+)*[:\s,-]*/i,
+    /^(?:remind\s+me(?:\s+to\b|\s+for\b|\s+about\b)?|set(?:\s+up)?\s+(?:a\s+|an\s+|new\s+)?reminder\s*(?:to\b|for\b|about\b)?|(?:(?:create|add|set(?:\s+up)?|schedule|make|put|book|plan)\s+)?(?:a\s+|an\s+|the\s+)?(?:new\s+)?(?:time\s*blocks?|timeblocks?|study\s*blocks?|focus\s*blocks?|work\s*blocks?|block\s+time|block\s+out|blocks?|tasks?|todos?|to-dos?|reminders?|events?|notes?)|add|create|schedule|set(?:\s+up)?|book|plan)\s*[:\s,-]*(?:(?:a|an|the|new)\s+)*[:\s,-]*/i,
     '',
   );
 
@@ -1609,10 +1699,10 @@ export function parseIntentFastPath(
     cleanTitle = cleanTitle.replace(/^[\s,:-]*(?:a|an|the)\b[\s,:-]*/i, '');
   }
 
-  // Strip lingering trailing prepositions at edges
+  // Strip lingering trailing prepositions and punctuation at edges (including trailing periods)
   cleanTitle = cleanTitle
-    .replace(/(?:[\s,:-]*\b(?:on|at|by|for|from|between|starting|with|to|about|regarding|of)\b)+[\s,:-]*$/i, '')
-    .replace(/^[\s,;:-]+|[\s,;:-]+$/g, '')
+    .replace(/(?:[\s,:-]*\b(?:on|at|by|for|from|between|starting|with|to|about|regarding|of)\b)+[\s,.;:!?-]*$/i, '')
+    .replace(/^[\s,.;:!?'"“”‘’:-]+|[\s,.;:!?'"“”‘’:-]+$/g, '')
     .replace(/\s+/g, ' ')
     .trim();
 
@@ -1727,7 +1817,7 @@ export function isTitleNoisy(title: string, rawTranscript: string = ''): boolean
 
   // 1. Conversational pronouns or modal/obligation verbs
   const modalOrPronounRegex =
-    /\b(?:i|i['’]m|i['’]ve|i['’]ll|we|we['’]ll|we['’]re|you|gotta|gonna|wanna|need\s+to|have\s+to|should|must|remember\s+to|don['’]?t\s+forget(?:\s+to)?|planning\s+to|want\s+to|trying\s+to|supposed\s+to)\b/i;
+    /\b(?:i|i['’]m|i['’]ve|i['’]ll|we|we['’]ll|we['’]re|let['’]?s|you|gotta|gonna|wanna|need\s+to|have\s+to|should|must|remember\s+to|don['’]?t\s+forget(?:\s+to)?|planning\s+to|want\s+to|trying\s+to|supposed\s+to)\b/i;
   if (modalOrPronounRegex.test(lowerTitle) || modalOrPronounRegex.test(lowerRaw)) {
     return true;
   }
@@ -1761,13 +1851,18 @@ export function distillScheduleTitle(rawTitle: string): string {
   let cleaned = (rawTitle || '').trim();
   if (!cleaned) return '';
 
-  // Iteratively strip leading conversational framing (e.g., "I really gotta", "I need to", "Don't forget to", "Maybe")
+  // Iteratively strip leading conversational framing (e.g., "I really gotta", "I need to", "So let's schedule", "Don't forget to", "Maybe")
   let prev = '';
   while (cleaned !== prev) {
     prev = cleaned;
     cleaned = cleaned
       .replace(
-        /^(?:(?:uh|um|er|ah|hey|hi|okay|ok|well|so|like|actually|honestly|basically)\s*[,.!:-]*\s*)+/i,
+        /^(?:(?:uh|um|er|ah|hey|hi|hello|okay|ok|well|so|like|actually|honestly|basically|alright)\s*[,.!:-]*\s*)+/i,
+        '',
+      )
+      .replace(/^lafina\s*[,.!:-]*\s*/i, '')
+      .replace(
+        /^(?:(?:can|could|would|will|may)\s+(?:you|we)\s+(?:please\s+)?(?:help\s+me\s+(?:to\s+)?)?)/i,
         '',
       )
       .replace(
@@ -1779,7 +1874,11 @@ export function distillScheduleTitle(rawTitle: string): string {
         '',
       )
       .replace(
-        /^(?:please\s+)?(?:don['’]?t\s+forget(?:\s+to)?|remember(?:\s+to)?|make\s+sure(?:\s+to)?|be\s+sure(?:\s+to)?|let['’]?s|maybe|probably)\s+/i,
+        /^(?:please\s+)?(?:don['’]?t\s+forget(?:\s+to)?|remember(?:\s+to)?|make\s+sure(?:\s+to)?|be\s+sure(?:\s+to)?|let['’]?s(?:\s+have)?|(?:i|we)\s+have|maybe|probably)\s+/i,
+        '',
+      )
+      .replace(
+        /^(?:remind\s+me(?:\s+to\b|\s+for\b|\s+about\b)?|set(?:\s+up)?\s+(?:a\s+|an\s+|new\s+)?reminder\s*(?:to\b|for\b|about\b)?|(?:(?:create|add|set(?:\s+up)?|schedule|make|put|book|plan)\s+)(?:a\s+|an\s+|the\s+)?(?:new\s+)?(?:time\s*blocks?|timeblocks?|study\s*blocks?|focus\s*blocks?|work\s*blocks?|block\s+time|block\s+out|blocks?|tasks?|todos?|to-dos?|reminders?|events?)|(?:create|add|schedule|set(?:\s+up)?|book|plan)\b)(?:\s+(?:called|titled|named|for|to|about)\b)?(?:\s+(?:a|an|the|new)\b)*[\s,:-]*/i,
         '',
       )
       .trim();
@@ -1806,18 +1905,18 @@ export function distillScheduleTitle(rawTitle: string): string {
     '',
   );
 
-  // Strip lingering leading/trailing prepositions and articles
+  // Strip lingering leading/trailing prepositions, articles, and punctuation (including periods)
   cleaned = cleaned
     .replace(
-      /^[\s,:-]*(?:\b(?:on|at|by|for|from|between|starting|with|to|about|regarding|of|in|around)\b[\s,:-]*(?:(?:a|an|the)\b[\s,:-]*)?)+/i,
+      /^[\s,:-]*(?:\b(?:on|at|by|for|from|between|starting|with|to|about|regarding|of|in|around|called|titled|named)\b[\s,:-]*(?:(?:a|an|the)\b[\s,:-]*)?)+/i,
       '',
     )
     .replace(/^[\s,:-]*(?:a|an|the)\b[\s,:-]*/i, '')
     .replace(
-      /(?:[\s,:-]*\b(?:on|at|by|for|from|between|starting|with|to|about|regarding|of|in|around)\b)+[\s,:-]*$/i,
+      /(?:[\s,:-]*\b(?:on|at|by|for|from|between|starting|with|to|about|regarding|of|in|around)\b)+[\s,.;:!?-]*$/i,
       '',
     )
-    .replace(/^[\s,;:-]+|[\s,;:-]+$/g, '')
+    .replace(/^[\s,.;:!?'"“”‘’:-]+|[\s,.;:!?'"“”‘’:-]+$/g, '')
     .replace(/\s+/g, ' ')
     .trim();
 

@@ -6,11 +6,13 @@ import {
   FlatList,
   TouchableOpacity,
   Alert,
+  Keyboard,
   KeyboardAvoidingView,
   Platform,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Trash2, Sparkles, Bot } from 'lucide-react-native';
-import { Fonts } from '../theme';
+import { Fonts, Layout } from '../theme';
 import { useTheme } from '../contexts/ThemeContext';
 import { useThemedStyles } from '../theme/createThemedStyles';
 import type { ThemeColors } from '../contexts/ThemeContext';
@@ -34,10 +36,52 @@ export const ChatScreen: React.FC<ChatScreenProps> = ({
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [inputText, setInputText] = useState('');
   const [isSending, setIsSending] = useState(false);
+  const [isKeyboardVisible, setIsKeyboardVisible] = useState(false);
+  const [keyboardHeight, setKeyboardHeight] = useState(0);
+  const [keyboardScreenY, setKeyboardScreenY] = useState(0);
+  const [currentHeight, setCurrentHeight] = useState(0);
+  const maxHeightRef = useRef<number>(0);
   const flatListRef = useRef<FlatList<ChatMessage>>(null);
 
+  const insets = useSafeAreaInsets();
   const { colors } = useTheme();
   const themed = useThemedStyles(getThemedStyles);
+
+  // Reserve bottom space for the floating CustomTabBar (bottomOffset + navbarHeight + gap)
+  // when the keyboard is closed, and lift ChatInput above the software keyboard on Android
+  // (where targetSdkVersion 36 Edge-to-Edge does not shrink the root view on adjustResize).
+  const tabBarBottomOffset = Math.max(insets.bottom, 12) + 14;
+  const alreadyShrunk = Math.max(0, maxHeightRef.current - currentHeight);
+  const heightOverlap = Math.max(0, keyboardHeight - alreadyShrunk);
+  const screenYOverlap =
+    keyboardScreenY > 0 && currentHeight > 0
+      ? Math.max(0, insets.top + 6 + currentHeight - keyboardScreenY)
+      : 0;
+  const androidKeyboardBottom =
+    Platform.OS === 'android' ? Math.max(heightOverlap, screenYOverlap) + 8 : 0;
+  const bottomNavReserve = isKeyboardVisible
+    ? androidKeyboardBottom
+    : tabBarBottomOffset + Layout.navbarHeight + 8;
+
+  useEffect(() => {
+    const showEvent = Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow';
+    const hideEvent = Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide';
+    const showSub = Keyboard.addListener(showEvent, (e) => {
+      setIsKeyboardVisible(true);
+      setKeyboardHeight(e.endCoordinates?.height ?? 0);
+      setKeyboardScreenY(e.endCoordinates?.screenY ?? 0);
+      setTimeout(() => flatListRef.current?.scrollToEnd({ animated: true }), 80);
+    });
+    const hideSub = Keyboard.addListener(hideEvent, () => {
+      setIsKeyboardVisible(false);
+      setKeyboardHeight(0);
+      setKeyboardScreenY(0);
+    });
+    return () => {
+      showSub.remove();
+      hideSub.remove();
+    };
+  }, []);
 
   const loadMessages = useCallback(() => {
     const list = chatStore.getMessages(userId);
@@ -99,9 +143,21 @@ export const ChatScreen: React.FC<ChatScreenProps> = ({
 
   return (
     <KeyboardAvoidingView
-      style={[styles.container, themed.container]}
+      style={[
+        styles.container,
+        themed.container,
+        { paddingBottom: bottomNavReserve },
+      ]}
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
       keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 0}
+      onLayout={(e) => {
+        const h = e.nativeEvent.layout.height;
+        if (h > maxHeightRef.current) {
+          maxHeightRef.current = h;
+        }
+        setCurrentHeight(h);
+      }}
+      testID="chat-screen-container"
     >
       {/* Top Header */}
       <View style={[styles.header, themed.header]}>
@@ -155,6 +211,9 @@ export const ChatScreen: React.FC<ChatScreenProps> = ({
         isSending={isSending}
         onSelectPrompt={(prompt) => handleSend(prompt)}
         showSuggestions={messages.length === 0}
+        onFocus={() => {
+          setTimeout(() => flatListRef.current?.scrollToEnd({ animated: true }), 100);
+        }}
       />
     </KeyboardAvoidingView>
   );

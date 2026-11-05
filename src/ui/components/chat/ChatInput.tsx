@@ -20,6 +20,7 @@ export interface ChatInputProps {
   isSending?: boolean;
   onSelectPrompt?: (prompt: string) => void;
   showSuggestions?: boolean;
+  onFocus?: () => void;
 }
 
 const SUGGESTED_PROMPTS = [
@@ -36,6 +37,7 @@ export const ChatInput: React.FC<ChatInputProps> = ({
   isSending = false,
   onSelectPrompt,
   showSuggestions = true,
+  onFocus,
 }) => {
   const { colors } = useTheme();
   const themed = useThemedStyles(getThemedStyles);
@@ -77,8 +79,11 @@ export const ChatInput: React.FC<ChatInputProps> = ({
           style={[styles.input, themed.input]}
           placeholder="Ask LAFINA or add a schedule item…"
           placeholderTextColor={colors.textSecondary}
+          cursorColor={colors.primary}
+          selectionColor={colors.primary + '40'}
           value={inputText}
           onChangeText={setInputText}
+          onFocus={onFocus}
           onSubmitEditing={onSend}
           returnKeyType="send"
           multiline={false}
@@ -108,8 +113,9 @@ const styles = StyleSheet.create({
   container: {
     paddingHorizontal: 16,
     paddingTop: 8,
-    paddingBottom: 16,
+    paddingBottom: 10,
     borderTopWidth: StyleSheet.hairlineWidth,
+    borderBottomWidth: StyleSheet.hairlineWidth,
   },
   suggestionsScroll: {
     paddingBottom: 8,
@@ -141,6 +147,8 @@ const styles = StyleSheet.create({
     height: 46,
     borderRadius: 23,
     paddingHorizontal: 18,
+    paddingVertical: 0,
+    textAlignVertical: 'center',
     fontFamily: Fonts.body,
     fontSize: 14.5,
     borderWidth: 1,
@@ -162,6 +170,7 @@ const getThemedStyles = (colors: ThemeColors) => ({
   container: {
     backgroundColor: colors.background,
     borderTopColor: colors.border,
+    borderBottomColor: colors.border,
   },
   suggestionChip: {
     backgroundColor: colors.cardBg,

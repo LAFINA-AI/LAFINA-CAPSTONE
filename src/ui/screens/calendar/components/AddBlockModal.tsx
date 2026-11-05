@@ -159,7 +159,7 @@ export const AddBlockModal: React.FC<AddBlockModalProps> = ({ state, timeFormat2
                   <DateTimePicker
                     value={timeStringToDate(state.form.startTime)}
                     mode="time"
-                    is24Hour={timeFormat24h}
+                    is24Hour={false}
                     display="default"
                     onChange={(_event, date) => {
                       state.setShowStartPicker(false);
@@ -183,7 +183,7 @@ export const AddBlockModal: React.FC<AddBlockModalProps> = ({ state, timeFormat2
                   <DateTimePicker
                     value={timeStringToDate(state.form.endTime)}
                     mode="time"
-                    is24Hour={timeFormat24h}
+                    is24Hour={false}
                     display="default"
                     onChange={(_event, date) => {
                       state.setShowEndPicker(false);

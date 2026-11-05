@@ -74,7 +74,7 @@ describe('Phase 01 Welcome, Onboarding, and Profile Screens', () => {
     const onReplayTour = jest.fn();
     const onRefresh = jest.fn();
 
-    const { getByText } = render(
+    const { getByText, queryByText } = render(
       <ThemeProvider userId={guest.id}>
         <ProfileScreen
           userId={guest.id}
@@ -88,7 +88,8 @@ describe('Phase 01 Welcome, Onboarding, and Profile Screens', () => {
     );
 
     expect(getByText('Guest User')).toBeTruthy();
-    expect(getByText('24-Hour Time Format')).toBeTruthy();
+    expect(queryByText('24-Hour Time Format')).toBeNull();
+    expect(userStore.get24HourFormat(guest.id)).toBe(false);
     expect(getByText('Week Starts on Monday')).toBeTruthy();
     expect(getByText('Dark Mode')).toBeTruthy();
     expect(getByText('Test TTS Voice')).toBeTruthy();
