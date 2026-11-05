@@ -18,6 +18,7 @@ import {
   syncOutboxStore,
   productTourStore,
   remindersStore,
+  tasksStore,
 } from './src/storage';
 import { CustomTabBar, TabType } from './src/ui/components/CustomTabBar';
 import { hasProEntitlement } from './src/cloud';
@@ -30,6 +31,8 @@ import {
   consumePendingNativeCall,
   getReminderPermissionStatus,
   reconcileReminderAlarms,
+  cancelReminderAlarm,
+  finishNativeIncomingCall,
   EVENT_CALL_TRIGGER,
 } from './src/scheduler';
 import type {
@@ -95,10 +98,12 @@ function AppContent({
   const themed = useThemedStyles(getThemedStyles);
 
   useEffect(() => {
-    const showSubscription = Keyboard.addListener('keyboardDidShow', () =>
+    const showEvent = Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow';
+    const hideEvent = Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide';
+    const showSubscription = Keyboard.addListener(showEvent, () =>
       setIsKeyboardVisible(true),
     );
-    const hideSubscription = Keyboard.addListener('keyboardDidHide', () =>
+    const hideSubscription = Keyboard.addListener(hideEvent, () =>
       setIsKeyboardVisible(false),
     );
     return () => {
@@ -154,6 +159,40 @@ function AppContent({
       if (!payload) return;
       const reminder = remindersStore.getReminderById(payload.reminderId);
       if (!reminder || reminder.userId !== userId) return;
+
+      // If reminder was already acknowledged, missed, or the underlying task completed, dismiss native call and suppress popup
+      if (reminder.status === 'acknowledged' || reminder.status === 'missed') {
+        void finishNativeIncomingCall(reminder.id);
+        void cancelReminderAlarm(reminder.id);
+        return;
+      }
+
+      const activeUserId = userId || 'local_guest_user';
+      const matchingTasks = tasksStore.getAllTasks(activeUserId);
+      const isTaskDone = matchingTasks.some(
+        (t) => t.isCompleted && t.title.trim().toLowerCase() === reminder.task.trim().toLowerCase(),
+      );
+      if (isTaskDone) {
+        remindersStore.acknowledgeReminder(reminder.id);
+        void cancelReminderAlarm(reminder.id);
+        void finishNativeIncomingCall(reminder.id);
+        return;
+      }
+
+      const allReminders = remindersStore.getAllReminders(activeUserId);
+      const wasAlreadyAck = allReminders.some(
+        (r) =>
+          r.id !== reminder.id &&
+          r.status === 'acknowledged' &&
+          r.task.trim().toLowerCase() === reminder.task.trim().toLowerCase(),
+      );
+      if (wasAlreadyAck) {
+        remindersStore.acknowledgeReminder(reminder.id);
+        void cancelReminderAlarm(reminder.id);
+        void finishNativeIncomingCall(reminder.id);
+        return;
+      }
+
       setIsLoading(false);
       setCallReminderId(reminder.id);
       setCallTask(payload.task || reminder.task);
@@ -167,6 +206,42 @@ function AppContent({
     const showCall = (event: { reminderId: string; task?: string; action?: NativeCallAction }): void => {
       const reminder = remindersStore.getReminderById(event.reminderId);
       if (!reminder || (userId && reminder.userId !== userId)) return;
+
+      // Suppress call popup if reminder is already acknowledged or missed
+      if (reminder.status === 'acknowledged' || reminder.status === 'missed') {
+        void finishNativeIncomingCall(reminder.id);
+        void cancelReminderAlarm(reminder.id);
+        return;
+      }
+
+      // Suppress if matching task is already completed
+      const activeUserId = userId || reminder.userId || 'local_guest_user';
+      const matchingTasks = tasksStore.getAllTasks(activeUserId);
+      const isTaskDone = matchingTasks.some(
+        (t) => t.isCompleted && t.title.trim().toLowerCase() === reminder.task.trim().toLowerCase(),
+      );
+      if (isTaskDone) {
+        remindersStore.acknowledgeReminder(reminder.id);
+        void cancelReminderAlarm(reminder.id);
+        void finishNativeIncomingCall(reminder.id);
+        return;
+      }
+
+      // Suppress if another reminder with this task/event title has already been acknowledged
+      const allReminders = remindersStore.getAllReminders(activeUserId);
+      const wasAlreadyAck = allReminders.some(
+        (r) =>
+          r.id !== reminder.id &&
+          r.status === 'acknowledged' &&
+          r.task.trim().toLowerCase() === reminder.task.trim().toLowerCase(),
+      );
+      if (wasAlreadyAck) {
+        remindersStore.acknowledgeReminder(reminder.id);
+        void cancelReminderAlarm(reminder.id);
+        void finishNativeIncomingCall(reminder.id);
+        return;
+      }
+
       setCallReminderId(reminder.id);
       setCallTask(event.task || reminder.task);
       setCallAction(event.action || 'call');

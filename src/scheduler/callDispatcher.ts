@@ -1,5 +1,6 @@
 import { DeviceEventEmitter } from 'react-native';
 import { remindersStore } from '../storage/remindersStore';
+import { tasksStore } from '../storage/tasksStore';
 import { initTts, stopSpeechPlayback } from '../ai/tts/ttsService';
 import {
   cancelOfflineSpeechCapture,
@@ -21,6 +22,7 @@ import type {
   ReminderActionResult,
 } from './reminderActions';
 import {
+  cancelReminderAlarm,
   finishNativeIncomingCall,
   startActiveCallSession,
   stopActiveCallSession,
@@ -478,6 +480,19 @@ export const answerCall = async (
     return;
   }
   if (reminder.status === 'acknowledged' || reminder.status === 'missed') {
+    await finishNativeIncomingCall(reminderId);
+    await cancelReminderAlarm(reminderId);
+    return;
+  }
+
+  const normTask = reminder.task.trim().toLowerCase();
+  const matchingTasks = tasksStore.getAllTasks(userId);
+  const isTaskDone = matchingTasks.some(
+    (t) => t.isCompleted && t.title.trim().toLowerCase() === normTask,
+  );
+  if (isTaskDone) {
+    remindersStore.acknowledgeReminder(reminder.id);
+    await cancelReminderAlarm(reminder.id);
     await finishNativeIncomingCall(reminderId);
     return;
   }

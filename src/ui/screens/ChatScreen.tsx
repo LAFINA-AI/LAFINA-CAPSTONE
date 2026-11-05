@@ -7,7 +7,6 @@ import {
   TouchableOpacity,
   Alert,
   Keyboard,
-  KeyboardAvoidingView,
   Platform,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -38,7 +37,6 @@ export const ChatScreen: React.FC<ChatScreenProps> = ({
   const [isSending, setIsSending] = useState(false);
   const [isKeyboardVisible, setIsKeyboardVisible] = useState(false);
   const [keyboardHeight, setKeyboardHeight] = useState(0);
-  const [keyboardScreenY, setKeyboardScreenY] = useState(0);
   const [currentHeight, setCurrentHeight] = useState(0);
   const maxHeightRef = useRef<number>(0);
   const flatListRef = useRef<FlatList<ChatMessage>>(null);
@@ -47,35 +45,39 @@ export const ChatScreen: React.FC<ChatScreenProps> = ({
   const { colors } = useTheme();
   const themed = useThemedStyles(getThemedStyles);
 
-  // Reserve bottom space for the floating CustomTabBar (bottomOffset + navbarHeight + gap)
-  // when the keyboard is closed, and lift ChatInput above the software keyboard on Android
-  // (where targetSdkVersion 36 Edge-to-Edge does not shrink the root view on adjustResize).
+  // Floating bottom CustomTabBar clearance: bottomOffset + navbarHeight + gap
   const tabBarBottomOffset = Math.max(insets.bottom, 12) + 14;
-  const alreadyShrunk = Math.max(0, maxHeightRef.current - currentHeight);
-  const heightOverlap = Math.max(0, keyboardHeight - alreadyShrunk);
-  const screenYOverlap =
-    keyboardScreenY > 0 && currentHeight > 0
-      ? Math.max(0, insets.top + 6 + currentHeight - keyboardScreenY)
-      : 0;
-  const androidKeyboardBottom =
-    Platform.OS === 'android' ? Math.max(heightOverlap, screenYOverlap) + 8 : 0;
-  const bottomNavReserve = isKeyboardVisible
-    ? androidKeyboardBottom
-    : tabBarBottomOffset + Layout.navbarHeight + 8;
+  const tabBarClearance = tabBarBottomOffset + Layout.navbarHeight + 12;
+
+  // Check if root view has already been shrunken by Android adjustResize or window inset
+  const isWindowResized =
+    maxHeightRef.current > 0 &&
+    keyboardHeight > 0 &&
+    maxHeightRef.current - currentHeight >= keyboardHeight * 0.7;
+
+  // When keyboard is visible, lift ChatInput above keyboard cleanly:
+  // If the window already resized to fit keyboard, only small padding is needed.
+  // If the window did not resize (e.g. edge-to-edge), add keyboard height + margin.
+  const keyboardPadding = isWindowResized
+    ? Math.max(insets.bottom, 8)
+    : keyboardHeight > 0
+      ? keyboardHeight + 6
+      : 8;
+
+  const bottomNavReserve = isKeyboardVisible ? keyboardPadding : tabBarClearance;
 
   useEffect(() => {
     const showEvent = Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow';
     const hideEvent = Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide';
     const showSub = Keyboard.addListener(showEvent, (e) => {
       setIsKeyboardVisible(true);
-      setKeyboardHeight(e.endCoordinates?.height ?? 0);
-      setKeyboardScreenY(e.endCoordinates?.screenY ?? 0);
+      const kh = e.endCoordinates?.height ?? 0;
+      setKeyboardHeight(kh);
       setTimeout(() => flatListRef.current?.scrollToEnd({ animated: true }), 80);
     });
     const hideSub = Keyboard.addListener(hideEvent, () => {
       setIsKeyboardVisible(false);
       setKeyboardHeight(0);
-      setKeyboardScreenY(0);
     });
     return () => {
       showSub.remove();
@@ -142,14 +144,12 @@ export const ChatScreen: React.FC<ChatScreenProps> = ({
   );
 
   return (
-    <KeyboardAvoidingView
+    <View
       style={[
         styles.container,
         themed.container,
         { paddingBottom: bottomNavReserve },
       ]}
-      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-      keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 0}
       onLayout={(e) => {
         const h = e.nativeEvent.layout.height;
         if (h > maxHeightRef.current) {
@@ -197,7 +197,7 @@ export const ChatScreen: React.FC<ChatScreenProps> = ({
           messages.length === 0 && styles.listContentEmpty,
         ]}
         ListEmptyComponent={renderEmptyState}
-        ListFooterComponent={isSending ? <TypingBubble label="LAFINA is thinking…" /> : null}
+        ListFooterComponent={isSending ? <TypingBubble label="lafina is thinking…" /> : null}
         onContentSizeChange={() => flatListRef.current?.scrollToEnd({ animated: true })}
         onLayout={() => flatListRef.current?.scrollToEnd({ animated: false })}
         testID="chat-messages-list"
@@ -212,10 +212,11 @@ export const ChatScreen: React.FC<ChatScreenProps> = ({
         onSelectPrompt={(prompt) => handleSend(prompt)}
         showSuggestions={messages.length === 0}
         onFocus={() => {
+          setIsKeyboardVisible(true);
           setTimeout(() => flatListRef.current?.scrollToEnd({ animated: true }), 100);
         }}
       />
-    </KeyboardAvoidingView>
+    </View>
   );
 };
 

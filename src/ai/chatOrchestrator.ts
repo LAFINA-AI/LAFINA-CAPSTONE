@@ -55,7 +55,7 @@ export function minutesToTime(minutes: number): string {
 /** Formats HH:mm into friendly 12-hour AM/PM string. */
 export function format12HourTime(timeStr?: string | null): string {
   if (!timeStr) return '';
-  const match = /^(\d{1,2}):(\d{2})$/.exec(timeStr.trim());
+  const match = /^(\d{1,2}):(\d{2})/.exec(timeStr.trim());
   if (!match) return timeStr;
   let hour = parseInt(match[1], 10);
   const min = parseInt(match[2], 10);
@@ -236,7 +236,7 @@ export class ChatOrchestrator {
         finalReply = actionResult.reply;
       } else if (validated.intent === 'chat') {
         finalReply =
-          "Hey! I'm LAFINA, your offline academic assistant. I can schedule study blocks, set exact reminder alarms, track assignments, take notes, or review what's on your schedule.";
+          "Hey! I'm lafina, your offline academic assistant. I can schedule study blocks, set exact reminder alarms, track assignments, take notes, or review what's on your schedule.";
       } else {
         finalReply =
           'I can help you manage your student schedule, study blocks, tasks, reminders, and notes. Try asking: "What\'s on my schedule today?" or "Add study block for Math tomorrow from 2pm to 4pm".';

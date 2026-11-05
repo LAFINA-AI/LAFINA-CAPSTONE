@@ -73,17 +73,20 @@ interface ReminderCleanupRow {
 const scheduleReminderCleanup = (
   executor: DatabaseTransaction,
   reminders: ReminderCleanupRow[],
-  source: 'deleteTask' | 'deleteEvent',
+  source: 'deleteTask' | 'deleteEvent' | 'updateTaskCompleted',
 ): void => {
   if (reminders.length === 0) return;
   const cleanupRows = [...reminders];
   const cleanup = (): void => {
     for (const reminder of cleanupRows) {
       try {
-        const { cancelReminderAlarm } = require('../scheduler/reminderAlarm');
+        const { cancelReminderAlarm, finishNativeIncomingCall } = require('../scheduler/reminderAlarm');
         const { deletePreCachedReminderAudio } = require('../ai/tts/ttsService');
         cancelReminderAlarm(reminder.id).catch((error: unknown) =>
           console.error(`[${source}] Failed to cancel alarm for reminder ${reminder.id}:`, error),
+        );
+        finishNativeIncomingCall(reminder.id).catch((error: unknown) =>
+          console.error(`[${source}] Failed to finish incoming call for reminder ${reminder.id}:`, error),
         );
         if (reminder.preCastAudioPath) {
           deletePreCachedReminderAudio(reminder.preCastAudioPath).catch((error: unknown) =>
@@ -223,6 +226,7 @@ export const tasksStore = {
     params.push(now);
     params.push(task.id);
 
+    const cleanupRows: ReminderCleanupRow[] = [];
     try {
       db.transactionSync((tx) => {
         tx.executeSync(`UPDATE tasks SET ${sets.join(', ')} WHERE id = ?`, params);
@@ -230,17 +234,49 @@ export const tasksStore = {
           | StoredSyncRow
           | undefined;
         if (row) {
+          const userId = String(row.user_id);
           syncOutboxStore.enqueueMutation(
-            String(row.user_id),
+            userId,
             'task',
             task.id,
             'update',
             taskPayload(row),
             'account',
-            String(row.user_id),
+            userId,
             tx,
           );
+
+          if (row.is_completed === 1) {
+            const taskTitle = String(row.title);
+            const remindersResult = tx.executeSync(
+              `SELECT id, precast_audio_path FROM reminders WHERE user_id = ? AND task = ? AND deleted_at IS NULL AND status IN ('pending', 'snoozed', 'triggered')`,
+              [userId, taskTitle],
+            );
+            const reminders = remindersResult.rows || [];
+            for (const rem of reminders) {
+              tx.executeSync(
+                `UPDATE reminders SET status = 'acknowledged', updated_at = ? WHERE id = ?`,
+                [now, rem.id],
+              );
+              syncOutboxStore.enqueueMutation(
+                userId,
+                'reminder',
+                String(rem.id),
+                'update',
+                { status: 'acknowledged' },
+                'account',
+                userId,
+                tx,
+              );
+              cleanupRows.push({
+                id: String(rem.id),
+                preCastAudioPath:
+                  typeof rem.precast_audio_path === 'string' ? rem.precast_audio_path : null,
+              });
+            }
+          }
         }
+        scheduleReminderCleanup(tx, cleanupRows, 'updateTaskCompleted');
       });
     } catch (error) {
       console.error('Error updating task:', error);

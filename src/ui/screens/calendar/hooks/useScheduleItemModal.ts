@@ -4,7 +4,12 @@ import type { Task, Event } from '../../../../storage';
 import { tasksStore, remindersStore } from '../../../../storage';
 import { ScheduleItemForm, ScheduleItemModalState } from '../types';
 import { generateId } from '../../../../utils';
-import { getReminderPreferences, scheduleReminderAlarm } from '../../../../scheduler';
+import {
+  cancelReminderAlarm,
+  finishNativeIncomingCall,
+  getReminderPreferences,
+  scheduleReminderAlarm,
+} from '../../../../scheduler';
 import { formatLocalDate } from '../utils/calendarHelpers';
 
 interface UseScheduleItemModalOptions {
@@ -97,6 +102,20 @@ export const useScheduleItemModal = (options: UseScheduleItemModalOptions): Sche
         const leadTimeMinutes = prefs.leadTimeMinutes;
         const localScheduledDate = new Date(`${date}T${time}:00`);
         if (isNaN(localScheduledDate.getTime())) return;
+
+        // Clean up any existing pending reminders for this item so we never have duplicate or zombie alarms
+        const existingPending = remindersStore
+          .getPendingReminders(userId)
+          .filter(
+            (r) =>
+              r.task.trim().toLowerCase() === title.trim().toLowerCase() ||
+              (editingItem && r.task.trim().toLowerCase() === editingItem.title.trim().toLowerCase()),
+          );
+        for (const oldRem of existingPending) {
+          remindersStore.deleteReminder(oldRem.id);
+          void cancelReminderAlarm(oldRem.id);
+          void finishNativeIncomingCall(oldRem.id);
+        }
 
         const scheduledAt = localScheduledDate.toISOString();
         const preferredTriggerMs =
@@ -193,15 +212,27 @@ export const useScheduleItemModal = (options: UseScheduleItemModalOptions): Sche
         text: 'Delete',
         style: 'destructive',
         onPress: () => {
+          const itemTitle = editingItem?.title || '';
           if (type === 'task') tasksStore.deleteTask(id);
           else tasksStore.deleteEvent(id);
+
+          // Clean up any pending reminders for this deleted item
+          const existingPending = remindersStore
+            .getPendingReminders(userId)
+            .filter((r) => r.task.trim().toLowerCase() === itemTitle.trim().toLowerCase());
+          for (const oldRem of existingPending) {
+            remindersStore.deleteReminder(oldRem.id);
+            void cancelReminderAlarm(oldRem.id);
+            void finishNativeIncomingCall(oldRem.id);
+          }
+
           setVisible(false);
           onSaved();
           onRefresh();
         },
       },
     ]);
-  }, [onSaved, onRefresh]);
+  }, [editingItem, onSaved, onRefresh, userId]);
 
   return {
     visible,

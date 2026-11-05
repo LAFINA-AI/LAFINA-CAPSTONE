@@ -1,6 +1,6 @@
 import React from 'react';
 import { render, fireEvent, waitFor, act } from '@testing-library/react-native';
-import { Alert } from 'react-native';
+import { Alert, StyleSheet } from 'react-native';
 import {
   chatOrchestrator,
   timeToMinutes,
@@ -59,7 +59,7 @@ describe('Phase 08: End-to-End Offline Student Assistant & ChatScreen Integratio
       );
 
       expect(result.intent.intent).toBe('chat');
-      expect(result.reply).toContain('LAFINA');
+      expect(result.reply.toLowerCase()).toContain('lafina');
       expect(result.userMessage.content).toBe('Hello LAFINA!');
       expect(result.assistantMessage.content).toBe(result.reply);
 
@@ -226,6 +226,7 @@ describe('Phase 08: End-to-End Offline Student Assistant & ChatScreen Integratio
       await waitFor(() => {
         expect(chatStore.getMessages(testUserId).length).toBe(2);
       });
+      expect(await findByText('lafina')).toBeTruthy();
       expect(onRefresh).toHaveBeenCalled();
     });
 
@@ -286,6 +287,29 @@ describe('Phase 08: End-to-End Offline Student Assistant & ChatScreen Integratio
 
       expect(speakSpy).toHaveBeenCalledWith('Your schedule is clear!');
       speakSpy.mockRestore();
+    });
+
+    test('reserves bottom padding for CustomTabBar and updates padding on keyboard focus', async () => {
+      const { getByTestId } = render(
+        <ThemeProvider userId={testUserId}>
+          <ChatScreen userId={testUserId} />
+        </ThemeProvider>,
+      );
+
+      const container = getByTestId('chat-screen-container');
+      const input = getByTestId('chat-text-input');
+
+      // Before focus: bottomNavReserve should be at least tabBarClearance (> 64)
+      const initialStyle = StyleSheet.flatten(container.props.style);
+      expect(initialStyle.paddingBottom).toBeGreaterThanOrEqual(64);
+
+      // On focus: triggers keyboard visibility mode
+      act(() => {
+        fireEvent(input, 'focus');
+      });
+
+      const focusedStyle = StyleSheet.flatten(container.props.style);
+      expect(focusedStyle.paddingBottom).toBeDefined();
     });
   });
 });

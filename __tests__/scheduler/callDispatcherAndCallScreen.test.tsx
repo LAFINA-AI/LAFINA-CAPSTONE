@@ -122,6 +122,97 @@ describe('Call Dispatcher, Simulated Incoming Call & Permission Subsystem', () =
       sub.remove();
     });
 
+    it('acknowledging a reminder also clears duplicate/other pending reminders for the same task', async () => {
+      const now = new Date().toISOString();
+      remindersStore.insertReminder({
+        id: 'rem-dup-1',
+        userId,
+        task: 'Study Algorithms',
+        description: null,
+        scheduledAt: now,
+        triggerAt: now,
+        status: 'pending',
+        preCastAudioPath: null,
+      });
+      remindersStore.insertReminder({
+        id: 'rem-dup-2',
+        userId,
+        task: 'Study Algorithms',
+        description: null,
+        scheduledAt: now,
+        triggerAt: now,
+        status: 'pending',
+        preCastAudioPath: null,
+      });
+
+      await answerCall('rem-dup-1', userId, false);
+      await manualAcknowledgeCall('rem-dup-1', userId);
+
+      expect(remindersStore.getReminderById('rem-dup-1')?.status).toBe('acknowledged');
+      expect(remindersStore.getReminderById('rem-dup-2')?.status).toBe('acknowledged');
+      expect(remindersStore.getPendingReminders(userId)).toHaveLength(0);
+    });
+
+    it('completing a task cancels and acknowledges all pending reminders for it', async () => {
+      const now = new Date().toISOString();
+      tasksStore.insertTask({
+        id: 'task-complete-test',
+        userId,
+        title: 'Review Discrete Math',
+        priority: 'High',
+        category: 'Academics',
+        isCompleted: false,
+        dueDate: '2026-10-25',
+        dueTime: '18:00',
+      });
+      remindersStore.insertReminder({
+        id: 'rem-task-complete',
+        userId,
+        task: 'Review Discrete Math',
+        description: null,
+        scheduledAt: now,
+        triggerAt: now,
+        status: 'pending',
+        preCastAudioPath: null,
+      });
+
+      expect(remindersStore.getPendingReminders(userId)).toHaveLength(1);
+
+      tasksStore.updateTask({ id: 'task-complete-test', isCompleted: true });
+
+      const updatedRem = remindersStore.getReminderById('rem-task-complete');
+      expect(updatedRem?.status).toBe('acknowledged');
+      expect(remindersStore.getPendingReminders(userId)).toHaveLength(0);
+    });
+
+    it('answerCall immediately suppresses call if task is already completed', async () => {
+      const now = new Date().toISOString();
+      tasksStore.insertTask({
+        id: 'task-already-done',
+        userId,
+        title: 'Submit Project Proposal',
+        priority: 'High',
+        category: 'Academics',
+        isCompleted: true,
+        dueDate: '2026-10-25',
+        dueTime: '14:00',
+      });
+      remindersStore.insertReminder({
+        id: 'rem-already-done',
+        userId,
+        task: 'Submit Project Proposal',
+        description: null,
+        scheduledAt: now,
+        triggerAt: now,
+        status: 'pending',
+        preCastAudioPath: null,
+      });
+
+      await answerCall('rem-already-done', userId, false);
+
+      expect(remindersStore.getReminderById('rem-already-done')?.status).toBe('acknowledged');
+    });
+
     it('snoozes reminder and updates triggerAt accordingly', async () => {
       const now = new Date().toISOString();
       tasksStore.insertTask({

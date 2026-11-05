@@ -1,8 +1,9 @@
 import { tasksStore, timeBlocksStore, remindersStore, notesStore } from '../../storage';
-import type { Task, Event, TimeBlock, Note } from '../../storage';
+import type { Task, Event, TimeBlock, Note, Reminder } from '../../storage';
 import {
   scheduleReminderAlarm,
   cancelReminderAlarm,
+  finishNativeIncomingCall,
   acknowledgeReminderAction,
   snoozeReminderAction,
 } from '../../scheduler';
@@ -19,7 +20,7 @@ export interface ActionExecutorOptions {
 
 function format12HourTime(timeStr?: string | null): string {
   if (!timeStr) return '';
-  const match = /^(\d{1,2}):(\d{2})$/.exec(timeStr.trim());
+  const match = /^(\d{1,2}):(\d{2})/.exec(timeStr.trim());
   if (!match) return timeStr;
   let hour = parseInt(match[1], 10);
   const min = parseInt(match[2], 10);
@@ -314,6 +315,7 @@ async function cleanupMatchingReminders(userId: string, deletedTitle: string): P
       remindersStore.deleteReminder(r.id);
       try {
         await cancelReminderAlarm(r.id);
+        await finishNativeIncomingCall(r.id);
       } catch (e) {
         console.warn('Failed to cancel alarm for deleted item reminder:', e);
       }
@@ -1018,12 +1020,13 @@ export async function executeNluAction(
           id: task.id,
           isCompleted: true,
         });
+        await cleanupMatchingReminders(userId, task.title);
         return {
           success: true,
           intent: 'update_task',
           entityType: 'task',
           entityId: task.id,
-          reply: `Marked task "${task.title}" as completed.`,
+          reply: `Marked task "${task.title}" as completed. All reminder alarms for it have been cancelled.`,
         };
       }
 
@@ -1074,11 +1077,106 @@ export async function executeNluAction(
         } catch (e) {
           console.warn('Failed to acknowledge active reminder:', e);
         }
+        return {
+          success: true,
+          intent: 'acknowledge',
+          reply: 'Great job! Acknowledged.',
+        };
       }
+
+      const targetQuery = intent.targetTitle || intent.title;
+      const pendingReminders = remindersStore.getPendingReminders(userId);
+
+      // 1. If target title was specified by user
+      if (targetQuery) {
+        const normTarget = normalizeForMatch(targetQuery);
+        const matchingRem = pendingReminders.find(
+          (r) =>
+            r.task.trim().toLowerCase() === targetQuery.trim().toLowerCase() ||
+            (normTarget && normalizeForMatch(r.task).includes(normTarget)),
+        );
+
+        if (matchingRem) {
+          await acknowledgeReminderAction(matchingRem.id, userId);
+          const allTasks = tasksStore.getAllTasks(userId);
+          const taskMatch = findMatchingTask(allTasks, targetQuery, null, null);
+          if (taskMatch.task && intent.targetEntityType === 'task') {
+            tasksStore.updateTask({ id: taskMatch.task.id, isCompleted: true });
+          }
+          return {
+            success: true,
+            intent: 'acknowledge',
+            entityType: 'reminder',
+            entityId: matchingRem.id,
+            reply: `Acknowledged "${matchingRem.task}". Reminder alarms have been cancelled and no additional call reminders will be triggered.`,
+          };
+        }
+
+        // Direct task match
+        const allTasks = tasksStore.getAllTasks(userId);
+        const taskMatch = findMatchingTask(allTasks, targetQuery, null, null);
+        if (taskMatch.task) {
+          tasksStore.updateTask({ id: taskMatch.task.id, isCompleted: true });
+          await cleanupMatchingReminders(userId, taskMatch.task.title);
+          return {
+            success: true,
+            intent: 'acknowledge',
+            entityType: 'task',
+            entityId: taskMatch.task.id,
+            reply: `Acknowledged task "${taskMatch.task.title}". It has been marked completed and its call reminders are cancelled.`,
+          };
+        }
+
+        // Direct event match
+        const allEvents = tasksStore.getAllEvents(userId);
+        const eventMatch = findMatchingEvent(allEvents, targetQuery, null, null);
+        if (eventMatch.event) {
+          await cleanupMatchingReminders(userId, eventMatch.event.title);
+          return {
+            success: true,
+            intent: 'acknowledge',
+            entityType: 'event',
+            entityId: eventMatch.event.id,
+            reply: `Acknowledged event "${eventMatch.event.title}". Its call reminders have been cancelled.`,
+          };
+        }
+      }
+
+      // 2. If no target title, acknowledge the most relevant pending reminder
+      if (pendingReminders.length > 0) {
+        let chosenRem: Reminder | null = null;
+        if (intent.targetEntityType === 'event') {
+          const allEvents = tasksStore.getAllEvents(userId);
+          chosenRem =
+            pendingReminders.find((r) =>
+              allEvents.some((e) => e.title.trim().toLowerCase() === r.task.trim().toLowerCase()),
+            ) || pendingReminders[0];
+        } else if (intent.targetEntityType === 'task') {
+          const allTasks = tasksStore.getAllTasks(userId);
+          chosenRem =
+            pendingReminders.find((r) =>
+              allTasks.some((t) => t.title.trim().toLowerCase() === r.task.trim().toLowerCase()),
+            ) || pendingReminders[0];
+        } else {
+          chosenRem = pendingReminders[0];
+        }
+
+        if (chosenRem) {
+          await acknowledgeReminderAction(chosenRem.id, userId);
+          return {
+            success: true,
+            intent: 'acknowledge',
+            entityType: 'reminder',
+            entityId: chosenRem.id,
+            reply: `Acknowledged "${chosenRem.task}". Reminder alarms have been cancelled and no additional call reminders will be triggered.`,
+          };
+        }
+      }
+
       return {
         success: true,
         intent: 'acknowledge',
-        reply: 'Great job! Acknowledged.',
+        reply: 'All reminders and tasks are already acknowledged. No additional call reminders will be triggered.',
       };
     }
 
@@ -1255,7 +1353,7 @@ export async function executeNluAction(
       return {
         success: true,
         intent: intent.intent,
-        reply: "Hey! I'm LAFINA. You can ask me to add, update, or remove tasks, time blocks, reminders, or notes.",
+        reply: "Hey! I'm lafina. You can ask me to add, update, or remove tasks, time blocks, reminders, or notes.",
       };
     }
   }

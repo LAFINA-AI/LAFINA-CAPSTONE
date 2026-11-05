@@ -1171,13 +1171,31 @@ export function parseIntentFastPath(
 
   // Strip polite/conversational invocation prefixes for command matching ("Hey Lafina, can you please...", "I want to...", "So let's...")
   const commandLower = stripConversationalCommandPrefix(lower);
+  const commandRaw = stripConversationalCommandPrefix(normalized);
 
   // 1. Call Responses / Acknowledge
   const isAck = /^(?:i(?:'m| am)? done|i did it|finished|got it|okay|ok|understood|acknowledged|thanks?)(?:[,.!\s]+(?:thanks?|bye))?[\s.!,]*$/i.test(lower);
-  if (isAck) {
+  const ackMatch =
+    /^(?:i(?:'ve| have)?\s+already\s+|i\s+)?acknowledged?(?:\s+(?:the|my|this))?(?:\s+(event|task|reminder|call\s*reminder))?(?:\s+(.+))?[\s.!,]*$/i.exec(
+      commandRaw,
+    );
+  if (isAck || ackMatch) {
+    const rawEntity = ackMatch ? ackMatch[1]?.toLowerCase() : undefined;
+    const entityType: 'event' | 'task' | 'reminder' | undefined =
+      rawEntity === 'event'
+        ? 'event'
+        : rawEntity === 'task'
+          ? 'task'
+          : rawEntity && rawEntity.includes('reminder')
+            ? 'reminder'
+            : undefined;
+    const rawTarget = ackMatch && ackMatch[2] ? cleanCrudTargetTitle(ackMatch[2]) : null;
+    const formattedTarget = rawTarget ? rawTarget.charAt(0).toUpperCase() + rawTarget.slice(1) : null;
     return {
       intent: 'acknowledge',
-      title: null,
+      title: formattedTarget,
+      targetTitle: formattedTarget,
+      targetEntityType: entityType,
       date: null,
       time: null,
       endTime: null,
@@ -1310,7 +1328,8 @@ export function parseIntentFastPath(
   const markDoneMatch =
     /\bmark\s+(.+?)\s+as\s+(?:done|complete|completed|finished)\b/i.exec(commandLower) ||
     /^(?:complete|finish|check\s+off|tick\s+off)\s+(?:(?:my|the|a|an)\s+)?(?:(?:task|todo|to-do)\s+)(.+)$/i.exec(commandLower) ||
-    /^(?:complete|check\s+off|tick\s+off)\s+(?:(?:my|the)\s+)(.+)$/i.exec(commandLower);
+    /^(?:complete|check\s+off|tick\s+off)\s+(?:(?:my|the)\s+)(.+)$/i.exec(commandLower) ||
+    /^(?:i(?:'m| am)?\s+done\s+with|i\s+(?:already\s+)?finished)\s+(?:(?:my|the|a|an)\s+)?(?:(?:task|event|todo)\s+)?(.+)$/i.exec(commandLower);
   if (markDoneMatch) {
     const rawTarget = markDoneMatch[1];
     const targetTitle = cleanCrudTargetTitle(rawTarget);

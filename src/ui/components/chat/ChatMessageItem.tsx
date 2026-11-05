@@ -65,7 +65,7 @@ export const ChatMessageItem: React.FC<ChatMessageItemProps> = ({ item, onSpeak 
             <View style={[styles.avatarBadge, { backgroundColor: colors.primary + '18' }]}>
               <Sparkles size={11} color={colors.primary} />
             </View>
-            <Text style={[styles.assistantName, { color: colors.primary }]}>LAFINA</Text>
+            <Text style={[styles.assistantName, { color: colors.primary }]}>lafina</Text>
           </View>
         )}
 

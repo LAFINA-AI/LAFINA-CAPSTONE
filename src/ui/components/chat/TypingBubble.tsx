@@ -55,7 +55,7 @@ export const TypingBubble: React.FC<TypingBubbleProps> = ({ label }) => {
       style={[styles.bubble, themed.bubble]}
       accessible
       accessibilityRole="progressbar"
-      accessibilityLabel={label ?? 'LAFINA is typing a reply'}
+      accessibilityLabel={label ?? 'lafina is typing a reply'}
       accessibilityLiveRegion="polite"
       testID="typing-bubble"
     >

@@ -358,6 +358,23 @@ describe('Phase 07: Smart Hybrid On-Device NLU & Action Execution', () => {
       const ack = parseIntentFastPath('I did it, thanks!');
       expect(ack.intent).toBe('acknowledge');
 
+      const ackEvent = parseIntentFastPath('Acknowledge the event');
+      expect(ackEvent.intent).toBe('acknowledge');
+      expect(ackEvent.targetEntityType).toBe('event');
+
+      const ackEventAlready = parseIntentFastPath("I've already acknowledged the event");
+      expect(ackEventAlready.intent).toBe('acknowledge');
+      expect(ackEventAlready.targetEntityType).toBe('event');
+
+      const ackTask = parseIntentFastPath('Acknowledge task Submit assignment');
+      expect(ackTask.intent).toBe('acknowledge');
+      expect(ackTask.targetEntityType).toBe('task');
+      expect(ackTask.targetTitle).toBe('Submit assignment');
+
+      const ackNamed = parseIntentFastPath('Acknowledge Chemistry Quiz');
+      expect(ackNamed.intent).toBe('acknowledge');
+      expect(ackNamed.targetTitle).toBe('Chemistry Quiz');
+
       const snooze = parseIntentFastPath('Snooze for 15 minutes');
       expect(snooze.intent).toBe('snooze');
       expect(snooze.snoozeMinutes).toBe(15);

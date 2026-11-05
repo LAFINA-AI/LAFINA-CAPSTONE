@@ -100,6 +100,28 @@ export const acknowledgeReminderAction = async (
     console.error('[ReminderActions] Acknowledged, but cleanup failed:', error);
   }
 
+  // Also acknowledge and cancel any other pending, snoozed, or triggered reminders for the same task/event title
+  // so no additional or duplicate call reminders get triggered for an event or task the user has already acknowledged.
+  try {
+    const normTarget = reminder.task.trim().toLowerCase();
+    const otherReminders = remindersStore
+      .getPendingReminders(userId)
+      .filter((r) => r.id !== reminder.id && r.task.trim().toLowerCase() === normTarget);
+
+    for (const other of otherReminders) {
+      try {
+        remindersStore.acknowledgeReminder(other.id);
+        await cancelReminderAlarm(other.id);
+        await finishNativeIncomingCall(other.id);
+        await deletePreCachedReminderAudio(other.preCastAudioPath);
+      } catch (err) {
+        console.warn('[ReminderActions] Cleanup of duplicate reminder failed:', err);
+      }
+    }
+  } catch (err) {
+    console.warn('[ReminderActions] Error finding duplicate reminders to acknowledge:', err);
+  }
+
   return {
     ok: true,
     outcome: 'acknowledged',
