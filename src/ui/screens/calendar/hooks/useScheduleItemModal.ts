@@ -1,7 +1,7 @@
 import { useState, useCallback } from 'react';
 import { Alert } from 'react-native';
 import type { Task, Event } from '../../../../storage';
-import { tasksStore, remindersStore } from '../../../../storage';
+import { deliveryStore, tasksStore, remindersStore } from '../../../../storage';
 import { ScheduleItemForm, ScheduleItemModalState } from '../types';
 import { generateId } from '../../../../utils';
 import {
@@ -31,6 +31,20 @@ const defaultForm = (): ScheduleItemForm => ({
 });
 
 type Priority = 'High' | 'Medium' | 'Low';
+
+/**
+ * AGY-PORT 04: a reminder with an exact link to a different item (created by a
+ * reviewed assistant command) is never cleaned up because titles match. Unlinked
+ * reminders keep the title rule below.
+ */
+const linkedElsewhere = (reminderId: string, itemId: string | null): boolean => {
+  try {
+    const job = deliveryStore.get(reminderId);
+    return !!job?.sourceId && job.sourceId !== itemId;
+  } catch {
+    return false;
+  }
+};
 
 export const useScheduleItemModal = (options: UseScheduleItemModalOptions): ScheduleItemModalState => {
   const { userId, selectedDate, onSaved, onRefresh } = options;
@@ -108,8 +122,9 @@ export const useScheduleItemModal = (options: UseScheduleItemModalOptions): Sche
           .getPendingReminders(userId)
           .filter(
             (r) =>
-              r.task.trim().toLowerCase() === title.trim().toLowerCase() ||
-              (editingItem && r.task.trim().toLowerCase() === editingItem.title.trim().toLowerCase()),
+              (r.task.trim().toLowerCase() === title.trim().toLowerCase() ||
+                (editingItem && r.task.trim().toLowerCase() === editingItem.title.trim().toLowerCase())) &&
+              !linkedElsewhere(r.id, editingItem?.id ?? null),
           );
         for (const oldRem of existingPending) {
           remindersStore.deleteReminder(oldRem.id);
@@ -219,7 +234,11 @@ export const useScheduleItemModal = (options: UseScheduleItemModalOptions): Sche
           // Clean up any pending reminders for this deleted item
           const existingPending = remindersStore
             .getPendingReminders(userId)
-            .filter((r) => r.task.trim().toLowerCase() === itemTitle.trim().toLowerCase());
+            .filter(
+              (r) =>
+                r.task.trim().toLowerCase() === itemTitle.trim().toLowerCase() &&
+                !linkedElsewhere(r.id, id),
+            );
           for (const oldRem of existingPending) {
             remindersStore.deleteReminder(oldRem.id);
             void cancelReminderAlarm(oldRem.id);

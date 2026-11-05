@@ -1,0 +1,13 @@
+AGY-PORT 04 donor provenance (reference only; no file copied)
+Donor: LAFINA at 0d4bbe39e106c29fb90792cf5d2f916b5c0d6480, read with `git -C <LAFINA> show <rev>:<path>` only.
+
+src/ai/nlu/commandSession.ts                 98b83b33034b1983b054b6f3b004f0143c215f79  concepts: private expiring proposal, owner binding, confirm/cancel
+src/ui/components/CommandReviewPanel.tsx     b655ccbe766128c1c8e1afa719bc7f284a125344  concepts: review card content (action, assumptions, warnings)
+src/storage/linkedReminders.ts               e231c5d081baf16d8bcc1795ce300c09f4c0b9fc  concepts: exact source links instead of title cleanup
+src/ui/hooks/useCommandReview.ts             bc067e4765309606ffdc662752b7c41096b4ab6d  concepts: hook shape (present/confirm/cancel, busy guard)
+src/ui/components/UndatedTasks.tsx           5e9624b2a594190554b36cedb9d2b6ca0e8f68aa  concepts: undated task tray
+__tests__/ai/commandSession.test.ts          a0386ab3afe0fac4b2efcb0f83c55f8fbfa7b837  test ideas only
+__tests__/ai/reviewedPlannerMutations.test.ts 37257f5b762aa29acd7bffd934ad936d97fea1eb test ideas only
+src/ai/nlu/commandSchema.ts                  (does not exist at the pinned revision)
+
+Not imported: the donor public NluResult schema, its native inference, its revision column design.

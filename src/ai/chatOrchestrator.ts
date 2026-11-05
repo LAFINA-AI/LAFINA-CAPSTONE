@@ -16,6 +16,15 @@ import { saveGeneratedFile } from '../ui/components/chat/chatFiles';
 import { detectDocumentRequest } from './documentIntent';
 import { intentService } from './nlu/intentService';
 import { executeNluAction } from './nlu/actionExecutor';
+import { routeIntent } from './nlu/intentRoutes';
+import type { ResolvedIntentRoute, RingingCallContext } from './nlu/intentRoutes';
+import {
+  cancelReviewedCommand,
+  confirmReviewedCommand,
+  prepareReviewedCommand,
+} from './nlu/commandReview';
+import type { ConfirmResult, PrepareResult, ReviewSurface } from './nlu/commandReview';
+import { acknowledgeReminderAction, snoozeReminderAction } from '../scheduler/reminderActions';
 import { formatLocalDate } from './nlu/fastPathParser';
 import { ttsService } from './tts/ttsService';
 import type { ValidatedIntent, NluActionResult } from './nlu/types';
@@ -40,6 +49,23 @@ export interface ProcessMessageOptions {
   onlineMode?: boolean;
   useHandbook?: boolean;
   documentFormat?: DocumentFormat | null;
+  /** Which review card shows a proposal (AGY-PORT 04). Defaults to Chat. */
+  reviewSurface?: ReviewSurface;
+  /**
+   * Identity captured by a ringing reminder call. Only then do acknowledge and
+   * snooze act immediately, through the call actions with that identity.
+   */
+  ringingCall?: RingingCallContext | null;
+}
+
+/** Outcome of Confirm or Cancel on a review card. */
+export interface ReviewDecisionResult {
+  /** Present for Confirm; absent for Cancel. */
+  outcome?: ConfirmResult;
+  cancelled?: boolean;
+  /** The transcript line saved for this decision, when one was saved. */
+  assistantMessage: ChatMessage | null;
+  reply: string;
 }
 
 export interface ChatOrchestratorResult {
@@ -52,6 +78,10 @@ export interface ChatOrchestratorResult {
   attachment?: ChatAttachment | null;
   handbookNote?: string | null;
   usedOnline?: boolean;
+  /** Route taken for the extracted intent (AGY-PORT 04). */
+  route?: ResolvedIntentRoute;
+  /** Present when the request would change the planner: a proposal, clarification or refusal. Nothing was written. */
+  review?: PrepareResult;
   reply: string;
 }
 
@@ -252,6 +282,8 @@ export class ChatOrchestrator {
     let attachment: ChatAttachment | null = null;
     let handbookNote: string | null = null;
     let usedOnline = false;
+    let route: ResolvedIntentRoute | undefined;
+    let review: PrepareResult | undefined;
 
     // Step 2: Check for explicit or natural-language document generation request
     const detectedDoc = options.documentFormat
@@ -356,24 +388,38 @@ export class ChatOrchestrator {
       }
     }
 
-    // Step 5: Execute database mutation or conversational reply if no unresolved conflict
+    // Step 5: Planner changes become a private proposal that waits for Confirm
+    // (AGY-PORT 04). Reads, call actions and conversation keep their routes.
     if (!finalReply) {
-      if (
-        validated.intent === 'create_task' ||
-        validated.intent === 'create_time_block' ||
-        validated.intent === 'create_reminder' ||
-        validated.intent === 'create_note' ||
-        validated.intent === 'update_task' ||
-        validated.intent === 'update_time_block' ||
-        validated.intent === 'update_note' ||
-        validated.intent === 'delete_task' ||
-        validated.intent === 'delete_time_block' ||
-        validated.intent === 'delete_note' ||
-        validated.intent === 'query_schedule' ||
-        validated.intent === 'acknowledge' ||
-        validated.intent === 'snooze' ||
-        validated.intent === 'reschedule'
-      ) {
+      route = routeIntent(validated.intent, { ringingCall: options.ringingCall });
+      if (route === 'reviewed_mutation') {
+        review = prepareReviewedCommand(userId, validated, {
+          referenceDate: refDate,
+          surface: options.reviewSurface,
+          ringingCall: options.ringingCall,
+        });
+        finalReply = review.reply;
+      } else if (route === 'call_context_immediate' && options.ringingCall) {
+        const call = options.ringingCall;
+        const outcome =
+          validated.intent === 'acknowledge'
+            ? await acknowledgeReminderAction(call.reminderId, userId, call.generation)
+            : await snoozeReminderAction(
+                call.reminderId,
+                userId,
+                validated.snoozeMinutes || 10,
+                call.generation,
+              );
+        actionResult = {
+          success: outcome.ok,
+          intent: validated.intent,
+          entityType: 'reminder',
+          entityId: call.reminderId,
+          reply: outcome.message,
+          ...(outcome.ok ? {} : { error: outcome.message }),
+        };
+        finalReply = outcome.message;
+      } else if (route === 'read_only') {
         actionResult = await executeNluAction(userId, validated, {
           referenceDate: refDate,
         });
@@ -444,8 +490,59 @@ export class ChatOrchestrator {
       attachment,
       handbookNote,
       usedOnline,
+      route,
+      review,
       reply: finalReply,
     };
+  }
+
+  /**
+   * Applies a reviewed proposal once and records the outcome in the owner's
+   * transcript. A repeated Confirm returns the first receipt and adds nothing.
+   */
+  async confirmReview(
+    userId: string,
+    operationId: string,
+    options: { speakReply?: boolean } = {},
+  ): Promise<ReviewDecisionResult> {
+    const outcome = confirmReviewedCommand(userId, operationId);
+    let assistantMessage: ChatMessage | null = null;
+    if (!(outcome.status === 'applied' && outcome.repeated)) {
+      try {
+        assistantMessage = chatStore.addMessage(userId, 'assistant', outcome.reply);
+      } catch (error) {
+        console.warn('[ChatOrchestrator] Could not save the review outcome to chat:', error);
+      }
+    }
+    if (options.speakReply) {
+      try {
+        await ttsService.speak(outcome.reply);
+      } catch (err) {
+        console.warn('[ChatOrchestrator] TTS playback error:', err);
+      }
+    }
+    return { outcome, assistantMessage, reply: outcome.reply };
+  }
+
+  /** Discards a proposal. Writes no planner data. */
+  cancelReview(
+    userId: string,
+    operationId: string,
+    options: { recordInChat?: boolean } = {},
+  ): ReviewDecisionResult {
+    const cancelled = cancelReviewedCommand(userId, operationId);
+    const reply = cancelled
+      ? 'Cancelled. Nothing was changed.'
+      : 'There was nothing to cancel. Nothing was changed.';
+    let assistantMessage: ChatMessage | null = null;
+    if (cancelled && options.recordInChat !== false) {
+      try {
+        assistantMessage = chatStore.addMessage(userId, 'assistant', reply);
+      } catch (error) {
+        console.warn('[ChatOrchestrator] Could not save the cancellation to chat:', error);
+      }
+    }
+    return { cancelled, assistantMessage, reply };
   }
 }
 

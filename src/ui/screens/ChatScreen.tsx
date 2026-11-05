@@ -45,6 +45,8 @@ import { chatOrchestrator } from '../../ai/chatOrchestrator';
 import { ChatMessageItem } from '../components/chat/ChatMessageItem';
 import { ChatInput } from '../components/chat/ChatInput';
 import { TypingBubble } from '../components/chat/TypingBubble';
+import { CommandReviewCard } from '../components/chat/CommandReviewCard';
+import { useCommandReview } from '../hooks/useCommandReview';
 import {
   removeAttachmentFiles,
   shareAttachment,
@@ -105,6 +107,8 @@ export const ChatScreen: React.FC<ChatScreenProps> = ({
 
   const { colors } = useTheme();
   const themed = useThemedStyles(getThemedStyles);
+  // AGY-PORT 04: planner changes wait on this card until Confirm.
+  const review = useCommandReview(userId, 'chat');
 
   // Floating bottom CustomTabBar clearance when keyboard is closed
   const tabBarBottomOffset = Math.max(insets.bottom, 12) + 14;
@@ -356,6 +360,7 @@ export const ChatScreen: React.FC<ChatScreenProps> = ({
           [result.assistantMessage.id]: result.handbookNote as string,
         }));
       }
+      review.present(result.review);
       loadMessages();
       onRefresh?.();
     } catch (err) {
@@ -363,6 +368,22 @@ export const ChatScreen: React.FC<ChatScreenProps> = ({
     } finally {
       setIsSending(false);
     }
+  };
+
+  const handleConfirmReview = async () => {
+    const requestUser = userId;
+    try {
+      const decision = await review.confirm();
+      if (!decision || activeUserRef.current !== requestUser) return;
+      loadMessages();
+      onRefresh?.();
+    } catch (err) {
+      console.error('[ChatScreen] Error confirming a reviewed command:', err);
+    }
+  };
+
+  const handleCancelReview = () => {
+    if (review.cancel()) loadMessages();
   };
 
   const handleClearHistory = () => {
@@ -652,6 +673,22 @@ export const ChatScreen: React.FC<ChatScreenProps> = ({
         testID="chat-messages-list"
       />
 
+      {review.proposal ? (
+        <View style={styles.reviewContainer}>
+          <CommandReviewCard
+            proposal={review.proposal}
+            expired={review.expired}
+            busy={review.busy}
+            onConfirm={() => {
+              void handleConfirmReview();
+            }}
+            onCancel={handleCancelReview}
+            onDismiss={review.dismiss}
+            testIDPrefix="chat-review"
+          />
+        </View>
+      ) : null}
+
       {/* Bottom Input */}
       <ChatInput
         inputText={inputText}
@@ -757,6 +794,9 @@ export const ChatScreen: React.FC<ChatScreenProps> = ({
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+  },
+  reviewContainer: {
+    paddingHorizontal: Spacing.lg,
   },
   noticeCard: {
     borderRadius: 12,

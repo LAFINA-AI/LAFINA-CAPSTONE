@@ -1,0 +1,23 @@
+ App.tsx                                            |   4 +
+ __tests__/ai/phase06SttAndVoiceModal.test.tsx      |  22 ++-
+ __tests__/ai/phase08ChatAndOrchestrator.test.tsx   |  58 +++++--
+ __tests__/storage/schemaMigrations.test.ts         |  61 ++++++-
+ .../agy-improvements/reports/PRESERVED-FEATURES.md |   1 +
+ docs/plans/agy-improvements/reports/RUN-STATE.json |  28 +--
+ .../agy-improvements/reports/autonomous-run-log.md |   1 +
+ scripts/check-architecture.mjs                     |  30 ++++
+ src/ai/chatOrchestrator.ts                         | 131 ++++++++++++--
+ src/ai/nlu/actionExecutor.ts                       |  16 +-
+ src/ai/nlu/index.ts                                |   7 +-
+ src/ai/nlu/intentService.ts                        |   8 +
+ src/storage/dbInit.ts                              |   9 +
+ src/storage/index.ts                               |   3 +
+ src/storage/notesStore.ts                          |  16 +-
+ src/storage/remindersStore.ts                      |  75 ++++++--
+ src/storage/tasksStore.ts                          | 192 ++++++++++++---------
+ src/storage/timeBlocksStore.ts                     |  52 +++---
+ src/ui/components/VoiceModal.tsx                   | 159 +++++++++++++----
+ src/ui/screens/ChatScreen.tsx                      |  40 +++++
+ src/ui/screens/calendar/CalendarScreen.tsx         |  24 ++-
+ .../screens/calendar/hooks/useScheduleItemModal.ts |  27 ++-
+ 22 files changed, 753 insertions(+), 211 deletions(-)

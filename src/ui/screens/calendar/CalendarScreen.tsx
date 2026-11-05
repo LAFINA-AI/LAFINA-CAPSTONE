@@ -8,7 +8,7 @@ import {
 } from 'react-native';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Plus, ChevronLeft, ChevronRight, ChevronDown, Upload, Download, Layers, Clock, CheckSquare, FileText } from 'lucide-react-native';
+import { Plus, ChevronLeft, ChevronRight, ChevronDown, Upload, Download, Layers, Clock, CheckSquare, FileText, Inbox } from 'lucide-react-native';
 import { useTheme } from '../../contexts/ThemeContext';
 import { Colors, Shadows } from '../../theme';
 import { getCategoryColor, registerCustomCategoryColor } from '../../theme/categoryColors';
@@ -16,6 +16,7 @@ import { useCalendarData } from './hooks/useCalendarData';
 import { useTimeBlockModal } from './hooks/useTimeBlockModal';
 import { useScheduleItemModal } from './hooks/useScheduleItemModal';
 import { WeekView, MonthView, AddBlockModal, AddTaskEventModal } from './components';
+import { UndatedTasksModal } from './components/UndatedTasksModal';
 import { NoteEditor } from '../notes/components/NoteEditor';
 import { getHeaderTitle } from './utils/calendarHelpers';
 import { CalendarScreenProps, ViewMode } from './types';
@@ -42,6 +43,7 @@ export const CalendarScreen: React.FC<CalendarScreenProps> = ({
   const fabBottom = Math.max(insets.bottom, 12) + 90;
 
   const [fabMenuVisible, setFabMenuVisible] = useState(false);
+  const [undatedVisible, setUndatedVisible] = useState(false);
   const [noteModalVisible, setNoteModalVisible] = useState(false);
   const [noteTitle, setNoteTitle] = useState('');
   const [noteBody, setNoteBody] = useState('');
@@ -287,6 +289,19 @@ export const CalendarScreen: React.FC<CalendarScreenProps> = ({
             <Layers size={16} color={colors.textPrimary} />
             <Text style={[styles.actionButtonText, { color: colors.textPrimary }]}>Calendars</Text>
           </TouchableOpacity>
+
+          <TouchableOpacity
+            onPress={() => setUndatedVisible(true)}
+            style={[styles.actionButton, { borderColor: colors.border, backgroundColor: colors.inputBg }]}
+            activeOpacity={0.7}
+            accessibilityRole="button"
+            accessibilityLabel="Undated tasks"
+            accessibilityHint="Shows open tasks that have no due date"
+            testID="calendar-undated-button"
+          >
+            <Inbox size={16} color={colors.textPrimary} />
+            <Text style={[styles.actionButtonText, { color: colors.textPrimary }]}>Undated</Text>
+          </TouchableOpacity>
         </View>
       </View>
 
@@ -337,6 +352,13 @@ export const CalendarScreen: React.FC<CalendarScreenProps> = ({
       {/* Modals */}
       <AddBlockModal state={blockModal} timeFormat24h={calendar.timeFormat24h} />
       <AddTaskEventModal state={scheduleModal} timeFormat24h={calendar.timeFormat24h} />
+      <UndatedTasksModal
+        visible={undatedVisible}
+        userId={userId}
+        refreshTrigger={refreshTrigger}
+        onClose={() => setUndatedVisible(false)}
+        onToggleTask={toggleTaskCompletion}
+      />
       
       <CalendarLayersModal
         visible={calendar.layersModalVisible}
