@@ -1,0 +1,73 @@
+PASS __tests__/preservation/agyPreservedContracts.test.ts
+  ● Console
+
+    console.error
+      [Database] SQL Error executing query: UPDATE notes SET user_id = ? WHERE user_id = ? Error: synthetic failure
+        code: 'ERR_SQLITE_ERROR',
+        errcode: 1811,
+        errstr: 'constraint failed'
+      }
+
+    [0m [90m 151 |[39m     } [36mcatch[39m (error) {
+     [90m 152 |[39m       [90m// Bound values can hold note text or credentials, so they are never logged.[39m
+    [31m[1m>[22m[39m[90m 153 |[39m       console[33m.[39merror(
+     [90m     |[39m               [31m[1m^[22m[39m
+     [90m 154 |[39m         [32m`[Database] SQL Error executing query: ${describeQuery(query)}`[39m[33m,[39m
+     [90m 155 |[39m         error[33m,[39m
+     [90m 156 |[39m       )[33m;[39m[0m
+
+
+PASS __tests__/ai/phase10HandbookRAG.test.tsx (5.171 s)
+  ● Console
+
+    console.warn
+      [ChatOrchestrator] Online AI chat failed: Backend handbook index unavailable
+
+    [0m [90m 394 |[39m             usedOnline [33m=[39m [36mtrue[39m[33m;[39m
+     [90m 395 |[39m           } [36melse[39m {
+    [31m[1m>[22m[39m[90m 396 |[39m             console[33m.[39mwarn([32m'[ChatOrchestrator] Online AI chat failed:'[39m[33m,[39m onlineResult[33m.[39merror)[33m;[39m
+     [90m     |[39m                     [31m[1m^[22m[39m
+     [90m 397 |[39m             [36mif[39m (
+     [90m 398 |[39m               options[33m.[39museHandbook [33m&&[39m
+     [90m 399 |[39m               [35m/\b(?:ustp|handbook|dean'?s\s+list|grading|policy|curriculum|tuition|retention)\b/i[39m[33m.[39mtest([0m
+
+
+PASS __tests__/ai/phase08ChatAndOrchestrator.test.tsx (5.815 s)
+  ● Console
+
+    console.warn
+      Failed to schedule native alarm for task reminder: Error: Reminder trigger must be a valid future time.
+
+    [0m [90m 425 |[39m           [36mawait[39m scheduleReminderAlarm(reminderId[33m,[39m taskTitle[33m,[39m triggerAt)[33m;[39m
+     [90m 426 |[39m         } [36mcatch[39m (e) {
+    [31m[1m>[22m[39m[90m 427 |[39m           console[33m.[39mwarn([32m'Failed to schedule native alarm for task reminder:'[39m[33m,[39m e)[33m;[39m
+     [90m     |[39m                   [31m[1m^[22m[39m
+     [90m 428 |[39m         }
+     [90m 429 |[39m         reminderMsg [33m=[39m [32m` with a reminder at ${format12HourTime(dueTime)}`[39m[33m;[39m
+     [90m 430 |[39m       }[0m
+
+
+PASS __tests__/ai/phase09OnlineDocsAndMeetings.test.tsx (5.828 s)
+  ● Console
+
+    console.warn
+      [ChatOrchestrator] Online AI chat failed: Network request failed
+
+    [0m [90m 394 |[39m             usedOnline [33m=[39m [36mtrue[39m[33m;[39m
+     [90m 395 |[39m           } [36melse[39m {
+    [31m[1m>[22m[39m[90m 396 |[39m             console[33m.[39mwarn([32m'[ChatOrchestrator] Online AI chat failed:'[39m[33m,[39m onlineResult[33m.[39merror)[33m;[39m
+     [90m     |[39m                     [31m[1m^[22m[39m
+     [90m 397 |[39m             [36mif[39m (
+     [90m 398 |[39m               options[33m.[39museHandbook [33m&&[39m
+     [90m 399 |[39m               [35m/\b(?:ustp|handbook|dean'?s\s+list|grading|policy|curriculum|tuition|retention)\b/i[39m[33m.[39mtest([0m
+
+
+PASS __tests__/ui/chatHistoryPaging.test.tsx (6.009 s)
+PASS __tests__/storage/chatOwnership.test.ts (10.051 s)
+PASS __tests__/storage/schemaMigrations.test.ts (17.708 s)
+
+Test Suites: 7 passed, 7 total
+Tests:       115 passed, 115 total
+Snapshots:   0 total
+Time:        18.528 s
+Ran all test suites matching /__tests__\\storage\\chatOwnership|__tests__\\storage\\schemaMigrations|__tests__\\ui\\chatHistoryPaging|__tests__\\ai\\phase08ChatAndOrchestrator|__tests__\\ai\\phase09OnlineDocsAndMeetings|__tests__\\ai\\phase10HandbookRAG|__tests__\\preservation/i.

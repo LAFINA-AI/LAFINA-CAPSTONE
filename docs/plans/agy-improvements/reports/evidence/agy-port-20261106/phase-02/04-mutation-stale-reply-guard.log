@@ -1,0 +1,1 @@
+Mutation check 2026-11-05T18:58:46Z: removed the stale-reply guard in ChatScreen.handleSend; 'a reply that finishes after an account switch' FAILED (1 failed, 9 skipped); file restored from a scratch copy and verified by diff stat.

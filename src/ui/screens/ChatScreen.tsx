@@ -32,6 +32,7 @@ import {
   type ChatAttachment,
   type ChatMessage,
 } from '../../storage/chatStore';
+import { mergeChatPages } from './chat/chatPaging';
 import { localSettingsStore } from '../../storage/localSettingsStore';
 import { accountLinkService } from '../../cloud';
 import {
@@ -63,6 +64,19 @@ export const ChatScreen: React.FC<ChatScreenProps> = ({
   onRefresh,
 }) => {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
+  const [olderCursor, setOlderCursor] = useState<string | null>(null);
+  const [isLoadingEarlier, setIsLoadingEarlier] = useState(false);
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const [legacyHiddenCount, setLegacyHiddenCount] = useState(0);
+  const [legacyNoticeDismissed, setLegacyNoticeDismissed] = useState(
+    () =>
+      localSettingsStore.get(userId, 'chat.legacyNoticeDismissed', null) ===
+      'true',
+  );
+  // Async results are applied only while the same account is still shown.
+  const activeUserRef = useRef(userId);
+  activeUserRef.current = userId;
+  const suppressAutoScrollRef = useRef(false);
   const [inputText, setInputText] = useState('');
   const [isSending, setIsSending] = useState(false);
   const [isOnlineMode, setIsOnlineMode] = useState(() => {
@@ -140,9 +154,59 @@ export const ChatScreen: React.FC<ChatScreenProps> = ({
     };
   }, []);
 
+  /** Reloads the newest page, keeping earlier pages the student already opened. */
   const loadMessages = useCallback(() => {
-    const list = chatStore.getMessages(userId);
-    setMessages(list);
+    try {
+      const page = chatStore.getMessagesPage(userId);
+      setMessages((current) => {
+        const merged = mergeChatPages(current, page);
+        if (!merged.keptEarlier) {
+          setOlderCursor(page.nextCursor);
+        }
+        return merged.items;
+      });
+      setLoadError(null);
+    } catch (error) {
+      console.error('[ChatScreen] Could not load conversation:', error);
+      setLoadError(
+        'Your conversation could not be loaded right now. Nothing was deleted.',
+      );
+    }
+  }, [userId]);
+
+  const handleLoadEarlier = useCallback(() => {
+    if (!olderCursor || isLoadingEarlier) return;
+    setIsLoadingEarlier(true);
+    try {
+      const page = chatStore.getMessagesPage(userId, { before: olderCursor });
+      suppressAutoScrollRef.current = true;
+      setMessages((current) => [
+        ...page.items.filter(
+          (item) => !current.some((existing) => existing.id === item.id),
+        ),
+        ...current,
+      ]);
+      setOlderCursor(page.nextCursor);
+      setLoadError(null);
+    } catch (error) {
+      console.error('[ChatScreen] Could not load earlier messages:', error);
+      setLoadError('Earlier messages could not be loaded. Try again.');
+    } finally {
+      setIsLoadingEarlier(false);
+    }
+  }, [isLoadingEarlier, olderCursor, userId]);
+
+  // A different account never sees the previous account's messages or cursor.
+  useEffect(() => {
+    setMessages([]);
+    setOlderCursor(null);
+    setHandbookNotes({});
+    setLoadError(null);
+    setLegacyHiddenCount(chatStore.getLegacyQuarantineSummary().messageCount);
+    setLegacyNoticeDismissed(
+      localSettingsStore.get(userId, 'chat.legacyNoticeDismissed', null) ===
+        'true',
+    );
   }, [userId]);
 
   useEffect(() => {
@@ -272,6 +336,7 @@ export const ChatScreen: React.FC<ChatScreenProps> = ({
     if (!query || isSending) return;
 
     const requestedFormat = selectedFormat;
+    const requestUser = userId;
     setInputText('');
     setSelectedFormat(null);
     setIsSending(true);
@@ -282,6 +347,9 @@ export const ChatScreen: React.FC<ChatScreenProps> = ({
         useHandbook,
         documentFormat: requestedFormat,
       });
+      // If the account changed while the reply was pending, the reply was saved
+      // for the account that sent it and must not appear in this one.
+      if (activeUserRef.current !== requestUser) return;
       if (result.handbookNote && result.assistantMessage) {
         setHandbookNotes((prev) => ({
           ...prev,
@@ -307,16 +375,93 @@ export const ChatScreen: React.FC<ChatScreenProps> = ({
           text: 'Clear',
           style: 'destructive',
           onPress: () => {
-            const attachmentUris = chatStore.getAttachmentUris(userId);
-            chatStore.clearHistory(userId);
-            void removeAttachmentFiles(attachmentUris);
+            try {
+              const attachmentUris = chatStore.getAttachmentUris(userId);
+              chatStore.clearHistory(userId);
+              void removeAttachmentFiles(attachmentUris);
+            } catch (error) {
+              console.error('[ChatScreen] Could not clear conversation:', error);
+              Alert.alert(
+                'Could Not Clear',
+                'Your conversation could not be cleared right now. Nothing was deleted.',
+              );
+              return;
+            }
             setHandbookNotes({});
+            setMessages([]);
+            setOlderCursor(null);
             loadMessages();
           },
         },
       ],
     );
   };
+
+  const dismissLegacyNotice = () => {
+    setLegacyNoticeDismissed(true);
+    localSettingsStore.set(userId, 'chat.legacyNoticeDismissed', 'true');
+  };
+
+  const renderListHeader = () => (
+    <View>
+      {legacyHiddenCount > 0 && !legacyNoticeDismissed ? (
+        <View
+          style={[styles.noticeCard, themed.headerButton]}
+          testID="chat-legacy-notice"
+        >
+          <Text style={[styles.noticeText, themed.emptySubtitle]}>
+            Some chat history saved before accounts were kept separate could not
+            be matched to a single account. It is still stored on this device,
+            hidden from every account, and nothing was deleted.
+          </Text>
+          <TouchableOpacity
+            onPress={dismissLegacyNotice}
+            accessibilityRole="button"
+            accessibilityLabel="Dismiss notice about older chat history"
+            testID="chat-legacy-notice-dismiss"
+          >
+            <Text style={[styles.noticeAction, { color: colors.primary }]}>
+              Got it
+            </Text>
+          </TouchableOpacity>
+        </View>
+      ) : null}
+      {loadError ? (
+        <View
+          style={[styles.noticeCard, themed.headerButton]}
+          testID="chat-load-error"
+        >
+          <Text style={[styles.noticeText, themed.emptySubtitle]}>
+            {loadError}
+          </Text>
+          <TouchableOpacity
+            onPress={olderCursor ? handleLoadEarlier : loadMessages}
+            accessibilityRole="button"
+            accessibilityLabel="Retry loading the conversation"
+            testID="chat-load-retry"
+          >
+            <Text style={[styles.noticeAction, { color: colors.primary }]}>
+              Try again
+            </Text>
+          </TouchableOpacity>
+        </View>
+      ) : null}
+      {olderCursor ? (
+        <TouchableOpacity
+          style={[styles.loadEarlierButton, themed.headerButton]}
+          onPress={handleLoadEarlier}
+          disabled={isLoadingEarlier}
+          accessibilityRole="button"
+          accessibilityLabel="Load earlier messages"
+          testID="chat-load-earlier"
+        >
+          <Text style={[styles.loadEarlierText, themed.onlineToggleText]}>
+            {isLoadingEarlier ? 'Loading...' : 'Load earlier messages'}
+          </Text>
+        </TouchableOpacity>
+      ) : null}
+    </View>
+  );
 
   const renderEmptyState = () => (
     <View style={styles.emptyContainer} testID="chat-empty-state">
@@ -482,7 +627,7 @@ export const ChatScreen: React.FC<ChatScreenProps> = ({
         renderItem={({ item }) => (
           <ChatMessageItem
             item={item}
-            handbookNote={handbookNotes[item.id]}
+            handbookNote={item.handbookNote ?? handbookNotes[item.id]}
             onOpenAttachment={handleOpenAttachment}
           />
         )}
@@ -490,13 +635,19 @@ export const ChatScreen: React.FC<ChatScreenProps> = ({
           styles.listContent,
           messages.length === 0 && styles.listContentEmpty,
         ]}
-        ListEmptyComponent={renderEmptyState}
+        ListHeaderComponent={renderListHeader}
+        ListEmptyComponent={loadError ? null : renderEmptyState}
         ListFooterComponent={
           isSending ? <TypingBubble label="lafina is thinking…" /> : null
         }
-        onContentSizeChange={() =>
-          flatListRef.current?.scrollToEnd({ animated: true })
-        }
+        onContentSizeChange={() => {
+          // Prepending an earlier page keeps the reader where they were.
+          if (suppressAutoScrollRef.current) {
+            suppressAutoScrollRef.current = false;
+            return;
+          }
+          flatListRef.current?.scrollToEnd({ animated: true });
+        }}
         onLayout={() => flatListRef.current?.scrollToEnd({ animated: false })}
         testID="chat-messages-list"
       />
@@ -606,6 +757,34 @@ export const ChatScreen: React.FC<ChatScreenProps> = ({
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+  },
+  noticeCard: {
+    borderRadius: 12,
+    borderWidth: 1,
+    padding: 12,
+    marginBottom: 12,
+    gap: 6,
+  },
+  noticeText: {
+    fontFamily: Fonts.body,
+    fontSize: FontSize.small,
+    lineHeight: 18,
+  },
+  noticeAction: {
+    fontFamily: Fonts.heading,
+    fontSize: FontSize.small,
+  },
+  loadEarlierButton: {
+    alignSelf: 'center',
+    borderRadius: 16,
+    borderWidth: 1,
+    paddingHorizontal: 14,
+    paddingVertical: 6,
+    marginBottom: 12,
+  },
+  loadEarlierText: {
+    fontFamily: Fonts.heading,
+    fontSize: FontSize.small,
   },
   messagesList: {
     flex: 1,

@@ -39,6 +39,7 @@ import { SettingItem } from '../components/profile/SettingItem';
 import { PrivacyModal } from '../components/profile/PrivacyModal';
 import { StudentProTag } from '../components/profile/StudentProTag';
 import { AppUpdateItem } from '../components/profile/AppUpdateItem';
+import { removeAttachmentFiles } from '../components/chat/chatFiles';
 import { PreferencesSettingsScreen } from './PreferencesSettingsScreen';
 
 function getInitials(username: string | null | undefined): string {
@@ -240,7 +241,10 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
             remindersStore
               .getAllReminders(userId)
               .forEach((r) => remindersStore.deleteReminder(r.id));
+            // Only this account's own conversation and generated files.
+            const attachmentUris = chatStore.getAttachmentUris(userId);
             chatStore.clearHistory(userId);
+            void removeAttachmentFiles(attachmentUris);
 
             Alert.alert('Data Cleared', 'All personal scheduling data has been deleted.');
             loadStats();

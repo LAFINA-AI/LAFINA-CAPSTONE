@@ -18,6 +18,7 @@ import {
   DEFAULT_DAILY_DIGEST,
   DEFAULT_QUIET_HOURS,
 } from '../constants';
+import {migrateChatOwnership} from './chatOwnership';
 
 export interface SchemaMigration {
   /** The `user_version` this step produces. */
@@ -34,7 +35,16 @@ const BASELINE_SCHEMA_VERSION = 17;
  * Ordered upgrade steps after the AGY baseline. To change the schema, append one
  * step whose `version` is the next integer; `CURRENT_SCHEMA_VERSION` follows.
  */
-export const SCHEMA_MIGRATIONS: readonly SchemaMigration[] = [];
+export const SCHEMA_MIGRATIONS: readonly SchemaMigration[] = [
+  {
+    version: 18,
+    description:
+      'Owner-bound Chat sessions, durable message order, citation metadata, legacy quarantine (AGY-PORT 02)',
+    up: tx => {
+      migrateChatOwnership(tx);
+    },
+  },
+];
 
 const targetVersionOf = (migrations: readonly SchemaMigration[]): number =>
   migrations.length > 0
