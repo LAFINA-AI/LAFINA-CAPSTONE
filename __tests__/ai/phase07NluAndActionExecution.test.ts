@@ -1436,6 +1436,34 @@ describe('Phase 07: Smart Hybrid On-Device NLU & Action Execution', () => {
       expect(result.reply).toContain('On Friday: Capstone Focus Session from 4:00 PM to 6:00 PM.');
     });
 
+    it('Scenario 3 (High-density schedule): truncates cleanly when reciting many items on a day so it will not flood the UI', async () => {
+      const fixedRefWed = new Date(2026, 10, 4, 10, 0, 0);
+
+      // Prepopulate 5 tasks on Monday
+      for (let i = 1; i <= 5; i++) {
+        const hour = 8 + i;
+        const timeStr = `${String(hour).padStart(2, '0')}:00`;
+        tasksStore.insertTask({
+          id: `task-dense-${i}`,
+          userId: studentUser,
+          title: `Study Session ${i}`,
+          dueDate: '2026-11-02',
+          dueTime: timeStr,
+          isCompleted: false,
+          priority: 'High',
+          category: 'Academic',
+        });
+      }
+
+      const result = await intentService.processAndExecuteIntent(
+        studentUser,
+        'Ask LAFINA to show you everything scheduled this week.',
+        { referenceDate: fixedRefWed },
+      );
+      expect(result.success).toBe(true);
+      expect(result.reply).toContain('On Monday: Study Session 1 at 9:00 AM, Study Session 2 at 10:00 AM, Study Session 3 at 11:00 AM, and 2 more items.');
+    });
+
     it('Scenario 6: Cancel — "Cancel the recurring 8 AM reminder you created earlier."', async () => {
       // First create the recurring 8 AM reminder
       await intentService.processAndExecuteIntent(

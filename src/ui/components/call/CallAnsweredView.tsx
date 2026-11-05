@@ -8,6 +8,7 @@ import {
   Text,
   TouchableOpacity,
   View,
+  ScrollView,
 } from 'react-native';
 import {
   AlertTriangle,
@@ -312,30 +313,37 @@ export const CallAnsweredView: React.FC<CallAnsweredViewProps> = ({
       <View style={styles.visualArea}>{renderStatusVisual()}</View>
 
       <View style={[styles.transcriptCard, themed.card]}>
-        <Text style={[styles.cardLabel, themed.mutedText]}>REMINDER</Text>
-        <Text style={[styles.taskText, themed.primaryText]}>
-          {task || 'Scheduled academic reminder'}
-        </Text>
+        <ScrollView
+          style={styles.cardScroll}
+          contentContainerStyle={styles.cardScrollContent}
+          nestedScrollEnabled
+          showsVerticalScrollIndicator={false}
+        >
+          <Text style={[styles.cardLabel, themed.mutedText]}>REMINDER</Text>
+          <Text style={[styles.taskText, themed.primaryText]}>
+            {task || 'Scheduled academic reminder'}
+          </Text>
 
-        {reply ? (
-          <>
-            <View style={[styles.cardDivider, themed.divider]} />
-            <Text style={[styles.cardLabel, themed.mutedText]}>LAFINA</Text>
-            <Text style={[styles.replyText, themed.primaryText]}>{reply}</Text>
-          </>
-        ) : null}
+          {reply ? (
+            <>
+              <View style={[styles.cardDivider, themed.divider]} />
+              <Text style={[styles.cardLabel, themed.mutedText]}>LAFINA</Text>
+              <Text style={[styles.replyText, themed.primaryText]}>{reply}</Text>
+            </>
+          ) : null}
 
-        {callState === 'listening' || transcript ? (
-          <>
-            <View style={[styles.cardDivider, themed.divider]} />
-            <Text style={[styles.cardLabel, themed.mutedText]}>
-              YOUR RESPONSE
-            </Text>
-            <Text style={[styles.transcriptText, themed.secondaryText]}>
-              {transcript || 'Listening... Say "acknowledge" or "snooze".'}
-            </Text>
-          </>
-        ) : null}
+          {callState === 'listening' || transcript ? (
+            <>
+              <View style={[styles.cardDivider, themed.divider]} />
+              <Text style={[styles.cardLabel, themed.mutedText]}>
+                YOUR RESPONSE
+              </Text>
+              <Text style={[styles.transcriptText, themed.secondaryText]}>
+                {transcript || 'Listening... Say "acknowledge" or "snooze".'}
+              </Text>
+            </>
+          ) : null}
+        </ScrollView>
       </View>
 
       <View style={styles.controls}>
@@ -548,7 +556,14 @@ const styles = StyleSheet.create({
     borderRadius: Layout.borderRadiusCard,
     padding: 16,
     minHeight: 104,
+    maxHeight: 180,
     ...Shadows.card,
+  },
+  cardScroll: {
+    maxHeight: 148,
+  },
+  cardScrollContent: {
+    flexGrow: 0,
   },
   cardLabel: {
     fontFamily: Fonts.body,

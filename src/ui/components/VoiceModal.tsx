@@ -11,6 +11,7 @@ import {
   Easing,
   Keyboard,
   DeviceEventEmitter,
+  ScrollView,
 } from 'react-native';
 import { Fonts, Shadows } from '../theme';
 import { X, Check, ArrowRight, Mic, CircleAlert } from 'lucide-react-native';
@@ -545,9 +546,16 @@ export const VoiceModal: React.FC<VoiceModalProps> = ({
                 <Text style={[styles.noticeText, { color: colors.error }]}>{notice}</Text>
               </View>
             ) : transcript ? (
-              <Text style={[styles.transcriptText, themed.transcriptText]} testID="voice-transcript">
-                “{transcript}”
-              </Text>
+              <ScrollView
+                style={styles.transcriptScroll}
+                contentContainerStyle={styles.transcriptScrollContent}
+                nestedScrollEnabled
+                showsVerticalScrollIndicator={false}
+              >
+                <Text style={[styles.transcriptText, themed.transcriptText]} testID="voice-transcript">
+                  “{transcript}”
+                </Text>
+              </ScrollView>
             ) : (
               <Text style={[styles.placeholderText, themed.placeholderText]}>
                 {listening
@@ -577,7 +585,14 @@ export const VoiceModal: React.FC<VoiceModalProps> = ({
               <View style={[styles.replyIcon, { backgroundColor: colors.success }]}>
                 <Check size={12} color={colors.textOnPrimary} strokeWidth={3} />
               </View>
-              <Text style={[styles.replyText, themed.replyText]}>{aiReply}</Text>
+              <ScrollView
+                style={styles.replyScroll}
+                contentContainerStyle={styles.replyScrollContent}
+                nestedScrollEnabled
+                showsVerticalScrollIndicator
+              >
+                <Text style={[styles.replyText, themed.replyText]}>{aiReply}</Text>
+              </ScrollView>
             </View>
           ) : null}
 
@@ -642,6 +657,8 @@ const styles = StyleSheet.create({
     paddingTop: 12,
     paddingBottom: 32,
     alignItems: 'center',
+    width: '100%',
+    maxHeight: '75%',
   },
   grabber: {
     width: 40,
@@ -695,13 +712,20 @@ const styles = StyleSheet.create({
   },
   transcriptCard: {
     width: '100%',
-    minHeight: 96,
+    minHeight: 76,
+    maxHeight: 110,
     paddingHorizontal: 16,
     paddingTop: 12,
     paddingBottom: 14,
     borderRadius: 16,
     borderWidth: 1,
     marginBottom: 12,
+  },
+  transcriptScroll: {
+    maxHeight: 65,
+  },
+  transcriptScrollContent: {
+    flexGrow: 0,
   },
   transcriptHeader: {
     flexDirection: 'row',
@@ -776,10 +800,18 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'flex-start',
     width: '100%',
+    maxHeight: 145,
     padding: 12,
     borderRadius: 12,
     marginBottom: 12,
     gap: 10,
+  },
+  replyScroll: {
+    flex: 1,
+    maxHeight: 120,
+  },
+  replyScrollContent: {
+    flexGrow: 1,
   },
   replyIcon: {
     width: 20,

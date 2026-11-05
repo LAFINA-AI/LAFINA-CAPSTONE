@@ -1355,7 +1355,15 @@ export async function executeNluAction(
           }
 
           if (dayItems.length > 0) {
-            daySummaries.push(`On ${dayName}: ${formatListWithAnd(dayItems)}.`);
+            if (dayItems.length <= 3) {
+              daySummaries.push(`On ${dayName}: ${formatListWithAnd(dayItems)}.`);
+            } else {
+              const shown = dayItems.slice(0, 3);
+              const remaining = dayItems.length - 3;
+              daySummaries.push(
+                `On ${dayName}: ${shown.join(', ')}, and ${remaining} more item${remaining > 1 ? 's' : ''}.`,
+              );
+            }
           }
         }
 
