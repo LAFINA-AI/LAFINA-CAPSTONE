@@ -66,16 +66,25 @@ export interface GeneratedDocument {
 }
 
 interface BackendDocumentResponse {
+  requestId?: unknown;
   format?: unknown;
+  filename?: unknown;
+  fileName?: unknown;
   file_name?: unknown;
+  mimeType?: unknown;
   mime_type?: unknown;
+  sizeBytes?: unknown;
+  size_bytes?: unknown;
+  contentBase64?: unknown;
   content_base64?: unknown;
   title?: unknown;
   summary?: unknown;
+  warnings?: unknown;
 }
 
-const MAX_HISTORY_MESSAGES = 8;
-const MAX_HISTORY_MESSAGE_CHARS = 1_500;
+const MAX_DOCUMENT_MESSAGES = 10;
+const MAX_DOCUMENT_CHARS = 8_000;
+const MAX_HISTORY_MESSAGE_CHARS = 4_000;
 const MAX_PROMPT_CHARS = 4_000;
 
 const sanitizeFileName = (raw: string, extension: string): string => {
@@ -103,16 +112,34 @@ export const formatFileSize = (bytes: number): string => {
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 };
 
+const totalChars = (messages: OnlineChatMessage[]): number =>
+  messages.reduce((sum, item) => sum + item.content.length, 0);
+
 export const trimDocumentHistory = (
   messages: OnlineChatMessage[],
-): OnlineChatMessage[] =>
-  messages
+): OnlineChatMessage[] => {
+  const recent = messages
     .map((message) => ({
       role: message.role,
       content: message.content.trim().slice(0, MAX_HISTORY_MESSAGE_CHARS),
     }))
     .filter((message) => message.content.length > 0)
-    .slice(-MAX_HISTORY_MESSAGES);
+    .slice(-MAX_DOCUMENT_MESSAGES);
+
+  while (recent.length > 1 && totalChars(recent) > MAX_DOCUMENT_CHARS) {
+    recent.shift();
+  }
+  while (recent.length > 1 && recent[0]?.role === 'assistant') {
+    recent.shift();
+  }
+  if (recent.length === 1 && recent[0]!.content.length > MAX_DOCUMENT_CHARS) {
+    recent[0] = {
+      ...recent[0]!,
+      content: recent[0]!.content.slice(0, MAX_DOCUMENT_CHARS),
+    };
+  }
+  return recent;
+};
 
 export const describeDocumentFailure = (
   result: CloudResult<GeneratedDocument>,
@@ -157,16 +184,23 @@ export const documentSkill = {
     }
 
     const meta = DOCUMENT_FORMATS[params.format];
-    const history = params.history ? trimDocumentHistory(params.history) : [];
+    const priorHistory = params.history ?? [];
+    const lastHistoryMsg = priorHistory[priorHistory.length - 1];
+    const combinedMessages: OnlineChatMessage[] =
+      lastHistoryMsg &&
+      lastHistoryMsg.role === 'user' &&
+      lastHistoryMsg.content.trim() === prompt
+        ? [...priorHistory]
+        : [...priorHistory, { role: 'user', content: prompt }];
+    const messages = trimDocumentHistory(combinedMessages);
 
     const result = await cloudClient.request<BackendDocumentResponse>(
       '/v1/ai/documents',
       {
         method: 'POST',
         body: JSON.stringify({
-          prompt,
           format: params.format,
-          history,
+          messages,
         }),
       },
       true,
@@ -181,8 +215,13 @@ export const documentSkill = {
     }
 
     const raw = result.data;
-    const contentBase64 =
-      typeof raw?.content_base64 === 'string' ? raw.content_base64.trim() : '';
+    const rawBase64 =
+      typeof raw?.contentBase64 === 'string'
+        ? raw.contentBase64
+        : typeof raw?.content_base64 === 'string'
+        ? raw.content_base64
+        : '';
+    const contentBase64 = rawBase64.trim();
     if (!contentBase64) {
       return {
         status: 'server_error',
@@ -196,20 +235,44 @@ export const documentSkill = {
       typeof raw?.title === 'string' && raw.title.trim()
         ? raw.title.trim()
         : formatMeta.label;
-    const fileName = sanitizeFileName(
-      typeof raw?.file_name === 'string' && raw.file_name.trim()
+    const rawFileName =
+      typeof raw?.filename === 'string' && raw.filename.trim()
+        ? raw.filename.trim()
+        : typeof raw?.fileName === 'string' && raw.fileName.trim()
+        ? raw.fileName.trim()
+        : typeof raw?.file_name === 'string' && raw.file_name.trim()
         ? raw.file_name.trim()
-        : title,
-      formatMeta.extension,
-    );
+        : title;
+    const fileName = sanitizeFileName(rawFileName, formatMeta.extension);
     const mimeType =
-      typeof raw?.mime_type === 'string' && raw.mime_type.trim()
+      typeof raw?.mimeType === 'string' && raw.mimeType.trim()
+        ? raw.mimeType.trim()
+        : typeof raw?.mime_type === 'string' && raw.mime_type.trim()
         ? raw.mime_type.trim()
         : formatMeta.mimeType;
-    const summary =
+    const warnings = Array.isArray(raw?.warnings)
+      ? raw.warnings.filter(
+          (w): w is string => typeof w === 'string' && w.trim().length > 0,
+        )
+      : [];
+    const baseSummary =
       typeof raw?.summary === 'string' && raw.summary.trim()
         ? raw.summary.trim()
         : `Created ${title} (${formatMeta.shortLabel}).`;
+    const summary =
+      warnings.length > 0
+        ? `${baseSummary}\n\nNote: ${warnings.join(' ')}`
+        : baseSummary;
+    const sizeBytes =
+      typeof raw?.sizeBytes === 'number' &&
+      Number.isFinite(raw.sizeBytes) &&
+      raw.sizeBytes > 0
+        ? raw.sizeBytes
+        : typeof raw?.size_bytes === 'number' &&
+          Number.isFinite(raw.size_bytes) &&
+          raw.size_bytes > 0
+        ? raw.size_bytes
+        : estimateBase64Bytes(contentBase64);
 
     return {
       status: 'success',
@@ -220,7 +283,7 @@ export const documentSkill = {
         contentBase64,
         title,
         summary,
-        sizeBytes: estimateBase64Bytes(contentBase64),
+        sizeBytes,
       },
     };
   },

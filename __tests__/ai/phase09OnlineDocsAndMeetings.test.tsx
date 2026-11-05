@@ -138,17 +138,20 @@ describe('Phase 09: Online Mode, Document Generation & Meeting Transcription', (
     });
 
     it('generates, decodes, saves base64 document via RNFS, and persists attachment in chatStore', async () => {
-      jest.spyOn(cloudClient, 'request').mockResolvedValueOnce({
-        status: 'success',
-        data: {
-          format: 'pdf',
-          file_name: 'os_study_guide.pdf',
-          mime_type: 'application/pdf',
-          content_base64: 'JVBERi0xLjQK',
-          title: 'OS Study Guide',
-          summary: 'Created your Operating Systems PDF study guide.',
-        },
-      });
+      const requestSpy = jest
+        .spyOn(cloudClient, 'request')
+        .mockResolvedValueOnce({
+          status: 'success',
+          data: {
+            format: 'pdf',
+            filename: 'os_study_guide.pdf',
+            mimeType: 'application/pdf',
+            contentBase64: 'JVBERi0xLjQK',
+            sizeBytes: 9,
+            title: 'OS Study Guide',
+            summary: 'Created your Operating Systems PDF study guide.',
+          },
+        });
 
       const result = await chatOrchestrator.processMessage(
         testUserId,
@@ -156,6 +159,14 @@ describe('Phase 09: Online Mode, Document Generation & Meeting Transcription', (
         { onlineMode: true },
       );
 
+      expect(requestSpy).toHaveBeenCalledWith(
+        '/v1/ai/documents',
+        expect.objectContaining({
+          method: 'POST',
+          body: expect.stringContaining('"messages":['),
+        }),
+        true,
+      );
       expect(RNFS.writeFile).toHaveBeenCalledWith(
         expect.stringContaining('os_study_guide.pdf'),
         'JVBERi0xLjQK',

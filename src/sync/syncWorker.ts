@@ -118,8 +118,23 @@ const utf8Length = (value: string): number => {
 };
 
 let inFlightSync: Promise<void> | null = null;
+let followUpSyncRequested = false;
 let retryAttempt = 0;
 let remoteChangesApplied = 0;
+
+type RemoteChangeListener = (userId: string, changeCount: number) => void;
+const remoteChangeListeners = new Set<RemoteChangeListener>();
+
+const notifyRemoteChanges = (userId: string, changeCount: number): void => {
+  if (changeCount <= 0) return;
+  for (const listener of remoteChangeListeners) {
+    try {
+      listener(userId, changeCount);
+    } catch (error) {
+      console.warn('[SyncWorker] Remote change listener error:', error);
+    }
+  }
+};
 
 const getErrorMessage = (error: unknown): string =>
   error instanceof Error ? error.message : 'Sync failed';
@@ -933,6 +948,7 @@ const applyAuthoritativeSnapshot = (
   effectiveTypes: readonly SyncEntityType[],
 ): ApplyPageResult => {
   let reminderTextUpdated = false;
+  const beforeCount = remoteChangesApplied;
   db.transactionSync((tx: DatabaseTransaction) => {
     syncOutboxStore.setSuppression(
       localUserId,
@@ -1003,6 +1019,7 @@ const applyAuthoritativeSnapshot = (
     }
   });
   syncState.reload(localUserId);
+  notifyRemoteChanges(localUserId, remoteChangesApplied - beforeCount);
   return { reminderTextUpdated };
 };
 
@@ -1013,6 +1030,7 @@ const applyPage = (
   finalError: string | null,
 ): ApplyPageResult => {
   let reminderTextUpdated = false;
+  const beforeCount = remoteChangesApplied;
   const ownEchoes = new Set(
     response.accepted.map(
       (result) => `${result.entityType}:${result.entityId}:${result.serverVersion}`,
@@ -1069,6 +1087,7 @@ const applyPage = (
   });
 
   syncState.reload(localUserId);
+  notifyRemoteChanges(localUserId, remoteChangesApplied - beforeCount);
   return { reminderTextUpdated };
 };
 
@@ -1221,6 +1240,13 @@ const prepareOutboxBatch = (
 export const syncWorker = {
   getRetryAttempt: (): number => retryAttempt,
 
+  onRemoteChanges: (listener: RemoteChangeListener): (() => void) => {
+    remoteChangeListeners.add(listener);
+    return () => {
+      remoteChangeListeners.delete(listener);
+    };
+  },
+
   takeRemoteChangeCount: (): number => {
     const count = remoteChangesApplied;
     remoteChangesApplied = 0;
@@ -1228,9 +1254,20 @@ export const syncWorker = {
   },
 
   performSync: (): Promise<void> => {
-    if (inFlightSync) return inFlightSync;
-    inFlightSync = syncWorker.runSyncPass().finally(() => {
+    if (inFlightSync) {
+      followUpSyncRequested = true;
+      return inFlightSync;
+    }
+    followUpSyncRequested = false;
+    const runLoop = async (): Promise<void> => {
+      do {
+        followUpSyncRequested = false;
+        await syncWorker.runSyncPass();
+      } while (followUpSyncRequested);
+    };
+    inFlightSync = runLoop().finally(() => {
       inFlightSync = null;
+      followUpSyncRequested = false;
     });
     return inFlightSync;
   },
@@ -1275,7 +1312,9 @@ export const syncWorker = {
       syncState.setStatus(localUserId, 'Syncing');
 
       try {
-        await accountLinkService.refreshCloudProfile(localUserId);
+        await accountLinkService.refreshCloudProfile(localUserId, {
+          skipIfFresh: true,
+        });
       } catch (error: unknown) {
         console.warn('[SyncWorker] Profile refresh note:', error);
       }
@@ -1424,7 +1463,33 @@ export const syncWorker = {
           snapshotRequest = null;
           snapshotItems = [];
           snapshotItemKeys.clear();
-          continue;
+
+          preparedBatch = prepareOutboxBatch(localUserId, effectiveTypes);
+          outboundMutations = preparedBatch.mutations;
+          inFlightMutationIds = preparedBatch.ids;
+          inFlightMutations = preparedBatch.mutations;
+          if (outboundMutations.length > 0) {
+            continue;
+          }
+
+          const snapshotRejectedMessage =
+            rejectedCount > 0
+              ? `${rejectedCount} mutation${
+                  rejectedCount === 1 ? '' : 's'
+                } rejected by server`
+              : null;
+          syncState.setStatus(
+            localUserId,
+            rejectedCount > 0 ? 'Attention required' : 'Synced',
+            snapshotRejectedMessage,
+          );
+          retryAttempt = 0;
+          if (reminderTextUpdated) {
+            await reconcileReminderAlarms(
+              remindersStore.getPendingReminders(localUserId),
+            );
+          }
+          return;
         }
 
         if (response.snapshot) {

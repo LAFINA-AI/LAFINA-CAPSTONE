@@ -11,6 +11,7 @@ import {
   Platform,
 } from 'react-native';
 import { SafeAreaProvider, useSafeAreaInsets } from 'react-native-safe-area-context';
+import NetInfo from '@react-native-community/netinfo';
 import { Fonts, useThemedStyles } from './src/ui/theme';
 import {
   initDatabase,
@@ -65,9 +66,13 @@ import { VoiceModal } from './src/ui/components/VoiceModal';
 function AppContent({
   userId,
   setUserId,
+  refreshTrigger,
+  setRefreshTrigger,
 }: {
   userId: string | null;
   setUserId: React.Dispatch<React.SetStateAction<string | null>>;
+  refreshTrigger: number;
+  setRefreshTrigger: React.Dispatch<React.SetStateAction<number>>;
 }) {
   const [isLoading, setIsLoading] = useState(true);
   const [authScreen, setAuthScreen] = useState<'welcome' | 'login' | 'register'>('welcome');
@@ -75,7 +80,6 @@ function AppContent({
   const [activeTab, setActiveTab] = useState<TabType>('calendar');
   const [voiceVisible, setVoiceVisible] = useState(false);
   const [tourOpen, setTourOpen] = useState(false);
-  const [refreshTrigger, setRefreshTrigger] = useState(0);
   const [isKeyboardVisible, setIsKeyboardVisible] = useState(false);
   const [startupReady, setStartupReady] = useState(false);
 
@@ -293,7 +297,7 @@ function AppContent({
       }
     };
     void setupApp();
-  }, [setUserId]);
+  }, [setUserId, setRefreshTrigger]);
 
   useEffect(() => {
     if (!userId) return undefined;
@@ -306,7 +310,27 @@ function AppContent({
         setRefreshTrigger((previous) => previous + 1);
       },
     });
-    if (AppState.currentState === 'active') scheduler.start();
+    if (AppState.currentState === 'active') {
+      scheduler.start();
+      void scheduler.runNow();
+    }
+
+    const unsubscribeRemoteChanges = syncWorker.onRemoteChanges((changedUserId) => {
+      if (changedUserId === userId) {
+        setRefreshTrigger((previous) => previous + 1);
+        void rescheduleUserReminders(userId);
+      }
+    });
+
+    let wasOnline = true;
+    const unsubscribeNetInfo = NetInfo.addEventListener((state) => {
+      const isOnline =
+        Boolean(state.isConnected) && state.isInternetReachable !== false;
+      if (isOnline && !wasOnline && AppState.currentState === 'active') {
+        void scheduler.runNow();
+      }
+      wasOnline = isOnline;
+    });
 
     const appStateSubscription = AppState.addEventListener('change', (nextState) => {
       if (nextState !== 'active') {
@@ -344,13 +368,15 @@ function AppContent({
     return () => {
       appStateSubscription.remove();
       unsubscribeOutbox();
+      unsubscribeRemoteChanges();
+      unsubscribeNetInfo();
       scheduler.dispose();
     };
-  }, [userId]);
+  }, [userId, setRefreshTrigger]);
 
   const triggerRefresh = useCallback(() => {
     setRefreshTrigger((prev) => prev + 1);
-  }, []);
+  }, [setRefreshTrigger]);
 
   const hasPro = userId ? hasProEntitlement(userId) : false;
 
@@ -375,9 +401,7 @@ function AppContent({
     syncWorker
       .performSync()
       .then(() => {
-        if (syncWorker.takeRemoteChangeCount() > 0) {
-          setRefreshTrigger((previous) => previous + 1);
-        }
+        setRefreshTrigger((previous) => previous + 1);
       })
       .catch(() => undefined);
   };
@@ -391,6 +415,12 @@ function AppContent({
   const handleOnboardingComplete = () => {
     if (userId) productTourStore.queue(userId);
     setIsOnboarding(false);
+    syncWorker
+      .performSync()
+      .then(() => {
+        setRefreshTrigger((previous) => previous + 1);
+      })
+      .catch(() => undefined);
   };
 
   useEffect(() => {
@@ -600,12 +630,18 @@ const getThemedStyles = (colors: ThemeColors) => ({
 
 export function App() {
   const [userId, setUserId] = useState<string | null>(null);
+  const [refreshTrigger, setRefreshTrigger] = useState(0);
 
   return (
     <SafeAreaProvider>
-      <ThemeProvider userId={userId}>
+      <ThemeProvider userId={userId} refreshTrigger={refreshTrigger}>
         <MeetingsProvider userId={userId || 'local_guest_user'}>
-          <AppContent userId={userId} setUserId={setUserId} />
+          <AppContent
+            userId={userId}
+            setUserId={setUserId}
+            refreshTrigger={refreshTrigger}
+            setRefreshTrigger={setRefreshTrigger}
+          />
         </MeetingsProvider>
       </ThemeProvider>
     </SafeAreaProvider>

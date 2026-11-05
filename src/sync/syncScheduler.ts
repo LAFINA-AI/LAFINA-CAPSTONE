@@ -13,8 +13,8 @@ export interface SyncScheduler {
   dispose: () => void;
 }
 
-export const DEFAULT_SYNC_DEBOUNCE_MS = 3000;
-export const DEFAULT_SYNC_INTERVAL_MS = 2 * 60 * 1000;
+export const DEFAULT_SYNC_DEBOUNCE_MS = 800;
+export const DEFAULT_SYNC_INTERVAL_MS = 30 * 1000;
 
 export const createSyncScheduler = (options: SyncSchedulerOptions): SyncScheduler => {
   const debounceMs = options.debounceMs ?? DEFAULT_SYNC_DEBOUNCE_MS;

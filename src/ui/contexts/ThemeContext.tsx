@@ -136,10 +136,11 @@ export interface ThemeContextType {
 
 const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
 
-export const ThemeProvider: React.FC<{ userId: string | null; children: React.ReactNode }> = ({
-  userId,
-  children,
-}) => {
+export const ThemeProvider: React.FC<{
+  userId: string | null;
+  refreshTrigger?: number;
+  children: React.ReactNode;
+}> = ({ userId, refreshTrigger, children }) => {
   const systemScheme = useColorScheme();
 
   const [isDarkMode, setIsDarkMode] = useState(() => {
@@ -155,7 +156,7 @@ export const ThemeProvider: React.FC<{ userId: string | null; children: React.Re
     } else {
       setIsDarkMode(systemScheme === 'dark');
     }
-  }, [userId, systemScheme]);
+  }, [userId, systemScheme, refreshTrigger]);
 
   const colors = useMemo<ThemeColors>(
     () => (isDarkMode ? darkColors : lightColors),

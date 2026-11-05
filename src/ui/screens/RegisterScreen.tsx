@@ -104,7 +104,6 @@ export const RegisterScreen: React.FC<RegisterScreenProps> = ({
     setError(null);
 
     try {
-      await new Promise<void>((resolve) => setTimeout(resolve, 800));
       const result = await accountLinkService.registerCloudFirst({
         username,
         email,

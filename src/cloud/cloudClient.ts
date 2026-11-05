@@ -246,8 +246,41 @@ export const cloudClient = {
 
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({ detail: null }));
-      const detail =
-        typeof errorData.detail === 'string' ? errorData.detail : 'FastAPI request failed.';
+      const rawDetail = errorData?.detail;
+      const detail = (() => {
+        if (typeof rawDetail === 'string' && rawDetail.trim()) {
+          return rawDetail.trim();
+        }
+        if (Array.isArray(rawDetail)) {
+          const messages = rawDetail
+            .map((item: unknown) => {
+              if (typeof item === 'string') return item.trim();
+              if (
+                item &&
+                typeof item === 'object' &&
+                'msg' in item &&
+                typeof (item as { msg?: unknown }).msg === 'string'
+              ) {
+                return ((item as { msg: string }).msg || '').trim();
+              }
+              return '';
+            })
+            .filter(Boolean);
+          if (messages.length > 0) {
+            return messages.join('; ');
+          }
+        }
+        if (
+          rawDetail &&
+          typeof rawDetail === 'object' &&
+          'message' in rawDetail &&
+          typeof (rawDetail as { message?: unknown }).message === 'string'
+        ) {
+          const msg = ((rawDetail as { message: string }).message || '').trim();
+          if (msg) return msg;
+        }
+        return 'FastAPI request failed.';
+      })();
 
       if (response.status === 401) {
         return {

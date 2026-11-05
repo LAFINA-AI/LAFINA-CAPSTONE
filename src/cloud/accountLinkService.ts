@@ -77,6 +77,12 @@ const mapCloudFailure = (
   }
 };
 
+const PROFILE_REFRESH_TTL_MS = 15_000;
+const lastProfileRefreshByUser = new Map<
+  string,
+  { timestamp: number; role: string }
+>();
+
 const attachAuthenticatedCloudSession = async (
   localUserId: string,
   authData: AuthResponseData,
@@ -135,6 +141,10 @@ const attachAuthenticatedCloudSession = async (
   try {
     userStore.linkCloudAccount(localUserId, profile.id, effectiveRole);
     userStore.clearPendingCloudCredential(localUserId);
+    lastProfileRefreshByUser.set(localUserId, {
+      timestamp: Date.now(),
+      role: effectiveRole,
+    });
   } catch {
     cloudClient.clearActiveSession();
     return {
@@ -168,7 +178,35 @@ const authenticateExistingCloudAccount = async (
 const registerOrAuthenticateCloudAccount = async (
   email: string,
   password: string,
+  options?: { preferLogin?: boolean; allowRegisterFallback?: boolean },
 ): Promise<AccountFlowResult | AuthResponseData> => {
+  if (options?.preferLogin) {
+    const loginResult = await authService.login(email, password);
+    if (loginResult.status === 'success' && loginResult.data) {
+      return loginResult.data;
+    }
+    if (
+      loginResult.status === 'auth_required' &&
+      options.allowRegisterFallback !== false
+    ) {
+      const registrationResult = await authService.register(email, password);
+      if (registrationResult.status === 'success' && registrationResult.data) {
+        return registrationResult.data;
+      }
+      if (registrationResult.status !== 'conflict') {
+        return mapCloudFailure(
+          registrationResult.status,
+          registrationResult.error ||
+            'FastAPI registration failed. No linked local account was created.',
+        );
+      }
+    }
+    return mapCloudFailure(
+      loginResult.status,
+      loginResult.error || 'FastAPI login failed. Online Mode remains unavailable.',
+    );
+  }
+
   const registrationResult = await authService.register(email, password);
   if (registrationResult.status === 'success' && registrationResult.data) {
     return registrationResult.data;
@@ -279,9 +317,16 @@ const runDeferredCloudLink = async (
   }
 
   try {
+    const isAlreadyLinked = Boolean(
+      localUser.isCloudLinked || localUser.cloudAccountId,
+    );
     const cloudAuth = await registerOrAuthenticateCloudAccount(
       normalizeEmail(localUser.email),
       password,
+      {
+        preferLogin: true,
+        allowRegisterFallback: !isAlreadyLinked,
+      },
     );
     if (isFlowResult(cloudAuth)) {
       if (shouldDiscardDeferredCredential(cloudAuth.status)) {
@@ -570,9 +615,17 @@ export const accountLinkService = {
     const linkResult = credentialStored
       ? await completeDeferredCloudLink(authenticatedLocalUser.id)
       : await (async (): Promise<AccountFlowResult> => {
+          const isAlreadyLinked = Boolean(
+            authenticatedLocalUser.isCloudLinked ||
+              authenticatedLocalUser.cloudAccountId,
+          );
           const cloudAuth = await registerOrAuthenticateCloudAccount(
             normalizedEmail,
             password,
+            {
+              preferLogin: true,
+              allowRegisterFallback: !isAlreadyLinked,
+            },
           );
           return isFlowResult(cloudAuth)
             ? cloudAuth
@@ -595,7 +648,10 @@ export const accountLinkService = {
 
   completeDeferredCloudLink,
 
-  refreshCloudProfile: async (localUserId: string): Promise<AccountFlowResult> => {
+  refreshCloudProfile: async (
+    localUserId: string,
+    options?: { skipIfFresh?: boolean },
+  ): Promise<AccountFlowResult> => {
     const localUser = userStore.getUserById(localUserId);
     let activeSession = userStore.getActiveSessionToken();
     if (!localUser?.email || activeSession.userId !== localUserId) {
@@ -614,6 +670,17 @@ export const accountLinkService = {
         return {
           status: 'auth_required',
           message: 'FastAPI linking completed without a usable authenticated session.',
+        };
+      }
+    }
+    if (options?.skipIfFresh && localUser.isCloudLinked) {
+      const recent = lastProfileRefreshByUser.get(localUserId);
+      if (recent && Date.now() - recent.timestamp < PROFILE_REFRESH_TTL_MS) {
+        return {
+          status: 'success',
+          localUserId,
+          role: localUser.role,
+          message: 'Cloud profile and role synchronized.',
         };
       }
     }
@@ -638,6 +705,10 @@ export const accountLinkService = {
     }
     const effectiveRole = resolveEffectiveProfileRole(profile);
     userStore.linkCloudAccount(localUserId, profile.id, effectiveRole);
+    lastProfileRefreshByUser.set(localUserId, {
+      timestamp: Date.now(),
+      role: effectiveRole,
+    });
     return {
       status: 'success',
       localUserId,

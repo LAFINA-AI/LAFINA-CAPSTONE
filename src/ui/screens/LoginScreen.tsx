@@ -75,8 +75,6 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({
     setError(null);
 
     try {
-      await new Promise<void>((resolve) => setTimeout(resolve, 800));
-
       const result = await accountLinkService.login(email, password);
       if (
         (result.status === 'success' || result.status === 'local_only') &&

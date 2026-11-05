@@ -39,9 +39,26 @@ export const shareAttachment = async (
     if (!exists) {
       return 'Unavailable';
     }
-    const shareUrl = attachment.uri.startsWith('file://')
-      ? attachment.uri
-      : `file://${localPath}`;
+    let sharePath = localPath;
+    if (RNFS.CachesDirectoryPath) {
+      try {
+        const shareDir = `${RNFS.CachesDirectoryPath}/chat_share`;
+        if (!(await RNFS.exists(shareDir))) {
+          await RNFS.mkdir(shareDir);
+        }
+        const targetPath = `${shareDir}/${attachment.fileName}`;
+        if (await RNFS.exists(targetPath)) {
+          await RNFS.unlink(targetPath);
+        }
+        await RNFS.copyFile(localPath, targetPath);
+        sharePath = targetPath;
+      } catch {
+        sharePath = localPath;
+      }
+    }
+    const shareUrl = sharePath.startsWith('file://')
+      ? sharePath
+      : `file://${sharePath}`;
     await Share.open({
       url: shareUrl,
       type: attachment.mimeType,
