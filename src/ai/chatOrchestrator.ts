@@ -85,6 +85,19 @@ export function format12HourTime(timeStr?: string | null): string {
   return `${hour}:${minStr} ${meridiem}`;
 }
 
+/**
+ * Bounded, owner-scoped context for online requests. A read failure sends no
+ * history rather than blocking the reply; the message itself is already saved.
+ */
+function readRecentHistory(userId: string, count: number): ChatMessage[] {
+  try {
+    return chatStore.getRecentMessages(userId, count);
+  } catch (error) {
+    console.warn('[ChatOrchestrator] Could not read recent chat history:', error);
+    return [];
+  }
+}
+
 function buildLocalChatFallback(trimmed: string, validated: ValidatedIntent): string {
   const queryLower = (validated.details || trimmed || '').toLowerCase();
   if (
@@ -266,8 +279,7 @@ export class ChatOrchestrator {
       if (!options.onlineMode) {
         finalReply = `Creating ${formatMeta.shortLabel} files requires Online Mode. Switch to Online Mode in the chat header to generate ${formatMeta.label.toLowerCase()}s.`;
       } else {
-        const previousMessages: OnlineChatMessage[] = chatStore
-          .getMessages(userId)
+        const previousMessages: OnlineChatMessage[] = readRecentHistory(userId, 11)
           .filter((msg) => msg.id !== userMessage.id)
           .map((msg) => ({
             role: msg.sender,
@@ -368,9 +380,7 @@ export class ChatOrchestrator {
         finalReply = actionResult.reply;
       } else {
         if (options.onlineMode) {
-          const history: OnlineChatMessage[] = chatStore
-            .getMessages(userId)
-            .slice(-10)
+          const history: OnlineChatMessage[] = readRecentHistory(userId, 10)
             .map((msg) => ({
               role: msg.sender,
               content: msg.content,
@@ -410,8 +420,10 @@ export class ChatOrchestrator {
       .replace(/\bL[.-]?A[.-]?F[.-]?I[.-]?N[.-]?A\b/gi, 'lafina')
       .replace(/\bLAFINA\b/g, 'lafina');
 
-    // Step 6: Persist assistant message
-    const assistantMessage = chatStore.addMessage(userId, 'assistant', finalReply, attachment);
+    // Step 6: Persist assistant message, keeping the Handbook citation with it
+    const assistantMessage = chatStore.addMessage(userId, 'assistant', finalReply, attachment, {
+      handbookNote,
+    });
 
     // Step 7: Non-blocking react-native-tts speech synthesis if requested
     if (options.speakReply) {

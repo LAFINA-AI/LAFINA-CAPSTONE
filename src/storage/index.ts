@@ -24,8 +24,16 @@ export {notesStore} from './notesStore';
 export type {Note} from './notesStore';
 export {timeBlocksStore} from './timeBlocksStore';
 export type {TimeBlock} from './timeBlocksStore';
-export {chatStore} from './chatStore';
-export type {ChatAttachment, ChatMessage, ChatSession} from './chatStore';
+export {chatStore, CHAT_PAGE_SIZE, InvalidChatCursorError} from './chatStore';
+export type {
+  ChatAttachment,
+  ChatMessage,
+  ChatMessageMetadata,
+  ChatPage,
+  ChatSession,
+  LegacyChatSummary,
+} from './chatStore';
+export {ownedChatSessionId} from './chatOwnership';
 export {behaviorStore} from './behaviorStore';
 export type {BehaviorLog, FeatureSnapshot} from './behaviorStore';
 export {completeUserOnboarding} from './onboardingStore';

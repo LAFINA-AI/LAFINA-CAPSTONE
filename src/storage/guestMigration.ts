@@ -2,6 +2,7 @@ import { db, DatabaseTransaction } from './database';
 import { GUEST_USER_ID } from '../constants';
 import { syncOutboxStore } from './syncOutboxStore';
 import { buildProfileSyncPayload } from './profileSyncPayload';
+import { transferChatOwnership } from './chatOwnership';
 
 export interface GuestDataSummary {
   taskCount: number;
@@ -58,7 +59,8 @@ export const guestMigration = {
       tx.executeSync(`UPDATE custom_categories SET user_id = ? WHERE user_id = ?`, [cloudUserId, GUEST_USER_ID]);
       tx.executeSync(`UPDATE user_preferences SET user_id = ? WHERE user_id = ?`, [cloudUserId, GUEST_USER_ID]);
       tx.executeSync(`UPDATE job_queue_items SET user_id = ? WHERE user_id = ?`, [cloudUserId, GUEST_USER_ID]);
-      tx.executeSync(`UPDATE chat_sessions SET user_id = ? WHERE user_id = ?`, [cloudUserId, GUEST_USER_ID]);
+      // Chat sessions are owner-derived, so the guest conversation is moved rather than relabelled.
+      transferChatOwnership(tx, GUEST_USER_ID, cloudUserId, now);
       tx.executeSync(`UPDATE user_behavior_logs SET user_id = ? WHERE user_id = ?`, [cloudUserId, GUEST_USER_ID]);
       tx.executeSync(`UPDATE ml_feature_snapshots SET user_id = ? WHERE user_id = ?`, [cloudUserId, GUEST_USER_ID]);
 

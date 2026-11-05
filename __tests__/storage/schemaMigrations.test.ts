@@ -84,21 +84,90 @@ describe('schema migrations', () => {
     connection.close();
   });
 
+  /** Every row of every schema-17 table, read back through its schema-17 columns only. */
+  const snapshotSchema17Columns = (
+    connection: ReturnType<typeof openSqliteFile>,
+    columnsByTable: Record<string, string[]>,
+  ): Record<string, string[]> => {
+    const snapshot: Record<string, string[]> = {};
+    for (const [table, columns] of Object.entries(columnsByTable)) {
+      snapshot[table] = connection
+        .executeSync(`SELECT ${columns.map(c => `"${c}"`).join(', ')} FROM ${table}`)
+        .rows.map(row => JSON.stringify(row))
+        .sort();
+    }
+    return snapshot;
+  };
+
+  const readColumns = (
+    connection: ReturnType<typeof openSqliteFile>,
+  ): Record<string, string[]> => {
+    const columns: Record<string, string[]> = {};
+    for (const table of Object.keys(snapshotAllRows(connection))) {
+      columns[table] = connection
+        .executeSync(`PRAGMA table_info(${table})`)
+        .rows.map(column => String(column.name));
+    }
+    return columns;
+  };
+
   test('upgrading schema 17 keeps every row byte-identical, then reopens', async () => {
     const path = legacyFile();
     const before = inspect(path, snapshotAllRows);
+    const schema17Columns = inspect(path, readColumns);
     expect(before.sync_outbox.length).toBeGreaterThan(5);
     expect(before.recorded_meetings).toHaveLength(2);
+    expect(before.messages).toHaveLength(3);
 
     const first = openSqliteFile(path);
     await initDatabase(new DatabaseService(() => first));
     expect(readUserVersion(first)).toBe(CURRENT_SCHEMA_VERSION);
     first.close();
 
+    // Schema 18 only adds: every schema-17 column of every row is unchanged.
     const afterUpgrade = inspect(path, snapshotAllRows);
+    const projected = inspect(path, c => snapshotSchema17Columns(c, schema17Columns));
     for (const [table, rows] of Object.entries(before)) {
-      expect(afterUpgrade[table]).toEqual(rows);
+      expect(projected[table]).toEqual(rows);
     }
+    const added = Object.keys(afterUpgrade).filter(t => !(t in before));
+    expect(added).toEqual(['chat_legacy_quarantine']);
+    const afterColumns = inspect(path, readColumns);
+    for (const [table, columns] of Object.entries(schema17Columns)) {
+      const extra = afterColumns[table].filter(c => !columns.includes(c));
+      expect([table, extra]).toEqual([
+        table,
+        table === 'messages'
+          ? ['seq', 'metadata_json']
+          : table === 'chat_sessions'
+            ? ['generation']
+            : [],
+      ]);
+    }
+
+    // The fixture's shared history was opened by account A, but three accounts
+    // exist, so it is quarantined in place rather than handed to anyone.
+    const chat = inspect(path, c => ({
+      messages: c.executeSync(
+        'SELECT id, session_id, seq, metadata_json FROM messages ORDER BY seq',
+      ).rows,
+      quarantine: c.executeSync(
+        'SELECT session_id, recorded_owner, message_count, reason FROM chat_legacy_quarantine',
+      ).rows,
+    }));
+    expect(chat.messages).toEqual([
+      {id: 'm-user', session_id: 'default_chat_session', seq: 1, metadata_json: null},
+      {id: 'm-cited', session_id: 'default_chat_session', seq: 2, metadata_json: null},
+      {id: 'm-doc', session_id: 'default_chat_session', seq: 3, metadata_json: null},
+    ]);
+    expect(chat.quarantine).toEqual([
+      {
+        session_id: 'default_chat_session',
+        recorded_owner: FIXTURE_ACCOUNT_A,
+        message_count: 3,
+        reason: 'multiple_local_accounts',
+      },
+    ]);
 
     const second = openSqliteFile(path);
     await initDatabase(new DatabaseService(() => second));
