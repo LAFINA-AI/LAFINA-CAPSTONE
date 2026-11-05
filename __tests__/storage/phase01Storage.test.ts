@@ -61,6 +61,8 @@ describe('Phase 01 Storage, Auth, Onboarding & Sync Schema', () => {
       'sync_state',
       'sync_conflicts',
       'local_settings',
+      'recorded_meetings',
+
     ];
     for (const table of expectedTables) {
       expect(tables).toContain(table);
@@ -74,7 +76,7 @@ describe('Phase 01 Storage, Auth, Onboarding & Sync Schema', () => {
       'pomodoro_settings',
       'flashcard_decks',
       'study_summaries',
-      'recorded_meetings',
+
     ];
     for (const forbidden of forbiddenTables) {
       expect(tables).not.toContain(forbidden);

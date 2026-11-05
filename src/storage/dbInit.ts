@@ -385,6 +385,42 @@ export const initDatabase = async (): Promise<void> => {
     addColumnIfMissing('custom_categories', 'deleted_at', 'TEXT');
     addColumnIfMissing('sync_state', 'server_entity_types', 'TEXT');
     addColumnIfMissing('sync_state', 'snapshot_entity_types', 'TEXT');
+    db.executeSync(`
+      CREATE TABLE IF NOT EXISTS recorded_meetings (
+        id TEXT PRIMARY KEY,
+        user_id TEXT NOT NULL,
+        title TEXT NOT NULL,
+        status TEXT NOT NULL DEFAULT 'recording',
+        error_code TEXT,
+        error_detail TEXT,
+        started_at TEXT NOT NULL,
+        duration_seconds INTEGER NOT NULL DEFAULT 0,
+        audio_bytes INTEGER NOT NULL DEFAULT 0,
+        microphone_label TEXT,
+        whisper_model TEXT,
+        transcription_device TEXT,
+        language TEXT,
+        transcript_json TEXT,
+        notes_json TEXT,
+        notes_edited INTEGER NOT NULL DEFAULT 0,
+        section_cache_json TEXT NOT NULL DEFAULT '{}',
+        recovered INTEGER NOT NULL DEFAULT 0,
+        source TEXT NOT NULL DEFAULT 'recording',
+        source_file_name TEXT,
+        has_audio INTEGER NOT NULL DEFAULT 1,
+        created_at TEXT NOT NULL,
+        updated_at TEXT NOT NULL,
+        deleted_at TEXT,
+        FOREIGN KEY (user_id) REFERENCES users (id)
+      );
+    `);
+
+    addColumnIfMissing('recorded_meetings', 'source', "TEXT NOT NULL DEFAULT 'recording'");
+    addColumnIfMissing('recorded_meetings', 'source_file_name', 'TEXT');
+    addColumnIfMissing('recorded_meetings', 'has_audio', 'INTEGER NOT NULL DEFAULT 1');
+    db.executeSync(
+      'CREATE INDEX IF NOT EXISTS idx_recorded_meetings_user ON recorded_meetings (user_id, started_at);',
+    );
     addColumnIfMissing('messages', 'attachment_json', 'TEXT');
 
     db.executeSync(

@@ -65,4 +65,5 @@ export { getOccurrences, parseRrule } from './rruleHelper';
 export type { ParsedRrule } from './rruleHelper';
 export { guestMigration } from './guestMigration';
 export type { GuestDataSummary } from './guestMigration';
-
+export { recordedMeetingStore, SYNCED_MEETING_STATUSES } from './recordedMeetingStore';
+export type { MeetingPatch, RecordedMeeting } from './recordedMeetingStore';

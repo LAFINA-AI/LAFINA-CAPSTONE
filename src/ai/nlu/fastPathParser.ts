@@ -1261,8 +1261,16 @@ export function parseIntentFastPath(
     };
   }
 
-  // 4. Conversational greetings
-  if (/^(hey|hi|hello|good morning|good afternoon|good evening|sup|what'?s up)\b/i.test(lower) && lower.split(' ').length <= 4) {
+  // 4. Conversational greetings & chatbot inquiries ("What are you", "Who are you", "What can you do", etc.)
+  const isIdentityOrChatbotQuery =
+    /^(?:(?:what|who)\s+(?:are|is)\s+(?:you|lafina)|what\s+can\s+you\s+do|tell\s+me\s+about\s+yourself|who\s+made\s+you|are\s+you\s+(?:an?\s+)?(?:ai|bot|assistant)|what(?:'s|\s+is)\s+your\s+name|how\s+are\s+you|who\s+are\s+u|what\s+are\s+u)\b/i.test(
+      commandLower,
+    );
+  const isGreeting =
+    /^(?:hey|hi|hello|good\s+morning|good\s+afternoon|good\s+evening|sup|what'?s\s+up)\b/i.test(lower) &&
+    lower.split(' ').length <= 4;
+
+  if (isGreeting || isIdentityOrChatbotQuery) {
     return {
       intent: 'chat',
       title: null,
@@ -1271,7 +1279,7 @@ export function parseIntentFastPath(
       endTime: null,
       durationMinutes: null,
       category: 'Personal',
-      details: 'Greeting',
+      details: isIdentityOrChatbotQuery ? 'Identity' : 'Greeting',
       snoozeMinutes: null,
       confidence: 0.95,
       source: 'fast_path',
@@ -1562,9 +1570,9 @@ export function parseIntentFastPath(
   // 9. Creation Intents (Note, Time Block, Task, Reminder)
   // Check explicit Note creation FIRST so dates/times inside note bodies are never stripped or hijacked as tasks!
   const isExplicitNoteCreate =
-    /\b(?:(?:create|add|make|take|save|write|jot)\s+(?:a\s+|an\s+|new\s+|quick\s+)?notes?|note\s+down|write\s+down|jot\s+down)\b/i.test(
+    /\b(?:(?:create|add|make|take|save)\s+(?:(?:this|that)\s+)?(?:as\s+)?(?:a\s+|an\s+|new\s+|quick\s+)?notes?|(?:save|add)\s+to\s+(?:my\s+)?notes?|to\s+note\b|take\s+note\b|note\s+down|write\s+down|jot\s+down|(?:write|jot)\s+(?:a\s+|an\s+|new\s+|quick\s+)?notes?)\b/i.test(
       commandLower,
-    ) || /^(?:new\s+)?note(?::|\s+that\s+|\s+about\s+|\s+for\s+|\s+titled\s+|\s+called\s+|\s+)/i.test(commandLower);
+    ) || /^(?:(?:new|to)\s+)?note(?::|\s+that\s+|\s+about\s+|\s+for\s+|\s+titled\s+|\s+called\s+|\s+to\s+|\s*:\s*)/i.test(commandLower);
 
   if (isExplicitNoteCreate) {
     // Support explicit title + body ("Create a note titled Biology that mitochondria is the powerhouse")
@@ -1597,7 +1605,7 @@ export function parseIntentFastPath(
       };
     }
 
-    const hadColonNotePrefix = /^(?:(?:please\s+)?(?:take|create|add|make|save)\s+(?:a\s+|an\s+|new\s+)?note|note)\s*:/i.test(
+    const hadColonNotePrefix = /^(?:(?:please\s+)?(?:take|create|add|make|save)\s+(?:(?:this|that)\s+)?(?:as\s+)?(?:a\s+|an\s+|new\s+)?note|to\s+note|note)\s*:/i.test(
       commandLower,
     );
     let noteContent = normalized
@@ -1606,7 +1614,7 @@ export function parseIntentFastPath(
         '',
       )
       .replace(
-        /^(?:(?:create|add|make|take|save|write|jot)\s+(?:a\s+|an\s+|new\s+|quick\s+)?notes?|note\s+down|write\s+down|jot\s+down|(?:new\s+)?notes?)\s*(?:(?:\b(?:that|about|for|regarding|on|saying|called|titled|named)\b)\s*)?[:\s,-]*/i,
+        /^(?:(?:create|add|make|take|save|write|jot)\s+(?:(?:this|that)\s+)?(?:as\s+)?(?:a\s+|an\s+|new\s+|quick\s+)?notes?|(?:save|add)\s+to\s+(?:my\s+)?notes?|to\s+note|take\s+note|note\s+down|write\s+down|jot\s+down|(?:new\s+)?notes?)\s*(?:(?:\b(?:that|about|for|regarding|on|saying|called|titled|named|to)\b)\s*)?[:\s,-]*/i,
         '',
       )
       .replace(/^[\s,;:-]+|[\s,;:-]+$/g, '')
@@ -1642,7 +1650,7 @@ export function parseIntentFastPath(
 
   const dt = parseDateAndTime(normalized, referenceDate);
 
-  // Determine schedule creation intent (Time Block, Task, Reminder, or fallback Note)
+  // Determine schedule creation intent (Time Block, Task, Reminder)
   let intentType: ParsedIntentType = 'create_task';
 
   const isExplicitTimeBlock =
@@ -1669,12 +1677,26 @@ export function parseIntentFastPath(
     intentType = 'create_time_block';
   } else if (dt.date !== null || dt.time !== null) {
     intentType = 'create_task';
+  } else if (/^(?:add|set|create|put|schedule|make|book|plan)\b/i.test(commandLower)) {
+    intentType = 'create_task';
   } else {
-    if (/^(?:add|set|create|put|schedule|make)\b/i.test(commandLower)) {
-      intentType = 'create_task';
-    } else {
-      intentType = 'create_note';
-    }
+    // Neither date/time nor schedule mutation command:
+    // User did NOT ask to save as note and did NOT ask to schedule anything.
+    // Return conversational chat intent without modifying schedule or creating notes.
+    return {
+      intent: 'chat',
+      title: null,
+      date: null,
+      time: null,
+      endTime: null,
+      durationMinutes: null,
+      category: 'Personal',
+      details: transcript,
+      snoozeMinutes: null,
+      confidence: 0.85,
+      source: 'fast_path',
+      rawTranscript: transcript,
+    };
   }
 
   // Clean title by stripping command prefixes and matched date/time tokens
@@ -1714,9 +1736,7 @@ export function parseIntentFastPath(
   );
 
   // Strip bare leading article for action items
-  if (intentType !== 'create_note') {
-    cleanTitle = cleanTitle.replace(/^[\s,:-]*(?:a|an|the)\b[\s,:-]*/i, '');
-  }
+  cleanTitle = cleanTitle.replace(/^[\s,:-]*(?:a|an|the)\b[\s,:-]*/i, '');
 
   // Strip lingering trailing prepositions and punctuation at edges (including trailing periods)
   cleanTitle = cleanTitle
@@ -1730,8 +1750,8 @@ export function parseIntentFastPath(
     /^(?:remind\s+me|set\s+a?\s*reminder|add\s+a?\s*reminder|(?:(?:create|add|set|schedule|make)\s+)?(?:a\s+|an\s+)?(?:new\s+)?(?:time\s*block|timeblock|study\s*block|focus\s*block|block\s+time|block\s+out|block|take\s+a?\s*note|save\s+a?\s*note|note\s+down|write\s+down|task|todo|note)|add|create|schedule|set(?:\s+up)?)\b/i.test(
       commandLower,
     );
-  const noisy = intentType !== 'create_note' && isTitleNoisy(cleanTitle, normalized);
-  if ((noisy || !hasExplicitCommandPrefix) && intentType !== 'create_note' && cleanTitle) {
+  const noisy = isTitleNoisy(cleanTitle, normalized);
+  if ((noisy || !hasExplicitCommandPrefix) && cleanTitle) {
     cleanTitle = distillScheduleTitle(cleanTitle);
   }
 
@@ -1739,12 +1759,7 @@ export function parseIntentFastPath(
   let finalTitle = cleanTitle;
   let finalDetails: string | null = cleanTitle || normalized;
 
-  if (intentType === 'create_note') {
-    if (!cleanTitle) {
-      finalTitle = 'Voice Note';
-      finalDetails = 'Voice note transcript.';
-    }
-  } else if (!cleanTitle) {
+  if (!cleanTitle) {
     if (intentType === 'create_reminder') finalTitle = 'Reminder';
     else if (intentType === 'create_time_block') finalTitle = 'Study Session';
     else finalTitle = 'New Task';

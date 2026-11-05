@@ -10,6 +10,7 @@ import {
 import { chatStore } from '../../src/storage/chatStore';
 import { tasksStore } from '../../src/storage/tasksStore';
 import { timeBlocksStore } from '../../src/storage/timeBlocksStore';
+import { notesStore } from '../../src/storage/notesStore';
 import { userStore } from '../../src/storage/userStore';
 import { initDatabase } from '../../src/storage/dbInit';
 import { ttsService } from '../../src/ai/tts/ttsService';
@@ -67,6 +68,47 @@ describe('Phase 08: End-to-End Offline Student Assistant & ChatScreen Integratio
       expect(history.length).toBe(2);
       expect(history[0].sender).toBe('user');
       expect(history[1].sender).toBe('assistant');
+    });
+
+    test('handles identity questions like "What are you" without saving as a note', async () => {
+      const initialNotes = notesStore.getAll(testUserId);
+      const initialNoteCount = initialNotes.length;
+
+      const result = await chatOrchestrator.processMessage(
+        testUserId,
+        'What are you',
+        { referenceDate: fixedDate },
+      );
+
+      expect(result.intent.intent).toBe('chat');
+      expect(result.reply).toMatch(/^I am lafina, your offline academic assistant/i);
+      expect(result.userMessage.content).toBe('What are you');
+
+      // Crucial: No note should be created!
+      const currentNotes = notesStore.getAll(testUserId);
+      expect(currentNotes.length).toBe(initialNoteCount);
+    });
+
+    test('only saves as a note when user explicitly asks to note or save as a note', async () => {
+      const initialNotes = notesStore.getAll(testUserId);
+      const initialNoteCount = initialNotes.length;
+
+      const result = await chatOrchestrator.processMessage(
+        testUserId,
+        'Save this as a note that Chemistry midterms coverage chapters 1-4',
+        { referenceDate: fixedDate },
+      );
+
+      expect(result.intent.intent).toBe('create_note');
+      expect(result.reply).toContain('Saved note');
+
+      const updatedNotes = notesStore.getAll(testUserId);
+      expect(updatedNotes.length).toBe(initialNoteCount + 1);
+      expect(
+        updatedNotes.some(
+          (n) => n.title.includes('Chemistry midterms') || n.body.includes('Chemistry midterms'),
+        ),
+      ).toBe(true);
     });
 
     test('processes task creation and saves both to tasksStore and chatStore', async () => {

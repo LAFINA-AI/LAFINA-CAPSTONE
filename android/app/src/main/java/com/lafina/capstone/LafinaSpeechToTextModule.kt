@@ -277,7 +277,12 @@ class LafinaSpeechToTextModule(private val reactContext: ReactApplicationContext
     } else {
       bargeIn
     }
+    if (!LafinaMicrophoneLease.tryAcquire(LafinaMicrophoneLease.Holder.SPEECH_TO_TEXT)) {
+      promise.reject("MIC_IN_USE", "Microphone is currently in use by meeting recorder.")
+      return
+    }
     if (!activeCaptureId.compareAndSet(null, captureId)) {
+      LafinaMicrophoneLease.release(LafinaMicrophoneLease.Holder.SPEECH_TO_TEXT)
       promise.reject("CAPTURE_BUSY", "Another offline speech capture is already active.")
       return
     }
@@ -350,6 +355,7 @@ class LafinaSpeechToTextModule(private val reactContext: ReactApplicationContext
       } finally {
         activeRecorder = null
         activeCaptureId.compareAndSet(captureId, null)
+        LafinaMicrophoneLease.release(LafinaMicrophoneLease.Holder.SPEECH_TO_TEXT)
         scheduleInactivityUnload()
       }
     }

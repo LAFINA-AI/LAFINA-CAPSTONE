@@ -1,23 +1,72 @@
 import React, { useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
-import { Volume2, VolumeX, Sparkles } from 'lucide-react-native';
+import {
+  Volume2,
+  VolumeX,
+  Sparkles,
+  BookOpen,
+  FileSpreadsheet,
+  FileText,
+  Presentation,
+  Share2,
+} from 'lucide-react-native';
 import { Fonts, Shadows } from '../../theme';
 import { useTheme } from '../../contexts/ThemeContext';
 import { useThemedStyles } from '../../theme/createThemedStyles';
 import type { ThemeColors } from '../../contexts/ThemeContext';
-import type { ChatMessage } from '../../../storage/chatStore';
+import type { ChatAttachment, ChatMessage } from '../../../storage/chatStore';
+import {
+  DOCUMENT_FORMATS,
+  formatFileSize,
+  isDocumentFormat,
+} from '../../../skills/documentSkill';
 import { ttsService } from '../../../ai/tts/ttsService';
 
 interface ChatMessageItemProps {
   item: ChatMessage;
+  handbookNote?: string;
   onSpeak?: (text: string) => void;
+  onOpenAttachment?: (attachment: ChatAttachment) => void;
 }
 
-export const ChatMessageItem: React.FC<ChatMessageItemProps> = ({ item, onSpeak }) => {
+const AttachmentIcon: React.FC<{ format: string; color: string }> = ({
+  format,
+  color,
+}) => {
+  switch (format) {
+    case 'xlsx':
+      return <FileSpreadsheet size={20} color={color} />;
+    case 'pptx':
+      return <Presentation size={20} color={color} />;
+    default:
+      return <FileText size={20} color={color} />;
+  }
+};
+
+export const ChatMessageItem: React.FC<ChatMessageItemProps> = ({
+  item,
+  handbookNote,
+  onSpeak,
+  onOpenAttachment,
+}) => {
   const isUser = item.sender === 'user';
   const { colors } = useTheme();
   const themed = useThemedStyles(getThemedStyles);
   const [isPlaying, setIsPlaying] = useState(false);
+
+  const attachment = item.attachment ?? null;
+  const attachmentMeta =
+    attachment && isDocumentFormat(attachment.format)
+      ? DOCUMENT_FORMATS[attachment.format]
+      : null;
+  const attachmentSubtitle = attachment
+    ? [
+        attachmentMeta?.label || attachment.format.toUpperCase(),
+        formatFileSize(attachment.sizeBytes),
+      ]
+        .filter(Boolean)
+        .join(' · ')
+    : '';
 
   const handleToggleSpeak = async () => {
     if (isPlaying) {
@@ -62,10 +111,17 @@ export const ChatMessageItem: React.FC<ChatMessageItemProps> = ({ item, onSpeak 
       >
         {!isUser && (
           <View style={styles.assistantHeader}>
-            <View style={[styles.avatarBadge, { backgroundColor: colors.primary + '18' }]}>
+            <View
+              style={[
+                styles.avatarBadge,
+                { backgroundColor: colors.primary + '18' },
+              ]}
+            >
               <Sparkles size={11} color={colors.primary} />
             </View>
-            <Text style={[styles.assistantName, { color: colors.primary }]}>lafina</Text>
+            <Text style={[styles.assistantName, { color: colors.primary }]}>
+              lafina
+            </Text>
           </View>
         )}
 
@@ -78,6 +134,47 @@ export const ChatMessageItem: React.FC<ChatMessageItemProps> = ({ item, onSpeak 
         >
           {item.content}
         </Text>
+
+        {attachment && (
+          <TouchableOpacity
+            style={[styles.attachmentCard, themed.attachmentCard]}
+            onPress={() => onOpenAttachment?.(attachment)}
+            activeOpacity={0.75}
+            accessibilityRole="button"
+            accessibilityLabel={`Open or share ${attachment.fileName}`}
+            testID="chat-attachment-card"
+          >
+            <View
+              style={[styles.attachmentIconWrap, themed.attachmentIconWrap]}
+            >
+              <AttachmentIcon format={attachment.format} color={colors.red} />
+            </View>
+            <View style={styles.attachmentTextWrap}>
+              <Text
+                style={[styles.attachmentTitle, themed.attachmentTitle]}
+                numberOfLines={1}
+              >
+                {attachment.fileName}
+              </Text>
+              <Text
+                style={[styles.attachmentSubtitle, themed.attachmentSubtitle]}
+                numberOfLines={1}
+              >
+                {attachmentSubtitle}
+              </Text>
+            </View>
+            <Share2 size={16} color={colors.textSecondary} />
+          </TouchableOpacity>
+        )}
+
+        {!isUser && handbookNote ? (
+          <View style={styles.handbookRow} testID="chat-handbook-citation">
+            <BookOpen size={11} color={colors.textSecondary} />
+            <Text style={[styles.handbookText, themed.assistantTime]}>
+              {handbookNote}
+            </Text>
+          </View>
+        ) : null}
 
         <View style={styles.footerRow}>
           <Text
@@ -95,7 +192,9 @@ export const ChatMessageItem: React.FC<ChatMessageItemProps> = ({ item, onSpeak 
               onPress={handleToggleSpeak}
               hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
               accessibilityRole="button"
-              accessibilityLabel={isPlaying ? 'Stop reading message' : 'Read message aloud'}
+              accessibilityLabel={
+                isPlaying ? 'Stop reading message' : 'Read message aloud'
+              }
               testID={`chat-speak-btn-${item.id}`}
             >
               {isPlaying ? (
@@ -166,6 +265,46 @@ const styles = StyleSheet.create({
   userText: {
     color: '#FFFFFF',
   },
+  attachmentCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 10,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    borderRadius: 12,
+    borderWidth: 1,
+    gap: 10,
+  },
+  attachmentIconWrap: {
+    width: 36,
+    height: 36,
+    borderRadius: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  attachmentTextWrap: {
+    flex: 1,
+  },
+  attachmentTitle: {
+    fontFamily: Fonts.heading,
+    fontSize: 13,
+    fontWeight: 'bold',
+  },
+  attachmentSubtitle: {
+    fontFamily: Fonts.body,
+    fontSize: 11,
+    marginTop: 2,
+  },
+  handbookRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    marginTop: 6,
+  },
+  handbookText: {
+    fontFamily: Fonts.body,
+    fontSize: 10.5,
+  },
   footerRow: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -194,6 +333,19 @@ const getThemedStyles = (colors: ThemeColors) => ({
     color: colors.textPrimary,
   },
   assistantTime: {
+    color: colors.textSecondary,
+  },
+  attachmentCard: {
+    backgroundColor: colors.surface,
+    borderColor: colors.border,
+  },
+  attachmentIconWrap: {
+    backgroundColor: colors.cardBg,
+  },
+  attachmentTitle: {
+    color: colors.textPrimary,
+  },
+  attachmentSubtitle: {
     color: colors.textSecondary,
   },
 });

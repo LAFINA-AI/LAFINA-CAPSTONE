@@ -1024,6 +1024,29 @@ describe('Phase 07: Smart Hybrid On-Device NLU & Action Execution', () => {
       expect(addTimeBlock.title).toBe('Backend Architecture');
       expect(addTimeBlock.time).toBe('13:00');
       expect(addTimeBlock.endTime).toBe('15:30');
+
+      // Explicit Note commands vs Chat queries
+      const saveAsNote = parseIntentFastPath('Save this as a note that bring index cards to exam', fixedDate);
+      expect(saveAsNote.intent).toBe('create_note');
+      expect(saveAsNote.title).toBe('Bring index cards to exam');
+
+      const toNote = parseIntentFastPath('To note that lab safety rules require goggles', fixedDate);
+      expect(toNote.intent).toBe('create_note');
+      expect(toNote.title).toBe('Lab safety rules require goggles');
+
+      const colonNote = parseIntentFastPath('Take a note: Bring index cards to exam', fixedDate);
+      expect(colonNote.intent).toBe('create_note');
+      expect(colonNote.title).toBe('Voice Note');
+      expect(colonNote.details).toBe('Bring index cards to exam');
+
+      const whatAreYou = parseIntentFastPath('What are you', fixedDate);
+      expect(whatAreYou.intent).toBe('chat');
+
+      const whoAreYou = parseIntentFastPath('Who are you', fixedDate);
+      expect(whoAreYou.intent).toBe('chat');
+
+      const whatCanYouDo = parseIntentFastPath('What can you do', fixedDate);
+      expect(whatCanYouDo.intent).toBe('chat');
     });
 
     test('executes full CRUD commands (Update, Rename, Complete, Cancel/Remove/Delete) for Time Blocks, Tasks, and Notes', async () => {

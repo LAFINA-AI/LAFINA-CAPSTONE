@@ -144,6 +144,9 @@ export const chatStore = {
       .map((message) => message.attachment?.uri)
       .filter((uri): uri is string => typeof uri === 'string' && uri.length > 0),
 
+  hasAttachment: (userId: string, uri: string): boolean =>
+    Boolean(uri) && chatStore.getAttachmentUris(userId).includes(uri),
+
   clearHistory: (userId: string): void => {
     const sessionId = chatStore.ensureDefaultSession(userId);
     try {

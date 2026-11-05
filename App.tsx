@@ -23,6 +23,7 @@ import {
 import { CustomTabBar, TabType } from './src/ui/components/CustomTabBar';
 import { hasProEntitlement } from './src/cloud';
 import { ThemeProvider, useTheme } from './src/ui/contexts/ThemeContext';
+import { MeetingsProvider } from './src/ui/contexts/MeetingsContext';
 import type { ThemeColors } from './src/ui/contexts/ThemeContext';
 import {
   rescheduleUserReminders,
@@ -603,7 +604,9 @@ export function App() {
   return (
     <SafeAreaProvider>
       <ThemeProvider userId={userId}>
-        <AppContent userId={userId} setUserId={setUserId} />
+        <MeetingsProvider userId={userId || 'local_guest_user'}>
+          <AppContent userId={userId} setUserId={setUserId} />
+        </MeetingsProvider>
       </ThemeProvider>
     </SafeAreaProvider>
   );

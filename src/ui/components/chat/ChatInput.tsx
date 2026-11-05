@@ -7,17 +7,25 @@ import {
   ScrollView,
   Text,
 } from 'react-native';
-import { Send, Sparkles } from 'lucide-react-native';
+import { FilePlus2, FileText, Send, Sparkles, X } from 'lucide-react-native';
 import { Fonts, Shadows } from '../../theme';
 import { useTheme } from '../../contexts/ThemeContext';
 import { useThemedStyles } from '../../theme/createThemedStyles';
 import type { ThemeColors } from '../../contexts/ThemeContext';
+import {
+  DOCUMENT_FORMATS,
+  type DocumentFormat,
+} from '../../../skills/documentSkill';
 
 export interface ChatInputProps {
   inputText: string;
   setInputText: (text: string) => void;
   onSend: () => void;
   isSending?: boolean;
+  isOnlineMode?: boolean;
+  selectedFormat?: DocumentFormat | null;
+  onOpenFormatPicker?: () => void;
+  onClearFormat?: () => void;
   onSelectPrompt?: (prompt: string) => void;
   showSuggestions?: boolean;
   onFocus?: () => void;
@@ -35,12 +43,22 @@ export const ChatInput: React.FC<ChatInputProps> = ({
   setInputText,
   onSend,
   isSending = false,
+  isOnlineMode = false,
+  selectedFormat = null,
+  onOpenFormatPicker,
+  onClearFormat,
   onSelectPrompt,
   showSuggestions = true,
   onFocus,
 }) => {
   const { colors } = useTheme();
   const themed = useThemedStyles(getThemedStyles);
+  const formatMeta = selectedFormat ? DOCUMENT_FORMATS[selectedFormat] : null;
+  const placeholder = formatMeta
+    ? `Describe the ${formatMeta.shortLabel} file…`
+    : isOnlineMode
+      ? 'Ask lafina or request a file…'
+      : 'Ask lafina or add a schedule item…';
 
   const handlePromptPress = (prompt: string) => {
     if (onSelectPrompt) {
@@ -52,7 +70,7 @@ export const ChatInput: React.FC<ChatInputProps> = ({
 
   return (
     <View style={[styles.container, themed.container]}>
-      {showSuggestions && !inputText && (
+      {showSuggestions && !inputText && !formatMeta && (
         <ScrollView
           horizontal
           showsHorizontalScrollIndicator={false}
@@ -67,17 +85,62 @@ export const ChatInput: React.FC<ChatInputProps> = ({
               activeOpacity={0.7}
               testID={`chat-prompt-chip-${index}`}
             >
-              <Sparkles size={11} color={colors.primary} style={styles.chipIcon} />
-              <Text style={[styles.suggestionText, themed.suggestionText]}>{prompt}</Text>
+              <Sparkles
+                size={11}
+                color={colors.primary}
+                style={styles.chipIcon}
+              />
+              <Text style={[styles.suggestionText, themed.suggestionText]}>
+                {prompt}
+              </Text>
             </TouchableOpacity>
           ))}
         </ScrollView>
       )}
 
+      {formatMeta && (
+        <View style={[styles.formatPill, themed.formatPill]}>
+          <FileText size={13} color={colors.red} />
+          <Text style={[styles.formatPillText, themed.formatPillText]}>
+            Creating a {formatMeta.shortLabel} file
+          </Text>
+          {onClearFormat && (
+            <TouchableOpacity
+              onPress={onClearFormat}
+              hitSlop={8}
+              accessibilityRole="button"
+              accessibilityLabel={`Cancel ${formatMeta.label}`}
+              testID="chat-clear-format-button"
+            >
+              <X size={14} color={colors.textSecondary} />
+            </TouchableOpacity>
+          )}
+        </View>
+      )}
+
       <View style={styles.inputRow}>
+        {onOpenFormatPicker && (
+          <TouchableOpacity
+            style={[
+              styles.attachButton,
+              themed.attachButton,
+              formatMeta && themed.attachButtonActive,
+            ]}
+            onPress={onOpenFormatPicker}
+            disabled={isSending}
+            accessibilityRole="button"
+            accessibilityLabel="Create a document file"
+            testID="chat-document-format-button"
+          >
+            <FilePlus2
+              size={18}
+              color={formatMeta ? colors.red : colors.textSecondary}
+            />
+          </TouchableOpacity>
+        )}
         <TextInput
           style={[styles.input, themed.input]}
-          placeholder="Ask LAFINA or add a schedule item…"
+          placeholder={placeholder}
           placeholderTextColor={colors.textSecondary}
           cursorColor={colors.primary}
           selectionColor={colors.primary + '40'}
@@ -111,21 +174,21 @@ export const ChatInput: React.FC<ChatInputProps> = ({
 
 const styles = StyleSheet.create({
   container: {
-    paddingHorizontal: 16,
-    paddingTop: 8,
-    paddingBottom: 10,
+    paddingHorizontal: 14,
+    paddingTop: 6,
+    paddingBottom: 8,
     borderTopWidth: StyleSheet.hairlineWidth,
     borderBottomWidth: StyleSheet.hairlineWidth,
   },
   suggestionsScroll: {
-    paddingBottom: 8,
+    paddingBottom: 6,
     gap: 8,
   },
   suggestionChip: {
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: 12,
-    paddingVertical: 7,
+    paddingVertical: 6,
     borderRadius: 16,
     borderWidth: 1,
   },
@@ -137,26 +200,50 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: '500',
   },
+  formatPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    alignSelf: 'flex-start',
+    gap: 6,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 999,
+    borderWidth: 1,
+    marginBottom: 6,
+  },
+  formatPillText: {
+    fontFamily: Fonts.heading,
+    fontSize: 11,
+    fontWeight: 'bold',
+  },
   inputRow: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
   },
+  attachButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    borderWidth: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   input: {
     flex: 1,
-    height: 46,
-    borderRadius: 23,
-    paddingHorizontal: 18,
+    height: 42,
+    borderRadius: 21,
+    paddingHorizontal: 16,
     paddingVertical: 0,
     textAlignVertical: 'center',
     fontFamily: Fonts.body,
-    fontSize: 14.5,
+    fontSize: 14,
     borderWidth: 1,
   },
   sendButton: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
     alignItems: 'center',
     justifyContent: 'center',
     ...Shadows.card,
@@ -178,6 +265,20 @@ const getThemedStyles = (colors: ThemeColors) => ({
   },
   suggestionText: {
     color: colors.textSecondary,
+  },
+  formatPill: {
+    backgroundColor: colors.cardBg,
+    borderColor: colors.border,
+  },
+  formatPillText: {
+    color: colors.textPrimary,
+  },
+  attachButton: {
+    backgroundColor: colors.inputBg,
+    borderColor: colors.border,
+  },
+  attachButtonActive: {
+    borderColor: colors.red,
   },
   input: {
     backgroundColor: colors.inputBg,

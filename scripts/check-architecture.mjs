@@ -27,8 +27,8 @@ const FORBIDDEN_SPECIFIER_PATTERNS = [
     reason: 'Gmail integration is out of student capstone scope',
   },
   {
-    pattern: /(^|\/)(pomodoro|flashcards|studynotes|meetings|PomodoroContext|MeetingsContext)(\/|$)/i,
-    reason: 'study tools (Pomodoro, Flashcards, Study Notes, Meetings) are out of scope',
+    pattern: /(^|\/)(pomodoro|flashcards|studynotes|PomodoroContext)(\/|$)/i,
+    reason: 'study tools (Pomodoro, Flashcards, Study Notes) are out of scope',
   },
   {
     pattern: /kokoro|af_bella|LafinaTTSModule/i,

@@ -52,6 +52,58 @@ NativeModules.LafinaSpeechToText = {
   release: jest.fn(() => Promise.resolve(true)),
 };
 
+NativeModules.LafinaMeetingRecorder = {
+  getAvailableStorageMB: jest.fn(() => Promise.resolve(2048)),
+  startRecording: jest.fn((id) => Promise.resolve(id || 'mock-meeting')),
+  pauseRecording: jest.fn(() => Promise.resolve(true)),
+  resumeRecording: jest.fn(() => Promise.resolve(true)),
+  stopRecording: jest.fn(() =>
+    Promise.resolve({
+      meetingId: 'mock-meeting',
+      chunkFiles: ['/data/meetings/mock-meeting/chunk_0000.wav'],
+      chunkDurationsMs: [30000],
+    }),
+  ),
+  isRecording: jest.fn(() => Promise.resolve(false)),
+  isPaused: jest.fn(() => Promise.resolve(false)),
+  getRecoveryState: jest.fn(() => Promise.resolve(null)),
+  clearRecoveryState: jest.fn(() => Promise.resolve(true)),
+  transcribeChunkWithTimestamps: jest.fn((_path, offsetMs = 0) =>
+    Promise.resolve([
+      {
+        start_ms: Number(offsetMs) + 1000,
+        end_ms: Number(offsetMs) + 4500,
+        text: 'Welcome to today lecture on operating systems.',
+      },
+    ]),
+  ),
+  deleteAudioFile: jest.fn(() => Promise.resolve(true)),
+  importAudioFile: jest.fn((_fileUri, meetingId) =>
+    Promise.resolve({
+      meetingId: meetingId || 'imported-meeting-1',
+      durationSeconds: 30,
+      audioBytes: 960044,
+      chunkFiles: [
+        `/data/meetings/${meetingId || 'imported-meeting-1'}/chunk_000.wav`,
+      ],
+      chunkDurationsMs: [30000],
+    }),
+  ),
+  listMeetingAudio: jest.fn(() =>
+    Promise.resolve({
+      chunks: [
+        {
+          path: '/data/meetings/mock-meeting/chunk_0000.wav',
+          durationMs: 30000,
+          sizeBytes: 960044,
+        },
+      ],
+      totalBytes: 960044,
+    }),
+  ),
+  deleteMeetingAudio: jest.fn(() => Promise.resolve(true)),
+};
+
 jest.mock(
   'react-native-safe-area-context',
   () => require('react-native-safe-area-context/jest/mock').default,

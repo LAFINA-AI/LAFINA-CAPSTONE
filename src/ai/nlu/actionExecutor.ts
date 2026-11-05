@@ -1350,10 +1350,37 @@ export async function executeNluAction(
     case 'chat':
     case 'out_of_scope':
     default: {
+      const queryLower = (intent.details || intent.rawTranscript || '').toLowerCase();
+      if (
+        /\b(?:what|who)\s+(?:are|is)\s+(?:you|lafina)|tell\s+me\s+about\s+yourself|who\s+made\s+you|are\s+you\s+(?:an?\s+)?(?:ai|bot|assistant)|what(?:'s|\s+is)\s+your\s+name|who\s+are\s+u|what\s+are\s+u\b/i.test(
+          queryLower,
+        ) ||
+        intent.details === 'Identity'
+      ) {
+        return {
+          success: true,
+          intent: intent.intent,
+          reply:
+            'I am lafina, your offline academic assistant. I help you manage your schedule, set reminder alarms, and organize tasks and notes.',
+        };
+      }
+      if (
+        /\b(?:what\s+can\s+you\s+do|how\s+(?:do|can)\s+you\s+help|what\s+do\s+you\s+do|help(?:\s+me)?)\b/i.test(
+          queryLower,
+        )
+      ) {
+        return {
+          success: true,
+          intent: intent.intent,
+          reply:
+            'I am lafina, your offline academic assistant. You can ask me to schedule study blocks, set alarms, or add and view tasks.',
+        };
+      }
       return {
         success: true,
         intent: intent.intent,
-        reply: "Hey! I'm lafina. You can ask me to add, update, or remove tasks, time blocks, reminders, or notes.",
+        reply:
+          'I am lafina, your offline academic assistant. I can manage your schedule, set reminders, and organize tasks and notes.',
       };
     }
   }

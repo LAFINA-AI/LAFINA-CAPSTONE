@@ -44,4 +44,6 @@ export {
 
 export * from './nlu';
 export * from './chatOrchestrator';
+export * from './documentIntent';
+export * from './meeting';
 

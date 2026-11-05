@@ -1,6 +1,19 @@
-import { chatStore, type ChatMessage } from '../storage/chatStore';
+import { chatStore, type ChatAttachment, type ChatMessage } from '../storage/chatStore';
 import { timeBlocksStore } from '../storage/timeBlocksStore';
 import { tasksStore } from '../storage/tasksStore';
+import {
+  DOCUMENT_FORMATS,
+  describeDocumentFailure,
+  documentSkill,
+  type DocumentFormat,
+} from '../skills/documentSkill';
+import {
+  handbookSourceLabel,
+  onlineChatSkill,
+  type OnlineChatMessage,
+} from '../skills/onlineChatSkill';
+import { saveGeneratedFile } from '../ui/components/chat/chatFiles';
+import { detectDocumentRequest } from './documentIntent';
 import { intentService } from './nlu/intentService';
 import { executeNluAction } from './nlu/actionExecutor';
 import { formatLocalDate } from './nlu/fastPathParser';
@@ -24,6 +37,9 @@ export interface ProcessMessageOptions {
   referenceDate?: Date;
   speakReply?: boolean;
   forceSchedule?: boolean;
+  onlineMode?: boolean;
+  useHandbook?: boolean;
+  documentFormat?: DocumentFormat | null;
 }
 
 export interface ChatOrchestratorResult {
@@ -33,6 +49,9 @@ export interface ChatOrchestratorResult {
   actionResult?: NluActionResult;
   conflict?: ScheduleConflict;
   recommendedSlot?: TimeSlot | null;
+  attachment?: ChatAttachment | null;
+  handbookNote?: string | null;
+  usedOnline?: boolean;
   reply: string;
 }
 
@@ -64,6 +83,36 @@ export function format12HourTime(timeStr?: string | null): string {
   if (hour === 0) hour = 12;
   const minStr = min < 10 ? `0${min}` : `${min}`;
   return `${hour}:${minStr} ${meridiem}`;
+}
+
+function buildLocalChatFallback(trimmed: string, validated: ValidatedIntent): string {
+  const queryLower = (validated.details || trimmed || '').toLowerCase();
+  if (
+    /\b(?:what|who)\s+(?:are|is)\s+(?:you|lafina)|tell\s+me\s+about\s+yourself|who\s+made\s+you|are\s+you\s+(?:an?\s+)?(?:ai|bot|assistant)|what(?:'s|\s+is)\s+your\s+name|who\s+are\s+u|what\s+are\s+u\b/i.test(
+      queryLower,
+    ) ||
+    validated.details === 'Identity'
+  ) {
+    return 'I am lafina, your offline academic assistant. I help you manage your schedule, set reminder alarms, and organize tasks and notes.';
+  }
+  if (
+    /\b(?:what\s+can\s+you\s+do|how\s+(?:do|can)\s+you\s+help|what\s+do\s+you\s+do|help(?:\s+me)?)\b/i.test(
+      queryLower,
+    )
+  ) {
+    return 'I am lafina, your offline academic assistant. You can ask me to schedule study blocks, set alarms, or add and view tasks.';
+  }
+  if (/\b(?:how\s+are\s+you|how's\s+it\s+going|how\s+are\s+things)\b/i.test(queryLower)) {
+    return 'I am lafina, doing great! Ready to help you with your schedule, tasks, or notes.';
+  }
+  if (
+    /^(?:hey|hi|hello|good\s+morning|good\s+afternoon|good\s+evening|sup|what'?s\s+up)\b/i.test(
+      queryLower,
+    )
+  ) {
+    return 'Hey! I am lafina, your offline academic assistant. How can I help with your schedule or tasks today?';
+  }
+  return 'I am lafina, your offline academic assistant. I can schedule study blocks, set exact reminder alarms, track assignments, take notes, or review what is on your schedule.';
 }
 
 export class ChatOrchestrator {
@@ -157,11 +206,12 @@ export class ChatOrchestrator {
   /**
    * End-to-end assistant loop:
    * 1. Persists user query to chatStore.
-   * 2. Extracts validated intent via IntentService (fast-path / on-device SLM).
-   * 3. Performs conflict checks & adaptive slot recommendation for schedule items.
-   * 4. Executes SQLite actions & native scheduler alarms.
-   * 5. Persists assistant reply to chatStore.
-   * 6. Reads aloud reply via react-native-tts if requested.
+   * 2. Handles online document generation (PDF, Word, Excel, PowerPoint) if requested.
+   * 3. Extracts validated intent via IntentService (fast-path / on-device SLM).
+   * 4. Performs conflict checks & adaptive slot recommendation for schedule items.
+   * 5. Executes SQLite actions & native scheduler alarms, or online RAG chat when Online Mode is active.
+   * 6. Persists assistant reply (and optional document attachment) to chatStore.
+   * 7. Reads aloud reply via react-native-tts if requested.
    */
   async processMessage(
     userId: string,
@@ -175,17 +225,92 @@ export class ChatOrchestrator {
     // Step 1: Persist user message
     const userMessage = chatStore.addMessage(userId, 'user', trimmed);
 
-    // Step 2: Extract validated intent
-    const validated = await intentService.extractIntent(trimmed, {
-      referenceDate: refDate,
-    });
-
     let finalReply = '';
     let actionResult: NluActionResult | undefined;
     let conflictResult: ScheduleConflict | undefined;
     let recommendedSlot: TimeSlot | null = null;
+    let attachment: ChatAttachment | null = null;
+    let handbookNote: string | null = null;
+    let usedOnline = false;
 
-    // Step 3: Conflict-aware scheduling for time blocks
+    // Step 2: Check for explicit or natural-language document generation request
+    const detectedDoc = options.documentFormat
+      ? { format: options.documentFormat, prompt: trimmed }
+      : detectDocumentRequest(trimmed);
+
+    if (detectedDoc) {
+      const formatMeta = DOCUMENT_FORMATS[detectedDoc.format];
+      const docIntent: ValidatedIntent = {
+        intent: 'chat',
+        title: formatMeta.label,
+        date: null,
+        time: null,
+        endTime: null,
+        durationMinutes: null,
+        category: 'Academic',
+        details: detectedDoc.prompt,
+        snoozeMinutes: null,
+        confidence: 1,
+        source: 'fast_path',
+        rawTranscript: trimmed,
+        isValid: true,
+      };
+
+      if (!options.onlineMode) {
+        finalReply = `Creating ${formatMeta.shortLabel} files requires Online Mode. Switch to Online Mode in the chat header to generate ${formatMeta.label.toLowerCase()}s.`;
+      } else {
+        const previousMessages: OnlineChatMessage[] = chatStore
+          .getMessages(userId)
+          .filter((msg) => msg.id !== userMessage.id)
+          .map((msg) => ({
+            role: msg.sender,
+            content: msg.content,
+          }));
+        const docResult = await documentSkill.generate({
+          prompt: detectedDoc.prompt,
+          format: detectedDoc.format,
+          history: previousMessages,
+        });
+        if (docResult.status === 'success' && docResult.data) {
+          try {
+            attachment = await saveGeneratedFile(docResult.data);
+            finalReply = docResult.data.summary;
+            usedOnline = true;
+          } catch (saveError) {
+            console.warn('[ChatOrchestrator] Failed to save generated document:', saveError);
+            finalReply = `${docResult.data.summary}\n\n(The ${formatMeta.shortLabel} file was created, but could not be saved to device storage.)`;
+            usedOnline = true;
+          }
+        } else {
+          finalReply = describeDocumentFailure(docResult);
+        }
+      }
+
+      const assistantMessage = chatStore.addMessage(userId, 'assistant', finalReply, attachment);
+      if (options.speakReply) {
+        try {
+          await ttsService.speak(finalReply);
+        } catch (err) {
+          console.warn('[ChatOrchestrator] TTS playback error:', err);
+        }
+      }
+      return {
+        userMessage,
+        assistantMessage,
+        intent: docIntent,
+        attachment,
+        handbookNote,
+        usedOnline,
+        reply: finalReply,
+      };
+    }
+
+    // Step 3: Extract validated intent
+    const validated = await intentService.extractIntent(trimmed, {
+      referenceDate: refDate,
+    });
+
+    // Step 4: Conflict-aware scheduling for time blocks
     if (validated.intent === 'create_time_block' && !options.forceSchedule) {
       const blockDate = validated.date || todayStr;
       const startTime = validated.time || '09:00';
@@ -212,7 +337,7 @@ export class ChatOrchestrator {
       }
     }
 
-    // Step 4: Execute database mutation if no unresolved conflict
+    // Step 5: Execute database mutation or conversational reply if no unresolved conflict
     if (!finalReply) {
       if (
         validated.intent === 'create_task' ||
@@ -234,19 +359,45 @@ export class ChatOrchestrator {
           referenceDate: refDate,
         });
         finalReply = actionResult.reply;
-      } else if (validated.intent === 'chat') {
-        finalReply =
-          "Hey! I'm lafina, your offline academic assistant. I can schedule study blocks, set exact reminder alarms, track assignments, take notes, or review what's on your schedule.";
       } else {
-        finalReply =
-          'I can help you manage your student schedule, study blocks, tasks, reminders, and notes. Try asking: "What\'s on my schedule today?" or "Add study block for Math tomorrow from 2pm to 4pm".';
+        if (options.onlineMode) {
+          const history: OnlineChatMessage[] = chatStore
+            .getMessages(userId)
+            .slice(-10)
+            .map((msg) => ({
+              role: msg.sender,
+              content: msg.content,
+            }));
+          const onlineResult = await onlineChatSkill.sendChatMessage(history, {
+            useHandbook: options.useHandbook,
+          });
+          if (onlineResult.status === 'success' && onlineResult.data) {
+            finalReply = onlineResult.data.reply;
+            handbookNote = handbookSourceLabel(onlineResult.data.sources);
+            usedOnline = true;
+          } else {
+            console.warn('[ChatOrchestrator] Online AI chat failed:', onlineResult.error);
+          }
+        }
+
+        if (!finalReply) {
+          finalReply =
+            validated.intent === 'chat'
+              ? buildLocalChatFallback(trimmed, validated)
+              : 'I am lafina, your offline academic assistant. You can ask me to manage your schedule, set reminders, or organize tasks and notes.';
+        }
       }
     }
 
-    // Step 5: Persist assistant message
-    const assistantMessage = chatStore.addMessage(userId, 'assistant', finalReply);
+    // Ensure "LAFINA" is not capitalized as an acronym so chat display and TTS pronounce "lafina" naturally
+    finalReply = finalReply
+      .replace(/\bL[.-]?A[.-]?F[.-]?I[.-]?N[.-]?A\b/gi, 'lafina')
+      .replace(/\bLAFINA\b/g, 'lafina');
 
-    // Step 6: Non-blocking react-native-tts speech synthesis if requested
+    // Step 6: Persist assistant message
+    const assistantMessage = chatStore.addMessage(userId, 'assistant', finalReply, attachment);
+
+    // Step 7: Non-blocking react-native-tts speech synthesis if requested
     if (options.speakReply) {
       try {
         await ttsService.speak(finalReply);
@@ -262,6 +413,9 @@ export class ChatOrchestrator {
       actionResult,
       conflict: conflictResult,
       recommendedSlot,
+      attachment,
+      handbookNote,
+      usedOnline,
       reply: finalReply,
     };
   }

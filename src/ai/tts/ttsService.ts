@@ -165,7 +165,12 @@ export const stopSpeechPlayback = async (): Promise<void> => {
  * Resolves when utterance finishes or is stopped, with a bounded timeout safety guard.
  */
 export const speakTextWithTts = async (text: string): Promise<void> => {
-  const trimmed = text.trim();
+  // Avoid capitalizing LAFINA so Android TTS pronounces it as a word ("lah-fee-nah")
+  // rather than spelling out individual letters ("L-A-F-I-N-A").
+  const trimmed = text
+    .replace(/\bL[.-]?A[.-]?F[.-]?I[.-]?N[.-]?A\b/gi, 'lafina')
+    .replace(/\bLAFINA\b/g, 'lafina')
+    .trim();
   if (!trimmed) {
     return;
   }

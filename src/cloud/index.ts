@@ -9,3 +9,9 @@ export {
   isStudentProAccount,
   isStudentProRole,
 } from './entitlements';
+export { requestMeetingSummary } from './meetingService';
+export type {
+  MeetingActionItem,
+  MeetingSummaryResponse,
+  RequestMeetingSummaryInput,
+} from './meetingService';

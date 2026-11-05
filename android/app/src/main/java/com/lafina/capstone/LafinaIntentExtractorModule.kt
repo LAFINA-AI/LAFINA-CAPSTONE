@@ -268,11 +268,25 @@ class LafinaIntentExtractorModule(reactContext: ReactApplicationContext) :
       }.toString()
     }
 
-    // 4. Fallback generic intent
+    // 4. Conversational / chat / identity
+    if (Regex("^(?:hey|hi|hello|good\\s+morning|good\\s+afternoon|good\\s+evening|sup|what'?s\\s+up)\\b").containsMatchIn(lower) ||
+        Regex("\\b(?:what|who)\\s+(?:are|is)\\s+(?:you|lafina)|what\\s+can\\s+you\\s+do|tell\\s+me\\s+about\\s+yourself\\b").containsMatchIn(lower)) {
+      return JSONObject().apply {
+        put("intent", "chat")
+        put("title", JSONObject.NULL)
+        put("date", JSONObject.NULL)
+        put("time", JSONObject.NULL)
+        put("duration_minutes", JSONObject.NULL)
+        put("status", "success")
+        put("reply", "I am lafina, your offline academic assistant. I help you manage your schedule, set reminder alarms, and organize tasks and notes.")
+      }.toString()
+    }
+
+    // 5. Fallback generic intent
     var intent = "create_task"
     if (lower.contains("remind me") || lower.contains("reminder")) intent = "create_reminder"
     else if (lower.contains("time block") || lower.contains("timeblock") || lower.contains("block")) intent = "create_time_block"
-    else if (lower.contains("note")) intent = "create_note"
+    else if (Regex("\\b(?:(?:take|create|add|save|write|jot)\\s+(?:a\\s+)?note|save\\s+(?:this\\s+)?as\\s+(?:a\\s+)?note|to\\s+note|note\\s+down|notes?)\\b").containsMatchIn(lower)) intent = "create_note"
 
     val distilledTitle = cleanTitleFallback(text)
 
