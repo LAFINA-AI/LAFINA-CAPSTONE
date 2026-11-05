@@ -1277,6 +1277,10 @@ export const syncWorker = {
     let inFlightMutationIds: string[] = [];
     let inFlightMutations: OutboundMutation[] = [];
     try {
+      if (!db.isFallback() && !db.getHealth().durable) {
+        syncState.deactivate('Local only');
+        return;
+      }
       const session = userStore.getActiveSessionToken();
       localUserId = session.userId;
       if (!localUserId || !userStore.getUserById(localUserId)) {

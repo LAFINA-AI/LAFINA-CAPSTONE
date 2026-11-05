@@ -14,6 +14,7 @@ import { SafeAreaProvider, useSafeAreaInsets } from 'react-native-safe-area-cont
 import NetInfo from '@react-native-community/netinfo';
 import { Fonts, useThemedStyles } from './src/ui/theme';
 import {
+  db,
   initDatabase,
   userStore,
   syncOutboxStore,
@@ -22,6 +23,7 @@ import {
   tasksStore,
 } from './src/storage';
 import { CustomTabBar, TabType } from './src/ui/components/CustomTabBar';
+import { StorageRecoveryScreen } from './src/ui/screens/StorageRecoveryScreen';
 import { hasProEntitlement } from './src/cloud';
 import { ThemeProvider, useTheme } from './src/ui/contexts/ThemeContext';
 import { MeetingsProvider } from './src/ui/contexts/MeetingsContext';
@@ -82,6 +84,7 @@ function AppContent({
   const [tourOpen, setTourOpen] = useState(false);
   const [isKeyboardVisible, setIsKeyboardVisible] = useState(false);
   const [startupReady, setStartupReady] = useState(false);
+  const [storageHealth, setStorageHealth] = useState(() => db.getHealth());
 
   // Incoming Call State
   const [callVisible, setCallVisible] = useState(false);
@@ -269,35 +272,44 @@ function AppContent({
     };
   }, [userId]);
 
-  useEffect(() => {
-    const setupApp = async () => {
-      try {
-        await initDatabase();
+  const setupApp = useCallback(async () => {
+    try {
+      await initDatabase();
 
-        const currentUser = userStore.getCurrentUser();
-        if (currentUser) {
-          setUserId(currentUser.id);
-          setIsOnboarding(currentUser.isNewUser);
-          syncWorker
-            .performSync()
-            .then(() => {
-              setRefreshTrigger((previous) => previous + 1);
-            })
-            .catch(() => undefined);
-        }
-
-        setStartupReady(true);
-
-        void appUpdater
-          .markLaunchSuccessful()
-          .then(() => appUpdater.check({ quiet: true }));
-      } catch (error) {
-        console.error('Failed application startup setup:', error);
-        setIsLoading(false);
+      const currentUser = userStore.getCurrentUser();
+      if (currentUser) {
+        setUserId(currentUser.id);
+        setIsOnboarding(currentUser.isNewUser);
+        syncWorker
+          .performSync()
+          .then(() => {
+            setRefreshTrigger((previous) => previous + 1);
+          })
+          .catch(() => undefined);
       }
-    };
-    void setupApp();
+
+      setStartupReady(true);
+
+      void appUpdater
+        .markLaunchSuccessful()
+        .then(() => appUpdater.check({ quiet: true }));
+    } catch (error) {
+      console.error('Failed application startup setup:', error);
+      setIsLoading(false);
+    }
   }, [setUserId, setRefreshTrigger]);
+
+  // Subscribed before setup runs so no health change is missed.
+  useEffect(() => db.subscribeHealth(setStorageHealth), []);
+
+  useEffect(() => {
+    void setupApp();
+  }, [setupApp]);
+
+  const retryStorage = useCallback(async () => {
+    db.reopen();
+    await setupApp();
+  }, [setupApp]);
 
   useEffect(() => {
     if (!userId) return undefined;
@@ -496,6 +508,10 @@ function AppContent({
         );
     }
   };
+
+  if (storageHealth.status === 'unavailable' || storageHealth.status === 'quarantined') {
+    return <StorageRecoveryScreen health={storageHealth} onRetry={retryStorage} />;
+  }
 
   if (isLoading) {
     return (
