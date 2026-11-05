@@ -1,0 +1,427 @@
+{
+  "schema_version": 1,
+  "pack_prepared_date": "2026-11-06",
+  "timezone": "Asia/Manila",
+  "run_id": null,
+  "run_status": "NOT_STARTED",
+  "model_requested": "claude-opus-5-5",
+  "actual_model": null,
+  "base_branch": "agy-development-cont",
+  "audited_base_head": "b9433dc39d172f30ba26ea68e4a9c9eedd922407",
+  "actual_base_head": null,
+  "work_branch": "codex/agy-preservation-improvements",
+  "worktree": null,
+  "donor_head": "0d4bbe39e106c29fb90792cf5d2f916b5c0d6480",
+  "last_tested_head": null,
+  "last_committed_head": null,
+  "current_phase": null,
+  "phases": [
+    {
+      "id": "AGY-PORT-00",
+      "spec": "phases/00-baseline-and-preservation.md",
+      "depends_on": [],
+      "inventory_areas": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9,
+        10,
+        11,
+        12,
+        13,
+        14,
+        15,
+        16,
+        17,
+        18,
+        19,
+        20,
+        21,
+        22,
+        23,
+        24,
+        25,
+        26,
+        27,
+        28,
+        29,
+        30
+      ],
+      "implementation": "NOT_STARTED",
+      "automated": "NOT_RUN",
+      "build": "NOT_RUN",
+      "device": "NOT_RUN",
+      "live_service": "NOT_RUN",
+      "base_head": null,
+      "tested_head": null,
+      "result_commit": null,
+      "report": null,
+      "evidence": [],
+      "continuation": null,
+      "notes": []
+    },
+    {
+      "id": "AGY-PORT-01",
+      "spec": "phases/01-storage-and-migrations.md",
+      "depends_on": [
+        "AGY-PORT-00"
+      ],
+      "inventory_areas": [
+        1
+      ],
+      "implementation": "NOT_STARTED",
+      "automated": "NOT_RUN",
+      "build": "NOT_RUN",
+      "device": "NOT_RUN",
+      "live_service": "NOT_RUN",
+      "base_head": null,
+      "tested_head": null,
+      "result_commit": null,
+      "report": null,
+      "evidence": [],
+      "continuation": null,
+      "notes": []
+    },
+    {
+      "id": "AGY-PORT-02",
+      "spec": "phases/02-chat-ownership-and-pages.md",
+      "depends_on": [
+        "AGY-PORT-01"
+      ],
+      "inventory_areas": [
+        8,
+        9
+      ],
+      "implementation": "NOT_STARTED",
+      "automated": "NOT_RUN",
+      "build": "NOT_RUN",
+      "device": "NOT_RUN",
+      "live_service": "NOT_RUN",
+      "base_head": null,
+      "tested_head": null,
+      "result_commit": null,
+      "report": null,
+      "evidence": [],
+      "continuation": null,
+      "notes": []
+    },
+    {
+      "id": "AGY-PORT-03",
+      "spec": "phases/03-durable-reminder-delivery.md",
+      "depends_on": [
+        "AGY-PORT-01"
+      ],
+      "inventory_areas": [
+        2,
+        3
+      ],
+      "implementation": "NOT_STARTED",
+      "automated": "NOT_RUN",
+      "build": "NOT_RUN",
+      "device": "NOT_RUN",
+      "live_service": "NOT_RUN",
+      "base_head": null,
+      "tested_head": null,
+      "result_commit": null,
+      "report": null,
+      "evidence": [],
+      "continuation": null,
+      "notes": []
+    },
+    {
+      "id": "AGY-PORT-04",
+      "spec": "phases/04-reviewed-intent-mutations.md",
+      "depends_on": [
+        "AGY-PORT-01",
+        "AGY-PORT-03"
+      ],
+      "inventory_areas": [
+        4,
+        5
+      ],
+      "implementation": "NOT_STARTED",
+      "automated": "NOT_RUN",
+      "build": "NOT_RUN",
+      "device": "NOT_RUN",
+      "live_service": "NOT_RUN",
+      "base_head": null,
+      "tested_head": null,
+      "result_commit": null,
+      "report": null,
+      "evidence": [],
+      "continuation": null,
+      "notes": []
+    },
+    {
+      "id": "AGY-PORT-05",
+      "spec": "phases/05-drafts-and-shared-microphone.md",
+      "depends_on": [
+        "AGY-PORT-04"
+      ],
+      "inventory_areas": [
+        6,
+        7
+      ],
+      "implementation": "NOT_STARTED",
+      "automated": "NOT_RUN",
+      "build": "NOT_RUN",
+      "device": "NOT_RUN",
+      "live_service": "NOT_RUN",
+      "base_head": null,
+      "tested_head": null,
+      "result_commit": null,
+      "report": null,
+      "evidence": [],
+      "continuation": null,
+      "notes": []
+    },
+    {
+      "id": "AGY-PORT-06",
+      "spec": "phases/06-planner-queries-and-guide.md",
+      "depends_on": [
+        "AGY-PORT-04"
+      ],
+      "inventory_areas": [
+        10,
+        11
+      ],
+      "implementation": "NOT_STARTED",
+      "automated": "NOT_RUN",
+      "build": "NOT_RUN",
+      "device": "NOT_RUN",
+      "live_service": "NOT_RUN",
+      "base_head": null,
+      "tested_head": null,
+      "result_commit": null,
+      "report": null,
+      "evidence": [],
+      "continuation": null,
+      "notes": []
+    },
+    {
+      "id": "AGY-PORT-07",
+      "spec": "phases/07-notes-consistency-and-search.md",
+      "depends_on": [
+        "AGY-PORT-01",
+        "AGY-PORT-04"
+      ],
+      "inventory_areas": [
+        12,
+        13
+      ],
+      "implementation": "NOT_STARTED",
+      "automated": "NOT_RUN",
+      "build": "NOT_RUN",
+      "device": "NOT_RUN",
+      "live_service": "NOT_RUN",
+      "base_head": null,
+      "tested_head": null,
+      "result_commit": null,
+      "report": null,
+      "evidence": [],
+      "continuation": null,
+      "notes": []
+    },
+    {
+      "id": "AGY-PORT-08",
+      "spec": "phases/08-event-time-and-sync-compatibility.md",
+      "depends_on": [
+        "AGY-PORT-01",
+        "AGY-PORT-03",
+        "AGY-PORT-06"
+      ],
+      "inventory_areas": [
+        14,
+        29
+      ],
+      "implementation": "NOT_STARTED",
+      "automated": "NOT_RUN",
+      "build": "NOT_RUN",
+      "device": "NOT_RUN",
+      "live_service": "NOT_RUN",
+      "base_head": null,
+      "tested_head": null,
+      "result_commit": null,
+      "report": null,
+      "evidence": [],
+      "continuation": null,
+      "notes": []
+    },
+    {
+      "id": "AGY-PORT-09",
+      "spec": "phases/09-health-preferences-and-statistics.md",
+      "depends_on": [
+        "AGY-PORT-03",
+        "AGY-PORT-04",
+        "AGY-PORT-06"
+      ],
+      "inventory_areas": [
+        15,
+        16,
+        20
+      ],
+      "implementation": "NOT_STARTED",
+      "automated": "NOT_RUN",
+      "build": "NOT_RUN",
+      "device": "NOT_RUN",
+      "live_service": "NOT_RUN",
+      "base_head": null,
+      "tested_head": null,
+      "result_commit": null,
+      "report": null,
+      "evidence": [],
+      "continuation": null,
+      "notes": []
+    },
+    {
+      "id": "AGY-PORT-10",
+      "spec": "phases/10-speech-controls-and-readiness.md",
+      "depends_on": [
+        "AGY-PORT-05",
+        "AGY-PORT-09"
+      ],
+      "inventory_areas": [
+        17,
+        18,
+        19
+      ],
+      "implementation": "NOT_STARTED",
+      "automated": "NOT_RUN",
+      "build": "NOT_RUN",
+      "device": "NOT_RUN",
+      "live_service": "NOT_RUN",
+      "base_head": null,
+      "tested_head": null,
+      "result_commit": null,
+      "report": null,
+      "evidence": [],
+      "continuation": null,
+      "notes": []
+    },
+    {
+      "id": "AGY-PORT-11",
+      "spec": "phases/11-qa-packaging-and-native-audit.md",
+      "depends_on": [
+        "AGY-PORT-03",
+        "AGY-PORT-05",
+        "AGY-PORT-10"
+      ],
+      "inventory_areas": [
+        21,
+        22
+      ],
+      "implementation": "NOT_STARTED",
+      "automated": "NOT_RUN",
+      "build": "NOT_RUN",
+      "device": "NOT_RUN",
+      "live_service": "NOT_RUN",
+      "base_head": null,
+      "tested_head": null,
+      "result_commit": null,
+      "report": null,
+      "evidence": [],
+      "continuation": null,
+      "notes": []
+    },
+    {
+      "id": "AGY-PORT-12",
+      "spec": "phases/12-architecture-and-repeatable-evaluation.md",
+      "depends_on": [
+        "AGY-PORT-06",
+        "AGY-PORT-07",
+        "AGY-PORT-08",
+        "AGY-PORT-10",
+        "AGY-PORT-11"
+      ],
+      "inventory_areas": [
+        23,
+        24,
+        25,
+        26,
+        27,
+        28
+      ],
+      "implementation": "NOT_STARTED",
+      "automated": "NOT_RUN",
+      "build": "NOT_RUN",
+      "device": "NOT_RUN",
+      "live_service": "NOT_RUN",
+      "base_head": null,
+      "tested_head": null,
+      "result_commit": null,
+      "report": null,
+      "evidence": [],
+      "continuation": null,
+      "notes": []
+    },
+    {
+      "id": "AGY-PORT-13",
+      "spec": "phases/13-integration-and-final-handoff.md",
+      "depends_on": [
+        "AGY-PORT-00",
+        "AGY-PORT-01",
+        "AGY-PORT-02",
+        "AGY-PORT-03",
+        "AGY-PORT-04",
+        "AGY-PORT-05",
+        "AGY-PORT-06",
+        "AGY-PORT-07",
+        "AGY-PORT-08",
+        "AGY-PORT-09",
+        "AGY-PORT-10",
+        "AGY-PORT-11",
+        "AGY-PORT-12"
+      ],
+      "inventory_areas": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9,
+        10,
+        11,
+        12,
+        13,
+        14,
+        15,
+        16,
+        17,
+        18,
+        19,
+        20,
+        21,
+        22,
+        23,
+        24,
+        25,
+        26,
+        27,
+        28,
+        29,
+        30
+      ],
+      "implementation": "NOT_STARTED",
+      "automated": "NOT_RUN",
+      "build": "NOT_RUN",
+      "device": "NOT_RUN",
+      "live_service": "NOT_RUN",
+      "base_head": null,
+      "tested_head": null,
+      "result_commit": null,
+      "report": null,
+      "evidence": [],
+      "continuation": null,
+      "notes": []
+    }
+  ],
+  "required_target_root": "C:\\L3mxr\\Github Repositories\\LAFINA-CAPSTONE-agy-development-cont"
+}

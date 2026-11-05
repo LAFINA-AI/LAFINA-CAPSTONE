@@ -1,0 +1,6 @@
+2026-11-05T18:11:30Z
+HEAD b9433dc39d172f30ba26ea68e4a9c9eedd922407; via subst X: alias of this exact checkout; JDK 17
+$ X:\android> gradlew.bat :app:testDebugUnitTest :app:assembleDebug --console=plain
+'gradlew.bat' is not recognized as an internal or external command,
+operable program or batch file.
+exit=1
