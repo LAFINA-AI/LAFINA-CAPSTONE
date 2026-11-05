@@ -1,8 +1,7 @@
 import { accountLinkService } from '../cloud/accountLinkService';
 import { cloudClient } from '../cloud/cloudClient';
-import { reconcileReminderAlarms } from '../scheduler';
+import { reconcileReminderDelivery } from '../scheduler';
 import { db, DatabaseTransaction } from '../storage/database';
-import { remindersStore } from '../storage/remindersStore';
 import { syncConflictStore } from '../storage/syncConflictStore';
 import { syncMetadataStore } from '../storage/syncMetadataStore';
 import { OutboxItem, syncOutboxStore } from '../storage/syncOutboxStore';
@@ -1489,9 +1488,7 @@ export const syncWorker = {
           );
           retryAttempt = 0;
           if (reminderTextUpdated) {
-            await reconcileReminderAlarms(
-              remindersStore.getPendingReminders(localUserId),
-            );
+            await reconcileReminderDelivery(localUserId);
           }
           return;
         }
@@ -1568,9 +1565,7 @@ export const syncWorker = {
         );
         retryAttempt = 0;
         if (reminderTextUpdated) {
-          await reconcileReminderAlarms(
-            remindersStore.getPendingReminders(localUserId),
-          );
+          await reconcileReminderDelivery(localUserId);
         }
         return;
       }

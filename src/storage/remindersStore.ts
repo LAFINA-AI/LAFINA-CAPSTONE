@@ -44,6 +44,12 @@ const reminderPayload = (row: StoredReminderRow): Record<string, unknown> => ({
   snooze_count: row.snooze_count,
 });
 
+/**
+ * Optional check run inside a mutation's transaction, before the write. Throwing
+ * (for example a stale delivery identity) rolls the whole mutation back.
+ */
+export type ReminderMutationGuard = (tx: DatabaseTransaction) => void;
+
 const enqueueReminderUpdate = (id: string, tx: DatabaseTransaction): void => {
   const row = tx.executeSync('SELECT * FROM reminders WHERE id = ?', [id]).rows?.[0] as
     | StoredReminderRow
@@ -187,10 +193,15 @@ export const remindersStore = {
     }
   },
 
-  updateReminderStatus: (id: string, status: ReminderStatus): void => {
+  updateReminderStatus: (
+    id: string,
+    status: ReminderStatus,
+    guard?: ReminderMutationGuard,
+  ): void => {
     const now = new Date().toISOString();
     try {
       db.transactionSync((tx) => {
+        guard?.(tx);
         tx.executeSync(
           `UPDATE reminders SET status = ?, updated_at = ? WHERE id = ?`,
           [status, now, id],
@@ -211,7 +222,7 @@ export const remindersStore = {
     remindersStore.snoozeReminderAt(id, triggerAt);
   },
 
-  snoozeReminderAt: (id: string, triggerAt: string): void => {
+  snoozeReminderAt: (id: string, triggerAt: string, guard?: ReminderMutationGuard): void => {
     const triggerAtMs = new Date(triggerAt).getTime();
     if (!Number.isFinite(triggerAtMs) || triggerAtMs <= Date.now()) {
       throw new Error('Snooze trigger must be a valid future time.');
@@ -219,6 +230,7 @@ export const remindersStore = {
     const now = new Date().toISOString();
     try {
       db.transactionSync((tx) => {
+        guard?.(tx);
         tx.executeSync(
           `UPDATE reminders SET status = 'snoozed', trigger_at = ?, snooze_count = snooze_count + 1, updated_at = ? WHERE id = ?`,
           [triggerAt, now, id],
@@ -231,10 +243,11 @@ export const remindersStore = {
     }
   },
 
-  acknowledgeReminder: (id: string): void => {
+  acknowledgeReminder: (id: string, guard?: ReminderMutationGuard): void => {
     const now = new Date().toISOString();
     try {
       db.transactionSync((tx) => {
+        guard?.(tx);
         tx.executeSync(
           `UPDATE reminders SET status = 'acknowledged', updated_at = ? WHERE id = ?`,
           [now, id],

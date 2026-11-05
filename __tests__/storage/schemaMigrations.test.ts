@@ -124,14 +124,36 @@ describe('schema migrations', () => {
     expect(readUserVersion(first)).toBe(CURRENT_SCHEMA_VERSION);
     first.close();
 
-    // Schema 18 only adds: every schema-17 column of every row is unchanged.
+    // Schemas 18-19 only add: every schema-17 column of every row is unchanged.
     const afterUpgrade = inspect(path, snapshotAllRows);
     const projected = inspect(path, c => snapshotSchema17Columns(c, schema17Columns));
     for (const [table, rows] of Object.entries(before)) {
       expect(projected[table]).toEqual(rows);
     }
     const added = Object.keys(afterUpgrade).filter(t => !(t in before));
-    expect(added).toEqual(['chat_legacy_quarantine']);
+    expect(added).toEqual([
+      'chat_legacy_quarantine',
+      'reminder_delivery_events',
+      'reminder_delivery_jobs',
+    ]);
+    // Schema 19 backfills one delivery job per reminder, owned by its owner,
+    // with no events and nothing added to the outbox.
+    expect(
+      inspect(
+        path,
+        c =>
+          c.executeSync(
+            'SELECT reminder_id, user_id, generation, state, registration_state FROM reminder_delivery_jobs ORDER BY reminder_id',
+          ).rows,
+      ),
+    ).toEqual([
+      {reminder_id: 'r-a', user_id: FIXTURE_ACCOUNT_A, generation: 1, state: 'armed', registration_state: 'unregistered'},
+      {reminder_id: 'r-a-ack', user_id: FIXTURE_ACCOUNT_A, generation: 1, state: 'retired', registration_state: 'idle'},
+      {reminder_id: 'r-a-deleted', user_id: FIXTURE_ACCOUNT_A, generation: 1, state: 'retired', registration_state: 'idle'},
+      {reminder_id: 'r-b', user_id: FIXTURE_ACCOUNT_B, generation: 1, state: 'armed', registration_state: 'unregistered'},
+    ]);
+    expect(afterUpgrade.reminder_delivery_events).toEqual([]);
+    expect(afterUpgrade.sync_outbox).toEqual(before.sync_outbox);
     const afterColumns = inspect(path, readColumns);
     for (const [table, columns] of Object.entries(schema17Columns)) {
       const extra = afterColumns[table].filter(c => !columns.includes(c));

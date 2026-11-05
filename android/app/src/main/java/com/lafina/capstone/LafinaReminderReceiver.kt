@@ -8,9 +8,7 @@ open class LafinaReminderReceiver : BroadcastReceiver() {
   override fun onReceive(context: Context, intent: Intent) {
     when (intent.action) {
       LafinaReminderModule.ACTION_TRIGGER_REMINDER -> {
-        val reminderId = intent.getStringExtra("reminderId") ?: return
-        val task = intent.getStringExtra("task") ?: ""
-        LafinaReminderModule.handleAlarmTrigger(context, reminderId, task)
+        LafinaReminderModule.handleTriggerIntent(context, intent)
       }
       Intent.ACTION_BOOT_COMPLETED,
       Intent.ACTION_MY_PACKAGE_REPLACED,
