@@ -30,18 +30,26 @@ export interface SendChatMessageOptions {
 }
 
 const HANDBOOK_SETTING_KEY = 'chat.useHandbook';
+const HANDBOOK_SETTING_ALIAS = 'ustp_handbook_enabled';
 const MAX_CHAT_MESSAGES = 10;
 const MAX_CHAT_MESSAGE_LENGTH = 8_000;
 
 export const handbookPreference = {
   read: (userId: string): boolean => {
-    const stored = localSettingsStore.get(userId, HANDBOOK_SETTING_KEY);
+    const stored =
+      localSettingsStore.get(userId, HANDBOOK_SETTING_KEY) ??
+      localSettingsStore.get(userId, HANDBOOK_SETTING_ALIAS);
     return stored === null ? true : stored === 'true';
   },
   write: (userId: string, enabled: boolean): void => {
     localSettingsStore.set(
       userId,
       HANDBOOK_SETTING_KEY,
+      enabled ? 'true' : 'false',
+    );
+    localSettingsStore.set(
+      userId,
+      HANDBOOK_SETTING_ALIAS,
       enabled ? 'true' : 'false',
     );
   },

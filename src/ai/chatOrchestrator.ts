@@ -88,6 +88,13 @@ export function format12HourTime(timeStr?: string | null): string {
 function buildLocalChatFallback(trimmed: string, validated: ValidatedIntent): string {
   const queryLower = (validated.details || trimmed || '').toLowerCase();
   if (
+    /\b(?:ustp|handbook|dean'?s\s+list|grading\s+system|retention\s+policy|tuition|graduation\s+requirements|uniform\s+policy|dress\s+code|drop(?:ping)?\s+subject|prerequisite|academic\s+probation)\b/i.test(
+      queryLower,
+    )
+  ) {
+    return 'Official USTP Student Handbook guidelines require Online Mode. Switch to Online Mode in the chat header to look up verified handbook policies and academic regulations.';
+  }
+  if (
     /\b(?:what|who)\s+(?:are|is)\s+(?:you|lafina)|tell\s+me\s+about\s+yourself|who\s+made\s+you|are\s+you\s+(?:an?\s+)?(?:ai|bot|assistant)|what(?:'s|\s+is)\s+your\s+name|who\s+are\s+u|what\s+are\s+u\b/i.test(
       queryLower,
     ) ||
@@ -377,6 +384,15 @@ export class ChatOrchestrator {
             usedOnline = true;
           } else {
             console.warn('[ChatOrchestrator] Online AI chat failed:', onlineResult.error);
+            if (
+              options.useHandbook &&
+              /\b(?:ustp|handbook|dean'?s\s+list|grading|policy|curriculum|tuition|retention)\b/i.test(
+                trimmed,
+              )
+            ) {
+              finalReply =
+                "I couldn't verify that from the USTP Student Handbook right now. Please check your internet connection or refer directly to the USTP Student Affairs office.";
+            }
           }
         }
 
