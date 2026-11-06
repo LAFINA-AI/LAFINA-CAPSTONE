@@ -1,0 +1,21 @@
+
+> lafina-capstone@1.3.4 preflight
+> npm run typecheck && npm run lint && npm test && npm run check:architecture
+
+
+> lafina-capstone@1.3.4 typecheck
+> tsc --noEmit
+
+
+> lafina-capstone@1.3.4 lint
+> eslint src __tests__ App.tsx index.js --max-warnings 0
+
+
+C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\__tests__\evaluation\offlineBoundary.test.ts
+  8:29  warning  '@typescript-eslint/no-var-requires' rule is disabled but never reported  eslint-comments/no-unused-disable
+
+✖ 1 problem (0 errors, 1 warning)
+  0 errors and 1 warning potentially fixable with the `--fix` option.
+
+ESLint found too many warnings (maximum: 0).
+exit=1
