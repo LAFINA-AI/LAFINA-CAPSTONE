@@ -64,6 +64,7 @@ import { ProductTour } from './src/ui/tour/ProductTour';
 import { buildTourSteps } from './src/ui/tour/tourSteps';
 import { VoiceModal } from './src/ui/components/VoiceModal';
 import { endReviewSession } from './src/ai/nlu/commandReview';
+import { chatDraftStore } from './src/ui/drafts/chatDraftStore';
 
 function AppContent({
   userId,
@@ -149,6 +150,9 @@ function AppContent({
     // Open assistant reviews never outlive the account they were prepared for
     // (AGY-PORT 04): sign-out, sign-in and account switch all end them.
     endReviewSession();
+    // AGY-PORT 05: the previous owner's unsent Chat text and open voice sheet go too.
+    chatDraftStore.retainOnly(userId);
+    setVoiceVisible(false);
     if (callOwnerRef.current && callOwnerRef.current !== userId) {
       callOwnerRef.current = null;
       setCallVisible(false);
@@ -537,6 +541,7 @@ function AppContent({
             setRefreshTrigger((prev) => prev + 1);
           }
         }}
+        onUseInChat={() => setActiveTab('chat')}
       />
 
       {tourOpen && (

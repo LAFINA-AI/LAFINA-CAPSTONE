@@ -5,6 +5,8 @@ import android.media.MediaCodec
 import android.media.MediaExtractor
 import android.media.MediaFormat
 import android.net.Uri
+import android.os.Handler
+import android.os.Looper
 import android.os.StatFs
 import androidx.core.content.ContextCompat
 import com.facebook.react.bridge.Arguments
@@ -32,6 +34,13 @@ class LafinaMeetingRecorderModule(
     companion object {
         private const val WAV_HEADER_BYTES = 44
         private const val WHISPER_IDLE_RELEASE_SEC = 45L
+        private const val LEASE_HANDOFF_TIMEOUT_MS = 15_000L
+    }
+
+    private val mainHandler = Handler(Looper.getMainLooper())
+
+    init {
+        LafinaMicrophoneLease.configure(reactContext)
     }
 
     private val transcribeExecutor = Executors.newSingleThreadScheduledExecutor()
@@ -86,10 +95,6 @@ class LafinaMeetingRecorderModule(
                 promise.reject("ALREADY_RECORDING", "A meeting is already being recorded.")
                 return
             }
-            if (LafinaMicrophoneLease.activeHolder() != null) {
-                promise.reject("MIC_IN_USE", "Microphone is currently in use by voice assistant.")
-                return
-            }
             val stat = StatFs(reactContext.filesDir.absolutePath)
             val freeMb = stat.availableBytes / (1024L * 1024L)
             if (freeMb < 60L) {
@@ -99,15 +104,35 @@ class LafinaMeetingRecorderModule(
                 )
                 return
             }
+        } catch (e: Exception) {
+            promise.reject("MEETING_START_ERROR", e.message, e)
+            return
+        }
 
+        // AGY-PORT 05: acquire before starting the service, so a busy microphone (voice
+        // capture, or Whisper still finishing) is a rejected start that JS can show, not
+        // a service that silently stops. The ticket is handed to the service.
+        val ticket = LafinaMicrophoneLease.tryAcquire(MicrophoneLeaseRegistry.Holder.MEETING_RECORDER)
+        if (ticket == null) {
+            promise.reject(LafinaMicrophoneLease.BUSY_CODE, LafinaMicrophoneLease.busyMessage())
+            return
+        }
+        try {
+            LafinaMeetingService.leaseHandoff.offer(meetingId, ticket)
             val intent = Intent(reactContext, LafinaMeetingService::class.java).apply {
                 action = LafinaMeetingService.ACTION_START
                 putExtra(LafinaMeetingService.EXTRA_MEETING_ID, meetingId)
                 putExtra(LafinaMeetingService.EXTRA_MEETING_TITLE, title)
             }
             ContextCompat.startForegroundService(reactContext, intent)
+            // Bounded, one-shot: if the service never claims the ticket, return it.
+            mainHandler.postDelayed(
+                { LafinaMeetingService.leaseHandoff.abandon(ticket) },
+                LEASE_HANDOFF_TIMEOUT_MS
+            )
             promise.resolve(meetingId)
         } catch (e: Exception) {
+            LafinaMeetingService.leaseHandoff.abandon(ticket)
             promise.reject("MEETING_START_ERROR", e.message, e)
         }
     }

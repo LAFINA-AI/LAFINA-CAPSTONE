@@ -1,0 +1,10 @@
+# Donor blobs read for AGY-PORT 05 (git -C LAFINA show 0d4bbe39e106c29fb90792cf5d2f916b5c0d6480:<path>; read-only)
+# donor HEAD check: 0d4bbe39e106c29fb90792cf5d2f916b5c0d6480
+fab9afbb1b1738137306508fe42066708c7399e7  android/app/src/main/java/com/lafina/LafinaMicrophoneLease.kt
+6ebcd538b225a63c0c1b4d0e6960053697ae0a53  android/app/src/androidTest/java/com/lafina/MicrophoneLeaseProbe.kt
+400dc944ff16c29b9dc3f658b1d3bd058e736ad5  src/ui/hooks/useDraftProtection.ts
+e81037259c35ff9cee3079b3b8a1b747dc9b4aff  src/ai/native/speechCapture.ts
+6c7259cf32ee90361ea19c56714340cf02567967  __tests__/ai/speechCaptureWatchdog.test.ts
+be5792fcfad1d7826e6aaf54447cd155d4fccde1  src/ai/native/voicePipeline.ts
+84b6502059dd2a9904e01b83c12133d45045cbdc  src/ui/components/VoiceModal.tsx
+1c7191a2b3cd30f1b0b85d95f22b4f0d3fc34ae5  src/ui/screens/ChatScreen.tsx

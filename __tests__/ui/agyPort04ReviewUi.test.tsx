@@ -157,6 +157,9 @@ describe('AGY-PORT 04 review UI', () => {
     // No auto-close while a review waits.
     expect(onClose).not.toHaveBeenCalled();
     fireEvent.press(utils.getByTestId('voice-modal-close'));
+    // AGY-PORT 05 (intentional): an unsent draft/review asks before it is discarded.
+    expect(onClose).not.toHaveBeenCalled();
+    fireEvent.press(utils.getByTestId('voice-draft-dialog-confirm'));
     expect(onClose).toHaveBeenCalled();
     expect(tasksOf(userId)).toHaveLength(0);
   });

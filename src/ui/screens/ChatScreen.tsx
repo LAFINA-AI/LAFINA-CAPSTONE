@@ -10,6 +10,7 @@ import {
   Modal,
   Platform,
   Dimensions,
+  BackHandler,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import NetInfo from '@react-native-community/netinfo';
@@ -47,6 +48,9 @@ import { ChatInput } from '../components/chat/ChatInput';
 import { TypingBubble } from '../components/chat/TypingBubble';
 import { CommandReviewCard } from '../components/chat/CommandReviewCard';
 import { useCommandReview } from '../hooks/useCommandReview';
+import { useDraftProtection } from '../hooks/useDraftProtection';
+import { DraftDecisionDialog } from '../components/DraftDecisionDialog';
+import { chatDraftStore } from '../drafts/chatDraftStore';
 import {
   removeAttachmentFiles,
   shareAttachment,
@@ -79,7 +83,22 @@ export const ChatScreen: React.FC<ChatScreenProps> = ({
   const activeUserRef = useRef(userId);
   activeUserRef.current = userId;
   const suppressAutoScrollRef = useRef(false);
-  const [inputText, setInputText] = useState('');
+  // AGY-PORT 05: the composer draft lives in an owner-bound memory store, so tab
+  // switches, tool sheets and the Voice handoff never lose it.
+  const [inputText, setInputTextState] = useState(() =>
+    chatDraftStore.get(userId),
+  );
+  const setInputText = useCallback(
+    (text: string) => {
+      chatDraftStore.set(userId, text);
+      setInputTextState(text);
+    },
+    [userId],
+  );
+  // The text a waiting review came from; Cancel puts it back in an empty composer.
+  const reviewSourceRef = useRef<{ operationId: string; text: string } | null>(
+    null,
+  );
   const [isSending, setIsSending] = useState(false);
   const [isOnlineMode, setIsOnlineMode] = useState(() => {
     const saved = localSettingsStore.get(userId, 'chat.onlineMode', null);
@@ -109,6 +128,41 @@ export const ChatScreen: React.FC<ChatScreenProps> = ({
   const themed = useThemedStyles(getThemedStyles);
   // AGY-PORT 04: planner changes wait on this card until Confirm.
   const review = useCommandReview(userId, 'chat');
+
+  // AGY-PORT 05: Android back with unsent text asks first (default keeps it).
+  const draft = useDraftProtection(
+    userId,
+    inputText,
+    false,
+    () => setInputText(''),
+    (next) => setInputText(next),
+  );
+  const { requestLeave, hasDraft } = draft;
+
+  useEffect(() => {
+    setInputTextState(chatDraftStore.get(userId));
+    reviewSourceRef.current = null;
+    return chatDraftStore.subscribe((owner, text) => {
+      if (owner === userId) setInputTextState(text);
+    });
+  }, [userId]);
+
+  useEffect(() => {
+    const subscription = BackHandler.addEventListener(
+      'hardwareBackPress',
+      () => {
+        if (!hasDraft()) return false;
+        requestLeave(() => BackHandler.exitApp(), {
+          title: 'Leave with an unsent draft?',
+          message:
+            'Your unsent Chat text will be discarded. Saved items and any change waiting for Confirm are kept.',
+          confirmLabel: 'Discard and leave',
+        });
+        return true;
+      },
+    );
+    return () => subscription.remove();
+  }, [hasDraft, requestLeave]);
 
   // Floating bottom CustomTabBar clearance when keyboard is closed
   const tabBarBottomOffset = Math.max(insets.bottom, 12) + 14;
@@ -360,11 +414,24 @@ export const ChatScreen: React.FC<ChatScreenProps> = ({
           [result.assistantMessage.id]: result.handbookNote as string,
         }));
       }
+      if (result.review?.status === 'proposal') {
+        reviewSourceRef.current = {
+          operationId: result.review.proposal.operationId,
+          text: query,
+        };
+      }
       review.present(result.review);
       loadMessages();
       onRefresh?.();
     } catch (err) {
       console.error('[ChatScreen] Error processing chat message:', err);
+      // Nothing was answered: give the text back unless the student typed more.
+      if (
+        activeUserRef.current === requestUser &&
+        !chatDraftStore.get(requestUser).trim()
+      ) {
+        chatDraftStore.set(requestUser, query);
+      }
     } finally {
       setIsSending(false);
     }
@@ -383,13 +450,25 @@ export const ChatScreen: React.FC<ChatScreenProps> = ({
   };
 
   const handleCancelReview = () => {
-    if (review.cancel()) loadMessages();
+    const cancelled = review.proposal;
+    if (!review.cancel()) return;
+    // AGY-PORT 05: cancelling keeps the text editable; nothing was saved.
+    const source = reviewSourceRef.current;
+    if (
+      cancelled &&
+      source?.operationId === cancelled.operationId &&
+      !inputText.trim()
+    ) {
+      setInputText(source.text);
+    }
+    reviewSourceRef.current = null;
+    loadMessages();
   };
 
   const handleClearHistory = () => {
     Alert.alert(
       'Clear Conversation',
-      'Are you sure you want to clear your conversation history? This cannot be undone.',
+      'Clear your conversation history? This cannot be undone. Saved schedule items, notes and your unsent draft are kept.',
       [
         { text: 'Cancel', style: 'cancel' },
         {
@@ -770,6 +849,8 @@ export const ChatScreen: React.FC<ChatScreenProps> = ({
           );
         })}
       </ToolSheet>
+
+      <DraftDecisionDialog request={draft.dialog} testIDPrefix="chat-draft" />
 
       {/* Lecture & Meeting Recorder Modal */}
       <Modal
