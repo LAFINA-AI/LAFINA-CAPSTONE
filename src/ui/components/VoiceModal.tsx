@@ -11,15 +11,24 @@ import {
   Easing,
   Keyboard,
   DeviceEventEmitter,
+  AppState,
 } from 'react-native';
 import { Fonts, Shadows } from '../theme';
-import { X, Check, ArrowRight, Mic, CircleAlert } from 'lucide-react-native';
+import {
+  X,
+  Check,
+  ArrowRight,
+  Mic,
+  CircleAlert,
+  MessageSquareText,
+} from 'lucide-react-native';
 import { useTheme } from '../contexts/ThemeContext';
 import { useThemedStyles } from '../theme/createThemedStyles';
 import { NLU_PARSER_DELAY_MS, VOICE_SUCCESS_DELAY_MS } from '../../constants';
 import type { ThemeColors } from '../contexts/ThemeContext';
 import {
   cancelOfflineSpeechCapture,
+  isMicrophoneBusyError,
   startOfflineSpeechCapture,
   stopOfflineSpeechCapture,
 } from '../../ai/native/speechCapture';
@@ -30,6 +39,10 @@ import { ttsService } from '../../ai/tts/ttsService';
 import type { PrepareResult } from '../../ai/nlu/commandReview';
 import { useCommandReview } from '../hooks/useCommandReview';
 import { CommandReviewCard } from './chat/CommandReviewCard';
+import { DraftDecisionDialog } from './DraftDecisionDialog';
+import type { DraftDialogRequest } from './DraftDecisionDialog';
+import { useDraftProtection } from '../hooks/useDraftProtection';
+import { chatDraftStore } from '../drafts/chatDraftStore';
 
 export interface VoiceModalProps {
   visible: boolean;
@@ -37,6 +50,11 @@ export interface VoiceModalProps {
   onClose: (didUpdate?: boolean) => void;
   onTranscript?: (transcript: string) => void;
   onCommand?: (command: string, userId: string) => string | Promise<string>;
+  /**
+   * Opens Chat after the draft was placed in the Chat composer (AGY-PORT 05).
+   * Nothing is sent: the student still presses Send there.
+   */
+  onUseInChat?: () => void;
 }
 
 export type VoiceState =
@@ -60,6 +78,16 @@ const STATUS_TEXT: Record<VoiceState, string> = {
   success: 'Done',
   error: 'That didn’t work',
 };
+
+/** Status while an editable draft waits for Prepare (AGY-PORT 05). */
+const DRAFT_STATUS_TEXT = 'Edit if needed, then tap Prepare';
+
+/** Recoverable: typing still works and an active recording is never stopped. */
+export const MIC_BUSY_NOTICE =
+  'The microphone is busy (a recording, or the last capture is still finishing). You can type instead, or try again in a moment.';
+
+export const DRAFT_READY_NOTICE =
+  'Check the text, then tap Prepare. Nothing has been sent or saved.';
 
 interface CommandOutcome {
   reply: string;
@@ -89,12 +117,16 @@ export const VoiceModal: React.FC<VoiceModalProps> = ({
   onClose,
   onTranscript,
   onCommand,
+  onUseInChat,
 }) => {
   const [voiceState, setVoiceState] = useState<VoiceState>('idle');
   const [transcript, setTranscript] = useState('');
   const [notice, setNotice] = useState('');
   const [aiReply, setAiReply] = useState('');
   const [inputText, setInputText] = useState('');
+  const [handoffDialog, setHandoffDialog] = useState<DraftDialogRequest | null>(
+    null,
+  );
 
   // Animated values
   const pulseAnim = useRef(new Animated.Value(0)).current;
@@ -134,12 +166,40 @@ export const VoiceModal: React.FC<VoiceModalProps> = ({
   const reviewRef = useRef(review);
   reviewRef.current = review;
 
+  /** Stops any capture this sheet started; its late result is ignored. */
+  const retireCapture = useCallback(() => {
+    pressActiveRef.current = false;
+    activeCaptureRef.current += 1;
+    const capture = speechCaptureRef.current;
+    speechCaptureRef.current = null;
+    if (capture) void cancelOfflineSpeechCapture(capture.captureId);
+  }, []);
+
+  // AGY-PORT 05: an unsent draft or a waiting review is never lost silently.
+  const draft = useDraftProtection(
+    userId,
+    inputText,
+    review.proposal !== null,
+    () => {
+      reviewRef.current.cancel({ silent: true });
+      setInputText('');
+      setTranscript('');
+    },
+    (next) => setInputText(next),
+  );
+  const draftRef = useRef(draft);
+  draftRef.current = draft;
+
   const handleDismiss = useCallback(() => {
-    void ttsService.stop();
-    // Closing the sheet never confirms; it discards the open proposal.
-    reviewRef.current.cancel();
-    onClose(false);
-  }, [onClose]);
+    draftRef.current.requestLeave(() => {
+      void ttsService.stop();
+      retireCapture();
+      // Closing the sheet never confirms; it discards the open proposal.
+      reviewRef.current.cancel({ silent: true });
+      setHandoffDialog(null);
+      onClose(false);
+    });
+  }, [onClose, retireCapture]);
 
   const { colors } = useTheme();
   const themed = useThemedStyles(getVoiceThemedStyles);
@@ -194,11 +254,8 @@ export const VoiceModal: React.FC<VoiceModalProps> = ({
   useEffect(() => {
     if (!visible) {
       reviewRef.current.cancel({ silent: true });
-      pressActiveRef.current = false;
-      activeCaptureRef.current += 1;
-      const capture = speechCaptureRef.current;
-      speechCaptureRef.current = null;
-      if (capture) void cancelOfflineSpeechCapture(capture.captureId);
+      retireCapture();
+      setHandoffDialog(null);
       setVoiceState('idle');
       setTranscript('');
       setNotice('');
@@ -211,7 +268,35 @@ export const VoiceModal: React.FC<VoiceModalProps> = ({
     setAiReply('');
     setInputText('');
     setVoiceState('idle');
-  }, [visible, stopWaveform]);
+  }, [visible, stopWaveform, retireCapture]);
+
+  // Going to the background ends a live capture (its late result is ignored);
+  // the typed or dictated draft stays.
+  useEffect(() => {
+    const subscription = AppState.addEventListener('change', (next) => {
+      if (next === 'active' || !speechCaptureRef.current) return;
+      retireCapture();
+      setVoiceState('idle');
+      setNotice('Listening stopped when LAFINA left the screen. Your draft is still here.');
+    });
+    return () => subscription.remove();
+  }, [retireCapture]);
+
+  // Account switch or sign-out: the previous owner's draft, review and any late
+  // speech result are dropped; nothing carries over to the next account.
+  const ownerRef = useRef(userId);
+  useEffect(() => {
+    if (ownerRef.current === userId) return;
+    ownerRef.current = userId;
+    retireCapture();
+    void ttsService.stop();
+    setHandoffDialog(null);
+    setInputText('');
+    setTranscript('');
+    setNotice('');
+    setAiReply('');
+    setVoiceState('idle');
+  }, [userId, retireCapture]);
 
   useEffect(() => {
     let animation: Animated.CompositeAnimation | null = null;
@@ -305,6 +390,12 @@ export const VoiceModal: React.FC<VoiceModalProps> = ({
         if (activeCaptureRef.current === uiCaptureId) setVoiceState('review');
         return true;
       }
+      if (outcome.review) {
+        // A question back (missing time, unclear item): keep the sheet and the
+        // draft so the student can edit it and prepare again.
+        if (activeCaptureRef.current === uiCaptureId) setVoiceState('idle');
+        return true;
+      }
       return false;
     },
     [],
@@ -367,12 +458,31 @@ export const VoiceModal: React.FC<VoiceModalProps> = ({
     setAiReply('');
 
     try {
-      speechCaptureRef.current = startOfflineSpeechCapture({
+      const capture = startOfflineSpeechCapture({
         mode: 'manual',
         bargeIn: false,
         context: 'main_mic',
       });
+      speechCaptureRef.current = capture;
+      // AGY-PORT 05: "microphone busy" can arrive while the button is still held.
+      capture.result.catch((error: unknown) => {
+        if (
+          !isMicrophoneBusyError(error) ||
+          activeCaptureRef.current !== captureId ||
+          speechCaptureRef.current?.captureId !== capture.captureId
+        ) {
+          return;
+        }
+        speechCaptureRef.current = null;
+        setNotice(MIC_BUSY_NOTICE);
+        setVoiceState('idle');
+      });
     } catch (error) {
+      if (isMicrophoneBusyError(error)) {
+        setNotice(MIC_BUSY_NOTICE);
+        setVoiceState('idle');
+        return;
+      }
       console.error('Failed to start offline Whisper capture:', error);
       setNotice('Speech recognition could not start. Please try again.');
       triggerErrorShake('idle');
@@ -407,32 +517,62 @@ export const VoiceModal: React.FC<VoiceModalProps> = ({
         return;
       }
 
-      if (onTranscript) {
-        onTranscript(finalTranscript);
-      }
-
-      const outcome = await runCommand(finalTranscript);
-      if (await presentOutcome(outcome, uiCaptureId)) return;
-
-      if (activeCaptureRef.current === uiCaptureId) {
-        setVoiceState('success');
-        safeSetTimeout(() => {
-          if (activeCaptureRef.current === uiCaptureId) {
-            onClose(true);
-            setVoiceState('idle');
-            setInputText('');
-          }
-        }, VOICE_SUCCESS_DELAY_MS);
-      }
+      // AGY-PORT 05: recognition ends in an editable draft. Nothing is prepared,
+      // sent or saved until the student taps Prepare (and then Confirm).
+      setVoiceState('idle');
+      setNotice('');
+      draftRef.current.offerText(finalTranscript);
     } catch (error) {
-      console.error('Failed to process offline Whisper capture:', error);
       if (speechCaptureRef.current?.captureId === capture.captureId) {
         speechCaptureRef.current = null;
       }
+      if (activeCaptureRef.current !== uiCaptureId) return;
+      if (isMicrophoneBusyError(error)) {
+        setNotice(MIC_BUSY_NOTICE);
+        setVoiceState('idle');
+        return;
+      }
+      console.error('Failed to process offline Whisper capture:', error);
       setNotice('Speech recognition could not finish. Please try again.');
       triggerErrorShake('idle');
     }
-  }, [onClose, onTranscript, presentOutcome, runCommand, safeSetTimeout, triggerErrorShake]);
+  }, [triggerErrorShake]);
+
+  /** Moves the draft into the Chat composer without sending it (Keep/Replace first). */
+  const handleUseInChat = useCallback(() => {
+    const text = inputText.trim();
+    if (!text || !onUseInChat) return;
+    const owner = userId;
+    const handOff = () => {
+      if (ownerRef.current !== owner) return;
+      retireCapture();
+      reviewRef.current.cancel({ silent: true });
+      chatDraftStore.set(owner, text);
+      setInputText('');
+      setTranscript('');
+      setHandoffDialog(null);
+      onClose(false);
+      onUseInChat();
+    };
+    const existing = chatDraftStore.get(owner);
+    if (!existing.trim() || existing.trim() === text) {
+      handOff();
+      return;
+    }
+    setHandoffDialog({
+      title: 'Replace your Chat draft?',
+      message:
+        'Chat already has unsent text. Keep it, or replace it with this draft. Nothing will be sent.',
+      keepLabel: 'Keep Chat text',
+      confirmLabel: 'Replace',
+      onKeep: () => {
+        setHandoffDialog(null);
+        setNotice('');
+        setAiReply('Your Chat draft was kept. This text is still here.');
+      },
+      onConfirm: handOff,
+    });
+  }, [inputText, onClose, onUseInChat, retireCapture, userId]);
 
   const handleCommandProcess = async (command: string) => {
     if (!command.trim()) return;
@@ -471,6 +611,11 @@ export const VoiceModal: React.FC<VoiceModalProps> = ({
 
   const showFallbackControls = voiceState === 'idle' || voiceState === 'listening';
   const listening = voiceState === 'listening';
+  const hasDraftText = inputText.trim().length > 0;
+  const statusLine =
+    voiceState === 'idle' && hasDraftText
+      ? DRAFT_STATUS_TEXT
+      : STATUS_TEXT[voiceState];
 
   const micColor =
     voiceState === 'success' || voiceState === 'speaking'
@@ -531,7 +676,7 @@ export const VoiceModal: React.FC<VoiceModalProps> = ({
             accessibilityLiveRegion="polite"
             testID="voice-status-text"
           >
-            {STATUS_TEXT[voiceState]}
+            {statusLine}
           </Text>
 
           {/* Central Push-To-Talk Hold Button */}
@@ -676,19 +821,49 @@ export const VoiceModal: React.FC<VoiceModalProps> = ({
                 value={inputText}
                 onChangeText={setInputText}
                 onSubmitEditing={() => handleCommandProcess(inputText)}
+                accessibilityLabel="Command draft"
                 testID="voice-text-input"
               />
               <TouchableOpacity
                 style={[styles.sendButton, { backgroundColor: colors.primary }]}
                 onPress={() => handleCommandProcess(inputText)}
                 accessibilityRole="button"
-                accessibilityLabel="Send command"
+                accessibilityLabel="Prepare command for review"
                 testID="voice-send-button"
               >
                 <ArrowRight size={18} color={colors.textOnPrimary} />
               </TouchableOpacity>
             </View>
           )}
+
+          {voiceState === 'idle' && hasDraftText ? (
+            <Text
+              style={[styles.draftHint, themed.placeholderText]}
+              testID="voice-draft-hint"
+            >
+              {DRAFT_READY_NOTICE}
+            </Text>
+          ) : null}
+
+          {voiceState === 'idle' && hasDraftText && onUseInChat ? (
+            <TouchableOpacity
+              style={styles.useInChatButton}
+              onPress={handleUseInChat}
+              accessibilityRole="button"
+              accessibilityLabel="Use draft in Chat without sending"
+              testID="voice-use-in-chat"
+            >
+              <MessageSquareText size={16} color={colors.primary} />
+              <Text style={[styles.useInChatText, { color: colors.primary }]}>
+                Use draft in Chat
+              </Text>
+            </TouchableOpacity>
+          ) : null}
+
+          <DraftDecisionDialog
+            request={draft.dialog ?? handoffDialog}
+            testIDPrefix="voice-draft"
+          />
         </TouchableOpacity>
       </TouchableOpacity>
     </Modal>
@@ -895,6 +1070,26 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontFamily: Fonts.body,
     paddingVertical: 0,
+  },
+  draftHint: {
+    fontFamily: Fonts.body,
+    fontSize: 12,
+    lineHeight: 17,
+    marginTop: 8,
+    textAlign: 'center',
+  },
+  useInChatButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginTop: 12,
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+  },
+  useInChatText: {
+    fontFamily: Fonts.body,
+    fontSize: 14,
+    fontWeight: '600',
   },
   sendButton: {
     width: 36,

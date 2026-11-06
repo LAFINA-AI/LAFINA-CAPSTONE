@@ -71,6 +71,9 @@ class LafinaMeetingService : Service() {
         var activeMeetingId: String? = null
             private set
 
+        /** Microphone ticket acquired by the bridge, waiting for this service to claim it. */
+        val leaseHandoff = PendingLeaseHandoff { LafinaMicrophoneLease.release(it) }
+
         private val completedChunks = mutableListOf<String>()
         private val completedChunkDurationsMs = mutableListOf<Long>()
 
@@ -147,6 +150,8 @@ class LafinaMeetingService : Service() {
     private val recording = AtomicBoolean(false)
     private val paused = AtomicBoolean(false)
     private var workerThread: Thread? = null
+    /** This recording's own microphone ticket; released only when the worker returns. */
+    @Volatile private var ownedTicket: MicrophoneLeaseRegistry.Ticket? = null
     private var wakeLock: PowerManager.WakeLock? = null
     private var currentTitle: String = "Meeting"
 
@@ -154,6 +159,7 @@ class LafinaMeetingService : Service() {
 
     override fun onCreate() {
         super.onCreate()
+        LafinaMicrophoneLease.configure(this)
         ensureChannel()
     }
 
@@ -195,22 +201,31 @@ class LafinaMeetingService : Service() {
     }
 
     private fun startRecordingInternal(meetingId: String, title: String) {
-        if (recording.get()) return
+        // The bridge parked a ticket for this meeting; claim it so the abandon timer
+        // cannot release it. A start without a parked ticket acquires its own.
+        val handedOff = leaseHandoff.claim(meetingId)
+        if (recording.get()) {
+            LafinaMicrophoneLease.release(handedOff)
+            return
+        }
         val hasPerm = ContextCompat.checkSelfPermission(
             this,
             Manifest.permission.RECORD_AUDIO
         ) == PackageManager.PERMISSION_GRANTED
         if (!hasPerm) {
             Log.w(TAG, "RECORD_AUDIO permission not granted; aborting meeting service")
-            LafinaMicrophoneLease.release(LafinaMicrophoneLease.Holder.MEETING_RECORDER)
+            LafinaMicrophoneLease.release(handedOff)
             stopSelf()
             return
         }
-        if (!LafinaMicrophoneLease.tryAcquire(LafinaMicrophoneLease.Holder.MEETING_RECORDER)) {
+        val ticket = handedOff
+            ?: LafinaMicrophoneLease.tryAcquire(MicrophoneLeaseRegistry.Holder.MEETING_RECORDER)
+        if (ticket == null) {
             Log.w(TAG, "Microphone lease held by another module; aborting meeting service")
             stopSelf()
             return
         }
+        ownedTicket = ticket
 
         currentTitle = title
         val notification = buildNotification("Recording: $title")
@@ -236,9 +251,29 @@ class LafinaMeetingService : Service() {
         val outDir = File(meetingsRootDir(this), meetingId)
         if (!outDir.exists()) outDir.mkdirs()
 
-        workerThread = Thread({
-            runCaptureLoop(outDir)
-        }, "LafinaMeetingRecorder").also { it.start() }
+        try {
+            workerThread = Thread({
+                try {
+                    runCaptureLoop(outDir)
+                } finally {
+                    // Every exit path, including AudioRecord init failures, returns the
+                    // microphone, and only this recording's own ticket.
+                    releaseOwnedTicket(ticket)
+                }
+            }, "LafinaMeetingRecorder").also { it.start() }
+        } catch (e: Exception) {
+            Log.e(TAG, "Could not start the meeting capture thread: ${e.message}", e)
+            workerThread = null
+            recording.set(false)
+            isRunning = false
+            releaseWakeLock()
+            releaseOwnedTicket(ticket)
+        }
+    }
+
+    private fun releaseOwnedTicket(ticket: MicrophoneLeaseRegistry.Ticket) {
+        LafinaMicrophoneLease.release(ticket)
+        if (ownedTicket === ticket) ownedTicket = null
     }
 
     private fun updateForegroundNotification(text: String) {
@@ -252,21 +287,30 @@ class LafinaMeetingService : Service() {
 
     private fun stopRecordingInternal() {
         if (!recording.getAndSet(false)) {
-            LafinaMicrophoneLease.release(LafinaMicrophoneLease.Holder.MEETING_RECORDER)
+            // Nothing is recording. A ticket without a live worker (never started) is ours
+            // to return; a worker that is still unwinding releases its own when it returns.
+            val ticket = ownedTicket
+            if (ticket != null && workerThread?.isAlive != true) releaseOwnedTicket(ticket)
             return
         }
         paused.set(false)
         isPausedState = false
+        val worker = workerThread
         try {
-            workerThread?.join(3000)
+            worker?.join(3000)
         } catch (_: InterruptedException) {
             Thread.currentThread().interrupt()
         }
-        workerThread = null
+        if (worker?.isAlive == true) {
+            // Still flushing its last chunk: it keeps the microphone until it returns.
+            Log.w(TAG, "Meeting capture worker still finishing; it releases the microphone itself")
+        } else {
+            workerThread = null
+            ownedTicket?.let { releaseOwnedTicket(it) }
+        }
         isRunning = false
         activeMeetingId?.let { writeRecoveryState(this, it, currentTitle, "stopped") }
         releaseWakeLock()
-        LafinaMicrophoneLease.release(LafinaMicrophoneLease.Holder.MEETING_RECORDER)
     }
 
     private fun hasEnoughStorage(dir: File): Boolean {
@@ -377,7 +421,6 @@ class LafinaMeetingService : Service() {
             }
             recorder.release()
             isRunning = false
-            LafinaMicrophoneLease.release(LafinaMicrophoneLease.Holder.MEETING_RECORDER)
         }
     }
 

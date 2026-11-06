@@ -6,6 +6,7 @@ import { initTts, stopSpeechPlayback } from '../ai/tts/ttsService';
 import {
   cancelOfflineSpeechCapture,
   hasOfflineSpeechCapture,
+  isMicrophoneBusyError,
   startOfflineSpeechCapture,
 } from '../ai/native/speechCapture';
 import type {
@@ -465,6 +466,21 @@ async function startAutomaticAttempt(
   } catch (error) {
     removeActiveCapture(capture);
     if (!isCurrentSession(session)) return;
+    if (isMicrophoneBusyError(error)) {
+      // AGY-PORT 05: another recorder owns the microphone. That is not a failed
+      // answer, so it must not count toward auto-snooze, and the recording is left
+      // alone. MIC_IN_USE names the other recorder; CAPTURE_BUSY is another voice
+      // capture still finishing, which must not be described as a recording.
+      session.voiceEnabled = false;
+      const code = (error as { code?: unknown } | null)?.code;
+      publishCallState(
+        'connected',
+        code === 'MIC_IN_USE'
+          ? 'The microphone is being used by a recording. Use the buttons below.'
+          : 'The microphone is still busy with another voice capture. Use the buttons below.',
+      );
+      return;
+    }
     console.error('[CallDispatcher] Capture result error:', error);
     await handleFailedAttempt(session);
   }

@@ -12,9 +12,9 @@
   "work_branch": "codex/agy-preservation-improvements",
   "worktree": "C:/L3mxr/Github Repositories/LAFINA-CAPSTONE-agy-development-cont",
   "donor_head": "0d4bbe39e106c29fb90792cf5d2f916b5c0d6480",
-  "last_tested_head": "5f0ac39+worktree",
-  "last_committed_head": "f5ae9aaae9e5f4bda8fdb5edeb6b8bbc12376035",
-  "current_phase": "AGY-PORT-03",
+  "last_tested_head": "c36eec9+worktree",
+  "last_committed_head": "c36eec984a91457a8cfd75c0296a756b913508e8",
+  "current_phase": "AGY-PORT-05",
   "phases": [
     {
       "id": "AGY-PORT-00",
@@ -160,18 +160,22 @@
         4,
         5
       ],
-      "implementation": "NOT_STARTED",
-      "automated": "NOT_RUN",
+      "implementation": "CODE_COMPLETE",
+      "automated": "PASS",
       "build": "NOT_RUN",
       "device": "NOT_RUN",
       "live_service": "NOT_RUN",
-      "base_head": null,
-      "tested_head": null,
-      "result_commit": null,
-      "report": null,
-      "evidence": [],
-      "continuation": null,
-      "notes": []
+      "base_head": "f5ae9aaae9e5f4bda8fdb5edeb6b8bbc12376035",
+      "tested_head": "f5ae9aa+worktree",
+      "result_commit": "c36eec984a91457a8cfd75c0296a756b913508e8",
+      "report": "phase-04-reviews.md",
+      "evidence": [
+        "evidence/agy-port-20261106/phase-04/"
+      ],
+      "continuation": "NEXT_PHASE",
+      "notes": [
+        "JS only; reviewer 1 medium + 5 low fixed; preflight 376"
+      ]
     },
     {
       "id": "AGY-PORT-05",
@@ -183,18 +187,25 @@
         6,
         7
       ],
-      "implementation": "NOT_STARTED",
-      "automated": "NOT_RUN",
-      "build": "NOT_RUN",
+      "implementation": "CODE_COMPLETE",
+      "automated": "PASS",
+      "build": "PASS",
       "device": "NOT_RUN",
       "live_service": "NOT_RUN",
-      "base_head": null,
-      "tested_head": null,
+      "base_head": "c36eec984a91457a8cfd75c0296a756b913508e8",
+      "tested_head": "c36eec9+worktree",
       "result_commit": null,
-      "report": null,
-      "evidence": [],
-      "continuation": null,
-      "notes": []
+      "report": "phase-05-drafts-microphone.md",
+      "evidence": [
+        "evidence/agy-port-20261106/phase-05/",
+        "evidence/agy-port-20261106/pre-advance-remediation/"
+      ],
+      "continuation": "NEXT_PHASE",
+      "notes": [
+        "Both reviewer agents failed (role confusion; usage limit); parent second pass on resume: R1 Whisper settles after lease release, R2 call busy message by code",
+        "Worker deleted preflight-1/-2 logs (rm -f); unrecoverable; transcript excerpts in phase-05/deleted-intermediate-preflight-RECOVERED-EXCERPTS.md",
+        "Gated together with the pre-advance remediation: preflight 418, Kotlin 43, assembleDebug PASS; the Phase-05-only commit tree was not gated separately (no stash/worktree)"
+      ]
     },
     {
       "id": "AGY-PORT-06",
