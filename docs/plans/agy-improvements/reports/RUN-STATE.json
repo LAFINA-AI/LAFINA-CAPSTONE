@@ -13,7 +13,7 @@
   "worktree": "C:/L3mxr/Github Repositories/LAFINA-CAPSTONE-agy-development-cont",
   "donor_head": "0d4bbe39e106c29fb90792cf5d2f916b5c0d6480",
   "last_tested_head": "f61d1eb (final-audit remediation gates; preflight on the identical working tree)",
-  "last_committed_head": "0c1b99ace16798c7059a19a11d5a7565e80a8c9d (before the final-audit report/tracking commit)",
+  "last_committed_head": "64c7d873bf5155e76ce0b257c6d0825451f4be23",
   "current_phase": "NONE (run finished; final-audit F1-F4 follow-up done on host; owner device/live checks pending)",
   "phases": [
     {
@@ -604,7 +604,7 @@
       "live_service": "NOT_RUN",
       "code_commit": "f61d1eb69183ac572b20527b5f7016e2b8d471f9",
       "docs_commit": "0c1b99ace16798c7059a19a11d5a7565e80a8c9d",
-      "result_commit": "recorded in the next log event (no self-referential SHA)",
+      "result_commit": "64c7d873bf5155e76ce0b257c6d0825451f4be23",
       "report": "final-audit-remediation.md",
       "evidence": [
         "evidence/agy-port-20261106/final-audit-remediation/"
