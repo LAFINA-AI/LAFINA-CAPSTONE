@@ -12,9 +12,9 @@
   "work_branch": "codex/agy-preservation-improvements",
   "worktree": "C:/L3mxr/Github Repositories/LAFINA-CAPSTONE-agy-development-cont",
   "donor_head": "0d4bbe39e106c29fb90792cf5d2f916b5c0d6480",
-  "last_tested_head": "541dbfb (sources identical to the gated c36eec9+worktree run)",
+  "last_tested_head": "28a9867+worktree (Phase 06)",
   "last_committed_head": "541dbfbafdf1c1ba6c8a64139ea810b604abdcf4",
-  "current_phase": "AGY-PORT-05",
+  "current_phase": "AGY-PORT-06",
   "phases": [
     {
       "id": "AGY-PORT-00",
@@ -219,18 +219,26 @@
         10,
         11
       ],
-      "implementation": "NOT_STARTED",
-      "automated": "NOT_RUN",
-      "build": "NOT_RUN",
+      "implementation": "CODE_COMPLETE",
+      "automated": "PASS",
+      "build": "PASS",
       "device": "NOT_RUN",
       "live_service": "NOT_RUN",
-      "base_head": null,
-      "tested_head": null,
+      "base_head": "28a9867dbdc4220952dca0361d2b42f99af46d83",
+      "tested_head": "28a9867+worktree",
       "result_commit": null,
-      "report": null,
-      "evidence": [],
-      "continuation": null,
-      "notes": []
+      "report": "phase-06-planner.md",
+      "evidence": [
+        "evidence/agy-port-20261106/phase-06/"
+      ],
+      "continuation": "NEXT_PHASE",
+      "notes": [
+        "preflight-1 exit 1 (lint unused var in new test) kept; preflight-2 445+1 skipped; preflight-3 446+1 skipped after conflict-check change",
+        "Native unchanged: Gradle testDebugUnitTest UP-TO-DATE (43/43 from remediation run), assembleDebug PASS; debug APK hashes identical (JS served by Metro)",
+        "Mutations M1-M4 each fail new tests; restored byte-identical",
+        "Host fixture timing only (node:sqlite, 2x10k rows/type): week 12.2 ms vs legacy 181.9 ms; not phone performance",
+        "Deferred: change-target matching/Profile/Notes full reads; recurrence_rule index (needs migration, AGY-PORT 08); Calendar on-screen read-failure state"
+      ]
     },
     {
       "id": "AGY-PORT-07",

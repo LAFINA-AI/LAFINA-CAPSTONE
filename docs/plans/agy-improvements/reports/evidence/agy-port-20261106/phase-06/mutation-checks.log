@@ -1,0 +1,12 @@
+=== M1 form: own-date and past-call guards removed (2026-11-06T03:30:44Z)
+Tests:       1 failed, 1 skipped, 26 passed, 28 total
+M1 restored (cmp identical)
+=== M2 query_schedule: storage failure reported as an empty day (2026-11-06T03:31:02Z)
+Tests:       1 failed, 1 skipped, 26 passed, 28 total
+M2 restored (cmp identical)
+=== M3 guide: choosing an example sends it (2026-11-06T03:31:22Z)
+Tests:       2 failed, 1 skipped, 25 passed, 28 total
+M3 restored (cmp identical)
+=== M4 window: fixed tasks not bounded by the window dates (2026-11-06T03:31:46Z)
+Tests:       3 failed, 1 skipped, 24 passed, 28 total
+M4 restored (cmp identical)

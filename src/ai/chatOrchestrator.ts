@@ -1,6 +1,6 @@
 import { chatStore, type ChatAttachment, type ChatMessage } from '../storage/chatStore';
-import { timeBlocksStore } from '../storage/timeBlocksStore';
-import { tasksStore } from '../storage/tasksStore';
+import { plannerQueries } from '../storage/plannerQueries';
+import type { PlannerWindow } from '../storage/plannerQueries';
 import {
   DOCUMENT_FORMATS,
   describeDocumentFailure,
@@ -165,15 +165,32 @@ function buildLocalChatFallback(trimmed: string, validated: ValidatedIntent): st
   return 'I am lafina, your offline academic assistant. I can schedule study blocks, set exact reminder alarms, track assignments, take notes, or review what is on your schedule.';
 }
 
+/**
+ * One bounded read of a day's blocks and events, recurring occurrences
+ * included (AGY-PORT 06). Like the legacy store getters it replaces, a storage
+ * failure yields an empty day here, so the check never blocks a proposal; the
+ * change itself still waits for review and Confirm.
+ */
+const readDay = (userId: string, date: string): PlannerWindow => {
+  try {
+    return plannerQueries.window(userId, date, date);
+  } catch (error) {
+    console.warn('[ChatOrchestrator] Could not read the day for a conflict check:', error);
+    return { tasks: [], events: [], blocks: [] };
+  }
+};
+
 export class ChatOrchestrator {
   /**
    * Conflict-aware check for time block and calendar event overlaps.
+   * `day` lets a caller that checks many slots read the day only once.
    */
   checkScheduleConflict(
     userId: string,
     date: string,
     startTime: string,
     endTime: string,
+    day: PlannerWindow = readDay(userId, date),
   ): ScheduleConflict {
     const startMins = timeToMinutes(startTime);
     const endMins = timeToMinutes(endTime);
@@ -183,7 +200,7 @@ export class ChatOrchestrator {
     }
 
     // 1. Check existing time blocks
-    const blocks = timeBlocksStore.getAll(userId).filter((b) => b.date === date);
+    const blocks = day.blocks.filter((b) => b.date === date);
     for (const b of blocks) {
       const bStart = timeToMinutes(b.startTime);
       const bEnd = timeToMinutes(b.endTime);
@@ -199,7 +216,7 @@ export class ChatOrchestrator {
     }
 
     // 2. Check existing calendar events
-    const events = tasksStore.getAllEvents(userId).filter((e) => e.date === date);
+    const events = day.events.filter((e) => e.date === date);
     for (const e of events) {
       const eStart = timeToMinutes(e.startTime);
       const eEnd = timeToMinutes(e.endTime);
@@ -230,6 +247,7 @@ export class ChatOrchestrator {
     const dayStartMinutes = 8 * 60;  // 08:00 AM
     const dayEndMinutes = 20 * 60;   // 08:00 PM
     const step = 30;                 // 30 minute increments
+    const day = readDay(userId, date);
 
     for (let current = dayStartMinutes; current + duration <= dayEndMinutes; current += step) {
       const candidateStart = minutesToTime(current);
@@ -240,6 +258,7 @@ export class ChatOrchestrator {
         date,
         candidateStart,
         candidateEnd,
+        day,
       );
 
       if (!conflict.hasConflict) {

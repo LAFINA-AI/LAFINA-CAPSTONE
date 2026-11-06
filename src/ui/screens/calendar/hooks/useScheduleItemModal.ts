@@ -102,6 +102,9 @@ export const useScheduleItemModal = (options: UseScheduleItemModalOptions): Sche
     setEditingItem(item);
     setForm({
       title: item.title,
+      // The item's own date (AGY-PORT 06): editing an overdue or other-day item
+      // from a chip must not move its reminder to the day currently selected.
+      date: (type === 'task' ? (item as Task).dueDate : (item as Event).date) || undefined,
       time: type === 'task' ? (item as Task).dueTime || '12:00' : (item as Event).startTime,
       endTime: type === 'event' ? (item as Event).endTime : '13:00',
       priority: type === 'task' ? (item as Task).priority || 'Medium' : 'Medium',
@@ -146,6 +149,9 @@ export const useScheduleItemModal = (options: UseScheduleItemModalOptions): Sche
 
         // Replace only this item's own reminders, so it never has duplicate or zombie alarms.
         for (const oldId of replacedReminderIds) retireReminder(oldId);
+        // An item whose time has already passed gets no new call (it used to ring
+        // one second after saving).
+        if (localScheduledDate.getTime() <= Date.now()) return;
 
         const scheduledAt = localScheduledDate.toISOString();
         const preferredTriggerMs =
@@ -190,7 +196,12 @@ export const useScheduleItemModal = (options: UseScheduleItemModalOptions): Sche
           notes: form.notes,
           recurrenceRule: rule,
         });
-        syncReminder(form.title, dateStr, form.time, editingItem.id);
+        // A task with no due date keeps no reminder (same rule as reviewed commands).
+        if ((editingItem as Task).dueDate) {
+          syncReminder(form.title, dateStr, form.time, editingItem.id);
+        } else {
+          for (const oldId of replacedReminderIds) retireReminder(oldId);
+        }
       } else {
         const taskId = generateId('task');
         tasksStore.insertTask({

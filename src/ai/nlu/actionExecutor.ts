@@ -1,4 +1,5 @@
 import { tasksStore, timeBlocksStore, remindersStore, notesStore } from '../../storage';
+import { plannerQueries } from '../../storage/plannerQueries';
 import type { Task, Event, TimeBlock, Note, Reminder } from '../../storage';
 import {
   scheduleReminderAlarm,
@@ -1228,9 +1229,23 @@ export async function executeNluAction(
       const targetDate = intent.date || formatLocalDate(refDate);
       const dayLabel = formatSpokenDayLabel(targetDate, refDate);
 
-      const tasks = tasksStore.getAllTasks(userId).filter((t) => !t.isCompleted && t.dueDate === targetDate);
-      const blocks = timeBlocksStore.getAll(userId).filter((b) => b.date === targetDate);
-      const events = tasksStore.getAllEvents(userId).filter((e) => e.date === targetDate);
+      // AGY-PORT 06: one bounded read of that day, with recurring occurrences. A
+      // storage failure is reported as such, never as an empty ("clear") day.
+      let day;
+      try {
+        day = plannerQueries.window(userId, targetDate, targetDate);
+      } catch (error) {
+        console.error('[ActionExecutor] Could not read the schedule:', error);
+        return {
+          success: false,
+          intent: 'query_schedule',
+          error: 'storage_unavailable',
+          reply: `I couldn't read your schedule right now, so I can't say what's planned for ${targetDate}. Please open the Calendar or try again.`,
+        };
+      }
+      const tasks = day.tasks.filter((t) => !t.isCompleted && t.dueDate === targetDate);
+      const blocks = day.blocks.filter((b) => b.date === targetDate);
+      const events = day.events.filter((e) => e.date === targetDate);
 
       const totalCount = tasks.length + blocks.length + events.length;
 
