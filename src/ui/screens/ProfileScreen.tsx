@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   View,
   Text,
@@ -74,6 +74,29 @@ interface ProfileScreenProps {
   onReplayTour?: () => void;
 }
 
+const getInitialProfileStats = (userId: string) => {
+  try {
+    const allTasks = tasksStore.getAllTasks(userId);
+    const completed = allTasks.filter((t) => t.isCompleted).length;
+    const allNotes = notesStore.getAll(userId);
+    const voiceNotes = allNotes.filter((n) => n.isVoiceTranscribed).length;
+    const voiceTasks = allTasks.filter(
+      (t) => t.notes?.includes('voice') || t.notes?.includes('Voice'),
+    ).length;
+    return {
+      completedTasksCount: completed,
+      notesCount: allNotes.length,
+      voiceCommandsCount: voiceNotes + voiceTasks,
+    };
+  } catch {
+    return {
+      completedTasksCount: 0,
+      notesCount: 0,
+      voiceCommandsCount: 0,
+    };
+  }
+};
+
 export const ProfileScreen: React.FC<ProfileScreenProps> = ({
   userId,
   refreshTrigger,
@@ -90,21 +113,14 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
     }
   });
 
-  const [completedTasksCount, setCompletedTasksCount] = useState(() => {
-    try {
-      return tasksStore.getAllTasks(userId).filter((t) => t.isCompleted).length;
-    } catch {
-      return 0;
-    }
-  });
-  const [notesCount, setNotesCount] = useState(() => {
-    try {
-      return notesStore.getAll(userId).length;
-    } catch {
-      return 0;
-    }
-  });
-  const [voiceCommandsCount, setVoiceCommandsCount] = useState(0);
+  const [initialStats] = useState(() => getInitialProfileStats(userId));
+  const [completedTasksCount, setCompletedTasksCount] = useState(
+    initialStats.completedTasksCount,
+  );
+  const [notesCount, setNotesCount] = useState(initialStats.notesCount);
+  const [voiceCommandsCount, setVoiceCommandsCount] = useState(
+    initialStats.voiceCommandsCount,
+  );
 
   const [weekStartsMonday, setWeekStartsMonday] = useState(() => {
     try {
@@ -135,7 +151,11 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
   const photoSource = avatarSource(currentUser?.avatarUri ?? null);
   const studentPro = currentUser ? isStudentProAccount(userId) : false;
 
+  const prevProfileKeyRef = useRef(`${userId}:${refreshTrigger}`);
   useEffect(() => {
+    const nextKey = `${userId}:${refreshTrigger}`;
+    if (prevProfileKeyRef.current === nextKey) return;
+    prevProfileKeyRef.current = nextKey;
     loadStats();
     loadSettings();
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -501,10 +521,12 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
 
       <View style={styles.bottomSpacer} />
 
-      <PrivacyModal
-        visible={privacyModalVisible}
-        onClose={() => setPrivacyModalVisible(false)}
-      />
+      {privacyModalVisible && (
+        <PrivacyModal
+          visible={privacyModalVisible}
+          onClose={() => setPrivacyModalVisible(false)}
+        />
+      )}
     </ScrollView>
   );
 };

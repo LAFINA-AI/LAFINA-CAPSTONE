@@ -61,6 +61,7 @@ export const CalendarScreen: React.FC<CalendarScreenProps> = ({
   });
 
   React.useEffect(() => {
+    if (!noteModalVisible) return;
     try {
       const cats = notesStore.getCustomCategories(userId);
       cats.forEach((c) => {
@@ -345,122 +346,132 @@ export const CalendarScreen: React.FC<CalendarScreenProps> = ({
       </TouchableOpacity>
 
       {/* Modals */}
-      <AddBlockModal state={blockModal} timeFormat24h={calendar.timeFormat24h} />
-      <AddTaskEventModal state={scheduleModal} timeFormat24h={calendar.timeFormat24h} />
+      {blockModal.visible && (
+        <AddBlockModal state={blockModal} timeFormat24h={calendar.timeFormat24h} />
+      )}
+      {scheduleModal.visible && (
+        <AddTaskEventModal state={scheduleModal} timeFormat24h={calendar.timeFormat24h} />
+      )}
       
-      <CalendarLayersModal
-        visible={calendar.layersModalVisible}
-        onClose={() => calendar.setLayersModalVisible(false)}
-        username={calendar.username}
-        batches={calendar.batches}
-        visibilityMap={calendar.visibilityMap}
-        onToggleVisibility={calendar.handleToggleVisibility}
-        onRemoveBatch={calendar.handleRemoveBatch}
-      />
+      {calendar.layersModalVisible && (
+        <CalendarLayersModal
+          visible={calendar.layersModalVisible}
+          onClose={() => calendar.setLayersModalVisible(false)}
+          username={calendar.username}
+          batches={calendar.batches}
+          visibilityMap={calendar.visibilityMap}
+          onToggleVisibility={calendar.handleToggleVisibility}
+          onRemoveBatch={calendar.handleRemoveBatch}
+        />
+      )}
 
       {/* FAB Choice Overlay Menu */}
-      <Modal
-        visible={fabMenuVisible}
-        transparent={true}
-        animationType="fade"
-        onRequestClose={() => setFabMenuVisible(false)}
-      >
-        <TouchableOpacity
-          style={styles.modalOverlay}
-          activeOpacity={1}
-          onPress={() => setFabMenuVisible(false)}
+      {fabMenuVisible && (
+        <Modal
+          visible={fabMenuVisible}
+          transparent={true}
+          animationType="fade"
+          onRequestClose={() => setFabMenuVisible(false)}
         >
-          <View style={[styles.modalContent, { backgroundColor: colors.cardBg, borderColor: colors.border, borderWidth: 1.5 }]}>
-            <Text style={[styles.modalHeaderTitle, { color: colors.textPrimary, textAlign: 'center' }]}>Create New</Text>
-            
-            <TouchableOpacity
-              style={[styles.fabMenuItem, { borderBottomColor: colors.divider }]}
-              onPress={() => {
-                setFabMenuVisible(false);
-                blockModal.openNewBlock(undefined, calendar.selectedDate);
-              }}
-            >
-              <Clock size={20} color={colors.blue} style={styles.fabMenuItemIcon} />
-              <Text style={[styles.fabMenuItemText, { color: colors.textPrimary }]}>Time Block</Text>
-            </TouchableOpacity>
+          <TouchableOpacity
+            style={styles.modalOverlay}
+            activeOpacity={1}
+            onPress={() => setFabMenuVisible(false)}
+          >
+            <View style={[styles.modalContent, { backgroundColor: colors.cardBg, borderColor: colors.border, borderWidth: 1.5 }]}>
+              <Text style={[styles.modalHeaderTitle, { color: colors.textPrimary, textAlign: 'center' }]}>Create New</Text>
+              
+              <TouchableOpacity
+                style={[styles.fabMenuItem, { borderBottomColor: colors.divider }]}
+                onPress={() => {
+                  setFabMenuVisible(false);
+                  blockModal.openNewBlock(undefined, calendar.selectedDate);
+                }}
+              >
+                <Clock size={20} color={colors.blue} style={styles.fabMenuItemIcon} />
+                <Text style={[styles.fabMenuItemText, { color: colors.textPrimary }]}>Time Block</Text>
+              </TouchableOpacity>
 
-            <TouchableOpacity
-              style={[styles.fabMenuItem, { borderBottomColor: colors.divider }]}
-              onPress={() => {
-                setFabMenuVisible(false);
-                scheduleModal.openNew('task');
-              }}
-            >
-              <CheckSquare size={20} color={colors.red} style={styles.fabMenuItemIcon} />
-              <Text style={[styles.fabMenuItemText, { color: colors.textPrimary }]}>Task</Text>
-            </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.fabMenuItem, { borderBottomColor: colors.divider }]}
+                onPress={() => {
+                  setFabMenuVisible(false);
+                  scheduleModal.openNew('task');
+                }}
+              >
+                <CheckSquare size={20} color={colors.red} style={styles.fabMenuItemIcon} />
+                <Text style={[styles.fabMenuItemText, { color: colors.textPrimary }]}>Task</Text>
+              </TouchableOpacity>
 
-            <TouchableOpacity
-              style={[styles.fabMenuItem, { borderBottomColor: colors.divider }]}
-              onPress={() => {
-                setFabMenuVisible(false);
-                setNoteTitle('');
-                setNoteBody('');
-                setNoteCategory('Personal');
-                setIsPinned(false);
-                setNoteSelection({ start: 0, end: 0 });
-                setNoteModalVisible(true);
-              }}
-            >
-              <FileText size={20} color={colors.textSecondary} style={styles.fabMenuItemIcon} />
-              <Text style={[styles.fabMenuItemText, { color: colors.textPrimary }]}>Note</Text>
-            </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.fabMenuItem, { borderBottomColor: colors.divider }]}
+                onPress={() => {
+                  setFabMenuVisible(false);
+                  setNoteTitle('');
+                  setNoteBody('');
+                  setNoteCategory('Personal');
+                  setIsPinned(false);
+                  setNoteSelection({ start: 0, end: 0 });
+                  setNoteModalVisible(true);
+                }}
+              >
+                <FileText size={20} color={colors.textSecondary} style={styles.fabMenuItemIcon} />
+                <Text style={[styles.fabMenuItemText, { color: colors.textPrimary }]}>Note</Text>
+              </TouchableOpacity>
 
-            <TouchableOpacity
-              style={[styles.modalBtn, { backgroundColor: colors.divider, marginTop: 16, alignSelf: 'stretch', alignItems: 'center' }]}
-              onPress={() => setFabMenuVisible(false)}
-            >
-              <Text style={[styles.modalBtnTextDark, { color: colors.textPrimary, fontWeight: 'bold' }]}>Cancel</Text>
-            </TouchableOpacity>
-          </View>
-        </TouchableOpacity>
-      </Modal>
+              <TouchableOpacity
+                style={[styles.modalBtn, { backgroundColor: colors.divider, marginTop: 16, alignSelf: 'stretch', alignItems: 'center' }]}
+                onPress={() => setFabMenuVisible(false)}
+              >
+                <Text style={[styles.modalBtnTextDark, { color: colors.textPrimary, fontWeight: 'bold' }]}>Cancel</Text>
+              </TouchableOpacity>
+            </View>
+          </TouchableOpacity>
+        </Modal>
+      )}
 
       {/* Full Note Editor Modal matching NotesScreen */}
-      <NoteEditor
-        visible={noteModalVisible}
-        editingNote={null}
-        noteTitle={noteTitle}
-        noteBody={noteBody}
-        noteCategory={noteCategory}
-        noteTags={[]}
-        isPinned={isPinned}
-        imageUri={null}
-        selection={noteSelection}
-        aiLoading={false}
-        aiActionType=""
-        onTitleChange={setNoteTitle}
-        onBodyChange={(next) => {
-          const carried = continueListOnNewline(noteBody, next);
-          setNoteBody(carried ? carried.body : next);
-          if (carried) setNoteSelection(carried.selection);
-        }}
-        onCategoryChange={setNoteCategory}
-        onPinToggle={() => setIsPinned(p => !p)}
-        onImageUriChange={() => {}}
-        onSelectionChange={setNoteSelection}
-        onClose={() => setNoteModalVisible(false)}
-        onSave={handleSaveNote}
-        onDelete={() => {}}
-        onFormatting={(type) => {
-          const edit = applyNoteFormat(noteBody, noteSelection, type);
-          setNoteBody(edit.body);
-          setNoteSelection(edit.selection);
-        }}
-        onToggleChecklist={(index) => setNoteBody(toggleChecklistItem(noteBody, index))}
-        onAttachImage={() => {}}
-        onRemoveImage={() => {}}
-        onAiAction={() => {}}
-        customCategories={customCategories}
-        onAddCategory={handleAddCategory}
-        onDeleteCategory={handleDeleteCategory}
-        onUpdateCategory={handleUpdateCategory}
-      />
+      {noteModalVisible && (
+        <NoteEditor
+          visible={noteModalVisible}
+          editingNote={null}
+          noteTitle={noteTitle}
+          noteBody={noteBody}
+          noteCategory={noteCategory}
+          noteTags={[]}
+          isPinned={isPinned}
+          imageUri={null}
+          selection={noteSelection}
+          aiLoading={false}
+          aiActionType=""
+          onTitleChange={setNoteTitle}
+          onBodyChange={(next) => {
+            const carried = continueListOnNewline(noteBody, next);
+            setNoteBody(carried ? carried.body : next);
+            if (carried) setNoteSelection(carried.selection);
+          }}
+          onCategoryChange={setNoteCategory}
+          onPinToggle={() => setIsPinned(p => !p)}
+          onImageUriChange={() => {}}
+          onSelectionChange={setNoteSelection}
+          onClose={() => setNoteModalVisible(false)}
+          onSave={handleSaveNote}
+          onDelete={() => {}}
+          onFormatting={(type) => {
+            const edit = applyNoteFormat(noteBody, noteSelection, type);
+            setNoteBody(edit.body);
+            setNoteSelection(edit.selection);
+          }}
+          onToggleChecklist={(index) => setNoteBody(toggleChecklistItem(noteBody, index))}
+          onAttachImage={() => {}}
+          onRemoveImage={() => {}}
+          onAiAction={() => {}}
+          customCategories={customCategories}
+          onAddCategory={handleAddCategory}
+          onDeleteCategory={handleDeleteCategory}
+          onUpdateCategory={handleUpdateCategory}
+        />
+      )}
     </View>
   );
 };

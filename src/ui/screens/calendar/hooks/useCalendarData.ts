@@ -31,21 +31,28 @@ const formatLocalDate = (d: Date): string => {
   return `${year}-${month}-${day}`;
 };
 
-const getInitialViewRange = (): { start: Date; end: Date } => {
+const getInitialViewRange = (mode: ViewMode = 'week'): { start: Date; end: Date } => {
   const now = new Date();
-  const start = new Date(now);
-  start.setDate(now.getDate() - 3);
+  if (mode === 'week') {
+    const start = new Date(now);
+    start.setDate(now.getDate() - 3);
+    start.setHours(0, 0, 0, 0);
+    const end = new Date(now);
+    end.setDate(now.getDate() + 3);
+    end.setHours(23, 59, 59, 999);
+    return { start, end };
+  }
+  const start = new Date(now.getFullYear(), now.getMonth() - 1, 15);
   start.setHours(0, 0, 0, 0);
-  const end = new Date(now);
-  end.setDate(now.getDate() + 3);
+  const end = new Date(now.getFullYear(), now.getMonth() + 2, 15);
   end.setHours(23, 59, 59, 999);
   return { start, end };
 };
 
-const getInitialBlocks = (userId: string): TimeBlock[] => {
+const getInitialBlocks = (userId: string, mode: ViewMode = 'week'): TimeBlock[] => {
   try {
     const rawData = timeBlocksStore.getAll(userId);
-    const { start, end } = getInitialViewRange();
+    const { start, end } = getInitialViewRange(mode);
     const expanded: TimeBlock[] = [];
     rawData.forEach((block) => {
       if (block.recurrenceRule) {
@@ -68,11 +75,14 @@ const getInitialBlocks = (userId: string): TimeBlock[] => {
   }
 };
 
-const getInitialSchedule = (userId: string): { allTasks: Task[]; allEvents: Event[]; dayTasks: Task[]; dayEvents: Event[] } => {
+const getInitialSchedule = (
+  userId: string,
+  mode: ViewMode = 'week',
+): { allTasks: Task[]; allEvents: Event[]; dayTasks: Task[]; dayEvents: Event[] } => {
   try {
     const rawTasks = tasksStore.getAllTasks(userId);
     const rawEvents = tasksStore.getAllEvents(userId);
-    const { start, end } = getInitialViewRange();
+    const { start, end } = getInitialViewRange(mode);
     const expandedTasks: Task[] = [];
     const expandedEvents: Event[] = [];
 
@@ -128,8 +138,8 @@ export const useCalendarData = (options: UseCalendarDataOptions): CalendarData &
   const setViewMode = propOnViewModeChange !== undefined ? propOnViewModeChange : setLocalViewMode;
   const [currentDate, setCurrentDate] = useState(new Date());
   const [selectedDate, setSelectedDate] = useState(new Date());
-  const [initialSchedule] = useState(() => getInitialSchedule(userId));
-  const [blocks, setBlocks] = useState<TimeBlock[]>(() => getInitialBlocks(userId));
+  const [initialSchedule] = useState(() => getInitialSchedule(userId, viewMode));
+  const [blocks, setBlocks] = useState<TimeBlock[]>(() => getInitialBlocks(userId, viewMode));
   const [weekDays, setWeekDays] = useState<Date[]>(() => {
     const days: Date[] = [];
     const base = new Date();
@@ -163,7 +173,13 @@ export const useCalendarData = (options: UseCalendarDataOptions): CalendarData &
   // Visibility and imports state
   const [batches, setBatches] = useState<ImportBatch[]>([]);
   const [visibilityMap, setVisibilityMap] = useState<Record<string, boolean>>({ main: true });
-  const [username, setUsername] = useState('Main Calendar');
+  const [username, setUsername] = useState(() => {
+    try {
+      return userStore.getUserById(userId)?.username || 'Main Calendar';
+    } catch {
+      return 'Main Calendar';
+    }
+  });
   const [layersModalVisible, setLayersModalVisible] = useState(false);
   const activeUserIdRef = useRef(userId);
   activeUserIdRef.current = userId;
@@ -193,11 +209,23 @@ export const useCalendarData = (options: UseCalendarDataOptions): CalendarData &
         calendarVisibilityStore.getVisibilityMap(userId),
       ]);
       if (activeUserIdRef.current !== userId) return;
-      setBatches(fetchedBatches);
-      setVisibilityMap(fetchedVisibility);
+      setBatches((prev) =>
+        prev.length === 0 && fetchedBatches.length === 0 ? prev : fetchedBatches,
+      );
+      setVisibilityMap((prev) => {
+        const prevKeys = Object.keys(prev);
+        const nextKeys = Object.keys(fetchedVisibility);
+        if (
+          prevKeys.length === nextKeys.length &&
+          prevKeys.every((k) => prev[k] === fetchedVisibility[k])
+        ) {
+          return prev;
+        }
+        return fetchedVisibility;
+      });
       const user = userStore.getUserById(userId);
       if (user) {
-        setUsername(user.username);
+        setUsername((prev) => (prev === user.username ? prev : user.username));
       }
     } catch (error) {
       console.error('Failed to load visibility or batches:', error);
@@ -363,17 +391,29 @@ export const useCalendarData = (options: UseCalendarDataOptions): CalendarData &
     setEvents(dayEvents);
   }, [userId, batches, visibilityMap, selectedDate, getViewRange]);
 
+  const isInitialDataLoadRef = useRef(true);
   useEffect(() => {
+    if (isInitialDataLoadRef.current) {
+      isInitialDataLoadRef.current = false;
+      return;
+    }
     loadBlocks();
     loadScheduleData();
     generateWeekDays();
   }, [userId, selectedDate, refreshTrigger, loadBlocks, loadScheduleData, generateWeekDays]);
 
+  const prevSettingsKeyRef = useRef(`${userId}:${refreshTrigger}`);
   useEffect(() => {
+    const nextKey = `${userId}:${refreshTrigger}`;
+    if (prevSettingsKeyRef.current === nextKey) return;
+    prevSettingsKeyRef.current = nextKey;
     loadSettings();
   }, [userId, refreshTrigger, loadSettings]);
 
+  const prevBatchUserIdRef = useRef(userId);
   useEffect(() => {
+    if (prevBatchUserIdRef.current === userId) return;
+    prevBatchUserIdRef.current = userId;
     setBatches([]);
     setVisibilityMap({ main: true });
   }, [userId]);

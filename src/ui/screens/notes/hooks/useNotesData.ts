@@ -65,11 +65,25 @@ export const useNotesData = (options: UseNotesDataOptions) => {
       return [];
     }
   });
+  const [customCategories, setCustomCategories] = useState<string[]>(() => {
+    try {
+      const cats = notesStore.getCustomCategories(userId);
+      cats.forEach((c) => {
+        registerCustomCategoryColor(c.name, c.color);
+      });
+      return cats.map((c) => c.name);
+    } catch {
+      return [];
+    }
+  });
   const [searchQuery, setSearchQuery] = useState('');
   const [searchActive, setSearchActive] = useState(false);
-  const [selectedFilter, setSelectedFilterState] = useState<FilterType>(
-    () => localSettingsStore.get(userId, NOTES_FILTER_KEY, DEFAULT_FILTER) ?? DEFAULT_FILTER
-  );
+  const [selectedFilter, setSelectedFilterState] = useState<FilterType>(() => {
+    const saved = localSettingsStore.get(userId, NOTES_FILTER_KEY, DEFAULT_FILTER) ?? DEFAULT_FILTER;
+    return BUILT_IN_FILTERS.includes(saved) || customCategories.includes(saved)
+      ? saved
+      : DEFAULT_FILTER;
+  });
   const [isGridView, setIsGridView] = useState(true);
 
   // Editor state
@@ -83,17 +97,6 @@ export const useNotesData = (options: UseNotesDataOptions) => {
   const [isVoice, setIsVoice] = useState(false);
   const [imageUri, setImageUri] = useState<string | null>(null);
   const [selection, setSelection] = useState({ start: 0, end: 0 });
-  const [customCategories, setCustomCategories] = useState<string[]>(() => {
-    try {
-      const cats = notesStore.getCustomCategories(userId);
-      cats.forEach((c) => {
-        registerCustomCategoryColor(c.name, c.color);
-      });
-      return cats.map((c) => c.name);
-    } catch {
-      return [];
-    }
-  });
 
   // Drag state
   const [activeDragId, setActiveDragId] = useState<string | null>(null);
@@ -147,7 +150,11 @@ export const useNotesData = (options: UseNotesDataOptions) => {
     loadNotes();
   }, [userId, customCategories, loadNotes]);
 
+  const prevNotesKeyRef = useRef(`${userId}:${refreshTrigger}`);
   useEffect(() => {
+    const nextKey = `${userId}:${refreshTrigger}`;
+    if (prevNotesKeyRef.current === nextKey) return;
+    prevNotesKeyRef.current = nextKey;
     loadNotes();
   }, [userId, refreshTrigger, loadNotes]);
 

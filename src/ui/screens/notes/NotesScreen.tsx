@@ -194,54 +194,58 @@ export const NotesScreen: React.FC<NotesScreenProps> = ({
       </TouchableOpacity>
 
       {/* Editor Modal */}
-      <NoteEditor
-        visible={data.editorVisible}
-        editingNote={data.editingNote}
-        noteTitle={data.noteTitle}
-        noteBody={data.noteBody}
-        noteCategory={data.noteCategory}
-        noteTags={data.noteTags}
-        isPinned={data.isPinned}
-        imageUri={data.imageUri}
-        selection={data.selection}
-        aiLoading={data.aiLoading}
-        aiActionType={data.aiActionType}
-        onTitleChange={data.setNoteTitle}
-        onBodyChange={data.changeBody}
-        onCategoryChange={data.setNoteCategory}
-        onPinToggle={() => data.setIsPinned(!data.isPinned)}
-        onImageUriChange={data.setImageUri}
-        onSelectionChange={data.setSelection}
-        onClose={data.closeEditor}
-        onSave={data.saveNote}
-        onDelete={() => data.editingNote && data.deleteNote(data.editingNote.id)}
-        onFormatting={data.applyFormatting}
-        onToggleChecklist={data.toggleEditorChecklist}
-        onAttachImage={handleAttachImage}
-        onRemoveImage={() => data.setImageUri(null)}
-        onAiAction={data.triggerAiAction}
-        customCategories={data.customCategories}
-        onAddCategory={data.addCategory}
-        onDeleteCategory={data.deleteCategory}
-        onUpdateCategory={data.updateCategory}
-      />
+      {data.editorVisible && (
+        <NoteEditor
+          visible={data.editorVisible}
+          editingNote={data.editingNote}
+          noteTitle={data.noteTitle}
+          noteBody={data.noteBody}
+          noteCategory={data.noteCategory}
+          noteTags={data.noteTags}
+          isPinned={data.isPinned}
+          imageUri={data.imageUri}
+          selection={data.selection}
+          aiLoading={data.aiLoading}
+          aiActionType={data.aiActionType}
+          onTitleChange={data.setNoteTitle}
+          onBodyChange={data.changeBody}
+          onCategoryChange={data.setNoteCategory}
+          onPinToggle={() => data.setIsPinned(!data.isPinned)}
+          onImageUriChange={data.setImageUri}
+          onSelectionChange={data.setSelection}
+          onClose={data.closeEditor}
+          onSave={data.saveNote}
+          onDelete={() => data.editingNote && data.deleteNote(data.editingNote.id)}
+          onFormatting={data.applyFormatting}
+          onToggleChecklist={data.toggleEditorChecklist}
+          onAttachImage={handleAttachImage}
+          onRemoveImage={() => data.setImageUri(null)}
+          onAiAction={data.triggerAiAction}
+          customCategories={data.customCategories}
+          onAddCategory={data.addCategory}
+          onDeleteCategory={data.deleteCategory}
+          onUpdateCategory={data.updateCategory}
+        />
+      )}
 
       {/* Lecture & Meeting Recorder Modal */}
-      <Modal
-        visible={meetingsOpen}
-        animationType="slide"
-        statusBarTranslucent={true}
-        onRequestClose={() => setMeetingsOpen(false)}
-      >
-        <View style={[styles.modalFill, { backgroundColor: colors.background }]}>
-          <MeetingsScreen
-            onBack={() => setMeetingsOpen(false)}
-            onNotesSaved={() => {
-              onRefresh?.();
-            }}
-          />
-        </View>
-      </Modal>
+      {meetingsOpen && (
+        <Modal
+          visible={meetingsOpen}
+          animationType="slide"
+          statusBarTranslucent={true}
+          onRequestClose={() => setMeetingsOpen(false)}
+        >
+          <View style={[styles.modalFill, { backgroundColor: colors.background }]}>
+            <MeetingsScreen
+              onBack={() => setMeetingsOpen(false)}
+              onNotesSaved={() => {
+                onRefresh?.();
+              }}
+            />
+          </View>
+        </Modal>
+      )}
     </View>
   );
 };

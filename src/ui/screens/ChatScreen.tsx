@@ -151,11 +151,18 @@ export const ChatScreen: React.FC<ChatScreenProps> = ({
     setMessages(list);
   }, [userId]);
 
+  const prevMessagesKeyRef = useRef(`${userId}:${refreshTrigger}`);
   useEffect(() => {
+    const nextKey = `${userId}:${refreshTrigger}`;
+    if (prevMessagesKeyRef.current === nextKey) return;
+    prevMessagesKeyRef.current = nextKey;
     loadMessages();
-  }, [loadMessages, refreshTrigger]);
+  }, [userId, loadMessages, refreshTrigger]);
 
+  const prevUserIdRef = useRef(userId);
   useEffect(() => {
+    if (prevUserIdRef.current === userId) return;
+    prevUserIdRef.current = userId;
     setUseHandbook(handbookPreference.read(userId));
   }, [userId]);
 
@@ -185,7 +192,9 @@ export const ChatScreen: React.FC<ChatScreenProps> = ({
         const auth = await accountLinkService.authorizeOnlineMode(userId);
         if (active && auth.status === 'success') {
           setIsOnlineMode(true);
-          localSettingsStore.set(userId, 'chat.onlineMode', 'true');
+          if (userPreference !== 'true') {
+            localSettingsStore.set(userId, 'chat.onlineMode', 'true');
+          }
         }
       } else if (active) {
         setIsOnlineMode(false);
@@ -590,21 +599,23 @@ export const ChatScreen: React.FC<ChatScreenProps> = ({
       </ToolSheet>
 
       {/* Lecture & Meeting Recorder Modal */}
-      <Modal
-        visible={meetingsModalVisible}
-        animationType="slide"
-        statusBarTranslucent={true}
-        onRequestClose={() => setMeetingsModalVisible(false)}
-      >
-        <View style={[styles.modalContainer, themed.container]}>
-          <MeetingsScreen
-            onBack={() => setMeetingsModalVisible(false)}
-            onNotesSaved={() => {
-              onRefresh?.();
-            }}
-          />
-        </View>
-      </Modal>
+      {meetingsModalVisible && (
+        <Modal
+          visible={meetingsModalVisible}
+          animationType="slide"
+          statusBarTranslucent={true}
+          onRequestClose={() => setMeetingsModalVisible(false)}
+        >
+          <View style={[styles.modalContainer, themed.container]}>
+            <MeetingsScreen
+              onBack={() => setMeetingsModalVisible(false)}
+              onNotesSaved={() => {
+                onRefresh?.();
+              }}
+            />
+          </View>
+        </Modal>
+      )}
     </View>
   );
 };
