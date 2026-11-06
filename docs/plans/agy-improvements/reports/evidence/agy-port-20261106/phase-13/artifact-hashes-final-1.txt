@@ -1,0 +1,10 @@
+# Final artifacts at HEAD d986c3badde3d7990482d12362c995989d619267 (code identical to a152bcb); recorded 2026-11-06T11:10:19Z
+# sha256  bytes  path   (build outputs; not committed)
+ef264311182ce10299b2b87a281af7c628b9824e67d45710dc2c1fa349e87e19  163257936  android/app/build/outputs/apk/dataQa/app-arm64-v8a-dataQa.apk
+58470f2f9d4ba972e43af6da32839d708aace5124c36703759e6603a699bfd5e  169577888  android/app/build/outputs/apk/dataQa/app-x86_64-dataQa.apk
+0629c828072dfd5c3f8ab27e0f9838251965d78018dbf9ff32b2a0cc6d2b466e  159718559  android/app/build/outputs/apk/debug/app-arm64-v8a-debug.apk
+0756c1236c0a5f1942feb6de651acd470d71606825813629146e8f54d073d63a  166317039  android/app/build/outputs/apk/debug/app-x86_64-debug.apk
+e448f8eafcab4d987466c3e32fd8623a82f5db27c29c844f0dc24f31ea91a91c  5226992  android/app/build/generated/assets/react/dataQa/index.android.bundle
+# packaged assets/index.android.bundle in each dataQa APK:
+e448f8eafcab4d987466c3e32fd8623a82f5db27c29c844f0dc24f31ea91a91c android/app/build/outputs/apk/dataQa/app-arm64-v8a-dataQa.apk
+e448f8eafcab4d987466c3e32fd8623a82f5db27c29c844f0dc24f31ea91a91c android/app/build/outputs/apk/dataQa/app-x86_64-dataQa.apk
