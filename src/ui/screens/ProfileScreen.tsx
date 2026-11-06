@@ -43,6 +43,8 @@ import { removeAttachmentFiles } from '../components/chat/chatFiles';
 import { PreferencesSettingsScreen } from './PreferencesSettingsScreen';
 import { ReminderHealth } from '../components/profile/ReminderHealth';
 import { PersonalMemory } from '../components/profile/PersonalMemory';
+import { OfflineVoice } from '../components/profile/OfflineVoice';
+import { speechSettingsStore } from '../../storage/speechSettingsStore';
 import {
   profileStatisticsStore,
   UNAVAILABLE_STATISTICS,
@@ -97,6 +99,8 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
   const [healthVisible, setHealthVisible] = useState(false);
   const [memoryVisible, setMemoryVisible] = useState(false);
   const [eventDefaultsSummary, setEventDefaultsSummary] = useState('Off');
+  const [voiceVisible, setVoiceVisible] = useState(false);
+  const [voiceSummary, setVoiceSummary] = useState('Default');
 
   const [weekStartsMonday, setWeekStartsMonday] = useState(false);
   const [summaryStyleDetailed, setSummaryStyleDetailed] = useState(false);
@@ -131,6 +135,15 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
       `${preferences.reminderLeadMinutes} min, ${getSnoozePreferenceLabel(preferences)}`,
     );
     loadEventDefaultsSummary();
+    loadVoiceSummary();
+  };
+
+  const loadVoiceSummary = () => {
+    try {
+      setVoiceSummary(speechSettingsStore.read(userId).explicit ? 'Custom' : 'Default');
+    } catch {
+      setVoiceSummary('Unavailable');
+    }
   };
 
   const loadEventDefaultsSummary = () => {
@@ -404,6 +417,13 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
               type="clickable"
               onPress={handleTestTtsVoice}
             />
+            <View style={[styles.settingDivider, themed.settingDivider]} />
+            <SettingItem
+              text="Offline Voice"
+              type="link"
+              valueText={voiceSummary}
+              onPress={() => setVoiceVisible(true)}
+            />
           </View>
 
           <Text style={[styles.settingsGroupHeader, themed.settingsGroupHeader]}>Notifications</Text>
@@ -506,6 +526,12 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
         visible={memoryVisible}
         onClose={() => setMemoryVisible(false)}
         onChanged={loadEventDefaultsSummary}
+      />
+      <OfflineVoice
+        userId={userId}
+        visible={voiceVisible}
+        onClose={() => setVoiceVisible(false)}
+        onChanged={loadVoiceSummary}
       />
     </ScrollView>
   );

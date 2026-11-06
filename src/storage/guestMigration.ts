@@ -4,6 +4,7 @@ import { syncOutboxStore } from './syncOutboxStore';
 import { buildProfileSyncPayload } from './profileSyncPayload';
 import { transferChatOwnership } from './chatOwnership';
 import { personalMemoryStore } from './personalMemoryStore';
+import { speechSettingsStore } from './speechSettingsStore';
 
 export interface GuestDataSummary {
   taskCount: number;
@@ -66,6 +67,8 @@ export const guestMigration = {
       tx.executeSync(`UPDATE ml_feature_snapshots SET user_id = ? WHERE user_id = ?`, [cloudUserId, GUEST_USER_ID]);
       // Device-local event defaults (AGY-PORT 09): the account keeps its own choices.
       personalMemoryStore.transferFromGuest(tx, cloudUserId, now);
+      // Device-local offline voice choice (AGY-PORT 10), same rule.
+      speechSettingsStore.transferFromGuest(tx, cloudUserId, now);
 
       // 3. Remove old guest record if different
       if (cloudUserId !== GUEST_USER_ID) {

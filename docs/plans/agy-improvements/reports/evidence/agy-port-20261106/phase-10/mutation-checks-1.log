@@ -1,0 +1,12 @@
+M1 SURVIVED | src\ai\tts\ttsService.ts | voice with unknown install metadata treated as installed | test "lists only voices" | Tests:       16 skipped, 1 passed, 17 total | restored=True
+M2 KILLED | src\ai\tts\ttsService.ts | default install receives neutral rate/pitch calls | test "keeps AGY" | Tests:       1 failed, 16 skipped, 17 total | restored=True
+M3 KILLED | src\ai\tts\ttsService.ts | rate sent through the wrapper 0..1 transform | test "applies an explicit choice" | Tests:       1 failed, 16 skipped, 17 total | restored=True
+M4 KILLED | src\ai\tts\ttsService.ts | engine start unbounded | test "bounds a hung engine start" | Tests:       1 failed, 16 skipped, 17 total | restored=True
+M5 KILLED | src\ai\tts\ttsService.ts | late event of another utterance ends this one | test "a late event for another utterance" | Tests:       1 failed, 16 skipped, 17 total | restored=True
+M6 KILLED | src\ai\tts\ttsService.ts | Preview Stop stops another session | test "Stop with a Preview token" | Tests:       1 failed, 16 skipped, 17 total | restored=True
+M7 KILLED | src\ai\tts\speechPreferences.ts | Preview allowed while the microphone is held | test "refuses while speech" | Tests:       1 failed, 16 skipped, 17 total | restored=True
+M8 KILLED | src\ai\tts\speechPreferences.ts | hung recording check treated as not recording | test "refuses while speech" | Tests:       1 failed, 16 skipped, 17 total | restored=True
+M9 KILLED | src\storage\speechSettingsStore.ts | guest link overwrites the account choice | test "guest link keeps" | Tests:       1 failed, 16 skipped, 17 total | restored=True
+M10 KILLED | src\storage\speechSettingsStore.ts | out-of-range speed saved | test "defaults to no explicit choice" | Tests:       1 failed, 16 skipped, 17 total | restored=True
+M11 SURVIVED | src\ui\components\profile\OfflineVoice.tsx | Preview keeps playing after leaving the app | test "stops only its own Preview" | Tests:       0 total | restored=True
+RESULT CHECK FAILED
