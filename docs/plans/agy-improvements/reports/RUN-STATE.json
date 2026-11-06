@@ -12,8 +12,8 @@
   "work_branch": "codex/agy-preservation-improvements",
   "worktree": "C:/L3mxr/Github Repositories/LAFINA-CAPSTONE-agy-development-cont",
   "donor_head": "0d4bbe39e106c29fb90792cf5d2f916b5c0d6480",
-  "last_tested_head": "c36eec9+worktree",
-  "last_committed_head": "08acc94441862cf90aa3192921a74bb5b445a6cd",
+  "last_tested_head": "541dbfb (sources identical to the gated c36eec9+worktree run)",
+  "last_committed_head": "541dbfbafdf1c1ba6c8a64139ea810b604abdcf4",
   "current_phase": "AGY-PORT-05",
   "phases": [
     {
@@ -468,7 +468,7 @@
       "build": "PASS",
       "device": "NOT_RUN",
       "live_service": "NOT_RUN",
-      "result_commit": null,
+      "result_commit": "541dbfbafdf1c1ba6c8a64139ea810b604abdcf4",
       "report": "pre-advance-remediation.md",
       "evidence": [
         "evidence/agy-port-20261106/pre-advance-remediation/",
