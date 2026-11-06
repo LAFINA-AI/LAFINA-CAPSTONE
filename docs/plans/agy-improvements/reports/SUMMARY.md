@@ -4,6 +4,11 @@ Run status: **PARTIAL**.
 
 - 21 of 30 areas are CODE_COMPLETE (host-tested), 7 are PARTIAL and 2 are DEFERRED_EXTERNAL.
 - **No device, emulator or live-service check was run.** Nothing here is device- or production-accepted.
+- **2026-11-06 follow-up:** the independent final audit's findings F1–F4 are resolved on the host ([final-audit-remediation.md](final-audit-remediation.md)):
+  - F1–F3 are fixed with regression tests;
+  - F4 is a documentation correction;
+  - new QA APKs were built.
+  - The overall status is still PARTIAL / AWAITING DEVICE VALIDATION.
 
 Run dates: 2026-11-06, run `agy-port-20261106` (Asia/Manila owner; UTC in logs).
 
@@ -15,6 +20,10 @@ Commits:
 - **Latest code commit:** `a152bcb` (AGY-PORT 12). Phase 13 changed documents only.
 - **Tested HEAD:** `d986c3b`, with identical code.
 - **Final report-index commit:** recorded in RUN-STATE.json and the run log. It is not written here, because a file cannot contain its own commit's hash.
+- **Final-audit follow-up (after audited HEAD `940802c`):**
+  - **Code fix:** `f61d1eb` (F1–F3 and their tests). This is the latest code commit and the tested code.
+  - **F4 documentation corrections:** `0c1b99a`.
+  - **Report/tracking and index commits:** recorded in RUN-STATE.json and the log.
 
 ## What you can use now
 
@@ -47,6 +56,28 @@ These are the changes a student will notice. All are host-tested; none has been 
 - **For testers:**
   - a standalone QA APK (bundled JS, no Metro), with ONNX Runtime 1.22.0 so the VAD libraries load on 16 KiB-page devices;
   - APK audits, offline-boundary checks, frozen evaluation fixtures and a doctor.
+
+## Final audit follow-up: F1–F4 (2026-11-06)
+
+Details, exact changes and evidence are in [final-audit-remediation.md](final-audit-remediation.md).
+
+| Finding | Disposition | Change |
+|---|---|---|
+| F1 Preview admission race | CODE_COMPLETE (host) | A cancellable `PreviewTicket` is carried through every awaited startup step. The account, speech, dictation microphone and recording (including a new synchronous app-side recording claim) are rechecked after each await and once more immediately before `Tts.speak`. The Offline Voice sheet cancels a pending start on Stop, close, background and unmount |
+| F2 Unbounded ducking | CODE_COMPLETE (host) | `Tts.setDucking` is bounded (3 s) like the other optional engine settings. A timeout or rejection recovers, and offline-voice eligibility is unchanged |
+| F3 False Clear All Data success | CODE_COMPLETE (host) | Each step reports what really happened. A failed defaults reset says "not deleted" and gives a recovery step. Owner isolation and the revision fence are unchanged |
+| F4 Process death vs Force Stop | CORRECTED (docs) | Dated corrections in this summary, MANUAL-QA (M06, M15, new M18 R1–R3), PF11, the Phase 13 handoff, the earlier checklists and ADR-023. The ADR-023 window itself is still not implemented (#2 stays PARTIAL) |
+
+**Regression evidence:**
+
+- **Before the fixes**, 26 of the 27 new tests failed on `940802c`, each for the intended reason.
+- **After the fixes**, all 29 new tests pass.
+- **Mutation run:** 8 of 9 killed; Q2, a redundant intermediate check, survived and is recorded as such.
+- **Gates:**
+  - preflight: 50 suites, 713 passed + 1 opt-in skipped;
+  - Kotlin: 43 tests, forced rerun;
+  - fresh dataQa APKs with audits PASS;
+  - the same package, versionCode, signer and ONNX 1.22.0.
 
 ## AGY preservation
 
@@ -83,10 +114,10 @@ See [PRESERVED-FEATURES.md](PRESERVED-FEATURES.md).
 | 13 | Notes search cache, keyset pages | CODE_COMPLETE (paging under concurrent edits is best-effort) | `168e022` / phase-07 | `agyPort07Notes`, `notes-contract-v1` | NOT_RUN |
 | 14 | Overnight/timezone/ICS event time | **PARTIAL**: overnight and device-local zone done. Events over 24 h are unsupported on the frozen wire, and recurring/`RECURRENCE-ID` imports stay floating | `7dd3454` / [phase-08](phase-08-event-time-sync.md) | `agyPort08EventTime`, `agyPort08EventForm` | NOT_RUN (M11) |
 | 15 | Delivery health apart from permissions | CODE_COMPLETE | `ab6ab12` / [phase-09](phase-09-health-preferences-stats.md) | `agyPort09HealthPreferencesStats`, `agyPort09ProfileHealth` | NOT_RUN (M13) |
-| 16 | Explicit local event defaults | CODE_COMPLETE (Clear All Data forgets them, `dd96148`) | `ab6ab12`, `dd96148` / phase-09, audit | same; `auditA3ClearAllData` | NOT_RUN (M13, M15) |
+| 16 | Explicit local event defaults | CODE_COMPLETE (Clear All Data forgets them, `dd96148`; a failed reset is reported truthfully, `f61d1eb`) | `ab6ab12`, `dd96148`, `f61d1eb` / phase-09, audit, final audit | same; `auditA3ClearAllData`, `finalAuditF3ClearAllDataFailure` | NOT_RUN (M13, M15, M18) |
 | 17 | Whisper/system TTS kept; optional Android on-device STT | **PARTIAL**: defaults and cloud fallback kept. The optional on-device recognizer is deferred (needs a native bridge and devices) | `335de87` / [phase-10](phase-10-speech.md) | `agyPort10Speech`, preservation PF09 | NOT_RUN |
-| 18 | Voices, speed, pitch, Preview/Stop | CODE_COMPLETE (positive offline eligibility, `dd96148`; engine choice deferred) | `335de87`, `dd96148` / phase-10, audit | `agyPort10OfflineVoice`, `auditA1OfflineEligibility`, `speech-contract-v1` | NOT_RUN (M07, M14, M15) |
-| 19 | Bounded readiness, cancel, recovery | CODE_COMPLETE | `335de87` / phase-10 | `agyPort10Speech` | NOT_RUN |
+| 18 | Voices, speed, pitch, Preview/Stop | CODE_COMPLETE (positive offline eligibility, `dd96148`; Preview admission ticket, `f61d1eb`; engine choice deferred) | `335de87`, `dd96148`, `f61d1eb` / phase-10, audit, final audit | `agyPort10OfflineVoice`, `auditA1OfflineEligibility`, `speech-contract-v1`, `finalAuditF1PreviewAdmission`, `finalAuditF1OfflineVoicePending` | NOT_RUN (M07, M14, M15, M18) |
+| 19 | Bounded readiness, cancel, recovery | CODE_COMPLETE (ducking bounded too, `f61d1eb`) | `335de87`, `f61d1eb` / phase-10, final audit | `agyPort10Speech`, `finalAuditF2Ducking` | NOT_RUN |
 | 20 | Record-based statistics | CODE_COMPLETE | `ab6ab12` / phase-09 | `agyPort09HealthPreferencesStats` | NOT_RUN |
 | 21 | Standalone QA packaging | CODE_COMPLETE | `83f407c` / [phase-11](phase-11-native-qa.md) | dataQa arm64/x86_64 built and audited (Phase 13 receipts) | NOT_RUN (M16) |
 | 22 | ONNX audit, 1.22.0 | CODE_COMPLETE (1.19.2 failed 16 KiB alignment; ADR-024) | `83f407c` / phase-11 | ELF 16/16 PASS, Kotlin 43 PASS | NOT_RUN (VAD on device) |
@@ -99,26 +130,36 @@ See [PRESERVED-FEATURES.md](PRESERVED-FEATURES.md).
 | 29 | Event-time sync with the backend | **DEFERRED_EXTERNAL**. The client portion is complete: frozen wire, local-only metadata, old-server round trip | `7dd3454` / [backend handoff](backend-handoff-29-30.md) | `agyPort08EventTime`, PF04 | NOT_RUN (backend) |
 | 30 | Backend identity and probe | **DEFERRED_EXTERNAL**. The integration is preserved and a proposal is written; no probe was run | [backend handoff](backend-handoff-29-30.md) | host unchanged since base | NOT_RUN |
 
-Phase reports exist for every phase: [00](phase-00-baseline.md) to [13](phase-13-integration.md). There are also two remediation units, [pre-advance](pre-advance-remediation.md) and [audit A1–A4](audit-remediation.md).
+Phase reports exist for every phase: [00](phase-00-baseline.md) to [13](phase-13-integration.md). There are also three remediation units:
+
+- [pre-advance](pre-advance-remediation.md);
+- [audit A1–A4](audit-remediation.md);
+- [final audit F1–F4](final-audit-remediation.md).
 
 ## Verification and artifacts
 
-**Host gates at final code** (`evidence/agy-port-20261106/phase-13/`):
+**Host gates at final code:**
+
+- For the final-audit follow-up: `evidence/agy-port-20261106/final-audit-remediation/`, code `f61d1eb`.
+- Phase 13 values are given in brackets.
 
 | Check | Result |
 |---|---|
-| `npm run preflight` | PASS: typecheck, lint, Jest 46 suites with 684 passed + 1 opt-in skipped (base: 15 suites, 163 tests), architecture 215 modules |
-| Kotlin unit tests (forced rerun) | 43 pass (base: 14) |
-| Debug and dataQa builds | PASS |
+| `npm run preflight` | PASS: typecheck, lint, Jest 50 suites with 713 passed + 1 opt-in skipped [Phase 13: 46 suites, 684 + 1; base: 15 suites, 163 tests], architecture 215 modules |
+| Kotlin unit tests (forced rerun, executed 13:51:12Z) | 43 pass (base: 14) |
+| dataQa build (fresh bundle `f86e13af…bc67`) | PASS. The debug APKs were up to date: they package no JS and no native input changed |
 | APK audits, both ABIs | PASS |
 
-Mutation checks were run in Phases 02, 03, 06–10 and 12, and in both remediation units, but not in Phases 04, 05 or 11. Every run's log is kept. Earlier runs had survivors and a harness error, which led to stronger tests; each unit's final run has no survivor or harness error.
+Mutation checks were run in Phases 02, 03, 06–10 and 12, and in both remediation units, but not in Phases 04, 05 or 11. Every run's log is kept. Earlier runs had survivors and a harness error, which led to stronger tests; each of those units' final run has no survivor or harness error.
+
+The final-audit follow-up ran once: 8 of 9 killed. The survivor, Q2, removes a revalidation that later checks duplicate, so it was recorded rather than re-run.
 
 **Artifacts** are build outputs, not committed, and live on this PC only. Hashes are in [MANUAL-QA.md](MANUAL-QA.md):
 
-- `android/app/build/outputs/apk/dataQa/app-arm64-v8a-dataQa.apk` (phones)
-- `android/app/build/outputs/apk/dataQa/app-x86_64-dataQa.apk` (emulators)
-- the matching debug APKs
+- `android/app/build/outputs/apk/dataQa/app-arm64-v8a-dataQa.apk` (phones): now `2502aec3…89ba`, rebuilt with the F1–F3 fixes
+- `android/app/build/outputs/apk/dataQa/app-x86_64-dataQa.apk` (emulators): now `a0bf18e5…91f2`
+- the matching debug APKs, unchanged
+- The Phase 13 dataQa APKs (`ef264311…`, `58470f2f…`) were replaced in place by the build and no longer exist on disk.
 
 **Failed and interrupted attempts are kept, not hidden:**
 
@@ -127,6 +168,9 @@ Mutation checks were run in Phases 02, 03, 06–10 and 12, and in both remediati
 - Phase 12 mutation run 1 had a HARNESS_ERROR, and doctor-1 failed truthfully.
 - Audit mutation run 1 had survivors.
 - Two Phase 05 logs were lost earlier. The loss is documented, with recovered excerpts.
+- **Final-audit follow-up:**
+  - mutation run 1 is CHECK FAILED (Q2 survived; explained in the report);
+  - `sdk-tools-1.log`'s apksigner step printed nothing because of shell quoting, so the signer is in `sdk-tools-apksigner-1.log`.
 
 **Every review in this run was a self-review** by the implementer or the parent. No independent review completed: Phase 05 records two reviewer attempts that did not finish. An independent review of the branch is still worth doing.
 
@@ -171,10 +215,10 @@ No phase FAILED, and no unit was reverted.
 
 ## Read/install/check later
 
-Follow [MANUAL-QA.md](MANUAL-QA.md) (M01–M17, all NOT_RUN). The safe path:
+Follow [MANUAL-QA.md](MANUAL-QA.md) (M01–M18, all NOT_RUN). The safe path:
 
 1. Do not clear data or reinstall. Note your task/event/note counts, one armed reminder and your sign-in state.
-2. Check the SHA-256 of `app-arm64-v8a-dataQa.apk`: `ef264311…7e19` (full value in MANUAL-QA).
+2. Check the SHA-256 of `app-arm64-v8a-dataQa.apk`: `2502aec3…89ba` (full value in MANUAL-QA). *Updated 2026-11-06 for the final-audit rebuild; it was `ef264311…7e19`.*
 3. Run `adb install -r` on it, over an existing `com.lafina.capstone` signed by the same Android Debug certificate (`acf890c3…`). If you see `INSTALL_FAILED_UPDATE_INCOMPATIBLE`, stop; never uninstall or clear data.
 4. Check, in airplane mode:
    - the app launches without Metro;
@@ -190,7 +234,7 @@ Follow [MANUAL-QA.md](MANUAL-QA.md) (M01–M17, all NOT_RUN). The safe path:
      - **R1, process death during reconciliation:** it may ring once (ADR-023);
      - **R2, explicit Force Stop:** nothing is promised while stopped;
      - **R3, relaunch recovery.**
-6. Last, the speech cases (M07, M14, M15).
+6. Last, the speech cases (M07, M14, M15), and the final-audit Preview and Clear All Data checks (M18 a–c).
 7. Only with a controlled account and server:
    - guest link and owner switch;
    - sync;
@@ -221,7 +265,7 @@ Follow [MANUAL-QA.md](MANUAL-QA.md) (M01–M17, all NOT_RUN). The safe path:
 ## Recommended next actions
 
 1. Run M16 on your phone (in-place update of the arm64 dataQa APK), then the M05/M06 reminder cases. These are the highest-risk unverified behaviors.
-2. Have someone other than the implementer review the branch diff against `b9433dc` (a `/code-review` run or a human reviewer).
+2. Have someone other than the implementer review the branch diff against `b9433dc` (a `/code-review` run or a human reviewer). The independent final audit (`codex-final-audit-940802c-20261106.md`) covered selected paths; its F1–F4 follow-up (`f61d1eb`, `0c1b99a`) has had only a self-review.
 3. Run the instrumentation tests (`connectedDebugAndroidTest`) on a test device, and the emulator runner on a spare AVD (M17).
 4. Decide whether to build ADR-023 option C (native invalidation marker) to close the process-death stale-alert residual (corrected 2026-11-06 from "force-stop", final audit F4).
 5. When backend access exists, carry out [backend-handoff-29-30.md](backend-handoff-29-30.md) in order, then the client capability change.

@@ -1,0 +1,43 @@
+{
+  "audit_head": "940802c61457422a1ecefdad7cae5ef90cf0fddb",
+  "source_scope": "No runtime difference between tested d986c3b and final HEAD",
+  "saved_jest": {
+    "suites_passed": 46,
+    "tests_passed": 684,
+    "opt_in_skipped": 1,
+    "independently_rerun": false
+  },
+  "saved_kotlin_xml": {
+    "files": 6,
+    "tests": 43,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0,
+    "independently_rerun": false
+  },
+  "independent_read_only_apk_checks": [
+    {
+      "artifact": "app-arm64-v8a-dataQa.apk",
+      "sha256": "ef264311182ce10299b2b87a281af7c628b9824e67d45710dc2c1fa349e87e19",
+      "receipt_matches": true,
+      "elf_pass": 16,
+      "elf_total": 16,
+      "zip_alignment_failures": 0,
+      "bundled_js": true,
+      "kokoro_entries": 0
+    },
+    {
+      "artifact": "app-x86_64-dataQa.apk",
+      "sha256": "58470f2f9d4ba972e43af6da32839d708aace5124c36703759e6603a699bfd5e",
+      "receipt_matches": true,
+      "elf_pass": 16,
+      "elf_total": 16,
+      "zip_alignment_failures": 0,
+      "bundled_js": true,
+      "kokoro_entries": 0
+    }
+  ],
+  "new_execution": "Only isolated transpiled modules with fake TTS/account/mic adapters, no real audio/network/device",
+  "platform_reference": "https://developer.android.com/about/versions/15/behavior-changes-all#enhanced-stop-states",
+  "full_suites_builds_or_device_installs_started_by_audit": false
+}
