@@ -1,5 +1,6 @@
 import fs from 'node:fs';
 import path from 'node:path';
+import { createRequire } from 'node:module';
 import ts from 'typescript';
 
 const root = path.resolve('src');
@@ -193,11 +194,27 @@ for (const [, permission] of manifest.matchAll(
   }
 }
 
+// AGY-PORT 12: offline leaves must not reach the network or an online module,
+// transitively, except through an exact approved composition edge.
+const { findViolations, readSources } = createRequire(import.meta.url)(
+  './offline-boundary.cjs',
+);
+const boundary = findViolations(readSources(path.resolve('.')));
+for (const violation of boundary.violations) {
+  errors.push(`Offline boundary: ${violation}`);
+}
+for (const finding of boundary.dynamic) {
+  errors.push(`Unchecked dynamic import: ${finding}`);
+}
+for (const edge of boundary.unusedApprovals) {
+  errors.push(`Stale online-composition approval (edge no longer exists): ${edge}`);
+}
+
 if (errors.length) {
   console.error(errors.join('\n'));
   process.exitCode = 1;
 } else {
   console.log(
-    `PASS: ${files.length} TypeScript modules checked; 0 import cycles, 0 forbidden business/Gmail/study-tool/Kokoro dependencies.`,
+    `PASS: ${files.length} TypeScript modules checked; 0 import cycles, 0 forbidden business/Gmail/study-tool/Kokoro dependencies; ${boundary.offlineLeaves} offline leaves reach no network API or online module (transitive, dynamic imports included).`,
   );
 }

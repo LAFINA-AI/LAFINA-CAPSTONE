@@ -12,7 +12,7 @@
   "work_branch": "codex/agy-preservation-improvements",
   "worktree": "C:/L3mxr/Github Repositories/LAFINA-CAPSTONE-agy-development-cont",
   "donor_head": "0d4bbe39e106c29fb90792cf5d2f916b5c0d6480",
-  "last_tested_head": "2d62e05+worktree (Phase 11; Phase 12 tooling uncommitted)",
+  "last_tested_head": "574e6e1+worktree (Phase 12)",
   "last_committed_head": "83f407cc8451a11dc5d3a5a5025e025857e1b13c",
   "current_phase": "AGY-PORT-12",
   "phases": [
@@ -433,18 +433,30 @@
         27,
         28
       ],
-      "implementation": "NOT_STARTED",
-      "automated": "NOT_RUN",
-      "build": "NOT_RUN",
+      "implementation": "CODE_COMPLETE (23, 24, 27 scorer, 28); PARTIAL (25 no in-app QA screen/native gate; 26 runner never run)",
+      "automated": "PASS",
+      "build": "NOT_RUN (no native or Gradle change; Phase 11 artifacts stand)",
       "device": "NOT_RUN",
       "live_service": "NOT_RUN",
-      "base_head": null,
-      "tested_head": null,
+      "base_head": "574e6e1",
+      "tested_head": "574e6e1+worktree",
       "result_commit": null,
-      "report": null,
-      "evidence": [],
-      "continuation": null,
-      "notes": []
+      "report": "phase-12-tooling-evaluation.md",
+      "evidence": [
+        "evidence/agy-port-20261106/phase-12/"
+      ],
+      "continuation": "NEXT_PHASE",
+      "notes": [
+        "offline boundary: 71 leaves, 0 violations, 0 approvals; runtime sentinel zero network with positive control",
+        "frozen fixtures v1 (intent 34 cases covering 16 intents, notes, speech, PF01-PF13 map, stt corpus); 93 contract tests; fresh evidence JSON",
+        "host QA SQL: 14 checks on an owned temp file, redacted, verified cleanup; in-app QA screen/native gate not ported",
+        "mutations run 1: 11 killed, P8 HARNESS_ERROR (unhandled sentinel rejection, fixed); run 2: 12/12 killed, restored",
+        "own tooling defects fixed: QA runner open handle blocked Windows cleanup; sentinel unhandled rejection; boundary comment",
+        "doctor-1 FAIL truthful (JAVA_HOME = Android Studio JDK 25); doctor-2 PASS with JDK 17",
+        "planner benchmark STALE (src/core removed); Graphify binary present but no graph.json; AST substitute",
+        "preflight-1 46 suites, 684 passed + 1 skipped; no src/ or android/ file changed",
+        "parent self-review only, not an independent review"
+      ]
     },
     {
       "id": "AGY-PORT-13",
