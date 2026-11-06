@@ -3,6 +3,7 @@ import { GUEST_USER_ID } from '../constants';
 import { syncOutboxStore } from './syncOutboxStore';
 import { buildProfileSyncPayload } from './profileSyncPayload';
 import { transferChatOwnership } from './chatOwnership';
+import { personalMemoryStore } from './personalMemoryStore';
 
 export interface GuestDataSummary {
   taskCount: number;
@@ -63,6 +64,8 @@ export const guestMigration = {
       transferChatOwnership(tx, GUEST_USER_ID, cloudUserId, now);
       tx.executeSync(`UPDATE user_behavior_logs SET user_id = ? WHERE user_id = ?`, [cloudUserId, GUEST_USER_ID]);
       tx.executeSync(`UPDATE ml_feature_snapshots SET user_id = ? WHERE user_id = ?`, [cloudUserId, GUEST_USER_ID]);
+      // Device-local event defaults (AGY-PORT 09): the account keeps its own choices.
+      personalMemoryStore.transferFromGuest(tx, cloudUserId, now);
 
       // 3. Remove old guest record if different
       if (cloudUserId !== GUEST_USER_ID) {

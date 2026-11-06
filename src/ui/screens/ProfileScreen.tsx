@@ -41,6 +41,14 @@ import { StudentProTag } from '../components/profile/StudentProTag';
 import { AppUpdateItem } from '../components/profile/AppUpdateItem';
 import { removeAttachmentFiles } from '../components/chat/chatFiles';
 import { PreferencesSettingsScreen } from './PreferencesSettingsScreen';
+import { ReminderHealth } from '../components/profile/ReminderHealth';
+import { PersonalMemory } from '../components/profile/PersonalMemory';
+import {
+  profileStatisticsStore,
+  UNAVAILABLE_STATISTICS,
+} from '../../storage/profileStatisticsStore';
+import type { ProfileStatistics } from '../../storage/profileStatisticsStore';
+import { personalMemoryStore } from '../../storage/personalMemoryStore';
 
 function getInitials(username: string | null | undefined): string {
   if (!username || username.trim().length === 0) {
@@ -85,9 +93,10 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
 }) => {
   const [currentUser, setCurrentUser] = useState<User | null>(null);
 
-  const [completedTasksCount, setCompletedTasksCount] = useState(0);
-  const [notesCount, setNotesCount] = useState(0);
-  const [voiceCommandsCount, setVoiceCommandsCount] = useState(0);
+  const [statistics, setStatistics] = useState<ProfileStatistics>(UNAVAILABLE_STATISTICS);
+  const [healthVisible, setHealthVisible] = useState(false);
+  const [memoryVisible, setMemoryVisible] = useState(false);
+  const [eventDefaultsSummary, setEventDefaultsSummary] = useState('Off');
 
   const [weekStartsMonday, setWeekStartsMonday] = useState(false);
   const [summaryStyleDetailed, setSummaryStyleDetailed] = useState(false);
@@ -121,6 +130,16 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
     setPreferenceSummary(
       `${preferences.reminderLeadMinutes} min, ${getSnoozePreferenceLabel(preferences)}`,
     );
+    loadEventDefaultsSummary();
+  };
+
+  const loadEventDefaultsSummary = () => {
+    try {
+      const saved = personalMemoryStore.read(userId);
+      setEventDefaultsSummary(saved.enabled && saved.value ? 'On' : 'Off');
+    } catch {
+      setEventDefaultsSummary('Unavailable');
+    }
   };
 
   const handleToggleWeekStart = (value: boolean) => {
@@ -163,19 +182,9 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
     }
   };
 
+  // AGY-PORT 09: counts from actual records; nothing is inferred from words or flags.
   const loadStats = () => {
-    const allTasks = tasksStore.getAllTasks(userId);
-    const completed = allTasks.filter((t) => t.isCompleted).length;
-    setCompletedTasksCount(completed);
-
-    const allNotes = notesStore.getAll(userId);
-    setNotesCount(allNotes.length);
-
-    const voiceNotes = allNotes.filter((n) => n.isVoiceTranscribed).length;
-    const voiceTasks = allTasks.filter(
-      (t) => t.notes?.includes('voice') || t.notes?.includes('Voice'),
-    ).length;
-    setVoiceCommandsCount(voiceNotes + voiceTasks);
+    setStatistics(profileStatisticsStore.read(userId));
   };
 
   const choosePhoto = async () => {
@@ -354,11 +363,7 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
       </View>
 
       <View style={styles.mainContent}>
-        <ProfileStats
-          completedTasksCount={completedTasksCount}
-          notesCount={notesCount}
-          voiceCommandsCount={voiceCommandsCount}
-        />
+        <ProfileStats statistics={statistics} />
 
         <View style={styles.settingsContainer}>
           <Text style={[styles.settingsGroupHeader, themed.settingsGroupHeader]}>Preferences</Text>
@@ -375,6 +380,13 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
               type="toggle"
               value={weekStartsMonday}
               onValueChange={handleToggleWeekStart}
+            />
+            <View style={[styles.settingDivider, themed.settingDivider]} />
+            <SettingItem
+              text="Event Defaults"
+              type="link"
+              valueText={eventDefaultsSummary}
+              onPress={() => setMemoryVisible(true)}
             />
           </View>
 
@@ -401,6 +413,12 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
               type="toggle"
               value={dailyBriefingEnabled}
               onValueChange={setDailyBriefingEnabled}
+            />
+            <View style={[styles.settingDivider, themed.settingDivider]} />
+            <SettingItem
+              text="Reminder Health"
+              type="link"
+              onPress={() => setHealthVisible(true)}
             />
           </View>
 
@@ -477,6 +495,17 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
       <PrivacyModal
         visible={privacyModalVisible}
         onClose={() => setPrivacyModalVisible(false)}
+      />
+      <ReminderHealth
+        userId={userId}
+        visible={healthVisible}
+        onClose={() => setHealthVisible(false)}
+      />
+      <PersonalMemory
+        userId={userId}
+        visible={memoryVisible}
+        onClose={() => setMemoryVisible(false)}
+        onChanged={loadEventDefaultsSummary}
       />
     </ScrollView>
   );

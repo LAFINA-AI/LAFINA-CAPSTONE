@@ -12,7 +12,7 @@
   "work_branch": "codex/agy-preservation-improvements",
   "worktree": "C:/L3mxr/Github Repositories/LAFINA-CAPSTONE-agy-development-cont",
   "donor_head": "0d4bbe39e106c29fb90792cf5d2f916b5c0d6480",
-  "last_tested_head": "02bbe44+worktree (Phase 08)",
+  "last_tested_head": "9a451c1+worktree (Phase 09)",
   "last_committed_head": "7dd345402875bef861289cad54b744d908757eaf",
   "current_phase": "AGY-PORT-09",
   "phases": [
@@ -322,18 +322,29 @@
         16,
         20
       ],
-      "implementation": "NOT_STARTED",
-      "automated": "NOT_RUN",
-      "build": "NOT_RUN",
+      "implementation": "CODE_COMPLETE",
+      "automated": "PASS",
+      "build": "PASS",
       "device": "NOT_RUN",
       "live_service": "NOT_RUN",
-      "base_head": null,
-      "tested_head": null,
+      "base_head": "9a451c1",
+      "tested_head": "9a451c1+worktree",
       "result_commit": null,
-      "report": null,
-      "evidence": [],
-      "continuation": null,
-      "notes": []
+      "report": "phase-09-health-preferences-stats.md",
+      "evidence": [
+        "evidence/agy-port-20261106/phase-09/"
+      ],
+      "continuation": "NEXT_PHASE",
+      "notes": [
+        "No schema change: event defaults in local_settings key event_memory_v1 (device-local, never synced)",
+        "Reminder health over schema-19 jobs + native registered_inexact receipts; retry = existing reconcileReminderDelivery, signed-in owner only",
+        "On Time = acknowledged with snooze_count 0 / (acknowledged + missed); No data at 0; read failure = unavailable; replaces inferred Voice Uses",
+        "preflight-1 and preflight-2 (final) 524 + 1 skipped, 36 suites",
+        "Native unchanged: Gradle PASS",
+        "Mutations: run 1 harness error (0 tests matched; log overwritten once by an identical rerun), run 2 M1 survived -> test strengthened, run 3 M1-M9 killed, restored byte-identical",
+        "No existing test changed; 27 new tests",
+        "Deferred: recent-records index (table capped at 500 rows); Clear All Data does not clear event defaults"
+      ]
     },
     {
       "id": "AGY-PORT-10",
