@@ -39,6 +39,20 @@ export {
   notesQueryStore,
 } from './notesQueryStore';
 export type {NotesPage, NotesQuery} from './notesQueryStore';
+export {eventTimeStore} from './eventTimeStore';
+export {
+  checkEventWallTime,
+  deviceTimeZone,
+  EventTimeError,
+  isEventTimeError,
+  resolveEventZoneTiming,
+} from './eventTime';
+export type {
+  EventFolds,
+  EventZoneTiming,
+  FoldChoice,
+  WallTimeCheck,
+} from './eventTime';
 export {timeBlocksStore} from './timeBlocksStore';
 export type {TimeBlock} from './timeBlocksStore';
 export {chatStore, CHAT_PAGE_SIZE, InvalidChatCursorError} from './chatStore';

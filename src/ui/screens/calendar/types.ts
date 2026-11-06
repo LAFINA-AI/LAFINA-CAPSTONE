@@ -1,5 +1,6 @@
 import type { Task, Event, TimeBlock } from '../../../storage';
 import { ImportBatch } from '../../../storage/importedBatchesStore';
+import type { EventFolds } from '../../../storage/eventTime';
 
 // ── View Modes ──
 /** The week view shows the chosen day's timeline under its strip, so there is no separate day view. */
@@ -105,7 +106,8 @@ export interface ScheduleItemModalState {
   openEdit: (item: Task | Event, type: 'task' | 'event') => void;
   close: () => void;
   updateField: <K extends keyof ScheduleItemForm>(key: K, value: ScheduleItemForm[K]) => void;
-  save: (recurrenceRule?: string | null) => void;
+  /** `folds` answers a repeated-time question for an event (AGY-PORT 08). */
+  save: (recurrenceRule?: string | null, folds?: EventFolds) => void;
   delete: (id: string, type: 'task' | 'event') => void;
   setShowTimePicker: (show: boolean) => void;
   setShowEndTimePicker: (show: boolean) => void;

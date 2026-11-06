@@ -29,6 +29,7 @@ import {onlineChatSkill} from '../../src/skills/onlineChatSkill';
 import {documentSkill} from '../../src/skills/documentSkill';
 import {ChatScreen} from '../../src/ui/screens/ChatScreen';
 import {CalendarScreen} from '../../src/ui/screens/calendar';
+import {addDaysToDate} from '../../src/storage/eventTime';
 import {ThemeProvider} from '../../src/ui/contexts/ThemeContext';
 import {chatDraftStore} from '../../src/ui/drafts/chatDraftStore';
 
@@ -207,7 +208,13 @@ describe('AGY-PORT 06 planner replies and guide', () => {
         hasConflict: true,
         conflictingTitle: 'Weekly lab',
       });
-      expect(windowSpy).toHaveBeenCalledWith(me, TOMORROW, TOMORROW);
+      // AGY-PORT 08: the day before and after are read in the same one query,
+      // so overnight items that cross midnight are seen.
+      expect(windowSpy).toHaveBeenCalledWith(
+        me,
+        addDaysToDate(TOMORROW, -1),
+        addDaysToDate(TOMORROW, 1),
+      );
 
       windowSpy.mockClear();
       const slot = chatOrchestrator.recommendAvailableSlot(me, TOMORROW, 120);

@@ -366,7 +366,7 @@ describe('AGY-PORT 06 bounded planner queries', () => {
       try {
         const schema = (
           db.executeSync(
-            "SELECT sql FROM sqlite_master WHERE sql IS NOT NULL AND type IN ('table', 'index') AND tbl_name IN ('tasks', 'events', 'time_blocks') ORDER BY CASE type WHEN 'table' THEN 0 ELSE 1 END",
+            "SELECT sql FROM sqlite_master WHERE sql IS NOT NULL AND type IN ('table', 'index') AND tbl_name IN ('tasks', 'events', 'time_blocks', 'event_time_local') ORDER BY CASE type WHEN 'table' THEN 0 ELSE 1 END",
           ).rows || []
         ).map((row: any) => String(row.sql));
         for (const statement of schema) copy.exec(statement);
@@ -406,7 +406,9 @@ describe('AGY-PORT 06 bounded planner queries', () => {
       statements.forEach(({sql, params}, index) => {
         const plan = planOf(sql, params);
         expect(plan).toContain(expected[index]);
-        expect(plan).not.toMatch(/SCAN (tasks|events|time_blocks)\b(?! USING)/);
+        // AGY-PORT 08 aliases the scheduled tables as `t` and joins the
+        // device-local event timezone metadata as `m` (by primary key).
+        expect(plan).not.toMatch(/SCAN (tasks|events|time_blocks|t|m)\b(?! USING)/);
       });
     });
 

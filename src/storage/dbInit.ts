@@ -22,6 +22,7 @@ import {migrateChatOwnership} from './chatOwnership';
 import {migrateReminderDelivery} from './deliverySchema';
 import {migrateAssistantOperations} from './assistantOperationSchema';
 import {migrateNotesSearch} from './notesSearchSchema';
+import {migrateEventTime} from './eventTimeSchema';
 
 export interface SchemaMigration {
   /** The `user_version` this step produces. */
@@ -69,6 +70,14 @@ export const SCHEMA_MIGRATIONS: readonly SchemaMigration[] = [
       'Derived, revision-stamped Notes search cache with invalidation triggers (AGY-PORT 07)',
     up: tx => {
       migrateNotesSearch(tx);
+    },
+  },
+  {
+    version: 22,
+    description:
+      'Device-local event timezone metadata with wall-time invalidation triggers (AGY-PORT 08)',
+    up: tx => {
+      migrateEventTime(tx);
     },
   },
 ];
