@@ -1,0 +1,26 @@
+$ node --test scripts/tests/stt-metrics.test.cjs scripts/tests/doctor.test.mjs
+✔ requirements come from the project files (1.7844ms)
+✔ everything present passes, bounded, without printing the environment (0.894ms)
+✔ a missing NDK or CMake fails with the derived version named (0.3577ms)
+✔ wrong JDK major, a timeout and a failing java are failures (0.5161ms)
+✔ missing JAVA_HOME, SDK or declarations fail; old Node fails (0.4683ms)
+✔ a long Windows checkout path warns about MAX_PATH but is not a failure (0.3263ms)
+✔ engines range parsing (0.2284ms)
+✔ the real adapter refuses .env and signing files (0.6738ms)
+✔ exact, substitution, deletion and insertion counts (2.3736ms)
+✔ normalization: case, punctuation, apostrophes and unicode width (0.235ms)
+✔ bounds: oversized, control characters and too many words are refused (0.3237ms)
+✔ timings: median, nearest-rank p95 and refusal of invalid values (0.292ms)
+✔ a complete self-test cohort is labelled as not recognition evidence (3.3053ms)
+✔ empty and error attempts are counted as missing words, never dropped (0.834ms)
+✔ incomplete, duplicate, wrong corpus, wrong engine and non-Whisper cohorts are refused (0.7911ms)
+✔ reports are written only as new files inside the evidence folder (10.3977ms)
+ℹ tests 16
+ℹ suites 0
+ℹ pass 16
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 130.5633
+exit=0

@@ -1,0 +1,12 @@
+{
+  "version": 1,
+  "classification": "PUBLIC_SYNTHETIC_ENGLISH_TEXT",
+  "samples": [
+    {"id": "remind-quiz", "reference": "Remind me about my math quiz tomorrow at eight in the morning"},
+    {"id": "add-event", "reference": "Add a capstone meeting on Friday from two to three in the afternoon"},
+    {"id": "free-time", "reference": "When am I free this Thursday afternoon"},
+    {"id": "snooze", "reference": "Snooze this reminder for ten minutes"},
+    {"id": "note-search", "reference": "Find my notes about the student handbook"},
+    {"id": "next-class", "reference": "What is my next class today"}
+  ]
+}

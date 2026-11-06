@@ -1,0 +1,21 @@
+$ AGY_EVALUATION_OUTPUT=docs/plans/agy-improvements/reports/evidence/agy-port-20261106/phase-12/evaluation-{kind}-1.json npx jest evaluationContracts
+
+Test Suites: 1 passed, 1 total
+Tests:       93 passed, 93 total
+Snapshots:   0 total
+Time:        3.114 s
+Ran all test suites matching /evaluationContracts/i.
+$ AGY_QA_SQL_OUTPUT=docs/plans/agy-improvements/reports/evidence/agy-port-20261106/phase-12/qa-sql-1.json npx jest qaSqlChecks.test
+
+Test Suites: 1 passed, 1 total
+Tests:       6 passed, 6 total
+Snapshots:   0 total
+Time:        4.519 s
+Ran all test suites matching /qaSqlChecks.test/i.
+$ npx jest offlineNetworkSentinel offlineBoundary
+
+Test Suites: 2 passed, 2 total
+Tests:       15 passed, 15 total
+Snapshots:   0 total
+Time:        2.566 s
+Ran all test suites matching /offlineNetworkSentinel|offlineBoundary/i.
