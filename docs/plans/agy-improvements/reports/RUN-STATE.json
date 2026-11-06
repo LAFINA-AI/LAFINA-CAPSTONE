@@ -3,7 +3,7 @@
   "pack_prepared_date": "2026-11-06",
   "timezone": "Asia/Manila",
   "run_id": "agy-port-20261106",
-  "run_status": "IN_PROGRESS",
+  "run_status": "FINISHED_PARTIAL",
   "model_requested": "claude-opus-5-5",
   "actual_model": "claude-opus-5-5",
   "base_branch": "agy-development-cont",
@@ -12,7 +12,7 @@
   "work_branch": "codex/agy-preservation-improvements",
   "worktree": "C:/L3mxr/Github Repositories/LAFINA-CAPSTONE-agy-development-cont",
   "donor_head": "0d4bbe39e106c29fb90792cf5d2f916b5c0d6480",
-  "last_tested_head": "574e6e1+worktree (Phase 12)",
+  "last_tested_head": "d986c3b (Phase 13 final gates; code identical to a152bcb)",
   "last_committed_head": "a152bcbbe58c3f76099733e9204662d804f996fe",
   "current_phase": "AGY-PORT-13",
   "phases": [
@@ -508,18 +508,28 @@
         29,
         30
       ],
-      "implementation": "NOT_STARTED",
-      "automated": "NOT_RUN",
-      "build": "NOT_RUN",
+      "implementation": "CODE_COMPLETE (integration review, fresh gates/builds, handoff docs)",
+      "automated": "PASS",
+      "build": "PASS (bundle executed; dataQa 9 executed/247 up-to-date; debug up-to-date; Kotlin 43 rerun)",
       "device": "NOT_RUN",
       "live_service": "NOT_RUN",
-      "base_head": null,
-      "tested_head": null,
+      "base_head": "d986c3b",
+      "tested_head": "d986c3b (code identical to a152bcb; only the run log dirty)",
       "result_commit": null,
-      "report": null,
-      "evidence": [],
-      "continuation": null,
-      "notes": []
+      "report": "phase-13-integration.md",
+      "evidence": [
+        "evidence/agy-port-20261106/phase-13/"
+      ],
+      "continuation": "RUN_FINISHED",
+      "notes": [
+        "preflight-1 46 suites, 684 passed + 1 skipped (base 15 suites / 163 tests); architecture 215 modules",
+        "final dataQa arm64 ef264311...e87e19, x86_64 58470f2f...bfd5e; audits PASS; identity/signer unchanged",
+        "integrated regressions: none; no unit reverted; 3 pre-existing tests adapted with labels, none weakened",
+        "inventory: 21 CODE_COMPLETE, 7 PARTIAL (2, 14, 17, 24, 25, 26, 27), 2 DEFERRED_EXTERNAL (29, 30)",
+        "hygiene: 0 secret-pattern matches; no binaries/env/keystore; donor at pin, untouched; backend not present",
+        "log rows 57-70 had estimated times; dated CORRECTION row appended",
+        "self-reviews only; no independent review completed in this run"
+      ]
     }
   ],
   "required_target_root": "C:\\L3mxr\\Github Repositories\\LAFINA-CAPSTONE-agy-development-cont",

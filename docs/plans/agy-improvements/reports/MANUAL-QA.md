@@ -1,8 +1,40 @@
 # Manual acceptance — NOT RUN
 
-Implementation run: NOT STARTED. Artifact: **NO ARTIFACT PRODUCED**. Do not install a nonexistent path or an unrelated donor APK.
+Implementation run `agy-port-20261106` is finished (PARTIAL, see SUMMARY.md). **Every check below is NOT_RUN.** No phone, emulator or live service was used in this run.
 
-At final handoff fill actual work branch/tested HEAD, QA variant/ABI/applicationId/version/hash, signature/update compatibility, asset/model hashes and non-sensitive authorized test-device model/API. Keep private data/credentials/audio/serials out of reports. Never uninstall or clear saved data to hide an update issue.
+## Artifacts produced (build outputs; not committed)
+
+These APKs are on the build machine only.
+
+- **Built from:** branch `codex/agy-preservation-improvements`. The app code is identical at `a152bcb` and at the final HEAD.
+- **Receipts:** `evidence/agy-port-20261106/phase-13/` (`apk-audit-final-*-1.json`, `sdk-tools-final-1.log`, `artifact-hashes-final-1.txt`).
+
+| File (under `android/app/build/outputs/apk/`) | Use | Bytes | SHA-256 |
+|---|---|---|---|
+| `dataQa/app-arm64-v8a-dataQa.apk` | **Phones.** Standalone (bundled JS, no Metro) | 163,257,936 | `ef264311182ce10299b2b87a281af7c628b9824e67d45710dc2c1fa349e87e19` |
+| `dataQa/app-x86_64-dataQa.apk` | Emulators only | 169,577,888 | `58470f2f9d4ba972e43af6da32839d708aace5124c36703759e6603a699bfd5e` |
+| `debug/app-arm64-v8a-debug.apk` | Development with Metro | 159,718,559 | `0629c828072dfd5c3f8ab27e0f9838251965d78018dbf9ff32b2a0cc6d2b466e` |
+| `debug/app-x86_64-debug.apk` | Development with Metro, emulator | 166,317,039 | `0756c1236c0a5f1942feb6de651acd470d71606825813629146e8f54d073d63a` |
+
+**dataQa facts** (`aapt2`, `apksigner`, `zipalign`, `apk_audit.py`):
+
+- Package `com.lafina.capstone`, versionCode 6, versionName `0.6.0-data-qa`, target/compile SDK 36, debuggable.
+- v2 signature: `CN=Android Debug`, certificate SHA-256 `acf890c33d9f7252cca541e5c60166fdf49d47b28313bf678bebb8fb0f62dd5e`.
+- ONNX Runtime 1.22.0. All 16 native libraries have 16 KiB-aligned load segments, and ZIP alignment passes.
+- Whisper `ggml-base.en-q5_1.bin` and `silero_vad.onnx` are present; no Kokoro.
+- Packaged JS bundle SHA-256: `e448f8ea…a91c`.
+
+**Safe in-place update:**
+
+1. Use only the arm64 dataQa APK on a phone.
+2. Check its SHA-256 against the table above before installing.
+3. Install with `adb install -r <apk>` or the on-phone installer, over an existing `com.lafina.capstone` that is signed by the same debug certificate. Data is kept.
+4. If Android reports `INSTALL_FAILED_UPDATE_INCOMPATIBLE`, stop. Never uninstall or clear data to get past it.
+5. It installs over versionCode 6 or lower, never over a higher one.
+6. Before updating, write down your task/event/note counts, one armed reminder and the account state. Compare them afterwards (M16).
+7. This build is debuggable. Do not hand it out as a release.
+
+Keep private data, credentials, audio and device serials out of any report you add.
 
 | ID | Later concrete check | Expected result | Current status |
 |---|---|---|---|

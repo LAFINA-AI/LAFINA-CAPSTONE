@@ -1,24 +1,24 @@
 # Preserved AGY features
 
-Run `agy-port-20261106`. Baseline HEAD `b9433dc` plus the characterization suite `__tests__/preservation/agyPreservedContracts.test.ts`. Fake cloud adapters are contract evidence, never live results. Device and live columns stay NOT_RUN until someone actually observes them.
+Run `agy-port-20261106`. Baseline HEAD `b9433dc` plus the characterization suite `__tests__/preservation/agyPreservedContracts.test.ts`. Fake cloud adapters are contract evidence, never live results. Final column: fresh `phase-13/preflight-1.log` at `d986c3b` (46 suites, 684 passed + 1 opt-in skipped) and the Phase 13 Kotlin run. Device and live columns stay NOT_RUN until someone actually observes them.
 
 Baseline command: `npx jest --runInBand` gave 16 suites and 194 tests, all passing (163 pre-existing plus 31 characterization). Native baseline: 14 Kotlin unit tests pass and debug APKs build, using JDK 17 and an `X:` alias of this checkout. Evidence: `evidence/agy-port-20261106/phase-00/`.
 
 | PF ID | Feature | Baseline tests/result | Seams the port touches | Final tests/result | Device/live status |
 |---|---|---|---|---|---|
-| PF01 | Accounts and guest onboarding | PASS: `phase01Storage`, `phase01AuthAndProfileScreens` | `userStore`, `database`, startup | Pending | NOT_RUN |
-| PF02 | Tiers and entitlements | PASS: preservation PF02 matrix, `phase05` speech gating, `phase09` meetings | `entitlements`, Profile | Pending | NOT_RUN |
-| PF03 | Guest linking | PASS: preservation PF03 (rekey, outbox rebuild, rollback), `phase02` | `guestMigration` | Pending | NOT_RUN |
-| PF04 | Seven-type cloud sync | PASS: preservation PF04 (frozen payload fields, batch envelope, ack); `syncWorker` had no direct test before this run | `syncWorker`, outbox | Pending | NOT_RUN |
-| PF05 | Offline and online Chat routing | PASS: preservation PF05 (all 16 intents with network sentinel), `phase07`, `phase08` | `actionExecutor`, `chatOrchestrator` | Pending | NOT_RUN |
-| PF06 | Handbook RAG and citations | PASS: `phase10`, preservation PF06 | Chat UI, `chatStore` | Pending | NOT_RUN |
-| PF07 | Documents and attachments | PASS: `phase09`, preservation PF07 | `chatStore`, `chatFiles` | Pending | NOT_RUN |
-| PF08 | Meetings and consent | PASS: `phase09` (keepAudio, consent, import) | `LafinaMicrophoneLease`, meeting module | Pending | NOT_RUN |
-| PF09 | Whisper/system/online speech | PASS: `phase05`, `phase06`, `ttsService`, preservation PF09 | `ttsService`, STT module | Pending | NOT_RUN |
-| PF10 | UI/navigation/settings | PASS: `phase01ThemeAndTour`, `phase02CalendarAndNotesScreens`, `App.test` | Chat, Calendar, Notes, Profile screens | Pending | NOT_RUN |
-| PF11 | Reminder calls and identity | PASS: `phase03`, `callDispatcherAndCallScreen`, preservation PF11 | reminder native module, poller | Pending | NOT_RUN |
-| PF12 | Data/error/privacy recovery | PARTIAL: rollback covered by PF03; a production no-op storage fallback is a known defect that AGY-PORT 01 fixes | `database`, `dbInit` | Pending | NOT_RUN |
-| PF13 | Android/native/update identity | PASS: preservation PF13 (static identity checks) | `build.gradle`, manifest | Pending | NOT_RUN |
+| PF01 | Accounts and guest onboarding | PASS: `phase01Storage`, `phase01AuthAndProfileScreens` | `userStore`, `database`, startup | PASS at d986c3b: `phase01Storage`, `phase01AuthAndProfileScreens`, `storageRecovery`, `chatOwnership` | NOT_RUN |
+| PF02 | Tiers and entitlements | PASS: preservation PF02 matrix, `phase05` speech gating, `phase09` meetings | `entitlements`, Profile | PASS: preservation PF02, `phase05TtsAndCloudSpeech`, `phase09OnlineDocsAndMeetings`, `agyPort10OfflineVoice` (fake cloud only) | NOT_RUN |
+| PF03 | Guest linking | PASS: preservation PF03 (rekey, outbox rebuild, rollback), `phase02` | `guestMigration` | PASS: preservation PF03, `phase02CalendarAndNotes`, `chatOwnership`, `agyPort07Notes`, `auditA3ClearAllData` | NOT_RUN |
+| PF04 | Seven-type cloud sync | PASS: preservation PF04 (frozen payload fields, batch envelope, ack); `syncWorker` had no direct test before this run | `syncWorker`, outbox | PASS: preservation PF04 seven-type freeze, `agyPort08EventTime` old-server round trip, `agyPort07Notes` and `agyPort04` sync cases (fake server) | NOT_RUN |
+| PF05 | Offline and online Chat routing | PASS: preservation PF05 (all 16 intents with network sentinel), `phase07`, `phase08` | `actionExecutor`, `chatOrchestrator` | PASS: preservation PF05, `agyPort04ReviewedCommands`, `agyPort06PlannerReplies`, `evaluationContracts` (16 intents), `offlineNetworkSentinel`, `phase07`, `phase08`. Intentional: review before Confirm | NOT_RUN |
+| PF06 | Handbook RAG and citations | PASS: `phase10`, preservation PF06 | Chat UI, `chatStore` | PASS: `phase10HandbookRAG`, preservation PF06 (fake cloud) | NOT_RUN |
+| PF07 | Documents and attachments | PASS: `phase09`, preservation PF07 | `chatStore`, `chatFiles` | PASS: `phase09OnlineDocsAndMeetings` documents, preservation PF07, `chatHistoryPaging` | NOT_RUN |
+| PF08 | Meetings and consent | PASS: `phase09` (keepAudio, consent, import) | `LafinaMicrophoneLease`, meeting module | PASS: `phase09` meetings, `agyPort05SpeechCapture`, Kotlin `MicrophoneLeaseTest` | NOT_RUN |
+| PF09 | Whisper/system/online speech | PASS: `phase05`, `phase06`, `ttsService`, preservation PF09 | `ttsService`, STT module | PASS: preservation PF09, `phase05`, `phase06`, `ttsService`, `agyPort10Speech`, `auditA1OfflineEligibility`, speech contract. Intentional: text when no confirmed offline voice | NOT_RUN |
+| PF10 | UI/navigation/settings | PASS: `phase01ThemeAndTour`, `phase02CalendarAndNotesScreens`, `App.test` | Chat, Calendar, Notes, Profile screens | PASS: `phase01ThemeAndTour`, `phase02CalendarAndNotesScreens`, `App.test`, `agyPort04ReviewUi`, `agyPort07NotesUi`, `agyPort08EventForm`, `agyPort09ProfileHealth`, `auditA2CalendarReadErrors` | NOT_RUN |
+| PF11 | Reminder calls and identity | PASS: `phase03`, `callDispatcherAndCallScreen`, preservation PF11 | reminder native module, poller | PASS: `phase03ReminderScheduler`, `callDispatcherAndCallScreen`, `agyPort03Delivery`, `agyPortReminderOwnership`, `agyPort05CallBusyMic`, `auditA4InterruptedReconcile`, preservation PF11, Kotlin `LafinaDeliveryContractTest`. Residual: force-stop during a background reconcile may ring once (ADR-023) | NOT_RUN |
+| PF12 | Data/error/privacy recovery | PARTIAL: rollback covered by PF03; a production no-op storage fallback is a known defect that AGY-PORT 01 fixes | `database`, `dbInit` | PASS (baseline PARTIAL fixed in 01): `storageRecovery`, `storageResilience`, `schemaMigrations`, `auditA3ClearAllData`, `qaSqlChecks` | NOT_RUN |
+| PF13 | Android/native/update identity | PASS: preservation PF13 (static identity checks) | `build.gradle`, manifest | PASS: preservation PF13; Phase 13 APK receipts show the same package, versionCode 6, debug signer and permissions | NOT_RUN |
 
 ## Per-phase results
 
@@ -38,3 +38,4 @@ Baseline command: `npx jest --runInBand` gave 16 suites and 194 tests, all passi
 | audit A1-A4 | c85b023 + worktree | PF01-PF13 PASS (full suite); PF02, PF03-PF05, PF09, PF10 directly exercised | Intentional (PF09/PF10): local speech plays only with an Android-confirmed installed offline English voice; otherwise text, as callers already did on TTS failure. Calendar shows a read-error warning instead of an empty week. Clear All Data also forgets event defaults (offline voice, theme, time format kept and stated). Reconcile native calls bounded at 5 s. PF02 cloud speech entitlement/fallback unchanged; no existing test changed; device NOT_RUN |
 | 11 | 2d62e05 + worktree | PF01-PF13 PASS (full suite); PF08, PF09, PF11-PF13 native modules built and packaged | Intentional: ONNX Runtime 1.19.2 -> 1.22.0 (ADR-024; Silero VAD API identical; +~18 MB per APK). No JS/Kotlin change; package, versionCode, signer, updater and permissions unchanged; dataQa kept as the standalone QA variant; device NOT_RUN |
 | 12 | 574e6e1 + worktree | PF01-PF13 PASS (full suite); each PF mapped to a named test that must keep existing; PF05 all 16 intents in a frozen fixture and zero network at runtime | No intentional behavior change: no src/ or android/ file changed. Online Chat, documents, meetings and cloud speech kept outside offline leaves, not narrowed; device NOT_RUN |
+| 13 | d986c3b (code = a152bcb) | PF01-PF13 PASS (fresh full suite; final column filled per PF) | No change. Final dataQa receipts show unchanged package, versionCode, signer and permissions; device and live NOT_RUN for all 13 |

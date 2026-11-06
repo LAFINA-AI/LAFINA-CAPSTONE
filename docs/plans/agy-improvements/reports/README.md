@@ -1,5 +1,7 @@
 # Execution results — initially empty
 
+> **2026-11-06: run `agy-port-20261106` was executed. Its results are in [SUMMARY.md](SUMMARY.md) (overall PARTIAL).** The paragraph below describes the pack as it was first delivered.
+
 This pack is **NOT EXECUTED**. No phase has been implemented or tested by the pack. The reference/baseline directory contains earlier static-comparison evidence, not implementation results.
 
 Claude must maintain:
