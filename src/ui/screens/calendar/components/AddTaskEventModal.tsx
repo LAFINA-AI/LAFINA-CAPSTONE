@@ -28,6 +28,7 @@ import {
   isRealDate,
   isWallTime,
 } from '../../../../storage/eventTime';
+import { personalMemoryStore } from '../../../../storage/personalMemoryStore';
 
 interface AddTaskEventModalProps {
   state: ScheduleItemModalState;
@@ -207,6 +208,24 @@ export const AddTaskEventModal: React.FC<AddTaskEventModalProps> = ({ state, tim
             <Text testID="event-zone-hint" style={[styles.timeHint, { color: colors.textSecondary }]}>
               {zoneHint}
             </Text>
+          )}
+          {state.modalType === 'event' && !state.editingItem && state.memoryOffer && state.applyMemoryOffer && (
+            <View
+              testID="event-memory-offer"
+              style={[styles.memoryOffer, { borderColor: colors.border, backgroundColor: colors.inputBg }]}
+            >
+              <Text style={[styles.memoryOfferText, { color: colors.textSecondary }]}>
+                {`Your saved defaults: ${personalMemoryStore.describe(state.memoryOffer.value)}`}
+              </Text>
+              <TouchableOpacity
+                accessibilityRole="button"
+                accessibilityLabel="Apply saved event defaults to this draft"
+                onPress={state.applyMemoryOffer}
+                style={styles.memoryOfferButton}
+              >
+                <Text style={[styles.memoryOfferButtonText, { color: colors.blue }]}>Apply</Text>
+              </TouchableOpacity>
+            </View>
           )}
 
           {state.modalType === 'task' && (
@@ -500,6 +519,27 @@ const styles = StyleSheet.create({
     fontSize: 12,
     marginTop: -4,
     marginBottom: 12,
+  },
+  memoryOffer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderRadius: 8,
+    paddingVertical: 8,
+    paddingHorizontal: 10,
+    marginBottom: 12,
+  },
+  memoryOfferText: {
+    flex: 1,
+    fontSize: 12,
+  },
+  memoryOfferButton: {
+    paddingVertical: 6,
+    paddingHorizontal: 10,
+  },
+  memoryOfferButtonText: {
+    fontSize: 13,
+    fontWeight: '600',
   },
   timePickerBtn: {
     borderWidth: 1,

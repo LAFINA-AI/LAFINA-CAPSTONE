@@ -20,6 +20,11 @@ import {
   resolveEventZoneTiming,
 } from '../../../../storage/eventTime';
 import type { EventFolds } from '../../../../storage/eventTime';
+import {
+  applyEventMemoryToDraft,
+  personalMemoryStore,
+} from '../../../../storage/personalMemoryStore';
+import type { EventMemoryOffer } from '../../../../storage/personalMemoryStore';
 
 interface UseScheduleItemModalOptions {
   userId: string;
@@ -79,6 +84,9 @@ export const useScheduleItemModal = (options: UseScheduleItemModalOptions): Sche
   const [form, setForm] = useState<ScheduleItemForm>(defaultForm());
   const [showTimePicker, setShowTimePicker] = useState(false);
   const [showEndTimePicker, setShowEndTimePicker] = useState(false);
+  // AGY-PORT 09: saved defaults are offered on a new event draft only, and
+  // change the draft only when the student taps Apply.
+  const [memoryOffer, setMemoryOffer] = useState<EventMemoryOffer | null>(null);
 
   const updateField = useCallback(<K extends keyof ScheduleItemForm>(key: K, value: ScheduleItemForm[K]) => {
     setForm(prev => {
@@ -101,12 +109,37 @@ export const useScheduleItemModal = (options: UseScheduleItemModalOptions): Sche
     setModalType(type);
     setEditingItem(null);
     setForm(defaultForm());
+    let offer: EventMemoryOffer | null = null;
+    if (type === 'event') {
+      try {
+        offer = personalMemoryStore.offer(userId);
+      } catch (err) {
+        console.warn('[Calendar] Saved event defaults unavailable:', err);
+      }
+    }
+    setMemoryOffer(offer);
     setVisible(true);
-  }, []);
+  }, [userId]);
+
+  const applyMemoryOffer = useCallback(() => {
+    if (!memoryOffer) return;
+    try {
+      const value = personalMemoryStore.apply(memoryOffer, userId);
+      setForm(prev => ({ ...prev, ...applyEventMemoryToDraft(value, prev) }));
+    } catch (err) {
+      console.warn('[Calendar] Saved event defaults changed:', err);
+      Alert.alert(
+        'Saved defaults changed',
+        'Your saved event defaults changed or expired. The draft was not changed.',
+      );
+    }
+    setMemoryOffer(null);
+  }, [memoryOffer, userId]);
 
   const openEdit = useCallback((item: Task | Event, type: 'task' | 'event') => {
     setModalType(type);
     setEditingItem(item);
+    setMemoryOffer(null);
     setForm({
       title: item.title,
       // The item's own date (AGY-PORT 06): editing an overdue or other-day item
@@ -123,7 +156,10 @@ export const useScheduleItemModal = (options: UseScheduleItemModalOptions): Sche
     setVisible(true);
   }, []);
 
-  const close = useCallback(() => setVisible(false), []);
+  const close = useCallback(() => {
+    setMemoryOffer(null);
+    setVisible(false);
+  }, []);
 
   const save = useCallback((recurrenceRule?: string | null, folds: EventFolds = {}) => {
     if (!form.title.trim()) {
@@ -341,5 +377,7 @@ export const useScheduleItemModal = (options: UseScheduleItemModalOptions): Sche
     delete: handleDelete,
     setShowTimePicker,
     setShowEndTimePicker,
+    memoryOffer,
+    applyMemoryOffer,
   };
 };
