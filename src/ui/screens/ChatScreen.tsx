@@ -23,6 +23,7 @@ import {
   FileText,
   Presentation,
   AudioLines,
+  Lightbulb,
 } from 'lucide-react-native';
 import { Fonts, FontSize, Layout, Spacing } from '../theme';
 import { useTheme } from '../contexts/ThemeContext';
@@ -47,6 +48,7 @@ import { ChatMessageItem } from '../components/chat/ChatMessageItem';
 import { ChatInput } from '../components/chat/ChatInput';
 import { TypingBubble } from '../components/chat/TypingBubble';
 import { CommandReviewCard } from '../components/chat/CommandReviewCard';
+import { CommandGuide } from '../components/chat/CommandGuide';
 import { useCommandReview } from '../hooks/useCommandReview';
 import { useDraftProtection } from '../hooks/useDraftProtection';
 import { DraftDecisionDialog } from '../components/DraftDecisionDialog';
@@ -115,6 +117,7 @@ export const ChatScreen: React.FC<ChatScreenProps> = ({
   );
   const [formatPickerOpen, setFormatPickerOpen] = useState(false);
   const [meetingsModalVisible, setMeetingsModalVisible] = useState(false);
+  const [guideVisible, setGuideVisible] = useState(false);
   const [isKeyboardVisible, setIsKeyboardVisible] = useState(false);
   const [keyboardHeight, setKeyboardHeight] = useState(0);
   const insets = useSafeAreaInsets();
@@ -662,6 +665,16 @@ export const ChatScreen: React.FC<ChatScreenProps> = ({
         <View style={styles.headerRight}>
           <TouchableOpacity
             style={[styles.headerIconButton, themed.headerButton]}
+            onPress={() => setGuideVisible(true)}
+            accessibilityRole="button"
+            accessibilityLabel="Show what you can ask"
+            testID="chat-guide-button"
+          >
+            <Lightbulb size={15} color={colors.textSecondary} />
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={[styles.headerIconButton, themed.headerButton]}
             onPress={() => setMeetingsModalVisible(true)}
             accessibilityRole="button"
             accessibilityLabel="Open Lecture and Meeting Recorder"
@@ -849,6 +862,20 @@ export const ChatScreen: React.FC<ChatScreenProps> = ({
           );
         })}
       </ToolSheet>
+
+      {/* AGY-PORT 06: an example only fills the draft; unsent text is kept unless replaced. */}
+      <CommandGuide
+        visible={guideVisible}
+        onClose={() => setGuideVisible(false)}
+        onSelect={(command) => {
+          setGuideVisible(false);
+          draft.offerText(command, undefined, {
+            title: 'Replace your draft?',
+            message:
+              'Keep your current text, or replace it with this example. Nothing will be sent.',
+          });
+        }}
+      />
 
       <DraftDecisionDialog request={draft.dialog} testIDPrefix="chat-draft" />
 

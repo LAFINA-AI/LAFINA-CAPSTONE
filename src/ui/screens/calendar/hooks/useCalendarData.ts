@@ -1,11 +1,11 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { ViewMode, CalendarData } from '../types';
 import type { TimeBlock, Task, Event } from '../../../../storage';
-import { timeBlocksStore, tasksStore, userStore } from '../../../../storage';
+import { userStore } from '../../../../storage';
+import { plannerQueries } from '../../../../storage/plannerQueries';
 
 import { importedBatchesStore, ImportBatch } from '../../../../storage/importedBatchesStore';
 import { calendarVisibilityStore } from '../../../../storage/calendarVisibilityStore';
-import { getOccurrences } from '../../../../storage/rruleHelper';
 import { generateIcsString, parseIcsString } from '../../../../storage/icsHelper';
 import { pick, isErrorWithCode, errorCodes } from '@react-native-documents/picker';
 import RNFS from 'react-native-fs';
@@ -24,8 +24,25 @@ interface UseCalendarDataOptions {
   propOnViewModeChange?: (mode: ViewMode) => void;
 }
 
+/** Calendar's own occurrence IDs are `${id}_occur_${date}`; visibility uses the base ID. */
+const baseIdOf = (id: string): string => {
+  const at = id.indexOf('_occur_');
+  return at < 0 ? id : id.slice(0, at);
+};
+
+const toLocalDate = (d: Date): string => {
+  const year = d.getFullYear();
+  const month = `${d.getMonth() + 1}`.padStart(2, '0');
+  const day = `${d.getDate()}`.padStart(2, '0');
+  return `${year}-${month}-${day}`;
+};
+
+/** Overdue chips shown at most; the total is still reported. */
+export const OVERDUE_LIMIT = 100;
+
 export const useCalendarData = (options: UseCalendarDataOptions): CalendarData & {
   getOverdueTasks: () => Task[];
+  overdueTotal: number;
 } => {
   const { userId, refreshTrigger, onRefresh, propViewMode, propOnViewModeChange } = options;
 
@@ -40,6 +57,7 @@ export const useCalendarData = (options: UseCalendarDataOptions): CalendarData &
   const [events, setEvents] = useState<Event[]>([]);
   const [allTasks, setAllTasks] = useState<Task[]>([]);
   const [allEvents, setAllEvents] = useState<Event[]>([]);
+  const [overdue, setOverdue] = useState<{ items: Task[]; total: number }>({ items: [], total: 0 });
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [timeFormat24h, setTimeFormat24h] = useState(false);
   const [weekStartsMonday, setWeekStartsMonday] = useState(false);
@@ -107,7 +125,15 @@ export const useCalendarData = (options: UseCalendarDataOptions): CalendarData &
   }, [viewMode, selectedDate, currentDate]);
 
   const loadBlocks = useCallback(() => {
-    let rawData = timeBlocksStore.getAll(userId);
+    // AGY-PORT 06: only the visible window is read (recurrences expanded by SQL-bounded rows).
+    const { start: rangeStart, end: rangeEnd } = getViewRange();
+    let rawData: TimeBlock[];
+    try {
+      rawData = plannerQueries.window(userId, toLocalDate(rangeStart), toLocalDate(rangeEnd)).blocks;
+    } catch (error) {
+      console.error('[Calendar] Could not read time blocks:', error);
+      rawData = [];
+    }
 
     const importedBlockIds = new Set<string>();
     const hiddenBlockIds = new Set<string>();
@@ -124,40 +150,37 @@ export const useCalendarData = (options: UseCalendarDataOptions): CalendarData &
     });
 
     rawData = rawData.filter((block) => {
-      const isImported = importedBlockIds.has(block.id);
+      const id = baseIdOf(block.id);
+      const isImported = importedBlockIds.has(id);
       if (isImported) {
-        return !hiddenBlockIds.has(block.id);
+        return !hiddenBlockIds.has(id);
       } else {
         return !hideMain;
       }
     });
 
-    // Expand recurrence
-    const expandedBlocks: TimeBlock[] = [];
-    const { start: rangeStart, end: rangeEnd } = getViewRange();
-
-    rawData.forEach((block) => {
-      if (block.recurrenceRule) {
-        const dates = getOccurrences(block.date, block.recurrenceRule, rangeStart, rangeEnd);
-        dates.forEach((dateStr) => {
-          const isBase = dateStr === block.date;
-          expandedBlocks.push({
-            ...block,
-            id: isBase ? block.id : `${block.id}_occur_${dateStr}`,
-            date: dateStr,
-          });
-        });
-      } else {
-        expandedBlocks.push(block);
-      }
-    });
-
-    setBlocks(expandedBlocks);
+    setBlocks(rawData);
   }, [userId, batches, visibilityMap, getViewRange]);
 
   const loadScheduleData = useCallback(() => {
-    let rawTasks = tasksStore.getAllTasks(userId);
-    let rawEvents = tasksStore.getAllEvents(userId);
+    // AGY-PORT 06: the visible window only. Undated tasks stay in the paged
+    // UndatedTasksModal (AGY-PORT 04).
+    const { start: rangeStart, end: rangeEnd } = getViewRange();
+    let rawTasks: Task[] = [];
+    let rawEvents: Event[] = [];
+    try {
+      const visible = plannerQueries.window(userId, toLocalDate(rangeStart), toLocalDate(rangeEnd));
+      rawTasks = visible.tasks;
+      rawEvents = visible.events;
+    } catch (error) {
+      console.error('[Calendar] Could not read tasks and events:', error);
+    }
+    try {
+      setOverdue(plannerQueries.overdueTasks(userId, toLocalDate(new Date()), OVERDUE_LIMIT));
+    } catch (error) {
+      console.error('[Calendar] Could not read overdue tasks:', error);
+      setOverdue({ items: [], total: 0 });
+    }
 
     const importedTaskIds = new Set<string>();
     const hiddenTaskIds = new Set<string>();
@@ -181,58 +204,23 @@ export const useCalendarData = (options: UseCalendarDataOptions): CalendarData &
       });
     });
 
-    rawTasks = rawTasks.filter((t) => {
-      const isImported = importedTaskIds.has(t.id);
+    const expandedTasks = rawTasks.filter((t) => {
+      const id = baseIdOf(t.id);
+      const isImported = importedTaskIds.has(id);
       if (isImported) {
-        return !hiddenTaskIds.has(t.id);
+        return !hiddenTaskIds.has(id);
       } else {
         return !hideMain;
       }
     });
 
-    rawEvents = rawEvents.filter((e) => {
-      const isImported = importedEventIds.has(e.id);
+    const expandedEvents = rawEvents.filter((e) => {
+      const id = baseIdOf(e.id);
+      const isImported = importedEventIds.has(id);
       if (isImported) {
-        return !hiddenEventIds.has(e.id);
+        return !hiddenEventIds.has(id);
       } else {
         return !hideMain;
-      }
-    });
-
-    // Expand recurrence
-    const expandedTasks: Task[] = [];
-    const expandedEvents: Event[] = [];
-    const { start: rangeStart, end: rangeEnd } = getViewRange();
-
-    rawTasks.forEach((t) => {
-      if (t.recurrenceRule && t.dueDate) {
-        const dates = getOccurrences(t.dueDate, t.recurrenceRule, rangeStart, rangeEnd);
-        dates.forEach((dateStr) => {
-          const isBase = dateStr === t.dueDate;
-          expandedTasks.push({
-            ...t,
-            id: isBase ? t.id : `${t.id}_occur_${dateStr}`,
-            dueDate: dateStr,
-          });
-        });
-      } else {
-        expandedTasks.push(t);
-      }
-    });
-
-    rawEvents.forEach((e) => {
-      if (e.recurrenceRule && e.date) {
-        const dates = getOccurrences(e.date, e.recurrenceRule, rangeStart, rangeEnd);
-        dates.forEach((dateStr) => {
-          const isBase = dateStr === e.date;
-          expandedEvents.push({
-            ...e,
-            id: isBase ? e.id : `${e.id}_occur_${dateStr}`,
-            date: dateStr,
-          });
-        });
-      } else {
-        expandedEvents.push(e);
       }
     });
 
@@ -341,9 +329,11 @@ export const useCalendarData = (options: UseCalendarDataOptions): CalendarData &
 
   const handleExportCalendar = useCallback(async () => {
     try {
-      const allTasksData = tasksStore.getAllTasks(userId);
-      const allEventsData = tasksStore.getAllEvents(userId);
-      const allBlocksData = timeBlocksStore.getAll(userId);
+      // Explicit full export: every owned item, read in bounded batches (AGY-PORT 06).
+      const everything = plannerQueries.exportAll(userId);
+      const allTasksData = everything.tasks;
+      const allEventsData = everything.events;
+      const allBlocksData = everything.blocks;
       if (allTasksData.length === 0 && allEventsData.length === 0 && allBlocksData.length === 0) {
         Alert.alert('Export Calendar', 'Your calendar is empty. Nothing to export.');
         return;
@@ -476,18 +466,8 @@ export const useCalendarData = (options: UseCalendarDataOptions): CalendarData &
     setViewMode('week');
   }, [currentDate, setViewMode]);
 
-  const formatLocalDate = (d: Date): string => {
-    const year = d.getFullYear();
-    const month = `${d.getMonth() + 1}`.padStart(2, '0');
-    const day = `${d.getDate()}`.padStart(2, '0');
-    return `${year}-${month}-${day}`;
-  };
-
-  const getOverdueTasks = useCallback(() => {
-    const tasksData = tasksStore.getAllTasks(userId);
-    const todayStr = formatLocalDate(new Date());
-    return tasksData.filter((t) => t.dueDate && t.dueDate < todayStr && !t.isCompleted);
-  }, [userId]);
+  // Bounded and loaded with the schedule (no full read per render).
+  const getOverdueTasks = useCallback(() => overdue.items, [overdue]);
 
   return {
     currentDate,
@@ -513,6 +493,7 @@ export const useCalendarData = (options: UseCalendarDataOptions): CalendarData &
     loadBlocks,
     loadScheduleData,
     getOverdueTasks,
+    overdueTotal: overdue.total,
 
     // Visibility and Import/Export
     batches,

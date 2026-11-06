@@ -1,0 +1,31 @@
+started 2026-11-06T03:32:20Z node v24.19.0 host MINGW64_NT-10.0-26300
+  console.log
+    AGY_PORT_06_TIMING {"kind":"host-jest-node-sqlite-fixture","rowsPerOwner":{"tasks":10000,"events":10000,"time_blocks":10000},"owners":2,"weekWindowMs":12.208860000000005,"monthWindowMs":28.045470000000023,"legacyWeekFullReadMs":181.86794500000005,"overdueMs":4.122590000000036,"exportAllMs":819.3669999999996}
+
+      at Object.log (__tests__/storage/agyPort06PlannerQueries.test.ts:459:13)
+
+PASS __tests__/storage/agyPort06PlannerQueries.test.ts (17.125 s)
+  AGY-PORT 06 bounded planner queries
+    √ host fixture timing (AGY_MEASURE=1 only) (14299 ms)
+    window
+      ○ skipped matches the legacy full-read result on a large two-owner collection and never returns the other owner
+      ○ skipped includes completed dated tasks, excludes undated, empty-date and deleted rows
+      ○ skipped window edges are inclusive and recurrences use Calendar occurrence ids
+      ○ skipped rejects malformed or reversed windows instead of reading everything
+    overdue backlog
+      ○ skipped is bounded, oldest first, excludes completed/undated/empty-date/future/other-owner, and reports the exact total
+      ○ skipped caps an oversized limit at the maximum page size
+    undated paging (reused from AGY-PORT 04)
+      ○ skipped equal created_at timestamps never drop or repeat a row, and owners stay separate
+    explicit full export
+      ○ skipped returns every owned, non-deleted row in small keyset batches
+    SQL plans and error propagation
+      ○ skipped window and overdue reads use the owner/date indexes
+      ○ skipped storage errors are thrown, never turned into an empty schedule
+
+Test Suites: 1 passed, 1 total
+Tests:       10 skipped, 1 passed, 11 total
+Snapshots:   0 total
+Time:        17.467 s
+Ran all test suites matching /__tests__\\storage\\agyPort06PlannerQueries.test.ts/i with tests matching "host fixture timing".
+exit=0

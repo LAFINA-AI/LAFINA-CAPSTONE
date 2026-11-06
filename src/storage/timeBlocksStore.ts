@@ -18,7 +18,7 @@ export interface TimeBlock {
   deletedAt?: string | null;
 }
 
-const mapRowToBlock = (row: any): TimeBlock => ({
+export const mapRowToBlock = (row: any): TimeBlock => ({
   id: row.id,
   userId: row.user_id,
   title: row.title,

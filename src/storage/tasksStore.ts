@@ -33,7 +33,7 @@ export interface Event {
   deletedAt?: string | null;
 }
 
-const mapRowToTask = (row: any): Task => ({
+export const mapRowToTask = (row: any): Task => ({
   id: row.id,
   userId: row.user_id,
   title: row.title,
@@ -49,7 +49,7 @@ const mapRowToTask = (row: any): Task => ({
   deletedAt: row.deleted_at,
 });
 
-const mapRowToEvent = (row: any): Event => ({
+export const mapRowToEvent = (row: any): Event => ({
   id: row.id,
   userId: row.user_id,
   title: row.title,
