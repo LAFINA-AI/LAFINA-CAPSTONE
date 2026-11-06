@@ -288,6 +288,10 @@ Decisions:
      - Expected: "The microphone is being used by a recording. Use the buttons below." The buttons work, there is no auto-snooze, and the recording continues.
    - **i. Process death.** Force-stop the app during a meeting recording and reopen.
      - Expected: no permanent "microphone busy"; recovery state behaves as before.
+     - **Correction, 2026-11-06 (final audit F4).** Force Stop also puts the app into Android's stopped state, which is more than process death. Run this check both ways and record each:
+       - **Process death:** end the debuggable QA build's process on a designated test device without Force Stop.
+       - **Force Stop:** a separate case.
+       - See [MANUAL-QA.md](MANUAL-QA.md) M18 R1/R2. The item was never run, so no result changes.
    - **j. Import.** Import an audio file during idle: it works with no microphone involvement.
 3. **Failure fallback.** In every busy case, typing and buttons remain usable and no recording is lost.
 4. **Execution status.** Every item above is NOT_RUN: audible capture, real-microphone contention, FGS behavior and process-kill. They have not been observed.
