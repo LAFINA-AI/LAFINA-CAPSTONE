@@ -30,3 +30,4 @@ Append one event per start/end/deferral/resume/commit. Never replace old events.
 | 2026-11-06T04:05Z | agy-port-20261106 | 07 | GATE_FAIL | tested 4dbfc4b+worktree | preflight-1 exit 1: ESLint no-control-regex | phase-07/preflight-1.log kept; fixed and rerun |
 | 2026-11-06T04:1xZ | agy-port-20261106 | 07 | GATES | tested 4dbfc4b+worktree | preflight-4 PASS 32 suites/471 + 1 skipped; Gradle PASS (native unchanged); mutations N1-N5 fail as intended | phase-07/ (preflight-1..4, gradle-unit-assemble-1, mutation-checks, query-plans, query-plans-2) |
 | 2026-11-06T04:2xZ | agy-port-20261106 | 07 | COMMIT | Phase 07 files only; SHA recorded in the next event | CODE_COMPLETE; automated PASS; build PASS; device/live NOT_RUN | phase-07-notes.md |
+| 2026-11-06T04:2xZ | agy-port-20261106 | 07 | COMMITTED | result 168e0223a122607d107a05816fee264f6b8f89f3 | CODE_COMPLETE; automated PASS; build PASS; device/live NOT_RUN | phase-07-notes.md; next AGY-PORT 08 |
