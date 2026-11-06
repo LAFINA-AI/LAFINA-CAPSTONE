@@ -13,8 +13,8 @@
   "worktree": "C:/L3mxr/Github Repositories/LAFINA-CAPSTONE-agy-development-cont",
   "donor_head": "0d4bbe39e106c29fb90792cf5d2f916b5c0d6480",
   "last_tested_head": "d986c3b (Phase 13 final gates; code identical to a152bcb)",
-  "last_committed_head": "a152bcbbe58c3f76099733e9204662d804f996fe",
-  "current_phase": "AGY-PORT-13",
+  "last_committed_head": "448df7aefefed500cd737577be78e5d3273d02bc",
+  "current_phase": "NONE (run finished; owner device/live checks pending)",
   "phases": [
     {
       "id": "AGY-PORT-00",
@@ -515,7 +515,7 @@
       "live_service": "NOT_RUN",
       "base_head": "d986c3b",
       "tested_head": "d986c3b (code identical to a152bcb; only the run log dirty)",
-      "result_commit": null,
+      "result_commit": "448df7aefefed500cd737577be78e5d3273d02bc",
       "report": "phase-13-integration.md",
       "evidence": [
         "evidence/agy-port-20261106/phase-13/"
