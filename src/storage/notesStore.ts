@@ -17,7 +17,7 @@ export interface Note {
   deletedAt?: string | null;
 }
 
-const mapRowToNote = (row: any): Note => {
+export const mapRowToNote = (row: any): Note => {
   let tags: string[] = [];
   try {
     tags = JSON.parse(row.tags || '[]');

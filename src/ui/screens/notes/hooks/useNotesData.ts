@@ -1,7 +1,15 @@
 import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { Alert, Animated, LayoutAnimation, UIManager } from 'react-native';
-import type { Note } from '../../../../storage';
-import { localSettingsStore, notesStore, tasksStore } from '../../../../storage';
+import type { NoteSnapshot, NoteWriteTarget } from '../../../../storage';
+import {
+  isNoteEditConflict,
+  localSettingsStore,
+  NOTES_PAGE_SIZE,
+  notesEditStore,
+  notesQueryStore,
+  notesStore,
+  tasksStore,
+} from '../../../../storage';
 import { FilterType } from '../types';
 import {
   applyNoteFormat,
@@ -49,6 +57,15 @@ const BUILT_IN_FILTERS: readonly FilterType[] = [
   'Learning',
 ];
 
+/** Delay before asking again while the search cache is still being built. */
+const INDEXING_RETRY_MS = 30;
+
+const targetOf = (note: NoteSnapshot): NoteWriteTarget => ({
+  id: note.id,
+  userId: note.userId,
+  revision: note.revision,
+});
+
 interface UseNotesDataOptions {
   userId: string;
   refreshTrigger: number;
@@ -58,7 +75,11 @@ interface UseNotesDataOptions {
 export const useNotesData = (options: UseNotesDataOptions) => {
   const { userId, refreshTrigger, onRefresh } = options;
 
-  const [notes, setNotes] = useState<Note[]>([]);
+  // AGY-PORT 07: one SQL page at a time, filtered and searched in SQLite.
+  const [notes, setNotes] = useState<NoteSnapshot[]>([]);
+  const [cursor, setCursor] = useState<string | null>(null);
+  const [indexing, setIndexing] = useState(false);
+  const [queryError, setQueryError] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [searchActive, setSearchActive] = useState(false);
   const [selectedFilter, setSelectedFilterState] = useState<FilterType>(
@@ -68,7 +89,7 @@ export const useNotesData = (options: UseNotesDataOptions) => {
 
   // Editor state
   const [editorVisible, setEditorVisible] = useState(false);
-  const [editingNote, setEditingNote] = useState<Note | null>(null);
+  const [editingNote, setEditingNote] = useState<NoteSnapshot | null>(null);
   const [noteTitle, setNoteTitle] = useState('');
   const [noteBody, setNoteBody] = useState('');
   const [noteCategory, setNoteCategory] = useState('Personal');
@@ -85,7 +106,7 @@ export const useNotesData = (options: UseNotesDataOptions) => {
   const dragXRef = useRef(new Animated.Value(0));
   const dragYRef = useRef(new Animated.Value(0));
   const [renderGen, setRenderGen] = useState(0);
-  const notesRef = useRef<Note[]>(notes);
+  const notesRef = useRef<NoteSnapshot[]>(notes);
   const activeDragIdRef = useRef<string | null>(null);
   const cardLayoutsRef = useRef<{ [id: string]: { x: number; y: number; width: number; height: number } }>({});
   const dragStartLayoutRef = useRef<{ x: number; y: number; width: number; height: number } | null>(null);
@@ -96,6 +117,14 @@ export const useNotesData = (options: UseNotesDataOptions) => {
   const [aiLoading, setAiLoading] = useState(false);
   const [aiActionType, setAiActionType] = useState('');
 
+  // Late work (indexing retries, AI timers, delete prompts) runs only while the
+  // owner, query and editor session it started under are still current.
+  const ownerRef = useRef(userId);
+  ownerRef.current = userId;
+  const queryTokenRef = useRef(0);
+  const editorTokenRef = useRef(0);
+  const retryTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
   const setSelectedFilter = useCallback(
     (filter: FilterType) => {
       setSelectedFilterState(filter);
@@ -104,9 +133,7 @@ export const useNotesData = (options: UseNotesDataOptions) => {
     [userId]
   );
 
-  const loadNotes = useCallback(() => {
-    const data = notesStore.getAll(userId);
-    setNotes(data);
+  const loadCategories = useCallback(() => {
     const cats = notesStore.getCustomCategories(userId);
     cats.forEach((c) => {
       registerCustomCategoryColor(c.name, c.color);
@@ -117,6 +144,74 @@ export const useNotesData = (options: UseNotesDataOptions) => {
       BUILT_IN_FILTERS.includes(current) || names.includes(current) ? current : DEFAULT_FILTER
     );
   }, [userId]);
+
+  /** Reads the first page for the current owner, filter and search. */
+  const loadNotes = useCallback(() => {
+    loadCategories();
+    queryTokenRef.current += 1;
+    const token = queryTokenRef.current;
+    if (retryTimerRef.current) clearTimeout(retryTimerRef.current);
+    retryTimerRef.current = null;
+    try {
+      const page = notesQueryStore.page({
+        userId,
+        filter: selectedFilter,
+        search: searchQuery,
+        limit: NOTES_PAGE_SIZE,
+      });
+      setNotes(page.items);
+      setCursor(page.nextCursor);
+      setIndexing(page.indexing);
+      setQueryError(null);
+      if (page.indexing) {
+        // Bounded batches: ask again until every note is searchable.
+        retryTimerRef.current = setTimeout(() => {
+          if (queryTokenRef.current === token && ownerRef.current === userId) loadNotesRef.current();
+        }, INDEXING_RETRY_MS);
+      }
+    } catch (error) {
+      setNotes([]);
+      setCursor(null);
+      setIndexing(false);
+      setQueryError(
+        error instanceof Error && error.name === 'InvalidNotesQueryError'
+          ? error.message
+          : 'Notes could not be loaded. Reopen Notes to try again.'
+      );
+    }
+  }, [userId, selectedFilter, searchQuery, loadCategories]);
+  const loadNotesRef = useRef(loadNotes);
+  loadNotesRef.current = loadNotes;
+
+  /** Appends the next page; duplicates (a note edited meanwhile) are skipped. */
+  const loadMoreNotes = useCallback(() => {
+    if (!cursor) return;
+    const token = queryTokenRef.current;
+    try {
+      const page = notesQueryStore.page({
+        userId,
+        filter: selectedFilter,
+        search: searchQuery,
+        after: cursor,
+        limit: NOTES_PAGE_SIZE,
+      });
+      if (queryTokenRef.current !== token) return;
+      setNotes((current) => {
+        const seen = new Set(current.map((n) => n.id));
+        return [...current, ...page.items.filter((n) => !seen.has(n.id))];
+      });
+      setCursor(page.nextCursor);
+    } catch {
+      loadNotes();
+    }
+  }, [cursor, userId, selectedFilter, searchQuery, loadNotes]);
+
+  useEffect(
+    () => () => {
+      if (retryTimerRef.current) clearTimeout(retryTimerRef.current);
+    },
+    []
+  );
 
   const addCategory = useCallback((name: string, color: string) => {
     if (!name.trim()) return;
@@ -134,6 +229,21 @@ export const useNotesData = (options: UseNotesDataOptions) => {
   useEffect(() => {
     loadNotes();
   }, [userId, refreshTrigger, loadNotes]);
+
+  // A different account never sees, saves or deletes the previous one's note.
+  const previousOwnerRef = useRef(userId);
+  useEffect(() => {
+    if (previousOwnerRef.current === userId) return;
+    previousOwnerRef.current = userId;
+    editorTokenRef.current += 1;
+    setEditorVisible(false);
+    setEditingNote(null);
+    setNoteTitle('');
+    setNoteBody('');
+    setNoteTags([]);
+    setImageUri(null);
+    setAiLoading(false);
+  }, [userId]);
 
   // Drag lifecycle
   const onCardLayout = useCallback((id: string, layout: { x: number; y: number; width: number; height: number }) => {
@@ -228,11 +338,10 @@ export const useNotesData = (options: UseNotesDataOptions) => {
 
   const handleDragEnd = useCallback(() => {
     const latestNotes = notesRef.current;
-    const unpinnedNotes = latestNotes.filter(n => !n.isPinned);
-    const orderUpdates = unpinnedNotes.map((note, idx) => ({ id: note.id, sortOrder: idx }));
     let orderSaved = true;
     try {
-      notesStore.updateOrder(orderUpdates);
+      // Only the complete, unchanged collection may set the global order.
+      notesQueryStore.reorder(userId, latestNotes);
     } catch {
       orderSaved = false;
     }
@@ -243,12 +352,13 @@ export const useNotesData = (options: UseNotesDataOptions) => {
     dragOffsetRef.current = { x: 0, y: 0 };
     dragStartLayoutRef.current = null;
     setRenderGen(g => g + 1);
+    // Reload either way: saved notes have new revisions, refused ones their old order.
+    loadNotes();
     if (!orderSaved) {
-      loadNotes();
       Alert.alert('Note order not saved', 'Your notes keep their previous order. Please try again.');
     }
     onRefresh();
-  }, [loadNotes, onRefresh]);
+  }, [userId, loadNotes, onRefresh]);
 
   const handleDragRelease = useCallback(() => {
     handleDragEnd();
@@ -256,6 +366,7 @@ export const useNotesData = (options: UseNotesDataOptions) => {
 
   // Editor
   const openNewNote = useCallback(() => {
+    editorTokenRef.current += 1;
     setEditingNote(null);
     setNoteTitle('');
     setNoteBody('');
@@ -268,8 +379,16 @@ export const useNotesData = (options: UseNotesDataOptions) => {
     setEditorVisible(true);
   }, []);
 
-  const openEditNote = useCallback((note: Note) => {
+  const openEditNote = useCallback((listed: NoteSnapshot) => {
     if (isDragging) return;
+    // Open the saved version as it is now, with its revision, not a stale card.
+    const note = notesEditStore.getSnapshot(userId, listed.id);
+    if (!note) {
+      Alert.alert('Note not found', 'This note was deleted or moved to another account.');
+      loadNotes();
+      return;
+    }
+    editorTokenRef.current += 1;
     const body = noteBodyToMarkdown(note.body);
     setEditingNote(note);
     setNoteTitle(note.title);
@@ -281,9 +400,12 @@ export const useNotesData = (options: UseNotesDataOptions) => {
     setImageUri(note.imageUri || null);
     setSelection({ start: body.length, end: body.length });
     setEditorVisible(true);
-  }, [isDragging]);
+  }, [isDragging, userId, loadNotes]);
 
-  const closeEditor = useCallback(() => setEditorVisible(false), []);
+  const closeEditor = useCallback(() => {
+    editorTokenRef.current += 1;
+    setEditorVisible(false);
+  }, []);
 
   const applyFormatting = useCallback(
     (type: NoteFormat) => {
@@ -317,18 +439,22 @@ export const useNotesData = (options: UseNotesDataOptions) => {
   }, []);
 
   const toggleNoteChecklist = useCallback(
-    (note: Note, index: number) => {
+    (note: NoteSnapshot, index: number) => {
       const body = toggleChecklistItem(note.body, index);
       if (body === note.body) return;
-      notesStore.update({
-        id: note.id,
-        title: note.title,
-        body,
-        category: note.category,
-        isPinned: note.isPinned,
-        tags: note.tags,
-        imageUri: note.imageUri,
-      });
+      try {
+        // Only over the version this card shows (AGY-PORT 07).
+        notesEditStore.save(targetOf(note), { body });
+      } catch (error) {
+        loadNotes();
+        Alert.alert(
+          isNoteEditConflict(error) ? 'Note changed elsewhere' : 'Checklist not saved',
+          isNoteEditConflict(error)
+            ? 'The latest version is shown now. Tap the item again if you still want to change it.'
+            : 'Please try again.'
+        );
+        return;
+      }
       loadNotes();
       onRefresh();
     },
@@ -341,13 +467,31 @@ export const useNotesData = (options: UseNotesDataOptions) => {
       return;
     }
     const titleStr = noteTitle.trim() || 'Untitled Note';
+    const finish = () => {
+      editorTokenRef.current += 1;
+      setEditorVisible(false);
+      loadNotes();
+      onRefresh();
+    };
+    const createFromDraft = (title: string, tags: string[]) =>
+      notesEditStore.create({
+        id: generateId('note'),
+        userId,
+        title,
+        body: noteBody,
+        category: noteCategory,
+        isPinned: isPinned,
+        tags,
+        isVoiceTranscribed: isVoice,
+        imageUri: imageUri,
+      });
 
     try {
       if (editingNote) {
         const bodyUnchanged =
           isHtmlBody(editingNote.body) && noteBody === noteBodyToMarkdown(editingNote.body);
-        notesStore.update({
-          id: editingNote.id,
+        // Revision-checked (AGY-PORT 07): never over a newer saved version.
+        notesEditStore.save(targetOf(editingNote), {
           title: titleStr,
           body: bodyUnchanged ? editingNote.body : noteBody,
           category: noteCategory,
@@ -356,52 +500,77 @@ export const useNotesData = (options: UseNotesDataOptions) => {
           imageUri: imageUri,
         });
       } else {
-        notesStore.insert({
-          id: generateId('note'),
-          userId,
-          title: titleStr,
-          body: noteBody,
-          category: noteCategory,
-          isPinned: isPinned,
-          tags: isVoice ? ['AI Transcribed'] : noteTags,
-          isVoiceTranscribed: isVoice,
-          imageUri: imageUri,
-        });
+        createFromDraft(titleStr, isVoice ? ['AI Transcribed'] : noteTags);
       }
-    } catch {
+    } catch (error) {
       // The editor stays open so the student's text is not lost.
-      Alert.alert('Note not saved', 'Your text is still here. Please try again.');
+      if (isNoteEditConflict(error) && error.reason !== 'owner_changed') {
+        const token = editorTokenRef.current;
+        const reason = error.reason;
+        Alert.alert(
+          reason === 'deleted' ? 'Note was deleted elsewhere' : 'Note changed elsewhere',
+          'Your text is still here. Keep editing, or save your text as a new note so nothing is overwritten.',
+          [
+            { text: 'Keep editing', style: 'cancel' },
+            {
+              text: 'Save as a copy',
+              onPress: () => {
+                if (editorTokenRef.current !== token || ownerRef.current !== userId) return;
+                try {
+                  createFromDraft(reason === 'changed' ? `${titleStr} (copy)` : titleStr, noteTags);
+                } catch {
+                  Alert.alert('Note not saved', 'Your text is still here. Please try again.');
+                  return;
+                }
+                finish();
+              },
+            },
+          ]
+        );
+        return;
+      }
+      Alert.alert(
+        'Note not saved',
+        isNoteEditConflict(error) ? error.message : 'Your text is still here. Please try again.'
+      );
       return;
     }
 
-    setEditorVisible(false);
-    loadNotes();
-    onRefresh();
+    finish();
   }, [noteTitle, noteBody, imageUri, editingNote, noteCategory, isPinned, noteTags, isVoice, userId, loadNotes, onRefresh]);
 
   const deleteNote = useCallback((id: string) => {
+    // The version being deleted is the one on screen when the prompt opened.
+    const shown =
+      editingNote && editingNote.id === id ? editingNote : notesRef.current.find((n) => n.id === id);
+    if (!shown) return;
+    const target = targetOf(shown);
+    const token = editorTokenRef.current;
     Alert.alert('Delete Note', 'Are you sure you want to delete this note?', [
       { text: 'Cancel', style: 'cancel' },
       { text: 'Delete', style: 'destructive', onPress: () => {
-        notesStore.delete(id);
+        if (editorTokenRef.current !== token || ownerRef.current !== target.userId) return;
+        try {
+          notesEditStore.remove(target);
+        } catch (error) {
+          Alert.alert(
+            'Note not deleted',
+            isNoteEditConflict(error) && error.reason === 'changed'
+              ? 'This note changed since you opened it, so it was not deleted. Your text is still here.'
+              : 'This note could not be deleted. Please try again.'
+          );
+          return;
+        }
+        editorTokenRef.current += 1;
         setEditorVisible(false);
         loadNotes();
         onRefresh();
       }},
     ]);
-  }, [loadNotes, onRefresh]);
+  }, [editingNote, loadNotes, onRefresh]);
 
-  const getFilteredNotes = useCallback(() => {
-    return notes.filter((n) => {
-      const matchesSearch = n.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        noteBodyToMarkdown(n.body).toLowerCase().includes(searchQuery.toLowerCase());
-      if (!matchesSearch) return false;
-      if (selectedFilter === 'All') return true;
-      if (selectedFilter === 'Pinned') return n.isPinned;
-      if (selectedFilter === 'AI Transcribed') return n.isVoiceTranscribed;
-      return n.category === selectedFilter;
-    });
-  }, [notes, searchQuery, selectedFilter]);
+  /** Filtering and search run in SQL; the loaded pages are already the result. */
+  const getFilteredNotes = useCallback(() => notes, [notes]);
 
   const triggerAiAction = useCallback((action: 'summarize' | 'clean' | 'tasks') => {
     if (isBodyEmpty(noteBody)) {
@@ -410,9 +579,13 @@ export const useNotesData = (options: UseNotesDataOptions) => {
     }
     setAiActionType(action);
     setAiLoading(true);
+    const token = editorTokenRef.current;
+    const owner = userId;
 
     setTimeout(() => {
       setAiLoading(false);
+      // Retired if the editor closed, another note opened or the account changed.
+      if (editorTokenRef.current !== token || ownerRef.current !== owner) return;
       if (action === 'summarize') {
         setNoteBody(
           (prev) =>
@@ -503,10 +676,13 @@ export const useNotesData = (options: UseNotesDataOptions) => {
   }, [userId, customCategories, noteCategory, loadNotes]);
 
   const filtered = useMemo(() => getFilteredNotes(), [getFilteredNotes]);
+  // Manual order is saved only from the complete, unfiltered collection.
+  const canReorder = selectedFilter === 'All' && !searchQuery.trim() && cursor === null;
 
   return {
     // Data
     notes, filtered, searchQuery, searchActive, selectedFilter, isGridView,
+    hasMore: cursor !== null, indexing, queryError, canReorder,
     // Editor
     editorVisible, editingNote, noteTitle, noteBody, noteCategory, noteTags,
     isPinned, isVoice, imageUri, selection, customCategories,
@@ -519,7 +695,7 @@ export const useNotesData = (options: UseNotesDataOptions) => {
     setNoteTitle, setNoteBody, setNoteCategory, setNoteTags,
     setIsPinned, setIsVoice, setImageUri, setSelection,
     // Actions
-    loadNotes, onCardLayout, handleDragStart, handleDragMove, handleDragRelease,
+    loadNotes, loadMoreNotes, onCardLayout, handleDragStart, handleDragMove, handleDragRelease,
     openNewNote, openEditNote, closeEditor,
     applyFormatting, changeBody, toggleEditorChecklist, toggleNoteChecklist,
     saveNote, deleteNote,

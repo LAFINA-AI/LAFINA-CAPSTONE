@@ -22,6 +22,23 @@ export {tasksStore} from './tasksStore';
 export type {Task, Event} from './tasksStore';
 export {notesStore} from './notesStore';
 export type {Note} from './notesStore';
+export {
+  isNoteEditConflict,
+  NoteEditConflictError,
+  notesEditStore,
+} from './notesEditStore';
+export type {
+  NoteEditFailure,
+  NoteEditPatch,
+  NoteSnapshot,
+  NoteWriteTarget,
+} from './notesEditStore';
+export {
+  InvalidNotesQueryError,
+  NOTES_PAGE_SIZE,
+  notesQueryStore,
+} from './notesQueryStore';
+export type {NotesPage, NotesQuery} from './notesQueryStore';
 export {timeBlocksStore} from './timeBlocksStore';
 export type {TimeBlock} from './timeBlocksStore';
 export {chatStore, CHAT_PAGE_SIZE, InvalidChatCursorError} from './chatStore';

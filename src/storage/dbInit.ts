@@ -21,6 +21,7 @@ import {
 import {migrateChatOwnership} from './chatOwnership';
 import {migrateReminderDelivery} from './deliverySchema';
 import {migrateAssistantOperations} from './assistantOperationSchema';
+import {migrateNotesSearch} from './notesSearchSchema';
 
 export interface SchemaMigration {
   /** The `user_version` this step produces. */
@@ -60,6 +61,14 @@ export const SCHEMA_MIGRATIONS: readonly SchemaMigration[] = [
       'Local entity revisions and assistant operation receipts for reviewed commands (AGY-PORT 04)',
     up: tx => {
       migrateAssistantOperations(tx);
+    },
+  },
+  {
+    version: 21,
+    description:
+      'Derived, revision-stamped Notes search cache with invalidation triggers (AGY-PORT 07)',
+    up: tx => {
+      migrateNotesSearch(tx);
     },
   },
 ];
