@@ -13,8 +13,8 @@
   "worktree": "C:/L3mxr/Github Repositories/LAFINA-CAPSTONE-agy-development-cont",
   "donor_head": "0d4bbe39e106c29fb90792cf5d2f916b5c0d6480",
   "last_tested_head": "fcdf235+worktree (Phase 10)",
-  "last_committed_head": "ab6ab1292032e4f439ab3bab5bd31dc351d199b5",
-  "current_phase": "AGY-PORT-10",
+  "last_committed_head": "335de87e3325c45e01af2a9851c9d64eee21748e",
+  "current_phase": "AGY-PORT-11",
   "phases": [
     {
       "id": "AGY-PORT-00",
@@ -365,7 +365,7 @@
       "live_service": "NOT_RUN",
       "base_head": "fcdf235",
       "tested_head": "fcdf235+worktree",
-      "result_commit": null,
+      "result_commit": "335de87e3325c45e01af2a9851c9d64eee21748e",
       "report": "phase-10-speech.md",
       "evidence": [
         "evidence/agy-port-20261106/phase-10/"
