@@ -34,7 +34,7 @@ export const behaviorStore = {
       db.executeSync(
         `INSERT INTO user_behavior_logs (id, user_id, event_type, event_key, event_value, created_at, updated_at)
          VALUES (?, ?, ?, ?, ?, ?, ?)`,
-        [id, userId, eventType, eventKey, eventValue, now, now]
+        [id, userId, eventType, eventKey, eventValue, now, now],
       );
     } catch (error) {
       console.error('Error inserting user behavior log:', error);
@@ -45,9 +45,13 @@ export const behaviorStore = {
   getBehaviorLogs: (userId: string, eventType?: string): BehaviorLog[] => {
     try {
       const result = db.executeSync('SELECT * FROM user_behavior_logs');
-      let rows = result.rows.filter((row: Record<string, unknown>) => row.user_id === userId);
+      let rows = result.rows.filter(
+        (row: Record<string, unknown>) => row.user_id === userId,
+      );
       if (eventType) {
-        rows = rows.filter((row: Record<string, unknown>) => row.event_type === eventType);
+        rows = rows.filter(
+          (row: Record<string, unknown>) => row.event_type === eventType,
+        );
       }
 
       return rows.map((row: Record<string, unknown>) => ({
@@ -76,7 +80,7 @@ export const behaviorStore = {
       db.executeSync(
         `INSERT INTO ml_feature_snapshots (id, user_id, feature_type, feature_vector, computed_at, created_at, updated_at)
          VALUES (?, ?, ?, ?, ?, ?, ?)`,
-        [id, userId, featureType, featureVector, now, now, now]
+        [id, userId, featureType, featureVector, now, now, now],
       );
     } catch (error) {
       console.error('Error inserting ML feature snapshot:', error);
@@ -84,20 +88,21 @@ export const behaviorStore = {
     }
   },
 
-  getLatestFeatureSnapshot: (userId: string, featureType: string): FeatureSnapshot | null => {
+  getLatestFeatureSnapshot: (
+    userId: string,
+    featureType: string,
+  ): FeatureSnapshot | null => {
     try {
-      const result = db.executeSync('SELECT * FROM ml_feature_snapshots');
-      const filtered = result.rows
-        .filter(
-          (row: Record<string, unknown>) =>
-            row.user_id === userId && row.feature_type === featureType,
-        )
-        .sort((a: Record<string, unknown>, b: Record<string, unknown>) =>
-          String(b.computed_at).localeCompare(String(a.computed_at)),
-        );
+      const result = db.executeSync(
+        `SELECT * FROM ml_feature_snapshots
+         WHERE user_id = ? AND feature_type = ?
+         ORDER BY computed_at DESC, created_at DESC, id DESC
+         LIMIT 1`,
+        [userId, featureType],
+      );
 
-      if (filtered.length > 0) {
-        const row = filtered[0];
+      if (result.rows && result.rows.length > 0) {
+        const row = result.rows[0];
         return {
           id: String(row.id),
           userId: String(row.user_id),

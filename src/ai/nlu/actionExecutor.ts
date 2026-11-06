@@ -1,5 +1,10 @@
-import { tasksStore, timeBlocksStore, remindersStore, notesStore } from '../../storage';
-import type { Task, Event, TimeBlock, Note, Reminder } from '../../storage';
+import {
+  tasksStore,
+  timeBlocksStore,
+  remindersStore,
+  notesStore,
+} from '../../storage';
+import type {Task, Event, TimeBlock, Note, Reminder} from '../../storage';
 import {
   scheduleReminderAlarm,
   cancelReminderAlarm,
@@ -7,10 +12,11 @@ import {
   acknowledgeReminderAction,
   snoozeReminderAction,
 } from '../../scheduler';
-import { generateId } from '../../utils';
-import { formatLocalDate } from './fastPathParser';
-import { ttsService } from '../tts/ttsService';
-import type { ValidatedIntent, NluActionResult } from './types';
+import {generateId} from '../../utils';
+import {formatLocalDate} from './fastPathParser';
+import {ttsService} from '../tts/ttsService';
+import {computeAdaptiveTriggerAt} from '../ml';
+import type {ValidatedIntent, NluActionResult} from './types';
 
 export interface ActionExecutorOptions {
   activeReminderId?: string;
@@ -66,12 +72,32 @@ function formatSpokenDayLabel(targetDateStr: string, refDate: Date): string {
     const day = parseInt(parts[2], 10);
     const d = new Date(year, month, day);
     if (!isNaN(d.getTime())) {
-      const weekdays = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
-      const months = [
-        'January', 'February', 'March', 'April', 'May', 'June',
-        'July', 'August', 'September', 'October', 'November', 'December',
+      const weekdays = [
+        'Sunday',
+        'Monday',
+        'Tuesday',
+        'Wednesday',
+        'Thursday',
+        'Friday',
+        'Saturday',
       ];
-      return `On ${weekdays[d.getDay()]}, ${months[d.getMonth()]} ${d.getDate()}`;
+      const months = [
+        'January',
+        'February',
+        'March',
+        'April',
+        'May',
+        'June',
+        'July',
+        'August',
+        'September',
+        'October',
+        'November',
+        'December',
+      ];
+      return `On ${weekdays[d.getDay()]}, ${
+        months[d.getMonth()]
+      } ${d.getDate()}`;
     }
   }
 
@@ -145,14 +171,17 @@ function scoreEntityMatch(
   if (normQuery && normCandidate) {
     if (normCandidate === normQuery) {
       titleScore = 100;
-    } else if (normCandidate.includes(normQuery) || normQuery.includes(normCandidate)) {
+    } else if (
+      normCandidate.includes(normQuery) ||
+      normQuery.includes(normCandidate)
+    ) {
       titleScore = 85;
     } else {
       const queryWords = normQuery.split(' ').filter(Boolean);
       const candWords = normCandidate.split(' ').filter(Boolean);
       const candSet = new Set(candWords);
       if (queryWords.length > 0 && candWords.length > 0) {
-        const matchedWords = queryWords.filter((w) => candSet.has(w)).length;
+        const matchedWords = queryWords.filter(w => candSet.has(w)).length;
         const queryRatio = matchedWords / queryWords.length;
         const candRatio = matchedWords / candWords.length;
         const bestRatio = Math.max(queryRatio, candRatio);
@@ -182,7 +211,14 @@ function scoreEntityMatch(
       const tMins = parseTimeMinutes(targetTime);
       const sMins = parseTimeMinutes(candidateTime);
       const eMins = parseTimeMinutes(candidateEndTime);
-      if (tMins !== null && sMins !== null && eMins !== null && eMins > sMins && tMins >= sMins && tMins < eMins) {
+      if (
+        tMins !== null &&
+        sMins !== null &&
+        eMins !== null &&
+        eMins > sMins &&
+        tMins >= sMins &&
+        tMins < eMins
+      ) {
         timeScore += normQuery ? 35 : 65;
       } else if (candidateTime) {
         timeScore -= 30;
@@ -191,7 +227,11 @@ function scoreEntityMatch(
       timeScore -= 30;
     }
 
-    if (targetEndTime && candidateEndTime && targetEndTime === candidateEndTime) {
+    if (
+      targetEndTime &&
+      candidateEndTime &&
+      targetEndTime === candidateEndTime
+    ) {
       timeScore += 25;
     }
   }
@@ -213,23 +253,32 @@ function findMatchingTask(
   targetTitle: string | null | undefined,
   targetDate: string | null | undefined,
   targetTime: string | null | undefined,
-): { task: Task | null; score: number } {
-  if (tasks.length === 0) return { task: null, score: 0 };
+): {task: Task | null; score: number} {
+  if (tasks.length === 0) return {task: null, score: 0};
   if (isRecentReference(targetTitle)) {
-    const sorted = [...tasks].sort((a, b) => (b.createdAt || '').localeCompare(a.createdAt || ''));
-    return { task: sorted[0], score: 70 };
+    const sorted = [...tasks].sort((a, b) =>
+      (b.createdAt || '').localeCompare(a.createdAt || ''),
+    );
+    return {task: sorted[0], score: 70};
   }
 
   let bestTask: Task | null = null;
   let bestScore = 0;
   for (const t of tasks) {
-    const score = scoreEntityMatch(t.title, t.dueDate, t.dueTime, targetTitle, targetDate, targetTime);
+    const score = scoreEntityMatch(
+      t.title,
+      t.dueDate,
+      t.dueTime,
+      targetTitle,
+      targetDate,
+      targetTime,
+    );
     if (score > bestScore) {
       bestScore = score;
       bestTask = t;
     }
   }
-  return { task: bestScore >= 30 ? bestTask : null, score: bestScore };
+  return {task: bestScore >= 30 ? bestTask : null, score: bestScore};
 }
 
 function findMatchingEvent(
@@ -238,11 +287,13 @@ function findMatchingEvent(
   targetDate: string | null | undefined,
   targetTime: string | null | undefined,
   targetEndTime?: string | null,
-): { event: Event | null; score: number } {
-  if (events.length === 0) return { event: null, score: 0 };
+): {event: Event | null; score: number} {
+  if (events.length === 0) return {event: null, score: 0};
   if (isRecentReference(targetTitle)) {
-    const sorted = [...events].sort((a, b) => (b.createdAt || '').localeCompare(a.createdAt || ''));
-    return { event: sorted[0], score: 70 };
+    const sorted = [...events].sort((a, b) =>
+      (b.createdAt || '').localeCompare(a.createdAt || ''),
+    );
+    return {event: sorted[0], score: 70};
   }
 
   let bestEvent: Event | null = null;
@@ -263,7 +314,7 @@ function findMatchingEvent(
       bestEvent = e;
     }
   }
-  return { event: bestScore >= 30 ? bestEvent : null, score: bestScore };
+  return {event: bestScore >= 30 ? bestEvent : null, score: bestScore};
 }
 
 function findMatchingTimeBlock(
@@ -272,11 +323,13 @@ function findMatchingTimeBlock(
   targetDate: string | null | undefined,
   targetTime: string | null | undefined,
   targetEndTime?: string | null,
-): { block: TimeBlock | null; score: number } {
-  if (blocks.length === 0) return { block: null, score: 0 };
+): {block: TimeBlock | null; score: number} {
+  if (blocks.length === 0) return {block: null, score: 0};
   if (isRecentReference(targetTitle)) {
-    const sorted = [...blocks].sort((a, b) => (b.createdAt || '').localeCompare(a.createdAt || ''));
-    return { block: sorted[0], score: 70 };
+    const sorted = [...blocks].sort((a, b) =>
+      (b.createdAt || '').localeCompare(a.createdAt || ''),
+    );
+    return {block: sorted[0], score: 70};
   }
 
   let bestBlock: TimeBlock | null = null;
@@ -297,10 +350,13 @@ function findMatchingTimeBlock(
       bestBlock = b;
     }
   }
-  return { block: bestScore >= 30 ? bestBlock : null, score: bestScore };
+  return {block: bestScore >= 30 ? bestBlock : null, score: bestScore};
 }
 
-async function cleanupMatchingReminders(userId: string, deletedTitle: string): Promise<void> {
+async function cleanupMatchingReminders(
+  userId: string,
+  deletedTitle: string,
+): Promise<void> {
   const normDeleted = normalizeForMatch(deletedTitle);
   const rawDeleted = normalizeRawWords(deletedTitle);
   const pending = remindersStore.getPendingReminders(userId);
@@ -326,25 +382,35 @@ async function cleanupMatchingReminders(userId: string, deletedTitle: string): P
 function findMatchingNote(
   notes: Note[],
   targetTitle: string | null | undefined,
-): { note: Note | null; score: number } {
-  if (notes.length === 0) return { note: null, score: 0 };
+): {note: Note | null; score: number} {
+  if (notes.length === 0) return {note: null, score: 0};
   if (isRecentReference(targetTitle)) {
-    const sorted = [...notes].sort((a, b) => (b.updatedAt || '').localeCompare(a.updatedAt || ''));
-    return { note: sorted[0], score: 70 };
+    const sorted = [...notes].sort((a, b) =>
+      (b.updatedAt || '').localeCompare(a.updatedAt || ''),
+    );
+    return {note: sorted[0], score: 70};
   }
 
   let bestNote: Note | null = null;
   let bestScore = 0;
   for (const n of notes) {
-    const titleScore = scoreEntityMatch(n.title, null, null, targetTitle, null, null);
-    const bodyScore = scoreEntityMatch(n.body, null, null, targetTitle, null, null) * 0.7;
+    const titleScore = scoreEntityMatch(
+      n.title,
+      null,
+      null,
+      targetTitle,
+      null,
+      null,
+    );
+    const bodyScore =
+      scoreEntityMatch(n.body, null, null, targetTitle, null, null) * 0.7;
     const score = Math.max(titleScore, bodyScore);
     if (score > bestScore) {
       bestScore = score;
       bestNote = n;
     }
   }
-  return { note: bestScore >= 30 ? bestNote : null, score: bestScore };
+  return {note: bestScore >= 30 ? bestNote : null, score: bestScore};
 }
 
 function computeDurationMinutes(startTime: string, endTime: string): number {
@@ -358,7 +424,7 @@ function computeDurationMinutes(startTime: string, endTime: string): number {
 }
 
 function addMinutesToTime(startTime: string, durationMinutes: number): string {
-  const [h, m] = startTime.split(':').map((v) => parseInt(v, 10));
+  const [h, m] = startTime.split(':').map(v => parseInt(v, 10));
   const totalMin = h * 60 + m + durationMinutes;
   const endH = Math.floor(totalMin / 60) % 24;
   const endM = totalMin % 60;
@@ -408,14 +474,21 @@ export async function executeNluAction(
         const reminderId = generateId();
         const scheduledAt = `${dueDate}T${dueTime}:00`;
         const scheduledTimeMs = new Date(scheduledAt).getTime();
-        const triggerAt = isNaN(scheduledTimeMs) ? new Date().toISOString() : new Date(scheduledTimeMs).toISOString();
+        const rawTriggerAt = isNaN(scheduledTimeMs)
+          ? new Date().toISOString()
+          : new Date(scheduledTimeMs).toISOString();
+        const triggerAt = computeAdaptiveTriggerAt(
+          userId,
+          rawTriggerAt,
+          (intent.priority ?? undefined) || undefined,
+        );
 
         remindersStore.insertReminder({
           id: reminderId,
           userId,
           task: taskTitle,
           description: intent.details || null,
-          scheduledAt: triggerAt,
+          scheduledAt: rawTriggerAt,
           triggerAt,
           status: 'pending',
           preCastAudioPath: null,
@@ -469,7 +542,9 @@ export async function executeNluAction(
         intent: 'create_time_block',
         entityType: 'time_block',
         entityId: blockId,
-        reply: `Scheduled time block: "${blockTitle}" on ${blockDate} from ${format12HourTime(startTime)} to ${format12HourTime(endTime)}.`,
+        reply: `Scheduled time block: "${blockTitle}" on ${blockDate} from ${format12HourTime(
+          startTime,
+        )} to ${format12HourTime(endTime)}.`,
       };
     }
 
@@ -480,19 +555,27 @@ export async function executeNluAction(
       const remTime = intent.time || '09:00';
       const scheduledAt = `${remDate}T${remTime}:00`;
       const scheduledTimeMs = new Date(scheduledAt).getTime();
-      const triggerAt = isNaN(scheduledTimeMs)
+      const rawTriggerAt = isNaN(scheduledTimeMs)
         ? new Date(Date.now() + 60000).toISOString()
         : new Date(scheduledTimeMs).toISOString();
+      const triggerAt = computeAdaptiveTriggerAt(
+        userId,
+        rawTriggerAt,
+        intent.priority || 'High',
+      );
 
-      const recurrenceTag = intent.recurrenceRule ? `[RRULE:${intent.recurrenceRule}] ` : '';
-      const reminderDesc = `${recurrenceTag}${intent.details || ''}`.trim() || null;
+      const recurrenceTag = intent.recurrenceRule
+        ? `[RRULE:${intent.recurrenceRule}] `
+        : '';
+      const reminderDesc =
+        `${recurrenceTag}${intent.details || ''}`.trim() || null;
 
       remindersStore.insertReminder({
         id: reminderId,
         userId,
         task: reminderTitle,
         description: reminderDesc,
-        scheduledAt: triggerAt,
+        scheduledAt: rawTriggerAt,
         triggerAt,
         status: 'pending',
         preCastAudioPath: null,
@@ -521,16 +604,26 @@ export async function executeNluAction(
 
       let recurrenceNote = '';
       if (intent.recurrenceRule) {
-        if (/BYDAY=MO/i.test(intent.recurrenceRule)) recurrenceNote = ', repeating every Monday';
-        else if (/BYDAY=TU/i.test(intent.recurrenceRule)) recurrenceNote = ', repeating every Tuesday';
-        else if (/BYDAY=WE/i.test(intent.recurrenceRule)) recurrenceNote = ', repeating every Wednesday';
-        else if (/BYDAY=TH/i.test(intent.recurrenceRule)) recurrenceNote = ', repeating every Thursday';
-        else if (/BYDAY=FR/i.test(intent.recurrenceRule)) recurrenceNote = ', repeating every Friday';
-        else if (/BYDAY=SA/i.test(intent.recurrenceRule)) recurrenceNote = ', repeating every Saturday';
-        else if (/BYDAY=SU/i.test(intent.recurrenceRule)) recurrenceNote = ', repeating every Sunday';
-        else if (/FREQ=DAILY/i.test(intent.recurrenceRule)) recurrenceNote = ', repeating daily';
-        else if (/FREQ=WEEKLY/i.test(intent.recurrenceRule)) recurrenceNote = ', repeating weekly';
-        else if (/FREQ=MONTHLY/i.test(intent.recurrenceRule)) recurrenceNote = ', repeating monthly';
+        if (/BYDAY=MO/i.test(intent.recurrenceRule))
+          recurrenceNote = ', repeating every Monday';
+        else if (/BYDAY=TU/i.test(intent.recurrenceRule))
+          recurrenceNote = ', repeating every Tuesday';
+        else if (/BYDAY=WE/i.test(intent.recurrenceRule))
+          recurrenceNote = ', repeating every Wednesday';
+        else if (/BYDAY=TH/i.test(intent.recurrenceRule))
+          recurrenceNote = ', repeating every Thursday';
+        else if (/BYDAY=FR/i.test(intent.recurrenceRule))
+          recurrenceNote = ', repeating every Friday';
+        else if (/BYDAY=SA/i.test(intent.recurrenceRule))
+          recurrenceNote = ', repeating every Saturday';
+        else if (/BYDAY=SU/i.test(intent.recurrenceRule))
+          recurrenceNote = ', repeating every Sunday';
+        else if (/FREQ=DAILY/i.test(intent.recurrenceRule))
+          recurrenceNote = ', repeating daily';
+        else if (/FREQ=WEEKLY/i.test(intent.recurrenceRule))
+          recurrenceNote = ', repeating weekly';
+        else if (/FREQ=MONTHLY/i.test(intent.recurrenceRule))
+          recurrenceNote = ', repeating monthly';
         else recurrenceNote = ', repeating';
       }
 
@@ -539,7 +632,9 @@ export async function executeNluAction(
         intent: 'create_reminder',
         entityType: 'reminder',
         entityId: reminderId,
-        reply: `Reminder set: "${reminderTitle}" on ${remDate} at ${format12HourTime(remTime)}${recurrenceNote}.`,
+        reply: `Reminder set: "${reminderTitle}" on ${remDate} at ${format12HourTime(
+          remTime,
+        )}${recurrenceNote}.`,
       };
     }
 
@@ -623,7 +718,12 @@ export async function executeNluAction(
       }
 
       // Cross-entity fallback: if user called a task an "event" or "time block", still delete the matching task
-      const taskMatch = findMatchingTask(allTasks, targetTitle, intent.date, targetTime);
+      const taskMatch = findMatchingTask(
+        allTasks,
+        targetTitle,
+        intent.date,
+        targetTime,
+      );
       if (taskMatch.task) {
         tasksStore.deleteTask(taskMatch.task.id);
         await cleanupMatchingReminders(userId, taskMatch.task.title);
@@ -636,12 +736,16 @@ export async function executeNluAction(
         };
       }
 
-      const label = intent.targetEntityType === 'event' ? 'event' : 'time block';
+      const label =
+        intent.targetEntityType === 'event' ? 'event' : 'time block';
       return {
         success: false,
         intent: 'delete_time_block',
-        entityType: intent.targetEntityType === 'event' ? 'event' : 'time_block',
-        reply: `Could not find a ${label} matching "${targetTitle || format12HourTime(targetTime) || 'that request'}".`,
+        entityType:
+          intent.targetEntityType === 'event' ? 'event' : 'time_block',
+        reply: `Could not find a ${label} matching "${
+          targetTitle || format12HourTime(targetTime) || 'that request'
+        }".`,
         error: 'Time block not found.',
       };
     }
@@ -649,14 +753,16 @@ export async function executeNluAction(
     case 'delete_note': {
       const targetTitle = intent.targetTitle || intent.title;
       const allNotes = notesStore.getAll(userId);
-      const { note } = findMatchingNote(allNotes, targetTitle);
+      const {note} = findMatchingNote(allNotes, targetTitle);
 
       if (!note) {
         return {
           success: false,
           intent: 'delete_note',
           entityType: 'note',
-          reply: `Could not find a note matching "${targetTitle || 'that request'}".`,
+          reply: `Could not find a note matching "${
+            targetTitle || 'that request'
+          }".`,
           error: 'Note not found.',
         };
       }
@@ -678,7 +784,12 @@ export async function executeNluAction(
       const allEvents = tasksStore.getAllEvents(userId);
       const allBlocks = timeBlocksStore.getAll(userId);
 
-      const taskMatch = findMatchingTask(allTasks, targetTitle, intent.date, targetTime);
+      const taskMatch = findMatchingTask(
+        allTasks,
+        targetTitle,
+        intent.date,
+        targetTime,
+      );
       const eventMatch = findMatchingEvent(
         allEvents,
         targetTitle,
@@ -698,14 +809,17 @@ export async function executeNluAction(
       if (intent.targetEntityType === 'reminder') {
         const allReminders = remindersStore.getPendingReminders(userId);
         const normQuery = normalizeForMatch(targetTitle);
-        const matchedReminder = allReminders.find((r) => {
+        const matchedReminder = allReminders.find(r => {
           if (normQuery && normalizeForMatch(r.task).includes(normQuery)) {
             return true;
           }
           if (targetTime) {
             const remDate = new Date(r.scheduledAt || r.triggerAt);
             if (!isNaN(remDate.getTime())) {
-              const remTimeStr = `${String(remDate.getHours()).padStart(2, '0')}:${String(remDate.getMinutes()).padStart(2, '0')}`;
+              const remTimeStr = `${String(remDate.getHours()).padStart(
+                2,
+                '0',
+              )}:${String(remDate.getMinutes()).padStart(2, '0')}`;
               if (remTimeStr === targetTime) return true;
             }
           }
@@ -719,9 +833,14 @@ export async function executeNluAction(
           } catch (e) {
             console.warn('Failed to cancel alarm for deleted reminder:', e);
           }
-          const matchingTask = allTasks.find((t) => {
-            if (normQuery && normalizeForMatch(t.title).includes(normQuery)) return true;
-            if (normalizeForMatch(t.title) === normalizeForMatch(matchedReminder.task)) return true;
+          const matchingTask = allTasks.find(t => {
+            if (normQuery && normalizeForMatch(t.title).includes(normQuery))
+              return true;
+            if (
+              normalizeForMatch(t.title) ===
+              normalizeForMatch(matchedReminder.task)
+            )
+              return true;
             if (targetTime && t.dueTime === targetTime) return true;
             return false;
           });
@@ -814,14 +933,17 @@ export async function executeNluAction(
       // Check standalone reminders by title or time if no task/event/block row matched
       const allReminders = remindersStore.getPendingReminders(userId);
       const normQuery = normalizeForMatch(targetTitle);
-      const matchedReminder = allReminders.find((r) => {
+      const matchedReminder = allReminders.find(r => {
         if (normQuery && normalizeForMatch(r.task).includes(normQuery)) {
           return true;
         }
         if (targetTime) {
           const remDate = new Date(r.scheduledAt || r.triggerAt);
           if (!isNaN(remDate.getTime())) {
-            const remTimeStr = `${String(remDate.getHours()).padStart(2, '0')}:${String(remDate.getMinutes()).padStart(2, '0')}`;
+            const remTimeStr = `${String(remDate.getHours()).padStart(
+              2,
+              '0',
+            )}:${String(remDate.getMinutes()).padStart(2, '0')}`;
             if (remTimeStr === targetTime) return true;
           }
         }
@@ -862,7 +984,9 @@ export async function executeNluAction(
         success: false,
         intent: 'delete_task',
         entityType: 'task',
-        reply: `Could not find a scheduled item matching "${targetTitle || format12HourTime(targetTime) || 'that request'}".`,
+        reply: `Could not find a scheduled item matching "${
+          targetTitle || format12HourTime(targetTime) || 'that request'
+        }".`,
         error: 'Task not found.',
       };
     }
@@ -871,8 +995,18 @@ export async function executeNluAction(
       const targetTitle = intent.targetTitle || intent.title;
       const allBlocks = timeBlocksStore.getAll(userId);
       const allEvents = tasksStore.getAllEvents(userId);
-      const blockMatch = findMatchingTimeBlock(allBlocks, targetTitle, null, intent.targetTime);
-      const eventMatch = findMatchingEvent(allEvents, targetTitle, null, intent.targetTime);
+      const blockMatch = findMatchingTimeBlock(
+        allBlocks,
+        targetTitle,
+        null,
+        intent.targetTime,
+      );
+      const eventMatch = findMatchingEvent(
+        allEvents,
+        targetTitle,
+        null,
+        intent.targetTime,
+      );
 
       if (
         eventMatch.event &&
@@ -905,7 +1039,9 @@ export async function executeNluAction(
           intent: 'update_time_block',
           entityType: 'event',
           entityId: ev.id,
-          reply: `Updated event: "${updatedTitle}" on ${updatedDate} from ${format12HourTime(updatedStart)} to ${format12HourTime(updatedEnd)}.`,
+          reply: `Updated event: "${updatedTitle}" on ${updatedDate} from ${format12HourTime(
+            updatedStart,
+          )} to ${format12HourTime(updatedEnd)}.`,
         };
       }
 
@@ -915,7 +1051,9 @@ export async function executeNluAction(
           success: false,
           intent: 'update_time_block',
           entityType: 'time_block',
-          reply: `Could not find a time block matching "${targetTitle || format12HourTime(intent.targetTime) || 'that request'}".`,
+          reply: `Could not find a time block matching "${
+            targetTitle || format12HourTime(intent.targetTime) || 'that request'
+          }".`,
           error: 'Time block not found.',
         };
       }
@@ -929,7 +1067,10 @@ export async function executeNluAction(
         if (intent.durationMinutes) {
           updatedEnd = addMinutesToTime(updatedStart, intent.durationMinutes);
         } else if (intent.time) {
-          const origDur = computeDurationMinutes(block.startTime, block.endTime);
+          const origDur = computeDurationMinutes(
+            block.startTime,
+            block.endTime,
+          );
           updatedEnd = addMinutesToTime(updatedStart, origDur);
         }
       }
@@ -947,21 +1088,25 @@ export async function executeNluAction(
         intent: 'update_time_block',
         entityType: 'time_block',
         entityId: block.id,
-        reply: `Updated time block: "${updatedTitle}" on ${updatedDate} from ${format12HourTime(updatedStart)} to ${format12HourTime(updatedEnd)}.`,
+        reply: `Updated time block: "${updatedTitle}" on ${updatedDate} from ${format12HourTime(
+          updatedStart,
+        )} to ${format12HourTime(updatedEnd)}.`,
       };
     }
 
     case 'update_note': {
       const targetTitle = intent.targetTitle || intent.title;
       const allNotes = notesStore.getAll(userId);
-      const { note } = findMatchingNote(allNotes, targetTitle);
+      const {note} = findMatchingNote(allNotes, targetTitle);
 
       if (!note) {
         return {
           success: false,
           intent: 'update_note',
           entityType: 'note',
-          reply: `Could not find a note matching "${targetTitle || 'that request'}".`,
+          reply: `Could not find a note matching "${
+            targetTitle || 'that request'
+          }".`,
           error: 'Note not found.',
         };
       }
@@ -992,14 +1137,29 @@ export async function executeNluAction(
     case 'update_task': {
       const targetTitle = intent.targetTitle || intent.title;
       const allTasks = tasksStore.getAllTasks(userId);
-      const taskMatch = findMatchingTask(allTasks, targetTitle, null, intent.targetTime);
+      const taskMatch = findMatchingTask(
+        allTasks,
+        targetTitle,
+        null,
+        intent.targetTime,
+      );
 
       // If targetEntityType === 'any' (e.g. "Move Coffee Break to 3pm"), check if an event or time block is a better match
       if (intent.targetEntityType === 'any' && !intent.isCompleted) {
         const allEvents = tasksStore.getAllEvents(userId);
-        const eventMatch = findMatchingEvent(allEvents, targetTitle, null, intent.targetTime);
+        const eventMatch = findMatchingEvent(
+          allEvents,
+          targetTitle,
+          null,
+          intent.targetTime,
+        );
         const allBlocks = timeBlocksStore.getAll(userId);
-        const blockMatch = findMatchingTimeBlock(allBlocks, targetTitle, null, intent.targetTime);
+        const blockMatch = findMatchingTimeBlock(
+          allBlocks,
+          targetTitle,
+          null,
+          intent.targetTime,
+        );
 
         if (
           eventMatch.event &&
@@ -1013,7 +1173,10 @@ export async function executeNluAction(
           let updatedEnd = intent.endTime || ev.endTime;
           if (!intent.endTime) {
             if (intent.durationMinutes) {
-              updatedEnd = addMinutesToTime(updatedStart, intent.durationMinutes);
+              updatedEnd = addMinutesToTime(
+                updatedStart,
+                intent.durationMinutes,
+              );
             } else if (intent.time) {
               const origDur = computeDurationMinutes(ev.startTime, ev.endTime);
               updatedEnd = addMinutesToTime(updatedStart, origDur);
@@ -1031,7 +1194,9 @@ export async function executeNluAction(
             intent: 'update_time_block',
             entityType: 'event',
             entityId: ev.id,
-            reply: `Updated event: "${updatedTitle}" on ${updatedDate} from ${format12HourTime(updatedStart)} to ${format12HourTime(updatedEnd)}.`,
+            reply: `Updated event: "${updatedTitle}" on ${updatedDate} from ${format12HourTime(
+              updatedStart,
+            )} to ${format12HourTime(updatedEnd)}.`,
           };
         }
 
@@ -1043,7 +1208,10 @@ export async function executeNluAction(
           let updatedEnd = intent.endTime || b.endTime;
           if (!intent.endTime) {
             if (intent.durationMinutes) {
-              updatedEnd = addMinutesToTime(updatedStart, intent.durationMinutes);
+              updatedEnd = addMinutesToTime(
+                updatedStart,
+                intent.durationMinutes,
+              );
             } else if (intent.time) {
               const origDur = computeDurationMinutes(b.startTime, b.endTime);
               updatedEnd = addMinutesToTime(updatedStart, origDur);
@@ -1061,7 +1229,9 @@ export async function executeNluAction(
             intent: 'update_time_block',
             entityType: 'time_block',
             entityId: b.id,
-            reply: `Updated time block: "${updatedTitle}" on ${updatedDate} from ${format12HourTime(updatedStart)} to ${format12HourTime(updatedEnd)}.`,
+            reply: `Updated time block: "${updatedTitle}" on ${updatedDate} from ${format12HourTime(
+              updatedStart,
+            )} to ${format12HourTime(updatedEnd)}.`,
           };
         }
       }
@@ -1071,7 +1241,9 @@ export async function executeNluAction(
           success: false,
           intent: 'update_task',
           entityType: 'task',
-          reply: `Could not find a task matching "${targetTitle || format12HourTime(intent.targetTime) || 'that request'}".`,
+          reply: `Could not find a task matching "${
+            targetTitle || format12HourTime(intent.targetTime) || 'that request'
+          }".`,
           error: 'Task not found.',
         };
       }
@@ -1107,11 +1279,15 @@ export async function executeNluAction(
       if (updatedTime) {
         const pendingReminders = remindersStore.getPendingReminders(userId);
         const linkedRem = pendingReminders.find(
-          (r) => normalizeForMatch(r.task) === normalizeForMatch(task.title),
+          r => normalizeForMatch(r.task) === normalizeForMatch(task.title),
         );
         const scheduledAt = `${updatedDate}T${updatedTime}:00`;
         const scheduledMs = new Date(scheduledAt).getTime();
-        if (linkedRem && Number.isFinite(scheduledMs) && scheduledMs > Date.now()) {
+        if (
+          linkedRem &&
+          Number.isFinite(scheduledMs) &&
+          scheduledMs > Date.now()
+        ) {
           const triggerAt = new Date(scheduledMs).toISOString();
           try {
             remindersStore.updateReminderTriggerAt(linkedRem.id, triggerAt);
@@ -1122,7 +1298,9 @@ export async function executeNluAction(
         }
       }
 
-      const timeSuffix = updatedTime ? ` at ${format12HourTime(updatedTime)}` : '';
+      const timeSuffix = updatedTime
+        ? ` at ${format12HourTime(updatedTime)}`
+        : '';
       return {
         success: true,
         intent: 'update_task',
@@ -1153,7 +1331,7 @@ export async function executeNluAction(
       if (targetQuery) {
         const normTarget = normalizeForMatch(targetQuery);
         const matchingRem = pendingReminders.find(
-          (r) =>
+          r =>
             r.task.trim().toLowerCase() === targetQuery.trim().toLowerCase() ||
             (normTarget && normalizeForMatch(r.task).includes(normTarget)),
         );
@@ -1163,7 +1341,7 @@ export async function executeNluAction(
           const allTasks = tasksStore.getAllTasks(userId);
           const taskMatch = findMatchingTask(allTasks, targetQuery, null, null);
           if (taskMatch.task && intent.targetEntityType === 'task') {
-            tasksStore.updateTask({ id: taskMatch.task.id, isCompleted: true });
+            tasksStore.updateTask({id: taskMatch.task.id, isCompleted: true});
           }
           return {
             success: true,
@@ -1178,7 +1356,7 @@ export async function executeNluAction(
         const allTasks = tasksStore.getAllTasks(userId);
         const taskMatch = findMatchingTask(allTasks, targetQuery, null, null);
         if (taskMatch.task) {
-          tasksStore.updateTask({ id: taskMatch.task.id, isCompleted: true });
+          tasksStore.updateTask({id: taskMatch.task.id, isCompleted: true});
           await cleanupMatchingReminders(userId, taskMatch.task.title);
           return {
             success: true,
@@ -1191,7 +1369,12 @@ export async function executeNluAction(
 
         // Direct event match
         const allEvents = tasksStore.getAllEvents(userId);
-        const eventMatch = findMatchingEvent(allEvents, targetQuery, null, null);
+        const eventMatch = findMatchingEvent(
+          allEvents,
+          targetQuery,
+          null,
+          null,
+        );
         if (eventMatch.event) {
           await cleanupMatchingReminders(userId, eventMatch.event.title);
           return {
@@ -1210,14 +1393,20 @@ export async function executeNluAction(
         if (intent.targetEntityType === 'event') {
           const allEvents = tasksStore.getAllEvents(userId);
           chosenRem =
-            pendingReminders.find((r) =>
-              allEvents.some((e) => e.title.trim().toLowerCase() === r.task.trim().toLowerCase()),
+            pendingReminders.find(r =>
+              allEvents.some(
+                e =>
+                  e.title.trim().toLowerCase() === r.task.trim().toLowerCase(),
+              ),
             ) || pendingReminders[0];
         } else if (intent.targetEntityType === 'task') {
           const allTasks = tasksStore.getAllTasks(userId);
           chosenRem =
-            pendingReminders.find((r) =>
-              allTasks.some((t) => t.title.trim().toLowerCase() === r.task.trim().toLowerCase()),
+            pendingReminders.find(r =>
+              allTasks.some(
+                t =>
+                  t.title.trim().toLowerCase() === r.task.trim().toLowerCase(),
+              ),
             ) || pendingReminders[0];
         } else {
           chosenRem = pendingReminders[0];
@@ -1238,7 +1427,8 @@ export async function executeNluAction(
       return {
         success: true,
         intent: 'acknowledge',
-        reply: 'All reminders and tasks are already acknowledged. No additional call reminders will be triggered.',
+        reply:
+          'All reminders and tasks are already acknowledged. No additional call reminders will be triggered.',
       };
     }
 
@@ -1265,13 +1455,24 @@ export async function executeNluAction(
       if (options.activeReminderId) {
         const scheduledAt = `${newDate}T${newTime}:00`;
         const scheduledMs = new Date(scheduledAt).getTime();
-        const triggerAt = isNaN(scheduledMs) ? new Date(Date.now() + 60000).toISOString() : new Date(scheduledMs).toISOString();
+        const triggerAt = isNaN(scheduledMs)
+          ? new Date(Date.now() + 60000).toISOString()
+          : new Date(scheduledMs).toISOString();
 
         try {
-          remindersStore.updateReminderTriggerAt(options.activeReminderId, triggerAt);
-          const activeRem = remindersStore.getReminderById(options.activeReminderId);
+          remindersStore.updateReminderTriggerAt(
+            options.activeReminderId,
+            triggerAt,
+          );
+          const activeRem = remindersStore.getReminderById(
+            options.activeReminderId,
+          );
           if (activeRem) {
-            await scheduleReminderAlarm(activeRem.id, activeRem.task, triggerAt);
+            await scheduleReminderAlarm(
+              activeRem.id,
+              activeRem.task,
+              triggerAt,
+            );
           }
         } catch (e) {
           console.warn('Failed to reschedule native alarm:', e);
@@ -1288,7 +1489,10 @@ export async function executeNluAction(
     case 'query_schedule': {
       const refDate = options.referenceDate || new Date();
 
-      if (intent.dateRange === 'this_week' || intent.dateRange === 'next_week') {
+      if (
+        intent.dateRange === 'this_week' ||
+        intent.dateRange === 'next_week'
+      ) {
         const isNextWeek = intent.dateRange === 'next_week';
         const dayOfWeek = refDate.getDay(); // 0 = Sunday, 1 = Monday, ...
         const diffToMon = dayOfWeek === 0 ? -6 : 1 - dayOfWeek;
@@ -1306,11 +1510,18 @@ export async function executeNluAction(
 
         const allTasks = tasksStore
           .getAllTasks(userId)
-          .filter((t) => !t.isCompleted && t.dueDate && weekDateSet.has(t.dueDate));
-        const allBlocks = timeBlocksStore.getAll(userId).filter((b) => weekDateSet.has(b.date));
-        const allEvents = tasksStore.getAllEvents(userId).filter((e) => weekDateSet.has(e.date));
+          .filter(
+            t => !t.isCompleted && t.dueDate && weekDateSet.has(t.dueDate),
+          );
+        const allBlocks = timeBlocksStore
+          .getAll(userId)
+          .filter(b => weekDateSet.has(b.date));
+        const allEvents = tasksStore
+          .getAllEvents(userId)
+          .filter(e => weekDateSet.has(e.date));
 
-        const totalCount = allTasks.length + allBlocks.length + allEvents.length;
+        const totalCount =
+          allTasks.length + allBlocks.length + allEvents.length;
         const rangeLabel = isNextWeek ? 'Next week' : 'This week';
 
         if (totalCount === 0) {
@@ -1321,28 +1532,40 @@ export async function executeNluAction(
           };
         }
 
-        const dayNames = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+        const dayNames = [
+          'Monday',
+          'Tuesday',
+          'Wednesday',
+          'Thursday',
+          'Friday',
+          'Saturday',
+          'Sunday',
+        ];
         const daySummaries: string[] = [];
 
         for (let i = 0; i < 7; i++) {
           const dateStr = weekDates[i];
           const dayName = dayNames[i];
-          const dayTasks = allTasks.filter((t) => t.dueDate === dateStr);
-          const dayBlocks = allBlocks.filter((b) => b.date === dateStr);
-          const dayEvents = allEvents.filter((e) => e.date === dateStr);
+          const dayTasks = allTasks.filter(t => t.dueDate === dateStr);
+          const dayBlocks = allBlocks.filter(b => b.date === dateStr);
+          const dayEvents = allEvents.filter(e => e.date === dateStr);
 
           const dayItems: string[] = [];
           for (const b of dayBlocks) {
             const timeDesc =
               b.endTime && b.endTime !== b.startTime
-                ? `from ${format12HourTime(b.startTime)} to ${format12HourTime(b.endTime)}`
+                ? `from ${format12HourTime(b.startTime)} to ${format12HourTime(
+                    b.endTime,
+                  )}`
                 : `at ${format12HourTime(b.startTime)}`;
             dayItems.push(`${b.title} ${timeDesc}`);
           }
           for (const e of dayEvents) {
             const timeDesc =
               e.endTime && e.endTime !== e.startTime
-                ? `from ${format12HourTime(e.startTime)} to ${format12HourTime(e.endTime)}`
+                ? `from ${format12HourTime(e.startTime)} to ${format12HourTime(
+                    e.endTime,
+                  )}`
                 : `at ${format12HourTime(e.startTime)}`;
             dayItems.push(`${e.title} ${timeDesc}`);
           }
@@ -1356,23 +1579,38 @@ export async function executeNluAction(
 
           if (dayItems.length > 0) {
             if (dayItems.length <= 3) {
-              daySummaries.push(`On ${dayName}: ${formatListWithAnd(dayItems)}.`);
+              daySummaries.push(
+                `On ${dayName}: ${formatListWithAnd(dayItems)}.`,
+              );
             } else {
               const shown = dayItems.slice(0, 3);
               const remaining = dayItems.length - 3;
               daySummaries.push(
-                `On ${dayName}: ${shown.join(', ')}, and ${remaining} more item${remaining > 1 ? 's' : ''}.`,
+                `On ${dayName}: ${shown.join(
+                  ', ',
+                )}, and ${remaining} more item${remaining > 1 ? 's' : ''}.`,
               );
             }
           }
         }
 
         const countParts: string[] = [];
-        if (allTasks.length > 0) countParts.push(`${allTasks.length} task${allTasks.length > 1 ? 's' : ''}`);
-        if (allBlocks.length > 0) countParts.push(`${allBlocks.length} time block${allBlocks.length > 1 ? 's' : ''}`);
-        if (allEvents.length > 0) countParts.push(`${allEvents.length} event${allEvents.length > 1 ? 's' : ''}`);
+        if (allTasks.length > 0)
+          countParts.push(
+            `${allTasks.length} task${allTasks.length > 1 ? 's' : ''}`,
+          );
+        if (allBlocks.length > 0)
+          countParts.push(
+            `${allBlocks.length} time block${allBlocks.length > 1 ? 's' : ''}`,
+          );
+        if (allEvents.length > 0)
+          countParts.push(
+            `${allEvents.length} event${allEvents.length > 1 ? 's' : ''}`,
+          );
 
-        const summary = `${rangeLabel} you have ${formatListWithAnd(countParts)} scheduled: ${daySummaries.join(' ')}`;
+        const summary = `${rangeLabel} you have ${formatListWithAnd(
+          countParts,
+        )} scheduled: ${daySummaries.join(' ')}`;
         return {
           success: true,
           intent: 'query_schedule',
@@ -1383,9 +1621,15 @@ export async function executeNluAction(
       const targetDate = intent.date || formatLocalDate(refDate);
       const dayLabel = formatSpokenDayLabel(targetDate, refDate);
 
-      const tasks = tasksStore.getAllTasks(userId).filter((t) => !t.isCompleted && t.dueDate === targetDate);
-      const blocks = timeBlocksStore.getAll(userId).filter((b) => b.date === targetDate);
-      const events = tasksStore.getAllEvents(userId).filter((e) => e.date === targetDate);
+      const tasks = tasksStore
+        .getAllTasks(userId)
+        .filter(t => !t.isCompleted && t.dueDate === targetDate);
+      const blocks = timeBlocksStore
+        .getAll(userId)
+        .filter(b => b.date === targetDate);
+      const events = tasksStore
+        .getAllEvents(userId)
+        .filter(e => e.date === targetDate);
 
       const totalCount = tasks.length + blocks.length + events.length;
 
@@ -1398,10 +1642,14 @@ export async function executeNluAction(
           countParts.push(`${tasks.length} task${tasks.length > 1 ? 's' : ''}`);
         }
         if (blocks.length > 0) {
-          countParts.push(`${blocks.length} time block${blocks.length > 1 ? 's' : ''}`);
+          countParts.push(
+            `${blocks.length} time block${blocks.length > 1 ? 's' : ''}`,
+          );
         }
         if (events.length > 0) {
-          countParts.push(`${events.length} event${events.length > 1 ? 's' : ''}`);
+          countParts.push(
+            `${events.length} event${events.length > 1 ? 's' : ''}`,
+          );
         }
 
         interface TimedItem {
@@ -1415,8 +1663,13 @@ export async function executeNluAction(
 
         for (const b of blocks) {
           const startSpoken = format12HourTime(b.startTime);
-          const endSpoken = b.endTime && b.endTime !== b.startTime ? format12HourTime(b.endTime) : '';
-          const timePhrase = endSpoken ? `from ${startSpoken} to ${endSpoken}` : `at ${startSpoken}`;
+          const endSpoken =
+            b.endTime && b.endTime !== b.startTime
+              ? format12HourTime(b.endTime)
+              : '';
+          const timePhrase = endSpoken
+            ? `from ${startSpoken} to ${endSpoken}`
+            : `at ${startSpoken}`;
           timedItems.push({
             title: b.title,
             timeStr: b.startTime || '00:00',
@@ -1426,8 +1679,13 @@ export async function executeNluAction(
 
         for (const e of events) {
           const startSpoken = format12HourTime(e.startTime);
-          const endSpoken = e.endTime && e.endTime !== e.startTime ? format12HourTime(e.endTime) : '';
-          const timePhrase = endSpoken ? `from ${startSpoken} to ${endSpoken}` : `at ${startSpoken}`;
+          const endSpoken =
+            e.endTime && e.endTime !== e.startTime
+              ? format12HourTime(e.endTime)
+              : '';
+          const timePhrase = endSpoken
+            ? `from ${startSpoken} to ${endSpoken}`
+            : `at ${startSpoken}`;
           timedItems.push({
             title: e.title,
             timeStr: e.startTime || '00:00',
@@ -1451,10 +1709,14 @@ export async function executeNluAction(
         // Chronological sort by start/due time
         timedItems.sort((a, b) => a.timeStr.localeCompare(b.timeStr));
 
-        const countSentence = `${dayLabel} you have ${formatListWithAnd(countParts)}:`;
+        const countSentence = `${dayLabel} you have ${formatListWithAnd(
+          countParts,
+        )}:`;
 
         if (timedItems.length === 0 && allDayTasks.length > 0) {
-          summary = `${countSentence} ${formatListWithAnd(allDayTasks.map((t) => `"${t}"`))}.`;
+          summary = `${countSentence} ${formatListWithAnd(
+            allDayTasks.map(t => `"${t}"`),
+          )}.`;
         } else if (timedItems.length === 1 && allDayTasks.length === 0) {
           summary = `${countSentence} ${timedItems[0].spokenDetail}.`;
         } else if (timedItems.length === 2 && allDayTasks.length === 0) {
@@ -1462,7 +1724,8 @@ export async function executeNluAction(
         } else if (timedItems.length > 2 && allDayTasks.length === 0) {
           const parts = timedItems.map((item, idx) => {
             if (idx === 0) return `First, ${item.spokenDetail}.`;
-            if (idx === timedItems.length - 1) return `Finally, ${item.spokenDetail}.`;
+            if (idx === timedItems.length - 1)
+              return `Finally, ${item.spokenDetail}.`;
             return `Next, ${item.spokenDetail}.`;
           });
           summary = `${countSentence} ${parts.join(' ')}`;
@@ -1476,13 +1739,18 @@ export async function executeNluAction(
           } else {
             const parts = timedItems.map((item, idx) => {
               if (idx === 0) return `First, ${item.spokenDetail}.`;
-              if (idx === timedItems.length - 1) return `Finally, ${item.spokenDetail}.`;
+              if (idx === timedItems.length - 1)
+                return `Finally, ${item.spokenDetail}.`;
               return `Next, ${item.spokenDetail}.`;
             });
             timedSentence = parts.join(' ');
           }
 
-          const allDaySentence = `You also have ${allDayTasks.length} all-day task${allDayTasks.length > 1 ? 's' : ''}: ${formatListWithAnd(allDayTasks.map((t) => `"${t}"`))}.`;
+          const allDaySentence = `You also have ${
+            allDayTasks.length
+          } all-day task${
+            allDayTasks.length > 1 ? 's' : ''
+          }: ${formatListWithAnd(allDayTasks.map(t => `"${t}"`))}.`;
           summary = `${countSentence} ${timedSentence} ${allDaySentence}`;
         }
       }
@@ -1505,7 +1773,11 @@ export async function executeNluAction(
     case 'chat':
     case 'out_of_scope':
     default: {
-      const queryLower = (intent.details || intent.rawTranscript || '').toLowerCase();
+      const queryLower = (
+        intent.details ||
+        intent.rawTranscript ||
+        ''
+      ).toLowerCase();
       if (
         /\b(?:what|who)\s+(?:are|is)\s+(?:you|lafina)|tell\s+me\s+about\s+yourself|who\s+made\s+you|are\s+you\s+(?:an?\s+)?(?:ai|bot|assistant)|what(?:'s|\s+is)\s+your\s+name|who\s+are\s+u|what\s+are\s+u\b/i.test(
           queryLower,

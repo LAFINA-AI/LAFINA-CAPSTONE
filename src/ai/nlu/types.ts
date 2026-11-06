@@ -39,6 +39,7 @@ export interface ExtractedIntent {
   targetEntityType?: CrudTargetEntityType | null;
   dateRange?: 'this_week' | 'next_week' | null;
   recurrenceRule?: string | null;
+  priority?: 'High' | 'Medium' | 'Low' | null;
 }
 
 export interface ValidatedIntent extends ExtractedIntent {

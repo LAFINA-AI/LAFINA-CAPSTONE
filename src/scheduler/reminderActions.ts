@@ -1,6 +1,7 @@
 import { remindersStore } from '../storage/remindersStore';
 import { getOccurrences } from '../storage/rruleHelper';
 import { deletePreCachedReminderAudio } from '../ai/tts/ttsService';
+import { recordReminderInteraction } from '../ai/ml';
 import { generateId } from '../utils';
 import { getReminderPreferences } from './userPreferences';
 import {
@@ -64,6 +65,22 @@ export const snoozeReminderAction = async (
     await finishNativeIncomingCall(reminder.id);
   } catch (error) {
     console.error('[ReminderActions] Snoozed, but call cleanup failed:', error);
+  }
+
+  // Non-blocking ML behavior tracking (Section 2.4.8)
+  try {
+    const latencySeconds = reminder.triggerAt
+      ? Math.max(0, Math.round((Date.now() - new Date(reminder.triggerAt).getTime()) / 1000))
+      : 0;
+    recordReminderInteraction(userId, {
+      reminderId: reminder.id,
+      outcome: 'snoozed',
+      latencySeconds,
+      snoozeMinutes: minutes,
+      channel: 'call',
+    });
+  } catch (err) {
+    console.warn('[ReminderActions] Failed to record snooze interaction:', err);
   }
 
   return {
@@ -169,6 +186,21 @@ export const acknowledgeReminderAction = async (
     console.warn('[ReminderActions] Failed to schedule next recurring reminder:', err);
   }
 
+  // Non-blocking ML behavior tracking (Section 2.4.8)
+  try {
+    const latencySeconds = reminder.triggerAt
+      ? Math.max(0, Math.round((Date.now() - new Date(reminder.triggerAt).getTime()) / 1000))
+      : 0;
+    recordReminderInteraction(userId, {
+      reminderId: reminder.id,
+      outcome: 'acknowledged',
+      latencySeconds,
+      channel: 'call',
+    });
+  } catch (err) {
+    console.warn('[ReminderActions] Failed to record acknowledge interaction:', err);
+  }
+
   return {
     ok: true,
     outcome: 'acknowledged',
@@ -210,6 +242,21 @@ export const autoSnoozeReminderAction = async (
     await finishNativeIncomingCall(reminder.id);
   } catch (error) {
     console.error('[ReminderActions] Marked missed, but cleanup failed:', error);
+  }
+
+  // Non-blocking ML behavior tracking (Section 2.4.8)
+  try {
+    const latencySeconds = reminder.triggerAt
+      ? Math.max(0, Math.round((Date.now() - new Date(reminder.triggerAt).getTime()) / 1000))
+      : 0;
+    recordReminderInteraction(userId, {
+      reminderId: reminder.id,
+      outcome: 'missed',
+      latencySeconds,
+      channel: 'call',
+    });
+  } catch (err) {
+    console.warn('[ReminderActions] Failed to record missed interaction:', err);
   }
 
   return {

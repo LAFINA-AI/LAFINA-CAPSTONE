@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, {useMemo, useState} from 'react';
 import {
   ActivityIndicator,
   Alert,
@@ -8,8 +8,14 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import { Bell, ChevronLeft, Download, Sparkles, Trash2 } from 'lucide-react-native';
+import {SafeAreaView} from 'react-native-safe-area-context';
+import {
+  Bell,
+  ChevronLeft,
+  Download,
+  Sparkles,
+  Trash2,
+} from 'lucide-react-native';
 import {
   getModelStatus,
   downloadQwenModel,
@@ -18,7 +24,9 @@ import {
   type ModelStatus,
   type ModelDownloadProgress,
 } from '../../ai/nlu';
-import { preferencesStore } from '../../storage';
+import {preferencesStore} from '../../storage';
+import {localSettingsStore} from '../../storage/localSettingsStore';
+import {SETTING_KEY_ADAPTIVE_TIMING} from '../../ai/ml';
 import type {
   LongestClassGap,
   SnoozeTendency,
@@ -30,10 +38,10 @@ import {
   getReminderPermissionStatus,
   refreshPendingReminderLeadTimes,
 } from '../../scheduler';
-import type { ReminderPermissionStatus } from '../../scheduler';
-import { Fonts, Layout, Shadows } from '../theme';
-import { useTheme } from '../contexts/ThemeContext';
-import { ReminderPermissionModal } from '../components/call/ReminderPermissionModal';
+import type {ReminderPermissionStatus} from '../../scheduler';
+import {Fonts, Layout, Shadows} from '../theme';
+import {useTheme} from '../contexts/ThemeContext';
+import {ReminderPermissionModal} from '../components/call/ReminderPermissionModal';
 
 interface PreferencesSettingsScreenProps {
   userId: string;
@@ -65,18 +73,26 @@ const formatTo12Hour = (time24: string): string => {
   return `${displayHour}:${minStr} ${ampm}`;
 };
 
-const WAKE_OPTIONS: PreferenceOption[] = ['05:00', '06:00', '07:00', '08:00', '09:00'].map(
-  (value) => ({ label: formatTo12Hour(value), value }),
-);
-const SLEEP_OPTIONS: PreferenceOption[] = ['21:00', '22:00', '23:00', '00:00', '01:00'].map(
-  (value) => ({ label: formatTo12Hour(value), value }),
-);
+const WAKE_OPTIONS: PreferenceOption[] = [
+  '05:00',
+  '06:00',
+  '07:00',
+  '08:00',
+  '09:00',
+].map(value => ({label: formatTo12Hour(value), value}));
+const SLEEP_OPTIONS: PreferenceOption[] = [
+  '21:00',
+  '22:00',
+  '23:00',
+  '00:00',
+  '01:00',
+].map(value => ({label: formatTo12Hour(value), value}));
 const STUDY_OPTIONS: PreferenceOption[] = [
-  { label: 'Morning', value: 'morning' },
-  { label: 'Late Morning', value: 'late_morning' },
-  { label: 'Afternoon', value: 'afternoon' },
-  { label: 'Evening', value: 'evening' },
-  { label: 'Night', value: 'night' },
+  {label: 'Morning', value: 'morning'},
+  {label: 'Late Morning', value: 'late_morning'},
+  {label: 'Afternoon', value: 'afternoon'},
+  {label: 'Evening', value: 'evening'},
+  {label: 'Night', value: 'night'},
 ];
 const BUSIEST_DAY_OPTIONS: PreferenceOption[] = [
   'Monday',
@@ -86,26 +102,31 @@ const BUSIEST_DAY_OPTIONS: PreferenceOption[] = [
   'Friday',
   'Saturday',
   'Sunday',
-].map((value) => ({ label: value, value }));
+].map(value => ({label: value, value}));
 const REMINDER_LEAD_OPTIONS: PreferenceOption[] = [
-  { label: 'On the dot', value: '0' },
-  { label: '15 min before', value: '15' },
-  { label: '30 min before', value: '30' },
-  { label: '1 hour before', value: '60' },
+  {label: 'On the dot', value: '0'},
+  {label: '15 min before', value: '15'},
+  {label: '30 min before', value: '30'},
+  {label: '1 hour before', value: '60'},
 ];
 const SNOOZE_OPTIONS: PreferenceOption[] = [
-  { label: 'Do it right away', value: 'immediate' },
-  { label: 'Snooze once', value: 'snooze_once' },
-  { label: 'Snooze multiple times', value: 'snooze_multiple' },
-  { label: 'Often ignore', value: 'ignore' },
+  {label: 'Do it right away', value: 'immediate'},
+  {label: 'Snooze once', value: 'snooze_once'},
+  {label: 'Snooze multiple times', value: 'snooze_multiple'},
+  {label: 'Often ignore', value: 'ignore'},
 ];
-const CLASS_COUNT_OPTIONS: PreferenceOption[] = ['1-3', '4-6', '7+'].map((value) => ({
-  label: `${value} classes`,
-  value,
-}));
-const CLASS_GAP_OPTIONS: PreferenceOption[] = ['None', '30 min', '1 hour', '2+ hours'].map(
-  (value) => ({ label: value, value }),
+const CLASS_COUNT_OPTIONS: PreferenceOption[] = ['1-3', '4-6', '7+'].map(
+  value => ({
+    label: `${value} classes`,
+    value,
+  }),
 );
+const CLASS_GAP_OPTIONS: PreferenceOption[] = [
+  'None',
+  '30 min',
+  '1 hour',
+  '2+ hours',
+].map(value => ({label: value, value}));
 
 const PreferenceOptionGroup: React.FC<PreferenceOptionGroupProps> = ({
   title,
@@ -113,29 +134,34 @@ const PreferenceOptionGroup: React.FC<PreferenceOptionGroupProps> = ({
   selectedValues,
   onSelect,
 }) => {
-  const { colors } = useTheme();
+  const {colors} = useTheme();
 
   return (
     <View style={styles.optionGroup}>
-      <Text style={[styles.optionTitle, { color: colors.textPrimary }]}>{title}</Text>
+      <Text style={[styles.optionTitle, {color: colors.textPrimary}]}>
+        {title}
+      </Text>
       <View style={styles.chipRow}>
-        {options.map((option) => {
+        {options.map(option => {
           const isSelected = selectedValues.includes(option.value);
           return (
             <TouchableOpacity
               key={option.value}
               style={[
                 styles.chip,
-                { backgroundColor: colors.inputBg, borderColor: colors.border },
-                isSelected && { backgroundColor: colors.blue, borderColor: colors.blue },
+                {backgroundColor: colors.inputBg, borderColor: colors.border},
+                isSelected && {
+                  backgroundColor: colors.blue,
+                  borderColor: colors.blue,
+                },
               ]}
               onPress={() => onSelect(option.value)}
             >
               <Text
                 style={[
                   styles.chipText,
-                  { color: colors.textPrimary },
-                  isSelected && { color: colors.white, fontWeight: 'bold' },
+                  {color: colors.textPrimary},
+                  isSelected && {color: colors.white, fontWeight: 'bold'},
                 ]}
               >
                 {option.label}
@@ -148,11 +174,9 @@ const PreferenceOptionGroup: React.FC<PreferenceOptionGroupProps> = ({
   );
 };
 
-export const PreferencesSettingsScreen: React.FC<PreferencesSettingsScreenProps> = ({
-  userId,
-  onBack,
-  onSaved,
-}) => {
+export const PreferencesSettingsScreen: React.FC<
+  PreferencesSettingsScreenProps
+> = ({userId, onBack, onSaved}) => {
   const initial = useMemo(() => preferencesStore.get(userId), [userId]);
   const [wakeTime, setWakeTime] = useState(initial.wakeTime);
   const [sleepTime, setSleepTime] = useState(initial.sleepTime);
@@ -172,14 +196,21 @@ export const PreferencesSettingsScreen: React.FC<PreferencesSettingsScreenProps>
   const [longestClassGap, setLongestClassGap] = useState<LongestClassGap>(
     initial.longestClassGap,
   );
+  const [adaptiveTimingEnabled, setAdaptiveTimingEnabled] = useState<boolean>(
+    () =>
+      localSettingsStore.get(userId, SETTING_KEY_ADAPTIVE_TIMING, 'true') !==
+      'false',
+  );
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [permissionModalVisible, setPermissionModalVisible] = useState(false);
-  const [permissionStatus, setPermissionStatus] = useState<ReminderPermissionStatus | null>(null);
+  const [permissionStatus, setPermissionStatus] =
+    useState<ReminderPermissionStatus | null>(null);
   const [modelStatus, setModelStatus] = useState<ModelStatus | null>(null);
-  const [downloadProgress, setDownloadProgress] = useState<ModelDownloadProgress | null>(null);
+  const [downloadProgress, setDownloadProgress] =
+    useState<ModelDownloadProgress | null>(null);
   const [isDownloading, setIsDownloading] = useState(false);
-  const { colors } = useTheme();
+  const {colors} = useTheme();
 
   React.useEffect(() => {
     void getModelStatus().then(setModelStatus);
@@ -187,20 +218,31 @@ export const PreferencesSettingsScreen: React.FC<PreferencesSettingsScreenProps>
 
   const handleStartDownload = async () => {
     setIsDownloading(true);
-    setDownloadProgress({ bytesWritten: 0, contentLength: 397800000, percent: 0, status: 'downloading' });
+    setDownloadProgress({
+      bytesWritten: 0,
+      contentLength: 397800000,
+      percent: 0,
+      status: 'downloading',
+    });
     try {
-      await downloadQwenModel((prog) => {
+      await downloadQwenModel(prog => {
         setDownloadProgress(prog);
       });
       const updated = await getModelStatus();
       setModelStatus(updated);
       setIsDownloading(false);
       setDownloadProgress(null);
-      Alert.alert('AI Model Ready', 'Qwen2.5-0.5B model is downloaded and ready for offline voice intelligence!');
+      Alert.alert(
+        'AI Model Ready',
+        'Qwen2.5-0.5B model is downloaded and ready for offline voice intelligence!',
+      );
     } catch (err: any) {
       setIsDownloading(false);
       setDownloadProgress(null);
-      Alert.alert('Download Error', err?.message || 'Could not download model. Check internet connection.');
+      Alert.alert(
+        'Download Error',
+        err?.message || 'Could not download model. Check internet connection.',
+      );
     }
   };
 
@@ -215,7 +257,7 @@ export const PreferencesSettingsScreen: React.FC<PreferencesSettingsScreenProps>
       'Remove Offline AI Model',
       'Are you sure you want to delete the on-device AI model? LAFINA will continue working using high-accuracy fast-path parsing.',
       [
-        { text: 'Cancel', style: 'cancel' },
+        {text: 'Cancel', style: 'cancel'},
         {
           text: 'Delete',
           style: 'destructive',
@@ -241,24 +283,30 @@ export const PreferencesSettingsScreen: React.FC<PreferencesSettingsScreenProps>
 
   const wakeOptions = useMemo(
     () =>
-      WAKE_OPTIONS.some((option) => option.value === wakeTime)
+      WAKE_OPTIONS.some(option => option.value === wakeTime)
         ? WAKE_OPTIONS
-        : [{ label: `Current: ${formatTo12Hour(wakeTime)}`, value: wakeTime }, ...WAKE_OPTIONS],
+        : [
+            {label: `Current: ${formatTo12Hour(wakeTime)}`, value: wakeTime},
+            ...WAKE_OPTIONS,
+          ],
     [wakeTime],
   );
   const sleepOptions = useMemo(
     () =>
-      SLEEP_OPTIONS.some((option) => option.value === sleepTime)
+      SLEEP_OPTIONS.some(option => option.value === sleepTime)
         ? SLEEP_OPTIONS
-        : [{ label: `Current: ${formatTo12Hour(sleepTime)}`, value: sleepTime }, ...SLEEP_OPTIONS],
+        : [
+            {label: `Current: ${formatTo12Hour(sleepTime)}`, value: sleepTime},
+            ...SLEEP_OPTIONS,
+          ],
     [sleepTime],
   );
 
   const toggleStudyPeak = (value: string): void => {
     const typedValue = value as StudyPeakHour;
-    setStudyPeakHours((current) =>
+    setStudyPeakHours(current =>
       current.includes(typedValue)
-        ? current.filter((entry) => entry !== typedValue)
+        ? current.filter(entry => entry !== typedValue)
         : [...current, typedValue],
     );
   };
@@ -281,6 +329,11 @@ export const PreferencesSettingsScreen: React.FC<PreferencesSettingsScreenProps>
 
     try {
       preferencesStore.save(userId, updatedPreferences);
+      localSettingsStore.set(
+        userId,
+        SETTING_KEY_ADAPTIVE_TIMING,
+        adaptiveTimingEnabled ? 'true' : 'false',
+      );
       const refreshResult = await refreshPendingReminderLeadTimes(
         userId,
         updatedPreferences.reminderLeadMinutes,
@@ -302,19 +355,29 @@ export const PreferencesSettingsScreen: React.FC<PreferencesSettingsScreenProps>
   };
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
-      <View style={[styles.header, { borderBottomColor: colors.border }]}>
+    <SafeAreaView
+      style={[styles.container, {backgroundColor: colors.background}]}
+    >
+      <View style={[styles.header, {borderBottomColor: colors.border}]}>
         <TouchableOpacity style={styles.backButton} onPress={onBack}>
           <ChevronLeft size={22} color={colors.textPrimary} />
-          <Text style={[styles.backText, { color: colors.textPrimary }]}>Profile</Text>
+          <Text style={[styles.backText, {color: colors.textPrimary}]}>
+            Profile
+          </Text>
         </TouchableOpacity>
-        <Text style={[styles.headerTitle, { color: colors.textPrimary }]}>Preferences</Text>
+        <Text style={[styles.headerTitle, {color: colors.textPrimary}]}>
+          Preferences
+        </Text>
         <View style={styles.headerSpacer} />
       </View>
 
       <ScrollView contentContainerStyle={styles.content}>
-        <View style={[styles.card, Shadows.card, { backgroundColor: colors.cardBg }]}>
-          <Text style={[styles.sectionTitle, { color: colors.textPrimary }]}>Daily routine</Text>
+        <View
+          style={[styles.card, Shadows.card, {backgroundColor: colors.cardBg}]}
+        >
+          <Text style={[styles.sectionTitle, {color: colors.textPrimary}]}>
+            Daily routine
+          </Text>
           <PreferenceOptionGroup
             title="Wake-up time"
             options={wakeOptions}
@@ -329,8 +392,12 @@ export const PreferencesSettingsScreen: React.FC<PreferencesSettingsScreenProps>
           />
         </View>
 
-        <View style={[styles.card, Shadows.card, { backgroundColor: colors.cardBg }]}>
-          <Text style={[styles.sectionTitle, { color: colors.textPrimary }]}>Study habits</Text>
+        <View
+          style={[styles.card, Shadows.card, {backgroundColor: colors.cardBg}]}
+        >
+          <Text style={[styles.sectionTitle, {color: colors.textPrimary}]}>
+            Study habits
+          </Text>
           <PreferenceOptionGroup
             title="Peak study hours"
             options={STUDY_OPTIONS}
@@ -345,8 +412,12 @@ export const PreferencesSettingsScreen: React.FC<PreferencesSettingsScreenProps>
           />
         </View>
 
-        <View style={[styles.card, Shadows.card, { backgroundColor: colors.cardBg }]}>
-          <Text style={[styles.sectionTitle, { color: colors.textPrimary }]}>Reminders</Text>
+        <View
+          style={[styles.card, Shadows.card, {backgroundColor: colors.cardBg}]}
+        >
+          <Text style={[styles.sectionTitle, {color: colors.textPrimary}]}>
+            Reminders
+          </Text>
           <PreferenceOptionGroup
             title="Reminder lead time"
             options={REMINDER_LEAD_OPTIONS}
@@ -357,29 +428,49 @@ export const PreferencesSettingsScreen: React.FC<PreferencesSettingsScreenProps>
             title="Call alarm response"
             options={SNOOZE_OPTIONS}
             selectedValues={[snoozeTendency]}
-            onSelect={(value) => setSnoozeTendency(value as SnoozeTendency)}
+            onSelect={value => setSnoozeTendency(value as SnoozeTendency)}
+          />
+          <PreferenceOptionGroup
+            title="Adaptive timing (AI Secretary)"
+            options={[
+              {label: 'Enabled (AI personalized)', value: 'true'},
+              {label: 'Disabled (Fixed lead time)', value: 'false'},
+            ]}
+            selectedValues={[adaptiveTimingEnabled ? 'true' : 'false']}
+            onSelect={value => setAdaptiveTimingEnabled(value === 'true')}
           />
         </View>
 
-        <View style={[styles.card, Shadows.card, { backgroundColor: colors.cardBg }]}>
-          <Text style={[styles.sectionTitle, { color: colors.textPrimary }]}>Academic load</Text>
+        <View
+          style={[styles.card, Shadows.card, {backgroundColor: colors.cardBg}]}
+        >
+          <Text style={[styles.sectionTitle, {color: colors.textPrimary}]}>
+            Academic load
+          </Text>
           <PreferenceOptionGroup
             title="Weekly classes"
             options={CLASS_COUNT_OPTIONS}
             selectedValues={[weeklyClassCount]}
-            onSelect={(value) => setWeeklyClassCount(value as WeeklyClassCount)}
+            onSelect={value => setWeeklyClassCount(value as WeeklyClassCount)}
           />
           <PreferenceOptionGroup
             title="Longest class gap"
             options={CLASS_GAP_OPTIONS}
             selectedValues={[longestClassGap]}
-            onSelect={(value) => setLongestClassGap(value as LongestClassGap)}
+            onSelect={value => setLongestClassGap(value as LongestClassGap)}
           />
         </View>
 
-        <View style={[styles.card, Shadows.card, { backgroundColor: colors.cardBg }]}>
+        <View
+          style={[styles.card, Shadows.card, {backgroundColor: colors.cardBg}]}
+        >
           <View style={styles.cardHeaderRow}>
-            <Text style={[styles.sectionTitle, { color: colors.textPrimary, marginBottom: 0 }]}>
+            <Text
+              style={[
+                styles.sectionTitle,
+                {color: colors.textPrimary, marginBottom: 0},
+              ]}
+            >
               Offline Voice Intelligence
             </Text>
             <View
@@ -395,15 +486,22 @@ export const PreferencesSettingsScreen: React.FC<PreferencesSettingsScreenProps>
               <Text
                 style={[
                   styles.badgeText,
-                  { color: modelStatus?.isDownloaded ? '#2ECC71' : colors.blue },
+                  {color: modelStatus?.isDownloaded ? '#2ECC71' : colors.blue},
                 ]}
               >
-                {modelStatus?.isDownloaded ? 'Ready (On-Device)' : 'Fast-Path Only'}
+                {modelStatus?.isDownloaded
+                  ? 'Ready (On-Device)'
+                  : 'Fast-Path Only'}
               </Text>
             </View>
           </View>
 
-          <Text style={[styles.permissionHelperText, { color: colors.textSecondary, marginTop: 8 }]}>
+          <Text
+            style={[
+              styles.permissionHelperText,
+              {color: colors.textSecondary, marginTop: 8},
+            ]}
+          >
             {modelStatus?.isDownloaded
               ? 'Qwen2.5-0.5B model is active on-device. Speech commands are smartly parsed offline with contextual title and parameter extraction.'
               : 'Download the lightweight on-device AI model (Qwen2.5-0.5B, ~398 MB) to enable contextual speech parsing completely offline.'}
@@ -415,18 +513,34 @@ export const PreferencesSettingsScreen: React.FC<PreferencesSettingsScreenProps>
                 <View
                   style={[
                     styles.progressBarFill,
-                    { width: `${downloadProgress?.percent || 0}%`, backgroundColor: colors.blue },
+                    {
+                      width: `${downloadProgress?.percent || 0}%`,
+                      backgroundColor: colors.blue,
+                    },
                   ]}
                 />
               </View>
               <View style={styles.progressRow}>
-                <Text style={[styles.progressText, { color: colors.textSecondary }]}>
+                <Text
+                  style={[styles.progressText, {color: colors.textSecondary}]}
+                >
                   Downloading: {downloadProgress?.percent || 0}% (
-                  {Math.round((downloadProgress?.bytesWritten || 0) / (1024 * 1024))} /{' '}
-                  {Math.round((downloadProgress?.contentLength || 397800000) / (1024 * 1024))} MB)
+                  {Math.round(
+                    (downloadProgress?.bytesWritten || 0) / (1024 * 1024),
+                  )}{' '}
+                  /{' '}
+                  {Math.round(
+                    (downloadProgress?.contentLength || 397800000) /
+                      (1024 * 1024),
+                  )}{' '}
+                  MB)
                 </Text>
                 <TouchableOpacity onPress={() => void handleCancelDownload()}>
-                  <Text style={[styles.cancelDownloadText, { color: colors.error }]}>Cancel</Text>
+                  <Text
+                    style={[styles.cancelDownloadText, {color: colors.error}]}
+                  >
+                    Cancel
+                  </Text>
                 </TouchableOpacity>
               </View>
             </View>
@@ -434,58 +548,77 @@ export const PreferencesSettingsScreen: React.FC<PreferencesSettingsScreenProps>
             <View style={styles.modelActionsRow}>
               <View style={styles.modelInfoCol}>
                 <Sparkles size={16} color="#2ECC71" />
-                <Text style={[styles.modelSizeText, { color: colors.textSecondary }]}>
-                  {Math.round((modelStatus.fileSizeBytes || 0) / (1024 * 1024))} MB on disk
+                <Text
+                  style={[styles.modelSizeText, {color: colors.textSecondary}]}
+                >
+                  {Math.round((modelStatus.fileSizeBytes || 0) / (1024 * 1024))}{' '}
+                  MB on disk
                 </Text>
               </View>
               <TouchableOpacity
-                style={[styles.deleteModelButton, { borderColor: colors.error }]}
+                style={[styles.deleteModelButton, {borderColor: colors.error}]}
                 onPress={handleDeleteModel}
               >
                 <Trash2 size={15} color={colors.error} />
-                <Text style={[styles.deleteModelText, { color: colors.error }]}>Remove Model</Text>
+                <Text style={[styles.deleteModelText, {color: colors.error}]}>
+                  Remove Model
+                </Text>
               </TouchableOpacity>
             </View>
           ) : (
             <TouchableOpacity
-              style={[styles.permissionButton, { borderColor: colors.blue, marginTop: 4 }]}
+              style={[
+                styles.permissionButton,
+                {borderColor: colors.blue, marginTop: 4},
+              ]}
               onPress={() => void handleStartDownload()}
             >
               <Download size={18} color={colors.blue} />
-              <Text style={[styles.permissionButtonText, { color: colors.blue }]}>
+              <Text style={[styles.permissionButtonText, {color: colors.blue}]}>
                 Download AI Model (~398 MB)
               </Text>
             </TouchableOpacity>
           )}
         </View>
 
-        <View style={[styles.card, Shadows.card, { backgroundColor: colors.cardBg }]}>
-          <Text style={[styles.sectionTitle, { color: colors.textPrimary }]}>Device permissions</Text>
-          <Text style={[styles.permissionHelperText, { color: colors.textSecondary }]}>
-            Ensure notifications, exact alarms, and full-screen calls are enabled so LAFINA can remind you on schedule.
+        <View
+          style={[styles.card, Shadows.card, {backgroundColor: colors.cardBg}]}
+        >
+          <Text style={[styles.sectionTitle, {color: colors.textPrimary}]}>
+            Device permissions
+          </Text>
+          <Text
+            style={[styles.permissionHelperText, {color: colors.textSecondary}]}
+          >
+            Ensure notifications, exact alarms, and full-screen calls are
+            enabled so LAFINA can remind you on schedule.
           </Text>
           <TouchableOpacity
-            style={[styles.permissionButton, { borderColor: colors.blue }]}
+            style={[styles.permissionButton, {borderColor: colors.blue}]}
             onPress={() => void handleOpenPermissions()}
           >
             <Bell size={18} color={colors.blue} />
-            <Text style={[styles.permissionButtonText, { color: colors.blue }]}>
+            <Text style={[styles.permissionButtonText, {color: colors.blue}]}>
               Check Reminder Permissions
             </Text>
           </TouchableOpacity>
         </View>
 
-        {error && <Text style={[styles.errorText, { color: colors.error }]}>{error}</Text>}
+        {error && (
+          <Text style={[styles.errorText, {color: colors.error}]}>{error}</Text>
+        )}
 
         <TouchableOpacity
-          style={[styles.saveButton, { backgroundColor: colors.blue }]}
+          style={[styles.saveButton, {backgroundColor: colors.blue}]}
           onPress={() => void handleSave()}
           disabled={isSaving}
         >
           {isSaving ? (
             <ActivityIndicator color={colors.white} />
           ) : (
-            <Text style={[styles.saveButtonText, { color: colors.white }]}>Save Preferences</Text>
+            <Text style={[styles.saveButtonText, {color: colors.white}]}>
+              Save Preferences
+            </Text>
           )}
         </TouchableOpacity>
       </ScrollView>
