@@ -12,7 +12,7 @@
   "work_branch": "codex/agy-preservation-improvements",
   "worktree": "C:/L3mxr/Github Repositories/LAFINA-CAPSTONE-agy-development-cont",
   "donor_head": "0d4bbe39e106c29fb90792cf5d2f916b5c0d6480",
-  "last_tested_head": "c85b023+worktree (audit remediation + Phase 11 + Phase 12 tooling)",
+  "last_tested_head": "2d62e05+worktree (Phase 11; Phase 12 tooling uncommitted)",
   "last_committed_head": "dd96148c2465c0a38d1dbf325286ba6bb5c38f5a",
   "current_phase": "AGY-PORT-11",
   "phases": [
@@ -393,24 +393,26 @@
         21,
         22
       ],
-      "implementation": "IN_PROGRESS",
-      "automated": "NOT_RUN",
-      "build": "NOT_RUN",
+      "implementation": "CODE_COMPLETE",
+      "automated": "PASS",
+      "build": "PASS",
       "device": "NOT_RUN",
       "live_service": "NOT_RUN",
       "base_head": "c85b023",
-      "tested_head": null,
+      "tested_head": "2d62e05+worktree",
       "result_commit": null,
-      "report": "phase-11-native-qa.md (pending)",
+      "report": "phase-11-native-qa.md",
       "evidence": [
         "evidence/agy-port-20261106/phase-11/"
       ],
-      "continuation": null,
+      "continuation": "NEXT_PHASE",
       "notes": [
-        "Uncommitted: scripts/apk_audit.py, scripts/tests/test_apk_audit.py (13 synthetic tests PASS, python-unittest-1.log)",
-        "dataQa attempt 1 (X:) FAIL Metro SHA-1 (real C: paths); attempt 2 (-x bundle) refused by Gradle; bundle-only from C: PASS (not an APK result)",
-        "dataQa attempt 3 (X: + NODE_OPTIONS=--preserve-symlinks) INTERRUPTED/NO_VERDICT: stopped by Claude Code for host low memory during bundling; not a build failure",
-        "Resumed 2026-11-06 by owner instruction after codex-audit-20261106-phase11.md; A1-A4 addressed in a separate audit remediation unit"
+        "dataQa arm64-v8a + x86_64 standalone APKs audited; identity/signing/versionCode unchanged",
+        "ONNX 1.19.2 libonnxruntime*.so PT_LOAD 4 KiB (ELF FAIL on target artifacts) -> 1.22.0 (ADR-024): 16/16 PASS, +~18 MB per APK",
+        "Build workaround (environment only): bundle from real path, then X: build with skip-prebuilt-bundle.init.gradle; packaged bundle hash identical",
+        "Attempts: 1 FAIL Metro SHA-1; 2 FAIL -x refused; 3 INTERRUPTED/NO_VERDICT (host low memory); 4 FAIL Metro SHA-1; 5 PASS; onnx122-1 PASS",
+        "Kotlin 43 unit tests PASS fresh with 1.22.0; preflight-2 580 + 1 skipped (preflight-1 lint FAIL kept)",
+        "Emulator/phone/VAD inference NOT_RUN (no designated emulator; dataQa shares the production app ID)"
       ]
     },
     {

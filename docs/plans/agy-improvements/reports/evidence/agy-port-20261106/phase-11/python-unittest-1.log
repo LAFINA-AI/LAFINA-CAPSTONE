@@ -1,0 +1,20 @@
+test_ambiguous_entries_fail_closed (scripts.tests.test_apk_audit.ApkTest.test_ambiguous_entries_fail_closed) ... C:\Python314\Lib\zipfile\__init__.py:1730: UserWarning: Duplicate name: 'lib/arm64-v8a/a.so'
+  return self._open_to_write(zinfo, force_zip64=force_zip64)
+ok
+test_every_library_reported_and_mismatch_is_error (scripts.tests.test_apk_audit.ApkTest.test_every_library_reported_and_mismatch_is_error) ... ok
+test_good_inventory (scripts.tests.test_apk_audit.ApkTest.test_good_inventory) ... ok
+test_kokoro_missing_model_missing_bundle_and_two_abis_fail (scripts.tests.test_apk_audit.ApkTest.test_kokoro_missing_model_missing_bundle_and_two_abis_fail) ... ok
+test_not_an_apk_or_not_a_zip (scripts.tests.test_apk_audit.ApkTest.test_not_an_apk_or_not_a_zip) ... ok
+test_oversized_library_is_error_without_reading_it (scripts.tests.test_apk_audit.ApkTest.test_oversized_library_is_error_without_reading_it) ... ok
+test_zip_alignment_independent_check (scripts.tests.test_apk_audit.ApkTest.test_zip_alignment_independent_check) ... ok
+test_all_encodings (scripts.tests.test_apk_audit.ElfTest.test_all_encodings) ... ok
+test_four_kib_is_failure (scripts.tests.test_apk_audit.ElfTest.test_four_kib_is_failure) ... ok
+test_header_and_segment_bounds (scripts.tests.test_apk_audit.ElfTest.test_header_and_segment_bounds) ... ok
+test_malformed_and_truncated (scripts.tests.test_apk_audit.ElfTest.test_malformed_and_truncated) ... ok
+test_no_load_segment_is_not_success (scripts.tests.test_apk_audit.ElfTest.test_no_load_segment_is_not_success) ... ok
+test_new_file_inside_evidence_only (scripts.tests.test_apk_audit.ReceiptTest.test_new_file_inside_evidence_only) ... ok
+
+----------------------------------------------------------------------
+Ran 13 tests in 0.125s
+
+OK
