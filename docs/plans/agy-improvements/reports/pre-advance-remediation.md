@@ -20,6 +20,13 @@ Implementation: CODE_COMPLETE.
 | Inventory areas | #2, #3 (AGY-PORT 03 follow-up), #4, #5 (AGY-PORT 04 follow-up) |
 | Decision records | ADR-017 and ADR-018 addenda |
 
+> **Correction (2026-11-06, codex audit A4, [audit-remediation.md](audit-remediation.md)).** Heading 1 below claims more than this report shows. These two gaps were narrowed, not closed:
+> - **Double ring.** The foreground/native double-ring window is closed by the native claim, as described.
+> - **Ring after retirement.** A retired or edited reminder can still ring if the app is killed before the background-entry reconcile cancels its registration. This report already says so under "Not changed (honest scope)".
+> - **What still holds.** Native cannot validate SQLite when it fires. No durable process-death guarantee is claimed. The interruption is now pinned by fault-injection tests, and the smallest durable protocol is assessed (not implemented) in ADR-023.
+>
+> The original text is kept unchanged below.
+
 ## Outcome in plain language
 
 **1. A reminder can no longer ring twice, or ring after it was retired, because of the gaps Phase 03 documented.**

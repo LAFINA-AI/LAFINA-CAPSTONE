@@ -305,6 +305,30 @@ export const CalendarScreen: React.FC<CalendarScreenProps> = ({
         </View>
       </View>
 
+      {/* Codex audit A2: a read failure is never presented as an empty schedule. */}
+      {calendar.readError && calendar.readError.ownerId === userId && (
+        <View
+          testID="calendar-read-error"
+          accessibilityRole="alert"
+          style={[styles.readError, { borderColor: colors.warning, backgroundColor: colors.inputBg }]}
+        >
+          <Text style={[styles.readErrorText, { color: colors.textPrimary }]}>
+            {calendar.readError.showingPrevious
+              ? 'Your schedule could not be refreshed. What is shown is from the last successful read and may be out of date.'
+              : 'Your schedule could not be read right now. This does not mean your calendar is empty.'}
+          </Text>
+          <TouchableOpacity
+            testID="calendar-read-retry"
+            onPress={calendar.retryRead}
+            accessibilityRole="button"
+            accessibilityLabel="Try reading the schedule again"
+            style={[styles.readErrorButton, { borderColor: colors.border }]}
+          >
+            <Text style={[styles.actionButtonText, { color: colors.textPrimary }]}>Retry</Text>
+          </TouchableOpacity>
+        </View>
+      )}
+
       {/* Body */}
       <View style={styles.body}>
         {calendar.viewMode === 'month' && (
@@ -568,6 +592,25 @@ const styles = StyleSheet.create({
     fontFamily: 'sans-serif-medium',
     fontSize: 11,
     fontWeight: '600',
+  },
+  readError: {
+    borderWidth: 1,
+    borderRadius: 12,
+    padding: 12,
+    marginBottom: 8,
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  readErrorText: {
+    flex: 1,
+    fontSize: 12,
+    marginRight: 8,
+  },
+  readErrorButton: {
+    borderWidth: 1,
+    borderRadius: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
   },
   body: {
     flex: 1,

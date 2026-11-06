@@ -44,6 +44,32 @@ const emptySummary = (nativeAvailable: boolean): DeliveryReconcileSummary => ({
 
 let chain: Promise<unknown> = Promise.resolve();
 
+/**
+ * Codex audit A4: every native call in a pass is bounded. Passes are
+ * serialized, so one bridge call that never answers would otherwise block
+ * every later pass in this process (including the background-entry pass). A
+ * call that times out counts as failed for this pass; the next pass retries.
+ */
+export const NATIVE_CALL_TIMEOUT_MS = 5000;
+
+const boundedNative = <T>(work: Promise<T>, what: string): Promise<T> =>
+  new Promise<T>((resolve, reject) => {
+    const timer = setTimeout(
+      () => reject(new Error(`${what} did not answer within ${NATIVE_CALL_TIMEOUT_MS} ms`)),
+      NATIVE_CALL_TIMEOUT_MS,
+    );
+    work.then(
+      value => {
+        clearTimeout(timer);
+        resolve(value);
+      },
+      error => {
+        clearTimeout(timer);
+        reject(error);
+      },
+    );
+  });
+
 /** Runs reconcile passes one at a time; overlapping callers queue. */
 const serialized = <T>(work: () => Promise<T>): Promise<T> => {
   const next = chain.then(work, work);
@@ -57,7 +83,7 @@ export const drainNativeDeliveryReceipts = async (): Promise<number> => {
   if (!module?.drainDeliveryReceipts) return 0;
   let receipts;
   try {
-    receipts = await module.drainDeliveryReceipts();
+    receipts = await boundedNative(Promise.resolve(module.drainDeliveryReceipts()), 'Receipt drain');
   } catch (error) {
     console.warn('[DeliveryReconciler] Could not read native receipts:', error);
     return 0;
@@ -122,7 +148,7 @@ const reconcile = async (
 
   if (module.setDeliveryOwner) {
     try {
-      await module.setDeliveryOwner(owner ?? '');
+      await boundedNative(Promise.resolve(module.setDeliveryOwner(owner ?? '')), 'Delivery owner');
     } catch (error) {
       console.warn('[DeliveryReconciler] Could not set delivery owner:', error);
     }
@@ -137,7 +163,10 @@ const reconcile = async (
   let registrations: NativeDeliveryRegistration[] | null = null;
   if (module.listDeliveryRegistrations) {
     try {
-      registrations = await module.listDeliveryRegistrations();
+      registrations = await boundedNative(
+        Promise.resolve(module.listDeliveryRegistrations()),
+        'Registration listing',
+      );
     } catch (error) {
       console.warn('[DeliveryReconciler] Could not list registrations:', error);
     }
@@ -156,7 +185,7 @@ const reconcile = async (
         continue;
       }
       try {
-        await cancelReminderAlarm(registration.reminderId);
+        await boundedNative(cancelReminderAlarm(registration.reminderId), 'Cancel');
         summary.cancelled += 1;
         if (job) {
           deliveryStore.recordEvent({
@@ -193,7 +222,10 @@ const reconcile = async (
       continue;
     }
     try {
-      await scheduleReminderAlarm(job.reminderId, job.task, job.triggerAt);
+      await boundedNative(
+        Promise.resolve(scheduleReminderAlarm(job.reminderId, job.task, job.triggerAt)),
+        'Registration',
+      );
       summary.registered += 1;
     } catch (error) {
       summary.failed += 1;

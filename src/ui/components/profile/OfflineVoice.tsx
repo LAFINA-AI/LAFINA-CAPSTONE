@@ -42,6 +42,7 @@ const ENGLISH_LABEL: Record<TtsReadiness['english'], string> = {
   ready: 'Offline English voice installed',
   missing: 'No offline English voice installed',
   unknown: 'Unknown (this engine does not list voices)',
+  unconfirmed: 'An offline English voice is listed but could not be selected',
 };
 
 const factor = (value: number): string => `${value.toFixed(2)}×`;
@@ -208,9 +209,10 @@ export const OfflineVoice: React.FC<OfflineVoiceProps> = ({ userId, visible, onC
       <Text testID="voice-english" style={[styles.value, themed.text]}>
         {readiness ? (readiness.service === 'ready' ? ENGLISH_LABEL[readiness.english] : '—') : ''}
       </Text>
-      {readiness && readiness.service !== 'ready' && (
+      {readiness && (readiness.service !== 'ready' || readiness.english !== 'ready') && (
         <Text style={[styles.note, themed.muted]}>
-          Replies still appear as text, and typing always works.
+          Offline speech is off until an installed offline English voice is confirmed. Replies
+          still appear as text, and typing always works.
         </Text>
       )}
       {readiness?.selectedVoiceMissing && (
@@ -260,7 +262,7 @@ export const OfflineVoice: React.FC<OfflineVoiceProps> = ({ userId, visible, onC
       </View>
 
       <View style={styles.pair}>
-        {button('Preview', () => void play(), 'voice-preview', previewing || readiness?.service !== 'ready')}
+        {button('Preview', () => void play(), 'voice-preview', previewing || readiness?.service !== 'ready' || readiness.english !== 'ready')}
         {button('Stop', () => void stopPreview().then(() => setNotice('Preview stopped.')), 'voice-stop', !previewing)}
       </View>
       {button('Reset to defaults', () => void reset(), 'voice-reset', !settings?.explicit)}

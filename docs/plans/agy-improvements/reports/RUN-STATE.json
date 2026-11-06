@@ -12,7 +12,7 @@
   "work_branch": "codex/agy-preservation-improvements",
   "worktree": "C:/L3mxr/Github Repositories/LAFINA-CAPSTONE-agy-development-cont",
   "donor_head": "0d4bbe39e106c29fb90792cf5d2f916b5c0d6480",
-  "last_tested_head": "fcdf235+worktree (Phase 10)",
+  "last_tested_head": "c85b023+worktree (audit remediation + Phase 11 + Phase 12 tooling)",
   "last_committed_head": "335de87e3325c45e01af2a9851c9d64eee21748e",
   "current_phase": "AGY-PORT-11",
   "phases": [
@@ -393,18 +393,25 @@
         21,
         22
       ],
-      "implementation": "NOT_STARTED",
+      "implementation": "IN_PROGRESS",
       "automated": "NOT_RUN",
       "build": "NOT_RUN",
       "device": "NOT_RUN",
       "live_service": "NOT_RUN",
-      "base_head": null,
+      "base_head": "c85b023",
       "tested_head": null,
       "result_commit": null,
-      "report": null,
-      "evidence": [],
+      "report": "phase-11-native-qa.md (pending)",
+      "evidence": [
+        "evidence/agy-port-20261106/phase-11/"
+      ],
       "continuation": null,
-      "notes": []
+      "notes": [
+        "Uncommitted: scripts/apk_audit.py, scripts/tests/test_apk_audit.py (13 synthetic tests PASS, python-unittest-1.log)",
+        "dataQa attempt 1 (X:) FAIL Metro SHA-1 (real C: paths); attempt 2 (-x bundle) refused by Gradle; bundle-only from C: PASS (not an APK result)",
+        "dataQa attempt 3 (X: + NODE_OPTIONS=--preserve-symlinks) INTERRUPTED/NO_VERDICT: stopped by Claude Code for host low memory during bundling; not a build failure",
+        "Resumed 2026-11-06 by owner instruction after codex-audit-20261106-phase11.md; A1-A4 addressed in a separate audit remediation unit"
+      ]
     },
     {
       "id": "AGY-PORT-12",
@@ -525,6 +532,34 @@
       ],
       "notes": [
         "preflight 418, Kotlin 43, assembleDebug PASS; mutations T (11 fail) and C (1 fail) as intended; legacy actionExecutor title cleanup remains test-only (architecture-guarded), retire in AGY-PORT 06"
+      ]
+    },
+    {
+      "id": "CODEX-AUDIT-REMEDIATION-1",
+      "scope": [
+        "A1 positive offline eligibility for every local TTS path",
+        "A2 Calendar read failures shown as recoverable owner-bound errors",
+        "A3 Clear All Data forgets saved event defaults (speech settings kept, stated)",
+        "A4 interrupted background reconcile: bounded native calls, fault-injection tests, ADR-023 assessment (PARTIAL)"
+      ],
+      "audit": "codex-audit-20261106-phase11.md",
+      "base_head": "c85b0238429b264819f1d959d30e02bdbf0f26a6",
+      "tested_head": "c85b023+worktree (combined with uncommitted Phase 11/12 files)",
+      "implementation": "CODE_COMPLETE (A1-A3); PARTIAL (A4)",
+      "automated": "PASS",
+      "build": "PASS (no native change; bundled in the Phase 11 dataQa build)",
+      "device": "NOT_RUN",
+      "live_service": "NOT_RUN",
+      "result_commit": null,
+      "report": "audit-remediation.md",
+      "evidence": [
+        "evidence/agy-port-20261106/audit-remediation/",
+        "evidence/agy-port-20261106/phase-11/preflight-2.log"
+      ],
+      "notes": [
+        "preflight-1 568 + 1 skipped; final phase-11/preflight-2 580 + 1 skipped (43 suites)",
+        "mutations run 1: M4, M6, M10 survived (tests strengthened, log kept); run 2: 12/12 killed, restored",
+        "parent self-review only, not an independent review"
       ]
     }
   ]
