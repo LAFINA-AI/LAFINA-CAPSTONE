@@ -43,7 +43,7 @@ Keep private data, credentials, audio and device serials out of any report you a
 | M03 | Type/dictate a planner change; edit draft, Prepare, Cancel, then Prepare/Confirm twice | Cancel saves nothing; draft stays; one durable change after double Confirm | NOT_RUN |
 | M04 | Create same-title items, request deletion/reschedule, and switch account while a review is open | Ambiguity is clarified; stale/other-owner review cannot mutate | NOT_RUN |
 | M05 | Set a synthetic reminder; lock screen, let it ring, ACK then inspect task | Correct call/notification arrives under allowed permissions; ACK does not complete task | NOT_RUN |
-| M06 | Test main-process death, reboot/unlock, Doze, timezone/time changes, permission revoke/restore and old notification buttons | Recovery is truthful; no duplicate/stale/wrong-owner actions; force-stop limits documented | NOT_RUN |
+| M06 | Test main-process death, reboot/unlock, Doze, timezone/time changes, permission revoke/restore and old notification buttons | Recovery is truthful; no duplicate/stale/wrong-owner actions; force-stop limits documented. Corrected 2026-11-06 (final audit F4): main-process death and explicit Force Stop are separate procedures with different expected results, see M18 R1-R3 | NOT_RUN |
 | M07 | Select installed offline English voice, Preview/Stop/reset in airplane mode; simulate unavailable voice | Eligible speech audible with sane settings; owned cancellation; text/typing/recovery if unavailable | NOT_RUN |
 | M08 | Start meeting recording; attempt dictation; stop/cancel, then reverse the contention order | Existing recording is not lost/stopped by contender; ownership releases only after native work returns | NOT_RUN |
 | M09 | Import/record a synthetic lecture, pause/resume/stop/transcribe; exercise keepAudio and explicit online-summary consent | Chunk ordering/retention and meeting Notes/action items preserved; no silent upload | NOT_RUN |
@@ -52,8 +52,54 @@ Keep private data, credentials, audio and device serials out of any report you a
 | M12 | With controlled live service access, exercise guest/student/student_pro/admin gates, online Chat/RAG toggles/citations, four document formats/share and entitled cloud speech fallback | Original role/mode/consent policies and routes remain working; failures don't fabricate answers/saves | NOT_RUN |
 | M13 | Open Profile → Reminder Health, revoke/restore exact alarms in Android settings and return; Retry; save Event Defaults, Apply on a new event, Forget; acknowledge/snooze reminders and read On Time | Access rows refresh on return; counts and retry never claim a ring; defaults change a draft only on Apply; statistics match the records | NOT_RUN |
 | M14 | In airplane mode open Profile → Offline Voice; choose a voice, change speed/pitch, Preview/Stop, Reset; try Preview during dictation and recording; remove the voice and Refresh; with a controlled Student Pro account compare Test TTS Voice online and offline; let a call ring during Preview | Default sounds as before; only installed offline English voices; Preview audible and stoppable; busy states refused; missing voice falls back with a notice; cloud and offline fallback unchanged; the call takes priority | NOT_RUN |
-| M15 | Audit A1-A4: in airplane mode with an offline English voice a reminder call speaks; disable the voice, Refresh Offline Voice (speech off, Preview disabled) and let a call ring (text only); reinstall and confirm speech returns; save Event Defaults then Clear All Data (no defaults offered, offline voice kept); retire a reminder by sync, background and force-stop at once, wait for the old time | Speech only with a confirmed voice; text otherwise; defaults forgotten; the force-stop case may still ring (documented residual, ADR-023) and is dismissed on open | NOT_RUN |
+| M15 | Audit A1-A4: in airplane mode with an offline English voice a reminder call speaks; disable the voice, Refresh Offline Voice (speech off, Preview disabled) and let a call ring (text only); reinstall and confirm speech returns; save Event Defaults then Clear All Data (no defaults offered, offline voice kept); ~~retire a reminder by sync, background and force-stop at once, wait for the old time~~ corrected 2026-11-06 (final audit F4): the reminder part is replaced by M18 R1-R3 (Force Stop cancels the alarm itself on Android 15, so it cannot probe the residual) | Speech only with a confirmed voice; text otherwise; defaults forgotten; ~~the force-stop case may still ring (documented residual, ADR-023) and is dismissed on open~~ for the reminder part see M18 R1-R3 | NOT_RUN |
 | M16 | Phase 11: note task/event/note counts and one armed reminder; adb install -r the arm64 ONNX 1.22.0 dataQa APK (sha256 ef264311...e19) over the existing debug-signed app (never uninstall/clear); airplane mode launch; push-to-talk dictation (VAD); meeting record/stop; reminder call on a locked screen; optionally a 16 KiB-page image | Launch without Metro; counts unchanged; dictation and VAD work; recording saved; call rings; INSTALL_FAILED_UPDATE_INCOMPATIBLE means stop | NOT_RUN |
 | M17 | Phase 12 (optional): on an owner-designated AVD with no needed data, run scripts/emulator_qa.py with the x86_64 ONNX 1.22.0 APK and its receipt; then the listed manual steps (planner Cancel/Confirm/untimed/delete, Chat paging, Notes search, locked-screen reminder call, online/document/meeting screens with network on); npm run doctor on the owner shell | Every gate PASS before install; offline launch without Metro; manual steps behave as before; doctor names any wrong JDK | NOT_RUN |
+| M18 | Final audit F1-F4 (see the section below): (a) Profile -> Offline Voice with a saved speed, press Preview then at once Stop, close the sheet, or press Home, before speech starts; (b) press Preview then immediately start dictation, or start a meeting recording, or sign out / switch account; (c) Clear All Data normally; (d) reminder procedures R1, R2 and R3 below, each separately | (a, b) no Preview audio after Stop/close/Home or once the microphone, a recording or another account is active; a valid Preview still plays and stops; (c) "Data Cleared" and a new event draft offers no defaults; the failure wording is host-tested only; (d) as stated per procedure | NOT_RUN |
+
+## Final audit follow-up (2026-11-06): reminder interruption procedures
+
+Added by [final-audit-remediation.md](final-audit-remediation.md) for audit F4. These replace the earlier "force-stop during a reconcile" wording in M06 and M15. Run each procedure separately, on a designated test phone or emulator only, with synthetic reminders. Every procedure is **NOT_RUN**.
+
+**R1. Ordinary process death during reconciliation (the ADR-023 residual).**
+
+1. Arm a synthetic reminder 5 minutes out.
+2. Retire it. A sync that deletes or reschedules it is the case that matters; a local delete is the control.
+3. Immediately send the app to the background. Then end the process **without Force Stop**, using the debuggable dataQa build:
+   - `adb shell am kill com.lafina.capstone` (kills it only if Android considers it safe to kill), or
+   - `adb shell run-as com.lafina.capstone kill -9 <pid>`, with the pid from `adb shell pidof com.lafina.capstone`.
+4. Do not reopen the app. Wait for the old time, then open the app.
+
+**Expected:**
+
+- The retired reminder **may ring once** if the process died after the SQLite commit but before the native cancel. This is the documented residual, not a pass or a fail.
+- Opening the app dismisses or refuses it and cancels it.
+- Write down whether it rang.
+
+The window is short, and a manual kill usually lands outside it. A "no ring" therefore does **not** show the window is closed. Proving that needs ADR-023's QA fault-injection point, which is not built.
+
+**R2. Explicit Force Stop (a separate Android condition).**
+
+1. Arm a synthetic reminder 5 minutes out. Leave it valid.
+2. Use Settings → Apps → LAFINA → Force stop, or `adb shell am force-stop com.lafina.capstone`.
+3. Do not open the app. Wait past the time.
+
+**Expected:**
+
+- On Android 15 and later, nothing rings while the app is force-stopped. The app is in the stopped state and Android has cancelled its pending intents, alarms included ([Android 15 enhanced stop states](https://developer.android.com/about/versions/15/behavior-changes-all#enhanced-stop-states)).
+- LAFINA promises no delivery in this state and does not try to bypass it.
+- On older Android versions, record what you observe.
+- Do **not** use Force Stop to probe R1: it cancels the alarm itself, so a "no ring" there is a misleading pass.
+
+**R3. Relaunch and re-registration recovery.**
+
+1. After R1 or R2, open the app by tapping its icon (the user action that leaves the stopped state).
+2. Look at Profile → Reminder Health and the Calendar.
+
+**Expected:**
+
+- Still-valid future reminders are registered again and ring at their time.
+- A retired reminder is not registered again.
+- Record how a reminder whose time passed while the app was stopped is shown. Late delivery is not promised.
 
 Live/disposable credentials and actual subscription transactions are not authorized by the unattended implementation prompt. M10–M12 live portions need a separately controlled later environment. Coding/testing with synthetic adapters can proceed now without claiming these passes.

@@ -69,7 +69,7 @@ See [PRESERVED-FEATURES.md](PRESERVED-FEATURES.md).
 | # | Area | Implementation state | Commit / report | Automated/native evidence | Device/live |
 |---|---|---|---|---|---|
 | 1 | Database recovery, transactions, migrations | CODE_COMPLETE | `8ab83b2` / [phase-01](phase-01-storage.md) | `storageResilience`, `schemaMigrations`, `storageRecovery` | NOT_RUN (M01, M02) |
-| 2 | Durable native delivery | **PARTIAL**: jobs and native coordinator active, one engine. Force-stop during a background reconcile can still ring once (ADR-023 proposed, not built). Instrumentation compiled, never run | `f5ae9aa`, `541dbfb`, `dd96148` / [phase-03](phase-03-delivery.md), [audit](audit-remediation.md) | `agyPort03Delivery`, `auditA4InterruptedReconcile`, Kotlin delivery/reminder tests | NOT_RUN (M05, M06, M15) |
+| 2 | Durable native delivery | **PARTIAL**: jobs and native coordinator active, one engine. Process death between the SQLite commit and the native cancel (for example during a background reconcile) can still let a retired reminder ring once (ADR-023 proposed, not built). Explicit Force Stop is a separate Android stopped-state case with no delivery promise. *Corrected 2026-11-06 (final audit F4); this row previously said "force-stop".* Instrumentation compiled, never run | `f5ae9aa`, `541dbfb`, `dd96148` / [phase-03](phase-03-delivery.md), [audit](audit-remediation.md) | `agyPort03Delivery`, `auditA4InterruptedReconcile`, Kotlin delivery/reminder tests | NOT_RUN (M05, M06, M15) |
 | 3 | Full identities, generation fencing | CODE_COMPLETE | `f5ae9aa`, `541dbfb` / phase-03, [pre-advance](pre-advance-remediation.md) | `agyPort03Delivery`, `LafinaDeliveryContractTest` | NOT_RUN |
 | 4 | Reviewed, idempotent assistant writes | CODE_COMPLETE | `c36eec9` / [phase-04](phase-04-reviews.md) | `agyPort04ReviewedCommands`, `agyPort04ReviewUi` | NOT_RUN (M03, M04) |
 | 5 | Every intent kept; untimed tasks; exact links | CODE_COMPLETE. Parser limits are listed under Deferred | `c36eec9`, `541dbfb` / phase-04 | `intent-contract-v1` (16 intents), `agyPort04` | NOT_RUN |
@@ -144,7 +144,7 @@ No phase FAILED, and no unit was reverted.
 
 **PARTIAL areas and missing pieces:**
 
-- **Reminder durability (#2).** A force-stop during a background reconcile can still ring one stale alert, which is dismissed on open. ADR-023 option C (a native invalidation marker) needs Kotlin and kill-the-app device tests.
+- **Reminder durability (#2).** Process death or interruption after a reminder change is committed to SQLite but before the native cancel reaches AlarmManager can still ring one stale alert, which is dismissed on open. ADR-023 option C (a native invalidation marker) needs Kotlin, a QA fault-injection point and process-death device tests. *Corrected 2026-11-06 (final audit F4): this was previously described as a force-stop. Android 15 Force Stop cancels the package's alarms itself, so it is a different case (MANUAL-QA M18 R1-R3).*
 - **Event time (#14).** Events over 24 h and exact zones for recurring imports both need the backend wire (#29).
 - **Speech (#17, #27).**
   - The optional Android on-device recognizer is not built. Whisper stays the default, unchanged.
@@ -186,7 +186,10 @@ Follow [MANUAL-QA.md](MANUAL-QA.md) (M01–M17, all NOT_RUN). The safe path:
    - reboot and Doze;
    - a timezone change;
    - permission revoke and restore;
-   - force-stop (it may ring once).
+   - ~~force-stop (it may ring once).~~ *Corrected 2026-11-06 (final audit F4):* three separate procedures in MANUAL-QA M18:
+     - **R1, process death during reconciliation:** it may ring once (ADR-023);
+     - **R2, explicit Force Stop:** nothing is promised while stopped;
+     - **R3, relaunch recovery.**
 6. Last, the speech cases (M07, M14, M15).
 7. Only with a controlled account and server:
    - guest link and owner switch;
@@ -220,6 +223,6 @@ Follow [MANUAL-QA.md](MANUAL-QA.md) (M01–M17, all NOT_RUN). The safe path:
 1. Run M16 on your phone (in-place update of the arm64 dataQa APK), then the M05/M06 reminder cases. These are the highest-risk unverified behaviors.
 2. Have someone other than the implementer review the branch diff against `b9433dc` (a `/code-review` run or a human reviewer).
 3. Run the instrumentation tests (`connectedDebugAndroidTest`) on a test device, and the emulator runner on a spare AVD (M17).
-4. Decide whether to build ADR-023 option C (native invalidation marker) to close the force-stop stale-alert residual.
+4. Decide whether to build ADR-023 option C (native invalidation marker) to close the process-death stale-alert residual (corrected 2026-11-06 from "force-stop", final audit F4).
 5. When backend access exists, carry out [backend-handoff-29-30.md](backend-handoff-29-30.md) in order, then the client capability change.
 6. Later client units: the optional on-device recognizer, the in-app QA screen, a planner benchmark rewritten against `plannerQueries`, and the listed parser limits.

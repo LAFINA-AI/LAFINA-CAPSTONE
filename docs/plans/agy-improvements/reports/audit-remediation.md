@@ -128,6 +128,7 @@ All paths are under `evidence/agy-port-20261106/audit-remediation/`:
 4. **App killed during background reconcile** (ADR-023 prerequisites):
    - Retire a reminder through sync, background the app, force-stop it immediately and wait for the old time. Record whether it rings, then open the app and check that it is dismissed.
    - Expected: it may ring. This is the documented residual.
+   - **Correction, 2026-11-06 (final audit F4).** Force Stop is the wrong tool for this check. Android 15 cancels a force-stopped package's pending intents, alarms included, so this procedure tests Android's stopped state, not the residual. Use the separate procedures R1 (process death), R2 (Force Stop) and R3 (relaunch recovery) in [MANUAL-QA.md](MANUAL-QA.md) M18. The original item is kept above as written. It was never run, so no result changes.
 
 ## Deferrals
 

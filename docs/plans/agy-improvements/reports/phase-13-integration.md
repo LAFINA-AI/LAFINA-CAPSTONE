@@ -52,7 +52,13 @@ Every row of [PRESERVED-FEATURES.md](PRESERVED-FEATURES.md) now has its final te
 
 Fake cloud and server adapters are contract evidence only. They are not proof that live authentication, subscriptions, sync, RAG or documents work.
 
-**Known residual (PF11, ADR-023):** if the app is force-stopped during a background reconcile, a retired reminder can still ring once. It is dismissed when the app opens. The durable native invalidation marker is proposed, not built.
+**Known residual (PF11, ADR-023):** ~~if the app is force-stopped during a background reconcile, a retired reminder can still ring once.~~
+
+**Corrected 2026-11-06 (final audit F4):** if the app process dies or is interrupted after a reminder change is committed to SQLite but before the native cancel reaches AlarmManager, the retired reminder can still ring once. It is dismissed when the app opens.
+
+- **Force Stop is a different condition.** Android 15 cancels the force-stopped package's alarms, and nothing is promised while it is stopped.
+- The durable native invalidation marker is proposed, not built.
+- See [final-audit-remediation.md](final-audit-remediation.md).
 
 ## Inventory #29 and #30
 
@@ -109,7 +115,12 @@ All paths are under `evidence/agy-port-20261106/phase-13/`:
 Everything is in [MANUAL-QA.md](MANUAL-QA.md) M01–M17. In short:
 
 1. Update the owner's phone in place with the arm64 dataQa APK (check its SHA-256). Confirm the counts and the armed reminder are unchanged.
-2. **Reminder durability:** a locked-screen call, then reboot, Doze, timezone change, and permission revoke/restore. Also force-stop during a reconcile; this may ring once (ADR-023).
+2. **Reminder durability:** a locked-screen call, then reboot, Doze, timezone change, and permission revoke/restore. ~~Also force-stop during a reconcile; this may ring once (ADR-023).~~
+
+   **Corrected 2026-11-06 (final audit F4):** these are three separate procedures, M18 R1–R3:
+   - **Process death during reconciliation.** It may ring once (ADR-023).
+   - **Explicit Force Stop.** Nothing is promised while stopped.
+   - **Relaunch recovery.**
 3. **Speech:** offline voice states, dictation/VAD on the ONNX 1.22.0 build, and meeting record/stop with dictation contention.
 4. **With a controlled account and server:**
    - guest link and owner switch;

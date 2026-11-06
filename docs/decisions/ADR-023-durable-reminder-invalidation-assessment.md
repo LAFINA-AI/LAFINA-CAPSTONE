@@ -49,3 +49,15 @@ Until then the honest claims are:
 - **Double ring:** closed.
 - **Ring after retirement:** narrowed, not closed.
 - **Exactly-once audible delivery:** never claimed.
+
+## Correction, 2026-11-06 (final audit F4): process death is not Force Stop
+
+The analysis above is unchanged. Only the test wording around it is corrected. The final audit (`docs/plans/agy-improvements/reports/codex-final-audit-940802c-20261106.md`, F4) found that run summaries and checklists described this residual as "force-stop during a background reconcile". The terms are not interchangeable:
+
+- **The residual is process death or interruption.** The process ends after the SQLite commit but before the native cancel reaches `AlarmManager`. The package is not put into Android's stopped state, so its registrations stay armed and the obsolete one can ring.
+- **Explicit Force Stop is a different platform condition.** This means Settings → Force stop, or `adb shell am force-stop`. On Android 15 and later, the package enters the stopped state and Android cancels its pending intents, alarms included. It stays stopped until the user launches it again. See [Android 15 enhanced stop states](https://developer.android.com/about/versions/15/behavior-changes-all#enhanced-stop-states).
+  - Using Force Stop to probe this residual cancels the alarm itself, so a "no ring" would be a misleading pass.
+  - LAFINA does not promise delivery while force-stopped and does not try to bypass the stopped state.
+- **Prerequisites 2 and 3 above mean ordinary process death.** One way to get it is a QA-only fault-injection point between the commit and the cancel. It does not exist yet and is part of building option C. Another is killing the process of a debuggable QA build on a designated test device. Force Stop does not qualify.
+
+This note does not implement option C or change the A4 status: the window remains.
