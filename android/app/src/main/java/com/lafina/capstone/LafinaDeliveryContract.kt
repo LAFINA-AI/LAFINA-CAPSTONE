@@ -186,6 +186,19 @@ enum class FireOutcome {
 
 data class FireDecision(val outcome: FireOutcome, val registration: DeliveryRegistration?)
 
+/** Result of a foreground (JS fallback) claim; see [DeliveryRegistryCore.claimForeground]. */
+enum class ForegroundOutcome(val code: String) {
+  /** JS may ring this generation; native can no longer ring it. */
+  CLAIMED("claimed"),
+  /** Native (or an earlier foreground claim) already took this or a newer generation. */
+  ALREADY_CLAIMED("already_claimed"),
+  /** Native holds a newer or different identity: the caller's view is out of date. */
+  STALE("stale")
+}
+
+/** [superseded] is the registration the claim removed; its PendingIntent must be cancelled. */
+data class ForegroundClaim(val outcome: ForegroundOutcome, val superseded: DeliveryRegistration?)
+
 sealed class RestoreAction {
   data class Rearm(val registration: DeliveryRegistration) : RestoreAction()
   data class FireLate(val registration: DeliveryRegistration) : RestoreAction()
@@ -206,7 +219,10 @@ class DeliveryRegistryCore(
     const val KEY_ACTIVE_OWNER = "active_owner"
     const val KEY_CUTOVER = "legacy_cutover_version"
     const val KEY_RECEIPTS = "receipts"
+    const val KEY_CLAIMS = "claims"
     const val CUTOVER_VERSION = "1"
+    /** Last claimed generation per reminder, bounded like receipts. */
+    const val MAX_CLAIMS = 256
   }
 
   fun get(reminderId: String): DeliveryRegistration? = DeliveryRegistration.decode(registry.get(reminderId))
@@ -259,12 +275,68 @@ class DeliveryRegistryCore(
       return FireDecision(FireOutcome.STALE, current)
     }
     registry.remove(identity.reminderId)
+    recordClaim(identity)
     if (suppressedFor(current)) {
       receipt("suppressed_inactive_owner", identity)
       return FireDecision(FireOutcome.OWNER_SUPPRESSED, current)
     }
     receipt("fired", identity)
     return FireDecision(FireOutcome.FIRE, current)
+  }
+
+  /**
+   * Claim for the in-app fallback ringer. It and [claim] run under the same
+   * process lock and both consume the same registry entry, and every claim is
+   * remembered per reminder, so exactly one of them can ring a generation:
+   * - an entry for this identity, or an older generation of the same owner
+   *   (including an adopted legacy entry), is removed and claimed here;
+   * - no entry, but this or a newer generation was already claimed (native
+   *   fired first): [ForegroundOutcome.ALREADY_CLAIMED];
+   * - no entry and no earlier claim (registration had failed): claimed;
+   * - a newer or foreign identity: [ForegroundOutcome.STALE].
+   */
+  fun claimForeground(identity: DeliveryIdentity): ForegroundClaim {
+    val current = get(identity.reminderId)
+    if (current == null) {
+      val claimed = lastClaimedGeneration(identity.reminderId)
+      if (claimed != null && claimed >= identity.generation) {
+        receipt("foreground_already_claimed", identity)
+        return ForegroundClaim(ForegroundOutcome.ALREADY_CLAIMED, null)
+      }
+      recordClaim(identity)
+      receipt("foreground_claimed", identity)
+      return ForegroundClaim(ForegroundOutcome.CLAIMED, null)
+    }
+    val held = current.identity
+    val sameOwner = held.ownerId.isEmpty() || held.ownerId == identity.ownerId
+    if (held == identity || (sameOwner && held.generation < identity.generation)) {
+      registry.remove(identity.reminderId)
+      recordClaim(identity)
+      receipt("foreground_claimed", identity)
+      return ForegroundClaim(ForegroundOutcome.CLAIMED, current)
+    }
+    receipt("foreground_stale", identity)
+    return ForegroundClaim(ForegroundOutcome.STALE, null)
+  }
+
+  /** The highest generation already claimed for [reminderId], or null. */
+  fun lastClaimedGeneration(reminderId: String): Long? {
+    val key = DeliveryContract.encode(reminderId)
+    return claimLines()
+        .mapNotNull { line ->
+          val parts = line.split(" ")
+          if (parts.size == 2 && parts[0] == key) parts[1].toLongOrNull() else null
+        }
+        .maxOrNull()
+  }
+
+  private fun claimLines(): List<String> =
+      state.get(KEY_CLAIMS)?.split("\n")?.filter { it.isNotEmpty() } ?: emptyList()
+
+  private fun recordClaim(identity: DeliveryIdentity) {
+    val key = DeliveryContract.encode(identity.reminderId)
+    val kept = claimLines().filterNot { it.startsWith("$key ") }
+    state.put(KEY_CLAIMS, (kept + "$key ${identity.generation}").takeLast(MAX_CLAIMS).joinToString("\n"))
   }
 
   /** Boot, package replace, time or timezone change, exact-alarm permission change. */

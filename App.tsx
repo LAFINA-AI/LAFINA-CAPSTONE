@@ -309,6 +309,10 @@ function AppContent({
       if (nextState !== 'active') {
         scheduler.stop();
         stopReminderPoller();
+        // Leaving the foreground: make Android hold exactly the armed work in
+        // SQLite, so a retired or edited reminder cannot ring while the app
+        // stays closed.
+        if (nextState === 'background') void reconcileReminderDelivery(userId);
         return;
       }
       scheduler.start();

@@ -24,6 +24,7 @@ import {
   EVENT_CALL_TRIGGER,
   manualAcknowledgeCall,
   disconnectCall,
+  reconcileIfDeliveryChanged,
   reconcileReminderDelivery,
   rescheduleUserReminders,
   scheduleReminderAlarm,
@@ -796,5 +797,80 @@ describe('call admission and in-call fences', () => {
     remindersStore.snoozeReminderAt('r2', iso(120_000));
     await manualAcknowledgeCall('r2', A);
     expect(remindersStore.getReminderById('r2')!.status).toBe('snoozed');
+  });
+});
+
+describe('pre-advance remediation: one engine per generation and no stale registration', () => {
+  test('the JS fallback rings only after the native foreground claim succeeds', async () => {
+    const emit = jest.spyOn(DeviceEventEmitter, 'emit');
+    const fake = installFakeRegistry();
+    const module = native();
+    try {
+      insert('r-gap', A, -2_000);
+      // Registration had failed, so the listing does not hold it and JS is the fallback.
+      deliveryStore.recordRegistration('r-gap', 1, 'failed', 'receipt_lost');
+      fake.registry.delete('r-gap');
+
+      // Native fired in the gap after the listing: its claim wins, JS stays silent.
+      module.claimForegroundDelivery = jest.fn(async () => 'already_claimed');
+      await checkAndTriggerReminders(A);
+      expect(module.claimForegroundDelivery).toHaveBeenCalledWith(
+        'r-gap',
+        A,
+        job('r-gap').generation,
+      );
+      expect(remindersStore.getReminderById('r-gap')!.status).toBe('pending');
+
+      // The claim cannot be made: native stays the engine.
+      module.claimForegroundDelivery = jest.fn(async () => {
+        throw new Error('bridge down');
+      });
+      await checkAndTriggerReminders(A);
+      expect(remindersStore.getReminderById('r-gap')!.status).toBe('pending');
+
+      // JS wins the claim: it rings exactly once with the captured generation.
+      module.claimForegroundDelivery = jest.fn(async () => 'claimed');
+      await checkAndTriggerReminders(A);
+      expect(remindersStore.getReminderById('r-gap')!.status).toBe(
+        'triggered',
+      );
+      const rings = emit.mock.calls.filter(
+        call => call[0] === EVENT_CALL_TRIGGER,
+      );
+      expect(rings).toHaveLength(1);
+      expect(rings[0][1]).toMatchObject({
+        reminderId: 'r-gap',
+        generation: job('r-gap').generation,
+      });
+    } finally {
+      delete module.claimForegroundDelivery;
+      fake.restore();
+    }
+  });
+
+  test('a writer that does not cancel its alarm is corrected on the next poll, not at the next start', async () => {
+    const fake = installFakeRegistry();
+    try {
+      insert('r-retire', A, 60 * 60_000);
+      await reconcileIfDeliveryChanged(A);
+      expect(fake.registry.has('r-retire')).toBe(true);
+
+      // Nothing changed: no extra native traffic.
+      native().listDeliveryRegistrations.mockClear();
+      expect(await reconcileIfDeliveryChanged(A)).toBeNull();
+      expect(native().listDeliveryRegistrations).not.toHaveBeenCalled();
+
+      // A raw write (like a sync upsert) retires the job without touching Android.
+      db.executeSync(
+        'UPDATE reminders SET deleted_at = ?, updated_at = ? WHERE id = ?',
+        [iso(0), iso(0), 'r-retire'],
+      );
+      expect(fake.registry.has('r-retire')).toBe(true);
+      await checkAndTriggerReminders(A);
+      expect(fake.registry.has('r-retire')).toBe(false);
+      expect(native().cancelAlarm).toHaveBeenCalledWith('r-retire');
+    } finally {
+      fake.restore();
+    }
   });
 });

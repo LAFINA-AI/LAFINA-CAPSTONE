@@ -25,6 +25,8 @@ export {
   reconcileReminderDelivery,
   drainNativeDeliveryReceipts,
   shouldDispatchInJs,
+  claimForegroundRing,
+  reconcileIfDeliveryChanged,
 } from './deliveryReconciler';
 export type { DeliveryReconcileSummary } from './deliveryReconciler';
 export { admitReminderCall } from './callAdmission';

@@ -120,6 +120,22 @@ class LafinaReminderModule(private val reactContext: ReactApplicationContext) :
     }
   }
 
+  /**
+   * The in-app fallback ringer asks before it rings (pre-advance remediation for
+   * the AGY-PORT 03 double-ring window). Resolves "claimed", "already_claimed"
+   * or "stale"; only "claimed" may ring, and after it native can no longer ring
+   * that generation.
+   */
+  @ReactMethod
+  fun claimForegroundDelivery(reminderId: String, ownerId: String, generation: Double, promise: Promise) {
+    try {
+      val outcome = claimForeground(reactContext, DeliveryIdentity(ownerId, reminderId, generation.toLong()))
+      promise.resolve(outcome.code)
+    } catch (e: Exception) {
+      promise.reject("DELIVERY_REGISTRY_ERROR", e.message, e)
+    }
+  }
+
   /** Returns and clears redacted native receipts (fired, stale, duplicate, expired...). */
   @ReactMethod
   fun drainDeliveryReceipts(promise: Promise) {
@@ -489,6 +505,16 @@ class LafinaReminderModule(private val reactContext: ReactApplicationContext) :
       core.markCutoverDone()
       for (action in actions) {
         if (action is RestoreAction.FireLate) showIncomingCall(context, action.registration)
+      }
+    }
+
+    /** Same lock as [handleTriggerIntent], so a broadcast and this claim never both win. */
+    fun claimForeground(context: Context, identity: DeliveryIdentity): ForegroundOutcome {
+      synchronized(DELIVERY_LOCK) {
+        ensureLegacyCutover(context)
+        val claim = registry(context).claimForeground(identity)
+        claim.superseded?.let { cancelIdentity(context, it.identity) }
+        return claim.outcome
       }
     }
 

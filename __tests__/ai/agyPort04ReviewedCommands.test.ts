@@ -171,6 +171,35 @@ const seedReminder = (userId: string, task: string, minutesAhead = 120) => {
   return id;
 };
 
+/**
+ * An older, unlinked reminder made the way the Calendar form makes one: scheduled
+ * at the item's own date and time, ringing `leadMinutes` earlier. This is the
+ * strict evidence that ties an unlinked reminder to exactly one item.
+ */
+const seedItemReminder = (
+  userId: string,
+  task: string,
+  date: string,
+  time: string,
+  leadMinutes = 0,
+) => {
+  const id = `${userId}-rem-${(serial += 1)}`;
+  const scheduled = new Date(`${date}T${time}:00`);
+  remindersStore.insertReminder({
+    id,
+    userId,
+    task,
+    description: 'Scheduled reminder',
+    scheduledAt: scheduled.toISOString(),
+    triggerAt: new Date(
+      scheduled.getTime() - leadMinutes * 60 * 1000,
+    ).toISOString(),
+    status: 'pending',
+    preCastAudioPath: null,
+  });
+  return id;
+};
+
 describe('AGY-PORT 04 reviewed assistant commands', () => {
   beforeAll(async () => {
     await initDatabase();
@@ -767,7 +796,7 @@ describe('AGY-PORT 04 reviewed assistant commands', () => {
       expect(result.reply).toMatch(/could not find a note/i);
     });
 
-    test('a reviewed delete removes only its exactly linked reminder; legacy title cleanup stays for unlinked ones', () => {
+    test('a reviewed delete removes only its exactly linked reminder; an unlinked one goes only with the item it matches by title and time', () => {
       const userId = owner('links');
       const date = tomorrow();
       const created = confirmReviewedCommand(
@@ -786,14 +815,17 @@ describe('AGY-PORT 04 reviewed assistant commands', () => {
         dueDate: date,
         dueTime: '18:00',
       });
-      const manualReminder = seedReminder(userId, 'Quiz', 600);
+      const manualReminder = seedItemReminder(userId, 'Quiz', date, '18:00');
+      // Same title, but no Quiz item is due at 09:00: a standalone reminder.
+      const standalone = seedItemReminder(userId, 'Quiz', date, '09:00');
 
-      // Deleting the manual item uses the legacy title rule but never touches the linked reminder.
+      // Deleting the manual item takes its evidence-matched reminder, never the linked one.
       tasksStore.deleteTask(manualTask);
       expect(remindersStore.getReminderById(manualReminder)).toBeNull();
       expect(remindersStore.getReminderById(linkedReminder)).not.toBeNull();
+      expect(remindersStore.getReminderById(standalone)).not.toBeNull();
 
-      const unlinkedAgain = seedReminder(userId, 'Quiz', 700);
+      const unlinkedAgain = seedItemReminder(userId, 'Quiz', date, '15:00', 10);
       const remove = expectProposal(
         prepareReviewedCommand(
           userId,
@@ -807,9 +839,11 @@ describe('AGY-PORT 04 reviewed assistant commands', () => {
       expect(confirmReviewedCommand(userId, remove.operationId).status).toBe(
         'applied',
       );
-      // The linked reminder went with its task; the unlinked same-title one went by the legacy rule.
+      // The linked reminder went with its task, the unlinked one matched by title
+      // and time went too, and the title-only standalone reminder stayed.
       expect(remindersStore.getReminderById(linkedReminder)).toBeNull();
       expect(remindersStore.getReminderById(unlinkedAgain)).toBeNull();
+      expect(remindersStore.getReminderById(standalone)).not.toBeNull();
       expect(reminderAlarm.cancelReminderAlarm).toHaveBeenCalledWith(
         linkedReminder,
       );
@@ -1248,13 +1282,29 @@ describe('AGY-PORT 04 reviewed assistant commands', () => {
     test('renaming a task renames its linked and legacy reminders and re-registers the alarm with the new title', () => {
       const userId = owner('rename');
       const other = owner('rename-other');
-      const {reminderId} = createReviewedTask(userId, 'Review notes', '15:00');
+      const {reminderId, taskId} = createReviewedTask(
+        userId,
+        'Review notes',
+        '15:00',
+      );
       db.executeSync(
         "UPDATE reminders SET precast_audio_path = '/data/old-title.wav' WHERE id = ?",
         [reminderId],
       );
-      const legacy = seedReminder(userId, '  review   NOTES ', 300);
-      const foreign = seedReminder(other, 'Review notes', 300);
+      const legacy = seedItemReminder(
+        userId,
+        '  review   NOTES ',
+        tomorrow(),
+        '15:00',
+        5,
+      );
+      const foreign = seedItemReminder(other, 'Review notes', tomorrow(), '15:00');
+      const titleOnly = seedItemReminder(
+        userId,
+        'Review notes',
+        tomorrow(),
+        '20:00',
+      );
       const removeAudio = jest
         .spyOn(ttsModule, 'deletePreCachedReminderAudio')
         .mockResolvedValue(undefined as never);
@@ -1273,7 +1323,9 @@ describe('AGY-PORT 04 reviewed assistant commands', () => {
       );
       const card = proposal.details.join(' ');
       expect(card).toMatch(/Its 2 reminders will say “Review chapter 3”/);
-      expect(card).toMatch(/1 reminder with no link to this item/);
+      expect(card).toMatch(
+        /1 older reminder with no link, matched by its title and this item’s time/,
+      );
       expect(confirmReviewedCommand(userId, proposal.operationId).status).toBe(
         'applied',
       );
@@ -1283,7 +1335,13 @@ describe('AGY-PORT 04 reviewed assistant commands', () => {
         precast_audio_path: null,
       });
       expect(reminderRow(legacy).task).toBe('Review chapter 3');
+      // Confirming recorded the exact link, so the rename cannot orphan it.
+      expect(deliveryStore.get(legacy)).toMatchObject({
+        sourceType: 'task',
+        sourceId: taskId,
+      });
       expect(reminderRow(foreign).task).toBe('Review notes');
+      expect(reminderRow(titleOnly).task).toBe('Review notes');
       expect(reminderAlarm.scheduleReminderAlarm).toHaveBeenCalledWith(
         reminderId,
         'Review chapter 3',
@@ -1374,10 +1432,14 @@ describe('AGY-PORT 04 reviewed assistant commands', () => {
         ),
       );
       expect(proposal.details.join(' ')).toMatch(/moves with it/);
-      expect(proposal.details.join(' ')).toMatch(/no link to this item/);
+      expect(proposal.details.join(' ')).toMatch(/older reminder with no link/);
       expect(confirmReviewedCommand(userId, proposal.operationId).status).toBe(
         'applied',
       );
+      expect(deliveryStore.get(reminderId)).toMatchObject({
+        sourceType: 'time_block',
+        sourceId: `${userId}-block`,
+      });
       expect(reminderRow(reminderId)).toMatchObject({
         task: 'Algorithms lab',
         trigger_at: new Date(`${date}T15:50:00`).toISOString(),
@@ -1392,22 +1454,41 @@ describe('AGY-PORT 04 reviewed assistant commands', () => {
     test('legacy reminder cleanup ignores case and spacing but stays within the owner', () => {
       const userId = owner('legacy-case');
       const other = owner('legacy-case-other');
-      const taskId = seedTask(userId, 'Quiz');
-      const mine = seedReminder(userId, '  QUIZ ');
-      const spaced = seedReminder(userId, 'quiz');
-      const foreign = seedReminder(other, 'Quiz');
-      const unrelated = seedReminder(userId, 'Quiz review');
+      const date = tomorrow();
+      const taskId = seedTask(userId, 'Quiz', {dueDate: date, dueTime: '11:00'});
+      const mine = seedItemReminder(userId, '  QUIZ ', date, '11:00');
+      const spaced = seedItemReminder(userId, 'quiz', date, '11:00', 10);
+      const foreign = seedItemReminder(other, 'Quiz', date, '11:00');
+      const unrelated = seedItemReminder(userId, 'Quiz review', date, '11:00');
+      const otherTime = seedItemReminder(userId, 'Quiz', date, '12:00');
       tasksStore.deleteTask(taskId);
       expect(remindersStore.getReminderById(mine)).toBeNull();
       expect(remindersStore.getReminderById(spaced)).toBeNull();
       expect(remindersStore.getReminderById(foreign)).not.toBeNull();
       expect(remindersStore.getReminderById(unrelated)).not.toBeNull();
+      // A shared title without the item's time is never treated as ownership.
+      expect(remindersStore.getReminderById(otherTime)).not.toBeNull();
+    });
+
+    test('an unlinked reminder that two items could own belongs to neither', () => {
+      const userId = owner('legacy-ambiguous');
+      const date = tomorrow();
+      const first = seedTask(userId, 'Group study', {
+        dueDate: date,
+        dueTime: '16:00',
+      });
+      seedTask(userId, 'group study', {dueDate: date, dueTime: '16:00'});
+      const shared = seedItemReminder(userId, 'Group study', date, '16:00');
+      tasksStore.deleteTask(first);
+      expect(remindersStore.getReminderById(shared)).not.toBeNull();
+      expect(reminderRow(shared).task).toBe('Group study');
     });
 
     test('the delete card lists every reminder that goes with the item, and a changed set refuses', () => {
       const userId = owner('delete-card');
       const {reminderId} = createReviewedTask(userId, 'Essay', '15:00');
-      const legacy = seedReminder(userId, 'essay', 400);
+      const legacy = seedItemReminder(userId, 'essay', tomorrow(), '15:00', 30);
+      const elsewhere = seedItemReminder(userId, 'Essay', tomorrow(), '08:00');
       const proposal = expectProposal(
         prepareReviewedCommand(
           userId,
@@ -1422,13 +1503,13 @@ describe('AGY-PORT 04 reviewed assistant commands', () => {
         line.startsWith('Also removes'),
       );
       expect(lines).toHaveLength(2);
-      expect(lines.filter(line => /no link to this item/.test(line))).toEqual([
+      expect(lines.filter(line => /older reminder with no link/.test(line))).toEqual([
         expect.stringContaining('“essay”'),
       ]);
       expect(proposal.details.join(' ')).not.toMatch(/its own pending/);
 
       // A new same-title reminder appears before Confirm: not on the card, so refuse.
-      const late = seedReminder(userId, 'ESSAY', 500);
+      const late = seedItemReminder(userId, 'ESSAY', tomorrow(), '15:00', 60);
       expect(
         confirmReviewedCommand(userId, proposal.operationId),
       ).toMatchObject({reason: 'stale'});
@@ -1454,6 +1535,7 @@ describe('AGY-PORT 04 reviewed assistant commands', () => {
       for (const id of [reminderId, legacy, late]) {
         expect(remindersStore.getReminderById(id)).toBeNull();
       }
+      expect(remindersStore.getReminderById(elsewhere)).not.toBeNull();
     });
 
     test('an item with no reminders says so instead of promising cleanup', () => {

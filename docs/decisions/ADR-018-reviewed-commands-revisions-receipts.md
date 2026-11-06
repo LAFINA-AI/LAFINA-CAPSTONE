@@ -118,3 +118,20 @@ AGY-PORT 04 requires the following:
 ## Human approval
 
 Pre-authorized for this unattended run in `docs/plans/agy-improvements/OWNER-AUTHORIZATION.md`. Product review of the Confirm UX on a phone is still required.
+
+## Addendum 2026-11-06: no title-only reminder ownership
+
+Status: accepted, pre-advance remediation. Supersedes the "legacy same-owner, same-title rule" above. Report: `docs/plans/agy-improvements/reports/pre-advance-remediation.md`.
+
+- **Ownership.** A reminder belongs to an item only through:
+  - an exact local link (`reminder_delivery_jobs.source_type`/`source_id`); or
+  - for an unlinked reminder, the strict evidence rule in `src/storage/sourceReminders.ts`. The owner and the title (ignoring case and spacing) must match, the reminder's `scheduled_at` must be the item's own due date and minute, and no other live item may qualify.
+
+  A shared title alone never establishes ownership. An ambiguous match is standalone.
+- **Who uses the rule.**
+  - Store cascades and reviewed delete, rename and move use `remindersForSource`.
+  - The Calendar form replaces and deletes only an item's own reminders, and links each new reminder in the same transaction.
+  - Call admission, the dispatcher and the poller suppress a reminder only when its own task is completed, or when the same alert was acknowledged (`alertSuppression`).
+  - Acknowledge also acknowledges only reminders of the same alert (`isSameAlert`). That means the same item, or for standalone reminders the identical text at the identical instant.
+- **Promotion to an exact link.** Confirming a reviewed rename or move that includes an evidence-matched reminder records its exact link in the same transaction.
+- **Not changed.** The legacy title cleanup inside `actionExecutor`'s mutation helpers is kept for the test-only `intentService.processAndExecuteIntent`. The architecture check forbids product callers.

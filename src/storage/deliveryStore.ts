@@ -369,6 +369,25 @@ export const deliveryStore = {
     );
   },
 
+  /**
+   * Cheap summary that changes whenever one of this owner's jobs is created,
+   * bumped, retired or has its registration receipt updated.
+   */
+  changeFingerprint: (
+    userId: string,
+    executor: DatabaseTransaction = db,
+  ): string => {
+    const row = executor.executeSync(
+      `SELECT COUNT(*) AS n, COALESCE(SUM(generation), 0) AS g,
+              COALESCE(MAX(updated_at), '') AS u,
+              COALESCE(SUM(CASE WHEN state = 'armed' THEN 1 ELSE 0 END), 0) AS a,
+              COALESCE(SUM(registered_generation), 0) AS r
+         FROM reminder_delivery_jobs WHERE user_id = ?`,
+      [userId],
+    ).rows?.[0];
+    return [row?.n, row?.g, row?.u, row?.a, row?.r].map(String).join('|');
+  },
+
   /** Reminder IDs linked to an exact source, for one owner. */
   findBySource: (
     userId: string,

@@ -976,14 +976,14 @@ const describeCascade = (rows: readonly SourceReminderRow[]): string[] => {
         `Also removes the reminder ${describeReminderRow(row)}${
           row.linked
             ? '.'
-            : ' (it has no link to this item, but it has the same title).'
+            : ' (an older reminder with no link, matched by its title and this item’s time).'
         }`,
     );
   if (rows.length > MAX_REMINDERS_LISTED) {
     lines.push(
       `And ${
         rows.length - MAX_REMINDERS_LISTED
-      } more reminder(s) with the same title.`,
+      } more reminder(s) of this item.`,
     );
   }
   return lines;
@@ -1064,8 +1064,8 @@ const planReminderChanges = (
   if (unlinked > 0) {
     details.push(
       unlinked === 1
-        ? 'This includes 1 reminder with no link to this item that has the same title.'
-        : `This includes ${unlinked} reminders with no link to this item that have the same title.`,
+        ? 'This includes 1 older reminder with no link, matched by its title and this item’s time. Confirming links it to this item.'
+        : `This includes ${unlinked} older reminders with no link, matched by their title and this item’s time. Confirming links them to this item.`,
     );
   }
   if (pastCount > 0) {
@@ -2018,8 +2018,15 @@ const verifyReminderChanges = (
 const applyReminderChanges = (
   tx: DatabaseTransaction,
   changes: ReadonlyArray<ReminderChange>,
+  source: {type: ReminderSourceKind; id: string},
 ): void => {
   for (const change of changes) {
+    if (!change.linked) {
+      // Matched by the strict evidence rule and shown on the card: the student
+      // confirmed it belongs to this item, so record the exact link before the
+      // move or rename makes the evidence stale.
+      deliveryStore.linkSource(change.ref.id, source.type, source.id, tx);
+    }
     if (change.triggerAt) {
       remindersStore.updateReminderTriggerAt(
         change.ref.id,
@@ -2231,7 +2238,10 @@ const applyOperation = (
         },
         tx,
       );
-      applyReminderChanges(tx, op.reminderChanges);
+      applyReminderChanges(tx, op.reminderChanges, {
+        type: 'task',
+        id: op.target.id,
+      });
       const when = op.dueDate
         ? ` for ${op.dueDate}${
             op.dueTime ? ` at ${format12HourTime(op.dueTime)}` : ''
@@ -2257,7 +2267,10 @@ const applyOperation = (
       };
       if (op.target.type === 'event') tasksStore.updateEvent(patch, tx);
       else timeBlocksStore.update(patch, tx);
-      applyReminderChanges(tx, op.reminderChanges);
+      applyReminderChanges(tx, op.reminderChanges, {
+        type: op.target.type === 'event' ? 'event' : 'time_block',
+        id: op.target.id,
+      });
       const label = op.target.type === 'event' ? 'event' : 'time block';
       return {
         operation: op.op,

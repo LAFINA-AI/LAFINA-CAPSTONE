@@ -59,6 +59,12 @@ interface LafinaReminderNativeModule {
   openNotificationSettings?: () => Promise<boolean>;
   listDeliveryRegistrations?: () => Promise<NativeDeliveryRegistration[]>;
   setDeliveryOwner?: (ownerId: string) => Promise<boolean>;
+  /** Exactly-one-engine claim for the in-app fallback ringer. */
+  claimForegroundDelivery?: (
+    reminderId: string,
+    ownerId: string,
+    generation: number,
+  ) => Promise<'claimed' | 'already_claimed' | 'stale' | string>;
   drainDeliveryReceipts?: () => Promise<NativeDeliveryReceipt[]>;
 }
 

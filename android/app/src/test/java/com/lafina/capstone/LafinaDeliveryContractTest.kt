@@ -152,4 +152,63 @@ class LafinaDeliveryContractTest {
     assertTrue(core.drainReceipts().isEmpty())
     assertFalse(stateStore.values.values.any { it.contains("Synthetic") })
   }
+
+  // Pre-advance remediation: one engine per generation, even in the listing-to-dispatch gap.
+
+  @Test
+  fun `native fires first then the foreground claim is refused`() {
+    val reg = registration("r1", generation = 3)
+    core.put(reg)
+    assertEquals(FireOutcome.FIRE, core.claim(reg.identity).outcome)
+    val claim = core.claimForeground(reg.identity)
+    assertEquals(ForegroundOutcome.ALREADY_CLAIMED, claim.outcome)
+    assertNull(claim.superseded)
+  }
+
+  @Test
+  fun `foreground claims first then the alarm broadcast is inert`() {
+    val reg = registration("r2", generation = 4)
+    core.put(reg)
+    val claim = core.claimForeground(reg.identity)
+    assertEquals(ForegroundOutcome.CLAIMED, claim.outcome)
+    assertEquals(reg, claim.superseded)
+    assertNull(core.get("r2"))
+    assertEquals(FireOutcome.DUPLICATE, core.claim(reg.identity).outcome)
+    // A second foreground pass for the same generation is refused too.
+    assertEquals(ForegroundOutcome.ALREADY_CLAIMED, core.claimForeground(reg.identity).outcome)
+  }
+
+  @Test
+  fun `foreground may ring when native never held the reminder`() {
+    val identity = DeliveryIdentity("owner-a", "r3", 2)
+    assertEquals(ForegroundOutcome.CLAIMED, core.claimForeground(identity).outcome)
+    // A later generation (for example after a snooze) can be claimed again.
+    assertEquals(ForegroundOutcome.CLAIMED, core.claimForeground(identity.copy(generation = 3)).outcome)
+    assertEquals(3L, core.lastClaimedGeneration("r3"))
+  }
+
+  @Test
+  fun `foreground supersedes an older or adopted entry but never a newer or foreign one`() {
+    core.put(DeliveryRegistration(DeliveryIdentity("", "legacy", 0), now + 60_000, "Old"))
+    val adopted = core.claimForeground(DeliveryIdentity("owner-a", "legacy", 1))
+    assertEquals(ForegroundOutcome.CLAIMED, adopted.outcome)
+    assertEquals(0L, adopted.superseded?.identity?.generation)
+
+    core.put(registration("newer", generation = 5))
+    assertEquals(ForegroundOutcome.STALE, core.claimForeground(DeliveryIdentity("owner-a", "newer", 4)).outcome)
+    assertTrue(core.get("newer") != null)
+
+    core.put(registration("foreign", owner = "owner-b", generation = 1))
+    assertEquals(ForegroundOutcome.STALE, core.claimForeground(DeliveryIdentity("owner-a", "foreign", 2)).outcome)
+    assertTrue(core.get("foreign") != null)
+  }
+
+  @Test
+  fun `claim markers stay bounded`() {
+    for (i in 0 until DeliveryRegistryCore.MAX_CLAIMS + 10) {
+      core.claimForeground(DeliveryIdentity("owner-a", "bulk-$i", 1))
+    }
+    assertNull(core.lastClaimedGeneration("bulk-0"))
+    assertEquals(1L, core.lastClaimedGeneration("bulk-${DeliveryRegistryCore.MAX_CLAIMS + 9}"))
+  }
 }

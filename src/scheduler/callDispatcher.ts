@@ -1,7 +1,8 @@
 import { DeviceEventEmitter } from 'react-native';
 import { remindersStore } from '../storage/remindersStore';
 import { deliveryStore } from '../storage/deliveryStore';
-import { tasksStore } from '../storage/tasksStore';
+import { db } from '../storage/database';
+import { alertSuppression } from '../storage/sourceReminders';
 import { initTts, stopSpeechPlayback } from '../ai/tts/ttsService';
 import {
   cancelOfflineSpeechCapture,
@@ -546,11 +547,9 @@ export const answerCall = async (
     return;
   }
 
-  const normTask = reminder.task.trim().toLowerCase();
-  const matchingTasks = tasksStore.getAllTasks(userId);
-  const isTaskDone = matchingTasks.some(
-    (t) => t.isCompleted && t.title.trim().toLowerCase() === normTask,
-  );
+  // Only the reminder's own task (exact link or strict evidence) counts; a
+  // completed task that merely shares the title does not end this call.
+  const isTaskDone = alertSuppression(db, reminder) === 'task_completed';
   if (isTaskDone) {
     remindersStore.acknowledgeReminder(reminder.id);
     await cancelReminderAlarm(reminder.id);

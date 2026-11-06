@@ -13,7 +13,7 @@
   "worktree": "C:/L3mxr/Github Repositories/LAFINA-CAPSTONE-agy-development-cont",
   "donor_head": "0d4bbe39e106c29fb90792cf5d2f916b5c0d6480",
   "last_tested_head": "c36eec9+worktree",
-  "last_committed_head": "c36eec984a91457a8cfd75c0296a756b913508e8",
+  "last_committed_head": "08acc94441862cf90aa3192921a74bb5b445a6cd",
   "current_phase": "AGY-PORT-05",
   "phases": [
     {
@@ -146,7 +146,8 @@
       ],
       "continuation": "NEXT_PHASE",
       "notes": [
-        "Jest 316, Kotlin 24, assembleDebug PASS; instrumentation compiled once before the follow-up, not run; reviewer 1 medium + 3 low fixed"
+        "Jest 316, Kotlin 24, assembleDebug PASS; instrumentation compiled once before the follow-up, not run; reviewer 1 medium + 3 low fixed",
+        "Pre-advance remediation (2026-11-06): native foreground claim closes the listing-to-dispatch double ring; background and change-driven reconcile close the stale registration while closed. See pre-advance-remediation.md"
       ]
     },
     {
@@ -174,7 +175,8 @@
       ],
       "continuation": "NEXT_PHASE",
       "notes": [
-        "JS only; reviewer 1 medium + 5 low fixed; preflight 376"
+        "JS only; reviewer 1 medium + 5 low fixed; preflight 376",
+        "Pre-advance remediation (2026-11-06): title-only reminder ownership replaced by exact links + strict evidence rule (title + item due instant + unique); confirmed matches are promoted to exact links. See pre-advance-remediation.md"
       ]
     },
     {
@@ -194,7 +196,7 @@
       "live_service": "NOT_RUN",
       "base_head": "c36eec984a91457a8cfd75c0296a756b913508e8",
       "tested_head": "c36eec9+worktree",
-      "result_commit": null,
+      "result_commit": "08acc94441862cf90aa3192921a74bb5b445a6cd",
       "report": "phase-05-drafts-microphone.md",
       "evidence": [
         "evidence/agy-port-20261106/phase-05/",
@@ -450,5 +452,31 @@
       "notes": []
     }
   ],
-  "required_target_root": "C:\\L3mxr\\Github Repositories\\LAFINA-CAPSTONE-agy-development-cont"
+  "required_target_root": "C:\\L3mxr\\Github Repositories\\LAFINA-CAPSTONE-agy-development-cont",
+  "remediations": [
+    {
+      "id": "PRE-ADVANCE-REMEDIATION-1",
+      "scope": [
+        "AGY-PORT-03 stale-alert and double-ring gaps",
+        "title-based ownership of legacy reminders",
+        "deleted Phase 05 intermediate evidence"
+      ],
+      "base_head": "08acc94441862cf90aa3192921a74bb5b445a6cd",
+      "tested_head": "c36eec9+worktree (Phase 05 + remediation, identical sources)",
+      "implementation": "CODE_COMPLETE",
+      "automated": "PASS",
+      "build": "PASS",
+      "device": "NOT_RUN",
+      "live_service": "NOT_RUN",
+      "result_commit": null,
+      "report": "pre-advance-remediation.md",
+      "evidence": [
+        "evidence/agy-port-20261106/pre-advance-remediation/",
+        "evidence/agy-port-20261106/phase-05/deleted-intermediate-preflight-RECOVERED-EXCERPTS.md"
+      ],
+      "notes": [
+        "preflight 418, Kotlin 43, assembleDebug PASS; mutations T (11 fail) and C (1 fail) as intended; legacy actionExecutor title cleanup remains test-only (architecture-guarded), retire in AGY-PORT 06"
+      ]
+    }
+  ]
 }

@@ -272,6 +272,73 @@ export type NativeRegistrationSnapshot =
   | 'unreadable'
   | undefined;
 
+/**
+ * Asks the native registry for this generation right before the JS fallback
+ * rings. The native alarm receiver consumes the same entry under the same lock
+ * and remembers every claim, so a native ring in the gap after the poller's
+ * listing makes this return false, and a foreground claim makes a later native
+ * broadcast inert. True without native delivery (nothing else can ring) or on
+ * a native build without the method; false when the claim fails, because the
+ * native engine then stays in charge, matching the unreadable-listing rule.
+ */
+export const claimForegroundRing = async (
+  reminderId: string,
+  ownerId: string,
+  generation: number | null | undefined,
+): Promise<boolean> => {
+  if (!isNativeReminderDeliveryAvailable()) return true;
+  const module = getNativeDeliveryModule();
+  if (!module?.claimForegroundDelivery) return true;
+  try {
+    const outcome = await module.claimForegroundDelivery(
+      reminderId,
+      ownerId,
+      typeof generation === 'number' && Number.isSafeInteger(generation)
+        ? generation
+        : 0,
+    );
+    return outcome === 'claimed';
+  } catch (error) {
+    console.warn('[DeliveryReconciler] Foreground claim failed:', error);
+    return false;
+  }
+};
+
+let lastDeliveryFingerprint: {owner: string; value: string} | null = null;
+
+/**
+ * Reconciles when this owner's delivery jobs changed since the last pass made
+ * here (create, edit, snooze, acknowledge, delete, sync). Called by the
+ * foreground poller, so a writer that did not cancel its own alarm is
+ * corrected within one poll interval instead of at the next app start.
+ */
+export const reconcileIfDeliveryChanged = async (
+  ownerId: string,
+): Promise<DeliveryReconcileSummary | null> => {
+  let before: string;
+  try {
+    before = deliveryStore.changeFingerprint(ownerId);
+  } catch {
+    return null;
+  }
+  if (
+    lastDeliveryFingerprint?.owner === ownerId &&
+    lastDeliveryFingerprint.value === before
+  ) {
+    return null;
+  }
+  const summary = await reconcileReminderDelivery(ownerId);
+  try {
+    lastDeliveryFingerprint = {
+      owner: ownerId,
+      value: deliveryStore.changeFingerprint(ownerId),
+    };
+  } catch {
+    lastDeliveryFingerprint = null;
+  }
+  return summary;
+};
+
 /** One listing per poll pass, used to keep JS from ringing what native holds. */
 export const readLiveNativeRegistrations =
   async (): Promise<NativeRegistrationSnapshot> => {

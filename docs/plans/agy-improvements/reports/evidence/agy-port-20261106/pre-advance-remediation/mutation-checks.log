@@ -1,0 +1,21 @@
+2026-11-06T03:06:42Z
+Mutation T (title-only ownership): inferLegacySource returns a match for any non-empty title, ignoring the item's time and ambiguity
+  ● reminder ownership without title guessing › evidence rule › needs the title and the item time, and exactly one candidate
+  ● reminder ownership without title guessing › Calendar form › editing one "Study" task replaces only its own reminder
+  ● reminder ownership without title guessing › Calendar form › deleting a task removes its reminders and leaves same-title ones
+  ● reminder ownership without title guessing › call suppression › a completed task silences only its own reminder
+  ● reminder ownership without title guessing › call suppression › an acknowledged reminder silences only the same alert
+  ● reminder ownership without title guessing › acknowledge › also acknowledges the same item’s reminders, never title-only ones
+  ● AGY-PORT 04 reviewed assistant commands › targets › a reviewed delete removes only its exactly linked reminder; an unlinked one goes only with the item it matches by title and time
+  ● AGY-PORT 04 reviewed assistant commands › review follow-up › renaming a task renames its linked and legacy reminders and re-registers the alarm with the new title
+  ● AGY-PORT 04 reviewed assistant commands › review follow-up › legacy reminder cleanup ignores case and spacing but stays within the owner
+  ● AGY-PORT 04 reviewed assistant commands › review follow-up › an unlinked reminder that two items could own belongs to neither
+  ● AGY-PORT 04 reviewed assistant commands › review follow-up › the delete card lists every reminder that goes with the item, and a changed set refuses
+Tests:       11 failed, 49 passed, 60 total
+restored: cmp identical to pre-mutation copy
+
+2026-11-06T03:07:03Z
+Mutation C (claim ignored): claimForegroundRing returns true whatever native answers
+  ● pre-advance remediation: one engine per generation and no stale registration › the JS fallback rings only after the native foreground claim succeeds
+Tests:       1 failed, 38 passed, 39 total
+restored: cmp identical to pre-mutation copy

@@ -1,9 +1,15 @@
 import { DeviceEventEmitter } from 'react-native';
 import { remindersStore } from '../storage/remindersStore';
-import { tasksStore } from '../storage/tasksStore';
+import { db } from '../storage/database';
+import { alertSuppression } from '../storage/sourceReminders';
 import { deliveryStore } from '../storage/deliveryStore';
 import { cancelReminderAlarm, finishNativeIncomingCall } from './reminderAlarm';
-import { readLiveNativeRegistrations, shouldDispatchInJs } from './deliveryReconciler';
+import {
+  claimForegroundRing,
+  readLiveNativeRegistrations,
+  reconcileIfDeliveryChanged,
+  shouldDispatchInJs,
+} from './deliveryReconciler';
 import type { NativeRegistrationSnapshot } from './deliveryReconciler';
 
 let pollerInterval: ReturnType<typeof setInterval> | null = null;
@@ -37,32 +43,25 @@ export const checkAndTriggerReminders = async (userId: string): Promise<void> =>
         }
         if (!shouldDispatchInJs(reminder.id, liveRegistrations)) continue;
 
-        // Suppress if the task is already completed or another reminder for this task was already acknowledged
-        const normTask = reminder.task.trim().toLowerCase();
-        const matchingTasks = tasksStore.getAllTasks(userId);
-        const isTaskDone = matchingTasks.some(
-          (t) => t.isCompleted && t.title.trim().toLowerCase() === normTask,
-        );
-        const allReminders = remindersStore.getAllReminders(userId);
-        const wasAlreadyAck = allReminders.some(
-          (r) =>
-            r.id !== reminder.id &&
-            r.status === 'acknowledged' &&
-            r.task.trim().toLowerCase() === normTask,
-        );
-
-        if (isTaskDone || wasAlreadyAck) {
+        // Suppress only when this reminder's own task is completed or the same
+        // alert was already acknowledged (exact link, strict evidence or exact
+        // duplicate); a shared title alone never silences a reminder.
+        if (alertSuppression(db, reminder)) {
           remindersStore.acknowledgeReminder(reminder.id);
           void cancelReminderAlarm(reminder.id);
           void finishNativeIncomingCall(reminder.id);
           continue;
         }
 
+        // Exactly one engine per generation: native may have fired since the
+        // listing above; after this claim it can no longer ring this one.
+        const job = deliveryStore.get(reminder.id);
+        if (!(await claimForegroundRing(reminder.id, userId, job?.generation))) continue;
+
         console.log(`[ReminderPoller] Triggering reminder: ${reminder.id} - ${reminder.task}`);
 
         // 1. Mark status as triggered immediately to avoid double-triggers
         remindersStore.updateReminderStatus(reminder.id, 'triggered');
-        const job = deliveryStore.get(reminder.id);
         if (job) {
           deliveryStore.recordEvent({
             reminderId: job.reminderId,
@@ -84,6 +83,13 @@ export const checkAndTriggerReminders = async (userId: string): Promise<void> =>
     }
   } catch (error) {
     console.error('[ReminderPoller] Error checking reminders:', error);
+  }
+  // A writer that retired or moved a job without cancelling its alarm is
+  // corrected now, not only at the next start, resume or sync.
+  try {
+    await reconcileIfDeliveryChanged(userId);
+  } catch (error) {
+    console.warn('[ReminderPoller] Delivery reconcile failed:', error);
   }
 };
 

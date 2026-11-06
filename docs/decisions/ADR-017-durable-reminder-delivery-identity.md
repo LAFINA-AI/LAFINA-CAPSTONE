@@ -166,3 +166,20 @@ Jobs survive in SQLite for that owner's return. Guest linking rekeys jobs atomic
 - An instrumentation test using test-named preferences only. It is compiled, not run (no device).
 
 Phone behavior (ringing, lock screen, Doze, reboot, OEM) is **not validated**. See `docs/plans/agy-improvements/reports/phase-03-delivery.md`.
+
+## Addendum 2026-11-06: one engine per generation, no stale registration while closed
+
+Status: accepted, pre-advance remediation. Report: `docs/plans/agy-improvements/reports/pre-advance-remediation.md`.
+
+- **Foreground claim.** Before the JS fallback rings, it calls `claimForegroundDelivery(reminderId, ownerId, generation)`.
+  - The native method runs under the same `DELIVERY_LOCK` as the alarm receiver, and `DeliveryRegistryCore.claim()` now records a bounded per-reminder claim marker (state key `claims`, at most 256).
+  - It answers `claimed` when it took this identity, or an older generation of the same owner, including an adopted legacy entry. It then removes the registry entry and cancels its PendingIntent.
+  - It also answers `claimed` when no entry and no claim exist (registration had failed).
+  - It answers `already_claimed` when this or a newer generation was already claimed, and `stale` for a newer or foreign identity.
+  - JS rings only on `claimed`. A claim error keeps JS silent.
+  - This closes the "native fires between the poller's listing and its dispatch" double ring. It does not make delivery exactly-once: a crash between a claim and `notify` still loses that ring.
+- **Stale registrations.**
+  - `App` reconciles when the app moves to `background`.
+  - While the app is in the foreground, the poller calls `reconcileIfDeliveryChanged`, which reconciles only when `deliveryStore.changeFingerprint(owner)` changed.
+  - So a writer that retired or moved a job without cancelling its alarm is corrected within one poll interval, and before the app is closed, rather than at the next start.
+  - The remaining window: the process is killed before the background pass completes.
