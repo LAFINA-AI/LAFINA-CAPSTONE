@@ -1,0 +1,8 @@
+# android/app/build/test-results/testDebugUnitTest/*.xml after gradle-unit-assemble-debug-1.log (started 2026-11-06T13:51:05Z)
+com.lafina.capstone.LafinaAudioPlayerTest tests=1 failures=0 errors=0 skipped=0 timestamp=2026-11-06T13:51:12.281Z mtime=2026-11-06T13:51:12Z
+com.lafina.capstone.LafinaDeliveryContractTest tests=15 failures=0 errors=0 skipped=0 timestamp=2026-11-06T13:51:12.306Z mtime=2026-11-06T13:51:12Z
+com.lafina.capstone.LafinaIntentExtractorTest tests=3 failures=0 errors=0 skipped=0 timestamp=2026-11-06T13:51:12.456Z mtime=2026-11-06T13:51:12Z
+com.lafina.capstone.LafinaReminderTest tests=3 failures=0 errors=0 skipped=0 timestamp=2026-11-06T13:51:12.466Z mtime=2026-11-06T13:51:12Z
+com.lafina.capstone.LafinaSpeechToTextTest tests=7 failures=0 errors=0 skipped=0 timestamp=2026-11-06T13:51:12.473Z mtime=2026-11-06T13:51:12Z
+com.lafina.capstone.MicrophoneLeaseTest tests=14 failures=0 errors=0 skipped=0 timestamp=2026-11-06T13:51:12.508Z mtime=2026-11-06T13:51:12Z
+TOTAL suites=6 tests=43 failures=0 errors=0 skipped=0

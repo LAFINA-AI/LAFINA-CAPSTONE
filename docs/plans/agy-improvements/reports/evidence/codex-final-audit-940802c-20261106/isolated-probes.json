@@ -1,0 +1,28 @@
+{
+  "isolated_mock_probes": [
+    {
+      "scenario": "TTS ducking promise never settles",
+      "duckCalls": 1,
+      "initialization_settled": false,
+      "note": "Inspected call has no bounded wrapper; this short isolated probe does not wait for any real engine."
+    },
+    {
+      "scenario": "account changed during configuration",
+      "preview_started": true,
+      "started_owners": [
+        "preview:A"
+      ],
+      "result": "preview handle returned"
+    },
+    {
+      "scenario": "microphone acquired during configuration",
+      "preview_started": true,
+      "started_owners": [
+        "preview:A"
+      ],
+      "result": "preview handle returned"
+    }
+  ],
+  "native_audio_or_network_used": false,
+  "application_files_modified": false
+}

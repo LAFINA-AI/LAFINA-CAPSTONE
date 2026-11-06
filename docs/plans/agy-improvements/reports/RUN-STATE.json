@@ -12,9 +12,9 @@
   "work_branch": "codex/agy-preservation-improvements",
   "worktree": "C:/L3mxr/Github Repositories/LAFINA-CAPSTONE-agy-development-cont",
   "donor_head": "0d4bbe39e106c29fb90792cf5d2f916b5c0d6480",
-  "last_tested_head": "d986c3b (Phase 13 final gates; code identical to a152bcb)",
-  "last_committed_head": "448df7aefefed500cd737577be78e5d3273d02bc",
-  "current_phase": "NONE (run finished; owner device/live checks pending)",
+  "last_tested_head": "f61d1eb (final-audit remediation gates; preflight on the identical working tree)",
+  "last_committed_head": "0c1b99ace16798c7059a19a11d5a7565e80a8c9d (before the final-audit report/tracking commit)",
+  "current_phase": "NONE (run finished; final-audit F1-F4 follow-up done on host; owner device/live checks pending)",
   "phases": [
     {
       "id": "AGY-PORT-00",
@@ -584,6 +584,46 @@
         "preflight-1 568 + 1 skipped; final phase-11/preflight-2 580 + 1 skipped (43 suites)",
         "mutations run 1: M4, M6, M10 survived (tests strengthened, log kept); run 2: 12/12 killed, restored",
         "parent self-review only, not an independent review"
+      ]
+    },
+    {
+      "id": "CODEX-FINAL-AUDIT-REMEDIATION-1",
+      "scope": [
+        "F1 Preview admission ticket revalidated after every awaited startup step and immediately before Tts.speak; sheet cancels pending start on Stop/close/background/unmount",
+        "F2 optional Tts.setDucking bounded (3 s); timeout/rejection recovers; positive offline eligibility unchanged",
+        "F3 Clear All Data reports real per-step results; failed defaults reset never claimed as deleted; recovery step",
+        "F4 process death vs Force Stop: dated documentation corrections; MANUAL-QA M18 R1-R3; ADR-023 note (option C still not implemented)"
+      ],
+      "audit": "codex-final-audit-940802c-20261106.md",
+      "base_head": "940802c61457422a1ecefdad7cae5ef90cf0fddb",
+      "tested_head": "f61d1eb (preflight ran on the identical working tree before the commit); builds at 0c1b99a (docs only after f61d1eb)",
+      "implementation": "CODE_COMPLETE (F1-F3); CORRECTED (F4 docs); ADR-023 window still PARTIAL",
+      "automated": "PASS",
+      "build": "PASS (bundle executed; dataQa 12 executed/244 up-to-date; Kotlin 43 executed via --rerun; debug up-to-date, no packaged JS)",
+      "device": "NOT_RUN",
+      "live_service": "NOT_RUN",
+      "code_commit": "f61d1eb69183ac572b20527b5f7016e2b8d471f9",
+      "docs_commit": "0c1b99ace16798c7059a19a11d5a7565e80a8c9d",
+      "result_commit": "recorded in the next log event (no self-referential SHA)",
+      "report": "final-audit-remediation.md",
+      "evidence": [
+        "evidence/agy-port-20261106/final-audit-remediation/"
+      ],
+      "artifacts": {
+        "dataQa_arm64": "2502aec34ffb3f349e43dd9d1c202e8f549a26a0595e8961c58a51ecb95689ba (163257936 B)",
+        "dataQa_x86_64": "a0bf18e5ce2b87a03097895231e67e3f1b7735a656b05272e1ca12417b5c91f2 (169577888 B)",
+        "debug_arm64": "0629c828072dfd5c3f8ab27e0f9838251965d78018dbf9ff32b2a0cc6d2b466e (unchanged)",
+        "debug_x86_64": "0756c1236c0a5f1942feb6de651acd470d71606825813629146e8f54d073d63a (unchanged)",
+        "bundle": "f86e13afe42dfc9588a6bea6aaf70a75cc0e10c83cdaeece943f7fefd5d8bc67 (packaged in both dataQa APKs)",
+        "identity": "com.lafina.capstone, versionCode 6, 0.6.0-data-qa, SDK 36, debuggable; v2 CN=Android Debug acf890c3...dd5e; ONNX 1.22.0"
+      },
+      "notes": [
+        "pre-fix regressions on 940802c: 26 failed / 1 passed / 27 (all intended failures); 2 final-check tests added later, not run pre-fix",
+        "focused-1 13 suites 114/114; preflight-1 50 suites 713 passed + 1 opt-in skipped; architecture 215 modules",
+        "mutation-1: 8/9 killed, all restored; Q2 (redundant post-apply revalidation) SURVIVED and is recorded, not re-run",
+        "sdk-tools-1 apksigner step printed nothing (quoting); signer recorded in sdk-tools-apksigner-1.log",
+        "no original test or assertion changed; frozen evaluation fixtures unchanged; android/, package files, cloud hosts unchanged",
+        "parent self-review only; no independent review of the follow-up"
       ]
     }
   ]

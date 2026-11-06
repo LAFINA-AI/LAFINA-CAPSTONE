@@ -1,6 +1,8 @@
 # Execution results — initially empty
 
 > **2026-11-06: run `agy-port-20261106` was executed. Its results are in [SUMMARY.md](SUMMARY.md) (overall PARTIAL).** The paragraph below describes the pack as it was first delivered.
+>
+> **2026-11-06 follow-up:** the independent final audit's F1-F4 are addressed in [final-audit-remediation.md](final-audit-remediation.md); overall still PARTIAL / awaiting device validation.
 
 This pack is **NOT EXECUTED**. No phase has been implemented or tested by the pack. The reference/baseline directory contains earlier static-comparison evidence, not implementation results.
 
