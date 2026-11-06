@@ -1,6 +1,8 @@
 import { db, DatabaseTransaction } from './database';
 import { syncOutboxStore } from './syncOutboxStore';
 import { remindersForSource } from './sourceReminders';
+import { eventTimeStore, zoneTimingFromRow } from './eventTimeStore';
+import type { EventFolds, FoldChoice } from './eventTime';
 
 export interface Task {
   id: string;
@@ -31,6 +33,16 @@ export interface Event {
   createdAt: string;
   updatedAt: string;
   deletedAt?: string | null;
+  /**
+   * Device-local timezone metadata (AGY-PORT 08), present only on reads that
+   * join `event_time_local` and only while it still matches the wall time.
+   * Never synced. A recurring occurrence keeps the zone but not the instants.
+   */
+  timeZone?: string | null;
+  startAt?: string | null;
+  endAt?: string | null;
+  startFold?: FoldChoice | null;
+  endFold?: FoldChoice | null;
 }
 
 export const mapRowToTask = (row: any): Task => ({
@@ -62,7 +74,13 @@ export const mapRowToEvent = (row: any): Event => ({
   createdAt: row.created_at,
   updatedAt: row.updated_at,
   deletedAt: row.deleted_at,
+  ...zoneFields(row),
 });
+
+const zoneFields = (row: any): Partial<Event> => {
+  const timing = row && typeof row === 'object' ? zoneTimingFromRow(row) : null;
+  return timing ? { ...timing } : {};
+};
 
 type StoredSyncRow = Record<string, unknown>;
 
@@ -392,9 +410,14 @@ export const tasksStore = {
     }
   },
 
+  /**
+   * `folds` chooses between the two instants of a repeated wall time when the
+   * device timezone has one; the event's wire payload is unchanged.
+   */
   insertEvent: (
     event: Omit<Event, 'createdAt' | 'updatedAt' | 'deletedAt'>,
     executor?: DatabaseTransaction,
+    folds?: EventFolds,
   ): void => {
     const now = new Date().toISOString();
     const applyInsert = (tx: DatabaseTransaction): void => {
@@ -433,6 +456,17 @@ export const tasksStore = {
         event.userId,
         tx,
       );
+      eventTimeStore.recordLocal(
+        tx,
+        {
+          id: event.id,
+          user_id: event.userId,
+          date: event.date,
+          start_time: event.startTime,
+          end_time: event.endTime,
+        },
+        folds,
+      );
     };
     try {
       if (executor) applyInsert(executor);
@@ -443,7 +477,16 @@ export const tasksStore = {
     }
   },
 
-  updateEvent: (event: Partial<Event> & { id: string }, executor?: DatabaseTransaction): void => {
+  /**
+   * When the date, start or end actually changes, this device's timezone is
+   * recorded again for the new wall time (`folds` as for insertEvent); a
+   * title-only edit keeps the existing metadata.
+   */
+  updateEvent: (
+    event: Partial<Event> & { id: string },
+    executor?: DatabaseTransaction,
+    folds?: EventFolds,
+  ): void => {
     const now = new Date().toISOString();
     const sets: string[] = [];
     const params: any[] = [];
@@ -472,10 +515,24 @@ export const tasksStore = {
     params.push(event.id);
 
     const applyUpdate = (tx: DatabaseTransaction): void => {
+      const before = tx.executeSync(
+        'SELECT date, start_time, end_time FROM events WHERE id = ?',
+        [event.id],
+      ).rows?.[0] as StoredSyncRow | undefined;
       tx.executeSync(`UPDATE events SET ${sets.join(', ')} WHERE id = ?`, params);
       const row = tx.executeSync('SELECT * FROM events WHERE id = ?', [event.id]).rows?.[0] as
         | StoredSyncRow
         | undefined;
+      if (
+        row &&
+        before &&
+        row.deleted_at == null &&
+        (before.date !== row.date ||
+          before.start_time !== row.start_time ||
+          before.end_time !== row.end_time)
+      ) {
+        eventTimeStore.recordLocal(tx, row as never, folds);
+      }
       if (row) {
         syncOutboxStore.enqueueMutation(
           String(row.user_id),

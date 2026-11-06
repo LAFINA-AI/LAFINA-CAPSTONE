@@ -25,6 +25,12 @@ import {remindersStore} from '../../storage/remindersStore';
 import type {Reminder} from '../../storage/remindersStore';
 import {deliveryStore, DeliveryFenceError} from '../../storage/deliveryStore';
 import {remindersForSource} from '../../storage/sourceReminders';
+import {
+  addDaysToDate,
+  endsNextDay,
+  isRealDate,
+  isWallTime,
+} from '../../storage/eventTime';
 import type {
   ReminderSourceKind,
   SourceReminderRow,
@@ -420,6 +426,23 @@ const friendlyDate = (date: string): string => {
 };
 
 const quote = (title: string): string => `“${title}”`;
+
+/**
+ * AGY-PORT 08: an end before the start ends on the next day (the floating
+ * overnight rule Calendar draws), and the review says so with that date.
+ */
+const overnightNote = (
+  date: string,
+  startTime: string,
+  endTime: string,
+): string | null =>
+  startTime !== endTime &&
+  isRealDate(date) &&
+  isWallTime(startTime) &&
+  isWallTime(endTime) &&
+  endsNextDay(startTime, endTime)
+    ? `Ends the next day, ${friendlyDate(addDaysToDate(date, 1))}.`
+    : null;
 
 const localInstant = (date: string, time: string): number =>
   new Date(`${date}T${time}:00`).getTime();
@@ -833,6 +856,9 @@ const buildCreateTimeBlock = (c: CleanIntent, today: string): BuildResult => {
         `When: ${friendlyDate(date)}, ${format12HourTime(
           startTime,
         )} to ${format12HourTime(endTime)}.`,
+        ...[overnightNote(date, startTime, endTime)].filter(
+          (note): note is string => note !== null,
+        ),
         `Category: ${c.category}.`,
         'No reminder is added for time blocks.',
       ],
@@ -1225,6 +1251,8 @@ const buildScheduleItemUpdate = (
       current.endTime,
     )}).`,
   );
+  const overnight = overnightNote(date, startTime, endTime);
+  if (overnight) details.push(overnight);
   const warnings: string[] = [];
   const shift =
     localInstant(date, startTime) -

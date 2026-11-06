@@ -12,7 +12,7 @@
   "work_branch": "codex/agy-preservation-improvements",
   "worktree": "C:/L3mxr/Github Repositories/LAFINA-CAPSTONE-agy-development-cont",
   "donor_head": "0d4bbe39e106c29fb90792cf5d2f916b5c0d6480",
-  "last_tested_head": "4dbfc4b+worktree (Phase 07)",
+  "last_tested_head": "02bbe44+worktree (Phase 08)",
   "last_committed_head": "168e0223a122607d107a05816fee264f6b8f89f3",
   "current_phase": "AGY-PORT-08",
   "phases": [
@@ -285,18 +285,29 @@
         14,
         29
       ],
-      "implementation": "NOT_STARTED",
-      "automated": "NOT_RUN",
-      "build": "NOT_RUN",
+      "implementation": "CODE_COMPLETE",
+      "automated": "PASS",
+      "build": "PASS",
       "device": "NOT_RUN",
       "live_service": "NOT_RUN",
-      "base_head": null,
-      "tested_head": null,
+      "base_head": "02bbe44",
+      "tested_head": "02bbe44+worktree",
       "result_commit": null,
-      "report": null,
-      "evidence": [],
-      "continuation": null,
-      "notes": []
+      "report": "phase-08-event-time-sync.md",
+      "evidence": [
+        "evidence/agy-port-20261106/phase-08/"
+      ],
+      "continuation": "NEXT_PHASE",
+      "notes": [
+        "Schema 22: device-local event_time_local + owner index + 3 triggers (ADR-021); seven-type wire unchanged",
+        "Overnight = existing end<=start wire convention; timezone/UTC instants/folds local-only",
+        "preflight-2 final 497 + 1 skipped (preflight-1 496 + 1 skipped, before the legacy-row test)",
+        "Native unchanged: Gradle PASS",
+        "Mutations M1-M7 fail named tests; restored byte-identical",
+        "Intentional test updates: schemaMigrations (added table), agyPort06PlannerQueries (plan copy + aliases), agyPort06PlannerReplies (3-day conflict window)",
+        "DEFERRED_EXTERNAL: backend timezone contract and cross-device guarantee (inventory 29)",
+        "Deferred: events > 24 h; exact recurring/override ICS import; NLU \"yesterday\" wording"
+      ]
     },
     {
       "id": "AGY-PORT-09",

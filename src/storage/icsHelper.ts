@@ -2,6 +2,18 @@ import { Task, Event } from './tasksStore';
 import { TimeBlock } from './timeBlocksStore';
 import ICalParser from 'ical-js-parser';
 import { RRule, RRuleSet, rrulestr } from 'rrule';
+import {
+  addDaysToDate,
+  deviceTimeZone,
+  endsNextDay,
+  isKnownTimeZone,
+  isRealDate,
+  isWallTime,
+  localDateTime,
+  localToUtc,
+  wallTimeCandidates,
+} from './eventTime';
+import type { FoldChoice } from './eventTime';
 
 /**
  * Escapes special characters for iCalendar format values.
@@ -51,6 +63,19 @@ const formatIcsDateTime = (date?: string | null, time?: string | null): string =
   const cleanTime = time.replace(/:/g, '');
   return `${cleanDate}T${cleanTime}00`;
 };
+
+/**
+ * The DTEND date of a timed item (AGY-PORT 08): an end at or before the start
+ * is on the next day, the floating overnight rule Calendar draws.
+ */
+const endDateOf = (date: string, startTime: string, endTime: string): string =>
+  isRealDate(date) && isWallTime(startTime) && isWallTime(endTime) && endsNextDay(startTime, endTime)
+    ? addDaysToDate(date, 1)
+    : date;
+
+/** 2026-11-06T01:00:00.000Z to 20261106T010000Z. */
+const formatIcsUtcInstant = (iso: string): string =>
+  iso.replace(/[-:]/g, '').replace(/\.\d{3}/, '');
 
 /**
  * Parses an iCalendar date or date-time string into a structured date (YYYY-MM-DD) and time (HH:MM).
@@ -144,8 +169,16 @@ export const generateIcsString = (
     lines.push('BEGIN:VEVENT');
     lines.push(`UID:${event.id}`);
     lines.push(`DTSTAMP:${nowFormatted}`);
-    lines.push(`DTSTART:${formatIcsDateTime(event.date, event.startTime)}`);
-    lines.push(`DTEND:${formatIcsDateTime(event.date, event.endTime)}`);
+    if (event.startAt && event.endAt && !event.recurrenceRule) {
+      // Saved on this device with an exact timezone: export the exact instants.
+      lines.push(`DTSTART:${formatIcsUtcInstant(event.startAt)}`);
+      lines.push(`DTEND:${formatIcsUtcInstant(event.endAt)}`);
+    } else {
+      lines.push(`DTSTART:${formatIcsDateTime(event.date, event.startTime)}`);
+      lines.push(
+        `DTEND:${formatIcsDateTime(endDateOf(event.date, event.startTime, event.endTime), event.endTime)}`,
+      );
+    }
     lines.push(foldLine(`SUMMARY:${escapeText(event.title)}`));
     if (event.location) {
       lines.push(foldLine(`LOCATION:${escapeText(event.location)}`));
@@ -163,7 +196,9 @@ export const generateIcsString = (
     lines.push(`UID:${block.id}`);
     lines.push(`DTSTAMP:${nowFormatted}`);
     lines.push(`DTSTART:${formatIcsDateTime(block.date, block.startTime)}`);
-    lines.push(`DTEND:${formatIcsDateTime(block.date, block.endTime)}`);
+    lines.push(
+      `DTEND:${formatIcsDateTime(endDateOf(block.date, block.startTime, block.endTime), block.endTime)}`,
+    );
     lines.push(foldLine(`SUMMARY:${escapeText(block.title)}`));
     if (block.notes) {
       lines.push(foldLine(`DESCRIPTION:${escapeText(block.notes)}`));
@@ -369,8 +404,26 @@ const expandRecurringEvent = (
   });
 };
 
-// Normalize CRLF to LF, unfold lines, and sanitize invalid dates so ical-js-parser doesn't drop events
-const sanitizeIcsContent = (icsContent: string): string => {
+const DATE_KEYS = ['DTSTART', 'DTEND', 'DUE', 'EXDATE', 'RDATE', 'RECURRENCE-ID'];
+const STRICT_DATE_KEYS = ['DTSTART', 'DTEND', 'DUE'];
+const ICS_DATE_TIME = /^(\d{4})(\d{2})(\d{2})(?:T(\d{2})(\d{2})(\d{2})?)?Z?$/i;
+
+/** A real calendar date with an optional real time, nothing else. */
+const isStrictIcsDateTime = (value: string): boolean => {
+  const clean = value.trim();
+  const match = ICS_DATE_TIME.exec(clean);
+  if (!match) return false;
+  if (!isRealDate(`${match[1]}-${match[2]}-${match[3]}`)) return false;
+  if (match[4] === undefined) return !/Z$/i.test(clean);
+  return Number(match[4]) < 24 && Number(match[5]) < 60 && Number(match[6] ?? '0') < 60;
+};
+
+/**
+ * Normalize CRLF to LF, unfold lines, and drop any VEVENT/VTODO whose date
+ * value is not a real date (AGY-PORT 08). It used to be moved to today, which
+ * invented a time the file never said; now it is skipped and counted.
+ */
+const sanitizeIcsContent = (icsContent: string): { content: string; skipped: number } => {
   const normalized = icsContent.replace(/\r\n/g, '\n');
   const unfoldedLines: string[] = [];
   const rawLines = normalized.split('\n');
@@ -385,28 +438,102 @@ const sanitizeIcsContent = (icsContent: string): string => {
     }
   }
 
-  const todayFormatted = new Date().toISOString().replace(/[-:]/g, '').split('.')[0] + 'Z';
-
-  const sanitizedLines = unfoldedLines.map(line => {
+  const isComponent = (value: string): boolean =>
+    ['VEVENT', 'VTODO'].includes(value.trim().toUpperCase());
+  const out: string[] = [];
+  let component: string[] | null = null;
+  let invalid = false;
+  let skipped = 0;
+  for (const line of unfoldedLines) {
     const colonIndex = line.indexOf(':');
-    if (colonIndex === -1) return line;
-    const fullKey = line.substring(0, colonIndex);
-    const value = line.substring(colonIndex + 1).trim();
+    const fullKey = colonIndex === -1 ? line : line.substring(0, colonIndex);
+    const value = colonIndex === -1 ? '' : line.substring(colonIndex + 1).trim();
     const baseKey = fullKey.split(';')[0].toUpperCase();
-
-    if (['DTSTART', 'DTEND', 'DUE', 'EXDATE', 'RDATE', 'RECURRENCE-ID'].includes(baseKey)) {
-      const cleanValue = cleanIcsValue(value).replace(/Z$/, '');
-      const parts = cleanValue.split('T');
-      const datePart = parts[0];
-      if (!/^\d{8}$/.test(datePart)) {
-        return `${fullKey}:${todayFormatted}`;
+    if (!component) {
+      if (baseKey === 'BEGIN' && isComponent(value)) {
+        component = [line];
+        invalid = false;
+      } else {
+        out.push(line);
+      }
+      continue;
+    }
+    component.push(line);
+    if (DATE_KEYS.includes(baseKey)) {
+      const cleanValue = cleanIcsValue(value);
+      if (STRICT_DATE_KEYS.includes(baseKey)) {
+        if (!isStrictIcsDateTime(cleanValue)) invalid = true;
+      } else if (!/^\d{8}$/.test(cleanValue.replace(/Z$/, '').split('T')[0])) {
+        invalid = true;
       }
     }
-    return line;
-  });
+    if (baseKey === 'END' && isComponent(value)) {
+      if (invalid) skipped += 1;
+      else out.push(...component);
+      component = null;
+    }
+  }
+  if (component) {
+    if (invalid) skipped += 1;
+    else out.push(...component);
+  }
 
-  return sanitizedLines.join('\n');
+  return { content: out.join('\n'), skipped };
 };
+
+interface IcsWall {
+  date: string;
+  time?: string;
+  /** Which of two instants, when the converted wall time happens twice here. */
+  fold?: FoldChoice | null;
+}
+
+/**
+ * The device-local wall date and time of one DTSTART/DTEND (AGY-PORT 08). A
+ * UTC value or a known TZID is converted exactly into this device's timezone;
+ * a floating value, or one whose zone the device cannot resolve, is kept as
+ * written, as before. A TZID time the clocks skip is invalid, never moved.
+ *
+ * `rawValue` is the value exactly as the file wrote it: ical-js-parser appends
+ * a `Z` to floating times, so only the file text can tell UTC from floating.
+ * Without it the value is treated as floating, as before this phase.
+ */
+const readIcsWall = (
+  prop: { value?: string; timezone?: string } | undefined,
+  rawValue: string | undefined,
+): IcsWall | 'invalid' => {
+  const digits = cleanIcsValue(prop?.value ?? '').trim().replace(/Z$/i, '');
+  const match = ICS_DATE_TIME.exec(digits);
+  if (!match || !isStrictIcsDateTime(digits)) return 'invalid';
+  const date = `${match[1]}-${match[2]}-${match[3]}`;
+  if (match[4] === undefined) return { date };
+  const time = `${match[4]}:${match[5]}`;
+  const here = deviceTimeZone();
+  const isUtc = rawValue !== undefined && /Z$/i.test(cleanIcsValue(rawValue).trim());
+  let instantMs: number | null = null;
+  if (here && isUtc) {
+    instantMs = Date.parse(`${date}T${time}:00Z`);
+  } else if (here && prop?.timezone && isKnownTimeZone(prop.timezone)) {
+    try {
+      // RFC 5545: a repeated TZID time means its first occurrence.
+      instantMs = Date.parse(localToUtc(date, time, prop.timezone, 'earlier'));
+    } catch {
+      return 'invalid';
+    }
+  }
+  if (instantMs === null || !here) return { date, time };
+  const local = localDateTime(new Date(instantMs).toISOString(), here);
+  const candidates = wallTimeCandidates(local.date, local.time, here);
+  const fold: FoldChoice | null =
+    candidates.length > 1 ? (candidates[0] === instantMs ? 'earlier' : 'later') : null;
+  return { date: local.date, time: local.time, fold };
+};
+
+/** Wall-clock minutes from one ICS wall to another, ignoring timezones. */
+const wallSpanMinutes = (from: IcsWall, to: IcsWall): number =>
+  (Date.parse(`${to.date}T${to.time ?? '00:00'}:00Z`) -
+    Date.parse(`${from.date}T${from.time ?? '00:00'}:00Z`)) /
+  60000;
 
 /**
  * Parses an iCalendar string back into LAFINA tasks, events, and time blocks.
@@ -421,12 +548,15 @@ export const parseIcsString = (
   events: Omit<Event, 'userId' | 'createdAt' | 'updatedAt'>[];
   blocks: Omit<TimeBlock, 'userId' | 'createdAt' | 'updatedAt'>[];
   tasks: Omit<Task, 'userId' | 'createdAt' | 'updatedAt'>[];
+  /** Items left out because a date or time was invalid or impossible (AGY-PORT 08). */
+  skipped: number;
 } => {
   const events: Omit<Event, 'userId' | 'createdAt' | 'updatedAt'>[] = [];
   const blocks: Omit<TimeBlock, 'userId' | 'createdAt' | 'updatedAt'>[] = [];
   const tasks: Omit<Task, 'userId' | 'createdAt' | 'updatedAt'>[] = [];
 
-  const sanitized = sanitizeIcsContent(icsContent);
+  const { content: sanitized, skipped: invalidComponents } = sanitizeIcsContent(icsContent);
+  let skipped = invalidComponents;
   const unfoldedLines = sanitized.split('\n');
 
   // Step 2: Scan unfolded lines to collect all RDATEs by UID (needed because ical-js-parser only keeps last RDATE)
@@ -453,6 +583,31 @@ export const parseIcsString = (
         if (part.trim()) {
           rdatesByUid[scanUid].push(part.trim());
         }
+      }
+    }
+  }
+
+  // AGY-PORT 08: DTSTART/DTEND exactly as written, per non-override VEVENT UID,
+  // so a floating time is never mistaken for UTC (see readIcsWall).
+  const rawTimesByUid: { [uid: string]: { dtstart?: string; dtend?: string } } = {};
+  let rawCurrent: { uid?: string; dtstart?: string; dtend?: string; override: boolean } | null = null;
+  for (const line of unfoldedLines) {
+    const colonIndex = line.indexOf(':');
+    if (colonIndex === -1) continue;
+    const baseKey = line.substring(0, colonIndex).split(';')[0].toUpperCase();
+    const value = line.substring(colonIndex + 1).trim();
+    if (baseKey === 'BEGIN' && value.toUpperCase() === 'VEVENT') {
+      rawCurrent = { override: false };
+    } else if (rawCurrent) {
+      if (baseKey === 'UID') rawCurrent.uid = value;
+      else if (baseKey === 'DTSTART') rawCurrent.dtstart = value;
+      else if (baseKey === 'DTEND') rawCurrent.dtend = value;
+      else if (baseKey === 'RECURRENCE-ID') rawCurrent.override = true;
+      else if (baseKey === 'END' && value.toUpperCase() === 'VEVENT') {
+        if (rawCurrent.uid && !rawCurrent.override && !(rawCurrent.uid in rawTimesByUid)) {
+          rawTimesByUid[rawCurrent.uid] = { dtstart: rawCurrent.dtstart, dtend: rawCurrent.dtend };
+        }
+        rawCurrent = null;
       }
     }
   }
@@ -484,8 +639,27 @@ export const parseIcsString = (
     const dtend = resolveDtend(vevent, dtstart);
 
     if (!rrule) {
-      const parsedStart = parseIcsDateTime(vevent.dtstart.value);
-      const parsedEnd = vevent.dtend ? parseIcsDateTime(vevent.dtend.value) : null;
+      const raw = vevent.uid ? rawTimesByUid[vevent.uid] : undefined;
+      const parsedStart = readIcsWall(vevent.dtstart, raw?.dtstart);
+      const parsedEnd = vevent.dtend ? readIcsWall(vevent.dtend, raw?.dtend) : null;
+      if (parsedStart === 'invalid' || parsedEnd === 'invalid') {
+        skipped += 1;
+        continue;
+      }
+      if (parsedStart.time && parsedEnd?.time) {
+        const span = wallSpanMinutes(parsedStart, parsedEnd);
+        // LAFINA's own older exports wrote an overnight end on the start date.
+        const legacyOvernight =
+          isLafinaLabelled(vevent.xLafinaType) &&
+          parsedEnd.date === parsedStart.date &&
+          parsedEnd.time !== parsedStart.time;
+        if (!legacyOvernight && (span <= 0 || span > 24 * 60)) {
+          // An end before its start, or longer than a day, cannot be one
+          // Calendar item; it used to be cut to the start date silently.
+          skipped += 1;
+          continue;
+        }
+      }
 
       if (type === 'time_block') {
         blocks.push({
@@ -508,6 +682,8 @@ export const parseIcsString = (
           endTime: parsedEnd?.time || '13:00',
           location,
           recurrenceRule: null,
+          startFold: parsedStart.fold ?? null,
+          endFold: parsedEnd?.fold ?? null,
         });
       }
     } else {
@@ -634,5 +810,5 @@ export const parseIcsString = (
     });
   }
 
-  return { events, blocks, tasks };
+  return { events, blocks, tasks, skipped };
 };

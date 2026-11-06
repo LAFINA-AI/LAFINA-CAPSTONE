@@ -283,17 +283,31 @@ export const useCalendarData = (options: UseCalendarDataOptions): CalendarData &
       const fileName = res[0].name || 'imported_calendar.ics';
       const content = await RNFS.readFile(fileUri, 'utf8');
 
-      const { events: parsedEvents, blocks: parsedBlocks, tasks: parsedTasks } = parseIcsString(content);
+      const {
+        events: parsedEvents,
+        blocks: parsedBlocks,
+        tasks: parsedTasks,
+        skipped,
+      } = parseIcsString(content);
       const totalCount = parsedEvents.length + parsedBlocks.length + parsedTasks.length;
+      // AGY-PORT 08: items with an invalid or impossible time are left out, not
+      // moved to today, and the count says so.
+      const skippedNote =
+        skipped > 0
+          ? ` ${skipped} item${skipped === 1 ? ' was' : 's were'} left out because a date or time was invalid, impossible, or longer than a day.`
+          : '';
 
       if (totalCount === 0) {
-        Alert.alert('Import Calendar', 'No valid calendar events, tasks, or time blocks found in the selected file.');
+        Alert.alert(
+          'Import Calendar',
+          `No valid calendar events, tasks, or time blocks found in the selected file.${skippedNote}`,
+        );
         return;
       }
 
       Alert.alert(
         'Import Calendar',
-        `Found ${parsedEvents.length} events, ${parsedBlocks.length} time blocks, and ${parsedTasks.length} tasks. Do you want to import them?`,
+        `Found ${parsedEvents.length} events, ${parsedBlocks.length} time blocks, and ${parsedTasks.length} tasks.${skippedNote} Do you want to import them?`,
         [
           { text: 'Cancel', style: 'cancel' },
           {
@@ -304,6 +318,7 @@ export const useCalendarData = (options: UseCalendarDataOptions): CalendarData &
                   events: parsedEvents,
                   blocks: parsedBlocks,
                   tasks: parsedTasks,
+                  skipped,
                 });
 
                 Alert.alert('Success', `Successfully imported ${totalCount} items.`);

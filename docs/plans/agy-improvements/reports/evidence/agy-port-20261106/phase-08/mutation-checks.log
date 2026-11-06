@@ -1,0 +1,26 @@
+AGY-PORT 08 mutation checks (jest --json on the two Phase 08 suites)
+
+M1 wall-change trigger never fires (src/storage/eventTimeSchema.ts): 2 failed, 23 passed; restored byte-identical: True
+    FAILED: AGY-PORT 08 event time and sync compatibility device-local metadata any writer that changes the wall time or deletes the event drops it; a stale row is never read
+    FAILED: AGY-PORT 08 event time and sync compatibility old-server sync round trip (full runSyncPass, fake server) push stays the legacy event shape; title-only pulls keep metadata, time pulls and deletes drop it
+
+M2 every update re-records the device zone (src/storage/tasksStore.ts): 1 failed, 24 passed; restored byte-identical: True
+    FAILED: AGY-PORT 08 event time and sync compatibility device-local metadata a title-only edit keeps it; a time edit records the current device timezone again
+
+M3 valid join ignores the base wall time (src/storage/eventTimeStore.ts): 1 failed, 24 passed; restored byte-identical: True
+    FAILED: AGY-PORT 08 event time and sync compatibility device-local metadata any writer that changes the wall time or deletes the event drops it; a stale row is never read
+
+M4 ICS trusts the parser Z (floating read as UTC) (src/storage/icsHelper.ts): 1 failed, 24 passed; restored byte-identical: True
+    FAILED: AGY-PORT 08 event time and sync compatibility ICS import: invalid dates and impossible spans are skipped and counted, never moved to today
+
+M5 conflict check ignores the day before (src/ai/chatOrchestrator.ts): 1 failed, 24 passed; restored byte-identical: True
+    FAILED: AGY-PORT 08 event time and sync compatibility overnight spans in Calendar and conflict checks conflicts include an overnight item from the day before and an overnight proposal into the next day
+
+M6 form accepts an equal start and end (src/storage/eventTime.ts): 2 failed, 23 passed; restored byte-identical: True
+    FAILED: AGY-PORT 08 event time and sync compatibility wall time rules (pure) invalid dates, invalid times and an equal start and end are refused, never corrected
+    FAILED: AGY-PORT 08 Calendar event form an equal start and end, or a time the clocks skip, is refused and nothing is saved
+
+M7 recurring occurrences keep the base instants (src/storage/plannerQueries.ts): 1 failed, 24 passed; restored byte-identical: True
+    FAILED: AGY-PORT 08 event time and sync compatibility device-local metadata a recurring occurrence keeps the zone but not the base date instants
+
+RESULT: every mutation failed its intended tests; all files restored

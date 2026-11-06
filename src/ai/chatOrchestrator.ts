@@ -1,6 +1,7 @@
 import { chatStore, type ChatAttachment, type ChatMessage } from '../storage/chatStore';
 import { plannerQueries } from '../storage/plannerQueries';
 import type { PlannerWindow } from '../storage/plannerQueries';
+import { addDaysToDate, isRealDate, MINUTES_PER_DAY } from '../storage/eventTime';
 import {
   DOCUMENT_FORMATS,
   describeDocumentFailure,
@@ -167,13 +168,19 @@ function buildLocalChatFallback(trimmed: string, validated: ValidatedIntent): st
 
 /**
  * One bounded read of a day's blocks and events, recurring occurrences
- * included (AGY-PORT 06). Like the legacy store getters it replaces, a storage
- * failure yields an empty day here, so the check never blocks a proposal; the
- * change itself still waits for review and Confirm.
+ * included (AGY-PORT 06). The day before and after are read too (AGY-PORT 08),
+ * so an overnight item that spills into this day, or one this proposal spills
+ * into, is seen. Like the legacy store getters it replaces, a storage failure
+ * yields an empty day here, so the check never blocks a proposal; the change
+ * itself still waits for review and Confirm.
  */
 const readDay = (userId: string, date: string): PlannerWindow => {
   try {
-    return plannerQueries.window(userId, date, date);
+    return plannerQueries.window(
+      userId,
+      addDaysToDate(date, -1),
+      addDaysToDate(date, 1),
+    );
   } catch (error) {
     console.warn('[ChatOrchestrator] Could not read the day for a conflict check:', error);
     return { tasks: [], events: [], blocks: [] };
@@ -192,19 +199,43 @@ export class ChatOrchestrator {
     endTime: string,
     day: PlannerWindow = readDay(userId, date),
   ): ScheduleConflict {
-    const startMins = timeToMinutes(startTime);
-    const endMins = timeToMinutes(endTime);
-
-    if (endMins <= startMins) {
+    // Minutes from this day's midnight. An end before the start is on the
+    // next day (the floating overnight rule Calendar draws). An equal start and
+    // end is not checked, as before.
+    const previousDay = isRealDate(date) ? addDaysToDate(date, -1) : null;
+    const nextDay = isRealDate(date) ? addDaysToDate(date, 1) : null;
+    const span = (itemDate: string, start: string, end: string): [number, number] | null => {
+      const from = timeToMinutes(start);
+      let to = timeToMinutes(end);
+      if (to === from) return null;
+      if (to < from) to += MINUTES_PER_DAY;
+      const offset =
+        itemDate === date
+          ? 0
+          : itemDate === previousDay
+            ? -MINUTES_PER_DAY
+            : itemDate === nextDay
+              ? MINUTES_PER_DAY
+              : null;
+      return offset === null ? null : [from + offset, to + offset];
+    };
+    const proposal = span(date, startTime, endTime);
+    if (!proposal) {
       return { hasConflict: false };
     }
+    const overlaps = (item: { date: string; startTime: string; endTime: string }): boolean => {
+      const other = span(item.date, item.startTime, item.endTime);
+      return !!other && Math.max(proposal[0], other[0]) < Math.min(proposal[1], other[1]);
+    };
+    // Same-day items first, as before, then the neighbouring days.
+    const byDay = <T extends { date: string }>(items: T[]): T[] => [
+      ...items.filter((item) => item.date === date),
+      ...items.filter((item) => item.date !== date),
+    ];
 
     // 1. Check existing time blocks
-    const blocks = day.blocks.filter((b) => b.date === date);
-    for (const b of blocks) {
-      const bStart = timeToMinutes(b.startTime);
-      const bEnd = timeToMinutes(b.endTime);
-      if (bEnd > bStart && Math.max(startMins, bStart) < Math.min(endMins, bEnd)) {
+    for (const b of byDay(day.blocks)) {
+      if (overlaps(b)) {
         return {
           hasConflict: true,
           conflictingTitle: b.title,
@@ -216,11 +247,8 @@ export class ChatOrchestrator {
     }
 
     // 2. Check existing calendar events
-    const events = day.events.filter((e) => e.date === date);
-    for (const e of events) {
-      const eStart = timeToMinutes(e.startTime);
-      const eEnd = timeToMinutes(e.endTime);
-      if (eEnd > eStart && Math.max(startMins, eStart) < Math.min(endMins, eEnd)) {
+    for (const e of byDay(day.events)) {
+      if (overlaps(e)) {
         return {
           hasConflict: true,
           conflictingTitle: e.title,

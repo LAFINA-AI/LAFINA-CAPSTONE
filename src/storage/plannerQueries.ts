@@ -5,6 +5,7 @@ import type {Event, Task} from './tasksStore';
 import {mapRowToBlock} from './timeBlocksStore';
 import type {TimeBlock} from './timeBlocksStore';
 import {getOccurrences} from './rruleHelper';
+import {EVENT_TIME_COLUMNS, VALID_EVENT_TIME_JOIN} from './eventTimeStore';
 
 /**
  * Bounded planner reads (AGY-PORT 06).
@@ -22,6 +23,10 @@ import {getOccurrences} from './rruleHelper';
  * Recurring rows are few and are selected by SQL (rule present, base date on
  * or before the window end), then expanded with the same `getOccurrences`
  * rule and occurrence ID scheme Calendar has always used.
+ *
+ * Events carry their device-local timezone metadata (AGY-PORT 08) while it is
+ * still valid. A recurring occurrence on another date keeps the zone but not
+ * the base event's UTC instants, which belong to the base date only.
  */
 
 export interface PlannerWindow {
@@ -125,20 +130,24 @@ export const createPlannerQueries = (executor: DatabaseTransaction = db) => {
         map: (row: unknown) => T,
         dateOf: (item: T) => string,
         withDate: (item: T, date: string) => T,
-      ): T[] =>
-        expand(
+      ): T[] => {
+        const from =
+          table === 'events'
+            ? `t.*, ${EVENT_TIME_COLUMNS} FROM events t ${VALID_EVENT_TIME_JOIN('t')}`
+            : `t.* FROM ${table} t`;
+        return expand(
           rows(
-            `SELECT * FROM ${table}
-              WHERE user_id = ? AND date BETWEEN ? AND ? AND deleted_at IS NULL
-                AND (recurrence_rule IS NULL OR recurrence_rule = '')
-              ORDER BY date, start_time, id`,
+            `SELECT ${from}
+              WHERE t.user_id = ? AND t.date BETWEEN ? AND ? AND t.deleted_at IS NULL
+                AND (t.recurrence_rule IS NULL OR t.recurrence_rule = '')
+              ORDER BY t.date, t.start_time, t.id`,
             [owner, start, end],
           ).map(map),
           rows(
-            `SELECT * FROM ${table}
-              WHERE user_id = ? AND date <= ? AND deleted_at IS NULL
-                AND recurrence_rule IS NOT NULL AND recurrence_rule <> ''
-              ORDER BY date, start_time, id`,
+            `SELECT ${from}
+              WHERE t.user_id = ? AND t.date <= ? AND t.deleted_at IS NULL
+                AND t.recurrence_rule IS NOT NULL AND t.recurrence_rule <> ''
+              ORDER BY t.date, t.start_time, t.id`,
             [owner, end],
           ).map(map),
           dateOf,
@@ -146,11 +155,18 @@ export const createPlannerQueries = (executor: DatabaseTransaction = db) => {
           start,
           end,
         );
+      };
       const events = scheduled<Event>(
         'events',
         mapRowToEvent,
         event => event.date,
-        (event, date) => ({...event, date}),
+        (event, date) => ({
+          ...event,
+          date,
+          ...(event.timeZone
+            ? {startAt: null, endAt: null, startFold: null, endFold: null}
+            : {}),
+        }),
       );
       const blocks = scheduled<TimeBlock>(
         'time_blocks',
@@ -200,11 +216,15 @@ export const createPlannerQueries = (executor: DatabaseTransaction = db) => {
       const readAll = <T>(table: string, map: (row: unknown) => T): T[] => {
         const out: T[] = [];
         let lastId = '';
+        const from =
+          table === 'events'
+            ? `t.*, ${EVENT_TIME_COLUMNS} FROM events t ${VALID_EVENT_TIME_JOIN('t')}`
+            : `t.* FROM ${table} t`;
         for (;;) {
           const batch = rows(
-            `SELECT * FROM ${table}
-              WHERE user_id = ? AND deleted_at IS NULL AND id > ?
-              ORDER BY id LIMIT ?`,
+            `SELECT ${from}
+              WHERE t.user_id = ? AND t.deleted_at IS NULL AND t.id > ?
+              ORDER BY t.id LIMIT ?`,
             [owner, lastId, size],
           );
           for (const row of batch) out.push(map(row));

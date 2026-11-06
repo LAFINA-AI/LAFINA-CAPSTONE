@@ -13,6 +13,13 @@ import {
   scheduleReminderAlarm,
 } from '../../../../scheduler';
 import { formatLocalDate } from '../utils/calendarHelpers';
+import {
+  checkEventWallTime,
+  deviceTimeZone,
+  isEventTimeError,
+  resolveEventZoneTiming,
+} from '../../../../storage/eventTime';
+import type { EventFolds } from '../../../../storage/eventTime';
 
 interface UseScheduleItemModalOptions {
   userId: string;
@@ -118,18 +125,57 @@ export const useScheduleItemModal = (options: UseScheduleItemModalOptions): Sche
 
   const close = useCallback(() => setVisible(false), []);
 
-  const save = useCallback((recurrenceRule?: string | null) => {
+  const save = useCallback((recurrenceRule?: string | null, folds: EventFolds = {}) => {
     if (!form.title.trim()) {
       Alert.alert('Error', 'Please enter a title.');
-      return;
-    }
-    if (modalType === 'event' && form.endTime !== '00:00' && form.time > form.endTime) {
-      Alert.alert('Invalid Time Range', 'Start time cannot be after end time.');
       return;
     }
 
     const dateStr = form.date || formatLocalDate(selectedDate);
     const rule = recurrenceRule !== undefined ? recurrenceRule : (form.recurrenceRule || null);
+
+    // Events (AGY-PORT 08): an end before the start ends the next day; an equal
+    // start and end, a time the clocks skip, or a repeated time with no choice
+    // is refused here rather than moved. Only a new or changed time is checked,
+    // so a legacy event whose time is untouched saves as before.
+    let eventStartAt: string | null = null;
+    if (modalType === 'event') {
+      const wall = { date: dateStr, startTime: form.time, endTime: form.endTime };
+      const current = editingItem as Event | null;
+      const wallChanged =
+        !current ||
+        current.date !== wall.date ||
+        current.startTime !== wall.startTime ||
+        current.endTime !== wall.endTime;
+      if (wallChanged) {
+        const check = checkEventWallTime(wall);
+        if (!check.ok) {
+          Alert.alert('Invalid Time Range', check.message);
+          return;
+        }
+        const zone = deviceTimeZone();
+        if (zone) {
+          try {
+            eventStartAt = resolveEventZoneTiming(wall, zone, folds).startAt;
+          } catch (error) {
+            // Not a time problem (an engine failure): save floating, as before.
+            if (!isEventTimeError(error)) {
+              console.warn('[Calendar] Could not resolve the event timezone:', error);
+            } else if (error.problem === 'ambiguous' && error.which) {
+              const key = error.which === 'start' ? 'startFold' : 'endFold';
+              Alert.alert('Repeated time', error.message, [
+                { text: 'Cancel', style: 'cancel' },
+                { text: 'Earlier', onPress: () => save(recurrenceRule, { ...folds, [key]: 'earlier' }) },
+                { text: 'Later', onPress: () => save(recurrenceRule, { ...folds, [key]: 'later' }) },
+              ]);
+            } else {
+              Alert.alert('Invalid Time Range', error.message);
+            }
+            if (isEventTimeError(error)) return;
+          }
+        }
+      }
+    }
 
     // Read before the item changes: the evidence rule uses the item's current
     // title and time.
@@ -140,11 +186,16 @@ export const useScheduleItemModal = (options: UseScheduleItemModalOptions): Sche
       date: string,
       time: string,
       sourceId: string,
+      exactStartAt: string | null = null,
     ) => {
       try {
         const prefs = getReminderPreferences(userId);
         const leadTimeMinutes = prefs.leadTimeMinutes;
-        const localScheduledDate = new Date(`${date}T${time}:00`);
+        // The exact instant when the event's time was resolved in this device's
+        // timezone (so a repeated time uses the chosen one), else as before.
+        const localScheduledDate = exactStartAt
+          ? new Date(exactStartAt)
+          : new Date(`${date}T${time}:00`);
         if (isNaN(localScheduledDate.getTime())) return;
 
         // Replace only this item's own reminders, so it never has duplicate or zombie alarms.
@@ -228,8 +279,8 @@ export const useScheduleItemModal = (options: UseScheduleItemModalOptions): Sche
           endTime: form.endTime,
           location: form.location,
           recurrenceRule: rule,
-        });
-        syncReminder(form.title, dateStr, form.time, editingItem.id);
+        }, undefined, folds);
+        syncReminder(form.title, dateStr, form.time, editingItem.id, eventStartAt);
       } else {
         const eventId = generateId('event');
         tasksStore.insertEvent({
@@ -241,8 +292,8 @@ export const useScheduleItemModal = (options: UseScheduleItemModalOptions): Sche
           endTime: form.endTime,
           location: form.location,
           recurrenceRule: rule,
-        });
-        syncReminder(form.title, dateStr, form.time, eventId);
+        }, undefined, folds);
+        syncReminder(form.title, dateStr, form.time, eventId, eventStartAt);
       }
     }
 
