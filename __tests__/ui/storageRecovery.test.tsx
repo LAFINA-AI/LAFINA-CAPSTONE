@@ -13,7 +13,13 @@ import {
   waitFor,
 } from '@testing-library/react-native';
 import App from '../../App';
-import {db, initDatabase, notesStore, userStore} from '../../src/storage';
+import {
+  db,
+  initDatabase,
+  notesQueryStore,
+  notesStore,
+  userStore,
+} from '../../src/storage';
 import {localSettingsStore} from '../../src/storage/localSettingsStore';
 import {syncWorker} from '../../src/sync/syncWorker';
 import {syncState} from '../../src/sync/syncState';
@@ -200,7 +206,8 @@ describe('storage recovery', () => {
         .spyOn(Alert, 'alert')
         .mockImplementation(() => undefined);
       const {result} = renderNotes();
-      jest.spyOn(notesStore, 'updateOrder').mockImplementation(() => {
+      // AGY-PORT 07: reorder is saved through the revision-checked query store.
+      jest.spyOn(notesQueryStore, 'reorder').mockImplementation(() => {
         throw new Error('disk full');
       });
       act(() => {

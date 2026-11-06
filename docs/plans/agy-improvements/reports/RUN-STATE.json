@@ -12,7 +12,7 @@
   "work_branch": "codex/agy-preservation-improvements",
   "worktree": "C:/L3mxr/Github Repositories/LAFINA-CAPSTONE-agy-development-cont",
   "donor_head": "0d4bbe39e106c29fb90792cf5d2f916b5c0d6480",
-  "last_tested_head": "28a9867+worktree (Phase 06)",
+  "last_tested_head": "4dbfc4b+worktree (Phase 07)",
   "last_committed_head": "a077b10a381faae394149abc23fba8fa3cafccf5",
   "current_phase": "AGY-PORT-07",
   "phases": [
@@ -251,18 +251,27 @@
         12,
         13
       ],
-      "implementation": "NOT_STARTED",
-      "automated": "NOT_RUN",
-      "build": "NOT_RUN",
+      "implementation": "CODE_COMPLETE",
+      "automated": "PASS",
+      "build": "PASS",
       "device": "NOT_RUN",
       "live_service": "NOT_RUN",
-      "base_head": null,
-      "tested_head": null,
+      "base_head": "4dbfc4b",
+      "tested_head": "4dbfc4b+worktree",
       "result_commit": null,
-      "report": null,
-      "evidence": [],
-      "continuation": null,
-      "notes": []
+      "report": "phase-07-notes.md",
+      "evidence": [
+        "evidence/agy-port-20261106/phase-07/"
+      ],
+      "continuation": "NEXT_PHASE",
+      "notes": [
+        "Schema 21: notes_search_index + idx_notes_user_page + 2 invalidation triggers (ADR-020)",
+        "preflight-1 exit 1 (no-control-regex) kept; preflight-4 final 471 + 1 skipped",
+        "Native unchanged: Gradle PASS, Kotlin UP-TO-DATE",
+        "Mutations N1-N5 fail named tests; restored byte-identical",
+        "Intentional test updates: schemaMigrations (added table list), storageRecovery (reorder spy target)",
+        "Deferred: notesStore.getAll in Profile/commandReview; best-effort paging under concurrent edits"
+      ]
     },
     {
       "id": "AGY-PORT-08",
