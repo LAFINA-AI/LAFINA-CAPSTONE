@@ -256,30 +256,63 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
           text: 'Delete Everything',
           style: 'destructive',
           onPress: () => {
-            notesStore.getAll(userId).forEach((n) => notesStore.delete(n.id));
-            tasksStore.getAllTasks(userId).forEach((t) => tasksStore.deleteTask(t.id));
-            tasksStore.getAllEvents(userId).forEach((ev) => tasksStore.deleteEvent(ev.id));
-            timeBlocksStore.getAll(userId).forEach((tb) => timeBlocksStore.delete(tb.id));
-            remindersStore
-              .getAllReminders(userId)
-              .forEach((r) => remindersStore.deleteReminder(r.id));
+            // Final audit F3: each step reports what really happened, and the
+            // result claims only the steps that succeeded.
+            const step = (what: string, work: () => void): boolean => {
+              try {
+                work();
+                return true;
+              } catch (error) {
+                console.warn(`[Profile] Could not clear ${what}:`, error);
+                return false;
+              }
+            };
+            const plannerCleared = step('planner data', () => {
+              notesStore.getAll(userId).forEach((n) => notesStore.delete(n.id));
+              tasksStore.getAllTasks(userId).forEach((t) => tasksStore.deleteTask(t.id));
+              tasksStore.getAllEvents(userId).forEach((ev) => tasksStore.deleteEvent(ev.id));
+              timeBlocksStore.getAll(userId).forEach((tb) => timeBlocksStore.delete(tb.id));
+              remindersStore
+                .getAllReminders(userId)
+                .forEach((r) => remindersStore.deleteReminder(r.id));
+            });
             // Only this account's own conversation and generated files.
-            const attachmentUris = chatStore.getAttachmentUris(userId);
-            chatStore.clearHistory(userId);
-            void removeAttachmentFiles(attachmentUris);
+            const chatCleared = step('chat history', () => {
+              const attachmentUris = chatStore.getAttachmentUris(userId);
+              chatStore.clearHistory(userId);
+              void removeAttachmentFiles(attachmentUris);
+            });
             // Codex audit A3: saved event defaults are personal scheduling memory.
-            let memoryNote = '';
-            try {
-              personalMemoryStore.clearForDataReset(userId);
-            } catch (error) {
-              console.warn('[Profile] Could not forget event defaults:', error);
-              memoryNote = ' Saved event defaults could not be forgotten; open Event Defaults to remove them.';
-            }
-
-            Alert.alert(
-              'Data Cleared',
-              `All personal scheduling data and saved event defaults have been deleted.${memoryNote}`,
+            const defaultsCleared = step('event defaults', () =>
+              personalMemoryStore.clearForDataReset(userId),
             );
+
+            if (plannerCleared && chatCleared && defaultsCleared) {
+              Alert.alert(
+                'Data Cleared',
+                'All personal scheduling data and saved event defaults have been deleted.',
+              );
+            } else {
+              const done: string[] = [];
+              const notDone: string[] = [];
+              (plannerCleared ? done : notDone).push(
+                'notes, tasks, events, reminders and calendar blocks',
+              );
+              (chatCleared ? done : notDone).push('chat history');
+              (defaultsCleared ? done : notDone).push('saved event defaults');
+              const lines = [
+                done.length > 0 ? `Your ${done.join(' and your ')} were cleared.` : '',
+                `Your ${notDone.join(' and your ')} were not deleted${
+                  plannerCleared ? '' : ' (some items may remain)'
+                }.`,
+                defaultsCleared
+                  ? ''
+                  : 'To remove the saved event defaults, open Event Defaults and choose Forget all event defaults.',
+                plannerCleared && chatCleared ? '' : 'Try Clear All Data again.',
+                'Device settings such as the offline voice, theme and time format were kept.',
+              ];
+              Alert.alert('Data Partly Cleared', lines.filter(Boolean).join(' '));
+            }
             loadStats();
             loadEventDefaultsSummary();
             onRefresh();

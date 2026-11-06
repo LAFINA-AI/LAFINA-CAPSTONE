@@ -15,8 +15,16 @@ import {
 import type { SpeechChoice, SpeechSettings } from '../../../storage/speechSettingsStore';
 import { readTtsReadiness } from '../../../ai/tts/ttsService';
 import type { TtsReadiness } from '../../../ai/tts/ttsService';
-import { applySpeechPreferences, startVoicePreview } from '../../../ai/tts/speechPreferences';
-import type { PreviewHandle, PreviewRefusal } from '../../../ai/tts/speechPreferences';
+import {
+  applySpeechPreferences,
+  createPreviewTicket,
+  startVoicePreview,
+} from '../../../ai/tts/speechPreferences';
+import type {
+  PreviewHandle,
+  PreviewRefusal,
+  PreviewTicket,
+} from '../../../ai/tts/speechPreferences';
 
 interface OfflineVoiceProps {
   userId: string;
@@ -30,6 +38,7 @@ const REFUSALS: Record<PreviewRefusal, string> = {
   microphone_busy: 'The microphone is in use. Finish dictating, then try Preview.',
   recording: 'A recording is in progress. Stop it, then try Preview.',
   owner_changed: 'Account changed. Reopen this sheet.',
+  cancelled: 'Preview stopped.',
 };
 
 const SERVICE_LABEL: Record<TtsReadiness['service'], string> = {
@@ -61,11 +70,16 @@ export const OfflineVoice: React.FC<OfflineVoiceProps> = ({ userId, visible, onC
   const [previewing, setPreviewing] = useState(false);
   const epoch = useRef(0);
   const preview = useRef<PreviewHandle | null>(null);
+  /** Final audit F1: the Preview still starting (no playback yet), if any. */
+  const starting = useRef<PreviewTicket | null>(null);
 
   const stopPreview = useCallback(async () => {
+    const pending = starting.current;
+    starting.current = null;
     const current = preview.current;
     preview.current = null;
     setPreviewing(false);
+    if (pending) await pending.cancel();
     if (current) await current.stop();
   }, []);
 
@@ -133,19 +147,26 @@ export const OfflineVoice: React.FC<OfflineVoiceProps> = ({ userId, visible, onC
   };
 
   const play = async () => {
-    if (previewing) return;
+    if (previewing || starting.current) return;
     const ticket = epoch.current;
-    const handle = await startVoicePreview(userId);
-    if (ticket !== epoch.current) {
+    // Stop, closing, leaving the app or unmounting cancels this before it plays.
+    const admission = createPreviewTicket(userId);
+    starting.current = admission;
+    setPreviewing(true);
+    setNotice('Starting Preview…');
+    const handle = await startVoicePreview(userId, admission);
+    if (starting.current !== admission || ticket !== epoch.current) {
+      await admission.cancel();
       if (typeof handle !== 'string') await handle.stop();
       return;
     }
+    starting.current = null;
     if (typeof handle === 'string') {
+      setPreviewing(false);
       setNotice(REFUSALS[handle]);
       return;
     }
     preview.current = handle;
-    setPreviewing(true);
     setNotice('Playing Preview…');
     const outcome = await handle.result;
     if (preview.current !== handle || ticket !== epoch.current) return;

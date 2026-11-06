@@ -43,7 +43,11 @@ export interface TtsReadiness {
   selectedVoiceMissing: boolean;
 }
 
-export type OwnedSpeechOutcome = 'finished' | 'stopped' | 'failed';
+/**
+ * `refused`: the caller's admission check, run immediately before playback,
+ * said no; nothing was spoken (final audit F1).
+ */
+export type OwnedSpeechOutcome = 'finished' | 'stopped' | 'failed' | 'refused';
 
 export const TTS_INIT_TIMEOUT_MS = 5000;
 export const TTS_VOICES_TIMEOUT_MS = 3000;
@@ -174,6 +178,22 @@ const setting = async (work: () => unknown, what: string): Promise<boolean> => {
   }
 };
 
+/**
+ * Final audit F2: audio ducking is optional. Bounded like every other engine
+ * setting, so a call that never answers cannot hold the shared engine start
+ * (and every caller waiting on it) open. A timeout or rejection only means
+ * other audio is not lowered while speaking; voice eligibility is unaffected.
+ */
+const enableDucking = async (): Promise<void> => {
+  if (typeof Tts.setDucking !== 'function') return;
+  try {
+    await bounded(Tts.setDucking(true) as Promise<unknown>, TTS_SETTING_TIMEOUT_MS, 'Ducking');
+  } catch (error) {
+    // Ducking is optional on some Android engines
+    if (error instanceof TtsTimeoutError) console.warn('[TTS] Ducking setup did not answer:', error);
+  }
+};
+
 const isListedOffline = (voices: TtsVoice[], id: string): boolean =>
   eligibleOfflineVoices(voices).some(voice => voice.id === id);
 
@@ -272,11 +292,8 @@ const startEngine = async (): Promise<boolean> => {
         // Ignore if specific locale is unavailable; voice selection handles fallback
         englishAccepted = false;
       }
-      try {
-        await Tts.setDucking(true);
-      } catch {
-        // Ducking is optional on some Android engines
-      }
+      await enableDucking();
+      if (generation !== initGeneration) return false;
 
       const rawVoices = await readVoices();
       if (generation !== initGeneration) return false;
@@ -461,8 +478,15 @@ const speakOwned = (
   trimmed: string,
   owner: string,
   onToken?: (token: number) => void,
+  admit?: () => boolean,
 ): Promise<OwnedSpeechOutcome> =>
   new Promise<OwnedSpeechOutcome>((resolve, reject) => {
+    // Final audit F1: the last admission check, in the same synchronous turn
+    // as Tts.speak, so nothing can change between it and playback.
+    if (admit && !admit()) {
+      resolve('refused');
+      return;
+    }
     const token = ++speechSequence;
     let settled = false;
     let ownId: string | null = null;
@@ -561,11 +585,14 @@ export const speakTextWithTts = async (text: string): Promise<void> => {
 
 /**
  * AGY-PORT 10: an owned utterance (Preview). The token stops only this
- * utterance; the result never rejects.
+ * utterance; the result never rejects. Final audit F1: `admit`, when given,
+ * is asked immediately before playback (after the engine is ready); false
+ * means nothing is spoken, the token is null and the result is `refused`.
  */
 export const startOwnedSpeech = (
   text: string,
   owner: string,
+  admit?: () => boolean,
 ): { token: Promise<number | null>; result: Promise<OwnedSpeechOutcome> } => {
   let reportToken: (token: number | null) => void = () => undefined;
   const token = new Promise<number | null>(resolve => {
@@ -578,7 +605,7 @@ export const startOwnedSpeech = (
       return 'failed';
     }
     try {
-      return await speakOwned(trimmed, owner, reportToken);
+      return await speakOwned(trimmed, owner, reportToken, admit);
     } catch {
       return 'failed';
     } finally {
