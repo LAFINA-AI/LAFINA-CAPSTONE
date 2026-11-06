@@ -21,6 +21,7 @@ class LafinaSpeechToTextTest {
     assertTrue(moduleMethods.contains("transcribe"))
     assertTrue(moduleMethods.contains("isAvailable"))
     assertTrue(moduleMethods.contains("release"))
+    assertTrue(moduleMethods.contains("warmup"))
   }
 
   @Test
@@ -124,7 +125,7 @@ class LafinaSpeechToTextTest {
     assertEquals(360, getFieldValue("WHISPER_SPEECH_MARGIN_MS"))
     assertEquals(5_760, getFieldValue("PRE_ROLL_SAMPLES"))
     assertEquals(650, getFieldValue("CALL_COMMAND_SILENCE_AFTER_SPEECH_MS"))
-    assertEquals(1_350, getFieldValue("MAIN_SILENCE_AFTER_SPEECH_MS"))
+    assertEquals(1_000, getFieldValue("MAIN_SILENCE_AFTER_SPEECH_MS"))
     assertEquals(0.12f, getFieldValue("VAD_ENERGY_ASSIST_START_MIN_PROB"))
     assertEquals(0.08f, getFieldValue("VAD_ENERGY_ASSIST_CONTINUE_MIN_PROB"))
   }

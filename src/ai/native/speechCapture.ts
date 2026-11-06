@@ -28,6 +28,7 @@ interface OfflineSpeechNativeModule {
   ) => Promise<OfflineSpeechResult>;
   stopListening: (captureId: string) => Promise<boolean>;
   cancelListening: (captureId: string) => Promise<boolean>;
+  warmup?: () => Promise<boolean>;
 }
 
 let captureSequence = 0;
@@ -45,6 +46,14 @@ const getNativeModule = (): OfflineSpeechNativeModule | null => {
  */
 export const hasOfflineSpeechCapture = (): boolean =>
   getNativeModule() !== null;
+
+/**
+ * Preloads the Whisper model in the background. Fire-and-forget: a failed or missing
+ * warmup just means the next capture loads the model itself, as before.
+ */
+export const warmupOfflineSpeech = (): void => {
+  getNativeModule()?.warmup?.().catch(() => undefined);
+};
 
 /**
  * Atomically starts the single shared offline speech capture.

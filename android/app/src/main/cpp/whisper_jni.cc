@@ -21,6 +21,12 @@ constexpr const char *kAcademicPrompt =
 constexpr const char *kCallCommandPrompt =
     "Acknowledge. Acknowledged. Snooze. Snoozed. Snooze for five minutes. Snooze for ten "
     "minutes. Dismiss. Got it. Okay.";
+// Short-utterance prompt (~50 tokens vs ~140): keeps digit/time formatting anchors and core
+// academic/call vocabulary. kAcademicPrompt stays as-is for long timestamped transcription.
+constexpr const char *kVoiceCommandPrompt =
+    "LAFINA academic assistant for USTP students. Add a task, time block, reminder, or note at "
+    "7:30 AM today, 9 AM to 12 noon tomorrow, or in 30 minutes. Midterm, finals, quiz, exam, "
+    "syllabus, deadline, capstone. Snooze for ten minutes, acknowledge, dismiss.";
 
 constexpr float kNoSpeechThreshold = 0.65f;
 constexpr float kHardSegmentNoSpeechLimit = 0.85f;
@@ -28,6 +34,11 @@ constexpr float kAccentTolerantLogprobThreshold = -1.25f;
 constexpr float kHallucinationEntropyThreshold = 2.40f;
 constexpr int kCallCommandAudioContext = 128;
 constexpr int kCallCommandMaxTokens = 12;
+// Encoder frames for voice commands: Whisper uses 50 frames/s (1500 = full 30 s window).
+// The 512 floor (~10 s) avoids boundary clipping/hallucination on short clips.
+constexpr int kMinVoiceAudioContext = 512;
+constexpr int kMaxAudioContext = 1500;
+constexpr int kSamplesPerAudioContextFrame = 320;  // 16 kHz / 50 frames per second
 
 size_t assetRead(void *context, void *output, size_t size) {
   return static_cast<size_t>(AAsset_read(static_cast<AAsset *>(context), output, size));
@@ -130,8 +141,13 @@ Java_com_lafina_LafinaWhisperBridge_transcribe(
   params.no_speech_thold = kNoSpeechThreshold;
   const bool isCommandMode = commandMode == JNI_TRUE;
   params.max_tokens = isCommandMode ? kCallCommandMaxTokens : 96;
-  params.audio_ctx = isCommandMode ? kCallCommandAudioContext : 0;
-  params.initial_prompt = isCommandMode ? kCallCommandPrompt : kAcademicPrompt;
+  // ponytail: +16 frames of rounding slack; never below the floor or above Whisper's window.
+  const int voiceAudioContext = std::clamp(
+      static_cast<int>(sampleCount) / kSamplesPerAudioContextFrame + 16,
+      kMinVoiceAudioContext,
+      kMaxAudioContext);
+  params.audio_ctx = isCommandMode ? kCallCommandAudioContext : voiceAudioContext;
+  params.initial_prompt = isCommandMode ? kCallCommandPrompt : kVoiceCommandPrompt;
   params.greedy.best_of = 1;
   params.n_threads = std::clamp(static_cast<int>(requestedThreads), 1, 4);
   std::string transcript;

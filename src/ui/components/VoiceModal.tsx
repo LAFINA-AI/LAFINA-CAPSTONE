@@ -23,6 +23,7 @@ import {
   cancelOfflineSpeechCapture,
   startOfflineSpeechCapture,
   stopOfflineSpeechCapture,
+  warmupOfflineSpeech,
 } from '../../ai/native/speechCapture';
 import type { OfflineSpeechCaptureHandle } from '../../ai/native/speechCapture';
 import { ensureMicrophonePermission } from '../../ai/stt/sttService';
@@ -40,6 +41,7 @@ export interface VoiceModalProps {
 export type VoiceState = 'idle' | 'listening' | 'processing' | 'speaking' | 'success' | 'error';
 
 const WAVE_BAR_COUNT = 11;
+const WHISPER_WARMUP_DELAY_MS = 300;
 
 /** The line under the title: what the mic is doing, in a few words. */
 const STATUS_TEXT: Record<VoiceState, string> = {
@@ -120,9 +122,11 @@ export const VoiceModal: React.FC<VoiceModalProps> = ({
   const themed = useThemedStyles(getVoiceThemedStyles);
 
   useEffect(() => {
-    if (visible) {
-      void ensureMicrophonePermission();
-    }
+    if (!visible) return;
+    void ensureMicrophonePermission();
+    // Debounced so an open-then-close tap doesn't load the model for nothing.
+    const warmupTimer = setTimeout(warmupOfflineSpeech, WHISPER_WARMUP_DELAY_MS);
+    return () => clearTimeout(warmupTimer);
   }, [visible]);
 
   useEffect(() => {

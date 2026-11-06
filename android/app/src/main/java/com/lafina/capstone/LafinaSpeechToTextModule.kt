@@ -1,7 +1,9 @@
 package com.lafina.capstone
 
 import android.Manifest
+import android.content.ComponentCallbacks2
 import android.content.pm.PackageManager
+import android.content.res.Configuration
 import android.media.AudioFormat
 import android.media.AudioRecord
 import android.media.MediaRecorder
@@ -193,7 +195,57 @@ class LafinaSpeechToTextModule(private val reactContext: ReactApplicationContext
     unloadModelsInternal()
   }
 
+  // Separate from `executor` so a warmup never delays the start of audio capture.
+  private val warmupExecutor = Executors.newSingleThreadExecutor()
+
+  private val memoryCallbacks = object : ComponentCallbacks2 {
+    override fun onTrimMemory(level: Int) {
+      // ponytail: RUNNING_CRITICAL covers foreground pressure on API < 34; BACKGROUND+ is what
+      // API 34+ still delivers. UI_HIDDEN alone is not pressure, the 60s timer handles that.
+      @Suppress("DEPRECATION")
+      val lowMemory = level == ComponentCallbacks2.TRIM_MEMORY_RUNNING_CRITICAL ||
+        level >= ComponentCallbacks2.TRIM_MEMORY_BACKGROUND
+      if (lowMemory) warmupExecutor.execute { unloadModelsInternal() }
+    }
+
+    @Deprecated("Deprecated in Java")
+    override fun onLowMemory() {
+      warmupExecutor.execute { unloadModelsInternal() }
+    }
+
+    override fun onConfigurationChanged(newConfig: Configuration) {}
+  }
+
+  init {
+    reactContext.applicationContext.registerComponentCallbacks(memoryCallbacks)
+  }
+
   override fun getName(): String = "LafinaSpeechToText"
+
+  /** Loads Whisper once; serialized with unload so a warmup and a transcription never double-load. */
+  @Synchronized
+  private fun ensureWhisperContext(): Long {
+    if (whisperContext == 0L) {
+      whisperContext = LafinaWhisperBridge.initContext(reactContext.assets, WHISPER_MODEL_ASSET)
+    }
+    return whisperContext
+  }
+
+  /** Preloads Whisper while the voice UI is open so mic release skips the cold model load. */
+  @ReactMethod
+  fun warmup(promise: Promise) {
+    cancelInactivityUnload()
+    warmupExecutor.execute {
+      try {
+        promise.resolve(ensureWhisperContext() != 0L)
+      } catch (error: Exception) {
+        Log.w(TAG, "Whisper warmup failed", error)
+        promise.resolve(false)
+      } finally {
+        if (activeCaptureId.get() == null) scheduleInactivityUnload()
+      }
+    }
+  }
 
   private fun scheduleInactivityUnload() {
     mainHandler.removeCallbacks(inactivityUnloadRunnable)
@@ -316,14 +368,13 @@ class LafinaSpeechToTextModule(private val reactContext: ReactApplicationContext
         }
 
         val inferenceStartedAt = System.currentTimeMillis()
-        if (whisperContext == 0L) {
-          whisperContext = LafinaWhisperBridge.initContext(
-            reactContext.assets,
-            WHISPER_MODEL_ASSET
-          )
+        if (ensureWhisperContext() == 0L) {
+          throw IllegalStateException("Whisper model failed to load")
         }
-        if (whisperContext == 0L) throw IllegalStateException("Whisper model failed to load")
-        val threads = max(1, minOf(4, Runtime.getRuntime().availableProcessors() - 1))
+        // Mild boost (not URGENT_AUDIO); whisper.cpp worker threads inherit it at creation.
+        android.os.Process.setThreadPriority(STT_THREAD_PRIORITY)
+        // ponytail: half the cores, max 3, so a big core stays free for the RN UI thread.
+        val threads = max(1, minOf(3, Runtime.getRuntime().availableProcessors() / 2))
         val speechWindowStart =
           (captured.speechStartSample - WHISPER_SPEECH_MARGIN_SAMPLES).coerceAtLeast(0)
         val speechWindowEnd =
@@ -729,14 +780,17 @@ class LafinaSpeechToTextModule(private val reactContext: ReactApplicationContext
       activeRecorder?.stop()
     } catch (_: Exception) {
     }
+    reactContext.applicationContext.unregisterComponentCallbacks(memoryCallbacks)
     unloadModelsInternal()
     executor.shutdownNow()
+    warmupExecutor.shutdownNow()
     super.invalidate()
   }
 
   companion object {
     private const val TAG = "LafinaSpeechToText"
     private const val INACTIVITY_UNLOAD_TIMEOUT_MS = 60_000L
+    private const val STT_THREAD_PRIORITY = -2
     private const val SAMPLE_RATE = 16_000
     private const val FRAME_SIZE = 512
     private const val MAIN_WAIT_FOR_SPEECH_SECONDS = 12
@@ -744,7 +798,7 @@ class LafinaSpeechToTextModule(private val reactContext: ReactApplicationContext
     private const val MAX_UTTERANCE_SECONDS = 15
     private const val CALL_COMMAND_LIMIT_SECONDS = 4
     private const val MANUAL_CAPTURE_LIMIT_SECONDS = 30
-    private const val MAIN_SILENCE_AFTER_SPEECH_MS = 1_350
+    private const val MAIN_SILENCE_AFTER_SPEECH_MS = 1_000
     private const val CALL_COMMAND_SILENCE_AFTER_SPEECH_MS = 650
     private const val PRE_ROLL_SAMPLES = 5_760
     private const val VAD_START_THRESHOLD = 0.35f
