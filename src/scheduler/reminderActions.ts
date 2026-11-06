@@ -1,7 +1,9 @@
 import { remindersStore } from '../storage/remindersStore';
 import { DeliveryFenceError, deliveryStore } from '../storage/deliveryStore';
 import type { DeliveryFenceReason } from '../storage/deliveryStore';
+import { db } from '../storage/database';
 import type { DatabaseTransaction } from '../storage/database';
+import { isSameAlert, resolveReminderSource } from '../storage/sourceReminders';
 import { deletePreCachedReminderAudio } from '../ai/tts/ttsService';
 import { getReminderPreferences } from './userPreferences';
 import {
@@ -173,13 +175,15 @@ export const acknowledgeReminderAction = async (
     console.error('[ReminderActions] Acknowledged, but cleanup failed:', error);
   }
 
-  // Also acknowledge and cancel any other pending, snoozed, or triggered reminders for the same task/event title
-  // so no additional or duplicate call reminders get triggered for an event or task the user has already acknowledged.
+  // Also acknowledge the other pending, snoozed or triggered reminders of the same
+  // alert, so the student is not called again for an item already acknowledged.
+  // Same alert = the same task, event or time block (exact link or strict
+  // evidence), or an exact duplicate; reminders that only share a title are left.
   try {
-    const normTarget = reminder.task.trim().toLowerCase();
+    const source = resolveReminderSource(db, reminder);
     const otherReminders = remindersStore
       .getPendingReminders(userId)
-      .filter((r) => r.id !== reminder.id && r.task.trim().toLowerCase() === normTarget);
+      .filter((r) => isSameAlert(db, reminder, r, source));
 
     for (const other of otherReminders) {
       try {

@@ -1,7 +1,8 @@
 import {remindersStore} from '../storage/remindersStore';
 import type {Reminder} from '../storage/remindersStore';
-import {tasksStore} from '../storage/tasksStore';
 import {deliveryStore} from '../storage/deliveryStore';
+import {db} from '../storage/database';
+import {alertSuppression} from '../storage/sourceReminders';
 import {cancelReminderAlarm, finishNativeIncomingCall} from './reminderAlarm';
 import type {NativeCallAction} from './reminderAlarm';
 
@@ -33,9 +34,6 @@ export type CallAdmission =
       generation: number | null;
     }
   | {admitted: false; reason: CallRejection};
-
-const sameTitle = (left: string, right: string): boolean =>
-  left.trim().toLowerCase() === right.trim().toLowerCase();
 
 const recordRejection = (
   reminderId: string,
@@ -113,21 +111,13 @@ export const admitReminderCall = (
     });
   }
 
-  // AGY behavior kept as-is (title pairing); exact-source linkage is AGY-PORT 04.
-  const taskDone = tasksStore
-    .getAllTasks(activeUserId)
-    .some(task => task.isCompleted && sameTitle(task.title, reminder.task));
-  const alreadyAcknowledged = remindersStore
-    .getAllReminders(activeUserId)
-    .some(
-      other =>
-        other.id !== reminder.id &&
-        other.status === 'acknowledged' &&
-        sameTitle(other.task, reminder.task),
-    );
-  if (taskDone || alreadyAcknowledged) {
+  // Suppression needs the reminder's own item (exact link or strict evidence)
+  // or an exact duplicate; a completed task or acknowledged reminder that only
+  // shares the title never silences this call.
+  const suppression = alertSuppression(db, reminder);
+  if (suppression) {
     remindersStore.acknowledgeReminder(reminder.id);
-    return reject(taskDone ? 'task_completed' : 'already_acknowledged', {
+    return reject(suppression, {
       userId: reminder.userId,
       cancelAlarm: true,
     });

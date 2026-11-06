@@ -1,7 +1,9 @@
 import { useState, useCallback } from 'react';
 import { Alert } from 'react-native';
 import type { Task, Event } from '../../../../storage';
-import { deliveryStore, tasksStore, remindersStore } from '../../../../storage';
+import { db, deliveryStore, tasksStore, remindersStore } from '../../../../storage';
+import type { Reminder } from '../../../../storage';
+import { remindersForSource } from '../../../../storage/sourceReminders';
 import { ScheduleItemForm, ScheduleItemModalState } from '../types';
 import { generateId } from '../../../../utils';
 import {
@@ -32,18 +34,34 @@ const defaultForm = (): ScheduleItemForm => ({
 
 type Priority = 'High' | 'Medium' | 'Low';
 
+/** Reminder states the form replaces or removes together with their item. */
+const LIVE_REMINDER_STATUSES = ['pending', 'snoozed', 'triggered'] as const;
+
 /**
- * AGY-PORT 04: a reminder with an exact link to a different item (created by a
- * reviewed assistant command) is never cleaned up because titles match. Unlinked
- * reminders keep the title rule below.
+ * The reminders that belong to one Calendar item: its exact links, plus older
+ * unlinked reminders only under the strict evidence rule (same title and the
+ * item's own due time, with no other item qualifying). Another item's or a
+ * standalone reminder that merely shares the title is never touched.
  */
-const linkedElsewhere = (reminderId: string, itemId: string | null): boolean => {
+const ownReminderIds = (
+  userId: string,
+  type: 'task' | 'event',
+  item: Pick<Task | Event, 'id' | 'title'>,
+): string[] => {
   try {
-    const job = deliveryStore.get(reminderId);
-    return !!job?.sourceId && job.sourceId !== itemId;
-  } catch {
-    return false;
+    return remindersForSource(db, userId, type, item.id, item.title, LIVE_REMINDER_STATUSES).map(
+      (row) => row.id,
+    );
+  } catch (err) {
+    console.warn('[Calendar] Could not read the reminders of this item:', err);
+    return [];
   }
+};
+
+const retireReminder = (reminderId: string): void => {
+  remindersStore.deleteReminder(reminderId);
+  void cancelReminderAlarm(reminderId);
+  void finishNativeIncomingCall(reminderId);
 };
 
 export const useScheduleItemModal = (options: UseScheduleItemModalOptions): ScheduleItemModalState => {
@@ -110,27 +128,24 @@ export const useScheduleItemModal = (options: UseScheduleItemModalOptions): Sche
     const dateStr = form.date || formatLocalDate(selectedDate);
     const rule = recurrenceRule !== undefined ? recurrenceRule : (form.recurrenceRule || null);
 
-    const syncReminder = (title: string, date: string, time: string) => {
+    // Read before the item changes: the evidence rule uses the item's current
+    // title and time.
+    const replacedReminderIds = editingItem ? ownReminderIds(userId, modalType, editingItem) : [];
+
+    const syncReminder = (
+      title: string,
+      date: string,
+      time: string,
+      sourceId: string,
+    ) => {
       try {
         const prefs = getReminderPreferences(userId);
         const leadTimeMinutes = prefs.leadTimeMinutes;
         const localScheduledDate = new Date(`${date}T${time}:00`);
         if (isNaN(localScheduledDate.getTime())) return;
 
-        // Clean up any existing pending reminders for this item so we never have duplicate or zombie alarms
-        const existingPending = remindersStore
-          .getPendingReminders(userId)
-          .filter(
-            (r) =>
-              (r.task.trim().toLowerCase() === title.trim().toLowerCase() ||
-                (editingItem && r.task.trim().toLowerCase() === editingItem.title.trim().toLowerCase())) &&
-              !linkedElsewhere(r.id, editingItem?.id ?? null),
-          );
-        for (const oldRem of existingPending) {
-          remindersStore.deleteReminder(oldRem.id);
-          void cancelReminderAlarm(oldRem.id);
-          void finishNativeIncomingCall(oldRem.id);
-        }
+        // Replace only this item's own reminders, so it never has duplicate or zombie alarms.
+        for (const oldId of replacedReminderIds) retireReminder(oldId);
 
         const scheduledAt = localScheduledDate.toISOString();
         const preferredTriggerMs =
@@ -140,7 +155,7 @@ export const useScheduleItemModal = (options: UseScheduleItemModalOptions): Sche
         ).toISOString();
 
         const reminderId = generateId('rem');
-        remindersStore.insertReminder({
+        const reminder: Omit<Reminder, 'createdAt' | 'updatedAt' | 'deletedAt' | 'snoozeCount'> = {
           id: reminderId,
           userId,
           task: title,
@@ -149,6 +164,11 @@ export const useScheduleItemModal = (options: UseScheduleItemModalOptions): Sche
           triggerAt,
           status: 'pending',
           preCastAudioPath: null,
+        };
+        // The reminder and its exact link to this item commit together.
+        db.transactionSync((tx) => {
+          remindersStore.insertReminder(reminder, tx);
+          deliveryStore.linkSource(reminderId, modalType, sourceId, tx);
         });
 
         void scheduleReminderAlarm(reminderId, title, triggerAt).catch((err) => {
@@ -170,7 +190,7 @@ export const useScheduleItemModal = (options: UseScheduleItemModalOptions): Sche
           notes: form.notes,
           recurrenceRule: rule,
         });
-        syncReminder(form.title, dateStr, form.time);
+        syncReminder(form.title, dateStr, form.time, editingItem.id);
       } else {
         const taskId = generateId('task');
         tasksStore.insertTask({
@@ -185,7 +205,7 @@ export const useScheduleItemModal = (options: UseScheduleItemModalOptions): Sche
           notes: form.notes,
           recurrenceRule: rule,
         });
-        syncReminder(form.title, dateStr, form.time);
+        syncReminder(form.title, dateStr, form.time, taskId);
       }
     } else {
       if (editingItem) {
@@ -198,7 +218,7 @@ export const useScheduleItemModal = (options: UseScheduleItemModalOptions): Sche
           location: form.location,
           recurrenceRule: rule,
         });
-        syncReminder(form.title, dateStr, form.time);
+        syncReminder(form.title, dateStr, form.time, editingItem.id);
       } else {
         const eventId = generateId('event');
         tasksStore.insertEvent({
@@ -211,7 +231,7 @@ export const useScheduleItemModal = (options: UseScheduleItemModalOptions): Sche
           location: form.location,
           recurrenceRule: rule,
         });
-        syncReminder(form.title, dateStr, form.time);
+        syncReminder(form.title, dateStr, form.time, eventId);
       }
     }
 
@@ -227,23 +247,14 @@ export const useScheduleItemModal = (options: UseScheduleItemModalOptions): Sche
         text: 'Delete',
         style: 'destructive',
         onPress: () => {
-          const itemTitle = editingItem?.title || '';
+          // Read this item's own reminders before it is deleted (the evidence
+          // rule needs its title and time), then remove exactly those.
+          const ownIds = ownReminderIds(userId, type, { id, title: editingItem?.title || '' });
           if (type === 'task') tasksStore.deleteTask(id);
           else tasksStore.deleteEvent(id);
-
-          // Clean up any pending reminders for this deleted item
-          const existingPending = remindersStore
-            .getPendingReminders(userId)
-            .filter(
-              (r) =>
-                r.task.trim().toLowerCase() === itemTitle.trim().toLowerCase() &&
-                !linkedElsewhere(r.id, id),
-            );
-          for (const oldRem of existingPending) {
-            remindersStore.deleteReminder(oldRem.id);
-            void cancelReminderAlarm(oldRem.id);
-            void finishNativeIncomingCall(oldRem.id);
-          }
+          // The store cascade already removed pending and snoozed ones; retire the rest.
+          const stillLive = new Set(remindersStore.getPendingReminders(userId).map((r) => r.id));
+          for (const oldId of ownIds) if (stillLive.has(oldId)) retireReminder(oldId);
 
           setVisible(false);
           onSaved();

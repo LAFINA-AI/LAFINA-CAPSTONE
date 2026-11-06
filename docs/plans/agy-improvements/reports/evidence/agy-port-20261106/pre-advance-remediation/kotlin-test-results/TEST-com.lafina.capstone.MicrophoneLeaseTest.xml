@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.lafina.capstone.MicrophoneLeaseTest" tests="14" skipped="0" failures="0" errors="0" timestamp="2026-11-06T03:05:36.636Z" hostname="DESKTOP-C32FQUT" time="0.403">
+  <properties/>
+  <testcase name="each acquisition gets a unique token" classname="com.lafina.capstone.MicrophoneLeaseTest" time="0.018"/>
+  <testcase name="another process holding the lock means busy, and its death frees the microphone" classname="com.lafina.capstone.MicrophoneLeaseTest" time="0.343"/>
+  <testcase name="same holder re-acquire is not a fresh owner" classname="com.lafina.capstone.MicrophoneLeaseTest" time="0.002"/>
+  <testcase name="a ticket from another registry instance is foreign" classname="com.lafina.capstone.MicrophoneLeaseTest" time="0.002"/>
+  <testcase name="native modules keep their public names and the busy code" classname="com.lafina.capstone.MicrophoneLeaseTest" time="0.005"/>
+  <testcase name="concurrent contenders produce exactly one owner" classname="com.lafina.capstone.MicrophoneLeaseTest" time="0.008"/>
+  <testcase name="release is exactly once" classname="com.lafina.capstone.MicrophoneLeaseTest" time="0.002"/>
+  <testcase name="handoff ticket is claimed once and the abandon timer never releases a claimed ticket" classname="com.lafina.capstone.MicrophoneLeaseTest" time="0.004"/>
+  <testcase name="unclaimed handoff ticket is released by the abandon timer exactly once" classname="com.lafina.capstone.MicrophoneLeaseTest" time="0.002"/>
+  <testcase name="an unusable lock path falls back to the in-process fence instead of permanent busy" classname="com.lafina.capstone.MicrophoneLeaseTest" time="0.005"/>
+  <testcase name="whisper contender is rejected while a meeting records and cannot release it" classname="com.lafina.capstone.MicrophoneLeaseTest" time="0.002"/>
+  <testcase name="meeting contender is rejected while whisper captures and cannot release it" classname="com.lafina.capstone.MicrophoneLeaseTest" time="0.002"/>
+  <testcase name="os lock backs the ticket and is dropped on release" classname="com.lafina.capstone.MicrophoneLeaseTest" time="0.003"/>
+  <testcase name="stale ticket from an earlier owner never releases the current owner" classname="com.lafina.capstone.MicrophoneLeaseTest" time="0.002"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>
