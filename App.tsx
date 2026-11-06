@@ -65,6 +65,7 @@ import { buildTourSteps } from './src/ui/tour/tourSteps';
 import { VoiceModal } from './src/ui/components/VoiceModal';
 import { endReviewSession } from './src/ai/nlu/commandReview';
 import { chatDraftStore } from './src/ui/drafts/chatDraftStore';
+import { applySpeechPreferences } from './src/ai/tts/speechPreferences';
 
 function AppContent({
   userId,
@@ -162,6 +163,12 @@ function AppContent({
     if (previous && !userId) {
       void reconcileReminderDelivery(null);
     }
+  }, [userId]);
+
+  // AGY-PORT 10: the signed-in account's own offline voice choice, or AGY's
+  // automatic default when it has none (or nobody is signed in).
+  useEffect(() => {
+    void applySpeechPreferences(userId);
   }, [userId]);
 
   useEffect(() => {
