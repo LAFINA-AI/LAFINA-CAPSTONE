@@ -243,5 +243,34 @@ describe('Phase 02 Calendar & Notes UI Screens', () => {
         expect(notes.some((n) => n.title === 'Software Engineering Principles')).toBe(true);
       });
     });
+
+    test('renders immediately without empty state flash on initial mount', () => {
+      notesStore.insert({
+        id: 'note-instant-1',
+        userId,
+        title: 'Instant Render Note',
+        body: 'Should render without showing No notes found even for a millisecond',
+        category: 'Personal',
+        isPinned: false,
+        tags: [],
+        isVoiceTranscribed: false,
+      });
+
+      const { queryByText, getByText } = render(
+        <ThemeProvider userId={userId}>
+          <NotesScreen
+            userId={userId}
+            refreshTrigger={0}
+            onRefresh={jest.fn()}
+          />
+        </ThemeProvider>,
+      );
+
+      // On the initial synchronous render:
+      // 1. The note must be present immediately
+      expect(getByText('Instant Render Note')).toBeTruthy();
+      // 2. The empty state ("No notes found") must NOT be rendered
+      expect(queryByText('No notes found')).toBeNull();
+    });
   });
 });

@@ -58,7 +58,13 @@ interface UseNotesDataOptions {
 export const useNotesData = (options: UseNotesDataOptions) => {
   const { userId, refreshTrigger, onRefresh } = options;
 
-  const [notes, setNotes] = useState<Note[]>([]);
+  const [notes, setNotes] = useState<Note[]>(() => {
+    try {
+      return notesStore.getAll(userId);
+    } catch {
+      return [];
+    }
+  });
   const [searchQuery, setSearchQuery] = useState('');
   const [searchActive, setSearchActive] = useState(false);
   const [selectedFilter, setSelectedFilterState] = useState<FilterType>(
@@ -77,7 +83,17 @@ export const useNotesData = (options: UseNotesDataOptions) => {
   const [isVoice, setIsVoice] = useState(false);
   const [imageUri, setImageUri] = useState<string | null>(null);
   const [selection, setSelection] = useState({ start: 0, end: 0 });
-  const [customCategories, setCustomCategories] = useState<string[]>([]);
+  const [customCategories, setCustomCategories] = useState<string[]>(() => {
+    try {
+      const cats = notesStore.getCustomCategories(userId);
+      cats.forEach((c) => {
+        registerCustomCategoryColor(c.name, c.color);
+      });
+      return cats.map((c) => c.name);
+    } catch {
+      return [];
+    }
+  });
 
   // Drag state
   const [activeDragId, setActiveDragId] = useState<string | null>(null);

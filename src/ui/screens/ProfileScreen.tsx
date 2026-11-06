@@ -82,16 +82,47 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
   onNavigateToRegister,
   onReplayTour,
 }) => {
-  const [currentUser, setCurrentUser] = useState<User | null>(null);
+  const [currentUser, setCurrentUser] = useState<User | null>(() => {
+    try {
+      return userStore.getUserById(userId);
+    } catch {
+      return null;
+    }
+  });
 
-  const [completedTasksCount, setCompletedTasksCount] = useState(0);
-  const [notesCount, setNotesCount] = useState(0);
+  const [completedTasksCount, setCompletedTasksCount] = useState(() => {
+    try {
+      return tasksStore.getAllTasks(userId).filter((t) => t.isCompleted).length;
+    } catch {
+      return 0;
+    }
+  });
+  const [notesCount, setNotesCount] = useState(() => {
+    try {
+      return notesStore.getAll(userId).length;
+    } catch {
+      return 0;
+    }
+  });
   const [voiceCommandsCount, setVoiceCommandsCount] = useState(0);
 
-  const [weekStartsMonday, setWeekStartsMonday] = useState(false);
+  const [weekStartsMonday, setWeekStartsMonday] = useState(() => {
+    try {
+      return userStore.getWeekStartsMonday(userId);
+    } catch {
+      return false;
+    }
+  });
   const [summaryStyleDetailed, setSummaryStyleDetailed] = useState(false);
   const [dailyBriefingEnabled, setDailyBriefingEnabled] = useState(true);
-  const [preferenceSummary, setPreferenceSummary] = useState('15 min, Snooze once');
+  const [preferenceSummary, setPreferenceSummary] = useState(() => {
+    try {
+      const preferences = preferencesStore.get(userId);
+      return `${preferences.reminderLeadMinutes} min, ${getSnoozePreferenceLabel(preferences)}`;
+    } catch {
+      return '15 min, Snooze once';
+    }
+  });
   const [preferencesVisible, setPreferencesVisible] = useState(false);
 
   const [privacyModalVisible, setPrivacyModalVisible] = useState(false);

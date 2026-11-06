@@ -3,7 +3,6 @@ import {
   StatusBar,
   StyleSheet,
   View,
-  Text,
   Keyboard,
   AppState,
   DeviceEventEmitter,
@@ -444,59 +443,6 @@ function AppContent({
     setActiveTab('calendar');
   };
 
-  const renderScreen = () => {
-    if (!userId) {
-      return (
-        <View style={[styles.errorScreen, themed.errorScreen]}>
-          <Text style={themed.errorText}>Access Denied</Text>
-        </View>
-      );
-    }
-    switch (activeTab) {
-      case 'chat':
-        return (
-          <ChatScreen
-            userId={userId}
-            refreshTrigger={refreshTrigger}
-            onRefresh={triggerRefresh}
-          />
-        );
-      case 'calendar':
-        return (
-          <CalendarScreen
-            userId={userId}
-            refreshTrigger={refreshTrigger}
-            onRefresh={triggerRefresh}
-          />
-        );
-      case 'notes':
-        return (
-          <NotesScreen
-            userId={userId}
-            refreshTrigger={refreshTrigger}
-            onRefresh={triggerRefresh}
-          />
-        );
-      case 'profile':
-        return (
-          <ProfileScreen
-            userId={userId}
-            refreshTrigger={refreshTrigger}
-            onRefresh={triggerRefresh}
-            onLogout={handleLogout}
-            onNavigateToRegister={handleGuestCreateAccount}
-            onReplayTour={() => setTourOpen(true)}
-          />
-        );
-      default:
-        return (
-          <View style={[styles.errorScreen, themed.errorScreen]}>
-            <Text style={themed.errorText}>Page Not Found</Text>
-          </View>
-        );
-    }
-  };
-
   if (isLoading) {
     return (
       <>
@@ -551,7 +497,51 @@ function AppContent({
     >
       <StatusBar barStyle={colors.statusBarStyle} backgroundColor={colors.background} />
 
-      <View style={styles.content}>{renderScreen()}</View>
+      <View style={styles.content}>
+        <View
+          style={[styles.tabPane, activeTab !== 'calendar' && styles.hiddenPane]}
+          pointerEvents={activeTab === 'calendar' ? 'auto' : 'none'}
+        >
+          <CalendarScreen
+            userId={userId}
+            refreshTrigger={refreshTrigger}
+            onRefresh={triggerRefresh}
+          />
+        </View>
+        <View
+          style={[styles.tabPane, activeTab !== 'notes' && styles.hiddenPane]}
+          pointerEvents={activeTab === 'notes' ? 'auto' : 'none'}
+        >
+          <NotesScreen
+            userId={userId}
+            refreshTrigger={refreshTrigger}
+            onRefresh={triggerRefresh}
+          />
+        </View>
+        <View
+          style={[styles.tabPane, activeTab !== 'chat' && styles.hiddenPane]}
+          pointerEvents={activeTab === 'chat' ? 'auto' : 'none'}
+        >
+          <ChatScreen
+            userId={userId}
+            refreshTrigger={refreshTrigger}
+            onRefresh={triggerRefresh}
+          />
+        </View>
+        <View
+          style={[styles.tabPane, activeTab !== 'profile' && styles.hiddenPane]}
+          pointerEvents={activeTab === 'profile' ? 'auto' : 'none'}
+        >
+          <ProfileScreen
+            userId={userId}
+            refreshTrigger={refreshTrigger}
+            onRefresh={triggerRefresh}
+            onLogout={handleLogout}
+            onNavigateToRegister={handleGuestCreateAccount}
+            onReplayTour={() => setTourOpen(true)}
+          />
+        </View>
+      </View>
 
       {!isKeyboardVisible && (
         <CustomTabBar
@@ -654,6 +644,12 @@ const styles = StyleSheet.create({
   },
   content: {
     flex: 1,
+  },
+  tabPane: {
+    flex: 1,
+  },
+  hiddenPane: {
+    display: 'none',
   },
   errorScreen: {
     flex: 1,

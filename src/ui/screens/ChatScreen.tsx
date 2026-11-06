@@ -62,7 +62,13 @@ export const ChatScreen: React.FC<ChatScreenProps> = ({
   refreshTrigger = 0,
   onRefresh,
 }) => {
-  const [messages, setMessages] = useState<ChatMessage[]>([]);
+  const [messages, setMessages] = useState<ChatMessage[]>(() => {
+    try {
+      return chatStore.getMessages(userId);
+    } catch {
+      return [];
+    }
+  });
   const [inputText, setInputText] = useState('');
   const [isSending, setIsSending] = useState(false);
   const [isOnlineMode, setIsOnlineMode] = useState(() => {

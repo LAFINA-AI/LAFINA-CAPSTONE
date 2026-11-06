@@ -48,7 +48,17 @@ export const CalendarScreen: React.FC<CalendarScreenProps> = ({
   const [noteCategory, setNoteCategory] = useState('Personal');
   const [isPinned, setIsPinned] = useState(false);
   const [noteSelection, setNoteSelection] = useState({ start: 0, end: 0 });
-  const [customCategories, setCustomCategories] = useState<string[]>([]);
+  const [customCategories, setCustomCategories] = useState<string[]>(() => {
+    try {
+      const cats = notesStore.getCustomCategories(userId);
+      cats.forEach((c) => {
+        registerCustomCategoryColor(c.name, c.color);
+      });
+      return cats.map((c) => c.name);
+    } catch {
+      return [];
+    }
+  });
 
   React.useEffect(() => {
     try {

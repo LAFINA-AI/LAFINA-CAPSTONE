@@ -24,6 +24,100 @@ interface UseCalendarDataOptions {
   propOnViewModeChange?: (mode: ViewMode) => void;
 }
 
+const formatLocalDate = (d: Date): string => {
+  const year = d.getFullYear();
+  const month = `${d.getMonth() + 1}`.padStart(2, '0');
+  const day = `${d.getDate()}`.padStart(2, '0');
+  return `${year}-${month}-${day}`;
+};
+
+const getInitialViewRange = (): { start: Date; end: Date } => {
+  const now = new Date();
+  const start = new Date(now);
+  start.setDate(now.getDate() - 3);
+  start.setHours(0, 0, 0, 0);
+  const end = new Date(now);
+  end.setDate(now.getDate() + 3);
+  end.setHours(23, 59, 59, 999);
+  return { start, end };
+};
+
+const getInitialBlocks = (userId: string): TimeBlock[] => {
+  try {
+    const rawData = timeBlocksStore.getAll(userId);
+    const { start, end } = getInitialViewRange();
+    const expanded: TimeBlock[] = [];
+    rawData.forEach((block) => {
+      if (block.recurrenceRule) {
+        const dates = getOccurrences(block.date, block.recurrenceRule, start, end);
+        dates.forEach((dateStr) => {
+          const isBase = dateStr === block.date;
+          expanded.push({
+            ...block,
+            id: isBase ? block.id : `${block.id}_occur_${dateStr}`,
+            date: dateStr,
+          });
+        });
+      } else {
+        expanded.push(block);
+      }
+    });
+    return expanded;
+  } catch {
+    return [];
+  }
+};
+
+const getInitialSchedule = (userId: string): { allTasks: Task[]; allEvents: Event[]; dayTasks: Task[]; dayEvents: Event[] } => {
+  try {
+    const rawTasks = tasksStore.getAllTasks(userId);
+    const rawEvents = tasksStore.getAllEvents(userId);
+    const { start, end } = getInitialViewRange();
+    const expandedTasks: Task[] = [];
+    const expandedEvents: Event[] = [];
+
+    rawTasks.forEach((t) => {
+      if (t.recurrenceRule && t.dueDate) {
+        const dates = getOccurrences(t.dueDate, t.recurrenceRule, start, end);
+        dates.forEach((dateStr) => {
+          const isBase = dateStr === t.dueDate;
+          expandedTasks.push({
+            ...t,
+            id: isBase ? t.id : `${t.id}_occur_${dateStr}`,
+            dueDate: dateStr,
+          });
+        });
+      } else {
+        expandedTasks.push(t);
+      }
+    });
+
+    rawEvents.forEach((e) => {
+      if (e.recurrenceRule && e.date) {
+        const dates = getOccurrences(e.date, e.recurrenceRule, start, end);
+        dates.forEach((dateStr) => {
+          const isBase = dateStr === e.date;
+          expandedEvents.push({
+            ...e,
+            id: isBase ? e.id : `${e.id}_occur_${dateStr}`,
+            date: dateStr,
+          });
+        });
+      } else {
+        expandedEvents.push(e);
+      }
+    });
+
+    const dateStr = formatLocalDate(new Date());
+    const dayTasks = expandedTasks.filter((t) => t.dueDate === dateStr);
+    const dayEvents = expandedEvents.filter((e) => e.date === dateStr);
+
+    return { allTasks: expandedTasks, allEvents: expandedEvents, dayTasks, dayEvents };
+  } catch {
+    return { allTasks: [], allEvents: [], dayTasks: [], dayEvents: [] };
+  }
+};
+
 export const useCalendarData = (options: UseCalendarDataOptions): CalendarData & {
   getOverdueTasks: () => Task[];
 } => {
@@ -34,15 +128,37 @@ export const useCalendarData = (options: UseCalendarDataOptions): CalendarData &
   const setViewMode = propOnViewModeChange !== undefined ? propOnViewModeChange : setLocalViewMode;
   const [currentDate, setCurrentDate] = useState(new Date());
   const [selectedDate, setSelectedDate] = useState(new Date());
-  const [blocks, setBlocks] = useState<TimeBlock[]>([]);
-  const [weekDays, setWeekDays] = useState<Date[]>([]);
-  const [tasks, setTasks] = useState<Task[]>([]);
-  const [events, setEvents] = useState<Event[]>([]);
-  const [allTasks, setAllTasks] = useState<Task[]>([]);
-  const [allEvents, setAllEvents] = useState<Event[]>([]);
+  const [initialSchedule] = useState(() => getInitialSchedule(userId));
+  const [blocks, setBlocks] = useState<TimeBlock[]>(() => getInitialBlocks(userId));
+  const [weekDays, setWeekDays] = useState<Date[]>(() => {
+    const days: Date[] = [];
+    const base = new Date();
+    for (let i = -3; i <= 3; i++) {
+      const d = new Date(base);
+      d.setDate(base.getDate() + i);
+      days.push(d);
+    }
+    return days;
+  });
+  const [tasks, setTasks] = useState<Task[]>(() => initialSchedule.dayTasks);
+  const [events, setEvents] = useState<Event[]>(() => initialSchedule.dayEvents);
+  const [allTasks, setAllTasks] = useState<Task[]>(() => initialSchedule.allTasks);
+  const [allEvents, setAllEvents] = useState<Event[]>(() => initialSchedule.allEvents);
   const [showDatePicker, setShowDatePicker] = useState(false);
-  const [timeFormat24h, setTimeFormat24h] = useState(false);
-  const [weekStartsMonday, setWeekStartsMonday] = useState(false);
+  const [timeFormat24h, setTimeFormat24h] = useState(() => {
+    try {
+      return userStore.get24HourFormat(userId);
+    } catch {
+      return false;
+    }
+  });
+  const [weekStartsMonday, setWeekStartsMonday] = useState(() => {
+    try {
+      return userStore.getWeekStartsMonday(userId);
+    } catch {
+      return false;
+    }
+  });
 
   // Visibility and imports state
   const [batches, setBatches] = useState<ImportBatch[]>([]);
@@ -238,13 +354,6 @@ export const useCalendarData = (options: UseCalendarDataOptions): CalendarData &
 
     setAllTasks(expandedTasks);
     setAllEvents(expandedEvents);
-
-    const formatLocalDate = (d: Date): string => {
-      const year = d.getFullYear();
-      const month = `${d.getMonth() + 1}`.padStart(2, '0');
-      const day = `${d.getDate()}`.padStart(2, '0');
-      return `${year}-${month}-${day}`;
-    };
 
     const dateStr = formatLocalDate(selectedDate);
     const dayTasks = expandedTasks.filter((t) => t.dueDate === dateStr);
@@ -475,13 +584,6 @@ export const useCalendarData = (options: UseCalendarDataOptions): CalendarData &
     setSelectedDate(targetDate);
     setViewMode('week');
   }, [currentDate, setViewMode]);
-
-  const formatLocalDate = (d: Date): string => {
-    const year = d.getFullYear();
-    const month = `${d.getMonth() + 1}`.padStart(2, '0');
-    const day = `${d.getDate()}`.padStart(2, '0');
-    return `${year}-${month}-${day}`;
-  };
 
   const getOverdueTasks = useCallback(() => {
     const tasksData = tasksStore.getAllTasks(userId);
