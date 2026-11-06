@@ -25,14 +25,19 @@ export interface TtsConfiguration {
 }
 
 export type TtsServiceState = 'ready' | 'unavailable' | 'timeout';
-/** English readiness, separate from the service existing. */
-export type TtsEnglishState = 'ready' | 'missing' | 'unknown';
+/**
+ * English readiness, separate from the service existing. `ready` only when a
+ * voice the engine positively reports as installed and offline is selected;
+ * `unconfirmed` when such a voice is listed but could not be selected.
+ */
+export type TtsEnglishState = 'ready' | 'missing' | 'unknown' | 'unconfirmed';
 
 export interface TtsReadiness {
   service: TtsServiceState;
   english: TtsEnglishState;
   /** Installed offline English voices whose metadata says so explicitly. */
   voices: TtsVoice[];
+  /** The positively offline voice local speech uses; null = local speech is off. */
   activeVoiceId: string | null;
   /** The explicit voice could not be used; the automatic voice speaks instead. */
   selectedVoiceMissing: boolean;
@@ -49,8 +54,15 @@ let ttsAvailable = false;
 let lastInitTimedOut = false;
 let initPromise: Promise<boolean> | null = null;
 let initGeneration = 0;
-let selectedVoiceId: string | null = null;
 let automaticVoiceId: string | null = null;
+/**
+ * Codex audit A1: the voice local speech is allowed to use. Set only after the
+ * engine accepted a voice whose metadata positively says installed + offline;
+ * cleared when a selection fails or the voice stops being listed that way.
+ * While null, local playback reports unavailable and callers show text.
+ */
+let offlineVoiceId: string | null = null;
+let establishPromise: Promise<void> | null = null;
 let englishAccepted: boolean | null = null;
 let desiredConfiguration: TtsConfiguration | null = null;
 let appliedCustom = false;
@@ -101,18 +113,22 @@ const bounded = <T>(work: Promise<T> | T, ms: number, what: string): Promise<T> 
 const isEnglish = (voice: TtsVoice): boolean =>
   typeof voice.language === 'string' && voice.language.toLowerCase().startsWith('en');
 
+/** The engine positively reports this voice as installed and needing no network. */
+const isPositivelyOffline = (voice: TtsVoice): boolean =>
+  !!voice &&
+  typeof voice.id === 'string' &&
+  voice.id.length > 0 &&
+  voice.notInstalled === false &&
+  voice.networkConnectionRequired === false &&
+  isEnglish(voice);
+
 /**
- * Selects the best installed offline voice for English playback via react-native-tts.
- * Never selects a voice with networkConnectionRequired === true for offline synthesis.
- * This is AGY's automatic default and is unchanged by AGY-PORT 10.
+ * Selects the best installed offline voice for English playback via react-native-tts:
+ * AGY's automatic default (en-US first, then quality). Codex audit A1: missing
+ * metadata is unknown and is never treated as offline.
  */
 export const selectOfflineVoice = (voices: TtsVoice[]): TtsVoice | null => {
-  const offlineInstalled = voices.filter(
-    (voice) =>
-      voice.notInstalled !== true &&
-      voice.networkConnectionRequired !== true &&
-      isEnglish(voice),
-  );
+  const offlineInstalled = (Array.isArray(voices) ? voices : []).filter(isPositivelyOffline);
   if (offlineInstalled.length === 0) {
     return null;
   }
@@ -135,15 +151,7 @@ export const selectOfflineVoice = (voices: TtsVoice[]): TtsVoice | null => {
 export const eligibleOfflineVoices = (voices: unknown): TtsVoice[] => {
   if (!Array.isArray(voices)) return [];
   return (voices as TtsVoice[])
-    .filter(
-      voice =>
-        !!voice &&
-        typeof voice.id === 'string' &&
-        voice.id.length > 0 &&
-        voice.notInstalled === false &&
-        voice.networkConnectionRequired === false &&
-        isEnglish(voice),
-    )
+    .filter(isPositivelyOffline)
     .sort((a, b) => a.language.localeCompare(b.language) || a.id.localeCompare(b.id));
 };
 
@@ -166,57 +174,85 @@ const setting = async (work: () => unknown, what: string): Promise<boolean> => {
   }
 };
 
-/**
- * Applies the desired explicit configuration, or returns to the automatic
- * default when there is none. Rate and pitch are only ever sent when a choice
- * was made here (or to undo one), so an untouched install keeps the engine's
- * own speed and pitch.
- */
-const applyConfiguration = async (voices: TtsVoice[] | null): Promise<void> => {
-  const desired = desiredConfiguration;
-  if (!desired) {
-    if (!appliedCustom) {
-      selectedVoiceMissing = false;
-      return;
-    }
-    await setting(() => Tts.setDefaultRate(1, true), 'Neutral speed');
-    await setting(() => Tts.setDefaultPitch(1), 'Neutral pitch');
-    if (automaticVoiceId && (await setting(() => Tts.setDefaultVoice(automaticVoiceId!), 'Automatic voice'))) {
-      selectedVoiceId = automaticVoiceId;
-    }
-    appliedCustom = false;
-    selectedVoiceMissing = false;
-    return;
+const isListedOffline = (voices: TtsVoice[], id: string): boolean =>
+  eligibleOfflineVoices(voices).some(voice => voice.id === id);
+
+/** Selects a positively offline voice; a failed selection leaves the engine's voice unknown. */
+const selectVoice = async (id: string, what: string): Promise<boolean> => {
+  if (offlineVoiceId === id) return true;
+  if (await setting(() => Tts.setDefaultVoice(id), what)) {
+    offlineVoiceId = id;
+    return true;
   }
-  appliedCustom = true;
-  // Rate goes to Android setSpeechRate unchanged (skipTransform): 1.0 is normal.
-  await setting(() => Tts.setDefaultRate(desired.rate, true), 'Speed');
-  await setting(() => Tts.setDefaultPitch(desired.pitch), 'Pitch');
-  if (desired.voiceId) {
-    const eligible = eligibleOfflineVoices(voices ?? []);
-    const found = eligible.some(voice => voice.id === desired.voiceId);
-    if (found && (await setting(() => Tts.setDefaultVoice(desired.voiceId!), 'Voice'))) {
-      selectedVoiceId = desired.voiceId;
-      selectedVoiceMissing = false;
-      return;
-    }
-    selectedVoiceMissing = true;
-  } else {
-    selectedVoiceMissing = false;
-  }
-  if (automaticVoiceId && selectedVoiceId !== automaticVoiceId) {
-    if (await setting(() => Tts.setDefaultVoice(automaticVoiceId!), 'Automatic voice')) {
-      selectedVoiceId = automaticVoiceId;
-    }
-  }
+  offlineVoiceId = null;
+  return false;
 };
 
 /**
- * Initializes react-native-tts and configures an installed offline voice.
- * Bounded: an engine that never answers counts as unavailable for this call,
- * and its late answer is ignored. A later call tries again.
+ * Applies the desired explicit configuration, or returns to the automatic
+ * default when there is none, and makes sure local speech uses a positively
+ * offline voice. `voices` null = the engine did not list voices this time.
+ * Rate and pitch are only ever sent when a choice was made here (or to undo
+ * one), so an untouched install keeps the engine's own speed and pitch.
  */
-export const initTts = async (): Promise<boolean> => {
+const applyConfiguration = async (voices: TtsVoice[] | null): Promise<void> => {
+  const desired = desiredConfiguration;
+  if (voices) {
+    automaticVoiceId = selectOfflineVoice(voices)?.id ?? null;
+    // A voice that is no longer listed as installed + offline is not used.
+    if (offlineVoiceId && !isListedOffline(voices, offlineVoiceId)) offlineVoiceId = null;
+  }
+  if (!desired) {
+    selectedVoiceMissing = false;
+    if (appliedCustom) {
+      await setting(() => Tts.setDefaultRate(1, true), 'Neutral speed');
+      await setting(() => Tts.setDefaultPitch(1), 'Neutral pitch');
+      appliedCustom = false;
+      if (offlineVoiceId !== automaticVoiceId) offlineVoiceId = null;
+    }
+  } else {
+    appliedCustom = true;
+    // Rate goes to Android setSpeechRate unchanged (skipTransform): 1.0 is normal.
+    await setting(() => Tts.setDefaultRate(desired.rate, true), 'Speed');
+    await setting(() => Tts.setDefaultPitch(desired.pitch), 'Pitch');
+    if (
+      desired.voiceId &&
+      voices &&
+      isListedOffline(voices, desired.voiceId) &&
+      (await selectVoice(desired.voiceId, 'Voice'))
+    ) {
+      selectedVoiceMissing = false;
+      return;
+    }
+    selectedVoiceMissing = !!desired.voiceId;
+    if (offlineVoiceId !== automaticVoiceId) offlineVoiceId = null;
+  }
+  // Without a fresh list nothing new can be confirmed; an earlier confirmation stands.
+  if (!offlineVoiceId && voices && automaticVoiceId) {
+    await selectVoice(automaticVoiceId, 'Automatic voice');
+  }
+};
+
+/** Retries confirming an offline voice (for example after one was installed). */
+const establishOfflineVoice = (): Promise<void> => {
+  if (!establishPromise) {
+    establishPromise = (async () => {
+      try {
+        await applyConfiguration(await readVoices());
+      } finally {
+        establishPromise = null;
+      }
+    })();
+  }
+  return establishPromise;
+};
+
+/**
+ * Starts the react-native-tts engine once. Bounded: an engine that never
+ * answers counts as unavailable for this call, and its late answer is
+ * ignored. A later call tries again.
+ */
+const startEngine = async (): Promise<boolean> => {
   if (ttsInitialized && ttsAvailable) {
     return true;
   }
@@ -243,18 +279,6 @@ export const initTts = async (): Promise<boolean> => {
       }
 
       const rawVoices = await readVoices();
-      if (rawVoices) {
-        const preferred = selectOfflineVoice(rawVoices);
-        if (preferred?.id) {
-          try {
-            await bounded(Tts.setDefaultVoice(preferred.id), TTS_SETTING_TIMEOUT_MS, 'Voice');
-            selectedVoiceId = preferred.id;
-            automaticVoiceId = preferred.id;
-          } catch {
-            // Voice selection is optional on engines that only expose default voice
-          }
-        }
-      }
       if (generation !== initGeneration) return false;
 
       ttsInitialized = true;
@@ -281,16 +305,27 @@ export const initTts = async (): Promise<boolean> => {
 };
 
 /**
+ * Initializes react-native-tts and confirms an installed offline English
+ * voice. True only when local speech may play: the engine started and a voice
+ * it positively reports as installed and offline is selected (codex audit A1).
+ */
+export const initTts = async (): Promise<boolean> => {
+  if (!(await startEngine())) return false;
+  if (!offlineVoiceId) await establishOfflineVoice();
+  return offlineVoiceId !== null;
+};
+
+/**
  * Checks if react-native-tts is available (or has not yet failed initialization).
  */
 export const isTtsAvailable = (): boolean => {
-  return !ttsInitialized || ttsAvailable;
+  return !ttsInitialized || (ttsAvailable && offlineVoiceId !== null);
 };
 
 /**
  * Returns the currently selected offline voice ID, if any.
  */
-export const getSelectedOfflineVoiceId = (): string | null => selectedVoiceId;
+export const getSelectedOfflineVoiceId = (): string | null => offlineVoiceId;
 
 /**
  * Sets the explicit local choice (null = AGY's automatic default) and applies
@@ -300,11 +335,11 @@ export const configureTts = (configuration: TtsConfiguration | null): Promise<vo
   desiredConfiguration = configuration ? { ...configuration } : null;
   const run = async () => {
     if (!(ttsInitialized && ttsAvailable)) {
-      // initTts applies the desired configuration when it succeeds.
-      if (desiredConfiguration || appliedCustom) await initTts();
+      // The engine start applies the desired configuration when it succeeds.
+      if (desiredConfiguration || appliedCustom) await startEngine();
       return;
     }
-    await applyConfiguration(desiredConfiguration?.voiceId ? await readVoices() : null);
+    await applyConfiguration(await readVoices());
   };
   configureChain = configureChain.then(run, run);
   return configureChain.then(
@@ -318,7 +353,7 @@ export const configureTts = (configuration: TtsConfiguration | null): Promise<vo
  * offline speech is ready. Bounded; never starts speech or downloads.
  */
 export const readTtsReadiness = async (): Promise<TtsReadiness> => {
-  const ready = await initTts();
+  const ready = await startEngine();
   if (!ready) {
     return {
       service: lastInitTimedOut ? 'timeout' : 'unavailable',
@@ -329,16 +364,21 @@ export const readTtsReadiness = async (): Promise<TtsReadiness> => {
     };
   }
   const raw = await readVoices();
+  // Re-check against the fresh list: a removed voice stops being used.
+  if (raw && (!offlineVoiceId || !isListedOffline(raw, offlineVoiceId))) {
+    await applyConfiguration(raw);
+  }
   const voices = eligibleOfflineVoices(raw ?? []);
   let english: TtsEnglishState;
-  if (voices.length > 0) english = 'ready';
+  if (offlineVoiceId) english = 'ready';
+  else if (voices.length > 0) english = 'unconfirmed';
   else if (raw && raw.length > 0) english = 'missing';
   else english = englishAccepted === false ? 'missing' : 'unknown';
   return {
     service: 'ready',
     english,
     voices,
-    activeVoiceId: selectedVoiceId,
+    activeVoiceId: offlineVoiceId,
     selectedVoiceMissing,
   };
 };
@@ -582,8 +622,9 @@ export const __resetTtsForTests = (): void => {
   lastInitTimedOut = false;
   initPromise = null;
   initGeneration += 1;
-  selectedVoiceId = null;
   automaticVoiceId = null;
+  offlineVoiceId = null;
+  establishPromise = null;
   englishAccepted = null;
   desiredConfiguration = null;
   appliedCustom = false;

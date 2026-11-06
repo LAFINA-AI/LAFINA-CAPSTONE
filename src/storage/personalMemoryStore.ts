@@ -291,6 +291,48 @@ export const personalMemoryStore = {
   },
 
   /**
+   * Codex audit A3: Profile "Clear All Data" forgets this owner's event
+   * defaults, including a value that can no longer be read, and leaves a
+   * disabled revision fence so a review or offer issued earlier cannot save or
+   * apply them afterwards. Owner-checked; other owners are untouched.
+   */
+  clearForDataReset: (userId: string): void => {
+    db.transactionSync(tx => {
+      assertActive(userId, tx);
+      const raw = tx.executeSync('SELECT value FROM local_settings WHERE user_id = ? AND key = ?', [
+        userId,
+        EVENT_MEMORY_KEY,
+      ]).rows?.[0]?.value;
+      let revision = 0;
+      if (raw != null) {
+        try {
+          const parsed = JSON.parse(String(raw)) as {revision?: unknown};
+          if (Number.isSafeInteger(parsed?.revision)) revision = Number(parsed.revision);
+        } catch {
+          // Unreadable: it is replaced by the fence below.
+        }
+      }
+      const now = new Date().toISOString();
+      const fence: EventMemorySnapshot = {
+        version: 1,
+        revision: Math.max(revision, 0) + 1,
+        enabled: false,
+        value: null,
+        createdAt: now,
+        updatedAt: now,
+      };
+      tx.executeSync(
+        `INSERT INTO local_settings (user_id, key, value, updated_at) VALUES (?, ?, ?, ?)
+         ON CONFLICT(user_id, key) DO UPDATE SET value = excluded.value, updated_at = excluded.updated_at`,
+        [userId, EVENT_MEMORY_KEY, JSON.stringify(fence), now],
+      );
+    });
+    for (const [token, review] of reviews) {
+      if (review.userId === userId) reviews.delete(token);
+    }
+  },
+
+  /**
    * Guest link (inside the link transaction): an account that already has
    * preferences on this device keeps them; otherwise the guest's move to it.
    * The guest keeps only a disabled revision fence, so an old review cannot

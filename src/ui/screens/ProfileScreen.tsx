@@ -249,7 +249,7 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
   const handleClearData = () => {
     Alert.alert(
       'Clear All Data',
-      'This will delete all your notes, tasks, events, reminders, and calendar blocks. This action cannot be undone.',
+      'This will delete all your notes, tasks, events, reminders, calendar blocks, chat history and saved event defaults. Device settings such as the offline voice, theme and time format are kept; Offline Voice has its own Reset. This action cannot be undone.',
       [
         { text: 'Cancel', style: 'cancel' },
         {
@@ -267,9 +267,21 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
             const attachmentUris = chatStore.getAttachmentUris(userId);
             chatStore.clearHistory(userId);
             void removeAttachmentFiles(attachmentUris);
+            // Codex audit A3: saved event defaults are personal scheduling memory.
+            let memoryNote = '';
+            try {
+              personalMemoryStore.clearForDataReset(userId);
+            } catch (error) {
+              console.warn('[Profile] Could not forget event defaults:', error);
+              memoryNote = ' Saved event defaults could not be forgotten; open Event Defaults to remove them.';
+            }
 
-            Alert.alert('Data Cleared', 'All personal scheduling data has been deleted.');
+            Alert.alert(
+              'Data Cleared',
+              `All personal scheduling data and saved event defaults have been deleted.${memoryNote}`,
+            );
             loadStats();
+            loadEventDefaultsSummary();
             onRefresh();
           },
         },

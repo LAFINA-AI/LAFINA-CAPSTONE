@@ -40,9 +40,25 @@ const toLocalDate = (d: Date): string => {
 /** Overdue chips shown at most; the total is still reported. */
 export const OVERDUE_LIMIT = 100;
 
+/** Codex audit A2: which part of the schedule could not be read. */
+export type CalendarReadPart = 'blocks' | 'schedule' | 'overdue';
+
+/**
+ * A read failure, bound to the account it happened for. While present the
+ * Calendar must not present the view as an empty schedule.
+ */
+export interface CalendarReadError {
+  ownerId: string;
+  parts: CalendarReadPart[];
+  /** True when an earlier successful read for this account is still shown. */
+  showingPrevious: boolean;
+}
+
 export const useCalendarData = (options: UseCalendarDataOptions): CalendarData & {
   getOverdueTasks: () => Task[];
   overdueTotal: number;
+  readError: CalendarReadError | null;
+  retryRead: () => void;
 } => {
   const { userId, refreshTrigger, onRefresh, propViewMode, propOnViewModeChange } = options;
 
@@ -69,6 +85,32 @@ export const useCalendarData = (options: UseCalendarDataOptions): CalendarData &
   const [layersModalVisible, setLayersModalVisible] = useState(false);
   const activeUserIdRef = useRef(userId);
   activeUserIdRef.current = userId;
+  // Codex audit A2: the last successful raw read of each part, with its owner,
+  // and which parts failed (and whether an earlier good read is still shown).
+  const lastGoodRef = useRef<{
+    blocks: { ownerId: string; rows: TimeBlock[] } | null;
+    schedule: { ownerId: string; tasks: Task[]; events: Event[] } | null;
+    overdue: { ownerId: string } | null;
+  }>({ blocks: null, schedule: null, overdue: null });
+  const [readFailures, setReadFailures] = useState<{
+    ownerId: string;
+    parts: Partial<Record<CalendarReadPart, { showingPrevious: boolean }>>;
+  }>({ ownerId: userId, parts: {} });
+
+  /** failure null = this part read successfully. */
+  const markRead = useCallback(
+    (part: CalendarReadPart, failure: { showingPrevious: boolean } | null) => {
+      setReadFailures(previous => {
+        const same = previous.ownerId === userId;
+        if (same && !failure && !previous.parts[part]) return previous;
+        const parts = same ? { ...previous.parts } : {};
+        if (failure) parts[part] = failure;
+        else delete parts[part];
+        return { ownerId: userId, parts };
+      });
+    },
+    [userId],
+  );
 
   const generateWeekDays = useCallback(() => {
     const days: Date[] = [];
@@ -130,9 +172,15 @@ export const useCalendarData = (options: UseCalendarDataOptions): CalendarData &
     let rawData: TimeBlock[];
     try {
       rawData = plannerQueries.window(userId, toLocalDate(rangeStart), toLocalDate(rangeEnd)).blocks;
+      lastGoodRef.current.blocks = { ownerId: userId, rows: rawData };
+      markRead('blocks', null);
     } catch (error) {
       console.error('[Calendar] Could not read time blocks:', error);
-      rawData = [];
+      // Keep this account's last good blocks; never another account's.
+      const previous = lastGoodRef.current.blocks;
+      const own = previous?.ownerId === userId;
+      markRead('blocks', { showingPrevious: own });
+      rawData = own && previous ? previous.rows : [];
     }
 
     const importedBlockIds = new Set<string>();
@@ -160,26 +208,41 @@ export const useCalendarData = (options: UseCalendarDataOptions): CalendarData &
     });
 
     setBlocks(rawData);
-  }, [userId, batches, visibilityMap, getViewRange]);
+  }, [userId, batches, visibilityMap, getViewRange, markRead]);
 
   const loadScheduleData = useCallback(() => {
     // AGY-PORT 06: the visible window only. Undated tasks stay in the paged
     // UndatedTasksModal (AGY-PORT 04).
     const { start: rangeStart, end: rangeEnd } = getViewRange();
+    try {
+      setOverdue(plannerQueries.overdueTasks(userId, toLocalDate(new Date()), OVERDUE_LIMIT));
+      lastGoodRef.current.overdue = { ownerId: userId };
+      markRead('overdue', null);
+    } catch (error) {
+      console.error('[Calendar] Could not read overdue tasks:', error);
+      const own = lastGoodRef.current.overdue?.ownerId === userId;
+      markRead('overdue', { showingPrevious: own });
+      if (!own) setOverdue({ items: [], total: 0 });
+    }
     let rawTasks: Task[] = [];
     let rawEvents: Event[] = [];
     try {
       const visible = plannerQueries.window(userId, toLocalDate(rangeStart), toLocalDate(rangeEnd));
       rawTasks = visible.tasks;
       rawEvents = visible.events;
+      lastGoodRef.current.schedule = { ownerId: userId, tasks: rawTasks, events: rawEvents };
+      markRead('schedule', null);
     } catch (error) {
       console.error('[Calendar] Could not read tasks and events:', error);
-    }
-    try {
-      setOverdue(plannerQueries.overdueTasks(userId, toLocalDate(new Date()), OVERDUE_LIMIT));
-    } catch (error) {
-      console.error('[Calendar] Could not read overdue tasks:', error);
-      setOverdue({ items: [], total: 0 });
+      // Keep this account's last good read (filtered again for the selected
+      // date below); never show another account's.
+      const previous = lastGoodRef.current.schedule;
+      const own = previous?.ownerId === userId;
+      markRead('schedule', { showingPrevious: own });
+      if (own && previous) {
+        rawTasks = previous.tasks;
+        rawEvents = previous.events;
+      }
     }
 
     const importedTaskIds = new Set<string>();
@@ -240,7 +303,22 @@ export const useCalendarData = (options: UseCalendarDataOptions): CalendarData &
 
     setTasks(dayTasks);
     setEvents(dayEvents);
-  }, [userId, batches, visibilityMap, selectedDate, getViewRange]);
+  }, [userId, batches, visibilityMap, selectedDate, getViewRange, markRead]);
+
+  const retryRead = useCallback(() => {
+    loadBlocks();
+    loadScheduleData();
+  }, [loadBlocks, loadScheduleData]);
+
+  const failedParts = (Object.keys(readFailures.parts) as CalendarReadPart[]).sort();
+  const readError: CalendarReadError | null =
+    readFailures.ownerId === userId && failedParts.length > 0
+      ? {
+          ownerId: userId,
+          parts: failedParts,
+          showingPrevious: failedParts.some(part => readFailures.parts[part]?.showingPrevious),
+        }
+      : null;
 
   useEffect(() => {
     loadBlocks();
@@ -509,6 +587,8 @@ export const useCalendarData = (options: UseCalendarDataOptions): CalendarData &
     loadScheduleData,
     getOverdueTasks,
     overdueTotal: overdue.total,
+    readError,
+    retryRead,
 
     // Visibility and Import/Export
     batches,
