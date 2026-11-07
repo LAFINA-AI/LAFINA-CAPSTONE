@@ -1,0 +1,17 @@
+{
+  "source_commit": "7b860ef8eb13e2898e6a29c14176419f057ce99d",
+  "java": "Microsoft JDK 17.0.20.101",
+  "gradle_heap_mib": 768,
+  "gradle_metaspace_mib": 384,
+  "node_heap_mib": 768,
+  "gradle_workers": 1,
+  "kotlin_strategy": "in-process",
+  "native_alias": "X: mapped to the requested checkout only during builds; removed afterward",
+  "debug_tasks": [
+    ":app:testDebugUnitTest --rerun",
+    ":app:assembleDebug"
+  ],
+  "bundle_task": ":app:createBundleDataQaJsAndAssets (real path)",
+  "qa_task": ":app:assembleDataQa (X: with documented prebuilt-bundle init script)",
+  "offline": true
+}

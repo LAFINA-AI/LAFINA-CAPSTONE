@@ -1,0 +1,12 @@
+{
+  "protected_refs": {
+    "refs/heads/agy-development-cont": "b9433dc39d172f30ba26ea68e4a9c9eedd922407",
+    "refs/remotes/origin/agy-development-cont": "f76ea9dbc33fceb4d122bc586f2f17fb0712072c",
+    "refs/heads/codex/agy-preservation-improvements": "f531bfbe691409cd020b8a56f8d79925d249e646"
+  },
+  "branch": "Lem-branch",
+  "code_commit": "7b860ef8eb13e2898e6a29c14176419f057ce99d",
+  "both_parents_are_ancestors": true,
+  "runtime_changes_after_tests": "",
+  "upstream": ""
+}
