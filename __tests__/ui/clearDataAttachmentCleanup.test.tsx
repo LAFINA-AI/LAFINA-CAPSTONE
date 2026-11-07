@@ -185,3 +185,76 @@ describe('Clear All Data reports chat attachment cleanup truthfully (C1)', () =>
     expect(files.has(second)).toBe(true);
   });
 });
+
+describe('Clear All Data reports fair cleanup progress truthfully (C2)', () => {
+  it('a removable file behind 50 persistent failures is removed by the next Clear All Data, with exact counts', async () => {
+    const a = owner('starve');
+    const stuck = Array.from({ length: 50 }, (_, i) => `/documents/chat_files/s_${String(i).padStart(2, '0')}.pdf`);
+    const free = '/documents/chat_files/z_free.pdf';
+    [...stuck, free].forEach(path => {
+      files.add(path);
+      attach(a, `file://${path}`);
+    });
+    stuck.forEach(path => failing.add(path));
+
+    const first = await clearAllData(a);
+    expect(first.title).toBe('Data Partly Cleared');
+    expect(first.message).toContain('51 chat attachment files could not be removed');
+    expect(files.has(free)).toBe(true);
+
+    const second = await clearAllData(a);
+    expect(second.title).toBe('Data Partly Cleared');
+    expect(second.message).toContain(
+      "50 chat attachment files could not be removed from this phone's storage yet; Clear All Data keeps them listed and tries again.",
+    );
+    expect(second.message).toMatch(/Try Clear All Data again\./);
+    expect(files.has(free)).toBe(false);
+    expect(pendingAttachmentCleanup(a)).toHaveLength(50);
+  });
+
+  it('progress that could not be saved is said, and is never Data Cleared', async () => {
+    const a = owner('unsaved');
+    const one = '/documents/chat_files/1_unsaved.pdf';
+    const two = '/documents/chat_files/2_unsaved.pdf';
+    [one, two].forEach(path => {
+      files.add(path);
+      attach(a, `file://${path}`);
+    });
+    const real = db.executeSync.bind(db);
+    jest.spyOn(db, 'executeSync').mockImplementation((sql: string, params?: unknown[]) => {
+      if (/^UPDATE attachment_cleanup SET attempts/.test(sql)) throw new Error('synthetic scheduling write failure');
+      return real(sql, params as never);
+    });
+    const result = await clearAllData(a);
+    expect(result.title).toBe('Data Partly Cleared');
+    expect(result.message).toContain(
+      'This phone could not save its cleanup progress for 2 chat attachment files; they stay listed for the next Clear All Data.',
+    );
+    expect(result.message).toContain('2 chat attachment files could not be removed');
+    expect(result.message).toMatch(/Try Clear All Data again\./);
+    expect(RNFS.unlink).not.toHaveBeenCalled();
+    expect(files.has(one) && files.has(two)).toBe(true);
+  });
+
+  it('a removed file whose cleanup could not be recorded is said in the singular', async () => {
+    const a = owner('retire');
+    const path = '/documents/chat_files/retire_once.pdf';
+    files.add(path);
+    attach(a, `file://${path}`);
+    const real = db.executeSync.bind(db);
+    jest.spyOn(db, 'executeSync').mockImplementation((sql: string, params?: unknown[]) => {
+      if (/^DELETE FROM attachment_cleanup/.test(sql)) throw new Error('synthetic retire failure');
+      return real(sql, params as never);
+    });
+    const result = await clearAllData(a);
+    expect(result.title).toBe('Data Partly Cleared');
+    expect(result.message).toContain(
+      'This phone could not save its cleanup progress for 1 chat attachment file; it stays listed for the next Clear All Data.',
+    );
+    expect(result.message).toMatch(/Try Clear All Data again\./);
+    jest.restoreAllMocks();
+    jest.spyOn(console, 'warn').mockImplementation(() => {});
+    const retry = await clearAllData(a);
+    expect(retry.title).toBe('Data Cleared');
+  });
+});

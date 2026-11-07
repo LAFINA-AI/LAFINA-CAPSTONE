@@ -167,7 +167,7 @@ describe('Clear All Data attachment cleanup (C1)', () => {
 
     const first = await clearAll(a);
     expect(first.outcome).toMatchObject({ chat: 'cleared', refusedAttachments: 0 });
-    expect(first.cleanup).toEqual({ removed: 0, pending: 1, interrupted: false });
+    expect(first.cleanup).toEqual({ removed: 0, pending: 1, interrupted: false, unsaved: 0 });
     expect(fs.files.has(path)).toBe(true);
     expect(messageCount(a)).toBe(0);
     expect(pendingAttachmentCleanup(a)).toEqual([path]);
@@ -175,7 +175,7 @@ describe('Clear All Data attachment cleanup (C1)', () => {
 
     // Chat history is already empty: the saved obligation is what is retried.
     const second = await clearAll(a);
-    expect(second.cleanup).toEqual({ removed: 1, pending: 0, interrupted: false });
+    expect(second.cleanup).toEqual({ removed: 1, pending: 0, interrupted: false, unsaved: 0 });
     expect(fs.files.has(path)).toBe(false);
     expect(pendingAttachmentCleanup(a)).toEqual([]);
     expect(unlink).toHaveBeenCalledTimes(2);
@@ -186,7 +186,7 @@ describe('Clear All Data attachment cleanup (C1)', () => {
     userStore.setCurrentUser(a);
     chatStore.addMessage(a, 'assistant', 'Synthetic document', doc('file:///documents/chat_files/gone.pdf'));
     const { cleanup } = await clearAll(a);
-    expect(cleanup).toEqual({ removed: 1, pending: 0, interrupted: false });
+    expect(cleanup).toEqual({ removed: 1, pending: 0, interrupted: false, unsaved: 0 });
     expect(unlink).not.toHaveBeenCalled();
   });
 
@@ -209,7 +209,7 @@ describe('Clear All Data attachment cleanup (C1)', () => {
     db.transactionSync(tx => recordAttachmentCleanup(tx, a, [path, path]));
     expect(pendingAttachmentCleanup(a)).toEqual([path]);
     const third = await clearAll(a);
-    expect(third.cleanup).toEqual({ removed: 1, pending: 0, interrupted: false });
+    expect(third.cleanup).toEqual({ removed: 1, pending: 0, interrupted: false, unsaved: 0 });
     expect(unlink).toHaveBeenCalledTimes(3);
     expect(fs.files.has(path)).toBe(false);
   });
@@ -229,7 +229,7 @@ describe('Clear All Data attachment cleanup (C1)', () => {
     jest.restoreAllMocks();
     jest.spyOn(console, 'warn').mockImplementation(() => {});
     expect(outcome).toMatchObject({ planner: 'cleared', chat: 'failed' });
-    expect(cleanup).toEqual({ removed: 0, pending: 0, interrupted: false });
+    expect(cleanup).toEqual({ removed: 0, pending: 0, interrupted: false, unsaved: 0 });
     // The only reference to the file is still there, so nothing is lost.
     expect(messageCount(a)).toBe(1);
     expect(chatStore.getAttachmentUris(a)).toEqual([`file://${path}`]);
@@ -238,7 +238,7 @@ describe('Clear All Data attachment cleanup (C1)', () => {
 
     const retry = await clearAll(a);
     expect(retry.outcome).toMatchObject({ chat: 'cleared' });
-    expect(retry.cleanup).toEqual({ removed: 1, pending: 0, interrupted: false });
+    expect(retry.cleanup).toEqual({ removed: 1, pending: 0, interrupted: false, unsaved: 0 });
     expect(fs.files.has(path)).toBe(false);
   });
 
@@ -258,11 +258,11 @@ describe('Clear All Data attachment cleanup (C1)', () => {
     const cleanup = await finishAttachmentCleanup(authority!);
     jest.restoreAllMocks();
     jest.spyOn(console, 'warn').mockImplementation(() => {});
-    expect(cleanup).toEqual({ removed: 0, pending: 1, interrupted: false });
+    expect(cleanup).toEqual({ removed: 0, pending: 1, interrupted: false, unsaved: 1 });
     expect(fs.files.has(path)).toBe(false);
 
     const next = await clearAll(a);
-    expect(next.cleanup).toEqual({ removed: 1, pending: 0, interrupted: false });
+    expect(next.cleanup).toEqual({ removed: 1, pending: 0, interrupted: false, unsaved: 0 });
     expect(unlink).toHaveBeenCalledTimes(1);
   });
 
@@ -283,7 +283,7 @@ describe('Clear All Data attachment cleanup (C1)', () => {
     fs.files.add(aPath);
     chatStore.addMessage(a, 'assistant', 'A document', doc(`file://${aPath}`));
     const { cleanup } = await clearAll(a);
-    expect(cleanup).toEqual({ removed: 1, pending: 0, interrupted: false });
+    expect(cleanup).toEqual({ removed: 1, pending: 0, interrupted: false, unsaved: 0 });
     expect(unlink.mock.calls).toEqual([[aPath]]);
     expect(pendingAttachmentCleanup(b)).toEqual([bPath]);
     expect(fs.files.has(bPath)).toBe(true);
@@ -316,7 +316,7 @@ describe('Clear All Data attachment cleanup (C1)', () => {
       new Date().toISOString(),
     ]);
     const { cleanup } = await clearAll(a);
-    expect(cleanup).toEqual({ removed: 0, pending: 1, interrupted: false });
+    expect(cleanup).toEqual({ removed: 0, pending: 1, interrupted: false, unsaved: 0 });
     expect(unlink).not.toHaveBeenCalled();
     expect(RNFS.exists).not.toHaveBeenCalledWith(model);
     expect(fs.files.has(model)).toBe(true);
@@ -329,7 +329,7 @@ describe('Clear All Data attachment cleanup (C1)', () => {
     fs.directories.add(path);
     db.transactionSync(tx => recordAttachmentCleanup(tx, a, [path]));
     const { cleanup } = await clearAll(a);
-    expect(cleanup).toEqual({ removed: 0, pending: 1, interrupted: false });
+    expect(cleanup).toEqual({ removed: 0, pending: 1, interrupted: false, unsaved: 0 });
     expect(unlink).not.toHaveBeenCalled();
     expect(fs.directories.has(path)).toBe(true);
   });
@@ -350,14 +350,14 @@ describe('Clear All Data attachment cleanup (C1)', () => {
     });
     const { cleanup } = await clearAll(a);
     fs.onUnlink.length = 0;
-    expect(cleanup).toEqual({ removed: 1, pending: 1, interrupted: true });
+    expect(cleanup).toEqual({ removed: 1, pending: 1, interrupted: true, unsaved: 0 });
     expect(fs.files.has(second)).toBe(true);
     expect(pendingAttachmentCleanup(a)).toEqual([second]);
     expect(pendingAttachmentCleanup(b)).toEqual([]);
 
     userStore.setCurrentUser(a);
     const again = await clearAll(a);
-    expect(again.cleanup).toEqual({ removed: 1, pending: 0, interrupted: false });
+    expect(again.cleanup).toEqual({ removed: 1, pending: 0, interrupted: false, unsaved: 0 });
     expect(fs.files.has(second)).toBe(false);
   });
 
@@ -367,9 +367,9 @@ describe('Clear All Data attachment cleanup (C1)', () => {
     const paths = Array.from({ length: MAX_CLEANUP_PER_RUN + 2 }, (_, i) => `/documents/chat_files/${i}_b.pdf`);
     db.transactionSync(tx => recordAttachmentCleanup(tx, a, paths));
     const first = await clearAll(a);
-    expect(first.cleanup).toEqual({ removed: MAX_CLEANUP_PER_RUN, pending: 2, interrupted: false });
+    expect(first.cleanup).toEqual({ removed: MAX_CLEANUP_PER_RUN, pending: 2, interrupted: false, unsaved: 0 });
     const second = await clearAll(a);
-    expect(second.cleanup).toEqual({ removed: 2, pending: 0, interrupted: false });
+    expect(second.cleanup).toEqual({ removed: 2, pending: 0, interrupted: false, unsaved: 0 });
   });
 
   it("guest linking moves the guest's saved cleanup to the account", async () => {
@@ -384,7 +384,7 @@ describe('Clear All Data attachment cleanup (C1)', () => {
     expect(pendingAttachmentCleanup(GUEST_USER_ID)).toEqual([]);
     expect(pendingAttachmentCleanup(cloud)).toEqual([path]);
     const { cleanup } = await clearAll(cloud);
-    expect(cleanup).toEqual({ removed: 1, pending: 0, interrupted: false });
+    expect(cleanup).toEqual({ removed: 1, pending: 0, interrupted: false, unsaved: 0 });
     expect(fs.files.has(path)).toBe(false);
   });
 });
@@ -441,6 +441,7 @@ describe('saved cleanup survives a restart (real SQLite file, fresh modules)', (
       removed: 1,
       pending: 0,
       interrupted: false,
+      unsaved: 0,
     });
     expect(disk.files.has(path)).toBe(false);
     run2.connection.close();
@@ -475,6 +476,7 @@ describe('saved cleanup survives a restart (real SQLite file, fresh modules)', (
       removed: 1,
       pending: 0,
       interrupted: false,
+      unsaved: 0,
     });
     expect(run2.files.unlink).not.toHaveBeenCalled();
     expect(disk2.files.size).toBe(0);

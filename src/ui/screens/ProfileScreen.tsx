@@ -275,16 +275,18 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
     }
     // Clear-data audit C1 (ADR-026): every saved attachment cleanup for this
     // owner, from this attempt or an earlier one, gets one bounded pass. Only
-    // obligations still saved afterwards count as files not removed.
+    // obligations still saved afterwards count as files not removed. Audit C2:
+    // progress the pass could not save is never reported as done.
     const cleanup = hasAttachmentCleanup(authority)
       ? await finishAttachmentCleanup(authority)
-      : { removed: 0, pending: 0, interrupted: false };
+      : { removed: 0, pending: 0, interrupted: false, unsaved: 0 };
     const plannerCleared = outcome.planner === 'cleared';
     const chatCleared = outcome.chat === 'cleared';
     const defaultsCleared = outcome.defaults === 'cleared';
     const filesPending = cleanup.pending;
     const refused = outcome.refusedAttachments;
-    const filesConfirmed = filesPending === 0 && refused === 0;
+    const unsaved = cleanup.unsaved;
+    const filesConfirmed = filesPending === 0 && refused === 0 && unsaved === 0;
 
     if (plannerCleared && chatCleared && defaultsCleared && filesConfirmed) {
       Alert.alert(
@@ -315,6 +317,11 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
                 filesPending === 1 ? 'it' : 'them'
               } listed and tries again.`
             : '',
+        unsaved > 0
+          ? `This phone could not save its cleanup progress for ${unsaved} chat attachment file${
+              unsaved === 1 ? '' : 's'
+            }; ${unsaved === 1 ? 'it stays' : 'they stay'} listed for the next Clear All Data.`
+          : '',
         cleanup.interrupted
           ? 'The sign-in changed before every file was removed; the rest stay listed for this account.'
           : '',
@@ -328,7 +335,9 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
         defaultsCleared
           ? ''
           : 'To remove the saved event defaults, open Event Defaults and choose Forget all event defaults.',
-        plannerCleared && chatCleared && filesPending === 0 ? '' : 'Try Clear All Data again.',
+        plannerCleared && chatCleared && filesPending === 0 && unsaved === 0
+          ? ''
+          : 'Try Clear All Data again.',
         'Device settings such as the offline voice, theme and time format were kept.',
       ];
       Alert.alert('Data Partly Cleared', lines.filter(Boolean).join(' '));
