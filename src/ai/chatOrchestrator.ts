@@ -62,7 +62,17 @@ export interface ProcessMessageOptions {
    * snooze act immediately, through the call actions with that identity.
    */
   ringingCall?: RingingCallContext | null;
+  /**
+   * Online conversation only: receives DeepSeek's reply while it is being
+   * written, so the screen can show it word by word. Only the finished reply
+   * is saved. Without it the reply arrives in one piece.
+   */
+  onReplyText?: (replySoFar: string) => void;
 }
+
+/** Added when DeepSeek stops part-way, so a cut-off reply is never mistaken for a full one. */
+export const INTERRUPTED_REPLY_NOTE =
+  '(The reply was cut off before it finished. Ask again to get the rest.)';
 
 /** Outcome of Confirm or Cancel on a review card. */
 export interface ReviewDecisionResult {
@@ -508,11 +518,19 @@ export class ChatOrchestrator {
               role: msg.sender,
               content: msg.content,
             }));
-          const onlineResult = await onlineChatSkill.sendChatMessage(history, {
-            useHandbook: options.useHandbook,
-          });
+          const onReplyText = options.onReplyText;
+          const onlineResult = onReplyText
+            ? await onlineChatSkill.streamChatMessage(history, {
+                useHandbook: options.useHandbook,
+                onReplyText,
+              })
+            : await onlineChatSkill.sendChatMessage(history, {
+                useHandbook: options.useHandbook,
+              });
           if (onlineResult.status === 'success' && onlineResult.data) {
-            finalReply = onlineResult.data.reply;
+            finalReply = onlineResult.data.interrupted
+              ? `${onlineResult.data.reply}\n\n${INTERRUPTED_REPLY_NOTE}`
+              : onlineResult.data.reply;
             handbookNote = handbookSourceLabel(onlineResult.data.sources);
             usedOnline = true;
           } else {

@@ -1,7 +1,7 @@
 From 2d431304f04b8ada48191e535004857f8074d13c Mon Sep 17 00:00:00 2001
 From: John Lemar Gonzales <johnlemargonzales@gmail.com>
 Date: Sat, 7 Nov 2026 22:36:07 +0800
-Subject: [PATCH 1/2] Open online chat and ElevenLabs voices to all signed-in
+Subject: [PATCH 1/3] Open online chat and ElevenLabs voices to all signed-in
  accounts
 
 - Chat (DeepSeek) and online speech now require an authenticated, active
@@ -562,7 +562,7 @@ index 646d3a4..477d52a 100644
 From 23acd9351d4e14bcc9cce3c0352e25f718caf702 Mon Sep 17 00:00:00 2001
 From: John Lemar Gonzales <johnlemargonzales@gmail.com>
 Date: Sat, 7 Nov 2026 23:06:00 +0800
-Subject: [PATCH 2/2] Make LAFINA's online chat persona conversational
+Subject: [PATCH 2/3] Make LAFINA's online chat persona conversational
 
 Introduce LAFINA only when asked or on the first greeting instead of on
 every greeting, keep small talk short and varied, and match the student's
@@ -604,6 +604,514 @@ index b5ae602..10d10cc 100644
 +    assert "Always introduce yourself" not in prompt
 +    assert "do not repeat the introduction" in prompt
 +    assert "Never claim a task, reminder or event was saved" in prompt
+-- 
+2.55.0.windows.4
+
+
+From bb506f78b2c91670e9015aa50eedcce50cc7c910 Mon Sep 17 00:00:00 2001
+From: John Lemar Gonzales <johnlemargonzales@gmail.com>
+Date: Sat, 7 Nov 2026 23:27:45 +0800
+Subject: [PATCH 3/3] Stream chat replies as Server-Sent Events
+
+Add POST /v1/ai/chat/stream: the same access, size, quota and handbook
+handling as /v1/ai/chat (now shared), with DeepSeek's reply forwarded
+piece by piece. Provider errors before the first piece stay ordinary
+HTTP errors; a failure part-way ends with an error event. The request
+counts toward the chat quota as soon as the reply starts.
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+---
+ app/api/v1/ai.py          | 113 ++++++++++++++++++++++++++---
+ app/clients/deepseek.py   | 146 +++++++++++++++++++++++++++++++-------
+ tests/test_chat_stream.py | 142 ++++++++++++++++++++++++++++++++++++
+ 3 files changed, 366 insertions(+), 35 deletions(-)
+ create mode 100644 tests/test_chat_stream.py
+
+diff --git a/app/api/v1/ai.py b/app/api/v1/ai.py
+index f0ecb5e..aaac5c0 100644
+--- a/app/api/v1/ai.py
++++ b/app/api/v1/ai.py
+@@ -1,6 +1,7 @@
+ import asyncio
+ import base64
+ import binascii
++import json
+ import logging
+ import re
+ import uuid
+@@ -8,6 +9,7 @@ from datetime import datetime, timezone, timedelta
+ from typing import Literal, Annotated
+ from pydantic import BaseModel, Field
+ from fastapi import APIRouter, Depends, HTTPException, Request, status
++from fastapi.responses import StreamingResponse
+ from sqlalchemy.ext.asyncio import AsyncSession
+ from sqlalchemy import select, func
+ 
+@@ -196,15 +198,13 @@ class AITtsResponse(BaseModel):
+     createdAt: str
+ 
+ 
+-@router.post("/chat", response_model=AIChatResponse)
+-async def chat_proxy(
++async def _prepare_chat(
+     req: AIChatRequest,
+-    auth_data: Annotated[tuple[Account, AuthSession], Depends(get_current_user_and_session)],
+-    db: AsyncSession = Depends(get_db),
+-    deepseek: DeepSeekClient = Depends(get_deepseek_client),
+-    handbook: HandbookRetriever | None = Depends(get_handbook_retriever),
+-):
+-    account, _ = auth_data
++    account: Account,
++    db: AsyncSession,
++    handbook: HandbookRetriever | None,
++) -> tuple[datetime, list[HandbookPassage], list[dict[str, str]]]:
++    """Access, size and quota checks plus the prompt, shared by both chat routes."""
+     owner_id = account.id
+ 
+     # Enforce role-based access for Online AI from live DB Account
+@@ -215,7 +215,6 @@ async def chat_proxy(
+         )
+ 
+     now = datetime.now(timezone.utc)
+-    now_str = now.isoformat()
+ 
+     # Validate total character count across messages (max 8,000 chars)
+     total_chars = sum(len(m.content) for m in req.messages)
+@@ -270,6 +269,25 @@ async def chat_proxy(
+         + handbook_context
+         + [{"role": m.role, "content": m.content} for m in req.messages]
+     )
++    return now, passages, formatted_messages
++
++
++def _sse(event: dict) -> str:
++    return f"data: {json.dumps(event, ensure_ascii=False)}\n\n"
++
++
++@router.post("/chat", response_model=AIChatResponse)
++async def chat_proxy(
++    req: AIChatRequest,
++    auth_data: Annotated[tuple[Account, AuthSession], Depends(get_current_user_and_session)],
++    db: AsyncSession = Depends(get_db),
++    deepseek: DeepSeekClient = Depends(get_deepseek_client),
++    handbook: HandbookRetriever | None = Depends(get_handbook_retriever),
++):
++    account, _ = auth_data
++    owner_id = account.id
++    now, passages, formatted_messages = await _prepare_chat(req, account, db, handbook)
++    now_str = now.isoformat()
+ 
+     try:
+         reply_text, usage_data = await deepseek.chat_completion(
+@@ -304,6 +322,83 @@ async def chat_proxy(
+     )
+ 
+ 
++@router.post("/chat/stream")
++async def chat_stream(
++    req: AIChatRequest,
++    auth_data: Annotated[tuple[Account, AuthSession], Depends(get_current_user_and_session)],
++    db: AsyncSession = Depends(get_db),
++    deepseek: DeepSeekClient = Depends(get_deepseek_client),
++    handbook: HandbookRetriever | None = Depends(get_handbook_retriever),
++):
++    """The same reply as ``POST /chat``, sent piece by piece as Server-Sent Events.
++
++    Events, one JSON object per ``data:`` line:
++    ``{"type": "delta", "text": ...}`` for each piece of the reply, then either
++    ``{"type": "done", ...}`` (provider, usedHandbook, sources, model, requestId,
++    usage, createdAt) or ``{"type": "error", "status": ..., "message": ...}`` if
++    DeepSeek stops part-way. Access, quota and provider errors before the first
++    piece are ordinary HTTP errors, exactly as on ``/chat``.
++    """
++    account, _ = auth_data
++    now, passages, formatted_messages = await _prepare_chat(req, account, db, handbook)
++    events = deepseek.chat_completion_stream(
++        messages=formatted_messages,
++        user_id=str(account.id),
++        request_id=req.requestId,
++    )
++    try:
++        first = await anext(events)
++    except DeepSeekError as err:
++        raise HTTPException(status_code=err.status_code, detail=err.message)
++
++    # The reply has started, so it counts toward the quota now: a client that
++    # disconnects part-way still used the provider. Token counts follow below.
++    usage_row = AIUsage(
++        owner_id=account.id,
++        request_type="chat",
++        prompt_tokens=0,
++        completion_tokens=0,
++        created_at=now,
++    )
++    db.add(usage_row)
++    await db.commit()
++
++    async def body():
++        pending = first
++        try:
++            while True:
++                kind, value = pending
++                if kind == "delta":
++                    yield _sse({"type": "delta", "text": value})
++                else:
++                    usage_data = value if isinstance(value, dict) else {}
++                    usage_row.prompt_tokens = usage_data.get("prompt_tokens", 0)
++                    usage_row.completion_tokens = usage_data.get("completion_tokens", 0)
++                    await db.commit()
++                    yield _sse({
++                        "type": "done",
++                        "provider": "deepseek",
++                        "requestId": req.requestId,
++                        "model": settings.DEEPSEEK_MODEL,
++                        "usage": usage_data,
++                        "createdAt": now.isoformat(),
++                        "usedHandbook": bool(passages),
++                        "sources": [passage.as_source() for passage in passages],
++                    })
++                    return
++                pending = await anext(events)
++        except StopAsyncIteration:
++            return
++        except DeepSeekError as err:
++            yield _sse({"type": "error", "status": err.status_code, "message": err.message})
++
++    return StreamingResponse(
++        body(),
++        media_type="text/event-stream",
++        headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"},
++    )
++
++
+ class HandbookStatusResponse(BaseModel):
+     # The admin panel's `handbook_rag` switch. Off means the feature is not
+     # offered at all, and clients hide everything about it.
+diff --git a/app/clients/deepseek.py b/app/clients/deepseek.py
+index ee99816..6b39e81 100644
+--- a/app/clients/deepseek.py
++++ b/app/clients/deepseek.py
+@@ -1,6 +1,7 @@
++import json
+ import logging
+ import time
+-from typing import Optional
++from typing import AsyncIterator, Optional
+ from pydantic import BaseModel, Field
+ import httpx
+ 
+@@ -106,6 +107,26 @@ class DeepSeekTransportError(DeepSeekError):
+         super().__init__(message, status_code=503)
+ 
+ 
++def upstream_error(status_code: int, detail: str) -> DeepSeekError:
++    """Maps a non-200 DeepSeek status to the client-safe error we raise."""
++    if status_code == 401:
++        return DeepSeekAuthenticationError(f"DeepSeek provider authentication failed: {detail}")
++    if status_code == 402:
++        return DeepSeekBillingError(f"DeepSeek provider billing is unavailable: {detail}")
++    if status_code == 429:
++        return DeepSeekRateLimitError(
++            f"DeepSeek rate limit exceeded. Please try again later: {detail}"
++        )
++    if status_code in (400, 422):
++        return DeepSeekInvalidRequestError(f"Invalid request sent to DeepSeek provider: {detail}")
++    if status_code in (500, 503):
++        return DeepSeekProviderServerError(f"DeepSeek provider temporary outage: {detail}")
++    return DeepSeekError(
++        message=f"DeepSeek provider returned error status {status_code}: {detail}",
++        status_code=502,
++    )
++
++
+ class DeepSeekMessage(BaseModel):
+     role: str
+     content: Optional[str] = None
+@@ -174,6 +195,103 @@ class DeepSeekClient:
+             temperature=0.7,
+         )
+ 
++    async def chat_completion_stream(
++        self,
++        messages: list[dict[str, str]],
++        user_id: str,
++        request_id: str = "",
++    ) -> AsyncIterator[tuple[str, object]]:
++        """Streams a chat reply as it is generated.
++
++        Yields ``("delta", text)`` for each piece of the reply, then exactly
++        one ``("usage", dict)``. Upstream HTTP errors are raised before the
++        first yield, so callers can still answer with a normal error status.
++        Same model, settings and limits as :meth:`chat_completion`.
++        """
++        reason = self.settings.get_deepseek_key_invalid_reason()
++        if reason is not None:
++            logger.warning(
++                f"DeepSeek stream attempted without valid API key ({reason}) [requestId={request_id}]"
++            )
++            raise DeepSeekConfigError("DeepSeek API key is not configured.")
++        if self._client is None:
++            await self.start()
++        assert self._client is not None, "AsyncClient must be initialized"
++
++        raw_key = (
++            self.settings.DEEPSEEK_API_KEY.get_secret_value().strip().strip("'\"")
++            if self.settings.DEEPSEEK_API_KEY
++            else ""
++        )
++        payload = {
++            "model": self.settings.DEEPSEEK_MODEL,
++            "messages": messages,
++            "stream": True,
++            "stream_options": {"include_usage": True},
++            "thinking": {"type": "disabled"},
++            "max_tokens": 1024,
++            "temperature": 0.7,
++            "user": user_id,
++        }
++        url = f"{self.settings.DEEPSEEK_BASE_URL.rstrip('/')}/chat/completions"
++        start_time = time.monotonic()
++        usage = {"prompt_tokens": 0, "completion_tokens": 0, "total_tokens": 0}
++        produced = False
++        try:
++            async with self._client.stream(
++                "POST",
++                url,
++                headers={"Authorization": f"Bearer {raw_key}", "Content-Type": "application/json"},
++                json=payload,
++            ) as res:
++                if res.status_code != 200:
++                    body = (await res.aread()).decode("utf-8", "replace")
++                    detail = extract_upstream_error(body)
++                    logger.warning(
++                        f"DeepSeek stream upstream error HTTP {res.status_code} "
++                        f"[requestId={request_id}] model={self.settings.DEEPSEEK_MODEL} "
++                        f"upstream_detail={detail!r}"
++                    )
++                    raise upstream_error(res.status_code, detail)
++                async for line in res.aiter_lines():
++                    if not line.startswith("data:"):
++                        continue
++                    data = line[5:].strip()
++                    if data == "[DONE]":
++                        break
++                    try:
++                        chunk = json.loads(data)
++                    except ValueError:
++                        logger.error(f"DeepSeek stream sent malformed JSON [requestId={request_id}]")
++                        raise DeepSeekMalformedResponseError()
++                    if isinstance(chunk.get("usage"), dict):
++                        for key in usage:
++                            value = chunk["usage"].get(key)
++                            if isinstance(value, int):
++                                usage[key] = value
++                    for choice in chunk.get("choices") or []:
++                        text = (choice.get("delta") or {}).get("content")
++                        if isinstance(text, str) and text:
++                            produced = True
++                            yield "delta", text
++        except httpx.TimeoutException:
++            logger.warning(f"DeepSeek stream timed out [requestId={request_id}]")
++            raise DeepSeekTimeoutError()
++        except httpx.RequestError as exc:
++            logger.error(
++                f"DeepSeek stream transport failure ({type(exc).__name__}) [requestId={request_id}]"
++            )
++            raise DeepSeekTransportError()
++        if not produced:
++            raise DeepSeekMalformedResponseError("Received null or empty content from DeepSeek provider.")
++        duration_ms = int((time.monotonic() - start_time) * 1000)
++        logger.info(
++            f"DeepSeek stream success: duration={duration_ms}ms, model={self.settings.DEEPSEEK_MODEL}, "
++            f"prompt_tokens={usage['prompt_tokens']}, completion_tokens={usage['completion_tokens']} "
++            f"[requestId={request_id}]"
++        )
++        yield "usage", usage
++
+     async def json_completion(
+         self,
+         messages: list[dict[str, str]],
+@@ -271,31 +389,7 @@ class DeepSeekClient:
+                 f"[requestId={request_id}] model={chosen_model} "
+                 f"upstream_detail={detail!r}"
+             )
+-            if status_code == 401:
+-                raise DeepSeekAuthenticationError(
+-                    f"DeepSeek provider authentication failed: {detail}"
+-                )
+-            elif status_code == 402:
+-                raise DeepSeekBillingError(
+-                    f"DeepSeek provider billing is unavailable: {detail}"
+-                )
+-            elif status_code == 429:
+-                raise DeepSeekRateLimitError(
+-                    f"DeepSeek rate limit exceeded. Please try again later: {detail}"
+-                )
+-            elif status_code in (400, 422):
+-                raise DeepSeekInvalidRequestError(
+-                    f"Invalid request sent to DeepSeek provider: {detail}"
+-                )
+-            elif status_code in (500, 503):
+-                raise DeepSeekProviderServerError(
+-                    f"DeepSeek provider temporary outage: {detail}"
+-                )
+-            else:
+-                raise DeepSeekError(
+-                    message=f"DeepSeek provider returned error status {status_code}: {detail}",
+-                    status_code=502
+-                )
++            raise upstream_error(status_code, detail)
+ 
+         try:
+             data = res.json()
+diff --git a/tests/test_chat_stream.py b/tests/test_chat_stream.py
+new file mode 100644
+index 0000000..fb5867f
+--- /dev/null
++++ b/tests/test_chat_stream.py
+@@ -0,0 +1,142 @@
++"""POST /v1/ai/chat/stream: the chat reply piece by piece, with synthetic DeepSeek."""
++import json
++
++import httpx
++import pytest
++from sqlalchemy import select
++
++from app.api.v1.ai import get_deepseek_client
++from app.clients.deepseek import DeepSeekClient
++from app.config import Settings
++from app.main import app
++from app.models.ai_usage import AIUsage
++from tests.conftest import TestingSessionLocal
++from tests.test_online_voices import signed_in
++
++
++def sse_body(*chunks: object) -> bytes:
++    # Strings starting with ":" are SSE comments (keep-alives), sent as-is.
++    lines = [
++        f"{c}\n\n" if isinstance(c, str) and c.startswith(":")
++        else f"data: {json.dumps(c) if not isinstance(c, str) else c}\n\n"
++        for c in chunks
++    ]
++    return "".join(lines).encode()
++
++
++def delta(text: str) -> dict:
++    return {"choices": [{"index": 0, "delta": {"content": text}}]}
++
++
++USAGE = {"choices": [], "usage": {"prompt_tokens": 40, "completion_tokens": 6, "total_tokens": 46}}
++
++
++@pytest.fixture
++def upstream():
++    """Sets what the fake DeepSeek answers with; records every request."""
++    state = {"response": httpx.Response(200, content=sse_body(delta("Hi"), USAGE, "[DONE]")), "requests": []}
++
++    def transport(request):
++        state["requests"].append(request)
++        return state["response"]
++
++    config = Settings(_env_file=None, ENVIRONMENT="development", DEEPSEEK_API_KEY="synthetic-key")
++    http = httpx.AsyncClient(transport=httpx.MockTransport(transport))
++    previous = app.dependency_overrides.get(get_deepseek_client)
++    app.dependency_overrides[get_deepseek_client] = lambda: DeepSeekClient(config, http)
++    yield state
++    if previous is None:
++        app.dependency_overrides.pop(get_deepseek_client, None)
++    else:
++        app.dependency_overrides[get_deepseek_client] = previous
++
++
++def events(response: httpx.Response) -> list[dict]:
++    return [
++        json.loads(block[len("data: "):])
++        for block in response.text.split("\n\n")
++        if block.startswith("data: ")
++    ]
++
++
++async def usage_rows() -> list[AIUsage]:
++    async with TestingSessionLocal() as db:
++        return list((await db.execute(select(AIUsage).where(AIUsage.request_type == "chat"))).scalars())
++
++
++CHAT = {"messages": [{"role": "user", "content": "hi"}], "useHandbook": False}
++
++
++async def test_reply_arrives_in_pieces_then_done(async_client, upstream):
++    upstream["response"] = httpx.Response(
++        200,
++        content=sse_body(": keep-alive", delta("Hey"), delta(" there,"), delta(" Maria!"), USAGE, "[DONE]"),
++    )
++    headers = await signed_in(async_client)
++    response = await async_client.post("/v1/ai/chat/stream", headers=headers, json=CHAT)
++    assert response.status_code == 200
++    assert response.headers["content-type"].startswith("text/event-stream")
++    got = events(response)
++    assert [e["text"] for e in got if e["type"] == "delta"] == ["Hey", " there,", " Maria!"]
++    done = got[-1]
++    assert done["type"] == "done"
++    assert done["provider"] == "deepseek"
++    assert done["usedHandbook"] is False
++    assert done["sources"] == []
++    assert done["usage"]["completion_tokens"] == 6
++    payload = json.loads(upstream["requests"][0].content)
++    assert payload["stream"] is True
++    assert payload["model"] == "deepseek-flash"
++    assert payload["thinking"] == {"type": "disabled"}
++    assert payload["messages"][0]["role"] == "system"
++    rows = await usage_rows()
++    assert len(rows) == 1
++    assert (rows[0].prompt_tokens, rows[0].completion_tokens) == (40, 6)
++
++
++@pytest.mark.parametrize("status,expected", [(402, 503), (429, 429), (500, 503)])
++async def test_provider_errors_before_any_text_are_plain_http_errors(async_client, upstream, status, expected):
++    upstream["response"] = httpx.Response(status, json={"error": {"message": "private provider body"}})
++    headers = await signed_in(async_client)
++    response = await async_client.post("/v1/ai/chat/stream", headers=headers, json=CHAT)
++    assert response.status_code == expected
++    assert not response.headers["content-type"].startswith("text/event-stream")
++    assert await usage_rows() == []
++
++
++async def test_empty_reply_is_an_error_not_a_blank_bubble(async_client, upstream):
++    upstream["response"] = httpx.Response(200, content=sse_body(USAGE, "[DONE]"))
++    headers = await signed_in(async_client)
++    response = await async_client.post("/v1/ai/chat/stream", headers=headers, json=CHAT)
++    assert response.status_code == 502
++    assert await usage_rows() == []
++
++
++async def test_failure_part_way_keeps_text_sent_and_reports_error(async_client, upstream):
++    upstream["response"] = httpx.Response(200, content=sse_body(delta("Sure, here"), "{not json"))
++    headers = await signed_in(async_client)
++    response = await async_client.post("/v1/ai/chat/stream", headers=headers, json=CHAT)
++    assert response.status_code == 200
++    got = events(response)
++    assert got[0] == {"type": "delta", "text": "Sure, here"}
++    assert got[-1]["type"] == "error"
++    assert got[-1]["status"] == 502
++    # The provider was used, so the request still counts toward the quota.
++    assert len(await usage_rows()) == 1
++
++
++async def test_guests_and_disabled_accounts_never_reach_deepseek(async_client, upstream):
++    assert (await async_client.post("/v1/ai/chat/stream", json=CHAT)).status_code == 401
++    headers = await signed_in(async_client, active=False)
++    assert (await async_client.post("/v1/ai/chat/stream", headers=headers, json=CHAT)).status_code == 401
++    assert upstream["requests"] == []
++
++
++async def test_stream_shares_the_chat_quota(async_client, upstream, monkeypatch):
++    from app.api.v1 import ai
++
++    monkeypatch.setattr(ai.settings, "MAX_AI_REQUESTS_PER_MIN", 1)
++    headers = await signed_in(async_client)
++    assert (await async_client.post("/v1/ai/chat/stream", headers=headers, json=CHAT)).status_code == 200
++    assert (await async_client.post("/v1/ai/chat/stream", headers=headers, json=CHAT)).status_code == 429
++    assert len(upstream["requests"]) == 1
 -- 
 2.55.0.windows.4
 

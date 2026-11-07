@@ -63,6 +63,9 @@ import {
 import {ToolSheet} from '../components/tools';
 import {MeetingsScreen} from './meetings';
 
+/** How often a reply that is still arriving repaints (about 20 times a second). */
+const STREAM_REPAINT_MS = 50;
+
 export interface ChatScreenProps {
   userId: string;
   refreshTrigger?: number;
@@ -116,6 +119,12 @@ export const ChatScreen: React.FC<ChatScreenProps> = ({
     null,
   );
   const [isSending, setIsSending] = useState(false);
+  // DeepSeek's reply while it is still being written (Online Mode only).
+  const [streamingReply, setStreamingReply] = useState<{
+    text: string;
+    startedAt: string;
+  } | null>(null);
+  const streamFlushRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [isOnlineMode, setIsOnlineMode] = useState(() => {
     const saved = localSettingsStore.get(userId, 'chat.onlineMode', null);
     return saved === 'true';
@@ -454,11 +463,36 @@ export const ChatScreen: React.FC<ChatScreenProps> = ({
     setSelectedFormat(null);
     setIsSending(true);
 
+    // Pieces of the reply arrive many times a second; repaint at most every
+    // STREAM_REPAINT_MS so long replies stay smooth on slower phones.
+    let latestText = '';
+    let shownFirst = false;
+    const startedAt = new Date().toISOString();
+    const showLatest = () => {
+      streamFlushRef.current = null;
+      if (activeUserRef.current !== requestUser) return;
+      setStreamingReply({text: latestText, startedAt});
+    };
+    const onReplyText = (replySoFar: string) => {
+      latestText = replySoFar;
+      if (!shownFirst) {
+        // The question is saved before the reply starts; show it above.
+        shownFirst = true;
+        loadMessages();
+        showLatest();
+        return;
+      }
+      if (!streamFlushRef.current) {
+        streamFlushRef.current = setTimeout(showLatest, STREAM_REPAINT_MS);
+      }
+    };
+
     try {
       const result = await chatOrchestrator.processMessage(userId, query, {
         onlineMode: isOnlineMode,
         useHandbook,
         documentFormat: requestedFormat,
+        onReplyText,
       });
       // If the account changed while the reply was pending, the reply was saved
       // for the account that sent it and must not appear in this one.
@@ -488,6 +522,12 @@ export const ChatScreen: React.FC<ChatScreenProps> = ({
         chatDraftStore.set(requestUser, query);
       }
     } finally {
+      // The saved reply (loaded above) replaces the live bubble in one render.
+      if (streamFlushRef.current) {
+        clearTimeout(streamFlushRef.current);
+        streamFlushRef.current = null;
+      }
+      setStreamingReply(null);
       setIsSending(false);
     }
   };
@@ -825,7 +865,21 @@ export const ChatScreen: React.FC<ChatScreenProps> = ({
         ListHeaderComponent={renderListHeader}
         ListEmptyComponent={loadError ? null : renderEmptyState}
         ListFooterComponent={
-          isSending ? <TypingBubble label="lafina is thinking…" /> : null
+          streamingReply ? (
+            <ChatMessageItem
+              item={{
+                id: 'streaming-reply',
+                sessionId: '',
+                sender: 'assistant',
+                content: streamingReply.text,
+                createdAt: streamingReply.startedAt,
+                updatedAt: streamingReply.startedAt,
+              }}
+              streaming
+            />
+          ) : isSending ? (
+            <TypingBubble label="lafina is thinking…" />
+          ) : null
         }
         onContentSizeChange={() => {
           // Prepending an earlier page keeps the reader where they were.

@@ -135,5 +135,61 @@ Owner report: "hi", "hello" and "what are you?" got the same fixed reply even in
 
 **Not run:** a DeepSeek reply under the new prompt (needs the merge); physical phone.
 
+---
+
+## Addendum — streaming chat replies (2026-11-07)
+
+Owner request: show the reply while DeepSeek writes it, a piece at a time like ChatGPT, instead of waiting for the whole answer.
+
+**Backend `bb506f7` (same unmerged branch `codex/open-online-voices`).**
+- New `POST /v1/ai/chat/stream`, sending Server-Sent Events:
+  - `{"type":"delta","text"}` for each piece of the reply;
+  - then `{"type":"done", provider, usedHandbook, sources, model, usage, requestId, createdAt}`;
+  - or `{"type":"error", status, message}` if DeepSeek stops part-way.
+- It shares access, the 8,000-character limit, the per-minute and daily quotas, and handbook retrieval with `/v1/ai/chat`. That logic moved into `_prepare_chat`, and `/v1/ai/chat` is unchanged.
+- Provider errors before the first piece remain ordinary HTTP errors.
+- The request counts toward the chat quota once the reply starts, so disconnecting part-way does not avoid the quota. Token counts are filled in when the reply finishes.
+- `DeepSeekClient.chat_completion_stream` uses the same model, settings and error mapping as the regular call, now shared through `upstream_error()`.
+- `LAFINA-backend-online-voices.patch` is regenerated as a 3-commit `git am` series on `f0fae4d`.
+
+**Mobile.**
+- `cloudClient.stream` uses React Native's `XMLHttpRequest`, because RN `fetch` cannot read a body incrementally. HTTP errors map exactly as in `request`, through the extracted `errorResult`.
+- `onlineChatSkill.streamChatMessage` parses events split anywhere and reports the growing reply.
+- It falls back to `/v1/ai/chat` when:
+  - the route is missing (404/405), and it remembers this for the session;
+  - the stream fails before any text.
+- Quota, sign-in and plan errors are returned without a second request.
+- A reply cut off part-way keeps the text that arrived and gets the label "(The reply was cut off before it finished. Ask again to get the rest.)".
+- The orchestrator streams only when the caller passes `onReplyText`, which only Chat's typed messages do. Voice, call and document paths are unchanged.
+- Only the finished reply is saved.
+- ChatScreen:
+  - shows the question immediately and swaps the typing dots for a live reply bubble with a caret;
+  - repaints at most every 50 ms;
+  - replaces the live bubble with the saved message in a single render.
+- Offline Mode never touches the network.
+
+**Verification.**
+- Backend suite: 195 passed, including 8 new tests in `tests/test_chat_stream.py`:
+  - pieces forwarded in order, with SSE keep-alive comments skipped;
+  - provider errors as HTTP errors with no quota row;
+  - an empty reply returns 502;
+  - a failure part-way ends with an error event and still counts;
+  - guests and disabled accounts never reach DeepSeek;
+  - the shared per-minute quota.
+- `npm run preflight`: 62 suites, 946 passed, 1 skipped; architecture 230 modules, 0 cycles, 76 offline leaves.
+- New `__tests__/ai/chatStreaming.test.tsx` (16 tests):
+  - event splitting, fallback and its memory, no double request on 429/401/403;
+  - interrupted replies;
+  - XHR incremental delivery and error mapping;
+  - only the final reply persisted;
+  - the ChatScreen live bubble and its replacement.
+- Production check without credentials: `POST /v1/ai/chat/stream` returns 404 (not deployed) and `/v1/ai/chat` returns 401.
+- Fresh x86_64 build on `emulator-5554`, Online Mode: "give me one quick study tip" got a real DeepSeek reply through the automatic fallback. Screenshots `stream-0*.png` are in ignored `.local/qa-online-voices/`.
+
+**Not run:**
+- Piece-by-piece display on a device against a live DeepSeek stream. This needs the merge, and the local `.env` DeepSeek key returns 402.
+- Whether Vercel's Python runtime sends the stream unbuffered. If it buffers, the reply still arrives whole and complete, as it does today.
+- Physical phone.
+
 STATUS: AWAITING DEVICE VALIDATION
 STOPPED — awaiting explicit human approval

@@ -17,6 +17,8 @@ export interface OnlineChatReply {
   reply: string;
   sources: HandbookSource[];
   usedHandbook: boolean;
+  /** Streaming only: DeepSeek stopped part-way, so `reply` is what arrived. */
+  interrupted?: boolean;
 }
 
 export interface HandbookStatus {
@@ -27,6 +29,11 @@ export interface HandbookStatus {
 
 export interface SendChatMessageOptions {
   useHandbook?: boolean;
+}
+
+export interface StreamChatMessageOptions extends SendChatMessageOptions {
+  /** The reply so far, each time more of it arrives. */
+  onReplyText: (replySoFar: string) => void;
 }
 
 const HANDBOOK_SETTING_KEY = 'chat.useHandbook';
@@ -125,11 +132,13 @@ const normalizeSources = (raw?: BackendChatSource[]): HandbookSource[] => {
     }));
 };
 
-export const onlineChatSkill = {
-  sendChatMessage: async (
-    messages: OnlineChatMessage[],
-    options: SendChatMessageOptions = {},
-  ): Promise<CloudResult<OnlineChatReply>> => {
+const normalizeName = (text: string): string =>
+  text
+    .replace(/\bL[.-]?A[.-]?F[.-]?I[.-]?N[.-]?A\b/gi, 'lafina')
+    .replace(/\bLAFINA\b/g, 'lafina');
+
+/** Newest turns that fit the backend's limits, or null when nothing is left. */
+const boundMessages = (messages: OnlineChatMessage[]): OnlineChatMessage[] | null => {
     const trimmed = messages
       .slice(-MAX_CHAT_MESSAGES)
       .map((msg) => ({
@@ -145,12 +154,58 @@ export const onlineChatSkill = {
       budget = Math.max(0, budget - content.length);
       return accepted;
     }).filter((msg): msg is OnlineChatMessage => msg !== null).reverse();
-    if (bounded.length === 0) {
-      return {
-        status: 'validation_error',
-        error: 'Message cannot be empty.',
-      };
+    return bounded.length > 0 ? bounded : null;
+};
+
+const EMPTY_MESSAGE: CloudResult<OnlineChatReply> = {
+  status: 'validation_error',
+  error: 'Message cannot be empty.',
+};
+
+interface StreamEvent {
+  type?: unknown;
+  text?: unknown;
+  sources?: BackendChatSource[];
+  usedHandbook?: unknown;
+}
+
+/** Splits Server-Sent Events text into complete events, keeping any partial tail. */
+const takeEvents = (buffer: string): { events: StreamEvent[]; rest: string } => {
+  const blocks = buffer.split(/\r?\n\r?\n/);
+  const rest = blocks.pop() ?? '';
+  const events: StreamEvent[] = [];
+  for (const block of blocks) {
+    const data = block
+      .split(/\r?\n/)
+      .filter((line) => line.startsWith('data:'))
+      .map((line) => line.slice(5).trimStart())
+      .join('\n');
+    if (!data) continue; // comments and keep-alives
+    try {
+      const parsed: unknown = JSON.parse(data);
+      if (parsed && typeof parsed === 'object') events.push(parsed as StreamEvent);
+    } catch {
+      // A malformed event is skipped; the reply carries on.
     }
+  }
+  return { events, rest };
+};
+
+// Set once the backend answers 404/405 for the stream route (a deployment
+// without it), so later messages go straight to the regular endpoint.
+let streamRouteMissing = false;
+
+export const resetChatStreamSupport = (): void => {
+  streamRouteMissing = false;
+};
+
+export const onlineChatSkill = {
+  sendChatMessage: async (
+    messages: OnlineChatMessage[],
+    options: SendChatMessageOptions = {},
+  ): Promise<CloudResult<OnlineChatReply>> => {
+    const bounded = boundMessages(messages);
+    if (!bounded) return EMPTY_MESSAGE;
 
     const result = await cloudClient.request<BackendChatResponse>(
       '/v1/ai/chat',
@@ -180,9 +235,7 @@ export const onlineChatSkill = {
       };
     }
 
-    const reply = rawReply
-      .replace(/\bL[.-]?A[.-]?F[.-]?I[.-]?N[.-]?A\b/gi, 'lafina')
-      .replace(/\bLAFINA\b/g, 'lafina');
+    const reply = normalizeName(rawReply);
 
     return {
       status: 'success',
@@ -190,6 +243,85 @@ export const onlineChatSkill = {
         reply,
         sources: normalizeSources(result.data.sources),
         usedHandbook: Boolean(result.data.usedHandbook ?? result.data.used_handbook ?? result.data.sources?.length),
+      },
+    };
+  },
+
+  /**
+   * The same reply as `sendChatMessage`, shown while DeepSeek writes it.
+   * Falls back to the regular endpoint when the stream route is missing or
+   * the stream fails before any text, so the result is never worse than a
+   * normal request. If the reply stops part-way, the text that arrived is
+   * returned with `interrupted: true`.
+   */
+  streamChatMessage: async (
+    messages: OnlineChatMessage[],
+    options: StreamChatMessageOptions,
+  ): Promise<CloudResult<OnlineChatReply>> => {
+    const bounded = boundMessages(messages);
+    if (!bounded) return EMPTY_MESSAGE;
+    const useHandbook = options.useHandbook !== false;
+    const fallback = () => onlineChatSkill.sendChatMessage(bounded, { useHandbook });
+    if (streamRouteMissing) return fallback();
+
+    let buffer = '';
+    let reply = '';
+    let done: StreamEvent | null = null;
+    let failed = false;
+    const consume = (events: StreamEvent[]) => {
+      for (const event of events) {
+        if (event.type === 'delta' && typeof event.text === 'string') {
+          reply += event.text;
+        } else if (event.type === 'done') {
+          done = event;
+        } else if (event.type === 'error') {
+          failed = true;
+        }
+      }
+    };
+    const result = await cloudClient.stream(
+      '/v1/ai/chat/stream',
+      { messages: bounded, useHandbook },
+      {
+        onText: (chunk) => {
+          const before = reply;
+          const parsed = takeEvents(buffer + chunk);
+          buffer = parsed.rest;
+          consume(parsed.events);
+          if (reply !== before && reply.trim()) {
+            options.onReplyText(normalizeName(reply.trimStart()));
+          }
+        },
+      },
+      true,
+    );
+    if (buffer.trim()) consume(takeEvents(`${buffer}\n\n`).events);
+
+    const text = normalizeName(reply.trim());
+    if (!text) {
+      if (result.httpStatus === 404 || result.httpStatus === 405) {
+        streamRouteMissing = true;
+        return fallback();
+      }
+      // A connection failure, or a 200 that was not a usable stream (a proxy
+      // that rewrote it, say): the regular request gives the real answer.
+      if (result.status === 'success' || result.status === 'server_unavailable') {
+        return fallback();
+      }
+      return {
+        status: result.status,
+        error: result.error || 'Cloud AI chat request failed.',
+        httpStatus: result.httpStatus,
+      };
+    }
+    const finished = done as StreamEvent | null;
+    return {
+      status: 'success',
+      data: {
+        reply: text,
+        sources: normalizeSources(finished?.sources),
+        usedHandbook: Boolean(finished?.usedHandbook ?? finished?.sources?.length),
+        ...(finished && !failed ? {} : { interrupted: true }),
       },
     };
   },

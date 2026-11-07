@@ -28,6 +28,8 @@ interface ChatMessageItemProps {
   onSpeak?: (text: string) => void | Promise<unknown>;
   onStopSpeaking?: () => void | Promise<unknown>;
   onOpenAttachment?: (attachment: ChatAttachment) => void;
+  /** The reply is still being written: show it as it grows, without controls. */
+  streaming?: boolean;
 }
 
 const AttachmentIcon: React.FC<{format: string; color: string}> = ({
@@ -50,6 +52,7 @@ export const ChatMessageItem: React.FC<ChatMessageItemProps> = ({
   onSpeak,
   onStopSpeaking,
   onOpenAttachment,
+  streaming = false,
 }) => {
   const isUser = item.sender === 'user';
   const {colors} = useTheme();
@@ -129,9 +132,15 @@ export const ChatMessageItem: React.FC<ChatMessageItemProps> = ({
             styles.messageText,
             isUser ? styles.userText : themed.assistantText,
           ]}
-          testID="chat-message-content"
+          testID={streaming ? 'chat-streaming-content' : 'chat-message-content'}
+          accessibilityLiveRegion={streaming ? 'polite' : undefined}
         >
           {item.content}
+          {streaming ? (
+            <Text style={{color: colors.primary}} accessible={false}>
+              {' ▍'}
+            </Text>
+          ) : null}
         </Text>
 
         {attachment && (
@@ -175,6 +184,7 @@ export const ChatMessageItem: React.FC<ChatMessageItemProps> = ({
           </View>
         ) : null}
 
+        {streaming ? null : (
         <View style={styles.footerRow}>
           <Text
             style={[
@@ -204,6 +214,7 @@ export const ChatMessageItem: React.FC<ChatMessageItemProps> = ({
             </TouchableOpacity>
           )}
         </View>
+        )}
       </View>
     </View>
   );
