@@ -1,0 +1,560 @@
+From 2d431304f04b8ada48191e535004857f8074d13c Mon Sep 17 00:00:00 2001
+From: John Lemar Gonzales <johnlemargonzales@gmail.com>
+Date: Sat, 7 Nov 2026 22:36:07 +0800
+Subject: [PATCH] Open online chat and ElevenLabs voices to all signed-in
+ accounts
+
+- Chat (DeepSeek) and online speech now require an authenticated, active
+  account instead of student_pro. Guests and disabled accounts stay denied;
+  per-account quotas and usage recording are unchanged. Paid generation
+  features (documents, flashcards, meeting notes) keep has_online_ai_access.
+- New authenticated GET /v1/ai/tts/voices returns a bounded, cached,
+  sanitized ElevenLabs catalogue ({provider, defaultVoiceId, voices}).
+- POST /v1/ai/tts accepts an optional validated voiceId; explicit IDs must
+  be in the current catalogue before any paid generation (unknown -> 422).
+- Chat response adds provider and usedHandbook; the system prompt no longer
+  claims the server saved local schedules.
+- DEEPSEEK_MODEL defaults to deepseek-flash; the retired deepseek-v4-flash
+  alias is normalized so existing deployments keep working.
+---
+ .env.example                  |   2 +-
+ app/api/v1/ai.py              |  41 +++++++++---
+ app/clients/elevenlabs_tts.py |  65 ++++++++++++++++++-
+ app/config.py                 |   5 +-
+ app/services/capabilities.py  |   9 ++-
+ tests/test_api.py             |  27 +-------
+ tests/test_deepseek.py        |   4 +-
+ tests/test_documents.py       |   2 +-
+ tests/test_online_voices.py   | 114 ++++++++++++++++++++++++++++++++++
+ tests/test_tts_api.py         |  12 ++--
+ 10 files changed, 234 insertions(+), 47 deletions(-)
+ create mode 100644 tests/test_online_voices.py
+
+diff --git a/.env.example b/.env.example
+index 8390c7c..08a3331 100644
+--- a/.env.example
++++ b/.env.example
+@@ -42,7 +42,7 @@ REFRESH_TOKEN_EXPIRE_DAYS=30
+ # Cloud LLM & AI Services (Online Features — Student Pro / Admin)
+ DEEPSEEK_API_KEY=your_deepseek_api_key_here
+ DEEPSEEK_BASE_URL=https://api.deepseek.com
+-DEEPSEEK_MODEL=deepseek-v4-flash
++DEEPSEEK_MODEL=deepseek-flash
+ 
+ # Cloud Voice & Speech Services (Online TTS Preview — Student Pro)
+ GEMINI_API_KEY=your_gemini_api_key_here
+diff --git a/app/api/v1/ai.py b/app/api/v1/ai.py
+index 1d24f05..1d02537 100644
+--- a/app/api/v1/ai.py
++++ b/app/api/v1/ai.py
+@@ -19,6 +19,7 @@ from app.models.ai_usage import AIUsage
+ from app.security.auth import get_current_user_and_session
+ from app.services.capabilities import (
+     has_online_ai_access,
++    has_chat_access,
+     has_tts_access,
+     is_student_pro,
+ )
+@@ -82,7 +83,7 @@ LAFINA_SYSTEM_INSTRUCTION = (
+     "Your primary function is helping students organize their academic life: scheduling classes, study sessions, midterm exams, "
+     "assignments, reminders, and time blocks, while also answering academic and general questions. "
+     "Rule 1: NEVER refuse, decline, or lecture a user about their requested schedule times (including 3 AM, late night, or early morning hours). Always accept and confirm any requested time, date, or duration without judgment. "
+-    "Rule 2: When a user asks you to schedule, remind, or plan a task, confirm warmly as LAFINA that the schedule item has been created with the exact title, date, time, and duration requested."
++    "Rule 2: You cannot create or modify local schedules. Never claim a task, reminder or event was saved. Ask the student to use the app scheduling controls when a durable change is needed. "
+     "Rule 3: Do not use emojis in the chat"
+ )
+ 
+@@ -164,6 +165,8 @@ class HandbookSource(BaseModel):
+ 
+ 
+ class AIChatResponse(BaseModel):
++    provider: Literal["deepseek"] = "deepseek"
++    usedHandbook: bool = False
+     requestId: str
+     reply: str
+     model: str
+@@ -177,6 +180,7 @@ class AITtsRequest(BaseModel):
+     provider: Literal["elevenlabs"] = "elevenlabs"
+     requestId: str = Field(default_factory=lambda: str(uuid.uuid4()))
+     text: str = Field(..., min_length=1, max_length=512)
++    voiceId: str | None = Field(default=None, min_length=1, max_length=128, pattern=r"^[A-Za-z0-9_-]+$")
+ 
+ 
+ class AITtsResponse(BaseModel):
+@@ -201,10 +205,10 @@ async def chat_proxy(
+     owner_id = account.id
+ 
+     # Enforce role-based access for Online AI from live DB Account
+-    if not has_online_ai_access(account):
++    if not has_chat_access(account):
+         raise HTTPException(
+             status_code=status.HTTP_403_FORBIDDEN,
+-            detail="Online AI requires a student_pro subscription. Please upgrade your account."
++            detail="Sign in with an active account to use online chat."
+         )
+ 
+     now = datetime.now(timezone.utc)
+@@ -293,6 +297,7 @@ async def chat_proxy(
+         usage=usage_data,
+         createdAt=now_str,
+         sources=[HandbookSource(**passage.as_source()) for passage in passages],
++        usedHandbook=bool(passages),
+     )
+ 
+ 
+@@ -342,10 +347,29 @@ async def tts_capabilities(
+ ):
+     account, _ = auth_data
+     if not has_tts_access(account):
+-        raise HTTPException(status_code=403, detail="Online speech requires student_pro access.")
++        raise HTTPException(status_code=403, detail="Sign in with an active account to use online speech.")
+     return {"provider": "elevenlabs", "enabled": elevenlabs_tts.configured, "mimeType": "audio/mpeg"}
+ 
+ 
++@router.get("/tts/voices")
++async def tts_voices(
++    auth_data: Annotated[tuple[Account, AuthSession], Depends(get_current_user_and_session)],
++    elevenlabs_tts: ElevenLabsTtsClient = Depends(get_elevenlabs_tts_client),
++):
++    account, _ = auth_data
++    if not has_tts_access(account):
++        raise HTTPException(status_code=403, detail="An active account is required.")
++    try:
++        voices = await elevenlabs_tts.list_voices()
++    except ElevenLabsTtsError as err:
++        raise HTTPException(status_code=err.status_code, detail=err.message)
++    return {
++        "provider": "elevenlabs",
++        "defaultVoiceId": settings.ELEVENLABS_VOICE_ID,
++        "voices": voices,
++    }
++
++
+ @router.post("/tts", response_model=AITtsResponse)
+ async def tts_proxy(
+     req: AITtsRequest,
+@@ -356,11 +380,11 @@ async def tts_proxy(
+     account, _ = auth_data
+     owner_id = account.id
+ 
+-    # Enforce access for TTS from live DB Account (student_pro only)
++    # Enforce active-account access; authentication and quotas still apply.
+     if not has_tts_access(account):
+         raise HTTPException(
+             status_code=status.HTTP_403_FORBIDDEN,
+-            detail="ElevenLabs TTS requires a student_pro subscription. Please upgrade your account."
++            detail="Sign in with an active account to use online speech."
+         )
+ 
+     trimmed_text = req.text.strip()
+@@ -404,7 +428,8 @@ async def tts_proxy(
+     try:
+         audio_base64, usage_data = await elevenlabs_tts.synthesize_speech(
+             text=trimmed_text,
+-            request_id=req.requestId
++            request_id=req.requestId,
++            voice_id=req.voiceId,
+         )
+     except ElevenLabsTtsError as err:
+         raise HTTPException(
+@@ -427,7 +452,7 @@ async def tts_proxy(
+         audioBase64=audio_base64,
+         mimeType="audio/mpeg",
+         model=settings.ELEVENLABS_MODEL_ID,
+-        voice=settings.ELEVENLABS_VOICE_ID,
++        voice=req.voiceId or settings.ELEVENLABS_VOICE_ID,
+         createdAt=now_str
+     )
+ 
+diff --git a/app/clients/elevenlabs_tts.py b/app/clients/elevenlabs_tts.py
+index d886491..9b7ef0c 100644
+--- a/app/clients/elevenlabs_tts.py
++++ b/app/clients/elevenlabs_tts.py
+@@ -2,6 +2,7 @@
+ 
+ import asyncio
+ import base64
++import re
+ import time
+ from urllib.parse import quote
+ 
+@@ -22,6 +23,9 @@ class ElevenLabsTtsClient:
+         self.owns_client = client is None
+         self.used_characters = 0
+         self.requests: dict[str, float] = {}
++        self._voices: list[dict[str, str]] = []
++        self._voices_at = 0.0
++        self._voices_lock = asyncio.Lock()
+ 
+     @property
+     def configured(self):
+@@ -37,11 +41,68 @@ class ElevenLabsTtsClient:
+             await self.client.aclose()
+             self.client = None
+ 
+-    async def synthesize_speech(self, text: str, request_id: str):
++    async def list_voices(self) -> list[dict[str, str]]:
++        """Bounded, shared five-minute catalogue; no audio or arbitrary URLs."""
++        if not self.configured:
++            raise ElevenLabsTtsError("ElevenLabs speech is not configured.", 503)
++        async with self._voices_lock:
++            if self._voices_at and time.monotonic() - self._voices_at < 300:
++                return list(self._voices)
++            await self.start()
++            voices: dict[str, dict[str, str]] = {}
++            cursor = None
++            try:
++                async with asyncio.timeout(12):
++                    for _ in range(5):
++                        params = {"page_size": 100}
++                        if cursor:
++                            params["next_page_token"] = cursor
++                        response = await self.client.get(
++                            "https://api.elevenlabs.io/v2/voices",
++                            params=params,
++                            headers={"xi-api-key": self.settings.ELEVENLABS_API_KEY.get_secret_value().strip()},
++                            timeout=10,
++                        )
++                        if response.status_code == 429:
++                            raise ElevenLabsTtsError("Voice catalogue usage limit reached.", 429)
++                        if response.status_code in (401, 403):
++                            raise ElevenLabsTtsError("The server key needs Voices read permission.", 503)
++                        if response.status_code != 200:
++                            raise ElevenLabsTtsError("Voice catalogue is unavailable. Try again.")
++                        if len(response.content) > 2_000_000:
++                            raise ElevenLabsTtsError("Voice catalogue response is too large.")
++                        data = response.json()
++                        if not isinstance(data, dict) or not isinstance(data.get("voices"), list):
++                            raise ElevenLabsTtsError("Invalid voice catalogue response.")
++                        for voice in data["voices"][:100]:
++                            if not isinstance(voice, dict):
++                                continue
++                            voice_id, name = voice.get("voice_id"), voice.get("name")
++                            if isinstance(voice_id, str) and re.fullmatch(r"[A-Za-z0-9_-]{1,128}", voice_id) and isinstance(name, str) and name.strip():
++                                voices[voice_id] = {"id": voice_id, "name": name.strip()[:160]}
++                        cursor = data.get("next_page_token")
++                        if not data.get("has_more") or not isinstance(cursor, str) or not cursor:
++                            break
++                self._voices = sorted(voices.values(), key=lambda v: v["name"].casefold())
++                self._voices_at = time.monotonic()
++                return list(self._voices)
++            except (TimeoutError, httpx.TimeoutException):
++                raise ElevenLabsTtsError("Voice catalogue timed out. Try again.", 504) from None
++            except (httpx.HTTPError, ValueError):
++                raise ElevenLabsTtsError("Voice catalogue is unavailable. Try again.") from None
++
++    async def synthesize_speech(self, text: str, request_id: str, voice_id: str | None = None):
+         if not self.configured:
+             raise ElevenLabsTtsError("ElevenLabs speech is not configured.", 503)
+         if not text.strip() or len(text) > 512:
+             raise ElevenLabsTtsError("Speech text must contain 1 to 512 characters.", 400)
++        selected_voice = voice_id or self.settings.ELEVENLABS_VOICE_ID
++        if voice_id is not None:
++            if not re.fullmatch(r"[A-Za-z0-9_-]{1,128}", voice_id):
++                raise ElevenLabsTtsError("Invalid online voice selection.", 400)
++            voices = await self.list_voices()
++            if not any(voice["id"] == voice_id for voice in voices):
++                raise ElevenLabsTtsError("That online voice is no longer available. Choose another voice in Profile.", 422)
+         now = time.monotonic()
+         self.requests = {
+             key: created for key, created in self.requests.items() if now - created < 600
+@@ -60,7 +121,7 @@ class ElevenLabsTtsClient:
+                 async with self.client.stream(
+                     "POST",
+                     "https://api.elevenlabs.io/v1/text-to-speech/"
+-                    + quote(self.settings.ELEVENLABS_VOICE_ID, safe="")
++                    + quote(selected_voice, safe="")
+                     + "?output_format=mp3_44100_128",
+                     headers={
+                         "xi-api-key": self.settings.ELEVENLABS_API_KEY.get_secret_value().strip()
+diff --git a/app/config.py b/app/config.py
+index bd52394..1efcce6 100644
+--- a/app/config.py
++++ b/app/config.py
+@@ -166,7 +166,7 @@ class Settings(BaseSettings):
+     # DeepSeek API Configuration
+     DEEPSEEK_API_KEY: SecretStr | None = None
+     DEEPSEEK_BASE_URL: str = "https://api.deepseek.com"
+-    DEEPSEEK_MODEL: str = "deepseek-v4-flash"
++    DEEPSEEK_MODEL: str = "deepseek-flash"
+     # Flashcards need a model that follows a strict output shape over a long
+     # reply, which is a different job from the conversational assistant.
+     DEEPSEEK_FLASHCARD_MODEL: str = "deepseek-chat"
+@@ -312,6 +312,9 @@ class Settings(BaseSettings):
+ 
+     @model_validator(mode="after")
+     def validate_deepseek_config(self) -> "Settings":
++        # Compatibility for the retired alias used by existing deployments.
++        if self.DEEPSEEK_MODEL == "deepseek-v4-flash":
++            self.DEEPSEEK_MODEL = "deepseek-flash"
+         reason = self.get_deepseek_key_invalid_reason()
+         if self.ENVIRONMENT == "production" and reason is not None:
+             raise ValueError(
+diff --git a/app/services/capabilities.py b/app/services/capabilities.py
+index 8d881f0..9c68d24 100644
+--- a/app/services/capabilities.py
++++ b/app/services/capabilities.py
+@@ -37,9 +37,14 @@ def has_online_ai_access(account: Account) -> bool:
+     return bool(account.is_active) and (is_student_pro(account) or is_admin(account))
+ 
+ 
++def has_chat_access(account: Account) -> bool:
++    """Authenticated active accounts may use conversational online AI."""
++    return bool(account.is_active)
++
++
+ def has_tts_access(account: Account) -> bool:
+-    """Cloud TTS is a Student Pro feature only (admins are deliberately excluded)."""
+-    return is_student_pro(account)
++    """Authenticated active accounts may use online speech, within quotas."""
++    return bool(account.is_active)
+ 
+ 
+ def resolve_account_capabilities(account: Account) -> CapabilityResolution:
+diff --git a/tests/test_api.py b/tests/test_api.py
+index 1e22842..24e06cb 100644
+--- a/tests/test_api.py
++++ b/tests/test_api.py
+@@ -202,29 +202,8 @@ async def test_online_ai_proxy(async_client: AsyncClient):
+     token = reg_res.json()["access_token"]
+     headers = {"Authorization": f"Bearer {token}"}
+ 
+-    # 2. Student role attempt should be rejected with 403 Forbidden before provider call
+-    student_chat_res = await async_client.post("/v1/ai/chat", headers=headers, json={
+-        "requestId": "req-001",
+-        "messages": [
+-            {"role": "user", "content": "How do I organize my study schedule for midterms?"}
+-        ]
+-    })
+-    assert student_chat_res.status_code == 403
+-    assert "student_pro" in student_chat_res.json()["detail"]
+-
+-    # 3. Promote account role to student_pro in DB and log in to get updated JWT claim
+-    async with TestingSessionLocal() as db:
+-        stmt = select(Account).where(Account.email == "ai_user@ustp.edu.ph")
+-        acc = (await db.execute(stmt)).scalar_one()
+-        acc.role = "student_pro"
+-        await db.commit()
+-
+-    login_res = await async_client.post("/v1/auth/login", json={
+-        "email": "ai_user@ustp.edu.ph",
+-        "password": password
+-    })
+-    pro_token = login_res.json()["access_token"]
+-    pro_headers = {"Authorization": f"Bearer {pro_token}"}
++    # Ordinary signed-in students use the same chat route without plan promotion.
++    pro_headers = headers
+ 
+     # 4. Without configured DEEPSEEK_API_KEY in dev environment, should return 503 Service Unavailable
+     unconfig_settings = Settings(ENVIRONMENT="development", DEEPSEEK_API_KEY=None)
+@@ -271,7 +250,7 @@ async def test_online_ai_proxy(async_client: AsyncClient):
+     chat_data = pro_chat_res.json()
+     assert chat_data["requestId"] == "req-002"
+     assert "Prioritize weak subjects" in chat_data["reply"]
+-    assert chat_data["model"] == "deepseek-v4-flash"
++    assert chat_data["model"] == "deepseek-flash"
+     assert chat_data["usage"]["total_tokens"] == 25
+ 
+     # Verify AIUsage record created in DB
+diff --git a/tests/test_deepseek.py b/tests/test_deepseek.py
+index 8de4b82..3fcd2f1 100644
+--- a/tests/test_deepseek.py
++++ b/tests/test_deepseek.py
+@@ -65,7 +65,7 @@ async def test_client_successful_chat_completion(caplog):
+                 "id": "chatcmpl-123",
+                 "object": "chat.completion",
+                 "created": 1677858288,
+-                "model": "deepseek-v4-flash",
++                "model": "deepseek-flash",
+                 "choices": [
+                     {
+                         "index": 0,
+@@ -104,7 +104,7 @@ async def test_client_successful_chat_completion(caplog):
+     # Verify request parameters
+     assert captured_request["url"] == "https://api.deepseek.com/chat/completions"
+     assert captured_request["headers"]["authorization"] == "Bearer sk-valid-test-key-999"
+-    assert captured_request["body"]["model"] == "deepseek-v4-flash"
++    assert captured_request["body"]["model"] == "deepseek-flash"
+     assert captured_request["body"]["stream"] is False
+     assert captured_request["body"]["thinking"] == {"type": "disabled"}
+     assert captured_request["body"]["user"] == user_uuid
+diff --git a/tests/test_documents.py b/tests/test_documents.py
+index a3859e1..e449d4f 100644
+--- a/tests/test_documents.py
++++ b/tests/test_documents.py
+@@ -370,7 +370,7 @@ async def test_a_student_pro_gets_a_file(async_client: AsyncClient, fake_deepsee
+ 
+     call = fake.calls[0]
+     assert call["json_mode"] is True
+-    assert call["model"] == "deepseek-v4-flash"
++    assert call["model"] == "deepseek-flash"
+     # The conversation reaches the model after the system instruction.
+     assert call["messages"][0]["role"] == "system"
+     assert call["messages"][-1]["content"].startswith("Make me a PDF")
+diff --git a/tests/test_online_voices.py b/tests/test_online_voices.py
+new file mode 100644
+index 0000000..b5ae602
+--- /dev/null
++++ b/tests/test_online_voices.py
+@@ -0,0 +1,114 @@
++"""Signed-in chat/speech contract, with synthetic providers and real auth/SQLite."""
++import json
++
++import httpx
++import pytest
++from sqlalchemy import select
++
++from app.api.v1.ai import get_deepseek_client
++from app.clients.deepseek import DeepSeekClient
++from app.clients.elevenlabs_tts import ElevenLabsTtsClient, ElevenLabsTtsError
++from app.config import Settings
++from app.main import app
++from app.models.account import Account
++from app.services.capabilities import has_online_ai_access
++from tests.conftest import TestingSessionLocal
++
++
++@pytest.fixture
++def providers():
++    captured = []
++    def transport(request):
++        captured.append(request)
++        if request.method == "GET":
++            return httpx.Response(200, json={"voices": [{"voice_id": "voice_a", "name": "Alice"}, {"voice_id": "voice_b", "name": "Bella"}], "has_more": False})
++        if request.url.host == "api.deepseek.com":
++            return httpx.Response(200, json={"choices": [{"message": {"role": "assistant", "content": "Try short study sessions."}}], "usage": {"total_tokens": 12}})
++        return httpx.Response(200, content=b"synthetic audio", headers={"content-type": "audio/mpeg"})
++    config = Settings(_env_file=None, ENVIRONMENT="development", DEEPSEEK_API_KEY="synthetic-key", ELEVENLABS_API_KEY="synthetic-key")
++    http = httpx.AsyncClient(transport=httpx.MockTransport(transport))
++    eleven = ElevenLabsTtsClient(config, http)
++    deepseek = DeepSeekClient(config, http)
++    previous = app.dependency_overrides.get(get_deepseek_client)
++    previous_tts = getattr(app.state, "elevenlabs_tts_client", None)
++    app.dependency_overrides[get_deepseek_client] = lambda: deepseek
++    app.state.elevenlabs_tts_client = eleven
++    yield captured, eleven
++    if previous is None:
++        app.dependency_overrides.pop(get_deepseek_client, None)
++    else:
++        app.dependency_overrides[get_deepseek_client] = previous
++    app.state.elevenlabs_tts_client = previous_tts
++
++
++async def signed_in(client, role="student", active=True):
++    response = await client.post("/v1/auth/register", json={"email": "online-test@example.org", "password": "SyntheticPassword123!"})
++    assert response.status_code == 201
++    async with TestingSessionLocal() as db:
++        account = (await db.execute(select(Account).where(Account.email == "online-test@example.org"))).scalar_one()
++        account.role = role
++        account.is_active = active
++        # A basic student still cannot use unrelated paid generation features.
++        if role == "student":
++            assert not has_online_ai_access(account)
++        await db.commit()
++    return {"Authorization": "Bearer " + response.json()["access_token"]}
++
++
++@pytest.mark.parametrize("role", ["student", "student_pro", "admin"])
++async def test_all_active_signed_in_roles_can_choose_voice_and_chat(async_client, providers, role):
++    captured, _ = providers
++    headers = await signed_in(async_client, role)
++    catalogue = await async_client.get("/v1/ai/tts/voices", headers=headers)
++    assert catalogue.status_code == 200
++    assert catalogue.json()["voices"] == [{"id": "voice_a", "name": "Alice"}, {"id": "voice_b", "name": "Bella"}]
++    result = await async_client.post("/v1/ai/tts", headers=headers, json={"text": "Hello", "voiceId": "voice_b"})
++    assert result.status_code == 200
++    assert result.json()["voice"] == "voice_b"
++    assert captured[-1].url.path.endswith("/voice_b")
++    result = await async_client.post("/v1/ai/chat", headers=headers, json={"messages": [{"role": "user", "content": "Study advice?"}], "useHandbook": False})
++    assert result.status_code == 200
++    assert result.json()["provider"] == "deepseek"
++    assert result.json()["usedHandbook"] is False
++    assert result.json()["reply"] == "Try short study sessions."
++    payload = json.loads(captured[-1].content)
++    assert payload["model"] == "deepseek-flash"
++    assert payload["thinking"] == {"type": "disabled"}
++    assert not any(m["role"] == "system" and "has been created" in m["content"] for m in payload["messages"])
++    assert sum(r.method == "GET" for r in captured) == 1  # catalogue cache reused by synthesis
++
++
++async def test_guests_and_disabled_accounts_never_reach_providers(async_client, providers):
++    captured, _ = providers
++    for path in ["/v1/ai/tts/voices", "/v1/ai/tts/capabilities"]:
++        assert (await async_client.get(path)).status_code == 401
++    headers = await signed_in(async_client, active=False)
++    assert (await async_client.get("/v1/ai/tts/voices", headers=headers)).status_code == 401
++    assert (await async_client.post("/v1/ai/chat", headers=headers, json={"messages": [{"role": "user", "content": "Hello"}]})).status_code == 401
++    assert (await async_client.post("/v1/ai/tts", headers=headers, json={"text": "Hello"})).status_code == 401
++    assert captured == []
++
++
++async def test_unknown_and_malformed_voice_never_generate_audio(async_client, providers):
++    captured, eleven = providers
++    headers = await signed_in(async_client)
++    for voice, status in [("missing", 422), ("../path", 422)]:
++        response = await async_client.post("/v1/ai/tts", headers=headers, json={"text": "Hello", "voiceId": voice})
++        assert response.status_code == status
++    assert all(request.method == "GET" for request in captured)
++    assert eleven.used_characters == 0
++
++
++@pytest.mark.parametrize("status,expected", [(403, 503), (429, 429), (500, 502)])
++async def test_catalogue_errors_are_actionable_and_redacted(status, expected):
++    config = Settings(_env_file=None, ELEVENLABS_API_KEY="synthetic-key")
++    async with httpx.AsyncClient(transport=httpx.MockTransport(lambda _: httpx.Response(status, text="private provider body"))) as http:
++        with pytest.raises(ElevenLabsTtsError) as error:
++            await ElevenLabsTtsClient(config, http).list_voices()
++        assert error.value.status_code == expected
++        assert "private provider body" not in error.value.message
++
++
++def test_deepseek_legacy_alias_and_explicit_model():
++    assert Settings(_env_file=None, DEEPSEEK_MODEL="deepseek-v4-flash").DEEPSEEK_MODEL == "deepseek-flash"
++    assert Settings(_env_file=None, DEEPSEEK_MODEL="deepseek-v4-pro").DEEPSEEK_MODEL == "deepseek-v4-pro"
+diff --git a/tests/test_tts_api.py b/tests/test_tts_api.py
+index 646d3a4..477d52a 100644
+--- a/tests/test_tts_api.py
++++ b/tests/test_tts_api.py
+@@ -34,8 +34,8 @@ async def test_tts_unauthenticated_returns_401(async_client: AsyncClient):
+ async def test_tts_role_enforcement(async_client: AsyncClient):
+     """
+     Role enforcement test:
+-    - student -> 403 Forbidden
+-    - admin -> 403 Forbidden
++    - student -> 200 OK
++    - admin -> 200 OK
+     - student_pro -> 200 OK
+     """
+     app.state.elevenlabs_tts_client = create_mock_elevenlabs_client()
+@@ -51,8 +51,7 @@ async def test_tts_role_enforcement(async_client: AsyncClient):
+         json={"text": "Hello world"},
+         headers={"Authorization": f"Bearer {token_student}"},
+     )
+-    assert res_student.status_code == 403
+-    assert "student_pro" in res_student.json()["detail"]
++    assert res_student.status_code == 200
+ 
+     # 2. Promote user role in DB to admin -> must return 403 for TTS
+     async with TestingSessionLocal() as db:
+@@ -66,7 +65,7 @@ async def test_tts_role_enforcement(async_client: AsyncClient):
+         json={"text": "Hello world"},
+         headers={"Authorization": f"Bearer {token_student}"},
+     )
+-    assert res_admin.status_code == 403
++    assert res_admin.status_code == 200
+ 
+     # 3. Promote user role in DB to student_pro -> must succeed (200)
+     async with TestingSessionLocal() as db:
+@@ -203,7 +202,8 @@ async def test_elevenlabs_capability_requires_auth_and_entitlement(async_client:
+         json={"email": "elevenlabs_capability@ustp.edu.ph", "password": "SyntheticPassword123!"},
+     )
+     headers = {"Authorization": "Bearer " + registration.json()["access_token"]}
+-    assert (await async_client.get("/v1/ai/tts/capabilities", headers=headers)).status_code == 403
++    app.state.elevenlabs_tts_client = create_mock_elevenlabs_client()
++    assert (await async_client.get("/v1/ai/tts/capabilities", headers=headers)).status_code == 200
+     async with TestingSessionLocal() as db:
+         account = (
+             await db.execute(
+-- 
+2.55.0.windows.4
+

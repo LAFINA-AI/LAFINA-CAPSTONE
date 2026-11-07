@@ -32,7 +32,7 @@ export interface SendChatMessageOptions {
 const HANDBOOK_SETTING_KEY = 'chat.useHandbook';
 const HANDBOOK_SETTING_ALIAS = 'ustp_handbook_enabled';
 const MAX_CHAT_MESSAGES = 10;
-const MAX_CHAT_MESSAGE_LENGTH = 8_000;
+const MAX_CHAT_MESSAGE_LENGTH = 4_090;
 
 export const handbookPreference = {
   read: (userId: string): boolean => {
@@ -87,10 +87,14 @@ interface BackendChatResponse {
   reply: string;
   sources?: BackendChatSource[];
   used_handbook?: boolean;
+  usedHandbook?: boolean;
 }
 
 interface BackendHandbookStatusResponse {
   available?: unknown;
+  enabled?: boolean;
+  functional?: boolean;
+  passages?: number;
   title?: unknown;
   chunk_count?: unknown;
 }
@@ -111,8 +115,8 @@ const normalizeSources = (raw?: BackendChatSource[]): HandbookSource[] => {
           ? entry.section.trim()
           : null,
       page:
-        typeof entry.page === 'number' && Number.isFinite(entry.page)
-          ? entry.page
+        (typeof entry.page === 'number' || (typeof entry.page === 'string' && /^\d+$/.test(entry.page))) && Number.isFinite(Number(entry.page))
+          ? Number(entry.page)
           : null,
       snippet:
         typeof entry.snippet === 'string' && entry.snippet.trim()
@@ -133,7 +137,15 @@ export const onlineChatSkill = {
         content: msg.content.trim().slice(0, MAX_CHAT_MESSAGE_LENGTH),
       }))
       .filter((msg) => msg.content.length > 0);
-    if (trimmed.length === 0) {
+    // Keep the latest turn and fit the server's combined 8,000-character budget.
+    let budget = 8_000;
+    const bounded = trimmed.reverse().map(msg => {
+      const content = msg.content.slice(-budget);
+      const accepted = budget > 0 ? {...msg, content} : null;
+      budget = Math.max(0, budget - content.length);
+      return accepted;
+    }).filter((msg): msg is OnlineChatMessage => msg !== null).reverse();
+    if (bounded.length === 0) {
       return {
         status: 'validation_error',
         error: 'Message cannot be empty.',
@@ -145,8 +157,8 @@ export const onlineChatSkill = {
       {
         method: 'POST',
         body: JSON.stringify({
-          messages: trimmed,
-          use_handbook: options.useHandbook !== false,
+          messages: bounded,
+          useHandbook: options.useHandbook !== false,
         }),
       },
       true,
@@ -177,7 +189,7 @@ export const onlineChatSkill = {
       data: {
         reply,
         sources: normalizeSources(result.data.sources),
-        usedHandbook: Boolean(result.data.used_handbook),
+        usedHandbook: Boolean(result.data.usedHandbook ?? result.data.used_handbook ?? result.data.sources?.length),
       },
     };
   },
@@ -198,13 +210,13 @@ export const onlineChatSkill = {
     return {
       status: 'success',
       data: {
-        available: Boolean(result.data?.available),
+        available: Boolean(result.data?.available ?? (result.data?.enabled && result.data?.functional)),
         title:
           typeof result.data?.title === 'string' ? result.data.title : null,
         chunkCount:
           typeof result.data?.chunk_count === 'number'
             ? result.data.chunk_count
-            : 0,
+            : result.data?.passages ?? 0,
       },
     };
   },

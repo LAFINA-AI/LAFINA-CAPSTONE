@@ -1,0 +1,13 @@
+> lafina-capstone@1.3.4 preflight
+> npm run typecheck && npm run lint && npm test && npm run check:architecture
+> lafina-capstone@1.3.4 typecheck
+> tsc --noEmit
+> lafina-capstone@1.3.4 lint
+> eslint src __tests__ App.tsx index.js --max-warnings 0
+> lafina-capstone@1.3.4 test
+> jest --runInBand
+Test Suites: 60 passed, 60 total
+Tests:       1 skipped, 898 passed, 899 total
+> lafina-capstone@1.3.4 check:architecture
+> node scripts/check-architecture.mjs
+PASS: 229 TypeScript modules checked; 0 import cycles, 0 forbidden business/Gmail/study-tool/Kokoro dependencies; 76 offline leaves reach no network API or online module (transitive, dynamic imports included).

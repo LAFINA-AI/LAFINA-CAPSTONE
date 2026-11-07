@@ -131,3 +131,18 @@ Live `/openapi.json` now exposes `/v1/ai/tts/capabilities` and `/v1/ai/tts`; `AI
 
 STATUS: AWAITING DEVICE VALIDATION
 STOPPED — awaiting explicit human approval
+
+### Emulator launch follow-up — 2026-11-07
+
+Owner requested running the ElevenLabs changes in the emulator. Built and installed a fresh x86_64 standalone QA package `com.lafina.capstone.elevenlabs` on `Medium_Phone`, API 37. A build-only init script added the isolated application-ID suffix and reused the previously verified current Hermes bundle; no source changes were made. Build passed in 1m20s; installation and foreground launch to the welcome screen were directly observed. Existing app data was not cleared or uninstalled. Emulator networking was enabled. Metro was stopped because this standalone build does not need it; temporary build-drive mapping was removed.
+
+[Launch/build evidence](evidence/phase-09-elevenlabs-emulator-20261107/launch.json). The initial debug/Metro attempt was slow and was replaced with this successfully launched standalone build. Screenshot remains in ignored `.local/elevenlabs-emulator-ready.png`; no private account data was captured.
+
+Human handoff: on the open emulator tap **Log In** using an existing account with online voice access, enable Online Mode in Chat, send a synthetic question, and tap read aloud. Profile's voice test should identify ElevenLabs. Then test Stop and offline/local voice and reminders. Sign-in, successful cloud playback/audibility and the broader Android device matrix are still **NOT RUN**. Emulator launch is not physical-phone speech or alarm acceptance.
+
+STATUS: AWAITING DEVICE VALIDATION
+STOPPED — awaiting explicit human approval
+
+### Signed-in online voices follow-up — 2026-11-07
+
+The owner widened online chat and ElevenLabs speech to every signed-in account (guests sign in) and added an online voice picker. See [phase-09-online-voices-report-20261107.md](phase-09-online-voices-report-20261107.md) and ADR-029. The emulator launch evidence above predates that follow-up and does not validate it.

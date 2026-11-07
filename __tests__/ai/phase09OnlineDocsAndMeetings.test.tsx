@@ -79,7 +79,7 @@ describe('Phase 09: Online Mode, Document Generation & Meeting Transcription', (
         '/v1/ai/chat',
         expect.objectContaining({
           method: 'POST',
-          body: expect.stringContaining('"use_handbook":true'),
+          body: expect.stringContaining('"useHandbook":true'),
         }),
         true,
       );
@@ -88,7 +88,7 @@ describe('Phase 09: Online Mode, Document Generation & Meeting Transcription', (
       expect(res.handbookNote).toBe('Referenced USTP Student Handbook (p. 42)');
     });
 
-    it('falls back seamlessly to offline local assistant when cloud chat fails or is offline', async () => {
+    it('says plainly that DeepSeek did not reply when cloud chat fails or is offline', async () => {
       jest.spyOn(cloudClient, 'request').mockResolvedValueOnce({
         status: 'offline',
         error: 'Network request failed',
@@ -102,10 +102,10 @@ describe('Phase 09: Online Mode, Document Generation & Meeting Transcription', (
         },
       );
 
+      // Phase 09 follow-up: a local reply is never passed off as DeepSeek.
       expect(res.usedOnline).toBe(false);
-      expect(res.reply).toContain(
-        'I am lafina, your offline academic assistant',
-      );
+      expect(res.reply).toContain('DeepSeek cannot reply');
+      expect(res.reply).toContain('offline scheduling tools are still available');
     });
   });
 

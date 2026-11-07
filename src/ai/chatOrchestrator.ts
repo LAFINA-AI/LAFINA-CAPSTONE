@@ -187,6 +187,29 @@ const readDay = (userId: string, date: string): PlannerWindow => {
   }
 };
 
+/**
+ * Online Mode must never pass off a local reply as DeepSeek. Each failure says
+ * plainly that the online answer is missing and that offline tools still work.
+ */
+export const describeOnlineChatFailure = (status: string): string => {
+  const offlineNote = ' Your offline scheduling tools are still available.';
+  switch (status) {
+    case 'auth_required':
+      return 'Sign in to use DeepSeek in Online Mode.' + offlineNote;
+    case 'account_disabled':
+      return 'This account is disabled, so DeepSeek cannot reply.' + offlineNote;
+    case 'offline':
+      return 'You are offline, so DeepSeek cannot reply. Reconnect and send your message again.' + offlineNote;
+    case 'rate_limited':
+      return 'DeepSeek usage limit reached. Wait a moment and try again.' + offlineNote;
+    default:
+      return (
+        'DeepSeek could not reply right now. Check your connection and try sending your message again.' +
+        offlineNote
+      );
+  }
+};
+
 export class ChatOrchestrator {
   /**
    * Conflict-aware check for time block and calendar event overlaps.
@@ -486,7 +509,8 @@ export class ChatOrchestrator {
             handbookNote = handbookSourceLabel(onlineResult.data.sources);
             usedOnline = true;
           } else {
-            console.warn('[ChatOrchestrator] Online AI chat failed:', onlineResult.error);
+            console.warn('[ChatOrchestrator] Online AI chat failed:', onlineResult.status);
+            finalReply = describeOnlineChatFailure(onlineResult.status);
             if (
               options.useHandbook &&
               /\b(?:ustp|handbook|dean'?s\s+list|grading|policy|curriculum|tuition|retention)\b/i.test(

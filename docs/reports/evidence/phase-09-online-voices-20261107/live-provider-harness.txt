@@ -1,0 +1,9 @@
+configured DEEPSEEK_MODEL in root .env: deepseek-v4-flash
+normalized DEEPSEEK_MODEL: deepseek-flash
+register (ordinary student role): 201 student
+GET /v1/ai/tts/voices: 200 voices: 22
+POST /v1/ai/tts (selected non-default voice): 200 provider: elevenlabs mime: audio/mpeg voice matches selection: True audio bytes: 38913 mp3 header: True
+POST /v1/ai/tts (unknown voice): 422
+POST /v1/ai/chat: 503 provider: None usedHandbook: None reply chars: 0 total_tokens: None
+chat detail: DeepSeek provider billing is unavailable: Insufficient Balance (request_id: <redacted>)
+WARNING  lafina.deepseek:deepseek.py:269 DeepSeek upstream error HTTP 402 after 487ms [requestId=<redacted>] model=deepseek-flash upstream_detail='Insufficient Balance (request_id: <redacted>)'

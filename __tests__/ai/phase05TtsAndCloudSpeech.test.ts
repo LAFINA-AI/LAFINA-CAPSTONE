@@ -211,7 +211,7 @@ describe('Phase 05: Fast TTS via react-native-tts & Optional ElevenLabs Cloud TT
       jest.restoreAllMocks();
     });
 
-    test('falls back to react-native-tts when user role is student (not student_pro)', async () => {
+    test('falls back safely when the online server capability is unavailable', async () => {
       const provider = createCallSpeechProvider(testUserId, {
         isOnlineMode: () => true,
       });
@@ -238,10 +238,10 @@ describe('Phase 05: Fast TTS via react-native-tts & Optional ElevenLabs Cloud TT
       await provider.dispose?.();
     });
 
-    test('uses ElevenLabs cloud TTS when student is student_pro and online', async () => {
+    test('uses ElevenLabs cloud TTS for an ordinary signed-in student online', async () => {
       jest
         .spyOn(userStore, 'getUserById')
-        .mockReturnValue(createMockUser('student_pro'));
+        .mockReturnValue(createMockUser('student'));
       jest.spyOn(cloudClient, 'isOnline').mockResolvedValue(true);
 
       const mockAudioBase64 = Buffer.from('RIFF_MOCK_WAV_BYTES').toString(

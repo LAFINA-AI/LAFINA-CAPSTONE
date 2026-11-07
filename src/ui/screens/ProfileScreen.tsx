@@ -35,6 +35,8 @@ import {PreferencesSettingsScreen} from './PreferencesSettingsScreen';
 import {ReminderHealth} from '../components/profile/ReminderHealth';
 import {PersonalMemory} from '../components/profile/PersonalMemory';
 import {OfflineVoice} from '../components/profile/OfflineVoice';
+import {OnlineVoice} from '../components/profile/OnlineVoice';
+import {onlineVoiceSettingsStore} from '../../storage/onlineVoiceSettingsStore';
 import {speechSettingsStore} from '../../storage/speechSettingsStore';
 import {profileStatisticsStore} from '../../storage/profileStatisticsStore';
 import type {ProfileStatistics} from '../../storage/profileStatisticsStore';
@@ -107,6 +109,23 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
   const [eventDefaultsSummary, setEventDefaultsSummary] = useState('Off');
   const [voiceVisible, setVoiceVisible] = useState(false);
   const [voiceSummary, setVoiceSummary] = useState('Default');
+  const [onlineVoiceVisible, setOnlineVoiceVisible] = useState(false);
+  const [onlineVoiceSummary, setOnlineVoiceSummary] = useState(() => {
+    try {
+      return onlineVoiceSettingsStore.read(userId)?.name ?? 'Server default';
+    } catch {
+      return 'Choose again';
+    }
+  });
+  const loadOnlineVoiceSummary = () => {
+    try {
+      setOnlineVoiceSummary(
+        onlineVoiceSettingsStore.read(userId)?.name ?? 'Server default',
+      );
+    } catch {
+      setOnlineVoiceSummary('Choose again');
+    }
+  };
 
   const [weekStartsMonday, setWeekStartsMonday] = useState(() => {
     try {
@@ -175,6 +194,7 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
     );
     loadEventDefaultsSummary();
     loadVoiceSummary();
+    loadOnlineVoiceSummary();
   };
 
   const loadVoiceSummary = () => {
@@ -230,7 +250,8 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
       } else {
         Alert.alert(
           'TTS Test (Native Offline TTS)',
-          'Playback finished using react-native-tts (Android TextToSpeech).',
+          result.fallbackReason ||
+            'Playback finished using react-native-tts (Android TextToSpeech). Enable Online Mode in Chat for ElevenLabs.',
         );
       }
     } catch (e: unknown) {
@@ -602,6 +623,13 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
               valueText={voiceSummary}
               onPress={() => setVoiceVisible(true)}
             />
+            <View style={[styles.settingDivider, themed.settingDivider]} />
+            <SettingItem
+              text="Online Voice · ElevenLabs"
+              type="link"
+              valueText={onlineVoiceSummary}
+              onPress={() => setOnlineVoiceVisible(true)}
+            />
           </View>
 
           <Text
@@ -751,6 +779,13 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
         visible={memoryVisible}
         onClose={() => setMemoryVisible(false)}
         onChanged={loadEventDefaultsSummary}
+      />
+      <OnlineVoice
+        key={`online-${userId}`}
+        userId={userId}
+        visible={onlineVoiceVisible}
+        onClose={() => setOnlineVoiceVisible(false)}
+        onChanged={loadOnlineVoiceSummary}
       />
       <OfflineVoice
         userId={userId}
