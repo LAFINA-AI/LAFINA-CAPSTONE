@@ -141,7 +141,7 @@ Owner report: "hi", "hello" and "what are you?" got the same fixed reply even in
 
 Owner request: show the reply while DeepSeek writes it, a piece at a time like ChatGPT, instead of waiting for the whole answer.
 
-**Backend `bb506f7` (same unmerged branch `codex/open-online-voices`).**
+**Backend `afaa36b` (same unmerged branch `codex/open-online-voices`).**
 - New `POST /v1/ai/chat/stream`, sending Server-Sent Events:
   - `{"type":"delta","text"}` for each piece of the reply;
   - then `{"type":"done", provider, usedHandbook, sources, model, usage, requestId, createdAt}`;
@@ -150,7 +150,7 @@ Owner request: show the reply while DeepSeek writes it, a piece at a time like C
 - Provider errors before the first piece remain ordinary HTTP errors.
 - The request counts toward the chat quota once the reply starts, so disconnecting part-way does not avoid the quota. Token counts are filled in when the reply finishes.
 - `DeepSeekClient.chat_completion_stream` uses the same model, settings and error mapping as the regular call, now shared through `upstream_error()`.
-- `LAFINA-backend-online-voices.patch` is regenerated as a 3-commit `git am` series on `f0fae4d`.
+- `LAFINA-backend-online-voices.patch` is regenerated as a `git am` series (now 4 commits) on `f0fae4d`.
 
 **Mobile.**
 - `cloudClient.stream` uses React Native's `XMLHttpRequest`, because RN `fetch` cannot read a body incrementally. HTTP errors map exactly as in `request`, through the extracted `errorResult`.
@@ -190,6 +190,47 @@ Owner request: show the reply while DeepSeek writes it, a piece at a time like C
 - Piece-by-piece display on a device against a live DeepSeek stream. This needs the merge, and the local `.env` DeepSeek key returns 402.
 - Whether Vercel's Python runtime sends the stream unbuffered. If it buffers, the reply still arrives whole and complete, as it does today.
 - Physical phone.
+---
+
+## Addendum — Filipina voices and eleven_v4 (2026-11-07)
+
+Owner report: Online Mode offered only a male voice. The owner also asked to confirm the ElevenLabs model (`eleven_v4`).
+
+**Findings** (read-only API calls with the private key; no key printed):
+- The account's `GET /v1/models` lists `eleven_v4` and `eleven_v4_turbo`, both supporting Filipino (`fil`). The backend default was still `eleven_flash_v2_5`.
+- The account had 22 voices, including one Filipina voice (Camille). The app showed only the server default, George (British, male), because production does not yet have `/v1/ai/tts/voices`.
+- Library voices synthesize by voice ID without being added first. The first use of each takes about 15 s; later calls take about 1.8 s.
+- First use also adds the voice to the account. Testing added five Filipina voices: Ate Daniella, Amihan Reyes, Thea Santos, Cielle and Ate Weng. The account went from 22 to 27 voices.
+- Speed of a short Filipino sentence:
+
+  | Model | Time |
+  |---|---|
+  | `eleven_v4` | about 1.7–3.1 s |
+  | `eleven_v4_turbo` | 0.84 s |
+  | `eleven_flash_v2_5` | 0.28 s |
+
+**Backend `872197a`** (branch `codex/open-online-voices`, unmerged):
+- The catalogue always includes the six Filipina voices, listed first with short names. Other Filipino voices come next, then the rest by name.
+- Each entry carries validated `language` and `gender` labels.
+- Featured voices skip the catalogue lookup when selected.
+- Defaults are now `ELEVENLABS_VOICE_ID=BtcCEANLn920ZIoN9grW` (Camille) and `ELEVENLABS_MODEL_ID=eleven_v4`. A value already set in Vercel's environment still overrides these, so the Vercel owner should set or remove those two variables.
+- The private root `.env` now has `ELEVENLABS_MODEL_ID=eleven_v4`.
+
+**Mobile:**
+- The Online Voice sheet shows "Server default", then a "Filipina voices" section, then "More voices".
+- Each voice shows a line such as "Female · Filipino".
+- Only the ID and name are saved.
+
+**Verification:**
+- Backend: 197 passed. `backend_integration` mirror: 8 passed.
+- Live client check with `eleven_v4`:
+  - catalogue of 27 voices, with the six Filipina voices first;
+  - default voice and Thea Santos synthesized in 1.68–1.80 s.
+- New picker test in `phase09OnlineVoices.test.tsx` (34 tests in that suite).
+
+**Commit history:** at the owner's request, the Claude co-author line was removed from the two tip commits (backend `bb506f7` → `afaa36b`, mobile `aa432ba`). Both branches were updated with `--force-with-lease` after confirming that neither remote had moved. Older history was not rewritten.
+
+**Not run:** the voices on a device against production (needs the merge); physical phone.
 
 STATUS: AWAITING DEVICE VALIDATION
 STOPPED — awaiting explicit human approval
