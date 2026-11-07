@@ -33,5 +33,9 @@ class CapstoneBuildPackage : ReactPackage {
 class CapstoneBuildModule(context: ReactApplicationContext) : ReactContextBaseJavaModule(context) {
   override fun getName() = "CapstoneBuild"
   override fun getConstants(): Map<String, Any> =
-    mapOf("plannerHarnessEnabled" to BuildConfig.ENABLE_PLANNER_HARNESS)
+    mapOf(
+      "plannerHarnessEnabled" to BuildConfig.ENABLE_PLANNER_HARNESS,
+      // Empty except in a test build made with -PlafinaApiBaseUrl.
+      "apiBaseUrlOverride" to BuildConfig.API_BASE_URL_OVERRIDE,
+    )
 }

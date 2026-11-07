@@ -26,6 +26,9 @@ android {
         versionName '0.6.0'
         testInstrumentationRunner 'androidx.test.runner.AndroidJUnitRunner'
         buildConfigField 'boolean', 'ENABLE_PLANNER_HARNESS', 'false'
+        // Test builds only: -PlafinaApiBaseUrl=http://127.0.0.1:8000 sends
+        // online features to a backend on this computer (via adb reverse).
+        buildConfigField 'String', 'API_BASE_URL_OVERRIDE', '""'
     }
     aaptOptions {
         noCompress "onnx", "bin"
@@ -62,6 +65,8 @@ android {
             matchingFallbacks = ['debug']
             versionNameSuffix '-data-qa'
             buildConfigField 'boolean', 'ENABLE_PLANNER_HARNESS', 'true'
+            buildConfigField 'String', 'API_BASE_URL_OVERRIDE',
+                "\"${(project.findProperty('lafinaApiBaseUrl') ?: '').toString().replaceAll('[^A-Za-z0-9:/._-]', '')}\""
         }
     }
     externalNativeBuild {

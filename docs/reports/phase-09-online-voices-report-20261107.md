@@ -350,5 +350,33 @@ The DeepSeek key in the private local `.env` answered HTTP 402 (insufficient bal
 
 **Follow-up:** with the owner's approval ("proceed and merge"), LAFINA-backend `main` was fast-forwarded from `e31d894` to `4ae07eb`, adding only that commit. The change does not alter the API schema, so the deployment could not be confirmed from outside. The emulator was shut down before the streaming check, so streaming on a device after this deploy is NOT verified.
 
+## Addendum (2026-11-08): local backend for fast testing
+
+**Owner decision:** for testing, run LAFINA-backend on the developer's computer instead of calling DeepSeek and ElevenLabs from the app. Keys stay on the computer, as AGENTS.md requires.
+
+**Region confirmed:** the database host in the private `.env` (pulled from Vercel) is in `ap-southeast-1` (only the region was read). The production function runs in `iad1`. Recommended fix when the Vercel owner is available: `"regions": ["sin1"]` in `vercel.json`.
+
+**App changes:**
+- `dataQa` builds accept `-PlafinaApiBaseUrl=http://127.0.0.1:8000`. The value goes to `BuildConfig.API_BASE_URL_OVERRIDE`, then `CapstoneBuild.apiBaseUrlOverride`, then `apiBaseUrlsFor`. Only a plain `http(s)://host[:port]` is accepted. Debug and release builds always carry an empty value.
+- `dataQa` only: a network security config allows plain HTTP to `127.0.0.1` and `localhost` (which `adb reverse` forwards to the computer). Everything else stays HTTPS-only.
+- Tests: `__tests__/cloud/apiBaseUrl.test.ts`. `npm run preflight`: 66 suites, 983 passed, 1 skipped.
+
+**Local backend:**
+- `.local/run-local-backend.py` (git-ignored) runs `.local/elevenlabs-backend-work` (production `main`, `4ae07eb`) on `127.0.0.1:8000`.
+- It loads only the DeepSeek, ElevenLabs, Pinecone, JWT audience/issuer and token-lifetime settings from the private `.env`. It does not use the production database or seed an admin; it uses `.local/local-backend.db` (SQLite). Test accounts exist only there.
+
+**Measured from this computer (local test account):**
+
+| Request | Time |
+|---|---|
+| Speech, 84 chars, `latency: low` (`eleven_v4_turbo`) | 0.78 s |
+| Speech, 84 chars, standard (`eleven_v4`) | 1.84 s |
+| Speech, 29 chars, `latency: low`, first call | 1.58 s |
+| Chat stream | DeepSeek HTTP 402 "Insufficient Balance" |
+
+For comparison, about 6 to 7 s per speech request through production. The DeepSeek account behind the local key shows a balance of -0.93 USD, so local chat needs a funded key in the private `.env`.
+
+**Build used:** x86_64 `dataQa` with the override (`com.lafina.capstone.elevenlabs`), at `X:/android/app/build/outputs/apk/dataQa/app-x86_64-dataQa.apk`. Not installed: no device was connected.
+
 STATUS: AWAITING DEVICE VALIDATION
 STOPPED — awaiting explicit human approval
