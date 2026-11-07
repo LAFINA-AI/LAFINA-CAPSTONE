@@ -6,6 +6,7 @@ import {
 
 export interface CallSpeechResult {
   source: 'elevenlabs' | 'native_tts' | 'cancelled';
+  fallbackReason?: string;
 }
 
 export interface CallSpeechProvider {

@@ -320,36 +320,38 @@ export const ChatScreen: React.FC<ChatScreenProps> = ({
       const isDeviceConnected = Boolean(
         isConnected && isInternetReachable !== false,
       );
-      const userPreference = localSettingsStore.get(
-        userId,
-        'chat.onlineMode',
-        null,
-      );
+      const optedIn = () =>
+        localSettingsStore.get(userId, 'chat.onlineMode', null) === 'true';
 
-      // If user explicitly chose offline, honor their manual choice
-      if (userPreference === 'false') {
+      // Online Mode is opt-in: connectivity alone never turns it on.
+      if (!optedIn()) {
         return;
       }
 
       if (isDeviceConnected) {
         const auth = await accountLinkService.authorizeOnlineMode(userId);
-        if (active && auth.status === 'success') {
+        // The student may have switched Online Mode off while this was pending.
+        if (active && auth.status === 'success' && optedIn()) {
           setIsOnlineMode(true);
-          if (userPreference !== 'true') {
-            localSettingsStore.set(userId, 'chat.onlineMode', 'true');
-          }
         }
       } else if (active) {
         setIsOnlineMode(false);
       }
     };
 
-    NetInfo.fetch().then(state => {
-      void syncConnectivity(state.isConnected, state.isInternetReachable);
-    });
+    void NetInfo.fetch()
+      .then(state => {
+        void syncConnectivity(
+          state.isConnected,
+          state.isInternetReachable,
+        ).catch(() => undefined);
+      })
+      .catch(() => undefined);
 
     const unsubscribe = NetInfo.addEventListener(state => {
-      void syncConnectivity(state.isConnected, state.isInternetReachable);
+      void syncConnectivity(state.isConnected, state.isInternetReachable).catch(
+        () => undefined,
+      );
     });
 
     return () => {
@@ -364,7 +366,10 @@ export const ChatScreen: React.FC<ChatScreenProps> = ({
     handbookPreference.write(userId, next);
   };
 
+  const onlineToggleTicket = useRef(0);
   const handleToggleOnline = async (): Promise<boolean> => {
+    // Any tap (on or off) supersedes a pending enable from an earlier tap.
+    const ticket = ++onlineToggleTicket.current;
     if (isOnlineMode) {
       void onlineSpeech.current?.stopSpeech?.().catch(() => undefined);
       setIsOnlineMode(false);
@@ -373,8 +378,9 @@ export const ChatScreen: React.FC<ChatScreenProps> = ({
       return false;
     }
 
-    const netState = await NetInfo.fetch();
-    if (!netState.isConnected) {
+    const netState = await NetInfo.fetch().catch(() => null);
+    if (ticket !== onlineToggleTicket.current) return false;
+    if (!netState?.isConnected) {
       Alert.alert(
         'Device Offline',
         'Please connect to Wi-Fi or mobile data to use Online Mode.',
@@ -382,7 +388,13 @@ export const ChatScreen: React.FC<ChatScreenProps> = ({
       return false;
     }
 
-    const result = await accountLinkService.authorizeOnlineMode(userId);
+    const result = await accountLinkService
+      .authorizeOnlineMode(userId)
+      .catch(() => ({
+        status: 'network_error' as const,
+        message: 'Could not reach the LAFINA server. Try again.',
+      }));
+    if (ticket !== onlineToggleTicket.current) return false;
     if (result.status !== 'success') {
       Alert.alert(
         'Online Mode Unavailable',
@@ -391,8 +403,14 @@ export const ChatScreen: React.FC<ChatScreenProps> = ({
       return false;
     }
 
+    if (!localSettingsStore.set(userId, 'chat.onlineMode', 'true')) {
+      Alert.alert(
+        'Online Mode Unavailable',
+        'Could not save the Online Mode setting on this device. Try again.',
+      );
+      return false;
+    }
     setIsOnlineMode(true);
-    localSettingsStore.set(userId, 'chat.onlineMode', 'true');
     return true;
   };
 
@@ -784,7 +802,12 @@ export const ChatScreen: React.FC<ChatScreenProps> = ({
             handbookNote={item.handbookNote ?? handbookNotes[item.id]}
             onSpeak={
               isOnlineMode
-                ? text => onlineSpeech.current?.speakText(text)
+                ? async text => {
+                    const result = await onlineSpeech.current?.speakText(text);
+                    if (result?.fallbackReason)
+                      Alert.alert('Using offline voice', result.fallbackReason);
+                    return result;
+                  }
                 : undefined
             }
             onStopSpeaking={

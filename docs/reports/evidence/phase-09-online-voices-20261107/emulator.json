@@ -1,0 +1,31 @@
+{
+  "atLocal": "2026-11-07T22:32-22:35 (+08:00)",
+  "sourceState": "Lem-branch working tree before the follow-up commit (parent 91082bc); fresh dataQa JS bundle built from the physical checkout path",
+  "avd": "Medium_Phone",
+  "adbSerial": "emulator-5554",
+  "model": "sdk_gphone16k_x86_64",
+  "androidApi": 37,
+  "abi": "x86_64",
+  "package": "com.lafina.capstone.elevenlabs",
+  "versionName": "0.6.0-data-qa",
+  "apkPath": "android/app/build/outputs/apk/dataQa/app-x86_64-dataQa.apk",
+  "apkSha256": "3c64ba52b38a200bd8351ab4349b574b6f5d71cd1541e67e22a779da51560994",
+  "apkBytes": 154630688,
+  "bundleContainsPicker": true,
+  "install": "PASS - adb install -r; existing app data preserved (not cleared or uninstalled)",
+  "observed": [
+    "Profile > AI & Voice shows a separate 'Online Voice · ElevenLabs' row (value 'Server default') under 'Offline Voice'",
+    "Sheet opens in dark theme with intro text, 'Current: Server default', selected radio with check mark, notice line and Reload voices / Preview voice footer",
+    "With Online Mode off the sheet made no catalogue request and showed 'Enable Online Mode in Chat to load and preview ElevenLabs voices.'",
+    "Preview with Online Mode off reported 'Played with the offline device voice, not ElevenLabs. ...' (audio not verified by the agent)",
+    "Chat stayed 'Offline' on a connected emulator (no automatic Online Mode)",
+    "Tapping Offline > Online showed 'Online Mode Unavailable: Automatic FastAPI linking is unavailable for this older local session. Sign out and sign in once while online...' and stayed offline"
+  ],
+  "notRun": [
+    "Signed-in catalogue load, voice selection against the server, ElevenLabs preview/read-aloud: the emulator's local session has no cloud token and production lacks /v1/ai/tts/voices until the backend branch is merged",
+    "Ordinary (non-Pro) student account on device",
+    "Light theme, large font and long voice names on device (covered only by layout review and Jest)",
+    "Audibility of any speech; physical phone; ARM64 build"
+  ],
+  "screenshots": "ignored .local/qa-online-voices/ (contain the owner's profile name/email, so not published)"
+}

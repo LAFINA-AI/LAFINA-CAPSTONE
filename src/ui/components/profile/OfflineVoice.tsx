@@ -60,7 +60,7 @@ const factor = (value: number): string => `${value.toFixed(2)}×`;
  * AGY-PORT 10: explicit offline voice, speed and pitch for this account's
  * local speech (react-native-tts). Without a choice AGY's automatic voice and
  * the engine's own speed and pitch stay in use. Preview and Stop act on this
- * sheet's own utterance only. Student Pro cloud speech is unchanged.
+ * sheet's own utterance only. Online Voice settings are independent.
  */
 export const OfflineVoice: React.FC<OfflineVoiceProps> = ({ userId, visible, onClose, onChanged }) => {
   const themed = useThemedStyles(getThemedStyles);
@@ -219,8 +219,7 @@ export const OfflineVoice: React.FC<OfflineVoiceProps> = ({ userId, visible, onC
     >
       <Text style={[styles.note, themed.muted]}>
         For speech made on this phone without the internet. Only voices Android reports as
-        installed and offline are listed; nothing is downloaded. Student Pro cloud speech, when
-        online, is unchanged. Kept on this device for this account.
+        installed and offline are listed; nothing is downloaded. Online Voice has separate settings. Kept on this device for this account.
       </Text>
 
       <Text style={[styles.section, themed.text]}>Speech engine</Text>

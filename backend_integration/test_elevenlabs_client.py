@@ -93,3 +93,39 @@ async def test_budget_and_input_validation_before_network():
         with pytest.raises(ElevenLabsTtsError) as invalid:
             await client.synthesize_speech("x" * 513, "r2")
         assert invalid.value.status_code == 400
+
+
+@pytest.mark.anyio
+async def test_catalogue_cache_and_selected_voice_validation():
+    """Follow-up: bounded voice catalogue, then only listed voices reach synthesis."""
+    captured = []
+
+    def handler(request):
+        captured.append(request)
+        if request.method == "GET":
+            return httpx.Response(200, json={
+                "voices": [
+                    {"voice_id": "voice_b", "name": " Bella "},
+                    {"voice_id": "../bad", "name": "Bad"},
+                    {"voice_id": "voice_a", "name": "Alice"},
+                ],
+                "has_more": False,
+            })
+        return httpx.Response(200, content=b"mp3", headers={"content-type": "audio/mpeg"})
+
+    async with httpx.AsyncClient(transport=httpx.MockTransport(handler)) as http:
+        client = ElevenLabsTtsClient(settings(), http)
+        voices = await client.list_voices()
+        assert voices == [{"id": "voice_a", "name": "Alice"}, {"id": "voice_b", "name": "Bella"}]
+        await client.synthesize_speech("Hello", "r1", voice_id="voice_b")
+        assert captured[-1].url.path.endswith("/voice_b")
+        with pytest.raises(ElevenLabsTtsError) as missing:
+            await client.synthesize_speech("Hello", "r2", voice_id="removed_voice")
+        assert missing.value.status_code == 422
+        with pytest.raises(ElevenLabsTtsError) as malformed:
+            await client.synthesize_speech("Hello", "r3", voice_id="../x")
+        assert malformed.value.status_code == 400
+        # One catalogue fetch serves later validation; rejected IDs never synthesize.
+        assert sum(r.method == "GET" for r in captured) == 1
+        assert sum(r.method == "POST" for r in captured) == 1
+        assert client.used_characters == len("Hello")
