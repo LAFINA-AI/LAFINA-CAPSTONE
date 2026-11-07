@@ -35,11 +35,29 @@ let inMemoryUserId: string | null = null;
 export const CLOUD_API_BASE_URL = 'https://lafina-backend.vercel.app';
 export const LOCAL_API_BASE_URL = 'http://127.0.0.1:8000';
 
-export const apiBaseUrlsFor = (isDevelopment: boolean): readonly string[] =>
-  isDevelopment ? [CLOUD_API_BASE_URL, LOCAL_API_BASE_URL] : [CLOUD_API_BASE_URL];
+/**
+ * Where online features go. A test build made with `-PlafinaApiBaseUrl`
+ * (for example a backend on this computer, reached through `adb reverse`)
+ * uses only that server; release builds never carry an override.
+ */
+export const apiBaseUrlsFor = (
+  isDevelopment: boolean,
+  override?: string | null,
+): readonly string[] => {
+  const testServer = override?.trim().replace(/\/+$/, '');
+  if (testServer && /^https?:\/\/[A-Za-z0-9.-]+(?::\d+)?$/.test(testServer)) {
+    return [testServer];
+  }
+  return isDevelopment ? [CLOUD_API_BASE_URL, LOCAL_API_BASE_URL] : [CLOUD_API_BASE_URL];
+};
+
+const buildOverride = (
+  NativeModules.CapstoneBuild as { apiBaseUrlOverride?: unknown } | undefined
+)?.apiBaseUrlOverride;
 
 const defaultApiBaseUrls: readonly string[] = apiBaseUrlsFor(
   typeof __DEV__ !== 'undefined' && __DEV__,
+  typeof buildOverride === 'string' ? buildOverride : null,
 );
 let apiBaseUrls: readonly string[] = defaultApiBaseUrls;
 
