@@ -39,7 +39,10 @@ import {ensureMicrophonePermission} from '../../ai/stt/sttService';
 import {chatOrchestrator} from '../../ai/chatOrchestrator';
 import {ttsService} from '../../ai/tts/ttsService';
 import {createCallSpeechProvider} from '../../cloud/speechService';
-import type {CallSpeechProvider} from '../../scheduler/speechProvider';
+import type {
+  CallSpeechProvider,
+  SpeechStream,
+} from '../../scheduler/speechProvider';
 import {localSettingsStore} from '../../storage/localSettingsStore';
 import {handbookPreference} from '../../skills/onlineChatSkill';
 import type {PrepareResult} from '../../ai/nlu/commandReview';
@@ -105,18 +108,21 @@ interface CommandOutcome {
 const executeDefaultCommand = async (
   command: string,
   userId: string,
+  onReplyText?: (replySoFar: string) => void,
 ): Promise<CommandOutcome> => {
   const trimmed = command.trim();
   if (!trimmed) {
     return {reply: 'What would you like me to do?'};
   }
   try {
-    // Same Online Mode switch as Chat: online, conversation goes to DeepSeek.
+    // Same Online Mode switch as Chat: online, conversation goes to DeepSeek,
+    // and the reply streams in so it can be shown and spoken as it is written.
     const result = await chatOrchestrator.processMessage(userId, trimmed, {
       reviewSurface: 'voice',
       onlineMode:
         localSettingsStore.get(userId, 'chat.onlineMode', null) === 'true',
       useHandbook: handbookPreference.read(userId),
+      ...(onReplyText ? {onReplyText} : {}),
     });
     return {reply: result.reply, review: result.review};
   } catch (err) {
@@ -160,7 +166,8 @@ export const VoiceModal: React.FC<VoiceModalProps> = ({
   // online speech fails.
   const speechRef = useRef<CallSpeechProvider | null>(null);
   useEffect(() => {
-    const provider = createCallSpeechProvider(userId);
+    // A conversation: ask the server for its fastest voice model.
+    const provider = createCallSpeechProvider(userId, {latency: 'low'});
     speechRef.current = provider;
     return () => {
       if (speechRef.current === provider) speechRef.current = null;
@@ -171,17 +178,22 @@ export const VoiceModal: React.FC<VoiceModalProps> = ({
     void speechRef.current?.stopSpeech?.().catch(() => undefined);
     void ttsService.stop();
   }, []);
-  const speakReply = useCallback(async (text: string) => {
-    const provider = speechRef.current;
-    if (!provider) {
-      await ttsService.speak(text);
-      return;
-    }
-    const result = await provider.speakText(text);
-    if (result.fallbackReason) {
-      setNotice(`Read with the device voice: ${result.fallbackReason}`);
-    }
-  }, []);
+  const speakReply = useCallback(
+    async (text: string, stream?: SpeechStream | null) => {
+      const provider = speechRef.current;
+      if (!provider) {
+        await ttsService.speak(text);
+        return;
+      }
+      const result = stream
+        ? await stream.finish(text)
+        : await provider.speakText(text);
+      if (result.fallbackReason) {
+        setNotice(`Read with the device voice: ${result.fallbackReason}`);
+      }
+    },
+    [],
+  );
 
   // Timers cleanup
   const timersRef = useRef<Set<ReturnType<typeof setTimeout>>>(new Set());
@@ -254,6 +266,8 @@ export const VoiceModal: React.FC<VoiceModalProps> = ({
       warmupOfflineSpeech,
       WHISPER_WARMUP_DELAY_MS,
     );
+    // Check online speech now, so the first reply does not wait for it.
+    void speechRef.current?.warmUp?.().catch(() => undefined);
     return () => clearTimeout(warmupTimer);
   }, [visible]);
 
@@ -415,28 +429,36 @@ export const VoiceModal: React.FC<VoiceModalProps> = ({
   );
 
   const runCommand = useCallback(
-    async (command: string): Promise<CommandOutcome> => {
+    async (
+      command: string,
+      onReplyText?: (replySoFar: string) => void,
+    ): Promise<CommandOutcome> => {
       if (onCommand) {
         return {reply: await Promise.resolve(onCommand(command, userId))};
       }
-      return executeDefaultCommand(command, userId);
+      return executeDefaultCommand(command, userId, onReplyText);
     },
     [onCommand, userId],
   );
 
   /**
-   * Shows and speaks the reply. Returns true when a review card is now waiting,
-   * in which case the sheet stays open and nothing closes it automatically.
+   * Shows and speaks the reply (finishing `stream` when the reply was already
+   * being spoken as it arrived). Returns true when a review card is now
+   * waiting, in which case the sheet stays open and nothing closes it.
    */
   const presentOutcome = useCallback(
-    async (outcome: CommandOutcome, uiCaptureId: number): Promise<boolean> => {
+    async (
+      outcome: CommandOutcome,
+      uiCaptureId: number,
+      stream?: SpeechStream | null,
+    ): Promise<boolean> => {
       setAiReply(outcome.reply);
       const waiting = outcome.review?.status === 'proposal';
       if (waiting) reviewRef.current.present(outcome.review);
       setVoiceState('speaking');
 
       try {
-        await speakReply(outcome.reply);
+        await speakReply(outcome.reply, stream);
       } catch (err) {
         console.warn('[VoiceModal] TTS playback error:', err);
       }
@@ -641,13 +663,29 @@ export const VoiceModal: React.FC<VoiceModalProps> = ({
     setVoiceState('processing');
 
     safeSetTimeout(async () => {
+      // The reply is shown and spoken while it is still being written.
+      const stream = onCommand
+        ? null
+        : speechRef.current?.startSpeechStream?.() ?? null;
       try {
         if (onTranscript) {
           onTranscript(command);
         }
 
-        const outcome = await runCommand(command);
-        if (await presentOutcome(outcome, uiCaptureId)) return;
+        const outcome = await runCommand(command, replySoFar => {
+          if (activeCaptureRef.current !== uiCaptureId) {
+            stream?.cancel();
+            return;
+          }
+          setAiReply(replySoFar);
+          setVoiceState('speaking');
+          stream?.update(replySoFar);
+        });
+        if (activeCaptureRef.current !== uiCaptureId) {
+          stream?.cancel();
+          return;
+        }
+        if (await presentOutcome(outcome, uiCaptureId, stream)) return;
 
         if (activeCaptureRef.current === uiCaptureId) {
           setVoiceState('success');
@@ -660,6 +698,7 @@ export const VoiceModal: React.FC<VoiceModalProps> = ({
           }, VOICE_SUCCESS_DELAY_MS);
         }
       } catch (err) {
+        stream?.cancel();
         console.error(err);
         triggerErrorShake('idle');
       }

@@ -13,6 +13,7 @@ import {
 import type {
   CallSpeechProvider,
   CallSpeechResult,
+  SpeechStream,
 } from '../scheduler/speechProvider';
 
 const PLAYBACK_REQUEST_TIMEOUT_MS = 17_000;
@@ -113,11 +114,69 @@ export const splitForSpeech = (
   return chunks;
 };
 
+/** The first spoken piece is one short sentence, so the voice starts quickly. */
+export const FIRST_SEGMENT_MIN_CHARS = 12;
+/** A first sentence longer than this is cut at a comma or space instead. */
+export const FIRST_SEGMENT_MAX_CHARS = 160;
+
+/** Ends of sentences (followed by a space) and line ends. */
+const SENTENCE_END = /[.!?…]+["'”’)\]]*(?=\s)|\n/g;
+
+/**
+ * The next piece of a reply that is still being written, starting at
+ * `consumed` in the speakable text. The first piece is one sentence so the
+ * voice starts early; later pieces take every sentence finished so far (up
+ * to the request limit), so a reply needs few speech requests. Unfinished
+ * sentences wait unless the reply is `final`. Returns null when nothing is
+ * ready yet.
+ */
+export const takeSpeechSegment = (
+  spoken: string,
+  consumed: number,
+  options: {first: boolean; final: boolean},
+  limit: number = SPEECH_CHUNK_CHARS,
+): {text: string; end: number} | null => {
+  const rest = spoken.slice(consumed);
+  const lead = rest.length - rest.trimStart().length;
+  if (!rest.trim()) return null;
+  const finish = (cut: number) => {
+    const text = rest.slice(0, cut).trim();
+    return text ? {text, end: consumed + cut} : null;
+  };
+  const cutAtSpace = (max: number) => {
+    const window = rest.slice(0, max + 1);
+    const comma = window.lastIndexOf(', ');
+    const space = window.lastIndexOf(' ');
+    const at = comma > max / 2 ? comma + 1 : space > lead ? space : max;
+    return finish(at);
+  };
+  const ends: number[] = [];
+  for (const match of rest.matchAll(SENTENCE_END)) {
+    ends.push((match.index ?? 0) + match[0].length);
+  }
+  if (options.first) {
+    const end = ends.find(e => rest.slice(0, e).trim().length >= FIRST_SEGMENT_MIN_CHARS);
+    if (end !== undefined && end <= FIRST_SEGMENT_MAX_CHARS) return finish(end);
+    if (rest.length > FIRST_SEGMENT_MAX_CHARS) return cutAtSpace(FIRST_SEGMENT_MAX_CHARS);
+    return options.final ? finish(Math.min(rest.length, limit)) : null;
+  }
+  if (options.final && rest.length <= limit) return finish(rest.length);
+  const within = ends.filter(e => e <= limit);
+  if (within.length) return finish(within[within.length - 1]);
+  if (rest.length > limit) return cutAtSpace(limit);
+  return options.final ? finish(rest.length) : null;
+};
+
 export const createCallSpeechProvider = (
   userId: string,
   providerOptions: {
     isOnlineMode?: () => boolean;
     getVoiceId?: () => string | null;
+    /**
+     * 'low' asks the server for its fastest voice model (a conversation);
+     * 'standard' for its most expressive one.
+     */
+    latency?: 'low' | 'standard';
   } = {},
 ): CallSpeechProvider => {
   const isOnlineMode =
@@ -127,6 +186,8 @@ export const createCallSpeechProvider = (
   let elevenlabsAvailable = false;
   const preparedAudioPaths = new Map<string, string>();
   const preparations = new Map<string, Promise<string | null>>();
+  /** Why a preparation failed, so the fallback notice gives the real reason. */
+  const preparationFailures = new Map<string, string>();
   const preparationControllers = new Set<AbortController>();
   const safeUserId = userId.replace(/[^a-zA-Z0-9_-]/g, '_');
   let activePlaybackController: AbortController | null = null;
@@ -294,6 +355,7 @@ export const createCallSpeechProvider = (
             text,
             provider: 'elevenlabs',
             ...(voiceId ? {voiceId} : {}),
+            ...(providerOptions.latency === 'low' ? {latency: 'low'} : {}),
           }),
           signal: controller.signal,
         },
@@ -387,6 +449,8 @@ export const createCallSpeechProvider = (
     const preparation = (async (): Promise<string | null> => {
       if (!(await canUseElevenLabs())) return null;
       const controller = new AbortController();
+      const failure: RequestOutcome = {};
+      preparationFailures.delete(cacheKey);
       preparationControllers.add(controller);
       try {
         const audioPath = await requestElevenLabsAudio(
@@ -394,9 +458,12 @@ export const createCallSpeechProvider = (
           controller,
           PREPARATION_REQUEST_TIMEOUT_MS,
           voiceId,
-          {},
+          failure,
         );
-        if (!audioPath) return null;
+        if (!audioPath) {
+          if (failure.reason) preparationFailures.set(cacheKey, failure.reason);
+          return null;
+        }
         if (
           disposed ||
           controller.signal.aborted ||
@@ -425,6 +492,7 @@ export const createCallSpeechProvider = (
 
   const stopSpeech = async (): Promise<void> => {
     speechChain += 1;
+    wakeStreams();
     cancellationSequence += 1;
     activePlaybackController?.abort();
     activePlaybackController = null;
@@ -490,7 +558,9 @@ export const createCallSpeechProvider = (
           outcome.reason =
             preparedResult === undefined
               ? TIMEOUT_REASON
-              : 'Online voice could not be prepared. Try again.';
+              : preparationFailures.get(cacheKey) ??
+                'Online voice could not be prepared. Try again.';
+          preparationFailures.delete(cacheKey);
           return fallback();
         }
         preparedPath = preparedResult;
@@ -536,6 +606,11 @@ export const createCallSpeechProvider = (
 
   /** Bumped by each new speakText and by Stop, so a long reply stops between chunks. */
   let speechChain = 0;
+  /** Streams waiting for more reply text; Stop wakes them so they can end. */
+  const streamWakers = new Set<() => void>();
+  function wakeStreams() {
+    for (const wake of [...streamWakers]) wake();
+  }
 
   /** A chunk is spoken once; its prepared audio is not kept for replay. */
   const releasePrepared = (chunk: string) => {
@@ -601,9 +676,170 @@ export const createCallSpeechProvider = (
     }
   };
 
+  const startSpeechStream = (): SpeechStream => {
+    const chain = ++speechChain;
+    const current = () => chain === speechChain && !disposed;
+    let latest = '';
+    let finished = false;
+    let consumed = 0;
+    let first = true;
+    let wake: (() => void) | null = null;
+    const notify = () => {
+      const resolve = wake;
+      wake = null;
+      resolve?.();
+    };
+
+    /** The next piece to speak, waiting for more text when none is ready. */
+    const nextSegment = async (): Promise<string | null> => {
+      for (;;) {
+        if (!current()) return null;
+        const piece = takeSpeechSegment(speakableText(latest), consumed, {
+          first,
+          final: finished,
+        });
+        if (piece) {
+          consumed = piece.end;
+          first = false;
+          return piece.text;
+        }
+        if (finished) return null;
+        await new Promise<void>(resolve => {
+          wake = resolve;
+          streamWakers.add(notify);
+        });
+        streamWakers.delete(notify);
+      }
+    };
+
+    let markComplete: () => void = () => undefined;
+    const replyComplete = new Promise<void>(resolve => {
+      markComplete = resolve;
+    });
+    let started = false;
+    let resolveDone: (result: CallSpeechResult) => void = () => undefined;
+    const done = new Promise<CallSpeechResult>(resolve => {
+      resolveDone = resolve;
+    });
+
+    const run = async (): Promise<CallSpeechResult> => {
+      activeSpeechOperations += 1;
+      let fallbackReason: string | undefined;
+      let deviceVoice = false;
+      let spokeOnline = false;
+      try {
+        let upcoming = nextSegment();
+        for (;;) {
+          const piece = await upcoming;
+          if (!piece || !current()) break;
+          if (deviceVoice) {
+            // Online speech already failed: the device voice reads the rest.
+            upcoming = nextSegment();
+            await speakTextWithTts(piece);
+            continue;
+          }
+          // Synthesize this piece. The next one is cut once this audio exists
+          // (taking every sentence written meanwhile, so fewer requests) or as
+          // soon as the whole reply has arrived, whichever comes first.
+          await Promise.race([
+            prepareText(piece).catch(() => undefined),
+            replyComplete,
+          ]);
+          if (!current()) break;
+          upcoming = nextSegment();
+          void upcoming
+            .then(next => (next && current() ? prepareText(next) : undefined))
+            .catch(() => undefined);
+          const result = await runSpeakText(piece);
+          releasePrepared(piece);
+          if (result.source === 'cancelled' || !current()) {
+            return {source: 'cancelled'};
+          }
+          if (result.source === 'native_tts') {
+            deviceVoice = true;
+            fallbackReason = result.fallbackReason;
+          } else {
+            spokeOnline = true;
+          }
+        }
+        if (!current()) return {source: 'cancelled'};
+        if (deviceVoice || !spokeOnline) {
+          return {
+            source: 'native_tts',
+            ...(fallbackReason ? {fallbackReason} : {}),
+          };
+        }
+        return {source: 'elevenlabs'};
+      } catch {
+        return {source: 'cancelled'};
+      } finally {
+        activeSpeechOperations -= 1;
+      }
+    };
+
+    const begin = () => {
+      if (started) return;
+      started = true;
+      void run().then(resolveDone);
+    };
+
+    return {
+      update: (replySoFar: string) => {
+        if (finished || !current()) return;
+        latest = replySoFar;
+        begin();
+        notify();
+      },
+      finish: (finalReply: string) => {
+        if (!finished && current()) {
+          // Keep what was already spoken when the saved reply differs only in
+          // letter case (lafina's name) or adds a note at the end.
+          const said = speakableText(latest).slice(0, consumed).toLowerCase();
+          if (
+            consumed === 0 ||
+            speakableText(finalReply).toLowerCase().startsWith(said)
+          ) {
+            latest = finalReply;
+          }
+          finished = true;
+          markComplete();
+          begin();
+          notify();
+        }
+        if (!started) resolveDone({source: 'cancelled'});
+        return done;
+      },
+      cancel: () => {
+        if (!current()) return;
+        finished = true;
+        markComplete();
+        void stopSpeech();
+        if (!started) resolveDone({source: 'cancelled'});
+      },
+    };
+  };
+
+  const warmUp = async (): Promise<void> => {
+    if (capabilityChecked || !(await canUseElevenLabs())) return;
+    const capability = await cloudClient.request<{
+      provider: string;
+      enabled: boolean;
+    }>('/v1/ai/tts/capabilities', {method: 'GET'}, true);
+    if (
+      !capabilityChecked &&
+      capability.status === 'success' &&
+      capability.data?.provider === 'elevenlabs' &&
+      capability.data.enabled === true
+    ) {
+      elevenlabsAvailable = true;
+      capabilityChecked = true;
+    }
+  };
+
   const dispose = async (): Promise<void> => {
     if (disposed) return;
     disposed = true;
+    wakeStreams();
     cancellationSequence += 1;
     activePlaybackController?.abort();
     activePlaybackController = null;
@@ -621,12 +857,15 @@ export const createCallSpeechProvider = (
     );
     preparedAudioPaths.clear();
     preparations.clear();
+    preparationFailures.clear();
   };
 
   return {
     speakText,
     stopSpeech,
     prepareText,
+    startSpeechStream,
+    warmUp,
     dispose,
   };
 };
