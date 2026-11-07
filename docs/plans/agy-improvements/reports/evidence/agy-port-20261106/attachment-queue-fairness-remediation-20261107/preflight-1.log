@@ -1,0 +1,2247 @@
+start 2026-11-07T03:31:03Z HEAD 69aafcd759bb5e8977fdf2450987359c9ca0c022 + uncommitted C2
+
+> lafina-capstone@1.3.4 preflight
+> npm run typecheck && npm run lint && npm test && npm run check:architecture
+
+
+> lafina-capstone@1.3.4 typecheck
+> tsc --noEmit
+
+
+> lafina-capstone@1.3.4 lint
+> eslint src __tests__ App.tsx index.js --max-warnings 0
+
+
+> lafina-capstone@1.3.4 test
+> jest --runInBand
+
+PASS __tests__/storage/schemaMigrations.test.ts (17.747 s)
+PASS __tests__/storage/chatOwnership.test.ts (7.791 s)
+PASS __tests__/ui/clearDataAttachmentCleanup.test.tsx (6.174 s)
+PASS __tests__/ui/chatHistoryPaging.test.tsx
+PASS __tests__/ui/agyPort05Drafts.test.tsx
+  ● Console
+
+    console.error
+      findNodeHandle is deprecated in StrictMode. findNodeHandle was passed an instance of View which is inside StrictMode. Instead, add a ref directly to the element you want to reference. Learn more about using refs safely here: https://react.dev/link/strict-mode-find-node
+
+    [0m [90m 313 |[39m         })[33m,[39m
+     [90m 314 |[39m       )[33m;[39m
+    [31m[1m>[22m[39m[90m 315 |[39m       animation[33m.[39mstart()[33m;[39m
+     [90m     |[39m                 [31m[1m^[22m[39m
+     [90m 316 |[39m     } [36melse[39m {
+     [90m 317 |[39m       pulseAnim[33m.[39msetValue([35m0[39m)[33m;[39m
+     [90m 318 |[39m       stopWaveform()[33m;[39m[0m
+
+      at error (node_modules/react-native/Libraries/Renderer/implementations/ReactFabric-dev.js:15752:25)
+      at callback (node_modules/react-native/Libraries/Renderer/implementations/ReactFabric-dev.js:700:13)
+      at runWithFiberInDEV (node_modules/react-native/Libraries/Renderer/implementations/ReactFabric-dev.js:15750:11)
+      at findHostInstanceWithWarning (node_modules/react-native/Libraries/Renderer/implementations/ReactFabric-dev.js:15860:27)
+      at AnimatedProps._connectAnimatedView2 (node_modules/react-native/Libraries/Animated/nodes/AnimatedProps.js:276:42)
+      at AnimatedProps.__makeNative (node_modules/react-native/Libraries/Animated/nodes/AnimatedProps.js:257:13)
+      at AnimatedStyle.__makeNative (node_modules/react-native/Libraries/Animated/nodes/AnimatedWithChildren.js:33:17)
+      at apply (node_modules/react-native/Libraries/Animated/nodes/AnimatedStyle.js:20:59)
+      at AnimatedStyle.__makeNative (node_modules/react-native/Libraries/Animated/nodes/AnimatedStyle.js:225:5)
+      at AnimatedTransform.__makeNative (node_modules/react-native/Libraries/Animated/nodes/AnimatedWithChildren.js:33:17)
+      at apply (node_modules/react-native/Libraries/Animated/nodes/AnimatedTransform.js:19:59)
+      at AnimatedTransform.__makeNative (node_modules/react-native/Libraries/Animated/nodes/AnimatedTransform.js:87:5)
+      at AnimatedInterpolation.__makeNative (node_modules/react-native/Libraries/Animated/nodes/AnimatedWithChildren.js:33:17)
+      at apply (node_modules/react-native/Libraries/Animated/nodes/AnimatedInterpolation.js:26:35)
+      at AnimatedInterpolation.__makeNative (node_modules/react-native/Libraries/Animated/nodes/AnimatedInterpolation.js:391:5)
+      at AnimatedTransform.__makeNative (node_modules/react-native/Libraries/Animated/nodes/AnimatedTransform.js:85:12)
+      at AnimatedStyle.__makeNative (node_modules/react-native/Libraries/Animated/nodes/AnimatedStyle.js:223:12)
+      at AnimatedInterpolation.__makeNative (node_modules/react-native/Libraries/Animated/nodes/AnimatedWithChildren.js:33:17)
+      at apply (node_modules/react-native/Libraries/Animated/nodes/AnimatedInterpolation.js:26:35)
+      at AnimatedInterpolation.__makeNative (node_modules/react-native/Libraries/Animated/nodes/AnimatedInterpolation.js:391:5)
+      at AnimatedValue.__makeNative (node_modules/react-native/Libraries/Animated/nodes/AnimatedWithChildren.js:33:17)
+      at apply (node_modules/react-native/Libraries/Animated/nodes/AnimatedValue.js:25:59)
+      at AnimatedValue.__makeNative (node_modules/react-native/Libraries/Animated/nodes/AnimatedValue.js:131:5)
+      at TimingAnimation.__makeNative [as __startAnimationIfNative] (node_modules/react-native/Libraries/Animated/animations/Animation.js:137:21)
+      at __startAnimationIfNative (node_modules/react-native/Libraries/Animated/animations/TimingAnimation.js:123:36)
+      at TimingAnimation.start (node_modules/react-native/Libraries/Animated/animations/TimingAnimation.js:139:7)
+      at AnimatedValue.start [as animate] (node_modules/react-native/Libraries/Animated/nodes/AnimatedValue.js:320:15)
+      at animate (node_modules/react-native/Libraries/Animated/AnimatedImplementation.js:233:19)
+      at Object.start [as _startNativeLoop] (node_modules/react-native/Libraries/Animated/AnimatedImplementation.js:253:9)
+      at Object._startNativeLoop [as start] (node_modules/react-native/Libraries/Animated/AnimatedImplementation.js:489:21)
+      at start (src/ui/components/VoiceModal.tsx:315:17)
+      at Object.react_stack_bottom_frame (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:15755:20)
+      at runWithFiberInDEV (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:2315:13)
+      at commitHookEffectListMount (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:9530:29)
+      at commitHookPassiveMountEffects (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:9617:11)
+      at commitPassiveMountOnFiber (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:11205:13)
+      at recursivelyTraversePassiveMountEffects (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:11160:11)
+      at commitPassiveMountOnFiber (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:11439:11)
+      at recursivelyTraversePassiveMountEffects (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:11160:11)
+      at commitPassiveMountOnFiber (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:11197:11)
+      at recursivelyTraversePassiveMountEffects (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:11160:11)
+      at commitPassiveMountOnFiber (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:11439:11)
+      at recursivelyTraversePassiveMountEffects (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:11160:11)
+      at commitPassiveMountOnFiber (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:11240:11)
+      at flushPendingEffects (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:14086:11)
+      at performWorkOnRootViaSchedulerTask (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:2896:11)
+      at flushActQueue (node_modules/react/cjs/react.development.js:590:34)
+      at node_modules/react/cjs/react.development.js:847:21
+
+    console.error
+      An update to VirtualizedList inside a test was not wrapped in act(...).
+      
+      When testing, code that causes React state updates should be wrapped into act(...):
+      
+      act(() => {
+        /* fire events that update state */
+      });
+      /* assert on the output */
+      
+      This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+
+      at node_modules/react-test-renderer/cjs/react-test-renderer.development.js:14402:19
+      at runWithFiberInDEV (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:2315:13)
+      at warnIfUpdatesNotWrappedWithActDEV (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:14401:9)
+      at scheduleUpdateOnFiber (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:12086:9)
+      at Object.enqueueSetState (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:16926:13)
+      at VirtualizedList.Object.<anonymous>.process.env.NODE_ENV.Component.setState (node_modules/react/cjs/react.development.js:655:20)
+      at apply (node_modules/@react-native/virtualized-lists/Lists/StateSafePureComponent.js:12:32)
+      at VirtualizedList.setState (node_modules/@react-native/virtualized-lists/Lists/StateSafePureComponent.js:40:7)
+      at VirtualizedList.setState [as _updateCellsToRender] (node_modules/@react-native/virtualized-lists/Lists/VirtualizedList.js:1909:10)
+      at Timeout._updateCellsToRender [as _onTimeout] (node_modules/@react-native/virtualized-lists/Lists/VirtualizedList.js:1806:16)
+
+    console.error
+      An update to VirtualizedList inside a test was not wrapped in act(...).
+      
+      When testing, code that causes React state updates should be wrapped into act(...):
+      
+      act(() => {
+        /* fire events that update state */
+      });
+      /* assert on the output */
+      
+      This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+
+      at node_modules/react-test-renderer/cjs/react-test-renderer.development.js:14402:19
+      at runWithFiberInDEV (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:2315:13)
+      at warnIfUpdatesNotWrappedWithActDEV (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:14401:9)
+      at scheduleUpdateOnFiber (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:12086:9)
+      at Object.enqueueSetState (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:16926:13)
+      at VirtualizedList.Object.<anonymous>.process.env.NODE_ENV.Component.setState (node_modules/react/cjs/react.development.js:655:20)
+      at apply (node_modules/@react-native/virtualized-lists/Lists/StateSafePureComponent.js:12:32)
+      at VirtualizedList.setState (node_modules/@react-native/virtualized-lists/Lists/StateSafePureComponent.js:40:7)
+      at VirtualizedList.setState [as _updateCellsToRender] (node_modules/@react-native/virtualized-lists/Lists/VirtualizedList.js:1909:10)
+      at Timeout._updateCellsToRender [as _onTimeout] (node_modules/@react-native/virtualized-lists/Lists/VirtualizedList.js:1806:16)
+
+    console.error
+      [Meetings] Could not start recording: Error: Microphone is currently in use by voice assistant.
+          at Object.<anonymous> (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\__tests__\ui\agyPort05Drafts.test.tsx:582:11)
+          at Generator.next (<anonymous>)
+          at asyncGeneratorStep (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\@babel\runtime\helpers\asyncToGenerator.js:3:17)
+          at _next (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\@babel\runtime\helpers\asyncToGenerator.js:17:9)
+          at C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\@babel\runtime\helpers\asyncToGenerator.js:22:7
+          at new Promise (<anonymous>)
+          at Object.<anonymous> (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\@babel\runtime\helpers\asyncToGenerator.js:14:12)
+          at Promise.then.completed (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-circus\build\utils.js:298:28)
+          at new Promise (<anonymous>)
+          at callAsyncCircusFn (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-circus\build\utils.js:231:10)
+          at _callCircusTest (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-circus\build\run.js:316:40)
+          at _runTest (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-circus\build\run.js:252:3)
+          at _runTestsForDescribeBlock (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-circus\build\run.js:126:9)
+          at _runTestsForDescribeBlock (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-circus\build\run.js:121:9)
+          at _runTestsForDescribeBlock (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-circus\build\run.js:121:9)
+          at run (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-circus\build\run.js:71:3)
+          at runAndTransformResultsToJestFormat (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-circus\build\legacy-code-todo-rewrite\jestAdapterInit.js:122:21)
+          at jestAdapter (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-circus\build\legacy-code-todo-rewrite\jestAdapter.js:79:19)
+          at runTestInternal (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-runner\build\runTest.js:367:16)
+          at runTest (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-runner\build\runTest.js:444:34) {
+        code: 'MIC_IN_USE'
+      }
+
+    [0m [90m 524 |[39m         [36mawait[39m meetingRecorder[33m.[39mstart(id[33m,[39m title)[33m;[39m
+     [90m 525 |[39m       } [36mcatch[39m (error) {
+    [31m[1m>[22m[39m[90m 526 |[39m         console[33m.[39merror([32m'[Meetings] Could not start recording:'[39m[33m,[39m error)[33m;[39m
+     [90m     |[39m                 [31m[1m^[22m[39m
+     [90m 527 |[39m         recordedMeetingStore[33m.[39mremove(id)[33m;[39m
+     [90m 528 |[39m         setRecorder([36mnull[39m)[33m;[39m
+     [90m 529 |[39m         [90m// AGY-PORT 05: the native code (not only the message) says the microphone[39m[0m
+
+      at error (src/ui/contexts/MeetingsContext.tsx:526:17)
+          at Generator.throw (<anonymous>)
+      at asyncGeneratorStep (node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+      at _throw (node_modules/@babel/runtime/helpers/asyncToGenerator.js:20:9)
+
+PASS __tests__/App.test.tsx
+  ● Console
+
+    console.error
+      An update to SynthSplash inside a test was not wrapped in act(...).
+      
+      When testing, code that causes React state updates should be wrapped into act(...):
+      
+      act(() => {
+        /* fire events that update state */
+      });
+      /* assert on the output */
+      
+      This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+
+    [0m [90m 109 |[39m               traceStrand([33m-[39m[35m1[39m [33m+[39m ([35m2[39m [33m*[39m index) [33m/[39m ([33mSTRAND_COUNT[39m [33m-[39m [35m1[39m)[33m,[39m seconds[33m,[39m look)[33m,[39m
+     [90m 110 |[39m             )[33m;[39m
+    [31m[1m>[22m[39m[90m 111 |[39m       setFrame({ strands[33m,[39m opacity[33m:[39m look[33m.[39mopacity })[33m;[39m
+     [90m     |[39m       [31m[1m^[22m[39m
+     [90m 112 |[39m       [36mif[39m (moment[33m.[39mphase [33m!==[39m [32m'done'[39m) raf [33m=[39m requestAnimationFrame(tick)[33m;[39m
+     [90m 113 |[39m     }[33m;[39m
+     [90m 114 |[39m[0m
+
+      at node_modules/react-test-renderer/cjs/react-test-renderer.development.js:14402:19
+      at runWithFiberInDEV (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:2315:13)
+      at warnIfUpdatesNotWrappedWithActDEV (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:14401:9)
+      at scheduleUpdateOnFiber (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:12086:9)
+      at dispatchSetStateInternal (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:6208:13)
+      at dispatchSetState (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:6165:7)
+      at setFrame (src/ui/splash/SynthSplash.tsx:111:7)
+      at Timeout.callback [as _onTimeout] (node_modules/@react-native/jest-preset/jest/setup.js:61:31)
+
+PASS __tests__/ui/agyPort08EventForm.test.tsx
+PASS __tests__/ui/phase01AuthAndProfileScreens.test.tsx
+  ● Console
+
+    console.warn
+      SafeAreaView has been deprecated and will be removed in a future release. Please use 'react-native-safe-area-context' instead. See https://github.com/AppAndFlow/react-native-safe-area-context
+
+    [0m [90m 25 |[39m   [36mreturn[39m (
+     [90m 26 |[39m     [33m<[39m[33mModal[39m visible[33m=[39m{visible} animationType[33m=[39m[32m"slide"[39m onRequestClose[33m=[39m{onClose}[33m>[39m
+    [31m[1m>[22m[39m[90m 27 |[39m       [33m<[39m[33mSafeAreaView[39m style[33m=[39m{[styles[33m.[39mprivacyContainer[33m,[39m themed[33m.[39mprivacyContainer]}[33m>[39m
+     [90m    |[39m        [31m[1m^[22m[39m
+     [90m 28 |[39m         [33m<[39m[33mView[39m style[33m=[39m{[styles[33m.[39mprivacyHeader[33m,[39m themed[33m.[39mprivacyHeader]}[33m>[39m
+     [90m 29 |[39m           [33m<[39m[33mText[39m style[33m=[39m{[styles[33m.[39mprivacyHeaderTitle[33m,[39m themed[33m.[39mprivacyHeaderTitle]}[33m>[39m
+     [90m 30 |[39m             [33mPrivacy[39m [33mPolicy[39m[0m
+
+      at warn (node_modules/react-native/Libraries/Utilities/warnOnce.js:27:11)
+      at Object.warnOnce [as SafeAreaView] (node_modules/react-native/index.js:101:5)
+      at SafeAreaView (src/ui/components/profile/PrivacyModal.tsx:27:8)
+      at Object.react_stack_bottom_frame (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:15670:20)
+      at renderWithHooks (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:4863:22)
+      at updateFunctionComponent (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:7018:19)
+      at beginWork (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:8499:18)
+      at runWithFiberInDEV (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:2315:13)
+      at performUnitOfWork (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:13224:22)
+      at workLoopSync (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:13068:41)
+      at renderRootSync (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:13049:11)
+      at performWorkOnRoot (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:12181:11)
+      at performWorkOnRootViaSchedulerTask (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:2908:7)
+      at flushActQueue (node_modules/react/cjs/react.development.js:590:34)
+      at Object.<anonymous>.process.env.NODE_ENV.exports.act (node_modules/react/cjs/react.development.js:884:10)
+      at actImplementation (node_modules/@testing-library/react-native/src/act.ts:30:25)
+      at renderWithAct (node_modules/@testing-library/react-native/src/render-act.ts:13:11)
+      at renderInternal (node_modules/@testing-library/react-native/src/render.tsx:69:33)
+      at renderInternal (node_modules/@testing-library/react-native/src/render.tsx:44:10)
+      at Object.<anonymous> (__tests__/ui/phase01AuthAndProfileScreens.test.tsx:77:46)
+
+PASS __tests__/ui/agyPort04ReviewUi.test.tsx
+PASS __tests__/ui/phase02CalendarAndNotesScreens.test.tsx
+  ● Console
+
+    console.error
+      An update to CalendarScreen inside a test was not wrapped in act(...).
+      
+      When testing, code that causes React state updates should be wrapped into act(...):
+      
+      act(() => {
+        /* fire events that update state */
+      });
+      /* assert on the output */
+      
+      This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+
+    [0m [90m 138 |[39m       ])[33m;[39m
+     [90m 139 |[39m       [36mif[39m (activeUserIdRef[33m.[39mcurrent [33m!==[39m userId) [36mreturn[39m[33m;[39m
+    [31m[1m>[22m[39m[90m 140 |[39m       setBatches(fetchedBatches)[33m;[39m
+     [90m     |[39m       [31m[1m^[22m[39m
+     [90m 141 |[39m       setVisibilityMap(fetchedVisibility)[33m;[39m
+     [90m 142 |[39m       [36mconst[39m user [33m=[39m userStore[33m.[39mgetUserById(userId)[33m;[39m
+     [90m 143 |[39m       [36mif[39m (user) {[0m
+
+      at node_modules/react-test-renderer/cjs/react-test-renderer.development.js:14402:19
+      at runWithFiberInDEV (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:2315:13)
+      at warnIfUpdatesNotWrappedWithActDEV (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:14401:9)
+      at scheduleUpdateOnFiber (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:12086:9)
+      at dispatchSetStateInternal (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:6208:13)
+      at dispatchSetState (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:6165:7)
+      at setBatches (src/ui/screens/calendar/hooks/useCalendarData.ts:140:7)
+      at asyncGeneratorStep (node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+      at _next (node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
+
+    console.error
+      An update to CalendarScreen inside a test was not wrapped in act(...).
+      
+      When testing, code that causes React state updates should be wrapped into act(...):
+      
+      act(() => {
+        /* fire events that update state */
+      });
+      /* assert on the output */
+      
+      This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+
+    [0m [90m 139 |[39m       [36mif[39m (activeUserIdRef[33m.[39mcurrent [33m!==[39m userId) [36mreturn[39m[33m;[39m
+     [90m 140 |[39m       setBatches(fetchedBatches)[33m;[39m
+    [31m[1m>[22m[39m[90m 141 |[39m       setVisibilityMap(fetchedVisibility)[33m;[39m
+     [90m     |[39m       [31m[1m^[22m[39m
+     [90m 142 |[39m       [36mconst[39m user [33m=[39m userStore[33m.[39mgetUserById(userId)[33m;[39m
+     [90m 143 |[39m       [36mif[39m (user) {
+     [90m 144 |[39m         setUsername(user[33m.[39musername)[33m;[39m[0m
+
+      at node_modules/react-test-renderer/cjs/react-test-renderer.development.js:14402:19
+      at runWithFiberInDEV (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:2315:13)
+      at warnIfUpdatesNotWrappedWithActDEV (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:14401:9)
+      at scheduleUpdateOnFiber (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:12086:9)
+      at dispatchSetStateInternal (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:6208:13)
+      at dispatchSetState (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:6165:7)
+      at setVisibilityMap (src/ui/screens/calendar/hooks/useCalendarData.ts:141:7)
+      at asyncGeneratorStep (node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+      at _next (node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
+
+    console.error
+      An update to CalendarScreen inside a test was not wrapped in act(...).
+      
+      When testing, code that causes React state updates should be wrapped into act(...):
+      
+      act(() => {
+        /* fire events that update state */
+      });
+      /* assert on the output */
+      
+      This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+
+    [0m [90m 142 |[39m       [36mconst[39m user [33m=[39m userStore[33m.[39mgetUserById(userId)[33m;[39m
+     [90m 143 |[39m       [36mif[39m (user) {
+    [31m[1m>[22m[39m[90m 144 |[39m         setUsername(user[33m.[39musername)[33m;[39m
+     [90m     |[39m         [31m[1m^[22m[39m
+     [90m 145 |[39m       }
+     [90m 146 |[39m     } [36mcatch[39m (error) {
+     [90m 147 |[39m       console[33m.[39merror([32m'Failed to load visibility or batches:'[39m[33m,[39m error)[33m;[39m[0m
+
+      at node_modules/react-test-renderer/cjs/react-test-renderer.development.js:14402:19
+      at runWithFiberInDEV (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:2315:13)
+      at warnIfUpdatesNotWrappedWithActDEV (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:14401:9)
+      at scheduleUpdateOnFiber (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:12086:9)
+      at dispatchSetStateInternal (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:6208:13)
+      at dispatchSetState (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:6165:7)
+      at setUsername (src/ui/screens/calendar/hooks/useCalendarData.ts:144:9)
+      at asyncGeneratorStep (node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+      at _next (node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
+
+    console.error
+      An update to CalendarScreen inside a test was not wrapped in act(...).
+      
+      When testing, code that causes React state updates should be wrapped into act(...):
+      
+      act(() => {
+        /* fire events that update state */
+      });
+      /* assert on the output */
+      
+      This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+
+    [0m [90m 138 |[39m       ])[33m;[39m
+     [90m 139 |[39m       [36mif[39m (activeUserIdRef[33m.[39mcurrent [33m!==[39m userId) [36mreturn[39m[33m;[39m
+    [31m[1m>[22m[39m[90m 140 |[39m       setBatches(fetchedBatches)[33m;[39m
+     [90m     |[39m       [31m[1m^[22m[39m
+     [90m 141 |[39m       setVisibilityMap(fetchedVisibility)[33m;[39m
+     [90m 142 |[39m       [36mconst[39m user [33m=[39m userStore[33m.[39mgetUserById(userId)[33m;[39m
+     [90m 143 |[39m       [36mif[39m (user) {[0m
+
+      at node_modules/react-test-renderer/cjs/react-test-renderer.development.js:14402:19
+      at runWithFiberInDEV (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:2315:13)
+      at warnIfUpdatesNotWrappedWithActDEV (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:14401:9)
+      at scheduleUpdateOnFiber (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:12086:9)
+      at dispatchSetStateInternal (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:6208:13)
+      at dispatchSetState (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:6165:7)
+      at setBatches (src/ui/screens/calendar/hooks/useCalendarData.ts:140:7)
+      at asyncGeneratorStep (node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+      at _next (node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
+
+    console.error
+      An update to CalendarScreen inside a test was not wrapped in act(...).
+      
+      When testing, code that causes React state updates should be wrapped into act(...):
+      
+      act(() => {
+        /* fire events that update state */
+      });
+      /* assert on the output */
+      
+      This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+
+    [0m [90m 139 |[39m       [36mif[39m (activeUserIdRef[33m.[39mcurrent [33m!==[39m userId) [36mreturn[39m[33m;[39m
+     [90m 140 |[39m       setBatches(fetchedBatches)[33m;[39m
+    [31m[1m>[22m[39m[90m 141 |[39m       setVisibilityMap(fetchedVisibility)[33m;[39m
+     [90m     |[39m       [31m[1m^[22m[39m
+     [90m 142 |[39m       [36mconst[39m user [33m=[39m userStore[33m.[39mgetUserById(userId)[33m;[39m
+     [90m 143 |[39m       [36mif[39m (user) {
+     [90m 144 |[39m         setUsername(user[33m.[39musername)[33m;[39m[0m
+
+      at node_modules/react-test-renderer/cjs/react-test-renderer.development.js:14402:19
+      at runWithFiberInDEV (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:2315:13)
+      at warnIfUpdatesNotWrappedWithActDEV (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:14401:9)
+      at scheduleUpdateOnFiber (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:12086:9)
+      at dispatchSetStateInternal (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:6208:13)
+      at dispatchSetState (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:6165:7)
+      at setVisibilityMap (src/ui/screens/calendar/hooks/useCalendarData.ts:141:7)
+      at asyncGeneratorStep (node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+      at _next (node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
+
+    console.error
+      An update to CalendarScreen inside a test was not wrapped in act(...).
+      
+      When testing, code that causes React state updates should be wrapped into act(...):
+      
+      act(() => {
+        /* fire events that update state */
+      });
+      /* assert on the output */
+      
+      This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+
+    [0m [90m 142 |[39m       [36mconst[39m user [33m=[39m userStore[33m.[39mgetUserById(userId)[33m;[39m
+     [90m 143 |[39m       [36mif[39m (user) {
+    [31m[1m>[22m[39m[90m 144 |[39m         setUsername(user[33m.[39musername)[33m;[39m
+     [90m     |[39m         [31m[1m^[22m[39m
+     [90m 145 |[39m       }
+     [90m 146 |[39m     } [36mcatch[39m (error) {
+     [90m 147 |[39m       console[33m.[39merror([32m'Failed to load visibility or batches:'[39m[33m,[39m error)[33m;[39m[0m
+
+      at node_modules/react-test-renderer/cjs/react-test-renderer.development.js:14402:19
+      at runWithFiberInDEV (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:2315:13)
+      at warnIfUpdatesNotWrappedWithActDEV (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:14401:9)
+      at scheduleUpdateOnFiber (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:12086:9)
+      at dispatchSetStateInternal (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:6208:13)
+      at dispatchSetState (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:6165:7)
+      at setUsername (src/ui/screens/calendar/hooks/useCalendarData.ts:144:9)
+      at asyncGeneratorStep (node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+      at _next (node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
+
+    console.error
+      An update to CalendarScreen inside a test was not wrapped in act(...).
+      
+      When testing, code that causes React state updates should be wrapped into act(...):
+      
+      act(() => {
+        /* fire events that update state */
+      });
+      /* assert on the output */
+      
+      This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+
+    [0m [90m 138 |[39m       ])[33m;[39m
+     [90m 139 |[39m       [36mif[39m (activeUserIdRef[33m.[39mcurrent [33m!==[39m userId) [36mreturn[39m[33m;[39m
+    [31m[1m>[22m[39m[90m 140 |[39m       setBatches(fetchedBatches)[33m;[39m
+     [90m     |[39m       [31m[1m^[22m[39m
+     [90m 141 |[39m       setVisibilityMap(fetchedVisibility)[33m;[39m
+     [90m 142 |[39m       [36mconst[39m user [33m=[39m userStore[33m.[39mgetUserById(userId)[33m;[39m
+     [90m 143 |[39m       [36mif[39m (user) {[0m
+
+      at node_modules/react-test-renderer/cjs/react-test-renderer.development.js:14402:19
+      at runWithFiberInDEV (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:2315:13)
+      at warnIfUpdatesNotWrappedWithActDEV (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:14401:9)
+      at scheduleUpdateOnFiber (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:12086:9)
+      at dispatchSetStateInternal (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:6208:13)
+      at dispatchSetState (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:6165:7)
+      at setBatches (src/ui/screens/calendar/hooks/useCalendarData.ts:140:7)
+      at asyncGeneratorStep (node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+      at _next (node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
+
+    console.error
+      An update to CalendarScreen inside a test was not wrapped in act(...).
+      
+      When testing, code that causes React state updates should be wrapped into act(...):
+      
+      act(() => {
+        /* fire events that update state */
+      });
+      /* assert on the output */
+      
+      This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+
+    [0m [90m 139 |[39m       [36mif[39m (activeUserIdRef[33m.[39mcurrent [33m!==[39m userId) [36mreturn[39m[33m;[39m
+     [90m 140 |[39m       setBatches(fetchedBatches)[33m;[39m
+    [31m[1m>[22m[39m[90m 141 |[39m       setVisibilityMap(fetchedVisibility)[33m;[39m
+     [90m     |[39m       [31m[1m^[22m[39m
+     [90m 142 |[39m       [36mconst[39m user [33m=[39m userStore[33m.[39mgetUserById(userId)[33m;[39m
+     [90m 143 |[39m       [36mif[39m (user) {
+     [90m 144 |[39m         setUsername(user[33m.[39musername)[33m;[39m[0m
+
+      at node_modules/react-test-renderer/cjs/react-test-renderer.development.js:14402:19
+      at runWithFiberInDEV (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:2315:13)
+      at warnIfUpdatesNotWrappedWithActDEV (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:14401:9)
+      at scheduleUpdateOnFiber (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:12086:9)
+      at dispatchSetStateInternal (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:6208:13)
+      at dispatchSetState (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:6165:7)
+      at setVisibilityMap (src/ui/screens/calendar/hooks/useCalendarData.ts:141:7)
+      at asyncGeneratorStep (node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+      at _next (node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
+
+    console.error
+      An update to CalendarScreen inside a test was not wrapped in act(...).
+      
+      When testing, code that causes React state updates should be wrapped into act(...):
+      
+      act(() => {
+        /* fire events that update state */
+      });
+      /* assert on the output */
+      
+      This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+
+    [0m [90m 142 |[39m       [36mconst[39m user [33m=[39m userStore[33m.[39mgetUserById(userId)[33m;[39m
+     [90m 143 |[39m       [36mif[39m (user) {
+    [31m[1m>[22m[39m[90m 144 |[39m         setUsername(user[33m.[39musername)[33m;[39m
+     [90m     |[39m         [31m[1m^[22m[39m
+     [90m 145 |[39m       }
+     [90m 146 |[39m     } [36mcatch[39m (error) {
+     [90m 147 |[39m       console[33m.[39merror([32m'Failed to load visibility or batches:'[39m[33m,[39m error)[33m;[39m[0m
+
+      at node_modules/react-test-renderer/cjs/react-test-renderer.development.js:14402:19
+      at runWithFiberInDEV (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:2315:13)
+      at warnIfUpdatesNotWrappedWithActDEV (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:14401:9)
+      at scheduleUpdateOnFiber (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:12086:9)
+      at dispatchSetStateInternal (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:6208:13)
+      at dispatchSetState (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:6165:7)
+      at setUsername (src/ui/screens/calendar/hooks/useCalendarData.ts:144:9)
+      at asyncGeneratorStep (node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+      at _next (node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
+
+PASS __tests__/ai/agyPort06PlannerReplies.test.tsx
+  ● Console
+
+    console.error
+      An update to CalendarScreen inside a test was not wrapped in act(...).
+      
+      When testing, code that causes React state updates should be wrapped into act(...):
+      
+      act(() => {
+        /* fire events that update state */
+      });
+      /* assert on the output */
+      
+      This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+
+    [0m [90m 138 |[39m       ])[33m;[39m
+     [90m 139 |[39m       [36mif[39m (activeUserIdRef[33m.[39mcurrent [33m!==[39m userId) [36mreturn[39m[33m;[39m
+    [31m[1m>[22m[39m[90m 140 |[39m       setBatches(fetchedBatches)[33m;[39m
+     [90m     |[39m       [31m[1m^[22m[39m
+     [90m 141 |[39m       setVisibilityMap(fetchedVisibility)[33m;[39m
+     [90m 142 |[39m       [36mconst[39m user [33m=[39m userStore[33m.[39mgetUserById(userId)[33m;[39m
+     [90m 143 |[39m       [36mif[39m (user) {[0m
+
+      at node_modules/react-test-renderer/cjs/react-test-renderer.development.js:14402:19
+      at runWithFiberInDEV (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:2315:13)
+      at warnIfUpdatesNotWrappedWithActDEV (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:14401:9)
+      at scheduleUpdateOnFiber (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:12086:9)
+      at dispatchSetStateInternal (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:6208:13)
+      at dispatchSetState (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:6165:7)
+      at setBatches (src/ui/screens/calendar/hooks/useCalendarData.ts:140:7)
+      at asyncGeneratorStep (node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+      at _next (node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
+
+    console.error
+      An update to CalendarScreen inside a test was not wrapped in act(...).
+      
+      When testing, code that causes React state updates should be wrapped into act(...):
+      
+      act(() => {
+        /* fire events that update state */
+      });
+      /* assert on the output */
+      
+      This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+
+    [0m [90m 139 |[39m       [36mif[39m (activeUserIdRef[33m.[39mcurrent [33m!==[39m userId) [36mreturn[39m[33m;[39m
+     [90m 140 |[39m       setBatches(fetchedBatches)[33m;[39m
+    [31m[1m>[22m[39m[90m 141 |[39m       setVisibilityMap(fetchedVisibility)[33m;[39m
+     [90m     |[39m       [31m[1m^[22m[39m
+     [90m 142 |[39m       [36mconst[39m user [33m=[39m userStore[33m.[39mgetUserById(userId)[33m;[39m
+     [90m 143 |[39m       [36mif[39m (user) {
+     [90m 144 |[39m         setUsername(user[33m.[39musername)[33m;[39m[0m
+
+      at node_modules/react-test-renderer/cjs/react-test-renderer.development.js:14402:19
+      at runWithFiberInDEV (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:2315:13)
+      at warnIfUpdatesNotWrappedWithActDEV (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:14401:9)
+      at scheduleUpdateOnFiber (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:12086:9)
+      at dispatchSetStateInternal (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:6208:13)
+      at dispatchSetState (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:6165:7)
+      at setVisibilityMap (src/ui/screens/calendar/hooks/useCalendarData.ts:141:7)
+      at asyncGeneratorStep (node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+      at _next (node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
+
+    console.error
+      An update to CalendarScreen inside a test was not wrapped in act(...).
+      
+      When testing, code that causes React state updates should be wrapped into act(...):
+      
+      act(() => {
+        /* fire events that update state */
+      });
+      /* assert on the output */
+      
+      This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+
+    [0m [90m 138 |[39m       ])[33m;[39m
+     [90m 139 |[39m       [36mif[39m (activeUserIdRef[33m.[39mcurrent [33m!==[39m userId) [36mreturn[39m[33m;[39m
+    [31m[1m>[22m[39m[90m 140 |[39m       setBatches(fetchedBatches)[33m;[39m
+     [90m     |[39m       [31m[1m^[22m[39m
+     [90m 141 |[39m       setVisibilityMap(fetchedVisibility)[33m;[39m
+     [90m 142 |[39m       [36mconst[39m user [33m=[39m userStore[33m.[39mgetUserById(userId)[33m;[39m
+     [90m 143 |[39m       [36mif[39m (user) {[0m
+
+      at node_modules/react-test-renderer/cjs/react-test-renderer.development.js:14402:19
+      at runWithFiberInDEV (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:2315:13)
+      at warnIfUpdatesNotWrappedWithActDEV (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:14401:9)
+      at scheduleUpdateOnFiber (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:12086:9)
+      at dispatchSetStateInternal (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:6208:13)
+      at dispatchSetState (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:6165:7)
+      at setBatches (src/ui/screens/calendar/hooks/useCalendarData.ts:140:7)
+      at asyncGeneratorStep (node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+      at _next (node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
+
+    console.error
+      An update to CalendarScreen inside a test was not wrapped in act(...).
+      
+      When testing, code that causes React state updates should be wrapped into act(...):
+      
+      act(() => {
+        /* fire events that update state */
+      });
+      /* assert on the output */
+      
+      This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+
+    [0m [90m 139 |[39m       [36mif[39m (activeUserIdRef[33m.[39mcurrent [33m!==[39m userId) [36mreturn[39m[33m;[39m
+     [90m 140 |[39m       setBatches(fetchedBatches)[33m;[39m
+    [31m[1m>[22m[39m[90m 141 |[39m       setVisibilityMap(fetchedVisibility)[33m;[39m
+     [90m     |[39m       [31m[1m^[22m[39m
+     [90m 142 |[39m       [36mconst[39m user [33m=[39m userStore[33m.[39mgetUserById(userId)[33m;[39m
+     [90m 143 |[39m       [36mif[39m (user) {
+     [90m 144 |[39m         setUsername(user[33m.[39musername)[33m;[39m[0m
+
+      at node_modules/react-test-renderer/cjs/react-test-renderer.development.js:14402:19
+      at runWithFiberInDEV (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:2315:13)
+      at warnIfUpdatesNotWrappedWithActDEV (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:14401:9)
+      at scheduleUpdateOnFiber (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:12086:9)
+      at dispatchSetStateInternal (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:6208:13)
+      at dispatchSetState (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:6165:7)
+      at setVisibilityMap (src/ui/screens/calendar/hooks/useCalendarData.ts:141:7)
+      at asyncGeneratorStep (node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+      at _next (node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
+
+    console.error
+      An update to CalendarScreen inside a test was not wrapped in act(...).
+      
+      When testing, code that causes React state updates should be wrapped into act(...):
+      
+      act(() => {
+        /* fire events that update state */
+      });
+      /* assert on the output */
+      
+      This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+
+    [0m [90m 138 |[39m       ])[33m;[39m
+     [90m 139 |[39m       [36mif[39m (activeUserIdRef[33m.[39mcurrent [33m!==[39m userId) [36mreturn[39m[33m;[39m
+    [31m[1m>[22m[39m[90m 140 |[39m       setBatches(fetchedBatches)[33m;[39m
+     [90m     |[39m       [31m[1m^[22m[39m
+     [90m 141 |[39m       setVisibilityMap(fetchedVisibility)[33m;[39m
+     [90m 142 |[39m       [36mconst[39m user [33m=[39m userStore[33m.[39mgetUserById(userId)[33m;[39m
+     [90m 143 |[39m       [36mif[39m (user) {[0m
+
+      at node_modules/react-test-renderer/cjs/react-test-renderer.development.js:14402:19
+      at runWithFiberInDEV (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:2315:13)
+      at warnIfUpdatesNotWrappedWithActDEV (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:14401:9)
+      at scheduleUpdateOnFiber (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:12086:9)
+      at dispatchSetStateInternal (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:6208:13)
+      at dispatchSetState (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:6165:7)
+      at setBatches (src/ui/screens/calendar/hooks/useCalendarData.ts:140:7)
+      at asyncGeneratorStep (node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+      at _next (node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
+
+    console.error
+      An update to CalendarScreen inside a test was not wrapped in act(...).
+      
+      When testing, code that causes React state updates should be wrapped into act(...):
+      
+      act(() => {
+        /* fire events that update state */
+      });
+      /* assert on the output */
+      
+      This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+
+    [0m [90m 139 |[39m       [36mif[39m (activeUserIdRef[33m.[39mcurrent [33m!==[39m userId) [36mreturn[39m[33m;[39m
+     [90m 140 |[39m       setBatches(fetchedBatches)[33m;[39m
+    [31m[1m>[22m[39m[90m 141 |[39m       setVisibilityMap(fetchedVisibility)[33m;[39m
+     [90m     |[39m       [31m[1m^[22m[39m
+     [90m 142 |[39m       [36mconst[39m user [33m=[39m userStore[33m.[39mgetUserById(userId)[33m;[39m
+     [90m 143 |[39m       [36mif[39m (user) {
+     [90m 144 |[39m         setUsername(user[33m.[39musername)[33m;[39m[0m
+
+      at node_modules/react-test-renderer/cjs/react-test-renderer.development.js:14402:19
+      at runWithFiberInDEV (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:2315:13)
+      at warnIfUpdatesNotWrappedWithActDEV (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:14401:9)
+      at scheduleUpdateOnFiber (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:12086:9)
+      at dispatchSetStateInternal (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:6208:13)
+      at dispatchSetState (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:6165:7)
+      at setVisibilityMap (src/ui/screens/calendar/hooks/useCalendarData.ts:141:7)
+      at asyncGeneratorStep (node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+      at _next (node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
+
+PASS __tests__/storage/agyPort06PlannerQueries.test.ts
+PASS __tests__/ui/auditA2CalendarReadErrors.test.tsx
+PASS __tests__/ai/agyPort04ReviewedCommands.test.ts
+PASS __tests__/ui/agyPort07NotesUi.test.tsx
+PASS __tests__/scheduler/callDispatcherAndCallScreen.test.tsx
+  ● Console
+
+    console.warn
+      "PermissionsAndroid" module works only for Android platform.
+
+    [0m [90m 210 |[39m     [36mlet[39m microphoneGranted [33m=[39m [36mfalse[39m[33m;[39m
+     [90m 211 |[39m     [36mtry[39m {
+    [31m[1m>[22m[39m[90m 212 |[39m       [36mconst[39m permission [33m=[39m [36mawait[39m [33mPermissionsAndroid[39m[33m.[39mrequest(
+     [90m     |[39m                                                   [31m[1m^[22m[39m
+     [90m 213 |[39m         [33mPermissionsAndroid[39m[33m.[39m[33mPERMISSIONS[39m[33m.[39m[33mRECORD_AUDIO[39m[33m,[39m
+     [90m 214 |[39m       )[33m;[39m
+     [90m 215 |[39m       microphoneGranted [33m=[39m permission [33m===[39m [33mPermissionsAndroid[39m[33m.[39m[33mRESULTS[39m[33m.[39m[33mGRANTED[39m[33m;[39m[0m
+
+      at PermissionsAndroidImpl.warn (node_modules/react-native/Libraries/PermissionsAndroid/PermissionsAndroid.js:235:15)
+      at asyncGeneratorStep (node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+      at _next (node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
+      at node_modules/@babel/runtime/helpers/asyncToGenerator.js:22:7
+      at PermissionsAndroidImpl.<anonymous> (node_modules/@babel/runtime/helpers/asyncToGenerator.js:14:12)
+      at PermissionsAndroidImpl.apply [as request] (node_modules/react-native/Libraries/PermissionsAndroid/PermissionsAndroid.js:230:16)
+      at request (src/ui/screens/IncomingCallScreen.tsx:212:51)
+      at asyncGeneratorStep (node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+      at _next (node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
+      at node_modules/@babel/runtime/helpers/asyncToGenerator.js:22:7
+      at node_modules/@babel/runtime/helpers/asyncToGenerator.js:14:12
+      at handleAnswer (src/ui/screens/IncomingCallScreen.tsx:420:41)
+      at handler (node_modules/@testing-library/react-native/src/fire-event.ts:123:19)
+      at callback (node_modules/@testing-library/react-native/src/act.ts:31:24)
+      at Object.<anonymous>.process.env.NODE_ENV.exports.act (node_modules/react/cjs/react.development.js:814:22)
+      at actImplementation (node_modules/@testing-library/react-native/src/act.ts:30:25)
+      at fireEvent (node_modules/@testing-library/react-native/src/fire-event.ts:122:11)
+      at fireEvent [as press] (node_modules/@testing-library/react-native/src/fire-event.ts:130:3)
+      at press (__tests__/scheduler/callDispatcherAndCallScreen.test.tsx:402:19)
+      at asyncGeneratorStep (node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+      at _next (node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
+      at node_modules/@babel/runtime/helpers/asyncToGenerator.js:22:7
+      at node_modules/@babel/runtime/helpers/asyncToGenerator.js:14:12
+      at callback (node_modules/@testing-library/react-native/src/act.ts:31:24)
+      at Object.<anonymous>.process.env.NODE_ENV.exports.act (node_modules/react/cjs/react.development.js:814:22)
+      at actImplementation (node_modules/@testing-library/react-native/src/act.ts:30:25)
+      at Object.<anonymous> (__tests__/scheduler/callDispatcherAndCallScreen.test.tsx:401:16)
+      at asyncGeneratorStep (node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+      at _next (node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
+      at node_modules/@babel/runtime/helpers/asyncToGenerator.js:22:7
+      at Object.<anonymous> (node_modules/@babel/runtime/helpers/asyncToGenerator.js:14:12)
+
+    console.error
+      An update to IncomingCallScreen inside a test was not wrapped in act(...).
+      
+      When testing, code that causes React state updates should be wrapped into act(...):
+      
+      act(() => {
+        /* fire events that update state */
+      });
+      /* assert on the output */
+      
+      This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+
+    [0m [90m 82 |[39m     clearResultTimeout()[33m;[39m
+     [90m 83 |[39m     [33mVibration[39m[33m.[39mcancel()[33m;[39m
+    [31m[1m>[22m[39m[90m 84 |[39m     setCallState([32m'ringing'[39m)[33m;[39m
+     [90m    |[39m     [31m[1m^[22m[39m
+     [90m 85 |[39m     setResolution([36mnull[39m)[33m;[39m
+     [90m 86 |[39m     setTranscript([32m''[39m)[33m;[39m
+     [90m 87 |[39m     setReply([32m''[39m)[33m;[39m[0m
+
+      at node_modules/react-test-renderer/cjs/react-test-renderer.development.js:14402:19
+      at runWithFiberInDEV (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:2315:13)
+      at warnIfUpdatesNotWrappedWithActDEV (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:14401:9)
+      at scheduleUpdateOnFiber (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:12086:9)
+      at dispatchSetStateInternal (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:6208:13)
+      at dispatchSetState (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:6165:7)
+      at setCallState (src/ui/screens/IncomingCallScreen.tsx:84:5)
+      at resetPresentation (src/ui/screens/IncomingCallScreen.tsx:95:5)
+      at closeCallScreen (src/ui/screens/IncomingCallScreen.tsx:174:11)
+      at RCTDeviceEventEmitterImpl.apply (node_modules/react-native/Libraries/vendor/emitter/EventEmitter.js:137:31)
+      at apply (node_modules/react-native/Libraries/EventEmitter/RCTDeviceEventEmitter.js:14:59)
+      at RCTDeviceEventEmitterImpl.emit (node_modules/react-native/Libraries/EventEmitter/RCTDeviceEventEmitter.js:34:7)
+      at emit (src/scheduler/callDispatcher.ts:742:22)
+      at Object.<anonymous> (__tests__/scheduler/callDispatcherAndCallScreen.test.tsx:57:19)
+
+    console.error
+      An update to IncomingCallScreen inside a test was not wrapped in act(...).
+      
+      When testing, code that causes React state updates should be wrapped into act(...):
+      
+      act(() => {
+        /* fire events that update state */
+      });
+      /* assert on the output */
+      
+      This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+
+    [0m [90m 83 |[39m     [33mVibration[39m[33m.[39mcancel()[33m;[39m
+     [90m 84 |[39m     setCallState([32m'ringing'[39m)[33m;[39m
+    [31m[1m>[22m[39m[90m 85 |[39m     setResolution([36mnull[39m)[33m;[39m
+     [90m    |[39m     [31m[1m^[22m[39m
+     [90m 86 |[39m     setTranscript([32m''[39m)[33m;[39m
+     [90m 87 |[39m     setReply([32m''[39m)[33m;[39m
+     [90m 88 |[39m     ringAnim[33m.[39msetValue([35m1[39m)[33m;[39m[0m
+
+      at node_modules/react-test-renderer/cjs/react-test-renderer.development.js:14402:19
+      at runWithFiberInDEV (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:2315:13)
+      at warnIfUpdatesNotWrappedWithActDEV (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:14401:9)
+      at scheduleUpdateOnFiber (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:12086:9)
+      at dispatchSetStateInternal (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:6208:13)
+      at dispatchSetState (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:6165:7)
+      at setResolution (src/ui/screens/IncomingCallScreen.tsx:85:5)
+      at resetPresentation (src/ui/screens/IncomingCallScreen.tsx:95:5)
+      at closeCallScreen (src/ui/screens/IncomingCallScreen.tsx:174:11)
+      at RCTDeviceEventEmitterImpl.apply (node_modules/react-native/Libraries/vendor/emitter/EventEmitter.js:137:31)
+      at apply (node_modules/react-native/Libraries/EventEmitter/RCTDeviceEventEmitter.js:14:59)
+      at RCTDeviceEventEmitterImpl.emit (node_modules/react-native/Libraries/EventEmitter/RCTDeviceEventEmitter.js:34:7)
+      at emit (src/scheduler/callDispatcher.ts:742:22)
+      at Object.<anonymous> (__tests__/scheduler/callDispatcherAndCallScreen.test.tsx:57:19)
+
+    console.error
+      An update to IncomingCallScreen inside a test was not wrapped in act(...).
+      
+      When testing, code that causes React state updates should be wrapped into act(...):
+      
+      act(() => {
+        /* fire events that update state */
+      });
+      /* assert on the output */
+      
+      This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+
+    [0m [90m 84 |[39m     setCallState([32m'ringing'[39m)[33m;[39m
+     [90m 85 |[39m     setResolution([36mnull[39m)[33m;[39m
+    [31m[1m>[22m[39m[90m 86 |[39m     setTranscript([32m''[39m)[33m;[39m
+     [90m    |[39m     [31m[1m^[22m[39m
+     [90m 87 |[39m     setReply([32m''[39m)[33m;[39m
+     [90m 88 |[39m     ringAnim[33m.[39msetValue([35m1[39m)[33m;[39m
+     [90m 89 |[39m     processedActionRef[33m.[39mcurrent [33m=[39m [32m''[39m[33m;[39m[0m
+
+      at node_modules/react-test-renderer/cjs/react-test-renderer.development.js:14402:19
+      at runWithFiberInDEV (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:2315:13)
+      at warnIfUpdatesNotWrappedWithActDEV (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:14401:9)
+      at scheduleUpdateOnFiber (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:12086:9)
+      at dispatchSetStateInternal (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:6208:13)
+      at dispatchSetState (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:6165:7)
+      at setTranscript (src/ui/screens/IncomingCallScreen.tsx:86:5)
+      at resetPresentation (src/ui/screens/IncomingCallScreen.tsx:95:5)
+      at closeCallScreen (src/ui/screens/IncomingCallScreen.tsx:174:11)
+      at RCTDeviceEventEmitterImpl.apply (node_modules/react-native/Libraries/vendor/emitter/EventEmitter.js:137:31)
+      at apply (node_modules/react-native/Libraries/EventEmitter/RCTDeviceEventEmitter.js:14:59)
+      at RCTDeviceEventEmitterImpl.emit (node_modules/react-native/Libraries/EventEmitter/RCTDeviceEventEmitter.js:34:7)
+      at emit (src/scheduler/callDispatcher.ts:742:22)
+      at Object.<anonymous> (__tests__/scheduler/callDispatcherAndCallScreen.test.tsx:57:19)
+
+    console.error
+      An update to IncomingCallScreen inside a test was not wrapped in act(...).
+      
+      When testing, code that causes React state updates should be wrapped into act(...):
+      
+      act(() => {
+        /* fire events that update state */
+      });
+      /* assert on the output */
+      
+      This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+
+    [0m [90m 85 |[39m     setResolution([36mnull[39m)[33m;[39m
+     [90m 86 |[39m     setTranscript([32m''[39m)[33m;[39m
+    [31m[1m>[22m[39m[90m 87 |[39m     setReply([32m''[39m)[33m;[39m
+     [90m    |[39m     [31m[1m^[22m[39m
+     [90m 88 |[39m     ringAnim[33m.[39msetValue([35m1[39m)[33m;[39m
+     [90m 89 |[39m     processedActionRef[33m.[39mcurrent [33m=[39m [32m''[39m[33m;[39m
+     [90m 90 |[39m   }[33m,[39m [clearResultTimeout[33m,[39m ringAnim])[33m;[39m[0m
+
+      at node_modules/react-test-renderer/cjs/react-test-renderer.development.js:14402:19
+      at runWithFiberInDEV (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:2315:13)
+      at warnIfUpdatesNotWrappedWithActDEV (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:14401:9)
+      at scheduleUpdateOnFiber (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:12086:9)
+      at dispatchSetStateInternal (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:6208:13)
+      at dispatchSetState (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:6165:7)
+      at setReply (src/ui/screens/IncomingCallScreen.tsx:87:5)
+      at resetPresentation (src/ui/screens/IncomingCallScreen.tsx:95:5)
+      at closeCallScreen (src/ui/screens/IncomingCallScreen.tsx:174:11)
+      at RCTDeviceEventEmitterImpl.apply (node_modules/react-native/Libraries/vendor/emitter/EventEmitter.js:137:31)
+      at apply (node_modules/react-native/Libraries/EventEmitter/RCTDeviceEventEmitter.js:14:59)
+      at RCTDeviceEventEmitterImpl.emit (node_modules/react-native/Libraries/EventEmitter/RCTDeviceEventEmitter.js:34:7)
+      at emit (src/scheduler/callDispatcher.ts:742:22)
+      at Object.<anonymous> (__tests__/scheduler/callDispatcherAndCallScreen.test.tsx:57:19)
+
+PASS __tests__/ai/phase10HandbookRAG.test.tsx
+  ● Console
+
+    console.warn
+      [ChatOrchestrator] Online AI chat failed: Backend handbook index unavailable
+
+    [0m [90m 487 |[39m             usedOnline [33m=[39m [36mtrue[39m[33m;[39m
+     [90m 488 |[39m           } [36melse[39m {
+    [31m[1m>[22m[39m[90m 489 |[39m             console[33m.[39mwarn([32m'[ChatOrchestrator] Online AI chat failed:'[39m[33m,[39m onlineResult[33m.[39merror)[33m;[39m
+     [90m     |[39m                     [31m[1m^[22m[39m
+     [90m 490 |[39m             [36mif[39m (
+     [90m 491 |[39m               options[33m.[39museHandbook [33m&&[39m
+     [90m 492 |[39m               [35m/\b(?:ustp|handbook|dean'?s\s+list|grading|policy|curriculum|tuition|retention)\b/i[39m[33m.[39mtest([0m
+
+      at ChatOrchestrator.warn (src/ai/chatOrchestrator.ts:489:21)
+      at asyncGeneratorStep (node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+      at _next (node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
+
+PASS __tests__/evaluation/qaSqlChecks.test.ts
+  ● Console
+
+    console.error
+      [Database] SQL Error executing query: INSERT INTO messages (id, session_id, sender, content, created_at, updated_at) VALUES ('qa-orphan', 'qa-missing-session' Error: FOREIGN KEY constraint failed
+          at Object.run [as executeSync] (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\__tests__\fixtures\sqliteFile.ts:84:32)
+          at DatabaseService.executeSync (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\src\storage\database.ts:145:36)
+          at executeSync (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\__tests__\evaluation\support\qaSqlChecks.ts:215:13)
+          at Generator.next (<anonymous>)
+          at asyncGeneratorStep (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\@babel\runtime\helpers\asyncToGenerator.js:3:17)
+          at _next (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\@babel\runtime\helpers\asyncToGenerator.js:17:9) {
+        code: 'ERR_SQLITE_ERROR',
+        errcode: 787,
+        errstr: 'constraint failed'
+      }
+
+    [0m [90m 151 |[39m     } [36mcatch[39m (error) {
+     [90m 152 |[39m       [90m// Bound values can hold note text or credentials, so they are never logged.[39m
+    [31m[1m>[22m[39m[90m 153 |[39m       console[33m.[39merror(
+     [90m     |[39m               [31m[1m^[22m[39m
+     [90m 154 |[39m         [32m`[Database] SQL Error executing query: ${describeQuery(query)}`[39m[33m,[39m
+     [90m 155 |[39m         error[33m,[39m
+     [90m 156 |[39m       )[33m;[39m[0m
+
+      at DatabaseService.error [as executeSync] (src/storage/database.ts:153:15)
+      at executeSync (__tests__/evaluation/support/qaSqlChecks.ts:215:13)
+      at asyncGeneratorStep (node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+      at _next (node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
+
+    console.error
+      [Database] SQL Error executing query: UPDATE notes SET body = 'Changed fixture' WHERE id = 'qa-note00' Error: injected storage failure
+          at Object.executeSync (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\__tests__\fixtures\sqliteFile.ts:74:15)
+          at DatabaseService.executeSync (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\src\storage\database.ts:145:36)
+          at executeSync (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\__tests__\evaluation\support\qaSqlChecks.ts:198:11)
+          at Generator.next (<anonymous>)
+          at asyncGeneratorStep (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\@babel\runtime\helpers\asyncToGenerator.js:3:17)
+          at _next (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\@babel\runtime\helpers\asyncToGenerator.js:17:9)
+
+    [0m [90m 151 |[39m     } [36mcatch[39m (error) {
+     [90m 152 |[39m       [90m// Bound values can hold note text or credentials, so they are never logged.[39m
+    [31m[1m>[22m[39m[90m 153 |[39m       console[33m.[39merror(
+     [90m     |[39m               [31m[1m^[22m[39m
+     [90m 154 |[39m         [32m`[Database] SQL Error executing query: ${describeQuery(query)}`[39m[33m,[39m
+     [90m 155 |[39m         error[33m,[39m
+     [90m 156 |[39m       )[33m;[39m[0m
+
+      at DatabaseService.error [as executeSync] (src/storage/database.ts:153:15)
+      at executeSync (__tests__/evaluation/support/qaSqlChecks.ts:198:11)
+      at asyncGeneratorStep (node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+      at _next (node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
+
+    console.error
+      [Database] SQL Error executing query: INSERT INTO messages (id, session_id, sender, content, created_at, updated_at) VALUES ('qa-orphan', 'qa-missing-session' Error: FOREIGN KEY constraint failed
+          at Object.run [as executeSync] (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\__tests__\fixtures\sqliteFile.ts:84:32)
+          at DatabaseService.executeSync (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\src\storage\database.ts:145:36)
+          at executeSync (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\__tests__\evaluation\support\qaSqlChecks.ts:215:13)
+          at Generator.next (<anonymous>)
+          at asyncGeneratorStep (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\@babel\runtime\helpers\asyncToGenerator.js:3:17)
+          at _next (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\@babel\runtime\helpers\asyncToGenerator.js:17:9) {
+        code: 'ERR_SQLITE_ERROR',
+        errcode: 787,
+        errstr: 'constraint failed'
+      }
+
+    [0m [90m 151 |[39m     } [36mcatch[39m (error) {
+     [90m 152 |[39m       [90m// Bound values can hold note text or credentials, so they are never logged.[39m
+    [31m[1m>[22m[39m[90m 153 |[39m       console[33m.[39merror(
+     [90m     |[39m               [31m[1m^[22m[39m
+     [90m 154 |[39m         [32m`[Database] SQL Error executing query: ${describeQuery(query)}`[39m[33m,[39m
+     [90m 155 |[39m         error[33m,[39m
+     [90m 156 |[39m       )[33m;[39m[0m
+
+      at DatabaseService.error [as executeSync] (src/storage/database.ts:153:15)
+      at executeSync (__tests__/evaluation/support/qaSqlChecks.ts:215:13)
+      at asyncGeneratorStep (node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+      at _next (node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
+
+    console.error
+      [Database] SQL Error executing query: INSERT INTO users (id, username, email, role, is_new_user, created_at, updated_at) VALUES (?, ?, ?, 'student', 0, ?, ?) Error: injected storage failure
+          at executeSync (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\__tests__\fixtures\sqliteFile.ts:74:15)
+          at Object.execute [as executeSync] (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\__tests__\evaluation\qaSqlChecks.test.ts:103:18)
+          at DatabaseService.executeSync (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\src\storage\database.ts:145:36)
+          at executeSync (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\__tests__\evaluation\support\qaSqlChecks.ts:90:13)
+          at addUser (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\__tests__\evaluation\support\qaSqlChecks.ts:96:3)
+          at Generator.next (<anonymous>)
+          at asyncGeneratorStep (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\@babel\runtime\helpers\asyncToGenerator.js:3:17)
+          at _next (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\@babel\runtime\helpers\asyncToGenerator.js:17:9)
+
+    [0m [90m 151 |[39m     } [36mcatch[39m (error) {
+     [90m 152 |[39m       [90m// Bound values can hold note text or credentials, so they are never logged.[39m
+    [31m[1m>[22m[39m[90m 153 |[39m       console[33m.[39merror(
+     [90m     |[39m               [31m[1m^[22m[39m
+     [90m 154 |[39m         [32m`[Database] SQL Error executing query: ${describeQuery(query)}`[39m[33m,[39m
+     [90m 155 |[39m         error[33m,[39m
+     [90m 156 |[39m       )[33m;[39m[0m
+
+      at DatabaseService.error [as executeSync] (src/storage/database.ts:153:15)
+      at executeSync (__tests__/evaluation/support/qaSqlChecks.ts:90:13)
+      at addUser (__tests__/evaluation/support/qaSqlChecks.ts:96:3)
+      at asyncGeneratorStep (node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+      at _next (node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
+
+PASS __tests__/storage/attachmentCleanupFairness.test.ts
+PASS __tests__/ui/remediationAuditClearAllData.test.tsx
+PASS __tests__/ai/phase06SttAndVoiceModal.test.tsx
+PASS __tests__/ui/storageRecovery.test.tsx
+PASS __tests__/storage/agyPort08EventTime.test.ts
+PASS __tests__/ui/agyPort09ProfileHealth.test.tsx
+  ● Console
+
+    console.warn
+      SafeAreaView has been deprecated and will be removed in a future release. Please use 'react-native-safe-area-context' instead. See https://github.com/AppAndFlow/react-native-safe-area-context
+
+    [0m [90m 25 |[39m   [36mreturn[39m (
+     [90m 26 |[39m     [33m<[39m[33mModal[39m visible[33m=[39m{visible} animationType[33m=[39m[32m"slide"[39m onRequestClose[33m=[39m{onClose}[33m>[39m
+    [31m[1m>[22m[39m[90m 27 |[39m       [33m<[39m[33mSafeAreaView[39m style[33m=[39m{[styles[33m.[39mprivacyContainer[33m,[39m themed[33m.[39mprivacyContainer]}[33m>[39m
+     [90m    |[39m        [31m[1m^[22m[39m
+     [90m 28 |[39m         [33m<[39m[33mView[39m style[33m=[39m{[styles[33m.[39mprivacyHeader[33m,[39m themed[33m.[39mprivacyHeader]}[33m>[39m
+     [90m 29 |[39m           [33m<[39m[33mText[39m style[33m=[39m{[styles[33m.[39mprivacyHeaderTitle[33m,[39m themed[33m.[39mprivacyHeaderTitle]}[33m>[39m
+     [90m 30 |[39m             [33mPrivacy[39m [33mPolicy[39m[0m
+
+      at warn (node_modules/react-native/Libraries/Utilities/warnOnce.js:27:11)
+      at Object.warnOnce [as SafeAreaView] (node_modules/react-native/index.js:101:5)
+      at SafeAreaView (src/ui/components/profile/PrivacyModal.tsx:27:8)
+      at Object.react_stack_bottom_frame (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:15670:20)
+      at renderWithHooks (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:4863:22)
+      at updateFunctionComponent (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:7018:19)
+      at beginWork (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:8499:18)
+      at runWithFiberInDEV (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:2315:13)
+      at performUnitOfWork (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:13224:22)
+      at workLoopSync (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:13068:41)
+      at renderRootSync (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:13049:11)
+      at performWorkOnRoot (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:12181:11)
+      at performWorkOnRootViaSchedulerTask (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:2908:7)
+      at flushActQueue (node_modules/react/cjs/react.development.js:590:34)
+      at Object.<anonymous>.process.env.NODE_ENV.exports.act (node_modules/react/cjs/react.development.js:884:10)
+      at actImplementation (node_modules/@testing-library/react-native/src/act.ts:30:25)
+      at renderWithAct (node_modules/@testing-library/react-native/src/render-act.ts:13:11)
+      at renderInternal (node_modules/@testing-library/react-native/src/render.tsx:69:33)
+      at renderInternal (node_modules/@testing-library/react-native/src/render.tsx:44:10)
+      at Object.<anonymous> (__tests__/ui/agyPort09ProfileHealth.test.tsx:101:26)
+
+    console.warn
+      [ReminderHealth] Local delivery evidence unavailable: Error: Account changed. Reopen reminder health.
+          at Object.read (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\src\storage\reminderHealthStore.ts:92:13)
+          at read (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\src\scheduler\reminderHealth.ts:63:33)
+          at Generator.next (<anonymous>)
+          at asyncGeneratorStep (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\@babel\runtime\helpers\asyncToGenerator.js:3:17)
+          at _next (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\@babel\runtime\helpers\asyncToGenerator.js:17:9)
+          at C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\@babel\runtime\helpers\asyncToGenerator.js:22:7
+          at new Promise (<anonymous>)
+          at C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\@babel\runtime\helpers\asyncToGenerator.js:14:12
+          at apply (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\src\scheduler\reminderHealth.ts:57:32)
+          at C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\src\ui\components\profile\ReminderHealth.tsx:41:43
+          at Generator.next (<anonymous>)
+          at asyncGeneratorStep (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\@babel\runtime\helpers\asyncToGenerator.js:3:17)
+          at _next (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\@babel\runtime\helpers\asyncToGenerator.js:17:9)
+          at C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\@babel\runtime\helpers\asyncToGenerator.js:22:7
+          at new Promise (<anonymous>)
+          at C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\@babel\runtime\helpers\asyncToGenerator.js:14:12
+          at refresh (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\src\ui\components\profile\ReminderHealth.tsx:51:10)
+          at Object.react_stack_bottom_frame (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\react-test-renderer\cjs\react-test-renderer.development.js:15755:20)
+          at runWithFiberInDEV (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\react-test-renderer\cjs\react-test-renderer.development.js:2315:13)
+          at commitHookEffectListMount (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\react-test-renderer\cjs\react-test-renderer.development.js:9530:29)
+          at commitHookPassiveMountEffects (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\react-test-renderer\cjs\react-test-renderer.development.js:9617:11)
+          at commitPassiveMountOnFiber (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\react-test-renderer\cjs\react-test-renderer.development.js:11205:13)
+          at recursivelyTraversePassiveMountEffects (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\react-test-renderer\cjs\react-test-renderer.development.js:11160:11)
+          at commitPassiveMountOnFiber (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\react-test-renderer\cjs\react-test-renderer.development.js:11439:11)
+          at recursivelyTraversePassiveMountEffects (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\react-test-renderer\cjs\react-test-renderer.development.js:11160:11)
+          at commitPassiveMountOnFiber (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\react-test-renderer\cjs\react-test-renderer.development.js:11197:11)
+          at recursivelyTraversePassiveMountEffects (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\react-test-renderer\cjs\react-test-renderer.development.js:11160:11)
+          at commitPassiveMountOnFiber (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\react-test-renderer\cjs\react-test-renderer.development.js:11240:11)
+          at flushPendingEffects (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\react-test-renderer\cjs\react-test-renderer.development.js:14086:11)
+          at performSyncWorkOnRoot (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\react-test-renderer\cjs\react-test-renderer.development.js:2920:11)
+          at flushSyncWorkAcrossRoots_impl (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\react-test-renderer\cjs\react-test-renderer.development.js:2764:21)
+          at flushSpawnedWork (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\react-test-renderer\cjs\react-test-renderer.development.js:13966:9)
+          at commitRoot (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\react-test-renderer\cjs\react-test-renderer.development.js:13698:9)
+          at performWorkOnRoot (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\react-test-renderer\cjs\react-test-renderer.development.js:12336:15)
+          at performWorkOnRootViaSchedulerTask (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\react-test-renderer\cjs\react-test-renderer.development.js:2908:7)
+          at flushActQueue (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\react\cjs\react.development.js:590:34)
+          at Object.<anonymous>.process.env.NODE_ENV.exports.act (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\react\cjs\react.development.js:884:10)
+          at actImplementation (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\@testing-library\react-native\src\act.ts:30:25)
+          at renderWithAct (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\@testing-library\react-native\src\render-act.ts:13:11)
+          at renderInternal (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\@testing-library\react-native\src\render.tsx:69:33)
+          at renderInternal (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\@testing-library\react-native\src\render.tsx:44:10)
+          at Object.<anonymous> (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\__tests__\ui\agyPort09ProfileHealth.test.tsx:162:26)
+          at Generator.next (<anonymous>)
+          at asyncGeneratorStep (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\@babel\runtime\helpers\asyncToGenerator.js:3:17)
+          at _next (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\@babel\runtime\helpers\asyncToGenerator.js:17:9)
+          at C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\@babel\runtime\helpers\asyncToGenerator.js:22:7
+          at new Promise (<anonymous>)
+          at Object.<anonymous> (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\@babel\runtime\helpers\asyncToGenerator.js:14:12)
+          at Promise.then.completed (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-circus\build\utils.js:298:28)
+          at new Promise (<anonymous>)
+          at callAsyncCircusFn (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-circus\build\utils.js:231:10)
+          at _callCircusTest (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-circus\build\run.js:316:40)
+          at _runTest (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-circus\build\run.js:252:3)
+          at _runTestsForDescribeBlock (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-circus\build\run.js:126:9)
+          at _runTestsForDescribeBlock (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-circus\build\run.js:121:9)
+          at run (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-circus\build\run.js:71:3)
+          at runAndTransformResultsToJestFormat (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-circus\build\legacy-code-todo-rewrite\jestAdapterInit.js:122:21)
+          at jestAdapter (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-circus\build\legacy-code-todo-rewrite\jestAdapter.js:79:19)
+          at runTestInternal (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-runner\build\runTest.js:367:16)
+          at runTest (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-runner\build\runTest.js:444:34)
+
+    [0m [90m 63 |[39m     local [33m=[39m reminderHealthStore[33m.[39mread(userId)[33m;[39m
+     [90m 64 |[39m   } [36mcatch[39m (error) {
+    [31m[1m>[22m[39m[90m 65 |[39m     console[33m.[39mwarn([32m'[ReminderHealth] Local delivery evidence unavailable:'[39m[33m,[39m error)[33m;[39m
+     [90m    |[39m             [31m[1m^[22m[39m
+     [90m 66 |[39m   }
+     [90m 67 |[39m   [36mtry[39m {
+     [90m 68 |[39m     [36mconst[39m value [33m=[39m [36mawait[39m bounded(getReminderPermissionStatus()[33m,[39m [33mPERMISSION_READ_TIMEOUT_MS[39m)[33m;[39m[0m
+
+      at warn (src/scheduler/reminderHealth.ts:65:13)
+      at asyncGeneratorStep (node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+      at _next (node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
+      at node_modules/@babel/runtime/helpers/asyncToGenerator.js:22:7
+      at node_modules/@babel/runtime/helpers/asyncToGenerator.js:14:12
+      at apply (src/scheduler/reminderHealth.ts:57:32)
+      at src/ui/components/profile/ReminderHealth.tsx:41:43
+      at asyncGeneratorStep (node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+      at _next (node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
+      at node_modules/@babel/runtime/helpers/asyncToGenerator.js:22:7
+      at node_modules/@babel/runtime/helpers/asyncToGenerator.js:14:12
+      at refresh (src/ui/components/profile/ReminderHealth.tsx:51:10)
+      at Object.react_stack_bottom_frame (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:15755:20)
+      at runWithFiberInDEV (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:2315:13)
+      at commitHookEffectListMount (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:9530:29)
+      at commitHookPassiveMountEffects (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:9617:11)
+      at commitPassiveMountOnFiber (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:11205:13)
+      at recursivelyTraversePassiveMountEffects (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:11160:11)
+      at commitPassiveMountOnFiber (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:11439:11)
+      at recursivelyTraversePassiveMountEffects (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:11160:11)
+      at commitPassiveMountOnFiber (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:11197:11)
+      at recursivelyTraversePassiveMountEffects (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:11160:11)
+      at commitPassiveMountOnFiber (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:11240:11)
+      at flushPendingEffects (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:14086:11)
+      at performSyncWorkOnRoot (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:2920:11)
+      at flushSyncWorkAcrossRoots_impl (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:2764:21)
+      at flushSpawnedWork (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:13966:9)
+      at commitRoot (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:13698:9)
+      at performWorkOnRoot (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:12336:15)
+      at performWorkOnRootViaSchedulerTask (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:2908:7)
+      at flushActQueue (node_modules/react/cjs/react.development.js:590:34)
+      at Object.<anonymous>.process.env.NODE_ENV.exports.act (node_modules/react/cjs/react.development.js:884:10)
+      at actImplementation (node_modules/@testing-library/react-native/src/act.ts:30:25)
+      at renderWithAct (node_modules/@testing-library/react-native/src/render-act.ts:13:11)
+      at renderInternal (node_modules/@testing-library/react-native/src/render.tsx:69:33)
+      at renderInternal (node_modules/@testing-library/react-native/src/render.tsx:44:10)
+      at Object.<anonymous> (__tests__/ui/agyPort09ProfileHealth.test.tsx:162:26)
+      at asyncGeneratorStep (node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+      at _next (node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
+      at node_modules/@babel/runtime/helpers/asyncToGenerator.js:22:7
+      at Object.<anonymous> (node_modules/@babel/runtime/helpers/asyncToGenerator.js:14:12)
+
+    console.warn
+      [ReminderHealth] Android access unavailable: Error: no binder
+          at Object.<anonymous> (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\__tests__\ui\agyPort09ProfileHealth.test.tsx:161:56)
+          at Generator.next (<anonymous>)
+          at asyncGeneratorStep (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\@babel\runtime\helpers\asyncToGenerator.js:3:17)
+          at _next (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\@babel\runtime\helpers\asyncToGenerator.js:17:9)
+          at C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\@babel\runtime\helpers\asyncToGenerator.js:22:7
+          at new Promise (<anonymous>)
+          at Object.<anonymous> (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\@babel\runtime\helpers\asyncToGenerator.js:14:12)
+          at Promise.then.completed (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-circus\build\utils.js:298:28)
+          at new Promise (<anonymous>)
+          at callAsyncCircusFn (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-circus\build\utils.js:231:10)
+          at _callCircusTest (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-circus\build\run.js:316:40)
+          at _runTest (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-circus\build\run.js:252:3)
+          at _runTestsForDescribeBlock (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-circus\build\run.js:126:9)
+          at _runTestsForDescribeBlock (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-circus\build\run.js:121:9)
+          at run (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-circus\build\run.js:71:3)
+          at runAndTransformResultsToJestFormat (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-circus\build\legacy-code-todo-rewrite\jestAdapterInit.js:122:21)
+          at jestAdapter (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-circus\build\legacy-code-todo-rewrite\jestAdapter.js:79:19)
+          at runTestInternal (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-runner\build\runTest.js:367:16)
+          at runTest (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-runner\build\runTest.js:444:34)
+
+    [0m [90m 69 |[39m     [36mif[39m (isPermissionStatus(value)) permissions [33m=[39m value[33m;[39m
+     [90m 70 |[39m   } [36mcatch[39m (error) {
+    [31m[1m>[22m[39m[90m 71 |[39m     console[33m.[39mwarn([32m'[ReminderHealth] Android access unavailable:'[39m[33m,[39m error)[33m;[39m
+     [90m    |[39m             [31m[1m^[22m[39m
+     [90m 72 |[39m   }
+     [90m 73 |[39m   [36mreturn[39m {userId[33m,[39m permissions[33m,[39m local[33m,[39m checkedAt[33m:[39m [36mnew[39m [33mDate[39m()[33m.[39mtoISOString()}[33m;[39m
+     [90m 74 |[39m }[33m;[39m[0m
+
+      at warn (src/scheduler/reminderHealth.ts:71:13)
+          at Generator.throw (<anonymous>)
+      at asyncGeneratorStep (node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+      at _throw (node_modules/@babel/runtime/helpers/asyncToGenerator.js:20:9)
+
+    console.warn
+      [ReminderHealth] Local delivery evidence unavailable: Error: Account changed. Reopen reminder health.
+          at Object.read (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\src\storage\reminderHealthStore.ts:92:13)
+          at read (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\src\scheduler\reminderHealth.ts:63:33)
+          at Generator.next (<anonymous>)
+          at asyncGeneratorStep (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\@babel\runtime\helpers\asyncToGenerator.js:3:17)
+          at _next (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\@babel\runtime\helpers\asyncToGenerator.js:17:9)
+          at C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\@babel\runtime\helpers\asyncToGenerator.js:22:7
+          at new Promise (<anonymous>)
+          at C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\@babel\runtime\helpers\asyncToGenerator.js:14:12
+          at apply (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\src\scheduler\reminderHealth.ts:57:32)
+          at real (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\__tests__\ui\agyPort09ProfileHealth.test.tsx:183:25)
+          at Generator.next (<anonymous>)
+          at asyncGeneratorStep (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\@babel\runtime\helpers\asyncToGenerator.js:3:17)
+          at _next (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\@babel\runtime\helpers\asyncToGenerator.js:17:9)
+
+    [0m [90m 63 |[39m     local [33m=[39m reminderHealthStore[33m.[39mread(userId)[33m;[39m
+     [90m 64 |[39m   } [36mcatch[39m (error) {
+    [31m[1m>[22m[39m[90m 65 |[39m     console[33m.[39mwarn([32m'[ReminderHealth] Local delivery evidence unavailable:'[39m[33m,[39m error)[33m;[39m
+     [90m    |[39m             [31m[1m^[22m[39m
+     [90m 66 |[39m   }
+     [90m 67 |[39m   [36mtry[39m {
+     [90m 68 |[39m     [36mconst[39m value [33m=[39m [36mawait[39m bounded(getReminderPermissionStatus()[33m,[39m [33mPERMISSION_READ_TIMEOUT_MS[39m)[33m;[39m[0m
+
+      at warn (src/scheduler/reminderHealth.ts:65:13)
+      at asyncGeneratorStep (node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+      at _next (node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
+      at node_modules/@babel/runtime/helpers/asyncToGenerator.js:22:7
+      at node_modules/@babel/runtime/helpers/asyncToGenerator.js:14:12
+      at apply (src/scheduler/reminderHealth.ts:57:32)
+      at real (__tests__/ui/agyPort09ProfileHealth.test.tsx:183:25)
+      at asyncGeneratorStep (node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+      at _next (node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
+
+    console.warn
+      [Calendar] Saved event defaults changed: EventMemoryError: Saved defaults changed. Reopen the new event.
+          at Object.apply (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\src\storage\personalMemoryStore.ts:288:13)
+          at Object.apply [as applyMemoryOffer] (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\src\ui\screens\calendar\hooks\useScheduleItemModal.ts:127:41)
+          at C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\__tests__\ui\agyPort09ProfileHealth.test.tsx:315:46
+          at callback (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\@testing-library\react-native\src\act.ts:31:24)
+          at Object.<anonymous>.process.env.NODE_ENV.exports.act (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\react\cjs\react.development.js:814:22)
+          at actImplementation (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\@testing-library\react-native\src\act.ts:30:25)
+          at Object.<anonymous> (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\__tests__\ui\agyPort09ProfileHealth.test.tsx:315:8)
+          at Promise.then.completed (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-circus\build\utils.js:298:28)
+          at new Promise (<anonymous>)
+          at callAsyncCircusFn (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-circus\build\utils.js:231:10)
+          at _callCircusTest (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-circus\build\run.js:316:40)
+          at _runTest (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-circus\build\run.js:252:3)
+          at _runTestsForDescribeBlock (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-circus\build\run.js:126:9)
+          at _runTestsForDescribeBlock (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-circus\build\run.js:121:9)
+          at run (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-circus\build\run.js:71:3)
+          at runAndTransformResultsToJestFormat (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-circus\build\legacy-code-todo-rewrite\jestAdapterInit.js:122:21)
+          at jestAdapter (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-circus\build\legacy-code-todo-rewrite\jestAdapter.js:79:19)
+          at runTestInternal (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-runner\build\runTest.js:367:16)
+          at runTest (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-runner\build\runTest.js:444:34) {
+        problem: 'stale'
+      }
+
+    [0m [90m 128 |[39m       setForm(prev [33m=>[39m ({ [33m...[39mprev[33m,[39m [33m...[39mapplyEventMemoryToDraft(value[33m,[39m prev) }))[33m;[39m
+     [90m 129 |[39m     } [36mcatch[39m (err) {
+    [31m[1m>[22m[39m[90m 130 |[39m       console[33m.[39mwarn([32m'[Calendar] Saved event defaults changed:'[39m[33m,[39m err)[33m;[39m
+     [90m     |[39m               [31m[1m^[22m[39m
+     [90m 131 |[39m       [33mAlert[39m[33m.[39malert(
+     [90m 132 |[39m         [32m'Saved defaults changed'[39m[33m,[39m
+     [90m 133 |[39m         [32m'Your saved event defaults changed or expired. The draft was not changed.'[39m[33m,[39m[0m
+
+      at Object.warn [as applyMemoryOffer] (src/ui/screens/calendar/hooks/useScheduleItemModal.ts:130:15)
+      at __tests__/ui/agyPort09ProfileHealth.test.tsx:315:46
+      at callback (node_modules/@testing-library/react-native/src/act.ts:31:24)
+      at Object.<anonymous>.process.env.NODE_ENV.exports.act (node_modules/react/cjs/react.development.js:814:22)
+      at actImplementation (node_modules/@testing-library/react-native/src/act.ts:30:25)
+      at Object.<anonymous> (__tests__/ui/agyPort09ProfileHealth.test.tsx:315:8)
+
+PASS __tests__/ai/phase08ChatAndOrchestrator.test.tsx
+  ● Console
+
+    console.error
+      An update to ChatMessageItem inside a test was not wrapped in act(...).
+      
+      When testing, code that causes React state updates should be wrapped into act(...):
+      
+      act(() => {
+        /* fire events that update state */
+      });
+      /* assert on the output */
+      
+      This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+
+    [0m [90m 87 |[39m       console[33m.[39mwarn([32m'[ChatMessageItem] TTS speak error:'[39m[33m,[39m err)[33m;[39m
+     [90m 88 |[39m     } [36mfinally[39m {
+    [31m[1m>[22m[39m[90m 89 |[39m       setIsPlaying([36mfalse[39m)[33m;[39m
+     [90m    |[39m       [31m[1m^[22m[39m
+     [90m 90 |[39m     }
+     [90m 91 |[39m   }[33m;[39m
+     [90m 92 |[39m[0m
+
+      at node_modules/react-test-renderer/cjs/react-test-renderer.development.js:14402:19
+      at runWithFiberInDEV (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:2315:13)
+      at warnIfUpdatesNotWrappedWithActDEV (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:14401:9)
+      at scheduleUpdateOnFiber (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:12086:9)
+      at dispatchSetStateInternal (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:6208:13)
+      at dispatchSetState (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:6165:7)
+      at setIsPlaying (src/ui/components/chat/ChatMessageItem.tsx:89:7)
+      at asyncGeneratorStep (node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+      at _next (node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
+
+PASS __tests__/ai/phase09OnlineDocsAndMeetings.test.tsx
+  ● Console
+
+    console.warn
+      [ChatOrchestrator] Online AI chat failed: Network request failed
+
+    [0m [90m 487 |[39m             usedOnline [33m=[39m [36mtrue[39m[33m;[39m
+     [90m 488 |[39m           } [36melse[39m {
+    [31m[1m>[22m[39m[90m 489 |[39m             console[33m.[39mwarn([32m'[ChatOrchestrator] Online AI chat failed:'[39m[33m,[39m onlineResult[33m.[39merror)[33m;[39m
+     [90m     |[39m                     [31m[1m^[22m[39m
+     [90m 490 |[39m             [36mif[39m (
+     [90m 491 |[39m               options[33m.[39museHandbook [33m&&[39m
+     [90m 492 |[39m               [35m/\b(?:ustp|handbook|dean'?s\s+list|grading|policy|curriculum|tuition|retention)\b/i[39m[33m.[39mtest([0m
+
+      at ChatOrchestrator.warn (src/ai/chatOrchestrator.ts:489:21)
+      at asyncGeneratorStep (node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+      at _next (node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
+
+PASS __tests__/ui/finalAuditF1OfflineVoicePending.test.tsx
+PASS __tests__/evaluation/offlineBoundary.test.ts
+PASS __tests__/ui/agyPort10OfflineVoice.test.tsx
+  ● Console
+
+    console.warn
+      SafeAreaView has been deprecated and will be removed in a future release. Please use 'react-native-safe-area-context' instead. See https://github.com/AppAndFlow/react-native-safe-area-context
+
+    [0m [90m 25 |[39m   [36mreturn[39m (
+     [90m 26 |[39m     [33m<[39m[33mModal[39m visible[33m=[39m{visible} animationType[33m=[39m[32m"slide"[39m onRequestClose[33m=[39m{onClose}[33m>[39m
+    [31m[1m>[22m[39m[90m 27 |[39m       [33m<[39m[33mSafeAreaView[39m style[33m=[39m{[styles[33m.[39mprivacyContainer[33m,[39m themed[33m.[39mprivacyContainer]}[33m>[39m
+     [90m    |[39m        [31m[1m^[22m[39m
+     [90m 28 |[39m         [33m<[39m[33mView[39m style[33m=[39m{[styles[33m.[39mprivacyHeader[33m,[39m themed[33m.[39mprivacyHeader]}[33m>[39m
+     [90m 29 |[39m           [33m<[39m[33mText[39m style[33m=[39m{[styles[33m.[39mprivacyHeaderTitle[33m,[39m themed[33m.[39mprivacyHeaderTitle]}[33m>[39m
+     [90m 30 |[39m             [33mPrivacy[39m [33mPolicy[39m[0m
+
+      at warn (node_modules/react-native/Libraries/Utilities/warnOnce.js:27:11)
+      at Object.warnOnce [as SafeAreaView] (node_modules/react-native/index.js:101:5)
+      at SafeAreaView (src/ui/components/profile/PrivacyModal.tsx:27:8)
+      at Object.react_stack_bottom_frame (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:15670:20)
+      at renderWithHooks (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:4863:22)
+      at updateFunctionComponent (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:7018:19)
+      at beginWork (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:8499:18)
+      at runWithFiberInDEV (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:2315:13)
+      at performUnitOfWork (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:13224:22)
+      at workLoopSync (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:13068:41)
+      at renderRootSync (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:13049:11)
+      at performWorkOnRoot (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:12181:11)
+      at performWorkOnRootViaSchedulerTask (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:2908:7)
+      at flushActQueue (node_modules/react/cjs/react.development.js:590:34)
+      at Object.<anonymous>.process.env.NODE_ENV.exports.act (node_modules/react/cjs/react.development.js:884:10)
+      at actImplementation (node_modules/@testing-library/react-native/src/act.ts:30:25)
+      at renderWithAct (node_modules/@testing-library/react-native/src/render-act.ts:13:11)
+      at renderInternal (node_modules/@testing-library/react-native/src/render.tsx:69:33)
+      at renderInternal (node_modules/@testing-library/react-native/src/render.tsx:44:10)
+      at Object.<anonymous> (__tests__/ui/agyPort10OfflineVoice.test.tsx:135:26)
+
+PASS __tests__/ui/auditA3ClearAllData.test.tsx
+  ● Console
+
+    console.warn
+      SafeAreaView has been deprecated and will be removed in a future release. Please use 'react-native-safe-area-context' instead. See https://github.com/AppAndFlow/react-native-safe-area-context
+
+    [0m [90m 25 |[39m   [36mreturn[39m (
+     [90m 26 |[39m     [33m<[39m[33mModal[39m visible[33m=[39m{visible} animationType[33m=[39m[32m"slide"[39m onRequestClose[33m=[39m{onClose}[33m>[39m
+    [31m[1m>[22m[39m[90m 27 |[39m       [33m<[39m[33mSafeAreaView[39m style[33m=[39m{[styles[33m.[39mprivacyContainer[33m,[39m themed[33m.[39mprivacyContainer]}[33m>[39m
+     [90m    |[39m        [31m[1m^[22m[39m
+     [90m 28 |[39m         [33m<[39m[33mView[39m style[33m=[39m{[styles[33m.[39mprivacyHeader[33m,[39m themed[33m.[39mprivacyHeader]}[33m>[39m
+     [90m 29 |[39m           [33m<[39m[33mText[39m style[33m=[39m{[styles[33m.[39mprivacyHeaderTitle[33m,[39m themed[33m.[39mprivacyHeaderTitle]}[33m>[39m
+     [90m 30 |[39m             [33mPrivacy[39m [33mPolicy[39m[0m
+
+      at warn (node_modules/react-native/Libraries/Utilities/warnOnce.js:27:11)
+      at Object.warnOnce [as SafeAreaView] (node_modules/react-native/index.js:101:5)
+      at SafeAreaView (src/ui/components/profile/PrivacyModal.tsx:27:8)
+      at Object.react_stack_bottom_frame (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:15670:20)
+      at renderWithHooks (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:4863:22)
+      at updateFunctionComponent (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:7018:19)
+      at beginWork (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:8499:18)
+      at runWithFiberInDEV (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:2315:13)
+      at performUnitOfWork (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:13224:22)
+      at workLoopSync (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:13068:41)
+      at renderRootSync (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:13049:11)
+      at performWorkOnRoot (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:12181:11)
+      at performWorkOnRootViaSchedulerTask (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:2908:7)
+      at flushActQueue (node_modules/react/cjs/react.development.js:590:34)
+      at Object.<anonymous>.process.env.NODE_ENV.exports.act (node_modules/react/cjs/react.development.js:884:10)
+      at actImplementation (node_modules/@testing-library/react-native/src/act.ts:30:25)
+      at renderWithAct (node_modules/@testing-library/react-native/src/render-act.ts:13:11)
+      at renderInternal (node_modules/@testing-library/react-native/src/render.tsx:69:33)
+      at renderInternal (node_modules/@testing-library/react-native/src/render.tsx:44:10)
+      at Object.<anonymous> (__tests__/ui/auditA3ClearAllData.test.tsx:56:24)
+
+PASS __tests__/ui/finalAuditF3ClearAllDataFailure.test.tsx
+PASS __tests__/storage/storageResilience.test.ts
+PASS __tests__/ui/phase01ThemeAndTour.test.tsx
+PASS __tests__/storage/attachmentCleanup.test.ts
+PASS __tests__/scheduler/auditA4InterruptedReconcile.test.ts
+PASS __tests__/scheduler/agyPort03Delivery.test.ts
+PASS __tests__/ai/phase07NluAndActionExecution.test.ts
+  ● Console
+
+    console.warn
+      Failed to schedule native alarm for task reminder: Error: Reminder trigger must be a valid future time.
+          at C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\src\scheduler\reminderAlarm.ts:117:11
+          at Generator.next (<anonymous>)
+          at asyncGeneratorStep (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\@babel\runtime\helpers\asyncToGenerator.js:3:17)
+          at _next (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\@babel\runtime\helpers\asyncToGenerator.js:17:9)
+          at C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\@babel\runtime\helpers\asyncToGenerator.js:22:7
+          at new Promise (<anonymous>)
+          at C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\@babel\runtime\helpers\asyncToGenerator.js:14:12
+          at apply (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\src\scheduler\reminderAlarm.ts:105:35)
+          at C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\src\ai\nlu\actionExecutor.ts:426:38
+          at Generator.next (<anonymous>)
+          at asyncGeneratorStep (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\@babel\runtime\helpers\asyncToGenerator.js:3:17)
+          at _next (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\@babel\runtime\helpers\asyncToGenerator.js:17:9)
+          at C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\@babel\runtime\helpers\asyncToGenerator.js:22:7
+          at new Promise (<anonymous>)
+          at C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\@babel\runtime\helpers\asyncToGenerator.js:14:12
+          at apply (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\src\ai\nlu\actionExecutor.ts:1402:2)
+          at apply (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\src\ai\nlu\actionExecutor.ts:370:39)
+          at Object.<anonymous> (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\__tests__\ai\phase07NluAndActionExecution.test.ts:510:44)
+          at Generator.next (<anonymous>)
+          at asyncGeneratorStep (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\@babel\runtime\helpers\asyncToGenerator.js:3:17)
+          at _next (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\@babel\runtime\helpers\asyncToGenerator.js:17:9)
+          at C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\@babel\runtime\helpers\asyncToGenerator.js:22:7
+          at new Promise (<anonymous>)
+          at Object.<anonymous> (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\@babel\runtime\helpers\asyncToGenerator.js:14:12)
+          at Promise.then.completed (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-circus\build\utils.js:298:28)
+          at new Promise (<anonymous>)
+          at callAsyncCircusFn (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-circus\build\utils.js:231:10)
+          at _callCircusTest (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-circus\build\run.js:316:40)
+          at _runTest (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-circus\build\run.js:252:3)
+          at _runTestsForDescribeBlock (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-circus\build\run.js:126:9)
+          at _runTestsForDescribeBlock (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-circus\build\run.js:121:9)
+          at _runTestsForDescribeBlock (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-circus\build\run.js:121:9)
+          at run (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-circus\build\run.js:71:3)
+          at runAndTransformResultsToJestFormat (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-circus\build\legacy-code-todo-rewrite\jestAdapterInit.js:122:21)
+          at jestAdapter (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-circus\build\legacy-code-todo-rewrite\jestAdapter.js:79:19)
+          at runTestInternal (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-runner\build\runTest.js:367:16)
+          at runTest (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-runner\build\runTest.js:444:34)
+
+    [0m [90m 426 |[39m           [36mawait[39m scheduleReminderAlarm(reminderId[33m,[39m taskTitle[33m,[39m triggerAt)[33m;[39m
+     [90m 427 |[39m         } [36mcatch[39m (e) {
+    [31m[1m>[22m[39m[90m 428 |[39m           console[33m.[39mwarn([32m'Failed to schedule native alarm for task reminder:'[39m[33m,[39m e)[33m;[39m
+     [90m     |[39m                   [31m[1m^[22m[39m
+     [90m 429 |[39m         }
+     [90m 430 |[39m         reminderMsg [33m=[39m [32m` with a reminder at ${format12HourTime(dueTime)}`[39m[33m;[39m
+     [90m 431 |[39m       }[0m
+
+      at warn (src/ai/nlu/actionExecutor.ts:428:19)
+          at Generator.throw (<anonymous>)
+      at asyncGeneratorStep (node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+      at _throw (node_modules/@babel/runtime/helpers/asyncToGenerator.js:20:9)
+
+    console.warn
+      Failed to schedule exact native alarm: Error: Reminder trigger must be a valid future time.
+          at C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\src\scheduler\reminderAlarm.ts:117:11
+          at Generator.next (<anonymous>)
+          at asyncGeneratorStep (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\@babel\runtime\helpers\asyncToGenerator.js:3:17)
+          at _next (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\@babel\runtime\helpers\asyncToGenerator.js:17:9)
+          at C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\@babel\runtime\helpers\asyncToGenerator.js:22:7
+          at new Promise (<anonymous>)
+          at C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\@babel\runtime\helpers\asyncToGenerator.js:14:12
+          at apply (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\src\scheduler\reminderAlarm.ts:105:35)
+          at C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\src\ai\nlu\actionExecutor.ts:515:36
+          at Generator.next (<anonymous>)
+          at asyncGeneratorStep (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\@babel\runtime\helpers\asyncToGenerator.js:3:17)
+          at _next (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\@babel\runtime\helpers\asyncToGenerator.js:17:9)
+          at C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\@babel\runtime\helpers\asyncToGenerator.js:22:7
+          at new Promise (<anonymous>)
+          at C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\@babel\runtime\helpers\asyncToGenerator.js:14:12
+          at apply (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\src\ai\nlu\actionExecutor.ts:370:39)
+          at Object.<anonymous> (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\__tests__\ai\phase07NluAndActionExecution.test.ts:538:44)
+          at Generator.next (<anonymous>)
+          at asyncGeneratorStep (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\@babel\runtime\helpers\asyncToGenerator.js:3:17)
+          at _next (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\@babel\runtime\helpers\asyncToGenerator.js:17:9)
+          at C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\@babel\runtime\helpers\asyncToGenerator.js:22:7
+          at new Promise (<anonymous>)
+          at Object.<anonymous> (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\@babel\runtime\helpers\asyncToGenerator.js:14:12)
+          at Promise.then.completed (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-circus\build\utils.js:298:28)
+          at new Promise (<anonymous>)
+          at callAsyncCircusFn (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-circus\build\utils.js:231:10)
+          at _callCircusTest (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-circus\build\run.js:316:40)
+          at _runTest (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-circus\build\run.js:252:3)
+          at _runTestsForDescribeBlock (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-circus\build\run.js:126:9)
+          at _runTestsForDescribeBlock (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-circus\build\run.js:121:9)
+          at _runTestsForDescribeBlock (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-circus\build\run.js:121:9)
+          at run (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-circus\build\run.js:71:3)
+          at runAndTransformResultsToJestFormat (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-circus\build\legacy-code-todo-rewrite\jestAdapterInit.js:122:21)
+          at jestAdapter (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-circus\build\legacy-code-todo-rewrite\jestAdapter.js:79:19)
+          at runTestInternal (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-runner\build\runTest.js:367:16)
+          at runTest (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-runner\build\runTest.js:444:34)
+
+    [0m [90m 515 |[39m         [36mawait[39m scheduleReminderAlarm(reminderId[33m,[39m reminderTitle[33m,[39m triggerAt)[33m;[39m
+     [90m 516 |[39m       } [36mcatch[39m (e) {
+    [31m[1m>[22m[39m[90m 517 |[39m         console[33m.[39mwarn([32m'Failed to schedule exact native alarm:'[39m[33m,[39m e)[33m;[39m
+     [90m     |[39m                 [31m[1m^[22m[39m
+     [90m 518 |[39m       }
+     [90m 519 |[39m
+     [90m 520 |[39m       [36mreturn[39m {[0m
+
+      at warn (src/ai/nlu/actionExecutor.ts:517:17)
+          at Generator.throw (<anonymous>)
+      at asyncGeneratorStep (node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+      at _throw (node_modules/@babel/runtime/helpers/asyncToGenerator.js:20:9)
+
+    console.warn
+      Failed to schedule native alarm for task reminder: Error: Reminder trigger must be a valid future time.
+          at C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\src\scheduler\reminderAlarm.ts:117:11
+          at Generator.next (<anonymous>)
+          at asyncGeneratorStep (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\@babel\runtime\helpers\asyncToGenerator.js:3:17)
+          at _next (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\@babel\runtime\helpers\asyncToGenerator.js:17:9)
+          at C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\@babel\runtime\helpers\asyncToGenerator.js:22:7
+          at new Promise (<anonymous>)
+          at C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\@babel\runtime\helpers\asyncToGenerator.js:14:12
+          at apply (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\src\scheduler\reminderAlarm.ts:105:35)
+          at C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\src\ai\nlu\actionExecutor.ts:426:38
+          at Generator.next (<anonymous>)
+          at asyncGeneratorStep (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\@babel\runtime\helpers\asyncToGenerator.js:3:17)
+          at _next (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\@babel\runtime\helpers\asyncToGenerator.js:17:9)
+          at C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\@babel\runtime\helpers\asyncToGenerator.js:22:7
+          at new Promise (<anonymous>)
+          at C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\@babel\runtime\helpers\asyncToGenerator.js:14:12
+          at apply (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\src\ai\nlu\actionExecutor.ts:370:39)
+          at IntentService.<anonymous> (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\src\ai\nlu\intentService.ts:188:28)
+          at Generator.next (<anonymous>)
+          at asyncGeneratorStep (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\@babel\runtime\helpers\asyncToGenerator.js:3:17)
+          at _next (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\@babel\runtime\helpers\asyncToGenerator.js:17:9)
+
+    [0m [90m 426 |[39m           [36mawait[39m scheduleReminderAlarm(reminderId[33m,[39m taskTitle[33m,[39m triggerAt)[33m;[39m
+     [90m 427 |[39m         } [36mcatch[39m (e) {
+    [31m[1m>[22m[39m[90m 428 |[39m           console[33m.[39mwarn([32m'Failed to schedule native alarm for task reminder:'[39m[33m,[39m e)[33m;[39m
+     [90m     |[39m                   [31m[1m^[22m[39m
+     [90m 429 |[39m         }
+     [90m 430 |[39m         reminderMsg [33m=[39m [32m` with a reminder at ${format12HourTime(dueTime)}`[39m[33m;[39m
+     [90m 431 |[39m       }[0m
+
+      at warn (src/ai/nlu/actionExecutor.ts:428:19)
+          at Generator.throw (<anonymous>)
+      at asyncGeneratorStep (node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+      at _throw (node_modules/@babel/runtime/helpers/asyncToGenerator.js:20:9)
+
+    console.warn
+      Failed to schedule native alarm for task reminder: Error: Reminder trigger must be a valid future time.
+          at C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\src\scheduler\reminderAlarm.ts:117:11
+          at Generator.next (<anonymous>)
+          at asyncGeneratorStep (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\@babel\runtime\helpers\asyncToGenerator.js:3:17)
+          at _next (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\@babel\runtime\helpers\asyncToGenerator.js:17:9)
+          at C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\@babel\runtime\helpers\asyncToGenerator.js:22:7
+          at new Promise (<anonymous>)
+          at C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\@babel\runtime\helpers\asyncToGenerator.js:14:12
+          at apply (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\src\scheduler\reminderAlarm.ts:105:35)
+          at C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\src\ai\nlu\actionExecutor.ts:426:38
+          at Generator.next (<anonymous>)
+          at asyncGeneratorStep (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\@babel\runtime\helpers\asyncToGenerator.js:3:17)
+          at _next (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\@babel\runtime\helpers\asyncToGenerator.js:17:9)
+          at C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\@babel\runtime\helpers\asyncToGenerator.js:22:7
+          at new Promise (<anonymous>)
+          at C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\@babel\runtime\helpers\asyncToGenerator.js:14:12
+          at apply (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\src\ai\nlu\actionExecutor.ts:370:39)
+          at IntentService.<anonymous> (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\src\ai\nlu\intentService.ts:188:28)
+          at Generator.next (<anonymous>)
+          at asyncGeneratorStep (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\@babel\runtime\helpers\asyncToGenerator.js:3:17)
+          at _next (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\@babel\runtime\helpers\asyncToGenerator.js:17:9)
+
+    [0m [90m 426 |[39m           [36mawait[39m scheduleReminderAlarm(reminderId[33m,[39m taskTitle[33m,[39m triggerAt)[33m;[39m
+     [90m 427 |[39m         } [36mcatch[39m (e) {
+    [31m[1m>[22m[39m[90m 428 |[39m           console[33m.[39mwarn([32m'Failed to schedule native alarm for task reminder:'[39m[33m,[39m e)[33m;[39m
+     [90m     |[39m                   [31m[1m^[22m[39m
+     [90m 429 |[39m         }
+     [90m 430 |[39m         reminderMsg [33m=[39m [32m` with a reminder at ${format12HourTime(dueTime)}`[39m[33m;[39m
+     [90m 431 |[39m       }[0m
+
+      at warn (src/ai/nlu/actionExecutor.ts:428:19)
+          at Generator.throw (<anonymous>)
+      at asyncGeneratorStep (node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+      at _throw (node_modules/@babel/runtime/helpers/asyncToGenerator.js:20:9)
+
+    console.warn
+      Failed to schedule native alarm for task reminder: Error: Reminder trigger must be a valid future time.
+          at C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\src\scheduler\reminderAlarm.ts:117:11
+          at Generator.next (<anonymous>)
+          at asyncGeneratorStep (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\@babel\runtime\helpers\asyncToGenerator.js:3:17)
+          at _next (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\@babel\runtime\helpers\asyncToGenerator.js:17:9)
+          at C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\@babel\runtime\helpers\asyncToGenerator.js:22:7
+          at new Promise (<anonymous>)
+          at C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\@babel\runtime\helpers\asyncToGenerator.js:14:12
+          at apply (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\src\scheduler\reminderAlarm.ts:105:35)
+          at C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\src\ai\nlu\actionExecutor.ts:426:38
+          at Generator.next (<anonymous>)
+          at asyncGeneratorStep (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\@babel\runtime\helpers\asyncToGenerator.js:3:17)
+          at _next (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\@babel\runtime\helpers\asyncToGenerator.js:17:9)
+          at C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\@babel\runtime\helpers\asyncToGenerator.js:22:7
+          at new Promise (<anonymous>)
+          at C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\@babel\runtime\helpers\asyncToGenerator.js:14:12
+          at apply (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\src\ai\nlu\actionExecutor.ts:370:39)
+          at IntentService.<anonymous> (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\src\ai\nlu\intentService.ts:188:28)
+          at Generator.next (<anonymous>)
+          at asyncGeneratorStep (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\@babel\runtime\helpers\asyncToGenerator.js:3:17)
+          at _next (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\@babel\runtime\helpers\asyncToGenerator.js:17:9)
+
+    [0m [90m 426 |[39m           [36mawait[39m scheduleReminderAlarm(reminderId[33m,[39m taskTitle[33m,[39m triggerAt)[33m;[39m
+     [90m 427 |[39m         } [36mcatch[39m (e) {
+    [31m[1m>[22m[39m[90m 428 |[39m           console[33m.[39mwarn([32m'Failed to schedule native alarm for task reminder:'[39m[33m,[39m e)[33m;[39m
+     [90m     |[39m                   [31m[1m^[22m[39m
+     [90m 429 |[39m         }
+     [90m 430 |[39m         reminderMsg [33m=[39m [32m` with a reminder at ${format12HourTime(dueTime)}`[39m[33m;[39m
+     [90m 431 |[39m       }[0m
+
+      at warn (src/ai/nlu/actionExecutor.ts:428:19)
+          at Generator.throw (<anonymous>)
+      at asyncGeneratorStep (node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+      at _throw (node_modules/@babel/runtime/helpers/asyncToGenerator.js:20:9)
+
+PASS __tests__/scheduler/agyPortReminderOwnership.test.tsx
+PASS __tests__/ai/agyPort05SpeechCapture.test.ts
+PASS __tests__/scheduler/phase03ReminderScheduler.test.ts
+  ● Console
+
+    console.log
+      [ReminderPoller] Triggering reminder: rem-poll-due - Data Structures Quiz
+
+      at log (src/scheduler/reminderPoller.ts:61:17)
+
+    console.log
+      [ReminderPoller] Poller started for user student-scheduler-test
+
+      at log (src/scheduler/reminderPoller.ts:105:11)
+
+    console.log
+      [ReminderPoller] Poller stopped
+
+      at log (src/scheduler/reminderPoller.ts:124:13)
+
+    console.log
+      [ReminderPoller] Triggering reminder: rem-resched-near - Near Due Class
+
+      at log (src/scheduler/reminderPoller.ts:61:17)
+
+PASS __tests__/evaluation/evaluationContracts.test.ts
+PASS __tests__/storage/agyPort07Notes.test.ts
+PASS __tests__/preservation/agyPreservedContracts.test.ts
+  ● Console
+
+    console.error
+      [Database] SQL Error executing query: UPDATE notes SET user_id = ? WHERE user_id = ? Error: synthetic failure
+          at run (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\__mocks__\opSqliteMock.js:51:28)
+          at Object.executeOn [as executeSync] (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\__mocks__\opSqliteMock.js:81:42)
+          at DatabaseService.executeSync (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\src\storage\database.ts:145:36)
+          at Object.executeSync (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\src\storage\database.ts:202:21)
+          at executeSync (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\src\storage\guestMigration.ts:62:10)
+          at DatabaseService.fn [as transactionSync] (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\src\storage\database.ts:214:16)
+          at Object.transactionSync (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\src\storage\guestMigration.ts:47:8)
+          at Generator.next (<anonymous>)
+          at asyncGeneratorStep (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\@babel\runtime\helpers\asyncToGenerator.js:3:17)
+          at _next (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\@babel\runtime\helpers\asyncToGenerator.js:17:9)
+          at C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\@babel\runtime\helpers\asyncToGenerator.js:22:7
+          at new Promise (<anonymous>)
+          at Object.<anonymous> (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\@babel\runtime\helpers\asyncToGenerator.js:14:12)
+          at Object.apply [as linkGuestToCloudAccount] (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\src\storage\guestMigration.ts:46:26)
+          at Object.linkGuestToCloudAccount (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\__tests__\preservation\agyPreservedContracts.test.ts:217:26)
+          at Generator.next (<anonymous>)
+          at asyncGeneratorStep (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\@babel\runtime\helpers\asyncToGenerator.js:3:17)
+          at _next (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\@babel\runtime\helpers\asyncToGenerator.js:17:9)
+          at C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\@babel\runtime\helpers\asyncToGenerator.js:22:7
+          at new Promise (<anonymous>)
+          at Object.<anonymous> (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\@babel\runtime\helpers\asyncToGenerator.js:14:12)
+          at Promise.then.completed (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-circus\build\utils.js:298:28)
+          at new Promise (<anonymous>)
+          at callAsyncCircusFn (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-circus\build\utils.js:231:10)
+          at _callCircusTest (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-circus\build\run.js:316:40)
+          at _runTest (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-circus\build\run.js:252:3)
+          at _runTestsForDescribeBlock (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-circus\build\run.js:126:9)
+          at _runTestsForDescribeBlock (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-circus\build\run.js:121:9)
+          at _runTestsForDescribeBlock (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-circus\build\run.js:121:9)
+          at run (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-circus\build\run.js:71:3)
+          at runAndTransformResultsToJestFormat (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-circus\build\legacy-code-todo-rewrite\jestAdapterInit.js:122:21)
+          at jestAdapter (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-circus\build\legacy-code-todo-rewrite\jestAdapter.js:79:19)
+          at runTestInternal (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-runner\build\runTest.js:367:16)
+          at runTest (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-runner\build\runTest.js:444:34) {
+        code: 'ERR_SQLITE_ERROR',
+        errcode: 1811,
+        errstr: 'constraint failed'
+      }
+
+    [0m [90m 151 |[39m     } [36mcatch[39m (error) {
+     [90m 152 |[39m       [90m// Bound values can hold note text or credentials, so they are never logged.[39m
+    [31m[1m>[22m[39m[90m 153 |[39m       console[33m.[39merror(
+     [90m     |[39m               [31m[1m^[22m[39m
+     [90m 154 |[39m         [32m`[Database] SQL Error executing query: ${describeQuery(query)}`[39m[33m,[39m
+     [90m 155 |[39m         error[33m,[39m
+     [90m 156 |[39m       )[33m;[39m[0m
+
+      at DatabaseService.error [as executeSync] (src/storage/database.ts:153:15)
+      at Object.executeSync (src/storage/database.ts:202:21)
+      at executeSync (src/storage/guestMigration.ts:62:10)
+      at DatabaseService.fn [as transactionSync] (src/storage/database.ts:214:16)
+      at Object.transactionSync (src/storage/guestMigration.ts:47:8)
+      at asyncGeneratorStep (node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+      at _next (node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
+      at node_modules/@babel/runtime/helpers/asyncToGenerator.js:22:7
+      at Object.<anonymous> (node_modules/@babel/runtime/helpers/asyncToGenerator.js:14:12)
+      at Object.apply [as linkGuestToCloudAccount] (src/storage/guestMigration.ts:46:26)
+      at Object.linkGuestToCloudAccount (__tests__/preservation/agyPreservedContracts.test.ts:217:26)
+      at asyncGeneratorStep (node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+      at _next (node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
+      at node_modules/@babel/runtime/helpers/asyncToGenerator.js:22:7
+      at Object.<anonymous> (node_modules/@babel/runtime/helpers/asyncToGenerator.js:14:12)
+
+PASS __tests__/evaluation/offlineNetworkSentinel.test.ts
+PASS __tests__/ai/phase05TtsAndCloudSpeech.test.ts
+PASS __tests__/ai/auditA1OfflineEligibility.test.ts
+  ● Console
+
+    console.warn
+      [TTS] Automatic voice failed: Error: voice refused
+          at Object.<anonymous> (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\__tests__\ai\auditA1OfflineEligibility.test.ts:75:65)
+          at C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-mock\build\index.js:397:39
+          at Object.<anonymous> (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-mock\build\index.js:404:13)
+          at Object.mockConstructor (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-mock\build\index.js:148:19)
+          at setDefaultVoice (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\src\ai\tts\ttsService.ts:203:31)
+          at work (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\src\ai\tts\ttsService.ts:173:19)
+          at Generator.next (<anonymous>)
+          at asyncGeneratorStep (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\@babel\runtime\helpers\asyncToGenerator.js:3:17)
+          at _next (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\@babel\runtime\helpers\asyncToGenerator.js:17:9)
+          at C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\@babel\runtime\helpers\asyncToGenerator.js:22:7
+          at new Promise (<anonymous>)
+          at C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\@babel\runtime\helpers\asyncToGenerator.js:14:12
+          at apply (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\src\ai\tts\ttsService.ts:171:14)
+          at setting (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\src\ai\tts\ttsService.ts:203:13)
+          at Generator.next (<anonymous>)
+          at asyncGeneratorStep (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\@babel\runtime\helpers\asyncToGenerator.js:3:17)
+          at _next (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\@babel\runtime\helpers\asyncToGenerator.js:17:9)
+          at C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\@babel\runtime\helpers\asyncToGenerator.js:22:7
+          at new Promise (<anonymous>)
+          at C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\@babel\runtime\helpers\asyncToGenerator.js:14:12
+          at apply (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\src\ai\tts\ttsService.ts:201:18)
+          at selectVoice (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\src\ai\tts\ttsService.ts:252:11)
+          at Generator.next (<anonymous>)
+          at asyncGeneratorStep (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\@babel\runtime\helpers\asyncToGenerator.js:3:17)
+          at _next (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\@babel\runtime\helpers\asyncToGenerator.js:17:9)
+          at C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\@babel\runtime\helpers\asyncToGenerator.js:22:7
+          at new Promise (<anonymous>)
+          at C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\@babel\runtime\helpers\asyncToGenerator.js:14:12
+          at apply (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\src\ai\tts\ttsService.ts:218:25)
+          at applyConfiguration (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\src\ai\tts\ttsService.ts:304:13)
+          at Generator.next (<anonymous>)
+          at asyncGeneratorStep (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\@babel\runtime\helpers\asyncToGenerator.js:3:17)
+          at _next (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\@babel\runtime\helpers\asyncToGenerator.js:17:9)
+
+    [0m [90m 174 |[39m     [36mreturn[39m [36mtrue[39m[33m;[39m
+     [90m 175 |[39m   } [36mcatch[39m (error) {
+    [31m[1m>[22m[39m[90m 176 |[39m     console[33m.[39mwarn([32m`[TTS] ${what} failed:`[39m[33m,[39m error)[33m;[39m
+     [90m     |[39m             [31m[1m^[22m[39m
+     [90m 177 |[39m     [36mreturn[39m [36mfalse[39m[33m;[39m
+     [90m 178 |[39m   }
+     [90m 179 |[39m }[33m;[39m[0m
+
+      at warn (src/ai/tts/ttsService.ts:176:13)
+          at Generator.throw (<anonymous>)
+      at asyncGeneratorStep (node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+      at _throw (node_modules/@babel/runtime/helpers/asyncToGenerator.js:20:9)
+
+    console.warn
+      [TTS] Automatic voice failed: Error: voice refused
+          at Object.<anonymous> (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\__tests__\ai\auditA1OfflineEligibility.test.ts:75:65)
+          at C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-mock\build\index.js:397:39
+          at Object.<anonymous> (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-mock\build\index.js:404:13)
+          at Object.mockConstructor (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-mock\build\index.js:148:19)
+          at setDefaultVoice (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\src\ai\tts\ttsService.ts:203:31)
+          at work (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\src\ai\tts\ttsService.ts:173:19)
+          at Generator.next (<anonymous>)
+          at asyncGeneratorStep (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\@babel\runtime\helpers\asyncToGenerator.js:3:17)
+          at _next (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\@babel\runtime\helpers\asyncToGenerator.js:17:9)
+          at C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\@babel\runtime\helpers\asyncToGenerator.js:22:7
+          at new Promise (<anonymous>)
+          at C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\@babel\runtime\helpers\asyncToGenerator.js:14:12
+          at apply (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\src\ai\tts\ttsService.ts:171:14)
+          at setting (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\src\ai\tts\ttsService.ts:203:13)
+          at Generator.next (<anonymous>)
+          at asyncGeneratorStep (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\@babel\runtime\helpers\asyncToGenerator.js:3:17)
+          at _next (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\@babel\runtime\helpers\asyncToGenerator.js:17:9)
+          at C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\@babel\runtime\helpers\asyncToGenerator.js:22:7
+          at new Promise (<anonymous>)
+          at C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\@babel\runtime\helpers\asyncToGenerator.js:14:12
+          at apply (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\src\ai\tts\ttsService.ts:201:18)
+          at selectVoice (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\src\ai\tts\ttsService.ts:252:11)
+          at Generator.next (<anonymous>)
+          at asyncGeneratorStep (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\@babel\runtime\helpers\asyncToGenerator.js:3:17)
+          at _next (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\@babel\runtime\helpers\asyncToGenerator.js:17:9)
+          at C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\@babel\runtime\helpers\asyncToGenerator.js:22:7
+          at new Promise (<anonymous>)
+          at C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\@babel\runtime\helpers\asyncToGenerator.js:14:12
+          at apply (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\src\ai\tts\ttsService.ts:218:25)
+          at applyConfiguration (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\src\ai\tts\ttsService.ts:261:15)
+          at Generator.next (<anonymous>)
+          at asyncGeneratorStep (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\@babel\runtime\helpers\asyncToGenerator.js:3:17)
+          at _next (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\@babel\runtime\helpers\asyncToGenerator.js:17:9)
+
+    [0m [90m 174 |[39m     [36mreturn[39m [36mtrue[39m[33m;[39m
+     [90m 175 |[39m   } [36mcatch[39m (error) {
+    [31m[1m>[22m[39m[90m 176 |[39m     console[33m.[39mwarn([32m`[TTS] ${what} failed:`[39m[33m,[39m error)[33m;[39m
+     [90m     |[39m             [31m[1m^[22m[39m
+     [90m 177 |[39m     [36mreturn[39m [36mfalse[39m[33m;[39m
+     [90m 178 |[39m   }
+     [90m 179 |[39m }[33m;[39m[0m
+
+      at warn (src/ai/tts/ttsService.ts:176:13)
+          at Generator.throw (<anonymous>)
+      at asyncGeneratorStep (node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+      at _throw (node_modules/@babel/runtime/helpers/asyncToGenerator.js:20:9)
+
+    console.warn
+      [TTS] Automatic voice failed: Error: voice refused
+          at Object.<anonymous> (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\__tests__\ai\auditA1OfflineEligibility.test.ts:75:65)
+          at C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-mock\build\index.js:397:39
+          at Object.<anonymous> (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-mock\build\index.js:404:13)
+          at Object.mockConstructor (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-mock\build\index.js:148:19)
+          at setDefaultVoice (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\src\ai\tts\ttsService.ts:203:31)
+          at work (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\src\ai\tts\ttsService.ts:173:19)
+          at Generator.next (<anonymous>)
+          at asyncGeneratorStep (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\@babel\runtime\helpers\asyncToGenerator.js:3:17)
+          at _next (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\@babel\runtime\helpers\asyncToGenerator.js:17:9)
+          at C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\@babel\runtime\helpers\asyncToGenerator.js:22:7
+          at new Promise (<anonymous>)
+          at C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\@babel\runtime\helpers\asyncToGenerator.js:14:12
+          at apply (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\src\ai\tts\ttsService.ts:171:14)
+          at setting (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\src\ai\tts\ttsService.ts:203:13)
+          at Generator.next (<anonymous>)
+          at asyncGeneratorStep (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\@babel\runtime\helpers\asyncToGenerator.js:3:17)
+          at _next (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\@babel\runtime\helpers\asyncToGenerator.js:17:9)
+          at C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\@babel\runtime\helpers\asyncToGenerator.js:22:7
+          at new Promise (<anonymous>)
+          at C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\@babel\runtime\helpers\asyncToGenerator.js:14:12
+          at apply (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\src\ai\tts\ttsService.ts:201:18)
+          at selectVoice (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\src\ai\tts\ttsService.ts:252:11)
+          at Generator.next (<anonymous>)
+          at asyncGeneratorStep (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\@babel\runtime\helpers\asyncToGenerator.js:3:17)
+          at _next (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\@babel\runtime\helpers\asyncToGenerator.js:17:9)
+          at C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\@babel\runtime\helpers\asyncToGenerator.js:22:7
+          at new Promise (<anonymous>)
+          at C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\@babel\runtime\helpers\asyncToGenerator.js:14:12
+          at apply (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\src\ai\tts\ttsService.ts:218:25)
+          at applyConfiguration (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\src\ai\tts\ttsService.ts:261:15)
+          at Generator.next (<anonymous>)
+          at asyncGeneratorStep (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\@babel\runtime\helpers\asyncToGenerator.js:3:17)
+          at _next (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\@babel\runtime\helpers\asyncToGenerator.js:17:9)
+
+    [0m [90m 174 |[39m     [36mreturn[39m [36mtrue[39m[33m;[39m
+     [90m 175 |[39m   } [36mcatch[39m (error) {
+    [31m[1m>[22m[39m[90m 176 |[39m     console[33m.[39mwarn([32m`[TTS] ${what} failed:`[39m[33m,[39m error)[33m;[39m
+     [90m     |[39m             [31m[1m^[22m[39m
+     [90m 177 |[39m     [36mreturn[39m [36mfalse[39m[33m;[39m
+     [90m 178 |[39m   }
+     [90m 179 |[39m }[33m;[39m[0m
+
+      at warn (src/ai/tts/ttsService.ts:176:13)
+          at Generator.throw (<anonymous>)
+      at asyncGeneratorStep (node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+      at _throw (node_modules/@babel/runtime/helpers/asyncToGenerator.js:20:9)
+
+    console.warn
+      [TTS] Automatic voice failed: Error: voice refused
+          at Object.<anonymous> (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\__tests__\ai\auditA1OfflineEligibility.test.ts:75:65)
+          at C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-mock\build\index.js:397:39
+          at Object.<anonymous> (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-mock\build\index.js:404:13)
+          at Object.mockConstructor (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-mock\build\index.js:148:19)
+          at setDefaultVoice (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\src\ai\tts\ttsService.ts:203:31)
+          at work (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\src\ai\tts\ttsService.ts:173:19)
+          at Generator.next (<anonymous>)
+          at asyncGeneratorStep (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\@babel\runtime\helpers\asyncToGenerator.js:3:17)
+          at _next (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\@babel\runtime\helpers\asyncToGenerator.js:17:9)
+          at C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\@babel\runtime\helpers\asyncToGenerator.js:22:7
+          at new Promise (<anonymous>)
+          at C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\@babel\runtime\helpers\asyncToGenerator.js:14:12
+          at apply (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\src\ai\tts\ttsService.ts:171:14)
+          at setting (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\src\ai\tts\ttsService.ts:203:13)
+          at Generator.next (<anonymous>)
+          at asyncGeneratorStep (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\@babel\runtime\helpers\asyncToGenerator.js:3:17)
+          at _next (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\@babel\runtime\helpers\asyncToGenerator.js:17:9)
+          at C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\@babel\runtime\helpers\asyncToGenerator.js:22:7
+          at new Promise (<anonymous>)
+          at C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\@babel\runtime\helpers\asyncToGenerator.js:14:12
+          at apply (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\src\ai\tts\ttsService.ts:201:18)
+          at selectVoice (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\src\ai\tts\ttsService.ts:252:11)
+          at Generator.next (<anonymous>)
+          at asyncGeneratorStep (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\@babel\runtime\helpers\asyncToGenerator.js:3:17)
+          at _next (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\@babel\runtime\helpers\asyncToGenerator.js:17:9)
+          at C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\@babel\runtime\helpers\asyncToGenerator.js:22:7
+          at new Promise (<anonymous>)
+          at C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\@babel\runtime\helpers\asyncToGenerator.js:14:12
+          at apply (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\src\ai\tts\ttsService.ts:218:25)
+          at applyConfiguration (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\src\ai\tts\ttsService.ts:386:11)
+          at Generator.next (<anonymous>)
+          at asyncGeneratorStep (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\@babel\runtime\helpers\asyncToGenerator.js:3:17)
+          at _next (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\@babel\runtime\helpers\asyncToGenerator.js:17:9)
+
+    [0m [90m 174 |[39m     [36mreturn[39m [36mtrue[39m[33m;[39m
+     [90m 175 |[39m   } [36mcatch[39m (error) {
+    [31m[1m>[22m[39m[90m 176 |[39m     console[33m.[39mwarn([32m`[TTS] ${what} failed:`[39m[33m,[39m error)[33m;[39m
+     [90m     |[39m             [31m[1m^[22m[39m
+     [90m 177 |[39m     [36mreturn[39m [36mfalse[39m[33m;[39m
+     [90m 178 |[39m   }
+     [90m 179 |[39m }[33m;[39m[0m
+
+      at warn (src/ai/tts/ttsService.ts:176:13)
+          at Generator.throw (<anonymous>)
+      at asyncGeneratorStep (node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+      at _throw (node_modules/@babel/runtime/helpers/asyncToGenerator.js:20:9)
+
+    console.warn
+      [TTS] Voice failed: Error: refused
+          at Object.<anonymous> (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\__tests__\ai\auditA1OfflineEligibility.test.ts:147:45)
+          at C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-mock\build\index.js:397:39
+          at Object.<anonymous> (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-mock\build\index.js:404:13)
+          at Object.mockConstructor (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-mock\build\index.js:148:19)
+          at setDefaultVoice (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\src\ai\tts\ttsService.ts:203:31)
+          at work (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\src\ai\tts\ttsService.ts:173:19)
+          at Generator.next (<anonymous>)
+          at asyncGeneratorStep (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\@babel\runtime\helpers\asyncToGenerator.js:3:17)
+          at _next (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\@babel\runtime\helpers\asyncToGenerator.js:17:9)
+          at C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\@babel\runtime\helpers\asyncToGenerator.js:22:7
+          at new Promise (<anonymous>)
+          at C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\@babel\runtime\helpers\asyncToGenerator.js:14:12
+          at apply (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\src\ai\tts\ttsService.ts:171:14)
+          at setting (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\src\ai\tts\ttsService.ts:203:13)
+          at Generator.next (<anonymous>)
+          at asyncGeneratorStep (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\@babel\runtime\helpers\asyncToGenerator.js:3:17)
+          at _next (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\@babel\runtime\helpers\asyncToGenerator.js:17:9)
+          at C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\@babel\runtime\helpers\asyncToGenerator.js:22:7
+          at new Promise (<anonymous>)
+          at C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\@babel\runtime\helpers\asyncToGenerator.js:14:12
+          at apply (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\src\ai\tts\ttsService.ts:201:18)
+          at selectVoice (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\src\ai\tts\ttsService.ts:242:14)
+          at Generator.next (<anonymous>)
+          at asyncGeneratorStep (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\@babel\runtime\helpers\asyncToGenerator.js:3:17)
+          at _next (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\@babel\runtime\helpers\asyncToGenerator.js:17:9)
+
+    [0m [90m 174 |[39m     [36mreturn[39m [36mtrue[39m[33m;[39m
+     [90m 175 |[39m   } [36mcatch[39m (error) {
+    [31m[1m>[22m[39m[90m 176 |[39m     console[33m.[39mwarn([32m`[TTS] ${what} failed:`[39m[33m,[39m error)[33m;[39m
+     [90m     |[39m             [31m[1m^[22m[39m
+     [90m 177 |[39m     [36mreturn[39m [36mfalse[39m[33m;[39m
+     [90m 178 |[39m   }
+     [90m 179 |[39m }[33m;[39m[0m
+
+      at warn (src/ai/tts/ttsService.ts:176:13)
+          at Generator.throw (<anonymous>)
+      at asyncGeneratorStep (node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+      at _throw (node_modules/@babel/runtime/helpers/asyncToGenerator.js:20:9)
+
+PASS __tests__/ai/ttsService.test.ts
+PASS __tests__/storage/accountDataReset.test.ts
+PASS __tests__/storage/phase01Storage.test.ts
+PASS __tests__/ai/agyPort10Speech.test.ts
+  ● Console
+
+    console.warn
+      [Speech] Saved voice settings unavailable; using the default: SpeechSettingsError: Saved voice settings unavailable.
+          at parse (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\src\storage\speechSettingsStore.ts:96:11)
+          at Object.parse [as read] (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\src\storage\speechSettingsStore.ts:109:55)
+          at read (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\src\ai\tts\speechPreferences.ts:25:41)
+          at Generator.next (<anonymous>)
+          at asyncGeneratorStep (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\@babel\runtime\helpers\asyncToGenerator.js:3:17)
+          at _next (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\@babel\runtime\helpers\asyncToGenerator.js:17:9)
+          at C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\@babel\runtime\helpers\asyncToGenerator.js:22:7
+          at new Promise (<anonymous>)
+          at C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\@babel\runtime\helpers\asyncToGenerator.js:14:12
+          at apply (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\src\ai\tts\speechPreferences.ts:20:36)
+          at Object.<anonymous> (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\__tests__\ai\agyPort10Speech.test.ts:140:33)
+          at Generator.next (<anonymous>)
+          at asyncGeneratorStep (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\@babel\runtime\helpers\asyncToGenerator.js:3:17)
+          at _next (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\@babel\runtime\helpers\asyncToGenerator.js:17:9)
+          at C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\@babel\runtime\helpers\asyncToGenerator.js:22:7
+          at new Promise (<anonymous>)
+          at Object.<anonymous> (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\@babel\runtime\helpers\asyncToGenerator.js:14:12)
+          at Promise.then.completed (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-circus\build\utils.js:298:28)
+          at new Promise (<anonymous>)
+          at callAsyncCircusFn (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-circus\build\utils.js:231:10)
+          at _callCircusTest (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-circus\build\run.js:316:40)
+          at _runTest (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-circus\build\run.js:252:3)
+          at _runTestsForDescribeBlock (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-circus\build\run.js:126:9)
+          at _runTestsForDescribeBlock (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-circus\build\run.js:121:9)
+          at run (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-circus\build\run.js:71:3)
+          at runAndTransformResultsToJestFormat (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-circus\build\legacy-code-todo-rewrite\jestAdapterInit.js:122:21)
+          at jestAdapter (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-circus\build\legacy-code-todo-rewrite\jestAdapter.js:79:19)
+          at runTestInternal (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-runner\build\runTest.js:367:16)
+          at runTest (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-runner\build\runTest.js:444:34) {
+        problem: 'unreadable'
+      }
+
+    [0m [90m 28 |[39m       }
+     [90m 29 |[39m     } [36mcatch[39m (error) {
+    [31m[1m>[22m[39m[90m 30 |[39m       console[33m.[39mwarn([32m'[Speech] Saved voice settings unavailable; using the default:'[39m[33m,[39m error)[33m;[39m
+     [90m    |[39m               [31m[1m^[22m[39m
+     [90m 31 |[39m     }
+     [90m 32 |[39m   }
+     [90m 33 |[39m   [90m// A newer owner applied meanwhile: its call wins.[39m[0m
+
+      at warn (src/ai/tts/speechPreferences.ts:30:15)
+      at asyncGeneratorStep (node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+      at _next (node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
+      at node_modules/@babel/runtime/helpers/asyncToGenerator.js:22:7
+      at node_modules/@babel/runtime/helpers/asyncToGenerator.js:14:12
+      at apply (src/ai/tts/speechPreferences.ts:20:36)
+      at Object.<anonymous> (__tests__/ai/agyPort10Speech.test.ts:140:33)
+      at asyncGeneratorStep (node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+      at _next (node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
+      at node_modules/@babel/runtime/helpers/asyncToGenerator.js:22:7
+      at Object.<anonymous> (node_modules/@babel/runtime/helpers/asyncToGenerator.js:14:12)
+
+    console.warn
+      [TTS] react-native-tts initialization failed: Error: no_engine
+          at Object.<anonymous> (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\__tests__\ai\agyPort10Speech.test.ts:230:63)
+          at C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-mock\build\index.js:397:39
+          at Object.<anonymous> (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-mock\build\index.js:404:13)
+          at Object.mockConstructor [as getInitStatus] (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-mock\build\index.js:148:19)
+          at getInitStatus (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\src\ai\tts\ttsService.ts:286:25)
+          at Generator.next (<anonymous>)
+          at asyncGeneratorStep (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\@babel\runtime\helpers\asyncToGenerator.js:3:17)
+          at _next (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\@babel\runtime\helpers\asyncToGenerator.js:17:9)
+          at C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\@babel\runtime\helpers\asyncToGenerator.js:22:7
+          at new Promise (<anonymous>)
+          at C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\@babel\runtime\helpers\asyncToGenerator.js:14:12
+          at C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\src\ai\tts\ttsService.ts:319:4
+          at Generator.next (<anonymous>)
+          at asyncGeneratorStep (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\@babel\runtime\helpers\asyncToGenerator.js:3:17)
+          at _next (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\@babel\runtime\helpers\asyncToGenerator.js:17:9)
+          at C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\@babel\runtime\helpers\asyncToGenerator.js:22:7
+          at new Promise (<anonymous>)
+          at C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\@babel\runtime\helpers\asyncToGenerator.js:14:12
+          at apply (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\src\ai\tts\ttsService.ts:275:18)
+          at startEngine (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\src\ai\tts\ttsService.ts:373:23)
+          at Generator.next (<anonymous>)
+          at asyncGeneratorStep (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\@babel\runtime\helpers\asyncToGenerator.js:3:17)
+          at _next (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\@babel\runtime\helpers\asyncToGenerator.js:17:9)
+          at C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\@babel\runtime\helpers\asyncToGenerator.js:22:7
+          at new Promise (<anonymous>)
+          at C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\@babel\runtime\helpers\asyncToGenerator.js:14:12
+          at apply (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\src\ai\tts\ttsService.ts:372:30)
+          at Object.<anonymous> (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\__tests__\ai\agyPort10Speech.test.ts:231:34)
+          at Generator.next (<anonymous>)
+          at asyncGeneratorStep (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\@babel\runtime\helpers\asyncToGenerator.js:3:17)
+          at _next (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\@babel\runtime\helpers\asyncToGenerator.js:17:9)
+
+    [0m [90m 312 |[39m         initGeneration [33m+=[39m [35m1[39m[33m;[39m
+     [90m 313 |[39m       }
+    [31m[1m>[22m[39m[90m 314 |[39m       console[33m.[39mwarn([32m'[TTS] react-native-tts initialization failed:'[39m[33m,[39m error)[33m;[39m
+     [90m     |[39m               [31m[1m^[22m[39m
+     [90m 315 |[39m       [36mreturn[39m [36mfalse[39m[33m;[39m
+     [90m 316 |[39m     } [36mfinally[39m {
+     [90m 317 |[39m       initPromise [33m=[39m [36mnull[39m[33m;[39m[0m
+
+      at warn (src/ai/tts/ttsService.ts:314:15)
+          at Generator.throw (<anonymous>)
+      at asyncGeneratorStep (node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+      at _throw (node_modules/@babel/runtime/helpers/asyncToGenerator.js:20:9)
+
+    console.warn
+      [TTS] react-native-tts initialization failed: TtsTimeoutError: Speech engine start timed out.
+          at C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\src\ai\tts\ttsService.ts:104:43
+          at callTimer (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\@sinonjs\fake-timers\src\fake-timers-src.js:744:24)
+          at doTickInner (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\@sinonjs\fake-timers\src\fake-timers-src.js:1312:29)
+          at doTick (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\@sinonjs\fake-timers\src\fake-timers-src.js:1393:20)
+          at Immediate.<anonymous> (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\@sinonjs\fake-timers\src\fake-timers-src.js:1413:29)
+          at processImmediate (node:internal/timers:534:21)
+
+    [0m [90m 312 |[39m         initGeneration [33m+=[39m [35m1[39m[33m;[39m
+     [90m 313 |[39m       }
+    [31m[1m>[22m[39m[90m 314 |[39m       console[33m.[39mwarn([32m'[TTS] react-native-tts initialization failed:'[39m[33m,[39m error)[33m;[39m
+     [90m     |[39m               [31m[1m^[22m[39m
+     [90m 315 |[39m       [36mreturn[39m [36mfalse[39m[33m;[39m
+     [90m 316 |[39m     } [36mfinally[39m {
+     [90m 317 |[39m       initPromise [33m=[39m [36mnull[39m[33m;[39m[0m
+
+      at warn (src/ai/tts/ttsService.ts:314:15)
+          at Generator.throw (<anonymous>)
+      at asyncGeneratorStep (node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+      at _throw (node_modules/@babel/runtime/helpers/asyncToGenerator.js:20:9)
+
+PASS __tests__/storage/agyPort09HealthPreferencesStats.test.ts
+  ● Console
+
+    console.warn
+      [ReminderHealth] Local delivery evidence unavailable: Error: Account changed. Reopen reminder health.
+          at Object.read (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\src\storage\reminderHealthStore.ts:92:13)
+          at read (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\src\scheduler\reminderHealth.ts:63:33)
+          at Generator.next (<anonymous>)
+          at asyncGeneratorStep (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\@babel\runtime\helpers\asyncToGenerator.js:3:17)
+          at _next (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\@babel\runtime\helpers\asyncToGenerator.js:17:9)
+          at C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\@babel\runtime\helpers\asyncToGenerator.js:22:7
+          at new Promise (<anonymous>)
+          at C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\@babel\runtime\helpers\asyncToGenerator.js:14:12
+          at apply (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\src\scheduler\reminderHealth.ts:57:32)
+          at Object.<anonymous> (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\__tests__\storage\agyPort09HealthPreferencesStats.test.ts:178:46)
+          at Generator.next (<anonymous>)
+          at asyncGeneratorStep (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\@babel\runtime\helpers\asyncToGenerator.js:3:17)
+          at _next (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\@babel\runtime\helpers\asyncToGenerator.js:17:9)
+          at C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\@babel\runtime\helpers\asyncToGenerator.js:22:7
+          at new Promise (<anonymous>)
+          at Object.<anonymous> (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\@babel\runtime\helpers\asyncToGenerator.js:14:12)
+          at Promise.then.completed (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-circus\build\utils.js:298:28)
+          at new Promise (<anonymous>)
+          at callAsyncCircusFn (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-circus\build\utils.js:231:10)
+          at _callCircusTest (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-circus\build\run.js:316:40)
+          at _runTest (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-circus\build\run.js:252:3)
+          at _runTestsForDescribeBlock (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-circus\build\run.js:126:9)
+          at _runTestsForDescribeBlock (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-circus\build\run.js:121:9)
+          at run (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-circus\build\run.js:71:3)
+          at runAndTransformResultsToJestFormat (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-circus\build\legacy-code-todo-rewrite\jestAdapterInit.js:122:21)
+          at jestAdapter (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-circus\build\legacy-code-todo-rewrite\jestAdapter.js:79:19)
+          at runTestInternal (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-runner\build\runTest.js:367:16)
+          at runTest (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-runner\build\runTest.js:444:34)
+
+    [0m [90m 63 |[39m     local [33m=[39m reminderHealthStore[33m.[39mread(userId)[33m;[39m
+     [90m 64 |[39m   } [36mcatch[39m (error) {
+    [31m[1m>[22m[39m[90m 65 |[39m     console[33m.[39mwarn([32m'[ReminderHealth] Local delivery evidence unavailable:'[39m[33m,[39m error)[33m;[39m
+     [90m    |[39m             [31m[1m^[22m[39m
+     [90m 66 |[39m   }
+     [90m 67 |[39m   [36mtry[39m {
+     [90m 68 |[39m     [36mconst[39m value [33m=[39m [36mawait[39m bounded(getReminderPermissionStatus()[33m,[39m [33mPERMISSION_READ_TIMEOUT_MS[39m)[33m;[39m[0m
+
+      at warn (src/scheduler/reminderHealth.ts:65:13)
+      at asyncGeneratorStep (node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+      at _next (node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
+      at node_modules/@babel/runtime/helpers/asyncToGenerator.js:22:7
+      at node_modules/@babel/runtime/helpers/asyncToGenerator.js:14:12
+      at apply (src/scheduler/reminderHealth.ts:57:32)
+      at Object.<anonymous> (__tests__/storage/agyPort09HealthPreferencesStats.test.ts:178:46)
+      at asyncGeneratorStep (node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+      at _next (node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
+      at node_modules/@babel/runtime/helpers/asyncToGenerator.js:22:7
+      at Object.<anonymous> (node_modules/@babel/runtime/helpers/asyncToGenerator.js:14:12)
+
+    console.warn
+      [ReminderHealth] Android access unavailable: Error: binder died
+          at Object.<anonymous> (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\__tests__\storage\agyPort09HealthPreferencesStats.test.ts:206:56)
+          at Generator.next (<anonymous>)
+          at asyncGeneratorStep (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\@babel\runtime\helpers\asyncToGenerator.js:3:17)
+          at _next (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\@babel\runtime\helpers\asyncToGenerator.js:17:9)
+
+    [0m [90m 69 |[39m     [36mif[39m (isPermissionStatus(value)) permissions [33m=[39m value[33m;[39m
+     [90m 70 |[39m   } [36mcatch[39m (error) {
+    [31m[1m>[22m[39m[90m 71 |[39m     console[33m.[39mwarn([32m'[ReminderHealth] Android access unavailable:'[39m[33m,[39m error)[33m;[39m
+     [90m    |[39m             [31m[1m^[22m[39m
+     [90m 72 |[39m   }
+     [90m 73 |[39m   [36mreturn[39m {userId[33m,[39m permissions[33m,[39m local[33m,[39m checkedAt[33m:[39m [36mnew[39m [33mDate[39m()[33m.[39mtoISOString()}[33m;[39m
+     [90m 74 |[39m }[33m;[39m[0m
+
+      at warn (src/scheduler/reminderHealth.ts:71:13)
+          at Generator.throw (<anonymous>)
+      at asyncGeneratorStep (node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+      at _throw (node_modules/@babel/runtime/helpers/asyncToGenerator.js:20:9)
+
+    console.warn
+      [ReminderHealth] Android access unavailable: HealthTimeoutError: Reminder health request timed out.
+          at C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\src\scheduler\reminderHealth.ts:36:43
+          at callTimer (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\@sinonjs\fake-timers\src\fake-timers-src.js:744:24)
+          at doTickInner (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\@sinonjs\fake-timers\src\fake-timers-src.js:1312:29)
+          at doTick (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\@sinonjs\fake-timers\src\fake-timers-src.js:1393:20)
+          at Immediate.<anonymous> (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\@sinonjs\fake-timers\src\fake-timers-src.js:1413:29)
+          at processImmediate (node:internal/timers:534:21)
+
+    [0m [90m 69 |[39m     [36mif[39m (isPermissionStatus(value)) permissions [33m=[39m value[33m;[39m
+     [90m 70 |[39m   } [36mcatch[39m (error) {
+    [31m[1m>[22m[39m[90m 71 |[39m     console[33m.[39mwarn([32m'[ReminderHealth] Android access unavailable:'[39m[33m,[39m error)[33m;[39m
+     [90m    |[39m             [31m[1m^[22m[39m
+     [90m 72 |[39m   }
+     [90m 73 |[39m   [36mreturn[39m {userId[33m,[39m permissions[33m,[39m local[33m,[39m checkedAt[33m:[39m [36mnew[39m [33mDate[39m()[33m.[39mtoISOString()}[33m;[39m
+     [90m 74 |[39m }[33m;[39m[0m
+
+      at warn (src/scheduler/reminderHealth.ts:71:13)
+          at Generator.throw (<anonymous>)
+      at asyncGeneratorStep (node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+      at _throw (node_modules/@babel/runtime/helpers/asyncToGenerator.js:20:9)
+
+    console.warn
+      [ProfileStatistics] Statistics unavailable: Error: database locked
+          at DatabaseService.<anonymous> (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\__tests__\storage\agyPort09HealthPreferencesStats.test.ts:494:13)
+          at C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-mock\build\index.js:397:39
+          at DatabaseService.<anonymous> (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-mock\build\index.js:404:13)
+          at DatabaseService.mockConstructor [as executeSync] (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-mock\build\index.js:148:19)
+          at Object.executeSync [as read] (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\src\storage\profileStatisticsStore.ts:50:12)
+          at Object.read (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\__tests__\storage\agyPort09HealthPreferencesStats.test.ts:496:35)
+          at Promise.then.completed (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-circus\build\utils.js:298:28)
+          at new Promise (<anonymous>)
+          at callAsyncCircusFn (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-circus\build\utils.js:231:10)
+          at _callCircusTest (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-circus\build\run.js:316:40)
+          at _runTest (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-circus\build\run.js:252:3)
+          at _runTestsForDescribeBlock (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-circus\build\run.js:126:9)
+          at _runTestsForDescribeBlock (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-circus\build\run.js:121:9)
+          at run (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-circus\build\run.js:71:3)
+          at runAndTransformResultsToJestFormat (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-circus\build\legacy-code-todo-rewrite\jestAdapterInit.js:122:21)
+          at jestAdapter (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-circus\build\legacy-code-todo-rewrite\jestAdapter.js:79:19)
+          at runTestInternal (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-runner\build\runTest.js:367:16)
+          at runTest (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-runner\build\runTest.js:444:34)
+
+    [0m [90m 77 |[39m       }[33m;[39m
+     [90m 78 |[39m     } [36mcatch[39m (error) {
+    [31m[1m>[22m[39m[90m 79 |[39m       console[33m.[39mwarn([32m'[ProfileStatistics] Statistics unavailable:'[39m[33m,[39m error)[33m;[39m
+     [90m    |[39m               [31m[1m^[22m[39m
+     [90m 80 |[39m       [36mreturn[39m {[33m...[39m[33mUNAVAILABLE_STATISTICS[39m}[33m;[39m
+     [90m 81 |[39m     }
+     [90m 82 |[39m   }[33m,[39m[0m
+
+      at Object.warn (src/storage/profileStatisticsStore.ts:79:15)
+      at Object.read (__tests__/storage/agyPort09HealthPreferencesStats.test.ts:496:35)
+
+    console.warn
+      [ProfileStatistics] Statistics unavailable: Error: Statistics owner required.
+          at Object.read (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\src\storage\profileStatisticsStore.ts:48:26)
+          at Object.read (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\__tests__\storage\agyPort09HealthPreferencesStats.test.ts:504:35)
+          at Promise.then.completed (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-circus\build\utils.js:298:28)
+          at new Promise (<anonymous>)
+          at callAsyncCircusFn (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-circus\build\utils.js:231:10)
+          at _callCircusTest (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-circus\build\run.js:316:40)
+          at _runTest (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-circus\build\run.js:252:3)
+          at _runTestsForDescribeBlock (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-circus\build\run.js:126:9)
+          at _runTestsForDescribeBlock (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-circus\build\run.js:121:9)
+          at run (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-circus\build\run.js:71:3)
+          at runAndTransformResultsToJestFormat (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-circus\build\legacy-code-todo-rewrite\jestAdapterInit.js:122:21)
+          at jestAdapter (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-circus\build\legacy-code-todo-rewrite\jestAdapter.js:79:19)
+          at runTestInternal (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-runner\build\runTest.js:367:16)
+          at runTest (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-runner\build\runTest.js:444:34)
+
+    [0m [90m 77 |[39m       }[33m;[39m
+     [90m 78 |[39m     } [36mcatch[39m (error) {
+    [31m[1m>[22m[39m[90m 79 |[39m       console[33m.[39mwarn([32m'[ProfileStatistics] Statistics unavailable:'[39m[33m,[39m error)[33m;[39m
+     [90m    |[39m               [31m[1m^[22m[39m
+     [90m 80 |[39m       [36mreturn[39m {[33m...[39m[33mUNAVAILABLE_STATISTICS[39m}[33m;[39m
+     [90m 81 |[39m     }
+     [90m 82 |[39m   }[33m,[39m[0m
+
+      at Object.warn (src/storage/profileStatisticsStore.ts:79:15)
+      at Object.read (__tests__/storage/agyPort09HealthPreferencesStats.test.ts:504:35)
+
+PASS __tests__/scheduler/agyPort05CallBusyMic.test.ts
+PASS __tests__/storage/phase02CalendarAndNotes.test.ts
+PASS __tests__/ai/finalAuditF1PreviewAdmission.test.ts
+PASS __tests__/ai/finalAuditF2Ducking.test.ts
+
+Test Suites: 55 passed, 55 total
+Tests:       1 skipped, 809 passed, 810 total
+Snapshots:   0 total
+Time:        91.966 s, estimated 118 s
+Ran all test suites.
+
+> lafina-capstone@1.3.4 check:architecture
+> node scripts/check-architecture.mjs
+
+PASS: 219 TypeScript modules checked; 0 import cycles, 0 forbidden business/Gmail/study-tool/Kokoro dependencies; 75 offline leaves reach no network API or online module (transitive, dynamic imports included).
+exit=0 end 2026-11-07T03:33:12Z

@@ -12,9 +12,9 @@
   "work_branch": "codex/agy-preservation-improvements",
   "worktree": "C:/L3mxr/Github Repositories/LAFINA-CAPSTONE-agy-development-cont",
   "donor_head": "0d4bbe39e106c29fb90792cf5d2f916b5c0d6480",
-  "last_tested_head": "f7e947f (clear-data audit C1 gates; preflight on the identical working tree before the commit; APKs built at HEAD f7e947f)",
-  "last_committed_head": "cc3ca10d4b0084024574a6e231c0d938ff5ae70f",
-  "current_phase": "NONE (run finished; final-audit F1-F4, remediation P1/P2 and clear-data C1 follow-ups done on host; owner device/live checks pending)",
+  "last_tested_head": "acfd8fc (attachment-cleanup audit C2 gates; preflight on the identical working tree before the commit; APKs built at HEAD acfd8fc)",
+  "last_committed_head": "acfd8fc836142843efa4918128bdb2dcc7b397eb",
+  "current_phase": "NONE (run finished; final-audit F1-F4, remediation P1/P2, clear-data C1 and attachment-cleanup C2 follow-ups done on host; owner device/live checks pending)",
   "phases": [
     {
       "id": "AGY-PORT-00",
@@ -702,6 +702,46 @@
         "existing test files changed: schemaMigrations expected table list, accountDataReset outcome field; jest.setup default RNFS stat mock; no assertion weakened, no skip, frozen fixtures unchanged",
         "Chat 'Clear conversation' unchanged and outside C1 (best-effort file removal, no obligations)",
         "self-review only; no independent review of f7e947f"
+      ]
+    },
+    {
+      "id": "CODEX-ATTACHMENT-CLEANUP-AUDIT-C2-1",
+      "scope": [
+        "C2 attachment cleanup queue starvation: durable per-owner turn order (schema 24 attachment_cleanup.queue_order, additive; existing rows take queue_order = attempts); new obligations join the owner's back; a pass selects the lowest 50 turns (queue_order, recorded_at, path) and saves each attempt (moving the row to the back) before touching the file, so failed unlinks, directory targets and refused saved rows yield their turn without being dropped or deleted; unsaved bookkeeping reported (`unsaved`), file left untouched when the attempt cannot be saved, never 'Data Cleared'; same-owner passes serialized in-process; claim/retire owner-checked; 50 bound, owner keys, session check, guest linking, path rules and regular-file check unchanged; no loop/timer/poller"
+      ],
+      "audit": "codex-attachment-cleanup-audit-69aafcd-20261107.md",
+      "base_head": "69aafcd759bb5e8977fdf2450987359c9ca0c022",
+      "tested_head": "acfd8fc (preflight ran on the identical working tree before the commit); builds at acfd8fc",
+      "implementation": "CODE_COMPLETE (C2); ADR-026 amendment",
+      "automated": "PASS",
+      "build": "PASS (bundle executed; dataQa 12 executed/244 up-to-date; Kotlin 43 executed via --rerun; debug up-to-date, no packaged JS)",
+      "device": "NOT_RUN",
+      "live_service": "NOT_RUN",
+      "code_commit": "acfd8fc836142843efa4918128bdb2dcc7b397eb",
+      "result_commit": "recorded in the next index commit's log row",
+      "report": "attachment-queue-fairness-remediation.md",
+      "evidence": [
+        "evidence/agy-port-20261106/attachment-queue-fairness-remediation-20261107/",
+        "evidence/codex-attachment-cleanup-audit-69aafcd-20261107/ (auditor's, committed unchanged)"
+      ],
+      "artifacts": {
+        "dataQa_arm64": "ae0b4cc1c0222561fef6897db4eea0e83504f7db161cc026f06d2e3be09c789b (163257936 B)",
+        "dataQa_x86_64": "3f523ba79a05172c77c941476713d3d5bbfc6178d1b832aa5fa090f6cc229928 (169577888 B)",
+        "debug_arm64": "0629c828072dfd5c3f8ab27e0f9838251965d78018dbf9ff32b2a0cc6d2b466e (unchanged)",
+        "debug_x86_64": "0756c1236c0a5f1942feb6de651acd470d71606825813629146e8f54d073d63a (unchanged)",
+        "bundle": "45c434ebef1d348dcfc68158cb9cfc18362565f347d78fa752da1963f74a789a (packaged in both dataQa APKs; 8/8 fix-only markers present, old timestamp order absent, 4/4 controls present)",
+        "identity": "com.lafina.capstone, versionCode 6, 0.6.0-data-qa, SDK 36, debuggable; v2 CN=Android Debug acf890c3...dd5e; permissions identical (32 lines); Whisper 4baf70dd, VAD 7ed98ddb, no Kokoro; ELF 16/16 at 16 KiB; 302 stored entries aligned"
+      },
+      "notes": [
+        "pre-fix on 69aafcd: unchanged independent queue-progress regression 1/1 FAILED (removable 51st file never attempted)",
+        "post-fix: all four independent tests 4/4 (independentClearData 2, independentAttachmentRetry 1, independentCleanupFairness 1), audit dirs hash-identical before/after",
+        "new attachmentCleanupFairness 18/18 + 3 new UI cases; cleanup suites 69/69; audit 18-suite set + new suite 19 suites 348/348",
+        "post-fix-existing-1: 13 failures, each only the new `unsaved` result field; 18 exact expectations updated (17 x unsaved: 0, 1 x unsaved: 1); schemaMigrations comment 18-23 -> 18-24; no assertion weakened, no skip, frozen fixtures unchanged",
+        "mutation-check-1: 15/15 killed, all restored",
+        "preflight-1: 55 suites 809 passed + 1 opt-in skipped; architecture 219 modules, 0 cycles, 0 forbidden, 75 offline leaves; 30 console.error lines, all in untouched suites",
+        "Chat 'Clear conversation' unchanged and outside C1/C2 (best-effort file removal, no obligations)",
+        "host restart tests are not Android process-death validation",
+        "self-review only; no independent review of acfd8fc"
       ]
     }
   ]

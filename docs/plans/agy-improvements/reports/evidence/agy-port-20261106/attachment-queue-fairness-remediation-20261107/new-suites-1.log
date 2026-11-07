@@ -1,0 +1,10 @@
+2026-11-07T03:23:04Z
+PASS __tests__/storage/attachmentCleanup.test.ts
+PASS __tests__/storage/attachmentCleanupFairness.test.ts
+
+Test Suites: 2 passed, 2 total
+Tests:       60 passed, 60 total
+Snapshots:   0 total
+Time:        6.422 s
+Ran all test suites matching /__tests__\\storage\\attachmentCleanupFairness.test.ts|__tests__\\storage\\attachmentCleanup.test.ts/i.
+exit=0
