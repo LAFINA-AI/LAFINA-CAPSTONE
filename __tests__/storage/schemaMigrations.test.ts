@@ -124,7 +124,7 @@ describe('schema migrations', () => {
     expect(readUserVersion(first)).toBe(CURRENT_SCHEMA_VERSION);
     first.close();
 
-    // Schemas 18-23 only add: every schema-17 column of every row is unchanged.
+    // Schemas 18-24 only add: every schema-17 column of every row is unchanged.
     const afterUpgrade = inspect(path, snapshotAllRows);
     const projected = inspect(path, c => snapshotSchema17Columns(c, schema17Columns));
     for (const [table, rows] of Object.entries(before)) {

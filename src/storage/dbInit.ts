@@ -23,7 +23,10 @@ import {migrateReminderDelivery} from './deliverySchema';
 import {migrateAssistantOperations} from './assistantOperationSchema';
 import {migrateNotesSearch} from './notesSearchSchema';
 import {migrateEventTime} from './eventTimeSchema';
-import {migrateAttachmentCleanup} from './attachmentCleanupSchema';
+import {
+  migrateAttachmentCleanup,
+  migrateAttachmentCleanupQueue,
+} from './attachmentCleanupSchema';
 
 export interface SchemaMigration {
   /** The `user_version` this step produces. */
@@ -87,6 +90,14 @@ export const SCHEMA_MIGRATIONS: readonly SchemaMigration[] = [
       'Owner-bound chat attachment cleanup obligations for Clear All Data (clear-data audit C1)',
     up: tx => {
       migrateAttachmentCleanup(tx);
+    },
+  },
+  {
+    version: 24,
+    description:
+      'Fair, durable turn order for attachment cleanup obligations (attachment-cleanup audit C2)',
+    up: tx => {
+      migrateAttachmentCleanupQueue(tx);
     },
   },
 ];

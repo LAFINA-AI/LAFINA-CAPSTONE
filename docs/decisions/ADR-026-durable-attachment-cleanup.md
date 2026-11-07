@@ -1,8 +1,8 @@
 # ADR-026: Durable, owner-bound chat attachment cleanup for Clear All Data
 
-**Status:** accepted, implemented. Device validation is still pending.
+**Status:** accepted, implemented; amended the same day for audit C2 (see [Amendment: fair turn order](#amendment-2026-11-07-fair-turn-order-audit-c2)). Device validation is still pending.
 **Date:** 2026-11-07
-**Origin:** clear-data audit C1 (`docs/plans/agy-improvements/reports/codex-clear-data-audit-8823b11-20261107.md`)
+**Origin:** clear-data audit C1 (`docs/plans/agy-improvements/reports/codex-clear-data-audit-8823b11-20261107.md`); amendment from attachment-cleanup audit C2 (`docs/plans/agy-improvements/reports/codex-attachment-cleanup-audit-69aafcd-20261107.md`)
 **Extends:** [ADR-025](ADR-025-account-bound-data-reset.md). Its admission, strict reads and atomic planner step are unchanged.
 **Review owner:** human developer
 
@@ -36,7 +36,7 @@ If an unlink failed, the result was a truthful "Data Partly Cleared … Try Clea
 
 **3. Retired only on confirmation.**
 
-- `finishAttachmentCleanup(authority)` makes **one bounded pass**: at most `MAX_CLEANUP_PER_RUN` (50) of the owner's saved obligations, oldest first.
+- `finishAttachmentCleanup(authority)` makes **one bounded pass**: at most `MAX_CLEANUP_PER_RUN` (50) of the owner's saved obligations, ~~oldest first~~ *in queue order (amendment C2)*.
 - It covers obligations left by earlier attempts, so a retry works even when the chat history is already empty.
 - For each saved path, the pass:
   1. checks the path rules again;
@@ -87,7 +87,7 @@ If an unlink failed, the result was a truthful "Data Partly Cleared … Try Clea
 | Unlink fails | Row kept, `attempts` + 1 | Tries again |
 | Crash after the unlink, before retiring | Row kept, file gone | Finds it absent and retires it, without an unlink |
 | Sign-in changes mid-pass | Remaining rows kept for that owner | That owner's next Clear All Data continues |
-| More than 50 saved | The rest are kept | The next pass continues |
+| More than 50 saved | The rest are kept | ~~The next pass continues~~ *Corrected (C2):* this held only when the first 50 were removed. If they kept failing, every pass repeated them and the rest were never attempted. Since the amendment, the next pass continues behind them |
 
 ## Consequences
 
@@ -95,3 +95,39 @@ If an unlink failed, the result was a truthful "Data Partly Cleared … Try Clea
 - A saved obligation that the path rules refuse, which only tampering or a future rule change could produce, stays visible. It keeps the result partial and is never acted on.
 - **Out of scope:** Chat's own "Clear conversation" (`ChatScreen`) is unchanged. It still deletes messages, then removes files best-effort, without recording obligations, and it does not claim the files were removed. Files it fails to remove are not later retried by Clear All Data. That is a residual outside C1.
 - **The `stat` check needed a test-harness change.** The Jest `react-native-fs` mock gained a default `stat` that reports a regular file (`jest.setup.js`), because the mock had none.
+
+## Amendment (2026-11-07): fair turn order (audit C2)
+
+**Problem.** The pass selected the first 50 rows by `recorded_at, path`, which never change. A failed unlink only updated `attempts` and `last_attempt_at`, which did not affect selection. Refused saved rows were skipped without any bookkeeping. So 50 obligations that kept failing (or were refused, or were directories) held the front of the queue on every pass, and a removable 51st file was never attempted. The result stayed truthfully partial, but the retry could not make progress. Ordering by `last_attempt_at` would not fix it: with a frozen or coarse clock, every row attempted in one pass gets the same timestamp, and the tie falls back to the same immutable order.
+
+**Decision.**
+
+1. **A durable per-owner queue.** Schema 24 adds `queue_order INTEGER NOT NULL DEFAULT 0` to `attachment_cleanup` (one `ALTER TABLE … ADD COLUMN` in the existing migration chain; additive). Existing rows take `queue_order = attempts`, so a row the old order never reached (attempts 0) goes first.
+2. **Joining and yielding.** A new obligation is recorded at the owner's back: `MAX(queue_order) + 1` for that owner. A pass reads the lowest 50 turns, ordered `queue_order, recorded_at, path`. The path is unique per owner, so the order is total and deterministic.
+3. **The attempt is saved before the file is touched.** For each selected row, one `UPDATE` adds 1 to `attempts`, sets `last_attempt_at` and moves the row to the owner's back. Only then are the path rules, the existence check, the regular-file check and the unlink applied. A failed unlink, a directory target and a refused saved path therefore all yield their turn. None is deleted or dropped: each stays saved and visible in the pending count.
+4. **Bookkeeping failures are reported.** The result gains `unsaved`, the number of obligations whose progress could not be saved in this pass.
+   - If the attempt cannot be saved, the file is **not** touched. The row keeps its place, and the pass moves on to the next row. A transient failure is retried by the next Clear All Data; a failure confined to one row cannot block the others.
+   - If the file was removed but its row could not be retired, that also counts. The row has already yielded its turn, and a later pass finds the file absent and retires it.
+   - Profile never says "Data Cleared" while `unsaved` is above 0. It says "This phone could not save its cleanup progress for N chat attachment file(s); it stays/they stay listed for the next Clear All Data", followed by "Try Clear All Data again."
+5. **No overlapping passes for one owner.** Two Clear All Data presses can overlap, because Profile awaits the pass. A pass requested while another is running for the same owner now starts after it, through an in-process per-owner chain. So the passes never work on the same rows, and neither reports the other's files as pending. This is a mutual-exclusion guard only; fairness lives entirely in the database. Passes for different owners do not wait for each other.
+6. **Ownership re-check.** The claim and the retire are keyed by owner. `removed` is counted only when the retire deleted a row. A row that moved to another owner mid-pass (guest linking) is neither attempted nor counted.
+
+**Guarantees.**
+
+- **Bound:** a pass still selects at most 50 rows (`LIMIT`) and attempts each at most once.
+- **Fairness:** with `N` saved obligations, any `N` consecutive selections cover every one of them, so each is attempted within ⌈N / 50⌉ passes. A new obligation waits only behind the ones already saved, and later arrivals never push it back.
+- **Restarts and crashes:** the turn order is in `lafina.db`, not in module memory.
+  - A crash after an attempt is saved leaves that row at the back, still saved.
+  - A crash before it is saved leaves the row in its place.
+  - Either way the next launch continues from the database.
+- **Ties and frozen clocks:** the order does not depend on the clock. Equal `recorded_at` and equal `last_attempt_at` values are broken by the moving `queue_order` and then by the unique path.
+- **Unchanged from C1:**
+  - recording in the chat-delete transaction;
+  - retirement only after confirmed removal or absence;
+  - the path rules and the regular-file check;
+  - duplicates via `INSERT OR IGNORE`: a re-recorded path keeps its place and attempts;
+  - owner keys and the session check before each file;
+  - guest linking, which moves rows with their `queue_order`; ties are broken as above;
+  - no loop, timer, poller or background work.
+
+**Residual.** If a new file were saved at the same path as an obligation, in the moment between that obligation's unlink and its retirement, the new reference would be merged into the existing row (`INSERT OR IGNORE`) and retired with it. This needs a generated file to reuse an exact name within milliseconds. It is unchanged from C1 and accepted.

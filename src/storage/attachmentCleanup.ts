@@ -1,7 +1,7 @@
 import RNFS from 'react-native-fs';
 import { db } from './database';
 import type { DatabaseTransaction } from './database';
-import { ATTACHMENT_CLEANUP_TABLE } from './attachmentCleanupSchema';
+import { ATTACHMENT_CLEANUP_QUEUE_COLUMN, ATTACHMENT_CLEANUP_TABLE } from './attachmentCleanupSchema';
 
 /**
  * Owner-bound chat attachment cleanup (clear-data audit C1; ADR-026).
@@ -12,6 +12,13 @@ import { ATTACHMENT_CLEANUP_TABLE } from './attachmentCleanupSchema';
  * or confirmed absent, so a failed removal, a crash or a restart leaves it to
  * be retried by the next Clear All Data. Nothing here loops, polls or runs in
  * the background, and every write is keyed by the owner it was recorded for.
+ *
+ * Fairness (attachment-cleanup audit C2): obligations wait in a durable
+ * per-owner queue (`queue_order`, schema 24). A new obligation joins the back;
+ * a pass takes the lowest turns and, before it touches a file, saves the
+ * attempt and moves that obligation to the back. Obligations that keep
+ * failing, refused saved paths and directories therefore take their turn and
+ * yield it, instead of holding the front of the queue on every pass.
  */
 
 type Executor = Pick<DatabaseTransaction, 'executeSync'>;
@@ -27,6 +34,14 @@ const FILE_NAME = /^[^/.][^/]*\.[A-Za-z0-9]{1,10}$/;
 
 /** One Clear All Data removes at most this many files; the rest stay saved for the next one. */
 export const MAX_CLEANUP_PER_RUN = 50;
+
+const QUEUE = ATTACHMENT_CLEANUP_QUEUE_COLUMN;
+
+/** The owner's next turn: behind every obligation the owner already has saved. */
+const NEXT_TURN = `(SELECT COALESCE(MAX(${QUEUE}), 0) + 1 FROM ${ATTACHMENT_CLEANUP_TABLE} WHERE user_id = ?)`;
+
+/** Queue order. Ties (equal turns, equal timestamps) fall back to the unique path. */
+const IN_TURN = `ORDER BY ${QUEUE} ASC, recorded_at ASC, path ASC`;
 
 /**
  * The local path a chat attachment URI may be cleaned up at, or null when it
@@ -55,25 +70,50 @@ export const attachmentCleanupTarget = (uri: unknown): string | null => {
   return segments.length === 2 && segments[0] === CHAT_FILES_SUBDIR ? path : null;
 };
 
-/** Saves obligations in the caller's transaction. Duplicates are ignored. */
+/**
+ * Saves obligations in the caller's transaction, each at the back of the
+ * owner's queue. Duplicates are ignored: an obligation already saved keeps
+ * its place and its attempts.
+ */
 export const recordAttachmentCleanup = (tx: Executor, userId: string, paths: Iterable<string>): void => {
   const now = new Date().toISOString();
   for (const path of paths) {
     tx.executeSync(
-      `INSERT OR IGNORE INTO ${ATTACHMENT_CLEANUP_TABLE} (user_id, path, recorded_at) VALUES (?, ?, ?)`,
-      [userId, path, now],
+      `INSERT OR IGNORE INTO ${ATTACHMENT_CLEANUP_TABLE} (user_id, path, recorded_at, ${QUEUE}) VALUES (?, ?, ?, ${NEXT_TURN})`,
+      [userId, path, now, userId],
     );
   }
 };
 
-/** This owner's saved obligations, oldest first. A failed read throws. */
+/** This owner's saved obligations, in queue order. A failed read throws. */
 export const pendingAttachmentCleanup = (userId: string, executor: Executor = db): string[] =>
   (
     executor.executeSync(
-      `SELECT path FROM ${ATTACHMENT_CLEANUP_TABLE} WHERE user_id = ? ORDER BY recorded_at ASC, path ASC`,
+      `SELECT path FROM ${ATTACHMENT_CLEANUP_TABLE} WHERE user_id = ? ${IN_TURN}`,
       [userId],
     ).rows ?? []
   ).map(row => String(row.path));
+
+/** The first `limit` obligations in this owner's queue. A failed read throws. */
+const nextTurns = (userId: string, limit: number): string[] =>
+  (
+    db.executeSync(
+      `SELECT path FROM ${ATTACHMENT_CLEANUP_TABLE} WHERE user_id = ? ${IN_TURN} LIMIT ?`,
+      [userId, limit],
+    ).rows ?? []
+  ).map(row => String(row.path));
+
+/**
+ * Saves one attempt before the file is touched: counts it and moves the
+ * obligation to the back of the owner's queue. False when the owner no longer
+ * holds it (retired, or moved by guest linking, since it was read); a failed
+ * write throws, and the obligation keeps its place.
+ */
+const claimTurn = (userId: string, path: string): boolean =>
+  (db.executeSync(
+    `UPDATE ${ATTACHMENT_CLEANUP_TABLE} SET attempts = attempts + 1, last_attempt_at = ?, ${QUEUE} = ${NEXT_TURN} WHERE user_id = ? AND path = ?`,
+    [new Date().toISOString(), userId, userId, path],
+  ).rowsAffected ?? 0) === 1;
 
 const countPending = (userId: string): number => {
   const value = Number(
@@ -101,32 +141,45 @@ export interface AttachmentCleanupResult {
   pending: number | null;
   /** True when the pass stopped early because the sign-in changed. */
   interrupted: boolean;
+  /**
+   * Obligations whose progress this pass could not save: the attempt could not
+   * be recorded (the file was left untouched and keeps its place), or the file
+   * was removed but its obligation could not be retired. All stay saved.
+   */
+  unsaved: number;
 }
 
-/**
- * One bounded pass over `userId`'s saved obligations. `stillCurrent` is
- * checked before each file: once it is false the pass stops, and the rest stay
- * saved for that owner's next Clear All Data.
- */
-export const runAttachmentCleanup = async (
+const cleanupPass = async (
   userId: string,
-  stillCurrent: () => boolean = () => true,
-  limit: number = MAX_CLEANUP_PER_RUN,
+  stillCurrent: () => boolean,
+  limit: number,
 ): Promise<AttachmentCleanupResult> => {
-  let paths: string[];
+  let turns: string[];
   try {
-    paths = pendingAttachmentCleanup(userId).slice(0, Math.max(0, limit));
+    turns = nextTurns(userId, Number.isFinite(limit) ? Math.max(0, Math.floor(limit)) : 0);
   } catch (error) {
     console.warn('[AttachmentCleanup] Saved cleanup could not be read:', error);
-    return { removed: 0, pending: null, interrupted: false };
+    return { removed: 0, pending: null, interrupted: false, unsaved: 0 };
   }
   let removed = 0;
   let interrupted = false;
-  for (const path of paths) {
+  let unsaved = 0;
+  for (const path of turns) {
     if (!stillCurrent()) {
       interrupted = true;
       break;
     }
+    // The attempt is saved first, so this obligation yields its turn even if
+    // the removal fails, is refused, or the app stops during it.
+    let claimed = false;
+    try {
+      claimed = claimTurn(userId, path);
+    } catch (error) {
+      console.warn('[AttachmentCleanup] A cleanup attempt could not be saved:', error);
+      unsaved += 1;
+      continue; // not attempted: no file work whose outcome could not be recorded
+    }
+    if (!claimed) continue; // no longer this owner's: retired or moved since it was read
     if (attachmentCleanupTarget(path) !== path) continue; // refused: kept, never touched
     let gone = false;
     try {
@@ -134,19 +187,17 @@ export const runAttachmentCleanup = async (
     } catch (error) {
       console.warn('[AttachmentCleanup] An attachment file could not be removed:', error);
     }
+    if (!gone) continue; // kept; its attempt is saved and it waits at the back
     try {
-      if (gone) {
-        db.executeSync(`DELETE FROM ${ATTACHMENT_CLEANUP_TABLE} WHERE user_id = ? AND path = ?`, [userId, path]);
-        removed += 1;
-      } else {
-        db.executeSync(
-          `UPDATE ${ATTACHMENT_CLEANUP_TABLE} SET attempts = attempts + 1, last_attempt_at = ? WHERE user_id = ? AND path = ?`,
-          [new Date().toISOString(), userId, path],
-        );
-      }
+      const retired = db.executeSync(`DELETE FROM ${ATTACHMENT_CLEANUP_TABLE} WHERE user_id = ? AND path = ?`, [
+        userId,
+        path,
+      ]);
+      if ((retired.rowsAffected ?? 0) > 0) removed += 1;
     } catch (error) {
       // The row stays; the next pass finds the file absent and retires it.
-      console.warn('[AttachmentCleanup] Cleanup state could not be updated:', error);
+      console.warn('[AttachmentCleanup] A finished cleanup could not be retired:', error);
+      unsaved += 1;
     }
   }
   let pending: number | null = null;
@@ -155,5 +206,36 @@ export const runAttachmentCleanup = async (
   } catch (error) {
     console.warn('[AttachmentCleanup] Remaining cleanup could not be counted:', error);
   }
-  return { removed, pending, interrupted };
+  return { removed, pending, interrupted, unsaved };
+};
+
+/** The pass in progress for each owner in this process, so passes never overlap. */
+const passInProgress = new Map<string, Promise<unknown>>();
+
+/**
+ * One bounded pass over `userId`'s saved obligations: at most `limit`, in
+ * queue order. `stillCurrent` is checked before each file: once it is false
+ * the pass stops, and the rest stay saved for that owner's next Clear All
+ * Data. A pass requested while another runs for the same owner starts after
+ * it, so two passes never work on the same obligations or report each other's
+ * files as still pending.
+ */
+export const runAttachmentCleanup = (
+  userId: string,
+  stillCurrent: () => boolean = () => true,
+  limit: number = MAX_CLEANUP_PER_RUN,
+): Promise<AttachmentCleanupResult> => {
+  const previous = passInProgress.get(userId);
+  const pass = previous
+    ? previous.then(() => cleanupPass(userId, stillCurrent, limit))
+    : cleanupPass(userId, stillCurrent, limit);
+  const settled = pass.then(
+    () => undefined,
+    () => undefined,
+  );
+  passInProgress.set(userId, settled);
+  void settled.then(() => {
+    if (passInProgress.get(userId) === settled) passInProgress.delete(userId);
+  });
+  return pass;
 };
