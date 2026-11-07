@@ -145,6 +145,9 @@ function readRecentHistory(userId: string, count: number): ChatMessage[] {
   }
 }
 
+/** Small talk at most this long is sent without a handbook search. */
+const SMALL_TALK_MAX_CHARS = 60;
+
 /** Handbook topics answer only from the verified online handbook, never offline. */
 const isHandbookQuestion = (text: string): boolean =>
   /\b(?:ustp|handbook|dean'?s\s+list|grading\s+system|retention\s+policy|tuition|graduation\s+requirements|uniform\s+policy|dress\s+code|drop(?:ping)?\s+subject|prerequisite|academic\s+probation)\b/i.test(
@@ -520,13 +523,22 @@ export class ChatOrchestrator {
               content: msg.content,
             }));
           const onReplyText = options.onReplyText;
+          // A greeting or "thanks" needs no handbook search; skipping it lets
+          // DeepSeek start replying sooner.
+          const useHandbook =
+            options.useHandbook !== false &&
+            !(
+              smallTalk &&
+              trimmed.length <= SMALL_TALK_MAX_CHARS &&
+              !isHandbookQuestion(trimmed)
+            );
           const onlineResult = onReplyText
             ? await onlineChatSkill.streamChatMessage(history, {
-                useHandbook: options.useHandbook,
+                useHandbook,
                 onReplyText,
               })
             : await onlineChatSkill.sendChatMessage(history, {
-                useHandbook: options.useHandbook,
+                useHandbook,
               });
           if (onlineResult.status === 'success' && onlineResult.data) {
             finalReply = onlineResult.data.interrupted

@@ -279,5 +279,41 @@ Owner report: Online Mode offered only a male voice. The owner also asked to con
 
 **Emulator (`emulator-5554`, fresh x86_64 build):** voice mode now asks online and tries renewal; this emulator's sign-in had already been erased, so it shows the new sign-in-again note (`.local/qa-online-voices/voice-mode-signed-out-note.png`). ElevenLabs playback in voice mode was **not** verified on device: that needs the owner to sign in again on the device (the agent does not sign in to production accounts).
 
+## Addendum (2026-11-08): conversational voice mode latency
+
+**Owner report:** online voice mode answers with ElevenLabs, but the text takes about 5 s to appear and the voice another 5 s. Goal: respond like a live conversation, streaming text and voice.
+
+**Measurements** (host in the Philippines, synthetic text, timings only):
+
+| Step | Measured |
+|---|---|
+| ElevenLabs direct, 68 chars: `eleven_v4` / `eleven_v4_turbo` / `eleven_flash_v2_5` | 1.6 s / 0.65 s / 0.3 s (full clip) |
+| ElevenLabs direct, 337 chars, same models | 6.1 s / 2.1 s / 0.75 s; streaming endpoint first byte 0.7 s / 0.2 s / 0.2 s |
+| Backend `/healthz` (no database) | 0.4 s |
+| Backend `/v1/auth/refresh` with a made-up token (one read query, no write) | 2.8 to 3.0 s |
+| Vercel routing header `X-Vercel-Id` | `sin1::iad1`: edge in Singapore, function in Washington (iad1) |
+| Emulator, voice mode, before changes (instrumented build, not committed) | send to first text 5.6 to 5.9 s; first speech clip 5.9 to 7.3 s after its request |
+
+The backend's documentation examples place the Neon database in `ap-southeast-1` (Singapore); the production value was not inspected. If that is the production region, every database round trip crosses the Pacific from iad1, which matches about 2.4 s per request for connecting plus one query (the engine uses `NullPool`, so each request connects anew). Chat and speech each make several queries, so this accounts for most of the delay.
+
+The DeepSeek key in the private local `.env` answered HTTP 402 (insufficient balance) during the benchmark; production chat still answers, so production uses a different key. Not investigated further.
+
+**Changes (mobile, `Lem-branch`):**
+- Voice mode streams DeepSeek's reply (as Chat does) and shows it while it is written.
+- New `startSpeechStream` in the speech provider: the first finished sentence (at least 12 chars; a sentence over 160 chars is cut at a comma) is synthesized at once. The next piece takes every sentence finished by the time the first audio is ready, or the whole rest once the reply is complete. A typical reply needs 2 or 3 speech requests, staying within the 10-per-minute limit. Stop, failure fallback (device voice reads the rest, with the reason) and the lafina name case change are handled.
+- Voice mode asks for `latency: "low"`. Servers without the option ignore the field.
+- Opening voice mode checks online speech ahead of time (`warmUp`).
+- Short small talk ("hello", "thanks") skips the USTP handbook search; handbook questions keep it.
+- A failed prepared clip now reports the real reason instead of a generic one.
+- Tests: `__tests__/ai/voiceModeStreaming.test.tsx` (11). `npm run preflight`: 65 suites, 979 passed, 1 skipped; 230 modules, 0 cycles, 76 offline leaves.
+
+**Backend (branch `codex/fast-voice-replies`, commit `e31d894`, pushed, NOT merged or deployed):** `latency: "low"` uses `ELEVENLABS_FAST_MODEL_ID` (default `eleven_v4_turbo`) and `mp3_44100_64`; other requests keep `eleven_v4` at 128 kbps; the response reports the model used. Backend suite: 199 passed.
+
+**Owner decisions pending:**
+1. Merge `codex/fast-voice-replies` into production `main`.
+2. Confirm the production database region (Vercel → Settings → Environment Variables → `DATABASE_URL` host, or the Neon console). If it is `ap-southeast-1`, set the Vercel function region to `sin1` (`"regions": ["sin1"]` in `vercel.json`). Expected effect: database round trips drop from hundreds of milliseconds to a few, and the phone is about 50 ms from the function instead of about 250 ms.
+
+**Not verified:** end-to-end timings after the backend changes (not deployed); a physical phone; audibility on the emulator.
+
 STATUS: AWAITING DEVICE VALIDATION
 STOPPED — awaiting explicit human approval
