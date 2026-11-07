@@ -93,10 +93,11 @@ export const behaviorStore = {
     featureType: string,
   ): FeatureSnapshot | null => {
     try {
+      // Append order, rather than a random ID, breaks same-millisecond ties.
       const result = db.executeSync(
         `SELECT * FROM ml_feature_snapshots
          WHERE user_id = ? AND feature_type = ?
-         ORDER BY computed_at DESC, created_at DESC, id DESC
+         ORDER BY computed_at DESC, created_at DESC, rowid DESC
          LIMIT 1`,
         [userId, featureType],
       );

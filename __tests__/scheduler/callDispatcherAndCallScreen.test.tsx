@@ -187,7 +187,8 @@ describe('Call Dispatcher, Simulated Incoming Call & Permission Subsystem', () =
         userId,
         task: 'Review Discrete Math',
         description: null,
-        scheduledAt: now,
+        // The Calendar form schedules an item's reminder at the item's own time.
+        scheduledAt: new Date('2026-10-25T18:00:00').toISOString(),
         triggerAt: now,
         status: 'pending',
         preCastAudioPath: null,
@@ -200,6 +201,35 @@ describe('Call Dispatcher, Simulated Incoming Call & Permission Subsystem', () =
       const updatedRem = remindersStore.getReminderById('rem-task-complete');
       expect(updatedRem?.status).toBe('acknowledged');
       expect(remindersStore.getPendingReminders(userId)).toHaveLength(0);
+    });
+
+    it('completing a task leaves a different reminder that only shares its title', async () => {
+      const now = new Date().toISOString();
+      tasksStore.insertTask({
+        id: 'task-shared-title',
+        userId,
+        title: 'Study',
+        priority: 'High',
+        category: 'Academics',
+        isCompleted: false,
+        dueDate: '2026-10-25',
+        dueTime: '18:00',
+      });
+      // A standalone reminder for another day: same title, not this task's time.
+      remindersStore.insertReminder({
+        id: 'rem-shared-title',
+        userId,
+        task: 'study',
+        description: null,
+        scheduledAt: new Date('2026-10-27T09:00:00').toISOString(),
+        triggerAt: now,
+        status: 'pending',
+        preCastAudioPath: null,
+      });
+
+      tasksStore.updateTask({ id: 'task-shared-title', isCompleted: true });
+
+      expect(remindersStore.getReminderById('rem-shared-title')?.status).toBe('pending');
     });
 
     it('answerCall immediately suppresses call if task is already completed', async () => {
@@ -219,7 +249,7 @@ describe('Call Dispatcher, Simulated Incoming Call & Permission Subsystem', () =
         userId,
         task: 'Submit Project Proposal',
         description: null,
-        scheduledAt: now,
+        scheduledAt: new Date('2026-10-25T14:00:00').toISOString(),
         triggerAt: now,
         status: 'pending',
         preCastAudioPath: null,
@@ -228,6 +258,34 @@ describe('Call Dispatcher, Simulated Incoming Call & Permission Subsystem', () =
       await answerCall('rem-already-done', userId, false);
 
       expect(remindersStore.getReminderById('rem-already-done')?.status).toBe('acknowledged');
+    });
+
+    it('answerCall is not suppressed by a completed task that only shares the title', async () => {
+      const now = new Date().toISOString();
+      tasksStore.insertTask({
+        id: 'task-done-other',
+        userId,
+        title: 'Submit Lab Report',
+        priority: 'High',
+        category: 'Academics',
+        isCompleted: true,
+        dueDate: '2026-10-20',
+        dueTime: '14:00',
+      });
+      remindersStore.insertReminder({
+        id: 'rem-not-that-task',
+        userId,
+        task: 'Submit Lab Report',
+        description: null,
+        scheduledAt: now,
+        triggerAt: now,
+        status: 'pending',
+        preCastAudioPath: null,
+      });
+
+      await answerCall('rem-not-that-task', userId, false);
+
+      expect(remindersStore.getReminderById('rem-not-that-task')?.status).not.toBe('acknowledged');
     });
 
     it('snoozes reminder and updates triggerAt accordingly', async () => {

@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.lafina.capstone.LafinaDeliveryContractTest" tests="10" skipped="0" failures="0" errors="0" timestamp="2026-11-05T19:47:07.235Z" hostname="DESKTOP-C32FQUT" time="0.073">
+  <properties/>
+  <testcase name="inactive owners and signed-out devices are suppressed natively" classname="com.lafina.capstone.LafinaDeliveryContractTest" time="0.053"/>
+  <testcase name="receipts are bounded, redacted and drained once" classname="com.lafina.capstone.LafinaDeliveryContractTest" time="0.006"/>
+  <testcase name="restore rearms future work, fires within 15 minutes and expires older work" classname="com.lafina.capstone.LafinaDeliveryContractTest" time="0.006"/>
+  <testcase name="identity uri matches the shared JS vector" classname="com.lafina.capstone.LafinaDeliveryContractTest" time="0.005"/>
+  <testcase name="put returns the replaced registration so its intent can be cancelled" classname="com.lafina.capstone.LafinaDeliveryContractTest" time="0.0"/>
+  <testcase name="registry records round-trip and newer formats are left untouched" classname="com.lafina.capstone.LafinaDeliveryContractTest" time="0.0"/>
+  <testcase name="java hash-colliding ids get distinct uris and tags" classname="com.lafina.capstone.LafinaDeliveryContractTest" time="0.0"/>
+  <testcase name="only the exact current identity fires, once" classname="com.lafina.capstone.LafinaDeliveryContractTest" time="0.0"/>
+  <testcase name="uri parse round-trips and rejects foreign or malformed data" classname="com.lafina.capstone.LafinaDeliveryContractTest" time="0.001"/>
+  <testcase name="legacy cutover adopts generation 0 once and never overwrites newer registrations" classname="com.lafina.capstone.LafinaDeliveryContractTest" time="0.001"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

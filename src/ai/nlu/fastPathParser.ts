@@ -1822,12 +1822,12 @@ export function parseIntentFastPath(
 
   // Strip lingering leading prepositions and articles/possessives (e.g. "for a coffee" -> "coffee", "for your class" -> "class", "to submit" -> "submit")
   cleanTitle = cleanTitle.replace(
-    /^[\s,:-]*(?:\b(?:on|at|by|for|from|between|starting|with|to|about|regarding|of|called|titled|named)\b[\s,:-]*(?:(?:a|an|the|your|my|our)\b[\s,:-]*)?)+/i,
+    /^[\s,:-]*(?:\b(?:on|at|by|for|from|between|starting|with|to|about|regarding|of|called|titled|named)\b[\s,:-]*(?:(?:a|an|the|your|our)\b[\s,:-]*)?)+/i,
     '',
   );
 
   // Strip bare leading article or possessive pronoun for action items
-  cleanTitle = cleanTitle.replace(/^[\s,:-]*(?:a|an|the|your|my|our)\b[\s,:-]*/i, '');
+  cleanTitle = cleanTitle.replace(/^[\s,:-]*(?:a|an|the|your|our)\b[\s,:-]*/i, '');
 
   // Strip lingering trailing prepositions and punctuation at edges (including trailing periods)
   cleanTitle = cleanTitle

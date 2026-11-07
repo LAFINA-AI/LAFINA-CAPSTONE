@@ -1,0 +1,31 @@
+ M App.tsx
+ M __tests__/ui/agyPort04ReviewUi.test.tsx
+ M android/app/src/main/java/com/lafina/capstone/LafinaMeetingRecorderModule.kt
+ M android/app/src/main/java/com/lafina/capstone/LafinaMeetingService.kt
+ M android/app/src/main/java/com/lafina/capstone/LafinaMicrophoneLease.kt
+ M android/app/src/main/java/com/lafina/capstone/LafinaSpeechToTextModule.kt
+ M docs/plans/agy-improvements/reports/RUN-STATE.json
+ M docs/plans/agy-improvements/reports/autonomous-run-log.md
+ M src/ai/index.ts
+ M src/ai/native/speechCapture.ts
+ M src/ai/stt/sttService.ts
+ M src/scheduler/callDispatcher.ts
+ M src/ui/components/VoiceModal.tsx
+ M src/ui/contexts/MeetingsContext.tsx
+ M src/ui/screens/ChatScreen.tsx
+?? AGY-IMPROVEMENTS-MANIFEST.json
+?? AGY-IMPROVEMENTS-START.md
+?? __tests__/ai/agyPort05SpeechCapture.test.ts
+?? __tests__/scheduler/agyPort05CallBusyMic.test.ts
+?? __tests__/ui/agyPort05Drafts.test.tsx
+?? agy-improvements/
+?? android/app/src/main/java/com/lafina/capstone/MicrophoneLeaseRegistry.kt
+?? android/app/src/test/java/com/lafina/capstone/MicrophoneLeaseProbe.kt
+?? android/app/src/test/java/com/lafina/capstone/MicrophoneLeaseTest.kt
+?? docs/decisions/ADR-019-drafts-and-microphone-ownership.md
+?? docs/plans/agy-improvements/reports/evidence/agy-port-20261106/phase-05/
+?? docs/reports/agy-ustp-comparison-20261106.md
+?? docs/reports/evidence/agy-ustp-comparison-20261106/
+?? src/ui/components/DraftDecisionDialog.tsx
+?? src/ui/drafts/
+?? src/ui/hooks/useDraftProtection.ts

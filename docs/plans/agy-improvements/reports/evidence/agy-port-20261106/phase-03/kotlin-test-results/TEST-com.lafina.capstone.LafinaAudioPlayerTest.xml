@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.lafina.capstone.LafinaAudioPlayerTest" tests="1" skipped="0" failures="0" errors="0" timestamp="2026-11-05T19:33:25.370Z" hostname="DESKTOP-C32FQUT" time="0.017">
+  <properties/>
+  <testcase name="audio player module class exists and matches registration contract" classname="com.lafina.capstone.LafinaAudioPlayerTest" time="0.012"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

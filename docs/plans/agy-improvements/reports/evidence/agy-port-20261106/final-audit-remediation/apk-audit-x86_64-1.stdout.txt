@@ -1,0 +1,1 @@
+{"artifact": "app-x86_64-dataQa.apk", "inventory": "PASS", "elf": "PASS", "zipAlignment": "PASS", "report": "docs\\plans\\agy-improvements\\reports\\evidence\\agy-port-20261106\\final-audit-remediation\\apk-audit-x86_64-1.json"}

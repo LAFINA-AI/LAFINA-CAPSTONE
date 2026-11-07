@@ -1,0 +1,16 @@
+Mutation 1: generation comparison removed from deliveryStore.checkFence (restored after run)
+1
+    × rejects an old generation after another writer moved the reminder (4 ms)
+    × a stale auto-snooze or another owner cannot act (2 ms)
+    × an in-transaction guard failure rolls back the reminder and outbox (1 ms)
+    × another owner, logout or a stale generation is inert and cancels nothing newer (1 ms)
+    × answering a stale identity starts no call; an edit mid-call makes buttons inert (21 ms)
+Tests:       5 failed, 28 passed, 33 total
+
+Mutation 2: shouldDispatchInJs check removed from reminderPoller (restored after run)
+    × the JS poller leaves natively registered generations to Android (24 ms)
+Tests:       1 failed, 32 passed, 33 total
+
+Mutation 3: in-transaction guard call removed from acknowledgeReminder (restored after run)
+    × an in-transaction guard failure rolls back the reminder and outbox (2 ms)
+Tests:       1 failed, 32 passed, 33 total

@@ -1,0 +1,11 @@
+no-record: KILLED new-suites exit=1 Tests:       14 failed, 34 passed, 48 total; independent exit=1; restored=True sha256=8d2cf961d81267b2f6fa822bc1403d2d39b194549c53dccbf319fd8acfab44fc
+retire-on-failure: KILLED new-suites exit=1 Tests:       6 failed, 42 passed, 48 total; independent exit=1; restored=True sha256=ba642f0cf580d10ae2f6bdf0ad99920cbac1e06199147a8e70fb9583a329fb62
+no-directory-guard: KILLED new-suites exit=1 Tests:       1 failed, 47 passed, 48 total; independent exit=0; restored=True sha256=ba642f0cf580d10ae2f6bdf0ad99920cbac1e06199147a8e70fb9583a329fb62
+no-path-validation: KILLED new-suites exit=1 Tests:       21 failed, 27 passed, 48 total; independent exit=0; restored=True sha256=ba642f0cf580d10ae2f6bdf0ad99920cbac1e06199147a8e70fb9583a329fb62
+no-revalidation: KILLED new-suites exit=1 Tests:       1 failed, 47 passed, 48 total; independent exit=0; restored=True sha256=ba642f0cf580d10ae2f6bdf0ad99920cbac1e06199147a8e70fb9583a329fb62
+ignore-session: KILLED new-suites exit=1 Tests:       2 failed, 46 passed, 48 total; independent exit=0; restored=True sha256=ba642f0cf580d10ae2f6bdf0ad99920cbac1e06199147a8e70fb9583a329fb62
+unbounded: KILLED new-suites exit=1 Tests:       1 failed, 47 passed, 48 total; independent exit=0; restored=True sha256=ba642f0cf580d10ae2f6bdf0ad99920cbac1e06199147a8e70fb9583a329fb62
+success-ignores-pending: KILLED new-suites exit=1 Tests:       4 failed, 44 passed, 48 total; independent exit=1; restored=True sha256=133a44df184f00c01c2c10d1b9e7d326531ad50310d947a83168110a2aeff015
+success-ignores-refused: KILLED new-suites exit=1 Tests:       1 failed, 47 passed, 48 total; independent exit=0; restored=True sha256=133a44df184f00c01c2c10d1b9e7d326531ad50310d947a83168110a2aeff015
+guest-not-moved: KILLED new-suites exit=1 Tests:       1 failed, 47 passed, 48 total; independent exit=0; restored=True sha256=545697acf8b4b648adfa837870277deb14dc802bdcaac838405d7df01a16c0e5
+ALL_KILLED_AND_RESTORED

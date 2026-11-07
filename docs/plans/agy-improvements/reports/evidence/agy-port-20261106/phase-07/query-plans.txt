@@ -1,0 +1,13 @@
+PLANS_BEGIN
+SQL: SELECT n.*, COALESCE(r.revision, 0) AS local_revision FROM notes n LEFT JOIN entity_local_revisions r ON r.entity_type = 'note' AND r.entity_id = n.id WHERE n.user_id = ? AND n.deleted_at IS NULL AND n.category = ? ORDER BY n.is_pinned DESC, n.sort_order ASC, n.updated_at DESC, n.id ASC LIMIT ?
+PLAN: SEARCH n USING INDEX idx_notes_user_sort (user_id=?) | SEARCH r USING INDEX sqlite_autoindex_entity_local_revisions_1 (entity_type=? AND entity_id=?) LEFT-JOIN | USE TEMP B-TREE FOR LAST 3 TERMS OF ORDER BY
+
+SQL: SELECT n.id, n.title, substr(n.body, 1, ?) AS body, COALESCE(r.revision, 0) AS revision FROM notes n LEFT JOIN entity_local_revisions r ON r.entity_type = 'note' AND r.entity_id = n.id LEFT JOIN notes_search_index s ON s.note_id = n.id AND s.user_id = n.user_id AND s.source_revision = COALESCE(r.revision, 0) WHERE n.user_id = ? AND n.deleted_at IS NULL AND s.note_id IS NULL ORDER BY n.id LIMIT ?
+PLAN: SEARCH n USING INDEX idx_notes_user_sort (user_id=?) | SEARCH r USING INDEX sqlite_autoindex_entity_local_revisions_1 (entity_type=? AND entity_id=?) LEFT-JOIN | SEARCH s USING INDEX idx_notes_search_owner (user_id=? AND note_id=?) LEFT-JOIN | USE TEMP B-TREE FOR ORDER BY
+
+SQL: SELECT n.*, COALESCE(r.revision, 0) AS local_revision FROM notes n LEFT JOIN entity_local_revisions r ON r.entity_type = 'note' AND r.entity_id = n.id JOIN notes_search_index s ON s.note_id = n.id AND s.user_id = n.user_id AND s.source_revision = COALESCE(r.revision, 0) WHERE n.user_id = ? AND n.deleted_at IS NULL AND s.normalized_text LIKE ? ESCAPE '\' ORDER BY n.is_pinned DESC, n.sort_order ASC, n.updated_at DESC, n.id ASC LIMIT ?
+PLAN: SEARCH s USING INDEX idx_notes_search_owner (user_id=?) | SEARCH n USING INDEX sqlite_autoindex_notes_1 (id=?) | SEARCH r USING INDEX sqlite_autoindex_entity_local_revisions_1 (entity_type=? AND entity_id=?) LEFT-JOIN | USE TEMP B-TREE FOR ORDER BY
+
+SQL: SELECT n.*, COALESCE(r.revision, 0) AS local_revision FROM notes n LEFT JOIN entity_local_revisions r ON r.entity_type = 'note' AND r.entity_id = n.id WHERE n.user_id = ? AND n.deleted_at IS NULL AND (n.is_pinned < ? OR (n.is_pinned = ? AND n.sort_order > ?) OR (n.is_pinned = ? AND n.sort_order = ? AND n.updated_at < ?) OR (n.is_pinned = ? AND n.sort_order = ? AND n.updated_at = ? AND n.id > ?)) ORDER BY n.is_pinned DESC, n.sort_order ASC, n.updated_at DESC, n.id ASC LIMIT ?
+PLAN: SEARCH n USING INDEX idx_notes_user_sort (user_id=?) | SEARCH r USING INDEX sqlite_autoindex_entity_local_revisions_1 (entity_type=? AND entity_id=?) LEFT-JOIN | USE TEMP B-TREE FOR LAST 3 TERMS OF ORDER BY
+PLANS_END

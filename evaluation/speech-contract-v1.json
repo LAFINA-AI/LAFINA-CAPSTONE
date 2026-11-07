@@ -1,0 +1,179 @@
+{
+  "version": 1,
+  "scope": "Synthetic host contract for offline voice eligibility (codex audit A1, AGY-PORT 10). No audio, no audibility, no device engine.",
+  "source": "src/ai/tts/ttsService.ts eligibleOfflineVoices, selectOfflineVoice",
+  "cases": [
+    {
+      "id": "us-preferred",
+      "voices": [
+        {
+          "id": "gb-hi",
+          "name": "gb-hi",
+          "language": "en-GB",
+          "notInstalled": false,
+          "networkConnectionRequired": false,
+          "quality": 500
+        },
+        {
+          "id": "us-lo",
+          "name": "us-lo",
+          "language": "en-US",
+          "notInstalled": false,
+          "networkConnectionRequired": false,
+          "quality": 300
+        }
+      ],
+      "eligible": [
+        "gb-hi",
+        "us-lo"
+      ],
+      "selected": "us-lo"
+    },
+    {
+      "id": "quality-within-us",
+      "voices": [
+        {
+          "id": "us-a",
+          "name": "us-a",
+          "language": "en-US",
+          "notInstalled": false,
+          "networkConnectionRequired": false,
+          "quality": 300
+        },
+        {
+          "id": "us-b",
+          "name": "us-b",
+          "language": "en-US",
+          "notInstalled": false,
+          "networkConnectionRequired": false,
+          "quality": 400
+        }
+      ],
+      "eligible": [
+        "us-a",
+        "us-b"
+      ],
+      "selected": "us-b"
+    },
+    {
+      "id": "network-required",
+      "voices": [
+        {
+          "id": "net",
+          "name": "net",
+          "language": "en-US",
+          "notInstalled": false,
+          "networkConnectionRequired": true,
+          "quality": 500
+        }
+      ],
+      "eligible": [],
+      "selected": null
+    },
+    {
+      "id": "not-installed",
+      "voices": [
+        {
+          "id": "missing",
+          "name": "missing",
+          "language": "en-US",
+          "notInstalled": true,
+          "networkConnectionRequired": false,
+          "quality": 500
+        }
+      ],
+      "eligible": [],
+      "selected": null
+    },
+    {
+      "id": "metadata-missing",
+      "voices": [
+        {
+          "id": "unknown",
+          "name": "unknown",
+          "language": "en-US",
+          "quality": 500
+        }
+      ],
+      "eligible": [],
+      "selected": null
+    },
+    {
+      "id": "non-english",
+      "voices": [
+        {
+          "id": "fil",
+          "name": "fil",
+          "language": "fil-PH",
+          "notInstalled": false,
+          "networkConnectionRequired": false,
+          "quality": 500
+        },
+        {
+          "id": "es",
+          "name": "es",
+          "language": "es-ES",
+          "notInstalled": false,
+          "networkConnectionRequired": false,
+          "quality": 500
+        }
+      ],
+      "eligible": [],
+      "selected": null
+    },
+    {
+      "id": "mixed",
+      "voices": [
+        {
+          "id": "fil",
+          "name": "fil",
+          "language": "fil-PH",
+          "notInstalled": false,
+          "networkConnectionRequired": false,
+          "quality": 500
+        },
+        {
+          "id": "net",
+          "name": "net",
+          "language": "en-US",
+          "notInstalled": false,
+          "networkConnectionRequired": true,
+          "quality": 500
+        },
+        {
+          "id": "au",
+          "name": "au",
+          "language": "en-AU",
+          "notInstalled": false,
+          "networkConnectionRequired": false,
+          "quality": 200
+        }
+      ],
+      "eligible": [
+        "au"
+      ],
+      "selected": "au"
+    },
+    {
+      "id": "empty-id",
+      "voices": [
+        {
+          "id": "",
+          "name": "unnamed",
+          "language": "en-US",
+          "notInstalled": false,
+          "networkConnectionRequired": false,
+          "quality": 500
+        }
+      ],
+      "eligible": [],
+      "selected": null
+    },
+    {
+      "id": "not-a-list",
+      "voices": null,
+      "eligible": [],
+      "selected": null
+    }
+  ]
+}

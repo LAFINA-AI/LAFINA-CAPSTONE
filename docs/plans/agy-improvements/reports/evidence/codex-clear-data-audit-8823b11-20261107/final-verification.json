@@ -1,0 +1,11 @@
+{
+  "arm64-v8a": {
+    "permission_lines": 16,
+    "matches_receipt": true
+  },
+  "x86_64": {
+    "permission_lines": 16,
+    "matches_receipt": true
+  },
+  "tracked_diff": ""
+}

@@ -1,0 +1,348 @@
+2026-11-07T03:19:18Z
+PASS __tests__/storage/schemaMigrations.test.ts (21.6 s)
+PASS __tests__/ui/clearDataAttachmentCleanup.test.tsx (7.02 s)
+FAIL __tests__/storage/attachmentCleanup.test.ts
+  ● Clear All Data attachment cleanup (C1) › keeps a failed removal saved, and a later Clear All Data removes it
+
+    expect(received).toEqual(expected) // deep equality
+
+    - Expected  - 0
+    + Received  + 1
+
+      Object {
+        "interrupted": false,
+        "pending": 1,
+        "removed": 0,
+    +   "unsaved": 0,
+      }
+
+    [0m [90m 168 |[39m     [36mconst[39m first [33m=[39m [36mawait[39m clearAll(a)[33m;[39m
+     [90m 169 |[39m     expect(first[33m.[39moutcome)[33m.[39mtoMatchObject({ chat[33m:[39m [32m'cleared'[39m[33m,[39m refusedAttachments[33m:[39m [35m0[39m })[33m;[39m
+    [31m[1m>[22m[39m[90m 170 |[39m     expect(first[33m.[39mcleanup)[33m.[39mtoEqual({ removed[33m:[39m [35m0[39m[33m,[39m pending[33m:[39m [35m1[39m[33m,[39m interrupted[33m:[39m [36mfalse[39m })[33m;[39m
+     [90m     |[39m                           [31m[1m^[22m[39m
+     [90m 171 |[39m     expect(fs[33m.[39mfiles[33m.[39mhas(path))[33m.[39mtoBe([36mtrue[39m)[33m;[39m
+     [90m 172 |[39m     expect(messageCount(a))[33m.[39mtoBe([35m0[39m)[33m;[39m
+     [90m 173 |[39m     expect(pendingAttachmentCleanup(a))[33m.[39mtoEqual([path])[33m;[39m[0m
+
+      at Object.toEqual (__tests__/storage/attachmentCleanup.test.ts:170:27)
+      at asyncGeneratorStep (node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+      at _next (node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
+
+  ● Clear All Data attachment cleanup (C1) › an already-missing file completes its cleanup without an unlink
+
+    expect(received).toEqual(expected) // deep equality
+
+    - Expected  - 0
+    + Received  + 1
+
+      Object {
+        "interrupted": false,
+        "pending": 0,
+        "removed": 1,
+    +   "unsaved": 0,
+      }
+
+    [0m [90m 187 |[39m     chatStore[33m.[39maddMessage(a[33m,[39m [32m'assistant'[39m[33m,[39m [32m'Synthetic document'[39m[33m,[39m doc([32m'file:///documents/chat_files/gone.pdf'[39m))[33m;[39m
+     [90m 188 |[39m     [36mconst[39m { cleanup } [33m=[39m [36mawait[39m clearAll(a)[33m;[39m
+    [31m[1m>[22m[39m[90m 189 |[39m     expect(cleanup)[33m.[39mtoEqual({ removed[33m:[39m [35m1[39m[33m,[39m pending[33m:[39m [35m0[39m[33m,[39m interrupted[33m:[39m [36mfalse[39m })[33m;[39m
+     [90m     |[39m                     [31m[1m^[22m[39m
+     [90m 190 |[39m     expect(unlink)[33m.[39mnot[33m.[39mtoHaveBeenCalled()[33m;[39m
+     [90m 191 |[39m   })[33m;[39m
+     [90m 192 |[39m[0m
+
+      at Object.toEqual (__tests__/storage/attachmentCleanup.test.ts:189:21)
+      at asyncGeneratorStep (node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+      at _next (node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
+
+  ● Clear All Data attachment cleanup (C1) › records duplicate references once, counts them once, and retries idempotently
+
+    expect(received).toEqual(expected) // deep equality
+
+    - Expected  - 0
+    + Received  + 1
+
+      Object {
+        "interrupted": false,
+        "pending": 0,
+        "removed": 1,
+    +   "unsaved": 0,
+      }
+
+    [0m [90m 210 |[39m     expect(pendingAttachmentCleanup(a))[33m.[39mtoEqual([path])[33m;[39m
+     [90m 211 |[39m     [36mconst[39m third [33m=[39m [36mawait[39m clearAll(a)[33m;[39m
+    [31m[1m>[22m[39m[90m 212 |[39m     expect(third[33m.[39mcleanup)[33m.[39mtoEqual({ removed[33m:[39m [35m1[39m[33m,[39m pending[33m:[39m [35m0[39m[33m,[39m interrupted[33m:[39m [36mfalse[39m })[33m;[39m
+     [90m     |[39m                           [31m[1m^[22m[39m
+     [90m 213 |[39m     expect(unlink)[33m.[39mtoHaveBeenCalledTimes([35m3[39m)[33m;[39m
+     [90m 214 |[39m     expect(fs[33m.[39mfiles[33m.[39mhas(path))[33m.[39mtoBe([36mfalse[39m)[33m;[39m
+     [90m 215 |[39m   })[33m;[39m[0m
+
+      at Object.toEqual (__tests__/storage/attachmentCleanup.test.ts:212:27)
+      at asyncGeneratorStep (node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+      at _next (node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
+
+  ● Clear All Data attachment cleanup (C1) › a failure to save the obligation keeps the chat messages and reports chat not cleared
+
+    expect(received).toEqual(expected) // deep equality
+
+    - Expected  - 0
+    + Received  + 1
+
+      Object {
+        "interrupted": false,
+        "pending": 0,
+        "removed": 0,
+    +   "unsaved": 0,
+      }
+
+    [0m [90m 230 |[39m     jest[33m.[39mspyOn(console[33m,[39m [32m'warn'[39m)[33m.[39mmockImplementation(() [33m=>[39m {})[33m;[39m
+     [90m 231 |[39m     expect(outcome)[33m.[39mtoMatchObject({ planner[33m:[39m [32m'cleared'[39m[33m,[39m chat[33m:[39m [32m'failed'[39m })[33m;[39m
+    [31m[1m>[22m[39m[90m 232 |[39m     expect(cleanup)[33m.[39mtoEqual({ removed[33m:[39m [35m0[39m[33m,[39m pending[33m:[39m [35m0[39m[33m,[39m interrupted[33m:[39m [36mfalse[39m })[33m;[39m
+     [90m     |[39m                     [31m[1m^[22m[39m
+     [90m 233 |[39m     [90m// The only reference to the file is still there, so nothing is lost.[39m
+     [90m 234 |[39m     expect(messageCount(a))[33m.[39mtoBe([35m1[39m)[33m;[39m
+     [90m 235 |[39m     expect(chatStore[33m.[39mgetAttachmentUris(a))[33m.[39mtoEqual([[32m`file://${path}`[39m])[33m;[39m[0m
+
+      at Object.toEqual (__tests__/storage/attachmentCleanup.test.ts:232:21)
+      at asyncGeneratorStep (node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+      at _next (node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
+
+  ● Clear All Data attachment cleanup (C1) › a failure to retire a completed obligation is not success, and the next pass finishes it
+
+    expect(received).toEqual(expected) // deep equality
+
+    - Expected  - 0
+    + Received  + 1
+
+      Object {
+        "interrupted": false,
+        "pending": 1,
+        "removed": 0,
+    +   "unsaved": 1,
+      }
+
+    [0m [90m 259 |[39m     jest[33m.[39mrestoreAllMocks()[33m;[39m
+     [90m 260 |[39m     jest[33m.[39mspyOn(console[33m,[39m [32m'warn'[39m)[33m.[39mmockImplementation(() [33m=>[39m {})[33m;[39m
+    [31m[1m>[22m[39m[90m 261 |[39m     expect(cleanup)[33m.[39mtoEqual({ removed[33m:[39m [35m0[39m[33m,[39m pending[33m:[39m [35m1[39m[33m,[39m interrupted[33m:[39m [36mfalse[39m })[33m;[39m
+     [90m     |[39m                     [31m[1m^[22m[39m
+     [90m 262 |[39m     expect(fs[33m.[39mfiles[33m.[39mhas(path))[33m.[39mtoBe([36mfalse[39m)[33m;[39m
+     [90m 263 |[39m
+     [90m 264 |[39m     [36mconst[39m next [33m=[39m [36mawait[39m clearAll(a)[33m;[39m[0m
+
+      at Object.toEqual (__tests__/storage/attachmentCleanup.test.ts:261:21)
+      at asyncGeneratorStep (node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+      at _next (node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
+
+  ● Clear All Data attachment cleanup (C1) › never touches another owner's obligations or files
+
+    expect(received).toEqual(expected) // deep equality
+
+    - Expected  - 0
+    + Received  + 1
+
+      Object {
+        "interrupted": false,
+        "pending": 0,
+        "removed": 1,
+    +   "unsaved": 0,
+      }
+
+    [0m [90m 284 |[39m     chatStore[33m.[39maddMessage(a[33m,[39m [32m'assistant'[39m[33m,[39m [32m'A document'[39m[33m,[39m doc([32m`file://${aPath}`[39m))[33m;[39m
+     [90m 285 |[39m     [36mconst[39m { cleanup } [33m=[39m [36mawait[39m clearAll(a)[33m;[39m
+    [31m[1m>[22m[39m[90m 286 |[39m     expect(cleanup)[33m.[39mtoEqual({ removed[33m:[39m [35m1[39m[33m,[39m pending[33m:[39m [35m0[39m[33m,[39m interrupted[33m:[39m [36mfalse[39m })[33m;[39m
+     [90m     |[39m                     [31m[1m^[22m[39m
+     [90m 287 |[39m     expect(unlink[33m.[39mmock[33m.[39mcalls)[33m.[39mtoEqual([[aPath]])[33m;[39m
+     [90m 288 |[39m     expect(pendingAttachmentCleanup(b))[33m.[39mtoEqual([bPath])[33m;[39m
+     [90m 289 |[39m     expect(fs[33m.[39mfiles[33m.[39mhas(bPath))[33m.[39mtoBe([36mtrue[39m)[33m;[39m[0m
+
+      at Object.toEqual (__tests__/storage/attachmentCleanup.test.ts:286:21)
+      at asyncGeneratorStep (node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+      at _next (node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
+
+  ● Clear All Data attachment cleanup (C1) › a saved row that fails the path rules (tampered or older) is never acted on
+
+    expect(received).toEqual(expected) // deep equality
+
+    - Expected  - 0
+    + Received  + 1
+
+      Object {
+        "interrupted": false,
+        "pending": 1,
+        "removed": 0,
+    +   "unsaved": 0,
+      }
+
+    [0m [90m 317 |[39m     ])[33m;[39m
+     [90m 318 |[39m     [36mconst[39m { cleanup } [33m=[39m [36mawait[39m clearAll(a)[33m;[39m
+    [31m[1m>[22m[39m[90m 319 |[39m     expect(cleanup)[33m.[39mtoEqual({ removed[33m:[39m [35m0[39m[33m,[39m pending[33m:[39m [35m1[39m[33m,[39m interrupted[33m:[39m [36mfalse[39m })[33m;[39m
+     [90m     |[39m                     [31m[1m^[22m[39m
+     [90m 320 |[39m     expect(unlink)[33m.[39mnot[33m.[39mtoHaveBeenCalled()[33m;[39m
+     [90m 321 |[39m     expect([33mRNFS[39m[33m.[39mexists)[33m.[39mnot[33m.[39mtoHaveBeenCalledWith(model)[33m;[39m
+     [90m 322 |[39m     expect(fs[33m.[39mfiles[33m.[39mhas(model))[33m.[39mtoBe([36mtrue[39m)[33m;[39m[0m
+
+      at Object.toEqual (__tests__/storage/attachmentCleanup.test.ts:319:21)
+      at asyncGeneratorStep (node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+      at _next (node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
+
+  ● Clear All Data attachment cleanup (C1) › a target that is a directory is never unlinked and stays saved
+
+    expect(received).toEqual(expected) // deep equality
+
+    - Expected  - 0
+    + Received  + 1
+
+      Object {
+        "interrupted": false,
+        "pending": 1,
+        "removed": 0,
+    +   "unsaved": 0,
+      }
+
+    [0m [90m 330 |[39m     db[33m.[39mtransactionSync(tx [33m=>[39m recordAttachmentCleanup(tx[33m,[39m a[33m,[39m [path]))[33m;[39m
+     [90m 331 |[39m     [36mconst[39m { cleanup } [33m=[39m [36mawait[39m clearAll(a)[33m;[39m
+    [31m[1m>[22m[39m[90m 332 |[39m     expect(cleanup)[33m.[39mtoEqual({ removed[33m:[39m [35m0[39m[33m,[39m pending[33m:[39m [35m1[39m[33m,[39m interrupted[33m:[39m [36mfalse[39m })[33m;[39m
+     [90m     |[39m                     [31m[1m^[22m[39m
+     [90m 333 |[39m     expect(unlink)[33m.[39mnot[33m.[39mtoHaveBeenCalled()[33m;[39m
+     [90m 334 |[39m     expect(fs[33m.[39mdirectories[33m.[39mhas(path))[33m.[39mtoBe([36mtrue[39m)[33m;[39m
+     [90m 335 |[39m   })[33m;[39m[0m
+
+      at Object.toEqual (__tests__/storage/attachmentCleanup.test.ts:332:21)
+      at asyncGeneratorStep (node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+      at _next (node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
+
+  ● Clear All Data attachment cleanup (C1) › stops when the sign-in changes mid-cleanup; the rest stays saved for that owner only
+
+    expect(received).toEqual(expected) // deep equality
+
+    - Expected  - 0
+    + Received  + 1
+
+      Object {
+        "interrupted": true,
+        "pending": 1,
+        "removed": 1,
+    +   "unsaved": 0,
+      }
+
+    [0m [90m 351 |[39m     [36mconst[39m { cleanup } [33m=[39m [36mawait[39m clearAll(a)[33m;[39m
+     [90m 352 |[39m     fs[33m.[39monUnlink[33m.[39mlength [33m=[39m [35m0[39m[33m;[39m
+    [31m[1m>[22m[39m[90m 353 |[39m     expect(cleanup)[33m.[39mtoEqual({ removed[33m:[39m [35m1[39m[33m,[39m pending[33m:[39m [35m1[39m[33m,[39m interrupted[33m:[39m [36mtrue[39m })[33m;[39m
+     [90m     |[39m                     [31m[1m^[22m[39m
+     [90m 354 |[39m     expect(fs[33m.[39mfiles[33m.[39mhas(second))[33m.[39mtoBe([36mtrue[39m)[33m;[39m
+     [90m 355 |[39m     expect(pendingAttachmentCleanup(a))[33m.[39mtoEqual([second])[33m;[39m
+     [90m 356 |[39m     expect(pendingAttachmentCleanup(b))[33m.[39mtoEqual([])[33m;[39m[0m
+
+      at Object.toEqual (__tests__/storage/attachmentCleanup.test.ts:353:21)
+      at asyncGeneratorStep (node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+      at _next (node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
+
+  ● Clear All Data attachment cleanup (C1) › removes at most MAX_CLEANUP_PER_RUN files per Clear All Data and counts the rest
+
+    expect(received).toEqual(expected) // deep equality
+
+    - Expected  - 0
+    + Received  + 1
+
+      Object {
+        "interrupted": false,
+        "pending": 2,
+        "removed": 50,
+    +   "unsaved": 0,
+      }
+
+    [0m [90m 368 |[39m     db[33m.[39mtransactionSync(tx [33m=>[39m recordAttachmentCleanup(tx[33m,[39m a[33m,[39m paths))[33m;[39m
+     [90m 369 |[39m     [36mconst[39m first [33m=[39m [36mawait[39m clearAll(a)[33m;[39m
+    [31m[1m>[22m[39m[90m 370 |[39m     expect(first[33m.[39mcleanup)[33m.[39mtoEqual({ removed[33m:[39m [33mMAX_CLEANUP_PER_RUN[39m[33m,[39m pending[33m:[39m [35m2[39m[33m,[39m interrupted[33m:[39m [36mfalse[39m })[33m;[39m
+     [90m     |[39m                           [31m[1m^[22m[39m
+     [90m 371 |[39m     [36mconst[39m second [33m=[39m [36mawait[39m clearAll(a)[33m;[39m
+     [90m 372 |[39m     expect(second[33m.[39mcleanup)[33m.[39mtoEqual({ removed[33m:[39m [35m2[39m[33m,[39m pending[33m:[39m [35m0[39m[33m,[39m interrupted[33m:[39m [36mfalse[39m })[33m;[39m
+     [90m 373 |[39m   })[33m;[39m[0m
+
+      at Object.toEqual (__tests__/storage/attachmentCleanup.test.ts:370:27)
+      at asyncGeneratorStep (node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+      at _next (node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
+
+  ● Clear All Data attachment cleanup (C1) › guest linking moves the guest's saved cleanup to the account
+
+    expect(received).toEqual(expected) // deep equality
+
+    - Expected  - 0
+    + Received  + 1
+
+      Object {
+        "interrupted": false,
+        "pending": 0,
+        "removed": 1,
+    +   "unsaved": 0,
+      }
+
+    [0m [90m 385 |[39m     expect(pendingAttachmentCleanup(cloud))[33m.[39mtoEqual([path])[33m;[39m
+     [90m 386 |[39m     [36mconst[39m { cleanup } [33m=[39m [36mawait[39m clearAll(cloud)[33m;[39m
+    [31m[1m>[22m[39m[90m 387 |[39m     expect(cleanup)[33m.[39mtoEqual({ removed[33m:[39m [35m1[39m[33m,[39m pending[33m:[39m [35m0[39m[33m,[39m interrupted[33m:[39m [36mfalse[39m })[33m;[39m
+     [90m     |[39m                     [31m[1m^[22m[39m
+     [90m 388 |[39m     expect(fs[33m.[39mfiles[33m.[39mhas(path))[33m.[39mtoBe([36mfalse[39m)[33m;[39m
+     [90m 389 |[39m   })[33m;[39m
+     [90m 390 |[39m })[33m;[39m[0m
+
+      at Object.toEqual (__tests__/storage/attachmentCleanup.test.ts:387:21)
+      at asyncGeneratorStep (node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+      at _next (node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
+
+  ● saved cleanup survives a restart (real SQLite file, fresh modules) › a crash after the commit but before any unlink: the next launch removes the file
+
+    expect(received).toEqual(expected) // deep equality
+
+    - Expected  - 0
+    + Received  + 1
+
+      Object {
+        "interrupted": false,
+        "pending": 0,
+        "removed": 1,
+    +   "unsaved": 0,
+      }
+
+    [0m [90m 438 |[39m     [36mconst[39m authority [33m=[39m run2[33m.[39mreset[33m.[39mauthorizeDataReset(a)[33m;[39m
+     [90m 439 |[39m     expect(run2[33m.[39mreset[33m.[39mresetPersonalData(authority))[33m.[39mtoMatchObject({ admitted[33m:[39m [36mtrue[39m[33m,[39m chat[33m:[39m [32m'cleared'[39m })[33m;[39m
+    [31m[1m>[22m[39m[90m 440 |[39m     expect([36mawait[39m run2[33m.[39mreset[33m.[39mfinishAttachmentCleanup(authority[33m![39m))[33m.[39mtoEqual({
+     [90m     |[39m                                                                  [31m[1m^[22m[39m
+     [90m 441 |[39m       removed[33m:[39m [35m1[39m[33m,[39m
+     [90m 442 |[39m       pending[33m:[39m [35m0[39m[33m,[39m
+     [90m 443 |[39m       interrupted[33m:[39m [36mfalse[39m[33m,[39m[0m
+
+      at Object.toEqual (__tests__/storage/attachmentCleanup.test.ts:440:66)
+      at asyncGeneratorStep (node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+      at _next (node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
+
+  ● saved cleanup survives a restart (real SQLite file, fresh modules) › a crash after the unlink but before retiring: the next launch finds the file gone and retires it
+
+    expect(received).toEqual(expected) // deep equality
+
+    - Expected  - 0
+    + Received  + 1
+
+      Object {
+        "interrupted": false,
+        "pending": 0,
+        "removed": 1,
+    +   "unsaved": 0,
+      }
+
+    [0m [90m 472 |[39m     [36mconst[39m authority2 [33m=[39m run2[33m.[39mreset[33m.[39mauthorizeDataReset(a)[33m;[39m
+     [90m 473 |[39m     run2[33m.[39mreset[33m.[39mresetPersonalData(authority2)[33m;[39m
+    [31m[1m>[22m[39m[90m 474 |[39m     expect([36mawait[39m run2[33m.[39mreset[33m.[39mfinishAttachmentCleanup(authority2[33m![39m))[33m.[39mtoEqual({
+     [90m     |[39m                                                                   [31m[1m^[22m[39m
+     [90m 475 |[39m       removed[33m:[39m [35m1[39m[33m,[39m
+     [90m 476 |[39m       pending[33m:[39m [35m0[39m[33m,[39m
+     [90m 477 |[39m       interrupted[33m:[39m [36mfalse[39m[33m,[39m[0m
+
+      at Object.toEqual (__tests__/storage/attachmentCleanup.test.ts:474:67)
+      at asyncGeneratorStep (node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+      at _next (node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
+
+Test Suites: 1 failed, 2 passed, 3 total
+Tests:       13 failed, 51 passed, 64 total
+Snapshots:   0 total
+Time:        30.004 s
+Ran all test suites matching /__tests__\\storage\\attachmentCleanup.test.ts|__tests__\\ui\\clearDataAttachmentCleanup.test.tsx|__tests__\\storage\\schemaMigrations.test.ts/i.
+exit=1

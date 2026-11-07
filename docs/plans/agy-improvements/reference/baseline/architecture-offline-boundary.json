@@ -1,0 +1,8 @@
+{
+  "files": 179,
+  "violations": [
+    "src/ai/chatOrchestrator.ts -> src/skills/documentSkill.ts -> network/cloud import ../cloud",
+    "src/ai/index.ts -> src/ai/chatOrchestrator.ts -> src/skills/documentSkill.ts -> network/cloud import ../cloud"
+  ],
+  "cycles": []
+}

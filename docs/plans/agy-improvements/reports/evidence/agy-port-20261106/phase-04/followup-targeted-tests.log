@@ -1,0 +1,302 @@
+PASS __tests__/scheduler/agyPort03Delivery.test.ts
+PASS __tests__/ai/phase07NluAndActionExecution.test.ts
+  ● Console
+
+    console.warn
+      Failed to schedule native alarm for task reminder: Error: Reminder trigger must be a valid future time.
+          at C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\src\scheduler\reminderAlarm.ts:111:11
+          at Generator.next (<anonymous>)
+          at asyncGeneratorStep (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\@babel\runtime\helpers\asyncToGenerator.js:3:17)
+          at _next (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\@babel\runtime\helpers\asyncToGenerator.js:17:9)
+          at C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\@babel\runtime\helpers\asyncToGenerator.js:22:7
+          at new Promise (<anonymous>)
+          at C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\@babel\runtime\helpers\asyncToGenerator.js:14:12
+          at apply (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\src\scheduler\reminderAlarm.ts:99:35)
+          at C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\src\ai\nlu\actionExecutor.ts:425:38
+          at Generator.next (<anonymous>)
+          at asyncGeneratorStep (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\@babel\runtime\helpers\asyncToGenerator.js:3:17)
+          at _next (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\@babel\runtime\helpers\asyncToGenerator.js:17:9)
+          at C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\@babel\runtime\helpers\asyncToGenerator.js:22:7
+          at new Promise (<anonymous>)
+          at C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\@babel\runtime\helpers\asyncToGenerator.js:14:12
+          at apply (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\src\ai\nlu\actionExecutor.ts:1387:2)
+          at apply (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\src\ai\nlu\actionExecutor.ts:369:39)
+          at Object.<anonymous> (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\__tests__\ai\phase07NluAndActionExecution.test.ts:510:44)
+          at Generator.next (<anonymous>)
+          at asyncGeneratorStep (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\@babel\runtime\helpers\asyncToGenerator.js:3:17)
+          at _next (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\@babel\runtime\helpers\asyncToGenerator.js:17:9)
+          at C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\@babel\runtime\helpers\asyncToGenerator.js:22:7
+          at new Promise (<anonymous>)
+          at Object.<anonymous> (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\@babel\runtime\helpers\asyncToGenerator.js:14:12)
+          at Promise.then.completed (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-circus\build\utils.js:298:28)
+          at new Promise (<anonymous>)
+          at callAsyncCircusFn (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-circus\build\utils.js:231:10)
+          at _callCircusTest (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-circus\build\run.js:316:40)
+          at processTicksAndRejections (node:internal/process/task_queues:104:5)
+          at _runTest (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-circus\build\run.js:252:3)
+          at _runTestsForDescribeBlock (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-circus\build\run.js:126:9)
+          at _runTestsForDescribeBlock (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-circus\build\run.js:121:9)
+          at _runTestsForDescribeBlock (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-circus\build\run.js:121:9)
+          at run (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-circus\build\run.js:71:3)
+          at runAndTransformResultsToJestFormat (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-circus\build\legacy-code-todo-rewrite\jestAdapterInit.js:122:21)
+          at jestAdapter (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-circus\build\legacy-code-todo-rewrite\jestAdapter.js:79:19)
+          at runTestInternal (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-runner\build\runTest.js:367:16)
+          at runTest (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-runner\build\runTest.js:444:34)
+          at Object.worker (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-runner\build\testWorker.js:106:12)
+
+    [0m [90m 425 |[39m           [36mawait[39m scheduleReminderAlarm(reminderId[33m,[39m taskTitle[33m,[39m triggerAt)[33m;[39m
+     [90m 426 |[39m         } [36mcatch[39m (e) {
+    [31m[1m>[22m[39m[90m 427 |[39m           console[33m.[39mwarn([32m'Failed to schedule native alarm for task reminder:'[39m[33m,[39m e)[33m;[39m
+     [90m     |[39m                   [31m[1m^[22m[39m
+     [90m 428 |[39m         }
+     [90m 429 |[39m         reminderMsg [33m=[39m [32m` with a reminder at ${format12HourTime(dueTime)}`[39m[33m;[39m
+     [90m 430 |[39m       }[0m
+
+      at warn (src/ai/nlu/actionExecutor.ts:427:19)
+          at Generator.throw (<anonymous>)
+      at asyncGeneratorStep (node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+      at _throw (node_modules/@babel/runtime/helpers/asyncToGenerator.js:20:9)
+
+    console.warn
+      Failed to schedule exact native alarm: Error: Reminder trigger must be a valid future time.
+          at C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\src\scheduler\reminderAlarm.ts:111:11
+          at Generator.next (<anonymous>)
+          at asyncGeneratorStep (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\@babel\runtime\helpers\asyncToGenerator.js:3:17)
+          at _next (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\@babel\runtime\helpers\asyncToGenerator.js:17:9)
+          at C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\@babel\runtime\helpers\asyncToGenerator.js:22:7
+          at new Promise (<anonymous>)
+          at C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\@babel\runtime\helpers\asyncToGenerator.js:14:12
+          at apply (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\src\scheduler\reminderAlarm.ts:99:35)
+          at C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\src\ai\nlu\actionExecutor.ts:514:36
+          at Generator.next (<anonymous>)
+          at asyncGeneratorStep (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\@babel\runtime\helpers\asyncToGenerator.js:3:17)
+          at _next (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\@babel\runtime\helpers\asyncToGenerator.js:17:9)
+          at C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\@babel\runtime\helpers\asyncToGenerator.js:22:7
+          at new Promise (<anonymous>)
+          at C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\@babel\runtime\helpers\asyncToGenerator.js:14:12
+          at apply (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\src\ai\nlu\actionExecutor.ts:369:39)
+          at Object.<anonymous> (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\__tests__\ai\phase07NluAndActionExecution.test.ts:538:44)
+          at Generator.next (<anonymous>)
+          at asyncGeneratorStep (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\@babel\runtime\helpers\asyncToGenerator.js:3:17)
+          at _next (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\@babel\runtime\helpers\asyncToGenerator.js:17:9)
+          at C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\@babel\runtime\helpers\asyncToGenerator.js:22:7
+          at new Promise (<anonymous>)
+          at Object.<anonymous> (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\@babel\runtime\helpers\asyncToGenerator.js:14:12)
+          at Promise.then.completed (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-circus\build\utils.js:298:28)
+          at new Promise (<anonymous>)
+          at callAsyncCircusFn (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-circus\build\utils.js:231:10)
+          at _callCircusTest (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-circus\build\run.js:316:40)
+          at processTicksAndRejections (node:internal/process/task_queues:104:5)
+          at _runTest (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-circus\build\run.js:252:3)
+          at _runTestsForDescribeBlock (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-circus\build\run.js:126:9)
+          at _runTestsForDescribeBlock (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-circus\build\run.js:121:9)
+          at _runTestsForDescribeBlock (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-circus\build\run.js:121:9)
+          at run (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-circus\build\run.js:71:3)
+          at runAndTransformResultsToJestFormat (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-circus\build\legacy-code-todo-rewrite\jestAdapterInit.js:122:21)
+          at jestAdapter (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-circus\build\legacy-code-todo-rewrite\jestAdapter.js:79:19)
+          at runTestInternal (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-runner\build\runTest.js:367:16)
+          at runTest (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-runner\build\runTest.js:444:34)
+          at Object.worker (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-runner\build\testWorker.js:106:12)
+
+    [0m [90m 514 |[39m         [36mawait[39m scheduleReminderAlarm(reminderId[33m,[39m reminderTitle[33m,[39m triggerAt)[33m;[39m
+     [90m 515 |[39m       } [36mcatch[39m (e) {
+    [31m[1m>[22m[39m[90m 516 |[39m         console[33m.[39mwarn([32m'Failed to schedule exact native alarm:'[39m[33m,[39m e)[33m;[39m
+     [90m     |[39m                 [31m[1m^[22m[39m
+     [90m 517 |[39m       }
+     [90m 518 |[39m
+     [90m 519 |[39m       [36mreturn[39m {[0m
+
+      at warn (src/ai/nlu/actionExecutor.ts:516:17)
+          at Generator.throw (<anonymous>)
+      at asyncGeneratorStep (node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+      at _throw (node_modules/@babel/runtime/helpers/asyncToGenerator.js:20:9)
+
+    console.warn
+      Failed to schedule native alarm for task reminder: Error: Reminder trigger must be a valid future time.
+          at C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\src\scheduler\reminderAlarm.ts:111:11
+          at Generator.next (<anonymous>)
+          at asyncGeneratorStep (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\@babel\runtime\helpers\asyncToGenerator.js:3:17)
+          at _next (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\@babel\runtime\helpers\asyncToGenerator.js:17:9)
+          at C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\@babel\runtime\helpers\asyncToGenerator.js:22:7
+          at new Promise (<anonymous>)
+          at C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\@babel\runtime\helpers\asyncToGenerator.js:14:12
+          at apply (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\src\scheduler\reminderAlarm.ts:99:35)
+          at C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\src\ai\nlu\actionExecutor.ts:425:38
+          at Generator.next (<anonymous>)
+          at asyncGeneratorStep (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\@babel\runtime\helpers\asyncToGenerator.js:3:17)
+          at _next (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\@babel\runtime\helpers\asyncToGenerator.js:17:9)
+          at C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\@babel\runtime\helpers\asyncToGenerator.js:22:7
+          at new Promise (<anonymous>)
+          at C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\@babel\runtime\helpers\asyncToGenerator.js:14:12
+          at apply (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\src\ai\nlu\actionExecutor.ts:369:39)
+          at IntentService.<anonymous> (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\src\ai\nlu\intentService.ts:188:28)
+          at Generator.next (<anonymous>)
+          at asyncGeneratorStep (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\@babel\runtime\helpers\asyncToGenerator.js:3:17)
+          at _next (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\@babel\runtime\helpers\asyncToGenerator.js:17:9)
+
+    [0m [90m 425 |[39m           [36mawait[39m scheduleReminderAlarm(reminderId[33m,[39m taskTitle[33m,[39m triggerAt)[33m;[39m
+     [90m 426 |[39m         } [36mcatch[39m (e) {
+    [31m[1m>[22m[39m[90m 427 |[39m           console[33m.[39mwarn([32m'Failed to schedule native alarm for task reminder:'[39m[33m,[39m e)[33m;[39m
+     [90m     |[39m                   [31m[1m^[22m[39m
+     [90m 428 |[39m         }
+     [90m 429 |[39m         reminderMsg [33m=[39m [32m` with a reminder at ${format12HourTime(dueTime)}`[39m[33m;[39m
+     [90m 430 |[39m       }[0m
+
+      at warn (src/ai/nlu/actionExecutor.ts:427:19)
+          at Generator.throw (<anonymous>)
+      at asyncGeneratorStep (node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+      at _throw (node_modules/@babel/runtime/helpers/asyncToGenerator.js:20:9)
+
+    console.warn
+      Failed to schedule native alarm for task reminder: Error: Reminder trigger must be a valid future time.
+          at C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\src\scheduler\reminderAlarm.ts:111:11
+          at Generator.next (<anonymous>)
+          at asyncGeneratorStep (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\@babel\runtime\helpers\asyncToGenerator.js:3:17)
+          at _next (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\@babel\runtime\helpers\asyncToGenerator.js:17:9)
+          at C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\@babel\runtime\helpers\asyncToGenerator.js:22:7
+          at new Promise (<anonymous>)
+          at C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\@babel\runtime\helpers\asyncToGenerator.js:14:12
+          at apply (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\src\scheduler\reminderAlarm.ts:99:35)
+          at C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\src\ai\nlu\actionExecutor.ts:425:38
+          at Generator.next (<anonymous>)
+          at asyncGeneratorStep (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\@babel\runtime\helpers\asyncToGenerator.js:3:17)
+          at _next (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\@babel\runtime\helpers\asyncToGenerator.js:17:9)
+          at C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\@babel\runtime\helpers\asyncToGenerator.js:22:7
+          at new Promise (<anonymous>)
+          at C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\@babel\runtime\helpers\asyncToGenerator.js:14:12
+          at apply (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\src\ai\nlu\actionExecutor.ts:369:39)
+          at IntentService.<anonymous> (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\src\ai\nlu\intentService.ts:188:28)
+          at Generator.next (<anonymous>)
+          at asyncGeneratorStep (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\@babel\runtime\helpers\asyncToGenerator.js:3:17)
+          at _next (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\@babel\runtime\helpers\asyncToGenerator.js:17:9)
+
+    [0m [90m 425 |[39m           [36mawait[39m scheduleReminderAlarm(reminderId[33m,[39m taskTitle[33m,[39m triggerAt)[33m;[39m
+     [90m 426 |[39m         } [36mcatch[39m (e) {
+    [31m[1m>[22m[39m[90m 427 |[39m           console[33m.[39mwarn([32m'Failed to schedule native alarm for task reminder:'[39m[33m,[39m e)[33m;[39m
+     [90m     |[39m                   [31m[1m^[22m[39m
+     [90m 428 |[39m         }
+     [90m 429 |[39m         reminderMsg [33m=[39m [32m` with a reminder at ${format12HourTime(dueTime)}`[39m[33m;[39m
+     [90m 430 |[39m       }[0m
+
+      at warn (src/ai/nlu/actionExecutor.ts:427:19)
+          at Generator.throw (<anonymous>)
+      at asyncGeneratorStep (node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+      at _throw (node_modules/@babel/runtime/helpers/asyncToGenerator.js:20:9)
+
+    console.warn
+      Failed to schedule native alarm for task reminder: Error: Reminder trigger must be a valid future time.
+          at C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\src\scheduler\reminderAlarm.ts:111:11
+          at Generator.next (<anonymous>)
+          at asyncGeneratorStep (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\@babel\runtime\helpers\asyncToGenerator.js:3:17)
+          at _next (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\@babel\runtime\helpers\asyncToGenerator.js:17:9)
+          at C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\@babel\runtime\helpers\asyncToGenerator.js:22:7
+          at new Promise (<anonymous>)
+          at C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\@babel\runtime\helpers\asyncToGenerator.js:14:12
+          at apply (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\src\scheduler\reminderAlarm.ts:99:35)
+          at C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\src\ai\nlu\actionExecutor.ts:425:38
+          at Generator.next (<anonymous>)
+          at asyncGeneratorStep (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\@babel\runtime\helpers\asyncToGenerator.js:3:17)
+          at _next (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\@babel\runtime\helpers\asyncToGenerator.js:17:9)
+          at C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\@babel\runtime\helpers\asyncToGenerator.js:22:7
+          at new Promise (<anonymous>)
+          at C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\@babel\runtime\helpers\asyncToGenerator.js:14:12
+          at apply (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\src\ai\nlu\actionExecutor.ts:369:39)
+          at IntentService.<anonymous> (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\src\ai\nlu\intentService.ts:188:28)
+          at Generator.next (<anonymous>)
+          at asyncGeneratorStep (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\@babel\runtime\helpers\asyncToGenerator.js:3:17)
+          at _next (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\@babel\runtime\helpers\asyncToGenerator.js:17:9)
+
+    [0m [90m 425 |[39m           [36mawait[39m scheduleReminderAlarm(reminderId[33m,[39m taskTitle[33m,[39m triggerAt)[33m;[39m
+     [90m 426 |[39m         } [36mcatch[39m (e) {
+    [31m[1m>[22m[39m[90m 427 |[39m           console[33m.[39mwarn([32m'Failed to schedule native alarm for task reminder:'[39m[33m,[39m e)[33m;[39m
+     [90m     |[39m                   [31m[1m^[22m[39m
+     [90m 428 |[39m         }
+     [90m 429 |[39m         reminderMsg [33m=[39m [32m` with a reminder at ${format12HourTime(dueTime)}`[39m[33m;[39m
+     [90m 430 |[39m       }[0m
+
+      at warn (src/ai/nlu/actionExecutor.ts:427:19)
+          at Generator.throw (<anonymous>)
+      at asyncGeneratorStep (node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+      at _throw (node_modules/@babel/runtime/helpers/asyncToGenerator.js:20:9)
+
+PASS __tests__/preservation/agyPreservedContracts.test.ts
+  ● Console
+
+    console.error
+      [Database] SQL Error executing query: UPDATE notes SET user_id = ? WHERE user_id = ? Error: synthetic failure
+          at run (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\__mocks__\opSqliteMock.js:51:28)
+          at Object.executeOn [as executeSync] (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\__mocks__\opSqliteMock.js:81:42)
+          at DatabaseService.executeSync (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\src\storage\database.ts:145:36)
+          at Object.executeSync (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\src\storage\database.ts:202:21)
+          at executeSync (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\src\storage\guestMigration.ts:58:10)
+          at DatabaseService.fn [as transactionSync] (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\src\storage\database.ts:214:16)
+          at Object.transactionSync (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\src\storage\guestMigration.ts:43:8)
+          at Generator.next (<anonymous>)
+          at asyncGeneratorStep (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\@babel\runtime\helpers\asyncToGenerator.js:3:17)
+          at _next (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\@babel\runtime\helpers\asyncToGenerator.js:17:9)
+          at C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\@babel\runtime\helpers\asyncToGenerator.js:22:7
+          at new Promise (<anonymous>)
+          at Object.<anonymous> (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\@babel\runtime\helpers\asyncToGenerator.js:14:12)
+          at Object.apply [as linkGuestToCloudAccount] (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\src\storage\guestMigration.ts:42:26)
+          at Object.linkGuestToCloudAccount (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\__tests__\preservation\agyPreservedContracts.test.ts:217:26)
+          at Generator.next (<anonymous>)
+          at asyncGeneratorStep (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\@babel\runtime\helpers\asyncToGenerator.js:3:17)
+          at _next (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\@babel\runtime\helpers\asyncToGenerator.js:17:9)
+          at C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\@babel\runtime\helpers\asyncToGenerator.js:22:7
+          at new Promise (<anonymous>)
+          at Object.<anonymous> (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\@babel\runtime\helpers\asyncToGenerator.js:14:12)
+          at Promise.then.completed (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-circus\build\utils.js:298:28)
+          at new Promise (<anonymous>)
+          at callAsyncCircusFn (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-circus\build\utils.js:231:10)
+          at _callCircusTest (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-circus\build\run.js:316:40)
+          at processTicksAndRejections (node:internal/process/task_queues:104:5)
+          at _runTest (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-circus\build\run.js:252:3)
+          at _runTestsForDescribeBlock (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-circus\build\run.js:126:9)
+          at _runTestsForDescribeBlock (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-circus\build\run.js:121:9)
+          at _runTestsForDescribeBlock (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-circus\build\run.js:121:9)
+          at run (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-circus\build\run.js:71:3)
+          at runAndTransformResultsToJestFormat (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-circus\build\legacy-code-todo-rewrite\jestAdapterInit.js:122:21)
+          at jestAdapter (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-circus\build\legacy-code-todo-rewrite\jestAdapter.js:79:19)
+          at runTestInternal (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-runner\build\runTest.js:367:16)
+          at runTest (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-runner\build\runTest.js:444:34)
+          at Object.worker (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-runner\build\testWorker.js:106:12) {
+        code: 'ERR_SQLITE_ERROR',
+        errcode: 1811,
+        errstr: 'constraint failed'
+      }
+
+    [0m [90m 151 |[39m     } [36mcatch[39m (error) {
+     [90m 152 |[39m       [90m// Bound values can hold note text or credentials, so they are never logged.[39m
+    [31m[1m>[22m[39m[90m 153 |[39m       console[33m.[39merror(
+     [90m     |[39m               [31m[1m^[22m[39m
+     [90m 154 |[39m         [32m`[Database] SQL Error executing query: ${describeQuery(query)}`[39m[33m,[39m
+     [90m 155 |[39m         error[33m,[39m
+     [90m 156 |[39m       )[33m;[39m[0m
+
+      at DatabaseService.error [as executeSync] (src/storage/database.ts:153:15)
+      at Object.executeSync (src/storage/database.ts:202:21)
+      at executeSync (src/storage/guestMigration.ts:58:10)
+      at DatabaseService.fn [as transactionSync] (src/storage/database.ts:214:16)
+      at Object.transactionSync (src/storage/guestMigration.ts:43:8)
+      at asyncGeneratorStep (node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+      at _next (node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
+      at node_modules/@babel/runtime/helpers/asyncToGenerator.js:22:7
+      at Object.<anonymous> (node_modules/@babel/runtime/helpers/asyncToGenerator.js:14:12)
+      at Object.apply [as linkGuestToCloudAccount] (src/storage/guestMigration.ts:42:26)
+      at Object.linkGuestToCloudAccount (__tests__/preservation/agyPreservedContracts.test.ts:217:26)
+      at asyncGeneratorStep (node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+      at _next (node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
+      at node_modules/@babel/runtime/helpers/asyncToGenerator.js:22:7
+      at Object.<anonymous> (node_modules/@babel/runtime/helpers/asyncToGenerator.js:14:12)
+
+PASS __tests__/ai/agyPort04ReviewedCommands.test.ts
+PASS __tests__/ai/phase08ChatAndOrchestrator.test.tsx
+PASS __tests__/ai/phase06SttAndVoiceModal.test.tsx (5.098 s)
+PASS __tests__/ui/agyPort04ReviewUi.test.tsx (6.078 s)
+PASS __tests__/storage/schemaMigrations.test.ts (15.238 s)
+
+Test Suites: 8 passed, 8 total
+Tests:       206 passed, 206 total
+Snapshots:   0 total
+Time:        16.13 s
+Ran all test suites matching /__tests__\\ai\\agyPort04ReviewedCommands.test.ts|__tests__\\ui\\agyPort04ReviewUi.test.tsx|__tests__\\ai\\phase06SttAndVoiceModal.test.tsx|__tests__\\ai\\phase07NluAndActionExecution.test.ts|__tests__\\ai\\phase08ChatAndOrchestrator.test.tsx|__tests__\\storage\\schemaMigrations.test.ts|__tests__\\scheduler\\agyPort03Delivery.test.ts|__tests__\\preservation\\agyPreservedContracts.test.ts/i.

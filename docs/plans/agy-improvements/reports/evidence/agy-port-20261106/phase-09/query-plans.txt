@@ -1,0 +1,21 @@
+node v24.19.0, sqlite 3.53.3
+
+## health aggregate (reminderHealthStore.read)
+  SEARCH j USING INDEX idx_delivery_jobs_source (user_id=?)
+  CORRELATED SCALAR SUBQUERY 1
+  SEARCH e USING INDEX idx_delivery_events_reminder (reminder_id=?)
+
+## health recent events (bounded table, 500 rows max)
+  SCAN reminder_delivery_events
+
+## statistics: completed tasks
+  SEARCH tasks USING INDEX idx_tasks_user_due (user_id=? AND is_completed=?)
+
+## statistics: notes
+  SEARCH notes USING INDEX idx_notes_user_sort (user_id=?)
+
+## statistics: reminder outcomes
+  SEARCH reminders USING INDEX idx_reminders_user_trigger (user_id=?)
+
+## event defaults (personalMemoryStore.read)
+  SEARCH local_settings USING INDEX sqlite_autoindex_local_settings_1 (user_id=? AND key=?)

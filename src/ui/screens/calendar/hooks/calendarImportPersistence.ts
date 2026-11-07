@@ -60,7 +60,7 @@ export const persistImportedCalendarItems = (
         location: item.location || null,
         linkedCalendarBlock: null,
         recurrenceRule: item.recurrenceRule || null,
-      }, tx);
+      }, tx, { startFold: item.startFold, endFold: item.endFold });
       eventIds.push(id);
     });
 

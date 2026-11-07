@@ -1,0 +1,11 @@
+Donor: C:/L3mxr/Github Repositories/LAFINA/LAFINA at 0d4bbe39e106c29fb90792cf5d2f916b5c0d6480 (read with git show only; nothing copied verbatim)
+blob                                      lines path -> use
+4154a50f531dab646593cbbf0d96971f58ad1aeb  39 docs/decisions/ADR-001-ustp-durable-delivery.md -> concepts: trigger-maintained jobs, full URI identities, tags, 15-min grace, legacy cleanup; NOT adopted: native SQLite in a :reminders process
+131be4a61d62bc4695215c13ef971e1cee445223  72 src/storage/deliverySchema.ts -> trigger approach adapted (different columns/bump rules: no bump on pending->triggered or task text; no outbox)
+d54396ffee4470b1fd899dcbcb75fa048fc02dce  56 src/storage/deliveryStore.ts -> get/linkSource ideas; identity key format re-designed (no occurrence key, generation 0 legacy)
+9612156249ef712115eb1649962f72f867e4d1d3  16 android/app/src/main/java/com/lafina/LafinaDeliveryIdentity.kt -> URI identity idea; encoding re-specified (unreserved A-Za-z0-9-._, "~" empty), package remapped com.lafina -> com.lafina.capstone
+ed3264e71d8014f54bb9dd604fff4e2f7b6ac8be 203 android/app/src/main/java/com/lafina/LafinaDeliveryStore.kt -> hash recorded, body not read: its native-SQLite design is not adopted (ADR-017)
+9099656e98d6cea771a6ad2691ea95771d43a10f 207 android/app/src/main/java/com/lafina/LafinaDeliveryRuntime.kt -> hash recorded, body not read (coordinator design not adopted)
+6ec8379f8cd16066fc7565810ea0c4c7833568aa  68 android/app/src/main/java/com/lafina/LafinaDeliveryProvider.kt -> hash recorded, body not read (no provider added)
+b6d7cc1630ecf92c9ac0ee933f022d8f9337a155  48 __tests__/scheduler/deliveryActionFences.test.ts -> scenarios adapted (stale generation, failed registration keeps snooze, repeat ACK, owner)
+e231c5d081baf16d8bcc1795ce300c09f4c0b9fc  70 src/storage/linkedReminders.ts -> listed only; exact-source linkage left to AGY-PORT 04

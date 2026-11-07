@@ -1,0 +1,5 @@
+# Guard probe: a temporary src/zzGuardProbe.ts calling intentService.processAndExecuteIntent, then removed
+zzGuardProbe.ts: references processAndExecuteIntent, which writes without a review (AGY-PORT 04)
+exit with probe: 1
+PASS: 194 TypeScript modules checked; 0 import cycles, 0 forbidden business/Gmail/study-tool/Kokoro dependencies.
+exit after removal: 0

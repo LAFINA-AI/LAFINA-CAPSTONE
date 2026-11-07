@@ -1,4 +1,4 @@
-import React, { useCallback, useState, useEffect, useRef } from 'react';
+import React, {useCallback, useState, useEffect, useRef} from 'react';
 import {
   View,
   Text,
@@ -12,23 +12,39 @@ import {
   Keyboard,
   DeviceEventEmitter,
   ScrollView,
+  AppState,
 } from 'react-native';
-import { Fonts, Shadows } from '../theme';
-import { X, Check, ArrowRight, Mic, CircleAlert } from 'lucide-react-native';
-import { useTheme } from '../contexts/ThemeContext';
-import { useThemedStyles } from '../theme/createThemedStyles';
-import { NLU_PARSER_DELAY_MS, VOICE_SUCCESS_DELAY_MS } from '../../constants';
-import type { ThemeColors } from '../contexts/ThemeContext';
+import {Fonts, Shadows} from '../theme';
+import {
+  X,
+  Check,
+  ArrowRight,
+  Mic,
+  CircleAlert,
+  MessageSquareText,
+} from 'lucide-react-native';
+import {useTheme} from '../contexts/ThemeContext';
+import {useThemedStyles} from '../theme/createThemedStyles';
+import {NLU_PARSER_DELAY_MS, VOICE_SUCCESS_DELAY_MS} from '../../constants';
+import type {ThemeColors} from '../contexts/ThemeContext';
 import {
   cancelOfflineSpeechCapture,
+  isMicrophoneBusyError,
   startOfflineSpeechCapture,
   stopOfflineSpeechCapture,
   warmupOfflineSpeech,
 } from '../../ai/native/speechCapture';
-import type { OfflineSpeechCaptureHandle } from '../../ai/native/speechCapture';
-import { ensureMicrophonePermission } from '../../ai/stt/sttService';
-import { chatOrchestrator } from '../../ai/chatOrchestrator';
-import { ttsService } from '../../ai/tts/ttsService';
+import type {OfflineSpeechCaptureHandle} from '../../ai/native/speechCapture';
+import {ensureMicrophonePermission} from '../../ai/stt/sttService';
+import {chatOrchestrator} from '../../ai/chatOrchestrator';
+import {ttsService} from '../../ai/tts/ttsService';
+import type {PrepareResult} from '../../ai/nlu/commandReview';
+import {useCommandReview} from '../hooks/useCommandReview';
+import {CommandReviewCard} from './chat/CommandReviewCard';
+import {DraftDecisionDialog} from './DraftDecisionDialog';
+import type {DraftDialogRequest} from './DraftDecisionDialog';
+import {useDraftProtection} from '../hooks/useDraftProtection';
+import {chatDraftStore} from '../drafts/chatDraftStore';
 
 export interface VoiceModalProps {
   visible: boolean;
@@ -36,9 +52,21 @@ export interface VoiceModalProps {
   onClose: (didUpdate?: boolean) => void;
   onTranscript?: (transcript: string) => void;
   onCommand?: (command: string, userId: string) => string | Promise<string>;
+  /**
+   * Opens Chat after the draft was placed in the Chat composer (AGY-PORT 05).
+   * Nothing is sent: the student still presses Send there.
+   */
+  onUseInChat?: () => void;
 }
 
-export type VoiceState = 'idle' | 'listening' | 'processing' | 'speaking' | 'success' | 'error';
+export type VoiceState =
+  | 'idle'
+  | 'listening'
+  | 'processing'
+  | 'speaking'
+  | 'review'
+  | 'success'
+  | 'error';
 
 const WAVE_BAR_COUNT = 11;
 const WHISPER_WARMUP_DELAY_MS = 300;
@@ -49,21 +77,43 @@ const STATUS_TEXT: Record<VoiceState, string> = {
   listening: 'Listening… let go when you’re done',
   processing: 'Working on it…',
   speaking: 'Reading aloud…',
+  review: 'Check the details, then confirm',
   success: 'Done',
   error: 'That didn’t work',
 };
 
-const executeDefaultCommand = async (command: string, userId: string): Promise<string> => {
+/** Status while an editable draft waits for Prepare (AGY-PORT 05). */
+const DRAFT_STATUS_TEXT = 'Edit if needed, then tap Prepare';
+
+/** Recoverable: typing still works and an active recording is never stopped. */
+export const MIC_BUSY_NOTICE =
+  'The microphone is busy (a recording, or the last capture is still finishing). You can type instead, or try again in a moment.';
+
+export const DRAFT_READY_NOTICE =
+  'Check the text, then tap Prepare. Nothing has been sent or saved.';
+
+interface CommandOutcome {
+  reply: string;
+  /** A planner change waiting for Confirm (AGY-PORT 04); nothing was written yet. */
+  review?: PrepareResult;
+}
+
+const executeDefaultCommand = async (
+  command: string,
+  userId: string,
+): Promise<CommandOutcome> => {
   const trimmed = command.trim();
   if (!trimmed) {
-    return 'What would you like me to do?';
+    return {reply: 'What would you like me to do?'};
   }
   try {
-    const result = await chatOrchestrator.processMessage(userId, trimmed);
-    return result.reply;
+    const result = await chatOrchestrator.processMessage(userId, trimmed, {
+      reviewSurface: 'voice',
+    });
+    return {reply: result.reply, review: result.review};
   } catch (err) {
     console.error('Chat orchestrator execution error:', err);
-    return `Heard: "${trimmed}"`;
+    return {reply: `Heard: "${trimmed}"`};
   }
 };
 
@@ -73,12 +123,16 @@ export const VoiceModal: React.FC<VoiceModalProps> = ({
   onClose,
   onTranscript,
   onCommand,
+  onUseInChat,
 }) => {
   const [voiceState, setVoiceState] = useState<VoiceState>('idle');
   const [transcript, setTranscript] = useState('');
   const [notice, setNotice] = useState('');
   const [aiReply, setAiReply] = useState('');
   const [inputText, setInputText] = useState('');
+  const [handoffDialog, setHandoffDialog] = useState<DraftDialogRequest | null>(
+    null,
+  );
 
   // Animated values
   const pulseAnim = useRef(new Animated.Value(0)).current;
@@ -86,7 +140,7 @@ export const VoiceModal: React.FC<VoiceModalProps> = ({
 
   // Waveform bars
   const waveBars = useRef(
-    Array.from({ length: WAVE_BAR_COUNT }, () => new Animated.Value(0.2)),
+    Array.from({length: WAVE_BAR_COUNT}, () => new Animated.Value(0.2)),
   ).current;
   const waveIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const activeCaptureRef = useRef(0);
@@ -107,30 +161,68 @@ export const VoiceModal: React.FC<VoiceModalProps> = ({
   useEffect(() => {
     const timers = timersRef.current;
     return () => {
-      timers.forEach((id) => clearTimeout(id));
+      timers.forEach(id => clearTimeout(id));
       timers.clear();
       void ttsService.stop();
     };
   }, []);
 
-  const handleDismiss = useCallback(() => {
-    void ttsService.stop();
-    onClose(false);
-  }, [onClose]);
+  // AGY-PORT 04: a planner change waits on this card until the student confirms.
+  const review = useCommandReview(userId, 'voice');
+  const reviewRef = useRef(review);
+  reviewRef.current = review;
 
-  const { colors } = useTheme();
+  /** Stops any capture this sheet started; its late result is ignored. */
+  const retireCapture = useCallback(() => {
+    pressActiveRef.current = false;
+    activeCaptureRef.current += 1;
+    const capture = speechCaptureRef.current;
+    speechCaptureRef.current = null;
+    if (capture) void cancelOfflineSpeechCapture(capture.captureId);
+  }, []);
+
+  // AGY-PORT 05: an unsent draft or a waiting review is never lost silently.
+  const draft = useDraftProtection(
+    userId,
+    inputText,
+    review.proposal !== null,
+    () => {
+      reviewRef.current.cancel({silent: true});
+      setInputText('');
+      setTranscript('');
+    },
+    next => setInputText(next),
+  );
+  const draftRef = useRef(draft);
+  draftRef.current = draft;
+
+  const handleDismiss = useCallback(() => {
+    draftRef.current.requestLeave(() => {
+      void ttsService.stop();
+      retireCapture();
+      // Closing the sheet never confirms; it discards the open proposal.
+      reviewRef.current.cancel({silent: true});
+      setHandoffDialog(null);
+      onClose(false);
+    });
+  }, [onClose, retireCapture]);
+
+  const {colors} = useTheme();
   const themed = useThemedStyles(getVoiceThemedStyles);
 
   useEffect(() => {
     if (!visible) return;
     void ensureMicrophonePermission();
     // Debounced so an open-then-close tap doesn't load the model for nothing.
-    const warmupTimer = setTimeout(warmupOfflineSpeech, WHISPER_WARMUP_DELAY_MS);
+    const warmupTimer = setTimeout(
+      warmupOfflineSpeech,
+      WHISPER_WARMUP_DELAY_MS,
+    );
     return () => clearTimeout(warmupTimer);
   }, [visible]);
 
   useEffect(() => {
-    const showHeard = (e: { captureId?: string; transcript?: string }) => {
+    const showHeard = (e: {captureId?: string; transcript?: string}) => {
       if (e.captureId && e.captureId !== speechCaptureRef.current?.captureId) {
         return;
       }
@@ -139,8 +231,14 @@ export const VoiceModal: React.FC<VoiceModalProps> = ({
         setNotice('');
       }
     };
-    const partialSub = DeviceEventEmitter.addListener('onSpeechPartialResult', showHeard);
-    const finalSub = DeviceEventEmitter.addListener('onSpeechFinalResult', showHeard);
+    const partialSub = DeviceEventEmitter.addListener(
+      'onSpeechPartialResult',
+      showHeard,
+    );
+    const finalSub = DeviceEventEmitter.addListener(
+      'onSpeechFinalResult',
+      showHeard,
+    );
 
     return () => {
       partialSub.remove();
@@ -153,13 +251,13 @@ export const VoiceModal: React.FC<VoiceModalProps> = ({
       clearInterval(waveIntervalRef.current);
       waveIntervalRef.current = null;
     }
-    waveBars.forEach((bar) => bar.setValue(0.2));
+    waveBars.forEach(bar => bar.setValue(0.2));
   }, [waveBars]);
 
   const startWaveform = useCallback(() => {
     stopWaveform();
     waveIntervalRef.current = setInterval(() => {
-      waveBars.forEach((bar) => {
+      waveBars.forEach(bar => {
         Animated.timing(bar, {
           toValue: 0.2 + Math.random() * 0.8,
           duration: 180,
@@ -172,11 +270,9 @@ export const VoiceModal: React.FC<VoiceModalProps> = ({
 
   useEffect(() => {
     if (!visible) {
-      pressActiveRef.current = false;
-      activeCaptureRef.current += 1;
-      const capture = speechCaptureRef.current;
-      speechCaptureRef.current = null;
-      if (capture) void cancelOfflineSpeechCapture(capture.captureId);
+      reviewRef.current.cancel({silent: true});
+      retireCapture();
+      setHandoffDialog(null);
       setVoiceState('idle');
       setTranscript('');
       setNotice('');
@@ -189,7 +285,37 @@ export const VoiceModal: React.FC<VoiceModalProps> = ({
     setAiReply('');
     setInputText('');
     setVoiceState('idle');
-  }, [visible, stopWaveform]);
+  }, [visible, stopWaveform, retireCapture]);
+
+  // Going to the background ends a live capture (its late result is ignored);
+  // the typed or dictated draft stays.
+  useEffect(() => {
+    const subscription = AppState.addEventListener('change', next => {
+      if (next === 'active' || !speechCaptureRef.current) return;
+      retireCapture();
+      setVoiceState('idle');
+      setNotice(
+        'Listening stopped when LAFINA left the screen. Your draft is still here.',
+      );
+    });
+    return () => subscription.remove();
+  }, [retireCapture]);
+
+  // Account switch or sign-out: the previous owner's draft, review and any late
+  // speech result are dropped; nothing carries over to the next account.
+  const ownerRef = useRef(userId);
+  useEffect(() => {
+    if (ownerRef.current === userId) return;
+    ownerRef.current = userId;
+    retireCapture();
+    void ttsService.stop();
+    setHandoffDialog(null);
+    setInputText('');
+    setTranscript('');
+    setNotice('');
+    setAiReply('');
+    setVoiceState('idle');
+  }, [userId, retireCapture]);
 
   useEffect(() => {
     let animation: Animated.CompositeAnimation | null = null;
@@ -252,6 +378,82 @@ export const VoiceModal: React.FC<VoiceModalProps> = ({
     [safeSetTimeout, shakeAnim],
   );
 
+  const runCommand = useCallback(
+    async (command: string): Promise<CommandOutcome> => {
+      if (onCommand) {
+        return {reply: await Promise.resolve(onCommand(command, userId))};
+      }
+      return executeDefaultCommand(command, userId);
+    },
+    [onCommand, userId],
+  );
+
+  /**
+   * Shows and speaks the reply. Returns true when a review card is now waiting,
+   * in which case the sheet stays open and nothing closes it automatically.
+   */
+  const presentOutcome = useCallback(
+    async (outcome: CommandOutcome, uiCaptureId: number): Promise<boolean> => {
+      setAiReply(outcome.reply);
+      const waiting = outcome.review?.status === 'proposal';
+      if (waiting) reviewRef.current.present(outcome.review);
+      setVoiceState('speaking');
+
+      try {
+        await ttsService.speak(outcome.reply);
+      } catch (err) {
+        console.warn('[VoiceModal] TTS playback error:', err);
+      }
+
+      if (waiting) {
+        if (activeCaptureRef.current === uiCaptureId) setVoiceState('review');
+        return true;
+      }
+      if (outcome.review) {
+        // A question back (missing time, unclear item): keep the sheet and the
+        // draft so the student can edit it and prepare again.
+        if (activeCaptureRef.current === uiCaptureId) setVoiceState('idle');
+        return true;
+      }
+      return false;
+    },
+    [],
+  );
+
+  const handleConfirmReview = useCallback(async () => {
+    const uiCaptureId = activeCaptureRef.current;
+    const decision = await reviewRef.current.confirm();
+    if (!decision || activeCaptureRef.current !== uiCaptureId) return;
+    const applied = decision.outcome?.status === 'applied';
+    setAiReply(decision.reply);
+    setVoiceState('speaking');
+    try {
+      await ttsService.speak(decision.reply);
+    } catch (err) {
+      console.warn('[VoiceModal] TTS playback error:', err);
+    }
+    if (activeCaptureRef.current !== uiCaptureId) return;
+    if (!applied) {
+      setVoiceState('idle');
+      return;
+    }
+    setVoiceState('success');
+    safeSetTimeout(() => {
+      if (activeCaptureRef.current === uiCaptureId) {
+        onClose(true);
+        setVoiceState('idle');
+        setInputText('');
+      }
+    }, VOICE_SUCCESS_DELAY_MS);
+  }, [onClose, safeSetTimeout]);
+
+  const handleCancelReview = useCallback(() => {
+    const decision = reviewRef.current.cancel();
+    if (!decision) return;
+    setAiReply(decision.reply);
+    setVoiceState('idle');
+  }, []);
+
   // Push-To-Talk: Press & Hold down mic button to speak
   const handlePressIn = useCallback(async () => {
     pressActiveRef.current = true;
@@ -264,7 +466,9 @@ export const VoiceModal: React.FC<VoiceModalProps> = ({
     }
     if (!hasPermission) {
       setTranscript('');
-      setNotice('LAFINA needs microphone access to hear you. Allow it and try again.');
+      setNotice(
+        'LAFINA needs microphone access to hear you. Allow it and try again.',
+      );
       triggerErrorShake('idle');
       return;
     }
@@ -275,12 +479,31 @@ export const VoiceModal: React.FC<VoiceModalProps> = ({
     setAiReply('');
 
     try {
-      speechCaptureRef.current = startOfflineSpeechCapture({
+      const capture = startOfflineSpeechCapture({
         mode: 'manual',
         bargeIn: false,
         context: 'main_mic',
       });
+      speechCaptureRef.current = capture;
+      // AGY-PORT 05: "microphone busy" can arrive while the button is still held.
+      capture.result.catch((error: unknown) => {
+        if (
+          !isMicrophoneBusyError(error) ||
+          activeCaptureRef.current !== captureId ||
+          speechCaptureRef.current?.captureId !== capture.captureId
+        ) {
+          return;
+        }
+        speechCaptureRef.current = null;
+        setNotice(MIC_BUSY_NOTICE);
+        setVoiceState('idle');
+      });
     } catch (error) {
+      if (isMicrophoneBusyError(error)) {
+        setNotice(MIC_BUSY_NOTICE);
+        setVoiceState('idle');
+        return;
+      }
       console.error('Failed to start offline Whisper capture:', error);
       setNotice('Speech recognition could not start. Please try again.');
       triggerErrorShake('idle');
@@ -315,45 +538,62 @@ export const VoiceModal: React.FC<VoiceModalProps> = ({
         return;
       }
 
-      if (onTranscript) {
-        onTranscript(finalTranscript);
-      }
-
-      let reply = '';
-      if (onCommand) {
-        reply = await Promise.resolve(onCommand(finalTranscript, userId));
-      } else {
-        reply = await executeDefaultCommand(finalTranscript, userId);
-      }
-
-      setAiReply(reply);
-      setVoiceState('speaking');
-
-      try {
-        await ttsService.speak(reply);
-      } catch (err) {
-        console.warn('[VoiceModal] TTS playback error:', err);
-      }
-
-      if (activeCaptureRef.current === uiCaptureId) {
-        setVoiceState('success');
-        safeSetTimeout(() => {
-          if (activeCaptureRef.current === uiCaptureId) {
-            onClose(true);
-            setVoiceState('idle');
-            setInputText('');
-          }
-        }, VOICE_SUCCESS_DELAY_MS);
-      }
+      // AGY-PORT 05: recognition ends in an editable draft. Nothing is prepared,
+      // sent or saved until the student taps Prepare (and then Confirm).
+      setVoiceState('idle');
+      setNotice('');
+      draftRef.current.offerText(finalTranscript);
     } catch (error) {
-      console.error('Failed to process offline Whisper capture:', error);
       if (speechCaptureRef.current?.captureId === capture.captureId) {
         speechCaptureRef.current = null;
       }
+      if (activeCaptureRef.current !== uiCaptureId) return;
+      if (isMicrophoneBusyError(error)) {
+        setNotice(MIC_BUSY_NOTICE);
+        setVoiceState('idle');
+        return;
+      }
+      console.error('Failed to process offline Whisper capture:', error);
       setNotice('Speech recognition could not finish. Please try again.');
       triggerErrorShake('idle');
     }
-  }, [onClose, onCommand, onTranscript, safeSetTimeout, triggerErrorShake, userId]);
+  }, [triggerErrorShake]);
+
+  /** Moves the draft into the Chat composer without sending it (Keep/Replace first). */
+  const handleUseInChat = useCallback(() => {
+    const text = inputText.trim();
+    if (!text || !onUseInChat) return;
+    const owner = userId;
+    const handOff = () => {
+      if (ownerRef.current !== owner) return;
+      retireCapture();
+      reviewRef.current.cancel({silent: true});
+      chatDraftStore.set(owner, text);
+      setInputText('');
+      setTranscript('');
+      setHandoffDialog(null);
+      onClose(false);
+      onUseInChat();
+    };
+    const existing = chatDraftStore.get(owner);
+    if (!existing.trim() || existing.trim() === text) {
+      handOff();
+      return;
+    }
+    setHandoffDialog({
+      title: 'Replace your Chat draft?',
+      message:
+        'Chat already has unsent text. Keep it, or replace it with this draft. Nothing will be sent.',
+      keepLabel: 'Keep Chat text',
+      confirmLabel: 'Replace',
+      onKeep: () => {
+        setHandoffDialog(null);
+        setNotice('');
+        setAiReply('Your Chat draft was kept. This text is still here.');
+      },
+      onConfirm: handOff,
+    });
+  }, [inputText, onClose, onUseInChat, retireCapture, userId]);
 
   const handleCommandProcess = async (command: string) => {
     if (!command.trim()) return;
@@ -370,21 +610,8 @@ export const VoiceModal: React.FC<VoiceModalProps> = ({
           onTranscript(command);
         }
 
-        let reply = '';
-        if (onCommand) {
-          reply = await Promise.resolve(onCommand(command, userId));
-        } else {
-          reply = await executeDefaultCommand(command, userId);
-        }
-
-        setAiReply(reply);
-        setVoiceState('speaking');
-
-        try {
-          await ttsService.speak(reply);
-        } catch (err) {
-          console.warn('[VoiceModal] TTS playback error:', err);
-        }
+        const outcome = await runCommand(command);
+        if (await presentOutcome(outcome, uiCaptureId)) return;
 
         if (activeCaptureRef.current === uiCaptureId) {
           setVoiceState('success');
@@ -403,8 +630,14 @@ export const VoiceModal: React.FC<VoiceModalProps> = ({
     }, NLU_PARSER_DELAY_MS);
   };
 
-  const showFallbackControls = voiceState === 'idle' || voiceState === 'listening';
+  const showFallbackControls =
+    voiceState === 'idle' || voiceState === 'listening';
   const listening = voiceState === 'listening';
+  const hasDraftText = inputText.trim().length > 0;
+  const statusLine =
+    voiceState === 'idle' && hasDraftText
+      ? DRAFT_STATUS_TEXT
+      : STATUS_TEXT[voiceState];
 
   const micColor =
     voiceState === 'success' || voiceState === 'speaking'
@@ -461,11 +694,11 @@ export const VoiceModal: React.FC<VoiceModalProps> = ({
             LAFINA Voice Assistant
           </Text>
           <Text
-            style={[styles.statusText, { color: statusColor }]}
+            style={[styles.statusText, {color: statusColor}]}
             accessibilityLiveRegion="polite"
             testID="voice-status-text"
           >
-            {STATUS_TEXT[voiceState]}
+            {statusLine}
           </Text>
 
           {/* Central Push-To-Talk Hold Button */}
@@ -506,15 +739,22 @@ export const VoiceModal: React.FC<VoiceModalProps> = ({
                 style={[
                   styles.voicePulseCircle,
                   {
-                    transform: [{ translateX: shakeAnim }],
+                    transform: [{translateX: shakeAnim}],
                     backgroundColor: micColor,
                   },
                 ]}
               >
                 {voiceState === 'processing' ? (
-                  <ActivityIndicator size="large" color={colors.textOnPrimary} />
+                  <ActivityIndicator
+                    size="large"
+                    color={colors.textOnPrimary}
+                  />
                 ) : voiceState === 'success' ? (
-                  <Check size={32} color={colors.textOnPrimary} strokeWidth={3} />
+                  <Check
+                    size={32}
+                    color={colors.textOnPrimary}
+                    strokeWidth={3}
+                  />
                 ) : voiceState === 'error' ? (
                   <X size={32} color={colors.textOnPrimary} strokeWidth={3} />
                 ) : (
@@ -529,7 +769,7 @@ export const VoiceModal: React.FC<VoiceModalProps> = ({
             style={[
               styles.transcriptCard,
               themed.transcriptCard,
-              listening && { borderColor: colors.primary },
+              listening && {borderColor: colors.primary},
             ]}
           >
             <View style={styles.transcriptHeader}>
@@ -538,8 +778,12 @@ export const VoiceModal: React.FC<VoiceModalProps> = ({
               </Text>
               {listening && (
                 <View style={[styles.livePill, themed.livePill]}>
-                  <View style={[styles.liveDot, { backgroundColor: colors.primary }]} />
-                  <Text style={[styles.liveText, { color: colors.primary }]}>Live</Text>
+                  <View
+                    style={[styles.liveDot, {backgroundColor: colors.primary}]}
+                  />
+                  <Text style={[styles.liveText, {color: colors.primary}]}>
+                    Live
+                  </Text>
                 </View>
               )}
             </View>
@@ -547,7 +791,9 @@ export const VoiceModal: React.FC<VoiceModalProps> = ({
             {notice ? (
               <View style={styles.noticeRow} testID="voice-notice">
                 <CircleAlert size={16} color={colors.error} />
-                <Text style={[styles.noticeText, { color: colors.error }]}>{notice}</Text>
+                <Text style={[styles.noticeText, {color: colors.error}]}>
+                  {notice}
+                </Text>
               </View>
             ) : transcript ? (
               <ScrollView
@@ -556,7 +802,10 @@ export const VoiceModal: React.FC<VoiceModalProps> = ({
                 nestedScrollEnabled
                 showsVerticalScrollIndicator={false}
               >
-                <Text style={[styles.transcriptText, themed.transcriptText]} testID="voice-transcript">
+                <Text
+                  style={[styles.transcriptText, themed.transcriptText]}
+                  testID="voice-transcript"
+                >
                   “{transcript}”
                 </Text>
               </ScrollView>
@@ -575,7 +824,10 @@ export const VoiceModal: React.FC<VoiceModalProps> = ({
                     key={i}
                     style={[
                       styles.waveformBar,
-                      { backgroundColor: colors.primary, transform: [{ scaleY: bar }] },
+                      {
+                        backgroundColor: colors.primary,
+                        transform: [{scaleY: bar}],
+                      },
                     ]}
                   />
                 ))}
@@ -585,8 +837,13 @@ export const VoiceModal: React.FC<VoiceModalProps> = ({
 
           {/* Confirmation / Result */}
           {aiReply ? (
-            <View style={[styles.replyRow, themed.replyRow]} testID="voice-reply">
-              <View style={[styles.replyIcon, { backgroundColor: colors.success }]}>
+            <View
+              style={[styles.replyRow, themed.replyRow]}
+              testID="voice-reply"
+            >
+              <View
+                style={[styles.replyIcon, {backgroundColor: colors.success}]}
+              >
                 <Check size={12} color={colors.textOnPrimary} strokeWidth={3} />
               </View>
               <ScrollView
@@ -595,9 +852,25 @@ export const VoiceModal: React.FC<VoiceModalProps> = ({
                 nestedScrollEnabled
                 showsVerticalScrollIndicator
               >
-                <Text style={[styles.replyText, themed.replyText]}>{aiReply}</Text>
+                <Text style={[styles.replyText, themed.replyText]}>
+                  {aiReply}
+                </Text>
               </ScrollView>
             </View>
+          ) : null}
+
+          {review.proposal ? (
+            <CommandReviewCard
+              proposal={review.proposal}
+              expired={review.expired}
+              busy={review.busy}
+              onConfirm={() => {
+                void handleConfirmReview();
+              }}
+              onCancel={handleCancelReview}
+              onDismiss={review.dismiss}
+              testIDPrefix="voice-review"
+            />
           ) : null}
 
           {/* Keyboard input fallback */}
@@ -610,19 +883,49 @@ export const VoiceModal: React.FC<VoiceModalProps> = ({
                 value={inputText}
                 onChangeText={setInputText}
                 onSubmitEditing={() => handleCommandProcess(inputText)}
+                accessibilityLabel="Command draft"
                 testID="voice-text-input"
               />
               <TouchableOpacity
-                style={[styles.sendButton, { backgroundColor: colors.primary }]}
+                style={[styles.sendButton, {backgroundColor: colors.primary}]}
                 onPress={() => handleCommandProcess(inputText)}
                 accessibilityRole="button"
-                accessibilityLabel="Send command"
+                accessibilityLabel="Prepare command for review"
                 testID="voice-send-button"
               >
                 <ArrowRight size={18} color={colors.textOnPrimary} />
               </TouchableOpacity>
             </View>
           )}
+
+          {voiceState === 'idle' && hasDraftText ? (
+            <Text
+              style={[styles.draftHint, themed.placeholderText]}
+              testID="voice-draft-hint"
+            >
+              {DRAFT_READY_NOTICE}
+            </Text>
+          ) : null}
+
+          {voiceState === 'idle' && hasDraftText && onUseInChat ? (
+            <TouchableOpacity
+              style={styles.useInChatButton}
+              onPress={handleUseInChat}
+              accessibilityRole="button"
+              accessibilityLabel="Use draft in Chat without sending"
+              testID="voice-use-in-chat"
+            >
+              <MessageSquareText size={16} color={colors.primary} />
+              <Text style={[styles.useInChatText, {color: colors.primary}]}>
+                Use draft in Chat
+              </Text>
+            </TouchableOpacity>
+          ) : null}
+
+          <DraftDecisionDialog
+            request={draft.dialog ?? handoffDialog}
+            testIDPrefix="voice-draft"
+          />
         </TouchableOpacity>
       </TouchableOpacity>
     </Modal>
@@ -630,23 +933,23 @@ export const VoiceModal: React.FC<VoiceModalProps> = ({
 };
 
 const getVoiceThemedStyles = (colors: ThemeColors) => ({
-  overlay: { backgroundColor: colors.overlay },
-  modalContent: { backgroundColor: colors.cardBg },
-  grabber: { backgroundColor: colors.border },
-  closeButton: { backgroundColor: colors.inputBg },
-  modalTitle: { color: colors.textPrimary },
+  overlay: {backgroundColor: colors.overlay},
+  modalContent: {backgroundColor: colors.cardBg},
+  grabber: {backgroundColor: colors.border},
+  closeButton: {backgroundColor: colors.inputBg},
+  modalTitle: {color: colors.textPrimary},
   transcriptCard: {
     backgroundColor: colors.inputBg,
     borderColor: colors.border,
   },
-  transcriptLabel: { color: colors.textSecondary },
-  livePill: { backgroundColor: colors.cardBg },
-  transcriptText: { color: colors.textPrimary },
-  placeholderText: { color: colors.textMuted },
-  replyRow: { backgroundColor: colors.inputBg },
-  replyText: { color: colors.textPrimary },
-  inputRow: { backgroundColor: colors.inputBg },
-  textInput: { color: colors.textPrimary },
+  transcriptLabel: {color: colors.textSecondary},
+  livePill: {backgroundColor: colors.cardBg},
+  transcriptText: {color: colors.textPrimary},
+  placeholderText: {color: colors.textMuted},
+  replyRow: {backgroundColor: colors.inputBg},
+  replyText: {color: colors.textPrimary},
+  inputRow: {backgroundColor: colors.inputBg},
+  textInput: {color: colors.textPrimary},
 });
 
 const styles = StyleSheet.create({
@@ -846,6 +1149,26 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontFamily: Fonts.body,
     paddingVertical: 0,
+  },
+  draftHint: {
+    fontFamily: Fonts.body,
+    fontSize: 12,
+    lineHeight: 17,
+    marginTop: 8,
+    textAlign: 'center',
+  },
+  useInChatButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginTop: 12,
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+  },
+  useInChatText: {
+    fontFamily: Fonts.body,
+    fontSize: 14,
+    fontWeight: '600',
   },
   sendButton: {
     width: 36,

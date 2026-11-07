@@ -1,16 +1,23 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
-import { ViewMode, CalendarData } from '../types';
-import type { TimeBlock, Task, Event } from '../../../../storage';
-import { timeBlocksStore, tasksStore, userStore } from '../../../../storage';
+import {useState, useEffect, useLayoutEffect, useCallback, useRef} from 'react';
+import {ViewMode, CalendarData} from '../types';
+import type {TimeBlock, Task, Event} from '../../../../storage';
+import {userStore} from '../../../../storage';
+import {plannerQueries} from '../../../../storage/plannerQueries';
 
-import { importedBatchesStore, ImportBatch } from '../../../../storage/importedBatchesStore';
-import { calendarVisibilityStore } from '../../../../storage/calendarVisibilityStore';
-import { getOccurrences } from '../../../../storage/rruleHelper';
-import { generateIcsString, parseIcsString } from '../../../../storage/icsHelper';
-import { pick, isErrorWithCode, errorCodes } from '@react-native-documents/picker';
+import {
+  importedBatchesStore,
+  ImportBatch,
+} from '../../../../storage/importedBatchesStore';
+import {calendarVisibilityStore} from '../../../../storage/calendarVisibilityStore';
+import {generateIcsString, parseIcsString} from '../../../../storage/icsHelper';
+import {
+  pick,
+  isErrorWithCode,
+  errorCodes,
+} from '@react-native-documents/picker';
 import RNFS from 'react-native-fs';
 import Share from 'react-native-share';
-import { Alert } from 'react-native';
+import {Alert} from 'react-native';
 import {
   persistImportedCalendarBatch,
   removeImportedCalendarBatch,
@@ -24,136 +31,70 @@ interface UseCalendarDataOptions {
   propOnViewModeChange?: (mode: ViewMode) => void;
 }
 
-const formatLocalDate = (d: Date): string => {
+/** Calendar's own occurrence IDs are `${id}_occur_${date}`; visibility uses the base ID. */
+const baseIdOf = (id: string): string => {
+  const at = id.indexOf('_occur_');
+  return at < 0 ? id : id.slice(0, at);
+};
+
+const toLocalDate = (d: Date): string => {
   const year = d.getFullYear();
   const month = `${d.getMonth() + 1}`.padStart(2, '0');
   const day = `${d.getDate()}`.padStart(2, '0');
   return `${year}-${month}-${day}`;
 };
 
-const getInitialViewRange = (mode: ViewMode = 'week'): { start: Date; end: Date } => {
-  const now = new Date();
-  if (mode === 'week') {
-    const start = new Date(now);
-    start.setDate(now.getDate() - 3);
-    start.setHours(0, 0, 0, 0);
-    const end = new Date(now);
-    end.setDate(now.getDate() + 3);
-    end.setHours(23, 59, 59, 999);
-    return { start, end };
-  }
-  const start = new Date(now.getFullYear(), now.getMonth() - 1, 15);
-  start.setHours(0, 0, 0, 0);
-  const end = new Date(now.getFullYear(), now.getMonth() + 2, 15);
-  end.setHours(23, 59, 59, 999);
-  return { start, end };
-};
+/** Overdue chips shown at most; the total is still reported. */
+export const OVERDUE_LIMIT = 100;
 
-const getInitialBlocks = (userId: string, mode: ViewMode = 'week'): TimeBlock[] => {
-  try {
-    const rawData = timeBlocksStore.getAll(userId);
-    const { start, end } = getInitialViewRange(mode);
-    const expanded: TimeBlock[] = [];
-    rawData.forEach((block) => {
-      if (block.recurrenceRule) {
-        const dates = getOccurrences(block.date, block.recurrenceRule, start, end);
-        dates.forEach((dateStr) => {
-          const isBase = dateStr === block.date;
-          expanded.push({
-            ...block,
-            id: isBase ? block.id : `${block.id}_occur_${dateStr}`,
-            date: dateStr,
-          });
-        });
-      } else {
-        expanded.push(block);
-      }
-    });
-    return expanded;
-  } catch {
-    return [];
-  }
-};
+/** Codex audit A2: which part of the schedule could not be read. */
+export type CalendarReadPart = 'blocks' | 'schedule' | 'overdue';
 
-const getInitialSchedule = (
-  userId: string,
-  mode: ViewMode = 'week',
-): { allTasks: Task[]; allEvents: Event[]; dayTasks: Task[]; dayEvents: Event[] } => {
-  try {
-    const rawTasks = tasksStore.getAllTasks(userId);
-    const rawEvents = tasksStore.getAllEvents(userId);
-    const { start, end } = getInitialViewRange(mode);
-    const expandedTasks: Task[] = [];
-    const expandedEvents: Event[] = [];
+/**
+ * A read failure, bound to the account it happened for. While present the
+ * Calendar must not present the view as an empty schedule.
+ */
+export interface CalendarReadError {
+  ownerId: string;
+  parts: CalendarReadPart[];
+  /** True when an earlier successful read for this account is still shown. */
+  showingPrevious: boolean;
+}
 
-    rawTasks.forEach((t) => {
-      if (t.recurrenceRule && t.dueDate) {
-        const dates = getOccurrences(t.dueDate, t.recurrenceRule, start, end);
-        dates.forEach((dateStr) => {
-          const isBase = dateStr === t.dueDate;
-          expandedTasks.push({
-            ...t,
-            id: isBase ? t.id : `${t.id}_occur_${dateStr}`,
-            dueDate: dateStr,
-          });
-        });
-      } else {
-        expandedTasks.push(t);
-      }
-    });
-
-    rawEvents.forEach((e) => {
-      if (e.recurrenceRule && e.date) {
-        const dates = getOccurrences(e.date, e.recurrenceRule, start, end);
-        dates.forEach((dateStr) => {
-          const isBase = dateStr === e.date;
-          expandedEvents.push({
-            ...e,
-            id: isBase ? e.id : `${e.id}_occur_${dateStr}`,
-            date: dateStr,
-          });
-        });
-      } else {
-        expandedEvents.push(e);
-      }
-    });
-
-    const dateStr = formatLocalDate(new Date());
-    const dayTasks = expandedTasks.filter((t) => t.dueDate === dateStr);
-    const dayEvents = expandedEvents.filter((e) => e.date === dateStr);
-
-    return { allTasks: expandedTasks, allEvents: expandedEvents, dayTasks, dayEvents };
-  } catch {
-    return { allTasks: [], allEvents: [], dayTasks: [], dayEvents: [] };
-  }
-};
-
-export const useCalendarData = (options: UseCalendarDataOptions): CalendarData & {
+export const useCalendarData = (
+  options: UseCalendarDataOptions,
+): CalendarData & {
   getOverdueTasks: () => Task[];
+  overdueTotal: number;
+  readError: CalendarReadError | null;
+  retryRead: () => void;
 } => {
-  const { userId, refreshTrigger, onRefresh, propViewMode, propOnViewModeChange } = options;
+  const {
+    userId,
+    refreshTrigger,
+    onRefresh,
+    propViewMode,
+    propOnViewModeChange,
+  } = options;
 
   const [localViewMode, setLocalViewMode] = useState<ViewMode>('week');
   const viewMode = propViewMode !== undefined ? propViewMode : localViewMode;
-  const setViewMode = propOnViewModeChange !== undefined ? propOnViewModeChange : setLocalViewMode;
+  const setViewMode =
+    propOnViewModeChange !== undefined
+      ? propOnViewModeChange
+      : setLocalViewMode;
   const [currentDate, setCurrentDate] = useState(new Date());
   const [selectedDate, setSelectedDate] = useState(new Date());
-  const [initialSchedule] = useState(() => getInitialSchedule(userId, viewMode));
-  const [blocks, setBlocks] = useState<TimeBlock[]>(() => getInitialBlocks(userId, viewMode));
-  const [weekDays, setWeekDays] = useState<Date[]>(() => {
-    const days: Date[] = [];
-    const base = new Date();
-    for (let i = -3; i <= 3; i++) {
-      const d = new Date(base);
-      d.setDate(base.getDate() + i);
-      days.push(d);
-    }
-    return days;
+  const [blocks, setBlocks] = useState<TimeBlock[]>([]);
+  const [weekDays, setWeekDays] = useState<Date[]>([]);
+  const [tasks, setTasks] = useState<Task[]>([]);
+  const [events, setEvents] = useState<Event[]>([]);
+  const [allTasks, setAllTasks] = useState<Task[]>([]);
+  const [allEvents, setAllEvents] = useState<Event[]>([]);
+  const [overdue, setOverdue] = useState<{items: Task[]; total: number}>({
+    items: [],
+    total: 0,
   });
-  const [tasks, setTasks] = useState<Task[]>(() => initialSchedule.dayTasks);
-  const [events, setEvents] = useState<Event[]>(() => initialSchedule.dayEvents);
-  const [allTasks, setAllTasks] = useState<Task[]>(() => initialSchedule.allTasks);
-  const [allEvents, setAllEvents] = useState<Event[]>(() => initialSchedule.allEvents);
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [timeFormat24h, setTimeFormat24h] = useState(() => {
     try {
@@ -172,7 +113,9 @@ export const useCalendarData = (options: UseCalendarDataOptions): CalendarData &
 
   // Visibility and imports state
   const [batches, setBatches] = useState<ImportBatch[]>([]);
-  const [visibilityMap, setVisibilityMap] = useState<Record<string, boolean>>({ main: true });
+  const [visibilityMap, setVisibilityMap] = useState<Record<string, boolean>>({
+    main: true,
+  });
   const [username, setUsername] = useState(() => {
     try {
       return userStore.getUserById(userId)?.username || 'Main Calendar';
@@ -183,6 +126,32 @@ export const useCalendarData = (options: UseCalendarDataOptions): CalendarData &
   const [layersModalVisible, setLayersModalVisible] = useState(false);
   const activeUserIdRef = useRef(userId);
   activeUserIdRef.current = userId;
+  // Codex audit A2: the last successful raw read of each part, with its owner,
+  // and which parts failed (and whether an earlier good read is still shown).
+  const lastGoodRef = useRef<{
+    blocks: {ownerId: string; rows: TimeBlock[]} | null;
+    schedule: {ownerId: string; tasks: Task[]; events: Event[]} | null;
+    overdue: {ownerId: string} | null;
+  }>({blocks: null, schedule: null, overdue: null});
+  const [readFailures, setReadFailures] = useState<{
+    ownerId: string;
+    parts: Partial<Record<CalendarReadPart, {showingPrevious: boolean}>>;
+  }>({ownerId: userId, parts: {}});
+
+  /** failure null = this part read successfully. */
+  const markRead = useCallback(
+    (part: CalendarReadPart, failure: {showingPrevious: boolean} | null) => {
+      setReadFailures(previous => {
+        const same = previous.ownerId === userId;
+        if (same && !failure && !previous.parts[part]) return previous;
+        const parts = same ? {...previous.parts} : {};
+        if (failure) parts[part] = failure;
+        else delete parts[part];
+        return {ownerId: userId, parts};
+      });
+    },
+    [userId],
+  );
 
   const generateWeekDays = useCallback(() => {
     const days: Date[] = [];
@@ -209,15 +178,17 @@ export const useCalendarData = (options: UseCalendarDataOptions): CalendarData &
         calendarVisibilityStore.getVisibilityMap(userId),
       ]);
       if (activeUserIdRef.current !== userId) return;
-      setBatches((prev) =>
-        prev.length === 0 && fetchedBatches.length === 0 ? prev : fetchedBatches,
+      setBatches(prev =>
+        prev.length === 0 && fetchedBatches.length === 0
+          ? prev
+          : fetchedBatches,
       );
-      setVisibilityMap((prev) => {
+      setVisibilityMap(prev => {
         const prevKeys = Object.keys(prev);
         const nextKeys = Object.keys(fetchedVisibility);
         if (
           prevKeys.length === nextKeys.length &&
-          prevKeys.every((k) => prev[k] === fetchedVisibility[k])
+          prevKeys.every(k => prev[k] === fetchedVisibility[k])
         ) {
           return prev;
         }
@@ -225,14 +196,14 @@ export const useCalendarData = (options: UseCalendarDataOptions): CalendarData &
       });
       const user = userStore.getUserById(userId);
       if (user) {
-        setUsername((prev) => (prev === user.username ? prev : user.username));
+        setUsername(prev => (prev === user.username ? prev : user.username));
       }
     } catch (error) {
       console.error('Failed to load visibility or batches:', error);
     }
   }, [userId]);
 
-  const getViewRange = useCallback((): { start: Date; end: Date } => {
+  const getViewRange = useCallback((): {start: Date; end: Date} => {
     if (viewMode === 'week') {
       const start = new Date(selectedDate);
       start.setDate(selectedDate.getDate() - 3);
@@ -240,26 +211,52 @@ export const useCalendarData = (options: UseCalendarDataOptions): CalendarData &
       const end = new Date(selectedDate);
       end.setDate(selectedDate.getDate() + 3);
       end.setHours(23, 59, 59, 999);
-      return { start, end };
+      return {start, end};
     } else {
-      const start = new Date(currentDate.getFullYear(), currentDate.getMonth() - 1, 15);
+      const start = new Date(
+        currentDate.getFullYear(),
+        currentDate.getMonth() - 1,
+        15,
+      );
       start.setHours(0, 0, 0, 0);
-      const end = new Date(currentDate.getFullYear(), currentDate.getMonth() + 2, 15);
+      const end = new Date(
+        currentDate.getFullYear(),
+        currentDate.getMonth() + 2,
+        15,
+      );
       end.setHours(23, 59, 59, 999);
-      return { start, end };
+      return {start, end};
     }
   }, [viewMode, selectedDate, currentDate]);
 
   const loadBlocks = useCallback(() => {
-    let rawData = timeBlocksStore.getAll(userId);
+    // AGY-PORT 06: only the visible window is read (recurrences expanded by SQL-bounded rows).
+    const {start: rangeStart, end: rangeEnd} = getViewRange();
+    let rawData: TimeBlock[];
+    try {
+      rawData = plannerQueries.window(
+        userId,
+        toLocalDate(rangeStart),
+        toLocalDate(rangeEnd),
+      ).blocks;
+      lastGoodRef.current.blocks = {ownerId: userId, rows: rawData};
+      markRead('blocks', null);
+    } catch (error) {
+      console.error('[Calendar] Could not read time blocks:', error);
+      // Keep this account's last good blocks; never another account's.
+      const previous = lastGoodRef.current.blocks;
+      const own = previous?.ownerId === userId;
+      markRead('blocks', {showingPrevious: own});
+      rawData = own && previous ? previous.rows : [];
+    }
 
     const importedBlockIds = new Set<string>();
     const hiddenBlockIds = new Set<string>();
     const hideMain = visibilityMap.main === false;
 
-    batches.forEach((batch) => {
+    batches.forEach(batch => {
       const isVisible = visibilityMap[batch.id] !== false;
-      batch.blocks.forEach((id) => {
+      batch.blocks.forEach(id => {
         importedBlockIds.add(id);
         if (!isVisible) {
           hiddenBlockIds.add(id);
@@ -267,41 +264,67 @@ export const useCalendarData = (options: UseCalendarDataOptions): CalendarData &
       });
     });
 
-    rawData = rawData.filter((block) => {
-      const isImported = importedBlockIds.has(block.id);
+    rawData = rawData.filter(block => {
+      const id = baseIdOf(block.id);
+      const isImported = importedBlockIds.has(id);
       if (isImported) {
-        return !hiddenBlockIds.has(block.id);
+        return !hiddenBlockIds.has(id);
       } else {
         return !hideMain;
       }
     });
 
-    // Expand recurrence
-    const expandedBlocks: TimeBlock[] = [];
-    const { start: rangeStart, end: rangeEnd } = getViewRange();
-
-    rawData.forEach((block) => {
-      if (block.recurrenceRule) {
-        const dates = getOccurrences(block.date, block.recurrenceRule, rangeStart, rangeEnd);
-        dates.forEach((dateStr) => {
-          const isBase = dateStr === block.date;
-          expandedBlocks.push({
-            ...block,
-            id: isBase ? block.id : `${block.id}_occur_${dateStr}`,
-            date: dateStr,
-          });
-        });
-      } else {
-        expandedBlocks.push(block);
-      }
-    });
-
-    setBlocks(expandedBlocks);
-  }, [userId, batches, visibilityMap, getViewRange]);
+    setBlocks(rawData);
+  }, [userId, batches, visibilityMap, getViewRange, markRead]);
 
   const loadScheduleData = useCallback(() => {
-    let rawTasks = tasksStore.getAllTasks(userId);
-    let rawEvents = tasksStore.getAllEvents(userId);
+    // AGY-PORT 06: the visible window only. Undated tasks stay in the paged
+    // UndatedTasksModal (AGY-PORT 04).
+    const {start: rangeStart, end: rangeEnd} = getViewRange();
+    try {
+      setOverdue(
+        plannerQueries.overdueTasks(
+          userId,
+          toLocalDate(new Date()),
+          OVERDUE_LIMIT,
+        ),
+      );
+      lastGoodRef.current.overdue = {ownerId: userId};
+      markRead('overdue', null);
+    } catch (error) {
+      console.error('[Calendar] Could not read overdue tasks:', error);
+      const own = lastGoodRef.current.overdue?.ownerId === userId;
+      markRead('overdue', {showingPrevious: own});
+      if (!own) setOverdue({items: [], total: 0});
+    }
+    let rawTasks: Task[] = [];
+    let rawEvents: Event[] = [];
+    try {
+      const visible = plannerQueries.window(
+        userId,
+        toLocalDate(rangeStart),
+        toLocalDate(rangeEnd),
+      );
+      rawTasks = visible.tasks;
+      rawEvents = visible.events;
+      lastGoodRef.current.schedule = {
+        ownerId: userId,
+        tasks: rawTasks,
+        events: rawEvents,
+      };
+      markRead('schedule', null);
+    } catch (error) {
+      console.error('[Calendar] Could not read tasks and events:', error);
+      // Keep this account's last good read (filtered again for the selected
+      // date below); never show another account's.
+      const previous = lastGoodRef.current.schedule;
+      const own = previous?.ownerId === userId;
+      markRead('schedule', {showingPrevious: own});
+      if (own && previous) {
+        rawTasks = previous.tasks;
+        rawEvents = previous.events;
+      }
+    }
 
     const importedTaskIds = new Set<string>();
     const hiddenTaskIds = new Set<string>();
@@ -309,15 +332,15 @@ export const useCalendarData = (options: UseCalendarDataOptions): CalendarData &
     const hiddenEventIds = new Set<string>();
     const hideMain = visibilityMap.main === false;
 
-    batches.forEach((batch) => {
+    batches.forEach(batch => {
       const isVisible = visibilityMap[batch.id] !== false;
-      batch.tasks.forEach((id) => {
+      batch.tasks.forEach(id => {
         importedTaskIds.add(id);
         if (!isVisible) {
           hiddenTaskIds.add(id);
         }
       });
-      batch.events.forEach((id) => {
+      batch.events.forEach(id => {
         importedEventIds.add(id);
         if (!isVisible) {
           hiddenEventIds.add(id);
@@ -325,82 +348,69 @@ export const useCalendarData = (options: UseCalendarDataOptions): CalendarData &
       });
     });
 
-    rawTasks = rawTasks.filter((t) => {
-      const isImported = importedTaskIds.has(t.id);
+    const expandedTasks = rawTasks.filter(t => {
+      const id = baseIdOf(t.id);
+      const isImported = importedTaskIds.has(id);
       if (isImported) {
-        return !hiddenTaskIds.has(t.id);
+        return !hiddenTaskIds.has(id);
       } else {
         return !hideMain;
       }
     });
 
-    rawEvents = rawEvents.filter((e) => {
-      const isImported = importedEventIds.has(e.id);
+    const expandedEvents = rawEvents.filter(e => {
+      const id = baseIdOf(e.id);
+      const isImported = importedEventIds.has(id);
       if (isImported) {
-        return !hiddenEventIds.has(e.id);
+        return !hiddenEventIds.has(id);
       } else {
         return !hideMain;
-      }
-    });
-
-    // Expand recurrence
-    const expandedTasks: Task[] = [];
-    const expandedEvents: Event[] = [];
-    const { start: rangeStart, end: rangeEnd } = getViewRange();
-
-    rawTasks.forEach((t) => {
-      if (t.recurrenceRule && t.dueDate) {
-        const dates = getOccurrences(t.dueDate, t.recurrenceRule, rangeStart, rangeEnd);
-        dates.forEach((dateStr) => {
-          const isBase = dateStr === t.dueDate;
-          expandedTasks.push({
-            ...t,
-            id: isBase ? t.id : `${t.id}_occur_${dateStr}`,
-            dueDate: dateStr,
-          });
-        });
-      } else {
-        expandedTasks.push(t);
-      }
-    });
-
-    rawEvents.forEach((e) => {
-      if (e.recurrenceRule && e.date) {
-        const dates = getOccurrences(e.date, e.recurrenceRule, rangeStart, rangeEnd);
-        dates.forEach((dateStr) => {
-          const isBase = dateStr === e.date;
-          expandedEvents.push({
-            ...e,
-            id: isBase ? e.id : `${e.id}_occur_${dateStr}`,
-            date: dateStr,
-          });
-        });
-      } else {
-        expandedEvents.push(e);
       }
     });
 
     setAllTasks(expandedTasks);
     setAllEvents(expandedEvents);
 
-    const dateStr = formatLocalDate(selectedDate);
-    const dayTasks = expandedTasks.filter((t) => t.dueDate === dateStr);
-    const dayEvents = expandedEvents.filter((e) => e.date === dateStr);
+    const dateStr = toLocalDate(selectedDate);
+    const dayTasks = expandedTasks.filter(t => t.dueDate === dateStr);
+    const dayEvents = expandedEvents.filter(e => e.date === dateStr);
 
     setTasks(dayTasks);
     setEvents(dayEvents);
-  }, [userId, batches, visibilityMap, selectedDate, getViewRange]);
+  }, [userId, batches, visibilityMap, selectedDate, getViewRange, markRead]);
 
-  const isInitialDataLoadRef = useRef(true);
-  useEffect(() => {
-    if (isInitialDataLoadRef.current) {
-      isInitialDataLoadRef.current = false;
-      return;
-    }
+  const retryRead = useCallback(() => {
+    loadBlocks();
+    loadScheduleData();
+  }, [loadBlocks, loadScheduleData]);
+
+  const failedParts = (
+    Object.keys(readFailures.parts) as CalendarReadPart[]
+  ).sort();
+  const readError: CalendarReadError | null =
+    readFailures.ownerId === userId && failedParts.length > 0
+      ? {
+          ownerId: userId,
+          parts: failedParts,
+          showingPrevious: failedParts.some(
+            part => readFailures.parts[part]?.showingPrevious,
+          ),
+        }
+      : null;
+
+  // Load the bounded window before paint, including the first mount.
+  useLayoutEffect(() => {
     loadBlocks();
     loadScheduleData();
     generateWeekDays();
-  }, [userId, selectedDate, refreshTrigger, loadBlocks, loadScheduleData, generateWeekDays]);
+  }, [
+    userId,
+    selectedDate,
+    refreshTrigger,
+    loadBlocks,
+    loadScheduleData,
+    generateWeekDays,
+  ]);
 
   const prevSettingsKeyRef = useRef(`${userId}:${refreshTrigger}`);
   useEffect(() => {
@@ -415,22 +425,31 @@ export const useCalendarData = (options: UseCalendarDataOptions): CalendarData &
     if (prevBatchUserIdRef.current === userId) return;
     prevBatchUserIdRef.current = userId;
     setBatches([]);
-    setVisibilityMap({ main: true });
+    setVisibilityMap({main: true});
   }, [userId]);
 
   useEffect(() => {
     loadImportsAndVisibility();
   }, [userId, refreshTrigger, loadImportsAndVisibility]);
 
-  const handleToggleVisibility = useCallback(async (calendarId: string, isVisible: boolean) => {
-    try {
-      await calendarVisibilityStore.setVisibility(userId, calendarId, isVisible);
-      const updatedMap = await calendarVisibilityStore.getVisibilityMap(userId);
-      if (activeUserIdRef.current === userId) setVisibilityMap(updatedMap);
-    } catch (error) {
-      console.error('Failed to toggle visibility:', error);
-    }
-  }, [userId]);
+  const handleToggleVisibility = useCallback(
+    async (calendarId: string, isVisible: boolean) => {
+      try {
+        await calendarVisibilityStore.setVisibility(
+          userId,
+          calendarId,
+          isVisible,
+        );
+        const updatedMap = await calendarVisibilityStore.getVisibilityMap(
+          userId,
+        );
+        if (activeUserIdRef.current === userId) setVisibilityMap(updatedMap);
+      } catch (error) {
+        console.error('Failed to toggle visibility:', error);
+      }
+    },
+    [userId],
+  );
 
   const handleImportCalendar = useCallback(async () => {
     try {
@@ -444,19 +463,36 @@ export const useCalendarData = (options: UseCalendarDataOptions): CalendarData &
       const fileName = res[0].name || 'imported_calendar.ics';
       const content = await RNFS.readFile(fileUri, 'utf8');
 
-      const { events: parsedEvents, blocks: parsedBlocks, tasks: parsedTasks } = parseIcsString(content);
-      const totalCount = parsedEvents.length + parsedBlocks.length + parsedTasks.length;
+      const {
+        events: parsedEvents,
+        blocks: parsedBlocks,
+        tasks: parsedTasks,
+        skipped,
+      } = parseIcsString(content);
+      const totalCount =
+        parsedEvents.length + parsedBlocks.length + parsedTasks.length;
+      // AGY-PORT 08: items with an invalid or impossible time are left out, not
+      // moved to today, and the count says so.
+      const skippedNote =
+        skipped > 0
+          ? ` ${skipped} item${
+              skipped === 1 ? ' was' : 's were'
+            } left out because a date or time was invalid, impossible, or longer than a day.`
+          : '';
 
       if (totalCount === 0) {
-        Alert.alert('Import Calendar', 'No valid calendar events, tasks, or time blocks found in the selected file.');
+        Alert.alert(
+          'Import Calendar',
+          `No valid calendar events, tasks, or time blocks found in the selected file.${skippedNote}`,
+        );
         return;
       }
 
       Alert.alert(
         'Import Calendar',
-        `Found ${parsedEvents.length} events, ${parsedBlocks.length} time blocks, and ${parsedTasks.length} tasks. Do you want to import them?`,
+        `Found ${parsedEvents.length} events, ${parsedBlocks.length} time blocks, and ${parsedTasks.length} tasks.${skippedNote} Do you want to import them?`,
         [
-          { text: 'Cancel', style: 'cancel' },
+          {text: 'Cancel', style: 'cancel'},
           {
             text: 'Import',
             onPress: async () => {
@@ -465,9 +501,13 @@ export const useCalendarData = (options: UseCalendarDataOptions): CalendarData &
                   events: parsedEvents,
                   blocks: parsedBlocks,
                   tasks: parsedTasks,
+                  skipped,
                 });
 
-                Alert.alert('Success', `Successfully imported ${totalCount} items.`);
+                Alert.alert(
+                  'Success',
+                  `Successfully imported ${totalCount} items.`,
+                );
                 loadImportsAndVisibility();
                 onRefresh();
               } catch (err) {
@@ -476,7 +516,7 @@ export const useCalendarData = (options: UseCalendarDataOptions): CalendarData &
               }
             },
           },
-        ]
+        ],
       );
     } catch (err) {
       if (isErrorWithCode(err) && err.code === errorCodes.OPERATION_CANCELED) {
@@ -490,14 +530,27 @@ export const useCalendarData = (options: UseCalendarDataOptions): CalendarData &
 
   const handleExportCalendar = useCallback(async () => {
     try {
-      const allTasksData = tasksStore.getAllTasks(userId);
-      const allEventsData = tasksStore.getAllEvents(userId);
-      const allBlocksData = timeBlocksStore.getAll(userId);
-      if (allTasksData.length === 0 && allEventsData.length === 0 && allBlocksData.length === 0) {
-        Alert.alert('Export Calendar', 'Your calendar is empty. Nothing to export.');
+      // Explicit full export: every owned item, read in bounded batches (AGY-PORT 06).
+      const everything = plannerQueries.exportAll(userId);
+      const allTasksData = everything.tasks;
+      const allEventsData = everything.events;
+      const allBlocksData = everything.blocks;
+      if (
+        allTasksData.length === 0 &&
+        allEventsData.length === 0 &&
+        allBlocksData.length === 0
+      ) {
+        Alert.alert(
+          'Export Calendar',
+          'Your calendar is empty. Nothing to export.',
+        );
         return;
       }
-      const icsString = generateIcsString(allEventsData, allBlocksData, allTasksData);
+      const icsString = generateIcsString(
+        allEventsData,
+        allBlocksData,
+        allTasksData,
+      );
       const tempPath = `${RNFS.TemporaryDirectoryPath}/lafina_calendar_export.ics`;
       await RNFS.writeFile(tempPath, icsString, 'utf8');
       await Share.open({
@@ -506,9 +559,15 @@ export const useCalendarData = (options: UseCalendarDataOptions): CalendarData &
         filename: 'lafina_calendar_export',
         title: 'Export LAFINA Calendar',
       });
-      await RNFS.unlink(tempPath).catch((err: any) => console.warn('Clean temp file failed:', err));
+      await RNFS.unlink(tempPath).catch((err: any) =>
+        console.warn('Clean temp file failed:', err),
+      );
     } catch (err) {
-      if (err && (err as any).message && (err as any).message.includes('User did not share')) {
+      if (
+        err &&
+        (err as any).message &&
+        (err as any).message.includes('User did not share')
+      ) {
         return;
       }
       console.error('Failed to export calendar:', err);
@@ -516,49 +575,64 @@ export const useCalendarData = (options: UseCalendarDataOptions): CalendarData &
     }
   }, [userId]);
 
-  const confirmBatchRemoval = useCallback((batch: ImportBatch) => {
-    const totalCount = batch.events.length + batch.blocks.length + batch.tasks.length;
+  const confirmBatchRemoval = useCallback(
+    (batch: ImportBatch) => {
+      const totalCount =
+        batch.events.length + batch.blocks.length + batch.tasks.length;
 
-    Alert.alert(
-      'Confirm Removal',
-      `Are you sure you want to delete all ${totalCount} items imported from "${batch.fileName}"?`,
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Remove',
-          style: 'destructive',
-          onPress: async () => {
-            try {
-              await removeImportedCalendarBatch(userId, batch);
+      Alert.alert(
+        'Confirm Removal',
+        `Are you sure you want to delete all ${totalCount} items imported from "${batch.fileName}"?`,
+        [
+          {text: 'Cancel', style: 'cancel'},
+          {
+            text: 'Remove',
+            style: 'destructive',
+            onPress: async () => {
+              try {
+                await removeImportedCalendarBatch(userId, batch);
 
-              loadImportsAndVisibility();
-              onRefresh();
-              Alert.alert('Success', `Successfully removed ${totalCount} items.`);
-            } catch (err) {
-              console.error('Failed to remove imported calendar batch:', err);
-              Alert.alert('Error', 'Failed to remove calendar items.');
-            }
+                loadImportsAndVisibility();
+                onRefresh();
+                Alert.alert(
+                  'Success',
+                  `Successfully removed ${totalCount} items.`,
+                );
+              } catch (err) {
+                console.error('Failed to remove imported calendar batch:', err);
+                Alert.alert('Error', 'Failed to remove calendar items.');
+              }
+            },
           },
-        },
-      ]
-    );
-  }, [userId, loadImportsAndVisibility, onRefresh]);
+        ],
+      );
+    },
+    [userId, loadImportsAndVisibility, onRefresh],
+  );
 
   const startRemoveFlow = useCallback(async () => {
     try {
-      const fetchedBatches = await importedBatchesStore.getImportedBatches(userId);
+      const fetchedBatches = await importedBatchesStore.getImportedBatches(
+        userId,
+      );
       if (fetchedBatches.length === 0) {
-        Alert.alert('Remove Imported Calendar', 'No previously imported calendars were found.');
+        Alert.alert(
+          'Remove Imported Calendar',
+          'No previously imported calendars were found.',
+        );
         return;
       }
 
-      const buttons = fetchedBatches.map((batch) => {
-        const dateFormatted = new Date(batch.timestamp).toLocaleDateString('en-US', {
-          month: 'short',
-          day: 'numeric',
-          hour: '2-digit',
-          minute: '2-digit',
-        });
+      const buttons = fetchedBatches.map(batch => {
+        const dateFormatted = new Date(batch.timestamp).toLocaleDateString(
+          'en-US',
+          {
+            month: 'short',
+            day: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit',
+          },
+        );
 
         return {
           text: `${batch.fileName} (${dateFormatted})`,
@@ -574,7 +648,7 @@ export const useCalendarData = (options: UseCalendarDataOptions): CalendarData &
       Alert.alert(
         'Remove Imported Calendar',
         'Select the calendar import batch you wish to remove:',
-        buttons
+        buttons,
       );
     } catch (err) {
       console.error('Failed to load import batches:', err);
@@ -582,26 +656,32 @@ export const useCalendarData = (options: UseCalendarDataOptions): CalendarData &
     }
   }, [userId, confirmBatchRemoval]);
 
-  const navigateWeek = useCallback((direction: 'prev' | 'next') => {
-    const newDate = new Date(selectedDate);
-    if (direction === 'prev') {
-      newDate.setDate(newDate.getDate() - 7);
-    } else {
-      newDate.setDate(newDate.getDate() + 7);
-    }
-    setSelectedDate(newDate);
-    setCurrentDate(newDate);
-  }, [selectedDate]);
+  const navigateWeek = useCallback(
+    (direction: 'prev' | 'next') => {
+      const newDate = new Date(selectedDate);
+      if (direction === 'prev') {
+        newDate.setDate(newDate.getDate() - 7);
+      } else {
+        newDate.setDate(newDate.getDate() + 7);
+      }
+      setSelectedDate(newDate);
+      setCurrentDate(newDate);
+    },
+    [selectedDate],
+  );
 
-  const navigateMonth = useCallback((direction: 'prev' | 'next') => {
-    const newDate = new Date(currentDate);
-    if (direction === 'prev') {
-      newDate.setMonth(newDate.getMonth() - 1);
-    } else {
-      newDate.setMonth(newDate.getMonth() + 1);
-    }
-    setCurrentDate(newDate);
-  }, [currentDate]);
+  const navigateMonth = useCallback(
+    (direction: 'prev' | 'next') => {
+      const newDate = new Date(currentDate);
+      if (direction === 'prev') {
+        newDate.setMonth(newDate.getMonth() - 1);
+      } else {
+        newDate.setMonth(newDate.getMonth() + 1);
+      }
+      setCurrentDate(newDate);
+    },
+    [currentDate],
+  );
 
   const handlePrevPress = useCallback(() => {
     if (viewMode === 'week') navigateWeek('prev');
@@ -619,17 +699,21 @@ export const useCalendarData = (options: UseCalendarDataOptions): CalendarData &
     setCurrentDate(today);
   }, []);
 
-  const handleDayTap = useCallback((dayNum: number) => {
-    const targetDate = new Date(currentDate.getFullYear(), currentDate.getMonth(), dayNum);
-    setSelectedDate(targetDate);
-    setViewMode('week');
-  }, [currentDate, setViewMode]);
+  const handleDayTap = useCallback(
+    (dayNum: number) => {
+      const targetDate = new Date(
+        currentDate.getFullYear(),
+        currentDate.getMonth(),
+        dayNum,
+      );
+      setSelectedDate(targetDate);
+      setViewMode('week');
+    },
+    [currentDate, setViewMode],
+  );
 
-  const getOverdueTasks = useCallback(() => {
-    const tasksData = tasksStore.getAllTasks(userId);
-    const todayStr = formatLocalDate(new Date());
-    return tasksData.filter((t) => t.dueDate && t.dueDate < todayStr && !t.isCompleted);
-  }, [userId]);
+  // Bounded and loaded with the schedule (no full read per render).
+  const getOverdueTasks = useCallback(() => overdue.items, [overdue]);
 
   return {
     currentDate,
@@ -655,6 +739,9 @@ export const useCalendarData = (options: UseCalendarDataOptions): CalendarData &
     loadBlocks,
     loadScheduleData,
     getOverdueTasks,
+    overdueTotal: overdue.total,
+    readError,
+    retryRead,
 
     // Visibility and Import/Export
     batches,

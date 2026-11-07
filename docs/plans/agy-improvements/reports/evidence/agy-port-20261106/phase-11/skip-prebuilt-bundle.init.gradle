@@ -1,0 +1,15 @@
+// AGY-PORT 11 build-environment workaround (not a project file; passed with -I).
+// Metro cannot bundle from the X: subst alias (it resolves node_modules through their real C: path,
+// gradle-assemble-dataqa-1.log and -4.log), and native CMake/ninja cannot build from the real path
+// (MAX_PATH, phase-00/gradle-baseline-jdk17.log). So the JS bundle is produced first from the real
+// path (gradle-c.ps1 :app:createBundleDataQaJsAndAssets) and this script marks only that task as
+// SKIPPED in the X: build, keeping its already-produced output directory wired into asset merging.
+// Excluding it with -x instead is refused by Gradle (gradle-assemble-dataqa-2.log).
+// The APK audit then compares the packaged assets/index.android.bundle hash with the prebuilt file.
+allprojects {
+  tasks.configureEach { task ->
+    if (task.name == 'createBundleDataQaJsAndAssets') {
+      task.onlyIf('AGY-PORT 11: bundle prebuilt from the real checkout path') { false }
+    }
+  }
+}

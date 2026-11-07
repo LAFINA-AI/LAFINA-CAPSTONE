@@ -1,0 +1,40 @@
+2026-11-05T18:22:16Z
+$ npx jest __tests__/storage/storageResilience __tests__/storage/schemaMigrations --runInBand  (BEFORE the fix, base 5f0ac39)
+  ● DatabaseService failure handling › after-commit work › a native registration failure does not pretend the save rolled back
+  ● DatabaseService failure handling › after-commit work › after-commit work can start a new transaction
+  ● DatabaseService failure handling › after-commit work › never runs after a rollback
+  ● DatabaseService failure handling › after-commit work › runs only after commit, in order
+  ● DatabaseService failure handling › diagnostics › SQL errors never log bound values
+  ● DatabaseService failure handling › diagnostics › health listeners hear transitions and can unsubscribe
+  ● DatabaseService failure handling › native open failure › initDatabase rejects and keeps the unavailable state
+  ● DatabaseService failure handling › native open failure › is reported as unavailable, never as a working database
+  ● DatabaseService failure handling › native open failure › rejects writes without running the callback or after-commit work
+  ● DatabaseService failure handling › native open failure › reopen recovers once the connection can open
+  ● DatabaseService failure handling › rollback failure quarantine › SQLite auto-rollback is not treated as an unsafe connection
+  ● DatabaseService failure handling › rollback failure quarantine › blocks reads and writes on the unsafe connection
+  ● DatabaseService failure handling › rollback failure quarantine › reopen closes the unsafe connection and starts clean
+  ● DatabaseService failure handling › test-only volatile adapter › is explicit: temporary, not durable, and after-commit still runs
+  ● DatabaseService failure handling › test-only volatile adapter › is refused outside the test environment
+  ● DatabaseService failure handling › transaction lifetime › a callback returning a promise rolls back
+  ● DatabaseService failure handling › transaction lifetime › a failed BEGIN does not run the body or quarantine
+  ● DatabaseService failure handling › transaction lifetime › a failed COMMIT rolls back and skips after-commit work
+  ● DatabaseService failure handling › transaction lifetime › a handle cannot be used after commit or after rollback
+  ● DatabaseService failure handling › transaction lifetime › an exception rolls back every statement
+  ● DatabaseService failure handling › transaction lifetime › async callbacks are refused before any work starts
+  ● DatabaseService failure handling › transaction lifetime › nesting is refused and the outer work rolls back
+  ● DatabaseService failure handling › unreadable and refused files are never rewritten › a corrupt file is left byte-for-byte untouched
+  ● DatabaseService failure handling › unreadable and refused files are never rewritten › a failed integrity verdict stops before the schema is 
+  ● DatabaseService failure handling › unreadable and refused files are never rewritten › a malformed version is refused before any write
+  ● DatabaseService failure handling › unreadable and refused files are never rewritten › a newer schema is refused before any write
+  ● schema migrations › a failed step is retried cleanly on the next launch
+  ● schema migrations › a failure at any upgrade statement leaves the fixture intact
+  ● schema migrations › a fresh database reaches the current version
+  ● schema migrations › an interrupted older version gains missing columns additively
+  ● schema migrations › steps run once, in order, and only those above the installed version
+  ● schema migrations › stores read upgraded data through the real module stack
+  ● schema migrations › the connection uses rollback journaling, enforced keys and a bounded wait
+  ● schema migrations › upgrading schema 17 keeps every row byte-identical, then reopens
+  ● schema migrations › validateMigrationSequence › accepts an empty list and contiguous steps
+Test Suites: 2 failed, 2 total
+Tests:       35 failed, 5 passed, 40 total
+tests expected to fail: exports DatabaseService/StorageUnavailableError/CURRENT_SCHEMA_VERSION/validateMigrationSequence do not exist at the base

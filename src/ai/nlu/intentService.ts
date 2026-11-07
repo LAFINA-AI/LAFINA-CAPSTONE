@@ -170,6 +170,14 @@ export class IntentService {
   /**
    * End-to-end NLU loop:
    * Extracts validated intent from transcript and executes the resulting database & scheduler mutations.
+   *
+   * @deprecated Test-only (AGY-PORT 04). It writes without a review, so no
+   * product code may call it: Chat and Voice go through
+   * `chatOrchestrator.processMessage`, which prepares a reviewed command and
+   * writes only on Confirm. `scripts/check-architecture.mjs` fails the build if
+   * any module under `src/` other than this file references it. It stays so the
+   * Phase 07 parser/executor regression tests keep exercising
+   * `executeNluAction` end to end.
    */
   async processAndExecuteIntent(
     userId: string,

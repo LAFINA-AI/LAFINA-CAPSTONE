@@ -45,6 +45,8 @@ interface IncomingCallScreenProps {
   userId: string;
   onClose: () => void;
   initialAction?: NativeCallAction;
+  /** Delivery generation captured at admission; Answer/Decline act only on it. */
+  deliveryGeneration?: number | null;
 }
 
 /** Renders and coordinates the complete offline reminder call experience. */
@@ -55,6 +57,7 @@ export const IncomingCallScreen: React.FC<IncomingCallScreenProps> = ({
   userId,
   onClose,
   initialAction = 'call',
+  deliveryGeneration = null,
 }) => {
   const { isDarkMode, colors } = useTheme();
   const [callState, setCallState] = useState<CallState>('ringing');
@@ -220,7 +223,13 @@ export const IncomingCallScreen: React.FC<IncomingCallScreenProps> = ({
     try {
       const speechProvider =
         speechProviderRef.current || createCallSpeechProvider(userId);
-      await answerCall(reminderId, userId, microphoneGranted, speechProvider);
+      await answerCall(
+        reminderId,
+        userId,
+        microphoneGranted,
+        speechProvider,
+        deliveryGeneration,
+      );
       if (!microphoneGranted) {
         setReply(
           'Microphone permission is unavailable. Use Acknowledge or Snooze below.',
@@ -230,20 +239,20 @@ export const IncomingCallScreen: React.FC<IncomingCallScreenProps> = ({
       console.error('[CallScreen] Could not answer reminder call:', error);
       setReply('LAFINA could not start the voice call. Use the buttons below.');
     }
-  }, [reminderId, userId]);
+  }, [deliveryGeneration, reminderId, userId]);
 
   const handleDecline = useCallback(async (): Promise<void> => {
     Vibration.cancel();
     try {
       const speechProvider =
         speechProviderRef.current || createCallSpeechProvider(userId);
-      await declineCall(reminderId, userId, speechProvider);
+      await declineCall(reminderId, userId, speechProvider, deliveryGeneration);
     } catch (error) {
       console.error('[CallScreen] Could not end reminder call:', error);
     } finally {
       closeCallScreen();
     }
-  }, [closeCallScreen, reminderId, userId]);
+  }, [closeCallScreen, deliveryGeneration, reminderId, userId]);
 
   const handleManualSnooze = useCallback(
     async (minutes: number): Promise<void> => {
@@ -268,13 +277,21 @@ export const IncomingCallScreen: React.FC<IncomingCallScreenProps> = ({
 
   useEffect(() => {
     if (!visible || !reminderId) return;
-    const actionKey = reminderId + ':' + initialAction;
+    const actionKey =
+      reminderId + ':' + String(deliveryGeneration) + ':' + initialAction;
     if (processedActionRef.current === actionKey) return;
     processedActionRef.current = actionKey;
 
     if (initialAction === 'answer') void handleAnswer();
     if (initialAction === 'decline') void handleDecline();
-  }, [visible, reminderId, initialAction, handleAnswer, handleDecline]);
+  }, [
+    visible,
+    reminderId,
+    deliveryGeneration,
+    initialAction,
+    handleAnswer,
+    handleDecline,
+  ]);
 
   useEffect(() => {
     if (!visible || callState !== 'ringing') return;

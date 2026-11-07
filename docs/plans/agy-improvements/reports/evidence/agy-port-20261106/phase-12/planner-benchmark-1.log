@@ -1,0 +1,26 @@
+$ node scripts/benchmark-planner.cjs --output docs/plans/agy-improvements/reports/evidence/agy-port-20261106/phase-12/planner-benchmark-1.json
+node:fs:622
+  return binding.open(
+                 ^
+
+Error: ENOENT: no such file or directory, open 'C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\src\core\storage\plannerRepository.ts'
+    at Object.openSync (node:fs:622:18)
+    at Object.readFileSync (node:fs:488:35)
+    at C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\scripts\benchmark-planner.cjs:49:20
+    at Array.map (<anonymous>)
+    at hashSources (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\scripts\benchmark-planner.cjs:45:17)
+    at Object.<anonymous> (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\scripts\benchmark-planner.cjs:53:23)
+    at Module._compile (node:internal/modules/cjs/loader:1872:14)
+    at Object..js (node:internal/modules/cjs/loader:2003:10)
+    at Module.load (node:internal/modules/cjs/loader:1594:32)
+    at Module._load (node:internal/modules/cjs/loader:1396:12) {
+  errno: -4058,
+  code: 'ENOENT',
+  syscall: 'open',
+  path: 'C:\\L3mxr\\Github Repositories\\LAFINA-CAPSTONE-agy-development-cont\\src\\core\\storage\\plannerRepository.ts'
+}
+exit=1
+missing sources:
+absent src/core/storage/plannerRepository.ts
+absent src/core/storage/plannerRows.ts
+absent src/core/domain/planner.ts

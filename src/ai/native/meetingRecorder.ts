@@ -71,8 +71,20 @@ const getNative = (): LafinaMeetingRecorderNative | null => {
   return mod && typeof mod.startRecording === 'function' ? mod : null;
 };
 
+/**
+ * Final audit F1: set synchronously when this app asks the recorder to start,
+ * cleared when that start fails or a stop returns. Lets a check that cannot
+ * wait for the native isRecording() answer (Preview admission, immediately
+ * before playback) still see a recording this app is starting or running.
+ * isRecording() stays the native truth.
+ */
+let recordingClaimed = false;
+
 export const meetingRecorder = {
   isAvailable: (): boolean => getNative() !== null,
+
+  /** True from this app's start request until its stop returns (final audit F1). */
+  isRecordingClaimed: (): boolean => recordingClaimed,
 
   requestPermission: async (): Promise<boolean> => {
     if (Platform.OS !== 'android') return false;
@@ -102,7 +114,13 @@ export const meetingRecorder = {
   start: async (meetingId: string, title: string): Promise<string> => {
     const mod = getNative();
     if (!mod) throw new Error('Meeting recorder unavailable on this platform');
-    return mod.startRecording(meetingId, title);
+    recordingClaimed = true;
+    try {
+      return await mod.startRecording(meetingId, title);
+    } catch (error) {
+      recordingClaimed = false;
+      throw error;
+    }
   },
 
   pause: async (): Promise<boolean> => {
@@ -120,9 +138,14 @@ export const meetingRecorder = {
   stop: async (): Promise<MeetingRecordingResult> => {
     const mod = getNative();
     if (!mod) {
+      recordingClaimed = false;
       return { meetingId: '', chunkFiles: [], chunkDurationsMs: [] };
     }
-    return mod.stopRecording();
+    try {
+      return await mod.stopRecording();
+    } finally {
+      recordingClaimed = false;
+    }
   },
 
   isRecording: async (): Promise<boolean> => {

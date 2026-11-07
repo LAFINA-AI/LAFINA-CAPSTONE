@@ -57,3 +57,7 @@ Core scope:
 - Central semantic design tokens in `src/ui/theme/` and `src/ui/contexts/ThemeContext.tsx`. Use `StyleSheet.create` + `useThemedStyles` + `useTheme().colors`.
 - Use ESLint + Prettier + TypeScript strict + Jest (`npm run preflight`) and Android Gradle verification (`gradlew`) in every phase.
 - End **every response that completes work on a phase** with `STATUS: READY FOR REVIEW`, `STATUS: AWAITING DEVICE VALIDATION`, or `STATUS: BLOCKED`, and `STOPPED — awaiting explicit human approval`.
+
+## Task-scoped notice: AGY improvement port
+
+For the unattended AGY-PORT 00-13 run only, `docs/plans/agy-improvements/OWNER-AUTHORIZATION.md` records the owner's decision: AGY's existing accounts, subscriptions, cloud sync, online AI and RAG, document generation and meeting recording are preserved, and the phases proceed without per-phase approval. Everything else in this file still applies, including no Kokoro and no writes outside this checkout.

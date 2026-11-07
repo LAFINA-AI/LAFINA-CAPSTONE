@@ -1,9 +1,15 @@
-import { generateId } from '../utils';
-import { db, DatabaseTransaction } from './database';
-import { hashPassword, normalizeEmail, validatePassword, verifyPassword } from './authUtils';
-import { GUEST_USER_ID, GUEST_USERNAME } from '../constants';
-import { syncOutboxStore } from './syncOutboxStore';
-import { buildProfileSyncPayload } from './profileSyncPayload';
+import {generateId} from '../utils';
+import {db, DatabaseTransaction} from './database';
+import {
+  hashPassword,
+  normalizeEmail,
+  validatePassword,
+  verifyPassword,
+} from './authUtils';
+import {GUEST_USER_ID, GUEST_USERNAME} from '../constants';
+import {syncOutboxStore} from './syncOutboxStore';
+import {buildProfileSyncPayload} from './profileSyncPayload';
+import {noteSessionChange} from './sessionEpoch';
 
 export interface User {
   id: string;
@@ -40,7 +46,10 @@ const mapStoredUser = (row: StoredUserRow): User => ({
   isCloudLinked: row.cloud_linked === 1,
   cloudLinkedAt:
     typeof row.cloud_linked_at === 'string' ? row.cloud_linked_at : null,
-  avatarUri: typeof row.avatar_uri === 'string' && row.avatar_uri ? row.avatar_uri : null,
+  avatarUri:
+    typeof row.avatar_uri === 'string' && row.avatar_uri
+      ? row.avatar_uri
+      : null,
   createdAt: String(row.created_at),
   updatedAt: String(row.updated_at),
 });
@@ -62,22 +71,6 @@ const enqueueProfileMutation = (
   );
 };
 
-// Ensure active_session table exists with auth token persistence columns
-try {
-  db.executeSync(`
-    CREATE TABLE IF NOT EXISTS active_session (
-      user_id TEXT PRIMARY KEY,
-      access_token TEXT,
-      refresh_token TEXT,
-      pending_cloud_credential TEXT,
-      created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
-      updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
-    )
-  `);
-} catch (e) {
-  console.error('Error creating active_session table:', e);
-}
-
 export const userStore = {
   /**
    * Creates or restores the persistent offline guest account.
@@ -90,15 +83,23 @@ export const userStore = {
            id, username, email, role, is_new_user, time_format_24h,
            week_starts_monday, dark_mode, created_at, updated_at
          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-        [GUEST_USER_ID, GUEST_USERNAME, null, 'guest', 1, 0, 0, 0, now, now]
+        [GUEST_USER_ID, GUEST_USERNAME, null, 'guest', 1, 0, 0, 0, now, now],
       );
-      const result = db.executeSync('SELECT * FROM users WHERE id = ?', [GUEST_USER_ID]);
+      const result = db.executeSync('SELECT * FROM users WHERE id = ?', [
+        GUEST_USER_ID,
+      ]);
       if (result.rows && result.rows.length > 0) {
         const row = result.rows[0];
         return mapStoredUser(row);
       }
     } catch (error) {
       console.error('Error creating guest user:', error);
+      throw error;
+    }
+
+    // Only the test adapter returns no row. Real storage must not invent a profile.
+    if (!db.isFallback()) {
+      throw new Error('The guest profile could not be read back after saving.');
     }
 
     return {
@@ -123,10 +124,16 @@ export const userStore = {
     return userId === GUEST_USER_ID;
   },
 
-  register: async (username: string, email: string, password: string): Promise<string> => {
+  register: async (
+    username: string,
+    email: string,
+    password: string,
+  ): Promise<string> => {
     const passwordValidation = validatePassword(password);
     if (!passwordValidation.isValid) {
-      throw new Error(passwordValidation.error || 'Password validation failed.');
+      throw new Error(
+        passwordValidation.error || 'Password validation failed.',
+      );
     }
 
     const normalizedEmail = normalizeEmail(email);
@@ -135,7 +142,8 @@ export const userStore = {
     const usersResult = db.executeSync('SELECT * FROM users');
     const existing = usersResult.rows.find(
       (row: StoredUserRow) =>
-        normalizeEmail(typeof row.email === 'string' ? row.email : '') === normalizedEmail
+        normalizeEmail(typeof row.email === 'string' ? row.email : '') ===
+        normalizedEmail,
     );
     if (existing) {
       throw new Error('Email already registered');
@@ -145,13 +153,25 @@ export const userStore = {
     const hash = await hashPassword(password);
 
     try {
-      db.transactionSync((tx) => {
+      db.transactionSync(tx => {
         tx.executeSync(
           `INSERT INTO users (
              id, username, email, password_hash, role, is_new_user, time_format_24h,
              week_starts_monday, dark_mode, created_at, updated_at
            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-          [id, username, normalizedEmail, hash, 'student', 1, 0, 0, 0, now, now],
+          [
+            id,
+            username,
+            normalizedEmail,
+            hash,
+            'student',
+            1,
+            0,
+            0,
+            0,
+            now,
+            now,
+          ],
         );
         enqueueProfileMutation(id, 'create', tx);
       });
@@ -169,19 +189,22 @@ export const userStore = {
     role: string;
   }): Promise<string> => {
     const normalizedEmail = normalizeEmail(input.email);
-    if (!normalizedEmail) throw new Error('A cloud account needs an email address.');
+    if (!normalizedEmail)
+      throw new Error('A cloud account needs an email address.');
     if (!input.cloudAccountId) throw new Error('A cloud account needs its id.');
     const hash = await hashPassword(input.password);
     const now = new Date().toISOString();
     const placeholderName = normalizedEmail.split('@')[0] || 'LAFINA user';
     const id = generateId('user');
 
-    db.transactionSync((tx) => {
-      const rows = tx.executeSync('SELECT id, email, cloud_account_id FROM users').rows ?? [];
+    db.transactionSync(tx => {
+      const rows =
+        tx.executeSync('SELECT id, email, cloud_account_id FROM users').rows ??
+        [];
       const clash = rows.find(
         (row: StoredUserRow) =>
-          normalizeEmail(typeof row.email === 'string' ? row.email : '') === normalizedEmail ||
-          row.cloud_account_id === input.cloudAccountId
+          normalizeEmail(typeof row.email === 'string' ? row.email : '') ===
+            normalizedEmail || row.cloud_account_id === input.cloudAccountId,
       );
       if (clash) {
         throw new Error('This account is already on this phone.');
@@ -214,13 +237,17 @@ export const userStore = {
       const normalizedEmail = normalizeEmail(email);
       const userRow = usersResult.rows.find(
         (row: StoredUserRow) =>
-          normalizeEmail(typeof row.email === 'string' ? row.email : '') === normalizedEmail
+          normalizeEmail(typeof row.email === 'string' ? row.email : '') ===
+          normalizedEmail,
       );
       if (!userRow) {
         return null;
       }
 
-      const isValid = await verifyPassword(password, String(userRow.password_hash ?? ''));
+      const isValid = await verifyPassword(
+        password,
+        String(userRow.password_hash ?? ''),
+      );
       if (!isValid) {
         return null;
       }
@@ -238,8 +265,9 @@ export const userStore = {
       const result = db.executeSync('SELECT * FROM users');
       const row = result.rows.find(
         (candidate: StoredUserRow) =>
-          normalizeEmail(typeof candidate.email === 'string' ? candidate.email : '') ===
-          normalizedEmail
+          normalizeEmail(
+            typeof candidate.email === 'string' ? candidate.email : '',
+          ) === normalizedEmail,
       );
       return row ? mapStoredUser(row) : null;
     } catch (error) {
@@ -263,12 +291,15 @@ export const userStore = {
   },
 
   setCurrentUser: (userId: string): void => {
+    // A new sign-in, even as the same account, retires confirmations made for
+    // the previous one (remediation audit P1).
+    noteSessionChange();
     try {
       db.executeSync('DELETE FROM active_session');
       const now = new Date().toISOString();
       db.executeSync(
         'INSERT INTO active_session (user_id, access_token, refresh_token, created_at, updated_at) VALUES (?, ?, ?, ?, ?)',
-        [userId, null, null, now, now]
+        [userId, null, null, now, now],
       );
     } catch (error) {
       console.error('Error setting current user session:', error);
@@ -277,6 +308,7 @@ export const userStore = {
   },
 
   logout: (): void => {
+    noteSessionChange();
     try {
       db.executeSync('DELETE FROM active_session');
     } catch (error) {
@@ -294,12 +326,12 @@ export const userStore = {
     if (encryptedRefreshToken !== undefined) {
       db.executeSync(
         `UPDATE active_session SET access_token = ?, refresh_token = ?, updated_at = ? WHERE user_id = ?`,
-        [accessToken, encryptedRefreshToken, now, userId]
+        [accessToken, encryptedRefreshToken, now, userId],
       );
     } else {
       db.executeSync(
         `UPDATE active_session SET access_token = ?, updated_at = ? WHERE user_id = ?`,
-        [accessToken, now, userId]
+        [accessToken, now, userId],
       );
     }
   },
@@ -309,7 +341,7 @@ export const userStore = {
     try {
       db.executeSync(
         `UPDATE active_session SET access_token = NULL, refresh_token = NULL, updated_at = ? WHERE user_id = ?`,
-        [now, userId]
+        [now, userId],
       );
     } catch (error) {
       console.error('Error clearing cloud session tokens:', error);
@@ -317,14 +349,17 @@ export const userStore = {
     }
   },
 
-  savePendingCloudCredential: (userId: string, encryptedCredential: string): void => {
+  savePendingCloudCredential: (
+    userId: string,
+    encryptedCredential: string,
+  ): void => {
     const now = new Date().toISOString();
     try {
       db.executeSync(
         `UPDATE active_session
          SET pending_cloud_credential = ?, updated_at = ?
          WHERE user_id = ?`,
-        [encryptedCredential, now, userId]
+        [encryptedCredential, now, userId],
       );
     } catch (error) {
       console.error('Error saving deferred cloud credential:', error);
@@ -339,7 +374,7 @@ export const userStore = {
         `UPDATE active_session
          SET pending_cloud_credential = NULL, updated_at = ?
          WHERE user_id = ?`,
-        [now, userId]
+        [now, userId],
       );
     } catch (error) {
       console.error('Error clearing deferred cloud credential:', error);
@@ -356,14 +391,16 @@ export const userStore = {
     try {
       const res = db.executeSync(
         `SELECT user_id, access_token, refresh_token, pending_cloud_credential
-         FROM active_session LIMIT 1`
+         FROM active_session LIMIT 1`,
       );
       if (res.rows && res.rows.length > 0) {
         const row = res.rows[0];
         return {
           userId: typeof row.user_id === 'string' ? row.user_id : null,
-          accessToken: typeof row.access_token === 'string' ? row.access_token : null,
-          refreshToken: typeof row.refresh_token === 'string' ? row.refresh_token : null,
+          accessToken:
+            typeof row.access_token === 'string' ? row.access_token : null,
+          refreshToken:
+            typeof row.refresh_token === 'string' ? row.refresh_token : null,
           pendingCloudCredential:
             typeof row.pending_cloud_credential === 'string'
               ? row.pending_cloud_credential
@@ -405,14 +442,13 @@ export const userStore = {
   },
 
   getUserById: (userId: string): User | null => {
-    if (userId === GUEST_USER_ID) {
-      return userStore.createGuestUser();
-    }
     try {
-      const result = db.executeSync(
-        `SELECT * FROM users WHERE id = ?`,
-        [userId]
-      );
+      if (userId === GUEST_USER_ID) {
+        return userStore.createGuestUser();
+      }
+      const result = db.executeSync(`SELECT * FROM users WHERE id = ?`, [
+        userId,
+      ]);
       if (result.rows && result.rows.length > 0) {
         const row = result.rows[0];
         return mapStoredUser(row);
@@ -432,7 +468,7 @@ export const userStore = {
   set24HourFormat: (userId: string, _enabled: boolean): void => {
     const now = new Date().toISOString();
     try {
-      db.transactionSync((tx) => {
+      db.transactionSync(tx => {
         tx.executeSync(
           `UPDATE users SET time_format_24h = 0, updated_at = ? WHERE id = ?`,
           [now, userId],
@@ -449,7 +485,7 @@ export const userStore = {
     try {
       const result = db.executeSync(
         `SELECT week_starts_monday FROM users WHERE id = ?`,
-        [userId]
+        [userId],
       );
       if (result.rows && result.rows.length > 0) {
         return !!result.rows[0].week_starts_monday;
@@ -464,11 +500,10 @@ export const userStore = {
   setAvatarUri: (userId: string, uri: string | null): void => {
     const now = new Date().toISOString();
     try {
-      db.executeSync(`UPDATE users SET avatar_uri = ?, updated_at = ? WHERE id = ?`, [
-        uri,
-        now,
-        userId,
-      ]);
+      db.executeSync(
+        `UPDATE users SET avatar_uri = ?, updated_at = ? WHERE id = ?`,
+        [uri, now, userId],
+      );
     } catch (error) {
       console.error('Error saving profile photo:', error);
       throw error;
@@ -478,7 +513,7 @@ export const userStore = {
   setWeekStartsMonday: (userId: string, enabled: boolean): void => {
     const now = new Date().toISOString();
     try {
-      db.transactionSync((tx) => {
+      db.transactionSync(tx => {
         tx.executeSync(
           `UPDATE users SET week_starts_monday = ?, updated_at = ? WHERE id = ?`,
           [enabled ? 1 : 0, now, userId],
@@ -495,7 +530,7 @@ export const userStore = {
     try {
       const result = db.executeSync(
         `SELECT dark_mode FROM users WHERE id = ?`,
-        [userId]
+        [userId],
       );
       if (result.rows && result.rows.length > 0) {
         return !!result.rows[0].dark_mode;
@@ -510,7 +545,7 @@ export const userStore = {
   setDarkModeEnabled: (userId: string, enabled: boolean): void => {
     const now = new Date().toISOString();
     try {
-      db.transactionSync((tx) => {
+      db.transactionSync(tx => {
         tx.executeSync(
           `UPDATE users SET dark_mode = ?, updated_at = ? WHERE id = ?`,
           [enabled ? 1 : 0, now, userId],
@@ -523,7 +558,7 @@ export const userStore = {
     }
   },
 
-  getRememberMe: (): { enabled: boolean; email: string | null } => {
+  getRememberMe: (): {enabled: boolean; email: string | null} => {
     try {
       const result = db.executeSync('SELECT * FROM remember_me WHERE id = 1');
       if (result.rows && result.rows.length > 0) {
@@ -533,10 +568,10 @@ export const userStore = {
           email: typeof row.email === 'string' ? row.email : null,
         };
       }
-      return { enabled: false, email: null };
+      return {enabled: false, email: null};
     } catch (error) {
       console.error('Error fetching Remember Me setting:', error);
-      return { enabled: false, email: null };
+      return {enabled: false, email: null};
     }
   },
 
@@ -545,7 +580,7 @@ export const userStore = {
     try {
       db.executeSync(
         `INSERT OR REPLACE INTO remember_me (id, enabled, email, updated_at) VALUES (1, ?, ?, ?)`,
-        [enabled ? 1 : 0, email, now]
+        [enabled ? 1 : 0, email, now],
       );
     } catch (error) {
       console.error('Error saving Remember Me setting:', error);
@@ -553,14 +588,18 @@ export const userStore = {
     }
   },
 
-  linkCloudAccount: (userId: string, cloudAccountId: string, role: string): void => {
+  linkCloudAccount: (
+    userId: string,
+    cloudAccountId: string,
+    role: string,
+  ): void => {
     const now = new Date().toISOString();
     try {
       db.executeSync(
         `UPDATE users
          SET cloud_account_id = ?, cloud_linked = 1, cloud_linked_at = ?, role = ?, updated_at = ?
          WHERE id = ?`,
-        [cloudAccountId, now, role, now, userId]
+        [cloudAccountId, now, role, now, userId],
       );
     } catch (error) {
       console.error('Error linking cloud account:', error);
@@ -571,10 +610,11 @@ export const userStore = {
   updateUserRole: (userId: string, role: string): void => {
     const now = new Date().toISOString();
     try {
-      db.executeSync(
-        `UPDATE users SET role = ?, updated_at = ? WHERE id = ?`,
-        [role, now, userId]
-      );
+      db.executeSync(`UPDATE users SET role = ?, updated_at = ? WHERE id = ?`, [
+        role,
+        now,
+        userId,
+      ]);
     } catch (error) {
       console.error('Error updating user role:', error);
     }

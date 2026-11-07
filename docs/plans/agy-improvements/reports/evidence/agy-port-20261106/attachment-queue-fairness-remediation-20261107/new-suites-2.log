@@ -1,0 +1,11 @@
+2026-11-07T03:24:51Z
+PASS __tests__/ui/clearDataAttachmentCleanup.test.tsx (7.837 s)
+PASS __tests__/storage/attachmentCleanup.test.ts
+PASS __tests__/storage/attachmentCleanupFairness.test.ts
+
+Test Suites: 3 passed, 3 total
+Tests:       69 passed, 69 total
+Snapshots:   0 total
+Time:        11.486 s, estimated 15 s
+Ran all test suites matching /__tests__\\storage\\attachmentCleanupFairness.test.ts|__tests__\\storage\\attachmentCleanup.test.ts|__tests__\\ui\\clearDataAttachmentCleanup.test.tsx/i.
+exit=0

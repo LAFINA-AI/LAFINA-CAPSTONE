@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.lafina.capstone.LafinaIntentExtractorTest" tests="3" skipped="0" failures="0" errors="0" timestamp="2026-11-05T19:47:07.311Z" hostname="DESKTOP-C32FQUT" time="0.006">
+  <properties/>
+  <testcase name="llama bridge specifies native model inference methods" classname="com.lafina.capstone.LafinaIntentExtractorTest" time="0.001"/>
+  <testcase name="intent extractor module class exists and matches native contract" classname="com.lafina.capstone.LafinaIntentExtractorTest" time="0.002"/>
+  <testcase name="inactivity unload timeout is 60 seconds to protect device RAM" classname="com.lafina.capstone.LafinaIntentExtractorTest" time="0.002"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>
