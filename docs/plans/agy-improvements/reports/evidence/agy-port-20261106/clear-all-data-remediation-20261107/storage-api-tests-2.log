@@ -1,0 +1,136 @@
+  console.error
+    [Database] SQL Error executing query: INSERT INTO notes (id, user_id, title, body, is_pinned, tags, category, is_voice_transcribed, image_uri, sort_order, cre Error: UNIQUE constraint failed: notes.id
+        at run (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\__mocks__\opSqliteMock.js:51:28)
+        at Object.executeOn [as executeSync] (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\__mocks__\opSqliteMock.js:81:42)
+        at DatabaseService.executeSync (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\src\storage\database.ts:145:36)
+        at Object.executeSync (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\src\storage\database.ts:202:21)
+        at executeSync (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\src\storage\notesStore.ts:124:12)
+        at DatabaseService.fn [as transactionSync] (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\src\storage\database.ts:214:16)
+        at transactionSync (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\src\storage\notesStore.ts:80:11)
+        at Object.runWrite [as insert] (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\src\storage\notesStore.ts:114:7)
+        at insert (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\__tests__\storage\accountDataReset.test.ts:45:14)
+        at Object.seed (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\__tests__\storage\accountDataReset.test.ts:351:5)
+        at Promise.then.completed (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-circus\build\utils.js:298:28)
+        at new Promise (<anonymous>)
+        at callAsyncCircusFn (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-circus\build\utils.js:231:10)
+        at _callCircusTest (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-circus\build\run.js:316:40)
+        at _runTest (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-circus\build\run.js:252:3)
+        at _runTestsForDescribeBlock (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-circus\build\run.js:126:9)
+        at _runTestsForDescribeBlock (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-circus\build\run.js:121:9)
+        at run (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-circus\build\run.js:71:3)
+        at runAndTransformResultsToJestFormat (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-circus\build\legacy-code-todo-rewrite\jestAdapterInit.js:122:21)
+        at jestAdapter (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-circus\build\legacy-code-todo-rewrite\jestAdapter.js:79:19)
+        at runTestInternal (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-runner\build\runTest.js:367:16)
+        at runTest (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-runner\build\runTest.js:444:34) {
+      code: 'ERR_SQLITE_ERROR',
+      errcode: 1555,
+      errstr: 'constraint failed'
+    }
+
+    [0m [90m 151 |[39m     } [36mcatch[39m (error) {
+     [90m 152 |[39m       [90m// Bound values can hold note text or credentials, so they are never logged.[39m
+    [31m[1m>[22m[39m[90m 153 |[39m       console[33m.[39merror(
+     [90m     |[39m               [31m[1m^[22m[39m
+     [90m 154 |[39m         [32m`[Database] SQL Error executing query: ${describeQuery(query)}`[39m[33m,[39m
+     [90m 155 |[39m         error[33m,[39m
+     [90m 156 |[39m       )[33m;[39m[0m
+
+      at DatabaseService.error [as executeSync] (src/storage/database.ts:153:15)
+      at Object.executeSync (src/storage/database.ts:202:21)
+      at executeSync (src/storage/notesStore.ts:124:12)
+      at DatabaseService.fn [as transactionSync] (src/storage/database.ts:214:16)
+      at transactionSync (src/storage/notesStore.ts:80:11)
+      at Object.runWrite [as insert] (src/storage/notesStore.ts:114:7)
+      at insert (__tests__/storage/accountDataReset.test.ts:45:14)
+      at Object.seed (__tests__/storage/accountDataReset.test.ts:351:5)
+
+  console.error
+    Error inserting note: Error: UNIQUE constraint failed: notes.id
+        at run (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\__mocks__\opSqliteMock.js:51:28)
+        at Object.executeOn [as executeSync] (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\__mocks__\opSqliteMock.js:81:42)
+        at DatabaseService.executeSync (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\src\storage\database.ts:145:36)
+        at Object.executeSync (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\src\storage\database.ts:202:21)
+        at executeSync (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\src\storage\notesStore.ts:124:12)
+        at DatabaseService.fn [as transactionSync] (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\src\storage\database.ts:214:16)
+        at transactionSync (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\src\storage\notesStore.ts:80:11)
+        at Object.runWrite [as insert] (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\src\storage\notesStore.ts:114:7)
+        at insert (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\__tests__\storage\accountDataReset.test.ts:45:14)
+        at Object.seed (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\__tests__\storage\accountDataReset.test.ts:351:5)
+        at Promise.then.completed (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-circus\build\utils.js:298:28)
+        at new Promise (<anonymous>)
+        at callAsyncCircusFn (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-circus\build\utils.js:231:10)
+        at _callCircusTest (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-circus\build\run.js:316:40)
+        at _runTest (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-circus\build\run.js:252:3)
+        at _runTestsForDescribeBlock (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-circus\build\run.js:126:9)
+        at _runTestsForDescribeBlock (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-circus\build\run.js:121:9)
+        at run (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-circus\build\run.js:71:3)
+        at runAndTransformResultsToJestFormat (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-circus\build\legacy-code-todo-rewrite\jestAdapterInit.js:122:21)
+        at jestAdapter (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-circus\build\legacy-code-todo-rewrite\jestAdapter.js:79:19)
+        at runTestInternal (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-runner\build\runTest.js:367:16)
+        at runTest (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-runner\build\runTest.js:444:34) {
+      code: 'ERR_SQLITE_ERROR',
+      errcode: 1555,
+      errstr: 'constraint failed'
+    }
+
+    [0m [90m 160 |[39m       })[33m;[39m
+     [90m 161 |[39m     } [36mcatch[39m (error) {
+    [31m[1m>[22m[39m[90m 162 |[39m       console[33m.[39merror([32m'Error inserting note:'[39m[33m,[39m error)[33m;[39m
+     [90m     |[39m               [31m[1m^[22m[39m
+     [90m 163 |[39m       [36mthrow[39m error[33m;[39m
+     [90m 164 |[39m     }
+     [90m 165 |[39m   }[33m,[39m[0m
+
+      at Object.error [as insert] (src/storage/notesStore.ts:162:15)
+      at insert (__tests__/storage/accountDataReset.test.ts:45:14)
+      at Object.seed (__tests__/storage/accountDataReset.test.ts:351:5)
+
+FAIL __tests__/storage/accountDataReset.test.ts
+  authorizeDataReset
+    √ captures the signed-in owner only (4 ms)
+    √ gives no authority when the session cannot be read (1 ms)
+    √ gives no authority on the volatile test-only adapter (1 ms)
+  resetPersonalData admission (P1)
+    √ refuses a null authority (1 ms)
+    √ refuses after an account switch and changes neither account (35 ms)
+    √ refuses after sign-out and sign-in again as the same account (5 ms)
+    √ refuses when the same owner is set as current again (session replaced) (7 ms)
+    √ refuses a guest's confirmation after the guest is linked to an account (10 ms)
+    √ refuses when the confirming screen is gone, before any write (5 ms)
+    √ stops before chat and defaults if the screen goes away mid-reset, and says so (33 ms)
+  resetPersonalData failures are reported, not inferred (P2)
+    √ a failed strict read fails the planner step and changes no planner record (7 ms)
+    √ a failed chat clear is reported and leaves the conversation (8 ms)
+  resetPersonalData success
+    √ clears only this owner's records, with tombstones, outbox deletes and alarm cancels (13 ms)
+    × runs repeatedly within the same sign-in (63 ms)
+
+  ● resetPersonalData success › runs repeatedly within the same sign-in
+
+    UNIQUE constraint failed: notes.id
+
+    [0m [90m 49 |[39m   }
+     [90m 50 |[39m
+    [31m[1m>[22m[39m[90m 51 |[39m   [36mconst[39m result [33m=[39m statement[33m.[39mrun([33m...[39mparams)[33m;[39m
+     [90m    |[39m                            [31m[1m^[22m[39m
+     [90m 52 |[39m   [36mreturn[39m {
+     [90m 53 |[39m     rows[33m:[39m [][33m,[39m
+     [90m 54 |[39m     rowsAffected[33m:[39m [33mNumber[39m(result[33m.[39mchanges)[33m,[39m[0m
+
+      at run (__mocks__/opSqliteMock.js:51:28)
+      at Object.executeOn [as executeSync] (__mocks__/opSqliteMock.js:81:42)
+      at DatabaseService.executeSync (src/storage/database.ts:145:36)
+      at Object.executeSync (src/storage/database.ts:202:21)
+      at executeSync (src/storage/notesStore.ts:124:12)
+      at DatabaseService.fn [as transactionSync] (src/storage/database.ts:214:16)
+      at transactionSync (src/storage/notesStore.ts:80:11)
+      at Object.runWrite [as insert] (src/storage/notesStore.ts:114:7)
+      at insert (__tests__/storage/accountDataReset.test.ts:45:14)
+      at Object.seed (__tests__/storage/accountDataReset.test.ts:351:5)
+
+Test Suites: 1 failed, 1 total
+Tests:       1 failed, 13 passed, 14 total
+Snapshots:   0 total
+Time:        2.594 s, estimated 3 s
+Ran all test suites matching /__tests__\\storage\\accountDataReset.test.ts/i.
+EXIT=1

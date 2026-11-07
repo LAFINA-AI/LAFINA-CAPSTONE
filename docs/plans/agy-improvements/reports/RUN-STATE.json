@@ -12,9 +12,9 @@
   "work_branch": "codex/agy-preservation-improvements",
   "worktree": "C:/L3mxr/Github Repositories/LAFINA-CAPSTONE-agy-development-cont",
   "donor_head": "0d4bbe39e106c29fb90792cf5d2f916b5c0d6480",
-  "last_tested_head": "f61d1eb (final-audit remediation gates; preflight on the identical working tree)",
-  "last_committed_head": "64c7d873bf5155e76ce0b257c6d0825451f4be23",
-  "current_phase": "NONE (run finished; final-audit F1-F4 follow-up done on host; owner device/live checks pending)",
+  "last_tested_head": "c015719 (remediation audit P1/P2 gates; preflight on the identical working tree before the commit; APKs built at HEAD c015719)",
+  "last_committed_head": "c01571966d319e9dcfeaf37773c643da63d86d04",
+  "current_phase": "NONE (run finished; final-audit F1-F4 and remediation audit P1/P2 follow-ups done on host; owner device/live checks pending)",
   "phases": [
     {
       "id": "AGY-PORT-00",
@@ -624,6 +624,44 @@
         "sdk-tools-1 apksigner step printed nothing (quoting); signer recorded in sdk-tools-apksigner-1.log",
         "no original test or assertion changed; frozen evaluation fixtures unchanged; android/, package files, cloud hosts unchanged",
         "parent self-review only; no independent review of the follow-up"
+      ]
+    },
+    {
+      "id": "CODEX-REMEDIATION-AUDIT-P1P2-1",
+      "scope": [
+        "P1 Clear All Data confirmation bound to the sign-in (session epoch) and screen lifetime that opened it; admission enforced in resetPersonalData before any write, inside the planner transaction and before the chat/defaults steps; refused with nothing deleted after account switch, sign-out, same-owner re-sign-in, guest linking or unmount",
+        "P2 strict owner-bound planner reads (...OrThrow, same SQL as unchanged display getters); store deletes in one verified transaction (all or nothing); per-step outcomes and unremoved attachment files reported; 'Data Cleared' only when all confirmed"
+      ],
+      "audit": "codex-remediation-audit-7b3b183-20261106.md",
+      "base_head": "7b3b1832a3754fbc2a1bd8f44211c45678fd6230",
+      "tested_head": "c015719 (preflight ran on the identical working tree before the commit); builds at c015719",
+      "implementation": "CODE_COMPLETE (P1, P2); ADR-025",
+      "automated": "PASS",
+      "build": "PASS (bundle executed; dataQa 12 executed/244 up-to-date; Kotlin 43 executed via --rerun; debug up-to-date, no packaged JS)",
+      "device": "NOT_RUN",
+      "live_service": "NOT_RUN",
+      "code_commit": "c01571966d319e9dcfeaf37773c643da63d86d04",
+      "result_commit": "recorded in the next index commit's log row",
+      "report": "clear-all-data-remediation.md",
+      "evidence": [
+        "evidence/agy-port-20261106/clear-all-data-remediation-20261107/",
+        "evidence/codex-remediation-verification-7b3b183-20261106/ (auditor's, committed unchanged)"
+      ],
+      "artifacts": {
+        "dataQa_arm64": "94c5d9ad7c67feb7698c61bdcc2941a9f5dcd9617299b88a5df8b56d703a9a04 (163257936 B)",
+        "dataQa_x86_64": "9f04fb3832962ec5a843f20d27785a306a77c974a5486a8de7f2e72880cd1183 (169577888 B)",
+        "debug_arm64": "0629c828072dfd5c3f8ab27e0f9838251965d78018dbf9ff32b2a0cc6d2b466e (unchanged)",
+        "debug_x86_64": "0756c1236c0a5f1942feb6de651acd470d71606825813629146e8f54d073d63a (unchanged)",
+        "bundle": "09e25695a0833f661749b1da78b8782ae547783ccc2ab5c1b5b36711420ea199 (packaged in both dataQa APKs; 7/7 fix-only markers present)",
+        "identity": "com.lafina.capstone, versionCode 6, 0.6.0-data-qa, SDK 36, debuggable; v2 CN=Android Debug acf890c3...dd5e; ONNX 1.22.0; permissions identical"
+      },
+      "notes": [
+        "pre-fix on 7b3b183: new UI suite 8 failed / 1 passed (success control) / 9; independent audit tests 2 failed / 2; all intended failures",
+        "post-fix: focused 15/15; independent 2/2 (audit dir hashes unchanged); storage API 18/18 (runs 1-3 failed on test-authoring errors, kept); F1-F3 regressions 29/29; protected gates 9 suites 207/207",
+        "preflight-1: 52 suites 740 passed + 1 opt-in skipped; architecture 217 modules, 0 cycles, 0 forbidden, 73 offline leaves",
+        "mutation-check-3: epoch, liveness, in-transaction check and strict+verify killed; strict alone and verify alone survive by design (mutual backstops); run 2 revealed a too-broad fault injection, fixed in the test",
+        "no original test or assertion changed; frozen evaluation fixtures unchanged; android/, package files, cloud hosts unchanged",
+        "self-review only; no independent review of c015719"
       ]
     }
   ]

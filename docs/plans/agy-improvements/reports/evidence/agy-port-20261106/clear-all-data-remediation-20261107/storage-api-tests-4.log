@@ -1,0 +1,30 @@
+PASS __tests__/storage/accountDataReset.test.ts
+  authorizeDataReset
+    √ captures the signed-in owner only (4 ms)
+    √ gives no authority when the session cannot be read (2 ms)
+    √ gives no authority on the volatile test-only adapter
+  resetPersonalData admission (P1)
+    √ refuses a null authority
+    √ refuses after an account switch and changes neither account (33 ms)
+    √ refuses after sign-out and sign-in again as the same account (4 ms)
+    √ refuses when the same owner is set as current again (session replaced) (4 ms)
+    √ refuses a guest's confirmation after the guest is linked to an account (8 ms)
+    √ refuses when the confirming screen is gone, before any write (4 ms)
+    √ stops before chat and defaults if the screen goes away mid-reset, and says so (31 ms)
+  resetPersonalData failures are reported, not inferred (P2)
+    √ a failed notes listing read fails the planner step and changes no planner record (6 ms)
+    √ a failed tasks listing read fails the planner step and changes no planner record (5 ms)
+    √ a failed events listing read fails the planner step and changes no planner record (6 ms)
+    √ a failed time_blocks listing read fails the planner step and changes no planner record (7 ms)
+    √ a failed reminders listing read fails the planner step and changes no planner record (8 ms)
+    √ a failed chat clear is reported and leaves the conversation (7 ms)
+  resetPersonalData success
+    √ clears only this owner's records, with tombstones, outbox deletes and alarm cancels (12 ms)
+    √ runs repeatedly within the same sign-in (9 ms)
+
+Test Suites: 1 passed, 1 total
+Tests:       18 passed, 18 total
+Snapshots:   0 total
+Time:        2.4 s
+Ran all test suites matching /__tests__\\storage\\accountDataReset.test.ts/i.
+EXIT=0

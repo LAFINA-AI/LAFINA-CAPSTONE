@@ -1,0 +1,11 @@
+PASS __tests__/ui/finalAuditF3ClearAllDataFailure.test.tsx (6.979 s)
+PASS __tests__/ui/finalAuditF1OfflineVoicePending.test.tsx
+PASS __tests__/ai/finalAuditF2Ducking.test.ts
+PASS __tests__/ai/finalAuditF1PreviewAdmission.test.ts
+
+Test Suites: 4 passed, 4 total
+Tests:       29 passed, 29 total
+Snapshots:   0 total
+Time:        10.022 s
+Ran all test suites within paths "__tests__/ai/finalAuditF1PreviewAdmission.test.ts", "__tests__/ai/finalAuditF2Ducking.test.ts", "__tests__/ui/finalAuditF1OfflineVoicePending.test.tsx", "__tests__/ui/finalAuditF3ClearAllDataFailure.test.tsx".
+Test results written to: docs\plans\agy-improvements\reports\evidence\codex-remediation-verification-7b3b183-20261106\claude-regressions.json

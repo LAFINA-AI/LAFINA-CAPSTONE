@@ -1,0 +1,10 @@
+# 2026-11-07 Clear All Data remediation (P1/P2) build outputs; code commit c015719, built at HEAD c015719
+# sha256  bytes  mtime(UTC)  path   (build outputs; not committed)
+94c5d9ad7c67feb7698c61bdcc2941a9f5dcd9617299b88a5df8b56d703a9a04  163257936  2026-11-07T00:32:58Z  android/app/build/outputs/apk/dataQa/app-arm64-v8a-dataQa.apk
+9f04fb3832962ec5a843f20d27785a306a77c974a5486a8de7f2e72880cd1183  169577888  2026-11-07T00:32:57Z  android/app/build/outputs/apk/dataQa/app-x86_64-dataQa.apk
+0629c828072dfd5c3f8ab27e0f9838251965d78018dbf9ff32b2a0cc6d2b466e  159718559  2026-11-06T10:31:14Z  android/app/build/outputs/apk/debug/app-arm64-v8a-debug.apk
+0756c1236c0a5f1942feb6de651acd470d71606825813629146e8f54d073d63a  166317039  2026-11-06T10:31:13Z  android/app/build/outputs/apk/debug/app-x86_64-debug.apk
+09e25695a0833f661749b1da78b8782ae547783ccc2ab5c1b5b36711420ea199  5239236  2026-11-07T00:32:18Z  android/app/build/generated/assets/react/dataQa/index.android.bundle
+# packaged assets/index.android.bundle in each dataQa APK:
+09e25695a0833f661749b1da78b8782ae547783ccc2ab5c1b5b36711420ea199 android/app/build/outputs/apk/dataQa/app-arm64-v8a-dataQa.apk
+09e25695a0833f661749b1da78b8782ae547783ccc2ab5c1b5b36711420ea199 android/app/build/outputs/apk/dataQa/app-x86_64-dataQa.apk
