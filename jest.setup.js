@@ -155,6 +155,8 @@ jest.mock('react-native-fs', () => ({
   writeFile: jest.fn(() => Promise.resolve()),
   unlink: jest.fn(() => Promise.resolve()),
   exists: jest.fn(() => Promise.resolve(false)),
+  // A regular file, so attachment cleanup's directory guard (ADR-026) passes.
+  stat: jest.fn(() => Promise.resolve({isFile: () => true, isDirectory: () => false, size: 0})),
   mkdir: jest.fn(() => Promise.resolve()),
   copyFile: jest.fn(() => Promise.resolve()),
   TemporaryDirectoryPath: '/temp',

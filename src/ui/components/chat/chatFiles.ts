@@ -2,8 +2,7 @@ import RNFS from 'react-native-fs';
 import Share from 'react-native-share';
 import type { ChatAttachment } from '../../../storage';
 import type { GeneratedDocument } from '../../../skills/documentSkill';
-
-const CHAT_FILES_SUBDIR = 'chat_files';
+import { CHAT_FILES_SUBDIR } from '../../../storage/attachmentCleanup';
 
 const getChatFilesDir = (): string =>
   `${RNFS.DocumentDirectoryPath}/${CHAT_FILES_SUBDIR}`;
@@ -71,30 +70,6 @@ export const shareAttachment = async (
     console.warn('[ChatFiles] Failed to share attachment:', error);
     return 'failed';
   }
-};
-
-/**
- * Remediation audit P2: like `removeAttachmentFiles`, but reports how many
- * files could not be removed (an already-missing file counts as removed), so
- * Clear All Data never claims a deletion that did not happen.
- */
-export const removeAttachmentFilesReportingFailures = async (
-  uris: string[],
-): Promise<number> => {
-  const results = await Promise.all(
-    uris.map(async (uri) => {
-      try {
-        const path = toLocalPath(uri);
-        if (await RNFS.exists(path)) {
-          await RNFS.unlink(path);
-        }
-        return true;
-      } catch {
-        return false;
-      }
-    }),
-  );
-  return results.filter((removed) => !removed).length;
 };
 
 export const removeAttachmentFiles = async (uris: string[]): Promise<void> => {

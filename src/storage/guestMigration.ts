@@ -6,6 +6,7 @@ import { transferChatOwnership } from './chatOwnership';
 import { personalMemoryStore } from './personalMemoryStore';
 import { speechSettingsStore } from './speechSettingsStore';
 import { noteSessionChange } from './sessionEpoch';
+import { ATTACHMENT_CLEANUP_TABLE } from './attachmentCleanupSchema';
 
 export interface GuestDataSummary {
   taskCount: number;
@@ -70,6 +71,13 @@ export const guestMigration = {
       personalMemoryStore.transferFromGuest(tx, cloudUserId, now);
       // Device-local offline voice choice (AGY-PORT 10), same rule.
       speechSettingsStore.transferFromGuest(tx, cloudUserId, now);
+      // Pending attachment cleanup (ADR-026) follows the conversation that owned
+      // the files; an obligation the account already holds is kept once.
+      tx.executeSync(
+        `UPDATE OR IGNORE ${ATTACHMENT_CLEANUP_TABLE} SET user_id = ? WHERE user_id = ?`,
+        [cloudUserId, GUEST_USER_ID],
+      );
+      tx.executeSync(`DELETE FROM ${ATTACHMENT_CLEANUP_TABLE} WHERE user_id = ?`, [GUEST_USER_ID]);
 
       // 3. Remove old guest record if different
       if (cloudUserId !== GUEST_USER_ID) {
