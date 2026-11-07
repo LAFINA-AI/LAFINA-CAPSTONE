@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   View,
   Text,
@@ -9,15 +9,7 @@ import {
   Image,
 } from 'react-native';
 import { Colors, Fonts, Layout, Shadows } from '../theme';
-import {
-  preferencesStore,
-  tasksStore,
-  notesStore,
-  timeBlocksStore,
-  remindersStore,
-  chatStore,
-  userStore,
-} from '../../storage';
+import { preferencesStore, userStore } from '../../storage';
 import type { UserPreferences, User } from '../../storage';
 import { useTheme } from '../contexts/ThemeContext';
 import { useThemedStyles } from '../theme/createThemedStyles';
@@ -39,7 +31,7 @@ import { SettingItem } from '../components/profile/SettingItem';
 import { PrivacyModal } from '../components/profile/PrivacyModal';
 import { StudentProTag } from '../components/profile/StudentProTag';
 import { AppUpdateItem } from '../components/profile/AppUpdateItem';
-import { removeAttachmentFiles } from '../components/chat/chatFiles';
+import { removeAttachmentFilesReportingFailures } from '../components/chat/chatFiles';
 import { PreferencesSettingsScreen } from './PreferencesSettingsScreen';
 import { ReminderHealth } from '../components/profile/ReminderHealth';
 import { PersonalMemory } from '../components/profile/PersonalMemory';
@@ -51,6 +43,8 @@ import {
 } from '../../storage/profileStatisticsStore';
 import type { ProfileStatistics } from '../../storage/profileStatisticsStore';
 import { personalMemoryStore } from '../../storage/personalMemoryStore';
+import { authorizeDataReset, resetPersonalData } from '../../storage/accountDataReset';
+import type { DataResetAuthority } from '../../storage/accountDataReset';
 
 function getInitials(username: string | null | undefined): string {
   if (!username || username.trim().length === 0) {
@@ -110,6 +104,18 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
 
   const [privacyModalVisible, setPrivacyModalVisible] = useState(false);
   const [ttsTesting, setTtsTesting] = useState(false);
+
+  // Remediation audit P1: a Clear All Data confirmation is honoured only while
+  // this screen is mounted and still shows the account that opened it.
+  const alive = useRef(true);
+  const currentUserId = useRef(userId);
+  currentUserId.current = userId;
+  useEffect(
+    () => () => {
+      alive.current = false;
+    },
+    [],
+  );
 
   const { colors, isDarkMode, toggleTheme } = useTheme();
   const themed = useThemedStyles(getProfileThemedStyles);
@@ -246,7 +252,76 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
     );
   };
 
+  /**
+   * Remediation audit P1/P2 (ADR-025). The confirmation belongs to the sign-in
+   * and the screen that opened it; resetPersonalData refuses it otherwise and
+   * changes nothing. The result names only the steps it confirmed.
+   */
+  const confirmClearData = async (authority: DataResetAuthority | null) => {
+    const outcome = resetPersonalData(
+      authority,
+      () => alive.current && currentUserId.current === authority?.userId,
+    );
+    if (!outcome.admitted) {
+      Alert.alert(
+        'Not Cleared',
+        'Nothing was deleted, because the account, sign-in or screen changed after Clear All Data was opened. Open Profile and choose Clear All Data again to clear the account that is signed in now.',
+      );
+      return;
+    }
+    // The files of this owner's already-cleared messages; the request was
+    // admitted above, so finishing it does not depend on the session.
+    const filesNotRemoved =
+      outcome.attachmentUris.length > 0
+        ? await removeAttachmentFilesReportingFailures(outcome.attachmentUris)
+        : 0;
+    const plannerCleared = outcome.planner === 'cleared';
+    const chatCleared = outcome.chat === 'cleared';
+    const defaultsCleared = outcome.defaults === 'cleared';
+
+    if (plannerCleared && chatCleared && defaultsCleared && filesNotRemoved === 0) {
+      Alert.alert(
+        'Data Cleared',
+        'All personal scheduling data and saved event defaults have been deleted.',
+      );
+    } else {
+      const done: string[] = [];
+      const notDone: string[] = [];
+      (plannerCleared ? done : notDone).push(
+        'notes, tasks, events, reminders and calendar blocks',
+      );
+      (chatCleared ? done : notDone).push('chat history');
+      (defaultsCleared ? done : notDone).push('saved event defaults');
+      const lines = [
+        done.length > 0 ? `Your ${done.join(' and your ')} were cleared.` : '',
+        notDone.length > 0
+          ? `Your ${notDone.join(' and your ')} were not deleted${
+              plannerCleared ? '' : '; none of those planner records were changed'
+            }.`
+          : '',
+        filesNotRemoved > 0
+          ? `${filesNotRemoved} chat attachment file${
+              filesNotRemoved === 1 ? '' : 's'
+            } could not be removed from this phone's storage.`
+          : '',
+        defaultsCleared
+          ? ''
+          : 'To remove the saved event defaults, open Event Defaults and choose Forget all event defaults.',
+        plannerCleared && chatCleared && filesNotRemoved === 0 ? '' : 'Try Clear All Data again.',
+        'Device settings such as the offline voice, theme and time format were kept.',
+      ];
+      Alert.alert('Data Partly Cleared', lines.filter(Boolean).join(' '));
+    }
+    if (alive.current) {
+      loadStats();
+      loadEventDefaultsSummary();
+      onRefresh();
+    }
+  };
+
   const handleClearData = () => {
+    // Captured now: a confirmation answered after a sign-in change is refused.
+    const authority = authorizeDataReset(userId);
     Alert.alert(
       'Clear All Data',
       'This will delete all your notes, tasks, events, reminders, calendar blocks, chat history and saved event defaults. Device settings such as the offline voice, theme and time format are kept; Offline Voice has its own Reset. This action cannot be undone.',
@@ -256,66 +331,7 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
           text: 'Delete Everything',
           style: 'destructive',
           onPress: () => {
-            // Final audit F3: each step reports what really happened, and the
-            // result claims only the steps that succeeded.
-            const step = (what: string, work: () => void): boolean => {
-              try {
-                work();
-                return true;
-              } catch (error) {
-                console.warn(`[Profile] Could not clear ${what}:`, error);
-                return false;
-              }
-            };
-            const plannerCleared = step('planner data', () => {
-              notesStore.getAll(userId).forEach((n) => notesStore.delete(n.id));
-              tasksStore.getAllTasks(userId).forEach((t) => tasksStore.deleteTask(t.id));
-              tasksStore.getAllEvents(userId).forEach((ev) => tasksStore.deleteEvent(ev.id));
-              timeBlocksStore.getAll(userId).forEach((tb) => timeBlocksStore.delete(tb.id));
-              remindersStore
-                .getAllReminders(userId)
-                .forEach((r) => remindersStore.deleteReminder(r.id));
-            });
-            // Only this account's own conversation and generated files.
-            const chatCleared = step('chat history', () => {
-              const attachmentUris = chatStore.getAttachmentUris(userId);
-              chatStore.clearHistory(userId);
-              void removeAttachmentFiles(attachmentUris);
-            });
-            // Codex audit A3: saved event defaults are personal scheduling memory.
-            const defaultsCleared = step('event defaults', () =>
-              personalMemoryStore.clearForDataReset(userId),
-            );
-
-            if (plannerCleared && chatCleared && defaultsCleared) {
-              Alert.alert(
-                'Data Cleared',
-                'All personal scheduling data and saved event defaults have been deleted.',
-              );
-            } else {
-              const done: string[] = [];
-              const notDone: string[] = [];
-              (plannerCleared ? done : notDone).push(
-                'notes, tasks, events, reminders and calendar blocks',
-              );
-              (chatCleared ? done : notDone).push('chat history');
-              (defaultsCleared ? done : notDone).push('saved event defaults');
-              const lines = [
-                done.length > 0 ? `Your ${done.join(' and your ')} were cleared.` : '',
-                `Your ${notDone.join(' and your ')} were not deleted${
-                  plannerCleared ? '' : ' (some items may remain)'
-                }.`,
-                defaultsCleared
-                  ? ''
-                  : 'To remove the saved event defaults, open Event Defaults and choose Forget all event defaults.',
-                plannerCleared && chatCleared ? '' : 'Try Clear All Data again.',
-                'Device settings such as the offline voice, theme and time format were kept.',
-              ];
-              Alert.alert('Data Partly Cleared', lines.filter(Boolean).join(' '));
-            }
-            loadStats();
-            loadEventDefaultsSummary();
-            onRefresh();
+            void confirmClearData(authority);
           },
         },
       ],

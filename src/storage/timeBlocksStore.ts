@@ -81,19 +81,27 @@ const timeBlockPayload = (row: StoredSyncRow): Record<string, unknown> => ({
   recurrence_rule: row.recurrence_rule,
 });
 
+const ALL_TIME_BLOCKS_SQL =
+  `SELECT * FROM time_blocks WHERE user_id = ? AND deleted_at IS NULL ORDER BY date ASC, start_time ASC`;
+
 export const timeBlocksStore = {
   getAll: (userId: string): TimeBlock[] => {
     try {
-      const result = db.executeSync(
-        `SELECT * FROM time_blocks WHERE user_id = ? AND deleted_at IS NULL ORDER BY date ASC, start_time ASC`,
-        [userId],
-      );
+      const result = db.executeSync(ALL_TIME_BLOCKS_SQL, [userId]);
       return result.rows.map(mapRowToBlock);
     } catch (error) {
       console.error('Error fetching time blocks:', error);
       return [];
     }
   },
+
+  /**
+   * Strict counterpart of `getAll` for destructive work (remediation audit
+   * P2): same query, but a failed read throws instead of looking empty.
+   * The display getter above keeps its best-effort behaviour.
+   */
+  getAllOrThrow: (userId: string, executor: Pick<DatabaseTransaction, 'executeSync'> = db): TimeBlock[] =>
+    (executor.executeSync(ALL_TIME_BLOCKS_SQL, [userId]).rows ?? []).map(mapRowToBlock),
 
   insert: (
     block: Omit<TimeBlock, 'createdAt' | 'updatedAt' | 'deletedAt'>,
