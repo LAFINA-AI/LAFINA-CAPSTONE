@@ -231,6 +231,33 @@ Owner report: Online Mode offered only a male voice. The owner also asked to con
 **Commit history:** at the owner's request, the Claude co-author line was removed from the two tip commits (backend `bb506f7` → `afaa36b`, mobile `aa432ba` → `03307b0`). Both branches were updated with `--force-with-lease` after confirming that neither remote had moved. Older history was not rewritten.
 
 **Not run:** the voices on a device against production (needs the merge); physical phone.
+---
+
+## Addendum — production deployment and device check (2026-11-07)
+
+**Deployment:**
+- With the owner's explicit approval in this session, LAFINA-backend `main` was fast-forwarded from `f0fae4d` to `872197a`. That is the four commits of `codex/open-online-voices`, with no other changes.
+- About 40 s later, Vercel redeployed. `POST /v1/ai/chat/stream` changed from 404 to 401 when called without credentials.
+
+**Fresh x86_64 build on `emulator-5554`** (signed-in Student Pro, Online Mode):
+- **Streaming:**
+  - "explain photosynthesis in detail with steps": the typing dots showed first.
+  - About 3.5 s after sending, the first line appeared in a live bubble.
+  - Less than a second later, the bubble had filled mid-sentence while the reply kept arriving.
+  - When it finished, the saved reply (with time and speaker button) replaced the live bubble.
+  - Screenshots: `stream-live-*.png`.
+- **Voices:**
+  - Profile → Online Voice · ElevenLabs loaded the production catalogue: "Server default", then "Filipina voices" (Camille, Ate Daniella, Thea Santos, Cielle, Amihan Reyes, Ate Weng, each "Female · Filipino"), then the remaining voices.
+  - Selecting Ate Daniella and tapping Preview ended with "ElevenLabs preview finished".
+  - The account was set back to Server default afterwards.
+  - Screenshots: `voice-0*.png`.
+- **QA note:** the emulator init script skips the JS bundle task. The bundle must be built without the init script, as the workflow already describes; the APK installed earlier in this session for the fallback check may have carried an older bundle. The APK used here was confirmed to contain the streaming and picker code.
+
+**Not verified:**
+- Which `ELEVENLABS_VOICE_ID` / `ELEVENLABS_MODEL_ID` Vercel sets. If they are set, they override the new Camille / `eleven_v4` defaults.
+- Whether the preview audio was audible. The emulator gives no audio check; the app reported ElevenLabs as the source.
+- Physical phone.
+- Separately, DeepSeek's markdown (`**bold**`, lists) is shown as plain text in chat bubbles. This existed before streaming.
 
 STATUS: AWAITING DEVICE VALIDATION
 STOPPED — awaiting explicit human approval
