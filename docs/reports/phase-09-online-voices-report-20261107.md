@@ -348,5 +348,7 @@ The DeepSeek key in the private local `.env` answered HTTP 402 (insufficient bal
 
 **Remaining:** about 5.5 s before DeepSeek's first piece is still spent on database round trips (sign-in check, quota, handbook flag) and the handbook search. That needs the region move.
 
+**Follow-up:** with the owner's approval ("proceed and merge"), LAFINA-backend `main` was fast-forwarded from `e31d894` to `4ae07eb`, adding only that commit. The change does not alter the API schema, so the deployment could not be confirmed from outside. The emulator was shut down before the streaming check, so streaming on a device after this deploy is NOT verified.
+
 STATUS: AWAITING DEVICE VALIDATION
 STOPPED — awaiting explicit human approval
