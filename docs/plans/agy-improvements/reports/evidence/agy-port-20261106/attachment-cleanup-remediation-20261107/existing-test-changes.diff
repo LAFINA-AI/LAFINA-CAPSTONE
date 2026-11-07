@@ -1,0 +1,57 @@
+diff --git a/__tests__/storage/accountDataReset.test.ts b/__tests__/storage/accountDataReset.test.ts
+index 03efe4c..db6167c 100644
+--- a/__tests__/storage/accountDataReset.test.ts
++++ b/__tests__/storage/accountDataReset.test.ts
+@@ -301,7 +301,7 @@ describe('resetPersonalData failures are reported, not inferred (P2)', () => {
+       planner: 'cleared',
+       chat: 'failed',
+       defaults: 'cleared',
+-      attachmentUris: [],
++      refusedAttachments: 0,
+     });
+     expect(live(a)).toEqual([0, 0, 0, 0, 0, 1]);
+   });
+@@ -321,7 +321,7 @@ describe('resetPersonalData success', () => {
+       planner: 'cleared',
+       chat: 'cleared',
+       defaults: 'cleared',
+-      attachmentUris: [],
++      refusedAttachments: 0,
+     });
+     expect(live(a)).toEqual(EMPTY);
+     const tombstones = Number(
+diff --git a/__tests__/storage/schemaMigrations.test.ts b/__tests__/storage/schemaMigrations.test.ts
+index 99dfa47..68ee26f 100644
+--- a/__tests__/storage/schemaMigrations.test.ts
++++ b/__tests__/storage/schemaMigrations.test.ts
+@@ -124,7 +124,7 @@ describe('schema migrations', () => {
+     expect(readUserVersion(first)).toBe(CURRENT_SCHEMA_VERSION);
+     first.close();
+ 
+-    // Schemas 18-22 only add: every schema-17 column of every row is unchanged.
++    // Schemas 18-23 only add: every schema-17 column of every row is unchanged.
+     const afterUpgrade = inspect(path, snapshotAllRows);
+     const projected = inspect(path, c => snapshotSchema17Columns(c, schema17Columns));
+     for (const [table, rows] of Object.entries(before)) {
+@@ -133,6 +133,8 @@ describe('schema migrations', () => {
+     const added = Object.keys(afterUpgrade).filter(t => !(t in before));
+     expect(added).toEqual([
+       'assistant_operation_receipts',
++      // Schema 23 (clear-data audit C1): attachment cleanup obligations.
++      'attachment_cleanup',
+       'chat_legacy_quarantine',
+       'entity_local_revisions',
+       // Schema 22 (AGY-PORT 08): device-local event timezone metadata; legacy
+diff --git a/jest.setup.js b/jest.setup.js
+index c97ca76..d63a2a5 100644
+--- a/jest.setup.js
++++ b/jest.setup.js
+@@ -155,6 +155,8 @@ jest.mock('react-native-fs', () => ({
+   writeFile: jest.fn(() => Promise.resolve()),
+   unlink: jest.fn(() => Promise.resolve()),
+   exists: jest.fn(() => Promise.resolve(false)),
++  // A regular file, so attachment cleanup's directory guard (ADR-026) passes.
++  stat: jest.fn(() => Promise.resolve({isFile: () => true, isDirectory: () => false, size: 0})),
+   mkdir: jest.fn(() => Promise.resolve()),
+   copyFile: jest.fn(() => Promise.resolve()),
+   TemporaryDirectoryPath: '/temp',

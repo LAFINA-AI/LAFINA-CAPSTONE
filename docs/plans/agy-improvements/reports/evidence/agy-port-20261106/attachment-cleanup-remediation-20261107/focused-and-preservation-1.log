@@ -1,0 +1,693 @@
+PASS __tests__/storage/chatOwnership.test.ts (8.772 s)
+PASS __tests__/ui/agyPort09ProfileHealth.test.tsx (5.647 s)
+  ● Console
+
+    console.warn
+      SafeAreaView has been deprecated and will be removed in a future release. Please use 'react-native-safe-area-context' instead. See https://github.com/AppAndFlow/react-native-safe-area-context
+
+    [0m [90m 25 |[39m   [36mreturn[39m (
+     [90m 26 |[39m     [33m<[39m[33mModal[39m visible[33m=[39m{visible} animationType[33m=[39m[32m"slide"[39m onRequestClose[33m=[39m{onClose}[33m>[39m
+    [31m[1m>[22m[39m[90m 27 |[39m       [33m<[39m[33mSafeAreaView[39m style[33m=[39m{[styles[33m.[39mprivacyContainer[33m,[39m themed[33m.[39mprivacyContainer]}[33m>[39m
+     [90m    |[39m        [31m[1m^[22m[39m
+     [90m 28 |[39m         [33m<[39m[33mView[39m style[33m=[39m{[styles[33m.[39mprivacyHeader[33m,[39m themed[33m.[39mprivacyHeader]}[33m>[39m
+     [90m 29 |[39m           [33m<[39m[33mText[39m style[33m=[39m{[styles[33m.[39mprivacyHeaderTitle[33m,[39m themed[33m.[39mprivacyHeaderTitle]}[33m>[39m
+     [90m 30 |[39m             [33mPrivacy[39m [33mPolicy[39m[0m
+
+      at warn (node_modules/react-native/Libraries/Utilities/warnOnce.js:27:11)
+      at Object.warnOnce [as SafeAreaView] (node_modules/react-native/index.js:101:5)
+      at SafeAreaView (src/ui/components/profile/PrivacyModal.tsx:27:8)
+      at Object.react_stack_bottom_frame (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:15670:20)
+      at renderWithHooks (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:4863:22)
+      at updateFunctionComponent (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:7018:19)
+      at beginWork (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:8499:18)
+      at runWithFiberInDEV (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:2315:13)
+      at performUnitOfWork (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:13224:22)
+      at workLoopSync (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:13068:41)
+      at renderRootSync (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:13049:11)
+      at performWorkOnRoot (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:12181:11)
+      at performWorkOnRootViaSchedulerTask (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:2908:7)
+      at flushActQueue (node_modules/react/cjs/react.development.js:590:34)
+      at Object.<anonymous>.process.env.NODE_ENV.exports.act (node_modules/react/cjs/react.development.js:884:10)
+      at actImplementation (node_modules/@testing-library/react-native/src/act.ts:30:25)
+      at renderWithAct (node_modules/@testing-library/react-native/src/render-act.ts:13:11)
+      at renderInternal (node_modules/@testing-library/react-native/src/render.tsx:69:33)
+      at renderInternal (node_modules/@testing-library/react-native/src/render.tsx:44:10)
+      at Object.<anonymous> (__tests__/ui/agyPort09ProfileHealth.test.tsx:101:26)
+
+    console.warn
+      [ReminderHealth] Local delivery evidence unavailable: Error: Account changed. Reopen reminder health.
+          at Object.read (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\src\storage\reminderHealthStore.ts:92:13)
+          at read (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\src\scheduler\reminderHealth.ts:63:33)
+          at Generator.next (<anonymous>)
+          at asyncGeneratorStep (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\@babel\runtime\helpers\asyncToGenerator.js:3:17)
+          at _next (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\@babel\runtime\helpers\asyncToGenerator.js:17:9)
+          at C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\@babel\runtime\helpers\asyncToGenerator.js:22:7
+          at new Promise (<anonymous>)
+          at C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\@babel\runtime\helpers\asyncToGenerator.js:14:12
+          at apply (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\src\scheduler\reminderHealth.ts:57:32)
+          at C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\src\ui\components\profile\ReminderHealth.tsx:41:43
+          at Generator.next (<anonymous>)
+          at asyncGeneratorStep (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\@babel\runtime\helpers\asyncToGenerator.js:3:17)
+          at _next (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\@babel\runtime\helpers\asyncToGenerator.js:17:9)
+          at C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\@babel\runtime\helpers\asyncToGenerator.js:22:7
+          at new Promise (<anonymous>)
+          at C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\@babel\runtime\helpers\asyncToGenerator.js:14:12
+          at refresh (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\src\ui\components\profile\ReminderHealth.tsx:51:10)
+          at Object.react_stack_bottom_frame (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\react-test-renderer\cjs\react-test-renderer.development.js:15755:20)
+          at runWithFiberInDEV (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\react-test-renderer\cjs\react-test-renderer.development.js:2315:13)
+          at commitHookEffectListMount (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\react-test-renderer\cjs\react-test-renderer.development.js:9530:29)
+          at commitHookPassiveMountEffects (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\react-test-renderer\cjs\react-test-renderer.development.js:9617:11)
+          at commitPassiveMountOnFiber (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\react-test-renderer\cjs\react-test-renderer.development.js:11205:13)
+          at recursivelyTraversePassiveMountEffects (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\react-test-renderer\cjs\react-test-renderer.development.js:11160:11)
+          at commitPassiveMountOnFiber (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\react-test-renderer\cjs\react-test-renderer.development.js:11439:11)
+          at recursivelyTraversePassiveMountEffects (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\react-test-renderer\cjs\react-test-renderer.development.js:11160:11)
+          at commitPassiveMountOnFiber (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\react-test-renderer\cjs\react-test-renderer.development.js:11197:11)
+          at recursivelyTraversePassiveMountEffects (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\react-test-renderer\cjs\react-test-renderer.development.js:11160:11)
+          at commitPassiveMountOnFiber (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\react-test-renderer\cjs\react-test-renderer.development.js:11240:11)
+          at flushPendingEffects (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\react-test-renderer\cjs\react-test-renderer.development.js:14086:11)
+          at performSyncWorkOnRoot (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\react-test-renderer\cjs\react-test-renderer.development.js:2920:11)
+          at flushSyncWorkAcrossRoots_impl (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\react-test-renderer\cjs\react-test-renderer.development.js:2764:21)
+          at flushSpawnedWork (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\react-test-renderer\cjs\react-test-renderer.development.js:13966:9)
+          at commitRoot (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\react-test-renderer\cjs\react-test-renderer.development.js:13698:9)
+          at performWorkOnRoot (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\react-test-renderer\cjs\react-test-renderer.development.js:12336:15)
+          at performWorkOnRootViaSchedulerTask (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\react-test-renderer\cjs\react-test-renderer.development.js:2908:7)
+          at flushActQueue (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\react\cjs\react.development.js:590:34)
+          at Object.<anonymous>.process.env.NODE_ENV.exports.act (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\react\cjs\react.development.js:884:10)
+          at actImplementation (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\@testing-library\react-native\src\act.ts:30:25)
+          at renderWithAct (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\@testing-library\react-native\src\render-act.ts:13:11)
+          at renderInternal (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\@testing-library\react-native\src\render.tsx:69:33)
+          at renderInternal (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\@testing-library\react-native\src\render.tsx:44:10)
+          at Object.<anonymous> (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\__tests__\ui\agyPort09ProfileHealth.test.tsx:162:26)
+          at Generator.next (<anonymous>)
+          at asyncGeneratorStep (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\@babel\runtime\helpers\asyncToGenerator.js:3:17)
+          at _next (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\@babel\runtime\helpers\asyncToGenerator.js:17:9)
+          at C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\@babel\runtime\helpers\asyncToGenerator.js:22:7
+          at new Promise (<anonymous>)
+          at Object.<anonymous> (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\@babel\runtime\helpers\asyncToGenerator.js:14:12)
+          at Promise.then.completed (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-circus\build\utils.js:298:28)
+          at new Promise (<anonymous>)
+          at callAsyncCircusFn (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-circus\build\utils.js:231:10)
+          at _callCircusTest (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-circus\build\run.js:316:40)
+          at _runTest (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-circus\build\run.js:252:3)
+          at _runTestsForDescribeBlock (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-circus\build\run.js:126:9)
+          at _runTestsForDescribeBlock (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-circus\build\run.js:121:9)
+          at run (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-circus\build\run.js:71:3)
+          at runAndTransformResultsToJestFormat (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-circus\build\legacy-code-todo-rewrite\jestAdapterInit.js:122:21)
+          at jestAdapter (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-circus\build\legacy-code-todo-rewrite\jestAdapter.js:79:19)
+          at runTestInternal (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-runner\build\runTest.js:367:16)
+          at runTest (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-runner\build\runTest.js:444:34)
+
+    [0m [90m 63 |[39m     local [33m=[39m reminderHealthStore[33m.[39mread(userId)[33m;[39m
+     [90m 64 |[39m   } [36mcatch[39m (error) {
+    [31m[1m>[22m[39m[90m 65 |[39m     console[33m.[39mwarn([32m'[ReminderHealth] Local delivery evidence unavailable:'[39m[33m,[39m error)[33m;[39m
+     [90m    |[39m             [31m[1m^[22m[39m
+     [90m 66 |[39m   }
+     [90m 67 |[39m   [36mtry[39m {
+     [90m 68 |[39m     [36mconst[39m value [33m=[39m [36mawait[39m bounded(getReminderPermissionStatus()[33m,[39m [33mPERMISSION_READ_TIMEOUT_MS[39m)[33m;[39m[0m
+
+      at warn (src/scheduler/reminderHealth.ts:65:13)
+      at asyncGeneratorStep (node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+      at _next (node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
+      at node_modules/@babel/runtime/helpers/asyncToGenerator.js:22:7
+      at node_modules/@babel/runtime/helpers/asyncToGenerator.js:14:12
+      at apply (src/scheduler/reminderHealth.ts:57:32)
+      at src/ui/components/profile/ReminderHealth.tsx:41:43
+      at asyncGeneratorStep (node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+      at _next (node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
+      at node_modules/@babel/runtime/helpers/asyncToGenerator.js:22:7
+      at node_modules/@babel/runtime/helpers/asyncToGenerator.js:14:12
+      at refresh (src/ui/components/profile/ReminderHealth.tsx:51:10)
+      at Object.react_stack_bottom_frame (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:15755:20)
+      at runWithFiberInDEV (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:2315:13)
+      at commitHookEffectListMount (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:9530:29)
+      at commitHookPassiveMountEffects (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:9617:11)
+      at commitPassiveMountOnFiber (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:11205:13)
+      at recursivelyTraversePassiveMountEffects (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:11160:11)
+      at commitPassiveMountOnFiber (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:11439:11)
+      at recursivelyTraversePassiveMountEffects (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:11160:11)
+      at commitPassiveMountOnFiber (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:11197:11)
+      at recursivelyTraversePassiveMountEffects (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:11160:11)
+      at commitPassiveMountOnFiber (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:11240:11)
+      at flushPendingEffects (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:14086:11)
+      at performSyncWorkOnRoot (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:2920:11)
+      at flushSyncWorkAcrossRoots_impl (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:2764:21)
+      at flushSpawnedWork (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:13966:9)
+      at commitRoot (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:13698:9)
+      at performWorkOnRoot (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:12336:15)
+      at performWorkOnRootViaSchedulerTask (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:2908:7)
+      at flushActQueue (node_modules/react/cjs/react.development.js:590:34)
+      at Object.<anonymous>.process.env.NODE_ENV.exports.act (node_modules/react/cjs/react.development.js:884:10)
+      at actImplementation (node_modules/@testing-library/react-native/src/act.ts:30:25)
+      at renderWithAct (node_modules/@testing-library/react-native/src/render-act.ts:13:11)
+      at renderInternal (node_modules/@testing-library/react-native/src/render.tsx:69:33)
+      at renderInternal (node_modules/@testing-library/react-native/src/render.tsx:44:10)
+      at Object.<anonymous> (__tests__/ui/agyPort09ProfileHealth.test.tsx:162:26)
+      at asyncGeneratorStep (node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+      at _next (node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
+      at node_modules/@babel/runtime/helpers/asyncToGenerator.js:22:7
+      at Object.<anonymous> (node_modules/@babel/runtime/helpers/asyncToGenerator.js:14:12)
+
+    console.warn
+      [ReminderHealth] Android access unavailable: Error: no binder
+          at Object.<anonymous> (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\__tests__\ui\agyPort09ProfileHealth.test.tsx:161:56)
+          at Generator.next (<anonymous>)
+          at asyncGeneratorStep (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\@babel\runtime\helpers\asyncToGenerator.js:3:17)
+          at _next (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\@babel\runtime\helpers\asyncToGenerator.js:17:9)
+          at C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\@babel\runtime\helpers\asyncToGenerator.js:22:7
+          at new Promise (<anonymous>)
+          at Object.<anonymous> (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\@babel\runtime\helpers\asyncToGenerator.js:14:12)
+          at Promise.then.completed (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-circus\build\utils.js:298:28)
+          at new Promise (<anonymous>)
+          at callAsyncCircusFn (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-circus\build\utils.js:231:10)
+          at _callCircusTest (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-circus\build\run.js:316:40)
+          at _runTest (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-circus\build\run.js:252:3)
+          at _runTestsForDescribeBlock (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-circus\build\run.js:126:9)
+          at _runTestsForDescribeBlock (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-circus\build\run.js:121:9)
+          at run (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-circus\build\run.js:71:3)
+          at runAndTransformResultsToJestFormat (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-circus\build\legacy-code-todo-rewrite\jestAdapterInit.js:122:21)
+          at jestAdapter (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-circus\build\legacy-code-todo-rewrite\jestAdapter.js:79:19)
+          at runTestInternal (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-runner\build\runTest.js:367:16)
+          at runTest (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-runner\build\runTest.js:444:34)
+
+    [0m [90m 69 |[39m     [36mif[39m (isPermissionStatus(value)) permissions [33m=[39m value[33m;[39m
+     [90m 70 |[39m   } [36mcatch[39m (error) {
+    [31m[1m>[22m[39m[90m 71 |[39m     console[33m.[39mwarn([32m'[ReminderHealth] Android access unavailable:'[39m[33m,[39m error)[33m;[39m
+     [90m    |[39m             [31m[1m^[22m[39m
+     [90m 72 |[39m   }
+     [90m 73 |[39m   [36mreturn[39m {userId[33m,[39m permissions[33m,[39m local[33m,[39m checkedAt[33m:[39m [36mnew[39m [33mDate[39m()[33m.[39mtoISOString()}[33m;[39m
+     [90m 74 |[39m }[33m;[39m[0m
+
+      at warn (src/scheduler/reminderHealth.ts:71:13)
+          at Generator.throw (<anonymous>)
+      at asyncGeneratorStep (node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+      at _throw (node_modules/@babel/runtime/helpers/asyncToGenerator.js:20:9)
+
+    console.warn
+      [ReminderHealth] Local delivery evidence unavailable: Error: Account changed. Reopen reminder health.
+          at Object.read (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\src\storage\reminderHealthStore.ts:92:13)
+          at read (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\src\scheduler\reminderHealth.ts:63:33)
+          at Generator.next (<anonymous>)
+          at asyncGeneratorStep (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\@babel\runtime\helpers\asyncToGenerator.js:3:17)
+          at _next (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\@babel\runtime\helpers\asyncToGenerator.js:17:9)
+          at C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\@babel\runtime\helpers\asyncToGenerator.js:22:7
+          at new Promise (<anonymous>)
+          at C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\@babel\runtime\helpers\asyncToGenerator.js:14:12
+          at apply (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\src\scheduler\reminderHealth.ts:57:32)
+          at real (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\__tests__\ui\agyPort09ProfileHealth.test.tsx:183:25)
+          at Generator.next (<anonymous>)
+          at asyncGeneratorStep (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\@babel\runtime\helpers\asyncToGenerator.js:3:17)
+          at _next (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\@babel\runtime\helpers\asyncToGenerator.js:17:9)
+
+    [0m [90m 63 |[39m     local [33m=[39m reminderHealthStore[33m.[39mread(userId)[33m;[39m
+     [90m 64 |[39m   } [36mcatch[39m (error) {
+    [31m[1m>[22m[39m[90m 65 |[39m     console[33m.[39mwarn([32m'[ReminderHealth] Local delivery evidence unavailable:'[39m[33m,[39m error)[33m;[39m
+     [90m    |[39m             [31m[1m^[22m[39m
+     [90m 66 |[39m   }
+     [90m 67 |[39m   [36mtry[39m {
+     [90m 68 |[39m     [36mconst[39m value [33m=[39m [36mawait[39m bounded(getReminderPermissionStatus()[33m,[39m [33mPERMISSION_READ_TIMEOUT_MS[39m)[33m;[39m[0m
+
+      at warn (src/scheduler/reminderHealth.ts:65:13)
+      at asyncGeneratorStep (node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+      at _next (node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
+      at node_modules/@babel/runtime/helpers/asyncToGenerator.js:22:7
+      at node_modules/@babel/runtime/helpers/asyncToGenerator.js:14:12
+      at apply (src/scheduler/reminderHealth.ts:57:32)
+      at real (__tests__/ui/agyPort09ProfileHealth.test.tsx:183:25)
+      at asyncGeneratorStep (node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+      at _next (node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
+
+    console.warn
+      [Calendar] Saved event defaults changed: EventMemoryError: Saved defaults changed. Reopen the new event.
+          at Object.apply (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\src\storage\personalMemoryStore.ts:288:13)
+          at Object.apply [as applyMemoryOffer] (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\src\ui\screens\calendar\hooks\useScheduleItemModal.ts:127:41)
+          at C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\__tests__\ui\agyPort09ProfileHealth.test.tsx:315:46
+          at callback (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\@testing-library\react-native\src\act.ts:31:24)
+          at Object.<anonymous>.process.env.NODE_ENV.exports.act (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\react\cjs\react.development.js:814:22)
+          at actImplementation (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\@testing-library\react-native\src\act.ts:30:25)
+          at Object.<anonymous> (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\__tests__\ui\agyPort09ProfileHealth.test.tsx:315:8)
+          at Promise.then.completed (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-circus\build\utils.js:298:28)
+          at new Promise (<anonymous>)
+          at callAsyncCircusFn (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-circus\build\utils.js:231:10)
+          at _callCircusTest (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-circus\build\run.js:316:40)
+          at _runTest (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-circus\build\run.js:252:3)
+          at _runTestsForDescribeBlock (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-circus\build\run.js:126:9)
+          at _runTestsForDescribeBlock (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-circus\build\run.js:121:9)
+          at run (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-circus\build\run.js:71:3)
+          at runAndTransformResultsToJestFormat (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-circus\build\legacy-code-todo-rewrite\jestAdapterInit.js:122:21)
+          at jestAdapter (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-circus\build\legacy-code-todo-rewrite\jestAdapter.js:79:19)
+          at runTestInternal (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-runner\build\runTest.js:367:16)
+          at runTest (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-runner\build\runTest.js:444:34) {
+        problem: 'stale'
+      }
+
+    [0m [90m 128 |[39m       setForm(prev [33m=>[39m ({ [33m...[39mprev[33m,[39m [33m...[39mapplyEventMemoryToDraft(value[33m,[39m prev) }))[33m;[39m
+     [90m 129 |[39m     } [36mcatch[39m (err) {
+    [31m[1m>[22m[39m[90m 130 |[39m       console[33m.[39mwarn([32m'[Calendar] Saved event defaults changed:'[39m[33m,[39m err)[33m;[39m
+     [90m     |[39m               [31m[1m^[22m[39m
+     [90m 131 |[39m       [33mAlert[39m[33m.[39malert(
+     [90m 132 |[39m         [32m'Saved defaults changed'[39m[33m,[39m
+     [90m 133 |[39m         [32m'Your saved event defaults changed or expired. The draft was not changed.'[39m[33m,[39m[0m
+
+      at Object.warn [as applyMemoryOffer] (src/ui/screens/calendar/hooks/useScheduleItemModal.ts:130:15)
+      at __tests__/ui/agyPort09ProfileHealth.test.tsx:315:46
+      at callback (node_modules/@testing-library/react-native/src/act.ts:31:24)
+      at Object.<anonymous>.process.env.NODE_ENV.exports.act (node_modules/react/cjs/react.development.js:814:22)
+      at actImplementation (node_modules/@testing-library/react-native/src/act.ts:30:25)
+      at Object.<anonymous> (__tests__/ui/agyPort09ProfileHealth.test.tsx:315:8)
+
+PASS __tests__/ui/finalAuditF3ClearAllDataFailure.test.tsx
+PASS __tests__/ui/remediationAuditClearAllData.test.tsx
+PASS __tests__/ui/finalAuditF1OfflineVoicePending.test.tsx
+PASS __tests__/ui/agyPort10OfflineVoice.test.tsx
+  ● Console
+
+    console.warn
+      SafeAreaView has been deprecated and will be removed in a future release. Please use 'react-native-safe-area-context' instead. See https://github.com/AppAndFlow/react-native-safe-area-context
+
+    [0m [90m 25 |[39m   [36mreturn[39m (
+     [90m 26 |[39m     [33m<[39m[33mModal[39m visible[33m=[39m{visible} animationType[33m=[39m[32m"slide"[39m onRequestClose[33m=[39m{onClose}[33m>[39m
+    [31m[1m>[22m[39m[90m 27 |[39m       [33m<[39m[33mSafeAreaView[39m style[33m=[39m{[styles[33m.[39mprivacyContainer[33m,[39m themed[33m.[39mprivacyContainer]}[33m>[39m
+     [90m    |[39m        [31m[1m^[22m[39m
+     [90m 28 |[39m         [33m<[39m[33mView[39m style[33m=[39m{[styles[33m.[39mprivacyHeader[33m,[39m themed[33m.[39mprivacyHeader]}[33m>[39m
+     [90m 29 |[39m           [33m<[39m[33mText[39m style[33m=[39m{[styles[33m.[39mprivacyHeaderTitle[33m,[39m themed[33m.[39mprivacyHeaderTitle]}[33m>[39m
+     [90m 30 |[39m             [33mPrivacy[39m [33mPolicy[39m[0m
+
+      at warn (node_modules/react-native/Libraries/Utilities/warnOnce.js:27:11)
+      at Object.warnOnce [as SafeAreaView] (node_modules/react-native/index.js:101:5)
+      at SafeAreaView (src/ui/components/profile/PrivacyModal.tsx:27:8)
+      at Object.react_stack_bottom_frame (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:15670:20)
+      at renderWithHooks (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:4863:22)
+      at updateFunctionComponent (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:7018:19)
+      at beginWork (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:8499:18)
+      at runWithFiberInDEV (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:2315:13)
+      at performUnitOfWork (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:13224:22)
+      at workLoopSync (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:13068:41)
+      at renderRootSync (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:13049:11)
+      at performWorkOnRoot (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:12181:11)
+      at performWorkOnRootViaSchedulerTask (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:2908:7)
+      at flushActQueue (node_modules/react/cjs/react.development.js:590:34)
+      at Object.<anonymous>.process.env.NODE_ENV.exports.act (node_modules/react/cjs/react.development.js:884:10)
+      at actImplementation (node_modules/@testing-library/react-native/src/act.ts:30:25)
+      at renderWithAct (node_modules/@testing-library/react-native/src/render-act.ts:13:11)
+      at renderInternal (node_modules/@testing-library/react-native/src/render.tsx:69:33)
+      at renderInternal (node_modules/@testing-library/react-native/src/render.tsx:44:10)
+      at Object.<anonymous> (__tests__/ui/agyPort10OfflineVoice.test.tsx:135:26)
+
+PASS __tests__/ui/auditA3ClearAllData.test.tsx
+  ● Console
+
+    console.warn
+      SafeAreaView has been deprecated and will be removed in a future release. Please use 'react-native-safe-area-context' instead. See https://github.com/AppAndFlow/react-native-safe-area-context
+
+    [0m [90m 25 |[39m   [36mreturn[39m (
+     [90m 26 |[39m     [33m<[39m[33mModal[39m visible[33m=[39m{visible} animationType[33m=[39m[32m"slide"[39m onRequestClose[33m=[39m{onClose}[33m>[39m
+    [31m[1m>[22m[39m[90m 27 |[39m       [33m<[39m[33mSafeAreaView[39m style[33m=[39m{[styles[33m.[39mprivacyContainer[33m,[39m themed[33m.[39mprivacyContainer]}[33m>[39m
+     [90m    |[39m        [31m[1m^[22m[39m
+     [90m 28 |[39m         [33m<[39m[33mView[39m style[33m=[39m{[styles[33m.[39mprivacyHeader[33m,[39m themed[33m.[39mprivacyHeader]}[33m>[39m
+     [90m 29 |[39m           [33m<[39m[33mText[39m style[33m=[39m{[styles[33m.[39mprivacyHeaderTitle[33m,[39m themed[33m.[39mprivacyHeaderTitle]}[33m>[39m
+     [90m 30 |[39m             [33mPrivacy[39m [33mPolicy[39m[0m
+
+      at warn (node_modules/react-native/Libraries/Utilities/warnOnce.js:27:11)
+      at Object.warnOnce [as SafeAreaView] (node_modules/react-native/index.js:101:5)
+      at SafeAreaView (src/ui/components/profile/PrivacyModal.tsx:27:8)
+      at Object.react_stack_bottom_frame (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:15670:20)
+      at renderWithHooks (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:4863:22)
+      at updateFunctionComponent (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:7018:19)
+      at beginWork (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:8499:18)
+      at runWithFiberInDEV (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:2315:13)
+      at performUnitOfWork (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:13224:22)
+      at workLoopSync (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:13068:41)
+      at renderRootSync (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:13049:11)
+      at performWorkOnRoot (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:12181:11)
+      at performWorkOnRootViaSchedulerTask (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:2908:7)
+      at flushActQueue (node_modules/react/cjs/react.development.js:590:34)
+      at Object.<anonymous>.process.env.NODE_ENV.exports.act (node_modules/react/cjs/react.development.js:884:10)
+      at actImplementation (node_modules/@testing-library/react-native/src/act.ts:30:25)
+      at renderWithAct (node_modules/@testing-library/react-native/src/render-act.ts:13:11)
+      at renderInternal (node_modules/@testing-library/react-native/src/render.tsx:69:33)
+      at renderInternal (node_modules/@testing-library/react-native/src/render.tsx:44:10)
+      at Object.<anonymous> (__tests__/ui/auditA3ClearAllData.test.tsx:56:24)
+
+PASS __tests__/storage/accountDataReset.test.ts
+PASS __tests__/evaluation/evaluationContracts.test.ts
+PASS __tests__/preservation/agyPreservedContracts.test.ts
+  ● Console
+
+    console.error
+      [Database] SQL Error executing query: UPDATE notes SET user_id = ? WHERE user_id = ? Error: synthetic failure
+          at run (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\__mocks__\opSqliteMock.js:51:28)
+          at Object.executeOn [as executeSync] (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\__mocks__\opSqliteMock.js:81:42)
+          at DatabaseService.executeSync (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\src\storage\database.ts:145:36)
+          at Object.executeSync (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\src\storage\database.ts:202:21)
+          at executeSync (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\src\storage\guestMigration.ts:62:10)
+          at DatabaseService.fn [as transactionSync] (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\src\storage\database.ts:214:16)
+          at Object.transactionSync (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\src\storage\guestMigration.ts:47:8)
+          at Generator.next (<anonymous>)
+          at asyncGeneratorStep (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\@babel\runtime\helpers\asyncToGenerator.js:3:17)
+          at _next (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\@babel\runtime\helpers\asyncToGenerator.js:17:9)
+          at C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\@babel\runtime\helpers\asyncToGenerator.js:22:7
+          at new Promise (<anonymous>)
+          at Object.<anonymous> (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\@babel\runtime\helpers\asyncToGenerator.js:14:12)
+          at Object.apply [as linkGuestToCloudAccount] (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\src\storage\guestMigration.ts:46:26)
+          at Object.linkGuestToCloudAccount (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\__tests__\preservation\agyPreservedContracts.test.ts:217:26)
+          at Generator.next (<anonymous>)
+          at asyncGeneratorStep (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\@babel\runtime\helpers\asyncToGenerator.js:3:17)
+          at _next (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\@babel\runtime\helpers\asyncToGenerator.js:17:9)
+          at C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\@babel\runtime\helpers\asyncToGenerator.js:22:7
+          at new Promise (<anonymous>)
+          at Object.<anonymous> (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\@babel\runtime\helpers\asyncToGenerator.js:14:12)
+          at Promise.then.completed (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-circus\build\utils.js:298:28)
+          at new Promise (<anonymous>)
+          at callAsyncCircusFn (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-circus\build\utils.js:231:10)
+          at _callCircusTest (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-circus\build\run.js:316:40)
+          at _runTest (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-circus\build\run.js:252:3)
+          at _runTestsForDescribeBlock (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-circus\build\run.js:126:9)
+          at _runTestsForDescribeBlock (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-circus\build\run.js:121:9)
+          at _runTestsForDescribeBlock (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-circus\build\run.js:121:9)
+          at run (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-circus\build\run.js:71:3)
+          at runAndTransformResultsToJestFormat (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-circus\build\legacy-code-todo-rewrite\jestAdapterInit.js:122:21)
+          at jestAdapter (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-circus\build\legacy-code-todo-rewrite\jestAdapter.js:79:19)
+          at runTestInternal (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-runner\build\runTest.js:367:16)
+          at runTest (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-runner\build\runTest.js:444:34) {
+        code: 'ERR_SQLITE_ERROR',
+        errcode: 1811,
+        errstr: 'constraint failed'
+      }
+
+    [0m [90m 151 |[39m     } [36mcatch[39m (error) {
+     [90m 152 |[39m       [90m// Bound values can hold note text or credentials, so they are never logged.[39m
+    [31m[1m>[22m[39m[90m 153 |[39m       console[33m.[39merror(
+     [90m     |[39m               [31m[1m^[22m[39m
+     [90m 154 |[39m         [32m`[Database] SQL Error executing query: ${describeQuery(query)}`[39m[33m,[39m
+     [90m 155 |[39m         error[33m,[39m
+     [90m 156 |[39m       )[33m;[39m[0m
+
+      at DatabaseService.error [as executeSync] (src/storage/database.ts:153:15)
+      at Object.executeSync (src/storage/database.ts:202:21)
+      at executeSync (src/storage/guestMigration.ts:62:10)
+      at DatabaseService.fn [as transactionSync] (src/storage/database.ts:214:16)
+      at Object.transactionSync (src/storage/guestMigration.ts:47:8)
+      at asyncGeneratorStep (node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+      at _next (node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
+      at node_modules/@babel/runtime/helpers/asyncToGenerator.js:22:7
+      at Object.<anonymous> (node_modules/@babel/runtime/helpers/asyncToGenerator.js:14:12)
+      at Object.apply [as linkGuestToCloudAccount] (src/storage/guestMigration.ts:46:26)
+      at Object.linkGuestToCloudAccount (__tests__/preservation/agyPreservedContracts.test.ts:217:26)
+      at asyncGeneratorStep (node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+      at _next (node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
+      at node_modules/@babel/runtime/helpers/asyncToGenerator.js:22:7
+      at Object.<anonymous> (node_modules/@babel/runtime/helpers/asyncToGenerator.js:14:12)
+
+PASS __tests__/storage/agyPort09HealthPreferencesStats.test.ts
+  ● Console
+
+    console.warn
+      [ReminderHealth] Local delivery evidence unavailable: Error: Account changed. Reopen reminder health.
+          at Object.read (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\src\storage\reminderHealthStore.ts:92:13)
+          at read (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\src\scheduler\reminderHealth.ts:63:33)
+          at Generator.next (<anonymous>)
+          at asyncGeneratorStep (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\@babel\runtime\helpers\asyncToGenerator.js:3:17)
+          at _next (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\@babel\runtime\helpers\asyncToGenerator.js:17:9)
+          at C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\@babel\runtime\helpers\asyncToGenerator.js:22:7
+          at new Promise (<anonymous>)
+          at C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\@babel\runtime\helpers\asyncToGenerator.js:14:12
+          at apply (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\src\scheduler\reminderHealth.ts:57:32)
+          at Object.<anonymous> (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\__tests__\storage\agyPort09HealthPreferencesStats.test.ts:178:46)
+          at Generator.next (<anonymous>)
+          at asyncGeneratorStep (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\@babel\runtime\helpers\asyncToGenerator.js:3:17)
+          at _next (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\@babel\runtime\helpers\asyncToGenerator.js:17:9)
+          at C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\@babel\runtime\helpers\asyncToGenerator.js:22:7
+          at new Promise (<anonymous>)
+          at Object.<anonymous> (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\@babel\runtime\helpers\asyncToGenerator.js:14:12)
+          at Promise.then.completed (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-circus\build\utils.js:298:28)
+          at new Promise (<anonymous>)
+          at callAsyncCircusFn (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-circus\build\utils.js:231:10)
+          at _callCircusTest (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-circus\build\run.js:316:40)
+          at _runTest (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-circus\build\run.js:252:3)
+          at _runTestsForDescribeBlock (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-circus\build\run.js:126:9)
+          at _runTestsForDescribeBlock (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-circus\build\run.js:121:9)
+          at run (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-circus\build\run.js:71:3)
+          at runAndTransformResultsToJestFormat (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-circus\build\legacy-code-todo-rewrite\jestAdapterInit.js:122:21)
+          at jestAdapter (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-circus\build\legacy-code-todo-rewrite\jestAdapter.js:79:19)
+          at runTestInternal (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-runner\build\runTest.js:367:16)
+          at runTest (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-runner\build\runTest.js:444:34)
+
+    [0m [90m 63 |[39m     local [33m=[39m reminderHealthStore[33m.[39mread(userId)[33m;[39m
+     [90m 64 |[39m   } [36mcatch[39m (error) {
+    [31m[1m>[22m[39m[90m 65 |[39m     console[33m.[39mwarn([32m'[ReminderHealth] Local delivery evidence unavailable:'[39m[33m,[39m error)[33m;[39m
+     [90m    |[39m             [31m[1m^[22m[39m
+     [90m 66 |[39m   }
+     [90m 67 |[39m   [36mtry[39m {
+     [90m 68 |[39m     [36mconst[39m value [33m=[39m [36mawait[39m bounded(getReminderPermissionStatus()[33m,[39m [33mPERMISSION_READ_TIMEOUT_MS[39m)[33m;[39m[0m
+
+      at warn (src/scheduler/reminderHealth.ts:65:13)
+      at asyncGeneratorStep (node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+      at _next (node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
+      at node_modules/@babel/runtime/helpers/asyncToGenerator.js:22:7
+      at node_modules/@babel/runtime/helpers/asyncToGenerator.js:14:12
+      at apply (src/scheduler/reminderHealth.ts:57:32)
+      at Object.<anonymous> (__tests__/storage/agyPort09HealthPreferencesStats.test.ts:178:46)
+      at asyncGeneratorStep (node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+      at _next (node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
+      at node_modules/@babel/runtime/helpers/asyncToGenerator.js:22:7
+      at Object.<anonymous> (node_modules/@babel/runtime/helpers/asyncToGenerator.js:14:12)
+
+    console.warn
+      [ReminderHealth] Android access unavailable: Error: binder died
+          at Object.<anonymous> (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\__tests__\storage\agyPort09HealthPreferencesStats.test.ts:206:56)
+          at Generator.next (<anonymous>)
+          at asyncGeneratorStep (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\@babel\runtime\helpers\asyncToGenerator.js:3:17)
+          at _next (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\@babel\runtime\helpers\asyncToGenerator.js:17:9)
+
+    [0m [90m 69 |[39m     [36mif[39m (isPermissionStatus(value)) permissions [33m=[39m value[33m;[39m
+     [90m 70 |[39m   } [36mcatch[39m (error) {
+    [31m[1m>[22m[39m[90m 71 |[39m     console[33m.[39mwarn([32m'[ReminderHealth] Android access unavailable:'[39m[33m,[39m error)[33m;[39m
+     [90m    |[39m             [31m[1m^[22m[39m
+     [90m 72 |[39m   }
+     [90m 73 |[39m   [36mreturn[39m {userId[33m,[39m permissions[33m,[39m local[33m,[39m checkedAt[33m:[39m [36mnew[39m [33mDate[39m()[33m.[39mtoISOString()}[33m;[39m
+     [90m 74 |[39m }[33m;[39m[0m
+
+      at warn (src/scheduler/reminderHealth.ts:71:13)
+          at Generator.throw (<anonymous>)
+      at asyncGeneratorStep (node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+      at _throw (node_modules/@babel/runtime/helpers/asyncToGenerator.js:20:9)
+
+    console.warn
+      [ReminderHealth] Android access unavailable: HealthTimeoutError: Reminder health request timed out.
+          at C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\src\scheduler\reminderHealth.ts:36:43
+          at callTimer (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\@sinonjs\fake-timers\src\fake-timers-src.js:744:24)
+          at doTickInner (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\@sinonjs\fake-timers\src\fake-timers-src.js:1312:29)
+          at doTick (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\@sinonjs\fake-timers\src\fake-timers-src.js:1393:20)
+          at Immediate.<anonymous> (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\@sinonjs\fake-timers\src\fake-timers-src.js:1413:29)
+          at processImmediate (node:internal/timers:534:21)
+
+    [0m [90m 69 |[39m     [36mif[39m (isPermissionStatus(value)) permissions [33m=[39m value[33m;[39m
+     [90m 70 |[39m   } [36mcatch[39m (error) {
+    [31m[1m>[22m[39m[90m 71 |[39m     console[33m.[39mwarn([32m'[ReminderHealth] Android access unavailable:'[39m[33m,[39m error)[33m;[39m
+     [90m    |[39m             [31m[1m^[22m[39m
+     [90m 72 |[39m   }
+     [90m 73 |[39m   [36mreturn[39m {userId[33m,[39m permissions[33m,[39m local[33m,[39m checkedAt[33m:[39m [36mnew[39m [33mDate[39m()[33m.[39mtoISOString()}[33m;[39m
+     [90m 74 |[39m }[33m;[39m[0m
+
+      at warn (src/scheduler/reminderHealth.ts:71:13)
+          at Generator.throw (<anonymous>)
+      at asyncGeneratorStep (node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+      at _throw (node_modules/@babel/runtime/helpers/asyncToGenerator.js:20:9)
+
+    console.warn
+      [ProfileStatistics] Statistics unavailable: Error: database locked
+          at DatabaseService.<anonymous> (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\__tests__\storage\agyPort09HealthPreferencesStats.test.ts:494:13)
+          at C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-mock\build\index.js:397:39
+          at DatabaseService.<anonymous> (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-mock\build\index.js:404:13)
+          at DatabaseService.mockConstructor [as executeSync] (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-mock\build\index.js:148:19)
+          at Object.executeSync [as read] (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\src\storage\profileStatisticsStore.ts:50:12)
+          at Object.read (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\__tests__\storage\agyPort09HealthPreferencesStats.test.ts:496:35)
+          at Promise.then.completed (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-circus\build\utils.js:298:28)
+          at new Promise (<anonymous>)
+          at callAsyncCircusFn (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-circus\build\utils.js:231:10)
+          at _callCircusTest (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-circus\build\run.js:316:40)
+          at _runTest (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-circus\build\run.js:252:3)
+          at _runTestsForDescribeBlock (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-circus\build\run.js:126:9)
+          at _runTestsForDescribeBlock (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-circus\build\run.js:121:9)
+          at run (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-circus\build\run.js:71:3)
+          at runAndTransformResultsToJestFormat (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-circus\build\legacy-code-todo-rewrite\jestAdapterInit.js:122:21)
+          at jestAdapter (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-circus\build\legacy-code-todo-rewrite\jestAdapter.js:79:19)
+          at runTestInternal (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-runner\build\runTest.js:367:16)
+          at runTest (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-runner\build\runTest.js:444:34)
+
+    [0m [90m 77 |[39m       }[33m;[39m
+     [90m 78 |[39m     } [36mcatch[39m (error) {
+    [31m[1m>[22m[39m[90m 79 |[39m       console[33m.[39mwarn([32m'[ProfileStatistics] Statistics unavailable:'[39m[33m,[39m error)[33m;[39m
+     [90m    |[39m               [31m[1m^[22m[39m
+     [90m 80 |[39m       [36mreturn[39m {[33m...[39m[33mUNAVAILABLE_STATISTICS[39m}[33m;[39m
+     [90m 81 |[39m     }
+     [90m 82 |[39m   }[33m,[39m[0m
+
+      at Object.warn (src/storage/profileStatisticsStore.ts:79:15)
+      at Object.read (__tests__/storage/agyPort09HealthPreferencesStats.test.ts:496:35)
+
+    console.warn
+      [ProfileStatistics] Statistics unavailable: Error: Statistics owner required.
+          at Object.read (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\src\storage\profileStatisticsStore.ts:48:26)
+          at Object.read (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\__tests__\storage\agyPort09HealthPreferencesStats.test.ts:504:35)
+          at Promise.then.completed (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-circus\build\utils.js:298:28)
+          at new Promise (<anonymous>)
+          at callAsyncCircusFn (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-circus\build\utils.js:231:10)
+          at _callCircusTest (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-circus\build\run.js:316:40)
+          at _runTest (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-circus\build\run.js:252:3)
+          at _runTestsForDescribeBlock (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-circus\build\run.js:126:9)
+          at _runTestsForDescribeBlock (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-circus\build\run.js:121:9)
+          at run (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-circus\build\run.js:71:3)
+          at runAndTransformResultsToJestFormat (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-circus\build\legacy-code-todo-rewrite\jestAdapterInit.js:122:21)
+          at jestAdapter (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-circus\build\legacy-code-todo-rewrite\jestAdapter.js:79:19)
+          at runTestInternal (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-runner\build\runTest.js:367:16)
+          at runTest (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-runner\build\runTest.js:444:34)
+
+    [0m [90m 77 |[39m       }[33m;[39m
+     [90m 78 |[39m     } [36mcatch[39m (error) {
+    [31m[1m>[22m[39m[90m 79 |[39m       console[33m.[39mwarn([32m'[ProfileStatistics] Statistics unavailable:'[39m[33m,[39m error)[33m;[39m
+     [90m    |[39m               [31m[1m^[22m[39m
+     [90m 80 |[39m       [36mreturn[39m {[33m...[39m[33mUNAVAILABLE_STATISTICS[39m}[33m;[39m
+     [90m 81 |[39m     }
+     [90m 82 |[39m   }[33m,[39m[0m
+
+      at Object.warn (src/storage/profileStatisticsStore.ts:79:15)
+      at Object.read (__tests__/storage/agyPort09HealthPreferencesStats.test.ts:504:35)
+
+PASS __tests__/ai/agyPort10Speech.test.ts
+  ● Console
+
+    console.warn
+      [Speech] Saved voice settings unavailable; using the default: SpeechSettingsError: Saved voice settings unavailable.
+          at parse (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\src\storage\speechSettingsStore.ts:96:11)
+          at Object.parse [as read] (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\src\storage\speechSettingsStore.ts:109:55)
+          at read (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\src\ai\tts\speechPreferences.ts:25:41)
+          at Generator.next (<anonymous>)
+          at asyncGeneratorStep (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\@babel\runtime\helpers\asyncToGenerator.js:3:17)
+          at _next (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\@babel\runtime\helpers\asyncToGenerator.js:17:9)
+          at C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\@babel\runtime\helpers\asyncToGenerator.js:22:7
+          at new Promise (<anonymous>)
+          at C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\@babel\runtime\helpers\asyncToGenerator.js:14:12
+          at apply (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\src\ai\tts\speechPreferences.ts:20:36)
+          at Object.<anonymous> (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\__tests__\ai\agyPort10Speech.test.ts:140:33)
+          at Generator.next (<anonymous>)
+          at asyncGeneratorStep (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\@babel\runtime\helpers\asyncToGenerator.js:3:17)
+          at _next (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\@babel\runtime\helpers\asyncToGenerator.js:17:9)
+          at C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\@babel\runtime\helpers\asyncToGenerator.js:22:7
+          at new Promise (<anonymous>)
+          at Object.<anonymous> (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\@babel\runtime\helpers\asyncToGenerator.js:14:12)
+          at Promise.then.completed (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-circus\build\utils.js:298:28)
+          at new Promise (<anonymous>)
+          at callAsyncCircusFn (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-circus\build\utils.js:231:10)
+          at _callCircusTest (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-circus\build\run.js:316:40)
+          at _runTest (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-circus\build\run.js:252:3)
+          at _runTestsForDescribeBlock (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-circus\build\run.js:126:9)
+          at _runTestsForDescribeBlock (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-circus\build\run.js:121:9)
+          at run (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-circus\build\run.js:71:3)
+          at runAndTransformResultsToJestFormat (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-circus\build\legacy-code-todo-rewrite\jestAdapterInit.js:122:21)
+          at jestAdapter (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-circus\build\legacy-code-todo-rewrite\jestAdapter.js:79:19)
+          at runTestInternal (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-runner\build\runTest.js:367:16)
+          at runTest (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-runner\build\runTest.js:444:34) {
+        problem: 'unreadable'
+      }
+
+    [0m [90m 28 |[39m       }
+     [90m 29 |[39m     } [36mcatch[39m (error) {
+    [31m[1m>[22m[39m[90m 30 |[39m       console[33m.[39mwarn([32m'[Speech] Saved voice settings unavailable; using the default:'[39m[33m,[39m error)[33m;[39m
+     [90m    |[39m               [31m[1m^[22m[39m
+     [90m 31 |[39m     }
+     [90m 32 |[39m   }
+     [90m 33 |[39m   [90m// A newer owner applied meanwhile: its call wins.[39m[0m
+
+      at warn (src/ai/tts/speechPreferences.ts:30:15)
+      at asyncGeneratorStep (node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+      at _next (node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
+      at node_modules/@babel/runtime/helpers/asyncToGenerator.js:22:7
+      at node_modules/@babel/runtime/helpers/asyncToGenerator.js:14:12
+      at apply (src/ai/tts/speechPreferences.ts:20:36)
+      at Object.<anonymous> (__tests__/ai/agyPort10Speech.test.ts:140:33)
+      at asyncGeneratorStep (node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+      at _next (node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
+      at node_modules/@babel/runtime/helpers/asyncToGenerator.js:22:7
+      at Object.<anonymous> (node_modules/@babel/runtime/helpers/asyncToGenerator.js:14:12)
+
+    console.warn
+      [TTS] react-native-tts initialization failed: Error: no_engine
+          at Object.<anonymous> (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\__tests__\ai\agyPort10Speech.test.ts:230:63)
+          at C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-mock\build\index.js:397:39
+          at Object.<anonymous> (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-mock\build\index.js:404:13)
+          at Object.mockConstructor [as getInitStatus] (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-mock\build\index.js:148:19)
+          at getInitStatus (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\src\ai\tts\ttsService.ts:286:25)
+          at Generator.next (<anonymous>)
+          at asyncGeneratorStep (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\@babel\runtime\helpers\asyncToGenerator.js:3:17)
+          at _next (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\@babel\runtime\helpers\asyncToGenerator.js:17:9)
+          at C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\@babel\runtime\helpers\asyncToGenerator.js:22:7
+          at new Promise (<anonymous>)
+          at C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\@babel\runtime\helpers\asyncToGenerator.js:14:12
+          at C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\src\ai\tts\ttsService.ts:319:4
+          at Generator.next (<anonymous>)
+          at asyncGeneratorStep (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\@babel\runtime\helpers\asyncToGenerator.js:3:17)
+          at _next (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\@babel\runtime\helpers\asyncToGenerator.js:17:9)
+          at C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\@babel\runtime\helpers\asyncToGenerator.js:22:7
+          at new Promise (<anonymous>)
+          at C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\@babel\runtime\helpers\asyncToGenerator.js:14:12
+          at apply (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\src\ai\tts\ttsService.ts:275:18)
+          at startEngine (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\src\ai\tts\ttsService.ts:373:23)
+          at Generator.next (<anonymous>)
+          at asyncGeneratorStep (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\@babel\runtime\helpers\asyncToGenerator.js:3:17)
+          at _next (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\@babel\runtime\helpers\asyncToGenerator.js:17:9)
+          at C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\@babel\runtime\helpers\asyncToGenerator.js:22:7
+          at new Promise (<anonymous>)
+          at C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\@babel\runtime\helpers\asyncToGenerator.js:14:12
+          at apply (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\src\ai\tts\ttsService.ts:372:30)
+          at Object.<anonymous> (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\__tests__\ai\agyPort10Speech.test.ts:231:34)
+          at Generator.next (<anonymous>)
+          at asyncGeneratorStep (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\@babel\runtime\helpers\asyncToGenerator.js:3:17)
+          at _next (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\@babel\runtime\helpers\asyncToGenerator.js:17:9)
+
+    [0m [90m 312 |[39m         initGeneration [33m+=[39m [35m1[39m[33m;[39m
+     [90m 313 |[39m       }
+    [31m[1m>[22m[39m[90m 314 |[39m       console[33m.[39mwarn([32m'[TTS] react-native-tts initialization failed:'[39m[33m,[39m error)[33m;[39m
+     [90m     |[39m               [31m[1m^[22m[39m
+     [90m 315 |[39m       [36mreturn[39m [36mfalse[39m[33m;[39m
+     [90m 316 |[39m     } [36mfinally[39m {
+     [90m 317 |[39m       initPromise [33m=[39m [36mnull[39m[33m;[39m[0m
+
+      at warn (src/ai/tts/ttsService.ts:314:15)
+          at Generator.throw (<anonymous>)
+      at asyncGeneratorStep (node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+      at _throw (node_modules/@babel/runtime/helpers/asyncToGenerator.js:20:9)
+
+    console.warn
+      [TTS] react-native-tts initialization failed: TtsTimeoutError: Speech engine start timed out.
+          at C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\src\ai\tts\ttsService.ts:104:43
+          at callTimer (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\@sinonjs\fake-timers\src\fake-timers-src.js:744:24)
+          at doTickInner (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\@sinonjs\fake-timers\src\fake-timers-src.js:1312:29)
+          at doTick (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\@sinonjs\fake-timers\src\fake-timers-src.js:1393:20)
+          at Immediate.<anonymous> (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\@sinonjs\fake-timers\src\fake-timers-src.js:1413:29)
+          at processImmediate (node:internal/timers:534:21)
+
+    [0m [90m 312 |[39m         initGeneration [33m+=[39m [35m1[39m[33m;[39m
+     [90m 313 |[39m       }
+    [31m[1m>[22m[39m[90m 314 |[39m       console[33m.[39mwarn([32m'[TTS] react-native-tts initialization failed:'[39m[33m,[39m error)[33m;[39m
+     [90m     |[39m               [31m[1m^[22m[39m
+     [90m 315 |[39m       [36mreturn[39m [36mfalse[39m[33m;[39m
+     [90m 316 |[39m     } [36mfinally[39m {
+     [90m 317 |[39m       initPromise [33m=[39m [36mnull[39m[33m;[39m[0m
+
+      at warn (src/ai/tts/ttsService.ts:314:15)
+          at Generator.throw (<anonymous>)
+      at asyncGeneratorStep (node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+      at _throw (node_modules/@babel/runtime/helpers/asyncToGenerator.js:20:9)
+
+PASS __tests__/ai/finalAuditF1PreviewAdmission.test.ts
+PASS __tests__/storage/phase02CalendarAndNotes.test.ts
+PASS __tests__/ai/finalAuditF2Ducking.test.ts
+
+Test Suites: 15 passed, 15 total
+Tests:       263 passed, 263 total
+Snapshots:   0 total
+Time:        28.459 s
+Ran all test suites within paths "__tests__/ai/agyPort10Speech.test.ts", "__tests__/ai/finalAuditF1PreviewAdmission.test.ts", "__tests__/ai/finalAuditF2Ducking.test.ts", "__tests__/evaluation/evaluationContracts.test.ts", "__tests__/preservation/agyPreservedContracts.test.ts", "__tests__/storage/accountDataReset.test.ts", "__tests__/storage/agyPort09HealthPreferencesStats.test.ts", "__tests__/storage/chatOwnership.test.ts", "__tests__/storage/phase02CalendarAndNotes.test.ts", "__tests__/ui/agyPort09ProfileHealth.test.tsx", "__tests__/ui/agyPort10OfflineVoice.test.tsx", "__tests__/ui/auditA3ClearAllData.test.tsx", "__tests__/ui/finalAuditF1OfflineVoicePending.test.tsx", "__tests__/ui/finalAuditF3ClearAllDataFailure.test.tsx", "__tests__/ui/remediationAuditClearAllData.test.tsx".
+Test results written to: docs\plans\agy-improvements\reports\evidence\agy-port-20261106\attachment-cleanup-remediation-20261107\focused-and-preservation-1.json
+EXIT=0

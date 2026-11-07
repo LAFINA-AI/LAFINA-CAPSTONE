@@ -12,9 +12,9 @@
   "work_branch": "codex/agy-preservation-improvements",
   "worktree": "C:/L3mxr/Github Repositories/LAFINA-CAPSTONE-agy-development-cont",
   "donor_head": "0d4bbe39e106c29fb90792cf5d2f916b5c0d6480",
-  "last_tested_head": "c015719 (remediation audit P1/P2 gates; preflight on the identical working tree before the commit; APKs built at HEAD c015719)",
-  "last_committed_head": "4be575bae0ea4856dc783c758e7e55ebfb477d15",
-  "current_phase": "NONE (run finished; final-audit F1-F4 and remediation audit P1/P2 follow-ups done on host; owner device/live checks pending)",
+  "last_tested_head": "f7e947f (clear-data audit C1 gates; preflight on the identical working tree before the commit; APKs built at HEAD f7e947f)",
+  "last_committed_head": "f7e947f702d63f239fe4fe67cb4457a3b6d18550",
+  "current_phase": "NONE (run finished; final-audit F1-F4, remediation P1/P2 and clear-data C1 follow-ups done on host; owner device/live checks pending)",
   "phases": [
     {
       "id": "AGY-PORT-00",
@@ -662,6 +662,46 @@
         "mutation-check-3: epoch, liveness, in-transaction check and strict+verify killed; strict alone and verify alone survive by design (mutual backstops); run 2 revealed a too-broad fault injection, fixed in the test",
         "no original test or assertion changed; frozen evaluation fixtures unchanged; android/, package files, cloud hosts unchanged",
         "self-review only; no independent review of c015719"
+      ]
+    },
+    {
+      "id": "CODEX-CLEAR-DATA-AUDIT-C1-1",
+      "scope": [
+        "C1 Clear All Data attachment files: durable owner-bound cleanup obligations (schema 23 attachment_cleanup in lafina.db) recorded in the same transaction that deletes the chat messages; retired only when the file is removed or confirmed absent; retried by every later Clear All Data, including after restart and with empty chat history; one bounded pass (50) per Clear All Data, no loop/poller; stops on sign-in change; owner-keyed; guest linking moves obligations; strict path rules and regular-file stat before each unlink; 'Data Cleared' only when none remain"
+      ],
+      "audit": "codex-clear-data-audit-8823b11-20261107.md",
+      "base_head": "8823b11ac5b8c81cf504ad2cb85ad7c9a8446128",
+      "tested_head": "f7e947f (preflight ran on the identical working tree before the commit); builds at f7e947f",
+      "implementation": "CODE_COMPLETE (C1); ADR-026",
+      "automated": "PASS",
+      "build": "PASS (bundle executed; dataQa 12 executed/244 up-to-date; Kotlin 43 executed via --rerun; debug up-to-date, no packaged JS)",
+      "device": "NOT_RUN",
+      "live_service": "NOT_RUN",
+      "code_commit": "f7e947f702d63f239fe4fe67cb4457a3b6d18550",
+      "result_commit": "recorded in the next index commit's log row",
+      "report": "attachment-cleanup-remediation.md",
+      "evidence": [
+        "evidence/agy-port-20261106/attachment-cleanup-remediation-20261107/",
+        "evidence/codex-clear-data-audit-8823b11-20261107/ (auditor's, committed unchanged)"
+      ],
+      "artifacts": {
+        "dataQa_arm64": "4ff8d67e459bf572598b2d7c922885c3a5f871755b30b1d8b29fe81d42ed8532 (163257936 B)",
+        "dataQa_x86_64": "e9ec1f09e4b06eddf51e5355d14b634f1aee5c4229b61562572fb2d43da27086 (169577888 B)",
+        "debug_arm64": "0629c828072dfd5c3f8ab27e0f9838251965d78018dbf9ff32b2a0cc6d2b466e (unchanged)",
+        "debug_x86_64": "0756c1236c0a5f1942feb6de651acd470d71606825813629146e8f54d073d63a (unchanged)",
+        "bundle": "9c284de8ba7aa58fa5029b515d58b4a7bcace85a4c5fc608c6856a57eaeab17b (packaged in both dataQa APKs; 7/7 fix-only markers present)",
+        "identity": "com.lafina.capstone, versionCode 6, 0.6.0-data-qa, SDK 36, debuggable; v2 CN=Android Debug acf890c3...dd5e; ONNX 1.22.0; permissions identical (32 lines)"
+      },
+      "notes": [
+        "pre-fix on 8823b11: unchanged independent attachment-retry regression 1/1 FAILED (file still present; second alert 'Data Cleared')",
+        "post-fix: independent C1 1/1 and all three independent tests 3/3; new attachmentCleanup 43/43 and clearDataAttachmentCleanup 5/5; audit focused+protected 15 suites 263/263; F1-F3 29/29",
+        "post-fix-existing-1: 5 failures from deliberate changes (schemaMigrations table list, accountDataReset outcome field x2, A3/F3 sync alert timing restored in code with those tests unchanged); run 2 101/101",
+        "storage-cleanup-tests-1: 1 test-authoring error (shared mock call count), fixed in the test",
+        "mutation-check-1 9/10 killed (no-revalidation survived -> new test); mutation-check-2 10/10 killed, all restored",
+        "preflight-1: 54 suites 788 passed + 1 opt-in skipped; architecture 219 modules, 0 cycles, 0 forbidden, 75 offline leaves; 31 console.error lines (2 intermittent React act() warnings in untouched chatHistoryPaging; alone 1 then 0)",
+        "existing test files changed: schemaMigrations expected table list, accountDataReset outcome field; jest.setup default RNFS stat mock; no assertion weakened, no skip, frozen fixtures unchanged",
+        "Chat 'Clear conversation' unchanged and outside C1 (best-effort file removal, no obligations)",
+        "self-review only; no independent review of f7e947f"
       ]
     }
   ]

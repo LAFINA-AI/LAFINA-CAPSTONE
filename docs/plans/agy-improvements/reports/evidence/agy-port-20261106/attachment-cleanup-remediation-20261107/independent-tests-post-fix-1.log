@@ -1,0 +1,9 @@
+== codex-clear-data-audit-8823b11-20261107/independentAttachmentRetry.test.tsx
+  √ retry must remove an attachment left by the first reset before claiming full success (2192 ms)
+Tests:       1 passed, 1 total
+EXIT=0
+== codex-remediation-verification-7b3b183-20261106/independentClearData.test.tsx
+  √ a read failure must not report retained Notes as successfully cleared (2026 ms)
+  √ a confirmation retained after account switch must not delete the old account records (155 ms)
+Tests:       2 passed, 2 total
+EXIT=0

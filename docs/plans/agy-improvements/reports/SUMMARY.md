@@ -9,6 +9,7 @@ Run status: **PARTIAL**.
   - F4 is a documentation correction;
   - new QA APKs were built.
   - The overall status is still PARTIAL / AWAITING DEVICE VALIDATION.
+- **2026-11-07 second follow-up:** an independent audit of the P1/P2 fix ([codex-clear-data-audit-8823b11-20261107.md](codex-clear-data-audit-8823b11-20261107.md)) accepted P1 and the database P2 fix within host scope and found **C1**: a failed attachment-file removal could not be retried, and the retry said "Data Cleared" while the file remained. C1 is fixed on the host with durable, owner-bound cleanup obligations, regression tests and new QA APKs ([attachment-cleanup-remediation.md](attachment-cleanup-remediation.md), ADR-026). The overall status is still PARTIAL / AWAITING DEVICE VALIDATION.
 - **2026-11-07 follow-up:** the independent remediation audit's Clear All Data findings P1 (stale confirmation deletes) and P2 (false success after a read failure) are fixed on the host with regression tests, and new QA APKs were built ([clear-all-data-remediation.md](clear-all-data-remediation.md), ADR-025). F1, F2 and F4 were accepted by that audit. The overall status is still PARTIAL / AWAITING DEVICE VALIDATION.
 
 Run dates: 2026-11-06, run `agy-port-20261106` (Asia/Manila owner; UTC in logs).
@@ -26,7 +27,10 @@ Commits:
   - **F4 documentation corrections:** `0c1b99a`.
   - **Report/tracking and index commits:** recorded in RUN-STATE.json and the log.
 - **Remediation-audit follow-up (after audited HEAD `7b3b183`):**
-  - **Code fix:** `c015719` (P1/P2, their tests and ADR-025). This is the latest code commit and the tested code; the QA APKs were built at it.
+  - **Code fix:** `c015719` (P1/P2, their tests and ADR-025).
+  - **Report/tracking and index commits:** recorded in RUN-STATE.json and the log.
+- **Clear-data audit follow-up (after audited HEAD `8823b11`):**
+  - **Code fix:** `f7e947f` (C1, its tests and ADR-026). This is the latest code commit and the tested code; the QA APKs were built at it.
   - **Report/tracking and index commits:** recorded in RUN-STATE.json and the log.
 
 ## What you can use now
@@ -99,6 +103,21 @@ Details, root causes and evidence are in [clear-all-data-remediation.md](clear-a
 - **Mutation:** removing the epoch check, the liveness check, the in-transaction check, or the strict read and the verification together each fails the tests. Strict read alone and verification alone are mutual backstops, so each survives on its own; this is recorded.
 - **Gates:** preflight 52 suites, 740 passed + 1 opt-in skipped; Kotlin 43, forced rerun; fresh dataQa APKs whose packaged bundle contains the fix (7/7 fix-only strings); audits PASS; the same package, versionCode, signer, permissions and ONNX 1.22.0.
 
+## Clear-data audit follow-up: C1 (2026-11-07)
+
+Details, recovery semantics and evidence are in [attachment-cleanup-remediation.md](attachment-cleanup-remediation.md); the design is [ADR-026](../../../decisions/ADR-026-durable-attachment-cleanup.md). The P1/P2 report carries a dated correction for its attachment claims.
+
+| Finding | Disposition | Change |
+|---|---|---|
+| C1 Failed attachment cleanup not retryable; the retry said "Data Cleared" | CODE_COMPLETE (host) | Schema 23 `attachment_cleanup` in `lafina.db`. Obligations are recorded in the same transaction that deletes the chat messages (a failure keeps the messages), retired only when the file is removed or confirmed absent, retried by every later Clear All Data, including after a restart and with an empty chat. One bounded pass (50), no loop or background work; stops on a sign-in change; owner-keyed throughout; guest linking moves them. Strict path rules plus a regular-file check before each unlink. "Data Cleared" only when none remain |
+
+**Regression evidence:**
+
+- **Before the fix** (on `8823b11`): the unchanged independent regression failed.
+- **After the fix:** that regression and both earlier independent tests pass (3/3); 48 new tests (43 storage, 5 UI) pass, including a restart on a real SQLite file in fresh modules.
+- **Mutation:** 10/10 killed on run 2; run 1 left one survivor, which led to a new test.
+- **Gates:** the audit's 15-suite set (263/263) and the 29 F1–F3 regressions pass; preflight 54 suites, 788 + 1 opt-in skipped; Kotlin 43; fresh dataQa APKs whose bundle contains the fix (7/7 strings); audits PASS; identity, signer and permissions unchanged.
+
 ## AGY preservation
 
 See [PRESERVED-FEATURES.md](PRESERVED-FEATURES.md).
@@ -134,7 +153,7 @@ See [PRESERVED-FEATURES.md](PRESERVED-FEATURES.md).
 | 13 | Notes search cache, keyset pages | CODE_COMPLETE (paging under concurrent edits is best-effort) | `168e022` / phase-07 | `agyPort07Notes`, `notes-contract-v1` | NOT_RUN |
 | 14 | Overnight/timezone/ICS event time | **PARTIAL**: overnight and device-local zone done. Events over 24 h are unsupported on the frozen wire, and recurring/`RECURRENCE-ID` imports stay floating | `7dd3454` / [phase-08](phase-08-event-time-sync.md) | `agyPort08EventTime`, `agyPort08EventForm` | NOT_RUN (M11) |
 | 15 | Delivery health apart from permissions | CODE_COMPLETE | `ab6ab12` / [phase-09](phase-09-health-preferences-stats.md) | `agyPort09HealthPreferencesStats`, `agyPort09ProfileHealth` | NOT_RUN (M13) |
-| 16 | Explicit local event defaults | CODE_COMPLETE (Clear All Data forgets them, `dd96148`; a failed reset is reported truthfully, `f61d1eb`) | `ab6ab12`, `dd96148`, `f61d1eb`, `c015719` / phase-09, audit, final audit, remediation audit | same; `auditA3ClearAllData`, `finalAuditF3ClearAllDataFailure`, `remediationAuditClearAllData`, `accountDataReset` | NOT_RUN (M13, M15, M18, M19) |
+| 16 | Explicit local event defaults | CODE_COMPLETE (Clear All Data forgets them, `dd96148`; a failed reset is reported truthfully, `f61d1eb`) | `ab6ab12`, `dd96148`, `f61d1eb`, `c015719`, `f7e947f` / phase-09, audit, final audit, remediation audit, clear-data audit | same; `auditA3ClearAllData`, `finalAuditF3ClearAllDataFailure`, `remediationAuditClearAllData`, `accountDataReset`, `attachmentCleanup`, `clearDataAttachmentCleanup` | NOT_RUN (M13, M15, M18, M19) |
 | 17 | Whisper/system TTS kept; optional Android on-device STT | **PARTIAL**: defaults and cloud fallback kept. The optional on-device recognizer is deferred (needs a native bridge and devices) | `335de87` / [phase-10](phase-10-speech.md) | `agyPort10Speech`, preservation PF09 | NOT_RUN |
 | 18 | Voices, speed, pitch, Preview/Stop | CODE_COMPLETE (positive offline eligibility, `dd96148`; Preview admission ticket, `f61d1eb`; engine choice deferred) | `335de87`, `dd96148`, `f61d1eb` / phase-10, audit, final audit | `agyPort10OfflineVoice`, `auditA1OfflineEligibility`, `speech-contract-v1`, `finalAuditF1PreviewAdmission`, `finalAuditF1OfflineVoicePending` | NOT_RUN (M07, M14, M15, M18) |
 | 19 | Bounded readiness, cancel, recovery | CODE_COMPLETE (ducking bounded too, `f61d1eb`) | `335de87`, `f61d1eb` / phase-10, final audit | `agyPort10Speech`, `finalAuditF2Ducking` | NOT_RUN |
@@ -161,29 +180,32 @@ Phase reports exist for every phase: [00](phase-00-baseline.md) to [13](phase-13
 
 **Host gates at final code:**
 
+- For the clear-data audit (C1) follow-up: `evidence/agy-port-20261106/attachment-cleanup-remediation-20261107/`, code `f7e947f`.
 - For the remediation-audit follow-up: `evidence/agy-port-20261106/clear-all-data-remediation-20261107/`, code `c015719`.
 - For the final-audit follow-up: `evidence/agy-port-20261106/final-audit-remediation/`, code `f61d1eb`.
 - Phase 13 values are given in brackets.
 
 | Check | Result |
 |---|---|
-| `npm run preflight` | PASS: typecheck, lint, Jest 52 suites with 740 passed + 1 opt-in skipped [final audit: 50 suites, 713 + 1; Phase 13: 46 suites, 684 + 1; base: 15 suites, 163 tests], architecture 217 modules |
-| Kotlin unit tests (forced rerun, executed 2026-11-07T00:33:26Z) | 43 pass (base: 14) |
-| dataQa build (fresh bundle `09e25695…a199`; final audit `f86e13af…bc67`) | PASS. The debug APKs were up to date: they package no JS and no native input changed |
+| `npm run preflight` | PASS: typecheck, lint, Jest 54 suites with 788 passed + 1 opt-in skipped [P1/P2: 52 suites, 740 + 1; final audit: 50 suites, 713 + 1; Phase 13: 46 suites, 684 + 1; base: 15 suites, 163 tests], architecture 219 modules |
+| Kotlin unit tests (forced rerun, executed 2026-11-07T01:57:52Z) | 43 pass (base: 14) |
+| dataQa build (fresh bundle `9c284de8…b17b`; P1/P2 `09e25695…a199`; final audit `f86e13af…bc67`) | PASS. The debug APKs were up to date: they package no JS and no native input changed |
 | APK audits, both ABIs | PASS |
 
 Mutation checks were run in Phases 02, 03, 06–10 and 12, and in both remediation units, but not in Phases 04, 05 or 11. Every run's log is kept. Earlier runs had survivors and a harness error, which led to stronger tests; each of those units' final run has no survivor or harness error.
 
 The final-audit follow-up ran once: 8 of 9 killed. The survivor, Q2, removes a revalidation that later checks duplicate, so it was recorded rather than re-run.
 
+The C1 follow-up ran twice (`mutate-cleanup.py`, both logs kept): run 1 killed 9 of 10, and the survivor (no re-check of a saved path) led to a new test; run 2 killed 10 of 10.
+
 The remediation-audit follow-up ran three times (all logs kept). Run 3 kills every safeguard; the strict read and the verification count each survive alone because each backs up the other, and together they are killed.
 
 **Artifacts** are build outputs, not committed, and live on this PC only. Hashes are in [MANUAL-QA.md](MANUAL-QA.md):
 
-- `android/app/build/outputs/apk/dataQa/app-arm64-v8a-dataQa.apk` (phones): now `94c5d9ad…9a04`, rebuilt with the P1/P2 fixes (2026-11-07)
-- `android/app/build/outputs/apk/dataQa/app-x86_64-dataQa.apk` (emulators): now `9f04fb38…1183`
+- `android/app/build/outputs/apk/dataQa/app-arm64-v8a-dataQa.apk` (phones): now `4ff8d67e…8532`, rebuilt with the C1 fix (2026-11-07)
+- `android/app/build/outputs/apk/dataQa/app-x86_64-dataQa.apk` (emulators): now `e9ec1f09…7086`
 - the matching debug APKs, unchanged
-- The final-audit dataQa APKs (`2502aec3…`, `a0bf18e5…`) and, before them, the Phase 13 ones (`ef264311…`, `58470f2f…`) were replaced in place and no longer exist on disk.
+- The P1/P2 dataQa APKs (`94c5d9ad…`, `9f04fb38…`), the final-audit ones (`2502aec3…`, `a0bf18e5…`) and, before them, the Phase 13 ones (`ef264311…`, `58470f2f…`) were replaced in place and no longer exist on disk.
 
 **Failed and interrupted attempts are kept, not hidden:**
 
@@ -195,6 +217,11 @@ The remediation-audit follow-up ran three times (all logs kept). Run 3 kills eve
 - **Final-audit follow-up:**
   - mutation run 1 is CHECK FAILED (Q2 survived; explained in the report);
   - `sdk-tools-1.log`'s apksigner step printed nothing because of shell quoting, so the signer is in `sdk-tools-apksigner-1.log`.
+- **Clear-data audit (C1) follow-up:**
+  - `post-fix-existing-1` had 5 failures from deliberate changes (a new schema table, a new outcome field, and an async gap now closed in code without changing those tests);
+  - `storage-cleanup-tests-1` had a test-authoring error (a shared mock's call count);
+  - mutation run 1 had a survivor;
+  - preflight logged 2 extra intermittent React `act(...)` warnings in the untouched `chatHistoryPaging` suite (alone: 1, then 0).
 - **Remediation-audit follow-up:**
   - storage API runs 1–3 failed on test-authoring errors (seeding, reused IDs), fixed in the test only;
   - mutation run 2 showed a too-broad fault injection, fixed in the test and rerun (run 3).
@@ -245,7 +272,7 @@ No phase FAILED, and no unit was reverted.
 Follow [MANUAL-QA.md](MANUAL-QA.md) (M01–M19, all NOT_RUN). The safe path:
 
 1. Do not clear data or reinstall. Note your task/event/note counts, one armed reminder and your sign-in state.
-2. Check the SHA-256 of `app-arm64-v8a-dataQa.apk`: `94c5d9ad…9a04` (full value in MANUAL-QA). *Updated 2026-11-07 for the remediation-audit rebuild; it was `2502aec3…89ba`, and before that `ef264311…7e19`.*
+2. Check the SHA-256 of `app-arm64-v8a-dataQa.apk`: `4ff8d67e…8532` (full value in MANUAL-QA). *Updated 2026-11-07 for the C1 rebuild; it was `94c5d9ad…9a04`, before that `2502aec3…89ba`, and before that `ef264311…7e19`.*
 3. Run `adb install -r` on it, over an existing `com.lafina.capstone` signed by the same Android Debug certificate (`acf890c3…`). If you see `INSTALL_FAILED_UPDATE_INCOMPATIBLE`, stop; never uninstall or clear data.
 4. Check, in airplane mode:
    - the app launches without Metro;
@@ -292,7 +319,7 @@ Follow [MANUAL-QA.md](MANUAL-QA.md) (M01–M19, all NOT_RUN). The safe path:
 ## Recommended next actions
 
 1. Run M16 on your phone (in-place update of the arm64 dataQa APK), then the M05/M06 reminder cases. These are the highest-risk unverified behaviors.
-2. Have someone other than the implementer review the branch diff against `b9433dc` (a `/code-review` run or a human reviewer). The independent final audit (`codex-final-audit-940802c-20261106.md`) covered selected paths; its F1–F4 follow-up (`f61d1eb`, `0c1b99a`) was re-audited (`codex-remediation-audit-7b3b183-20261106.md`); the P1/P2 fix `c015719` has had only a self-review.
+2. Have someone other than the implementer review the branch diff against `b9433dc` (a `/code-review` run or a human reviewer). The independent final audit (`codex-final-audit-940802c-20261106.md`) covered selected paths; its F1–F4 follow-up (`f61d1eb`, `0c1b99a`) was re-audited (`codex-remediation-audit-7b3b183-20261106.md`); the P1/P2 fix `c015719` was independently audited (`codex-clear-data-audit-8823b11-20261107.md`); the C1 fix `f7e947f` has had only a self-review.
 3. Run the instrumentation tests (`connectedDebugAndroidTest`) on a test device, and the emulator runner on a spare AVD (M17).
 4. Decide whether to build ADR-023 option C (native invalidation marker) to close the process-death stale-alert residual (corrected 2026-11-06 from "force-stop", final audit F4).
 5. When backend access exists, carry out [backend-handoff-29-30.md](backend-handoff-29-30.md) in order, then the client capability change.

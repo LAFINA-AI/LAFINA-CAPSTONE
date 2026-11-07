@@ -1,0 +1,1 @@
+const base = require("C:\\L3mxr\\Github Repositories\\LAFINA-CAPSTONE-agy-development-cont\\jest.config.js"); module.exports = {...base, rootDir: "C:\\L3mxr\\Github Repositories\\LAFINA-CAPSTONE-agy-development-cont", testMatch: ['<rootDir>/docs/plans/agy-improvements/reports/evidence/codex-clear-data-audit-8823b11-20261107/independentAttachmentRetry.test.tsx']};

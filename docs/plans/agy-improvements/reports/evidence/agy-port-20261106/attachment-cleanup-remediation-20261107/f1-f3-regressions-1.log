@@ -1,0 +1,12 @@
+PASS __tests__/ui/finalAuditF1OfflineVoicePending.test.tsx (5.359 s)
+PASS __tests__/ui/finalAuditF3ClearAllDataFailure.test.tsx
+PASS __tests__/ai/finalAuditF1PreviewAdmission.test.ts
+PASS __tests__/ai/finalAuditF2Ducking.test.ts
+
+Test Suites: 4 passed, 4 total
+Tests:       29 passed, 29 total
+Snapshots:   0 total
+Time:        8.97 s
+Ran all test suites matching /__tests__\\ai\\finalAuditF1PreviewAdmission.test.ts|__tests__\\ai\\finalAuditF2Ducking.test.ts|__tests__\\ui\\finalAuditF1OfflineVoicePending.test.tsx|__tests__\\ui\\finalAuditF3ClearAllDataFailure.test.tsx/i.
+Test results written to: docs\plans\agy-improvements\reports\evidence\agy-port-20261106\attachment-cleanup-remediation-20261107\f1-f3-regressions-1.json
+EXIT=0

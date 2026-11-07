@@ -1,0 +1,22 @@
+# fix-only strings (absent from src at 8823b11) and controls (present before), ASCII + UTF-16LE, per packaged bundle
+arm64-v8a fix-only 'attachment_cleanup' 1
+arm64-v8a fix-only 'listed and tries again' 1
+arm64-v8a fix-only " not point to this app's attachment storage, so " 1
+arm64-v8a fix-only 'The sign-in changed before every file was removed' 1
+arm64-v8a fix-only 'could not confirm that every chat attachment file was removed' 1
+arm64-v8a fix-only 'Unreadable attachment cleanup count.' 1
+arm64-v8a fix-only 'Owner-bound chat attachment cleanup obligations' 1
+arm64-v8a control 'Not Cleared' 1
+arm64-v8a control 'Clear All Data left planner records behind.' 1
+arm64-v8a control 'Starting Preview' 1
+x86_64 fix-only 'attachment_cleanup' 1
+x86_64 fix-only 'listed and tries again' 1
+x86_64 fix-only " not point to this app's attachment storage, so " 1
+x86_64 fix-only 'The sign-in changed before every file was removed' 1
+x86_64 fix-only 'could not confirm that every chat attachment file was removed' 1
+x86_64 fix-only 'Unreadable attachment cleanup count.' 1
+x86_64 fix-only 'Owner-bound chat attachment cleanup obligations' 1
+x86_64 control 'Not Cleared' 1
+x86_64 control 'Clear All Data left planner records behind.' 1
+x86_64 control 'Starting Preview' 1
+# fix-only strings missing: 0
