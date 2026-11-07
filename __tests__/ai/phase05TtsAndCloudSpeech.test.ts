@@ -1,4 +1,4 @@
-import { NativeModules } from 'react-native';
+import {NativeModules} from 'react-native';
 import Tts from 'react-native-tts';
 import RNFS from 'react-native-fs';
 import {
@@ -16,12 +16,12 @@ import {
   stopSpeechPlayback,
   ttsService,
 } from '../../src/ai';
-import { createCallSpeechProvider } from '../../src/cloud/speechService';
-import { cloudClient } from '../../src/cloud/cloudClient';
-import { accountLinkService } from '../../src/cloud/accountLinkService';
-import { userStore } from '../../src/storage/userStore';
+import {createCallSpeechProvider} from '../../src/cloud/speechService';
+import {cloudClient} from '../../src/cloud/cloudClient';
+import {accountLinkService} from '../../src/cloud/accountLinkService';
+import {userStore} from '../../src/storage/userStore';
 
-describe('Phase 05: Fast TTS via react-native-tts & Optional Gemini Cloud TTS', () => {
+describe('Phase 05: Fast TTS via react-native-tts & Optional ElevenLabs Cloud TTS', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     (RNFS.exists as jest.Mock).mockResolvedValue(true);
@@ -31,10 +31,12 @@ describe('Phase 05: Fast TTS via react-native-tts & Optional Gemini Cloud TTS', 
       status: 'offline',
       message: 'offline in test',
     });
-    jest.spyOn(accountLinkService, 'completeDeferredCloudLink').mockResolvedValue({
-      status: 'offline',
-      message: 'offline in test',
-    });
+    jest
+      .spyOn(accountLinkService, 'completeDeferredCloudLink')
+      .mockResolvedValue({
+        status: 'offline',
+        message: 'offline in test',
+      });
   });
 
   describe('Local react-native-tts Engine (ttsService)', () => {
@@ -104,7 +106,9 @@ describe('Phase 05: Fast TTS via react-native-tts & Optional Gemini Cloud TTS', 
 
     test('speakText and speakTextWithTts synthesize text via react-native-tts', async () => {
       await speakText('Reminder: Algorithms exam tomorrow');
-      expect(Tts.speak).toHaveBeenCalledWith('Reminder: Algorithms exam tomorrow');
+      expect(Tts.speak).toHaveBeenCalledWith(
+        'Reminder: Algorithms exam tomorrow',
+      );
 
       await speakTextWithTts('Reminder: Submit assignment');
       expect(Tts.speak).toHaveBeenCalledWith('Reminder: Submit assignment');
@@ -143,14 +147,18 @@ describe('Phase 05: Fast TTS via react-native-tts & Optional Gemini Cloud TTS', 
 
     test('playSpeechFile calls NativeModules.LafinaAudioPlayer.playAudio when file exists', async () => {
       (RNFS.exists as jest.Mock).mockResolvedValueOnce(true);
-      const played = await playSpeechFile('/path/to/gemini.wav');
+      const played = await playSpeechFile('/path/to/elevenlabs.wav');
       expect(played).toBe(true);
-      expect(NativeModules.LafinaAudioPlayer.playAudio).toHaveBeenCalledWith('/path/to/gemini.wav');
+      expect(NativeModules.LafinaAudioPlayer.playAudio).toHaveBeenCalledWith(
+        '/path/to/elevenlabs.wav',
+      );
     });
 
     test('playSpeechFile throws if file does not exist', async () => {
       (RNFS.exists as jest.Mock).mockResolvedValueOnce(false);
-      await expect(playSpeechFile('/missing/file.wav')).rejects.toThrow('TTS audio file does not exist');
+      await expect(playSpeechFile('/missing/file.wav')).rejects.toThrow(
+        'TTS audio file does not exist',
+      );
     });
 
     test('ttsService object provides all required service methods', () => {
@@ -187,7 +195,9 @@ describe('Phase 05: Fast TTS via react-native-tts & Optional Gemini Cloud TTS', 
     });
 
     beforeEach(() => {
-      jest.spyOn(userStore, 'getUserById').mockReturnValue(createMockUser('student'));
+      jest
+        .spyOn(userStore, 'getUserById')
+        .mockReturnValue(createMockUser('student'));
       jest.spyOn(userStore, 'getActiveSessionToken').mockReturnValue({
         userId: testUserId,
         accessToken: 'mock-token',
@@ -202,7 +212,9 @@ describe('Phase 05: Fast TTS via react-native-tts & Optional Gemini Cloud TTS', 
     });
 
     test('falls back to react-native-tts when user role is student (not student_pro)', async () => {
-      const provider = createCallSpeechProvider(testUserId);
+      const provider = createCallSpeechProvider(testUserId, {
+        isOnlineMode: () => true,
+      });
       const result = await provider.speakText('Time for Physics lecture');
 
       expect(result.source).toBe('native_tts');
@@ -211,10 +223,14 @@ describe('Phase 05: Fast TTS via react-native-tts & Optional Gemini Cloud TTS', 
     });
 
     test('falls back to react-native-tts when client is offline even if student_pro', async () => {
-      jest.spyOn(userStore, 'getUserById').mockReturnValue(createMockUser('student_pro'));
+      jest
+        .spyOn(userStore, 'getUserById')
+        .mockReturnValue(createMockUser('student_pro'));
       jest.spyOn(cloudClient, 'isOnline').mockResolvedValue(false);
 
-      const provider = createCallSpeechProvider(testUserId);
+      const provider = createCallSpeechProvider(testUserId, {
+        isOnlineMode: () => true,
+      });
       const result = await provider.speakText('Time for Math recitation');
 
       expect(result.source).toBe('native_tts');
@@ -222,49 +238,76 @@ describe('Phase 05: Fast TTS via react-native-tts & Optional Gemini Cloud TTS', 
       await provider.dispose?.();
     });
 
-    test('uses Gemini cloud TTS when student is student_pro and online', async () => {
-      jest.spyOn(userStore, 'getUserById').mockReturnValue(createMockUser('student_pro'));
+    test('uses ElevenLabs cloud TTS when student is student_pro and online', async () => {
+      jest
+        .spyOn(userStore, 'getUserById')
+        .mockReturnValue(createMockUser('student_pro'));
       jest.spyOn(cloudClient, 'isOnline').mockResolvedValue(true);
 
-      const mockAudioBase64 = Buffer.from('RIFF_MOCK_WAV_BYTES').toString('base64');
-      jest.spyOn(cloudClient, 'request').mockResolvedValue({
-        status: 'success',
-        data: {
-          requestId: 'tts_req_123',
-          audioBase64: mockAudioBase64,
-          mimeType: 'audio/wav',
-          model: 'gemini-tts',
-          voice: 'Puck',
-          createdAt: new Date().toISOString(),
-        },
-      });
+      const mockAudioBase64 = Buffer.from('RIFF_MOCK_WAV_BYTES').toString(
+        'base64',
+      );
+      jest
+        .spyOn(cloudClient, 'request')
+        .mockResolvedValueOnce({
+          status: 'success',
+          data: {provider: 'elevenlabs', enabled: true},
+        })
+        .mockResolvedValue({
+          status: 'success',
+          data: {
+            requestId: 'tts_req_123',
+            audioBase64: mockAudioBase64,
+            provider: 'elevenlabs',
+            mimeType: 'audio/mpeg',
+            model: 'elevenlabs-tts',
+            voice: 'Puck',
+            createdAt: new Date().toISOString(),
+          },
+        });
 
-      const provider = createCallSpeechProvider(testUserId);
-      const result = await provider.speakText('Your thesis draft is due at 5 PM');
+      const provider = createCallSpeechProvider(testUserId, {
+        isOnlineMode: () => true,
+      });
+      const result = await provider.speakText(
+        'Your thesis draft is due at 5 PM',
+      );
 
       expect(cloudClient.request).toHaveBeenCalledWith(
         '/v1/ai/tts',
         expect.objectContaining({
           method: 'POST',
-          body: expect.stringContaining('"text":"Your thesis draft is due at 5 PM"'),
+          body: expect.stringContaining(
+            '"text":"Your thesis draft is due at 5 PM"',
+          ),
         }),
         true,
       );
       expect(RNFS.writeFile).toHaveBeenCalled();
       expect(NativeModules.LafinaAudioPlayer.playAudio).toHaveBeenCalled();
-      expect(result.source).toBe('gemini');
+      expect(result.source).toBe('elevenlabs');
       await provider.dispose?.();
     });
 
-    test('falls back gracefully to react-native-tts if Gemini cloud TTS returns an error', async () => {
-      jest.spyOn(userStore, 'getUserById').mockReturnValue(createMockUser('student_pro'));
+    test('falls back gracefully to react-native-tts if ElevenLabs cloud TTS returns an error', async () => {
+      jest
+        .spyOn(userStore, 'getUserById')
+        .mockReturnValue(createMockUser('student_pro'));
       jest.spyOn(cloudClient, 'isOnline').mockResolvedValue(true);
-      jest.spyOn(cloudClient, 'request').mockResolvedValue({
-        status: 'rate_limited',
-        error: 'Daily TTS quota reached',
-      });
+      jest
+        .spyOn(cloudClient, 'request')
+        .mockResolvedValueOnce({
+          status: 'success',
+          data: {provider: 'elevenlabs', enabled: true},
+        })
+        .mockResolvedValue({
+          status: 'rate_limited',
+          error: 'Daily TTS quota reached',
+        });
 
-      const provider = createCallSpeechProvider(testUserId);
+      const provider = createCallSpeechProvider(testUserId, {
+        isOnlineMode: () => true,
+      });
       const result = await provider.speakText('Lab report deadline');
 
       expect(result.source).toBe('native_tts');
@@ -273,35 +316,189 @@ describe('Phase 05: Fast TTS via react-native-tts & Optional Gemini Cloud TTS', 
     });
 
     test('prepareText pre-caches audio ahead of time and speakText uses prepared audio', async () => {
-      jest.spyOn(userStore, 'getUserById').mockReturnValue(createMockUser('student_pro'));
+      jest
+        .spyOn(userStore, 'getUserById')
+        .mockReturnValue(createMockUser('student_pro'));
       jest.spyOn(cloudClient, 'isOnline').mockResolvedValue(true);
 
-      const mockAudioBase64 = Buffer.from('RIFF_MOCK_WAV_PREPARED').toString('base64');
-      jest.spyOn(cloudClient, 'request').mockResolvedValue({
-        status: 'success',
-        data: {
-          requestId: 'tts_prep_456',
-          audioBase64: mockAudioBase64,
-          mimeType: 'audio/wav',
-          model: 'gemini-tts',
-          voice: 'Puck',
-          createdAt: new Date().toISOString(),
-        },
-      });
+      const mockAudioBase64 = Buffer.from('RIFF_MOCK_WAV_PREPARED').toString(
+        'base64',
+      );
+      jest
+        .spyOn(cloudClient, 'request')
+        .mockResolvedValueOnce({
+          status: 'success',
+          data: {provider: 'elevenlabs', enabled: true},
+        })
+        .mockResolvedValue({
+          status: 'success',
+          data: {
+            requestId: 'tts_prep_456',
+            audioBase64: mockAudioBase64,
+            provider: 'elevenlabs',
+            mimeType: 'audio/mpeg',
+            model: 'elevenlabs-tts',
+            voice: 'Puck',
+            createdAt: new Date().toISOString(),
+          },
+        });
 
-      const provider = createCallSpeechProvider(testUserId);
+      const provider = createCallSpeechProvider(testUserId, {
+        isOnlineMode: () => true,
+      });
       await provider.prepareText?.('Prepared announcement');
-      expect(cloudClient.request).toHaveBeenCalledTimes(1);
+      expect(cloudClient.request).toHaveBeenCalledTimes(2);
 
       // Now call speakText with same text: should use pre-prepared audio without re-requesting
       const result = await provider.speakText('Prepared announcement');
-      expect(cloudClient.request).toHaveBeenCalledTimes(1); // No new network call
-      expect(result.source).toBe('gemini');
+      expect(cloudClient.request).toHaveBeenCalledTimes(2); // No new network call
+      expect(result.source).toBe('elevenlabs');
+      await provider.dispose?.();
+    });
+
+    test('explicit Offline Mode never probes capabilities or generates cloud speech', async () => {
+      jest
+        .spyOn(userStore, 'getUserById')
+        .mockReturnValue(createMockUser('student_pro'));
+      const request = jest.spyOn(cloudClient, 'request');
+      const provider = createCallSpeechProvider(testUserId, {
+        isOnlineMode: () => false,
+      });
+      await provider.prepareText?.('Private reminder');
+      expect((await provider.speakText('Private reminder')).source).toBe(
+        'native_tts',
+      );
+      expect(request).not.toHaveBeenCalled();
+      await provider.dispose?.();
+    });
+
+    test('an old Gemini server is never asked to synthesize after a missing capability', async () => {
+      jest
+        .spyOn(userStore, 'getUserById')
+        .mockReturnValue(createMockUser('student_pro'));
+      const request = jest
+        .spyOn(cloudClient, 'request')
+        .mockResolvedValue({status: 'server_error', error: 'Not found'});
+      const provider = createCallSpeechProvider(testUserId, {
+        isOnlineMode: () => true,
+      });
+      expect((await provider.speakText('Use local speech')).source).toBe(
+        'native_tts',
+      );
+      expect(request).toHaveBeenCalledTimes(1);
+      expect(request.mock.calls[0][0]).toBe('/v1/ai/tts/capabilities');
+      expect(RNFS.writeFile).not.toHaveBeenCalled();
+      await provider.dispose?.();
+    });
+
+    test('cancelled capability callbacks never play or fall back after Stop', async () => {
+      jest
+        .spyOn(userStore, 'getUserById')
+        .mockReturnValue(createMockUser('student_pro'));
+      let finish!: (value: any) => void;
+      const request = jest.spyOn(cloudClient, 'request').mockImplementation(
+        () =>
+          new Promise(resolve => {
+            finish = resolve;
+          }),
+      );
+      const provider = createCallSpeechProvider(testUserId, {
+        isOnlineMode: () => true,
+      });
+      const result = provider.speakText('Cancelled announcement');
+      for (let n = 0; n < 20 && request.mock.calls.length === 0; n += 1)
+        await Promise.resolve();
+      expect(request).toHaveBeenCalledTimes(1);
+      await provider.stopSpeech?.();
+      finish({
+        status: 'success',
+        data: {provider: 'elevenlabs', enabled: true},
+      });
+      expect((await result).source).toBe('cancelled');
+      expect(Tts.speak).not.toHaveBeenCalled();
+      expect(RNFS.writeFile).not.toHaveBeenCalled();
+      await provider.dispose?.();
+    });
+
+    test('Stop during native MP3 playback does not start fallback speech', async () => {
+      jest
+        .spyOn(userStore, 'getUserById')
+        .mockReturnValue(createMockUser('student_pro'));
+      jest
+        .spyOn(cloudClient, 'request')
+        .mockResolvedValueOnce({
+          status: 'success',
+          data: {provider: 'elevenlabs', enabled: true},
+        })
+        .mockResolvedValue({
+          status: 'success',
+          data: {
+            provider: 'elevenlabs',
+            mimeType: 'audio/mpeg',
+            audioBase64: 'YXVkaW8=',
+          },
+        });
+      let finish!: (value: boolean) => void;
+      (
+        NativeModules.LafinaAudioPlayer.playAudio as jest.Mock
+      ).mockImplementationOnce(
+        () =>
+          new Promise(resolve => {
+            finish = resolve;
+          }),
+      );
+      const provider = createCallSpeechProvider(testUserId, {
+        isOnlineMode: () => true,
+      });
+      const result = provider.speakText('Stop this audio');
+      for (let n = 0; n < 30 && !finish; n += 1) await Promise.resolve();
+      expect(finish).toBeDefined();
+      await provider.stopSpeech?.();
+      finish(false);
+      expect((await result).source).toBe('cancelled');
+      expect(Tts.speak).not.toHaveBeenCalled();
+      await provider.dispose?.();
+    });
+
+    test('recovers cloud speech after a temporary capability failure without reopening Chat', async () => {
+      jest
+        .spyOn(userStore, 'getUserById')
+        .mockReturnValue(createMockUser('student_pro'));
+      const request = jest
+        .spyOn(cloudClient, 'request')
+        .mockResolvedValueOnce({
+          status: 'server_unavailable',
+          error: 'temporary',
+        })
+        .mockResolvedValueOnce({
+          status: 'success',
+          data: {provider: 'elevenlabs', enabled: true},
+        })
+        .mockResolvedValueOnce({
+          status: 'success',
+          data: {
+            provider: 'elevenlabs',
+            mimeType: 'audio/mpeg',
+            audioBase64: 'YXVkaW8=',
+          },
+        });
+      const provider = createCallSpeechProvider(testUserId, {
+        isOnlineMode: () => true,
+      });
+      expect((await provider.speakText('First attempt')).source).toBe(
+        'native_tts',
+      );
+      expect((await provider.speakText('Try after recovery')).source).toBe(
+        'elevenlabs',
+      );
+      expect(request).toHaveBeenCalledTimes(3);
       await provider.dispose?.();
     });
 
     test('stopSpeech halts active playback and dispose cleans up temporary files', async () => {
-      const provider = createCallSpeechProvider(testUserId);
+      const provider = createCallSpeechProvider(testUserId, {
+        isOnlineMode: () => true,
+      });
       await provider.stopSpeech?.();
       expect(Tts.stop).toHaveBeenCalled();
       expect(NativeModules.LafinaAudioPlayer.stopAudio).toHaveBeenCalled();

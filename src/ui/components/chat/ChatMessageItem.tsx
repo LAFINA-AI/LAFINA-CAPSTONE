@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import React, {useState} from 'react';
+import {View, Text, StyleSheet, TouchableOpacity} from 'react-native';
 import {
   Volume2,
   VolumeX,
@@ -10,26 +10,27 @@ import {
   Presentation,
   Share2,
 } from 'lucide-react-native';
-import { Fonts, Shadows } from '../../theme';
-import { useTheme } from '../../contexts/ThemeContext';
-import { useThemedStyles } from '../../theme/createThemedStyles';
-import type { ThemeColors } from '../../contexts/ThemeContext';
-import type { ChatAttachment, ChatMessage } from '../../../storage/chatStore';
+import {Fonts, Shadows} from '../../theme';
+import {useTheme} from '../../contexts/ThemeContext';
+import {useThemedStyles} from '../../theme/createThemedStyles';
+import type {ThemeColors} from '../../contexts/ThemeContext';
+import type {ChatAttachment, ChatMessage} from '../../../storage/chatStore';
 import {
   DOCUMENT_FORMATS,
   formatFileSize,
   isDocumentFormat,
 } from '../../../skills/documentSkill';
-import { ttsService } from '../../../ai/tts/ttsService';
+import {ttsService} from '../../../ai/tts/ttsService';
 
 interface ChatMessageItemProps {
   item: ChatMessage;
   handbookNote?: string;
-  onSpeak?: (text: string) => void;
+  onSpeak?: (text: string) => void | Promise<unknown>;
+  onStopSpeaking?: () => void | Promise<unknown>;
   onOpenAttachment?: (attachment: ChatAttachment) => void;
 }
 
-const AttachmentIcon: React.FC<{ format: string; color: string }> = ({
+const AttachmentIcon: React.FC<{format: string; color: string}> = ({
   format,
   color,
 }) => {
@@ -47,10 +48,11 @@ export const ChatMessageItem: React.FC<ChatMessageItemProps> = ({
   item,
   handbookNote,
   onSpeak,
+  onStopSpeaking,
   onOpenAttachment,
 }) => {
   const isUser = item.sender === 'user';
-  const { colors } = useTheme();
+  const {colors} = useTheme();
   const themed = useThemedStyles(getThemedStyles);
   const [isPlaying, setIsPlaying] = useState(false);
 
@@ -70,19 +72,16 @@ export const ChatMessageItem: React.FC<ChatMessageItemProps> = ({
 
   const handleToggleSpeak = async () => {
     if (isPlaying) {
-      await ttsService.stop();
+      if (onStopSpeaking) await onStopSpeaking();
+      else await ttsService.stop();
       setIsPlaying(false);
-      return;
-    }
-
-    if (onSpeak) {
-      onSpeak(item.content);
       return;
     }
 
     try {
       setIsPlaying(true);
-      await ttsService.speak(item.content);
+      if (onSpeak) await onSpeak(item.content);
+      else await ttsService.speak(item.content);
     } catch (err) {
       console.warn('[ChatMessageItem] TTS speak error:', err);
     } finally {
@@ -105,7 +104,7 @@ export const ChatMessageItem: React.FC<ChatMessageItemProps> = ({
         style={[
           styles.bubble,
           isUser
-            ? [styles.userBubble, { backgroundColor: colors.primary }]
+            ? [styles.userBubble, {backgroundColor: colors.primary}]
             : [styles.assistantBubble, themed.assistantBubble],
         ]}
       >
@@ -114,12 +113,12 @@ export const ChatMessageItem: React.FC<ChatMessageItemProps> = ({
             <View
               style={[
                 styles.avatarBadge,
-                { backgroundColor: colors.primary + '18' },
+                {backgroundColor: colors.primary + '18'},
               ]}
             >
               <Sparkles size={11} color={colors.primary} />
             </View>
-            <Text style={[styles.assistantName, { color: colors.primary }]}>
+            <Text style={[styles.assistantName, {color: colors.primary}]}>
               lafina
             </Text>
           </View>
@@ -190,7 +189,7 @@ export const ChatMessageItem: React.FC<ChatMessageItemProps> = ({
             <TouchableOpacity
               style={styles.speakButton}
               onPress={handleToggleSpeak}
-              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+              hitSlop={{top: 8, bottom: 8, left: 8, right: 8}}
               accessibilityRole="button"
               accessibilityLabel={
                 isPlaying ? 'Stop reading message' : 'Read message aloud'

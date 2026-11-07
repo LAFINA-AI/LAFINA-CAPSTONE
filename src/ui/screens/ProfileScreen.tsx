@@ -36,9 +36,7 @@ import {ReminderHealth} from '../components/profile/ReminderHealth';
 import {PersonalMemory} from '../components/profile/PersonalMemory';
 import {OfflineVoice} from '../components/profile/OfflineVoice';
 import {speechSettingsStore} from '../../storage/speechSettingsStore';
-import {
-  profileStatisticsStore,
-} from '../../storage/profileStatisticsStore';
+import {profileStatisticsStore} from '../../storage/profileStatisticsStore';
 import type {ProfileStatistics} from '../../storage/profileStatisticsStore';
 import {personalMemoryStore} from '../../storage/personalMemoryStore';
 import {
@@ -209,9 +207,11 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
       return;
     }
     setTtsTesting(true);
+    let disposeSpeech: (() => Promise<void>) | undefined;
     try {
       const {createCallSpeechProvider} = require('../../cloud/speechService');
       const provider = createCallSpeechProvider(userId);
+      disposeSpeech = provider.dispose;
 
       Alert.alert(
         'Synthesizing…',
@@ -220,10 +220,12 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
       const result = await provider.speakText(
         'Hey! This is lafina. Text to speech is working.',
       );
-      if (result.source === 'gemini') {
+      if (result.source === 'cancelled') {
+        Alert.alert('TTS Test Stopped', 'Voice playback was cancelled.');
+      } else if (result.source === 'elevenlabs') {
         Alert.alert(
-          'TTS Test (Gemini 3.1 Flash)',
-          'Playback finished using Gemini 3.1 Flash (Aoede Voice).',
+          'TTS Test (ElevenLabs)',
+          'Playback finished using the configured ElevenLabs online voice.',
         );
       } else {
         Alert.alert(
@@ -236,6 +238,7 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
       console.error('[Profile] TTS test failed:', e);
       Alert.alert('TTS Test Error', message);
     } finally {
+      await disposeSpeech?.().catch(() => undefined);
       setTtsTesting(false);
     }
   };

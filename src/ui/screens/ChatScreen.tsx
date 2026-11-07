@@ -1,6 +1,7 @@
 import React, {useState, useEffect, useRef, useCallback} from 'react';
 import {
   View,
+  AppState,
   Text,
   StyleSheet,
   FlatList,
@@ -37,6 +38,8 @@ import {
 import {mergeChatPages} from './chat/chatPaging';
 import {localSettingsStore} from '../../storage/localSettingsStore';
 import {accountLinkService} from '../../cloud';
+import {createCallSpeechProvider} from '../../cloud/speechService';
+import type {CallSpeechProvider} from '../../scheduler/speechProvider';
 import {
   DOCUMENT_FORMAT_ORDER,
   DOCUMENT_FORMATS,
@@ -117,6 +120,20 @@ export const ChatScreen: React.FC<ChatScreenProps> = ({
     const saved = localSettingsStore.get(userId, 'chat.onlineMode', null);
     return saved === 'true';
   });
+  const onlineSpeech = useRef<CallSpeechProvider | null>(null);
+  useEffect(() => {
+    const provider = createCallSpeechProvider(userId);
+    onlineSpeech.current = provider;
+    const background = AppState.addEventListener('change', state => {
+      if (state !== 'active')
+        void provider.stopSpeech?.().catch(() => undefined);
+    });
+    return () => {
+      onlineSpeech.current = null;
+      background.remove();
+      void provider.dispose?.().catch(() => undefined);
+    };
+  }, [userId]);
   const [useHandbook, setUseHandbook] = useState(() =>
     handbookPreference.read(userId),
   );
@@ -349,6 +366,7 @@ export const ChatScreen: React.FC<ChatScreenProps> = ({
 
   const handleToggleOnline = async (): Promise<boolean> => {
     if (isOnlineMode) {
+      void onlineSpeech.current?.stopSpeech?.().catch(() => undefined);
       setIsOnlineMode(false);
       setSelectedFormat(null);
       localSettingsStore.set(userId, 'chat.onlineMode', 'false');
@@ -764,6 +782,16 @@ export const ChatScreen: React.FC<ChatScreenProps> = ({
           <ChatMessageItem
             item={item}
             handbookNote={item.handbookNote ?? handbookNotes[item.id]}
+            onSpeak={
+              isOnlineMode
+                ? text => onlineSpeech.current?.speakText(text)
+                : undefined
+            }
+            onStopSpeaking={
+              isOnlineMode
+                ? () => onlineSpeech.current?.stopSpeech?.()
+                : undefined
+            }
             onOpenAttachment={handleOpenAttachment}
           />
         )}

@@ -1,0 +1,639 @@
+diff --git a/.env.example b/.env.example
+index 156327d..8390c7c 100644
+--- a/.env.example
++++ b/.env.example
+@@ -61,3 +61,9 @@ PINECONE_INDEX_NAME=
+ # Optional overrides:
+ # HANDBOOK_NAMESPACE=ustp-handbook-2023
+ # HANDBOOK_MIN_SCORE=0.30
++
++# ElevenLabs online TTS (server only; replaces the Gemini TTS route).
++ELEVENLABS_API_KEY=
++ELEVENLABS_VOICE_ID=JBFqnCBsd6RMkjVDRZzb
++ELEVENLABS_MODEL_ID=eleven_flash_v2_5
++ELEVENLABS_MAX_CHARACTERS_PER_PROCESS=20000
+diff --git a/app/api/v1/ai.py b/app/api/v1/ai.py
+index 153c360..1d24f05 100644
+--- a/app/api/v1/ai.py
++++ b/app/api/v1/ai.py
+@@ -27,7 +27,7 @@ from app.clients.deepseek import (
+     DeepSeekError,
+     DeepSeekMalformedResponseError,
+ )
+-from app.clients.gemini_tts import GeminiTtsClient, GeminiTtsError
++from app.clients.elevenlabs_tts import ElevenLabsTtsClient, ElevenLabsTtsError
+ from app.services.flashcards import (
+     FLASHCARD_SYSTEM_PROMPT,
+     Flashcard,
+@@ -95,11 +95,11 @@ def get_deepseek_client(request: Request) -> DeepSeekClient:
+     return client
+ 
+ 
+-def get_gemini_tts_client(request: Request) -> GeminiTtsClient:
+-    """Dependency helper providing the application-scoped GeminiTtsClient."""
+-    client: GeminiTtsClient | None = getattr(request.app.state, "gemini_tts_client", None)
++def get_elevenlabs_tts_client(request: Request) -> ElevenLabsTtsClient:
++    """Dependency helper providing the application-scoped ElevenLabsTtsClient."""
++    client: ElevenLabsTtsClient | None = getattr(request.app.state, "elevenlabs_tts_client", None)
+     if client is None:
+-        return GeminiTtsClient(settings=settings)
++        return ElevenLabsTtsClient(settings=settings)
+     return client
+ 
+ 
+@@ -174,14 +174,16 @@ class AIChatResponse(BaseModel):
+ 
+ 
+ class AITtsRequest(BaseModel):
++    provider: Literal["elevenlabs"] = "elevenlabs"
+     requestId: str = Field(default_factory=lambda: str(uuid.uuid4()))
+     text: str = Field(..., min_length=1, max_length=512)
+ 
+ 
+ class AITtsResponse(BaseModel):
++    provider: Literal["elevenlabs"] = "elevenlabs"
+     requestId: str
+     audioBase64: str
+-    mimeType: str = "audio/wav"
++    mimeType: str = "audio/mpeg"
+     model: str
+     voice: str
+     createdAt: str
+@@ -333,12 +335,23 @@ async def handbook_status(
+     )
+ 
+ 
++@router.get("/tts/capabilities")
++async def tts_capabilities(
++    auth_data: Annotated[tuple[Account, AuthSession], Depends(get_current_user_and_session)],
++    elevenlabs_tts: ElevenLabsTtsClient = Depends(get_elevenlabs_tts_client),
++):
++    account, _ = auth_data
++    if not has_tts_access(account):
++        raise HTTPException(status_code=403, detail="Online speech requires student_pro access.")
++    return {"provider": "elevenlabs", "enabled": elevenlabs_tts.configured, "mimeType": "audio/mpeg"}
++
++
+ @router.post("/tts", response_model=AITtsResponse)
+ async def tts_proxy(
+     req: AITtsRequest,
+     auth_data: Annotated[tuple[Account, AuthSession], Depends(get_current_user_and_session)],
+     db: AsyncSession = Depends(get_db),
+-    gemini_tts: GeminiTtsClient = Depends(get_gemini_tts_client)
++    elevenlabs_tts: ElevenLabsTtsClient = Depends(get_elevenlabs_tts_client)
+ ):
+     account, _ = auth_data
+     owner_id = account.id
+@@ -347,7 +360,7 @@ async def tts_proxy(
+     if not has_tts_access(account):
+         raise HTTPException(
+             status_code=status.HTTP_403_FORBIDDEN,
+-            detail="Gemini TTS requires a student_pro subscription. Please upgrade your account."
++            detail="ElevenLabs TTS requires a student_pro subscription. Please upgrade your account."
+         )
+ 
+     trimmed_text = req.text.strip()
+@@ -389,11 +402,11 @@ async def tts_proxy(
+         )
+ 
+     try:
+-        audio_base64, usage_data = await gemini_tts.synthesize_speech(
++        audio_base64, usage_data = await elevenlabs_tts.synthesize_speech(
+             text=trimmed_text,
+             request_id=req.requestId
+         )
+-    except GeminiTtsError as err:
++    except ElevenLabsTtsError as err:
+         raise HTTPException(
+             status_code=err.status_code,
+             detail=err.message
+@@ -412,9 +425,9 @@ async def tts_proxy(
+     return AITtsResponse(
+         requestId=req.requestId,
+         audioBase64=audio_base64,
+-        mimeType="audio/wav",
+-        model=settings.GEMINI_TTS_MODEL,
+-        voice=settings.GEMINI_TTS_VOICE,
++        mimeType="audio/mpeg",
++        model=settings.ELEVENLABS_MODEL_ID,
++        voice=settings.ELEVENLABS_VOICE_ID,
+         createdAt=now_str
+     )
+ 
+diff --git a/app/clients/elevenlabs_tts.py b/app/clients/elevenlabs_tts.py
+new file mode 100644
+index 0000000..d886491
+--- /dev/null
++++ b/app/clients/elevenlabs_tts.py
+@@ -0,0 +1,94 @@
++"""Server-held ElevenLabs provider, compatible with the existing TTS proxy lifecycle."""
++
++import asyncio
++import base64
++import time
++from urllib.parse import quote
++
++import httpx
++
++
++class ElevenLabsTtsError(Exception):
++    def __init__(self, message: str, status_code: int = 502):
++        self.message = message
++        self.status_code = status_code
++        super().__init__(message)
++
++
++class ElevenLabsTtsClient:
++    def __init__(self, settings, client: httpx.AsyncClient | None = None):
++        self.settings = settings
++        self.client = client
++        self.owns_client = client is None
++        self.used_characters = 0
++        self.requests: dict[str, float] = {}
++
++    @property
++    def configured(self):
++        value = self.settings.ELEVENLABS_API_KEY
++        return bool(value and value.get_secret_value().strip())
++
++    async def start(self):
++        if self.client is None:
++            self.client = httpx.AsyncClient(timeout=12, follow_redirects=False)
++
++    async def close(self):
++        if self.client is not None and self.owns_client:
++            await self.client.aclose()
++            self.client = None
++
++    async def synthesize_speech(self, text: str, request_id: str):
++        if not self.configured:
++            raise ElevenLabsTtsError("ElevenLabs speech is not configured.", 503)
++        if not text.strip() or len(text) > 512:
++            raise ElevenLabsTtsError("Speech text must contain 1 to 512 characters.", 400)
++        now = time.monotonic()
++        self.requests = {
++            key: created for key, created in self.requests.items() if now - created < 600
++        }
++        if request_id in self.requests:
++            raise ElevenLabsTtsError("Speech request already submitted; no automatic retry.", 409)
++        if self.used_characters + len(text) > self.settings.ELEVENLABS_MAX_CHARACTERS_PER_PROCESS:
++            raise ElevenLabsTtsError("Online speech character budget reached.", 429)
++        # Reserve before awaiting. Provider failures may still incur charges.
++        self.used_characters += len(text)
++        self.requests[request_id] = now
++        await self.start()
++        audio = bytearray()
++        try:
++            async with asyncio.timeout(14):
++                async with self.client.stream(
++                    "POST",
++                    "https://api.elevenlabs.io/v1/text-to-speech/"
++                    + quote(self.settings.ELEVENLABS_VOICE_ID, safe="")
++                    + "?output_format=mp3_44100_128",
++                    headers={
++                        "xi-api-key": self.settings.ELEVENLABS_API_KEY.get_secret_value().strip()
++                    },
++                    json={"text": text, "model_id": self.settings.ELEVENLABS_MODEL_ID},
++                    timeout=12,
++                ) as response:
++                    if response.status_code == 429:
++                        raise ElevenLabsTtsError("ElevenLabs speech usage limit reached.", 429)
++                    if response.status_code in (401, 403):
++                        raise ElevenLabsTtsError(
++                            "ElevenLabs speech configuration needs attention.", 503
++                        )
++                    if response.status_code != 200:
++                        raise ElevenLabsTtsError("ElevenLabs speech is unavailable.")
++                    if not response.headers.get("content-type", "").startswith("audio/"):
++                        raise ElevenLabsTtsError("Invalid speech audio response.")
++                    async for chunk in response.aiter_bytes():
++                        audio.extend(chunk)
++                        if len(audio) > 2_000_000:
++                            raise ElevenLabsTtsError("Speech audio response is too large.")
++            if not audio:
++                raise ElevenLabsTtsError("Speech audio response was empty.")
++            return base64.b64encode(audio).decode("ascii"), {
++                "prompt_tokens": len(text),
++                "completion_tokens": 0,
++            }
++        except (TimeoutError, httpx.TimeoutException):
++            raise ElevenLabsTtsError("ElevenLabs speech timed out.", 504) from None
++        except httpx.HTTPError:
++            raise ElevenLabsTtsError("ElevenLabs speech is unavailable.") from None
+diff --git a/app/config.py b/app/config.py
+index 24c7283..bd52394 100644
+--- a/app/config.py
++++ b/app/config.py
+@@ -173,6 +173,12 @@ class Settings(BaseSettings):
+     DEEPSEEK_TIMEOUT_SECONDS: float = 120.0
+ 
+     # Gemini TTS Configuration
++    # Server-held ElevenLabs credentials; Gemini speech is retired by the TTS routes.
++    ELEVENLABS_API_KEY: SecretStr | None = None
++    ELEVENLABS_VOICE_ID: str = "JBFqnCBsd6RMkjVDRZzb"
++    ELEVENLABS_MODEL_ID: str = "eleven_flash_v2_5"
++    ELEVENLABS_MAX_CHARACTERS_PER_PROCESS: int = 20000
++
+     GEMINI_API_KEY: SecretStr | None = None
+     GEMINI_BASE_URL: str = "https://generativelanguage.googleapis.com"
+     GEMINI_TTS_MODEL: str = "gemini-3.1-flash-tts-preview"
+diff --git a/app/main.py b/app/main.py
+index e166e50..cc1ca83 100644
+--- a/app/main.py
++++ b/app/main.py
+@@ -9,13 +9,13 @@ import app.models  # noqa: F401
+ from app.api.v1 import auth, sync, ai, meetings, meeting_notes
+ from app.admin import setup_admin
+ from app.clients.deepseek import DeepSeekClient
+-from app.clients.gemini_tts import GeminiTtsClient
++from app.clients.elevenlabs_tts import ElevenLabsTtsClient
+ from app.clients.pinecone_index import PineconeIndexClient
+ from app.services.handbook_rag import HandbookRetriever
+ 
+ settings = get_settings()
+ deepseek_client = DeepSeekClient(settings=settings)
+-gemini_tts_client = GeminiTtsClient(settings=settings)
++elevenlabs_tts_client = ElevenLabsTtsClient(settings=settings)
+ handbook_retriever = HandbookRetriever(settings, PineconeIndexClient(settings))
+ 
+ 
+@@ -23,10 +23,10 @@ handbook_retriever = HandbookRetriever(settings, PineconeIndexClient(settings))
+ async def lifespan(app: FastAPI):
+     # Initialize HTTP client pools
+     await deepseek_client.start()
+-    await gemini_tts_client.start()
++    await elevenlabs_tts_client.start()
+     await handbook_retriever.start()
+     app.state.deepseek_client = deepseek_client
+-    app.state.gemini_tts_client = gemini_tts_client
++    app.state.elevenlabs_tts_client = elevenlabs_tts_client
+     app.state.handbook_retriever = handbook_retriever
+     if not settings.is_handbook_configured():
+         print(
+@@ -53,7 +53,7 @@ async def lifespan(app: FastAPI):
+             print(f"[Warning] Startup initialization note: {e}")
+     yield
+     await deepseek_client.close()
+-    await gemini_tts_client.close()
++    await elevenlabs_tts_client.close()
+     await handbook_retriever.close()
+     await engine.dispose()
+ 
+@@ -68,7 +68,7 @@ app = FastAPI(
+ )
+ 
+ app.state.deepseek_client = deepseek_client
+-app.state.gemini_tts_client = gemini_tts_client
++app.state.elevenlabs_tts_client = elevenlabs_tts_client
+ app.state.handbook_retriever = handbook_retriever
+ 
+ # Paths that carry an uploaded document rather than a record, and so are held
+diff --git a/tests/test_elevenlabs_tts_client.py b/tests/test_elevenlabs_tts_client.py
+new file mode 100644
+index 0000000..b6c12eb
+--- /dev/null
++++ b/tests/test_elevenlabs_tts_client.py
+@@ -0,0 +1,89 @@
++from types import SimpleNamespace
++
++import httpx
++import pytest
++from pydantic import SecretStr
++
++from app.clients.elevenlabs_tts import (
++    ElevenLabsTtsClient,
++    ElevenLabsTtsError,
++)
++
++
++@pytest.fixture
++def anyio_backend():
++    return "asyncio"
++
++
++def settings(key="synthetic-server-key", budget=20000):
++    return SimpleNamespace(
++        ELEVENLABS_API_KEY=SecretStr(key),
++        ELEVENLABS_MODEL_ID="eleven_flash_v2_5",
++        ELEVENLABS_VOICE_ID="test_voice",
++        ELEVENLABS_MAX_CHARACTERS_PER_PROCESS=budget,
++    )
++
++
++@pytest.mark.anyio
++async def test_contract_and_duplicate_budget():
++    captured = []
++
++    def transport(request):
++        captured.append(request)
++        return httpx.Response(200, content=b"audio", headers={"content-type": "audio/mpeg"})
++
++    async with httpx.AsyncClient(transport=httpx.MockTransport(transport)) as http:
++        client = ElevenLabsTtsClient(settings(), http)
++        audio, usage = await client.synthesize_speech("Hello", "r1")
++        assert audio == "YXVkaW8="
++        assert usage["prompt_tokens"] == 5
++        assert captured[0].headers["xi-api-key"] == "synthetic-server-key"
++        assert captured[0].url.host == "api.elevenlabs.io"
++        with pytest.raises(ElevenLabsTtsError) as duplicate:
++            await client.synthesize_speech("Hello", "r1")
++        assert duplicate.value.status_code == 409
++        assert len(captured) == 1
++
++
++@pytest.mark.anyio
++@pytest.mark.parametrize("status,expected", [(401, 503), (403, 503), (429, 429), (500, 502)])
++async def test_sanitized_errors(status, expected):
++    async with httpx.AsyncClient(
++        transport=httpx.MockTransport(
++            lambda _: httpx.Response(status, text="private-provider-body")
++        )
++    ) as http:
++        client = ElevenLabsTtsClient(settings(), http)
++        with pytest.raises(ElevenLabsTtsError) as failure:
++            await client.synthesize_speech("Hello", "r1")
++        assert failure.value.status_code == expected
++        assert "private-provider-body" not in failure.value.message
++
++
++@pytest.mark.anyio
++async def test_timeout_and_missing_configuration():
++    def transport(_):
++        raise httpx.ReadTimeout("private error details")
++
++    async with httpx.AsyncClient(transport=httpx.MockTransport(transport)) as http:
++        with pytest.raises(ElevenLabsTtsError) as timeout:
++            await ElevenLabsTtsClient(settings(), http).synthesize_speech("Hello", "r1")
++        assert timeout.value.status_code == 504
++        with pytest.raises(ElevenLabsTtsError) as missing:
++            await ElevenLabsTtsClient(settings(key=""), http).synthesize_speech("Hello", "r1")
++        assert missing.value.status_code == 503
++
++
++@pytest.mark.anyio
++async def test_budget_and_input_validation_before_network():
++    def forbidden(_):
++        raise AssertionError("Network should not be called")
++
++    async with httpx.AsyncClient(transport=httpx.MockTransport(forbidden)) as http:
++        client = ElevenLabsTtsClient(settings(budget=1), http)
++        with pytest.raises(ElevenLabsTtsError) as budget:
++            await client.synthesize_speech("Hello", "r1")
++        assert budget.value.status_code == 429
++        with pytest.raises(ElevenLabsTtsError) as invalid:
++            await client.synthesize_speech("x" * 513, "r2")
++        assert invalid.value.status_code == 400
+diff --git a/tests/test_tts_api.py b/tests/test_tts_api.py
+index c06a26f..646d3a4 100644
+--- a/tests/test_tts_api.py
++++ b/tests/test_tts_api.py
+@@ -1,53 +1,26 @@
+-import base64
++import httpx
+ import pytest
+-from pydantic import SecretStr
+ from httpx import AsyncClient, MockTransport, Response
+-import httpx
++from pydantic import SecretStr
+ from sqlalchemy import select
+ 
+-from app.main import app
++from app.clients.elevenlabs_tts import ElevenLabsTtsClient
+ from app.config import Settings
++from app.main import app
+ from app.models.account import Account
+ from app.models.ai_usage import AIUsage
+-from app.clients.gemini_tts import GeminiTtsClient
+ from tests.conftest import TestingSessionLocal
+ 
+ 
+-def create_mock_gemini_client(failing: bool = False):
+-    pcm = b"\x00\x00" * 480
+-    pcm_b64 = base64.b64encode(pcm).decode("utf-8")
+-
++def create_mock_elevenlabs_client(failing: bool = False):
+     def handler(request: httpx.Request) -> Response:
+         if failing:
+             return Response(500, json={"error": "upstream failure"})
+-        return Response(
+-            200,
+-            json={
+-                "candidates": [
+-                    {
+-                        "content": {
+-                            "parts": [
+-                                {
+-                                    "inlineData": {
+-                                        "mimeType": "audio/L16;codec=pcm;rate=24000",
+-                                        "data": pcm_b64
+-                                    }
+-                                }
+-                            ]
+-                        }
+-                    }
+-                ],
+-                "usageMetadata": {
+-                    "promptTokenCount": 10,
+-                    "candidatesTokenCount": 0,
+-                    "totalTokenCount": 10
+-                }
+-            }
+-        )
++        return Response(200, content=b"synthetic-mp3-audio", headers={"Content-Type": "audio/mpeg"})
+ 
+-    settings = Settings(ENVIRONMENT="development", GEMINI_API_KEY="test-gemini-key")
++    settings = Settings(ENVIRONMENT="development", ELEVENLABS_API_KEY="synthetic-elevenlabs-key")
+     http_client = httpx.AsyncClient(transport=MockTransport(handler))
+-    return GeminiTtsClient(settings=settings, client=http_client)
++    return ElevenLabsTtsClient(settings=settings, client=http_client)
+ 
+ 
+ @pytest.mark.asyncio
+@@ -65,19 +38,18 @@ async def test_tts_role_enforcement(async_client: AsyncClient):
+     - admin -> 403 Forbidden
+     - student_pro -> 200 OK
+     """
+-    app.state.gemini_tts_client = create_mock_gemini_client()
++    app.state.elevenlabs_tts_client = create_mock_elevenlabs_client()
+ 
+     # 1. Register a student user (default role = student)
+-    reg_student = await async_client.post("/v1/auth/register", json={
+-        "email": "student_basic@ustp.edu.ph",
+-        "password": "Password123!"
+-    })
++    reg_student = await async_client.post(
++        "/v1/auth/register", json={"email": "student_basic@ustp.edu.ph", "password": "Password123!"}
++    )
+     token_student = reg_student.json()["access_token"]
+ 
+     res_student = await async_client.post(
+         "/v1/ai/tts",
+         json={"text": "Hello world"},
+-        headers={"Authorization": f"Bearer {token_student}"}
++        headers={"Authorization": f"Bearer {token_student}"},
+     )
+     assert res_student.status_code == 403
+     assert "student_pro" in res_student.json()["detail"]
+@@ -92,7 +64,7 @@ async def test_tts_role_enforcement(async_client: AsyncClient):
+     res_admin = await async_client.post(
+         "/v1/ai/tts",
+         json={"text": "Hello world"},
+-        headers={"Authorization": f"Bearer {token_student}"}
++        headers={"Authorization": f"Bearer {token_student}"},
+     )
+     assert res_admin.status_code == 403
+ 
+@@ -106,28 +78,29 @@ async def test_tts_role_enforcement(async_client: AsyncClient):
+     res_pro = await async_client.post(
+         "/v1/ai/tts",
+         json={"text": "Hello world"},
+-        headers={"Authorization": f"Bearer {token_student}"}
++        headers={"Authorization": f"Bearer {token_student}"},
+     )
+     assert res_pro.status_code == 200
+     data = res_pro.json()
+     assert "audioBase64" in data
+-    assert data["mimeType"] == "audio/wav"
+-    assert data["voice"] == "Aoede"
++    assert data["mimeType"] == "audio/mpeg"
++    assert data["voice"] == "JBFqnCBsd6RMkjVDRZzb"
+ 
+ 
+ @pytest.mark.asyncio
+ async def test_tts_text_validation(async_client: AsyncClient):
+     """Test text validation: empty text, whitespace-only, and max 512 length limit."""
+-    app.state.gemini_tts_client = create_mock_gemini_client()
++    app.state.elevenlabs_tts_client = create_mock_elevenlabs_client()
+ 
+-    reg = await async_client.post("/v1/auth/register", json={
+-        "email": "text_val@ustp.edu.ph",
+-        "password": "Password123!"
+-    })
++    reg = await async_client.post(
++        "/v1/auth/register", json={"email": "text_val@ustp.edu.ph", "password": "Password123!"}
++    )
+     token = reg.json()["access_token"]
+ 
+     async with TestingSessionLocal() as db:
+-        acc = (await db.execute(select(Account).where(Account.email == "text_val@ustp.edu.ph"))).scalar_one()
++        acc = (
++            await db.execute(select(Account).where(Account.email == "text_val@ustp.edu.ph"))
++        ).scalar_one()
+         acc.role = "student_pro"
+         await db.commit()
+ 
+@@ -153,29 +126,30 @@ async def test_tts_quota_and_isolation(async_client: AsyncClient):
+     Success-only usage logging: failed requests must NOT consume quota.
+     """
+     # 1. Register student_pro user
+-    reg = await async_client.post("/v1/auth/register", json={
+-        "email": "quota_test@ustp.edu.ph",
+-        "password": "Password123!"
+-    })
++    reg = await async_client.post(
++        "/v1/auth/register", json={"email": "quota_test@ustp.edu.ph", "password": "Password123!"}
++    )
+     token = reg.json()["access_token"]
+     headers = {"Authorization": f"Bearer {token}"}
+ 
+     async with TestingSessionLocal() as db:
+-        acc = (await db.execute(select(Account).where(Account.email == "quota_test@ustp.edu.ph"))).scalar_one()
++        acc = (
++            await db.execute(select(Account).where(Account.email == "quota_test@ustp.edu.ph"))
++        ).scalar_one()
+         acc.role = "student_pro"
+         await db.commit()
+ 
+     # 2. Test failed upstream request does NOT record AIUsage
+-    app.state.gemini_tts_client = create_mock_gemini_client(failing=True)
++    app.state.elevenlabs_tts_client = create_mock_elevenlabs_client(failing=True)
+     res_fail = await async_client.post("/v1/ai/tts", json={"text": "Fail test"}, headers=headers)
+-    assert res_fail.status_code == 503
++    assert res_fail.status_code == 502
+ 
+     async with TestingSessionLocal() as db:
+         usage_count = (await db.execute(select(AIUsage))).scalars().all()
+         assert len(usage_count) == 0
+ 
+     # 3. Test successful requests fill 10 quota items
+-    app.state.gemini_tts_client = create_mock_gemini_client(failing=False)
++    app.state.elevenlabs_tts_client = create_mock_elevenlabs_client(failing=False)
+     for i in range(10):
+         res = await async_client.post("/v1/ai/tts", json={"text": f"Phrase {i}"}, headers=headers)
+         assert res.status_code == 200
+@@ -187,27 +161,59 @@ async def test_tts_quota_and_isolation(async_client: AsyncClient):
+     # 4. Quota isolation check: Chat endpoint quota must STILL have full allowance!
+     # Mock deepseek_client in app.state
+     from app.clients.deepseek import DeepSeekClient
++
+     def deepseek_handler(req: httpx.Request) -> Response:
+-        return Response(200, json={
+-            "id": "chatcmpl-123",
+-            "object": "chat.completion",
+-            "created": 1677858288,
+-            "model": "deepseek-v4-flash",
+-            "choices": [
+-                {
+-                    "index": 0,
+-                    "message": {"role": "assistant", "content": "Hello!"},
+-                    "finish_reason": "stop"
+-                }
+-            ],
+-            "usage": {"prompt_tokens": 5, "completion_tokens": 5, "total_tokens": 10}
+-        })
++        return Response(
++            200,
++            json={
++                "id": "chatcmpl-123",
++                "object": "chat.completion",
++                "created": 1677858288,
++                "model": "deepseek-v4-flash",
++                "choices": [
++                    {
++                        "index": 0,
++                        "message": {"role": "assistant", "content": "Hello!"},
++                        "finish_reason": "stop",
++                    }
++                ],
++                "usage": {"prompt_tokens": 5, "completion_tokens": 5, "total_tokens": 10},
++            },
++        )
++
+     settings = Settings(ENVIRONMENT="development", DEEPSEEK_API_KEY=SecretStr("test-ds-key"))
+-    app.state.deepseek_client = DeepSeekClient(settings=settings, client=httpx.AsyncClient(transport=MockTransport(deepseek_handler)))
++    app.state.deepseek_client = DeepSeekClient(
++        settings=settings, client=httpx.AsyncClient(transport=MockTransport(deepseek_handler))
++    )
+ 
+     res_chat = await async_client.post(
+         "/v1/ai/chat",
+         json={"messages": [{"role": "user", "content": "Chat test"}]},
+-        headers=headers
++        headers=headers,
+     )
+     assert res_chat.status_code == 200
++
++
++@pytest.mark.asyncio
++async def test_elevenlabs_capability_requires_auth_and_entitlement(async_client: AsyncClient):
++    response = await async_client.get("/v1/ai/tts/capabilities")
++    assert response.status_code == 401
++    registration = await async_client.post(
++        "/v1/auth/register",
++        json={"email": "elevenlabs_capability@ustp.edu.ph", "password": "SyntheticPassword123!"},
++    )
++    headers = {"Authorization": "Bearer " + registration.json()["access_token"]}
++    assert (await async_client.get("/v1/ai/tts/capabilities", headers=headers)).status_code == 403
++    async with TestingSessionLocal() as db:
++        account = (
++            await db.execute(
++                select(Account).where(Account.email == "elevenlabs_capability@ustp.edu.ph")
++            )
++        ).scalar_one()
++        account.role = "student_pro"
++        await db.commit()
++    app.state.elevenlabs_tts_client = create_mock_elevenlabs_client()
++    response = await async_client.get("/v1/ai/tts/capabilities", headers=headers)
++    assert response.status_code == 200
++    assert response.json() == {"provider": "elevenlabs", "enabled": True, "mimeType": "audio/mpeg"}
++    assert "synthetic-elevenlabs-key" not in response.text
