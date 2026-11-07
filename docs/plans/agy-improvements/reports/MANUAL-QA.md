@@ -6,27 +6,27 @@ Implementation run `agy-port-20261106` is finished (PARTIAL, see SUMMARY.md). **
 
 These APKs are on the build machine only.
 
-- **Built from:** branch `codex/agy-preservation-improvements`, code commit `f61d1eb` (final-audit F1–F3 fixes). The build ran at HEAD `0c1b99a`, which changed docs only.
-- **Receipts:** `evidence/agy-port-20261106/final-audit-remediation/`:
+- **Built from:** branch `codex/agy-preservation-improvements`, code commit `c015719` (remediation-audit P1/P2 Clear All Data fixes, on top of the final-audit F1–F3 fixes). The build ran at HEAD `c015719`.
+- **Receipts:** `evidence/agy-port-20261106/clear-all-data-remediation-20261107/`:
   - `apk-audit-*-1.json`;
-  - `sdk-tools-1.log` and `sdk-tools-apksigner-1.log`;
+  - `sdk-tools-1.log` (zipalign, apksigner and aapt2 output);
   - `artifact-hashes-1.txt` and `bundle-markers-1.txt`.
-- **Updated 2026-11-06 (final-audit rebuild).** The Phase 13 dataQa hashes it replaces were arm64 `ef264311…7e19` and x86_64 `58470f2f…bfd5e` (receipts in `phase-13/`). Those files were overwritten by this build and no longer exist on disk.
+- **Updated 2026-11-07 (remediation-audit rebuild).** It replaces the final-audit dataQa APKs, arm64 `2502aec3…89ba` and x86_64 `a0bf18e5…91f2` (receipts in `final-audit-remediation/`), which replaced the Phase 13 ones, arm64 `ef264311…7e19` and x86_64 `58470f2f…bfd5e`. Those files were overwritten and no longer exist on disk.
 
 | File (under `android/app/build/outputs/apk/`) | Use | Bytes | SHA-256 |
 |---|---|---|---|
-| `dataQa/app-arm64-v8a-dataQa.apk` | **Phones.** Standalone (bundled JS, no Metro) | 163,257,936 | `2502aec34ffb3f349e43dd9d1c202e8f549a26a0595e8961c58a51ecb95689ba` |
-| `dataQa/app-x86_64-dataQa.apk` | Emulators only | 169,577,888 | `a0bf18e5ce2b87a03097895231e67e3f1b7735a656b05272e1ca12417b5c91f2` |
+| `dataQa/app-arm64-v8a-dataQa.apk` | **Phones.** Standalone (bundled JS, no Metro) | 163,257,936 | `94c5d9ad7c67feb7698c61bdcc2941a9f5dcd9617299b88a5df8b56d703a9a04` |
+| `dataQa/app-x86_64-dataQa.apk` | Emulators only | 169,577,888 | `9f04fb3832962ec5a843f20d27785a306a77c974a5486a8de7f2e72880cd1183` |
 | `debug/app-arm64-v8a-debug.apk` | Development with Metro (unchanged since Phase 13; no packaged JS) | 159,718,559 | `0629c828072dfd5c3f8ab27e0f9838251965d78018dbf9ff32b2a0cc6d2b466e` |
 | `debug/app-x86_64-debug.apk` | Development with Metro, emulator (unchanged) | 166,317,039 | `0756c1236c0a5f1942feb6de651acd470d71606825813629146e8f54d073d63a` |
 
 **dataQa facts** (`aapt2`, `apksigner`, `zipalign`, `apk_audit.py`):
 
-- Package `com.lafina.capstone`, versionCode 6, versionName `0.6.0-data-qa`, target/compile SDK 36, debuggable.
+- Package `com.lafina.capstone`, versionCode 6, versionName `0.6.0-data-qa`, target/compile SDK 36, debuggable. The permission list is identical to the earlier builds.
 - v2 signature: `CN=Android Debug`, certificate SHA-256 `acf890c33d9f7252cca541e5c60166fdf49d47b28313bf678bebb8fb0f62dd5e`.
 - ONNX Runtime 1.22.0. All 16 native libraries have 16 KiB-aligned load segments, and ZIP alignment passes.
 - Whisper `ggml-base.en-q5_1.bin` and `silero_vad.onnx` are present; no Kokoro.
-- Packaged JS bundle SHA-256: `f86e13afe42dfc9588a6bea6aaf70a75cc0e10c83cdaeece943f7fefd5d8bc67`, built from `f61d1eb`; it contains the fix-only strings (`bundle-markers-1.txt`). Phase 13: `e448f8ea…a91c`.
+- Packaged JS bundle SHA-256: `09e25695a0833f661749b1da78b8782ae547783ccc2ab5c1b5b36711420ea199`, built from `c015719`; it contains the 7 P1/P2 fix-only strings and the F1/F3 controls (`bundle-markers-1.txt`). Final audit: `f86e13af…bc67`; Phase 13: `e448f8ea…a91c`.
 
 **Safe in-place update:**
 
@@ -57,9 +57,10 @@ Keep private data, credentials, audio and device serials out of any report you a
 | M13 | Open Profile → Reminder Health, revoke/restore exact alarms in Android settings and return; Retry; save Event Defaults, Apply on a new event, Forget; acknowledge/snooze reminders and read On Time | Access rows refresh on return; counts and retry never claim a ring; defaults change a draft only on Apply; statistics match the records | NOT_RUN |
 | M14 | In airplane mode open Profile → Offline Voice; choose a voice, change speed/pitch, Preview/Stop, Reset; try Preview during dictation and recording; remove the voice and Refresh; with a controlled Student Pro account compare Test TTS Voice online and offline; let a call ring during Preview | Default sounds as before; only installed offline English voices; Preview audible and stoppable; busy states refused; missing voice falls back with a notice; cloud and offline fallback unchanged; the call takes priority | NOT_RUN |
 | M15 | Audit A1-A4: in airplane mode with an offline English voice a reminder call speaks; disable the voice, Refresh Offline Voice (speech off, Preview disabled) and let a call ring (text only); reinstall and confirm speech returns; save Event Defaults then Clear All Data (no defaults offered, offline voice kept); ~~retire a reminder by sync, background and force-stop at once, wait for the old time~~ corrected 2026-11-06 (final audit F4): the reminder part is replaced by M18 R1-R3 (Force Stop cancels the alarm itself on Android 15, so it cannot probe the residual) | Speech only with a confirmed voice; text otherwise; defaults forgotten; ~~the force-stop case may still ring (documented residual, ADR-023) and is dismissed on open~~ for the reminder part see M18 R1-R3 | NOT_RUN |
-| M16 | Phase 11: note task/event/note counts and one armed reminder; adb install -r the arm64 ONNX 1.22.0 dataQa APK (sha256 ef264311...e19; updated 2026-11-06: use the final-audit rebuild 2502aec3...89ba from the table above) over the existing debug-signed app (never uninstall/clear); airplane mode launch; push-to-talk dictation (VAD); meeting record/stop; reminder call on a locked screen; optionally a 16 KiB-page image | Launch without Metro; counts unchanged; dictation and VAD work; recording saved; call rings; INSTALL_FAILED_UPDATE_INCOMPATIBLE means stop | NOT_RUN |
+| M16 | Phase 11: note task/event/note counts and one armed reminder; adb install -r the arm64 ONNX 1.22.0 dataQa APK (sha256 ef264311...e19; updated 2026-11-06: use the final-audit rebuild 2502aec3...89ba; updated 2026-11-07: use the remediation-audit rebuild 94c5d9ad...9a04 from the table above) over the existing debug-signed app (never uninstall/clear); airplane mode launch; push-to-talk dictation (VAD); meeting record/stop; reminder call on a locked screen; optionally a 16 KiB-page image | Launch without Metro; counts unchanged; dictation and VAD work; recording saved; call rings; INSTALL_FAILED_UPDATE_INCOMPATIBLE means stop | NOT_RUN |
 | M17 | Phase 12 (optional): on an owner-designated AVD with no needed data, run scripts/emulator_qa.py with the x86_64 ONNX 1.22.0 APK and its receipt; then the listed manual steps (planner Cancel/Confirm/untimed/delete, Chat paging, Notes search, locked-screen reminder call, online/document/meeting screens with network on); npm run doctor on the owner shell | Every gate PASS before install; offline launch without Metro; manual steps behave as before; doctor names any wrong JDK | NOT_RUN |
 | M18 | Final audit F1-F4 (see the section below): (a) Profile -> Offline Voice with a saved speed, press Preview then at once Stop, close the sheet, or press Home, before speech starts; (b) press Preview then immediately start dictation, or start a meeting recording, or sign out / switch account; (c) Clear All Data normally; (d) reminder procedures R1, R2 and R3 below, each separately | (a, b) no Preview audio after Stop/close/Home or once the microphone, a recording or another account is active; a valid Preview still plays and stops; (c) "Data Cleared" and a new event draft offers no defaults; the failure wording is host-tested only; (d) as stated per procedure | NOT_RUN |
+| M19 | Remediation audit P1/P2 (2026-11-07, [clear-all-data-remediation.md](clear-all-data-remediation.md)), on a designated test phone or emulator with a synthetic account only (never your real account): (a) Profile -> Clear All Data, leave the confirmation open, then without answering it sign out (or switch account, or sign out and back in as the same account) so a confirmation from the old sign-in is still on screen if Android keeps it, and press Delete Everything; (b) open Clear All Data again on the now-signed-in synthetic account and confirm; (c) the read/write/attachment failure cases | (a) "Not Cleared" and nothing deleted: notes, tasks, events, reminders, calendar blocks, chat and its document files, and event defaults are all still there (if Android dismisses the dialog on sign-out, record that the stale case could not be reached on device); (b) "Data Cleared", everything for that account gone, offline voice, theme and time format kept, armed reminders for it no longer ring, other accounts' data untouched; (c) host-tested only, no device fault injection exists | NOT_RUN |
 
 ## Final audit follow-up (2026-11-06): reminder interruption procedures
 

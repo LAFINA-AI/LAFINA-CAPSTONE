@@ -1,0 +1,182 @@
+FAIL __tests__/storage/accountDataReset.test.ts
+  authorizeDataReset
+    √ captures the signed-in owner only (6 ms)
+    √ gives no authority when the session cannot be read (1 ms)
+    √ gives no authority on the volatile test-only adapter (1 ms)
+  resetPersonalData admission (P1)
+    √ refuses a null authority (1 ms)
+    × refuses after an account switch and changes neither account (33 ms)
+    × refuses after sign-out and sign-in again as the same account (4 ms)
+    × refuses when the same owner is set as current again (session replaced) (4 ms)
+    × refuses a guest's confirmation after the guest is linked to an account (2 ms)
+    √ refuses when the confirming screen is gone, before any write (6 ms)
+    × stops before chat and defaults if the screen goes away mid-reset, and says so (3 ms)
+  resetPersonalData failures are reported, not inferred (P2)
+    × a failed strict read fails the planner step and changes no planner record (5 ms)
+    × a failed chat clear is reported and leaves the conversation (4 ms)
+  resetPersonalData success
+    × clears only this owner's records, with tombstones, outbox deletes and alarm cancels (5 ms)
+    × runs repeatedly within the same sign-in (3 ms)
+
+  ● resetPersonalData admission (P1) › refuses after an account switch and changes neither account
+
+    EventMemoryError: Account changed. Reopen preferences.
+
+    [0m [90m 135 |[39m   [36mconst[39m owner [33m=[39m tx[33m.[39mexecuteSync([32m'SELECT user_id FROM active_session LIMIT 1'[39m)[33m.[39mrows[33m?[39m[33m.[39m[[35m0[39m][33m?[39m[33m.[39muser_id[33m;[39m
+     [90m 136 |[39m   [36mif[39m ([33m![39muserId [33m||[39m (owner [33m!=[39m [36mnull[39m [33m&&[39m [33mString[39m(owner) [33m!==[39m userId)) {
+    [31m[1m>[22m[39m[90m 137 |[39m     [36mthrow[39m [36mnew[39m [33mEventMemoryError[39m([32m'owner_changed'[39m[33m,[39m [32m'Account changed. Reopen preferences.'[39m)[33m;[39m
+     [90m     |[39m           [31m[1m^[22m[39m
+     [90m 138 |[39m   }
+     [90m 139 |[39m }[33m;[39m
+     [90m 140 |[39m[0m
+
+      at assertActive (src/storage/personalMemoryStore.ts:137:11)
+      at Object.assertActive [as prepare] (src/storage/personalMemoryStore.ts:184:5)
+      at prepare (__tests__/storage/accountDataReset.test.ts:97:12)
+      at Object.seed (__tests__/storage/accountDataReset.test.ts:189:5)
+
+  ● resetPersonalData admission (P1) › refuses after sign-out and sign-in again as the same account
+
+    EventMemoryError: Account changed. Reopen preferences.
+
+    [0m [90m 135 |[39m   [36mconst[39m owner [33m=[39m tx[33m.[39mexecuteSync([32m'SELECT user_id FROM active_session LIMIT 1'[39m)[33m.[39mrows[33m?[39m[33m.[39m[[35m0[39m][33m?[39m[33m.[39muser_id[33m;[39m
+     [90m 136 |[39m   [36mif[39m ([33m![39muserId [33m||[39m (owner [33m!=[39m [36mnull[39m [33m&&[39m [33mString[39m(owner) [33m!==[39m userId)) {
+    [31m[1m>[22m[39m[90m 137 |[39m     [36mthrow[39m [36mnew[39m [33mEventMemoryError[39m([32m'owner_changed'[39m[33m,[39m [32m'Account changed. Reopen preferences.'[39m)[33m;[39m
+     [90m     |[39m           [31m[1m^[22m[39m
+     [90m 138 |[39m   }
+     [90m 139 |[39m }[33m;[39m
+     [90m 140 |[39m[0m
+
+      at assertActive (src/storage/personalMemoryStore.ts:137:11)
+      at Object.assertActive [as prepare] (src/storage/personalMemoryStore.ts:184:5)
+      at prepare (__tests__/storage/accountDataReset.test.ts:97:12)
+      at Object.seed (__tests__/storage/accountDataReset.test.ts:202:5)
+
+  ● resetPersonalData admission (P1) › refuses when the same owner is set as current again (session replaced)
+
+    EventMemoryError: Account changed. Reopen preferences.
+
+    [0m [90m 135 |[39m   [36mconst[39m owner [33m=[39m tx[33m.[39mexecuteSync([32m'SELECT user_id FROM active_session LIMIT 1'[39m)[33m.[39mrows[33m?[39m[33m.[39m[[35m0[39m][33m?[39m[33m.[39muser_id[33m;[39m
+     [90m 136 |[39m   [36mif[39m ([33m![39muserId [33m||[39m (owner [33m!=[39m [36mnull[39m [33m&&[39m [33mString[39m(owner) [33m!==[39m userId)) {
+    [31m[1m>[22m[39m[90m 137 |[39m     [36mthrow[39m [36mnew[39m [33mEventMemoryError[39m([32m'owner_changed'[39m[33m,[39m [32m'Account changed. Reopen preferences.'[39m)[33m;[39m
+     [90m     |[39m           [31m[1m^[22m[39m
+     [90m 138 |[39m   }
+     [90m 139 |[39m }[33m;[39m
+     [90m 140 |[39m[0m
+
+      at assertActive (src/storage/personalMemoryStore.ts:137:11)
+      at Object.assertActive [as prepare] (src/storage/personalMemoryStore.ts:184:5)
+      at prepare (__tests__/storage/accountDataReset.test.ts:97:12)
+      at Object.seed (__tests__/storage/accountDataReset.test.ts:214:5)
+
+  ● resetPersonalData admission (P1) › refuses a guest's confirmation after the guest is linked to an account
+
+    expect(received).not.toBeNull()
+
+    Received: null
+
+    [0m [90m 224 |[39m     userStore[33m.[39msetCurrentUser([33mGUEST_USER_ID[39m)[33m;[39m
+     [90m 225 |[39m     [36mconst[39m authority [33m=[39m authorizeDataReset([33mGUEST_USER_ID[39m)[33m;[39m
+    [31m[1m>[22m[39m[90m 226 |[39m     expect(authority)[33m.[39mnot[33m.[39mtoBeNull()[33m;[39m
+     [90m     |[39m                           [31m[1m^[22m[39m
+     [90m 227 |[39m     seed([33mGUEST_USER_ID[39m)[33m;[39m
+     [90m 228 |[39m     [36mawait[39m guestMigration[33m.[39mlinkGuestToCloudAccount(cloud[33m,[39m [32m`${cloud}@example.invalid`[39m)[33m;[39m
+     [90m 229 |[39m     expect(live(cloud))[33m.[39mtoEqual([33mFULL[39m)[33m;[39m[0m
+
+      at Object.toBeNull (__tests__/storage/accountDataReset.test.ts:226:27)
+      at asyncGeneratorStep (node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+      at _next (node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
+      at node_modules/@babel/runtime/helpers/asyncToGenerator.js:22:7
+      at Object.<anonymous> (node_modules/@babel/runtime/helpers/asyncToGenerator.js:14:12)
+
+  ● resetPersonalData admission (P1) › stops before chat and defaults if the screen goes away mid-reset, and says so
+
+    EventMemoryError: Account changed. Reopen preferences.
+
+    [0m [90m 135 |[39m   [36mconst[39m owner [33m=[39m tx[33m.[39mexecuteSync([32m'SELECT user_id FROM active_session LIMIT 1'[39m)[33m.[39mrows[33m?[39m[33m.[39m[[35m0[39m][33m?[39m[33m.[39muser_id[33m;[39m
+     [90m 136 |[39m   [36mif[39m ([33m![39muserId [33m||[39m (owner [33m!=[39m [36mnull[39m [33m&&[39m [33mString[39m(owner) [33m!==[39m userId)) {
+    [31m[1m>[22m[39m[90m 137 |[39m     [36mthrow[39m [36mnew[39m [33mEventMemoryError[39m([32m'owner_changed'[39m[33m,[39m [32m'Account changed. Reopen preferences.'[39m)[33m;[39m
+     [90m     |[39m           [31m[1m^[22m[39m
+     [90m 138 |[39m   }
+     [90m 139 |[39m }[33m;[39m
+     [90m 140 |[39m[0m
+
+      at assertActive (src/storage/personalMemoryStore.ts:137:11)
+      at Object.assertActive [as prepare] (src/storage/personalMemoryStore.ts:184:5)
+      at prepare (__tests__/storage/accountDataReset.test.ts:97:12)
+      at Object.seed (__tests__/storage/accountDataReset.test.ts:247:5)
+
+  ● resetPersonalData failures are reported, not inferred (P2) › a failed strict read fails the planner step and changes no planner record
+
+    EventMemoryError: Account changed. Reopen preferences.
+
+    [0m [90m 135 |[39m   [36mconst[39m owner [33m=[39m tx[33m.[39mexecuteSync([32m'SELECT user_id FROM active_session LIMIT 1'[39m)[33m.[39mrows[33m?[39m[33m.[39m[[35m0[39m][33m?[39m[33m.[39muser_id[33m;[39m
+     [90m 136 |[39m   [36mif[39m ([33m![39muserId [33m||[39m (owner [33m!=[39m [36mnull[39m [33m&&[39m [33mString[39m(owner) [33m!==[39m userId)) {
+    [31m[1m>[22m[39m[90m 137 |[39m     [36mthrow[39m [36mnew[39m [33mEventMemoryError[39m([32m'owner_changed'[39m[33m,[39m [32m'Account changed. Reopen preferences.'[39m)[33m;[39m
+     [90m     |[39m           [31m[1m^[22m[39m
+     [90m 138 |[39m   }
+     [90m 139 |[39m }[33m;[39m
+     [90m 140 |[39m[0m
+
+      at assertActive (src/storage/personalMemoryStore.ts:137:11)
+      at Object.assertActive [as prepare] (src/storage/personalMemoryStore.ts:184:5)
+      at prepare (__tests__/storage/accountDataReset.test.ts:97:12)
+      at Object.seed (__tests__/storage/accountDataReset.test.ts:266:5)
+
+  ● resetPersonalData failures are reported, not inferred (P2) › a failed chat clear is reported and leaves the conversation
+
+    EventMemoryError: Account changed. Reopen preferences.
+
+    [0m [90m 135 |[39m   [36mconst[39m owner [33m=[39m tx[33m.[39mexecuteSync([32m'SELECT user_id FROM active_session LIMIT 1'[39m)[33m.[39mrows[33m?[39m[33m.[39m[[35m0[39m][33m?[39m[33m.[39muser_id[33m;[39m
+     [90m 136 |[39m   [36mif[39m ([33m![39muserId [33m||[39m (owner [33m!=[39m [36mnull[39m [33m&&[39m [33mString[39m(owner) [33m!==[39m userId)) {
+    [31m[1m>[22m[39m[90m 137 |[39m     [36mthrow[39m [36mnew[39m [33mEventMemoryError[39m([32m'owner_changed'[39m[33m,[39m [32m'Account changed. Reopen preferences.'[39m)[33m;[39m
+     [90m     |[39m           [31m[1m^[22m[39m
+     [90m 138 |[39m   }
+     [90m 139 |[39m }[33m;[39m
+     [90m 140 |[39m[0m
+
+      at assertActive (src/storage/personalMemoryStore.ts:137:11)
+      at Object.assertActive [as prepare] (src/storage/personalMemoryStore.ts:184:5)
+      at prepare (__tests__/storage/accountDataReset.test.ts:97:12)
+      at Object.seed (__tests__/storage/accountDataReset.test.ts:297:5)
+
+  ● resetPersonalData success › clears only this owner's records, with tombstones, outbox deletes and alarm cancels
+
+    EventMemoryError: Account changed. Reopen preferences.
+
+    [0m [90m 135 |[39m   [36mconst[39m owner [33m=[39m tx[33m.[39mexecuteSync([32m'SELECT user_id FROM active_session LIMIT 1'[39m)[33m.[39mrows[33m?[39m[33m.[39m[[35m0[39m][33m?[39m[33m.[39muser_id[33m;[39m
+     [90m 136 |[39m   [36mif[39m ([33m![39muserId [33m||[39m (owner [33m!=[39m [36mnull[39m [33m&&[39m [33mString[39m(owner) [33m!==[39m userId)) {
+    [31m[1m>[22m[39m[90m 137 |[39m     [36mthrow[39m [36mnew[39m [33mEventMemoryError[39m([32m'owner_changed'[39m[33m,[39m [32m'Account changed. Reopen preferences.'[39m)[33m;[39m
+     [90m     |[39m           [31m[1m^[22m[39m
+     [90m 138 |[39m   }
+     [90m 139 |[39m }[33m;[39m
+     [90m 140 |[39m[0m
+
+      at assertActive (src/storage/personalMemoryStore.ts:137:11)
+      at Object.assertActive [as prepare] (src/storage/personalMemoryStore.ts:184:5)
+      at prepare (__tests__/storage/accountDataReset.test.ts:97:12)
+      at Object.seed (__tests__/storage/accountDataReset.test.ts:319:5)
+
+  ● resetPersonalData success › runs repeatedly within the same sign-in
+
+    EventMemoryError: Account changed. Reopen preferences.
+
+    [0m [90m 135 |[39m   [36mconst[39m owner [33m=[39m tx[33m.[39mexecuteSync([32m'SELECT user_id FROM active_session LIMIT 1'[39m)[33m.[39mrows[33m?[39m[33m.[39m[[35m0[39m][33m?[39m[33m.[39muser_id[33m;[39m
+     [90m 136 |[39m   [36mif[39m ([33m![39muserId [33m||[39m (owner [33m!=[39m [36mnull[39m [33m&&[39m [33mString[39m(owner) [33m!==[39m userId)) {
+    [31m[1m>[22m[39m[90m 137 |[39m     [36mthrow[39m [36mnew[39m [33mEventMemoryError[39m([32m'owner_changed'[39m[33m,[39m [32m'Account changed. Reopen preferences.'[39m)[33m;[39m
+     [90m     |[39m           [31m[1m^[22m[39m
+     [90m 138 |[39m   }
+     [90m 139 |[39m }[33m;[39m
+     [90m 140 |[39m[0m
+
+      at assertActive (src/storage/personalMemoryStore.ts:137:11)
+      at Object.assertActive [as prepare] (src/storage/personalMemoryStore.ts:184:5)
+      at prepare (__tests__/storage/accountDataReset.test.ts:97:12)
+      at Object.seed (__tests__/storage/accountDataReset.test.ts:345:5)
+
+Test Suites: 1 failed, 1 total
+Tests:       9 failed, 5 passed, 14 total
+Snapshots:   0 total
+Time:        2.524 s
+Ran all test suites matching /__tests__\\storage\\accountDataReset.test.ts/i.
+EXIT=1

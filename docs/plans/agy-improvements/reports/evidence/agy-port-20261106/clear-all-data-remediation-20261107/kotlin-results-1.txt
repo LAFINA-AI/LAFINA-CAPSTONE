@@ -1,0 +1,8 @@
+# Kotlin :app:testDebugUnitTest --rerun results (JUnit XML)
+com.lafina.capstone.LafinaAudioPlayerTest tests=1 failures=0 errors=0 skipped=0 timestamp=2026-11-07T00:33:26.264Z
+com.lafina.capstone.LafinaDeliveryContractTest tests=15 failures=0 errors=0 skipped=0 timestamp=2026-11-07T00:33:26.287Z
+com.lafina.capstone.LafinaIntentExtractorTest tests=3 failures=0 errors=0 skipped=0 timestamp=2026-11-07T00:33:26.431Z
+com.lafina.capstone.LafinaReminderTest tests=3 failures=0 errors=0 skipped=0 timestamp=2026-11-07T00:33:26.439Z
+com.lafina.capstone.LafinaSpeechToTextTest tests=7 failures=0 errors=0 skipped=0 timestamp=2026-11-07T00:33:26.445Z
+com.lafina.capstone.MicrophoneLeaseTest tests=14 failures=0 errors=0 skipped=0 timestamp=2026-11-07T00:33:26.475Z
+TOTAL suites=6 tests=43 failures=0 errors=0 skipped=0

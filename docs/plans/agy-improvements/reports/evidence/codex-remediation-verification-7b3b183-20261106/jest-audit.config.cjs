@@ -1,0 +1,1 @@
+const path=require('node:path');const root="C:/L3mxr/Github Repositories/LAFINA-CAPSTONE-agy-development-cont";module.exports={...require(path.join(root,'jest.config.js')),rootDir:root,testMatch:['<rootDir>/docs/plans/agy-improvements/reports/evidence/codex-remediation-verification-7b3b183-20261106/independentClearData.test.tsx']};

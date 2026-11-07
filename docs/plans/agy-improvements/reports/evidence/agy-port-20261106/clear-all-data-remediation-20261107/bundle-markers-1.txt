@@ -1,0 +1,20 @@
+# fix-only strings (absent from src at 7b3b183) and controls (present before), ASCII + UTF-16LE, per packaged bundle
+arm64-v8a fix-only 'Not Cleared' 1
+arm64-v8a fix-only 'because the account, sign-in or screen changed' 1
+arm64-v8a fix-only 'none of those planner records were changed' 1
+arm64-v8a fix-only 'could not be removed from this' 1
+arm64-v8a fix-only 'getAllRemindersOrThrow' 1
+arm64-v8a fix-only 'The account or screen changed; nothing was cleared.' 1
+arm64-v8a fix-only 'Clear All Data left planner records behind.' 1
+arm64-v8a control 'Data Partly Cleared' 1
+arm64-v8a control 'Starting Preview' 1
+x86_64 fix-only 'Not Cleared' 1
+x86_64 fix-only 'because the account, sign-in or screen changed' 1
+x86_64 fix-only 'none of those planner records were changed' 1
+x86_64 fix-only 'could not be removed from this' 1
+x86_64 fix-only 'getAllRemindersOrThrow' 1
+x86_64 fix-only 'The account or screen changed; nothing was cleared.' 1
+x86_64 fix-only 'Clear All Data left planner records behind.' 1
+x86_64 control 'Data Partly Cleared' 1
+x86_64 control 'Starting Preview' 1
+# fix-only strings missing: 0
