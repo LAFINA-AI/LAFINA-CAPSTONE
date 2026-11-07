@@ -4,7 +4,7 @@
  * fails before any text. Only the finished reply is saved.
  */
 import React from 'react';
-import {act, fireEvent, render} from '@testing-library/react-native';
+import {act, fireEvent, render, waitFor} from '@testing-library/react-native';
 import {chatStore, initDatabase, userStore} from '../../src/storage';
 import {
   chatOrchestrator,
@@ -276,6 +276,30 @@ describe('cloudClient.stream over XMLHttpRequest', () => {
     const result = await pending;
     expect(pieces).toEqual(['data: one', '\n\ndata: two\n\n']);
     expect(result.status).toBe('success');
+  });
+
+  it('a finished reply resolves at once, while the server is still closing the connection', async () => {
+    const pending = onlineChatSkill.streamChatMessage(
+      [{role: 'user', content: 'hi'}],
+      {useHandbook: false, onReplyText: () => undefined},
+    );
+    await waitFor(() => expect(FakeXhr.last?.url).toMatch(/chat\/stream$/));
+    const xhr = FakeXhr.last;
+    xhr.receive(
+      sse(
+        {type: 'delta', text: 'Hello there!'},
+        {type: 'done', sources: [], usedHandbook: false},
+      ),
+    );
+    // The server has not closed the connection (it is saving usage), yet the
+    // reply is complete and returned.
+    const result = await pending;
+    expect(result).toMatchObject({
+      status: 'success',
+      data: {reply: 'Hello there!'},
+    });
+    expect(result.data?.interrupted).toBeUndefined();
+    xhr.finish(); // closing later changes nothing
   });
 
   it('maps HTTP errors like a normal request and never passes error bodies on', async () => {

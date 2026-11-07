@@ -321,5 +321,32 @@ The DeepSeek key in the private local `.env` answered HTTP 402 (insufficient bal
 - Emulator, signed in, Online Mode, voice mode, "what causes rain in two sentences": DeepSeek replied and the audio came from the app's player (ElevenLabs), not the device voice. Audio started 12.9 s after Send.
 - So the per-request database overhead (function in iad1) still dominates. Moving the region is deferred until the Vercel project owner is available.
 
+## Addendum (2026-11-08): chat reply arrived in one burst
+
+**Owner report:** Chat still shows "lafina is thinking…" and then the whole reply at once.
+
+**Measured** (emulator, Chat, "explain photosynthesis in detail with six steps"; an instrumented build logging chunk times and sizes only, not committed):
+
+| Time after Send | Event |
+|---|---|
+| 5.9 s | Response headers |
+| 5.9 to 6.1 s | About 7.7 KB of SSE, nearly the whole reply |
+| 8.4 s | Final 295 bytes (the `done` event) |
+
+**Cause** (in `POST /v1/ai/chat/stream`):
+- After DeepSeek's first piece, the usage row was committed *before* the response began. With about 2 s per database round trip (function in iad1), DeepSeek finished the reply meanwhile, so everything was sent at once.
+- The `done` event then waited for a second commit (the token counts).
+- The app also waited for the connection to close rather than for `done`.
+
+**Changes:**
+- Backend, branch `codex/stream-at-once` (commit `4ae07eb`; pushed, NOT merged or deployed):
+  - The usage row is saved in a task alongside the stream.
+  - `done` is sent before the token counts are saved; saving is shielded from client disconnects.
+  - The minute and day quota checks (chat and speech) are one query instead of two.
+  - New test `test_text_is_not_held_back_while_usage_is_saved` fails on the previous code and passes now. Backend suite: 201 passed.
+- App: `CloudStreamOptions.isComplete`. The chat stream resolves on `done` or `error` without waiting for the connection to close. Test added; `npm run preflight`: 65 suites, 980 passed, 1 skipped.
+
+**Remaining:** about 5.5 s before DeepSeek's first piece is still spent on database round trips (sign-in check, quota, handbook flag) and the handbook search. That needs the region move.
+
 STATUS: AWAITING DEVICE VALIDATION
 STOPPED — awaiting explicit human approval
