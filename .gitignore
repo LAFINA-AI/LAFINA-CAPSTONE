@@ -39,7 +39,6 @@ __pycache__/
 local.properties
 .idea/
 .vscode/
-graphify-out/
 .phase01-template/
 .local/
 *.tgz
