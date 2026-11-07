@@ -1,0 +1,43 @@
+  console.error
+    An update to VirtualizedList inside a test was not wrapped in act(...).
+    
+    When testing, code that causes React state updates should be wrapped into act(...):
+    
+    act(() => {
+      /* fire events that update state */
+    });
+    /* assert on the output */
+    
+    This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+
+      at node_modules/react-test-renderer/cjs/react-test-renderer.development.js:14402:19
+      at runWithFiberInDEV (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:2315:13)
+      at warnIfUpdatesNotWrappedWithActDEV (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:14401:9)
+      at scheduleUpdateOnFiber (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:12086:9)
+      at Object.enqueueSetState (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:16926:13)
+      at VirtualizedList.Object.<anonymous>.process.env.NODE_ENV.Component.setState (node_modules/react/cjs/react.development.js:655:20)
+      at apply (node_modules/@react-native/virtualized-lists/Lists/StateSafePureComponent.js:12:32)
+      at VirtualizedList.setState (node_modules/@react-native/virtualized-lists/Lists/StateSafePureComponent.js:40:7)
+      at VirtualizedList.setState [as _updateCellsToRender] (node_modules/@react-native/virtualized-lists/Lists/VirtualizedList.js:1909:10)
+      at Timeout._updateCellsToRender [as _onTimeout] (node_modules/@react-native/virtualized-lists/Lists/VirtualizedList.js:1806:16)
+
+PASS __tests__/ui/chatHistoryPaging.test.tsx (6.824 s)
+  AGY-PORT 02: Chat history paging UI
+    √ shows the newest 50, loads earlier without duplicates, and keeps the draft (2393 ms)
+    √ a load failure shows a retryable error, not the empty state, and keeps the draft (103 ms)
+    √ a failed earlier page keeps what is shown and can be retried (145 ms)
+    √ switching account never shows the previous account history (83 ms)
+    √ a reply that finishes after an account switch is saved for the sender only (134 ms)
+    √ the legacy notice explains hidden history and stays dismissed for that account (200 ms)
+    √ a Handbook citation is stored with the reply and shown after a remount (46 ms)
+    mergeChatPages
+      √ keeps earlier loaded messages and never duplicates the newest reply (20 ms)
+      √ a page holding the whole conversation replaces the list (clear shows) (1 ms)
+      √ a newest page with no overlap replaces the list instead of leaving a gap (1 ms)
+
+Test Suites: 1 passed, 1 total
+Tests:       10 passed, 10 total
+Snapshots:   0 total
+Time:        7.265 s
+Ran all test suites matching /__tests__\\ui\\chatHistoryPaging.test.tsx/i.
+EXIT=0

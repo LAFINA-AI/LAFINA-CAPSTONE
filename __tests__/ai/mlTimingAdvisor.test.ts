@@ -1,8 +1,6 @@
 import {
-  computeAdaptiveTriggerAt,
   getAdaptiveScheduleRecommendation,
   isAdaptiveTimingEnabled,
-  MIN_HISTORY_SAMPLES_FOR_ML,
   MIN_LEAD_OFFSET_MINUTES,
   MAX_LEAD_OFFSET_MINUTES,
   SETTING_KEY_ADAPTIVE_TIMING,

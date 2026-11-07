@@ -1,0 +1,41 @@
+{
+  "version": 1,
+  "kind": "intent",
+  "recordedAt": "2026-11-06T10:56:28.969Z",
+  "environment": "Host Node v24.19.0, Jest with node:sqlite in memory; not Android timing",
+  "fixtureManifest": {
+    "intent-contract-v1.json": {
+      "version": 1,
+      "sha256": "99d8a9551e5acceb52bf57eaf4d74dadc09f9e88519fbf45753adc2af4559b16"
+    },
+    "notes-contract-v1.json": {
+      "version": 1,
+      "sha256": "10d46c0faaa35a7cd4fa4d6d42c3bc678390c26d3cd75298ad0eb2965f56d806"
+    },
+    "protected-contracts-v1.json": {
+      "version": 1,
+      "sha256": "76f2a1d8e450cb70874e67c72eace857f0585a57bc4d4393e3c263ee2fdd1385"
+    },
+    "speech-contract-v1.json": {
+      "version": 1,
+      "sha256": "7508a0aba08f5a1606beeefeaab7b87e2d4fd8b79e9d7e243b7f159d1a87d6e1"
+    },
+    "stt-corpus-v1.json": {
+      "version": 1,
+      "sha256": "13a83a3e48246e57c15d1947f59555c8a41b4d363e0f93f7734f201c5c57e75b"
+    }
+  },
+  "sourceHashes": {
+    "src/ai/nlu/fastPathParser.ts": "8cc1277bcb6b61d3f3e3366f787a2e0650d377b38f56a633711ee44432cebfac",
+    "src/ai/nlu/intentRoutes.ts": "ab19977fa201bca9faf02267b271719c03db6319f3a3a5be883ef230bbcdca94",
+    "src/ai/nlu/intentService.ts": "5c2e05fe4c503915327ab924d36ddde3f1272d0c5f77fe722c81d3d7711adec6"
+  },
+  "sourceTreeSha256": "c5d7ca9816fd90aaf15504a1c3b14640b7368b4985038ef78046191a1dbb6966",
+  "metrics": {
+    "cases": 34,
+    "emptyTranscripts": 1,
+    "ringingCall": 4,
+    "passed": 39
+  },
+  "limits": "Synthetic regression and contract checks only. No phone latency, WER, SmolLM2 accuracy, audibility, battery or memory claim."
+}

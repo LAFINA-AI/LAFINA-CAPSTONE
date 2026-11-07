@@ -1,0 +1,11 @@
+PASS __tests__/ai/agyPort04ReviewedCommands.test.ts
+PASS __tests__/ai/phase08ChatAndOrchestrator.test.tsx
+PASS __tests__/ai/phase06SttAndVoiceModal.test.tsx
+PASS __tests__/ui/agyPort04ReviewUi.test.tsx (5.123 s)
+PASS __tests__/storage/schemaMigrations.test.ts (14.475 s)
+
+Test Suites: 5 passed, 5 total
+Tests:       95 passed, 95 total
+Snapshots:   0 total
+Time:        15.152 s
+Ran all test suites matching /__tests__\\ai\\agyPort04ReviewedCommands.test.ts|__tests__\\ui\\agyPort04ReviewUi.test.tsx|__tests__\\ai\\phase06SttAndVoiceModal.test.tsx|__tests__\\ai\\phase08ChatAndOrchestrator.test.tsx|__tests__\\storage\\schemaMigrations.test.ts/i.

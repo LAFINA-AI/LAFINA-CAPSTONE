@@ -1,0 +1,28 @@
+{
+  "version": 1,
+  "frozen": "2026-11-06",
+  "classification": "Synthetic regression and contract fixtures, not held-out model evaluation",
+  "rule": "A frozen file never changes. Add a new -vN+1 file, list it here and update the test constants; never relabel old results.",
+  "files": {
+    "intent-contract-v1.json": {
+      "version": 1,
+      "sha256": "99d8a9551e5acceb52bf57eaf4d74dadc09f9e88519fbf45753adc2af4559b16"
+    },
+    "notes-contract-v1.json": {
+      "version": 1,
+      "sha256": "10d46c0faaa35a7cd4fa4d6d42c3bc678390c26d3cd75298ad0eb2965f56d806"
+    },
+    "protected-contracts-v1.json": {
+      "version": 1,
+      "sha256": "76f2a1d8e450cb70874e67c72eace857f0585a57bc4d4393e3c263ee2fdd1385"
+    },
+    "speech-contract-v1.json": {
+      "version": 1,
+      "sha256": "7508a0aba08f5a1606beeefeaab7b87e2d4fd8b79e9d7e243b7f159d1a87d6e1"
+    },
+    "stt-corpus-v1.json": {
+      "version": 1,
+      "sha256": "13a83a3e48246e57c15d1947f59555c8a41b4d363e0f93f7734f201c5c57e75b"
+    }
+  }
+}

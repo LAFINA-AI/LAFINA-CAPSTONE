@@ -1,0 +1,9 @@
+original sha256 475eb148b63a4bba6dbbe79c8e057a5e921650e0820a294e255d2da8990d5e82
+mutation=epoch exit=1 Tests:       3 failed, 24 passed, 27 total
+mutation=liveness exit=1 Tests:       3 failed, 24 passed, 27 total
+mutation=txcheck exit=1 Tests:       1 failed, 26 passed, 27 total
+mutation=strict exit=0 Tests:       27 passed, 27 total
+mutation=verify exit=0 Tests:       27 passed, 27 total
+mutation=strict+verify exit=1 Tests:       1 failed, 26 passed, 27 total
+restored sha256 475eb148b63a4bba6dbbe79c8e057a5e921650e0820a294e255d2da8990d5e82
+RESTORED_OK

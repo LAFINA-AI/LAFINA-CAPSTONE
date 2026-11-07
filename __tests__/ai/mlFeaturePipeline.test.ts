@@ -8,7 +8,6 @@ import {
   recordReminderInteraction,
 } from '../../src/ai/ml/featureExtractor';
 import {db, initDatabase} from '../../src/storage';
-import {behaviorStore} from '../../src/storage/behaviorStore';
 import {preferencesStore} from '../../src/storage/preferencesStore';
 import {remindersStore} from '../../src/storage/remindersStore';
 import {tasksStore} from '../../src/storage/tasksStore';

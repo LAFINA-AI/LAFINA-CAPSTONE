@@ -12,7 +12,6 @@
  */
 
 import {localSettingsStore} from '../../storage/localSettingsStore';
-import {preferencesStore} from '../../storage/preferencesStore';
 import {
   extractStudentFeatures,
   featuresToVector,
@@ -26,10 +25,8 @@ import {
 } from './randomForest';
 import type {
   AdaptiveScheduleRecommendation,
-  DecisionTree,
   KnnPoint,
   RandomForestModel,
-  StudentFeatures,
 } from './types';
 
 export const MIN_HISTORY_SAMPLES_FOR_ML = 5;

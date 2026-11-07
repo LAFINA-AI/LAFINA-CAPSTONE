@@ -1,0 +1,9 @@
+?? AGY-IMPROVEMENTS-MANIFEST.json
+?? AGY-IMPROVEMENTS-START.md
+?? __tests__/fixtures/
+?? __tests__/preservation/
+?? agy-improvements/
+?? android/.kotlin/
+?? docs/plans/
+?? docs/reports/agy-ustp-comparison-20261106.md
+?? docs/reports/evidence/agy-ustp-comparison-20261106/

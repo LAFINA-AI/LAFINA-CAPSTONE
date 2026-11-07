@@ -1,0 +1,34 @@
+PLANS_BEGIN
+SQL: SELECT * FROM tasks WHERE user_id = ? AND is_completed IN (0, 1) AND due_date BETWEEN ? AND ? AND deleted_at IS NULL AND (recurrence_rule IS NULL OR recurrence_rule = '') ORDER BY due_date, due_time, id
+PLAN: SEARCH tasks USING INDEX idx_tasks_user_due (user_id=? AND is_completed=? AND due_date>? AND due_date<?) | USE TEMP B-TREE FOR ORDER BY
+
+SQL: SELECT * FROM tasks WHERE user_id = ? AND deleted_at IS NULL AND recurrence_rule IS NOT NULL AND recurrence_rule <> '' AND due_date IS NOT NULL AND due_date <> '' AND due_date <= ? ORDER BY due_date, due_time, id
+PLAN: SEARCH tasks USING INDEX idx_tasks_user_due (user_id=?) | USE TEMP B-TREE FOR ORDER BY
+
+SQL: SELECT * FROM events WHERE user_id = ? AND date BETWEEN ? AND ? AND deleted_at IS NULL AND (recurrence_rule IS NULL OR recurrence_rule = '') ORDER BY date, start_time, id
+PLAN: SEARCH events USING INDEX idx_events_user_date (user_id=? AND date>? AND date<?) | USE TEMP B-TREE FOR LAST TERM OF ORDER BY
+
+SQL: SELECT * FROM events WHERE user_id = ? AND date <= ? AND deleted_at IS NULL AND recurrence_rule IS NOT NULL AND recurrence_rule <> '' ORDER BY date, start_time, id
+PLAN: SEARCH events USING INDEX idx_events_user_date (user_id=? AND date<?) | USE TEMP B-TREE FOR LAST TERM OF ORDER BY
+
+SQL: SELECT * FROM time_blocks WHERE user_id = ? AND date BETWEEN ? AND ? AND deleted_at IS NULL AND (recurrence_rule IS NULL OR recurrence_rule = '') ORDER BY date, start_time, id
+PLAN: SEARCH time_blocks USING INDEX idx_time_blocks_user_date (user_id=? AND date>? AND date<?) | USE TEMP B-TREE FOR LAST TERM OF ORDER BY
+
+SQL: SELECT * FROM time_blocks WHERE user_id = ? AND date <= ? AND deleted_at IS NULL AND recurrence_rule IS NOT NULL AND recurrence_rule <> '' ORDER BY date, start_time, id
+PLAN: SEARCH time_blocks USING INDEX idx_time_blocks_user_date (user_id=? AND date<?) | USE TEMP B-TREE FOR LAST TERM OF ORDER BY
+
+SQL: SELECT * FROM tasks WHERE user_id = ? AND is_completed = 0 AND due_date < ? AND due_date <> '' AND deleted_at IS NULL ORDER BY due_date, due_time, id LIMIT ?
+PLAN: SEARCH tasks USING INDEX idx_tasks_user_due (user_id=? AND is_completed=? AND due_date<?) | USE TEMP B-TREE FOR LAST TERM OF ORDER BY
+
+SQL: SELECT COUNT(*) AS n FROM tasks WHERE user_id = ? AND is_completed = 0 AND due_date < ? AND due_date <> '' AND deleted_at IS NULL
+PLAN: SEARCH tasks USING INDEX idx_tasks_user_due (user_id=? AND is_completed=? AND due_date<?)
+
+SQL: SELECT * FROM tasks WHERE user_id = ? AND deleted_at IS NULL AND id > ? ORDER BY id LIMIT ?
+PLAN: SEARCH tasks USING INDEX idx_tasks_user_due (user_id=?) | USE TEMP B-TREE FOR ORDER BY
+
+SQL: SELECT * FROM events WHERE user_id = ? AND deleted_at IS NULL AND id > ? ORDER BY id LIMIT ?
+PLAN: SEARCH events USING INDEX idx_events_user_date (user_id=?) | USE TEMP B-TREE FOR ORDER BY
+
+SQL: SELECT * FROM time_blocks WHERE user_id = ? AND deleted_at IS NULL AND id > ? ORDER BY id LIMIT ?
+PLAN: SEARCH time_blocks USING INDEX idx_time_blocks_user_date (user_id=?) | USE TEMP B-TREE FOR ORDER BY
+PLANS_END

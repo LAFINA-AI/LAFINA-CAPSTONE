@@ -1,0 +1,13 @@
+P1 KILLED | src\ai\nlu\intentRoutes.ts | every intent becomes immediate during a ringing call | test "ring-reschedule" | Tests:       1 failed, 92 skipped, 93 total | restored=True
+P2 KILLED | src\ai\nlu\intentRoutes.ts | schedule questions stop routing to the read-only planner | test "query-00" | Tests:       1 failed, 92 skipped, 93 total | restored=True
+P3 KILLED | src\ai\tts\ttsService.ts | a network-only voice counts as offline | test "network-required" | Tests:       1 failed, 92 skipped, 93 total | restored=True
+P4 KILLED | src\storage\notesQueryStore.ts | an underscore in a search acts as a LIKE wildcard | test "escapeLike" | Tests:       2 failed, 90 skipped, 1 passed, 93 total | restored=True
+P5 KILLED | __tests__\evaluation\support\evaluationEvidence.ts | an edited frozen fixture is accepted | test "an edited fixture" | Tests:       1 failed, 92 skipped, 93 total | restored=True
+P6 KILLED | __tests__\evaluation\support\evaluationEvidence.ts | an existing evidence file may be overwritten | test "an existing result" | Tests:       1 failed, 92 skipped, 93 total | restored=True
+P7 KILLED | __tests__\preservation\agyPreservedContracts.test.ts | a protected-contract test is renamed away | test "PF11" | Tests:       1 failed, 92 skipped, 93 total | restored=True
+P8 HARNESS_ERROR | src\ai\nlu\commandReview.ts | a local review path calls the network | test "parse, review and confirm" | None | restored=True
+P9 KILLED | src\storage\plannerQueries.ts | a planner read opens a swallowed XHR | test "planner window" | Tests:       1 failed, 4 skipped, 5 total | restored=True
+P10 KILLED | __tests__\evaluation\support\qaSqlChecks.ts | cleanup is claimed without checking | test "unconfirmed cleanup" | Tests:       1 failed, 5 skipped, 6 total | restored=True
+P11 KILLED | __tests__\evaluation\support\qaSqlChecks.ts | a failed run leaves its handle open (Windows cannot remove the file) | test "a failed statement" | Tests:       1 failed, 5 skipped, 6 total | restored=True
+P12 KILLED | src\storage\notesQueryStore.ts | Notes pages include another account | test "all checks pass" | Tests:       1 failed, 5 skipped, 6 total | restored=True
+RESULT CHECK FAILED

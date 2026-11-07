@@ -1,0 +1,74 @@
+FAIL __tests__/storage/attachmentCleanup.test.ts
+  attachmentCleanupTarget refuses anything that is not a chat attachment file
+    √ accepts file:///documents/chat_files/1700000000000_report.pdf (3 ms)
+    √ accepts /documents/chat_files/2_notes.docx (1 ms)
+    √ accepts file:///documents/synthetic.pdf
+    √ refuses "content://com.android.providers/document/1"
+    √ refuses "https://example.invalid/a.pdf" (1 ms)
+    √ refuses "chat_files/a.pdf"
+    √ refuses ""
+    √ refuses "/documents"
+    √ refuses "/documents/"
+    √ refuses "/documents/chat_files"
+    √ refuses "/documents/chat_files/"
+    √ refuses "/documents/../etc/hosts.txt" (1 ms)
+    √ refuses "/documents/chat_files/../models/model.bin"
+    √ refuses "/documents/./a.pdf"
+    √ refuses "/documents//a.pdf"
+    √ refuses "/documents/models/ggml-base.en-q5_1.bin" (1 ms)
+    √ refuses "/documents/meetings/m1/chunk-0001.wav"
+    √ refuses "/documents/avatars/me.png"
+    √ refuses "/documents/chat_files/nested/a.pdf"
+    √ refuses "/documents/calendar_visibility.json"
+    √ refuses "/documents/imported_batches.json"
+    √ refuses "/documents/.hidden.pdf"
+    √ refuses "/documents/no-extension"
+    √ refuses "/documents2/a.pdf"
+    √ refuses "/cache/chat_share/a.pdf"
+    √ refuses "/documents/a\\b.pdf"
+    √ refuses "/documents/a\u0000.pdf"
+    √ refuses "file://documents/a.pdf"
+    √ refuses non-strings
+  Clear All Data attachment cleanup (C1)
+    √ keeps a failed removal saved, and a later Clear All Data removes it (5 ms)
+    √ an already-missing file completes its cleanup without an unlink (2 ms)
+    √ records duplicate references once, counts them once, and retries idempotently (3 ms)
+    √ a failure to save the obligation keeps the chat messages and reports chat not cleared (3 ms)
+    √ a failure to retire a completed obligation is not success, and the next pass finishes it (3 ms)
+    √ never touches another owner's obligations or files (2 ms)
+    √ refused references are left alone, never recorded, and reported (2 ms)
+    √ a target that is a directory is never unlinked and stays saved (1 ms)
+    √ stops when the sign-in changes mid-cleanup; the rest stays saved for that owner only (2 ms)
+    √ removes at most MAX_CLEANUP_PER_RUN files per Clear All Data and counts the rest (5 ms)
+    √ guest linking moves the guest's saved cleanup to the account (4 ms)
+  saved cleanup survives a restart (real SQLite file, fresh modules)
+    √ a crash after the commit but before any unlink: the next launch removes the file (149 ms)
+    × a crash after the unlink but before retiring: the next launch finds the file gone and retires it (164 ms)
+
+  ● saved cleanup survives a restart (real SQLite file, fresh modules) › a crash after the unlink but before retiring: the next launch finds the file gone and retires it
+
+    expect(jest.fn()).not.toHaveBeenCalled()
+
+    Expected number of calls: 0
+    Received number of calls: 1
+
+    1: "/documents/chat_files/half-done.pdf"
+
+    [0m [90m 457 |[39m       interrupted[33m:[39m [36mfalse[39m[33m,[39m
+     [90m 458 |[39m     })[33m;[39m
+    [31m[1m>[22m[39m[90m 459 |[39m     expect(run2[33m.[39mfiles[33m.[39munlink)[33m.[39mnot[33m.[39mtoHaveBeenCalled()[33m;[39m
+     [90m     |[39m                                   [31m[1m^[22m[39m
+     [90m 460 |[39m     expect(disk2[33m.[39mfiles[33m.[39msize)[33m.[39mtoBe([35m0[39m)[33m;[39m
+     [90m 461 |[39m     run2[33m.[39mconnection[33m.[39mclose()[33m;[39m
+     [90m 462 |[39m   })[33m;[39m[0m
+
+      at Object.toHaveBeenCalled (__tests__/storage/attachmentCleanup.test.ts:459:35)
+      at asyncGeneratorStep (node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+      at _next (node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
+
+Test Suites: 1 failed, 1 total
+Tests:       1 failed, 41 passed, 42 total
+Snapshots:   0 total
+Time:        2.171 s
+Ran all test suites matching /__tests__\\storage\\attachmentCleanup.test.ts/i.
+EXIT=1

@@ -1,0 +1,6 @@
+AGY-PORT 12 QA SQL temp-directory cleanup after mutation runs (only agy-qa-sql-XXXXXX directly in the user temp folder).
+mutation-checks-1: 2 leftovers (agy-qa-sql-3ItFpw, agy-qa-sql-VOe5ai), each holding only qa-fixture.db, created by mutation P11 (handle deliberately left open); removed and confirmed absent during the session before this log existed.
+earlier development runs: 2 leftovers (agy-qa-sql-BecEbA, agy-qa-sql-KazOqq) from the two failing first runs that exposed the open-handle bug; removed and confirmed absent.
+mutation-checks-2: agy-qa-sql-CtLA4T contents=["qa-fixture.db"] removed=true
+mutation-checks-2: agy-qa-sql-E06Kyr contents=["qa-fixture.db"] removed=true
+after: []

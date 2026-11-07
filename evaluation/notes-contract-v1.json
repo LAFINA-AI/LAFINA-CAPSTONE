@@ -1,0 +1,221 @@
+{
+  "version": 1,
+  "scope": "Synthetic host contract for Notes search normalization, LIKE escaping and SQL-filtered pages. No private notes; no model accuracy.",
+  "source": "src/storage/notesQueryStore.ts normalizeNoteForSearch, escapeLike, notesQueryStore.page",
+  "normalize": [
+    {
+      "id": "html",
+      "title": "Biology",
+      "body": "<p>Photo<b>synthesis</b> needs <i>light</i></p>",
+      "contains": [
+        "biology",
+        "photosynthesis needs light"
+      ],
+      "excludes": [
+        "<b>",
+        "<p>"
+      ]
+    },
+    {
+      "id": "checklist",
+      "title": "Checklist",
+      "body": "- [ ] buy **index** cards\n- [x] _print_ notes",
+      "contains": [
+        "checklist",
+        "buy index cards"
+      ],
+      "excludes": [
+        "**",
+        "[ ]",
+        "[x]"
+      ]
+    },
+    {
+      "id": "heading",
+      "title": "Heading",
+      "body": "# Midterm\n\nChapter 4 and 5",
+      "contains": [
+        "midterm",
+        "chapter 4 and 5"
+      ],
+      "excludes": [
+        "# "
+      ]
+    },
+    {
+      "id": "untitled",
+      "title": "",
+      "body": "plain body only",
+      "contains": [
+        "plain body only"
+      ],
+      "excludes": []
+    }
+  ],
+  "escapeLike": [
+    {
+      "input": "50%_done\\",
+      "output": "50\\%\\_done\\\\"
+    },
+    {
+      "input": "plain",
+      "output": "plain"
+    },
+    {
+      "input": "__",
+      "output": "\\_\\_"
+    }
+  ],
+  "notes": [
+    {
+      "id": "n1",
+      "title": "Photosynthesis",
+      "body": "<p>Light <b>reactions</b> in the chloroplast</p>",
+      "category": "Academic",
+      "pinned": true,
+      "voice": false
+    },
+    {
+      "id": "n2",
+      "title": "Shopping",
+      "body": "- [ ] index cards\n- [ ] pens",
+      "category": "Personal",
+      "pinned": false,
+      "voice": false
+    },
+    {
+      "id": "n3",
+      "title": "Lecture 5 transcript",
+      "body": "The Calvin cycle uses ATP",
+      "category": "Academic",
+      "pinned": false,
+      "voice": true
+    },
+    {
+      "id": "n4",
+      "title": "100% sure",
+      "body": "discount 50%_off",
+      "category": "Personal",
+      "pinned": false,
+      "voice": false
+    },
+    {
+      "id": "n5",
+      "title": "Old",
+      "body": "chloroplast review",
+      "category": "Academic",
+      "pinned": false,
+      "voice": false
+    }
+  ],
+  "queries": [
+    {
+      "id": "word",
+      "query": {
+        "search": "chloroplast"
+      },
+      "titles": [
+        "Old",
+        "Photosynthesis"
+      ]
+    },
+    {
+      "id": "case",
+      "query": {
+        "search": "CHLORO"
+      },
+      "titles": [
+        "Old",
+        "Photosynthesis"
+      ]
+    },
+    {
+      "id": "percent-literal",
+      "query": {
+        "search": "50%"
+      },
+      "titles": [
+        "100% sure"
+      ]
+    },
+    {
+      "id": "wildcard-literal",
+      "query": {
+        "search": "%"
+      },
+      "titles": [
+        "100% sure"
+      ]
+    },
+    {
+      "id": "phrase",
+      "query": {
+        "search": "index cards"
+      },
+      "titles": [
+        "Shopping"
+      ]
+    },
+    {
+      "id": "transcript",
+      "query": {
+        "search": "calvin"
+      },
+      "titles": [
+        "Lecture 5 transcript"
+      ]
+    },
+    {
+      "id": "markup-not-indexed",
+      "query": {
+        "search": "b>"
+      },
+      "titles": []
+    },
+    {
+      "id": "pinned",
+      "query": {
+        "filter": "Pinned"
+      },
+      "titles": [
+        "Photosynthesis"
+      ]
+    },
+    {
+      "id": "voice",
+      "query": {
+        "filter": "AI Transcribed"
+      },
+      "titles": [
+        "Lecture 5 transcript"
+      ]
+    },
+    {
+      "id": "category",
+      "query": {
+        "filter": "Personal"
+      },
+      "titles": [
+        "100% sure",
+        "Shopping"
+      ]
+    },
+    {
+      "id": "category-and-search",
+      "query": {
+        "filter": "Academic",
+        "search": "review"
+      },
+      "titles": [
+        "Old"
+      ]
+    },
+    {
+      "id": "none",
+      "query": {
+        "search": "nothing-matches"
+      },
+      "titles": []
+    }
+  ]
+}

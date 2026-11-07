@@ -2,34 +2,65 @@ import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { Fonts, Layout, Shadows, useThemedStyles } from '../../theme';
 import type { ThemeColors } from '../../contexts/ThemeContext';
+import type { ProfileStatistics } from '../../../storage/profileStatisticsStore';
 
 interface ProfileStatsProps {
-  completedTasksCount: number;
-  notesCount: number;
-  voiceCommandsCount: number;
+  statistics: ProfileStatistics;
 }
 
-export const ProfileStats: React.FC<ProfileStatsProps> = ({
-  completedTasksCount,
-  notesCount,
-  voiceCommandsCount,
-}) => {
+const UNAVAILABLE = '—';
+
+/**
+ * AGY-PORT 09: counts from actual records (profileStatisticsStore). "On time"
+ * is reminders acknowledged without a snooze out of reminders that were
+ * acknowledged or missed; before any outcome it says "No data".
+ */
+export const ProfileStats: React.FC<ProfileStatsProps> = ({ statistics }) => {
   const themed = useThemedStyles(getThemedStyles);
+  const number = (value: number | null): string =>
+    statistics.available && value !== null ? String(value) : UNAVAILABLE;
+
+  let onTime = UNAVAILABLE;
+  let onTimeLabel = 'On-time reminders unavailable';
+  if (statistics.available && statistics.finishedRemindersCount !== null) {
+    if (statistics.onTimeRate === null) {
+      onTime = 'No data';
+      onTimeLabel = 'On-time reminders: no acknowledged or missed reminders yet';
+    } else {
+      onTime = `${statistics.onTimeRate}%`;
+      onTimeLabel =
+        `On-time reminders: ${statistics.onTimeCount} of ${statistics.finishedRemindersCount} ` +
+        'acknowledged without snoozing';
+    }
+  }
+
+  const card = (value: string, label: string, accessibilityLabel: string, testID: string) => (
+    <View
+      style={[styles.statCard, Shadows.card, themed.statCard]}
+      accessible
+      accessibilityLabel={accessibilityLabel}
+      testID={testID}
+    >
+      <Text style={[styles.statVal, themed.statVal]}>{value}</Text>
+      <Text style={[styles.statLabel, themed.statLabel]}>{label}</Text>
+    </View>
+  );
 
   return (
     <View style={styles.statsRow}>
-      <View style={[styles.statCard, Shadows.card, themed.statCard]}>
-        <Text style={[styles.statVal, themed.statVal]}>{completedTasksCount}</Text>
-        <Text style={[styles.statLabel, themed.statLabel]}>Tasks Done</Text>
-      </View>
-      <View style={[styles.statCard, Shadows.card, themed.statCard]}>
-        <Text style={[styles.statVal, themed.statVal]}>{notesCount}</Text>
-        <Text style={[styles.statLabel, themed.statLabel]}>Notes Saved</Text>
-      </View>
-      <View style={[styles.statCard, Shadows.card, themed.statCard]}>
-        <Text style={[styles.statVal, themed.statVal]}>{voiceCommandsCount}</Text>
-        <Text style={[styles.statLabel, themed.statLabel]}>Voice Uses</Text>
-      </View>
+      {card(
+        number(statistics.completedTasksCount),
+        'Tasks Done',
+        `Tasks done: ${number(statistics.completedTasksCount)}`,
+        'stat-tasks-done',
+      )}
+      {card(
+        number(statistics.notesCount),
+        'Notes Saved',
+        `Notes saved: ${number(statistics.notesCount)}`,
+        'stat-notes-saved',
+      )}
+      {card(onTime, 'On Time', onTimeLabel, 'stat-on-time')}
     </View>
   );
 };

@@ -1,0 +1,17 @@
+Follow-up mutation A: receipt condition removed from matches() (restored after run)
+3
+    × a sync text-only update reaches the native registration on the next reconcile (4 ms)
+Tests:       1 failed, 36 passed, 37 total
+
+Follow-up mutation B: live-registration/unreadable checks removed from shouldDispatchInJs (restored)
+    × the JS fallback does not ring what native still holds, or when native cannot be read (4 ms)
+Tests:       1 failed, 36 passed, 37 total
+
+Follow-up mutation C: generation-0 wildcard restored in checkFence (restored)
+1
+    × generation 0 is stale once the job has moved past its first generation (4 ms)
+Tests:       1 failed, 36 passed, 37 total
+
+Follow-up mutation A (precise re-run): only the two receipt conditions removed from matches() (restored)
+    × a sync text-only update reaches the native registration on the next reconcile (5 ms)
+Tests:       1 failed, 36 passed, 37 total

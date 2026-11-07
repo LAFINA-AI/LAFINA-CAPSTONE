@@ -1,0 +1,376 @@
+{
+  "version": 1,
+  "clock": "2026-07-06T12:00:00 device-local (a Monday)",
+  "scope": "Deterministic fast-path parse and route regression on synthetic commands. Not SmolLM2 accuracy, not recorded-speech accuracy, not held-out evaluation.",
+  "source": "src/ai/nlu/fastPathParser.ts parseIntentFastPath, src/ai/nlu/intentRoutes.ts routeIntent, src/ai/nlu/intentService.ts (empty transcript)",
+  "checked": "Only the listed fields are compared; null means the parser must return null.",
+  "cases": [
+    {
+      "id": "create-reminder-00",
+      "command": "remind me to submit the lab report tomorrow at 8 am",
+      "expect": {
+        "intent": "create_reminder",
+        "route": "reviewed_mutation",
+        "title": "Submit the lab report",
+        "date": "2026-07-07",
+        "time": "08:00"
+      }
+    },
+    {
+      "id": "create-reminder-01",
+      "command": "remind me about my quiz on friday at 7:30 pm",
+      "expect": {
+        "intent": "create_reminder",
+        "route": "reviewed_mutation",
+        "title": "My quiz",
+        "date": "2026-07-10",
+        "time": "19:30"
+      }
+    },
+    {
+      "id": "create-reminder-02",
+      "command": "remind me to call mom in 30 minutes",
+      "expect": {
+        "intent": "create_reminder",
+        "route": "reviewed_mutation",
+        "title": "Call mom",
+        "date": "2026-07-06",
+        "time": "12:30"
+      }
+    },
+    {
+      "id": "create-task-00",
+      "command": "add a task finish math homework tomorrow",
+      "expect": {
+        "intent": "create_task",
+        "route": "reviewed_mutation",
+        "title": "Finish math homework",
+        "date": "2026-07-07",
+        "time": null
+      }
+    },
+    {
+      "id": "create-task-01",
+      "command": "add task buy groceries",
+      "expect": {
+        "intent": "create_task",
+        "route": "reviewed_mutation",
+        "title": "Buy groceries",
+        "date": null,
+        "time": null
+      }
+    },
+    {
+      "id": "create-task-02",
+      "command": "add task review chapter 3 on monday",
+      "expect": {
+        "intent": "create_task",
+        "route": "reviewed_mutation",
+        "title": "Review chapter 3",
+        "date": "2026-07-13"
+      }
+    },
+    {
+      "id": "create-block-00",
+      "command": "schedule study session tomorrow from 2 pm to 4 pm",
+      "expect": {
+        "intent": "create_time_block",
+        "route": "reviewed_mutation",
+        "title": "Study session",
+        "date": "2026-07-07",
+        "time": "14:00",
+        "endTime": "16:00"
+      }
+    },
+    {
+      "id": "create-block-01",
+      "command": "block 9 am to 11 am on wednesday for thesis writing",
+      "expect": {
+        "intent": "create_time_block",
+        "route": "reviewed_mutation",
+        "title": "Thesis writing",
+        "date": "2026-07-08",
+        "time": "09:00",
+        "endTime": "11:00"
+      }
+    },
+    {
+      "id": "create-note-00",
+      "command": "take a note buy index cards",
+      "expect": {
+        "intent": "create_note",
+        "route": "reviewed_mutation",
+        "title": "Buy index cards"
+      }
+    },
+    {
+      "id": "create-note-01",
+      "command": "create a note about photosynthesis notes",
+      "expect": {
+        "intent": "create_note",
+        "route": "reviewed_mutation",
+        "title": "Photosynthesis notes"
+      }
+    },
+    {
+      "id": "update-task-00",
+      "command": "rename task finish math homework to finish algebra homework",
+      "expect": {
+        "intent": "update_task",
+        "route": "reviewed_mutation",
+        "targetTitle": "Finish math homework",
+        "newTitle": "Finish algebra homework",
+        "targetEntityType": "task"
+      }
+    },
+    {
+      "id": "update-task-01",
+      "command": "mark task finish math homework as done",
+      "expect": {
+        "intent": "update_task",
+        "route": "reviewed_mutation",
+        "targetTitle": "Finish math homework",
+        "isCompleted": true,
+        "targetEntityType": "task"
+      }
+    },
+    {
+      "id": "update-any-00",
+      "command": "move study session to 5 pm",
+      "expect": {
+        "intent": "update_task",
+        "route": "reviewed_mutation",
+        "targetTitle": "Study session",
+        "time": "17:00",
+        "targetEntityType": "any"
+      }
+    },
+    {
+      "id": "update-any-01",
+      "command": "reschedule my quiz to saturday at 9 am",
+      "expect": {
+        "intent": "update_task",
+        "route": "reviewed_mutation",
+        "targetTitle": "Quiz",
+        "date": "2026-07-11",
+        "time": "09:00",
+        "targetEntityType": "any"
+      }
+    },
+    {
+      "id": "update-block-00",
+      "command": "move my study block to 5 pm",
+      "expect": {
+        "intent": "update_time_block",
+        "route": "reviewed_mutation",
+        "time": "17:00",
+        "targetEntityType": "time_block"
+      }
+    },
+    {
+      "id": "update-event-00",
+      "command": "reschedule the event lab meeting to friday at 3 pm",
+      "expect": {
+        "intent": "update_time_block",
+        "route": "reviewed_mutation",
+        "targetTitle": "Lab meeting",
+        "date": "2026-07-10",
+        "time": "15:00",
+        "targetEntityType": "event"
+      }
+    },
+    {
+      "id": "update-note-00",
+      "command": "rename note buy index cards to shopping list",
+      "expect": {
+        "intent": "update_note",
+        "route": "reviewed_mutation",
+        "targetTitle": "Buy index cards",
+        "newTitle": "Shopping list",
+        "targetEntityType": "note"
+      }
+    },
+    {
+      "id": "delete-task-00",
+      "command": "delete task finish math homework",
+      "expect": {
+        "intent": "delete_task",
+        "route": "reviewed_mutation",
+        "targetTitle": "Finish math homework",
+        "targetEntityType": "task"
+      }
+    },
+    {
+      "id": "delete-block-00",
+      "command": "delete the study session time block",
+      "expect": {
+        "intent": "delete_time_block",
+        "route": "reviewed_mutation",
+        "targetTitle": "Study session",
+        "targetEntityType": "time_block"
+      }
+    },
+    {
+      "id": "delete-event-00",
+      "command": "delete event lab meeting",
+      "expect": {
+        "intent": "delete_time_block",
+        "route": "reviewed_mutation",
+        "targetTitle": "Lab meeting",
+        "targetEntityType": "event"
+      }
+    },
+    {
+      "id": "delete-note-00",
+      "command": "delete note buy index cards",
+      "expect": {
+        "intent": "delete_note",
+        "route": "reviewed_mutation",
+        "targetTitle": "Buy index cards",
+        "targetEntityType": "note"
+      }
+    },
+    {
+      "id": "ack-00",
+      "command": "acknowledged",
+      "expect": {
+        "intent": "acknowledge",
+        "route": "reviewed_mutation"
+      }
+    },
+    {
+      "id": "ack-01",
+      "command": "got it",
+      "expect": {
+        "intent": "acknowledge",
+        "route": "reviewed_mutation"
+      }
+    },
+    {
+      "id": "snooze-00",
+      "command": "snooze for 10 minutes",
+      "expect": {
+        "intent": "snooze",
+        "route": "reviewed_mutation",
+        "snoozeMinutes": 10
+      }
+    },
+    {
+      "id": "snooze-01",
+      "command": "snooze 5 minutes",
+      "expect": {
+        "intent": "snooze",
+        "route": "reviewed_mutation",
+        "snoozeMinutes": 5
+      }
+    },
+    {
+      "id": "snooze-02",
+      "command": "snooze",
+      "expect": {
+        "intent": "snooze",
+        "route": "reviewed_mutation",
+        "snoozeMinutes": 10
+      }
+    },
+    {
+      "id": "reschedule-00",
+      "command": "reschedule to tomorrow at 4 pm",
+      "expect": {
+        "intent": "reschedule",
+        "route": "reviewed_mutation",
+        "date": "2026-07-07",
+        "time": "16:00"
+      }
+    },
+    {
+      "id": "reschedule-01",
+      "command": "postpone to 3 pm",
+      "expect": {
+        "intent": "reschedule",
+        "route": "reviewed_mutation",
+        "time": "15:00"
+      }
+    },
+    {
+      "id": "query-00",
+      "command": "what is on my schedule tomorrow",
+      "expect": {
+        "intent": "query_schedule",
+        "route": "read_only",
+        "date": "2026-07-07"
+      }
+    },
+    {
+      "id": "query-01",
+      "command": "what do i have today",
+      "expect": {
+        "intent": "query_schedule",
+        "route": "read_only",
+        "date": "2026-07-06"
+      }
+    },
+    {
+      "id": "query-02",
+      "command": "am i free on friday afternoon",
+      "expect": {
+        "intent": "query_schedule",
+        "route": "read_only",
+        "date": "2026-07-10"
+      }
+    },
+    {
+      "id": "chat-00",
+      "command": "hello there",
+      "expect": {
+        "intent": "chat",
+        "route": "conversation"
+      }
+    },
+    {
+      "id": "chat-01",
+      "command": "tell me a joke",
+      "expect": {
+        "intent": "chat",
+        "route": "conversation"
+      }
+    },
+    {
+      "id": "chat-02",
+      "command": "what is the weather in manila",
+      "expect": {
+        "intent": "chat",
+        "route": "conversation"
+      }
+    }
+  ],
+  "emptyTranscripts": [
+    {
+      "id": "empty-00",
+      "transcript": "   ",
+      "intent": "out_of_scope"
+    }
+  ],
+  "ringingCall": [
+    {
+      "id": "ring-ack",
+      "intent": "acknowledge",
+      "route": "call_context_immediate"
+    },
+    {
+      "id": "ring-snooze",
+      "intent": "snooze",
+      "route": "call_context_immediate"
+    },
+    {
+      "id": "ring-reschedule",
+      "intent": "reschedule",
+      "route": "reviewed_mutation"
+    },
+    {
+      "id": "ring-create",
+      "intent": "create_task",
+      "route": "reviewed_mutation"
+    }
+  ]
+}

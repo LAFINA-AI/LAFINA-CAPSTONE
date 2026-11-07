@@ -1,0 +1,28 @@
+# fix-only strings (absent from src at 69aafcd), removed strings (must be absent) and controls (present before), ASCII + UTF-16LE, per packaged bundle
+arm64-v8a fix-only 'queue_order' 1
+arm64-v8a fix-only 'Fair, durable turn order for attachment cleanup obligations' 1
+arm64-v8a fix-only 'This phone could not save its cleanup progress for ' 1
+arm64-v8a fix-only 'listed for the next Clear All Data.' 1
+arm64-v8a fix-only '[AttachmentCleanup] A cleanup attempt could not be saved:' 1
+arm64-v8a fix-only '[AttachmentCleanup] A finished cleanup could not be retired:' 1
+arm64-v8a fix-only ' ASC, recorded_at ASC, path ASC' 1
+arm64-v8a fix-only 'SET attempts = attempts + 1, last_attempt_at = ?, ' 1
+arm64-v8a removed 'ORDER BY recorded_at ASC, path ASC' 0
+arm64-v8a control 'listed and tries again' 1
+arm64-v8a control 'Unreadable attachment cleanup count.' 1
+arm64-v8a control 'Not Cleared' 1
+arm64-v8a control 'Starting Preview' 1
+x86_64 fix-only 'queue_order' 1
+x86_64 fix-only 'Fair, durable turn order for attachment cleanup obligations' 1
+x86_64 fix-only 'This phone could not save its cleanup progress for ' 1
+x86_64 fix-only 'listed for the next Clear All Data.' 1
+x86_64 fix-only '[AttachmentCleanup] A cleanup attempt could not be saved:' 1
+x86_64 fix-only '[AttachmentCleanup] A finished cleanup could not be retired:' 1
+x86_64 fix-only ' ASC, recorded_at ASC, path ASC' 1
+x86_64 fix-only 'SET attempts = attempts + 1, last_attempt_at = ?, ' 1
+x86_64 removed 'ORDER BY recorded_at ASC, path ASC' 0
+x86_64 control 'listed and tries again' 1
+x86_64 control 'Unreadable attachment cleanup count.' 1
+x86_64 control 'Not Cleared' 1
+x86_64 control 'Starting Preview' 1
+# failed marker checks (fix-only missing, removed present, control missing): 0

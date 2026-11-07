@@ -1,5 +1,6 @@
 import { NativeModules } from 'react-native';
 import type { Reminder } from '../storage/remindersStore';
+import { deliveryStore } from '../storage/deliveryStore';
 
 export type NativeCallAction = 'call' | 'answer' | 'decline';
 
@@ -7,6 +8,28 @@ export interface NativeCallTrigger {
   reminderId: string;
   task: string;
   action: NativeCallAction;
+  /** Delivery identity captured by the native alarm (absent from old builds). */
+  ownerId?: string;
+  generation?: number;
+}
+
+/** One live registration in the native delivery registry (no reminder text). */
+export interface NativeDeliveryRegistration {
+  reminderId: string;
+  ownerId: string;
+  generation: number;
+  triggerAtMs: number;
+  /** False when the registry entry exists but Android no longer holds the alarm. */
+  armed: boolean;
+}
+
+/** Redacted native evidence: identifiers and an event code, never task text. */
+export interface NativeDeliveryReceipt {
+  atMs: number;
+  event: string;
+  reminderId: string;
+  ownerId: string;
+  generation: number;
 }
 
 export interface ReminderPermissionStatus {
@@ -19,6 +42,8 @@ interface ScheduleAlarmOptions {
   reminderId: string;
   task: string;
   triggerAtMs: number;
+  ownerId: string;
+  generation: number;
 }
 
 interface LafinaReminderNativeModule {
@@ -32,6 +57,15 @@ interface LafinaReminderNativeModule {
   openExactAlarmSettings: () => Promise<boolean>;
   openFullScreenIntentSettings: () => Promise<boolean>;
   openNotificationSettings?: () => Promise<boolean>;
+  listDeliveryRegistrations?: () => Promise<NativeDeliveryRegistration[]>;
+  setDeliveryOwner?: (ownerId: string) => Promise<boolean>;
+  /** Exactly-one-engine claim for the in-app fallback ringer. */
+  claimForegroundDelivery?: (
+    reminderId: string,
+    ownerId: string,
+    generation: number,
+  ) => Promise<'claimed' | 'already_claimed' | 'stale' | string>;
+  drainDeliveryReceipts?: () => Promise<NativeDeliveryReceipt[]>;
 }
 
 const getNativeModule = (): LafinaReminderNativeModule | null => {
@@ -39,6 +73,33 @@ const getNativeModule = (): LafinaReminderNativeModule | null => {
     | LafinaReminderNativeModule
     | undefined;
   return module?.scheduleExactAlarm ? module : null;
+};
+
+/** Native delivery (Android AlarmManager) is the authoritative engine when present. */
+export const isNativeReminderDeliveryAvailable = (): boolean =>
+  getNativeModule() !== null;
+
+/** Internal: the native module with the AGY-PORT 03 registry methods, if any. */
+export const getNativeDeliveryModule = (): LafinaReminderNativeModule | null =>
+  getNativeModule();
+
+const errorCode = (error: unknown): string => {
+  const code = (error as { code?: unknown } | null)?.code;
+  return typeof code === 'string' && code.length > 0 ? code : 'native_rejected';
+};
+
+const recordReceipt = (
+  reminderId: string,
+  generation: number,
+  outcome: 'registered' | 'failed',
+  code: string | null,
+): void => {
+  if (generation < 1) return;
+  try {
+    deliveryStore.recordRegistration(reminderId, generation, outcome, code);
+  } catch (error) {
+    console.warn('[ReminderAlarm] Could not record registration receipt:', error);
+  }
 };
 
 export const scheduleReminderAlarm = async (
@@ -56,14 +117,36 @@ export const scheduleReminderAlarm = async (
     throw new Error('Reminder trigger must be a valid future time.');
   }
 
-  const scheduled = await module.scheduleExactAlarm({
-    reminderId,
-    task,
-    triggerAtMs,
-  });
+  // The registration carries the job's current identity. Without a job (a
+  // caller that registers before inserting) generation 0 is sent; the next
+  // reconcile replaces it with the real identity.
+  let job = null;
+  try {
+    job = deliveryStore.get(reminderId);
+  } catch (error) {
+    console.warn('[ReminderAlarm] Delivery job unavailable:', error);
+  }
+  const ownerId = job?.userId ?? '';
+  const generation = job?.generation ?? 0;
+
+  let scheduled: boolean;
+  try {
+    scheduled = await module.scheduleExactAlarm({
+      reminderId,
+      task,
+      triggerAtMs,
+      ownerId,
+      generation,
+    });
+  } catch (error) {
+    recordReceipt(reminderId, generation, 'failed', errorCode(error));
+    throw error;
+  }
   if (!scheduled) {
+    recordReceipt(reminderId, generation, 'failed', 'native_returned_false');
     throw new Error('Android rejected the exact reminder alarm.');
   }
+  recordReceipt(reminderId, generation, 'registered', null);
 };
 
 export const cancelReminderAlarm = async (

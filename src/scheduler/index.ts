@@ -12,12 +12,26 @@ export {
   openFullScreenIntentSettings,
   openNotificationSettings,
   reconcileReminderAlarms,
+  isNativeReminderDeliveryAvailable,
 } from './reminderAlarm';
 export type {
   NativeCallAction,
   NativeCallTrigger,
+  NativeDeliveryReceipt,
+  NativeDeliveryRegistration,
   ReminderPermissionStatus,
 } from './reminderAlarm';
+export {
+  reconcileReminderDelivery,
+  drainNativeDeliveryReceipts,
+  shouldDispatchInJs,
+  claimForegroundRing,
+  reconcileIfDeliveryChanged,
+  NATIVE_CALL_TIMEOUT_MS,
+} from './deliveryReconciler';
+export type { DeliveryReconcileSummary } from './deliveryReconciler';
+export { admitReminderCall } from './callAdmission';
+export type { CallAdmission, CallRejection, CallRequest } from './callAdmission';
 export {
   snoozeReminderAction,
   acknowledgeReminderAction,

@@ -1,0 +1,87 @@
+﻿# 2026-11-07T01:58:25Z SDK build-tools 36.0.0 facts for the attachment-cleanup remediation dataQa APKs (code commit f7e947f); apksigner via PowerShell with JDK 17
+== arm64-v8a zipalign -c -P 16 4
+
+exit=0
+== arm64-v8a apksigner verify --verbose --print-certs
+Verifies
+Verified using v1 scheme (JAR signing): false
+Verified using v2 scheme (APK Signature Scheme v2): true
+Verified using v3 scheme (APK Signature Scheme v3): false
+Verified using v3.1 scheme (APK Signature Scheme v3.1): false
+Verified using v4 scheme (APK Signature Scheme v4): false
+Verified for SourceStamp: false
+Number of signers: 1
+Signer #1 certificate DN: C=US, O=Android, CN=Android Debug
+Signer #1 certificate SHA-256 digest: acf890c33d9f7252cca541e5c60166fdf49d47b28313bf678bebb8fb0f62dd5e
+Signer #1 certificate SHA-1 digest: f7f56150d4d4dd9300966e2ed44ba6ca02ced555
+Signer #1 certificate MD5 digest: 7480091dd98e0085cba2c3918ed3c684
+Signer #1 key algorithm: RSA
+Signer #1 key size (bits): 2048
+Signer #1 public key SHA-256 digest: 1e2eea2073d74439ecce8a2e5613c7ff11060c7d23609bd285da3966a67e5b8e
+Signer #1 public key SHA-1 digest: 6df996acf2574e32b44e403f2720558a00e090a5
+Signer #1 public key MD5 digest: 30a3ef2250f0fc7339d6cf8fe075b2ba
+exit=0
+== arm64-v8a aapt2 dump badging (package, sdk, permissions, debuggable)
+package: name='com.lafina.capstone' versionCode='6' versionName='0.6.0-data-qa' platformBuildVersionName='16' platformBuildVersionCode='36' compileSdkVersion='36' compileSdkVersionCodename='16'
+targetSdkVersion:'36'
+uses-permission: name='android.permission.INTERNET'
+uses-permission: name='android.permission.ACCESS_NETWORK_STATE'
+uses-permission: name='android.permission.RECORD_AUDIO'
+uses-permission: name='android.permission.POST_NOTIFICATIONS'
+uses-permission: name='android.permission.SCHEDULE_EXACT_ALARM'
+uses-permission: name='android.permission.USE_EXACT_ALARM'
+uses-permission: name='android.permission.USE_FULL_SCREEN_INTENT'
+uses-permission: name='android.permission.RECEIVE_BOOT_COMPLETED'
+uses-permission: name='android.permission.VIBRATE'
+uses-permission: name='android.permission.WAKE_LOCK'
+uses-permission: name='android.permission.FOREGROUND_SERVICE'
+uses-permission: name='android.permission.FOREGROUND_SERVICE_MICROPHONE'
+uses-permission: name='android.permission.ACCESS_WIFI_STATE'
+uses-permission: name='android.permission.WRITE_EXTERNAL_STORAGE'
+uses-permission: name='android.permission.READ_EXTERNAL_STORAGE'
+uses-permission: name='com.lafina.capstone.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION'
+application-debuggable
+exit=0
+== x86_64 zipalign -c -P 16 4
+
+exit=0
+== x86_64 apksigner verify --verbose --print-certs
+Verifies
+Verified using v1 scheme (JAR signing): false
+Verified using v2 scheme (APK Signature Scheme v2): true
+Verified using v3 scheme (APK Signature Scheme v3): false
+Verified using v3.1 scheme (APK Signature Scheme v3.1): false
+Verified using v4 scheme (APK Signature Scheme v4): false
+Verified for SourceStamp: false
+Number of signers: 1
+Signer #1 certificate DN: C=US, O=Android, CN=Android Debug
+Signer #1 certificate SHA-256 digest: acf890c33d9f7252cca541e5c60166fdf49d47b28313bf678bebb8fb0f62dd5e
+Signer #1 certificate SHA-1 digest: f7f56150d4d4dd9300966e2ed44ba6ca02ced555
+Signer #1 certificate MD5 digest: 7480091dd98e0085cba2c3918ed3c684
+Signer #1 key algorithm: RSA
+Signer #1 key size (bits): 2048
+Signer #1 public key SHA-256 digest: 1e2eea2073d74439ecce8a2e5613c7ff11060c7d23609bd285da3966a67e5b8e
+Signer #1 public key SHA-1 digest: 6df996acf2574e32b44e403f2720558a00e090a5
+Signer #1 public key MD5 digest: 30a3ef2250f0fc7339d6cf8fe075b2ba
+exit=0
+== x86_64 aapt2 dump badging (package, sdk, permissions, debuggable)
+package: name='com.lafina.capstone' versionCode='6' versionName='0.6.0-data-qa' platformBuildVersionName='16' platformBuildVersionCode='36' compileSdkVersion='36' compileSdkVersionCodename='16'
+targetSdkVersion:'36'
+uses-permission: name='android.permission.INTERNET'
+uses-permission: name='android.permission.ACCESS_NETWORK_STATE'
+uses-permission: name='android.permission.RECORD_AUDIO'
+uses-permission: name='android.permission.POST_NOTIFICATIONS'
+uses-permission: name='android.permission.SCHEDULE_EXACT_ALARM'
+uses-permission: name='android.permission.USE_EXACT_ALARM'
+uses-permission: name='android.permission.USE_FULL_SCREEN_INTENT'
+uses-permission: name='android.permission.RECEIVE_BOOT_COMPLETED'
+uses-permission: name='android.permission.VIBRATE'
+uses-permission: name='android.permission.WAKE_LOCK'
+uses-permission: name='android.permission.FOREGROUND_SERVICE'
+uses-permission: name='android.permission.FOREGROUND_SERVICE_MICROPHONE'
+uses-permission: name='android.permission.ACCESS_WIFI_STATE'
+uses-permission: name='android.permission.WRITE_EXTERNAL_STORAGE'
+uses-permission: name='android.permission.READ_EXTERNAL_STORAGE'
+uses-permission: name='com.lafina.capstone.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION'
+application-debuggable
+exit=0

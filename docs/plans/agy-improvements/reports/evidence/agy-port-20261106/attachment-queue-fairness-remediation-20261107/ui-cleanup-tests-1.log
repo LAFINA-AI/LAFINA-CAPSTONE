@@ -1,0 +1,19 @@
+2026-11-07T03:23:30Z
+PASS __tests__/ui/clearDataAttachmentCleanup.test.tsx (8.537 s)
+  Clear All Data reports chat attachment cleanup truthfully (C1)
+    √ a failed file stays listed, the retry removes it, and only then says Data Cleared (2158 ms)
+    √ counts distinct files, not references, in the plural (166 ms)
+    √ a refused reference is reported, without a retry that could not help (155 ms)
+    √ an unreadable cleanup count is never full success (150 ms)
+    √ a sign-in change during cleanup is said, and the rest stays listed for that account (155 ms)
+  Clear All Data reports fair cleanup progress truthfully (C2)
+    √ a removable file behind 50 persistent failures is removed by the next Clear All Data, with exact counts (342 ms)
+    √ progress that could not be saved is said, and is never Data Cleared (153 ms)
+    √ a removed file whose cleanup could not be recorded is said in the singular (305 ms)
+
+Test Suites: 1 passed, 1 total
+Tests:       8 passed, 8 total
+Snapshots:   0 total
+Time:        8.749 s
+Ran all test suites matching /__tests__\\ui\\clearDataAttachmentCleanup.test.tsx/i.
+exit=0

@@ -1,0 +1,5 @@
+﻿True
+ X:\android gradlew.bat :app:testDebugUnitTest :app:assembleDebug
+'gradlew.bat' is not recognized as an internal or external command,
+operable program or batch file.
+exit=1

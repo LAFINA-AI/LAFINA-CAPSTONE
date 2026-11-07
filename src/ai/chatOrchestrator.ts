@@ -1,6 +1,7 @@
 import { chatStore, type ChatAttachment, type ChatMessage } from '../storage/chatStore';
-import { timeBlocksStore } from '../storage/timeBlocksStore';
-import { tasksStore } from '../storage/tasksStore';
+import { plannerQueries } from '../storage/plannerQueries';
+import type { PlannerWindow } from '../storage/plannerQueries';
+import { addDaysToDate, isRealDate, MINUTES_PER_DAY } from '../storage/eventTime';
 import {
   DOCUMENT_FORMATS,
   describeDocumentFailure,
@@ -16,6 +17,15 @@ import { saveGeneratedFile } from '../ui/components/chat/chatFiles';
 import { detectDocumentRequest } from './documentIntent';
 import { intentService } from './nlu/intentService';
 import { executeNluAction } from './nlu/actionExecutor';
+import { routeIntent } from './nlu/intentRoutes';
+import type { ResolvedIntentRoute, RingingCallContext } from './nlu/intentRoutes';
+import {
+  cancelReviewedCommand,
+  confirmReviewedCommand,
+  prepareReviewedCommand,
+} from './nlu/commandReview';
+import type { ConfirmResult, PrepareResult, ReviewSurface } from './nlu/commandReview';
+import { acknowledgeReminderAction, snoozeReminderAction } from '../scheduler/reminderActions';
 import { formatLocalDate } from './nlu/fastPathParser';
 import { ttsService } from './tts/ttsService';
 import type { ValidatedIntent, NluActionResult } from './nlu/types';
@@ -40,6 +50,23 @@ export interface ProcessMessageOptions {
   onlineMode?: boolean;
   useHandbook?: boolean;
   documentFormat?: DocumentFormat | null;
+  /** Which review card shows a proposal (AGY-PORT 04). Defaults to Chat. */
+  reviewSurface?: ReviewSurface;
+  /**
+   * Identity captured by a ringing reminder call. Only then do acknowledge and
+   * snooze act immediately, through the call actions with that identity.
+   */
+  ringingCall?: RingingCallContext | null;
+}
+
+/** Outcome of Confirm or Cancel on a review card. */
+export interface ReviewDecisionResult {
+  /** Present for Confirm; absent for Cancel. */
+  outcome?: ConfirmResult;
+  cancelled?: boolean;
+  /** The transcript line saved for this decision, when one was saved. */
+  assistantMessage: ChatMessage | null;
+  reply: string;
 }
 
 export interface ChatOrchestratorResult {
@@ -52,6 +79,10 @@ export interface ChatOrchestratorResult {
   attachment?: ChatAttachment | null;
   handbookNote?: string | null;
   usedOnline?: boolean;
+  /** Route taken for the extracted intent (AGY-PORT 04). */
+  route?: ResolvedIntentRoute;
+  /** Present when the request would change the planner: a proposal, clarification or refusal. Nothing was written. */
+  review?: PrepareResult;
   reply: string;
 }
 
@@ -83,6 +114,19 @@ export function format12HourTime(timeStr?: string | null): string {
   if (hour === 0) hour = 12;
   const minStr = min < 10 ? `0${min}` : `${min}`;
   return `${hour}:${minStr} ${meridiem}`;
+}
+
+/**
+ * Bounded, owner-scoped context for online requests. A read failure sends no
+ * history rather than blocking the reply; the message itself is already saved.
+ */
+function readRecentHistory(userId: string, count: number): ChatMessage[] {
+  try {
+    return chatStore.getRecentMessages(userId, count);
+  } catch (error) {
+    console.warn('[ChatOrchestrator] Could not read recent chat history:', error);
+    return [];
+  }
 }
 
 function buildLocalChatFallback(trimmed: string, validated: ValidatedIntent): string {
@@ -122,29 +166,76 @@ function buildLocalChatFallback(trimmed: string, validated: ValidatedIntent): st
   return 'I am lafina, your offline academic assistant. I can schedule study blocks, set exact reminder alarms, track assignments, take notes, or review what is on your schedule.';
 }
 
+/**
+ * One bounded read of a day's blocks and events, recurring occurrences
+ * included (AGY-PORT 06). The day before and after are read too (AGY-PORT 08),
+ * so an overnight item that spills into this day, or one this proposal spills
+ * into, is seen. Like the legacy store getters it replaces, a storage failure
+ * yields an empty day here, so the check never blocks a proposal; the change
+ * itself still waits for review and Confirm.
+ */
+const readDay = (userId: string, date: string): PlannerWindow => {
+  try {
+    return plannerQueries.window(
+      userId,
+      addDaysToDate(date, -1),
+      addDaysToDate(date, 1),
+    );
+  } catch (error) {
+    console.warn('[ChatOrchestrator] Could not read the day for a conflict check:', error);
+    return { tasks: [], events: [], blocks: [] };
+  }
+};
+
 export class ChatOrchestrator {
   /**
    * Conflict-aware check for time block and calendar event overlaps.
+   * `day` lets a caller that checks many slots read the day only once.
    */
   checkScheduleConflict(
     userId: string,
     date: string,
     startTime: string,
     endTime: string,
+    day: PlannerWindow = readDay(userId, date),
   ): ScheduleConflict {
-    const startMins = timeToMinutes(startTime);
-    const endMins = timeToMinutes(endTime);
-
-    if (endMins <= startMins) {
+    // Minutes from this day's midnight. An end before the start is on the
+    // next day (the floating overnight rule Calendar draws). An equal start and
+    // end is not checked, as before.
+    const previousDay = isRealDate(date) ? addDaysToDate(date, -1) : null;
+    const nextDay = isRealDate(date) ? addDaysToDate(date, 1) : null;
+    const span = (itemDate: string, start: string, end: string): [number, number] | null => {
+      const from = timeToMinutes(start);
+      let to = timeToMinutes(end);
+      if (to === from) return null;
+      if (to < from) to += MINUTES_PER_DAY;
+      const offset =
+        itemDate === date
+          ? 0
+          : itemDate === previousDay
+            ? -MINUTES_PER_DAY
+            : itemDate === nextDay
+              ? MINUTES_PER_DAY
+              : null;
+      return offset === null ? null : [from + offset, to + offset];
+    };
+    const proposal = span(date, startTime, endTime);
+    if (!proposal) {
       return { hasConflict: false };
     }
+    const overlaps = (item: { date: string; startTime: string; endTime: string }): boolean => {
+      const other = span(item.date, item.startTime, item.endTime);
+      return !!other && Math.max(proposal[0], other[0]) < Math.min(proposal[1], other[1]);
+    };
+    // Same-day items first, as before, then the neighbouring days.
+    const byDay = <T extends { date: string }>(items: T[]): T[] => [
+      ...items.filter((item) => item.date === date),
+      ...items.filter((item) => item.date !== date),
+    ];
 
     // 1. Check existing time blocks
-    const blocks = timeBlocksStore.getAll(userId).filter((b) => b.date === date);
-    for (const b of blocks) {
-      const bStart = timeToMinutes(b.startTime);
-      const bEnd = timeToMinutes(b.endTime);
-      if (bEnd > bStart && Math.max(startMins, bStart) < Math.min(endMins, bEnd)) {
+    for (const b of byDay(day.blocks)) {
+      if (overlaps(b)) {
         return {
           hasConflict: true,
           conflictingTitle: b.title,
@@ -156,11 +247,8 @@ export class ChatOrchestrator {
     }
 
     // 2. Check existing calendar events
-    const events = tasksStore.getAllEvents(userId).filter((e) => e.date === date);
-    for (const e of events) {
-      const eStart = timeToMinutes(e.startTime);
-      const eEnd = timeToMinutes(e.endTime);
-      if (eEnd > eStart && Math.max(startMins, eStart) < Math.min(endMins, eEnd)) {
+    for (const e of byDay(day.events)) {
+      if (overlaps(e)) {
         return {
           hasConflict: true,
           conflictingTitle: e.title,
@@ -187,6 +275,7 @@ export class ChatOrchestrator {
     const dayStartMinutes = 8 * 60;  // 08:00 AM
     const dayEndMinutes = 20 * 60;   // 08:00 PM
     const step = 30;                 // 30 minute increments
+    const day = readDay(userId, date);
 
     for (let current = dayStartMinutes; current + duration <= dayEndMinutes; current += step) {
       const candidateStart = minutesToTime(current);
@@ -197,6 +286,7 @@ export class ChatOrchestrator {
         date,
         candidateStart,
         candidateEnd,
+        day,
       );
 
       if (!conflict.hasConflict) {
@@ -239,6 +329,8 @@ export class ChatOrchestrator {
     let attachment: ChatAttachment | null = null;
     let handbookNote: string | null = null;
     let usedOnline = false;
+    let route: ResolvedIntentRoute | undefined;
+    let review: PrepareResult | undefined;
 
     // Step 2: Check for explicit or natural-language document generation request
     const detectedDoc = options.documentFormat
@@ -266,8 +358,7 @@ export class ChatOrchestrator {
       if (!options.onlineMode) {
         finalReply = `Creating ${formatMeta.shortLabel} files requires Online Mode. Switch to Online Mode in the chat header to generate ${formatMeta.label.toLowerCase()}s.`;
       } else {
-        const previousMessages: OnlineChatMessage[] = chatStore
-          .getMessages(userId)
+        const previousMessages: OnlineChatMessage[] = readRecentHistory(userId, 11)
           .filter((msg) => msg.id !== userMessage.id)
           .map((msg) => ({
             role: msg.sender,
@@ -344,33 +435,45 @@ export class ChatOrchestrator {
       }
     }
 
-    // Step 5: Execute database mutation or conversational reply if no unresolved conflict
+    // Step 5: Planner changes become a private proposal that waits for Confirm
+    // (AGY-PORT 04). Reads, call actions and conversation keep their routes.
     if (!finalReply) {
-      if (
-        validated.intent === 'create_task' ||
-        validated.intent === 'create_time_block' ||
-        validated.intent === 'create_reminder' ||
-        validated.intent === 'create_note' ||
-        validated.intent === 'update_task' ||
-        validated.intent === 'update_time_block' ||
-        validated.intent === 'update_note' ||
-        validated.intent === 'delete_task' ||
-        validated.intent === 'delete_time_block' ||
-        validated.intent === 'delete_note' ||
-        validated.intent === 'query_schedule' ||
-        validated.intent === 'acknowledge' ||
-        validated.intent === 'snooze' ||
-        validated.intent === 'reschedule'
-      ) {
+      route = routeIntent(validated.intent, { ringingCall: options.ringingCall });
+      if (route === 'reviewed_mutation') {
+        review = prepareReviewedCommand(userId, validated, {
+          referenceDate: refDate,
+          surface: options.reviewSurface,
+          ringingCall: options.ringingCall,
+        });
+        finalReply = review.reply;
+      } else if (route === 'call_context_immediate' && options.ringingCall) {
+        const call = options.ringingCall;
+        const outcome =
+          validated.intent === 'acknowledge'
+            ? await acknowledgeReminderAction(call.reminderId, userId, call.generation)
+            : await snoozeReminderAction(
+                call.reminderId,
+                userId,
+                validated.snoozeMinutes || 10,
+                call.generation,
+              );
+        actionResult = {
+          success: outcome.ok,
+          intent: validated.intent,
+          entityType: 'reminder',
+          entityId: call.reminderId,
+          reply: outcome.message,
+          ...(outcome.ok ? {} : { error: outcome.message }),
+        };
+        finalReply = outcome.message;
+      } else if (route === 'read_only') {
         actionResult = await executeNluAction(userId, validated, {
           referenceDate: refDate,
         });
         finalReply = actionResult.reply;
       } else {
         if (options.onlineMode) {
-          const history: OnlineChatMessage[] = chatStore
-            .getMessages(userId)
-            .slice(-10)
+          const history: OnlineChatMessage[] = readRecentHistory(userId, 10)
             .map((msg) => ({
               role: msg.sender,
               content: msg.content,
@@ -410,8 +513,10 @@ export class ChatOrchestrator {
       .replace(/\bL[.-]?A[.-]?F[.-]?I[.-]?N[.-]?A\b/gi, 'lafina')
       .replace(/\bLAFINA\b/g, 'lafina');
 
-    // Step 6: Persist assistant message
-    const assistantMessage = chatStore.addMessage(userId, 'assistant', finalReply, attachment);
+    // Step 6: Persist assistant message, keeping the Handbook citation with it
+    const assistantMessage = chatStore.addMessage(userId, 'assistant', finalReply, attachment, {
+      handbookNote,
+    });
 
     // Step 7: Non-blocking react-native-tts speech synthesis if requested
     if (options.speakReply) {
@@ -432,8 +537,59 @@ export class ChatOrchestrator {
       attachment,
       handbookNote,
       usedOnline,
+      route,
+      review,
       reply: finalReply,
     };
+  }
+
+  /**
+   * Applies a reviewed proposal once and records the outcome in the owner's
+   * transcript. A repeated Confirm returns the first receipt and adds nothing.
+   */
+  async confirmReview(
+    userId: string,
+    operationId: string,
+    options: { speakReply?: boolean } = {},
+  ): Promise<ReviewDecisionResult> {
+    const outcome = confirmReviewedCommand(userId, operationId);
+    let assistantMessage: ChatMessage | null = null;
+    if (!(outcome.status === 'applied' && outcome.repeated)) {
+      try {
+        assistantMessage = chatStore.addMessage(userId, 'assistant', outcome.reply);
+      } catch (error) {
+        console.warn('[ChatOrchestrator] Could not save the review outcome to chat:', error);
+      }
+    }
+    if (options.speakReply) {
+      try {
+        await ttsService.speak(outcome.reply);
+      } catch (err) {
+        console.warn('[ChatOrchestrator] TTS playback error:', err);
+      }
+    }
+    return { outcome, assistantMessage, reply: outcome.reply };
+  }
+
+  /** Discards a proposal. Writes no planner data. */
+  cancelReview(
+    userId: string,
+    operationId: string,
+    options: { recordInChat?: boolean } = {},
+  ): ReviewDecisionResult {
+    const cancelled = cancelReviewedCommand(userId, operationId);
+    const reply = cancelled
+      ? 'Cancelled. Nothing was changed.'
+      : 'There was nothing to cancel. Nothing was changed.';
+    let assistantMessage: ChatMessage | null = null;
+    if (cancelled && options.recordInChat !== false) {
+      try {
+        assistantMessage = chatStore.addMessage(userId, 'assistant', reply);
+      } catch (error) {
+        console.warn('[ChatOrchestrator] Could not save the cancellation to chat:', error);
+      }
+    }
+    return { cancelled, assistantMessage, reply };
   }
 }
 

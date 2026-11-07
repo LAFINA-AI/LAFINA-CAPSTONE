@@ -20,7 +20,7 @@ import { NoteFilters, NoteCardWithDrag } from './components';
 import { NoteEditor } from './components/NoteEditor';
 import { MeetingsScreen } from '../meetings';
 import { NotesScreenProps } from './types';
-import type { Note } from '../../../storage';
+import type { NoteSnapshot } from '../../../storage';
 
 export const NotesScreen: React.FC<NotesScreenProps> = ({
   userId,
@@ -33,15 +33,13 @@ export const NotesScreen: React.FC<NotesScreenProps> = ({
   const data = useNotesData({ userId, refreshTrigger, onRefresh });
   const [meetingsOpen, setMeetingsOpen] = useState(false);
 
-  const keyExtractor = useCallback((item: Note) => item.id, []);
+  const keyExtractor = useCallback((item: NoteSnapshot) => item.id, []);
 
   const renderItem = useCallback(
-    ({ item, index }: { item: Note; index: number }) => {
+    ({ item, index }: { item: NoteSnapshot; index: number }) => {
       const isItemPinned = item.isPinned;
-      const canDrag =
-        !isItemPinned &&
-        data.selectedFilter === 'All' &&
-        !data.searchQuery.trim();
+      // AGY-PORT 07: only the complete, unfiltered collection can be reordered.
+      const canDrag = !isItemPinned && data.canReorder;
       const isActive = item.id === data.activeDragId;
 
       return (
@@ -54,12 +52,14 @@ export const NotesScreen: React.FC<NotesScreenProps> = ({
           canDrag={canDrag}
           dragX={data.dragXRef.current}
           dragY={data.dragYRef.current}
-          onPress={data.openEditNote}
+          onPress={() => data.openEditNote(item)}
           onDragStart={data.handleDragStart}
           onDragMove={data.handleDragMove}
           onDragRelease={data.handleDragRelease}
           onLayout={data.onCardLayout}
-          onToggleChecklist={data.toggleNoteChecklist}
+          onToggleChecklist={(_shown, checklistIndex) =>
+            data.toggleNoteChecklist(item, checklistIndex)
+          }
         />
       );
     },
@@ -82,6 +82,19 @@ export const NotesScreen: React.FC<NotesScreenProps> = ({
       Alert.alert('Error', 'Failed to pick image from device.');
     }
   };
+
+  // AGY-PORT 07: notes arrive in pages; the rest stay one tap away.
+  const loadMoreButton = data.hasMore ? (
+    <TouchableOpacity
+      style={styles.loadMore}
+      onPress={data.loadMoreNotes}
+      accessibilityRole="button"
+      accessibilityLabel="Show more notes"
+      testID="notes-load-more"
+    >
+      <Text style={[styles.loadMoreText, { color: colors.red }]}>Show more notes</Text>
+    </TouchableOpacity>
+  ) : null;
 
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
@@ -150,6 +163,20 @@ export const NotesScreen: React.FC<NotesScreenProps> = ({
         customCategories={data.customCategories}
       />
 
+      {data.indexing && (
+        <Text
+          style={[styles.notice, { color: colors.textSecondary }]}
+          testID="notes-indexing"
+        >
+          Preparing your notes for search. More results may appear in a moment.
+        </Text>
+      )}
+      {data.queryError && (
+        <Text style={[styles.notice, { color: colors.textSecondary }]} testID="notes-query-error">
+          {data.queryError}
+        </Text>
+      )}
+
       {/* Content */}
       {data.filtered.length === 0 ? (
         <View style={styles.emptyState}>
@@ -169,6 +196,7 @@ export const NotesScreen: React.FC<NotesScreenProps> = ({
           scrollEnabled={!data.isDragging}
         >
           {data.filtered.map((item, index) => renderItem({ item, index }))}
+          {loadMoreButton}
         </ScrollView>
       ) : (
         <FlatList
@@ -182,6 +210,7 @@ export const NotesScreen: React.FC<NotesScreenProps> = ({
           renderItem={renderItem}
           removeClippedSubviews={false}
           windowSize={21}
+          ListFooterComponent={loadMoreButton}
         />
       )}
 
@@ -302,6 +331,20 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     flexWrap: 'wrap',
     justifyContent: 'space-between',
+  },
+  notice: {
+    fontFamily: 'sans-serif',
+    fontSize: 12,
+    marginBottom: 8,
+  },
+  loadMore: {
+    width: '100%',
+    alignItems: 'center',
+    paddingVertical: 14,
+  },
+  loadMoreText: {
+    fontFamily: 'sans-serif-medium',
+    fontSize: 14,
   },
   emptyState: {
     flex: 1,

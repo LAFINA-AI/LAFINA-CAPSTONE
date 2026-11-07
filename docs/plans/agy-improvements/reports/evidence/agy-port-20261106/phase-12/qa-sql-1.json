@@ -1,0 +1,100 @@
+{
+  "version": 1,
+  "kind": "qa-sql",
+  "recordedAt": "2026-11-06T10:56:35.946Z",
+  "environment": "Host Node v24.19.0, Jest with node:sqlite in memory; not Android timing",
+  "fixtureManifest": {
+    "intent-contract-v1.json": {
+      "version": 1,
+      "sha256": "99d8a9551e5acceb52bf57eaf4d74dadc09f9e88519fbf45753adc2af4559b16"
+    },
+    "notes-contract-v1.json": {
+      "version": 1,
+      "sha256": "10d46c0faaa35a7cd4fa4d6d42c3bc678390c26d3cd75298ad0eb2965f56d806"
+    },
+    "protected-contracts-v1.json": {
+      "version": 1,
+      "sha256": "76f2a1d8e450cb70874e67c72eace857f0585a57bc4d4393e3c263ee2fdd1385"
+    },
+    "speech-contract-v1.json": {
+      "version": 1,
+      "sha256": "7508a0aba08f5a1606beeefeaab7b87e2d4fd8b79e9d7e243b7f159d1a87d6e1"
+    },
+    "stt-corpus-v1.json": {
+      "version": 1,
+      "sha256": "13a83a3e48246e57c15d1947f59555c8a41b4d363e0f93f7734f201c5c57e75b"
+    }
+  },
+  "sourceHashes": {
+    "src/storage/dbInit.ts": "61ef9c3e8785e7b76c8c83ee84b3faa978b89865c5a966efdc66697bad1d7b09",
+    "src/storage/notesQueryStore.ts": "50205c4b2964040370f7b628d44f5f5bb74ca324cc27bcfcd7ec29d6180b5e64"
+  },
+  "sourceTreeSha256": "c5d7ca9816fd90aaf15504a1c3b14640b7368b4985038ef78046191a1dbb6966",
+  "metrics": {
+    "qaSql": {
+      "status": "passed",
+      "checks": [
+        {
+          "name": "Fresh owned file reaches the current schema",
+          "passed": true
+        },
+        {
+          "name": "Storage reports ready",
+          "passed": true
+        },
+        {
+          "name": "Paired note and outbox writes roll back together",
+          "passed": true
+        },
+        {
+          "name": "A rolled-back write leaves no revision",
+          "passed": true
+        },
+        {
+          "name": "Paired note and outbox writes commit together",
+          "passed": true
+        },
+        {
+          "name": "Notes pages stay bounded and account-scoped",
+          "passed": true
+        },
+        {
+          "name": "Rich-text search matches plain words, never another account",
+          "passed": true
+        },
+        {
+          "name": "Every SQL writer advances the note revision",
+          "passed": true
+        },
+        {
+          "name": "A changed note is found by its new text",
+          "passed": true
+        },
+        {
+          "name": "A stale revision cannot overwrite a newer note",
+          "passed": true
+        },
+        {
+          "name": "Foreign keys are enforced",
+          "passed": true
+        },
+        {
+          "name": "UTC timestamps are retained",
+          "passed": true
+        },
+        {
+          "name": "Close and reopen keeps the schema and rows",
+          "passed": true
+        },
+        {
+          "name": "SQLite integrity check",
+          "passed": true
+        }
+      ],
+      "cleanup": "removed",
+      "durationMs": 600,
+      "schemaVersion": 22
+    }
+  },
+  "limits": "Synthetic regression and contract checks only. No phone latency, WER, SmolLM2 accuracy, audibility, battery or memory claim."
+}

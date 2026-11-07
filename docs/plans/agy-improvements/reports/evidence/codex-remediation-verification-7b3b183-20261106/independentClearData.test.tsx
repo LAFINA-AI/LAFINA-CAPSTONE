@@ -1,0 +1,35 @@
+import React from 'react';
+import {Alert} from 'react-native';
+import {act, fireEvent, render} from '@testing-library/react-native';
+import {db, initDatabase, notesStore, userStore} from 'C:/L3mxr/Github Repositories/LAFINA-CAPSTONE-agy-development-cont/src/storage';
+import {ProfileScreen} from 'C:/L3mxr/Github Repositories/LAFINA-CAPSTONE-agy-development-cont/src/ui/screens/ProfileScreen';
+import {ThemeProvider} from 'C:/L3mxr/Github Repositories/LAFINA-CAPSTONE-agy-development-cont/src/ui/contexts/ThemeContext';
+let serial=0;
+const owner=()=>{const id=`independent-clear-${++serial}`;const now=new Date().toISOString();db.executeSync(`INSERT INTO users (id,username,email,role,is_new_user,time_format_24h,week_starts_monday,dark_mode,created_at,updated_at) VALUES (?,?,?,'student',0,0,0,0,?,?)`,[id,id,`${id}@example.invalid`,now,now]);return id;};
+const note=(userId:string)=>{const id=`${userId}-note`;notesStore.insert({id,userId,title:'Synthetic audit note',body:'synthetic',isPinned:false,tags:[],category:'General',isVoiceTranscribed:false});return id;};
+const screen=(userId:string)=>render(<ThemeProvider userId={userId}><ProfileScreen userId={userId} refreshTrigger={0} onRefresh={jest.fn()} onLogout={jest.fn()}/></ThemeProvider>);
+beforeAll(async()=>{await initDatabase();});
+afterEach(()=>{jest.restoreAllMocks();db.executeSync('DELETE FROM active_session');});
+it('a read failure must not report retained Notes as successfully cleared',()=>{
+ const a=owner();userStore.setCurrentUser(a);const id=note(a);const alerts:any[]=[];
+ jest.spyOn(Alert,'alert').mockImplementation((title,message,buttons)=>{alerts.push({title,message,buttons});});
+ const view=screen(a);const execute=db.executeSync.bind(db);
+ jest.spyOn(db,'executeSync').mockImplementation((sql:string,params?:any[])=>{if(/SELECT \* FROM notes WHERE user_id = \?/i.test(sql))throw new Error('synthetic one-query read failure');return execute(sql,params);});
+ fireEvent.press(view.getByText('Clear All Data'));
+ act(()=>alerts[0].buttons.find((b:any)=>b.text==='Delete Everything').onPress());
+ const remaining=execute('SELECT deleted_at FROM notes WHERE id=?',[id]).rows[0];
+ console.log('INDEPENDENT_READ_FAILURE',JSON.stringify({noteRetained:remaining.deleted_at===null,result:alerts[1]}));
+ expect(remaining.deleted_at).toBeNull();
+ expect(alerts[1].title).toBe('Data Partly Cleared');
+ expect(alerts[1].message).not.toMatch(/All personal scheduling data.*deleted/);
+});
+it('a confirmation retained after account switch must not delete the old account records',()=>{
+ const a=owner();userStore.setCurrentUser(a);const id=note(a);const b=owner();const alerts:any[]=[];
+ jest.spyOn(Alert,'alert').mockImplementation((title,message,buttons)=>{alerts.push({title,message,buttons});});
+ const view=screen(a);fireEvent.press(view.getByText('Clear All Data'));
+ act(()=>{userStore.setCurrentUser(b);});view.unmount();
+ act(()=>alerts[0].buttons.find((button:any)=>button.text==='Delete Everything').onPress());
+ const remaining=db.executeSync('SELECT deleted_at FROM notes WHERE id=?',[id]).rows[0];
+ console.log('INDEPENDENT_STALE_CONFIRMATION',JSON.stringify({oldOwner:a,newOwner:b,noteDeleted:remaining.deleted_at!==null,result:alerts[1]}));
+ expect(remaining.deleted_at).toBeNull();
+});

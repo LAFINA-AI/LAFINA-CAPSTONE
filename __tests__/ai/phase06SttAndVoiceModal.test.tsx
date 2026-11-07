@@ -1,5 +1,5 @@
 import React from 'react';
-import { render, fireEvent, act } from '@testing-library/react-native';
+import { render, fireEvent, act, waitFor } from '@testing-library/react-native';
 import { DeviceEventEmitter, NativeModules, PermissionsAndroid } from 'react-native';
 import {
   isSTTAvailable,
@@ -210,7 +210,15 @@ describe('Phase 06: Push-to-Talk Offline STT & VoiceModal', () => {
 
       const reply = await findByTestId('voice-reply');
       expect(reply).toBeTruthy();
-      expect(insertSpy).toHaveBeenCalledWith(
+      // AGY-PORT 04 (PF05 intentional change): nothing is saved until Confirm.
+      expect(insertSpy).not.toHaveBeenCalled();
+      const confirmButton = await findByTestId('voice-review-confirm');
+      await act(async () => {
+        fireEvent.press(confirmButton);
+      });
+      await waitFor(() => expect(insertSpy).toHaveBeenCalled());
+      // The reviewed write passes its transaction as a second argument.
+      expect(insertSpy.mock.calls[0][0]).toEqual(
         expect.objectContaining({
           userId: mockUserId,
           title: 'Voice Note',
@@ -238,7 +246,15 @@ describe('Phase 06: Push-to-Talk Offline STT & VoiceModal', () => {
 
       const reply = await findByTestId('voice-reply');
       expect(reply).toBeTruthy();
-      expect(insertTaskSpy).toHaveBeenCalledWith(
+      // AGY-PORT 04 (PF05 intentional change): nothing is saved until Confirm.
+      expect(insertTaskSpy).not.toHaveBeenCalled();
+      const confirmButton = await findByTestId('voice-review-confirm');
+      await act(async () => {
+        fireEvent.press(confirmButton);
+      });
+      await waitFor(() => expect(insertTaskSpy).toHaveBeenCalled());
+      // The reviewed write passes its transaction as a second argument.
+      expect(insertTaskSpy.mock.calls[0][0]).toEqual(
         expect.objectContaining({
           userId: mockUserId,
           title: 'Submit engineering capstone proposal',
