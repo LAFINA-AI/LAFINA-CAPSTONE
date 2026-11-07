@@ -32,6 +32,7 @@ import {
   buildLocalConversationReply,
   classifySmallTalk,
   OFFLINE_REPLY_NOTE,
+  SIGNED_OUT_REPLY_NOTE,
 } from './localConversation';
 import type { ValidatedIntent, NluActionResult } from './nlu/types';
 
@@ -187,7 +188,7 @@ export const describeOnlineChatFailure = (status: string): string => {
   const offlineNote = ' Your offline scheduling tools are still available.';
   switch (status) {
     case 'auth_required':
-      return 'Sign in to use DeepSeek in Online Mode.' + offlineNote;
+      return 'Sign in again in Profile to use DeepSeek in Online Mode.' + offlineNote;
     case 'account_disabled':
       return 'This account is disabled, so DeepSeek cannot reply.' + offlineNote;
     case 'offline':
@@ -548,7 +549,9 @@ export class ChatOrchestrator {
               // Still friendly, but clearly not DeepSeek's words.
               finalReply = `${buildLocalConversationReply(userId, trimmed, {
                 recentReplies,
-              })}\n\n${OFFLINE_REPLY_NOTE}`;
+              })}\n\n${
+                onlineResult.status === 'auth_required' ? SIGNED_OUT_REPLY_NOTE : OFFLINE_REPLY_NOTE
+              }`;
             } else {
               finalReply = describeOnlineChatFailure(onlineResult.status);
             }

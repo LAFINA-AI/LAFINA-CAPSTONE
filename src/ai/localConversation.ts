@@ -374,3 +374,7 @@ export const buildLocalConversationReply = (
 /** Shown under an on-device reply when Online Mode is on but DeepSeek failed. */
 export const OFFLINE_REPLY_NOTE =
   '(Offline reply: DeepSeek is not available right now.)';
+
+/** Same, when the cloud sign-in ended: renewing failed, so say how to fix it. */
+export const SIGNED_OUT_REPLY_NOTE =
+  '(Offline reply: sign in again in Profile to use DeepSeek and the online voice.)';
