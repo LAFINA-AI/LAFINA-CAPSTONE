@@ -9,6 +9,7 @@ import {
 import {GUEST_USER_ID, GUEST_USERNAME} from '../constants';
 import {syncOutboxStore} from './syncOutboxStore';
 import {buildProfileSyncPayload} from './profileSyncPayload';
+import {noteSessionChange} from './sessionEpoch';
 
 export interface User {
   id: string;
@@ -290,6 +291,9 @@ export const userStore = {
   },
 
   setCurrentUser: (userId: string): void => {
+    // A new sign-in, even as the same account, retires confirmations made for
+    // the previous one (remediation audit P1).
+    noteSessionChange();
     try {
       db.executeSync('DELETE FROM active_session');
       const now = new Date().toISOString();
@@ -304,6 +308,7 @@ export const userStore = {
   },
 
   logout: (): void => {
+    noteSessionChange();
     try {
       db.executeSync('DELETE FROM active_session');
     } catch (error) {

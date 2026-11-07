@@ -80,19 +80,27 @@ const runWrite = (
   else db.transactionSync(write);
 };
 
+const ALL_NOTES_SQL =
+  `SELECT * FROM notes WHERE user_id = ? AND deleted_at IS NULL ORDER BY is_pinned DESC, sort_order ASC, updated_at DESC`;
+
 export const notesStore = {
   getAll: (userId: string): Note[] => {
     try {
-      const result = db.executeSync(
-        `SELECT * FROM notes WHERE user_id = ? AND deleted_at IS NULL ORDER BY is_pinned DESC, sort_order ASC, updated_at DESC`,
-        [userId],
-      );
+      const result = db.executeSync(ALL_NOTES_SQL, [userId]);
       return result.rows.map(mapRowToNote);
     } catch (error) {
       console.error('Error fetching notes:', error);
       return [];
     }
   },
+
+  /**
+   * Strict counterpart of `getAll` for destructive work (remediation audit
+   * P2): same query, but a failed read throws instead of looking empty.
+   * The display getter above keeps its best-effort behaviour.
+   */
+  getAllOrThrow: (userId: string, executor: Pick<DatabaseTransaction, 'executeSync'> = db): Note[] =>
+    (executor.executeSync(ALL_NOTES_SQL, [userId]).rows ?? []).map(mapRowToNote),
 
   insert: (
     note: Omit<Note, 'createdAt' | 'updatedAt' | 'deletedAt' | 'sortOrder'> & {

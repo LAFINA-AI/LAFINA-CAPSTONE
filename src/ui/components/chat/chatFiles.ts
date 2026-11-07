@@ -73,6 +73,30 @@ export const shareAttachment = async (
   }
 };
 
+/**
+ * Remediation audit P2: like `removeAttachmentFiles`, but reports how many
+ * files could not be removed (an already-missing file counts as removed), so
+ * Clear All Data never claims a deletion that did not happen.
+ */
+export const removeAttachmentFilesReportingFailures = async (
+  uris: string[],
+): Promise<number> => {
+  const results = await Promise.all(
+    uris.map(async (uri) => {
+      try {
+        const path = toLocalPath(uri);
+        if (await RNFS.exists(path)) {
+          await RNFS.unlink(path);
+        }
+        return true;
+      } catch {
+        return false;
+      }
+    }),
+  );
+  return results.filter((removed) => !removed).length;
+};
+
 export const removeAttachmentFiles = async (uris: string[]): Promise<void> => {
   await Promise.all(
     uris.map(async (uri) => {

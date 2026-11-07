@@ -5,6 +5,7 @@ import { buildProfileSyncPayload } from './profileSyncPayload';
 import { transferChatOwnership } from './chatOwnership';
 import { personalMemoryStore } from './personalMemoryStore';
 import { speechSettingsStore } from './speechSettingsStore';
+import { noteSessionChange } from './sessionEpoch';
 
 export interface GuestDataSummary {
   taskCount: number;
@@ -75,6 +76,8 @@ export const guestMigration = {
         tx.executeSync(`DELETE FROM users WHERE id = ?`, [GUEST_USER_ID]);
       }
 
+      // The guest's session is replaced: its open confirmations are retired.
+      noteSessionChange();
       tx.executeSync('DELETE FROM active_session');
       tx.executeSync(
         `INSERT INTO active_session (user_id, created_at, updated_at) VALUES (?, ?, ?)`,

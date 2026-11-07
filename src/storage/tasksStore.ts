@@ -143,21 +143,32 @@ const eventPayload = (row: StoredSyncRow): Record<string, unknown> => ({
   recurrence_rule: row.recurrence_rule,
 });
 
+const ALL_TASKS_SQL =
+  `SELECT * FROM tasks WHERE user_id = ? AND deleted_at IS NULL ORDER BY is_completed ASC, due_date ASC, due_time ASC`;
+
+const ALL_EVENTS_SQL =
+  `SELECT * FROM events WHERE user_id = ? AND deleted_at IS NULL ORDER BY date ASC, start_time ASC`;
+
 export const tasksStore = {
   // --- Task Methods ---
 
   getAllTasks: (userId: string): Task[] => {
     try {
-      const result = db.executeSync(
-        `SELECT * FROM tasks WHERE user_id = ? AND deleted_at IS NULL ORDER BY is_completed ASC, due_date ASC, due_time ASC`,
-        [userId],
-      );
+      const result = db.executeSync(ALL_TASKS_SQL, [userId]);
       return result.rows.map(mapRowToTask);
     } catch (error) {
       console.error('Error fetching tasks:', error);
       return [];
     }
   },
+
+  /**
+   * Strict counterpart of `getAllTasks` for destructive work (remediation audit
+   * P2): same query, but a failed read throws instead of looking empty.
+   * The display getter above keeps its best-effort behaviour.
+   */
+  getAllTasksOrThrow: (userId: string, executor: Pick<DatabaseTransaction, 'executeSync'> = db): Task[] =>
+    (executor.executeSync(ALL_TASKS_SQL, [userId]).rows ?? []).map(mapRowToTask),
 
   /**
    * One page of open tasks that have no due date (AGY-PORT 04), oldest first.
@@ -399,16 +410,21 @@ export const tasksStore = {
 
   getAllEvents: (userId: string): Event[] => {
     try {
-      const result = db.executeSync(
-        `SELECT * FROM events WHERE user_id = ? AND deleted_at IS NULL ORDER BY date ASC, start_time ASC`,
-        [userId],
-      );
+      const result = db.executeSync(ALL_EVENTS_SQL, [userId]);
       return result.rows.map(mapRowToEvent);
     } catch (error) {
       console.error('Error fetching events:', error);
       return [];
     }
   },
+
+  /**
+   * Strict counterpart of `getAllEvents` for destructive work (remediation audit
+   * P2): same query, but a failed read throws instead of looking empty.
+   * The display getter above keeps its best-effort behaviour.
+   */
+  getAllEventsOrThrow: (userId: string, executor: Pick<DatabaseTransaction, 'executeSync'> = db): Event[] =>
+    (executor.executeSync(ALL_EVENTS_SQL, [userId]).rows ?? []).map(mapRowToEvent),
 
   /**
    * `folds` chooses between the two instants of a repeated wall time when the

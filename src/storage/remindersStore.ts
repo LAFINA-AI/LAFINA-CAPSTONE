@@ -78,19 +78,27 @@ const enqueueReminderUpdate = (id: string, tx: DatabaseTransaction): void => {
   );
 };
 
+const ALL_REMINDERS_SQL =
+  `SELECT * FROM reminders WHERE user_id = ? AND deleted_at IS NULL ORDER BY trigger_at ASC`;
+
 export const remindersStore = {
   getAllReminders: (userId: string): Reminder[] => {
     try {
-      const result = db.executeSync(
-        `SELECT * FROM reminders WHERE user_id = ? AND deleted_at IS NULL ORDER BY trigger_at ASC`,
-        [userId],
-      );
+      const result = db.executeSync(ALL_REMINDERS_SQL, [userId]);
       return result.rows.map(mapRowToReminder);
     } catch (error) {
       console.error('Error fetching reminders:', error);
       return [];
     }
   },
+
+  /**
+   * Strict counterpart of `getAllReminders` for destructive work (remediation audit
+   * P2): same query, but a failed read throws instead of looking empty.
+   * The display getter above keeps its best-effort behaviour.
+   */
+  getAllRemindersOrThrow: (userId: string, executor: Pick<DatabaseTransaction, 'executeSync'> = db): Reminder[] =>
+    (executor.executeSync(ALL_REMINDERS_SQL, [userId]).rows ?? []).map(mapRowToReminder),
 
   getPendingReminders: (userId: string): Reminder[] => {
     try {
