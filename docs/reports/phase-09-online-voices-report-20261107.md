@@ -315,5 +315,11 @@ The DeepSeek key in the private local `.env` answered HTTP 402 (insufficient bal
 
 **Not verified:** end-to-end timings after the backend changes (not deployed); a physical phone; audibility on the emulator.
 
+**Follow-up (same day):**
+- With the owner's approval ("proceed merge"), LAFINA-backend `main` was fast-forwarded from `872197a` to `e31d894`, adding only that one commit.
+- Vercel posts no deployment status to GitHub for this project. The live `/openapi.json` was checked instead: it now lists `AITtsRequest.latency` with values `standard` and `low`, so the change is deployed.
+- Emulator, signed in, Online Mode, voice mode, "what causes rain in two sentences": DeepSeek replied and the audio came from the app's player (ElevenLabs), not the device voice. Audio started 12.9 s after Send.
+- So the per-request database overhead (function in iad1) still dominates. Moving the region is deferred until the Vercel project owner is available.
+
 STATUS: AWAITING DEVICE VALIDATION
 STOPPED — awaiting explicit human approval
