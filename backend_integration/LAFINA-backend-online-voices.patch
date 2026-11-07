@@ -1,7 +1,7 @@
 From 2d431304f04b8ada48191e535004857f8074d13c Mon Sep 17 00:00:00 2001
 From: John Lemar Gonzales <johnlemargonzales@gmail.com>
 Date: Sat, 7 Nov 2026 22:36:07 +0800
-Subject: [PATCH] Open online chat and ElevenLabs voices to all signed-in
+Subject: [PATCH 1/2] Open online chat and ElevenLabs voices to all signed-in
  accounts
 
 - Chat (DeepSeek) and online speech now require an authenticated, active
@@ -555,6 +555,55 @@ index 646d3a4..477d52a 100644
      async with TestingSessionLocal() as db:
          account = (
              await db.execute(
+-- 
+2.55.0.windows.4
+
+
+From 23acd9351d4e14bcc9cce3c0352e25f718caf702 Mon Sep 17 00:00:00 2001
+From: John Lemar Gonzales <johnlemargonzales@gmail.com>
+Date: Sat, 7 Nov 2026 23:06:00 +0800
+Subject: [PATCH 2/2] Make LAFINA's online chat persona conversational
+
+Introduce LAFINA only when asked or on the first greeting instead of on
+every greeting, keep small talk short and varied, and match the student's
+tone and language. The no-saved-schedules rule is unchanged and tested.
+---
+ app/api/v1/ai.py            | 5 ++++-
+ tests/test_online_voices.py | 8 ++++++++
+ 2 files changed, 12 insertions(+), 1 deletion(-)
+
+diff --git a/app/api/v1/ai.py b/app/api/v1/ai.py
+index 1d02537..f0ecb5e 100644
+--- a/app/api/v1/ai.py
++++ b/app/api/v1/ai.py
+@@ -79,7 +79,10 @@ logger = logging.getLogger("lafina.ai")
+ 
+ LAFINA_SYSTEM_INSTRUCTION = (
+     "You are LAFINA, an intelligent, warm, voice-first AI academic scheduling assistant for students. "
+-    "Always introduce yourself as LAFINA when asked, greeted, or introduced. "
++    "Say you are LAFINA when asked who or what you are, or on the first greeting of a conversation; do not repeat the introduction after that. "
++    "Talk like a friendly, upbeat classmate, not a help desk: keep small talk short (one or two sentences), vary your wording, "
++    "react to what the student actually said, and match their tone and language (English, Filipino or Taglish). "
++    "Ask at most one natural follow-up question. "
+     "Your primary function is helping students organize their academic life: scheduling classes, study sessions, midterm exams, "
+     "assignments, reminders, and time blocks, while also answering academic and general questions. "
+     "Rule 1: NEVER refuse, decline, or lecture a user about their requested schedule times (including 3 AM, late night, or early morning hours). Always accept and confirm any requested time, date, or duration without judgment. "
+diff --git a/tests/test_online_voices.py b/tests/test_online_voices.py
+index b5ae602..10d10cc 100644
+--- a/tests/test_online_voices.py
++++ b/tests/test_online_voices.py
+@@ -112,3 +112,11 @@ async def test_catalogue_errors_are_actionable_and_redacted(status, expected):
+ def test_deepseek_legacy_alias_and_explicit_model():
+     assert Settings(_env_file=None, DEEPSEEK_MODEL="deepseek-v4-flash").DEEPSEEK_MODEL == "deepseek-flash"
+     assert Settings(_env_file=None, DEEPSEEK_MODEL="deepseek-v4-pro").DEEPSEEK_MODEL == "deepseek-v4-pro"
++
++
++def test_persona_prompt_is_conversational_and_honest():
++    from app.api.v1.ai import LAFINA_SYSTEM_INSTRUCTION as prompt
++
++    assert "Always introduce yourself" not in prompt
++    assert "do not repeat the introduction" in prompt
++    assert "Never claim a task, reminder or event was saved" in prompt
 -- 
 2.55.0.windows.4
 

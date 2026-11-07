@@ -19,6 +19,8 @@ export interface ChatMessage {
   attachment?: ChatAttachment | null;
   /** Handbook citation label persisted with the reply (schema 18+). */
   handbookNote?: string | null;
+  /** True for an assistant reply written on the device, not by DeepSeek. */
+  localReply?: boolean;
   /** Durable insertion order; breaks ties between equal timestamps. */
   sequence?: number;
   createdAt: string;
@@ -35,6 +37,8 @@ export interface ChatSession {
 
 export interface ChatMessageMetadata {
   handbookNote?: string | null;
+  /** Marks an on-device reply so it is never sent to DeepSeek as its own words. */
+  localReply?: boolean;
 }
 
 export interface ChatPage {
@@ -95,6 +99,15 @@ const parseHandbookNote = (raw: unknown): string | null => {
   }
 };
 
+const parseLocalReply = (raw: unknown): boolean => {
+  if (typeof raw !== 'string' || !raw) return false;
+  try {
+    return (JSON.parse(raw) as { localReply?: unknown })?.localReply === true;
+  } catch {
+    return false;
+  }
+};
+
 const mapMessage = (row: Record<string, unknown>): ChatMessage => ({
   id: String(row.id),
   sessionId: String(row.session_id),
@@ -102,6 +115,7 @@ const mapMessage = (row: Record<string, unknown>): ChatMessage => ({
   content: String(row.content ?? ''),
   attachment: parseAttachment(row.attachment_json),
   handbookNote: parseHandbookNote(row.metadata_json),
+  localReply: parseLocalReply(row.metadata_json),
   sequence: Number(row.seq),
   createdAt: String(row.created_at),
   updatedAt: String(row.updated_at),
@@ -277,8 +291,12 @@ export const chatStore = {
         throw new Error('Chat message owner does not match its session.');
       }
       const now = new Date().toISOString();
-      const metadataJson = msg.metadata?.handbookNote
-        ? JSON.stringify({ handbookNote: msg.metadata.handbookNote })
+      const metadataValue = {
+        ...(msg.metadata?.handbookNote ? { handbookNote: msg.metadata.handbookNote } : {}),
+        ...(msg.metadata?.localReply ? { localReply: true } : {}),
+      };
+      const metadataJson = Object.keys(metadataValue).length
+        ? JSON.stringify(metadataValue)
         : null;
       tx.executeSync(
         `INSERT INTO messages (id, session_id, sender, content, attachment_json, metadata_json, seq, created_at, updated_at)
@@ -302,6 +320,7 @@ export const chatStore = {
         content: msg.content,
         attachment: msg.attachment || null,
         handbookNote: msg.metadata?.handbookNote || null,
+        localReply: msg.metadata?.localReply === true,
         sequence: Number(row?.seq),
         createdAt: now,
         updatedAt: now,

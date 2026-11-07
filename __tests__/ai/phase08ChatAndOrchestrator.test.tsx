@@ -79,7 +79,10 @@ describe('Phase 08: End-to-End Offline Student Assistant & ChatScreen Integratio
       );
 
       expect(result.intent.intent).toBe('chat');
-      expect(result.reply.toLowerCase()).toContain('lafina');
+      // A natural greeting now, not the old fixed self-introduction.
+      expect(result.reply.trim().length).toBeGreaterThan(0);
+      expect(result.reply).not.toMatch(/your offline academic assistant/i);
+      expect(result.assistantMessage.localReply).toBe(true);
       expect(result.userMessage.content).toBe('Hello LAFINA!');
       expect(result.assistantMessage.content).toBe(result.reply);
 
@@ -100,7 +103,8 @@ describe('Phase 08: End-to-End Offline Student Assistant & ChatScreen Integratio
       );
 
       expect(result.intent.intent).toBe('chat');
-      expect(result.reply).toMatch(/^I am lafina, your offline academic assistant/i);
+      expect(result.reply).toMatch(/lafina/i);
+      expect(result.reply).not.toMatch(/your offline academic assistant/i);
       expect(result.userMessage.content).toBe('What are you');
 
       // Crucial: No note should be created!

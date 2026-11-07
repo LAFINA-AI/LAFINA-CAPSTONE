@@ -101,3 +101,39 @@ The agent cannot certify audibility, voice identity or phone lifecycle behavior.
 
 STATUS: AWAITING DEVICE VALIDATION
 STOPPED — awaiting explicit human approval
+
+---
+
+## Addendum — human chat replies (2026-11-07)
+
+Owner report: "hi", "hello" and "what are you?" got the same fixed reply even in Online Mode.
+
+**Cause.**
+- In code, greetings were already `chat` intents routed to DeepSeek in Online Mode. In the build the owner was using, any online failure silently fell back to the fixed offline line, and online calls were failing (an older emulator session without a server login; the local `.env` DeepSeek key has no balance).
+- Offline replies were broken too:
+  - "hi" hit the generic fallback, because the greeting regex ran on the parser's `details: "Greeting"` label instead of the text.
+  - "how are you?" and "what can you do?" were tagged `Identity`.
+  - "thanks" and "ok" outside a reminder call answered "You have no active reminders to acknowledge".
+
+**Change.**
+- New `src/ai/localConversation.ts`, shared by Chat and the voice executor. It classifies small talk and builds varied replies using the first name, time of day and what is left on today's plan, never repeating the opener it just used. Questions it cannot answer offline point to Online Mode with a rotating example command.
+- Online Mode still sends every conversational message, greetings included, to DeepSeek first.
+- If DeepSeek fails, small talk gets the on-device reply labelled "(Offline reply: DeepSeek is not available right now.)", and real questions get the explicit failure message.
+- On-device replies are tagged `localReply` in existing `messages.metadata_json` (no migration). They and legacy fixed lines are excluded from the history sent to DeepSeek, so it does not imitate them.
+- Plain "thanks" and "ok" with no ringing call and nothing to acknowledge become conversation. The refused review writes nothing. Real reminder acknowledgement is unchanged.
+- Backend `23acd93` (same unmerged branch): the persona introduces itself only when asked or on the first greeting, keeps small talk short and varied, and matches the student's tone and language. Requires the merge.
+
+**Verification.**
+- `npm run preflight`: 61 suites, 930 passed, 1 skipped; architecture 230 modules, 0 cycles, 76 offline leaves.
+- New `__tests__/ai/chatConversation.test.ts` (32 tests). Removing the DeepSeek-history filter or the "thanks" reroute fails tests.
+- Updated pinned expectations in the phase08 and phase09 suites.
+- Backend suite: 187 passed.
+- Fresh x86_64 build on `emulator-5554`:
+  - Online Mode, "hi" got a real DeepSeek reply from production (so the production DeepSeek key works; the local `.env` key does not). It was still the long old-prompt introduction until `23acd93` is deployed.
+  - Offline: "hi" got "Hello, Lem! What can I help you with?"; "how are you" got "Pretty good, Lem! … How are you holding up?"; "thanks" got "Anytime! Let me know if you need anything else."
+  - Online Mode was switched back on afterwards. Screenshots are in ignored `.local/qa-online-voices/`.
+
+**Not run:** a DeepSeek reply under the new prompt (needs the merge); physical phone.
+
+STATUS: AWAITING DEVICE VALIDATION
+STOPPED — awaiting explicit human approval

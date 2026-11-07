@@ -102,10 +102,12 @@ describe('Phase 09: Online Mode, Document Generation & Meeting Transcription', (
         },
       );
 
-      // Phase 09 follow-up: a local reply is never passed off as DeepSeek.
+      // A local reply is never passed off as DeepSeek: small talk gets a
+      // friendly on-device answer carrying an explicit offline label.
       expect(res.usedOnline).toBe(false);
-      expect(res.reply).toContain('DeepSeek cannot reply');
-      expect(res.reply).toContain('offline scheduling tools are still available');
+      expect(res.reply).toMatch(/lafina/i);
+      expect(res.reply).toContain('Offline reply: DeepSeek is not available right now.');
+      expect(res.assistantMessage.localReply).toBe(true);
     });
   });
 
