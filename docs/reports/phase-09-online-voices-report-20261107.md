@@ -259,5 +259,25 @@ Owner report: Online Mode offered only a male voice. The owner also asked to con
 - Physical phone.
 - Separately, DeepSeek's markdown (`**bold**`, lists) is shown as plain text in chat bubbles. This existed before streaming.
 
+## Addendum (2026-11-08): voice mode used the device voice
+
+**Owner report:** the Profile voice test played ElevenLabs, but voice mode (speaking or typing to lafina) still read replies with the offline default voice.
+
+**Causes found:**
+1. `VoiceModal` read every reply with `ttsService` (react-native-tts) and asked the orchestrator without Online Mode, so voice mode never used DeepSeek or ElevenLabs.
+2. Access tokens last 15 minutes and nothing renewed them, so after 15 minutes every online request returned `auth_required` and quietly fell back.
+3. `authService.getMe` deleted the stored sign-in whenever its own refresh failed, including network/server errors and the case where a second refresh reused a token the server had already rotated. On the QA emulator the stored refresh token was gone (log: `no refresh token stored`), which is how the account kept "Online" in the header but could not reach DeepSeek.
+
+**Changes (mobile):**
+- `VoiceModal`: replies follow Online Mode and the USTP handbook toggle; they are read through the call speech provider (ElevenLabs online, device voice offline or on failure, with a "Read with the device voice: <reason>" notice).
+- `speechService`: markdown is stripped before speaking; long replies are split at sentence ends into pieces of at most 500 characters, the next piece is fetched while one plays, Stop ends the chain, and a failure hands the rest to the device voice.
+- `cloudClient`: authenticated requests and streams renew once, through a single shared renewal, on a 401 or a missing access token, then retry. Results say `sessionEnded` only when no refresh token is stored or the server rejected it.
+- `authService.getMe`: uses that renewal; removes the stored sign-in only when `sessionEnded`, otherwise returns `server_unavailable` and keeps it.
+- Replies after an ended sign-in now say "sign in again in Profile to use DeepSeek and the online voice" instead of "DeepSeek is not available right now".
+
+**Tests:** `__tests__/cloud/tokenRenewal.test.ts` (12), `__tests__/ai/voiceModeOnlineSpeech.test.tsx` (8), `chatConversation` signed-out note, `phase06` speak test now checks the native engine. `npm run preflight`: 64 suites, 968 passed, 1 skipped; 230 modules, 0 cycles, 76 offline leaves.
+
+**Emulator (`emulator-5554`, fresh x86_64 build):** voice mode now asks online and tries renewal; this emulator's sign-in had already been erased, so it shows the new sign-in-again note (`.local/qa-online-voices/voice-mode-signed-out-note.png`). ElevenLabs playback in voice mode was **not** verified on device: that needs the owner to sign in again on the device (the agent does not sign in to production accounts).
+
 STATUS: AWAITING DEVICE VALIDATION
 STOPPED — awaiting explicit human approval

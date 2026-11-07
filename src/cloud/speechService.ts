@@ -55,6 +55,64 @@ const waitForPreparation = async (
       });
   });
 
+/** The online speech request accepts at most 512 characters per piece. */
+export const SPEECH_CHUNK_CHARS = 500;
+
+/**
+ * What a reply should sound like: markdown emphasis, headings, list markers
+ * and code ticks are written for the screen, not to be read out.
+ */
+export const speakableText = (text: string): string =>
+  text
+    .replace(/\*\*|__|`+/g, '')
+    .replace(/^\s{0,3}#{1,6}\s+/gm, '')
+    .replace(/^\s*(?:[-*•]|\d+[.)])\s+/gm, '')
+    .replace(/[ \t]+/g, ' ')
+    .replace(/\n{2,}/g, '\n')
+    .trim();
+
+/**
+ * Splits text into pieces of at most SPEECH_CHUNK_CHARS, at sentence ends
+ * where possible, then at spaces; nothing is dropped.
+ */
+export const splitForSpeech = (
+  text: string,
+  limit: number = SPEECH_CHUNK_CHARS,
+): string[] => {
+  const clean = text.trim();
+  if (!clean) return [];
+  if (clean.length <= limit) return [clean];
+  const sentences = clean.match(/[^.!?\n]+(?:[.!?]+|\n|$)/g) ?? [clean];
+  const chunks: string[] = [];
+  let current = '';
+  const push = (piece: string) => {
+    const trimmed = piece.trim();
+    if (trimmed) chunks.push(trimmed);
+  };
+  for (const raw of sentences) {
+    let sentence = raw.trim();
+    if (!sentence) continue;
+    while (sentence.length > limit) {
+      // One very long sentence: cut at the last space that fits.
+      push(current);
+      current = '';
+      const cut = sentence.lastIndexOf(' ', limit);
+      const at = cut > limit / 2 ? cut : limit;
+      push(sentence.slice(0, at));
+      sentence = sentence.slice(at).trim();
+    }
+    if (!current) current = sentence;
+    else if (current.length + 1 + sentence.length <= limit) {
+      current = `${current} ${sentence}`;
+    } else {
+      push(current);
+      current = sentence;
+    }
+  }
+  push(current);
+  return chunks;
+};
+
 export const createCallSpeechProvider = (
   userId: string,
   providerOptions: {
@@ -366,6 +424,7 @@ export const createCallSpeechProvider = (
   };
 
   const stopSpeech = async (): Promise<void> => {
+    speechChain += 1;
     cancellationSequence += 1;
     activePlaybackController?.abort();
     activePlaybackController = null;
@@ -475,13 +534,68 @@ export const createCallSpeechProvider = (
     }
   };
 
+  /** Bumped by each new speakText and by Stop, so a long reply stops between chunks. */
+  let speechChain = 0;
+
+  /** A chunk is spoken once; its prepared audio is not kept for replay. */
+  const releasePrepared = (chunk: string) => {
+    let voiceId: string | null;
+    try {
+      voiceId = getVoiceId();
+    } catch {
+      return;
+    }
+    const key = JSON.stringify([voiceId, normalizeText(chunk)]);
+    const path = preparedAudioPaths.get(key);
+    if (path) {
+      preparedAudioPaths.delete(key);
+      RNFS.unlink(path).catch(() => undefined);
+    }
+  };
+
+  const speakChunks = async (chunks: string[]): Promise<CallSpeechResult> => {
+    const chain = ++speechChain;
+    const current = () => chain === speechChain && !disposed;
+    let fallbackReason: string | undefined;
+    for (let index = 0; index < chunks.length; index += 1) {
+      if (!current()) return {source: 'cancelled'};
+      // Fetch the next piece while this one plays, so there is no gap.
+      const next = chunks[index + 1];
+      if (next) void prepareText(next).catch(() => undefined);
+      const result = await runSpeakText(chunks[index]);
+      releasePrepared(chunks[index]);
+      if (result.source === 'cancelled' || !current()) {
+        return {source: 'cancelled'};
+      }
+      if (result.source === 'native_tts') {
+        // Online speech failed: read the rest with the device voice at once
+        // instead of retrying ElevenLabs for every remaining piece.
+        fallbackReason = result.fallbackReason;
+        const rest = chunks.slice(index + 1).join(' ');
+        if (rest) await speakTextWithTts(rest);
+        if (!current()) return {source: 'cancelled'};
+        return {
+          source: 'native_tts',
+          ...(fallbackReason ? {fallbackReason} : {}),
+        };
+      }
+    }
+    return {source: 'elevenlabs'};
+  };
+
   const speakText = async (
     text: string,
     options?: {fallbackAudioPath?: string | null},
   ): Promise<CallSpeechResult> => {
     activeSpeechOperations += 1;
     try {
-      return await runSpeakText(text, options);
+      const spoken = speakableText(text);
+      const chunks = splitForSpeech(spoken);
+      if (chunks.length <= 1 || options?.fallbackAudioPath) {
+        speechChain += 1;
+        return await runSpeakText(spoken || text, options);
+      }
+      return await speakChunks(chunks);
     } finally {
       activeSpeechOperations -= 1;
     }

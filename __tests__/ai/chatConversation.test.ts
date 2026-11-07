@@ -12,6 +12,7 @@ import {
   buildLocalConversationReply,
   classifySmallTalk,
   OFFLINE_REPLY_NOTE,
+  SIGNED_OUT_REPLY_NOTE,
 } from '../../src/ai/localConversation';
 import {cloudClient} from '../../src/cloud/cloudClient';
 import {plannerQueries} from '../../src/storage/plannerQueries';
@@ -240,6 +241,22 @@ describe('Chat routing', () => {
     );
     expect(question.reply).toBe(
       describeOnlineChatFailure('server_unavailable'),
+    );
+  });
+
+  it('a sign-in that ended says to sign in again instead of "DeepSeek is not available"', async () => {
+    jest.spyOn(cloudClient, 'request').mockResolvedValue({
+      status: 'auth_required',
+      error: 'expired',
+      sessionEnded: true,
+    } as never);
+    const hi = await chatOrchestrator.processMessage(GUEST_USER_ID, 'hello', {
+      onlineMode: true,
+    });
+    expect(hi.reply.endsWith(SIGNED_OUT_REPLY_NOTE)).toBe(true);
+    expect(hi.reply).not.toContain(OFFLINE_REPLY_NOTE);
+    expect(describeOnlineChatFailure('auth_required')).toMatch(
+      /^Sign in again in Profile/,
     );
   });
 

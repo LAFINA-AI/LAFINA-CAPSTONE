@@ -19,7 +19,16 @@ export interface CloudResult<T> {
   data?: T;
   error?: string;
   httpStatus?: number;
+  /**
+   * Set on `auth_required` when renewal proved the sign-in is over (no or a
+   * rejected refresh token). Unset means renewal failed for a passing reason
+   * (network, server), so the stored sign-in must be kept.
+   */
+  sessionEnded?: boolean;
 }
+
+/** Renewed; sign-in over (sign in again); or not possible right now. */
+export type RenewalOutcome = 'renewed' | 'ended' | 'failed';
 
 let inMemoryAccessToken: string | null = null;
 let inMemoryUserId: string | null = null;
@@ -245,6 +254,111 @@ const postStreaming = (
     xhr.send(body);
   });
 
+/**
+ * One renewal is worth trying when the server rejected the token (HTTP 401)
+ * or when no access token is held locally (no HTTP status: never sent).
+ */
+const shouldRenew = (
+  result: CloudResult<unknown>,
+  requiresAuth: boolean,
+  signal?: AbortSignal | null,
+): boolean =>
+  requiresAuth &&
+  result.status === 'auth_required' &&
+  (result.httpStatus === 401 || result.httpStatus === undefined) &&
+  !signal?.aborted;
+
+let renewal: Promise<RenewalOutcome> | null = null;
+
+/**
+ * Exchanges the stored refresh token for new tokens. The server rotates the
+ * refresh token on every use and rejects the old one, so every renewal in
+ * the app goes through here and concurrent callers share one: a second
+ * renewal with the same token would be rejected and look like a sign-out.
+ * Never signs out itself; `authService.getMe` does that for `ended`.
+ */
+const renewAccessToken = (): Promise<RenewalOutcome> => {
+  if (!renewal) {
+    renewal = (async (): Promise<RenewalOutcome> => {
+      // Why renewal failed, for the device log; never includes token values.
+      const fail = (outcome: RenewalOutcome, reason: string): RenewalOutcome => {
+        console.warn(`[cloud] Sign-in renewal failed: ${reason}`);
+        return outcome;
+      };
+      try {
+        const owner = userStore.getActiveSessionToken().userId;
+        if (!owner) return fail('ended', 'no active account');
+        let refreshToken: string | null;
+        try {
+          refreshToken = await cloudClient.getEncryptedRefreshToken();
+        } catch (error) {
+          return fail(
+            'ended',
+            `stored refresh token unreadable (${error instanceof Error ? error.message : 'error'})`,
+          );
+        }
+        if (!refreshToken) return fail('ended', 'no refresh token stored; sign in again');
+        const result = await cloudClient.requestOnce<{
+          access_token?: unknown;
+          refresh_token?: unknown;
+        }>(
+          '/v1/auth/refresh',
+          { method: 'POST', body: JSON.stringify({ refresh_token: refreshToken }) },
+          false,
+        );
+        const access = result.data?.access_token;
+        const refresh = result.data?.refresh_token;
+        if (result.status === 'auth_required' || result.status === 'account_disabled') {
+          return fail('ended', `server answered ${result.httpStatus ?? result.status}`);
+        }
+        if (result.status !== 'success' || typeof access !== 'string' || typeof refresh !== 'string') {
+          return fail('failed', `server answered ${result.httpStatus ?? result.status}`);
+        }
+        // Signed out or switched account meanwhile: keep the tokens off it.
+        if (userStore.getActiveSessionToken().userId !== owner) {
+          return fail('failed', 'account changed during renewal');
+        }
+        await cloudClient.establishSession(owner, access, refresh);
+        return 'renewed';
+      } catch (error) {
+        return fail('failed', error instanceof Error ? error.message : 'unexpected error');
+      } finally {
+        renewal = null;
+      }
+    })();
+  }
+  return renewal;
+};
+
+/** `renewed` when a newer access token exists than `usedToken`, renewing if needed. */
+const renewedSince = async (usedToken: string | null): Promise<RenewalOutcome> => {
+  const current = cloudClient.getAccessToken();
+  if (current && current !== usedToken) return 'renewed'; // another request renewed it
+  return renewAccessToken();
+};
+
+/**
+ * Runs `once`; on an expired or missing access token renews (shared) and
+ * runs it again. The returned `auth_required` says whether the sign-in ended.
+ */
+const withRenewal = async <T>(
+  requiresAuth: boolean,
+  signal: AbortSignal | null | undefined,
+  once: () => Promise<CloudResult<T>>,
+): Promise<CloudResult<T>> => {
+  const usedToken = requiresAuth ? cloudClient.getAccessToken() : null;
+  const first = await once();
+  if (!shouldRenew(first, requiresAuth, signal)) return first;
+  const outcome = await renewedSince(usedToken);
+  if (outcome === 'ended') return { ...first, sessionEnded: true };
+  if (outcome === 'failed') return first;
+  const retried = await once();
+  // A brand-new token rejected too: the account itself is signed out.
+  return retried.status === 'auth_required' && retried.httpStatus === 401
+    ? { ...retried, sessionEnded: true }
+    : retried;
+};
+
 let isOnlineMockState: boolean | null = null;
 
 export const setMockOnlineState = (online: boolean | null) => {
@@ -358,7 +472,26 @@ export const cloudClient = {
     return navigatorState?.onLine !== false;
   },
 
+  /**
+   * Authenticated requests renew an expired access token once (the server's
+   * last 15 minutes) and retry, so online chat and speech keep working for
+   * the whole 30-day sign-in instead of quietly falling back after 15 minutes.
+   */
   request: async <T>(
+    endpoint: string,
+    options: RequestInit = {},
+    requiresAuth: boolean = true,
+  ): Promise<CloudResult<T>> => {
+    return withRenewal(requiresAuth, options.signal, () =>
+      cloudClient.requestOnce<T>(endpoint, options, requiresAuth),
+    );
+  },
+
+  /** Renews the sign-in now (shared with any renewal in flight). */
+  renewSession: (): Promise<RenewalOutcome> => renewAccessToken(),
+
+  /** A single request with the current token and no renewal. */
+  requestOnce: async <T>(
     endpoint: string,
     options: RequestInit = {},
     requiresAuth: boolean = true,
@@ -432,6 +565,19 @@ export const cloudClient = {
    * after whatever already reached `onText`.
    */
   stream: async (
+    endpoint: string,
+    body: unknown,
+    options: CloudStreamOptions,
+    requiresAuth: boolean = true,
+  ): Promise<CloudResult<string>> => {
+    // A 401 arrives before any text, so retrying cannot repeat part of a reply.
+    return withRenewal(requiresAuth, options.signal, () =>
+      cloudClient.streamOnce(endpoint, body, options, requiresAuth),
+    );
+  },
+
+  /** A single streaming request with the current token and no renewal. */
+  streamOnce: async (
     endpoint: string,
     body: unknown,
     options: CloudStreamOptions,

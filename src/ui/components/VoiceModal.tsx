@@ -38,6 +38,10 @@ import type {OfflineSpeechCaptureHandle} from '../../ai/native/speechCapture';
 import {ensureMicrophonePermission} from '../../ai/stt/sttService';
 import {chatOrchestrator} from '../../ai/chatOrchestrator';
 import {ttsService} from '../../ai/tts/ttsService';
+import {createCallSpeechProvider} from '../../cloud/speechService';
+import type {CallSpeechProvider} from '../../scheduler/speechProvider';
+import {localSettingsStore} from '../../storage/localSettingsStore';
+import {handbookPreference} from '../../skills/onlineChatSkill';
 import type {PrepareResult} from '../../ai/nlu/commandReview';
 import {useCommandReview} from '../hooks/useCommandReview';
 import {CommandReviewCard} from './chat/CommandReviewCard';
@@ -107,8 +111,12 @@ const executeDefaultCommand = async (
     return {reply: 'What would you like me to do?'};
   }
   try {
+    // Same Online Mode switch as Chat: online, conversation goes to DeepSeek.
     const result = await chatOrchestrator.processMessage(userId, trimmed, {
       reviewSurface: 'voice',
+      onlineMode:
+        localSettingsStore.get(userId, 'chat.onlineMode', null) === 'true',
+      useHandbook: handbookPreference.read(userId),
     });
     return {reply: result.reply, review: result.review};
   } catch (err) {
@@ -147,6 +155,34 @@ export const VoiceModal: React.FC<VoiceModalProps> = ({
   const pressActiveRef = useRef(false);
   const speechCaptureRef = useRef<OfflineSpeechCaptureHandle | null>(null);
 
+  // Replies are read with the online voice in Online Mode (ElevenLabs, with
+  // the voice chosen in Profile), and with the device voice otherwise or if
+  // online speech fails.
+  const speechRef = useRef<CallSpeechProvider | null>(null);
+  useEffect(() => {
+    const provider = createCallSpeechProvider(userId);
+    speechRef.current = provider;
+    return () => {
+      if (speechRef.current === provider) speechRef.current = null;
+      void provider.dispose?.().catch(() => undefined);
+    };
+  }, [userId]);
+  const stopSpeaking = useCallback(() => {
+    void speechRef.current?.stopSpeech?.().catch(() => undefined);
+    void ttsService.stop();
+  }, []);
+  const speakReply = useCallback(async (text: string) => {
+    const provider = speechRef.current;
+    if (!provider) {
+      await ttsService.speak(text);
+      return;
+    }
+    const result = await provider.speakText(text);
+    if (result.fallbackReason) {
+      setNotice(`Read with the device voice: ${result.fallbackReason}`);
+    }
+  }, []);
+
   // Timers cleanup
   const timersRef = useRef<Set<ReturnType<typeof setTimeout>>>(new Set());
   const safeSetTimeout = useCallback((fn: () => void, delay: number) => {
@@ -163,9 +199,9 @@ export const VoiceModal: React.FC<VoiceModalProps> = ({
     return () => {
       timers.forEach(id => clearTimeout(id));
       timers.clear();
-      void ttsService.stop();
+      stopSpeaking();
     };
-  }, []);
+  }, [stopSpeaking]);
 
   // AGY-PORT 04: a planner change waits on this card until the student confirms.
   const review = useCommandReview(userId, 'voice');
@@ -198,14 +234,14 @@ export const VoiceModal: React.FC<VoiceModalProps> = ({
 
   const handleDismiss = useCallback(() => {
     draftRef.current.requestLeave(() => {
-      void ttsService.stop();
+      stopSpeaking();
       retireCapture();
       // Closing the sheet never confirms; it discards the open proposal.
       reviewRef.current.cancel({silent: true});
       setHandoffDialog(null);
       onClose(false);
     });
-  }, [onClose, retireCapture]);
+  }, [onClose, retireCapture, stopSpeaking]);
 
   const {colors} = useTheme();
   const themed = useThemedStyles(getVoiceThemedStyles);
@@ -308,14 +344,14 @@ export const VoiceModal: React.FC<VoiceModalProps> = ({
     if (ownerRef.current === userId) return;
     ownerRef.current = userId;
     retireCapture();
-    void ttsService.stop();
+    stopSpeaking();
     setHandoffDialog(null);
     setInputText('');
     setTranscript('');
     setNotice('');
     setAiReply('');
     setVoiceState('idle');
-  }, [userId, retireCapture]);
+  }, [userId, retireCapture, stopSpeaking]);
 
   useEffect(() => {
     let animation: Animated.CompositeAnimation | null = null;
@@ -400,7 +436,7 @@ export const VoiceModal: React.FC<VoiceModalProps> = ({
       setVoiceState('speaking');
 
       try {
-        await ttsService.speak(outcome.reply);
+        await speakReply(outcome.reply);
       } catch (err) {
         console.warn('[VoiceModal] TTS playback error:', err);
       }
@@ -417,7 +453,7 @@ export const VoiceModal: React.FC<VoiceModalProps> = ({
       }
       return false;
     },
-    [],
+    [speakReply],
   );
 
   const handleConfirmReview = useCallback(async () => {
@@ -428,7 +464,7 @@ export const VoiceModal: React.FC<VoiceModalProps> = ({
     setAiReply(decision.reply);
     setVoiceState('speaking');
     try {
-      await ttsService.speak(decision.reply);
+      await speakReply(decision.reply);
     } catch (err) {
       console.warn('[VoiceModal] TTS playback error:', err);
     }
@@ -445,7 +481,7 @@ export const VoiceModal: React.FC<VoiceModalProps> = ({
         setInputText('');
       }
     }, VOICE_SUCCESS_DELAY_MS);
-  }, [onClose, safeSetTimeout]);
+  }, [onClose, safeSetTimeout, speakReply]);
 
   const handleCancelReview = useCallback(() => {
     const decision = reviewRef.current.cancel();
