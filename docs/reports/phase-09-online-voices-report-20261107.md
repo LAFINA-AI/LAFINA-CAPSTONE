@@ -1,6 +1,6 @@
 # PHASE 09 (follow-up) — Signed-in online access, ElevenLabs voice choice, DeepSeek contract / Completion Report
 
-**Branch / commit SHA:** mobile `Lem-branch` (follow-up commit recorded in the handoff message; parent `91082bc`) · backend `codex/open-online-voices` `2d431304f04b8ada48191e535004857f8074d13c` (parent `f0fae4d`, production main)
+**Branch / commit SHA:** mobile `Lem-branch` `af4edfd` (on top of teammate commit `7a4fb87`, which added `graphify-out/`) · backend `codex/open-online-voices` `2d431304f04b8ada48191e535004857f8074d13c` (parent `f0fae4d`, production main)
 **Date:** 2026-11-07
 **Device(s) available:** Android emulator `Medium_Phone` (`emulator-5554`, `sdk_gphone16k_x86_64`, API 37, x86_64). No physical phone.
 **Status:** `AWAITING DEVICE VALIDATION` (plus `BLOCKED` on two owner items: DeepSeek balance, production merge)
@@ -84,7 +84,7 @@ The agent cannot certify audibility, voice identity or phone lifecycle behavior.
 - `backend_integration/README.md`, `backend_integration/LAFINA-backend-online-voices.patch` (new), `backend_integration/elevenlabs_client.py`, `test_elevenlabs_client.py`
 - `qa/PHASE-09-ONLINE-VOICES-EXECUTION.md` (checklist + manual steps)
 - `docs/reports/phase-09-elevenlabs-online-report-20261107.md` (prior emulator follow-up preserved; pointer added)
-- Graphify: no graph in this checkout; `npm run check:architecture` is the substitute (result above).
+- Graphify: a teammate committed `graphify-out/` (`7a4fb87`) after this work was tested; it was generated before this follow-up and was not regenerated (no paid extraction). `npm run check:architecture` rerun after the rebase is the import/offline-boundary evidence (229 modules, 0 cycles, 76 offline leaves).
 
 ## 8. Open blockers and recommended next steps
 
