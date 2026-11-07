@@ -13,7 +13,7 @@
   "worktree": "C:/L3mxr/Github Repositories/LAFINA-CAPSTONE-agy-development-cont",
   "donor_head": "0d4bbe39e106c29fb90792cf5d2f916b5c0d6480",
   "last_tested_head": "acfd8fc (attachment-cleanup audit C2 gates; preflight on the identical working tree before the commit; APKs built at HEAD acfd8fc)",
-  "last_committed_head": "acfd8fc836142843efa4918128bdb2dcc7b397eb",
+  "last_committed_head": "47c20a41f17754c2a4195fcfbea3421e7df6787d",
   "current_phase": "NONE (run finished; final-audit F1-F4, remediation P1/P2, clear-data C1 and attachment-cleanup C2 follow-ups done on host; owner device/live checks pending)",
   "phases": [
     {
@@ -718,7 +718,7 @@
       "device": "NOT_RUN",
       "live_service": "NOT_RUN",
       "code_commit": "acfd8fc836142843efa4918128bdb2dcc7b397eb",
-      "result_commit": "recorded in the next index commit's log row",
+      "result_commit": "47c20a41f17754c2a4195fcfbea3421e7df6787d",
       "report": "attachment-queue-fairness-remediation.md",
       "evidence": [
         "evidence/agy-port-20261106/attachment-queue-fairness-remediation-20261107/",
