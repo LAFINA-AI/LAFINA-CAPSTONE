@@ -28,6 +28,11 @@ import type { ConfirmResult, PrepareResult, ReviewSurface } from './nlu/commandR
 import { acknowledgeReminderAction, snoozeReminderAction } from '../scheduler/reminderActions';
 import { formatLocalDate } from './nlu/fastPathParser';
 import { ttsService } from './tts/ttsService';
+import {
+  buildLocalConversationReply,
+  classifySmallTalk,
+  OFFLINE_REPLY_NOTE,
+} from './localConversation';
 import type { ValidatedIntent, NluActionResult } from './nlu/types';
 
 export interface ScheduleConflict {
@@ -129,42 +134,19 @@ function readRecentHistory(userId: string, count: number): ChatMessage[] {
   }
 }
 
-function buildLocalChatFallback(trimmed: string, validated: ValidatedIntent): string {
-  const queryLower = (validated.details || trimmed || '').toLowerCase();
-  if (
-    /\b(?:ustp|handbook|dean'?s\s+list|grading\s+system|retention\s+policy|tuition|graduation\s+requirements|uniform\s+policy|dress\s+code|drop(?:ping)?\s+subject|prerequisite|academic\s+probation)\b/i.test(
-      queryLower,
-    )
-  ) {
-    return 'Official USTP Student Handbook guidelines require Online Mode. Switch to Online Mode in the chat header to look up verified handbook policies and academic regulations.';
-  }
-  if (
-    /\b(?:what|who)\s+(?:are|is)\s+(?:you|lafina)|tell\s+me\s+about\s+yourself|who\s+made\s+you|are\s+you\s+(?:an?\s+)?(?:ai|bot|assistant)|what(?:'s|\s+is)\s+your\s+name|who\s+are\s+u|what\s+are\s+u\b/i.test(
-      queryLower,
-    ) ||
-    validated.details === 'Identity'
-  ) {
-    return 'I am lafina, your offline academic assistant. I help you manage your schedule, set reminder alarms, and organize tasks and notes.';
-  }
-  if (
-    /\b(?:what\s+can\s+you\s+do|how\s+(?:do|can)\s+you\s+help|what\s+do\s+you\s+do|help(?:\s+me)?)\b/i.test(
-      queryLower,
-    )
-  ) {
-    return 'I am lafina, your offline academic assistant. You can ask me to schedule study blocks, set alarms, or add and view tasks.';
-  }
-  if (/\b(?:how\s+are\s+you|how's\s+it\s+going|how\s+are\s+things)\b/i.test(queryLower)) {
-    return 'I am lafina, doing great! Ready to help you with your schedule, tasks, or notes.';
-  }
-  if (
-    /^(?:hey|hi|hello|good\s+morning|good\s+afternoon|good\s+evening|sup|what'?s\s+up)\b/i.test(
-      queryLower,
-    )
-  ) {
-    return 'Hey! I am lafina, your offline academic assistant. How can I help with your schedule or tasks today?';
-  }
-  return 'I am lafina, your offline academic assistant. I can schedule study blocks, set exact reminder alarms, track assignments, take notes, or review what is on your schedule.';
-}
+/** Handbook topics answer only from the verified online handbook, never offline. */
+const isHandbookQuestion = (text: string): boolean =>
+  /\b(?:ustp|handbook|dean'?s\s+list|grading\s+system|retention\s+policy|tuition|graduation\s+requirements|uniform\s+policy|dress\s+code|drop(?:ping)?\s+subject|prerequisite|academic\s+probation)\b/i.test(
+    text,
+  );
+
+/**
+ * On-device replies are tagged when saved. Replies saved before the tag
+ * existed are recognized by their fixed wording so DeepSeek never sees them.
+ */
+const isLocalReply = (msg: ChatMessage): boolean =>
+  msg.localReply === true ||
+  /^(?:hey! )?i am lafina, (?:your offline academic assistant|doing great)/i.test(msg.content.trim());
 
 /**
  * One bounded read of a day's blocks and events, recurring occurrences
@@ -352,6 +334,8 @@ export class ChatOrchestrator {
     let attachment: ChatAttachment | null = null;
     let handbookNote: string | null = null;
     let usedOnline = false;
+    // On-device conversational replies; never replayed to DeepSeek as its own.
+    let localReply = false;
     let route: ResolvedIntentRoute | undefined;
     let review: PrepareResult | undefined;
 
@@ -469,7 +453,21 @@ export class ChatOrchestrator {
           ringingCall: options.ringingCall,
         });
         finalReply = review.reply;
-      } else if (route === 'call_context_immediate' && options.ringingCall) {
+        // "thanks" / "ok" with no ringing call and nothing to acknowledge is
+        // just conversation. The refused review wrote nothing, so drop it.
+        const smallTalk = classifySmallTalk(trimmed);
+        if (
+          review.status === 'invalid' &&
+          !options.ringingCall &&
+          validated.intent === 'acknowledge' &&
+          (smallTalk === 'thanks' || smallTalk === 'acknowledgement')
+        ) {
+          review = undefined;
+          route = 'conversation';
+          finalReply = '';
+        }
+      }
+      if (route === 'call_context_immediate' && options.ringingCall) {
         const call = options.ringingCall;
         const outcome =
           validated.intent === 'acknowledge'
@@ -494,9 +492,18 @@ export class ChatOrchestrator {
           referenceDate: refDate,
         });
         finalReply = actionResult.reply;
-      } else {
+      } else if (route !== 'reviewed_mutation') {
+        // Conversation. Online Mode always asks DeepSeek first, greetings
+        // included; on-device replies are only the offline or fallback voice.
+        const recent = readRecentHistory(userId, 10);
+        const recentReplies = recent
+          .filter((msg) => msg.sender === 'assistant')
+          .map((msg) => msg.content);
+        const smallTalk = classifySmallTalk(trimmed);
         if (options.onlineMode) {
-          const history: OnlineChatMessage[] = readRecentHistory(userId, 10)
+          const history: OnlineChatMessage[] = recent
+            // DeepSeek must not imitate on-device replies as if it wrote them.
+            .filter((msg) => !(msg.sender === 'assistant' && isLocalReply(msg)))
             .map((msg) => ({
               role: msg.sender,
               content: msg.content,
@@ -510,7 +517,7 @@ export class ChatOrchestrator {
             usedOnline = true;
           } else {
             console.warn('[ChatOrchestrator] Online AI chat failed:', onlineResult.status);
-            finalReply = describeOnlineChatFailure(onlineResult.status);
+            localReply = true;
             if (
               options.useHandbook &&
               /\b(?:ustp|handbook|dean'?s\s+list|grading|policy|curriculum|tuition|retention)\b/i.test(
@@ -519,15 +526,22 @@ export class ChatOrchestrator {
             ) {
               finalReply =
                 "I couldn't verify that from the USTP Student Handbook right now. Please check your internet connection or refer directly to the USTP Student Affairs office.";
+            } else if (smallTalk) {
+              // Still friendly, but clearly not DeepSeek's words.
+              finalReply = `${buildLocalConversationReply(userId, trimmed, {
+                recentReplies,
+              })}\n\n${OFFLINE_REPLY_NOTE}`;
+            } else {
+              finalReply = describeOnlineChatFailure(onlineResult.status);
             }
           }
         }
 
         if (!finalReply) {
-          finalReply =
-            validated.intent === 'chat'
-              ? buildLocalChatFallback(trimmed, validated)
-              : 'I am lafina, your offline academic assistant. You can ask me to manage your schedule, set reminders, or organize tasks and notes.';
+          localReply = true;
+          finalReply = isHandbookQuestion(trimmed)
+            ? 'Official USTP Student Handbook guidelines require Online Mode. Switch to Online Mode in the chat header to look up verified handbook policies and academic regulations.'
+            : buildLocalConversationReply(userId, trimmed, { recentReplies });
         }
       }
     }
@@ -540,6 +554,7 @@ export class ChatOrchestrator {
     // Step 6: Persist assistant message, keeping the Handbook citation with it
     const assistantMessage = chatStore.addMessage(userId, 'assistant', finalReply, attachment, {
       handbookNote,
+      localReply,
     });
 
     // Step 7: Non-blocking react-native-tts speech synthesis if requested
