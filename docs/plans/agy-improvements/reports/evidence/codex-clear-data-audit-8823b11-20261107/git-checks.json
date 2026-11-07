@@ -1,0 +1,26 @@
+{
+  "head": {
+    "exit": 0,
+    "output": "8823b11ac5b8c81cf504ad2cb85ad7c9a8446128"
+  },
+  "protected_runtime_diff": {
+    "exit": 0,
+    "output": ""
+  },
+  "code_after_build_commit": {
+    "exit": 0,
+    "output": ""
+  },
+  "tracked_worktree": {
+    "exit": 0,
+    "output": ""
+  },
+  "test_changes": {
+    "exit": 0,
+    "output": "A\t__tests__/storage/accountDataReset.test.ts\nA\t__tests__/ui/remediationAuditClearAllData.test.tsx"
+  },
+  "status": {
+    "exit": 0,
+    "output": "?? AGY-IMPROVEMENTS-MANIFEST.json\n?? AGY-IMPROVEMENTS-START.md\n?? agy-improvements/\n?? docs/plans/agy-improvements/reports/evidence/codex-clear-data-audit-8823b11-20261107/\n?? docs/reports/agy-ustp-comparison-20261106.md\n?? docs/reports/evidence/agy-ustp-comparison-20261106/"
+  }
+}

@@ -1,0 +1,9 @@
+{
+  "exit": 0,
+  "heap_mib": 768,
+  "command": [
+    "node",
+    "node_modules/typescript/bin/tsc",
+    "--noEmit"
+  ]
+}

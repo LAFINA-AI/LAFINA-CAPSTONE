@@ -7,6 +7,7 @@
 - **Code commit:** `c015719` `fix(agy-audit): account-bound, outcome-reporting Clear All Data (remediation P1/P2)`. This is the tested code, and the APKs were built from it at HEAD `c015719`.
 - **Report/tracking and index commits:** recorded in RUN-STATE.json and the run log (no self-referential hash).
 - **Evidence:** `evidence/agy-port-20261106/clear-all-data-remediation-20261107/`. Every log is named `-N` and none was overwritten.
+- ***Correction, 2026-11-07 (independent audit C1, [codex-clear-data-audit-8823b11-20261107.md](codex-clear-data-audit-8823b11-20261107.md)).*** That audit accepted P1 and the database P2 fix within host scope. It also found that this fix's attachment handling was incomplete: a failed unlink was reported truthfully the first time, but the chat rows holding the only reference were already deleted, so a retry said "Data Cleared" while the file remained. The claims below that the result accounts for attachment files hold for the **first** attempt only. Fixed in `f7e947f` with durable owner-bound cleanup obligations: [attachment-cleanup-remediation.md](attachment-cleanup-remediation.md), ADR-026.
 - **Architecture decision:** [ADR-025](../../../decisions/ADR-025-account-bound-data-reset.md).
 - **Not done:** nothing was installed on a phone or emulator, and no live service, real account or real user data was used. Nothing was pushed, merged or deployed.
 
