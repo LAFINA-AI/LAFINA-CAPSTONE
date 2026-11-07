@@ -1,0 +1,13 @@
+src/ui/screens/calendar/hooks/useCalendarData.ts(323,21): error TS2552: Cannot find name 'formatLocalDate'. Did you mean 'toLocalDate'?
+src/ui/screens/notes/hooks/useNotesData.ts(87,48): error TS2304: Cannot find name 'customCategories'.
+src/ui/screens/notes/hooks/useNotesData.ts(144,5): error TS2304: Cannot find name 'setCustomCategories'.
+src/ui/screens/notes/hooks/useNotesData.ts(222,46): error TS2304: Cannot find name 'customCategories'.
+src/ui/screens/notes/hooks/useNotesData.ts(229,15): error TS2304: Cannot find name 'customCategories'.
+src/ui/screens/notes/hooks/useNotesData.ts(672,77): error TS2304: Cannot find name 'customCategories'.
+src/ui/screens/notes/hooks/useNotesData.ts(682,15): error TS2304: Cannot find name 'customCategories'.
+src/ui/screens/notes/hooks/useNotesData.ts(694,45): error TS18004: No value exists in scope for the shorthand property 'customCategories'. Either declare one or provide an initializer.
+src/ui/screens/ProfileScreen.tsx(88,22): error TS2304: Cannot find name 'tasksStore'.
+src/ui/screens/ProfileScreen.tsx(89,40): error TS7006: Parameter 't' implicitly has an 'any' type.
+src/ui/screens/ProfileScreen.tsx(90,22): error TS2304: Cannot find name 'notesStore'.
+src/ui/screens/ProfileScreen.tsx(91,41): error TS7006: Parameter 'n' implicitly has an 'any' type.
+src/ui/screens/ProfileScreen.tsx(93,8): error TS7006: Parameter 't' implicitly has an 'any' type.

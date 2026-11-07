@@ -1,0 +1,35 @@
+FAIL __tests__/ai/lemIntegration.test.ts
+  × the latest ML snapshot wins even when timestamps tie and IDs sort in reverse insertion order (5 ms)
+  ○ skipped shows the real ML offset, waits for Confirm and freezes the proposed trigger through Confirm/double Confirm
+  ○ skipped keeps opt-out baseline timing and cancellation side-effect free
+  ○ skipped falls back to requested timing if the advisor fails
+  ○ skipped retains AGY recurring reminder parsing through review and call acknowledgement
+  ○ skipped records reviewed ACK feedback once after commit, never on double Confirm
+  ○ skipped refuses an ML review from a different account with no planner writes
+  ○ skipped reviewed ACK preserves recurrence and creates only one next occurrence on double Confirm
+  ○ skipped Clear All Data forgets only the admitted owner's ML learning history
+  ○ skipped a failed ML reset rolls back planner deletion and learning history together
+  ○ skipped AGY weekly queries use bounded recurring reads instead of loading all tasks
+  ○ skipped a failed weekly read reports storage failure instead of an empty week
+
+  ● the latest ML snapshot wins even when timestamps tie and IDs sort in reverse insertion order
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: "second"
+    Received: "first"
+
+      316 |  const a=owner();const stamp='2030-01-01T09:00:00.000Z';
+      317 |  for(const [id,value] of [[`${a}-zz-first`,'first'],[`${a}-aa-second`,'second']]) db.executeSync('INSERT INTO ml_feature_snapshots (id,user_id,feature_type,feature_vector,computed_at,created_at,updated_at) VALUES (?,?,?,?,?,?,?)',[id,a,'tie-regression',value,stamp,stamp,stamp]);
+    > 318 |  expect(behaviorStore.getLatestFeatureSnapshot(a,'tie-regression')?.featureVector).toBe('second');
+          |                                                                                    ^
+      319 | });
+      320 |
+
+      at Object.toBe (__tests__/ai/lemIntegration.test.ts:318:84)
+
+Test Suites: 1 failed, 1 total
+Tests:       1 failed, 11 skipped, 12 total
+Snapshots:   0 total
+Time:        2.415 s
+Ran all test suites within paths "__tests__/ai/lemIntegration.test.ts".

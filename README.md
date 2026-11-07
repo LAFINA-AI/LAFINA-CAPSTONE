@@ -1,3 +1,5 @@
+> **Lem-branch integration:** see [current merge results and QA APK receipts](docs/plans/lem-integration/REPORT.md). Earlier AGY port reports describe their own historical builds.
+
 # LAFINA-CAPSTONE
 
 Android-first, local-first academic AI secretary for university students. Anonymous

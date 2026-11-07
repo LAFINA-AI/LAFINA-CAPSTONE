@@ -1,0 +1,4 @@
+__tests__/ai/lemIntegration.test.ts(87,10): error TS2551: Property 'setAdaptiveTimingEnabled' does not exist on type 'typeof import("C:/L3mxr/Github Repositories/LAFINA-CAPSTONE-agy-development-cont/src/ai/ml/timingAdvisor")'. Did you mean 'isAdaptiveTimingEnabled'?
+__tests__/ai/lemIntegration.test.ts(105,10): error TS2551: Property 'setAdaptiveTimingEnabled' does not exist on type 'typeof import("C:/L3mxr/Github Repositories/LAFINA-CAPSTONE-agy-development-cont/src/ai/ml/timingAdvisor")'. Did you mean 'isAdaptiveTimingEnabled'?
+src/ai/nlu/commandReview.ts(793,5): error TS2345: Argument of type 'string | null' is not assignable to parameter of type 'string'.
+  Type 'null' is not assignable to type 'string'.
