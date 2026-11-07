@@ -1,7 +1,8 @@
 import RNFS from 'react-native-fs';
-import { cloudClient } from './cloudClient';
-import { accountLinkService } from './accountLinkService';
-import { userStore } from '../storage/userStore';
+import {cloudClient} from './cloudClient';
+import {accountLinkService} from './accountLinkService';
+import {userStore} from '../storage/userStore';
+import {localSettingsStore} from '../storage/localSettingsStore';
 import {
   playSpeechFile,
   speakTextWithTts,
@@ -16,6 +17,7 @@ const PLAYBACK_REQUEST_TIMEOUT_MS = 17_000;
 const PREPARATION_REQUEST_TIMEOUT_MS = 22_000;
 
 interface TtsApiResponse {
+  provider: 'elevenlabs';
   requestId: string;
   audioBase64: string;
   mimeType: string;
@@ -32,7 +34,7 @@ interface EntitlementSnapshot {
 const waitForPreparation = async (
   preparation: Promise<string | null>,
 ): Promise<string | null | undefined> =>
-  new Promise((resolve) => {
+  new Promise(resolve => {
     let settled = false;
     const timeoutId = setTimeout(() => {
       settled = true;
@@ -40,7 +42,7 @@ const waitForPreparation = async (
     }, PLAYBACK_REQUEST_TIMEOUT_MS);
 
     void preparation
-      .then((path) => {
+      .then(path => {
         if (settled) return;
         settled = true;
         clearTimeout(timeoutId);
@@ -56,7 +58,13 @@ const waitForPreparation = async (
 
 export const createCallSpeechProvider = (
   userId: string,
+  providerOptions: {isOnlineMode?: () => boolean} = {},
 ): CallSpeechProvider => {
+  const isOnlineMode =
+    providerOptions.isOnlineMode ??
+    (() => localSettingsStore.get(userId, 'chat.onlineMode', null) === 'true');
+  let capabilityChecked = false;
+  let elevenlabsAvailable = false;
   const preparedAudioPaths = new Map<string, string>();
   const preparations = new Map<string, Promise<string | null>>();
   const preparationControllers = new Set<AbortController>();
@@ -78,8 +86,8 @@ export const createCallSpeechProvider = (
     };
   };
 
-  const canUseGemini = async (): Promise<boolean> => {
-    if (disposed) return false;
+  const canUseElevenLabs = async (): Promise<boolean> => {
+    if (disposed || !isOnlineMode()) return false;
 
     let online = false;
     try {
@@ -126,91 +134,137 @@ export const createCallSpeechProvider = (
     }
 
     entitlement = getEntitlementSnapshot();
-    return entitlement.entitled;
+    return entitlement.entitled && isOnlineMode() && !disposed;
   };
 
   const executeNativeTtsFallback = async (
     text: string,
-    fallbackAudioPath?: string | null,
+    fallbackAudioPath: string | null | undefined,
+    owner: number,
   ): Promise<CallSpeechResult> => {
+    if (disposed || owner !== cancellationSequence)
+      return {source: 'cancelled'};
     if (fallbackAudioPath) {
       try {
         const playable = await RNFS.exists(fallbackAudioPath);
+        if (disposed || owner !== cancellationSequence)
+          return {source: 'cancelled'};
         if (playable) {
           const success = await playSpeechFile(fallbackAudioPath);
           if (success) {
-            return { source: 'native_tts' };
+            return {source: 'native_tts'};
           }
         }
       } catch {
         // Fall through to react-native-tts synthesis
       }
     }
+    if (disposed || owner !== cancellationSequence)
+      return {source: 'cancelled'};
     await speakTextWithTts(text);
-    return { source: 'native_tts' };
+    return {source: 'native_tts'};
   };
 
-  const requestGeminiAudio = async (
+  const requestElevenLabsAudio = async (
     text: string,
     controller: AbortController,
     timeoutMs: number,
   ): Promise<string | null> => {
     const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
-    let wavPath: string | null = null;
+    let audioPath: string | null = null;
     let callerOwnsFile = false;
 
     try {
-      const cacheDir = `${RNFS.CachesDirectoryPath}/gemini_tts`;
+      if (!capabilityChecked) {
+        const capability = await cloudClient.request<{
+          provider: string;
+          enabled: boolean;
+        }>(
+          '/v1/ai/tts/capabilities',
+          {method: 'GET', signal: controller.signal},
+          true,
+        );
+        if (controller.signal.aborted || disposed || !isOnlineMode())
+          return null;
+        elevenlabsAvailable =
+          capability.status === 'success' &&
+          capability.data?.provider === 'elevenlabs' &&
+          capability.data.enabled === true;
+        // A temporary outage must not disable online voice for the lifetime of Chat.
+        capabilityChecked = elevenlabsAvailable;
+      }
+      // Never invoke the retired Gemini endpoint on an old/unmigrated server.
+      if (
+        !elevenlabsAvailable ||
+        controller.signal.aborted ||
+        disposed ||
+        !isOnlineMode()
+      )
+        return null;
+      const cacheDir = `${RNFS.CachesDirectoryPath}/elevenlabs_tts`;
       await RNFS.mkdir(cacheDir).catch(() => undefined);
 
       const requestId = `tts_${Date.now()}_${Math.random()
         .toString(36)
         .substring(2, 8)}`;
-      wavPath = `${cacheDir}/gemini_${safeUserId}_${requestId}.wav`;
+      audioPath = `${cacheDir}/elevenlabs_${safeUserId}_${requestId}.mp3`;
       const result = await cloudClient.request<TtsApiResponse>(
         '/v1/ai/tts',
         {
           method: 'POST',
-          body: JSON.stringify({ requestId, text }),
+          body: JSON.stringify({requestId, text, provider: 'elevenlabs'}),
           signal: controller.signal,
         },
         true,
       );
 
-      if (controller.signal.aborted || disposed) return null;
+      if (controller.signal.aborted || disposed || !isOnlineMode()) return null;
 
-      if (result.status !== 'success' || !result.data?.audioBase64) {
+      if (
+        result.status !== 'success' ||
+        result.data?.provider !== 'elevenlabs' ||
+        result.data.mimeType !== 'audio/mpeg' ||
+        typeof result.data.audioBase64 !== 'string' ||
+        !result.data.audioBase64 ||
+        result.data.audioBase64.length > 2666668 ||
+        !/^[A-Za-z0-9+/]+={0,2}$/.test(result.data.audioBase64)
+      ) {
         return null;
       }
 
-      await RNFS.writeFile(wavPath, result.data.audioBase64, 'base64');
-      if (controller.signal.aborted || disposed) return null;
+      await RNFS.writeFile(audioPath, result.data.audioBase64, 'base64');
+      if (controller.signal.aborted || disposed || !isOnlineMode()) return null;
       callerOwnsFile = true;
-      return wavPath;
+      return audioPath;
     } catch {
       return null;
     } finally {
       clearTimeout(timeoutId);
-      if (!callerOwnsFile && wavPath) {
-        RNFS.unlink(wavPath).catch(() => undefined);
+      if (!callerOwnsFile && audioPath) {
+        RNFS.unlink(audioPath).catch(() => undefined);
       }
     }
   };
 
-  const playGeminiAudio = async (
-    wavPath: string,
+  const playElevenLabsAudio = async (
+    audioPath: string,
     fallbackText: string,
+    owner: number,
   ): Promise<CallSpeechResult> => {
+    if (disposed || owner !== cancellationSequence || !isOnlineMode())
+      return {source: 'cancelled'};
     try {
-      const playbackFinished = await playSpeechFile(wavPath);
-      if (playbackFinished) {
-        return { source: 'gemini' };
+      const playbackFinished = await playSpeechFile(audioPath);
+      if (playbackFinished && owner === cancellationSequence && !disposed) {
+        return {source: 'elevenlabs'};
       }
     } catch {
-      // If native WAV player is unavailable, speak via react-native-tts
+      // If native audio player is unavailable, speak via react-native-tts
     }
+    if (disposed || owner !== cancellationSequence)
+      return {source: 'cancelled'};
     await speakTextWithTts(fallbackText);
-    return { source: 'native_tts' };
+    return {source: 'native_tts'};
   };
 
   const prepareText = async (text: string): Promise<void> => {
@@ -226,23 +280,23 @@ export const createCallSpeechProvider = (
     }
 
     const preparation = (async (): Promise<string | null> => {
-      if (!(await canUseGemini()) || disposed) return null;
+      if (!(await canUseElevenLabs()) || disposed) return null;
 
       const controller = new AbortController();
       preparationControllers.add(controller);
       try {
-        const wavPath = await requestGeminiAudio(
+        const audioPath = await requestElevenLabsAudio(
           normalizedText,
           controller,
           PREPARATION_REQUEST_TIMEOUT_MS,
         );
-        if (!wavPath) return null;
-        if (disposed) {
-          RNFS.unlink(wavPath).catch(() => undefined);
+        if (!audioPath) return null;
+        if (disposed || controller.signal.aborted || !isOnlineMode()) {
+          RNFS.unlink(audioPath).catch(() => undefined);
           return null;
         }
-        preparedAudioPaths.set(normalizedText, wavPath);
-        return wavPath;
+        preparedAudioPaths.set(normalizedText, audioPath);
+        return audioPath;
       } finally {
         preparationControllers.delete(controller);
       }
@@ -262,21 +316,35 @@ export const createCallSpeechProvider = (
     cancellationSequence += 1;
     activePlaybackController?.abort();
     activePlaybackController = null;
+    for (const controller of preparationControllers) controller.abort();
     await Promise.resolve(stopSpeechPlayback()).catch(() => undefined);
   };
 
   const speakText = async (
     text: string,
-    options?: { fallbackAudioPath?: string | null },
+    options?: {fallbackAudioPath?: string | null},
   ): Promise<CallSpeechResult> => {
-    const operationSequence = cancellationSequence;
     const normalizedText = normalizeText(text);
-    if (disposed) return { source: 'gemini' };
-    if (!normalizedText || !(await canUseGemini())) {
-      return executeNativeTtsFallback(text, options?.fallbackAudioPath);
+    if (disposed || !normalizedText) return {source: 'cancelled'};
+    // A new visible read request replaces the previous owner, including pending network work.
+    cancellationSequence += 1;
+    const operationSequence = cancellationSequence;
+    activePlaybackController?.abort();
+    activePlaybackController = null;
+    await Promise.resolve(stopSpeechPlayback()).catch(() => undefined);
+    if (disposed || operationSequence !== cancellationSequence)
+      return {source: 'cancelled'};
+    if (!normalizedText || !(await canUseElevenLabs())) {
+      if (disposed || operationSequence !== cancellationSequence)
+        return {source: 'cancelled'};
+      return executeNativeTtsFallback(
+        text,
+        options?.fallbackAudioPath,
+        operationSequence,
+      );
     }
     if (operationSequence !== cancellationSequence || disposed) {
-      return { source: 'gemini' };
+      return {source: 'cancelled'};
     }
 
     let preparedPath = preparedAudioPaths.get(normalizedText) || null;
@@ -285,10 +353,16 @@ export const createCallSpeechProvider = (
       if (preparation) {
         const preparedResult = await waitForPreparation(preparation);
         if (operationSequence !== cancellationSequence || disposed) {
-          return { source: 'gemini' };
+          return {source: 'cancelled'};
         }
         if (preparedResult === undefined || preparedResult === null) {
-          return executeNativeTtsFallback(text, options?.fallbackAudioPath);
+          if (disposed || operationSequence !== cancellationSequence)
+            return {source: 'cancelled'};
+          return executeNativeTtsFallback(
+            text,
+            options?.fallbackAudioPath,
+            operationSequence,
+          );
         }
         preparedPath = preparedResult;
       }
@@ -297,16 +371,16 @@ export const createCallSpeechProvider = (
     if (preparedPath) {
       const playable = await RNFS.exists(preparedPath).catch(() => false);
       if (playable) {
-        return playGeminiAudio(preparedPath, text);
+        return playElevenLabsAudio(preparedPath, text, operationSequence);
       }
       preparedAudioPaths.delete(normalizedText);
     }
 
     const controller = new AbortController();
     activePlaybackController = controller;
-    let wavPath: string | null = null;
+    let audioPath: string | null = null;
     try {
-      wavPath = await requestGeminiAudio(
+      audioPath = await requestElevenLabsAudio(
         normalizedText,
         controller,
         PLAYBACK_REQUEST_TIMEOUT_MS,
@@ -316,18 +390,24 @@ export const createCallSpeechProvider = (
         controller.signal.aborted ||
         disposed
       ) {
-        return { source: 'gemini' };
+        return {source: 'cancelled'};
       }
-      if (!wavPath) {
-        return executeNativeTtsFallback(text, options?.fallbackAudioPath);
+      if (!audioPath) {
+        if (disposed || operationSequence !== cancellationSequence)
+          return {source: 'cancelled'};
+        return executeNativeTtsFallback(
+          text,
+          options?.fallbackAudioPath,
+          operationSequence,
+        );
       }
-      return await playGeminiAudio(wavPath, text);
+      return await playElevenLabsAudio(audioPath, text, operationSequence);
     } finally {
       if (activePlaybackController === controller) {
         activePlaybackController = null;
       }
-      if (wavPath) {
-        RNFS.unlink(wavPath).catch(() => undefined);
+      if (audioPath) {
+        RNFS.unlink(audioPath).catch(() => undefined);
       }
     }
   };
@@ -342,7 +422,7 @@ export const createCallSpeechProvider = (
     await Promise.resolve(stopSpeechPlayback()).catch(() => undefined);
     await Promise.allSettled([...preparations.values()]);
     await Promise.all(
-      [...preparedAudioPaths.values()].map((path) =>
+      [...preparedAudioPaths.values()].map(path =>
         RNFS.unlink(path).catch(() => undefined),
       ),
     );

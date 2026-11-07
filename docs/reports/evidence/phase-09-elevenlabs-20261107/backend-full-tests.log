@@ -1,0 +1,29 @@
+........................................................................ [ 40%]
+........................................................................ [ 81%]
+.................................                                        [100%]
+============================== warnings summary ===============================
+tests/test_documents.py::test_a_refusal_is_passed_back
+tests/test_flashcards.py::test_a_reply_with_no_cards_in_it_is_not_passed_off_as_a_deck
+tests/test_meeting_notes.py::test_notes_with_nothing_in_them_are_not_passed_off_as_a_result
+tests/test_study_notes.py::test_a_summary_with_nothing_in_it_is_not_passed_off_as_notes
+  C:\Users\USER-PC\AppData\Roaming\Python\Python314\site-packages\fastapi\routing.py:352: StarletteDeprecationWarning: 'HTTP_422_UNPROCESSABLE_ENTITY' is deprecated. Use 'HTTP_422_UNPROCESSABLE_CONTENT' instead.
+    return await dependant.call(**values)
+
+tests/test_flashcards.py::test_unusable_uploads_are_refused_before_the_model_is_called
+  C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\.local\elevenlabs-backend-work\app\api\v1\ai.py:575: StarletteDeprecationWarning: 'HTTP_413_REQUEST_ENTITY_TOO_LARGE' is deprecated. Use 'HTTP_413_CONTENT_TOO_LARGE' instead.
+    pdf_bytes = _decode_upload(req.contentBase64)
+
+tests/test_flashcards.py::test_a_document_upload_is_not_held_to_the_one_mib_body_limit
+  C:\Users\USER-PC\AppData\Roaming\Python\Python314\site-packages\starlette\middleware\base.py:193: StarletteDeprecationWarning: 'HTTP_413_REQUEST_ENTITY_TOO_LARGE' is deprecated. Use 'HTTP_413_CONTENT_TOO_LARGE' instead.
+    response = await self.dispatch_func(request, call_next)
+
+tests/test_meeting_notes.py::test_material_too_long_for_one_request_is_refused_before_the_model_sees_it
+  C:\Users\USER-PC\AppData\Roaming\Python\Python314\site-packages\fastapi\routing.py:352: StarletteDeprecationWarning: 'HTTP_413_REQUEST_ENTITY_TOO_LARGE' is deprecated. Use 'HTTP_413_CONTENT_TOO_LARGE' instead.
+    return await dependant.call(**values)
+
+tests/test_meeting_notes.py::test_each_deepseek_failure_gets_its_own_status_and_explanation
+  C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\.local\elevenlabs-backend-work\app\api\v1\meeting_notes.py:208: StarletteDeprecationWarning: 'HTTP_413_REQUEST_ENTITY_TOO_LARGE' is deprecated. Use 'HTTP_413_CONTENT_TOO_LARGE' instead.
+    raise _http_error(err)
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+177 passed, 8 warnings in 42.01s
