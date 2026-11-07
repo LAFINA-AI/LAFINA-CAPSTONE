@@ -5,10 +5,21 @@ import {GUEST_USER_ID} from '../constants';
 import {validOnlineVoiceId} from '../storage/onlineVoiceSettingsStore';
 import type {OnlineVoiceChoice} from '../storage/onlineVoiceSettingsStore';
 
+/** A catalogue entry: the saved choice plus labels used only for display. */
+export interface OnlineVoiceOption extends OnlineVoiceChoice {
+  /** ElevenLabs language label, e.g. "fil" for Filipino or "en". */
+  language?: string;
+  gender?: string;
+}
+
+const LABEL = /^[a-z][a-z_-]{0,23}$/;
+const label = (value: unknown): string | undefined =>
+  typeof value === 'string' && LABEL.test(value) ? value : undefined;
+
 export const loadOnlineVoices = async (
   userId: string,
   signal: AbortSignal,
-): Promise<OnlineVoiceChoice[]> => {
+): Promise<OnlineVoiceOption[]> => {
   const isOwner = () =>
     userId !== GUEST_USER_ID &&
     userStore.getActiveSessionToken().userId === userId;
@@ -25,7 +36,7 @@ export const loadOnlineVoices = async (
     throw new Error('Voice loading stopped.');
   const result = await cloudClient.request<{
     provider: string;
-    voices: OnlineVoiceChoice[];
+    voices: OnlineVoiceOption[];
   }>('/v1/ai/tts/voices', {method: 'GET', signal}, true);
   if (signal.aborted || !isOwner() || !enabled())
     throw new Error('Voice loading stopped.');
@@ -47,5 +58,12 @@ export const loadOnlineVoices = async (
         v.name.trim(),
     )
     .slice(0, 500)
-    .map(v => ({id: v.id, name: v.name.slice(0, 160)}));
+    .map(v => {
+      const option: OnlineVoiceOption = {id: v.id, name: v.name.slice(0, 160)};
+      const language = label(v.language);
+      const gender = label(v.gender);
+      if (language) option.language = language;
+      if (gender) option.gender = gender;
+      return option;
+    });
 };

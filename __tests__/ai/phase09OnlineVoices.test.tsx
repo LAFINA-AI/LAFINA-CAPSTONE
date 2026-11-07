@@ -172,12 +172,10 @@ describe('Online Mode access: every signed-in account, guests sign in', () => {
 
   it('passes through a disabled or expired live account result unchanged', async () => {
     const userId = student('disabled');
-    jest
-      .spyOn(accountLinkService, 'refreshCloudProfile')
-      .mockResolvedValue({
-        status: 'account_disabled',
-        message: 'Account disabled.',
-      });
+    jest.spyOn(accountLinkService, 'refreshCloudProfile').mockResolvedValue({
+      status: 'account_disabled',
+      message: 'Account disabled.',
+    });
     expect((await accountLinkService.authorizeOnlineMode(userId)).status).toBe(
       'account_disabled',
     );
@@ -301,12 +299,10 @@ describe('Voice catalogue loading', () => {
       loadOnlineVoices(userId, new AbortController().signal),
     ).rejects.toThrow(/stopped/);
     activeUser = userId;
-    jest
-      .spyOn(cloudClient, 'request')
-      .mockResolvedValueOnce({
-        status: 'success',
-        data: {provider: 'other', voices: []},
-      } as never);
+    jest.spyOn(cloudClient, 'request').mockResolvedValueOnce({
+      status: 'success',
+      data: {provider: 'other', voices: []},
+    } as never);
     await expect(
       loadOnlineVoices(userId, new AbortController().signal),
     ).rejects.toThrow(/unavailable/);
@@ -638,6 +634,72 @@ describe('Online Voice picker sheet', () => {
       ],
     },
   };
+
+  it('lists Filipina voices first under their own heading, and saves only the ID and name', async () => {
+    const userId = student('filipina');
+    signIn(userId);
+    appStateListeners();
+    jest
+      .spyOn(cloudClient, 'request')
+      .mockImplementation(async (path: string) => {
+        if (path !== '/v1/ai/tts/voices') return capabilityOk as never;
+        return {
+          status: 'success',
+          data: {
+            provider: 'elevenlabs',
+            voices: [
+              {
+                id: 'fil_camille',
+                name: 'Camille',
+                language: 'fil',
+                gender: 'female',
+              },
+              {
+                id: 'fil_daniella',
+                name: 'Ate Daniella',
+                language: 'fil',
+                gender: 'female',
+              },
+              {id: 'en_adam', name: 'Adam', language: 'en', gender: 'male'},
+              {id: 'odd', name: 'Odd', language: '<b>', gender: 7},
+            ],
+          },
+        } as never;
+      });
+    const screen = render(
+      themed(<OnlineVoice userId={userId} visible onClose={jest.fn()} />),
+    );
+    await waitFor(() =>
+      expect(screen.getByTestId('online-voice-fil_camille')).toBeTruthy(),
+    );
+    expect(
+      screen.getByTestId('online-voice-group-filipino').props.children,
+    ).toBe('Filipina voices');
+    expect(screen.getByTestId('online-voice-group-more')).toBeTruthy();
+    expect(
+      screen.getByTestId('online-voice-fil_camille').props.accessibilityLabel,
+    ).toBe('Camille, Female · Filipino');
+    expect(
+      screen.getByTestId('online-voice-odd').props.accessibilityLabel,
+    ).toBe('Odd');
+    // On-screen order: default, Filipina voices, then everything else.
+    const order = screen
+      .getAllByRole('radio')
+      .map(node => node.props.testID as string);
+    expect(order).toEqual([
+      'online-voice-default',
+      'online-voice-fil_camille',
+      'online-voice-fil_daniella',
+      'online-voice-en_adam',
+      'online-voice-odd',
+    ]);
+    await act(async () => {
+      fireEvent.press(screen.getByTestId('online-voice-fil_daniella'));
+    });
+    expect(
+      JSON.parse(String(localSettingsStore.get(userId, ONLINE_VOICE_KEY))),
+    ).toEqual({id: 'fil_daniella', name: 'Ate Daniella'});
+  });
 
   it('loads voices, saves a tapped voice with radio state, and reports actual ElevenLabs preview', async () => {
     const userId = student('sheet');

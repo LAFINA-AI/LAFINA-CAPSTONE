@@ -7,6 +7,7 @@ import {Fonts, FontSize, Spacing, Layout} from '../../theme';
 import {onlineVoiceSettingsStore} from '../../../storage/onlineVoiceSettingsStore';
 import type {OnlineVoiceChoice} from '../../../storage/onlineVoiceSettingsStore';
 import {loadOnlineVoices} from '../../../cloud/onlineVoiceService';
+import type {OnlineVoiceOption} from '../../../cloud/onlineVoiceService';
 import {createCallSpeechProvider} from '../../../cloud/speechService';
 import type {CallSpeechProvider} from '../../../scheduler/speechProvider';
 import {isSpeechBusy} from '../../../ai/tts/ttsService';
@@ -24,6 +25,24 @@ export const ONLINE_PREVIEW_TEXT =
   'Hello. This is lafina, reading with your selected online voice.';
 const LOAD_TIMEOUT_MS = 15_000;
 const BUSY_NOTICE = 'Finish the current speech or recording, then try Preview.';
+
+const LANGUAGE_NAMES: Record<string, string> = {
+  fil: 'Filipino',
+  en: 'English',
+};
+
+/** "Female · Filipino", from the catalogue's labels; empty when it has none. */
+export const describeOnlineVoice = (voice: OnlineVoiceOption): string =>
+  [
+    voice.gender
+      ? voice.gender.charAt(0).toUpperCase() + voice.gender.slice(1)
+      : null,
+    voice.language
+      ? LANGUAGE_NAMES[voice.language] ?? voice.language.toUpperCase()
+      : null,
+  ]
+    .filter(Boolean)
+    .join(' · ');
 
 /** Synchronous audio admission, re-run immediately before Preview speaks. */
 const audioBusy = (): boolean =>
@@ -44,7 +63,7 @@ export const OnlineVoice: React.FC<Props> = ({
 }) => {
   const themed = useThemedStyles(getThemedStyles);
   const [choice, setChoice] = useState<OnlineVoiceChoice | null>(null);
-  const [voices, setVoices] = useState<OnlineVoiceChoice[]>([]);
+  const [voices, setVoices] = useState<OnlineVoiceOption[]>([]);
   const [notice, setNotice] = useState('');
   const [loading, setLoading] = useState(false);
   const [previewing, setPreviewing] = useState(false);
@@ -138,8 +157,10 @@ export const OnlineVoice: React.FC<Props> = ({
     // The sheet closed, backgrounded or changed account while Preview stopped.
     if (ticket !== epoch.current) return;
     try {
-      onlineVoiceSettingsStore.save(userId, next);
-      setChoice(next);
+      // Only the ID and name are saved; labels are for display.
+      const saved = next ? {id: next.id, name: next.name} : null;
+      onlineVoiceSettingsStore.save(userId, saved);
+      setChoice(saved);
       setNotice(`${next?.name ?? 'Server default'} saved for online speech.`);
       onChanged?.();
     } catch (error) {
@@ -199,15 +220,16 @@ export const OnlineVoice: React.FC<Props> = ({
     }
   };
 
-  const option = (value: OnlineVoiceChoice | null) => {
+  const option = (value: OnlineVoiceOption | null) => {
     const selected = (choice?.id ?? null) === (value?.id ?? null);
     const name = value?.name ?? 'Server default';
+    const detail = value ? describeOnlineVoice(value) : '';
     return (
       <TouchableOpacity
         key={value?.id ?? 'default'}
         testID={`online-voice-${value?.id ?? 'default'}`}
         accessibilityRole="radio"
-        accessibilityLabel={name}
+        accessibilityLabel={detail ? `${name}, ${detail}` : name}
         accessibilityState={{checked: selected, selected, disabled: previewing}}
         disabled={previewing}
         onPress={() => void choose(value)}
@@ -222,9 +244,18 @@ export const OnlineVoice: React.FC<Props> = ({
           {selected ? '✓ ' : ''}
           {name}
         </Text>
+        {detail ? (
+          <Text style={[styles.detail, themed.muted]}>{detail}</Text>
+        ) : null}
       </TouchableOpacity>
     );
   };
+
+  const filipino = voices.filter(v => v.language === 'fil');
+  const others = voices.filter(v => v.language !== 'fil');
+  const filipinoTitle = filipino.every(v => v.gender === 'female')
+    ? 'Filipina voices'
+    : 'Filipino voices';
 
   return (
     <ToolSheet
@@ -302,7 +333,26 @@ export const OnlineVoice: React.FC<Props> = ({
       )}
       <View accessibilityRole="radiogroup">
         {option(null)}
-        {voices.map(option)}
+        {filipino.length > 0 && (
+          <Text
+            accessibilityRole="header"
+            testID="online-voice-group-filipino"
+            style={[styles.group, themed.text]}
+          >
+            {filipinoTitle}
+          </Text>
+        )}
+        {filipino.map(option)}
+        {filipino.length > 0 && others.length > 0 && (
+          <Text
+            accessibilityRole="header"
+            testID="online-voice-group-more"
+            style={[styles.group, themed.text]}
+          >
+            More voices
+          </Text>
+        )}
+        {others.map(option)}
       </View>
     </ToolSheet>
   );
@@ -322,6 +372,13 @@ const styles = StyleSheet.create({
     marginBottom: Spacing.md,
   },
   label: {fontFamily: Fonts.heading, fontSize: FontSize.body},
+  detail: {fontFamily: Fonts.body, fontSize: FontSize.small, marginTop: 2},
+  group: {
+    fontFamily: Fonts.heading,
+    fontSize: FontSize.small,
+    marginTop: Spacing.sm,
+    marginBottom: Spacing.sm,
+  },
   option: {
     minHeight: 48,
     justifyContent: 'center',

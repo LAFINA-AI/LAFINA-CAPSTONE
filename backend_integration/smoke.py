@@ -19,8 +19,8 @@ async def main():
     values = dotenv_values(".env")
     settings = SimpleNamespace(
         ELEVENLABS_API_KEY=SecretStr(values.get("ELEVENLABS_API_KEY") or ""),
-        ELEVENLABS_VOICE_ID=values.get("ELEVENLABS_VOICE_ID") or "JBFqnCBsd6RMkjVDRZzb",
-        ELEVENLABS_MODEL_ID=values.get("ELEVENLABS_MODEL_ID") or "eleven_flash_v2_5",
+        ELEVENLABS_VOICE_ID=values.get("ELEVENLABS_VOICE_ID") or "BtcCEANLn920ZIoN9grW",
+        ELEVENLABS_MODEL_ID=values.get("ELEVENLABS_MODEL_ID") or "eleven_v4",
         ELEVENLABS_MAX_CHARACTERS_PER_PROCESS=20000,
     )
     client = ElevenLabsTtsClient(settings)

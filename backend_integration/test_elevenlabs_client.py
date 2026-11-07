@@ -5,6 +5,7 @@ import pytest
 from pydantic import SecretStr
 
 from backend_integration.elevenlabs_client import (
+    FILIPINA_VOICES,
     ElevenLabsTtsClient,
     ElevenLabsTtsError,
 )
@@ -116,7 +117,8 @@ async def test_catalogue_cache_and_selected_voice_validation():
     async with httpx.AsyncClient(transport=httpx.MockTransport(handler)) as http:
         client = ElevenLabsTtsClient(settings(), http)
         voices = await client.list_voices()
-        assert voices == [{"id": "voice_a", "name": "Alice"}, {"id": "voice_b", "name": "Bella"}]
+        filipina = [{"id": i, "name": n, "language": "fil", "gender": "female"} for i, n in FILIPINA_VOICES]
+        assert voices == filipina + [{"id": "voice_a", "name": "Alice"}, {"id": "voice_b", "name": "Bella"}]
         await client.synthesize_speech("Hello", "r1", voice_id="voice_b")
         assert captured[-1].url.path.endswith("/voice_b")
         with pytest.raises(ElevenLabsTtsError) as missing:
