@@ -228,7 +228,7 @@ Owner report: Online Mode offered only a male voice. The owner also asked to con
   - default voice and Thea Santos synthesized in 1.68–1.80 s.
 - New picker test in `phase09OnlineVoices.test.tsx` (34 tests in that suite).
 
-**Commit history:** at the owner's request, the Claude co-author line was removed from the two tip commits (backend `bb506f7` → `afaa36b`, mobile `aa432ba`). Both branches were updated with `--force-with-lease` after confirming that neither remote had moved. Older history was not rewritten.
+**Commit history:** at the owner's request, the Claude co-author line was removed from the two tip commits (backend `bb506f7` → `afaa36b`, mobile `aa432ba` → `03307b0`). Both branches were updated with `--force-with-lease` after confirming that neither remote had moved. Older history was not rewritten.
 
 **Not run:** the voices on a device against production (needs the merge); physical phone.
 
