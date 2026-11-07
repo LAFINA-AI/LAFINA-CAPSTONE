@@ -9,6 +9,7 @@ Run status: **PARTIAL**.
   - F4 is a documentation correction;
   - new QA APKs were built.
   - The overall status is still PARTIAL / AWAITING DEVICE VALIDATION.
+- **2026-11-07 third follow-up:** an independent audit of the C1 fix ([codex-attachment-cleanup-audit-69aafcd-20261107.md](codex-attachment-cleanup-audit-69aafcd-20261107.md)) accepted C1 within host scope and found **C2**: 50 persistently failing cleanup entries were retried on every pass and starved the files behind them. C2 is fixed on the host with a durable, fair per-owner turn order, regression tests and new QA APKs ([attachment-queue-fairness-remediation.md](attachment-queue-fairness-remediation.md), ADR-026 amendment). The overall status is still PARTIAL / AWAITING DEVICE VALIDATION.
 - **2026-11-07 second follow-up:** an independent audit of the P1/P2 fix ([codex-clear-data-audit-8823b11-20261107.md](codex-clear-data-audit-8823b11-20261107.md)) accepted P1 and the database P2 fix within host scope and found **C1**: a failed attachment-file removal could not be retried, and the retry said "Data Cleared" while the file remained. C1 is fixed on the host with durable, owner-bound cleanup obligations, regression tests and new QA APKs ([attachment-cleanup-remediation.md](attachment-cleanup-remediation.md), ADR-026). The overall status is still PARTIAL / AWAITING DEVICE VALIDATION.
 - **2026-11-07 follow-up:** the independent remediation audit's Clear All Data findings P1 (stale confirmation deletes) and P2 (false success after a read failure) are fixed on the host with regression tests, and new QA APKs were built ([clear-all-data-remediation.md](clear-all-data-remediation.md), ADR-025). F1, F2 and F4 were accepted by that audit. The overall status is still PARTIAL / AWAITING DEVICE VALIDATION.
 
@@ -30,7 +31,10 @@ Commits:
   - **Code fix:** `c015719` (P1/P2, their tests and ADR-025).
   - **Report/tracking and index commits:** recorded in RUN-STATE.json and the log.
 - **Clear-data audit follow-up (after audited HEAD `8823b11`):**
-  - **Code fix:** `f7e947f` (C1, its tests and ADR-026). This is the latest code commit and the tested code; the QA APKs were built at it.
+  - **Code fix:** `f7e947f` (C1, its tests and ADR-026).
+  - **Report/tracking and index commits:** recorded in RUN-STATE.json and the log.
+- **Attachment-cleanup audit follow-up (after audited HEAD `69aafcd`):**
+  - **Code fix:** `acfd8fc` (C2, its tests and the ADR-026 amendment). This is the latest code commit and the tested code; the QA APKs were built at it.
   - **Report/tracking and index commits:** recorded in RUN-STATE.json and the log.
 
 ## What you can use now
@@ -118,6 +122,21 @@ Details, recovery semantics and evidence are in [attachment-cleanup-remediation.
 - **Mutation:** 10/10 killed on run 2; run 1 left one survivor, which led to a new test.
 - **Gates:** the audit's 15-suite set (263/263) and the 29 F1–F3 regressions pass; preflight 54 suites, 788 + 1 opt-in skipped; Kotlin 43; fresh dataQa APKs whose bundle contains the fix (7/7 strings); audits PASS; identity, signer and permissions unchanged.
 
+## Attachment-cleanup audit follow-up: C2 (2026-11-07)
+
+Details, the fairness argument and evidence are in [attachment-queue-fairness-remediation.md](attachment-queue-fairness-remediation.md); the design is the [ADR-026 amendment](../../../decisions/ADR-026-durable-attachment-cleanup.md#amendment-2026-11-07-fair-turn-order-audit-c2). The C1 report carries a dated correction for its "more than 50 saved" recovery claim.
+
+| Finding | Disposition | Change |
+|---|---|---|
+| C2 Persistent failures at the front of the cleanup queue starved later files | CODE_COMPLETE (host) | Schema 24 adds `queue_order` (additive; existing rows take their attempt count). New obligations join the owner's back. A pass takes the lowest 50 turns, ordered by turn, then timestamp, then the unique path. It saves each attempt, moving the row to the back, before touching the file, so failures, refused saved paths and directories yield their turn. Nothing is dropped or deleted to make progress. Unsaved progress is reported and never shown as "Data Cleared". Same-owner passes are serialized; owner keys and the session check are unchanged |
+
+**Regression evidence:**
+
+- **Before the fix** (on `69aafcd`): the unchanged independent queue-progress regression failed.
+- **After the fix:** all four independent tests pass. 21 new tests (18 storage, 3 UI) pass. They cover 60 failures ahead of removable files, a frozen clock with equal timestamps, refused and directory rows, arrivals between passes, duplicates, other owners, a sign-in change, bookkeeping failures, overlapping passes, and restart and crash recovery on a real SQLite file in fresh modules.
+- **Mutation:** 15/15 killed in one run.
+- **Gates:** the audit's 18-suite set plus the new suite (348/348); preflight 55 suites, 809 + 1 opt-in skipped; Kotlin 43; fresh dataQa APKs whose bundle contains the fair-selection code and not the old order (8/8 strings, 0 old); audits PASS; identity, signer and permissions unchanged.
+
 ## AGY preservation
 
 See [PRESERVED-FEATURES.md](PRESERVED-FEATURES.md).
@@ -180,6 +199,7 @@ Phase reports exist for every phase: [00](phase-00-baseline.md) to [13](phase-13
 
 **Host gates at final code:**
 
+- For the attachment-cleanup audit (C2) follow-up: `evidence/agy-port-20261106/attachment-queue-fairness-remediation-20261107/`, code `acfd8fc`.
 - For the clear-data audit (C1) follow-up: `evidence/agy-port-20261106/attachment-cleanup-remediation-20261107/`, code `f7e947f`.
 - For the remediation-audit follow-up: `evidence/agy-port-20261106/clear-all-data-remediation-20261107/`, code `c015719`.
 - For the final-audit follow-up: `evidence/agy-port-20261106/final-audit-remediation/`, code `f61d1eb`.
@@ -187,14 +207,16 @@ Phase reports exist for every phase: [00](phase-00-baseline.md) to [13](phase-13
 
 | Check | Result |
 |---|---|
-| `npm run preflight` | PASS: typecheck, lint, Jest 54 suites with 788 passed + 1 opt-in skipped [P1/P2: 52 suites, 740 + 1; final audit: 50 suites, 713 + 1; Phase 13: 46 suites, 684 + 1; base: 15 suites, 163 tests], architecture 219 modules |
-| Kotlin unit tests (forced rerun, executed 2026-11-07T01:57:52Z) | 43 pass (base: 14) |
-| dataQa build (fresh bundle `9c284de8…b17b`; P1/P2 `09e25695…a199`; final audit `f86e13af…bc67`) | PASS. The debug APKs were up to date: they package no JS and no native input changed |
+| `npm run preflight` | PASS: typecheck, lint, Jest 55 suites with 809 passed + 1 opt-in skipped [C1: 54 suites, 788 + 1; P1/P2: 52 suites, 740 + 1; final audit: 50 suites, 713 + 1; Phase 13: 46 suites, 684 + 1; base: 15 suites, 163 tests], architecture 219 modules |
+| Kotlin unit tests (forced rerun, executed 2026-11-07T03:36:27Z) | 43 pass (base: 14) |
+| dataQa build (fresh bundle `45c434eb…789a`; C1 `9c284de8…b17b`; P1/P2 `09e25695…a199`; final audit `f86e13af…bc67`) | PASS. The debug APKs were up to date: they package no JS and no native input changed |
 | APK audits, both ABIs | PASS |
 
 Mutation checks were run in Phases 02, 03, 06–10 and 12, and in both remediation units, but not in Phases 04, 05 or 11. Every run's log is kept. Earlier runs had survivors and a harness error, which led to stronger tests; each of those units' final run has no survivor or harness error.
 
 The final-audit follow-up ran once: 8 of 9 killed. The survivor, Q2, removes a revalidation that later checks duplicate, so it was recorded rather than re-run.
+
+The C2 follow-up ran once (`mutate-fairness.py`): 15 of 15 killed, every file restored.
 
 The C1 follow-up ran twice (`mutate-cleanup.py`, both logs kept): run 1 killed 9 of 10, and the survivor (no re-check of a saved path) led to a new test; run 2 killed 10 of 10.
 
@@ -202,10 +224,10 @@ The remediation-audit follow-up ran three times (all logs kept). Run 3 kills eve
 
 **Artifacts** are build outputs, not committed, and live on this PC only. Hashes are in [MANUAL-QA.md](MANUAL-QA.md):
 
-- `android/app/build/outputs/apk/dataQa/app-arm64-v8a-dataQa.apk` (phones): now `4ff8d67e…8532`, rebuilt with the C1 fix (2026-11-07)
-- `android/app/build/outputs/apk/dataQa/app-x86_64-dataQa.apk` (emulators): now `e9ec1f09…7086`
+- `android/app/build/outputs/apk/dataQa/app-arm64-v8a-dataQa.apk` (phones): now `ae0b4cc1…789b`, rebuilt with the C2 fix (2026-11-07)
+- `android/app/build/outputs/apk/dataQa/app-x86_64-dataQa.apk` (emulators): now `3f523ba7…9928`
 - the matching debug APKs, unchanged
-- The P1/P2 dataQa APKs (`94c5d9ad…`, `9f04fb38…`), the final-audit ones (`2502aec3…`, `a0bf18e5…`) and, before them, the Phase 13 ones (`ef264311…`, `58470f2f…`) were replaced in place and no longer exist on disk.
+- The C1 dataQa APKs (`4ff8d67e…`, `e9ec1f09…`), the P1/P2 ones (`94c5d9ad…`, `9f04fb38…`), the final-audit ones (`2502aec3…`, `a0bf18e5…`) and, before them, the Phase 13 ones (`ef264311…`, `58470f2f…`) were replaced in place and no longer exist on disk.
 
 **Failed and interrupted attempts are kept, not hidden:**
 
@@ -217,6 +239,9 @@ The remediation-audit follow-up ran three times (all logs kept). Run 3 kills eve
 - **Final-audit follow-up:**
   - mutation run 1 is CHECK FAILED (Q2 survived; explained in the report);
   - `sdk-tools-1.log`'s apksigner step printed nothing because of shell quoting, so the signer is in `sdk-tools-apksigner-1.log`.
+- **Attachment-cleanup audit (C2) follow-up:**
+  - `pre-fix-independent-fairness-1` failed on purpose (C2 reproduced);
+  - `post-fix-existing-1` had 13 failures, each only the new `unsaved` result field; those expectations were updated (see the report).
 - **Clear-data audit (C1) follow-up:**
   - `post-fix-existing-1` had 5 failures from deliberate changes (a new schema table, a new outcome field, and an async gap now closed in code without changing those tests);
   - `storage-cleanup-tests-1` had a test-authoring error (a shared mock's call count);
@@ -272,7 +297,7 @@ No phase FAILED, and no unit was reverted.
 Follow [MANUAL-QA.md](MANUAL-QA.md) (M01–M19, all NOT_RUN). The safe path:
 
 1. Do not clear data or reinstall. Note your task/event/note counts, one armed reminder and your sign-in state.
-2. Check the SHA-256 of `app-arm64-v8a-dataQa.apk`: `4ff8d67e…8532` (full value in MANUAL-QA). *Updated 2026-11-07 for the C1 rebuild; it was `94c5d9ad…9a04`, before that `2502aec3…89ba`, and before that `ef264311…7e19`.*
+2. Check the SHA-256 of `app-arm64-v8a-dataQa.apk`: `ae0b4cc1…789b` (full value in MANUAL-QA). *Updated 2026-11-07 for the C2 rebuild; it was `4ff8d67e…8532` (C1), before that `94c5d9ad…9a04`, before that `2502aec3…89ba`, and before that `ef264311…7e19`.*
 3. Run `adb install -r` on it, over an existing `com.lafina.capstone` signed by the same Android Debug certificate (`acf890c3…`). If you see `INSTALL_FAILED_UPDATE_INCOMPATIBLE`, stop; never uninstall or clear data.
 4. Check, in airplane mode:
    - the app launches without Metro;
@@ -319,7 +344,7 @@ Follow [MANUAL-QA.md](MANUAL-QA.md) (M01–M19, all NOT_RUN). The safe path:
 ## Recommended next actions
 
 1. Run M16 on your phone (in-place update of the arm64 dataQa APK), then the M05/M06 reminder cases. These are the highest-risk unverified behaviors.
-2. Have someone other than the implementer review the branch diff against `b9433dc` (a `/code-review` run or a human reviewer). The independent final audit (`codex-final-audit-940802c-20261106.md`) covered selected paths; its F1–F4 follow-up (`f61d1eb`, `0c1b99a`) was re-audited (`codex-remediation-audit-7b3b183-20261106.md`); the P1/P2 fix `c015719` was independently audited (`codex-clear-data-audit-8823b11-20261107.md`); the C1 fix `f7e947f` has had only a self-review.
+2. Have someone other than the implementer review the branch diff against `b9433dc` (a `/code-review` run or a human reviewer). The independent final audit (`codex-final-audit-940802c-20261106.md`) covered selected paths; its F1–F4 follow-up (`f61d1eb`, `0c1b99a`) was re-audited (`codex-remediation-audit-7b3b183-20261106.md`); the P1/P2 fix `c015719` was independently audited (`codex-clear-data-audit-8823b11-20261107.md`); the C1 fix `f7e947f` was independently audited (`codex-attachment-cleanup-audit-69aafcd-20261107.md`); the C2 fix `acfd8fc` has had only a self-review.
 3. Run the instrumentation tests (`connectedDebugAndroidTest`) on a test device, and the emulator runner on a spare AVD (M17).
 4. Decide whether to build ADR-023 option C (native invalidation marker) to close the process-death stale-alert residual (corrected 2026-11-06 from "force-stop", final audit F4).
 5. When backend access exists, carry out [backend-handoff-29-30.md](backend-handoff-29-30.md) in order, then the client capability change.

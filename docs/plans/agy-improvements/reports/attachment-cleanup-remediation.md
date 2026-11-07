@@ -2,6 +2,8 @@
 
 **Status: CODE_COMPLETE (host), AWAITING DEVICE VALIDATION.** The overall run stays **PARTIAL**.
 
+> *Correction 2026-11-07:* the independent audit [codex-attachment-cleanup-audit-69aafcd-20261107.md](codex-attachment-cleanup-audit-69aafcd-20261107.md) accepted C1 within host scope and found **C2**: the bounded pass always took the same first 50 obligations, so persistent failures starved the rest. The "more than 50 saved" recovery line below is corrected in place; the fix is in [attachment-queue-fairness-remediation.md](attachment-queue-fairness-remediation.md) and the ADR-026 amendment. Everything else in this report is unchanged.
+
 - **Source:** the independent audit [codex-clear-data-audit-8823b11-20261107.md](codex-clear-data-audit-8823b11-20261107.md). It accepted the original P1 and database P2 fixes within host scope, and requested changes for **C1**: a failed attachment cleanup could not be retried, but the retry reported full success. That report and its evidence directory `evidence/codex-clear-data-audit-8823b11-20261107/` are committed unchanged alongside this report. Their file hashes match before and after this work (`independent-audit-dir-before/after.sha256`).
 - **Audited HEAD:** `8823b11` on `codex/agy-preservation-improvements`. No newer work existed. The working tree held only the untracked audit files and the instructed never-commit items.
 - **Code commit:** `f7e947f` `fix(agy-audit): durable owner-bound attachment cleanup for Clear All Data (audit C1)`. This is the tested code, and the APKs were built from it at HEAD `f7e947f`.
@@ -38,7 +40,7 @@
 - unlink fails → the row is kept and retried;
 - crash after unlink, before retiring → the next pass finds the file absent and retires the row without an unlink;
 - sign-in changes mid-pass → the rest stays saved for that owner only;
-- more than 50 saved → the next pass continues.
+- ~~more than 50 saved → the next pass continues.~~ *Corrected 2026-11-07 (attachment-cleanup audit C2, [attachment-queue-fairness-remediation.md](attachment-queue-fairness-remediation.md)):* this held only when the first 50 were removed. Selection by the immutable `recorded_at, path` meant that 50 obligations that kept failing, refused saved paths or directory targets were selected again on every pass, so later obligations were never attempted. A durable per-owner turn order (schema 24) now fixes this.
 - There is no loop, timer, poller or background work: each retry is an explicit Clear All Data.
 
 **Path rules:**

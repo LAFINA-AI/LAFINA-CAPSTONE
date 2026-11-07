@@ -1,0 +1,34 @@
+HEAD 69aafcd759bb5e8977fdf2450987359c9ca0c022 2026-11-07T03:13:29Z
+  console.log
+    INDEPENDENT_CLEANUP_STARVATION {"first":{"removed":0,"pending":51,"interrupted":false},"second":{"removed":0,"pending":51,"interrupted":false},"lastFileStillPresent":true,"lastFileAttempted":false,"firstAttempts":{"attempts":2},"pending":51}
+
+      at Object.log (docs/plans/agy-improvements/reports/evidence/codex-attachment-cleanup-audit-69aafcd-20261107/independentCleanupFairness.test.ts:20:10)
+
+FAIL docs/plans/agy-improvements/reports/evidence/codex-attachment-cleanup-audit-69aafcd-20261107/independentCleanupFairness.test.ts
+  × repeated bounded passes must eventually attempt a removable file behind persistent failures (46 ms)
+
+  ● repeated bounded passes must eventually attempt a removable file behind persistent failures
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: false
+    Received: true
+
+    [0m [90m 19 |[39m  [36mconst[39m second[33m=[39m[36mawait[39m finishAttachmentCleanup(authority)[33m;[39m
+     [90m 20 |[39m  console[33m.[39mlog([32m'INDEPENDENT_CLEANUP_STARVATION'[39m[33m,[39m[33mJSON[39m[33m.[39mstringify({first[33m,[39msecond[33m,[39mlastFileStillPresent[33m:[39mfiles[33m.[39mhas(last)[33m,[39mlastFileAttempted[33m:[39m([33mRNFS[39m[33m.[39munlink [36mas[39m jest[33m.[39m[33mMock[39m)[33m.[39mmock[33m.[39mcalls[33m.[39msome(x[33m=>[39mx[[35m0[39m][33m===[39mlast)[33m,[39mfirstAttempts[33m:[39mdb[33m.[39mexecuteSync([32m'SELECT attempts FROM attachment_cleanup WHERE user_id=? AND path=?'[39m[33m,[39m[a[33m,[39mpaths[[35m0[39m]])[33m.[39mrows[[35m0[39m][33m,[39mpending[33m:[39mpendingAttachmentCleanup(a)[33m.[39mlength}))[33m;[39m
+    [31m[1m>[22m[39m[90m 21 |[39m  expect(files[33m.[39mhas(last))[33m.[39mtoBe([36mfalse[39m)[33m;[39m
+     [90m    |[39m                          [31m[1m^[22m[39m
+     [90m 22 |[39m })[33m;[39m
+     [90m 23 |[39m[0m
+
+      at Object.toBe (docs/plans/agy-improvements/reports/evidence/codex-attachment-cleanup-audit-69aafcd-20261107/independentCleanupFairness.test.ts:21:26)
+      at asyncGeneratorStep (node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+      at _next (node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
+
+Test Suites: 1 failed, 1 total
+Tests:       1 failed, 1 total
+Snapshots:   0 total
+Time:        2.073 s
+Ran all test suites within paths "docs/plans/agy-improvements/reports/evidence/codex-attachment-cleanup-audit-69aafcd-20261107/independentCleanupFairness.test.ts".
+Test results written to: docs\plans\agy-improvements\reports\evidence\agy-port-20261106\attachment-queue-fairness-remediation-20261107\pre-fix-independent-fairness-1.json
+exit=1

@@ -1,0 +1,16 @@
+immutable-order: KILLED suites exit=1 Tests:       11 failed, 58 passed, 69 total; independent-fairness exit=1; restored=True sha256=0037cef88e806f7a400e02226121cd7ed3e1757170928fc13d70d90acc40fc29
+attempt-keeps-place: KILLED suites exit=1 Tests:       10 failed, 59 passed, 69 total; independent-fairness exit=1; restored=True sha256=0037cef88e806f7a400e02226121cd7ed3e1757170928fc13d70d90acc40fc29
+new-at-front: KILLED suites exit=1 Tests:       4 failed, 65 passed, 69 total; independent-fairness exit=0; restored=True sha256=0037cef88e806f7a400e02226121cd7ed3e1757170928fc13d70d90acc40fc29
+owner-blind-turns: KILLED suites exit=1 Tests:       1 failed, 68 passed, 69 total; independent-fairness exit=0; restored=True sha256=0037cef88e806f7a400e02226121cd7ed3e1757170928fc13d70d90acc40fc29
+refused-not-scheduled: KILLED suites exit=1 Tests:       1 failed, 68 passed, 69 total; independent-fairness exit=0; restored=True sha256=0037cef88e806f7a400e02226121cd7ed3e1757170928fc13d70d90acc40fc29
+claim-failure-unreported: KILLED suites exit=1 Tests:       4 failed, 65 passed, 69 total; independent-fairness exit=0; restored=True sha256=0037cef88e806f7a400e02226121cd7ed3e1757170928fc13d70d90acc40fc29
+claim-failure-proceeds: KILLED suites exit=1 Tests:       4 failed, 65 passed, 69 total; independent-fairness exit=0; restored=True sha256=0037cef88e806f7a400e02226121cd7ed3e1757170928fc13d70d90acc40fc29
+retire-failure-unreported: KILLED suites exit=1 Tests:       3 failed, 66 passed, 69 total; independent-fairness exit=0; restored=True sha256=0037cef88e806f7a400e02226121cd7ed3e1757170928fc13d70d90acc40fc29
+claim-unchecked: KILLED suites exit=1 Tests:       1 failed, 68 passed, 69 total; independent-fairness exit=0; restored=True sha256=0037cef88e806f7a400e02226121cd7ed3e1757170928fc13d70d90acc40fc29
+retire-uncounted-check: KILLED suites exit=1 Tests:       1 failed, 68 passed, 69 total; independent-fairness exit=0; restored=True sha256=0037cef88e806f7a400e02226121cd7ed3e1757170928fc13d70d90acc40fc29
+unbounded: KILLED suites exit=1 Tests:       9 failed, 60 passed, 69 total; independent-fairness exit=1; restored=True sha256=0037cef88e806f7a400e02226121cd7ed3e1757170928fc13d70d90acc40fc29
+overlapping-passes: KILLED suites exit=1 Tests:       1 failed, 68 passed, 69 total; independent-fairness exit=0; restored=True sha256=0037cef88e806f7a400e02226121cd7ed3e1757170928fc13d70d90acc40fc29
+no-backfill: KILLED suites exit=1 Tests:       1 failed, 68 passed, 69 total; independent-fairness exit=0; restored=True sha256=83ff8df246d83d3efc9bc7a45f83b4847b0726960a6909dab7223a1f85759269
+unsaved-not-said: KILLED suites exit=1 Tests:       2 failed, 67 passed, 69 total; independent-fairness exit=0; restored=True sha256=a7b95be60965e8b8e982ac3312eff7b2f430d6c86a59f4fc41e21361c098b15d
+ignore-session: KILLED suites exit=1 Tests:       4 failed, 65 passed, 69 total; independent-fairness exit=0; restored=True sha256=0037cef88e806f7a400e02226121cd7ed3e1757170928fc13d70d90acc40fc29
+ALL_KILLED_AND_RESTORED

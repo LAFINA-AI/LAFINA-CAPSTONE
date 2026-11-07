@@ -1,0 +1,678 @@
+[
+  {
+    "apk": "android\\app\\build\\outputs\\apk\\dataQa\\app-arm64-v8a-dataQa.apk",
+    "sha256": "4ff8d67e459bf572598b2d7c922885c3a5f871755b30b1d8b29fe81d42ed8532",
+    "receipt_match": true,
+    "bundle_sha256": "9c284de8ba7aa58fa5029b515d58b4a7bcace85a4c5fc608c6856a57eaeab17b",
+    "bundle_matches_claim": true,
+    "abis": [
+      "arm64-v8a"
+    ],
+    "markers": {
+      "attachment_cleanup": true,
+      "listed and tries again": true,
+      " not point to this app's attachment storage, so ": true,
+      "The sign-in changed before every file was removed": true,
+      "could not confirm that every chat attachment file was removed": true,
+      "Unreadable attachment cleanup count.": true,
+      "Owner-bound chat attachment cleanup obligations": true,
+      "Not Cleared": true,
+      "Clear All Data left planner records behind.": true,
+      "Starting Preview": true
+    },
+    "models": {
+      "assets/models/ggml-base.en-q5_1.bin": "4baf70dd0d7c4247ba2b81fafd9c01005ac77c2f9ef064e00dcf195d0e2fdd2f",
+      "assets/models/silero_vad.onnx": "7ed98ddbad84ccac4cd0aeb3099049280713df825c610a8ed34543318f1b2c49"
+    },
+    "kokoro": [],
+    "zip_alignment_failures": [],
+    "elfs": [
+      {
+        "name": "lib/arm64-v8a/libappmodules.so",
+        "loads": [
+          {
+            "align": 16384,
+            "pass": true
+          },
+          {
+            "align": 16384,
+            "pass": true
+          },
+          {
+            "align": 16384,
+            "pass": true
+          },
+          {
+            "align": 16384,
+            "pass": true
+          }
+        ],
+        "pass": true
+      },
+      {
+        "name": "lib/arm64-v8a/libc++_shared.so",
+        "loads": [
+          {
+            "align": 16384,
+            "pass": true
+          },
+          {
+            "align": 16384,
+            "pass": true
+          },
+          {
+            "align": 16384,
+            "pass": true
+          },
+          {
+            "align": 16384,
+            "pass": true
+          }
+        ],
+        "pass": true
+      },
+      {
+        "name": "lib/arm64-v8a/libfbjni.so",
+        "loads": [
+          {
+            "align": 16384,
+            "pass": true
+          },
+          {
+            "align": 16384,
+            "pass": true
+          },
+          {
+            "align": 16384,
+            "pass": true
+          }
+        ],
+        "pass": true
+      },
+      {
+        "name": "lib/arm64-v8a/libhermestooling.so",
+        "loads": [
+          {
+            "align": 16384,
+            "pass": true
+          },
+          {
+            "align": 16384,
+            "pass": true
+          },
+          {
+            "align": 16384,
+            "pass": true
+          }
+        ],
+        "pass": true
+      },
+      {
+        "name": "lib/arm64-v8a/libhermesvm.so",
+        "loads": [
+          {
+            "align": 16384,
+            "pass": true
+          },
+          {
+            "align": 16384,
+            "pass": true
+          },
+          {
+            "align": 16384,
+            "pass": true
+          }
+        ],
+        "pass": true
+      },
+      {
+        "name": "lib/arm64-v8a/libimagepipeline.so",
+        "loads": [
+          {
+            "align": 16384,
+            "pass": true
+          },
+          {
+            "align": 16384,
+            "pass": true
+          },
+          {
+            "align": 16384,
+            "pass": true
+          }
+        ],
+        "pass": true
+      },
+      {
+        "name": "lib/arm64-v8a/libjsi.so",
+        "loads": [
+          {
+            "align": 16384,
+            "pass": true
+          },
+          {
+            "align": 16384,
+            "pass": true
+          },
+          {
+            "align": 16384,
+            "pass": true
+          }
+        ],
+        "pass": true
+      },
+      {
+        "name": "lib/arm64-v8a/liblafina_whisper.so",
+        "loads": [
+          {
+            "align": 16384,
+            "pass": true
+          },
+          {
+            "align": 16384,
+            "pass": true
+          },
+          {
+            "align": 16384,
+            "pass": true
+          },
+          {
+            "align": 16384,
+            "pass": true
+          }
+        ],
+        "pass": true
+      },
+      {
+        "name": "lib/arm64-v8a/libnative-filters.so",
+        "loads": [
+          {
+            "align": 16384,
+            "pass": true
+          },
+          {
+            "align": 16384,
+            "pass": true
+          },
+          {
+            "align": 16384,
+            "pass": true
+          }
+        ],
+        "pass": true
+      },
+      {
+        "name": "lib/arm64-v8a/libnative-imagetranscoder.so",
+        "loads": [
+          {
+            "align": 16384,
+            "pass": true
+          },
+          {
+            "align": 16384,
+            "pass": true
+          },
+          {
+            "align": 16384,
+            "pass": true
+          }
+        ],
+        "pass": true
+      },
+      {
+        "name": "lib/arm64-v8a/libop-sqlite.so",
+        "loads": [
+          {
+            "align": 16384,
+            "pass": true
+          },
+          {
+            "align": 16384,
+            "pass": true
+          },
+          {
+            "align": 16384,
+            "pass": true
+          },
+          {
+            "align": 16384,
+            "pass": true
+          }
+        ],
+        "pass": true
+      },
+      {
+        "name": "lib/arm64-v8a/libreact_codegen_rnsvg.so",
+        "loads": [
+          {
+            "align": 16384,
+            "pass": true
+          },
+          {
+            "align": 16384,
+            "pass": true
+          },
+          {
+            "align": 16384,
+            "pass": true
+          },
+          {
+            "align": 16384,
+            "pass": true
+          }
+        ],
+        "pass": true
+      },
+      {
+        "name": "lib/arm64-v8a/libreact_codegen_safeareacontext.so",
+        "loads": [
+          {
+            "align": 16384,
+            "pass": true
+          },
+          {
+            "align": 16384,
+            "pass": true
+          },
+          {
+            "align": 16384,
+            "pass": true
+          },
+          {
+            "align": 16384,
+            "pass": true
+          }
+        ],
+        "pass": true
+      },
+      {
+        "name": "lib/arm64-v8a/libreactnative.so",
+        "loads": [
+          {
+            "align": 16384,
+            "pass": true
+          },
+          {
+            "align": 16384,
+            "pass": true
+          },
+          {
+            "align": 16384,
+            "pass": true
+          }
+        ],
+        "pass": true
+      },
+      {
+        "name": "lib/arm64-v8a/libonnxruntime.so",
+        "loads": [
+          {
+            "align": 16384,
+            "pass": true
+          },
+          {
+            "align": 16384,
+            "pass": true
+          },
+          {
+            "align": 16384,
+            "pass": true
+          }
+        ],
+        "pass": true
+      },
+      {
+        "name": "lib/arm64-v8a/libonnxruntime4j_jni.so",
+        "loads": [
+          {
+            "align": 16384,
+            "pass": true
+          },
+          {
+            "align": 16384,
+            "pass": true
+          }
+        ],
+        "pass": true
+      }
+    ]
+  },
+  {
+    "apk": "android\\app\\build\\outputs\\apk\\dataQa\\app-x86_64-dataQa.apk",
+    "sha256": "e9ec1f09e4b06eddf51e5355d14b634f1aee5c4229b61562572fb2d43da27086",
+    "receipt_match": true,
+    "bundle_sha256": "9c284de8ba7aa58fa5029b515d58b4a7bcace85a4c5fc608c6856a57eaeab17b",
+    "bundle_matches_claim": true,
+    "abis": [
+      "x86_64"
+    ],
+    "markers": {
+      "attachment_cleanup": true,
+      "listed and tries again": true,
+      " not point to this app's attachment storage, so ": true,
+      "The sign-in changed before every file was removed": true,
+      "could not confirm that every chat attachment file was removed": true,
+      "Unreadable attachment cleanup count.": true,
+      "Owner-bound chat attachment cleanup obligations": true,
+      "Not Cleared": true,
+      "Clear All Data left planner records behind.": true,
+      "Starting Preview": true
+    },
+    "models": {
+      "assets/models/ggml-base.en-q5_1.bin": "4baf70dd0d7c4247ba2b81fafd9c01005ac77c2f9ef064e00dcf195d0e2fdd2f",
+      "assets/models/silero_vad.onnx": "7ed98ddbad84ccac4cd0aeb3099049280713df825c610a8ed34543318f1b2c49"
+    },
+    "kokoro": [],
+    "zip_alignment_failures": [],
+    "elfs": [
+      {
+        "name": "lib/x86_64/libappmodules.so",
+        "loads": [
+          {
+            "align": 16384,
+            "pass": true
+          },
+          {
+            "align": 16384,
+            "pass": true
+          },
+          {
+            "align": 16384,
+            "pass": true
+          },
+          {
+            "align": 16384,
+            "pass": true
+          }
+        ],
+        "pass": true
+      },
+      {
+        "name": "lib/x86_64/libc++_shared.so",
+        "loads": [
+          {
+            "align": 16384,
+            "pass": true
+          },
+          {
+            "align": 16384,
+            "pass": true
+          },
+          {
+            "align": 16384,
+            "pass": true
+          },
+          {
+            "align": 16384,
+            "pass": true
+          }
+        ],
+        "pass": true
+      },
+      {
+        "name": "lib/x86_64/libfbjni.so",
+        "loads": [
+          {
+            "align": 16384,
+            "pass": true
+          },
+          {
+            "align": 16384,
+            "pass": true
+          },
+          {
+            "align": 16384,
+            "pass": true
+          }
+        ],
+        "pass": true
+      },
+      {
+        "name": "lib/x86_64/libhermestooling.so",
+        "loads": [
+          {
+            "align": 16384,
+            "pass": true
+          },
+          {
+            "align": 16384,
+            "pass": true
+          },
+          {
+            "align": 16384,
+            "pass": true
+          }
+        ],
+        "pass": true
+      },
+      {
+        "name": "lib/x86_64/libhermesvm.so",
+        "loads": [
+          {
+            "align": 16384,
+            "pass": true
+          },
+          {
+            "align": 16384,
+            "pass": true
+          },
+          {
+            "align": 16384,
+            "pass": true
+          }
+        ],
+        "pass": true
+      },
+      {
+        "name": "lib/x86_64/libimagepipeline.so",
+        "loads": [
+          {
+            "align": 16384,
+            "pass": true
+          },
+          {
+            "align": 16384,
+            "pass": true
+          },
+          {
+            "align": 16384,
+            "pass": true
+          }
+        ],
+        "pass": true
+      },
+      {
+        "name": "lib/x86_64/libjsi.so",
+        "loads": [
+          {
+            "align": 16384,
+            "pass": true
+          },
+          {
+            "align": 16384,
+            "pass": true
+          },
+          {
+            "align": 16384,
+            "pass": true
+          }
+        ],
+        "pass": true
+      },
+      {
+        "name": "lib/x86_64/liblafina_whisper.so",
+        "loads": [
+          {
+            "align": 16384,
+            "pass": true
+          },
+          {
+            "align": 16384,
+            "pass": true
+          },
+          {
+            "align": 16384,
+            "pass": true
+          },
+          {
+            "align": 16384,
+            "pass": true
+          }
+        ],
+        "pass": true
+      },
+      {
+        "name": "lib/x86_64/libnative-filters.so",
+        "loads": [
+          {
+            "align": 16384,
+            "pass": true
+          },
+          {
+            "align": 16384,
+            "pass": true
+          },
+          {
+            "align": 16384,
+            "pass": true
+          }
+        ],
+        "pass": true
+      },
+      {
+        "name": "lib/x86_64/libnative-imagetranscoder.so",
+        "loads": [
+          {
+            "align": 16384,
+            "pass": true
+          },
+          {
+            "align": 16384,
+            "pass": true
+          },
+          {
+            "align": 16384,
+            "pass": true
+          }
+        ],
+        "pass": true
+      },
+      {
+        "name": "lib/x86_64/libop-sqlite.so",
+        "loads": [
+          {
+            "align": 16384,
+            "pass": true
+          },
+          {
+            "align": 16384,
+            "pass": true
+          },
+          {
+            "align": 16384,
+            "pass": true
+          },
+          {
+            "align": 16384,
+            "pass": true
+          }
+        ],
+        "pass": true
+      },
+      {
+        "name": "lib/x86_64/libreact_codegen_rnsvg.so",
+        "loads": [
+          {
+            "align": 16384,
+            "pass": true
+          },
+          {
+            "align": 16384,
+            "pass": true
+          },
+          {
+            "align": 16384,
+            "pass": true
+          },
+          {
+            "align": 16384,
+            "pass": true
+          }
+        ],
+        "pass": true
+      },
+      {
+        "name": "lib/x86_64/libreact_codegen_safeareacontext.so",
+        "loads": [
+          {
+            "align": 16384,
+            "pass": true
+          },
+          {
+            "align": 16384,
+            "pass": true
+          },
+          {
+            "align": 16384,
+            "pass": true
+          },
+          {
+            "align": 16384,
+            "pass": true
+          }
+        ],
+        "pass": true
+      },
+      {
+        "name": "lib/x86_64/libreactnative.so",
+        "loads": [
+          {
+            "align": 16384,
+            "pass": true
+          },
+          {
+            "align": 16384,
+            "pass": true
+          },
+          {
+            "align": 16384,
+            "pass": true
+          }
+        ],
+        "pass": true
+      },
+      {
+        "name": "lib/x86_64/libonnxruntime.so",
+        "loads": [
+          {
+            "align": 16384,
+            "pass": true
+          },
+          {
+            "align": 16384,
+            "pass": true
+          },
+          {
+            "align": 16384,
+            "pass": true
+          }
+        ],
+        "pass": true
+      },
+      {
+        "name": "lib/x86_64/libonnxruntime4j_jni.so",
+        "loads": [
+          {
+            "align": 16384,
+            "pass": true
+          },
+          {
+            "align": 16384,
+            "pass": true
+          }
+        ],
+        "pass": true
+      }
+    ]
+  }
+]

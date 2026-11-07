@@ -1,0 +1,29 @@
+{
+  "focused": [
+    "node",
+    "--max-old-space-size=384",
+    "node_modules/jest/bin/jest.js",
+    "--runInBand",
+    "--runTestsByPath",
+    "__tests__\\ai\\agyPort10Speech.test.ts",
+    "__tests__\\ai\\finalAuditF1PreviewAdmission.test.ts",
+    "__tests__\\ai\\finalAuditF2Ducking.test.ts",
+    "__tests__\\evaluation\\evaluationContracts.test.ts",
+    "__tests__\\preservation\\agyPreservedContracts.test.ts",
+    "__tests__\\storage\\accountDataReset.test.ts",
+    "__tests__\\storage\\agyPort09HealthPreferencesStats.test.ts",
+    "__tests__\\storage\\attachmentCleanup.test.ts",
+    "__tests__\\storage\\chatOwnership.test.ts",
+    "__tests__\\storage\\phase02CalendarAndNotes.test.ts",
+    "__tests__\\storage\\schemaMigrations.test.ts",
+    "__tests__\\ui\\agyPort09ProfileHealth.test.tsx",
+    "__tests__\\ui\\agyPort10OfflineVoice.test.tsx",
+    "__tests__\\ui\\auditA3ClearAllData.test.tsx",
+    "__tests__\\ui\\clearDataAttachmentCleanup.test.tsx",
+    "__tests__\\ui\\finalAuditF1OfflineVoicePending.test.tsx",
+    "__tests__\\ui\\finalAuditF3ClearAllDataFailure.test.tsx",
+    "__tests__\\ui\\remediationAuditClearAllData.test.tsx",
+    "--json",
+    "--outputFile=C:\\L3mxr\\Github Repositories\\LAFINA-CAPSTONE-agy-development-cont\\docs\\plans\\agy-improvements\\reports\\evidence\\codex-attachment-cleanup-audit-69aafcd-20261107\\focused-and-preservation.json"
+  ]
+}
