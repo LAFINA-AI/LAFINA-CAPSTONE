@@ -166,6 +166,12 @@ const errorResult = (
 export interface CloudStreamOptions {
   /** Called with each newly received piece of the response body. */
   onText: (chunk: string) => void;
+  /**
+   * True once the response says it is complete (an SSE "done" event). The
+   * request then resolves at once, without waiting for the server to close
+   * the connection after its own bookkeeping.
+   */
+  isComplete?: () => boolean;
   signal?: AbortSignal;
   /** Whole-request limit; the backend's own function limit is 60 s. */
   timeoutMs?: number;
@@ -234,6 +240,9 @@ const postStreaming = (
         const chunk = text.slice(delivered);
         delivered = text.length;
         options.onText(chunk);
+        if (options.isComplete?.()) {
+          finish({ kind: 'response', status: xhr.status, text });
+        }
       }
     };
     xhr.open('POST', url);

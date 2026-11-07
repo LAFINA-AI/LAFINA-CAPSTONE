@@ -292,6 +292,9 @@ export const onlineChatSkill = {
             options.onReplyText(normalizeName(reply.trimStart()));
           }
         },
+        // The reply is final at "done" (or "error"); the server may still be
+        // saving usage before it closes the connection.
+        isComplete: () => done !== null || failed,
       },
       true,
     );
