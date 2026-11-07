@@ -31,7 +31,6 @@ import { SettingItem } from '../components/profile/SettingItem';
 import { PrivacyModal } from '../components/profile/PrivacyModal';
 import { StudentProTag } from '../components/profile/StudentProTag';
 import { AppUpdateItem } from '../components/profile/AppUpdateItem';
-import { removeAttachmentFilesReportingFailures } from '../components/chat/chatFiles';
 import { PreferencesSettingsScreen } from './PreferencesSettingsScreen';
 import { ReminderHealth } from '../components/profile/ReminderHealth';
 import { PersonalMemory } from '../components/profile/PersonalMemory';
@@ -43,7 +42,12 @@ import {
 } from '../../storage/profileStatisticsStore';
 import type { ProfileStatistics } from '../../storage/profileStatisticsStore';
 import { personalMemoryStore } from '../../storage/personalMemoryStore';
-import { authorizeDataReset, resetPersonalData } from '../../storage/accountDataReset';
+import {
+  authorizeDataReset,
+  finishAttachmentCleanup,
+  hasAttachmentCleanup,
+  resetPersonalData,
+} from '../../storage/accountDataReset';
 import type { DataResetAuthority } from '../../storage/accountDataReset';
 
 function getInitials(username: string | null | undefined): string {
@@ -262,24 +266,27 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
       authority,
       () => alive.current && currentUserId.current === authority?.userId,
     );
-    if (!outcome.admitted) {
+    if (!outcome.admitted || !authority) {
       Alert.alert(
         'Not Cleared',
         'Nothing was deleted, because the account, sign-in or screen changed after Clear All Data was opened. Open Profile and choose Clear All Data again to clear the account that is signed in now.',
       );
       return;
     }
-    // The files of this owner's already-cleared messages; the request was
-    // admitted above, so finishing it does not depend on the session.
-    const filesNotRemoved =
-      outcome.attachmentUris.length > 0
-        ? await removeAttachmentFilesReportingFailures(outcome.attachmentUris)
-        : 0;
+    // Clear-data audit C1 (ADR-026): every saved attachment cleanup for this
+    // owner, from this attempt or an earlier one, gets one bounded pass. Only
+    // obligations still saved afterwards count as files not removed.
+    const cleanup = hasAttachmentCleanup(authority)
+      ? await finishAttachmentCleanup(authority)
+      : { removed: 0, pending: 0, interrupted: false };
     const plannerCleared = outcome.planner === 'cleared';
     const chatCleared = outcome.chat === 'cleared';
     const defaultsCleared = outcome.defaults === 'cleared';
+    const filesPending = cleanup.pending;
+    const refused = outcome.refusedAttachments;
+    const filesConfirmed = filesPending === 0 && refused === 0;
 
-    if (plannerCleared && chatCleared && defaultsCleared && filesNotRemoved === 0) {
+    if (plannerCleared && chatCleared && defaultsCleared && filesConfirmed) {
       Alert.alert(
         'Data Cleared',
         'All personal scheduling data and saved event defaults have been deleted.',
@@ -299,15 +306,29 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
               plannerCleared ? '' : '; none of those planner records were changed'
             }.`
           : '',
-        filesNotRemoved > 0
-          ? `${filesNotRemoved} chat attachment file${
-              filesNotRemoved === 1 ? '' : 's'
-            } could not be removed from this phone's storage.`
+        filesPending === null
+          ? "This phone could not confirm that every chat attachment file was removed."
+          : filesPending > 0
+            ? `${filesPending} chat attachment file${
+                filesPending === 1 ? '' : 's'
+              } could not be removed from this phone's storage yet; Clear All Data keeps ${
+                filesPending === 1 ? 'it' : 'them'
+              } listed and tries again.`
+            : '',
+        cleanup.interrupted
+          ? 'The sign-in changed before every file was removed; the rest stay listed for this account.'
+          : '',
+        refused > 0
+          ? `${refused} chat attachment reference${
+              refused === 1 ? ' did' : 's did'
+            } not point to this app's attachment storage, so ${
+              refused === 1 ? 'that file was' : 'those files were'
+            } left untouched.`
           : '',
         defaultsCleared
           ? ''
           : 'To remove the saved event defaults, open Event Defaults and choose Forget all event defaults.',
-        plannerCleared && chatCleared && filesNotRemoved === 0 ? '' : 'Try Clear All Data again.',
+        plannerCleared && chatCleared && filesPending === 0 ? '' : 'Try Clear All Data again.',
         'Device settings such as the offline voice, theme and time format were kept.',
       ];
       Alert.alert('Data Partly Cleared', lines.filter(Boolean).join(' '));

@@ -301,7 +301,7 @@ describe('resetPersonalData failures are reported, not inferred (P2)', () => {
       planner: 'cleared',
       chat: 'failed',
       defaults: 'cleared',
-      attachmentUris: [],
+      refusedAttachments: 0,
     });
     expect(live(a)).toEqual([0, 0, 0, 0, 0, 1]);
   });
@@ -321,7 +321,7 @@ describe('resetPersonalData success', () => {
       planner: 'cleared',
       chat: 'cleared',
       defaults: 'cleared',
-      attachmentUris: [],
+      refusedAttachments: 0,
     });
     expect(live(a)).toEqual(EMPTY);
     const tombstones = Number(

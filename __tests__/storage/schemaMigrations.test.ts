@@ -124,7 +124,7 @@ describe('schema migrations', () => {
     expect(readUserVersion(first)).toBe(CURRENT_SCHEMA_VERSION);
     first.close();
 
-    // Schemas 18-22 only add: every schema-17 column of every row is unchanged.
+    // Schemas 18-23 only add: every schema-17 column of every row is unchanged.
     const afterUpgrade = inspect(path, snapshotAllRows);
     const projected = inspect(path, c => snapshotSchema17Columns(c, schema17Columns));
     for (const [table, rows] of Object.entries(before)) {
@@ -133,6 +133,8 @@ describe('schema migrations', () => {
     const added = Object.keys(afterUpgrade).filter(t => !(t in before));
     expect(added).toEqual([
       'assistant_operation_receipts',
+      // Schema 23 (clear-data audit C1): attachment cleanup obligations.
+      'attachment_cleanup',
       'chat_legacy_quarantine',
       'entity_local_revisions',
       // Schema 22 (AGY-PORT 08): device-local event timezone metadata; legacy

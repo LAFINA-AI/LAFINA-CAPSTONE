@@ -7,6 +7,13 @@ import { timeBlocksStore } from './timeBlocksStore';
 import { remindersStore } from './remindersStore';
 import { chatStore } from './chatStore';
 import { personalMemoryStore } from './personalMemoryStore';
+import {
+  attachmentCleanupTarget,
+  pendingAttachmentCleanup,
+  recordAttachmentCleanup,
+  runAttachmentCleanup,
+} from './attachmentCleanup';
+import type { AttachmentCleanupResult } from './attachmentCleanup';
 
 /**
  * Profile "Clear All Data" as one owner-bound operation (remediation audit,
@@ -29,6 +36,11 @@ import { personalMemoryStore } from './personalMemoryStore';
  * Synchronous from authorization to the last write: no other JavaScript can
  * change the session in between. Device settings (offline voice, theme, time
  * format) are not touched.
+ *
+ * Clear-data audit C1 (ADR-026): chat attachment files are recorded as durable
+ * owner-bound cleanup obligations in the same transaction that deletes their
+ * messages, then removed by `finishAttachmentCleanup`, which retries every
+ * obligation this owner still has, including ones from earlier attempts.
  */
 
 export interface DataResetAuthority {
@@ -47,8 +59,11 @@ export type DataResetOutcome =
       chat: DataResetStep;
       /** Saved event defaults (personalMemoryStore.clearForDataReset). */
       defaults: DataResetStep;
-      /** Files of this owner's cleared chat messages, still to be removed. */
-      attachmentUris: string[];
+      /**
+       * Attachment references of the cleared messages that are not files this
+       * app stores (see attachmentCleanupTarget); left untouched, not recorded.
+       */
+      refusedAttachments: number;
     };
 
 class DataResetRefused extends Error {
@@ -137,16 +152,30 @@ export const resetPersonalData = (
   }
 
   let chat: DataResetStep = 'failed';
-  let attachmentUris: string[] = [];
+  let refusedAttachments = 0;
   if (stillAdmitted(authority, isCurrent)) {
     try {
-      // Only this owner's own conversation and generated files.
-      const uris = chatStore.getAttachmentUris(userId);
-      chatStore.clearHistory(userId);
-      attachmentUris = uris;
+      refusedAttachments = db.transactionSync(tx => {
+        if (!stillAdmitted(authority, isCurrent, tx)) throw new DataResetRefused();
+        // Only this owner's own conversation and generated files.
+        const targets = new Set<string>();
+        const refused = new Set<string>();
+        for (const uri of chatStore.getAttachmentUris(userId, tx)) {
+          const target = attachmentCleanupTarget(uri);
+          if (target) targets.add(target);
+          else refused.add(uri);
+        }
+        // Saved with the delete: the only reference to a file is never lost
+        // before the obligation to remove it is durable (ADR-026).
+        recordAttachmentCleanup(tx, userId, targets);
+        chatStore.clearHistory(userId, tx);
+        return refused.size;
+      });
       chat = 'cleared';
     } catch (error) {
-      console.warn('[DataReset] Chat history was not cleared:', error);
+      if (!(error instanceof DataResetRefused)) {
+        console.warn('[DataReset] Chat history was not cleared (rolled back):', error);
+      }
     }
   }
 
@@ -161,5 +190,29 @@ export const resetPersonalData = (
     }
   }
 
-  return { admitted: true, planner, chat, defaults, attachmentUris };
+  return { admitted: true, planner, chat, defaults, refusedAttachments };
 };
+
+/**
+ * True when `authority`'s owner has saved attachment cleanup (or it cannot be
+ * read), so the caller only waits for files when there are files to remove.
+ */
+export const hasAttachmentCleanup = (authority: DataResetAuthority): boolean => {
+  try {
+    return pendingAttachmentCleanup(authority.userId).length > 0;
+  } catch {
+    return true; // unknown: the pass runs and reports what it can confirm
+  }
+};
+
+/**
+ * After an admitted reset: one bounded pass over every attachment cleanup
+ * obligation `authority`'s owner still has, including ones left by earlier
+ * attempts. It stops as soon as that sign-in is no longer current, leaving the
+ * rest saved for the owner's next Clear All Data; it never touches another
+ * owner's obligations or files.
+ */
+export const finishAttachmentCleanup = (
+  authority: DataResetAuthority,
+): Promise<AttachmentCleanupResult> =>
+  runAttachmentCleanup(authority.userId, () => stillAdmitted(authority, () => true));

@@ -315,10 +315,15 @@ export const chatStore = {
     }
   },
 
-  /** File locations attached to the caller's own conversation. */
-  getAttachmentUris: (userId: string): string[] => {
-    const sessionId = chatStore.ensureDefaultSession(userId);
-    return db
+  /**
+   * File locations attached to the caller's own conversation. With `executor`
+   * it reads inside the caller's transaction (Clear All Data, ADR-026).
+   */
+  getAttachmentUris: (userId: string, executor?: DatabaseTransaction): string[] => {
+    const sessionId = executor
+      ? ensureOwnedSession(userId, executor).sessionId
+      : chatStore.ensureDefaultSession(userId);
+    return (executor ?? db)
       .executeSync(
         `SELECT m.attachment_json FROM ${OWNED_MESSAGES} AND m.attachment_json IS NOT NULL`,
         [sessionId, userId],
@@ -338,17 +343,22 @@ export const chatStore = {
     }
   },
 
-  /** Deletes only the caller's own messages. Quarantined legacy history is untouched. */
-  clearHistory: (userId: string): void => {
+  /**
+   * Deletes only the caller's own messages. Quarantined legacy history is
+   * untouched. With `executor` it runs inside the caller's transaction.
+   */
+  clearHistory: (userId: string, executor?: DatabaseTransaction): void => {
+    const clear = (tx: DatabaseTransaction) => {
+      const { sessionId } = ensureOwnedSession(userId, tx);
+      tx.executeSync(
+        `DELETE FROM messages WHERE session_id = ?
+           AND EXISTS (SELECT 1 FROM chat_sessions s WHERE s.id = messages.session_id AND s.user_id = ?)`,
+        [sessionId, userId],
+      );
+    };
     try {
-      db.transactionSync((tx) => {
-        const { sessionId } = ensureOwnedSession(userId, tx);
-        tx.executeSync(
-          `DELETE FROM messages WHERE session_id = ?
-             AND EXISTS (SELECT 1 FROM chat_sessions s WHERE s.id = messages.session_id AND s.user_id = ?)`,
-          [sessionId, userId],
-        );
-      });
+      if (executor) clear(executor);
+      else db.transactionSync(clear);
     } catch (error) {
       console.error('Error clearing chat history:', error);
       throw error;

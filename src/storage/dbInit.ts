@@ -23,6 +23,7 @@ import {migrateReminderDelivery} from './deliverySchema';
 import {migrateAssistantOperations} from './assistantOperationSchema';
 import {migrateNotesSearch} from './notesSearchSchema';
 import {migrateEventTime} from './eventTimeSchema';
+import {migrateAttachmentCleanup} from './attachmentCleanupSchema';
 
 export interface SchemaMigration {
   /** The `user_version` this step produces. */
@@ -78,6 +79,14 @@ export const SCHEMA_MIGRATIONS: readonly SchemaMigration[] = [
       'Device-local event timezone metadata with wall-time invalidation triggers (AGY-PORT 08)',
     up: tx => {
       migrateEventTime(tx);
+    },
+  },
+  {
+    version: 23,
+    description:
+      'Owner-bound chat attachment cleanup obligations for Clear All Data (clear-data audit C1)',
+    up: tx => {
+      migrateAttachmentCleanup(tx);
     },
   },
 ];
