@@ -27,6 +27,7 @@ class MicrophoneLeaseRegistry(private val lockFile: () -> File?) {
   enum class Holder {
     SPEECH_TO_TEXT,
     MEETING_RECORDER,
+    VOICE_CONVERSATION,
   }
 
   class Ticket internal constructor(

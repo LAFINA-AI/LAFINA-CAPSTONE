@@ -44,6 +44,7 @@ object LafinaMicrophoneLease {
   fun busyMessage(): String = when (activeHolder()) {
     MicrophoneLeaseRegistry.Holder.MEETING_RECORDER -> "Microphone is currently in use by meeting recorder."
     MicrophoneLeaseRegistry.Holder.SPEECH_TO_TEXT -> "Microphone is currently in use by voice assistant."
+    MicrophoneLeaseRegistry.Holder.VOICE_CONVERSATION -> "Microphone is currently in use by a voice conversation."
     null -> "Microphone is currently in use."
   }
 }

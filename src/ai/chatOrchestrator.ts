@@ -102,6 +102,13 @@ export interface ChatOrchestratorResult {
   reply: string;
 }
 
+/** What the device made of a spoken conversation turn (see `reviewSpokenTurn`). */
+export type SpokenTurnReview =
+  | { kind: 'none' }
+  | { kind: 'proposal'; review: PrepareResult; reply: string }
+  | { kind: 'note'; reply: string }
+  | { kind: 'local_answer'; reply: string };
+
 /** Parses HH:mm string to minutes from midnight. */
 export function timeToMinutes(timeStr: string): number {
   const parts = (timeStr || '').trim().split(':');
@@ -329,6 +336,46 @@ export class ChatOrchestrator {
    * 6. Persists assistant reply (and optional document attachment) to chatStore.
    * 7. Reads aloud reply via react-native-tts if requested.
    */
+  /**
+   * A finished spoken turn in a live voice conversation, read on the device.
+   *
+   * A planner change becomes a review card on the voice surface (nothing is
+   * written until the student taps Confirm); a schedule question is answered
+   * from local data, shown on screen and never sent online; anything else is
+   * left to the conversation. Nothing is saved to the chat here: the
+   * conversation persists its own turns.
+   */
+  async reviewSpokenTurn(
+    userId: string,
+    text: string,
+    options: { referenceDate?: Date } = {},
+  ): Promise<SpokenTurnReview> {
+    const trimmed = (text || '').trim();
+    if (!trimmed) return { kind: 'none' };
+    const refDate = options.referenceDate || new Date();
+    const validated = await intentService.extractIntent(trimmed, { referenceDate: refDate });
+    const route = routeIntent(validated.intent);
+    if (route === 'reviewed_mutation') {
+      const smallTalk = classifySmallTalk(trimmed);
+      if (validated.intent === 'acknowledge' || smallTalk === 'thanks' || smallTalk === 'acknowledgement') {
+        // "yes", "okay", "thanks": conversation, never an authorization.
+        return { kind: 'none' };
+      }
+      const review = prepareReviewedCommand(userId, validated, {
+        referenceDate: refDate,
+        surface: 'voice',
+      });
+      return review.status === 'proposal'
+        ? { kind: 'proposal', review, reply: review.reply }
+        : { kind: 'note', reply: review.reply };
+    }
+    if (route === 'read_only') {
+      const result = await executeNluAction(userId, validated, { referenceDate: refDate });
+      return { kind: 'local_answer', reply: result.reply };
+    }
+    return { kind: 'none' };
+  }
+
   async processMessage(
     userId: string,
     text: string,

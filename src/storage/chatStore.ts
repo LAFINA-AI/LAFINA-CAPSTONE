@@ -21,6 +21,8 @@ export interface ChatMessage {
   handbookNote?: string | null;
   /** True for an assistant reply written on the device, not by DeepSeek. */
   localReply?: boolean;
+  /** A live voice-conversation answer the student interrupted before it finished. */
+  voiceInterrupted?: boolean;
   /** Durable insertion order; breaks ties between equal timestamps. */
   sequence?: number;
   createdAt: string;
@@ -39,6 +41,8 @@ export interface ChatMessageMetadata {
   handbookNote?: string | null;
   /** Marks an on-device reply so it is never sent to DeepSeek as its own words. */
   localReply?: boolean;
+  /** Saved from a live voice conversation and not heard to the end. */
+  voiceInterrupted?: boolean;
 }
 
 export interface ChatPage {
@@ -99,14 +103,15 @@ const parseHandbookNote = (raw: unknown): string | null => {
   }
 };
 
-const parseLocalReply = (raw: unknown): boolean => {
+const parseFlag = (raw: unknown, flag: 'localReply' | 'voiceInterrupted'): boolean => {
   if (typeof raw !== 'string' || !raw) return false;
   try {
-    return (JSON.parse(raw) as { localReply?: unknown })?.localReply === true;
+    return (JSON.parse(raw) as Record<string, unknown> | null)?.[flag] === true;
   } catch {
     return false;
   }
 };
+const parseLocalReply = (raw: unknown): boolean => parseFlag(raw, 'localReply');
 
 const mapMessage = (row: Record<string, unknown>): ChatMessage => ({
   id: String(row.id),
@@ -116,6 +121,7 @@ const mapMessage = (row: Record<string, unknown>): ChatMessage => ({
   attachment: parseAttachment(row.attachment_json),
   handbookNote: parseHandbookNote(row.metadata_json),
   localReply: parseLocalReply(row.metadata_json),
+  voiceInterrupted: parseFlag(row.metadata_json, 'voiceInterrupted'),
   sequence: Number(row.seq),
   createdAt: String(row.created_at),
   updatedAt: String(row.updated_at),
@@ -294,6 +300,7 @@ export const chatStore = {
       const metadataValue = {
         ...(msg.metadata?.handbookNote ? { handbookNote: msg.metadata.handbookNote } : {}),
         ...(msg.metadata?.localReply ? { localReply: true } : {}),
+        ...(msg.metadata?.voiceInterrupted ? { voiceInterrupted: true } : {}),
       };
       const metadataJson = Object.keys(metadataValue).length
         ? JSON.stringify(metadataValue)
@@ -321,6 +328,7 @@ export const chatStore = {
         attachment: msg.attachment || null,
         handbookNote: msg.metadata?.handbookNote || null,
         localReply: msg.metadata?.localReply === true,
+        voiceInterrupted: msg.metadata?.voiceInterrupted === true,
         sequence: Number(row?.seq),
         createdAt: now,
         updatedAt: now,

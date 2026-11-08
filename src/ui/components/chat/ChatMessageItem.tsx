@@ -208,6 +208,15 @@ export const ChatMessageItem: React.FC<ChatMessageItemProps> = ({
           </View>
         ) : null}
 
+        {!isUser && item.voiceInterrupted ? (
+          <Text
+            style={[styles.handbookText, styles.interruptedText, themed.assistantTime]}
+            testID="chat-voice-interrupted"
+          >
+            Interrupted in voice conversation (not heard to the end)
+          </Text>
+        ) : null}
+
         {streaming ? null : (
         <View style={styles.footerRow}>
           <Text
@@ -342,6 +351,10 @@ const styles = StyleSheet.create({
   handbookText: {
     fontFamily: Fonts.body,
     fontSize: 10.5,
+  },
+  interruptedText: {
+    marginTop: 6,
+    fontStyle: 'italic',
   },
   footerRow: {
     flexDirection: 'row',
