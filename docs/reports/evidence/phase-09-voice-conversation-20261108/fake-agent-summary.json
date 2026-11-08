@@ -1,0 +1,84 @@
+{
+  "conversations": [
+    {
+      "conversationId": "redacted-local",
+      "voiceOverride": true,
+      "micFrames": 1731,
+      "micLoudFrames": 0,
+      "pongs": 37,
+      "userActivity": 1,
+      "turns": [
+        {
+          "chars": 67,
+          "llmStatus": 200,
+          "firstTokenMs": 3686,
+          "answerChars": 176,
+          "totalTextMs": 4105,
+          "audioSeconds": 10.559999999999999,
+          "firstAudioMs": 4192
+        },
+        {
+          "chars": 68,
+          "llmStatus": 200,
+          "firstTokenMs": 2257,
+          "answerChars": 589,
+          "totalTextMs": 3266,
+          "audioSeconds": 12.0,
+          "firstAudioMs": 3374
+        },
+        {
+          "chars": 50,
+          "llmStatus": 200,
+          "firstTokenMs": 2316,
+          "answerChars": 361,
+          "totalTextMs": 2961,
+          "audioSeconds": 12.0,
+          "firstAudioMs": 3068
+        },
+        {
+          "chars": 30,
+          "llmStatus": 200,
+          "firstTokenMs": 2111,
+          "answerChars": 173,
+          "totalTextMs": 2451,
+          "audioSeconds": 10.379999999999999,
+          "firstAudioMs": 2536
+        }
+      ],
+      "interruptionsSent": 1,
+      "closedBy": "phone",
+      "grantPresent": true
+    },
+    {
+      "conversationId": "redacted-local",
+      "voiceOverride": true,
+      "micFrames": 359,
+      "micLoudFrames": 0,
+      "pongs": 7,
+      "userActivity": 0,
+      "turns": [
+        {
+          "chars": 39,
+          "llmStatus": 200,
+          "firstTokenMs": 2411,
+          "answerChars": 540,
+          "totalTextMs": 3353,
+          "audioSeconds": 12.0,
+          "firstAudioMs": 3457
+        },
+        {
+          "chars": 25,
+          "llmStatus": 200,
+          "firstTokenMs": 2489,
+          "answerChars": 309,
+          "totalTextMs": 3177,
+          "audioSeconds": 12.0,
+          "firstAudioMs": 3272
+        }
+      ],
+      "interruptionsSent": 1,
+      "closedBy": "phone",
+      "grantPresent": true
+    }
+  ]
+}
