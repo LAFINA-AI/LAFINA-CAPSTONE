@@ -13,6 +13,8 @@ import {
   DeviceEventEmitter,
   ScrollView,
   AppState,
+  KeyboardAvoidingView,
+  Platform,
 } from 'react-native';
 import {Fonts, Shadows} from '../theme';
 import {
@@ -154,6 +156,28 @@ export const VoiceModal: React.FC<VoiceModalProps> = ({
   );
   // Push-to-talk (offline-first) or a live online conversation (explicit tap).
   const [mode, setMode] = useState<'push' | 'conversation'>('push');
+  const [isKeyboardOpen, setIsKeyboardOpen] = useState(false);
+  const modalScrollRef = useRef<ScrollView>(null);
+
+  useEffect(() => {
+    const showEvent =
+      Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow';
+    const hideEvent =
+      Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide';
+    const showSub = Keyboard.addListener(showEvent, () => {
+      setIsKeyboardOpen(true);
+      setTimeout(() => {
+        modalScrollRef.current?.scrollToEnd({ animated: true });
+      }, 50);
+    });
+    const hideSub = Keyboard.addListener(hideEvent, () => {
+      setIsKeyboardOpen(false);
+    });
+    return () => {
+      showSub.remove();
+      hideSub.remove();
+    };
+  }, []);
 
   // Animated values
   const pulseAnim = useRef(new Animated.Value(0)).current;
@@ -226,6 +250,14 @@ export const VoiceModal: React.FC<VoiceModalProps> = ({
   const review = useCommandReview(userId, 'voice');
   const reviewRef = useRef(review);
   reviewRef.current = review;
+
+  useEffect(() => {
+    if (review?.proposal) {
+      setTimeout(() => {
+        modalScrollRef.current?.scrollToEnd({ animated: true });
+      }, 50);
+    }
+  }, [review?.proposal]);
 
   /** Stops any capture this sheet started; its late result is ignored. */
   const retireCapture = useCallback(() => {
@@ -515,11 +547,13 @@ export const VoiceModal: React.FC<VoiceModalProps> = ({
   }, [onClose, safeSetTimeout, speakReply]);
 
   const handleCancelReview = useCallback(() => {
+    stopSpeaking();
+    activeCaptureRef.current += 1;
     const decision = reviewRef.current.cancel();
     if (!decision) return;
     setAiReply(decision.reply);
     setVoiceState('idle');
-  }, []);
+  }, [stopSpeaking]);
 
   // Push-To-Talk: Press & Hold down mic button to speak
   const handlePressIn = useCallback(async () => {
@@ -729,7 +763,9 @@ export const VoiceModal: React.FC<VoiceModalProps> = ({
   const listening = voiceState === 'listening';
   const hasDraftText = inputText.trim().length > 0;
   const statusLine =
-    voiceState === 'idle' && hasDraftText
+    review.proposal
+      ? STATUS_TEXT.review
+      : voiceState === 'idle' && hasDraftText
       ? DRAFT_STATUS_TEXT
       : STATUS_TEXT[voiceState];
 
@@ -743,7 +779,9 @@ export const VoiceModal: React.FC<VoiceModalProps> = ({
       : colors.primary;
 
   const statusColor =
-    voiceState === 'error'
+    review.proposal
+      ? colors.primary
+      : voiceState === 'error'
       ? colors.error
       : voiceState === 'success' || voiceState === 'speaking'
       ? colors.success
@@ -758,18 +796,26 @@ export const VoiceModal: React.FC<VoiceModalProps> = ({
       visible={visible}
       onRequestClose={handleDismiss}
     >
-      <TouchableOpacity
-        style={[styles.overlay, themed.overlay]}
-        activeOpacity={1}
-        onPress={handleDismiss}
-        testID="voice-modal-backdrop"
+      <KeyboardAvoidingView
+        style={styles.keyboardAvoid}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'padding'}
       >
         <TouchableOpacity
-          style={[styles.modalContent, themed.modalContent]}
+          style={[styles.overlay, themed.overlay]}
           activeOpacity={1}
-          onPress={() => Keyboard.dismiss()}
-          testID="voice-modal-content"
+          onPress={handleDismiss}
+          testID="voice-modal-backdrop"
         >
+          <TouchableOpacity
+            style={[
+              styles.modalContent,
+              themed.modalContent,
+              isKeyboardOpen && styles.modalContentKeyboard,
+            ]}
+            activeOpacity={1}
+            onPress={() => Keyboard.dismiss()}
+            testID="voice-modal-content"
+          >
           <View style={[styles.grabber, themed.grabber]} />
 
           {/* Close button */}
@@ -804,9 +850,17 @@ export const VoiceModal: React.FC<VoiceModalProps> = ({
               onBack={() => setMode('push')}
             />
           ) : (
-            <>
+            <ScrollView
+              ref={modalScrollRef}
+              style={styles.modalScroll}
+              contentContainerStyle={styles.modalScrollContent}
+              nestedScrollEnabled
+              keyboardShouldPersistTaps="handled"
+              showsVerticalScrollIndicator={false}
+            >
               {/* Central Push-To-Talk Hold Button */}
-              <View style={styles.animationArea}>
+              {!isKeyboardOpen && (
+                <View style={styles.animationArea}>
                 {listening && (
                   <Animated.View
                     pointerEvents="none"
@@ -871,6 +925,7 @@ export const VoiceModal: React.FC<VoiceModalProps> = ({
                   </Animated.View>
                 </TouchableOpacity>
               </View>
+              )}
 
               {/* What LAFINA heard */}
               <View
@@ -1009,6 +1064,12 @@ export const VoiceModal: React.FC<VoiceModalProps> = ({
                     placeholderTextColor={colors.textSecondary}
                     value={inputText}
                     onChangeText={setInputText}
+                    onFocus={() => {
+                      setIsKeyboardOpen(true);
+                      setTimeout(() => {
+                        modalScrollRef.current?.scrollToEnd({ animated: true });
+                      }, 100);
+                    }}
                     onSubmitEditing={() => handleCommandProcess(inputText)}
                     accessibilityLabel="Command draft"
                     testID="voice-text-input"
@@ -1066,7 +1127,7 @@ export const VoiceModal: React.FC<VoiceModalProps> = ({
                   </Text>
                 </TouchableOpacity>
               ) : null}
-            </>
+            </ScrollView>
           )}
 
           <DraftDecisionDialog
@@ -1075,6 +1136,7 @@ export const VoiceModal: React.FC<VoiceModalProps> = ({
           />
         </TouchableOpacity>
       </TouchableOpacity>
+      </KeyboardAvoidingView>
     </Modal>
   );
 };
@@ -1100,6 +1162,9 @@ const getVoiceThemedStyles = (colors: ThemeColors) => ({
 });
 
 const styles = StyleSheet.create({
+  keyboardAvoid: {
+    flex: 1,
+  },
   overlay: {
     flex: 1,
     justifyContent: 'flex-end',
@@ -1109,10 +1174,21 @@ const styles = StyleSheet.create({
     borderTopRightRadius: 28,
     paddingHorizontal: 20,
     paddingTop: 12,
-    paddingBottom: 32,
+    paddingBottom: 24,
     alignItems: 'center',
     width: '100%',
-    maxHeight: '75%',
+    maxHeight: '90%',
+  },
+  modalContentKeyboard: {
+    maxHeight: '65%',
+    paddingBottom: 16,
+  },
+  modalScroll: {
+    width: '100%',
+  },
+  modalScrollContent: {
+    alignItems: 'center',
+    paddingBottom: 16,
   },
   grabber: {
     width: 40,
