@@ -243,6 +243,8 @@ const styles = StyleSheet.create({
   buttonRow: {
     flexDirection: 'row',
     justifyContent: 'flex-end',
+    alignItems: 'center',
+    flexWrap: 'wrap',
     gap: Spacing.sm,
     marginTop: Spacing.sm,
   },
