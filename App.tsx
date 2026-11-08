@@ -23,6 +23,7 @@ import {
 import { CustomTabBar, TabType } from './src/ui/components/CustomTabBar';
 import { StorageRecoveryScreen } from './src/ui/screens/StorageRecoveryScreen';
 import { hasProEntitlement } from './src/cloud';
+import { endActiveVoiceConversation } from './src/cloud/voiceConversation';
 import { ThemeProvider, useTheme } from './src/ui/contexts/ThemeContext';
 import { MeetingsProvider } from './src/ui/contexts/MeetingsContext';
 import type { ThemeColors } from './src/ui/contexts/ThemeContext';
@@ -131,6 +132,11 @@ function AppContent({
     (request: CallRequest): boolean => {
       const admission = admitReminderCall(request, userId);
       if (!admission.admitted) return false;
+      // The reminder call takes the microphone and speaker; a live voice
+      // conversation ends first and is never resumed by itself.
+      endActiveVoiceConversation(
+        'A reminder call started, so the conversation stopped.',
+      );
       callOwnerRef.current = admission.reminder.userId;
       setCallReminderId(admission.reminder.id);
       setCallTask(admission.task);
@@ -151,6 +157,7 @@ function AppContent({
     // Open assistant reviews never outlive the account they were prepared for
     // (AGY-PORT 04): sign-out, sign-in and account switch all end them.
     endReviewSession();
+    endActiveVoiceConversation('You switched accounts, so the conversation stopped.');
     // AGY-PORT 05: the previous owner's unsent Chat text and open voice sheet go too.
     chatDraftStore.retainOnly(userId);
     setVoiceVisible(false);

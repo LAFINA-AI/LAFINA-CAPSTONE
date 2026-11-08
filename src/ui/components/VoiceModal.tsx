@@ -22,6 +22,7 @@ import {
   Mic,
   CircleAlert,
   MessageSquareText,
+  AudioLines,
 } from 'lucide-react-native';
 import {useTheme} from '../contexts/ThemeContext';
 import {useThemedStyles} from '../theme/createThemedStyles';
@@ -54,6 +55,7 @@ import {useDraftProtection} from '../hooks/useDraftProtection';
 import {chatDraftStore} from '../drafts/chatDraftStore';
 import {ChatReplyText} from './chat/ChatReplyText';
 import {useChatReplyFormat} from '../hooks/useChatReplyFormat';
+import {VoiceConversationPanel} from './voice/VoiceConversationPanel';
 
 export interface VoiceModalProps {
   visible: boolean;
@@ -150,6 +152,8 @@ export const VoiceModal: React.FC<VoiceModalProps> = ({
   const [handoffDialog, setHandoffDialog] = useState<DraftDialogRequest | null>(
     null,
   );
+  // Push-to-talk (offline-first) or a live online conversation (explicit tap).
+  const [mode, setMode] = useState<'push' | 'conversation'>('push');
 
   // Animated values
   const pulseAnim = useRef(new Animated.Value(0)).current;
@@ -325,6 +329,7 @@ export const VoiceModal: React.FC<VoiceModalProps> = ({
     if (!visible) {
       reviewRef.current.cancel({silent: true});
       retireCapture();
+      setMode('push');
       setHandoffDialog(null);
       setVoiceState('idle');
       setTranscript('');
@@ -362,6 +367,7 @@ export const VoiceModal: React.FC<VoiceModalProps> = ({
     ownerRef.current = userId;
     retireCapture();
     stopSpeaking();
+    setMode('push');
     setHandoffDialog(null);
     setInputText('');
     setTranscript('');
@@ -656,6 +662,16 @@ export const VoiceModal: React.FC<VoiceModalProps> = ({
     });
   }, [inputText, onClose, onUseInChat, retireCapture, userId]);
 
+  const handleOpenConversation = useCallback(() => {
+    // The two modes never share the microphone or the speaker.
+    retireCapture();
+    stopSpeaking();
+    setNotice('');
+    setAiReply('');
+    setVoiceState('idle');
+    setMode('conversation');
+  }, [retireCapture, stopSpeaking]);
+
   const handleCommandProcess = async (command: string) => {
     if (!command.trim()) return;
     activeCaptureRef.current += 1;
@@ -771,236 +787,287 @@ export const VoiceModal: React.FC<VoiceModalProps> = ({
           <Text style={[styles.modalTitle, themed.modalTitle]}>
             LAFINA Voice Assistant
           </Text>
-          <Text
-            style={[styles.statusText, {color: statusColor}]}
-            accessibilityLiveRegion="polite"
-            testID="voice-status-text"
-          >
-            {statusLine}
-          </Text>
-
-          {/* Central Push-To-Talk Hold Button */}
-          <View style={styles.animationArea}>
-            {listening && (
-              <Animated.View
-                pointerEvents="none"
-                style={[
-                  styles.listeningRing,
-                  {
-                    borderColor: colors.primary,
-                    opacity: pulseAnim.interpolate({
-                      inputRange: [0, 1],
-                      outputRange: [0.55, 0],
-                    }),
-                    transform: [
-                      {
-                        scale: pulseAnim.interpolate({
-                          inputRange: [0, 1],
-                          outputRange: [1, 1.55],
-                        }),
-                      },
-                    ],
-                  },
-                ]}
-              />
-            )}
-
-            <TouchableOpacity
-              activeOpacity={0.8}
-              onPressIn={handlePressIn}
-              onPressOut={handlePressOut}
-              accessibilityRole="button"
-              accessibilityLabel="Hold to talk"
-              testID="voice-hold-button"
-            >
-              <Animated.View
-                style={[
-                  styles.voicePulseCircle,
-                  {
-                    transform: [{translateX: shakeAnim}],
-                    backgroundColor: micColor,
-                  },
-                ]}
-              >
-                {voiceState === 'processing' ? (
-                  <ActivityIndicator
-                    size="large"
-                    color={colors.textOnPrimary}
-                  />
-                ) : voiceState === 'success' ? (
-                  <Check
-                    size={32}
-                    color={colors.textOnPrimary}
-                    strokeWidth={3}
-                  />
-                ) : voiceState === 'error' ? (
-                  <X size={32} color={colors.textOnPrimary} strokeWidth={3} />
-                ) : (
-                  <Mic size={32} color={colors.textOnPrimary} />
-                )}
-              </Animated.View>
-            </TouchableOpacity>
-          </View>
-
-          {/* What LAFINA heard */}
-          <View
-            style={[
-              styles.transcriptCard,
-              themed.transcriptCard,
-              listening && {borderColor: colors.primary},
-            ]}
-          >
-            <View style={styles.transcriptHeader}>
-              <Text style={[styles.transcriptLabel, themed.transcriptLabel]}>
-                You said
-              </Text>
-              {listening && (
-                <View style={[styles.livePill, themed.livePill]}>
-                  <View
-                    style={[styles.liveDot, {backgroundColor: colors.primary}]}
-                  />
-                  <Text style={[styles.liveText, {color: colors.primary}]}>
-                    Live
-                  </Text>
-                </View>
-              )}
-            </View>
-
-            {notice ? (
-              <View style={styles.noticeRow} testID="voice-notice">
-                <CircleAlert size={16} color={colors.error} />
-                <Text style={[styles.noticeText, {color: colors.error}]}>
-                  {notice}
-                </Text>
-              </View>
-            ) : transcript ? (
-              <ScrollView
-                style={styles.transcriptScroll}
-                contentContainerStyle={styles.transcriptScrollContent}
-                nestedScrollEnabled
-                showsVerticalScrollIndicator={false}
-              >
-                <Text
-                  style={[styles.transcriptText, themed.transcriptText]}
-                  testID="voice-transcript"
-                >
-                  “{transcript}”
-                </Text>
-              </ScrollView>
-            ) : (
-              <Text style={[styles.placeholderText, themed.placeholderText]}>
-                {listening
-                  ? 'Go ahead, I’m listening…'
-                  : 'Your words will show up here as you speak.'}
-              </Text>
-            )}
-
-            {listening && (
-              <View style={styles.waveformContainer} testID="voice-waveform">
-                {waveBars.map((bar, i) => (
-                  <Animated.View
-                    key={i}
-                    style={[
-                      styles.waveformBar,
-                      {
-                        backgroundColor: colors.primary,
-                        transform: [{scaleY: bar}],
-                      },
-                    ]}
-                  />
-                ))}
-              </View>
-            )}
-          </View>
-
-          {/* Confirmation / Result */}
-          {aiReply ? (
-            <View
-              style={[styles.replyRow, themed.replyRow]}
-              testID="voice-reply"
-            >
-              <View
-                style={[styles.replyIcon, {backgroundColor: colors.success}]}
-              >
-                <Check size={12} color={colors.textOnPrimary} strokeWidth={3} />
-              </View>
-              <ScrollView
-                style={styles.replyScroll}
-                contentContainerStyle={styles.replyScrollContent}
-                nestedScrollEnabled
-                showsVerticalScrollIndicator
-              >
-                <ChatReplyText
-                  content={aiReply}
-                  format={replyFormat}
-                  textStyle={[styles.replyText, themed.replyText]}
-                />
-              </ScrollView>
-            </View>
-          ) : null}
-
-          {review.proposal ? (
-            <CommandReviewCard
-              proposal={review.proposal}
-              expired={review.expired}
-              busy={review.busy}
-              onConfirm={() => {
-                void handleConfirmReview();
-              }}
-              onCancel={handleCancelReview}
-              onDismiss={review.dismiss}
-              testIDPrefix="voice-review"
-            />
-          ) : null}
-
-          {/* Keyboard input fallback */}
-          {showFallbackControls && (
-            <View style={[styles.inputRow, themed.inputRow]}>
-              <TextInput
-                style={[styles.textInput, themed.textInput]}
-                placeholder="Or type a command..."
-                placeholderTextColor={colors.textSecondary}
-                value={inputText}
-                onChangeText={setInputText}
-                onSubmitEditing={() => handleCommandProcess(inputText)}
-                accessibilityLabel="Command draft"
-                testID="voice-text-input"
-              />
-              <TouchableOpacity
-                style={[styles.sendButton, {backgroundColor: colors.primary}]}
-                onPress={() => handleCommandProcess(inputText)}
-                accessibilityRole="button"
-                accessibilityLabel="Prepare command for review"
-                testID="voice-send-button"
-              >
-                <ArrowRight size={18} color={colors.textOnPrimary} />
-              </TouchableOpacity>
-            </View>
-          )}
-
-          {voiceState === 'idle' && hasDraftText ? (
+          {mode === 'push' ? (
             <Text
-              style={[styles.draftHint, themed.placeholderText]}
-              testID="voice-draft-hint"
+              style={[styles.statusText, {color: statusColor}]}
+              accessibilityLiveRegion="polite"
+              testID="voice-status-text"
             >
-              {DRAFT_READY_NOTICE}
+              {statusLine}
             </Text>
           ) : null}
 
-          {voiceState === 'idle' && hasDraftText && onUseInChat ? (
-            <TouchableOpacity
-              style={styles.useInChatButton}
-              onPress={handleUseInChat}
-              accessibilityRole="button"
-              accessibilityLabel="Use draft in Chat without sending"
-              testID="voice-use-in-chat"
-            >
-              <MessageSquareText size={16} color={colors.primary} />
-              <Text style={[styles.useInChatText, {color: colors.primary}]}>
-                Use draft in Chat
-              </Text>
-            </TouchableOpacity>
-          ) : null}
+          {mode === 'conversation' ? (
+            <VoiceConversationPanel
+              userId={userId}
+              review={review}
+              onBack={() => setMode('push')}
+            />
+          ) : (
+            <>
+              {/* Central Push-To-Talk Hold Button */}
+              <View style={styles.animationArea}>
+                {listening && (
+                  <Animated.View
+                    pointerEvents="none"
+                    style={[
+                      styles.listeningRing,
+                      {
+                        borderColor: colors.primary,
+                        opacity: pulseAnim.interpolate({
+                          inputRange: [0, 1],
+                          outputRange: [0.55, 0],
+                        }),
+                        transform: [
+                          {
+                            scale: pulseAnim.interpolate({
+                              inputRange: [0, 1],
+                              outputRange: [1, 1.55],
+                            }),
+                          },
+                        ],
+                      },
+                    ]}
+                  />
+                )}
+
+                <TouchableOpacity
+                  activeOpacity={0.8}
+                  onPressIn={handlePressIn}
+                  onPressOut={handlePressOut}
+                  accessibilityRole="button"
+                  accessibilityLabel="Hold to talk"
+                  testID="voice-hold-button"
+                >
+                  <Animated.View
+                    style={[
+                      styles.voicePulseCircle,
+                      {
+                        transform: [{translateX: shakeAnim}],
+                        backgroundColor: micColor,
+                      },
+                    ]}
+                  >
+                    {voiceState === 'processing' ? (
+                      <ActivityIndicator
+                        size="large"
+                        color={colors.textOnPrimary}
+                      />
+                    ) : voiceState === 'success' ? (
+                      <Check
+                        size={32}
+                        color={colors.textOnPrimary}
+                        strokeWidth={3}
+                      />
+                    ) : voiceState === 'error' ? (
+                      <X
+                        size={32}
+                        color={colors.textOnPrimary}
+                        strokeWidth={3}
+                      />
+                    ) : (
+                      <Mic size={32} color={colors.textOnPrimary} />
+                    )}
+                  </Animated.View>
+                </TouchableOpacity>
+              </View>
+
+              {/* What LAFINA heard */}
+              <View
+                style={[
+                  styles.transcriptCard,
+                  themed.transcriptCard,
+                  listening && {borderColor: colors.primary},
+                ]}
+              >
+                <View style={styles.transcriptHeader}>
+                  <Text
+                    style={[styles.transcriptLabel, themed.transcriptLabel]}
+                  >
+                    You said
+                  </Text>
+                  {listening && (
+                    <View style={[styles.livePill, themed.livePill]}>
+                      <View
+                        style={[
+                          styles.liveDot,
+                          {backgroundColor: colors.primary},
+                        ]}
+                      />
+                      <Text style={[styles.liveText, {color: colors.primary}]}>
+                        Live
+                      </Text>
+                    </View>
+                  )}
+                </View>
+
+                {notice ? (
+                  <View style={styles.noticeRow} testID="voice-notice">
+                    <CircleAlert size={16} color={colors.error} />
+                    <Text style={[styles.noticeText, {color: colors.error}]}>
+                      {notice}
+                    </Text>
+                  </View>
+                ) : transcript ? (
+                  <ScrollView
+                    style={styles.transcriptScroll}
+                    contentContainerStyle={styles.transcriptScrollContent}
+                    nestedScrollEnabled
+                    showsVerticalScrollIndicator={false}
+                  >
+                    <Text
+                      style={[styles.transcriptText, themed.transcriptText]}
+                      testID="voice-transcript"
+                    >
+                      “{transcript}”
+                    </Text>
+                  </ScrollView>
+                ) : (
+                  <Text
+                    style={[styles.placeholderText, themed.placeholderText]}
+                  >
+                    {listening
+                      ? 'Go ahead, I’m listening…'
+                      : 'Your words will show up here as you speak.'}
+                  </Text>
+                )}
+
+                {listening && (
+                  <View
+                    style={styles.waveformContainer}
+                    testID="voice-waveform"
+                  >
+                    {waveBars.map((bar, i) => (
+                      <Animated.View
+                        key={i}
+                        style={[
+                          styles.waveformBar,
+                          {
+                            backgroundColor: colors.primary,
+                            transform: [{scaleY: bar}],
+                          },
+                        ]}
+                      />
+                    ))}
+                  </View>
+                )}
+              </View>
+
+              {/* Confirmation / Result */}
+              {aiReply ? (
+                <View
+                  style={[styles.replyRow, themed.replyRow]}
+                  testID="voice-reply"
+                >
+                  <View
+                    style={[
+                      styles.replyIcon,
+                      {backgroundColor: colors.success},
+                    ]}
+                  >
+                    <Check
+                      size={12}
+                      color={colors.textOnPrimary}
+                      strokeWidth={3}
+                    />
+                  </View>
+                  <ScrollView
+                    style={styles.replyScroll}
+                    contentContainerStyle={styles.replyScrollContent}
+                    nestedScrollEnabled
+                    showsVerticalScrollIndicator
+                  >
+                    <ChatReplyText
+                      content={aiReply}
+                      format={replyFormat}
+                      textStyle={[styles.replyText, themed.replyText]}
+                    />
+                  </ScrollView>
+                </View>
+              ) : null}
+
+              {review.proposal ? (
+                <CommandReviewCard
+                  proposal={review.proposal}
+                  expired={review.expired}
+                  busy={review.busy}
+                  onConfirm={() => {
+                    void handleConfirmReview();
+                  }}
+                  onCancel={handleCancelReview}
+                  onDismiss={review.dismiss}
+                  testIDPrefix="voice-review"
+                />
+              ) : null}
+
+              {/* Keyboard input fallback */}
+              {showFallbackControls && (
+                <View style={[styles.inputRow, themed.inputRow]}>
+                  <TextInput
+                    style={[styles.textInput, themed.textInput]}
+                    placeholder="Or type a command..."
+                    placeholderTextColor={colors.textSecondary}
+                    value={inputText}
+                    onChangeText={setInputText}
+                    onSubmitEditing={() => handleCommandProcess(inputText)}
+                    accessibilityLabel="Command draft"
+                    testID="voice-text-input"
+                  />
+                  <TouchableOpacity
+                    style={[
+                      styles.sendButton,
+                      {backgroundColor: colors.primary},
+                    ]}
+                    onPress={() => handleCommandProcess(inputText)}
+                    accessibilityRole="button"
+                    accessibilityLabel="Prepare command for review"
+                    testID="voice-send-button"
+                  >
+                    <ArrowRight size={18} color={colors.textOnPrimary} />
+                  </TouchableOpacity>
+                </View>
+              )}
+
+              {voiceState === 'idle' && hasDraftText ? (
+                <Text
+                  style={[styles.draftHint, themed.placeholderText]}
+                  testID="voice-draft-hint"
+                >
+                  {DRAFT_READY_NOTICE}
+                </Text>
+              ) : null}
+
+              {voiceState === 'idle' && hasDraftText && onUseInChat ? (
+                <TouchableOpacity
+                  style={styles.useInChatButton}
+                  onPress={handleUseInChat}
+                  accessibilityRole="button"
+                  accessibilityLabel="Use draft in Chat without sending"
+                  testID="voice-use-in-chat"
+                >
+                  <MessageSquareText size={16} color={colors.primary} />
+                  <Text style={[styles.useInChatText, {color: colors.primary}]}>
+                    Use draft in Chat
+                  </Text>
+                </TouchableOpacity>
+              ) : null}
+
+              {voiceState === 'idle' && !review.proposal ? (
+                <TouchableOpacity
+                  style={styles.useInChatButton}
+                  onPress={handleOpenConversation}
+                  accessibilityRole="button"
+                  accessibilityLabel="Open live voice conversation (Online Mode)"
+                  testID="voice-open-conversation"
+                >
+                  <AudioLines size={16} color={colors.primary} />
+                  <Text style={[styles.useInChatText, {color: colors.primary}]}>
+                    Voice conversation (Online)
+                  </Text>
+                </TouchableOpacity>
+              ) : null}
+            </>
+          )}
 
           <DraftDecisionDialog
             request={draft.dialog ?? handoffDialog}

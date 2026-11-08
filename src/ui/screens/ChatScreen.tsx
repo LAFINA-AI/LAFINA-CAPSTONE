@@ -12,6 +12,7 @@ import {
   Platform,
   Dimensions,
   BackHandler,
+  DeviceEventEmitter,
 } from 'react-native';
 import {useSafeAreaInsets} from 'react-native-safe-area-context';
 import NetInfo from '@react-native-community/netinfo';
@@ -39,6 +40,7 @@ import {mergeChatPages} from './chat/chatPaging';
 import {localSettingsStore} from '../../storage/localSettingsStore';
 import {accountLinkService} from '../../cloud';
 import {createCallSpeechProvider} from '../../cloud/speechService';
+import {ONLINE_MODE_CHANGED_EVENT} from '../../cloud/voiceConversation';
 import type {CallSpeechProvider} from '../../scheduler/speechProvider';
 import {
   DOCUMENT_FORMAT_ORDER,
@@ -369,6 +371,19 @@ export const ChatScreen: React.FC<ChatScreenProps> = ({
       active = false;
       unsubscribe();
     };
+  }, [userId]);
+
+  // Voice conversation can turn Online Mode on (explicit tap there too).
+  useEffect(() => {
+    const subscription = DeviceEventEmitter.addListener(
+      ONLINE_MODE_CHANGED_EVENT,
+      (event: {userId?: string; enabled?: boolean}) => {
+        if (event?.userId === userId && typeof event.enabled === 'boolean') {
+          setIsOnlineMode(event.enabled);
+        }
+      },
+    );
+    return () => subscription.remove();
   }, [userId]);
 
   const handleToggleHandbook = () => {
