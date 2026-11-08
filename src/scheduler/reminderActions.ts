@@ -341,7 +341,7 @@ export const acknowledgeReminderAction = async (
     ok: true,
     outcome: 'acknowledged',
     triggerAt: null,
-    message: 'Great! Reminder acknowledged. Have a productive study session.',
+    message: 'Great! Reminder acknowledged. Have a productive day!.',
   };
 };
 
