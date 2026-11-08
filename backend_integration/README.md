@@ -1,3 +1,30 @@
+> **Live voice conversation, 2026-11-08 (NOT in production).** Branch `codex/voice-conversation` (commit `a3d1671`) in `LAFINA-AI/LAFINA-backend` is based on production main `0ab2b60`. It adds:
+> - `GET /v1/ai/voice/capabilities`;
+> - `POST /v1/ai/voice/sessions` (signed URL + short-lived grant, `no-store`);
+> - `POST /v1/ai/voice/sessions/{id}/connected|end` and `GET /v1/ai/voice/sessions/{id}`;
+> - `POST /v1/ai/voice/llm/chat/completions`, the ElevenAgents custom-LLM route on DeepSeek;
+> - table `voice_sessions` (migration `013_voice_sessions`, RLS owner policy);
+> - `scripts/provision_voice_agent.py`.
+>
+> Existing chat/SSE/TTS routes are unchanged. The design is in ADR-030 and the evidence in `docs/reports/phase-09-voice-conversation-report-20261108.md`. On 2026-11-08 production returned 404 for `/v1/ai/voice/capabilities`.
+>
+> **Owner activation, in order. Every step needs the owner or the Vercel owner; none were done from this chat.**
+> 1. In ElevenLabs, give the server's API key the **ElevenAgents (Conversational AI) read/write** permission, or create a key that has it. The current key answers `missing_permissions` on `/v1/convai/agents` and `/v1/convai/secrets`. Ordinary TTS keeps working either way.
+> 2. Generate a random shared secret (for example 48 hex characters). Put it in Vercel as the server-only variable `ELEVENLABS_AGENT_LLM_SECRET`, and in the private root `.env` used to run the script. Never put it in the app.
+> 3. From the backend checkout with that `.env`, review the agent config: `python -m scripts.provision_voice_agent --server-url https://lafina-backend.vercel.app` is a dry run that prints it with secrets redacted. Then create the agent: `python -m scripts.provision_voice_agent --server-url https://lafina-backend.vercel.app --apply`.
+>
+>    The agent is private (`enable_auth: true`), uses `custom-llm` pointing at `/v1/ai/voice/llm`, `eleven_v4_turbo`, patient turn-taking, `pcm_16000`, and allows overriding the voice and extra body. The script uploads the secret to the ElevenLabs secret store and prints only the new agent id.
+> 4. Set `ELEVENLABS_AGENT_ID=<that id>` in Vercel. Optional limit variables are listed in the backend `.env.example`.
+> 5. Merge `codex/voice-conversation` into `main`, and let Vercel redeploy.
+> 6. Apply migration 013 to production once, with the unpooled URL: `python -m alembic upgrade head`. Until it runs, session creation fails with a server error. The app then shows "unavailable"; nothing else is affected.
+> 7. Verify:
+>    - unauthenticated `/v1/ai/voice/capabilities` returns 401;
+>    - a signed-in `student` gets `enabled: true`;
+>    - `python -m scripts.provision_voice_agent --check` lists no problems;
+>    - then run the mobile checklist in `qa/PHASE-09-VOICE-CONVERSATION-MANUAL.md`.
+>
+> **Privacy:** unlike push-to-talk, a live conversation **streams microphone audio to ElevenLabs** while it is open and unmuted. The consent notice says so before the first session. Billing: ElevenAgents conversation minutes (ElevenLabs plan) plus DeepSeek tokens, both recorded per account (`voice_session`, `voice_turn`).
+
 > **Follow-up 2026-11-07 (in production since `main` was fast-forwarded to `872197a` on 2026-11-07):** backend commits [`2d43130` + `23acd93` on `codex/open-online-voices`](https://github.com/LAFINA-AI/LAFINA-backend/compare/main...codex/open-online-voices) opens online chat and ElevenLabs speech to every active signed-in account (guests and disabled accounts denied; quotas unchanged), adds authenticated `GET /v1/ai/tts/voices` and an optional validated `voiceId` on `POST /v1/ai/tts`, returns `provider`/`usedHandbook` from chat, and defaults DeepSeek to `deepseek-flash` (the retired `deepseek-v4-flash` env value is normalized; no Vercel variable change needed). `elevenlabs_client.py` here now mirrors that commit; `LAFINA-backend-online-voices.patch` (a `git am` series of all four commits) applies on top of production main `f0fae4d`. `23acd93` makes the DeepSeek persona conversational: it introduces itself only when asked or on the first greeting. `afaa36b` adds `POST /v1/ai/chat/stream` (Server-Sent Events; same access and quotas as `/v1/ai/chat`), which the app uses to show replies as they are written. Until it is deployed, the app falls back to `/v1/ai/chat` automatically. `872197a` lists six Filipina voices first in the catalogue (with language and gender labels) and defaults to Camille on `eleven_v4`. `LAFINA-backend-elevenlabs.patch` is the earlier migration only. See ADR-029 and `docs/reports/phase-09-online-voices-report-20261107.md`.
 >
 > **Activation:** if Vercel sets `ELEVENLABS_VOICE_ID` or `ELEVENLABS_MODEL_ID`, change them to `BtcCEANLn920ZIoN9grW` and `eleven_v4` (or remove them to use those defaults). Then the Vercel owner merges `codex/open-online-voices` into `main` (or applies the follow-up patch with `git apply --check` first) and lets Vercel redeploy. Then verify that `/openapi.json` lists `/v1/ai/tts/voices` and `/v1/ai/chat/stream`, and that an ordinary `student` session gets 200 from `/v1/ai/tts/capabilities` and `/v1/ai/tts/voices`, while unauthenticated requests still get 401. DeepSeek also needs available account balance: the key in the private root `.env` returned HTTP 402 Insufficient Balance on 2026-11-07.
