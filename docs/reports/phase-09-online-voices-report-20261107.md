@@ -409,3 +409,46 @@ Evidence (git-ignored): `.local/qa-online-voices/local-backend-20261108/`.
 
 STATUS: AWAITING DEVICE VALIDATION
 STOPPED — awaiting explicit human approval
+
+## Addendum (2026-11-08): markdown chat replies and a plain-text setting
+
+**Owner request:** format chat replies like ChatGPT (markdown), with a setting to keep plain text instead. Owner question: does markdown make replies slower?
+
+**Finding:** DeepSeek already answers in markdown. Before this change, Chat showed the symbols as-is (for example `**Step 1: Light Absorption**`, sampled from the local backend). So the change is display only. The backend and prompt are unchanged and DeepSeek writes the same tokens, so time to first text and streaming are unaffected. The reply is parsed again on every streamed piece, which is a few KB of text.
+
+**Changes (app only):**
+- `src/utils/chatMarkdown.ts`: parser for chat replies.
+  - Headings (`#` to `######`, shown at three sizes).
+  - Bold, italic, bold italic, strikethrough and inline code.
+  - Bullet, numbered and checklist items, nested by indentation.
+  - Quotes, dividers, fenced code blocks and tables.
+  - Links: http(s) only, shown as a tappable underlined link; other link targets are dropped and only the words are kept.
+  - Single line breaks are kept as line breaks, which is how DeepSeek uses them. `2 * 3 * 4` and snake_case stay as written.
+  - While a reply streams, an opening marker on the last line is hidden until its closing marker arrives. An unclosed code fence is shown as code.
+  - `chatMarkdownToPlainText` gives the same reply without markup, with bullets, numbers and table rows kept.
+- `src/ui/components/chat/ChatReplyText.tsx`: draws either format.
+  - Table columns share one width per column. A column is no narrower than its longest word (the estimate includes the device font scale). Tables shrink to fit the bubble and scroll sideways only when even that is too wide.
+  - Code blocks scroll sideways and can be selected.
+- `ChatMessageItem`: assistant replies use `ChatReplyText`, with the streaming cursor on the last line. A reply with a table or code block gets a full-width bubble. The student's own messages are shown exactly as typed.
+- `VoiceModal`: the reply box uses the same format.
+- `chatReplyFormatStore` (`local_settings`, key `chat.replyFormat.v1`, per account, default `markdown`) and the `useChatReplyFormat` hook. Open screens follow a change at once; `ChatScreen` sets `extraData`.
+- Profile → AI & Voice: new toggle "Markdown Chat Replies" (on = markdown, off = plain text). Stored replies are not changed, so the choice also applies to earlier replies.
+- `SettingItem`: each switch now has its row text as its accessibility label. Before, screen readers announced an unnamed switch.
+
+**Tests:** `__tests__/ui/chatReplyFormat.test.tsx` (21): parser, streaming markers, plain conversion, column sizing and fitting, store, bubble width, `ChatMessageItem` in both formats, and the Profile toggle. `npm run preflight`: 67 suites, 1004 passed, 1 skipped; 234 modules, 0 cycles, 77 offline leaves.
+
+**Emulator (`emulator-5554`, x86_64 `dataQa`, local backend):** asked "compare mitosis and meiosis in a small table, then give 3 study tips as a list".
+- The first build drew the heading, table and numbered list, but table columns did not line up.
+- The fitted build broke "Chromosome" mid-word.
+- The final build fits a three-column table in a full-width bubble, with no broken words.
+- Turning the toggle off showed the same reply as plain text (rows separated by `|`, no `#`, `**` or `|---|`). Turning it on restored the formatting.
+- The reply was on screen 1.4 s after Send.
+
+**Not verified:** a physical phone; the voice-mode reply box with a markdown reply (covered only by type checks and shared code); dark mode screenshots; very long tables or code.
+
+**Noted, not changed:** the existing "Detailed AI Summaries" toggle in Profile is component state only (`useState(false)`), so it is not saved and resets when Profile reloads.
+
+Evidence (git-ignored): `.local/qa-online-voices/chat-markdown-20261108/`.
+
+STATUS: AWAITING DEVICE VALIDATION
+STOPPED — awaiting explicit human approval

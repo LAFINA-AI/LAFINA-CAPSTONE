@@ -42,6 +42,7 @@ export const SettingItem: React.FC<SettingItemProps> = ({
           }}
         >
           <Switch
+            accessibilityLabel={text}
             value={value}
             onValueChange={(next) => {
               const origin = touchRef.current;
