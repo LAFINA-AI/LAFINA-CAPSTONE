@@ -28,6 +28,8 @@ import {
 } from '../components/profile/avatarFile';
 import {ProfileStats} from '../components/profile/ProfileStats';
 import {SettingItem} from '../components/profile/SettingItem';
+import {ServerSwitchItem} from '../components/profile/ServerSwitchItem';
+import {backendSelection} from '../../cloud/backendSelection';
 import {PrivacyModal} from '../components/profile/PrivacyModal';
 import {StudentProTag} from '../components/profile/StudentProTag';
 import {AppUpdateItem} from '../components/profile/AppUpdateItem';
@@ -455,6 +457,15 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
     }
   };
 
+  /** Sign-ins belong to one server: sign out there before switching. */
+  const endSessionForServerSwitch = async () => {
+    try {
+      await authService.logout();
+    } finally {
+      userStore.logout();
+    }
+  };
+
   const handleSignOut = () => {
     const title = isGuest ? 'Dismiss Guest Session' : 'Sign Out';
     const message = isGuest
@@ -706,6 +717,25 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
               isDestructive
             />
           </View>
+
+          {backendSelection.isAvailable() && (
+            <>
+              <Text
+                style={[styles.settingsGroupHeader, themed.settingsGroupHeader]}
+              >
+                Developer
+              </Text>
+              <View
+                style={[styles.settingsGroupCard, themed.settingsGroupCard]}
+              >
+                <ServerSwitchItem
+                  isGuest={isGuest}
+                  endSession={endSessionForServerSwitch}
+                  onSessionEnded={() => onLogout?.(false)}
+                />
+              </View>
+            </>
+          )}
 
           <Text
             style={[styles.settingsGroupHeader, themed.settingsGroupHeader]}

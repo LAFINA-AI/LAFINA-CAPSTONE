@@ -24,6 +24,7 @@ import { CustomTabBar, TabType } from './src/ui/components/CustomTabBar';
 import { StorageRecoveryScreen } from './src/ui/screens/StorageRecoveryScreen';
 import { hasProEntitlement } from './src/cloud';
 import { endActiveVoiceConversation } from './src/cloud/voiceConversation';
+import { backendSelection } from './src/cloud/backendSelection';
 import { ThemeProvider, useTheme } from './src/ui/contexts/ThemeContext';
 import { MeetingsProvider } from './src/ui/contexts/MeetingsContext';
 import type { ThemeColors } from './src/ui/contexts/ThemeContext';
@@ -250,6 +251,8 @@ function AppContent({
   const setupApp = useCallback(async () => {
     try {
       await initDatabase();
+      // Debug/test builds: use the server chosen in Profile before any request.
+      backendSelection.applySaved();
 
       const currentUser = userStore.getCurrentUser();
       if (currentUser) {

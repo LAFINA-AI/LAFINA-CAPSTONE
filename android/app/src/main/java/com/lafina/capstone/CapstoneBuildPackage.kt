@@ -38,5 +38,7 @@ class CapstoneBuildModule(context: ReactApplicationContext) : ReactContextBaseJa
       "plannerHarnessEnabled" to BuildConfig.ENABLE_PLANNER_HARNESS,
       // Empty except in a test build made with -PlafinaApiBaseUrl.
       "apiBaseUrlOverride" to BuildConfig.API_BASE_URL_OVERRIDE,
+      // Debug and test builds only: Profile's Vercel/local server switch.
+      "backendSwitchEnabled" to BuildConfig.ENABLE_BACKEND_SWITCH,
     )
 }

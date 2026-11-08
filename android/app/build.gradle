@@ -26,6 +26,9 @@ android {
         versionName '0.6.0'
         testInstrumentationRunner 'androidx.test.runner.AndroidJUnitRunner'
         buildConfigField 'boolean', 'ENABLE_PLANNER_HARNESS', 'false'
+        // Debug and test builds only: a Profile setting that switches between
+        // the Vercel backend and a backend on this computer. Off in release.
+        buildConfigField 'boolean', 'ENABLE_BACKEND_SWITCH', 'false'
         // Test builds only: -PlafinaApiBaseUrl=http://127.0.0.1:8000 sends
         // online features to a backend on this computer (via adb reverse).
         buildConfigField 'String', 'API_BASE_URL_OVERRIDE', '""'
@@ -47,6 +50,7 @@ android {
         debug {
             applicationIdSuffix '.debug'
             buildConfigField 'boolean', 'ENABLE_PLANNER_HARNESS', 'true'
+            buildConfigField 'boolean', 'ENABLE_BACKEND_SWITCH', 'true'
         }
         release {
             // Development preview only. Never publish with the standard debug key.
@@ -65,6 +69,7 @@ android {
             matchingFallbacks = ['debug']
             versionNameSuffix '-data-qa'
             buildConfigField 'boolean', 'ENABLE_PLANNER_HARNESS', 'true'
+            buildConfigField 'boolean', 'ENABLE_BACKEND_SWITCH', 'true'
             buildConfigField 'String', 'API_BASE_URL_OVERRIDE',
                 "\"${(project.findProperty('lafinaApiBaseUrl') ?: '').toString().replaceAll('[^A-Za-z0-9:/._-]', '')}\""
         }
