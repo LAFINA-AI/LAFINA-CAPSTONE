@@ -21,6 +21,9 @@ import {
   isDocumentFormat,
 } from '../../../skills/documentSkill';
 import {ttsService} from '../../../ai/tts/ttsService';
+import {ChatReplyText} from './ChatReplyText';
+import {hasWideMarkdownBlock} from '../../../utils';
+import type {ChatReplyFormat} from '../../../storage/chatReplyFormatStore';
 
 interface ChatMessageItemProps {
   item: ChatMessage;
@@ -30,6 +33,8 @@ interface ChatMessageItemProps {
   onOpenAttachment?: (attachment: ChatAttachment) => void;
   /** The reply is still being written: show it as it grows, without controls. */
   streaming?: boolean;
+  /** How assistant replies are drawn; the user's own words are always shown as typed. */
+  replyFormat?: ChatReplyFormat;
 }
 
 const AttachmentIcon: React.FC<{format: string; color: string}> = ({
@@ -53,6 +58,7 @@ export const ChatMessageItem: React.FC<ChatMessageItemProps> = ({
   onStopSpeaking,
   onOpenAttachment,
   streaming = false,
+  replyFormat = 'markdown',
 }) => {
   const isUser = item.sender === 'user';
   const {colors} = useTheme();
@@ -108,8 +114,16 @@ export const ChatMessageItem: React.FC<ChatMessageItemProps> = ({
           styles.bubble,
           isUser
             ? [styles.userBubble, {backgroundColor: colors.primary}]
-            : [styles.assistantBubble, themed.assistantBubble],
+            : [
+                styles.assistantBubble,
+                themed.assistantBubble,
+                // Tables and code need the whole width of a phone to be read.
+                replyFormat === 'markdown' &&
+                  hasWideMarkdownBlock(item.content) &&
+                  styles.wideBubble,
+              ],
         ]}
+        testID={`chat-bubble-${item.id}`}
       >
         {!isUser && (
           <View style={styles.assistantHeader}>
@@ -127,21 +141,31 @@ export const ChatMessageItem: React.FC<ChatMessageItemProps> = ({
           </View>
         )}
 
-        <Text
-          style={[
-            styles.messageText,
-            isUser ? styles.userText : themed.assistantText,
-          ]}
-          testID={streaming ? 'chat-streaming-content' : 'chat-message-content'}
-          accessibilityLiveRegion={streaming ? 'polite' : undefined}
-        >
-          {item.content}
-          {streaming ? (
-            <Text style={{color: colors.primary}} accessible={false}>
-              {' ▍'}
-            </Text>
-          ) : null}
-        </Text>
+        {isUser ? (
+          <Text
+            style={[styles.messageText, styles.userText]}
+            testID="chat-message-content"
+          >
+            {item.content}
+          </Text>
+        ) : (
+          <ChatReplyText
+            content={item.content}
+            format={replyFormat}
+            textStyle={[styles.messageText, themed.assistantText]}
+            streaming={streaming}
+            testID={
+              streaming ? 'chat-streaming-content' : 'chat-message-content'
+            }
+            trailing={
+              streaming ? (
+                <Text style={{color: colors.primary}} accessible={false}>
+                  {' ▍'}
+                </Text>
+              ) : null
+            }
+          />
+        )}
 
         {attachment && (
           <TouchableOpacity
@@ -247,6 +271,10 @@ const styles = StyleSheet.create({
   assistantBubble: {
     borderBottomLeftRadius: 3,
     borderWidth: 1,
+  },
+  wideBubble: {
+    width: '100%',
+    maxWidth: '100%',
   },
   assistantHeader: {
     flexDirection: 'row',

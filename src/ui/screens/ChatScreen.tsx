@@ -54,6 +54,7 @@ import {CommandReviewCard} from '../components/chat/CommandReviewCard';
 import {CommandGuide} from '../components/chat/CommandGuide';
 import {useCommandReview} from '../hooks/useCommandReview';
 import {useDraftProtection} from '../hooks/useDraftProtection';
+import {useChatReplyFormat} from '../hooks/useChatReplyFormat';
 import {DraftDecisionDialog} from '../components/DraftDecisionDialog';
 import {chatDraftStore} from '../drafts/chatDraftStore';
 import {
@@ -100,6 +101,7 @@ export const ChatScreen: React.FC<ChatScreenProps> = ({
   );
   // Async results are applied only while the same account is still shown.
   const activeUserRef = useRef(userId);
+  const replyFormat = useChatReplyFormat(userId);
   activeUserRef.current = userId;
   const suppressAutoScrollRef = useRef(false);
   // AGY-PORT 05: the composer draft lives in an owner-bound memory store, so tab
@@ -832,6 +834,8 @@ export const ChatScreen: React.FC<ChatScreenProps> = ({
       <FlatList
         ref={flatListRef}
         data={messages}
+        // Switching the reply format in Profile redraws replies already shown.
+        extraData={replyFormat}
         keyExtractor={item => item.id}
         style={styles.messagesList}
         keyboardShouldPersistTaps="handled"
@@ -839,6 +843,7 @@ export const ChatScreen: React.FC<ChatScreenProps> = ({
         renderItem={({item}) => (
           <ChatMessageItem
             item={item}
+            replyFormat={replyFormat}
             handbookNote={item.handbookNote ?? handbookNotes[item.id]}
             onSpeak={
               isOnlineMode
@@ -867,6 +872,7 @@ export const ChatScreen: React.FC<ChatScreenProps> = ({
         ListFooterComponent={
           streamingReply ? (
             <ChatMessageItem
+              replyFormat={replyFormat}
               item={{
                 id: 'streaming-reply',
                 sessionId: '',

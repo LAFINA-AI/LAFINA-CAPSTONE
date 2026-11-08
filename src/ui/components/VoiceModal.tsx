@@ -52,6 +52,8 @@ import {DraftDecisionDialog} from './DraftDecisionDialog';
 import type {DraftDialogRequest} from './DraftDecisionDialog';
 import {useDraftProtection} from '../hooks/useDraftProtection';
 import {chatDraftStore} from '../drafts/chatDraftStore';
+import {ChatReplyText} from './chat/ChatReplyText';
+import {useChatReplyFormat} from '../hooks/useChatReplyFormat';
 
 export interface VoiceModalProps {
   visible: boolean;
@@ -143,6 +145,7 @@ export const VoiceModal: React.FC<VoiceModalProps> = ({
   const [transcript, setTranscript] = useState('');
   const [notice, setNotice] = useState('');
   const [aiReply, setAiReply] = useState('');
+  const replyFormat = useChatReplyFormat(userId);
   const [inputText, setInputText] = useState('');
   const [handoffDialog, setHandoffDialog] = useState<DraftDialogRequest | null>(
     null,
@@ -927,9 +930,11 @@ export const VoiceModal: React.FC<VoiceModalProps> = ({
                 nestedScrollEnabled
                 showsVerticalScrollIndicator
               >
-                <Text style={[styles.replyText, themed.replyText]}>
-                  {aiReply}
-                </Text>
+                <ChatReplyText
+                  content={aiReply}
+                  format={replyFormat}
+                  textStyle={[styles.replyText, themed.replyText]}
+                />
               </ScrollView>
             </View>
           ) : null}

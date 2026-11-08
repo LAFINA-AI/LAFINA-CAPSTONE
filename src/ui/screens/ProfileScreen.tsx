@@ -37,6 +37,8 @@ import {PersonalMemory} from '../components/profile/PersonalMemory';
 import {OfflineVoice} from '../components/profile/OfflineVoice';
 import {OnlineVoice} from '../components/profile/OnlineVoice';
 import {onlineVoiceSettingsStore} from '../../storage/onlineVoiceSettingsStore';
+import {chatReplyFormatStore} from '../../storage/chatReplyFormatStore';
+import {useChatReplyFormat} from '../hooks/useChatReplyFormat';
 import {speechSettingsStore} from '../../storage/speechSettingsStore';
 import {profileStatisticsStore} from '../../storage/profileStatisticsStore';
 import type {ProfileStatistics} from '../../storage/profileStatisticsStore';
@@ -135,6 +137,12 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
     }
   });
   const [summaryStyleDetailed, setSummaryStyleDetailed] = useState(false);
+  const replyFormat = useChatReplyFormat(userId);
+  const handleMarkdownRepliesChange = (enabled: boolean) => {
+    if (!chatReplyFormatStore.save(userId, enabled ? 'markdown' : 'plain')) {
+      Alert.alert('Not saved', 'Could not save the chat reply format. Try again.');
+    }
+  };
   const [dailyBriefingEnabled, setDailyBriefingEnabled] = useState(true);
   const [preferenceSummary, setPreferenceSummary] = useState(() => {
     try {
@@ -609,6 +617,13 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
               type="toggle"
               value={summaryStyleDetailed}
               onValueChange={setSummaryStyleDetailed}
+            />
+            <View style={[styles.settingDivider, themed.settingDivider]} />
+            <SettingItem
+              text="Markdown Chat Replies"
+              type="toggle"
+              value={replyFormat === 'markdown'}
+              onValueChange={handleMarkdownRepliesChange}
             />
             <View style={[styles.settingDivider, themed.settingDivider]} />
             <SettingItem
