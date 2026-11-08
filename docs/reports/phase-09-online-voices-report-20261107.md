@@ -380,3 +380,32 @@ For comparison, about 6 to 7 s per speech request through production. The DeepSe
 
 STATUS: AWAITING DEVICE VALIDATION
 STOPPED — awaiting explicit human approval
+
+## Addendum (2026-11-08): voice mode against the local backend
+
+**Setup:** emulator `emulator-5554` (`Medium_Phone`, x86_64). Local backend from `.local/run-local-backend.py`, reached through `adb reverse tcp:8000 tcp:8000`. The owner topped up the DeepSeek account behind the local key (balance now positive). Test account `qa-voice@lafina-test.dev` (Student Pro) exists only in `.local/local-backend.db`; the emulator was switched to it from the production account.
+
+**Build:** the `dataQa` APK that was on disk did not contain the override (no `127.0.0.1:8000` in its dex), so it still used production. Rebuilt: `createBundleDataQaJsAndAssets` from the physical checkout, then from `X:` `:app:assembleDataQa --init-script X:/.local/elevenlabs-emulator-standalone.init.gradle -PlafinaApiBaseUrl=http://127.0.0.1:8000 -PreactNativeArchitectures=x86_64`. The `.elevenlabs` application ID suffix comes from that init script; without it the build is `com.lafina.capstone` and is refused as a downgrade on this emulator. The override was confirmed in the new dex, and the backend log shows the app's login, sync, chat and speech requests.
+
+**Method:** Online Mode on, voice mode, question typed into the command box (no microphone on the emulator), timed from the Prepare tap. Text times come from screenshots about 0.55 s apart. Audio times come from `AudioFlinger createTrack` / `AudioTrack stop` in logcat, relative to the device time of the tap.
+
+| Run | First text | Full text | Audio starts | Clips |
+|---|---|---|---|---|
+| Production, before (earlier addenda) | 5.6 to 5.9 s | n/a | 12.9 s | n/a |
+| Local, USTP handbook on, "what causes rain in two sentences" | 2.7 s ("Rain") | 3.3 s | 5.6 s | 2 (second at 12.9 s) |
+| Local, USTP handbook off, "why is the sky blue in two sentences" | 1.1 s (partial) | 1.8 s | 2.6 s | 2 (10.15 to 10.60 s gap, then 17.9 s end) |
+
+Direct requests from the computer to the local backend, same account: first stream event 0.6 s without the handbook and 3.4 s with it; a 63-character `latency: low` speech clip took 1.9 s.
+
+**Observed:**
+- Text streams in voice mode: partial text appears and grows before the reply is complete.
+- Speech starts while or shortly after the text is written. The reply is read as two clips with about 0.5 s of silence between them (a new MediaPlayer per clip).
+- With the handbook on, about 2 s more is spent before the first text (the handbook search).
+- "Reading aloud…" shows as soon as text arrives, about 3 s before audio starts when the handbook is on.
+
+**Not verified:** audibility (logcat shows playback, nobody listened); spoken input and speech recognition (typed instead); production timings (production still runs in `iad1`); a physical phone.
+
+Evidence (git-ignored): `.local/qa-online-voices/local-backend-20261108/`.
+
+STATUS: AWAITING DEVICE VALIDATION
+STOPPED — awaiting explicit human approval
