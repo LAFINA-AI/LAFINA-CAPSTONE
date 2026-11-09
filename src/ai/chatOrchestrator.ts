@@ -5,8 +5,10 @@ import {
 } from '../storage/chatStore';
 import {chatMemoryStore} from '../storage/chatMemoryStore';
 import {chatMemoryService} from '../cloud/chatMemoryService';
+import {directProviderTestEnabled} from '../cloud/directProviderTest';
 import {isForgetAllMemoriesRequest} from './chatMemoryCommands';
 import {studyPreference} from './studyPreference';
+import {explicitMemory} from './explicitMemory';
 import {db} from '../storage/database';
 import {plannerQueries} from '../storage/plannerQueries';
 import type {PlannerWindow} from '../storage/plannerQueries';
@@ -121,6 +123,7 @@ export interface ChatOrchestratorResult {
 /** What the device made of a spoken conversation turn (see `reviewSpokenTurn`). */
 export type SpokenTurnReview =
   | {kind: 'none'}
+  | {kind: 'memory'; reply: string}
   | {kind: 'proposal'; review: PrepareResult; reply: string}
   | {kind: 'note'; reply: string}
   | {kind: 'local_answer'; reply: string};
@@ -405,6 +408,12 @@ export class ChatOrchestrator {
   ): Promise<SpokenTurnReview> {
     const trimmed = (text || '').trim();
     if (!trimmed) return {kind: 'none'};
+    const fact = explicitMemory(trimmed);
+    if (fact) {
+      if (!chatMemoryStore.isEnabled(userId)) return {kind: 'memory', reply: 'Memory is turned off, so I did not save that.'};
+      const saved = chatMemoryStore.add(userId, fact);
+      return {kind: 'memory', reply: saved ? 'I saved that in your memory.' : 'That is already in your memory.'};
+    }
     const refDate = options.referenceDate || new Date();
     const validated = await intentService.extractIntent(trimmed, {
       referenceDate: refDate,
@@ -452,12 +461,13 @@ export class ChatOrchestrator {
     const sessionId = userMessage.sessionId;
     const memoryRevision = chatMemoryStore.revision(userId);
 
-    const preference = studyPreference(trimmed);
+    const preference = explicitMemory(trimmed);
     if (preference) {
       const enabled = chatMemoryStore.isEnabled(userId);
+      const isStudy = !!studyPreference(trimmed);
       const reply = enabled
-        ? "I'll remember your study preference."
-        : 'Your study preference was not saved because memory is turned off.';
+        ? isStudy ? "I'll remember your study preference." : "I'll remember that."
+        : isStudy ? 'Your study preference was not saved because memory is turned off.' : 'Memory is turned off, so I did not save that.';
       const assistantMessage = db.transactionSync(tx => {
         const message = chatStore.addMessage(userId, 'assistant', reply, null,
           {localReply: true}, sessionId, tx);
@@ -839,7 +849,7 @@ export class ChatOrchestrator {
 
     // Background: never delays or changes the reply. Chat hears about any
     // change through CHAT_MEMORY_CHANGED_EVENT and shows it under this reply.
-    if (learnFromReply) {
+    if (learnFromReply && !directProviderTestEnabled()) {
       void chatMemoryService.afterExchange({
         userId,
         sessionId,

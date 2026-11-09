@@ -20,7 +20,7 @@ export const OnboardingNavigation: React.FC<OnboardingNavigationProps> = ({
 
   return (
     <View style={[styles.navigation, themed.navigation]}>
-      {step > 1 && step < totalSteps ? (
+      {step > 1 ? (
         <TouchableOpacity style={styles.backButton} onPress={onBack}>
           <Text style={[styles.backButtonText, themed.backButtonText]}>Back</Text>
         </TouchableOpacity>

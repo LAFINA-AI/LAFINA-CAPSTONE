@@ -83,6 +83,7 @@ function AppContent({
   const [isLoading, setIsLoading] = useState(true);
   const [authScreen, setAuthScreen] = useState<'welcome' | 'login' | 'register'>('welcome');
   const [isOnboarding, setIsOnboarding] = useState(false);
+  const [isOnboardingReplay, setIsOnboardingReplay] = useState(false);
   const [activeTab, setActiveTab] = useState<TabType>('calendar');
   const [voiceVisible, setVoiceVisible] = useState(false);
   const [tourOpen, setTourOpen] = useState(false);
@@ -401,7 +402,8 @@ function AppContent({
   };
 
   const handleOnboardingComplete = () => {
-    if (userId) productTourStore.queue(userId);
+    if (userId && !isOnboardingReplay) productTourStore.queue(userId);
+    setIsOnboardingReplay(false);
     setIsOnboarding(false);
     syncWorker
       .performSync()
@@ -474,6 +476,7 @@ function AppContent({
             onLogout={handleLogout}
             onNavigateToRegister={handleGuestCreateAccount}
             onReplayTour={() => setTourOpen(true)}
+            onReplayOnboarding={() => { setIsOnboardingReplay(true); setIsOnboarding(true); }}
           />
         );
       default:
@@ -529,6 +532,7 @@ function AppContent({
       <OnboardingScreen
         userId={userId}
         onOnboardingComplete={handleOnboardingComplete}
+        onCancel={isOnboardingReplay ? () => { setIsOnboardingReplay(false); setIsOnboarding(false); } : undefined}
       />
     );
   }

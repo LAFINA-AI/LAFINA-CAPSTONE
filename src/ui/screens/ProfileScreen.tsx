@@ -89,6 +89,7 @@ interface ProfileScreenProps {
   onLogout?: (isGuest?: boolean) => void;
   onNavigateToRegister?: () => void;
   onReplayTour?: () => void;
+  onReplayOnboarding?: () => void;
 }
 
 export const ProfileScreen: React.FC<ProfileScreenProps> = ({
@@ -98,6 +99,7 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
   onLogout,
   onNavigateToRegister,
   onReplayTour,
+  onReplayOnboarding,
 }) => {
   const [currentUser, setCurrentUser] = useState<User | null>(() => {
     try {
@@ -753,6 +755,7 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
                   endSession={endSessionForServerSwitch}
                   onSessionEnded={() => onLogout?.(false)}
                 />
+                {onReplayOnboarding ? <SettingItem text="Replay onboarding" type="link" onPress={onReplayOnboarding} /> : null}
               </View>
             </>
           )}
