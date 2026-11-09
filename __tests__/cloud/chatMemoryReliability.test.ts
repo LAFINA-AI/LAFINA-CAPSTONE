@@ -60,6 +60,28 @@ it('keeps explicit scheduling requests out of the preference route', () => {
   expect(studyPreference('I like studying but schedule a block at 10pm')).toBeNull();
 });
 
+it('saves a spoken remember request as memory before planner parsing', async () => {
+  const userId = 'voice-study-memory';
+  const reply = await chatOrchestrator.reviewSpokenTurn(userId, 'Remember that I like studying between 10pm to 2am');
+  expect(reply.kind).toBe('memory');
+  if (reply.kind !== 'memory') throw new Error('Expected memory result');
+  expect(reply.reply).toContain('saved');
+  expect(chatMemoryStore.list(userId).map(m => m.text)).toContain('Prefers studying between 10pm to 2am.');
+  const duplicate = await chatOrchestrator.reviewSpokenTurn(userId, 'Remember that I like studying between 10pm to 2am');
+  expect(duplicate.kind).toBe('memory');
+  expect(chatMemoryStore.list(userId)).toHaveLength(1);
+});
+
+it('does not save a spoken preference while memory is disabled', async () => {
+  const userId = 'voice-memory-disabled';
+  chatMemoryStore.setEnabled(userId, false);
+  const result = await chatOrchestrator.reviewSpokenTurn(userId, 'Remember that I like studying between 10pm to 2am');
+  expect(result.kind).toBe('memory');
+  if (result.kind !== 'memory') throw new Error('Expected memory result');
+  expect(result.reply).toContain('turned off');
+  expect(chatMemoryStore.list(userId)).toEqual([]);
+});
+
 it('does not restore memory after the user clears data during extraction', async () => {
   const me = 'audit-clear';
   let release: (value: unknown) => void = () => undefined;

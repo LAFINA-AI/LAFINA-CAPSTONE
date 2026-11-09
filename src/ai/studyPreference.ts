@@ -1,6 +1,7 @@
 /** Recognize a personal study preference, not a request to schedule a block. */
 export const studyPreference = (text: string): string | null => {
-  const value = text.trim().replace(/\s+/g, ' ');
+  const value = text.trim().replace(/\s+/g, ' ')
+    .replace(/^(?:please\s+)?remember\s+(?:that\s+)?(?=i\s+(?:like|love|prefer|enjoy)\b)/i, '');
   if (/\b(?:schedule|create|add|book|block|remind|set up)\b/i.test(value)) return null;
   const match = value.match(
     /^(?:i\s+(?:like|love|prefer|enjoy)\s+(?:to\s+study|studying)|my\s+preferred\s+study\s+time\s+is)\s+(.+?)[.!]?$/i,
