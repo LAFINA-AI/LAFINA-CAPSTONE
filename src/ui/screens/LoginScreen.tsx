@@ -40,9 +40,11 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({
   const themed = useThemedStyles(getLoginThemedStyles);
 
   useEffect(() => {
+    // ponytail: restore remembered email and password
     const saved = userStore.getRememberMe();
-    if (saved.enabled && saved.email) {
-      setEmail(saved.email);
+    if (saved.enabled) {
+      if (saved.email) setEmail(saved.email);
+      if (saved.password) setPassword(saved.password);
       setRememberMe(true);
     }
   }, []);
@@ -52,16 +54,23 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({
     setRememberMe(newValue);
 
     if (newValue) {
-      userStore.setRememberMe(true, email.trim() || null);
+      userStore.setRememberMe(true, email.trim() || null, password || null);
     } else {
-      userStore.setRememberMe(false, null);
+      userStore.setRememberMe(false, null, null);
     }
   };
 
   const handleEmailChange = (text: string) => {
     setEmail(text);
     if (rememberMe) {
-      userStore.setRememberMe(true, text.trim() || null);
+      userStore.setRememberMe(true, text.trim() || null, password || null);
+    }
+  };
+
+  const handlePasswordChange = (text: string) => {
+    setPassword(text);
+    if (rememberMe) {
+      userStore.setRememberMe(true, email.trim() || null, text || null);
     }
   };
 
@@ -81,7 +90,9 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({
         result.localUserId
       ) {
         if (rememberMe) {
-          userStore.setRememberMe(true, email.trim().toLowerCase());
+          userStore.setRememberMe(true, email.trim().toLowerCase(), password);
+        } else {
+          userStore.setRememberMe(false, null, null);
         }
 
         if (result.status === 'success') {
@@ -137,7 +148,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({
             placeholder="••••••••"
             secureTextEntry={!showPassword}
             value={password}
-            onChangeText={setPassword}
+            onChangeText={handlePasswordChange}
             icon={<Lock size={20} color={colors.textSecondary} />}
             showPasswordToggle
             showPassword={showPassword}

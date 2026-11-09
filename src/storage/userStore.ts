@@ -558,7 +558,8 @@ export const userStore = {
     }
   },
 
-  getRememberMe: (): {enabled: boolean; email: string | null} => {
+  // ponytail: remember password alongside email when Remember Me is enabled
+  getRememberMe: (): {enabled: boolean; email: string | null; password: string | null} => {
     try {
       const result = db.executeSync('SELECT * FROM remember_me WHERE id = 1');
       if (result.rows && result.rows.length > 0) {
@@ -566,21 +567,26 @@ export const userStore = {
         return {
           enabled: row.enabled === 1,
           email: typeof row.email === 'string' ? row.email : null,
+          password: typeof row.password === 'string' ? row.password : null,
         };
       }
-      return {enabled: false, email: null};
+      return {enabled: false, email: null, password: null};
     } catch (error) {
       console.error('Error fetching Remember Me setting:', error);
-      return {enabled: false, email: null};
+      return {enabled: false, email: null, password: null};
     }
   },
 
-  setRememberMe: (enabled: boolean, email: string | null): void => {
+  setRememberMe: (
+    enabled: boolean,
+    email: string | null = null,
+    password: string | null = null,
+  ): void => {
     const now = new Date().toISOString();
     try {
       db.executeSync(
-        `INSERT OR REPLACE INTO remember_me (id, enabled, email, updated_at) VALUES (1, ?, ?, ?)`,
-        [enabled ? 1 : 0, email, now],
+        `INSERT OR REPLACE INTO remember_me (id, enabled, email, password, updated_at) VALUES (1, ?, ?, ?, ?)`,
+        [enabled ? 1 : 0, email, enabled ? password : null, now],
       );
     } catch (error) {
       console.error('Error saving Remember Me setting:', error);
