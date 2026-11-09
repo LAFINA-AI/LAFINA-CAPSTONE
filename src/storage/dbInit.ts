@@ -178,6 +178,7 @@ const applyBaselineSchema = (tx: DatabaseTransaction): void => {
       id INTEGER PRIMARY KEY CHECK (id = 1),
       enabled INTEGER NOT NULL DEFAULT 0,
       email TEXT,
+      password TEXT,
       created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
       updated_at TEXT NOT NULL
     );
@@ -553,6 +554,7 @@ const applyBaselineSchema = (tx: DatabaseTransaction): void => {
     'CREATE INDEX IF NOT EXISTS idx_recorded_meetings_user ON recorded_meetings (user_id, started_at);',
   );
   addColumnIfMissing(tx, 'messages', 'attachment_json', 'TEXT');
+  addColumnIfMissing(tx, 'remember_me', 'password', 'TEXT');
 
   tx.executeSync(
     'CREATE UNIQUE INDEX IF NOT EXISTS idx_users_cloud_account_id ON users(cloud_account_id);',

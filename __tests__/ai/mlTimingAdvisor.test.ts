@@ -166,7 +166,7 @@ describe('Phase ML-3: Machine Learning Adaptive Timing Advisor', () => {
         });
       }
 
-      const scheduledAtIso = '2026-11-09T08:00:00.000Z';
+      const scheduledAtIso = new Date(Date.now() + 2 * 3600 * 1000).toISOString();
       const rec = getAdaptiveScheduleRecommendation(testUserId, {
         scheduledAtIso,
         priority: 'High',
