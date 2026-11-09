@@ -41,5 +41,9 @@ class CapstoneBuildModule(context: ReactApplicationContext) : ReactContextBaseJa
       // Debug and test builds only: Profile's Vercel/local server switch.
       "backendSwitchEnabled" to BuildConfig.ENABLE_BACKEND_SWITCH,
       "providerTestingEnabled" to BuildConfig.PROVIDER_TESTING_ENABLED,
+      "directElevenKey" to BuildConfig.DIRECT_ELEVEN_KEY,
+      "directDeepseekKey" to BuildConfig.DIRECT_DEEPSEEK_KEY,
+      "directAgentId" to BuildConfig.DIRECT_AGENT_ID,
+      "directVoiceId" to BuildConfig.DIRECT_VOICE_ID,
     )
 }

@@ -34,6 +34,10 @@ android {
         // online features to a backend on this computer (via adb reverse).
         buildConfigField 'String', 'API_BASE_URL_OVERRIDE', '""'
         buildConfigField 'boolean', 'PROVIDER_TESTING_ENABLED', 'false'
+        buildConfigField 'String', 'DIRECT_ELEVEN_KEY', '""'
+        buildConfigField 'String', 'DIRECT_DEEPSEEK_KEY', '""'
+        buildConfigField 'String', 'DIRECT_AGENT_ID', '""'
+        buildConfigField 'String', 'DIRECT_VOICE_ID', '""'
     }
     aaptOptions {
         noCompress "onnx", "bin"
@@ -73,6 +77,13 @@ android {
             buildConfigField 'boolean', 'ENABLE_PLANNER_HARNESS', 'true'
             buildConfigField 'boolean', 'ENABLE_BACKEND_SWITCH', 'true'
             buildConfigField 'boolean', 'PROVIDER_TESTING_ENABLED', providerTesting.toString()
+            if (providerTesting && project.findProperty('lafinaDirectProviders') == 'true') {
+                ['DIRECT_ELEVEN_KEY', 'DIRECT_DEEPSEEK_KEY', 'DIRECT_AGENT_ID', 'DIRECT_VOICE_ID'].each { name ->
+                    def value = System.getenv('LAFINA_TEST_' + name) ?: ''
+                    if (!(value ==~ /[A-Za-z0-9_-]+/)) throw new GradleException('Missing or invalid direct provider test setting: ' + name)
+                    buildConfigField 'String', name, '"' + value + '"'
+                }
+            }
             buildConfigField 'String', 'API_BASE_URL_OVERRIDE',
                 "\"${(project.findProperty('lafinaApiBaseUrl') ?: (providerTesting ? 'http://127.0.0.1:8000' : '')).toString().replaceAll('[^A-Za-z0-9:/._-]', '')}\""
         }

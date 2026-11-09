@@ -1,5 +1,6 @@
 import { cloudClient, CloudResult } from '../cloud';
 import { localSettingsStore } from '../storage';
+import {directProviderTestEnabled, directTestChat} from '../cloud/directProviderTest';
 
 export interface OnlineChatMessage {
   role: 'user' | 'assistant';
@@ -209,6 +210,8 @@ export const onlineChatSkill = {
     const bounded = boundMessages(messages);
     if (!bounded) return EMPTY_MESSAGE;
 
+    if (directProviderTestEnabled()) return directTestChat(bounded, options.memories);
+
     const result = await cloudClient.request<BackendChatResponse>(
       '/v1/ai/chat',
       {
@@ -263,6 +266,11 @@ export const onlineChatSkill = {
   ): Promise<CloudResult<OnlineChatReply>> => {
     const bounded = boundMessages(messages);
     if (!bounded) return EMPTY_MESSAGE;
+    if (directProviderTestEnabled()) {
+      const result = await directTestChat(bounded, options.memories);
+      if (result.status === 'success' && result.data) options.onReplyText(result.data.reply);
+      return result;
+    }
     const useHandbook = options.useHandbook !== false;
     const memoryField = options.memories?.length ? { memories: options.memories } : {};
     const fallback = () =>
