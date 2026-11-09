@@ -37,6 +37,7 @@ export interface VoiceConversationHandle {
   stopResponse: () => void;
   sendText: (text: string) => Promise<boolean>;
   sendReminderContext: (task: string) => Promise<boolean>;
+  sendContext: (information: string) => Promise<boolean>;
 }
 
 /**
@@ -49,6 +50,7 @@ export const useVoiceConversation = (
   userId: string,
   options: {
     onFinalUserText?: (text: string) => void;
+    onClientTool?: (name: string, parameters: Record<string, unknown>, isCurrent: () => boolean) => Promise<string>;
     /** Tests inject fakes here. */
     deps?: (userId: string) => VoiceConversationDeps;
   } = {},
@@ -57,6 +59,8 @@ export const useVoiceConversation = (
   const controllerRef = useRef<VoiceConversationController | null>(null);
   const finalTextRef = useRef(options.onFinalUserText);
   finalTextRef.current = options.onFinalUserText;
+  const toolRef = useRef(options.onClientTool);
+  toolRef.current = options.onClientTool;
   const depsFactory = useRef(options.deps ?? defaultVoiceConversationDeps);
 
   useEffect(() => {
@@ -64,6 +68,9 @@ export const useVoiceConversation = (
     const controller = new VoiceConversationController({
       ...deps,
       onFinalUserText: text => finalTextRef.current?.(text),
+      onClientTool: (name, parameters, isCurrent) => toolRef.current
+        ? toolRef.current(name, parameters, isCurrent)
+        : Promise.reject(new Error('Tool unavailable')),
     });
     controllerRef.current = controller;
     setSnapshot(controller.getSnapshot());
@@ -123,5 +130,7 @@ export const useVoiceConversation = (
       (await controllerRef.current?.sendText(text)) ?? false,
     sendReminderContext: async task =>
       (await controllerRef.current?.sendReminderContext(task)) ?? false,
+    sendContext: async information =>
+      (await controllerRef.current?.sendContext(information)) ?? false,
   };
 };

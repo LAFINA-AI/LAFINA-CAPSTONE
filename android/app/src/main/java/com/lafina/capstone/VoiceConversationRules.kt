@@ -60,7 +60,7 @@ object VoiceConversationRules {
     }
 
   /** Only these client messages may be sent from JavaScript besides audio. */
-  val ALLOWED_CLIENT_TYPES = setOf("user_message", "user_activity")
+  val ALLOWED_CLIENT_TYPES = setOf("user_message", "user_activity", "client_tool_result", "contextual_update")
 }
 
 /**

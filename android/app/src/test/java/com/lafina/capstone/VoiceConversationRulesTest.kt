@@ -53,7 +53,7 @@ class VoiceConversationRulesTest {
 
   @Test
   fun `only text and activity messages may come from JavaScript`() {
-    assertEquals(setOf("user_message", "user_activity"), VoiceConversationRules.ALLOWED_CLIENT_TYPES)
+    assertEquals(setOf("user_message", "user_activity", "client_tool_result", "contextual_update"), VoiceConversationRules.ALLOWED_CLIENT_TYPES)
   }
 
   @Test
