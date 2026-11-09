@@ -8,6 +8,7 @@ react {
 }
 
 def targetAbis = (project.findProperty('reactNativeArchitectures') ?: 'arm64-v8a,x86_64').split(',')
+def providerTesting = project.findProperty('lafinaProviderTesting') == 'true'
 // ARMv7 has not been compiled or validated on a 32-bit phone. Opt in explicitly.
 if (targetAbis.contains('armeabi-v7a') && project.findProperty('enableExperimentalArmv7') != 'true') {
     throw new GradleException('ARMv7 is experimental: add -PenableExperimentalArmv7=true to validate it separately.')
@@ -32,6 +33,7 @@ android {
         // Test builds only: -PlafinaApiBaseUrl=http://127.0.0.1:8000 sends
         // online features to a backend on this computer (via adb reverse).
         buildConfigField 'String', 'API_BASE_URL_OVERRIDE', '""'
+        buildConfigField 'boolean', 'PROVIDER_TESTING_ENABLED', 'false'
     }
     aaptOptions {
         noCompress "onnx", "bin"
@@ -63,15 +65,16 @@ android {
         // Same application ID/signature preserves the Phase 01 preview's settings.
         dataQa {
             initWith debug
-            applicationIdSuffix ''
+            applicationIdSuffix providerTesting ? '.providers' : ''
             debuggable true
             // Match native debug headers/libraries; release prefabs lack debug symbols.
             matchingFallbacks = ['debug']
             versionNameSuffix '-data-qa'
             buildConfigField 'boolean', 'ENABLE_PLANNER_HARNESS', 'true'
             buildConfigField 'boolean', 'ENABLE_BACKEND_SWITCH', 'true'
+            buildConfigField 'boolean', 'PROVIDER_TESTING_ENABLED', providerTesting.toString()
             buildConfigField 'String', 'API_BASE_URL_OVERRIDE',
-                "\"${(project.findProperty('lafinaApiBaseUrl') ?: '').toString().replaceAll('[^A-Za-z0-9:/._-]', '')}\""
+                "\"${(project.findProperty('lafinaApiBaseUrl') ?: (providerTesting ? 'http://127.0.0.1:8000' : '')).toString().replaceAll('[^A-Za-z0-9:/._-]', '')}\""
         }
     }
     externalNativeBuild {

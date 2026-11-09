@@ -1,0 +1,8 @@
+{
+  "microphone_used": false,
+  "frames_are_generated_zeros": true,
+  "reply_after_text_ms": 2655,
+  "needed_silence_resume": false,
+  "reply_after_resume_ms": null,
+  "end_http": 200
+}

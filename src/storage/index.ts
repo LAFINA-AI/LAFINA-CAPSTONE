@@ -62,8 +62,11 @@ export type {
   ChatMessageMetadata,
   ChatPage,
   ChatSession,
+  ChatSummary,
   LegacyChatSummary,
 } from './chatStore';
+export {chatMemoryStore} from './chatMemoryStore';
+export type {ChatMemory, ChatMemoryChanges} from './chatMemoryStore';
 export {ownedChatSessionId} from './chatOwnership';
 export {behaviorStore} from './behaviorStore';
 export type {BehaviorLog, FeatureSnapshot} from './behaviorStore';

@@ -1,0 +1,28 @@
+[
+  {
+    "log": "doctor-target.log",
+    "command": [
+      "node",
+      "scripts/doctor.mjs"
+    ],
+    "exit_code": 0
+  },
+  {
+    "log": "architecture-target-policy.log",
+    "command": [
+      "node",
+      "-e",
+      "const fs=require('node:fs');const p=require('node:path');const u=require('node:url');const source=fs.readFileSync('scripts/check-architecture.mjs','utf8').replace(\"from 'typescript'\",\"from '\"+u.pathToFileURL(\"C:\\\\L3mxr\\\\Github Repositories\\\\LAFINA\\\\LAFINA\\\\node_modules\\\\typescript\\\\lib\\\\typescript.js\").href+\"'\"); console.log('Analysis-only TypeScript: '+require(\"C:\\\\L3mxr\\\\Github Repositories\\\\LAFINA\\\\LAFINA\\\\node_modules\\\\typescript\\\\package.json\").version); import('data:text/javascript;base64,'+Buffer.from(source).toString('base64')).catch(e=>{console.error(e);process.exitCode=1;});"
+    ],
+    "exit_code": 0
+  },
+  {
+    "log": "architecture-offline-boundary.json",
+    "command": [
+      "node",
+      "-e",
+      "const c=require(\"C:\\\\L3mxr\\\\Github Repositories\\\\LAFINA\\\\LAFINA\\\\scripts\\\\check-architecture.cjs\");const r=c.analyzeSources(c.readSources(process.cwd()));console.log(JSON.stringify(r,null,2));process.exitCode=r.violations.length||r.cycles.length?1:0;"
+    ],
+    "exit_code": 1
+  }
+]

@@ -12,7 +12,7 @@
 import RNFS from 'react-native-fs';
 import { db, initDatabase, userStore } from '../../src/storage';
 import { DatabaseService } from '../../src/storage/database';
-import { SCHEMA_MIGRATIONS, initDatabase as initDatabaseWith } from '../../src/storage/dbInit';
+import { CURRENT_SCHEMA_VERSION, SCHEMA_MIGRATIONS, initDatabase as initDatabaseWith } from '../../src/storage/dbInit';
 import { authorizeDataReset, finishAttachmentCleanup } from '../../src/storage/accountDataReset';
 import {
   MAX_CLEANUP_PER_RUN,
@@ -633,7 +633,7 @@ describe('fairness survives restarts (real SQLite file, fresh modules)', () => {
     seed.close();
 
     const run = await launch(file);
-    expect(Number(run.connection.executeSync('PRAGMA user_version').rows[0]?.user_version)).toBe(24);
+    expect(Number(run.connection.executeSync('PRAGMA user_version').rows[0]?.user_version)).toBe(CURRENT_SCHEMA_VERSION);
     const after = run.connection.executeSync('SELECT * FROM attachment_cleanup ORDER BY path').rows;
     const withoutTurn = after.map(row => {
       const copy: Record<string, unknown> = { ...row };

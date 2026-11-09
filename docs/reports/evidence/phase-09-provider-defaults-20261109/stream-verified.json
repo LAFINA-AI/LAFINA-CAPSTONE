@@ -1,0 +1,11 @@
+{
+  "http_status": 200,
+  "first_text_ms": 521,
+  "total_ms": 726,
+  "text_characters": 90,
+  "provider": "deepseek",
+  "model": "deepseek-flash",
+  "finished": true,
+  "error_statuses": [],
+  "sample_count": 1
+}

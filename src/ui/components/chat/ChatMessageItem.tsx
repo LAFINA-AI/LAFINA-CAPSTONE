@@ -22,6 +22,7 @@ import {
 } from '../../../skills/documentSkill';
 import {ttsService} from '../../../ai/tts/ttsService';
 import {ChatReplyText} from './ChatReplyText';
+import {MemoryNote} from './MemoryNote';
 import {hasWideMarkdownBlock} from '../../../utils';
 import type {ChatReplyFormat} from '../../../storage/chatReplyFormatStore';
 
@@ -35,6 +36,8 @@ interface ChatMessageItemProps {
   streaming?: boolean;
   /** How assistant replies are drawn; the user's own words are always shown as typed. */
   replyFormat?: ChatReplyFormat;
+  /** Undo for the memory change shown under a reply. */
+  onUndoMemory?: (item: ChatMessage) => void;
 }
 
 const AttachmentIcon: React.FC<{format: string; color: string}> = ({
@@ -59,6 +62,7 @@ export const ChatMessageItem: React.FC<ChatMessageItemProps> = ({
   onOpenAttachment,
   streaming = false,
   replyFormat = 'markdown',
+  onUndoMemory,
 }) => {
   const isUser = item.sender === 'user';
   const {colors} = useTheme();
@@ -215,6 +219,14 @@ export const ChatMessageItem: React.FC<ChatMessageItemProps> = ({
           >
             Interrupted in voice conversation (not heard to the end)
           </Text>
+        ) : null}
+
+        {!isUser && !streaming && item.memoryChanges ? (
+          <MemoryNote
+            messageId={item.id}
+            changes={item.memoryChanges}
+            onUndo={onUndoMemory ? () => onUndoMemory(item) : undefined}
+          />
         ) : null}
 
         {streaming ? null : (

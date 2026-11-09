@@ -1,0 +1,10 @@
+{
+    "apk":  "C:\\L3mxr\\Github Repositories\\LAFINA-CAPSTONE-agy-development-cont\\.local\\provider-testing\\LAFINA-providers-arm64-v8a.apk",
+    "provider_keys_in_apk":  false,
+    "fast_tts_default":  true,
+    "bundle_sha256":  "06b6afbef57b69eefd3aaa4b3f87bda45c6cdafaef57a8f38dced2717f73c0a9",
+    "architecture":  "arm64-v8a",
+    "apk_sha256":  "927290ac25ee7e5a7525edd212c89a98dae0327f18614cc6fb5d00c457eba9f5",
+    "package":  "com.lafina.capstone.providers",
+    "server":  "http://127.0.0.1:8000"
+}

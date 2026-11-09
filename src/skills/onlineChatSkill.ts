@@ -29,6 +29,8 @@ export interface HandbookStatus {
 
 export interface SendChatMessageOptions {
   useHandbook?: boolean;
+  /** What LAFINA remembers about the student, newest first (sent only when non-empty). */
+  memories?: { id: string; text: string }[];
 }
 
 export interface StreamChatMessageOptions extends SendChatMessageOptions {
@@ -214,6 +216,7 @@ export const onlineChatSkill = {
         body: JSON.stringify({
           messages: bounded,
           useHandbook: options.useHandbook !== false,
+          ...(options.memories?.length ? { memories: options.memories } : {}),
         }),
       },
       true,
@@ -261,7 +264,9 @@ export const onlineChatSkill = {
     const bounded = boundMessages(messages);
     if (!bounded) return EMPTY_MESSAGE;
     const useHandbook = options.useHandbook !== false;
-    const fallback = () => onlineChatSkill.sendChatMessage(bounded, { useHandbook });
+    const memoryField = options.memories?.length ? { memories: options.memories } : {};
+    const fallback = () =>
+      onlineChatSkill.sendChatMessage(bounded, { useHandbook, ...memoryField });
     if (streamRouteMissing) return fallback();
 
     let buffer = '';
@@ -281,7 +286,7 @@ export const onlineChatSkill = {
     };
     const result = await cloudClient.stream(
       '/v1/ai/chat/stream',
-      { messages: bounded, useHandbook },
+      { messages: bounded, useHandbook, ...memoryField },
       {
         onText: (chunk) => {
           const before = reply;

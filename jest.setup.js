@@ -1,4 +1,4 @@
-const { NativeModules } = require('react-native');
+const {NativeModules} = require('react-native');
 NativeModules.LafinaReminder = {
   scheduleExactAlarm: jest.fn(() => Promise.resolve(true)),
   cancelAlarm: jest.fn(() => Promise.resolve(true)),
@@ -30,7 +30,7 @@ NativeModules.LafinaAudioPlayer = {
 };
 
 NativeModules.LafinaSpeechToText = {
-  startListening: jest.fn((options) =>
+  startListening: jest.fn(options =>
     Promise.resolve({
       captureId: options?.captureId || 'mock-cap',
       transcript: 'mock transcript',
@@ -40,7 +40,7 @@ NativeModules.LafinaSpeechToText = {
       inferenceDurationMs: 60,
     }),
   ),
-  transcribe: jest.fn((options) =>
+  transcribe: jest.fn(options =>
     Promise.resolve({
       captureId: options?.captureId || 'mock-cap',
       transcript: 'mock transcript',
@@ -58,7 +58,7 @@ NativeModules.LafinaSpeechToText = {
 
 NativeModules.LafinaMeetingRecorder = {
   getAvailableStorageMB: jest.fn(() => Promise.resolve(2048)),
-  startRecording: jest.fn((id) => Promise.resolve(id || 'mock-meeting')),
+  startRecording: jest.fn(id => Promise.resolve(id || 'mock-meeting')),
   pauseRecording: jest.fn(() => Promise.resolve(true)),
   resumeRecording: jest.fn(() => Promise.resolve(true)),
   stopRecording: jest.fn(() =>
@@ -115,14 +115,17 @@ jest.mock(
 
 jest.mock('lucide-react-native', () => {
   const React = require('react');
-  const { View } = require('react-native');
+  const {View} = require('react-native');
   return new Proxy(
     {},
     {
       get: (_target, prop) => {
         if (prop === '__esModule') return true;
         return function MockLucideIcon(props) {
-          return React.createElement(View, { ...props, accessibilityLabel: String(prop) });
+          return React.createElement(View, {
+            ...props,
+            accessibilityLabel: String(prop),
+          });
         };
       },
     },
@@ -131,16 +134,16 @@ jest.mock('lucide-react-native', () => {
 
 jest.mock('@react-native-community/datetimepicker', () => {
   const React = require('react');
-  const { View } = require('react-native');
+  const {View} = require('react-native');
   return function MockDateTimePicker(props) {
-    return React.createElement(View, { ...props, testID: 'datetimepicker' });
+    return React.createElement(View, {...props, testID: 'datetimepicker'});
   };
 });
 
 jest.mock('@react-native-documents/picker', () => ({
   pick: jest.fn(),
   isErrorWithCode: jest.fn(
-    (err) => err && typeof err === 'object' && 'code' in err,
+    err => err && typeof err === 'object' && 'code' in err,
   ),
   errorCodes: {
     OPERATION_CANCELED: 'OPERATION_CANCELED',
@@ -156,7 +159,9 @@ jest.mock('react-native-fs', () => ({
   unlink: jest.fn(() => Promise.resolve()),
   exists: jest.fn(() => Promise.resolve(false)),
   // A regular file, so attachment cleanup's directory guard (ADR-026) passes.
-  stat: jest.fn(() => Promise.resolve({isFile: () => true, isDirectory: () => false, size: 0})),
+  stat: jest.fn(() =>
+    Promise.resolve({isFile: () => true, isDirectory: () => false, size: 0}),
+  ),
   mkdir: jest.fn(() => Promise.resolve()),
   copyFile: jest.fn(() => Promise.resolve()),
   TemporaryDirectoryPath: '/temp',
@@ -228,5 +233,19 @@ jest.mock('react-native-tts', () => {
   return {
     __esModule: true,
     default: mockTts,
+  };
+});
+
+// Most suites stub chat replies and do not exercise memory extraction. Keep
+// their fire-and-forget side effect from reaching the network after teardown.
+// The memory service integration suite explicitly un-mocks this module.
+jest.mock('./src/cloud/chatMemoryService', () => {
+  const actual = jest.requireActual('./src/cloud/chatMemoryService');
+  return {
+    ...actual,
+    chatMemoryService: {
+      ...actual.chatMemoryService,
+      afterExchange: jest.fn().mockResolvedValue(null),
+    },
   };
 });

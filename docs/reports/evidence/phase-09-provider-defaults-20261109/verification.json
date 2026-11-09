@@ -1,0 +1,120 @@
+{
+  "recorded_at_utc": "2026-11-08T23:39:21.586462+00:00",
+  "mobile_branch": "Lem-branch",
+  "base_commit": "f8f8101edd8439e9db998811e955e40144de6450",
+  "device": {
+    "serial": "emulator-5554",
+    "avd": "Medium_Phone",
+    "model": "sdk_gphone16k_x86_64",
+    "sdk": 37,
+    "timezone": "GMT"
+  },
+  "artifacts": {
+    "arm64-v8a": {
+      "apk": "C:\\L3mxr\\Github Repositories\\LAFINA-CAPSTONE-agy-development-cont\\.local\\provider-testing\\LAFINA-providers-arm64-v8a.apk",
+      "provider_keys_in_apk": false,
+      "fast_tts_default": true,
+      "bundle_sha256": "db93ce38b8d2563bcd73d06abd379daed2e129bd33306d2bb4a19f9b713dbb25",
+      "architecture": "arm64-v8a",
+      "apk_sha256": "47bc109eae8491080844d377755719b69f6199a6d9422070b72f41be2b8c154c",
+      "package": "com.lafina.capstone.providers",
+      "server": "http://127.0.0.1:8000"
+    },
+    "x86_64": {
+      "apk": "C:\\L3mxr\\Github Repositories\\LAFINA-CAPSTONE-agy-development-cont\\.local\\provider-testing\\LAFINA-providers-x86_64.apk",
+      "provider_keys_in_apk": false,
+      "fast_tts_default": true,
+      "bundle_sha256": "db93ce38b8d2563bcd73d06abd379daed2e129bd33306d2bb4a19f9b713dbb25",
+      "architecture": "x86_64",
+      "apk_sha256": "45014b6d536a22a8f63d8d2cf17badf142e8dcce226235105473c1dafbe333c0",
+      "package": "com.lafina.capstone.providers",
+      "server": "http://127.0.0.1:8000"
+    }
+  },
+  "checks": {
+    "preflight": {
+      "exit_code": 0,
+      "suites": 76,
+      "passed": 1151,
+      "skipped": 1,
+      "modules": 251,
+      "cycles": 0,
+      "forbidden_imports": 0
+    },
+    "native": {
+      "suites": 7,
+      "tests": 51,
+      "failures": 0,
+      "errors": 0
+    },
+    "real_local_auth": "PASS through actual APK login form with synthetic local account",
+    "online_default": "PASS on first Chat open without toggling Online",
+    "real_chat_reply": "PASS: one synthetic academic question answered in APK",
+    "elevenlabs_preview": "PASS: ElevenLabs preview finished notice",
+    "offline_preference_retained": "PASS: same local account/history remained Offline after process restart",
+    "returned_online": "PASS",
+    "after_preview_active_recording": false,
+    "after_preview_audio_focus": false,
+    "apk_key_audit": "PASS for both ABIs; scanned every entry for configured provider secrets"
+  },
+  "provider_api": {
+    "unauthenticated_tts_http": 401,
+    "deepseek_stream": {
+      "http_status": 200,
+      "first_data_ms": 1050,
+      "total_ms": 1362,
+      "data_events": 35
+    },
+    "elevenlabs_tts": {
+      "http_status": 200,
+      "provider": "elevenlabs",
+      "model": "eleven_v4_turbo",
+      "audio_bytes": 24911,
+      "elapsed_ms": 1782
+    }
+  },
+  "stream_verification": {
+    "http_status": 200,
+    "first_text_ms": 521,
+    "total_ms": 726,
+    "text_characters": 90,
+    "provider": "deepseek",
+    "model": "deepseek-flash",
+    "finished": true,
+    "error_statuses": [],
+    "sample_count": 1
+  },
+  "provider_access": {
+    "elevenlabs_key_present": true,
+    "deepseek_key_present": true,
+    "agent_id_present": false,
+    "agent_secret_present": false,
+    "elevenlabs_agents": {
+      "http_status": 401,
+      "provider_status": "missing_permissions"
+    },
+    "deepseek_models": {
+      "http_status": 200
+    }
+  },
+  "local_server": {
+    "host": "127.0.0.1",
+    "port": 8000,
+    "source_branch": "codex/chat-memory",
+    "source_commit": "45f65a7713398d4430de41b475a592e620e415dd",
+    "source_modified": false,
+    "database": "isolated .local/provider-testing/lafina.db",
+    "running_for_owner_testing": true
+  },
+  "backend_merge_or_deploy": false,
+  "original_app_accounts_changed": false,
+  "physical_phone": "PARTIAL PASS: installation, local auth, default Online Mode and real chat reply verified on Infinix X6880 (SDK 35); remaining audio/alarm checks not run",
+  "real_elevenagents_pauses": "NOT RUN: key missing ElevenAgents permission; local profile supports chat/fast TTS",
+  "limitations": [
+    "PC server, USB ADB reverse and internet required",
+    "API timings are individual short synthetic examples, not end-to-end voice benchmarks",
+    "Handbook RAG is not configured by the minimal local runner",
+    "Physical audio/echo/headset/alarm checks remain pending"
+  ],
+  "physical_phone_followup": "phone-installation.json"
+}

@@ -5,7 +5,7 @@
  * claims audible or device behavior.
  */
 import React from 'react';
-import {AppState} from 'react-native';
+import {AppState, NativeModules} from 'react-native';
 import type {AppStateStatus} from 'react-native';
 import Tts from 'react-native-tts';
 import RNFS from 'react-native-fs';
@@ -310,6 +310,40 @@ describe('Voice catalogue loading', () => {
 });
 
 describe('Online speech provider with a selected voice', () => {
+  it('requests fast speech by default only in the provider test APK and honors an explicit standard request', async () => {
+    const native = NativeModules as {CapstoneBuild?: Record<string, unknown>};
+    const original = native.CapstoneBuild;
+    const userId = student('provider-test-default');
+    signIn(userId);
+    const request = fakeCloud(() => ttsOk('server_default'));
+    try {
+      native.CapstoneBuild = {
+        providerTestingEnabled: true,
+        backendSwitchEnabled: true,
+      };
+      const fast = createCallSpeechProvider(userId);
+      await fast.speakText('Fast test speech');
+      await fast.dispose?.();
+      const standard = createCallSpeechProvider(userId, {latency: 'standard'});
+      await standard.speakText('Standard test speech');
+      await standard.dispose?.();
+      native.CapstoneBuild = {
+        providerTestingEnabled: false,
+        backendSwitchEnabled: true,
+      };
+      const ordinary = createCallSpeechProvider(userId);
+      await ordinary.speakText('Normal build speech');
+      await ordinary.dispose?.();
+      expect(ttsBodies(request).map(body => body.latency)).toEqual([
+        'low',
+        undefined,
+        undefined,
+      ]);
+    } finally {
+      native.CapstoneBuild = original;
+    }
+  });
+
   it('sends the saved voiceId for an ordinary student and plays ElevenLabs audio', async () => {
     const userId = student('speak');
     signIn(userId);

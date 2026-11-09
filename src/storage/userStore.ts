@@ -563,9 +563,17 @@ export const userStore = {
       const result = db.executeSync('SELECT * FROM remember_me WHERE id = 1');
       if (result.rows && result.rows.length > 0) {
         const row = result.rows[0];
+        const isEnabled =
+          row.enabled === 1 ||
+          row.enabled === true ||
+          String(row.enabled) === '1';
+        const emailStr =
+          typeof row.email === 'string' && row.email.trim().length > 0
+            ? row.email.trim()
+            : null;
         return {
-          enabled: row.enabled === 1,
-          email: typeof row.email === 'string' ? row.email : null,
+          enabled: isEnabled,
+          email: emailStr,
         };
       }
       return {enabled: false, email: null};

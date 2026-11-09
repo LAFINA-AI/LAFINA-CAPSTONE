@@ -1,0 +1,17 @@
+test_account_admin_and_docs_are_not_exposed (test_local_voice_callback.CallbackTests.test_account_admin_and_docs_are_not_exposed) ... ok
+Voice callback HTTP 401; response bytes 26
+test_backend_denial_is_preserved (test_local_voice_callback.CallbackTests.test_backend_denial_is_preserved) ... ok
+Voice callback rejected: HTTP 401 (shared-secret check)
+test_empty_configuration_denies_all (test_local_voice_callback.CallbackTests.test_empty_configuration_denies_all) ... ok
+Voice callback HTTP 200; response bytes 36
+test_forwards_grant_and_sse_without_cookies_or_other_headers (test_local_voice_callback.CallbackTests.test_forwards_grant_and_sse_without_cookies_or_other_headers) ... ok
+test_large_authenticated_body_is_not_forwarded (test_local_voice_callback.CallbackTests.test_large_authenticated_body_is_not_forwarded) ... ok
+Voice callback rejected: HTTP 401 (shared-secret check)
+Voice callback rejected: HTTP 401 (shared-secret check)
+test_unauthorized_never_opens_upstream (test_local_voice_callback.CallbackTests.test_unauthorized_never_opens_upstream) ... ok
+test_unavailable_backend_is_generic_and_closed (test_local_voice_callback.CallbackTests.test_unavailable_backend_is_generic_and_closed) ... ok
+
+----------------------------------------------------------------------
+Ran 7 tests in 0.160s
+
+OK

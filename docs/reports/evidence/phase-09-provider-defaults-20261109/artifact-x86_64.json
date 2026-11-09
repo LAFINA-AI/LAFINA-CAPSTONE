@@ -1,0 +1,10 @@
+{
+    "apk":  "C:\\L3mxr\\Github Repositories\\LAFINA-CAPSTONE-agy-development-cont\\.local\\provider-testing\\LAFINA-providers-x86_64.apk",
+    "provider_keys_in_apk":  false,
+    "fast_tts_default":  true,
+    "bundle_sha256":  "db93ce38b8d2563bcd73d06abd379daed2e129bd33306d2bb4a19f9b713dbb25",
+    "architecture":  "x86_64",
+    "apk_sha256":  "45014b6d536a22a8f63d8d2cf17badf142e8dcce226235105473c1dafbe333c0",
+    "package":  "com.lafina.capstone.providers",
+    "server":  "http://127.0.0.1:8000"
+}

@@ -124,7 +124,7 @@ describe('schema migrations', () => {
     expect(readUserVersion(first)).toBe(CURRENT_SCHEMA_VERSION);
     first.close();
 
-    // Schemas 18-24 only add: every schema-17 column of every row is unchanged.
+    // Schemas 18-25 only add: every schema-17 column of every row is unchanged.
     const afterUpgrade = inspect(path, snapshotAllRows);
     const projected = inspect(path, c => snapshotSchema17Columns(c, schema17Columns));
     for (const [table, rows] of Object.entries(before)) {
@@ -136,6 +136,8 @@ describe('schema migrations', () => {
       // Schema 23 (clear-data audit C1): attachment cleanup obligations.
       'attachment_cleanup',
       'chat_legacy_quarantine',
+      // Schema 25 (chat history and memory): on-device memories, empty at first.
+      'chat_memories',
       'entity_local_revisions',
       // Schema 22 (AGY-PORT 08): device-local event timezone metadata; legacy
       // events get no row and keep their floating meaning.
@@ -151,6 +153,7 @@ describe('schema migrations', () => {
     expect(afterUpgrade.assistant_operation_receipts).toEqual([]);
     expect(afterUpgrade.notes_search_index).toEqual([]);
     expect(afterUpgrade.event_time_local).toEqual([]);
+    expect(afterUpgrade.chat_memories).toEqual([]);
     // Schema 19 backfills one delivery job per reminder, owned by its owner,
     // with no events and nothing added to the outbox.
     expect(
