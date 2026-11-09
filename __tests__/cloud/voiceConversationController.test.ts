@@ -214,6 +214,31 @@ const agentFinal = (text: string, eventId = 2) => ({
   agent_response_event: {agent_response: text, event_id: eventId},
 });
 
+it('returns the actual app tool result once to the active conversation', async () => {
+  const {controller, deps, calls, message} = setup();
+  deps.onClientTool = jest.fn(async () => 'Review card shown. Nothing has been saved.');
+  await controller.start();
+  const call = {type:'client_tool_call', client_tool_call:{tool_name:'prepare_lafina_action', tool_call_id:'call-1', parameters:{request:'schedule a meeting'}}};
+  message(call);
+  message(call);
+  await flush();
+  expect(deps.onClientTool).toHaveBeenCalledTimes(1);
+  expect(calls.sent.map(v => JSON.parse(v))).toContainEqual({type:'client_tool_result', tool_call_id:'call-1', result:'Review card shown. Nothing has been saved.', is_error:false});
+  controller.end();
+});
+
+it('does not send a delayed tool result after the conversation ends', async () => {
+  const {controller, deps, calls, message} = setup();
+  const response = deferred<string>();
+  deps.onClientTool = () => response.promise;
+  await controller.start();
+  message({type:'client_tool_call', client_tool_call:{tool_name:'read_lafina_data', tool_call_id:'call-2', parameters:{kind:'notes'}}});
+  controller.end();
+  response.resolve('private content');
+  await flush();
+  expect(calls.sent.some(v => v.includes('private content'))).toBe(false);
+});
+
 it('waits for native microphone release before another call action', async () => {
   const {controller, deps} = setup();
   const release = deferred<boolean>();

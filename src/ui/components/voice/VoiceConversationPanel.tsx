@@ -34,6 +34,15 @@ import type {
 import {useVoiceConversation} from '../../hooks/useVoiceConversation';
 import type {CommandReviewState} from '../../hooks/useCommandReview';
 import {CommandReviewCard} from '../chat/CommandReviewCard';
+import {directProviderTestEnabled} from '../../../cloud/directProviderTest';
+import {readLocalVoiceData} from '../../../cloud/voiceConversation/localVoiceData';
+import {localSettingsStore} from '../../../storage/localSettingsStore';
+import {explicitMemory} from '../../../ai/explicitMemory';
+import {onboardingVoiceContext} from '../../../storage/onboardingMemory';
+import {userStore} from '../../../storage/userStore';
+import type {SpokenTurnReview} from '../../../ai/chatOrchestrator';
+
+const DATA_CONSENT = 'voiceConversation.directDataConsent.v1';
 
 export interface VoiceConversationPanelProps {
   userId: string;
@@ -78,6 +87,7 @@ export const VoiceConversationPanel: React.FC<VoiceConversationPanelProps> = ({
   const [typed, setTyped] = useState('');
   const [showTyping, setShowTyping] = useState(false);
   const [consented, setConsented] = useState(() => voiceConsent.read(userId));
+  const [dataConsented, setDataConsented] = useState(() => localSettingsStore.get(userId, DATA_CONSENT, null) === 'true');
   const [enabling, setEnabling] = useState(false);
   const [enableError, setEnableError] = useState<string | null>(null);
   const reviewRef = useRef(review);
@@ -85,11 +95,29 @@ export const VoiceConversationPanel: React.FC<VoiceConversationPanelProps> = ({
   const turnTicket = useRef(0);
   const ownerRef = useRef(userId);
   ownerRef.current = userId;
+  const lastUserRequest = useRef('');
+  const identityContextSent = useRef(false);
+  const conversationRef = useRef<ReturnType<typeof useVoiceConversation> | null>(null);
+  const pendingMemory = useRef<{text: string; owner: string; result: Promise<SpokenTurnReview>} | null>(null);
 
   // A finished spoken turn is also read on the device: a planner change
   // becomes a review card (nothing is saved until Confirm), and a schedule
   // question gets the on-device answer next to the spoken one.
   const onFinalUserText = useCallback((text: string) => {
+    lastUserRequest.current = text;
+    if (directProviderTestEnabled()) {
+      const owner = ownerRef.current;
+      if (explicitMemory(text) && localSettingsStore.get(owner, DATA_CONSENT, null) === 'true' && userStore.getActiveSessionToken().userId === owner) {
+        const result = chatOrchestrator.reviewSpokenTurn(owner, text);
+        pendingMemory.current = {text, owner, result};
+        void result.then(value => {
+          if (owner !== ownerRef.current || pendingMemory.current?.result !== result || value.kind !== 'memory') return;
+          setLocalNote(value.reply);
+          void conversationRef.current?.sendContext(`The app processed the student's memory request. Actual result: ${value.reply}`);
+        }).catch(() => undefined);
+      } else pendingMemory.current = null;
+      return;
+    }
     const ticket = ++turnTicket.current;
     const owner = ownerRef.current;
     void chatOrchestrator
@@ -101,24 +129,72 @@ export const VoiceConversationPanel: React.FC<VoiceConversationPanelProps> = ({
           setLocalNote(
             'Check the card below. Nothing is saved until you tap Confirm.',
           );
-        } else if (result.kind === 'note' || result.kind === 'local_answer') {
+        } else if (result.kind === 'note' || result.kind === 'local_answer' || result.kind === 'memory') {
           setLocalNote(result.reply);
         }
       })
       .catch(() => undefined);
   }, []);
 
-  const conversation = useVoiceConversation(userId, {onFinalUserText, deps});
+  const onClientTool = useCallback(async (name: string, parameters: Record<string, unknown>, isCurrent: () => boolean): Promise<string> => {
+    if (!directProviderTestEnabled() || !isCurrent() || localSettingsStore.get(ownerRef.current, DATA_CONSENT, null) !== 'true') throw new Error('Tool unavailable');
+    const owner = ownerRef.current;
+    const spoken = lastUserRequest.current;
+    if (name === 'read_lafina_data') {
+      const word = parameters.kind === 'calendar' ? /\b(calendar|schedule|event|meeting|appointment|agenda|plans?)\b/i
+        : parameters.kind === 'notes' ? /\b(notes?|notebook|wrote|written)\b/i
+        : /\b(remember|memory|memories|prefer|preference|like|study|studying|name|call me|talk|tone|style)\b/i;
+      if (!word.test(spoken)) return 'No data was read. Ask the student which personal data they want to access.';
+      return readLocalVoiceData(owner, parameters.kind, parameters.query);
+    }
+    if (!['prepare_lafina_action', 'save_lafina_memory'].includes(name) || typeof parameters.request !== 'string') throw new Error('Unknown tool');
+    // The tool may combine details from a follow-up turn. The parser still
+    // validates it locally and the student must confirm the review card.
+    if (name === 'save_lafina_memory' && !explicitMemory(spoken)) {
+      return 'No memory was saved. Ask the student to state what they want remembered.';
+    }
+    const request = (explicitMemory(spoken) ? spoken : parameters.request).trim().slice(0, 1000);
+    if (!request) return 'No action was prepared. Ask the student for the details.';
+    const ticket = ++turnTicket.current;
+    const pending = pendingMemory.current;
+    const result = pending && pending.owner === owner && pending.text === request
+      ? await pending.result : await chatOrchestrator.reviewSpokenTurn(owner, request);
+    if (!isCurrent() || ticket !== turnTicket.current || owner !== ownerRef.current) throw new Error('Conversation changed');
+    if (result.kind === 'proposal') {
+      reviewRef.current.present(result.review);
+      setLocalNote('Check the card below. Nothing is saved until you tap Confirm.');
+      return `A review card is shown: ${result.reply} Nothing has been saved. Ask the student to check and confirm the card.`;
+    }
+    if (result.kind === 'memory') {
+      setLocalNote(result.reply);
+      return result.reply;
+    }
+    if (result.kind === 'note' || result.kind === 'local_answer') {
+      setLocalNote(result.reply);
+      return `No change has been saved. ${result.reply}`;
+    }
+    return 'No action was prepared or saved. Ask for the exact details and try again.';
+  }, []);
+  const conversation = useVoiceConversation(userId, {onFinalUserText, onClientTool, deps});
+  conversationRef.current = conversation;
   const {snapshot} = conversation;
   const live = LIVE.has(snapshot.phase);
   const connecting = snapshot.phase === 'connecting';
 
   useEffect(() => {
     setConsented(voiceConsent.read(userId));
+    setDataConsented(localSettingsStore.get(userId, DATA_CONSENT, null) === 'true');
     setLocalNote(null);
     setTyped('');
     setShowTyping(false);
   }, [userId]);
+
+  useEffect(() => {
+    if (!directProviderTestEnabled() || !dataConsented || identityContextSent.current || snapshot.phase !== 'listening') return;
+    const context = onboardingVoiceContext(userId);
+    identityContextSent.current = true;
+    if (context) void conversation.sendContext(context);
+  }, [snapshot.phase, userId, dataConsented, conversation]);
 
   const scrollRef = useRef<ScrollView | null>(null);
   useEffect(() => {
@@ -126,6 +202,14 @@ export const VoiceConversationPanel: React.FC<VoiceConversationPanelProps> = ({
   }, [snapshot.turns]);
 
   const handleStart = useCallback(() => {
+    if (directProviderTestEnabled() && localSettingsStore.get(ownerRef.current, DATA_CONSENT, null) !== 'true') {
+      setEnableError('Please review the data disclosure before starting.');
+      return;
+    }
+    lastUserRequest.current = '';
+    pendingMemory.current = null;
+    identityContextSent.current = false;
+    turnTicket.current += 1;
     setLocalNote(null);
     setEnableError(null);
     conversation.start();
@@ -136,7 +220,12 @@ export const VoiceConversationPanel: React.FC<VoiceConversationPanelProps> = ({
       setEnableError('Could not save your choice on this device. Try again.');
       return;
     }
+    if (directProviderTestEnabled() && !localSettingsStore.set(userId, DATA_CONSENT, 'true')) {
+      setEnableError('Could not save your choice on this device. Try again.');
+      return;
+    }
     setConsented(true);
+    setDataConsented(true);
     handleStart();
   }, [handleStart, userId]);
 
@@ -155,13 +244,19 @@ export const VoiceConversationPanel: React.FC<VoiceConversationPanelProps> = ({
   const handleConfirm = useCallback(async () => {
     // Shown, not spoken: the conversation owns the speaker right now.
     const decision = await reviewRef.current.confirm({speakReply: false});
-    if (decision) setLocalNote(decision.reply);
-  }, []);
+    if (decision) {
+      setLocalNote(decision.reply);
+      if (directProviderTestEnabled()) void conversation.sendContext(`The student confirmed the review card. Actual result: ${decision.reply}`);
+    }
+  }, [conversation]);
 
   const handleCancelReview = useCallback(() => {
     const decision = reviewRef.current.cancel();
-    if (decision) setLocalNote(decision.reply);
-  }, []);
+    if (decision) {
+      setLocalNote(decision.reply);
+      if (directProviderTestEnabled()) void conversation.sendContext('The student canceled the review card. Nothing was saved.');
+    }
+  }, [conversation]);
 
   const handleSendTyped = useCallback(async () => {
     const text = typed.trim();
@@ -175,7 +270,7 @@ export const VoiceConversationPanel: React.FC<VoiceConversationPanelProps> = ({
   }, [conversation, onBack]);
 
   const failure = snapshot.failure;
-  const needsConsent = !consented && !live && !connecting;
+  const needsConsent = (!consented || (directProviderTestEnabled() && !dataConsented)) && !live && !connecting;
 
   return (
     <View style={styles.container} testID="voice-conversation-panel">
@@ -232,7 +327,9 @@ export const VoiceConversationPanel: React.FC<VoiceConversationPanelProps> = ({
           <Text style={[styles.cardBody, themed.text]}>
             While a conversation is open, your microphone audio streams to
             ElevenLabs for transcription and speech, and your words go to
-            LAFINA's server and DeepSeek for answers. It only listens on this
+            DeepSeek for answers. {directProviderTestEnabled()
+              ? 'If you ask about your calendar, notes or saved memories, relevant records are sent to the voice provider to answer. '
+              : "Your words also go to LAFINA's server. "}It only listens on this
             screen, stops when you tap End or leave the app, and you can mute at
             any time. Finished turns are saved to your Chat history. Planner
             changes still need your Confirm.

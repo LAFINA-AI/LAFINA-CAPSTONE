@@ -73,6 +73,7 @@ export interface VoiceConversationDeps {
   persistence?: ConversationPersistence;
   /** A finished user turn, for on-device scheduling review. */
   onFinalUserText?(text: string): void;
+  onClientTool?(name: string, parameters: Record<string, unknown>, isCurrent: () => boolean): Promise<string>;
   allowLocalTestServer?: boolean;
   limits?: Partial<VoiceConversationLimits>;
   /** Timing and lifecycle lines only; never transcripts, URLs or grants. */
@@ -579,6 +580,15 @@ export class VoiceConversationController {
     return sent && this.live === live;
   };
 
+  sendContext = async (information: string): Promise<boolean> => {
+    const live = this.live;
+    const text = information.trim().slice(0, 1000);
+    if (!live || !text || this.snapshot.phase === 'connecting') return false;
+    const sent = await this.deps.transport.sendMessage(live.key,
+      JSON.stringify({type:'contextual_update', text})).catch(() => false);
+    return sent && this.live === live;
+  };
+
   // ── Events ────────────────────────────────────────────────────────────
 
   private onEvent(gen: number, event: TransportEvent) {
@@ -669,6 +679,33 @@ export class VoiceConversationController {
         ? String(value)
         : null;
     switch (message.type) {
+      case 'client_tool_call': {
+        const payload = event('client_tool_call');
+        const toolName = text(payload.tool_name);
+        const toolId = text(payload.tool_call_id);
+        if (!toolId || toolId.length > 200 || this.seen.has(`tool:${toolId}`)) return;
+        this.seen.add(`tool:${toolId}`);
+        const params = payload.parameters && typeof payload.parameters === 'object' && !Array.isArray(payload.parameters)
+          ? payload.parameters as Record<string, unknown> : {};
+        const live = this.live;
+        if (!live) return;
+        void (async () => {
+          let answer = 'This app cannot perform that request in this conversation.';
+          let failed = false;
+          try {
+            if (!this.deps.onClientTool) failed = true;
+            else answer = await this.deps.onClientTool(toolName, params,
+              () => gen === this.generation && this.live === live && this.deps.gates.isSignedInOwner());
+          } catch {
+            failed = true;
+            answer = 'The app could not complete that request. Nothing was changed.';
+          }
+          if (gen !== this.generation || this.live !== live) return;
+          await this.deps.transport.sendMessage(live.key, JSON.stringify({type:'client_tool_result',
+            tool_call_id: toolId, result: answer.slice(0, 5000), is_error: failed})).catch(() => false);
+        })();
+        return;
+      }
       case 'conversation_initiation_metadata': {
         const conversationId = text(
           event('conversation_initiation_metadata_event').conversation_id,
