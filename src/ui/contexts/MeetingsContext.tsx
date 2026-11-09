@@ -323,8 +323,11 @@ export const MeetingsProvider: React.FC<{
       }
 
       const startedAt = Date.now();
+      // ponytail: transcribe meeting chunks using ElevenLabs cloud STT with local Whisper fallback
       const result = await transcribeMeetingChunks({
         meetingId: id,
+        userId: userId || undefined,
+        useElevenLabs: true,
         chunkFiles: audio.chunks.map((chunk) => chunk.path),
         chunkDurationsMs: audio.chunks.map((chunk) => chunk.durationMs),
         keepAudio,
@@ -393,7 +396,7 @@ export const MeetingsProvider: React.FC<{
       });
       return segments.length > 0;
     },
-    [keepAudio, update],
+    [keepAudio, update, userId],
   );
 
   const runPipeline = useCallback(

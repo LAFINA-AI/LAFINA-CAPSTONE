@@ -181,7 +181,9 @@ describe('schema migrations', () => {
           ? ['seq', 'metadata_json']
           : table === 'chat_sessions'
             ? ['generation']
-            : [],
+            : table === 'remember_me'
+              ? ['password']
+              : [],
       ]);
     }
 
