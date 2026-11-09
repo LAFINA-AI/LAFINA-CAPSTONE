@@ -2,6 +2,7 @@ import {
   meetingRecorder,
   TranscriptSegment,
 } from '../native/meetingRecorder';
+import { transcribeChunkWithElevenLabs } from '../../cloud/elevenlabsTranscriber';
 
 export interface MeetingTranscriptionProgress {
   meetingId: string;
@@ -18,6 +19,8 @@ export interface TranscribeMeetingOptions {
   meetingId: string;
   chunkFiles: string[];
   chunkDurationsMs?: number[];
+  userId?: string;
+  useElevenLabs?: boolean;
   /**
    * When false (default), raw audio chunk files are automatically deleted
    * immediately after transcription to free device storage.
@@ -66,10 +69,21 @@ export const transcribeMeetingChunks = async (
         ? chunkDurationsMs[index]
         : DEFAULT_CHUNK_DURATION_MS;
     try {
-      const chunkSegments = await meetingRecorder.transcribeChunk(
-        chunkPath,
-        offsetMs,
-      );
+      // ponytail: try ElevenLabs cloud STT first, fall back to local Whisper
+      let chunkSegments: TranscriptSegment[] | null = null;
+      if (options.useElevenLabs !== false) {
+        chunkSegments = await transcribeChunkWithElevenLabs(
+          chunkPath,
+          offsetMs,
+          options.userId,
+        );
+      }
+      if (!chunkSegments) {
+        chunkSegments = await meetingRecorder.transcribeChunk(
+          chunkPath,
+          offsetMs,
+        );
+      }
       for (const seg of chunkSegments) {
         const cleaned = seg.text.trim();
         if (cleaned.length > 0) {

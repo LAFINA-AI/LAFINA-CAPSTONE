@@ -52,6 +52,9 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({
         if (saved.email) {
           setEmail(saved.email);
         }
+        if (saved.password) {
+          setPassword(saved.password);
+        }
       }
     }, []);
 
@@ -83,7 +86,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({
         ) {
           // Persist or clear Remember Me on successful login
           if (rememberMe) {
-            userStore.setRememberMe(true, trimmedEmail.toLowerCase());
+            userStore.setRememberMe(true, trimmedEmail.toLowerCase(), password);
           } else {
             userStore.setRememberMe(false, null);
           }

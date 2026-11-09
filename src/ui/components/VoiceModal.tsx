@@ -156,6 +156,7 @@ export const VoiceModal: React.FC<VoiceModalProps> = ({
   );
   // Push-to-talk (offline-first) or a live online conversation (explicit tap).
   const [mode, setMode] = useState<'push' | 'conversation'>('push');
+  const appliedRef = useRef(false);
   const [isKeyboardOpen, setIsKeyboardOpen] = useState(false);
   const modalScrollRef = useRef<ScrollView>(null);
 
@@ -283,12 +284,27 @@ export const VoiceModal: React.FC<VoiceModalProps> = ({
   const draftRef = useRef(draft);
   draftRef.current = draft;
 
+  // ponytail: exiting while Lafina is speaking after a schedule was set keeps the schedule and calls onClose(true)
   const handleDismiss = useCallback(() => {
+    stopSpeaking();
+    retireCapture();
+
+    if (appliedRef.current) {
+      const didUpdate = true;
+      appliedRef.current = false;
+      setInputText('');
+      setTranscript('');
+      setHandoffDialog(null);
+      onClose(didUpdate);
+      return;
+    }
+
     draftRef.current.requestLeave(() => {
       stopSpeaking();
       retireCapture();
-      // Closing the sheet never confirms; it discards the open proposal.
-      reviewRef.current.cancel({silent: true});
+      if (reviewRef.current.proposal) {
+        reviewRef.current.cancel({silent: true});
+      }
       setHandoffDialog(null);
       onClose(false);
     });
@@ -524,6 +540,9 @@ export const VoiceModal: React.FC<VoiceModalProps> = ({
     const decision = await reviewRef.current.confirm();
     if (!decision || activeCaptureRef.current !== uiCaptureId) return;
     const applied = decision.outcome?.status === 'applied';
+    if (applied) {
+      appliedRef.current = true;
+    }
     setAiReply(decision.reply);
     setVoiceState('speaking');
     try {

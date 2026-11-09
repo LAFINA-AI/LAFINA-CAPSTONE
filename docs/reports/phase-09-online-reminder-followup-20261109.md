@@ -28,6 +28,7 @@
 | Check | Command / procedure | Result and evidence |
 |---|---|---|
 | Full preflight | `npm run preflight` | PASS: 78 suites, 1,172 tests passed, 1 skipped; lint, typecheck and architecture checks passed. `.local/online-reminder-preflight-final.log` |
+| Preflight after integrating newer app-branch commits | `npm run preflight` | PASS: 79 suites, 1,177 tests passed, 1 skipped; typecheck, lint and architecture checks passed. `.local/online-reminder-merged-preflight-final.log` |
 | Native Android | `gradlew :app:compileDebugKotlin :app:testDebugUnitTest --offline --no-daemon --console=plain -PreactNativeArchitectures=x86_64` | PASS. `.local/online-reminder-native.log` |
 | Local adapter | Python pytest `scripts/tests/test_local_chat_memory_adapter.py` | PASS, 4 tests, including isolation and bounds. |
 | Real local chat | Synthetic preference via `/v1/ai/chat` and `/v1/ai/chat/stream` | PASS: both HTTP 200 and both replies referenced 10 and 2; completed stream followed by successful sign-in. `.local/voice-backend-qa-20261109/memory-real-check.json` |
@@ -45,6 +46,8 @@ No new latency, alarm drift, p50/p95, memory-use or offline-speech benchmark was
 The phone and PC need USB debugging and the ADB reverse mapping; the PC and providers need internet. The localhost.run tunnel exposes only the protected voice callback. The local QA daily voice allowance is 12 versus the production default of 6; other session limits remain. A rotated tunnel may require restarting a voice session. This is a local test configuration, not a production deployment.
 
 An intentionally early-disconnected diagnostic stream left the isolated SQLite database locked. Restarting the local server cleared it; a fully consumed stream and subsequent login succeeded. An interrupted stream may therefore require a local server restart; this remains a test-backend limitation. A previously observed occasional lack of response to typed turns while muted in voice mode was not addressed by this change.
+
+The newer app branch stores the Remember Me password in the local SQLite database as plaintext. Its behavior was preserved when integrating the branch; it should be replaced with secure credential storage before release. The installed phone build predates this integration.
 
 ## 6. Human phone verification
 
