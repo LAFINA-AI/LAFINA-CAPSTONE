@@ -1,4 +1,5 @@
 import {DeviceEventEmitter, NativeModules} from 'react-native';
+import {directProviderTestEnabled, directTestVoiceApi} from '../directProviderTest';
 import {GUEST_USER_ID} from '../../constants';
 import {chatStore} from '../../storage/chatStore';
 import {localSettingsStore} from '../../storage/localSettingsStore';
@@ -101,7 +102,7 @@ export const defaultVoiceConversationDeps = (
   },
   getVoice: () => onlineVoiceSettingsStore.read(userId),
   useHandbook: () => handbookPreference.read(userId),
-  api: voiceConversationApi,
+  api: directProviderTestEnabled() ? directTestVoiceApi : voiceConversationApi,
   transport: nativeVoiceTransport,
   allowLocalTestServer: allowLocalTestServer(),
   persistence: {

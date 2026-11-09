@@ -1,5 +1,8 @@
 param(
     [ValidateSet('arm64-v8a', 'x86_64')][string]$Architecture = 'arm64-v8a',
+    [ValidateSet('local', 'hosted')][string]$Backend = 'local',
+    [switch]$DirectProviders,
+    [switch]$ToolAgent,
     [switch]$Install
 )
 $ErrorActionPreference = 'Stop'
@@ -9,6 +12,23 @@ New-Item -ItemType Directory -Force -Path $state | Out-Null
 $java17 = 'C:\Program Files\Microsoft\jdk-17.0.20.101-hotspot'
 if (Test-Path -LiteralPath $java17) { $env:JAVA_HOME = $java17 }
 $properties = @('--offline', '--no-daemon', '--max-workers=2', '--console=plain', "-PreactNativeArchitectures=$Architecture", '-PlafinaProviderTesting=true')
+$server = if ($Backend -eq 'hosted') { 'https://lafina-backend.vercel.app' } else { 'http://127.0.0.1:8000' }
+$properties += "-PlafinaApiBaseUrl=$server"
+if ($DirectProviders) {
+    $privateValues = @{}
+    foreach ($line in [IO.File]::ReadAllLines((Join-Path $checkout '.env'))) {
+        if ($line -match '^\s*(ELEVENLABS_API_KEY|DEEPSEEK_API_KEY)\s*=\s*(.*?)\s*$') {
+            $privateValues[$matches[1]] = $matches[2].Trim('"').Trim("'")
+        }
+    }
+    $agentName = if ($ToolAgent) { 'direct-agent-memory.json' } else { 'direct-agent.json' }
+    $agent = Get-Content -Raw -LiteralPath (Join-Path $state $agentName) | ConvertFrom-Json
+    $env:LAFINA_TEST_DIRECT_ELEVEN_KEY = $privateValues['ELEVENLABS_API_KEY']
+    $env:LAFINA_TEST_DIRECT_DEEPSEEK_KEY = $privateValues['DEEPSEEK_API_KEY']
+    $env:LAFINA_TEST_DIRECT_AGENT_ID = $agent.agent_id
+    $env:LAFINA_TEST_DIRECT_VOICE_ID = $agent.voice_id
+    $properties += '-PlafinaDirectProviders=true'
+}
 $buildExit = 1
 
 # Metro resolves physical Windows paths; generate the real app bundle there.
@@ -48,7 +68,8 @@ try {
 if ($buildExit -ne 0) { throw "APK assembly failed. Read .local/provider-testing/assemble-$Architecture.log" }
 
 $builtApk = Join-Path $checkout "android/app/build/outputs/apk/dataQa/app-$Architecture-dataQa.apk"
-$apk = Join-Path $state "LAFINA-providers-$Architecture.apk"
+$name = if ($DirectProviders) { "LAFINA-direct-private-$Architecture.apk" } elseif ($Backend -eq 'hosted') { "LAFINA-hosted-$Architecture.apk" } else { "LAFINA-providers-$Architecture.apk" }
+$apk = Join-Path $state $name
 Copy-Item -LiteralPath $builtApk -Destination $apk
 Add-Type -AssemblyName System.IO.Compression.FileSystem
 $archive = [IO.Compression.ZipFile]::OpenRead($apk)
@@ -63,19 +84,24 @@ try {
     } finally { $stream.Dispose() }
 } finally { $archive.Dispose() }
 if ($packedHash -ne $bundleHash) { throw 'Packaged bundle differs from the freshly generated app bundle.' }
-& python (Join-Path $PSScriptRoot 'audit-provider-test-apk.py') $apk
-if ($LASTEXITCODE -ne 0) { throw 'APK provider-key audit failed.' }
+if (!$DirectProviders) {
+    & python (Join-Path $PSScriptRoot 'audit-provider-test-apk.py') $apk
+    if ($LASTEXITCODE -ne 0) { throw 'APK provider-key audit failed.' }
+}
 $receipt = @{
     package = 'com.lafina.capstone.providers'; architecture = $Architecture
     apk = $apk; apk_sha256 = (Get-FileHash -LiteralPath $apk -Algorithm SHA256).Hash.ToLowerInvariant()
-    bundle_sha256 = $bundleHash; server = 'http://127.0.0.1:8000'
-    fast_tts_default = $true; provider_keys_in_apk = $false
+    bundle_sha256 = $bundleHash; server = $server
+    fast_tts_default = $true; provider_keys_in_apk = [bool]$DirectProviders
 } | ConvertTo-Json
-[IO.File]::WriteAllText((Join-Path $state "artifact-$Architecture.json"), $receipt, [Text.UTF8Encoding]::new($false))
+$receiptName = if ($DirectProviders) { "artifact-direct-private-$Architecture.json" } elseif ($Backend -eq 'hosted') { "artifact-hosted-$Architecture.json" } else { "artifact-$Architecture.json" }
+[IO.File]::WriteAllText((Join-Path $state $receiptName), $receipt, [Text.UTF8Encoding]::new($false))
 if ($Install) {
     $adb = Join-Path $env:ANDROID_HOME 'platform-tools/adb.exe'
-    & $adb reverse tcp:8000 tcp:8000
-    if ($LASTEXITCODE -ne 0) { throw 'Connect one Android device by USB, or run one emulator.' }
+    if ($Backend -eq 'local') {
+        & $adb reverse tcp:8000 tcp:8000
+        if ($LASTEXITCODE -ne 0) { throw 'Connect one Android device by USB, or run one emulator.' }
+    }
     & $adb install -r $apk
     if ($LASTEXITCODE -ne 0) { throw 'APK installation failed.' }
 }
