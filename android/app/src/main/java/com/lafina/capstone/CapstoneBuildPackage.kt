@@ -40,5 +40,6 @@ class CapstoneBuildModule(context: ReactApplicationContext) : ReactContextBaseJa
       "apiBaseUrlOverride" to BuildConfig.API_BASE_URL_OVERRIDE,
       // Debug and test builds only: Profile's Vercel/local server switch.
       "backendSwitchEnabled" to BuildConfig.ENABLE_BACKEND_SWITCH,
+      "providerTestingEnabled" to BuildConfig.PROVIDER_TESTING_ENABLED,
     )
 }

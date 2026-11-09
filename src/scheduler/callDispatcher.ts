@@ -69,6 +69,7 @@ interface CallDispatcherSession {
   voiceEnabled: boolean;
   speechProvider: CallSpeechProvider;
   isResolving: boolean;
+  externalVoice?: boolean;
 }
 
 interface EventSubscription {
@@ -574,23 +575,24 @@ export const answerCall = async (
   voiceEnabled = true,
   speechProvider?: CallSpeechProvider,
   expectedGeneration?: number | null,
-): Promise<void> => {
+  externalVoice = false,
+): Promise<boolean> => {
   const reminder = remindersStore.getReminderById(reminderId);
   if (!reminder || reminder.userId !== userId) {
     console.error('[CallDispatcher] Reminder not found:', reminderId);
-    return;
+    return false;
   }
   const captured = captureCallGeneration(reminderId, userId, expectedGeneration);
   if (!captured.ok) {
     await finishNativeIncomingCall(reminderId);
     // A retired job has no newer work to protect; a stale generation might.
     if (captured.retired) await cancelReminderAlarm(reminderId);
-    return;
+    return false;
   }
   if (reminder.status === 'acknowledged' || reminder.status === 'missed') {
     await finishNativeIncomingCall(reminderId);
     await cancelReminderAlarm(reminderId);
-    return;
+    return false;
   }
 
   // Only the reminder's own task (exact link or strict evidence) counts; a
@@ -600,11 +602,12 @@ export const answerCall = async (
     remindersStore.acknowledgeReminder(reminder.id);
     await cancelReminderAlarm(reminder.id);
     await finishNativeIncomingCall(reminderId);
-    return;
+    return false;
   }
 
+  const answerSequence = ++sessionSequence;
   await stopActiveAudioAndCapture();
-  sessionSequence += 1;
+  if (answerSequence !== sessionSequence) return false;
   const session: CallDispatcherSession = {
     id: sessionSequence,
     reminderId,
@@ -616,6 +619,7 @@ export const answerCall = async (
     voiceEnabled,
     speechProvider: speechProvider || defaultCallSpeechProvider,
     isResolving: false,
+    externalVoice: externalVoice && voiceEnabled,
   };
   activeSession = session;
 
@@ -626,9 +630,23 @@ export const answerCall = async (
       console.error('[CallDispatcher] Active-call service failed:', error);
     }
   }
+  if (!isCurrentSession(session)) {
+    if (!activeSession) void stopActiveCallSession().catch(() => undefined);
+    return false;
+  }
   await finishNativeIncomingCall(reminderId);
+  if (!isCurrentSession(session)) return false;
   remindersStore.updateReminderStatus(reminderId, 'triggered');
   publishCallState('connected');
+
+  if (session.externalVoice) {
+    // Deliver the actual reminder before handing the speaker and microphone to
+    // the conversation. No offline capture runs during the online session.
+    await speakText(buildAnnouncement(reminder.task), {fallbackAudioPath: reminder.preCastAudioPath});
+    if (!isCurrentSession(session)) return false;
+    publishCallState('connected', 'Connecting to online conversation…');
+    return true;
+  }
 
   const preferences = getReminderPreferences(userId);
   const announcement = buildAnnouncement(reminder.task);
@@ -648,10 +666,22 @@ export const answerCall = async (
         );
       }
     });
-    return;
+    return true;
   }
 
   void startAutomaticAttempt(session, announcement, reminder.preCastAudioPath);
+  return true;
+};
+
+/** Resume the existing offline call only while the same accepted call remains active. */
+export const resumeOfflineCall = (reminderId: string, userId: string): boolean => {
+  const session = activeSession;
+  if (!session || session.reminderId !== reminderId || session.userId !== userId ||
+      !session.externalVoice || session.isResolving) return false;
+  session.externalVoice = false;
+  const reminder = remindersStore.getReminderById(reminderId);
+  void startAutomaticAttempt(session, buildAnnouncement(session.task), reminder?.preCastAudioPath);
+  return true;
 };
 
 /**
@@ -777,6 +807,7 @@ export const manualAcknowledgeCall = async (
  * Stops the active call loop, microphone service, and terminal UI state.
  */
 export const disconnectCall = (resolution?: CallResolution): void => {
+  sessionSequence += 1;
   const session = activeSession;
   if (!session) return;
   session.state = 'disconnected';

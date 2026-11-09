@@ -4,6 +4,7 @@ import { syncOutboxStore } from './syncOutboxStore';
 import { buildProfileSyncPayload } from './profileSyncPayload';
 import { transferChatOwnership } from './chatOwnership';
 import { personalMemoryStore } from './personalMemoryStore';
+import { chatMemoryStore } from './chatMemoryStore';
 import { speechSettingsStore } from './speechSettingsStore';
 import { noteSessionChange } from './sessionEpoch';
 import { ATTACHMENT_CLEANUP_TABLE } from './attachmentCleanupSchema';
@@ -65,6 +66,8 @@ export const guestMigration = {
       tx.executeSync(`UPDATE job_queue_items SET user_id = ? WHERE user_id = ?`, [cloudUserId, GUEST_USER_ID]);
       // Chat sessions are owner-derived, so the guest conversation is moved rather than relabelled.
       transferChatOwnership(tx, GUEST_USER_ID, cloudUserId, now);
+      // Chat memories follow the conversations they came from.
+      chatMemoryStore.transferFromGuest(tx, GUEST_USER_ID, cloudUserId);
       tx.executeSync(`UPDATE user_behavior_logs SET user_id = ? WHERE user_id = ?`, [cloudUserId, GUEST_USER_ID]);
       tx.executeSync(`UPDATE ml_feature_snapshots SET user_id = ? WHERE user_id = ?`, [cloudUserId, GUEST_USER_ID]);
       // Device-local event defaults (AGY-PORT 09): the account keeps its own choices.

@@ -1,0 +1,16 @@
+{
+  "llm": "custom-llm",
+  "custom_llm_url": "https://57aa02e94c8f89.lhr.life/v1/ai/voice/llm",
+  "custom_llm_has_secret": true,
+  "grant_header_mapped": true,
+  "enable_auth": true,
+  "voice_override_allowed": true,
+  "tts_model": "eleven_v4_turbo",
+  "default_voice": "BtcCEANLn920ZIoN9grW",
+  "output_format": "pcm_16000",
+  "input_format": "pcm_16000",
+  "turn_eagerness": "patient",
+  "max_duration_seconds": 300,
+  "server_max_seconds": 300
+}
+Local test agent configured. Restart the local provider server to load its ID.

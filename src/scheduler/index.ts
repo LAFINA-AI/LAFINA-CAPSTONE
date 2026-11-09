@@ -60,6 +60,7 @@ export {
   speakText,
   detectCallKeyword,
   answerCall,
+  resumeOfflineCall,
   autoSnoozeCall,
   declineCall,
   manualSnoozeCall,

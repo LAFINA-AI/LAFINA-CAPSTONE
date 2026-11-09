@@ -6,6 +6,7 @@ import {tasksStore} from './tasksStore';
 import {timeBlocksStore} from './timeBlocksStore';
 import {remindersStore} from './remindersStore';
 import {chatStore} from './chatStore';
+import {chatMemoryStore} from './chatMemoryStore';
 import {personalMemoryStore} from './personalMemoryStore';
 import {
   attachmentCleanupTarget,
@@ -197,6 +198,8 @@ export const resetPersonalData = (
         // before the obligation to remove it is durable (ADR-026).
         recordAttachmentCleanup(tx, userId, targets);
         chatStore.clearHistory(userId, tx);
+        // What LAFINA remembered from those chats goes with them.
+        chatMemoryStore.clear(userId, tx);
         return refused.size;
       });
       chat = 'cleared';

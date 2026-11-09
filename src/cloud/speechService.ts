@@ -1,5 +1,6 @@
 import RNFS from 'react-native-fs';
 import {cloudClient} from './cloudClient';
+import {isProviderTestingEnabled} from './providerTestDefaults';
 import {accountLinkService} from './accountLinkService';
 import {userStore} from '../storage/userStore';
 import {localSettingsStore} from '../storage/localSettingsStore';
@@ -179,6 +180,9 @@ export const createCallSpeechProvider = (
     latency?: 'low' | 'standard';
   } = {},
 ): CallSpeechProvider => {
+  const latency =
+    providerOptions.latency ??
+    (isProviderTestingEnabled() ? 'low' : 'standard');
   const isOnlineMode =
     providerOptions.isOnlineMode ??
     (() => localSettingsStore.get(userId, 'chat.onlineMode', null) === 'true');
@@ -355,7 +359,7 @@ export const createCallSpeechProvider = (
             text,
             provider: 'elevenlabs',
             ...(voiceId ? {voiceId} : {}),
-            ...(providerOptions.latency === 'low' ? {latency: 'low'} : {}),
+            ...(latency === 'low' ? {latency: 'low'} : {}),
           }),
           signal: controller.signal,
         },

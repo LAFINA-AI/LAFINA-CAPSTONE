@@ -844,11 +844,20 @@ export const VoiceModal: React.FC<VoiceModalProps> = ({
           ) : null}
 
           {mode === 'conversation' ? (
-            <VoiceConversationPanel
-              userId={userId}
-              review={review}
-              onBack={() => setMode('push')}
-            />
+            <ScrollView
+              ref={modalScrollRef}
+              style={styles.modalScroll}
+              contentContainerStyle={styles.modalScrollContent}
+              nestedScrollEnabled
+              keyboardShouldPersistTaps="handled"
+              showsVerticalScrollIndicator={false}
+            >
+              <VoiceConversationPanel
+                userId={userId}
+                review={review}
+                onBack={() => setMode('push')}
+              />
+            </ScrollView>
           ) : (
             <ScrollView
               ref={modalScrollRef}

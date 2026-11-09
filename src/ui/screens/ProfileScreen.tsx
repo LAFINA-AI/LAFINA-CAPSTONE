@@ -36,6 +36,8 @@ import {AppUpdateItem} from '../components/profile/AppUpdateItem';
 import {PreferencesSettingsScreen} from './PreferencesSettingsScreen';
 import {ReminderHealth} from '../components/profile/ReminderHealth';
 import {PersonalMemory} from '../components/profile/PersonalMemory';
+import {ChatMemorySettings} from '../components/profile/ChatMemorySettings';
+import {chatMemoryStore} from '../../storage/chatMemoryStore';
 import {OfflineVoice} from '../components/profile/OfflineVoice';
 import {OnlineVoice} from '../components/profile/OnlineVoice';
 import {onlineVoiceSettingsStore} from '../../storage/onlineVoiceSettingsStore';
@@ -110,6 +112,17 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
   );
   const [healthVisible, setHealthVisible] = useState(false);
   const [memoryVisible, setMemoryVisible] = useState(false);
+  const [chatMemoryVisible, setChatMemoryVisible] = useState(false);
+  const readChatMemorySummary = () => {
+    try {
+      if (!chatMemoryStore.isEnabled(userId)) return 'Off';
+      const count = chatMemoryStore.list(userId).length;
+      return count === 1 ? '1 memory' : `${count} memories`;
+    } catch {
+      return 'Unavailable';
+    }
+  };
+  const [chatMemorySummary, setChatMemorySummary] = useState(readChatMemorySummary);
   const [eventDefaultsSummary, setEventDefaultsSummary] = useState('Off');
   const [voiceVisible, setVoiceVisible] = useState(false);
   const [voiceSummary, setVoiceSummary] = useState('Default');
@@ -609,6 +622,13 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
               valueText={eventDefaultsSummary}
               onPress={() => setMemoryVisible(true)}
             />
+            <View style={[styles.settingDivider, themed.settingDivider]} />
+            <SettingItem
+              text="Memory"
+              type="link"
+              valueText={chatMemorySummary}
+              onPress={() => setChatMemoryVisible(true)}
+            />
           </View>
 
           <Text
@@ -818,6 +838,16 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
         userId={userId}
         visible={healthVisible}
         onClose={() => setHealthVisible(false)}
+      />
+      <ChatMemorySettings
+        userId={userId}
+        isGuest={isGuest}
+        visible={chatMemoryVisible}
+        onClose={() => {
+          setChatMemoryVisible(false);
+          setChatMemorySummary(readChatMemorySummary());
+        }}
+        onChanged={() => setChatMemorySummary(readChatMemorySummary())}
       />
       <PersonalMemory
         userId={userId}

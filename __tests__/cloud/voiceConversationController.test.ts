@@ -7,6 +7,7 @@ import type {
   VoiceSessionGrant,
 } from '../../src/cloud/voiceConversation/types';
 import {parseNativeEvent} from '../../src/cloud/voiceConversation/nativeTransport';
+import {registerVoiceConversation, endActiveVoiceConversation, waitForVoiceConversationRelease} from '../../src/cloud/voiceConversation';
 
 const SESSION_ID = '11111111-2222-3333-4444-555555555555';
 
@@ -211,6 +212,52 @@ const userFinal = (text: string, eventId = 1) => ({
 const agentFinal = (text: string, eventId = 2) => ({
   type: 'agent_response',
   agent_response_event: {agent_response: text, event_id: eventId},
+});
+
+it('waits for native microphone release before another call action', async () => {
+  const {controller, deps} = setup();
+  const release = deferred<boolean>();
+  deps.transport.end = jest.fn(() => release.promise);
+  await controller.start();
+  let finished = false;
+  const ending = controller.endAndWait().then(() => { finished = true; });
+  await flush();
+  expect(finished).toBe(false);
+  release.resolve(true);
+  await ending;
+  expect(finished).toBe(true);
+});
+
+it('keeps the release promise after the prior voice panel unregisters', async () => {
+  const {controller, deps} = setup();
+  const release = deferred<boolean>();
+  deps.transport.end = jest.fn(() => release.promise);
+  const unregister = registerVoiceConversation(controller);
+  await controller.start();
+  endActiveVoiceConversation('A reminder call started.');
+  unregister();
+  let finished = false;
+  const waiting = waitForVoiceConversationRelease().then(() => { finished = true; });
+  await flush();
+  expect(finished).toBe(false);
+  release.resolve(true);
+  await waiting;
+  expect(finished).toBe(true);
+});
+
+it('gives the agent the reminder without saving a fabricated user transcript', async () => {
+  const {controller, calls, message} = setup();
+  await controller.start();
+  expect(await controller.sendReminderContext('Review math at 10')).toBe(true);
+  const sent = JSON.parse(calls.sent[0]);
+  expect(sent.type).toBe('user_message');
+  expect(sent.text).toContain('Review math at 10');
+  message({type: 'tentative_user_transcript', tentative_user_transcription_event: {user_transcript: sent.text}});
+  message(userFinal(sent.text));
+  expect(calls.userTurns).toEqual([]);
+  expect(calls.finalUserText).toEqual([]);
+  expect(controller.getSnapshot().turns.filter(turn => turn.role === 'user')).toEqual([]);
+  await controller.endAndWait();
 });
 
 describe('voice conversation controller: gates', () => {

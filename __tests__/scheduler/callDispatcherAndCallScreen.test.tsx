@@ -15,6 +15,7 @@ import {
   declineCall,
   manualAcknowledgeCall,
   manualSnoozeCall,
+  resumeOfflineCall,
   disconnectCall,
   openNotificationSettings,
 } from '../../src/scheduler';
@@ -101,6 +102,45 @@ describe('Call Dispatcher, Simulated Incoming Call & Permission Subsystem', () =
   });
 
   describe('callDispatcher Lifecycle', () => {
+    it('hands an admitted online call to external voice without starting offline capture', async () => {
+      const now = new Date().toISOString();
+      remindersStore.insertReminder({id: 'rem-online', userId, task: 'Study', description: null,
+        scheduledAt: now, triggerAt: now, status: 'pending', preCastAudioPath: null});
+      const provider = {speakText: jest.fn(async () => ({source: 'native_tts' as const})),
+        stopSpeech: jest.fn(async () => undefined)};
+      expect(await answerCall('rem-online', userId, true, provider, null, true)).toBe(true);
+      expect(provider.speakText).toHaveBeenCalledWith(expect.stringContaining('Study'), expect.anything());
+      expect(NativeModules.LafinaSpeechToText.startListening).not.toHaveBeenCalled();
+      await manualAcknowledgeCall('rem-online', userId);
+      expect(remindersStore.getReminderById('rem-online')?.status).toBe('acknowledged');
+      expect(resumeOfflineCall('rem-online', userId)).toBe(false);
+    });
+
+    it('does not hand off a stale or foreign reminder', async () => {
+      expect(await answerCall('missing', userId, true, undefined, null, true)).toBe(false);
+      expect(resumeOfflineCall('missing', userId)).toBe(false);
+    });
+
+    it('does not revive an online call when its active-call service starts after decline', async () => {
+      const now = new Date().toISOString();
+      remindersStore.insertReminder({id: 'rem-late-online', userId, task: 'Review', description: null,
+        scheduledAt: now, triggerAt: now, status: 'pending', preCastAudioPath: null});
+      let release!: (value: boolean) => void;
+      const start = jest.spyOn(NativeModules.LafinaReminder, 'startActiveCall')
+        .mockImplementationOnce(() => new Promise(resolve => { release = resolve; }));
+      const provider = {speakText: jest.fn(async () => ({source: 'native_tts' as const})),
+        stopSpeech: jest.fn(async () => undefined)};
+      const pending = answerCall('rem-late-online', userId, true, provider, null, true);
+      for (let i = 0; i < 10 && !start.mock.calls.length; i += 1) await Promise.resolve();
+      expect(start).toHaveBeenCalled();
+      await declineCall('rem-late-online', userId, provider);
+      release(true);
+      expect(await pending).toBe(false);
+      expect(remindersStore.getReminderById('rem-late-online')?.status).toBe('snoozed');
+      expect(resumeOfflineCall('rem-late-online', userId)).toBe(false);
+      start.mockRestore();
+    });
+
     it('answers call and allows manual acknowledge', async () => {
       const now = new Date().toISOString();
       tasksStore.insertTask({

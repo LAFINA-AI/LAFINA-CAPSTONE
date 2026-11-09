@@ -1,0 +1,68 @@
+{
+  "recorded_at_utc": "2026-11-08T18:11:04.062187+00:00",
+  "device": {
+    "serial": "emulator-5554",
+    "avd": "Medium_Phone",
+    "model": "sdk_gphone16k_x86_64",
+    "sdk": 37,
+    "timezone": "GMT"
+  },
+  "artifact": {
+    "package": "com.lafina.capstone.elevenlabs",
+    "apk_bytes": 149591303,
+    "apk_sha256": "ad9d2a6430e0bc7422a75b64d8bbfb40271fcdeeaba6149e525de69f19d48113",
+    "bundle_sha256": "6f64d122b77d7ea1a9dc80fa5214156a1c424c2a44397e932f8dd5471697cf0c",
+    "device": "emulator-5554",
+    "sdk": 37,
+    "timezone": "GMT"
+  },
+  "checks": {
+    "preflight": {
+      "exit_code": 0,
+      "suites": 75,
+      "passed": 1139,
+      "skipped": 1
+    },
+    "native_jvm": {
+      "exit_code": 0,
+      "suites": 7,
+      "tests": 51,
+      "failures": 0
+    },
+    "apk_build_install": "PASS",
+    "reviewed_reminder_creation": "PASS",
+    "native_exact_alarm_registration": "PASS",
+    "native_alarm_notification_delivery": "PASS",
+    "visual_answer_call": "PASS via controlled native intent for synthetic reminder; not a real provider conversation",
+    "manual_acknowledgement": "PASS; confirmation text observed, call ended, no pending QA alarm",
+    "recording_released": "PASS: no active recording configuration after signed-in call",
+    "audio_focus_released": "PASS: empty focus stack after signed-in call",
+    "underlying_task_not_completed": "PASS: both QA calendar task checkboxes unchecked after acknowledgement",
+    "live_elevenlabs_tts": "PASS: explicit preview completion; fresh call MP3 files and native audio/mpeg playback",
+    "patient_pause_and_spoken_interruption": "NOT RUN: production live conversation endpoints absent; no configured local agent",
+    "manual_snooze": "PASS: 10-minute confirmation and new exact alarm",
+    "signed_in_live_conversation_start": "BLOCKED: Voice conversation unavailable / Not Found",
+    "temporary_call_audio_cleanup": "PASS: newly generated files removed after call"
+  },
+  "provider_access": {
+    "key_present": true,
+    "agent_id_present": false,
+    "agent_secret_present": false,
+    "agents_http_status": 401,
+    "provider_status": "missing_permissions"
+  },
+  "production_voice_routes_present": false,
+  "reminder_stt_silence_ms": 650,
+  "patient_turn_taking_surface": "separate online Voice conversation panel",
+  "product_source_changes": false,
+  "backend_merge_or_deploy": false,
+  "memory_branch_kept": "codex/chat-memory at 45f65a7713398d4430de41b475a592e620e415dd",
+  "microphone_streaming_consent": "Explicit user approval in this chat after initial auto-review refusal",
+  "limitations": [
+    "No physical phone or audible speech assessment",
+    "No real ElevenAgents session",
+    "First ring timed out during inspection; later Answer used a controlled synthetic reminder intent",
+    "Fresh real incoming ring observed, but Answer timing incomplete; cloud playback tested with controlled native Answer"
+  ],
+  "signed_in_followup": "signed-in-verification.json"
+}

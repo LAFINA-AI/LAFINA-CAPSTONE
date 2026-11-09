@@ -1,0 +1,7 @@
+{
+  "callback_local_health": "ok",
+  "existing_conversations_need_restart_on_host_change": true,
+  "live_host_rotation_observed": true,
+  "callback_public_health": "ok",
+  "readiness_updates": 2
+}

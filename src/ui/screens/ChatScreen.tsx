@@ -18,7 +18,7 @@ import {useSafeAreaInsets} from 'react-native-safe-area-context';
 import NetInfo from '@react-native-community/netinfo';
 import {
   Trash2,
-  Sparkles,
+  PanelLeft,
   Bot,
   BookOpen,
   FileSpreadsheet,
@@ -40,7 +40,13 @@ import {mergeChatPages} from './chat/chatPaging';
 import {localSettingsStore} from '../../storage/localSettingsStore';
 import {accountLinkService} from '../../cloud';
 import {createCallSpeechProvider} from '../../cloud/speechService';
+import {readInitialOnlineMode} from '../../cloud/providerTestDefaults';
 import {ONLINE_MODE_CHANGED_EVENT} from '../../cloud/voiceConversation';
+import {
+  CHAT_MEMORY_CHANGED_EVENT,
+  chatMemoryService,
+} from '../../cloud/chatMemoryService';
+import type {ChatMemoryChangedEvent} from '../../cloud/chatMemoryService';
 import type {CallSpeechProvider} from '../../scheduler/speechProvider';
 import {
   DOCUMENT_FORMAT_ORDER,
@@ -50,6 +56,7 @@ import {
 import {handbookPreference} from '../../skills/onlineChatSkill';
 import {chatOrchestrator} from '../../ai/chatOrchestrator';
 import {ChatMessageItem} from '../components/chat/ChatMessageItem';
+import {ChatHistorySheet} from '../components/chat/ChatHistorySheet';
 import {ChatInput} from '../components/chat/ChatInput';
 import {TypingBubble} from '../components/chat/TypingBubble';
 import {CommandReviewCard} from '../components/chat/CommandReviewCard';
@@ -94,6 +101,15 @@ export const ChatScreen: React.FC<ChatScreenProps> = ({
     initialPage?.nextCursor ?? null,
   );
   const [isLoadingEarlier, setIsLoadingEarlier] = useState(false);
+  const readCurrentChat = useCallback((): string => {
+    try {
+      return chatStore.currentSessionId(userId);
+    } catch {
+      return '';
+    }
+  }, [userId]);
+  const [currentChatId, setCurrentChatId] = useState(readCurrentChat);
+  const [historyVisible, setHistoryVisible] = useState(false);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [legacyHiddenCount, setLegacyHiddenCount] = useState(0);
   const [legacyNoticeDismissed, setLegacyNoticeDismissed] = useState(
@@ -129,10 +145,9 @@ export const ChatScreen: React.FC<ChatScreenProps> = ({
     startedAt: string;
   } | null>(null);
   const streamFlushRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const [isOnlineMode, setIsOnlineMode] = useState(() => {
-    const saved = localSettingsStore.get(userId, 'chat.onlineMode', null);
-    return saved === 'true';
-  });
+  const [isOnlineMode, setIsOnlineMode] = useState(() =>
+    readInitialOnlineMode(userId),
+  );
   const onlineSpeech = useRef<CallSpeechProvider | null>(null);
   useEffect(() => {
     const provider = createCallSpeechProvider(userId);
@@ -304,12 +319,14 @@ export const ChatScreen: React.FC<ChatScreenProps> = ({
     setOlderCursor(null);
     setHandbookNotes({});
     setLoadError(null);
+    setCurrentChatId(readCurrentChat());
+    setHistoryVisible(false);
     setLegacyHiddenCount(chatStore.getLegacyQuarantineSummary().messageCount);
     setLegacyNoticeDismissed(
       localSettingsStore.get(userId, 'chat.legacyNoticeDismissed', null) ===
         'true',
     );
-  }, [userId]);
+  }, [userId, readCurrentChat]);
 
   useEffect(() => {
     loadMessages();
@@ -385,6 +402,47 @@ export const ChatScreen: React.FC<ChatScreenProps> = ({
     );
     return () => subscription.remove();
   }, [userId]);
+
+  // A reply's memory changes arrive after it is shown (and when undone).
+  useEffect(() => {
+    const subscription = DeviceEventEmitter.addListener(
+      CHAT_MEMORY_CHANGED_EVENT,
+      (event: ChatMemoryChangedEvent) => {
+        if (event?.userId !== userId) return;
+        setMessages(current =>
+          current.map(message =>
+            message.id === event.messageId
+              ? {...message, memoryChanges: event.changes}
+              : message,
+          ),
+        );
+      },
+    );
+    return () => subscription.remove();
+  }, [userId]);
+
+  const handleUndoMemory = useCallback(
+    (message: ChatMessage) => {
+      if (!message.memoryChanges || message.memoryChanges.undone) return;
+      try {
+        chatMemoryService.undo(userId, message.id, message.memoryChanges);
+      } catch (error) {
+        console.error('[ChatScreen] Could not undo the memory change:', error);
+        Alert.alert('Not Undone', 'The memory change could not be undone. Try again.');
+      }
+    },
+    [userId],
+  );
+
+  /** Shows the chat that is now open (after New chat, opening another, or deleting the open one). */
+  const showCurrentChat = useCallback(() => {
+    setCurrentChatId(readCurrentChat());
+    setHandbookNotes({});
+    setMessages([]);
+    setOlderCursor(null);
+    setLoadError(null);
+    loadMessages();
+  }, [loadMessages, readCurrentChat]);
 
   const handleToggleHandbook = () => {
     const next = !useHandbook;
@@ -580,7 +638,7 @@ export const ChatScreen: React.FC<ChatScreenProps> = ({
   const handleClearHistory = () => {
     Alert.alert(
       'Clear Conversation',
-      'Clear your conversation history? This cannot be undone. Saved schedule items, notes and your unsent draft are kept.',
+      'Delete this chat? This cannot be undone. Your other chats, saved schedule items, notes, memories and your unsent draft are kept.',
       [
         {text: 'Cancel', style: 'cancel'},
         {
@@ -588,8 +646,10 @@ export const ChatScreen: React.FC<ChatScreenProps> = ({
           style: 'destructive',
           onPress: () => {
             try {
-              const attachmentUris = chatStore.getAttachmentUris(userId);
-              chatStore.clearHistory(userId);
+              const {attachmentUris} = chatStore.deleteSession(
+                userId,
+                chatStore.currentSessionId(userId),
+              );
               void removeAttachmentFiles(attachmentUris);
             } catch (error) {
               console.error(
@@ -602,10 +662,7 @@ export const ChatScreen: React.FC<ChatScreenProps> = ({
               );
               return;
             }
-            setHandbookNotes({});
-            setMessages([]);
-            setOlderCursor(null);
-            loadMessages();
+            showCurrentChat();
           },
         },
       ],
@@ -719,14 +776,18 @@ export const ChatScreen: React.FC<ChatScreenProps> = ({
       {/* Top Header */}
       <View style={[styles.header, themed.header]}>
         <View style={styles.headerTitleRow}>
-          <View
+          <TouchableOpacity
             style={[
               styles.headerBadge,
               {backgroundColor: colors.primary + '18'},
             ]}
+            onPress={() => setHistoryVisible(true)}
+            accessibilityRole="button"
+            accessibilityLabel="Open chats and start a new chat"
+            testID="chat-history-button"
           >
-            <Sparkles size={16} color={colors.primary} />
-          </View>
+            <PanelLeft size={16} color={colors.primary} />
+          </TouchableOpacity>
           <View style={styles.headerTextWrap}>
             <Text
               style={[styles.headerTitle, themed.headerTitle]}
@@ -860,6 +921,7 @@ export const ChatScreen: React.FC<ChatScreenProps> = ({
             item={item}
             replyFormat={replyFormat}
             handbookNote={item.handbookNote ?? handbookNotes[item.id]}
+            onUndoMemory={handleUndoMemory}
             onSpeak={
               isOnlineMode
                 ? async text => {
@@ -1012,6 +1074,15 @@ export const ChatScreen: React.FC<ChatScreenProps> = ({
           );
         })}
       </ToolSheet>
+
+      <ChatHistorySheet
+        visible={historyVisible}
+        userId={userId}
+        currentSessionId={currentChatId}
+        busy={isSending}
+        onClose={() => setHistoryVisible(false)}
+        onChanged={showCurrentChat}
+      />
 
       {/* AGY-PORT 06: an example only fills the draft; unsent text is kept unless replaced. */}
       <CommandGuide

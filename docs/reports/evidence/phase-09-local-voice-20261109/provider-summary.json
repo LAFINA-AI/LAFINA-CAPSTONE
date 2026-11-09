@@ -1,0 +1,56 @@
+{
+  "synthetic": true,
+  "backend_used": false,
+  "sessions": [
+    {
+      "mic_frames": 2119,
+      "pongs": 80,
+      "stops": 1,
+      "injected": [
+        {
+          "action": "partial",
+          "at_ms": 1794163415626
+        },
+        {
+          "action": "final",
+          "at_ms": 1794163512278
+        },
+        {
+          "action": "interrupt",
+          "at_ms": 1794163527681
+        },
+        {
+          "action": "reply",
+          "at_ms": 1794163539126
+        },
+        {
+          "action": "reply",
+          "at_ms": 1794163592302
+        }
+      ],
+      "closed": true,
+      "voice_override_received": true
+    },
+    {
+      "mic_frames": 22,
+      "pongs": 0,
+      "stops": 0,
+      "injected": [],
+      "closed": true,
+      "voice_override_received": true
+    },
+    {
+      "mic_frames": 21,
+      "pongs": 0,
+      "stops": 0,
+      "injected": [
+        {
+          "action": "drop",
+          "at_ms": 1794163699050
+        }
+      ],
+      "closed": true,
+      "voice_override_received": true
+    }
+  ]
+}

@@ -32,9 +32,11 @@ export interface VoiceConversationHandle {
   snapshot: ConversationSnapshot;
   start: () => void;
   end: () => void;
+  endAndWait: () => Promise<void>;
   setMuted: (muted: boolean) => void;
   stopResponse: () => void;
   sendText: (text: string) => Promise<boolean>;
+  sendReminderContext: (task: string) => Promise<boolean>;
 }
 
 /**
@@ -112,11 +114,14 @@ export const useVoiceConversation = (
       void controllerRef.current?.start();
     },
     end: () => controllerRef.current?.end(),
+    endAndWait: async () => { await controllerRef.current?.endAndWait(); },
     setMuted: muted => {
       void controllerRef.current?.setMuted(muted);
     },
     stopResponse: () => controllerRef.current?.stopResponse(),
     sendText: async text =>
       (await controllerRef.current?.sendText(text)) ?? false,
+    sendReminderContext: async task =>
+      (await controllerRef.current?.sendReminderContext(task)) ?? false,
   };
 };

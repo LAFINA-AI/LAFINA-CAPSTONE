@@ -122,6 +122,7 @@ export const defaultVoiceConversationDeps = (
 
 // One conversation app-wide, so a reminder call or sign-out can end it.
 let active: VoiceConversationController | null = null;
+let pendingRelease: Promise<void> = Promise.resolve();
 
 export const registerVoiceConversation = (
   controller: VoiceConversationController,
@@ -135,8 +136,14 @@ export const registerVoiceConversation = (
 
 /** Ends a running conversation for a system reason (call, sign-out). No restart. */
 export const endActiveVoiceConversation = (reason: string): void => {
-  active?.stopForSystem(reason);
+  const controller = active;
+  if (!controller) return;
+  controller.stopForSystem(reason);
+  pendingRelease = Promise.all([pendingRelease, controller.endAndWait()]).then(() => undefined);
 };
+
+/** Wait for a previously interrupted conversation to release native audio. */
+export const waitForVoiceConversationRelease = (): Promise<void> => pendingRelease;
 
 export const isVoiceConversationActive = (): boolean =>
   active?.isActive() === true;

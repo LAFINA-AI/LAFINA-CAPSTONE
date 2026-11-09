@@ -1,0 +1,26 @@
+{
+  "recorded_at_utc": "2026-11-09T01:04:43.206246+00:00",
+  "device": {
+    "model": "Infinix HOT 50 Pro+ / X6880",
+    "android_sdk": 35,
+    "architecture": "arm64-v8a",
+    "screen": "1080x2436"
+  },
+  "package": "com.lafina.capstone.providers",
+  "apk_sha256": "47bc109eae8491080844d377755719b69f6199a6d9422070b72f41be2b8c154c",
+  "install": "PASS: adb install -r, Success; package was not previously installed",
+  "usb_reverse": "PASS: phone localhost:8000 mapped to PC localhost:8000",
+  "local_signin": "PASS: generated synthetic local test account through normal login; no personal credentials used",
+  "online_default": "PASS: Online AI visible on first Chat open",
+  "real_chat": "PASS: synthetic study-tip prompt answered on physical phone",
+  "notifications": "Allowed for this separate test app",
+  "password_manager": "Dismissed Not now; generated credentials not saved to Google",
+  "other_app_data": "Not cleared or signed out",
+  "microphone_started": false,
+  "left_ready": "Chat open in Online Mode; PC server and phone USB mapping active",
+  "still_not_run": [
+    "Phone ElevenLabs audibility/echo/headset routing",
+    "Phone reminder Answer/Snooze/Acknowledge and lock/reboot validation",
+    "Real ElevenAgents pause/interrupt detection"
+  ]
+}

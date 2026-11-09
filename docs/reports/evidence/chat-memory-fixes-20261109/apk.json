@@ -1,0 +1,15 @@
+{
+  "status": "PASS",
+  "path": "android/app/build/outputs/apk/dataQa/app-arm64-v8a-dataQa.apk",
+  "bytes": 146024131,
+  "sha256": "0dcefcecbc55461be7b097e1ef55469b2d5a31f330475abb6504f4b24833d13d",
+  "package": "com.lafina.capstone",
+  "abis": [
+    "arm64-v8a"
+  ],
+  "bundle_sha256": "6f64d122b77d7ea1a9dc80fa5214156a1c424c2a44397e932f8dd5471697cf0c",
+  "packaged_bundle_matches_fresh_bundle": true,
+  "new_memory_logic_present": true,
+  "installed": false,
+  "build_log": "apk-shortpath.log"
+}

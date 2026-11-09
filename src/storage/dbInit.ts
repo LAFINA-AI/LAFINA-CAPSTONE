@@ -27,6 +27,7 @@ import {
   migrateAttachmentCleanup,
   migrateAttachmentCleanupQueue,
 } from './attachmentCleanupSchema';
+import {migrateChatMemories} from './chatMemorySchema';
 
 export interface SchemaMigration {
   /** The `user_version` this step produces. */
@@ -98,6 +99,14 @@ export const SCHEMA_MIGRATIONS: readonly SchemaMigration[] = [
       'Fair, durable turn order for attachment cleanup obligations (attachment-cleanup audit C2)',
     up: tx => {
       migrateAttachmentCleanupQueue(tx);
+    },
+  },
+  {
+    version: 25,
+    description:
+      'Several chats per account and on-device chat memories (chat history and memory)',
+    up: tx => {
+      migrateChatMemories(tx);
     },
   },
 ];

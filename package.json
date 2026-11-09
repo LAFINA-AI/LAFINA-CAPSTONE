@@ -5,6 +5,8 @@
   "scripts": {
     "start": "react-native start",
     "android": "react-native run-android --appId com.lafina.capstone.debug --main-activity com.lafina.capstone.MainActivity",
+    "providers:server": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/start-provider-test-server.ps1",
+    "providers:apk": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/build-provider-test-apk.ps1",
     "typecheck": "tsc --noEmit",
     "lint": "eslint src __tests__ App.tsx index.js --max-warnings 0",
     "format": "prettier --write src __tests__ App.tsx scripts *.js *.json .github/workflows/*.yml",

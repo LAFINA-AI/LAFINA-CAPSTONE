@@ -200,12 +200,14 @@ export class VoiceConversationController {
   private provisionalUserId: string | null = null;
   private pending: PendingAnswer | null = null;
   private typedEcho: {text: string; at: number} | null = null;
+  private reminderContextEcho: string | null = null;
   private userFinalAt: number | null = null;
   private firstTextAt: number | null = null;
   private firstAudioAt: number | null = null;
   private silenceRequestedAt: number | null = null;
   private turnCounter = 0;
   private disposed = false;
+  private transportEnding: Promise<unknown> = Promise.resolve();
 
   constructor(deps: VoiceConversationDeps) {
     this.deps = deps;
@@ -482,6 +484,12 @@ export class VoiceConversationController {
       });
   };
 
+  /** Wait until native audio and microphone resources are released. */
+  endAndWait = async (): Promise<void> => {
+    this.end();
+    await this.transportEnding;
+  };
+
   /** Something other than the student stopped it; only a new tap restarts. */
   stopForSystem = (reason: string): void => {
     if (!ACTIVE.has(this.snapshot.phase) && this.live === null) return;
@@ -556,6 +564,19 @@ export class VoiceConversationController {
     this.typedEcho = {text: trimmed, at: this.clock.now()};
     this.acceptUserTurn(trimmed, `typed-${++this.turnCounter}`);
     return true;
+  };
+
+  /** Give an answered call's reminder to the agent without fabricating a chat turn. */
+  sendReminderContext = async (task: string): Promise<boolean> => {
+    const live = this.live;
+    const reminder = task.trim().replace(/\s+/g, ' ').slice(0, 300);
+    if (!live || !reminder || this.snapshot.phase === 'connecting') return false;
+    const text = `I answered a reminder about: ${reminder}. Please briefly remind me about it.`;
+    this.reminderContextEcho = text;
+    const sent = await this.deps.transport.sendMessage(live.key,
+      JSON.stringify({type: 'user_message', text})).catch(() => false);
+    if (!sent || this.live !== live) this.reminderContextEcho = null;
+    return sent && this.live === live;
   };
 
   // ── Events ────────────────────────────────────────────────────────────
@@ -759,6 +780,14 @@ export class VoiceConversationController {
         this.setTurns(
           this.snapshot.turns.filter(t => t.id !== this.provisionalUserId),
         );
+        this.provisionalUserId = null;
+      }
+      return;
+    }
+    if (this.reminderContextEcho === trimmed) {
+      this.reminderContextEcho = null;
+      if (this.provisionalUserId) {
+        this.setTurns(this.snapshot.turns.filter(t => t.id !== this.provisionalUserId));
         this.provisionalUserId = null;
       }
       return;
@@ -980,7 +1009,7 @@ export class VoiceConversationController {
     this.live = null;
     if (live) {
       live.unsubscribe();
-      void this.deps.transport.end(live.key).catch(() => false);
+      this.transportEnding = this.deps.transport.end(live.key).catch(() => false);
       void this.deps.api
         .end(live.sessionId, live.conversationId)
         .catch(() => undefined);
@@ -1006,5 +1035,6 @@ export class VoiceConversationController {
       this.provisionalUserId = null;
     }
     this.typedEcho = null;
+    this.reminderContextEcho = null;
   }
 }
