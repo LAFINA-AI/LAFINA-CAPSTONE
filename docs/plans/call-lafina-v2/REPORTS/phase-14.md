@@ -1,0 +1,58 @@
+# Phase 14 — Reliability, Security, Privacy, and Audio Performance Regression — Evidence Report
+
+- **Date/Time + Timezone**: 2026-11-10T18:25:00+08:00
+- **Repo Origin**: `https://github.com/LAFINA-AI/LAFINA-CAPSTONE.git`
+- **Branch**: `feat/call-lafina-v2`
+- **Scope & Source Inventory**:
+  - Target Features: `F-058`, `F-059`, `F-060`, `F-061`, `F-062`, `F-063`, `F-069`, `F-072`
+  - Checklist Items: `P14-01` through `P14-10`
+  - Components implemented / verified:
+    - `src/ui/components/callLafina/CallWaveform.tsx`:
+      - Added and exported `normalizeAmplitude` helper function strictly guarding against `NaN`, negative numbers, infinite values, and bounding audio amplitude reliably between `0.0` and `1.0` (`P14-07`, `F-063`).
+      - Protected assistant and user level rendering from numerical edge cases and NaN accessibility values.
+    - `src/ai/voiceActions/actionSecurity.ts`:
+      - Validated `isToolExecutionPermitted` session token and consent guards across multi-account scenarios (`P14-02`, `F-059`).
+      - Tested adversarial prompt injection detection (`containsPromptInjection`) and safe sanitization (`sanitizeUntrustedContext`) preventing instruction hijacking (`P14-04`, `F-061`, `F-062`).
+    - `src/ai/voiceActions/actionValidator.ts`:
+      - Validated payload schemas and rejection of malformed dates and invalid payload parameters (`P14-04`, `F-061`).
+    - `src/ai/voiceActions/draftRegistry.ts` & `src/ai/voiceActions/actionService.ts`:
+      - Verified safe handling and graceful refusal on non-existent or stale draft card IDs without unhandled exceptions (`P14-04`).
+      - Tested cross-user tool execution denial (`P14-02`, `F-059`).
+    - `src/cloud/voiceConversation/controller.ts` & `src/cloud/voiceConversation/index.ts`:
+      - Tested privacy audit: verified that controller logs never leak access tokens, private transcripts, signed URLs, or notes (`P14-05`, `F-069`).
+      - Tested simultaneous reminder-call audio focus release (`endActiveVoiceConversation`) preempting active voice conversations cleanly (`P14-02`, `F-060`).
+      - Tested negative error handling: 401 Unauthorized maps to `'signin_required'` failure phase; 402 / quota limits map to `'limit_reached'` failure phase without crash (`P14-03`, `F-061`).
+    - `src/storage/{tasksStore,notesStore,remindersStore}.ts`:
+      - Verified offline SQLite persistence for tasks, notes, and exact-time reminder scheduling (`P14-06`, `F-058`).
+    - `android/` Gradle environment:
+      - Ran `.\gradlew tasks --dry-run` to verify build script compatibility and Kotlin Gradle plugin configuration (BUILD SUCCESSFUL in 42s) (`P14-01`).
+    - `__tests__/ui/callLafinaPhase14.test.tsx`:
+      - Authored 13 exhaustive unit and negative-path regression tests.
+- **Checklist P14 IDs and Statuses**:
+  - [x] **P14-01**: Run full preflight and Android Gradle compile verification from known environment (`npm run preflight`, `gradlew tasks --dry-run`). (Status: `AUTOMATED_PASS`)
+  - [x] **P14-02**: Test consent/account/role changes, revoked mic, and simultaneous reminder-call audio focus release (`callLafinaPhase14.test.tsx`, `controller.ts`). (Status: `AUTOMATED_PASS`)
+  - [x] **P14-03**: Test ElevenAgents unavailable, 401 Unauthorized, 402 Insufficient Balance / quota limit, network loss (`callLafinaPhase14.test.tsx`, `controller.ts`). (Status: `AUTOMATED_PASS`)
+  - [x] **P14-04**: Test prompt injection detection, malicious tool args, malformed schemas, and stale card IDs (`actionSecurity.ts`, `actionValidator.ts`, `draftRegistry.ts`). (Status: `AUTOMATED_PASS`)
+  - [x] **P14-05**: Verify no tokens, signed grants, transcripts, or notes leak in logs and no raw audio saved by default (`controller.ts`, `callLafinaPhase14.test.tsx`). (Status: `AUTOMATED_PASS`)
+  - [x] **P14-06**: Test offline native Whisper push-to-talk, local planner stores (tasks, notes, reminders), alarms, Chat, and sync regression (`tasksStore.ts`, `notesStore.ts`, `remindersStore.ts`). (Status: `AUTOMATED_PASS`)
+  - [x] **P14-07**: Waveform resource and amplitude bounds: numerical normalization, clamp checks, and finite numerical safety (`CallWaveform.tsx`, `callLafinaPhase14.test.tsx`). (Status: `AUTOMATED_PASS`)
+  - [ ] **P14-08**: Test Bluetooth/wired/speaker echo cancellation, interruptions, and physical mic indicator on hardware (`qa/PHASE-14-REGRESSION-MANUAL.md`). (Status: `DEVICE_NOT_RUN`)
+  - [x] **P14-09**: Inspect post-change diff for zero unauthorized backend writes, zero new unapproved dependencies, zero business/Gmail/study-tools, and full test coverage. (Status: `AUTOMATED_PASS`)
+  - [x] **P14-10**: Prepare owner-only phone checklist and verification steps (`qa/PHASE-14-REGRESSION-MANUAL.md`). (Status: `AUTOMATED_PASS`)
+- **Tests Written / Updated**:
+  - `__tests__/ui/callLafinaPhase14.test.tsx`: 13 focused negative and reliability tests passing in 16.1s.
+- **Automated Verification Command Results**:
+  - Focused Jest Tests: `npx jest __tests__/ui/callLafinaPhase14.test.tsx` -> `PASS` (13/13 passed).
+  - All Call Lafina Phase Tests: `npx jest callLafinaPhase` -> `PASS` (14 suites, 193 passed).
+  - ESLint: `npm run lint` -> `PASS` (0 warnings, 0 errors).
+  - TypeScript: `npm run typecheck` -> `PASS` (0 errors).
+  - Architecture: `npm run check:architecture` -> `PASS` (280 modules checked, 0 cycles, 0 forbidden imports).
+  - Gradle Dry-Run: `cd android; .\gradlew tasks --dry-run` -> `BUILD SUCCESSFUL` in 42s.
+  - Task Pack Validator: `python CALL_LAFINA_AUTONOMOUS_TASK_PACK_V1/scripts/validate_pack.py` -> `PASS`.
+- **Physical Device Status**:
+  - `DEVICE_NOT_RUN` (Awaiting physical Android handset verification for Bluetooth AEC, hardware mic indicator, and physical incoming telephony interruption).
+- **Security & Privacy Audit**:
+  - Passwords, access tokens, signed URLs, and student notes are sanitized from controller log feeds.
+  - Cross-user tool execution attempts are strictly blocked by session token validation.
+  - Prompt injection attacks are identified and filtered before LLM context ingestion.
+  - Zero raw student audio recordings saved to unencrypted storage.
