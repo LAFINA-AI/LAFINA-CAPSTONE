@@ -67,6 +67,8 @@ export interface ConversationSnapshot {
   level: number;
   /** 0..1 assistant playback audio level while speaking (for assistant waveform). */
   outputLevel: number;
+  /** Truthful progress phrase for active client tool execution, if any. */
+  toolPhrase: string | null;
   turns: readonly ConversationTurn[];
   /** Short, non-blocking information line (for example a slow answer). */
   notice: string | null;

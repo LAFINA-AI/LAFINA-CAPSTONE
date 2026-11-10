@@ -20,6 +20,7 @@ const IDLE: ConversationSnapshot = {
   micCapturing: false,
   level: 0,
   outputLevel: 0,
+  toolPhrase: null,
   turns: [],
   notice: null,
   failure: null,
