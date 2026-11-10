@@ -1,0 +1,80 @@
+2026-11-07T01:34:32Z
+8823b11ac5b8c81cf504ad2cb85ad7c9a8446128
+?? AGY-IMPROVEMENTS-MANIFEST.json
+?? AGY-IMPROVEMENTS-START.md
+?? agy-improvements/
+?? docs/plans/agy-improvements/reports/codex-clear-data-audit-8823b11-20261107.md
+?? docs/plans/agy-improvements/reports/evidence/agy-port-20261106/attachment-cleanup-remediation-20261107/
+?? docs/plans/agy-improvements/reports/evidence/codex-clear-data-audit-8823b11-20261107/
+?? docs/reports/agy-ustp-comparison-20261106.md
+?? docs/reports/evidence/agy-ustp-comparison-20261106/
+$ node --max-old-space-size=512 node_modules/jest/bin/jest.js --config docs/plans/agy-improvements/reports/evidence/codex-clear-data-audit-8823b11-20261107/jest-audit.config.cjs --runInBand --runTestsByPath docs/plans/agy-improvements/reports/evidence/codex-clear-data-audit-8823b11-20261107/independentAttachmentRetry.test.tsx
+  console.warn
+    SafeAreaView has been deprecated and will be removed in a future release. Please use 'react-native-safe-area-context' instead. See https://github.com/AppAndFlow/react-native-safe-area-context
+
+    [0m [90m 25 |[39m   [36mreturn[39m (
+     [90m 26 |[39m     [33m<[39m[33mModal[39m visible[33m=[39m{visible} animationType[33m=[39m[32m"slide"[39m onRequestClose[33m=[39m{onClose}[33m>[39m
+    [31m[1m>[22m[39m[90m 27 |[39m       [33m<[39m[33mSafeAreaView[39m style[33m=[39m{[styles[33m.[39mprivacyContainer[33m,[39m themed[33m.[39mprivacyContainer]}[33m>[39m
+     [90m    |[39m        [31m[1m^[22m[39m
+     [90m 28 |[39m         [33m<[39m[33mView[39m style[33m=[39m{[styles[33m.[39mprivacyHeader[33m,[39m themed[33m.[39mprivacyHeader]}[33m>[39m
+     [90m 29 |[39m           [33m<[39m[33mText[39m style[33m=[39m{[styles[33m.[39mprivacyHeaderTitle[33m,[39m themed[33m.[39mprivacyHeaderTitle]}[33m>[39m
+     [90m 30 |[39m             [33mPrivacy[39m [33mPolicy[39m[0m
+
+      at warn (node_modules/react-native/Libraries/Utilities/warnOnce.js:27:11)
+      at Object.warnOnce [as SafeAreaView] (node_modules/react-native/index.js:101:5)
+      at SafeAreaView (src/ui/components/profile/PrivacyModal.tsx:27:8)
+      at Object.react_stack_bottom_frame (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:15670:20)
+      at renderWithHooks (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:4863:22)
+      at updateFunctionComponent (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:7018:19)
+      at beginWork (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:8499:18)
+      at runWithFiberInDEV (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:2315:13)
+      at performUnitOfWork (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:13224:22)
+      at workLoopSync (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:13068:41)
+      at renderRootSync (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:13049:11)
+      at performWorkOnRoot (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:12181:11)
+      at performWorkOnRootViaSchedulerTask (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:2908:7)
+      at flushActQueue (node_modules/react/cjs/react.development.js:590:34)
+      at Object.<anonymous>.process.env.NODE_ENV.exports.act (node_modules/react/cjs/react.development.js:884:10)
+      at actImplementation (node_modules/@testing-library/react-native/src/act.ts:30:25)
+      at renderWithAct (node_modules/@testing-library/react-native/src/render-act.ts:13:11)
+      at renderInternal (node_modules/@testing-library/react-native/src/render.tsx:69:33)
+      at renderInternal (node_modules/@testing-library/react-native/src/render.tsx:44:10)
+      at Object.<anonymous> (docs/plans/agy-improvements/reports/evidence/codex-clear-data-audit-8823b11-20261107/independentAttachmentRetry.test.tsx:19:19)
+      at asyncGeneratorStep (node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+      at _next (node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
+      at node_modules/@babel/runtime/helpers/asyncToGenerator.js:22:7
+      at Object.<anonymous> (node_modules/@babel/runtime/helpers/asyncToGenerator.js:14:12)
+
+  console.log
+    INDEPENDENT_ATTACHMENT_RETRY {"first":{"title":"Data Partly Cleared","message":"Your notes, tasks, events, reminders and calendar blocks and your chat history and your saved event defaults were cleared. 1 chat attachment file could not be removed from this phone's storage. Try Clear All Data again. Device settings such as the offline voice, theme and time format were kept."},"second":{"title":"Data Cleared","message":"All personal scheduling data and saved event defaults have been deleted."},"fileStillPresent":true,"remainingReferencedUris":[],"unlinkCalls":[["/documents/synthetic-retry.pdf"]]}
+
+      at Object.log (docs/plans/agy-improvements/reports/evidence/codex-clear-data-audit-8823b11-20261107/independentAttachmentRetry.test.tsx:24:10)
+
+FAIL docs/plans/agy-improvements/reports/evidence/codex-clear-data-audit-8823b11-20261107/independentAttachmentRetry.test.tsx
+  × retry must remove an attachment left by the first reset before claiming full success (1426 ms)
+
+  ● retry must remove an attachment left by the first reset before claiming full success
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: false
+    Received: true
+
+    [0m [90m 23 |[39m  fail[33m=[39m[36mfalse[39m[33m;[39m[36mawait[39m confirm()[33m;[39m[36mconst[39m second[33m=[39malerts[alerts[33m.[39mlength[33m-[39m[35m1[39m][33m;[39m
+     [90m 24 |[39m  console[33m.[39mlog([32m'INDEPENDENT_ATTACHMENT_RETRY'[39m[33m,[39m[33mJSON[39m[33m.[39mstringify({first[33m,[39msecond[33m,[39mfileStillPresent[33m:[39mfiles[33m.[39mhas(path)[33m,[39mremainingReferencedUris[33m:[39mchatStore[33m.[39mgetAttachmentUris(a)[33m,[39munlinkCalls[33m:[39m([33mRNFS[39m[33m.[39munlink [36mas[39m jest[33m.[39m[33mMock[39m)[33m.[39mmock[33m.[39mcalls}))[33m;[39m
+    [31m[1m>[22m[39m[90m 25 |[39m  expect(files[33m.[39mhas(path))[33m.[39mtoBe([36mfalse[39m)[33m;[39m
+     [90m    |[39m                          [31m[1m^[22m[39m
+     [90m 26 |[39m  expect(second[33m.[39mtitle)[33m.[39mtoBe([32m'Data Cleared'[39m)[33m;[39m
+     [90m 27 |[39m })[33m;[39m
+     [90m 28 |[39m[0m
+
+      at Object.toBe (docs/plans/agy-improvements/reports/evidence/codex-clear-data-audit-8823b11-20261107/independentAttachmentRetry.test.tsx:25:26)
+      at asyncGeneratorStep (node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+      at _next (node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
+
+Test Suites: 1 failed, 1 total
+Tests:       1 failed, 1 total
+Snapshots:   0 total
+Time:        4.897 s, estimated 15 s
+Ran all test suites within paths "docs/plans/agy-improvements/reports/evidence/codex-clear-data-audit-8823b11-20261107/independentAttachmentRetry.test.tsx".
+EXIT=1

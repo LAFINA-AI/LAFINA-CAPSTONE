@@ -1,0 +1,8 @@
+{
+  "agents": {
+    "http_status": 200
+  },
+  "secrets": {
+    "http_status": 200
+  }
+}

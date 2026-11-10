@@ -1,0 +1,85 @@
+FAIL __tests__/storage/p02PrefixRepro.tmp.test.ts
+  × pre-fix: account B must not see account A history (11 ms)
+  × pre-fix: account B must not open account A attachment (2 ms)
+  × pre-fix: clearing account B must not delete account A history (2 ms)
+
+  ● pre-fix: account B must not see account A history
+
+    expect(received).toEqual(expected) // deep equality
+
+    - Expected  -  1
+    + Received  + 26
+
+    - Array []
+    + Array [
+    +   Object {
+    +     "attachment": null,
+    +     "content": "A private question",
+    +     "createdAt": "2026-11-05T18:55:05.130Z",
+    +     "id": "msg_mw3wnvl5bbp8z8dmt",
+    +     "sender": "user",
+    +     "sessionId": "default_chat_session",
+    +     "updatedAt": "2026-11-05T18:55:05.130Z",
+    +   },
+    +   Object {
+    +     "attachment": Object {
+    +       "fileName": "a-only.pdf",
+    +       "format": "pdf",
+    +       "mimeType": "application/pdf",
+    +       "sizeBytes": 10,
+    +       "uri": "file:///documents/a-only.pdf",
+    +     },
+    +     "content": "Here is your PDF",
+    +     "createdAt": "2026-11-05T18:55:05.130Z",
+    +     "id": "msg_mw3wnvl6dp24nsx4i",
+    +     "sender": "assistant",
+    +     "sessionId": "default_chat_session",
+    +     "updatedAt": "2026-11-05T18:55:05.130Z",
+    +   },
+    + ]
+
+    [0m [90m  9 |[39m   chatStore[33m.[39maddMessage([32m'account-a'[39m[33m,[39m [32m'user'[39m[33m,[39m [32m'A private question'[39m)[33m;[39m
+     [90m 10 |[39m   chatStore[33m.[39maddMessage([32m'account-a'[39m[33m,[39m [32m'assistant'[39m[33m,[39m [32m'Here is your PDF'[39m[33m,[39m [33mPDF[39m)[33m;[39m
+    [31m[1m>[22m[39m[90m 11 |[39m   expect(chatStore[33m.[39mgetMessages([32m'account-b'[39m))[33m.[39mtoEqual([])[33m;[39m
+     [90m    |[39m                                              [31m[1m^[22m[39m
+     [90m 12 |[39m })[33m;[39m
+     [90m 13 |[39m
+     [90m 14 |[39m test([32m'pre-fix: account B must not open account A attachment'[39m[33m,[39m [36masync[39m () [33m=>[39m {[0m
+
+
+  ● pre-fix: account B must not open account A attachment
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: false
+    Received: true
+
+    [0m [90m 14 |[39m test([32m'pre-fix: account B must not open account A attachment'[39m[33m,[39m [36masync[39m () [33m=>[39m {
+     [90m 15 |[39m   [36mawait[39m initDatabase()[33m;[39m
+    [31m[1m>[22m[39m[90m 16 |[39m   expect(chatStore[33m.[39mhasAttachment([32m'account-b'[39m[33m,[39m [33mPDF[39m[33m.[39muri))[33m.[39mtoBe([36mfalse[39m)[33m;[39m
+     [90m    |[39m                                                         [31m[1m^[22m[39m
+     [90m 17 |[39m })[33m;[39m
+     [90m 18 |[39m
+     [90m 19 |[39m test([32m'pre-fix: clearing account B must not delete account A history'[39m[33m,[39m [36masync[39m () [33m=>[39m {[0m
+
+
+  ● pre-fix: clearing account B must not delete account A history
+
+    expect(received).toBeGreaterThan(expected)
+
+    Expected: > 0
+    Received:   0
+
+    [0m [90m 21 |[39m   chatStore[33m.[39maddMessage([32m'account-a'[39m[33m,[39m [32m'user'[39m[33m,[39m [32m'A again'[39m)[33m;[39m
+     [90m 22 |[39m   chatStore[33m.[39mclearHistory([32m'account-b'[39m)[33m;[39m
+    [31m[1m>[22m[39m[90m 23 |[39m   expect(chatStore[33m.[39mgetMessages([32m'account-a'[39m)[33m.[39mlength)[33m.[39mtoBeGreaterThan([35m0[39m)[33m;[39m
+     [90m    |[39m                                                     [31m[1m^[22m[39m
+     [90m 24 |[39m })[33m;[39m
+     [90m 25 |[39m[0m
+
+
+Test Suites: 1 failed, 1 total
+Tests:       3 failed, 3 total
+Snapshots:   0 total
+Time:        1.437 s
+Ran all test suites matching /__tests__\\storage\\p02PrefixRepro.tmp.test.ts/i.

@@ -1,0 +1,51 @@
+{
+  "date": "2026-11-08",
+  "device": {"serial": "emulator-5554", "avd": "Medium_Phone", "model": "sdk_gphone16k_x86_64", "android": "17", "sdk": 37},
+  "build": {
+    "apk": "android/app/build/outputs/apk/dataQa/app-x86_64-dataQa.apk",
+    "package": "com.lafina.capstone.elevenlabs",
+    "apiOverride": "none (starts on Vercel)",
+    "ENABLE_BACKEND_SWITCH": true,
+    "sha256_first": "b3303b7a65a5ca5c83c72fceb2b6fd5d0e66cf363ee62c5b197c06cb2419ec00",
+    "sha256_final": "f50f7a5228ec0c260989170b566e5eeef2b312a23f5b5cbb4f3e6fba905da2af",
+    "final_bytes": 154885193,
+    "note": "The final build differs from the first only in the dialog wording (backticks removed).",
+    "install": "adb install -r (no uninstall, no clear-data)"
+  },
+  "accounts": {
+    "vercel": "synthetic student qa-backendswitch@lafina-test.dev, registered through the app on production",
+    "local": "synthetic student created earlier on the local backend only"
+  },
+  "vercel_from_dev_pc_ms": {
+    "note": "Python urllib from the developer PC, not the phone. One login; 3 chat and 2 TTS samples. Observations, not targets.",
+    "region": "sin1 (x-vercel-id)",
+    "login": 328,
+    "auth_me": 220,
+    "tts_capabilities": 206,
+    "tts_capabilities_body": {"provider": "elevenlabs", "enabled": true, "mimeType": "audio/mpeg"},
+    "chat_stream_first_sse_line": [1081, 1177, 819],
+    "chat_stream_total": [1294, 1386, 1048],
+    "tts_mp3": [1016, 1066],
+    "voice_capabilities_status": 404,
+    "logout_status": 204
+  },
+  "checks": {
+    "starts_on_vercel_without_override": "PASS (Profile shows Server (debug): Vercel)",
+    "register_on_vercel_in_app": "PASS (onboarding, then calendar)",
+    "online_chat_via_vercel_deepseek": "PASS (reply shown in Chat)",
+    "read_aloud_elevenlabs_via_vercel": "PASS (LafinaAudioPlayer MediaPlayer started, USAGE_MEDIA/CONTENT_TYPE_SPEECH, 44.1 kHz mono MP3); audibility not certified on emulator",
+    "switch_dialog_offers_other_server_only": "PASS",
+    "switch_signed_in_signs_out_then_login_screen": "PASS",
+    "sign_in_and_sync_on_local_after_switch": "PASS (local log: login 200, auth/me 200, sync/batch 200 x2)",
+    "choice_survives_app_restart": "PASS (requests went to local; row showed Local)",
+    "choice_survives_adb_install_r": "PASS",
+    "sign_out_reaches_old_server_before_switch": "PASS (local log: POST /v1/auth/logout 204 when switching back to Vercel)",
+    "back_on_vercel_signed_in": "PASS (Profile shows qa-backendswitch@lafina-test.dev)"
+  },
+  "not_run": [
+    "release build (switch hidden): covered by Jest only; no release APK built",
+    "physical phone",
+    "guest switch on device (Jest only)",
+    "live voice conversation on Vercel (route not deployed: 404)"
+  ]
+}

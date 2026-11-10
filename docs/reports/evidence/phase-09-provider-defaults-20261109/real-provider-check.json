@@ -1,0 +1,16 @@
+{
+  "unauthenticated_tts_http": 401,
+  "deepseek_stream": {
+    "http_status": 200,
+    "first_data_ms": 1050,
+    "total_ms": 1362,
+    "data_events": 35
+  },
+  "elevenlabs_tts": {
+    "http_status": 200,
+    "provider": "elevenlabs",
+    "model": "eleven_v4_turbo",
+    "audio_bytes": 24911,
+    "elapsed_ms": 1782
+  }
+}

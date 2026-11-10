@@ -1,0 +1,27 @@
+import React from 'react';
+import {Alert} from 'react-native';
+import RNFS from 'react-native-fs';
+import {act,fireEvent,render} from '@testing-library/react-native';
+import {db,initDatabase,userStore,chatStore} from 'C:/L3mxr/Github Repositories/LAFINA-CAPSTONE-agy-development-cont/src/storage';
+import {ProfileScreen} from 'C:/L3mxr/Github Repositories/LAFINA-CAPSTONE-agy-development-cont/src/ui/screens/ProfileScreen';
+import {ThemeProvider} from 'C:/L3mxr/Github Repositories/LAFINA-CAPSTONE-agy-development-cont/src/ui/contexts/ThemeContext';
+const settle=async()=>{for(let i=0;i<10;i++)await new Promise(r=>setImmediate(r));};
+beforeAll(async()=>{await initDatabase();});
+afterEach(()=>{jest.restoreAllMocks();});
+it('retry must remove an attachment left by the first reset before claiming full success',async()=>{
+ const a='independent-attachment-retry';const now=new Date().toISOString();
+ db.executeSync(`INSERT INTO users (id,username,email,role,is_new_user,time_format_24h,week_starts_monday,dark_mode,created_at,updated_at) VALUES (?,?,?,'student',0,0,0,0,?,?)`,[a,a,a+'@example.invalid',now,now]);userStore.setCurrentUser(a);
+ const path='/documents/synthetic-retry.pdf';const files=new Set([path]);let fail=true;const alerts:any[]=[];
+ (RNFS.exists as jest.Mock).mockImplementation(async(p:string)=>files.has(p));
+ (RNFS.unlink as jest.Mock).mockImplementation(async(p:string)=>{if(fail)throw new Error('synthetic transient unlink failure');files.delete(p);});
+ jest.spyOn(Alert,'alert').mockImplementation((title,message,buttons)=>{alerts.push({title,message,buttons});});
+ chatStore.addMessage(a,'assistant','Synthetic document',{uri:'file://'+path,fileName:'synthetic-retry.pdf',format:'pdf',mimeType:'application/pdf',sizeBytes:10});
+ const view=render(<ThemeProvider userId={a}><ProfileScreen userId={a} refreshTrigger={0} onRefresh={jest.fn()} onLogout={jest.fn()}/></ThemeProvider>);
+ const confirm=async()=>{fireEvent.press(view.getByText('Clear All Data'));const opened=alerts.filter(x=>x.title==='Clear All Data').pop();await act(async()=>{opened.buttons.find((x:any)=>x.text==='Delete Everything').onPress();await settle();});};
+ await confirm();const first=alerts[alerts.length-1];expect(first.title).toBe('Data Partly Cleared');expect(files.has(path)).toBe(true);
+ expect(first.message).toMatch(/Try Clear All Data again/);
+ fail=false;await confirm();const second=alerts[alerts.length-1];
+ console.log('INDEPENDENT_ATTACHMENT_RETRY',JSON.stringify({first,second,fileStillPresent:files.has(path),remainingReferencedUris:chatStore.getAttachmentUris(a),unlinkCalls:(RNFS.unlink as jest.Mock).mock.calls}));
+ expect(files.has(path)).toBe(false);
+ expect(second.title).toBe('Data Cleared');
+});

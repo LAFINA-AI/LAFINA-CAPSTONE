@@ -1,4 +1,4 @@
-import { db } from './database';
+import {db} from './database';
 
 export const localSettingsStore = {
   get: (
@@ -18,15 +18,18 @@ export const localSettingsStore = {
     }
   },
 
-  set: (userId: string, key: string, value: string): void => {
+  /** Returns false when the setting could not be saved. */
+  set: (userId: string, key: string, value: string): boolean => {
     try {
       db.executeSync(
         `INSERT INTO local_settings (user_id, key, value, updated_at) VALUES (?, ?, ?, ?)
          ON CONFLICT(user_id, key) DO UPDATE SET value = excluded.value, updated_at = excluded.updated_at`,
         [userId, key, value, new Date().toISOString()],
       );
+      return true;
     } catch (error) {
       console.error('Error saving local setting:', error);
+      return false;
     }
   },
 };

@@ -1,0 +1,26 @@
+{
+  "capabilities": {
+    "provider": "elevenlabs",
+    "enabled": true,
+    "maxDurationSeconds": 300,
+    "maxTurns": 30,
+    "sessionsPerDay": 6,
+    "detail": null
+  },
+  "public_boundaries": {
+    "health": 200,
+    "unauthenticated_callback": 401,
+    "auth_route": 404,
+    "docs": 404
+  },
+  "session_http": 200,
+  "signed_elevenlabs_url_received": true,
+  "reply_text": "Try studying in short focused blocks with a quick break in between, since that usually beats one long marathon session.",
+  "done": true,
+  "error_event": false,
+  "callback_http": 200,
+  "first_text_ms": 1544,
+  "total_ms": 1862,
+  "end_session_http": 200,
+  "ended_grant_http": 409
+}

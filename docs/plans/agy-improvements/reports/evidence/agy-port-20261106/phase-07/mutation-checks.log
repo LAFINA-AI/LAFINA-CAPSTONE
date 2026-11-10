@@ -1,0 +1,27 @@
+=== N1 edit store: revision check removed (2026-11-06T04:01:05Z)
+Tests:       6 failed, 18 passed, 24 total
+  FAILED: AGY-PORT 07 Notes consistency, search and pages revision-checked edits a save over the revision the editor saw succeeds and returns the new revision
+  FAILED: AGY-PORT 07 Notes consistency, search and pages revision-checked edits a newer write by another writer is never overwritten or deleted by a stale editor
+  FAILED: AGY-PORT 07 Notes consistency, search and pages sync pull under an open editor (full runSyncPass, fake server) a pulled update or delete makes the open editor stale; the pulled version stays
+  FAILED: AGY-PORT 07 Notes UI a stale editor save keeps the draft open and "Save as a copy" never overwrites the newer note
+  FAILED: AGY-PORT 07 Notes UI a delete confirmed after the note changed is refused and the note stays
+  FAILED: AGY-PORT 07 Notes UI a card checklist tap over a stale card is refused and the list refreshes
+N1 edit store: revision check removed restored (cmp identical)
+=== N2 search: LIKE wildcards not escaped (2026-11-06T04:01:42Z)
+Tests:       1 failed, 23 passed, 24 total
+  FAILED: AGY-PORT 07 Notes consistency, search and pages search cache %, _ and backslash are literal characters, not wildcards
+N2 search: LIKE wildcards not escaped restored (cmp identical)
+=== N3 cache: update trigger does not invalidate (2026-11-06T04:02:16Z)
+Tests:       2 failed, 22 passed, 24 total
+  FAILED: AGY-PORT 07 Notes consistency, search and pages search cache every writer invalidates the cache: manual, raw/sync-style, category rename and delete
+  FAILED: AGY-PORT 07 Notes consistency, search and pages guest link rekeys notes atomically: the guest cache is dropped, revisions move and the new owner can edit
+N3 cache: update trigger does not invalidate restored (cmp identical)
+=== N4 reorder: partial collection accepted (2026-11-06T04:02:54Z)
+Tests:       1 failed, 23 passed, 24 total
+  FAILED: AGY-PORT 07 Notes consistency, search and pages safe reorder only the complete, unchanged collection can set the order
+N4 reorder: partial collection accepted restored (cmp identical)
+=== N5 hook: late AI action not retired (2026-11-06T04:03:31Z)
+Tests:       2 failed, 22 passed, 24 total
+  FAILED: AGY-PORT 07 Notes UI an account change closes the editor and retires a pending AI action
+  FAILED: AGY-PORT 07 Notes UI closing the editor before the AI timer fires retires it
+N5 hook: late AI action not retired restored (cmp identical)

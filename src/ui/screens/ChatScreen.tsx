@@ -1,6 +1,7 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, {useState, useEffect, useRef, useCallback} from 'react';
 import {
   View,
+  AppState,
   Text,
   StyleSheet,
   FlatList,
@@ -10,46 +11,70 @@ import {
   Modal,
   Platform,
   Dimensions,
+  BackHandler,
+  DeviceEventEmitter,
 } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import {useSafeAreaInsets} from 'react-native-safe-area-context';
 import NetInfo from '@react-native-community/netinfo';
 import {
   Trash2,
-  Sparkles,
+  PanelLeft,
   Bot,
   BookOpen,
   FileSpreadsheet,
   FileText,
   Presentation,
   AudioLines,
+  Lightbulb,
 } from 'lucide-react-native';
-import { Fonts, FontSize, Layout, Spacing } from '../theme';
-import { useTheme } from '../contexts/ThemeContext';
-import { useThemedStyles } from '../theme/createThemedStyles';
-import type { ThemeColors } from '../contexts/ThemeContext';
+import {Fonts, FontSize, Layout, Spacing} from '../theme';
+import {useTheme} from '../contexts/ThemeContext';
+import {useThemedStyles} from '../theme/createThemedStyles';
+import type {ThemeColors} from '../contexts/ThemeContext';
 import {
   chatStore,
   type ChatAttachment,
   type ChatMessage,
 } from '../../storage/chatStore';
-import { localSettingsStore } from '../../storage/localSettingsStore';
-import { accountLinkService } from '../../cloud';
+import {mergeChatPages} from './chat/chatPaging';
+import {localSettingsStore} from '../../storage/localSettingsStore';
+import {accountLinkService} from '../../cloud';
+import {createCallSpeechProvider} from '../../cloud/speechService';
+import {readInitialOnlineMode} from '../../cloud/providerTestDefaults';
+import {ONLINE_MODE_CHANGED_EVENT} from '../../cloud/voiceConversation';
+import {
+  CHAT_MEMORY_CHANGED_EVENT,
+  chatMemoryService,
+} from '../../cloud/chatMemoryService';
+import type {ChatMemoryChangedEvent} from '../../cloud/chatMemoryService';
+import type {CallSpeechProvider} from '../../scheduler/speechProvider';
 import {
   DOCUMENT_FORMAT_ORDER,
   DOCUMENT_FORMATS,
   type DocumentFormat,
 } from '../../skills/documentSkill';
-import { handbookPreference } from '../../skills/onlineChatSkill';
-import { chatOrchestrator } from '../../ai/chatOrchestrator';
-import { ChatMessageItem } from '../components/chat/ChatMessageItem';
-import { ChatInput } from '../components/chat/ChatInput';
-import { TypingBubble } from '../components/chat/TypingBubble';
+import {handbookPreference} from '../../skills/onlineChatSkill';
+import {chatOrchestrator} from '../../ai/chatOrchestrator';
+import {ChatMessageItem} from '../components/chat/ChatMessageItem';
+import {ChatHistorySheet} from '../components/chat/ChatHistorySheet';
+import {ChatInput} from '../components/chat/ChatInput';
+import {TypingBubble} from '../components/chat/TypingBubble';
+import {CommandReviewCard} from '../components/chat/CommandReviewCard';
+import {CommandGuide} from '../components/chat/CommandGuide';
+import {useCommandReview} from '../hooks/useCommandReview';
+import {useDraftProtection} from '../hooks/useDraftProtection';
+import {useChatReplyFormat} from '../hooks/useChatReplyFormat';
+import {DraftDecisionDialog} from '../components/DraftDecisionDialog';
+import {chatDraftStore} from '../drafts/chatDraftStore';
 import {
   removeAttachmentFiles,
   shareAttachment,
 } from '../components/chat/chatFiles';
-import { ToolSheet } from '../components/tools';
-import { MeetingsScreen } from './meetings';
+import {ToolSheet} from '../components/tools';
+import {MeetingsScreen} from './meetings';
+
+/** How often a reply that is still arriving repaints (about 20 times a second). */
+const STREAM_REPAINT_MS = 50;
 
 export interface ChatScreenProps {
   userId: string;
@@ -62,19 +87,81 @@ export const ChatScreen: React.FC<ChatScreenProps> = ({
   refreshTrigger = 0,
   onRefresh,
 }) => {
-  const [messages, setMessages] = useState<ChatMessage[]>(() => {
+  const [initialPage] = useState(() => {
     try {
-      return chatStore.getMessages(userId);
+      return chatStore.getMessagesPage(userId);
     } catch {
-      return [];
+      return null;
     }
   });
-  const [inputText, setInputText] = useState('');
+  const [messages, setMessages] = useState<ChatMessage[]>(
+    initialPage?.items ?? [],
+  );
+  const [olderCursor, setOlderCursor] = useState<string | null>(
+    initialPage?.nextCursor ?? null,
+  );
+  const [isLoadingEarlier, setIsLoadingEarlier] = useState(false);
+  const readCurrentChat = useCallback((): string => {
+    try {
+      return chatStore.currentSessionId(userId);
+    } catch {
+      return '';
+    }
+  }, [userId]);
+  const [currentChatId, setCurrentChatId] = useState(readCurrentChat);
+  const [historyVisible, setHistoryVisible] = useState(false);
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const [legacyHiddenCount, setLegacyHiddenCount] = useState(0);
+  const [legacyNoticeDismissed, setLegacyNoticeDismissed] = useState(
+    () =>
+      localSettingsStore.get(userId, 'chat.legacyNoticeDismissed', null) ===
+      'true',
+  );
+  // Async results are applied only while the same account is still shown.
+  const activeUserRef = useRef(userId);
+  const replyFormat = useChatReplyFormat(userId);
+  activeUserRef.current = userId;
+  const suppressAutoScrollRef = useRef(false);
+  // AGY-PORT 05: the composer draft lives in an owner-bound memory store, so tab
+  // switches, tool sheets and the Voice handoff never lose it.
+  const [inputText, setInputTextState] = useState(() =>
+    chatDraftStore.get(userId),
+  );
+  const setInputText = useCallback(
+    (text: string) => {
+      chatDraftStore.set(userId, text);
+      setInputTextState(text);
+    },
+    [userId],
+  );
+  // The text a waiting review came from; Cancel puts it back in an empty composer.
+  const reviewSourceRef = useRef<{operationId: string; text: string} | null>(
+    null,
+  );
   const [isSending, setIsSending] = useState(false);
-  const [isOnlineMode, setIsOnlineMode] = useState(() => {
-    const saved = localSettingsStore.get(userId, 'chat.onlineMode', null);
-    return saved === 'true';
-  });
+  // DeepSeek's reply while it is still being written (Online Mode only).
+  const [streamingReply, setStreamingReply] = useState<{
+    text: string;
+    startedAt: string;
+  } | null>(null);
+  const streamFlushRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [isOnlineMode, setIsOnlineMode] = useState(() =>
+    readInitialOnlineMode(userId),
+  );
+  const onlineSpeech = useRef<CallSpeechProvider | null>(null);
+  useEffect(() => {
+    const provider = createCallSpeechProvider(userId);
+    onlineSpeech.current = provider;
+    const background = AppState.addEventListener('change', state => {
+      if (state !== 'active')
+        void provider.stopSpeech?.().catch(() => undefined);
+    });
+    return () => {
+      onlineSpeech.current = null;
+      background.remove();
+      void provider.dispose?.().catch(() => undefined);
+    };
+  }, [userId]);
   const [useHandbook, setUseHandbook] = useState(() =>
     handbookPreference.read(userId),
   );
@@ -86,6 +173,7 @@ export const ChatScreen: React.FC<ChatScreenProps> = ({
   );
   const [formatPickerOpen, setFormatPickerOpen] = useState(false);
   const [meetingsModalVisible, setMeetingsModalVisible] = useState(false);
+  const [guideVisible, setGuideVisible] = useState(false);
   const [isKeyboardVisible, setIsKeyboardVisible] = useState(false);
   const [keyboardHeight, setKeyboardHeight] = useState(0);
   const insets = useSafeAreaInsets();
@@ -95,8 +183,45 @@ export const ChatScreen: React.FC<ChatScreenProps> = ({
   const maxHeightRef = useRef<number>(currentHeight);
   const flatListRef = useRef<FlatList<ChatMessage>>(null);
 
-  const { colors } = useTheme();
+  const {colors} = useTheme();
   const themed = useThemedStyles(getThemedStyles);
+  // AGY-PORT 04: planner changes wait on this card until Confirm.
+  const review = useCommandReview(userId, 'chat');
+
+  // AGY-PORT 05: Android back with unsent text asks first (default keeps it).
+  const draft = useDraftProtection(
+    userId,
+    inputText,
+    false,
+    () => setInputText(''),
+    next => setInputText(next),
+  );
+  const {requestLeave, hasDraft} = draft;
+
+  useEffect(() => {
+    setInputTextState(chatDraftStore.get(userId));
+    reviewSourceRef.current = null;
+    return chatDraftStore.subscribe((owner, text) => {
+      if (owner === userId) setInputTextState(text);
+    });
+  }, [userId]);
+
+  useEffect(() => {
+    const subscription = BackHandler.addEventListener(
+      'hardwareBackPress',
+      () => {
+        if (!hasDraft()) return false;
+        requestLeave(() => BackHandler.exitApp(), {
+          title: 'Leave with an unsent draft?',
+          message:
+            'Your unsent Chat text will be discarded. Saved items and any change waiting for Confirm are kept.',
+          confirmLabel: 'Discard and leave',
+        });
+        return true;
+      },
+    );
+    return () => subscription.remove();
+  }, [hasDraft, requestLeave]);
 
   // Floating bottom CustomTabBar clearance when keyboard is closed
   const tabBarBottomOffset = Math.max(insets.bottom, 12) + 14;
@@ -116,8 +241,8 @@ export const ChatScreen: React.FC<ChatScreenProps> = ({
     windowShrunk > 100
       ? Math.max(0, (keyboardHeight || 300) - windowShrunk)
       : keyboardHeight > 0
-        ? keyboardHeight + Math.max(insets.bottom, 24)
-        : 320;
+      ? keyboardHeight + Math.max(insets.bottom, 24)
+      : 320;
 
   const keyboardClearance = unhandledKeyboardHeight + 12;
 
@@ -130,11 +255,11 @@ export const ChatScreen: React.FC<ChatScreenProps> = ({
       Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow';
     const hideEvent =
       Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide';
-    const showSub = Keyboard.addListener(showEvent, (e) => {
+    const showSub = Keyboard.addListener(showEvent, e => {
       setIsKeyboardVisible(true);
       const kh = e.endCoordinates?.height ?? 0;
       setKeyboardHeight(kh);
-      setTimeout(() => flatListRef.current?.scrollToEnd({ animated: true }), 100);
+      setTimeout(() => flatListRef.current?.scrollToEnd({animated: true}), 100);
     });
     const hideSub = Keyboard.addListener(hideEvent, () => {
       setIsKeyboardVisible(false);
@@ -146,16 +271,64 @@ export const ChatScreen: React.FC<ChatScreenProps> = ({
     };
   }, []);
 
+  /** Reloads the newest page, keeping earlier pages the student already opened. */
   const loadMessages = useCallback(() => {
-    const list = chatStore.getMessages(userId);
-    setMessages(list);
+    try {
+      const page = chatStore.getMessagesPage(userId);
+      setMessages(current => {
+        const merged = mergeChatPages(current, page);
+        if (!merged.keptEarlier) {
+          setOlderCursor(page.nextCursor);
+        }
+        return merged.items;
+      });
+      setLoadError(null);
+    } catch (error) {
+      console.error('[ChatScreen] Could not load conversation:', error);
+      setLoadError(
+        'Your conversation could not be loaded right now. Nothing was deleted.',
+      );
+    }
   }, [userId]);
 
-  const prevMessagesKeyRef = useRef(`${userId}:${refreshTrigger}`);
+  const handleLoadEarlier = useCallback(() => {
+    if (!olderCursor || isLoadingEarlier) return;
+    setIsLoadingEarlier(true);
+    try {
+      const page = chatStore.getMessagesPage(userId, {before: olderCursor});
+      suppressAutoScrollRef.current = true;
+      setMessages(current => [
+        ...page.items.filter(
+          item => !current.some(existing => existing.id === item.id),
+        ),
+        ...current,
+      ]);
+      setOlderCursor(page.nextCursor);
+      setLoadError(null);
+    } catch (error) {
+      console.error('[ChatScreen] Could not load earlier messages:', error);
+      setLoadError('Earlier messages could not be loaded. Try again.');
+    } finally {
+      setIsLoadingEarlier(false);
+    }
+  }, [isLoadingEarlier, olderCursor, userId]);
+
+  // A different account never sees the previous account's messages or cursor.
   useEffect(() => {
-    const nextKey = `${userId}:${refreshTrigger}`;
-    if (prevMessagesKeyRef.current === nextKey) return;
-    prevMessagesKeyRef.current = nextKey;
+    setMessages([]);
+    setOlderCursor(null);
+    setHandbookNotes({});
+    setLoadError(null);
+    setCurrentChatId(readCurrentChat());
+    setHistoryVisible(false);
+    setLegacyHiddenCount(chatStore.getLegacyQuarantineSummary().messageCount);
+    setLegacyNoticeDismissed(
+      localSettingsStore.get(userId, 'chat.legacyNoticeDismissed', null) ===
+        'true',
+    );
+  }, [userId, readCurrentChat]);
+
+  useEffect(() => {
     loadMessages();
   }, [userId, loadMessages, refreshTrigger]);
 
@@ -177,36 +350,38 @@ export const ChatScreen: React.FC<ChatScreenProps> = ({
       const isDeviceConnected = Boolean(
         isConnected && isInternetReachable !== false,
       );
-      const userPreference = localSettingsStore.get(
-        userId,
-        'chat.onlineMode',
-        null,
-      );
+      const optedIn = () =>
+        localSettingsStore.get(userId, 'chat.onlineMode', null) === 'true';
 
-      // If user explicitly chose offline, honor their manual choice
-      if (userPreference === 'false') {
+      // Online Mode is opt-in: connectivity alone never turns it on.
+      if (!optedIn()) {
         return;
       }
 
       if (isDeviceConnected) {
         const auth = await accountLinkService.authorizeOnlineMode(userId);
-        if (active && auth.status === 'success') {
+        // The student may have switched Online Mode off while this was pending.
+        if (active && auth.status === 'success' && optedIn()) {
           setIsOnlineMode(true);
-          if (userPreference !== 'true') {
-            localSettingsStore.set(userId, 'chat.onlineMode', 'true');
-          }
         }
       } else if (active) {
         setIsOnlineMode(false);
       }
     };
 
-    NetInfo.fetch().then((state) => {
-      void syncConnectivity(state.isConnected, state.isInternetReachable);
-    });
+    void NetInfo.fetch()
+      .then(state => {
+        void syncConnectivity(
+          state.isConnected,
+          state.isInternetReachable,
+        ).catch(() => undefined);
+      })
+      .catch(() => undefined);
 
-    const unsubscribe = NetInfo.addEventListener((state) => {
-      void syncConnectivity(state.isConnected, state.isInternetReachable);
+    const unsubscribe = NetInfo.addEventListener(state => {
+      void syncConnectivity(state.isConnected, state.isInternetReachable).catch(
+        () => undefined,
+      );
     });
 
     return () => {
@@ -215,22 +390,81 @@ export const ChatScreen: React.FC<ChatScreenProps> = ({
     };
   }, [userId]);
 
+  // Voice conversation can turn Online Mode on (explicit tap there too).
+  useEffect(() => {
+    const subscription = DeviceEventEmitter.addListener(
+      ONLINE_MODE_CHANGED_EVENT,
+      (event: {userId?: string; enabled?: boolean}) => {
+        if (event?.userId === userId && typeof event.enabled === 'boolean') {
+          setIsOnlineMode(event.enabled);
+        }
+      },
+    );
+    return () => subscription.remove();
+  }, [userId]);
+
+  // A reply's memory changes arrive after it is shown (and when undone).
+  useEffect(() => {
+    const subscription = DeviceEventEmitter.addListener(
+      CHAT_MEMORY_CHANGED_EVENT,
+      (event: ChatMemoryChangedEvent) => {
+        if (event?.userId !== userId) return;
+        setMessages(current =>
+          current.map(message =>
+            message.id === event.messageId
+              ? {...message, memoryChanges: event.changes}
+              : message,
+          ),
+        );
+      },
+    );
+    return () => subscription.remove();
+  }, [userId]);
+
+  const handleUndoMemory = useCallback(
+    (message: ChatMessage) => {
+      if (!message.memoryChanges || message.memoryChanges.undone) return;
+      try {
+        chatMemoryService.undo(userId, message.id, message.memoryChanges);
+      } catch (error) {
+        console.error('[ChatScreen] Could not undo the memory change:', error);
+        Alert.alert('Not Undone', 'The memory change could not be undone. Try again.');
+      }
+    },
+    [userId],
+  );
+
+  /** Shows the chat that is now open (after New chat, opening another, or deleting the open one). */
+  const showCurrentChat = useCallback(() => {
+    setCurrentChatId(readCurrentChat());
+    setHandbookNotes({});
+    setMessages([]);
+    setOlderCursor(null);
+    setLoadError(null);
+    loadMessages();
+  }, [loadMessages, readCurrentChat]);
+
   const handleToggleHandbook = () => {
     const next = !useHandbook;
     setUseHandbook(next);
     handbookPreference.write(userId, next);
   };
 
+  const onlineToggleTicket = useRef(0);
   const handleToggleOnline = async (): Promise<boolean> => {
+    // Any tap (on or off) supersedes a pending enable from an earlier tap.
+    const ticket = ++onlineToggleTicket.current;
     if (isOnlineMode) {
+      void onlineSpeech.current?.stopSpeech?.().catch(() => undefined);
       setIsOnlineMode(false);
       setSelectedFormat(null);
       localSettingsStore.set(userId, 'chat.onlineMode', 'false');
       return false;
     }
 
-    const netState = await NetInfo.fetch();
-    if (!netState.isConnected) {
+    const netState = await NetInfo.fetch().catch(() => null);
+    if (ticket !== onlineToggleTicket.current) return false;
+    if (!netState?.isConnected) {
       Alert.alert(
         'Device Offline',
         'Please connect to Wi-Fi or mobile data to use Online Mode.',
@@ -238,7 +472,13 @@ export const ChatScreen: React.FC<ChatScreenProps> = ({
       return false;
     }
 
-    const result = await accountLinkService.authorizeOnlineMode(userId);
+    const result = await accountLinkService
+      .authorizeOnlineMode(userId)
+      .catch(() => ({
+        status: 'network_error' as const,
+        message: 'Could not reach the LAFINA server. Try again.',
+      }));
+    if (ticket !== onlineToggleTicket.current) return false;
     if (result.status !== 'success') {
       Alert.alert(
         'Online Mode Unavailable',
@@ -247,8 +487,14 @@ export const ChatScreen: React.FC<ChatScreenProps> = ({
       return false;
     }
 
+    if (!localSettingsStore.set(userId, 'chat.onlineMode', 'true')) {
+      Alert.alert(
+        'Online Mode Unavailable',
+        'Could not save the Online Mode setting on this device. Try again.',
+      );
+      return false;
+    }
     setIsOnlineMode(true);
-    localSettingsStore.set(userId, 'chat.onlineMode', 'true');
     return true;
   };
 
@@ -287,58 +533,214 @@ export const ChatScreen: React.FC<ChatScreenProps> = ({
     if (!query || isSending) return;
 
     const requestedFormat = selectedFormat;
+    const requestUser = userId;
     setInputText('');
     setSelectedFormat(null);
     setIsSending(true);
+
+    // Pieces of the reply arrive many times a second; repaint at most every
+    // STREAM_REPAINT_MS so long replies stay smooth on slower phones.
+    let latestText = '';
+    let shownFirst = false;
+    const startedAt = new Date().toISOString();
+    const showLatest = () => {
+      streamFlushRef.current = null;
+      if (activeUserRef.current !== requestUser) return;
+      setStreamingReply({text: latestText, startedAt});
+    };
+    const onReplyText = (replySoFar: string) => {
+      latestText = replySoFar;
+      if (!shownFirst) {
+        // The question is saved before the reply starts; show it above.
+        shownFirst = true;
+        loadMessages();
+        showLatest();
+        return;
+      }
+      if (!streamFlushRef.current) {
+        streamFlushRef.current = setTimeout(showLatest, STREAM_REPAINT_MS);
+      }
+    };
 
     try {
       const result = await chatOrchestrator.processMessage(userId, query, {
         onlineMode: isOnlineMode,
         useHandbook,
         documentFormat: requestedFormat,
+        onReplyText,
       });
+      // If the account changed while the reply was pending, the reply was saved
+      // for the account that sent it and must not appear in this one.
+      if (activeUserRef.current !== requestUser) return;
       if (result.handbookNote && result.assistantMessage) {
-        setHandbookNotes((prev) => ({
+        setHandbookNotes(prev => ({
           ...prev,
           [result.assistantMessage.id]: result.handbookNote as string,
         }));
       }
+      if (result.review?.status === 'proposal') {
+        reviewSourceRef.current = {
+          operationId: result.review.proposal.operationId,
+          text: query,
+        };
+      }
+      review.present(result.review);
       loadMessages();
       onRefresh?.();
     } catch (err) {
       console.error('[ChatScreen] Error processing chat message:', err);
+      // Nothing was answered: give the text back unless the student typed more.
+      if (
+        activeUserRef.current === requestUser &&
+        !chatDraftStore.get(requestUser).trim()
+      ) {
+        chatDraftStore.set(requestUser, query);
+      }
     } finally {
+      // The saved reply (loaded above) replaces the live bubble in one render.
+      if (streamFlushRef.current) {
+        clearTimeout(streamFlushRef.current);
+        streamFlushRef.current = null;
+      }
+      setStreamingReply(null);
       setIsSending(false);
     }
+  };
+
+  const handleConfirmReview = async () => {
+    const requestUser = userId;
+    try {
+      const decision = await review.confirm();
+      if (!decision || activeUserRef.current !== requestUser) return;
+      loadMessages();
+      onRefresh?.();
+    } catch (err) {
+      console.error('[ChatScreen] Error confirming a reviewed command:', err);
+    }
+  };
+
+  const handleCancelReview = () => {
+    const cancelled = review.proposal;
+    if (!review.cancel()) return;
+    // AGY-PORT 05: cancelling keeps the text editable; nothing was saved.
+    const source = reviewSourceRef.current;
+    if (
+      cancelled &&
+      source?.operationId === cancelled.operationId &&
+      !inputText.trim()
+    ) {
+      setInputText(source.text);
+    }
+    reviewSourceRef.current = null;
+    loadMessages();
   };
 
   const handleClearHistory = () => {
     Alert.alert(
       'Clear Conversation',
-      'Are you sure you want to clear your conversation history? This cannot be undone.',
+      'Delete this chat? This cannot be undone. Your other chats, saved schedule items, notes, memories and your unsent draft are kept.',
       [
-        { text: 'Cancel', style: 'cancel' },
+        {text: 'Cancel', style: 'cancel'},
         {
           text: 'Clear',
           style: 'destructive',
           onPress: () => {
-            const attachmentUris = chatStore.getAttachmentUris(userId);
-            chatStore.clearHistory(userId);
-            void removeAttachmentFiles(attachmentUris);
-            setHandbookNotes({});
-            loadMessages();
+            try {
+              const {attachmentUris} = chatStore.deleteSession(
+                userId,
+                chatStore.currentSessionId(userId),
+              );
+              void removeAttachmentFiles(attachmentUris);
+            } catch (error) {
+              console.error(
+                '[ChatScreen] Could not clear conversation:',
+                error,
+              );
+              Alert.alert(
+                'Could Not Clear',
+                'Your conversation could not be cleared right now. Nothing was deleted.',
+              );
+              return;
+            }
+            showCurrentChat();
           },
         },
       ],
     );
   };
 
+  const dismissLegacyNotice = () => {
+    setLegacyNoticeDismissed(true);
+    localSettingsStore.set(userId, 'chat.legacyNoticeDismissed', 'true');
+  };
+
+  const renderListHeader = () => (
+    <View>
+      {legacyHiddenCount > 0 && !legacyNoticeDismissed ? (
+        <View
+          style={[styles.noticeCard, themed.headerButton]}
+          testID="chat-legacy-notice"
+        >
+          <Text style={[styles.noticeText, themed.emptySubtitle]}>
+            Some chat history saved before accounts were kept separate could not
+            be matched to a single account. It is still stored on this device,
+            hidden from every account, and nothing was deleted.
+          </Text>
+          <TouchableOpacity
+            onPress={dismissLegacyNotice}
+            accessibilityRole="button"
+            accessibilityLabel="Dismiss notice about older chat history"
+            testID="chat-legacy-notice-dismiss"
+          >
+            <Text style={[styles.noticeAction, {color: colors.primary}]}>
+              Got it
+            </Text>
+          </TouchableOpacity>
+        </View>
+      ) : null}
+      {loadError ? (
+        <View
+          style={[styles.noticeCard, themed.headerButton]}
+          testID="chat-load-error"
+        >
+          <Text style={[styles.noticeText, themed.emptySubtitle]}>
+            {loadError}
+          </Text>
+          <TouchableOpacity
+            onPress={olderCursor ? handleLoadEarlier : loadMessages}
+            accessibilityRole="button"
+            accessibilityLabel="Retry loading the conversation"
+            testID="chat-load-retry"
+          >
+            <Text style={[styles.noticeAction, {color: colors.primary}]}>
+              Try again
+            </Text>
+          </TouchableOpacity>
+        </View>
+      ) : null}
+      {olderCursor ? (
+        <TouchableOpacity
+          style={[styles.loadEarlierButton, themed.headerButton]}
+          onPress={handleLoadEarlier}
+          disabled={isLoadingEarlier}
+          accessibilityRole="button"
+          accessibilityLabel="Load earlier messages"
+          testID="chat-load-earlier"
+        >
+          <Text style={[styles.loadEarlierText, themed.onlineToggleText]}>
+            {isLoadingEarlier ? 'Loading...' : 'Load earlier messages'}
+          </Text>
+        </TouchableOpacity>
+      ) : null}
+    </View>
+  );
+
   const renderEmptyState = () => (
     <View style={styles.emptyContainer} testID="chat-empty-state">
       <View
         style={[
           styles.emptyIconBadge,
-          { backgroundColor: colors.primary + '18' },
+          {backgroundColor: colors.primary + '18'},
         ]}
       >
         <Bot size={36} color={colors.primary} />
@@ -360,9 +762,9 @@ export const ChatScreen: React.FC<ChatScreenProps> = ({
       style={[
         styles.container,
         themed.container,
-        { paddingBottom: bottomClearance },
+        {paddingBottom: bottomClearance},
       ]}
-      onLayout={(e) => {
+      onLayout={e => {
         const h = e.nativeEvent.layout.height;
         if (h > maxHeightRef.current) {
           maxHeightRef.current = h;
@@ -374,14 +776,18 @@ export const ChatScreen: React.FC<ChatScreenProps> = ({
       {/* Top Header */}
       <View style={[styles.header, themed.header]}>
         <View style={styles.headerTitleRow}>
-          <View
+          <TouchableOpacity
             style={[
               styles.headerBadge,
-              { backgroundColor: colors.primary + '18' },
+              {backgroundColor: colors.primary + '18'},
             ]}
+            onPress={() => setHistoryVisible(true)}
+            accessibilityRole="button"
+            accessibilityLabel="Open chats and start a new chat"
+            testID="chat-history-button"
           >
-            <Sparkles size={16} color={colors.primary} />
-          </View>
+            <PanelLeft size={16} color={colors.primary} />
+          </TouchableOpacity>
           <View style={styles.headerTextWrap}>
             <Text
               style={[styles.headerTitle, themed.headerTitle]}
@@ -405,7 +811,7 @@ export const ChatScreen: React.FC<ChatScreenProps> = ({
                   ]}
                   onPress={handleToggleHandbook}
                   accessibilityRole="switch"
-                  accessibilityState={{ checked: useHandbook }}
+                  accessibilityState={{checked: useHandbook}}
                   accessibilityLabel="Toggle USTP Student Handbook"
                   testID="chat-handbook-toggle-button"
                 >
@@ -430,6 +836,16 @@ export const ChatScreen: React.FC<ChatScreenProps> = ({
         </View>
 
         <View style={styles.headerRight}>
+          <TouchableOpacity
+            style={[styles.headerIconButton, themed.headerButton]}
+            onPress={() => setGuideVisible(true)}
+            accessibilityRole="button"
+            accessibilityLabel="Show what you can ask"
+            testID="chat-guide-button"
+          >
+            <Lightbulb size={15} color={colors.textSecondary} />
+          </TouchableOpacity>
+
           <TouchableOpacity
             style={[styles.headerIconButton, themed.headerButton]}
             onPress={() => setMeetingsModalVisible(true)}
@@ -458,7 +874,11 @@ export const ChatScreen: React.FC<ChatScreenProps> = ({
             <View
               style={[
                 styles.statusDot,
-                { backgroundColor: isOnlineMode ? colors.white : colors.textSecondary },
+                {
+                  backgroundColor: isOnlineMode
+                    ? colors.white
+                    : colors.textSecondary,
+                },
               ]}
             />
             <Text
@@ -490,14 +910,33 @@ export const ChatScreen: React.FC<ChatScreenProps> = ({
       <FlatList
         ref={flatListRef}
         data={messages}
-        keyExtractor={(item) => item.id}
+        // Switching the reply format in Profile redraws replies already shown.
+        extraData={replyFormat}
+        keyExtractor={item => item.id}
         style={styles.messagesList}
         keyboardShouldPersistTaps="handled"
         keyboardDismissMode="on-drag"
-        renderItem={({ item }) => (
+        renderItem={({item}) => (
           <ChatMessageItem
             item={item}
-            handbookNote={handbookNotes[item.id]}
+            replyFormat={replyFormat}
+            handbookNote={item.handbookNote ?? handbookNotes[item.id]}
+            onUndoMemory={handleUndoMemory}
+            onSpeak={
+              isOnlineMode
+                ? async text => {
+                    const result = await onlineSpeech.current?.speakText(text);
+                    if (result?.fallbackReason)
+                      Alert.alert('Using offline voice', result.fallbackReason);
+                    return result;
+                  }
+                : undefined
+            }
+            onStopSpeaking={
+              isOnlineMode
+                ? () => onlineSpeech.current?.stopSpeech?.()
+                : undefined
+            }
             onOpenAttachment={handleOpenAttachment}
           />
         )}
@@ -505,16 +944,53 @@ export const ChatScreen: React.FC<ChatScreenProps> = ({
           styles.listContent,
           messages.length === 0 && styles.listContentEmpty,
         ]}
-        ListEmptyComponent={renderEmptyState}
+        ListHeaderComponent={renderListHeader}
+        ListEmptyComponent={loadError ? null : renderEmptyState}
         ListFooterComponent={
-          isSending ? <TypingBubble label="lafina is thinking…" /> : null
+          streamingReply ? (
+            <ChatMessageItem
+              replyFormat={replyFormat}
+              item={{
+                id: 'streaming-reply',
+                sessionId: '',
+                sender: 'assistant',
+                content: streamingReply.text,
+                createdAt: streamingReply.startedAt,
+                updatedAt: streamingReply.startedAt,
+              }}
+              streaming
+            />
+          ) : isSending ? (
+            <TypingBubble label="lafina is thinking…" />
+          ) : null
         }
-        onContentSizeChange={() =>
-          flatListRef.current?.scrollToEnd({ animated: true })
-        }
-        onLayout={() => flatListRef.current?.scrollToEnd({ animated: false })}
+        onContentSizeChange={() => {
+          // Prepending an earlier page keeps the reader where they were.
+          if (suppressAutoScrollRef.current) {
+            suppressAutoScrollRef.current = false;
+            return;
+          }
+          flatListRef.current?.scrollToEnd({animated: true});
+        }}
+        onLayout={() => flatListRef.current?.scrollToEnd({animated: false})}
         testID="chat-messages-list"
       />
+
+      {review.proposal ? (
+        <View style={styles.reviewContainer}>
+          <CommandReviewCard
+            proposal={review.proposal}
+            expired={review.expired}
+            busy={review.busy}
+            onConfirm={() => {
+              void handleConfirmReview();
+            }}
+            onCancel={handleCancelReview}
+            onDismiss={review.dismiss}
+            testIDPrefix="chat-review"
+          />
+        </View>
+      ) : null}
 
       {/* Bottom Input */}
       <ChatInput
@@ -528,12 +1004,12 @@ export const ChatScreen: React.FC<ChatScreenProps> = ({
           void handleOpenFormatPicker();
         }}
         onClearFormat={() => setSelectedFormat(null)}
-        onSelectPrompt={(prompt) => handleSend(prompt)}
+        onSelectPrompt={prompt => handleSend(prompt)}
         showSuggestions={messages.length === 0}
         onFocus={() => {
           setIsKeyboardVisible(true);
           setTimeout(
-            () => flatListRef.current?.scrollToEnd({ animated: true }),
+            () => flatListRef.current?.scrollToEnd({animated: true}),
             100,
           );
         }}
@@ -547,17 +1023,18 @@ export const ChatScreen: React.FC<ChatScreenProps> = ({
       >
         <Text style={[styles.sheetHint, themed.sheetHint]}>
           Choose a file format, then describe what you want inside it — or ask
-          naturally in chat (for example, “Create a PDF study guide for Calculus”).
+          naturally in chat (for example, “Create a PDF study guide for
+          Calculus”).
         </Text>
-        {DOCUMENT_FORMAT_ORDER.map((format) => {
+        {DOCUMENT_FORMAT_ORDER.map(format => {
           const meta = DOCUMENT_FORMATS[format];
           const active = selectedFormat === format;
           const Icon =
             format === 'xlsx'
               ? FileSpreadsheet
               : format === 'pptx'
-                ? Presentation
-                : FileText;
+              ? Presentation
+              : FileText;
           return (
             <TouchableOpacity
               key={format}
@@ -598,6 +1075,31 @@ export const ChatScreen: React.FC<ChatScreenProps> = ({
         })}
       </ToolSheet>
 
+      <ChatHistorySheet
+        visible={historyVisible}
+        userId={userId}
+        currentSessionId={currentChatId}
+        busy={isSending}
+        onClose={() => setHistoryVisible(false)}
+        onChanged={showCurrentChat}
+      />
+
+      {/* AGY-PORT 06: an example only fills the draft; unsent text is kept unless replaced. */}
+      <CommandGuide
+        visible={guideVisible}
+        onClose={() => setGuideVisible(false)}
+        onSelect={command => {
+          setGuideVisible(false);
+          draft.offerText(command, undefined, {
+            title: 'Replace your draft?',
+            message:
+              'Keep your current text, or replace it with this example. Nothing will be sent.',
+          });
+        }}
+      />
+
+      <DraftDecisionDialog request={draft.dialog} testIDPrefix="chat-draft" />
+
       {/* Lecture & Meeting Recorder Modal */}
       {meetingsModalVisible && (
         <Modal
@@ -623,6 +1125,37 @@ export const ChatScreen: React.FC<ChatScreenProps> = ({
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+  },
+  reviewContainer: {
+    paddingHorizontal: Spacing.lg,
+  },
+  noticeCard: {
+    borderRadius: 12,
+    borderWidth: 1,
+    padding: 12,
+    marginBottom: 12,
+    gap: 6,
+  },
+  noticeText: {
+    fontFamily: Fonts.body,
+    fontSize: FontSize.small,
+    lineHeight: 18,
+  },
+  noticeAction: {
+    fontFamily: Fonts.heading,
+    fontSize: FontSize.small,
+  },
+  loadEarlierButton: {
+    alignSelf: 'center',
+    borderRadius: 16,
+    borderWidth: 1,
+    paddingHorizontal: 14,
+    paddingVertical: 6,
+    marginBottom: 12,
+  },
+  loadEarlierText: {
+    fontFamily: Fonts.heading,
+    fontSize: FontSize.small,
   },
   messagesList: {
     flex: 1,

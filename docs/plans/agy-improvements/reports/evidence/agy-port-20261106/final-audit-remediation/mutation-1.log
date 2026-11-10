@@ -1,0 +1,10 @@
+Q1 KILLED | src\ai\tts\ttsService.ts | no admission check immediately before Tts.speak | test "the last recording check" | Tests:       2 failed, 14 skipped, 16 total | restored=True
+Q2 SURVIVED | src\ai\tts\speechPreferences.ts | no revalidation after applying the voice choice | test "configuration held pending" | Tests:       10 skipped, 6 passed, 16 total | restored=True
+Q3 KILLED | src\ai\tts\speechPreferences.ts | admission ignores the active account | test "account change" | Tests:       3 failed, 13 skipped, 16 total | restored=True
+Q4 KILLED | src\ai\tts\speechPreferences.ts | admission ignores dictation holding the microphone | test "dictation taking the microphone" | Tests:       2 failed, 14 skipped, 16 total | restored=True
+Q5 KILLED | src\ai\native\meetingRecorder.ts | the app's own recording start is not visible synchronously | test "started from the app" | Tests:       2 failed, 14 skipped, 16 total | restored=True
+Q6 KILLED | src\ai\tts\speechPreferences.ts | a cancelled ticket can still start | test "Stop before any playback token" | Tests:       2 failed, 14 skipped, 16 total | restored=True
+Q7 KILLED | src\ui\components\profile\OfflineVoice.tsx | the sheet does not cancel a pending Preview on Stop/close/background/unmount | test "pending, then" | Tests:       8 failed, 8 total | restored=True
+Q8 KILLED | src\ai\tts\ttsService.ts | ducking is awaited without a bound | test "never answers" | Tests:       1 failed, 3 skipped, 4 total | restored=True
+Q9 KILLED | src\ui\screens\ProfileScreen.tsx | a failed defaults reset is reported as a full deletion | test "defaults kept" | Tests:       1 failed, 1 total | restored=True
+RESULT CHECK FAILED

@@ -1,5 +1,6 @@
 import fs from 'node:fs';
 import path from 'node:path';
+import { createRequire } from 'node:module';
 import ts from 'typescript';
 
 const root = path.resolve('src');
@@ -36,8 +37,38 @@ const FORBIDDEN_SPECIFIER_PATTERNS = [
   },
 ];
 
+// AGY-PORT 04: assistant writes are reviewed. The unreviewed end-to-end
+// helper is test-only, and the direct executor is reachable only from its own
+// module, the NLU barrel and the orchestrator's read-only route.
+const UNREVIEWED_WRITERS = [
+  {
+    name: 'processAndExecuteIntent',
+    allowed: new Set(['ai/nlu/intentService.ts']),
+  },
+  {
+    name: 'executeNluAction',
+    allowed: new Set([
+      'ai/nlu/actionExecutor.ts',
+      'ai/nlu/intentService.ts',
+      'ai/nlu/index.ts',
+      'ai/chatOrchestrator.ts',
+    ]),
+  },
+];
+
 for (const file of files) {
   const content = fs.readFileSync(file, 'utf8');
+  const relative = path.relative(root, file).split(path.sep).join('/');
+  for (const writer of UNREVIEWED_WRITERS) {
+    if (
+      !writer.allowed.has(relative) &&
+      new RegExp(`\\b${writer.name}\\b`).test(content)
+    ) {
+      errors.push(
+        `${relative}: references ${writer.name}, which writes without a review (AGY-PORT 04)`,
+      );
+    }
+  }
   if (/kokoro-v0_19|af_bella\.bin|LafinaTTSModule/.test(content)) {
     errors.push(
       `${path.relative(root, file)}: references forbidden Kokoro 82M TTS artifact or module`,
@@ -163,11 +194,27 @@ for (const [, permission] of manifest.matchAll(
   }
 }
 
+// AGY-PORT 12: offline leaves must not reach the network or an online module,
+// transitively, except through an exact approved composition edge.
+const { findViolations, readSources } = createRequire(import.meta.url)(
+  './offline-boundary.cjs',
+);
+const boundary = findViolations(readSources(path.resolve('.')));
+for (const violation of boundary.violations) {
+  errors.push(`Offline boundary: ${violation}`);
+}
+for (const finding of boundary.dynamic) {
+  errors.push(`Unchecked dynamic import: ${finding}`);
+}
+for (const edge of boundary.unusedApprovals) {
+  errors.push(`Stale online-composition approval (edge no longer exists): ${edge}`);
+}
+
 if (errors.length) {
   console.error(errors.join('\n'));
   process.exitCode = 1;
 } else {
   console.log(
-    `PASS: ${files.length} TypeScript modules checked; 0 import cycles, 0 forbidden business/Gmail/study-tool/Kokoro dependencies.`,
+    `PASS: ${files.length} TypeScript modules checked; 0 import cycles, 0 forbidden business/Gmail/study-tool/Kokoro dependencies; ${boundary.offlineLeaves} offline leaves reach no network API or online module (transitive, dynamic imports included).`,
   );
 }

@@ -181,6 +181,10 @@ internal class SileroVadProcessor(private val reactContext: ReactApplicationCont
 
 class LafinaSpeechToTextModule(private val reactContext: ReactApplicationContext) :
     ReactContextBaseJavaModule(reactContext) {
+  init {
+    LafinaMicrophoneLease.configure(reactContext)
+  }
+
   private val executor = Executors.newSingleThreadExecutor()
   private val stopRequested = AtomicBoolean(false)
   private val discardRequested = AtomicBoolean(false)
@@ -329,19 +333,48 @@ class LafinaSpeechToTextModule(private val reactContext: ReactApplicationContext
     } else {
       bargeIn
     }
-    if (!LafinaMicrophoneLease.tryAcquire(LafinaMicrophoneLease.Holder.SPEECH_TO_TEXT)) {
-      promise.reject("MIC_IN_USE", "Microphone is currently in use by meeting recorder.")
+    // AGY-PORT 05: token-fenced lease. A contender (including a second Whisper capture)
+    // gets no ticket, so it can never release the active owner's microphone.
+    val ticket = LafinaMicrophoneLease.tryAcquire(MicrophoneLeaseRegistry.Holder.SPEECH_TO_TEXT)
+    if (ticket == null) {
+      if (LafinaMicrophoneLease.activeHolder() == MicrophoneLeaseRegistry.Holder.SPEECH_TO_TEXT ||
+          activeCaptureId.get() != null) {
+        promise.reject("CAPTURE_BUSY", "Another offline speech capture is still finishing.")
+      } else {
+        promise.reject(LafinaMicrophoneLease.BUSY_CODE, LafinaMicrophoneLease.busyMessage())
+      }
       return
     }
     if (!activeCaptureId.compareAndSet(null, captureId)) {
-      LafinaMicrophoneLease.release(LafinaMicrophoneLease.Holder.SPEECH_TO_TEXT)
+      LafinaMicrophoneLease.release(ticket)
       promise.reject("CAPTURE_BUSY", "Another offline speech capture is already active.")
       return
     }
 
     stopRequested.set(false)
     discardRequested.set(false)
-    executor.execute {
+    try {
+      executor.execute { runCapture(captureId, mode, bargeIn, captureContext, useHardwareAudioEffects, ticket, promise) }
+    } catch (error: Exception) {
+      // The executor is shut down (module invalidated): nothing will run, so release now.
+      activeCaptureId.compareAndSet(captureId, null)
+      LafinaMicrophoneLease.release(ticket)
+      promise.reject("OFFLINE_STT_ERROR", "Offline speech is restarting. Try again.", error)
+    }
+  }
+
+  private fun runCapture(
+    captureId: String,
+    mode: String,
+    bargeIn: Boolean,
+    captureContext: String,
+    useHardwareAudioEffects: Boolean,
+    ticket: MicrophoneLeaseRegistry.Ticket,
+    rawPromise: Promise
+  ) {
+      // Settled only after the finally block below has returned the microphone, so a
+      // caller that starts again as soon as this result arrives never sees a false busy.
+      val promise = DeferredSettlement(rawPromise)
       try {
         val captureStartedAt = System.currentTimeMillis()
         val captured = captureUtterance(
@@ -360,11 +393,11 @@ class LafinaSpeechToTextModule(private val reactContext: ReactApplicationContext
         )
         if (discardRequested.get()) {
           promise.resolve(resultMap(captureId, "", false, true, captureDurationMs, 0L))
-          return@execute
+          return
         }
         if (!captured.speechDetected || captured.samples.isEmpty()) {
           promise.resolve(resultMap(captureId, "", false, false, captureDurationMs, 0L))
-          return@execute
+          return
         }
 
         val inferenceStartedAt = System.currentTimeMillis()
@@ -389,6 +422,11 @@ class LafinaSpeechToTextModule(private val reactContext: ReactApplicationContext
           commandMode
         ).trim()
         val inferenceDurationMs = System.currentTimeMillis() - inferenceStartedAt
+        if (discardRequested.get()) {
+          // Cancelled while Whisper was still decoding: the late text is discarded.
+          promise.resolve(resultMap(captureId, "", false, true, captureDurationMs, inferenceDurationMs))
+          return
+        }
         sendEvent("onSpeechFinalResult", Arguments.createMap().apply {
           putString("captureId", captureId)
           putString("transcript", transcript)
@@ -404,11 +442,34 @@ class LafinaSpeechToTextModule(private val reactContext: ReactApplicationContext
           promise.reject("OFFLINE_STT_ERROR", error.message, error)
         }
       } finally {
+        // The real worker has returned: AudioRecord is released and Whisper is done, so
+        // only now does this capture give up its own ticket (never anyone else's).
         activeRecorder = null
         activeCaptureId.compareAndSet(captureId, null)
-        LafinaMicrophoneLease.release(LafinaMicrophoneLease.Holder.SPEECH_TO_TEXT)
+        LafinaMicrophoneLease.release(ticket)
         scheduleInactivityUnload()
+        promise.flush()
       }
+  }
+
+  /** Holds one capture outcome until the lease is released, then settles the JS promise once. */
+  private class DeferredSettlement(private val promise: Promise) {
+    private var settle: (() -> Unit)? = null
+
+    fun resolve(value: Any?) {
+      if (settle == null) settle = { promise.resolve(value) }
+    }
+
+    fun reject(code: String, message: String?, error: Throwable) {
+      if (settle == null) settle = { promise.reject(code, message, error) }
+    }
+
+    fun flush() {
+      val action = settle ?: {
+        promise.reject("OFFLINE_STT_ERROR", "Offline speech stopped unexpectedly.")
+      }
+      settle = null
+      action()
     }
   }
 

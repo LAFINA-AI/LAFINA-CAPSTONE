@@ -1,0 +1,11 @@
+# occurrences of strings that exist only in the F1-F3 fix (f61d1eb), ASCII or UTF-16LE (Hermes), in each packaged assets/index.android.bundle
+arm64-v8a 'Data Partly Cleared' 1
+arm64-v8a 'Ducking setup did not answer' 1
+arm64-v8a 'isRecordingClaimed' 1
+arm64-v8a 'Starting Preview?' 1
+arm64-v8a 'Preview stopped.' 1
+x86_64 'Data Partly Cleared' 1
+x86_64 'Ducking setup did not answer' 1
+x86_64 'isRecordingClaimed' 1
+x86_64 'Starting Preview?' 1
+x86_64 'Preview stopped.' 1

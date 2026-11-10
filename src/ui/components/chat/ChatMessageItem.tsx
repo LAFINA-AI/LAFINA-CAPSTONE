@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import React, {useState} from 'react';
+import {View, Text, StyleSheet, TouchableOpacity} from 'react-native';
 import {
   Volume2,
   VolumeX,
@@ -10,26 +10,37 @@ import {
   Presentation,
   Share2,
 } from 'lucide-react-native';
-import { Fonts, Shadows } from '../../theme';
-import { useTheme } from '../../contexts/ThemeContext';
-import { useThemedStyles } from '../../theme/createThemedStyles';
-import type { ThemeColors } from '../../contexts/ThemeContext';
-import type { ChatAttachment, ChatMessage } from '../../../storage/chatStore';
+import {Fonts, Shadows} from '../../theme';
+import {useTheme} from '../../contexts/ThemeContext';
+import {useThemedStyles} from '../../theme/createThemedStyles';
+import type {ThemeColors} from '../../contexts/ThemeContext';
+import type {ChatAttachment, ChatMessage} from '../../../storage/chatStore';
 import {
   DOCUMENT_FORMATS,
   formatFileSize,
   isDocumentFormat,
 } from '../../../skills/documentSkill';
-import { ttsService } from '../../../ai/tts/ttsService';
+import {ttsService} from '../../../ai/tts/ttsService';
+import {ChatReplyText} from './ChatReplyText';
+import {MemoryNote} from './MemoryNote';
+import {hasWideMarkdownBlock} from '../../../utils';
+import type {ChatReplyFormat} from '../../../storage/chatReplyFormatStore';
 
 interface ChatMessageItemProps {
   item: ChatMessage;
   handbookNote?: string;
-  onSpeak?: (text: string) => void;
+  onSpeak?: (text: string) => void | Promise<unknown>;
+  onStopSpeaking?: () => void | Promise<unknown>;
   onOpenAttachment?: (attachment: ChatAttachment) => void;
+  /** The reply is still being written: show it as it grows, without controls. */
+  streaming?: boolean;
+  /** How assistant replies are drawn; the user's own words are always shown as typed. */
+  replyFormat?: ChatReplyFormat;
+  /** Undo for the memory change shown under a reply. */
+  onUndoMemory?: (item: ChatMessage) => void;
 }
 
-const AttachmentIcon: React.FC<{ format: string; color: string }> = ({
+const AttachmentIcon: React.FC<{format: string; color: string}> = ({
   format,
   color,
 }) => {
@@ -47,10 +58,14 @@ export const ChatMessageItem: React.FC<ChatMessageItemProps> = ({
   item,
   handbookNote,
   onSpeak,
+  onStopSpeaking,
   onOpenAttachment,
+  streaming = false,
+  replyFormat = 'markdown',
+  onUndoMemory,
 }) => {
   const isUser = item.sender === 'user';
-  const { colors } = useTheme();
+  const {colors} = useTheme();
   const themed = useThemedStyles(getThemedStyles);
   const [isPlaying, setIsPlaying] = useState(false);
 
@@ -70,19 +85,16 @@ export const ChatMessageItem: React.FC<ChatMessageItemProps> = ({
 
   const handleToggleSpeak = async () => {
     if (isPlaying) {
-      await ttsService.stop();
+      if (onStopSpeaking) await onStopSpeaking();
+      else await ttsService.stop();
       setIsPlaying(false);
-      return;
-    }
-
-    if (onSpeak) {
-      onSpeak(item.content);
       return;
     }
 
     try {
       setIsPlaying(true);
-      await ttsService.speak(item.content);
+      if (onSpeak) await onSpeak(item.content);
+      else await ttsService.speak(item.content);
     } catch (err) {
       console.warn('[ChatMessageItem] TTS speak error:', err);
     } finally {
@@ -105,35 +117,59 @@ export const ChatMessageItem: React.FC<ChatMessageItemProps> = ({
         style={[
           styles.bubble,
           isUser
-            ? [styles.userBubble, { backgroundColor: colors.primary }]
-            : [styles.assistantBubble, themed.assistantBubble],
+            ? [styles.userBubble, {backgroundColor: colors.primary}]
+            : [
+                styles.assistantBubble,
+                themed.assistantBubble,
+                // Tables and code need the whole width of a phone to be read.
+                replyFormat === 'markdown' &&
+                  hasWideMarkdownBlock(item.content) &&
+                  styles.wideBubble,
+              ],
         ]}
+        testID={`chat-bubble-${item.id}`}
       >
         {!isUser && (
           <View style={styles.assistantHeader}>
             <View
               style={[
                 styles.avatarBadge,
-                { backgroundColor: colors.primary + '18' },
+                {backgroundColor: colors.primary + '18'},
               ]}
             >
               <Sparkles size={11} color={colors.primary} />
             </View>
-            <Text style={[styles.assistantName, { color: colors.primary }]}>
+            <Text style={[styles.assistantName, {color: colors.primary}]}>
               lafina
             </Text>
           </View>
         )}
 
-        <Text
-          style={[
-            styles.messageText,
-            isUser ? styles.userText : themed.assistantText,
-          ]}
-          testID="chat-message-content"
-        >
-          {item.content}
-        </Text>
+        {isUser ? (
+          <Text
+            style={[styles.messageText, styles.userText]}
+            testID="chat-message-content"
+          >
+            {item.content}
+          </Text>
+        ) : (
+          <ChatReplyText
+            content={item.content}
+            format={replyFormat}
+            textStyle={[styles.messageText, themed.assistantText]}
+            streaming={streaming}
+            testID={
+              streaming ? 'chat-streaming-content' : 'chat-message-content'
+            }
+            trailing={
+              streaming ? (
+                <Text style={{color: colors.primary}} accessible={false}>
+                  {' ▍'}
+                </Text>
+              ) : null
+            }
+          />
+        )}
 
         {attachment && (
           <TouchableOpacity
@@ -176,6 +212,24 @@ export const ChatMessageItem: React.FC<ChatMessageItemProps> = ({
           </View>
         ) : null}
 
+        {!isUser && item.voiceInterrupted ? (
+          <Text
+            style={[styles.handbookText, styles.interruptedText, themed.assistantTime]}
+            testID="chat-voice-interrupted"
+          >
+            Interrupted in voice conversation (not heard to the end)
+          </Text>
+        ) : null}
+
+        {!isUser && !streaming && item.memoryChanges ? (
+          <MemoryNote
+            messageId={item.id}
+            changes={item.memoryChanges}
+            onUndo={onUndoMemory ? () => onUndoMemory(item) : undefined}
+          />
+        ) : null}
+
+        {streaming ? null : (
         <View style={styles.footerRow}>
           <Text
             style={[
@@ -190,7 +244,7 @@ export const ChatMessageItem: React.FC<ChatMessageItemProps> = ({
             <TouchableOpacity
               style={styles.speakButton}
               onPress={handleToggleSpeak}
-              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+              hitSlop={{top: 8, bottom: 8, left: 8, right: 8}}
               accessibilityRole="button"
               accessibilityLabel={
                 isPlaying ? 'Stop reading message' : 'Read message aloud'
@@ -205,6 +259,7 @@ export const ChatMessageItem: React.FC<ChatMessageItemProps> = ({
             </TouchableOpacity>
           )}
         </View>
+        )}
       </View>
     </View>
   );
@@ -237,6 +292,10 @@ const styles = StyleSheet.create({
   assistantBubble: {
     borderBottomLeftRadius: 3,
     borderWidth: 1,
+  },
+  wideBubble: {
+    width: '100%',
+    maxWidth: '100%',
   },
   assistantHeader: {
     flexDirection: 'row',
@@ -304,6 +363,10 @@ const styles = StyleSheet.create({
   handbookText: {
     fontFamily: Fonts.body,
     fontSize: 10.5,
+  },
+  interruptedText: {
+    marginTop: 6,
+    fontStyle: 'italic',
   },
   footerRow: {
     flexDirection: 'row',

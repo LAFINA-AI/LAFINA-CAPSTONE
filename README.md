@@ -1,3 +1,7 @@
+> Online voice migration (2026-11-07): [ElevenLabs setup and backend-owner handoff](backend_integration/README.md). DeepSeek remains the response provider; offline voices remain local. Production speech endpoints are deployed and protected; signed-in phone validation is pending.
+
+> **Lem-branch integration:** see [current merge results and QA APK receipts](docs/plans/lem-integration/REPORT.md). Earlier AGY port reports describe their own historical builds.
+
 # LAFINA-CAPSTONE
 
 Android-first, local-first academic AI secretary for university students. Anonymous

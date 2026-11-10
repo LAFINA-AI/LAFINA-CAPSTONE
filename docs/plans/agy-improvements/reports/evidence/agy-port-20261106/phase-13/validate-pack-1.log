@@ -1,0 +1,4 @@
+$ python docs/plans/agy-improvements/tools/validate-pack.py --structure-only
+PASS: 43 manifest files; 14 phases; 30 areas; 13 protected contracts; local links valid
+This validates the instruction package, not application implementation or device acceptance.
+exit=0

@@ -1,0 +1,10 @@
+{
+  "package": "com.lafina.capstone.localvoiceqa",
+  "apk_bytes": 147890515,
+  "apk_sha256": "e54dc7ba4a0aaf29aeabba803ef3dfafe301588b158055643c6c4a33e2eb8615",
+  "bundle_sha256": "afc121e0bc1afcf978d36cb9117c5481fe29b20bad15a02e6236b68cf1dfbddc",
+  "bundle_matches_apk": true,
+  "http_block_marker": true,
+  "local_qa_marker_utf16": true,
+  "backend_used": false
+}

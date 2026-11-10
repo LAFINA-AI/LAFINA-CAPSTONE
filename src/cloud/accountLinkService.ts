@@ -717,22 +717,18 @@ export const accountLinkService = {
     };
   },
 
+  /**
+   * Online Mode (DeepSeek chat and ElevenLabs speech) is open to every active
+   * signed-in account. Guests must sign in; the live server still validates the
+   * session, active status and quotas on each request.
+   */
   authorizeOnlineMode: async (localUserId: string): Promise<AccountFlowResult> => {
-    const profileResult = await accountLinkService.refreshCloudProfile(localUserId);
-    if (profileResult.status !== 'success') {
-      return profileResult;
-    }
-    const isPro =
-      profileResult.role === 'student_pro' || profileResult.role === 'admin';
-
-    if (!isPro) {
+    if (!localUserId || userStore.isGuest(localUserId)) {
       return {
-        status: 'student_pro_required',
-        localUserId,
-        role: profileResult.role,
-        message: 'The live FastAPI account does not have Student Pro access.',
+        status: 'auth_required',
+        message: 'Sign in to use Online Mode. Offline chat, scheduling and voice keep working.',
       };
     }
-    return profileResult;
+    return accountLinkService.refreshCloudProfile(localUserId);
   },
 };

@@ -22,6 +22,7 @@ class CapstoneBuildPackage : ReactPackage {
       LafinaSpeechToTextModule(context),
       LafinaIntentExtractorModule(context),
       LafinaMeetingRecorderModule(context),
+      LafinaVoiceConversationModule(context),
     )
 
   override fun createViewManagers(context: ReactApplicationContext): List<ViewManager<*, *>> =
@@ -33,5 +34,16 @@ class CapstoneBuildPackage : ReactPackage {
 class CapstoneBuildModule(context: ReactApplicationContext) : ReactContextBaseJavaModule(context) {
   override fun getName() = "CapstoneBuild"
   override fun getConstants(): Map<String, Any> =
-    mapOf("plannerHarnessEnabled" to BuildConfig.ENABLE_PLANNER_HARNESS)
+    mapOf(
+      "plannerHarnessEnabled" to BuildConfig.ENABLE_PLANNER_HARNESS,
+      // Empty except in a test build made with -PlafinaApiBaseUrl.
+      "apiBaseUrlOverride" to BuildConfig.API_BASE_URL_OVERRIDE,
+      // Debug and test builds only: Profile's Vercel/local server switch.
+      "backendSwitchEnabled" to BuildConfig.ENABLE_BACKEND_SWITCH,
+      "providerTestingEnabled" to BuildConfig.PROVIDER_TESTING_ENABLED,
+      "directElevenKey" to BuildConfig.DIRECT_ELEVEN_KEY,
+      "directDeepseekKey" to BuildConfig.DIRECT_DEEPSEEK_KEY,
+      "directAgentId" to BuildConfig.DIRECT_AGENT_ID,
+      "directVoiceId" to BuildConfig.DIRECT_VOICE_ID,
+    )
 }

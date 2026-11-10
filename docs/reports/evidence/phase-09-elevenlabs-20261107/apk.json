@@ -1,0 +1,10 @@
+{
+  "path": "C:\\L3mxr\\Github Repositories\\LAFINA-CAPSTONE-agy-development-cont\\android\\app\\build\\outputs\\apk\\dataQa\\app-arm64-v8a-dataQa.apk",
+  "bytes": 145746246,
+  "sha256": "09dec97f29569d6e4f3f14370a0a82ae7a491cb58d7ef73761ad3eb3be111b34",
+  "providerKeyScan": "PASS",
+  "envFilesPackaged": 0,
+  "abi": "arm64-v8a",
+  "installed": "NOT RUN",
+  "devicePlayback": "NOT RUN"
+}

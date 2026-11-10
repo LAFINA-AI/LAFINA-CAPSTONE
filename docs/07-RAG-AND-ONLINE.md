@@ -55,3 +55,27 @@ flowchart LR
 ## Scope limitation language for thesis
 
 Local core operation is genuinely offline; institutional handbook RAG is an online advanced feature in the implemented capstone. Do not claim fully offline RAG unless a separate, explicitly approved offline corpus/inference phase is completed and measured.
+
+## Live voice conversation API (ADR-030, 2026-11-08)
+
+Signed-in, active accounts only (`student`, `student_pro`, `admin`). Requires explicit Online Mode and the one-time consent notice on the device. All routes are under `/v1/ai/voice`; existing `/v1/ai/chat`, `/v1/ai/chat/stream` and `/v1/ai/tts*` are unchanged.
+
+| Route | Auth | Purpose |
+|---|---|---|
+| `GET /capabilities` | access token | `{provider, enabled, maxDurationSeconds, maxTurns, detail}`. `enabled:false` plus `detail` when the agent is not configured. |
+| `POST /sessions` `{requestId, voiceId?, useHandbook}` | access token | Daily session cap and voice validation (unknown voice → 422). Returns `{sessionId, signedUrl, grant, voiceId, expiresAt, maxDurationSeconds, maxTurns}` with `Cache-Control: no-store`. A new session ends the account's previous active one. |
+| `POST /sessions/{id}/connected` `{conversationId}` | access token, owner | Binds the ElevenLabs conversation id once (409 on mismatch). |
+| `POST /sessions/{id}/end` `{conversationId?}` | access token, owner | Idempotent end. |
+| `GET /sessions/{id}` | access token, owner | `{status, turns, lastErrorCode, lastErrorMessage}`; the app asks once when a turn goes unanswered for 25 s. |
+| `POST /llm/chat/completions` | shared secret (Bearer) + grant (`X-Lafina-Voice-Grant` or `elevenlabs_extra_body.lafina_voice_grant`) + `X-Lafina-Conversation-Id` | OpenAI-compatible streaming completion called by ElevenAgents. Bounded context, per-minute, per-day and per-session turn limits, a duplicate turn paid once, DeepSeek `max_tokens` 300, reasoning never sent. Errors before the first token are JSON `{error:{message,type}}`; errors mid-stream end the stream and record a student-safe `lastError`. |
+
+Errors the app turns into actions: 401 → sign in again; 403 → account cannot use online features; 422 → choose another voice in Profile; 429 → limit reached; 503 → not set up or provider unavailable. The handbook is used when `useHandbook` is on; when retrieval fails, the spoken answer says the handbook could not be checked.
+
+## Choosing the server in debug and test builds (2026-11-08)
+
+- Release builds always use `https://lafina-backend.vercel.app` (Vercel, Singapore region `sin1`).
+- Debug and `dataQa` builds have **Profile → Developer → Server (debug)**. It switches between Vercel and a backend on the developer's computer (`http://127.0.0.1:8000`, reached from the phone with `adb reverse tcp:8000 tcp:8000`).
+- The native flag `ENABLE_BACKEND_SWITCH` (BuildConfig, exposed as `CapstoneBuild.backendSwitchEnabled`) is false in release. There the row is hidden, and a saved choice is ignored.
+- The choice is one device-wide `local_settings` row (owner `__device__`, key `debug.api_backend`). It is never synced, and is applied at startup before the first request (`src/cloud/backendSelection.ts`).
+- Sign-ins belong to one server. A signed-in account is first signed out at the old server, and planner data stays on the phone. A guest is simply switched.
+- `-PlafinaApiBaseUrl` still sets a test build's starting server. A choice made in Profile overrides it.

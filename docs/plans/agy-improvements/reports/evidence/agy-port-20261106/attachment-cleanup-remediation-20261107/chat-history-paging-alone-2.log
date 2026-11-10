@@ -1,0 +1,20 @@
+PASS __tests__/ui/chatHistoryPaging.test.tsx (5.844 s)
+  AGY-PORT 02: Chat history paging UI
+    √ shows the newest 50, loads earlier without duplicates, and keeps the draft (2005 ms)
+    √ a load failure shows a retryable error, not the empty state, and keeps the draft (102 ms)
+    √ a failed earlier page keeps what is shown and can be retried (134 ms)
+    √ switching account never shows the previous account history (79 ms)
+    √ a reply that finishes after an account switch is saved for the sender only (183 ms)
+    √ the legacy notice explains hidden history and stays dismissed for that account (130 ms)
+    √ a Handbook citation is stored with the reply and shown after a remount (49 ms)
+    mergeChatPages
+      √ keeps earlier loaded messages and never duplicates the newest reply (5 ms)
+      √ a page holding the whole conversation replaces the list (clear shows) (2 ms)
+      √ a newest page with no overlap replaces the list instead of leaving a gap (2 ms)
+
+Test Suites: 1 passed, 1 total
+Tests:       10 passed, 10 total
+Snapshots:   0 total
+Time:        6.139 s, estimated 7 s
+Ran all test suites matching /__tests__\\ui\\chatHistoryPaging.test.tsx/i.
+EXIT=0

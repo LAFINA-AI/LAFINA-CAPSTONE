@@ -1,0 +1,104 @@
+{
+  "recorded_at_utc": "2026-11-08T18:49:56.201527+00:00",
+  "scope": "Local protocol fixture with real product panel, controller, hook and Android audio bridge; no LAFINA backend or external provider",
+  "device": {
+    "serial": "emulator-5554",
+    "avd": "Medium_Phone",
+    "model": "sdk_gphone16k_x86_64",
+    "sdk": 37,
+    "timezone": "GMT"
+  },
+  "artifact": {
+    "package": "com.lafina.capstone.localvoiceqa",
+    "apk_bytes": 147890515,
+    "apk_sha256": "e54dc7ba4a0aaf29aeabba803ef3dfafe301588b158055643c6c4a33e2eb8615",
+    "bundle_sha256": "afc121e0bc1afcf978d36cb9117c5481fe29b20bad15a02e6236b68cf1dfbddc",
+    "bundle_matches_apk": true,
+    "http_block_marker": true,
+    "local_qa_marker_utf16": true,
+    "backend_used": false
+  },
+  "checks": {
+    "focused_jest": {
+      "passed": 52,
+      "suites": 2,
+      "exit_code": 0
+    },
+    "bundle": "PASS",
+    "apk_assemble_install": "PASS",
+    "provisional_gap": "PASS: provisional words remained Listening after a >=3 second gap; no automatic final turn",
+    "final_replaces_provisional": "PASS: one final user persistence callback",
+    "synthetic_interruption": "PASS: returned to Listening, answer marked interrupted, one interrupted persistence callback",
+    "stop": "PASS: returned to Listening, native playback false; one user_activity reached fixture",
+    "mute_unmute": "PASS: recording released, frame counter stayed 2072/2072 over 4 seconds, capture resumed on Unmute",
+    "end": "PASS: ended UI, no recording or audio focus",
+    "background": "PASS: stopped with reason, no recording or focus; explicit restart required",
+    "socket_failure": "PASS: closed message, no recording or focus, no auto restart"
+  },
+  "local_stop_timing": {
+    "samples": 1,
+    "milliseconds": [
+      32
+    ],
+    "boundary": "controller Stop to native playback-false event; excludes provider detection and network"
+  },
+  "resources": {
+    "listening": {
+      "qa_recording_active": true,
+      "qa_audio_focus": true,
+      "all_recording_section_empty": false,
+      "all_focus_stack_empty": false
+    },
+    "muted": {
+      "qa_recording_active": false,
+      "qa_audio_focus": true,
+      "all_recording_section_empty": true,
+      "all_focus_stack_empty": false
+    },
+    "unmuted": {
+      "qa_recording_active": true,
+      "qa_audio_focus": true,
+      "all_recording_section_empty": false,
+      "all_focus_stack_empty": false
+    },
+    "ended": {
+      "qa_recording_active": false,
+      "qa_audio_focus": false,
+      "all_recording_section_empty": true,
+      "all_focus_stack_empty": true
+    },
+    "background": {
+      "qa_recording_active": false,
+      "qa_audio_focus": false,
+      "all_recording_section_empty": true,
+      "all_focus_stack_empty": true
+    },
+    "dropped": {
+      "qa_recording_active": false,
+      "qa_audio_focus": false,
+      "all_recording_section_empty": true,
+      "all_focus_stack_empty": true
+    }
+  },
+  "fixture_sessions": 3,
+  "all_fixture_sessions_closed": true,
+  "production_source_changes": false,
+  "backend_used": false,
+  "backend_merge_or_deploy": false,
+  "original_app_signin_or_data_changed": false,
+  "limitations": [
+    "No real STT, LLM, ElevenLabs voice or semantic end-of-turn detector in this fixture",
+    "Auth/online gates and session API injected; persistence is an in-memory test sink",
+    "No physical phone, audibility, echo or Bluetooth check",
+    "No new local alarm-to-conversation preemption check; prior reminder call run reported separately",
+    "Accessibility dumps became stale; remaining controls verified from fresh screenshots",
+    "Approval service usage failure temporarily prevented a final-transcript step; it was retried successfully after the user continued"
+  ],
+  "harness_sha256": {
+    "index.js": "0180b1e5ec905dd4ce3037e221de1b4887d358002880e8308ebda158380df6f7",
+    "provider.py": "ff2a5f9b59ed0ddddfc75782bda3b9f07788e304c2f22fd202ee9dcda4e17255",
+    "control.py": "bad60e5b0756ca4c004e50cfa854396cb9ba99e61361e41cf4e4851e88de7695",
+    "build.init.gradle": "185b4e92423a3bbddcf3fa852986fda12daf0aa44777888ed8bb559bad2be1ef",
+    "assemble.init.gradle": "810c8d314d3c6d4d7b4d56f5c65a6d38bdadc3cbaf1ef2b9223343103d050b03"
+  }
+}

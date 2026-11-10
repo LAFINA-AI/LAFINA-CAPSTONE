@@ -1,0 +1,227 @@
+{
+  "pack": "agy-improvements-unattended",
+  "prepared_date": "2026-11-06",
+  "timezone": "Asia/Manila",
+  "implementation_status": "NOT_EXECUTED",
+  "requested_model": "claude-opus-5-5",
+  "layout": "Extract into AGY root; docs/plans/agy-improvements; no application replacements",
+  "manifest_excludes_itself": true,
+  "files": [
+    {
+      "path": "AGY-IMPROVEMENTS-START.md",
+      "bytes": 6432,
+      "sha256": "87b9247aa633a7647772c400c30ce20151f141d71f35dbbcd5e7da03bee88828"
+    },
+    {
+      "path": "docs/plans/agy-improvements/context/BASELINE.md",
+      "bytes": 6578,
+      "sha256": "3f7cfdf55a7bf6a646c57ff3568fe73613933060353f9bc32b09a043aef1b139"
+    },
+    {
+      "path": "docs/plans/agy-improvements/context/PORT-MATRIX.md",
+      "bytes": 7269,
+      "sha256": "d82cab8f4affe3576696249a135776bb54586f5a45821338e6b04c60de8001fb"
+    },
+    {
+      "path": "docs/plans/agy-improvements/context/PRESERVATION-CONTRACT.md",
+      "bytes": 6620,
+      "sha256": "78270482e1139efceae6f8b0725566ddbdccae71808f8ed2574a30d562e4efa8"
+    },
+    {
+      "path": "docs/plans/agy-improvements/context/RESEARCH.md",
+      "bytes": 4841,
+      "sha256": "cd2666a8f0f555dd3c2d72b342c463a27e441ef21425ebbedb1ae0f152bbd6ef"
+    },
+    {
+      "path": "docs/plans/agy-improvements/context/TECHNICAL-DESIGN.md",
+      "bytes": 10385,
+      "sha256": "bc15dd47c914f0f7ec5c509f0ccc4ad078bf83936c89b50c2cfa7c1259e8950e"
+    },
+    {
+      "path": "docs/plans/agy-improvements/context/VALIDATION.md",
+      "bytes": 6920,
+      "sha256": "ee8680770cab687acb0bec71bdea7dbe31f415f458880df8ee9b027dacd3004b"
+    },
+    {
+      "path": "docs/plans/agy-improvements/OWNER-AUTHORIZATION.md",
+      "bytes": 3764,
+      "sha256": "eb7a3993737c2bb08307e6427c384a91cd074d1c85074aec01bbc88c5d84d63d"
+    },
+    {
+      "path": "docs/plans/agy-improvements/phases/00-baseline-and-preservation.md",
+      "bytes": 3506,
+      "sha256": "d84a975fa7aea08253fc687305313a6b6ec767e96e49fa5d90f6f430ba54a0dc"
+    },
+    {
+      "path": "docs/plans/agy-improvements/phases/01-storage-and-migrations.md",
+      "bytes": 2769,
+      "sha256": "b3e467fab89bf9c3363b31346d1afc14806f8e4084e603da5f00a106921382fa"
+    },
+    {
+      "path": "docs/plans/agy-improvements/phases/02-chat-ownership-and-pages.md",
+      "bytes": 2371,
+      "sha256": "9ed6ba6a4d96f8d5efd9cb213a686c8d3f31589aa741909ddcddd73a361625e3"
+    },
+    {
+      "path": "docs/plans/agy-improvements/phases/03-durable-reminder-delivery.md",
+      "bytes": 3208,
+      "sha256": "ded50c3d5b21556d4d700ae824527e662b4e05ef1fff5bd5cd46dbb2a1d072a5"
+    },
+    {
+      "path": "docs/plans/agy-improvements/phases/04-reviewed-intent-mutations.md",
+      "bytes": 2882,
+      "sha256": "79ecd5b4e7b512d05ed323a797ae0b5904a50858100118483b88ac805201096f"
+    },
+    {
+      "path": "docs/plans/agy-improvements/phases/05-drafts-and-shared-microphone.md",
+      "bytes": 2923,
+      "sha256": "62d845bd33198a249fa8672d789c6a5c0a6974aaf53e48f96352c6bf07d288cd"
+    },
+    {
+      "path": "docs/plans/agy-improvements/phases/06-planner-queries-and-guide.md",
+      "bytes": 2309,
+      "sha256": "3f8e6ba37376be03bebdc29ba43a1f9200bf93e9e4137fd78b40bd07d6fd6cfb"
+    },
+    {
+      "path": "docs/plans/agy-improvements/phases/07-notes-consistency-and-search.md",
+      "bytes": 2145,
+      "sha256": "7995d6db96949236095d744e7143f08954fd1d1494db545e5d629582f9109925"
+    },
+    {
+      "path": "docs/plans/agy-improvements/phases/08-event-time-and-sync-compatibility.md",
+      "bytes": 2772,
+      "sha256": "bec2faee47e18d91c890423c14e346a535ab648665977b3995b9c3ac94c0210e"
+    },
+    {
+      "path": "docs/plans/agy-improvements/phases/09-health-preferences-and-statistics.md",
+      "bytes": 2337,
+      "sha256": "690642d646b26dda8912871c79597445493ed3119ed85772891f6f9b69ec94b8"
+    },
+    {
+      "path": "docs/plans/agy-improvements/phases/10-speech-controls-and-readiness.md",
+      "bytes": 2993,
+      "sha256": "816aef6a80e018a79a3880a01ee1228a75c1617e532739522284a3987ab716d2"
+    },
+    {
+      "path": "docs/plans/agy-improvements/phases/11-qa-packaging-and-native-audit.md",
+      "bytes": 3072,
+      "sha256": "0aeff3ab2171010f4a8fba3fcc83d1e2bf9cc9fa4c522b727e17e00ab0940611"
+    },
+    {
+      "path": "docs/plans/agy-improvements/phases/12-architecture-and-repeatable-evaluation.md",
+      "bytes": 3838,
+      "sha256": "3af7839e9c45d4cab3c857ba6fa7dafcdcbc75ae9fce9fa652c621b16498f042"
+    },
+    {
+      "path": "docs/plans/agy-improvements/phases/13-integration-and-final-handoff.md",
+      "bytes": 3621,
+      "sha256": "d7f80b7f665ce5871e52bc7f49d2373b6b44dc7957ffaeda1f3ffc0bfe5bb3cb"
+    },
+    {
+      "path": "docs/plans/agy-improvements/PLAN.md",
+      "bytes": 11801,
+      "sha256": "5768e6a7c39b1151dffcf96a29883a442004932a0c0dc7ac2be7059728cb19a0"
+    },
+    {
+      "path": "docs/plans/agy-improvements/prompts/IMPLEMENTER.md",
+      "bytes": 2826,
+      "sha256": "12a099b5649cc4ab0260aee4ecefa14ed3399fca0730fd9db431ebb08682fba2"
+    },
+    {
+      "path": "docs/plans/agy-improvements/prompts/REVIEWER.md",
+      "bytes": 1937,
+      "sha256": "60a6f53fa9475edfde915de375a4b884ee0995ed4871882e74bc25ae34b33f52"
+    },
+    {
+      "path": "docs/plans/agy-improvements/reference/baseline/architecture-offline-boundary.json",
+      "bytes": 280,
+      "sha256": "167a23812ba77087324b254f3c9463f3d48a1b76e7bcc957407ac8b9d05a2a93"
+    },
+    {
+      "path": "docs/plans/agy-improvements/reference/baseline/architecture-target-policy.log",
+      "bytes": 148,
+      "sha256": "0836a0f243ffff150e555326828c4ea666c18698a4d4c195295f0f5fa2a58716"
+    },
+    {
+      "path": "docs/plans/agy-improvements/reference/baseline/checks.json",
+      "bytes": 1319,
+      "sha256": "afddf9dd2a41f3ed080e103a9cd05f5c26afd03c61d4249889bd6211d5f6d547"
+    },
+    {
+      "path": "docs/plans/agy-improvements/reference/baseline/comparison.json",
+      "bytes": 1042,
+      "sha256": "ac487801109892e5bc7f81af00470c7306106c41171007e4241bd6e319f5ac54"
+    },
+    {
+      "path": "docs/plans/agy-improvements/reference/baseline/doctor-target.log",
+      "bytes": 663,
+      "sha256": "8af045c4a858486f3cf8f648c929f2ab7d2b03575cef7dd0835ba00933d10c9d"
+    },
+    {
+      "path": "docs/plans/agy-improvements/reference/baseline/donor-since-inventory.txt",
+      "bytes": 7755,
+      "sha256": "5829099c98e347c5a84b2c80f3cff8964363f6f14fc9e689edb197b2cb3b90a8"
+    },
+    {
+      "path": "docs/plans/agy-improvements/reference/baseline/files.csv",
+      "bytes": 70481,
+      "sha256": "2069f88fb4d33fa6ef228e6c5e5f183feedf5b32e946d63e438b395e1994dc0b"
+    },
+    {
+      "path": "docs/plans/agy-improvements/reference/baseline/README.md",
+      "bytes": 943,
+      "sha256": "84c3fad3b8c73512fb5260ddc819b60d8e77076f6201dcda92fb94127433d143"
+    },
+    {
+      "path": "docs/plans/agy-improvements/reports/autonomous-run-log.md",
+      "bytes": 597,
+      "sha256": "89de61049a3f889d3aaf8218d8ee8eba7cd36a267d69b5b9b4c550d6bb802feb"
+    },
+    {
+      "path": "docs/plans/agy-improvements/reports/MANUAL-QA.md",
+      "bytes": 3487,
+      "sha256": "a327d57eb10d8c31dfd9ed4fd1462edf4a83450f418193c6cf8547f7f67814e4"
+    },
+    {
+      "path": "docs/plans/agy-improvements/reports/PRESERVED-FEATURES.md",
+      "bytes": 1398,
+      "sha256": "f3006d1f21c2542b2120466a15000f27ee2363e24f4f77ef452a87c98644aaf6"
+    },
+    {
+      "path": "docs/plans/agy-improvements/reports/README.md",
+      "bytes": 1195,
+      "sha256": "8d842ae7d1a79fa2276de01bb38b8a6490ed979df7a0ca1fb8c51f23520d2dec"
+    },
+    {
+      "path": "docs/plans/agy-improvements/reports/RUN-STATE.json",
+      "bytes": 9875,
+      "sha256": "7a6690dc4e6d448045a6344eb3248c90adc77574e8f81c37bbcc320c33619aa5"
+    },
+    {
+      "path": "docs/plans/agy-improvements/reports/SUMMARY.md",
+      "bytes": 651,
+      "sha256": "f1074cadb8694f8443fe7976e02269f5d93402972e4aab7403fb543c0b8cc72e"
+    },
+    {
+      "path": "docs/plans/agy-improvements/START-PROMPT.md",
+      "bytes": 3527,
+      "sha256": "faf0d28f62603af9e3797f0b1b8505a8d403211c39f10cb0a1c2b8ccaf7af909"
+    },
+    {
+      "path": "docs/plans/agy-improvements/templates/HANDOFF.md",
+      "bytes": 2206,
+      "sha256": "a9abb05b4aca79dfea5bfd018928d419b169c010c85256ed8cf62d4824d56721"
+    },
+    {
+      "path": "docs/plans/agy-improvements/templates/PHASE-REPORT.md",
+      "bytes": 3051,
+      "sha256": "d4e9231b45259bb8613b0f059ca22740e830cb909d0e1091d85a5e08bbdd2043"
+    },
+    {
+      "path": "docs/plans/agy-improvements/tools/validate-pack.py",
+      "bytes": 4280,
+      "sha256": "0149a113b29f95980b039fd18b53f2e114eb0bd6474d7aa2ac3681c2daa160a5"
+    }
+  ],
+  "required_target_root": "C:\\L3mxr\\Github Repositories\\LAFINA-CAPSTONE-agy-development-cont"
+}

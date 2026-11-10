@@ -1,0 +1,32 @@
+PASS __tests__/ai/phase05TtsAndCloudSpeech.test.ts
+  Phase 05: Fast TTS via react-native-tts & Optional ElevenLabs Cloud TTS
+    Local react-native-tts Engine (ttsService)
+      √ initTTS and initTts aliases both initialize Tts and configure language (4 ms)
+      √ selectOfflineVoice strictly rejects cloud and uninstalled voices (1 ms)
+      √ selectOfflineVoice returns null if no offline English voices are found (1 ms)
+      √ speakText and speakTextWithTts synthesize text via react-native-tts (11 ms)
+      √ speakText ignores blank whitespace-only strings (1 ms)
+      √ stopSpeaking and stopSpeechPlayback halt Tts and native audio player (1 ms)
+      √ isTTSAvailable and isTtsAvailable report engine availability (1 ms)
+      √ preCacheReminderAudio is a fast non-blocking no-op returning empty string
+      √ deletePreCachedReminderAudio deletes legacy cached file when path provided (1 ms)
+      √ playSpeechFile calls NativeModules.LafinaAudioPlayer.playAudio when file exists (1 ms)
+      √ playSpeechFile throws if file does not exist (17 ms)
+      √ ttsService object provides all required service methods (1 ms)
+    Cloud + Local Speech Provider (createCallSpeechProvider)
+      √ falls back to react-native-tts when user role is student (not student_pro) (8 ms)
+      √ falls back to react-native-tts when client is offline even if student_pro (14 ms)
+      √ uses ElevenLabs cloud TTS when student is student_pro and online (1 ms)
+      √ falls back gracefully to react-native-tts if ElevenLabs cloud TTS returns an error (13 ms)
+      √ prepareText pre-caches audio ahead of time and speakText uses prepared audio (2 ms)
+      √ explicit Offline Mode never probes capabilities or generates cloud speech (13 ms)
+      √ an old Gemini server is never asked to synthesize after a missing capability (14 ms)
+      √ cancelled capability callbacks never play or fall back after Stop (1 ms)
+      √ Stop during native MP3 playback does not start fallback speech (1 ms)
+      √ stopSpeech halts active playback and dispose cleans up temporary files (1 ms)
+
+Test Suites: 1 passed, 1 total
+Tests:       22 passed, 22 total
+Snapshots:   0 total
+Time:        3.007 s, estimated 7 s
+Ran all test suites matching /__tests__\\ai\\phase05TtsAndCloudSpeech.test.ts/i.

@@ -1,0 +1,22 @@
+{
+  "head": {
+    "exit": 0,
+    "output": "69aafcd759bb5e8977fdf2450987359c9ca0c022"
+  },
+  "protected_runtime_diff": {
+    "exit": 0,
+    "output": ""
+  },
+  "code_after_build_commit": {
+    "exit": 0,
+    "output": ""
+  },
+  "tracked_worktree": {
+    "exit": 0,
+    "output": ""
+  },
+  "test_changes": {
+    "exit": 0,
+    "output": "M\t__tests__/storage/accountDataReset.test.ts\nA\t__tests__/storage/attachmentCleanup.test.ts\nM\t__tests__/storage/schemaMigrations.test.ts\nA\t__tests__/ui/clearDataAttachmentCleanup.test.tsx\nM\tjest.setup.js"
+  }
+}

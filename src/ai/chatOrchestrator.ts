@@ -1,6 +1,18 @@
-import { chatStore, type ChatAttachment, type ChatMessage } from '../storage/chatStore';
-import { timeBlocksStore } from '../storage/timeBlocksStore';
-import { tasksStore } from '../storage/tasksStore';
+import {
+  chatStore,
+  type ChatAttachment,
+  type ChatMessage,
+} from '../storage/chatStore';
+import {chatMemoryStore} from '../storage/chatMemoryStore';
+import {chatMemoryService} from '../cloud/chatMemoryService';
+import {directProviderTestEnabled} from '../cloud/directProviderTest';
+import {isForgetAllMemoriesRequest} from './chatMemoryCommands';
+import {studyPreference} from './studyPreference';
+import {explicitMemory} from './explicitMemory';
+import {db} from '../storage/database';
+import {plannerQueries} from '../storage/plannerQueries';
+import type {PlannerWindow} from '../storage/plannerQueries';
+import {addDaysToDate, isRealDate, MINUTES_PER_DAY} from '../storage/eventTime';
 import {
   DOCUMENT_FORMATS,
   describeDocumentFailure,
@@ -12,13 +24,35 @@ import {
   onlineChatSkill,
   type OnlineChatMessage,
 } from '../skills/onlineChatSkill';
-import { saveGeneratedFile } from '../ui/components/chat/chatFiles';
-import { detectDocumentRequest } from './documentIntent';
-import { intentService } from './nlu/intentService';
-import { executeNluAction } from './nlu/actionExecutor';
-import { formatLocalDate } from './nlu/fastPathParser';
-import { ttsService } from './tts/ttsService';
-import type { ValidatedIntent, NluActionResult } from './nlu/types';
+import {saveGeneratedFile} from '../ui/components/chat/chatFiles';
+import {detectDocumentRequest} from './documentIntent';
+import {intentService} from './nlu/intentService';
+import {executeNluAction} from './nlu/actionExecutor';
+import {routeIntent} from './nlu/intentRoutes';
+import type {ResolvedIntentRoute, RingingCallContext} from './nlu/intentRoutes';
+import {
+  cancelReviewedCommand,
+  confirmReviewedCommand,
+  prepareReviewedCommand,
+} from './nlu/commandReview';
+import type {
+  ConfirmResult,
+  PrepareResult,
+  ReviewSurface,
+} from './nlu/commandReview';
+import {
+  acknowledgeReminderAction,
+  snoozeReminderAction,
+} from '../scheduler/reminderActions';
+import {formatLocalDate} from './nlu/fastPathParser';
+import {ttsService} from './tts/ttsService';
+import {
+  buildLocalConversationReply,
+  classifySmallTalk,
+  OFFLINE_REPLY_NOTE,
+  SIGNED_OUT_REPLY_NOTE,
+} from './localConversation';
+import type {ValidatedIntent, NluActionResult} from './nlu/types';
 
 export interface ScheduleConflict {
   hasConflict: boolean;
@@ -30,7 +64,7 @@ export interface ScheduleConflict {
 
 export interface TimeSlot {
   startTime: string; // HH:mm
-  endTime: string;   // HH:mm
+  endTime: string; // HH:mm
 }
 
 export interface ProcessMessageOptions {
@@ -40,6 +74,33 @@ export interface ProcessMessageOptions {
   onlineMode?: boolean;
   useHandbook?: boolean;
   documentFormat?: DocumentFormat | null;
+  /** Which review card shows a proposal (AGY-PORT 04). Defaults to Chat. */
+  reviewSurface?: ReviewSurface;
+  /**
+   * Identity captured by a ringing reminder call. Only then do acknowledge and
+   * snooze act immediately, through the call actions with that identity.
+   */
+  ringingCall?: RingingCallContext | null;
+  /**
+   * Online conversation only: receives DeepSeek's reply while it is being
+   * written, so the screen can show it word by word. Only the finished reply
+   * is saved. Without it the reply arrives in one piece.
+   */
+  onReplyText?: (replySoFar: string) => void;
+}
+
+/** Added when DeepSeek stops part-way, so a cut-off reply is never mistaken for a full one. */
+export const INTERRUPTED_REPLY_NOTE =
+  '(The reply was cut off before it finished. Ask again to get the rest.)';
+
+/** Outcome of Confirm or Cancel on a review card. */
+export interface ReviewDecisionResult {
+  /** Present for Confirm; absent for Cancel. */
+  outcome?: ConfirmResult;
+  cancelled?: boolean;
+  /** The transcript line saved for this decision, when one was saved. */
+  assistantMessage: ChatMessage | null;
+  reply: string;
 }
 
 export interface ChatOrchestratorResult {
@@ -52,8 +113,20 @@ export interface ChatOrchestratorResult {
   attachment?: ChatAttachment | null;
   handbookNote?: string | null;
   usedOnline?: boolean;
+  /** Route taken for the extracted intent (AGY-PORT 04). */
+  route?: ResolvedIntentRoute;
+  /** Present when the request would change the planner: a proposal, clarification or refusal. Nothing was written. */
+  review?: PrepareResult;
   reply: string;
 }
+
+/** What the device made of a spoken conversation turn (see `reviewSpokenTurn`). */
+export type SpokenTurnReview =
+  | {kind: 'none'}
+  | {kind: 'memory'; reply: string}
+  | {kind: 'proposal'; review: PrepareResult; reply: string}
+  | {kind: 'note'; reply: string}
+  | {kind: 'local_answer'; reply: string};
 
 /** Parses HH:mm string to minutes from midnight. */
 export function timeToMinutes(timeStr: string): number {
@@ -85,66 +158,162 @@ export function format12HourTime(timeStr?: string | null): string {
   return `${hour}:${minStr} ${meridiem}`;
 }
 
-function buildLocalChatFallback(trimmed: string, validated: ValidatedIntent): string {
-  const queryLower = (validated.details || trimmed || '').toLowerCase();
-  if (
-    /\b(?:ustp|handbook|dean'?s\s+list|grading\s+system|retention\s+policy|tuition|graduation\s+requirements|uniform\s+policy|dress\s+code|drop(?:ping)?\s+subject|prerequisite|academic\s+probation)\b/i.test(
-      queryLower,
-    )
-  ) {
-    return 'Official USTP Student Handbook guidelines require Online Mode. Switch to Online Mode in the chat header to look up verified handbook policies and academic regulations.';
+/**
+ * Bounded, owner-scoped context for online requests. A read failure sends no
+ * history rather than blocking the reply; the message itself is already saved.
+ */
+function readRecentHistory(
+  userId: string,
+  count: number,
+  sessionId?: string | null,
+): ChatMessage[] {
+  try {
+    return chatStore.getRecentMessages(userId, count, sessionId);
+  } catch (error) {
+    console.warn(
+      '[ChatOrchestrator] Could not read recent chat history:',
+      error,
+    );
+    return [];
   }
-  if (
-    /\b(?:what|who)\s+(?:are|is)\s+(?:you|lafina)|tell\s+me\s+about\s+yourself|who\s+made\s+you|are\s+you\s+(?:an?\s+)?(?:ai|bot|assistant)|what(?:'s|\s+is)\s+your\s+name|who\s+are\s+u|what\s+are\s+u\b/i.test(
-      queryLower,
-    ) ||
-    validated.details === 'Identity'
-  ) {
-    return 'I am lafina, your offline academic assistant. I help you manage your schedule, set reminder alarms, and organize tasks and notes.';
-  }
-  if (
-    /\b(?:what\s+can\s+you\s+do|how\s+(?:do|can)\s+you\s+help|what\s+do\s+you\s+do|help(?:\s+me)?)\b/i.test(
-      queryLower,
-    )
-  ) {
-    return 'I am lafina, your offline academic assistant. You can ask me to schedule study blocks, set alarms, or add and view tasks.';
-  }
-  if (/\b(?:how\s+are\s+you|how's\s+it\s+going|how\s+are\s+things)\b/i.test(queryLower)) {
-    return 'I am lafina, doing great! Ready to help you with your schedule, tasks, or notes.';
-  }
-  if (
-    /^(?:hey|hi|hello|good\s+morning|good\s+afternoon|good\s+evening|sup|what'?s\s+up)\b/i.test(
-      queryLower,
-    )
-  ) {
-    return 'Hey! I am lafina, your offline academic assistant. How can I help with your schedule or tasks today?';
-  }
-  return 'I am lafina, your offline academic assistant. I can schedule study blocks, set exact reminder alarms, track assignments, take notes, or review what is on your schedule.';
 }
+
+/** Small talk at most this long is sent without a handbook search. */
+const SMALL_TALK_MAX_CHARS = 60;
+
+/** Handbook topics answer only from the verified online handbook, never offline. */
+const isHandbookQuestion = (text: string): boolean =>
+  /\b(?:ustp|handbook|dean'?s\s+list|grading\s+system|retention\s+policy|tuition|graduation\s+requirements|uniform\s+policy|dress\s+code|drop(?:ping)?\s+subject|prerequisite|academic\s+probation)\b/i.test(
+    text,
+  );
+
+/**
+ * On-device replies are tagged when saved. Replies saved before the tag
+ * existed are recognized by their fixed wording so DeepSeek never sees them.
+ */
+const isLocalReply = (msg: ChatMessage): boolean =>
+  msg.localReply === true ||
+  /^(?:hey! )?i am lafina, (?:your offline academic assistant|doing great)/i.test(
+    msg.content.trim(),
+  );
+
+/**
+ * One bounded read of a day's blocks and events, recurring occurrences
+ * included (AGY-PORT 06). The day before and after are read too (AGY-PORT 08),
+ * so an overnight item that spills into this day, or one this proposal spills
+ * into, is seen. Like the legacy store getters it replaces, a storage failure
+ * yields an empty day here, so the check never blocks a proposal; the change
+ * itself still waits for review and Confirm.
+ */
+const readDay = (userId: string, date: string): PlannerWindow => {
+  try {
+    return plannerQueries.window(
+      userId,
+      addDaysToDate(date, -1),
+      addDaysToDate(date, 1),
+    );
+  } catch (error) {
+    console.warn(
+      '[ChatOrchestrator] Could not read the day for a conflict check:',
+      error,
+    );
+    return {tasks: [], events: [], blocks: []};
+  }
+};
+
+/**
+ * Online Mode must never pass off a local reply as DeepSeek. Each failure says
+ * plainly that the online answer is missing and that offline tools still work.
+ */
+export const describeOnlineChatFailure = (status: string): string => {
+  const offlineNote = ' Your offline scheduling tools are still available.';
+  switch (status) {
+    case 'auth_required':
+      return (
+        'Sign in again in Profile to use DeepSeek in Online Mode.' + offlineNote
+      );
+    case 'account_disabled':
+      return (
+        'This account is disabled, so DeepSeek cannot reply.' + offlineNote
+      );
+    case 'offline':
+      return (
+        'You are offline, so DeepSeek cannot reply. Reconnect and send your message again.' +
+        offlineNote
+      );
+    case 'rate_limited':
+      return (
+        'DeepSeek usage limit reached. Wait a moment and try again.' +
+        offlineNote
+      );
+    default:
+      return (
+        'DeepSeek could not reply right now. Check your connection and try sending your message again.' +
+        offlineNote
+      );
+  }
+};
 
 export class ChatOrchestrator {
   /**
    * Conflict-aware check for time block and calendar event overlaps.
+   * `day` lets a caller that checks many slots read the day only once.
    */
   checkScheduleConflict(
     userId: string,
     date: string,
     startTime: string,
     endTime: string,
+    day: PlannerWindow = readDay(userId, date),
   ): ScheduleConflict {
-    const startMins = timeToMinutes(startTime);
-    const endMins = timeToMinutes(endTime);
-
-    if (endMins <= startMins) {
-      return { hasConflict: false };
+    // Minutes from this day's midnight. An end before the start is on the
+    // next day (the floating overnight rule Calendar draws). An equal start and
+    // end is not checked, as before.
+    const previousDay = isRealDate(date) ? addDaysToDate(date, -1) : null;
+    const nextDay = isRealDate(date) ? addDaysToDate(date, 1) : null;
+    const span = (
+      itemDate: string,
+      start: string,
+      end: string,
+    ): [number, number] | null => {
+      const from = timeToMinutes(start);
+      let to = timeToMinutes(end);
+      if (to === from) return null;
+      if (to < from) to += MINUTES_PER_DAY;
+      const offset =
+        itemDate === date
+          ? 0
+          : itemDate === previousDay
+          ? -MINUTES_PER_DAY
+          : itemDate === nextDay
+          ? MINUTES_PER_DAY
+          : null;
+      return offset === null ? null : [from + offset, to + offset];
+    };
+    const proposal = span(date, startTime, endTime);
+    if (!proposal) {
+      return {hasConflict: false};
     }
+    const overlaps = (item: {
+      date: string;
+      startTime: string;
+      endTime: string;
+    }): boolean => {
+      const other = span(item.date, item.startTime, item.endTime);
+      return (
+        !!other &&
+        Math.max(proposal[0], other[0]) < Math.min(proposal[1], other[1])
+      );
+    };
+    // Same-day items first, as before, then the neighbouring days.
+    const byDay = <T extends {date: string}>(items: T[]): T[] => [
+      ...items.filter(item => item.date === date),
+      ...items.filter(item => item.date !== date),
+    ];
 
     // 1. Check existing time blocks
-    const blocks = timeBlocksStore.getAll(userId).filter((b) => b.date === date);
-    for (const b of blocks) {
-      const bStart = timeToMinutes(b.startTime);
-      const bEnd = timeToMinutes(b.endTime);
-      if (bEnd > bStart && Math.max(startMins, bStart) < Math.min(endMins, bEnd)) {
+    for (const b of byDay(day.blocks)) {
+      if (overlaps(b)) {
         return {
           hasConflict: true,
           conflictingTitle: b.title,
@@ -156,11 +325,8 @@ export class ChatOrchestrator {
     }
 
     // 2. Check existing calendar events
-    const events = tasksStore.getAllEvents(userId).filter((e) => e.date === date);
-    for (const e of events) {
-      const eStart = timeToMinutes(e.startTime);
-      const eEnd = timeToMinutes(e.endTime);
-      if (eEnd > eStart && Math.max(startMins, eStart) < Math.min(endMins, eEnd)) {
+    for (const e of byDay(day.events)) {
+      if (overlaps(e)) {
         return {
           hasConflict: true,
           conflictingTitle: e.title,
@@ -171,7 +337,7 @@ export class ChatOrchestrator {
       }
     }
 
-    return { hasConflict: false };
+    return {hasConflict: false};
   }
 
   /**
@@ -184,11 +350,16 @@ export class ChatOrchestrator {
     durationMinutes: number,
   ): TimeSlot | null {
     const duration = Math.max(15, durationMinutes || 60);
-    const dayStartMinutes = 8 * 60;  // 08:00 AM
-    const dayEndMinutes = 20 * 60;   // 08:00 PM
-    const step = 30;                 // 30 minute increments
+    const dayStartMinutes = 8 * 60; // 08:00 AM
+    const dayEndMinutes = 20 * 60; // 08:00 PM
+    const step = 30; // 30 minute increments
+    const day = readDay(userId, date);
 
-    for (let current = dayStartMinutes; current + duration <= dayEndMinutes; current += step) {
+    for (
+      let current = dayStartMinutes;
+      current + duration <= dayEndMinutes;
+      current += step
+    ) {
       const candidateStart = minutesToTime(current);
       const candidateEnd = minutesToTime(current + duration);
 
@@ -197,6 +368,7 @@ export class ChatOrchestrator {
         date,
         candidateStart,
         candidateEnd,
+        day,
       );
 
       if (!conflict.hasConflict) {
@@ -220,6 +392,62 @@ export class ChatOrchestrator {
    * 6. Persists assistant reply (and optional document attachment) to chatStore.
    * 7. Reads aloud reply via react-native-tts if requested.
    */
+  /**
+   * A finished spoken turn in a live voice conversation, read on the device.
+   *
+   * A planner change becomes a review card on the voice surface (nothing is
+   * written until the student taps Confirm); a schedule question is answered
+   * from local data, shown on screen and never sent online; anything else is
+   * left to the conversation. Nothing is saved to the chat here: the
+   * conversation persists its own turns.
+   */
+  async reviewSpokenTurn(
+    userId: string,
+    text: string,
+    options: {referenceDate?: Date; isCurrent?: () => boolean} = {},
+  ): Promise<SpokenTurnReview> {
+    const trimmed = (text || '').trim();
+    if (!trimmed) return {kind: 'none'};
+    const fact = explicitMemory(trimmed);
+    if (fact) {
+      if (!chatMemoryStore.isEnabled(userId)) return {kind: 'memory', reply: 'Memory is turned off, so I did not save that.'};
+      const saved = chatMemoryStore.add(userId, fact);
+      return {kind: 'memory', reply: saved ? 'I saved that in your memory.' : 'That is already in your memory.'};
+    }
+    const refDate = options.referenceDate || new Date();
+    const validated = await intentService.extractIntent(trimmed, {
+      referenceDate: refDate,
+    });
+    // Extraction may finish after the conversation or owning screen closes.
+    if (options.isCurrent && !options.isCurrent()) return {kind: 'none'};
+    const route = routeIntent(validated.intent);
+    if (route === 'reviewed_mutation') {
+      const smallTalk = classifySmallTalk(trimmed);
+      if (
+        validated.intent === 'acknowledge' ||
+        smallTalk === 'thanks' ||
+        smallTalk === 'acknowledgement'
+      ) {
+        // "yes", "okay", "thanks": conversation, never an authorization.
+        return {kind: 'none'};
+      }
+      const review = prepareReviewedCommand(userId, validated, {
+        referenceDate: refDate,
+        surface: 'voice',
+      });
+      return review.status === 'proposal'
+        ? {kind: 'proposal', review, reply: review.reply}
+        : {kind: 'note', reply: review.reply};
+    }
+    if (route === 'read_only') {
+      const result = await executeNluAction(userId, validated, {
+        referenceDate: refDate,
+      });
+      return {kind: 'local_answer', reply: result.reply};
+    }
+    return {kind: 'none'};
+  }
+
   async processMessage(
     userId: string,
     text: string,
@@ -229,8 +457,94 @@ export class ChatOrchestrator {
     const refDate = options.referenceDate || new Date();
     const todayStr = formatLocalDate(refDate);
 
-    // Step 1: Persist user message
+    // Step 1: Persist user message. The reply goes to the same chat even if
+    // the student opens another one while waiting.
     const userMessage = chatStore.addMessage(userId, 'user', trimmed);
+    const sessionId = userMessage.sessionId;
+    const memoryRevision = chatMemoryStore.revision(userId);
+
+    const preference = explicitMemory(trimmed);
+    if (preference) {
+      const enabled = chatMemoryStore.isEnabled(userId);
+      const isStudy = !!studyPreference(trimmed);
+      const reply = enabled
+        ? isStudy ? "I'll remember your study preference." : "I'll remember that."
+        : isStudy ? 'Your study preference was not saved because memory is turned off.' : 'Memory is turned off, so I did not save that.';
+      const assistantMessage = db.transactionSync(tx => {
+        const message = chatStore.addMessage(userId, 'assistant', reply, null,
+          {localReply: true}, sessionId, tx);
+        if (!enabled) return message;
+        const changes = chatMemoryStore.applyChanges(userId,
+          {add: [preference], remove: []}, sessionId, tx);
+        if (changes.added.length || changes.removed.length) {
+          if (!chatStore.setMemoryChanges(userId, message.id, changes, tx)) {
+            throw new Error('The memory notice could not be saved.');
+          }
+          return {...message, memoryChanges: changes};
+        }
+        return message;
+      });
+      if (options.speakReply) {
+        try { await ttsService.speak(reply); } catch (error) {
+          console.warn('[ChatOrchestrator] TTS playback error:', error);
+        }
+      }
+      return {userMessage, assistantMessage, reply, usedOnline: false,
+        intent: {intent: 'chat', title: '', date: null, time: null, endTime: null,
+          durationMinutes: null, category: 'Academic', details: trimmed,
+          snoozeMinutes: null, confidence: 1, source: 'fast_path',
+          rawTranscript: trimmed, isValid: true}};
+    }
+
+    if (isForgetAllMemoriesRequest(trimmed)) {
+      const reply =
+        "I've forgotten all saved memories on this phone. Your chats are kept.";
+      const assistantMessage = db.transactionSync(tx => {
+        const message = chatStore.addMessage(
+          userId,
+          'assistant',
+          reply,
+          null,
+          {localReply: true},
+          sessionId,
+          tx,
+        );
+        chatMemoryService.forgetAll(userId, sessionId, message.id, tx);
+        return {
+          ...message,
+          memoryChanges:
+            chatStore.getMemoryChanges(userId, message.id, tx) ?? null,
+        };
+      });
+      if (options.speakReply) {
+        try {
+          await ttsService.speak(reply);
+        } catch (error) {
+          console.warn('[ChatOrchestrator] TTS playback error:', error);
+        }
+      }
+      return {
+        userMessage,
+        assistantMessage,
+        reply,
+        usedOnline: false,
+        intent: {
+          intent: 'chat',
+          title: '',
+          date: null,
+          time: null,
+          endTime: null,
+          durationMinutes: null,
+          category: 'Academic',
+          details: trimmed,
+          snoozeMinutes: null,
+          confidence: 1,
+          source: 'fast_path',
+          rawTranscript: trimmed,
+          isValid: true,
+        },
+      };
+    }
 
     let finalReply = '';
     let actionResult: NluActionResult | undefined;
@@ -239,10 +553,16 @@ export class ChatOrchestrator {
     let attachment: ChatAttachment | null = null;
     let handbookNote: string | null = null;
     let usedOnline = false;
+    // On-device conversational replies; never replayed to DeepSeek as its own.
+    let localReply = false;
+    let route: ResolvedIntentRoute | undefined;
+    let review: PrepareResult | undefined;
+    // A complete DeepSeek conversation reply is checked for memories afterwards.
+    let learnFromReply = false;
 
     // Step 2: Check for explicit or natural-language document generation request
     const detectedDoc = options.documentFormat
-      ? { format: options.documentFormat, prompt: trimmed }
+      ? {format: options.documentFormat, prompt: trimmed}
       : detectDocumentRequest(trimmed);
 
     if (detectedDoc) {
@@ -264,12 +584,17 @@ export class ChatOrchestrator {
       };
 
       if (!options.onlineMode) {
-        finalReply = `Creating ${formatMeta.shortLabel} files requires Online Mode. Switch to Online Mode in the chat header to generate ${formatMeta.label.toLowerCase()}s.`;
+        finalReply = `Creating ${
+          formatMeta.shortLabel
+        } files requires Online Mode. Switch to Online Mode in the chat header to generate ${formatMeta.label.toLowerCase()}s.`;
       } else {
-        const previousMessages: OnlineChatMessage[] = chatStore
-          .getMessages(userId)
-          .filter((msg) => msg.id !== userMessage.id)
-          .map((msg) => ({
+        const previousMessages: OnlineChatMessage[] = readRecentHistory(
+          userId,
+          11,
+          sessionId,
+        )
+          .filter(msg => msg.id !== userMessage.id)
+          .map(msg => ({
             role: msg.sender,
             content: msg.content,
           }));
@@ -284,7 +609,10 @@ export class ChatOrchestrator {
             finalReply = docResult.data.summary;
             usedOnline = true;
           } catch (saveError) {
-            console.warn('[ChatOrchestrator] Failed to save generated document:', saveError);
+            console.warn(
+              '[ChatOrchestrator] Failed to save generated document:',
+              saveError,
+            );
             finalReply = `${docResult.data.summary}\n\n(The ${formatMeta.shortLabel} file was created, but could not be saved to device storage.)`;
             usedOnline = true;
           }
@@ -293,7 +621,14 @@ export class ChatOrchestrator {
         }
       }
 
-      const assistantMessage = chatStore.addMessage(userId, 'assistant', finalReply, attachment);
+      const assistantMessage = chatStore.addMessage(
+        userId,
+        'assistant',
+        finalReply,
+        attachment,
+        null,
+        sessionId,
+      );
       if (options.speakReply) {
         try {
           await ttsService.speak(finalReply);
@@ -322,14 +657,28 @@ export class ChatOrchestrator {
       const blockDate = validated.date || todayStr;
       const startTime = validated.time || '09:00';
       const duration = validated.durationMinutes || 60;
-      const endTime = validated.endTime || minutesToTime(timeToMinutes(startTime) + duration);
+      const endTime =
+        validated.endTime || minutesToTime(timeToMinutes(startTime) + duration);
 
-      conflictResult = this.checkScheduleConflict(userId, blockDate, startTime, endTime);
+      conflictResult = this.checkScheduleConflict(
+        userId,
+        blockDate,
+        startTime,
+        endTime,
+      );
 
       if (conflictResult.hasConflict) {
-        recommendedSlot = this.recommendAvailableSlot(userId, blockDate, duration);
-        const conflictStart12 = format12HourTime(conflictResult.conflictingStartTime);
-        const conflictEnd12 = format12HourTime(conflictResult.conflictingEndTime);
+        recommendedSlot = this.recommendAvailableSlot(
+          userId,
+          blockDate,
+          duration,
+        );
+        const conflictStart12 = format12HourTime(
+          conflictResult.conflictingStartTime,
+        );
+        const conflictEnd12 = format12HourTime(
+          conflictResult.conflictingEndTime,
+        );
 
         let conflictMessage = `You already have "${conflictResult.conflictingTitle}" scheduled from ${conflictStart12} to ${conflictEnd12} on ${blockDate}.`;
         if (recommendedSlot) {
@@ -337,53 +686,122 @@ export class ChatOrchestrator {
           const recEnd12 = format12HourTime(recommendedSlot.endTime);
           conflictMessage += ` I found an open slot from ${recStart12} to ${recEnd12}. Would you like me to schedule it then?`;
         } else {
-          conflictMessage += ' There are no open daytime slots available on that day.';
+          conflictMessage +=
+            ' There are no open daytime slots available on that day.';
         }
 
         finalReply = conflictMessage;
       }
     }
 
-    // Step 5: Execute database mutation or conversational reply if no unresolved conflict
+    // Step 5: Planner changes become a private proposal that waits for Confirm
+    // (AGY-PORT 04). Reads, call actions and conversation keep their routes.
     if (!finalReply) {
-      if (
-        validated.intent === 'create_task' ||
-        validated.intent === 'create_time_block' ||
-        validated.intent === 'create_reminder' ||
-        validated.intent === 'create_note' ||
-        validated.intent === 'update_task' ||
-        validated.intent === 'update_time_block' ||
-        validated.intent === 'update_note' ||
-        validated.intent === 'delete_task' ||
-        validated.intent === 'delete_time_block' ||
-        validated.intent === 'delete_note' ||
-        validated.intent === 'query_schedule' ||
-        validated.intent === 'acknowledge' ||
-        validated.intent === 'snooze' ||
-        validated.intent === 'reschedule'
-      ) {
+      route = routeIntent(validated.intent, {ringingCall: options.ringingCall});
+      if (route === 'reviewed_mutation') {
+        review = prepareReviewedCommand(userId, validated, {
+          referenceDate: refDate,
+          surface: options.reviewSurface,
+          ringingCall: options.ringingCall,
+        });
+        finalReply = review.reply;
+        // "thanks" / "ok" with no ringing call and nothing to acknowledge is
+        // just conversation. The refused review wrote nothing, so drop it.
+        const smallTalk = classifySmallTalk(trimmed);
+        if (
+          review.status === 'invalid' &&
+          !options.ringingCall &&
+          validated.intent === 'acknowledge' &&
+          (smallTalk === 'thanks' || smallTalk === 'acknowledgement')
+        ) {
+          review = undefined;
+          route = 'conversation';
+          finalReply = '';
+        }
+      }
+      if (route === 'call_context_immediate' && options.ringingCall) {
+        const call = options.ringingCall;
+        const outcome =
+          validated.intent === 'acknowledge'
+            ? await acknowledgeReminderAction(
+                call.reminderId,
+                userId,
+                call.generation,
+              )
+            : await snoozeReminderAction(
+                call.reminderId,
+                userId,
+                validated.snoozeMinutes || 10,
+                call.generation,
+              );
+        actionResult = {
+          success: outcome.ok,
+          intent: validated.intent,
+          entityType: 'reminder',
+          entityId: call.reminderId,
+          reply: outcome.message,
+          ...(outcome.ok ? {} : {error: outcome.message}),
+        };
+        finalReply = outcome.message;
+      } else if (route === 'read_only') {
         actionResult = await executeNluAction(userId, validated, {
           referenceDate: refDate,
         });
         finalReply = actionResult.reply;
-      } else {
+      } else if (route !== 'reviewed_mutation') {
+        // Conversation. Online Mode always asks DeepSeek first, greetings
+        // included; on-device replies are only the offline or fallback voice.
+        const recent = readRecentHistory(userId, 10, sessionId);
+        const recentReplies = recent
+          .filter(msg => msg.sender === 'assistant')
+          .map(msg => msg.content);
+        const smallTalk = classifySmallTalk(trimmed);
         if (options.onlineMode) {
-          const history: OnlineChatMessage[] = chatStore
-            .getMessages(userId)
-            .slice(-10)
-            .map((msg) => ({
+          const history: OnlineChatMessage[] = recent
+            // DeepSeek must not imitate on-device replies as if it wrote them.
+            .filter(msg => !(msg.sender === 'assistant' && isLocalReply(msg)))
+            .map(msg => ({
               role: msg.sender,
               content: msg.content,
             }));
-          const onlineResult = await onlineChatSkill.sendChatMessage(history, {
-            useHandbook: options.useHandbook,
-          });
+          const onReplyText = options.onReplyText;
+          // A greeting or "thanks" needs no handbook search; skipping it lets
+          // DeepSeek start replying sooner.
+          const useHandbook =
+            options.useHandbook !== false &&
+            !(
+              smallTalk &&
+              trimmed.length <= SMALL_TALK_MAX_CHARS &&
+              !isHandbookQuestion(trimmed)
+            );
+          // What LAFINA remembers about the student rides along (none when off).
+          const memories = chatMemoryStore.isEnabled(userId)
+            ? chatMemoryStore.forPrompt(userId)
+            : [];
+          const memoryOption = memories.length > 0 ? {memories} : {};
+          const onlineResult = onReplyText
+            ? await onlineChatSkill.streamChatMessage(history, {
+                useHandbook,
+                onReplyText,
+                ...memoryOption,
+              })
+            : await onlineChatSkill.sendChatMessage(history, {
+                useHandbook,
+                ...memoryOption,
+              });
           if (onlineResult.status === 'success' && onlineResult.data) {
-            finalReply = onlineResult.data.reply;
+            finalReply = onlineResult.data.interrupted
+              ? `${onlineResult.data.reply}\n\n${INTERRUPTED_REPLY_NOTE}`
+              : onlineResult.data.reply;
             handbookNote = handbookSourceLabel(onlineResult.data.sources);
             usedOnline = true;
+            learnFromReply = !onlineResult.data.interrupted;
           } else {
-            console.warn('[ChatOrchestrator] Online AI chat failed:', onlineResult.error);
+            console.warn(
+              '[ChatOrchestrator] Online AI chat failed:',
+              onlineResult.status,
+            );
+            localReply = true;
             if (
               options.useHandbook &&
               /\b(?:ustp|handbook|dean'?s\s+list|grading|policy|curriculum|tuition|retention)\b/i.test(
@@ -392,15 +810,26 @@ export class ChatOrchestrator {
             ) {
               finalReply =
                 "I couldn't verify that from the USTP Student Handbook right now. Please check your internet connection or refer directly to the USTP Student Affairs office.";
+            } else if (smallTalk) {
+              // Still friendly, but clearly not DeepSeek's words.
+              finalReply = `${buildLocalConversationReply(userId, trimmed, {
+                recentReplies,
+              })}\n\n${
+                onlineResult.status === 'auth_required'
+                  ? SIGNED_OUT_REPLY_NOTE
+                  : OFFLINE_REPLY_NOTE
+              }`;
+            } else {
+              finalReply = describeOnlineChatFailure(onlineResult.status);
             }
           }
         }
 
         if (!finalReply) {
-          finalReply =
-            validated.intent === 'chat'
-              ? buildLocalChatFallback(trimmed, validated)
-              : 'I am lafina, your offline academic assistant. You can ask me to manage your schedule, set reminders, or organize tasks and notes.';
+          localReply = true;
+          finalReply = isHandbookQuestion(trimmed)
+            ? 'Official USTP Student Handbook guidelines require Online Mode. Switch to Online Mode in the chat header to look up verified handbook policies and academic regulations.'
+            : buildLocalConversationReply(userId, trimmed, {recentReplies});
         }
       }
     }
@@ -410,8 +839,28 @@ export class ChatOrchestrator {
       .replace(/\bL[.-]?A[.-]?F[.-]?I[.-]?N[.-]?A\b/gi, 'lafina')
       .replace(/\bLAFINA\b/g, 'lafina');
 
-    // Step 6: Persist assistant message
-    const assistantMessage = chatStore.addMessage(userId, 'assistant', finalReply, attachment);
+    // Step 6: Persist assistant message, keeping the Handbook citation with it
+    const assistantMessage = chatStore.addMessage(
+      userId,
+      'assistant',
+      finalReply,
+      attachment,
+      {handbookNote, localReply},
+      sessionId,
+    );
+
+    // Background: never delays or changes the reply. Chat hears about any
+    // change through CHAT_MEMORY_CHANGED_EVENT and shows it under this reply.
+    if (learnFromReply && !directProviderTestEnabled()) {
+      void chatMemoryService.afterExchange({
+        userId,
+        sessionId,
+        assistantMessageId: assistantMessage.id,
+        userText: trimmed,
+        replyText: finalReply,
+        memoryRevision,
+      });
+    }
 
     // Step 7: Non-blocking react-native-tts speech synthesis if requested
     if (options.speakReply) {
@@ -432,8 +881,69 @@ export class ChatOrchestrator {
       attachment,
       handbookNote,
       usedOnline,
+      route,
+      review,
       reply: finalReply,
     };
+  }
+
+  /**
+   * Applies a reviewed proposal once and records the outcome in the owner's
+   * transcript. A repeated Confirm returns the first receipt and adds nothing.
+   */
+  async confirmReview(
+    userId: string,
+    operationId: string,
+    options: {speakReply?: boolean} = {},
+  ): Promise<ReviewDecisionResult> {
+    const outcome = confirmReviewedCommand(userId, operationId);
+    let assistantMessage: ChatMessage | null = null;
+    if (!(outcome.status === 'applied' && outcome.repeated)) {
+      try {
+        assistantMessage = chatStore.addMessage(
+          userId,
+          'assistant',
+          outcome.reply,
+        );
+      } catch (error) {
+        console.warn(
+          '[ChatOrchestrator] Could not save the review outcome to chat:',
+          error,
+        );
+      }
+    }
+    if (options.speakReply) {
+      try {
+        await ttsService.speak(outcome.reply);
+      } catch (err) {
+        console.warn('[ChatOrchestrator] TTS playback error:', err);
+      }
+    }
+    return {outcome, assistantMessage, reply: outcome.reply};
+  }
+
+  /** Discards a proposal. Writes no planner data. */
+  cancelReview(
+    userId: string,
+    operationId: string,
+    options: {recordInChat?: boolean} = {},
+  ): ReviewDecisionResult {
+    const cancelled = cancelReviewedCommand(userId, operationId);
+    const reply = cancelled
+      ? 'Cancelled. Nothing was changed.'
+      : 'There was nothing to cancel. Nothing was changed.';
+    let assistantMessage: ChatMessage | null = null;
+    if (cancelled && options.recordInChat !== false) {
+      try {
+        assistantMessage = chatStore.addMessage(userId, 'assistant', reply);
+      } catch (error) {
+        console.warn(
+          '[ChatOrchestrator] Could not save the cancellation to chat:',
+          error,
+        );
+      }
+    }
+    return {cancelled, assistantMessage, reply};
   }
 }
 

@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
   StatusBar,
   StyleSheet,
@@ -14,15 +14,17 @@ import { SafeAreaProvider, useSafeAreaInsets } from 'react-native-safe-area-cont
 import NetInfo from '@react-native-community/netinfo';
 import { Fonts, useThemedStyles } from './src/ui/theme';
 import {
+  db,
   initDatabase,
   userStore,
   syncOutboxStore,
   productTourStore,
-  remindersStore,
-  tasksStore,
 } from './src/storage';
 import { CustomTabBar, TabType } from './src/ui/components/CustomTabBar';
+import { StorageRecoveryScreen } from './src/ui/screens/StorageRecoveryScreen';
 import { hasProEntitlement } from './src/cloud';
+import { endActiveVoiceConversation } from './src/cloud/voiceConversation';
+import { backendSelection } from './src/cloud/backendSelection';
 import { ThemeProvider, useTheme } from './src/ui/contexts/ThemeContext';
 import { MeetingsProvider } from './src/ui/contexts/MeetingsContext';
 import type { ThemeColors } from './src/ui/contexts/ThemeContext';
@@ -32,12 +34,13 @@ import {
   stopReminderPoller,
   consumePendingNativeCall,
   getReminderPermissionStatus,
-  reconcileReminderAlarms,
-  cancelReminderAlarm,
-  finishNativeIncomingCall,
+  reconcileReminderDelivery,
+  admitReminderCall,
+  disconnectCall,
   EVENT_CALL_TRIGGER,
 } from './src/scheduler';
 import type {
+  CallRequest,
   NativeCallAction,
   NativeCallTrigger,
   ReminderPermissionStatus,
@@ -62,6 +65,9 @@ import { AuthBackdrop } from './src/ui/components/auth/AuthBackdrop';
 import { ProductTour } from './src/ui/tour/ProductTour';
 import { buildTourSteps } from './src/ui/tour/tourSteps';
 import { VoiceModal } from './src/ui/components/VoiceModal';
+import { endReviewSession } from './src/ai/nlu/commandReview';
+import { chatDraftStore } from './src/ui/drafts/chatDraftStore';
+import { applySpeechPreferences } from './src/ai/tts/speechPreferences';
 
 function AppContent({
   userId,
@@ -77,17 +83,23 @@ function AppContent({
   const [isLoading, setIsLoading] = useState(true);
   const [authScreen, setAuthScreen] = useState<'welcome' | 'login' | 'register'>('welcome');
   const [isOnboarding, setIsOnboarding] = useState(false);
+  const [isOnboardingReplay, setIsOnboardingReplay] = useState(false);
   const [activeTab, setActiveTab] = useState<TabType>('calendar');
   const [voiceVisible, setVoiceVisible] = useState(false);
   const [tourOpen, setTourOpen] = useState(false);
   const [isKeyboardVisible, setIsKeyboardVisible] = useState(false);
   const [startupReady, setStartupReady] = useState(false);
+  const [storageHealth, setStorageHealth] = useState(() => db.getHealth());
 
   // Incoming Call State
   const [callVisible, setCallVisible] = useState(false);
   const [callReminderId, setCallReminderId] = useState('');
   const [callTask, setCallTask] = useState('');
   const [callAction, setCallAction] = useState<NativeCallAction>('call');
+  // Delivery identity captured when the call is admitted; every action is fenced by it.
+  const [callGeneration, setCallGeneration] = useState<number | null>(null);
+  const callOwnerRef = useRef<string | null>(null);
+  const previousUserRef = useRef<string | null>(null);
 
   // Reminder Permission State
   const [permissionStatus, setPermissionStatus] = useState<ReminderPermissionStatus | null>(null);
@@ -117,6 +129,57 @@ function AppContent({
     };
   }, []);
 
+  // One admission path for every call source: owner + captured identity fence first.
+  const presentCall = useCallback(
+    (request: CallRequest): boolean => {
+      const admission = admitReminderCall(request, userId);
+      if (!admission.admitted) return false;
+      // The reminder call takes the microphone and speaker; a live voice
+      // conversation ends first and is never resumed by itself.
+      endActiveVoiceConversation(
+        'A reminder call started, so the conversation stopped.',
+      );
+      callOwnerRef.current = admission.reminder.userId;
+      setCallReminderId(admission.reminder.id);
+      setCallTask(admission.task);
+      setCallAction(admission.action);
+      setCallGeneration(admission.generation);
+      setCallVisible(true);
+      return true;
+    },
+    [userId],
+  );
+
+  // Account switch or logout retires the previous owner's call UI, speech and
+  // native registrations; their jobs stay in SQLite for a later return.
+  useEffect(() => {
+    const previous = previousUserRef.current;
+    previousUserRef.current = userId;
+    if (previous === userId) return;
+    // Open assistant reviews never outlive the account they were prepared for
+    // (AGY-PORT 04): sign-out, sign-in and account switch all end them.
+    endReviewSession();
+    endActiveVoiceConversation('You switched accounts, so the conversation stopped.');
+    // AGY-PORT 05: the previous owner's unsent Chat text and open voice sheet go too.
+    chatDraftStore.retainOnly(userId);
+    setVoiceVisible(false);
+    if (callOwnerRef.current && callOwnerRef.current !== userId) {
+      callOwnerRef.current = null;
+      setCallVisible(false);
+      setCallGeneration(null);
+      disconnectCall();
+    }
+    if (previous && !userId) {
+      void reconcileReminderDelivery(null);
+    }
+  }, [userId]);
+
+  // AGY-PORT 10: the signed-in account's own offline voice choice, or AGY's
+  // automatic default when it has none (or nobody is signed in).
+  useEffect(() => {
+    void applySpeechPreferences(userId);
+  }, [userId]);
+
   useEffect(() => {
     if (!userId) {
       stopReminderPoller();
@@ -133,7 +196,7 @@ function AppContent({
   useEffect(() => {
     if (!userId) return;
 
-    void reconcileReminderAlarms(remindersStore.getPendingReminders(userId));
+    void reconcileReminderDelivery(userId);
 
     void (async (): Promise<void> => {
       try {
@@ -161,143 +224,71 @@ function AppContent({
     })();
 
     void consumePendingNativeCall().then((payload) => {
-      if (!payload) return;
-      const reminder = remindersStore.getReminderById(payload.reminderId);
-      if (!reminder || reminder.userId !== userId) return;
-
-      // If reminder was already acknowledged, missed, or the underlying task completed, dismiss native call and suppress popup
-      if (reminder.status === 'acknowledged' || reminder.status === 'missed') {
-        void finishNativeIncomingCall(reminder.id);
-        void cancelReminderAlarm(reminder.id);
-        return;
-      }
-
-      const activeUserId = userId || 'local_guest_user';
-      const matchingTasks = tasksStore.getAllTasks(activeUserId);
-      const isTaskDone = matchingTasks.some(
-        (t) => t.isCompleted && t.title.trim().toLowerCase() === reminder.task.trim().toLowerCase(),
-      );
-      if (isTaskDone) {
-        remindersStore.acknowledgeReminder(reminder.id);
-        void cancelReminderAlarm(reminder.id);
-        void finishNativeIncomingCall(reminder.id);
-        return;
-      }
-
-      const allReminders = remindersStore.getAllReminders(activeUserId);
-      const wasAlreadyAck = allReminders.some(
-        (r) =>
-          r.id !== reminder.id &&
-          r.status === 'acknowledged' &&
-          r.task.trim().toLowerCase() === reminder.task.trim().toLowerCase(),
-      );
-      if (wasAlreadyAck) {
-        remindersStore.acknowledgeReminder(reminder.id);
-        void cancelReminderAlarm(reminder.id);
-        void finishNativeIncomingCall(reminder.id);
-        return;
-      }
-
-      setIsLoading(false);
-      setCallReminderId(reminder.id);
-      setCallTask(payload.task || reminder.task);
-      setCallAction(payload.action);
-      setCallVisible(true);
+      if (payload && presentCall(payload)) setIsLoading(false);
     });
-  }, [userId]);
+  }, [userId, presentCall]);
 
   // Listen for both foreground scheduler events and native alarm/activity intents
   useEffect(() => {
-    const showCall = (event: { reminderId: string; task?: string; action?: NativeCallAction }): void => {
-      const reminder = remindersStore.getReminderById(event.reminderId);
-      if (!reminder || (userId && reminder.userId !== userId)) return;
-
-      // Suppress call popup if reminder is already acknowledged or missed
-      if (reminder.status === 'acknowledged' || reminder.status === 'missed') {
-        void finishNativeIncomingCall(reminder.id);
-        void cancelReminderAlarm(reminder.id);
-        return;
-      }
-
-      // Suppress if matching task is already completed
-      const activeUserId = userId || reminder.userId || 'local_guest_user';
-      const matchingTasks = tasksStore.getAllTasks(activeUserId);
-      const isTaskDone = matchingTasks.some(
-        (t) => t.isCompleted && t.title.trim().toLowerCase() === reminder.task.trim().toLowerCase(),
-      );
-      if (isTaskDone) {
-        remindersStore.acknowledgeReminder(reminder.id);
-        void cancelReminderAlarm(reminder.id);
-        void finishNativeIncomingCall(reminder.id);
-        return;
-      }
-
-      // Suppress if another reminder with this task/event title has already been acknowledged
-      const allReminders = remindersStore.getAllReminders(activeUserId);
-      const wasAlreadyAck = allReminders.some(
-        (r) =>
-          r.id !== reminder.id &&
-          r.status === 'acknowledged' &&
-          r.task.trim().toLowerCase() === reminder.task.trim().toLowerCase(),
-      );
-      if (wasAlreadyAck) {
-        remindersStore.acknowledgeReminder(reminder.id);
-        void cancelReminderAlarm(reminder.id);
-        void finishNativeIncomingCall(reminder.id);
-        return;
-      }
-
-      setCallReminderId(reminder.id);
-      setCallTask(event.task || reminder.task);
-      setCallAction(event.action || 'call');
-      setCallVisible(true);
-    };
-
     const foregroundSubscription = DeviceEventEmitter.addListener(
       EVENT_CALL_TRIGGER,
-      (event: { reminderId: string; task: string }) =>
-        showCall({ ...event, action: 'call' }),
+      (event: CallRequest) => {
+        presentCall({ ...event, action: 'call' });
+      },
     );
     const nativeSubscription = DeviceEventEmitter.addListener(
       'LAFINA_NATIVE_CALL_TRIGGER',
-      (event: NativeCallTrigger) => showCall(event),
+      (event: NativeCallTrigger) => {
+        presentCall(event);
+      },
     );
 
     return () => {
       foregroundSubscription.remove();
       nativeSubscription.remove();
     };
-  }, [userId]);
+  }, [presentCall]);
+
+  const setupApp = useCallback(async () => {
+    try {
+      await initDatabase();
+      // Debug/test builds: use the server chosen in Profile before any request.
+      backendSelection.applySaved();
+
+      const currentUser = userStore.getCurrentUser();
+      if (currentUser) {
+        setUserId(currentUser.id);
+        setIsOnboarding(currentUser.isNewUser);
+        syncWorker
+          .performSync()
+          .then(() => {
+            setRefreshTrigger((previous) => previous + 1);
+          })
+          .catch(() => undefined);
+      }
+
+      setStartupReady(true);
+
+      void appUpdater
+        .markLaunchSuccessful()
+        .then(() => appUpdater.check({ quiet: true }));
+    } catch (error) {
+      console.error('Failed application startup setup:', error);
+      setIsLoading(false);
+    }
+  }, [setUserId, setRefreshTrigger]);
+
+  // Subscribed before setup runs so no health change is missed.
+  useEffect(() => db.subscribeHealth(setStorageHealth), []);
 
   useEffect(() => {
-    const setupApp = async () => {
-      try {
-        await initDatabase();
-
-        const currentUser = userStore.getCurrentUser();
-        if (currentUser) {
-          setUserId(currentUser.id);
-          setIsOnboarding(currentUser.isNewUser);
-          syncWorker
-            .performSync()
-            .then(() => {
-              setRefreshTrigger((previous) => previous + 1);
-            })
-            .catch(() => undefined);
-        }
-
-        setStartupReady(true);
-
-        void appUpdater
-          .markLaunchSuccessful()
-          .then(() => appUpdater.check({ quiet: true }));
-      } catch (error) {
-        console.error('Failed application startup setup:', error);
-        setIsLoading(false);
-      }
-    };
     void setupApp();
-  }, [setUserId, setRefreshTrigger]);
+  }, [setupApp]);
+
+  const retryStorage = useCallback(async () => {
+    db.reopen();
+    await setupApp();
+  }, [setupApp]);
 
   useEffect(() => {
     if (!userId) return undefined;
@@ -336,19 +327,17 @@ function AppContent({
       if (nextState !== 'active') {
         scheduler.stop();
         stopReminderPoller();
+        // Leaving the foreground: make Android hold exactly the armed work in
+        // SQLite, so a retired or edited reminder cannot ring while the app
+        // stays closed.
+        if (nextState === 'background') void reconcileReminderDelivery(userId);
         return;
       }
       scheduler.start();
       startReminderPoller(userId);
       void rescheduleUserReminders(userId);
       void consumePendingNativeCall().then((payload) => {
-        if (!payload) return;
-        const reminder = remindersStore.getReminderById(payload.reminderId);
-        if (!reminder || reminder.userId !== userId) return;
-        setCallReminderId(reminder.id);
-        setCallTask(payload.task || reminder.task);
-        setCallAction(payload.action);
-        setCallVisible(true);
+        if (payload) presentCall(payload);
       });
       void getReminderPermissionStatus().then((status) => {
         if (status) setPermissionStatus(status);
@@ -372,7 +361,7 @@ function AppContent({
       unsubscribeNetInfo();
       scheduler.dispose();
     };
-  }, [userId, setRefreshTrigger]);
+  }, [userId, setRefreshTrigger, presentCall]);
 
   const triggerRefresh = useCallback(() => {
     setRefreshTrigger((prev) => prev + 1);
@@ -413,7 +402,8 @@ function AppContent({
   };
 
   const handleOnboardingComplete = () => {
-    if (userId) productTourStore.queue(userId);
+    if (userId && !isOnboardingReplay) productTourStore.queue(userId);
+    setIsOnboardingReplay(false);
     setIsOnboarding(false);
     syncWorker
       .performSync()
@@ -486,6 +476,7 @@ function AppContent({
             onLogout={handleLogout}
             onNavigateToRegister={handleGuestCreateAccount}
             onReplayTour={() => setTourOpen(true)}
+            onReplayOnboarding={() => { setIsOnboardingReplay(true); setIsOnboarding(true); }}
           />
         );
       default:
@@ -496,6 +487,10 @@ function AppContent({
         );
     }
   };
+
+  if (storageHealth.status === 'unavailable' || storageHealth.status === 'quarantined') {
+    return <StorageRecoveryScreen health={storageHealth} onRetry={retryStorage} />;
+  }
 
   if (isLoading) {
     return (
@@ -537,6 +532,7 @@ function AppContent({
       <OnboardingScreen
         userId={userId}
         onOnboardingComplete={handleOnboardingComplete}
+        onCancel={isOnboardingReplay ? () => { setIsOnboardingReplay(false); setIsOnboarding(false); } : undefined}
       />
     );
   }
@@ -570,6 +566,7 @@ function AppContent({
             setRefreshTrigger((prev) => prev + 1);
           }
         }}
+        onUseInChat={() => setActiveTab('chat')}
       />
 
       {tourOpen && (
@@ -587,7 +584,9 @@ function AppContent({
         task={callTask}
         userId={userId}
         initialAction={callAction}
+        deliveryGeneration={callGeneration}
         onClose={() => {
+          callOwnerRef.current = null;
           setCallVisible(false);
           triggerRefresh();
         }}

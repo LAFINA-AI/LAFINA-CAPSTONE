@@ -1,0 +1,12 @@
+$ JAVA_HOME='C:\Program Files\Microsoft\jdk-17.0.20.101-hotspot' node scripts/doctor.mjs   (same JDK the Gradle wrapper scripts use)
+PASS    required  Node: v24.19.0; package.json engines >= 22.11.0
+PASS    required  JDK: openjdk version "17.0.20.1" 2026-08-18 LTS; this build uses JDK 17
+PASS    required  Android SDK: present
+PASS    required  platform android-36: platforms/android-36
+PASS    required  build-tools 36.0.0: build-tools/36.0.0
+PASS    required  NDK 27.1.12297006: ndk/27.1.12297006
+PASS    required  CMake 3.22.1: cmake/3.22.1
+PASS    optional  adb: Android Debug Bridge version 1.0.41
+WARN    optional  Checkout path length: 65 characters: native (ninja) builds exceed MAX_PATH; build from a short subst alias (see docs/plans/agy-improvements/reports/phase-11-native-qa.md)
+Doctor: every required tool is present. This is a host inventory, not build or device proof.
+exit=0

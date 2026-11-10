@@ -1,0 +1,65 @@
+{
+  "date": "2026-11-08",
+  "device": {
+    "serial": "emulator-5554",
+    "avd": "Medium_Phone",
+    "model": "sdk_gphone16k_x86_64",
+    "android": "17",
+    "sdk": 37
+  },
+  "build": {
+    "apk": "android/app/build/outputs/apk/dataQa/app-x86_64-dataQa.apk",
+    "package": "com.lafina.capstone.elevenlabs",
+    "versionName": "0.6.0-data-qa",
+    "sha256": "62fc7e0c365e0556956e4a6645be2e96d9b3b59ee12f3ec9a103af73b4ca0c64",
+    "apiOverride": "http://127.0.0.1:8000 (adb reverse)",
+    "install": "adb install -r (no uninstall, no clear-data)"
+  },
+  "backend": {
+    "kind": "local uvicorn, branch codex/voice-conversation, SQLite .local/local-backend.db",
+    "agent": "local stand-in (.local/voice-agent-harness/fake_agent.py) on ws://127.0.0.1:8765 via adb reverse; ElevenLabs signed URL replaced locally; real custom-LLM route with per-run shared secret; real DeepSeek",
+    "audio": "synthetic 440 Hz pcm_16000 tone, ~60 ms per answer character, max 12 s; no ElevenLabs STT/TTS",
+    "account": "synthetic student created on the local backend only"
+  },
+  "measurements_ms": {
+    "note": "Typed turns (no speech recognition on the emulator). Measured on the phone from the final user turn. The stand-in starts audio only after the full answer text, so first audio here includes the whole DeepSeek answer; real ElevenAgents streams speech earlier. n is small; these are observations, not targets.",
+    "toFirstText": [3675, 2248, 2308, 2090, 2400, 2394],
+    "toFirstAudio": [4184, 3366, 3061, 2516, 3448, 3176],
+    "stopToSilence": [33],
+    "interruptionFrameToSilence_afterFix": [2],
+    "interruptionToSilence_beforeFix": [13084],
+    "harness_firstTokenMs": [3686, 2257, 2316, 2111]
+  },
+  "checks": {
+    "push_to_talk_default_and_entry_link": "PASS",
+    "consent_card_before_first_session": "PASS",
+    "consent_remembered_per_account": "PASS",
+    "expired_signin_message_no_session": "PASS (old token rejected by restarted local backend)",
+    "online_mode_off_zero_voice_requests": "PASS",
+    "explicit_turn_on_online_mode_then_start": "PASS (auth/me -> capabilities -> sessions -> connected)",
+    "audio_focus_voice_communication": "PASS (requestAudioFocus USAGE_VOICE_COMMUNICATION)",
+    "typed_turn_custom_llm_deepseek": "PASS (4 + 2 turns, all 200)",
+    "chat_online_switch_follows_panel": "PASS",
+    "stop_response": "PASS",
+    "barge_in_interruption_label": "PASS (LAFINA · interrupted)",
+    "mute_releases_audiorecord": "PASS (no recording client while muted; VOICE_COMMUNICATION 16 kHz when unmuted)",
+    "end_releases_mic_focus_mode_and_server_session": "PASS",
+    "turns_saved_once_to_chat": "PASS",
+    "background_stops_no_restart": "PASS",
+    "push_to_talk_after_conversation": "PASS (VOICE_RECOGNITION capture; silent emulator mic -> 'didn't catch that')",
+    "airplane_mode_explained_zero_requests_no_mic": "PASS",
+    "airplane_mode_offline_task_review_confirm_calendar": "PASS",
+    "server_session_row": "ended/client, 4 turns, 2195 prompt + 252 completion tokens, conversation id bound"
+  },
+  "not_run": [
+    "real ElevenAgents agent (key lacks ElevenAgents permission)",
+    "real speech recognition / natural pauses / spoken barge-in / echo (emulator mic silent)",
+    "selected non-default voice audibility",
+    "speaker vs wired/Bluetooth routing",
+    "phone call / reminder call audio-focus loss on device",
+    "screen lock, account switch and network loss mid-session on device",
+    "handbook answer in a live conversation",
+    "production deployment and migration 013",
+    "physical ARM64 phone"
+  ]
+}

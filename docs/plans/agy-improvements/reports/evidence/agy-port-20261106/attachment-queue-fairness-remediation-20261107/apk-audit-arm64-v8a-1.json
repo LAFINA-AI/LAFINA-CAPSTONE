@@ -1,0 +1,727 @@
+{
+  "version": 1,
+  "recordedAtUtc": "2026-11-07T03:36:41.982343+00:00",
+  "artifact": "app-arm64-v8a-dataQa.apk",
+  "artifactSha256": "ae0b4cc1c0222561fef6897db4eea0e83504f7db161cc026f06d2e3be09c789b",
+  "artifactBytes": 163257936,
+  "inventory": {
+    "status": "PASS",
+    "nativeAbis": [
+      "arm64-v8a"
+    ],
+    "bundledJavaScript": true,
+    "models": {
+      "assets/models/ggml-base.en-q5_1.bin": {
+        "bytes": 59721011,
+        "sha256": "4baf70dd0d7c4247ba2b81fafd9c01005ac77c2f9ef064e00dcf195d0e2fdd2f"
+      },
+      "assets/models/silero_vad.onnx": {
+        "bytes": 1289603,
+        "sha256": "7ed98ddbad84ccac4cd0aeb3099049280713df825c610a8ed34543318f1b2c49"
+      }
+    },
+    "missingRequiredModels": [],
+    "forbiddenKokoroEntries": [],
+    "nativeLibraryNames": [
+      "libappmodules.so",
+      "libc++_shared.so",
+      "libfbjni.so",
+      "libhermestooling.so",
+      "libhermesvm.so",
+      "libimagepipeline.so",
+      "libjsi.so",
+      "liblafina_whisper.so",
+      "libnative-filters.so",
+      "libnative-imagetranscoder.so",
+      "libonnxruntime.so",
+      "libonnxruntime4j_jni.so",
+      "libop-sqlite.so",
+      "libreact_codegen_rnsvg.so",
+      "libreact_codegen_safeareacontext.so",
+      "libreactnative.so"
+    ]
+  },
+  "elf": {
+    "status": "PASS",
+    "pageSizeBytes": 16384,
+    "passCount": 16,
+    "libraryCount": 16,
+    "libraries": [
+      {
+        "path": "lib/arm64-v8a/libappmodules.so",
+        "abi": "arm64-v8a",
+        "bytes": 3524520,
+        "stored": true,
+        "status": "PASS",
+        "elfClass": 64,
+        "machine": 183,
+        "byteOrder": "little",
+        "loadSegments": [
+          {
+            "offset": 0,
+            "virtualAddress": 0,
+            "fileSize": 2273000,
+            "memorySize": 2273000,
+            "alignment": 16384,
+            "pageCongruent": true
+          },
+          {
+            "offset": 2273008,
+            "virtualAddress": 2289392,
+            "fileSize": 1170416,
+            "memorySize": 1170416,
+            "alignment": 16384,
+            "pageCongruent": true
+          },
+          {
+            "offset": 3443424,
+            "virtualAddress": 3476192,
+            "fileSize": 78664,
+            "memorySize": 79136,
+            "alignment": 16384,
+            "pageCongruent": true
+          },
+          {
+            "offset": 3522088,
+            "virtualAddress": 3571240,
+            "fileSize": 64,
+            "memorySize": 5304,
+            "alignment": 16384,
+            "pageCongruent": true
+          }
+        ],
+        "relroEndRemainders": [
+          0
+        ]
+      },
+      {
+        "path": "lib/arm64-v8a/libc++_shared.so",
+        "abi": "arm64-v8a",
+        "bytes": 1292904,
+        "stored": true,
+        "status": "PASS",
+        "elfClass": 64,
+        "machine": 183,
+        "byteOrder": "little",
+        "loadSegments": [
+          {
+            "offset": 0,
+            "virtualAddress": 0,
+            "fileSize": 634024,
+            "memorySize": 634024,
+            "alignment": 16384,
+            "pageCongruent": true
+          },
+          {
+            "offset": 634032,
+            "virtualAddress": 650416,
+            "fileSize": 616000,
+            "memorySize": 616000,
+            "alignment": 16384,
+            "pageCongruent": true
+          },
+          {
+            "offset": 1250032,
+            "virtualAddress": 1282800,
+            "fileSize": 39760,
+            "memorySize": 40208,
+            "alignment": 16384,
+            "pageCongruent": true
+          },
+          {
+            "offset": 1289792,
+            "virtualAddress": 1338944,
+            "fileSize": 568,
+            "memorySize": 32016,
+            "alignment": 16384,
+            "pageCongruent": true
+          }
+        ],
+        "relroEndRemainders": [
+          12288
+        ]
+      },
+      {
+        "path": "lib/arm64-v8a/libfbjni.so",
+        "abi": "arm64-v8a",
+        "bytes": 177000,
+        "stored": true,
+        "status": "PASS",
+        "elfClass": 64,
+        "machine": 183,
+        "byteOrder": "little",
+        "loadSegments": [
+          {
+            "offset": 0,
+            "virtualAddress": 0,
+            "fileSize": 171152,
+            "memorySize": 171152,
+            "alignment": 16384,
+            "pageCongruent": true
+          },
+          {
+            "offset": 171152,
+            "virtualAddress": 187536,
+            "fileSize": 3504,
+            "memorySize": 4976,
+            "alignment": 16384,
+            "pageCongruent": true
+          },
+          {
+            "offset": 174656,
+            "virtualAddress": 207424,
+            "fileSize": 144,
+            "memorySize": 3528,
+            "alignment": 16384,
+            "pageCongruent": true
+          }
+        ],
+        "relroEndRemainders": [
+          12288
+        ]
+      },
+      {
+        "path": "lib/arm64-v8a/libhermestooling.so",
+        "abi": "arm64-v8a",
+        "bytes": 568000,
+        "stored": true,
+        "status": "PASS",
+        "elfClass": 64,
+        "machine": 183,
+        "byteOrder": "little",
+        "loadSegments": [
+          {
+            "offset": 0,
+            "virtualAddress": 0,
+            "fileSize": 551440,
+            "memorySize": 551440,
+            "alignment": 16384,
+            "pageCongruent": true
+          },
+          {
+            "offset": 551440,
+            "virtualAddress": 567824,
+            "fileSize": 14088,
+            "memorySize": 17904,
+            "alignment": 16384,
+            "pageCongruent": true
+          },
+          {
+            "offset": 565528,
+            "virtualAddress": 598296,
+            "fileSize": 176,
+            "memorySize": 2338,
+            "alignment": 16384,
+            "pageCongruent": true
+          }
+        ],
+        "relroEndRemainders": [
+          12288
+        ]
+      },
+      {
+        "path": "lib/arm64-v8a/libhermesvm.so",
+        "abi": "arm64-v8a",
+        "bytes": 3717016,
+        "stored": true,
+        "status": "PASS",
+        "elfClass": 64,
+        "machine": 183,
+        "byteOrder": "little",
+        "loadSegments": [
+          {
+            "offset": 0,
+            "virtualAddress": 0,
+            "fileSize": 3660736,
+            "memorySize": 3660736,
+            "alignment": 16384,
+            "pageCongruent": true
+          },
+          {
+            "offset": 3660736,
+            "virtualAddress": 3677120,
+            "fileSize": 53792,
+            "memorySize": 54336,
+            "alignment": 16384,
+            "pageCongruent": true
+          },
+          {
+            "offset": 3714528,
+            "virtualAddress": 3747296,
+            "fileSize": 280,
+            "memorySize": 17112,
+            "alignment": 16384,
+            "pageCongruent": true
+          }
+        ],
+        "relroEndRemainders": [
+          12288
+        ]
+      },
+      {
+        "path": "lib/arm64-v8a/libimagepipeline.so",
+        "abi": "arm64-v8a",
+        "bytes": 8760,
+        "stored": true,
+        "status": "PASS",
+        "elfClass": 64,
+        "machine": 183,
+        "byteOrder": "little",
+        "loadSegments": [
+          {
+            "offset": 0,
+            "virtualAddress": 0,
+            "fileSize": 5952,
+            "memorySize": 5952,
+            "alignment": 16384,
+            "pageCongruent": true
+          },
+          {
+            "offset": 5952,
+            "virtualAddress": 22336,
+            "fileSize": 568,
+            "memorySize": 2240,
+            "alignment": 16384,
+            "pageCongruent": true
+          },
+          {
+            "offset": 6520,
+            "virtualAddress": 39288,
+            "fileSize": 192,
+            "memorySize": 216,
+            "alignment": 16384,
+            "pageCongruent": true
+          }
+        ],
+        "relroEndRemainders": [
+          8192
+        ]
+      },
+      {
+        "path": "lib/arm64-v8a/libjsi.so",
+        "abi": "arm64-v8a",
+        "bytes": 941304,
+        "stored": true,
+        "status": "PASS",
+        "elfClass": 64,
+        "machine": 183,
+        "byteOrder": "little",
+        "loadSegments": [
+          {
+            "offset": 0,
+            "virtualAddress": 0,
+            "fileSize": 920304,
+            "memorySize": 920304,
+            "alignment": 16384,
+            "pageCongruent": true
+          },
+          {
+            "offset": 920304,
+            "virtualAddress": 936688,
+            "fileSize": 18592,
+            "memorySize": 21776,
+            "alignment": 16384,
+            "pageCongruent": true
+          },
+          {
+            "offset": 938896,
+            "virtualAddress": 971664,
+            "fileSize": 200,
+            "memorySize": 68056,
+            "alignment": 16384,
+            "pageCongruent": true
+          }
+        ],
+        "relroEndRemainders": [
+          8192
+        ]
+      },
+      {
+        "path": "lib/arm64-v8a/liblafina_whisper.so",
+        "abi": "arm64-v8a",
+        "bytes": 1785944,
+        "stored": true,
+        "status": "PASS",
+        "elfClass": 64,
+        "machine": 183,
+        "byteOrder": "little",
+        "loadSegments": [
+          {
+            "offset": 0,
+            "virtualAddress": 0,
+            "fileSize": 523976,
+            "memorySize": 523976,
+            "alignment": 16384,
+            "pageCongruent": true
+          },
+          {
+            "offset": 523984,
+            "virtualAddress": 540368,
+            "fileSize": 1238912,
+            "memorySize": 1238912,
+            "alignment": 16384,
+            "pageCongruent": true
+          },
+          {
+            "offset": 1762896,
+            "virtualAddress": 1795664,
+            "fileSize": 20264,
+            "memorySize": 22960,
+            "alignment": 16384,
+            "pageCongruent": true
+          },
+          {
+            "offset": 1783160,
+            "virtualAddress": 1832312,
+            "fileSize": 416,
+            "memorySize": 534008,
+            "alignment": 16384,
+            "pageCongruent": true
+          }
+        ],
+        "relroEndRemainders": [
+          0
+        ]
+      },
+      {
+        "path": "lib/arm64-v8a/libnative-filters.so",
+        "abi": "arm64-v8a",
+        "bytes": 23712,
+        "stored": true,
+        "status": "PASS",
+        "elfClass": 64,
+        "machine": 183,
+        "byteOrder": "little",
+        "loadSegments": [
+          {
+            "offset": 0,
+            "virtualAddress": 0,
+            "fileSize": 20960,
+            "memorySize": 20960,
+            "alignment": 16384,
+            "pageCongruent": true
+          },
+          {
+            "offset": 20960,
+            "virtualAddress": 37344,
+            "fileSize": 584,
+            "memorySize": 3616,
+            "alignment": 16384,
+            "pageCongruent": true
+          },
+          {
+            "offset": 21544,
+            "virtualAddress": 54312,
+            "fileSize": 120,
+            "memorySize": 144,
+            "alignment": 16384,
+            "pageCongruent": true
+          }
+        ],
+        "relroEndRemainders": [
+          8192
+        ]
+      },
+      {
+        "path": "lib/arm64-v8a/libnative-imagetranscoder.so",
+        "abi": "arm64-v8a",
+        "bytes": 585376,
+        "stored": true,
+        "status": "PASS",
+        "elfClass": 64,
+        "machine": 183,
+        "byteOrder": "little",
+        "loadSegments": [
+          {
+            "offset": 0,
+            "virtualAddress": 0,
+            "fileSize": 565168,
+            "memorySize": 565168,
+            "alignment": 16384,
+            "pageCongruent": true
+          },
+          {
+            "offset": 565168,
+            "virtualAddress": 581552,
+            "fileSize": 17704,
+            "memorySize": 20560,
+            "alignment": 16384,
+            "pageCongruent": true
+          },
+          {
+            "offset": 582872,
+            "virtualAddress": 615640,
+            "fileSize": 232,
+            "memorySize": 3032,
+            "alignment": 16384,
+            "pageCongruent": true
+          }
+        ],
+        "relroEndRemainders": [
+          12288
+        ]
+      },
+      {
+        "path": "lib/arm64-v8a/libonnxruntime.so",
+        "abi": "arm64-v8a",
+        "bytes": 18214224,
+        "stored": true,
+        "status": "PASS",
+        "elfClass": 64,
+        "machine": 183,
+        "byteOrder": "little",
+        "loadSegments": [
+          {
+            "offset": 0,
+            "virtualAddress": 0,
+            "fileSize": 17789488,
+            "memorySize": 17789488,
+            "alignment": 16384,
+            "pageCongruent": true
+          },
+          {
+            "offset": 17789488,
+            "virtualAddress": 17805872,
+            "fileSize": 415416,
+            "memorySize": 417232,
+            "alignment": 16384,
+            "pageCongruent": true
+          },
+          {
+            "offset": 18204904,
+            "virtualAddress": 18237672,
+            "fileSize": 6792,
+            "memorySize": 54072,
+            "alignment": 16384,
+            "pageCongruent": true
+          }
+        ],
+        "relroEndRemainders": [
+          4096
+        ]
+      },
+      {
+        "path": "lib/arm64-v8a/libonnxruntime4j_jni.so",
+        "abi": "arm64-v8a",
+        "bytes": 75720,
+        "stored": true,
+        "status": "PASS",
+        "elfClass": 64,
+        "machine": 183,
+        "byteOrder": "little",
+        "loadSegments": [
+          {
+            "offset": 0,
+            "virtualAddress": 0,
+            "fileSize": 73056,
+            "memorySize": 73056,
+            "alignment": 16384,
+            "pageCongruent": true
+          },
+          {
+            "offset": 73056,
+            "virtualAddress": 89440,
+            "fileSize": 816,
+            "memorySize": 4768,
+            "alignment": 16384,
+            "pageCongruent": true
+          }
+        ],
+        "relroEndRemainders": [
+          12288
+        ]
+      },
+      {
+        "path": "lib/arm64-v8a/libop-sqlite.so",
+        "abi": "arm64-v8a",
+        "bytes": 1760400,
+        "stored": true,
+        "status": "PASS",
+        "elfClass": 64,
+        "machine": 183,
+        "byteOrder": "little",
+        "loadSegments": [
+          {
+            "offset": 0,
+            "virtualAddress": 0,
+            "fileSize": 421040,
+            "memorySize": 421040,
+            "alignment": 16384,
+            "pageCongruent": true
+          },
+          {
+            "offset": 421040,
+            "virtualAddress": 437424,
+            "fileSize": 1300544,
+            "memorySize": 1300544,
+            "alignment": 16384,
+            "pageCongruent": true
+          },
+          {
+            "offset": 1721584,
+            "virtualAddress": 1754352,
+            "fileSize": 23712,
+            "memorySize": 27408,
+            "alignment": 16384,
+            "pageCongruent": true
+          },
+          {
+            "offset": 1745296,
+            "virtualAddress": 1794448,
+            "fileSize": 12736,
+            "memorySize": 16536,
+            "alignment": 16384,
+            "pageCongruent": true
+          }
+        ],
+        "relroEndRemainders": [
+          12288
+        ]
+      },
+      {
+        "path": "lib/arm64-v8a/libreact_codegen_rnsvg.so",
+        "abi": "arm64-v8a",
+        "bytes": 2332008,
+        "stored": true,
+        "status": "PASS",
+        "elfClass": 64,
+        "machine": 183,
+        "byteOrder": "little",
+        "loadSegments": [
+          {
+            "offset": 0,
+            "virtualAddress": 0,
+            "fileSize": 1173672,
+            "memorySize": 1173672,
+            "alignment": 16384,
+            "pageCongruent": true
+          },
+          {
+            "offset": 1173680,
+            "virtualAddress": 1190064,
+            "fileSize": 1093328,
+            "memorySize": 1093328,
+            "alignment": 16384,
+            "pageCongruent": true
+          },
+          {
+            "offset": 2267008,
+            "virtualAddress": 2299776,
+            "fileSize": 62568,
+            "memorySize": 63616,
+            "alignment": 16384,
+            "pageCongruent": true
+          },
+          {
+            "offset": 2329576,
+            "virtualAddress": 2378728,
+            "fileSize": 64,
+            "memorySize": 74856,
+            "alignment": 16384,
+            "pageCongruent": true
+          }
+        ],
+        "relroEndRemainders": [
+          4096
+        ]
+      },
+      {
+        "path": "lib/arm64-v8a/libreact_codegen_safeareacontext.so",
+        "abi": "arm64-v8a",
+        "bytes": 578600,
+        "stored": true,
+        "status": "PASS",
+        "elfClass": 64,
+        "machine": 183,
+        "byteOrder": "little",
+        "loadSegments": [
+          {
+            "offset": 0,
+            "virtualAddress": 0,
+            "fileSize": 334060,
+            "memorySize": 334060,
+            "alignment": 16384,
+            "pageCongruent": true
+          },
+          {
+            "offset": 334064,
+            "virtualAddress": 350448,
+            "fileSize": 229648,
+            "memorySize": 229648,
+            "alignment": 16384,
+            "pageCongruent": true
+          },
+          {
+            "offset": 563712,
+            "virtualAddress": 596480,
+            "fileSize": 12472,
+            "memorySize": 13824,
+            "alignment": 16384,
+            "pageCongruent": true
+          },
+          {
+            "offset": 576184,
+            "virtualAddress": 625336,
+            "fileSize": 48,
+            "memorySize": 5864,
+            "alignment": 16384,
+            "pageCongruent": true
+          }
+        ],
+        "relroEndRemainders": [
+          4096
+        ]
+      },
+      {
+        "path": "lib/arm64-v8a/libreactnative.so",
+        "abi": "arm64-v8a",
+        "bytes": 23422056,
+        "stored": true,
+        "status": "PASS",
+        "elfClass": 64,
+        "machine": 183,
+        "byteOrder": "little",
+        "loadSegments": [
+          {
+            "offset": 0,
+            "virtualAddress": 0,
+            "fileSize": 23085744,
+            "memorySize": 23085744,
+            "alignment": 16384,
+            "pageCongruent": true
+          },
+          {
+            "offset": 23085744,
+            "virtualAddress": 23102128,
+            "fileSize": 326136,
+            "memorySize": 326992,
+            "alignment": 16384,
+            "pageCongruent": true
+          },
+          {
+            "offset": 23411880,
+            "virtualAddress": 23444648,
+            "fileSize": 7880,
+            "memorySize": 147016,
+            "alignment": 16384,
+            "pageCongruent": true
+          }
+        ],
+        "relroEndRemainders": [
+          0
+        ]
+      }
+    ]
+  },
+  "zipAlignment": {
+    "status": "PASS",
+    "storedEntries": 302,
+    "failures": [],
+    "failureCount": 0
+  },
+  "limits": [
+    "PT_LOAD and ZIP offsets only; not runtime, RELRO or physical-device certification.",
+    "RELRO end remainders are observations for separate review, not a loader verdict.",
+    "Signing certificate facts are recorded separately with SDK apksigner; keys are never read."
+  ]
+}

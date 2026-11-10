@@ -1,0 +1,81 @@
+  console.warn
+    SafeAreaView has been deprecated and will be removed in a future release. Please use 'react-native-safe-area-context' instead. See https://github.com/AppAndFlow/react-native-safe-area-context
+
+    [0m [90m 25 |[39m   [36mreturn[39m (
+     [90m 26 |[39m     [33m<[39m[33mModal[39m visible[33m=[39m{visible} animationType[33m=[39m[32m"slide"[39m onRequestClose[33m=[39m{onClose}[33m>[39m
+    [31m[1m>[22m[39m[90m 27 |[39m       [33m<[39m[33mSafeAreaView[39m style[33m=[39m{[styles[33m.[39mprivacyContainer[33m,[39m themed[33m.[39mprivacyContainer]}[33m>[39m
+     [90m    |[39m        [31m[1m^[22m[39m
+     [90m 28 |[39m         [33m<[39m[33mView[39m style[33m=[39m{[styles[33m.[39mprivacyHeader[33m,[39m themed[33m.[39mprivacyHeader]}[33m>[39m
+     [90m 29 |[39m           [33m<[39m[33mText[39m style[33m=[39m{[styles[33m.[39mprivacyHeaderTitle[33m,[39m themed[33m.[39mprivacyHeaderTitle]}[33m>[39m
+     [90m 30 |[39m             [33mPrivacy[39m [33mPolicy[39m[0m
+
+      at warn (node_modules/react-native/Libraries/Utilities/warnOnce.js:27:11)
+      at Object.warnOnce [as SafeAreaView] (node_modules/react-native/index.js:101:5)
+      at SafeAreaView (src/ui/components/profile/PrivacyModal.tsx:27:8)
+      at Object.react_stack_bottom_frame (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:15670:20)
+      at renderWithHooks (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:4863:22)
+      at updateFunctionComponent (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:7018:19)
+      at beginWork (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:8499:18)
+      at runWithFiberInDEV (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:2315:13)
+      at performUnitOfWork (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:13224:22)
+      at workLoopSync (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:13068:41)
+      at renderRootSync (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:13049:11)
+      at performWorkOnRoot (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:12181:11)
+      at performWorkOnRootViaSchedulerTask (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:2908:7)
+      at flushActQueue (node_modules/react/cjs/react.development.js:590:34)
+      at Object.<anonymous>.process.env.NODE_ENV.exports.act (node_modules/react/cjs/react.development.js:884:10)
+      at actImplementation (node_modules/@testing-library/react-native/src/act.ts:30:25)
+      at renderWithAct (node_modules/@testing-library/react-native/src/render-act.ts:13:11)
+      at renderInternal (node_modules/@testing-library/react-native/src/render.tsx:69:33)
+      at renderInternal (node_modules/@testing-library/react-native/src/render.tsx:44:10)
+      at Object.<anonymous> (docs/plans/agy-improvements/reports/evidence/codex-clear-data-audit-8823b11-20261107/independentAttachmentRetry.test.tsx:19:19)
+      at asyncGeneratorStep (node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+      at _next (node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
+      at node_modules/@babel/runtime/helpers/asyncToGenerator.js:22:7
+      at Object.<anonymous> (node_modules/@babel/runtime/helpers/asyncToGenerator.js:14:12)
+
+  console.warn
+    [AttachmentCleanup] An attachment file could not be removed: Error: synthetic transient unlink failure
+        at Object.<anonymous> (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\docs\plans\agy-improvements\reports\evidence\codex-clear-data-audit-8823b11-20261107\independentAttachmentRetry.test.tsx:16:80)
+        at Generator.next (<anonymous>)
+        at asyncGeneratorStep (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\@babel\runtime\helpers\asyncToGenerator.js:3:17)
+        at _next (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\@babel\runtime\helpers\asyncToGenerator.js:17:9)
+        at C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\@babel\runtime\helpers\asyncToGenerator.js:22:7
+        at new Promise (<anonymous>)
+        at Object.<anonymous> (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\@babel\runtime\helpers\asyncToGenerator.js:14:12)
+        at Object.apply (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\docs\plans\agy-improvements\reports\evidence\codex-clear-data-audit-8823b11-20261107\independentAttachmentRetry.test.tsx:16:145)
+        at C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-mock\build\index.js:397:39
+        at Object.<anonymous> (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-mock\build\index.js:404:13)
+        at Object.mockConstructor [as unlink] (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-mock\build\index.js:148:19)
+        at unlink (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\src\storage\attachmentCleanup.ts:93:14)
+        at Generator.next (<anonymous>)
+        at asyncGeneratorStep (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\@babel\runtime\helpers\asyncToGenerator.js:3:17)
+        at _next (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\@babel\runtime\helpers\asyncToGenerator.js:17:9)
+
+    [0m [90m 133 |[39m       gone [33m=[39m [36mawait[39m removeFile(path)[33m;[39m
+     [90m 134 |[39m     } [36mcatch[39m (error) {
+    [31m[1m>[22m[39m[90m 135 |[39m       console[33m.[39mwarn([32m'[AttachmentCleanup] An attachment file could not be removed:'[39m[33m,[39m error)[33m;[39m
+     [90m     |[39m               [31m[1m^[22m[39m
+     [90m 136 |[39m     }
+     [90m 137 |[39m     [36mtry[39m {
+     [90m 138 |[39m       [36mif[39m (gone) {[0m
+
+      at warn (src/storage/attachmentCleanup.ts:135:15)
+          at Generator.throw (<anonymous>)
+      at asyncGeneratorStep (node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+      at _throw (node_modules/@babel/runtime/helpers/asyncToGenerator.js:20:9)
+
+  console.log
+    INDEPENDENT_ATTACHMENT_RETRY {"first":{"title":"Data Partly Cleared","message":"Your notes, tasks, events, reminders and calendar blocks and your chat history and your saved event defaults were cleared. 1 chat attachment file could not be removed from this phone's storage yet; Clear All Data keeps it listed and tries again. Try Clear All Data again. Device settings such as the offline voice, theme and time format were kept."},"second":{"title":"Data Cleared","message":"All personal scheduling data and saved event defaults have been deleted."},"fileStillPresent":false,"remainingReferencedUris":[],"unlinkCalls":[["/documents/synthetic-retry.pdf"],["/documents/synthetic-retry.pdf"]]}
+
+      at Object.log (docs/plans/agy-improvements/reports/evidence/codex-clear-data-audit-8823b11-20261107/independentAttachmentRetry.test.tsx:24:10)
+
+PASS docs/plans/agy-improvements/reports/evidence/codex-clear-data-audit-8823b11-20261107/independentAttachmentRetry.test.tsx (5.513 s)
+  √ retry must remove an attachment left by the first reset before claiming full success (1354 ms)
+
+Test Suites: 1 passed, 1 total
+Tests:       1 passed, 1 total
+Snapshots:   0 total
+Time:        5.733 s
+Ran all test suites within paths "docs/plans/agy-improvements/reports/evidence/codex-clear-data-audit-8823b11-20261107/independentAttachmentRetry.test.tsx".
+EXIT=0

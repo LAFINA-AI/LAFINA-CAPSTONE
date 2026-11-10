@@ -113,9 +113,11 @@ export const transcribeUtterance = async (
 
   let timer: ReturnType<typeof setTimeout> | null = null;
   const timeoutPromise = new Promise<never>((_, reject) => {
-    timer = setTimeout(async () => {
-      await cancelListening(handle.captureId).catch(() => undefined);
+    timer = setTimeout(() => {
+      // Reject first: a cancel settles the capture as "cancelled" at once, and the
+      // caller must still see a timeout rather than an empty cancelled result.
       reject(new Error(`Speech recognition timed out after ${timeoutMs}ms`));
+      void cancelListening(handle.captureId).catch(() => undefined);
     }, timeoutMs);
   });
 

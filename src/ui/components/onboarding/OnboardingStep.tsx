@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import { View, Text, TextInput, StyleSheet, TouchableOpacity } from 'react-native';
 import { Colors, Fonts, Layout, Shadows, useThemedStyles } from '../../theme';
 import { useTheme } from '../../contexts/ThemeContext';
 import type { ThemeColors } from '../../contexts/ThemeContext';
+import type {ConversationTone} from '../../../storage/onboardingMemory';
 import { BookOpen, Clock, Activity, Award } from 'lucide-react-native';
 import DateTimePicker, { DateTimePickerEvent } from '@react-native-community/datetimepicker';
 import type {
@@ -30,6 +31,11 @@ interface OnboardingStepProps {
   setClassCount: (val: WeeklyClassCount) => void;
   longestGap: LongestClassGap;
   setLongestGap: (val: LongestClassGap) => void;
+  preferredName: string;
+  setPreferredName: (value: string) => void;
+  tone: ConversationTone;
+  setTone: (value: ConversationTone) => void;
+  memoryEnabled: boolean;
 }
 
 const studyPeakOptions: { label: string; value: StudyPeakHour }[] = [
@@ -88,6 +94,11 @@ export const OnboardingStep: React.FC<OnboardingStepProps> = ({
   setClassCount,
   longestGap,
   setLongestGap,
+  preferredName,
+  setPreferredName,
+  tone,
+  setTone,
+  memoryEnabled,
 }) => {
   const { colors } = useTheme();
   const themed = useThemedStyles(getThemedStyles);
@@ -447,6 +458,30 @@ export const OnboardingStep: React.FC<OnboardingStepProps> = ({
       );
     case 5:
       return (
+        <View>
+          <Text style={[styles.stepTitle, themed.stepTitle]}>Make LAFINA yours</Text>
+          <Text style={[styles.stepDesc, themed.stepDesc]}>
+            These details are optional. They are saved in your phone's memory when it is enabled, and can be edited or removed in Profile.
+          </Text>
+          {!memoryEnabled ? <Text style={[styles.stepDesc, themed.stepDesc]}>Memory is off, so these details will not be saved.</Text> : null}
+          <Text style={[styles.inputLabel, themed.inputLabel]}>What should LAFINA call you?</Text>
+          <TextInput testID="onboarding-preferred-name" accessibilityLabel="Preferred name" value={preferredName}
+            onChangeText={setPreferredName} maxLength={60} placeholder="Your preferred name" placeholderTextColor={colors.textMuted}
+            editable={memoryEnabled} style={[styles.nameInput, themed.chip, themed.chipText]} />
+          <Text style={[styles.inputLabel, themed.inputLabel]}>How should LAFINA talk?</Text>
+          <View style={styles.chipContainer}>
+            {(['casual', 'professional'] as const).map(value => (
+              <TouchableOpacity key={value} testID={`onboarding-tone-${value}`} accessibilityRole="radio"
+                accessibilityState={{selected:tone === value, disabled:!memoryEnabled}} disabled={!memoryEnabled}
+                onPress={() => setTone(tone === value ? '' : value)} style={[styles.chip, themed.chip, tone === value && styles.activeChip]}>
+                <Text style={[styles.chipText, themed.chipText, tone === value && styles.activeChipText]}>{value === 'casual' ? 'Casual' : 'Professional'}</Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+        </View>
+      );
+    case 6:
+      return (
         <View style={styles.finishContainer}>
           <View style={[styles.iconCircle, themed.iconCircle, Shadows.card]}>
             <Award size={50} color={colors.success} />
@@ -481,6 +516,7 @@ export const OnboardingStep: React.FC<OnboardingStepProps> = ({
 };
 
 const styles = StyleSheet.create({
+  nameInput: {borderWidth: 1.5, borderRadius: Layout.borderRadiusCard, paddingHorizontal: 14, paddingVertical: 10, fontFamily: Fonts.body, fontSize: 15},
   iconHeaderContainer: {
     alignItems: 'center',
     marginBottom: 16,

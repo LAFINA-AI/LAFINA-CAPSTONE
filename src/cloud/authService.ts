@@ -117,56 +117,34 @@ export const authService = {
     }
   },
 
+  /**
+   * Loads the profile. `cloudClient.request` already renews an expired token
+   * through the one shared renewal (the server rotates refresh tokens, so a
+   * second renewal here would be rejected and look like a sign-out). The
+   * stored sign-in is removed only when renewal proved it is over, never for
+   * a network or server hiccup.
+   */
   getMe: async (): Promise<CloudResult<UserProfileData>> => {
-    const requestProfile = (): Promise<CloudResult<UserProfileData>> =>
-      cloudClient.request<UserProfileData>('/v1/auth/me', { method: 'GET' }, true);
-
-    const initialResult = await requestProfile();
-    if (initialResult.status !== 'auth_required') {
-      return initialResult;
+    const result = await cloudClient.request<UserProfileData>(
+      '/v1/auth/me',
+      { method: 'GET' },
+      true,
+    );
+    if (result.status !== 'auth_required') {
+      return result;
     }
-
-    let refreshToken: string | null = null;
-    try {
-      refreshToken = await cloudClient.getEncryptedRefreshToken();
-    } catch {
-      cloudClient.clearActiveSession();
-      return {
-        status: 'auth_required',
-        error: 'Refresh-token renewal failed. Sign in again while online.',
-      };
-    }
-    if (!refreshToken) {
-      cloudClient.clearActiveSession();
-      return initialResult;
-    }
-
-    let refreshResult: CloudResult<AuthResponseData>;
-    try {
-      refreshResult = await authService.refresh(refreshToken);
-    } catch {
-      cloudClient.clearActiveSession();
-      return {
-        status: 'auth_required',
-        error: 'Refresh-token renewal failed. Sign in again while online.',
-      };
-    }
-    if (refreshResult.status !== 'success') {
-      cloudClient.clearActiveSession();
-      return {
-        status: 'auth_required',
-        error: 'Refresh-token renewal failed. Sign in again while online.',
-      };
-    }
-
-    const renewedProfile = await requestProfile();
-    if (renewedProfile.status === 'auth_required') {
+    if (result.sessionEnded) {
       cloudClient.clearActiveSession();
       return {
         status: 'auth_required',
         error: 'Cloud authentication expired. Sign in again while online.',
+        sessionEnded: true,
       };
     }
-    return renewedProfile;
+    return {
+      status: 'server_unavailable',
+      error: 'Your sign-in could not be renewed right now. Try again in a moment.',
+      httpStatus: result.httpStatus,
+    };
   },
 };

@@ -1,0 +1,21 @@
+{
+  "atUtc": "2026-11-07T13:25:44.420299+00:00",
+  "sourceCommit": "91082bc0aecacd9ebfb7eaa063628b5030ab976e",
+  "avd": "Medium_Phone",
+  "androidApi": 37,
+  "abi": "x86_64",
+  "package": "com.lafina.capstone.elevenlabs",
+  "apkPath": "android\\app\\build\\outputs\\apk\\dataQa\\app-x86_64-dataQa.apk",
+  "apkSha256": "99858483b7ea8ca8deb8550c7488e19053a09d847304e3ff645577d163aa5287",
+  "apkBytes": 149313418,
+  "build": "PASS - 1m20s standalone QA packaging",
+  "install": "PASS - adb install -r",
+  "launch": "PASS - welcome screen observed in foreground",
+  "networking": "enabled; emulator-to-host connectivity verified",
+  "metroRequired": false,
+  "existingAppData": "not cleared or uninstalled",
+  "accountLogin": "NOT RUN - left for user",
+  "elevenlabsPlayback": "NOT RUN - left for user",
+  "offlineAlarmsAndVoiceDeviceChecks": "NOT RUN",
+  "note": "Application ID suffix changed only via ignored build init script; no source changes."
+}

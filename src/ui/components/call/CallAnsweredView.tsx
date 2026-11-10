@@ -35,6 +35,8 @@ interface CallAnsweredViewProps {
   onDecline: () => void;
   transcript: string;
   reply: string;
+  onlineConversation?: React.ReactNode;
+  busy?: boolean;
 }
 
 const formatCallDuration = (seconds: number): string => {
@@ -56,6 +58,8 @@ export const CallAnsweredView: React.FC<CallAnsweredViewProps> = ({
   onDecline,
   transcript,
   reply,
+  onlineConversation,
+  busy = false,
 }) => {
   const { isDarkMode, colors } = useTheme();
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
@@ -148,7 +152,8 @@ export const CallAnsweredView: React.FC<CallAnsweredViewProps> = ({
       : resolution?.outcome === 'snoozed'
       ? colors.yellow
       : colors.success;
-  const controlsEnabled = resolution === null;
+  const controlsEnabled = resolution === null && !busy;
+  const endEnabled = resolution === null;
 
   const themed = {
     container: { backgroundColor: colors.background },
@@ -310,7 +315,7 @@ export const CallAnsweredView: React.FC<CallAnsweredViewProps> = ({
         </View>
       </View>
 
-      <View style={styles.visualArea}>{renderStatusVisual()}</View>
+      <View style={styles.visualArea}>{onlineConversation || renderStatusVisual()}</View>
 
       <View style={[styles.transcriptCard, themed.card]}>
         <ScrollView
@@ -351,16 +356,16 @@ export const CallAnsweredView: React.FC<CallAnsweredViewProps> = ({
           <View style={styles.controlColumn}>
             <TouchableOpacity
               activeOpacity={0.8}
-              disabled={!controlsEnabled}
+              disabled={!endEnabled}
               onPress={onDecline}
               style={[
                 styles.roundControl,
                 { backgroundColor: colors.error },
-                !controlsEnabled && styles.disabledControl,
+                !endEnabled && styles.disabledControl,
               ]}
               accessibilityRole="button"
               accessibilityLabel="End reminder call"
-              accessibilityState={{ disabled: !controlsEnabled }}
+              accessibilityState={{ disabled: !endEnabled }}
             >
               <PhoneOff size={30} color={colors.white} />
             </TouchableOpacity>

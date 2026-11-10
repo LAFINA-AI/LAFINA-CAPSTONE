@@ -1,8 +1,6 @@
 import {
-  computeAdaptiveTriggerAt,
   getAdaptiveScheduleRecommendation,
   isAdaptiveTimingEnabled,
-  MIN_HISTORY_SAMPLES_FOR_ML,
   MIN_LEAD_OFFSET_MINUTES,
   MAX_LEAD_OFFSET_MINUTES,
   SETTING_KEY_ADAPTIVE_TIMING,
@@ -169,10 +167,20 @@ describe('Phase ML-3: Machine Learning Adaptive Timing Advisor', () => {
       }
 
       const scheduledAtIso = '2026-11-09T08:00:00.000Z';
-      const rec = getAdaptiveScheduleRecommendation(testUserId, {
-        scheduledAtIso,
-        priority: 'High',
-      });
+      // Keep the fixture in the future even when this test runs after its date.
+      const now = jest.spyOn(Date, 'now').mockReturnValue(
+        new Date('2026-11-09T00:00:00.000Z').getTime(),
+      );
+      const rec = (() => {
+        try {
+          return getAdaptiveScheduleRecommendation(testUserId, {
+            scheduledAtIso,
+            priority: 'High',
+          });
+        } finally {
+          now.mockRestore();
+        }
+      })();
 
       // Verified: source is ml_ensemble
       expect(rec.source).toBe('ml_ensemble');

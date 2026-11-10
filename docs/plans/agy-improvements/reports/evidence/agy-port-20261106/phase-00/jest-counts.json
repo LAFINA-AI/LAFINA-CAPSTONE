@@ -1,0 +1,72 @@
+{
+ "total_suites": 16,
+ "total": 194,
+ "passed": 194,
+ "failed": 0,
+ "suites": [
+  [
+   "__tests__/App.test.tsx",
+   1
+  ],
+  [
+   "__tests__/ai/phase05TtsAndCloudSpeech.test.ts",
+   18
+  ],
+  [
+   "__tests__/ai/phase06SttAndVoiceModal.test.tsx",
+   15
+  ],
+  [
+   "__tests__/ai/phase07NluAndActionExecution.test.ts",
+   33
+  ],
+  [
+   "__tests__/ai/phase08ChatAndOrchestrator.test.tsx",
+   15
+  ],
+  [
+   "__tests__/ai/phase09OnlineDocsAndMeetings.test.tsx",
+   11
+  ],
+  [
+   "__tests__/ai/phase10HandbookRAG.test.tsx",
+   15
+  ],
+  [
+   "__tests__/ai/ttsService.test.ts",
+   2
+  ],
+  [
+   "__tests__/preservation/agyPreservedContracts.test.ts",
+   31
+  ],
+  [
+   "__tests__/scheduler/callDispatcherAndCallScreen.test.tsx",
+   13
+  ],
+  [
+   "__tests__/scheduler/phase03ReminderScheduler.test.ts",
+   12
+  ],
+  [
+   "__tests__/storage/phase01Storage.test.ts",
+   6
+  ],
+  [
+   "__tests__/storage/phase02CalendarAndNotes.test.ts",
+   9
+  ],
+  [
+   "__tests__/ui/phase01AuthAndProfileScreens.test.tsx",
+   3
+  ],
+  [
+   "__tests__/ui/phase01ThemeAndTour.test.tsx",
+   5
+  ],
+  [
+   "__tests__/ui/phase02CalendarAndNotesScreens.test.tsx",
+   5
+  ]
+ ]
+}

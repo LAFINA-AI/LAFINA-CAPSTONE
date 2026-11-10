@@ -4,6 +4,8 @@ import {
   StyleSheet,
   ScrollView,
   StatusBar,
+  Text,
+  TouchableOpacity,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Layout } from '../theme';
@@ -20,27 +22,38 @@ import type { ThemeColors } from '../contexts/ThemeContext';
 import { OnboardingProgress } from '../components/onboarding/OnboardingProgress';
 import { OnboardingStep } from '../components/onboarding/OnboardingStep';
 import { OnboardingNavigation } from '../components/onboarding/OnboardingNavigation';
+import {chatMemoryStore} from '../../storage/chatMemoryStore';
+import {readOnboardingIdentity, saveOnboardingMemories} from '../../storage/onboardingMemory';
+import type {ConversationTone} from '../../storage/onboardingMemory';
 
 interface OnboardingScreenProps {
   userId: string;
   onOnboardingComplete: () => void;
+  onCancel?: () => void;
 }
 
 export const OnboardingScreen: React.FC<OnboardingScreenProps> = ({
   userId,
   onOnboardingComplete,
+  onCancel,
 }) => {
   const [step, setStep] = useState(1);
-  const totalSteps = 5;
+  const [saveError, setSaveError] = useState<string | null>(null);
+  const totalSteps = 6;
+  const [existing] = useState(() => preferencesStore.get(userId));
+  const [identity] = useState(() => readOnboardingIdentity(userId));
+  const [preferredName, setPreferredName] = useState(identity.preferredName);
+  const [tone, setTone] = useState<ConversationTone>(identity.tone);
+  const [memoryEnabled] = useState(() => chatMemoryStore.isEnabled(userId));
 
-  const [wakeTime, setWakeTime] = useState('07:00');
-  const [sleepTime, setSleepTime] = useState('22:00');
-  const [studyPeak, setStudyPeak] = useState<StudyPeakHour[]>([]);
-  const [busiestDay, setBusiestDay] = useState('Monday');
-  const [reminderLead, setReminderLead] = useState('15');
-  const [snoozeTendency, setSnoozeTendency] = useState<SnoozeTendency>('snooze_once');
-  const [classCount, setClassCount] = useState<WeeklyClassCount>('4-6');
-  const [longestGap, setLongestGap] = useState<LongestClassGap>('1 hour');
+  const [wakeTime, setWakeTime] = useState(existing.wakeTime);
+  const [sleepTime, setSleepTime] = useState(existing.sleepTime);
+  const [studyPeak, setStudyPeak] = useState<StudyPeakHour[]>(onCancel ? existing.studyPeakHours : []);
+  const [busiestDay, setBusiestDay] = useState(existing.busiestDay);
+  const [reminderLead, setReminderLead] = useState(String(existing.reminderLeadMinutes));
+  const [snoozeTendency, setSnoozeTendency] = useState<SnoozeTendency>(existing.snoozeTendency);
+  const [classCount, setClassCount] = useState<WeeklyClassCount>(existing.weeklyClassCount);
+  const [longestGap, setLongestGap] = useState<LongestClassGap>(existing.longestClassGap);
 
   const { colors } = useTheme();
   const themed = useThemedStyles(getOnboardThemedStyles);
@@ -69,6 +82,7 @@ export const OnboardingScreen: React.FC<OnboardingScreenProps> = ({
 
   const completeOnboarding = () => {
     try {
+      setSaveError(null);
       const leadMinutes = parseInt(reminderLead, 10) || 15;
 
       behaviorStore.logBehaviorEvent(userId, 'onboarding_response', 'typical_wake_time', wakeTime);
@@ -136,10 +150,12 @@ export const OnboardingScreen: React.FC<OnboardingScreenProps> = ({
         longestClassGap: longestGap,
       });
 
+      saveOnboardingMemories(userId, {preferredName, tone}, studyPeak);
       userStore.markOnboardingComplete(userId);
       onOnboardingComplete();
     } catch (error) {
       console.error('Failed completing onboarding:', error);
+      setSaveError('Could not save your setup. Please try again.');
     }
   };
 
@@ -147,7 +163,10 @@ export const OnboardingScreen: React.FC<OnboardingScreenProps> = ({
     <SafeAreaView style={[styles.container, themed.container]}>
       <StatusBar barStyle={colors.statusBarStyle} backgroundColor={colors.background} />
 
+      {onCancel ? <TouchableOpacity accessibilityRole="button" onPress={onCancel} style={styles.cancel}><Text style={{color: colors.textSecondary}}>Cancel replay</Text></TouchableOpacity> : null}
+
       <OnboardingProgress step={step} totalSteps={totalSteps} />
+      {saveError ? <Text accessibilityRole="alert" style={{color: colors.error, paddingHorizontal:24}}>{saveError}</Text> : null}
 
       <ScrollView contentContainerStyle={styles.scrollContent}>
         <View style={[styles.card, themed.card]}>
@@ -169,6 +188,11 @@ export const OnboardingScreen: React.FC<OnboardingScreenProps> = ({
             setClassCount={setClassCount}
             longestGap={longestGap}
             setLongestGap={setLongestGap}
+            preferredName={preferredName}
+            setPreferredName={setPreferredName}
+            tone={tone}
+            setTone={setTone}
+            memoryEnabled={memoryEnabled}
           />
         </View>
       </ScrollView>
@@ -204,6 +228,7 @@ const getOnboardThemedStyles = (colors: ThemeColors, isDarkMode: boolean) => ({
 });
 
 const styles = StyleSheet.create({
+  cancel: {alignSelf:'flex-end', paddingHorizontal:24, paddingVertical:10},
   container: {
     flex: 1,
   },

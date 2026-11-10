@@ -1,0 +1,748 @@
+{
+  "schema_version": 1,
+  "pack_prepared_date": "2026-11-06",
+  "timezone": "Asia/Manila",
+  "run_id": "agy-port-20261106",
+  "run_status": "FINISHED_PARTIAL",
+  "model_requested": "claude-opus-5-5",
+  "actual_model": "claude-opus-5-5",
+  "base_branch": "agy-development-cont",
+  "audited_base_head": "b9433dc39d172f30ba26ea68e4a9c9eedd922407",
+  "actual_base_head": "b9433dc39d172f30ba26ea68e4a9c9eedd922407",
+  "work_branch": "codex/agy-preservation-improvements",
+  "worktree": "C:/L3mxr/Github Repositories/LAFINA-CAPSTONE-agy-development-cont",
+  "donor_head": "0d4bbe39e106c29fb90792cf5d2f916b5c0d6480",
+  "last_tested_head": "acfd8fc (attachment-cleanup audit C2 gates; preflight on the identical working tree before the commit; APKs built at HEAD acfd8fc)",
+  "last_committed_head": "47c20a41f17754c2a4195fcfbea3421e7df6787d",
+  "current_phase": "NONE (run finished; final-audit F1-F4, remediation P1/P2, clear-data C1 and attachment-cleanup C2 follow-ups done on host; owner device/live checks pending)",
+  "phases": [
+    {
+      "id": "AGY-PORT-00",
+      "spec": "phases/00-baseline-and-preservation.md",
+      "depends_on": [],
+      "inventory_areas": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9,
+        10,
+        11,
+        12,
+        13,
+        14,
+        15,
+        16,
+        17,
+        18,
+        19,
+        20,
+        21,
+        22,
+        23,
+        24,
+        25,
+        26,
+        27,
+        28,
+        29,
+        30
+      ],
+      "implementation": "CODE_COMPLETE",
+      "automated": "PASS",
+      "build": "PASS",
+      "device": "NOT_RUN",
+      "live_service": "NOT_RUN",
+      "base_head": "b9433dc39d172f30ba26ea68e4a9c9eedd922407",
+      "tested_head": "b9433dc+worktree",
+      "result_commit": "5f0ac399308bcbc8a432672bfa4976826eba9a4d",
+      "report": "phase-00-baseline.md",
+      "evidence": [
+        "evidence/agy-port-20261106/phase-00/"
+      ],
+      "continuation": "NEXT_PHASE",
+      "notes": [
+        "Builds need JDK 17 and an X: subst alias of this checkout"
+      ]
+    },
+    {
+      "id": "AGY-PORT-01",
+      "spec": "phases/01-storage-and-migrations.md",
+      "depends_on": [
+        "AGY-PORT-00"
+      ],
+      "inventory_areas": [
+        1
+      ],
+      "implementation": "CODE_COMPLETE",
+      "automated": "PASS",
+      "build": "PASS",
+      "device": "NOT_RUN",
+      "live_service": "NOT_RUN",
+      "base_head": "5f0ac399308bcbc8a432672bfa4976826eba9a4d",
+      "tested_head": "5f0ac39+worktree",
+      "result_commit": "8ab83b266f808fb06b0f6220889fd2e08cfe6134",
+      "report": "phase-01-storage.md",
+      "evidence": [
+        "evidence/agy-port-20261106/phase-01/"
+      ],
+      "continuation": "NEXT_PHASE",
+      "notes": [
+        "Gradle testDebugUnitTest UP-TO-DATE (no native change); preflight 248 tests"
+      ]
+    },
+    {
+      "id": "AGY-PORT-02",
+      "spec": "phases/02-chat-ownership-and-pages.md",
+      "depends_on": [
+        "AGY-PORT-01"
+      ],
+      "inventory_areas": [
+        8,
+        9
+      ],
+      "implementation": "CODE_COMPLETE",
+      "automated": "PASS",
+      "build": "NOT_RUN",
+      "device": "NOT_RUN",
+      "live_service": "NOT_RUN",
+      "base_head": "8ab83b266f808fb06b0f6220889fd2e08cfe6134",
+      "tested_head": "8ab83b2+worktree",
+      "result_commit": "aec3703212992aaaf46443faaa812dd7ae48f4f6",
+      "report": "phase-02-chat.md",
+      "evidence": [
+        "evidence/agy-port-20261106/phase-02/"
+      ],
+      "continuation": "NEXT_PHASE",
+      "notes": [
+        "No native change; Gradle not rerun. Reviewer medium finding fixed (legacy owner evidence rule)."
+      ]
+    },
+    {
+      "id": "AGY-PORT-03",
+      "spec": "phases/03-durable-reminder-delivery.md",
+      "depends_on": [
+        "AGY-PORT-01"
+      ],
+      "inventory_areas": [
+        2,
+        3
+      ],
+      "implementation": "CODE_COMPLETE",
+      "automated": "PASS",
+      "build": "PASS",
+      "device": "NOT_RUN",
+      "live_service": "NOT_RUN",
+      "base_head": "aec3703212992aaaf46443faaa812dd7ae48f4f6",
+      "tested_head": "aec3703+worktree",
+      "result_commit": "f5ae9aaae9e5f4bda8fdb5edeb6b8bbc12376035",
+      "report": "phase-03-delivery.md",
+      "evidence": [
+        "evidence/agy-port-20261106/phase-03/"
+      ],
+      "continuation": "NEXT_PHASE",
+      "notes": [
+        "Jest 316, Kotlin 24, assembleDebug PASS; instrumentation compiled once before the follow-up, not run; reviewer 1 medium + 3 low fixed",
+        "Pre-advance remediation (2026-11-06): native foreground claim closes the listing-to-dispatch double ring; background and change-driven reconcile close the stale registration while closed. See pre-advance-remediation.md"
+      ]
+    },
+    {
+      "id": "AGY-PORT-04",
+      "spec": "phases/04-reviewed-intent-mutations.md",
+      "depends_on": [
+        "AGY-PORT-01",
+        "AGY-PORT-03"
+      ],
+      "inventory_areas": [
+        4,
+        5
+      ],
+      "implementation": "CODE_COMPLETE",
+      "automated": "PASS",
+      "build": "NOT_RUN",
+      "device": "NOT_RUN",
+      "live_service": "NOT_RUN",
+      "base_head": "f5ae9aaae9e5f4bda8fdb5edeb6b8bbc12376035",
+      "tested_head": "f5ae9aa+worktree",
+      "result_commit": "c36eec984a91457a8cfd75c0296a756b913508e8",
+      "report": "phase-04-reviews.md",
+      "evidence": [
+        "evidence/agy-port-20261106/phase-04/"
+      ],
+      "continuation": "NEXT_PHASE",
+      "notes": [
+        "JS only; reviewer 1 medium + 5 low fixed; preflight 376",
+        "Pre-advance remediation (2026-11-06): title-only reminder ownership replaced by exact links + strict evidence rule (title + item due instant + unique); confirmed matches are promoted to exact links. See pre-advance-remediation.md"
+      ]
+    },
+    {
+      "id": "AGY-PORT-05",
+      "spec": "phases/05-drafts-and-shared-microphone.md",
+      "depends_on": [
+        "AGY-PORT-04"
+      ],
+      "inventory_areas": [
+        6,
+        7
+      ],
+      "implementation": "CODE_COMPLETE",
+      "automated": "PASS",
+      "build": "PASS",
+      "device": "NOT_RUN",
+      "live_service": "NOT_RUN",
+      "base_head": "c36eec984a91457a8cfd75c0296a756b913508e8",
+      "tested_head": "c36eec9+worktree",
+      "result_commit": "08acc94441862cf90aa3192921a74bb5b445a6cd",
+      "report": "phase-05-drafts-microphone.md",
+      "evidence": [
+        "evidence/agy-port-20261106/phase-05/",
+        "evidence/agy-port-20261106/pre-advance-remediation/"
+      ],
+      "continuation": "NEXT_PHASE",
+      "notes": [
+        "Both reviewer agents failed (role confusion; usage limit); parent second pass on resume: R1 Whisper settles after lease release, R2 call busy message by code",
+        "Worker deleted preflight-1/-2 logs (rm -f); unrecoverable; transcript excerpts in phase-05/deleted-intermediate-preflight-RECOVERED-EXCERPTS.md",
+        "Gated together with the pre-advance remediation: preflight 418, Kotlin 43, assembleDebug PASS; the Phase-05-only commit tree was not gated separately (no stash/worktree)"
+      ]
+    },
+    {
+      "id": "AGY-PORT-06",
+      "spec": "phases/06-planner-queries-and-guide.md",
+      "depends_on": [
+        "AGY-PORT-04"
+      ],
+      "inventory_areas": [
+        10,
+        11
+      ],
+      "implementation": "CODE_COMPLETE",
+      "automated": "PASS",
+      "build": "PASS",
+      "device": "NOT_RUN",
+      "live_service": "NOT_RUN",
+      "base_head": "28a9867dbdc4220952dca0361d2b42f99af46d83",
+      "tested_head": "28a9867+worktree",
+      "result_commit": "a077b10a381faae394149abc23fba8fa3cafccf5",
+      "report": "phase-06-planner.md",
+      "evidence": [
+        "evidence/agy-port-20261106/phase-06/"
+      ],
+      "continuation": "NEXT_PHASE",
+      "notes": [
+        "preflight-1 exit 1 (lint unused var in new test) kept; preflight-2 445+1 skipped; preflight-3 446+1 skipped after conflict-check change",
+        "Native unchanged: Gradle testDebugUnitTest UP-TO-DATE (43/43 from remediation run), assembleDebug PASS; debug APK hashes identical (JS served by Metro)",
+        "Mutations M1-M4 each fail new tests; restored byte-identical",
+        "Host fixture timing only (node:sqlite, 2x10k rows/type): week 12.2 ms vs legacy 181.9 ms; not phone performance",
+        "Deferred: change-target matching/Profile/Notes full reads; recurrence_rule index (needs migration, AGY-PORT 08); Calendar on-screen read-failure state"
+      ]
+    },
+    {
+      "id": "AGY-PORT-07",
+      "spec": "phases/07-notes-consistency-and-search.md",
+      "depends_on": [
+        "AGY-PORT-01",
+        "AGY-PORT-04"
+      ],
+      "inventory_areas": [
+        12,
+        13
+      ],
+      "implementation": "CODE_COMPLETE",
+      "automated": "PASS",
+      "build": "PASS",
+      "device": "NOT_RUN",
+      "live_service": "NOT_RUN",
+      "base_head": "4dbfc4b",
+      "tested_head": "4dbfc4b+worktree",
+      "result_commit": "168e0223a122607d107a05816fee264f6b8f89f3",
+      "report": "phase-07-notes.md",
+      "evidence": [
+        "evidence/agy-port-20261106/phase-07/"
+      ],
+      "continuation": "NEXT_PHASE",
+      "notes": [
+        "Schema 21: notes_search_index + idx_notes_user_page + 2 invalidation triggers (ADR-020)",
+        "preflight-1 exit 1 (no-control-regex) kept; preflight-4 final 471 + 1 skipped",
+        "Native unchanged: Gradle PASS, Kotlin UP-TO-DATE",
+        "Mutations N1-N5 fail named tests; restored byte-identical",
+        "Intentional test updates: schemaMigrations (added table list), storageRecovery (reorder spy target)",
+        "Deferred: notesStore.getAll in Profile/commandReview; best-effort paging under concurrent edits"
+      ]
+    },
+    {
+      "id": "AGY-PORT-08",
+      "spec": "phases/08-event-time-and-sync-compatibility.md",
+      "depends_on": [
+        "AGY-PORT-01",
+        "AGY-PORT-03",
+        "AGY-PORT-06"
+      ],
+      "inventory_areas": [
+        14,
+        29
+      ],
+      "implementation": "CODE_COMPLETE",
+      "automated": "PASS",
+      "build": "PASS",
+      "device": "NOT_RUN",
+      "live_service": "NOT_RUN",
+      "base_head": "02bbe44",
+      "tested_head": "02bbe44+worktree",
+      "result_commit": "7dd345402875bef861289cad54b744d908757eaf",
+      "report": "phase-08-event-time-sync.md",
+      "evidence": [
+        "evidence/agy-port-20261106/phase-08/"
+      ],
+      "continuation": "NEXT_PHASE",
+      "notes": [
+        "Schema 22: device-local event_time_local + owner index + 3 triggers (ADR-021); seven-type wire unchanged",
+        "Overnight = existing end<=start wire convention; timezone/UTC instants/folds local-only",
+        "preflight-2 final 497 + 1 skipped (preflight-1 496 + 1 skipped, before the legacy-row test)",
+        "Native unchanged: Gradle PASS",
+        "Mutations M1-M7 fail named tests; restored byte-identical",
+        "Intentional test updates: schemaMigrations (added table), agyPort06PlannerQueries (plan copy + aliases), agyPort06PlannerReplies (3-day conflict window)",
+        "DEFERRED_EXTERNAL: backend timezone contract and cross-device guarantee (inventory 29)",
+        "Deferred: events > 24 h; exact recurring/override ICS import; NLU \"yesterday\" wording"
+      ]
+    },
+    {
+      "id": "AGY-PORT-09",
+      "spec": "phases/09-health-preferences-and-statistics.md",
+      "depends_on": [
+        "AGY-PORT-03",
+        "AGY-PORT-04",
+        "AGY-PORT-06"
+      ],
+      "inventory_areas": [
+        15,
+        16,
+        20
+      ],
+      "implementation": "CODE_COMPLETE",
+      "automated": "PASS",
+      "build": "PASS",
+      "device": "NOT_RUN",
+      "live_service": "NOT_RUN",
+      "base_head": "9a451c1",
+      "tested_head": "9a451c1+worktree",
+      "result_commit": "ab6ab1292032e4f439ab3bab5bd31dc351d199b5",
+      "report": "phase-09-health-preferences-stats.md",
+      "evidence": [
+        "evidence/agy-port-20261106/phase-09/"
+      ],
+      "continuation": "NEXT_PHASE",
+      "notes": [
+        "No schema change: event defaults in local_settings key event_memory_v1 (device-local, never synced)",
+        "Reminder health over schema-19 jobs + native registered_inexact receipts; retry = existing reconcileReminderDelivery, signed-in owner only",
+        "On Time = acknowledged with snooze_count 0 / (acknowledged + missed); No data at 0; read failure = unavailable; replaces inferred Voice Uses",
+        "preflight-1 and preflight-2 (final) 524 + 1 skipped, 36 suites",
+        "Native unchanged: Gradle PASS",
+        "Mutations: run 1 harness error (0 tests matched; log overwritten once by an identical rerun), run 2 M1 survived -> test strengthened, run 3 M1-M9 killed, restored byte-identical",
+        "No existing test changed; 27 new tests",
+        "Deferred: recent-records index (table capped at 500 rows); Clear All Data does not clear event defaults"
+      ]
+    },
+    {
+      "id": "AGY-PORT-10",
+      "spec": "phases/10-speech-controls-and-readiness.md",
+      "depends_on": [
+        "AGY-PORT-05",
+        "AGY-PORT-09"
+      ],
+      "inventory_areas": [
+        17,
+        18,
+        19
+      ],
+      "implementation": "CODE_COMPLETE",
+      "automated": "PASS",
+      "build": "PASS",
+      "device": "NOT_RUN",
+      "live_service": "NOT_RUN",
+      "base_head": "fcdf235",
+      "tested_head": "fcdf235+worktree",
+      "result_commit": "335de87e3325c45e01af2a9851c9d64eee21748e",
+      "report": "phase-10-speech.md",
+      "evidence": [
+        "evidence/agy-port-20261106/phase-10/"
+      ],
+      "continuation": "NEXT_PHASE",
+      "notes": [
+        "Offline voice choice/speed/pitch in local_settings speech_tts_v1 (ADR-022); no choice = unchanged AGY default (no rate/pitch calls)",
+        "Speed via setDefaultRate(f, true): bypasses react-native-tts 4.1.1 0..1 transform",
+        "Bounded engine start (5 s), service vs English readiness, owned Preview/Stop, utterance-id matching, rejected speak fails",
+        "Cloud entitlement/fallback unchanged; preserved speech/call/meeting suites unmodified",
+        "preflight-1 and preflight-2 (final) 545 + 1 skipped, 38 suites; Gradle PASS (native unchanged)",
+        "Mutations: run 1 M1 survived (test data) and M11 harness error (orphan else; log overwritten once by identical rerun); run 2 M1-M11 killed",
+        "Deferred: Android on-device STT (no native bridge); TTS engine/provider choice (setDefaultEngine replaces the shared instance)"
+      ]
+    },
+    {
+      "id": "AGY-PORT-11",
+      "spec": "phases/11-qa-packaging-and-native-audit.md",
+      "depends_on": [
+        "AGY-PORT-03",
+        "AGY-PORT-05",
+        "AGY-PORT-10"
+      ],
+      "inventory_areas": [
+        21,
+        22
+      ],
+      "implementation": "CODE_COMPLETE",
+      "automated": "PASS",
+      "build": "PASS",
+      "device": "NOT_RUN",
+      "live_service": "NOT_RUN",
+      "base_head": "c85b023",
+      "tested_head": "2d62e05+worktree",
+      "result_commit": "83f407cc8451a11dc5d3a5a5025e025857e1b13c",
+      "report": "phase-11-native-qa.md",
+      "evidence": [
+        "evidence/agy-port-20261106/phase-11/"
+      ],
+      "continuation": "NEXT_PHASE",
+      "notes": [
+        "dataQa arm64-v8a + x86_64 standalone APKs audited; identity/signing/versionCode unchanged",
+        "ONNX 1.19.2 libonnxruntime*.so PT_LOAD 4 KiB (ELF FAIL on target artifacts) -> 1.22.0 (ADR-024): 16/16 PASS, +~18 MB per APK",
+        "Build workaround (environment only): bundle from real path, then X: build with skip-prebuilt-bundle.init.gradle; packaged bundle hash identical",
+        "Attempts: 1 FAIL Metro SHA-1; 2 FAIL -x refused; 3 INTERRUPTED/NO_VERDICT (host low memory); 4 FAIL Metro SHA-1; 5 PASS; onnx122-1 PASS",
+        "Kotlin 43 unit tests PASS fresh with 1.22.0; preflight-2 580 + 1 skipped (preflight-1 lint FAIL kept)",
+        "Emulator/phone/VAD inference NOT_RUN (no designated emulator; dataQa shares the production app ID)"
+      ]
+    },
+    {
+      "id": "AGY-PORT-12",
+      "spec": "phases/12-architecture-and-repeatable-evaluation.md",
+      "depends_on": [
+        "AGY-PORT-06",
+        "AGY-PORT-07",
+        "AGY-PORT-08",
+        "AGY-PORT-10",
+        "AGY-PORT-11"
+      ],
+      "inventory_areas": [
+        23,
+        24,
+        25,
+        26,
+        27,
+        28
+      ],
+      "implementation": "CODE_COMPLETE (23, 24, 27 scorer, 28); PARTIAL (25 no in-app QA screen/native gate; 26 runner never run)",
+      "automated": "PASS",
+      "build": "NOT_RUN (no native or Gradle change; Phase 11 artifacts stand)",
+      "device": "NOT_RUN",
+      "live_service": "NOT_RUN",
+      "base_head": "574e6e1",
+      "tested_head": "574e6e1+worktree",
+      "result_commit": "a152bcbbe58c3f76099733e9204662d804f996fe",
+      "report": "phase-12-tooling-evaluation.md",
+      "evidence": [
+        "evidence/agy-port-20261106/phase-12/"
+      ],
+      "continuation": "NEXT_PHASE",
+      "notes": [
+        "offline boundary: 71 leaves, 0 violations, 0 approvals; runtime sentinel zero network with positive control",
+        "frozen fixtures v1 (intent 34 cases covering 16 intents, notes, speech, PF01-PF13 map, stt corpus); 93 contract tests; fresh evidence JSON",
+        "host QA SQL: 14 checks on an owned temp file, redacted, verified cleanup; in-app QA screen/native gate not ported",
+        "mutations run 1: 11 killed, P8 HARNESS_ERROR (unhandled sentinel rejection, fixed); run 2: 12/12 killed, restored",
+        "own tooling defects fixed: QA runner open handle blocked Windows cleanup; sentinel unhandled rejection; boundary comment",
+        "doctor-1 FAIL truthful (JAVA_HOME = Android Studio JDK 25); doctor-2 PASS with JDK 17",
+        "planner benchmark STALE (src/core removed); Graphify binary present but no graph.json; AST substitute",
+        "preflight-1 46 suites, 684 passed + 1 skipped; no src/ or android/ file changed",
+        "parent self-review only, not an independent review"
+      ]
+    },
+    {
+      "id": "AGY-PORT-13",
+      "spec": "phases/13-integration-and-final-handoff.md",
+      "depends_on": [
+        "AGY-PORT-00",
+        "AGY-PORT-01",
+        "AGY-PORT-02",
+        "AGY-PORT-03",
+        "AGY-PORT-04",
+        "AGY-PORT-05",
+        "AGY-PORT-06",
+        "AGY-PORT-07",
+        "AGY-PORT-08",
+        "AGY-PORT-09",
+        "AGY-PORT-10",
+        "AGY-PORT-11",
+        "AGY-PORT-12"
+      ],
+      "inventory_areas": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9,
+        10,
+        11,
+        12,
+        13,
+        14,
+        15,
+        16,
+        17,
+        18,
+        19,
+        20,
+        21,
+        22,
+        23,
+        24,
+        25,
+        26,
+        27,
+        28,
+        29,
+        30
+      ],
+      "implementation": "CODE_COMPLETE (integration review, fresh gates/builds, handoff docs)",
+      "automated": "PASS",
+      "build": "PASS (bundle executed; dataQa 9 executed/247 up-to-date; debug up-to-date; Kotlin 43 rerun)",
+      "device": "NOT_RUN",
+      "live_service": "NOT_RUN",
+      "base_head": "d986c3b",
+      "tested_head": "d986c3b (code identical to a152bcb; only the run log dirty)",
+      "result_commit": "448df7aefefed500cd737577be78e5d3273d02bc",
+      "report": "phase-13-integration.md",
+      "evidence": [
+        "evidence/agy-port-20261106/phase-13/"
+      ],
+      "continuation": "RUN_FINISHED",
+      "notes": [
+        "preflight-1 46 suites, 684 passed + 1 skipped (base 15 suites / 163 tests); architecture 215 modules",
+        "final dataQa arm64 ef264311...e87e19, x86_64 58470f2f...bfd5e; audits PASS; identity/signer unchanged",
+        "integrated regressions: none; no unit reverted; 3 pre-existing tests adapted with labels, none weakened",
+        "inventory: 21 CODE_COMPLETE, 7 PARTIAL (2, 14, 17, 24, 25, 26, 27), 2 DEFERRED_EXTERNAL (29, 30)",
+        "hygiene: 0 secret-pattern matches; no binaries/env/keystore; donor at pin, untouched; backend not present",
+        "log rows 57-70 had estimated times; dated CORRECTION row appended",
+        "self-reviews only; no independent review completed in this run"
+      ]
+    }
+  ],
+  "required_target_root": "C:\\L3mxr\\Github Repositories\\LAFINA-CAPSTONE-agy-development-cont",
+  "remediations": [
+    {
+      "id": "PRE-ADVANCE-REMEDIATION-1",
+      "scope": [
+        "AGY-PORT-03 stale-alert and double-ring gaps",
+        "title-based ownership of legacy reminders",
+        "deleted Phase 05 intermediate evidence"
+      ],
+      "base_head": "08acc94441862cf90aa3192921a74bb5b445a6cd",
+      "tested_head": "c36eec9+worktree (Phase 05 + remediation, identical sources)",
+      "implementation": "CODE_COMPLETE",
+      "automated": "PASS",
+      "build": "PASS",
+      "device": "NOT_RUN",
+      "live_service": "NOT_RUN",
+      "result_commit": "541dbfbafdf1c1ba6c8a64139ea810b604abdcf4",
+      "report": "pre-advance-remediation.md",
+      "evidence": [
+        "evidence/agy-port-20261106/pre-advance-remediation/",
+        "evidence/agy-port-20261106/phase-05/deleted-intermediate-preflight-RECOVERED-EXCERPTS.md"
+      ],
+      "notes": [
+        "preflight 418, Kotlin 43, assembleDebug PASS; mutations T (11 fail) and C (1 fail) as intended; legacy actionExecutor title cleanup remains test-only (architecture-guarded), retire in AGY-PORT 06"
+      ]
+    },
+    {
+      "id": "CODEX-AUDIT-REMEDIATION-1",
+      "scope": [
+        "A1 positive offline eligibility for every local TTS path",
+        "A2 Calendar read failures shown as recoverable owner-bound errors",
+        "A3 Clear All Data forgets saved event defaults (speech settings kept, stated)",
+        "A4 interrupted background reconcile: bounded native calls, fault-injection tests, ADR-023 assessment (PARTIAL)"
+      ],
+      "audit": "codex-audit-20261106-phase11.md",
+      "base_head": "c85b0238429b264819f1d959d30e02bdbf0f26a6",
+      "tested_head": "c85b023+worktree (combined with uncommitted Phase 11/12 files)",
+      "implementation": "CODE_COMPLETE (A1-A3); PARTIAL (A4)",
+      "automated": "PASS",
+      "build": "PASS (no native change; bundled in the Phase 11 dataQa build)",
+      "device": "NOT_RUN",
+      "live_service": "NOT_RUN",
+      "result_commit": "dd96148c2465c0a38d1dbf325286ba6bb5c38f5a",
+      "report": "audit-remediation.md",
+      "evidence": [
+        "evidence/agy-port-20261106/audit-remediation/",
+        "evidence/agy-port-20261106/phase-11/preflight-2.log"
+      ],
+      "notes": [
+        "preflight-1 568 + 1 skipped; final phase-11/preflight-2 580 + 1 skipped (43 suites)",
+        "mutations run 1: M4, M6, M10 survived (tests strengthened, log kept); run 2: 12/12 killed, restored",
+        "parent self-review only, not an independent review"
+      ]
+    },
+    {
+      "id": "CODEX-FINAL-AUDIT-REMEDIATION-1",
+      "scope": [
+        "F1 Preview admission ticket revalidated after every awaited startup step and immediately before Tts.speak; sheet cancels pending start on Stop/close/background/unmount",
+        "F2 optional Tts.setDucking bounded (3 s); timeout/rejection recovers; positive offline eligibility unchanged",
+        "F3 Clear All Data reports real per-step results; failed defaults reset never claimed as deleted; recovery step",
+        "F4 process death vs Force Stop: dated documentation corrections; MANUAL-QA M18 R1-R3; ADR-023 note (option C still not implemented)"
+      ],
+      "audit": "codex-final-audit-940802c-20261106.md",
+      "base_head": "940802c61457422a1ecefdad7cae5ef90cf0fddb",
+      "tested_head": "f61d1eb (preflight ran on the identical working tree before the commit); builds at 0c1b99a (docs only after f61d1eb)",
+      "implementation": "CODE_COMPLETE (F1-F3); CORRECTED (F4 docs); ADR-023 window still PARTIAL",
+      "automated": "PASS",
+      "build": "PASS (bundle executed; dataQa 12 executed/244 up-to-date; Kotlin 43 executed via --rerun; debug up-to-date, no packaged JS)",
+      "device": "NOT_RUN",
+      "live_service": "NOT_RUN",
+      "code_commit": "f61d1eb69183ac572b20527b5f7016e2b8d471f9",
+      "docs_commit": "0c1b99ace16798c7059a19a11d5a7565e80a8c9d",
+      "result_commit": "64c7d873bf5155e76ce0b257c6d0825451f4be23",
+      "report": "final-audit-remediation.md",
+      "evidence": [
+        "evidence/agy-port-20261106/final-audit-remediation/"
+      ],
+      "artifacts": {
+        "dataQa_arm64": "2502aec34ffb3f349e43dd9d1c202e8f549a26a0595e8961c58a51ecb95689ba (163257936 B)",
+        "dataQa_x86_64": "a0bf18e5ce2b87a03097895231e67e3f1b7735a656b05272e1ca12417b5c91f2 (169577888 B)",
+        "debug_arm64": "0629c828072dfd5c3f8ab27e0f9838251965d78018dbf9ff32b2a0cc6d2b466e (unchanged)",
+        "debug_x86_64": "0756c1236c0a5f1942feb6de651acd470d71606825813629146e8f54d073d63a (unchanged)",
+        "bundle": "f86e13afe42dfc9588a6bea6aaf70a75cc0e10c83cdaeece943f7fefd5d8bc67 (packaged in both dataQa APKs)",
+        "identity": "com.lafina.capstone, versionCode 6, 0.6.0-data-qa, SDK 36, debuggable; v2 CN=Android Debug acf890c3...dd5e; ONNX 1.22.0"
+      },
+      "notes": [
+        "pre-fix regressions on 940802c: 26 failed / 1 passed / 27 (all intended failures); 2 final-check tests added later, not run pre-fix",
+        "focused-1 13 suites 114/114; preflight-1 50 suites 713 passed + 1 opt-in skipped; architecture 215 modules",
+        "mutation-1: 8/9 killed, all restored; Q2 (redundant post-apply revalidation) SURVIVED and is recorded, not re-run",
+        "sdk-tools-1 apksigner step printed nothing (quoting); signer recorded in sdk-tools-apksigner-1.log",
+        "no original test or assertion changed; frozen evaluation fixtures unchanged; android/, package files, cloud hosts unchanged",
+        "parent self-review only; no independent review of the follow-up"
+      ]
+    },
+    {
+      "id": "CODEX-REMEDIATION-AUDIT-P1P2-1",
+      "scope": [
+        "P1 Clear All Data confirmation bound to the sign-in (session epoch) and screen lifetime that opened it; admission enforced in resetPersonalData before any write, inside the planner transaction and before the chat/defaults steps; refused with nothing deleted after account switch, sign-out, same-owner re-sign-in, guest linking or unmount",
+        "P2 strict owner-bound planner reads (...OrThrow, same SQL as unchanged display getters); store deletes in one verified transaction (all or nothing); per-step outcomes and unremoved attachment files reported; 'Data Cleared' only when all confirmed"
+      ],
+      "audit": "codex-remediation-audit-7b3b183-20261106.md",
+      "base_head": "7b3b1832a3754fbc2a1bd8f44211c45678fd6230",
+      "tested_head": "c015719 (preflight ran on the identical working tree before the commit); builds at c015719",
+      "implementation": "CODE_COMPLETE (P1, P2); ADR-025",
+      "automated": "PASS",
+      "build": "PASS (bundle executed; dataQa 12 executed/244 up-to-date; Kotlin 43 executed via --rerun; debug up-to-date, no packaged JS)",
+      "device": "NOT_RUN",
+      "live_service": "NOT_RUN",
+      "code_commit": "c01571966d319e9dcfeaf37773c643da63d86d04",
+      "result_commit": "4be575bae0ea4856dc783c758e7e55ebfb477d15",
+      "report": "clear-all-data-remediation.md",
+      "evidence": [
+        "evidence/agy-port-20261106/clear-all-data-remediation-20261107/",
+        "evidence/codex-remediation-verification-7b3b183-20261106/ (auditor's, committed unchanged)"
+      ],
+      "artifacts": {
+        "dataQa_arm64": "94c5d9ad7c67feb7698c61bdcc2941a9f5dcd9617299b88a5df8b56d703a9a04 (163257936 B)",
+        "dataQa_x86_64": "9f04fb3832962ec5a843f20d27785a306a77c974a5486a8de7f2e72880cd1183 (169577888 B)",
+        "debug_arm64": "0629c828072dfd5c3f8ab27e0f9838251965d78018dbf9ff32b2a0cc6d2b466e (unchanged)",
+        "debug_x86_64": "0756c1236c0a5f1942feb6de651acd470d71606825813629146e8f54d073d63a (unchanged)",
+        "bundle": "09e25695a0833f661749b1da78b8782ae547783ccc2ab5c1b5b36711420ea199 (packaged in both dataQa APKs; 7/7 fix-only markers present)",
+        "identity": "com.lafina.capstone, versionCode 6, 0.6.0-data-qa, SDK 36, debuggable; v2 CN=Android Debug acf890c3...dd5e; ONNX 1.22.0; permissions identical"
+      },
+      "notes": [
+        "pre-fix on 7b3b183: new UI suite 8 failed / 1 passed (success control) / 9; independent audit tests 2 failed / 2; all intended failures",
+        "post-fix: focused 15/15; independent 2/2 (audit dir hashes unchanged); storage API 18/18 (runs 1-3 failed on test-authoring errors, kept); F1-F3 regressions 29/29; protected gates 9 suites 207/207",
+        "preflight-1: 52 suites 740 passed + 1 opt-in skipped; architecture 217 modules, 0 cycles, 0 forbidden, 73 offline leaves",
+        "mutation-check-3: epoch, liveness, in-transaction check and strict+verify killed; strict alone and verify alone survive by design (mutual backstops); run 2 revealed a too-broad fault injection, fixed in the test",
+        "no original test or assertion changed; frozen evaluation fixtures unchanged; android/, package files, cloud hosts unchanged",
+        "self-review only; no independent review of c015719"
+      ]
+    },
+    {
+      "id": "CODEX-CLEAR-DATA-AUDIT-C1-1",
+      "scope": [
+        "C1 Clear All Data attachment files: durable owner-bound cleanup obligations (schema 23 attachment_cleanup in lafina.db) recorded in the same transaction that deletes the chat messages; retired only when the file is removed or confirmed absent; retried by every later Clear All Data, including after restart and with empty chat history; one bounded pass (50) per Clear All Data, no loop/poller; stops on sign-in change; owner-keyed; guest linking moves obligations; strict path rules and regular-file stat before each unlink; 'Data Cleared' only when none remain"
+      ],
+      "audit": "codex-clear-data-audit-8823b11-20261107.md",
+      "base_head": "8823b11ac5b8c81cf504ad2cb85ad7c9a8446128",
+      "tested_head": "f7e947f (preflight ran on the identical working tree before the commit); builds at f7e947f",
+      "implementation": "CODE_COMPLETE (C1); ADR-026",
+      "automated": "PASS",
+      "build": "PASS (bundle executed; dataQa 12 executed/244 up-to-date; Kotlin 43 executed via --rerun; debug up-to-date, no packaged JS)",
+      "device": "NOT_RUN",
+      "live_service": "NOT_RUN",
+      "code_commit": "f7e947f702d63f239fe4fe67cb4457a3b6d18550",
+      "result_commit": "cc3ca10d4b0084024574a6e231c0d938ff5ae70f",
+      "report": "attachment-cleanup-remediation.md",
+      "evidence": [
+        "evidence/agy-port-20261106/attachment-cleanup-remediation-20261107/",
+        "evidence/codex-clear-data-audit-8823b11-20261107/ (auditor's, committed unchanged)"
+      ],
+      "artifacts": {
+        "dataQa_arm64": "4ff8d67e459bf572598b2d7c922885c3a5f871755b30b1d8b29fe81d42ed8532 (163257936 B)",
+        "dataQa_x86_64": "e9ec1f09e4b06eddf51e5355d14b634f1aee5c4229b61562572fb2d43da27086 (169577888 B)",
+        "debug_arm64": "0629c828072dfd5c3f8ab27e0f9838251965d78018dbf9ff32b2a0cc6d2b466e (unchanged)",
+        "debug_x86_64": "0756c1236c0a5f1942feb6de651acd470d71606825813629146e8f54d073d63a (unchanged)",
+        "bundle": "9c284de8ba7aa58fa5029b515d58b4a7bcace85a4c5fc608c6856a57eaeab17b (packaged in both dataQa APKs; 7/7 fix-only markers present)",
+        "identity": "com.lafina.capstone, versionCode 6, 0.6.0-data-qa, SDK 36, debuggable; v2 CN=Android Debug acf890c3...dd5e; ONNX 1.22.0; permissions identical (32 lines)"
+      },
+      "notes": [
+        "pre-fix on 8823b11: unchanged independent attachment-retry regression 1/1 FAILED (file still present; second alert 'Data Cleared')",
+        "post-fix: independent C1 1/1 and all three independent tests 3/3; new attachmentCleanup 43/43 and clearDataAttachmentCleanup 5/5; audit focused+protected 15 suites 263/263; F1-F3 29/29",
+        "post-fix-existing-1: 5 failures from deliberate changes (schemaMigrations table list, accountDataReset outcome field x2, A3/F3 sync alert timing restored in code with those tests unchanged); run 2 101/101",
+        "storage-cleanup-tests-1: 1 test-authoring error (shared mock call count), fixed in the test",
+        "mutation-check-1 9/10 killed (no-revalidation survived -> new test); mutation-check-2 10/10 killed, all restored",
+        "preflight-1: 54 suites 788 passed + 1 opt-in skipped; architecture 219 modules, 0 cycles, 0 forbidden, 75 offline leaves; 31 console.error lines (2 intermittent React act() warnings in untouched chatHistoryPaging; alone 1 then 0)",
+        "existing test files changed: schemaMigrations expected table list, accountDataReset outcome field; jest.setup default RNFS stat mock; no assertion weakened, no skip, frozen fixtures unchanged",
+        "Chat 'Clear conversation' unchanged and outside C1 (best-effort file removal, no obligations)",
+        "self-review only; no independent review of f7e947f"
+      ]
+    },
+    {
+      "id": "CODEX-ATTACHMENT-CLEANUP-AUDIT-C2-1",
+      "scope": [
+        "C2 attachment cleanup queue starvation: durable per-owner turn order (schema 24 attachment_cleanup.queue_order, additive; existing rows take queue_order = attempts); new obligations join the owner's back; a pass selects the lowest 50 turns (queue_order, recorded_at, path) and saves each attempt (moving the row to the back) before touching the file, so failed unlinks, directory targets and refused saved rows yield their turn without being dropped or deleted; unsaved bookkeeping reported (`unsaved`), file left untouched when the attempt cannot be saved, never 'Data Cleared'; same-owner passes serialized in-process; claim/retire owner-checked; 50 bound, owner keys, session check, guest linking, path rules and regular-file check unchanged; no loop/timer/poller"
+      ],
+      "audit": "codex-attachment-cleanup-audit-69aafcd-20261107.md",
+      "base_head": "69aafcd759bb5e8977fdf2450987359c9ca0c022",
+      "tested_head": "acfd8fc (preflight ran on the identical working tree before the commit); builds at acfd8fc",
+      "implementation": "CODE_COMPLETE (C2); ADR-026 amendment",
+      "automated": "PASS",
+      "build": "PASS (bundle executed; dataQa 12 executed/244 up-to-date; Kotlin 43 executed via --rerun; debug up-to-date, no packaged JS)",
+      "device": "NOT_RUN",
+      "live_service": "NOT_RUN",
+      "code_commit": "acfd8fc836142843efa4918128bdb2dcc7b397eb",
+      "result_commit": "47c20a41f17754c2a4195fcfbea3421e7df6787d",
+      "report": "attachment-queue-fairness-remediation.md",
+      "evidence": [
+        "evidence/agy-port-20261106/attachment-queue-fairness-remediation-20261107/",
+        "evidence/codex-attachment-cleanup-audit-69aafcd-20261107/ (auditor's, committed unchanged)"
+      ],
+      "artifacts": {
+        "dataQa_arm64": "ae0b4cc1c0222561fef6897db4eea0e83504f7db161cc026f06d2e3be09c789b (163257936 B)",
+        "dataQa_x86_64": "3f523ba79a05172c77c941476713d3d5bbfc6178d1b832aa5fa090f6cc229928 (169577888 B)",
+        "debug_arm64": "0629c828072dfd5c3f8ab27e0f9838251965d78018dbf9ff32b2a0cc6d2b466e (unchanged)",
+        "debug_x86_64": "0756c1236c0a5f1942feb6de651acd470d71606825813629146e8f54d073d63a (unchanged)",
+        "bundle": "45c434ebef1d348dcfc68158cb9cfc18362565f347d78fa752da1963f74a789a (packaged in both dataQa APKs; 8/8 fix-only markers present, old timestamp order absent, 4/4 controls present)",
+        "identity": "com.lafina.capstone, versionCode 6, 0.6.0-data-qa, SDK 36, debuggable; v2 CN=Android Debug acf890c3...dd5e; permissions identical (32 lines); Whisper 4baf70dd, VAD 7ed98ddb, no Kokoro; ELF 16/16 at 16 KiB; 302 stored entries aligned"
+      },
+      "notes": [
+        "pre-fix on 69aafcd: unchanged independent queue-progress regression 1/1 FAILED (removable 51st file never attempted)",
+        "post-fix: all four independent tests 4/4 (independentClearData 2, independentAttachmentRetry 1, independentCleanupFairness 1), audit dirs hash-identical before/after",
+        "new attachmentCleanupFairness 18/18 + 3 new UI cases; cleanup suites 69/69; audit 18-suite set + new suite 19 suites 348/348",
+        "post-fix-existing-1: 13 failures, each only the new `unsaved` result field; 18 exact expectations updated (17 x unsaved: 0, 1 x unsaved: 1); schemaMigrations comment 18-23 -> 18-24; no assertion weakened, no skip, frozen fixtures unchanged",
+        "mutation-check-1: 15/15 killed, all restored",
+        "preflight-1: 55 suites 809 passed + 1 opt-in skipped; architecture 219 modules, 0 cycles, 0 forbidden, 75 offline leaves; 30 console.error lines, all in untouched suites",
+        "Chat 'Clear conversation' unchanged and outside C1/C2 (best-effort file removal, no obligations)",
+        "host restart tests are not Android process-death validation",
+        "self-review only; no independent review of acfd8fc"
+      ]
+    }
+  ]
+}

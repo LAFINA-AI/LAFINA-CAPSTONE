@@ -1,0 +1,12 @@
+gradle.beforeProject { p ->
+    p.pluginManager.withPlugin('com.android.application') {
+        p.extensions.getByName('androidComponents').finalizeDsl { androidDsl ->
+            androidDsl.buildTypes.getByName('dataQa').applicationIdSuffix = '.localvoiceqa'
+        }
+    }
+    p.pluginManager.withPlugin('com.facebook.react') {
+        p.extensions.getByName('react').entryFile.set(p.rootProject.file('../.local/local-voice-qa-20261109/index.js'))
+    }
+}
+
+gradle.projectsEvaluated { def app = rootProject.findProject(':app'); if (app != null) { app.tasks.named('createBundleDataQaJsAndAssets').configure { onlyIf { false } } } }

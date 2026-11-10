@@ -1,0 +1,31 @@
+{
+  "verifiedAtUtc": "2026-11-07T12:54:26.781971+00:00",
+  "productionBaseUrl": "https://lafina-backend.vercel.app",
+  "mergedCommit": "f0fae4d814cfa5d75590db951404164d35b60023",
+  "testedBackendCommit": "34f9fba",
+  "vercelDeploymentState": "success",
+  "vercelDeploymentUrl": "https://vercel.com/nblancs-projects/lafina-backend/XWQvgH3jQ9uW9GABv8W9AUqUS3Uf",
+  "capabilityRoute": {
+    "path": "/v1/ai/tts/capabilities",
+    "unauthenticatedStatus": 401,
+    "response": "Missing Authorization header."
+  },
+  "openApi": {
+    "status": 200,
+    "speechRoutes": [
+      "/v1/ai/tts/capabilities",
+      "/v1/ai/tts"
+    ],
+    "responseProvider": "elevenlabs",
+    "responseMimeType": "audio/mpeg"
+  },
+  "unauthenticatedSpeechPost": {
+    "status": 401,
+    "response": {
+      "detail": "Missing Authorization header."
+    }
+  },
+  "authenticatedProductionKeyAndEntitlementCheck": "NOT RUN - use existing signed-in test account on device",
+  "phoneAudioOfflineLifecycleChecks": "NOT RUN",
+  "mergedSourceTreeMatchesTestedCommit": true
+}

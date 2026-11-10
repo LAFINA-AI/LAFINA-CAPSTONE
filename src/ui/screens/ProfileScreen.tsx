@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, {useState, useEffect, useRef} from 'react';
 import {
   View,
   Text,
@@ -8,44 +8,61 @@ import {
   Alert,
   Image,
 } from 'react-native';
-import { Colors, Fonts, Layout, Shadows } from '../theme';
-import {
-  preferencesStore,
-  tasksStore,
-  notesStore,
-  timeBlocksStore,
-  remindersStore,
-  chatStore,
-  userStore,
-} from '../../storage';
-import type { UserPreferences, User } from '../../storage';
-import { useTheme } from '../contexts/ThemeContext';
-import { useThemedStyles } from '../theme/createThemedStyles';
-import type { ThemeColors } from '../contexts/ThemeContext';
-import { APP_VERSION } from '../../appVersion';
-import { GUEST_USER_ID } from '../../constants';
-import { SvgXml } from 'react-native-svg';
-import { ARC_SCREEN_XML } from '../../assets/arc_screen_xml';
-import { Camera } from 'lucide-react-native';
-import { authService } from '../../cloud/authService';
-import { isStudentProAccount } from '../../cloud';
+import {Colors, Fonts, Layout, Shadows} from '../theme';
+import {preferencesStore, userStore} from '../../storage';
+import type {UserPreferences, User} from '../../storage';
+import {useTheme} from '../contexts/ThemeContext';
+import {useThemedStyles} from '../theme/createThemedStyles';
+import type {ThemeColors} from '../contexts/ThemeContext';
+import {APP_VERSION} from '../../appVersion';
+import {GUEST_USER_ID} from '../../constants';
+import {SvgXml} from 'react-native-svg';
+import {ARC_SCREEN_XML} from '../../assets/arc_screen_xml';
+import {Camera} from 'lucide-react-native';
+import {authService} from '../../cloud/authService';
+import {isStudentProAccount} from '../../cloud';
 import {
   avatarSource,
   pickAvatarImage,
   removeAvatarImage,
 } from '../components/profile/avatarFile';
-import { ProfileStats } from '../components/profile/ProfileStats';
-import { SettingItem } from '../components/profile/SettingItem';
-import { PrivacyModal } from '../components/profile/PrivacyModal';
-import { StudentProTag } from '../components/profile/StudentProTag';
-import { AppUpdateItem } from '../components/profile/AppUpdateItem';
-import { PreferencesSettingsScreen } from './PreferencesSettingsScreen';
+import {ProfileStats} from '../components/profile/ProfileStats';
+import {SettingItem} from '../components/profile/SettingItem';
+import {ServerSwitchItem} from '../components/profile/ServerSwitchItem';
+import {backendSelection} from '../../cloud/backendSelection';
+import {PrivacyModal} from '../components/profile/PrivacyModal';
+import {StudentProTag} from '../components/profile/StudentProTag';
+import {AppUpdateItem} from '../components/profile/AppUpdateItem';
+import {PreferencesSettingsScreen} from './PreferencesSettingsScreen';
+import {ReminderHealth} from '../components/profile/ReminderHealth';
+import {PersonalMemory} from '../components/profile/PersonalMemory';
+import {ChatMemorySettings} from '../components/profile/ChatMemorySettings';
+import {chatMemoryStore} from '../../storage/chatMemoryStore';
+import {OfflineVoice} from '../components/profile/OfflineVoice';
+import {OnlineVoice} from '../components/profile/OnlineVoice';
+import {onlineVoiceSettingsStore} from '../../storage/onlineVoiceSettingsStore';
+import {chatReplyFormatStore} from '../../storage/chatReplyFormatStore';
+import {useChatReplyFormat} from '../hooks/useChatReplyFormat';
+import {speechSettingsStore} from '../../storage/speechSettingsStore';
+import {profileStatisticsStore} from '../../storage/profileStatisticsStore';
+import type {ProfileStatistics} from '../../storage/profileStatisticsStore';
+import {personalMemoryStore} from '../../storage/personalMemoryStore';
+import {
+  authorizeDataReset,
+  finishAttachmentCleanup,
+  hasAttachmentCleanup,
+  resetPersonalData,
+} from '../../storage/accountDataReset';
+import type {DataResetAuthority} from '../../storage/accountDataReset';
 
 function getInitials(username: string | null | undefined): string {
   if (!username || username.trim().length === 0) {
     return '?';
   }
-  const words = username.trim().split(/[\s_-]+/).filter(Boolean);
+  const words = username
+    .trim()
+    .split(/[\s_-]+/)
+    .filter(Boolean);
   if (words.length === 1) {
     return words[0].slice(0, 2).toUpperCase();
   }
@@ -72,30 +89,8 @@ interface ProfileScreenProps {
   onLogout?: (isGuest?: boolean) => void;
   onNavigateToRegister?: () => void;
   onReplayTour?: () => void;
+  onReplayOnboarding?: () => void;
 }
-
-const getInitialProfileStats = (userId: string) => {
-  try {
-    const allTasks = tasksStore.getAllTasks(userId);
-    const completed = allTasks.filter((t) => t.isCompleted).length;
-    const allNotes = notesStore.getAll(userId);
-    const voiceNotes = allNotes.filter((n) => n.isVoiceTranscribed).length;
-    const voiceTasks = allTasks.filter(
-      (t) => t.notes?.includes('voice') || t.notes?.includes('Voice'),
-    ).length;
-    return {
-      completedTasksCount: completed,
-      notesCount: allNotes.length,
-      voiceCommandsCount: voiceNotes + voiceTasks,
-    };
-  } catch {
-    return {
-      completedTasksCount: 0,
-      notesCount: 0,
-      voiceCommandsCount: 0,
-    };
-  }
-};
 
 export const ProfileScreen: React.FC<ProfileScreenProps> = ({
   userId,
@@ -104,6 +99,7 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
   onLogout,
   onNavigateToRegister,
   onReplayTour,
+  onReplayOnboarding,
 }) => {
   const [currentUser, setCurrentUser] = useState<User | null>(() => {
     try {
@@ -113,14 +109,42 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
     }
   });
 
-  const [initialStats] = useState(() => getInitialProfileStats(userId));
-  const [completedTasksCount, setCompletedTasksCount] = useState(
-    initialStats.completedTasksCount,
+  const [statistics, setStatistics] = useState<ProfileStatistics>(() =>
+    profileStatisticsStore.read(userId),
   );
-  const [notesCount, setNotesCount] = useState(initialStats.notesCount);
-  const [voiceCommandsCount, setVoiceCommandsCount] = useState(
-    initialStats.voiceCommandsCount,
-  );
+  const [healthVisible, setHealthVisible] = useState(false);
+  const [memoryVisible, setMemoryVisible] = useState(false);
+  const [chatMemoryVisible, setChatMemoryVisible] = useState(false);
+  const readChatMemorySummary = () => {
+    try {
+      if (!chatMemoryStore.isEnabled(userId)) return 'Off';
+      const count = chatMemoryStore.list(userId).length;
+      return count === 1 ? '1 memory' : `${count} memories`;
+    } catch {
+      return 'Unavailable';
+    }
+  };
+  const [chatMemorySummary, setChatMemorySummary] = useState(readChatMemorySummary);
+  const [eventDefaultsSummary, setEventDefaultsSummary] = useState('Off');
+  const [voiceVisible, setVoiceVisible] = useState(false);
+  const [voiceSummary, setVoiceSummary] = useState('Default');
+  const [onlineVoiceVisible, setOnlineVoiceVisible] = useState(false);
+  const [onlineVoiceSummary, setOnlineVoiceSummary] = useState(() => {
+    try {
+      return onlineVoiceSettingsStore.read(userId)?.name ?? 'Server default';
+    } catch {
+      return 'Choose again';
+    }
+  });
+  const loadOnlineVoiceSummary = () => {
+    try {
+      setOnlineVoiceSummary(
+        onlineVoiceSettingsStore.read(userId)?.name ?? 'Server default',
+      );
+    } catch {
+      setOnlineVoiceSummary('Choose again');
+    }
+  };
 
   const [weekStartsMonday, setWeekStartsMonday] = useState(() => {
     try {
@@ -130,11 +154,19 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
     }
   });
   const [summaryStyleDetailed, setSummaryStyleDetailed] = useState(false);
+  const replyFormat = useChatReplyFormat(userId);
+  const handleMarkdownRepliesChange = (enabled: boolean) => {
+    if (!chatReplyFormatStore.save(userId, enabled ? 'markdown' : 'plain')) {
+      Alert.alert('Not saved', 'Could not save the chat reply format. Try again.');
+    }
+  };
   const [dailyBriefingEnabled, setDailyBriefingEnabled] = useState(true);
   const [preferenceSummary, setPreferenceSummary] = useState(() => {
     try {
       const preferences = preferencesStore.get(userId);
-      return `${preferences.reminderLeadMinutes} min, ${getSnoozePreferenceLabel(preferences)}`;
+      return `${
+        preferences.reminderLeadMinutes
+      } min, ${getSnoozePreferenceLabel(preferences)}`;
     } catch {
       return '15 min, Snooze once';
     }
@@ -144,7 +176,19 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
   const [privacyModalVisible, setPrivacyModalVisible] = useState(false);
   const [ttsTesting, setTtsTesting] = useState(false);
 
-  const { colors, isDarkMode, toggleTheme } = useTheme();
+  // Remediation audit P1: a Clear All Data confirmation is honoured only while
+  // this screen is mounted and still shows the account that opened it.
+  const alive = useRef(true);
+  const currentUserId = useRef(userId);
+  currentUserId.current = userId;
+  useEffect(
+    () => () => {
+      alive.current = false;
+    },
+    [],
+  );
+
+  const {colors, isDarkMode, toggleTheme} = useTheme();
   const themed = useThemedStyles(getProfileThemedStyles);
 
   const isGuest = userId === GUEST_USER_ID;
@@ -169,8 +213,32 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
 
     const preferences = preferencesStore.get(userId);
     setPreferenceSummary(
-      `${preferences.reminderLeadMinutes} min, ${getSnoozePreferenceLabel(preferences)}`,
+      `${preferences.reminderLeadMinutes} min, ${getSnoozePreferenceLabel(
+        preferences,
+      )}`,
     );
+    loadEventDefaultsSummary();
+    loadVoiceSummary();
+    loadOnlineVoiceSummary();
+  };
+
+  const loadVoiceSummary = () => {
+    try {
+      setVoiceSummary(
+        speechSettingsStore.read(userId).explicit ? 'Custom' : 'Default',
+      );
+    } catch {
+      setVoiceSummary('Unavailable');
+    }
+  };
+
+  const loadEventDefaultsSummary = () => {
+    try {
+      const saved = personalMemoryStore.read(userId);
+      setEventDefaultsSummary(saved.enabled && saved.value ? 'On' : 'Off');
+    } catch {
+      setEventDefaultsSummary('Unavailable');
+    }
   };
 
   const handleToggleWeekStart = (value: boolean) => {
@@ -184,24 +252,31 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
       return;
     }
     setTtsTesting(true);
+    let disposeSpeech: (() => Promise<void>) | undefined;
     try {
-      const { createCallSpeechProvider } = require('../../cloud/speechService');
+      const {createCallSpeechProvider} = require('../../cloud/speechService');
       const provider = createCallSpeechProvider(userId);
+      disposeSpeech = provider.dispose;
 
       Alert.alert(
         'Synthesizing…',
         'Synthesizing text to speech. Keep media volume up.',
       );
-      const result = await provider.speakText('Hey! This is lafina. Text to speech is working.');
-      if (result.source === 'gemini') {
+      const result = await provider.speakText(
+        'Hey! This is lafina. Text to speech is working.',
+      );
+      if (result.source === 'cancelled') {
+        Alert.alert('TTS Test Stopped', 'Voice playback was cancelled.');
+      } else if (result.source === 'elevenlabs') {
         Alert.alert(
-          'TTS Test (Gemini 3.1 Flash)',
-          'Playback finished using Gemini 3.1 Flash (Aoede Voice).',
+          'TTS Test (ElevenLabs)',
+          'Playback finished using the configured ElevenLabs online voice.',
         );
       } else {
         Alert.alert(
           'TTS Test (Native Offline TTS)',
-          'Playback finished using react-native-tts (Android TextToSpeech).',
+          result.fallbackReason ||
+            'Playback finished using react-native-tts (Android TextToSpeech). Enable Online Mode in Chat for ElevenLabs.',
         );
       }
     } catch (e: unknown) {
@@ -209,30 +284,24 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
       console.error('[Profile] TTS test failed:', e);
       Alert.alert('TTS Test Error', message);
     } finally {
+      await disposeSpeech?.().catch(() => undefined);
       setTtsTesting(false);
     }
   };
 
+  // AGY-PORT 09: counts from actual records; nothing is inferred from words or flags.
   const loadStats = () => {
-    const allTasks = tasksStore.getAllTasks(userId);
-    const completed = allTasks.filter((t) => t.isCompleted).length;
-    setCompletedTasksCount(completed);
-
-    const allNotes = notesStore.getAll(userId);
-    setNotesCount(allNotes.length);
-
-    const voiceNotes = allNotes.filter((n) => n.isVoiceTranscribed).length;
-    const voiceTasks = allTasks.filter(
-      (t) => t.notes?.includes('voice') || t.notes?.includes('Voice'),
-    ).length;
-    setVoiceCommandsCount(voiceNotes + voiceTasks);
+    setStatistics(profileStatisticsStore.read(userId));
   };
 
   const choosePhoto = async () => {
     const result = await pickAvatarImage();
     if (result.status === 'cancelled') return;
     if (result.status === 'failed') {
-      Alert.alert('Profile Photo', 'That image could not be used. Please try another one.');
+      Alert.alert(
+        'Profile Photo',
+        'That image could not be used. Please try another one.',
+      );
       return;
     }
     const previous = currentUser?.avatarUri ?? null;
@@ -254,7 +323,9 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
     const hasPhoto = Boolean(currentUser?.avatarUri);
     Alert.alert(
       'Profile Photo',
-      hasPhoto ? 'Change or remove your profile photo.' : 'Pick a photo from this device.',
+      hasPhoto
+        ? 'Change or remove your profile photo.'
+        : 'Pick a photo from this device.',
       [
         {
           text: hasPhoto ? 'Choose New Photo' : 'Choose Photo',
@@ -269,33 +340,121 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
               },
             ]
           : []),
-        { text: 'Cancel', style: 'cancel' as const },
+        {text: 'Cancel', style: 'cancel' as const},
       ],
     );
   };
 
+  /**
+   * Remediation audit P1/P2 (ADR-025). The confirmation belongs to the sign-in
+   * and the screen that opened it; resetPersonalData refuses it otherwise and
+   * changes nothing. The result names only the steps it confirmed.
+   */
+  const confirmClearData = async (authority: DataResetAuthority | null) => {
+    const outcome = resetPersonalData(
+      authority,
+      () => alive.current && currentUserId.current === authority?.userId,
+    );
+    if (!outcome.admitted || !authority) {
+      Alert.alert(
+        'Not Cleared',
+        'Nothing was deleted, because the account, sign-in or screen changed after Clear All Data was opened. Open Profile and choose Clear All Data again to clear the account that is signed in now.',
+      );
+      return;
+    }
+    // Clear-data audit C1 (ADR-026): every saved attachment cleanup for this
+    // owner, from this attempt or an earlier one, gets one bounded pass. Only
+    // obligations still saved afterwards count as files not removed. Audit C2:
+    // progress the pass could not save is never reported as done.
+    const cleanup = hasAttachmentCleanup(authority)
+      ? await finishAttachmentCleanup(authority)
+      : {removed: 0, pending: 0, interrupted: false, unsaved: 0};
+    const plannerCleared = outcome.planner === 'cleared';
+    const chatCleared = outcome.chat === 'cleared';
+    const defaultsCleared = outcome.defaults === 'cleared';
+    const filesPending = cleanup.pending;
+    const refused = outcome.refusedAttachments;
+    const unsaved = cleanup.unsaved;
+    const filesConfirmed = filesPending === 0 && refused === 0 && unsaved === 0;
+
+    if (plannerCleared && chatCleared && defaultsCleared && filesConfirmed) {
+      Alert.alert(
+        'Data Cleared',
+        'All personal scheduling data and saved event defaults have been deleted.',
+      );
+    } else {
+      const done: string[] = [];
+      const notDone: string[] = [];
+      (plannerCleared ? done : notDone).push(
+        'notes, tasks, events, reminders and calendar blocks',
+      );
+      (chatCleared ? done : notDone).push('chat history');
+      (defaultsCleared ? done : notDone).push('saved event defaults');
+      const lines = [
+        done.length > 0 ? `Your ${done.join(' and your ')} were cleared.` : '',
+        notDone.length > 0
+          ? `Your ${notDone.join(' and your ')} were not deleted${
+              plannerCleared
+                ? ''
+                : '; none of those planner records were changed'
+            }.`
+          : '',
+        filesPending === null
+          ? 'This phone could not confirm that every chat attachment file was removed.'
+          : filesPending > 0
+          ? `${filesPending} chat attachment file${
+              filesPending === 1 ? '' : 's'
+            } could not be removed from this phone's storage yet; Clear All Data keeps ${
+              filesPending === 1 ? 'it' : 'them'
+            } listed and tries again.`
+          : '',
+        unsaved > 0
+          ? `This phone could not save its cleanup progress for ${unsaved} chat attachment file${
+              unsaved === 1 ? '' : 's'
+            }; ${
+              unsaved === 1 ? 'it stays' : 'they stay'
+            } listed for the next Clear All Data.`
+          : '',
+        cleanup.interrupted
+          ? 'The sign-in changed before every file was removed; the rest stay listed for this account.'
+          : '',
+        refused > 0
+          ? `${refused} chat attachment reference${
+              refused === 1 ? ' did' : 's did'
+            } not point to this app's attachment storage, so ${
+              refused === 1 ? 'that file was' : 'those files were'
+            } left untouched.`
+          : '',
+        defaultsCleared
+          ? ''
+          : 'To remove the saved event defaults, open Event Defaults and choose Forget all event defaults.',
+        plannerCleared && chatCleared && filesPending === 0 && unsaved === 0
+          ? ''
+          : 'Try Clear All Data again.',
+        'Device settings such as the offline voice, theme and time format were kept.',
+      ];
+      Alert.alert('Data Partly Cleared', lines.filter(Boolean).join(' '));
+    }
+    if (alive.current) {
+      loadStats();
+      loadEventDefaultsSummary();
+      onRefresh();
+    }
+  };
+
   const handleClearData = () => {
+    // Captured now: a confirmation answered after a sign-in change is refused.
+    const authority = authorizeDataReset(userId);
     Alert.alert(
       'Clear All Data',
-      'This will delete all your notes, tasks, events, reminders, and calendar blocks. This action cannot be undone.',
+      'This will delete all your notes, tasks, events, reminders, calendar blocks, chat history and saved event defaults. Device settings such as the offline voice, theme and time format are kept; Offline Voice has its own Reset. This action cannot be undone.',
       [
-        { text: 'Cancel', style: 'cancel' },
+        {text: 'Cancel', style: 'cancel'},
         {
           text: 'Delete Everything',
           style: 'destructive',
           onPress: () => {
-            notesStore.getAll(userId).forEach((n) => notesStore.delete(n.id));
-            tasksStore.getAllTasks(userId).forEach((t) => tasksStore.deleteTask(t.id));
-            tasksStore.getAllEvents(userId).forEach((ev) => tasksStore.deleteEvent(ev.id));
-            timeBlocksStore.getAll(userId).forEach((tb) => timeBlocksStore.delete(tb.id));
-            remindersStore
-              .getAllReminders(userId)
-              .forEach((r) => remindersStore.deleteReminder(r.id));
-            chatStore.clearHistory(userId);
-
-            Alert.alert('Data Cleared', 'All personal scheduling data has been deleted.');
-            loadStats();
-            onRefresh();
+            void confirmClearData(authority);
           },
         },
       ],
@@ -313,13 +472,22 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
     }
   };
 
+  /** Sign-ins belong to one server: sign out there before switching. */
+  const endSessionForServerSwitch = async () => {
+    try {
+      await authService.logout();
+    } finally {
+      userStore.logout();
+    }
+  };
+
   const handleSignOut = () => {
     const title = isGuest ? 'Dismiss Guest Session' : 'Sign Out';
     const message = isGuest
       ? 'Your temporary data will be cleared when you sign out. Create an account to keep it.'
       : 'Are you sure you want to sign out?';
     Alert.alert(title, message, [
-      { text: 'Cancel', style: 'cancel' },
+      {text: 'Cancel', style: 'cancel'},
       {
         text: title,
         style: 'destructive',
@@ -333,7 +501,10 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
             if (onLogout) {
               onLogout(isGuest);
             } else {
-              Alert.alert('Signed Out', 'You have been signed out. Sync pipeline suspended.');
+              Alert.alert(
+                'Signed Out',
+                'You have been signed out. Sync pipeline suspended.',
+              );
             }
           }
         },
@@ -360,7 +531,12 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
       contentContainerStyle={styles.contentContainer}
     >
       <View style={styles.headerBackground}>
-        <SvgXml xml={ARC_SCREEN_XML} width="100%" height={180} preserveAspectRatio="none" />
+        <SvgXml
+          xml={ARC_SCREEN_XML}
+          width="100%"
+          height={180}
+          preserveAspectRatio="none"
+        />
       </View>
 
       <View style={styles.avatarSection}>
@@ -369,13 +545,23 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
             onPress={handleEditProfile}
             activeOpacity={0.85}
             accessibilityRole="button"
-            accessibilityLabel={photoSource ? 'Change profile photo' : 'Add a profile photo'}
-            style={[styles.avatarCircle, themed.avatarCircle, { backgroundColor: colors.blue }]}
+            accessibilityLabel={
+              photoSource ? 'Change profile photo' : 'Add a profile photo'
+            }
+            style={[
+              styles.avatarCircle,
+              themed.avatarCircle,
+              {backgroundColor: colors.blue},
+            ]}
           >
             {photoSource ? (
-              <Image source={photoSource} style={styles.avatarImage} resizeMode="cover" />
+              <Image
+                source={photoSource}
+                style={styles.avatarImage}
+                resizeMode="cover"
+              />
             ) : (
-              <Text style={[styles.avatarInitials, { color: colors.white }]}>
+              <Text style={[styles.avatarInitials, {color: colors.white}]}>
                 {getInitials(currentUser?.username)}
               </Text>
             )}
@@ -384,7 +570,9 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
             onPress={handleEditProfile}
             style={[styles.editBadge, themed.editBadge, Shadows.card]}
             accessibilityRole="button"
-            accessibilityLabel={photoSource ? 'Change profile photo' : 'Add a profile photo'}
+            accessibilityLabel={
+              photoSource ? 'Change profile photo' : 'Add a profile photo'
+            }
           >
             <Camera size={16} color={colors.textPrimary} />
           </TouchableOpacity>
@@ -401,15 +589,21 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
       </View>
 
       <View style={styles.mainContent}>
-        <ProfileStats
-          completedTasksCount={completedTasksCount}
-          notesCount={notesCount}
-          voiceCommandsCount={voiceCommandsCount}
-        />
+        <ProfileStats statistics={statistics} />
 
         <View style={styles.settingsContainer}>
-          <Text style={[styles.settingsGroupHeader, themed.settingsGroupHeader]}>Preferences</Text>
-          <View style={[styles.settingsGroupCard, Shadows.card, themed.settingsGroupCard]}>
+          <Text
+            style={[styles.settingsGroupHeader, themed.settingsGroupHeader]}
+          >
+            Preferences
+          </Text>
+          <View
+            style={[
+              styles.settingsGroupCard,
+              Shadows.card,
+              themed.settingsGroupCard,
+            ]}
+          >
             <SettingItem
               text="Scheduling & Reminder Preferences"
               type="link"
@@ -423,10 +617,34 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
               value={weekStartsMonday}
               onValueChange={handleToggleWeekStart}
             />
+            <View style={[styles.settingDivider, themed.settingDivider]} />
+            <SettingItem
+              text="Event Defaults"
+              type="link"
+              valueText={eventDefaultsSummary}
+              onPress={() => setMemoryVisible(true)}
+            />
+            <View style={[styles.settingDivider, themed.settingDivider]} />
+            <SettingItem
+              text="Memory"
+              type="link"
+              valueText={chatMemorySummary}
+              onPress={() => setChatMemoryVisible(true)}
+            />
           </View>
 
-          <Text style={[styles.settingsGroupHeader, themed.settingsGroupHeader]}>AI & Voice</Text>
-          <View style={[styles.settingsGroupCard, Shadows.card, themed.settingsGroupCard]}>
+          <Text
+            style={[styles.settingsGroupHeader, themed.settingsGroupHeader]}
+          >
+            AI & Voice
+          </Text>
+          <View
+            style={[
+              styles.settingsGroupCard,
+              Shadows.card,
+              themed.settingsGroupCard,
+            ]}
+          >
             <SettingItem
               text="Detailed AI Summaries"
               type="toggle"
@@ -435,24 +653,71 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
             />
             <View style={[styles.settingDivider, themed.settingDivider]} />
             <SettingItem
+              text="Markdown Chat Replies"
+              type="toggle"
+              value={replyFormat === 'markdown'}
+              onValueChange={handleMarkdownRepliesChange}
+            />
+            <View style={[styles.settingDivider, themed.settingDivider]} />
+            <SettingItem
               text={ttsTesting ? 'Testing TTS…' : 'Test TTS Voice'}
               type="clickable"
               onPress={handleTestTtsVoice}
             />
+            <View style={[styles.settingDivider, themed.settingDivider]} />
+            <SettingItem
+              text="Offline Voice"
+              type="link"
+              valueText={voiceSummary}
+              onPress={() => setVoiceVisible(true)}
+            />
+            <View style={[styles.settingDivider, themed.settingDivider]} />
+            <SettingItem
+              text="Online Voice · ElevenLabs"
+              type="link"
+              valueText={onlineVoiceSummary}
+              onPress={() => setOnlineVoiceVisible(true)}
+            />
           </View>
 
-          <Text style={[styles.settingsGroupHeader, themed.settingsGroupHeader]}>Notifications</Text>
-          <View style={[styles.settingsGroupCard, Shadows.card, themed.settingsGroupCard]}>
+          <Text
+            style={[styles.settingsGroupHeader, themed.settingsGroupHeader]}
+          >
+            Notifications
+          </Text>
+          <View
+            style={[
+              styles.settingsGroupCard,
+              Shadows.card,
+              themed.settingsGroupCard,
+            ]}
+          >
             <SettingItem
               text="Daily Morning Briefing"
               type="toggle"
               value={dailyBriefingEnabled}
               onValueChange={setDailyBriefingEnabled}
             />
+            <View style={[styles.settingDivider, themed.settingDivider]} />
+            <SettingItem
+              text="Reminder Health"
+              type="link"
+              onPress={() => setHealthVisible(true)}
+            />
           </View>
 
-          <Text style={[styles.settingsGroupHeader, themed.settingsGroupHeader]}>Appearance</Text>
-          <View style={[styles.settingsGroupCard, Shadows.card, themed.settingsGroupCard]}>
+          <Text
+            style={[styles.settingsGroupHeader, themed.settingsGroupHeader]}
+          >
+            Appearance
+          </Text>
+          <View
+            style={[
+              styles.settingsGroupCard,
+              Shadows.card,
+              themed.settingsGroupCard,
+            ]}
+          >
             <SettingItem
               text="Dark Mode"
               type="toggle"
@@ -461,7 +726,11 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
             />
           </View>
 
-          <Text style={[styles.settingsGroupHeader, themed.settingsGroupHeader]}>Data Settings</Text>
+          <Text
+            style={[styles.settingsGroupHeader, themed.settingsGroupHeader]}
+          >
+            Data Settings
+          </Text>
           <View style={[styles.settingsGroupCard, themed.settingsGroupCard]}>
             <SettingItem
               text="Clear All Data"
@@ -471,7 +740,31 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
             />
           </View>
 
-          <Text style={[styles.settingsGroupHeader, themed.settingsGroupHeader]}>About</Text>
+          {backendSelection.isAvailable() && (
+            <>
+              <Text
+                style={[styles.settingsGroupHeader, themed.settingsGroupHeader]}
+              >
+                Developer
+              </Text>
+              <View
+                style={[styles.settingsGroupCard, themed.settingsGroupCard]}
+              >
+                <ServerSwitchItem
+                  isGuest={isGuest}
+                  endSession={endSessionForServerSwitch}
+                  onSessionEnded={() => onLogout?.(false)}
+                />
+                {onReplayOnboarding ? <SettingItem text="Replay onboarding" type="link" onPress={onReplayOnboarding} /> : null}
+              </View>
+            </>
+          )}
+
+          <Text
+            style={[styles.settingsGroupHeader, themed.settingsGroupHeader]}
+          >
+            About
+          </Text>
           <View style={[styles.settingsGroupCard, themed.settingsGroupCard]}>
             <SettingItem
               text="App Version"
@@ -500,16 +793,33 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
         </View>
 
         {isGuest ? (
-          <View style={[styles.guestPromptCard, Shadows.card, themed.settingsGroupCard]}>
-            <Text style={[styles.guestPromptTitle, themed.settingText]}>Go Full Access</Text>
-            <Text style={[styles.guestPromptBody, themed.settingValue]}>
-              Create an account to save your data across devices and unlock all features.
+          <View
+            style={[
+              styles.guestPromptCard,
+              Shadows.card,
+              themed.settingsGroupCard,
+            ]}
+          >
+            <Text style={[styles.guestPromptTitle, themed.settingText]}>
+              Go Full Access
             </Text>
-            <TouchableOpacity onPress={handleCreateAccount} style={styles.createAccountBtn}>
+            <Text style={[styles.guestPromptBody, themed.settingValue]}>
+              Create an account to save your data across devices and unlock all
+              features.
+            </Text>
+            <TouchableOpacity
+              onPress={handleCreateAccount}
+              style={styles.createAccountBtn}
+            >
               <Text style={styles.createAccountBtnText}>Create Account</Text>
             </TouchableOpacity>
-            <TouchableOpacity onPress={handleSignOut} style={styles.signOutLink}>
-              <Text style={styles.signOutLinkText}>Dismiss Guest & Sign Out</Text>
+            <TouchableOpacity
+              onPress={handleSignOut}
+              style={styles.signOutLink}
+            >
+              <Text style={styles.signOutLinkText}>
+                Dismiss Guest & Sign Out
+              </Text>
             </TouchableOpacity>
           </View>
         ) : (
@@ -527,22 +837,56 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
           onClose={() => setPrivacyModalVisible(false)}
         />
       )}
+      <ReminderHealth
+        userId={userId}
+        visible={healthVisible}
+        onClose={() => setHealthVisible(false)}
+      />
+      <ChatMemorySettings
+        userId={userId}
+        isGuest={isGuest}
+        visible={chatMemoryVisible}
+        onClose={() => {
+          setChatMemoryVisible(false);
+          setChatMemorySummary(readChatMemorySummary());
+        }}
+        onChanged={() => setChatMemorySummary(readChatMemorySummary())}
+      />
+      <PersonalMemory
+        userId={userId}
+        visible={memoryVisible}
+        onClose={() => setMemoryVisible(false)}
+        onChanged={loadEventDefaultsSummary}
+      />
+      <OnlineVoice
+        key={`online-${userId}`}
+        userId={userId}
+        visible={onlineVoiceVisible}
+        onClose={() => setOnlineVoiceVisible(false)}
+        onChanged={loadOnlineVoiceSummary}
+      />
+      <OfflineVoice
+        userId={userId}
+        visible={voiceVisible}
+        onClose={() => setVoiceVisible(false)}
+        onChanged={loadVoiceSummary}
+      />
     </ScrollView>
   );
 };
 
 const getProfileThemedStyles = (colors: ThemeColors) => ({
-  container: { backgroundColor: colors.background },
-  headerTitle: { color: colors.textPrimary },
-  userName: { color: colors.textPrimary },
-  userEmail: { color: colors.textSecondary },
-  settingsGroupHeader: { color: colors.textSecondary },
-  settingsGroupCard: { backgroundColor: colors.cardBg },
-  settingText: { color: colors.textPrimary },
-  settingValue: { color: colors.textSecondary },
-  settingDivider: { backgroundColor: colors.divider },
-  avatarCircle: { borderColor: colors.cardBg },
-  editBadge: { backgroundColor: colors.cardBg, borderColor: colors.border },
+  container: {backgroundColor: colors.background},
+  headerTitle: {color: colors.textPrimary},
+  userName: {color: colors.textPrimary},
+  userEmail: {color: colors.textSecondary},
+  settingsGroupHeader: {color: colors.textSecondary},
+  settingsGroupCard: {backgroundColor: colors.cardBg},
+  settingText: {color: colors.textPrimary},
+  settingValue: {color: colors.textSecondary},
+  settingDivider: {backgroundColor: colors.divider},
+  avatarCircle: {borderColor: colors.cardBg},
+  editBadge: {backgroundColor: colors.cardBg, borderColor: colors.border},
 });
 
 const styles = StyleSheet.create({

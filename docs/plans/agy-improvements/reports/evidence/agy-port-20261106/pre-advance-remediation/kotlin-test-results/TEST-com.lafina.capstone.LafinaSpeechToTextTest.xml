@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.lafina.capstone.LafinaSpeechToTextTest" tests="7" skipped="0" failures="0" errors="0" timestamp="2026-11-06T03:05:36.594Z" hostname="DESKTOP-C32FQUT" time="0.033">
+  <properties/>
+  <testcase name="whisper bridge specifies standard student speech model asset" classname="com.lafina.capstone.LafinaSpeechToTextTest" time="0.003"/>
+  <testcase name="softLimitSample preserves linear region and smoothly compresses peaks without hard clipping" classname="com.lafina.capstone.LafinaSpeechToTextTest" time="0.002"/>
+  <testcase name="prepareSamplesForWhisper strips DC offset and sub-80Hz rumble while boosting voice band" classname="com.lafina.capstone.LafinaSpeechToTextTest" time="0.01"/>
+  <testcase name="inactivity unload timeout is 60 seconds to conserve battery and memory" classname="com.lafina.capstone.LafinaSpeechToTextTest" time="0.012"/>
+  <testcase name="silero vad v5 processor builds 576-sample window with 64-sample rolling context" classname="com.lafina.capstone.LafinaSpeechToTextTest" time="0.001"/>
+  <testcase name="accent and noise resilience constants are configured" classname="com.lafina.capstone.LafinaSpeechToTextTest" time="0.001"/>
+  <testcase name="speech to text module class exists and matches registration contract" classname="com.lafina.capstone.LafinaSpeechToTextTest" time="0.003"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

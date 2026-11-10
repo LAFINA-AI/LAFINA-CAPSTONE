@@ -1,0 +1,8 @@
+C:\Python314\Lib\zipfile\__init__.py:1730: UserWarning: Duplicate name: 'lib/arm64-v8a/a.so'
+  return self._open_to_write(zinfo, force_zip64=force_zip64)
+......................
+----------------------------------------------------------------------
+Ran 22 tests in 0.295s
+
+OK
+exit=0

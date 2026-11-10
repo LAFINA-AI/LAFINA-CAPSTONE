@@ -1,5 +1,6 @@
 import { db, DatabaseTransaction } from './database';
 import { syncOutboxStore } from './syncOutboxStore';
+import { remindersForSource } from './sourceReminders';
 
 export interface TimeBlock {
   id: string;
@@ -17,7 +18,7 @@ export interface TimeBlock {
   deletedAt?: string | null;
 }
 
-const mapRowToBlock = (row: any): TimeBlock => ({
+export const mapRowToBlock = (row: any): TimeBlock => ({
   id: row.id,
   userId: row.user_id,
   title: row.title,
@@ -80,19 +81,27 @@ const timeBlockPayload = (row: StoredSyncRow): Record<string, unknown> => ({
   recurrence_rule: row.recurrence_rule,
 });
 
+const ALL_TIME_BLOCKS_SQL =
+  `SELECT * FROM time_blocks WHERE user_id = ? AND deleted_at IS NULL ORDER BY date ASC, start_time ASC`;
+
 export const timeBlocksStore = {
   getAll: (userId: string): TimeBlock[] => {
     try {
-      const result = db.executeSync(
-        `SELECT * FROM time_blocks WHERE user_id = ? AND deleted_at IS NULL ORDER BY date ASC, start_time ASC`,
-        [userId],
-      );
+      const result = db.executeSync(ALL_TIME_BLOCKS_SQL, [userId]);
       return result.rows.map(mapRowToBlock);
     } catch (error) {
       console.error('Error fetching time blocks:', error);
       return [];
     }
   },
+
+  /**
+   * Strict counterpart of `getAll` for destructive work (remediation audit
+   * P2): same query, but a failed read throws instead of looking empty.
+   * The display getter above keeps its best-effort behaviour.
+   */
+  getAllOrThrow: (userId: string, executor: Pick<DatabaseTransaction, 'executeSync'> = db): TimeBlock[] =>
+    (executor.executeSync(ALL_TIME_BLOCKS_SQL, [userId]).rows ?? []).map(mapRowToBlock),
 
   insert: (
     block: Omit<TimeBlock, 'createdAt' | 'updatedAt' | 'deletedAt'>,
@@ -147,7 +156,7 @@ export const timeBlocksStore = {
     }
   },
 
-  update: (block: Partial<TimeBlock> & { id: string }): void => {
+  update: (block: Partial<TimeBlock> & { id: string }, executor?: DatabaseTransaction): void => {
     const now = new Date().toISOString();
     const sets: string[] = [];
     const params: any[] = [];
@@ -176,26 +185,28 @@ export const timeBlocksStore = {
     params.push(now);
     params.push(block.id);
 
+    const applyUpdate = (tx: DatabaseTransaction): void => {
+      tx.executeSync(`UPDATE time_blocks SET ${sets.join(', ')} WHERE id = ?`, params);
+      const row = tx.executeSync('SELECT * FROM time_blocks WHERE id = ?', [block.id]).rows?.[0] as
+        | StoredSyncRow
+        | undefined;
+      if (row) {
+        const userId = String(row.user_id);
+        syncOutboxStore.enqueueMutation(
+          userId,
+          'time_block',
+          block.id,
+          'update',
+          timeBlockPayload(row),
+          'account',
+          userId,
+          tx,
+        );
+      }
+    };
     try {
-      db.transactionSync((tx) => {
-        tx.executeSync(`UPDATE time_blocks SET ${sets.join(', ')} WHERE id = ?`, params);
-        const row = tx.executeSync('SELECT * FROM time_blocks WHERE id = ?', [block.id]).rows?.[0] as
-          | StoredSyncRow
-          | undefined;
-        if (row) {
-          const userId = String(row.user_id);
-          syncOutboxStore.enqueueMutation(
-            userId,
-            'time_block',
-            block.id,
-            'update',
-            timeBlockPayload(row),
-            'account',
-            userId,
-            tx,
-          );
-        }
-      });
+      if (executor) applyUpdate(executor);
+      else db.transactionSync(applyUpdate);
     } catch (error) {
       console.error('Error updating time block:', error);
       throw error;
@@ -228,11 +239,10 @@ export const timeBlocksStore = {
         executor,
       );
 
-      const reminders =
-        executor.executeSync(
-          `SELECT id, precast_audio_path FROM reminders WHERE user_id = ? AND task = ? AND deleted_at IS NULL AND status IN ('pending', 'snoozed')`,
-          [userId, blockRow.title],
-        ).rows || [];
+      const reminders = remindersForSource(executor, userId, 'time_block', id, blockRow.title, [
+        'pending',
+        'snoozed',
+      ]);
       for (const reminder of reminders) {
         executor.executeSync(
           `UPDATE reminders SET deleted_at = ?, updated_at = ? WHERE id = ?`,

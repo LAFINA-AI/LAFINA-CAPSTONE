@@ -1,0 +1,116 @@
+{
+  "source_commit": "7b860ef8eb13e2898e6a29c14176419f057ce99d",
+  "built_on_branch": "Lem-branch",
+  "recorded_utc": "2026-11-07T05:12:57.442220+00:00",
+  "prebuilt_bundle_sha256": "b1be9a76a9a863a0a51e79a1b4b7827bf84c502ed47b7c0496fc07236048e5c2",
+  "artifacts": [
+    {
+      "abi": "arm64-v8a",
+      "apk": "android\\app\\build\\outputs\\apk\\dataQa\\app-arm64-v8a-dataQa.apk",
+      "bytes": 163257936,
+      "sha256": "e6468167db0e0935ff4bd00c2ba8863af6c1e7f8e9be07c8c1d74a26beda871d",
+      "bundle_sha256": "b1be9a76a9a863a0a51e79a1b4b7827bf84c502ed47b7c0496fc07236048e5c2",
+      "matches_prebuilt": true,
+      "markers": {
+        "Adaptive reminder: rings ": true,
+        "Its recurring schedule continues with the next occurrence.": true,
+        "ORDER BY computed_at DESC, created_at DESC, rowid DESC": true,
+        "Cold start: collecting student interaction baseline": true,
+        "queue_order": true,
+        "Not Cleared": true,
+        "Starting Preview": true
+      },
+      "models": {
+        "assets/models/ggml-base.en-q5_1.bin": "4baf70dd0d7c4247ba2b81fafd9c01005ac77c2f9ef064e00dcf195d0e2fdd2f",
+        "assets/models/silero_vad.onnx": "7ed98ddbad84ccac4cd0aeb3099049280713df825c610a8ed34543318f1b2c49"
+      },
+      "models_match_previous": true,
+      "native_voice_prompt": {
+        "lib/arm64-v8a/liblafina_whisper.so": true
+      },
+      "native_warmup_marker": true,
+      "certificate": [
+        "Signer #1 certificate SHA-256 digest: acf890c33d9f7252cca541e5c60166fdf49d47b28313bf678bebb8fb0f62dd5e"
+      ],
+      "permissions_unchanged": true,
+      "package": [
+        "package: name='com.lafina.capstone' versionCode='6' versionName='0.6.0-data-qa' platformBuildVersionName='16' platformBuildVersionCode='36' compileSdkVersion='36' compileSdkVersionCodename='16'"
+      ]
+    },
+    {
+      "abi": "x86_64",
+      "apk": "android\\app\\build\\outputs\\apk\\dataQa\\app-x86_64-dataQa.apk",
+      "bytes": 169577888,
+      "sha256": "76963863519b7dc7cf466e9b94cd00b061bfe2dbaa99a90215dc982566347c0c",
+      "bundle_sha256": "b1be9a76a9a863a0a51e79a1b4b7827bf84c502ed47b7c0496fc07236048e5c2",
+      "matches_prebuilt": true,
+      "markers": {
+        "Adaptive reminder: rings ": true,
+        "Its recurring schedule continues with the next occurrence.": true,
+        "ORDER BY computed_at DESC, created_at DESC, rowid DESC": true,
+        "Cold start: collecting student interaction baseline": true,
+        "queue_order": true,
+        "Not Cleared": true,
+        "Starting Preview": true
+      },
+      "models": {
+        "assets/models/ggml-base.en-q5_1.bin": "4baf70dd0d7c4247ba2b81fafd9c01005ac77c2f9ef064e00dcf195d0e2fdd2f",
+        "assets/models/silero_vad.onnx": "7ed98ddbad84ccac4cd0aeb3099049280713df825c610a8ed34543318f1b2c49"
+      },
+      "models_match_previous": true,
+      "native_voice_prompt": {
+        "lib/x86_64/liblafina_whisper.so": true
+      },
+      "native_warmup_marker": true,
+      "certificate": [
+        "Signer #1 certificate SHA-256 digest: acf890c33d9f7252cca541e5c60166fdf49d47b28313bf678bebb8fb0f62dd5e"
+      ],
+      "permissions_unchanged": true,
+      "package": [
+        "package: name='com.lafina.capstone' versionCode='6' versionName='0.6.0-data-qa' platformBuildVersionName='16' platformBuildVersionCode='36' compileSdkVersion='36' compileSdkVersionCodename='16'"
+      ]
+    }
+  ],
+  "checks": [
+    {
+      "abi": "arm64-v8a",
+      "check": "apk_audit",
+      "exit": 2
+    },
+    {
+      "abi": "arm64-v8a",
+      "check": "signer",
+      "exit": 0
+    },
+    {
+      "abi": "arm64-v8a",
+      "check": "zipalign",
+      "exit": 0
+    },
+    {
+      "abi": "arm64-v8a",
+      "check": "identity",
+      "exit": 0
+    },
+    {
+      "abi": "x86_64",
+      "check": "apk_audit",
+      "exit": 2
+    },
+    {
+      "abi": "x86_64",
+      "check": "signer",
+      "exit": 0
+    },
+    {
+      "abi": "x86_64",
+      "check": "zipalign",
+      "exit": 0
+    },
+    {
+      "abi": "x86_64",
+      "check": "identity",
+      "exit": 0
+    }
+  ]
+}

@@ -1,0 +1,33 @@
+[
+  {
+    "check": "typecheck",
+    "exit": 0,
+    "command": [
+      "node",
+      "node_modules/typescript/bin/tsc",
+      "--noEmit"
+    ]
+  },
+  {
+    "check": "lint",
+    "exit": 0,
+    "command": [
+      "node",
+      "node_modules/eslint/bin/eslint.js",
+      "src",
+      "__tests__",
+      "App.tsx",
+      "index.js",
+      "--max-warnings",
+      "0"
+    ]
+  },
+  {
+    "check": "architecture",
+    "exit": 0,
+    "command": [
+      "node",
+      "scripts/check-architecture.mjs"
+    ]
+  }
+]

@@ -1,5 +1,5 @@
 import React from 'react';
-import { render, fireEvent, act } from '@testing-library/react-native';
+import { render, fireEvent, act, waitFor } from '@testing-library/react-native';
 import { DeviceEventEmitter, NativeModules, PermissionsAndroid } from 'react-native';
 import {
   isSTTAvailable,
@@ -17,7 +17,6 @@ import { notesStore } from '../../src/storage/notesStore';
 import { tasksStore } from '../../src/storage/tasksStore';
 import { userStore } from '../../src/storage/userStore';
 import { initDatabase } from '../../src/storage/dbInit';
-import { ttsService } from '../../src/ai/tts/ttsService';
 
 describe('Phase 06: Push-to-Talk Offline STT & VoiceModal', () => {
   const mockUserId = 'test-student-voice-user';
@@ -210,7 +209,15 @@ describe('Phase 06: Push-to-Talk Offline STT & VoiceModal', () => {
 
       const reply = await findByTestId('voice-reply');
       expect(reply).toBeTruthy();
-      expect(insertSpy).toHaveBeenCalledWith(
+      // AGY-PORT 04 (PF05 intentional change): nothing is saved until Confirm.
+      expect(insertSpy).not.toHaveBeenCalled();
+      const confirmButton = await findByTestId('voice-review-confirm');
+      await act(async () => {
+        fireEvent.press(confirmButton);
+      });
+      await waitFor(() => expect(insertSpy).toHaveBeenCalled());
+      // The reviewed write passes its transaction as a second argument.
+      expect(insertSpy.mock.calls[0][0]).toEqual(
         expect.objectContaining({
           userId: mockUserId,
           title: 'Voice Note',
@@ -238,7 +245,15 @@ describe('Phase 06: Push-to-Talk Offline STT & VoiceModal', () => {
 
       const reply = await findByTestId('voice-reply');
       expect(reply).toBeTruthy();
-      expect(insertTaskSpy).toHaveBeenCalledWith(
+      // AGY-PORT 04 (PF05 intentional change): nothing is saved until Confirm.
+      expect(insertTaskSpy).not.toHaveBeenCalled();
+      const confirmButton = await findByTestId('voice-review-confirm');
+      await act(async () => {
+        fireEvent.press(confirmButton);
+      });
+      await waitFor(() => expect(insertTaskSpy).toHaveBeenCalled());
+      // The reviewed write passes its transaction as a second argument.
+      expect(insertTaskSpy.mock.calls[0][0]).toEqual(
         expect.objectContaining({
           userId: mockUserId,
           title: 'Submit engineering capstone proposal',
@@ -250,7 +265,11 @@ describe('Phase 06: Push-to-Talk Offline STT & VoiceModal', () => {
     });
 
     test('speaks aloud schedule query reply via react-native-tts', async () => {
-      const speakSpy = jest.spyOn(ttsService, 'speak');
+      // Voice mode reads through the speech provider; offline that is the
+      // react-native-tts engine itself.
+      const nativeTts = require('react-native-tts');
+      const speakSpy = (nativeTts.default ?? nativeTts).speak as jest.Mock;
+      speakSpy.mockClear();
       const onClose = jest.fn();
 
       const { getByTestId, findByTestId } = render(
@@ -265,8 +284,7 @@ describe('Phase 06: Push-to-Talk Offline STT & VoiceModal', () => {
 
       const reply = await findByTestId('voice-reply');
       expect(reply).toBeTruthy();
-      expect(speakSpy).toHaveBeenCalled();
-      speakSpy.mockRestore();
+      await waitFor(() => expect(speakSpy).toHaveBeenCalled());
     });
 
     test('invokes custom onTranscript and onCommand handlers if supplied', async () => {

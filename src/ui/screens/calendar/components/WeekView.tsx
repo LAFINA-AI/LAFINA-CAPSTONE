@@ -118,6 +118,16 @@ export const WeekView: React.FC<WeekViewProps> = ({
                 </Text>
               </TouchableOpacity>
             ))}
+            {calendar.overdueTotal > overdueList.length && (
+              <View
+                style={[styles.overdueChip, { backgroundColor: isDarkMode ? 'rgba(255,255,255,0.1)' : 'rgba(255,255,255,0.7)' }]}
+                testID="calendar-overdue-more"
+              >
+                <Text style={[{ color: colors.textSecondary }, styles.overdueChipText]} numberOfLines={1}>
+                  +{calendar.overdueTotal - overdueList.length} more
+                </Text>
+              </View>
+            )}
           </ScrollView>
         </View>
       )}

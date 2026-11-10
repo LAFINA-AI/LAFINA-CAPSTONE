@@ -1,0 +1,16 @@
+HEAD 69aafcd759bb5e8977fdf2450987359c9ca0c022 + uncommitted C2 fix 2026-11-07T03:19:13Z
+  console.log
+    INDEPENDENT_CLEANUP_STARVATION {"first":{"removed":0,"pending":51,"interrupted":false,"unsaved":0},"second":{"removed":1,"pending":50,"interrupted":false,"unsaved":0},"lastFileStillPresent":false,"lastFileAttempted":true,"firstAttempts":{"attempts":2},"pending":50}
+
+      at Object.log (docs/plans/agy-improvements/reports/evidence/codex-attachment-cleanup-audit-69aafcd-20261107/independentCleanupFairness.test.ts:20:10)
+
+PASS docs/plans/agy-improvements/reports/evidence/codex-attachment-cleanup-audit-69aafcd-20261107/independentCleanupFairness.test.ts
+  √ repeated bounded passes must eventually attempt a removable file behind persistent failures (51 ms)
+
+Test Suites: 1 passed, 1 total
+Tests:       1 passed, 1 total
+Snapshots:   0 total
+Time:        3.63 s
+Ran all test suites within paths "docs/plans/agy-improvements/reports/evidence/codex-attachment-cleanup-audit-69aafcd-20261107/independentCleanupFairness.test.ts".
+Test results written to: docs\plans\agy-improvements\reports\evidence\agy-port-20261106\attachment-queue-fairness-remediation-20261107\post-fix-independent-fairness-1.json
+exit=0
