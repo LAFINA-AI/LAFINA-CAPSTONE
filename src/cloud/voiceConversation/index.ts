@@ -21,6 +21,19 @@ export {
   DEFAULT_LIMITS,
 } from './controller';
 export type {VoiceConversationDeps, VoiceConversationGates} from './controller';
+export {
+  LAFINA_VOICE_SYSTEM_PROMPT,
+  DEFAULT_VOICE_PREFERENCES,
+  buildVoicePersonaPrompt,
+  stripReasoningContent,
+  sanitizeSpeechText,
+  detectConversationalDirective,
+  getToolWorkingPhrase,
+} from './personaPolicy';
+export type {
+  VoicePersonaPreferences,
+  ConversationalDirective,
+} from './personaPolicy';
 export type * from './types';
 
 export const VOICE_CONSENT_KEY = 'voiceConversation.consent.v1';

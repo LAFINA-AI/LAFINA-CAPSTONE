@@ -80,6 +80,9 @@ const statusLine = (snapshot: ConversationSnapshot, hasReviewItem = false) => {
     snapshot.phase === 'thinking' ||
     snapshot.phase === 'tool_working';
   if (snapshot.muted && active) return 'Muted. LAFINA cannot hear you';
+  if (snapshot.phase === 'tool_working') {
+    return snapshot.toolPhrase || 'Working…';
+  }
   if (hasReviewItem && (snapshot.phase === 'listening' || snapshot.phase === 'idle')) {
     return 'Waiting for confirmation';
   }
@@ -155,6 +158,8 @@ export const VoiceConversationPanel: React.FC<VoiceConversationPanelProps> = ({
   }, []);
 
   const onClientTool = useCallback(async (name: string, parameters: Record<string, unknown>, isCurrent: () => boolean): Promise<string> => {
+    const injected = deps ? deps(userId).onClientTool : undefined;
+    if (injected) return injected(name, parameters, isCurrent);
     if (!directProviderTestEnabled() || !isCurrent() || localSettingsStore.get(ownerRef.current, DATA_CONSENT, null) !== 'true') throw new Error('Tool unavailable');
     const owner = ownerRef.current;
     const spoken = lastUserRequest.current;
@@ -190,7 +195,7 @@ export const VoiceConversationPanel: React.FC<VoiceConversationPanelProps> = ({
       return `No change has been saved. ${result.reply}`;
     }
     return 'No action was prepared or saved. Ask for the exact details and try again.';
-  }, []);
+  }, [deps, userId]);
 
   const conversation = useVoiceConversation(userId, {onFinalUserText, onClientTool, deps});
   conversationRef.current = conversation;

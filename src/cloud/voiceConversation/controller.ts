@@ -11,6 +11,13 @@ import type {
   VoiceConversationApi,
   VoiceTransport,
 } from './types';
+import {
+  DEFAULT_VOICE_PREFERENCES,
+  detectConversationalDirective,
+  getToolWorkingPhrase,
+  sanitizeSpeechText,
+  type VoicePersonaPreferences,
+} from './personaPolicy';
 
 /**
  * One live voice conversation at a time, for one signed-in account.
@@ -188,6 +195,7 @@ export class VoiceConversationController {
     micCapturing: false,
     level: 0,
     outputLevel: 0,
+    toolPhrase: null,
     turns: [],
     notice: null,
     failure: null,
@@ -211,6 +219,17 @@ export class VoiceConversationController {
   private turnCounter = 0;
   private disposed = false;
   private transportEnding: Promise<unknown> = Promise.resolve();
+  private personaPreferences: VoicePersonaPreferences = {
+    ...DEFAULT_VOICE_PREFERENCES,
+  };
+
+  getPreferences = (): VoicePersonaPreferences => ({
+    ...this.personaPreferences,
+  });
+
+  setPreferences = (prefs: Partial<VoicePersonaPreferences>): void => {
+    this.personaPreferences = {...this.personaPreferences, ...prefs};
+  };
 
   constructor(deps: VoiceConversationDeps) {
     this.deps = deps;
@@ -715,8 +734,9 @@ export class VoiceConversationController {
           ? payload.parameters as Record<string, unknown> : {};
         const live = this.live;
         if (!live) return;
+        const toolPhrase = getToolWorkingPhrase(toolName, params.kind);
         if (this.snapshot.phase !== 'speaking') {
-          this.update({phase: 'tool_working'});
+          this.update({phase: 'tool_working', toolPhrase});
         }
         void (async () => {
           let answer = 'This app cannot perform that request in this conversation.';
@@ -731,7 +751,7 @@ export class VoiceConversationController {
           }
           if (gen !== this.generation || this.live !== live) return;
           if (this.snapshot.phase === 'tool_working') {
-            this.update({phase: 'thinking'});
+            this.update({phase: 'thinking', toolPhrase: null});
           }
           await this.deps.transport.sendMessage(live.key, JSON.stringify({type:'client_tool_result',
             tool_call_id: toolId, result: answer.slice(0, 5000), is_error: failed})).catch(() => false);
@@ -867,6 +887,27 @@ export class VoiceConversationController {
       this.typedEcho = null;
       return; // the typed turn, already shown and saved
     }
+
+    const directive = detectConversationalDirective(trimmed);
+    if (directive === 'wait') {
+      this.acceptUserTurn(trimmed, key ?? `user-${++this.turnCounter}`);
+      this.timers.clear('thinking');
+      this.update({
+        phase: 'listening',
+        notice: "I'll wait. Take your time.",
+      });
+      return;
+    }
+    if (directive === 'brief') {
+      this.personaPreferences.verbosity = 'brief';
+    } else if (directive === 'detailed') {
+      this.personaPreferences.verbosity = 'detailed';
+    } else if (directive === 'slow') {
+      this.personaPreferences.pacing = 'slow';
+    } else if (directive === 'normal') {
+      this.personaPreferences.pacing = 'normal';
+    }
+
     this.acceptUserTurn(trimmed, key ?? `user-${++this.turnCounter}`);
   }
 
@@ -929,10 +970,11 @@ export class VoiceConversationController {
     const pending = this.ensurePending();
     pending.text += piece;
     this.noteFirstText();
+    const sanitized = sanitizeSpeechText(pending.text);
     this.upsertTurn({
       id: pending.turnId,
       role: 'assistant',
-      text: pending.text,
+      text: sanitized,
       status: 'provisional',
     });
   }
@@ -941,15 +983,16 @@ export class VoiceConversationController {
     const key = eventId !== null ? `answer:${eventId}` : null;
     if (key && this.seen.has(key)) return;
     if (key) this.seen.add(key);
-    if (!full.trim()) return;
+    const sanitized = sanitizeSpeechText(full);
+    if (!sanitized.trim()) return;
     const pending = this.ensurePending();
-    pending.text = full;
+    pending.text = sanitized;
     pending.complete = true;
     this.noteFirstText();
     this.upsertTurn({
       id: pending.turnId,
       role: 'assistant',
-      text: full,
+      text: sanitized,
       status: pending.interrupted ? 'interrupted' : 'final',
     });
   }
@@ -983,15 +1026,16 @@ export class VoiceConversationController {
   }
 
   private correctAnswer(corrected: string) {
-    if (!corrected.trim()) return;
+    const sanitized = sanitizeSpeechText(corrected);
+    if (!sanitized.trim()) return;
     const pending = this.pending;
     if (pending && !pending.committed) {
-      pending.text = corrected;
+      pending.text = sanitized;
       pending.interrupted = true;
       this.upsertTurn({
         id: pending.turnId,
         role: 'assistant',
-        text: corrected,
+        text: sanitized,
         status: 'interrupted',
       });
       this.commitAnswer();
