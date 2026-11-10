@@ -226,6 +226,15 @@ export const CallLafinaSettingsModal: React.FC<CallLafinaSettingsModalProps> = (
     [userId, onSettingsChanged],
   );
 
+  const handleToggleStartWithCall = useCallback(
+    (val: boolean) => {
+      const updated = saveCallLafinaSettings(userId, {startWithCallLafina: val});
+      setSettings(updated);
+      onSettingsChanged?.(updated);
+    },
+    [userId, onSettingsChanged],
+  );
+
   const handleClose = () => {
     stopPreview();
     onClose();
@@ -504,6 +513,24 @@ export const CallLafinaSettingsModal: React.FC<CallLafinaSettingsModalProps> = (
                   trackColor={{false: colors.border, true: colors.primary}}
                 />
               </View>
+
+              <View style={styles.toggleRow}>
+                <View style={styles.toggleInfo}>
+                  <Text style={[styles.toggleLabel, themed.primaryText]}>
+                    Start in Call on Chat Open
+                  </Text>
+                  <Text style={[styles.toggleHelp, themed.secondaryText]}>
+                    Open Call Lafina automatically when opening Chat (foreground only, requires mic permission)
+                  </Text>
+                </View>
+                <Switch
+                  value={settings.startWithCallLafina}
+                  onValueChange={handleToggleStartWithCall}
+                  testID="toggle-start-with-call"
+                  thumbColor="#FFFFFF"
+                  trackColor={{false: colors.border, true: colors.primary}}
+                />
+              </View>
             </View>
 
             {/* Section: ElevenLabs Voice Catalog & Preview */}
@@ -723,6 +750,10 @@ const styles = StyleSheet.create({
   toggleHelp: {
     fontFamily: Fonts.body,
     fontSize: FontSize.caption,
+  },
+  toggleInfo: {
+    flex: 1,
+    paddingRight: Spacing.sm,
   },
   statusNote: {
     fontFamily: Fonts.body,

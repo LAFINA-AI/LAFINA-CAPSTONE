@@ -9,6 +9,7 @@ import type { VoiceConversationDeps } from '../../cloud/voiceConversation';
 export interface CallLafinaScreenProps {
   userId: string;
   onClose: () => void;
+  onMinimize?: () => void;
   deps?: (userId: string) => VoiceConversationDeps;
 }
 
@@ -21,6 +22,7 @@ export interface CallLafinaScreenProps {
 export const CallLafinaScreen: React.FC<CallLafinaScreenProps> = ({
   userId,
   onClose,
+  onMinimize,
   deps,
 }) => {
   const { colors } = useTheme();
@@ -47,6 +49,7 @@ export const CallLafinaScreen: React.FC<CallLafinaScreenProps> = ({
         userId={userId}
         review={review}
         onBack={onClose}
+        onMinimize={onMinimize}
         deps={deps}
         fullScreen={true}
       />

@@ -4,8 +4,8 @@
   "source_branch": "Lem-branch",
   "source_head": "cae65fec4b0efc25dc343e3f30a4d216defa19aa",
   "work_branch": "feat/call-lafina-v2",
-  "current_phase": "12",
-  "next_item": "P13-01",
+  "current_phase": "13",
+  "next_item": "P14-01",
   "completed_items": [
     "P00-01",
     "P00-02",
@@ -125,21 +125,49 @@
     "P12-04",
     "P12-05",
     "P12-06",
-    "P12-07"
+    "P12-07",
+    "P13-01",
+    "P13-02",
+    "P13-03",
+    "P13-04",
+    "P13-05",
+    "P13-06",
+    "P13-07",
+    "P13-08",
+    "P13-09",
+    "P13-10"
   ],
-  "blocked_items": [],
+  "blocked_items": [
+    "F-055:DEFERRED_APPROVAL (OS background foreground service requires physical device check)",
+    "F-057:DEFERRED_BACKEND_UNSUPPORTED (DeepSeek LLM route is text-only)"
+  ],
   "last_commit": "898c7c8",
   "last_tested_commit": "898c7c8",
   "last_test_results": [
     {
-      "command": "npm run preflight",
+      "command": "npm run typecheck",
       "exit_code": 0,
-      "summary": "typecheck, lint, jest (94 suites / 1366 passed / 1 skipped), architecture (279 modules, 0 cycles)"
+      "summary": "tsc --noEmit passed with 0 errors"
     },
     {
-      "command": "npx jest __tests__/ui/callLafinaPhase12.test.tsx",
+      "command": "npm run lint",
       "exit_code": 0,
-      "summary": "21 focused tests passed in 5.8s"
+      "summary": "eslint passed with 0 warnings, 0 errors"
+    },
+    {
+      "command": "npx jest __tests__/ui/callLafinaPhase13.test.tsx",
+      "exit_code": 0,
+      "summary": "12 focused tests passed in 5.1s"
+    },
+    {
+      "command": "npx jest callLafinaPhase",
+      "exit_code": 0,
+      "summary": "13 test suites / 180 passed across phases 01-13 in 13.7s"
+    },
+    {
+      "command": "npm run check:architecture",
+      "exit_code": 0,
+      "summary": "PASS: 280 modules checked, 0 cycles, 0 forbidden dependencies"
     },
     {
       "command": "python CALL_LAFINA_AUTONOMOUS_TASK_PACK_V1/scripts/validate_pack.py",
@@ -149,5 +177,5 @@
   ],
   "manual_phone_verification": "NOT_RUN",
   "external_backend_verification": "VERIFIED_ROUTES_PRESENT",
-  "updated_at_utc": "2026-11-10T10:00:00Z"
+  "updated_at_utc": "2026-11-10T10:15:00Z"
 }

@@ -67,6 +67,13 @@ import { ProductTour } from './src/ui/tour/ProductTour';
 import { buildTourSteps } from './src/ui/tour/tourSteps';
 import { VoiceModal } from './src/ui/components/VoiceModal';
 import { CallLafinaScreen } from './src/ui/screens/CallLafinaScreen';
+import { MiniCallBar } from './src/ui/components/callLafina/MiniCallBar';
+import {
+  getActiveVoiceConversation,
+  isVoiceConversationActive,
+  type ConversationSnapshot,
+} from './src/cloud/voiceConversation';
+import { getCallLafinaSettings } from './src/cloud/voiceConversation/callLafinaSettingsStore';
 import { endReviewSession } from './src/ai/nlu/commandReview';
 import { chatDraftStore } from './src/ui/drafts/chatDraftStore';
 import { applySpeechPreferences } from './src/ai/tts/speechPreferences';
@@ -93,6 +100,9 @@ function AppContent({
   const [startupReady, setStartupReady] = useState(false);
   const [storageHealth, setStorageHealth] = useState(() => db.getHealth());
   const [callLafinaVisible, setCallLafinaVisible] = useState(false);
+  const [callLafinaMinimized, setCallLafinaMinimized] = useState(false);
+  const [miniCallSnapshot, setMiniCallSnapshot] = useState<ConversationSnapshot | null>(null);
+  const [miniCallDuration, setMiniCallDuration] = useState(0);
 
   // Incoming Call State
   const [callVisible, setCallVisible] = useState(false);
@@ -182,6 +192,51 @@ function AppContent({
   useEffect(() => {
     void applySpeechPreferences(userId);
   }, [userId]);
+
+  // Phase 13: In-app mini-call tracking and deliberate Chat start (F-054, F-056)
+  useEffect(() => {
+    let interval: ReturnType<typeof setInterval> | null = null;
+    let callStart = 0;
+
+    const checkActive = () => {
+      const ctrl = getActiveVoiceConversation();
+      if (ctrl) {
+        setMiniCallSnapshot(ctrl.getSnapshot());
+        const unsub = ctrl.subscribe(snap => {
+          setMiniCallSnapshot(snap);
+          if (snap.phase === 'ended' || snap.phase === 'idle' || snap.phase === 'failed') {
+            setCallLafinaMinimized(false);
+          }
+        });
+        if (ctrl.isActive()) {
+          callStart = Date.now();
+          interval = setInterval(() => {
+            setMiniCallDuration(Math.floor((Date.now() - callStart) / 1000));
+          }, 1000);
+        }
+        return () => {
+          unsub();
+          if (interval) clearInterval(interval);
+        };
+      }
+      return undefined;
+    };
+
+    const cleanup = checkActive();
+    return () => {
+      cleanup?.();
+      if (interval) clearInterval(interval);
+    };
+  }, [callLafinaVisible, callLafinaMinimized]);
+
+  useEffect(() => {
+    if (activeTab === 'chat' && userId) {
+      const settings = getCallLafinaSettings(userId);
+      if (settings.startWithCallLafina && !callLafinaVisible && !callLafinaMinimized) {
+        setCallLafinaVisible(true);
+      }
+    }
+  }, [activeTab, userId, callLafinaVisible, callLafinaMinimized]);
 
   useEffect(() => {
     if (!userId) {
@@ -553,6 +608,30 @@ function AppContent({
 
       <View style={styles.content}>{renderScreen()}</View>
 
+      {callLafinaMinimized && miniCallSnapshot && isVoiceConversationActive() && (
+        <MiniCallBar
+          phase={miniCallSnapshot.phase}
+          muted={miniCallSnapshot.muted}
+          durationSeconds={miniCallDuration}
+          onExpand={() => {
+            setCallLafinaMinimized(false);
+            setCallLafinaVisible(true);
+          }}
+          onToggleMute={() => {
+            const ctrl = getActiveVoiceConversation();
+            if (ctrl && miniCallSnapshot) {
+              ctrl.setMuted(!miniCallSnapshot.muted);
+            }
+          }}
+          onEndCall={() => {
+            const ctrl = getActiveVoiceConversation();
+            ctrl?.end();
+            setCallLafinaMinimized(false);
+            setCallLafinaVisible(false);
+          }}
+        />
+      )}
+
       {!isKeyboardVisible && (
         <CustomTabBar
           activeTab={activeTab}
@@ -577,16 +656,31 @@ function AppContent({
         }}
       />
 
-      {callLafinaVisible && (
+      {(callLafinaVisible || callLafinaMinimized) && (
         <Modal
           visible={callLafinaVisible}
           animationType="slide"
           presentationStyle="fullScreen"
-          onRequestClose={() => setCallLafinaVisible(false)}
+          onRequestClose={() => {
+            if (isVoiceConversationActive()) {
+              setCallLafinaVisible(false);
+              setCallLafinaMinimized(true);
+            } else {
+              setCallLafinaVisible(false);
+              setCallLafinaMinimized(false);
+            }
+          }}
         >
           <CallLafinaScreen
             userId={userId || 'local_guest_user'}
-            onClose={() => setCallLafinaVisible(false)}
+            onClose={() => {
+              setCallLafinaVisible(false);
+              setCallLafinaMinimized(false);
+            }}
+            onMinimize={() => {
+              setCallLafinaVisible(false);
+              setCallLafinaMinimized(true);
+            }}
           />
         </Modal>
       )}
