@@ -1,7 +1,9 @@
-import React, {useCallback, useEffect, useRef, useState} from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   Linking,
+  NativeScrollEvent,
+  NativeSyntheticEvent,
   ScrollView,
   StyleSheet,
   Text,
@@ -23,29 +25,29 @@ import {
   RotateCcw,
   Square,
 } from 'lucide-react-native';
-import {Fonts} from '../../theme';
-import {useTheme} from '../../contexts/ThemeContext';
-import type {ThemeColors} from '../../contexts/ThemeContext';
-import {useThemedStyles} from '../../theme/createThemedStyles';
-import {chatOrchestrator} from '../../../ai/chatOrchestrator';
-import {enableOnlineMode, voiceConsent} from '../../../cloud/voiceConversation';
+import { Fonts } from '../../theme';
+import { useTheme } from '../../contexts/ThemeContext';
+import type { ThemeColors } from '../../contexts/ThemeContext';
+import { useThemedStyles } from '../../theme/createThemedStyles';
+import { chatOrchestrator } from '../../../ai/chatOrchestrator';
+import { enableOnlineMode, voiceConsent } from '../../../cloud/voiceConversation';
 import type {
   ConversationPhase,
   ConversationSnapshot,
   VoiceConversationDeps,
 } from '../../../cloud/voiceConversation';
-import {useVoiceConversation} from '../../hooks/useVoiceConversation';
-import type {CommandReviewState} from '../../hooks/useCommandReview';
-import {CommandReviewCard} from '../chat/CommandReviewCard';
-import {directProviderTestEnabled} from '../../../cloud/directProviderTest';
-import {readLocalVoiceData} from '../../../cloud/voiceConversation/localVoiceData';
-import {localSettingsStore} from '../../../storage/localSettingsStore';
-import {explicitMemory} from '../../../ai/explicitMemory';
-import {onboardingVoiceContext} from '../../../storage/onboardingMemory';
-import {userStore} from '../../../storage/userStore';
-import type {SpokenTurnReview} from '../../../ai/chatOrchestrator';
-import {CallWaveform} from '../callLafina/CallWaveform';
-import {ttsService} from '../../../ai/tts/ttsService';
+import { useVoiceConversation } from '../../hooks/useVoiceConversation';
+import type { CommandReviewState } from '../../hooks/useCommandReview';
+import { CommandReviewCard } from '../chat/CommandReviewCard';
+import { directProviderTestEnabled } from '../../../cloud/directProviderTest';
+import { readLocalVoiceData } from '../../../cloud/voiceConversation/localVoiceData';
+import { localSettingsStore } from '../../../storage/localSettingsStore';
+import { explicitMemory } from '../../../ai/explicitMemory';
+import { onboardingVoiceContext } from '../../../storage/onboardingMemory';
+import { userStore } from '../../../storage/userStore';
+import type { SpokenTurnReview } from '../../../ai/chatOrchestrator';
+import { CallWaveform } from '../callLafina/CallWaveform';
+import { ttsService } from '../../../ai/tts/ttsService';
 
 const DATA_CONSENT = 'voiceConversation.directDataConsent.v1';
 
@@ -77,16 +79,16 @@ const statusLine = (snapshot: ConversationSnapshot, hasReviewItem = false) => {
   const active =
     snapshot.phase === 'listening' ||
     snapshot.phase === 'speaking' ||
-    snapshot.phase === 'thinking' ||
-    snapshot.phase === 'tool_working';
-  if (snapshot.muted && active) return 'Muted. LAFINA cannot hear you';
-  if (snapshot.phase === 'tool_working') {
-    return snapshot.toolPhrase || 'Working…';
-  }
-  if (hasReviewItem && (snapshot.phase === 'listening' || snapshot.phase === 'idle')) {
-    return 'Waiting for confirmation';
-  }
-  return PHASE_TEXT[snapshot.phase] ?? 'Talk with LAFINA naturally, hands-free';
+snapshot.phase === 'thinking' ||
+  snapshot.phase === 'tool_working';
+if (snapshot.muted && active) return 'Muted. LAFINA cannot hear you';
+if (snapshot.phase === 'tool_working') {
+  return snapshot.toolPhrase || 'Working…';
+}
+if (hasReviewItem && (snapshot.phase === 'listening' || snapshot.phase === 'idle')) {
+  return 'Waiting for confirmation';
+}
+return PHASE_TEXT[snapshot.phase] ?? 'Talk with LAFINA naturally, hands-free';
 };
 
 const LIVE = new Set<ConversationPhase>(['listening', 'thinking', 'tool_working', 'speaking']);
@@ -98,7 +100,7 @@ export const VoiceConversationPanel: React.FC<VoiceConversationPanelProps> = ({
   deps,
   fullScreen = true,
 }) => {
-  const {colors} = useTheme();
+  const { colors } = useTheme();
   const themed = useThemedStyles(getThemedStyles);
   const [localNote, setLocalNote] = useState<string | null>(null);
   const [typed, setTyped] = useState('');
@@ -115,11 +117,32 @@ export const VoiceConversationPanel: React.FC<VoiceConversationPanelProps> = ({
   const lastUserRequest = useRef('');
   const identityContextSent = useRef(false);
   const conversationRef = useRef<ReturnType<typeof useVoiceConversation> | null>(null);
-  const pendingMemory = useRef<{text: string; owner: string; result: Promise<SpokenTurnReview>} | null>(null);
+  const pendingMemory = useRef<{ text: string; owner: string; result: Promise<SpokenTurnReview> } | null>(null);
 
   // Live call duration timer
   const [callDuration, setCallDuration] = useState(0);
   const callConnectedAt = useRef<number | null>(null);
+
+  // Transcript drawer and auto-scroll state
+  const [transcriptCollapsed, setTranscriptCollapsed] = useState(false);
+  const [isAtBottom, setIsAtBottom] = useState(true);
+
+  const handleScroll = useCallback(
+    (event: NativeSyntheticEvent<NativeScrollEvent>) => {
+      const { layoutMeasurement, contentOffset, contentSize } = event.nativeEvent;
+      const paddingToBottom = 24;
+      const atBottom =
+        layoutMeasurement.height + contentOffset.y >=
+        contentSize.height - paddingToBottom;
+      setIsAtBottom(atBottom);
+    },
+    [],
+  );
+
+  const jumpToLatest = useCallback(() => {
+    scrollRef.current?.scrollToEnd({ animated: true });
+    setIsAtBottom(true);
+  }, []);
 
   // A finished spoken turn is also read on the device: a planner change
   // becomes a review card (nothing is saved until Confirm), and a schedule
@@ -130,7 +153,7 @@ export const VoiceConversationPanel: React.FC<VoiceConversationPanelProps> = ({
       const owner = ownerRef.current;
       if (explicitMemory(text) && localSettingsStore.get(owner, DATA_CONSENT, null) === 'true' && userStore.getActiveSessionToken().userId === owner) {
         const result = chatOrchestrator.reviewSpokenTurn(owner, text);
-        pendingMemory.current = {text, owner, result};
+        pendingMemory.current = { text, owner, result };
         void result.then(value => {
           if (owner !== ownerRef.current || pendingMemory.current?.result !== result || value.kind !== 'memory') return;
           setLocalNote(value.reply);
@@ -166,7 +189,7 @@ export const VoiceConversationPanel: React.FC<VoiceConversationPanelProps> = ({
     if (name === 'read_lafina_data') {
       const word = parameters.kind === 'calendar' ? /\b(calendar|schedule|event|meeting|appointment|agenda|plans?)\b/i
         : parameters.kind === 'notes' ? /\b(notes?|notebook|wrote|written)\b/i
-        : /\b(remember|memory|memories|prefer|preference|like|study|studying|name|call me|talk|tone|style)\b/i;
+          : /\b(remember|memory|memories|prefer|preference|like|study|studying|name|call me|talk|tone|style)\b/i;
       if (!word.test(spoken)) return 'No data was read. Ask the student which personal data they want to access.';
       return readLocalVoiceData(owner, parameters.kind, parameters.query);
     }
@@ -195,139 +218,141 @@ export const VoiceConversationPanel: React.FC<VoiceConversationPanelProps> = ({
       return `No change has been saved. ${result.reply}`;
     }
     return 'No action was prepared or saved. Ask for the exact details and try again.';
-  }, [deps, userId]);
+}, [deps, userId]);
 
-  const conversation = useVoiceConversation(userId, {onFinalUserText, onClientTool, deps});
-  conversationRef.current = conversation;
-  const {snapshot} = conversation;
-  const live = LIVE.has(snapshot.phase);
-  const connecting = snapshot.phase === 'connecting';
+const conversation = useVoiceConversation(userId, { onFinalUserText, onClientTool, deps });
+conversationRef.current = conversation;
+const { snapshot } = conversation;
+const live = LIVE.has(snapshot.phase);
+const connecting = snapshot.phase === 'connecting';
 
-  // Timer effect: tracks elapsed time in seconds during active call
-  useEffect(() => {
-    if (live) {
-      if (!callConnectedAt.current) {
-        callConnectedAt.current = Date.now();
-      }
-      const interval = setInterval(() => {
-        if (callConnectedAt.current) {
-          setCallDuration(Math.floor((Date.now() - callConnectedAt.current) / 1000));
-        }
-      }, 1000);
-      return () => clearInterval(interval);
-    } else {
-      callConnectedAt.current = null;
-      if (snapshot.phase === 'idle') {
-        setCallDuration(0);
-      }
+// Timer effect: tracks elapsed time in seconds during active call
+useEffect(() => {
+  if (live) {
+    if (!callConnectedAt.current) {
+      callConnectedAt.current = Date.now();
     }
-  }, [live, snapshot.phase]);
+    const interval = setInterval(() => {
+      if (callConnectedAt.current) {
+        setCallDuration(Math.floor((Date.now() - callConnectedAt.current) / 1000));
+      }
+    }, 1000);
+    return () => clearInterval(interval);
+  } else {
+    callConnectedAt.current = null;
+    if (snapshot.phase === 'idle') {
+      setCallDuration(0);
+    }
+  }
+}, [live, snapshot.phase]);
 
-  const formatDuration = (secs: number) => {
-    const m = Math.floor(secs / 60);
-    const s = secs % 60;
-    return `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
+const formatDuration = (secs: number) => {
+  const m = Math.floor(secs / 60);
+  const s = secs % 60;
+  return `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
+};
+
+useEffect(() => {
+  setConsented(voiceConsent.read(userId));
+  setDataConsented(localSettingsStore.get(userId, DATA_CONSENT, null) === 'true');
+  setLocalNote(null);
+  setTyped('');
+  setShowTyping(false);
+}, [userId]);
+
+useEffect(() => {
+  if (!directProviderTestEnabled() || !dataConsented || identityContextSent.current || snapshot.phase !== 'listening') return;
+  const context = onboardingVoiceContext(userId);
+  identityContextSent.current = true;
+  if (context) void conversation.sendContext(context);
+}, [snapshot.phase, userId, dataConsented, conversation]);
+
+const scrollRef = useRef<ScrollView | null>(null);
+useEffect(() => {
+if (isAtBottom && !transcriptCollapsed) {
+  scrollRef.current?.scrollToEnd({ animated: true });
+}
+  }, [snapshot.turns, isAtBottom, transcriptCollapsed]);
+
+useEffect(() => {
+  return () => {
+    void ttsService.stop();
   };
+}, []);
 
-  useEffect(() => {
-    setConsented(voiceConsent.read(userId));
-    setDataConsented(localSettingsStore.get(userId, DATA_CONSENT, null) === 'true');
-    setLocalNote(null);
-    setTyped('');
-    setShowTyping(false);
-  }, [userId]);
+const handleStart = useCallback(() => {
+  void ttsService.stop();
+  if (directProviderTestEnabled() && localSettingsStore.get(ownerRef.current, DATA_CONSENT, null) !== 'true') {
+    setEnableError('Please review the data disclosure before starting.');
+    return;
+  }
+  lastUserRequest.current = '';
+  pendingMemory.current = null;
+  identityContextSent.current = false;
+  turnTicket.current += 1;
+  setLocalNote(null);
+  setEnableError(null);
+  conversation.start();
+}, [conversation]);
 
-  useEffect(() => {
-    if (!directProviderTestEnabled() || !dataConsented || identityContextSent.current || snapshot.phase !== 'listening') return;
-    const context = onboardingVoiceContext(userId);
-    identityContextSent.current = true;
-    if (context) void conversation.sendContext(context);
-  }, [snapshot.phase, userId, dataConsented, conversation]);
+const handleConsent = useCallback(() => {
+  if (!voiceConsent.write(userId)) {
+    setEnableError('Could not save your choice on this device. Try again.');
+    return;
+  }
+  if (directProviderTestEnabled() && !localSettingsStore.set(userId, DATA_CONSENT, 'true')) {
+    setEnableError('Could not save your choice on this device. Try again.');
+    return;
+  }
+  setConsented(true);
+  setDataConsented(true);
+  handleStart();
+}, [handleStart, userId]);
 
-  const scrollRef = useRef<ScrollView | null>(null);
-  useEffect(() => {
-    scrollRef.current?.scrollToEnd({animated: true});
-  }, [snapshot.turns]);
+const handleEnableOnline = useCallback(async () => {
+  setEnabling(true);
+  setEnableError(null);
+  const result = await enableOnlineMode(userId);
+  setEnabling(false);
+  if (!result.ok) {
+    setEnableError(result.message);
+    return;
+  }
+  handleStart();
+}, [handleStart, userId]);
 
-  useEffect(() => {
-    return () => {
-      void ttsService.stop();
-    };
-  }, []);
+const handleConfirm = useCallback(async () => {
+  const decision = await reviewRef.current.confirm({ speakReply: false });
+  if (decision) {
+    setLocalNote(decision.reply);
+    if (directProviderTestEnabled()) void conversation.sendContext(`The student confirmed the review card. Actual result: ${decision.reply}`);
+  }
+}, [conversation]);
 
-  const handleStart = useCallback(() => {
-    void ttsService.stop();
-    if (directProviderTestEnabled() && localSettingsStore.get(ownerRef.current, DATA_CONSENT, null) !== 'true') {
-      setEnableError('Please review the data disclosure before starting.');
-      return;
-    }
-    lastUserRequest.current = '';
-    pendingMemory.current = null;
-    identityContextSent.current = false;
-    turnTicket.current += 1;
-    setLocalNote(null);
-    setEnableError(null);
-    conversation.start();
-  }, [conversation]);
+const handleCancelReview = useCallback(() => {
+  const decision = reviewRef.current.cancel();
+  if (decision) {
+    setLocalNote(decision.reply);
+    if (directProviderTestEnabled()) void conversation.sendContext('The student canceled the review card. Nothing was saved.');
+  }
+}, [conversation]);
 
-  const handleConsent = useCallback(() => {
-    if (!voiceConsent.write(userId)) {
-      setEnableError('Could not save your choice on this device. Try again.');
-      return;
-    }
-    if (directProviderTestEnabled() && !localSettingsStore.set(userId, DATA_CONSENT, 'true')) {
-      setEnableError('Could not save your choice on this device. Try again.');
-      return;
-    }
-    setConsented(true);
-    setDataConsented(true);
-    handleStart();
-  }, [handleStart, userId]);
+const handleSendTyped = useCallback(async () => {
+  const text = typed.trim();
+  if (!text) return;
+  if (await conversation.sendText(text)) setTyped('');
+}, [conversation, typed]);
 
-  const handleEnableOnline = useCallback(async () => {
-    setEnabling(true);
-    setEnableError(null);
-    const result = await enableOnlineMode(userId);
-    setEnabling(false);
-    if (!result.ok) {
-      setEnableError(result.message);
-      return;
-    }
-    handleStart();
-  }, [handleStart, userId]);
+const handleBack = useCallback(() => {
+  void ttsService.stop();
+  conversation.end();
+  onBack();
+}, [conversation, onBack]);
 
-  const handleConfirm = useCallback(async () => {
-    const decision = await reviewRef.current.confirm({speakReply: false});
-    if (decision) {
-      setLocalNote(decision.reply);
-      if (directProviderTestEnabled()) void conversation.sendContext(`The student confirmed the review card. Actual result: ${decision.reply}`);
-    }
-  }, [conversation]);
+const failure = snapshot.failure;
+const needsConsent = (!consented || (directProviderTestEnabled() && !dataConsented)) && !live && !connecting;
 
-  const handleCancelReview = useCallback(() => {
-    const decision = reviewRef.current.cancel();
-    if (decision) {
-      setLocalNote(decision.reply);
-      if (directProviderTestEnabled()) void conversation.sendContext('The student canceled the review card. Nothing was saved.');
-    }
-  }, [conversation]);
-
-  const handleSendTyped = useCallback(async () => {
-    const text = typed.trim();
-    if (!text) return;
-    if (await conversation.sendText(text)) setTyped('');
-  }, [conversation, typed]);
-
-  const handleBack = useCallback(() => {
-    void ttsService.stop();
-    conversation.end();
-    onBack();
-  }, [conversation, onBack]);
-
-  const failure = snapshot.failure;
-  const needsConsent = (!consented || (directProviderTestEnabled() && !dataConsented)) && !live && !connecting;
-
-  return (
+return (
     <View
       style={[
         styles.container,
@@ -345,43 +370,43 @@ export const VoiceConversationPanel: React.FC<VoiceConversationPanelProps> = ({
           testID="voice-conversation-back"
         >
           <ArrowLeft size={16} color={colors.primary} />
-          <Text style={[styles.linkText, {color: colors.primary}]}>
+          <Text style={[styles.linkText, { color: colors.primary }]}>
             Push-to-talk
           </Text>
         </TouchableOpacity>
 
-        <Text style={[styles.headerTitle, themed.title]} testID="call-header-title">
-          Call Lafina
-        </Text>
+          <Text style={[styles.headerTitle, themed.title]} testID="call-header-title">
+            Call Lafina
+          </Text>
 
-        <View style={[styles.onlinePill, themed.pill]} testID="call-status-badge">
-          {snapshot.muted ? (
-            <>
-              <MicOff size={12} color={colors.warning} />
-              <Text style={[styles.pillText, {color: colors.warning}]} testID="call-muted-badge">
-                Muted
-              </Text>
-            </>
-          ) : connecting ? (
-            <>
-              <ActivityIndicator size="small" color={colors.primary} />
-              <Text style={[styles.pillText, {color: colors.primary}]} testID="call-connecting-badge">
-                Connecting
-              </Text>
-            </>
-          ) : (
-            <>
-              <AudioLines size={12} color={colors.primary} />
-              <Text style={[styles.pillText, {color: colors.primary}]} testID="call-online-badge">
-                Online
-              </Text>
-            </>
-          )}
+          <View style={[styles.onlinePill, themed.pill]} testID="call-status-badge">
+            {snapshot.muted ? (
+              <>
+                <MicOff size={12} color={colors.warning} />
+                <Text style={[styles.pillText, { color: colors.warning }]} testID="call-muted-badge">
+                  Muted
+                </Text>
+              </>
+            ) : connecting ? (
+              <>
+                <ActivityIndicator size="small" color={colors.primary} />
+                <Text style={[styles.pillText, { color: colors.primary }]} testID="call-connecting-badge">
+                  Connecting
+                </Text>
+              </>
+            ) : (
+              <>
+                <AudioLines size={12} color={colors.primary} />
+                <Text style={[styles.pillText, { color: colors.primary }]} testID="call-online-badge">
+                  Online
+                </Text>
+              </>
+            )}
+          </View>
         </View>
-      </View>
 
-      {/* Centered Identity Stage */}
-      <View style={styles.centerStage} testID="call-center-stage">
+          {/* Centered Identity Stage */ }
+          < View style={styles.centerStage} testID="call-center-stage">
         <View
           style={[
             styles.avatarRing,
@@ -398,18 +423,18 @@ export const VoiceConversationPanel: React.FC<VoiceConversationPanelProps> = ({
           <View
             style={[
               styles.avatarInner,
-              {backgroundColor: colors.primary + '18'},
+              { backgroundColor: colors.primary + '18' },
             ]}
           >
-            <Bot size={40} color={colors.primary} />
-          </View>
+          <Bot size={40} color={colors.primary} />
         </View>
+      </View>
 
-        {live ? (
-          <Text style={[styles.timerText, themed.title]} testID="call-timer">
-            {formatDuration(callDuration)}
-          </Text>
-        ) : null}
+      {live ? (
+        <Text style={[styles.timerText, themed.title]} testID="call-timer">
+          {formatDuration(callDuration)}
+        </Text>
+      ) : null}
 
         <Text
           style={[
@@ -418,8 +443,8 @@ export const VoiceConversationPanel: React.FC<VoiceConversationPanelProps> = ({
               color: failure
                 ? colors.error
                 : live
-                ? colors.primary
-                : colors.textSecondary,
+                  ? colors.primary
+                  : colors.textSecondary,
             },
           ]}
           accessibilityLiveRegion="polite"
@@ -446,316 +471,351 @@ export const VoiceConversationPanel: React.FC<VoiceConversationPanelProps> = ({
           outputLevel={snapshot.outputLevel ?? 0}
           hasReviewItem={Boolean(review?.proposal)}
         />
-      </View>
+    </View>
 
-      {/* Middle Scrollable Deck for Cards, Turns and Messages */}
-      <ScrollView
-        style={styles.contentScroll}
-        contentContainerStyle={styles.contentScrollContainer}
-        keyboardShouldPersistTaps="handled"
-        showsVerticalScrollIndicator={false}
-      >
-        {needsConsent ? (
-          <View
-            style={[styles.card, themed.card]}
-            testID="voice-conversation-consent"
-          >
-            <Text style={[styles.cardTitle, themed.text]}>Before you start</Text>
-            <Text style={[styles.cardBody, themed.text]}>
-              While a call is open, your microphone audio streams to
-              ElevenLabs for transcription and speech, and your words go to
-              DeepSeek for answers. {directProviderTestEnabled()
-                ? 'If you ask about your calendar, notes or saved memories, relevant records are sent to the voice provider to answer. '
-                : "Your words also go to LAFINA's server. "}It only listens on this
-              screen, stops when you tap End or leave the app, and you can mute at
-              any time. Finished turns are saved to your Chat history. Planner
-              changes still need your Confirm.
-            </Text>
-            <TouchableOpacity
-              style={[styles.primaryButton, {backgroundColor: colors.primary}]}
-              onPress={handleConsent}
-              accessibilityRole="button"
-              testID="voice-conversation-consent-accept"
+            {/* Middle Scrollable Deck for Cards, Turns and Messages */}
+            <ScrollView
+              style={styles.contentScroll}
+              contentContainerStyle={styles.contentScrollContainer}
+              keyboardShouldPersistTaps="handled"
+              showsVerticalScrollIndicator={false}
             >
-              <Text style={[styles.primaryText, {color: colors.textOnPrimary}]}>
-                I understand, start
-              </Text>
-            </TouchableOpacity>
+              {needsConsent ? (
+                <View
+                  style={[styles.card, themed.card]}
+                  testID="voice-conversation-consent"
+                >
+                  <Text style={[styles.cardTitle, themed.text]}>Before you start</Text>
+                  <Text style={[styles.cardBody, themed.text]}>
+                    While a call is open, your microphone audio streams to
+                    ElevenLabs for transcription and speech, and your words go to
+                    DeepSeek for answers. {directProviderTestEnabled()
+                      ? 'If you ask about your calendar, notes or saved memories, relevant records are sent to the voice provider to answer. '
+                      : "Your words also go to LAFINA's server. "}It only listens on this
+                    screen, stops when you tap End or leave the app, and you can mute at
+                    any time. Finished turns are saved to your Chat history. Planner
+                    changes still need your Confirm.
+                  </Text>
+                <TouchableOpacity
+                  style={[styles.primaryButton, { backgroundColor: colors.primary }]}
+                  onPress={handleConsent}
+                  accessibilityRole="button"
+                  testID="voice-conversation-consent-accept"
+                >
+                    <Text style={[styles.primaryText, { color: colors.textOnPrimary }]}>
+                      I understand, start
+                    </Text>
+                </TouchableOpacity>
           </View>
         ) : null}
 
-        {snapshot.turns.length > 0 ? (
-          <ScrollView
-            ref={scrollRef}
-            style={[styles.transcript, themed.card]}
-            contentContainerStyle={styles.transcriptContent}
-            nestedScrollEnabled
-            testID="voice-conversation-transcript"
-          >
-            {snapshot.turns.map(turn => (
-              <View
-                key={turn.id}
-                style={[
-                  styles.turn,
-                  turn.role === 'user' ? styles.userTurn : styles.agentTurn,
-                ]}
-                testID={`voice-turn-${turn.role}-${turn.status}`}
-              >
-                <Text style={[styles.turnLabel, themed.muted]}>
-                  {turn.role === 'user' ? 'You' : 'LAFINA'}
-                  {turn.status === 'interrupted' ? ' · interrupted' : ''}
-                </Text>
-                <Text
-                  style={[
-                    styles.turnText,
-                    themed.text,
-                    turn.status === 'provisional' && [
-                      styles.provisional,
-                      themed.muted,
-                    ],
-                  ]}
+            {snapshot.turns.length > 0 ? (
+              <View style={styles.transcriptContainer} testID="call-transcript-container">
+                <TouchableOpacity
+                  style={[styles.transcriptToggle, themed.pill]}
+                  onPress={() => setTranscriptCollapsed(prev => !prev)}
+                  accessibilityRole="button"
+                  accessibilityLabel={transcriptCollapsed ? 'Expand transcript' : 'Collapse transcript'}
+                  testID="call-transcript-toggle"
                 >
-                  {turn.text}
+                    <Text style={[styles.transcriptToggleText, themed.muted]}>
+                      {transcriptCollapsed
+                        ? `Transcript (${snapshot.turns.length}) · Tap to expand`
+                        : 'Transcript · Tap to collapse'}
+                    </Text>
+                </TouchableOpacity>
+
+                  {!transcriptCollapsed ? (
+                    <View style={styles.transcriptWrapper}>
+                      <ScrollView
+                        ref={scrollRef}
+                        style={[styles.transcript, themed.card]}
+                        contentContainerStyle={styles.transcriptContent}
+                        nestedScrollEnabled
+                        onScroll={handleScroll}
+                        scrollEventThrottle={16}
+                        testID="voice-conversation-transcript"
+                      >
+                        {snapshot.turns.map(turn => (
+                          <View
+                            key={turn.id}
+                            style={[
+                              styles.turn,
+                              turn.role === 'user' ? styles.userTurn : styles.agentTurn,
+                            ]}
+                            testID={`voice-turn-${turn.role}-${turn.status}`}
+                          >
+                            <Text style={[styles.turnLabel, themed.muted]}>
+                              {turn.role === 'user' ? 'You' : 'LAFINA'}
+                              {turn.status === 'interrupted' ? ' · interrupted' : ''}
+                            </Text>
+                            <Text
+                              style={[
+                                styles.turnText,
+                                themed.text,
+                                turn.status === 'provisional' && [
+                                  styles.provisional,
+                                  themed.muted,
+                                ],
+                              ]}
+                            >
+                              {turn.text}
+                            </Text>
+                          </View>
+                        ))}
+                      </ScrollView>
+                      {!isAtBottom ? (
+                        <TouchableOpacity
+                          style={[styles.jumpButton, { backgroundColor: colors.surface, borderColor: colors.border }]}
+                          onPress={jumpToLatest}
+                          accessibilityRole="button"
+                          accessibilityLabel="Jump to latest transcript message"
+                          testID="call-jump-to-latest"
+                        >
+                          <Text style={[styles.jumpButtonText, { color: colors.primary }]}>
+                            Jump to latest ↓
+                          </Text>
+                        </TouchableOpacity>
+                      ) : null}
+                    </View>
+                  ) : null}
+              </View>
+            ) : live ? (
+              <Text style={[styles.placeholder, themed.muted]}>
+                Say something. Your words appear here as you speak.
+              </Text>
+        ) : null}
+
+              {snapshot.notice ? (
+                <Text
+                  style={[styles.notice, themed.muted]}
+                  testID="voice-conversation-notice"
+                >
+                  {snapshot.notice}
+                </Text>
+        ) : null}
+
+              {localNote ? (
+                <Text
+                  style={[styles.notice, themed.text]}
+                  testID="voice-conversation-local-note"
+                >
+                  {localNote}
+                </Text>
+              ) : null}
+
+              {review.proposal ? (
+                <CommandReviewCard
+                  proposal={review.proposal}
+                  expired={review.expired}
+                  busy={review.busy}
+                  onConfirm={() => {
+                    void handleConfirm();
+                  }}
+                  onCancel={handleCancelReview}
+                  onDismiss={review.dismiss}
+                  testIDPrefix="voice-conversation-review"
+                />
+        ) : null}
+
+            {failure || snapshot.phase === 'restart_required' ? (
+              <View
+                style={[styles.card, themed.card]}
+                testID="voice-conversation-problem"
+              >
+                <View style={styles.problemRow}>
+                  <CircleAlert
+                    size={16}
+                    color={failure ? colors.error : colors.textSecondary}
+                  />
+                  <Text
+                    style={[styles.cardBody, styles.flex, themed.text]}
+                    testID="voice-conversation-problem-text"
+                  >
+                    {failure ? failure.message : snapshot.restartReason}
+                  </Text>
+                </View>
+                {failure?.kind === 'online_mode_required' ? (
+                  <TouchableOpacity
+                    style={[styles.primaryButton, { backgroundColor: colors.primary }]}
+                    onPress={() => {
+                      void handleEnableOnline();
+                    }}
+                    disabled={enabling}
+                    accessibilityRole="button"
+                    testID="voice-conversation-enable-online"
+                  >
+                    {enabling ? (
+                      <ActivityIndicator color={colors.textOnPrimary} />
+                    ) : (
+                      <Text
+                        style={[styles.primaryText, { color: colors.textOnPrimary }]}
+                      >
+                        Turn on Online Mode and start
+                      </Text>
+                    )}
+                  </TouchableOpacity>
+                ) : failure?.kind === 'mic_denied' ? (
+                  <TouchableOpacity
+                    style={[styles.secondaryButton, themed.secondary]}
+                    onPress={() => {
+                      void Linking.openSettings().catch(() => undefined);
+                    }}
+                    accessibilityRole="button"
+                    testID="voice-conversation-open-settings"
+                  >
+                    <Text style={[styles.secondaryText, themed.text]}>
+                      Open Settings
+                    </Text>
+                  </TouchableOpacity>
+                ) : failure?.kind === 'signin_required' ||
+                  failure?.kind === 'not_configured' ||
+                  failure?.kind === 'voice_unavailable' ? null : (
+                  <TouchableOpacity
+                    style={[styles.secondaryButton, themed.secondary]}
+                    onPress={handleStart}
+                    accessibilityRole="button"
+                    testID="voice-conversation-restart"
+                  >
+                    <RotateCcw size={14} color={colors.textPrimary} />
+                    <Text style={[styles.secondaryText, themed.text]}>
+                      {failure ? 'Try again' : 'Start again'}
+                    </Text>
+                  </TouchableOpacity>
+                )}
+                {enableError ? (
+                  <Text
+                    style={[styles.notice, { color: colors.error }]}
+                    testID="voice-conversation-enable-error"
+                  >
+                    {enableError}
+                  </Text>
+                ) : null}
+                <Text style={[styles.hint, themed.muted]}>
+                  Push-to-talk, typing and your schedule keep working offline.
                 </Text>
               </View>
-            ))}
-          </ScrollView>
-        ) : live ? (
-          <Text style={[styles.placeholder, themed.muted]}>
-            Say something. Your words appear here as you speak.
-          </Text>
-        ) : null}
-
-        {snapshot.notice ? (
-          <Text
-            style={[styles.notice, themed.muted]}
-            testID="voice-conversation-notice"
-          >
-            {snapshot.notice}
-          </Text>
-        ) : null}
-
-        {localNote ? (
-          <Text
-            style={[styles.notice, themed.text]}
-            testID="voice-conversation-local-note"
-          >
-            {localNote}
-          </Text>
-        ) : null}
-
-        {review.proposal ? (
-          <CommandReviewCard
-            proposal={review.proposal}
-            expired={review.expired}
-            busy={review.busy}
-            onConfirm={() => {
-              void handleConfirm();
-            }}
-            onCancel={handleCancelReview}
-            onDismiss={review.dismiss}
-            testIDPrefix="voice-conversation-review"
-          />
-        ) : null}
-
-        {failure || snapshot.phase === 'restart_required' ? (
-          <View
-            style={[styles.card, themed.card]}
-            testID="voice-conversation-problem"
-          >
-            <View style={styles.problemRow}>
-              <CircleAlert
-                size={16}
-                color={failure ? colors.error : colors.textSecondary}
-              />
-              <Text
-                style={[styles.cardBody, styles.flex, themed.text]}
-                testID="voice-conversation-problem-text"
-              >
-                {failure ? failure.message : snapshot.restartReason}
-              </Text>
-            </View>
-            {failure?.kind === 'online_mode_required' ? (
-              <TouchableOpacity
-                style={[styles.primaryButton, {backgroundColor: colors.primary}]}
-                onPress={() => {
-                  void handleEnableOnline();
-                }}
-                disabled={enabling}
-                accessibilityRole="button"
-                testID="voice-conversation-enable-online"
-              >
-                {enabling ? (
-                  <ActivityIndicator color={colors.textOnPrimary} />
-                ) : (
-                  <Text
-                    style={[styles.primaryText, {color: colors.textOnPrimary}]}
-                  >
-                    Turn on Online Mode and start
-                  </Text>
-                )}
-              </TouchableOpacity>
-            ) : failure?.kind === 'mic_denied' ? (
-              <TouchableOpacity
-                style={[styles.secondaryButton, themed.secondary]}
-                onPress={() => {
-                  void Linking.openSettings().catch(() => undefined);
-                }}
-                accessibilityRole="button"
-                testID="voice-conversation-open-settings"
-              >
-                <Text style={[styles.secondaryText, themed.text]}>
-                  Open Settings
-                </Text>
-              </TouchableOpacity>
-            ) : failure?.kind === 'signin_required' ||
-              failure?.kind === 'not_configured' ||
-              failure?.kind === 'voice_unavailable' ? null : (
-              <TouchableOpacity
-                style={[styles.secondaryButton, themed.secondary]}
-                onPress={handleStart}
-                accessibilityRole="button"
-                testID="voice-conversation-restart"
-              >
-                <RotateCcw size={14} color={colors.textPrimary} />
-                <Text style={[styles.secondaryText, themed.text]}>
-                  {failure ? 'Try again' : 'Start again'}
-                </Text>
-              </TouchableOpacity>
-            )}
-            {enableError ? (
-              <Text
-                style={[styles.notice, {color: colors.error}]}
-                testID="voice-conversation-enable-error"
-              >
-                {enableError}
-              </Text>
             ) : null}
-            <Text style={[styles.hint, themed.muted]}>
-              Push-to-talk, typing and your schedule keep working offline.
-            </Text>
-          </View>
-        ) : null}
 
-        {showTyping ? (
-          <View style={[styles.inputRow, themed.card]}>
-            <TextInput
-              style={[styles.input, themed.text]}
-              value={typed}
-              onChangeText={setTyped}
-              placeholder="Type instead…"
-              placeholderTextColor={colors.textSecondary}
-              maxLength={1000}
-              onSubmitEditing={() => {
-                void handleSendTyped();
-              }}
-              accessibilityLabel="Type a turn"
-              testID="voice-conversation-text-input"
-            />
+            {showTyping ? (
+              <View style={[styles.inputRow, themed.card]}>
+                <TextInput
+                  style={[styles.input, themed.text]}
+                  value={typed}
+                  onChangeText={setTyped}
+                  placeholder="Type instead…"
+                  placeholderTextColor={colors.textSecondary}
+                  maxLength={1000}
+                  onSubmitEditing={() => {
+                    void handleSendTyped();
+                  }}
+                  accessibilityLabel="Type a turn"
+                  testID="voice-conversation-text-input"
+                />
+                <TouchableOpacity
+                  style={[styles.sendButton, { backgroundColor: colors.primary }]}
+                  onPress={() => {
+                    void handleSendTyped();
+                  }}
+                  accessibilityRole="button"
+                  accessibilityLabel="Send typed turn"
+                  testID="voice-conversation-send"
+                >
+                  <ArrowRight size={16} color={colors.textOnPrimary} />
+                </TouchableOpacity>
+              </View>
+            ) : null}
+          </ScrollView>
+
+        {/* Bottom Control Dock */}
+        <View style={[styles.dockContainer, themed.dock]} testID="call-control-dock">
+          {!needsConsent &&
+            !failure &&
+            (snapshot.phase === 'idle' || snapshot.phase === 'ended') ? (
             <TouchableOpacity
-              style={[styles.sendButton, {backgroundColor: colors.primary}]}
-              onPress={() => {
-                void handleSendTyped();
-              }}
+              style={[
+                styles.primaryButton,
+                styles.startButton,
+                { backgroundColor: colors.primary },
+              ]}
+              onPress={handleStart}
               accessibilityRole="button"
-              accessibilityLabel="Send typed turn"
-              testID="voice-conversation-send"
+              accessibilityLabel="Call Lafina"
+              testID="voice-conversation-start"
             >
-              <ArrowRight size={16} color={colors.textOnPrimary} />
+              <PhoneCall size={18} color={colors.textOnPrimary} />
+              <Text style={[styles.primaryText, { color: colors.textOnPrimary }]}>
+                {snapshot.phase === 'ended'
+                  ? 'Call Lafina again'
+                  : 'Call Lafina'}
+              </Text>
             </TouchableOpacity>
-          </View>
-        ) : null}
-      </ScrollView>
+          ) : null}
 
-      {/* Bottom Control Dock */}
-      <View style={[styles.dockContainer, themed.dock]} testID="call-control-dock">
-        {!needsConsent &&
-        !failure &&
-        (snapshot.phase === 'idle' || snapshot.phase === 'ended') ? (
-          <TouchableOpacity
-            style={[
-              styles.primaryButton,
-              styles.startButton,
-              {backgroundColor: colors.primary},
-            ]}
-            onPress={handleStart}
-            accessibilityRole="button"
-            accessibilityLabel="Call Lafina"
-            testID="voice-conversation-start"
-          >
-            <PhoneCall size={18} color={colors.textOnPrimary} />
-            <Text style={[styles.primaryText, {color: colors.textOnPrimary}]}>
-              {snapshot.phase === 'ended'
-                ? 'Call Lafina again'
-                : 'Call Lafina'}
-            </Text>
-          </TouchableOpacity>
-        ) : null}
+          {connecting ? (
+            <View style={styles.controls}>
+              <ActivityIndicator color={colors.primary} />
+              <ControlButton
+                label="Cancel"
+                icon={<PhoneOff size={18} color={colors.textOnPrimary} />}
+                color={colors.error}
+                textColor={colors.textOnPrimary}
+                onPress={conversation.end}
+                testID="voice-conversation-end"
+              />
+            </View>
+          ) : null}
 
-        {connecting ? (
-          <View style={styles.controls}>
-            <ActivityIndicator color={colors.primary} />
-            <ControlButton
-              label="Cancel"
-              icon={<PhoneOff size={18} color={colors.textOnPrimary} />}
-              color={colors.error}
-              textColor={colors.textOnPrimary}
-              onPress={conversation.end}
-              testID="voice-conversation-end"
-            />
-          </View>
-        ) : null}
-
-        {live ? (
-          <View style={styles.controls}>
-            <ControlButton
-              label={snapshot.muted ? 'Unmute' : 'Mute'}
-              icon={
-                snapshot.muted ? (
+          {live ? (
+            <View style={styles.controls}>
+              <ControlButton
+                label={snapshot.muted ? 'Unmute' : 'Mute'}
+                icon={
+                  snapshot.muted ? (
                   <MicOff size={18} color={colors.warning} />
-                ) : (
-                  <Mic size={18} color={colors.textPrimary} />
-                )
-              }
-              color={colors.inputBg}
-              textColor={snapshot.muted ? colors.warning : colors.textPrimary}
-              onPress={() => conversation.setMuted(!snapshot.muted)}
-              selected={snapshot.muted}
-              testID="voice-conversation-mute"
-            />
-            <ControlButton
-              label={showTyping ? 'Voice' : 'Type'}
-              icon={<MessageSquareText size={18} color={colors.textPrimary} />}
-              color={showTyping ? colors.primary + '20' : colors.inputBg}
-              textColor={colors.textPrimary}
-              onPress={() => setShowTyping(prev => !prev)}
-              testID="voice-conversation-type-instead"
-              accessibilityLabel={showTyping ? 'Return to voice only' : 'Type a turn instead of speaking'}
-            />
-            <ControlButton
-              label="Stop"
-              icon={<Square size={16} color={colors.textPrimary} />}
-              color={colors.inputBg}
-              textColor={colors.textPrimary}
-              onPress={conversation.stopResponse}
-              disabled={snapshot.phase === 'listening'}
-              testID="voice-conversation-stop"
-              accessibilityLabel="Stop LAFINA's answer"
-            />
-            <ControlButton
-              label="End"
-              icon={<PhoneOff size={18} color={colors.textOnPrimary} />}
-              color={colors.error}
-              textColor={colors.textOnPrimary}
-              onPress={conversation.end}
-              testID="voice-conversation-end"
-              accessibilityLabel="End Call Lafina"
-            />
-          </View>
+                  ) : (
+                    <Mic size={18} color={colors.textPrimary} />
+                  )
+                }
+                color={colors.inputBg}
+                textColor={snapshot.muted ? colors.warning : colors.textPrimary}
+                onPress={() => conversation.setMuted(!snapshot.muted)}
+                selected={snapshot.muted}
+                testID="voice-conversation-mute"
+              />
+              <ControlButton
+                label={showTyping ? 'Voice' : 'Type'}
+                icon={<MessageSquareText size={18} color={colors.textPrimary} />}
+                color={showTyping ? colors.primary + '20' : colors.inputBg}
+                textColor={colors.textPrimary}
+                onPress={() => setShowTyping(prev => !prev)}
+                testID="voice-conversation-type-instead"
+                accessibilityLabel={showTyping ? 'Return to voice only' : 'Type a turn instead of speaking'}
+              />
+              <ControlButton
+                label="Stop"
+                icon={<Square size={16} color={colors.textPrimary} />}
+                color={colors.inputBg}
+                textColor={colors.textPrimary}
+                onPress={conversation.stopResponse}
+                disabled={snapshot.phase === 'listening'}
+                testID="voice-conversation-stop"
+                accessibilityLabel="Stop LAFINA's answer"
+              />
+              <ControlButton
+                label="End"
+                icon={<PhoneOff size={18} color={colors.textOnPrimary} />}
+                color={colors.error}
+                textColor={colors.textOnPrimary}
+                onPress={conversation.end}
+                testID="voice-conversation-end"
+                accessibilityLabel="End Call Lafina"
+              />
+            </View>
         ) : null}
       </View>
     </View>
-  );
+);
 };
 
 const ControlButton: React.FC<{
@@ -779,32 +839,32 @@ const ControlButton: React.FC<{
   selected,
   accessibilityLabel,
 }) => (
-  <TouchableOpacity
-    style={[
-      styles.control,
-      {backgroundColor: color},
-      disabled && styles.disabled,
-    ]}
-    onPress={onPress}
-    disabled={disabled}
-    accessibilityRole="button"
-    accessibilityLabel={accessibilityLabel ?? label}
-    accessibilityState={{disabled: !!disabled, selected: !!selected}}
-    testID={testID}
-  >
-    {icon}
-    <Text style={[styles.controlText, {color: textColor}]}>{label}</Text>
-  </TouchableOpacity>
-);
+    <TouchableOpacity
+      style={[
+        styles.control,
+        { backgroundColor: color },
+        disabled && styles.disabled,
+      ]}
+      onPress={onPress}
+      disabled={disabled}
+      accessibilityRole="button"
+      accessibilityLabel={accessibilityLabel ?? label}
+      accessibilityState={{ disabled: !!disabled, selected: !!selected }}
+      testID={testID}
+    >
+      {icon}
+      <Text style={[styles.controlText, { color: textColor }]}>{label}</Text>
+    </TouchableOpacity>
+  );
 
 const getThemedStyles = (colors: ThemeColors) => ({
-  card: {backgroundColor: colors.inputBg, borderColor: colors.border},
-  pill: {backgroundColor: colors.inputBg},
-  dock: {backgroundColor: colors.cardBg, borderColor: colors.border},
-  text: {color: colors.textPrimary},
-  title: {color: colors.textPrimary},
-  muted: {color: colors.textSecondary},
-  secondary: {backgroundColor: colors.cardBg, borderColor: colors.border},
+  card: { backgroundColor: colors.inputBg, borderColor: colors.border },
+  pill: { backgroundColor: colors.inputBg },
+  dock: { backgroundColor: colors.cardBg, borderColor: colors.border },
+  text: { color: colors.textPrimary },
+  title: { color: colors.textPrimary },
+  muted: { color: colors.textSecondary },
+  secondary: { backgroundColor: colors.cardBg, borderColor: colors.border },
 });
 
 const styles = StyleSheet.create({
@@ -839,7 +899,7 @@ const styles = StyleSheet.create({
     paddingVertical: 6,
     minHeight: 44,
   },
-  linkText: {fontFamily: Fonts.body, fontSize: 14, fontWeight: '600'},
+  linkText: { fontFamily: Fonts.body, fontSize: 14, fontWeight: '600' },
   onlinePill: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -848,7 +908,7 @@ const styles = StyleSheet.create({
     paddingVertical: 4,
     borderRadius: 12,
   },
-  pillText: {fontFamily: Fonts.body, fontSize: 11, fontWeight: 'bold'},
+  pillText: { fontFamily: Fonts.body, fontSize: 11, fontWeight: 'bold' },
   centerStage: {
     alignItems: 'center',
     justifyContent: 'center',
@@ -884,7 +944,7 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     textAlign: 'center',
   },
-  voiceName: {fontFamily: Fonts.body, fontSize: 12, marginTop: -2},
+  voiceName: { fontFamily: Fonts.body, fontSize: 12, marginTop: -2 },
   waveformContainer: {
     height: 36,
     alignItems: 'center',
@@ -911,32 +971,53 @@ const styles = StyleSheet.create({
     gap: 12,
     alignItems: 'center',
   },
-  card: {width: '100%', borderRadius: 16, borderWidth: 1, padding: 14, gap: 10},
-  cardTitle: {fontFamily: Fonts.heading, fontSize: 15, fontWeight: 'bold'},
-  cardBody: {fontFamily: Fonts.body, fontSize: 13, lineHeight: 19},
-  flex: {flex: 1},
-  problemRow: {flexDirection: 'row', gap: 8, alignItems: 'flex-start'},
-  transcript: {width: '100%', maxHeight: 220, borderRadius: 16, borderWidth: 1},
-  transcriptContent: {padding: 12, gap: 10},
-  turn: {maxWidth: '92%'},
-  userTurn: {alignSelf: 'flex-end'},
-  agentTurn: {alignSelf: 'flex-start'},
+  card: { width: '100%', borderRadius: 16, borderWidth: 1, padding: 14, gap: 10 },
+  cardTitle: { fontFamily: Fonts.heading, fontSize: 15, fontWeight: 'bold' },
+  cardBody: { fontFamily: Fonts.body, fontSize: 13, lineHeight: 19 },
+  flex: { flex: 1 },
+  problemRow: { flexDirection: 'row', gap: 8, alignItems: 'flex-start' },
+  transcriptContainer: { width: '100%', marginVertical: 6 },
+  transcriptToggle: {
+    paddingVertical: 6,
+    paddingHorizontal: 14,
+    borderRadius: 16,
+    alignSelf: 'center',
+    marginBottom: 6,
+  },
+  transcriptToggleText: { fontFamily: Fonts.body, fontSize: 11, fontWeight: '600' },
+  transcriptWrapper: { position: 'relative', width: '100%' },
+  jumpButton: {
+    position: 'absolute',
+    bottom: 8,
+    alignSelf: 'center',
+    paddingVertical: 6,
+    paddingHorizontal: 14,
+    borderRadius: 16,
+    borderWidth: 1,
+    elevation: 3,
+  },
+  jumpButtonText: { fontFamily: Fonts.body, fontSize: 12, fontWeight: 'bold' },
+  transcript: { width: '100%', maxHeight: 220, borderRadius: 16, borderWidth: 1 },
+  transcriptContent: { padding: 12, gap: 10 },
+  turn: { maxWidth: '92%' },
+  userTurn: { alignSelf: 'flex-end' },
+  agentTurn: { alignSelf: 'flex-start' },
   turnLabel: {
     fontFamily: Fonts.body,
     fontSize: 10,
     fontWeight: 'bold',
     marginBottom: 2,
   },
-  turnText: {fontFamily: Fonts.body, fontSize: 15, lineHeight: 21},
-  provisional: {fontStyle: 'italic'},
-  placeholder: {fontFamily: Fonts.body, fontSize: 14, fontStyle: 'italic', textAlign: 'center'},
+  turnText: { fontFamily: Fonts.body, fontSize: 15, lineHeight: 21 },
+  provisional: { fontStyle: 'italic' },
+  placeholder: { fontFamily: Fonts.body, fontSize: 14, fontStyle: 'italic', textAlign: 'center' },
   notice: {
     fontFamily: Fonts.body,
     fontSize: 13,
     lineHeight: 18,
     textAlign: 'center',
   },
-  hint: {fontFamily: Fonts.body, fontSize: 12, lineHeight: 16},
+  hint: { fontFamily: Fonts.body, fontSize: 12, lineHeight: 16 },
   dockContainer: {
     width: '100%',
     paddingVertical: 12,
@@ -953,8 +1034,8 @@ const styles = StyleSheet.create({
     borderRadius: 24,
     paddingHorizontal: 24,
   },
-  startButton: {width: '100%', maxWidth: 280},
-  primaryText: {fontFamily: Fonts.body, fontSize: 15, fontWeight: 'bold'},
+  startButton: { width: '100%', maxWidth: 280 },
+  primaryText: { fontFamily: Fonts.body, fontSize: 15, fontWeight: 'bold' },
   secondaryButton: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -965,7 +1046,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     paddingHorizontal: 16,
   },
-  secondaryText: {fontFamily: Fonts.body, fontSize: 14, fontWeight: '600'},
+  secondaryText: { fontFamily: Fonts.body, fontSize: 14, fontWeight: '600' },
   controls: {
     flexDirection: 'row',
     gap: 10,
@@ -984,8 +1065,8 @@ const styles = StyleSheet.create({
     gap: 4,
     paddingHorizontal: 8,
   },
-  controlText: {fontFamily: Fonts.body, fontSize: 12, fontWeight: 'bold'},
-  disabled: {opacity: 0.45},
+  controlText: { fontFamily: Fonts.body, fontSize: 12, fontWeight: 'bold' },
+  disabled: { opacity: 0.45 },
   inputRow: {
     width: '100%',
     flexDirection: 'row',
@@ -996,7 +1077,7 @@ const styles = StyleSheet.create({
     paddingRight: 6,
     height: 48,
   },
-  input: {flex: 1, fontFamily: Fonts.body, fontSize: 14, paddingVertical: 0},
+  input: { flex: 1, fontFamily: Fonts.body, fontSize: 14, paddingVertical: 0 },
   sendButton: {
     width: 36,
     height: 36,
