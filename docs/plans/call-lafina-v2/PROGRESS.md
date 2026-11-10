@@ -1,6 +1,6 @@
 # Call Lafina 2.0 Persistent Progress Ledger
 
-- Current branch/HEAD: `feat/call-lafina-v2` / `b0250ce`
+- Current branch/HEAD: `feat/call-lafina-v2` / `29bdc76`
 - Current phase/item: Phase 12 Voice Choice, Language, and Interaction Settings (P12-01)
 - Last verified passing test:
   - `npm run preflight`: PASS (exit code 0; 93 test suites, 1345 passed, 1 skipped; 276 architecture modules verified)
