@@ -44,6 +44,7 @@ import {explicitMemory} from '../../../ai/explicitMemory';
 import {onboardingVoiceContext} from '../../../storage/onboardingMemory';
 import {userStore} from '../../../storage/userStore';
 import type {SpokenTurnReview} from '../../../ai/chatOrchestrator';
+import {CallWaveform} from '../callLafina/CallWaveform';
 
 const DATA_CONSENT = 'voiceConversation.directDataConsent.v1';
 
@@ -64,21 +65,27 @@ const PHASE_TEXT: Record<ConversationPhase, string> = {
   connecting: 'Connecting…',
   listening: 'Listening. Pause whenever you like',
   thinking: 'Thinking…',
+  tool_working: 'Working…',
   speaking: 'Speaking. Talk to interrupt',
   restart_required: 'Call stopped',
   ended: 'Call ended',
   failed: 'Call Lafina unavailable',
 };
 
-const statusLine = (snapshot: ConversationSnapshot) =>
-  snapshot.muted &&
-  (snapshot.phase === 'listening' ||
+const statusLine = (snapshot: ConversationSnapshot, hasReviewItem = false) => {
+  const active =
+    snapshot.phase === 'listening' ||
     snapshot.phase === 'speaking' ||
-    snapshot.phase === 'thinking')
-    ? 'Muted. LAFINA cannot hear you'
-    : PHASE_TEXT[snapshot.phase];
+    snapshot.phase === 'thinking' ||
+    snapshot.phase === 'tool_working';
+  if (snapshot.muted && active) return 'Muted. LAFINA cannot hear you';
+  if (hasReviewItem && (snapshot.phase === 'listening' || snapshot.phase === 'idle')) {
+    return 'Waiting for confirmation';
+  }
+  return PHASE_TEXT[snapshot.phase] ?? 'Talk with LAFINA naturally, hands-free';
+};
 
-const LIVE = new Set<ConversationPhase>(['listening', 'thinking', 'speaking']);
+const LIVE = new Set<ConversationPhase>(['listening', 'thinking', 'tool_working', 'speaking']);
 
 export const VoiceConversationPanel: React.FC<VoiceConversationPanelProps> = ({
   userId,
@@ -404,7 +411,7 @@ export const VoiceConversationPanel: React.FC<VoiceConversationPanelProps> = ({
           accessibilityLiveRegion="polite"
           testID="voice-conversation-status"
         >
-          {statusLine(snapshot)}
+          {statusLine(snapshot, Boolean(review?.proposal))}
         </Text>
 
         {snapshot.voiceName && (live || connecting) ? (
@@ -416,36 +423,15 @@ export const VoiceConversationPanel: React.FC<VoiceConversationPanelProps> = ({
           </Text>
         ) : null}
 
-        {/* Central Waveform Area */}
-        <View style={styles.waveformContainer} testID="call-waveform-area">
-          {live && !snapshot.muted ? (
-            <View style={styles.waveformBarsRow}>
-              {[0.3, 0.6, 0.9, 0.5, 0.8, 1.0, 0.7, 0.4, 0.6, 0.3].map(
-                (val, idx) => (
-                  <View
-                    key={idx}
-                    style={[
-                      styles.waveformBar,
-                      {
-                        backgroundColor:
-                          snapshot.phase === 'speaking'
-                            ? colors.primary
-                            : colors.textSecondary,
-                        height:
-                          8 +
-                          (snapshot.phase === 'speaking'
-                            ? val * 24
-                            : snapshot.level > 0.05
-                            ? val * 16
-                            : 4),
-                      },
-                    ]}
-                  />
-                ),
-              )}
-            </View>
-          ) : null}
-        </View>
+        {/* Central Responsive Dual Waveform and Truthful Activity Indicators */}
+        <CallWaveform
+          phase={snapshot.phase}
+          muted={snapshot.muted}
+          micCapturing={snapshot.micCapturing}
+          userLevel={snapshot.level}
+          outputLevel={snapshot.outputLevel ?? 0}
+          hasReviewItem={Boolean(review?.proposal)}
+        />
       </View>
 
       {/* Middle Scrollable Deck for Cards, Turns and Messages */}

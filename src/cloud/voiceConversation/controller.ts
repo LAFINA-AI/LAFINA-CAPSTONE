@@ -85,6 +85,7 @@ const ACTIVE: ReadonlySet<ConversationPhase> = new Set([
   'connecting',
   'listening',
   'thinking',
+  'tool_working',
   'speaking',
 ]);
 
@@ -186,6 +187,7 @@ export class VoiceConversationController {
     muted: false,
     micCapturing: false,
     level: 0,
+    outputLevel: 0,
     turns: [],
     notice: null,
     failure: null,
@@ -262,6 +264,7 @@ export class VoiceConversationController {
       muted: false,
       micCapturing: false,
       level: 0,
+      outputLevel: 0,
       turns: [],
       endsAt: null,
       lastTiming: null,
@@ -465,6 +468,7 @@ export class VoiceConversationController {
       failure,
       micCapturing: false,
       level: 0,
+      outputLevel: 0,
       endsAt: null,
     });
   }
@@ -481,6 +485,7 @@ export class VoiceConversationController {
         phase: 'ended',
         micCapturing: false,
         level: 0,
+        outputLevel: 0,
         endsAt: null,
       });
   };
@@ -502,6 +507,7 @@ export class VoiceConversationController {
       restartReason: reason,
       micCapturing: false,
       level: 0,
+      outputLevel: 0,
       endsAt: null,
     });
   };
@@ -544,9 +550,12 @@ export class VoiceConversationController {
     this.markInterrupted();
     if (
       this.snapshot.phase === 'speaking' ||
-      this.snapshot.phase === 'thinking'
+      this.snapshot.phase === 'thinking' ||
+      this.snapshot.phase === 'tool_working'
     ) {
-      this.update({phase: 'listening'});
+      this.update({phase: 'listening', outputLevel: 0});
+    } else {
+      this.update({outputLevel: 0});
     }
   };
 
@@ -608,6 +617,16 @@ export class VoiceConversationController {
           this.update({level: event.level});
         }
         return;
+      case 'output_level':
+        if (
+          this.snapshot.phase === 'speaking' &&
+          Math.abs(event.level - this.snapshot.outputLevel) > 0.04
+        ) {
+          this.update({outputLevel: event.level});
+        } else if (this.snapshot.phase !== 'speaking' && this.snapshot.outputLevel > 0) {
+          this.update({outputLevel: 0});
+        }
+        return;
       case 'playback':
         return this.onPlayback(event.speaking);
       case 'message':
@@ -657,7 +676,11 @@ export class VoiceConversationController {
       this.recordTiming({toSilence: now - this.silenceRequestedAt});
       this.silenceRequestedAt = null;
     }
-    if (this.snapshot.phase === 'speaking') this.update({phase: 'listening'});
+    if (this.snapshot.phase === 'speaking') {
+      this.update({phase: 'listening', outputLevel: 0});
+    } else {
+      this.update({outputLevel: 0});
+    }
     this.settleIfHeard();
     this.resetInactivity(this.generation);
   }
@@ -689,6 +712,9 @@ export class VoiceConversationController {
           ? payload.parameters as Record<string, unknown> : {};
         const live = this.live;
         if (!live) return;
+        if (this.snapshot.phase !== 'speaking') {
+          this.update({phase: 'tool_working'});
+        }
         void (async () => {
           let answer = 'This app cannot perform that request in this conversation.';
           let failed = false;
@@ -701,6 +727,9 @@ export class VoiceConversationController {
             answer = 'The app could not complete that request. Nothing was changed.';
           }
           if (gen !== this.generation || this.live !== live) return;
+          if (this.snapshot.phase === 'tool_working') {
+            this.update({phase: 'thinking'});
+          }
           await this.deps.transport.sendMessage(live.key, JSON.stringify({type:'client_tool_result',
             tool_call_id: toolId, result: answer.slice(0, 5000), is_error: failed})).catch(() => false);
         })();
@@ -767,9 +796,10 @@ export class VoiceConversationController {
         this.markInterrupted();
         if (
           this.snapshot.phase === 'speaking' ||
-          this.snapshot.phase === 'thinking'
+          this.snapshot.phase === 'thinking' ||
+          this.snapshot.phase === 'tool_working'
         ) {
-          this.update({phase: 'listening'});
+          this.update({phase: 'listening', outputLevel: 0});
         }
         return;
       case 'client_error':

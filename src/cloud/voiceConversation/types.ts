@@ -13,6 +13,7 @@ export type ConversationPhase =
   | 'connecting'
   | 'listening'
   | 'thinking'
+  | 'tool_working'
   | 'speaking'
   /** Stopped by something other than the student (background, call, network): restart explicitly. */
   | 'restart_required'
@@ -64,6 +65,8 @@ export interface ConversationSnapshot {
   micCapturing: boolean;
   /** 0..1 microphone level while capturing (for the meter). */
   level: number;
+  /** 0..1 assistant playback audio level while speaking (for assistant waveform). */
+  outputLevel: number;
   turns: readonly ConversationTurn[];
   /** Short, non-blocking information line (for example a slow answer). */
   notice: string | null;
@@ -134,6 +137,7 @@ export type TransportEvent =
   | {kind: 'open'}
   | {kind: 'message'; data: string}
   | {kind: 'playback'; speaking: boolean}
+  | {kind: 'output_level'; level: number}
   | {kind: 'mic'; capturing: boolean}
   | {kind: 'level'; level: number}
   | {kind: 'closed'; code: number; reason: string}
