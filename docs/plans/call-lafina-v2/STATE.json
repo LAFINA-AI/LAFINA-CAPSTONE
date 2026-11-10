@@ -4,8 +4,8 @@
   "source_branch": "Lem-branch",
   "source_head": "cae65fec4b0efc25dc343e3f30a4d216defa19aa",
   "work_branch": "feat/call-lafina-v2",
-  "current_phase": "14",
-  "next_item": "P15-01",
+  "current_phase": "15",
+  "next_item": "NONE_COMPLETE",
   "completed_items": [
     "P00-01",
     "P00-02",
@@ -145,14 +145,24 @@
     "P14-07",
     "P14-08",
     "P14-09",
-    "P14-10"
+    "P14-10",
+    "P15-01",
+    "P15-02",
+    "P15-03",
+    "P15-04",
+    "P15-05",
+    "P15-06",
+    "P15-07",
+    "P15-08",
+    "P15-09",
+    "P15-10"
   ],
   "blocked_items": [
     "F-055:DEFERRED_APPROVAL (OS background foreground service requires physical device check)",
     "F-057:DEFERRED_BACKEND_UNSUPPORTED (DeepSeek LLM route is text-only)"
   ],
-  "last_commit": "fc9ffd3",
-  "last_tested_commit": "fc9ffd3",
+  "last_commit": "243fbb4",
+  "last_tested_commit": "243fbb4",
   "last_test_results": [
     {
       "command": "npm run typecheck",
@@ -165,14 +175,14 @@
       "summary": "eslint passed with 0 warnings, 0 errors"
     },
     {
-      "command": "npx jest __tests__/ui/callLafinaPhase14.test.tsx",
+      "command": "npx jest __tests__/ui/callLafinaPhase15.test.tsx",
       "exit_code": 0,
-      "summary": "13 focused tests passed in 16.1s"
+      "summary": "4 focused tests passed in 6.5s"
     },
     {
       "command": "npx jest callLafinaPhase",
       "exit_code": 0,
-      "summary": "14 test suites / 193 passed across phases 01-14 in 15.8s"
+      "summary": "15 test suites / 197 passed across phases 01-15 in 20.6s"
     },
     {
       "command": "npm run check:architecture",
@@ -190,7 +200,7 @@
       "summary": "PASS: all pack structural/coverage checks passed"
     }
   ],
-  "manual_phone_verification": "NOT_RUN",
+  "manual_phone_verification": "AWAITING_DEVICE",
   "external_backend_verification": "VERIFIED_ROUTES_PRESENT",
-  "updated_at_utc": "2026-11-10T10:25:00Z"
+  "updated_at_utc": "2026-11-10T10:35:00Z"
 }

@@ -65,14 +65,25 @@
   - **P14-08 & P14-10 & F-072**: Prepared manual device test guide `qa/PHASE-14-REGRESSION-MANUAL.md` for physical hardware, Bluetooth AEC, and status bar mic indicators.
   - Verified with 13 Jest tests in `__tests__/ui/callLafinaPhase14.test.tsx` and all 14 Call Lafina phase suites (193/193 tests passing).
 
-## In progress
-- Phase 15: Traceability Audit, Capstone Handoff, and Release Readiness (`F-064`, `F-065`, `F-077`).
+- **Phase 15: Traceability Audit, Capstone Handoff, and Release Readiness (`F-064`, `F-065`, `F-077`)**: Completed.
+  - **P15-01 & F-064**: Reconciled all 78 feature IDs from `SPEC/FEATURE_INVENTORY.csv` with `FEATURE_LEDGER.csv` (76 code complete, 2 documented deferred, 0 not started).
+  - **P15-02**: Audited and confirmed all 151 implementation checkboxes across phases 00–15.
+  - **P15-03 & P15-05**: Full preflight verification: 15 Jest phase suites (197/197 passing), TypeScript strict (0 errors), ESLint (0 warnings), architecture check (280 modules, 0 cycles, 0 forbidden imports), Gradle dry-run (BUILD SUCCESSFUL in 42s).
+  - **P15-04 & P15-08 & F-064**: Prepared `qa/DEVICE-TEST-MATRIX.md` with 20 targeted physical phone test cases covering insets, audio routing, AEC, barge-in, mini bar, reminder coexistence, and voice preferences.
+  - **P15-06 & P15-07 & F-065**: Authored comprehensive capstone release handoff report in `docs/plans/call-lafina-v2/FINAL_REPORT.md`.
+  - **P15-06 & F-077**: Verified anti-hallucination guarantees: draft preparation never commits to SQLite prior to explicit confirmation, and persona prompts strictly prohibit claiming unverified successes.
+  - **P15-10**: Maintained work on isolated feature branch `feat/call-lafina-v2` for human review without destructive operations.
+
+## All Phases Completed (00–15)
+- **Status**: `STATUS: READY FOR REVIEW` / `STATUS: AWAITING DEVICE VALIDATION`
+- **Feature Branch**: `feat/call-lafina-v2`
+- **Total Features**: 78 / 78 mapped and accounted for
+- **Automated Tests**: 15 test suites / 197 passing tests
 
 ## Known blockers (link to BLOCKERS.md)
-- `BLK-001` (DEVICE): Physical phone audio routing, hardware mic indicator, and physical alarm delivery remain `DEVICE_NOT_RUN`.
+- `BLK-001` (DEVICE): Physical phone audio routing, hardware mic indicator, and physical alarm delivery remain `DEVICE_NOT_RUN` (test matrix in `qa/DEVICE-TEST-MATRIX.md`).
 - `BLK-002` (EXTERNAL): Production signed-in ElevenAgents live session depends on active student credentials and ElevenLabs agent provisioning on server.
 
-## Exact next action (no guesswork)
-1. Commit Phase 14 implementation, tests, and reports to `feat/call-lafina-v2`.
-2. Rehydrate Phase 15: `CALL_LAFINA_AUTONOMOUS_TASK_PACK_V1/PHASES/15-traceability-audit-capstone-handoff-and-release-readiness.md`.
-3. Complete final traceability audit across all 78 `F-*` features in `FEATURE_LEDGER.csv` and author `phase-15.md` final report.
+## Exact next action
+1. Present completed release handoff summary to the capstone owner.
+2. Await human physical device testing and owner deployment approval.
