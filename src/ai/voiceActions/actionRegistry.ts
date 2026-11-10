@@ -103,6 +103,29 @@ export const REGISTERED_TOOLS: readonly RegisteredToolDefinition[] = [
       required: ['query'],
     },
   },
+  {
+    name: 'read_memories',
+    kind: 'memory.read',
+    description: 'Reads saved student memories and personal study preferences from local storage.',
+    parameters: {
+      type: 'object',
+      properties: {
+        query: {type: 'string', description: 'Optional search keyword to match memories.'},
+      },
+    },
+  },
+  {
+    name: 'prepare_memory',
+    kind: 'memory.prepare',
+    description: 'Proposes saving an explicit student fact or preference. Prepares a card for user confirmation before saving.',
+    parameters: {
+      type: 'object',
+      properties: {
+        text: {type: 'string', description: 'The fact or preference to remember (1..200 chars).'},
+      },
+      required: ['text'],
+    },
+  },
 ];
 
 const TOOL_MAP = new Map<string, RegisteredToolDefinition>(

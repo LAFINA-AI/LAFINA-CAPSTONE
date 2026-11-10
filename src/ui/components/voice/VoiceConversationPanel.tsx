@@ -41,6 +41,7 @@ import type { CommandReviewState } from '../../hooks/useCommandReview';
 import { ActionCardHost } from '../callLafina/ActionCardHost';
 import { isToolExecutionPermitted } from '../../../ai/voiceActions/actionSecurity';
 import { actionService } from '../../../ai/voiceActions/actionService';
+import type { MemoryProposalData } from '../../../ai/voiceActions/types';
 import { directProviderTestEnabled } from '../../../cloud/directProviderTest';
 import { localSettingsStore } from '../../../storage/localSettingsStore';
 import { explicitMemory } from '../../../ai/explicitMemory';
@@ -119,6 +120,7 @@ export const VoiceConversationPanel: React.FC<VoiceConversationPanelProps> = ({
   const identityContextSent = useRef(false);
   const conversationRef = useRef<ReturnType<typeof useVoiceConversation> | null>(null);
   const pendingMemory = useRef<{ text: string; owner: string; result: Promise<SpokenTurnReview> } | null>(null);
+  const [activeMemoryProposal, setActiveMemoryProposal] = useState<MemoryProposalData | null>(null);
 
   // Live call duration timer
   const [callDuration, setCallDuration] = useState(0);
@@ -202,9 +204,41 @@ export const VoiceConversationPanel: React.FC<VoiceConversationPanelProps> = ({
             setLocalNote(result.reply);
           }
         },
+        onMemoryProposal: (memProp) => {
+          setActiveMemoryProposal(memProp);
+          setLocalNote('Check the memory card below. Nothing is saved until you tap Save.');
+        },
       },
     );
   }, [deps, userId]);
+
+  const handleSaveMemory = useCallback((editedText?: string) => {
+    if (!activeMemoryProposal) return;
+    const owner = ownerRef.current;
+    const result = actionService.confirmMemoryProposal(owner, activeMemoryProposal.id, editedText);
+    if (result.success && result.status === 'saved') {
+      setActiveMemoryProposal(prev => prev ? {...prev, text: editedText || prev.text, status: 'saved', savedMemoryId: result.memoryId} : null);
+      setLocalNote('Saved to personal memory.');
+    } else if (result.status === 'duplicate') {
+      setActiveMemoryProposal(prev => prev ? {...prev, status: 'duplicate'} : null);
+      setLocalNote('That fact is already in your memory.');
+    } else if (result.status === 'disabled') {
+      setActiveMemoryProposal(prev => prev ? {...prev, status: 'disabled'} : null);
+      setLocalNote('Memory is turned off in Settings.');
+    } else {
+      setActiveMemoryProposal(prev => prev ? {...prev, status: 'failed', error: result.error} : null);
+    }
+  }, [activeMemoryProposal]);
+
+  const handleUndoMemory = useCallback(() => {
+    if (!activeMemoryProposal) return;
+    const owner = ownerRef.current;
+    const result = actionService.undoMemoryProposal(owner, activeMemoryProposal.id);
+    if (result.success) {
+      setActiveMemoryProposal(prev => prev ? {...prev, status: 'undone', savedMemoryId: null} : null);
+      setLocalNote('Memory change undone.');
+    }
+  }, [activeMemoryProposal]);
 
 const conversation = useVoiceConversation(userId, { onFinalUserText, onClientTool, deps });
 conversationRef.current = conversation;
@@ -591,16 +625,32 @@ return (
                 </Text>
               ) : null}
 
-              {review.proposal ? (
+              {review.proposal || activeMemoryProposal ? (
                 <ActionCardHost
                   proposal={review.proposal}
+                  memoryProposal={activeMemoryProposal}
                   expired={review.expired}
                   busy={review.busy}
                   onConfirm={() => {
                     void handleConfirm();
                   }}
-                  onCancel={handleCancelReview}
-                  onDismiss={review.dismiss}
+                  onCancel={() => {
+                    if (activeMemoryProposal) {
+                      actionService.cancelMemoryProposal(ownerRef.current, activeMemoryProposal.id);
+                      setActiveMemoryProposal(null);
+                    } else {
+                      handleCancelReview();
+                    }
+                  }}
+                  onDismiss={() => {
+                    if (activeMemoryProposal) {
+                      setActiveMemoryProposal(null);
+                    } else {
+                      review.dismiss();
+                    }
+                  }}
+                  onSaveMemory={handleSaveMemory}
+                  onUndoMemory={handleUndoMemory}
                   testIDPrefix="voice-conversation-review"
                 />
               ) : null}

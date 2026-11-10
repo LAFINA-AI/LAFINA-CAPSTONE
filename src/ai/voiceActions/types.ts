@@ -113,6 +113,27 @@ export interface MemoryPreparePayload {
   text: string;
 }
 
+export type MemoryProposalStatus =
+  | 'draft'
+  | 'saving'
+  | 'saved'
+  | 'duplicate'
+  | 'disabled'
+  | 'failed'
+  | 'undone'
+  | 'canceled'
+  | 'expired';
+
+export interface MemoryProposalData {
+  id: string;
+  text: string;
+  sourceUtterance?: string;
+  status: MemoryProposalStatus;
+  savedMemoryId?: string | null;
+  error?: string;
+  revision: number;
+}
+
 export interface DraftRevisePayload {
   cardId: string;
   revision: number;

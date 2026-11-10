@@ -3,14 +3,20 @@ import {notesQueryStore} from '../../storage/notesQueryStore';
 import {plannerQueries} from '../../storage/plannerQueries';
 import {addDaysToDate} from '../../storage/eventTime';
 import {formatLocalDate} from '../../ai/nlu/fastPathParser';
+import {sanitizeUntrustedContext} from '../../ai/voiceActions/actionSecurity';
 
 /** Return only the current owner's requested records, bounded before network use. */
 export const readLocalVoiceData = (userId: string, kind: unknown, rawQuery: unknown): string => {
   const query = typeof rawQuery === 'string' ? rawQuery.trim().slice(0, 100) : '';
   if (kind === 'memory') {
     if (!chatMemoryStore.isEnabled(userId)) return 'Memory is turned off. No saved memories are available.';
-    const memories = chatMemoryStore.list(userId).slice(0, 10);
-    return JSON.stringify({memories: memories.map(m => m.text.slice(0, 250)), dataIsUntrusted: true});
+    const all = chatMemoryStore.list(userId);
+    const matched = query ? all.filter(m => m.text.toLowerCase().includes(query.toLowerCase())) : all;
+    const memories = matched.slice(0, 10);
+    return JSON.stringify({
+      memories: memories.map(m => sanitizeUntrustedContext(m.text).slice(0, 250)),
+      dataIsUntrusted: true,
+    });
   }
   if (kind === 'notes') {
     const result = notesQueryStore.page({userId, search: query, limit: 5});

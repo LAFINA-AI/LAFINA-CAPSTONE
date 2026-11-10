@@ -12,13 +12,16 @@ import type {
   ActionCardStatus,
   LafinaActionKind,
   LafinaActionPhase,
+  MemoryProposalData,
+  MemoryProposalStatus,
 } from './types';
-import {isToolExecutionPermitted} from './actionSecurity';
+import {isToolExecutionPermitted, containsPromptInjection} from './actionSecurity';
 import {getRegisteredTool} from './actionRegistry';
 import {validatePayload} from './actionValidator';
 import {readLocalVoiceData} from '../../cloud/voiceConversation/localVoiceData';
 import {chatOrchestrator} from '../chatOrchestrator';
 import type {SpokenTurnReview} from '../chatOrchestrator';
+import {chatMemoryStore} from '../../storage/chatMemoryStore';
 
 export interface ActionRecord {
   envelope: ActionEnvelope;
@@ -26,6 +29,7 @@ export interface ActionRecord {
   createdEpoch: number;
   updatedEpoch: number;
   reviewResult?: SpokenTurnReview;
+  memoryProposal?: MemoryProposalData;
   result?: string;
   error?: string;
 }
@@ -35,6 +39,7 @@ export type ActionLifecycleListener = (event: ActionLifecycleEvent) => void;
 export interface ExecuteToolOptions {
   sourceTurnId?: string;
   onProposal?: (review: SpokenTurnReview) => void;
+  onMemoryProposal?: (proposal: MemoryProposalData) => void;
 }
 
 class ActionService {
@@ -138,7 +143,8 @@ class ActionService {
       if (
         toolDef.kind === 'legacy.read_data' ||
         toolDef.kind === 'calendar.read' ||
-        toolDef.kind === 'note.search'
+        toolDef.kind === 'note.search' ||
+        toolDef.kind === 'memory.read'
       ) {
         envelope.phase = 'checking';
         this.emit(actionId, toolDef.kind, 'checking');
@@ -159,6 +165,9 @@ class ActionService {
         } else if (toolDef.kind === 'note.search') {
           const p = envelope.payload as {query: string};
           resultStr = readLocalVoiceData(userId, 'notes', p.query);
+        } else if (toolDef.kind === 'memory.read') {
+          const p = envelope.payload as {query?: string};
+          resultStr = readLocalVoiceData(userId, 'memory', p.query);
         }
 
         envelope.phase = 'done';
@@ -167,6 +176,40 @@ class ActionService {
         record.updatedEpoch = Date.now();
         this.emit(actionId, toolDef.kind, 'done');
         return resultStr;
+      }
+
+      if (toolDef.kind === 'memory.prepare') {
+        envelope.phase = 'preparing';
+        this.emit(actionId, toolDef.kind, 'preparing');
+
+        if (!isCurrent()) {
+          envelope.phase = 'canceled';
+          this.emit(actionId, toolDef.kind, 'canceled', 'Turn changed or cancelled.');
+          return 'Request cancelled because conversational turn updated.';
+        }
+
+        if (!chatMemoryStore.isEnabled(userId)) {
+          envelope.phase = 'failed';
+          record.status = 'failed';
+          record.error = 'Memory is turned off in Settings.';
+          this.emit(actionId, toolDef.kind, 'failed', 'Memory is turned off in Settings.');
+          return 'Memory is turned off in Settings. No memories can be saved.';
+        }
+
+        const p = envelope.payload as {text: string};
+        const memProp: MemoryProposalData = {
+          id: generateId('mem_prop'),
+          text: p.text.trim(),
+          status: 'draft',
+          revision: 1,
+        };
+        record.memoryProposal = memProp;
+        envelope.phase = 'waiting';
+        record.status = 'prepare';
+        record.updatedEpoch = Date.now();
+        this.emit(actionId, toolDef.kind, 'waiting', 'Memory review card presented to student.');
+        options?.onMemoryProposal?.(memProp);
+        return `A memory card is shown with fact: "${memProp.text}". Nothing has been saved yet. Ask the student to check and confirm the card.`;
       }
 
       if (
@@ -225,6 +268,146 @@ class ActionService {
       this.emit(actionId, toolDef.kind, 'failed', msg);
       return `Failed to execute ${name}: ${msg}`;
     }
+  }
+
+  createMemoryProposal(
+    userId: string,
+    sessionId: string,
+    text: string,
+    sourceUtterance?: string,
+  ): {actionId: string; proposal: MemoryProposalData} {
+    const actionId = generateId('act');
+    const memProp: MemoryProposalData = {
+      id: generateId('mem_prop'),
+      text: text.trim(),
+      sourceUtterance,
+      status: chatMemoryStore.isEnabled(userId) ? 'draft' : 'disabled',
+      revision: 1,
+    };
+    const envelope: ActionEnvelope = {
+      schemaVersion: 1,
+      actionId,
+      sessionId,
+      ownerId: userId,
+      sourceTurnId: `turn-${Date.now()}`,
+      kind: 'memory.prepare',
+      phase: memProp.status === 'draft' ? 'waiting' : 'failed',
+      payload: {text: memProp.text},
+    };
+    const record: ActionRecord = {
+      envelope,
+      status: memProp.status === 'draft' ? 'prepare' : 'failed',
+      createdEpoch: Date.now(),
+      updatedEpoch: Date.now(),
+      memoryProposal: memProp,
+    };
+    this.actions.set(actionId, record);
+    this.emit(
+      actionId,
+      'memory.prepare',
+      envelope.phase,
+      memProp.status === 'draft'
+        ? 'Memory review card presented to student.'
+        : 'Memory is turned off in Settings.',
+    );
+    return {actionId, proposal: memProp};
+  }
+
+  confirmMemoryProposal(
+    userId: string,
+    actionId: string,
+    editedText?: string,
+  ): {success: boolean; status: MemoryProposalStatus; memoryId?: string; error?: string} {
+    const record = this.actions.get(actionId);
+    if (!record) {
+      return {success: false, status: 'failed', error: 'Action not found'};
+    }
+    if (record.envelope.ownerId !== userId) {
+      return {success: false, status: 'failed', error: 'Unauthorized: owner mismatch'};
+    }
+    if (!record.memoryProposal) {
+      return {success: false, status: 'failed', error: 'No memory proposal attached to action'};
+    }
+    if (!chatMemoryStore.isEnabled(userId)) {
+      record.memoryProposal.status = 'disabled';
+      record.envelope.phase = 'failed';
+      this.emit(actionId, record.envelope.kind, 'failed', 'Memory is disabled');
+      return {success: false, status: 'disabled', error: 'Memory is turned off in Settings.'};
+    }
+
+    const textToSave = (editedText ?? record.memoryProposal.text).trim();
+    if (textToSave.length < 2 || textToSave.length > 200 || containsPromptInjection(textToSave)) {
+      record.memoryProposal.status = 'failed';
+      record.envelope.phase = 'failed';
+      this.emit(actionId, record.envelope.kind, 'failed', 'Invalid memory text');
+      return {success: false, status: 'failed', error: 'Invalid or rejected memory text.'};
+    }
+
+    try {
+      const saved = chatMemoryStore.add(userId, textToSave);
+      if (!saved) {
+        record.memoryProposal.status = 'duplicate';
+        record.envelope.phase = 'done';
+        this.emit(actionId, record.envelope.kind, 'done', 'Duplicate memory');
+        return {success: false, status: 'duplicate', error: 'That fact is already in your memory.'};
+      }
+      record.memoryProposal.status = 'saved';
+      record.memoryProposal.savedMemoryId = saved.id;
+      record.memoryProposal.text = textToSave;
+      record.envelope.phase = 'done';
+      record.status = 'result';
+      this.emit(actionId, record.envelope.kind, 'done', 'Memory saved successfully');
+      return {success: true, status: 'saved', memoryId: saved.id};
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Database error';
+      record.memoryProposal.status = 'failed';
+      record.envelope.phase = 'failed';
+      this.emit(actionId, record.envelope.kind, 'failed', msg);
+      return {success: false, status: 'failed', error: msg};
+    }
+  }
+
+  undoMemoryProposal(
+    userId: string,
+    actionId: string,
+  ): {success: boolean; status: MemoryProposalStatus; error?: string} {
+    const record = this.actions.get(actionId);
+    if (!record) {
+      return {success: false, status: 'failed', error: 'Action not found'};
+    }
+    if (record.envelope.ownerId !== userId) {
+      return {success: false, status: 'failed', error: 'Unauthorized: owner mismatch'};
+    }
+    if (!record.memoryProposal?.savedMemoryId) {
+      return {success: false, status: 'failed', error: 'No saved memory found to undo'};
+    }
+
+    try {
+      chatMemoryStore.remove(userId, record.memoryProposal.savedMemoryId);
+      record.memoryProposal.status = 'undone';
+      record.memoryProposal.savedMemoryId = null;
+      this.emit(actionId, record.envelope.kind, 'done', 'Memory save undone');
+      return {success: true, status: 'undone'};
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Database error';
+      return {success: false, status: 'failed', error: msg};
+    }
+  }
+
+  cancelMemoryProposal(
+    userId: string,
+    actionId: string,
+  ): {success: boolean; status: MemoryProposalStatus} {
+    const record = this.actions.get(actionId);
+    if (!record || record.envelope.ownerId !== userId) {
+      return {success: false, status: 'failed'};
+    }
+    if (record.memoryProposal) {
+      record.memoryProposal.status = 'canceled';
+    }
+    record.envelope.phase = 'canceled';
+    this.emit(actionId, record.envelope.kind, 'canceled', 'User canceled memory proposal');
+    return {success: true, status: 'canceled'};
   }
 }
 
