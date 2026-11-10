@@ -4,8 +4,8 @@
   "source_branch": "Lem-branch",
   "source_head": "cae65fec4b0efc25dc343e3f30a4d216defa19aa",
   "work_branch": "feat/call-lafina-v2",
-  "current_phase": "10",
-  "next_item": "P11-01",
+  "current_phase": "11",
+  "next_item": "P12-01",
   "completed_items": [
     "P00-01",
     "P00-02",
@@ -109,21 +109,30 @@
     "P10-07",
     "P10-08",
     "P10-09",
-    "P10-10"
+    "P10-10",
+    "P11-01",
+    "P11-02",
+    "P11-03",
+    "P11-04",
+    "P11-05",
+    "P11-06",
+    "P11-07",
+    "P11-08",
+    "P11-09"
   ],
   "blocked_items": [],
-  "last_commit": "8c5b612",
-  "last_tested_commit": "8c5b612",
+  "last_commit": "b0250ce",
+  "last_tested_commit": "b0250ce",
   "last_test_results": [
     {
       "command": "npm run preflight",
       "exit_code": 0,
-      "summary": "typecheck, lint, jest (92 suites / 1329 passed / 1 skipped), architecture (274 modules, 0 cycles)"
+      "summary": "typecheck, lint, jest (93 suites / 1345 passed / 1 skipped), architecture (276 modules, 0 cycles)"
     },
     {
-      "command": "npx jest __tests__/ui/callLafinaPhase10.test.tsx",
+      "command": "npx jest __tests__/ui/callLafinaPhase11.test.tsx",
       "exit_code": 0,
-      "summary": "16 focused tests passed in 3.3s"
+      "summary": "16 focused tests passed in 4.8s"
     },
     {
       "command": "python CALL_LAFINA_AUTONOMOUS_TASK_PACK_V1/scripts/validate_pack.py",

@@ -159,3 +159,33 @@ export interface MultiPreparePayload {
   items: MultiPrepareItem[];
 }
 
+export type MultiItemStatus = 'draft' | 'saving' | 'saved' | 'failed' | 'cancelled';
+
+export interface MultiActionItemData {
+  id: string;
+  kind: 'task' | 'event' | 'reminder' | 'note';
+  title: string;
+  date?: string;
+  time?: string;
+  endTime?: string;
+  priority?: 'low' | 'medium' | 'high';
+  body?: string;
+  followUp?: boolean;
+  status: MultiItemStatus;
+  savedEntityId?: string | null;
+  error?: string | null;
+}
+
+export type MultiBatchStatus = 'draft' | 'saving' | 'saved' | 'partial' | 'failed' | 'cancelled';
+
+export interface MultiActionBatchData {
+  id: string;
+  sessionId: string;
+  ownerId: string;
+  revision: number;
+  items: MultiActionItemData[];
+  status: MultiBatchStatus;
+  spokenSummary?: string;
+  truncated?: boolean;
+}
+

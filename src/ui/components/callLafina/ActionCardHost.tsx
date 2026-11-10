@@ -33,13 +33,15 @@ import {NoteDraftCard} from './cards/NoteDraftCard';
 import {NoteResultCard} from './cards/NoteResultCard';
 import type {NoteResultCardData} from './cards/NoteResultCard';
 import {MemoryReviewCard} from './cards/MemoryReviewCard';
-import type {MemoryProposalData} from '../../../ai/voiceActions/types';
+import type {MemoryProposalData, MultiActionBatchData} from '../../../ai/voiceActions/types';
+import {MultiActionCard} from './cards/MultiActionCard';
 
 export interface ActionCardHostProps {
   proposal?: CommandProposal | null;
   agendaData?: AgendaCardData | null;
   noteResultData?: NoteResultCardData | null;
   memoryProposal?: MemoryProposalData | null;
+  multiActionBatch?: MultiActionBatchData | null;
   alternatives?: string[];
   expired?: boolean;
   busy?: boolean;
@@ -51,6 +53,11 @@ export interface ActionCardHostProps {
   onOpenNote?: (noteId: string) => void;
   onSaveMemory?: (editedText?: string) => void;
   onUndoMemory?: () => void;
+  onConfirmMultiAll?: () => void;
+  onCancelMultiAll?: () => void;
+  onCancelMultiItem?: (itemId: string) => void;
+  onRetryMultiItem?: (itemId: string) => void;
+  onEditMultiItemTitle?: (itemId: string, newTitle: string) => void;
   testIDPrefix?: string;
 }
 
@@ -59,6 +66,7 @@ export const ActionCardHost: React.FC<ActionCardHostProps> = ({
   agendaData = null,
   noteResultData = null,
   memoryProposal = null,
+  multiActionBatch = null,
   alternatives = [],
   expired = false,
   busy = false,
@@ -70,6 +78,11 @@ export const ActionCardHost: React.FC<ActionCardHostProps> = ({
   onOpenNote,
   onSaveMemory,
   onUndoMemory,
+  onConfirmMultiAll,
+  onCancelMultiAll,
+  onCancelMultiItem,
+  onRetryMultiItem,
+  onEditMultiItemTitle,
   testIDPrefix = 'action-card',
 }) => {
   const {colors} = useTheme();
@@ -157,6 +170,28 @@ export const ActionCardHost: React.FC<ActionCardHostProps> = ({
           onCancel={onCancel}
           onDismiss={onDismiss}
           onUndo={onUndoMemory}
+          testIDPrefix={testIDPrefix}
+        />
+      </View>
+    );
+  }
+
+  if (multiActionBatch) {
+    return (
+      <View
+        style={styles.hostContainer}
+        testID="action-card-host"
+        accessibilityLabel={`Grouped actions card with ${multiActionBatch.items.length} items`}
+      >
+        <MultiActionCard
+          batch={multiActionBatch}
+          busy={busy || status === 'confirm'}
+          onConfirmAll={onConfirmMultiAll ?? onConfirm}
+          onCancelAll={onCancelMultiAll ?? onCancel}
+          onCancelItem={onCancelMultiItem}
+          onRetryItem={onRetryMultiItem}
+          onDismiss={onDismiss}
+          onEditItemTitle={onEditMultiItemTitle}
           testIDPrefix={testIDPrefix}
         />
       </View>
