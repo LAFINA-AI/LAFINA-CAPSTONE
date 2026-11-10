@@ -36,15 +36,25 @@
   - **P11-08**: Multi-account isolation: cross-owner batch execution rejected with unauthorized error.
   - **P11-09**: Max batch size capped at 5 items (`MAX_MULTI_ITEMS`) with visual truncation warning banner.
   - Verified with 16 Jest tests in `__tests__/ui/callLafinaPhase11.test.tsx` and full preflight.
+- **Phase 12: Voice Choice, Language, and Interaction Settings (`F-050`, `F-051`, `F-052`, `F-053`, `F-067`, `F-070`)**: Completed.
+  - **P12-01**: ElevenLabs voice selection and validated provider voice ID with persistent local storage.
+  - **P12-02**: Exclusive isolated voice preview playback cancelling any active preview before starting a new one.
+  - **P12-03**: Verbosity (brief/detailed) and pacing (normal/slow) preferences persisted and linked to persona policy prompt.
+  - **P12-04**: Spoken language selection for English, Filipino, Taglish, and Cebuano.
+  - **P12-05**: Persona policy prompt adaptation for Philippine languages with student-friendly tone and natural collegiate code-switching.
+  - **P12-06**: Transcript subtitle/caption sizing accessibility (standard, large, extra large) applied to transcript turns.
+  - **P12-07**: Call connected and call end haptics (`F-067`) and optional subtle tool-call audio/vibration cue (`F-070`).
+  - Implemented `CallLafinaSettingsModal.tsx`, `callLafinaSettingsStore.ts`, updated `personaPolicy.ts` and `VoiceConversationPanel.tsx`.
+  - Verified with 21 Jest tests in `__tests__/ui/callLafinaPhase12.test.tsx` and full preflight (94 suites / 1366 passed).
 
 ## In progress
-- Phase 12: Voice Choice, Language, and Interaction Settings (`F-050`, `F-051`, `F-052`, `F-053`, `F-070`).
+- Phase 13: In-app mini-call, background-call feasibility, and optional multimodal inputs (`F-054`, `F-055`, `F-056`, `F-057`).
 
 ## Known blockers (link to BLOCKERS.md)
 - `BLK-001` (DEVICE): Physical phone audio routing, hardware mic indicator, and physical alarm delivery remain `DEVICE_NOT_RUN`.
 - `BLK-002` (EXTERNAL): Production signed-in ElevenAgents live session depends on active student credentials and ElevenLabs agent provisioning on server.
 
 ## Exact next action (no guesswork)
-1. Commit Phase 11 implementation, tests, and reports to `feat/call-lafina-v2`.
-2. Rehydrate Phase 12: `CALL_LAFINA_AUTONOMOUS_TASK_PACK_V1/PHASES/12-voice-choice-language-and-interaction-settings.md`.
-3. Implement voice preview/selection, language selection, and interaction settings.
+1. Commit Phase 12 implementation, tests, and reports to `feat/call-lafina-v2`.
+2. Rehydrate Phase 13: `CALL_LAFINA_AUTONOMOUS_TASK_PACK_V1/PHASES/13-in-app-mini-call-background-call-feasibility-and-optional-multimodal-inputs.md`.
+3. Implement in-app compact ongoing-call bar and background feasibility research.

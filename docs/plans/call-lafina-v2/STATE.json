@@ -4,8 +4,8 @@
   "source_branch": "Lem-branch",
   "source_head": "cae65fec4b0efc25dc343e3f30a4d216defa19aa",
   "work_branch": "feat/call-lafina-v2",
-  "current_phase": "11",
-  "next_item": "P12-01",
+  "current_phase": "12",
+  "next_item": "P13-01",
   "completed_items": [
     "P00-01",
     "P00-02",
@@ -118,7 +118,14 @@
     "P11-06",
     "P11-07",
     "P11-08",
-    "P11-09"
+    "P11-09",
+    "P12-01",
+    "P12-02",
+    "P12-03",
+    "P12-04",
+    "P12-05",
+    "P12-06",
+    "P12-07"
   ],
   "blocked_items": [],
   "last_commit": "29bdc76",
@@ -127,12 +134,12 @@
     {
       "command": "npm run preflight",
       "exit_code": 0,
-      "summary": "typecheck, lint, jest (93 suites / 1345 passed / 1 skipped), architecture (276 modules, 0 cycles)"
+      "summary": "typecheck, lint, jest (94 suites / 1366 passed / 1 skipped), architecture (279 modules, 0 cycles)"
     },
     {
-      "command": "npx jest __tests__/ui/callLafinaPhase11.test.tsx",
+      "command": "npx jest __tests__/ui/callLafinaPhase12.test.tsx",
       "exit_code": 0,
-      "summary": "16 focused tests passed in 4.8s"
+      "summary": "21 focused tests passed in 5.8s"
     },
     {
       "command": "python CALL_LAFINA_AUTONOMOUS_TASK_PACK_V1/scripts/validate_pack.py",
@@ -142,5 +149,5 @@
   ],
   "manual_phone_verification": "NOT_RUN",
   "external_backend_verification": "VERIFIED_ROUTES_PRESENT",
-  "updated_at_utc": "2026-11-10T09:12:00Z"
+  "updated_at_utc": "2026-11-10T10:00:00Z"
 }
