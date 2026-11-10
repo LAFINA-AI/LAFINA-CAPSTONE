@@ -14,6 +14,9 @@ import type {
   LafinaActionPhase,
   MemoryProposalData,
   MemoryProposalStatus,
+  DraftRevisePayload,
+  DraftConfirmPayload,
+  DraftCancelPayload,
 } from './types';
 import {isToolExecutionPermitted, containsPromptInjection} from './actionSecurity';
 import {getRegisteredTool} from './actionRegistry';
@@ -22,6 +25,7 @@ import {readLocalVoiceData} from '../../cloud/voiceConversation/localVoiceData';
 import {chatOrchestrator} from '../chatOrchestrator';
 import type {SpokenTurnReview} from '../chatOrchestrator';
 import {chatMemoryStore} from '../../storage/chatMemoryStore';
+import {draftRegistry} from './draftRegistry';
 
 export interface ActionRecord {
   envelope: ActionEnvelope;
@@ -80,6 +84,7 @@ class ActionService {
   }
 
   clearSessionActions(sessionId: string): void {
+    draftRegistry.clearSessionDrafts(sessionId);
     for (const [id, record] of this.actions.entries()) {
       if (record.envelope.sessionId === sessionId) {
         this.actions.delete(id);
@@ -242,6 +247,29 @@ class ActionService {
           envelope.phase = 'waiting';
           record.status = 'prepare';
           this.emit(actionId, toolDef.kind, 'waiting', 'Review card presented to student.');
+          const pProposal = review.review.status === 'proposal' ? review.review.proposal : null;
+          if (pProposal) {
+            draftRegistry.registerDraft({
+              cardId: pProposal.operationId,
+              sessionId,
+              ownerId: userId,
+              revision: 1,
+              kind:
+                pProposal.intent === 'create_task'
+                  ? 'task'
+                  : pProposal.intent === 'create_reminder'
+                  ? 'reminder'
+                  : pProposal.intent === 'create_time_block'
+                  ? 'time_block'
+                  : pProposal.intent === 'create_note'
+                  ? 'note'
+                  : 'task',
+              title: pProposal.title,
+              details: [...pProposal.details],
+              assumptions: [...pProposal.assumptions],
+              warnings: [...pProposal.warnings],
+            });
+          }
           return `A review card is shown: ${review.reply} Nothing has been saved. Ask the student to check and confirm the card.`;
         }
 
@@ -256,6 +284,73 @@ class ActionService {
         envelope.phase = 'done';
         record.status = 'result';
         return 'No action was prepared.';
+      }
+
+      if (toolDef.kind === 'draft.revise') {
+        envelope.phase = 'preparing';
+        this.emit(actionId, toolDef.kind, 'preparing');
+
+        if (!isCurrent()) {
+          envelope.phase = 'canceled';
+          this.emit(actionId, toolDef.kind, 'canceled', 'Turn changed or cancelled.');
+          return 'Request cancelled because conversational turn updated.';
+        }
+
+        const p = envelope.payload as DraftRevisePayload;
+        const result = draftRegistry.reviseDraft(userId, p.cardId, p.revision, p.instruction);
+        if (result.success) {
+          envelope.phase = 'waiting';
+          record.status = 'prepare';
+          record.result = result.message;
+          record.updatedEpoch = Date.now();
+          this.emit(actionId, toolDef.kind, 'waiting', result.message);
+          return `A review card is shown: ${result.message} Nothing has been saved. Ask the student to check and confirm the card.`;
+        }
+        envelope.phase = 'failed';
+        record.status = 'failed';
+        record.error = result.message;
+        record.updatedEpoch = Date.now();
+        this.emit(actionId, toolDef.kind, 'failed', result.message);
+        return result.message;
+      }
+
+      if (toolDef.kind === 'draft.confirm') {
+        envelope.phase = 'confirming';
+        this.emit(actionId, toolDef.kind, 'confirming');
+
+        const p = envelope.payload as DraftConfirmPayload;
+        const result = draftRegistry.confirmDraft(userId, p.cardId, p.revision);
+        if (result.success) {
+          envelope.phase = 'done';
+          record.status = 'result';
+          record.updatedEpoch = Date.now();
+          this.emit(actionId, toolDef.kind, 'done', 'Draft confirmed successfully.');
+          return `The draft for "${result.draft.title}" was confirmed and saved.`;
+        }
+        envelope.phase = 'failed';
+        record.status = 'failed';
+        record.error = result.message;
+        record.updatedEpoch = Date.now();
+        this.emit(actionId, toolDef.kind, 'failed', result.message);
+        return result.message;
+      }
+
+      if (toolDef.kind === 'draft.cancel') {
+        envelope.phase = 'canceled';
+        const p = envelope.payload as DraftCancelPayload;
+        const result = draftRegistry.cancelDraft(userId, p.cardId);
+        if (result.success) {
+          record.status = 'cancel';
+          record.updatedEpoch = Date.now();
+          this.emit(actionId, toolDef.kind, 'canceled', result.message);
+          return result.message;
+        }
+        envelope.phase = 'failed';
+        record.status = 'failed';
+        record.error = result.message;
+        record.updatedEpoch = Date.now();
+        this.emit(actionId, toolDef.kind, 'failed', result.message);
+        return result.message;
       }
 
       return 'Action completed.';

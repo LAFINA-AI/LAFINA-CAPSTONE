@@ -126,6 +126,46 @@ export const REGISTERED_TOOLS: readonly RegisteredToolDefinition[] = [
       required: ['text'],
     },
   },
+  {
+    name: 'revise_draft',
+    kind: 'draft.revise',
+    description: 'Modifies an existing in-progress draft card (e.g. changing date, time, title, or duration) before confirmation.',
+    parameters: {
+      type: 'object',
+      properties: {
+        cardId: {type: 'string', description: 'The stable card ID of the draft to revise.'},
+        revision: {type: 'number', description: 'The current revision number of the draft.'},
+        instruction: {type: 'string', description: 'The spoken instruction describing what to change.'},
+      },
+      required: ['cardId', 'revision', 'instruction'],
+    },
+  },
+  {
+    name: 'confirm_draft',
+    kind: 'draft.confirm',
+    description: 'Confirms and commits the pending draft card to the student database.',
+    parameters: {
+      type: 'object',
+      properties: {
+        cardId: {type: 'string', description: 'The stable card ID of the draft to confirm.'},
+        revision: {type: 'number', description: 'The revision number being confirmed.'},
+      },
+      required: ['cardId', 'revision'],
+    },
+  },
+  {
+    name: 'cancel_draft',
+    kind: 'draft.cancel',
+    description: 'Cancels the pending draft card without modifying the student database.',
+    parameters: {
+      type: 'object',
+      properties: {
+        cardId: {type: 'string', description: 'The stable card ID of the draft to cancel.'},
+        revision: {type: 'number', description: 'The current revision number of the draft.'},
+      },
+      required: ['cardId', 'revision'],
+    },
+  },
 ];
 
 const TOOL_MAP = new Map<string, RegisteredToolDefinition>(
