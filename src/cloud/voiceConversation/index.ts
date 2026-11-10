@@ -161,3 +161,6 @@ export const waitForVoiceConversationRelease = (): Promise<void> => pendingRelea
 
 export const isVoiceConversationActive = (): boolean =>
   active?.isActive() === true;
+
+export const getActiveVoiceConversation = (): VoiceConversationController | null =>
+  active;

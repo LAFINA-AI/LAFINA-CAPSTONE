@@ -46,15 +46,22 @@
   - **P12-07**: Call connected and call end haptics (`F-067`) and optional subtle tool-call audio/vibration cue (`F-070`).
   - Implemented `CallLafinaSettingsModal.tsx`, `callLafinaSettingsStore.ts`, updated `personaPolicy.ts` and `VoiceConversationPanel.tsx`.
   - Verified with 21 Jest tests in `__tests__/ui/callLafinaPhase12.test.tsx` and full preflight (94 suites / 1366 passed).
+- **Phase 13: In-App Mini-Call, Background Feasibility, and Multimodal Analysis (`F-054`, `F-055`, `F-056`, `F-057`)**: Completed.
+  - **P13-01 & F-054**: Built `MiniCallBar.tsx` docked above tab bar with identity indicator, live timer, speaking/listening status, quick Mute/Unmute, and quick End Call.
+  - **P13-02**: Preserves active voice call connection, turns transcript, and draft action cards during in-app navigation without route remount or audio duplicate.
+  - **P13-03 & F-056**: Added `startWithCallLafina` setting for deliberate start in Call Lafina on Chat open.
+  - **P13-04 & P13-05 & F-055**: Authored `ADR-031` covering Android 14+ microphone foreground services, student privacy ethics, and established privacy-by-default stop on background. Marked OS backgrounding as deferred pending physical device checks.
+  - **P13-07 & P13-08 & F-057**: Documented backend LLM architecture limits in ADR-031: DeepSeek is text-only without vision support; multimodal attachment classified as deferred backend unsupported.
+  - **P13-09 & P13-10**: Verified regression tests across route changes and minimize/restore flows; 12 focused tests passing in `__tests__/ui/callLafinaPhase13.test.tsx`.
 
 ## In progress
-- Phase 13: In-app mini-call, background-call feasibility, and optional multimodal inputs (`F-054`, `F-055`, `F-056`, `F-057`).
+- Phase 14: Reliability, Security, Privacy, and Audio Performance Regression (`F-058`, `F-059`, `F-060`, `F-061`, `F-062`, `F-063`, `F-069`, `F-072`).
 
 ## Known blockers (link to BLOCKERS.md)
 - `BLK-001` (DEVICE): Physical phone audio routing, hardware mic indicator, and physical alarm delivery remain `DEVICE_NOT_RUN`.
 - `BLK-002` (EXTERNAL): Production signed-in ElevenAgents live session depends on active student credentials and ElevenLabs agent provisioning on server.
 
 ## Exact next action (no guesswork)
-1. Commit Phase 12 implementation, tests, and reports to `feat/call-lafina-v2`.
-2. Rehydrate Phase 13: `CALL_LAFINA_AUTONOMOUS_TASK_PACK_V1/PHASES/13-in-app-mini-call-background-call-feasibility-and-optional-multimodal-inputs.md`.
-3. Implement in-app compact ongoing-call bar and background feasibility research.
+1. Commit Phase 13 implementation, tests, and reports to `feat/call-lafina-v2`.
+2. Rehydrate Phase 14: `CALL_LAFINA_AUTONOMOUS_TASK_PACK_V1/PHASES/14-reliability-security-privacy-audio-performance-regression.md`.
+3. Implement reliability, security, privacy auditing, and performance regression tests.

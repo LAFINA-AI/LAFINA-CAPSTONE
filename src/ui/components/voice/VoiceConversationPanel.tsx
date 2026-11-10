@@ -21,6 +21,7 @@ import {
   MessageSquareText,
   Mic,
   MicOff,
+  Minimize2,
   PhoneCall,
   PhoneOff,
   RotateCcw,
@@ -67,6 +68,8 @@ export interface VoiceConversationPanelProps {
   review: CommandReviewState;
   /** Back to push-to-talk (ends any running conversation). */
   onBack: () => void;
+  /** Minimize call to in-app mini bar without ending the session (Phase 13, F-054). */
+  onMinimize?: () => void;
   /** Tests inject fakes. */
   deps?: (userId: string) => VoiceConversationDeps;
   /** Whether the panel is rendered in full-screen presentation. Defaults to true. */
@@ -107,6 +110,7 @@ export const VoiceConversationPanel: React.FC<VoiceConversationPanelProps> = ({
   userId,
   review,
   onBack,
+  onMinimize,
   deps,
   fullScreen = true,
 }) => {
@@ -485,6 +489,18 @@ return (
           </Text>
 
           <View style={styles.headerRight}>
+            {onMinimize && (
+              <TouchableOpacity
+                onPress={onMinimize}
+                style={styles.settingsButton}
+                accessibilityRole="button"
+                accessibilityLabel="Minimize Call Lafina to mini bar"
+                testID="call-minimize-button"
+              >
+                <Minimize2 size={18} color={colors.primary} />
+              </TouchableOpacity>
+            )}
+
             <TouchableOpacity
               onPress={() => setSettingsModalVisible(true)}
               style={styles.settingsButton}

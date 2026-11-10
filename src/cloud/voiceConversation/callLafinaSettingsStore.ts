@@ -28,6 +28,7 @@ export interface CallLafinaSettings {
   callConnectedHaptics: boolean;
   callEndHaptics: boolean;
   toolAudioCue: boolean;
+  startWithCallLafina: boolean;
 }
 
 export const CALL_LAFINA_SETTINGS_KEYS = {
@@ -40,6 +41,7 @@ export const CALL_LAFINA_SETTINGS_KEYS = {
   CONNECTED_HAPTICS: 'callLafina.callConnectedHaptics',
   END_HAPTICS: 'callLafina.callEndHaptics',
   TOOL_AUDIO_CUE: 'callLafina.toolAudioCue',
+  START_WITH_CALL: 'callLafina.startWithCallLafina',
 } as const;
 
 export const DEFAULT_CALL_LAFINA_SETTINGS: CallLafinaSettings = {
@@ -52,6 +54,7 @@ export const DEFAULT_CALL_LAFINA_SETTINGS: CallLafinaSettings = {
   callConnectedHaptics: true,
   callEndHaptics: true,
   toolAudioCue: false,
+  startWithCallLafina: false,
 };
 
 export const LANGUAGE_LABELS: Record<CallLafinaLanguage, string> = {
@@ -119,6 +122,9 @@ export function getCallLafinaSettings(userId: string): CallLafinaSettings {
   const rawToolAudio = localSettingsStore.get(userId, CALL_LAFINA_SETTINGS_KEYS.TOOL_AUDIO_CUE);
   const toolAudioCue = rawToolAudio === 'true';
 
+  const rawStartWithCall = localSettingsStore.get(userId, CALL_LAFINA_SETTINGS_KEYS.START_WITH_CALL);
+  const startWithCallLafina = rawStartWithCall === 'true';
+
   return {
     voiceId,
     voiceName,
@@ -129,6 +135,7 @@ export function getCallLafinaSettings(userId: string): CallLafinaSettings {
     callConnectedHaptics,
     callEndHaptics,
     toolAudioCue,
+    startWithCallLafina,
   };
 }
 
@@ -185,6 +192,14 @@ export function saveCallLafinaSettings(
       userId,
       CALL_LAFINA_SETTINGS_KEYS.TOOL_AUDIO_CUE,
       patch.toolAudioCue ? 'true' : 'false',
+    );
+  }
+
+  if (patch.startWithCallLafina !== undefined) {
+    localSettingsStore.set(
+      userId,
+      CALL_LAFINA_SETTINGS_KEYS.START_WITH_CALL,
+      patch.startWithCallLafina ? 'true' : 'false',
     );
   }
 

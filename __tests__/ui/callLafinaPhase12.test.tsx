@@ -192,7 +192,11 @@ describe('Phase 12 — Voice Choice, Language, and Interaction Settings', () => 
       {id: 'voice_2', name: 'Domi (Empathetic)'},
     ];
 
-    let mockProvider: jest.Mocked<CallSpeechProvider>;
+    let mockProvider: {
+      speakText: jest.Mock;
+      stopSpeech: jest.Mock;
+      dispose: jest.Mock;
+    };
 
     beforeEach(() => {
       mockProvider = {
@@ -200,7 +204,7 @@ describe('Phase 12 — Voice Choice, Language, and Interaction Settings', () => 
         stopSpeech: jest.fn().mockResolvedValue(undefined),
         dispose: jest.fn().mockResolvedValue(undefined),
       };
-      jest.spyOn(speechService, 'createCallSpeechProvider').mockReturnValue(mockProvider);
+      jest.spyOn(speechService, 'createCallSpeechProvider').mockReturnValue(mockProvider as unknown as CallSpeechProvider);
       jest.spyOn(onlineVoiceService, 'loadOnlineVoices').mockResolvedValue(mockVoices);
     });
 
@@ -295,7 +299,9 @@ describe('Phase 12 — Voice Choice, Language, and Interaction Settings', () => 
 
       expect(mockProvider.stopSpeech).toHaveBeenCalled();
       expect(mockProvider.dispose).toHaveBeenCalled();
-      cancelPreview?.();
+      if (cancelPreview) {
+        (cancelPreview as () => void)();
+      }
     });
 
     it('stops active preview when stop preview button is pressed', async () => {
@@ -341,7 +347,9 @@ describe('Phase 12 — Voice Choice, Language, and Interaction Settings', () => 
 
       expect(mockProvider.stopSpeech).toHaveBeenCalled();
       expect(mockProvider.dispose).toHaveBeenCalled();
-      cancelPreview?.();
+      if (cancelPreview) {
+        (cancelPreview as () => void)();
+      }
     });
 
     it('selects voice and updates store when select button is pressed (P12-01)', async () => {
