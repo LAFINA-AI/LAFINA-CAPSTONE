@@ -1,6 +1,6 @@
 # Call Lafina 2.0 Persistent Progress Ledger
 
-- Current branch/HEAD: `feat/call-lafina-v2` / `cd8909a`
+- Current branch/HEAD: `feat/call-lafina-v2` / `c75945e`
 - Current phase/item: Phase 10 Multi-turn Draft Correction, Referents, and Idempotency (P10-01)
 - Last verified passing test:
   - `npm run preflight`: PASS (exit code 0; 91 test suites, 1313 passed, 1 skipped; 274 architecture modules verified)
