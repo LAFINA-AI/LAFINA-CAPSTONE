@@ -91,4 +91,51 @@ class VoiceConversationRulesTest {
     assertTrue(woke.await(1, TimeUnit.SECONDS))
     assertFalse(queue.offer(ByteArray(4)))
   }
+
+  @Test
+  fun `calculateRms returns zero for empty or silent PCM buffers`() {
+    assertEquals(0.0, VoiceConversationRules.calculateRms(ByteArray(0)), 0.0001)
+    assertEquals(0.0, VoiceConversationRules.calculateRms(ByteArray(640)), 0.0001)
+  }
+
+  @Test
+  fun `calculateRms extracts positive level from non-zero PCM and bounds at 1`() {
+    // 16-bit PCM samples with moderate amplitude (e.g. sample value = 4000)
+    val pcm = ByteArray(640)
+    for (i in 0 until 320) {
+      val sample: Short = 4000
+      pcm[i * 2] = (sample.toInt() and 0xff).toByte()
+      pcm[i * 2 + 1] = ((sample.toInt() shr 8) and 0xff).toByte()
+    }
+    val level = VoiceConversationRules.calculateRms(pcm)
+    assertTrue("Level must be positive: $level", level > 0.0)
+    assertEquals(0.5, level, 0.05)
+
+    // Saturated high amplitude PCM (sample value = 32767)
+    val loud = ByteArray(640)
+    for (i in 0 until 320) {
+      val sample: Short = 32767
+      loud[i * 2] = (sample.toInt() and 0xff).toByte()
+      loud[i * 2 + 1] = ((sample.toInt() shr 8) and 0xff).toByte()
+    }
+    val loudLevel = VoiceConversationRules.calculateRms(loud)
+    assertEquals(1.0, loudLevel, 0.0001)
+  }
+
+  @Test
+  fun `calculateRms respects offset and length slices for playback stream`() {
+    val buffer = ByteArray(1280)
+    // First 640 bytes are silence, second 640 bytes are loud (sample 8000)
+    for (i in 320 until 640) {
+      val sample: Short = 8000
+      buffer[i * 2] = (sample.toInt() and 0xff).toByte()
+      buffer[i * 2 + 1] = ((sample.toInt() shr 8) and 0xff).toByte()
+    }
+
+    val silentSlice = VoiceConversationRules.calculateRms(buffer, 0, 640)
+    val loudSlice = VoiceConversationRules.calculateRms(buffer, 640, 640)
+
+    assertEquals(0.0, silentSlice, 0.0001)
+    assertEquals(1.0, loudSlice, 0.05)
+  }
 }

@@ -94,6 +94,7 @@ class LafinaVoiceConversationModule(private val reactContext: ReactApplicationCo
     val queue = PlaybackQueue()
     @Volatile var playThread: Thread? = null
     @Volatile var framesWritten = 0L
+    @Volatile var lastOutputLevelAt = 0L
     var focusRequest: AudioFocusRequest? = null
     var previousMode = AudioManager.MODE_NORMAL
     var previousSpeakerphone = false
@@ -393,26 +394,13 @@ class LafinaVoiceConversationModule(private val reactContext: ReactApplicationCo
         val now = SystemClock.elapsedRealtime()
         if (now - lastLevelAt >= 200) {
           lastLevelAt = now
-          val level = rms(buffer, read)
+          val level = VoiceConversationRules.calculateRms(buffer, 0, read)
           emit(owner.key, "level") { putDouble("level", level) }
         }
       }
     }, "lafina-voice-capture")
     owner.captureThread = thread
     thread.start()
-  }
-
-  private fun rms(buffer: ByteArray, length: Int): Double {
-    var sum = 0.0
-    var count = 0
-    var i = 0
-    while (i + 1 < length) {
-      val sample = ((buffer[i + 1].toInt() shl 8) or (buffer[i].toInt() and 0xff)).toShort().toDouble()
-      sum += sample * sample
-      count += 1
-      i += 2
-    }
-    return if (count == 0) 0.0 else minOf(1.0, Math.sqrt(sum / count) / 8000.0)
   }
 
   /** Stops and releases capture; blocks until the read loop has left. */
@@ -480,6 +468,7 @@ class LafinaVoiceConversationModule(private val reactContext: ReactApplicationCo
         if (item == null) {
           if (owner.speaking && owner.queue.isEmpty() && drained(owner, track)) {
             owner.speaking = false
+            emit(owner.key, "output_level") { putDouble("level", 0.0) }
             emit(owner.key, "playback") { putBoolean("speaking", false) }
           }
           continue
@@ -498,6 +487,12 @@ class LafinaVoiceConversationModule(private val reactContext: ReactApplicationCo
             -1
           }
           if (written <= 0) break
+          val now = SystemClock.elapsedRealtime()
+          if (now - owner.lastOutputLevelAt >= 100) {
+            owner.lastOutputLevelAt = now
+            val outLevel = VoiceConversationRules.calculateRms(chunk, offset, written)
+            emit(owner.key, "output_level") { putDouble("level", outLevel) }
+          }
           offset += written
           owner.framesWritten += written / 2
         }
@@ -528,6 +523,7 @@ class LafinaVoiceConversationModule(private val reactContext: ReactApplicationCo
     }
     if (owner.speaking) {
       owner.speaking = false
+      emit(owner.key, "output_level") { putDouble("level", 0.0) }
       emit(owner.key, "playback") { putBoolean("speaking", false) }
     }
   }
@@ -628,6 +624,11 @@ class LafinaVoiceConversationModule(private val reactContext: ReactApplicationCo
   }
 
   private fun release(owner: Session, reason: String, code: Int) {
+    if (owner.speaking) {
+      owner.speaking = false
+      emit(owner.key, "output_level") { putDouble("level", 0.0) }
+      emit(owner.key, "playback") { putBoolean("speaking", false) }
+    }
     owner.startPromise?.reject("ENDED", "The conversation ended before it started.")
     owner.startPromise = null
     try {
