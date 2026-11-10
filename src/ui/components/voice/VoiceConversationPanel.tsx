@@ -45,6 +45,7 @@ import {onboardingVoiceContext} from '../../../storage/onboardingMemory';
 import {userStore} from '../../../storage/userStore';
 import type {SpokenTurnReview} from '../../../ai/chatOrchestrator';
 import {CallWaveform} from '../callLafina/CallWaveform';
+import {ttsService} from '../../../ai/tts/ttsService';
 
 const DATA_CONSENT = 'voiceConversation.directDataConsent.v1';
 
@@ -243,7 +244,14 @@ export const VoiceConversationPanel: React.FC<VoiceConversationPanelProps> = ({
     scrollRef.current?.scrollToEnd({animated: true});
   }, [snapshot.turns]);
 
+  useEffect(() => {
+    return () => {
+      void ttsService.stop();
+    };
+  }, []);
+
   const handleStart = useCallback(() => {
+    void ttsService.stop();
     if (directProviderTestEnabled() && localSettingsStore.get(ownerRef.current, DATA_CONSENT, null) !== 'true') {
       setEnableError('Please review the data disclosure before starting.');
       return;
@@ -306,6 +314,7 @@ export const VoiceConversationPanel: React.FC<VoiceConversationPanelProps> = ({
   }, [conversation, typed]);
 
   const handleBack = useCallback(() => {
+    void ttsService.stop();
     conversation.end();
     onBack();
   }, [conversation, onBack]);

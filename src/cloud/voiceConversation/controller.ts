@@ -307,6 +307,9 @@ export class VoiceConversationController {
         'Your saved online voice could not be read. Choose a voice again in Profile.',
       );
     }
+    this.update({
+      voiceName: voice?.name ?? 'Server default voice',
+    });
 
     const controller = new AbortController();
     this.abort = controller;
