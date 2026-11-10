@@ -141,8 +141,8 @@
     "F-055:DEFERRED_APPROVAL (OS background foreground service requires physical device check)",
     "F-057:DEFERRED_BACKEND_UNSUPPORTED (DeepSeek LLM route is text-only)"
   ],
-  "last_commit": "898c7c8",
-  "last_tested_commit": "898c7c8",
+  "last_commit": "8412fe7",
+  "last_tested_commit": "8412fe7",
   "last_test_results": [
     {
       "command": "npm run typecheck",
