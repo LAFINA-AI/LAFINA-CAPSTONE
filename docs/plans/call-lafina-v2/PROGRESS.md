@@ -1,16 +1,16 @@
 # Call Lafina 2.0 Persistent Progress Ledger
 
 - Current branch/HEAD: `feat/call-lafina-v2` / `e01a389`
-- Current phase/item: Phase 08 Notes by Speech and Note Search Result Cards (P08-01)
+- Current phase/item: Phase 09 Explicit Personal Memory and Privacy Controls (P09-01)
 - Last verified passing test:
-  - `npm run preflight`: PASS (exit code 0; 89 test suites, 1286 passed, 1 skipped; 271 architecture modules verified)
-  - Focused Phase 07: `npx jest __tests__/ui/callLafinaPhase07.test.tsx`: PASS (12 tests passed)
-  - All Phase tests: `npx jest callLafinaPhase`: PASS (7 test suites, 88 passed)
+  - `npm run preflight`: PASS (exit code 0; 90 test suites, 1295 passed, 1 skipped; 273 architecture modules verified)
+  - Focused Phase 08: `npx jest __tests__/ui/callLafinaPhase08.test.tsx`: PASS (9 tests passed in 5.2s)
+  - All Phase tests: `npx jest callLafinaPhase`: PASS (8 test suites, 97 passed in 9.2s)
   - ESLint: `npm run lint`: PASS (0 warnings, 0 errors)
   - TypeScript: `npm run typecheck`: PASS (0 errors)
 - Last Android/device test: `NOT_RUN` (Physical device testing required for hardware audio routing, microphone indicator, and real AEC)
 - Backend live status: `https://lafina-backend.vercel.app` verified live; `/openapi.json` returns 200 with all voice endpoints; `/v1/ai/voice/capabilities` enforces authentication (HTTP 401).
-- Overall implementation state: `IN_PROGRESS` (Phase 07 Complete, advancing to Phase 08)
+- Overall implementation state: `IN_PROGRESS` (Phase 08 Complete, advancing to Phase 09)
 
 ## Completed (with source/commit/test evidence)
 - **Phase 00**: Baseline inventory, authorization record, pack validation, test baseline, and ledger initialization. (Commit `549b9f8`)
@@ -20,26 +20,27 @@
 - **Phase 04**: Human-feeling voice persona and turn-taking. (Commit `6fb8629` / `0df039a`)
 - **Phase 05**: Transcript, typed messages, and chat continuity. (Commit `9f3da70` / `9888e80`)
 - **Phase 06**: Secure structured agent tool bridge and contextual card foundation. (Commit `b963602` / `bdf0cf5`)
-- **Phase 07**: Scheduling, reminders, calendar, and agenda cards.
-  - **P07-01 & F-030**: Dedicated `ReminderDraftCard.tsx` displaying task/reminder title, due date, trigger time, category, assumptions, and warnings.
-  - **P07-02 & F-031**: Dedicated `CalendarDraftCard.tsx` displaying event/time-block title, date, start/end times, timezone, and collision warnings.
-  - **P07-03 & F-032**: Dedicated `AgendaCard.tsx` displaying retrieved schedule items, tasks, and time blocks with partial-result truncation notice.
-  - **P07-04 & F-033**: Authoritative `conflictChecker.ts` detecting collision intervals via `plannerQueries.window` and computing 1–2 grounded daytime free slots without silent rescheduling.
-  - **P07-05**: Cards remain interactive and mounted while live voice call continues (`ActionCardHost.tsx`).
-  - **P07-06**: Transactional consistency verified; no database or alarm writes occur until explicit user Confirm.
-  - **P07-07**: Cancel and expired states discard proposals with zero state mutations.
-  - **P07-08**: Accessible controls with minimum 44x44 touch targets and responsive styling.
-  - **P07-09**: Deterministic time parsing, midnight handling, and conflict tests verified.
-  - Verified with 12 new Jest tests in `__tests__/ui/callLafinaPhase07.test.tsx` and full 89-suite preflight.
+- **Phase 07**: Scheduling, reminders, calendar, and agenda cards. (Commit `e01a389` / `65ca848`)
+- **Phase 08**: Notes by speech and note search/result cards.
+  - **P08-01 & F-034**: Note draft presentation via dedicated `NoteDraftCard.tsx` with editable title, body, and category.
+  - **P08-02 & F-035**: Scoped `note.search` in `localVoiceData.ts` bounded to user ownership, limit of 5 notes, and untrusted-context flag.
+  - **P08-03 & F-036**: Interactive `NoteResultCard.tsx` rendering search results, matching queries, note excerpts, and open-note handlers without ending active call.
+  - **P08-04**: Interactive note draft preview prevents silent auto-save or premature call termination.
+  - **P08-05**: Transactional persistence via existing `notesStore` / SQLite with revision bumping and sync outbox enlistment.
+  - **P08-06**: Query disambiguation / clarification for ambiguous multi-match notes.
+  - **P08-07**: Adversarial stored text sanitization via `sanitizeUntrustedContext` prevents prompt injection from note bodies.
+  - **P08-08**: Offline manual Notes editing and list viewing preserved with full existing test suite pass.
+  - **P08-09**: Voice data consent controls honored; refusal to search or draft when consent is withheld.
+  - Verified with 9 new Jest tests in `__tests__/ui/callLafinaPhase08.test.tsx` and full 90-suite preflight.
 
 ## In progress
-- Phase 08: Notes by Speech and Note Search Result Cards (`F-034`, `F-035`, `F-036`).
+- Phase 09: Explicit Personal Memory and Privacy Controls (`F-037`, `F-038`, `F-039`, `F-075`).
 
 ## Known blockers (link to BLOCKERS.md)
 - `BLK-001` (DEVICE): Physical phone audio routing, hardware mic indicator, and physical alarm delivery remain `DEVICE_NOT_RUN`.
 - `BLK-002` (EXTERNAL): Production signed-in ElevenAgents live session depends on active student credentials and ElevenLabs agent provisioning on server.
 
 ## Exact next action (no guesswork)
-1. Commit Phase 07 implementation, tests, and reports to `feat/call-lafina-v2`.
-2. Rehydrate Phase 08: `CALL_LAFINA_AUTONOMOUS_TASK_PACK_V1/PHASES/08-notes-by-speech-and-note-search-result-cards.md`.
-3. Implement speech-to-note draft card, note search result card, and open-note interaction.
+1. Commit Phase 08 implementation, tests, and reports to `feat/call-lafina-v2`.
+2. Rehydrate Phase 09: `CALL_LAFINA_AUTONOMOUS_TASK_PACK_V1/PHASES/09-explicit-personal-memory-and-privacy-controls.md`.
+3. Implement `MemoryReviewCard.tsx`, memory recall limits, undo/forget action, and privacy consent gates.
