@@ -38,9 +38,10 @@ import type {
 } from '../../../cloud/voiceConversation';
 import { useVoiceConversation } from '../../hooks/useVoiceConversation';
 import type { CommandReviewState } from '../../hooks/useCommandReview';
-import { CommandReviewCard } from '../chat/CommandReviewCard';
+import { ActionCardHost } from '../callLafina/ActionCardHost';
+import { isToolExecutionPermitted } from '../../../ai/voiceActions/actionSecurity';
+import { actionService } from '../../../ai/voiceActions/actionService';
 import { directProviderTestEnabled } from '../../../cloud/directProviderTest';
-import { readLocalVoiceData } from '../../../cloud/voiceConversation/localVoiceData';
 import { localSettingsStore } from '../../../storage/localSettingsStore';
 import { explicitMemory } from '../../../ai/explicitMemory';
 import { onboardingVoiceContext } from '../../../storage/onboardingMemory';
@@ -183,42 +184,27 @@ export const VoiceConversationPanel: React.FC<VoiceConversationPanelProps> = ({
   const onClientTool = useCallback(async (name: string, parameters: Record<string, unknown>, isCurrent: () => boolean): Promise<string> => {
     const injected = deps ? deps(userId).onClientTool : undefined;
     if (injected) return injected(name, parameters, isCurrent);
-    if (!directProviderTestEnabled() || !isCurrent() || localSettingsStore.get(ownerRef.current, DATA_CONSENT, null) !== 'true') throw new Error('Tool unavailable');
     const owner = ownerRef.current;
-    const spoken = lastUserRequest.current;
-    if (name === 'read_lafina_data') {
-      const word = parameters.kind === 'calendar' ? /\b(calendar|schedule|event|meeting|appointment|agenda|plans?)\b/i
-        : parameters.kind === 'notes' ? /\b(notes?|notebook|wrote|written)\b/i
-          : /\b(remember|memory|memories|prefer|preference|like|study|studying|name|call me|talk|tone|style)\b/i;
-      if (!word.test(spoken)) return 'No data was read. Ask the student which personal data they want to access.';
-      return readLocalVoiceData(owner, parameters.kind, parameters.query);
-    }
-    if (!['prepare_lafina_action', 'save_lafina_memory'].includes(name) || typeof parameters.request !== 'string') throw new Error('Unknown tool');
-    if (name === 'save_lafina_memory' && !explicitMemory(spoken)) {
-      return 'No memory was saved. Ask the student to state what they want remembered.';
-    }
-    const request = (explicitMemory(spoken) ? spoken : parameters.request).trim().slice(0, 1000);
-    if (!request) return 'No action was prepared. Ask the student for the details.';
-    const ticket = ++turnTicket.current;
-    const pending = pendingMemory.current;
-    const result = pending && pending.owner === owner && pending.text === request
-      ? await pending.result : await chatOrchestrator.reviewSpokenTurn(owner, request);
-    if (!isCurrent() || ticket !== turnTicket.current || owner !== ownerRef.current) throw new Error('Conversation changed');
-    if (result.kind === 'proposal') {
-      reviewRef.current.present(result.review);
-      setLocalNote('Check the card below. Nothing is saved until you tap Confirm.');
-      return `A review card is shown: ${result.reply} Nothing has been saved. Ask the student to check and confirm the card.`;
-    }
-    if (result.kind === 'memory') {
-      setLocalNote(result.reply);
-      return result.reply;
-    }
-    if (result.kind === 'note' || result.kind === 'local_answer') {
-      setLocalNote(result.reply);
-      return `No change has been saved. ${result.reply}`;
-    }
-    return 'No action was prepared or saved. Ask for the exact details and try again.';
-}, [deps, userId]);
+    const perm = isToolExecutionPermitted(owner);
+    if (!perm.permitted || !isCurrent()) throw new Error(perm.reason || 'Tool unavailable');
+    return actionService.executeTool(
+      owner,
+      'session-live',
+      name,
+      parameters,
+      isCurrent,
+      {
+        onProposal: (result) => {
+          if (result.kind === 'proposal') {
+            reviewRef.current.present(result.review);
+            setLocalNote('Check the card below. Nothing is saved until you tap Confirm.');
+          } else if (result.kind === 'note' || result.kind === 'local_answer' || result.kind === 'memory') {
+            setLocalNote(result.reply);
+          }
+        },
+      },
+    );
+  }, [deps, userId]);
 
 const conversation = useVoiceConversation(userId, { onFinalUserText, onClientTool, deps });
 conversationRef.current = conversation;
@@ -282,7 +268,8 @@ useEffect(() => {
 
 const handleStart = useCallback(() => {
   void ttsService.stop();
-  if (directProviderTestEnabled() && localSettingsStore.get(ownerRef.current, DATA_CONSENT, null) !== 'true') {
+  const perm = isToolExecutionPermitted(ownerRef.current);
+  if (!perm.permitted && perm.reason?.includes('disclosure')) {
     setEnableError('Please review the data disclosure before starting.');
     return;
   }
@@ -300,7 +287,7 @@ const handleConsent = useCallback(() => {
     setEnableError('Could not save your choice on this device. Try again.');
     return;
   }
-  if (directProviderTestEnabled() && !localSettingsStore.set(userId, DATA_CONSENT, 'true')) {
+  if (!localSettingsStore.set(userId, DATA_CONSENT, 'true')) {
     setEnableError('Could not save your choice on this device. Try again.');
     return;
   }
@@ -605,7 +592,7 @@ return (
               ) : null}
 
               {review.proposal ? (
-                <CommandReviewCard
+                <ActionCardHost
                   proposal={review.proposal}
                   expired={review.expired}
                   busy={review.busy}
@@ -616,7 +603,7 @@ return (
                   onDismiss={review.dismiss}
                   testIDPrefix="voice-conversation-review"
                 />
-        ) : null}
+              ) : null}
 
             {failure || snapshot.phase === 'restart_required' ? (
               <View
