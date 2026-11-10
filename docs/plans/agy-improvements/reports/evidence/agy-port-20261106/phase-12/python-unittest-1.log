@@ -1,0 +1,31 @@
+$ python -m unittest discover -s scripts/tests -p 'test_*.py' -v
+test_ambiguous_entries_fail_closed (test_apk_audit.ApkTest.test_ambiguous_entries_fail_closed) ... C:\Python314\Lib\zipfile\__init__.py:1730: UserWarning: Duplicate name: 'lib/arm64-v8a/a.so'
+  return self._open_to_write(zinfo, force_zip64=force_zip64)
+ok
+test_every_library_reported_and_mismatch_is_error (test_apk_audit.ApkTest.test_every_library_reported_and_mismatch_is_error) ... ok
+test_good_inventory (test_apk_audit.ApkTest.test_good_inventory) ... ok
+test_kokoro_missing_model_missing_bundle_and_two_abis_fail (test_apk_audit.ApkTest.test_kokoro_missing_model_missing_bundle_and_two_abis_fail) ... ok
+test_not_an_apk_or_not_a_zip (test_apk_audit.ApkTest.test_not_an_apk_or_not_a_zip) ... ok
+test_oversized_library_is_error_without_reading_it (test_apk_audit.ApkTest.test_oversized_library_is_error_without_reading_it) ... ok
+test_zip_alignment_independent_check (test_apk_audit.ApkTest.test_zip_alignment_independent_check) ... ok
+test_all_encodings (test_apk_audit.ElfTest.test_all_encodings) ... ok
+test_four_kib_is_failure (test_apk_audit.ElfTest.test_four_kib_is_failure) ... ok
+test_header_and_segment_bounds (test_apk_audit.ElfTest.test_header_and_segment_bounds) ... ok
+test_malformed_and_truncated (test_apk_audit.ElfTest.test_malformed_and_truncated) ... ok
+test_no_load_segment_is_not_success (test_apk_audit.ElfTest.test_no_load_segment_is_not_success) ... ok
+test_new_file_inside_evidence_only (test_apk_audit.ReceiptTest.test_new_file_inside_evidence_only) ... ok
+test_crash_metro_dependency_or_dead_process_fail (test_emulator_qa.EmulatorQaTest.test_crash_metro_dependency_or_dead_process_fail) ... ok
+test_existing_install_needs_explicit_update_and_is_never_uninstalled (test_emulator_qa.EmulatorQaTest.test_existing_install_needs_explicit_update_and_is_never_uninstalled) ... ok
+test_install_failure_and_hung_adb_are_bounded_failures (test_emulator_qa.EmulatorQaTest.test_install_failure_and_hung_adb_are_bounded_failures) ... ok
+test_network_that_stays_on_fails_the_offline_gate_and_is_restored (test_emulator_qa.EmulatorQaTest.test_network_that_stays_on_fails_the_offline_gate_and_is_restored) ... ok
+test_non_qemu_or_undesignated_avd_is_refused (test_emulator_qa.EmulatorQaTest.test_non_qemu_or_undesignated_avd_is_refused) ... ok
+test_passing_run_records_offline_launch_and_restores_network (test_emulator_qa.EmulatorQaTest.test_passing_run_records_offline_launch_and_restores_network) ... ok
+test_physical_device_is_refused_before_any_command (test_emulator_qa.EmulatorQaTest.test_physical_device_is_refused_before_any_command) ... ok
+test_receipt_mismatch_failed_check_or_wrong_abi_is_refused (test_emulator_qa.EmulatorQaTest.test_receipt_mismatch_failed_check_or_wrong_abi_is_refused) ... ok
+test_reports_are_new_files_inside_evidence_only (test_emulator_qa.EmulatorQaTest.test_reports_are_new_files_inside_evidence_only) ... ok
+
+----------------------------------------------------------------------
+Ran 22 tests in 0.166s
+
+OK
+exit=0

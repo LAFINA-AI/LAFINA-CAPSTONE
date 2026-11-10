@@ -1,0 +1,22 @@
+import RNFS from 'react-native-fs';
+import {db,initDatabase,userStore} from 'C:/L3mxr/Github Repositories/LAFINA-CAPSTONE-agy-development-cont/src/storage';
+import {recordAttachmentCleanup,pendingAttachmentCleanup,MAX_CLEANUP_PER_RUN} from 'C:/L3mxr/Github Repositories/LAFINA-CAPSTONE-agy-development-cont/src/storage/attachmentCleanup';
+import {authorizeDataReset,finishAttachmentCleanup} from 'C:/L3mxr/Github Repositories/LAFINA-CAPSTONE-agy-development-cont/src/storage/accountDataReset';
+beforeAll(async()=>{await initDatabase();});
+afterEach(()=>{jest.restoreAllMocks();});
+it('repeated bounded passes must eventually attempt a removable file behind persistent failures',async()=>{
+ const a='independent-cleanup-fairness';const now=new Date().toISOString();
+ db.executeSync(`INSERT INTO users (id,username,email,role,is_new_user,time_format_24h,week_starts_monday,dark_mode,created_at,updated_at) VALUES (?,?,?,'student',0,0,0,0,?,?)`,[a,a,a+'@example.invalid',now,now]);userStore.setCurrentUser(a);
+ const paths=Array.from({length:MAX_CLEANUP_PER_RUN+1},(_,i)=>'/documents/chat_files/'+String(i).padStart(3,'0')+'_synthetic.pdf');
+ const files=new Set(paths);const last=paths[paths.length-1];
+ (RNFS.exists as jest.Mock).mockImplementation(async(p:string)=>files.has(p));
+ (RNFS.stat as jest.Mock).mockImplementation(async()=>({isFile:()=>true,isDirectory:()=>false}));
+ (RNFS.unlink as jest.Mock).mockImplementation(async(p:string)=>{if(p!==last)throw new Error('synthetic persistent unlink failure');files.delete(p);});
+ jest.spyOn(console,'warn').mockImplementation(()=>{});
+ db.transactionSync(tx=>recordAttachmentCleanup(tx,a,paths));
+ const authority=authorizeDataReset(a)!;expect(authority).not.toBeNull();
+ const first=await finishAttachmentCleanup(authority);expect(first.pending).toBe(MAX_CLEANUP_PER_RUN+1);expect(files.has(last)).toBe(true);
+ const second=await finishAttachmentCleanup(authority);
+ console.log('INDEPENDENT_CLEANUP_STARVATION',JSON.stringify({first,second,lastFileStillPresent:files.has(last),lastFileAttempted:(RNFS.unlink as jest.Mock).mock.calls.some(x=>x[0]===last),firstAttempts:db.executeSync('SELECT attempts FROM attachment_cleanup WHERE user_id=? AND path=?',[a,paths[0]]).rows[0],pending:pendingAttachmentCleanup(a).length}));
+ expect(files.has(last)).toBe(false);
+});

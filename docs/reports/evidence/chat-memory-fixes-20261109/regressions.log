@@ -1,0 +1,80 @@
+PASS __tests__/cloud/chatMemoryReliability.test.ts (7.933 s)
+PASS __tests__/ai/voiceModeStreaming.test.tsx (9.954 s)
+  ● Console
+
+    console.warn
+      "PermissionsAndroid" module works only for Android platform.
+
+      54 |   if (Platform.OS !== 'android' && process.env.NODE_ENV !== 'test') return true;
+      55 |   try {
+    > 56 |     const hasPermission = await PermissionsAndroid.check(
+         |                                                    ^
+      57 |       PermissionsAndroid.PERMISSIONS.RECORD_AUDIO,
+      58 |     );
+      59 |     if (hasPermission) return true;
+
+      at PermissionsAndroidImpl.warn [as check] (node_modules/react-native/Libraries/PermissionsAndroid/PermissionsAndroid.js:178:15)
+      at check (src/ai/stt/sttService.ts:56:52)
+      at asyncGeneratorStep (node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+      at _next (node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
+      at node_modules/@babel/runtime/helpers/asyncToGenerator.js:22:7
+      at node_modules/@babel/runtime/helpers/asyncToGenerator.js:14:12
+      at apply (src/ai/stt/sttService.ts:53:40)
+      at src/ui/components/VoiceModal.tsx:302:36
+      at Object.react_stack_bottom_frame (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:15755:20)
+      at runWithFiberInDEV (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:2315:13)
+      at commitHookEffectListMount (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:9530:29)
+      at commitHookPassiveMountEffects (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:9617:11)
+      at commitPassiveMountOnFiber (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:11205:13)
+      at recursivelyTraversePassiveMountEffects (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:11160:11)
+      at commitPassiveMountOnFiber (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:11439:11)
+      at recursivelyTraversePassiveMountEffects (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:11160:11)
+      at commitPassiveMountOnFiber (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:11197:11)
+      at recursivelyTraversePassiveMountEffects (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:11160:11)
+      at commitPassiveMountOnFiber (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:11240:11)
+      at flushPendingEffects (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:14086:11)
+      at performSyncWorkOnRoot (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:2920:11)
+      at flushSyncWorkAcrossRoots_impl (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:2764:21)
+      at flushSpawnedWork (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:13966:9)
+      at commitRoot (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:13698:9)
+      at performWorkOnRoot (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:12336:15)
+      at performWorkOnRootViaSchedulerTask (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:2908:7)
+      at flushActQueue (node_modules/react/cjs/react.development.js:590:34)
+      at Object.<anonymous>.process.env.NODE_ENV.exports.act (node_modules/react/cjs/react.development.js:884:10)
+      at actImplementation (node_modules/@testing-library/react-native/src/act.ts:30:25)
+      at renderWithAct (node_modules/@testing-library/react-native/src/render-act.ts:13:11)
+      at renderInternal (node_modules/@testing-library/react-native/src/render.tsx:69:33)
+      at renderInternal (node_modules/@testing-library/react-native/src/render.tsx:44:10)
+      at Object.<anonymous> (__tests__/ai/voiceModeStreaming.test.tsx:319:25)
+      at asyncGeneratorStep (node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+      at _next (node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
+      at node_modules/@babel/runtime/helpers/asyncToGenerator.js:22:7
+      at Object.<anonymous> (node_modules/@babel/runtime/helpers/asyncToGenerator.js:14:12)
+
+    console.warn
+      "PermissionsAndroid" module works only for Android platform.
+
+      59 |     if (hasPermission) return true;
+      60 |
+    > 61 |     const granted = await PermissionsAndroid.request(
+         |                                              ^
+      62 |       PermissionsAndroid.PERMISSIONS.RECORD_AUDIO,
+      63 |       {
+      64 |         title: 'Microphone Permission',
+
+      at PermissionsAndroidImpl.warn (node_modules/react-native/Libraries/PermissionsAndroid/PermissionsAndroid.js:235:15)
+      at asyncGeneratorStep (node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+      at _next (node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
+      at node_modules/@babel/runtime/helpers/asyncToGenerator.js:22:7
+      at PermissionsAndroidImpl.<anonymous> (node_modules/@babel/runtime/helpers/asyncToGenerator.js:14:12)
+      at PermissionsAndroidImpl.apply [as request] (node_modules/react-native/Libraries/PermissionsAndroid/PermissionsAndroid.js:230:16)
+      at request (src/ai/stt/sttService.ts:61:46)
+      at asyncGeneratorStep (node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+      at _next (node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
+
+
+Test Suites: 2 passed, 2 total
+Tests:       38 passed, 38 total
+Snapshots:   0 total
+Time:        18.497 s
+Ran all test suites within paths "__tests__/cloud/chatMemoryReliability.test.ts", "__tests__/ai/voiceModeStreaming.test.tsx".

@@ -8,7 +8,7 @@ Build **LAFINA-CAPSTONE**, an **Android-first, offline-first academic AI secreta
 Core scope:
 - Student-facing `LAFINA` UI/UX (`SynthSplash`, `AuthBackdrop` + `Grainient`, `WelcomeScreen`, `LoginScreen`, `RegisterScreen`, `OnboardingScreen`, `CalendarScreen`, `NotesScreen`, `ChatScreen`, `VoiceModal`, `IncomingCallScreen`, `ProfileScreen`, `PreferencesSettingsScreen`, `CustomTabBar`, `ProductTour`).
 - Offline-first local guest mode (`local_guest_user`) **and** optional cloud accounts (`student`, `student_pro`, `admin`) with bidirectional synchronization (`/v1/sync/batch`, `/v1/auth/*`, `/v1/me`) across the 7 personal entity types (`profile`, `task`, `event`, `time_block`, `reminder`, `note`, `custom_category`).
-- Durable native Android alarms (`LafinaReminderModule`, `ReminderAlarmReceiver`, `ReminderBootReceiver`), simulated incoming reminder calls, push-to-talk offline STT (`whisper.cpp` + `silero_vad.onnx`), on-device NLU (`SmolLM2` + deterministic fast path), fast local TTS via **`react-native-tts`** (replacing Kokoro 82M ONNX) with optional Gemini cloud TTS (`/v1/ai/tts`) fallback to `react-native-tts`, and online AI chat + verifiable, citation-backed USTP Student Handbook RAG (`/v1/ai/chat`).
+- Durable native Android alarms (`LafinaReminderModule`, `ReminderAlarmReceiver`, `ReminderBootReceiver`), simulated incoming reminder calls, push-to-talk offline STT (`whisper.cpp` + `silero_vad.onnx`), on-device NLU (`SmolLM2` + deterministic fast path), fast local TTS via **`react-native-tts`** (replacing Kokoro 82M ONNX) with optional ElevenLabs cloud TTS (`/v1/ai/tts`) fallback to `react-native-tts`, and online AI chat + verifiable, citation-backed USTP Student Handbook RAG (`/v1/ai/chat`).
 
 **Forbidden scope:**
 - All business dashboards, business roles (`manager`, `employee`, `business`), business tasks, business work blocks, company chat, business invitations, and team management.
@@ -39,7 +39,7 @@ Core scope:
 - Mobile stack: React Native 0.86 + TypeScript strict; Android Kotlin native modules; C/C++ JNI where required by STT (`whisper.cpp`) and NLU (`llama.cpp` / `SmolLM2`).
 - One local SQLite database (`lafina.db` via `@op-engineering/op-sqlite`) with schema migrations (`dbInit.ts`), transaction boundaries, sync outbox/metadata/state/conflict stores, and Jest test coverage (`node:sqlite` in-memory mock).
 - Android native `AlarmManager` (`LafinaReminderModule`) for exact time-critical reminder alarms and boot/time-change rescheduling.
-- **`react-native-tts` is the local/offline TTS engine** (`src/ai/tts/ttsService.ts`). Never bundle or invoke Kokoro 82M ONNX. When online and entitled, Gemini cloud TTS (`/v1/ai/tts`) may be used with automatic fallback to `react-native-tts` and visual text/call UI if speech fails.
+- **`react-native-tts` is the local/offline TTS engine** (`src/ai/tts/ttsService.ts`). Never bundle or invoke Kokoro 82M ONNX. When online and entitled, ElevenLabs cloud TTS (`/v1/ai/tts`, gated by `/v1/ai/tts/capabilities`) may be used only with explicit Online Mode with automatic fallback to `react-native-tts` and visual text/call UI if speech fails.
 - STT: offline `whisper.cpp` + `silero_vad.onnx` via `LafinaSpeechToTextModule` (`src/ai/stt/`).
 - NLU: deterministic regex/fast-path parser + on-device `SmolLM2` (`LafinaIntentExtractorModule`, `src/ai/nlu/`).
 - Online auth, sync, TTS, and chat/handbook RAG communicate with `LAFINA-backend` (`https://lafina-backend.vercel.app` with `http://127.0.0.1:8000` local fallback in `src/cloud/cloudClient.ts`). Do not embed cloud API keys in the mobile app.
@@ -57,3 +57,11 @@ Core scope:
 - Central semantic design tokens in `src/ui/theme/` and `src/ui/contexts/ThemeContext.tsx`. Use `StyleSheet.create` + `useThemedStyles` + `useTheme().colors`.
 - Use ESLint + Prettier + TypeScript strict + Jest (`npm run preflight`) and Android Gradle verification (`gradlew`) in every phase.
 - End **every response that completes work on a phase** with `STATUS: READY FOR REVIEW`, `STATUS: AWAITING DEVICE VALIDATION`, or `STATUS: BLOCKED`, and `STOPPED — awaiting explicit human approval`.
+
+## Task-scoped notice: AGY improvement port
+
+For the unattended AGY-PORT 00-13 run only, `docs/plans/agy-improvements/OWNER-AUTHORIZATION.md` records the owner's decision: AGY's existing accounts, subscriptions, cloud sync, online AI and RAG, document generation and meeting recording are preserved, and the phases proceed without per-phase approval. Everything else in this file still applies, including no Kokoro and no writes outside this checkout.
+
+## Task-scoped notice: Phase 09 ElevenLabs migration (2026-11-07)
+
+The owner explicitly authorized the scoped `LAFINA-backend` speech-provider change and deployment for this task. It replaces active Gemini TTS with ElevenLabs while preserving DeepSeek, authentication, entitlement, sync and existing quotas. Backend commit `34f9fba` is on `codex/elevenlabs-online-tts`; the owner subsequently merged main `f0fae4d`, and production deployment/contract authentication boundaries were verified on 2026-11-07. Signed-in voice/device validation remains pending. This exception does not authorize unrelated backend changes or a replacement hosting project. See `backend_integration/README.md` and the Phase 09 follow-up report.

@@ -31,21 +31,19 @@ export const refreshPendingReminderLeadTimes = async (
     const triggerAt = new Date(Math.max(preferredTriggerMs, Date.now() + 1000)).toISOString();
 
     try {
-      await scheduleReminderAlarm(reminder.id, reminder.task, triggerAt);
+      // Save first: the new trigger time bumps the delivery generation, and the
+      // alarm must be registered under that new identity (AGY-PORT 03). A failed
+      // registration keeps the saved time; reconcile retries it.
+      remindersStore.updateReminderTriggerAt(reminder.id, triggerAt);
+      updatedCount += 1;
       try {
-        remindersStore.updateReminderTriggerAt(reminder.id, triggerAt);
-        updatedCount += 1;
-      } catch (databaseError) {
-        try {
-          await scheduleReminderAlarm(reminder.id, reminder.task, reminder.triggerAt);
-        } catch (rollbackError) {
-          console.error(
-            '[ReminderPreferences] Failed to restore the original alarm:',
-            reminder.id,
-            rollbackError,
-          );
-        }
-        throw databaseError;
+        await scheduleReminderAlarm(reminder.id, reminder.task, triggerAt);
+      } catch (registrationError) {
+        console.warn(
+          '[ReminderPreferences] Saved; alarm registration will be retried:',
+          reminder.id,
+          registrationError,
+        );
       }
     } catch (error) {
       failedCount += 1;

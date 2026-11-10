@@ -6,6 +6,7 @@
 
 import type { Event, Task, TimeBlock } from '../../../../storage';
 import { formatTimeForDisplay } from './calendarHelpers';
+import { deviceTimeZone } from '../../../../storage/eventTime';
 
 /** Height of one hour, in dp. The desktop uses the same 64. */
 export const HOUR_HEIGHT = 64;
@@ -120,6 +121,14 @@ export const buildDayEntries = ({
     if (to > from) entries.push({ ...entry, start: from, end: to });
   };
 
+  // AGY-PORT 08: an overnight event says so, and an event saved in another
+  // timezone on this device names it. Its position stays its saved wall time.
+  const hereZone = deviceTimeZone();
+  const eventTime = (event: Event): string => {
+    const overnight = timeToMinutes(event.endTime) < timeToMinutes(event.startTime);
+    const zone = event.timeZone && event.timeZone !== hereZone ? ` · ${event.timeZone}` : '';
+    return `${range(event.startTime, event.endTime)}${overnight ? ' next day' : ''}${zone}`;
+  };
   events.forEach((event) =>
     add(
       {
@@ -127,7 +136,7 @@ export const buildDayEntries = ({
         kind: 'event',
         title: event.title,
         color: eventColor,
-        time: range(event.startTime, event.endTime),
+        time: eventTime(event),
         location: event.location,
         event,
       },

@@ -1,0 +1,13 @@
+M1 KILLED | src\ai\tts\ttsService.ts | automatic voice accepts missing install metadata | test "only unknown or network voices" | Tests:       1 failed, 10 skipped, 11 total | restored=True
+M2 KILLED | src\ai\tts\ttsService.ts | initTts reports ready without a confirmed offline voice | test "a failed voice list" | Tests:       1 failed, 10 skipped, 11 total | restored=True
+M3 KILLED | src\ai\tts\ttsService.ts | a failed voice selection is still trusted | test "a failed voice selection" | Tests:       1 failed, 10 skipped, 11 total | restored=True
+M4 KILLED | src\ai\tts\ttsService.ts | a removed voice keeps being used | test "with no explicit choice, a removed automatic voice" | Tests:       1 failed, 10 skipped, 11 total | restored=True
+M5 KILLED | src\ai\tts\ttsService.ts | reset keeps the explicit voice instead of the automatic one | test "reset returns to the automatic" | Tests:       1 failed, 10 skipped, 11 total | restored=True
+M6 KILLED | src\ui\screens\calendar\hooks\useCalendarData.ts | a failed schedule read looks like an empty calendar | test "a tasks-and-events-only failure" | Tests:       1 failed, 5 skipped, 6 total | restored=True
+M7 KILLED | src\ui\screens\calendar\hooks\useCalendarData.ts | a failed read after an account switch shows the previous account | test "after an account switch" | Tests:       1 failed, 5 skipped, 6 total | restored=True
+M8 KILLED | src\ui\screens\calendar\hooks\useCalendarData.ts | an overdue read failure is hidden | test "an overdue-only failure" | Tests:       1 failed, 5 skipped, 6 total | restored=True
+M9 KILLED | src\ui\screens\ProfileScreen.tsx | Clear All Data keeps saved event defaults | test "the Profile action forgets" | Tests:       1 failed, 4 skipped, 5 total | restored=True
+M10 KILLED | src\storage\personalMemoryStore.ts | no revision fence: an earlier review can still save | test "a review or offer issued before" | Tests:       1 failed, 4 skipped, 5 total | restored=True
+M11 KILLED | src\storage\personalMemoryStore.ts | a retained screen clears another session | test "only the signed-in owner" | Tests:       1 failed, 4 skipped, 5 total | restored=True
+M12 KILLED | src\scheduler\deliveryReconciler.ts | a hung native listing blocks every later pass | test "never answers" | Tests:       1 failed, 2 skipped, 3 total | restored=True
+RESULT ALL KILLED, ALL RESTORED

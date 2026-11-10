@@ -2,8 +2,7 @@ import RNFS from 'react-native-fs';
 import Share from 'react-native-share';
 import type { ChatAttachment } from '../../../storage';
 import type { GeneratedDocument } from '../../../skills/documentSkill';
-
-const CHAT_FILES_SUBDIR = 'chat_files';
+import { CHAT_FILES_SUBDIR } from '../../../storage/attachmentCleanup';
 
 const getChatFilesDir = (): string =>
   `${RNFS.DocumentDirectoryPath}/${CHAT_FILES_SUBDIR}`;

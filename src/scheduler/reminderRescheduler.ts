@@ -1,6 +1,6 @@
 import { remindersStore } from '../storage/remindersStore';
-import { scheduleReminderAlarm } from './reminderAlarm';
 import { checkAndTriggerReminders } from './reminderPoller';
+import { reconcileReminderDelivery } from './deliveryReconciler';
 
 export interface RescheduleSummary {
   checked: number;
@@ -44,20 +44,13 @@ export const rescheduleUserReminders = async (
           // Within grace period -> trigger immediately
           summary.triggered += 1;
         }
-      } else {
-        // Future reminder -> register exact alarm with Android AlarmManager
-        try {
-          await scheduleReminderAlarm(reminder.id, reminder.task, reminder.triggerAt);
-          summary.rescheduled += 1;
-        } catch (error) {
-          console.error(
-            '[ReminderRescheduler] Failed to schedule alarm for reminder:',
-            reminder.id,
-            error,
-          );
-        }
       }
     }
+
+    // Future reminders: one reconcile pass registers missing or outdated
+    // generations with Android AlarmManager and cancels stale or foreign ones.
+    const delivery = await reconcileReminderDelivery(userId);
+    summary.rescheduled = delivery.registered + delivery.kept;
 
     if (summary.triggered > 0) {
       await checkAndTriggerReminders(userId);

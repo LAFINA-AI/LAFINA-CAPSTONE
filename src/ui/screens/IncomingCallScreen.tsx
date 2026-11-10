@@ -1,6 +1,8 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
   Animated,
+  Alert,
+  AppState,
   DeviceEventEmitter,
   Easing,
   Image,
@@ -16,8 +18,12 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Phone, PhoneOff } from 'lucide-react-native';
 import { CallAnsweredView } from '../components/call/CallAnsweredView';
+import { OnlineReminderConversation } from '../components/call/OnlineReminderConversation';
+import type { OnlineReminderHandle } from '../components/call/OnlineReminderConversation';
 import {
   answerCall,
+  resumeOfflineCall,
+  detectCallKeyword,
   declineCall,
   getReminderPreferences,
   manualAcknowledgeCall,
@@ -35,6 +41,10 @@ import { CALL_RESULT_DELAY_MS } from '../../constants';
 import { Fonts, Shadows } from '../theme';
 import { useTheme } from '../contexts/ThemeContext';
 import { createCallSpeechProvider } from '../../cloud/speechService';
+import { localSettingsStore } from '../../storage/localSettingsStore';
+import { isGuestAccount } from '../../cloud/entitlements';
+import { voiceConsent, waitForVoiceConversationRelease } from '../../cloud/voiceConversation';
+import type { ConversationSnapshot } from '../../cloud/voiceConversation';
 
 const lafinaLogo = require('../../assets/lafina_default_logo.png');
 
@@ -45,6 +55,8 @@ interface IncomingCallScreenProps {
   userId: string;
   onClose: () => void;
   initialAction?: NativeCallAction;
+  /** Delivery generation captured at admission; Answer/Decline act only on it. */
+  deliveryGeneration?: number | null;
 }
 
 /** Renders and coordinates the complete offline reminder call experience. */
@@ -55,6 +67,7 @@ export const IncomingCallScreen: React.FC<IncomingCallScreenProps> = ({
   userId,
   onClose,
   initialAction = 'call',
+  deliveryGeneration = null,
 }) => {
   const { isDarkMode, colors } = useTheme();
   const [callState, setCallState] = useState<CallState>('ringing');
@@ -62,11 +75,17 @@ export const IncomingCallScreen: React.FC<IncomingCallScreenProps> = ({
   const [snoozeMinutes, setSnoozeMinutes] = useState(5);
   const [transcript, setTranscript] = useState('');
   const [reply, setReply] = useState('');
+  const [onlineCall, setOnlineCall] = useState(false);
+  const [answering, setAnswering] = useState(false);
   const ringAnim = useRef(new Animated.Value(1)).current;
   const resultTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const processedActionRef = useRef('');
   const closingRef = useRef(false);
   const speechProviderRef = useRef<CallSpeechProvider | null>(null);
+  const onlineRef = useRef<OnlineReminderHandle | null>(null);
+  const answeringRef = useRef(false);
+  const attemptRef = useRef(0);
+  const transitioningRef = useRef(false);
 
   const clearResultTimeout = useCallback((): void => {
     if (resultTimeoutRef.current) {
@@ -76,6 +95,11 @@ export const IncomingCallScreen: React.FC<IncomingCallScreenProps> = ({
   }, []);
 
   const resetPresentation = useCallback((): void => {
+    attemptRef.current += 1;
+    answeringRef.current = false;
+    transitioningRef.current = false;
+    setAnswering(false);
+    setOnlineCall(false);
     clearResultTimeout();
     Vibration.cancel();
     setCallState('ringing');
@@ -85,6 +109,12 @@ export const IncomingCallScreen: React.FC<IncomingCallScreenProps> = ({
     ringAnim.setValue(1);
     processedActionRef.current = '';
   }, [clearResultTimeout, ringAnim]);
+
+  const stopOnline = useCallback(async (): Promise<void> => {
+    const current = onlineRef.current;
+    if (current) await current.endAndWait();
+    setOnlineCall(false);
+  }, []);
 
   const closeCallScreen = useCallback((): void => {
     if (closingRef.current) return;
@@ -201,8 +231,31 @@ export const IncomingCallScreen: React.FC<IncomingCallScreenProps> = ({
   }, [clearResultTimeout, closeCallScreen, visible]);
 
   const handleAnswer = useCallback(async (): Promise<void> => {
+    if (answeringRef.current) return;
+    answeringRef.current = true;
+    setAnswering(true);
+    const attempt = ++attemptRef.current;
     Vibration.cancel();
     setCallState('connected');
+
+    await waitForVoiceConversationRelease();
+    if (attempt !== attemptRef.current || closingRef.current) return;
+
+    let useOnline = localSettingsStore.get(userId, 'chat.onlineMode', null) === 'true' &&
+      !isGuestAccount(userId);
+    if (useOnline && (!voiceConsent.read(userId) ||
+        localSettingsStore.get(userId, 'voiceConversation.reminderConsent.v1', null) !== 'true')) {
+      useOnline = await new Promise<boolean>(resolve => {
+        Alert.alert('Online voice conversation',
+          'When you answer, microphone audio streams to ElevenLabs. Your words and this reminder are sent to ElevenLabs and to LAFINA’s server and DeepSeek so the assistant can discuss it. End or mute the call to stop listening.',
+          [
+            {text: 'Use offline voice', style: 'cancel', onPress: () => resolve(false)},
+            {text: 'Continue online', onPress: () => resolve(attempt === attemptRef.current &&
+              voiceConsent.write(userId) && localSettingsStore.set(userId, 'voiceConversation.reminderConsent.v1', 'true'))},
+          ], {cancelable: true, onDismiss: () => resolve(false)});
+      });
+    }
+    if (attempt !== attemptRef.current || closingRef.current) return;
 
     let microphoneGranted = false;
     try {
@@ -217,10 +270,28 @@ export const IncomingCallScreen: React.FC<IncomingCallScreenProps> = ({
       );
     }
 
+    if (attempt !== attemptRef.current || closingRef.current) return;
+
     try {
       const speechProvider =
         speechProviderRef.current || createCallSpeechProvider(userId);
-      await answerCall(reminderId, userId, microphoneGranted, speechProvider);
+      const accepted = await answerCall(
+        reminderId,
+        userId,
+        microphoneGranted,
+        speechProvider,
+        deliveryGeneration,
+        useOnline && microphoneGranted,
+      );
+      if (attempt !== attemptRef.current || closingRef.current) return;
+      if (!accepted) {
+        closeCallScreen();
+        return;
+      }
+      if (useOnline && microphoneGranted) {
+        if (AppState.currentState === 'active') setOnlineCall(true);
+        else setReply('The app left the screen. Use Acknowledge or Snooze below.');
+      }
       if (!microphoneGranted) {
         setReply(
           'Microphone permission is unavailable. Use Acknowledge or Snooze below.',
@@ -229,52 +300,101 @@ export const IncomingCallScreen: React.FC<IncomingCallScreenProps> = ({
     } catch (error) {
       console.error('[CallScreen] Could not answer reminder call:', error);
       setReply('LAFINA could not start the voice call. Use the buttons below.');
+    } finally {
+      if (attempt === attemptRef.current) {
+        answeringRef.current = false;
+        setAnswering(false);
+      }
     }
-  }, [reminderId, userId]);
+  }, [closeCallScreen, deliveryGeneration, reminderId, userId]);
 
   const handleDecline = useCallback(async (): Promise<void> => {
     Vibration.cancel();
+    attemptRef.current += 1;
     try {
+      await stopOnline();
       const speechProvider =
         speechProviderRef.current || createCallSpeechProvider(userId);
-      await declineCall(reminderId, userId, speechProvider);
+      await declineCall(reminderId, userId, speechProvider, deliveryGeneration);
     } catch (error) {
       console.error('[CallScreen] Could not end reminder call:', error);
     } finally {
       closeCallScreen();
     }
-  }, [closeCallScreen, reminderId, userId]);
+  }, [closeCallScreen, deliveryGeneration, reminderId, stopOnline, userId]);
 
   const handleManualSnooze = useCallback(
     async (minutes: number): Promise<void> => {
       try {
+        await stopOnline();
         await manualSnoozeCall(reminderId, userId, minutes);
       } catch (error) {
         console.error('[CallScreen] Could not snooze reminder:', error);
         setReply('LAFINA could not snooze this reminder. Please try again.');
       }
     },
-    [reminderId, userId],
+    [reminderId, stopOnline, userId],
   );
 
   const handleManualAcknowledge = useCallback(async (): Promise<void> => {
     try {
+      await stopOnline();
       await manualAcknowledgeCall(reminderId, userId);
     } catch (error) {
       console.error('[CallScreen] Could not acknowledge reminder:', error);
       setReply('LAFINA could not acknowledge this reminder. Please try again.');
     }
-  }, [reminderId, userId]);
+  }, [reminderId, stopOnline, userId]);
+
+  const handleOnlineTurn = useCallback((text: string): void => {
+    // Only a direct reminder response can change a reminder. Ordinary
+    // conversation about snoozing or acknowledging must not resolve it.
+    if (!/^(?:please\s+)?(?:acknowledge(?:\s+(?:it|this|the reminder))?|got it|understood|snooze(?:\s+(?:it|this|the reminder))?(?:\s+(?:for\s+)?(?:\d{1,3}|one|two|three|four|five|ten|fifteen|twenty|thirty|sixty)(?:\s*(?:minutes?|mins?))?)?)(?:\s+please)?[.!?]*$/i.test(text.trim())) return;
+    const command = detectCallKeyword(text);
+    if (command?.intent === 'acknowledge') void handleManualAcknowledge();
+    if (command?.intent === 'snooze') void handleManualSnooze(command.minutes ?? snoozeMinutes);
+  }, [handleManualAcknowledge, handleManualSnooze, snoozeMinutes]);
+
+  const handleOnlineSnapshot = useCallback((snapshot: ConversationSnapshot): void => {
+    const latestUser = [...snapshot.turns].reverse().find(turn => turn.role === 'user');
+    const latestAssistant = [...snapshot.turns].reverse().find(turn => turn.role === 'assistant');
+    if (latestUser) setTranscript(latestUser.text);
+    if (latestAssistant) setReply(latestAssistant.text);
+    if (snapshot.phase !== 'failed' && snapshot.phase !== 'restart_required') return;
+    if (transitioningRef.current) return;
+    transitioningRef.current = true;
+    const message = snapshot.failure?.message || snapshot.restartReason || 'Online conversation stopped.';
+    const noMicrophone = snapshot.failure?.kind === 'mic_denied' || snapshot.failure?.kind === 'mic_busy' || snapshot.failure?.kind === 'audio';
+    const connectionLost = snapshot.phase === 'restart_required' &&
+      /(?:connection closed|connection dropped)/i.test(snapshot.restartReason || '');
+    const canFallBack = ((snapshot.phase === 'failed' && !noMicrophone) || connectionLost) &&
+      AppState.currentState === 'active';
+    const attempt = attemptRef.current;
+    void (async () => {
+      await stopOnline();
+      if (closingRef.current || attempt !== attemptRef.current) return;
+      setReply(`${message} ${canFallBack ? 'Switching to offline voice.' : 'Use Acknowledge or Snooze below.'}`);
+      if (canFallBack) resumeOfflineCall(reminderId, userId);
+    })();
+  }, [reminderId, stopOnline, userId]);
 
   useEffect(() => {
     if (!visible || !reminderId) return;
-    const actionKey = reminderId + ':' + initialAction;
+    const actionKey =
+      reminderId + ':' + String(deliveryGeneration) + ':' + initialAction;
     if (processedActionRef.current === actionKey) return;
     processedActionRef.current = actionKey;
 
     if (initialAction === 'answer') void handleAnswer();
     if (initialAction === 'decline') void handleDecline();
-  }, [visible, reminderId, initialAction, handleAnswer, handleDecline]);
+  }, [
+    visible,
+    reminderId,
+    deliveryGeneration,
+    initialAction,
+    handleAnswer,
+    handleDecline,
+  ]);
 
   useEffect(() => {
     if (!visible || callState !== 'ringing') return;
@@ -404,7 +524,7 @@ export const IncomingCallScreen: React.FC<IncomingCallScreenProps> = ({
                     activeOpacity={0.8}
                     accessibilityRole="button"
                     accessibilityLabel="Answer reminder call"
-                    accessibilityHint="Answers LAFINA and opens the offline voice call."
+                    accessibilityHint="Answers the reminder call. Online conversation starts when enabled and permitted."
                   >
                     <Phone size={30} color={colors.white} />
                   </TouchableOpacity>
@@ -426,6 +546,11 @@ export const IncomingCallScreen: React.FC<IncomingCallScreenProps> = ({
             onDecline={handleDecline}
             transcript={transcript}
             reply={reply}
+            busy={answering}
+            onlineConversation={onlineCall ? (
+              <OnlineReminderConversation ref={onlineRef} userId={userId} task={task}
+                onSnapshot={handleOnlineSnapshot} onSpokenTurn={handleOnlineTurn} />
+            ) : undefined}
           />
         )}
       </SafeAreaView>

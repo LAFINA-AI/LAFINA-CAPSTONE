@@ -2,6 +2,12 @@ import { db, DatabaseTransaction } from './database';
 import { GUEST_USER_ID } from '../constants';
 import { syncOutboxStore } from './syncOutboxStore';
 import { buildProfileSyncPayload } from './profileSyncPayload';
+import { transferChatOwnership } from './chatOwnership';
+import { personalMemoryStore } from './personalMemoryStore';
+import { chatMemoryStore } from './chatMemoryStore';
+import { speechSettingsStore } from './speechSettingsStore';
+import { noteSessionChange } from './sessionEpoch';
+import { ATTACHMENT_CLEANUP_TABLE } from './attachmentCleanupSchema';
 
 export interface GuestDataSummary {
   taskCount: number;
@@ -58,15 +64,31 @@ export const guestMigration = {
       tx.executeSync(`UPDATE custom_categories SET user_id = ? WHERE user_id = ?`, [cloudUserId, GUEST_USER_ID]);
       tx.executeSync(`UPDATE user_preferences SET user_id = ? WHERE user_id = ?`, [cloudUserId, GUEST_USER_ID]);
       tx.executeSync(`UPDATE job_queue_items SET user_id = ? WHERE user_id = ?`, [cloudUserId, GUEST_USER_ID]);
-      tx.executeSync(`UPDATE chat_sessions SET user_id = ? WHERE user_id = ?`, [cloudUserId, GUEST_USER_ID]);
+      // Chat sessions are owner-derived, so the guest conversation is moved rather than relabelled.
+      transferChatOwnership(tx, GUEST_USER_ID, cloudUserId, now);
+      // Chat memories follow the conversations they came from.
+      chatMemoryStore.transferFromGuest(tx, GUEST_USER_ID, cloudUserId);
       tx.executeSync(`UPDATE user_behavior_logs SET user_id = ? WHERE user_id = ?`, [cloudUserId, GUEST_USER_ID]);
       tx.executeSync(`UPDATE ml_feature_snapshots SET user_id = ? WHERE user_id = ?`, [cloudUserId, GUEST_USER_ID]);
+      // Device-local event defaults (AGY-PORT 09): the account keeps its own choices.
+      personalMemoryStore.transferFromGuest(tx, cloudUserId, now);
+      // Device-local offline voice choice (AGY-PORT 10), same rule.
+      speechSettingsStore.transferFromGuest(tx, cloudUserId, now);
+      // Pending attachment cleanup (ADR-026) follows the conversation that owned
+      // the files; an obligation the account already holds is kept once.
+      tx.executeSync(
+        `UPDATE OR IGNORE ${ATTACHMENT_CLEANUP_TABLE} SET user_id = ? WHERE user_id = ?`,
+        [cloudUserId, GUEST_USER_ID],
+      );
+      tx.executeSync(`DELETE FROM ${ATTACHMENT_CLEANUP_TABLE} WHERE user_id = ?`, [GUEST_USER_ID]);
 
       // 3. Remove old guest record if different
       if (cloudUserId !== GUEST_USER_ID) {
         tx.executeSync(`DELETE FROM users WHERE id = ?`, [GUEST_USER_ID]);
       }
 
+      // The guest's session is replaced: its open confirmations are retired.
+      noteSessionChange();
       tx.executeSync('DELETE FROM active_session');
       tx.executeSync(
         `INSERT INTO active_session (user_id, created_at, updated_at) VALUES (?, ?, ?)`,

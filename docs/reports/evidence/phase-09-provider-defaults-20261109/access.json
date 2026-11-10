@@ -1,0 +1,13 @@
+{
+  "elevenlabs_key_present": true,
+  "deepseek_key_present": true,
+  "agent_id_present": false,
+  "agent_secret_present": false,
+  "elevenlabs_agents": {
+    "http_status": 401,
+    "provider_status": "missing_permissions"
+  },
+  "deepseek_models": {
+    "http_status": 200
+  }
+}

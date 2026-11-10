@@ -1,0 +1,53 @@
+{
+  "timestamp_utc": "2026-11-09T02:04:24.810873+00:00",
+  "device": {
+    "model": "Infinix HOT 50 Pro+ / X6880",
+    "api": 35,
+    "architecture": "arm64-v8a",
+    "package": "com.lafina.capstone.providers"
+  },
+  "memory_before": {
+    "branch": "codex/chat-memory",
+    "head": "45f65a7713398d4430de41b475a592e620e415dd",
+    "status": ""
+  },
+  "memory_after": {
+    "branch": "codex/chat-memory",
+    "head": "45f65a7713398d4430de41b475a592e620e415dd",
+    "status": ""
+  },
+  "memory_unchanged": true,
+  "source_commit": "a3d1671ff6ac6d4c3df1cf7e36a7ec795e7233f8",
+  "preflight": {
+    "exit_code": 0,
+    "suites": 76,
+    "passed": 1151,
+    "skipped": 1
+  },
+  "backend": {
+    "passed": 238,
+    "warnings": 8
+  },
+  "gateway_tests": 7,
+  "tunnel_tests": 2,
+  "native": {
+    "tests": 51,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0
+  },
+  "phone_install": "adb install -r success",
+  "owner_confirmed_clear_voice": true,
+  "phone_short_spoken_turn": "observed",
+  "keyboard_input_reachability": "observed after rebuilt APK",
+  "muted_typed_reply": "unresolved: user turn shown, no assistant reply observed",
+  "controlled_natural_pause": "NOT RUN",
+  "spoken_barge_in": "NOT RUN",
+  "locked_background_reboot_alarms": "NOT RUN",
+  "audio_after_phone_test": {
+    "active_recording_section_empty": true,
+    "audio_focus_stack_empty": true
+  },
+  "production_deployed": false,
+  "provider_credentials_in_evidence": false
+}

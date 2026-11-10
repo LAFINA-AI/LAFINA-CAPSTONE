@@ -1,10 +1,13 @@
 import { DeviceEventEmitter } from 'react-native';
 import { remindersStore } from '../storage/remindersStore';
-import { tasksStore } from '../storage/tasksStore';
+import { deliveryStore } from '../storage/deliveryStore';
+import { db } from '../storage/database';
+import { alertSuppression } from '../storage/sourceReminders';
 import { initTts, stopSpeechPlayback } from '../ai/tts/ttsService';
 import {
   cancelOfflineSpeechCapture,
   hasOfflineSpeechCapture,
+  isMicrophoneBusyError,
   startOfflineSpeechCapture,
 } from '../ai/native/speechCapture';
 import type {
@@ -58,12 +61,15 @@ interface CallDispatcherSession {
   id: number;
   reminderId: string;
   userId: string;
+  /** Delivery generation captured when the call was shown; fences every action. */
+  generation: number | null;
   task: string;
   state: CallState;
   retryCount: number;
   voiceEnabled: boolean;
   speechProvider: CallSpeechProvider;
   isResolving: boolean;
+  externalVoice?: boolean;
 }
 
 interface EventSubscription {
@@ -390,6 +396,7 @@ const processCallTranscript = async (
       const action = await acknowledgeReminderAction(
         session.reminderId,
         session.userId,
+        session.generation,
       );
       await speakText(action.message);
       if (action.ok) {
@@ -406,6 +413,7 @@ const processCallTranscript = async (
       session.reminderId,
       session.userId,
       minutes,
+      session.generation,
     );
     await speakText(action.message);
     if (action.ok) {
@@ -506,10 +514,57 @@ async function startAutomaticAttempt(
   } catch (error) {
     removeActiveCapture(capture);
     if (!isCurrentSession(session)) return;
+    if (isMicrophoneBusyError(error)) {
+      // AGY-PORT 05: another recorder owns the microphone. That is not a failed
+      // answer, so it must not count toward auto-snooze, and the recording is left
+      // alone. MIC_IN_USE names the other recorder; CAPTURE_BUSY is another voice
+      // capture still finishing, which must not be described as a recording.
+      session.voiceEnabled = false;
+      const code = (error as { code?: unknown } | null)?.code;
+      publishCallState(
+        'connected',
+        code === 'MIC_IN_USE'
+          ? 'The microphone is being used by a recording. Use the buttons below.'
+          : 'The microphone is still busy with another voice capture. Use the buttons below.',
+      );
+      return;
+    }
     console.error('[CallDispatcher] Capture result error:', error);
     await handleFailedAttempt(session);
   }
 }
+
+/**
+ * Resolves the delivery generation a call acts on. A captured generation that
+ * no longer matches (edited, rescheduled, deleted, rekeyed or another owner)
+ * makes the call inert: its native artifacts are dismissed, newer work is
+ * left untouched.
+ */
+const captureCallGeneration = (
+  reminderId: string,
+  userId: string,
+  expectedGeneration: number | null | undefined,
+):
+  | { ok: true; generation: number | null }
+  | { ok: false; retired: boolean } => {
+  const fence = deliveryStore.checkFence(
+    reminderId,
+    userId,
+    expectedGeneration,
+  );
+  if (!fence.ok) {
+    console.warn('[CallDispatcher] Ignoring stale call:', fence.reason);
+    return { ok: false, retired: fence.reason === 'not_actionable' };
+  }
+  if (expectedGeneration !== undefined && expectedGeneration !== null) {
+    return {
+      ok: true,
+      generation:
+        expectedGeneration > 0 ? expectedGeneration : fence.job?.generation ?? null,
+    };
+  }
+  return { ok: true, generation: fence.job?.generation ?? null };
+};
 
 /**
  * Answers a triggered reminder and starts call interaction.
@@ -519,42 +574,52 @@ export const answerCall = async (
   userId: string,
   voiceEnabled = true,
   speechProvider?: CallSpeechProvider,
-): Promise<void> => {
+  expectedGeneration?: number | null,
+  externalVoice = false,
+): Promise<boolean> => {
   const reminder = remindersStore.getReminderById(reminderId);
   if (!reminder || reminder.userId !== userId) {
     console.error('[CallDispatcher] Reminder not found:', reminderId);
-    return;
+    return false;
+  }
+  const captured = captureCallGeneration(reminderId, userId, expectedGeneration);
+  if (!captured.ok) {
+    await finishNativeIncomingCall(reminderId);
+    // A retired job has no newer work to protect; a stale generation might.
+    if (captured.retired) await cancelReminderAlarm(reminderId);
+    return false;
   }
   if (reminder.status === 'acknowledged' || reminder.status === 'missed') {
     await finishNativeIncomingCall(reminderId);
     await cancelReminderAlarm(reminderId);
-    return;
+    return false;
   }
 
-  const normTask = reminder.task.trim().toLowerCase();
-  const matchingTasks = tasksStore.getAllTasks(userId);
-  const isTaskDone = matchingTasks.some(
-    (t) => t.isCompleted && t.title.trim().toLowerCase() === normTask,
-  );
+  // Only the reminder's own task (exact link or strict evidence) counts; a
+  // completed task that merely shares the title does not end this call.
+  const isTaskDone = alertSuppression(db, reminder) === 'task_completed';
   if (isTaskDone) {
     remindersStore.acknowledgeReminder(reminder.id);
     await cancelReminderAlarm(reminder.id);
     await finishNativeIncomingCall(reminderId);
-    return;
+    return false;
   }
 
+  const answerSequence = ++sessionSequence;
   await stopActiveAudioAndCapture();
-  sessionSequence += 1;
+  if (answerSequence !== sessionSequence) return false;
   const session: CallDispatcherSession = {
     id: sessionSequence,
     reminderId,
     userId,
+    generation: captured.generation,
     task: reminder.task,
     state: 'connected',
     retryCount: 0,
     voiceEnabled,
     speechProvider: speechProvider || defaultCallSpeechProvider,
     isResolving: false,
+    externalVoice: externalVoice && voiceEnabled,
   };
   activeSession = session;
 
@@ -565,9 +630,23 @@ export const answerCall = async (
       console.error('[CallDispatcher] Active-call service failed:', error);
     }
   }
+  if (!isCurrentSession(session)) {
+    if (!activeSession) void stopActiveCallSession().catch(() => undefined);
+    return false;
+  }
   await finishNativeIncomingCall(reminderId);
+  if (!isCurrentSession(session)) return false;
   remindersStore.updateReminderStatus(reminderId, 'triggered');
   publishCallState('connected');
+
+  if (session.externalVoice) {
+    // Deliver the actual reminder before handing the speaker and microphone to
+    // the conversation. No offline capture runs during the online session.
+    await speakText(buildAnnouncement(reminder.task), {fallbackAudioPath: reminder.preCastAudioPath});
+    if (!isCurrentSession(session)) return false;
+    publishCallState('connected', 'Connecting to online conversation…');
+    return true;
+  }
 
   const preferences = getReminderPreferences(userId);
   const announcement = buildAnnouncement(reminder.task);
@@ -587,10 +666,22 @@ export const answerCall = async (
         );
       }
     });
-    return;
+    return true;
   }
 
   void startAutomaticAttempt(session, announcement, reminder.preCastAudioPath);
+  return true;
+};
+
+/** Resume the existing offline call only while the same accepted call remains active. */
+export const resumeOfflineCall = (reminderId: string, userId: string): boolean => {
+  const session = activeSession;
+  if (!session || session.reminderId !== reminderId || session.userId !== userId ||
+      !session.externalVoice || session.isResolving) return false;
+  session.externalVoice = false;
+  const reminder = remindersStore.getReminderById(reminderId);
+  void startAutomaticAttempt(session, buildAnnouncement(session.task), reminder?.preCastAudioPath);
+  return true;
 };
 
 /**
@@ -605,6 +696,7 @@ export const autoSnoozeCall = async (): Promise<void> => {
   const action = await autoSnoozeReminderAction(
     session.reminderId,
     session.userId,
+    session.generation,
   );
   if (session.state !== 'ringing') {
     await speakText(action.message);
@@ -619,9 +711,15 @@ export const declineCall = async (
   reminderId: string,
   userId: string,
   speechProvider: CallSpeechProvider = defaultCallSpeechProvider,
+  expectedGeneration?: number | null,
 ): Promise<void> => {
   const reminder = remindersStore.getReminderById(reminderId);
   if (!reminder || reminder.userId !== userId) {
+    await finishNativeIncomingCall(reminderId);
+    return;
+  }
+  const captured = captureCallGeneration(reminderId, userId, expectedGeneration);
+  if (!captured.ok) {
     await finishNativeIncomingCall(reminderId);
     return;
   }
@@ -630,6 +728,7 @@ export const declineCall = async (
     id: sessionSequence,
     reminderId,
     userId,
+    generation: captured.generation,
     task: reminder.task,
     state: 'ringing',
     retryCount: 0,
@@ -658,7 +757,12 @@ export const manualSnoozeCall = async (
     return;
   }
   await stopActiveAudioAndCapture(session);
-  const action = await snoozeReminderAction(reminderId, userId, minutes);
+  const action = await snoozeReminderAction(
+    reminderId,
+    userId,
+    minutes,
+    session.generation,
+  );
   if (!isCurrentSession(session)) return;
   await speakText(action.message);
   if (action.ok) {
@@ -685,7 +789,11 @@ export const manualAcknowledgeCall = async (
     return;
   }
   await stopActiveAudioAndCapture(session);
-  const action = await acknowledgeReminderAction(reminderId, userId);
+  const action = await acknowledgeReminderAction(
+    reminderId,
+    userId,
+    session.generation,
+  );
   if (!isCurrentSession(session)) return;
   await speakText(action.message);
   if (action.ok) {
@@ -699,6 +807,7 @@ export const manualAcknowledgeCall = async (
  * Stops the active call loop, microphone service, and terminal UI state.
  */
 export const disconnectCall = (resolution?: CallResolution): void => {
+  sessionSequence += 1;
   const session = activeSession;
   if (!session) return;
   session.state = 'disconnected';

@@ -16,7 +16,11 @@ import {
 import { recordedMeetingStore } from '../../storage';
 import type { MeetingPatch, RecordedMeeting } from '../../storage';
 import { generateId } from '../../utils';
-import { meetingRecorder, transcribeMeetingChunks } from '../../ai';
+import {
+  isMicrophoneBusyError,
+  meetingRecorder,
+  transcribeMeetingChunks,
+} from '../../ai';
 import { hasProEntitlement, requestMeetingSummary } from '../../cloud';
 import { meetingNotesSkill } from '../../skills/meetingNotesSkill';
 import {
@@ -319,8 +323,11 @@ export const MeetingsProvider: React.FC<{
       }
 
       const startedAt = Date.now();
+      // ponytail: transcribe meeting chunks using ElevenLabs cloud STT with local Whisper fallback
       const result = await transcribeMeetingChunks({
         meetingId: id,
+        userId: userId || undefined,
+        useElevenLabs: true,
         chunkFiles: audio.chunks.map((chunk) => chunk.path),
         chunkDurationsMs: audio.chunks.map((chunk) => chunk.durationMs),
         keepAudio,
@@ -389,7 +396,7 @@ export const MeetingsProvider: React.FC<{
       });
       return segments.length > 0;
     },
-    [keepAudio, update],
+    [keepAudio, update, userId],
   );
 
   const runPipeline = useCallback(
@@ -522,9 +529,15 @@ export const MeetingsProvider: React.FC<{
         console.error('[Meetings] Could not start recording:', error);
         recordedMeetingStore.remove(id);
         setRecorder(null);
-        const busy = /ALREADY_RECORDING|MIC_IN_USE|already being recorded/i.test(
-          String((error as Error)?.message ?? ''),
-        );
+        // AGY-PORT 05: the native code (not only the message) says the microphone
+        // is owned by voice capture; nothing already recorded is touched.
+        const code = String((error as { code?: unknown })?.code ?? '');
+        const busy =
+          isMicrophoneBusyError(error) ||
+          code === 'ALREADY_RECORDING' ||
+          /ALREADY_RECORDING|MIC_IN_USE|already being recorded|microphone is currently in use/i.test(
+            String((error as Error)?.message ?? ''),
+          );
         setRecorderError(
           describeMeetingError(busy ? 'microphone_in_use' : 'recording_failed'),
         );

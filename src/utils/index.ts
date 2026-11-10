@@ -9,6 +9,14 @@ export {
 } from './noteMarkdown';
 export type { NoteBlock, NoteInline } from './noteMarkdown';
 export {
+  chatMarkdownToPlainText,
+  hasWideMarkdownBlock,
+  hideDanglingMarkers,
+  parseChatInline,
+  parseChatMarkdown,
+} from './chatMarkdown';
+export type { ChatBlock, ChatInline, ChatMarkdownOptions } from './chatMarkdown';
+export {
   checklistStats,
   extractChecklistItems,
   htmlToMarkdown,

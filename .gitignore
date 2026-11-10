@@ -30,6 +30,7 @@ prompts/
 # Generated dependencies/builds.
 node_modules/
 .gradle/
+.kotlin/
 .cxx/
 build/
 coverage/
@@ -39,7 +40,6 @@ __pycache__/
 local.properties
 .idea/
 .vscode/
-graphify-out/
 .phase01-template/
 .local/
 *.tgz
@@ -66,3 +66,4 @@ yarn-error.log*
 
 !android/app/src/main/assets/models/ggml-base.en-q5_1.bin
 !android/app/src/main/assets/models/silero_vad.onnx
+agy-improvements

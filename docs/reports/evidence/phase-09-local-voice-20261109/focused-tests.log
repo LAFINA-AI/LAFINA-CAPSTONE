@@ -1,0 +1,8 @@
+PASS __tests__/ui/voiceConversationUi.test.tsx (15.105 s)
+PASS __tests__/cloud/voiceConversationController.test.ts
+
+Test Suites: 2 passed, 2 total
+Tests:       52 passed, 52 total
+Snapshots:   0 total
+Time:        16.659 s
+Ran all test suites matching /__tests__\\cloud\\voiceConversationController.test.ts|__tests__\\ui\\voiceConversationUi.test.tsx/i.

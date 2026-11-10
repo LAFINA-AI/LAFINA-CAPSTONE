@@ -40,6 +40,8 @@ export {
   cancelOfflineSpeechCapture,
   hasOfflineSpeechCapture,
   getActiveOfflineCaptureId,
+  isMicrophoneBusyError,
+  MicrophoneBusyError,
 } from './native/speechCapture';
 
 export * from './nlu';

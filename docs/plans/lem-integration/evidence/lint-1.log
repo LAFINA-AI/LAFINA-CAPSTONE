@@ -1,0 +1,21 @@
+
+C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\__tests__\ai\mlFeaturePipeline.test.ts
+  11:9  error  'behaviorStore' is defined but never used  @typescript-eslint/no-unused-vars
+
+C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\__tests__\ai\mlTimingAdvisor.test.ts
+  2:3  error  'computeAdaptiveTriggerAt' is defined but never used    @typescript-eslint/no-unused-vars
+  5:3  error  'MIN_HISTORY_SAMPLES_FOR_ML' is defined but never used  @typescript-eslint/no-unused-vars
+
+C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\src\ai\ml\timingAdvisor.ts
+  15:9  error  'preferencesStore' is defined but never used  @typescript-eslint/no-unused-vars
+  29:3  error  'DecisionTree' is defined but never used      @typescript-eslint/no-unused-vars
+  32:3  error  'StudentFeatures' is defined but never used   @typescript-eslint/no-unused-vars
+
+C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\src\ai\nlu\commandReview.ts
+  384:39  warning  Unnecessary escape character: \[  no-useless-escape
+
+C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\src\ui\screens\ProfileScreen.tsx
+  41:3  error  'UNAVAILABLE_STATISTICS' is defined but never used  @typescript-eslint/no-unused-vars
+
+✖ 8 problems (7 errors, 1 warning)
+

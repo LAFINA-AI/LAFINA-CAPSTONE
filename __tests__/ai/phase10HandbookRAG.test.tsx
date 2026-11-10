@@ -84,7 +84,7 @@ describe('Phase 10: USTP Student Handbook RAG & Citation-Backed Answers', () => 
   });
 
   describe('3. onlineChatSkill Handbook Integration', () => {
-    it('sends use_handbook: true and parses sources with citations', async () => {
+    it('sends useHandbook: true and parses sources with citations', async () => {
       const requestSpy = jest.spyOn(cloudClient, 'request').mockResolvedValueOnce({
         status: 'success',
         data: {
@@ -110,7 +110,7 @@ describe('Phase 10: USTP Student Handbook RAG & Citation-Backed Answers', () => 
         '/v1/ai/chat',
         expect.objectContaining({
           method: 'POST',
-          body: expect.stringContaining('"use_handbook":true'),
+          body: expect.stringContaining('"useHandbook":true'),
         }),
         true,
       );
@@ -122,7 +122,7 @@ describe('Phase 10: USTP Student Handbook RAG & Citation-Backed Answers', () => 
       expect(result.data?.reply).toContain('GPA of 1.75');
     });
 
-    it('sends use_handbook: false when handbook toggle is disabled', async () => {
+    it('sends useHandbook: false when handbook toggle is disabled', async () => {
       const requestSpy = jest.spyOn(cloudClient, 'request').mockResolvedValueOnce({
         status: 'success',
         data: {
@@ -141,7 +141,7 @@ describe('Phase 10: USTP Student Handbook RAG & Citation-Backed Answers', () => 
         '/v1/ai/chat',
         expect.objectContaining({
           method: 'POST',
-          body: expect.stringContaining('"use_handbook":false'),
+          body: expect.stringContaining('"useHandbook":false'),
         }),
         true,
       );

@@ -1,0 +1,48 @@
+{
+  "friend": "f76ea9dbc33fceb4d122bc586f2f17fb0712072c",
+  "improvements": "f531bfbe691409cd020b8a56f8d79925d249e646",
+  "common_base": "b9433dc39d172f30ba26ea68e4a9c9eedd922407",
+  "preservation": [
+    {
+      "path": "android/app/src/main/cpp/whisper_jni.cc",
+      "exact_text": true,
+      "non_import_body_equal": true
+    },
+    {
+      "path": "src/ai/ml/ewma.ts",
+      "exact_text": true,
+      "non_import_body_equal": true
+    },
+    {
+      "path": "src/ai/ml/featureExtractor.ts",
+      "exact_text": true,
+      "non_import_body_equal": true
+    },
+    {
+      "path": "src/ai/ml/index.ts",
+      "exact_text": true,
+      "non_import_body_equal": true
+    },
+    {
+      "path": "src/ai/ml/knn.ts",
+      "exact_text": true,
+      "non_import_body_equal": true
+    },
+    {
+      "path": "src/ai/ml/randomForest.ts",
+      "exact_text": true,
+      "non_import_body_equal": true
+    },
+    {
+      "path": "src/ai/ml/timingAdvisor.ts",
+      "exact_text": false,
+      "non_import_body_equal": true
+    },
+    {
+      "path": "src/ai/ml/types.ts",
+      "exact_text": true,
+      "non_import_body_equal": true
+    }
+  ],
+  "original_local_agy_ref": "b9433dc39d172f30ba26ea68e4a9c9eedd922407"
+}

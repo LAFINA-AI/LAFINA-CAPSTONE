@@ -15,3 +15,4 @@ export type {
   MeetingSummaryResponse,
   RequestMeetingSummaryInput,
 } from './meetingService';
+export { transcribeChunkWithElevenLabs } from './elevenlabsTranscriber';

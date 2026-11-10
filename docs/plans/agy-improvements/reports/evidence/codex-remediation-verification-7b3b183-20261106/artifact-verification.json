@@ -1,0 +1,32 @@
+[
+  {
+    "file": "app-arm64-v8a-dataQa.apk",
+    "sha256": "2502aec34ffb3f349e43dd9d1c202e8f549a26a0595e8961c58a51ecb95689ba",
+    "matches_receipt": true,
+    "bundle_sha256": "f86e13afe42dfc9588a6bea6aaf70a75cc0e10c83cdaeece943f7fefd5d8bc67",
+    "matches_reported_fixed_bundle": true,
+    "elf_pass": 16,
+    "elf_count": 16,
+    "zip_alignment_failures": [],
+    "models": [
+      "assets/models/ggml-base.en-q5_1.bin",
+      "assets/models/silero_vad.onnx"
+    ],
+    "kokoro": []
+  },
+  {
+    "file": "app-x86_64-dataQa.apk",
+    "sha256": "a0bf18e5ce2b87a03097895231e67e3f1b7735a656b05272e1ca12417b5c91f2",
+    "matches_receipt": true,
+    "bundle_sha256": "f86e13afe42dfc9588a6bea6aaf70a75cc0e10c83cdaeece943f7fefd5d8bc67",
+    "matches_reported_fixed_bundle": true,
+    "elf_pass": 16,
+    "elf_count": 16,
+    "zip_alignment_failures": [],
+    "models": [
+      "assets/models/ggml-base.en-q5_1.bin",
+      "assets/models/silero_vad.onnx"
+    ],
+    "kokoro": []
+  }
+]

@@ -1,0 +1,2 @@
+f749528591f66114ed1db3af3263b429acba39267b43947c8ebf43b12f4c21c5 *android/app/build/outputs/apk/debug/app-arm64-v8a-debug.apk
+ee3bf893687ddad6e58a593e2a54745363bac84c1a671d06ebe666d3cce82dd3 *android/app/build/outputs/apk/debug/app-x86_64-debug.apk

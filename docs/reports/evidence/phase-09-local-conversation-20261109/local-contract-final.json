@@ -1,0 +1,33 @@
+{
+  "memory_checkout": {
+    "branch": "codex/chat-memory",
+    "head": "45f65a7713398d4430de41b475a592e620e415dd",
+    "status": ""
+  },
+  "local_login_http": 200,
+  "voice_routes": [
+    "/v1/ai/voice/capabilities",
+    "/v1/ai/voice/llm/chat/completions",
+    "/v1/ai/voice/sessions",
+    "/v1/ai/voice/sessions/{session_id}",
+    "/v1/ai/voice/sessions/{session_id}/connected",
+    "/v1/ai/voice/sessions/{session_id}/end"
+  ],
+  "unauthenticated_capabilities_http": 401,
+  "authenticated_capabilities_http": 200,
+  "capabilities": {
+    "provider": "elevenlabs",
+    "enabled": true,
+    "maxDurationSeconds": 300,
+    "maxTurns": 30,
+    "sessionsPerDay": 6,
+    "detail": null
+  },
+  "gateway_live": {
+    "health": 200,
+    "unauthorized_callback": 401,
+    "secret_without_grant": 401,
+    "auth_not_exposed": 404,
+    "docs_not_exposed": 404
+  }
+}

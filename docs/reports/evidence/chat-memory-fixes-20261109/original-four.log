@@ -1,0 +1,36 @@
+  console.warn
+    [ChatMemory] Memory update skipped: Error: metadata write failed
+        at Object.<anonymous> (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\.local\chat-memory-review.test.ts:35:78)
+        at C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-mock\build\index.js:397:39
+        at Object.<anonymous> (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-mock\build\index.js:404:13)
+        at Object.mockConstructor [as setMemoryChanges] (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-mock\build\index.js:148:19)
+        at setMemoryChanges (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\src\cloud\chatMemoryService.ts:176:22)
+        at DatabaseService.fn [as transactionSync] (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\src\storage\database.ts:214:16)
+        at Object.transactionSync (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\src\cloud\chatMemoryService.ts:153:26)
+        at Generator.next (<anonymous>)
+        at asyncGeneratorStep (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\@babel\runtime\helpers\asyncToGenerator.js:3:17)
+        at _next (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\@babel\runtime\helpers\asyncToGenerator.js:17:9)
+
+      183 |       return changes;
+      184 |     } catch (error) {
+    > 185 |       console.warn('[ChatMemory] Memory update skipped:', error);
+          |               ^
+      186 |       return null;
+      187 |     }
+      188 |   },
+
+      at Object.warn (src/cloud/chatMemoryService.ts:185:15)
+      at asyncGeneratorStep (node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+      at _next (node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
+
+PASS .local/chat-memory-review.test.ts (5.001 s)
+  √ does not restore memory after the user clears data during extraction (8 ms)
+  √ does not save memory without its promised reply notice if saving metadata fails (53 ms)
+  √ Undo restores all memories when adding at the storage limit (27 ms)
+  √ can forget all stored memories on a natural-language forget-everything request (63 ms)
+
+Test Suites: 1 passed, 1 total
+Tests:       4 passed, 4 total
+Snapshots:   0 total
+Time:        5.435 s
+Ran all test suites within paths ".local/chat-memory-review.test.ts".

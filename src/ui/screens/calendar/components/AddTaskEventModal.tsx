@@ -20,6 +20,15 @@ import {
 import { ScheduleItemModalState } from '../types';
 import { Shadows } from '../../../theme';
 import { parseRrule } from '../../../../storage/rruleHelper';
+import type { Event } from '../../../../storage';
+import {
+  addDaysToDate,
+  deviceTimeZone,
+  endsNextDay,
+  isRealDate,
+  isWallTime,
+} from '../../../../storage/eventTime';
+import { personalMemoryStore } from '../../../../storage/personalMemoryStore';
 
 interface AddTaskEventModalProps {
   state: ScheduleItemModalState;
@@ -68,6 +77,27 @@ export const AddTaskEventModal: React.FC<AddTaskEventModalProps> = ({ state, tim
       setRepeatCount('10');
     }
   }, [state.visible, state.editingItem]);
+
+  // AGY-PORT 08: say what an end before the start means, and say when the
+  // event was saved in another timezone (that metadata is on this device only).
+  // A new event's date is the selected day, which the form does not carry.
+  const eventDate = state.form.date ?? null;
+  const timeHint = (() => {
+    if (state.modalType !== 'event') return null;
+    const { time, endTime } = state.form;
+    if (!isWallTime(time) || !isWallTime(endTime)) return null;
+    if (time === endTime) return 'The end time must be different from the start time.';
+    if (!endsNextDay(time, endTime)) return null;
+    const nextDay = eventDate && isRealDate(eventDate) ? addDaysToDate(eventDate, 1) : null;
+    return nextDay ? `Ends the next day (${nextDay}).` : 'Ends the next day.';
+  })();
+  const savedZone =
+    state.modalType === 'event' ? (state.editingItem as Event | null)?.timeZone ?? null : null;
+  const hereZone = deviceTimeZone();
+  const zoneHint =
+    savedZone && hereZone && savedZone !== hereZone
+      ? `Saved on this device in ${savedZone}. A changed time is saved in ${hereZone}.`
+      : null;
 
   const handleSaveLocal = () => {
     let ruleStr: string | null = null;
@@ -169,6 +199,34 @@ export const AddTaskEventModal: React.FC<AddTaskEventModalProps> = ({ state, tim
               </View>
             )}
           </View>
+          {timeHint && (
+            <Text testID="event-time-hint" style={[styles.timeHint, { color: colors.textSecondary }]}>
+              {timeHint}
+            </Text>
+          )}
+          {zoneHint && (
+            <Text testID="event-zone-hint" style={[styles.timeHint, { color: colors.textSecondary }]}>
+              {zoneHint}
+            </Text>
+          )}
+          {state.modalType === 'event' && !state.editingItem && state.memoryOffer && state.applyMemoryOffer && (
+            <View
+              testID="event-memory-offer"
+              style={[styles.memoryOffer, { borderColor: colors.border, backgroundColor: colors.inputBg }]}
+            >
+              <Text style={[styles.memoryOfferText, { color: colors.textSecondary }]}>
+                {`Your saved defaults: ${personalMemoryStore.describe(state.memoryOffer.value)}`}
+              </Text>
+              <TouchableOpacity
+                accessibilityRole="button"
+                accessibilityLabel="Apply saved event defaults to this draft"
+                onPress={state.applyMemoryOffer}
+                style={styles.memoryOfferButton}
+              >
+                <Text style={[styles.memoryOfferButtonText, { color: colors.blue }]}>Apply</Text>
+              </TouchableOpacity>
+            </View>
+          )}
 
           {state.modalType === 'task' && (
             <View style={[styles.segmentedRow, { backgroundColor: colors.divider }]}>
@@ -456,6 +514,32 @@ const styles = StyleSheet.create({
   modalColLabel: {
     fontSize: 11,
     marginBottom: 4,
+  },
+  timeHint: {
+    fontSize: 12,
+    marginTop: -4,
+    marginBottom: 12,
+  },
+  memoryOffer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderRadius: 8,
+    paddingVertical: 8,
+    paddingHorizontal: 10,
+    marginBottom: 12,
+  },
+  memoryOfferText: {
+    flex: 1,
+    fontSize: 12,
+  },
+  memoryOfferButton: {
+    paddingVertical: 6,
+    paddingHorizontal: 10,
+  },
+  memoryOfferButtonText: {
+    fontSize: 13,
+    fontWeight: '600',
   },
   timePickerBtn: {
     borderWidth: 1,

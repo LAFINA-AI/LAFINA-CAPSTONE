@@ -1,33 +1,48 @@
-import React, { useState } from 'react';
-import {
-  View,
-  Text,
-  StyleSheet,
-  TouchableOpacity,
-  Modal,
-} from 'react-native';
+import React, {useState} from 'react';
+import {View, Text, StyleSheet, TouchableOpacity, Modal} from 'react-native';
 import DateTimePicker from '@react-native-community/datetimepicker';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Plus, ChevronLeft, ChevronRight, ChevronDown, Upload, Download, Layers, Clock, CheckSquare, FileText } from 'lucide-react-native';
-import { useTheme } from '../../contexts/ThemeContext';
-import { Colors, Shadows } from '../../theme';
-import { getCategoryColor, registerCustomCategoryColor } from '../../theme/categoryColors';
-import { useCalendarData } from './hooks/useCalendarData';
-import { useTimeBlockModal } from './hooks/useTimeBlockModal';
-import { useScheduleItemModal } from './hooks/useScheduleItemModal';
-import { WeekView, MonthView, AddBlockModal, AddTaskEventModal } from './components';
-import { NoteEditor } from '../notes/components/NoteEditor';
-import { getHeaderTitle } from './utils/calendarHelpers';
-import { CalendarScreenProps, ViewMode } from './types';
-import { tasksStore, notesStore } from '../../../storage';
-import type { Task } from '../../../storage';
+import {useSafeAreaInsets} from 'react-native-safe-area-context';
+import {
+  Plus,
+  ChevronLeft,
+  ChevronRight,
+  ChevronDown,
+  Upload,
+  Download,
+  Layers,
+  Clock,
+  CheckSquare,
+  FileText,
+  Inbox,
+} from 'lucide-react-native';
+import {useTheme} from '../../contexts/ThemeContext';
+import {Colors, Shadows} from '../../theme';
+import {
+  getCategoryColor,
+  registerCustomCategoryColor,
+} from '../../theme/categoryColors';
+import {useCalendarData} from './hooks/useCalendarData';
+import {useTimeBlockModal} from './hooks/useTimeBlockModal';
+import {useScheduleItemModal} from './hooks/useScheduleItemModal';
+import {
+  WeekView,
+  MonthView,
+  AddBlockModal,
+  AddTaskEventModal,
+} from './components';
+import {UndatedTasksModal} from './components/UndatedTasksModal';
+import {NoteEditor} from '../notes/components/NoteEditor';
+import {getHeaderTitle} from './utils/calendarHelpers';
+import {CalendarScreenProps, ViewMode} from './types';
+import {tasksStore, notesStore} from '../../../storage';
+import type {Task} from '../../../storage';
 import {
   applyNoteFormat,
   continueListOnNewline,
   generateId,
   toggleChecklistItem,
 } from '../../../utils';
-import { CalendarLayersModal } from '../../components/calendar/CalendarLayersModal';
+import {CalendarLayersModal} from '../../components/calendar/CalendarLayersModal';
 
 /** Renders the offline calendar workspace and its local scheduling actions. */
 export const CalendarScreen: React.FC<CalendarScreenProps> = ({
@@ -37,24 +52,25 @@ export const CalendarScreen: React.FC<CalendarScreenProps> = ({
   viewMode: propViewMode,
   onViewModeChange: propOnViewModeChange,
 }) => {
-  const { colors } = useTheme();
+  const {colors} = useTheme();
   const insets = useSafeAreaInsets();
   const fabBottom = Math.max(insets.bottom, 12) + 90;
 
   const [fabMenuVisible, setFabMenuVisible] = useState(false);
+  const [undatedVisible, setUndatedVisible] = useState(false);
   const [noteModalVisible, setNoteModalVisible] = useState(false);
   const [noteTitle, setNoteTitle] = useState('');
   const [noteBody, setNoteBody] = useState('');
   const [noteCategory, setNoteCategory] = useState('Personal');
   const [isPinned, setIsPinned] = useState(false);
-  const [noteSelection, setNoteSelection] = useState({ start: 0, end: 0 });
+  const [noteSelection, setNoteSelection] = useState({start: 0, end: 0});
   const [customCategories, setCustomCategories] = useState<string[]>(() => {
     try {
       const cats = notesStore.getCustomCategories(userId);
-      cats.forEach((c) => {
+      cats.forEach(c => {
         registerCustomCategoryColor(c.name, c.color);
       });
-      return cats.map((c) => c.name);
+      return cats.map(c => c.name);
     } catch {
       return [];
     }
@@ -64,10 +80,10 @@ export const CalendarScreen: React.FC<CalendarScreenProps> = ({
     if (!noteModalVisible) return;
     try {
       const cats = notesStore.getCustomCategories(userId);
-      cats.forEach((c) => {
+      cats.forEach(c => {
         registerCustomCategoryColor(c.name, c.color);
       });
-      setCustomCategories(cats.map((c) => c.name));
+      setCustomCategories(cats.map(c => c.name));
     } catch (e) {
       console.error(e);
     }
@@ -77,7 +93,10 @@ export const CalendarScreen: React.FC<CalendarScreenProps> = ({
     if (!name.trim()) return;
     const normalizedName = name.trim();
     const standard = ['Work', 'Personal', 'Health', 'Learning'];
-    if (standard.includes(normalizedName) || customCategories.includes(normalizedName)) {
+    if (
+      standard.includes(normalizedName) ||
+      customCategories.includes(normalizedName)
+    ) {
       return;
     }
     notesStore.addCustomCategory(userId, normalizedName, color);
@@ -91,11 +110,19 @@ export const CalendarScreen: React.FC<CalendarScreenProps> = ({
     setCustomCategories(cats.map(c => c.name));
   };
 
-  const handleUpdateCategory = (oldName: string, newName: string, color: string) => {
+  const handleUpdateCategory = (
+    oldName: string,
+    newName: string,
+    color: string,
+  ) => {
     if (!newName.trim()) return;
     const normalizedName = newName.trim();
     const standard = ['Work', 'Personal', 'Health', 'Learning'];
-    if (normalizedName !== oldName && (standard.includes(normalizedName) || customCategories.includes(normalizedName))) {
+    if (
+      normalizedName !== oldName &&
+      (standard.includes(normalizedName) ||
+        customCategories.includes(normalizedName))
+    ) {
       return;
     }
     notesStore.updateCustomCategory(userId, oldName, normalizedName, color);
@@ -158,13 +185,13 @@ export const CalendarScreen: React.FC<CalendarScreenProps> = ({
   };
 
   const toggleTaskCompletion = (task: Task) => {
-    tasksStore.updateTask({ id: task.id, isCompleted: !task.isCompleted });
+    tasksStore.updateTask({id: task.id, isCompleted: !task.isCompleted});
     calendar.loadScheduleData();
     onRefresh();
   };
 
   return (
-    <View style={[styles.container, { backgroundColor: colors.background }]}>
+    <View style={[styles.container, {backgroundColor: colors.background}]}>
       {/* Shared date header for the month and week views. */}
       <View style={styles.topHeaderRow}>
         <TouchableOpacity
@@ -176,20 +203,32 @@ export const CalendarScreen: React.FC<CalendarScreenProps> = ({
           accessibilityHint="Opens the date picker"
         >
           <Text
-            style={[styles.headerTitle, { color: colors.textPrimary }]}
+            style={[styles.headerTitle, {color: colors.textPrimary}]}
             numberOfLines={1}
             adjustsFontSizeToFit
             minimumFontScale={0.8}
           >
-            {getHeaderTitle(calendar.viewMode, calendar.selectedDate, calendar.currentDate, calendar.weekDays)}
+            {getHeaderTitle(
+              calendar.viewMode,
+              calendar.selectedDate,
+              calendar.currentDate,
+              calendar.weekDays,
+            )}
           </Text>
-          <ChevronDown size={18} color={colors.textSecondary} style={styles.titleChevron} />
+          <ChevronDown
+            size={18}
+            color={colors.textSecondary}
+            style={styles.titleChevron}
+          />
         </TouchableOpacity>
 
         <View style={styles.navGroup}>
           <TouchableOpacity
             onPress={calendar.handlePrevPress}
-            style={[styles.navButton, { backgroundColor: colors.inputBg, borderColor: colors.border }]}
+            style={[
+              styles.navButton,
+              {backgroundColor: colors.inputBg, borderColor: colors.border},
+            ]}
             activeOpacity={0.7}
             accessibilityRole="button"
             accessibilityLabel={`Previous ${calendar.viewMode}`}
@@ -199,17 +238,25 @@ export const CalendarScreen: React.FC<CalendarScreenProps> = ({
 
           <TouchableOpacity
             onPress={calendar.handleGoToToday}
-            style={[styles.todayButton, { borderColor: colors.border, backgroundColor: colors.inputBg }]}
+            style={[
+              styles.todayButton,
+              {borderColor: colors.border, backgroundColor: colors.inputBg},
+            ]}
             activeOpacity={0.7}
             accessibilityRole="button"
             accessibilityLabel="Go to today"
           >
-            <Text style={[styles.todayButtonText, { color: colors.textPrimary }]}>Today</Text>
+            <Text style={[styles.todayButtonText, {color: colors.textPrimary}]}>
+              Today
+            </Text>
           </TouchableOpacity>
 
           <TouchableOpacity
             onPress={calendar.handleNextPress}
-            style={[styles.navButton, { backgroundColor: colors.inputBg, borderColor: colors.border }]}
+            style={[
+              styles.navButton,
+              {backgroundColor: colors.inputBg, borderColor: colors.border},
+            ]}
             activeOpacity={0.7}
             accessibilityRole="button"
             accessibilityLabel={`Next ${calendar.viewMode}`}
@@ -221,7 +268,11 @@ export const CalendarScreen: React.FC<CalendarScreenProps> = ({
 
       {calendar.showDatePicker && (
         <DateTimePicker
-          value={calendar.viewMode === 'month' ? calendar.currentDate : calendar.selectedDate}
+          value={
+            calendar.viewMode === 'month'
+              ? calendar.currentDate
+              : calendar.selectedDate
+          }
           mode="date"
           display="default"
           onChange={(_event, date) => {
@@ -236,25 +287,35 @@ export const CalendarScreen: React.FC<CalendarScreenProps> = ({
 
       {/* View mode and clearly labeled local calendar actions. */}
       <View style={styles.subHeaderContainer}>
-        <View style={[styles.toggleRow, { backgroundColor: colors.divider }]}>
-          {(['month', 'week'] as ViewMode[]).map((mode) => (
+        <View style={[styles.toggleRow, {backgroundColor: colors.divider}]}>
+          {(['month', 'week'] as ViewMode[]).map(mode => (
             <TouchableOpacity
               key={mode}
               style={[
                 styles.toggleBtn,
-                { backgroundColor: 'transparent' },
-                calendar.viewMode === mode && { backgroundColor: colors.cardBg, ...Shadows.card },
+                {backgroundColor: 'transparent'},
+                calendar.viewMode === mode && {
+                  backgroundColor: colors.cardBg,
+                  ...Shadows.card,
+                },
               ]}
               onPress={() => calendar.setViewMode(mode)}
               accessibilityRole="button"
-              accessibilityLabel={`${mode.charAt(0).toUpperCase() + mode.slice(1)} view`}
-              accessibilityState={{ selected: calendar.viewMode === mode }}
+              accessibilityLabel={`${
+                mode.charAt(0).toUpperCase() + mode.slice(1)
+              } view`}
+              accessibilityState={{selected: calendar.viewMode === mode}}
             >
-              <Text style={[
-                styles.toggleText,
-                { color: colors.textSecondary },
-                calendar.viewMode === mode && { color: colors.textPrimary, fontWeight: 'bold' },
-              ]}>
+              <Text
+                style={[
+                  styles.toggleText,
+                  {color: colors.textSecondary},
+                  calendar.viewMode === mode && {
+                    color: colors.textPrimary,
+                    fontWeight: 'bold',
+                  },
+                ]}
+              >
                 {mode.charAt(0).toUpperCase() + mode.slice(1)}
               </Text>
             </TouchableOpacity>
@@ -265,41 +326,113 @@ export const CalendarScreen: React.FC<CalendarScreenProps> = ({
           <TouchableOpacity
             onPress={calendar.handleImportCalendar}
             onLongPress={calendar.startRemoveFlow}
-            style={[styles.actionButton, { borderColor: colors.border, backgroundColor: colors.inputBg }]}
+            style={[
+              styles.actionButton,
+              {borderColor: colors.border, backgroundColor: colors.inputBg},
+            ]}
             activeOpacity={0.7}
             accessibilityRole="button"
             accessibilityLabel="Import calendar"
             accessibilityHint="Imports a calendar file. Press and hold to remove an imported calendar."
           >
             <Upload size={16} color={colors.textPrimary} />
-            <Text style={[styles.actionButtonText, { color: colors.textPrimary }]}>Import</Text>
+            <Text
+              style={[styles.actionButtonText, {color: colors.textPrimary}]}
+            >
+              Import
+            </Text>
           </TouchableOpacity>
 
           <TouchableOpacity
             onPress={calendar.handleExportCalendar}
-            style={[styles.actionButton, { borderColor: colors.border, backgroundColor: colors.inputBg }]}
+            style={[
+              styles.actionButton,
+              {borderColor: colors.border, backgroundColor: colors.inputBg},
+            ]}
             activeOpacity={0.7}
             accessibilityRole="button"
             accessibilityLabel="Export calendar"
             accessibilityHint="Exports the visible local calendar"
           >
             <Download size={16} color={colors.textPrimary} />
-            <Text style={[styles.actionButtonText, { color: colors.textPrimary }]}>Export</Text>
+            <Text
+              style={[styles.actionButtonText, {color: colors.textPrimary}]}
+            >
+              Export
+            </Text>
           </TouchableOpacity>
 
           <TouchableOpacity
             onPress={() => calendar.setLayersModalVisible(true)}
-            style={[styles.actionButton, { borderColor: colors.border, backgroundColor: colors.inputBg }]}
+            style={[
+              styles.actionButton,
+              {borderColor: colors.border, backgroundColor: colors.inputBg},
+            ]}
             activeOpacity={0.7}
             accessibilityRole="button"
             accessibilityLabel="Manage calendars"
             accessibilityHint="Shows calendar visibility and imported calendars"
           >
             <Layers size={16} color={colors.textPrimary} />
-            <Text style={[styles.actionButtonText, { color: colors.textPrimary }]}>Calendars</Text>
+            <Text
+              style={[styles.actionButtonText, {color: colors.textPrimary}]}
+            >
+              Calendars
+            </Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            onPress={() => setUndatedVisible(true)}
+            style={[
+              styles.actionButton,
+              {borderColor: colors.border, backgroundColor: colors.inputBg},
+            ]}
+            activeOpacity={0.7}
+            accessibilityRole="button"
+            accessibilityLabel="Undated tasks"
+            accessibilityHint="Shows open tasks that have no due date"
+            testID="calendar-undated-button"
+          >
+            <Inbox size={16} color={colors.textPrimary} />
+            <Text
+              style={[styles.actionButtonText, {color: colors.textPrimary}]}
+            >
+              Undated
+            </Text>
           </TouchableOpacity>
         </View>
       </View>
+
+      {/* Codex audit A2: a read failure is never presented as an empty schedule. */}
+      {calendar.readError && calendar.readError.ownerId === userId && (
+        <View
+          testID="calendar-read-error"
+          accessibilityRole="alert"
+          style={[
+            styles.readError,
+            {borderColor: colors.warning, backgroundColor: colors.inputBg},
+          ]}
+        >
+          <Text style={[styles.readErrorText, {color: colors.textPrimary}]}>
+            {calendar.readError.showingPrevious
+              ? 'Your schedule could not be refreshed. What is shown is from the last successful read and may be out of date.'
+              : 'Your schedule could not be read right now. This does not mean your calendar is empty.'}
+          </Text>
+          <TouchableOpacity
+            testID="calendar-read-retry"
+            onPress={calendar.retryRead}
+            accessibilityRole="button"
+            accessibilityLabel="Try reading the schedule again"
+            style={[styles.readErrorButton, {borderColor: colors.border}]}
+          >
+            <Text
+              style={[styles.actionButtonText, {color: colors.textPrimary}]}
+            >
+              Retry
+            </Text>
+          </TouchableOpacity>
+        </View>
+      )}
 
       {/* Body */}
       <View style={styles.body}>
@@ -325,11 +458,13 @@ export const CalendarScreen: React.FC<CalendarScreenProps> = ({
             setSelectedDate={calendar.setSelectedDate}
             weekDays={calendar.weekDays}
             timeFormat24h={calendar.timeFormat24h}
-            onEditTask={(task) => scheduleModal.openEdit(task, 'task')}
-            onEditEvent={(event) => scheduleModal.openEdit(event, 'event')}
-            onEditBlock={(block) => blockModal.openEditBlock(block)}
+            onEditTask={task => scheduleModal.openEdit(task, 'task')}
+            onEditEvent={event => scheduleModal.openEdit(event, 'event')}
+            onEditBlock={block => blockModal.openEditBlock(block)}
             onToggleTask={toggleTaskCompletion}
-            onAddBlock={(hour) => blockModal.openNewBlock(hour, calendar.selectedDate)}
+            onAddBlock={hour =>
+              blockModal.openNewBlock(hour, calendar.selectedDate)
+            }
             getCategoryColor={getCategoryColor}
           />
         )}
@@ -337,7 +472,7 @@ export const CalendarScreen: React.FC<CalendarScreenProps> = ({
 
       {/* FAB */}
       <TouchableOpacity
-        style={[styles.fab, Shadows.card, { bottom: fabBottom }]}
+        style={[styles.fab, Shadows.card, {bottom: fabBottom}]}
         onPress={handleFABPress}
         accessibilityLabel="Add New Item"
         accessibilityRole="button"
@@ -347,12 +482,25 @@ export const CalendarScreen: React.FC<CalendarScreenProps> = ({
 
       {/* Modals */}
       {blockModal.visible && (
-        <AddBlockModal state={blockModal} timeFormat24h={calendar.timeFormat24h} />
+        <AddBlockModal
+          state={blockModal}
+          timeFormat24h={calendar.timeFormat24h}
+        />
       )}
       {scheduleModal.visible && (
-        <AddTaskEventModal state={scheduleModal} timeFormat24h={calendar.timeFormat24h} />
+        <AddTaskEventModal
+          state={scheduleModal}
+          timeFormat24h={calendar.timeFormat24h}
+        />
       )}
-      
+      <UndatedTasksModal
+        visible={undatedVisible}
+        userId={userId}
+        refreshTrigger={refreshTrigger}
+        onClose={() => setUndatedVisible(false)}
+        onToggleTask={toggleTaskCompletion}
+      />
+
       {calendar.layersModalVisible && (
         <CalendarLayersModal
           visible={calendar.layersModalVisible}
@@ -378,52 +526,116 @@ export const CalendarScreen: React.FC<CalendarScreenProps> = ({
             activeOpacity={1}
             onPress={() => setFabMenuVisible(false)}
           >
-            <View style={[styles.modalContent, { backgroundColor: colors.cardBg, borderColor: colors.border, borderWidth: 1.5 }]}>
-              <Text style={[styles.modalHeaderTitle, { color: colors.textPrimary, textAlign: 'center' }]}>Create New</Text>
-              
+            <View
+              style={[
+                styles.modalContent,
+                {
+                  backgroundColor: colors.cardBg,
+                  borderColor: colors.border,
+                  borderWidth: 1.5,
+                },
+              ]}
+            >
+              <Text
+                style={[
+                  styles.modalHeaderTitle,
+                  {color: colors.textPrimary, textAlign: 'center'},
+                ]}
+              >
+                Create New
+              </Text>
+
               <TouchableOpacity
-                style={[styles.fabMenuItem, { borderBottomColor: colors.divider }]}
+                style={[
+                  styles.fabMenuItem,
+                  {borderBottomColor: colors.divider},
+                ]}
                 onPress={() => {
                   setFabMenuVisible(false);
                   blockModal.openNewBlock(undefined, calendar.selectedDate);
                 }}
               >
-                <Clock size={20} color={colors.blue} style={styles.fabMenuItemIcon} />
-                <Text style={[styles.fabMenuItemText, { color: colors.textPrimary }]}>Time Block</Text>
+                <Clock
+                  size={20}
+                  color={colors.blue}
+                  style={styles.fabMenuItemIcon}
+                />
+                <Text
+                  style={[styles.fabMenuItemText, {color: colors.textPrimary}]}
+                >
+                  Time Block
+                </Text>
               </TouchableOpacity>
 
               <TouchableOpacity
-                style={[styles.fabMenuItem, { borderBottomColor: colors.divider }]}
+                style={[
+                  styles.fabMenuItem,
+                  {borderBottomColor: colors.divider},
+                ]}
                 onPress={() => {
                   setFabMenuVisible(false);
                   scheduleModal.openNew('task');
                 }}
               >
-                <CheckSquare size={20} color={colors.red} style={styles.fabMenuItemIcon} />
-                <Text style={[styles.fabMenuItemText, { color: colors.textPrimary }]}>Task</Text>
+                <CheckSquare
+                  size={20}
+                  color={colors.red}
+                  style={styles.fabMenuItemIcon}
+                />
+                <Text
+                  style={[styles.fabMenuItemText, {color: colors.textPrimary}]}
+                >
+                  Task
+                </Text>
               </TouchableOpacity>
 
               <TouchableOpacity
-                style={[styles.fabMenuItem, { borderBottomColor: colors.divider }]}
+                style={[
+                  styles.fabMenuItem,
+                  {borderBottomColor: colors.divider},
+                ]}
                 onPress={() => {
                   setFabMenuVisible(false);
                   setNoteTitle('');
                   setNoteBody('');
                   setNoteCategory('Personal');
                   setIsPinned(false);
-                  setNoteSelection({ start: 0, end: 0 });
+                  setNoteSelection({start: 0, end: 0});
                   setNoteModalVisible(true);
                 }}
               >
-                <FileText size={20} color={colors.textSecondary} style={styles.fabMenuItemIcon} />
-                <Text style={[styles.fabMenuItemText, { color: colors.textPrimary }]}>Note</Text>
+                <FileText
+                  size={20}
+                  color={colors.textSecondary}
+                  style={styles.fabMenuItemIcon}
+                />
+                <Text
+                  style={[styles.fabMenuItemText, {color: colors.textPrimary}]}
+                >
+                  Note
+                </Text>
               </TouchableOpacity>
 
               <TouchableOpacity
-                style={[styles.modalBtn, { backgroundColor: colors.divider, marginTop: 16, alignSelf: 'stretch', alignItems: 'center' }]}
+                style={[
+                  styles.modalBtn,
+                  {
+                    backgroundColor: colors.divider,
+                    marginTop: 16,
+                    alignSelf: 'stretch',
+                    alignItems: 'center',
+                  },
+                ]}
                 onPress={() => setFabMenuVisible(false)}
               >
-                <Text style={[styles.modalBtnTextDark, { color: colors.textPrimary, fontWeight: 'bold' }]}>Cancel</Text>
+                <Text
+                  style={[
+                    styles.modalBtnTextDark,
+                    {color: colors.textPrimary, fontWeight: 'bold'},
+                  ]}
+                >
+                  Cancel
+                </Text>
               </TouchableOpacity>
             </View>
           </TouchableOpacity>
@@ -445,7 +657,7 @@ export const CalendarScreen: React.FC<CalendarScreenProps> = ({
           aiLoading={false}
           aiActionType=""
           onTitleChange={setNoteTitle}
-          onBodyChange={(next) => {
+          onBodyChange={next => {
             const carried = continueListOnNewline(noteBody, next);
             setNoteBody(carried ? carried.body : next);
             if (carried) setNoteSelection(carried.selection);
@@ -457,12 +669,14 @@ export const CalendarScreen: React.FC<CalendarScreenProps> = ({
           onClose={() => setNoteModalVisible(false)}
           onSave={handleSaveNote}
           onDelete={() => {}}
-          onFormatting={(type) => {
+          onFormatting={type => {
             const edit = applyNoteFormat(noteBody, noteSelection, type);
             setNoteBody(edit.body);
             setNoteSelection(edit.selection);
           }}
-          onToggleChecklist={(index) => setNoteBody(toggleChecklistItem(noteBody, index))}
+          onToggleChecklist={index =>
+            setNoteBody(toggleChecklistItem(noteBody, index))
+          }
           onAttachImage={() => {}}
           onRemoveImage={() => {}}
           onAiAction={() => {}}
@@ -567,6 +781,25 @@ const styles = StyleSheet.create({
     fontFamily: 'sans-serif-medium',
     fontSize: 11,
     fontWeight: '600',
+  },
+  readError: {
+    borderWidth: 1,
+    borderRadius: 12,
+    padding: 12,
+    marginBottom: 8,
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  readErrorText: {
+    flex: 1,
+    fontSize: 12,
+    marginRight: 8,
+  },
+  readErrorButton: {
+    borderWidth: 1,
+    borderRadius: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
   },
   body: {
     flex: 1,

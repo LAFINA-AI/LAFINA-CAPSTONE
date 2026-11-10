@@ -15,6 +15,7 @@ import {
   declineCall,
   manualAcknowledgeCall,
   manualSnoozeCall,
+  resumeOfflineCall,
   disconnectCall,
   openNotificationSettings,
 } from '../../src/scheduler';
@@ -101,6 +102,45 @@ describe('Call Dispatcher, Simulated Incoming Call & Permission Subsystem', () =
   });
 
   describe('callDispatcher Lifecycle', () => {
+    it('hands an admitted online call to external voice without starting offline capture', async () => {
+      const now = new Date().toISOString();
+      remindersStore.insertReminder({id: 'rem-online', userId, task: 'Study', description: null,
+        scheduledAt: now, triggerAt: now, status: 'pending', preCastAudioPath: null});
+      const provider = {speakText: jest.fn(async () => ({source: 'native_tts' as const})),
+        stopSpeech: jest.fn(async () => undefined)};
+      expect(await answerCall('rem-online', userId, true, provider, null, true)).toBe(true);
+      expect(provider.speakText).toHaveBeenCalledWith(expect.stringContaining('Study'), expect.anything());
+      expect(NativeModules.LafinaSpeechToText.startListening).not.toHaveBeenCalled();
+      await manualAcknowledgeCall('rem-online', userId);
+      expect(remindersStore.getReminderById('rem-online')?.status).toBe('acknowledged');
+      expect(resumeOfflineCall('rem-online', userId)).toBe(false);
+    });
+
+    it('does not hand off a stale or foreign reminder', async () => {
+      expect(await answerCall('missing', userId, true, undefined, null, true)).toBe(false);
+      expect(resumeOfflineCall('missing', userId)).toBe(false);
+    });
+
+    it('does not revive an online call when its active-call service starts after decline', async () => {
+      const now = new Date().toISOString();
+      remindersStore.insertReminder({id: 'rem-late-online', userId, task: 'Review', description: null,
+        scheduledAt: now, triggerAt: now, status: 'pending', preCastAudioPath: null});
+      let release!: (value: boolean) => void;
+      const start = jest.spyOn(NativeModules.LafinaReminder, 'startActiveCall')
+        .mockImplementationOnce(() => new Promise(resolve => { release = resolve; }));
+      const provider = {speakText: jest.fn(async () => ({source: 'native_tts' as const})),
+        stopSpeech: jest.fn(async () => undefined)};
+      const pending = answerCall('rem-late-online', userId, true, provider, null, true);
+      for (let i = 0; i < 10 && !start.mock.calls.length; i += 1) await Promise.resolve();
+      expect(start).toHaveBeenCalled();
+      await declineCall('rem-late-online', userId, provider);
+      release(true);
+      expect(await pending).toBe(false);
+      expect(remindersStore.getReminderById('rem-late-online')?.status).toBe('snoozed');
+      expect(resumeOfflineCall('rem-late-online', userId)).toBe(false);
+      start.mockRestore();
+    });
+
     it('answers call and allows manual acknowledge', async () => {
       const now = new Date().toISOString();
       tasksStore.insertTask({
@@ -187,7 +227,8 @@ describe('Call Dispatcher, Simulated Incoming Call & Permission Subsystem', () =
         userId,
         task: 'Review Discrete Math',
         description: null,
-        scheduledAt: now,
+        // The Calendar form schedules an item's reminder at the item's own time.
+        scheduledAt: new Date('2026-10-25T18:00:00').toISOString(),
         triggerAt: now,
         status: 'pending',
         preCastAudioPath: null,
@@ -200,6 +241,35 @@ describe('Call Dispatcher, Simulated Incoming Call & Permission Subsystem', () =
       const updatedRem = remindersStore.getReminderById('rem-task-complete');
       expect(updatedRem?.status).toBe('acknowledged');
       expect(remindersStore.getPendingReminders(userId)).toHaveLength(0);
+    });
+
+    it('completing a task leaves a different reminder that only shares its title', async () => {
+      const now = new Date().toISOString();
+      tasksStore.insertTask({
+        id: 'task-shared-title',
+        userId,
+        title: 'Study',
+        priority: 'High',
+        category: 'Academics',
+        isCompleted: false,
+        dueDate: '2026-10-25',
+        dueTime: '18:00',
+      });
+      // A standalone reminder for another day: same title, not this task's time.
+      remindersStore.insertReminder({
+        id: 'rem-shared-title',
+        userId,
+        task: 'study',
+        description: null,
+        scheduledAt: new Date('2026-10-27T09:00:00').toISOString(),
+        triggerAt: now,
+        status: 'pending',
+        preCastAudioPath: null,
+      });
+
+      tasksStore.updateTask({ id: 'task-shared-title', isCompleted: true });
+
+      expect(remindersStore.getReminderById('rem-shared-title')?.status).toBe('pending');
     });
 
     it('answerCall immediately suppresses call if task is already completed', async () => {
@@ -219,7 +289,7 @@ describe('Call Dispatcher, Simulated Incoming Call & Permission Subsystem', () =
         userId,
         task: 'Submit Project Proposal',
         description: null,
-        scheduledAt: now,
+        scheduledAt: new Date('2026-10-25T14:00:00').toISOString(),
         triggerAt: now,
         status: 'pending',
         preCastAudioPath: null,
@@ -228,6 +298,34 @@ describe('Call Dispatcher, Simulated Incoming Call & Permission Subsystem', () =
       await answerCall('rem-already-done', userId, false);
 
       expect(remindersStore.getReminderById('rem-already-done')?.status).toBe('acknowledged');
+    });
+
+    it('answerCall is not suppressed by a completed task that only shares the title', async () => {
+      const now = new Date().toISOString();
+      tasksStore.insertTask({
+        id: 'task-done-other',
+        userId,
+        title: 'Submit Lab Report',
+        priority: 'High',
+        category: 'Academics',
+        isCompleted: true,
+        dueDate: '2026-10-20',
+        dueTime: '14:00',
+      });
+      remindersStore.insertReminder({
+        id: 'rem-not-that-task',
+        userId,
+        task: 'Submit Lab Report',
+        description: null,
+        scheduledAt: now,
+        triggerAt: now,
+        status: 'pending',
+        preCastAudioPath: null,
+      });
+
+      await answerCall('rem-not-that-task', userId, false);
+
+      expect(remindersStore.getReminderById('rem-not-that-task')?.status).not.toBe('acknowledged');
     });
 
     it('snoozes reminder and updates triggerAt accordingly', async () => {

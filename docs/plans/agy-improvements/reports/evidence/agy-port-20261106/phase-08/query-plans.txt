@@ -1,0 +1,30 @@
+node v24.19.0, sqlite 3.53.3
+
+## window, fixed events
+  SEARCH t USING INDEX idx_events_user_date (user_id=? AND date>? AND date<?)
+  SEARCH m USING INDEX idx_event_time_local_owner (user_id=? AND event_id=?) LEFT-JOIN
+  USE TEMP B-TREE FOR LAST TERM OF ORDER BY
+
+## window, recurring events
+  SEARCH t USING INDEX idx_events_user_date (user_id=? AND date<?)
+  SEARCH m USING INDEX idx_event_time_local_owner (user_id=? AND event_id=?) LEFT-JOIN
+  USE TEMP B-TREE FOR LAST TERM OF ORDER BY
+
+## export batch
+  SEARCH t USING INDEX idx_events_user_date (user_id=?)
+  SEARCH m USING INDEX idx_event_time_local_owner (user_id=? AND event_id=?) LEFT-JOIN
+  USE TEMP B-TREE FOR ORDER BY
+
+## eventTimeStore.get
+  SEARCH e USING INDEX sqlite_autoindex_events_1 (id=?)
+  SEARCH m USING INDEX idx_event_time_local_owner (user_id=? AND event_id=?) LEFT-JOIN
+
+# Comparison: the same reads before AGY-PORT 08 (no join)
+
+## legacy window, fixed events (AGY-PORT 06 shape)
+  SEARCH events USING INDEX idx_events_user_date (user_id=? AND date>? AND date<?)
+  USE TEMP B-TREE FOR LAST TERM OF ORDER BY
+
+## legacy export batch (AGY-PORT 06 shape)
+  SEARCH events USING INDEX idx_events_user_date (user_id=?)
+  USE TEMP B-TREE FOR ORDER BY

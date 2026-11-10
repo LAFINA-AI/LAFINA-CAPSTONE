@@ -1,0 +1,437 @@
+2026-11-07T00:16:02Z
+7b3b1832a3754fbc2a1bd8f44211c45678fd6230
+?? __tests__/ui/remediationAuditClearAllData.test.tsx
+$ node --max-old-space-size=1024 node_modules/jest/bin/jest.js --runInBand --runTestsByPath __tests__/ui/remediationAuditClearAllData.test.tsx
+FAIL __tests__/ui/remediationAuditClearAllData.test.tsx (9.074 s)
+  remediation audit P1: a stale Clear All Data confirmation deletes nothing
+    × account switch after the confirmation opened (screen still mounted) (1309 ms)
+    × the Profile screen unmounted before the confirmation ran (same session) (78 ms)
+    × account switch and unmount together (the independent audit sequence) (67 ms)
+    × sign-out, then sign-in again as the same account before confirming (82 ms)
+    × signed out (no session) before confirming (75 ms)
+  remediation audit P2: only confirmed deletions are reported
+    × a failed notes read keeps the planner records and says they were not deleted (74 ms)
+    × a write failure part-way changes no planner record (all or nothing) and says so (73 ms)
+    × an attachment file that cannot be removed is reported, not hidden (74 ms)
+  remediation audit: the ordinary same-session reset still works
+    √ deletes this owner’s records with sync tombstones and reminder cleanup; others untouched (75 ms)
+
+  ● remediation audit P1: a stale Clear All Data confirmation deletes nothing › account switch after the confirmation opened (screen still mounted)
+
+    expect(received).toEqual(expected) // deep equality
+
+    - Expected  - 6
+    + Received  + 6
+
+      Object {
+    -   "blocks": 1,
+    -   "events": 1,
+    -   "messages": 2,
+    -   "notes": 1,
+    -   "reminders": 2,
+    -   "tasks": 1,
+    +   "blocks": 0,
+    +   "events": 0,
+    +   "messages": 0,
+    +   "notes": 0,
+    +   "reminders": 0,
+    +   "tasks": 0,
+      }
+
+    [0m [90m 220 |[39m   [36mconst[39m refusedCleanly [33m=[39m [36masync[39m (a[33m:[39m string[33m,[39m b[33m:[39m string[33m,[39m alerts[33m:[39m [33mAlertCall[39m[][33m,[39m memoryBefore[33m:[39m unknown) [33m=>[39m {
+     [90m 221 |[39m     [36mawait[39m settle()[33m;[39m
+    [31m[1m>[22m[39m[90m 222 |[39m     expect(live(a))[33m.[39mtoEqual([33mFULL[39m)[33m;[39m
+     [90m     |[39m                     [31m[1m^[22m[39m
+     [90m 223 |[39m     expect(outboxDeletes(a))[33m.[39mtoEqual([])[33m;[39m
+     [90m 224 |[39m     expect(memoryValue(a))[33m.[39mtoBe(memoryBefore)[33m;[39m
+     [90m 225 |[39m     expect(unlink)[33m.[39mnot[33m.[39mtoHaveBeenCalled()[33m;[39m[0m
+
+      at toEqual (__tests__/ui/remediationAuditClearAllData.test.tsx:222:21)
+      at asyncGeneratorStep (node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+      at _next (node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
+
+  ● remediation audit P1: a stale Clear All Data confirmation deletes nothing › the Profile screen unmounted before the confirmation ran (same session)
+
+    expect(received).toEqual(expected) // deep equality
+
+    - Expected  - 6
+    + Received  + 6
+
+      Object {
+    -   "blocks": 1,
+    -   "events": 1,
+    -   "messages": 2,
+    -   "notes": 1,
+    -   "reminders": 2,
+    -   "tasks": 1,
+    +   "blocks": 0,
+    +   "events": 0,
+    +   "messages": 0,
+    +   "notes": 0,
+    +   "reminders": 0,
+    +   "tasks": 0,
+      }
+
+    [0m [90m 220 |[39m   [36mconst[39m refusedCleanly [33m=[39m [36masync[39m (a[33m:[39m string[33m,[39m b[33m:[39m string[33m,[39m alerts[33m:[39m [33mAlertCall[39m[][33m,[39m memoryBefore[33m:[39m unknown) [33m=>[39m {
+     [90m 221 |[39m     [36mawait[39m settle()[33m;[39m
+    [31m[1m>[22m[39m[90m 222 |[39m     expect(live(a))[33m.[39mtoEqual([33mFULL[39m)[33m;[39m
+     [90m     |[39m                     [31m[1m^[22m[39m
+     [90m 223 |[39m     expect(outboxDeletes(a))[33m.[39mtoEqual([])[33m;[39m
+     [90m 224 |[39m     expect(memoryValue(a))[33m.[39mtoBe(memoryBefore)[33m;[39m
+     [90m 225 |[39m     expect(unlink)[33m.[39mnot[33m.[39mtoHaveBeenCalled()[33m;[39m[0m
+
+      at toEqual (__tests__/ui/remediationAuditClearAllData.test.tsx:222:21)
+      at asyncGeneratorStep (node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+      at _next (node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
+
+  ● remediation audit P1: a stale Clear All Data confirmation deletes nothing › account switch and unmount together (the independent audit sequence)
+
+    expect(received).toEqual(expected) // deep equality
+
+    - Expected  - 6
+    + Received  + 6
+
+      Object {
+    -   "blocks": 1,
+    -   "events": 1,
+    -   "messages": 2,
+    -   "notes": 1,
+    -   "reminders": 2,
+    -   "tasks": 1,
+    +   "blocks": 0,
+    +   "events": 0,
+    +   "messages": 0,
+    +   "notes": 0,
+    +   "reminders": 0,
+    +   "tasks": 0,
+      }
+
+    [0m [90m 220 |[39m   [36mconst[39m refusedCleanly [33m=[39m [36masync[39m (a[33m:[39m string[33m,[39m b[33m:[39m string[33m,[39m alerts[33m:[39m [33mAlertCall[39m[][33m,[39m memoryBefore[33m:[39m unknown) [33m=>[39m {
+     [90m 221 |[39m     [36mawait[39m settle()[33m;[39m
+    [31m[1m>[22m[39m[90m 222 |[39m     expect(live(a))[33m.[39mtoEqual([33mFULL[39m)[33m;[39m
+     [90m     |[39m                     [31m[1m^[22m[39m
+     [90m 223 |[39m     expect(outboxDeletes(a))[33m.[39mtoEqual([])[33m;[39m
+     [90m 224 |[39m     expect(memoryValue(a))[33m.[39mtoBe(memoryBefore)[33m;[39m
+     [90m 225 |[39m     expect(unlink)[33m.[39mnot[33m.[39mtoHaveBeenCalled()[33m;[39m[0m
+
+      at toEqual (__tests__/ui/remediationAuditClearAllData.test.tsx:222:21)
+      at asyncGeneratorStep (node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+      at _next (node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
+
+  ● remediation audit P1: a stale Clear All Data confirmation deletes nothing › sign-out, then sign-in again as the same account before confirming
+
+    expect(received).toEqual(expected) // deep equality
+
+    - Expected  - 6
+    + Received  + 6
+
+      Object {
+    -   "blocks": 1,
+    -   "events": 1,
+    -   "messages": 2,
+    -   "notes": 1,
+    -   "reminders": 2,
+    -   "tasks": 1,
+    +   "blocks": 0,
+    +   "events": 0,
+    +   "messages": 0,
+    +   "notes": 0,
+    +   "reminders": 0,
+    +   "tasks": 0,
+      }
+
+    [0m [90m 220 |[39m   [36mconst[39m refusedCleanly [33m=[39m [36masync[39m (a[33m:[39m string[33m,[39m b[33m:[39m string[33m,[39m alerts[33m:[39m [33mAlertCall[39m[][33m,[39m memoryBefore[33m:[39m unknown) [33m=>[39m {
+     [90m 221 |[39m     [36mawait[39m settle()[33m;[39m
+    [31m[1m>[22m[39m[90m 222 |[39m     expect(live(a))[33m.[39mtoEqual([33mFULL[39m)[33m;[39m
+     [90m     |[39m                     [31m[1m^[22m[39m
+     [90m 223 |[39m     expect(outboxDeletes(a))[33m.[39mtoEqual([])[33m;[39m
+     [90m 224 |[39m     expect(memoryValue(a))[33m.[39mtoBe(memoryBefore)[33m;[39m
+     [90m 225 |[39m     expect(unlink)[33m.[39mnot[33m.[39mtoHaveBeenCalled()[33m;[39m[0m
+
+      at toEqual (__tests__/ui/remediationAuditClearAllData.test.tsx:222:21)
+      at asyncGeneratorStep (node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+      at _next (node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
+
+  ● remediation audit P1: a stale Clear All Data confirmation deletes nothing › signed out (no session) before confirming
+
+    expect(received).toEqual(expected) // deep equality
+
+    - Expected  - 6
+    + Received  + 6
+
+      Object {
+    -   "blocks": 1,
+    -   "events": 1,
+    -   "messages": 2,
+    -   "notes": 1,
+    -   "reminders": 2,
+    -   "tasks": 1,
+    +   "blocks": 0,
+    +   "events": 0,
+    +   "messages": 0,
+    +   "notes": 0,
+    +   "reminders": 0,
+    +   "tasks": 0,
+      }
+
+    [0m [90m 220 |[39m   [36mconst[39m refusedCleanly [33m=[39m [36masync[39m (a[33m:[39m string[33m,[39m b[33m:[39m string[33m,[39m alerts[33m:[39m [33mAlertCall[39m[][33m,[39m memoryBefore[33m:[39m unknown) [33m=>[39m {
+     [90m 221 |[39m     [36mawait[39m settle()[33m;[39m
+    [31m[1m>[22m[39m[90m 222 |[39m     expect(live(a))[33m.[39mtoEqual([33mFULL[39m)[33m;[39m
+     [90m     |[39m                     [31m[1m^[22m[39m
+     [90m 223 |[39m     expect(outboxDeletes(a))[33m.[39mtoEqual([])[33m;[39m
+     [90m 224 |[39m     expect(memoryValue(a))[33m.[39mtoBe(memoryBefore)[33m;[39m
+     [90m 225 |[39m     expect(unlink)[33m.[39mnot[33m.[39mtoHaveBeenCalled()[33m;[39m[0m
+
+      at toEqual (__tests__/ui/remediationAuditClearAllData.test.tsx:222:21)
+      at asyncGeneratorStep (node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+      at _next (node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
+
+  ● remediation audit P2: only confirmed deletions are reported › a failed notes read keeps the planner records and says they were not deleted
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: "Data Partly Cleared"
+    Received: "Data Cleared"
+
+    [0m [90m 354 |[39m     expect(live(a)[33m.[39mnotes)[33m.[39mtoBe([35m1[39m)[33m;[39m
+     [90m 355 |[39m     [36mconst[39m shown [33m=[39m result(alerts)[33m;[39m
+    [31m[1m>[22m[39m[90m 356 |[39m     expect(shown[33m?[39m[33m.[39mtitle)[33m.[39mtoBe([32m'Data Partly Cleared'[39m)[33m;[39m
+     [90m     |[39m                          [31m[1m^[22m[39m
+     [90m 357 |[39m     expect(shown[33m?[39m[33m.[39mmessage)[33m.[39mnot[33m.[39mtoMatch([35m/All personal scheduling data/[39m)[33m;[39m
+     [90m 358 |[39m     expect(shown[33m?[39m[33m.[39mmessage)[33m.[39mtoMatch([35m/notes, tasks, events, reminders and calendar blocks were not deleted/[39m)[33m;[39m
+     [90m 359 |[39m     expect(live(b))[33m.[39mtoEqual([33mFULL[39m)[33m;[39m[0m
+
+      at Object.toBe (__tests__/ui/remediationAuditClearAllData.test.tsx:356:26)
+      at asyncGeneratorStep (node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+      at _next (node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
+
+  ● remediation audit P2: only confirmed deletions are reported › a write failure part-way changes no planner record (all or nothing) and says so
+
+    expect(received).toMatchObject(expected)
+
+    - Expected  - 3
+    + Received  + 3
+
+      Object {
+        "blocks": 1,
+        "events": 1,
+    -   "notes": 1,
+    -   "reminders": 2,
+    -   "tasks": 1,
+    +   "notes": 0,
+    +   "reminders": 1,
+    +   "tasks": 0,
+      }
+
+    [0m [90m 379 |[39m
+     [90m 380 |[39m     [90m// Nothing in the planner changed, including the notes and tasks before the failure.[39m
+    [31m[1m>[22m[39m[90m 381 |[39m     expect(live(a))[33m.[39mtoMatchObject({notes[33m:[39m [35m1[39m[33m,[39m tasks[33m:[39m [35m1[39m[33m,[39m events[33m:[39m [35m1[39m[33m,[39m blocks[33m:[39m [35m1[39m[33m,[39m reminders[33m:[39m [35m2[39m})[33m;[39m
+     [90m     |[39m                     [31m[1m^[22m[39m
+     [90m 382 |[39m     expect(outboxDeletes(a)[33m.[39mfilter(key [33m=>[39m [33m![39mkey[33m.[39mstartsWith([32m'message'[39m)))[33m.[39mtoEqual([])[33m;[39m
+     [90m 383 |[39m     expect(cancelAlarm)[33m.[39mnot[33m.[39mtoHaveBeenCalled()[33m;[39m
+     [90m 384 |[39m     [36mconst[39m shown [33m=[39m result(alerts)[33m;[39m[0m
+
+      at Object.toMatchObject (__tests__/ui/remediationAuditClearAllData.test.tsx:381:21)
+      at asyncGeneratorStep (node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+      at _next (node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
+
+  ● remediation audit P2: only confirmed deletions are reported › an attachment file that cannot be removed is reported, not hidden
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: "Data Partly Cleared"
+    Received: "Data Cleared"
+
+    [0m [90m 408 |[39m     expect(unlink)[33m.[39mtoHaveBeenCalledWith([32m`/documents/${a}.pdf`[39m)[33m;[39m
+     [90m 409 |[39m     [36mconst[39m shown [33m=[39m result(alerts)[33m;[39m
+    [31m[1m>[22m[39m[90m 410 |[39m     expect(shown[33m?[39m[33m.[39mtitle)[33m.[39mtoBe([32m'Data Partly Cleared'[39m)[33m;[39m
+     [90m     |[39m                          [31m[1m^[22m[39m
+     [90m 411 |[39m     expect(shown[33m?[39m[33m.[39mmessage)[33m.[39mtoMatch([35m/attachment file/i[39m)[33m;[39m
+     [90m 412 |[39m     expect(shown[33m?[39m[33m.[39mmessage)[33m.[39mnot[33m.[39mtoMatch([35m/All personal scheduling data/[39m)[33m;[39m
+     [90m 413 |[39m   })[33m;[39m[0m
+
+      at Object.toBe (__tests__/ui/remediationAuditClearAllData.test.tsx:410:26)
+      at asyncGeneratorStep (node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+      at _next (node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
+
+Test Suites: 1 failed, 1 total
+Tests:       8 failed, 1 passed, 9 total
+Snapshots:   0 total
+Time:        10.145 s
+Ran all test suites within paths "__tests__/ui/remediationAuditClearAllData.test.tsx".
+exit=1
+$ node --max-old-space-size=384 node_modules/jest/bin/jest.js --config docs/plans/agy-improvements/reports/evidence/codex-remediation-verification-7b3b183-20261106/jest-audit.config.cjs --runInBand --runTestsByPath docs/plans/agy-improvements/reports/evidence/codex-remediation-verification-7b3b183-20261106/independentClearData.test.tsx
+  console.warn
+    SafeAreaView has been deprecated and will be removed in a future release. Please use 'react-native-safe-area-context' instead. See https://github.com/AppAndFlow/react-native-safe-area-context
+
+    [0m [90m 25 |[39m   [36mreturn[39m (
+     [90m 26 |[39m     [33m<[39m[33mModal[39m visible[33m=[39m{visible} animationType[33m=[39m[32m"slide"[39m onRequestClose[33m=[39m{onClose}[33m>[39m
+    [31m[1m>[22m[39m[90m 27 |[39m       [33m<[39m[33mSafeAreaView[39m style[33m=[39m{[styles[33m.[39mprivacyContainer[33m,[39m themed[33m.[39mprivacyContainer]}[33m>[39m
+     [90m    |[39m        [31m[1m^[22m[39m
+     [90m 28 |[39m         [33m<[39m[33mView[39m style[33m=[39m{[styles[33m.[39mprivacyHeader[33m,[39m themed[33m.[39mprivacyHeader]}[33m>[39m
+     [90m 29 |[39m           [33m<[39m[33mText[39m style[33m=[39m{[styles[33m.[39mprivacyHeaderTitle[33m,[39m themed[33m.[39mprivacyHeaderTitle]}[33m>[39m
+     [90m 30 |[39m             [33mPrivacy[39m [33mPolicy[39m[0m
+
+      at warn (node_modules/react-native/Libraries/Utilities/warnOnce.js:27:11)
+      at Object.warnOnce [as SafeAreaView] (node_modules/react-native/index.js:101:5)
+      at SafeAreaView (src/ui/components/profile/PrivacyModal.tsx:27:8)
+      at Object.react_stack_bottom_frame (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:15670:20)
+      at renderWithHooks (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:4863:22)
+      at updateFunctionComponent (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:7018:19)
+      at beginWork (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:8499:18)
+      at runWithFiberInDEV (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:2315:13)
+      at performUnitOfWork (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:13224:22)
+      at workLoopSync (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:13068:41)
+      at renderRootSync (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:13049:11)
+      at performWorkOnRoot (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:12181:11)
+      at performWorkOnRootViaSchedulerTask (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:2908:7)
+      at flushActQueue (node_modules/react/cjs/react.development.js:590:34)
+      at Object.<anonymous>.process.env.NODE_ENV.exports.act (node_modules/react/cjs/react.development.js:884:10)
+      at actImplementation (node_modules/@testing-library/react-native/src/act.ts:30:25)
+      at renderWithAct (node_modules/@testing-library/react-native/src/render-act.ts:13:11)
+      at renderInternal (node_modules/@testing-library/react-native/src/render.tsx:69:33)
+      at renderInternal (node_modules/@testing-library/react-native/src/render.tsx:44:10)
+      at screen (docs/plans/agy-improvements/reports/evidence/codex-remediation-verification-7b3b183-20261106/independentClearData.test.tsx:10:37)
+      at Object.screen (docs/plans/agy-improvements/reports/evidence/codex-remediation-verification-7b3b183-20261106/independentClearData.test.tsx:16:13)
+
+  console.error
+    Error fetching notes: Error: synthetic one-query read failure
+        at DatabaseService.<anonymous> (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\docs\plans\agy-improvements\reports\evidence\codex-remediation-verification-7b3b183-20261106\independentClearData.test.tsx:17:141)
+        at C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-mock\build\index.js:397:39
+        at DatabaseService.<anonymous> (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-mock\build\index.js:404:13)
+        at DatabaseService.mockConstructor [as executeSync] (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-mock\build\index.js:148:19)
+        at Object.executeSync [as getAll] (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\src\storage\notesStore.ts:86:25)
+        at getAll (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\src\ui\screens\ProfileScreen.tsx:271:26)
+        at work (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\src\ui\screens\ProfileScreen.tsx:263:17)
+        at Object.step [as onPress] (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\src\ui\screens\ProfileScreen.tsx:270:36)
+        at onPress (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\docs\plans\agy-improvements\reports\evidence\codex-remediation-verification-7b3b183-20261106\independentClearData.test.tsx:19:72)
+        at callback (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\@testing-library\react-native\src\act.ts:31:24)
+        at Object.<anonymous>.process.env.NODE_ENV.exports.act (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\react\cjs\react.development.js:814:22)
+        at actImplementation (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\@testing-library\react-native\src\act.ts:30:25)
+        at Object.<anonymous> (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\docs\plans\agy-improvements\reports\evidence\codex-remediation-verification-7b3b183-20261106\independentClearData.test.tsx:19:5)
+        at Promise.then.completed (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-circus\build\utils.js:298:28)
+        at new Promise (<anonymous>)
+        at callAsyncCircusFn (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-circus\build\utils.js:231:10)
+        at _callCircusTest (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-circus\build\run.js:316:40)
+        at _runTest (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-circus\build\run.js:252:3)
+        at _runTestsForDescribeBlock (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-circus\build\run.js:126:9)
+        at run (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-circus\build\run.js:71:3)
+        at runAndTransformResultsToJestFormat (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-circus\build\legacy-code-todo-rewrite\jestAdapterInit.js:122:21)
+        at jestAdapter (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-circus\build\legacy-code-todo-rewrite\jestAdapter.js:79:19)
+        at runTestInternal (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-runner\build\runTest.js:367:16)
+        at runTest (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-runner\build\runTest.js:444:34)
+
+    [0m [90m 90 |[39m       [36mreturn[39m result[33m.[39mrows[33m.[39mmap(mapRowToNote)[33m;[39m
+     [90m 91 |[39m     } [36mcatch[39m (error) {
+    [31m[1m>[22m[39m[90m 92 |[39m       console[33m.[39merror([32m'Error fetching notes:'[39m[33m,[39m error)[33m;[39m
+     [90m    |[39m               [31m[1m^[22m[39m
+     [90m 93 |[39m       [36mreturn[39m [][33m;[39m
+     [90m 94 |[39m     }
+     [90m 95 |[39m   }[33m,[39m[0m
+
+      at Object.error [as getAll] (src/storage/notesStore.ts:92:15)
+      at getAll (src/ui/screens/ProfileScreen.tsx:271:26)
+      at work (src/ui/screens/ProfileScreen.tsx:263:17)
+      at Object.step [as onPress] (src/ui/screens/ProfileScreen.tsx:270:36)
+      at onPress (docs/plans/agy-improvements/reports/evidence/codex-remediation-verification-7b3b183-20261106/independentClearData.test.tsx:19:72)
+      at callback (node_modules/@testing-library/react-native/src/act.ts:31:24)
+      at Object.<anonymous>.process.env.NODE_ENV.exports.act (node_modules/react/cjs/react.development.js:814:22)
+      at actImplementation (node_modules/@testing-library/react-native/src/act.ts:30:25)
+      at Object.<anonymous> (docs/plans/agy-improvements/reports/evidence/codex-remediation-verification-7b3b183-20261106/independentClearData.test.tsx:19:5)
+
+  console.log
+    INDEPENDENT_READ_FAILURE {"noteRetained":true,"result":{"title":"Data Cleared","message":"All personal scheduling data and saved event defaults have been deleted."}}
+
+      at Object.log (docs/plans/agy-improvements/reports/evidence/codex-remediation-verification-7b3b183-20261106/independentClearData.test.tsx:21:10)
+
+  console.warn
+    [Profile] Could not clear event defaults: EventMemoryError: Account changed. Reopen preferences.
+        at assertActive (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\src\storage\personalMemoryStore.ts:137:11)
+        at assertActive (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\src\storage\personalMemoryStore.ts:301:7)
+        at DatabaseService.fn [as transactionSync] (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\src\storage\database.ts:214:16)
+        at Object.transactionSync [as clearForDataReset] (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\src\storage\personalMemoryStore.ts:300:8)
+        at clearForDataReset (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\src\ui\screens\ProfileScreen.tsx:287:35)
+        at work (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\src\ui\screens\ProfileScreen.tsx:263:17)
+        at Object.step [as onPress] (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\src\ui\screens\ProfileScreen.tsx:286:37)
+        at onPress (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\docs\plans\agy-improvements\reports\evidence\codex-remediation-verification-7b3b183-20261106\independentClearData.test.tsx:31:82)
+        at callback (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\@testing-library\react-native\src\act.ts:31:24)
+        at Object.<anonymous>.process.env.NODE_ENV.exports.act (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\react\cjs\react.development.js:814:22)
+        at actImplementation (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\@testing-library\react-native\src\act.ts:30:25)
+        at Object.<anonymous> (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\docs\plans\agy-improvements\reports\evidence\codex-remediation-verification-7b3b183-20261106\independentClearData.test.tsx:31:5)
+        at Promise.then.completed (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-circus\build\utils.js:298:28)
+        at new Promise (<anonymous>)
+        at callAsyncCircusFn (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-circus\build\utils.js:231:10)
+        at _callCircusTest (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-circus\build\run.js:316:40)
+        at _runTest (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-circus\build\run.js:252:3)
+        at _runTestsForDescribeBlock (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-circus\build\run.js:126:9)
+        at run (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-circus\build\run.js:71:3)
+        at runAndTransformResultsToJestFormat (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-circus\build\legacy-code-todo-rewrite\jestAdapterInit.js:122:21)
+        at jestAdapter (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-circus\build\legacy-code-todo-rewrite\jestAdapter.js:79:19)
+        at runTestInternal (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-runner\build\runTest.js:367:16)
+        at runTest (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-runner\build\runTest.js:444:34) {
+      problem: 'owner_changed'
+    }
+
+    [0m [90m 264 |[39m                 [36mreturn[39m [36mtrue[39m[33m;[39m
+     [90m 265 |[39m               } [36mcatch[39m (error) {
+    [31m[1m>[22m[39m[90m 266 |[39m                 console[33m.[39mwarn([32m`[Profile] Could not clear ${what}:`[39m[33m,[39m error)[33m;[39m
+     [90m     |[39m                         [31m[1m^[22m[39m
+     [90m 267 |[39m                 [36mreturn[39m [36mfalse[39m[33m;[39m
+     [90m 268 |[39m               }
+     [90m 269 |[39m             }[33m;[39m[0m
+
+      at warn (src/ui/screens/ProfileScreen.tsx:266:25)
+      at Object.step [as onPress] (src/ui/screens/ProfileScreen.tsx:286:37)
+      at onPress (docs/plans/agy-improvements/reports/evidence/codex-remediation-verification-7b3b183-20261106/independentClearData.test.tsx:31:82)
+      at callback (node_modules/@testing-library/react-native/src/act.ts:31:24)
+      at Object.<anonymous>.process.env.NODE_ENV.exports.act (node_modules/react/cjs/react.development.js:814:22)
+      at actImplementation (node_modules/@testing-library/react-native/src/act.ts:30:25)
+      at Object.<anonymous> (docs/plans/agy-improvements/reports/evidence/codex-remediation-verification-7b3b183-20261106/independentClearData.test.tsx:31:5)
+
+  console.log
+    INDEPENDENT_STALE_CONFIRMATION {"oldOwner":"independent-clear-2","newOwner":"independent-clear-3","noteDeleted":true,"result":{"title":"Data Partly Cleared","message":"Your notes, tasks, events, reminders and calendar blocks and your chat history were cleared. Your saved event defaults were not deleted. To remove the saved event defaults, open Event Defaults and choose Forget all event defaults. Device settings such as the offline voice, theme and time format were kept."}}
+
+      at Object.log (docs/plans/agy-improvements/reports/evidence/codex-remediation-verification-7b3b183-20261106/independentClearData.test.tsx:33:10)
+
+FAIL docs/plans/agy-improvements/reports/evidence/codex-remediation-verification-7b3b183-20261106/independentClearData.test.tsx
+  × a read failure must not report retained Notes as successfully cleared (1177 ms)
+  × a confirmation retained after account switch must not delete the old account records (96 ms)
+
+  ● a read failure must not report retained Notes as successfully cleared
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: "Data Partly Cleared"
+    Received: "Data Cleared"
+
+    [0m [90m 21 |[39m  console[33m.[39mlog([32m'INDEPENDENT_READ_FAILURE'[39m[33m,[39m[33mJSON[39m[33m.[39mstringify({noteRetained[33m:[39mremaining[33m.[39mdeleted_at[33m===[39m[36mnull[39m[33m,[39mresult[33m:[39malerts[[35m1[39m]}))[33m;[39m
+     [90m 22 |[39m  expect(remaining[33m.[39mdeleted_at)[33m.[39mtoBeNull()[33m;[39m
+    [31m[1m>[22m[39m[90m 23 |[39m  expect(alerts[[35m1[39m][33m.[39mtitle)[33m.[39mtoBe([32m'Data Partly Cleared'[39m)[33m;[39m
+     [90m    |[39m                          [31m[1m^[22m[39m
+     [90m 24 |[39m  expect(alerts[[35m1[39m][33m.[39mmessage)[33m.[39mnot[33m.[39mtoMatch([35m/All personal scheduling data.*deleted/[39m)[33m;[39m
+     [90m 25 |[39m })[33m;[39m
+     [90m 26 |[39m it([32m'a confirmation retained after account switch must not delete the old account records'[39m[33m,[39m()[33m=>[39m{[0m
+
+      at Object.toBe (docs/plans/agy-improvements/reports/evidence/codex-remediation-verification-7b3b183-20261106/independentClearData.test.tsx:23:26)
+
+  ● a confirmation retained after account switch must not delete the old account records
+
+    expect(received).toBeNull()
+
+    Received: "2026-11-07T00:16:22.848Z"
+
+    [0m [90m 32 |[39m  [36mconst[39m remaining[33m=[39mdb[33m.[39mexecuteSync([32m'SELECT deleted_at FROM notes WHERE id=?'[39m[33m,[39m[id])[33m.[39mrows[[35m0[39m][33m;[39m
+     [90m 33 |[39m  console[33m.[39mlog([32m'INDEPENDENT_STALE_CONFIRMATION'[39m[33m,[39m[33mJSON[39m[33m.[39mstringify({oldOwner[33m:[39ma[33m,[39mnewOwner[33m:[39mb[33m,[39mnoteDeleted[33m:[39mremaining[33m.[39mdeleted_at[33m!==[39m[36mnull[39m[33m,[39mresult[33m:[39malerts[[35m1[39m]}))[33m;[39m
+    [31m[1m>[22m[39m[90m 34 |[39m  expect(remaining[33m.[39mdeleted_at)[33m.[39mtoBeNull()[33m;[39m
+     [90m    |[39m                               [31m[1m^[22m[39m
+     [90m 35 |[39m })[33m;[39m
+     [90m 36 |[39m[0m
+
+      at Object.toBeNull (docs/plans/agy-improvements/reports/evidence/codex-remediation-verification-7b3b183-20261106/independentClearData.test.tsx:34:31)
+
+Test Suites: 1 failed, 1 total
+Tests:       2 failed, 2 total
+Snapshots:   0 total
+Time:        4.083 s, estimated 21 s
+Ran all test suites within paths "docs/plans/agy-improvements/reports/evidence/codex-remediation-verification-7b3b183-20261106/independentClearData.test.tsx".
+exit=1

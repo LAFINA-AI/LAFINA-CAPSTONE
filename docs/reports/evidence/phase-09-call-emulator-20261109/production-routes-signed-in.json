@@ -1,0 +1,17 @@
+{
+  "checked_at": "2026-11-08T18:04:41.471159+00:00",
+  "paths": [
+    "/v1/ai/chat",
+    "/v1/ai/chat/stream",
+    "/v1/ai/documents",
+    "/v1/ai/flashcards",
+    "/v1/ai/handbook/status",
+    "/v1/ai/meeting-notes/generate",
+    "/v1/ai/meeting-notes/section",
+    "/v1/ai/study-notes",
+    "/v1/ai/tts",
+    "/v1/ai/tts/capabilities",
+    "/v1/ai/tts/voices"
+  ],
+  "voice_routes_present": false
+}

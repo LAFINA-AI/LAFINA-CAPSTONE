@@ -1,3 +1,5 @@
+> 2026-11-07 provider migration follow-up: [ElevenLabs online speech report](phase-09-elevenlabs-online-report-20261107.md). Historical results below are preserved.
+
 # PHASE 09 — Online Mode, Cloud AI Integration, Document Generation & Meeting Transcription / Completion Report
 
 **Date/time UTC:** 2026-11-05T11:12:00Z  

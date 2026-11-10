@@ -1,0 +1,10 @@
+M1 KILLED | src\storage\reminderHealthStore.ts | inexact receipt of an older generation still counted | test "counts a time change" | Tests:       1 failed, 16 skipped, 17 total | restored=True
+M2 KILLED | src\storage\reminderHealthStore.ts | owner fence removed | test "refuses a read for an owner" | Tests:       1 failed, 16 skipped, 17 total | restored=True
+M3 KILLED | src\scheduler\reminderHealth.ts | recovery allowed without a signed-in session | test "runs the existing reconciler only" | Tests:       1 failed, 16 skipped, 17 total | restored=True
+M4 KILLED | src\storage\personalMemoryStore.ts | revision check removed | test "saves only after review" | Tests:       1 failed, 16 skipped, 17 total | restored=True
+M5 KILLED | src\storage\personalMemoryStore.ts | guest link overwrites the account defaults | test "guest link keeps" | Tests:       1 failed, 16 skipped, 17 total | restored=True
+M6 KILLED | src\storage\profileStatisticsStore.ts | snoozed acknowledgements counted as on time | test "counts actual records" | Tests:       1 failed, 16 skipped, 17 total | restored=True
+M7 KILLED | src\storage\profileStatisticsStore.ts | read failure shown as zero | test "reports a read failure" | Tests:       1 failed, 16 skipped, 17 total | restored=True
+M8 KILLED | src\ui\screens\calendar\hooks\useScheduleItemModal.ts | defaults offered on task drafts | test "offers saved defaults on a new event draft" | Tests:       1 failed, 9 skipped, 10 total | restored=True
+M9 KILLED | src\ui\screens\calendar\hooks\useScheduleItemModal.ts | stale offer applied without revalidation | test "refuses a stale offer" | Tests:       1 failed, 9 skipped, 10 total | restored=True
+RESULT ALL KILLED, ALL RESTORED

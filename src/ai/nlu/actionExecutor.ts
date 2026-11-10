@@ -4,6 +4,7 @@ import {
   remindersStore,
   notesStore,
 } from '../../storage';
+import {plannerQueries} from '../../storage/plannerQueries';
 import type {Task, Event, TimeBlock, Note, Reminder} from '../../storage';
 import {
   scheduleReminderAlarm,
@@ -17,6 +18,7 @@ import {formatLocalDate} from './fastPathParser';
 import {ttsService} from '../tts/ttsService';
 import {computeAdaptiveTriggerAt} from '../ml';
 import type {ValidatedIntent, NluActionResult} from './types';
+import {buildLocalConversationReply} from '../localConversation';
 
 export interface ActionExecutorOptions {
   activeReminderId?: string;
@@ -24,7 +26,7 @@ export interface ActionExecutorOptions {
   speakResult?: boolean;
 }
 
-function format12HourTime(timeStr?: string | null): string {
+export function format12HourTime(timeStr?: string | null): string {
   if (!timeStr) return '';
   const match = /^(\d{1,2}):(\d{2})/.exec(timeStr.trim());
   if (!match) return timeStr;
@@ -44,7 +46,10 @@ function formatListWithAnd(items: string[]): string {
   return `${items.slice(0, -1).join(', ')}, and ${items[items.length - 1]}`;
 }
 
-function formatSpokenDayLabel(targetDateStr: string, refDate: Date): string {
+export function formatSpokenDayLabel(
+  targetDateStr: string,
+  refDate: Date,
+): string {
   const todayFormatted = formatLocalDate(refDate);
 
   const tomorrow = new Date(refDate);
@@ -104,7 +109,7 @@ function formatSpokenDayLabel(targetDateStr: string, refDate: Date): string {
   return `For ${targetDateStr}`;
 }
 
-function normalizeForMatch(text: string | null | undefined): string {
+export function normalizeForMatch(text: string | null | undefined): string {
   if (!text) return '';
   return text
     .toLowerCase()
@@ -117,7 +122,7 @@ function normalizeForMatch(text: string | null | undefined): string {
     .trim();
 }
 
-function normalizeRawWords(text: string | null | undefined): string {
+export function normalizeRawWords(text: string | null | undefined): string {
   if (!text) return '';
   return text
     .toLowerCase()
@@ -127,7 +132,7 @@ function normalizeRawWords(text: string | null | undefined): string {
     .trim();
 }
 
-function isRecentReference(query: string | null | undefined): boolean {
+export function isRecentReference(query: string | null | undefined): boolean {
   if (!query) return false;
   const cleaned = query
     .toLowerCase()
@@ -151,7 +156,7 @@ function parseTimeMinutes(timeStr: string | null | undefined): number | null {
   return h * 60 + mins;
 }
 
-function scoreEntityMatch(
+export function scoreEntityMatch(
   candidateTitle: string,
   candidateDate: string | null | undefined,
   candidateTime: string | null | undefined,
@@ -413,7 +418,10 @@ function findMatchingNote(
   return {note: bestScore >= 30 ? bestNote : null, score: bestScore};
 }
 
-function computeDurationMinutes(startTime: string, endTime: string): number {
+export function computeDurationMinutes(
+  startTime: string,
+  endTime: string,
+): number {
   const sMatch = /^(\d{1,2}):(\d{2})$/.exec(startTime);
   const eMatch = /^(\d{1,2}):(\d{2})$/.exec(endTime);
   if (!sMatch || !eMatch) return 60;
@@ -423,7 +431,10 @@ function computeDurationMinutes(startTime: string, endTime: string): number {
   return eMin - sMin;
 }
 
-function addMinutesToTime(startTime: string, durationMinutes: number): string {
+export function addMinutesToTime(
+  startTime: string,
+  durationMinutes: number,
+): string {
   const [h, m] = startTime.split(':').map(v => parseInt(v, 10));
   const totalMin = h * 60 + m + durationMinutes;
   const endH = Math.floor(totalMin / 60) % 24;
@@ -1508,17 +1519,24 @@ export async function executeNluAction(
         }
         const weekDateSet = new Set(weekDates);
 
-        const allTasks = tasksStore
-          .getAllTasks(userId)
-          .filter(
-            t => !t.isCompleted && t.dueDate && weekDateSet.has(t.dueDate),
-          );
-        const allBlocks = timeBlocksStore
-          .getAll(userId)
-          .filter(b => weekDateSet.has(b.date));
-        const allEvents = tasksStore
-          .getAllEvents(userId)
-          .filter(e => weekDateSet.has(e.date));
+        let window;
+        try {
+          window = plannerQueries.window(userId, weekDates[0], weekDates[6]);
+        } catch (error) {
+          console.error('[ActionExecutor] Could not read the week:', error);
+          return {
+            success: false,
+            intent: 'query_schedule',
+            error: 'storage_unavailable',
+            reply:
+              "I couldn't read your schedule right now. Please open the Calendar or try again.",
+          };
+        }
+        const allTasks = window.tasks.filter(
+          t => !t.isCompleted && t.dueDate && weekDateSet.has(t.dueDate),
+        );
+        const allBlocks = window.blocks.filter(b => weekDateSet.has(b.date));
+        const allEvents = window.events.filter(e => weekDateSet.has(e.date));
 
         const totalCount =
           allTasks.length + allBlocks.length + allEvents.length;
@@ -1621,15 +1639,25 @@ export async function executeNluAction(
       const targetDate = intent.date || formatLocalDate(refDate);
       const dayLabel = formatSpokenDayLabel(targetDate, refDate);
 
-      const tasks = tasksStore
-        .getAllTasks(userId)
-        .filter(t => !t.isCompleted && t.dueDate === targetDate);
-      const blocks = timeBlocksStore
-        .getAll(userId)
-        .filter(b => b.date === targetDate);
-      const events = tasksStore
-        .getAllEvents(userId)
-        .filter(e => e.date === targetDate);
+      // AGY-PORT 06: one bounded read of that day, with recurring occurrences. A
+      // storage failure is reported as such, never as an empty ("clear") day.
+      let day;
+      try {
+        day = plannerQueries.window(userId, targetDate, targetDate);
+      } catch (error) {
+        console.error('[ActionExecutor] Could not read the schedule:', error);
+        return {
+          success: false,
+          intent: 'query_schedule',
+          error: 'storage_unavailable',
+          reply: `I couldn't read your schedule right now, so I can't say what's planned for ${targetDate}. Please open the Calendar or try again.`,
+        };
+      }
+      const tasks = day.tasks.filter(
+        t => !t.isCompleted && t.dueDate === targetDate,
+      );
+      const blocks = day.blocks.filter(b => b.date === targetDate);
+      const events = day.events.filter(e => e.date === targetDate);
 
       const totalCount = tasks.length + blocks.length + events.length;
 
@@ -1773,41 +1801,14 @@ export async function executeNluAction(
     case 'chat':
     case 'out_of_scope':
     default: {
-      const queryLower = (
-        intent.details ||
-        intent.rawTranscript ||
-        ''
-      ).toLowerCase();
-      if (
-        /\b(?:what|who)\s+(?:are|is)\s+(?:you|lafina)|tell\s+me\s+about\s+yourself|who\s+made\s+you|are\s+you\s+(?:an?\s+)?(?:ai|bot|assistant)|what(?:'s|\s+is)\s+your\s+name|who\s+are\s+u|what\s+are\s+u\b/i.test(
-          queryLower,
-        ) ||
-        intent.details === 'Identity'
-      ) {
-        return {
-          success: true,
-          intent: intent.intent,
-          reply:
-            'I am lafina, your offline academic assistant. I help you manage your schedule, set reminder alarms, and organize tasks and notes.',
-        };
-      }
-      if (
-        /\b(?:what\s+can\s+you\s+do|how\s+(?:do|can)\s+you\s+help|what\s+do\s+you\s+do|help(?:\s+me)?)\b/i.test(
-          queryLower,
-        )
-      ) {
-        return {
-          success: true,
-          intent: intent.intent,
-          reply:
-            'I am lafina, your offline academic assistant. You can ask me to schedule study blocks, set alarms, or add and view tasks.',
-        };
-      }
+      // Same varied, on-device small talk as Chat (no fixed canned lines).
       return {
         success: true,
         intent: intent.intent,
-        reply:
-          'I am lafina, your offline academic assistant. I can manage your schedule, set reminders, and organize tasks and notes.',
+        reply: buildLocalConversationReply(
+          userId,
+          intent.rawTranscript || intent.details || '',
+        ),
       };
     }
   }

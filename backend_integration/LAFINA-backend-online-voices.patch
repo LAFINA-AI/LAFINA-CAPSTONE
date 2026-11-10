@@ -1,0 +1,1323 @@
+From 2d431304f04b8ada48191e535004857f8074d13c Mon Sep 17 00:00:00 2001
+From: John Lemar Gonzales <johnlemargonzales@gmail.com>
+Date: Sat, 7 Nov 2026 22:36:07 +0800
+Subject: [PATCH 1/4] Open online chat and ElevenLabs voices to all signed-in
+ accounts
+
+- Chat (DeepSeek) and online speech now require an authenticated, active
+  account instead of student_pro. Guests and disabled accounts stay denied;
+  per-account quotas and usage recording are unchanged. Paid generation
+  features (documents, flashcards, meeting notes) keep has_online_ai_access.
+- New authenticated GET /v1/ai/tts/voices returns a bounded, cached,
+  sanitized ElevenLabs catalogue ({provider, defaultVoiceId, voices}).
+- POST /v1/ai/tts accepts an optional validated voiceId; explicit IDs must
+  be in the current catalogue before any paid generation (unknown -> 422).
+- Chat response adds provider and usedHandbook; the system prompt no longer
+  claims the server saved local schedules.
+- DEEPSEEK_MODEL defaults to deepseek-flash; the retired deepseek-v4-flash
+  alias is normalized so existing deployments keep working.
+---
+ .env.example                  |   2 +-
+ app/api/v1/ai.py              |  41 +++++++++---
+ app/clients/elevenlabs_tts.py |  65 ++++++++++++++++++-
+ app/config.py                 |   5 +-
+ app/services/capabilities.py  |   9 ++-
+ tests/test_api.py             |  27 +-------
+ tests/test_deepseek.py        |   4 +-
+ tests/test_documents.py       |   2 +-
+ tests/test_online_voices.py   | 114 ++++++++++++++++++++++++++++++++++
+ tests/test_tts_api.py         |  12 ++--
+ 10 files changed, 234 insertions(+), 47 deletions(-)
+ create mode 100644 tests/test_online_voices.py
+
+diff --git a/.env.example b/.env.example
+index 8390c7c..08a3331 100644
+--- a/.env.example
++++ b/.env.example
+@@ -42,7 +42,7 @@ REFRESH_TOKEN_EXPIRE_DAYS=30
+ # Cloud LLM & AI Services (Online Features — Student Pro / Admin)
+ DEEPSEEK_API_KEY=your_deepseek_api_key_here
+ DEEPSEEK_BASE_URL=https://api.deepseek.com
+-DEEPSEEK_MODEL=deepseek-v4-flash
++DEEPSEEK_MODEL=deepseek-flash
+ 
+ # Cloud Voice & Speech Services (Online TTS Preview — Student Pro)
+ GEMINI_API_KEY=your_gemini_api_key_here
+diff --git a/app/api/v1/ai.py b/app/api/v1/ai.py
+index 1d24f05..1d02537 100644
+--- a/app/api/v1/ai.py
++++ b/app/api/v1/ai.py
+@@ -19,6 +19,7 @@ from app.models.ai_usage import AIUsage
+ from app.security.auth import get_current_user_and_session
+ from app.services.capabilities import (
+     has_online_ai_access,
++    has_chat_access,
+     has_tts_access,
+     is_student_pro,
+ )
+@@ -82,7 +83,7 @@ LAFINA_SYSTEM_INSTRUCTION = (
+     "Your primary function is helping students organize their academic life: scheduling classes, study sessions, midterm exams, "
+     "assignments, reminders, and time blocks, while also answering academic and general questions. "
+     "Rule 1: NEVER refuse, decline, or lecture a user about their requested schedule times (including 3 AM, late night, or early morning hours). Always accept and confirm any requested time, date, or duration without judgment. "
+-    "Rule 2: When a user asks you to schedule, remind, or plan a task, confirm warmly as LAFINA that the schedule item has been created with the exact title, date, time, and duration requested."
++    "Rule 2: You cannot create or modify local schedules. Never claim a task, reminder or event was saved. Ask the student to use the app scheduling controls when a durable change is needed. "
+     "Rule 3: Do not use emojis in the chat"
+ )
+ 
+@@ -164,6 +165,8 @@ class HandbookSource(BaseModel):
+ 
+ 
+ class AIChatResponse(BaseModel):
++    provider: Literal["deepseek"] = "deepseek"
++    usedHandbook: bool = False
+     requestId: str
+     reply: str
+     model: str
+@@ -177,6 +180,7 @@ class AITtsRequest(BaseModel):
+     provider: Literal["elevenlabs"] = "elevenlabs"
+     requestId: str = Field(default_factory=lambda: str(uuid.uuid4()))
+     text: str = Field(..., min_length=1, max_length=512)
++    voiceId: str | None = Field(default=None, min_length=1, max_length=128, pattern=r"^[A-Za-z0-9_-]+$")
+ 
+ 
+ class AITtsResponse(BaseModel):
+@@ -201,10 +205,10 @@ async def chat_proxy(
+     owner_id = account.id
+ 
+     # Enforce role-based access for Online AI from live DB Account
+-    if not has_online_ai_access(account):
++    if not has_chat_access(account):
+         raise HTTPException(
+             status_code=status.HTTP_403_FORBIDDEN,
+-            detail="Online AI requires a student_pro subscription. Please upgrade your account."
++            detail="Sign in with an active account to use online chat."
+         )
+ 
+     now = datetime.now(timezone.utc)
+@@ -293,6 +297,7 @@ async def chat_proxy(
+         usage=usage_data,
+         createdAt=now_str,
+         sources=[HandbookSource(**passage.as_source()) for passage in passages],
++        usedHandbook=bool(passages),
+     )
+ 
+ 
+@@ -342,10 +347,29 @@ async def tts_capabilities(
+ ):
+     account, _ = auth_data
+     if not has_tts_access(account):
+-        raise HTTPException(status_code=403, detail="Online speech requires student_pro access.")
++        raise HTTPException(status_code=403, detail="Sign in with an active account to use online speech.")
+     return {"provider": "elevenlabs", "enabled": elevenlabs_tts.configured, "mimeType": "audio/mpeg"}
+ 
+ 
++@router.get("/tts/voices")
++async def tts_voices(
++    auth_data: Annotated[tuple[Account, AuthSession], Depends(get_current_user_and_session)],
++    elevenlabs_tts: ElevenLabsTtsClient = Depends(get_elevenlabs_tts_client),
++):
++    account, _ = auth_data
++    if not has_tts_access(account):
++        raise HTTPException(status_code=403, detail="An active account is required.")
++    try:
++        voices = await elevenlabs_tts.list_voices()
++    except ElevenLabsTtsError as err:
++        raise HTTPException(status_code=err.status_code, detail=err.message)
++    return {
++        "provider": "elevenlabs",
++        "defaultVoiceId": settings.ELEVENLABS_VOICE_ID,
++        "voices": voices,
++    }
++
++
+ @router.post("/tts", response_model=AITtsResponse)
+ async def tts_proxy(
+     req: AITtsRequest,
+@@ -356,11 +380,11 @@ async def tts_proxy(
+     account, _ = auth_data
+     owner_id = account.id
+ 
+-    # Enforce access for TTS from live DB Account (student_pro only)
++    # Enforce active-account access; authentication and quotas still apply.
+     if not has_tts_access(account):
+         raise HTTPException(
+             status_code=status.HTTP_403_FORBIDDEN,
+-            detail="ElevenLabs TTS requires a student_pro subscription. Please upgrade your account."
++            detail="Sign in with an active account to use online speech."
+         )
+ 
+     trimmed_text = req.text.strip()
+@@ -404,7 +428,8 @@ async def tts_proxy(
+     try:
+         audio_base64, usage_data = await elevenlabs_tts.synthesize_speech(
+             text=trimmed_text,
+-            request_id=req.requestId
++            request_id=req.requestId,
++            voice_id=req.voiceId,
+         )
+     except ElevenLabsTtsError as err:
+         raise HTTPException(
+@@ -427,7 +452,7 @@ async def tts_proxy(
+         audioBase64=audio_base64,
+         mimeType="audio/mpeg",
+         model=settings.ELEVENLABS_MODEL_ID,
+-        voice=settings.ELEVENLABS_VOICE_ID,
++        voice=req.voiceId or settings.ELEVENLABS_VOICE_ID,
+         createdAt=now_str
+     )
+ 
+diff --git a/app/clients/elevenlabs_tts.py b/app/clients/elevenlabs_tts.py
+index d886491..9b7ef0c 100644
+--- a/app/clients/elevenlabs_tts.py
++++ b/app/clients/elevenlabs_tts.py
+@@ -2,6 +2,7 @@
+ 
+ import asyncio
+ import base64
++import re
+ import time
+ from urllib.parse import quote
+ 
+@@ -22,6 +23,9 @@ class ElevenLabsTtsClient:
+         self.owns_client = client is None
+         self.used_characters = 0
+         self.requests: dict[str, float] = {}
++        self._voices: list[dict[str, str]] = []
++        self._voices_at = 0.0
++        self._voices_lock = asyncio.Lock()
+ 
+     @property
+     def configured(self):
+@@ -37,11 +41,68 @@ class ElevenLabsTtsClient:
+             await self.client.aclose()
+             self.client = None
+ 
+-    async def synthesize_speech(self, text: str, request_id: str):
++    async def list_voices(self) -> list[dict[str, str]]:
++        """Bounded, shared five-minute catalogue; no audio or arbitrary URLs."""
++        if not self.configured:
++            raise ElevenLabsTtsError("ElevenLabs speech is not configured.", 503)
++        async with self._voices_lock:
++            if self._voices_at and time.monotonic() - self._voices_at < 300:
++                return list(self._voices)
++            await self.start()
++            voices: dict[str, dict[str, str]] = {}
++            cursor = None
++            try:
++                async with asyncio.timeout(12):
++                    for _ in range(5):
++                        params = {"page_size": 100}
++                        if cursor:
++                            params["next_page_token"] = cursor
++                        response = await self.client.get(
++                            "https://api.elevenlabs.io/v2/voices",
++                            params=params,
++                            headers={"xi-api-key": self.settings.ELEVENLABS_API_KEY.get_secret_value().strip()},
++                            timeout=10,
++                        )
++                        if response.status_code == 429:
++                            raise ElevenLabsTtsError("Voice catalogue usage limit reached.", 429)
++                        if response.status_code in (401, 403):
++                            raise ElevenLabsTtsError("The server key needs Voices read permission.", 503)
++                        if response.status_code != 200:
++                            raise ElevenLabsTtsError("Voice catalogue is unavailable. Try again.")
++                        if len(response.content) > 2_000_000:
++                            raise ElevenLabsTtsError("Voice catalogue response is too large.")
++                        data = response.json()
++                        if not isinstance(data, dict) or not isinstance(data.get("voices"), list):
++                            raise ElevenLabsTtsError("Invalid voice catalogue response.")
++                        for voice in data["voices"][:100]:
++                            if not isinstance(voice, dict):
++                                continue
++                            voice_id, name = voice.get("voice_id"), voice.get("name")
++                            if isinstance(voice_id, str) and re.fullmatch(r"[A-Za-z0-9_-]{1,128}", voice_id) and isinstance(name, str) and name.strip():
++                                voices[voice_id] = {"id": voice_id, "name": name.strip()[:160]}
++                        cursor = data.get("next_page_token")
++                        if not data.get("has_more") or not isinstance(cursor, str) or not cursor:
++                            break
++                self._voices = sorted(voices.values(), key=lambda v: v["name"].casefold())
++                self._voices_at = time.monotonic()
++                return list(self._voices)
++            except (TimeoutError, httpx.TimeoutException):
++                raise ElevenLabsTtsError("Voice catalogue timed out. Try again.", 504) from None
++            except (httpx.HTTPError, ValueError):
++                raise ElevenLabsTtsError("Voice catalogue is unavailable. Try again.") from None
++
++    async def synthesize_speech(self, text: str, request_id: str, voice_id: str | None = None):
+         if not self.configured:
+             raise ElevenLabsTtsError("ElevenLabs speech is not configured.", 503)
+         if not text.strip() or len(text) > 512:
+             raise ElevenLabsTtsError("Speech text must contain 1 to 512 characters.", 400)
++        selected_voice = voice_id or self.settings.ELEVENLABS_VOICE_ID
++        if voice_id is not None:
++            if not re.fullmatch(r"[A-Za-z0-9_-]{1,128}", voice_id):
++                raise ElevenLabsTtsError("Invalid online voice selection.", 400)
++            voices = await self.list_voices()
++            if not any(voice["id"] == voice_id for voice in voices):
++                raise ElevenLabsTtsError("That online voice is no longer available. Choose another voice in Profile.", 422)
+         now = time.monotonic()
+         self.requests = {
+             key: created for key, created in self.requests.items() if now - created < 600
+@@ -60,7 +121,7 @@ class ElevenLabsTtsClient:
+                 async with self.client.stream(
+                     "POST",
+                     "https://api.elevenlabs.io/v1/text-to-speech/"
+-                    + quote(self.settings.ELEVENLABS_VOICE_ID, safe="")
++                    + quote(selected_voice, safe="")
+                     + "?output_format=mp3_44100_128",
+                     headers={
+                         "xi-api-key": self.settings.ELEVENLABS_API_KEY.get_secret_value().strip()
+diff --git a/app/config.py b/app/config.py
+index bd52394..1efcce6 100644
+--- a/app/config.py
++++ b/app/config.py
+@@ -166,7 +166,7 @@ class Settings(BaseSettings):
+     # DeepSeek API Configuration
+     DEEPSEEK_API_KEY: SecretStr | None = None
+     DEEPSEEK_BASE_URL: str = "https://api.deepseek.com"
+-    DEEPSEEK_MODEL: str = "deepseek-v4-flash"
++    DEEPSEEK_MODEL: str = "deepseek-flash"
+     # Flashcards need a model that follows a strict output shape over a long
+     # reply, which is a different job from the conversational assistant.
+     DEEPSEEK_FLASHCARD_MODEL: str = "deepseek-chat"
+@@ -312,6 +312,9 @@ class Settings(BaseSettings):
+ 
+     @model_validator(mode="after")
+     def validate_deepseek_config(self) -> "Settings":
++        # Compatibility for the retired alias used by existing deployments.
++        if self.DEEPSEEK_MODEL == "deepseek-v4-flash":
++            self.DEEPSEEK_MODEL = "deepseek-flash"
+         reason = self.get_deepseek_key_invalid_reason()
+         if self.ENVIRONMENT == "production" and reason is not None:
+             raise ValueError(
+diff --git a/app/services/capabilities.py b/app/services/capabilities.py
+index 8d881f0..9c68d24 100644
+--- a/app/services/capabilities.py
++++ b/app/services/capabilities.py
+@@ -37,9 +37,14 @@ def has_online_ai_access(account: Account) -> bool:
+     return bool(account.is_active) and (is_student_pro(account) or is_admin(account))
+ 
+ 
++def has_chat_access(account: Account) -> bool:
++    """Authenticated active accounts may use conversational online AI."""
++    return bool(account.is_active)
++
++
+ def has_tts_access(account: Account) -> bool:
+-    """Cloud TTS is a Student Pro feature only (admins are deliberately excluded)."""
+-    return is_student_pro(account)
++    """Authenticated active accounts may use online speech, within quotas."""
++    return bool(account.is_active)
+ 
+ 
+ def resolve_account_capabilities(account: Account) -> CapabilityResolution:
+diff --git a/tests/test_api.py b/tests/test_api.py
+index 1e22842..24e06cb 100644
+--- a/tests/test_api.py
++++ b/tests/test_api.py
+@@ -202,29 +202,8 @@ async def test_online_ai_proxy(async_client: AsyncClient):
+     token = reg_res.json()["access_token"]
+     headers = {"Authorization": f"Bearer {token}"}
+ 
+-    # 2. Student role attempt should be rejected with 403 Forbidden before provider call
+-    student_chat_res = await async_client.post("/v1/ai/chat", headers=headers, json={
+-        "requestId": "req-001",
+-        "messages": [
+-            {"role": "user", "content": "How do I organize my study schedule for midterms?"}
+-        ]
+-    })
+-    assert student_chat_res.status_code == 403
+-    assert "student_pro" in student_chat_res.json()["detail"]
+-
+-    # 3. Promote account role to student_pro in DB and log in to get updated JWT claim
+-    async with TestingSessionLocal() as db:
+-        stmt = select(Account).where(Account.email == "ai_user@ustp.edu.ph")
+-        acc = (await db.execute(stmt)).scalar_one()
+-        acc.role = "student_pro"
+-        await db.commit()
+-
+-    login_res = await async_client.post("/v1/auth/login", json={
+-        "email": "ai_user@ustp.edu.ph",
+-        "password": password
+-    })
+-    pro_token = login_res.json()["access_token"]
+-    pro_headers = {"Authorization": f"Bearer {pro_token}"}
++    # Ordinary signed-in students use the same chat route without plan promotion.
++    pro_headers = headers
+ 
+     # 4. Without configured DEEPSEEK_API_KEY in dev environment, should return 503 Service Unavailable
+     unconfig_settings = Settings(ENVIRONMENT="development", DEEPSEEK_API_KEY=None)
+@@ -271,7 +250,7 @@ async def test_online_ai_proxy(async_client: AsyncClient):
+     chat_data = pro_chat_res.json()
+     assert chat_data["requestId"] == "req-002"
+     assert "Prioritize weak subjects" in chat_data["reply"]
+-    assert chat_data["model"] == "deepseek-v4-flash"
++    assert chat_data["model"] == "deepseek-flash"
+     assert chat_data["usage"]["total_tokens"] == 25
+ 
+     # Verify AIUsage record created in DB
+diff --git a/tests/test_deepseek.py b/tests/test_deepseek.py
+index 8de4b82..3fcd2f1 100644
+--- a/tests/test_deepseek.py
++++ b/tests/test_deepseek.py
+@@ -65,7 +65,7 @@ async def test_client_successful_chat_completion(caplog):
+                 "id": "chatcmpl-123",
+                 "object": "chat.completion",
+                 "created": 1677858288,
+-                "model": "deepseek-v4-flash",
++                "model": "deepseek-flash",
+                 "choices": [
+                     {
+                         "index": 0,
+@@ -104,7 +104,7 @@ async def test_client_successful_chat_completion(caplog):
+     # Verify request parameters
+     assert captured_request["url"] == "https://api.deepseek.com/chat/completions"
+     assert captured_request["headers"]["authorization"] == "Bearer sk-valid-test-key-999"
+-    assert captured_request["body"]["model"] == "deepseek-v4-flash"
++    assert captured_request["body"]["model"] == "deepseek-flash"
+     assert captured_request["body"]["stream"] is False
+     assert captured_request["body"]["thinking"] == {"type": "disabled"}
+     assert captured_request["body"]["user"] == user_uuid
+diff --git a/tests/test_documents.py b/tests/test_documents.py
+index a3859e1..e449d4f 100644
+--- a/tests/test_documents.py
++++ b/tests/test_documents.py
+@@ -370,7 +370,7 @@ async def test_a_student_pro_gets_a_file(async_client: AsyncClient, fake_deepsee
+ 
+     call = fake.calls[0]
+     assert call["json_mode"] is True
+-    assert call["model"] == "deepseek-v4-flash"
++    assert call["model"] == "deepseek-flash"
+     # The conversation reaches the model after the system instruction.
+     assert call["messages"][0]["role"] == "system"
+     assert call["messages"][-1]["content"].startswith("Make me a PDF")
+diff --git a/tests/test_online_voices.py b/tests/test_online_voices.py
+new file mode 100644
+index 0000000..b5ae602
+--- /dev/null
++++ b/tests/test_online_voices.py
+@@ -0,0 +1,114 @@
++"""Signed-in chat/speech contract, with synthetic providers and real auth/SQLite."""
++import json
++
++import httpx
++import pytest
++from sqlalchemy import select
++
++from app.api.v1.ai import get_deepseek_client
++from app.clients.deepseek import DeepSeekClient
++from app.clients.elevenlabs_tts import ElevenLabsTtsClient, ElevenLabsTtsError
++from app.config import Settings
++from app.main import app
++from app.models.account import Account
++from app.services.capabilities import has_online_ai_access
++from tests.conftest import TestingSessionLocal
++
++
++@pytest.fixture
++def providers():
++    captured = []
++    def transport(request):
++        captured.append(request)
++        if request.method == "GET":
++            return httpx.Response(200, json={"voices": [{"voice_id": "voice_a", "name": "Alice"}, {"voice_id": "voice_b", "name": "Bella"}], "has_more": False})
++        if request.url.host == "api.deepseek.com":
++            return httpx.Response(200, json={"choices": [{"message": {"role": "assistant", "content": "Try short study sessions."}}], "usage": {"total_tokens": 12}})
++        return httpx.Response(200, content=b"synthetic audio", headers={"content-type": "audio/mpeg"})
++    config = Settings(_env_file=None, ENVIRONMENT="development", DEEPSEEK_API_KEY="synthetic-key", ELEVENLABS_API_KEY="synthetic-key")
++    http = httpx.AsyncClient(transport=httpx.MockTransport(transport))
++    eleven = ElevenLabsTtsClient(config, http)
++    deepseek = DeepSeekClient(config, http)
++    previous = app.dependency_overrides.get(get_deepseek_client)
++    previous_tts = getattr(app.state, "elevenlabs_tts_client", None)
++    app.dependency_overrides[get_deepseek_client] = lambda: deepseek
++    app.state.elevenlabs_tts_client = eleven
++    yield captured, eleven
++    if previous is None:
++        app.dependency_overrides.pop(get_deepseek_client, None)
++    else:
++        app.dependency_overrides[get_deepseek_client] = previous
++    app.state.elevenlabs_tts_client = previous_tts
++
++
++async def signed_in(client, role="student", active=True):
++    response = await client.post("/v1/auth/register", json={"email": "online-test@example.org", "password": "SyntheticPassword123!"})
++    assert response.status_code == 201
++    async with TestingSessionLocal() as db:
++        account = (await db.execute(select(Account).where(Account.email == "online-test@example.org"))).scalar_one()
++        account.role = role
++        account.is_active = active
++        # A basic student still cannot use unrelated paid generation features.
++        if role == "student":
++            assert not has_online_ai_access(account)
++        await db.commit()
++    return {"Authorization": "Bearer " + response.json()["access_token"]}
++
++
++@pytest.mark.parametrize("role", ["student", "student_pro", "admin"])
++async def test_all_active_signed_in_roles_can_choose_voice_and_chat(async_client, providers, role):
++    captured, _ = providers
++    headers = await signed_in(async_client, role)
++    catalogue = await async_client.get("/v1/ai/tts/voices", headers=headers)
++    assert catalogue.status_code == 200
++    assert catalogue.json()["voices"] == [{"id": "voice_a", "name": "Alice"}, {"id": "voice_b", "name": "Bella"}]
++    result = await async_client.post("/v1/ai/tts", headers=headers, json={"text": "Hello", "voiceId": "voice_b"})
++    assert result.status_code == 200
++    assert result.json()["voice"] == "voice_b"
++    assert captured[-1].url.path.endswith("/voice_b")
++    result = await async_client.post("/v1/ai/chat", headers=headers, json={"messages": [{"role": "user", "content": "Study advice?"}], "useHandbook": False})
++    assert result.status_code == 200
++    assert result.json()["provider"] == "deepseek"
++    assert result.json()["usedHandbook"] is False
++    assert result.json()["reply"] == "Try short study sessions."
++    payload = json.loads(captured[-1].content)
++    assert payload["model"] == "deepseek-flash"
++    assert payload["thinking"] == {"type": "disabled"}
++    assert not any(m["role"] == "system" and "has been created" in m["content"] for m in payload["messages"])
++    assert sum(r.method == "GET" for r in captured) == 1  # catalogue cache reused by synthesis
++
++
++async def test_guests_and_disabled_accounts_never_reach_providers(async_client, providers):
++    captured, _ = providers
++    for path in ["/v1/ai/tts/voices", "/v1/ai/tts/capabilities"]:
++        assert (await async_client.get(path)).status_code == 401
++    headers = await signed_in(async_client, active=False)
++    assert (await async_client.get("/v1/ai/tts/voices", headers=headers)).status_code == 401
++    assert (await async_client.post("/v1/ai/chat", headers=headers, json={"messages": [{"role": "user", "content": "Hello"}]})).status_code == 401
++    assert (await async_client.post("/v1/ai/tts", headers=headers, json={"text": "Hello"})).status_code == 401
++    assert captured == []
++
++
++async def test_unknown_and_malformed_voice_never_generate_audio(async_client, providers):
++    captured, eleven = providers
++    headers = await signed_in(async_client)
++    for voice, status in [("missing", 422), ("../path", 422)]:
++        response = await async_client.post("/v1/ai/tts", headers=headers, json={"text": "Hello", "voiceId": voice})
++        assert response.status_code == status
++    assert all(request.method == "GET" for request in captured)
++    assert eleven.used_characters == 0
++
++
++@pytest.mark.parametrize("status,expected", [(403, 503), (429, 429), (500, 502)])
++async def test_catalogue_errors_are_actionable_and_redacted(status, expected):
++    config = Settings(_env_file=None, ELEVENLABS_API_KEY="synthetic-key")
++    async with httpx.AsyncClient(transport=httpx.MockTransport(lambda _: httpx.Response(status, text="private provider body"))) as http:
++        with pytest.raises(ElevenLabsTtsError) as error:
++            await ElevenLabsTtsClient(config, http).list_voices()
++        assert error.value.status_code == expected
++        assert "private provider body" not in error.value.message
++
++
++def test_deepseek_legacy_alias_and_explicit_model():
++    assert Settings(_env_file=None, DEEPSEEK_MODEL="deepseek-v4-flash").DEEPSEEK_MODEL == "deepseek-flash"
++    assert Settings(_env_file=None, DEEPSEEK_MODEL="deepseek-v4-pro").DEEPSEEK_MODEL == "deepseek-v4-pro"
+diff --git a/tests/test_tts_api.py b/tests/test_tts_api.py
+index 646d3a4..477d52a 100644
+--- a/tests/test_tts_api.py
++++ b/tests/test_tts_api.py
+@@ -34,8 +34,8 @@ async def test_tts_unauthenticated_returns_401(async_client: AsyncClient):
+ async def test_tts_role_enforcement(async_client: AsyncClient):
+     """
+     Role enforcement test:
+-    - student -> 403 Forbidden
+-    - admin -> 403 Forbidden
++    - student -> 200 OK
++    - admin -> 200 OK
+     - student_pro -> 200 OK
+     """
+     app.state.elevenlabs_tts_client = create_mock_elevenlabs_client()
+@@ -51,8 +51,7 @@ async def test_tts_role_enforcement(async_client: AsyncClient):
+         json={"text": "Hello world"},
+         headers={"Authorization": f"Bearer {token_student}"},
+     )
+-    assert res_student.status_code == 403
+-    assert "student_pro" in res_student.json()["detail"]
++    assert res_student.status_code == 200
+ 
+     # 2. Promote user role in DB to admin -> must return 403 for TTS
+     async with TestingSessionLocal() as db:
+@@ -66,7 +65,7 @@ async def test_tts_role_enforcement(async_client: AsyncClient):
+         json={"text": "Hello world"},
+         headers={"Authorization": f"Bearer {token_student}"},
+     )
+-    assert res_admin.status_code == 403
++    assert res_admin.status_code == 200
+ 
+     # 3. Promote user role in DB to student_pro -> must succeed (200)
+     async with TestingSessionLocal() as db:
+@@ -203,7 +202,8 @@ async def test_elevenlabs_capability_requires_auth_and_entitlement(async_client:
+         json={"email": "elevenlabs_capability@ustp.edu.ph", "password": "SyntheticPassword123!"},
+     )
+     headers = {"Authorization": "Bearer " + registration.json()["access_token"]}
+-    assert (await async_client.get("/v1/ai/tts/capabilities", headers=headers)).status_code == 403
++    app.state.elevenlabs_tts_client = create_mock_elevenlabs_client()
++    assert (await async_client.get("/v1/ai/tts/capabilities", headers=headers)).status_code == 200
+     async with TestingSessionLocal() as db:
+         account = (
+             await db.execute(
+-- 
+2.55.0.windows.4
+
+
+From 23acd9351d4e14bcc9cce3c0352e25f718caf702 Mon Sep 17 00:00:00 2001
+From: John Lemar Gonzales <johnlemargonzales@gmail.com>
+Date: Sat, 7 Nov 2026 23:06:00 +0800
+Subject: [PATCH 2/4] Make LAFINA's online chat persona conversational
+
+Introduce LAFINA only when asked or on the first greeting instead of on
+every greeting, keep small talk short and varied, and match the student's
+tone and language. The no-saved-schedules rule is unchanged and tested.
+---
+ app/api/v1/ai.py            | 5 ++++-
+ tests/test_online_voices.py | 8 ++++++++
+ 2 files changed, 12 insertions(+), 1 deletion(-)
+
+diff --git a/app/api/v1/ai.py b/app/api/v1/ai.py
+index 1d02537..f0ecb5e 100644
+--- a/app/api/v1/ai.py
++++ b/app/api/v1/ai.py
+@@ -79,7 +79,10 @@ logger = logging.getLogger("lafina.ai")
+ 
+ LAFINA_SYSTEM_INSTRUCTION = (
+     "You are LAFINA, an intelligent, warm, voice-first AI academic scheduling assistant for students. "
+-    "Always introduce yourself as LAFINA when asked, greeted, or introduced. "
++    "Say you are LAFINA when asked who or what you are, or on the first greeting of a conversation; do not repeat the introduction after that. "
++    "Talk like a friendly, upbeat classmate, not a help desk: keep small talk short (one or two sentences), vary your wording, "
++    "react to what the student actually said, and match their tone and language (English, Filipino or Taglish). "
++    "Ask at most one natural follow-up question. "
+     "Your primary function is helping students organize their academic life: scheduling classes, study sessions, midterm exams, "
+     "assignments, reminders, and time blocks, while also answering academic and general questions. "
+     "Rule 1: NEVER refuse, decline, or lecture a user about their requested schedule times (including 3 AM, late night, or early morning hours). Always accept and confirm any requested time, date, or duration without judgment. "
+diff --git a/tests/test_online_voices.py b/tests/test_online_voices.py
+index b5ae602..10d10cc 100644
+--- a/tests/test_online_voices.py
++++ b/tests/test_online_voices.py
+@@ -112,3 +112,11 @@ async def test_catalogue_errors_are_actionable_and_redacted(status, expected):
+ def test_deepseek_legacy_alias_and_explicit_model():
+     assert Settings(_env_file=None, DEEPSEEK_MODEL="deepseek-v4-flash").DEEPSEEK_MODEL == "deepseek-flash"
+     assert Settings(_env_file=None, DEEPSEEK_MODEL="deepseek-v4-pro").DEEPSEEK_MODEL == "deepseek-v4-pro"
++
++
++def test_persona_prompt_is_conversational_and_honest():
++    from app.api.v1.ai import LAFINA_SYSTEM_INSTRUCTION as prompt
++
++    assert "Always introduce yourself" not in prompt
++    assert "do not repeat the introduction" in prompt
++    assert "Never claim a task, reminder or event was saved" in prompt
+-- 
+2.55.0.windows.4
+
+
+From afaa36bb2e385a8c0aae08a800c5894969140189 Mon Sep 17 00:00:00 2001
+From: John Lemar Gonzales <johnlemargonzales@gmail.com>
+Date: Sat, 7 Nov 2026 23:27:45 +0800
+Subject: [PATCH 3/4] Stream chat replies as Server-Sent Events
+
+Add POST /v1/ai/chat/stream: the same access, size, quota and handbook
+handling as /v1/ai/chat (now shared), with DeepSeek's reply forwarded
+piece by piece. Provider errors before the first piece stay ordinary
+HTTP errors; a failure part-way ends with an error event. The request
+counts toward the chat quota as soon as the reply starts.
+---
+ app/api/v1/ai.py          | 113 ++++++++++++++++++++++++++---
+ app/clients/deepseek.py   | 146 +++++++++++++++++++++++++++++++-------
+ tests/test_chat_stream.py | 142 ++++++++++++++++++++++++++++++++++++
+ 3 files changed, 366 insertions(+), 35 deletions(-)
+ create mode 100644 tests/test_chat_stream.py
+
+diff --git a/app/api/v1/ai.py b/app/api/v1/ai.py
+index f0ecb5e..aaac5c0 100644
+--- a/app/api/v1/ai.py
++++ b/app/api/v1/ai.py
+@@ -1,6 +1,7 @@
+ import asyncio
+ import base64
+ import binascii
++import json
+ import logging
+ import re
+ import uuid
+@@ -8,6 +9,7 @@ from datetime import datetime, timezone, timedelta
+ from typing import Literal, Annotated
+ from pydantic import BaseModel, Field
+ from fastapi import APIRouter, Depends, HTTPException, Request, status
++from fastapi.responses import StreamingResponse
+ from sqlalchemy.ext.asyncio import AsyncSession
+ from sqlalchemy import select, func
+ 
+@@ -196,15 +198,13 @@ class AITtsResponse(BaseModel):
+     createdAt: str
+ 
+ 
+-@router.post("/chat", response_model=AIChatResponse)
+-async def chat_proxy(
++async def _prepare_chat(
+     req: AIChatRequest,
+-    auth_data: Annotated[tuple[Account, AuthSession], Depends(get_current_user_and_session)],
+-    db: AsyncSession = Depends(get_db),
+-    deepseek: DeepSeekClient = Depends(get_deepseek_client),
+-    handbook: HandbookRetriever | None = Depends(get_handbook_retriever),
+-):
+-    account, _ = auth_data
++    account: Account,
++    db: AsyncSession,
++    handbook: HandbookRetriever | None,
++) -> tuple[datetime, list[HandbookPassage], list[dict[str, str]]]:
++    """Access, size and quota checks plus the prompt, shared by both chat routes."""
+     owner_id = account.id
+ 
+     # Enforce role-based access for Online AI from live DB Account
+@@ -215,7 +215,6 @@ async def chat_proxy(
+         )
+ 
+     now = datetime.now(timezone.utc)
+-    now_str = now.isoformat()
+ 
+     # Validate total character count across messages (max 8,000 chars)
+     total_chars = sum(len(m.content) for m in req.messages)
+@@ -270,6 +269,25 @@ async def chat_proxy(
+         + handbook_context
+         + [{"role": m.role, "content": m.content} for m in req.messages]
+     )
++    return now, passages, formatted_messages
++
++
++def _sse(event: dict) -> str:
++    return f"data: {json.dumps(event, ensure_ascii=False)}\n\n"
++
++
++@router.post("/chat", response_model=AIChatResponse)
++async def chat_proxy(
++    req: AIChatRequest,
++    auth_data: Annotated[tuple[Account, AuthSession], Depends(get_current_user_and_session)],
++    db: AsyncSession = Depends(get_db),
++    deepseek: DeepSeekClient = Depends(get_deepseek_client),
++    handbook: HandbookRetriever | None = Depends(get_handbook_retriever),
++):
++    account, _ = auth_data
++    owner_id = account.id
++    now, passages, formatted_messages = await _prepare_chat(req, account, db, handbook)
++    now_str = now.isoformat()
+ 
+     try:
+         reply_text, usage_data = await deepseek.chat_completion(
+@@ -304,6 +322,83 @@ async def chat_proxy(
+     )
+ 
+ 
++@router.post("/chat/stream")
++async def chat_stream(
++    req: AIChatRequest,
++    auth_data: Annotated[tuple[Account, AuthSession], Depends(get_current_user_and_session)],
++    db: AsyncSession = Depends(get_db),
++    deepseek: DeepSeekClient = Depends(get_deepseek_client),
++    handbook: HandbookRetriever | None = Depends(get_handbook_retriever),
++):
++    """The same reply as ``POST /chat``, sent piece by piece as Server-Sent Events.
++
++    Events, one JSON object per ``data:`` line:
++    ``{"type": "delta", "text": ...}`` for each piece of the reply, then either
++    ``{"type": "done", ...}`` (provider, usedHandbook, sources, model, requestId,
++    usage, createdAt) or ``{"type": "error", "status": ..., "message": ...}`` if
++    DeepSeek stops part-way. Access, quota and provider errors before the first
++    piece are ordinary HTTP errors, exactly as on ``/chat``.
++    """
++    account, _ = auth_data
++    now, passages, formatted_messages = await _prepare_chat(req, account, db, handbook)
++    events = deepseek.chat_completion_stream(
++        messages=formatted_messages,
++        user_id=str(account.id),
++        request_id=req.requestId,
++    )
++    try:
++        first = await anext(events)
++    except DeepSeekError as err:
++        raise HTTPException(status_code=err.status_code, detail=err.message)
++
++    # The reply has started, so it counts toward the quota now: a client that
++    # disconnects part-way still used the provider. Token counts follow below.
++    usage_row = AIUsage(
++        owner_id=account.id,
++        request_type="chat",
++        prompt_tokens=0,
++        completion_tokens=0,
++        created_at=now,
++    )
++    db.add(usage_row)
++    await db.commit()
++
++    async def body():
++        pending = first
++        try:
++            while True:
++                kind, value = pending
++                if kind == "delta":
++                    yield _sse({"type": "delta", "text": value})
++                else:
++                    usage_data = value if isinstance(value, dict) else {}
++                    usage_row.prompt_tokens = usage_data.get("prompt_tokens", 0)
++                    usage_row.completion_tokens = usage_data.get("completion_tokens", 0)
++                    await db.commit()
++                    yield _sse({
++                        "type": "done",
++                        "provider": "deepseek",
++                        "requestId": req.requestId,
++                        "model": settings.DEEPSEEK_MODEL,
++                        "usage": usage_data,
++                        "createdAt": now.isoformat(),
++                        "usedHandbook": bool(passages),
++                        "sources": [passage.as_source() for passage in passages],
++                    })
++                    return
++                pending = await anext(events)
++        except StopAsyncIteration:
++            return
++        except DeepSeekError as err:
++            yield _sse({"type": "error", "status": err.status_code, "message": err.message})
++
++    return StreamingResponse(
++        body(),
++        media_type="text/event-stream",
++        headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"},
++    )
++
++
+ class HandbookStatusResponse(BaseModel):
+     # The admin panel's `handbook_rag` switch. Off means the feature is not
+     # offered at all, and clients hide everything about it.
+diff --git a/app/clients/deepseek.py b/app/clients/deepseek.py
+index ee99816..6b39e81 100644
+--- a/app/clients/deepseek.py
++++ b/app/clients/deepseek.py
+@@ -1,6 +1,7 @@
++import json
+ import logging
+ import time
+-from typing import Optional
++from typing import AsyncIterator, Optional
+ from pydantic import BaseModel, Field
+ import httpx
+ 
+@@ -106,6 +107,26 @@ class DeepSeekTransportError(DeepSeekError):
+         super().__init__(message, status_code=503)
+ 
+ 
++def upstream_error(status_code: int, detail: str) -> DeepSeekError:
++    """Maps a non-200 DeepSeek status to the client-safe error we raise."""
++    if status_code == 401:
++        return DeepSeekAuthenticationError(f"DeepSeek provider authentication failed: {detail}")
++    if status_code == 402:
++        return DeepSeekBillingError(f"DeepSeek provider billing is unavailable: {detail}")
++    if status_code == 429:
++        return DeepSeekRateLimitError(
++            f"DeepSeek rate limit exceeded. Please try again later: {detail}"
++        )
++    if status_code in (400, 422):
++        return DeepSeekInvalidRequestError(f"Invalid request sent to DeepSeek provider: {detail}")
++    if status_code in (500, 503):
++        return DeepSeekProviderServerError(f"DeepSeek provider temporary outage: {detail}")
++    return DeepSeekError(
++        message=f"DeepSeek provider returned error status {status_code}: {detail}",
++        status_code=502,
++    )
++
++
+ class DeepSeekMessage(BaseModel):
+     role: str
+     content: Optional[str] = None
+@@ -174,6 +195,103 @@ class DeepSeekClient:
+             temperature=0.7,
+         )
+ 
++    async def chat_completion_stream(
++        self,
++        messages: list[dict[str, str]],
++        user_id: str,
++        request_id: str = "",
++    ) -> AsyncIterator[tuple[str, object]]:
++        """Streams a chat reply as it is generated.
++
++        Yields ``("delta", text)`` for each piece of the reply, then exactly
++        one ``("usage", dict)``. Upstream HTTP errors are raised before the
++        first yield, so callers can still answer with a normal error status.
++        Same model, settings and limits as :meth:`chat_completion`.
++        """
++        reason = self.settings.get_deepseek_key_invalid_reason()
++        if reason is not None:
++            logger.warning(
++                f"DeepSeek stream attempted without valid API key ({reason}) [requestId={request_id}]"
++            )
++            raise DeepSeekConfigError("DeepSeek API key is not configured.")
++        if self._client is None:
++            await self.start()
++        assert self._client is not None, "AsyncClient must be initialized"
++
++        raw_key = (
++            self.settings.DEEPSEEK_API_KEY.get_secret_value().strip().strip("'\"")
++            if self.settings.DEEPSEEK_API_KEY
++            else ""
++        )
++        payload = {
++            "model": self.settings.DEEPSEEK_MODEL,
++            "messages": messages,
++            "stream": True,
++            "stream_options": {"include_usage": True},
++            "thinking": {"type": "disabled"},
++            "max_tokens": 1024,
++            "temperature": 0.7,
++            "user": user_id,
++        }
++        url = f"{self.settings.DEEPSEEK_BASE_URL.rstrip('/')}/chat/completions"
++        start_time = time.monotonic()
++        usage = {"prompt_tokens": 0, "completion_tokens": 0, "total_tokens": 0}
++        produced = False
++        try:
++            async with self._client.stream(
++                "POST",
++                url,
++                headers={"Authorization": f"Bearer {raw_key}", "Content-Type": "application/json"},
++                json=payload,
++            ) as res:
++                if res.status_code != 200:
++                    body = (await res.aread()).decode("utf-8", "replace")
++                    detail = extract_upstream_error(body)
++                    logger.warning(
++                        f"DeepSeek stream upstream error HTTP {res.status_code} "
++                        f"[requestId={request_id}] model={self.settings.DEEPSEEK_MODEL} "
++                        f"upstream_detail={detail!r}"
++                    )
++                    raise upstream_error(res.status_code, detail)
++                async for line in res.aiter_lines():
++                    if not line.startswith("data:"):
++                        continue
++                    data = line[5:].strip()
++                    if data == "[DONE]":
++                        break
++                    try:
++                        chunk = json.loads(data)
++                    except ValueError:
++                        logger.error(f"DeepSeek stream sent malformed JSON [requestId={request_id}]")
++                        raise DeepSeekMalformedResponseError()
++                    if isinstance(chunk.get("usage"), dict):
++                        for key in usage:
++                            value = chunk["usage"].get(key)
++                            if isinstance(value, int):
++                                usage[key] = value
++                    for choice in chunk.get("choices") or []:
++                        text = (choice.get("delta") or {}).get("content")
++                        if isinstance(text, str) and text:
++                            produced = True
++                            yield "delta", text
++        except httpx.TimeoutException:
++            logger.warning(f"DeepSeek stream timed out [requestId={request_id}]")
++            raise DeepSeekTimeoutError()
++        except httpx.RequestError as exc:
++            logger.error(
++                f"DeepSeek stream transport failure ({type(exc).__name__}) [requestId={request_id}]"
++            )
++            raise DeepSeekTransportError()
++        if not produced:
++            raise DeepSeekMalformedResponseError("Received null or empty content from DeepSeek provider.")
++        duration_ms = int((time.monotonic() - start_time) * 1000)
++        logger.info(
++            f"DeepSeek stream success: duration={duration_ms}ms, model={self.settings.DEEPSEEK_MODEL}, "
++            f"prompt_tokens={usage['prompt_tokens']}, completion_tokens={usage['completion_tokens']} "
++            f"[requestId={request_id}]"
++        )
++        yield "usage", usage
++
+     async def json_completion(
+         self,
+         messages: list[dict[str, str]],
+@@ -271,31 +389,7 @@ class DeepSeekClient:
+                 f"[requestId={request_id}] model={chosen_model} "
+                 f"upstream_detail={detail!r}"
+             )
+-            if status_code == 401:
+-                raise DeepSeekAuthenticationError(
+-                    f"DeepSeek provider authentication failed: {detail}"
+-                )
+-            elif status_code == 402:
+-                raise DeepSeekBillingError(
+-                    f"DeepSeek provider billing is unavailable: {detail}"
+-                )
+-            elif status_code == 429:
+-                raise DeepSeekRateLimitError(
+-                    f"DeepSeek rate limit exceeded. Please try again later: {detail}"
+-                )
+-            elif status_code in (400, 422):
+-                raise DeepSeekInvalidRequestError(
+-                    f"Invalid request sent to DeepSeek provider: {detail}"
+-                )
+-            elif status_code in (500, 503):
+-                raise DeepSeekProviderServerError(
+-                    f"DeepSeek provider temporary outage: {detail}"
+-                )
+-            else:
+-                raise DeepSeekError(
+-                    message=f"DeepSeek provider returned error status {status_code}: {detail}",
+-                    status_code=502
+-                )
++            raise upstream_error(status_code, detail)
+ 
+         try:
+             data = res.json()
+diff --git a/tests/test_chat_stream.py b/tests/test_chat_stream.py
+new file mode 100644
+index 0000000..fb5867f
+--- /dev/null
++++ b/tests/test_chat_stream.py
+@@ -0,0 +1,142 @@
++"""POST /v1/ai/chat/stream: the chat reply piece by piece, with synthetic DeepSeek."""
++import json
++
++import httpx
++import pytest
++from sqlalchemy import select
++
++from app.api.v1.ai import get_deepseek_client
++from app.clients.deepseek import DeepSeekClient
++from app.config import Settings
++from app.main import app
++from app.models.ai_usage import AIUsage
++from tests.conftest import TestingSessionLocal
++from tests.test_online_voices import signed_in
++
++
++def sse_body(*chunks: object) -> bytes:
++    # Strings starting with ":" are SSE comments (keep-alives), sent as-is.
++    lines = [
++        f"{c}\n\n" if isinstance(c, str) and c.startswith(":")
++        else f"data: {json.dumps(c) if not isinstance(c, str) else c}\n\n"
++        for c in chunks
++    ]
++    return "".join(lines).encode()
++
++
++def delta(text: str) -> dict:
++    return {"choices": [{"index": 0, "delta": {"content": text}}]}
++
++
++USAGE = {"choices": [], "usage": {"prompt_tokens": 40, "completion_tokens": 6, "total_tokens": 46}}
++
++
++@pytest.fixture
++def upstream():
++    """Sets what the fake DeepSeek answers with; records every request."""
++    state = {"response": httpx.Response(200, content=sse_body(delta("Hi"), USAGE, "[DONE]")), "requests": []}
++
++    def transport(request):
++        state["requests"].append(request)
++        return state["response"]
++
++    config = Settings(_env_file=None, ENVIRONMENT="development", DEEPSEEK_API_KEY="synthetic-key")
++    http = httpx.AsyncClient(transport=httpx.MockTransport(transport))
++    previous = app.dependency_overrides.get(get_deepseek_client)
++    app.dependency_overrides[get_deepseek_client] = lambda: DeepSeekClient(config, http)
++    yield state
++    if previous is None:
++        app.dependency_overrides.pop(get_deepseek_client, None)
++    else:
++        app.dependency_overrides[get_deepseek_client] = previous
++
++
++def events(response: httpx.Response) -> list[dict]:
++    return [
++        json.loads(block[len("data: "):])
++        for block in response.text.split("\n\n")
++        if block.startswith("data: ")
++    ]
++
++
++async def usage_rows() -> list[AIUsage]:
++    async with TestingSessionLocal() as db:
++        return list((await db.execute(select(AIUsage).where(AIUsage.request_type == "chat"))).scalars())
++
++
++CHAT = {"messages": [{"role": "user", "content": "hi"}], "useHandbook": False}
++
++
++async def test_reply_arrives_in_pieces_then_done(async_client, upstream):
++    upstream["response"] = httpx.Response(
++        200,
++        content=sse_body(": keep-alive", delta("Hey"), delta(" there,"), delta(" Maria!"), USAGE, "[DONE]"),
++    )
++    headers = await signed_in(async_client)
++    response = await async_client.post("/v1/ai/chat/stream", headers=headers, json=CHAT)
++    assert response.status_code == 200
++    assert response.headers["content-type"].startswith("text/event-stream")
++    got = events(response)
++    assert [e["text"] for e in got if e["type"] == "delta"] == ["Hey", " there,", " Maria!"]
++    done = got[-1]
++    assert done["type"] == "done"
++    assert done["provider"] == "deepseek"
++    assert done["usedHandbook"] is False
++    assert done["sources"] == []
++    assert done["usage"]["completion_tokens"] == 6
++    payload = json.loads(upstream["requests"][0].content)
++    assert payload["stream"] is True
++    assert payload["model"] == "deepseek-flash"
++    assert payload["thinking"] == {"type": "disabled"}
++    assert payload["messages"][0]["role"] == "system"
++    rows = await usage_rows()
++    assert len(rows) == 1
++    assert (rows[0].prompt_tokens, rows[0].completion_tokens) == (40, 6)
++
++
++@pytest.mark.parametrize("status,expected", [(402, 503), (429, 429), (500, 503)])
++async def test_provider_errors_before_any_text_are_plain_http_errors(async_client, upstream, status, expected):
++    upstream["response"] = httpx.Response(status, json={"error": {"message": "private provider body"}})
++    headers = await signed_in(async_client)
++    response = await async_client.post("/v1/ai/chat/stream", headers=headers, json=CHAT)
++    assert response.status_code == expected
++    assert not response.headers["content-type"].startswith("text/event-stream")
++    assert await usage_rows() == []
++
++
++async def test_empty_reply_is_an_error_not_a_blank_bubble(async_client, upstream):
++    upstream["response"] = httpx.Response(200, content=sse_body(USAGE, "[DONE]"))
++    headers = await signed_in(async_client)
++    response = await async_client.post("/v1/ai/chat/stream", headers=headers, json=CHAT)
++    assert response.status_code == 502
++    assert await usage_rows() == []
++
++
++async def test_failure_part_way_keeps_text_sent_and_reports_error(async_client, upstream):
++    upstream["response"] = httpx.Response(200, content=sse_body(delta("Sure, here"), "{not json"))
++    headers = await signed_in(async_client)
++    response = await async_client.post("/v1/ai/chat/stream", headers=headers, json=CHAT)
++    assert response.status_code == 200
++    got = events(response)
++    assert got[0] == {"type": "delta", "text": "Sure, here"}
++    assert got[-1]["type"] == "error"
++    assert got[-1]["status"] == 502
++    # The provider was used, so the request still counts toward the quota.
++    assert len(await usage_rows()) == 1
++
++
++async def test_guests_and_disabled_accounts_never_reach_deepseek(async_client, upstream):
++    assert (await async_client.post("/v1/ai/chat/stream", json=CHAT)).status_code == 401
++    headers = await signed_in(async_client, active=False)
++    assert (await async_client.post("/v1/ai/chat/stream", headers=headers, json=CHAT)).status_code == 401
++    assert upstream["requests"] == []
++
++
++async def test_stream_shares_the_chat_quota(async_client, upstream, monkeypatch):
++    from app.api.v1 import ai
++
++    monkeypatch.setattr(ai.settings, "MAX_AI_REQUESTS_PER_MIN", 1)
++    headers = await signed_in(async_client)
++    assert (await async_client.post("/v1/ai/chat/stream", headers=headers, json=CHAT)).status_code == 200
++    assert (await async_client.post("/v1/ai/chat/stream", headers=headers, json=CHAT)).status_code == 429
++    assert len(upstream["requests"]) == 1
+-- 
+2.55.0.windows.4
+
+
+From 872197a0032795a738cd7cf109c833940e40edd8 Mon Sep 17 00:00:00 2001
+From: John Lemar Gonzales <johnlemargonzales@gmail.com>
+Date: Sat, 7 Nov 2026 23:40:53 +0800
+Subject: [PATCH 4/4] Offer Filipina voices first and speak with eleven_v4
+
+The voice catalogue now always includes six Filipina ElevenLabs voices
+(Camille, Ate Daniella, Thea Santos, Cielle, Amihan Reyes, Ate Weng),
+listed first, and every entry carries its language and gender labels so
+the app can group them. Featured voices skip the catalogue lookup when
+selected. Defaults move to Camille and the eleven_v4 model, which
+supports Filipino; an ELEVENLABS_VOICE_ID or ELEVENLABS_MODEL_ID set in
+the environment still wins.
+---
+ .env.example                  |  4 +--
+ app/clients/elevenlabs_tts.py | 52 +++++++++++++++++++++++++++++++----
+ app/config.py                 |  5 ++--
+ tests/test_online_voices.py   | 39 ++++++++++++++++++++++++--
+ tests/test_tts_api.py         |  2 +-
+ 5 files changed, 89 insertions(+), 13 deletions(-)
+
+diff --git a/.env.example b/.env.example
+index 08a3331..27efc28 100644
+--- a/.env.example
++++ b/.env.example
+@@ -64,6 +64,6 @@ PINECONE_INDEX_NAME=
+ 
+ # ElevenLabs online TTS (server only; replaces the Gemini TTS route).
+ ELEVENLABS_API_KEY=
+-ELEVENLABS_VOICE_ID=JBFqnCBsd6RMkjVDRZzb
+-ELEVENLABS_MODEL_ID=eleven_flash_v2_5
++ELEVENLABS_VOICE_ID=BtcCEANLn920ZIoN9grW
++ELEVENLABS_MODEL_ID=eleven_v4
+ ELEVENLABS_MAX_CHARACTERS_PER_PROCESS=20000
+diff --git a/app/clients/elevenlabs_tts.py b/app/clients/elevenlabs_tts.py
+index 9b7ef0c..d9a4a50 100644
+--- a/app/clients/elevenlabs_tts.py
++++ b/app/clients/elevenlabs_tts.py
+@@ -9,6 +9,37 @@ from urllib.parse import quote
+ import httpx
+ 
+ 
++VOICE_ID_PATTERN = r"[A-Za-z0-9_-]{1,128}"
++LABEL_PATTERN = r"[a-z][a-z_-]{0,23}"
++
++# Filipina voices from the ElevenLabs voice library (language "fil"), always
++# offered and listed first, with short display names. They work by voice ID
++# even before the server account has used them; first use adds them to it.
++FILIPINA_VOICES: tuple[tuple[str, str], ...] = (
++    ("BtcCEANLn920ZIoN9grW", "Camille"),
++    ("n6WaB3rOlZSC9y8yEPEz", "Ate Daniella"),
++    ("Lnvev73Hs1s5LVjBfOr9", "Thea Santos"),
++    ("6LXO12QQcaZd6xGp9UIZ", "Cielle"),
++    ("1y13AZVBVdi3UwMhDhaI", "Amihan Reyes"),
++    ("OPouXJLzlYeaXfgM6Q7O", "Ate Weng"),
++)
++_FILIPINA_ORDER = {voice_id: index for index, (voice_id, _) in enumerate(FILIPINA_VOICES)}
++
++
++def _label(labels: object, key: str) -> str | None:
++    value = labels.get(key) if isinstance(labels, dict) else None
++    if isinstance(value, str) and re.fullmatch(LABEL_PATTERN, value.strip().lower()):
++        return value.strip().lower()
++    return None
++
++
++def _catalogue_order(voice: dict) -> tuple:
++    """Featured Filipina voices first, then other Filipino voices, then by name."""
++    if voice["id"] in _FILIPINA_ORDER:
++        return (0, _FILIPINA_ORDER[voice["id"]], "")
++    return (1 if voice.get("language") == "fil" else 2, 0, voice["name"].casefold())
++
++
+ class ElevenLabsTtsError(Exception):
+     def __init__(self, message: str, status_code: int = 502):
+         self.message = message
+@@ -78,12 +109,19 @@ class ElevenLabsTtsClient:
+                             if not isinstance(voice, dict):
+                                 continue
+                             voice_id, name = voice.get("voice_id"), voice.get("name")
+-                            if isinstance(voice_id, str) and re.fullmatch(r"[A-Za-z0-9_-]{1,128}", voice_id) and isinstance(name, str) and name.strip():
+-                                voices[voice_id] = {"id": voice_id, "name": name.strip()[:160]}
++                            if isinstance(voice_id, str) and re.fullmatch(VOICE_ID_PATTERN, voice_id) and isinstance(name, str) and name.strip():
++                                entry = {"id": voice_id, "name": name.strip()[:160]}
++                                for key in ("language", "gender"):
++                                    value = _label(voice.get("labels"), key)
++                                    if value:
++                                        entry[key] = value
++                                voices[voice_id] = entry
+                         cursor = data.get("next_page_token")
+                         if not data.get("has_more") or not isinstance(cursor, str) or not cursor:
+                             break
+-                self._voices = sorted(voices.values(), key=lambda v: v["name"].casefold())
++                for voice_id, name in FILIPINA_VOICES:
++                    voices[voice_id] = {"id": voice_id, "name": name, "language": "fil", "gender": "female"}
++                self._voices = sorted(voices.values(), key=_catalogue_order)
+                 self._voices_at = time.monotonic()
+                 return list(self._voices)
+             except (TimeoutError, httpx.TimeoutException):
+@@ -98,10 +136,12 @@ class ElevenLabsTtsClient:
+             raise ElevenLabsTtsError("Speech text must contain 1 to 512 characters.", 400)
+         selected_voice = voice_id or self.settings.ELEVENLABS_VOICE_ID
+         if voice_id is not None:
+-            if not re.fullmatch(r"[A-Za-z0-9_-]{1,128}", voice_id):
++            if not re.fullmatch(VOICE_ID_PATTERN, voice_id):
+                 raise ElevenLabsTtsError("Invalid online voice selection.", 400)
+-            voices = await self.list_voices()
+-            if not any(voice["id"] == voice_id for voice in voices):
++            # Featured voices need no catalogue lookup.
++            if voice_id not in _FILIPINA_ORDER and not any(
++                voice["id"] == voice_id for voice in await self.list_voices()
++            ):
+                 raise ElevenLabsTtsError("That online voice is no longer available. Choose another voice in Profile.", 422)
+         now = time.monotonic()
+         self.requests = {
+diff --git a/app/config.py b/app/config.py
+index 1efcce6..f2e772f 100644
+--- a/app/config.py
++++ b/app/config.py
+@@ -175,8 +175,9 @@ class Settings(BaseSettings):
+     # Gemini TTS Configuration
+     # Server-held ElevenLabs credentials; Gemini speech is retired by the TTS routes.
+     ELEVENLABS_API_KEY: SecretStr | None = None
+-    ELEVENLABS_VOICE_ID: str = "JBFqnCBsd6RMkjVDRZzb"
+-    ELEVENLABS_MODEL_ID: str = "eleven_flash_v2_5"
++    # Camille, a young Filipina conversational voice. Students can pick others.
++    ELEVENLABS_VOICE_ID: str = "BtcCEANLn920ZIoN9grW"
++    ELEVENLABS_MODEL_ID: str = "eleven_v4"
+     ELEVENLABS_MAX_CHARACTERS_PER_PROCESS: int = 20000
+ 
+     GEMINI_API_KEY: SecretStr | None = None
+diff --git a/tests/test_online_voices.py b/tests/test_online_voices.py
+index 10d10cc..b27e73e 100644
+--- a/tests/test_online_voices.py
++++ b/tests/test_online_voices.py
+@@ -7,7 +7,7 @@ from sqlalchemy import select
+ 
+ from app.api.v1.ai import get_deepseek_client
+ from app.clients.deepseek import DeepSeekClient
+-from app.clients.elevenlabs_tts import ElevenLabsTtsClient, ElevenLabsTtsError
++from app.clients.elevenlabs_tts import FILIPINA_VOICES, ElevenLabsTtsClient, ElevenLabsTtsError
+ from app.config import Settings
+ from app.main import app
+ from app.models.account import Account
+@@ -61,7 +61,8 @@ async def test_all_active_signed_in_roles_can_choose_voice_and_chat(async_client
+     headers = await signed_in(async_client, role)
+     catalogue = await async_client.get("/v1/ai/tts/voices", headers=headers)
+     assert catalogue.status_code == 200
+-    assert catalogue.json()["voices"] == [{"id": "voice_a", "name": "Alice"}, {"id": "voice_b", "name": "Bella"}]
++    filipina = [{"id": voice_id, "name": name, "language": "fil", "gender": "female"} for voice_id, name in FILIPINA_VOICES]
++    assert catalogue.json()["voices"] == filipina + [{"id": "voice_a", "name": "Alice"}, {"id": "voice_b", "name": "Bella"}]
+     result = await async_client.post("/v1/ai/tts", headers=headers, json={"text": "Hello", "voiceId": "voice_b"})
+     assert result.status_code == 200
+     assert result.json()["voice"] == "voice_b"
+@@ -120,3 +121,37 @@ def test_persona_prompt_is_conversational_and_honest():
+     assert "Always introduce yourself" not in prompt
+     assert "do not repeat the introduction" in prompt
+     assert "Never claim a task, reminder or event was saved" in prompt
++
++
++async def test_filipina_voices_come_first_with_labels_and_need_no_catalogue_lookup():
++    seen = []
++
++    def transport(request):
++        seen.append(request)
++        if request.method == "GET":
++            return httpx.Response(200, json={"voices": [
++                {"voice_id": "zz_male", "name": "Adam", "labels": {"language": "en", "gender": "male"}},
++                {"voice_id": "fil_extra", "name": "Ate Lyn", "labels": {"language": "fil", "gender": "female"}},
++                {"voice_id": "BtcCEANLn920ZIoN9grW", "name": "Camille - Warm & Conversational, long account name", "labels": {"language": "fil"}},
++                {"voice_id": "odd", "name": "Odd", "labels": {"language": "<script>", "gender": 7}},
++            ], "has_more": False})
++        return httpx.Response(200, content=b"synthetic audio", headers={"content-type": "audio/mpeg"})
++
++    config = Settings(_env_file=None, ELEVENLABS_API_KEY="synthetic-key")
++    async with httpx.AsyncClient(transport=httpx.MockTransport(transport)) as http:
++        client = ElevenLabsTtsClient(config, http)
++        await client.synthesize_speech("Kumusta!", "req-1", voice_id="n6WaB3rOlZSC9y8yEPEz")
++        assert [r.method for r in seen] == ["POST"]  # featured voice: no catalogue call
++        assert json.loads(seen[0].content)["model_id"] == "eleven_v4"
++        voices = await client.list_voices()
++    names = [v["name"] for v in voices]
++    assert names[: len(FILIPINA_VOICES)] == [name for _, name in FILIPINA_VOICES]
++    assert names[len(FILIPINA_VOICES):] == ["Ate Lyn", "Adam", "Odd"]
++    assert voices[-1] == {"id": "odd", "name": "Odd"}  # unusable labels are dropped
++    assert {"id": "zz_male", "name": "Adam", "language": "en", "gender": "male"} in voices
++
++
++def test_default_voice_is_filipina_and_model_is_v4():
++    config = Settings(_env_file=None)
++    assert config.ELEVENLABS_MODEL_ID == "eleven_v4"
++    assert config.ELEVENLABS_VOICE_ID == FILIPINA_VOICES[0][0]
+diff --git a/tests/test_tts_api.py b/tests/test_tts_api.py
+index 477d52a..368218a 100644
+--- a/tests/test_tts_api.py
++++ b/tests/test_tts_api.py
+@@ -83,7 +83,7 @@ async def test_tts_role_enforcement(async_client: AsyncClient):
+     data = res_pro.json()
+     assert "audioBase64" in data
+     assert data["mimeType"] == "audio/mpeg"
+-    assert data["voice"] == "JBFqnCBsd6RMkjVDRZzb"
++    assert data["voice"] == "BtcCEANLn920ZIoN9grW"
+ 
+ 
+ @pytest.mark.asyncio
+-- 
+2.55.0.windows.4
+

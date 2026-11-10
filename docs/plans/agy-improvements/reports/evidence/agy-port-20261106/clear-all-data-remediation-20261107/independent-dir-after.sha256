@@ -1,0 +1,8 @@
+5d4a2a0d1d3bebcc831885ff3bb289a07b50bcea1707f7cfba347fb16c629f1c *./artifact-verification.json
+21b125627c1c8d5350fc72055efe35d7e13702e99ac0647ad98015e9dd4a4b26 *./claude-regressions.json
+ed628e67b24a8344b8a8ac912e932a2fc552b0dce69e59f831760d412ae6c0bc *./claude-regressions.log
+988fabda5b4be8e98dadcdbb76ed7eb4db2d80067c0c06d230b52eecfa2678a7 *./independent-clear-data.json
+fbef03d4a070f987c34e711d1af91dfa0612eaeeb6755b029bdf8ec9bd18beee *./independent-clear-data.log
+f5d5c904d669fb18e94e8340a307dcce11bbf0c2989764f8a935e8c82da1264d *./independentClearData.test.tsx
+c0031592b4f07faceae445237133df7bfff26eb1788e695c9805ced68d25330d *./jest-audit.config.cjs
+e0f9509dd7e830fb52ebd9d41e7f9d103bccd49c94bcda2dfc592e1c562a2a36 *./saved-native-results.json

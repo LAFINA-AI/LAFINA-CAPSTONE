@@ -1,0 +1,22 @@
+{
+  "synthetic_text_only": true,
+  "microphone_used": false,
+  "events": {
+    "conversation_initiation_metadata": 1,
+    "agent_chat_response_part": 10,
+    "agent_response": 2,
+    "audio": 13,
+    "interruption": 1,
+    "agent_response_correction": 1,
+    "ping": 1
+  },
+  "audio_bytes_after_prompt": 105976,
+  "connected_http": 200,
+  "synthetic_prompt_sent": true,
+  "agent_reply": "Local voice test passed.",
+  "reply_received_ms": 3466,
+  "backend_turns": 1,
+  "backend_last_error_code": null,
+  "end_session_http": 200,
+  "total_ms": 3738
+}

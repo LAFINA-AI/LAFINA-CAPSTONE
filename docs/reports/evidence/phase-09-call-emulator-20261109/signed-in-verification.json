@@ -1,0 +1,46 @@
+{
+  "recorded_at_utc": "2026-11-08T18:11:04.062187+00:00",
+  "preview_result": "ElevenLabs preview finished. Check media volume if you heard nothing.",
+  "voice": "Camille",
+  "real_alarm_due_gmt": "2026-11-08T18:06:00Z",
+  "real_ring_observed": true,
+  "notification_to_answer": "INCOMPLETE: UI inspection consumed ringing window; later Answer used controlled native intent",
+  "cloud_call": "New valid cloud MP3 files plus active Android MP3 playback in QA app; acoustic quality not assessed",
+  "temporary_generated_audio": [
+    {
+      "bytes": 148418,
+      "request_timestamp_ms": 1794161280230
+    },
+    {
+      "bytes": 57303,
+      "request_timestamp_ms": 1794161282972
+    },
+    {
+      "bytes": 34315,
+      "request_timestamp_ms": 1794161282973
+    }
+  ],
+  "snooze": "PASS: confirmation and exact alarm at 18:18:28.102 GMT",
+  "acknowledge": "PASS: confirmation, call ended, future QA alarm removed",
+  "task_checkboxes_after_ack": [
+    {
+      "content-desc": "Complete QA call check",
+      "checked": "false",
+      "checkable": "true",
+      "bounds": "[206,1401][264,1438]"
+    },
+    {
+      "content-desc": "Complete QA call check",
+      "checked": "false",
+      "checkable": "true",
+      "bounds": "[206,1524][264,1561]"
+    }
+  ],
+  "active_recording_configuration_after_call": false,
+  "audio_focus_after_call": false,
+  "generated_call_files_removed": true,
+  "old_preexisting_cache_file_retained": true,
+  "live_conversation_start": "Voice conversation unavailable / Not Found",
+  "physical_device": "NOT RUN",
+  "spoken_command_accuracy": "NOT RUN"
+}

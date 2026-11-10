@@ -1,0 +1,92 @@
+{
+  "version": 1,
+  "scope": "Each protected AGY contract maps to at least one existing test title. Deleting or renaming one fails this check until the contract map is versioned.",
+  "contracts": {
+    "PF01": [
+      {
+        "file": "__tests__/ui/phase01AuthAndProfileScreens.test.tsx",
+        "title": "Phase 01 Welcome, Onboarding, and Profile Screens"
+      }
+    ],
+    "PF02": [
+      {
+        "file": "__tests__/preservation/agyPreservedContracts.test.ts",
+        "title": "PF02 tier and entitlement matrix"
+      }
+    ],
+    "PF03": [
+      {
+        "file": "__tests__/preservation/agyPreservedContracts.test.ts",
+        "title": "PF03 guest linking"
+      }
+    ],
+    "PF04": [
+      {
+        "file": "__tests__/preservation/agyPreservedContracts.test.ts",
+        "title": "PF04 seven-type sync wire contract"
+      }
+    ],
+    "PF05": [
+      {
+        "file": "__tests__/preservation/agyPreservedContracts.test.ts",
+        "title": "PF05 every AGY intent has an offline route"
+      }
+    ],
+    "PF06": [
+      {
+        "file": "__tests__/preservation/agyPreservedContracts.test.ts",
+        "title": "PF06 Handbook preference aliases"
+      }
+    ],
+    "PF07": [
+      {
+        "file": "__tests__/preservation/agyPreservedContracts.test.ts",
+        "title": "PF07 document routing"
+      },
+      {
+        "file": "__tests__/ai/phase09OnlineDocsAndMeetings.test.tsx",
+        "title": "2. Online Document Generation (PDF, Excel, Docx, PPTX)"
+      }
+    ],
+    "PF08": [
+      {
+        "file": "__tests__/ai/phase09OnlineDocsAndMeetings.test.tsx",
+        "title": "3. Meeting & Lecture Transcription & Storage Cleanup"
+      }
+    ],
+    "PF09": [
+      {
+        "file": "__tests__/preservation/agyPreservedContracts.test.ts",
+        "title": "PF09 speech defaults"
+      }
+    ],
+    "PF10": [
+      {
+        "file": "__tests__/ui/phase01ThemeAndTour.test.tsx",
+        "title": "Phase 01 Theme, SynthWave, ProductTour & CustomTabBar"
+      },
+      {
+        "file": "__tests__/ui/phase02CalendarAndNotesScreens.test.tsx",
+        "title": "Phase 02 Calendar & Notes UI Screens"
+      }
+    ],
+    "PF11": [
+      {
+        "file": "__tests__/preservation/agyPreservedContracts.test.ts",
+        "title": "PF11 acknowledgement semantics"
+      }
+    ],
+    "PF12": [
+      {
+        "file": "__tests__/ui/storageRecovery.test.tsx",
+        "title": "storage recovery"
+      }
+    ],
+    "PF13": [
+      {
+        "file": "__tests__/preservation/agyPreservedContracts.test.ts",
+        "title": "PF13 install and update identity"
+      }
+    ]
+  }
+}
