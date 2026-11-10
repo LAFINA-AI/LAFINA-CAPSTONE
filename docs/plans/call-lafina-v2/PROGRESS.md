@@ -1,6 +1,6 @@
 # Call Lafina 2.0 Persistent Progress Ledger
 
-- Current branch/HEAD: `feat/call-lafina-v2` / `bdf0cf5`
+- Current branch/HEAD: `feat/call-lafina-v2` / `e01a389`
 - Current phase/item: Phase 08 Notes by Speech and Note Search Result Cards (P08-01)
 - Last verified passing test:
   - `npm run preflight`: PASS (exit code 0; 89 test suites, 1286 passed, 1 skipped; 271 architecture modules verified)
