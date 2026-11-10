@@ -1,0 +1,39 @@
+{
+  "pack_version": "1.0.0",
+  "repo": "LAFINA-AI/LAFINA-CAPSTONE",
+  "source_branch": "Lem-branch",
+  "source_head": "cae65fec4b0efc25dc343e3f30a4d216defa19aa",
+  "work_branch": "feat/call-lafina-v2",
+  "current_phase": "00",
+  "next_item": "P01-01",
+  "completed_items": [
+    "P00-01",
+    "P00-02",
+    "P00-03",
+    "P00-04",
+    "P00-05",
+    "P00-06",
+    "P00-07",
+    "P00-08",
+    "P00-09"
+  ],
+  "blocked_items": [],
+  "last_commit": null,
+  "last_tested_commit": "cae65fec4b0efc25dc343e3f30a4d216defa19aa",
+  "last_test_results": [
+    {
+      "command": "npm run preflight",
+      "exit_code": 0,
+      "summary": "typecheck, lint, jest (82 suites / 1198 passed / 1 skipped), architecture (258 modules)"
+    },
+    {
+      "command": ".\\android\\gradlew.bat -p android :app:testDataQaUnitTest",
+      "exit_code": 0,
+      "summary": "Gradle unit test build successful in 2m 54s"
+    }
+  ],
+  "manual_phone_verification": "NOT_RUN",
+  "external_backend_verification": "VERIFIED_ROUTES_PRESENT",
+  "updated_at_utc": "2026-11-10T06:18:00Z",
+  "evidence_root": "docs/plans/call-lafina-v2/EVIDENCE/"
+}
