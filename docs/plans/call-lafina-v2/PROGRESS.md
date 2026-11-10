@@ -1,6 +1,6 @@
 # Call Lafina 2.0 Persistent Progress Ledger
 
-- Current branch/HEAD: `feat/call-lafina-v2` / `9888e80`
+- Current branch/HEAD: `feat/call-lafina-v2` / `b963602`
 - Current phase/item: Phase 07 Scheduling, Reminders, Calendar and Agenda Cards (P07-01)
 - Last verified passing test:
   - `npm run preflight`: PASS (exit code 0; 88 test suites, 1274 passed, 1 skipped; 267 architecture modules verified)
