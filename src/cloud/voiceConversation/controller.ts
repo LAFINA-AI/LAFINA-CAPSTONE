@@ -96,27 +96,27 @@ const CONVERSATION_ID = /^[A-Za-z0-9_-]{1,128}$/;
 
 export const FAILURE_MESSAGES: Record<ConversationFailureKind, string> = {
   signin_required:
-    'Sign in to use voice conversation. Offline push-to-talk, typing and your schedule keep working.',
+    'Sign in to Call Lafina. Offline push-to-talk, typing and your schedule keep working.',
   online_mode_required:
-    'Voice conversation needs Online Mode. Turn it on to start; nothing is sent until you tap Start.',
+    'Call Lafina needs Online Mode. Turn it on to start; nothing is sent until you tap Start.',
   offline:
-    'Connect to the internet to start a voice conversation. Offline push-to-talk still works.',
+    'Connect to the internet to Call Lafina. Offline push-to-talk still works.',
   consent_required:
-    'Review how voice conversation uses your microphone, then tap Start.',
+    'Review how Call Lafina uses your microphone, then tap Start.',
   mic_denied:
-    'LAFINA needs microphone access for a voice conversation. Allow it in Settings and try again.',
+    'LAFINA needs microphone access for Call Lafina. Allow it in Settings and try again.',
   mic_busy:
-    'The microphone is in use (a recording or push-to-talk). Finish it, then start the conversation again.',
+    'The microphone is in use (a recording or push-to-talk). Finish it, then start the call again.',
   not_configured:
-    'Voice conversation is not available on the server yet. Text chat and offline voice still work.',
+    'Call Lafina is not available on the server yet. Text chat and offline voice still work.',
   voice_unavailable:
     'Your saved online voice is no longer available. Choose another voice in Profile.',
   limit_reached:
-    'You reached the voice conversation limit for now. Text chat and offline voice still work.',
+    'You reached the Call Lafina limit for now. Text chat and offline voice still work.',
   provider:
-    'Voice conversation is unavailable right now. Try again later, or use text chat.',
+    'Call Lafina is unavailable right now. Try again later, or use text chat.',
   connect_failed:
-    'The conversation could not connect. Check your internet and try again.',
+    'The call could not connect. Check your internet and try again.',
   audio:
     'The microphone or speaker could not start. Close other apps using audio and try again.',
 };
@@ -428,7 +428,7 @@ export class VoiceConversationController {
         return this.fail(
           gen,
           'signin_required',
-          'Your sign-in has ended. Sign in again in Profile to use voice conversation.',
+          'Your sign-in has ended. Sign in again in Profile to Call Lafina.',
         );
       case 'account_disabled':
         return this.fail(

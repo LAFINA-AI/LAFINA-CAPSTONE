@@ -5,6 +5,7 @@ import {
   View,
   Text,
   Keyboard,
+  Modal,
   AppState,
   DeviceEventEmitter,
   PermissionsAndroid,
@@ -65,6 +66,7 @@ import { AuthBackdrop } from './src/ui/components/auth/AuthBackdrop';
 import { ProductTour } from './src/ui/tour/ProductTour';
 import { buildTourSteps } from './src/ui/tour/tourSteps';
 import { VoiceModal } from './src/ui/components/VoiceModal';
+import { CallLafinaScreen } from './src/ui/screens/CallLafinaScreen';
 import { endReviewSession } from './src/ai/nlu/commandReview';
 import { chatDraftStore } from './src/ui/drafts/chatDraftStore';
 import { applySpeechPreferences } from './src/ai/tts/speechPreferences';
@@ -90,6 +92,7 @@ function AppContent({
   const [isKeyboardVisible, setIsKeyboardVisible] = useState(false);
   const [startupReady, setStartupReady] = useState(false);
   const [storageHealth, setStorageHealth] = useState(() => db.getHealth());
+  const [callLafinaVisible, setCallLafinaVisible] = useState(false);
 
   // Incoming Call State
   const [callVisible, setCallVisible] = useState(false);
@@ -449,6 +452,7 @@ function AppContent({
             userId={userId}
             refreshTrigger={refreshTrigger}
             onRefresh={triggerRefresh}
+            onCallLafina={() => setCallLafinaVisible(true)}
           />
         );
       case 'calendar':
@@ -567,7 +571,25 @@ function AppContent({
           }
         }}
         onUseInChat={() => setActiveTab('chat')}
+        onOpenCallLafina={() => {
+          setVoiceVisible(false);
+          setCallLafinaVisible(true);
+        }}
       />
+
+      {callLafinaVisible && (
+        <Modal
+          visible={callLafinaVisible}
+          animationType="slide"
+          presentationStyle="fullScreen"
+          onRequestClose={() => setCallLafinaVisible(false)}
+        >
+          <CallLafinaScreen
+            userId={userId || 'local_guest_user'}
+            onClose={() => setCallLafinaVisible(false)}
+          />
+        </Modal>
+      )}
 
       {tourOpen && (
         <ProductTour

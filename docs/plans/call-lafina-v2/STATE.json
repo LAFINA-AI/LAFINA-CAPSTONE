@@ -4,8 +4,8 @@
   "source_branch": "Lem-branch",
   "source_head": "cae65fec4b0efc25dc343e3f30a4d216defa19aa",
   "work_branch": "feat/call-lafina-v2",
-  "current_phase": "00",
-  "next_item": "P01-01",
+  "current_phase": "01",
+  "next_item": "P02-01",
   "completed_items": [
     "P00-01",
     "P00-02",
@@ -15,25 +15,34 @@
     "P00-06",
     "P00-07",
     "P00-08",
-    "P00-09"
+    "P00-09",
+    "P01-01",
+    "P01-02",
+    "P01-03",
+    "P01-04",
+    "P01-05",
+    "P01-06",
+    "P01-07",
+    "P01-08",
+    "P01-09"
   ],
   "blocked_items": [],
-  "last_commit": null,
-  "last_tested_commit": "cae65fec4b0efc25dc343e3f30a4d216defa19aa",
+  "last_commit": "549b9f8",
+  "last_tested_commit": "549b9f8",
   "last_test_results": [
     {
       "command": "npm run preflight",
       "exit_code": 0,
-      "summary": "typecheck, lint, jest (82 suites / 1198 passed / 1 skipped), architecture (258 modules)"
+      "summary": "typecheck, lint, jest (83 suites / 1203 passed / 1 skipped), architecture (259 modules, 0 cycles)"
     },
     {
-      "command": ".\\android\\gradlew.bat -p android :app:testDataQaUnitTest",
+      "command": "npx jest __tests__/ui/callLafinaPhase01.test.tsx __tests__/ui/voiceConversationUi.test.tsx",
       "exit_code": 0,
-      "summary": "Gradle unit test build successful in 2m 54s"
+      "summary": "18 focused tests passed"
     }
   ],
   "manual_phone_verification": "NOT_RUN",
   "external_backend_verification": "VERIFIED_ROUTES_PRESENT",
-  "updated_at_utc": "2026-11-10T06:18:00Z",
+  "updated_at_utc": "2026-11-10T06:36:00Z",
   "evidence_root": "docs/plans/call-lafina-v2/EVIDENCE/"
 }

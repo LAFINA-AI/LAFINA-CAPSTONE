@@ -217,7 +217,7 @@ export const ChatMessageItem: React.FC<ChatMessageItemProps> = ({
             style={[styles.handbookText, styles.interruptedText, themed.assistantTime]}
             testID="chat-voice-interrupted"
           >
-            Interrupted in voice conversation (not heard to the end)
+            Interrupted in Call Lafina (not heard to the end)
           </Text>
         ) : null}
 
