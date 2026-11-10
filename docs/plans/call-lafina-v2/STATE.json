@@ -112,8 +112,8 @@
     "P10-10"
   ],
   "blocked_items": [],
-  "last_commit": "2be4e29",
-  "last_tested_commit": "2be4e29",
+  "last_commit": "8c5b612",
+  "last_tested_commit": "8c5b612",
   "last_test_results": [
     {
       "command": "npm run preflight",

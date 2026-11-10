@@ -1,6 +1,6 @@
 # Call Lafina 2.0 Persistent Progress Ledger
 
-- Current branch/HEAD: `feat/call-lafina-v2`
+- Current branch/HEAD: `feat/call-lafina-v2` / `8c5b612`
 - Current phase/item: Phase 11 Multi-action Workflow, Follow-ups, and Authoritative Results (P11-01)
 - Last verified passing test:
   - `npm run preflight`: PASS (exit code 0; 92 test suites, 1329 passed, 1 skipped; 274 architecture modules verified)
