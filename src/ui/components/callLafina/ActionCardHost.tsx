@@ -32,11 +32,14 @@ import type {AgendaCardData} from './cards/AgendaCard';
 import {NoteDraftCard} from './cards/NoteDraftCard';
 import {NoteResultCard} from './cards/NoteResultCard';
 import type {NoteResultCardData} from './cards/NoteResultCard';
+import {MemoryReviewCard} from './cards/MemoryReviewCard';
+import type {MemoryProposalData} from '../../../ai/voiceActions/types';
 
 export interface ActionCardHostProps {
   proposal?: CommandProposal | null;
   agendaData?: AgendaCardData | null;
   noteResultData?: NoteResultCardData | null;
+  memoryProposal?: MemoryProposalData | null;
   alternatives?: string[];
   expired?: boolean;
   busy?: boolean;
@@ -46,6 +49,8 @@ export interface ActionCardHostProps {
   onCancel?: () => void;
   onDismiss?: () => void;
   onOpenNote?: (noteId: string) => void;
+  onSaveMemory?: (editedText?: string) => void;
+  onUndoMemory?: () => void;
   testIDPrefix?: string;
 }
 
@@ -53,6 +58,7 @@ export const ActionCardHost: React.FC<ActionCardHostProps> = ({
   proposal = null,
   agendaData = null,
   noteResultData = null,
+  memoryProposal = null,
   alternatives = [],
   expired = false,
   busy = false,
@@ -62,6 +68,8 @@ export const ActionCardHost: React.FC<ActionCardHostProps> = ({
   onCancel = () => {},
   onDismiss = () => {},
   onOpenNote,
+  onSaveMemory,
+  onUndoMemory,
   testIDPrefix = 'action-card',
 }) => {
   const {colors} = useTheme();
@@ -128,6 +136,27 @@ export const ActionCardHost: React.FC<ActionCardHostProps> = ({
           data={noteResultData}
           onOpenNote={onOpenNote}
           onDismiss={onDismiss}
+          testIDPrefix={testIDPrefix}
+        />
+      </View>
+    );
+  }
+
+  if (memoryProposal) {
+    return (
+      <View
+        style={styles.hostContainer}
+        testID="action-card-host"
+        accessibilityLabel={`Memory card: ${memoryProposal.status}`}
+      >
+        <MemoryReviewCard
+          data={memoryProposal}
+          expired={expired || status === 'expired'}
+          busy={busy || status === 'confirm'}
+          onSave={onSaveMemory ?? onConfirm}
+          onCancel={onCancel}
+          onDismiss={onDismiss}
+          onUndo={onUndoMemory}
           testIDPrefix={testIDPrefix}
         />
       </View>
