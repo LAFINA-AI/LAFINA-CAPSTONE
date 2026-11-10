@@ -1,6 +1,6 @@
 # Call Lafina 2.0 Persistent Progress Ledger
 
-- Current branch/HEAD: `feat/call-lafina-v2` / `e01a389`
+- Current branch/HEAD: `feat/call-lafina-v2` / `77c52ed`
 - Current phase/item: Phase 09 Explicit Personal Memory and Privacy Controls (P09-01)
 - Last verified passing test:
   - `npm run preflight`: PASS (exit code 0; 90 test suites, 1295 passed, 1 skipped; 273 architecture modules verified)
