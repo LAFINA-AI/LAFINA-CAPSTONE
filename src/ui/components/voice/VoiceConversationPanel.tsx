@@ -9,6 +9,7 @@ import {
   Text,
   TextInput,
   TouchableOpacity,
+  Vibration,
   View,
 } from 'react-native';
 import {
@@ -23,6 +24,7 @@ import {
   PhoneCall,
   PhoneOff,
   RotateCcw,
+  Sliders,
   Square,
 } from 'lucide-react-native';
 import { Fonts } from '../../theme';
@@ -43,6 +45,11 @@ import { isToolExecutionPermitted } from '../../../ai/voiceActions/actionSecurit
 import { actionService } from '../../../ai/voiceActions/actionService';
 import type { MemoryProposalData, MultiActionBatchData } from '../../../ai/voiceActions/types';
 import { cancelMultiItem } from '../../../ai/voiceActions/multiActionService';
+import { CallLafinaSettingsModal } from '../callLafina/CallLafinaSettingsModal';
+import {
+  getCallLafinaSettings,
+  type CallLafinaSettings,
+} from '../../../cloud/voiceConversation/callLafinaSettingsStore';
 import { directProviderTestEnabled } from '../../../cloud/directProviderTest';
 import { localSettingsStore } from '../../../storage/localSettingsStore';
 import { explicitMemory } from '../../../ai/explicitMemory';
@@ -123,6 +130,8 @@ export const VoiceConversationPanel: React.FC<VoiceConversationPanelProps> = ({
   const pendingMemory = useRef<{ text: string; owner: string; result: Promise<SpokenTurnReview> } | null>(null);
   const [activeMemoryProposal, setActiveMemoryProposal] = useState<MemoryProposalData | null>(null);
   const [activeMultiBatch, setActiveMultiBatch] = useState<MultiActionBatchData | null>(null);
+  const [settingsModalVisible, setSettingsModalVisible] = useState(false);
+  const [callSettings, setCallSettings] = useState<CallLafinaSettings>(() => getCallLafinaSettings(userId));
 
   // Live call duration timer
   const [callDuration, setCallDuration] = useState(0);
@@ -191,6 +200,13 @@ export const VoiceConversationPanel: React.FC<VoiceConversationPanelProps> = ({
     const owner = ownerRef.current;
     const perm = isToolExecutionPermitted(owner);
     if (!perm.permitted || !isCurrent()) throw new Error(perm.reason || 'Tool unavailable');
+    if (callSettings.toolAudioCue) {
+      try {
+        Vibration.vibrate(20);
+      } catch {
+        // best-effort
+      }
+    }
     return actionService.executeTool(
       owner,
       'session-live',
@@ -216,7 +232,7 @@ export const VoiceConversationPanel: React.FC<VoiceConversationPanelProps> = ({
         },
       },
     );
-  }, [deps, userId]);
+  }, [deps, userId, callSettings.toolAudioCue]);
 
   const handleSaveMemory = useCallback((editedText?: string) => {
     if (!activeMemoryProposal) return;
@@ -300,11 +316,18 @@ const { snapshot } = conversation;
 const live = LIVE.has(snapshot.phase);
 const connecting = snapshot.phase === 'connecting';
 
-// Timer effect: tracks elapsed time in seconds during active call
+// Timer effect: tracks elapsed time in seconds during active call, with haptic cues
 useEffect(() => {
   if (live) {
     if (!callConnectedAt.current) {
       callConnectedAt.current = Date.now();
+      if (callSettings.callConnectedHaptics) {
+        try {
+          Vibration.vibrate(30);
+        } catch {
+          // best-effort
+        }
+      }
     }
     const interval = setInterval(() => {
       if (callConnectedAt.current) {
@@ -313,12 +336,19 @@ useEffect(() => {
     }, 1000);
     return () => clearInterval(interval);
   } else {
+    if (callConnectedAt.current && callSettings.callEndHaptics) {
+      try {
+        Vibration.vibrate([0, 40, 30, 40]);
+      } catch {
+        // best-effort
+      }
+    }
     callConnectedAt.current = null;
     if (snapshot.phase === 'idle') {
       setCallDuration(0);
     }
   }
-}, [live, snapshot.phase]);
+}, [live, snapshot.phase, callSettings.callConnectedHaptics, callSettings.callEndHaptics]);
 
 const formatDuration = (secs: number) => {
   const m = Math.floor(secs / 60);
@@ -454,29 +484,41 @@ return (
             Call Lafina
           </Text>
 
-          <View style={[styles.onlinePill, themed.pill]} testID="call-status-badge">
-            {snapshot.muted ? (
-              <>
-                <MicOff size={12} color={colors.warning} />
-                <Text style={[styles.pillText, { color: colors.warning }]} testID="call-muted-badge">
-                  Muted
-                </Text>
-              </>
-            ) : connecting ? (
-              <>
-                <ActivityIndicator size="small" color={colors.primary} />
-                <Text style={[styles.pillText, { color: colors.primary }]} testID="call-connecting-badge">
-                  Connecting
-                </Text>
-              </>
-            ) : (
-              <>
-                <AudioLines size={12} color={colors.primary} />
-                <Text style={[styles.pillText, { color: colors.primary }]} testID="call-online-badge">
-                  Online
-                </Text>
-              </>
-            )}
+          <View style={styles.headerRight}>
+            <TouchableOpacity
+              onPress={() => setSettingsModalVisible(true)}
+              style={styles.settingsButton}
+              accessibilityRole="button"
+              accessibilityLabel="Call Lafina settings"
+              testID="call-settings-button"
+            >
+              <Sliders size={18} color={colors.primary} />
+            </TouchableOpacity>
+
+            <View style={[styles.onlinePill, themed.pill]} testID="call-status-badge">
+              {snapshot.muted ? (
+                <>
+                  <MicOff size={12} color={colors.warning} />
+                  <Text style={[styles.pillText, { color: colors.warning }]} testID="call-muted-badge">
+                    Muted
+                  </Text>
+                </>
+              ) : connecting ? (
+                <>
+                  <ActivityIndicator size="small" color={colors.primary} />
+                  <Text style={[styles.pillText, { color: colors.primary }]} testID="call-connecting-badge">
+                    Connecting
+                  </Text>
+                </>
+              ) : (
+                <>
+                  <AudioLines size={12} color={colors.primary} />
+                  <Text style={[styles.pillText, { color: colors.primary }]} testID="call-online-badge">
+                    Online
+                  </Text>
+                </>
+              )}
+            </View>
           </View>
         </View>
 
@@ -628,6 +670,8 @@ return (
                               style={[
                                 styles.turnText,
                                 themed.text,
+                                callSettings.captionSize === 'large' && styles.turnTextLarge,
+                                callSettings.captionSize === 'extra_large' && styles.turnTextExtraLarge,
                                 turn.status === 'provisional' && [
                                   styles.provisional,
                                   themed.muted,
@@ -679,13 +723,13 @@ return (
                 </Text>
               ) : null}
 
-              {review.proposal || activeMemoryProposal || activeMultiBatch ? (
+              {review?.proposal || activeMemoryProposal || activeMultiBatch ? (
                 <ActionCardHost
-                  proposal={review.proposal}
+                  proposal={review?.proposal}
                   memoryProposal={activeMemoryProposal}
                   multiActionBatch={activeMultiBatch}
-                  expired={review.expired}
-                  busy={review.busy}
+                  expired={review?.expired}
+                  busy={review?.busy}
                   onConfirm={() => {
                     void handleConfirm();
                   }}
@@ -915,6 +959,15 @@ return (
             </View>
         ) : null}
       </View>
+
+      {/* Call Settings Modal */}
+      <CallLafinaSettingsModal
+        userId={userId}
+        visible={settingsModalVisible}
+        isCallActive={live}
+        onClose={() => setSettingsModalVisible(false)}
+        onSettingsChanged={newSettings => setCallSettings(newSettings)}
+      />
     </View>
 );
 };
@@ -1001,6 +1054,18 @@ const styles = StyleSheet.create({
     minHeight: 44,
   },
   linkText: { fontFamily: Fonts.body, fontSize: 14, fontWeight: '600' },
+  headerRight: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  settingsButton: {
+    padding: 6,
+    minWidth: 36,
+    minHeight: 36,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   onlinePill: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -1110,6 +1175,8 @@ const styles = StyleSheet.create({
     marginBottom: 2,
   },
   turnText: { fontFamily: Fonts.body, fontSize: 15, lineHeight: 21 },
+  turnTextLarge: { fontSize: 18, lineHeight: 25 },
+  turnTextExtraLarge: { fontSize: 22, lineHeight: 30 },
   provisional: { fontStyle: 'italic' },
   placeholder: { fontFamily: Fonts.body, fontSize: 14, fontStyle: 'italic', textAlign: 'center' },
   notice: {

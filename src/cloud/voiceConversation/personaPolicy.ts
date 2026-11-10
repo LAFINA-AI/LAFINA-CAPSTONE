@@ -22,15 +22,17 @@ export const LAFINA_VOICE_SYSTEM_PROMPT =
 export interface VoicePersonaPreferences {
   verbosity: 'brief' | 'detailed';
   pacing: 'normal' | 'slow';
+  language?: 'en' | 'fil' | 'taglish' | 'ceb';
 }
 
 export const DEFAULT_VOICE_PREFERENCES: VoicePersonaPreferences = {
   verbosity: 'brief',
   pacing: 'normal',
+  language: 'en',
 };
 
 /**
- * Builds the complete system prompt including active verbosity and pacing instructions.
+ * Builds the complete system prompt including active verbosity, pacing, and language instructions.
  */
 export const buildVoicePersonaPrompt = (
   prefs: Partial<VoicePersonaPreferences> = {},
@@ -46,6 +48,16 @@ export const buildVoicePersonaPrompt = (
 
   if (effective.pacing === 'slow') {
     additions.push('Explain concepts step-by-step with natural sentence pauses.');
+  }
+
+  if (effective.language && effective.language !== 'en') {
+    if (effective.language === 'fil') {
+      additions.push('Respond primarily in clear, natural Filipino (Tagalog). Use polite student-friendly phrasing.');
+    } else if (effective.language === 'taglish') {
+      additions.push('Respond in conversational Taglish (a natural code-switch between English and Tagalog commonly used by Filipino university students).');
+    } else if (effective.language === 'ceb') {
+      additions.push('Respond in natural Bisaya/Cebuano, maintaining clear, concise student-friendly language.');
+    }
   }
 
   return additions.length > 0
