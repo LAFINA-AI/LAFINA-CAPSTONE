@@ -246,7 +246,7 @@ export const IncomingCallScreen: React.FC<IncomingCallScreenProps> = ({
     if (useOnline && (!voiceConsent.read(userId) ||
         localSettingsStore.get(userId, 'voiceConversation.reminderConsent.v1', null) !== 'true')) {
       useOnline = await new Promise<boolean>(resolve => {
-        Alert.alert('Online voice conversation',
+        Alert.alert('Online Call Lafina conversation',
           'When you answer, microphone audio streams to ElevenLabs. Your words and this reminder are sent to ElevenLabs and to LAFINA’s server and DeepSeek so the assistant can discuss it. End or mute the call to stop listening.',
           [
             {text: 'Use offline voice', style: 'cancel', onPress: () => resolve(false)},

@@ -26,6 +26,7 @@ import {
   Presentation,
   AudioLines,
   Lightbulb,
+  Phone,
 } from 'lucide-react-native';
 import {Fonts, FontSize, Layout, Spacing} from '../theme';
 import {useTheme} from '../contexts/ThemeContext';
@@ -80,12 +81,14 @@ export interface ChatScreenProps {
   userId: string;
   refreshTrigger?: number;
   onRefresh?: () => void;
+  onCallLafina?: () => void;
 }
 
 export const ChatScreen: React.FC<ChatScreenProps> = ({
   userId,
   refreshTrigger = 0,
   onRefresh,
+  onCallLafina,
 }) => {
   const [initialPage] = useState(() => {
     try {
@@ -836,6 +839,18 @@ export const ChatScreen: React.FC<ChatScreenProps> = ({
         </View>
 
         <View style={styles.headerRight}>
+          {onCallLafina && (
+            <TouchableOpacity
+              style={[styles.headerIconButton, themed.headerButton]}
+              onPress={onCallLafina}
+              accessibilityRole="button"
+              accessibilityLabel="Call Lafina"
+              testID="chat-call-lafina-button"
+            >
+              <Phone size={15} color={colors.primary} />
+            </TouchableOpacity>
+          )}
+
           <TouchableOpacity
             style={[styles.headerIconButton, themed.headerButton]}
             onPress={() => setGuideVisible(true)}
