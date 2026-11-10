@@ -166,6 +166,50 @@ export const REGISTERED_TOOLS: readonly RegisteredToolDefinition[] = [
       required: ['cardId', 'revision'],
     },
   },
+  {
+    name: 'prepare_multi_action',
+    kind: 'multi.prepare',
+    description: 'Prepares a grouped batch of student actions (tasks, calendar events, reminders) for review and confirmation.',
+    parameters: {
+      type: 'object',
+      properties: {
+        text: {type: 'string', description: 'Grouped spoken instruction or description of actions.'},
+        items: {
+          type: 'array',
+          description: 'Optional structured list of actions.',
+          items: {
+            type: 'object',
+            properties: {
+              kind: {type: 'string', enum: ['task', 'event', 'reminder', 'note']},
+              title: {type: 'string'},
+              date: {type: 'string'},
+              time: {type: 'string'},
+              endTime: {type: 'string'},
+              priority: {type: 'string'},
+              body: {type: 'string'},
+            },
+            required: ['kind', 'title'],
+          },
+        },
+      },
+    },
+  },
+  {
+    name: 'propose_follow_up_reminder',
+    kind: 'reminder.prepare',
+    description: 'Proposes a context-driven follow-up reminder for an event or task with explicit user confirmation.',
+    parameters: {
+      type: 'object',
+      properties: {
+        title: {type: 'string', description: 'Reminder text.'},
+        parentTitle: {type: 'string', description: 'Title of the parent event or task.'},
+        date: {type: 'string', description: 'Date (YYYY-MM-DD).'},
+        time: {type: 'string', description: 'Time (HH:MM).'},
+        minutesBefore: {type: 'number', description: 'Minutes before parent event to trigger reminder.'},
+      },
+      required: ['parentTitle'],
+    },
+  },
 ];
 
 const TOOL_MAP = new Map<string, RegisteredToolDefinition>(

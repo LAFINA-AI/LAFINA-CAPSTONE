@@ -41,7 +41,8 @@ import type { CommandReviewState } from '../../hooks/useCommandReview';
 import { ActionCardHost } from '../callLafina/ActionCardHost';
 import { isToolExecutionPermitted } from '../../../ai/voiceActions/actionSecurity';
 import { actionService } from '../../../ai/voiceActions/actionService';
-import type { MemoryProposalData } from '../../../ai/voiceActions/types';
+import type { MemoryProposalData, MultiActionBatchData } from '../../../ai/voiceActions/types';
+import { cancelMultiItem } from '../../../ai/voiceActions/multiActionService';
 import { directProviderTestEnabled } from '../../../cloud/directProviderTest';
 import { localSettingsStore } from '../../../storage/localSettingsStore';
 import { explicitMemory } from '../../../ai/explicitMemory';
@@ -121,6 +122,7 @@ export const VoiceConversationPanel: React.FC<VoiceConversationPanelProps> = ({
   const conversationRef = useRef<ReturnType<typeof useVoiceConversation> | null>(null);
   const pendingMemory = useRef<{ text: string; owner: string; result: Promise<SpokenTurnReview> } | null>(null);
   const [activeMemoryProposal, setActiveMemoryProposal] = useState<MemoryProposalData | null>(null);
+  const [activeMultiBatch, setActiveMultiBatch] = useState<MultiActionBatchData | null>(null);
 
   // Live call duration timer
   const [callDuration, setCallDuration] = useState(0);
@@ -208,6 +210,10 @@ export const VoiceConversationPanel: React.FC<VoiceConversationPanelProps> = ({
           setActiveMemoryProposal(memProp);
           setLocalNote('Check the memory card below. Nothing is saved until you tap Save.');
         },
+        onMultiActionBatch: (batch) => {
+          setActiveMultiBatch(batch);
+          setLocalNote('Check the grouped actions card below. Nothing is saved until you tap Save All.');
+        },
       },
     );
   }, [deps, userId]);
@@ -239,6 +245,54 @@ export const VoiceConversationPanel: React.FC<VoiceConversationPanelProps> = ({
       setLocalNote('Memory change undone.');
     }
   }, [activeMemoryProposal]);
+
+  const handleConfirmMultiAll = useCallback(async () => {
+    if (!activeMultiBatch) return;
+    try {
+      const {batch, spokenSummary} = await actionService.confirmMultiActionBatch(
+        ownerRef.current,
+        activeMultiBatch,
+      );
+      setActiveMultiBatch(batch);
+      setLocalNote(spokenSummary);
+      if (directProviderTestEnabled()) {
+        void conversationRef.current?.sendContext(spokenSummary);
+      }
+    } catch (err) {
+      console.warn('[CallLafina] Confirm multi batch failed:', err);
+    }
+  }, [activeMultiBatch]);
+
+  const handleCancelMultiAll = useCallback(() => {
+    if (!activeMultiBatch) return;
+    const {batch, spokenSummary} = actionService.cancelMultiActionBatch(
+      ownerRef.current,
+      activeMultiBatch,
+    );
+    setActiveMultiBatch(batch);
+    setLocalNote(spokenSummary);
+  }, [activeMultiBatch]);
+
+  const handleCancelMultiItem = useCallback((itemId: string) => {
+    if (!activeMultiBatch) return;
+    const updated = cancelMultiItem(activeMultiBatch, itemId);
+    setActiveMultiBatch({...updated});
+  }, [activeMultiBatch]);
+
+  const handleRetryMultiItem = useCallback(async (itemId: string) => {
+    if (!activeMultiBatch) return;
+    try {
+      const {batch, spokenSummary} = await actionService.retryMultiActionItem(
+        ownerRef.current,
+        activeMultiBatch,
+        itemId,
+      );
+      setActiveMultiBatch(batch);
+      setLocalNote(spokenSummary);
+    } catch (err) {
+      console.warn('[CallLafina] Retry multi item failed:', err);
+    }
+  }, [activeMultiBatch]);
 
 const conversation = useVoiceConversation(userId, { onFinalUserText, onClientTool, deps });
 conversationRef.current = conversation;
@@ -625,17 +679,21 @@ return (
                 </Text>
               ) : null}
 
-              {review.proposal || activeMemoryProposal ? (
+              {review.proposal || activeMemoryProposal || activeMultiBatch ? (
                 <ActionCardHost
                   proposal={review.proposal}
                   memoryProposal={activeMemoryProposal}
+                  multiActionBatch={activeMultiBatch}
                   expired={review.expired}
                   busy={review.busy}
                   onConfirm={() => {
                     void handleConfirm();
                   }}
                   onCancel={() => {
-                    if (activeMemoryProposal) {
+                    if (activeMultiBatch) {
+                      handleCancelMultiAll();
+                      setActiveMultiBatch(null);
+                    } else if (activeMemoryProposal) {
                       actionService.cancelMemoryProposal(ownerRef.current, activeMemoryProposal.id);
                       setActiveMemoryProposal(null);
                     } else {
@@ -643,7 +701,9 @@ return (
                     }
                   }}
                   onDismiss={() => {
-                    if (activeMemoryProposal) {
+                    if (activeMultiBatch) {
+                      setActiveMultiBatch(null);
+                    } else if (activeMemoryProposal) {
                       setActiveMemoryProposal(null);
                     } else {
                       review.dismiss();
@@ -651,6 +711,10 @@ return (
                   }}
                   onSaveMemory={handleSaveMemory}
                   onUndoMemory={handleUndoMemory}
+                  onConfirmMultiAll={handleConfirmMultiAll}
+                  onCancelMultiAll={handleCancelMultiAll}
+                  onCancelMultiItem={handleCancelMultiItem}
+                  onRetryMultiItem={handleRetryMultiItem}
                   testIDPrefix="voice-conversation-review"
                 />
               ) : null}

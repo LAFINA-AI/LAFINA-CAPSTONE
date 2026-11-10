@@ -17,6 +17,8 @@ import type {
   DraftRevisePayload,
   DraftConfirmPayload,
   DraftCancelPayload,
+  MultiActionBatchData,
+  MultiActionItemData,
 } from './types';
 import {isToolExecutionPermitted, containsPromptInjection} from './actionSecurity';
 import {getRegisteredTool} from './actionRegistry';
@@ -26,6 +28,13 @@ import {chatOrchestrator} from '../chatOrchestrator';
 import type {SpokenTurnReview} from '../chatOrchestrator';
 import {chatMemoryStore} from '../../storage/chatMemoryStore';
 import {draftRegistry} from './draftRegistry';
+import {
+  parseGroupedRequest,
+  createMultiActionBatch,
+  proposeFollowUpReminder,
+  executeMultiActionBatch,
+  formatMultiActionSpokenSummary,
+} from './multiActionService';
 
 export interface ActionRecord {
   envelope: ActionEnvelope;
@@ -34,6 +43,7 @@ export interface ActionRecord {
   updatedEpoch: number;
   reviewResult?: SpokenTurnReview;
   memoryProposal?: MemoryProposalData;
+  multiActionBatch?: MultiActionBatchData;
   result?: string;
   error?: string;
 }
@@ -44,6 +54,7 @@ export interface ExecuteToolOptions {
   sourceTurnId?: string;
   onProposal?: (review: SpokenTurnReview) => void;
   onMemoryProposal?: (proposal: MemoryProposalData) => void;
+  onMultiActionBatch?: (batch: MultiActionBatchData) => void;
 }
 
 class ActionService {
@@ -353,6 +364,87 @@ class ActionService {
         return result.message;
       }
 
+      if (toolDef.kind === 'multi.prepare') {
+        envelope.phase = 'preparing';
+        this.emit(actionId, toolDef.kind, 'preparing');
+
+        const rawPayload = envelope.payload as {text?: string; items?: Array<Record<string, unknown>>};
+        let items: MultiActionItemData[] = [];
+        let truncated = false;
+
+        if (Array.isArray(rawPayload.items) && rawPayload.items.length > 0) {
+          items = rawPayload.items.map((it, idx) => ({
+            id: `item-${idx + 1}-${generateId().slice(0, 6)}`,
+            kind: (it.kind as MultiActionItemData['kind']) || 'task',
+            title: String(it.title || `Action ${idx + 1}`),
+            date: it.date ? String(it.date) : undefined,
+            time: it.time ? String(it.time) : undefined,
+            endTime: it.endTime ? String(it.endTime) : undefined,
+            priority: (it.priority as MultiActionItemData['priority']) || 'medium',
+            body: it.body ? String(it.body) : undefined,
+            status: 'draft',
+            savedEntityId: null,
+            error: null,
+          }));
+          if (items.length > 5) {
+            items = items.slice(0, 5);
+            truncated = true;
+          }
+        } else if (rawPayload.text) {
+          const parsed = parseGroupedRequest(rawPayload.text);
+          items = parsed.items;
+          truncated = parsed.truncated;
+        }
+
+        const batch = createMultiActionBatch(sessionId, userId, items, truncated);
+        envelope.phase = 'waiting';
+        record.status = 'prepare';
+        record.multiActionBatch = batch;
+        record.updatedEpoch = Date.now();
+        this.emit(actionId, toolDef.kind, 'waiting', 'Multi-action review card presented to student.');
+        options?.onMultiActionBatch?.(batch);
+
+        return `A grouped review card with ${batch.items.length} items is shown: ${batch.items.map(i => i.title).join(', ')}. Nothing has been saved yet. Ask the student to check and confirm the card.`;
+      }
+
+      if (toolDef.name === 'propose_follow_up_reminder') {
+        envelope.phase = 'preparing';
+        this.emit(actionId, toolDef.kind, 'preparing');
+
+        const rawP = envelope.payload as Record<string, unknown>;
+        const parentTitle = String(parameters.parentTitle || rawP.title || 'Event');
+        const eventDate = String(parameters.date || rawP.triggerDate || rawP.date || '');
+        const eventTime = String(parameters.time || rawP.triggerTime || rawP.time || '');
+        const minutesBefore =
+          typeof parameters.minutesBefore === 'number'
+            ? parameters.minutesBefore
+            : typeof rawP.minutesBefore === 'number'
+            ? rawP.minutesBefore
+            : 15;
+
+        const reminderItem = proposeFollowUpReminder(
+          {
+            title: parentTitle,
+            date: eventDate || undefined,
+            time: eventTime || undefined,
+          },
+          minutesBefore,
+        );
+        if (typeof parameters.title === 'string' && parameters.title.trim()) {
+          reminderItem.title = parameters.title.trim();
+        }
+
+        const batch = createMultiActionBatch(sessionId, userId, [reminderItem]);
+        envelope.phase = 'waiting';
+        record.status = 'prepare';
+        record.multiActionBatch = batch;
+        record.updatedEpoch = Date.now();
+        this.emit(actionId, toolDef.kind, 'waiting', 'Follow-up reminder proposal card presented.');
+        options?.onMultiActionBatch?.(batch);
+
+        return `A follow-up reminder card is proposed: "${reminderItem.title}" on ${reminderItem.date || 'today'} at ${reminderItem.time || 'scheduled time'}. Nothing has been saved yet. Ask the student if they would like to set this reminder.`;
+      }
+
       return 'Action completed.';
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : 'Unknown execution failure';
@@ -503,6 +595,43 @@ class ActionService {
     record.envelope.phase = 'canceled';
     this.emit(actionId, record.envelope.kind, 'canceled', 'User canceled memory proposal');
     return {success: true, status: 'canceled'};
+  }
+
+  async confirmMultiActionBatch(
+    userId: string,
+    batch: MultiActionBatchData,
+    targetItemId?: string,
+  ): Promise<{batch: MultiActionBatchData; spokenSummary: string}> {
+    if (batch.ownerId !== userId) {
+      throw new Error('Unauthorized: batch does not belong to user');
+    }
+    return executeMultiActionBatch(batch, userId, targetItemId);
+  }
+
+  cancelMultiActionBatch(
+    userId: string,
+    batch: MultiActionBatchData,
+  ): {batch: MultiActionBatchData; spokenSummary: string} {
+    if (batch.ownerId !== userId) {
+      throw new Error('Unauthorized: batch does not belong to user');
+    }
+    for (const item of batch.items) {
+      if (item.status === 'draft' || item.status === 'failed') {
+        item.status = 'cancelled';
+      }
+    }
+    batch.status = 'cancelled';
+    batch.revision += 1;
+    batch.spokenSummary = formatMultiActionSpokenSummary(batch);
+    return {batch: {...batch}, spokenSummary: batch.spokenSummary};
+  }
+
+  async retryMultiActionItem(
+    userId: string,
+    batch: MultiActionBatchData,
+    itemId: string,
+  ): Promise<{batch: MultiActionBatchData; spokenSummary: string}> {
+    return this.confirmMultiActionBatch(userId, batch, itemId);
   }
 }
 

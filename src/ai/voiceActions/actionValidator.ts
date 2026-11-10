@@ -227,22 +227,40 @@ export function validatePayload(
     }
 
     case 'reminder.prepare': {
-      if (typeof p.title !== 'string' || !p.title.trim() || p.title.length > 200) {
-        return {valid: false, error: 'reminder.prepare requires title (1..200 chars).'};
+      const title =
+        typeof p.title === 'string' && p.title.trim()
+          ? p.title.trim()
+          : typeof p.parentTitle === 'string' && p.parentTitle.trim()
+          ? `Reminder: ${p.parentTitle.trim()}`
+          : null;
+      if (!title || title.length > 200) {
+        return {valid: false, error: 'reminder.prepare requires title or parentTitle (1..200 chars).'};
       }
-      if (typeof p.triggerDate !== 'string' || !DATE_REGEX.test(p.triggerDate)) {
-        return {valid: false, error: 'reminder.prepare requires valid triggerDate (YYYY-MM-DD).'};
+      const triggerDate =
+        typeof p.triggerDate === 'string' && DATE_REGEX.test(p.triggerDate)
+          ? p.triggerDate
+          : typeof p.date === 'string' && DATE_REGEX.test(p.date)
+          ? p.date
+          : null;
+      if (!triggerDate) {
+        return {valid: false, error: 'reminder.prepare requires valid triggerDate or date (YYYY-MM-DD).'};
       }
-      if (typeof p.triggerTime !== 'string' || !TIME_REGEX.test(p.triggerTime)) {
-        return {valid: false, error: 'reminder.prepare requires valid triggerTime (HH:MM).'};
+      const triggerTime =
+        typeof p.triggerTime === 'string' && TIME_REGEX.test(p.triggerTime)
+          ? p.triggerTime
+          : typeof p.time === 'string' && TIME_REGEX.test(p.time)
+          ? p.time
+          : null;
+      if (!triggerTime) {
+        return {valid: false, error: 'reminder.prepare requires valid triggerTime or time (HH:MM).'};
       }
-      if (containsPromptInjection(p.title)) {
+      if (containsPromptInjection(title)) {
         return {valid: false, error: 'reminder.prepare title contains rejected adversarial tokens.'};
       }
       const res: ReminderPreparePayload = {
-        title: p.title.trim(),
-        triggerDate: p.triggerDate,
-        triggerTime: p.triggerTime,
+        title,
+        triggerDate,
+        triggerTime,
         repeatInterval: typeof p.repeatInterval === 'string' ? p.repeatInterval.slice(0, 50) : undefined,
       };
       return {valid: true, data: res};
@@ -326,8 +344,17 @@ export function validatePayload(
     }
 
     case 'multi.prepare': {
+      if (typeof p.text === 'string' && p.text.trim()) {
+        if (p.text.length > 500) {
+          return {valid: false, error: 'multi.prepare text must not exceed 500 chars.'};
+        }
+        if (containsPromptInjection(p.text)) {
+          return {valid: false, error: 'multi.prepare text contains rejected adversarial tokens.'};
+        }
+        return {valid: true, data: {text: p.text.trim(), items: []} as unknown as MultiPreparePayload};
+      }
       if (!Array.isArray(p.items) || p.items.length === 0 || p.items.length > 10) {
-        return {valid: false, error: 'multi.prepare requires 1..10 items.'};
+        return {valid: false, error: 'multi.prepare requires 1..10 items or text.'};
       }
       const items = [];
       for (let i = 0; i < p.items.length; i++) {
