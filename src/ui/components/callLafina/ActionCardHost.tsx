@@ -1,8 +1,13 @@
 /**
- * Call Lafina 2.0 Action Card Host & Registry Renderer (P06-06, P06-07, F-027, F-028, F-029).
+ * Call Lafina 2.0 Action Card Host & Registry Renderer (P06-06, P07-01, P07-02, P07-03, F-027..F-033).
  *
  * Renders contextual action cards during live voice calls without interrupting
- * the voice connection. Provides safe fallbacks for unsupported card types.
+ * the voice connection. Dispatches to specialized cards:
+ * - ReminderDraftCard for tasks and reminders (F-030)
+ * - CalendarDraftCard for events, time blocks, and conflict alternatives (F-031, F-033)
+ * - AgendaCard for read-only agenda/schedule results (F-032)
+ * - CommandReviewCard generic fallback
+ * - Safe fallback for unsupported card kinds (F-027)
  */
 
 import React from 'react';
@@ -20,9 +25,15 @@ import type {ThemeColors} from '../../contexts/ThemeContext';
 import type {CommandProposal} from '../../../ai/nlu/commandReview';
 import {CommandReviewCard} from '../chat/CommandReviewCard';
 import type {ActionCardStatus} from '../../../ai/voiceActions/types';
+import {ReminderDraftCard} from './cards/ReminderDraftCard';
+import {CalendarDraftCard} from './cards/CalendarDraftCard';
+import {AgendaCard} from './cards/AgendaCard';
+import type {AgendaCardData} from './cards/AgendaCard';
 
 export interface ActionCardHostProps {
-  proposal: CommandProposal | null;
+  proposal?: CommandProposal | null;
+  agendaData?: AgendaCardData | null;
+  alternatives?: string[];
   expired?: boolean;
   busy?: boolean;
   status?: ActionCardStatus;
@@ -34,7 +45,9 @@ export interface ActionCardHostProps {
 }
 
 export const ActionCardHost: React.FC<ActionCardHostProps> = ({
-  proposal,
+  proposal = null,
+  agendaData = null,
+  alternatives = [],
   expired = false,
   busy = false,
   status = 'prepare',
@@ -81,9 +94,34 @@ export const ActionCardHost: React.FC<ActionCardHostProps> = ({
     );
   }
 
+  if (agendaData) {
+    return (
+      <View
+        style={styles.hostContainer}
+        testID="action-card-host"
+        accessibilityLabel={`Agenda card: ${agendaData.date}`}
+      >
+        <AgendaCard
+          data={agendaData}
+          onDismiss={onDismiss}
+          testIDPrefix={testIDPrefix}
+        />
+      </View>
+    );
+  }
+
   if (!proposal) {
     return null;
   }
+
+  const isTaskOrReminder =
+    proposal.intent === 'create_task' ||
+    proposal.intent === 'create_reminder' ||
+    proposal.intent === 'update_task';
+
+  const isEventOrBlock =
+    proposal.intent === 'create_time_block' ||
+    proposal.intent === 'update_time_block';
 
   return (
     <View
@@ -91,15 +129,38 @@ export const ActionCardHost: React.FC<ActionCardHostProps> = ({
       testID="action-card-host"
       accessibilityLabel={`Action card: ${proposal.heading}`}
     >
-      <CommandReviewCard
-        proposal={proposal}
-        expired={expired || status === 'expired'}
-        busy={busy || status === 'confirm'}
-        onConfirm={onConfirm}
-        onCancel={onCancel}
-        onDismiss={onDismiss}
-        testIDPrefix={testIDPrefix}
-      />
+      {isTaskOrReminder ? (
+        <ReminderDraftCard
+          proposal={proposal}
+          expired={expired || status === 'expired'}
+          busy={busy || status === 'confirm'}
+          onConfirm={onConfirm}
+          onCancel={onCancel}
+          onDismiss={onDismiss}
+          testIDPrefix={testIDPrefix}
+        />
+      ) : isEventOrBlock ? (
+        <CalendarDraftCard
+          proposal={proposal}
+          expired={expired || status === 'expired'}
+          busy={busy || status === 'confirm'}
+          alternatives={alternatives}
+          onConfirm={onConfirm}
+          onCancel={onCancel}
+          onDismiss={onDismiss}
+          testIDPrefix={testIDPrefix}
+        />
+      ) : (
+        <CommandReviewCard
+          proposal={proposal}
+          expired={expired || status === 'expired'}
+          busy={busy || status === 'confirm'}
+          onConfirm={onConfirm}
+          onCancel={onCancel}
+          onDismiss={onDismiss}
+          testIDPrefix={testIDPrefix}
+        />
+      )}
     </View>
   );
 };
