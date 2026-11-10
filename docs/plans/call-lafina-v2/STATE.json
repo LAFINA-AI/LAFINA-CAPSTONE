@@ -128,8 +128,8 @@
     "P12-07"
   ],
   "blocked_items": [],
-  "last_commit": "29bdc76",
-  "last_tested_commit": "29bdc76",
+  "last_commit": "898c7c8",
+  "last_tested_commit": "898c7c8",
   "last_test_results": [
     {
       "command": "npm run preflight",
