@@ -29,10 +29,14 @@ import {ReminderDraftCard} from './cards/ReminderDraftCard';
 import {CalendarDraftCard} from './cards/CalendarDraftCard';
 import {AgendaCard} from './cards/AgendaCard';
 import type {AgendaCardData} from './cards/AgendaCard';
+import {NoteDraftCard} from './cards/NoteDraftCard';
+import {NoteResultCard} from './cards/NoteResultCard';
+import type {NoteResultCardData} from './cards/NoteResultCard';
 
 export interface ActionCardHostProps {
   proposal?: CommandProposal | null;
   agendaData?: AgendaCardData | null;
+  noteResultData?: NoteResultCardData | null;
   alternatives?: string[];
   expired?: boolean;
   busy?: boolean;
@@ -41,12 +45,14 @@ export interface ActionCardHostProps {
   onConfirm?: () => void;
   onCancel?: () => void;
   onDismiss?: () => void;
+  onOpenNote?: (noteId: string) => void;
   testIDPrefix?: string;
 }
 
 export const ActionCardHost: React.FC<ActionCardHostProps> = ({
   proposal = null,
   agendaData = null,
+  noteResultData = null,
   alternatives = [],
   expired = false,
   busy = false,
@@ -55,6 +61,7 @@ export const ActionCardHost: React.FC<ActionCardHostProps> = ({
   onConfirm = () => {},
   onCancel = () => {},
   onDismiss = () => {},
+  onOpenNote,
   testIDPrefix = 'action-card',
 }) => {
   const {colors} = useTheme();
@@ -110,6 +117,23 @@ export const ActionCardHost: React.FC<ActionCardHostProps> = ({
     );
   }
 
+  if (noteResultData) {
+    return (
+      <View
+        style={styles.hostContainer}
+        testID="action-card-host"
+        accessibilityLabel={`Note result card: ${noteResultData.title}`}
+      >
+        <NoteResultCard
+          data={noteResultData}
+          onOpenNote={onOpenNote}
+          onDismiss={onDismiss}
+          testIDPrefix={testIDPrefix}
+        />
+      </View>
+    );
+  }
+
   if (!proposal) {
     return null;
   }
@@ -122,6 +146,10 @@ export const ActionCardHost: React.FC<ActionCardHostProps> = ({
   const isEventOrBlock =
     proposal.intent === 'create_time_block' ||
     proposal.intent === 'update_time_block';
+
+  const isNote =
+    proposal.intent === 'create_note' ||
+    proposal.intent === 'update_note';
 
   return (
     <View
@@ -145,6 +173,16 @@ export const ActionCardHost: React.FC<ActionCardHostProps> = ({
           expired={expired || status === 'expired'}
           busy={busy || status === 'confirm'}
           alternatives={alternatives}
+          onConfirm={onConfirm}
+          onCancel={onCancel}
+          onDismiss={onDismiss}
+          testIDPrefix={testIDPrefix}
+        />
+      ) : isNote ? (
+        <NoteDraftCard
+          proposal={proposal}
+          expired={expired || status === 'expired'}
+          busy={busy || status === 'confirm'}
           onConfirm={onConfirm}
           onCancel={onCancel}
           onDismiss={onDismiss}
