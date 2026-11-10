@@ -54,14 +54,25 @@
   - **P13-07 & P13-08 & F-057**: Documented backend LLM architecture limits in ADR-031: DeepSeek is text-only without vision support; multimodal attachment classified as deferred backend unsupported.
   - **P13-09 & P13-10**: Verified regression tests across route changes and minimize/restore flows; 12 focused tests passing in `__tests__/ui/callLafinaPhase13.test.tsx`.
 
+- **Phase 14: Reliability, Security, Privacy, and Audio Performance Regression (`F-058`, `F-059`, `F-060`, `F-061`, `F-062`, `F-063`, `F-069`, `F-072`)**: Completed.
+  - **P14-01 & F-058**: Ran full preflight and Gradle `--dry-run` compile verification (BUILD SUCCESSFUL in 42s).
+  - **P14-02 & F-059 & F-060**: Tested multi-account isolation, consent verification, and simultaneous reminder-call audio focus release (`endActiveVoiceConversation`).
+  - **P14-03 & F-061**: Validated negative error handling: 401 Unauthorized maps to `'signin_required'`; 402 / token quota limits map to `'limit_reached'`; network losses handled without app crash.
+  - **P14-04 & F-061 & F-062**: Validated prompt injection detection and sanitization (`sanitizeUntrustedContext`), schema verification, and stale card ID protection.
+  - **P14-05 & F-069**: Privacy audit: controller logs scrub tokens, signed URLs, transcripts, and notes; zero raw voice recordings written to storage.
+  - **P14-06 & F-058**: Verified core offline capabilities: local tasks, notes, and exact-time reminder scheduling in SQLite remain intact.
+  - **P14-07 & F-063**: Added `normalizeAmplitude` helper to `CallWaveform.tsx` bounding waveform values safely between 0.0 and 1.0 against `NaN` and infinite inputs.
+  - **P14-08 & P14-10 & F-072**: Prepared manual device test guide `qa/PHASE-14-REGRESSION-MANUAL.md` for physical hardware, Bluetooth AEC, and status bar mic indicators.
+  - Verified with 13 Jest tests in `__tests__/ui/callLafinaPhase14.test.tsx` and all 14 Call Lafina phase suites (193/193 tests passing).
+
 ## In progress
-- Phase 14: Reliability, Security, Privacy, and Audio Performance Regression (`F-058`, `F-059`, `F-060`, `F-061`, `F-062`, `F-063`, `F-069`, `F-072`).
+- Phase 15: Traceability Audit, Capstone Handoff, and Release Readiness (`F-064`, `F-065`, `F-077`).
 
 ## Known blockers (link to BLOCKERS.md)
 - `BLK-001` (DEVICE): Physical phone audio routing, hardware mic indicator, and physical alarm delivery remain `DEVICE_NOT_RUN`.
 - `BLK-002` (EXTERNAL): Production signed-in ElevenAgents live session depends on active student credentials and ElevenLabs agent provisioning on server.
 
 ## Exact next action (no guesswork)
-1. Commit Phase 13 implementation, tests, and reports to `feat/call-lafina-v2`.
-2. Rehydrate Phase 14: `CALL_LAFINA_AUTONOMOUS_TASK_PACK_V1/PHASES/14-reliability-security-privacy-audio-performance-regression.md`.
-3. Implement reliability, security, privacy auditing, and performance regression tests.
+1. Commit Phase 14 implementation, tests, and reports to `feat/call-lafina-v2`.
+2. Rehydrate Phase 15: `CALL_LAFINA_AUTONOMOUS_TASK_PACK_V1/PHASES/15-traceability-audit-capstone-handoff-and-release-readiness.md`.
+3. Complete final traceability audit across all 78 `F-*` features in `FEATURE_LEDGER.csv` and author `phase-15.md` final report.

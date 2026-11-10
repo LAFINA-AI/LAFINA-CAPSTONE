@@ -25,6 +25,17 @@ export interface CallWaveformProps {
 const ASSISTANT_MULTIPLIERS = [0.35, 0.55, 0.75, 0.95, 1.0, 0.95, 0.75, 0.55, 0.35];
 const USER_MULTIPLIERS = [0.4, 0.75, 1.0, 0.75, 0.4];
 
+/**
+ * Bounds and normalizes an audio amplitude safely between 0.0 and 1.0,
+ * strictly guarding against NaN, null, undefined, and infinite values.
+ */
+export function normalizeAmplitude(value: number): number {
+  if (typeof value !== 'number' || Number.isNaN(value) || !Number.isFinite(value)) {
+    return value === Infinity ? 1 : 0;
+  }
+  return Math.max(0, Math.min(1, value));
+}
+
 export function getTruthfulStateText(props: {
   phase: ConversationPhase;
   muted: boolean;
@@ -125,13 +136,15 @@ export const CallWaveform: React.FC<CallWaveformProps> = ({
   }, [phase, isReducedMotion, pulseAnim]);
 
   const isSpeaking = phase === 'speaking';
+  const boundedOutput = normalizeAmplitude(outputLevel);
   const effectiveOutputLevel = isSpeaking
-    ? Math.max(0.12, Math.min(1.0, outputLevel))
+    ? Math.max(0.12, Math.min(1.0, boundedOutput))
     : 0;
 
   const isUserActive = micCapturing && !muted;
+  const boundedUser = normalizeAmplitude(userLevel);
   const effectiveUserLevel = isUserActive
-    ? Math.max(0, Math.min(1.0, userLevel))
+    ? Math.max(0, Math.min(1.0, boundedUser))
     : 0;
 
   const stateText = getTruthfulStateText({
