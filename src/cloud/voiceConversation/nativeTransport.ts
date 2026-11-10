@@ -2,11 +2,13 @@ import {DeviceEventEmitter, NativeModules} from 'react-native';
 import type {TransportEvent, VoiceTransport} from './types';
 
 interface NativeVoiceConversation {
+  supportsAppOwnedAudio?(): Promise<boolean>;
   start(options: {
     sessionKey: string;
     url: string;
     initiation: string;
     allowLocalTestServer?: boolean;
+    appOwnedAudio?: boolean;
   }): Promise<boolean>;
   setMuted(sessionKey: string, muted: boolean): Promise<boolean>;
   stopResponse(sessionKey: string): Promise<boolean>;
@@ -81,6 +83,9 @@ export const nativeVoiceTransport: VoiceTransport = {
       throw Object.assign(new Error('Voice conversation is unavailable.'), {
         code: 'UNAVAILABLE',
       });
+    if (options.appOwnedAudio && !(await module.supportsAppOwnedAudio?.())) {
+      throw Object.assign(new Error('This app build cannot safely control voice playback.'), {code: 'UNAVAILABLE'});
+    }
     await module.start(options);
   },
   setMuted: async (key, muted) =>

@@ -73,6 +73,9 @@ export interface VoiceConversationDeps {
   persistence?: ConversationPersistence;
   /** A finished user turn, for on-device scheduling review. */
   onFinalUserText?(text: string): void;
+  onAgentText?(text: string): void;
+  suppressAgentResponse?(): boolean;
+  appOwnedAudio?: boolean;
   onClientTool?(name: string, parameters: Record<string, unknown>, isCurrent: () => boolean): Promise<string>;
   allowLocalTestServer?: boolean;
   limits?: Partial<VoiceConversationLimits>;
@@ -207,8 +210,18 @@ export class VoiceConversationController {
   private firstAudioAt: number | null = null;
   private silenceRequestedAt: number | null = null;
   private turnCounter = 0;
+  private speechPaused = false;
+  private muteQueue: Promise<boolean> = Promise.resolve(true);
+
+  private queueMute(live: LiveSession, muted: boolean): Promise<boolean> {
+    const operation = this.muteQueue.then(() => this.live === live
+      ? this.deps.transport.setMuted(live.key, muted).catch(() => false)
+      : false);
+    this.muteQueue = operation.catch(() => false);
+    return operation;
+  }
   private disposed = false;
-  private transportEnding: Promise<unknown> = Promise.resolve();
+  private transportEnding: Promise<boolean> = Promise.resolve(true);
 
   constructor(deps: VoiceConversationDeps) {
     this.deps = deps;
@@ -375,6 +388,7 @@ export class VoiceConversationController {
             url: session.data.signedUrl,
             initiation,
             allowLocalTestServer: this.deps.allowLocalTestServer === true,
+            appOwnedAudio: this.deps.appOwnedAudio === true,
           })
           .then(resolve, reject);
       });
@@ -486,9 +500,9 @@ export class VoiceConversationController {
   };
 
   /** Wait until native audio and microphone resources are released. */
-  endAndWait = async (): Promise<void> => {
+  endAndWait = async (): Promise<boolean> => {
     this.end();
-    await this.transportEnding;
+    return this.transportEnding;
   };
 
   /** Something other than the student stopped it; only a new tap restarts. */
@@ -516,10 +530,12 @@ export class VoiceConversationController {
   setMuted = async (muted: boolean): Promise<void> => {
     const live = this.live;
     if (!live || this.snapshot.muted === muted) return;
+    if (this.speechPaused) {
+      this.update({muted, level: 0});
+      return;
+    }
     const gen = this.generation;
-    const ok = await this.deps.transport
-      .setMuted(live.key, muted)
-      .catch(() => false);
+    const ok = await this.queueMute(live, muted);
     if (gen !== this.generation) return;
     if (ok) {
       this.update({muted, level: muted ? 0 : this.snapshot.level});
@@ -530,6 +546,38 @@ export class VoiceConversationController {
           'The microphone could not turn back on. End the conversation and start again.',
       });
     }
+  };
+
+  /** Stop capture while app-owned TTS plays; preserve the student's mute choice. */
+  setSpeechPaused = async (paused: boolean): Promise<boolean> => {
+    const live = this.live;
+    if (!live) return false;
+    if (this.speechPaused === paused) return this.muteQueue;
+    const gen = this.generation;
+    this.speechPaused = paused;
+    const ok = await this.queueMute(live, paused || this.snapshot.muted);
+    if (gen !== this.generation || this.live !== live) return false;
+    if (!ok && paused) this.speechPaused = false;
+    return ok;
+  };
+
+  /** Stops LAFINA's current answer; the conversation keeps listening. */
+  completeLocalTurn = (): void => {
+    this.timers.clear('thinking');
+    if (this.live && this.snapshot.phase === 'thinking') this.update({phase: 'listening'});
+  };
+
+  appSpeechStarted = (): void => {
+    if (!this.live || !this.pending || this.pending.committed) return;
+    this.pending.audioStarted = true;
+    this.update({phase: 'speaking'});
+  };
+
+  appSpeechFinished = (heard: boolean): void => {
+    if (!this.live || !this.pending || this.pending.committed) return;
+    if (!heard) this.pending.interrupted = true;
+    if (this.snapshot.phase === 'speaking') this.update({phase: 'listening'});
+    this.settleIfHeard();
   };
 
   /** Stops LAFINA's current answer; the conversation keeps listening. */
@@ -893,6 +941,7 @@ export class VoiceConversationController {
   }
 
   private appendAnswer(piece: string) {
+    if (this.deps.suppressAgentResponse?.()) return;
     const pending = this.ensurePending();
     pending.text += piece;
     this.noteFirstText();
@@ -909,6 +958,11 @@ export class VoiceConversationController {
     if (key && this.seen.has(key)) return;
     if (key) this.seen.add(key);
     if (!full.trim()) return;
+    if (this.deps.suppressAgentResponse?.()) {
+      this.timers.clear('thinking');
+      if (this.snapshot.phase === 'thinking') this.update({phase: 'listening'});
+      return;
+    }
     const pending = this.ensurePending();
     pending.text = full;
     pending.complete = true;
@@ -919,6 +973,7 @@ export class VoiceConversationController {
       text: full,
       status: pending.interrupted ? 'interrupted' : 'final',
     });
+    if (this.deps.appOwnedAudio) this.deps.onAgentText?.(full);
   }
 
   /**
@@ -1039,6 +1094,7 @@ export class VoiceConversationController {
 
   /** Releases everything this controller owns. Safe to call repeatedly. */
   private teardown() {
+    this.speechPaused = false;
     this.abort?.abort();
     this.abort = null;
     this.timers.clearAll();

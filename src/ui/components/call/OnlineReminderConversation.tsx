@@ -28,7 +28,7 @@ export const OnlineReminderConversation = forwardRef<OnlineReminderHandle, Props
     const [contextFailed, setContextFailed] = useState(false);
     snapshotCallback.current = onSnapshot;
     useImperativeHandle(ref, () => ({
-      endAndWait: () => current.current.endAndWait(),
+      endAndWait: async () => { await current.current.endAndWait(); },
     }), []);
     useEffect(() => {
       mounted.current = true;

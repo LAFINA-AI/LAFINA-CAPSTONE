@@ -253,6 +253,35 @@ it('waits for native microphone release before another call action', async () =>
   expect(finished).toBe(true);
 });
 
+it('keeps the microphone muted if the student mutes during app speech', async () => {
+  const {controller, calls} = setup();
+  await controller.start();
+  expect(await controller.setSpeechPaused(true)).toBe(true);
+  await controller.setMuted(true);
+  expect(await controller.setSpeechPaused(false)).toBe(true);
+  expect(calls.muted).toEqual([true, true]);
+  expect(controller.getSnapshot().muted).toBe(true);
+  controller.end();
+});
+
+it('waits for an in-flight microphone pause before allowing another speech request', async () => {
+  const {controller, deps} = setup();
+  const pause = deferred<boolean>();
+  deps.transport.setMuted = jest.fn(() => pause.promise);
+  await controller.start();
+  const first = controller.setSpeechPaused(true);
+  const second = controller.setSpeechPaused(true);
+  let ready = false;
+  void second.then(() => { ready = true; });
+  await flush();
+  expect(ready).toBe(false);
+  expect(deps.transport.setMuted).toHaveBeenCalledTimes(1);
+  pause.resolve(true);
+  expect(await first).toBe(true);
+  expect(await second).toBe(true);
+  controller.end();
+});
+
 it('keeps the release promise after the prior voice panel unregisters', async () => {
   const {controller, deps} = setup();
   const release = deferred<boolean>();

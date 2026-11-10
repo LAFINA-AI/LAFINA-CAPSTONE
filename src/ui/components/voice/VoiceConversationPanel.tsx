@@ -1,6 +1,7 @@
 import React, {useCallback, useEffect, useRef, useState} from 'react';
 import {
   ActivityIndicator,
+  AppState,
   Linking,
   ScrollView,
   StyleSheet,
@@ -41,6 +42,11 @@ import {explicitMemory} from '../../../ai/explicitMemory';
 import {onboardingVoiceContext} from '../../../storage/onboardingMemory';
 import {userStore} from '../../../storage/userStore';
 import type {SpokenTurnReview} from '../../../ai/chatOrchestrator';
+import {groundedVoiceDraft, isVoiceScheduleStart} from '../../../ai/nlu/groundedVoiceDraft';
+import {parseIntentFastPath} from '../../../ai/nlu/fastPathParser';
+import {cancelReviewedCommand, prepareReviewedCommand} from '../../../ai/nlu/commandReview';
+import {startOwnedSpeech, stopOwnedSpeech} from '../../../ai/tts/ttsService';
+import type {ValidatedIntent} from '../../../ai/nlu/types';
 
 const DATA_CONSENT = 'voiceConversation.directDataConsent.v1';
 
@@ -84,6 +90,8 @@ export const VoiceConversationPanel: React.FC<VoiceConversationPanelProps> = ({
   const {colors} = useTheme();
   const themed = useThemedStyles(getThemedStyles);
   const [localNote, setLocalNote] = useState<string | null>(null);
+  const [decisionEnded, setDecisionEnded] = useState(false);
+  const [localSpeaking, setLocalSpeaking] = useState(false);
   const [typed, setTyped] = useState('');
   const [showTyping, setShowTyping] = useState(false);
   const [consented, setConsented] = useState(() => voiceConsent.read(userId));
@@ -99,29 +107,210 @@ export const VoiceConversationPanel: React.FC<VoiceConversationPanelProps> = ({
   const identityContextSent = useRef(false);
   const conversationRef = useRef<ReturnType<typeof useVoiceConversation> | null>(null);
   const pendingMemory = useRef<{text: string; owner: string; result: Promise<SpokenTurnReview>} | null>(null);
+  const activePhase = useRef<ConversationPhase>('idle');
+  const voiceTurns = useRef<string[]>([]);
+  const awaitingDetails = useRef(false);
+  const proposalPending = useRef(false);
+  const confirming = useRef(false);
+  const pendingOperation = useRef<string | null>(null);
+  const lastDraft = useRef<ValidatedIntent | null>(null);
+  const actionTurn = useRef(false);
+  const allowAgentSpeech = useRef(false);
+  const actionReply = useRef('No action was prepared. Nothing was saved.');
+  const speechEpoch = useRef(0);
+  const speechToken = useRef<number | null>(null);
+  const mounted = useRef(true);
+  const foreground = useRef(AppState.currentState !== 'background' && AppState.currentState !== 'inactive');
+  const stopOutcome = useCallback(() => {
+    speechEpoch.current += 1;
+    if (speechToken.current !== null) void stopOwnedSpeech(speechToken.current);
+    speechToken.current = null;
+    if (mounted.current) setLocalSpeaking(false);
+  }, []);
+  useEffect(() => {
+    mounted.current = true;
+    return () => { mounted.current = false; turnTicket.current += 1; stopOutcome(); };
+  }, [stopOutcome]);
+  useEffect(() => {
+    const listener = AppState.addEventListener('change', state => {
+      foreground.current = state === 'active';
+      if (state !== 'active') stopOutcome();
+    });
+    return () => listener.remove();
+  }, [stopOutcome]);
+
+  const speakDecision = useCallback((reply: string) => {
+    if (!mounted.current || !foreground.current) return;
+    stopOutcome();
+    const epoch = speechEpoch.current;
+    const owner = ownerRef.current;
+    const current = conversationRef.current;
+    if (!current) return;
+    setDecisionEnded(true);
+    // Release the provider and microphone before the authoritative app reply.
+    void current.endAndWait().then(released => {
+      if (!released || !mounted.current || !foreground.current || epoch !== speechEpoch.current || owner !== ownerRef.current) return;
+      const speech = startOwnedSpeech(reply, `voice-decision:${owner}`, () => mounted.current && foreground.current && epoch === speechEpoch.current && owner === ownerRef.current);
+      void speech.token.then(token => {
+        if (epoch !== speechEpoch.current && token !== null) void stopOwnedSpeech(token);
+        else speechToken.current = token;
+      });
+      void speech.result.then(() => { if (epoch === speechEpoch.current) speechToken.current = null; });
+    });
+  }, [stopOutcome]);
+
+  const speakInSession = useCallback((reply: string, providerReply = false) => {
+    const current = conversationRef.current;
+    if (!current || !mounted.current || !foreground.current) return;
+    stopOutcome();
+    const epoch = speechEpoch.current;
+    const owner = ownerRef.current;
+    const valid = () => mounted.current && foreground.current && owner === ownerRef.current && epoch === speechEpoch.current && LIVE.has(activePhase.current);
+    void (async () => {
+      if (!(await current.setSpeechPaused(true))) return;
+      if (!valid()) return;
+      setLocalSpeaking(true);
+      if (providerReply) current.appSpeechStarted();
+      const speech = startOwnedSpeech(reply, `voice-turn:${owner}`, valid);
+      void speech.token.then(token => {
+        if (!valid() && token !== null) void stopOwnedSpeech(token);
+        else speechToken.current = token;
+      });
+      const outcome = await speech.result;
+      if (valid()) {
+        if (providerReply) current.appSpeechFinished(outcome === 'finished');
+        speechToken.current = null;
+        setLocalSpeaking(false);
+        await current.setSpeechPaused(false);
+      }
+    })();
+  }, [stopOutcome]);
 
   // A finished spoken turn is also read on the device: a planner change
   // becomes a review card (nothing is saved until Confirm), and a schedule
   // question gets the on-device answer next to the spoken one.
   const onFinalUserText = useCallback((text: string) => {
+    stopOutcome();
+    void conversationRef.current?.setSpeechPaused(false);
+    turnTicket.current += 1;
     lastUserRequest.current = text;
-    if (directProviderTestEnabled()) {
+    voiceTurns.current = [...voiceTurns.current, text].slice(-8);
+    if ((reviewRef.current.proposal || proposalPending.current || awaitingDetails.current) && /^\s*(?:cancel|discard|never mind|nevermind)(?:\s+(?:that|it|the (?:request|review|action)))?[.!]?\s*$/i.test(text)) {
+        actionTurn.current = true;
+        if (confirming.current || reviewRef.current.busy) {
+          setLocalNote('The confirmation is still processing. Please wait for the result.');
+          return;
+        }
+        voiceTurns.current = [];
+        awaitingDetails.current = false;
+        proposalPending.current = false;
+        lastDraft.current = null;
+        const decision = reviewRef.current.cancel();
+        if (decision) {
+          pendingOperation.current = null;
+          setLocalNote(decision.reply);
+          speakDecision(decision.reply);
+        } else {
+          if (pendingOperation.current) cancelReviewedCommand(ownerRef.current, pendingOperation.current);
+          pendingOperation.current = null;
+          reviewRef.current.dismiss();
+          setLocalNote('Canceled. Nothing was saved.');
+          speakDecision('Canceled. Nothing was saved.');
+        }
+        return;
+    }
+    if (explicitMemory(text) && !reviewRef.current.proposal && !proposalPending.current && !awaitingDetails.current) {
       const owner = ownerRef.current;
-      if (explicitMemory(text) && localSettingsStore.get(owner, DATA_CONSENT, null) === 'true' && userStore.getActiveSessionToken().userId === owner) {
-        const result = chatOrchestrator.reviewSpokenTurn(owner, text);
-        pendingMemory.current = {text, owner, result};
-        void result.then(value => {
-          if (owner !== ownerRef.current || pendingMemory.current?.result !== result || value.kind !== 'memory') return;
-          setLocalNote(value.reply);
-          void conversationRef.current?.sendContext(`The app processed the student's memory request. Actual result: ${value.reply}`);
-        }).catch(() => undefined);
-      } else pendingMemory.current = null;
+      actionTurn.current = true;
+      allowAgentSpeech.current = false;
+      if (userStore.getActiveSessionToken().userId !== owner || (directProviderTestEnabled() && localSettingsStore.get(owner, DATA_CONSENT, null) !== 'true')) return;
+      const ticket = turnTicket.current;
+      const result = chatOrchestrator.reviewSpokenTurn(owner, text);
+      pendingMemory.current = {text, owner, result};
+      void result.then(value => {
+        if (ticket !== turnTicket.current || owner !== ownerRef.current || value.kind !== 'memory') return;
+        setLocalNote(value.reply);
+        conversationRef.current?.completeLocalTurn();
+        speakInSession(value.reply);
+      }).catch(() => undefined);
       return;
     }
+    const fragment = parseIntentFastPath(text);
+    const previous = lastDraft.current;
+    const conflictingDetail = !!previous && !!((fragment.date && previous.date && fragment.date !== previous.date) || (fragment.time && previous.time && fragment.time !== previous.time) || (fragment.endTime && previous.endTime && fragment.endTime !== previous.endTime) || (fragment.durationMinutes && previous.durationMinutes && fragment.durationMinutes !== previous.durationMinutes));
+    const supplement = !!previous && !!(proposalPending.current || reviewRef.current.proposal) && !confirming.current && !reviewRef.current.busy && !isVoiceScheduleStart(text) &&
+      !conflictingDetail && !!((fragment.date && !previous.date) || (fragment.time && !previous.time) || ((fragment.endTime || fragment.durationMinutes) && !previous.endTime && !previous.durationMinutes));
+    if (supplement) {
+      if (pendingOperation.current) cancelReviewedCommand(ownerRef.current, pendingOperation.current);
+      reviewRef.current.cancel({silent: true});
+      reviewRef.current.dismiss();
+      proposalPending.current = false;
+      pendingOperation.current = null;
+    }
+    const schedule = !explicitMemory(text) && (supplement || awaitingDetails.current || isVoiceScheduleStart(text));
+    const mutation = /\b(?:delete|remove|update|change|move|reschedule|snooze)\b/i.test(text) || /\b(?:take|save|create|add)\s+(?:a\s+)?note\b/i.test(text);
+    const unknownAction = !explicitMemory(text) && !schedule && !mutation && fragment.intent !== 'query_schedule' && /\b(?:schedule|book|arrange|remind|create|add|put|plan)\b/i.test(text);
+    actionTurn.current = schedule || mutation || unknownAction || proposalPending.current || !!reviewRef.current.proposal;
+    // Only clearly conversational questions and greetings may use model text
+    // as speech. Unrecognized commands stay silent until the app can clarify.
+    allowAgentSpeech.current = !actionTurn.current && /^(?:\s*(?:who|what|when|where|why|how|explain|define|tell me|hello|hi|hey)\b)/i.test(text) &&
+      !/\b(?:schedule|calendar|planner|task|event|remind|reminder|appointment|plan|book|save|add|create|change|delete|tomorrow|today)\b/i.test(text);
+    if (!actionTurn.current) actionReply.current = 'No action was prepared. Nothing was saved.';
+    if (actionTurn.current) {
+      if (confirming.current || reviewRef.current.busy) {
+        actionReply.current = 'The confirmation is still processing. Please wait for the result.';
+      } else if (!supplement && (proposalPending.current || reviewRef.current.proposal)) {
+        actionReply.current = conflictingDetail
+          ? 'To change those details, cancel the current card and ask again. Nothing was saved.'
+          : 'Please review the existing card and tap Confirm or Cancel. Nothing else was saved.';
+      } else if (unknownAction) {
+        actionReply.current = 'I could not prepare that request. Please say it again. Nothing was saved.';
+      } else if (!schedule) {
+        const owner = ownerRef.current;
+        const ticket = turnTicket.current;
+        actionReply.current = 'The app is checking your request. Nothing has been saved.';
+        void chatOrchestrator.reviewSpokenTurn(owner, text, {isCurrent: () => ticket === turnTicket.current && owner === ownerRef.current && LIVE.has(activePhase.current)})
+          .then(result => {
+            if (ticket !== turnTicket.current || owner !== ownerRef.current || !LIVE.has(activePhase.current)) return;
+            if (result.kind === 'proposal' && result.review.status === 'proposal') { proposalPending.current = true; pendingOperation.current = result.review.proposal.operationId; reviewRef.current.present(result.review); }
+            actionReply.current = result.kind === 'none' ? 'I could not prepare that change. Nothing was saved.' : result.reply;
+            setLocalNote(actionReply.current);
+            conversationRef.current?.completeLocalTurn();
+            speakInSession(actionReply.current);
+          }).catch(() => undefined);
+        return;
+      } else {
+        const now = new Date();
+        const draft = groundedVoiceDraft(voiceTurns.current, now);
+        if (draft.kind === 'clarify') {
+          awaitingDetails.current = true;
+          actionReply.current = draft.reply;
+        } else {
+          const prepared = prepareReviewedCommand(ownerRef.current, draft.intent, {referenceDate: now, surface: 'voice'});
+          awaitingDetails.current = prepared.status !== 'proposal';
+          if (prepared.status === 'proposal') {
+            proposalPending.current = true;
+            pendingOperation.current = prepared.proposal.operationId;
+            lastDraft.current = draft.intent;
+            reviewRef.current.present(prepared);
+          }
+          actionReply.current = prepared.reply;
+        }
+      }
+      setLocalNote(actionReply.current);
+      conversationRef.current?.completeLocalTurn();
+      speakInSession(actionReply.current);
+      return;
+    }
+    if (directProviderTestEnabled()) {
+      pendingMemory.current = null;
+      return;
+    }
+    if (parseIntentFastPath(text).intent !== 'query_schedule') return;
     const ticket = ++turnTicket.current;
     const owner = ownerRef.current;
     void chatOrchestrator
-      .reviewSpokenTurn(owner, text)
+      .reviewSpokenTurn(owner, text, {isCurrent: () => ticket === turnTicket.current && owner === ownerRef.current && LIVE.has(activePhase.current)})
       .then(result => {
         if (ticket !== turnTicket.current || owner !== ownerRef.current) return;
         if (result.kind === 'proposal') {
@@ -134,12 +323,23 @@ export const VoiceConversationPanel: React.FC<VoiceConversationPanelProps> = ({
         }
       })
       .catch(() => undefined);
-  }, []);
+  }, [speakDecision, speakInSession, stopOutcome]);
 
   const onClientTool = useCallback(async (name: string, parameters: Record<string, unknown>, isCurrent: () => boolean): Promise<string> => {
     if (!directProviderTestEnabled() || !isCurrent() || localSettingsStore.get(ownerRef.current, DATA_CONSENT, null) !== 'true') throw new Error('Tool unavailable');
     const owner = ownerRef.current;
     const spoken = lastUserRequest.current;
+    if (name === 'prepare_lafina_action') {
+      if (!actionTurn.current) {
+        actionTurn.current = true;
+        allowAgentSpeech.current = false;
+        actionReply.current = 'I could not prepare that request. Please say it again. Nothing was saved.';
+        setLocalNote(actionReply.current);
+        conversationRef.current?.completeLocalTurn();
+        speakInSession(actionReply.current);
+      }
+      return actionReply.current;
+    }
     if (name === 'read_lafina_data') {
       const word = parameters.kind === 'calendar' ? /\b(calendar|schedule|event|meeting|appointment|agenda|plans?)\b/i
         : parameters.kind === 'notes' ? /\b(notes?|notebook|wrote|written)\b/i
@@ -147,47 +347,46 @@ export const VoiceConversationPanel: React.FC<VoiceConversationPanelProps> = ({
       if (!word.test(spoken)) return 'No data was read. Ask the student which personal data they want to access.';
       return readLocalVoiceData(owner, parameters.kind, parameters.query);
     }
-    if (!['prepare_lafina_action', 'save_lafina_memory'].includes(name) || typeof parameters.request !== 'string') throw new Error('Unknown tool');
-    // The tool may combine details from a follow-up turn. The parser still
-    // validates it locally and the student must confirm the review card.
-    if (name === 'save_lafina_memory' && !explicitMemory(spoken)) {
-      return 'No memory was saved. Ask the student to state what they want remembered.';
-    }
-    const request = (explicitMemory(spoken) ? spoken : parameters.request).trim().slice(0, 1000);
-    if (!request) return 'No action was prepared. Ask the student for the details.';
-    const ticket = ++turnTicket.current;
+    if (name !== 'save_lafina_memory' || typeof parameters.request !== 'string') throw new Error('Unknown tool');
+    if (!explicitMemory(spoken)) return 'No memory was saved. Ask the student to state what they want remembered.';
     const pending = pendingMemory.current;
-    const result = pending && pending.owner === owner && pending.text === request
-      ? await pending.result : await chatOrchestrator.reviewSpokenTurn(owner, request);
-    if (!isCurrent() || ticket !== turnTicket.current || owner !== ownerRef.current) throw new Error('Conversation changed');
-    if (result.kind === 'proposal') {
-      reviewRef.current.present(result.review);
-      setLocalNote('Check the card below. Nothing is saved until you tap Confirm.');
-      return `A review card is shown: ${result.reply} Nothing has been saved. Ask the student to check and confirm the card.`;
+    const result = pending && pending.owner === owner && pending.text === spoken
+      ? await pending.result : await chatOrchestrator.reviewSpokenTurn(owner, spoken);
+    if (!isCurrent() || owner !== ownerRef.current) throw new Error('Conversation changed');
+    return result.kind === 'memory' ? result.reply : 'No memory was saved.';
+
+  }, [speakInSession]);
+  const onAgentText = useCallback((text: string) => {
+    if (!allowAgentSpeech.current || actionTurn.current || /\b(?:saved|created|scheduled|deleted|cancelled|canceled|updated|confirmed|added|booked|rescheduled|all set|taken care of|put (?:it|that)|on (?:your|the) calendar|set (?:a |the )?reminder)\b/i.test(text)) {
+      if (!actionTurn.current) setLocalNote('Read this answer in the transcript.');
+      return;
     }
-    if (result.kind === 'memory') {
-      setLocalNote(result.reply);
-      return result.reply;
-    }
-    if (result.kind === 'note' || result.kind === 'local_answer') {
-      setLocalNote(result.reply);
-      return `No change has been saved. ${result.reply}`;
-    }
-    return 'No action was prepared or saved. Ask for the exact details and try again.';
-  }, []);
-  const conversation = useVoiceConversation(userId, {onFinalUserText, onClientTool, deps});
+    speakInSession(text, true);
+  }, [speakInSession]);
+  const conversation = useVoiceConversation(userId, {onFinalUserText, onClientTool, onAgentText, suppressAgentResponse: () => actionTurn.current, appOwnedAudio: true, deps});
   conversationRef.current = conversation;
   const {snapshot} = conversation;
+  activePhase.current = snapshot.phase;
   const live = LIVE.has(snapshot.phase);
   const connecting = snapshot.phase === 'connecting';
 
   useEffect(() => {
+    stopOutcome();
+    turnTicket.current += 1;
+    voiceTurns.current = [];
+    awaitingDetails.current = false;
+    proposalPending.current = false;
+    pendingOperation.current = null;
+    lastDraft.current = null;
+    allowAgentSpeech.current = false;
+    actionTurn.current = false;
     setConsented(voiceConsent.read(userId));
     setDataConsented(localSettingsStore.get(userId, DATA_CONSENT, null) === 'true');
     setLocalNote(null);
+    setDecisionEnded(false);
     setTyped('');
     setShowTyping(false);
-  }, [userId]);
+  }, [userId, stopOutcome]);
 
   useEffect(() => {
     if (!directProviderTestEnabled() || !dataConsented || identityContextSent.current || snapshot.phase !== 'listening') return;
@@ -202,18 +401,25 @@ export const VoiceConversationPanel: React.FC<VoiceConversationPanelProps> = ({
   }, [snapshot.turns]);
 
   const handleStart = useCallback(() => {
+    stopOutcome();
     if (directProviderTestEnabled() && localSettingsStore.get(ownerRef.current, DATA_CONSENT, null) !== 'true') {
       setEnableError('Please review the data disclosure before starting.');
       return;
     }
     lastUserRequest.current = '';
+    voiceTurns.current = [];
+    awaitingDetails.current = false;
+    allowAgentSpeech.current = false;
+    actionTurn.current = false;
+    lastDraft.current = null;
     pendingMemory.current = null;
     identityContextSent.current = false;
     turnTicket.current += 1;
     setLocalNote(null);
+    setDecisionEnded(false);
     setEnableError(null);
     conversation.start();
-  }, [conversation]);
+  }, [conversation, stopOutcome]);
 
   const handleConsent = useCallback(() => {
     if (!voiceConsent.write(userId)) {
@@ -242,21 +448,42 @@ export const VoiceConversationPanel: React.FC<VoiceConversationPanelProps> = ({
   }, [handleStart, userId]);
 
   const handleConfirm = useCallback(async () => {
-    // Shown, not spoken: the conversation owns the speaker right now.
-    const decision = await reviewRef.current.confirm({speakReply: false});
-    if (decision) {
-      setLocalNote(decision.reply);
-      if (directProviderTestEnabled()) void conversation.sendContext(`The student confirmed the review card. Actual result: ${decision.reply}`);
+    if (confirming.current) return;
+    confirming.current = true;
+    const owner = ownerRef.current;
+    const epoch = speechEpoch.current;
+    try {
+      const decision = await reviewRef.current.confirm({speakReply: false});
+      if (decision && mounted.current && owner === ownerRef.current) {
+        proposalPending.current = decision.outcome?.status === 'refused' && decision.outcome.reason === 'failed';
+        if (!proposalPending.current) pendingOperation.current = null;
+        if (!proposalPending.current) lastDraft.current = null;
+        setLocalNote(decision.reply);
+        if (foreground.current && epoch === speechEpoch.current) speakDecision(decision.reply);
+      }
+    } catch {
+      if (mounted.current && owner === ownerRef.current) {
+        const reply = 'I could not verify the result. Please check your planner before trying again.';
+        setLocalNote(reply);
+        if (foreground.current && epoch === speechEpoch.current) speakDecision(reply);
+      }
+    } finally {
+      confirming.current = false;
     }
-  }, [conversation]);
+  }, [speakDecision]);
 
   const handleCancelReview = useCallback(() => {
     const decision = reviewRef.current.cancel();
     if (decision) {
+      proposalPending.current = false;
+      pendingOperation.current = null;
+      lastDraft.current = null;
+      voiceTurns.current = [];
+      awaitingDetails.current = false;
       setLocalNote(decision.reply);
-      if (directProviderTestEnabled()) void conversation.sendContext('The student canceled the review card. Nothing was saved.');
+      speakDecision(decision.reply);
     }
-  }, [conversation]);
+  }, [speakDecision]);
 
   const handleSendTyped = useCallback(async () => {
     const text = typed.trim();
@@ -265,9 +492,17 @@ export const VoiceConversationPanel: React.FC<VoiceConversationPanelProps> = ({
   }, [conversation, typed]);
 
   const handleBack = useCallback(() => {
+    stopOutcome();
+    turnTicket.current += 1;
     conversation.end();
     onBack();
-  }, [conversation, onBack]);
+  }, [conversation, onBack, stopOutcome]);
+
+  const handleEnd = useCallback(() => {
+    stopOutcome();
+    turnTicket.current += 1;
+    conversation.end();
+  }, [conversation, stopOutcome]);
 
   const failure = snapshot.failure;
   const needsConsent = (!consented || (directProviderTestEnabled() && !dataConsented)) && !live && !connecting;
@@ -307,14 +542,14 @@ export const VoiceConversationPanel: React.FC<VoiceConversationPanelProps> = ({
         accessibilityLiveRegion="polite"
         testID="voice-conversation-status"
       >
-        {statusLine(snapshot)}
+        {localSpeaking ? 'Speaking. Tap Stop to interrupt' : statusLine(snapshot)}
       </Text>
       {snapshot.voiceName && (live || connecting) ? (
         <Text
           style={[styles.voiceName, themed.muted]}
           testID="voice-conversation-voice"
         >
-          Voice: {snapshot.voiceName}
+          Speech: device voice
         </Text>
       ) : null}
 
@@ -326,13 +561,14 @@ export const VoiceConversationPanel: React.FC<VoiceConversationPanelProps> = ({
           <Text style={[styles.cardTitle, themed.text]}>Before you start</Text>
           <Text style={[styles.cardBody, themed.text]}>
             While a conversation is open, your microphone audio streams to
-            ElevenLabs for transcription and speech, and your words go to
+            ElevenLabs for transcription, and your words go to
             DeepSeek for answers. {directProviderTestEnabled()
               ? 'If you ask about your calendar, notes or saved memories, relevant records are sent to the voice provider to answer. '
               : "Your words also go to LAFINA's server. "}It only listens on this
             screen, stops when you tap End or leave the app, and you can mute at
-            any time. Finished turns are saved to your Chat history. Planner
-            changes still need your Confirm.
+            any time. Replies use your device voice, and the microphone pauses
+            during speech. Finished turns are saved to your Chat history.
+            Planner changes still need your Confirm.
           </Text>
           <TouchableOpacity
             style={[styles.primaryButton, {backgroundColor: colors.primary}]}
@@ -405,6 +641,11 @@ export const VoiceConversationPanel: React.FC<VoiceConversationPanelProps> = ({
           {localNote}
         </Text>
       ) : null}
+      {decisionEnded ? (
+        <Text style={[styles.notice, themed.muted]}>
+          Conversation ended after the review. Start a new conversation to continue.
+        </Text>
+      ) : null}
 
       {review.proposal ? (
         <CommandReviewCard
@@ -415,7 +656,7 @@ export const VoiceConversationPanel: React.FC<VoiceConversationPanelProps> = ({
             void handleConfirm();
           }}
           onCancel={handleCancelReview}
-          onDismiss={review.dismiss}
+          onDismiss={() => { proposalPending.current = false; pendingOperation.current = null; lastDraft.current = null; voiceTurns.current = []; review.dismiss(); }}
           testIDPrefix="voice-conversation-review"
         />
       ) : null}
@@ -530,7 +771,7 @@ export const VoiceConversationPanel: React.FC<VoiceConversationPanelProps> = ({
             icon={<PhoneOff size={18} color={colors.textOnPrimary} />}
             color={colors.error}
             textColor={colors.textOnPrimary}
-            onPress={conversation.end}
+            onPress={handleEnd}
             testID="voice-conversation-end"
           />
         </View>
@@ -559,8 +800,8 @@ export const VoiceConversationPanel: React.FC<VoiceConversationPanelProps> = ({
               icon={<Square size={16} color={colors.textPrimary} />}
               color={colors.inputBg}
               textColor={colors.textPrimary}
-              onPress={conversation.stopResponse}
-              disabled={snapshot.phase === 'listening'}
+              onPress={() => { stopOutcome(); void conversation.setSpeechPaused(false); conversation.stopResponse(); }}
+              disabled={snapshot.phase === 'listening' && !localSpeaking}
               testID="voice-conversation-stop"
               accessibilityLabel="Stop LAFINA's answer"
             />
@@ -569,7 +810,7 @@ export const VoiceConversationPanel: React.FC<VoiceConversationPanelProps> = ({
               icon={<PhoneOff size={18} color={colors.textOnPrimary} />}
               color={colors.error}
               textColor={colors.textOnPrimary}
-              onPress={conversation.end}
+              onPress={handleEnd}
               testID="voice-conversation-end"
               accessibilityLabel="End voice conversation"
             />

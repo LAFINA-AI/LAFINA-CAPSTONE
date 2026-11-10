@@ -149,6 +149,7 @@ export interface VoiceTransport {
     url: string;
     initiation: string;
     allowLocalTestServer?: boolean;
+    appOwnedAudio?: boolean;
   }): Promise<void>;
   setMuted(sessionKey: string, muted: boolean): Promise<boolean>;
   stopResponse(sessionKey: string): Promise<boolean>;

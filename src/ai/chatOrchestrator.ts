@@ -404,7 +404,7 @@ export class ChatOrchestrator {
   async reviewSpokenTurn(
     userId: string,
     text: string,
-    options: {referenceDate?: Date} = {},
+    options: {referenceDate?: Date; isCurrent?: () => boolean} = {},
   ): Promise<SpokenTurnReview> {
     const trimmed = (text || '').trim();
     if (!trimmed) return {kind: 'none'};
@@ -418,6 +418,8 @@ export class ChatOrchestrator {
     const validated = await intentService.extractIntent(trimmed, {
       referenceDate: refDate,
     });
+    // Extraction may finish after the conversation or owning screen closes.
+    if (options.isCurrent && !options.isCurrent()) return {kind: 'none'};
     const route = routeIntent(validated.intent);
     if (route === 'reviewed_mutation') {
       const smallTalk = classifySmallTalk(trimmed);

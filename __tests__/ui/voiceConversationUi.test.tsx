@@ -15,6 +15,7 @@ import {
   initDatabase,
   localSettingsStore,
   tasksStore,
+  timeBlocksStore,
   userStore,
   chatMemoryStore,
 } from '../../src/storage';
@@ -28,11 +29,14 @@ import type {
   TransportEvent,
   VoiceTransport,
 } from '../../src/cloud/voiceConversation';
-import {endReviewSession} from '../../src/ai/nlu/commandReview';
+import {endReviewSession, latestPendingReview} from '../../src/ai/nlu/commandReview';
+import {intentService} from '../../src/ai/nlu/intentService';
 import {ttsService} from '../../src/ai/tts/ttsService';
 import {useCommandReview} from '../../src/ui/hooks/useCommandReview';
 import {GUEST_USER_ID} from '../../src/constants';
 import {directTestVoiceApi} from '../../src/cloud/directProviderTest';
+import * as localSpeech from '../../src/ai/tts/ttsService';
+import {chatOrchestrator} from '../../src/ai/chatOrchestrator';
 
 const SESSION_ID = '11111111-2222-3333-4444-555555555555';
 let serial = 0;
@@ -110,12 +114,13 @@ const fakeServer = (options: {enabled?: boolean} = {}) => {
 
 const fakeTransport = () => {
   let listener: ((event: TransportEvent) => void) | null = null;
-  const calls = {start: 0, end: 0, muted: [] as boolean[], initiation: ''};
+  const calls = {start: 0, end: 0, muted: [] as boolean[], initiation: '', appOwnedAudio: false};
   const transport: VoiceTransport = {
     available: () => true,
     start: async options => {
       calls.start += 1;
       calls.initiation = options.initiation;
+      calls.appOwnedAudio = options.appOwnedAudio === true;
     },
     setMuted: async (_key, muted) => {
       calls.muted.push(muted);
@@ -302,6 +307,45 @@ const PanelHostDefault: React.FC<{userId: string}> = ({userId}) => {
 };
 
 describe('a live conversation', () => {
+  test('a general answer uses the device voice while provider audio is gated', async () => {
+    const userId = student('general-speech');
+    signIn(userId);
+    fakeServer();
+    const {transport, calls, message} = fakeTransport();
+    const speech = jest.spyOn(localSpeech, 'startOwnedSpeech').mockImplementation(() => ({token: Promise.resolve(null), result: Promise.resolve('finished')}));
+    const utils = renderPanel(userId, transport);
+    fireEvent.press(utils.getByTestId('voice-conversation-start'));
+    await waitFor(() => expect(calls.start).toBe(1));
+    expect(calls.appOwnedAudio).toBe(true);
+    message({type:'user_transcript',user_transcription_event:{user_transcript:'What is photosynthesis?',event_id:1}});
+    message({type:'agent_response',agent_response_event:{agent_response:'Plants use light to make food.',event_id:2}});
+    await waitFor(() => expect(speech.mock.calls.some(call => call[0] === 'Plants use light to make food.')).toBe(true));
+    utils.unmount();
+  });
+
+  test('closing during intent extraction cannot leave a late review', async () => {
+    const userId = student('late-extraction');
+    signIn(userId);
+    fakeServer();
+    const original = intentService.extractIntent.bind(intentService);
+    let release: (() => void) | undefined;
+    jest.spyOn(intentService, 'extractIntent').mockImplementation(async (...args) => {
+      await new Promise<void>(resolve => { release = resolve; });
+      return original(...args);
+    });
+    const {transport, calls, message} = fakeTransport();
+    const utils = renderPanel(userId, transport);
+    fireEvent.press(utils.getByTestId('voice-conversation-start'));
+    await waitFor(() => expect(calls.start).toBe(1));
+    message({type:'user_transcript',user_transcription_event:{user_transcript:'Delete task: read chapter 5',event_id:1}});
+    await waitFor(() => expect(release).toBeDefined());
+    fireEvent.press(utils.getByTestId('voice-conversation-end'));
+    await act(async () => { release?.(); await new Promise(resolve => setTimeout(resolve, 50)); });
+    expect(latestPendingReview(userId, 'voice')).toBeNull();
+    expect(utils.queryByTestId('voice-conversation-review-card')).toBeNull();
+    utils.unmount();
+  });
+
   test('direct voice saves a spoken study preference rather than showing a schedule card', async () => {
     const userId = student('voice-memory');
     signIn(userId);
@@ -309,6 +353,7 @@ describe('a live conversation', () => {
     const original = modules.CapstoneBuild;
     modules.CapstoneBuild = {providerTestingEnabled:true, directElevenKey:'test', directDeepseekKey:'test', directAgentId:'test', directVoiceId:'test'};
     localSettingsStore.set(userId, 'voiceConversation.directDataConsent.v1', 'true');
+    const speech = jest.spyOn(localSpeech, 'startOwnedSpeech').mockImplementation(() => ({token: Promise.resolve(null), result: Promise.resolve('finished')}));
     jest.spyOn(directTestVoiceApi, 'capabilities').mockResolvedValue({ok:true,data:{enabled:true,maxDurationSeconds:300,maxTurns:30}});
     jest.spyOn(directTestVoiceApi, 'createSession').mockResolvedValue({ok:true,data:{sessionId:SESSION_ID,signedUrl:'wss://api.elevenlabs.io/v1/convai/conversation?agent_id=a&conversation_signature=s',grant:'',voiceId:'test',expiresAt:new Date(Date.now()+300000).toISOString(),maxDurationSeconds:300,maxTurns:30}});
     const {transport, calls, message} = fakeTransport();
@@ -321,6 +366,7 @@ describe('a live conversation', () => {
       message({type:'user_transcript',user_transcription_event:{user_transcript:'Remember that I like studying between 10pm to 2am',event_id:1}});
       // Save is deterministic even if the provider omits its tool call.
       await waitFor(() => expect(chatMemoryStore.list(userId).map(m => m.text)).toContain('Prefers studying between 10pm to 2am.'));
+      await waitFor(() => expect(speech.mock.calls.some(call => call[0] === 'I saved that in your memory.')).toBe(true));
       message({type:'client_tool_call',client_tool_call:{tool_name:'save_lafina_memory',tool_call_id:'memory-1',parameters:{request:'Remember that I like studying between 10pm to 2am'}}});
       await waitFor(() => expect(sent.some(s => s.includes('I saved that in your memory'))).toBe(true));
       expect(chatMemoryStore.list(userId).map(m => m.text)).toContain('Prefers studying between 10pm to 2am.');
@@ -345,6 +391,30 @@ describe('a live conversation', () => {
     } finally { modules.CapstoneBuild = original; }
   });
 
+  test('an unsolicited provider action tool cannot create a review', async () => {
+    const userId = student('unsolicited-tool');
+    signIn(userId);
+    const modules = NativeModules as Record<string, unknown>;
+    const original = modules.CapstoneBuild;
+    modules.CapstoneBuild = {providerTestingEnabled:true, directElevenKey:'test', directDeepseekKey:'test', directAgentId:'test', directVoiceId:'test'};
+    localSettingsStore.set(userId, 'voiceConversation.directDataConsent.v1', 'true');
+    jest.spyOn(directTestVoiceApi, 'capabilities').mockResolvedValue({ok:true,data:{enabled:true,maxDurationSeconds:300,maxTurns:30}});
+    jest.spyOn(directTestVoiceApi, 'createSession').mockResolvedValue({ok:true,data:{sessionId:SESSION_ID,signedUrl:'wss://api.elevenlabs.io/v1/convai/conversation?agent_id=a&conversation_signature=s',grant:'',voiceId:'test',expiresAt:new Date(Date.now()+300000).toISOString(),maxDurationSeconds:300,maxTurns:30}});
+    const {transport, calls, message} = fakeTransport();
+    const sent: string[] = [];
+    transport.sendMessage = async (_key, json) => { sent.push(json); return true; };
+    try {
+      const utils = renderPanel(userId, transport);
+      fireEvent.press(utils.getByTestId('voice-conversation-start'));
+      await waitFor(() => expect(calls.start).toBe(1));
+      message({type:'user_transcript',user_transcription_event:{user_transcript:'Hello',event_id:1}});
+      message({type:'client_tool_call',client_tool_call:{tool_name:'prepare_lafina_action',tool_call_id:'invented',parameters:{request:'Add task: invented'}}});
+      await waitFor(() => expect(sent.some(value => value.includes('Nothing was saved'))).toBe(true));
+      expect(utils.queryByTestId('voice-conversation-review-card')).toBeNull();
+      utils.unmount();
+    } finally { modules.CapstoneBuild = original; }
+  });
+
   test('direct agent receives a truthful review result without saving the task', async () => {
     const userId = student('tool');
     signIn(userId);
@@ -363,13 +433,144 @@ describe('a live conversation', () => {
       fireEvent.press(utils.getByTestId('voice-conversation-start'));
       await waitFor(() => expect(calls.start).toBe(1));
       // A follow-up may contain only details; the agent combines the request.
-      message({type:'user_transcript',user_transcription_event:{user_transcript:'Read chapter 5',event_id:1}});
-      message({type:'client_tool_call',client_tool_call:{tool_name:'prepare_lafina_action',tool_call_id:'call-1',parameters:{request:'Add task: read chapter 5'}}});
+      message({type:'user_transcript',user_transcription_event:{user_transcript:'Add a task to read chapter 5',event_id:1}});
+      message({type:'user_transcript',user_transcription_event:{user_transcript:'Tomorrow',event_id:2}});
+      message({type:'client_tool_call',client_tool_call:{tool_name:'prepare_lafina_action',tool_call_id:'call-1',parameters:{request:'Add task: read chapter 9 tomorrow'}}});
       expect(await utils.findByTestId('voice-conversation-review-card')).toBeTruthy();
-      await waitFor(() => expect(sent.some(s => s.includes('Nothing has been saved'))).toBe(true));
+      expect(utils.getByTestId('voice-conversation-review-action')).toHaveTextContent(/chapter 5/i);
+      expect(utils.getByTestId('voice-conversation-review-card')).toHaveTextContent(/Due:/);
+      await waitFor(() => expect(sent.some(s => s.includes('Nothing is saved'))).toBe(true));
+      expect(tasksStore.getAllTasks(userId)).toHaveLength(before);
+      message({type:'client_tool_call',client_tool_call:{tool_name:'prepare_lafina_action',tool_call_id:'call-2',parameters:{request:'Add task: read chapter 5'}}});
+      await waitFor(() => expect(sent.filter(s => s.includes('Nothing is saved')).length).toBeGreaterThanOrEqual(2));
+      message({type:'user_transcript',user_transcription_event:{user_transcript:'Cancel that',event_id:3}});
+      await waitFor(() => expect(utils.queryByTestId('voice-conversation-review-card')).toBeNull());
       expect(tasksStore.getAllTasks(userId)).toHaveLength(before);
       utils.unmount();
     } finally { modules.CapstoneBuild = original; }
+  });
+
+  test('a missing time is collected from the next spoken turn without another tool call', async () => {
+    const userId = student('followup');
+    signIn(userId);
+    const modules = NativeModules as Record<string, unknown>;
+    const original = modules.CapstoneBuild;
+    modules.CapstoneBuild = {providerTestingEnabled:true, directElevenKey:'test', directDeepseekKey:'test', directAgentId:'test', directVoiceId:'test'};
+    localSettingsStore.set(userId, 'voiceConversation.directDataConsent.v1', 'true');
+    jest.spyOn(directTestVoiceApi, 'capabilities').mockResolvedValue({ok:true,data:{enabled:true,maxDurationSeconds:300,maxTurns:30}});
+    jest.spyOn(directTestVoiceApi, 'createSession').mockResolvedValue({ok:true,data:{sessionId:SESSION_ID,signedUrl:'wss://api.elevenlabs.io/v1/convai/conversation?agent_id=a&conversation_signature=s',grant:'',voiceId:'test',expiresAt:new Date(Date.now()+300000).toISOString(),maxDurationSeconds:300,maxTurns:30}});
+    const {transport, calls, message} = fakeTransport();
+    const speech = jest.spyOn(localSpeech, 'startOwnedSpeech').mockImplementation(() => ({token: Promise.resolve(null), result: Promise.resolve('finished')}));
+    const sent: string[] = [];
+    transport.sendMessage = async (_key, json) => { sent.push(json); return true; };
+    try {
+      const utils = renderPanel(userId, transport);
+      fireEvent.press(utils.getByTestId('voice-conversation-start'));
+      await waitFor(() => expect(calls.start).toBe(1));
+      expect(calls.appOwnedAudio).toBe(true);
+      message({type:'user_transcript',user_transcription_event:{user_transcript:'Add a time block for study session tomorrow',event_id:1}});
+      await waitFor(() => expect(utils.getByTestId('voice-conversation-local-note')).toHaveTextContent(/What time should I use/));
+      message({type:'agent_response',agent_response_event:{agent_response:'I saved it for 9 AM.',event_id:5}});
+      expect(utils.queryByText('I saved it for 9 AM.')).toBeNull();
+      expect(speech.mock.calls.some(call => call[0].includes('saved it for 9 AM'))).toBe(false);
+      message({type:'client_tool_call',client_tool_call:{tool_name:'prepare_lafina_action',tool_call_id:'missing',parameters:{request:'Add a time block for study session tomorrow at 9am'}}});
+      await waitFor(() => expect(sent.some(value => value.includes('What time should I use'))).toBe(true));
+      expect(utils.queryByTestId('voice-conversation-review-card')).toBeNull();
+      message({type:'user_transcript',user_transcription_event:{user_transcript:'from 2 to 4pm',event_id:2}});
+      await utils.findByTestId('voice-conversation-review-card');
+      expect(utils.getByTestId('voice-conversation-review-card')).toHaveTextContent(/2:00 PM/);
+      expect(utils.getByTestId('voice-conversation-review-card')).not.toHaveTextContent(/9:00 AM/);
+      message({type:'user_transcript',user_transcription_event:{user_transcript:'Yes',event_id:3}});
+      expect(utils.getByTestId('voice-conversation-review-card')).toBeTruthy();
+      expect(timeBlocksStore.getAll(userId)).toHaveLength(0);
+      expect(utils.getByTestId('voice-conversation-local-note')).toHaveTextContent(/Confirm or Cancel/);
+      utils.unmount();
+    } finally { modules.CapstoneBuild = original; }
+  });
+
+  test('confirmation speaks only the actual result after the provider releases audio', async () => {
+    const userId = student('owned-outcome');
+    signIn(userId);
+    fakeServer();
+    const {transport, calls, message} = fakeTransport();
+    const speech = jest.spyOn(localSpeech, 'startOwnedSpeech').mockImplementation((_text, owner) => {
+      if (owner.startsWith('voice-decision:')) expect(calls.end).toBe(1);
+      return {token: Promise.resolve(null), result: Promise.resolve('finished')};
+    });
+    const utils = renderPanel(userId, transport);
+    fireEvent.press(utils.getByTestId('voice-conversation-start'));
+    await waitFor(() => expect(calls.start).toBe(1));
+    message({type:'user_transcript',user_transcription_event:{user_transcript:'Add task: read chapter 5',event_id:1}});
+    await utils.findByTestId('voice-conversation-review-card');
+    fireEvent.press(utils.getByTestId('voice-conversation-review-confirm'));
+    await waitFor(() => expect(speech.mock.calls.some(call => call[1].startsWith('voice-decision:'))).toBe(true));
+    const actual = utils.getByTestId('voice-conversation-local-note').props.children;
+    expect(speech.mock.calls.find(call => call[1].startsWith('voice-decision:'))?.[0]).toBe(actual);
+    expect(tasksStore.getAllTasks(userId).some(task => /chapter 5/i.test(task.title))).toBe(true);
+    utils.unmount();
+  });
+
+  test('closing while provider audio is releasing prevents delayed outcome speech', async () => {
+    const userId = student('closed-outcome');
+    signIn(userId);
+    fakeServer();
+    const {transport, calls, message} = fakeTransport();
+    let release: ((value: boolean) => void) | undefined;
+    transport.end = () => new Promise(resolve => { release = resolve; });
+    const speech = jest.spyOn(localSpeech, 'startOwnedSpeech').mockImplementation(() => ({token: Promise.resolve(null), result: Promise.resolve('finished')}));
+    const utils = renderPanel(userId, transport);
+    fireEvent.press(utils.getByTestId('voice-conversation-start'));
+    await waitFor(() => expect(calls.start).toBe(1));
+    message({type:'user_transcript',user_transcription_event:{user_transcript:'Add task: read chapter 5',event_id:1}});
+    await utils.findByTestId('voice-conversation-review-card');
+    await waitFor(() => expect(speech).toHaveBeenCalled());
+    speech.mockClear();
+    fireEvent.press(utils.getByTestId('voice-conversation-review-confirm'));
+    await waitFor(() => expect(release).toBeDefined());
+    utils.unmount();
+    await act(async () => { release?.(true); await Promise.resolve(); });
+    expect(speech).not.toHaveBeenCalled();
+  });
+
+  test('a spoken cancellation during confirmation waits for the actual result', async () => {
+    const userId = student('cancel-during-confirm');
+    signIn(userId);
+    fakeServer();
+    const {transport, calls, message} = fakeTransport();
+    let finish: ((value: {assistantMessage: null; reply: string}) => void) | undefined;
+    jest.spyOn(chatOrchestrator, 'confirmReview').mockImplementation(() => new Promise(resolve => { finish = resolve; }));
+    const speech = jest.spyOn(localSpeech, 'startOwnedSpeech').mockImplementation(() => ({token: Promise.resolve(null), result: Promise.resolve('finished')}));
+    const utils = renderPanel(userId, transport);
+    fireEvent.press(utils.getByTestId('voice-conversation-start'));
+    await waitFor(() => expect(calls.start).toBe(1));
+    message({type:'user_transcript',user_transcription_event:{user_transcript:'Add task: read chapter 5',event_id:1}});
+    await utils.findByTestId('voice-conversation-review-card');
+    fireEvent.press(utils.getByTestId('voice-conversation-review-confirm'));
+    await waitFor(() => expect(finish).toBeDefined());
+    message({type:'user_transcript',user_transcription_event:{user_transcript:'Cancel that',event_id:2}});
+    expect(utils.getByTestId('voice-conversation-local-note')).toHaveTextContent(/still processing/);
+    await act(async () => { finish?.({assistantMessage: null, reply: 'The task was saved.'}); });
+    await waitFor(() => expect(utils.getByTestId('voice-conversation-local-note')).toHaveTextContent(/The task was saved/));
+    expect(speech.mock.calls.some(call => /Canceled\. Nothing was saved/.test(call[0]))).toBe(false);
+    utils.unmount();
+  });
+
+  test('an unexpected confirmation error reports an unknown result', async () => {
+    const userId = student('unknown-confirm');
+    signIn(userId);
+    fakeServer();
+    jest.spyOn(chatOrchestrator, 'confirmReview').mockRejectedValue(new Error('synthetic failure'));
+    const speech = jest.spyOn(localSpeech, 'startOwnedSpeech').mockImplementation(() => ({token: Promise.resolve(null), result: Promise.resolve('finished')}));
+    const {transport, calls, message} = fakeTransport();
+    const utils = renderPanel(userId, transport);
+    fireEvent.press(utils.getByTestId('voice-conversation-start'));
+    await waitFor(() => expect(calls.start).toBe(1));
+    message({type:'user_transcript',user_transcription_event:{user_transcript:'Add task: read chapter 5',event_id:1}});
+    await utils.findByTestId('voice-conversation-review-card');
+    fireEvent.press(utils.getByTestId('voice-conversation-review-confirm'));
+    await waitFor(() => expect(speech.mock.calls.some(call => /could not verify the result/i.test(call[0]))).toBe(true));
+    expect(utils.getByTestId('voice-conversation-local-note')).toHaveTextContent(/check your planner/i);
+    utils.unmount();
   });
 
   test('live words, controls, a reviewed planner change and saved turns', async () => {
@@ -385,7 +586,7 @@ describe('a live conversation', () => {
       JSON.parse(calls.initiation).conversation_config_override.tts.voice_id,
     ).toBe('default_voice');
     expect(utils.getByTestId('voice-conversation-voice')).toHaveTextContent(
-      /Server default voice/,
+      /device voice/,
     );
 
     message({
@@ -412,7 +613,7 @@ describe('a live conversation', () => {
     ).toBeTruthy();
     expect(
       utils.getByTestId('voice-conversation-local-note'),
-    ).toHaveTextContent(/Nothing is saved until you tap Confirm/);
+    ).toHaveTextContent(/Nothing is saved until you press Confirm/);
     expect(tasksStore.getAllTasks(userId)).toHaveLength(tasksBefore);
 
     message({
@@ -433,7 +634,7 @@ describe('a live conversation', () => {
         /Muted/,
       ),
     );
-    expect(calls.muted).toEqual([true]);
+    expect(calls.muted[calls.muted.length - 1]).toBe(true);
 
     message({type: 'interruption'});
     fireEvent.press(utils.getByTestId('voice-conversation-end'));
@@ -445,11 +646,6 @@ describe('a live conversation', () => {
     const saved = chatStore.getRecentMessages(userId, 10);
     expect(saved.map(m => [m.sender, m.content, m.voiceInterrupted])).toEqual([
       ['user', 'Add task: read chapter 5', false],
-      [
-        'assistant',
-        'I prepared that task. Check the card and tap Confirm.',
-        true,
-      ],
     ]);
     // Speaking never confirmed the review.
     expect(tasksStore.getAllTasks(userId)).toHaveLength(tasksBefore);

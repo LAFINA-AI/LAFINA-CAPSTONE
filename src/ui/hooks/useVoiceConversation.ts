@@ -32,8 +32,12 @@ export interface VoiceConversationHandle {
   snapshot: ConversationSnapshot;
   start: () => void;
   end: () => void;
-  endAndWait: () => Promise<void>;
+  endAndWait: () => Promise<boolean>;
   setMuted: (muted: boolean) => void;
+  setSpeechPaused: (paused: boolean) => Promise<boolean>;
+  completeLocalTurn: () => void;
+  appSpeechStarted: () => void;
+  appSpeechFinished: (heard: boolean) => void;
   stopResponse: () => void;
   sendText: (text: string) => Promise<boolean>;
   sendReminderContext: (task: string) => Promise<boolean>;
@@ -50,6 +54,9 @@ export const useVoiceConversation = (
   userId: string,
   options: {
     onFinalUserText?: (text: string) => void;
+    onAgentText?: (text: string) => void;
+    suppressAgentResponse?: () => boolean;
+    appOwnedAudio?: boolean;
     onClientTool?: (name: string, parameters: Record<string, unknown>, isCurrent: () => boolean) => Promise<string>;
     /** Tests inject fakes here. */
     deps?: (userId: string) => VoiceConversationDeps;
@@ -59,6 +66,11 @@ export const useVoiceConversation = (
   const controllerRef = useRef<VoiceConversationController | null>(null);
   const finalTextRef = useRef(options.onFinalUserText);
   finalTextRef.current = options.onFinalUserText;
+  const agentTextRef = useRef(options.onAgentText);
+  agentTextRef.current = options.onAgentText;
+  const suppressRef = useRef(options.suppressAgentResponse);
+  suppressRef.current = options.suppressAgentResponse;
+  const appOwnedAudio = useRef(options.appOwnedAudio === true);
   const toolRef = useRef(options.onClientTool);
   toolRef.current = options.onClientTool;
   const depsFactory = useRef(options.deps ?? defaultVoiceConversationDeps);
@@ -68,6 +80,9 @@ export const useVoiceConversation = (
     const controller = new VoiceConversationController({
       ...deps,
       onFinalUserText: text => finalTextRef.current?.(text),
+      onAgentText: text => agentTextRef.current?.(text),
+      suppressAgentResponse: () => suppressRef.current?.() ?? false,
+      appOwnedAudio: appOwnedAudio.current,
       onClientTool: (name, parameters, isCurrent) => toolRef.current
         ? toolRef.current(name, parameters, isCurrent)
         : Promise.reject(new Error('Tool unavailable')),
@@ -121,10 +136,14 @@ export const useVoiceConversation = (
       void controllerRef.current?.start();
     },
     end: () => controllerRef.current?.end(),
-    endAndWait: async () => { await controllerRef.current?.endAndWait(); },
+    endAndWait: async () => (await controllerRef.current?.endAndWait()) ?? false,
     setMuted: muted => {
       void controllerRef.current?.setMuted(muted);
     },
+    setSpeechPaused: async paused => (await controllerRef.current?.setSpeechPaused(paused)) ?? false,
+    completeLocalTurn: () => controllerRef.current?.completeLocalTurn(),
+    appSpeechStarted: () => controllerRef.current?.appSpeechStarted(),
+    appSpeechFinished: heard => controllerRef.current?.appSpeechFinished(heard),
     stopResponse: () => controllerRef.current?.stopResponse(),
     sendText: async text =>
       (await controllerRef.current?.sendText(text)) ?? false,
