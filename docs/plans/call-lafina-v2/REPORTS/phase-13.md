@@ -1,3 +1,5 @@
+> HISTORICAL IMPLEMENTATION REPORT. Current audit/remediation and remaining backend/phone gates: `docs/reports/phase-15-call-lafina-remediation-report.md`. Earlier completion claims below are not production/device acceptance.
+
 # Phase 13 — In-App Mini-Call, Background Feasibility, and Multimodal Analysis — Evidence Report
 
 - **Date/Time + Timezone**: 2026-11-10T18:12:00+08:00

@@ -11,7 +11,11 @@
  */
 
 import {localSettingsStore} from '../../storage/localSettingsStore';
-import {validOnlineVoiceId} from '../../storage/onlineVoiceSettingsStore';
+import {db} from '../../storage/database';
+import {
+  onlineVoiceSettingsStore,
+  validOnlineVoiceId,
+} from '../../storage/onlineVoiceSettingsStore';
 
 export type CallLafinaLanguage = 'en' | 'fil' | 'taglish' | 'ceb';
 export type CallLafinaVerbosity = 'brief' | 'detailed';
@@ -85,44 +89,81 @@ export function getLanguageInstruction(language: CallLafinaLanguage): string {
  * Reads user's Call Lafina settings from local persistent storage with fallbacks.
  */
 export function getCallLafinaSettings(userId: string): CallLafinaSettings {
-  const rawVoiceId = localSettingsStore.get(userId, CALL_LAFINA_SETTINGS_KEYS.VOICE_ID);
-  const voiceId = validOnlineVoiceId(rawVoiceId) ? rawVoiceId : null;
-  const voiceName = localSettingsStore.get(userId, CALL_LAFINA_SETTINGS_KEYS.VOICE_NAME) || null;
+  let voiceId: string | null = null;
+  let voiceName: string | null = null;
+  try {
+    const choice = onlineVoiceSettingsStore.read(userId);
+    voiceId = choice?.id || null;
+    voiceName = choice?.name || null;
+  } catch {
+    /* Call start reports corrupt authoritative state. */
+  }
 
-  const rawLang = localSettingsStore.get(userId, CALL_LAFINA_SETTINGS_KEYS.LANGUAGE);
+  const rawLang = localSettingsStore.get(
+    userId,
+    CALL_LAFINA_SETTINGS_KEYS.LANGUAGE,
+  );
   const language: CallLafinaLanguage =
-    rawLang === 'fil' || rawLang === 'taglish' || rawLang === 'ceb' || rawLang === 'en'
+    rawLang === 'fil' ||
+    rawLang === 'taglish' ||
+    rawLang === 'ceb' ||
+    rawLang === 'en'
       ? rawLang
       : DEFAULT_CALL_LAFINA_SETTINGS.language;
 
-  const rawVerb = localSettingsStore.get(userId, CALL_LAFINA_SETTINGS_KEYS.VERBOSITY);
+  const rawVerb = localSettingsStore.get(
+    userId,
+    CALL_LAFINA_SETTINGS_KEYS.VERBOSITY,
+  );
   const verbosity: CallLafinaVerbosity =
     rawVerb === 'detailed' || rawVerb === 'brief'
       ? rawVerb
       : DEFAULT_CALL_LAFINA_SETTINGS.verbosity;
 
-  const rawPacing = localSettingsStore.get(userId, CALL_LAFINA_SETTINGS_KEYS.PACING);
+  const rawPacing = localSettingsStore.get(
+    userId,
+    CALL_LAFINA_SETTINGS_KEYS.PACING,
+  );
   const pacing: CallLafinaPacing =
     rawPacing === 'slow' || rawPacing === 'normal'
       ? rawPacing
       : DEFAULT_CALL_LAFINA_SETTINGS.pacing;
 
-  const rawCaption = localSettingsStore.get(userId, CALL_LAFINA_SETTINGS_KEYS.CAPTION_SIZE);
+  const rawCaption = localSettingsStore.get(
+    userId,
+    CALL_LAFINA_SETTINGS_KEYS.CAPTION_SIZE,
+  );
   const captionSize: CallLafinaCaptionSize =
-    rawCaption === 'large' || rawCaption === 'extra_large' || rawCaption === 'standard'
+    rawCaption === 'large' ||
+    rawCaption === 'extra_large' ||
+    rawCaption === 'standard'
       ? rawCaption
       : DEFAULT_CALL_LAFINA_SETTINGS.captionSize;
 
-  const rawConnHaptics = localSettingsStore.get(userId, CALL_LAFINA_SETTINGS_KEYS.CONNECTED_HAPTICS);
-  const callConnectedHaptics = rawConnHaptics === null ? true : rawConnHaptics === 'true';
+  const rawConnHaptics = localSettingsStore.get(
+    userId,
+    CALL_LAFINA_SETTINGS_KEYS.CONNECTED_HAPTICS,
+  );
+  const callConnectedHaptics =
+    rawConnHaptics === null ? true : rawConnHaptics === 'true';
 
-  const rawEndHaptics = localSettingsStore.get(userId, CALL_LAFINA_SETTINGS_KEYS.END_HAPTICS);
-  const callEndHaptics = rawEndHaptics === null ? true : rawEndHaptics === 'true';
+  const rawEndHaptics = localSettingsStore.get(
+    userId,
+    CALL_LAFINA_SETTINGS_KEYS.END_HAPTICS,
+  );
+  const callEndHaptics =
+    rawEndHaptics === null ? true : rawEndHaptics === 'true';
 
-  const rawToolAudio = localSettingsStore.get(userId, CALL_LAFINA_SETTINGS_KEYS.TOOL_AUDIO_CUE);
+  const rawToolAudio = localSettingsStore.get(
+    userId,
+    CALL_LAFINA_SETTINGS_KEYS.TOOL_AUDIO_CUE,
+  );
   const toolAudioCue = rawToolAudio === 'true';
 
-  const rawStartWithCall = localSettingsStore.get(userId, CALL_LAFINA_SETTINGS_KEYS.START_WITH_CALL);
+  const rawStartWithCall = localSettingsStore.get(
+    userId,
+    CALL_LAFINA_SETTINGS_KEYS.START_WITH_CALL,
+  );
   const startWithCallLafina = rawStartWithCall === 'true';
 
   return {
@@ -146,62 +187,71 @@ export function saveCallLafinaSettings(
   userId: string,
   patch: Partial<CallLafinaSettings>,
 ): CallLafinaSettings {
-  if (patch.voiceId !== undefined) {
-    const validId = patch.voiceId && validOnlineVoiceId(patch.voiceId) ? patch.voiceId : '';
-    localSettingsStore.set(userId, CALL_LAFINA_SETTINGS_KEYS.VOICE_ID, validId);
-  }
+  const persist = (key: string, value: string) => {
+    if (!localSettingsStore.set(userId, key, value))
+      throw new Error('Could not save call settings.');
+  };
+  db.transactionSync(() => {
+    if (patch.voiceId !== undefined) {
+      const validId =
+        patch.voiceId && validOnlineVoiceId(patch.voiceId) ? patch.voiceId : '';
+      onlineVoiceSettingsStore.save(
+        userId,
+        validId
+          ? {id: validId, name: patch.voiceName || 'Selected voice'}
+          : null,
+      );
+      persist(CALL_LAFINA_SETTINGS_KEYS.VOICE_ID, validId);
+    }
 
-  if (patch.voiceName !== undefined) {
-    localSettingsStore.set(userId, CALL_LAFINA_SETTINGS_KEYS.VOICE_NAME, patch.voiceName || '');
-  }
+    if (patch.voiceName !== undefined) {
+      persist(CALL_LAFINA_SETTINGS_KEYS.VOICE_NAME, patch.voiceName || '');
+    }
 
-  if (patch.language !== undefined) {
-    localSettingsStore.set(userId, CALL_LAFINA_SETTINGS_KEYS.LANGUAGE, patch.language);
-  }
+    if (patch.language !== undefined) {
+      persist(CALL_LAFINA_SETTINGS_KEYS.LANGUAGE, patch.language);
+    }
 
-  if (patch.verbosity !== undefined) {
-    localSettingsStore.set(userId, CALL_LAFINA_SETTINGS_KEYS.VERBOSITY, patch.verbosity);
-  }
+    if (patch.verbosity !== undefined) {
+      persist(CALL_LAFINA_SETTINGS_KEYS.VERBOSITY, patch.verbosity);
+    }
 
-  if (patch.pacing !== undefined) {
-    localSettingsStore.set(userId, CALL_LAFINA_SETTINGS_KEYS.PACING, patch.pacing);
-  }
+    if (patch.pacing !== undefined) {
+      persist(CALL_LAFINA_SETTINGS_KEYS.PACING, patch.pacing);
+    }
 
-  if (patch.captionSize !== undefined) {
-    localSettingsStore.set(userId, CALL_LAFINA_SETTINGS_KEYS.CAPTION_SIZE, patch.captionSize);
-  }
+    if (patch.captionSize !== undefined) {
+      persist(CALL_LAFINA_SETTINGS_KEYS.CAPTION_SIZE, patch.captionSize);
+    }
 
-  if (patch.callConnectedHaptics !== undefined) {
-    localSettingsStore.set(
-      userId,
-      CALL_LAFINA_SETTINGS_KEYS.CONNECTED_HAPTICS,
-      patch.callConnectedHaptics ? 'true' : 'false',
-    );
-  }
+    if (patch.callConnectedHaptics !== undefined) {
+      persist(
+        CALL_LAFINA_SETTINGS_KEYS.CONNECTED_HAPTICS,
+        patch.callConnectedHaptics ? 'true' : 'false',
+      );
+    }
 
-  if (patch.callEndHaptics !== undefined) {
-    localSettingsStore.set(
-      userId,
-      CALL_LAFINA_SETTINGS_KEYS.END_HAPTICS,
-      patch.callEndHaptics ? 'true' : 'false',
-    );
-  }
+    if (patch.callEndHaptics !== undefined) {
+      persist(
+        CALL_LAFINA_SETTINGS_KEYS.END_HAPTICS,
+        patch.callEndHaptics ? 'true' : 'false',
+      );
+    }
 
-  if (patch.toolAudioCue !== undefined) {
-    localSettingsStore.set(
-      userId,
-      CALL_LAFINA_SETTINGS_KEYS.TOOL_AUDIO_CUE,
-      patch.toolAudioCue ? 'true' : 'false',
-    );
-  }
+    if (patch.toolAudioCue !== undefined) {
+      persist(
+        CALL_LAFINA_SETTINGS_KEYS.TOOL_AUDIO_CUE,
+        patch.toolAudioCue ? 'true' : 'false',
+      );
+    }
 
-  if (patch.startWithCallLafina !== undefined) {
-    localSettingsStore.set(
-      userId,
-      CALL_LAFINA_SETTINGS_KEYS.START_WITH_CALL,
-      patch.startWithCallLafina ? 'true' : 'false',
-    );
-  }
+    if (patch.startWithCallLafina !== undefined) {
+      persist(
+        CALL_LAFINA_SETTINGS_KEYS.START_WITH_CALL,
+        patch.startWithCallLafina ? 'true' : 'false',
+      );
+    }
+  });
 
   return getCallLafinaSettings(userId);
 }

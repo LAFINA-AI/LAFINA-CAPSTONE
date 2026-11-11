@@ -47,6 +47,11 @@ describe('Phase 05: Transcript, Typed Messages, and Chat Continuity', () => {
     localSettingsStore.set(userId, VOICE_CONSENT_KEY, 'true');
     localSettingsStore.set(
       userId,
+      'voiceConversation.directDataConsent.v1',
+      'true',
+    );
+    localSettingsStore.set(
+      userId,
       'speech.onlineVoice.v1',
       JSON.stringify({id: 'BtcCEANLn920ZIoN9grW', name: 'Rachel'}),
     );
@@ -91,7 +96,9 @@ describe('Phase 05: Transcript, Typed Messages, and Chat Continuity', () => {
     };
   };
 
-  const createMockApi = (grantOverrides?: Partial<VoiceSessionGrant>): VoiceConversationApi => ({
+  const createMockApi = (
+    grantOverrides?: Partial<VoiceSessionGrant>,
+  ): VoiceConversationApi => ({
     capabilities: jest.fn().mockResolvedValue({
       ok: true,
       data: {enabled: true, maxDurationSeconds: 300, maxTurns: 30},
@@ -100,7 +107,8 @@ describe('Phase 05: Transcript, Typed Messages, and Chat Continuity', () => {
       ok: true,
       data: {
         sessionId: '00000000-0000-0000-0000-000000000005',
-        signedUrl: 'wss://api.elevenlabs.io/v1/convai/conversation?session=test05',
+        signedUrl:
+          'wss://api.elevenlabs.io/v1/convai/conversation?session=test05',
         grant: 'test-grant-token',
         voiceId: 'BtcCEANLn920ZIoN9grW',
         expiresAt: new Date(Date.now() + 60000).toISOString(),
@@ -123,7 +131,11 @@ describe('Phase 05: Transcript, Typed Messages, and Chat Continuity', () => {
 
   const renderPanel = (options?: {
     api?: VoiceConversationApi;
-    onClientTool?: (name: string, params: Record<string, unknown>, isCurrent: () => boolean) => Promise<string>;
+    onClientTool?: (
+      name: string,
+      params: Record<string, unknown>,
+      isCurrent: () => boolean,
+    ) => Promise<string>;
     review?: Partial<CommandReviewState>;
   }) => {
     const mockTransport = createMockTransport();
@@ -159,8 +171,12 @@ describe('Phase 05: Transcript, Typed Messages, and Chat Continuity', () => {
       expired: false,
       busy: false,
       present: jest.fn(),
-      confirm: jest.fn().mockResolvedValue({status: 'executed', reply: 'Saved'}),
-      cancel: jest.fn().mockReturnValue({status: 'executed', reply: 'Canceled'}),
+      confirm: jest
+        .fn()
+        .mockResolvedValue({status: 'executed', reply: 'Saved'}),
+      cancel: jest
+        .fn()
+        .mockReturnValue({status: 'executed', reply: 'Canceled'}),
       dismiss: jest.fn(),
       ...options?.review,
     };
@@ -189,7 +205,9 @@ describe('Phase 05: Transcript, Typed Messages, and Chat Continuity', () => {
       const {getByTestId, mockTransport} = renderPanel();
 
       fireEvent.press(getByTestId('voice-conversation-start'));
-      await waitFor(() => expect(mockTransport.transport.start).toHaveBeenCalled());
+      await waitFor(() =>
+        expect(mockTransport.transport.start).toHaveBeenCalled(),
+      );
       mockTransport.emit({kind: 'open'});
 
       // Provisional user speech
@@ -197,14 +215,20 @@ describe('Phase 05: Transcript, Typed Messages, and Chat Continuity', () => {
         kind: 'message',
         data: JSON.stringify({
           type: 'tentative_user_transcript',
-          tentative_user_transcription_event: {user_transcript: 'Hello there...'},
+          tentative_user_transcription_event: {
+            user_transcript: 'Hello there...',
+          },
         }),
       });
 
       await waitFor(() => {
         expect(getByTestId('voice-turn-user-provisional')).toBeTruthy();
-        expect(getByTestId('voice-turn-user-provisional')).toHaveTextContent(/You/);
-        expect(getByTestId('voice-turn-user-provisional')).toHaveTextContent(/Hello there\.\.\./);
+        expect(getByTestId('voice-turn-user-provisional')).toHaveTextContent(
+          /You/,
+        );
+        expect(getByTestId('voice-turn-user-provisional')).toHaveTextContent(
+          /Hello there\.\.\./,
+        );
       });
 
       // Final user speech
@@ -212,13 +236,18 @@ describe('Phase 05: Transcript, Typed Messages, and Chat Continuity', () => {
         kind: 'message',
         data: JSON.stringify({
           type: 'user_transcript',
-          user_transcription_event: {user_transcript: 'Hello there, Lafina!', event_id: 101},
+          user_transcription_event: {
+            user_transcript: 'Hello there, Lafina!',
+            event_id: 101,
+          },
         }),
       });
 
       await waitFor(() => {
         expect(getByTestId('voice-turn-user-final')).toBeTruthy();
-        expect(getByTestId('voice-turn-user-final')).toHaveTextContent(/Hello there, Lafina!/);
+        expect(getByTestId('voice-turn-user-final')).toHaveTextContent(
+          /Hello there, Lafina!/,
+        );
       });
 
       // Assistant streaming response part (provisional)
@@ -232,8 +261,12 @@ describe('Phase 05: Transcript, Typed Messages, and Chat Continuity', () => {
 
       await waitFor(() => {
         expect(getByTestId('voice-turn-assistant-provisional')).toBeTruthy();
-        expect(getByTestId('voice-turn-assistant-provisional')).toHaveTextContent(/LAFINA/);
-        expect(getByTestId('voice-turn-assistant-provisional')).toHaveTextContent(/Hello!/);
+        expect(
+          getByTestId('voice-turn-assistant-provisional'),
+        ).toHaveTextContent(/LAFINA/);
+        expect(
+          getByTestId('voice-turn-assistant-provisional'),
+        ).toHaveTextContent(/Hello!/);
       });
 
       // Assistant final response
@@ -241,7 +274,10 @@ describe('Phase 05: Transcript, Typed Messages, and Chat Continuity', () => {
         kind: 'message',
         data: JSON.stringify({
           type: 'agent_response',
-          agent_response_event: {agent_response: 'Hello! How can I help you today?', event_id: 102},
+          agent_response_event: {
+            agent_response: 'Hello! How can I help you today?',
+            event_id: 102,
+          },
         }),
       });
 
@@ -257,7 +293,9 @@ describe('Phase 05: Transcript, Typed Messages, and Chat Continuity', () => {
       const {getByTestId, mockTransport} = renderPanel();
 
       fireEvent.press(getByTestId('voice-conversation-start'));
-      await waitFor(() => expect(mockTransport.transport.start).toHaveBeenCalled());
+      await waitFor(() =>
+        expect(mockTransport.transport.start).toHaveBeenCalled(),
+      );
       mockTransport.emit({kind: 'open'});
 
       // Assistant starts speaking
@@ -265,12 +303,17 @@ describe('Phase 05: Transcript, Typed Messages, and Chat Continuity', () => {
         kind: 'message',
         data: JSON.stringify({
           type: 'agent_chat_response_part',
-          text_response_part: {type: 'delta', text: 'Your next class is in room 304 and starts at...'},
+          text_response_part: {
+            type: 'delta',
+            text: 'Your next class is in room 304 and starts at...',
+          },
         }),
       });
 
       await waitFor(() => {
-        expect(getByTestId('voice-conversation-transcript')).toHaveTextContent(/Your next class/);
+        expect(getByTestId('voice-conversation-transcript')).toHaveTextContent(
+          /Your next class/,
+        );
       });
 
       // Interruption arrives
@@ -281,7 +324,9 @@ describe('Phase 05: Transcript, Typed Messages, and Chat Continuity', () => {
 
       await waitFor(() => {
         expect(getByTestId('voice-turn-assistant-interrupted')).toBeTruthy();
-        expect(getByTestId('voice-turn-assistant-interrupted')).toHaveTextContent(/· interrupted/);
+        expect(
+          getByTestId('voice-turn-assistant-interrupted'),
+        ).toHaveTextContent(/· interrupted/);
       });
     });
   });
@@ -291,7 +336,9 @@ describe('Phase 05: Transcript, Typed Messages, and Chat Continuity', () => {
       const {getByTestId, queryByTestId, mockTransport} = renderPanel();
 
       fireEvent.press(getByTestId('voice-conversation-start'));
-      await waitFor(() => expect(mockTransport.transport.start).toHaveBeenCalled());
+      await waitFor(() =>
+        expect(mockTransport.transport.start).toHaveBeenCalled(),
+      );
       mockTransport.emit({kind: 'open'});
 
       // Add turn so transcript appears
@@ -299,7 +346,10 @@ describe('Phase 05: Transcript, Typed Messages, and Chat Continuity', () => {
         kind: 'message',
         data: JSON.stringify({
           type: 'user_transcript',
-          user_transcription_event: {user_transcript: 'Check my schedule', event_id: 201},
+          user_transcription_event: {
+            user_transcript: 'Check my schedule',
+            event_id: 201,
+          },
         }),
       });
 
@@ -312,7 +362,9 @@ describe('Phase 05: Transcript, Typed Messages, and Chat Continuity', () => {
       fireEvent.press(getByTestId('call-transcript-toggle'));
 
       await waitFor(() => {
-        expect(getByTestId('call-transcript-toggle')).toHaveTextContent(/Tap to expand/);
+        expect(getByTestId('call-transcript-toggle')).toHaveTextContent(
+          /Tap to expand/,
+        );
         expect(queryByTestId('voice-conversation-transcript')).toBeNull();
       });
 
@@ -320,7 +372,9 @@ describe('Phase 05: Transcript, Typed Messages, and Chat Continuity', () => {
       fireEvent.press(getByTestId('call-transcript-toggle'));
 
       await waitFor(() => {
-        expect(getByTestId('call-transcript-toggle')).toHaveTextContent(/Tap to collapse/);
+        expect(getByTestId('call-transcript-toggle')).toHaveTextContent(
+          /Tap to collapse/,
+        );
         expect(getByTestId('voice-conversation-transcript')).toBeTruthy();
       });
     });
@@ -329,14 +383,19 @@ describe('Phase 05: Transcript, Typed Messages, and Chat Continuity', () => {
       const {getByTestId, queryByTestId, mockTransport} = renderPanel();
 
       fireEvent.press(getByTestId('voice-conversation-start'));
-      await waitFor(() => expect(mockTransport.transport.start).toHaveBeenCalled());
+      await waitFor(() =>
+        expect(mockTransport.transport.start).toHaveBeenCalled(),
+      );
       mockTransport.emit({kind: 'open'});
 
       mockTransport.emit({
         kind: 'message',
         data: JSON.stringify({
           type: 'user_transcript',
-          user_transcription_event: {user_transcript: 'Show me all upcoming assignments', event_id: 202},
+          user_transcription_event: {
+            user_transcript: 'Show me all upcoming assignments',
+            event_id: 202,
+          },
         }),
       });
 
@@ -374,7 +433,9 @@ describe('Phase 05: Transcript, Typed Messages, and Chat Continuity', () => {
       const {getByTestId, mockTransport} = renderPanel();
 
       fireEvent.press(getByTestId('voice-conversation-start'));
-      await waitFor(() => expect(mockTransport.transport.start).toHaveBeenCalled());
+      await waitFor(() =>
+        expect(mockTransport.transport.start).toHaveBeenCalled(),
+      );
       mockTransport.emit({kind: 'open'});
 
       // Tap "Type" dock button to reveal text input
@@ -426,9 +487,9 @@ describe('Phase 05: Transcript, Typed Messages, and Chat Continuity', () => {
       });
 
       // Verify the turn was NOT duplicated
-      const userTurns = chatStore.getMessages(userId).filter(m =>
-        m.content.includes('What are the library hours today?'),
-      );
+      const userTurns = chatStore
+        .getMessages(userId)
+        .filter(m => m.content.includes('What are the library hours today?'));
       expect(userTurns.length).toBeLessThanOrEqual(1);
     });
   });
@@ -470,10 +531,11 @@ describe('Phase 05: Transcript, Typed Messages, and Chat Continuity', () => {
       mockTransport.emit({kind: 'open'});
 
       // Complete user turn
-      (controller as unknown as {onFinalUser: (w: string, id: string | null) => void}).onFinalUser(
-        'Submit assignment tomorrow',
-        'turn-u1',
-      );
+      (
+        controller as unknown as {
+          onFinalUser: (w: string, id: string | null) => void;
+        }
+      ).onFinalUser('Submit assignment tomorrow', 'turn-u1');
 
       // Verify user turn saved
       const messagesAfterUser = chatStore.getMessages(userId);
@@ -481,21 +543,28 @@ describe('Phase 05: Transcript, Typed Messages, and Chat Continuity', () => {
       expect(messagesAfterUser[messagesAfterUser.length - 1].content).toBe(
         'Submit assignment tomorrow',
       );
-      expect(messagesAfterUser[messagesAfterUser.length - 1].sender).toBe('user');
+      expect(messagesAfterUser[messagesAfterUser.length - 1].sender).toBe(
+        'user',
+      );
 
       // Assistant begins answer then gets interrupted
-      (controller as unknown as {appendAnswer: (p: string) => void}).appendAnswer(
-        'I noted your assignment for tomorrow morning.',
-      );
-      (controller as unknown as {onMessage: (m: Record<string, unknown>) => void}).onMessage({
+      (
+        controller as unknown as {appendAnswer: (p: string) => void}
+      ).appendAnswer('I noted your assignment for tomorrow morning.');
+      (
+        controller as unknown as {
+          onMessage: (m: Record<string, unknown>) => void;
+        }
+      ).onMessage({
         type: 'interruption',
       });
 
       // New user turn closes the pending interrupted answer
-      (controller as unknown as {onFinalUser: (w: string, id: string | null) => void}).onFinalUser(
-        'Actually Thursday instead',
-        'turn-u2',
-      );
+      (
+        controller as unknown as {
+          onFinalUser: (w: string, id: string | null) => void;
+        }
+      ).onFinalUser('Actually Thursday instead', 'turn-u2');
 
       const allMessages = chatStore.getMessages(userId);
       const assistantMsg = allMessages.find(m =>
@@ -508,7 +577,9 @@ describe('Phase 05: Transcript, Typed Messages, and Chat Continuity', () => {
       // Verify other users do not see this owner's chat history
       const otherUserMessages = chatStore.getMessages('different-student-user');
       expect(
-        otherUserMessages.some(m => m.content.includes('Submit assignment tomorrow')),
+        otherUserMessages.some(m =>
+          m.content.includes('Submit assignment tomorrow'),
+        ),
       ).toBe(false);
     });
   });
@@ -547,14 +618,19 @@ describe('Phase 05: Transcript, Typed Messages, and Chat Continuity', () => {
         kind: 'message',
         data: JSON.stringify({
           type: 'agent_response',
-          agent_response_event: {agent_response: 'Late response after end', event_id: 999},
+          agent_response_event: {
+            agent_response: 'Late response after end',
+            event_id: 999,
+          },
         }),
       });
 
       // Verify late response is ignored
       expect(controller.getSnapshot().phase).toBe('ended');
       expect(
-        controller.getSnapshot().turns.some(t => t.text.includes('Late response after end')),
+        controller
+          .getSnapshot()
+          .turns.some(t => t.text.includes('Late response after end')),
       ).toBe(false);
     });
   });

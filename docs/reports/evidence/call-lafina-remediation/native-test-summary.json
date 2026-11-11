@@ -1,0 +1,54 @@
+{
+  "scope": "JVM only; final task UP-TO-DATE from valid cached results; not audio hardware proof",
+  "suites": [
+    {
+      "suite": "com.lafina.capstone.LafinaAudioPlayerTest",
+      "tests": 1,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "suite": "com.lafina.capstone.LafinaDeliveryContractTest",
+      "tests": 15,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "suite": "com.lafina.capstone.LafinaIntentExtractorTest",
+      "tests": 3,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "suite": "com.lafina.capstone.LafinaReminderTest",
+      "tests": 3,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "suite": "com.lafina.capstone.LafinaSpeechToTextTest",
+      "tests": 7,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "suite": "com.lafina.capstone.MicrophoneLeaseTest",
+      "tests": 14,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "suite": "com.lafina.capstone.VoiceConversationRulesTest",
+      "tests": 11,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    }
+  ]
+}

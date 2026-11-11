@@ -1,14 +1,22 @@
 import React from 'react';
-import { View, StyleSheet, StatusBar } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useTheme } from '../contexts/ThemeContext';
-import { useCommandReview } from '../hooks/useCommandReview';
-import { VoiceConversationPanel } from '../components/voice/VoiceConversationPanel';
-import type { VoiceConversationDeps } from '../../cloud/voiceConversation';
+import {
+  KeyboardAvoidingView,
+  Platform,
+  StyleSheet,
+  StatusBar,
+} from 'react-native';
+import {useSafeAreaInsets} from 'react-native-safe-area-context';
+import {useTheme} from '../contexts/ThemeContext';
+import {useCommandReview} from '../hooks/useCommandReview';
+import {VoiceConversationPanel} from '../components/voice/VoiceConversationPanel';
+import type {VoiceConversationDeps} from '../../cloud/voiceConversation';
+
+import type {CallNavigationTarget} from '../navigation/callNavigation';
 
 export interface CallLafinaScreenProps {
   userId: string;
   onClose: () => void;
+  onNavigate?: (target: CallNavigationTarget) => void;
   onMinimize?: () => void;
   deps?: (userId: string) => VoiceConversationDeps;
 }
@@ -23,14 +31,16 @@ export const CallLafinaScreen: React.FC<CallLafinaScreenProps> = ({
   userId,
   onClose,
   onMinimize,
+  onNavigate,
   deps,
 }) => {
-  const { colors } = useTheme();
+  const {colors} = useTheme();
   const insets = useSafeAreaInsets();
   const review = useCommandReview(userId, 'voice');
 
   return (
-    <View
+    <KeyboardAvoidingView
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       style={[
         styles.container,
         {
@@ -50,10 +60,11 @@ export const CallLafinaScreen: React.FC<CallLafinaScreenProps> = ({
         review={review}
         onBack={onClose}
         onMinimize={onMinimize}
+        onNavigate={onNavigate}
         deps={deps}
         fullScreen={true}
       />
-    </View>
+    </KeyboardAvoidingView>
   );
 };
 
@@ -64,4 +75,3 @@ const styles = StyleSheet.create({
     height: '100%',
   },
 });
-

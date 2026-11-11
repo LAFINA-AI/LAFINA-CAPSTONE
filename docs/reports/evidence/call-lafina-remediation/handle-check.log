@@ -1,0 +1,9 @@
+PASS __tests__/ui/voiceConversationUi.test.tsx (43.991 s)
+PASS __tests__/ui/callLafinaPhase12.test.tsx
+PASS __tests__/cloud/voiceConversationController.test.ts
+
+Test Suites: 3 passed, 3 total
+Tests:       91 passed, 91 total
+Snapshots:   0 total
+Time:        51.935 s
+Ran all test suites matching /callLafinaPhase12|voiceConversationUi|voiceConversationController/i.

@@ -52,6 +52,11 @@ describe('Phase 04: Human-Feeling Voice Persona and Turn-Taking', () => {
     localSettingsStore.set(userId, VOICE_CONSENT_KEY, 'true');
     localSettingsStore.set(
       userId,
+      'voiceConversation.directDataConsent.v1',
+      'true',
+    );
+    localSettingsStore.set(
+      userId,
       'speech.onlineVoice.v1',
       JSON.stringify({id: 'BtcCEANLn920ZIoN9grW', name: 'Rachel'}),
     );
@@ -99,7 +104,9 @@ describe('Phase 04: Human-Feeling Voice Persona and Turn-Taking', () => {
     };
   };
 
-  const createMockApi = (grantOverrides?: Partial<VoiceSessionGrant>): VoiceConversationApi => ({
+  const createMockApi = (
+    grantOverrides?: Partial<VoiceSessionGrant>,
+  ): VoiceConversationApi => ({
     capabilities: jest.fn().mockResolvedValue({
       ok: true,
       data: {enabled: true, maxDurationSeconds: 300, maxTurns: 30},
@@ -108,7 +115,8 @@ describe('Phase 04: Human-Feeling Voice Persona and Turn-Taking', () => {
       ok: true,
       data: {
         sessionId: '00000000-0000-0000-0000-000000000001',
-        signedUrl: 'wss://api.elevenlabs.io/v1/convai/conversation?session=test',
+        signedUrl:
+          'wss://api.elevenlabs.io/v1/convai/conversation?session=test',
         grant: 'test-grant-token',
         voiceId: 'BtcCEANLn920ZIoN9grW',
         expiresAt: new Date(Date.now() + 60000).toISOString(),
@@ -131,7 +139,11 @@ describe('Phase 04: Human-Feeling Voice Persona and Turn-Taking', () => {
 
   const renderPanel = (options?: {
     api?: VoiceConversationApi;
-    onClientTool?: (name: string, params: Record<string, unknown>, isCurrent: () => boolean) => Promise<string>;
+    onClientTool?: (
+      name: string,
+      params: Record<string, unknown>,
+      isCurrent: () => boolean,
+    ) => Promise<string>;
     review?: Partial<CommandReviewState>;
     thinkingTimeoutMs?: number;
   }) => {
@@ -168,8 +180,12 @@ describe('Phase 04: Human-Feeling Voice Persona and Turn-Taking', () => {
       expired: false,
       busy: false,
       present: jest.fn(),
-      confirm: jest.fn().mockResolvedValue({status: 'executed', reply: 'Saved'}),
-      cancel: jest.fn().mockReturnValue({status: 'executed', reply: 'Canceled'}),
+      confirm: jest
+        .fn()
+        .mockResolvedValue({status: 'executed', reply: 'Saved'}),
+      cancel: jest
+        .fn()
+        .mockReturnValue({status: 'executed', reply: 'Canceled'}),
       dismiss: jest.fn(),
       ...options?.review,
     };
@@ -196,15 +212,26 @@ describe('Phase 04: Human-Feeling Voice Persona and Turn-Taking', () => {
   describe('P04-01 & F-021: Persona Prompt and Preferences', () => {
     test('buildVoicePersonaPrompt includes concise spoken guidelines and reflects preferences', () => {
       const defaultPrompt = buildVoicePersonaPrompt();
-      expect(defaultPrompt).toContain('You are Lafina, an online voice assistant for a student');
-      expect(defaultPrompt).toContain('Answer naturally in short spoken sentences, usually one to three');
-      expect(defaultPrompt).toContain('Do not narrate internal chain of thought');
+      expect(defaultPrompt).toContain(
+        'You are Lafina, an online voice assistant for a student',
+      );
+      expect(defaultPrompt).toContain(
+        'Answer naturally in short spoken sentences, usually one to three',
+      );
+      expect(defaultPrompt).toContain(
+        'Do not narrate internal chain of thought',
+      );
       expect(defaultPrompt).toContain('Do not use markdown in speech');
       expect(defaultPrompt).toContain('Keep answers extremely concise');
 
-      const detailedPrompt = buildVoicePersonaPrompt({verbosity: 'detailed', pacing: 'slow'});
+      const detailedPrompt = buildVoicePersonaPrompt({
+        verbosity: 'detailed',
+        pacing: 'slow',
+      });
       expect(detailedPrompt).toContain('Provide a thorough explanation');
-      expect(detailedPrompt).toContain('Explain concepts step-by-step with natural sentence pauses');
+      expect(detailedPrompt).toContain(
+        'Explain concepts step-by-step with natural sentence pauses',
+      );
     });
 
     test('detectConversationalDirective identifies wait, brevity, and pacing commands', () => {
@@ -213,36 +240,50 @@ describe('Phase 04: Human-Feeling Voice Persona and Turn-Taking', () => {
       expect(detectConversationalDirective('give me a moment')).toBe('wait');
       expect(detectConversationalDirective("don't answer yet")).toBe('wait');
 
-      expect(detectConversationalDirective('keep it brief please')).toBe('brief');
-      expect(detectConversationalDirective('explain in detail')).toBe('detailed');
+      expect(detectConversationalDirective('keep it brief please')).toBe(
+        'brief',
+      );
+      expect(detectConversationalDirective('explain in detail')).toBe(
+        'detailed',
+      );
       expect(detectConversationalDirective('speak slower')).toBe('slow');
       expect(detectConversationalDirective('talk normally')).toBe('normal');
 
-      expect(detectConversationalDirective('What is on my calendar tomorrow?')).toBeNull();
+      expect(
+        detectConversationalDirective('What is on my calendar tomorrow?'),
+      ).toBeNull();
     });
   });
 
   describe('P04-07 & F-017: Reasoning and Markdown Scrubbing', () => {
     test('stripReasoningContent strips complete and partial unclosed reasoning blocks', () => {
-      const withThink = 'Hello! <think>Internal reasoning about USTP policies</think>Here is your schedule.';
-      expect(stripReasoningContent(withThink)).toBe('Hello! Here is your schedule.');
+      const withThink =
+        'Hello! <think>Internal reasoning about USTP policies</think>Here is your schedule.';
+      expect(stripReasoningContent(withThink)).toBe(
+        'Hello! Here is your schedule.',
+      );
 
-      const unclosedThink = 'Good morning. <think>Still deciding what to say...';
+      const unclosedThink =
+        'Good morning. <think>Still deciding what to say...';
       expect(stripReasoningContent(unclosedThink)).toBe('Good morning. ');
 
-      const withReasoningTag = 'Sure. [reasoning]step 1, step 2[/reasoning]I can help with that.';
-      expect(stripReasoningContent(withReasoningTag)).toBe('Sure. I can help with that.');
+      const withReasoningTag =
+        'Sure. [reasoning]step 1, step 2[/reasoning]I can help with that.';
+      expect(stripReasoningContent(withReasoningTag)).toBe(
+        'Sure. I can help with that.',
+      );
     });
 
     test('sanitizeSpeechText strips markdown symbols, links, and code fences', () => {
-      const rawMarkdown = '### Today\'s Plan\nHere is your **important** note: [Study Group](https://example.com) with *physics*.\n```console.log("test")```';
+      const rawMarkdown =
+        '### Today\'s Plan\nHere is your **important** note: [Study Group](https://example.com) with *physics*.\n```console.log("test")```';
       const clean = sanitizeSpeechText(rawMarkdown);
 
       expect(clean).not.toContain('###');
       expect(clean).not.toContain('**');
       expect(clean).not.toContain('*physics*');
       expect(clean).not.toContain('```');
-      expect(clean).toContain('Today\'s Plan');
+      expect(clean).toContain("Today's Plan");
       expect(clean).toContain('important');
       expect(clean).toContain('Study Group');
       expect(clean).toContain('physics');
@@ -252,7 +293,9 @@ describe('Phase 04: Human-Feeling Voice Persona and Turn-Taking', () => {
       const {getByTestId, mockTransport} = renderPanel();
 
       fireEvent.press(getByTestId('voice-conversation-start'));
-      await waitFor(() => expect(mockTransport.transport.start).toHaveBeenCalled());
+      await waitFor(() =>
+        expect(mockTransport.transport.start).toHaveBeenCalled(),
+      );
       mockTransport.emit({kind: 'open'});
 
       // User asks question
@@ -260,7 +303,10 @@ describe('Phase 04: Human-Feeling Voice Persona and Turn-Taking', () => {
         kind: 'message',
         data: JSON.stringify({
           type: 'user_transcript',
-          user_transcription_event: {user_transcript: 'When is my next class?', event_id: 1},
+          user_transcription_event: {
+            user_transcript: 'When is my next class?',
+            event_id: 1,
+          },
         }),
       });
 
@@ -270,7 +316,8 @@ describe('Phase 04: Human-Feeling Voice Persona and Turn-Taking', () => {
         data: JSON.stringify({
           type: 'agent_response',
           agent_response_event: {
-            agent_response: 'Your next class is **Physics 101** at 2 PM. <think>Checking calendar window...</think>',
+            agent_response:
+              'Your next class is **Physics 101** at 2 PM. <think>Checking calendar window...</think>',
             event_id: 2,
           },
         }),
@@ -280,8 +327,12 @@ describe('Phase 04: Human-Feeling Voice Persona and Turn-Taking', () => {
         expect(getByTestId('voice-conversation-transcript')).toHaveTextContent(
           /Your next class is Physics 101 at 2 PM\./,
         );
-        expect(getByTestId('voice-conversation-transcript')).not.toHaveTextContent('think');
-        expect(getByTestId('voice-conversation-transcript')).not.toHaveTextContent('**');
+        expect(
+          getByTestId('voice-conversation-transcript'),
+        ).not.toHaveTextContent('think');
+        expect(
+          getByTestId('voice-conversation-transcript'),
+        ).not.toHaveTextContent('**');
       });
     });
   });
@@ -291,7 +342,9 @@ describe('Phase 04: Human-Feeling Voice Persona and Turn-Taking', () => {
       const {getByTestId, mockTransport} = renderPanel();
 
       fireEvent.press(getByTestId('voice-conversation-start'));
-      await waitFor(() => expect(mockTransport.transport.start).toHaveBeenCalled());
+      await waitFor(() =>
+        expect(mockTransport.transport.start).toHaveBeenCalled(),
+      );
       mockTransport.emit({kind: 'open'});
 
       // Tentative speech while user is still talking and pausing
@@ -299,16 +352,22 @@ describe('Phase 04: Human-Feeling Voice Persona and Turn-Taking', () => {
         kind: 'message',
         data: JSON.stringify({
           type: 'tentative_user_transcript',
-          tentative_user_transcription_event: {user_transcript: 'Remind me to submit...'},
+          tentative_user_transcription_event: {
+            user_transcript: 'Remind me to submit...',
+          },
         }),
       });
 
       await waitFor(() => {
-        expect(getByTestId('voice-conversation-transcript')).toHaveTextContent(/Remind me to submit/);
+        expect(getByTestId('voice-conversation-transcript')).toHaveTextContent(
+          /Remind me to submit/,
+        );
       });
 
       // Status remains listening (patient turn taking), not thinking yet
-      expect(getByTestId('voice-conversation-status')).toHaveTextContent(/Listening/);
+      expect(getByTestId('voice-conversation-status')).toHaveTextContent(
+        /Listening/,
+      );
 
       // Student pauses and finishes speaking -> final user transcript emitted
       mockTransport.emit({
@@ -316,14 +375,17 @@ describe('Phase 04: Human-Feeling Voice Persona and Turn-Taking', () => {
         data: JSON.stringify({
           type: 'user_transcript',
           user_transcription_event: {
-            user_transcript: 'Remind me to submit my capstone draft on Friday at 3 PM',
+            user_transcript:
+              'Remind me to submit my capstone draft on Friday at 3 PM',
             event_id: 5,
           },
         }),
       });
 
       await waitFor(() => {
-        expect(getByTestId('voice-conversation-status')).toHaveTextContent(/Thinking/);
+        expect(getByTestId('voice-conversation-status')).toHaveTextContent(
+          /Thinking/,
+        );
       });
     });
   });
@@ -333,7 +395,9 @@ describe('Phase 04: Human-Feeling Voice Persona and Turn-Taking', () => {
       const {getByTestId, mockTransport} = renderPanel();
 
       fireEvent.press(getByTestId('voice-conversation-start'));
-      await waitFor(() => expect(mockTransport.transport.start).toHaveBeenCalled());
+      await waitFor(() =>
+        expect(mockTransport.transport.start).toHaveBeenCalled(),
+      );
       mockTransport.emit({kind: 'open'});
 
       // User says "Wait, I'm thinking"
@@ -350,7 +414,9 @@ describe('Phase 04: Human-Feeling Voice Persona and Turn-Taking', () => {
 
       await waitFor(() => {
         // Status remains listening with explicit patient notice
-        expect(getByTestId('voice-conversation-status')).toHaveTextContent(/Listening/);
+        expect(getByTestId('voice-conversation-status')).toHaveTextContent(
+          /Listening/,
+        );
         expect(getByTestId('voice-conversation-notice')).toHaveTextContent(
           /I'll wait\. Take your time\./,
         );
@@ -373,7 +439,9 @@ describe('Phase 04: Human-Feeling Voice Persona and Turn-Taking', () => {
       const {getByTestId, mockTransport} = renderPanel({onClientTool});
 
       fireEvent.press(getByTestId('voice-conversation-start'));
-      await waitFor(() => expect(mockTransport.transport.start).toHaveBeenCalled());
+      await waitFor(() =>
+        expect(mockTransport.transport.start).toHaveBeenCalled(),
+      );
       mockTransport.emit({kind: 'open'});
 
       // User asks question
@@ -381,16 +449,23 @@ describe('Phase 04: Human-Feeling Voice Persona and Turn-Taking', () => {
         kind: 'message',
         data: JSON.stringify({
           type: 'user_transcript',
-          user_transcription_event: {user_transcript: 'Check my schedule for tomorrow', event_id: 20},
+          user_transcription_event: {
+            user_transcript: 'Check my schedule for tomorrow',
+            event_id: 20,
+          },
         }),
       });
 
       await waitFor(() => {
-        expect(getByTestId('voice-conversation-status')).toHaveTextContent(/Thinking/);
+        expect(getByTestId('voice-conversation-status')).toHaveTextContent(
+          /Thinking/,
+        );
       });
 
       // Before client_tool_call, status is strictly Thinking, never "Checking your calendar"
-      expect(getByTestId('voice-conversation-status')).not.toHaveTextContent(/Checking your calendar/);
+      expect(getByTestId('voice-conversation-status')).not.toHaveTextContent(
+        /Checking your calendar/,
+      );
 
       // Now server emits client_tool_call
       mockTransport.emit({
@@ -406,7 +481,9 @@ describe('Phase 04: Human-Feeling Voice Persona and Turn-Taking', () => {
       });
 
       await waitFor(() => {
-        expect(getByTestId('voice-conversation-status')).toHaveTextContent(/Checking your calendar/);
+        expect(getByTestId('voice-conversation-status')).toHaveTextContent(
+          /Checking your calendar/,
+        );
       });
 
       // Verify tool actually executed
@@ -417,17 +494,33 @@ describe('Phase 04: Human-Feeling Voice Persona and Turn-Taking', () => {
       // Now resolve the tool and verify client tool result is sent back
       resolveTool(JSON.stringify({events: []}));
       await waitFor(() => {
-        expect(mockTransport.sentMessages.some(m => m.includes('client_tool_result'))).toBe(true);
+        expect(
+          mockTransport.sentMessages.some(m =>
+            m.includes('client_tool_result'),
+          ),
+        ).toBe(true);
       });
     });
 
     test('getToolWorkingPhrase maps known tools truthfully', () => {
-      expect(getToolWorkingPhrase('read_lafina_data', 'calendar')).toBe('Checking your calendar...');
-      expect(getToolWorkingPhrase('read_lafina_data', 'notes')).toBe('Searching your notes...');
-      expect(getToolWorkingPhrase('read_lafina_data', 'memory')).toBe('Checking saved preferences...');
-      expect(getToolWorkingPhrase('prepare_lafina_action')).toBe('Preparing draft...');
-      expect(getToolWorkingPhrase('save_lafina_memory')).toBe('Checking memory request...');
-      expect(getToolWorkingPhrase('unknown_tool')).toBe('Working on your request...');
+      expect(getToolWorkingPhrase('read_lafina_data', 'calendar')).toBe(
+        'Checking your calendar...',
+      );
+      expect(getToolWorkingPhrase('read_lafina_data', 'notes')).toBe(
+        'Searching your notes...',
+      );
+      expect(getToolWorkingPhrase('read_lafina_data', 'memory')).toBe(
+        'Checking saved preferences...',
+      );
+      expect(getToolWorkingPhrase('prepare_lafina_action')).toBe(
+        'Preparing draft...',
+      );
+      expect(getToolWorkingPhrase('save_lafina_memory')).toBe(
+        'Checking memory request...',
+      );
+      expect(getToolWorkingPhrase('unknown_tool')).toBe(
+        'Working on your request...',
+      );
     });
   });
 
@@ -436,13 +529,22 @@ describe('Phase 04: Human-Feeling Voice Persona and Turn-Taking', () => {
       const mockApi = createMockApi();
       (mockApi.status as jest.Mock).mockResolvedValue({
         ok: true,
-        data: {status: 'active', lastErrorCode: null, lastErrorMessage: 'DeepSeek is busy processing.'},
+        data: {
+          status: 'active',
+          lastErrorCode: null,
+          lastErrorMessage: 'DeepSeek is busy processing.',
+        },
       });
 
-      const {getByTestId, mockTransport} = renderPanel({api: mockApi, thinkingTimeoutMs: 200});
+      const {getByTestId, mockTransport} = renderPanel({
+        api: mockApi,
+        thinkingTimeoutMs: 200,
+      });
 
       fireEvent.press(getByTestId('voice-conversation-start'));
-      await waitFor(() => expect(mockTransport.transport.start).toHaveBeenCalled());
+      await waitFor(() =>
+        expect(mockTransport.transport.start).toHaveBeenCalled(),
+      );
       mockTransport.emit({kind: 'open'});
 
       // User sends turn
@@ -450,12 +552,17 @@ describe('Phase 04: Human-Feeling Voice Persona and Turn-Taking', () => {
         kind: 'message',
         data: JSON.stringify({
           type: 'user_transcript',
-          user_transcription_event: {user_transcript: 'What are the graduation requirements?', event_id: 30},
+          user_transcription_event: {
+            user_transcript: 'What are the graduation requirements?',
+            event_id: 30,
+          },
         }),
       });
 
       await waitFor(() => {
-        expect(getByTestId('voice-conversation-status')).toHaveTextContent(/Thinking/);
+        expect(getByTestId('voice-conversation-status')).toHaveTextContent(
+          /Thinking/,
+        );
       });
 
       // Wait for thinking timeout (200ms in test limits)
@@ -466,7 +573,9 @@ describe('Phase 04: Human-Feeling Voice Persona and Turn-Taking', () => {
       });
 
       // Verify status line returned to listening without disconnecting
-      expect(getByTestId('voice-conversation-status')).toHaveTextContent(/Listening/);
+      expect(getByTestId('voice-conversation-status')).toHaveTextContent(
+        /Listening/,
+      );
 
       // Verify no double TTS was spoken during thinking delay
       expect(ttsService.speak).not.toHaveBeenCalled();
@@ -488,10 +597,12 @@ describe('Phase 04: Human-Feeling Voice Persona and Turn-Taking', () => {
       fireEvent.press(getByTestId('voice-conversation-start'));
 
       await waitFor(() => {
-        expect(getByTestId('voice-conversation-status')).toHaveTextContent(/Call Lafina unavailable/);
-        expect(getByTestId('voice-conversation-problem-text')).toHaveTextContent(
-          /You have reached your daily limit\./,
+        expect(getByTestId('voice-conversation-status')).toHaveTextContent(
+          /Call Lafina unavailable/,
         );
+        expect(
+          getByTestId('voice-conversation-problem-text'),
+        ).toHaveTextContent(/You have reached your daily limit\./);
       });
     });
 
@@ -509,10 +620,12 @@ describe('Phase 04: Human-Feeling Voice Persona and Turn-Taking', () => {
       fireEvent.press(getByTestId('voice-conversation-start'));
 
       await waitFor(() => {
-        expect(getByTestId('voice-conversation-status')).toHaveTextContent(/Call Lafina unavailable/);
-        expect(getByTestId('voice-conversation-problem-text')).toHaveTextContent(
-          /Call Lafina is not available on the server yet\./,
+        expect(getByTestId('voice-conversation-status')).toHaveTextContent(
+          /Call Lafina unavailable/,
         );
+        expect(
+          getByTestId('voice-conversation-problem-text'),
+        ).toHaveTextContent(/Call Lafina is not available on the server yet\./);
       });
     });
   });
@@ -546,14 +659,17 @@ describe('Phase 04: Human-Feeling Voice Persona and Turn-Taking', () => {
 
       // Emulate user final turn at t = 1000
       now = 1000;
-      (controller as unknown as {onFinalUser: (w: string, id: string | null) => void}).onFinalUser(
-        'Hello Lafina',
-        'e1',
-      );
+      (
+        controller as unknown as {
+          onFinalUser: (w: string, id: string | null) => void;
+        }
+      ).onFinalUser('Hello Lafina', 'e1');
 
       // Emulate first answer part arrives at t = 1350 (350ms later)
       now = 1350;
-      (controller as unknown as {appendAnswer: (p: string) => void}).appendAnswer('Hello!');
+      (
+        controller as unknown as {appendAnswer: (p: string) => void}
+      ).appendAnswer('Hello!');
 
       const snapshot = controller.getSnapshot();
       expect(snapshot.lastTiming?.toFirstText).toBe(350);

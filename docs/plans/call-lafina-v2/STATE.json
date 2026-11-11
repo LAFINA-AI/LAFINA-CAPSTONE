@@ -5,8 +5,41 @@
   "source_head": "cae65fec4b0efc25dc343e3f30a4d216defa19aa",
   "work_branch": "feat/call-lafina-v2",
   "current_phase": "15",
-  "next_item": "NONE_COMPLETE",
-  "completed_items": [
+  "next_item": "BACKEND_OWNER_ACTIVATION_AND_PHONE_ACCEPTANCE",
+  "completed_items": [],
+  "blocked_items": [
+    "CL2-015 backend tool forwarding/provisioning",
+    "CL2-012 remote pre-synthesis policy enforcement and provider quality",
+    "Physical acceptance matrix T001-T070 (installation/launch receipts separate)",
+    "F-055 background microphone deferred approval",
+    "F-057 multimodal route unsupported/deferred"
+  ],
+  "last_commit": "5ee4d2a",
+  "last_tested_commit": null,
+  "last_test_results": [
+    {
+      "command": "npm run preflight",
+      "exit_code": 0,
+      "summary": "98 suites; 1429 passed, 1 skipped; typecheck/lint/architecture pass; host/synthetic only",
+      "evidence": "docs/reports/evidence/call-lafina-remediation/preflight-release.log"
+    },
+    {
+      "command": "Android JDK17 ARM64 assemble + compileDebugKotlin + testDebugUnitTest",
+      "exit_code": 0,
+      "summary": "Both builds pass; 7 JVM suites / 54 tests cached valid; 0 failures",
+      "evidence": "docs/reports/evidence/call-lafina-remediation/android-main-success.log"
+    },
+    {
+      "command": "adb install -r and activity/process/hash smoke for both copies",
+      "exit_code": 0,
+      "summary": "Infinix X6880 Android15; both installed hashes match and processes start. No audio/provider acceptance.",
+      "evidence": "docs/reports/evidence/call-lafina-remediation/device-install-smoke.json"
+    }
+  ],
+  "manual_phone_verification": "INSTALL_LAUNCH_SMOKE_ONLY; FULL_ACCEPTANCE_NOT_RUN",
+  "external_backend_verification": "SOURCE_READ_ONLY; LIVE_CONFIG_AND_AUTHENTICATED_TOOL_ROUND_TRIP_NOT_RUN",
+  "updated_at_utc": "2026-11-10T14:56:01.880414+00:00",
+  "antigravity_claimed_completed_items": [
     "P00-01",
     "P00-02",
     "P00-03",
@@ -157,13 +190,9 @@
     "P15-09",
     "P15-10"
   ],
-  "blocked_items": [
-    "F-055:DEFERRED_APPROVAL (OS background foreground service requires physical device check)",
-    "F-057:DEFERRED_BACKEND_UNSUPPORTED (DeepSeek LLM route is text-only)"
-  ],
-  "last_commit": "5ee4d2a",
-  "last_tested_commit": "5ee4d2a",
-  "last_test_results": [
+  "acceptance_note": "Historical completed_items were implementation claims, not phase acceptance. Device/provider gates remain open. See 151-row reconciliation; do not advance phases.",
+  "status": "AWAITING_DEVICE_VALIDATION_AND_BACKEND_OWNER",
+  "antigravity_test_results": [
     {
       "command": "npm run typecheck",
       "exit_code": 0,
@@ -200,7 +229,6 @@
       "summary": "PASS: all pack structural/coverage checks passed"
     }
   ],
-  "manual_phone_verification": "AWAITING_DEVICE",
-  "external_backend_verification": "VERIFIED_ROUTES_PRESENT",
-  "updated_at_utc": "2026-11-10T10:35:00Z"
+  "last_tested_worktree_base": "fe489a6487884fa6667f1cc6e2e0bddbd24e386d",
+  "remediation_report": "docs/reports/phase-15-call-lafina-remediation-report.md"
 }

@@ -1,0 +1,58 @@
+[
+  {
+    "name": "com.lafina.capstone.LafinaAudioPlayerTest",
+    "tests": "1",
+    "failures": "0",
+    "errors": "0",
+    "skipped": "0",
+    "timestamp": "2026-11-10T11:14:35.045Z"
+  },
+  {
+    "name": "com.lafina.capstone.LafinaDeliveryContractTest",
+    "tests": "15",
+    "failures": "0",
+    "errors": "0",
+    "skipped": "0",
+    "timestamp": "2026-11-10T11:14:35.121Z"
+  },
+  {
+    "name": "com.lafina.capstone.LafinaIntentExtractorTest",
+    "tests": "3",
+    "failures": "0",
+    "errors": "0",
+    "skipped": "0",
+    "timestamp": "2026-11-10T11:14:35.344Z"
+  },
+  {
+    "name": "com.lafina.capstone.LafinaReminderTest",
+    "tests": "3",
+    "failures": "0",
+    "errors": "0",
+    "skipped": "0",
+    "timestamp": "2026-11-10T11:14:35.362Z"
+  },
+  {
+    "name": "com.lafina.capstone.LafinaSpeechToTextTest",
+    "tests": "7",
+    "failures": "0",
+    "errors": "0",
+    "skipped": "0",
+    "timestamp": "2026-11-10T11:14:35.384Z"
+  },
+  {
+    "name": "com.lafina.capstone.MicrophoneLeaseTest",
+    "tests": "14",
+    "failures": "0",
+    "errors": "0",
+    "skipped": "0",
+    "timestamp": "2026-11-10T11:14:35.463Z"
+  },
+  {
+    "name": "com.lafina.capstone.VoiceConversationRulesTest",
+    "tests": "11",
+    "failures": "0",
+    "errors": "0",
+    "skipped": "0",
+    "timestamp": "2026-11-10T11:14:35.946Z"
+  }
+]

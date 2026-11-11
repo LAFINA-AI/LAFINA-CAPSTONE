@@ -255,7 +255,9 @@ describe('Phase 10 — Multi-turn Draft Correction, Referents & Idempotency', ()
       if (result.success) {
         expect(result.draft.time).toBe('15:30');
         expect(result.draft.warnings.length).toBeGreaterThan(0);
-        expect(result.draft.warnings[0]).toContain('Conflicts with "Existing Lecture"');
+        expect(result.draft.warnings[0]).toContain(
+          'Conflicts with "Existing Lecture"',
+        );
       }
     });
   });
@@ -472,7 +474,12 @@ describe('Phase 10 — Multi-turn Draft Correction, Referents & Idempotency', ()
         warnings: [],
       });
 
-      const bobRevise = draftRegistry.reviseDraft(USER_B, draft.cardId, 1, 'Change to 2 PM');
+      const bobRevise = draftRegistry.reviseDraft(
+        USER_B,
+        draft.cardId,
+        1,
+        'Change to 2 PM',
+      );
       expect(bobRevise.success).toBe(false);
       if (!bobRevise.success) {
         expect(bobRevise.error).toBe('unauthorized');
@@ -515,7 +522,7 @@ describe('Phase 10 — Multi-turn Draft Correction, Referents & Idempotency', ()
       expect(draftRegistry.getDraft('card-sess-2')).toBeDefined();
     });
 
-    it('actionService dispatches revise_draft, confirm_draft, and cancel_draft tools cleanly', async () => {
+    it('rejects a shadow-only revision and requires on-screen confirmation', async () => {
       draftRegistry.registerDraft({
         cardId: 'card-tool-test',
         sessionId: SESSION_1,
@@ -538,8 +545,8 @@ describe('Phase 10 — Multi-turn Draft Correction, Referents & Idempotency', ()
         {cardId: 'card-tool-test', revision: 1, instruction: 'Change to 2 PM'},
         () => true,
       );
-      expect(reviseReply).toContain('A review card is shown');
-      expect(reviseReply).toContain('Nothing has been saved');
+      expect(reviseReply).toContain('no longer available');
+      expect(reviseReply).toContain('Nothing was changed');
 
       // 2. Tool confirm_draft
       const confirmReply = await actionService.executeTool(
@@ -549,7 +556,7 @@ describe('Phase 10 — Multi-turn Draft Correction, Referents & Idempotency', ()
         {cardId: 'card-tool-test', revision: 2},
         () => true,
       );
-      expect(confirmReply).toContain('confirmed and saved');
+      expect(confirmReply).toContain('Nothing has been saved');
 
       // 3. Repeated confirm returns idempotent success
       const repeatReply = await actionService.executeTool(
@@ -559,7 +566,7 @@ describe('Phase 10 — Multi-turn Draft Correction, Referents & Idempotency', ()
         {cardId: 'card-tool-test', revision: 2},
         () => true,
       );
-      expect(repeatReply).toContain('confirmed and saved');
+      expect(repeatReply).toContain('Nothing has been saved');
     });
   });
 });

@@ -13,7 +13,10 @@
 import React from 'react';
 import {render} from '@testing-library/react-native';
 import {ThemeProvider} from '../../src/ui/contexts/ThemeContext';
-import {CallWaveform, normalizeAmplitude} from '../../src/ui/components/callLafina/CallWaveform';
+import {
+  CallWaveform,
+  normalizeAmplitude,
+} from '../../src/ui/components/callLafina/CallWaveform';
 import {
   isToolExecutionPermitted,
   containsPromptInjection,
@@ -29,10 +32,15 @@ import {
   isVoiceConversationActive,
   voiceConsent,
 } from '../../src/cloud/voiceConversation';
-import type {VoiceConversationDeps, VoiceTransport, VoiceConversationApi} from '../../src/cloud/voiceConversation';
+import type {
+  VoiceConversationDeps,
+  VoiceTransport,
+  VoiceConversationApi,
+} from '../../src/cloud/voiceConversation';
 import {tasksStore} from '../../src/storage/tasksStore';
 import {notesStore} from '../../src/storage/notesStore';
 import {remindersStore} from '../../src/storage/remindersStore';
+import {localSettingsStore} from '../../src/storage/localSettingsStore';
 import {userStore} from '../../src/storage/userStore';
 import {initDatabase} from '../../src/storage/dbInit';
 import {db} from '../../src/storage/database';
@@ -60,6 +68,11 @@ describe('Phase 14 — Reliability, Security, Privacy, and Regression', () => {
     seedUser(TEST_STUDENT_B);
     userStore.setCurrentUser(TEST_STUDENT_A);
     voiceConsent.write(TEST_STUDENT_A);
+    localSettingsStore.set(
+      TEST_STUDENT_A,
+      'voiceConversation.directDataConsent.v1',
+      'true',
+    );
     jest.spyOn(userStore, 'getActiveSessionToken').mockReturnValue({
       userId: TEST_STUDENT_A,
       accessToken: 'alpha-token-12345',
@@ -84,7 +97,10 @@ describe('Phase 14 — Reliability, Security, Privacy, and Regression', () => {
       };
 
       const mockApi: VoiceConversationApi = {
-        capabilities: jest.fn().mockResolvedValue({ok: true, data: {enabled: true, maxDurationSeconds: 600, maxTurns: 30}}),
+        capabilities: jest.fn().mockResolvedValue({
+          ok: true,
+          data: {enabled: true, maxDurationSeconds: 600, maxTurns: 30},
+        }),
         createSession: jest.fn().mockResolvedValue({
           ok: true,
           data: {
@@ -99,7 +115,14 @@ describe('Phase 14 — Reliability, Security, Privacy, and Regression', () => {
         }),
         connected: jest.fn().mockResolvedValue(undefined),
         end: jest.fn().mockResolvedValue(undefined),
-        status: jest.fn().mockResolvedValue({ok: true, data: {status: 'active', lastErrorCode: null, lastErrorMessage: null}}),
+        status: jest.fn().mockResolvedValue({
+          ok: true,
+          data: {
+            status: 'active',
+            lastErrorCode: null,
+            lastErrorMessage: null,
+          },
+        }),
       };
 
       const mockDeps: VoiceConversationDeps = {
@@ -119,7 +142,10 @@ describe('Phase 14 — Reliability, Security, Privacy, and Regression', () => {
       };
 
       const controller = new VoiceConversationController(mockDeps);
-      (controller as any).acceptUserTurn('My secret student password and private notes', 'test-turn-1');
+      (controller as any).acceptUserTurn(
+        'My secret student password and private notes',
+        'test-turn-1',
+      );
 
       // Verify log messages contain no private text or token values
       const logDump = capturedLogs.join(' ');
@@ -213,13 +239,22 @@ describe('Phase 14 — Reliability, Security, Privacy, and Regression', () => {
 
     it('fails safely when mutating or confirming a non-existent or stale draft card ID', () => {
       const nonExistentId = 'draft-fake-nonexistent-1234';
-      const confirmResult = draftRegistry.confirmDraft(TEST_STUDENT_A, nonExistentId, 1);
+      const confirmResult = draftRegistry.confirmDraft(
+        TEST_STUDENT_A,
+        nonExistentId,
+        1,
+      );
       expect(confirmResult.success).toBe(false);
       if (!confirmResult.success) {
         expect(confirmResult.message).toContain('not found');
       }
 
-      const reviseResult = draftRegistry.reviseDraft(TEST_STUDENT_A, nonExistentId, 1, 'Change title');
+      const reviseResult = draftRegistry.reviseDraft(
+        TEST_STUDENT_A,
+        nonExistentId,
+        1,
+        'Change title',
+      );
       expect(reviseResult.success).toBe(false);
       if (!reviseResult.success) {
         expect(reviseResult.message).toContain('not found');

@@ -15,19 +15,29 @@ import type {
   MemoryProposalData,
   MemoryProposalStatus,
   DraftRevisePayload,
-  DraftConfirmPayload,
   DraftCancelPayload,
   MultiActionBatchData,
   MultiActionItemData,
 } from './types';
-import {isToolExecutionPermitted, containsPromptInjection} from './actionSecurity';
+import {
+  isToolExecutionPermitted,
+  containsPromptInjection,
+} from './actionSecurity';
 import {getRegisteredTool} from './actionRegistry';
 import {validatePayload} from './actionValidator';
-import {readLocalVoiceData} from '../../cloud/voiceConversation/localVoiceData';
+import {
+  readLocalVoiceResult,
+  type LocalVoiceResult,
+} from '../../cloud/voiceConversation/localVoiceData';
 import {chatOrchestrator} from '../chatOrchestrator';
 import type {SpokenTurnReview} from '../chatOrchestrator';
 import {chatMemoryStore} from '../../storage/chatMemoryStore';
 import {draftRegistry} from './draftRegistry';
+import {
+  cancelReviewedCommand,
+  reviseReviewedCommand,
+} from '../nlu/commandReview';
+import {explicitMemory} from '../explicitMemory';
 import {
   parseGroupedRequest,
   createMultiActionBatch,
@@ -51,13 +61,17 @@ export interface ActionRecord {
 export type ActionLifecycleListener = (event: ActionLifecycleEvent) => void;
 
 export interface ExecuteToolOptions {
+  onError?: (message: string) => void;
+  onReadResult?: (result: LocalVoiceResult) => void;
+  onDraftCanceled?: () => void;
   sourceTurnId?: string;
   onProposal?: (review: SpokenTurnReview) => void;
-  onMemoryProposal?: (proposal: MemoryProposalData) => void;
+  onMemoryProposal?: (proposal: MemoryProposalData, actionId: string) => void;
   onMultiActionBatch?: (batch: MultiActionBatchData) => void;
 }
 
 class ActionService {
+  private retiredSessions = new Set<string>();
   private actions = new Map<string, ActionRecord>();
   private listeners = new Set<ActionLifecycleListener>();
 
@@ -95,9 +109,23 @@ class ActionService {
   }
 
   clearSessionActions(sessionId: string): void {
+    this.retiredSessions.add(sessionId);
     draftRegistry.clearSessionDrafts(sessionId);
     for (const [id, record] of this.actions.entries()) {
       if (record.envelope.sessionId === sessionId) {
+        if (
+          record.reviewResult?.kind === 'proposal' &&
+          record.reviewResult.review.status === 'proposal'
+        )
+          cancelReviewedCommand(
+            record.envelope.ownerId,
+            record.reviewResult.review.proposal.operationId,
+          );
+        if (record.multiActionBatch)
+          this.cancelMultiActionBatch(
+            record.envelope.ownerId,
+            record.multiActionBatch,
+          );
         this.actions.delete(id);
       }
     }
@@ -115,22 +143,41 @@ class ActionService {
     isCurrent: () => boolean,
     options?: ExecuteToolOptions,
   ): Promise<string> {
+    const fail = (message: string) => {
+      options?.onError?.(message);
+      return message;
+    };
     // 1. Authenticated owner security check
     const perm = isToolExecutionPermitted(userId);
+    if (!isCurrent() || this.retiredSessions.has(sessionId))
+      return fail('Request cancelled. Nothing was changed.');
     if (!perm.permitted) {
-      return `Tool execution not permitted: ${perm.reason || 'Unauthorized'}`;
+      return fail(
+        `Tool execution not permitted: ${perm.reason || 'Unauthorized'}`,
+      );
     }
 
     // 2. Tool registration check
     const toolDef = getRegisteredTool(name);
     if (!toolDef) {
-      return `Tool '${name}' is not supported by LAFINA.`;
+      return fail(`Tool '${name}' is not supported by LAFINA.`);
     }
+
+    if (
+      Object.keys(parameters).some(
+        key =>
+          !Object.prototype.hasOwnProperty.call(
+            toolDef.parameters.properties || {},
+            key,
+          ),
+      )
+    )
+      return fail(`Invalid parameters for '${name}': Unknown tool parameter.`);
 
     // 3. Payload validation
     const valResult = validatePayload(toolDef.kind, parameters);
     if (!valResult.valid) {
-      return `Invalid parameters for '${name}': ${valResult.error}`;
+      return fail(`Invalid parameters for '${name}': ${valResult.error}`);
     }
 
     const actionId = generateId('act');
@@ -167,25 +214,45 @@ class ActionService {
 
         if (!isCurrent()) {
           envelope.phase = 'canceled';
-          this.emit(actionId, toolDef.kind, 'canceled', 'Turn changed or cancelled.');
+          this.emit(
+            actionId,
+            toolDef.kind,
+            'canceled',
+            'Turn changed or cancelled.',
+          );
           return 'Request cancelled because conversational turn updated.';
         }
 
-        let resultStr = '';
+        let result: LocalVoiceResult =
+          'Memory is turned off. No saved memories are available.';
         if (toolDef.kind === 'legacy.read_data') {
           const p = envelope.payload as {kind: string; query?: string};
-          resultStr = readLocalVoiceData(userId, p.kind, p.query);
+          result = readLocalVoiceResult(userId, p.kind, p.query);
         } else if (toolDef.kind === 'calendar.read') {
-          const p = envelope.payload as {query?: string; date?: string};
-          resultStr = readLocalVoiceData(userId, 'calendar', p.date || p.query);
+          const p = envelope.payload as {
+            query?: string;
+            date?: string;
+            start?: string;
+            end?: string;
+          };
+          result = readLocalVoiceResult(
+            userId,
+            'calendar',
+            p.date || p.query,
+            p,
+          );
         } else if (toolDef.kind === 'note.search') {
-          const p = envelope.payload as {query: string};
-          resultStr = readLocalVoiceData(userId, 'notes', p.query);
+          const p = envelope.payload as {query: string; limit?: number};
+          result = readLocalVoiceResult(userId, 'notes', p.query, p);
         } else if (toolDef.kind === 'memory.read') {
           const p = envelope.payload as {query?: string};
-          resultStr = readLocalVoiceData(userId, 'memory', p.query);
+          result = readLocalVoiceResult(userId, 'memory', p.query);
         }
 
+        if (!isCurrent()) return 'Request canceled. Nothing was changed.';
+        options?.onReadResult?.(result);
+        const resultStr =
+          typeof result === 'string' ? result : JSON.stringify(result);
         envelope.phase = 'done';
         record.status = 'result';
         record.result = resultStr;
@@ -200,7 +267,12 @@ class ActionService {
 
         if (!isCurrent()) {
           envelope.phase = 'canceled';
-          this.emit(actionId, toolDef.kind, 'canceled', 'Turn changed or cancelled.');
+          this.emit(
+            actionId,
+            toolDef.kind,
+            'canceled',
+            'Turn changed or cancelled.',
+          );
           return 'Request cancelled because conversational turn updated.';
         }
 
@@ -208,7 +280,12 @@ class ActionService {
           envelope.phase = 'failed';
           record.status = 'failed';
           record.error = 'Memory is turned off in Settings.';
-          this.emit(actionId, toolDef.kind, 'failed', 'Memory is turned off in Settings.');
+          this.emit(
+            actionId,
+            toolDef.kind,
+            'failed',
+            'Memory is turned off in Settings.',
+          );
           return 'Memory is turned off in Settings. No memories can be saved.';
         }
 
@@ -223,8 +300,13 @@ class ActionService {
         envelope.phase = 'waiting';
         record.status = 'prepare';
         record.updatedEpoch = Date.now();
-        this.emit(actionId, toolDef.kind, 'waiting', 'Memory review card presented to student.');
-        options?.onMemoryProposal?.(memProp);
+        this.emit(
+          actionId,
+          toolDef.kind,
+          'waiting',
+          'Memory review card presented to student.',
+        );
+        options?.onMemoryProposal?.(memProp, actionId);
         return `A memory card is shown with fact: "${memProp.text}". Nothing has been saved yet. Ask the student to check and confirm the card.`;
       }
 
@@ -237,17 +319,43 @@ class ActionService {
 
         if (!isCurrent()) {
           envelope.phase = 'canceled';
-          this.emit(actionId, toolDef.kind, 'canceled', 'Turn changed or cancelled.');
+          this.emit(
+            actionId,
+            toolDef.kind,
+            'canceled',
+            'Turn changed or cancelled.',
+          );
           return 'Request cancelled because conversational turn updated.';
         }
 
         const p = envelope.payload as {request: string};
-        const review = await chatOrchestrator.reviewSpokenTurn(userId, p.request);
+        const fact = explicitMemory(p.request);
+        if (fact) {
+          const prepared = this.createMemoryProposal(
+            userId,
+            sessionId,
+            fact,
+            p.request,
+          );
+          options?.onMemoryProposal?.(prepared.proposal, prepared.actionId);
+          return 'A memory review card is shown. Nothing has been saved. Please tap Save to confirm.';
+        }
+        const review = await chatOrchestrator.reviewSpokenTurn(
+          userId,
+          p.request,
+        );
 
         if (!isCurrent()) {
           envelope.phase = 'canceled';
-          this.emit(actionId, toolDef.kind, 'canceled', 'Turn changed during review.');
-          return 'Review prepared but superseded by new turn.';
+          this.emit(
+            actionId,
+            toolDef.kind,
+            'canceled',
+            'Turn changed during review.',
+          );
+          if (review.kind === 'proposal' && review.review.status === 'proposal')
+            cancelReviewedCommand(userId, review.review.proposal.operationId);
+          return fail('Review prepared but superseded by new turn.');
         }
 
         record.reviewResult = review;
@@ -257,8 +365,14 @@ class ActionService {
         if (review.kind === 'proposal') {
           envelope.phase = 'waiting';
           record.status = 'prepare';
-          this.emit(actionId, toolDef.kind, 'waiting', 'Review card presented to student.');
-          const pProposal = review.review.status === 'proposal' ? review.review.proposal : null;
+          this.emit(
+            actionId,
+            toolDef.kind,
+            'waiting',
+            'Review card presented to student.',
+          );
+          const pProposal =
+            review.review.status === 'proposal' ? review.review.proposal : null;
           if (pProposal) {
             draftRegistry.registerDraft({
               cardId: pProposal.operationId,
@@ -281,7 +395,7 @@ class ActionService {
               warnings: [...pProposal.warnings],
             });
           }
-          return `A review card is shown: ${review.reply} Nothing has been saved. Ask the student to check and confirm the card.`;
+          return `A review card is shown: ${review.reply} Card ID: ${pProposal?.operationId}; revision: 1. Nothing has been saved. Ask the student to check and confirm the card.`;
         }
 
         if (review.kind !== 'none') {
@@ -303,72 +417,83 @@ class ActionService {
 
         if (!isCurrent()) {
           envelope.phase = 'canceled';
-          this.emit(actionId, toolDef.kind, 'canceled', 'Turn changed or cancelled.');
+          this.emit(
+            actionId,
+            toolDef.kind,
+            'canceled',
+            'Turn changed or cancelled.',
+          );
           return 'Request cancelled because conversational turn updated.';
         }
 
         const p = envelope.payload as DraftRevisePayload;
-        const result = draftRegistry.reviseDraft(userId, p.cardId, p.revision, p.instruction);
-        if (result.success) {
+        const result =
+          p.revision === 1
+            ? reviseReviewedCommand(userId, p.cardId, p.instruction)
+            : {
+                status: 'invalid' as const,
+                reply: 'Stale draft revision. Please review the current card.',
+              };
+        if (result.status === 'proposal') {
           envelope.phase = 'waiting';
           record.status = 'prepare';
-          record.result = result.message;
+          record.result = result.reply;
           record.updatedEpoch = Date.now();
-          this.emit(actionId, toolDef.kind, 'waiting', result.message);
-          return `A review card is shown: ${result.message} Nothing has been saved. Ask the student to check and confirm the card.`;
+          this.emit(actionId, toolDef.kind, 'waiting', result.reply);
+          options?.onProposal?.({
+            kind: 'proposal',
+            review: result,
+            reply: result.reply,
+          });
+          return `A review card is shown: ${result.reply} Card ID: ${result.proposal.operationId}; revision: 1. Nothing has been saved. Please tap Confirm.`;
         }
         envelope.phase = 'failed';
         record.status = 'failed';
-        record.error = result.message;
+        record.error = result.reply;
         record.updatedEpoch = Date.now();
-        this.emit(actionId, toolDef.kind, 'failed', result.message);
-        return result.message;
+        this.emit(actionId, toolDef.kind, 'failed', result.reply);
+        return result.reply;
       }
 
       if (toolDef.kind === 'draft.confirm') {
-        envelope.phase = 'confirming';
-        this.emit(actionId, toolDef.kind, 'confirming');
-
-        const p = envelope.payload as DraftConfirmPayload;
-        const result = draftRegistry.confirmDraft(userId, p.cardId, p.revision);
-        if (result.success) {
-          envelope.phase = 'done';
-          record.status = 'result';
-          record.updatedEpoch = Date.now();
-          this.emit(actionId, toolDef.kind, 'done', 'Draft confirmed successfully.');
-          return `The draft for "${result.draft.title}" was confirmed and saved.`;
-        }
-        envelope.phase = 'failed';
-        record.status = 'failed';
-        record.error = result.message;
-        record.updatedEpoch = Date.now();
-        this.emit(actionId, toolDef.kind, 'failed', result.message);
-        return result.message;
+        envelope.phase = 'waiting';
+        this.emit(actionId, toolDef.kind, 'waiting');
+        return 'Nothing has been saved. The student must tap Confirm on the review card.';
       }
 
       if (toolDef.kind === 'draft.cancel') {
         envelope.phase = 'canceled';
         const p = envelope.payload as DraftCancelPayload;
-        const result = draftRegistry.cancelDraft(userId, p.cardId);
-        if (result.success) {
+        const canceled =
+          p.revision === 1 && cancelReviewedCommand(userId, p.cardId);
+        if (canceled) {
           record.status = 'cancel';
           record.updatedEpoch = Date.now();
-          this.emit(actionId, toolDef.kind, 'canceled', result.message);
-          return result.message;
+          options?.onDraftCanceled?.();
+          this.emit(
+            actionId,
+            toolDef.kind,
+            'canceled',
+            'Draft canceled. Nothing was saved.',
+          );
+          return 'Draft canceled. Nothing was saved.';
         }
         envelope.phase = 'failed';
         record.status = 'failed';
-        record.error = result.message;
+        record.error = 'That draft is no longer available.';
         record.updatedEpoch = Date.now();
-        this.emit(actionId, toolDef.kind, 'failed', result.message);
-        return result.message;
+        this.emit(actionId, toolDef.kind, 'failed', record.error);
+        return record.error;
       }
 
       if (toolDef.kind === 'multi.prepare') {
         envelope.phase = 'preparing';
         this.emit(actionId, toolDef.kind, 'preparing');
 
-        const rawPayload = envelope.payload as {text?: string; items?: Array<Record<string, unknown>>};
+        const rawPayload = envelope.payload as {
+          text?: string;
+          items?: Array<Record<string, unknown>>;
+        };
         let items: MultiActionItemData[] = [];
         let truncated = false;
 
@@ -380,7 +505,8 @@ class ActionService {
             date: it.date ? String(it.date) : undefined,
             time: it.time ? String(it.time) : undefined,
             endTime: it.endTime ? String(it.endTime) : undefined,
-            priority: (it.priority as MultiActionItemData['priority']) || 'medium',
+            priority:
+              (it.priority as MultiActionItemData['priority']) || 'medium',
             body: it.body ? String(it.body) : undefined,
             status: 'draft',
             savedEntityId: null,
@@ -396,15 +522,31 @@ class ActionService {
           truncated = parsed.truncated;
         }
 
-        const batch = createMultiActionBatch(sessionId, userId, items, truncated);
+        const batch = createMultiActionBatch(
+          sessionId,
+          userId,
+          items,
+          truncated,
+        );
         envelope.phase = 'waiting';
         record.status = 'prepare';
         record.multiActionBatch = batch;
         record.updatedEpoch = Date.now();
-        this.emit(actionId, toolDef.kind, 'waiting', 'Multi-action review card presented to student.');
+        this.emit(
+          actionId,
+          toolDef.kind,
+          'waiting',
+          'Multi-action review card presented to student.',
+        );
         options?.onMultiActionBatch?.(batch);
 
-        return `A grouped review card with ${batch.items.length} items is shown: ${batch.items.map(i => i.title).join(', ')}. Nothing has been saved yet. Ask the student to check and confirm the card.`;
+        return `A grouped review card with ${
+          batch.items.length
+        } items is shown: ${batch.items
+          .map(i => i.title)
+          .join(
+            ', ',
+          )}. Nothing has been saved yet. Ask the student to check and confirm the card.`;
       }
 
       if (toolDef.name === 'propose_follow_up_reminder') {
@@ -412,9 +554,15 @@ class ActionService {
         this.emit(actionId, toolDef.kind, 'preparing');
 
         const rawP = envelope.payload as Record<string, unknown>;
-        const parentTitle = String(parameters.parentTitle || rawP.title || 'Event');
-        const eventDate = String(parameters.date || rawP.triggerDate || rawP.date || '');
-        const eventTime = String(parameters.time || rawP.triggerTime || rawP.time || '');
+        const parentTitle = String(
+          parameters.parentTitle || rawP.title || 'Event',
+        );
+        const eventDate = String(
+          parameters.date || rawP.triggerDate || rawP.date || '',
+        );
+        const eventTime = String(
+          parameters.time || rawP.triggerTime || rawP.time || '',
+        );
         const minutesBefore =
           typeof parameters.minutesBefore === 'number'
             ? parameters.minutesBefore
@@ -439,21 +587,33 @@ class ActionService {
         record.status = 'prepare';
         record.multiActionBatch = batch;
         record.updatedEpoch = Date.now();
-        this.emit(actionId, toolDef.kind, 'waiting', 'Follow-up reminder proposal card presented.');
+        this.emit(
+          actionId,
+          toolDef.kind,
+          'waiting',
+          'Follow-up reminder proposal card presented.',
+        );
         options?.onMultiActionBatch?.(batch);
 
-        return `A follow-up reminder card is proposed: "${reminderItem.title}" on ${reminderItem.date || 'today'} at ${reminderItem.time || 'scheduled time'}. Nothing has been saved yet. Ask the student if they would like to set this reminder.`;
+        return `A follow-up reminder card is proposed: "${
+          reminderItem.title
+        }" on ${reminderItem.date || 'today'} at ${
+          reminderItem.time || 'scheduled time'
+        }. Nothing has been saved yet. Ask the student if they would like to set this reminder.`;
       }
 
       return 'Action completed.';
     } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : 'Unknown execution failure';
+      const msg =
+        err instanceof Error ? err.message : 'Unknown execution failure';
       envelope.phase = 'failed';
       record.status = 'failed';
       record.error = msg;
       record.updatedEpoch = Date.now();
       this.emit(actionId, toolDef.kind, 'failed', msg);
-      return `Failed to execute ${name}: ${msg}`;
+      return fail(
+        `Failed to execute ${name}. Nothing was changed. Please try again.`,
+      );
     }
   }
 
@@ -504,30 +664,83 @@ class ActionService {
     userId: string,
     actionId: string,
     editedText?: string,
-  ): {success: boolean; status: MemoryProposalStatus; memoryId?: string; error?: string} {
+  ): {
+    success: boolean;
+    status: MemoryProposalStatus;
+    memoryId?: string;
+    error?: string;
+  } {
+    if (!isToolExecutionPermitted(userId).permitted)
+      return {
+        success: false,
+        status: 'failed',
+        error: 'Unauthorized: active owner and consent required.',
+      };
     const record = this.actions.get(actionId);
     if (!record) {
       return {success: false, status: 'failed', error: 'Action not found'};
     }
     if (record.envelope.ownerId !== userId) {
-      return {success: false, status: 'failed', error: 'Unauthorized: owner mismatch'};
+      return {
+        success: false,
+        status: 'failed',
+        error: 'Unauthorized: owner mismatch',
+      };
     }
     if (!record.memoryProposal) {
-      return {success: false, status: 'failed', error: 'No memory proposal attached to action'};
+      return {
+        success: false,
+        status: 'failed',
+        error: 'No memory proposal attached to action',
+      };
+    }
+    if (
+      Date.now() - record.createdEpoch >= 5 * 60 * 1000 ||
+      ['canceled', 'expired', 'undone'].includes(record.memoryProposal.status)
+    ) {
+      return {
+        success: false,
+        status: 'expired',
+        error: 'This memory proposal is no longer available.',
+      };
+    }
+    if (record.memoryProposal.status === 'saved') {
+      return {
+        success: false,
+        status: 'duplicate',
+        error: 'That fact is already in your memory.',
+      };
     }
     if (!chatMemoryStore.isEnabled(userId)) {
       record.memoryProposal.status = 'disabled';
       record.envelope.phase = 'failed';
       this.emit(actionId, record.envelope.kind, 'failed', 'Memory is disabled');
-      return {success: false, status: 'disabled', error: 'Memory is turned off in Settings.'};
+      return {
+        success: false,
+        status: 'disabled',
+        error: 'Memory is turned off in Settings.',
+      };
     }
 
     const textToSave = (editedText ?? record.memoryProposal.text).trim();
-    if (textToSave.length < 2 || textToSave.length > 200 || containsPromptInjection(textToSave)) {
+    if (
+      textToSave.length < 2 ||
+      textToSave.length > 200 ||
+      containsPromptInjection(textToSave)
+    ) {
       record.memoryProposal.status = 'failed';
       record.envelope.phase = 'failed';
-      this.emit(actionId, record.envelope.kind, 'failed', 'Invalid memory text');
-      return {success: false, status: 'failed', error: 'Invalid or rejected memory text.'};
+      this.emit(
+        actionId,
+        record.envelope.kind,
+        'failed',
+        'Invalid memory text',
+      );
+      return {
+        success: false,
+        status: 'failed',
+        error: 'Invalid or rejected memory text.',
+      };
     }
 
     try {
@@ -536,14 +749,23 @@ class ActionService {
         record.memoryProposal.status = 'duplicate';
         record.envelope.phase = 'done';
         this.emit(actionId, record.envelope.kind, 'done', 'Duplicate memory');
-        return {success: false, status: 'duplicate', error: 'That fact is already in your memory.'};
+        return {
+          success: false,
+          status: 'duplicate',
+          error: 'That fact is already in your memory.',
+        };
       }
       record.memoryProposal.status = 'saved';
       record.memoryProposal.savedMemoryId = saved.id;
       record.memoryProposal.text = textToSave;
       record.envelope.phase = 'done';
       record.status = 'result';
-      this.emit(actionId, record.envelope.kind, 'done', 'Memory saved successfully');
+      this.emit(
+        actionId,
+        record.envelope.kind,
+        'done',
+        'Memory saved successfully',
+      );
       return {success: true, status: 'saved', memoryId: saved.id};
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : 'Database error';
@@ -563,10 +785,18 @@ class ActionService {
       return {success: false, status: 'failed', error: 'Action not found'};
     }
     if (record.envelope.ownerId !== userId) {
-      return {success: false, status: 'failed', error: 'Unauthorized: owner mismatch'};
+      return {
+        success: false,
+        status: 'failed',
+        error: 'Unauthorized: owner mismatch',
+      };
     }
     if (!record.memoryProposal?.savedMemoryId) {
-      return {success: false, status: 'failed', error: 'No saved memory found to undo'};
+      return {
+        success: false,
+        status: 'failed',
+        error: 'No saved memory found to undo',
+      };
     }
 
     try {
@@ -593,7 +823,12 @@ class ActionService {
       record.memoryProposal.status = 'canceled';
     }
     record.envelope.phase = 'canceled';
-    this.emit(actionId, record.envelope.kind, 'canceled', 'User canceled memory proposal');
+    this.emit(
+      actionId,
+      record.envelope.kind,
+      'canceled',
+      'User canceled memory proposal',
+    );
     return {success: true, status: 'canceled'};
   }
 
@@ -601,11 +836,18 @@ class ActionService {
     userId: string,
     batch: MultiActionBatchData,
     targetItemId?: string,
+    isCurrent: () => boolean = () => true,
   ): Promise<{batch: MultiActionBatchData; spokenSummary: string}> {
     if (batch.ownerId !== userId) {
       throw new Error('Unauthorized: batch does not belong to user');
     }
-    return executeMultiActionBatch(batch, userId, targetItemId);
+    const permitted = () =>
+      isCurrent() &&
+      !this.retiredSessions.has(batch.sessionId) &&
+      isToolExecutionPermitted(userId).permitted;
+    if (!permitted())
+      throw new Error('This call action is no longer available.');
+    return executeMultiActionBatch(batch, userId, targetItemId, permitted);
   }
 
   cancelMultiActionBatch(

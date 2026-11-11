@@ -11,12 +11,7 @@
  */
 
 import React from 'react';
-import {
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View,
-} from 'react-native';
+import {StyleSheet, Text, TouchableOpacity, View} from 'react-native';
 import {CircleAlert} from 'lucide-react-native';
 import {Fonts, FontSize, Layout, Spacing} from '../../theme';
 import {useTheme} from '../../contexts/ThemeContext';
@@ -33,7 +28,11 @@ import {NoteDraftCard} from './cards/NoteDraftCard';
 import {NoteResultCard} from './cards/NoteResultCard';
 import type {NoteResultCardData} from './cards/NoteResultCard';
 import {MemoryReviewCard} from './cards/MemoryReviewCard';
-import type {MemoryProposalData, MultiActionBatchData} from '../../../ai/voiceActions/types';
+import type {
+  MemoryProposalData,
+  MultiActionBatchData,
+  MultiActionItemData,
+} from '../../../ai/voiceActions/types';
 import {MultiActionCard} from './cards/MultiActionCard';
 
 export interface ActionCardHostProps {
@@ -56,7 +55,14 @@ export interface ActionCardHostProps {
   onConfirmMultiAll?: () => void;
   onCancelMultiAll?: () => void;
   onCancelMultiItem?: (itemId: string) => void;
+  onOpenMultiItem?: (item: MultiActionItemData) => void;
   onRetryMultiItem?: (itemId: string) => void;
+  onEditMultiItemFields?: (
+    itemId: string,
+    patch: Partial<
+      Pick<MultiActionItemData, 'date' | 'time' | 'endTime' | 'body'>
+    >,
+  ) => void;
   onEditMultiItemTitle?: (itemId: string, newTitle: string) => void;
   testIDPrefix?: string;
 }
@@ -82,7 +88,9 @@ export const ActionCardHost: React.FC<ActionCardHostProps> = ({
   onCancelMultiAll,
   onCancelMultiItem,
   onRetryMultiItem,
+  onOpenMultiItem,
   onEditMultiItemTitle,
+  onEditMultiItemFields,
   testIDPrefix = 'action-card',
 }) => {
   const {colors} = useTheme();
@@ -105,7 +113,8 @@ export const ActionCardHost: React.FC<ActionCardHostProps> = ({
           </Text>
         </View>
         <Text style={[styles.bodyText, themed.primaryText]}>
-          This action kind ({unknownKind}) is not supported by this version of Call Lafina.
+          This action kind ({unknownKind}) is not supported by this version of
+          Call Lafina.
         </Text>
         <View style={styles.buttonRow}>
           <TouchableOpacity
@@ -190,8 +199,10 @@ export const ActionCardHost: React.FC<ActionCardHostProps> = ({
           onCancelAll={onCancelMultiAll ?? onCancel}
           onCancelItem={onCancelMultiItem}
           onRetryItem={onRetryMultiItem}
+          onOpenItem={onOpenMultiItem}
           onDismiss={onDismiss}
           onEditItemTitle={onEditMultiItemTitle}
+          onEditItemFields={onEditMultiItemFields}
           testIDPrefix={testIDPrefix}
         />
       </View>
@@ -212,8 +223,7 @@ export const ActionCardHost: React.FC<ActionCardHostProps> = ({
     proposal.intent === 'update_time_block';
 
   const isNote =
-    proposal.intent === 'create_note' ||
-    proposal.intent === 'update_note';
+    proposal.intent === 'create_note' || proposal.intent === 'update_note';
 
   return (
     <View
@@ -236,7 +246,11 @@ export const ActionCardHost: React.FC<ActionCardHostProps> = ({
           proposal={proposal}
           expired={expired || status === 'expired'}
           busy={busy || status === 'confirm'}
-          alternatives={alternatives}
+          alternatives={
+            alternatives.length
+              ? alternatives
+              : [...(proposal.conflictAlternatives || [])]
+          }
           onConfirm={onConfirm}
           onCancel={onCancel}
           onDismiss={onDismiss}
