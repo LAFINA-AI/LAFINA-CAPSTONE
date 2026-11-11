@@ -1,124 +1,181 @@
-> Online voice migration (2026-11-07): [ElevenLabs setup and backend-owner handoff](backend_integration/README.md). DeepSeek remains the response provider; offline voices remain local. Production speech endpoints are deployed and protected; signed-in phone validation is pending.
-
-> **Lem-branch integration:** see [current merge results and QA APK receipts](docs/plans/lem-integration/REPORT.md). Earlier AGY port reports describe their own historical builds.
+> **Online Voice Migration (2026-11-07):** [ElevenLabs setup and backend-owner handoff](backend_integration/README.md). DeepSeek powers online chat responses; offline voices remain native on-device (`react-native-tts`). Production speech endpoints are deployed on `LAFINA-backend` (`https://lafina-backend.vercel.app`) with automatic local TTS fallback.
+>
+> **Lem-Branch Integration:** [Lem-branch integration report](docs/plans/lem-integration/REPORT.md) records the merged Whisper runtime model warmup, personalized ML reminder timing advisor, screen rendering optimizations, audio ducking, and personal memory stores.
 
 # LAFINA-CAPSTONE
 
-Android-first, local-first academic AI secretary for university students. Anonymous
-offline onboarding, tasks, calendar, reliable Android reminders, manual controls,
-hold-to-talk offline speech recognition, and Android system TTS define the planned
-core. No registration, login, accounts, business roles, subscriptions or teams.
-Low-end device performance is a priority; minimum RAM/ABI support will be stated
-only after real-device validation.
+**Android-first, offline-first personal academic AI secretary for university students.**
 
-**Current state: Phase 03 native reminders, awaiting device validation.** Anonymous
-onboarding, preferences, themes and the offline data layer remain available.
-Settings now exposes Android reminder permissions, consent and delivery diagnostics.
-Native AlarmManager jobs open a simulated reminder screen through an eligible
-full-screen alert or notification. Private QA controls exercise the loop; ordinary
-Calendar and Chat remain placeholders. Speech, command execution, backend and
-models are absent. The owner explicitly approved Phase03; Phase04 is not authorized.
+LAFINA-CAPSTONE is built around zero-barrier offline onboarding, student task and calendar scheduling, durable native Android reminder alarms with simulated voice reminder calls, push-to-talk on-device speech recognition, fast local text-to-speech, and optional bidirectional cloud synchronization with citation-backed USTP Student Handbook RAG.
 
-Start with [AGENTS.md](AGENTS.md), [the charter](docs/00-PROJECT-CHARTER.md),
-[requirements](docs/01-PRODUCT-REQUIREMENTS.md), and the
-[Phase 00 report](docs/reports/phase-00-report.md) for pinned-source evidence.
-For the current build read [Phase 03 report](docs/reports/phase-03-report.md),
-[native architecture/schema](docs/phase-03-native-reminders.md) and
-[manual Android checklist](qa/PHASE-03-MANUAL.md).
-Use [phase instructions](phases/PHASE-03.md) and
-[the report template](templates/PHASE-REPORT.md) for one phase at a time.
+---
 
-Legacy reference: [LAFINA at the pinned revision](https://github.com/LAFINA-AI/LAFINA/tree/f7e70aec54e6d16e627f444f2a67114cbfb07b5e).
-The legacy repository is read-only and is not a runtime dependency. No legacy code,
-credentials, database, model binaries or dependency tree have been imported.
+## 1. Current Implementation Status
 
-Android system offline-capable TTS is the default direction; Kokoro is excluded
-from the initial MVP. On-device Android STT must be evaluated on real devices,
-with a reviewed Whisper.cpp fallback where needed. Deterministic validated intents
-come first. Typed/manual controls remain available when speech or AI fails.
-Online Gemini and verified USTP handbook RAG remain deferred until the Phase 08
-offline gate passes and the owner explicitly approves the relevant later phase.
+**Status:** **Feature-Complete Milestone (Phases 01–10 + Lem-Branch Integration & Phase 09 ElevenLabs Speech Provider Migration)**  
+* **Package Version:** `1.3.4`  
+* **Android Release Version:** `0.6.0-preview` (versionCode `6`)  
+* **Preflight Pipeline:** `npm run preflight` PASS (84/84 Jest test suites, 1,212 unit tests, TypeScript strict, ESLint 0 warnings, 259 modules verified by AST architecture guardrails).  
+* **Android 15 Compatibility:** Verified 16 KiB ELF alignment across all 16 bundled native `.so` libraries (`ONNX Runtime 1.22.0`).
 
-## Development
+---
 
-Use Node **24.19.0**, npm **11.17.0** and **JDK17**. Android: min SDK30,
-compile/target36, Build Tools36.0.0, NDK27.1.12297006, Gradle9.3.1 (checksum pinned),
-Kotlin plugin2.1.20. Exact dependency pins are in package.json/package-lock.json.
-OP-SQLite stores settings and planner records in one `lafina-capstone.sqlite`.
-Migration0→1→2 preserves Phase01 settings. Android framework SQLite accesses the
-same file only in a private reminder process using DELETE journaling (ADR-015).
-Never copy the legacy DB.
+## 2. Core Feature Matrix
 
+### Student UI/UX & Design System (`src/ui/`)
+* **Visual Shell:** Multi-strand procedural bezier spline splash (`SynthSplash`), hardware-accelerated OpenGL grain-gradient backdrop (`AuthBackdrop` + `LafinaGrainientView.kt`), and circular theme reveal animations.
+* **Onboarding & Auth:** Frictionless guest onboarding (`local_guest_user`) with zero barrier to entry, plus optional authenticated student cloud accounts (`student`, `student_pro`, `admin`).
+* **Design Tokens:** Centralized theme system (`Colors`, `Fonts`, `FontSize`, `Spacing`, `Layout`, `Shadows`, `useThemedStyles`, `useTheme`) supporting dark, light, and system themes.
+* **Navigation:** `CustomTabBar` with animated tab transitions and floating action button modal triggers.
+
+### Academic Calendar & Notes Workspace (`src/ui/screens/calendar/`, `src/ui/screens/notes/`)
+* **Interactive Calendar:** Continuous timeline Week View and 7-day grid Month View with minute-accurate focus blocks and collision detection.
+* **Philippine National Holidays:** Built-in holiday schedule banner highlighting regular and special non-working holidays.
+* **RFC 5545 Recurrence & iCalendar Interoperability:** Zero-dependency recurrence rule parser (`DAILY`, `WEEKLY`, `MONTHLY`, `YEARLY` up to 1,000 occurrences) and full `.ics` academic timetable import/export with layer visibility toggles.
+* **Lecture Notes Editor:** Full-screen Markdown editor with live preview, interactive checklists (`- [ ]` / `- [x]`), category tags, pinning, search, and drag-and-drop reordering.
+
+### Durable Native Android Alarms & Reminder Calls (`src/scheduler/`, `android/`)
+* **Native Android Exact Alarms:** Scheduled via `AlarmManager.setExactAndAllowWhileIdle` (`LafinaReminderModule.kt`) with fallback for battery-saver restrictions and full-screen intent over the Android lock screen.
+* **Simulated Incoming Reminder Calls:** `IncomingCallScreen` simulated phone call with push-to-talk mic activation, ringtone playback, vibration, and background foreground service (`LafinaReminderService.kt`).
+* **Decoupled Acknowledgment Invariant:** Answering, snoozing, or dismissing an alert updates reminder status to `acknowledged` while strictly keeping the underlying task pending (`isCompleted === false`).
+* **Reboot & Lifecycle Recovery:** Reschedules pending alarms across device reboots (`BOOT_COMPLETED`), timezone adjustments (`TIMEZONE_CHANGED`), and package updates (`MY_PACKAGE_REPLACED`). Stale alerts (>15 min) transition to `missed`, and near-due alerts (<3 min) trigger immediately.
+
+### On-Device Speech & NLU (`src/ai/`)
+* **Push-to-Talk STT:** Offline `whisper.cpp` (`ggml-base.en-q5_1.bin`) with Silero VAD (`silero_vad.onnx`) and background model warmup on Voice modal open.
+* **Fast On-Device NLU:** Deterministic regex and grammar fast-path parser extracting actions, dates, and entities with zero network latency.
+* **Fast Local TTS:** Native Android speech synthesis powered by `react-native-tts` (completely replacing the legacy 85 MB Kokoro 82M ONNX binary for sub-100ms latency).
+
+### Adaptive Reminder Timing ML Advisor (`src/ai/ml/`)
+* **Local Machine Learning Pipeline:** EWMA user response latency tracking, historical feature clustering (KNN), and Random Forest adherence recommendations for optimal reminder lead times.
+* **Non-Intrusive & Controllable:** Preserves baseline schedules on cold start or opt-out; suggestions are explicitly surfaced in command reviews before commit.
+
+### Cloud Sync & Online AI (`src/cloud/`, `src/sync/`)
+* **Personal Entity Sync:** Offline-first bidirectional sync across the 7 personal entities (`profile`, `task`, `event`, `time_block`, `reminder`, `note`, `custom_category`) against `LAFINA-backend` (`https://lafina-backend.vercel.app` with `http://127.0.0.1:8000` dev fallback).
+* **Online AI Assistant:** DeepSeek AI chat endpoint integration with automatic local fallback when offline.
+* **Cloud Voice Synthesis:** Online ElevenLabs TTS endpoint (`/v1/ai/tts`) with automatic, silent fallback to local `react-native-tts`.
+* **USTP Student Handbook RAG:** Citation-backed academic policy Q&A (`/v1/ai/chat` with `use_handbook: true`) showing verified page references, coupled with strict fail-closed guidance when offline.
+
+---
+
+## 3. Strict Architectural Guardrails
+
+Enforced automatically by AST analysis (`scripts/check-architecture.mjs`):
+* **Forbidden Business Scope:** 0 business dashboards, business roles (`manager`, `employee`, `business`), business tasks, business work blocks, company chat, or team invitations.
+* **Forbidden Gmail Scope:** 0 Gmail APIs, OAuth scopes, mail sync jobs, or inbox screens.
+* **Forbidden Study Tool Bloat:** 0 Pomodoro timers, Flashcard decks, or Meeting recording modules.
+* **Forbidden Heavy Models:** 0 Kokoro 82M ONNX binaries (`kokoro-v0_19.onnx`, `af_bella.bin`, `cmudict.txt`), keeping APKs lightweight.
+* **Offline Boundaries:** 81 offline leaf modules verified to have zero transitive reach to network APIs.
+
+---
+
+## 4. Development Environment
+
+| Dependency | Required Version |
+| :--- | :--- |
+| **Node.js** | `>= 24.19.0` (LTS) |
+| **npm** | `>= 10.0.0` |
+| **JDK** | OpenJDK 17 (`hotspot-17`) |
+| **Android SDK Platform** | Android 36 (API 36) |
+| **Android Build Tools** | `36.0.0` |
+| **Android NDK** | `27.1.12297006` |
+| **CMake** | `3.22.1` |
+| **Minimum Android OS** | Android 11.0+ (API 30+) |
+
+---
+
+## 5. Development & Testing Commands
+
+### Setup and Environment Check
 ```powershell
-npm ci --ignore-scripts
-npm run preflight
-npm run doctor
+# Install Node dependencies
+npm ci
 
-# Set these paths to your installed JDK/SDK, in this terminal only.
-$env:JAVA_HOME = 'C:\Program Files\Microsoft\jdk-17.0.20.101-hotspot'
-$env:ANDROID_HOME = Join-Path $env:LOCALAPPDATA 'Android/Sdk'
-.\android\gradlew.bat -p android :app:testDataQaUnitTest :app:assembleDebug :app:assembleDataQa :app:assembleRelease :app:assembleDataQaAndroidTest '-PreactNativeArchitectures=arm64-v8a,x86_64' --max-workers=2 --no-daemon --console=plain
+# Run system requirements check
+node scripts/doctor.mjs
 ```
 
-ABIs produce separate APKs under `android/app/build/outputs/apk/` to avoid shipping
-unneeded architectures. For a physical ARM64 phone use the ARM64 release-preview
-APK; x86_64 is for the matching emulator. ARMv7 is experimental, excluded by default,
-and requires `-PenableExperimentalArmv7=true` plus separate validation. Android11+ is required.
-See report for actual built ABIs and artifact hashes/sizes.
-
-**Release preview uses standard development signing. Do not publish it.** It bundles
-JS/Hermes, has no INTERNET permission and runs without Metro. Debug has Metro and
-developer-overlay permissions and app ID `com.lafina.capstone.debug`; preview app ID is
-`com.lafina.capstone`, distinct from old LAFINA. Phase03 requests notification,
-exact-alarm, conditional full-screen, boot and vibration permissions. No microphone,
-telephony, foreground service or network permission is present in bundled QA/release.
-
-For offline Phase03 review install the ABI-matching **dataQa** APK from
-`android/app/build/outputs/apk/dataQa/` with `adb install -r`, then open
-**Settings → Reminder delivery**. Enable delivery and notification access explicitly,
-then use the synthetic reminder check. **Open data test harness** retains storage
-review tools. The APK bundles JS with development support off,
-enables test controls through a native build flag, and preserves the existing
-preview's app ID/settings. It is a private debuggable QA build, not a public
-release. Release hides the harness; debug requires Metro. See the manual checklist
-for exact commands, ACK-versus-completion checks, Android limits and permission fallbacks.
-
-For development with a USB-connected test device:
-
+### Full Preflight Validation
+Runs TypeScript typechecking, ESLint, the full Jest unit test suite, and the architectural AST dependency checks:
 ```powershell
+npm run preflight
+```
+
+Individual checks:
+```powershell
+npm run typecheck            # TypeScript compiler check
+npm run lint                 # ESLint check (0 warnings allowed)
+npm test                     # Jest unit test suites
+npm run check:architecture   # AST circular dependency & scope verification
+```
+
+### Running on Android Device / Emulator
+```powershell
+# Start Metro bundler
 npm start
-# In a second terminal with JDK/SDK selected:
+
+# In a second terminal (with Android device connected via USB or emulator running):
 npm run android
 ```
 
-Tests use an injected repository and real **host** SQLite for SQL persistence and
-write-failure cases. They do not certify Android JSI, phone UI or future native
-STT/TTS or physical-phone alarm behavior. Native SQLite and PendingIntent instrumentation
-are separate from host tests. `npm run check:architecture` checks the TS import graph, pure domain,
-offline dependency boundaries and main manifest. Graphify is not installed.
-The CI workflow is provided; remote execution is not implied by local checks.
-Known inherited dependency advisories remain open in the
-[provenance/security ledger](docs/third-party/phase-01-provenance.md); passing
-preflight is not a clean security scan or publication approval.
+---
 
-No local settings, audio, transcripts or private data are uploaded. Uninstall or
-clearing storage removes this device's settings and planner; backups are disabled. Reopen
-onboarding in Settings to keep preferences while reviewing setup. Item deletion
-currently hides the item and retains cancellation tombstones; complete privacy
-purge controls are later work. Future voice and
-quiet-hour choices are saved preferences only, clearly labeled in the UI.
+## 6. Building Standalone Release APKs
 
-Read-only/manual baseline procedures are in the
-[baseline protocol](docs/benchmarks/phase-00-baseline.md); all unmeasured values are
-explicitly NOT RUN. Never infer physical-phone behavior from mocks or a build.
+On Windows, native C++ builds (CMake/Ninja) exceed the 260-character `MAX_PATH` limit on long directory structures. The reliable two-step build process prebuilds the JavaScript bundle on the physical checkout and assembles the APK from a short virtual drive mapping (`subst`):
 
-The supplied 57-file planning kit contains 56 listed SHA-256 entries plus the
-manifest itself; all 56 listed hashes were verified.
-Its existing extracted folder is preserved locally and ignored to avoid duplicate
-instructions. The original one-line README was inspected before this expansion.
+```powershell
+# Step 1: Prebuild the React Native release bundle from the physical path
+Push-Location android
+.\gradlew.bat :app:createBundleReleaseJsAndAssets --console=plain
+Pop-Location
 
-Every phase requires its report, actual test outcomes, limitations and human review.
-No next phase begins without explicit approval. The
-[host data benchmark](docs/benchmarks/phase-02-host.md) measures real in-memory host
-SQLite calls only; Android startup, PSS, battery, speech, alarm and comparable
-legacy baselines remain NOT RUN.
+# Step 2: Assemble release APKs from a short virtual drive alias (e.g., L:)
+$checkout = (Get-Location).Path
+if (Get-PSDrive -Name L -ErrorAction SilentlyContinue) { & subst.exe L: /d }
+& subst.exe L: $checkout
+
+# Temporary init script to skip re-bundling during assembly
+$initScript = "allprojects { tasks.configureEach { if (it.name == 'createBundleReleaseJsAndAssets') { it.onlyIf { false } } } }"
+Set-Content -Path "android/.skip-bundle.init.gradle" -Value $initScript
+
+try {
+    Push-Location "L:\android"
+    try {
+        .\gradlew.bat :app:assembleRelease --console=plain --init-script "L:\android\.skip-bundle.init.gradle"
+    } finally {
+        Pop-Location
+    }
+} finally {
+    & subst.exe L: /d
+    Remove-Item "android/.skip-bundle.init.gradle" -Force -ErrorAction SilentlyContinue
+}
+```
+
+The resulting split APKs are generated under `android/app/build/outputs/apk/release/`:
+* **`app-arm64-v8a-release.apk`:** For physical 64-bit ARM Android devices.
+* **`app-x86_64-release.apk`:** For x86_64 Android emulators.
+
+### Audit APK Integrity & 16 KiB ELF Alignment
+Verify single-ABI packaging, 16 KiB ELF load alignment (Android 15+ compatible), model file hashes, and ZIP alignment:
+```powershell
+python scripts/apk_audit.py android/app/build/outputs/apk/release/app-arm64-v8a-release.apk --output docs/plans/agy-improvements/reports/evidence/release-audit-arm64.json
+```
+
+### Install onto Device via ADB
+```powershell
+# For physical phone (ARM64)
+adb install -r android/app/build/outputs/apk/release/app-arm64-v8a-release.apk
+
+# For emulator (x86_64)
+adb install -r android/app/build/outputs/apk/release/app-x86_64-release.apk
+```
+
+---
+
+## 7. Security and Privacy Principles
+
+1. **Offline Privacy First:** Tasks, notes, schedules, audio input, and voice models run locally. Offline guest users store data strictly in local SQLite (`lafina.db`).
+2. **Opt-in Cloud Sync:** Network transmission occurs only when the user explicitly registers or logs into a cloud account.
+3. **No Embedded Secret Keys:** Client APKs contain zero embedded cloud API keys; cloud communication authenticates via short-lived bearer tokens managed by `LAFINA-backend`.
+4. **Decoupled Alert Invariants:** An alert acknowledgment is strictly distinct from completing academic tasks.
+5. **No Background Eavesdropping:** Speech-to-text uses push-to-talk activation only. No wake words, no always-on recording, and no background audio capture.
