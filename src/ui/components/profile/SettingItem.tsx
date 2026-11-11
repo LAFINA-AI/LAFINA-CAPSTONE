@@ -59,10 +59,15 @@ export const SettingItem: React.FC<SettingItemProps> = ({
 
   if (type === 'value') {
     return (
-      <View style={styles.settingItem}>
+      <TouchableOpacity
+        style={styles.settingItem}
+        onPress={onPress}
+        disabled={!onPress}
+        activeOpacity={onPress ? 0.7 : 1}
+      >
         <Text style={[styles.settingText, themed.settingText]}>{text}</Text>
         <Text style={[styles.settingValue, themed.settingValue]}>{valueText}</Text>
-      </View>
+      </TouchableOpacity>
     );
   }
 

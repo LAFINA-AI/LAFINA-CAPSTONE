@@ -62,6 +62,7 @@ import {TypingBubble} from '../components/chat/TypingBubble';
 import {CommandReviewCard} from '../components/chat/CommandReviewCard';
 import {CommandGuide} from '../components/chat/CommandGuide';
 import {useCommandReview} from '../hooks/useCommandReview';
+import type {ReviewEditPatch} from '../../ai/nlu/commandReview';
 import {useDraftProtection} from '../hooks/useDraftProtection';
 import {useChatReplyFormat} from '../hooks/useChatReplyFormat';
 import {DraftDecisionDialog} from '../components/DraftDecisionDialog';
@@ -723,6 +724,22 @@ export const ChatScreen: React.FC<ChatScreenProps> = ({
     loadMessages();
   };
 
+  const handleEditReview = (patch: ReviewEditPatch) => {
+    const previousId = review.proposal?.operationId;
+    const edited = review.edit ? review.edit(patch) : null;
+    if (
+      edited?.status === 'proposal' &&
+      previousId &&
+      reviewSourceRef.current?.operationId === previousId
+    ) {
+      reviewSourceRef.current = {
+        operationId: edited.proposal.operationId,
+        text: reviewSourceRef.current.text,
+      };
+    }
+    return edited;
+  };
+
   const dismissLegacyNotice = () => {
     setLegacyNoticeDismissed(true);
     localSettingsStore.set(userId, 'chat.legacyNoticeDismissed', 'true');
@@ -1108,6 +1125,8 @@ export const ChatScreen: React.FC<ChatScreenProps> = ({
             proposal={review.proposal}
             expired={review.expired}
             busy={review.busy}
+            onEdit={handleEditReview}
+            editError={review.editError}
             onConfirm={() => {
               void handleConfirmReview();
             }}

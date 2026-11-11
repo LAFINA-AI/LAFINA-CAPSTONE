@@ -56,6 +56,11 @@ import {
   SIGNED_OUT_REPLY_NOTE,
 } from './localConversation';
 import type {ValidatedIntent, NluActionResult} from './nlu/types';
+import {
+  extractIntentWithDeepSeek,
+  isHandbookQuestion,
+  shouldUseOnlineIntentExtraction,
+} from './onlineIntentExtractor';
 
 export interface ScheduleConflict {
   hasConflict: boolean;
@@ -215,11 +220,7 @@ export function getNextDateForDay(
 /** Small talk at most this long is sent without a handbook search. */
 const SMALL_TALK_MAX_CHARS = 60;
 
-/** Handbook topics answer only from the verified online handbook, never offline. */
-const isHandbookQuestion = (text: string): boolean =>
-  /\b(?:ustp|handbook|dean'?s\s+list|grading\s+system|retention\s+policy|tuition|graduation\s+requirements|uniform\s+policy|dress\s+code|drop(?:ping)?\s+subject|prerequisite|academic\s+probation)\b/i.test(
-    text,
-  );
+/** Handbook topic detection lives in onlineIntentExtractor for reuse. */
 
 /**
  * On-device replies are tagged when saved. Replies saved before the tag
@@ -438,7 +439,11 @@ export class ChatOrchestrator {
   async reviewSpokenTurn(
     userId: string,
     text: string,
-    options: {referenceDate?: Date; isCurrent?: () => boolean} = {},
+    options: {
+      referenceDate?: Date;
+      onlineMode?: boolean;
+      isCurrent?: () => boolean;
+    } = {},
   ): Promise<SpokenTurnReview> {
     const trimmed = (text || '').trim();
     if (!trimmed) return {kind: 'none'};
@@ -458,11 +463,22 @@ export class ChatOrchestrator {
       };
     }
     const refDate = options.referenceDate || new Date();
-    const validated = await intentService.extractIntent(trimmed, {
+    const localValidated = await intentService.extractIntent(trimmed, {
       referenceDate: refDate,
     });
     // Extraction may finish after the conversation or owning screen closes.
     if (options.isCurrent && !options.isCurrent()) return {kind: 'none'};
+    let validated = localValidated;
+    if (
+      options.onlineMode &&
+      shouldUseOnlineIntentExtraction(trimmed, localValidated)
+    ) {
+      const onlineValidated = await extractIntentWithDeepSeek(trimmed, refDate);
+      if (options.isCurrent && !options.isCurrent()) return {kind: 'none'};
+      if (onlineValidated) {
+        validated = onlineValidated;
+      }
+    }
     const route = routeIntent(validated.intent);
     if (route === 'reviewed_mutation') {
       const smallTalk = classifySmallTalk(trimmed);
@@ -873,10 +889,24 @@ export class ChatOrchestrator {
       };
     }
 
-    // Step 3: Extract validated intent
-    const validated = await intentService.extractIntent(trimmed, {
+    // Step 3: Extract validated intent (DeepSeek structured extraction when
+    // Online Mode is active for scheduling/planner commands, with local fallback)
+    const localValidated = await intentService.extractIntent(trimmed, {
       referenceDate: refDate,
     });
+    let validated = localValidated;
+    if (
+      options.onlineMode &&
+      shouldUseOnlineIntentExtraction(trimmed, localValidated)
+    ) {
+      const onlineValidated = await extractIntentWithDeepSeek(trimmed, refDate);
+      if (onlineValidated) {
+        validated = onlineValidated;
+        if (onlineValidated.intent !== 'chat') {
+          usedOnline = true;
+        }
+      }
+    }
 
     // Step 4: Conflict-aware scheduling for time blocks
     if (validated.intent === 'create_time_block' && !options.forceSchedule) {

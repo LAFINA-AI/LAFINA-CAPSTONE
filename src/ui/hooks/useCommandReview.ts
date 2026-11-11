@@ -3,11 +3,13 @@ import {chatOrchestrator} from '../../ai/chatOrchestrator';
 import type {ReviewDecisionResult} from '../../ai/chatOrchestrator';
 import {
   cancelReviewedCommand,
+  editReviewedCommand,
   latestPendingReview,
 } from '../../ai/nlu/commandReview';
 import type {
   CommandProposal,
   PrepareResult,
+  ReviewEditPatch,
   ReviewSurface,
 } from '../../ai/nlu/commandReview';
 
@@ -18,8 +20,12 @@ export interface CommandReviewState {
   expired: boolean;
   /** Confirm or Cancel is in flight; the card's buttons are disabled. */
   busy: boolean;
+  /** Inline validation message shown when an edit cannot be applied. */
+  editError?: string | null;
   /** Shows a new proposal from `processMessage(...).review`. Other results leave the card alone. */
   present: (review: PrepareResult | null | undefined) => void;
+  /** Updates fields on the current pending proposal before Confirm. */
+  edit?: (patch: ReviewEditPatch) => PrepareResult | null;
   /** Applies the proposal once. A second tap while busy does nothing. */
   confirm: (options?: {
     speakReply?: boolean;
@@ -46,6 +52,7 @@ export const useCommandReview = (
   );
   const [expired, setExpired] = useState(false);
   const [busy, setBusy] = useState(false);
+  const [editError, setEditError] = useState<string | null>(null);
   const busyRef = useRef(false);
   const ownerRef = useRef(userId);
   ownerRef.current = userId;
@@ -53,6 +60,7 @@ export const useCommandReview = (
   useEffect(() => {
     setProposal(latestPendingReview(userId, surface));
     setExpired(false);
+    setEditError(null);
   }, [userId, surface]);
 
   useEffect(() => {
@@ -72,7 +80,32 @@ export const useCommandReview = (
       return;
     setProposal(review.proposal);
     setExpired(false);
+    setEditError(null);
   }, []);
+
+  const edit = useCallback(
+    (patch: ReviewEditPatch): PrepareResult | null => {
+      const current = proposal;
+      if (!current || expired || busyRef.current) return null;
+      const result = editReviewedCommand(
+        current.ownerId,
+        current.operationId,
+        patch,
+      );
+      if (
+        result.status === 'proposal' &&
+        result.proposal.ownerId === ownerRef.current
+      ) {
+        setProposal(result.proposal);
+        setExpired(false);
+        setEditError(null);
+      } else {
+        setEditError(result.reply);
+      }
+      return result;
+    },
+    [proposal, expired],
+  );
 
   const confirm = useCallback(
     async (options?: {
@@ -97,6 +130,7 @@ export const useCommandReview = (
           setProposal(shown =>
             shown?.operationId === current.operationId ? null : shown,
           );
+          setEditError(null);
         }
         return decision;
       } finally {
@@ -113,6 +147,7 @@ export const useCommandReview = (
       if (!current || busyRef.current) return null;
       setProposal(null);
       setExpired(false);
+      setEditError(null);
       if (options?.silent) {
         cancelReviewedCommand(current.ownerId, current.operationId);
         return null;
@@ -128,7 +163,18 @@ export const useCommandReview = (
   const dismiss = useCallback(() => {
     setProposal(null);
     setExpired(false);
+    setEditError(null);
   }, []);
 
-  return {proposal, expired, busy, present, confirm, cancel, dismiss};
+  return {
+    proposal,
+    expired,
+    busy,
+    editError,
+    present,
+    edit,
+    confirm,
+    cancel,
+    dismiss,
+  };
 };

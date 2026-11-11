@@ -5,6 +5,7 @@
  */
 
 import type { Event, Task, TimeBlock } from '../../../../storage';
+import { parseClassBlockMetadata } from '../../../../storage/academicProfileStore';
 import { formatTimeForDisplay } from './calendarHelpers';
 import { deviceTimeZone } from '../../../../storage/eventTime';
 
@@ -153,6 +154,7 @@ export const buildDayEntries = ({
         title: block.title,
         color: block.color,
         time: range(block.startTime, block.endTime),
+        location: parseClassBlockMetadata(block.notes).summaryLine,
         block,
       },
       block.date,

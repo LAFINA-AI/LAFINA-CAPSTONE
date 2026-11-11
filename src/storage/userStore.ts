@@ -497,6 +497,41 @@ export const userStore = {
     }
   },
 
+  setUsername: (
+    userId: string,
+    username: string,
+    executor?: DatabaseTransaction,
+  ): void => {
+    const clean = username.replace(/\s+/g, ' ').trim();
+    if (!clean) return;
+    const now = new Date().toISOString();
+    const apply = (tx: DatabaseTransaction) => {
+      if (userId === GUEST_USER_ID) {
+        tx.executeSync(
+          `INSERT OR IGNORE INTO users (
+             id, username, email, role, is_new_user, time_format_24h,
+             week_starts_monday, dark_mode, created_at, updated_at
+           ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+          [GUEST_USER_ID, clean, null, 'guest', 1, 0, 0, 0, now, now],
+        );
+      }
+      tx.executeSync(
+        `UPDATE users SET username = ?, updated_at = ? WHERE id = ?`,
+        [clean, now, userId],
+      );
+      if (userId !== GUEST_USER_ID) {
+        enqueueProfileMutation(userId, 'update', tx);
+      }
+    };
+    try {
+      if (executor) apply(executor);
+      else db.transactionSync(apply);
+    } catch (error) {
+      console.error('Error saving username:', error);
+      throw error;
+    }
+  },
+
   setAvatarUri: (userId: string, uri: string | null): void => {
     const now = new Date().toISOString();
     try {

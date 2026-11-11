@@ -8,6 +8,7 @@ import {remindersStore} from './remindersStore';
 import {chatStore} from './chatStore';
 import {chatMemoryStore} from './chatMemoryStore';
 import {personalMemoryStore} from './personalMemoryStore';
+import {academicProfileStore} from './academicProfileStore';
 import {
   attachmentCleanupTarget,
   pendingAttachmentCleanup,
@@ -218,6 +219,7 @@ export const resetPersonalData = (
     try {
       // Codex audit A3: saved event defaults are personal scheduling memory.
       personalMemoryStore.clearForDataReset(userId);
+      academicProfileStore.clear(userId);
       defaults = 'cleared';
     } catch (error) {
       console.warn(
