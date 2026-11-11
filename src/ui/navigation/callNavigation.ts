@@ -2,6 +2,7 @@
 export interface CallNavigationTarget {
   ownerId: string;
   screen: 'notes' | 'calendar' | 'chat';
+  notesTab?: 'notes' | 'todo';
   entityId?: string;
   entityKind?: 'note' | 'task' | 'event' | 'block' | 'reminder';
   date?: string;
