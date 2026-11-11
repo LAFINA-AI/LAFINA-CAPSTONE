@@ -1,0 +1,34 @@
+{
+  "date": "2026-11-11",
+  "preflight": {
+    "exitCode": 0,
+    "suitesPassed": 104,
+    "testsPassed": 1490,
+    "testsSkipped": 1,
+    "jestExit": "normal after delayed-handle warning"
+  },
+  "focusedHandles": {
+    "exitCode": 0,
+    "suitesPassed": 4,
+    "testsPassed": 78
+  },
+  "android": {
+    "exitCode": 0,
+    "suites": 7,
+    "tests": 55,
+    "failures": 0,
+    "errors": 0
+  },
+  "architecture": {
+    "exitCode": 0,
+    "modules": 287,
+    "cycles": 0,
+    "forbiddenDependencies": 0,
+    "offlineLeaves": 82
+  },
+  "deviceValidation": "NOT RUN",
+  "apkAssembly": "NOT RUN",
+  "benchmarks": "NOT RUN",
+  "changedCodeFormatting": "PASS (12 TS/TSX files)",
+  "repositoryFormatCheck": "FAIL (274 flagged before targeted formatting)"
+}

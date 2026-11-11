@@ -1,0 +1,14 @@
+
+> lafina-capstone@1.3.4 test
+> jest --runInBand --runTestsByPath __tests__/ui/voiceConversationUi.test.tsx __tests__/cloud/voiceConversationController.test.ts __tests__/ai/groundedVoiceDraft.test.ts __tests__/cloud/voiceNativeAudioGate.test.ts --detectOpenHandles
+
+PASS __tests__/ui/voiceConversationUi.test.tsx (11.396 s)
+PASS __tests__/cloud/voiceConversationController.test.ts
+PASS __tests__/ai/groundedVoiceDraft.test.ts
+PASS __tests__/cloud/voiceNativeAudioGate.test.ts
+
+Test Suites: 4 passed, 4 total
+Tests:       78 passed, 78 total
+Snapshots:   0 total
+Time:        12.778 s
+Ran all test suites within paths "__tests__/ui/voiceConversationUi.test.tsx", "__tests__/cloud/voiceConversationController.test.ts", "__tests__/ai/groundedVoiceDraft.test.ts", "__tests__/cloud/voiceNativeAudioGate.test.ts".

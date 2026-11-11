@@ -13,6 +13,13 @@ import org.junit.Test
 /** Live voice conversation bridge rules (pure JVM, no device or network). */
 class VoiceConversationRulesTest {
   @Test
+  fun `app owned audio never plays provider frames even after interruption resets`() {
+    assertFalse(VoiceConversationRules.allowProviderAudio(true, false))
+    assertFalse(VoiceConversationRules.allowProviderAudio(true, true))
+    assertFalse(VoiceConversationRules.allowProviderAudio(false, true))
+    assertTrue(VoiceConversationRules.allowProviderAudio(false, false))
+  }
+  @Test
   fun `only ElevenLabs conversation sockets over TLS are allowed`() {
     val ok = "wss://api.elevenlabs.io/v1/convai/conversation?agent_id=a&conversation_signature=s"
     assertTrue(VoiceConversationRules.isAllowedSocketUrl(ok, false))

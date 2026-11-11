@@ -29,7 +29,11 @@ import type {
   TransportEvent,
   VoiceTransport,
 } from '../../src/cloud/voiceConversation';
-import {endReviewSession} from '../../src/ai/nlu/commandReview';
+import {
+  endReviewSession,
+  latestPendingReview,
+} from '../../src/ai/nlu/commandReview';
+import {intentService} from '../../src/ai/nlu/intentService';
 import {ttsService} from '../../src/ai/tts/ttsService';
 import {useCommandReview} from '../../src/ui/hooks/useCommandReview';
 import type {CallNavigationTarget} from '../../src/ui/navigation/callNavigation';
@@ -324,6 +328,116 @@ const PanelHostDefault: React.FC<{userId: string}> = ({userId}) => {
 };
 
 describe('a live conversation', () => {
+  test('closing during intent extraction cannot leave a late review', async () => {
+    const userId = student('late-extraction');
+    signIn(userId);
+    fakeServer();
+    const original = intentService.extractIntent.bind(intentService);
+    let release: (() => void) | undefined;
+    jest
+      .spyOn(intentService, 'extractIntent')
+      .mockImplementation(async (...args) => {
+        await new Promise<void>(resolve => {
+          release = resolve;
+        });
+        return original(...args);
+      });
+    const {transport, calls, message} = fakeTransport();
+    const utils = renderPanel(userId, transport);
+    fireEvent.press(utils.getByTestId('voice-conversation-start'));
+    await waitFor(() => expect(calls.start).toBe(1));
+    message({
+      type: 'user_transcript',
+      user_transcription_event: {
+        user_transcript: 'Delete task: read chapter 5',
+        event_id: 1,
+      },
+    });
+    await waitFor(() => expect(release).toBeDefined());
+    fireEvent.press(utils.getByTestId('voice-conversation-end'));
+    await act(async () => {
+      release?.();
+      await new Promise(resolve => setTimeout(resolve, 50));
+    });
+    expect(latestPendingReview(userId, 'voice')).toBeNull();
+    expect(utils.queryByTestId('voice-conversation-review-card')).toBeNull();
+    utils.unmount();
+  });
+
+  test('an unsolicited legacy tool cannot invent a scheduling review', async () => {
+    const userId = student('unsolicited');
+    signIn(userId);
+    fakeServer();
+    const {transport, calls, message} = fakeTransport();
+    const sent: string[] = [];
+    transport.sendMessage = async (_key, json) => {
+      sent.push(json);
+      return true;
+    };
+    const utils = renderPanel(userId, transport);
+    fireEvent.press(utils.getByTestId('voice-conversation-start'));
+    await waitFor(() => expect(calls.start).toBe(1));
+    message({
+      type: 'client_tool_call',
+      client_tool_call: {
+        tool_name: 'prepare_lafina_action',
+        tool_call_id: 'invented',
+        parameters: {request: 'Add task: invented'},
+      },
+    });
+    await waitFor(() =>
+      expect(sent.some(value => value.includes('Nothing was saved'))).toBe(
+        true,
+      ),
+    );
+    expect(utils.queryByTestId('voice-conversation-review-card')).toBeNull();
+    expect(tasksStore.getAllTasks(userId)).toHaveLength(0);
+    utils.unmount();
+  });
+
+  test('missing schedule details come from follow-up speech rather than tool guesses', async () => {
+    const userId = student('grounded-followup');
+    signIn(userId);
+    fakeServer();
+    const {transport, calls, message} = fakeTransport();
+    const utils = renderPanel(userId, transport);
+    fireEvent.press(utils.getByTestId('voice-conversation-start'));
+    await waitFor(() => expect(calls.start).toBe(1));
+    message({
+      type: 'user_transcript',
+      user_transcription_event: {
+        user_transcript: 'Add a time block for study session tomorrow',
+        event_id: 1,
+      },
+    });
+    expect(
+      utils.getByTestId('voice-conversation-local-note'),
+    ).toHaveTextContent(/What time/);
+    message({
+      type: 'client_tool_call',
+      client_tool_call: {
+        tool_name: 'prepare_lafina_action',
+        tool_call_id: 'guess',
+        parameters: {
+          request: 'Add a time block for study session tomorrow at 9am',
+        },
+      },
+    });
+    expect(utils.queryByTestId('voice-conversation-review-card')).toBeNull();
+    message({
+      type: 'user_transcript',
+      user_transcription_event: {user_transcript: 'from 2 to 4pm', event_id: 2},
+    });
+    await utils.findByTestId('voice-conversation-review-card');
+    expect(
+      utils.getByTestId('voice-conversation-review-card'),
+    ).toHaveTextContent(/2:00 PM/);
+    expect(
+      utils.getByTestId('voice-conversation-review-card'),
+    ).toHaveTextContent(/4:00 PM/);
+    utils.unmount();
+  });
+
   test('direct voice requires memory review and on-screen approval', async () => {
     const userId = student('voice-memory');
     signIn(userId);
@@ -488,7 +602,7 @@ describe('a live conversation', () => {
       message({
         type: 'user_transcript',
         user_transcription_event: {
-          user_transcript: 'Read chapter 5',
+          user_transcript: 'Add a task to read chapter 5',
           event_id: 1,
         },
       });
@@ -497,7 +611,7 @@ describe('a live conversation', () => {
         client_tool_call: {
           tool_name: 'prepare_lafina_action',
           tool_call_id: 'call-1',
-          parameters: {request: 'Add task: read chapter 5'},
+          parameters: {request: 'Add task: read chapter 9'},
         },
       });
       expect(
@@ -506,6 +620,12 @@ describe('a live conversation', () => {
       await waitFor(() =>
         expect(sent.some(s => s.includes('Nothing has been saved'))).toBe(true),
       );
+      expect(
+        utils.getByTestId('voice-conversation-review-card'),
+      ).toHaveTextContent(/chapter 5/i);
+      expect(
+        utils.getByTestId('voice-conversation-review-card'),
+      ).not.toHaveTextContent(/chapter 9/i);
       expect(tasksStore.getAllTasks(userId)).toHaveLength(before);
       utils.unmount();
     } finally {
@@ -781,6 +901,13 @@ describe('Call Lafina draft ambiguity and grouped editing', () => {
     await waitFor(() =>
       expect(utils.getByTestId('memory-review-card')).toBeTruthy(),
     );
+    message({
+      type: 'user_transcript',
+      user_transcription_event: {
+        user_transcript: 'Add task: Ambiguous tomorrow at 4pm',
+        event_id: 100,
+      },
+    });
     message({
       type: 'client_tool_call',
       client_tool_call: {

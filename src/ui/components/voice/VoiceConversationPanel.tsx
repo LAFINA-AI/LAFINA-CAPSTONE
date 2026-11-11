@@ -69,6 +69,12 @@ import {CallWaveform} from '../callLafina/CallWaveform';
 import {ttsService} from '../../../ai/tts/ttsService';
 import {generateId} from '../../../utils';
 import {
+  groundedVoiceDraft,
+  isVoiceScheduleStart,
+} from '../../../ai/nlu/groundedVoiceDraft';
+import {parseIntentFastPath} from '../../../ai/nlu/fastPathParser';
+import {
+  prepareReviewedCommand,
   latestPendingReview,
   reviseReviewedCommand,
   cancelReviewedCommand,
@@ -161,6 +167,9 @@ export const VoiceConversationPanel: React.FC<VoiceConversationPanelProps> = ({
   const actionSession = useRef(generateId('call-actions'));
   ownerRef.current = userId;
   const lastUserRequest = useRef('');
+  const voiceTurns = useRef<string[]>([]);
+  const awaitingDetails = useRef(false);
+  const groundedReply = useRef('No action was prepared. Nothing was saved.');
   const identityContextSent = useRef(false);
   const conversationRef = useRef<ReturnType<
     typeof useVoiceConversation
@@ -216,6 +225,8 @@ export const VoiceConversationPanel: React.FC<VoiceConversationPanelProps> = ({
   const onFinalUserText = useCallback((text: string) => {
     if (!isToolExecutionPermitted(ownerRef.current).permitted) return;
     const session = actionSession.current;
+    const ticket = ++turnTicket.current;
+    voiceTurns.current = [...voiceTurns.current, text].slice(-8);
     lastUserRequest.current = text;
     const owner = ownerRef.current;
     const fact = explicitMemory(text);
@@ -273,7 +284,10 @@ export const VoiceConversationPanel: React.FC<VoiceConversationPanelProps> = ({
       if (/^cancel that/i.test(text.trim())) {
         cancelReviewedCommand(owner, pending.operationId);
         reviewRef.current.dismiss();
-        setLocalNote('Draft canceled. Nothing was saved.');
+        voiceTurns.current = [];
+        awaitingDetails.current = false;
+        groundedReply.current = 'Draft canceled. Nothing was saved.';
+        setLocalNote(groundedReply.current);
       } else {
         const revised = reviseReviewedCommand(owner, pending.operationId, text);
         if (revised.status === 'proposal') reviewRef.current.present(revised);
@@ -281,10 +295,53 @@ export const VoiceConversationPanel: React.FC<VoiceConversationPanelProps> = ({
       }
       return;
     }
+    const fragment = parseIntentFastPath(text);
+    const supplementsDraft =
+      pending &&
+      !isVoiceScheduleStart(text) &&
+      !!(
+        fragment.date ||
+        fragment.time ||
+        fragment.endTime ||
+        fragment.durationMinutes
+      );
+    if (
+      isVoiceScheduleStart(text) ||
+      awaitingDetails.current ||
+      supplementsDraft
+    ) {
+      const now = new Date();
+      const draft = groundedVoiceDraft(voiceTurns.current, now);
+      if (draft.kind === 'clarify') {
+        awaitingDetails.current = true;
+        groundedReply.current = draft.reply;
+      } else {
+        if (pending) cancelReviewedCommand(owner, pending.operationId);
+        const prepared = prepareReviewedCommand(owner, draft.intent, {
+          referenceDate: now,
+          surface: 'voice',
+        });
+        awaitingDetails.current = prepared.status !== 'proposal';
+        groundedReply.current = prepared.reply;
+        if (prepared.status === 'proposal') {
+          reviewRef.current.present(prepared);
+          groundedReply.current =
+            'Check the card below. Nothing is saved until you tap Confirm.';
+        }
+      }
+      setLocalNote(groundedReply.current);
+      return;
+    }
     if (directProviderTestEnabled()) return;
-    const ticket = ++turnTicket.current;
     void chatOrchestrator
-      .reviewSpokenTurn(owner, text)
+      .reviewSpokenTurn(owner, text, {
+        isCurrent: () =>
+          ticket === turnTicket.current &&
+          owner === ownerRef.current &&
+          session === actionSession.current &&
+          !!conversationRef.current &&
+          LIVE.has(conversationRef.current.snapshot.phase),
+      })
       .then(result => {
         if (
           ticket !== turnTicket.current ||
@@ -325,6 +382,19 @@ export const VoiceConversationPanel: React.FC<VoiceConversationPanelProps> = ({
       const perm = isToolExecutionPermitted(owner);
       if (!perm.permitted || !isCurrent())
         throw new Error(perm.reason || 'Tool unavailable');
+      // Legacy model tool arguments cannot invent or replace a student's request.
+      // New structured tools keep their validated on-screen review contracts.
+      if (name === 'prepare_lafina_action') {
+        const pending = latestPendingReview(owner, 'voice');
+        return pending
+          ? `A review card is shown: ${pending.title}. Nothing has been saved. Check and confirm the card.`
+          : groundedReply.current;
+      }
+      if (name === 'save_lafina_memory') {
+        if (!explicitMemory(lastUserRequest.current))
+          return 'No memory was saved. Ask the student what they want remembered.';
+        parameters = {request: lastUserRequest.current};
+      }
       if (callSettings.toolAudioCue) {
         try {
           Vibration.vibrate(20);
@@ -586,6 +656,8 @@ export const VoiceConversationPanel: React.FC<VoiceConversationPanelProps> = ({
 
   useEffect(() => {
     actionSession.current = generateId('call-actions');
+    voiceTurns.current = [];
+    awaitingDetails.current = false;
     setConsented(voiceConsent.read(userId));
     setDataConsented(
       localSettingsStore.get(userId, DATA_CONSENT, null) === 'true',
@@ -654,6 +726,9 @@ export const VoiceConversationPanel: React.FC<VoiceConversationPanelProps> = ({
     actionService.clearSessionActions(actionSession.current);
     actionSession.current = generateId('call-actions');
     lastUserRequest.current = '';
+    voiceTurns.current = [];
+    awaitingDetails.current = false;
+    groundedReply.current = 'No action was prepared. Nothing was saved.';
     identityContextSent.current = false;
     turnTicket.current += 1;
     setLocalNote(null);
@@ -965,7 +1040,10 @@ export const VoiceConversationPanel: React.FC<VoiceConversationPanelProps> = ({
 
         {/* Promoted Action Card Stage (Immediate focus above history, no scrolling needed) */}
         {hasActiveCard ? (
-          <View style={styles.actionCardSection} testID="call-action-card-stage">
+          <View
+            style={styles.actionCardSection}
+            testID="call-action-card-stage"
+          >
             <ActionCardHost
               proposal={review?.proposal}
               memoryProposal={activeMemoryProposal}
@@ -1125,14 +1203,15 @@ export const VoiceConversationPanel: React.FC<VoiceConversationPanelProps> = ({
               <View
                 style={[
                   styles.activeTopicDot,
-                  {backgroundColor: live ? colors.primary : colors.textSecondary},
+                  {
+                    backgroundColor: live
+                      ? colors.primary
+                      : colors.textSecondary,
+                  },
                 ]}
               />
               <Text
-                style={[
-                  styles.activeTopicBadge,
-                  {color: colors.textSecondary},
-                ]}
+                style={[styles.activeTopicBadge, {color: colors.textSecondary}]}
               >
                 ACTIVE TOPIC
               </Text>
@@ -1158,7 +1237,10 @@ export const VoiceConversationPanel: React.FC<VoiceConversationPanelProps> = ({
             {latestAssistantTurn && latestAssistantTurn.text ? (
               <View style={styles.activeTopicReplyRow}>
                 <Text
-                  style={[styles.activeTopicRole, {color: colors.textSecondary}]}
+                  style={[
+                    styles.activeTopicRole,
+                    {color: colors.textSecondary},
+                  ]}
                 >
                   LAFINA{' '}
                   {latestAssistantTurn.status === 'interrupted'

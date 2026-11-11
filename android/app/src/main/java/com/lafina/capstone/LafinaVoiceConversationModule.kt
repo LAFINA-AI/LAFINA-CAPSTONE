@@ -85,6 +85,7 @@ class LafinaVoiceConversationModule(private val reactContext: ReactApplicationCo
     @Volatile var startPromise: Promise? = null
     @Volatile var muted = false
     @Volatile var suppressAgentAudio = false
+    var appOwnedAudio = false
     @Volatile var speaking = false
     @Volatile var recorder: AudioRecord? = null
     var echoCanceler: AcousticEchoCanceler? = null
@@ -121,6 +122,11 @@ class LafinaVoiceConversationModule(private val reactContext: ReactApplicationCo
   private fun current(key: String): Session? = session?.takeIf { it.key == key && !it.ended.get() }
 
   @ReactMethod
+  fun supportsAppOwnedAudio(promise: Promise) {
+    promise.resolve(true)
+  }
+
+  @ReactMethod
   fun start(options: ReadableMap, promise: Promise) {
     val key = if (options.hasKey("sessionKey")) options.getString("sessionKey") else null
     val url = if (options.hasKey("url")) options.getString("url") else null
@@ -155,6 +161,7 @@ class LafinaVoiceConversationModule(private val reactContext: ReactApplicationCo
       return
     }
     val created = Session(key, ticket)
+    created.appOwnedAudio = options.hasKey("appOwnedAudio") && options.getBoolean("appOwnedAudio")
     created.startPromise = promise
     session = created
     try {
@@ -213,7 +220,7 @@ class LafinaVoiceConversationModule(private val reactContext: ReactApplicationCo
         }
         "vad_score" -> return
         "audio" -> {
-          if (owner.suppressAgentAudio) return
+          if (!VoiceConversationRules.allowProviderAudio(owner.appOwnedAudio, owner.suppressAgentAudio)) return
           val encoded = message.optJSONObject("audio_event")?.optString("audio_base_64").orEmpty()
           val pcm = VoiceConversationRules.decodeAudio(encoded) ?: return
           owner.queue.offer(pcm)

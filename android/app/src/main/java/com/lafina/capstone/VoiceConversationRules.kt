@@ -9,6 +9,8 @@ import java.util.Base64
  * they run in plain unit tests.
  */
 object VoiceConversationRules {
+  fun allowProviderAudio(appOwnedAudio: Boolean, interrupted: Boolean): Boolean =
+    !appOwnedAudio && !interrupted
   /** The agent WebSocket protocol uses 16 kHz mono PCM both ways (pcm_16000). */
   const val SAMPLE_RATE = 16_000
   /** 100 ms of 16-bit mono audio per upstream message. */

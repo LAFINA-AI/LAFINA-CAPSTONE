@@ -436,20 +436,31 @@ export class ChatOrchestrator {
   async reviewSpokenTurn(
     userId: string,
     text: string,
-    options: {referenceDate?: Date} = {},
+    options: {referenceDate?: Date; isCurrent?: () => boolean} = {},
   ): Promise<SpokenTurnReview> {
     const trimmed = (text || '').trim();
     if (!trimmed) return {kind: 'none'};
     const fact = explicitMemory(trimmed);
     if (fact) {
-      if (!chatMemoryStore.isEnabled(userId)) return {kind: 'memory', reply: 'Memory is turned off, so I did not save that.'};
+      if (!chatMemoryStore.isEnabled(userId))
+        return {
+          kind: 'memory',
+          reply: 'Memory is turned off, so I did not save that.',
+        };
       const saved = chatMemoryStore.add(userId, fact);
-      return {kind: 'memory', reply: saved ? 'I saved that in your memory.' : 'That is already in your memory.'};
+      return {
+        kind: 'memory',
+        reply: saved
+          ? 'I saved that in your memory.'
+          : 'That is already in your memory.',
+      };
     }
     const refDate = options.referenceDate || new Date();
     const validated = await intentService.extractIntent(trimmed, {
       referenceDate: refDate,
     });
+    // Extraction may finish after the conversation or owning screen closes.
+    if (options.isCurrent && !options.isCurrent()) return {kind: 'none'};
     const route = routeIntent(validated.intent);
     if (route === 'reviewed_mutation') {
       const smallTalk = classifySmallTalk(trimmed);
@@ -492,7 +503,9 @@ export class ChatOrchestrator {
     // the student opens another one while waiting.
     const userMessage: ChatMessage = isTemp
       ? {
-          id: `temp_user_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
+          id: `temp_user_${Date.now()}_${Math.random()
+            .toString(36)
+            .slice(2, 7)}`,
           sessionId: 'temp_chat',
           sender: 'user',
           content: trimmed,
@@ -508,14 +521,29 @@ export class ChatOrchestrator {
       const enabled = chatMemoryStore.isEnabled(userId);
       const isStudy = !!studyPreference(trimmed);
       const reply = enabled
-        ? isStudy ? "I'll remember your study preference." : "I'll remember that."
-        : isStudy ? 'Your study preference was not saved because memory is turned off.' : 'Memory is turned off, so I did not save that.';
+        ? isStudy
+          ? "I'll remember your study preference."
+          : "I'll remember that."
+        : isStudy
+        ? 'Your study preference was not saved because memory is turned off.'
+        : 'Memory is turned off, so I did not save that.';
       const assistantMessage = db.transactionSync(tx => {
-        const message = chatStore.addMessage(userId, 'assistant', reply, null,
-          {localReply: true}, sessionId, tx);
+        const message = chatStore.addMessage(
+          userId,
+          'assistant',
+          reply,
+          null,
+          {localReply: true},
+          sessionId,
+          tx,
+        );
         if (!enabled) return message;
-        const changes = chatMemoryStore.applyChanges(userId,
-          {add: [preference], remove: []}, sessionId, tx);
+        const changes = chatMemoryStore.applyChanges(
+          userId,
+          {add: [preference], remove: []},
+          sessionId,
+          tx,
+        );
         if (changes.added.length || changes.removed.length) {
           if (!chatStore.setMemoryChanges(userId, message.id, changes, tx)) {
             throw new Error('The memory notice could not be saved.');
@@ -525,15 +553,33 @@ export class ChatOrchestrator {
         return message;
       });
       if (options.speakReply) {
-        try { await ttsService.speak(reply); } catch (error) {
+        try {
+          await ttsService.speak(reply);
+        } catch (error) {
           console.warn('[ChatOrchestrator] TTS playback error:', error);
         }
       }
-      return {userMessage, assistantMessage, reply, usedOnline: false,
-        intent: {intent: 'chat', title: '', date: null, time: null, endTime: null,
-          durationMinutes: null, category: 'Academic', details: trimmed,
-          snoozeMinutes: null, confidence: 1, source: 'fast_path',
-          rawTranscript: trimmed, isValid: true}};
+      return {
+        userMessage,
+        assistantMessage,
+        reply,
+        usedOnline: false,
+        intent: {
+          intent: 'chat',
+          title: '',
+          date: null,
+          time: null,
+          endTime: null,
+          durationMinutes: null,
+          category: 'Academic',
+          details: trimmed,
+          snoozeMinutes: null,
+          confidence: 1,
+          source: 'fast_path',
+          rawTranscript: trimmed,
+          isValid: true,
+        },
+      };
     }
 
     if (isForgetAllMemoriesRequest(trimmed)) {
@@ -730,7 +776,8 @@ export class ChatOrchestrator {
         const targetDate = getNextDateForDay(firstSession.day, refDate);
         const duration = Math.max(
           15,
-          timeToMinutes(firstSession.endTime) - timeToMinutes(firstSession.startTime),
+          timeToMinutes(firstSession.endTime) -
+            timeToMinutes(firstSession.startTime),
         );
 
         const ruleWithUntil = `FREQ=WEEKLY;UNTIL=${parsedSchedule.semesterEndDate}`;
@@ -781,7 +828,9 @@ export class ChatOrchestrator {
 
       const assistantMessage: ChatMessage = isTemp
         ? {
-            id: `temp_asst_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
+            id: `temp_asst_${Date.now()}_${Math.random()
+              .toString(36)
+              .slice(2, 7)}`,
             sessionId: 'temp_chat',
             sender: 'assistant',
             content: finalReply,
