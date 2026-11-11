@@ -113,6 +113,11 @@ export type {
 } from './syncTypes';
 export {localSettingsStore} from './localSettingsStore';
 export {
+  avatarSeedStore,
+  generateAvatarSeed,
+  PROFILE_AVATAR_SEED_KEY,
+} from './avatarSeedStore';
+export {
   academicProfileStore,
   formatClassBlockNotes,
   mapCorCoursesToAcademicRecords,

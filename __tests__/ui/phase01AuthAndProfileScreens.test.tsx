@@ -199,7 +199,7 @@ describe('Phase 01 Welcome, Onboarding, and Profile Screens', () => {
     await waitFor(() => expect(onComplete).toHaveBeenCalledTimes(1));
   });
 
-  test('ProfileScreen displays USTP COR Academic Profile details when saved', () => {
+  test('ProfileScreen displays USTP COR Academic Profile details cleanly without header overlap or shouting uppercase', () => {
     const guest = userStore.createGuestUser();
     const cor = parseUstpCor(SAMPLE_COR_TEXT);
     academicProfileStore.save(guest.id, {
@@ -213,7 +213,7 @@ describe('Phase 01 Welcome, Onboarding, and Profile Screens', () => {
         creditUnits: c.creditUnits,
         section: c.section,
         faculty: c.faculty,
-        scheduleSummary: 'TBA',
+        scheduleSummary: c.scheduleSummary,
       })),
     });
 
@@ -229,10 +229,87 @@ describe('Phase 01 Welcome, Onboarding, and Profile Screens', () => {
     );
 
     expect(ui.getByText(/John Lemar L\. Gonzales/)).toBeTruthy();
+    expect(ui.getByText('Offline Guest Account')).toBeTruthy();
     expect(ui.getByTestId('profile-academic-card')).toBeTruthy();
+    expect(ui.getByText('Academic Profile')).toBeTruthy();
+    expect(ui.getByText('USTP COR')).toBeTruthy();
+    expect(ui.getByTestId('profile-attach-cor-btn')).toBeTruthy();
     expect(ui.getByText('B.S. in Information Technology')).toBeTruthy();
     expect(ui.getByText('4th Year - Baccalaureate')).toBeTruthy();
+    expect(
+      ui.getByText('CITC — College of Information Technology and Computing'),
+    ).toBeTruthy();
+    expect(ui.queryByText(/COLLEGE OF INFORMATION/)).toBeNull();
+    expect(ui.getByText('Academic Term')).toBeTruthy();
+    expect(ui.getByText('1st Semester AY 2026-2027')).toBeTruthy();
+    expect(ui.getByText('Curriculum')).toBeTruthy();
+    expect(ui.getByText('CITC-BSIT-2018-2019')).toBeTruthy();
     expect(ui.getAllByText('2023305519').length).toBeGreaterThanOrEqual(1);
+
+    // Enrolled subjects list expands and collapses when tapped
+    expect(ui.queryByTestId('profile-academic-subjects-list')).toBeNull();
+    fireEvent.press(ui.getByTestId('profile-toggle-subjects-btn'));
+    expect(ui.getByTestId('profile-academic-subjects-list')).toBeTruthy();
+    expect(ui.getByText(/IT Elective 3/)).toBeTruthy();
+    expect(ui.getByText(/CAPSTONE Project and Research 2/)).toBeTruthy();
+    fireEvent.press(ui.getByTestId('profile-toggle-subjects-btn'));
+    expect(ui.queryByTestId('profile-academic-subjects-list')).toBeNull();
+  });
+
+  test('ProfileScreen uses singular subject label when only 1 subject is saved', () => {
+    const guest = userStore.createGuestUser();
+    academicProfileStore.save(guest.id, {
+      isUstpStudent: true,
+      campus: 'USTP CDO Campus',
+      registrationNo: '111',
+      studentNo: '2024300617',
+      fullName: 'BLANCO, NOEL JHUMEL G',
+      formattedName: 'Noel Jhumel G. Blanco',
+      preferredName: 'Noel Jhumel',
+      gender: 'M',
+      age: 20,
+      nationality: 'Filipino',
+      college: 'COLLEGE OF INFORMATION TECHNOLOGY AND COMPUTING',
+      collegeShort: 'CITC',
+      program: 'B.S. in Information Technology',
+      major: 'N/A',
+      yearLevel: '2nd Year - Baccalaureate',
+      yearLevelShort: '2nd Year',
+      curriculum: 'CITOC-BSIT-2018-2019',
+      academicTerm: '1st Semester AY 2024-2025',
+      academicYearTerm: '1st Semester AY 2024-2025',
+      section: 'IT2R13',
+      primarySection: 'IT2R13',
+      totalUnits: '3',
+      totalLecUnits: 2,
+      totalLabUnits: 1,
+      totalCreditUnits: 3,
+      courses: [
+        {
+          code: 'IT211',
+          subjectTitle: 'Human Computer Interaction',
+          lecUnits: 2,
+          labUnits: 1,
+          creditUnits: 3,
+          section: 'IT2R13',
+          faculty: 'Jane Doe',
+          scheduleSummary: 'Mon 8:00 AM–10:00 AM (09-301)',
+        },
+      ],
+    });
+
+    const ui = render(
+      <ThemeProvider userId={guest.id}>
+        <ProfileScreen
+          userId={guest.id}
+          refreshTrigger={0}
+          onRefresh={jest.fn()}
+          onLogout={jest.fn()}
+        />
+      </ThemeProvider>,
+    );
+
+    expect(ui.getByText('1 subject (3 units)')).toBeTruthy();
   });
 
   test('developer settings expose onboarding replay in debug builds', () => {
