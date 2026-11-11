@@ -43,8 +43,8 @@ export const parseRrule = (ruleStr: string | null | undefined): ParsedRrule | nu
           rule.byday = upperVal.split(',');
           break;
         case 'UNTIL':
-          // Extract date part (handles YYYYMMDD and YYYYMMDDThhmmssZ)
-          const datePart = upperVal.split('T')[0];
+          // Extract date part (handles YYYYMMDD, YYYY-MM-DD, and YYYYMMDDThhmmssZ)
+          const datePart = upperVal.split('T')[0].replace(/-/g, '');
           if (/^\d{8}$/.test(datePart)) {
             const year = datePart.substring(0, 4);
             const month = datePart.substring(4, 6);
@@ -113,7 +113,7 @@ export const getOccurrences = (
   rangeEnd: Date
 ): string[] => {
   if (!startDateStr) return [];
-  
+
   const rule = parseRrule(recurrenceRule);
   if (!rule) {
     // If no recurrence, only return the start date if it falls inside the range
@@ -215,7 +215,7 @@ export const getOccurrences = (
       const nextMonth = current.getMonth() + interval;
       const nextYear = current.getFullYear() + Math.floor((current.getMonth() + interval) / 12);
       const actualMonth = ((nextMonth % 12) + 12) % 12;
-      
+
       // Determine correct end of month day (cap if targetDay is e.g. 31)
       const daysInNextMonth = new Date(nextYear, actualMonth + 1, 0).getDate();
       const actualDay = Math.min(targetDay, daysInNextMonth);
