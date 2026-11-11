@@ -7,7 +7,11 @@ import type {
   VoiceSessionGrant,
 } from '../../src/cloud/voiceConversation/types';
 import {parseNativeEvent} from '../../src/cloud/voiceConversation/nativeTransport';
-import {registerVoiceConversation, endActiveVoiceConversation, waitForVoiceConversationRelease} from '../../src/cloud/voiceConversation';
+import {
+  registerVoiceConversation,
+  endActiveVoiceConversation,
+  waitForVoiceConversationRelease,
+} from '../../src/cloud/voiceConversation';
 
 const SESSION_ID = '11111111-2222-3333-4444-555555555555';
 
@@ -216,14 +220,28 @@ const agentFinal = (text: string, eventId = 2) => ({
 
 it('returns the actual app tool result once to the active conversation', async () => {
   const {controller, deps, calls, message} = setup();
-  deps.onClientTool = jest.fn(async () => 'Review card shown. Nothing has been saved.');
+  deps.onClientTool = jest.fn(
+    async () => 'Review card shown. Nothing has been saved.',
+  );
   await controller.start();
-  const call = {type:'client_tool_call', client_tool_call:{tool_name:'prepare_lafina_action', tool_call_id:'call-1', parameters:{request:'schedule a meeting'}}};
+  const call = {
+    type: 'client_tool_call',
+    client_tool_call: {
+      tool_name: 'prepare_lafina_action',
+      tool_call_id: 'call-1',
+      parameters: {request: 'schedule a meeting'},
+    },
+  };
   message(call);
   message(call);
   await flush();
   expect(deps.onClientTool).toHaveBeenCalledTimes(1);
-  expect(calls.sent.map(v => JSON.parse(v))).toContainEqual({type:'client_tool_result', tool_call_id:'call-1', result:'Review card shown. Nothing has been saved.', is_error:false});
+  expect(calls.sent.map(v => JSON.parse(v))).toContainEqual({
+    type: 'client_tool_result',
+    tool_call_id: 'call-1',
+    result: 'Review card shown. Nothing has been saved.',
+    is_error: false,
+  });
   controller.end();
 });
 
@@ -232,7 +250,14 @@ it('does not send a delayed tool result after the conversation ends', async () =
   const response = deferred<string>();
   deps.onClientTool = () => response.promise;
   await controller.start();
-  message({type:'client_tool_call', client_tool_call:{tool_name:'read_lafina_data', tool_call_id:'call-2', parameters:{kind:'notes'}}});
+  message({
+    type: 'client_tool_call',
+    client_tool_call: {
+      tool_name: 'read_lafina_data',
+      tool_call_id: 'call-2',
+      parameters: {kind: 'notes'},
+    },
+  });
   controller.end();
   response.resolve('private content');
   await flush();
@@ -245,7 +270,9 @@ it('waits for native microphone release before another call action', async () =>
   deps.transport.end = jest.fn(() => release.promise);
   await controller.start();
   let finished = false;
-  const ending = controller.endAndWait().then(() => { finished = true; });
+  const ending = controller.endAndWait().then(() => {
+    finished = true;
+  });
   await flush();
   expect(finished).toBe(false);
   release.resolve(true);
@@ -272,7 +299,9 @@ it('waits for an in-flight microphone pause before allowing another speech reque
   const first = controller.setSpeechPaused(true);
   const second = controller.setSpeechPaused(true);
   let ready = false;
-  void second.then(() => { ready = true; });
+  void second.then(() => {
+    ready = true;
+  });
   await flush();
   expect(ready).toBe(false);
   expect(deps.transport.setMuted).toHaveBeenCalledTimes(1);
@@ -291,7 +320,9 @@ it('keeps the release promise after the prior voice panel unregisters', async ()
   endActiveVoiceConversation('A reminder call started.');
   unregister();
   let finished = false;
-  const waiting = waitForVoiceConversationRelease().then(() => { finished = true; });
+  const waiting = waitForVoiceConversationRelease().then(() => {
+    finished = true;
+  });
   await flush();
   expect(finished).toBe(false);
   release.resolve(true);
@@ -306,11 +337,16 @@ it('gives the agent the reminder without saving a fabricated user transcript', a
   const sent = JSON.parse(calls.sent[0]);
   expect(sent.type).toBe('user_message');
   expect(sent.text).toContain('Review math at 10');
-  message({type: 'tentative_user_transcript', tentative_user_transcription_event: {user_transcript: sent.text}});
+  message({
+    type: 'tentative_user_transcript',
+    tentative_user_transcription_event: {user_transcript: sent.text},
+  });
   message(userFinal(sent.text));
   expect(calls.userTurns).toEqual([]);
   expect(calls.finalUserText).toEqual([]);
-  expect(controller.getSnapshot().turns.filter(turn => turn.role === 'user')).toEqual([]);
+  expect(
+    controller.getSnapshot().turns.filter(turn => turn.role === 'user'),
+  ).toEqual([]);
   await controller.endAndWait();
 });
 
@@ -841,4 +877,92 @@ describe('native event parsing', () => {
       message: '',
     });
   });
+});
+
+describe('Call Lafina remediation lifecycle', () => {
+  it('sends saved language/style preferences to the active provider as context', async () => {
+    const {controller, calls} = setup();
+    controller.setPreferences({
+      language: 'ceb',
+      verbosity: 'detailed',
+      pacing: 'slow',
+    });
+    await controller.start();
+    expect(
+      calls.sent.some(
+        s => s.includes('Cebuano') && s.includes('contextual_update'),
+      ),
+    ).toBe(true);
+    controller.setPreferences({language: 'fil'});
+    expect(calls.sent.some(s => s.includes('Filipino'))).toBe(true);
+    await controller.endAndWait();
+  });
+  it('wait directive stops playback and suppresses late assistant audio until the next user turn', async () => {
+    const {controller, calls, message, emit} = setup();
+    await controller.start();
+    message(userFinal('wait, I am thinking'));
+    await flush();
+    expect(calls.stopResponse).toBeGreaterThan(0);
+    emit({kind: 'playback', speaking: true});
+    expect(controller.getSnapshot().phase).toBe('listening');
+    expect(controller.getSnapshot().outputLevel).toBe(0);
+    message(userFinal('I am ready now', 3));
+    message(agentFinal('Ready to help', 4));
+    emit({kind: 'playback', speaking: true});
+    expect(controller.getSnapshot().phase).toBe('speaking');
+    await controller.endAndWait();
+  });
+  it('tool current guard rejects revoked consent and a late tool result after End is never sent', async () => {
+    let consent = true;
+    let current: (() => boolean) | undefined;
+    const wait = deferred<string>();
+    const {controller, deps, message, calls} = setup({
+      gates: {hasConsent: () => consent},
+    });
+    deps.onClientTool = async (_name, _params, isCurrent) => {
+      current = isCurrent;
+      return wait.promise;
+    };
+    await controller.start();
+    message({
+      type: 'client_tool_call',
+      client_tool_call: {
+        tool_name: 'search_notes',
+        tool_call_id: 'late',
+        parameters: {query: 'Synthetic'},
+      },
+    });
+    expect(current?.()).toBe(true);
+    consent = false;
+    expect(current?.()).toBe(false);
+    await controller.endAndWait();
+    wait.resolve('Late local record');
+    await flush();
+    expect(calls.sent.some(s => s.includes('Late local record'))).toBe(false);
+  });
+});
+
+it('returns an explicit partial result instead of cutting a large JSON tool result in half', async () => {
+  const {controller, deps, message, calls} = setup();
+  deps.onClientTool = async () =>
+    JSON.stringify({notes: [{body: 'x'.repeat(6000)}]});
+  await controller.start();
+  message({
+    type: 'client_tool_call',
+    client_tool_call: {
+      tool_name: 'search_notes',
+      tool_call_id: 'large-result',
+      parameters: {query: 'Synthetic'},
+    },
+  });
+  await flush();
+  const packet = calls.sent
+    .map(s => JSON.parse(s))
+    .find(e => e.type === 'client_tool_result');
+  expect(JSON.parse(packet.result)).toMatchObject({
+    partial: true,
+    message: expect.stringContaining('narrow the query'),
+  });
+  expect(packet.is_error).toBe(false);
+  await controller.endAndWait();
 });

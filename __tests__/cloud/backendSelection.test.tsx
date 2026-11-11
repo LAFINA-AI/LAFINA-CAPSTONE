@@ -17,6 +17,8 @@ import {
 } from '../../src/cloud/cloudClient';
 import {
   BACKEND_CHOICE_KEY,
+  LOCAL_BACKEND_URL_KEY,
+  validLocalBackendUrl,
   DEVICE_SETTINGS_OWNER,
   backendSelection,
 } from '../../src/cloud/backendSelection';
@@ -171,7 +173,7 @@ describe('a debug or test build', () => {
     const offered = (alertSpy.mock.calls.at(-1)?.[2] as AlertButton[]).map(
       b => b.text,
     );
-    expect(offered).toEqual(['Cancel', 'Use Local']);
+    expect(offered).toEqual(['Cancel', 'Set local Wi-Fi address', 'Use Local']);
 
     await act(async () => {
       tapAlertButton(alertSpy, 'Use Local');
@@ -257,3 +259,31 @@ describe('a debug or test build', () => {
     screen.unmount();
   });
 });
+
+test('persists a private Wi-Fi endpoint and restores it after restart', () => {
+  setSwitchBuilt(true);
+  try {
+    expect(backendSelection.saveLocalUrl('http://192.168.100.46:8000')).toBe(
+      true,
+    );
+    expect(backendSelection.select('local').switched).toBe(true);
+    expect(cloudClient.getBaseUrl()).toBe('http://192.168.100.46:8000');
+    cloudClient.resetBaseUrls();
+    backendSelection.applySaved();
+    expect(cloudClient.getBaseUrl()).toBe('http://192.168.100.46:8000');
+  } finally {
+    db.executeSync('DELETE FROM local_settings WHERE user_id = ? AND key = ?', [
+      DEVICE_SETTINGS_OWNER,
+      LOCAL_BACKEND_URL_KEY,
+    ]);
+  }
+});
+test.each([
+  'http://example.com:8000',
+  'http://192.168.999.1:8000',
+  'http://192.168.1.1:99999',
+  'http://user:password@192.168.1.1:8000',
+  'http://8.8.8.8:8000',
+])('rejects unsafe local address %s', url =>
+  expect(validLocalBackendUrl(url)).toBe(false),
+);

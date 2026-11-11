@@ -1,0 +1,9 @@
+warning: in the working copy of '__tests__/ui/callLafinaPhase07.test.tsx', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of '__tests__/ui/callLafinaPhase09.test.tsx', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of '__tests__/ui/callLafinaPhase12.test.tsx', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of '__tests__/ui/callLafinaPhase13.test.tsx', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/ai/voiceActions/draftRegistry.ts', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/ui/components/callLafina/cards/CalendarDraftCard.tsx', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/ui/components/callLafina/cards/ReminderDraftCard.tsx', LF will be replaced by CRLF the next time Git touches it
+Checking formatting...
+All matched files use Prettier code style!

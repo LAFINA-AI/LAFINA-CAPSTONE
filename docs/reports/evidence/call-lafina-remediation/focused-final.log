@@ -1,0 +1,1781 @@
+PASS __tests__/ui/voiceConversationUi.test.tsx (19.269 s)
+PASS __tests__/ui/callLafinaPhase04.test.tsx
+  ● Console
+
+    console.error
+      An update to VoiceConversationPanel inside a test was not wrapped in act(...).
+      
+      When testing, code that causes React state updates should be wrapped into act(...):
+      
+      act(() => {
+        /* fire events that update state */
+      });
+      /* assert on the output */
+      
+      This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+
+      258 |     if (this.disposed) return;
+      259 |     this.snapshot = {...this.snapshot, ...patch};
+    > 260 |     for (const listener of [...this.listeners]) listener(this.snapshot);
+          |                                                 ^
+      261 |   }
+      262 |
+      263 |   private log(line: string) {
+
+      at node_modules/react-test-renderer/cjs/react-test-renderer.development.js:14402:19
+      at runWithFiberInDEV (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:2315:13)
+      at warnIfUpdatesNotWrappedWithActDEV (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:14401:9)
+      at scheduleUpdateOnFiber (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:12086:9)
+      at dispatchSetStateInternal (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:6208:13)
+      at dispatchSetState (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:6165:7)
+      at VoiceConversationController.listener [as update] (src/cloud/voiceConversation/controller.ts:260:49)
+      at VoiceConversationController.update [as setTurns] (src/cloud/voiceConversation/controller.ts:853:10)
+      at VoiceConversationController.setTurns [as upsertTurn] (src/cloud/voiceConversation/controller.ts:861:10)
+      at VoiceConversationController.upsertTurn [as acceptUserTurn] (src/cloud/voiceConversation/controller.ts:941:10)
+      at VoiceConversationController.acceptUserTurn [as onFinalUser] (src/cloud/voiceConversation/controller.ts:928:10)
+      at VoiceConversationController.onFinalUser [as onMessage] (src/cloud/voiceConversation/controller.ts:805:21)
+      at VoiceConversationController.onMessage [as onEvent] (src/cloud/voiceConversation/controller.ts:665:21)
+      at onEvent (src/cloud/voiceConversation/controller.ts:385:12)
+      at Object.subscriber [as emit] (__tests__/ui/callLafinaPhase04.test.tsx:97:9)
+      at Object.emit (__tests__/ui/callLafinaPhase04.test.tsx:259:21)
+      at asyncGeneratorStep (node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+      at _next (node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
+
+    console.error
+      An update to VoiceConversationPanel inside a test was not wrapped in act(...).
+      
+      When testing, code that causes React state updates should be wrapped into act(...):
+      
+      act(() => {
+        /* fire events that update state */
+      });
+      /* assert on the output */
+      
+      This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+
+      258 |     if (this.disposed) return;
+      259 |     this.snapshot = {...this.snapshot, ...patch};
+    > 260 |     for (const listener of [...this.listeners]) listener(this.snapshot);
+          |                                                 ^
+      261 |   }
+      262 |
+      263 |   private log(line: string) {
+
+      at node_modules/react-test-renderer/cjs/react-test-renderer.development.js:14402:19
+      at runWithFiberInDEV (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:2315:13)
+      at warnIfUpdatesNotWrappedWithActDEV (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:14401:9)
+      at scheduleUpdateOnFiber (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:12086:9)
+      at dispatchSetStateInternal (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:6208:13)
+      at dispatchSetState (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:6165:7)
+      at VoiceConversationController.listener [as update] (src/cloud/voiceConversation/controller.ts:260:49)
+      at VoiceConversationController.update [as acceptUserTurn] (src/cloud/voiceConversation/controller.ts:951:12)
+      at VoiceConversationController.acceptUserTurn [as onFinalUser] (src/cloud/voiceConversation/controller.ts:928:10)
+      at VoiceConversationController.onFinalUser [as onMessage] (src/cloud/voiceConversation/controller.ts:805:21)
+      at VoiceConversationController.onMessage [as onEvent] (src/cloud/voiceConversation/controller.ts:665:21)
+      at onEvent (src/cloud/voiceConversation/controller.ts:385:12)
+      at Object.subscriber [as emit] (__tests__/ui/callLafinaPhase04.test.tsx:97:9)
+      at Object.emit (__tests__/ui/callLafinaPhase04.test.tsx:259:21)
+      at asyncGeneratorStep (node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+      at _next (node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
+
+    console.error
+      An update to VoiceConversationPanel inside a test was not wrapped in act(...).
+      
+      When testing, code that causes React state updates should be wrapped into act(...):
+      
+      act(() => {
+        /* fire events that update state */
+      });
+      /* assert on the output */
+      
+      This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+
+      258 |     if (this.disposed) return;
+      259 |     this.snapshot = {...this.snapshot, ...patch};
+    > 260 |     for (const listener of [...this.listeners]) listener(this.snapshot);
+          |                                                 ^
+      261 |   }
+      262 |
+      263 |   private log(line: string) {
+
+      at node_modules/react-test-renderer/cjs/react-test-renderer.development.js:14402:19
+      at runWithFiberInDEV (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:2315:13)
+      at warnIfUpdatesNotWrappedWithActDEV (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:14401:9)
+      at scheduleUpdateOnFiber (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:12086:9)
+      at dispatchSetStateInternal (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:6208:13)
+      at dispatchSetState (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:6165:7)
+      at VoiceConversationController.listener [as update] (src/cloud/voiceConversation/controller.ts:260:49)
+      at VoiceConversationController.update [as recordTiming] (src/cloud/voiceConversation/controller.ts:1097:10)
+      at VoiceConversationController.recordTiming [as noteFirstText] (src/cloud/voiceConversation/controller.ts:982:12)
+      at VoiceConversationController.noteFirstText [as finalAnswer] (src/cloud/voiceConversation/controller.ts:1008:10)
+      at VoiceConversationController.finalAnswer [as onMessage] (src/cloud/voiceConversation/controller.ts:815:21)
+      at VoiceConversationController.onMessage [as onEvent] (src/cloud/voiceConversation/controller.ts:665:21)
+      at onEvent (src/cloud/voiceConversation/controller.ts:385:12)
+      at Object.subscriber [as emit] (__tests__/ui/callLafinaPhase04.test.tsx:97:9)
+      at Object.emit (__tests__/ui/callLafinaPhase04.test.tsx:268:21)
+      at asyncGeneratorStep (node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+      at _next (node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
+
+    console.error
+      An update to VoiceConversationPanel inside a test was not wrapped in act(...).
+      
+      When testing, code that causes React state updates should be wrapped into act(...):
+      
+      act(() => {
+        /* fire events that update state */
+      });
+      /* assert on the output */
+      
+      This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+
+      258 |     if (this.disposed) return;
+      259 |     this.snapshot = {...this.snapshot, ...patch};
+    > 260 |     for (const listener of [...this.listeners]) listener(this.snapshot);
+          |                                                 ^
+      261 |   }
+      262 |
+      263 |   private log(line: string) {
+
+      at node_modules/react-test-renderer/cjs/react-test-renderer.development.js:14402:19
+      at runWithFiberInDEV (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:2315:13)
+      at warnIfUpdatesNotWrappedWithActDEV (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:14401:9)
+      at scheduleUpdateOnFiber (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:12086:9)
+      at dispatchSetStateInternal (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:6208:13)
+      at dispatchSetState (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:6165:7)
+      at VoiceConversationController.listener [as update] (src/cloud/voiceConversation/controller.ts:260:49)
+      at VoiceConversationController.update [as setTurns] (src/cloud/voiceConversation/controller.ts:853:10)
+      at VoiceConversationController.setTurns [as upsertTurn] (src/cloud/voiceConversation/controller.ts:861:10)
+      at VoiceConversationController.upsertTurn [as finalAnswer] (src/cloud/voiceConversation/controller.ts:1009:10)
+      at VoiceConversationController.finalAnswer [as onMessage] (src/cloud/voiceConversation/controller.ts:815:21)
+      at VoiceConversationController.onMessage [as onEvent] (src/cloud/voiceConversation/controller.ts:665:21)
+      at onEvent (src/cloud/voiceConversation/controller.ts:385:12)
+      at Object.subscriber [as emit] (__tests__/ui/callLafinaPhase04.test.tsx:97:9)
+      at Object.emit (__tests__/ui/callLafinaPhase04.test.tsx:268:21)
+      at asyncGeneratorStep (node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+      at _next (node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
+
+    console.error
+      An update to VoiceConversationPanel inside a test was not wrapped in act(...).
+      
+      When testing, code that causes React state updates should be wrapped into act(...):
+      
+      act(() => {
+        /* fire events that update state */
+      });
+      /* assert on the output */
+      
+      This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+
+      258 |     if (this.disposed) return;
+      259 |     this.snapshot = {...this.snapshot, ...patch};
+    > 260 |     for (const listener of [...this.listeners]) listener(this.snapshot);
+          |                                                 ^
+      261 |   }
+      262 |
+      263 |   private log(line: string) {
+
+      at node_modules/react-test-renderer/cjs/react-test-renderer.development.js:14402:19
+      at runWithFiberInDEV (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:2315:13)
+      at warnIfUpdatesNotWrappedWithActDEV (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:14401:9)
+      at scheduleUpdateOnFiber (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:12086:9)
+      at dispatchSetStateInternal (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:6208:13)
+      at dispatchSetState (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:6165:7)
+      at VoiceConversationController.listener [as update] (src/cloud/voiceConversation/controller.ts:260:49)
+      at VoiceConversationController.update [as setTurns] (src/cloud/voiceConversation/controller.ts:853:10)
+      at VoiceConversationController.setTurns [as upsertTurn] (src/cloud/voiceConversation/controller.ts:861:10)
+      at VoiceConversationController.upsertTurn [as showProvisionalUser] (src/cloud/voiceConversation/controller.ts:867:10)
+      at VoiceConversationController.showProvisionalUser [as onMessage] (src/cloud/voiceConversation/controller.ts:799:32)
+      at VoiceConversationController.onMessage [as onEvent] (src/cloud/voiceConversation/controller.ts:665:21)
+      at onEvent (src/cloud/voiceConversation/controller.ts:385:12)
+      at Object.subscriber [as emit] (__tests__/ui/callLafinaPhase04.test.tsx:97:9)
+      at Object.emit (__tests__/ui/callLafinaPhase04.test.tsx:298:21)
+      at asyncGeneratorStep (node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+      at _next (node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
+
+    console.error
+      An update to VoiceConversationPanel inside a test was not wrapped in act(...).
+      
+      When testing, code that causes React state updates should be wrapped into act(...):
+      
+      act(() => {
+        /* fire events that update state */
+      });
+      /* assert on the output */
+      
+      This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+
+      258 |     if (this.disposed) return;
+      259 |     this.snapshot = {...this.snapshot, ...patch};
+    > 260 |     for (const listener of [...this.listeners]) listener(this.snapshot);
+          |                                                 ^
+      261 |   }
+      262 |
+      263 |   private log(line: string) {
+
+      at node_modules/react-test-renderer/cjs/react-test-renderer.development.js:14402:19
+      at runWithFiberInDEV (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:2315:13)
+      at warnIfUpdatesNotWrappedWithActDEV (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:14401:9)
+      at scheduleUpdateOnFiber (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:12086:9)
+      at dispatchSetStateInternal (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:6208:13)
+      at dispatchSetState (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:6165:7)
+      at VoiceConversationController.listener [as update] (src/cloud/voiceConversation/controller.ts:260:49)
+      at VoiceConversationController.update [as setTurns] (src/cloud/voiceConversation/controller.ts:853:10)
+      at VoiceConversationController.setTurns [as upsertTurn] (src/cloud/voiceConversation/controller.ts:861:10)
+      at VoiceConversationController.upsertTurn [as acceptUserTurn] (src/cloud/voiceConversation/controller.ts:941:10)
+      at VoiceConversationController.acceptUserTurn [as onFinalUser] (src/cloud/voiceConversation/controller.ts:928:10)
+      at VoiceConversationController.onFinalUser [as onMessage] (src/cloud/voiceConversation/controller.ts:805:21)
+      at VoiceConversationController.onMessage [as onEvent] (src/cloud/voiceConversation/controller.ts:665:21)
+      at onEvent (src/cloud/voiceConversation/controller.ts:385:12)
+      at Object.subscriber [as emit] (__tests__/ui/callLafinaPhase04.test.tsx:97:9)
+      at Object.emit (__tests__/ui/callLafinaPhase04.test.tsx:314:21)
+      at asyncGeneratorStep (node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+      at _next (node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
+
+    console.error
+      An update to VoiceConversationPanel inside a test was not wrapped in act(...).
+      
+      When testing, code that causes React state updates should be wrapped into act(...):
+      
+      act(() => {
+        /* fire events that update state */
+      });
+      /* assert on the output */
+      
+      This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+
+      258 |     if (this.disposed) return;
+      259 |     this.snapshot = {...this.snapshot, ...patch};
+    > 260 |     for (const listener of [...this.listeners]) listener(this.snapshot);
+          |                                                 ^
+      261 |   }
+      262 |
+      263 |   private log(line: string) {
+
+      at node_modules/react-test-renderer/cjs/react-test-renderer.development.js:14402:19
+      at runWithFiberInDEV (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:2315:13)
+      at warnIfUpdatesNotWrappedWithActDEV (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:14401:9)
+      at scheduleUpdateOnFiber (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:12086:9)
+      at dispatchSetStateInternal (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:6208:13)
+      at dispatchSetState (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:6165:7)
+      at VoiceConversationController.listener [as update] (src/cloud/voiceConversation/controller.ts:260:49)
+      at VoiceConversationController.update [as acceptUserTurn] (src/cloud/voiceConversation/controller.ts:951:12)
+      at VoiceConversationController.acceptUserTurn [as onFinalUser] (src/cloud/voiceConversation/controller.ts:928:10)
+      at VoiceConversationController.onFinalUser [as onMessage] (src/cloud/voiceConversation/controller.ts:805:21)
+      at VoiceConversationController.onMessage [as onEvent] (src/cloud/voiceConversation/controller.ts:665:21)
+      at onEvent (src/cloud/voiceConversation/controller.ts:385:12)
+      at Object.subscriber [as emit] (__tests__/ui/callLafinaPhase04.test.tsx:97:9)
+      at Object.emit (__tests__/ui/callLafinaPhase04.test.tsx:314:21)
+      at asyncGeneratorStep (node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+      at _next (node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
+
+    console.error
+      An update to VoiceConversationPanel inside a test was not wrapped in act(...).
+      
+      When testing, code that causes React state updates should be wrapped into act(...):
+      
+      act(() => {
+        /* fire events that update state */
+      });
+      /* assert on the output */
+      
+      This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+
+      258 |     if (this.disposed) return;
+      259 |     this.snapshot = {...this.snapshot, ...patch};
+    > 260 |     for (const listener of [...this.listeners]) listener(this.snapshot);
+          |                                                 ^
+      261 |   }
+      262 |
+      263 |   private log(line: string) {
+
+      at node_modules/react-test-renderer/cjs/react-test-renderer.development.js:14402:19
+      at runWithFiberInDEV (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:2315:13)
+      at warnIfUpdatesNotWrappedWithActDEV (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:14401:9)
+      at scheduleUpdateOnFiber (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:12086:9)
+      at dispatchSetStateInternal (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:6208:13)
+      at dispatchSetState (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:6165:7)
+      at VoiceConversationController.listener [as update] (src/cloud/voiceConversation/controller.ts:260:49)
+      at VoiceConversationController.update [as stopResponse] (src/cloud/voiceConversation/controller.ts:589:12)
+      at VoiceConversationController.stopResponse [as onFinalUser] (src/cloud/voiceConversation/controller.ts:908:12)
+      at VoiceConversationController.onFinalUser [as onMessage] (src/cloud/voiceConversation/controller.ts:805:21)
+      at VoiceConversationController.onMessage [as onEvent] (src/cloud/voiceConversation/controller.ts:665:21)
+      at onEvent (src/cloud/voiceConversation/controller.ts:385:12)
+      at Object.subscriber [as emit] (__tests__/ui/callLafinaPhase04.test.tsx:97:9)
+      at Object.emit (__tests__/ui/callLafinaPhase04.test.tsx:340:21)
+      at asyncGeneratorStep (node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+      at _next (node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
+
+    console.error
+      An update to VoiceConversationPanel inside a test was not wrapped in act(...).
+      
+      When testing, code that causes React state updates should be wrapped into act(...):
+      
+      act(() => {
+        /* fire events that update state */
+      });
+      /* assert on the output */
+      
+      This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+
+      258 |     if (this.disposed) return;
+      259 |     this.snapshot = {...this.snapshot, ...patch};
+    > 260 |     for (const listener of [...this.listeners]) listener(this.snapshot);
+          |                                                 ^
+      261 |   }
+      262 |
+      263 |   private log(line: string) {
+
+      at node_modules/react-test-renderer/cjs/react-test-renderer.development.js:14402:19
+      at runWithFiberInDEV (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:2315:13)
+      at warnIfUpdatesNotWrappedWithActDEV (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:14401:9)
+      at scheduleUpdateOnFiber (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:12086:9)
+      at dispatchSetStateInternal (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:6208:13)
+      at dispatchSetState (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:6165:7)
+      at VoiceConversationController.listener [as update] (src/cloud/voiceConversation/controller.ts:260:49)
+      at VoiceConversationController.update [as setTurns] (src/cloud/voiceConversation/controller.ts:853:10)
+      at VoiceConversationController.setTurns [as upsertTurn] (src/cloud/voiceConversation/controller.ts:861:10)
+      at VoiceConversationController.upsertTurn [as acceptUserTurn] (src/cloud/voiceConversation/controller.ts:941:10)
+      at VoiceConversationController.acceptUserTurn [as onFinalUser] (src/cloud/voiceConversation/controller.ts:909:12)
+      at VoiceConversationController.onFinalUser [as onMessage] (src/cloud/voiceConversation/controller.ts:805:21)
+      at VoiceConversationController.onMessage [as onEvent] (src/cloud/voiceConversation/controller.ts:665:21)
+      at onEvent (src/cloud/voiceConversation/controller.ts:385:12)
+      at Object.subscriber [as emit] (__tests__/ui/callLafinaPhase04.test.tsx:97:9)
+      at Object.emit (__tests__/ui/callLafinaPhase04.test.tsx:340:21)
+      at asyncGeneratorStep (node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+      at _next (node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
+
+    console.error
+      An update to VoiceConversationPanel inside a test was not wrapped in act(...).
+      
+      When testing, code that causes React state updates should be wrapped into act(...):
+      
+      act(() => {
+        /* fire events that update state */
+      });
+      /* assert on the output */
+      
+      This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+
+      258 |     if (this.disposed) return;
+      259 |     this.snapshot = {...this.snapshot, ...patch};
+    > 260 |     for (const listener of [...this.listeners]) listener(this.snapshot);
+          |                                                 ^
+      261 |   }
+      262 |
+      263 |   private log(line: string) {
+
+      at node_modules/react-test-renderer/cjs/react-test-renderer.development.js:14402:19
+      at runWithFiberInDEV (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:2315:13)
+      at warnIfUpdatesNotWrappedWithActDEV (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:14401:9)
+      at scheduleUpdateOnFiber (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:12086:9)
+      at dispatchSetStateInternal (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:6208:13)
+      at dispatchSetState (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:6165:7)
+      at VoiceConversationController.listener [as update] (src/cloud/voiceConversation/controller.ts:260:49)
+      at VoiceConversationController.update [as acceptUserTurn] (src/cloud/voiceConversation/controller.ts:951:12)
+      at VoiceConversationController.acceptUserTurn [as onFinalUser] (src/cloud/voiceConversation/controller.ts:909:12)
+      at VoiceConversationController.onFinalUser [as onMessage] (src/cloud/voiceConversation/controller.ts:805:21)
+      at VoiceConversationController.onMessage [as onEvent] (src/cloud/voiceConversation/controller.ts:665:21)
+      at onEvent (src/cloud/voiceConversation/controller.ts:385:12)
+      at Object.subscriber [as emit] (__tests__/ui/callLafinaPhase04.test.tsx:97:9)
+      at Object.emit (__tests__/ui/callLafinaPhase04.test.tsx:340:21)
+      at asyncGeneratorStep (node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+      at _next (node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
+
+    console.error
+      An update to VoiceConversationPanel inside a test was not wrapped in act(...).
+      
+      When testing, code that causes React state updates should be wrapped into act(...):
+      
+      act(() => {
+        /* fire events that update state */
+      });
+      /* assert on the output */
+      
+      This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+
+      258 |     if (this.disposed) return;
+      259 |     this.snapshot = {...this.snapshot, ...patch};
+    > 260 |     for (const listener of [...this.listeners]) listener(this.snapshot);
+          |                                                 ^
+      261 |   }
+      262 |
+      263 |   private log(line: string) {
+
+      at node_modules/react-test-renderer/cjs/react-test-renderer.development.js:14402:19
+      at runWithFiberInDEV (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:2315:13)
+      at warnIfUpdatesNotWrappedWithActDEV (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:14401:9)
+      at scheduleUpdateOnFiber (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:12086:9)
+      at dispatchSetStateInternal (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:6208:13)
+      at dispatchSetState (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:6165:7)
+      at VoiceConversationController.listener [as update] (src/cloud/voiceConversation/controller.ts:260:49)
+      at VoiceConversationController.update [as onFinalUser] (src/cloud/voiceConversation/controller.ts:911:12)
+      at VoiceConversationController.onFinalUser [as onMessage] (src/cloud/voiceConversation/controller.ts:805:21)
+      at VoiceConversationController.onMessage [as onEvent] (src/cloud/voiceConversation/controller.ts:665:21)
+      at onEvent (src/cloud/voiceConversation/controller.ts:385:12)
+      at Object.subscriber [as emit] (__tests__/ui/callLafinaPhase04.test.tsx:97:9)
+      at Object.emit (__tests__/ui/callLafinaPhase04.test.tsx:340:21)
+      at asyncGeneratorStep (node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+      at _next (node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
+
+    console.error
+      An update to VoiceConversationPanel inside a test was not wrapped in act(...).
+      
+      When testing, code that causes React state updates should be wrapped into act(...):
+      
+      act(() => {
+        /* fire events that update state */
+      });
+      /* assert on the output */
+      
+      This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+
+      258 |     if (this.disposed) return;
+      259 |     this.snapshot = {...this.snapshot, ...patch};
+    > 260 |     for (const listener of [...this.listeners]) listener(this.snapshot);
+          |                                                 ^
+      261 |   }
+      262 |
+      263 |   private log(line: string) {
+
+      at node_modules/react-test-renderer/cjs/react-test-renderer.development.js:14402:19
+      at runWithFiberInDEV (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:2315:13)
+      at warnIfUpdatesNotWrappedWithActDEV (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:14401:9)
+      at scheduleUpdateOnFiber (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:12086:9)
+      at dispatchSetStateInternal (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:6208:13)
+      at dispatchSetState (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:6165:7)
+      at VoiceConversationController.listener [as update] (src/cloud/voiceConversation/controller.ts:260:49)
+      at VoiceConversationController.update [as setTurns] (src/cloud/voiceConversation/controller.ts:853:10)
+      at VoiceConversationController.setTurns [as upsertTurn] (src/cloud/voiceConversation/controller.ts:861:10)
+      at VoiceConversationController.upsertTurn [as acceptUserTurn] (src/cloud/voiceConversation/controller.ts:941:10)
+      at VoiceConversationController.acceptUserTurn [as onFinalUser] (src/cloud/voiceConversation/controller.ts:928:10)
+      at VoiceConversationController.onFinalUser [as onMessage] (src/cloud/voiceConversation/controller.ts:805:21)
+      at VoiceConversationController.onMessage [as onEvent] (src/cloud/voiceConversation/controller.ts:665:21)
+      at onEvent (src/cloud/voiceConversation/controller.ts:385:12)
+      at Object.subscriber [as emit] (__tests__/ui/callLafinaPhase04.test.tsx:97:9)
+      at Object.emit (__tests__/ui/callLafinaPhase04.test.tsx:380:21)
+      at asyncGeneratorStep (node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+      at _next (node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
+
+    console.error
+      An update to VoiceConversationPanel inside a test was not wrapped in act(...).
+      
+      When testing, code that causes React state updates should be wrapped into act(...):
+      
+      act(() => {
+        /* fire events that update state */
+      });
+      /* assert on the output */
+      
+      This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+
+      258 |     if (this.disposed) return;
+      259 |     this.snapshot = {...this.snapshot, ...patch};
+    > 260 |     for (const listener of [...this.listeners]) listener(this.snapshot);
+          |                                                 ^
+      261 |   }
+      262 |
+      263 |   private log(line: string) {
+
+      at node_modules/react-test-renderer/cjs/react-test-renderer.development.js:14402:19
+      at runWithFiberInDEV (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:2315:13)
+      at warnIfUpdatesNotWrappedWithActDEV (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:14401:9)
+      at scheduleUpdateOnFiber (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:12086:9)
+      at dispatchSetStateInternal (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:6208:13)
+      at dispatchSetState (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:6165:7)
+      at VoiceConversationController.listener [as update] (src/cloud/voiceConversation/controller.ts:260:49)
+      at VoiceConversationController.update [as acceptUserTurn] (src/cloud/voiceConversation/controller.ts:951:12)
+      at VoiceConversationController.acceptUserTurn [as onFinalUser] (src/cloud/voiceConversation/controller.ts:928:10)
+      at VoiceConversationController.onFinalUser [as onMessage] (src/cloud/voiceConversation/controller.ts:805:21)
+      at VoiceConversationController.onMessage [as onEvent] (src/cloud/voiceConversation/controller.ts:665:21)
+      at onEvent (src/cloud/voiceConversation/controller.ts:385:12)
+      at Object.subscriber [as emit] (__tests__/ui/callLafinaPhase04.test.tsx:97:9)
+      at Object.emit (__tests__/ui/callLafinaPhase04.test.tsx:380:21)
+      at asyncGeneratorStep (node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+      at _next (node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
+
+    console.error
+      An update to VoiceConversationPanel inside a test was not wrapped in act(...).
+      
+      When testing, code that causes React state updates should be wrapped into act(...):
+      
+      act(() => {
+        /* fire events that update state */
+      });
+      /* assert on the output */
+      
+      This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+
+      258 |     if (this.disposed) return;
+      259 |     this.snapshot = {...this.snapshot, ...patch};
+    > 260 |     for (const listener of [...this.listeners]) listener(this.snapshot);
+          |                                                 ^
+      261 |   }
+      262 |
+      263 |   private log(line: string) {
+
+      at node_modules/react-test-renderer/cjs/react-test-renderer.development.js:14402:19
+      at runWithFiberInDEV (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:2315:13)
+      at warnIfUpdatesNotWrappedWithActDEV (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:14401:9)
+      at scheduleUpdateOnFiber (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:12086:9)
+      at dispatchSetStateInternal (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:6208:13)
+      at dispatchSetState (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:6165:7)
+      at VoiceConversationController.listener [as update] (src/cloud/voiceConversation/controller.ts:260:49)
+      at VoiceConversationController.update [as onMessage] (src/cloud/voiceConversation/controller.ts:753:16)
+      at VoiceConversationController.onMessage [as onEvent] (src/cloud/voiceConversation/controller.ts:665:21)
+      at onEvent (src/cloud/voiceConversation/controller.ts:385:12)
+      at Object.subscriber [as emit] (__tests__/ui/callLafinaPhase04.test.tsx:97:9)
+      at Object.emit (__tests__/ui/callLafinaPhase04.test.tsx:396:21)
+      at asyncGeneratorStep (node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+      at _next (node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
+
+    console.error
+      An update to VoiceConversationPanel inside a test was not wrapped in act(...).
+      
+      When testing, code that causes React state updates should be wrapped into act(...):
+      
+      act(() => {
+        /* fire events that update state */
+      });
+      /* assert on the output */
+      
+      This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+
+      258 |     if (this.disposed) return;
+      259 |     this.snapshot = {...this.snapshot, ...patch};
+    > 260 |     for (const listener of [...this.listeners]) listener(this.snapshot);
+          |                                                 ^
+      261 |   }
+      262 |
+      263 |   private log(line: string) {
+
+      at node_modules/react-test-renderer/cjs/react-test-renderer.development.js:14402:19
+      at runWithFiberInDEV (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:2315:13)
+      at warnIfUpdatesNotWrappedWithActDEV (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:14401:9)
+      at scheduleUpdateOnFiber (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:12086:9)
+      at dispatchSetStateInternal (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:6208:13)
+      at dispatchSetState (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:6165:7)
+      at VoiceConversationController.listener [as update] (src/cloud/voiceConversation/controller.ts:260:49)
+      at VoiceConversationController.update [as setTurns] (src/cloud/voiceConversation/controller.ts:853:10)
+      at VoiceConversationController.setTurns [as upsertTurn] (src/cloud/voiceConversation/controller.ts:861:10)
+      at VoiceConversationController.upsertTurn [as acceptUserTurn] (src/cloud/voiceConversation/controller.ts:941:10)
+      at VoiceConversationController.acceptUserTurn [as onFinalUser] (src/cloud/voiceConversation/controller.ts:928:10)
+      at VoiceConversationController.onFinalUser [as onMessage] (src/cloud/voiceConversation/controller.ts:805:21)
+      at VoiceConversationController.onMessage [as onEvent] (src/cloud/voiceConversation/controller.ts:665:21)
+      at onEvent (src/cloud/voiceConversation/controller.ts:385:12)
+      at Object.subscriber [as emit] (__tests__/ui/callLafinaPhase04.test.tsx:97:9)
+      at Object.emit (__tests__/ui/callLafinaPhase04.test.tsx:449:21)
+      at asyncGeneratorStep (node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+      at _next (node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
+
+    console.error
+      An update to VoiceConversationPanel inside a test was not wrapped in act(...).
+      
+      When testing, code that causes React state updates should be wrapped into act(...):
+      
+      act(() => {
+        /* fire events that update state */
+      });
+      /* assert on the output */
+      
+      This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+
+      258 |     if (this.disposed) return;
+      259 |     this.snapshot = {...this.snapshot, ...patch};
+    > 260 |     for (const listener of [...this.listeners]) listener(this.snapshot);
+          |                                                 ^
+      261 |   }
+      262 |
+      263 |   private log(line: string) {
+
+      at node_modules/react-test-renderer/cjs/react-test-renderer.development.js:14402:19
+      at runWithFiberInDEV (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:2315:13)
+      at warnIfUpdatesNotWrappedWithActDEV (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:14401:9)
+      at scheduleUpdateOnFiber (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:12086:9)
+      at dispatchSetStateInternal (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:6208:13)
+      at dispatchSetState (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:6165:7)
+      at VoiceConversationController.listener [as update] (src/cloud/voiceConversation/controller.ts:260:49)
+      at VoiceConversationController.update [as acceptUserTurn] (src/cloud/voiceConversation/controller.ts:951:12)
+      at VoiceConversationController.acceptUserTurn [as onFinalUser] (src/cloud/voiceConversation/controller.ts:928:10)
+      at VoiceConversationController.onFinalUser [as onMessage] (src/cloud/voiceConversation/controller.ts:805:21)
+      at VoiceConversationController.onMessage [as onEvent] (src/cloud/voiceConversation/controller.ts:665:21)
+      at onEvent (src/cloud/voiceConversation/controller.ts:385:12)
+      at Object.subscriber [as emit] (__tests__/ui/callLafinaPhase04.test.tsx:97:9)
+      at Object.emit (__tests__/ui/callLafinaPhase04.test.tsx:449:21)
+      at asyncGeneratorStep (node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+      at _next (node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
+
+PASS __tests__/ui/callLafinaPhase03.test.tsx
+  ● Console
+
+    console.error
+      An update to VoiceConversationPanel inside a test was not wrapped in act(...).
+      
+      When testing, code that causes React state updates should be wrapped into act(...):
+      
+      act(() => {
+        /* fire events that update state */
+      });
+      /* assert on the output */
+      
+      This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+
+      258 |     if (this.disposed) return;
+      259 |     this.snapshot = {...this.snapshot, ...patch};
+    > 260 |     for (const listener of [...this.listeners]) listener(this.snapshot);
+          |                                                 ^
+      261 |   }
+      262 |
+      263 |   private log(line: string) {
+
+      at node_modules/react-test-renderer/cjs/react-test-renderer.development.js:14402:19
+      at runWithFiberInDEV (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:2315:13)
+      at warnIfUpdatesNotWrappedWithActDEV (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:14401:9)
+      at scheduleUpdateOnFiber (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:12086:9)
+      at dispatchSetStateInternal (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:6208:13)
+      at dispatchSetState (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:6165:7)
+      at VoiceConversationController.listener [as update] (src/cloud/voiceConversation/controller.ts:260:49)
+      at VoiceConversationController.update (src/cloud/voiceConversation/controller.ts:334:10)
+      at asyncGeneratorStep (node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+      at _next (node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
+
+    console.error
+      An update to VoiceConversationPanel inside a test was not wrapped in act(...).
+      
+      When testing, code that causes React state updates should be wrapped into act(...):
+      
+      act(() => {
+        /* fire events that update state */
+      });
+      /* assert on the output */
+      
+      This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+
+      258 |     if (this.disposed) return;
+      259 |     this.snapshot = {...this.snapshot, ...patch};
+    > 260 |     for (const listener of [...this.listeners]) listener(this.snapshot);
+          |                                                 ^
+      261 |   }
+      262 |
+      263 |   private log(line: string) {
+
+      at node_modules/react-test-renderer/cjs/react-test-renderer.development.js:14402:19
+      at runWithFiberInDEV (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:2315:13)
+      at warnIfUpdatesNotWrappedWithActDEV (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:14401:9)
+      at scheduleUpdateOnFiber (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:12086:9)
+      at dispatchSetStateInternal (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:6208:13)
+      at dispatchSetState (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:6165:7)
+      at VoiceConversationController.listener [as update] (src/cloud/voiceConversation/controller.ts:260:49)
+      at VoiceConversationController.update (src/cloud/voiceConversation/controller.ts:434:10)
+      at asyncGeneratorStep (node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+      at _next (node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
+
+    console.error
+      An update to VoiceConversationPanel inside a test was not wrapped in act(...).
+      
+      When testing, code that causes React state updates should be wrapped into act(...):
+      
+      act(() => {
+        /* fire events that update state */
+      });
+      /* assert on the output */
+      
+      This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+
+      258 |     if (this.disposed) return;
+      259 |     this.snapshot = {...this.snapshot, ...patch};
+    > 260 |     for (const listener of [...this.listeners]) listener(this.snapshot);
+          |                                                 ^
+      261 |   }
+      262 |
+      263 |   private log(line: string) {
+
+      at node_modules/react-test-renderer/cjs/react-test-renderer.development.js:14402:19
+      at runWithFiberInDEV (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:2315:13)
+      at warnIfUpdatesNotWrappedWithActDEV (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:14401:9)
+      at scheduleUpdateOnFiber (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:12086:9)
+      at dispatchSetStateInternal (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:6208:13)
+      at dispatchSetState (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:6165:7)
+      at VoiceConversationController.listener [as update] (src/cloud/voiceConversation/controller.ts:260:49)
+      at VoiceConversationController.update [as onEvent] (src/cloud/voiceConversation/controller.ts:639:14)
+      at onEvent (src/cloud/voiceConversation/controller.ts:385:12)
+      at Object.emit (__tests__/ui/callLafinaPhase03.test.tsx:84:44)
+      at Object.emit (__tests__/ui/callLafinaPhase03.test.tsx:220:21)
+      at asyncGeneratorStep (node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+      at _next (node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
+
+    console.error
+      An update to VoiceConversationPanel inside a test was not wrapped in act(...).
+      
+      When testing, code that causes React state updates should be wrapped into act(...):
+      
+      act(() => {
+        /* fire events that update state */
+      });
+      /* assert on the output */
+      
+      This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+
+      258 |     if (this.disposed) return;
+      259 |     this.snapshot = {...this.snapshot, ...patch};
+    > 260 |     for (const listener of [...this.listeners]) listener(this.snapshot);
+          |                                                 ^
+      261 |   }
+      262 |
+      263 |   private log(line: string) {
+
+      at node_modules/react-test-renderer/cjs/react-test-renderer.development.js:14402:19
+      at runWithFiberInDEV (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:2315:13)
+      at warnIfUpdatesNotWrappedWithActDEV (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:14401:9)
+      at scheduleUpdateOnFiber (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:12086:9)
+      at dispatchSetStateInternal (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:6208:13)
+      at dispatchSetState (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:6165:7)
+      at VoiceConversationController.listener [as update] (src/cloud/voiceConversation/controller.ts:260:49)
+      at VoiceConversationController.update [as onEvent] (src/cloud/voiceConversation/controller.ts:639:14)
+      at onEvent (src/cloud/voiceConversation/controller.ts:385:12)
+      at Object.emit (__tests__/ui/callLafinaPhase03.test.tsx:84:44)
+      at Object.emit (__tests__/ui/callLafinaPhase03.test.tsx:237:21)
+      at asyncGeneratorStep (node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+      at _next (node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
+
+    console.error
+      An update to VoiceConversationPanel inside a test was not wrapped in act(...).
+      
+      When testing, code that causes React state updates should be wrapped into act(...):
+      
+      act(() => {
+        /* fire events that update state */
+      });
+      /* assert on the output */
+      
+      This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+
+      258 |     if (this.disposed) return;
+      259 |     this.snapshot = {...this.snapshot, ...patch};
+    > 260 |     for (const listener of [...this.listeners]) listener(this.snapshot);
+          |                                                 ^
+      261 |   }
+      262 |
+      263 |   private log(line: string) {
+
+      at node_modules/react-test-renderer/cjs/react-test-renderer.development.js:14402:19
+      at runWithFiberInDEV (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:2315:13)
+      at warnIfUpdatesNotWrappedWithActDEV (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:14401:9)
+      at scheduleUpdateOnFiber (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:12086:9)
+      at dispatchSetStateInternal (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:6208:13)
+      at dispatchSetState (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:6165:7)
+      at VoiceConversationController.listener [as update] (src/cloud/voiceConversation/controller.ts:260:49)
+      at VoiceConversationController.update [as onPlayback] (src/cloud/voiceConversation/controller.ts:707:12)
+      at VoiceConversationController.onPlayback [as onEvent] (src/cloud/voiceConversation/controller.ts:663:21)
+      at onEvent (src/cloud/voiceConversation/controller.ts:385:12)
+      at Object.emit (__tests__/ui/callLafinaPhase03.test.tsx:84:44)
+      at Object.emit (__tests__/ui/callLafinaPhase03.test.tsx:254:21)
+      at asyncGeneratorStep (node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+      at _next (node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
+
+    console.error
+      An update to VoiceConversationPanel inside a test was not wrapped in act(...).
+      
+      When testing, code that causes React state updates should be wrapped into act(...):
+      
+      act(() => {
+        /* fire events that update state */
+      });
+      /* assert on the output */
+      
+      This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+
+      258 |     if (this.disposed) return;
+      259 |     this.snapshot = {...this.snapshot, ...patch};
+    > 260 |     for (const listener of [...this.listeners]) listener(this.snapshot);
+          |                                                 ^
+      261 |   }
+      262 |
+      263 |   private log(line: string) {
+
+      at node_modules/react-test-renderer/cjs/react-test-renderer.development.js:14402:19
+      at runWithFiberInDEV (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:2315:13)
+      at warnIfUpdatesNotWrappedWithActDEV (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:14401:9)
+      at scheduleUpdateOnFiber (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:12086:9)
+      at dispatchSetStateInternal (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:6208:13)
+      at dispatchSetState (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:6165:7)
+      at VoiceConversationController.listener [as update] (src/cloud/voiceConversation/controller.ts:260:49)
+      at VoiceConversationController.update [as onEvent] (src/cloud/voiceConversation/controller.ts:657:16)
+      at onEvent (src/cloud/voiceConversation/controller.ts:385:12)
+      at Object.emit (__tests__/ui/callLafinaPhase03.test.tsx:84:44)
+      at Object.emit (__tests__/ui/callLafinaPhase03.test.tsx:255:21)
+      at asyncGeneratorStep (node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+      at _next (node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
+
+    console.error
+      An update to VoiceConversationPanel inside a test was not wrapped in act(...).
+      
+      When testing, code that causes React state updates should be wrapped into act(...):
+      
+      act(() => {
+        /* fire events that update state */
+      });
+      /* assert on the output */
+      
+      This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+
+      258 |     if (this.disposed) return;
+      259 |     this.snapshot = {...this.snapshot, ...patch};
+    > 260 |     for (const listener of [...this.listeners]) listener(this.snapshot);
+          |                                                 ^
+      261 |   }
+      262 |
+      263 |   private log(line: string) {
+
+      at node_modules/react-test-renderer/cjs/react-test-renderer.development.js:14402:19
+      at runWithFiberInDEV (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:2315:13)
+      at warnIfUpdatesNotWrappedWithActDEV (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:14401:9)
+      at scheduleUpdateOnFiber (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:12086:9)
+      at dispatchSetStateInternal (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:6208:13)
+      at dispatchSetState (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:6165:7)
+      at VoiceConversationController.listener [as update] (src/cloud/voiceConversation/controller.ts:260:49)
+      at VoiceConversationController.update [as onPlayback] (src/cloud/voiceConversation/controller.ts:707:12)
+      at VoiceConversationController.onPlayback [as onEvent] (src/cloud/voiceConversation/controller.ts:663:21)
+      at onEvent (src/cloud/voiceConversation/controller.ts:385:12)
+      at Object.emit (__tests__/ui/callLafinaPhase03.test.tsx:84:44)
+      at Object.emit (__tests__/ui/callLafinaPhase03.test.tsx:278:21)
+      at asyncGeneratorStep (node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+      at _next (node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
+
+    console.error
+      An update to VoiceConversationPanel inside a test was not wrapped in act(...).
+      
+      When testing, code that causes React state updates should be wrapped into act(...):
+      
+      act(() => {
+        /* fire events that update state */
+      });
+      /* assert on the output */
+      
+      This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+
+      258 |     if (this.disposed) return;
+      259 |     this.snapshot = {...this.snapshot, ...patch};
+    > 260 |     for (const listener of [...this.listeners]) listener(this.snapshot);
+          |                                                 ^
+      261 |   }
+      262 |
+      263 |   private log(line: string) {
+
+      at node_modules/react-test-renderer/cjs/react-test-renderer.development.js:14402:19
+      at runWithFiberInDEV (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:2315:13)
+      at warnIfUpdatesNotWrappedWithActDEV (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:14401:9)
+      at scheduleUpdateOnFiber (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:12086:9)
+      at dispatchSetStateInternal (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:6208:13)
+      at dispatchSetState (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:6165:7)
+      at VoiceConversationController.listener [as update] (src/cloud/voiceConversation/controller.ts:260:49)
+      at VoiceConversationController.update [as onEvent] (src/cloud/voiceConversation/controller.ts:657:16)
+      at onEvent (src/cloud/voiceConversation/controller.ts:385:12)
+      at Object.emit (__tests__/ui/callLafinaPhase03.test.tsx:84:44)
+      at Object.emit (__tests__/ui/callLafinaPhase03.test.tsx:279:21)
+      at asyncGeneratorStep (node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+      at _next (node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
+
+    console.error
+      An update to VoiceConversationPanel inside a test was not wrapped in act(...).
+      
+      When testing, code that causes React state updates should be wrapped into act(...):
+      
+      act(() => {
+        /* fire events that update state */
+      });
+      /* assert on the output */
+      
+      This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+
+      258 |     if (this.disposed) return;
+      259 |     this.snapshot = {...this.snapshot, ...patch};
+    > 260 |     for (const listener of [...this.listeners]) listener(this.snapshot);
+          |                                                 ^
+      261 |   }
+      262 |
+      263 |   private log(line: string) {
+
+      at node_modules/react-test-renderer/cjs/react-test-renderer.development.js:14402:19
+      at runWithFiberInDEV (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:2315:13)
+      at warnIfUpdatesNotWrappedWithActDEV (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:14401:9)
+      at scheduleUpdateOnFiber (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:12086:9)
+      at dispatchSetStateInternal (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:6208:13)
+      at dispatchSetState (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:6165:7)
+      at VoiceConversationController.listener [as update] (src/cloud/voiceConversation/controller.ts:260:49)
+      at VoiceConversationController.update [as onMessage] (src/cloud/voiceConversation/controller.ts:839:16)
+      at VoiceConversationController.onMessage [as onEvent] (src/cloud/voiceConversation/controller.ts:665:21)
+      at onEvent (src/cloud/voiceConversation/controller.ts:385:12)
+      at Object.emit (__tests__/ui/callLafinaPhase03.test.tsx:84:44)
+      at Object.emit (__tests__/ui/callLafinaPhase03.test.tsx:286:21)
+      at asyncGeneratorStep (node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+      at _next (node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
+
+    console.error
+      An update to VoiceConversationPanel inside a test was not wrapped in act(...).
+      
+      When testing, code that causes React state updates should be wrapped into act(...):
+      
+      act(() => {
+        /* fire events that update state */
+      });
+      /* assert on the output */
+      
+      This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+
+      258 |     if (this.disposed) return;
+      259 |     this.snapshot = {...this.snapshot, ...patch};
+    > 260 |     for (const listener of [...this.listeners]) listener(this.snapshot);
+          |                                                 ^
+      261 |   }
+      262 |
+      263 |   private log(line: string) {
+
+      at node_modules/react-test-renderer/cjs/react-test-renderer.development.js:14402:19
+      at runWithFiberInDEV (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:2315:13)
+      at warnIfUpdatesNotWrappedWithActDEV (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:14401:9)
+      at scheduleUpdateOnFiber (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:12086:9)
+      at dispatchSetStateInternal (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:6208:13)
+      at dispatchSetState (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:6165:7)
+      at VoiceConversationController.listener [as update] (src/cloud/voiceConversation/controller.ts:260:49)
+      at VoiceConversationController.update [as stopForSystem] (src/cloud/voiceConversation/controller.ts:536:10)
+      at VoiceConversationController.stopForSystem [as onEvent] (src/cloud/voiceConversation/controller.ts:667:21)
+      at onEvent (src/cloud/voiceConversation/controller.ts:385:12)
+      at Object.emit (__tests__/ui/callLafinaPhase03.test.tsx:84:44)
+      at Object.emit (__tests__/ui/callLafinaPhase03.test.tsx:306:21)
+      at asyncGeneratorStep (node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+      at _next (node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
+
+    console.error
+      An update to VoiceConversationPanel inside a test was not wrapped in act(...).
+      
+      When testing, code that causes React state updates should be wrapped into act(...):
+      
+      act(() => {
+        /* fire events that update state */
+      });
+      /* assert on the output */
+      
+      This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+
+      258 |     if (this.disposed) return;
+      259 |     this.snapshot = {...this.snapshot, ...patch};
+    > 260 |     for (const listener of [...this.listeners]) listener(this.snapshot);
+          |                                                 ^
+      261 |   }
+      262 |
+      263 |   private log(line: string) {
+
+      at node_modules/react-test-renderer/cjs/react-test-renderer.development.js:14402:19
+      at runWithFiberInDEV (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:2315:13)
+      at warnIfUpdatesNotWrappedWithActDEV (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:14401:9)
+      at scheduleUpdateOnFiber (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:12086:9)
+      at dispatchSetStateInternal (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:6208:13)
+      at dispatchSetState (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:6165:7)
+      at VoiceConversationController.listener [as update] (src/cloud/voiceConversation/controller.ts:260:49)
+      at VoiceConversationController.update [as stopForSystem] (src/cloud/voiceConversation/controller.ts:536:10)
+      at VoiceConversationController.stopForSystem [as onEvent] (src/cloud/voiceConversation/controller.ts:675:21)
+      at onEvent (src/cloud/voiceConversation/controller.ts:385:12)
+      at Object.emit (__tests__/ui/callLafinaPhase03.test.tsx:84:44)
+      at Object.emit (__tests__/ui/callLafinaPhase03.test.tsx:339:21)
+      at asyncGeneratorStep (node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+      at _next (node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
+
+PASS __tests__/ui/callLafinaPhase05.test.tsx
+  ● Console
+
+    console.error
+      An update to VoiceConversationPanel inside a test was not wrapped in act(...).
+      
+      When testing, code that causes React state updates should be wrapped into act(...):
+      
+      act(() => {
+        /* fire events that update state */
+      });
+      /* assert on the output */
+      
+      This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+
+      258 |     if (this.disposed) return;
+      259 |     this.snapshot = {...this.snapshot, ...patch};
+    > 260 |     for (const listener of [...this.listeners]) listener(this.snapshot);
+          |                                                 ^
+      261 |   }
+      262 |
+      263 |   private log(line: string) {
+
+      at node_modules/react-test-renderer/cjs/react-test-renderer.development.js:14402:19
+      at runWithFiberInDEV (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:2315:13)
+      at warnIfUpdatesNotWrappedWithActDEV (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:14401:9)
+      at scheduleUpdateOnFiber (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:12086:9)
+      at dispatchSetStateInternal (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:6208:13)
+      at dispatchSetState (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:6165:7)
+      at VoiceConversationController.listener [as update] (src/cloud/voiceConversation/controller.ts:260:49)
+      at VoiceConversationController.update [as setTurns] (src/cloud/voiceConversation/controller.ts:853:10)
+      at VoiceConversationController.setTurns [as upsertTurn] (src/cloud/voiceConversation/controller.ts:861:10)
+      at VoiceConversationController.upsertTurn [as showProvisionalUser] (src/cloud/voiceConversation/controller.ts:867:10)
+      at VoiceConversationController.showProvisionalUser [as onMessage] (src/cloud/voiceConversation/controller.ts:799:32)
+      at VoiceConversationController.onMessage [as onEvent] (src/cloud/voiceConversation/controller.ts:665:21)
+      at onEvent (src/cloud/voiceConversation/controller.ts:385:12)
+      at Object.emit (__tests__/ui/callLafinaPhase05.test.tsx:89:19)
+      at Object.emit (__tests__/ui/callLafinaPhase05.test.tsx:196:21)
+      at asyncGeneratorStep (node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+      at _next (node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
+
+    console.error
+      An update to VoiceConversationPanel inside a test was not wrapped in act(...).
+      
+      When testing, code that causes React state updates should be wrapped into act(...):
+      
+      act(() => {
+        /* fire events that update state */
+      });
+      /* assert on the output */
+      
+      This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+
+      258 |     if (this.disposed) return;
+      259 |     this.snapshot = {...this.snapshot, ...patch};
+    > 260 |     for (const listener of [...this.listeners]) listener(this.snapshot);
+          |                                                 ^
+      261 |   }
+      262 |
+      263 |   private log(line: string) {
+
+      at node_modules/react-test-renderer/cjs/react-test-renderer.development.js:14402:19
+      at runWithFiberInDEV (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:2315:13)
+      at warnIfUpdatesNotWrappedWithActDEV (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:14401:9)
+      at scheduleUpdateOnFiber (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:12086:9)
+      at dispatchSetStateInternal (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:6208:13)
+      at dispatchSetState (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:6165:7)
+      at VoiceConversationController.listener [as update] (src/cloud/voiceConversation/controller.ts:260:49)
+      at VoiceConversationController.update [as setTurns] (src/cloud/voiceConversation/controller.ts:853:10)
+      at VoiceConversationController.setTurns [as upsertTurn] (src/cloud/voiceConversation/controller.ts:861:10)
+      at VoiceConversationController.upsertTurn [as acceptUserTurn] (src/cloud/voiceConversation/controller.ts:941:10)
+      at VoiceConversationController.acceptUserTurn [as onFinalUser] (src/cloud/voiceConversation/controller.ts:928:10)
+      at VoiceConversationController.onFinalUser [as onMessage] (src/cloud/voiceConversation/controller.ts:805:21)
+      at VoiceConversationController.onMessage [as onEvent] (src/cloud/voiceConversation/controller.ts:665:21)
+      at onEvent (src/cloud/voiceConversation/controller.ts:385:12)
+      at Object.emit (__tests__/ui/callLafinaPhase05.test.tsx:89:19)
+      at Object.emit (__tests__/ui/callLafinaPhase05.test.tsx:211:21)
+      at asyncGeneratorStep (node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+      at _next (node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
+
+    console.error
+      An update to VoiceConversationPanel inside a test was not wrapped in act(...).
+      
+      When testing, code that causes React state updates should be wrapped into act(...):
+      
+      act(() => {
+        /* fire events that update state */
+      });
+      /* assert on the output */
+      
+      This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+
+      258 |     if (this.disposed) return;
+      259 |     this.snapshot = {...this.snapshot, ...patch};
+    > 260 |     for (const listener of [...this.listeners]) listener(this.snapshot);
+          |                                                 ^
+      261 |   }
+      262 |
+      263 |   private log(line: string) {
+
+      at node_modules/react-test-renderer/cjs/react-test-renderer.development.js:14402:19
+      at runWithFiberInDEV (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:2315:13)
+      at warnIfUpdatesNotWrappedWithActDEV (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:14401:9)
+      at scheduleUpdateOnFiber (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:12086:9)
+      at dispatchSetStateInternal (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:6208:13)
+      at dispatchSetState (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:6165:7)
+      at VoiceConversationController.listener [as update] (src/cloud/voiceConversation/controller.ts:260:49)
+      at VoiceConversationController.update [as acceptUserTurn] (src/cloud/voiceConversation/controller.ts:951:12)
+      at VoiceConversationController.acceptUserTurn [as onFinalUser] (src/cloud/voiceConversation/controller.ts:928:10)
+      at VoiceConversationController.onFinalUser [as onMessage] (src/cloud/voiceConversation/controller.ts:805:21)
+      at VoiceConversationController.onMessage [as onEvent] (src/cloud/voiceConversation/controller.ts:665:21)
+      at onEvent (src/cloud/voiceConversation/controller.ts:385:12)
+      at Object.emit (__tests__/ui/callLafinaPhase05.test.tsx:89:19)
+      at Object.emit (__tests__/ui/callLafinaPhase05.test.tsx:211:21)
+      at asyncGeneratorStep (node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+      at _next (node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
+
+    console.error
+      An update to VoiceConversationPanel inside a test was not wrapped in act(...).
+      
+      When testing, code that causes React state updates should be wrapped into act(...):
+      
+      act(() => {
+        /* fire events that update state */
+      });
+      /* assert on the output */
+      
+      This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+
+      258 |     if (this.disposed) return;
+      259 |     this.snapshot = {...this.snapshot, ...patch};
+    > 260 |     for (const listener of [...this.listeners]) listener(this.snapshot);
+          |                                                 ^
+      261 |   }
+      262 |
+      263 |   private log(line: string) {
+
+      at node_modules/react-test-renderer/cjs/react-test-renderer.development.js:14402:19
+      at runWithFiberInDEV (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:2315:13)
+      at warnIfUpdatesNotWrappedWithActDEV (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:14401:9)
+      at scheduleUpdateOnFiber (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:12086:9)
+      at dispatchSetStateInternal (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:6208:13)
+      at dispatchSetState (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:6165:7)
+      at VoiceConversationController.listener [as update] (src/cloud/voiceConversation/controller.ts:260:49)
+      at VoiceConversationController.update [as recordTiming] (src/cloud/voiceConversation/controller.ts:1097:10)
+      at VoiceConversationController.recordTiming [as noteFirstText] (src/cloud/voiceConversation/controller.ts:982:12)
+      at VoiceConversationController.noteFirstText [as appendAnswer] (src/cloud/voiceConversation/controller.ts:989:10)
+      at VoiceConversationController.appendAnswer [as onMessage] (src/cloud/voiceConversation/controller.ts:810:16)
+      at VoiceConversationController.onMessage [as onEvent] (src/cloud/voiceConversation/controller.ts:665:21)
+      at onEvent (src/cloud/voiceConversation/controller.ts:385:12)
+      at Object.emit (__tests__/ui/callLafinaPhase05.test.tsx:89:19)
+      at Object.emit (__tests__/ui/callLafinaPhase05.test.tsx:225:21)
+      at asyncGeneratorStep (node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+      at _next (node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
+
+    console.error
+      An update to VoiceConversationPanel inside a test was not wrapped in act(...).
+      
+      When testing, code that causes React state updates should be wrapped into act(...):
+      
+      act(() => {
+        /* fire events that update state */
+      });
+      /* assert on the output */
+      
+      This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+
+      258 |     if (this.disposed) return;
+      259 |     this.snapshot = {...this.snapshot, ...patch};
+    > 260 |     for (const listener of [...this.listeners]) listener(this.snapshot);
+          |                                                 ^
+      261 |   }
+      262 |
+      263 |   private log(line: string) {
+
+      at node_modules/react-test-renderer/cjs/react-test-renderer.development.js:14402:19
+      at runWithFiberInDEV (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:2315:13)
+      at warnIfUpdatesNotWrappedWithActDEV (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:14401:9)
+      at scheduleUpdateOnFiber (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:12086:9)
+      at dispatchSetStateInternal (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:6208:13)
+      at dispatchSetState (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:6165:7)
+      at VoiceConversationController.listener [as update] (src/cloud/voiceConversation/controller.ts:260:49)
+      at VoiceConversationController.update [as setTurns] (src/cloud/voiceConversation/controller.ts:853:10)
+      at VoiceConversationController.setTurns [as upsertTurn] (src/cloud/voiceConversation/controller.ts:861:10)
+      at VoiceConversationController.upsertTurn [as appendAnswer] (src/cloud/voiceConversation/controller.ts:991:10)
+      at VoiceConversationController.appendAnswer [as onMessage] (src/cloud/voiceConversation/controller.ts:810:16)
+      at VoiceConversationController.onMessage [as onEvent] (src/cloud/voiceConversation/controller.ts:665:21)
+      at onEvent (src/cloud/voiceConversation/controller.ts:385:12)
+      at Object.emit (__tests__/ui/callLafinaPhase05.test.tsx:89:19)
+      at Object.emit (__tests__/ui/callLafinaPhase05.test.tsx:225:21)
+      at asyncGeneratorStep (node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+      at _next (node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
+
+    console.error
+      An update to VoiceConversationPanel inside a test was not wrapped in act(...).
+      
+      When testing, code that causes React state updates should be wrapped into act(...):
+      
+      act(() => {
+        /* fire events that update state */
+      });
+      /* assert on the output */
+      
+      This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+
+      258 |     if (this.disposed) return;
+      259 |     this.snapshot = {...this.snapshot, ...patch};
+    > 260 |     for (const listener of [...this.listeners]) listener(this.snapshot);
+          |                                                 ^
+      261 |   }
+      262 |
+      263 |   private log(line: string) {
+
+      at node_modules/react-test-renderer/cjs/react-test-renderer.development.js:14402:19
+      at runWithFiberInDEV (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:2315:13)
+      at warnIfUpdatesNotWrappedWithActDEV (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:14401:9)
+      at scheduleUpdateOnFiber (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:12086:9)
+      at dispatchSetStateInternal (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:6208:13)
+      at dispatchSetState (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:6165:7)
+      at VoiceConversationController.listener [as update] (src/cloud/voiceConversation/controller.ts:260:49)
+      at VoiceConversationController.update [as setTurns] (src/cloud/voiceConversation/controller.ts:853:10)
+      at VoiceConversationController.setTurns [as upsertTurn] (src/cloud/voiceConversation/controller.ts:861:10)
+      at VoiceConversationController.upsertTurn [as finalAnswer] (src/cloud/voiceConversation/controller.ts:1009:10)
+      at VoiceConversationController.finalAnswer [as onMessage] (src/cloud/voiceConversation/controller.ts:815:21)
+      at VoiceConversationController.onMessage [as onEvent] (src/cloud/voiceConversation/controller.ts:665:21)
+      at onEvent (src/cloud/voiceConversation/controller.ts:385:12)
+      at Object.emit (__tests__/ui/callLafinaPhase05.test.tsx:89:19)
+      at Object.emit (__tests__/ui/callLafinaPhase05.test.tsx:240:21)
+      at asyncGeneratorStep (node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+      at _next (node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
+
+    console.error
+      An update to VoiceConversationPanel inside a test was not wrapped in act(...).
+      
+      When testing, code that causes React state updates should be wrapped into act(...):
+      
+      act(() => {
+        /* fire events that update state */
+      });
+      /* assert on the output */
+      
+      This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+
+      258 |     if (this.disposed) return;
+      259 |     this.snapshot = {...this.snapshot, ...patch};
+    > 260 |     for (const listener of [...this.listeners]) listener(this.snapshot);
+          |                                                 ^
+      261 |   }
+      262 |
+      263 |   private log(line: string) {
+
+      at node_modules/react-test-renderer/cjs/react-test-renderer.development.js:14402:19
+      at runWithFiberInDEV (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:2315:13)
+      at warnIfUpdatesNotWrappedWithActDEV (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:14401:9)
+      at scheduleUpdateOnFiber (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:12086:9)
+      at dispatchSetStateInternal (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:6208:13)
+      at dispatchSetState (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:6165:7)
+      at VoiceConversationController.listener [as update] (src/cloud/voiceConversation/controller.ts:260:49)
+      at VoiceConversationController.update [as setTurns] (src/cloud/voiceConversation/controller.ts:853:10)
+      at VoiceConversationController.setTurns [as upsertTurn] (src/cloud/voiceConversation/controller.ts:861:10)
+      at VoiceConversationController.upsertTurn [as appendAnswer] (src/cloud/voiceConversation/controller.ts:991:10)
+      at VoiceConversationController.appendAnswer [as onMessage] (src/cloud/voiceConversation/controller.ts:810:16)
+      at VoiceConversationController.onMessage [as onEvent] (src/cloud/voiceConversation/controller.ts:665:21)
+      at onEvent (src/cloud/voiceConversation/controller.ts:385:12)
+      at Object.emit (__tests__/ui/callLafinaPhase05.test.tsx:89:19)
+      at Object.emit (__tests__/ui/callLafinaPhase05.test.tsx:264:21)
+      at asyncGeneratorStep (node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+      at _next (node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
+
+    console.error
+      An update to VoiceConversationPanel inside a test was not wrapped in act(...).
+      
+      When testing, code that causes React state updates should be wrapped into act(...):
+      
+      act(() => {
+        /* fire events that update state */
+      });
+      /* assert on the output */
+      
+      This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+
+      258 |     if (this.disposed) return;
+      259 |     this.snapshot = {...this.snapshot, ...patch};
+    > 260 |     for (const listener of [...this.listeners]) listener(this.snapshot);
+          |                                                 ^
+      261 |   }
+      262 |
+      263 |   private log(line: string) {
+
+      at node_modules/react-test-renderer/cjs/react-test-renderer.development.js:14402:19
+      at runWithFiberInDEV (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:2315:13)
+      at warnIfUpdatesNotWrappedWithActDEV (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:14401:9)
+      at scheduleUpdateOnFiber (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:12086:9)
+      at dispatchSetStateInternal (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:6208:13)
+      at dispatchSetState (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:6165:7)
+      at VoiceConversationController.listener [as update] (src/cloud/voiceConversation/controller.ts:260:49)
+      at VoiceConversationController.update [as setTurns] (src/cloud/voiceConversation/controller.ts:853:10)
+      at VoiceConversationController.setTurns [as upsertTurn] (src/cloud/voiceConversation/controller.ts:861:10)
+      at VoiceConversationController.upsertTurn [as markInterrupted] (src/cloud/voiceConversation/controller.ts:1066:10)
+      at VoiceConversationController.markInterrupted [as onMessage] (src/cloud/voiceConversation/controller.ts:833:14)
+      at VoiceConversationController.onMessage [as onEvent] (src/cloud/voiceConversation/controller.ts:665:21)
+      at onEvent (src/cloud/voiceConversation/controller.ts:385:12)
+      at Object.emit (__tests__/ui/callLafinaPhase05.test.tsx:89:19)
+      at Object.emit (__tests__/ui/callLafinaPhase05.test.tsx:277:21)
+      at asyncGeneratorStep (node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+      at _next (node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
+
+    console.error
+      An update to VoiceConversationPanel inside a test was not wrapped in act(...).
+      
+      When testing, code that causes React state updates should be wrapped into act(...):
+      
+      act(() => {
+        /* fire events that update state */
+      });
+      /* assert on the output */
+      
+      This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+
+      258 |     if (this.disposed) return;
+      259 |     this.snapshot = {...this.snapshot, ...patch};
+    > 260 |     for (const listener of [...this.listeners]) listener(this.snapshot);
+          |                                                 ^
+      261 |   }
+      262 |
+      263 |   private log(line: string) {
+
+      at node_modules/react-test-renderer/cjs/react-test-renderer.development.js:14402:19
+      at runWithFiberInDEV (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:2315:13)
+      at warnIfUpdatesNotWrappedWithActDEV (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:14401:9)
+      at scheduleUpdateOnFiber (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:12086:9)
+      at dispatchSetStateInternal (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:6208:13)
+      at dispatchSetState (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:6165:7)
+      at VoiceConversationController.listener [as update] (src/cloud/voiceConversation/controller.ts:260:49)
+      at VoiceConversationController.update [as setTurns] (src/cloud/voiceConversation/controller.ts:853:10)
+      at VoiceConversationController.setTurns [as upsertTurn] (src/cloud/voiceConversation/controller.ts:861:10)
+      at VoiceConversationController.upsertTurn [as acceptUserTurn] (src/cloud/voiceConversation/controller.ts:941:10)
+      at VoiceConversationController.acceptUserTurn [as onFinalUser] (src/cloud/voiceConversation/controller.ts:928:10)
+      at VoiceConversationController.onFinalUser [as onMessage] (src/cloud/voiceConversation/controller.ts:805:21)
+      at VoiceConversationController.onMessage [as onEvent] (src/cloud/voiceConversation/controller.ts:665:21)
+      at onEvent (src/cloud/voiceConversation/controller.ts:385:12)
+      at Object.emit (__tests__/ui/callLafinaPhase05.test.tsx:89:19)
+      at Object.emit (__tests__/ui/callLafinaPhase05.test.tsx:298:21)
+      at asyncGeneratorStep (node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+      at _next (node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
+
+    console.error
+      An update to VoiceConversationPanel inside a test was not wrapped in act(...).
+      
+      When testing, code that causes React state updates should be wrapped into act(...):
+      
+      act(() => {
+        /* fire events that update state */
+      });
+      /* assert on the output */
+      
+      This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+
+      258 |     if (this.disposed) return;
+      259 |     this.snapshot = {...this.snapshot, ...patch};
+    > 260 |     for (const listener of [...this.listeners]) listener(this.snapshot);
+          |                                                 ^
+      261 |   }
+      262 |
+      263 |   private log(line: string) {
+
+      at node_modules/react-test-renderer/cjs/react-test-renderer.development.js:14402:19
+      at runWithFiberInDEV (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:2315:13)
+      at warnIfUpdatesNotWrappedWithActDEV (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:14401:9)
+      at scheduleUpdateOnFiber (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:12086:9)
+      at dispatchSetStateInternal (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:6208:13)
+      at dispatchSetState (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:6165:7)
+      at VoiceConversationController.listener [as update] (src/cloud/voiceConversation/controller.ts:260:49)
+      at VoiceConversationController.update [as acceptUserTurn] (src/cloud/voiceConversation/controller.ts:951:12)
+      at VoiceConversationController.acceptUserTurn [as onFinalUser] (src/cloud/voiceConversation/controller.ts:928:10)
+      at VoiceConversationController.onFinalUser [as onMessage] (src/cloud/voiceConversation/controller.ts:805:21)
+      at VoiceConversationController.onMessage [as onEvent] (src/cloud/voiceConversation/controller.ts:665:21)
+      at onEvent (src/cloud/voiceConversation/controller.ts:385:12)
+      at Object.emit (__tests__/ui/callLafinaPhase05.test.tsx:89:19)
+      at Object.emit (__tests__/ui/callLafinaPhase05.test.tsx:298:21)
+      at asyncGeneratorStep (node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+      at _next (node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
+
+    console.error
+      An update to VoiceConversationPanel inside a test was not wrapped in act(...).
+      
+      When testing, code that causes React state updates should be wrapped into act(...):
+      
+      act(() => {
+        /* fire events that update state */
+      });
+      /* assert on the output */
+      
+      This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+
+      258 |     if (this.disposed) return;
+      259 |     this.snapshot = {...this.snapshot, ...patch};
+    > 260 |     for (const listener of [...this.listeners]) listener(this.snapshot);
+          |                                                 ^
+      261 |   }
+      262 |
+      263 |   private log(line: string) {
+
+      at node_modules/react-test-renderer/cjs/react-test-renderer.development.js:14402:19
+      at runWithFiberInDEV (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:2315:13)
+      at warnIfUpdatesNotWrappedWithActDEV (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:14401:9)
+      at scheduleUpdateOnFiber (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:12086:9)
+      at dispatchSetStateInternal (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:6208:13)
+      at dispatchSetState (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:6165:7)
+      at VoiceConversationController.listener [as update] (src/cloud/voiceConversation/controller.ts:260:49)
+      at VoiceConversationController.update [as setTurns] (src/cloud/voiceConversation/controller.ts:853:10)
+      at VoiceConversationController.setTurns [as upsertTurn] (src/cloud/voiceConversation/controller.ts:861:10)
+      at VoiceConversationController.upsertTurn [as acceptUserTurn] (src/cloud/voiceConversation/controller.ts:941:10)
+      at VoiceConversationController.acceptUserTurn [as onFinalUser] (src/cloud/voiceConversation/controller.ts:928:10)
+      at VoiceConversationController.onFinalUser [as onMessage] (src/cloud/voiceConversation/controller.ts:805:21)
+      at VoiceConversationController.onMessage [as onEvent] (src/cloud/voiceConversation/controller.ts:665:21)
+      at onEvent (src/cloud/voiceConversation/controller.ts:385:12)
+      at Object.emit (__tests__/ui/callLafinaPhase05.test.tsx:89:19)
+      at Object.emit (__tests__/ui/callLafinaPhase05.test.tsx:335:21)
+      at asyncGeneratorStep (node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+      at _next (node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
+
+    console.error
+      An update to VoiceConversationPanel inside a test was not wrapped in act(...).
+      
+      When testing, code that causes React state updates should be wrapped into act(...):
+      
+      act(() => {
+        /* fire events that update state */
+      });
+      /* assert on the output */
+      
+      This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+
+      258 |     if (this.disposed) return;
+      259 |     this.snapshot = {...this.snapshot, ...patch};
+    > 260 |     for (const listener of [...this.listeners]) listener(this.snapshot);
+          |                                                 ^
+      261 |   }
+      262 |
+      263 |   private log(line: string) {
+
+      at node_modules/react-test-renderer/cjs/react-test-renderer.development.js:14402:19
+      at runWithFiberInDEV (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:2315:13)
+      at warnIfUpdatesNotWrappedWithActDEV (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:14401:9)
+      at scheduleUpdateOnFiber (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:12086:9)
+      at dispatchSetStateInternal (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:6208:13)
+      at dispatchSetState (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:6165:7)
+      at VoiceConversationController.listener [as update] (src/cloud/voiceConversation/controller.ts:260:49)
+      at VoiceConversationController.update [as acceptUserTurn] (src/cloud/voiceConversation/controller.ts:951:12)
+      at VoiceConversationController.acceptUserTurn [as onFinalUser] (src/cloud/voiceConversation/controller.ts:928:10)
+      at VoiceConversationController.onFinalUser [as onMessage] (src/cloud/voiceConversation/controller.ts:805:21)
+      at VoiceConversationController.onMessage [as onEvent] (src/cloud/voiceConversation/controller.ts:665:21)
+      at onEvent (src/cloud/voiceConversation/controller.ts:385:12)
+      at Object.emit (__tests__/ui/callLafinaPhase05.test.tsx:89:19)
+      at Object.emit (__tests__/ui/callLafinaPhase05.test.tsx:335:21)
+      at asyncGeneratorStep (node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+      at _next (node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
+
+PASS __tests__/ui/callLafinaPhase12.test.tsx
+FAIL __tests__/ui/callLafinaPhase01.test.tsx
+  ● Console
+
+    console.warn
+      [cloud] GET /v1/ai/tts/capabilities got no response: LAFINA's server at lafina-backend.vercel.app didn't answer (no response).
+
+      572 |     if (!response) {
+      573 |       const reason = await describeConnectionFailure(apiBaseUrls[0], lastConnectionError);
+    > 574 |       console.warn(`[cloud] ${options.method || 'GET'} ${endpoint} got no response: ${reason}`);
+          |               ^
+      575 |       return { status: 'server_unavailable', error: reason };
+      576 |     }
+      577 |
+
+      at Object.warn (src/cloud/cloudClient.ts:574:15)
+      at asyncGeneratorStep (node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+      at _next (node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
+
+    console.warn
+      [cloud] GET /v1/auth/me got no response: LAFINA's server at lafina-backend.vercel.app didn't answer (no response).
+
+      572 |     if (!response) {
+      573 |       const reason = await describeConnectionFailure(apiBaseUrls[0], lastConnectionError);
+    > 574 |       console.warn(`[cloud] ${options.method || 'GET'} ${endpoint} got no response: ${reason}`);
+          |               ^
+      575 |       return { status: 'server_unavailable', error: reason };
+      576 |     }
+      577 |
+
+      at Object.warn (src/cloud/cloudClient.ts:574:15)
+      at asyncGeneratorStep (node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+      at _next (node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
+
+  ● Phase 01: Call Lafina Navigation & Premium Full-Screen UI › F-003 & F-004: Displays centered identity ring, timer, and truthful online status badges
+
+    expect(element).toHaveTextContent()
+
+    Expected element to have text content:
+      Online
+    Received:
+      Not connected
+
+      262 |     expect(utils.getByTestId('call-identity-ring')).toBeTruthy();
+      263 |     expect(utils.getByTestId('call-header-title')).toHaveTextContent('Call Lafina');
+    > 264 |     expect(utils.getByTestId('call-online-badge')).toHaveTextContent('Online');
+          |                                                    ^
+      265 |
+      266 |     // Start call
+      267 |     fireEvent.press(utils.getByTestId('voice-conversation-start'));
+
+      at Object.toHaveTextContent (__tests__/ui/callLafinaPhase01.test.tsx:264:52)
+      at asyncGeneratorStep (node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+      at _next (node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
+      at node_modules/@babel/runtime/helpers/asyncToGenerator.js:22:7
+      at Object.<anonymous> (node_modules/@babel/runtime/helpers/asyncToGenerator.js:14:12)
+
+FAIL __tests__/ui/callLafinaPhase11.test.tsx
+  ● Phase 11 — Multi-action Workflow, Follow-ups, and Authoritative Results › P11-05, P11-06 & F-068: Authoritative Entity Links & Truthful Spoken Summaries › renders saved entity ID links for completed items and Retry for failed items (P11-05)
+
+    Unable to find an element with text: Saved ID: task-auth-99 (task)
+
+    <View
+      accessibilityLabel="Grouped actions card with 2 items"
+      testID="multi-action-card"
+    >
+      <View>
+        <View>
+          <View
+            accessibilityLabel="ListTodo"
+          />
+          <Text>
+            Grouped Actions (
+            2
+            )
+          </Text>
+        </View>
+        <View>
+          <Text>
+            PARTIAL
+          </Text>
+        </View>
+      </View>
+      <View
+        testID="multi-action-partial-alert"
+      >
+        <View
+          accessibilityLabel="AlertTriangle"
+        />
+        <Text>
+          Some items failed. Tap Retry on failed items below.
+        </Text>
+      </View>
+      <RCTScrollView
+        testID="multi-action-card-scroll"
+      >
+        <View>
+          <View
+            testID="multi-action-item-0"
+          >
+            <View>
+              <View>
+                <View
+                  accessibilityLabel="ListTodo"
+                />
+                <Text>
+                  TASK
+                </Text>
+              </View>
+              <View>
+                <Text>
+                  Saved
+                </Text>
+              </View>
+            </View>
+            <Text>
+              Research Survey
+            </Text>
+            <View
+              accessibilityLabel="Open saved task: Research Survey"
+              accessibilityRole="button"
+              accessibilityState={
+                {
+                  "disabled": true,
+                }
+              }
+              accessible={true}
+              testID="multi-item-link-0"
+            >
+              <View
+                accessibilityLabel="CheckCircle2"
+              />
+              <Text>
+                Open saved 
+                task
+                : 
+                Research Survey
+              </Text>
+            </View>
+            <View />
+          </View>
+          <View
+            testID="multi-action-item-1"
+          >
+            <View>
+              <View>
+                <View
+                  accessibilityLabel="FileText"
+                />
+                <Text>
+                  NOTE
+                </Text>
+              </View>
+              <View>
+                <Text>
+                  Failed
+                </Text>
+              </View>
+            </View>
+            <TextInput
+              accessibilityLabel="Edit title for item 2"
+              placeholder="Action title"
+              testID="multi-item-title-input-1"
+              value="Meeting Minutes"
+            />
+            <Text
+              testID="multi-item-error-1"
+            >
+              Error: 
+              Storage full
+            </Text>
+            <View>
+              <View
+                accessibilityLabel="Retry item 2"
+                accessibilityRole="button"
+                accessible={true}
+                testID="multi-item-retry-1"
+              >
+                <View
+                  accessibilityLabel="RotateCcw"
+                />
+                <Text>
+                  Retry
+                </Text>
+              </View>
+            </View>
+          </View>
+        </View>
+      </RCTScrollView>
+      <View>
+        <View
+          accessibilityLabel="Confirm all actions"
+          accessibilityRole="button"
+          accessibilityState={
+            {
+              "disabled": false,
+            }
+          }
+          accessible={true}
+          testID="multi-action-confirm-all"
+        >
+          <View
+            accessibilityLabel="CheckCircle2"
+          />
+          <Text>
+            Save All
+          </Text>
+        </View>
+        <View
+          accessibilityLabel="Cancel all actions"
+          accessibilityRole="button"
+          accessibilityState={
+            {
+              "disabled": false,
+            }
+          }
+          accessible={true}
+          testID="multi-action-cancel-all"
+        >
+          <Text>
+            Cancel All
+          </Text>
+        </View>
+      </View>
+    </View>
+
+      376 |       // Verify saved link
+      377 |       expect(getByTestId('multi-item-link-0')).toBeTruthy();
+    > 378 |       expect(getByText('Saved ID: task-auth-99 (task)')).toBeTruthy();
+          |              ^
+      379 |
+      380 |       // Verify error and retry button
+      381 |       expect(getByTestId('multi-item-error-1')).toBeTruthy();
+
+      at Object.getByText (__tests__/ui/callLafinaPhase11.test.tsx:378:14)
+
+  ● Phase 11 — Multi-action Workflow, Follow-ups, and Authoritative Results › P11-05, P11-06 & F-068: Authoritative Entity Links & Truthful Spoken Summaries › formulates precise spoken summary without unverified optimistic claims (P11-06, F-068)
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: "All 2 items saved successfully."
+    Received: "All 2 items saved successfully. 1 reminder alarm registration(s) are not verified. Check reminder delivery settings."
+
+      398 |         status: 'saved',
+      399 |       };
+    > 400 |       expect(formatMultiActionSpokenSummary(savedBatch)).toBe('All 2 items saved successfully.');
+          |                                                          ^
+      401 |
+      402 |       const partialBatch: MultiActionBatchData = {
+      403 |         id: 'b2',
+
+      at Object.toBe (__tests__/ui/callLafinaPhase11.test.tsx:400:58)
+
+FAIL __tests__/ui/callLafinaPhase09.test.tsx
+  ● Phase 09 — Explicit Personal Memory & Privacy Controls › P09-01, P09-07, P09-08: ActionService Memory Execution & Multi-Account Isolation › enforces multi-account isolation: USER_B cannot confirm or undo USER_A proposal (P09-08)
+
+    expect(received).toContain(expected) // indexOf
+
+    Expected substring: "Unauthorized"
+    Received string:    "Active owner and consent required."
+
+      448 |       const spoofConfirm = actionService.confirmMemoryProposal(USER_B, actionId);
+      449 |       expect(spoofConfirm.success).toBe(false);
+    > 450 |       expect(spoofConfirm.error).toContain('Unauthorized');
+          |                                  ^
+      451 |       expect(chatMemoryStore.list(USER_A)).toHaveLength(0);
+      452 |       expect(chatMemoryStore.list(USER_B)).toHaveLength(0);
+      453 |
+
+      at Object.toContain (__tests__/ui/callLafinaPhase09.test.tsx:450:34)
+
+PASS __tests__/ui/callLafinaPhase13.test.tsx
+PASS __tests__/ui/callLafinaPhase07.test.tsx
+PASS __tests__/ui/callLafinaPhase02.test.tsx
+FAIL __tests__/ui/callLafinaPhase06.test.tsx
+  ● Phase 06 — Secure Structured Agent Tool Bridge & Contextual Card Foundation › P06-03 & Security Isolation (F-076, F-078) › rejects tool execution when student has not granted data consent
+
+    expect(received).toMatch(expected)
+
+    Expected pattern: /consent is required/i
+    Received string:  "Please review the data disclosure before using tools."
+
+      198 |       const perm = isToolExecutionPermitted(TEST_USER);
+      199 |       expect(perm.permitted).toBe(false);
+    > 200 |       expect(perm.reason).toMatch(/consent is required/i);
+          |                           ^
+      201 |     });
+      202 |
+      203 |     it('permits tool execution for authentic signed-in student with consent', () => {
+
+      at Object.toMatch (__tests__/ui/callLafinaPhase06.test.tsx:200:27)
+
+  ● Phase 06 — Secure Structured Agent Tool Bridge & Contextual Card Foundation › P06-04 & P06-05 & ActionService Lifecycle (F-046, F-047, F-049) › emits lifecycle events (checking -> done) for data read tools
+
+    expect(received).toContain(expected) // indexOf
+
+    Expected substring: "mockData"
+    Received string:    "Failed to execute read_lafina_data: (0 , _localVoiceData.readLocalVoiceResult) is not a function"
+
+      248 |
+      249 |       unsubscribe();
+    > 250 |       expect(result).toContain('mockData');
+          |                      ^
+      251 |       expect(events.length).toBeGreaterThanOrEqual(2);
+      252 |       expect(events[0].phase).toBe('checking');
+      253 |       expect(events[events.length - 1].phase).toBe('done');
+
+      at Object.toContain (__tests__/ui/callLafinaPhase06.test.tsx:250:22)
+      at asyncGeneratorStep (node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+      at _next (node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
+
+PASS __tests__/ui/callLafinaPhase14.test.tsx
+FAIL __tests__/ui/callLafinaPhase08.test.tsx
+  ● Phase 08 — Notes by Speech and Note Search/Result Cards › P08-09: Privacy & Opt-Out Gating › blocks note tool execution when student has not granted data consent
+
+    expect(received).toMatch(expected)
+
+    Expected pattern: /consent is required/i
+    Received string:  "Please review the data disclosure before using tools."
+
+      235 |       const perm = isToolExecutionPermitted(TEST_USER);
+      236 |       expect(perm.permitted).toBe(false);
+    > 237 |       expect(perm.reason).toMatch(/consent is required/i);
+          |                           ^
+      238 |     });
+      239 |   });
+      240 |
+
+      at Object.toMatch (__tests__/ui/callLafinaPhase08.test.tsx:237:27)
+
+PASS __tests__/ui/callLafinaPhase15.test.tsx
+PASS __tests__/ui/callLafinaRemediation.test.ts
+PASS __tests__/ui/callLafinaPhase10.test.tsx
+
+Test Suites: 5 failed, 12 passed, 17 total
+Tests:       7 failed, 208 passed, 215 total
+Snapshots:   0 total
+Time:        42.973 s
+Ran all test suites matching /callLafinaPhase|voiceConversationUi|callLafinaRemediation/i.
+Force exiting Jest: Have you considered using `--detectOpenHandles` to detect async operations that kept running after all tests finished?

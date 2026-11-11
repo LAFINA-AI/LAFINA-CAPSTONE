@@ -63,6 +63,25 @@ object VoiceConversationRules {
 
   /** Only these client messages may be sent from JavaScript besides audio. */
   val ALLOWED_CLIENT_TYPES = setOf("user_message", "user_activity", "client_tool_result", "contextual_update")
+
+  /**
+   * Calculates Root Mean Square (RMS) normalized level [0.0, 1.0] for a 16-bit mono PCM buffer.
+   * Pure JVM, safe against index out of bounds.
+   */
+  fun calculateRms(buffer: ByteArray, offset: Int = 0, length: Int = buffer.size - offset): Double {
+    if (buffer.isEmpty() || length <= 0 || offset < 0 || offset >= buffer.size) return 0.0
+    var sum = 0.0
+    var count = 0
+    var i = offset
+    val end = minOf(buffer.size, offset + length)
+    while (i + 1 < end) {
+      val sample = ((buffer[i + 1].toInt() shl 8) or (buffer[i].toInt() and 0xff)).toShort().toDouble()
+      sum += sample * sample
+      count += 1
+      i += 2
+    }
+    return if (count == 0) 0.0 else minOf(1.0, Math.sqrt(sum / count) / 8000.0)
+  }
 }
 
 /**

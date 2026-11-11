@@ -13,6 +13,7 @@
  * Proposals are built only from typed, re-validated fields. Raw model output
  * never becomes a command.
  */
+import {checkScheduleConflict} from '../voiceActions/conflictChecker';
 import {db} from '../../storage/database';
 import type {DatabaseTransaction} from '../../storage/database';
 import {tasksStore} from '../../storage/tasksStore';
@@ -50,7 +51,7 @@ import {getAdaptiveScheduleRecommendation} from '../ml/timingAdvisor';
 import {recordReminderInteraction} from '../ml/featureExtractor';
 import {parseRrule} from '../../storage/rruleHelper';
 import {createNextRecurringReminder} from '../../scheduler/reminderActions';
-import {formatLocalDate} from './fastPathParser';
+import {formatLocalDate, parseDateAndTime} from './fastPathParser';
 import {
   addMinutesToTime,
   computeDurationMinutes,
@@ -115,6 +116,7 @@ type PlannedOperation =
       endTime: string;
       category: string;
       notes: string | null;
+      recurrenceRule?: string | null;
     }
   | {
       op: 'create_reminder';
@@ -188,6 +190,7 @@ interface ReminderChange {
 
 /** What the student sees on the review card. Immutable. */
 export interface CommandProposal {
+  readonly conflictAlternatives?: readonly string[];
   readonly operationId: string;
   readonly ownerId: string;
   readonly surface: ReviewSurface;
@@ -872,7 +875,11 @@ const buildCreateTask = (
   };
 };
 
-const buildCreateTimeBlock = (c: CleanIntent, today: string): BuildResult => {
+const buildCreateTimeBlock = (
+  c: CleanIntent,
+  today: string,
+  userId?: string,
+): BuildResult => {
   const title = c.title;
   if (!title)
     return {
@@ -906,22 +913,80 @@ const buildCreateTimeBlock = (c: CleanIntent, today: string): BuildResult => {
       },
     };
   }
+  let displayHeading = 'Create time block';
+  let displayTitle = title;
+  let batchCount = 0;
+  let cleanFirstNotes: string | null = c.details;
+
+  if (c.details && c.details.startsWith('[BATCH_CLASSES:')) {
+    try {
+      const jsonStr = c.details.slice('[BATCH_CLASSES:'.length, -1);
+      const parsed = JSON.parse(jsonStr);
+      const items = Array.isArray(parsed) ? parsed : parsed.classes;
+      if (Array.isArray(items)) {
+        batchCount = items.length;
+        displayHeading = 'Create class schedule';
+        displayTitle = `${title} (+${batchCount} more classes)`;
+      }
+      if (!Array.isArray(parsed) && parsed.firstClassLocation) {
+        cleanFirstNotes = parsed.firstClassLocation;
+      }
+    } catch {
+      // fallback
+    }
+  }
+
+  const isWeeklyClass =
+    (c.recurrenceRule && c.recurrenceRule.includes('WEEKLY')) ||
+    c.category === 'Class';
+  const repeatNote = isWeeklyClass ? ' (Repeats weekly)' : '';
+
+  const warnings: string[] = [];
+  if (userId) {
+    try {
+      const conflict = checkScheduleConflict(userId, date, startTime, endTime);
+      if (conflict.hasConflict) {
+        const personalConflicts = conflict.conflictingItems.filter(
+          item => item.title.toLowerCase().trim() !== title.toLowerCase().trim(),
+        );
+        if (personalConflicts.length > 0) {
+          const conflictTitles = personalConflicts
+            .map(ci => `"${ci.title}" (${ci.startTime}–${ci.endTime})`)
+            .join(', ');
+          warnings.push(`Notice: Overlaps with ${conflictTitles}.`);
+        }
+      }
+    } catch {
+      // ignore conflict check failure
+    }
+  }
+
+  const reminderDetail = isWeeklyClass
+    ? 'Reminder: 15-min notification before each class.'
+    : 'No reminder is added for time blocks.';
+
   return {
     draft: {
-      heading: 'Create time block',
-      title,
+      heading: displayHeading,
+      title: displayTitle,
       details: [
         `When: ${friendlyDate(date)}, ${format12HourTime(
           startTime,
-        )} to ${format12HourTime(endTime)}.`,
+        )} to ${format12HourTime(endTime)}${repeatNote}.`,
+        ...(batchCount > 0
+          ? [`Schedule: ${batchCount + 1} recurring class time blocks.`]
+          : []),
         ...[overnightNote(date, startTime, endTime)].filter(
           (note): note is string => note !== null,
         ),
         `Category: ${c.category}.`,
-        'No reminder is added for time blocks.',
-      ],
+        reminderDetail,
+        cleanFirstNotes && !cleanFirstNotes.startsWith('[BATCH_CLASSES:')
+          ? cleanFirstNotes
+          : null,
+      ].filter((d): d is string => d !== null),
       assumptions,
-      warnings: [],
+      warnings,
       destructive: false,
       operation: {
         op: 'create_time_block',
@@ -932,6 +997,7 @@ const buildCreateTimeBlock = (c: CleanIntent, today: string): BuildResult => {
         endTime,
         category: c.category,
         notes: c.details,
+        recurrenceRule: c.recurrenceRule || (isWeeklyClass ? 'FREQ=WEEKLY' : null),
       },
     },
   };
@@ -1958,7 +2024,7 @@ export const prepareReviewedCommand = (
         built = buildCreateTask(userId, clean, today);
         break;
       case 'create_time_block':
-        built = buildCreateTimeBlock(clean, today);
+        built = buildCreateTimeBlock(clean, today, userId);
         break;
       case 'create_reminder':
         built = buildCreateReminder(userId, clean, today);
@@ -2004,10 +2070,29 @@ export const prepareReviewedCommand = (
     }
 
     const draft = built.draft;
+    let conflictAlternatives: string[] = [];
+    const planned = draft.operation;
+    if (
+      surface === 'voice' &&
+      (planned.op === 'create_time_block' ||
+        planned.op === 'update_schedule_item')
+    ) {
+      const conflicts = checkScheduleConflict(
+        userId,
+        planned.date,
+        planned.startTime,
+        planned.endTime,
+        planned.op === 'update_schedule_item' ? planned.target.id : undefined,
+      );
+      if (conflicts.warningMessage)
+        draft.warnings.push(conflicts.warningMessage);
+      conflictAlternatives = conflicts.alternatives;
+    }
     const operationId = generateId('op');
     const expiresAt = now + REVIEW_TTL_MS;
     const proposal: CommandProposal = Object.freeze({
       operationId,
+      conflictAlternatives: Object.freeze(conflictAlternatives),
       ownerId: userId,
       surface,
       intent: clean.intent,
@@ -2258,31 +2343,162 @@ const applyOperation = (
       };
     }
     case 'create_time_block': {
-      timeBlocksStore.insert(
-        {
-          id: op.blockId,
-          userId: ownerId,
-          title: op.title,
-          date: op.date,
-          startTime: op.startTime,
-          endTime: op.endTime,
-          color: '#3498DB',
-          category: op.category,
-          notes: op.notes || undefined,
-          recurrenceRule: null,
-        },
-        tx,
-      );
+      let extraCount = 0;
+      let cleanNotes = op.notes || undefined;
+
+      const scheduleClassAlarm = (
+        blockId: string,
+        classTitle: string,
+        dateStr: string,
+        startTimeStr: string,
+        notesStr?: string | null,
+      ) => {
+        try {
+          const classInstant = new Date(`${dateStr}T${startTimeStr}:00`);
+          if (isNaN(classInstant.getTime())) return;
+          const triggerMs = classInstant.getTime() - 15 * 60 * 1000;
+          if (triggerMs > Date.now()) {
+            const reminderId = generateId('rem');
+            const alertTask = `Upcoming class in 15 mins: ${classTitle}${notesStr ? ` (${notesStr})` : ''}`;
+            const triggerAt = new Date(triggerMs).toISOString();
+            const scheduledAt = classInstant.toISOString();
+
+            remindersStore.insertReminder(
+              {
+                id: reminderId,
+                userId: ownerId,
+                task: alertTask,
+                description: '15-minute class preparation reminder',
+                scheduledAt,
+                triggerAt,
+                status: 'pending',
+                preCastAudioPath: null,
+              },
+              tx,
+            );
+            deliveryStore.linkSource(reminderId, 'time_block', blockId, tx);
+            scheduleAfterCommit(tx, reminderId, alertTask, triggerAt);
+          }
+        } catch {
+          // ignore reminder scheduling failure
+        }
+      };
+
+      const existingBlocks = timeBlocksStore.getAll(ownerId);
+      const findExisting = (classTitle: string, dateStr: string, startTimeStr: string) => {
+        const targetDay = new Date(`${dateStr}T12:00:00Z`).getUTCDay();
+        return existingBlocks.find(b => {
+          if (b.category !== 'Class' || b.startTime !== startTimeStr) return false;
+          if (b.title.toLowerCase().trim() !== classTitle.toLowerCase().trim()) return false;
+          const bDay = new Date(`${b.date}T12:00:00Z`).getUTCDay();
+          return bDay === targetDay;
+        });
+      };
+
+      if (op.notes && op.notes.startsWith('[BATCH_CLASSES:')) {
+        try {
+          const jsonStr = op.notes.slice('[BATCH_CLASSES:'.length, -1);
+          const parsed = JSON.parse(jsonStr);
+          const extraClasses = Array.isArray(parsed) ? parsed : parsed.classes;
+          cleanNotes =
+            !Array.isArray(parsed) && parsed.firstClassLocation
+              ? parsed.firstClassLocation
+              : undefined;
+
+          if (Array.isArray(extraClasses)) {
+            for (const item of extraClasses) {
+              const existing = findExisting(item.title, item.date, item.startTime);
+              const targetBlockId = existing ? existing.id : generateId('block');
+              if (existing) {
+                timeBlocksStore.update(
+                  {
+                    id: existing.id,
+                    title: item.title,
+                    date: item.date,
+                    startTime: item.startTime,
+                    endTime: item.endTime,
+                    category: 'Class',
+                    notes: item.notes || existing.notes,
+                    recurrenceRule: item.recurrenceRule || existing.recurrenceRule,
+                  },
+                  tx,
+                );
+              } else {
+                timeBlocksStore.insert(
+                  {
+                    id: targetBlockId,
+                    userId: ownerId,
+                    title: item.title,
+                    date: item.date,
+                    startTime: item.startTime,
+                    endTime: item.endTime,
+                    color: '#3498DB',
+                    category: item.category || 'Class',
+                    notes: item.notes || undefined,
+                    recurrenceRule: item.recurrenceRule || 'FREQ=WEEKLY',
+                  },
+                  tx,
+                );
+              }
+              scheduleClassAlarm(targetBlockId, item.title, item.date, item.startTime, item.notes);
+              extraCount += 1;
+            }
+          }
+        } catch {
+          cleanNotes = undefined;
+        }
+      }
+
+      const existingPrimary = findExisting(op.title, op.date, op.startTime);
+      const primaryBlockId = existingPrimary ? existingPrimary.id : op.blockId;
+      if (existingPrimary) {
+        timeBlocksStore.update(
+          {
+            id: existingPrimary.id,
+            title: op.title,
+            date: op.date,
+            startTime: op.startTime,
+            endTime: op.endTime,
+            category: op.category,
+            notes: cleanNotes || existingPrimary.notes,
+            recurrenceRule:
+              op.recurrenceRule || existingPrimary.recurrenceRule,
+          },
+          tx,
+        );
+      } else {
+        timeBlocksStore.insert(
+          {
+            id: op.blockId,
+            userId: ownerId,
+            title: op.title,
+            date: op.date,
+            startTime: op.startTime,
+            endTime: op.endTime,
+            color: '#3498DB',
+            category: op.category,
+            notes: cleanNotes,
+            recurrenceRule:
+              op.recurrenceRule || (op.category === 'Class' ? 'FREQ=WEEKLY' : null),
+          },
+          tx,
+        );
+      }
+      scheduleClassAlarm(primaryBlockId, op.title, op.date, op.startTime, cleanNotes);
+
       return {
         operation: op.op,
         entityType: 'time_block',
-        entityId: op.blockId,
+        entityId: primaryBlockId,
         reminderId: null,
-        reply: `Scheduled time block: "${op.title}" on ${
-          op.date
-        } from ${format12HourTime(op.startTime)} to ${format12HourTime(
-          op.endTime,
-        )}.`,
+        reply:
+          extraCount > 0
+            ? `Scheduled ${extraCount + 1} classes into your Calendar (repeating weekly).`
+            : `Scheduled time block: "${op.title}" on ${
+                op.date
+              } from ${format12HourTime(op.startTime)} to ${format12HourTime(
+                op.endTime,
+              )}${op.recurrenceRule ? ' (repeats weekly)' : ''}.`,
       };
     }
     case 'create_reminder': {
@@ -2683,6 +2899,107 @@ export const cancelReviewedCommand = (
     return false;
   review.state = 'cancelled';
   return true;
+};
+
+/** Replace a pending creation with a newly validated review; old tokens expire. */
+export const reviseReviewedCommand = (
+  ownerId: string,
+  operationId: string,
+  instruction: string,
+): PrepareResult => {
+  const current = reviews.get(operationId);
+  if (
+    !current ||
+    current.ownerId !== ownerId ||
+    current.state !== 'pending' ||
+    current.sessionId !== sessionId ||
+    current.expiresAt <= Date.now()
+  ) {
+    return {
+      status: 'invalid',
+      reply: 'That draft is no longer available. Nothing was changed.',
+    };
+  }
+  const op = current.operation;
+  if (
+    op.op !== 'create_task' &&
+    op.op !== 'create_reminder' &&
+    op.op !== 'create_time_block' &&
+    op.op !== 'create_note'
+  ) {
+    return {
+      status: 'invalid',
+      reply: 'Please cancel this draft and prepare a new request.',
+    };
+  }
+  const parsed = parseDateAndTime(instruction, new Date());
+  const renamed = instruction
+    .match(/(?:title to|call it|rename it to)\s+(.+)/i)?.[1]
+    ?.trim();
+  const body = instruction.match(/(?:body|content)\s+to\s+(.+)/i)?.[1]?.trim();
+  if (
+    !parsed.date &&
+    !parsed.time &&
+    !parsed.endTime &&
+    !parsed.durationMinutes &&
+    !renamed &&
+    !body
+  ) {
+    return {
+      status: 'invalid',
+      reply: 'Which date, time, title or note content should I change?',
+    };
+  }
+  const blockStart =
+    op.op === 'create_time_block' ? parsed.time || op.startTime : null;
+  const blockEnd =
+    op.op === 'create_time_block' && blockStart
+      ? parsed.endTime ||
+        addMinutesToTime(
+          blockStart,
+          parsed.durationMinutes ||
+            computeDurationMinutes(op.startTime, op.endTime),
+        )
+      : null;
+  const result = prepareReviewedCommand(
+    ownerId,
+    {
+      intent: op.op,
+      title: renamed || op.title,
+      date:
+        parsed.date ||
+        (op.op === 'create_task' ? op.dueDate : 'date' in op ? op.date : null),
+      time:
+        parsed.time ||
+        (op.op === 'create_task'
+          ? op.dueTime
+          : op.op === 'create_reminder'
+          ? op.time
+          : op.op === 'create_time_block'
+          ? op.startTime
+          : null),
+      endTime: blockEnd || parsed.endTime || null,
+      durationMinutes: parsed.durationMinutes || null,
+      category: op.category,
+      details:
+        body ||
+        (op.op === 'create_note'
+          ? op.body
+          : op.op === 'create_reminder'
+          ? op.details
+          : op.notes) ||
+        null,
+      snoozeMinutes: null,
+      confidence: 1,
+      source: 'fast_path',
+      rawTranscript: instruction,
+      isValid: true,
+      recurrenceRule: op.op === 'create_reminder' ? op.recurrenceRule : null,
+    },
+    {surface: current.proposal.surface},
+  );
+  if (result.status === 'proposal') current.state = 'cancelled';
+  return result;
 };
 
 /** The newest proposal that can still be confirmed for this owner and surface. */

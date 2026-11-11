@@ -1,0 +1,23 @@
+
+> lafina-capstone@1.3.4 preflight
+> npm run typecheck && npm run lint && npm test && npm run check:architecture
+
+
+> lafina-capstone@1.3.4 typecheck
+> tsc --noEmit
+
+
+> lafina-capstone@1.3.4 lint
+> eslint src __tests__ App.tsx index.js --max-warnings 0
+
+
+C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\src\ui\components\callLafina\CallLafinaSettingsModal.tsx
+  146:16  error  'err' is defined but never used  @typescript-eslint/no-unused-vars
+
+C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\src\ui\components\voice\VoiceConversationPanel.tsx
+  410:14  error  'err' is defined but never used                                                                                          @typescript-eslint/no-unused-vars
+  452:16  error  'err' is defined but never used                                                                                          @typescript-eslint/no-unused-vars
+  521:6   error  React Hook useEffect has a missing dependency: 'snapshot.connectedAt'. Either include it or remove the dependency array  react-hooks/exhaustive-deps
+
+✖ 4 problems (4 errors, 0 warnings)
+

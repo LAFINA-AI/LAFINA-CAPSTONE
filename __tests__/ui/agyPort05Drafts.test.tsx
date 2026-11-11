@@ -533,7 +533,7 @@ describe('AGY-PORT 05 drafts and microphone ownership (UI)', () => {
         utils.getByTestId('chat-text-input'),
         'draft before tool',
       );
-      fireEvent.press(utils.getByTestId('chat-meetings-button'));
+      fireEvent.press(utils.getByTestId('chat-guide-button'));
       expect(utils.getByTestId('chat-text-input').props.value).toBe(
         'draft before tool',
       );

@@ -1,9 +1,6 @@
-import React, {useState} from 'react';
+import React from 'react';
 import {View, Text, StyleSheet, TouchableOpacity} from 'react-native';
 import {
-  Volume2,
-  VolumeX,
-  Sparkles,
   BookOpen,
   FileSpreadsheet,
   FileText,
@@ -20,7 +17,6 @@ import {
   formatFileSize,
   isDocumentFormat,
 } from '../../../skills/documentSkill';
-import {ttsService} from '../../../ai/tts/ttsService';
 import {ChatReplyText} from './ChatReplyText';
 import {MemoryNote} from './MemoryNote';
 import {hasWideMarkdownBlock} from '../../../utils';
@@ -29,8 +25,6 @@ import type {ChatReplyFormat} from '../../../storage/chatReplyFormatStore';
 interface ChatMessageItemProps {
   item: ChatMessage;
   handbookNote?: string;
-  onSpeak?: (text: string) => void | Promise<unknown>;
-  onStopSpeaking?: () => void | Promise<unknown>;
   onOpenAttachment?: (attachment: ChatAttachment) => void;
   /** The reply is still being written: show it as it grows, without controls. */
   streaming?: boolean;
@@ -57,8 +51,6 @@ const AttachmentIcon: React.FC<{format: string; color: string}> = ({
 export const ChatMessageItem: React.FC<ChatMessageItemProps> = ({
   item,
   handbookNote,
-  onSpeak,
-  onStopSpeaking,
   onOpenAttachment,
   streaming = false,
   replyFormat = 'markdown',
@@ -67,7 +59,6 @@ export const ChatMessageItem: React.FC<ChatMessageItemProps> = ({
   const isUser = item.sender === 'user';
   const {colors} = useTheme();
   const themed = useThemedStyles(getThemedStyles);
-  const [isPlaying, setIsPlaying] = useState(false);
 
   const attachment = item.attachment ?? null;
   const attachmentMeta =
@@ -82,25 +73,6 @@ export const ChatMessageItem: React.FC<ChatMessageItemProps> = ({
         .filter(Boolean)
         .join(' · ')
     : '';
-
-  const handleToggleSpeak = async () => {
-    if (isPlaying) {
-      if (onStopSpeaking) await onStopSpeaking();
-      else await ttsService.stop();
-      setIsPlaying(false);
-      return;
-    }
-
-    try {
-      setIsPlaying(true);
-      if (onSpeak) await onSpeak(item.content);
-      else await ttsService.speak(item.content);
-    } catch (err) {
-      console.warn('[ChatMessageItem] TTS speak error:', err);
-    } finally {
-      setIsPlaying(false);
-    }
-  };
 
   const formattedTime = new Date(item.createdAt).toLocaleTimeString([], {
     hour: 'numeric',
@@ -129,22 +101,6 @@ export const ChatMessageItem: React.FC<ChatMessageItemProps> = ({
         ]}
         testID={`chat-bubble-${item.id}`}
       >
-        {!isUser && (
-          <View style={styles.assistantHeader}>
-            <View
-              style={[
-                styles.avatarBadge,
-                {backgroundColor: colors.primary + '18'},
-              ]}
-            >
-              <Sparkles size={11} color={colors.primary} />
-            </View>
-            <Text style={[styles.assistantName, {color: colors.primary}]}>
-              lafina
-            </Text>
-          </View>
-        )}
-
         {isUser ? (
           <Text
             style={[styles.messageText, styles.userText]}
@@ -217,7 +173,7 @@ export const ChatMessageItem: React.FC<ChatMessageItemProps> = ({
             style={[styles.handbookText, styles.interruptedText, themed.assistantTime]}
             testID="chat-voice-interrupted"
           >
-            Interrupted in voice conversation (not heard to the end)
+            Interrupted in Call Lafina (not heard to the end)
           </Text>
         ) : null}
 
@@ -239,25 +195,6 @@ export const ChatMessageItem: React.FC<ChatMessageItemProps> = ({
           >
             {formattedTime}
           </Text>
-
-          {!isUser && (
-            <TouchableOpacity
-              style={styles.speakButton}
-              onPress={handleToggleSpeak}
-              hitSlop={{top: 8, bottom: 8, left: 8, right: 8}}
-              accessibilityRole="button"
-              accessibilityLabel={
-                isPlaying ? 'Stop reading message' : 'Read message aloud'
-              }
-              testID={`chat-speak-btn-${item.id}`}
-            >
-              {isPlaying ? (
-                <VolumeX size={14} color={colors.primary} />
-              ) : (
-                <Volume2 size={14} color={colors.textSecondary} />
-              )}
-            </TouchableOpacity>
-          )}
         </View>
         )}
       </View>
@@ -296,25 +233,6 @@ const styles = StyleSheet.create({
   wideBubble: {
     width: '100%',
     maxWidth: '100%',
-  },
-  assistantHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 5,
-  },
-  avatarBadge: {
-    width: 18,
-    height: 18,
-    borderRadius: 9,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginRight: 6,
-  },
-  assistantName: {
-    fontFamily: Fonts.heading,
-    fontSize: 11,
-    fontWeight: '700',
-    letterSpacing: 0.5,
   },
   messageText: {
     fontFamily: Fonts.body,
@@ -380,10 +298,6 @@ const styles = StyleSheet.create({
   },
   userTime: {
     color: 'rgba(255, 255, 255, 0.75)',
-  },
-  speakButton: {
-    marginLeft: 8,
-    padding: 2,
   },
 });
 

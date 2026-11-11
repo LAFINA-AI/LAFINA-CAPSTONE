@@ -1,5 +1,8 @@
 import {DeviceEventEmitter, NativeModules} from 'react-native';
-import {directProviderTestEnabled, directTestVoiceApi} from '../directProviderTest';
+import {
+  directProviderTestEnabled,
+  directTestVoiceApi,
+} from '../directProviderTest';
 import {GUEST_USER_ID} from '../../constants';
 import {chatStore} from '../../storage/chatStore';
 import {localSettingsStore} from '../../storage/localSettingsStore';
@@ -21,6 +24,19 @@ export {
   DEFAULT_LIMITS,
 } from './controller';
 export type {VoiceConversationDeps, VoiceConversationGates} from './controller';
+export {
+  LAFINA_VOICE_SYSTEM_PROMPT,
+  DEFAULT_VOICE_PREFERENCES,
+  buildVoicePersonaPrompt,
+  stripReasoningContent,
+  sanitizeSpeechText,
+  detectConversationalDirective,
+  getToolWorkingPhrase,
+} from './personaPolicy';
+export type {
+  VoicePersonaPreferences,
+  ConversationalDirective,
+} from './personaPolicy';
 export type * from './types';
 
 export const VOICE_CONSENT_KEY = 'voiceConversation.consent.v1';
@@ -97,7 +113,13 @@ export const defaultVoiceConversationDeps = (
     isOnlineMode: () =>
       localSettingsStore.get(userId, ONLINE_MODE_KEY, null) === 'true',
     isOnline: () => cloudClient.isOnline(),
-    hasConsent: () => voiceConsent.read(userId),
+    hasConsent: () =>
+      voiceConsent.read(userId) &&
+      localSettingsStore.get(
+        userId,
+        'voiceConversation.directDataConsent.v1',
+        null,
+      ) === 'true',
     ensureMicPermission: () => ensureMicrophonePermission(),
   },
   getVoice: () => onlineVoiceSettingsStore.read(userId),
@@ -140,11 +162,17 @@ export const endActiveVoiceConversation = (reason: string): void => {
   const controller = active;
   if (!controller) return;
   controller.stopForSystem(reason);
-  pendingRelease = Promise.all([pendingRelease, controller.endAndWait()]).then(() => undefined);
+  pendingRelease = Promise.all([pendingRelease, controller.endAndWait()]).then(
+    () => undefined,
+  );
 };
 
 /** Wait for a previously interrupted conversation to release native audio. */
-export const waitForVoiceConversationRelease = (): Promise<void> => pendingRelease;
+export const waitForVoiceConversationRelease = (): Promise<void> =>
+  pendingRelease;
 
 export const isVoiceConversationActive = (): boolean =>
   active?.isActive() === true;
+
+export const getActiveVoiceConversation =
+  (): VoiceConversationController | null => active;

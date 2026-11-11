@@ -1,4 +1,5 @@
-import React, { useCallback, useState } from 'react';
+import {resolveCallTarget} from '../../navigation/resolveCallTarget';
+import React, {useCallback, useState, useEffect, useRef, useMemo} from 'react';
 import {
   View,
   Text,
@@ -10,39 +11,87 @@ import {
   Alert,
   Modal,
 } from 'react-native';
-import { pick } from '@react-native-documents/picker';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { AudioLines, FileText, Plus, Search, Grid, List, X } from 'lucide-react-native';
-import { useTheme } from '../../contexts/ThemeContext';
-import { Colors, Shadows } from '../../theme';
-import { useNotesData } from './hooks/useNotesData';
-import { NoteFilters, NoteCardWithDrag } from './components';
-import { NoteEditor } from './components/NoteEditor';
-import { MeetingsScreen } from '../meetings';
-import { NotesScreenProps } from './types';
-import type { NoteSnapshot } from '../../../storage';
+import {pick} from '@react-native-documents/picker';
+import {useSafeAreaInsets} from 'react-native-safe-area-context';
+import {
+  AudioLines,
+  FileText,
+  Plus,
+  Search,
+  Grid,
+  List,
+  X,
+  Pin,
+  CheckSquare,
+} from 'lucide-react-native';
+import {useTheme} from '../../contexts/ThemeContext';
+import {Colors, Shadows} from '../../theme';
+import {useNotesData} from './hooks/useNotesData';
+import {NoteFilters, NoteCardWithDrag} from './components';
+import {NoteEditor} from './components/NoteEditor';
+import {MeetingsScreen} from '../meetings';
+import {NotesScreenProps} from './types';
+import type {NoteSnapshot} from '../../../storage';
 
 export const NotesScreen: React.FC<NotesScreenProps> = ({
   userId,
   refreshTrigger,
   onRefresh,
+  openRequest,
+  onOpenRequestHandled,
 }) => {
-  const { colors } = useTheme();
+  const {colors} = useTheme();
   const insets = useSafeAreaInsets();
   const fabBottom = Math.max(insets.bottom, 12) + 90;
-  const data = useNotesData({ userId, refreshTrigger, onRefresh });
+  const data = useNotesData({userId, refreshTrigger, onRefresh});
+  const handledRequest = useRef<string | null>(null);
+  useEffect(() => {
+    if (!openRequest || handledRequest.current === openRequest.requestId)
+      return;
+    handledRequest.current = openRequest.requestId;
+    onOpenRequestHandled?.(openRequest.requestId);
+    try {
+      const resolved = resolveCallTarget(userId, openRequest);
+      if (resolved?.kind === 'note') data.openEditNote(resolved.item);
+      else
+        Alert.alert(
+          'Note unavailable',
+          'This note is no longer available for this account.',
+        );
+    } catch {
+      Alert.alert(
+        'Note unavailable',
+        'Could not read this note. Please try again.',
+      );
+    }
+  }, [openRequest, userId, data, onOpenRequestHandled]);
   const [meetingsOpen, setMeetingsOpen] = useState(false);
 
   const keyExtractor = useCallback((item: NoteSnapshot) => item.id, []);
 
+  const hasSearch = Boolean(data.searchQuery.trim());
+  const firstPinnedId = useMemo(
+    () => (hasSearch ? null : data.filtered.find(n => n.isPinned)?.id || null),
+    [data.filtered, hasSearch],
+  );
+  const firstOtherId = useMemo(
+    () => (hasSearch ? null : data.filtered.find(n => !n.isPinned)?.id || null),
+    [data.filtered, hasSearch],
+  );
+  const hasPinned = firstPinnedId !== null;
+
   const renderItem = useCallback(
-    ({ item, index }: { item: NoteSnapshot; index: number }) => {
+    ({item, index}: {item: NoteSnapshot; index: number}) => {
       const isItemPinned = item.isPinned;
       // AGY-PORT 07: only the complete, unfiltered collection can be reordered.
       const canDrag = !isItemPinned && data.canReorder;
       const isActive = item.id === data.activeDragId;
+      const showPinnedHeader =
+        hasPinned && item.id === firstPinnedId && !data.isGridView;
+      const showOtherHeader =
+        hasPinned && item.id === firstOtherId && !data.isGridView;
 
-      return (
+      const card = (
         <NoteCardWithDrag
           key={item.id}
           item={item}
@@ -62,8 +111,41 @@ export const NotesScreen: React.FC<NotesScreenProps> = ({
           }
         />
       );
+
+      if (data.isGridView) {
+        return card;
+      }
+
+      return (
+        <View key={item.id} style={styles.cardContainerWrapper}>
+          {showPinnedHeader && (
+            <View style={styles.sectionHeaderRow}>
+              <Pin
+                size={11}
+                color={colors.red}
+                style={{transform: [{rotate: '45deg'}], marginRight: 6}}
+              />
+              <Text
+                style={[styles.sectionHeaderText, {color: colors.textSecondary}]}
+              >
+                PINNED
+              </Text>
+            </View>
+          )}
+          {showOtherHeader && (
+            <View style={styles.sectionHeaderRow}>
+              <Text
+                style={[styles.sectionHeaderText, {color: colors.textSecondary}]}
+              >
+                OTHERS
+              </Text>
+            </View>
+          )}
+          {card}
+        </View>
+      );
     },
-    [data],
+    [data, hasPinned, firstPinnedId, firstOtherId, colors],
   );
 
   const handleAttachImage = async () => {
@@ -92,18 +174,20 @@ export const NotesScreen: React.FC<NotesScreenProps> = ({
       accessibilityLabel="Show more notes"
       testID="notes-load-more"
     >
-      <Text style={[styles.loadMoreText, { color: colors.red }]}>Show more notes</Text>
+      <Text style={[styles.loadMoreText, {color: colors.red}]}>
+        Show more notes
+      </Text>
     </TouchableOpacity>
   ) : null;
 
   return (
-    <View style={[styles.container, { backgroundColor: colors.background }]}>
+    <View style={[styles.container, {backgroundColor: colors.background}]}>
       {/* Header */}
       <View style={styles.header}>
         {data.searchActive ? (
-          <View style={[styles.searchRow, { backgroundColor: colors.inputBg }]}>
+          <View style={[styles.searchRow, {backgroundColor: colors.inputBg}]}>
             <TextInput
-              style={[styles.searchInput, { color: colors.textPrimary }]}
+              style={[styles.searchInput, {color: colors.textPrimary}]}
               placeholder="Search notes..."
               placeholderTextColor={colors.textSecondary}
               autoFocus
@@ -122,7 +206,7 @@ export const NotesScreen: React.FC<NotesScreenProps> = ({
           </View>
         ) : (
           <>
-            <Text style={[styles.headerTitle, { color: colors.textPrimary }]}>
+            <Text style={[styles.headerTitle, {color: colors.textPrimary}]}>
               Notes
             </Text>
             <View style={styles.headerIcons}>
@@ -165,14 +249,17 @@ export const NotesScreen: React.FC<NotesScreenProps> = ({
 
       {data.indexing && (
         <Text
-          style={[styles.notice, { color: colors.textSecondary }]}
+          style={[styles.notice, {color: colors.textSecondary}]}
           testID="notes-indexing"
         >
           Preparing your notes for search. More results may appear in a moment.
         </Text>
       )}
       {data.queryError && (
-        <Text style={[styles.notice, { color: colors.textSecondary }]} testID="notes-query-error">
+        <Text
+          style={[styles.notice, {color: colors.textSecondary}]}
+          testID="notes-query-error"
+        >
           {data.queryError}
         </Text>
       )}
@@ -180,14 +267,53 @@ export const NotesScreen: React.FC<NotesScreenProps> = ({
       {/* Content */}
       {data.filtered.length === 0 ? (
         <View style={styles.emptyState}>
-          <FileText size={48} color={colors.red} style={{ marginBottom: 16 }} />
-          <Text style={[styles.emptyTitle, { color: colors.textPrimary }]}>
+          <FileText size={48} color={colors.red} style={{marginBottom: 16}} />
+          <Text style={[styles.emptyTitle, {color: colors.textPrimary}]}>
             No notes found
           </Text>
-          <Text style={[styles.emptySubtitle, { color: colors.textSecondary }]}>
-            Tap the + button below to write a new note, or use the voice
-            assistant.
+          <Text style={[styles.emptySubtitle, {color: colors.textSecondary}]}>
+            Tap the + button below to write a new note, or use the quick
+            templates below.
           </Text>
+          <View style={styles.emptyStarterRow}>
+            <TouchableOpacity
+              style={[
+                styles.starterChip,
+                {backgroundColor: colors.cardBg, borderColor: colors.border},
+              ]}
+              onPress={data.openNewNote}
+            >
+              <FileText size={14} color={colors.red} style={{marginRight: 6}} />
+              <Text
+                style={[styles.starterChipText, {color: colors.textPrimary}]}
+              >
+                Quick Note
+              </Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[
+                styles.starterChip,
+                {backgroundColor: colors.cardBg, borderColor: colors.border},
+              ]}
+              onPress={() => {
+                data.openNewNote();
+                data.setNoteTitle('To-Do Checklist');
+                data.setNoteBody('- [ ] ');
+                data.setSelection({start: 6, end: 6});
+              }}
+            >
+              <CheckSquare
+                size={14}
+                color={colors.blue}
+                style={{marginRight: 6}}
+              />
+              <Text
+                style={[styles.starterChipText, {color: colors.textPrimary}]}
+              >
+                New Checklist
+              </Text>
+            </TouchableOpacity>
+          </View>
         </View>
       ) : data.isGridView ? (
         <ScrollView
@@ -195,7 +321,40 @@ export const NotesScreen: React.FC<NotesScreenProps> = ({
           contentContainerStyle={[styles.notesList, styles.gridContainer]}
           scrollEnabled={!data.isDragging}
         >
-          {data.filtered.map((item, index) => renderItem({ item, index }))}
+          {data.filtered.map((item, index) => (
+            <React.Fragment key={item.id}>
+              {hasPinned && item.id === firstPinnedId && (
+                <View style={styles.sectionHeaderRow}>
+                  <Pin
+                    size={11}
+                    color={colors.red}
+                    style={{transform: [{rotate: '45deg'}], marginRight: 6}}
+                  />
+                  <Text
+                    style={[
+                      styles.sectionHeaderText,
+                      {color: colors.textSecondary},
+                    ]}
+                  >
+                    PINNED
+                  </Text>
+                </View>
+              )}
+              {hasPinned && item.id === firstOtherId && (
+                <View style={styles.sectionHeaderRow}>
+                  <Text
+                    style={[
+                      styles.sectionHeaderText,
+                      {color: colors.textSecondary},
+                    ]}
+                  >
+                    OTHERS
+                  </Text>
+                </View>
+              )}
+              {renderItem({item, index})}
+            </React.Fragment>
+          ))}
           {loadMoreButton}
         </ScrollView>
       ) : (
@@ -216,7 +375,7 @@ export const NotesScreen: React.FC<NotesScreenProps> = ({
 
       {/* FAB */}
       <TouchableOpacity
-        style={[styles.fab, Shadows.card, { bottom: fabBottom }]}
+        style={[styles.fab, Shadows.card, {bottom: fabBottom}]}
         onPress={data.openNewNote}
       >
         <Plus size={24} color={colors.white} />
@@ -244,7 +403,9 @@ export const NotesScreen: React.FC<NotesScreenProps> = ({
           onSelectionChange={data.setSelection}
           onClose={data.closeEditor}
           onSave={data.saveNote}
-          onDelete={() => data.editingNote && data.deleteNote(data.editingNote.id)}
+          onDelete={() =>
+            data.editingNote && data.deleteNote(data.editingNote.id)
+          }
           onFormatting={data.applyFormatting}
           onToggleChecklist={data.toggleEditorChecklist}
           onAttachImage={handleAttachImage}
@@ -265,7 +426,9 @@ export const NotesScreen: React.FC<NotesScreenProps> = ({
           statusBarTranslucent={true}
           onRequestClose={() => setMeetingsOpen(false)}
         >
-          <View style={[styles.modalFill, { backgroundColor: colors.background }]}>
+          <View
+            style={[styles.modalFill, {backgroundColor: colors.background}]}
+          >
             <MeetingsScreen
               onBack={() => setMeetingsOpen(false)}
               onNotesSaved={() => {
@@ -364,6 +527,42 @@ const styles = StyleSheet.create({
     fontSize: 13,
     textAlign: 'center',
     lineHeight: 18,
+  },
+  emptyStarterRow: {
+    flexDirection: 'row',
+    gap: 10,
+    marginTop: 18,
+    justifyContent: 'center',
+  },
+  starterChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    borderRadius: 12,
+    borderWidth: 1,
+  },
+  starterChipText: {
+    fontSize: 13,
+    fontWeight: '600',
+    fontFamily: 'sans-serif',
+  },
+  sectionHeaderRow: {
+    width: '100%',
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 8,
+    marginTop: 6,
+    paddingHorizontal: 4,
+  },
+  sectionHeaderText: {
+    fontSize: 11,
+    fontWeight: '700',
+    letterSpacing: 0.8,
+    fontFamily: 'sans-serif',
+  },
+  cardContainerWrapper: {
+    width: '100%',
   },
   fab: {
     position: 'absolute',

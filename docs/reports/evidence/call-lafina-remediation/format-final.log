@@ -1,0 +1,38 @@
+warning: in the working copy of '__tests__/ui/callLafinaPhase07.test.tsx', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of '__tests__/ui/callLafinaPhase09.test.tsx', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of '__tests__/ui/callLafinaPhase12.test.tsx', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of '__tests__/ui/callLafinaPhase13.test.tsx', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/ai/voiceActions/draftRegistry.ts', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/ui/components/callLafina/cards/CalendarDraftCard.tsx', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/ui/components/callLafina/cards/ReminderDraftCard.tsx', LF will be replaced by CRLF the next time Git touches it
+Checking formatting...
+[warn] App.tsx
+[warn] __tests__\ui\callLafinaPhase03.test.tsx
+[warn] __tests__\ui\callLafinaPhase14.test.tsx
+[warn] src\ui\screens\calendar\CalendarScreen.tsx
+[warn] __tests__\ui\callLafinaRemediation.test.ts
+[warn] Code style issues found in 5 files. Forgot to run Prettier?
+node:child_process:981
+    throw err;
+    ^
+
+Error: Command failed: node node_modules/prettier/bin-prettier.js --check App.tsx __tests__/cloud/voiceConversationController.test.ts __tests__/ui/callLafinaPhase01.test.tsx __tests__/ui/callLafinaPhase02.test.tsx __tests__/ui/callLafinaPhase03.test.tsx __tests__/ui/callLafinaPhase04.test.tsx __tests__/ui/callLafinaPhase05.test.tsx __tests__/ui/callLafinaPhase06.test.tsx __tests__/ui/callLafinaPhase10.test.tsx __tests__/ui/callLafinaPhase11.test.tsx __tests__/ui/callLafinaPhase12.test.tsx __tests__/ui/callLafinaPhase14.test.tsx __tests__/ui/callLafinaPhase15.test.tsx __tests__/ui/voiceConversationUi.test.tsx src/ai/nlu/commandReview.ts src/ai/voiceActions/actionSecurity.ts src/ai/voiceActions/actionService.ts src/ai/voiceActions/actionValidator.ts src/ai/voiceActions/conflictChecker.ts src/ai/voiceActions/multiActionService.ts src/ai/voiceActions/types.ts src/cloud/voiceConversation/callLafinaSettingsStore.ts src/cloud/voiceConversation/controller.ts src/cloud/voiceConversation/index.ts src/cloud/voiceConversation/localVoiceData.ts src/cloud/voiceConversation/personaPolicy.ts src/cloud/voiceConversation/types.ts src/ui/components/callLafina/ActionCardHost.tsx src/ui/components/callLafina/CallLafinaSettingsModal.tsx src/ui/components/callLafina/CallWaveform.tsx src/ui/components/callLafina/cards/MultiActionCard.tsx src/ui/components/voice/VoiceConversationPanel.tsx src/ui/hooks/useVoiceConversation.ts src/ui/screens/CallLafinaScreen.tsx src/ui/screens/calendar/CalendarScreen.tsx src/ui/screens/calendar/types.ts src/ui/screens/notes/NotesScreen.tsx src/ui/screens/notes/types.ts __tests__/ui/callLafinaRemediation.test.ts src/scheduler/verifyReminderDelivery.ts src/ui/components/callLafina/CallReadResults.tsx src/ui/navigation/callNavigation.ts src/ui/navigation/resolveCallTarget.ts
+    at genericNodeError (node:internal/errors:985:15)
+    at wrappedFn (node:internal/errors:539:14)
+    at checkExecSyncError (node:child_process:942:11)
+    at Object.execFileSync (node:child_process:978:15)
+    at [eval]:1:406
+    at runScriptInThisContext (node:internal/vm:219:10)
+    at node:internal/process/execution:451:12
+    at [eval]-wrapper:6:24
+    at runScriptInContext (node:internal/process/execution:449:60)
+    at evalFunction (node:internal/process/execution:283:30) {
+  status: 1,
+  signal: null,
+  output: [ null, null, null ],
+  pid: 25056,
+  stdout: null,
+  stderr: null
+}
+
+Node.js v24.19.0

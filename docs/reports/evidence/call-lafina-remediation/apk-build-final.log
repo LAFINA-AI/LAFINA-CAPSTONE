@@ -1,0 +1,4 @@
+PASS: configured provider keys are absent from all APK entries.
+Verified com.lafina.capstone APK: C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\.local\call-lafina-update\call-lafina-v2-main-arm64.apk
+PASS: configured provider keys are absent from all APK entries.
+Verified com.lafina.capstone.providers APK: C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\.local\call-lafina-update\call-lafina-v2-providers-arm64.apk

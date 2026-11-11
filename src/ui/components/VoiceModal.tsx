@@ -70,6 +70,10 @@ export interface VoiceModalProps {
    * Nothing is sent: the student still presses Send there.
    */
   onUseInChat?: () => void;
+  /**
+   * Opens Call Lafina in dedicated full-screen presentation.
+   */
+  onOpenCallLafina?: () => void;
 }
 
 export type VoiceState =
@@ -144,6 +148,7 @@ export const VoiceModal: React.FC<VoiceModalProps> = ({
   onTranscript,
   onCommand,
   onUseInChat,
+  onOpenCallLafina,
 }) => {
   const [voiceState, setVoiceState] = useState<VoiceState>('idle');
   const [transcript, setTranscript] = useState('');
@@ -722,8 +727,12 @@ export const VoiceModal: React.FC<VoiceModalProps> = ({
     setNotice('');
     setAiReply('');
     setVoiceState('idle');
-    setMode('conversation');
-  }, [retireCapture, stopSpeaking]);
+    if (onOpenCallLafina) {
+      onOpenCallLafina();
+    } else {
+      setMode('conversation');
+    }
+  }, [onOpenCallLafina, retireCapture, stopSpeaking]);
 
   const handleCommandProcess = async (command: string) => {
     if (!command.trim()) return;
@@ -820,7 +829,11 @@ export const VoiceModal: React.FC<VoiceModalProps> = ({
         behavior={Platform.OS === 'ios' ? 'padding' : 'padding'}
       >
         <TouchableOpacity
-          style={[styles.overlay, themed.overlay]}
+          style={[
+            styles.overlay,
+            themed.overlay,
+            mode === 'conversation' && styles.overlayFullScreen,
+          ]}
           activeOpacity={1}
           onPress={handleDismiss}
           testID="voice-modal-backdrop"
@@ -830,28 +843,35 @@ export const VoiceModal: React.FC<VoiceModalProps> = ({
               styles.modalContent,
               themed.modalContent,
               isKeyboardOpen && styles.modalContentKeyboard,
+              mode === 'conversation' && styles.modalContentFullScreen,
             ]}
             activeOpacity={1}
             onPress={() => Keyboard.dismiss()}
             testID="voice-modal-content"
           >
-          <View style={[styles.grabber, themed.grabber]} />
+          {mode === 'push' && (
+            <View style={[styles.grabber, themed.grabber]} />
+          )}
 
           {/* Close button */}
-          <TouchableOpacity
-            style={[styles.closeButton, themed.closeButton]}
-            onPress={handleDismiss}
-            accessibilityRole="button"
-            accessibilityLabel="Close voice assistant"
-            testID="voice-modal-close"
-          >
-            <X size={16} color={colors.textPrimary} />
-          </TouchableOpacity>
+          {mode === 'push' && (
+            <TouchableOpacity
+              style={[styles.closeButton, themed.closeButton]}
+              onPress={handleDismiss}
+              accessibilityRole="button"
+              accessibilityLabel="Close voice assistant"
+              testID="voice-modal-close"
+            >
+              <X size={16} color={colors.textPrimary} />
+            </TouchableOpacity>
+          )}
 
           {/* Heading */}
-          <Text style={[styles.modalTitle, themed.modalTitle]}>
-            LAFINA Voice Assistant
-          </Text>
+          {mode === 'push' && (
+            <Text style={[styles.modalTitle, themed.modalTitle]}>
+              LAFINA Voice Assistant
+            </Text>
+          )}
           {mode === 'push' ? (
             <Text
               style={[styles.statusText, {color: statusColor}]}
@@ -863,20 +883,12 @@ export const VoiceModal: React.FC<VoiceModalProps> = ({
           ) : null}
 
           {mode === 'conversation' ? (
-            <ScrollView
-              ref={modalScrollRef}
-              style={styles.modalScroll}
-              contentContainerStyle={styles.modalScrollContent}
-              nestedScrollEnabled
-              keyboardShouldPersistTaps="handled"
-              showsVerticalScrollIndicator={false}
-            >
-              <VoiceConversationPanel
-                userId={userId}
-                review={review}
-                onBack={() => setMode('push')}
-              />
-            </ScrollView>
+            <VoiceConversationPanel
+              userId={userId}
+              review={review}
+              onBack={() => setMode('push')}
+              fullScreen={true}
+            />
           ) : (
             <ScrollView
               ref={modalScrollRef}
@@ -1146,12 +1158,12 @@ export const VoiceModal: React.FC<VoiceModalProps> = ({
                   style={styles.useInChatButton}
                   onPress={handleOpenConversation}
                   accessibilityRole="button"
-                  accessibilityLabel="Open live voice conversation (Online Mode)"
+                  accessibilityLabel="Call Lafina (Online live voice)"
                   testID="voice-open-conversation"
                 >
                   <AudioLines size={16} color={colors.primary} />
                   <Text style={[styles.useInChatText, {color: colors.primary}]}>
-                    Voice conversation (Online)
+                    Call Lafina
                   </Text>
                 </TouchableOpacity>
               ) : null}
@@ -1197,6 +1209,9 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'flex-end',
   },
+  overlayFullScreen: {
+    justifyContent: 'flex-start',
+  },
   modalContent: {
     borderTopLeftRadius: 28,
     borderTopRightRadius: 28,
@@ -1206,6 +1221,16 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     width: '100%',
     maxHeight: '90%',
+  },
+  modalContentFullScreen: {
+    flex: 1,
+    height: '100%',
+    maxHeight: '100%',
+    borderTopLeftRadius: 0,
+    borderTopRightRadius: 0,
+    paddingHorizontal: 0,
+    paddingTop: 12,
+    paddingBottom: 0,
   },
   modalContentKeyboard: {
     maxHeight: '65%',

@@ -1,0 +1,134 @@
+{
+  "base_head": "fe489a6487884fa6667f1cc6e2e0bddbd24e386d",
+  "scope": "Uncommitted remediation product/native/build source; excludes user .gitignore and secrets",
+  "files": [
+    {
+      "path": "App.tsx",
+      "sha256": "3acb02ee398be7851e85e45c4973267eca5678ea8a08e9868bbb5aeed45ace6e"
+    },
+    {
+      "path": "android/app/build.gradle",
+      "sha256": "4df7a075d71c73489a9885d8d22cb77d61611abcd7b4b275166d4602778dcf84"
+    },
+    {
+      "path": "android/app/src/main/cpp/CMakeLists.txt",
+      "sha256": "b7e0883236abdbc660e0e1c36e2d77e74e38738e504ce1b84df61feb30e00e91"
+    },
+    {
+      "path": "scripts/build-call-lafina-update.ps1",
+      "sha256": "d5edb2c23fbf7b2cf5e8dafe5afebd5b7f48916495e6cac53230c2e0faf984bd"
+    },
+    {
+      "path": "src/ai/nlu/commandReview.ts",
+      "sha256": "fce991fecf765b53f5ea1faaaa6bf538b1d67c1ba1fc5c6c1570e5f1989c61f1"
+    },
+    {
+      "path": "src/ai/voiceActions/actionSecurity.ts",
+      "sha256": "11a6fea843befca0d65584bce3fb7ab1e70bc0a107bd06def3fdd34255f6852e"
+    },
+    {
+      "path": "src/ai/voiceActions/actionService.ts",
+      "sha256": "a3d08cfb1c187dedd3f444fa0570808f285295a4e4ea007a26af857793657797"
+    },
+    {
+      "path": "src/ai/voiceActions/actionValidator.ts",
+      "sha256": "bad1b4291d2ed7c0b1bec950dcbc278c4599b5c4c5c7772602082ca45e3bffec"
+    },
+    {
+      "path": "src/ai/voiceActions/conflictChecker.ts",
+      "sha256": "d35880aaa5bd226671b07fe5434921d1e54ad7924ae2e77494cc4383a229694f"
+    },
+    {
+      "path": "src/ai/voiceActions/multiActionService.ts",
+      "sha256": "f9e0d0cfe22a9053aa27c031e7ad6475fa917bc1521b0a08ebfe7f4c97fd2ebc"
+    },
+    {
+      "path": "src/ai/voiceActions/types.ts",
+      "sha256": "2913385d73f063847fc6900dd842fbbb8365cebbb6be94896bd6a9761df6ae8b"
+    },
+    {
+      "path": "src/cloud/voiceConversation/callLafinaSettingsStore.ts",
+      "sha256": "079e83b5afe1efbbeabf3b51df5db8c45b632e81a342da6c4f31c7b6a397c5e8"
+    },
+    {
+      "path": "src/cloud/voiceConversation/controller.ts",
+      "sha256": "5ad2bd57444c958e67e25020c3210ec9fdda0e6b557dcde9c672cf1e2d119ca3"
+    },
+    {
+      "path": "src/cloud/voiceConversation/index.ts",
+      "sha256": "7f0a6bf94975f8aefe6c81cffb7fb9bd48b323737e7fc8f5c5efe8f7fa4c1d5a"
+    },
+    {
+      "path": "src/cloud/voiceConversation/localVoiceData.ts",
+      "sha256": "f0a68aeebd2238c46f0addbfed1b323429f5c6761324a3ee65ff7616624760cc"
+    },
+    {
+      "path": "src/cloud/voiceConversation/personaPolicy.ts",
+      "sha256": "fedb8faf7144f64c7ffe80ed2e373ee4fe083c5411dbd54724a9e98e784c1f92"
+    },
+    {
+      "path": "src/cloud/voiceConversation/types.ts",
+      "sha256": "86714201d937007b375ef5512323814fdefd72258cd3d899e0c0c3ea8d9b71ee"
+    },
+    {
+      "path": "src/scheduler/verifyReminderDelivery.ts",
+      "sha256": "e9a94d33c4d1cbe622d6f30321cb82fc6e30475ea4eef248f7143e56fc9b089a"
+    },
+    {
+      "path": "src/ui/components/callLafina/ActionCardHost.tsx",
+      "sha256": "4f7a3bcb0a1a0a1abdc5edfcac793a2d6a0c44d71be40c6cff626e94d8f22123"
+    },
+    {
+      "path": "src/ui/components/callLafina/CallLafinaSettingsModal.tsx",
+      "sha256": "ed02822afc7ee10da6a89008b75742e49a71a5c668c484d57a7bd4d28c3c74ca"
+    },
+    {
+      "path": "src/ui/components/callLafina/CallReadResults.tsx",
+      "sha256": "b7bf43d03c7642b71a1524102444510f78abf595d4faaefd6eea080138267218"
+    },
+    {
+      "path": "src/ui/components/callLafina/CallWaveform.tsx",
+      "sha256": "8047feef9a527c343f438b3d4713b82f794724b84c6b4e16eaea4cd1e7170b9f"
+    },
+    {
+      "path": "src/ui/components/callLafina/cards/MultiActionCard.tsx",
+      "sha256": "3e91b05c2aa6b75b5496b2cae39495bd294912f175d3a915f2ae9145142554dc"
+    },
+    {
+      "path": "src/ui/components/voice/VoiceConversationPanel.tsx",
+      "sha256": "c3320ea831a046b8fb8191b5f1f49644b6ae23ea13409d86c3c2c51ca5a618b2"
+    },
+    {
+      "path": "src/ui/hooks/useVoiceConversation.ts",
+      "sha256": "49181c883b6a8c1fe53565fc0e1c93678bdfa5b6115fb045f021accacfc2ece1"
+    },
+    {
+      "path": "src/ui/navigation/callNavigation.ts",
+      "sha256": "2c6fe9630a019bb7442fcc5b8bf1b317934b6d42caba3391693a103ca1336e8d"
+    },
+    {
+      "path": "src/ui/navigation/resolveCallTarget.ts",
+      "sha256": "17fa21be4418d61d936c43300359f71b71670e2d94a9bbe099bf50c5bcbf454b"
+    },
+    {
+      "path": "src/ui/screens/CallLafinaScreen.tsx",
+      "sha256": "52c07f8b1cd764096dac6e728521262787b79949aa93e87589c9b11cfd811cf7"
+    },
+    {
+      "path": "src/ui/screens/calendar/CalendarScreen.tsx",
+      "sha256": "413f8790a2ff598664e552387b4aa4e57d6fd109624aaffb2f79b6bebcf48c55"
+    },
+    {
+      "path": "src/ui/screens/calendar/types.ts",
+      "sha256": "272f4d57878ff27ddcba6f406419d5345e973022d9c3c84c34fc0581c3ce8cad"
+    },
+    {
+      "path": "src/ui/screens/notes/NotesScreen.tsx",
+      "sha256": "12377ab7933dc8f12634b01986ce16e7185469d27d72dba1de30a0a97c703588"
+    },
+    {
+      "path": "src/ui/screens/notes/types.ts",
+      "sha256": "a16b63b8a06e7abc11f8cb5ac7e17ac5ac81a58fc58f5c8749e3d559bf53c994"
+    }
+  ]
+}

@@ -1,3 +1,5 @@
+import type {VoicePersonaPreferences} from '../../cloud/voiceConversation/personaPolicy';
+import {getCallLafinaSettings} from '../../cloud/voiceConversation/callLafinaSettingsStore';
 import {useEffect, useRef, useState} from 'react';
 import {AppState} from 'react-native';
 import NetInfo from '@react-native-community/netinfo';
@@ -19,6 +21,8 @@ const IDLE: ConversationSnapshot = {
   muted: false,
   micCapturing: false,
   level: 0,
+  outputLevel: 0,
+  toolPhrase: null,
   turns: [],
   notice: null,
   failure: null,
@@ -42,6 +46,7 @@ export interface VoiceConversationHandle {
   sendText: (text: string) => Promise<boolean>;
   sendReminderContext: (task: string) => Promise<boolean>;
   sendContext: (information: string) => Promise<boolean>;
+  setPreferences: (preferences: Partial<VoicePersonaPreferences>) => void;
 }
 
 /**
@@ -57,7 +62,11 @@ export const useVoiceConversation = (
     onAgentText?: (text: string) => void;
     suppressAgentResponse?: () => boolean;
     appOwnedAudio?: boolean;
-    onClientTool?: (name: string, parameters: Record<string, unknown>, isCurrent: () => boolean) => Promise<string>;
+    onClientTool?: (
+      name: string,
+      parameters: Record<string, unknown>,
+      isCurrent: () => boolean,
+    ) => Promise<string>;
     /** Tests inject fakes here. */
     deps?: (userId: string) => VoiceConversationDeps;
   } = {},
@@ -83,10 +92,12 @@ export const useVoiceConversation = (
       onAgentText: text => agentTextRef.current?.(text),
       suppressAgentResponse: () => suppressRef.current?.() ?? false,
       appOwnedAudio: appOwnedAudio.current,
-      onClientTool: (name, parameters, isCurrent) => toolRef.current
-        ? toolRef.current(name, parameters, isCurrent)
-        : Promise.reject(new Error('Tool unavailable')),
+      onClientTool: (name, parameters, isCurrent) =>
+        toolRef.current
+          ? toolRef.current(name, parameters, isCurrent)
+          : Promise.reject(new Error('Tool unavailable')),
     });
+    controller.setPreferences(getCallLafinaSettings(userId));
     controllerRef.current = controller;
     setSnapshot(controller.getSnapshot());
     const unsubscribe = controller.subscribe(setSnapshot);
@@ -112,6 +123,10 @@ export const useVoiceConversation = (
         controller.stopForSystem(
           'You were signed out, so the conversation stopped.',
         );
+      } else if (!deps.gates.hasConsent()) {
+        controller.stopForSystem(
+          'Microphone consent was withdrawn. Start again only after reviewing consent.',
+        );
       } else if (!deps.gates.isOnlineMode()) {
         controller.stopForSystem(
           'Online Mode was turned off, so the conversation stopped.',
@@ -132,15 +147,19 @@ export const useVoiceConversation = (
 
   return {
     snapshot,
+    setPreferences: preferences =>
+      controllerRef.current?.setPreferences(preferences),
     start: () => {
       void controllerRef.current?.start();
     },
     end: () => controllerRef.current?.end(),
-    endAndWait: async () => (await controllerRef.current?.endAndWait()) ?? false,
+    endAndWait: async () =>
+      (await controllerRef.current?.endAndWait()) ?? false,
     setMuted: muted => {
       void controllerRef.current?.setMuted(muted);
     },
-    setSpeechPaused: async paused => (await controllerRef.current?.setSpeechPaused(paused)) ?? false,
+    setSpeechPaused: async paused =>
+      (await controllerRef.current?.setSpeechPaused(paused)) ?? false,
     completeLocalTurn: () => controllerRef.current?.completeLocalTurn(),
     appSpeechStarted: () => controllerRef.current?.appSpeechStarted(),
     appSpeechFinished: heard => controllerRef.current?.appSpeechFinished(heard),

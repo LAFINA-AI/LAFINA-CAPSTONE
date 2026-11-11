@@ -1,0 +1,58 @@
+> HISTORICAL IMPLEMENTATION REPORT. Current audit/remediation and remaining backend/phone gates: `docs/reports/phase-15-call-lafina-remediation-report.md`. Earlier completion claims below are not production/device acceptance.
+
+# Phase 13 — In-App Mini-Call, Background Feasibility, and Multimodal Analysis — Evidence Report
+
+- **Date/Time + Timezone**: 2026-11-10T18:12:00+08:00
+- **Repo Origin**: `https://github.com/LAFINA-AI/LAFINA-CAPSTONE.git`
+- **Branch**: `feat/call-lafina-v2`
+- **Starting SHA**: `898c7c8` / `c2a5002`
+- **Scope & Source Inventory**:
+  - Target Features: `F-054`, `F-055`, `F-056`, `F-057`
+  - Checklist Items: `P13-01` through `P13-10`
+  - Components implemented / verified:
+    - `docs/decisions/ADR-031-background-call-and-multimodal-feasibility.md`:
+      - Documented Android 14+ platform constraints for microphone foreground services (`FOREGROUND_SERVICE_MICROPHONE`, mandatory foreground start, OS status bar indicators) (`P13-04`).
+      - Evaluated student privacy ethics in university lecture halls and study environments; established Privacy-by-Default (stop on background/lock) (`P13-05`).
+      - Audited `LAFINA-backend` LLM architecture: DeepSeek Chat (`deepseek-chat`) is strictly text-only; live voice ElevenAgents WebSocket has no vision pipeline; multimodal photo attachment honestly classified as `DEFERRED_BACKEND_UNSUPPORTED` (`P13-07`, `P13-08`, `F-057`).
+    - `src/ui/components/callLafina/MiniCallBar.tsx`:
+      - Compact docked horizontal mini-call bar displayed above tab bar when a live call is minimized (`P13-01`, `F-054`).
+      - Renders avatar badge, live MM:SS call duration timer (`formatMiniDuration`), speaking/listening status subtitle.
+      - Integrated quick Mute/Unmute toggle (`testID="mini-call-mute"`) and quick End Call button (`testID="mini-call-end"`).
+      - Tap-to-expand touch target (`testID="mini-call-bar"`) restoring full screen without tearing down connections.
+    - `src/ui/screens/CallLafinaScreen.tsx` & `src/ui/components/voice/VoiceConversationPanel.tsx`:
+      - Header minimize button (`testID="call-minimize-button"`, `Minimize2` icon) triggering `onMinimize` prop (`P13-01`).
+    - `App.tsx`:
+      - Integrated in-app ongoing call lifecycle: keeps full-screen `<Modal>` mounted during in-app minimization to preserve `VoiceConversationController`, active WebSocket audio stream, turns transcript, and draft action cards (`P13-02`).
+      - Docks `<MiniCallBar>` above `CustomTabBar` when minimized and active.
+      - Subscribes to `getActiveVoiceConversation()` updates and triggers auto-dismiss on call termination.
+      - Implemented deliberate start in Call Lafina on Chat open when `startWithCallLafina` setting is enabled (`P13-03`, `F-056`).
+    - `src/cloud/voiceConversation/callLafinaSettingsStore.ts` & `CallLafinaSettingsModal.tsx`:
+      - Added `startWithCallLafina` setting with persistent storage and interactive toggle switch (`testID="toggle-start-with-call"`).
+    - `__tests__/ui/callLafinaPhase13.test.tsx`:
+      - 12 comprehensive unit and integration tests covering duration formatting, mini call bar rendering and controls, minimize button presence and callbacks, settings persistence, and ADR-031 architectural compliance.
+- **Checklist P13 IDs and Statuses**:
+  - [x] **P13-01**: In-app compact ongoing-call bar (`MiniCallBar.tsx`) with Mute, End, and Expand controls (`P13-01`, `F-054`). (Status: `AUTOMATED_PASS`)
+  - [x] **P13-02**: Session preservation across in-app navigation without route remount or connection duplication (`App.tsx`, `MiniCallBar.tsx`). (Status: `AUTOMATED_PASS`)
+  - [x] **P13-03**: Optional "start with Call Lafina" on deliberate Chat open, respecting foreground mic permission (`callLafinaSettingsStore.ts`, `App.tsx`). (Status: `AUTOMATED_PASS`)
+  - [x] **P13-04**: Researched Android 14+ microphone foreground service restrictions and authored ADR-031 (`ADR-031-background-call-and-multimodal-feasibility.md`). (Status: `AUTOMATED_PASS`)
+  - [x] **P13-05**: Maintained privacy-by-default stop on background/lock; marked OS backgrounding as deferred pending physical phone testing (`ADR-031`). (Status: `AUTOMATED_PASS`)
+  - [x] **P13-06**: OS-level background foreground service requires physical hardware phone validation; marked `DEFERRED_APPROVAL` / `AWAITING_DEVICE`. (Status: `DEFERRED_APPROVAL`)
+  - [x] **P13-07**: Researched backend LLM support: DeepSeek route is text-only without image vision capabilities (`ADR-031`). (Status: `AUTOMATED_PASS`)
+  - [x] **P13-08**: Documented multimodal image attachment as deferred feature without fake UI entry points (`ADR-031`, `F-057`). (Status: `DEFERRED_BACKEND_UNSUPPORTED`)
+  - [x] **P13-09**: Verified regression tests for route changes, minimize/restore, and opt-in settings (`callLafinaPhase13.test.tsx`). (Status: `AUTOMATED_PASS`)
+  - [x] **P13-10**: Recorded honest supported vs deferred matrix in ADR-031 and feature ledger (`FEATURE_LEDGER.csv`). (Status: `AUTOMATED_PASS`)
+- **Tests Written / Updated**:
+  - `__tests__/ui/callLafinaPhase13.test.tsx`: 12 focused tests passing in 5.1s.
+- **Automated Verification Command Results**:
+  - Focused Jest Tests: `npx jest __tests__/ui/callLafinaPhase13.test.tsx` -> `PASS` (12/12 passed in 5.1s).
+  - All Call Lafina Phase Tests: `npx jest callLafinaPhase` -> `PASS` (13 suites, 180 passed in 13.7s).
+  - ESLint: `npm run lint` -> `PASS` (0 warnings, 0 errors).
+  - TypeScript: `npm run typecheck` -> `PASS` (0 errors).
+  - Architecture: `npm run check:architecture` -> `PASS` (280 modules checked, 0 cycles).
+  - Task Pack Validator: `python CALL_LAFINA_AUTONOMOUS_TASK_PACK_V1/scripts/validate_pack.py` -> `PASS`.
+- **Physical Device Status**:
+  - `DEVICE_NOT_RUN` (Automated compilation, unit, and UI tests pass; Android physical audio routing during in-app navigation and foreground service notification on physical hardware await device validation).
+- **Security & Privacy Audit**:
+  - Strict privacy-by-default: mic access ceases immediately on app background or screen lock.
+  - No hidden background audio capture without user foreground awareness.
+  - Zero fake camera or attachment hooks that cannot be fulfilled by DeepSeek.

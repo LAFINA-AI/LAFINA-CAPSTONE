@@ -13,6 +13,7 @@ export type ConversationPhase =
   | 'connecting'
   | 'listening'
   | 'thinking'
+  | 'tool_working'
   | 'speaking'
   /** Stopped by something other than the student (background, call, network): restart explicitly. */
   | 'restart_required'
@@ -58,12 +59,18 @@ export interface ConversationTiming {
 }
 
 export interface ConversationSnapshot {
+  /** Monotonic session start for consistent full-screen/mini-bar elapsed time. */
+  connectedAt?: number | null;
   phase: ConversationPhase;
   muted: boolean;
   /** True only while the native recorder is actually capturing. */
   micCapturing: boolean;
   /** 0..1 microphone level while capturing (for the meter). */
   level: number;
+  /** 0..1 assistant playback audio level while speaking (for assistant waveform). */
+  outputLevel: number;
+  /** Truthful progress phrase for active client tool execution, if any. */
+  toolPhrase: string | null;
   turns: readonly ConversationTurn[];
   /** Short, non-blocking information line (for example a slow answer). */
   notice: string | null;
@@ -134,6 +141,7 @@ export type TransportEvent =
   | {kind: 'open'}
   | {kind: 'message'; data: string}
   | {kind: 'playback'; speaking: boolean}
+  | {kind: 'output_level'; level: number}
   | {kind: 'mic'; capturing: boolean}
   | {kind: 'level'; level: number}
   | {kind: 'closed'; code: number; reason: string}

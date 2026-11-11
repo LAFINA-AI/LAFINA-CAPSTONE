@@ -29,8 +29,10 @@ export type { ChecklistStat } from './richText';
 export {
   applyNoteFormat,
   continueListOnNewline,
+  getActiveLineFormat,
 } from './noteEditing';
 export type {
+  ActiveLineFormat,
   BlockFormat,
   InlineFormat,
   NoteEdit,

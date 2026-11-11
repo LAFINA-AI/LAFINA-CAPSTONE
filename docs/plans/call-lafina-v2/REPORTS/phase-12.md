@@ -1,0 +1,59 @@
+> HISTORICAL IMPLEMENTATION REPORT. Current audit/remediation and remaining backend/phone gates: `docs/reports/phase-15-call-lafina-remediation-report.md`. Earlier completion claims below are not production/device acceptance.
+
+# Phase 12 — Voice Choice, Language, and Interaction Settings — Evidence Report
+
+- **Date/Time + Timezone**: 2026-11-10T17:55:00+08:00
+- **Repo Origin**: `https://github.com/LAFINA-AI/LAFINA-CAPSTONE.git`
+- **Branch**: `feat/call-lafina-v2`
+- **Starting SHA**: `29bdc76` / `72681e2`
+- **Scope & Source Inventory**:
+  - Target Features: `F-050`, `F-051`, `F-052`, `F-053`, `F-067`, `F-070`
+  - Checklist Items: `P12-01` through `P12-07`
+  - Components implemented / verified:
+    - `src/cloud/voiceConversation/callLafinaSettingsStore.ts`:
+      - Persistent settings store managing voice selection (`voiceId`, `voiceName`), spoken language preference (`language`), verbosity (`verbosity`), pacing (`pacing`), caption size (`captionSize`), haptic triggers (`callConnectedHaptics`, `callEndHaptics`), and tool audio cues (`toolAudioCue`) (`P12-01`, `P12-03`, `P12-04`, `P12-06`, `P12-07`).
+      - Validates ElevenLabs voice IDs (`validOnlineVoiceId`) to prevent injection or invalid characters (`F-050`).
+      - Language prompt instruction mapping (`getLanguageInstruction`) for English, Filipino, Taglish, and Cebuano (`P12-04`, `F-051`).
+    - `src/cloud/voiceConversation/personaPolicy.ts`:
+      - Augmented `buildVoicePersonaPrompt` with dynamic language guidance (`en`, `fil`, `taglish`, `ceb`) (`P12-05`, `F-052`).
+      - Injects student-friendly phrasing and natural code-switching rules for Philippine universities (e.g., Taglish: natural code-switch between English and Tagalog).
+      - Integrates verbosity ('brief'/'detailed') and pacing ('normal'/'slow') options (`P12-03`).
+    - `src/ui/components/callLafina/CallLafinaSettingsModal.tsx`:
+      - Accessible full settings dialog accessible directly from Call Lafina header (`P12-01`..`P12-07`).
+      - Voice catalog rendering dynamically loaded from `loadOnlineVoices(userId)`.
+      - Isolated, exclusive voice preview playback (`handlePreviewVoice` using `createCallSpeechProvider`) with automatic cancellation of any prior preview before starting a new one (`P12-02`).
+      - Interactive language chips for English, Filipino, Taglish, and Cebuano (`P12-04`).
+      - Response style chips for concise vs detailed responses, and normal vs step-by-step pacing (`P12-03`).
+      - Caption size selection chips: Standard, Large, Extra Large (`P12-06`, `F-053`).
+      - Toggle switches for Call Connected Haptics, Call Ended Haptics (`F-067`), and Tool Call Audio Cue (`F-070`, `P12-07`).
+      - Active call banner notifying users when settings take effect (`testID="call-active-notice"`).
+    - `src/ui/components/voice/VoiceConversationPanel.tsx`:
+      - Added Settings button (`Sliders` icon with `testID="call-settings-button"`) in header row.
+      - Integrated `<CallLafinaSettingsModal />`.
+      - Applied dynamic caption font sizing (`turnTextLarge`, `turnTextExtraLarge`) in transcript based on `callSettings.captionSize` (`P12-06`).
+      - Added haptic feedback cues on call connected (`Vibration.vibrate(30)`) and call ended (`Vibration.vibrate([0, 40, 30, 40])`) when enabled (`F-067`).
+      - Added subtle vibration/audio cue (`Vibration.vibrate(20)`) during client tool execution when `toolAudioCue` is enabled (`F-070`, `P12-07`).
+    - `__tests__/ui/callLafinaPhase12.test.tsx`:
+      - 21 comprehensive unit and integration tests covering settings persistence, voice ID validation, language instructions, prompt injection, modal rendering, exclusive preview playback, stop preview, language/style/caption selection, switch toggling, and panel integration.
+- **Checklist P12 IDs and Statuses**:
+  - [x] **P12-01**: ElevenLabs voice selection and validated provider voice ID (`callLafinaSettingsStore.ts`, `CallLafinaSettingsModal.tsx`). (Status: `AUTOMATED_PASS`)
+  - [x] **P12-02**: Isolated exclusive voice preview playback cancelling any active preview (`CallLafinaSettingsModal.tsx`). (Status: `AUTOMATED_PASS`)
+  - [x] **P12-03**: Verbosity (brief/detailed) and pacing (normal/slow) preferences persisted and applied to persona prompt (`personaPolicy.ts`, `CallLafinaSettingsModal.tsx`). (Status: `AUTOMATED_PASS`)
+  - [x] **P12-04**: Spoken language selection for English, Filipino, Taglish, Cebuano (`callLafinaSettingsStore.ts`, `CallLafinaSettingsModal.tsx`). (Status: `AUTOMATED_PASS`)
+  - [x] **P12-05**: Student-friendly persona prompt adaptation for Philippine languages with respectful collegiate tone (`personaPolicy.ts`). (Status: `AUTOMATED_PASS`)
+  - [x] **P12-06**: Transcript subtitle/caption sizing accessibility (standard, large, extra large) (`VoiceConversationPanel.tsx`). (Status: `AUTOMATED_PASS`)
+  - [x] **P12-07**: Call connected/end haptics and subtle tool-call audio cue toggles (`VoiceConversationPanel.tsx`, `CallLafinaSettingsModal.tsx`). (Status: `AUTOMATED_PASS`)
+- **Tests Written / Updated**:
+  - `__tests__/ui/callLafinaPhase12.test.tsx`: 21 focused tests passing in 6.5s.
+- **Automated Verification Command Results**:
+  - Focused Jest Tests: `npx jest __tests__/ui/callLafinaPhase12.test.tsx` -> `PASS` (21/21 passed in 6.5s).
+  - ESLint: `npm run lint` -> `PASS` (0 warnings, 0 errors).
+  - TypeScript: `npm run typecheck` -> `PASS` (0 errors).
+  - Preflight: `npm run preflight` -> In progress.
+  - Task Pack Validator: `python CALL_LAFINA_AUTONOMOUS_TASK_PACK_V1/scripts/validate_pack.py` -> `PASS`.
+- **Physical Device Status**:
+  - `DEVICE_NOT_RUN` (Automated compilation, unit, and UI tests pass; Android physical audio preview, ElevenLabs streaming, and physical vibration motors on physical hardware await device validation).
+- **Security & Privacy Audit**:
+  - Voice IDs are strictly validated with regex `/^[A-Za-z0-9_-]{1,128}$/` before saving to prevent injection.
+  - Persona system prompts strictly preserve student data confidentiality, anti-hallucination rules, and tool verification constraints regardless of chosen language.
+  - Voice preview speech provider respects user ownership and online mode gates.

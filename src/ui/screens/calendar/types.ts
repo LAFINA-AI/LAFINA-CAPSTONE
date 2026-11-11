@@ -1,7 +1,8 @@
-import type { Task, Event, TimeBlock } from '../../../storage';
-import { ImportBatch } from '../../../storage/importedBatchesStore';
-import type { EventFolds } from '../../../storage/eventTime';
-import type { EventMemoryOffer } from '../../../storage/personalMemoryStore';
+import type {CallNavigationRequest} from '../../navigation/callNavigation';
+import type {Task, Event, TimeBlock} from '../../../storage';
+import {ImportBatch} from '../../../storage/importedBatchesStore';
+import type {EventFolds} from '../../../storage/eventTime';
+import type {EventMemoryOffer} from '../../../storage/personalMemoryStore';
 
 // ── View Modes ──
 /** The week view shows the chosen day's timeline under its strip, so there is no separate day view. */
@@ -11,6 +12,8 @@ export type ViewMode = 'month' | 'week';
 export interface CalendarScreenProps {
   userId: string;
   refreshTrigger: number;
+  openRequest?: CallNavigationRequest;
+  onOpenRequestHandled?: (requestId: string) => void;
   onRefresh: () => void;
   viewMode?: ViewMode;
   onViewModeChange?: (mode: ViewMode) => void;
@@ -64,14 +67,17 @@ export interface CalendarData {
   handleDayTap: (dayNum: number) => void;
   loadBlocks: () => void;
   loadScheduleData: () => void;
-  
+
   // Visibility and Import/Export
   batches: ImportBatch[];
   visibilityMap: Record<string, boolean>;
   username: string;
   layersModalVisible: boolean;
   setLayersModalVisible: (visible: boolean) => void;
-  handleToggleVisibility: (calendarId: string, isVisible: boolean) => Promise<void>;
+  handleToggleVisibility: (
+    calendarId: string,
+    isVisible: boolean,
+  ) => Promise<void>;
   handleImportCalendar: () => Promise<void>;
   handleExportCalendar: () => Promise<void>;
   startRemoveFlow: () => Promise<void>;
@@ -88,7 +94,10 @@ export interface TimeBlockModalState {
   openNewBlock: (initialHour?: number, targetDate?: Date) => void;
   openEditBlock: (block: TimeBlock) => void;
   close: () => void;
-  updateField: <K extends keyof TimeBlockForm>(key: K, value: TimeBlockForm[K]) => void;
+  updateField: <K extends keyof TimeBlockForm>(
+    key: K,
+    value: TimeBlockForm[K],
+  ) => void;
   save: (recurrenceRule?: string | null) => void;
   delete: (id: string) => void;
   setShowDatePicker?: (show: boolean) => void;
@@ -106,7 +115,10 @@ export interface ScheduleItemModalState {
   openNew: (type: 'task' | 'event') => void;
   openEdit: (item: Task | Event, type: 'task' | 'event') => void;
   close: () => void;
-  updateField: <K extends keyof ScheduleItemForm>(key: K, value: ScheduleItemForm[K]) => void;
+  updateField: <K extends keyof ScheduleItemForm>(
+    key: K,
+    value: ScheduleItemForm[K],
+  ) => void;
   /** `folds` answers a repeated-time question for an event (AGY-PORT 08). */
   save: (recurrenceRule?: string | null, folds?: EventFolds) => void;
   delete: (id: string, type: 'task' | 'event') => void;

@@ -1,14 +1,12 @@
 import React, {useState, useEffect, useRef, useCallback} from 'react';
 import {
   View,
-  AppState,
   Text,
   StyleSheet,
   FlatList,
   TouchableOpacity,
   Alert,
   Keyboard,
-  Modal,
   Platform,
   Dimensions,
   BackHandler,
@@ -17,15 +15,18 @@ import {
 import {useSafeAreaInsets} from 'react-native-safe-area-context';
 import NetInfo from '@react-native-community/netinfo';
 import {
-  Trash2,
   PanelLeft,
   Bot,
   BookOpen,
+  Camera,
   FileSpreadsheet,
   FileText,
+  Image as ImageIcon,
   Presentation,
-  AudioLines,
+  Sparkles,
+  MessageCircleDashed,
   Lightbulb,
+  Phone,
 } from 'lucide-react-native';
 import {Fonts, FontSize, Layout, Spacing} from '../theme';
 import {useTheme} from '../contexts/ThemeContext';
@@ -39,7 +40,7 @@ import {
 import {mergeChatPages} from './chat/chatPaging';
 import {localSettingsStore} from '../../storage/localSettingsStore';
 import {accountLinkService} from '../../cloud';
-import {createCallSpeechProvider} from '../../cloud/speechService';
+import {visionService} from '../../ai/vision/visionService';
 import {readInitialOnlineMode} from '../../cloud/providerTestDefaults';
 import {ONLINE_MODE_CHANGED_EVENT} from '../../cloud/voiceConversation';
 import {
@@ -47,7 +48,6 @@ import {
   chatMemoryService,
 } from '../../cloud/chatMemoryService';
 import type {ChatMemoryChangedEvent} from '../../cloud/chatMemoryService';
-import type {CallSpeechProvider} from '../../scheduler/speechProvider';
 import {
   DOCUMENT_FORMAT_ORDER,
   DOCUMENT_FORMATS,
@@ -57,7 +57,7 @@ import {handbookPreference} from '../../skills/onlineChatSkill';
 import {chatOrchestrator} from '../../ai/chatOrchestrator';
 import {ChatMessageItem} from '../components/chat/ChatMessageItem';
 import {ChatHistorySheet} from '../components/chat/ChatHistorySheet';
-import {ChatInput} from '../components/chat/ChatInput';
+import {ChatInput, SUGGESTED_PROMPTS} from '../components/chat/ChatInput';
 import {TypingBubble} from '../components/chat/TypingBubble';
 import {CommandReviewCard} from '../components/chat/CommandReviewCard';
 import {CommandGuide} from '../components/chat/CommandGuide';
@@ -66,12 +66,8 @@ import {useDraftProtection} from '../hooks/useDraftProtection';
 import {useChatReplyFormat} from '../hooks/useChatReplyFormat';
 import {DraftDecisionDialog} from '../components/DraftDecisionDialog';
 import {chatDraftStore} from '../drafts/chatDraftStore';
-import {
-  removeAttachmentFiles,
-  shareAttachment,
-} from '../components/chat/chatFiles';
+import {shareAttachment} from '../components/chat/chatFiles';
 import {ToolSheet} from '../components/tools';
-import {MeetingsScreen} from './meetings';
 
 /** How often a reply that is still arriving repaints (about 20 times a second). */
 const STREAM_REPAINT_MS = 50;
@@ -80,12 +76,14 @@ export interface ChatScreenProps {
   userId: string;
   refreshTrigger?: number;
   onRefresh?: () => void;
+  onCallLafina?: () => void;
 }
 
 export const ChatScreen: React.FC<ChatScreenProps> = ({
   userId,
   refreshTrigger = 0,
   onRefresh,
+  onCallLafina,
 }) => {
   const [initialPage] = useState(() => {
     try {
@@ -117,6 +115,26 @@ export const ChatScreen: React.FC<ChatScreenProps> = ({
       localSettingsStore.get(userId, 'chat.legacyNoticeDismissed', null) ===
       'true',
   );
+  const [isTemporaryChat, setIsTemporaryChat] = useState(false);
+  const [tempMessages, setTempMessages] = useState<ChatMessage[]>([]);
+  const [chatTitle, setChatTitle] = useState('New chat');
+
+  const refreshChatTitle = useCallback(() => {
+    if (isTemporaryChat) {
+      setChatTitle('Temporary Chat');
+      return;
+    }
+    try {
+      const title = chatStore.getSessionTitle(userId, currentChatId);
+      setChatTitle(title);
+    } catch {
+      setChatTitle('New chat');
+    }
+  }, [currentChatId, isTemporaryChat, userId]);
+
+  useEffect(() => {
+    refreshChatTitle();
+  }, [refreshChatTitle]);
   // Async results are applied only while the same account is still shown.
   const activeUserRef = useRef(userId);
   const replyFormat = useChatReplyFormat(userId);
@@ -148,20 +166,6 @@ export const ChatScreen: React.FC<ChatScreenProps> = ({
   const [isOnlineMode, setIsOnlineMode] = useState(() =>
     readInitialOnlineMode(userId),
   );
-  const onlineSpeech = useRef<CallSpeechProvider | null>(null);
-  useEffect(() => {
-    const provider = createCallSpeechProvider(userId);
-    onlineSpeech.current = provider;
-    const background = AppState.addEventListener('change', state => {
-      if (state !== 'active')
-        void provider.stopSpeech?.().catch(() => undefined);
-    });
-    return () => {
-      onlineSpeech.current = null;
-      background.remove();
-      void provider.dispose?.().catch(() => undefined);
-    };
-  }, [userId]);
   const [useHandbook, setUseHandbook] = useState(() =>
     handbookPreference.read(userId),
   );
@@ -172,7 +176,6 @@ export const ChatScreen: React.FC<ChatScreenProps> = ({
     null,
   );
   const [formatPickerOpen, setFormatPickerOpen] = useState(false);
-  const [meetingsModalVisible, setMeetingsModalVisible] = useState(false);
   const [guideVisible, setGuideVisible] = useState(false);
   const [isKeyboardVisible, setIsKeyboardVisible] = useState(false);
   const [keyboardHeight, setKeyboardHeight] = useState(0);
@@ -315,6 +318,8 @@ export const ChatScreen: React.FC<ChatScreenProps> = ({
 
   // A different account never sees the previous account's messages or cursor.
   useEffect(() => {
+    setIsTemporaryChat(false);
+    setTempMessages([]);
     setMessages([]);
     setOlderCursor(null);
     setHandbookNotes({});
@@ -436,13 +441,16 @@ export const ChatScreen: React.FC<ChatScreenProps> = ({
 
   /** Shows the chat that is now open (after New chat, opening another, or deleting the open one). */
   const showCurrentChat = useCallback(() => {
+    setIsTemporaryChat(false);
+    setTempMessages([]);
     setCurrentChatId(readCurrentChat());
     setHandbookNotes({});
     setMessages([]);
     setOlderCursor(null);
     setLoadError(null);
     loadMessages();
-  }, [loadMessages, readCurrentChat]);
+    refreshChatTitle();
+  }, [loadMessages, readCurrentChat, refreshChatTitle]);
 
   const handleToggleHandbook = () => {
     const next = !useHandbook;
@@ -455,7 +463,6 @@ export const ChatScreen: React.FC<ChatScreenProps> = ({
     // Any tap (on or off) supersedes a pending enable from an earlier tap.
     const ticket = ++onlineToggleTicket.current;
     if (isOnlineMode) {
-      void onlineSpeech.current?.stopSpeech?.().catch(() => undefined);
       setIsOnlineMode(false);
       setSelectedFormat(null);
       localSettingsStore.set(userId, 'chat.onlineMode', 'false');
@@ -498,12 +505,67 @@ export const ChatScreen: React.FC<ChatScreenProps> = ({
     return true;
   };
 
-  const handleOpenFormatPicker = async () => {
+  const handleOpenFormatPicker = () => {
+    setFormatPickerOpen(true);
+  };
+
+  const handleSelectFormat = async (format: DocumentFormat) => {
     if (!isOnlineMode) {
       const enabled = await handleToggleOnline();
       if (!enabled) return;
     }
-    setFormatPickerOpen(true);
+    setSelectedFormat(format);
+    setFormatPickerOpen(false);
+  };
+
+  const handleScanCamera = async () => {
+    setFormatPickerOpen(false);
+    try {
+      const photo = await visionService.takePhoto();
+      if (!photo?.uri) return;
+
+      setIsSending(true);
+      const ocrResult = await visionService.scanScheduleFromUri(photo.uri);
+      setIsSending(false);
+
+      if (!ocrResult.rawText.trim()) {
+        Alert.alert(
+          'No Text Detected',
+          'Could not find any readable text in this photo. Make sure the schedule is clear and well-lit.',
+        );
+        return;
+      }
+
+      await handleSend(`Scan schedule:\n\n${ocrResult.rawText}`);
+    } catch (err: any) {
+      setIsSending(false);
+      Alert.alert('Camera Scan Failed', err?.message || 'Could not scan photo.');
+    }
+  };
+
+  const handleScanGallery = async () => {
+    setFormatPickerOpen(false);
+    try {
+      const photo = await visionService.pickImageFromGallery();
+      if (!photo?.uri) return;
+
+      setIsSending(true);
+      const ocrResult = await visionService.scanScheduleFromUri(photo.uri);
+      setIsSending(false);
+
+      if (!ocrResult.rawText.trim()) {
+        Alert.alert(
+          'No Text Detected',
+          'Could not find readable text in this image.',
+        );
+        return;
+      }
+
+      await handleSend(`Scan schedule:\n\n${ocrResult.rawText}`);
+    } catch (err: any) {
+      setIsSending(false);
+      Alert.alert('Image Scan Failed', err?.message || 'Could not process image.');
+    }
   };
 
   const handleOpenAttachment = async (attachment: ChatAttachment) => {
@@ -543,6 +605,19 @@ export const ChatScreen: React.FC<ChatScreenProps> = ({
     let latestText = '';
     let shownFirst = false;
     const startedAt = new Date().toISOString();
+    let userTempMsg: ChatMessage | null = null;
+    if (isTemporaryChat) {
+      userTempMsg = {
+        id: `temp_user_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
+        sessionId: 'temp_chat',
+        sender: 'user',
+        content: query,
+        createdAt: startedAt,
+        updatedAt: startedAt,
+      };
+      setTempMessages(prev => [...prev, userTempMsg!]);
+    }
+
     const showLatest = () => {
       streamFlushRef.current = null;
       if (activeUserRef.current !== requestUser) return;
@@ -553,7 +628,9 @@ export const ChatScreen: React.FC<ChatScreenProps> = ({
       if (!shownFirst) {
         // The question is saved before the reply starts; show it above.
         shownFirst = true;
-        loadMessages();
+        if (!isTemporaryChat) {
+          loadMessages();
+        }
         showLatest();
         return;
       }
@@ -568,6 +645,12 @@ export const ChatScreen: React.FC<ChatScreenProps> = ({
         useHandbook,
         documentFormat: requestedFormat,
         onReplyText,
+        temporaryChat: isTemporaryChat,
+        temporaryHistory: isTemporaryChat
+          ? userTempMsg
+            ? [...tempMessages, userTempMsg]
+            : tempMessages
+          : undefined,
       });
       // If the account changed while the reply was pending, the reply was saved
       // for the account that sent it and must not appear in this one.
@@ -585,7 +668,12 @@ export const ChatScreen: React.FC<ChatScreenProps> = ({
         };
       }
       review.present(result.review);
-      loadMessages();
+      if (isTemporaryChat) {
+        setTempMessages(prev => [...prev, result.assistantMessage]);
+      } else {
+        loadMessages();
+        refreshChatTitle();
+      }
       onRefresh?.();
     } catch (err) {
       console.error('[ChatScreen] Error processing chat message:', err);
@@ -633,40 +721,6 @@ export const ChatScreen: React.FC<ChatScreenProps> = ({
     }
     reviewSourceRef.current = null;
     loadMessages();
-  };
-
-  const handleClearHistory = () => {
-    Alert.alert(
-      'Clear Conversation',
-      'Delete this chat? This cannot be undone. Your other chats, saved schedule items, notes, memories and your unsent draft are kept.',
-      [
-        {text: 'Cancel', style: 'cancel'},
-        {
-          text: 'Clear',
-          style: 'destructive',
-          onPress: () => {
-            try {
-              const {attachmentUris} = chatStore.deleteSession(
-                userId,
-                chatStore.currentSessionId(userId),
-              );
-              void removeAttachmentFiles(attachmentUris);
-            } catch (error) {
-              console.error(
-                '[ChatScreen] Could not clear conversation:',
-                error,
-              );
-              Alert.alert(
-                'Could Not Clear',
-                'Your conversation could not be cleared right now. Nothing was deleted.',
-              );
-              return;
-            }
-            showCurrentChat();
-          },
-        },
-      ],
-    );
   };
 
   const dismissLegacyNotice = () => {
@@ -743,17 +797,42 @@ export const ChatScreen: React.FC<ChatScreenProps> = ({
           {backgroundColor: colors.primary + '18'},
         ]}
       >
-        <Bot size={36} color={colors.primary} />
+        {isTemporaryChat ? (
+          <MessageCircleDashed size={32} color={colors.primary} />
+        ) : (
+          <Bot size={36} color={colors.primary} />
+        )}
       </View>
       <Text style={[styles.emptyTitle, themed.emptyTitle]}>
-        LAFINA Academic Assistant
+        {isTemporaryChat ? 'Temporary Chat' : 'LAFINA Academic Assistant'}
       </Text>
-      <Text style={[styles.emptySubtitle, themed.emptySubtitle]}>
-        Your offline secretary for university life. I can schedule your study
-        blocks, set exact alarms for classes and deadlines, take notes, read
-        your schedule aloud, or generate PDF, Word, Excel, and PowerPoint files
-        in Online Mode.
-      </Text>
+      {isTemporaryChat && (
+        <Text style={[styles.emptySubtitle, themed.emptySubtitle]}>
+          Messages in this chat are not saved in history and will disappear when
+          you leave.
+        </Text>
+      )}
+      <View style={styles.emptySuggestionsWrapper}>
+        {SUGGESTED_PROMPTS.map((prompt, index) => (
+          <TouchableOpacity
+            key={index}
+            style={[styles.emptySuggestionPill, themed.headerButton]}
+            onPress={() => handleSend(prompt)}
+            accessibilityRole="button"
+            accessibilityLabel={prompt}
+            testID={`chat-prompt-chip-${index}`}
+            activeOpacity={0.7}
+          >
+            <Sparkles size={14} color={colors.primary} />
+            <Text
+              style={[styles.emptySuggestionText, themed.emptySuggestionText]}
+              numberOfLines={2}
+            >
+              {prompt}
+            </Text>
+          </TouchableOpacity>
+        ))}
+      </View>
     </View>
   );
 
@@ -781,7 +860,28 @@ export const ChatScreen: React.FC<ChatScreenProps> = ({
               styles.headerBadge,
               {backgroundColor: colors.primary + '18'},
             ]}
-            onPress={() => setHistoryVisible(true)}
+            onPress={() => {
+              if (isTemporaryChat) {
+                Alert.alert(
+                  'Leave Temporary Chat?',
+                  'Switching to chat history will clear this temporary conversation.',
+                  [
+                    {text: 'Cancel', style: 'cancel'},
+                    {
+                      text: 'Leave',
+                      style: 'destructive',
+                      onPress: () => {
+                        setIsTemporaryChat(false);
+                        setTempMessages([]);
+                        setHistoryVisible(true);
+                      },
+                    },
+                  ],
+                );
+              } else {
+                setHistoryVisible(true);
+              }
+            }}
             accessibilityRole="button"
             accessibilityLabel="Open chats and start a new chat"
             testID="chat-history-button"
@@ -793,16 +893,20 @@ export const ChatScreen: React.FC<ChatScreenProps> = ({
               style={[styles.headerTitle, themed.headerTitle]}
               numberOfLines={1}
             >
-              LAFINA Assistant
+              {isTemporaryChat ? 'Temporary Chat' : chatTitle}
             </Text>
             <View style={styles.headerSubtitleRow}>
               <Text
                 style={[styles.headerSubtitle, themed.headerSubtitle]}
                 numberOfLines={1}
               >
-                {isOnlineMode ? 'Online AI' : 'Offline Secretary'}
+                {isTemporaryChat
+                  ? 'Not saved in history'
+                  : isOnlineMode
+                  ? 'Online AI'
+                  : 'Offline Secretary'}
               </Text>
-              {isOnlineMode && (
+              {!isTemporaryChat && isOnlineMode && (
                 <TouchableOpacity
                   style={[
                     styles.handbookChip,
@@ -836,6 +940,64 @@ export const ChatScreen: React.FC<ChatScreenProps> = ({
         </View>
 
         <View style={styles.headerRight}>
+          {onCallLafina && (
+            <TouchableOpacity
+              style={[styles.headerIconButton, themed.headerButton]}
+              onPress={onCallLafina}
+              accessibilityRole="button"
+              accessibilityLabel="Call Lafina"
+              testID="chat-call-lafina-button"
+            >
+              <Phone size={15} color={colors.primary} />
+            </TouchableOpacity>
+          )}
+
+          <TouchableOpacity
+            style={[
+              styles.headerIconButton,
+              themed.headerButton,
+              isTemporaryChat && {
+                backgroundColor: colors.primary + '20',
+                borderColor: colors.primary,
+              },
+            ]}
+            onPress={() => {
+              if (isTemporaryChat) {
+                Alert.alert(
+                  'End Temporary Chat?',
+                  'This temporary conversation will be cleared and your saved chats restored.',
+                  [
+                    {text: 'Cancel', style: 'cancel'},
+                    {
+                      text: 'End',
+                      style: 'destructive',
+                      onPress: () => {
+                        setIsTemporaryChat(false);
+                        setTempMessages([]);
+                        showCurrentChat();
+                      },
+                    },
+                  ],
+                );
+              } else {
+                setIsTemporaryChat(true);
+                setTempMessages([]);
+              }
+            }}
+            accessibilityRole="button"
+            accessibilityLabel={
+              isTemporaryChat
+                ? 'Turn off temporary chat'
+                : 'Turn on temporary chat'
+            }
+            testID="chat-temporary-toggle-button"
+          >
+            <MessageCircleDashed
+              size={15}
+              color={isTemporaryChat ? colors.primary : colors.textSecondary}
+            />
+          </TouchableOpacity>
+
           <TouchableOpacity
             style={[styles.headerIconButton, themed.headerButton]}
             onPress={() => setGuideVisible(true)}
@@ -844,16 +1006,6 @@ export const ChatScreen: React.FC<ChatScreenProps> = ({
             testID="chat-guide-button"
           >
             <Lightbulb size={15} color={colors.textSecondary} />
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={[styles.headerIconButton, themed.headerButton]}
-            onPress={() => setMeetingsModalVisible(true)}
-            accessibilityRole="button"
-            accessibilityLabel="Open Lecture and Meeting Recorder"
-            testID="chat-meetings-button"
-          >
-            <AudioLines size={15} color={colors.textSecondary} />
           </TouchableOpacity>
 
           <TouchableOpacity
@@ -891,25 +1043,13 @@ export const ChatScreen: React.FC<ChatScreenProps> = ({
               {isOnlineMode ? 'Online' : 'Offline'}
             </Text>
           </TouchableOpacity>
-
-          {messages.length > 0 && (
-            <TouchableOpacity
-              style={[styles.headerIconButton, themed.headerButton]}
-              onPress={handleClearHistory}
-              accessibilityRole="button"
-              accessibilityLabel="Clear conversation history"
-              testID="chat-clear-history-button"
-            >
-              <Trash2 size={16} color={colors.textSecondary} />
-            </TouchableOpacity>
-          )}
         </View>
       </View>
 
       {/* Messages List */}
       <FlatList
         ref={flatListRef}
-        data={messages}
+        data={isTemporaryChat ? tempMessages : messages}
         // Switching the reply format in Profile redraws replies already shown.
         extraData={replyFormat}
         keyExtractor={item => item.id}
@@ -922,27 +1062,13 @@ export const ChatScreen: React.FC<ChatScreenProps> = ({
             replyFormat={replyFormat}
             handbookNote={item.handbookNote ?? handbookNotes[item.id]}
             onUndoMemory={handleUndoMemory}
-            onSpeak={
-              isOnlineMode
-                ? async text => {
-                    const result = await onlineSpeech.current?.speakText(text);
-                    if (result?.fallbackReason)
-                      Alert.alert('Using offline voice', result.fallbackReason);
-                    return result;
-                  }
-                : undefined
-            }
-            onStopSpeaking={
-              isOnlineMode
-                ? () => onlineSpeech.current?.stopSpeech?.()
-                : undefined
-            }
             onOpenAttachment={handleOpenAttachment}
           />
         )}
         contentContainerStyle={[
           styles.listContent,
-          messages.length === 0 && styles.listContentEmpty,
+          (isTemporaryChat ? tempMessages.length : messages.length) === 0 &&
+            styles.listContentEmpty,
         ]}
         ListHeaderComponent={renderListHeader}
         ListEmptyComponent={loadError ? null : renderEmptyState}
@@ -996,7 +1122,7 @@ export const ChatScreen: React.FC<ChatScreenProps> = ({
       <ChatInput
         inputText={inputText}
         setInputText={setInputText}
-        onSend={() => handleSend()}
+        onSend={text => handleSend(text)}
         isSending={isSending}
         isOnlineMode={isOnlineMode}
         selectedFormat={selectedFormat}
@@ -1005,7 +1131,7 @@ export const ChatScreen: React.FC<ChatScreenProps> = ({
         }}
         onClearFormat={() => setSelectedFormat(null)}
         onSelectPrompt={prompt => handleSend(prompt)}
-        showSuggestions={messages.length === 0}
+        showSuggestions={false}
         onFocus={() => {
           setIsKeyboardVisible(true);
           setTimeout(
@@ -1015,16 +1141,67 @@ export const ChatScreen: React.FC<ChatScreenProps> = ({
         }}
       />
 
-      {/* Document Format Picker Sheet */}
+      {/* Attachment & Create Picker Sheet (Gemini-style) */}
       <ToolSheet
         visible={formatPickerOpen}
-        title="Create a document file"
+        title="Add to conversation"
         onClose={() => setFormatPickerOpen(false)}
       >
+        <Text style={[styles.sectionHeader, themed.sectionHeader]}>
+          Photos & Schedule
+        </Text>
+
+        <TouchableOpacity
+          style={[styles.formatOption, themed.formatOption]}
+          onPress={() => {
+            void handleScanCamera();
+          }}
+          accessibilityRole="button"
+          accessibilityLabel="Take photo with camera"
+          testID="chat-attach-camera"
+        >
+          <Camera size={20} color={colors.primary} />
+          <View style={styles.formatOptionText}>
+            <Text style={[styles.formatOptionTitle, themed.formatOptionTitle]}>
+              Camera
+            </Text>
+            <Text style={[styles.formatOptionSubtitle, themed.formatOptionSubtitle]}>
+              Scan timetable, syllabus, or notes
+            </Text>
+          </View>
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          style={[styles.formatOption, themed.formatOption]}
+          onPress={() => {
+            void handleScanGallery();
+          }}
+          accessibilityRole="button"
+          accessibilityLabel="Choose from photos"
+          testID="chat-attach-gallery"
+        >
+          <ImageIcon size={20} color={colors.primary} />
+          <View style={styles.formatOptionText}>
+            <Text style={[styles.formatOptionTitle, themed.formatOptionTitle]}>
+              Photos & Screenshots
+            </Text>
+            <Text style={[styles.formatOptionSubtitle, themed.formatOptionSubtitle]}>
+              Import schedule image from gallery
+            </Text>
+          </View>
+        </TouchableOpacity>
+
+        <Text
+          style={[
+            styles.sectionHeader,
+            themed.sectionHeader,
+            {marginTop: 18},
+          ]}
+        >
+          Create a Document
+        </Text>
         <Text style={[styles.sheetHint, themed.sheetHint]}>
-          Choose a file format, then describe what you want inside it — or ask
-          naturally in chat (for example, “Create a PDF study guide for
-          Calculus”).
+          Choose a file format, then describe what you want inside it.
         </Text>
         {DOCUMENT_FORMAT_ORDER.map(format => {
           const meta = DOCUMENT_FORMATS[format];
@@ -1044,8 +1221,7 @@ export const ChatScreen: React.FC<ChatScreenProps> = ({
                 active && themed.formatOptionActive,
               ]}
               onPress={() => {
-                setSelectedFormat(format);
-                setFormatPickerOpen(false);
+                void handleSelectFormat(format);
               }}
               accessibilityRole="button"
               accessibilityLabel={meta.label}
@@ -1099,25 +1275,6 @@ export const ChatScreen: React.FC<ChatScreenProps> = ({
       />
 
       <DraftDecisionDialog request={draft.dialog} testIDPrefix="chat-draft" />
-
-      {/* Lecture & Meeting Recorder Modal */}
-      {meetingsModalVisible && (
-        <Modal
-          visible={meetingsModalVisible}
-          animationType="slide"
-          statusBarTranslucent={true}
-          onRequestClose={() => setMeetingsModalVisible(false)}
-        >
-          <View style={[styles.modalContainer, themed.container]}>
-            <MeetingsScreen
-              onBack={() => setMeetingsModalVisible(false)}
-              onNotesSaved={() => {
-                onRefresh?.();
-              }}
-            />
-          </View>
-        </Modal>
-      )}
     </View>
   );
 };
@@ -1158,9 +1315,6 @@ const styles = StyleSheet.create({
     fontSize: FontSize.small,
   },
   messagesList: {
-    flex: 1,
-  },
-  modalContainer: {
     flex: 1,
   },
   header: {
@@ -1272,28 +1426,51 @@ const styles = StyleSheet.create({
   },
   emptyContainer: {
     alignItems: 'center',
-    paddingHorizontal: 36,
+    paddingHorizontal: 20,
+    paddingVertical: 24,
   },
   emptyIconBadge: {
-    width: 72,
-    height: 72,
-    borderRadius: 36,
+    width: 64,
+    height: 64,
+    borderRadius: 32,
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: 16,
+    marginBottom: 14,
   },
   emptyTitle: {
     fontFamily: Fonts.heading,
-    fontSize: 19,
+    fontSize: 18,
     fontWeight: '700',
-    marginBottom: 8,
+    marginBottom: 16,
     textAlign: 'center',
   },
   emptySubtitle: {
     fontFamily: Fonts.body,
-    fontSize: 13.5,
-    lineHeight: 20,
+    fontSize: 13,
+    lineHeight: 18,
     textAlign: 'center',
+    marginBottom: 16,
+  },
+  emptySuggestionsWrapper: {
+    width: '100%',
+    maxWidth: 420,
+    gap: 10,
+    alignSelf: 'center',
+  },
+  emptySuggestionPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 11,
+    paddingHorizontal: 15,
+    borderRadius: 20,
+    borderWidth: 1,
+    gap: 10,
+  },
+  emptySuggestionText: {
+    flex: 1,
+    fontFamily: Fonts.body,
+    fontSize: 13.5,
+    lineHeight: 18,
   },
   sheetHint: {
     fontFamily: Fonts.body,
@@ -1324,9 +1501,21 @@ const styles = StyleSheet.create({
     fontSize: FontSize.caption,
     marginTop: 2,
   },
+  sectionHeader: {
+    fontFamily: Fonts.heading,
+    fontSize: 12,
+    fontWeight: '700',
+    marginTop: Spacing.sm,
+    marginBottom: Spacing.xs,
+    letterSpacing: 0.5,
+    textTransform: 'uppercase',
+  },
 });
 
 const getThemedStyles = (colors: ThemeColors) => ({
+  sectionHeader: {
+    color: colors.textSecondary,
+  },
   container: {
     backgroundColor: colors.background,
   },
@@ -1372,6 +1561,9 @@ const getThemedStyles = (colors: ThemeColors) => ({
   },
   emptySubtitle: {
     color: colors.textSecondary,
+  },
+  emptySuggestionText: {
+    color: colors.textPrimary,
   },
   sheetHint: {
     color: colors.textSecondary,

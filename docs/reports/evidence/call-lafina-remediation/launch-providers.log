@@ -1,0 +1,7 @@
+Starting: Intent { cmp=com.lafina.capstone.providers/com.lafina.capstone.MainActivity }
+Status: ok
+LaunchState: WARM
+Activity: com.lafina.capstone.providers/com.lafina.capstone.MainActivity
+TotalTime: 1667
+WaitTime: 2071
+Complete

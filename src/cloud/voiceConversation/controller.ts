@@ -11,6 +11,14 @@ import type {
   VoiceConversationApi,
   VoiceTransport,
 } from './types';
+import {
+  DEFAULT_VOICE_PREFERENCES,
+  voicePreferenceContext,
+  detectConversationalDirective,
+  getToolWorkingPhrase,
+  sanitizeSpeechText,
+  type VoicePersonaPreferences,
+} from './personaPolicy';
 
 /**
  * One live voice conversation at a time, for one signed-in account.
@@ -76,7 +84,11 @@ export interface VoiceConversationDeps {
   onAgentText?(text: string): void;
   suppressAgentResponse?(): boolean;
   appOwnedAudio?: boolean;
-  onClientTool?(name: string, parameters: Record<string, unknown>, isCurrent: () => boolean): Promise<string>;
+  onClientTool?(
+    name: string,
+    parameters: Record<string, unknown>,
+    isCurrent: () => boolean,
+  ): Promise<string>;
   allowLocalTestServer?: boolean;
   limits?: Partial<VoiceConversationLimits>;
   /** Timing and lifecycle lines only; never transcripts, URLs or grants. */
@@ -88,6 +100,7 @@ const ACTIVE: ReadonlySet<ConversationPhase> = new Set([
   'connecting',
   'listening',
   'thinking',
+  'tool_working',
   'speaking',
 ]);
 
@@ -99,27 +112,27 @@ const CONVERSATION_ID = /^[A-Za-z0-9_-]{1,128}$/;
 
 export const FAILURE_MESSAGES: Record<ConversationFailureKind, string> = {
   signin_required:
-    'Sign in to use voice conversation. Offline push-to-talk, typing and your schedule keep working.',
+    'Sign in to Call Lafina. Offline push-to-talk, typing and your schedule keep working.',
   online_mode_required:
-    'Voice conversation needs Online Mode. Turn it on to start; nothing is sent until you tap Start.',
+    'Call Lafina needs Online Mode. Turn it on to start; nothing is sent until you tap Start.',
   offline:
-    'Connect to the internet to start a voice conversation. Offline push-to-talk still works.',
+    'Connect to the internet to Call Lafina. Offline push-to-talk still works.',
   consent_required:
-    'Review how voice conversation uses your microphone, then tap Start.',
+    'Review how Call Lafina uses your microphone, then tap Start.',
   mic_denied:
-    'LAFINA needs microphone access for a voice conversation. Allow it in Settings and try again.',
+    'LAFINA needs microphone access for Call Lafina. Allow it in Settings and try again.',
   mic_busy:
-    'The microphone is in use (a recording or push-to-talk). Finish it, then start the conversation again.',
+    'The microphone is in use (a recording or push-to-talk). Finish it, then start the call again.',
   not_configured:
-    'Voice conversation is not available on the server yet. Text chat and offline voice still work.',
+    'Call Lafina is not available on the server yet. Text chat and offline voice still work.',
   voice_unavailable:
     'Your saved online voice is no longer available. Choose another voice in Profile.',
   limit_reached:
-    'You reached the voice conversation limit for now. Text chat and offline voice still work.',
+    'You reached the Call Lafina limit for now. Text chat and offline voice still work.',
   provider:
-    'Voice conversation is unavailable right now. Try again later, or use text chat.',
+    'Call Lafina is unavailable right now. Try again later, or use text chat.',
   connect_failed:
-    'The conversation could not connect. Check your internet and try again.',
+    'The call could not connect. Check your internet and try again.',
   audio:
     'The microphone or speaker could not start. Close other apps using audio and try again.',
 };
@@ -189,6 +202,8 @@ export class VoiceConversationController {
     muted: false,
     micCapturing: false,
     level: 0,
+    outputLevel: 0,
+    toolPhrase: null,
     turns: [],
     notice: null,
     failure: null,
@@ -214,14 +229,30 @@ export class VoiceConversationController {
   private muteQueue: Promise<boolean> = Promise.resolve(true);
 
   private queueMute(live: LiveSession, muted: boolean): Promise<boolean> {
-    const operation = this.muteQueue.then(() => this.live === live
-      ? this.deps.transport.setMuted(live.key, muted).catch(() => false)
-      : false);
+    const operation = this.muteQueue.then(() =>
+      this.live === live
+        ? this.deps.transport.setMuted(live.key, muted).catch(() => false)
+        : false,
+    );
     this.muteQueue = operation.catch(() => false);
     return operation;
   }
   private disposed = false;
+  private waitingForStudent = false;
   private transportEnding: Promise<boolean> = Promise.resolve(true);
+  private personaPreferences: VoicePersonaPreferences = {
+    ...DEFAULT_VOICE_PREFERENCES,
+  };
+
+  getPreferences = (): VoicePersonaPreferences => ({
+    ...this.personaPreferences,
+  });
+
+  setPreferences = (prefs: Partial<VoicePersonaPreferences>): void => {
+    this.personaPreferences = {...this.personaPreferences, ...prefs};
+    if (this.live)
+      void this.sendContext(voicePreferenceContext(this.personaPreferences));
+  };
 
   constructor(deps: VoiceConversationDeps) {
     this.deps = deps;
@@ -258,6 +289,7 @@ export class VoiceConversationController {
   start = async (): Promise<void> => {
     if (this.disposed || ACTIVE.has(this.snapshot.phase)) return; // double tap
     const gen = ++this.generation;
+    this.waitingForStudent = false;
     const stale = () => gen !== this.generation || this.disposed;
     this.seen = new Set();
     this.pending = null;
@@ -269,12 +301,14 @@ export class VoiceConversationController {
         null;
     this.update({
       phase: 'connecting',
+      connectedAt: null,
       failure: null,
       notice: null,
       restartReason: null,
       muted: false,
       micCapturing: false,
       level: 0,
+      outputLevel: 0,
       turns: [],
       endsAt: null,
       lastTiming: null,
@@ -317,6 +351,9 @@ export class VoiceConversationController {
         'Your saved online voice could not be read. Choose a voice again in Profile.',
       );
     }
+    this.update({
+      voiceName: voice?.name ?? 'Server default voice',
+    });
 
     const controller = new AbortController();
     this.abort = controller;
@@ -417,9 +454,17 @@ export class VoiceConversationController {
     const endsAt = this.clock.now() + session.data.maxDurationSeconds * 1000;
     this.update({
       phase: 'listening',
+      connectedAt: this.clock.now(),
       voiceName: voice?.name ?? 'Server default voice',
       endsAt,
     });
+    if (
+      this.personaPreferences.language !== 'en' ||
+      this.personaPreferences.pacing !== 'normal' ||
+      this.personaPreferences.verbosity !== 'brief'
+    ) {
+      void this.sendContext(voicePreferenceContext(this.personaPreferences));
+    }
     this.log('connected');
     this.timers.set('limit', session.data.maxDurationSeconds * 1000, () => {
       if (gen === this.generation) {
@@ -442,7 +487,7 @@ export class VoiceConversationController {
         return this.fail(
           gen,
           'signin_required',
-          'Your sign-in has ended. Sign in again in Profile to use voice conversation.',
+          'Your sign-in has ended. Sign in again in Profile to Call Lafina.',
         );
       case 'account_disabled':
         return this.fail(
@@ -479,6 +524,7 @@ export class VoiceConversationController {
       failure,
       micCapturing: false,
       level: 0,
+      outputLevel: 0,
       endsAt: null,
     });
   }
@@ -495,6 +541,7 @@ export class VoiceConversationController {
         phase: 'ended',
         micCapturing: false,
         level: 0,
+        outputLevel: 0,
         endsAt: null,
       });
   };
@@ -516,6 +563,7 @@ export class VoiceConversationController {
       restartReason: reason,
       micCapturing: false,
       level: 0,
+      outputLevel: 0,
       endsAt: null,
     });
   };
@@ -564,7 +612,8 @@ export class VoiceConversationController {
   /** Stops LAFINA's current answer; the conversation keeps listening. */
   completeLocalTurn = (): void => {
     this.timers.clear('thinking');
-    if (this.live && this.snapshot.phase === 'thinking') this.update({phase: 'listening'});
+    if (this.live && this.snapshot.phase === 'thinking')
+      this.update({phase: 'listening'});
   };
 
   appSpeechStarted = (): void => {
@@ -592,14 +641,18 @@ export class VoiceConversationController {
     this.markInterrupted();
     if (
       this.snapshot.phase === 'speaking' ||
-      this.snapshot.phase === 'thinking'
+      this.snapshot.phase === 'thinking' ||
+      this.snapshot.phase === 'tool_working'
     ) {
-      this.update({phase: 'listening'});
+      this.update({phase: 'listening', outputLevel: 0});
+    } else {
+      this.update({outputLevel: 0});
     }
   };
 
   /** A typed turn while connected (recovery when speech is not recognized). */
   sendText = async (text: string): Promise<boolean> => {
+    this.waitingForStudent = false;
     const live = this.live;
     const trimmed = text.trim().slice(0, this.limits.maxTypedChars);
     if (!live || !trimmed || this.snapshot.phase === 'connecting') return false;
@@ -619,11 +672,13 @@ export class VoiceConversationController {
   sendReminderContext = async (task: string): Promise<boolean> => {
     const live = this.live;
     const reminder = task.trim().replace(/\s+/g, ' ').slice(0, 300);
-    if (!live || !reminder || this.snapshot.phase === 'connecting') return false;
+    if (!live || !reminder || this.snapshot.phase === 'connecting')
+      return false;
     const text = `I answered a reminder about: ${reminder}. Please briefly remind me about it.`;
     this.reminderContextEcho = text;
-    const sent = await this.deps.transport.sendMessage(live.key,
-      JSON.stringify({type: 'user_message', text})).catch(() => false);
+    const sent = await this.deps.transport
+      .sendMessage(live.key, JSON.stringify({type: 'user_message', text}))
+      .catch(() => false);
     if (!sent || this.live !== live) this.reminderContextEcho = null;
     return sent && this.live === live;
   };
@@ -632,8 +687,9 @@ export class VoiceConversationController {
     const live = this.live;
     const text = information.trim().slice(0, 1000);
     if (!live || !text || this.snapshot.phase === 'connecting') return false;
-    const sent = await this.deps.transport.sendMessage(live.key,
-      JSON.stringify({type:'contextual_update', text})).catch(() => false);
+    const sent = await this.deps.transport
+      .sendMessage(live.key, JSON.stringify({type: 'contextual_update', text}))
+      .catch(() => false);
     return sent && this.live === live;
   };
 
@@ -656,14 +712,39 @@ export class VoiceConversationController {
           this.update({level: event.level});
         }
         return;
+      case 'output_level':
+        if (
+          this.snapshot.phase === 'speaking' &&
+          Math.abs(event.level - this.snapshot.outputLevel) > 0.04
+        ) {
+          this.update({outputLevel: event.level});
+        } else if (
+          this.snapshot.phase !== 'speaking' &&
+          this.snapshot.outputLevel > 0
+        ) {
+          this.update({outputLevel: 0});
+        }
+        return;
       case 'playback':
         return this.onPlayback(event.speaking);
       case 'message':
         return this.onMessage(gen, event.data);
-      case 'closed':
-        return this.stopForSystem(
+      case 'closed': {
+        const live = this.live;
+        const sessionId = live?.sessionId;
+        const detail = event.reason ? `: ${event.reason}` : '';
+        this.log(`connection closed (code=${event.code}${detail})`);
+        this.stopForSystem(
           'The conversation connection closed. Start again when you are ready.',
         );
+        if (event.reason && !/network/i.test(event.reason)) {
+          this.update({notice: event.reason});
+        }
+        if (sessionId) {
+          void this.checkServerFailureReason(gen, sessionId);
+        }
+        return;
+      }
       case 'backgrounded':
         return this.stopForSystem(
           'The conversation stopped when LAFINA left the screen. Nothing listens in the background.',
@@ -686,6 +767,11 @@ export class VoiceConversationController {
   }
 
   private onPlayback(speaking: boolean) {
+    if (speaking && this.waitingForStudent) {
+      if (this.live)
+        void this.deps.transport.stopResponse(this.live.key).catch(() => false);
+      return;
+    }
     const now = this.clock.now();
     if (speaking) {
       if (this.pending && !this.pending.committed)
@@ -705,7 +791,11 @@ export class VoiceConversationController {
       this.recordTiming({toSilence: now - this.silenceRequestedAt});
       this.silenceRequestedAt = null;
     }
-    if (this.snapshot.phase === 'speaking') this.update({phase: 'listening'});
+    if (this.snapshot.phase === 'speaking') {
+      this.update({phase: 'listening', outputLevel: 0});
+    } else {
+      this.update({outputLevel: 0});
+    }
     this.settleIfHeard();
     this.resetInactivity(this.generation);
   }
@@ -731,26 +821,65 @@ export class VoiceConversationController {
         const payload = event('client_tool_call');
         const toolName = text(payload.tool_name);
         const toolId = text(payload.tool_call_id);
-        if (!toolId || toolId.length > 200 || this.seen.has(`tool:${toolId}`)) return;
+        if (!toolId || toolId.length > 200 || this.seen.has(`tool:${toolId}`))
+          return;
         this.seen.add(`tool:${toolId}`);
-        const params = payload.parameters && typeof payload.parameters === 'object' && !Array.isArray(payload.parameters)
-          ? payload.parameters as Record<string, unknown> : {};
+        const params =
+          payload.parameters &&
+          typeof payload.parameters === 'object' &&
+          !Array.isArray(payload.parameters)
+            ? (payload.parameters as Record<string, unknown>)
+            : {};
         const live = this.live;
         if (!live) return;
+        const toolPhrase = getToolWorkingPhrase(toolName, params.kind);
+        if (this.snapshot.phase !== 'speaking') {
+          this.update({phase: 'tool_working', toolPhrase});
+        }
         void (async () => {
-          let answer = 'This app cannot perform that request in this conversation.';
+          let answer =
+            'This app cannot perform that request in this conversation.';
           let failed = false;
           try {
             if (!this.deps.onClientTool) failed = true;
-            else answer = await this.deps.onClientTool(toolName, params,
-              () => gen === this.generation && this.live === live && this.deps.gates.isSignedInOwner());
+            else
+              answer = await this.deps.onClientTool(
+                toolName,
+                params,
+                () =>
+                  gen === this.generation &&
+                  this.live === live &&
+                  this.deps.gates.isSignedInOwner() &&
+                  this.deps.gates.isOnlineMode() &&
+                  this.deps.gates.hasConsent(),
+              );
           } catch {
             failed = true;
-            answer = 'The app could not complete that request. Nothing was changed.';
+            answer =
+              'The app could not complete that request. Nothing was changed.';
           }
           if (gen !== this.generation || this.live !== live) return;
-          await this.deps.transport.sendMessage(live.key, JSON.stringify({type:'client_tool_result',
-            tool_call_id: toolId, result: answer.slice(0, 5000), is_error: failed})).catch(() => false);
+          if (this.snapshot.phase === 'tool_working') {
+            this.update({phase: 'thinking', toolPhrase: null});
+          }
+          await this.deps.transport
+            .sendMessage(
+              live.key,
+              JSON.stringify({
+                type: 'client_tool_result',
+                tool_call_id: toolId,
+                result:
+                  answer.length <= 5000
+                    ? answer
+                    : JSON.stringify({
+                        partial: true,
+                        message:
+                          'The result exceeds voice context limits. Ask the student to review the on-screen result or narrow the query.',
+                      }),
+                is_error: failed,
+              }),
+            )
+            .catch(() => false);
         })();
         return;
       }
@@ -815,17 +944,32 @@ export class VoiceConversationController {
         this.markInterrupted();
         if (
           this.snapshot.phase === 'speaking' ||
-          this.snapshot.phase === 'thinking'
+          this.snapshot.phase === 'thinking' ||
+          this.snapshot.phase === 'tool_working'
         ) {
-          this.update({phase: 'listening'});
+          this.update({phase: 'listening', outputLevel: 0});
         }
         return;
-      case 'client_error':
+      case 'client_error': {
+        const payload = event('client_error');
+        const errDetail =
+          text(payload.message) ||
+          text(
+            (message.client_error as Record<string, unknown> | undefined)
+              ?.message,
+          ) ||
+          text(message.message);
+        this.log(
+          `client_error from voice provider: ${errDetail || 'no details'}`,
+        );
         this.update({
-          notice: 'LAFINA could not answer that turn. Try saying it again.',
+          notice:
+            errDetail ||
+            'LAFINA could not answer that turn. Try saying it again.',
         });
         void this.explainSilence(gen);
         return;
+      }
       default:
     }
   }
@@ -872,7 +1016,9 @@ export class VoiceConversationController {
     if (this.reminderContextEcho === trimmed) {
       this.reminderContextEcho = null;
       if (this.provisionalUserId) {
-        this.setTurns(this.snapshot.turns.filter(t => t.id !== this.provisionalUserId));
+        this.setTurns(
+          this.snapshot.turns.filter(t => t.id !== this.provisionalUserId),
+        );
         this.provisionalUserId = null;
       }
       return;
@@ -882,6 +1028,30 @@ export class VoiceConversationController {
       this.typedEcho = null;
       return; // the typed turn, already shown and saved
     }
+
+    const directive = detectConversationalDirective(trimmed);
+    if (directive === 'wait') {
+      this.waitingForStudent = true;
+      this.stopResponse();
+      this.acceptUserTurn(trimmed, key ?? `user-${++this.turnCounter}`);
+      this.timers.clear('thinking');
+      this.update({
+        phase: 'listening',
+        notice: "I'll wait. Take your time.",
+      });
+      return;
+    }
+    this.waitingForStudent = false;
+    if (directive === 'brief') {
+      this.personaPreferences.verbosity = 'brief';
+    } else if (directive === 'detailed') {
+      this.personaPreferences.verbosity = 'detailed';
+    } else if (directive === 'slow') {
+      this.personaPreferences.pacing = 'slow';
+    } else if (directive === 'normal') {
+      this.personaPreferences.pacing = 'normal';
+    }
+
     this.acceptUserTurn(trimmed, key ?? `user-${++this.turnCounter}`);
   }
 
@@ -945,10 +1115,11 @@ export class VoiceConversationController {
     const pending = this.ensurePending();
     pending.text += piece;
     this.noteFirstText();
+    const sanitized = sanitizeSpeechText(pending.text);
     this.upsertTurn({
       id: pending.turnId,
       role: 'assistant',
-      text: pending.text,
+      text: sanitized,
       status: 'provisional',
     });
   }
@@ -957,23 +1128,24 @@ export class VoiceConversationController {
     const key = eventId !== null ? `answer:${eventId}` : null;
     if (key && this.seen.has(key)) return;
     if (key) this.seen.add(key);
-    if (!full.trim()) return;
+    const sanitized = sanitizeSpeechText(full);
+    if (!sanitized.trim()) return;
     if (this.deps.suppressAgentResponse?.()) {
       this.timers.clear('thinking');
       if (this.snapshot.phase === 'thinking') this.update({phase: 'listening'});
       return;
     }
     const pending = this.ensurePending();
-    pending.text = full;
+    pending.text = sanitized;
     pending.complete = true;
     this.noteFirstText();
     this.upsertTurn({
       id: pending.turnId,
       role: 'assistant',
-      text: full,
+      text: sanitized,
       status: pending.interrupted ? 'interrupted' : 'final',
     });
-    if (this.deps.appOwnedAudio) this.deps.onAgentText?.(full);
+    if (this.deps.appOwnedAudio) this.deps.onAgentText?.(sanitized);
   }
 
   /**
@@ -1005,15 +1177,16 @@ export class VoiceConversationController {
   }
 
   private correctAnswer(corrected: string) {
-    if (!corrected.trim()) return;
+    const sanitized = sanitizeSpeechText(corrected);
+    if (!sanitized.trim()) return;
     const pending = this.pending;
     if (pending && !pending.committed) {
-      pending.text = corrected;
+      pending.text = sanitized;
       pending.interrupted = true;
       this.upsertTurn({
         id: pending.turnId,
         role: 'assistant',
-        text: corrected,
+        text: sanitized,
         status: 'interrupted',
       });
       this.commitAnswer();
@@ -1080,6 +1253,26 @@ export class VoiceConversationController {
     });
   }
 
+  /** Queries server status after a remote close to surface any recorded server error. */
+  private async checkServerFailureReason(gen: number, sessionId: string) {
+    try {
+      const status = await this.deps.api.status(sessionId).catch(() => null);
+      if (
+        gen !== this.generation ||
+        !status?.ok ||
+        !status.data.lastErrorMessage
+      ) {
+        return;
+      }
+      this.log(`server failure status recorded: ${status.data.lastErrorCode}`);
+      this.update({
+        notice: status.data.lastErrorMessage,
+      });
+    } catch {
+      // Retain existing state
+    }
+  }
+
   private resetInactivity(gen: number) {
     this.timers.set('inactive', this.limits.inactivityMs, () => {
       if (gen === this.generation) {
@@ -1102,7 +1295,9 @@ export class VoiceConversationController {
     this.live = null;
     if (live) {
       live.unsubscribe();
-      this.transportEnding = this.deps.transport.end(live.key).catch(() => false);
+      this.transportEnding = this.deps.transport
+        .end(live.key)
+        .catch(() => false);
       void this.deps.api
         .end(live.sessionId, live.conversationId)
         .catch(() => undefined);

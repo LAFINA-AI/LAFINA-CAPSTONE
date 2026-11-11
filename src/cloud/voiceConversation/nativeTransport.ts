@@ -45,6 +45,14 @@ export const parseNativeEvent = (raw: RawEvent): TransportEvent | null => {
         : null;
     case 'playback':
       return {kind: 'playback', speaking: raw.speaking === true};
+    case 'output_level':
+      return {
+        kind: 'output_level',
+        level:
+          typeof raw.level === 'number'
+            ? Math.max(0, Math.min(1, raw.level))
+            : 0,
+      };
     case 'mic':
       return {kind: 'mic', capturing: raw.capturing === true};
     case 'level':
@@ -84,7 +92,10 @@ export const nativeVoiceTransport: VoiceTransport = {
         code: 'UNAVAILABLE',
       });
     if (options.appOwnedAudio && !(await module.supportsAppOwnedAudio?.())) {
-      throw Object.assign(new Error('This app build cannot safely control voice playback.'), {code: 'UNAVAILABLE'});
+      throw Object.assign(
+        new Error('This app build cannot safely control voice playback.'),
+        {code: 'UNAVAILABLE'},
+      );
     }
     await module.start(options);
   },

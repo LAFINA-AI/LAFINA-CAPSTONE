@@ -26,6 +26,7 @@ import {
 } from '../skills/onlineChatSkill';
 import {saveGeneratedFile} from '../ui/components/chat/chatFiles';
 import {detectDocumentRequest} from './documentIntent';
+import {parseScannedSchedule} from './vision/scheduleParser';
 import {intentService} from './nlu/intentService';
 import {executeNluAction} from './nlu/actionExecutor';
 import {routeIntent} from './nlu/intentRoutes';
@@ -87,6 +88,9 @@ export interface ProcessMessageOptions {
    * is saved. Without it the reply arrives in one piece.
    */
   onReplyText?: (replySoFar: string) => void;
+  /** Temporary chat mode: does not save messages or update memories in SQLite. */
+  temporaryChat?: boolean;
+  temporaryHistory?: ChatMessage[];
 }
 
 /** Added when DeepSeek stops part-way, so a cut-off reply is never mistaken for a full one. */
@@ -176,6 +180,34 @@ function readRecentHistory(
     );
     return [];
   }
+}
+
+/**
+ * Returns the YYYY-MM-DD date for the next occurrence of a weekday name.
+ */
+export function getNextDateForDay(
+  dayName: string,
+  refDate: Date = new Date(),
+): string {
+  const days = [
+    'sunday',
+    'monday',
+    'tuesday',
+    'wednesday',
+    'thursday',
+    'friday',
+    'saturday',
+  ];
+  const targetDay = days.indexOf(dayName.toLowerCase());
+  if (targetDay === -1) return formatLocalDate(refDate);
+
+  const currentDay = refDate.getDay();
+  let diff = targetDay - currentDay;
+  if (diff < 0) diff += 7;
+
+  const result = new Date(refDate);
+  result.setDate(result.getDate() + diff);
+  return formatLocalDate(result);
 }
 
 /** Small talk at most this long is sent without a handbook search. */
@@ -410,9 +442,18 @@ export class ChatOrchestrator {
     if (!trimmed) return {kind: 'none'};
     const fact = explicitMemory(trimmed);
     if (fact) {
-      if (!chatMemoryStore.isEnabled(userId)) return {kind: 'memory', reply: 'Memory is turned off, so I did not save that.'};
+      if (!chatMemoryStore.isEnabled(userId))
+        return {
+          kind: 'memory',
+          reply: 'Memory is turned off, so I did not save that.',
+        };
       const saved = chatMemoryStore.add(userId, fact);
-      return {kind: 'memory', reply: saved ? 'I saved that in your memory.' : 'That is already in your memory.'};
+      return {
+        kind: 'memory',
+        reply: saved
+          ? 'I saved that in your memory.'
+          : 'That is already in your memory.',
+      };
     }
     const refDate = options.referenceDate || new Date();
     const validated = await intentService.extractIntent(trimmed, {
@@ -456,10 +497,22 @@ export class ChatOrchestrator {
     const trimmed = (text || '').trim();
     const refDate = options.referenceDate || new Date();
     const todayStr = formatLocalDate(refDate);
+    const isTemp = options.temporaryChat === true;
 
     // Step 1: Persist user message. The reply goes to the same chat even if
     // the student opens another one while waiting.
-    const userMessage = chatStore.addMessage(userId, 'user', trimmed);
+    const userMessage: ChatMessage = isTemp
+      ? {
+          id: `temp_user_${Date.now()}_${Math.random()
+            .toString(36)
+            .slice(2, 7)}`,
+          sessionId: 'temp_chat',
+          sender: 'user',
+          content: trimmed,
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+        }
+      : chatStore.addMessage(userId, 'user', trimmed);
     const sessionId = userMessage.sessionId;
     const memoryRevision = chatMemoryStore.revision(userId);
 
@@ -468,14 +521,29 @@ export class ChatOrchestrator {
       const enabled = chatMemoryStore.isEnabled(userId);
       const isStudy = !!studyPreference(trimmed);
       const reply = enabled
-        ? isStudy ? "I'll remember your study preference." : "I'll remember that."
-        : isStudy ? 'Your study preference was not saved because memory is turned off.' : 'Memory is turned off, so I did not save that.';
+        ? isStudy
+          ? "I'll remember your study preference."
+          : "I'll remember that."
+        : isStudy
+        ? 'Your study preference was not saved because memory is turned off.'
+        : 'Memory is turned off, so I did not save that.';
       const assistantMessage = db.transactionSync(tx => {
-        const message = chatStore.addMessage(userId, 'assistant', reply, null,
-          {localReply: true}, sessionId, tx);
+        const message = chatStore.addMessage(
+          userId,
+          'assistant',
+          reply,
+          null,
+          {localReply: true},
+          sessionId,
+          tx,
+        );
         if (!enabled) return message;
-        const changes = chatMemoryStore.applyChanges(userId,
-          {add: [preference], remove: []}, sessionId, tx);
+        const changes = chatMemoryStore.applyChanges(
+          userId,
+          {add: [preference], remove: []},
+          sessionId,
+          tx,
+        );
         if (changes.added.length || changes.removed.length) {
           if (!chatStore.setMemoryChanges(userId, message.id, changes, tx)) {
             throw new Error('The memory notice could not be saved.');
@@ -485,15 +553,33 @@ export class ChatOrchestrator {
         return message;
       });
       if (options.speakReply) {
-        try { await ttsService.speak(reply); } catch (error) {
+        try {
+          await ttsService.speak(reply);
+        } catch (error) {
           console.warn('[ChatOrchestrator] TTS playback error:', error);
         }
       }
-      return {userMessage, assistantMessage, reply, usedOnline: false,
-        intent: {intent: 'chat', title: '', date: null, time: null, endTime: null,
-          durationMinutes: null, category: 'Academic', details: trimmed,
-          snoozeMinutes: null, confidence: 1, source: 'fast_path',
-          rawTranscript: trimmed, isValid: true}};
+      return {
+        userMessage,
+        assistantMessage,
+        reply,
+        usedOnline: false,
+        intent: {
+          intent: 'chat',
+          title: '',
+          date: null,
+          time: null,
+          endTime: null,
+          durationMinutes: null,
+          category: 'Academic',
+          details: trimmed,
+          snoozeMinutes: null,
+          confidence: 1,
+          source: 'fast_path',
+          rawTranscript: trimmed,
+          isValid: true,
+        },
+      };
     }
 
     if (isForgetAllMemoriesRequest(trimmed)) {
@@ -643,6 +729,144 @@ export class ChatOrchestrator {
         attachment,
         handbookNote,
         usedOnline,
+        reply: finalReply,
+      };
+    }
+
+    // Step 2.5: Check for scanned class schedule
+    const isScheduleScan =
+      /^(?:scan\s+schedule|scanned\s+schedule|import\s+schedule|schedule\s+scan)[\s:]+/i.test(
+        trimmed,
+      );
+
+    if (isScheduleScan) {
+      const ocrBody = trimmed
+        .replace(
+          /^(?:scan\s+schedule|scanned\s+schedule|import\s+schedule|schedule\s+scan)[\s:]+/i,
+          '',
+        )
+        .trim();
+      const parsedSchedule = parseScannedSchedule(ocrBody, refDate);
+
+      if (parsedSchedule.classes.length > 0) {
+        finalReply = `${parsedSchedule.markdownTable}\n\nWould you like me to add these classes to your Calendar?`;
+
+        // Flatten all scanned classes across their specified days into calendar sessions
+        const calendarSessions: Array<{
+          title: string;
+          day: string;
+          startTime: string;
+          endTime: string;
+          room?: string;
+        }> = [];
+
+        for (const c of parsedSchedule.classes) {
+          for (const day of c.days) {
+            calendarSessions.push({
+              title: c.subject,
+              day,
+              startTime: c.startTime,
+              endTime: c.endTime,
+              room: c.room,
+            });
+          }
+        }
+
+        const firstSession = calendarSessions[0];
+        const targetDate = getNextDateForDay(firstSession.day, refDate);
+        const duration = Math.max(
+          15,
+          timeToMinutes(firstSession.endTime) -
+            timeToMinutes(firstSession.startTime),
+        );
+
+        const ruleWithUntil = `FREQ=WEEKLY;UNTIL=${parsedSchedule.semesterEndDate}`;
+
+        const otherSessions = calendarSessions.slice(1).map(s => ({
+          title: s.title,
+          date: getNextDateForDay(s.day, refDate),
+          startTime: s.startTime,
+          endTime: s.endTime,
+          category: 'Class',
+          notes: s.room && s.room !== 'TBA' ? `Location: ${s.room}` : null,
+          recurrenceRule: ruleWithUntil,
+        }));
+
+        const batchPayload = JSON.stringify({
+          firstClassLocation:
+            firstSession.room && firstSession.room !== 'TBA'
+              ? `Location: ${firstSession.room}`
+              : null,
+          semesterEndDate: parsedSchedule.semesterEndDate,
+          classes: otherSessions,
+        });
+
+        const scanIntent: ValidatedIntent = {
+          intent: 'create_time_block',
+          title: firstSession.title,
+          date: targetDate,
+          time: firstSession.startTime,
+          endTime: firstSession.endTime,
+          durationMinutes: duration,
+          category: 'Class',
+          recurrenceRule: ruleWithUntil,
+          details: `[BATCH_CLASSES:${batchPayload}]`,
+          snoozeMinutes: null,
+          confidence: 1,
+          source: 'fast_path',
+          rawTranscript: trimmed,
+          isValid: true,
+        };
+
+        review = prepareReviewedCommand(userId, scanIntent, {
+          referenceDate: refDate,
+          surface: options.reviewSurface,
+        });
+      } else {
+        finalReply = parsedSchedule.markdownTable;
+      }
+
+      const assistantMessage: ChatMessage = isTemp
+        ? {
+            id: `temp_asst_${Date.now()}_${Math.random()
+              .toString(36)
+              .slice(2, 7)}`,
+            sessionId: 'temp_chat',
+            sender: 'assistant',
+            content: finalReply,
+            createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString(),
+            localReply: true,
+          }
+        : chatStore.addMessage(
+            userId,
+            'assistant',
+            finalReply,
+            null,
+            {localReply: true},
+            sessionId,
+          );
+
+      return {
+        userMessage,
+        assistantMessage,
+        intent: {
+          intent: 'create_time_block',
+          title: parsedSchedule.classes[0]?.subject || 'Scanned Schedule',
+          date: null,
+          time: null,
+          endTime: null,
+          durationMinutes: null,
+          category: 'Class',
+          details: trimmed,
+          snoozeMinutes: null,
+          confidence: 1,
+          source: 'fast_path',
+          rawTranscript: trimmed,
+          isValid: true,
+        },
+        review,
+        usedOnline: false,
         reply: finalReply,
       };
     }

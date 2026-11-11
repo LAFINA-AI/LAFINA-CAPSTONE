@@ -1,0 +1,7 @@
+{
+  "command": "node node_modules/jest/bin/jest.js callLafinaPhase --runInBand --json --outputFile=docs/audits/call-lafina-v2-codex/evidence/call-phase-results.json",
+  "finished": "2026-11-10T19:19:09.1828368+08:00",
+  "exit_code": 0,
+  "sha": "fe489a6487884fa6667f1cc6e2e0bddbd24e386d",
+  "started": "2026-11-10T19:16:49.3152290+08:00"
+}

@@ -463,6 +463,30 @@ export const chatStore = {
     });
   },
 
+  /** The title of the session, matching the sidebar title rules. */
+  getSessionTitle: (userId: string, sessionId?: string | null): string =>
+    db.transactionSync(tx => {
+      const chosen = sessionFor(userId, tx, sessionId);
+      const rows = tx.executeSync(
+        `SELECT s.title,
+           (SELECT m.content FROM messages m WHERE m.session_id = s.id AND m.sender = 'user'
+            ORDER BY m.created_at ASC, m.id ASC LIMIT 1) AS first_user
+         FROM chat_sessions s
+         WHERE s.id = ?`,
+        [chosen.sessionId],
+      ).rows;
+      if (!rows.length) return 'New chat';
+      const row = rows[0];
+      const stored = typeof row.title === 'string' ? row.title.trim() : '';
+      const customTitle =
+        stored.length > 0 && !PLACEHOLDER_TITLES.includes(stored);
+      if (customTitle) return stored;
+      const firstUser =
+        typeof row.first_user === 'string' ? row.first_user : '';
+      if (firstUser.trim()) return oneLine(firstUser, MAX_CHAT_TITLE);
+      return 'New chat';
+    }),
+
   /**
    * Starts an empty chat and opens it. If the open chat is still empty it is
    * reused, so tapping New chat twice does not leave empty chats behind.

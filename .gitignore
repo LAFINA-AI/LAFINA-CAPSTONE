@@ -67,3 +67,4 @@ yarn-error.log*
 !android/app/src/main/assets/models/ggml-base.en-q5_1.bin
 !android/app/src/main/assets/models/silero_vad.onnx
 agy-improvements
+CALL_LAFINA_AUTONOMOUS_TASK_PACK_V1

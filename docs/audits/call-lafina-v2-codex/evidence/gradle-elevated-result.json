@@ -1,0 +1,7 @@
+{
+  "started": "2026-11-10T19:12:21.1794255+08:00",
+  "finished": "2026-11-10T19:14:41.9209738+08:00",
+  "exit_code": 0,
+  "sha": "fe489a6487884fa6667f1cc6e2e0bddbd24e386d",
+  "command": ".\\android\\gradlew.bat -p android :app:compileDebugKotlin :app:testDebugUnitTest --offline --no-daemon --console=plain --max-workers=2"
+}
