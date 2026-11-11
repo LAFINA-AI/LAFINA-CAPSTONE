@@ -63,6 +63,7 @@ const ALL_INTENTS: ParsedIntentType[] = [
   'snooze',
   'reschedule',
   'query_schedule',
+  'query_notes',
   'chat',
   'out_of_scope',
 ];
@@ -248,6 +249,7 @@ describe('AGY-PORT 04 reviewed assistant commands', () => {
         snooze: 'reviewed_mutation',
         reschedule: 'reviewed_mutation',
         query_schedule: 'read_only',
+        query_notes: 'read_only',
         chat: 'conversation',
         out_of_scope: 'conversation',
       });

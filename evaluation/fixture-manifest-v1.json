@@ -23,6 +23,10 @@
     "stt-corpus-v1.json": {
       "version": 1,
       "sha256": "13a83a3e48246e57c15d1947f59555c8a41b4d363e0f93f7734f201c5c57e75b"
+    },
+    "intent-contract-v2.json": {
+      "version": 2,
+      "sha256": "9c06bbd4bfd8f7c6b18edf66dbc31f54b6766937a3a58bc2b84ac7f1e39da218"
     }
   }
 }
