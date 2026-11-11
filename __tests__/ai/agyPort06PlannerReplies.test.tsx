@@ -300,7 +300,7 @@ describe('AGY-PORT 06 planner replies and guide', () => {
 
       expect(utils.getByTestId('chat-prompt-chip-0')).toBeTruthy();
       expect(utils.getByTestId('chat-online-toggle-button')).toBeTruthy();
-      expect(utils.getByTestId('chat-meetings-button')).toBeTruthy();
+      expect(utils.getByTestId('chat-temporary-toggle-button')).toBeTruthy();
       expect(utils.getByTestId('chat-document-format-button')).toBeTruthy();
 
       fireEvent.press(utils.getByTestId('chat-guide-button'));
