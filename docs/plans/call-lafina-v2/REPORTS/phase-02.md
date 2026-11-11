@@ -1,3 +1,5 @@
+> HISTORICAL IMPLEMENTATION REPORT. Current audit/remediation and remaining backend/phone gates: `docs/reports/phase-15-call-lafina-remediation-report.md`. Earlier completion claims below are not production/device acceptance.
+
 # Phase 02 — Dual Audio Waveforms & Truthful Visual State Transitions — Evidence Report
 
 - **Date/Time + Timezone**: 2026-11-10T14:55:00+08:00

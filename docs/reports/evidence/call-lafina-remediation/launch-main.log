@@ -1,0 +1,7 @@
+Starting: Intent { cmp=com.lafina.capstone/.MainActivity }
+Status: ok
+LaunchState: COLD
+Activity: com.lafina.capstone/.MainActivity
+TotalTime: 1004
+WaitTime: 1050
+Complete

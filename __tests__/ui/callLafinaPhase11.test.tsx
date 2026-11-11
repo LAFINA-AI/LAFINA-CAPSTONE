@@ -211,6 +211,9 @@ describe('Phase 11 — Multi-action Workflow, Follow-ups, and Authoritative Resu
           {
             id: 'item-bad',
             kind: 'event',
+            date: '2026-11-14',
+            time: '10:00',
+            endTime: '11:00',
             title: 'Failing Event',
             status: 'draft',
             savedEntityId: null,
@@ -225,7 +228,10 @@ describe('Phase 11 — Multi-action Workflow, Follow-ups, and Authoritative Resu
         throw new Error('SQLITE_BUSY: database is locked');
       });
 
-      const {batch: resultBatch, spokenSummary} = await executeMultiActionBatch(batch, TEST_USER);
+      const {batch: resultBatch, spokenSummary} = await executeMultiActionBatch(
+        batch,
+        TEST_USER,
+      );
 
       expect(resultBatch.status).toBe('partial');
       expect(resultBatch.items[0].status).toBe('saved');
@@ -259,6 +265,7 @@ describe('Phase 11 — Multi-action Workflow, Follow-ups, and Authoritative Resu
             id: 'item-to-retry',
             kind: 'event',
             title: 'Event To Retry',
+            endTime: '11:00',
             date: '2026-11-14',
             time: '10:00',
             status: 'failed',
@@ -270,7 +277,8 @@ describe('Phase 11 — Multi-action Workflow, Follow-ups, and Authoritative Resu
       };
 
       // Retry execution for the whole batch
-      const {batch: retriedBatch, spokenSummary} = await executeMultiActionBatch(batch, TEST_USER);
+      const {batch: retriedBatch, spokenSummary} =
+        await executeMultiActionBatch(batch, TEST_USER);
 
       // insertTask was NEVER called for item-already-saved
       expect(insertTaskSpy).not.toHaveBeenCalled();
@@ -373,7 +381,7 @@ describe('Phase 11 — Multi-action Workflow, Follow-ups, and Authoritative Resu
 
       // Verify saved link
       expect(getByTestId('multi-item-link-0')).toBeTruthy();
-      expect(getByText('Saved ID: task-auth-99 (task)')).toBeTruthy();
+      expect(getByText(/Open saved task:/)).toBeTruthy();
 
       // Verify error and retry button
       expect(getByTestId('multi-item-error-1')).toBeTruthy();
@@ -390,12 +398,29 @@ describe('Phase 11 — Multi-action Workflow, Follow-ups, and Authoritative Resu
         ownerId: TEST_USER,
         revision: 1,
         items: [
-          {id: '1', kind: 'task', title: 'Task 1', status: 'saved', savedEntityId: 't1', error: null},
-          {id: '2', kind: 'reminder', title: 'Rem 2', status: 'saved', savedEntityId: 'r2', error: null},
+          {
+            id: '1',
+            kind: 'task',
+            title: 'Task 1',
+            status: 'saved',
+            savedEntityId: 't1',
+            error: null,
+          },
+          {
+            id: '2',
+            kind: 'reminder',
+            title: 'Rem 2',
+            status: 'saved',
+            deliveryStatus: 'registered',
+            savedEntityId: 'r2',
+            error: null,
+          },
         ],
         status: 'saved',
       };
-      expect(formatMultiActionSpokenSummary(savedBatch)).toBe('All 2 items saved successfully.');
+      expect(formatMultiActionSpokenSummary(savedBatch)).toBe(
+        'All 2 items saved successfully.',
+      );
 
       const partialBatch: MultiActionBatchData = {
         id: 'b2',
@@ -403,12 +428,28 @@ describe('Phase 11 — Multi-action Workflow, Follow-ups, and Authoritative Resu
         ownerId: TEST_USER,
         revision: 2,
         items: [
-          {id: '1', kind: 'task', title: 'Task 1', status: 'saved', savedEntityId: 't1', error: null},
-          {id: '2', kind: 'reminder', title: 'Rem 2', status: 'failed', savedEntityId: null, error: 'Locked'},
+          {
+            id: '1',
+            kind: 'task',
+            title: 'Task 1',
+            status: 'saved',
+            savedEntityId: 't1',
+            error: null,
+          },
+          {
+            id: '2',
+            kind: 'reminder',
+            title: 'Rem 2',
+            status: 'failed',
+            savedEntityId: null,
+            error: 'Locked',
+          },
         ],
         status: 'partial',
       };
-      expect(formatMultiActionSpokenSummary(partialBatch)).toContain('1 item saved, 1 failed: "Rem 2"');
+      expect(formatMultiActionSpokenSummary(partialBatch)).toContain(
+        '1 item saved, 1 failed: "Rem 2"',
+      );
     });
   });
 
@@ -420,12 +461,21 @@ describe('Phase 11 — Multi-action Workflow, Follow-ups, and Authoritative Resu
         ownerId: TEST_USER,
         revision: 1,
         items: [
-          {id: 'item-alpha', kind: 'task', title: 'Old Title', status: 'draft', savedEntityId: null, error: null},
+          {
+            id: 'item-alpha',
+            kind: 'task',
+            title: 'Old Title',
+            status: 'draft',
+            savedEntityId: null,
+            error: null,
+          },
         ],
         status: 'draft',
       };
 
-      const revised = reviseMultiItem(batch, 'item-alpha', {title: 'New Title'});
+      const revised = reviseMultiItem(batch, 'item-alpha', {
+        title: 'New Title',
+      });
       expect(revised.revision).toBe(2);
       expect(revised.items[0].title).toBe('New Title');
     });
@@ -437,7 +487,14 @@ describe('Phase 11 — Multi-action Workflow, Follow-ups, and Authoritative Resu
         ownerId: TEST_USER,
         revision: 1,
         items: [
-          {id: 'item-one', kind: 'task', title: 'Task A', status: 'draft', savedEntityId: null, error: null},
+          {
+            id: 'item-one',
+            kind: 'task',
+            title: 'Task A',
+            status: 'draft',
+            savedEntityId: null,
+            error: null,
+          },
         ],
         status: 'draft',
       };
@@ -454,7 +511,14 @@ describe('Phase 11 — Multi-action Workflow, Follow-ups, and Authoritative Resu
         ownerId: TEST_USER,
         revision: 1,
         items: [
-          {id: 'item-iso', kind: 'task', title: 'Secret Task', status: 'draft', savedEntityId: null, error: null},
+          {
+            id: 'item-iso',
+            kind: 'task',
+            title: 'Secret Task',
+            status: 'draft',
+            savedEntityId: null,
+            error: null,
+          },
         ],
         status: 'draft',
       };
@@ -516,7 +580,9 @@ describe('Phase 11 — Multi-action Workflow, Follow-ups, and Authoritative Resu
       expect(reply).toContain('A follow-up reminder card is proposed');
       expect(receivedBatch).not.toBeNull();
       if (receivedBatch) {
-        expect((receivedBatch as MultiActionBatchData).items[0].time).toBe('09:30');
+        expect((receivedBatch as MultiActionBatchData).items[0].time).toBe(
+          '09:30',
+        );
       }
     });
 
@@ -527,7 +593,14 @@ describe('Phase 11 — Multi-action Workflow, Follow-ups, and Authoritative Resu
         ownerId: TEST_USER,
         revision: 1,
         items: [
-          {id: 'it1', kind: 'task', title: 'Card Host Task', status: 'draft', savedEntityId: null, error: null},
+          {
+            id: 'it1',
+            kind: 'task',
+            title: 'Card Host Task',
+            status: 'draft',
+            savedEntityId: null,
+            error: null,
+          },
         ],
         status: 'draft',
       };

@@ -1,0 +1,24 @@
+PASS __tests__/ui/voiceConversationUi.test.tsx (10.951 s)
+  voice conversation entry in the voice sheet
+    √ push-to-talk stays the default; the conversation opens only on tap (2305 ms)
+    √ a guest is asked to sign in and nothing reaches the network (38 ms)
+    √ consent comes first, once per account (142 ms)
+    √ Online Mode off: explained, and turned on only by an explicit tap (41 ms)
+    √ a server that is not set up says so plainly (95 ms)
+    √ the real transport is not offered without the native module (40 ms)
+  a live conversation
+    √ direct voice requires memory review and on-screen approval (561 ms)
+    √ direct personal-data tools require their own disclosure even with prior voice consent (22 ms)
+    √ direct agent receives a truthful review result without saving the task (223 ms)
+    √ live words, controls, a reviewed planner change and saved turns (329 ms)
+    √ a reminder call stops the conversation; only a tap starts it again (199 ms)
+    √ closing the panel ends the session and releases the transport (93 ms)
+  Chat history
+    √ an interrupted voice answer is labelled; a complete one is not (72 ms)
+
+Test Suites: 1 passed, 1 total
+Tests:       13 passed, 13 total
+Snapshots:   0 total
+Time:        11.314 s, estimated 12 s
+Ran all test suites matching /voiceConversationUi/i.
+Force exiting Jest: Have you considered using `--detectOpenHandles` to detect async operations that kept running after all tests finished?

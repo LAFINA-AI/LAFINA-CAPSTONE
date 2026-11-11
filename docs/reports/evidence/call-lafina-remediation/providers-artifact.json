@@ -1,0 +1,15 @@
+{
+  "package": "com.lafina.capstone.providers",
+  "bundle_sha256": "e0580ca7fd9173e608da10c95a0361da6295216ccf4b919e402d0c73c4044293",
+  "provider_keys_in_apk": false,
+  "apk_sha256": "7e7f8260647d8e1a69841e08430b694fe6decc6e8269a9888e2db8102ce2c14f",
+  "architecture": "arm64-v8a",
+  "apk": "C:\\L3mxr\\Github Repositories\\LAFINA-CAPSTONE-agy-development-cont\\.local\\call-lafina-update\\call-lafina-v2-providers-arm64.apk",
+  "backend": "https://lafina-backend.vercel.app",
+  "built_at_utc": "2026-11-10T14:48:12.4058891Z",
+  "apk_size_bytes": 146228527,
+  "actual_abis": [
+    "arm64-v8a"
+  ],
+  "latest_bounded_result_repair_present": true
+}

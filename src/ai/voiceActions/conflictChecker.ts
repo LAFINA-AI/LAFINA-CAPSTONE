@@ -6,6 +6,7 @@
  * returns detected collisions and proposed grounded alternative time slots.
  */
 
+import {addDaysToDate} from '../../storage/eventTime';
 import {plannerQueries} from '../../storage/plannerQueries';
 
 export interface ConflictingItem {
@@ -49,30 +50,34 @@ export function checkScheduleConflict(
   date: string,
   startTime: string,
   endTime: string,
+  excludeId?: string,
 ): ConflictCheckResult {
   if (!date || !startTime || !endTime) {
     return {hasConflict: false, conflictingItems: [], alternatives: []};
   }
 
   const reqStart = timeToMinutes(startTime);
-  const reqEnd = timeToMinutes(endTime);
+  const requestedEnd = timeToMinutes(endTime);
+  const reqEnd = requestedEnd <= reqStart ? requestedEnd + 1440 : requestedEnd;
   const duration = Math.max(15, reqEnd - reqStart);
 
-  let windowData;
-  try {
-    windowData = plannerQueries.window(userId, date, date);
-  } catch {
-    return {hasConflict: false, conflictingItems: [], alternatives: []};
-  }
+  const windowData = plannerQueries.window(
+    userId,
+    addDaysToDate(date, -1),
+    addDaysToDate(date, 1),
+  );
 
   const conflictingItems: ConflictingItem[] = [];
   const occupiedIntervals: Array<{start: number; end: number}> = [];
 
   // 1. Check events
   for (const event of windowData.events) {
-    if (event.startTime && event.endTime) {
-      const eStart = timeToMinutes(event.startTime);
-      const eEnd = timeToMinutes(event.endTime);
+    if (event.id !== excludeId && event.startTime && event.endTime) {
+      const dayOffset =
+        event.date < date ? -1440 : event.date > date ? 1440 : 0;
+      const eStart = dayOffset + timeToMinutes(event.startTime);
+      const rawEnd = dayOffset + timeToMinutes(event.endTime);
+      const eEnd = rawEnd <= eStart ? rawEnd + 1440 : rawEnd;
       occupiedIntervals.push({start: eStart, end: eEnd});
 
       // Overlap condition: max(start1, start2) < min(end1, end2)
@@ -90,9 +95,12 @@ export function checkScheduleConflict(
 
   // 2. Check time blocks
   for (const block of windowData.blocks) {
-    if (block.startTime && block.endTime) {
-      const bStart = timeToMinutes(block.startTime);
-      const bEnd = timeToMinutes(block.endTime);
+    if (block.id !== excludeId && block.startTime && block.endTime) {
+      const dayOffset =
+        block.date < date ? -1440 : block.date > date ? 1440 : 0;
+      const bStart = dayOffset + timeToMinutes(block.startTime);
+      const rawEnd = dayOffset + timeToMinutes(block.endTime);
+      const bEnd = rawEnd <= bStart ? rawEnd + 1440 : rawEnd;
       occupiedIntervals.push({start: bStart, end: bEnd});
 
       if (Math.max(reqStart, bStart) < Math.min(reqEnd, bEnd)) {
@@ -116,27 +124,34 @@ export function checkScheduleConflict(
 
   // 3. Find 1-2 free alternative slots between 08:00 (480) and 20:00 (1200)
   const DAY_START = 8 * 60; // 08:00
-  const DAY_END = 20 * 60;  // 20:00
+  const DAY_END = 20 * 60; // 20:00
   const alternatives: string[] = [];
 
   let candidateStart = DAY_START;
   for (const occ of occupiedIntervals) {
-    if (occ.start - candidateStart >= duration) {
+    if (Math.min(DAY_END, occ.start) - candidateStart >= duration) {
       alternatives.push(
-        `${minutesToTime(candidateStart)} - ${minutesToTime(candidateStart + duration)}`,
+        `${minutesToTime(candidateStart)} - ${minutesToTime(
+          candidateStart + duration,
+        )}`,
       );
       if (alternatives.length >= 2) break;
     }
-    candidateStart = Math.max(candidateStart, occ.end);
+    candidateStart = Math.max(candidateStart, Math.min(DAY_END, occ.end));
+    if (candidateStart >= DAY_END) break;
   }
 
   if (alternatives.length < 2 && DAY_END - candidateStart >= duration) {
     alternatives.push(
-      `${minutesToTime(candidateStart)} - ${minutesToTime(candidateStart + duration)}`,
+      `${minutesToTime(candidateStart)} - ${minutesToTime(
+        candidateStart + duration,
+      )}`,
     );
   }
 
-  const titles = conflictingItems.map(c => `"${c.title}" (${c.startTime}-${c.endTime})`).join(', ');
+  const titles = conflictingItems
+    .map(c => `"${c.title}" (${c.startTime}-${c.endTime})`)
+    .join(', ');
   const warningMessage = `Conflicts with ${titles}.`;
 
   return {
@@ -146,4 +161,3 @@ export function checkScheduleConflict(
     warningMessage,
   };
 }
-

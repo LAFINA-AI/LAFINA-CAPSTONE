@@ -47,6 +47,7 @@ import type {
   CallLafinaSettings,
   CallLafinaVerbosity,
 } from '../../../cloud/voiceConversation/callLafinaSettingsStore';
+import {localSettingsStore} from '../../../storage/localSettingsStore';
 import {loadOnlineVoices} from '../../../cloud/onlineVoiceService';
 import type {OnlineVoiceOption} from '../../../cloud/onlineVoiceService';
 import {createCallSpeechProvider} from '../../../cloud/speechService';
@@ -60,23 +61,24 @@ export interface CallLafinaSettingsModalProps {
   onSettingsChanged?: (newSettings: CallLafinaSettings) => void;
 }
 
-export const PREVIEW_SAMPLE_TEXT = 'Hello! This is Lafina, speaking with your chosen voice.';
+export const PREVIEW_SAMPLE_TEXT =
+  'Hello! This is Lafina, speaking with your chosen voice.';
 
-export const CallLafinaSettingsModal: React.FC<CallLafinaSettingsModalProps> = ({
-  userId,
-  visible,
-  isCallActive = false,
-  onClose,
-  onSettingsChanged,
-}) => {
+export const CallLafinaSettingsModal: React.FC<
+  CallLafinaSettingsModalProps
+> = ({userId, visible, isCallActive = false, onClose, onSettingsChanged}) => {
   const {colors} = useTheme();
   const themed = useThemedStyles(getThemedStyles);
 
-  const [settings, setSettings] = useState<CallLafinaSettings>(() => getCallLafinaSettings(userId));
+  const [settings, setSettings] = useState<CallLafinaSettings>(() =>
+    getCallLafinaSettings(userId),
+  );
   const [voices, setVoices] = useState<OnlineVoiceOption[]>([]);
   const [loadingVoices, setLoadingVoices] = useState(false);
   const [voiceLoadError, setVoiceLoadError] = useState<string | null>(null);
-  const [previewingVoiceId, setPreviewingVoiceId] = useState<string | null>(null);
+  const [previewingVoiceId, setPreviewingVoiceId] = useState<string | null>(
+    null,
+  );
 
   const activeProvider = useRef<CallSpeechProvider | null>(null);
   const abortCtrl = useRef<AbortController | null>(null);
@@ -125,115 +127,72 @@ export const CallLafinaSettingsModal: React.FC<CallLafinaSettingsModalProps> = (
     setPreviewingVoiceId(null);
   }, []);
 
+  useEffect(() => {
+    if (isCallActive) stopPreview();
+  }, [isCallActive, stopPreview]);
+
   const handlePreviewVoice = useCallback(
     async (voice: OnlineVoiceOption) => {
+      if (isCallActive) return;
       stopPreview();
       setPreviewingVoiceId(voice.id);
 
+      let provider: CallSpeechProvider | null = null;
       try {
-        const provider = createCallSpeechProvider(userId, {
+        provider = createCallSpeechProvider(userId, {
           getVoiceId: () => voice.id,
-          isOnlineMode: () => true,
+          isOnlineMode: () =>
+            localSettingsStore.get(userId, 'chat.onlineMode') === 'true',
         });
         activeProvider.current = provider;
 
         await provider.speakText(PREVIEW_SAMPLE_TEXT);
-      } catch (err) {
-        console.warn('[CallLafinaSettings] Preview failed:', err);
+      } catch {
+        setVoiceLoadError('Voice preview could not play. Please try again.');
       } finally {
-        if (activeProvider.current) {
+        if (activeProvider.current === provider) {
           setPreviewingVoiceId(null);
           activeProvider.current = null;
         }
+        void provider?.dispose?.();
       }
     },
-    [userId, stopPreview],
+    [userId, stopPreview, isCallActive],
   );
 
-  const handleSelectVoice = useCallback(
-    (voice: OnlineVoiceOption) => {
-      stopPreview();
-      const updated = saveCallLafinaSettings(userId, {
-        voiceId: voice.id,
-        voiceName: voice.name,
-      });
-      setSettings(updated);
-      onSettingsChanged?.(updated);
-    },
-    [userId, stopPreview, onSettingsChanged],
-  );
-
-  const handleLanguageSelect = useCallback(
-    (lang: CallLafinaLanguage) => {
-      const updated = saveCallLafinaSettings(userId, {language: lang});
-      setSettings(updated);
-      onSettingsChanged?.(updated);
+  const updateSettings = useCallback(
+    (patch: Partial<CallLafinaSettings>) => {
+      try {
+        const updated = saveCallLafinaSettings(userId, patch);
+        setSettings(updated);
+        onSettingsChanged?.(updated);
+        setVoiceLoadError(null);
+      } catch {
+        setVoiceLoadError('Could not save this setting. Please try again.');
+      }
     },
     [userId, onSettingsChanged],
   );
-
-  const handleVerbositySelect = useCallback(
-    (verb: CallLafinaVerbosity) => {
-      const updated = saveCallLafinaSettings(userId, {verbosity: verb});
-      setSettings(updated);
-      onSettingsChanged?.(updated);
-    },
-    [userId, onSettingsChanged],
-  );
-
-  const handlePacingSelect = useCallback(
-    (pace: CallLafinaPacing) => {
-      const updated = saveCallLafinaSettings(userId, {pacing: pace});
-      setSettings(updated);
-      onSettingsChanged?.(updated);
-    },
-    [userId, onSettingsChanged],
-  );
-
-  const handleCaptionSelect = useCallback(
-    (cap: CallLafinaCaptionSize) => {
-      const updated = saveCallLafinaSettings(userId, {captionSize: cap});
-      setSettings(updated);
-      onSettingsChanged?.(updated);
-    },
-    [userId, onSettingsChanged],
-  );
-
-  const handleToggleConnHaptics = useCallback(
-    (val: boolean) => {
-      const updated = saveCallLafinaSettings(userId, {callConnectedHaptics: val});
-      setSettings(updated);
-      onSettingsChanged?.(updated);
-    },
-    [userId, onSettingsChanged],
-  );
-
-  const handleToggleEndHaptics = useCallback(
-    (val: boolean) => {
-      const updated = saveCallLafinaSettings(userId, {callEndHaptics: val});
-      setSettings(updated);
-      onSettingsChanged?.(updated);
-    },
-    [userId, onSettingsChanged],
-  );
-
-  const handleToggleToolAudio = useCallback(
-    (val: boolean) => {
-      const updated = saveCallLafinaSettings(userId, {toolAudioCue: val});
-      setSettings(updated);
-      onSettingsChanged?.(updated);
-    },
-    [userId, onSettingsChanged],
-  );
-
-  const handleToggleStartWithCall = useCallback(
-    (val: boolean) => {
-      const updated = saveCallLafinaSettings(userId, {startWithCallLafina: val});
-      setSettings(updated);
-      onSettingsChanged?.(updated);
-    },
-    [userId, onSettingsChanged],
-  );
+  const handleSelectVoice = (voice: OnlineVoiceOption) => {
+    stopPreview();
+    updateSettings({voiceId: voice.id, voiceName: voice.name});
+  };
+  const handleLanguageSelect = (language: CallLafinaLanguage) =>
+    updateSettings({language});
+  const handleVerbositySelect = (verbosity: CallLafinaVerbosity) =>
+    updateSettings({verbosity});
+  const handlePacingSelect = (pacing: CallLafinaPacing) =>
+    updateSettings({pacing});
+  const handleCaptionSelect = (captionSize: CallLafinaCaptionSize) =>
+    updateSettings({captionSize});
+  const handleToggleConnHaptics = (callConnectedHaptics: boolean) =>
+    updateSettings({callConnectedHaptics});
+  const handleToggleEndHaptics = (callEndHaptics: boolean) =>
+    updateSettings({callEndHaptics});
+  const handleToggleToolAudio = (toolAudioCue: boolean) =>
+    updateSettings({toolAudioCue});
+  const handleToggleStartWithCall = (startWithCallLafina: boolean) =>
+    updateSettings({startWithCallLafina});
 
   const handleClose = () => {
     stopPreview();
@@ -254,7 +213,10 @@ export const CallLafinaSettingsModal: React.FC<CallLafinaSettingsModalProps> = (
           <View style={styles.headerRow}>
             <View style={styles.titleRow}>
               <Sliders size={20} color={colors.primary} />
-              <Text style={[styles.modalTitle, themed.primaryText]} testID="call-settings-title">
+              <Text
+                style={[styles.modalTitle, themed.primaryText]}
+                testID="call-settings-title"
+              >
                 Call Lafina Settings
               </Text>
             </View>
@@ -272,57 +234,81 @@ export const CallLafinaSettingsModal: React.FC<CallLafinaSettingsModalProps> = (
           {/* Active Call Notice */}
           {isCallActive && (
             <View
-              style={[styles.activeCallNotice, {backgroundColor: colors.primary + '15'}]}
+              style={[
+                styles.activeCallNotice,
+                {backgroundColor: colors.primary + '15'},
+              ]}
               testID="call-active-notice"
             >
-              <Text style={[styles.activeCallNoticeText, {color: colors.primary}]}>
-                Changes to voice or language will take effect on your next turn or session restart.
+              <Text
+                style={[styles.activeCallNoticeText, {color: colors.primary}]}
+              >
+                Voice changes apply to the next call. Language and style are
+                provider requests; support and pronunciation require evaluation.
+                Voice preview is disabled during calls.
               </Text>
             </View>
           )}
 
-          <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
+          <ScrollView
+            style={styles.scrollView}
+            showsVerticalScrollIndicator={false}
+          >
             {/* Section: Language Selection */}
-            <View style={styles.sectionContainer} testID="call-settings-section-language">
+            <View
+              style={styles.sectionContainer}
+              testID="call-settings-section-language"
+            >
               <View style={styles.sectionHeader}>
                 <Globe size={16} color={colors.primary} />
                 <Text style={[styles.sectionTitle, themed.primaryText]}>
-                  Spoken Language
+                  Requested spoken language
                 </Text>
               </View>
+              <Text style={themed.secondaryText}>
+                Language quality has not been evaluated on a phone.
+              </Text>
               <View style={styles.chipsRow}>
-                {(['en', 'fil', 'taglish', 'ceb'] as CallLafinaLanguage[]).map(lang => {
-                  const isSelected = settings.language === lang;
-                  return (
-                    <TouchableOpacity
-                      key={lang}
-                      style={[
-                        styles.chip,
-                        themed.chip,
-                        isSelected && {backgroundColor: colors.primary, borderColor: colors.primary},
-                      ]}
-                      onPress={() => handleLanguageSelect(lang)}
-                      accessibilityRole="button"
-                      accessibilityLabel={`Select language ${LANGUAGE_LABELS[lang]}`}
-                      testID={`lang-option-${lang}`}
-                    >
-                      <Text
+                {(['en', 'fil', 'taglish', 'ceb'] as CallLafinaLanguage[]).map(
+                  lang => {
+                    const isSelected = settings.language === lang;
+                    return (
+                      <TouchableOpacity
+                        key={lang}
                         style={[
-                          styles.chipText,
-                          themed.primaryText,
-                          isSelected && {color: '#FFFFFF', fontWeight: '700'},
+                          styles.chip,
+                          themed.chip,
+                          isSelected && {
+                            backgroundColor: colors.primary,
+                            borderColor: colors.primary,
+                          },
                         ]}
+                        onPress={() => handleLanguageSelect(lang)}
+                        accessibilityRole="button"
+                        accessibilityLabel={`Select language ${LANGUAGE_LABELS[lang]}`}
+                        testID={`lang-option-${lang}`}
                       >
-                        {LANGUAGE_LABELS[lang]}
-                      </Text>
-                    </TouchableOpacity>
-                  );
-                })}
+                        <Text
+                          style={[
+                            styles.chipText,
+                            themed.primaryText,
+                            isSelected && {color: '#FFFFFF', fontWeight: '700'},
+                          ]}
+                        >
+                          {LANGUAGE_LABELS[lang]}
+                        </Text>
+                      </TouchableOpacity>
+                    );
+                  },
+                )}
               </View>
             </View>
 
             {/* Section: Response Style (Verbosity & Pacing) */}
-            <View style={styles.sectionContainer} testID="call-settings-section-style">
+            <View
+              style={styles.sectionContainer}
+              testID="call-settings-section-style"
+            >
               <View style={styles.sectionHeader}>
                 <Headphones size={16} color={colors.primary} />
                 <Text style={[styles.sectionTitle, themed.primaryText]}>
@@ -330,13 +316,18 @@ export const CallLafinaSettingsModal: React.FC<CallLafinaSettingsModalProps> = (
                 </Text>
               </View>
 
-              <Text style={[styles.subLabel, themed.secondaryText]}>Response Length</Text>
+              <Text style={[styles.subLabel, themed.secondaryText]}>
+                Response Length
+              </Text>
               <View style={styles.chipsRow}>
                 <TouchableOpacity
                   style={[
                     styles.chip,
                     themed.chip,
-                    settings.verbosity === 'brief' && {backgroundColor: colors.primary, borderColor: colors.primary},
+                    settings.verbosity === 'brief' && {
+                      backgroundColor: colors.primary,
+                      borderColor: colors.primary,
+                    },
                   ]}
                   onPress={() => handleVerbositySelect('brief')}
                   accessibilityRole="button"
@@ -346,7 +337,10 @@ export const CallLafinaSettingsModal: React.FC<CallLafinaSettingsModalProps> = (
                     style={[
                       styles.chipText,
                       themed.primaryText,
-                      settings.verbosity === 'brief' && {color: '#FFFFFF', fontWeight: '700'},
+                      settings.verbosity === 'brief' && {
+                        color: '#FFFFFF',
+                        fontWeight: '700',
+                      },
                     ]}
                   >
                     Concise (1-2 sentences)
@@ -357,7 +351,10 @@ export const CallLafinaSettingsModal: React.FC<CallLafinaSettingsModalProps> = (
                   style={[
                     styles.chip,
                     themed.chip,
-                    settings.verbosity === 'detailed' && {backgroundColor: colors.primary, borderColor: colors.primary},
+                    settings.verbosity === 'detailed' && {
+                      backgroundColor: colors.primary,
+                      borderColor: colors.primary,
+                    },
                   ]}
                   onPress={() => handleVerbositySelect('detailed')}
                   accessibilityRole="button"
@@ -367,7 +364,10 @@ export const CallLafinaSettingsModal: React.FC<CallLafinaSettingsModalProps> = (
                     style={[
                       styles.chipText,
                       themed.primaryText,
-                      settings.verbosity === 'detailed' && {color: '#FFFFFF', fontWeight: '700'},
+                      settings.verbosity === 'detailed' && {
+                        color: '#FFFFFF',
+                        fontWeight: '700',
+                      },
                     ]}
                   >
                     Detailed
@@ -375,13 +375,18 @@ export const CallLafinaSettingsModal: React.FC<CallLafinaSettingsModalProps> = (
                 </TouchableOpacity>
               </View>
 
-              <Text style={[styles.subLabel, themed.secondaryText]}>Speaking Pace</Text>
+              <Text style={[styles.subLabel, themed.secondaryText]}>
+                Speaking Pace
+              </Text>
               <View style={styles.chipsRow}>
                 <TouchableOpacity
                   style={[
                     styles.chip,
                     themed.chip,
-                    settings.pacing === 'normal' && {backgroundColor: colors.primary, borderColor: colors.primary},
+                    settings.pacing === 'normal' && {
+                      backgroundColor: colors.primary,
+                      borderColor: colors.primary,
+                    },
                   ]}
                   onPress={() => handlePacingSelect('normal')}
                   accessibilityRole="button"
@@ -391,7 +396,10 @@ export const CallLafinaSettingsModal: React.FC<CallLafinaSettingsModalProps> = (
                     style={[
                       styles.chipText,
                       themed.primaryText,
-                      settings.pacing === 'normal' && {color: '#FFFFFF', fontWeight: '700'},
+                      settings.pacing === 'normal' && {
+                        color: '#FFFFFF',
+                        fontWeight: '700',
+                      },
                     ]}
                   >
                     Normal
@@ -402,7 +410,10 @@ export const CallLafinaSettingsModal: React.FC<CallLafinaSettingsModalProps> = (
                   style={[
                     styles.chip,
                     themed.chip,
-                    settings.pacing === 'slow' && {backgroundColor: colors.primary, borderColor: colors.primary},
+                    settings.pacing === 'slow' && {
+                      backgroundColor: colors.primary,
+                      borderColor: colors.primary,
+                    },
                   ]}
                   onPress={() => handlePacingSelect('slow')}
                   accessibilityRole="button"
@@ -412,7 +423,10 @@ export const CallLafinaSettingsModal: React.FC<CallLafinaSettingsModalProps> = (
                     style={[
                       styles.chipText,
                       themed.primaryText,
-                      settings.pacing === 'slow' && {color: '#FFFFFF', fontWeight: '700'},
+                      settings.pacing === 'slow' && {
+                        color: '#FFFFFF',
+                        fontWeight: '700',
+                      },
                     ]}
                   >
                     Relaxed / Step-by-Step
@@ -422,7 +436,10 @@ export const CallLafinaSettingsModal: React.FC<CallLafinaSettingsModalProps> = (
             </View>
 
             {/* Section: Subtitle Accessibility & Captions */}
-            <View style={styles.sectionContainer} testID="call-settings-section-accessibility">
+            <View
+              style={styles.sectionContainer}
+              testID="call-settings-section-accessibility"
+            >
               <View style={styles.sectionHeader}>
                 <Type size={16} color={colors.primary} />
                 <Text style={[styles.sectionTitle, themed.primaryText]}>
@@ -430,17 +447,30 @@ export const CallLafinaSettingsModal: React.FC<CallLafinaSettingsModalProps> = (
                 </Text>
               </View>
               <View style={styles.chipsRow}>
-                {(['standard', 'large', 'extra_large'] as CallLafinaCaptionSize[]).map(sz => {
+                {(
+                  [
+                    'standard',
+                    'large',
+                    'extra_large',
+                  ] as CallLafinaCaptionSize[]
+                ).map(sz => {
                   const isSelected = settings.captionSize === sz;
                   const label =
-                    sz === 'standard' ? 'Standard' : sz === 'large' ? 'Large' : 'Extra Large';
+                    sz === 'standard'
+                      ? 'Standard'
+                      : sz === 'large'
+                      ? 'Large'
+                      : 'Extra Large';
                   return (
                     <TouchableOpacity
                       key={sz}
                       style={[
                         styles.chip,
                         themed.chip,
-                        isSelected && {backgroundColor: colors.primary, borderColor: colors.primary},
+                        isSelected && {
+                          backgroundColor: colors.primary,
+                          borderColor: colors.primary,
+                        },
                       ]}
                       onPress={() => handleCaptionSelect(sz)}
                       accessibilityRole="button"
@@ -462,7 +492,10 @@ export const CallLafinaSettingsModal: React.FC<CallLafinaSettingsModalProps> = (
             </View>
 
             {/* Section: Haptics & Feedback */}
-            <View style={styles.sectionContainer} testID="call-settings-section-haptics">
+            <View
+              style={styles.sectionContainer}
+              testID="call-settings-section-haptics"
+            >
               <View style={styles.sectionHeader}>
                 <Vibrate size={16} color={colors.primary} />
                 <Text style={[styles.sectionTitle, themed.primaryText]}>
@@ -520,7 +553,8 @@ export const CallLafinaSettingsModal: React.FC<CallLafinaSettingsModalProps> = (
                     Start in Call on Chat Open
                   </Text>
                   <Text style={[styles.toggleHelp, themed.secondaryText]}>
-                    Open Call Lafina automatically when opening Chat (foreground only, requires mic permission)
+                    Open Call Lafina automatically when opening Chat (foreground
+                    only, requires mic permission)
                   </Text>
                 </View>
                 <Switch
@@ -534,7 +568,10 @@ export const CallLafinaSettingsModal: React.FC<CallLafinaSettingsModalProps> = (
             </View>
 
             {/* Section: ElevenLabs Voice Catalog & Preview */}
-            <View style={styles.sectionContainer} testID="call-settings-section-voice">
+            <View
+              style={styles.sectionContainer}
+              testID="call-settings-section-voice"
+            >
               <View style={styles.sectionHeader}>
                 <Volume2 size={16} color={colors.primary} />
                 <Text style={[styles.sectionTitle, themed.primaryText]}>
@@ -543,13 +580,19 @@ export const CallLafinaSettingsModal: React.FC<CallLafinaSettingsModalProps> = (
               </View>
 
               {loadingVoices && (
-                <Text style={[styles.statusNote, themed.secondaryText]} testID="voices-loading-note">
+                <Text
+                  style={[styles.statusNote, themed.secondaryText]}
+                  testID="voices-loading-note"
+                >
                   Loading voices…
                 </Text>
               )}
 
               {voiceLoadError && (
-                <Text style={[styles.statusNote, {color: colors.error}]} testID="voices-error-note">
+                <Text
+                  style={[styles.statusNote, {color: colors.error}]}
+                  testID="voices-error-note"
+                >
                   {voiceLoadError}
                 </Text>
               )}
@@ -574,14 +617,19 @@ export const CallLafinaSettingsModal: React.FC<CallLafinaSettingsModalProps> = (
                           {voice.name}
                         </Text>
                         <Text style={[styles.voiceMeta, themed.secondaryText]}>
-                          {[voice.gender, voice.language].filter(Boolean).join(' · ')}
+                          {[voice.gender, voice.language]
+                            .filter(Boolean)
+                            .join(' · ')}
                         </Text>
                       </View>
 
                       <View style={styles.voiceActions}>
                         {isPreviewing ? (
                           <TouchableOpacity
-                            style={[styles.previewButton, {backgroundColor: colors.error}]}
+                            style={[
+                              styles.previewButton,
+                              {backgroundColor: colors.error},
+                            ]}
                             onPress={stopPreview}
                             accessibilityRole="button"
                             accessibilityLabel={`Stop previewing ${voice.name}`}
@@ -592,14 +640,27 @@ export const CallLafinaSettingsModal: React.FC<CallLafinaSettingsModalProps> = (
                           </TouchableOpacity>
                         ) : (
                           <TouchableOpacity
-                            style={[styles.previewButton, {backgroundColor: colors.surface, borderColor: colors.border, borderWidth: 1}]}
+                            style={[
+                              styles.previewButton,
+                              {
+                                backgroundColor: colors.surface,
+                                borderColor: colors.border,
+                                borderWidth: 1,
+                              },
+                            ]}
+                            disabled={isCallActive}
                             onPress={() => handlePreviewVoice(voice)}
                             accessibilityRole="button"
                             accessibilityLabel={`Preview ${voice.name}`}
                             testID={`voice-preview-${voice.id}`}
                           >
                             <Volume2 size={12} color={colors.textPrimary} />
-                            <Text style={[styles.previewButtonText, themed.primaryText]}>
+                            <Text
+                              style={[
+                                styles.previewButtonText,
+                                themed.primaryText,
+                              ]}
+                            >
                               Preview
                             </Text>
                           </TouchableOpacity>

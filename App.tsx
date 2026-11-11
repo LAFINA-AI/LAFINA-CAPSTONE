@@ -1,19 +1,27 @@
-import React, { useCallback, useEffect, useRef, useState } from 'react';
+import {generateId} from './src/utils';
+import type {
+  CallNavigationRequest,
+  CallNavigationTarget,
+} from './src/ui/navigation/callNavigation';
+import React, {useCallback, useEffect, useRef, useState} from 'react';
 import {
   StatusBar,
   StyleSheet,
   View,
   Text,
   Keyboard,
-  Modal,
   AppState,
   DeviceEventEmitter,
   PermissionsAndroid,
   Platform,
+  BackHandler,
 } from 'react-native';
-import { SafeAreaProvider, useSafeAreaInsets } from 'react-native-safe-area-context';
+import {
+  SafeAreaProvider,
+  useSafeAreaInsets,
+} from 'react-native-safe-area-context';
 import NetInfo from '@react-native-community/netinfo';
-import { Fonts, useThemedStyles } from './src/ui/theme';
+import {Fonts, useThemedStyles} from './src/ui/theme';
 import {
   db,
   initDatabase,
@@ -21,14 +29,14 @@ import {
   syncOutboxStore,
   productTourStore,
 } from './src/storage';
-import { CustomTabBar, TabType } from './src/ui/components/CustomTabBar';
-import { StorageRecoveryScreen } from './src/ui/screens/StorageRecoveryScreen';
-import { hasProEntitlement } from './src/cloud';
-import { endActiveVoiceConversation } from './src/cloud/voiceConversation';
-import { backendSelection } from './src/cloud/backendSelection';
-import { ThemeProvider, useTheme } from './src/ui/contexts/ThemeContext';
-import { MeetingsProvider } from './src/ui/contexts/MeetingsContext';
-import type { ThemeColors } from './src/ui/contexts/ThemeContext';
+import {CustomTabBar, TabType} from './src/ui/components/CustomTabBar';
+import {StorageRecoveryScreen} from './src/ui/screens/StorageRecoveryScreen';
+import {hasProEntitlement} from './src/cloud';
+import {endActiveVoiceConversation} from './src/cloud/voiceConversation';
+import {backendSelection} from './src/cloud/backendSelection';
+import {ThemeProvider, useTheme} from './src/ui/contexts/ThemeContext';
+import {MeetingsProvider} from './src/ui/contexts/MeetingsContext';
+import type {ThemeColors} from './src/ui/contexts/ThemeContext';
 import {
   rescheduleUserReminders,
   startReminderPoller,
@@ -46,37 +54,37 @@ import type {
   NativeCallTrigger,
   ReminderPermissionStatus,
 } from './src/scheduler';
-import { syncWorker } from './src/sync/syncWorker';
-import { createSyncScheduler } from './src/sync/syncScheduler';
-import { appUpdater } from './src/updates';
+import {syncWorker} from './src/sync/syncWorker';
+import {createSyncScheduler} from './src/sync/syncScheduler';
+import {appUpdater} from './src/updates';
 
 // Screens & UI
-import { ChatScreen } from './src/ui/screens/ChatScreen';
-import { ProfileScreen } from './src/ui/screens/ProfileScreen';
-import { CalendarScreen } from './src/ui/screens/calendar';
-import { NotesScreen } from './src/ui/screens/notes';
-import { SynthSplash } from './src/ui/splash';
-import { WelcomeScreen } from './src/ui/screens/WelcomeScreen';
-import { LoginScreen } from './src/ui/screens/LoginScreen';
-import { RegisterScreen } from './src/ui/screens/RegisterScreen';
-import { OnboardingScreen } from './src/ui/screens/OnboardingScreen';
-import { IncomingCallScreen } from './src/ui/screens/IncomingCallScreen';
-import { ReminderPermissionModal } from './src/ui/components/call/ReminderPermissionModal';
-import { AuthBackdrop } from './src/ui/components/auth/AuthBackdrop';
-import { ProductTour } from './src/ui/tour/ProductTour';
-import { buildTourSteps } from './src/ui/tour/tourSteps';
-import { VoiceModal } from './src/ui/components/VoiceModal';
-import { CallLafinaScreen } from './src/ui/screens/CallLafinaScreen';
-import { MiniCallBar } from './src/ui/components/callLafina/MiniCallBar';
+import {ChatScreen} from './src/ui/screens/ChatScreen';
+import {ProfileScreen} from './src/ui/screens/ProfileScreen';
+import {CalendarScreen} from './src/ui/screens/calendar';
+import {NotesScreen} from './src/ui/screens/notes';
+import {SynthSplash} from './src/ui/splash';
+import {WelcomeScreen} from './src/ui/screens/WelcomeScreen';
+import {LoginScreen} from './src/ui/screens/LoginScreen';
+import {RegisterScreen} from './src/ui/screens/RegisterScreen';
+import {OnboardingScreen} from './src/ui/screens/OnboardingScreen';
+import {IncomingCallScreen} from './src/ui/screens/IncomingCallScreen';
+import {ReminderPermissionModal} from './src/ui/components/call/ReminderPermissionModal';
+import {AuthBackdrop} from './src/ui/components/auth/AuthBackdrop';
+import {ProductTour} from './src/ui/tour/ProductTour';
+import {buildTourSteps} from './src/ui/tour/tourSteps';
+import {VoiceModal} from './src/ui/components/VoiceModal';
+import {CallLafinaScreen} from './src/ui/screens/CallLafinaScreen';
+import {MiniCallBar} from './src/ui/components/callLafina/MiniCallBar';
 import {
   getActiveVoiceConversation,
   isVoiceConversationActive,
   type ConversationSnapshot,
 } from './src/cloud/voiceConversation';
-import { getCallLafinaSettings } from './src/cloud/voiceConversation/callLafinaSettingsStore';
-import { endReviewSession } from './src/ai/nlu/commandReview';
-import { chatDraftStore } from './src/ui/drafts/chatDraftStore';
-import { applySpeechPreferences } from './src/ai/tts/speechPreferences';
+import {getCallLafinaSettings} from './src/cloud/voiceConversation/callLafinaSettingsStore';
+import {endReviewSession} from './src/ai/nlu/commandReview';
+import {chatDraftStore} from './src/ui/drafts/chatDraftStore';
+import {applySpeechPreferences} from './src/ai/tts/speechPreferences';
 
 function AppContent({
   userId,
@@ -90,7 +98,9 @@ function AppContent({
   setRefreshTrigger: React.Dispatch<React.SetStateAction<number>>;
 }) {
   const [isLoading, setIsLoading] = useState(true);
-  const [authScreen, setAuthScreen] = useState<'welcome' | 'login' | 'register'>('welcome');
+  const [authScreen, setAuthScreen] = useState<
+    'welcome' | 'login' | 'register'
+  >('welcome');
   const [isOnboarding, setIsOnboarding] = useState(false);
   const [isOnboardingReplay, setIsOnboardingReplay] = useState(false);
   const [activeTab, setActiveTab] = useState<TabType>('calendar');
@@ -99,10 +109,29 @@ function AppContent({
   const [isKeyboardVisible, setIsKeyboardVisible] = useState(false);
   const [startupReady, setStartupReady] = useState(false);
   const [storageHealth, setStorageHealth] = useState(() => db.getHealth());
+  const [callNavigation, setCallNavigation] =
+    useState<CallNavigationRequest | null>(null);
+  const navigateFromCall = (target: CallNavigationTarget) => {
+    if (target.ownerId !== userId) return;
+    setCallNavigation({...target, requestId: generateId('call-nav')});
+    setActiveTab(target.screen);
+    setCallLafinaVisible(false);
+    setCallLafinaMinimized(isVoiceConversationActive());
+  };
   const [callLafinaVisible, setCallLafinaVisible] = useState(false);
   const [callLafinaMinimized, setCallLafinaMinimized] = useState(false);
-  const [miniCallSnapshot, setMiniCallSnapshot] = useState<ConversationSnapshot | null>(null);
+  const [miniCallSnapshot, setMiniCallSnapshot] =
+    useState<ConversationSnapshot | null>(null);
   const [miniCallDuration, setMiniCallDuration] = useState(0);
+  useEffect(() => {
+    if (!callLafinaVisible) return;
+    const listener = BackHandler.addEventListener('hardwareBackPress', () => {
+      setCallLafinaVisible(false);
+      setCallLafinaMinimized(isVoiceConversationActive());
+      return true;
+    });
+    return () => listener.remove();
+  }, [callLafinaVisible]);
 
   // Incoming Call State
   const [callVisible, setCallVisible] = useState(false);
@@ -115,21 +144,24 @@ function AppContent({
   const previousUserRef = useRef<string | null>(null);
 
   // Reminder Permission State
-  const [permissionStatus, setPermissionStatus] = useState<ReminderPermissionStatus | null>(null);
+  const [permissionStatus, setPermissionStatus] =
+    useState<ReminderPermissionStatus | null>(null);
   const [permissionModalVisible, setPermissionModalVisible] = useState(false);
 
   const insets = useSafeAreaInsets();
   const topInset = Math.max(
     insets.top,
-    Platform.OS === 'android' ? (StatusBar.currentHeight || 24) : 0,
+    Platform.OS === 'android' ? StatusBar.currentHeight || 24 : 0,
   );
 
-  const { colors } = useTheme();
+  const {colors} = useTheme();
   const themed = useThemedStyles(getThemedStyles);
 
   useEffect(() => {
-    const showEvent = Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow';
-    const hideEvent = Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide';
+    const showEvent =
+      Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow';
+    const hideEvent =
+      Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide';
     const showSubscription = Keyboard.addListener(showEvent, () =>
       setIsKeyboardVisible(true),
     );
@@ -172,7 +204,9 @@ function AppContent({
     // Open assistant reviews never outlive the account they were prepared for
     // (AGY-PORT 04): sign-out, sign-in and account switch all end them.
     endReviewSession();
-    endActiveVoiceConversation('You switched accounts, so the conversation stopped.');
+    endActiveVoiceConversation(
+      'You switched accounts, so the conversation stopped.',
+    );
     // AGY-PORT 05: the previous owner's unsent Chat text and open voice sheet go too.
     chatDraftStore.retainOnly(userId);
     setVoiceVisible(false);
@@ -193,46 +227,49 @@ function AppContent({
     void applySpeechPreferences(userId);
   }, [userId]);
 
-  // Phase 13: In-app mini-call tracking and deliberate Chat start (F-054, F-056)
+  // The controller owns session start time; minimizing never restarts the timer.
   useEffect(() => {
-    let interval: ReturnType<typeof setInterval> | null = null;
-    let callStart = 0;
-
-    const checkActive = () => {
-      const ctrl = getActiveVoiceConversation();
-      if (ctrl) {
-        setMiniCallSnapshot(ctrl.getSnapshot());
-        const unsub = ctrl.subscribe(snap => {
-          setMiniCallSnapshot(snap);
-          if (snap.phase === 'ended' || snap.phase === 'idle' || snap.phase === 'failed') {
-            setCallLafinaMinimized(false);
-          }
-        });
-        if (ctrl.isActive()) {
-          callStart = Date.now();
-          interval = setInterval(() => {
-            setMiniCallDuration(Math.floor((Date.now() - callStart) / 1000));
-          }, 1000);
-        }
-        return () => {
-          unsub();
-          if (interval) clearInterval(interval);
-        };
-      }
-      return undefined;
+    const controller = getActiveVoiceConversation();
+    if (!controller) return;
+    const update = (snapshot: ConversationSnapshot) => {
+      setMiniCallSnapshot(snapshot);
+      if (
+        snapshot.phase === 'ended' ||
+        snapshot.phase === 'idle' ||
+        snapshot.phase === 'failed' ||
+        snapshot.phase === 'restart_required'
+      )
+        setCallLafinaMinimized(false);
     };
-
-    const cleanup = checkActive();
+    update(controller.getSnapshot());
+    const unsubscribe = controller.subscribe(update);
+    const tick = () => {
+      const snapshot = controller.getSnapshot();
+      setMiniCallDuration(
+        snapshot.connectedAt
+          ? Math.max(0, Math.floor((Date.now() - snapshot.connectedAt) / 1000))
+          : 0,
+      );
+    };
+    tick();
+    const timer = setInterval(tick, 1000);
     return () => {
-      cleanup?.();
-      if (interval) clearInterval(interval);
+      unsubscribe();
+      clearInterval(timer);
     };
-  }, [callLafinaVisible, callLafinaMinimized]);
+  }, [callLafinaVisible, callLafinaMinimized, userId]);
 
+  const lastCallEntryTab = useRef(activeTab);
   useEffect(() => {
-    if (activeTab === 'chat' && userId) {
+    const entered = lastCallEntryTab.current !== activeTab;
+    lastCallEntryTab.current = activeTab;
+    if (entered && activeTab === 'chat' && userId) {
       const settings = getCallLafinaSettings(userId);
-      if (settings.startWithCallLafina && !callLafinaVisible && !callLafinaMinimized) {
+      if (
+        settings.startWithCallLafina &&
+        !callLafinaVisible &&
+        !callLafinaMinimized
+      ) {
         setCallLafinaVisible(true);
       }
     }
@@ -259,7 +296,10 @@ function AppContent({
     void (async (): Promise<void> => {
       try {
         let status = await getReminderPermissionStatus();
-        if (Platform.OS === 'android' && (!status || !status.notificationsEnabled)) {
+        if (
+          Platform.OS === 'android' &&
+          (!status || !status.notificationsEnabled)
+        ) {
           await PermissionsAndroid.request(
             PermissionsAndroid.PERMISSIONS.POST_NOTIFICATIONS,
           );
@@ -281,7 +321,7 @@ function AppContent({
       }
     })();
 
-    void consumePendingNativeCall().then((payload) => {
+    void consumePendingNativeCall().then(payload => {
       if (payload && presentCall(payload)) setIsLoading(false);
     });
   }, [userId, presentCall]);
@@ -291,7 +331,7 @@ function AppContent({
     const foregroundSubscription = DeviceEventEmitter.addListener(
       EVENT_CALL_TRIGGER,
       (event: CallRequest) => {
-        presentCall({ ...event, action: 'call' });
+        presentCall({...event, action: 'call'});
       },
     );
     const nativeSubscription = DeviceEventEmitter.addListener(
@@ -320,7 +360,7 @@ function AppContent({
         syncWorker
           .performSync()
           .then(() => {
-            setRefreshTrigger((previous) => previous + 1);
+            setRefreshTrigger(previous => previous + 1);
           })
           .catch(() => undefined);
       }
@@ -329,7 +369,7 @@ function AppContent({
 
       void appUpdater
         .markLaunchSuccessful()
-        .then(() => appUpdater.check({ quiet: true }));
+        .then(() => appUpdater.check({quiet: true}));
     } catch (error) {
       console.error('Failed application startup setup:', error);
       setIsLoading(false);
@@ -356,7 +396,7 @@ function AppContent({
         return syncWorker.takeRemoteChangeCount() > 0;
       },
       onRemoteChanges: () => {
-        setRefreshTrigger((previous) => previous + 1);
+        setRefreshTrigger(previous => previous + 1);
       },
     });
     if (AppState.currentState === 'active') {
@@ -364,15 +404,17 @@ function AppContent({
       void scheduler.runNow();
     }
 
-    const unsubscribeRemoteChanges = syncWorker.onRemoteChanges((changedUserId) => {
-      if (changedUserId === userId) {
-        setRefreshTrigger((previous) => previous + 1);
-        void rescheduleUserReminders(userId);
-      }
-    });
+    const unsubscribeRemoteChanges = syncWorker.onRemoteChanges(
+      changedUserId => {
+        if (changedUserId === userId) {
+          setRefreshTrigger(previous => previous + 1);
+          void rescheduleUserReminders(userId);
+        }
+      },
+    );
 
     let wasOnline = true;
-    const unsubscribeNetInfo = NetInfo.addEventListener((state) => {
+    const unsubscribeNetInfo = NetInfo.addEventListener(state => {
       const isOnline =
         Boolean(state.isConnected) && state.isInternetReachable !== false;
       if (isOnline && !wasOnline && AppState.currentState === 'active') {
@@ -381,34 +423,38 @@ function AppContent({
       wasOnline = isOnline;
     });
 
-    const appStateSubscription = AppState.addEventListener('change', (nextState) => {
-      if (nextState !== 'active') {
-        scheduler.stop();
-        stopReminderPoller();
-        // Leaving the foreground: make Android hold exactly the armed work in
-        // SQLite, so a retired or edited reminder cannot ring while the app
-        // stays closed.
-        if (nextState === 'background') void reconcileReminderDelivery(userId);
-        return;
-      }
-      scheduler.start();
-      startReminderPoller(userId);
-      void rescheduleUserReminders(userId);
-      void consumePendingNativeCall().then((payload) => {
-        if (payload) presentCall(payload);
-      });
-      void getReminderPermissionStatus().then((status) => {
-        if (status) setPermissionStatus(status);
-      });
-      syncWorker
-        .performSync()
-        .then(() => {
-          setRefreshTrigger((previous) => previous + 1);
-          void rescheduleUserReminders(userId);
-        })
-        .catch(() => undefined);
-    });
-    const unsubscribeOutbox = syncOutboxStore.onEnqueue((localUserId) => {
+    const appStateSubscription = AppState.addEventListener(
+      'change',
+      nextState => {
+        if (nextState !== 'active') {
+          scheduler.stop();
+          stopReminderPoller();
+          // Leaving the foreground: make Android hold exactly the armed work in
+          // SQLite, so a retired or edited reminder cannot ring while the app
+          // stays closed.
+          if (nextState === 'background')
+            void reconcileReminderDelivery(userId);
+          return;
+        }
+        scheduler.start();
+        startReminderPoller(userId);
+        void rescheduleUserReminders(userId);
+        void consumePendingNativeCall().then(payload => {
+          if (payload) presentCall(payload);
+        });
+        void getReminderPermissionStatus().then(status => {
+          if (status) setPermissionStatus(status);
+        });
+        syncWorker
+          .performSync()
+          .then(() => {
+            setRefreshTrigger(previous => previous + 1);
+            void rescheduleUserReminders(userId);
+          })
+          .catch(() => undefined);
+      },
+    );
+    const unsubscribeOutbox = syncOutboxStore.onEnqueue(localUserId => {
       if (localUserId === userId) scheduler.schedule();
     });
 
@@ -422,7 +468,7 @@ function AppContent({
   }, [userId, setRefreshTrigger, presentCall]);
 
   const triggerRefresh = useCallback(() => {
-    setRefreshTrigger((prev) => prev + 1);
+    setRefreshTrigger(prev => prev + 1);
   }, [setRefreshTrigger]);
 
   const hasPro = userId ? hasProEntitlement(userId) : false;
@@ -448,7 +494,7 @@ function AppContent({
     syncWorker
       .performSync()
       .then(() => {
-        setRefreshTrigger((previous) => previous + 1);
+        setRefreshTrigger(previous => previous + 1);
       })
       .catch(() => undefined);
   };
@@ -466,7 +512,7 @@ function AppContent({
     syncWorker
       .performSync()
       .then(() => {
-        setRefreshTrigger((previous) => previous + 1);
+        setRefreshTrigger(previous => previous + 1);
       })
       .catch(() => undefined);
   };
@@ -513,6 +559,17 @@ function AppContent({
       case 'calendar':
         return (
           <CalendarScreen
+            onOpenRequestHandled={requestId =>
+              setCallNavigation(current =>
+                current?.requestId === requestId ? null : current,
+              )
+            }
+            openRequest={
+              callNavigation?.ownerId === userId &&
+              callNavigation.screen === 'calendar'
+                ? callNavigation
+                : undefined
+            }
             userId={userId}
             refreshTrigger={refreshTrigger}
             onRefresh={triggerRefresh}
@@ -521,6 +578,17 @@ function AppContent({
       case 'notes':
         return (
           <NotesScreen
+            onOpenRequestHandled={requestId =>
+              setCallNavigation(current =>
+                current?.requestId === requestId ? null : current,
+              )
+            }
+            openRequest={
+              callNavigation?.ownerId === userId &&
+              callNavigation.screen === 'notes'
+                ? callNavigation
+                : undefined
+            }
             userId={userId}
             refreshTrigger={refreshTrigger}
             onRefresh={triggerRefresh}
@@ -535,7 +603,10 @@ function AppContent({
             onLogout={handleLogout}
             onNavigateToRegister={handleGuestCreateAccount}
             onReplayTour={() => setTourOpen(true)}
-            onReplayOnboarding={() => { setIsOnboardingReplay(true); setIsOnboarding(true); }}
+            onReplayOnboarding={() => {
+              setIsOnboardingReplay(true);
+              setIsOnboarding(true);
+            }}
           />
         );
       default:
@@ -547,15 +618,26 @@ function AppContent({
     }
   };
 
-  if (storageHealth.status === 'unavailable' || storageHealth.status === 'quarantined') {
-    return <StorageRecoveryScreen health={storageHealth} onRetry={retryStorage} />;
+  if (
+    storageHealth.status === 'unavailable' ||
+    storageHealth.status === 'quarantined'
+  ) {
+    return (
+      <StorageRecoveryScreen health={storageHealth} onRetry={retryStorage} />
+    );
   }
 
   if (isLoading) {
     return (
       <>
-        <StatusBar barStyle={colors.statusBarStyle} backgroundColor={colors.background} />
-        <SynthSplash ready={startupReady} onFinished={() => setIsLoading(false)} />
+        <StatusBar
+          barStyle={colors.statusBarStyle}
+          backgroundColor={colors.background}
+        />
+        <SynthSplash
+          ready={startupReady}
+          onFinished={() => setIsLoading(false)}
+        />
       </>
     );
   }
@@ -591,7 +673,14 @@ function AppContent({
       <OnboardingScreen
         userId={userId}
         onOnboardingComplete={handleOnboardingComplete}
-        onCancel={isOnboardingReplay ? () => { setIsOnboardingReplay(false); setIsOnboarding(false); } : undefined}
+        onCancel={
+          isOnboardingReplay
+            ? () => {
+                setIsOnboardingReplay(false);
+                setIsOnboarding(false);
+              }
+            : undefined
+        }
       />
     );
   }
@@ -601,36 +690,41 @@ function AppContent({
       style={[
         styles.safeContainer,
         themed.safeContainer,
-        { paddingTop: topInset + 6 },
+        {paddingTop: topInset + 6},
       ]}
     >
-      <StatusBar barStyle={colors.statusBarStyle} backgroundColor={colors.background} />
+      <StatusBar
+        barStyle={colors.statusBarStyle}
+        backgroundColor={colors.background}
+      />
 
       <View style={styles.content}>{renderScreen()}</View>
 
-      {callLafinaMinimized && miniCallSnapshot && isVoiceConversationActive() && (
-        <MiniCallBar
-          phase={miniCallSnapshot.phase}
-          muted={miniCallSnapshot.muted}
-          durationSeconds={miniCallDuration}
-          onExpand={() => {
-            setCallLafinaMinimized(false);
-            setCallLafinaVisible(true);
-          }}
-          onToggleMute={() => {
-            const ctrl = getActiveVoiceConversation();
-            if (ctrl && miniCallSnapshot) {
-              ctrl.setMuted(!miniCallSnapshot.muted);
-            }
-          }}
-          onEndCall={() => {
-            const ctrl = getActiveVoiceConversation();
-            ctrl?.end();
-            setCallLafinaMinimized(false);
-            setCallLafinaVisible(false);
-          }}
-        />
-      )}
+      {callLafinaMinimized &&
+        miniCallSnapshot &&
+        isVoiceConversationActive() && (
+          <MiniCallBar
+            phase={miniCallSnapshot.phase}
+            muted={miniCallSnapshot.muted}
+            durationSeconds={miniCallDuration}
+            onExpand={() => {
+              setCallLafinaMinimized(false);
+              setCallLafinaVisible(true);
+            }}
+            onToggleMute={() => {
+              const ctrl = getActiveVoiceConversation();
+              if (ctrl && miniCallSnapshot) {
+                ctrl.setMuted(!miniCallSnapshot.muted);
+              }
+            }}
+            onEndCall={() => {
+              const ctrl = getActiveVoiceConversation();
+              ctrl?.end();
+              setCallLafinaMinimized(false);
+              setCallLafinaVisible(false);
+            }}
+          />
+        )}
 
       {!isKeyboardVisible && (
         <CustomTabBar
@@ -643,10 +737,10 @@ function AppContent({
       <VoiceModal
         visible={voiceVisible}
         userId={userId || 'local_guest_user'}
-        onClose={(didUpdate) => {
+        onClose={didUpdate => {
           setVoiceVisible(false);
           if (didUpdate) {
-            setRefreshTrigger((prev) => prev + 1);
+            setRefreshTrigger(prev => prev + 1);
           }
         }}
         onUseInChat={() => setActiveTab('chat')}
@@ -657,21 +751,19 @@ function AppContent({
       />
 
       {(callLafinaVisible || callLafinaMinimized) && (
-        <Modal
-          visible={callLafinaVisible}
-          animationType="slide"
-          presentationStyle="fullScreen"
-          onRequestClose={() => {
-            if (isVoiceConversationActive()) {
-              setCallLafinaVisible(false);
-              setCallLafinaMinimized(true);
-            } else {
-              setCallLafinaVisible(false);
-              setCallLafinaMinimized(false);
-            }
-          }}
+        <View
+          style={[
+            StyleSheet.absoluteFill,
+            {
+              zIndex: 100,
+              backgroundColor: colors.background,
+              display: callLafinaVisible ? 'flex' : 'none',
+            },
+          ]}
+          accessibilityViewIsModal={callLafinaVisible}
         >
           <CallLafinaScreen
+            onNavigate={navigateFromCall}
             userId={userId || 'local_guest_user'}
             onClose={() => {
               setCallLafinaVisible(false);
@@ -682,12 +774,15 @@ function AppContent({
               setCallLafinaMinimized(true);
             }}
           />
-        </Modal>
+        </View>
       )}
 
       {tourOpen && (
         <ProductTour
-          steps={buildTourSteps({ isGuest: userStore.isGuest(userId), isPro: hasPro })}
+          steps={buildTourSteps({
+            isGuest: userStore.isGuest(userId),
+            isPro: hasPro,
+          })}
           onNavigate={setActiveTab}
           onFinish={finishTour}
         />

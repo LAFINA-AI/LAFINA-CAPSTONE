@@ -30,7 +30,10 @@ import {Fonts, FontSize, Layout, Spacing} from '../../../theme';
 import {useTheme} from '../../../contexts/ThemeContext';
 import {useThemedStyles} from '../../../theme/createThemedStyles';
 import type {ThemeColors} from '../../../contexts/ThemeContext';
-import type {MultiActionBatchData, MultiActionItemData} from '../../../../ai/voiceActions/types';
+import type {
+  MultiActionBatchData,
+  MultiActionItemData,
+} from '../../../../ai/voiceActions/types';
 
 export interface MultiActionCardProps {
   batch: MultiActionBatchData;
@@ -40,7 +43,14 @@ export interface MultiActionCardProps {
   onConfirmItem?: (itemId: string) => void;
   onCancelItem?: (itemId: string) => void;
   onRetryItem?: (itemId: string) => void;
+  onOpenItem?: (item: MultiActionItemData) => void;
   onDismiss?: () => void;
+  onEditItemFields?: (
+    itemId: string,
+    patch: Partial<
+      Pick<MultiActionItemData, 'date' | 'time' | 'endTime' | 'body'>
+    >,
+  ) => void;
   onEditItemTitle?: (itemId: string, newTitle: string) => void;
   testIDPrefix?: string;
 }
@@ -54,11 +64,15 @@ export const MultiActionCard: React.FC<MultiActionCardProps> = ({
   onRetryItem = () => {},
   onDismiss = () => {},
   onEditItemTitle,
+  onEditItemFields,
+  onOpenItem,
   testIDPrefix = 'multi-action',
 }) => {
   const {colors} = useTheme();
   const themed = useThemedStyles(getThemedStyles);
-  const [editingTitles, setEditingTitles] = useState<Record<string, string>>({});
+  const [editingTitles, setEditingTitles] = useState<Record<string, string>>(
+    {},
+  );
 
   const handleTitleChange = (itemId: string, text: string) => {
     setEditingTitles(prev => ({...prev, [itemId]: text}));
@@ -98,7 +112,9 @@ export const MultiActionCard: React.FC<MultiActionCardProps> = ({
   const activeItems = batch.items.filter(i => i.status !== 'cancelled');
   const canConfirm =
     !busy &&
-    (batch.status === 'draft' || batch.status === 'partial') &&
+    (batch.status === 'draft' ||
+      batch.status === 'partial' ||
+      batch.status === 'failed') &&
     activeItems.some(i => i.status !== 'saved');
 
   return (
@@ -153,7 +169,13 @@ export const MultiActionCard: React.FC<MultiActionCardProps> = ({
       {/* Truncation notice (P11-09) */}
       {batch.truncated && (
         <View
-          style={[styles.alertBanner, {backgroundColor: colors.warning + '15', borderColor: colors.warning}]}
+          style={[
+            styles.alertBanner,
+            {
+              backgroundColor: colors.warning + '15',
+              borderColor: colors.warning,
+            },
+          ]}
           testID="multi-action-truncated-notice"
         >
           <AlertTriangle size={14} color={colors.warning} />
@@ -166,12 +188,18 @@ export const MultiActionCard: React.FC<MultiActionCardProps> = ({
       {/* Partial outcome alert (P11-03) */}
       {batch.status === 'partial' && (
         <View
-          style={[styles.alertBanner, {backgroundColor: colors.warning + '15', borderColor: colors.warning}]}
+          style={[
+            styles.alertBanner,
+            {
+              backgroundColor: colors.warning + '15',
+              borderColor: colors.warning,
+            },
+          ]}
           testID="multi-action-partial-alert"
         >
           <AlertTriangle size={14} color={colors.warning} />
           <Text style={[styles.alertText, {color: colors.warning}]}>
-            Some items failed. Tap Retry on failed items below.
+            Some items are not saved. Review each status before retrying.
           </Text>
         </View>
       )}
@@ -184,7 +212,11 @@ export const MultiActionCard: React.FC<MultiActionCardProps> = ({
       >
         {batch.items.map((item, index) => {
           const badge = getStatusBadge(item.status);
-          const isFinal = item.status === 'saved' || item.status === 'cancelled';
+          const isFinal =
+            item.status === 'saved' ||
+            item.status === 'cancelled' ||
+            item.status === 'saving' ||
+            busy;
           const titleValue =
             editingTitles[item.id] !== undefined
               ? editingTitles[item.id]
@@ -212,17 +244,27 @@ export const MultiActionCard: React.FC<MultiActionCardProps> = ({
 
                 {item.followUp && (
                   <View
-                    style={[styles.followUpBadge, {backgroundColor: colors.primary + '15'}]}
+                    style={[
+                      styles.followUpBadge,
+                      {backgroundColor: colors.primary + '15'},
+                    ]}
                     testID={`multi-item-followup-badge-${index}`}
                   >
                     <Clock size={10} color={colors.primary} />
-                    <Text style={[styles.followUpText, {color: colors.primary}]}>
+                    <Text
+                      style={[styles.followUpText, {color: colors.primary}]}
+                    >
                       Follow-up
                     </Text>
                   </View>
                 )}
 
-                <View style={[styles.itemStatusPill, {backgroundColor: badge.color + '20'}]}>
+                <View
+                  style={[
+                    styles.itemStatusPill,
+                    {backgroundColor: badge.color + '20'},
+                  ]}
+                >
                   <Text style={[styles.itemStatusText, {color: badge.color}]}>
                     {badge.label}
                   </Text>
@@ -233,6 +275,8 @@ export const MultiActionCard: React.FC<MultiActionCardProps> = ({
               {!isFinal ? (
                 <TextInput
                   style={[styles.titleInput, themed.input]}
+                  editable={!busy && !!onEditItemTitle}
+                  maxLength={200}
                   value={titleValue}
                   onChangeText={text => handleTitleChange(item.id, text)}
                   placeholder="Action title"
@@ -246,9 +290,51 @@ export const MultiActionCard: React.FC<MultiActionCardProps> = ({
                 </Text>
               )}
 
+              {!isFinal && onEditItemFields && (
+                <View>
+                  {(item.kind !== 'note'
+                    ? ([
+                        'date',
+                        'time',
+                        ...(item.kind === 'event' ? ['endTime'] : []),
+                      ] as const)
+                    : (['body'] as const)
+                  ).map(field => (
+                    <TextInput
+                      key={field}
+                      style={[styles.titleInput, themed.input]}
+                      value={
+                        item[field as 'date' | 'time' | 'endTime' | 'body'] ||
+                        ''
+                      }
+                      maxLength={
+                        field === 'body' ? 4000 : field === 'date' ? 10 : 5
+                      }
+                      placeholder={
+                        field === 'date'
+                          ? 'Date YYYY-MM-DD'
+                          : field === 'body'
+                          ? 'Note text'
+                          : field === 'endTime'
+                          ? 'End HH:MM'
+                          : 'Time HH:MM'
+                      }
+                      placeholderTextColor={colors.textSecondary}
+                      accessibilityLabel={`Edit ${field} for item ${index + 1}`}
+                      testID={`multi-item-${field}-input-${index}`}
+                      onChangeText={text =>
+                        onEditItemFields(item.id, {[field]: text || undefined})
+                      }
+                    />
+                  ))}
+                </View>
+              )}
               {/* Date & Time if present */}
               {(item.date || item.time) && (
-                <View style={styles.dateTimeRow} testID={`multi-item-datetime-${index}`}>
+                <View
+                  style={styles.dateTimeRow}
+                  testID={`multi-item-datetime-${index}`}
+                >
                   <Calendar size={12} color={colors.textSecondary} />
                   <Text style={[styles.dateTimeText, themed.secondaryText]}>
                     {item.date || ''} {item.time ? `at ${item.time}` : ''}
@@ -257,16 +343,36 @@ export const MultiActionCard: React.FC<MultiActionCardProps> = ({
                 </View>
               )}
 
+              {item.scheduleWarning && (
+                <Text
+                  accessibilityRole="alert"
+                  style={[styles.alertText, {color: colors.warning}]}
+                >
+                  {item.scheduleWarning}
+                </Text>
+              )}
               {/* Saved Link (P11-05) */}
               {item.status === 'saved' && item.savedEntityId && (
-                <View style={styles.savedLinkRow} testID={`multi-item-link-${index}`}>
+                <TouchableOpacity
+                  accessibilityRole="button"
+                  accessibilityLabel={`Open saved ${item.kind}: ${item.title}`}
+                  disabled={!onOpenItem}
+                  onPress={() => onOpenItem?.(item)}
+                  style={[styles.savedLinkRow, {minHeight: 48}]}
+                  testID={`multi-item-link-${index}`}
+                >
                   <CheckCircle2 size={12} color={colors.success} />
                   <Text style={[styles.savedLinkText, {color: colors.success}]}>
-                    Saved ID: {item.savedEntityId} ({item.kind})
+                    Open saved {item.kind}: {item.title}
                   </Text>
-                </View>
+                </TouchableOpacity>
               )}
 
+              {item.deliveryMessage && (
+                <Text style={[styles.errorText, {color: colors.warning}]}>
+                  {item.deliveryMessage}
+                </Text>
+              )}
               {/* Error display if failed */}
               {item.status === 'failed' && item.error && (
                 <Text
@@ -281,7 +387,10 @@ export const MultiActionCard: React.FC<MultiActionCardProps> = ({
               <View style={styles.itemActionsRow}>
                 {item.status === 'failed' && (
                   <TouchableOpacity
-                    style={[styles.itemButton, {backgroundColor: colors.primary}]}
+                    style={[
+                      styles.itemButton,
+                      {backgroundColor: colors.primary},
+                    ]}
                     onPress={() => onRetryItem(item.id)}
                     accessibilityRole="button"
                     accessibilityLabel={`Retry item ${index + 1}`}
@@ -294,14 +403,22 @@ export const MultiActionCard: React.FC<MultiActionCardProps> = ({
 
                 {item.status === 'draft' && (
                   <TouchableOpacity
-                    style={[styles.itemButtonSecondary, {borderColor: colors.border}]}
+                    style={[
+                      styles.itemButtonSecondary,
+                      {borderColor: colors.border},
+                    ]}
                     onPress={() => onCancelItem(item.id)}
                     accessibilityRole="button"
                     accessibilityLabel={`Remove item ${index + 1}`}
                     testID={`multi-item-cancel-${index}`}
                   >
                     <Trash2 size={12} color={colors.textSecondary} />
-                    <Text style={[styles.itemButtonTextSecondary, themed.secondaryText]}>
+                    <Text
+                      style={[
+                        styles.itemButtonTextSecondary,
+                        themed.secondaryText,
+                      ]}
+                    >
                       Remove
                     </Text>
                   </TouchableOpacity>
@@ -316,7 +433,11 @@ export const MultiActionCard: React.FC<MultiActionCardProps> = ({
       <View style={styles.footerRow}>
         {canConfirm && (
           <TouchableOpacity
-            style={[styles.confirmButton, {backgroundColor: colors.primary}, busy && {opacity: 0.6}]}
+            style={[
+              styles.confirmButton,
+              {backgroundColor: colors.primary},
+              busy && {opacity: 0.6},
+            ]}
             disabled={busy}
             onPress={onConfirmAll}
             accessibilityRole="button"

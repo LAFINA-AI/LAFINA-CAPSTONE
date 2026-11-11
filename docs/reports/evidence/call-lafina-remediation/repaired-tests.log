@@ -1,0 +1,11 @@
+PASS __tests__/ui/voiceConversationUi.test.tsx (32.219 s)
+PASS __tests__/ui/callLafinaPhase14.test.tsx
+PASS __tests__/ui/callLafinaRemediation.test.ts
+PASS __tests__/ui/callLafinaPhase15.test.tsx
+
+Test Suites: 4 passed, 4 total
+Tests:       56 passed, 56 total
+Snapshots:   0 total
+Time:        39.37 s
+Ran all test suites matching /voiceConversationUi|callLafinaPhase14|callLafinaPhase15|callLafinaRemediation/i.
+Force exiting Jest: Have you considered using `--detectOpenHandles` to detect async operations that kept running after all tests finished?

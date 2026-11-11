@@ -1,0 +1,13 @@
+PASS __tests__/ui/callLafinaRemediation.test.ts (5.406 s)
+  √ spoken revision invalidates old approval and commits the revised time (48 ms)
+  √ provider confirmation never claims a write; authoritative cancellation rejects old approval (9 ms)
+  √ legacy memory requests produce review without writing and expose the action ID (3 ms)
+  √ targeted retry never duplicates a saved item and missing reminder time fails (3 ms)
+  √ advertised grouped tool schema validates without changing fields (2 ms)
+
+Test Suites: 1 passed, 1 total
+Tests:       5 passed, 5 total
+Snapshots:   0 total
+Time:        5.848 s
+Ran all test suites matching /callLafinaRemediation/i.
+Force exiting Jest: Have you considered using `--detectOpenHandles` to detect async operations that kept running after all tests finished?

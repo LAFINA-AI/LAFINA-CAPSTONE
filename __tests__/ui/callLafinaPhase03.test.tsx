@@ -47,15 +47,26 @@ describe('Phase 03: Live Audio Ownership, Provider Voice, Interruptions & Lifecy
     }));
     localSettingsStore.set(userId, 'chat.onlineMode', 'true');
     localSettingsStore.set(userId, VOICE_CONSENT_KEY, 'true');
+    localSettingsStore.set(
+      userId,
+      'voiceConversation.directDataConsent.v1',
+      'true',
+    );
   });
 
-  const createMockReview = (proposal: CommandReviewState['proposal'] = null): CommandReviewState => ({
+  const createMockReview = (
+    proposal: CommandReviewState['proposal'] = null,
+  ): CommandReviewState => ({
     proposal,
     expired: false,
     busy: false,
     present: jest.fn(),
-    confirm: jest.fn().mockResolvedValue({status: 'executed', reply: 'Task confirmed'}),
-    cancel: jest.fn().mockReturnValue({status: 'executed', reply: 'Task canceled'}),
+    confirm: jest
+      .fn()
+      .mockResolvedValue({status: 'executed', reply: 'Task confirmed'}),
+    cancel: jest
+      .fn()
+      .mockReturnValue({status: 'executed', reply: 'Task canceled'}),
     dismiss: jest.fn(),
   });
 
@@ -104,7 +115,10 @@ describe('Phase 03: Live Audio Ownership, Provider Voice, Interruptions & Lifecy
       createSession: jest.fn().mockResolvedValue({ok: true, data: grant}),
       connected: jest.fn().mockResolvedValue(undefined),
       end: jest.fn().mockResolvedValue(undefined),
-      status: jest.fn().mockResolvedValue({ok: true, data: {status: 'active', lastErrorCode: null, lastErrorMessage: null}}),
+      status: jest.fn().mockResolvedValue({
+        ok: true,
+        data: {status: 'active', lastErrorCode: null, lastErrorMessage: null},
+      }),
     };
     return {api, grant};
   };
@@ -136,7 +150,9 @@ describe('Phase 03: Live Audio Ownership, Provider Voice, Interruptions & Lifecy
               hasConsent: () => true,
               ensureMicPermission: () => Promise.resolve(true),
             },
-            getVoice: options?.getVoice ?? (() => ({id: 'eleven-voice-rachel', name: 'Rachel'})),
+            getVoice:
+              options?.getVoice ??
+              (() => ({id: 'eleven-voice-rachel', name: 'Rachel'})),
             useHandbook: () => false,
             api,
             transport,
@@ -200,12 +216,17 @@ describe('Phase 03: Live Audio Ownership, Provider Voice, Interruptions & Lifecy
       });
 
       fireEvent.press(getByTestId('voice-conversation-start'));
-      await waitFor(() => expect(mockTransport.transport.start).toHaveBeenCalled());
+      await waitFor(() =>
+        expect(mockTransport.transport.start).toHaveBeenCalled(),
+      );
       mockTransport.emit({kind: 'open'});
 
       await waitFor(() => {
         const voiceText = getByTestId('voice-conversation-voice');
-        expect(voiceText.props.children).toEqual(['Voice: ', 'Adam (ElevenLabs)']);
+        expect(voiceText.props.children).toEqual([
+          'Voice: ',
+          'Adam (ElevenLabs)',
+        ]);
       });
     });
   });
@@ -215,7 +236,9 @@ describe('Phase 03: Live Audio Ownership, Provider Voice, Interruptions & Lifecy
       const {getByTestId, mockTransport} = renderPanel();
 
       fireEvent.press(getByTestId('voice-conversation-start'));
-      await waitFor(() => expect(mockTransport.transport.start).toHaveBeenCalled());
+      await waitFor(() =>
+        expect(mockTransport.transport.start).toHaveBeenCalled(),
+      );
       mockTransport.emit({kind: 'open'});
       mockTransport.emit({kind: 'mic', capturing: true});
 
@@ -249,13 +272,17 @@ describe('Phase 03: Live Audio Ownership, Provider Voice, Interruptions & Lifecy
       const {getByTestId, mockTransport} = renderPanel();
 
       fireEvent.press(getByTestId('voice-conversation-start'));
-      await waitFor(() => expect(mockTransport.transport.start).toHaveBeenCalled());
+      await waitFor(() =>
+        expect(mockTransport.transport.start).toHaveBeenCalled(),
+      );
       mockTransport.emit({kind: 'open'});
       mockTransport.emit({kind: 'playback', speaking: true});
       mockTransport.emit({kind: 'output_level', level: 0.8});
 
       await waitFor(() => {
-        expect(getByTestId('voice-conversation-status')).toHaveTextContent(/Speaking/);
+        expect(getByTestId('voice-conversation-status')).toHaveTextContent(
+          /Speaking/,
+        );
       });
 
       // Press Stop
@@ -263,7 +290,9 @@ describe('Phase 03: Live Audio Ownership, Provider Voice, Interruptions & Lifecy
 
       await waitFor(() => {
         expect(mockTransport.transport.stopResponse).toHaveBeenCalled();
-        expect(getByTestId('voice-conversation-status')).toHaveTextContent(/Listening/);
+        expect(getByTestId('voice-conversation-status')).toHaveTextContent(
+          /Listening/,
+        );
       });
     });
   });
@@ -273,13 +302,17 @@ describe('Phase 03: Live Audio Ownership, Provider Voice, Interruptions & Lifecy
       const {getByTestId, mockTransport} = renderPanel();
 
       fireEvent.press(getByTestId('voice-conversation-start'));
-      await waitFor(() => expect(mockTransport.transport.start).toHaveBeenCalled());
+      await waitFor(() =>
+        expect(mockTransport.transport.start).toHaveBeenCalled(),
+      );
       mockTransport.emit({kind: 'open'});
       mockTransport.emit({kind: 'playback', speaking: true});
       mockTransport.emit({kind: 'output_level', level: 0.9});
 
       await waitFor(() => {
-        expect(getByTestId('voice-conversation-status')).toHaveTextContent(/Speaking/);
+        expect(getByTestId('voice-conversation-status')).toHaveTextContent(
+          /Speaking/,
+        );
       });
 
       // User barges in: provider emits interruption
@@ -289,7 +322,9 @@ describe('Phase 03: Live Audio Ownership, Provider Voice, Interruptions & Lifecy
       });
 
       await waitFor(() => {
-        expect(getByTestId('voice-conversation-status')).toHaveTextContent(/Listening/);
+        expect(getByTestId('voice-conversation-status')).toHaveTextContent(
+          /Listening/,
+        );
       });
     });
   });
@@ -299,7 +334,9 @@ describe('Phase 03: Live Audio Ownership, Provider Voice, Interruptions & Lifecy
       const {getByTestId, mockTransport} = renderPanel();
 
       fireEvent.press(getByTestId('voice-conversation-start'));
-      await waitFor(() => expect(mockTransport.transport.start).toHaveBeenCalled());
+      await waitFor(() =>
+        expect(mockTransport.transport.start).toHaveBeenCalled(),
+      );
       mockTransport.emit({kind: 'open'});
 
       // Simulate connection drop
@@ -310,8 +347,12 @@ describe('Phase 03: Live Audio Ownership, Provider Voice, Interruptions & Lifecy
       });
 
       await waitFor(() => {
-        expect(getByTestId('voice-conversation-status')).toHaveTextContent(/Call stopped/);
-        expect(getByTestId('voice-conversation-problem-text')).toHaveTextContent(
+        expect(getByTestId('voice-conversation-status')).toHaveTextContent(
+          /Call stopped/,
+        );
+        expect(
+          getByTestId('voice-conversation-problem-text'),
+        ).toHaveTextContent(
           /The conversation connection closed. Start again when you are ready./,
         );
         expect(getByTestId('voice-conversation-restart')).toBeTruthy();
@@ -332,17 +373,21 @@ describe('Phase 03: Live Audio Ownership, Provider Voice, Interruptions & Lifecy
       const {getByTestId, mockTransport} = renderPanel();
 
       fireEvent.press(getByTestId('voice-conversation-start'));
-      await waitFor(() => expect(mockTransport.transport.start).toHaveBeenCalled());
+      await waitFor(() =>
+        expect(mockTransport.transport.start).toHaveBeenCalled(),
+      );
       mockTransport.emit({kind: 'open'});
 
       // Audio focus lost (e.g. phone call or reminder alert)
       mockTransport.emit({kind: 'audio_focus_lost'});
 
       await waitFor(() => {
-        expect(getByTestId('voice-conversation-status')).toHaveTextContent(/Call stopped/);
-        expect(getByTestId('voice-conversation-problem-text')).toHaveTextContent(
-          /A call, a reminder or another app took the audio/,
+        expect(getByTestId('voice-conversation-status')).toHaveTextContent(
+          /Call stopped/,
         );
+        expect(
+          getByTestId('voice-conversation-problem-text'),
+        ).toHaveTextContent(/A call, a reminder or another app took the audio/);
         expect(getByTestId('voice-conversation-restart')).toBeTruthy();
       });
     });

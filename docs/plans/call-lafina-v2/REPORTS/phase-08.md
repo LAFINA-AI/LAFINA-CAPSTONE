@@ -1,3 +1,5 @@
+> HISTORICAL IMPLEMENTATION REPORT. Current audit/remediation and remaining backend/phone gates: `docs/reports/phase-15-call-lafina-remediation-report.md`. Earlier completion claims below are not production/device acceptance.
+
 # Phase 08 — Notes by Speech and Note Search/Result Cards — Evidence Report
 
 - **Date/Time + Timezone**: 2026-11-10T16:35:00+08:00

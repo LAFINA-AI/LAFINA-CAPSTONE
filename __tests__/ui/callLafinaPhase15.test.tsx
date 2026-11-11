@@ -15,6 +15,8 @@ import {
   LAFINA_VOICE_SYSTEM_PROMPT,
 } from '../../src/cloud/voiceConversation/personaPolicy';
 import {actionService} from '../../src/ai/voiceActions/actionService';
+import {chatOrchestrator} from '../../src/ai/chatOrchestrator';
+import {localSettingsStore} from '../../src/storage/localSettingsStore';
 import {draftRegistry} from '../../src/ai/voiceActions/draftRegistry';
 import {tasksStore} from '../../src/storage/tasksStore';
 import {userStore} from '../../src/storage/userStore';
@@ -35,10 +37,21 @@ describe('Phase 15 — Traceability, Release Readiness, and Anti-Hallucination A
     db.executeSync(
       `INSERT OR IGNORE INTO users (id, username, email, role, is_new_user, time_format_24h, week_starts_monday, dark_mode, created_at, updated_at)
        VALUES (?, ?, ?, 'student', 0, 0, 0, 0, ?, ?)`,
-      [TEST_STUDENT_P15, TEST_STUDENT_P15, `${TEST_STUDENT_P15}@example.invalid`, now, now],
+      [
+        TEST_STUDENT_P15,
+        TEST_STUDENT_P15,
+        `${TEST_STUDENT_P15}@example.invalid`,
+        now,
+        now,
+      ],
     );
     userStore.setCurrentUser(TEST_STUDENT_P15);
     voiceConsent.write(TEST_STUDENT_P15);
+    localSettingsStore.set(
+      TEST_STUDENT_P15,
+      'voiceConversation.directDataConsent.v1',
+      'true',
+    );
     jest.spyOn(userStore, 'getActiveSessionToken').mockReturnValue({
       userId: TEST_STUDENT_P15,
       accessToken: 'token-p15',
@@ -51,24 +64,36 @@ describe('Phase 15 — Traceability, Release Readiness, and Anti-Hallucination A
   // =========================================================================
   describe('Traceability and Feature Ledger Integrity (P15-01, F-064)', () => {
     it('verifies that FEATURE_LEDGER.csv has exactly 78 features matching SPEC/FEATURE_INVENTORY.csv', () => {
-      const ledgerPath = path.resolve(__dirname, '../../docs/plans/call-lafina-v2/FEATURE_LEDGER.csv');
-      const inventoryPath = path.resolve(__dirname, '../../CALL_LAFINA_AUTONOMOUS_TASK_PACK_V1/SPEC/FEATURE_INVENTORY.csv');
+      const ledgerPath = path.resolve(
+        __dirname,
+        '../../docs/plans/call-lafina-v2/FEATURE_LEDGER.csv',
+      );
+      const inventoryPath = path.resolve(
+        __dirname,
+        '../../CALL_LAFINA_AUTONOMOUS_TASK_PACK_V1/SPEC/FEATURE_INVENTORY.csv',
+      );
 
       expect(fs.existsSync(ledgerPath)).toBe(true);
       expect(fs.existsSync(inventoryPath)).toBe(true);
 
       const ledgerRaw = fs.readFileSync(ledgerPath, 'utf8').trim().split('\n');
-      const inventoryRaw = fs.readFileSync(inventoryPath, 'utf8').trim().split('\n');
+      const inventoryRaw = fs
+        .readFileSync(inventoryPath, 'utf8')
+        .trim()
+        .split('\n');
 
       // Both must have 78 feature entries (excluding header)
       expect(ledgerRaw.length - 1).toBe(78);
       expect(inventoryRaw.length - 1).toBe(78);
 
       // Extract all feature IDs from inventory
-      const inventoryIds = inventoryRaw.slice(1).map(line => {
-        const match = line.match(/^"?([^",]+)"?/);
-        return match ? match[1].trim() : '';
-      }).filter(Boolean);
+      const inventoryIds = inventoryRaw
+        .slice(1)
+        .map(line => {
+          const match = line.match(/^"?([^",]+)"?/);
+          return match ? match[1].trim() : '';
+        })
+        .filter(Boolean);
 
       expect(inventoryIds.length).toBe(78);
 
@@ -80,8 +105,15 @@ describe('Phase 15 — Traceability, Release Readiness, and Anti-Hallucination A
     });
 
     it('verifies that no feature in FEATURE_LEDGER.csv is left in NOT_STARTED state', () => {
-      const ledgerPath = path.resolve(__dirname, '../../docs/plans/call-lafina-v2/FEATURE_LEDGER.csv');
-      const ledgerLines = fs.readFileSync(ledgerPath, 'utf8').trim().split('\n').slice(1);
+      const ledgerPath = path.resolve(
+        __dirname,
+        '../../docs/plans/call-lafina-v2/FEATURE_LEDGER.csv',
+      );
+      const ledgerLines = fs
+        .readFileSync(ledgerPath, 'utf8')
+        .trim()
+        .split('\n')
+        .slice(1);
 
       for (const line of ledgerLines) {
         expect(line).not.toContain('"NOT_STARTED"');
@@ -102,8 +134,12 @@ describe('Phase 15 — Traceability, Release Readiness, and Anti-Hallucination A
 
       // Strict anti-hallucination instruction verification
       expect(prompt).toContain('Do not invent tool progress');
-      expect(prompt).toContain('require on-screen user confirmation before committing');
-      expect(LAFINA_VOICE_SYSTEM_PROMPT).toContain('Do not invent tool progress');
+      expect(prompt).toContain(
+        'require on-screen user confirmation before committing',
+      );
+      expect(LAFINA_VOICE_SYSTEM_PROMPT).toContain(
+        'Do not invent tool progress',
+      );
     });
 
     it('guarantees that preparing a draft NEVER persists to SQLite until explicitly confirmed', async () => {
@@ -135,21 +171,31 @@ describe('Phase 15 — Traceability, Release Readiness, and Anti-Hallucination A
       const pendingDraft = drafts[0];
       expect(pendingDraft.status).toBe('pending');
 
-      // 3. Explicitly confirm the draft with valid revision
-      const confirmResult = draftRegistry.confirmDraft(TEST_STUDENT_P15, pendingDraft.cardId, 1);
-      expect(confirmResult.success).toBe(true);
-      if (confirmResult.success) {
-        expect(confirmResult.status).toBe('applied');
-        expect(confirmResult.receipt?.cardId).toBe(pendingDraft.cardId);
-      }
-
-      // 4. Idempotent re-confirmation does not duplicate
-      const secondConfirm = draftRegistry.confirmDraft(TEST_STUDENT_P15, pendingDraft.cardId, 1);
-      expect(secondConfirm.success).toBe(true);
-      if (secondConfirm.success) {
-        expect(secondConfirm.status).toBe('already_applied');
-      }
+      // The actual UI confirmation path must create one SQL row and receipt.
+      const confirmResult = await chatOrchestrator.confirmReview(
+        TEST_STUDENT_P15,
+        pendingDraft.cardId,
+        {speakReply: false},
+      );
+      expect(confirmResult.outcome?.status).toBe('applied');
+      const after = tasksStore.getAllTasks(TEST_STUDENT_P15);
+      expect(after).toHaveLength(initialCount + 1);
+      const secondConfirm = await chatOrchestrator.confirmReview(
+        TEST_STUDENT_P15,
+        pendingDraft.cardId,
+        {speakReply: false},
+      );
+      expect(secondConfirm.outcome?.status).toBe('applied');
+      if (
+        secondConfirm.outcome?.status === 'applied' &&
+        confirmResult.outcome?.status === 'applied'
+      )
+        expect(secondConfirm.outcome.receipt).toEqual(
+          confirmResult.outcome.receipt,
+        );
+      expect(tasksStore.getAllTasks(TEST_STUDENT_P15)).toHaveLength(
+        initialCount + 1,
+      );
     });
   });
 });
-

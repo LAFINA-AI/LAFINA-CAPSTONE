@@ -1,5 +1,11 @@
 cmake_minimum_required(VERSION 3.22.1)
 
+# Windows Ninja still limits generated object paths even when long paths are
+# enabled in the OS. Hash long source paths before React Native adds its targets.
+if(CMAKE_HOST_WIN32)
+  set(CMAKE_OBJECT_PATH_MAX 250)
+endif()
+
 project(appmodules LANGUAGES C CXX)
 
 set(CMAKE_CXX_STANDARD 20)

@@ -1,0 +1,93 @@
+[
+  {
+    "command": "git status --short",
+    "timestamp": "2026-11-10T19:29:54.015513+08:00",
+    "exit_code": 0,
+    "stdout": " M .gitignore\n?? docs/audits/call-lafina-v2-codex/\n",
+    "stderr": ""
+  },
+  {
+    "command": "git branch --show-current",
+    "timestamp": "2026-11-10T19:29:54.015513+08:00",
+    "exit_code": 0,
+    "stdout": "feat/call-lafina-v2\n",
+    "stderr": ""
+  },
+  {
+    "command": "git rev-parse HEAD",
+    "timestamp": "2026-11-10T19:29:54.015513+08:00",
+    "exit_code": 0,
+    "stdout": "fe489a6487884fa6667f1cc6e2e0bddbd24e386d\n",
+    "stderr": ""
+  },
+  {
+    "command": "git rev-parse --abbrev-ref @{upstream}",
+    "timestamp": "2026-11-10T19:29:54.015513+08:00",
+    "exit_code": 128,
+    "stdout": "",
+    "stderr": "fatal: no upstream configured for branch 'feat/call-lafina-v2'\n"
+  },
+  {
+    "command": "git merge-base --is-ancestor cae65fec4b0efc25dc343e3f30a4d216defa19aa HEAD",
+    "timestamp": "2026-11-10T19:29:54.015513+08:00",
+    "exit_code": 0,
+    "stdout": "",
+    "stderr": ""
+  },
+  {
+    "command": "git merge-base --is-ancestor dcbef57ec3b069be939a28e6c4b1442ea38d126a HEAD",
+    "timestamp": "2026-11-10T19:29:54.015513+08:00",
+    "exit_code": 1,
+    "stdout": "",
+    "stderr": ""
+  },
+  {
+    "command": "git diff --stat cae65fec4b0efc25dc343e3f30a4d216defa19aa..HEAD",
+    "timestamp": "2026-11-10T19:29:54.015513+08:00",
+    "exit_code": 0,
+    "stdout": " App.tsx                                            |  116 ++\n __tests__/ui/callLafinaPhase01.test.tsx            |  352 +++++\n __tests__/ui/callLafinaPhase02.test.tsx            |  284 ++++\n __tests__/ui/callLafinaPhase03.test.tsx            |  350 +++++\n __tests__/ui/callLafinaPhase04.test.tsx            |  562 ++++++++\n __tests__/ui/callLafinaPhase05.test.tsx            |  561 ++++++++\n __tests__/ui/callLafinaPhase06.test.tsx            |  424 ++++++\n __tests__/ui/callLafinaPhase07.test.tsx            |  329 +++++\n __tests__/ui/callLafinaPhase08.test.tsx            |  273 ++++\n __tests__/ui/callLafinaPhase09.test.tsx            |  496 +++++++\n __tests__/ui/callLafinaPhase10.test.tsx            |  565 ++++++++\n __tests__/ui/callLafinaPhase11.test.tsx            |  545 +++++++\n __tests__/ui/callLafinaPhase12.test.tsx            |  551 +++++++\n __tests__/ui/callLafinaPhase13.test.tsx            |  297 ++++\n __tests__/ui/callLafinaPhase14.test.tsx            |  391 +++++\n __tests__/ui/callLafinaPhase15.test.tsx            |  155 ++\n .../capstone/LafinaVoiceConversationModule.kt      |   29 +-\n .../com/lafina/capstone/VoiceConversationRules.kt  |   19 +\n .../lafina/capstone/VoiceConversationRulesTest.kt  |   47 +\n .../agent_tools_contract.md                        |  122 ++\n backend_integration/system_prompt_voice.txt        |    2 +\n ...1-background-call-and-multimodal-feasibility.md |   83 ++\n docs/plans/call-lafina-v2/BLOCKERS.md              |   27 +\n docs/plans/call-lafina-v2/FEATURE_LEDGER.csv       |   79 +\n docs/plans/call-lafina-v2/FINAL_REPORT.md          |  161 +++\n docs/plans/call-lafina-v2/OWNER_AUTHORIZATION.md   |   27 +\n docs/plans/call-lafina-v2/PROGRESS.md              |   89 ++\n docs/plans/call-lafina-v2/REPORTS/phase-00.md      |   67 +\n docs/plans/call-lafina-v2/REPORTS/phase-01.md      |   76 +\n docs/plans/call-lafina-v2/REPORTS/phase-02.md      |   59 +\n docs/plans/call-lafina-v2/REPORTS/phase-03.md      |   63 +\n docs/plans/call-lafina-v2/REPORTS/phase-04.md      |   72 +\n docs/plans/call-lafina-v2/REPORTS/phase-05.md      |   63 +\n docs/plans/call-lafina-v2/REPORTS/phase-06.md      |   79 +\n docs/plans/call-lafina-v2/REPORTS/phase-07.md      |   71 +\n docs/plans/call-lafina-v2/REPORTS/phase-08.md      |   69 +\n docs/plans/call-lafina-v2/REPORTS/phase-09.md      |   82 ++\n docs/plans/call-lafina-v2/REPORTS/phase-10.md      |   71 +\n docs/plans/call-lafina-v2/REPORTS/phase-11.md      |   72 +\n docs/plans/call-lafina-v2/REPORTS/phase-12.md      |   57 +\n docs/plans/call-lafina-v2/REPORTS/phase-13.md      |   56 +\n docs/plans/call-lafina-v2/REPORTS/phase-14.md      |   58 +\n docs/plans/call-lafina-v2/REPORTS/phase-15.md      |   54 +\n docs/plans/call-lafina-v2/STATE.json               |  206 +++\n qa/DEVICE-TEST-MATRIX.md                           |   72 +\n qa/PHASE-14-REGRESSION-MANUAL.md                   |   43 +\n src/ai/voiceActions/actionRegistry.ts              |  230 +++\n src/ai/voiceActions/actionSecurity.ts              |  102 ++\n src/ai/voiceActions/actionService.ts               |  638 +++++++++\n src/ai/voiceActions/actionValidator.ts             |  401 ++++++\n src/ai/voiceActions/conflictChecker.ts             |  149 ++\n src/ai/voiceActions/draftRegistry.ts               |  445 ++++++\n src/ai/voiceActions/multiActionService.ts          |  383 +++++\n src/ai/voiceActions/types.ts                       |  191 +++\n .../voiceConversation/callLafinaSettingsStore.ts   |  207 +++\n src/cloud/voiceConversation/controller.ts          |  123 +-\n src/cloud/voiceConversation/index.ts               |   16 +\n src/cloud/voiceConversation/localVoiceData.ts      |   10 +-\n src/cloud/voiceConversation/nativeTransport.ts     |    8 +\n src/cloud/voiceConversation/personaPolicy.ts       |  189 +++\n src/cloud/voiceConversation/types.ts               |    6 +\n src/ui/components/VoiceModal.tsx                   |   89 +-\n src/ui/components/callLafina/ActionCardHost.tsx    |  333 +++++\n .../callLafina/CallLafinaSettingsModal.tsx         |  819 +++++++++++\n src/ui/components/callLafina/CallWaveform.tsx      |  411 ++++++\n src/ui/components/callLafina/MiniCallBar.tsx       |  247 ++++\n src/ui/components/callLafina/cards/AgendaCard.tsx  |  240 ++++\n .../callLafina/cards/CalendarDraftCard.tsx         |  340 +++++\n .../callLafina/cards/MemoryReviewCard.tsx          |  429 ++++++\n .../callLafina/cards/MultiActionCard.tsx           |  592 ++++++++\n .../components/callLafina/cards/NoteDraftCard.tsx  |  286 ++++\n .../components/callLafina/cards/NoteResultCard.tsx |  193 +++\n .../callLafina/cards/ReminderDraftCard.tsx         |  288 ++++\n src/ui/components/chat/ChatMessageItem.tsx         |    2 +-\n src/ui/components/voice/VoiceConversationPanel.tsx | 1507 +++++++++++++-------\n src/ui/hooks/useVoiceConversation.ts               |    2 +\n src/ui/screens/CallLafinaScreen.tsx                |   67 +\n src/ui/screens/ChatScreen.tsx                      |   15 +\n src/ui/screens/IncomingCallScreen.tsx              |    2 +-\n 79 files changed, 16704 insertions(+), 582 deletions(-)\n",
+    "stderr": ""
+  },
+  {
+    "command": "git diff --check cae65fec4b0efc25dc343e3f30a4d216defa19aa..HEAD",
+    "timestamp": "2026-11-10T19:29:54.015513+08:00",
+    "exit_code": 2,
+    "stdout": "__tests__/ui/callLafinaPhase06.test.tsx:424: new blank line at EOF.\n__tests__/ui/callLafinaPhase07.test.tsx:329: new blank line at EOF.\n__tests__/ui/callLafinaPhase08.test.tsx:273: new blank line at EOF.\n__tests__/ui/callLafinaPhase15.test.tsx:155: new blank line at EOF.\nbackend_integration/call_lafina_v2_proposals/agent_tools_contract.md:122: new blank line at EOF.\nbackend_integration/system_prompt_voice.txt:2: new blank line at EOF.\ndocs/plans/call-lafina-v2/FINAL_REPORT.md:3: trailing whitespace.\n+> **Project:** LAFINA-CAPSTONE Android Student AI Secretary  \ndocs/plans/call-lafina-v2/FINAL_REPORT.md:4: trailing whitespace.\n+> **Feature Pack:** Call Lafina 2.0 Autonomous Implementation Pack  \ndocs/plans/call-lafina-v2/FINAL_REPORT.md:5: trailing whitespace.\n+> **Feature Branch:** `feat/call-lafina-v2`  \ndocs/plans/call-lafina-v2/FINAL_REPORT.md:6: trailing whitespace.\n+> **Base Branch:** `Lem-branch`  \ndocs/plans/call-lafina-v2/FINAL_REPORT.md:7: trailing whitespace.\n+> **Remote Origin:** `https://github.com/LAFINA-AI/LAFINA-CAPSTONE.git`  \ndocs/plans/call-lafina-v2/FINAL_REPORT.md:8: trailing whitespace.\n+> **Status:** `STATUS: READY FOR REVIEW` / `STATUS: AWAITING DEVICE VALIDATION`  \ndocs/plans/call-lafina-v2/FINAL_REPORT.md:9: trailing whitespace.\n+> **Date of Handoff:** 2026-11-10  \ndocs/plans/call-lafina-v2/FINAL_REPORT.md:160: trailing whitespace.\n+`STATUS: READY FOR REVIEW`  \nsrc/ai/voiceActions/actionRegistry.ts:230: new blank line at EOF.\nsrc/ai/voiceActions/actionValidator.ts:401: new blank line at EOF.\nsrc/ai/voiceActions/conflictChecker.ts:149: new blank line at EOF.\nsrc/ai/voiceActions/types.ts:191: new blank line at EOF.\nsrc/ui/components/callLafina/cards/AgendaCard.tsx:240: new blank line at EOF.\nsrc/ui/components/callLafina/cards/CalendarDraftCard.tsx:340: new blank line at EOF.\nsrc/ui/components/callLafina/cards/NoteDraftCard.tsx:286: new blank line at EOF.\nsrc/ui/components/callLafina/cards/NoteResultCard.tsx:193: new blank line at EOF.\nsrc/ui/components/callLafina/cards/ReminderDraftCard.tsx:288: new blank line at EOF.\nsrc/ui/screens/CallLafinaScreen.tsx:67: new blank line at EOF.\n",
+    "stderr": ""
+  },
+  {
+    "command": "git diff --name-status cae65fec4b0efc25dc343e3f30a4d216defa19aa..HEAD",
+    "timestamp": "2026-11-10T19:29:54.015513+08:00",
+    "exit_code": 0,
+    "stdout": "M\tApp.tsx\nA\t__tests__/ui/callLafinaPhase01.test.tsx\nA\t__tests__/ui/callLafinaPhase02.test.tsx\nA\t__tests__/ui/callLafinaPhase03.test.tsx\nA\t__tests__/ui/callLafinaPhase04.test.tsx\nA\t__tests__/ui/callLafinaPhase05.test.tsx\nA\t__tests__/ui/callLafinaPhase06.test.tsx\nA\t__tests__/ui/callLafinaPhase07.test.tsx\nA\t__tests__/ui/callLafinaPhase08.test.tsx\nA\t__tests__/ui/callLafinaPhase09.test.tsx\nA\t__tests__/ui/callLafinaPhase10.test.tsx\nA\t__tests__/ui/callLafinaPhase11.test.tsx\nA\t__tests__/ui/callLafinaPhase12.test.tsx\nA\t__tests__/ui/callLafinaPhase13.test.tsx\nA\t__tests__/ui/callLafinaPhase14.test.tsx\nA\t__tests__/ui/callLafinaPhase15.test.tsx\nM\tandroid/app/src/main/java/com/lafina/capstone/LafinaVoiceConversationModule.kt\nM\tandroid/app/src/main/java/com/lafina/capstone/VoiceConversationRules.kt\nM\tandroid/app/src/test/java/com/lafina/capstone/VoiceConversationRulesTest.kt\nA\tbackend_integration/call_lafina_v2_proposals/agent_tools_contract.md\nA\tbackend_integration/system_prompt_voice.txt\nA\tdocs/decisions/ADR-031-background-call-and-multimodal-feasibility.md\nA\tdocs/plans/call-lafina-v2/BLOCKERS.md\nA\tdocs/plans/call-lafina-v2/FEATURE_LEDGER.csv\nA\tdocs/plans/call-lafina-v2/FINAL_REPORT.md\nA\tdocs/plans/call-lafina-v2/OWNER_AUTHORIZATION.md\nA\tdocs/plans/call-lafina-v2/PROGRESS.md\nA\tdocs/plans/call-lafina-v2/REPORTS/phase-00.md\nA\tdocs/plans/call-lafina-v2/REPORTS/phase-01.md\nA\tdocs/plans/call-lafina-v2/REPORTS/phase-02.md\nA\tdocs/plans/call-lafina-v2/REPORTS/phase-03.md\nA\tdocs/plans/call-lafina-v2/REPORTS/phase-04.md\nA\tdocs/plans/call-lafina-v2/REPORTS/phase-05.md\nA\tdocs/plans/call-lafina-v2/REPORTS/phase-06.md\nA\tdocs/plans/call-lafina-v2/REPORTS/phase-07.md\nA\tdocs/plans/call-lafina-v2/REPORTS/phase-08.md\nA\tdocs/plans/call-lafina-v2/REPORTS/phase-09.md\nA\tdocs/plans/call-lafina-v2/REPORTS/phase-10.md\nA\tdocs/plans/call-lafina-v2/REPORTS/phase-11.md\nA\tdocs/plans/call-lafina-v2/REPORTS/phase-12.md\nA\tdocs/plans/call-lafina-v2/REPORTS/phase-13.md\nA\tdocs/plans/call-lafina-v2/REPORTS/phase-14.md\nA\tdocs/plans/call-lafina-v2/REPORTS/phase-15.md\nA\tdocs/plans/call-lafina-v2/STATE.json\nA\tqa/DEVICE-TEST-MATRIX.md\nA\tqa/PHASE-14-REGRESSION-MANUAL.md\nA\tsrc/ai/voiceActions/actionRegistry.ts\nA\tsrc/ai/voiceActions/actionSecurity.ts\nA\tsrc/ai/voiceActions/actionService.ts\nA\tsrc/ai/voiceActions/actionValidator.ts\nA\tsrc/ai/voiceActions/conflictChecker.ts\nA\tsrc/ai/voiceActions/draftRegistry.ts\nA\tsrc/ai/voiceActions/multiActionService.ts\nA\tsrc/ai/voiceActions/types.ts\nA\tsrc/cloud/voiceConversation/callLafinaSettingsStore.ts\nM\tsrc/cloud/voiceConversation/controller.ts\nM\tsrc/cloud/voiceConversation/index.ts\nM\tsrc/cloud/voiceConversation/localVoiceData.ts\nM\tsrc/cloud/voiceConversation/nativeTransport.ts\nA\tsrc/cloud/voiceConversation/personaPolicy.ts\nM\tsrc/cloud/voiceConversation/types.ts\nM\tsrc/ui/components/VoiceModal.tsx\nA\tsrc/ui/components/callLafina/ActionCardHost.tsx\nA\tsrc/ui/components/callLafina/CallLafinaSettingsModal.tsx\nA\tsrc/ui/components/callLafina/CallWaveform.tsx\nA\tsrc/ui/components/callLafina/MiniCallBar.tsx\nA\tsrc/ui/components/callLafina/cards/AgendaCard.tsx\nA\tsrc/ui/components/callLafina/cards/CalendarDraftCard.tsx\nA\tsrc/ui/components/callLafina/cards/MemoryReviewCard.tsx\nA\tsrc/ui/components/callLafina/cards/MultiActionCard.tsx\nA\tsrc/ui/components/callLafina/cards/NoteDraftCard.tsx\nA\tsrc/ui/components/callLafina/cards/NoteResultCard.tsx\nA\tsrc/ui/components/callLafina/cards/ReminderDraftCard.tsx\nM\tsrc/ui/components/chat/ChatMessageItem.tsx\nM\tsrc/ui/components/voice/VoiceConversationPanel.tsx\nM\tsrc/ui/hooks/useVoiceConversation.ts\nA\tsrc/ui/screens/CallLafinaScreen.tsx\nM\tsrc/ui/screens/ChatScreen.tsx\nM\tsrc/ui/screens/IncomingCallScreen.tsx\n",
+    "stderr": ""
+  },
+  {
+    "command": "git log \"--format=%h %s\" cae65fec4b0efc25dc343e3f30a4d216defa19aa..HEAD",
+    "timestamp": "2026-11-10T19:29:54.015513+08:00",
+    "exit_code": 0,
+    "stdout": "fe489a6 chore(call-lafina-v2): record final commit SHA in STATE.json for Phase 15\n5ee4d2a feat(call-lafina-v2): Phase 15 - traceability audit, release readiness, and capstone handoff\n243fbb4 chore(call-lafina-v2): record commit SHA in STATE.json for Phase 14\nfc9ffd3 feat(call-lafina-v2): Phase 14 - reliability, security, privacy, and audio regression\nd24ea14 chore(call-lafina-v2): record commit SHA in STATE.json for Phase 13\n8412fe7 feat(call-lafina-v2): Phase 13 - in-app mini-call, background feasibility research, and multimodal analysis\nc2a5002 chore(call-lafina-v2): record commit SHA in STATE.json for Phase 12\n898c7c8 feat(call-lafina-v2): Phase 12 - voice choice, language preferences, and interaction settings\n72681e2 chore(call-lafina-v2): record commit SHA in STATE.json and PROGRESS.md for Phase 11\n29bdc76 feat(call-lafina): Phase 11 - multi-action workflow, follow-ups, and authoritative results\nb0250ce chore(call-lafina-v2): record commit SHA in STATE.json and PROGRESS.md for Phase 10\n8c5b612 feat(call-lafina): Phase 10 - multi-turn draft correction, referents, and idempotency\n2be4e29 chore(call-lafina-v2): record commit SHA in STATE.json and PROGRESS.md for Phase 09\nc75945e feat(call-lafina-v2): Phase 09 - MemoryReviewCard, explicit memory proposals, bounded recall, and privacy controls\ncd8909a chore(call-lafina-v2): record commit SHA in STATE.json and PROGRESS.md for Phase 08\n77c52ed feat(call-lafina-v2): Phase 08 - NoteDraftCard, NoteResultCard, and note search integration\n65ca848 chore(call-lafina-v2): record commit SHA in STATE.json for Phase 07\ne01a389 feat(call-lafina-v2): Phase 07 - ReminderDraftCard, CalendarDraftCard, AgendaCard, and conflictChecker\nbdf0cf5 chore(call-lafina-v2): record commit SHA in STATE.json for Phase 06\nb963602 feat(call-lafina-v2): Phase 06 - secure structured agent-tool bridge, ActionCardHost, and schema validation\n9888e80 chore(call-lafina-v2): record commit SHA in STATE.json for Phase 05\n9f3da70 feat(call-lafina-v2): Phase 05 - collapsible transcript, auto-scroll, jump to latest, and typed input continuity\n0df039a chore(call-lafina-v2): record commit SHA in STATE.json for Phase 04\n6fb8629 feat(call-lafina-v2): Phase 04 - human-feeling voice persona, reasoning scrubbing, and patient turn-taking\nb0b30f5 chore(call-lafina-v2): record commit SHA in STATE.json for Phase 03\n897c9e3 feat(call-lafina-v2): Phase 03 - single audio output ownership, voice identity, barge-in, and lifecycle management\n44fedb4 chore(call-lafina-v2): record commit SHA in STATE.json for Phase 02\n33900b9 feat(call-lafina-v2): Phase 02 - dual reactive audio waveforms, native AudioTrack PCM RMS, and truthful visual state transitions\nc14fea7 feat(call-lafina-v2): Phase 01 - rename entry points, dedicated full-screen CallLafinaScreen, live timer and dock controls\n549b9f8 docs(call-lafina-v2): initialize phase 00 baseline, ledgers, and authorization\n",
+    "stderr": ""
+  },
+  {
+    "command": "python CALL_LAFINA_AUTONOMOUS_TASK_PACK_V1/scripts/validate_pack.py",
+    "timestamp": "2026-11-10T19:29:54.015513+08:00",
+    "exit_code": 0,
+    "stdout": "TASK PACK VALIDATION\nPhases: 16 Implementation checks: 151 Features: 78 QA scenarios: 70\nPASS: all pack structural/coverage checks passed (does NOT validate app implementation).\n",
+    "stderr": ""
+  },
+  {
+    "command": "node --version",
+    "timestamp": "2026-11-10T19:29:54.015513+08:00",
+    "exit_code": 0,
+    "stdout": "v24.19.0\n",
+    "stderr": ""
+  },
+  {
+    "command": "java -version",
+    "timestamp": "2026-11-10T19:29:54.015513+08:00",
+    "exit_code": 0,
+    "stdout": "",
+    "stderr": "openjdk version \"17.0.20.1\" 2026-08-18 LTS\nOpenJDK Runtime Environment Microsoft-14940689 (build 17.0.20.1+1-LTS)\nOpenJDK 64-Bit Server VM Microsoft-14940689 (build 17.0.20.1+1-LTS, mixed mode, sharing)\n"
+  }
+]

@@ -59,6 +59,8 @@ export interface ConversationTiming {
 }
 
 export interface ConversationSnapshot {
+  /** Monotonic session start for consistent full-screen/mini-bar elapsed time. */
+  connectedAt?: number | null;
   phase: ConversationPhase;
   muted: boolean;
   /** True only while the native recorder is actually capturing. */

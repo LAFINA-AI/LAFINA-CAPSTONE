@@ -1,0 +1,71 @@
+{
+  "F": {
+    "AUTOMATED_PASS": 9,
+    "PARTIAL": 31,
+    "CODE_PRESENT_UNVERIFIED": 5,
+    "FAILED": 24,
+    "MISSING": 3,
+    "EXTERNAL_BLOCKED": 1,
+    "NOT_RUN": 3,
+    "DEFERRED_APPROVAL": 2
+  },
+  "P": {
+    "AUTOMATED_PASS": 27,
+    "CODE_PRESENT_UNVERIFIED": 15,
+    "EXTERNAL_BLOCKED": 3,
+    "PARTIAL": 59,
+    "NOT_RUN": 7,
+    "FAILED": 38,
+    "DEFERRED_APPROVAL": 2
+  },
+  "T": {
+    "NOT_RUN": 21,
+    "FAILED": 20,
+    "PARTIAL": 22,
+    "AUTOMATED_PASS": 4,
+    "EXTERNAL_BLOCKED": 1,
+    "DEFERRED_APPROVAL": 2
+  },
+  "feature_priority": {
+    "P0": {
+      "AUTOMATED_PASS": 8,
+      "PARTIAL": 25,
+      "CODE_PRESENT_UNVERIFIED": 5,
+      "FAILED": 14,
+      "MISSING": 1,
+      "EXTERNAL_BLOCKED": 1,
+      "NOT_RUN": 1
+    },
+    "P1": {
+      "PARTIAL": 5,
+      "AUTOMATED_PASS": 1,
+      "FAILED": 9,
+      "MISSING": 2,
+      "NOT_RUN": 2
+    },
+    "P2": {
+      "DEFERRED_APPROVAL": 2,
+      "FAILED": 1,
+      "PARTIAL": 1
+    }
+  },
+  "source_present": 75,
+  "automated_acceptance_verified": 9,
+  "real_device_verified": 0,
+  "real_service_verified": 0,
+  "findings_by_severity": {
+    "HIGH": 13,
+    "MEDIUM": 4
+  },
+  "inventory_counts": {
+    "phases": 16,
+    "features": 78,
+    "phase_items": 151,
+    "qa_scenarios": 70
+  },
+  "native_tests": 54,
+  "pack_manifest": {
+    "entries": 37,
+    "matched": 37
+  }
+}

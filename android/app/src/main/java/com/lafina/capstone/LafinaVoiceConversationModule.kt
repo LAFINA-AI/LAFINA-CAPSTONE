@@ -70,6 +70,7 @@ class LafinaVoiceConversationModule(private val reactContext: ReactApplicationCo
       .connectTimeout(15, TimeUnit.SECONDS)
       .readTimeout(0, TimeUnit.MILLISECONDS)
       .writeTimeout(10, TimeUnit.SECONDS)
+      .pingInterval(10, TimeUnit.SECONDS)
       .followRedirects(false)
       .build()
   }
@@ -210,6 +211,7 @@ class LafinaVoiceConversationModule(private val reactContext: ReactApplicationCo
           if (eventId >= 0) webSocket.send(VoiceConversationRules.pongMessage(eventId))
           return
         }
+        "vad_score" -> return
         "audio" -> {
           if (owner.suppressAgentAudio) return
           val encoded = message.optJSONObject("audio_event")?.optString("audio_base_64").orEmpty()
@@ -259,7 +261,7 @@ class LafinaVoiceConversationModule(private val reactContext: ReactApplicationCo
     override fun onFailure(webSocket: WebSocket, t: Throwable, response: Response?) {
       if (owner.ended.get()) return
       val status = response?.code ?: 0
-      Log.w(TAG, "Conversation socket failed (${t.javaClass.simpleName}, HTTP $status)")
+      Log.w(TAG, "Conversation socket failed (${t.javaClass.simpleName}, message=${t.message}, HTTP $status)")
       val start = owner.startPromise
       if (start != null) {
         owner.startPromise = null
@@ -276,6 +278,7 @@ class LafinaVoiceConversationModule(private val reactContext: ReactApplicationCo
 
   private fun remoteEnded(owner: Session, code: Int, reason: String) {
     if (owner.ended.get()) return
+    Log.i(TAG, "Conversation closed by remote: code=$code, reason=$reason")
     owner.startPromise?.reject("CONNECT_FAILED", "The conversation closed before it started.")
     owner.startPromise = null
     emit(owner.key, "closed") {

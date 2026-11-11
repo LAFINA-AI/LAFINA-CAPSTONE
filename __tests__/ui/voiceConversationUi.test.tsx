@@ -17,6 +17,7 @@ import {
   tasksStore,
   userStore,
   chatMemoryStore,
+  notesStore,
 } from '../../src/storage';
 import {cloudClient} from '../../src/cloud/cloudClient';
 import {
@@ -31,6 +32,7 @@ import type {
 import {endReviewSession} from '../../src/ai/nlu/commandReview';
 import {ttsService} from '../../src/ai/tts/ttsService';
 import {useCommandReview} from '../../src/ui/hooks/useCommandReview';
+import type {CallNavigationTarget} from '../../src/ui/navigation/callNavigation';
 import {GUEST_USER_ID} from '../../src/constants';
 import {directTestVoiceApi} from '../../src/cloud/directProviderTest';
 
@@ -59,6 +61,11 @@ const signIn = (userId: string, {online = true, consent = true} = {}) => {
   }));
   localSettingsStore.set(userId, 'chat.onlineMode', online ? 'true' : 'false');
   localSettingsStore.set(userId, VOICE_CONSENT_KEY, consent ? 'true' : 'false');
+  localSettingsStore.set(
+    userId,
+    'voiceConversation.directDataConsent.v1',
+    consent ? 'true' : 'false',
+  );
 };
 
 /** Fake backend for the voice routes; any other path fails the test. */
@@ -145,15 +152,17 @@ const fakeTransport = () => {
   return {transport, calls, message, emit};
 };
 
-const PanelHost: React.FC<{userId: string; transport: VoiceTransport}> = ({
-  userId,
-  transport,
-}) => {
+const PanelHost: React.FC<{
+  userId: string;
+  transport: VoiceTransport;
+  onNavigate?: (target: CallNavigationTarget) => void;
+}> = ({userId, transport, onNavigate}) => {
   const review = useCommandReview(userId, 'voice');
   return (
     <VoiceConversationPanel
       userId={userId}
       review={review}
+      onNavigate={onNavigate}
       onBack={() => undefined}
       deps={id => ({
         ...defaultVoiceConversationDeps(id),
@@ -164,10 +173,18 @@ const PanelHost: React.FC<{userId: string; transport: VoiceTransport}> = ({
   );
 };
 
-const renderPanel = (userId: string, transport: VoiceTransport) =>
+const renderPanel = (
+  userId: string,
+  transport: VoiceTransport,
+  onNavigate?: (target: CallNavigationTarget) => void,
+) =>
   render(
     <ThemeProvider userId={userId}>
-      <PanelHost userId={userId} transport={transport} />
+      <PanelHost
+        userId={userId}
+        transport={transport}
+        onNavigate={onNavigate}
+      />
     </ThemeProvider>,
   );
 
@@ -214,6 +231,11 @@ describe('voice conversation entry in the voice sheet', () => {
     const paths = fakeServer();
     const {transport, calls} = fakeTransport();
     localSettingsStore.set(GUEST_USER_ID, VOICE_CONSENT_KEY, 'true');
+    localSettingsStore.set(
+      GUEST_USER_ID,
+      'voiceConversation.directDataConsent.v1',
+      'true',
+    );
     const utils = renderPanel(GUEST_USER_ID, transport);
     fireEvent.press(utils.getByTestId('voice-conversation-start'));
     expect(
@@ -302,74 +324,193 @@ const PanelHostDefault: React.FC<{userId: string}> = ({userId}) => {
 };
 
 describe('a live conversation', () => {
-  test('direct voice saves a spoken study preference rather than showing a schedule card', async () => {
+  test('direct voice requires memory review and on-screen approval', async () => {
     const userId = student('voice-memory');
     signIn(userId);
     const modules = NativeModules as Record<string, unknown>;
     const original = modules.CapstoneBuild;
-    modules.CapstoneBuild = {providerTestingEnabled:true, directElevenKey:'test', directDeepseekKey:'test', directAgentId:'test', directVoiceId:'test'};
-    localSettingsStore.set(userId, 'voiceConversation.directDataConsent.v1', 'true');
-    jest.spyOn(directTestVoiceApi, 'capabilities').mockResolvedValue({ok:true,data:{enabled:true,maxDurationSeconds:300,maxTurns:30}});
-    jest.spyOn(directTestVoiceApi, 'createSession').mockResolvedValue({ok:true,data:{sessionId:SESSION_ID,signedUrl:'wss://api.elevenlabs.io/v1/convai/conversation?agent_id=a&conversation_signature=s',grant:'',voiceId:'test',expiresAt:new Date(Date.now()+300000).toISOString(),maxDurationSeconds:300,maxTurns:30}});
+    modules.CapstoneBuild = {
+      providerTestingEnabled: true,
+      directElevenKey: 'test',
+      directDeepseekKey: 'test',
+      directAgentId: 'test',
+      directVoiceId: 'test',
+    };
+    localSettingsStore.set(
+      userId,
+      'voiceConversation.directDataConsent.v1',
+      'true',
+    );
+    jest.spyOn(directTestVoiceApi, 'capabilities').mockResolvedValue({
+      ok: true,
+      data: {enabled: true, maxDurationSeconds: 300, maxTurns: 30},
+    });
+    jest.spyOn(directTestVoiceApi, 'createSession').mockResolvedValue({
+      ok: true,
+      data: {
+        sessionId: SESSION_ID,
+        signedUrl:
+          'wss://api.elevenlabs.io/v1/convai/conversation?agent_id=a&conversation_signature=s',
+        grant: '',
+        voiceId: 'test',
+        expiresAt: new Date(Date.now() + 300000).toISOString(),
+        maxDurationSeconds: 300,
+        maxTurns: 30,
+      },
+    });
     const {transport, calls, message} = fakeTransport();
     const sent: string[] = [];
-    transport.sendMessage = async (_key, json) => { sent.push(json); return true; };
+    transport.sendMessage = async (_key, json) => {
+      sent.push(json);
+      return true;
+    };
     try {
       const utils = renderPanel(userId, transport);
       fireEvent.press(utils.getByTestId('voice-conversation-start'));
       await waitFor(() => expect(calls.start).toBe(1));
-      message({type:'user_transcript',user_transcription_event:{user_transcript:'Remember that I like studying between 10pm to 2am',event_id:1}});
-      // Save is deterministic even if the provider omits its tool call.
-      await waitFor(() => expect(chatMemoryStore.list(userId).map(m => m.text)).toContain('Prefers studying between 10pm to 2am.'));
-      message({type:'client_tool_call',client_tool_call:{tool_name:'save_lafina_memory',tool_call_id:'memory-1',parameters:{request:'Remember that I like studying between 10pm to 2am'}}});
-      await waitFor(() => expect(sent.some(s => s.includes('I saved that in your memory'))).toBe(true));
-      expect(chatMemoryStore.list(userId).map(m => m.text)).toContain('Prefers studying between 10pm to 2am.');
-      expect(chatMemoryStore.list(userId)).toHaveLength(1);
-      expect(utils.queryByTestId('voice-conversation-review-card')).toBeNull();
+      message({
+        type: 'user_transcript',
+        user_transcription_event: {
+          user_transcript: 'Remember that I like studying between 10pm to 2am',
+          event_id: 1,
+        },
+      });
+      await waitFor(() =>
+        expect(utils.getByTestId('memory-review-card')).toBeTruthy(),
+      );
+      expect(chatMemoryStore.list(userId)).toHaveLength(0);
+      message({
+        type: 'client_tool_call',
+        client_tool_call: {
+          tool_name: 'save_lafina_memory',
+          tool_call_id: 'memory-1',
+          parameters: {
+            request: 'Remember that I like studying between 10pm to 2am',
+          },
+        },
+      });
+      await waitFor(() =>
+        expect(
+          sent.some(value => value.includes('Nothing has been saved')),
+        ).toBe(true),
+      );
+      expect(chatMemoryStore.list(userId)).toHaveLength(0);
+      fireEvent.press(utils.getByTestId('memory-draft-confirm'));
+      await waitFor(() => expect(chatMemoryStore.list(userId)).toHaveLength(1));
+      expect(chatMemoryStore.list(userId)[0].text).toBe(
+        'Prefers studying between 10pm to 2am.',
+      );
       utils.unmount();
-    } finally { modules.CapstoneBuild = original; }
+    } finally {
+      modules.CapstoneBuild = original;
+    }
   });
 
-  test('direct personal-data tools require their own disclosure even with prior voice consent', () => {
-    const userId = student('data-consent');
-    signIn(userId);
-    const modules = NativeModules as Record<string, unknown>;
-    const original = modules.CapstoneBuild;
-    modules.CapstoneBuild = {providerTestingEnabled:true, directElevenKey:'test', directDeepseekKey:'test', directAgentId:'test', directVoiceId:'test'};
-    try {
-      const {transport} = fakeTransport();
-      const utils = renderPanel(userId, transport);
-      expect(utils.getByTestId('voice-conversation-consent')).toHaveTextContent(/calendar, notes or saved memories/);
-      expect(utils.queryByTestId('voice-conversation-start')).toBeNull();
-      utils.unmount();
-    } finally { modules.CapstoneBuild = original; }
-  });
+  test.each([false, true])(
+    'personal-data tools require disclosure even with prior voice consent (direct=%s)',
+    direct => {
+      const userId = student('data-consent');
+      signIn(userId);
+      localSettingsStore.set(
+        userId,
+        'voiceConversation.directDataConsent.v1',
+        'false',
+      );
+      const modules = NativeModules as Record<string, unknown>;
+      const original = modules.CapstoneBuild;
+      modules.CapstoneBuild = {
+        providerTestingEnabled: direct,
+        directElevenKey: 'test',
+        directDeepseekKey: 'test',
+        directAgentId: 'test',
+        directVoiceId: 'test',
+      };
+      try {
+        const {transport} = fakeTransport();
+        const utils = renderPanel(userId, transport);
+        expect(
+          utils.getByTestId('voice-conversation-consent'),
+        ).toHaveTextContent(/calendar, notes or saved memories/);
+        expect(utils.queryByTestId('voice-conversation-start')).toBeNull();
+        utils.unmount();
+      } finally {
+        modules.CapstoneBuild = original;
+      }
+    },
+  );
 
   test('direct agent receives a truthful review result without saving the task', async () => {
     const userId = student('tool');
     signIn(userId);
     const modules = NativeModules as Record<string, unknown>;
     const original = modules.CapstoneBuild;
-    modules.CapstoneBuild = {providerTestingEnabled:true, directElevenKey:'test', directDeepseekKey:'test', directAgentId:'test', directVoiceId:'test'};
-    localSettingsStore.set(userId, 'voiceConversation.directDataConsent.v1', 'true');
-    jest.spyOn(directTestVoiceApi, 'capabilities').mockResolvedValue({ok:true,data:{enabled:true,maxDurationSeconds:300,maxTurns:30}});
-    jest.spyOn(directTestVoiceApi, 'createSession').mockResolvedValue({ok:true,data:{sessionId:SESSION_ID,signedUrl:'wss://api.elevenlabs.io/v1/convai/conversation?agent_id=a&conversation_signature=s',grant:'',voiceId:'test',expiresAt:new Date(Date.now()+300000).toISOString(),maxDurationSeconds:300,maxTurns:30}});
+    modules.CapstoneBuild = {
+      providerTestingEnabled: true,
+      directElevenKey: 'test',
+      directDeepseekKey: 'test',
+      directAgentId: 'test',
+      directVoiceId: 'test',
+    };
+    localSettingsStore.set(
+      userId,
+      'voiceConversation.directDataConsent.v1',
+      'true',
+    );
+    jest.spyOn(directTestVoiceApi, 'capabilities').mockResolvedValue({
+      ok: true,
+      data: {enabled: true, maxDurationSeconds: 300, maxTurns: 30},
+    });
+    jest.spyOn(directTestVoiceApi, 'createSession').mockResolvedValue({
+      ok: true,
+      data: {
+        sessionId: SESSION_ID,
+        signedUrl:
+          'wss://api.elevenlabs.io/v1/convai/conversation?agent_id=a&conversation_signature=s',
+        grant: '',
+        voiceId: 'test',
+        expiresAt: new Date(Date.now() + 300000).toISOString(),
+        maxDurationSeconds: 300,
+        maxTurns: 30,
+      },
+    });
     const {transport, calls, message} = fakeTransport();
     const sent: string[] = [];
-    transport.sendMessage = async (_key, json) => { sent.push(json); return true; };
+    transport.sendMessage = async (_key, json) => {
+      sent.push(json);
+      return true;
+    };
     const before = tasksStore.getAllTasks(userId).length;
     try {
       const utils = renderPanel(userId, transport);
       fireEvent.press(utils.getByTestId('voice-conversation-start'));
       await waitFor(() => expect(calls.start).toBe(1));
       // A follow-up may contain only details; the agent combines the request.
-      message({type:'user_transcript',user_transcription_event:{user_transcript:'Read chapter 5',event_id:1}});
-      message({type:'client_tool_call',client_tool_call:{tool_name:'prepare_lafina_action',tool_call_id:'call-1',parameters:{request:'Add task: read chapter 5'}}});
-      expect(await utils.findByTestId('voice-conversation-review-card')).toBeTruthy();
-      await waitFor(() => expect(sent.some(s => s.includes('Nothing has been saved'))).toBe(true));
+      message({
+        type: 'user_transcript',
+        user_transcription_event: {
+          user_transcript: 'Read chapter 5',
+          event_id: 1,
+        },
+      });
+      message({
+        type: 'client_tool_call',
+        client_tool_call: {
+          tool_name: 'prepare_lafina_action',
+          tool_call_id: 'call-1',
+          parameters: {request: 'Add task: read chapter 5'},
+        },
+      });
+      expect(
+        await utils.findByTestId('voice-conversation-review-card'),
+      ).toBeTruthy();
+      await waitFor(() =>
+        expect(sent.some(s => s.includes('Nothing has been saved'))).toBe(true),
+      );
       expect(tasksStore.getAllTasks(userId)).toHaveLength(before);
       utils.unmount();
-    } finally { modules.CapstoneBuild = original; }
+    } finally {
+      modules.CapstoneBuild = original;
+    }
   });
 
   test('live words, controls, a reviewed planner change and saved turns', async () => {
@@ -453,7 +594,7 @@ describe('a live conversation', () => {
     ]);
     // Speaking never confirmed the review.
     expect(tasksStore.getAllTasks(userId)).toHaveLength(tasksBefore);
-    expect(utils.getByTestId('voice-conversation-review-card')).toBeTruthy();
+    expect(utils.queryByTestId('voice-conversation-review-card')).toBeNull();
   });
 
   test('a reminder call stops the conversation; only a tap starts it again', async () => {
@@ -528,5 +669,176 @@ describe('Chat history', () => {
       </ThemeProvider>,
     );
     expect(utils.getAllByTestId('chat-voice-interrupted')).toHaveLength(1);
+  });
+});
+
+describe('connected Call Lafina result cards', () => {
+  test('provider note search renders the actual local note and opens its exact ID without ending the call', async () => {
+    const userId = student('results');
+    signIn(userId);
+    fakeServer();
+    notesStore.insert({
+      id: 'panel-note',
+      userId,
+      title: 'Quantum panel note',
+      body: 'Synthetic excerpt',
+      category: 'Personal',
+      tags: [],
+      isPinned: false,
+      isVoiceTranscribed: false,
+      imageUri: null,
+    });
+    const {transport, calls, message} = fakeTransport();
+    const navigate = jest.fn();
+    const utils = renderPanel(userId, transport, navigate);
+    fireEvent.press(utils.getByTestId('voice-conversation-start'));
+    await waitFor(() => expect(calls.start).toBe(1));
+    message({
+      type: 'client_tool_call',
+      client_tool_call: {
+        tool_name: 'search_notes',
+        tool_call_id: 'search-panel',
+        parameters: {query: 'Quantum panel'},
+      },
+    });
+    await waitFor(() =>
+      expect(utils.getByTestId('call-note-results')).toBeTruthy(),
+    );
+    expect(utils.getByText('Quantum panel note')).toBeTruthy();
+    fireEvent.press(utils.getByTestId('note-result-open-note'));
+    expect(navigate).toHaveBeenCalledWith({
+      ownerId: userId,
+      screen: 'notes',
+      entityKind: 'note',
+      entityId: 'panel-note',
+    });
+    expect(calls.end).toBe(0);
+    fireEvent.press(utils.getByLabelText('Read earlier Chat messages'));
+    expect(navigate).toHaveBeenLastCalledWith({
+      ownerId: userId,
+      screen: 'chat',
+    });
+  });
+  test('provider calendar read renders a bounded agenda and opens Calendar on the requested date', async () => {
+    const userId = student('agenda');
+    signIn(userId);
+    fakeServer();
+    tasksStore.insertEvent({
+      id: 'panel-event',
+      userId,
+      title: 'Panel lecture',
+      date: '2030-06-01',
+      startTime: '10:00',
+      endTime: '11:00',
+      location: null,
+      recurrenceRule: null,
+    });
+    const {transport, calls, message} = fakeTransport();
+    const navigate = jest.fn();
+    const utils = renderPanel(userId, transport, navigate);
+    fireEvent.press(utils.getByTestId('voice-conversation-start'));
+    await waitFor(() => expect(calls.start).toBe(1));
+    message({
+      type: 'client_tool_call',
+      client_tool_call: {
+        tool_name: 'read_calendar',
+        tool_call_id: 'agenda-panel',
+        parameters: {date: '2030-06-01'},
+      },
+    });
+    await waitFor(() =>
+      expect(utils.getByTestId('call-agenda-result')).toBeTruthy(),
+    );
+    expect(utils.getByText('Panel lecture (2030-06-01)')).toBeTruthy();
+    fireEvent.press(utils.getByLabelText('Open agenda in Calendar'));
+    expect(navigate).toHaveBeenCalledWith({
+      ownerId: userId,
+      screen: 'calendar',
+      date: '2030-06-01',
+    });
+    expect(calls.end).toBe(0);
+  });
+});
+
+describe('Call Lafina draft ambiguity and grouped editing', () => {
+  test('ambiguous cancel with a memory and planner draft does not choose one', async () => {
+    const userId = student('ambiguous');
+    signIn(userId);
+    fakeServer();
+    chatMemoryStore.setEnabled(userId, true);
+    const {transport, calls, message} = fakeTransport();
+    const utils = renderPanel(userId, transport);
+    fireEvent.press(utils.getByTestId('voice-conversation-start'));
+    await waitFor(() => expect(calls.start).toBe(1));
+    message({
+      type: 'client_tool_call',
+      client_tool_call: {
+        tool_name: 'prepare_memory',
+        tool_call_id: 'amb-memory',
+        parameters: {text: 'I prefer afternoon classes'},
+      },
+    });
+    await waitFor(() =>
+      expect(utils.getByTestId('memory-review-card')).toBeTruthy(),
+    );
+    message({
+      type: 'client_tool_call',
+      client_tool_call: {
+        tool_name: 'prepare_lafina_action',
+        tool_call_id: 'amb-task',
+        parameters: {request: 'Add task: Ambiguous tomorrow at 4pm'},
+      },
+    });
+    await waitFor(() =>
+      expect(
+        utils.getByText(
+          'Check the card below. Nothing is saved until you tap Confirm.',
+        ),
+      ).toBeTruthy(),
+    );
+    message({
+      type: 'user_transcript',
+      user_transcription_event: {user_transcript: 'Cancel that', event_id: 101},
+    });
+    await waitFor(() =>
+      expect(
+        utils.getByText(
+          'Which draft should I cancel? Use Cancel on the card you mean.',
+        ),
+      ).toBeTruthy(),
+    );
+    expect(chatMemoryStore.list(userId)).toHaveLength(0);
+    expect(tasksStore.getAllTasks(userId)).toHaveLength(0);
+  });
+  test('grouped date and time corrections save the edited fields once', async () => {
+    const userId = student('group-edit');
+    signIn(userId);
+    fakeServer();
+    const {transport, calls, message} = fakeTransport();
+    const utils = renderPanel(userId, transport);
+    fireEvent.press(utils.getByTestId('voice-conversation-start'));
+    await waitFor(() => expect(calls.start).toBe(1));
+    message({
+      type: 'client_tool_call',
+      client_tool_call: {
+        tool_name: 'prepare_multi_action',
+        tool_call_id: 'edit-group',
+        parameters: {items: [{kind: 'task', title: 'Edited group task'}]},
+      },
+    });
+    await waitFor(() =>
+      expect(utils.getByTestId('multi-action-confirm-all')).toBeTruthy(),
+    );
+    fireEvent.changeText(
+      utils.getByTestId('multi-item-date-input-0'),
+      '2030-06-12',
+    );
+    fireEvent.changeText(utils.getByTestId('multi-item-time-input-0'), '16:00');
+    fireEvent.press(utils.getByTestId('multi-action-confirm-all'));
+    await waitFor(() => expect(tasksStore.getAllTasks(userId)).toHaveLength(1));
+    expect(tasksStore.getAllTasks(userId)[0]).toMatchObject({
+      dueDate: '2030-06-12',
+      dueTime: '16:00',
+    });
   });
 });

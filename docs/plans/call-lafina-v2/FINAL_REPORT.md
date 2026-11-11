@@ -1,3 +1,5 @@
+> HISTORICAL ANTIGRAVITY HANDOFF — acceptance claims below were superseded by the independent audit and remediation. Current status: backend/provider and phone acceptance pending. See `docs/reports/phase-15-call-lafina-remediation-report.md` and `docs/reports/call-lafina-remediation/`.
+
 # Call Lafina 2.0 — Final Implementation & Handoff Report
 
 > **Project:** LAFINA-CAPSTONE Android Student AI Secretary  

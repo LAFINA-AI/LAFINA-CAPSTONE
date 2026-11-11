@@ -22,7 +22,9 @@ export interface CallWaveformProps {
   testID?: string;
 }
 
-const ASSISTANT_MULTIPLIERS = [0.35, 0.55, 0.75, 0.95, 1.0, 0.95, 0.75, 0.55, 0.35];
+const ASSISTANT_MULTIPLIERS = [
+  0.35, 0.55, 0.75, 0.95, 1.0, 0.95, 0.75, 0.55, 0.35,
+];
 const USER_MULTIPLIERS = [0.4, 0.75, 1.0, 0.75, 0.4];
 
 /**
@@ -30,7 +32,11 @@ const USER_MULTIPLIERS = [0.4, 0.75, 1.0, 0.75, 0.4];
  * strictly guarding against NaN, null, undefined, and infinite values.
  */
 export function normalizeAmplitude(value: number): number {
-  if (typeof value !== 'number' || Number.isNaN(value) || !Number.isFinite(value)) {
+  if (
+    typeof value !== 'number' ||
+    Number.isNaN(value) ||
+    !Number.isFinite(value)
+  ) {
     return value === Infinity ? 1 : 0;
   }
   return Math.max(0, Math.min(1, value));
@@ -137,9 +143,7 @@ export const CallWaveform: React.FC<CallWaveformProps> = ({
 
   const isSpeaking = phase === 'speaking';
   const boundedOutput = normalizeAmplitude(outputLevel);
-  const effectiveOutputLevel = isSpeaking
-    ? Math.max(0.12, Math.min(1.0, boundedOutput))
-    : 0;
+  const effectiveOutputLevel = isSpeaking ? boundedOutput : 0;
 
   const isUserActive = micCapturing && !muted;
   const boundedUser = normalizeAmplitude(userLevel);
@@ -180,13 +184,18 @@ export const CallWaveform: React.FC<CallWaveformProps> = ({
           min: 0,
           max: 100,
           now: Math.round(effectiveOutputLevel * 100),
-        }}>
+        }}
+      >
         {ASSISTANT_MULTIPLIERS.map((mul, idx) => {
-          const barHeight = isSpeaking
-            ? Math.round(
-                Math.max(6, Math.min(48, 6 + effectiveOutputLevel * 42 * mul)),
-              )
-            : 4;
+          const barHeight =
+            isSpeaking && !isReducedMotion
+              ? Math.round(
+                  Math.max(
+                    6,
+                    Math.min(48, 6 + effectiveOutputLevel * 42 * mul),
+                  ),
+                )
+              : 4;
           return (
             <View
               key={`ast-bar-${idx}`}
@@ -195,9 +204,7 @@ export const CallWaveform: React.FC<CallWaveformProps> = ({
                 styles.assistantBar,
                 {
                   height: barHeight,
-                  backgroundColor: isSpeaking
-                    ? colors.primary
-                    : colors.border,
+                  backgroundColor: isSpeaking ? colors.primary : colors.border,
                   opacity: isSpeaking ? 0.95 : 0.35,
                 },
               ]}
@@ -210,7 +217,8 @@ export const CallWaveform: React.FC<CallWaveformProps> = ({
       {phase === 'thinking' && (
         <Animated.View
           style={[styles.thinkingIndicatorBox, {opacity: pulseAnim}]}
-          testID="call-thinking-indicator">
+          testID="call-thinking-indicator"
+        >
           <View
             style={[styles.thinkingDot, {backgroundColor: colors.primary}]}
           />
@@ -229,14 +237,13 @@ export const CallWaveform: React.FC<CallWaveformProps> = ({
       {phase === 'tool_working' && (
         <Animated.View
           style={[styles.toolWorkingIndicatorBox, {opacity: pulseAnim}]}
-          testID="call-tool-working-indicator">
-          <View
-            style={[styles.toolWorkingPill, {borderColor: colors.primary}]}>
+          testID="call-tool-working-indicator"
+        >
+          <View style={[styles.toolWorkingPill, {borderColor: colors.primary}]}>
             <View
               style={[styles.thinkingDot, {backgroundColor: colors.primary}]}
             />
-            <Text
-              style={[styles.toolWorkingText, {color: colors.textPrimary}]}>
+            <Text style={[styles.toolWorkingText, {color: colors.textPrimary}]}>
               {activeTool ? `Checking ${activeTool}` : 'Working…'}
             </Text>
           </View>
@@ -247,7 +254,8 @@ export const CallWaveform: React.FC<CallWaveformProps> = ({
       <Text
         style={[styles.stateText, {color: colors.textMuted}]}
         testID="call-waveform-status-text"
-        accessibilityLiveRegion="polite">
+        accessibilityLiveRegion="polite"
+      >
         {stateText}
       </Text>
 
@@ -267,7 +275,8 @@ export const CallWaveform: React.FC<CallWaveformProps> = ({
           min: 0,
           max: 100,
           now: Math.round(effectiveUserLevel * 100),
-        }}>
+        }}
+      >
         {muted ? (
           <View
             style={[styles.userMutedLine, {backgroundColor: colors.error}]}
@@ -282,12 +291,10 @@ export const CallWaveform: React.FC<CallWaveformProps> = ({
             testID="call-user-waveform-idle"
           />
         ) : (
-          <View
-            style={styles.userBarsRow}
-            testID="call-user-waveform-active">
+          <View style={styles.userBarsRow} testID="call-user-waveform-active">
             {USER_MULTIPLIERS.map((mul, idx) => {
               const uHeight =
-                effectiveUserLevel > 0.04
+                effectiveUserLevel > 0.04 && !isReducedMotion
                   ? Math.round(
                       Math.max(
                         3,

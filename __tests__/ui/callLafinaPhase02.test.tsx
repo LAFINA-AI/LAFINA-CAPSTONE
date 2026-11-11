@@ -58,7 +58,7 @@ describe('Phase 02: Dual Audio Waveforms & Truthful Visual State Transitions', (
       expect(heightStyle?.height).toBeGreaterThan(20);
     });
 
-    test('falls back to minimal active amplitude if speaking without measured RMS', () => {
+    test('reports zero measured amplitude when playback RMS is zero', () => {
       const {getByTestId} = renderWithTheme(
         <CallWaveform
           phase="speaking"
@@ -71,8 +71,8 @@ describe('Phase 02: Dual Audio Waveforms & Truthful Visual State Transitions', (
 
       const assistantWaveform = getByTestId('call-assistant-waveform-speaking');
       expect(assistantWaveform).toBeTruthy();
-      // Has effective fallback minimum level
-      expect(assistantWaveform.props.accessibilityValue.now).toBe(12);
+      // The accessibility meter must report the measured level.
+      expect(assistantWaveform.props.accessibilityValue.now).toBe(0);
     });
   });
 
@@ -218,33 +218,89 @@ describe('Phase 02: Dual Audio Waveforms & Truthful Visual State Transitions', (
       activeTool?: string;
       expected: string;
     }> = [
-      {phase: 'connecting', muted: false, userLevel: 0, expected: 'Connecting…'},
-      {phase: 'listening', muted: false, userLevel: 0, expected: 'Listening. Pause whenever you like'},
-      {phase: 'listening', muted: false, userLevel: 0.15, expected: 'Listening to you…'},
-      {phase: 'listening', muted: true, userLevel: 0, expected: 'Muted. LAFINA cannot hear you'},
+      {
+        phase: 'connecting',
+        muted: false,
+        userLevel: 0,
+        expected: 'Connecting…',
+      },
+      {
+        phase: 'listening',
+        muted: false,
+        userLevel: 0,
+        expected: 'Listening. Pause whenever you like',
+      },
+      {
+        phase: 'listening',
+        muted: false,
+        userLevel: 0.15,
+        expected: 'Listening to you…',
+      },
+      {
+        phase: 'listening',
+        muted: true,
+        userLevel: 0,
+        expected: 'Muted. LAFINA cannot hear you',
+      },
       {phase: 'thinking', muted: false, userLevel: 0, expected: 'Thinking…'},
-      {phase: 'tool_working', muted: false, userLevel: 0, activeTool: 'notes', expected: 'Working on notes…'},
+      {
+        phase: 'tool_working',
+        muted: false,
+        userLevel: 0,
+        activeTool: 'notes',
+        expected: 'Working on notes…',
+      },
       {phase: 'tool_working', muted: false, userLevel: 0, expected: 'Working…'},
-      {phase: 'speaking', muted: false, userLevel: 0, expected: 'Speaking. Talk to interrupt'},
-      {phase: 'listening', muted: false, userLevel: 0, hasReviewItem: true, expected: 'Waiting for confirmation'},
-      {phase: 'restart_required', muted: false, userLevel: 0, expected: 'Call stopped'},
+      {
+        phase: 'speaking',
+        muted: false,
+        userLevel: 0,
+        expected: 'Speaking. Talk to interrupt',
+      },
+      {
+        phase: 'listening',
+        muted: false,
+        userLevel: 0,
+        hasReviewItem: true,
+        expected: 'Waiting for confirmation',
+      },
+      {
+        phase: 'restart_required',
+        muted: false,
+        userLevel: 0,
+        expected: 'Call stopped',
+      },
       {phase: 'ended', muted: false, userLevel: 0, expected: 'Call ended'},
-      {phase: 'failed', muted: false, userLevel: 0, expected: 'Call Lafina unavailable'},
-      {phase: 'idle', muted: false, userLevel: 0, expected: 'Talk with LAFINA naturally, hands-free'},
+      {
+        phase: 'failed',
+        muted: false,
+        userLevel: 0,
+        expected: 'Call Lafina unavailable',
+      },
+      {
+        phase: 'idle',
+        muted: false,
+        userLevel: 0,
+        expected: 'Talk with LAFINA naturally, hands-free',
+      },
     ];
 
-    states.forEach(({phase, muted, userLevel, hasReviewItem, activeTool, expected}) => {
-      test(`truthfully maps state for phase "${phase}" (muted=${muted}, review=${Boolean(hasReviewItem)}) -> "${expected}"`, () => {
-        const text = getTruthfulStateText({
-          phase,
-          muted,
-          userLevel,
+    states.forEach(
+      ({phase, muted, userLevel, hasReviewItem, activeTool, expected}) => {
+        test(`truthfully maps state for phase "${phase}" (muted=${muted}, review=${Boolean(
           hasReviewItem,
-          activeTool,
+        )}) -> "${expected}"`, () => {
+          const text = getTruthfulStateText({
+            phase,
+            muted,
+            userLevel,
+            hasReviewItem,
+            activeTool,
+          });
+          expect(text).toBe(expected);
         });
-        expect(text).toBe(expected);
-      });
-    });
+      },
+    );
   });
 
   describe('P02-07: Immediate silencing on End, Stop, and barge-in', () => {

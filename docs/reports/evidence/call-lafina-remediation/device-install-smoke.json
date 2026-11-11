@@ -1,0 +1,36 @@
+[
+  {
+    "apk_match": true,
+    "package": "com.lafina.capstone.providers",
+    "process_running": true,
+    "installed_sha256": "7e7f8260647d8e1a69841e08430b694fe6decc6e8269a9888e2db8102ce2c14f",
+    "checked_at_utc": "2026-11-10T14:53:38.6758462Z",
+    "fatal_pattern_found": false,
+    "android": "15",
+    "install_mode": "adb install -r; no uninstall/clear",
+    "phone": "Infinix X6880",
+    "activity_start": "Status ok",
+    "version": [
+      "versionCode=6 minSdk=30 targetSdk=36",
+      "versionName=0.6.0-data-qa"
+    ],
+    "variant": "providers"
+  },
+  {
+    "apk_match": true,
+    "package": "com.lafina.capstone",
+    "process_running": true,
+    "installed_sha256": "f07a8dd0f846872e4f42c2c42083aa5616115841f6609f218c81de81e4c6c21b",
+    "checked_at_utc": "2026-11-10T14:53:39.4231660Z",
+    "fatal_pattern_found": false,
+    "android": "15",
+    "install_mode": "adb install -r; no uninstall/clear",
+    "phone": "Infinix X6880",
+    "activity_start": "Status ok",
+    "version": [
+      "versionCode=6 minSdk=30 targetSdk=36",
+      "versionName=0.6.0-data-qa"
+    ],
+    "variant": "main"
+  }
+]

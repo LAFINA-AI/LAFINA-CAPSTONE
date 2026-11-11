@@ -1,0 +1,7 @@
+{
+  "finished": "2026-11-10T19:16:24.5837578+08:00",
+  "exit_code": 0,
+  "sha": "fe489a6487884fa6667f1cc6e2e0bddbd24e386d",
+  "command": "npm run preflight",
+  "started": "2026-11-10T19:11:36.0936301+08:00"
+}

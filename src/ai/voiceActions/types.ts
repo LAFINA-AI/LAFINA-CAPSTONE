@@ -159,9 +159,15 @@ export interface MultiPreparePayload {
   items: MultiPrepareItem[];
 }
 
-export type MultiItemStatus = 'draft' | 'saving' | 'saved' | 'failed' | 'cancelled';
+export type MultiItemStatus =
+  | 'draft'
+  | 'saving'
+  | 'saved'
+  | 'failed'
+  | 'cancelled';
 
 export interface MultiActionItemData {
+  scheduleWarning?: string;
   id: string;
   kind: 'task' | 'event' | 'reminder' | 'note';
   title: string;
@@ -173,10 +179,18 @@ export interface MultiActionItemData {
   followUp?: boolean;
   status: MultiItemStatus;
   savedEntityId?: string | null;
+  deliveryStatus?: 'registered' | 'pending' | 'unavailable';
+  deliveryMessage?: string;
   error?: string | null;
 }
 
-export type MultiBatchStatus = 'draft' | 'saving' | 'saved' | 'partial' | 'failed' | 'cancelled';
+export type MultiBatchStatus =
+  | 'draft'
+  | 'saving'
+  | 'saved'
+  | 'partial'
+  | 'failed'
+  | 'cancelled';
 
 export interface MultiActionBatchData {
   id: string;
@@ -188,4 +202,3 @@ export interface MultiActionBatchData {
   spokenSummary?: string;
   truncated?: boolean;
 }
-

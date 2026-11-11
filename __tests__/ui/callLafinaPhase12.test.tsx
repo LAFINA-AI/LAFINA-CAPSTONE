@@ -149,7 +149,11 @@ describe('Phase 12 — Voice Choice, Language, and Interaction Settings', () => 
   // =========================================================================
   describe('personaPolicy prompt builder', () => {
     it('returns base prompt when English is selected', () => {
-      const prompt = buildVoicePersonaPrompt({language: 'en', verbosity: 'brief', pacing: 'normal'});
+      const prompt = buildVoicePersonaPrompt({
+        language: 'en',
+        verbosity: 'brief',
+        pacing: 'normal',
+      });
       expect(prompt).toContain(LAFINA_VOICE_SYSTEM_PROMPT);
       expect(prompt).not.toContain('Filipino');
       expect(prompt).not.toContain('Taglish');
@@ -158,7 +162,9 @@ describe('Phase 12 — Voice Choice, Language, and Interaction Settings', () => 
 
     it('injects Filipino instruction when Filipino is selected (P12-05)', () => {
       const prompt = buildVoicePersonaPrompt({language: 'fil'});
-      expect(prompt).toContain('Respond primarily in clear, natural Filipino (Tagalog).');
+      expect(prompt).toContain(
+        'Respond primarily in clear, natural Filipino (Tagalog).',
+      );
     });
 
     it('injects Taglish instruction when Taglish is selected (P12-05)', () => {
@@ -177,7 +183,9 @@ describe('Phase 12 — Voice Choice, Language, and Interaction Settings', () => 
         verbosity: 'detailed',
         pacing: 'slow',
       });
-      expect(prompt).toContain('Provide a thorough explanation while maintaining clear spoken sentence structure.');
+      expect(prompt).toContain(
+        'Provide a thorough explanation while maintaining clear spoken sentence structure.',
+      );
       expect(prompt).toContain('natural sentence pauses');
       expect(prompt).toContain('clear, natural Filipino');
     });
@@ -204,8 +212,12 @@ describe('Phase 12 — Voice Choice, Language, and Interaction Settings', () => 
         stopSpeech: jest.fn().mockResolvedValue(undefined),
         dispose: jest.fn().mockResolvedValue(undefined),
       };
-      jest.spyOn(speechService, 'createCallSpeechProvider').mockReturnValue(mockProvider as unknown as CallSpeechProvider);
-      jest.spyOn(onlineVoiceService, 'loadOnlineVoices').mockResolvedValue(mockVoices);
+      jest
+        .spyOn(speechService, 'createCallSpeechProvider')
+        .mockReturnValue(mockProvider as unknown as CallSpeechProvider);
+      jest
+        .spyOn(onlineVoiceService, 'loadOnlineVoices')
+        .mockResolvedValue(mockVoices);
     });
 
     it('renders all sections and voice options when visible', async () => {
@@ -250,6 +262,37 @@ describe('Phase 12 — Voice Choice, Language, and Interaction Settings', () => 
       await waitFor(() => {
         expect(getByTestId('call-active-notice')).toBeTruthy();
       });
+    });
+
+    it('stops an existing preview when a call begins and disables another preview', async () => {
+      let finish: (() => void) | undefined;
+      mockProvider.speakText.mockImplementation(
+        () =>
+          new Promise(resolve => {
+            finish = () => resolve({source: 'cancelled'});
+          }),
+      );
+      mockProvider.stopSpeech.mockImplementation(async () => finish?.());
+      const view = (active: boolean) => (
+        <ThemeProvider userId={TEST_USER}>
+          <CallLafinaSettingsModal
+            userId={TEST_USER}
+            visible
+            isCallActive={active}
+            onClose={jest.fn()}
+          />
+        </ThemeProvider>
+      );
+      const utils = render(view(false));
+      await waitFor(() =>
+        expect(utils.getByTestId('voice-preview-voice_1')).toBeTruthy(),
+      );
+      fireEvent.press(utils.getByTestId('voice-preview-voice_1'));
+      expect(mockProvider.speakText).toHaveBeenCalledTimes(1);
+      await utils.rerenderAsync(view(true));
+      expect(mockProvider.stopSpeech).toHaveBeenCalled();
+      fireEvent.press(utils.getByTestId('voice-preview-voice_2'));
+      expect(mockProvider.speakText).toHaveBeenCalledTimes(1);
     });
 
     it('plays voice preview and stops it exclusively before another preview (P12-02)', async () => {
@@ -374,8 +417,15 @@ describe('Phase 12 — Voice Choice, Language, and Interaction Settings', () => 
       });
 
       expect(getCallLafinaSettings(TEST_USER).voiceId).toBe('voice_1');
+      expect(defaultVoiceConversationDeps(TEST_USER).getVoice()).toEqual({
+        id: 'voice_1',
+        name: 'Rachel (Calm)',
+      });
       expect(onSettingsChanged).toHaveBeenCalledWith(
-        expect.objectContaining({voiceId: 'voice_1', voiceName: 'Rachel (Calm)'}),
+        expect.objectContaining({
+          voiceId: 'voice_1',
+          voiceName: 'Rachel (Calm)',
+        }),
       );
     });
 

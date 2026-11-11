@@ -1,0 +1,19 @@
+PASS docs/audits/call-lafina-v2-codex/evidence/defect-probes.test.ts (6.127 s)
+  √ CL2-001: confirm_draft says saved with no task or outbox write (10 ms)
+  √ CL2-003: memory proposal ID supplied by panel is not an action ID (7 ms)
+  √ CL2-004: legacy memory tool writes before any review confirmation (3 ms)
+  √ CL2-005: new voice selection does not change the voice read by call dependencies (2 ms)
+  √ CL2-007: multi tool rejects its advertised flat schema and corrupts accepted nested schema (2 ms)
+  √ CL2-008: grouped event and reminder with no times silently get 09:00 (33 ms)
+  √ CL2-009: targeted retry of a successful item duplicates its SQL record (3 ms)
+  √ CL2-011: schedule query error is presented as no conflicts (4 ms)
+  √ CL2-013: strict validator accepts unknown payload fields (2 ms)
+  √ CL2-002: spoken revision changes shadow draft but tap confirmation saves original time (56 ms)
+  √ CL2-002: spoken cancel does not retire the authoritative review operation (10 ms)
+
+Test Suites: 1 passed, 1 total
+Tests:       11 passed, 11 total
+Snapshots:   0 total
+Time:        6.52 s, estimated 13 s
+Ran all test suites within paths "docs/audits/call-lafina-v2-codex/evidence/defect-probes.test.ts".
+Test results written to: docs\audits\call-lafina-v2-codex\evidence\defect-probes-results.json

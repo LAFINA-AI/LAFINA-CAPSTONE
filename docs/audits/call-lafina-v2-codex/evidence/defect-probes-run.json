@@ -1,0 +1,7 @@
+{
+  "finished": "2026-11-10T19:18:02.5708479+08:00",
+  "sha": "fe489a6487884fa6667f1cc6e2e0bddbd24e386d",
+  "started": "2026-11-10T19:17:50.9008734+08:00",
+  "exit_code": 0,
+  "command": "node node_modules/jest/bin/jest.js --runInBand --runTestsByPath docs/audits/call-lafina-v2-codex/evidence/defect-probes.test.ts --testMatch **/defect-probes.test.ts --json --outputFile=docs/audits/call-lafina-v2-codex/evidence/defect-probes-results.json"
+}

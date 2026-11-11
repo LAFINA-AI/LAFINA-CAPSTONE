@@ -1,0 +1,8 @@
+
+> lafina-capstone@1.3.4 typecheck
+> tsc --noEmit
+
+
+> lafina-capstone@1.3.4 lint
+> eslint src __tests__ App.tsx index.js --max-warnings 0
+

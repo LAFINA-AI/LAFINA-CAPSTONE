@@ -8,7 +8,6 @@
 import {userStore} from '../../storage/userStore';
 import {localSettingsStore} from '../../storage/localSettingsStore';
 import {voiceConsent} from '../../cloud/voiceConversation';
-import {directProviderTestEnabled} from '../../cloud/directProviderTest';
 
 export const DATA_CONSENT_KEY = 'voiceConversation.directDataConsent.v1';
 
@@ -26,20 +25,6 @@ export function isToolExecutionPermitted(userId: string): ToolPermissionResult {
     return {permitted: false, reason: 'Invalid user identifier'};
   }
 
-  // QA direct test mode override
-  if (directProviderTestEnabled()) {
-    const hasConsent =
-      localSettingsStore.get(userId, DATA_CONSENT_KEY, null) === 'true' ||
-      voiceConsent.read(userId);
-    if (!hasConsent) {
-      return {
-        permitted: false,
-        reason: 'Please review the data disclosure before using tools.',
-      };
-    }
-    return {permitted: true};
-  }
-
   // Release check: user must be authenticated, non-guest, matching session token
   if (userStore.isGuest(userId)) {
     return {
@@ -48,7 +33,12 @@ export function isToolExecutionPermitted(userId: string): ToolPermissionResult {
     };
   }
 
-  const session = userStore.getActiveSessionToken();
+  let session;
+  try {
+    session = userStore.getActiveSessionToken();
+  } catch {
+    return {permitted: false, reason: 'Sign in before using assistant tools.'};
+  }
   if (!session || !session.accessToken || session.userId !== userId) {
     return {
       permitted: false,
@@ -57,12 +47,13 @@ export function isToolExecutionPermitted(userId: string): ToolPermissionResult {
   }
 
   const hasConsent =
-    voiceConsent.read(userId) ||
+    voiceConsent.read(userId) &&
     localSettingsStore.get(userId, DATA_CONSENT_KEY, null) === 'true';
   if (!hasConsent) {
     return {
       permitted: false,
-      reason: 'Data access consent is required to execute assistant tools.',
+      reason:
+        'Data consent is required. Please review the data disclosure before using tools.',
     };
   }
 
@@ -92,7 +83,10 @@ export function containsPromptInjection(text: string): boolean {
 /**
  * Sanitize untrusted content before including in tool context.
  */
-export function sanitizeUntrustedContext(text: string, maxLength = 1000): string {
+export function sanitizeUntrustedContext(
+  text: string,
+  maxLength = 1000,
+): string {
   if (!text || typeof text !== 'string') return '';
   let sanitized = text.slice(0, maxLength);
   for (const pattern of INJECTION_PATTERNS) {

@@ -290,23 +290,23 @@ describe('Phase 08: End-to-End Offline Student Assistant & ChatScreen Integratio
     test('sends message via text input and displays user and assistant bubbles', async () => {
       const onRefresh = jest.fn();
 
-      const { getByTestId, findByText } = render(
+      const { getByTestId, findByText, findAllByText } = render(
         <ThemeProvider userId={testUserId}>
           <ChatScreen userId={testUserId} onRefresh={onRefresh} />
         </ThemeProvider>,
       );
 
       const input = getByTestId('chat-text-input');
-      const sendBtn = getByTestId('chat-send-button');
-
       fireEvent.changeText(input, 'Take a note: Thesis ideas on offline secretarial assistants');
+      const sendBtn = getByTestId('chat-send-button');
       fireEvent.press(sendBtn);
 
-      expect(await findByText('Take a note: Thesis ideas on offline secretarial assistants')).toBeTruthy();
+      const matches = await findAllByText('Take a note: Thesis ideas on offline secretarial assistants');
+      expect(matches.length).toBeGreaterThanOrEqual(1);
       await waitFor(() => {
         expect(chatStore.getMessages(testUserId).length).toBe(2);
       });
-      expect(await findByText('lafina')).toBeTruthy();
+      expect(await findByText(/Please review|Saved note/i)).toBeTruthy();
       expect(onRefresh).toHaveBeenCalled();
     });
 
@@ -326,13 +326,13 @@ describe('Phase 08: End-to-End Offline Student Assistant & ChatScreen Integratio
       });
     });
 
-    test('clears conversation history when clear button is confirmed', async () => {
+    test('clears conversation history when session is deleted from history', async () => {
       chatStore.addMessage(testUserId, 'user', 'Previous message');
       chatStore.addMessage(testUserId, 'assistant', 'Previous reply');
 
       jest.spyOn(Alert, 'alert').mockImplementation((title, msg, buttons) => {
-        const clearBtn = buttons?.find((b) => b.text === 'Clear');
-        clearBtn?.onPress?.();
+        const deleteBtn = buttons?.find((b) => b.text === 'Delete');
+        deleteBtn?.onPress?.();
       });
 
       const { getByTestId, findByTestId } = render(
@@ -341,8 +341,9 @@ describe('Phase 08: End-to-End Offline Student Assistant & ChatScreen Integratio
         </ThemeProvider>,
       );
 
-      const clearBtn = getByTestId('chat-clear-history-button');
-      fireEvent.press(clearBtn);
+      fireEvent.press(getByTestId('chat-history-button'));
+      const sessionId = chatStore.currentSessionId(testUserId);
+      fireEvent.press(getByTestId(`chat-history-delete-${sessionId}`));
 
       await waitFor(() => {
         expect(chatStore.getMessages(testUserId).length).toBe(0);
@@ -350,23 +351,16 @@ describe('Phase 08: End-to-End Offline Student Assistant & ChatScreen Integratio
       expect(await findByTestId('chat-empty-state')).toBeTruthy();
     });
 
-    test('speaks message aloud when speaker button is pressed on assistant message', async () => {
-      const speakSpy = jest.spyOn(ttsService, 'speak');
+    test('does not render speaker button on assistant message (clean ChatGPT style)', async () => {
       const msg = chatStore.addMessage(testUserId, 'assistant', 'Your schedule is clear!');
 
-      const { getByTestId } = render(
+      const { queryByTestId } = render(
         <ThemeProvider userId={testUserId}>
           <ChatScreen userId={testUserId} />
         </ThemeProvider>,
       );
 
-      const speakBtn = getByTestId(`chat-speak-btn-${msg.id}`);
-      await act(async () => {
-        fireEvent.press(speakBtn);
-      });
-
-      expect(speakSpy).toHaveBeenCalledWith('Your schedule is clear!');
-      speakSpy.mockRestore();
+      expect(queryByTestId(`chat-speak-btn-${msg.id}`)).toBeNull();
     });
 
     test('reserves bottom padding for CustomTabBar and updates padding on keyboard focus', async () => {

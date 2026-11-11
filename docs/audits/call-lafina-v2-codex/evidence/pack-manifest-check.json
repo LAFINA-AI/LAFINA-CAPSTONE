@@ -1,0 +1,224 @@
+[
+  {
+    "path": "AGENT_RULES.md",
+    "expected": "c6ac6c26f95df43f45aa301e1696c97b21a8f286524920c67ed7ce476f38c774",
+    "actual": "c6ac6c26f95df43f45aa301e1696c97b21a8f286524920c67ed7ce476f38c774",
+    "match": true
+  },
+  {
+    "path": "CONTEXT/REPOSITORY_BASELINE.md",
+    "expected": "80ab4c7e10e65e0f2f64afb6403dfb4e5e3707d8180960bc6e7ae31b7430f412",
+    "actual": "80ab4c7e10e65e0f2f64afb6403dfb4e5e3707d8180960bc6e7ae31b7430f412",
+    "match": true
+  },
+  {
+    "path": "LOOP/BLOCKERS_TEMPLATE.md",
+    "expected": "9f3f6079692c6ee76613e39bf8d81a6c6b763a637d4720aa68a19c8ebe6ca0ad",
+    "actual": "9f3f6079692c6ee76613e39bf8d81a6c6b763a637d4720aa68a19c8ebe6ca0ad",
+    "match": true
+  },
+  {
+    "path": "LOOP/LOOP_PROTOCOL.md",
+    "expected": "d59b652577e1bcad703a45bc35d77fced2e7a688ddf27d62ab04e612188a8c29",
+    "actual": "d59b652577e1bcad703a45bc35d77fced2e7a688ddf27d62ab04e612188a8c29",
+    "match": true
+  },
+  {
+    "path": "LOOP/PROGRESS_TEMPLATE.md",
+    "expected": "9ad7b39ee5f8fbbda31e10215492e2fb91c667390e4427cc90e0ca4018fd8506",
+    "actual": "9ad7b39ee5f8fbbda31e10215492e2fb91c667390e4427cc90e0ca4018fd8506",
+    "match": true
+  },
+  {
+    "path": "LOOP/STATE_TEMPLATE.json",
+    "expected": "a4106aa54e488ae420a6813f27597922f57110b2eeb1321dc1782e5f3bfb82d8",
+    "actual": "a4106aa54e488ae420a6813f27597922f57110b2eeb1321dc1782e5f3bfb82d8",
+    "match": true
+  },
+  {
+    "path": "PHASES/00-baseline-authorization-and-implementation-architecture.md",
+    "expected": "2144245fb06bc74c039c3047f36976088a4c29caf73b96125ea7621724fa2ab7",
+    "actual": "2144245fb06bc74c039c3047f36976088a4c29caf73b96125ea7621724fa2ab7",
+    "match": true
+  },
+  {
+    "path": "PHASES/01-call-lafina-navigation-and-premium-full-screen-screen.md",
+    "expected": "381c4f7a7a361379f165eb9ecf0913f6da4a40d937915ffb5780eee83c0f6d6e",
+    "actual": "381c4f7a7a361379f165eb9ecf0913f6da4a40d937915ffb5780eee83c0f6d6e",
+    "match": true
+  },
+  {
+    "path": "PHASES/02-audio-waveforms-and-truthful-visual-state-transitions.md",
+    "expected": "8321de2938d7bd9c89373d5ccc7d1696128b7108985b2c8a0010d649cdad04a8",
+    "actual": "8321de2938d7bd9c89373d5ccc7d1696128b7108985b2c8a0010d649cdad04a8",
+    "match": true
+  },
+  {
+    "path": "PHASES/03-live-audio-ownership-provider-voice-interruptions-and-lifecycle.md",
+    "expected": "ab153b3abe39ccf851e6ca520cac0fb07c1aad217b85ca4f124573eb7882a5d0",
+    "actual": "ab153b3abe39ccf851e6ca520cac0fb07c1aad217b85ca4f124573eb7882a5d0",
+    "match": true
+  },
+  {
+    "path": "PHASES/04-human-feeling-voice-persona-and-turn-taking.md",
+    "expected": "8f9fccf8d3e50d3bb17c9feb126eab7b7db9b8bd031e4e53dce440aa7b3aba88",
+    "actual": "8f9fccf8d3e50d3bb17c9feb126eab7b7db9b8bd031e4e53dce440aa7b3aba88",
+    "match": true
+  },
+  {
+    "path": "PHASES/05-transcript-typed-messages-and-chat-continuity.md",
+    "expected": "3e9f6e4534f8b1b61a0d6cd066ccb2e482f8e1043fcc3d3386cc76b164368539",
+    "actual": "3e9f6e4534f8b1b61a0d6cd066ccb2e482f8e1043fcc3d3386cc76b164368539",
+    "match": true
+  },
+  {
+    "path": "PHASES/06-secure-structured-agent-tool-bridge-and-contextual-card-foundation.md",
+    "expected": "f34b5193f299fae3b70d4f176c32d1e3b85190ca1d3535b9b8e5a735af7e9021",
+    "actual": "f34b5193f299fae3b70d4f176c32d1e3b85190ca1d3535b9b8e5a735af7e9021",
+    "match": true
+  },
+  {
+    "path": "PHASES/07-scheduling-reminders-calendar-and-agenda-cards.md",
+    "expected": "cdfcb733192c16970ec19624958c7a616f47c524ac565890eb9a0b4a0bd3147b",
+    "actual": "cdfcb733192c16970ec19624958c7a616f47c524ac565890eb9a0b4a0bd3147b",
+    "match": true
+  },
+  {
+    "path": "PHASES/08-notes-by-speech-and-note-search-result-cards.md",
+    "expected": "3c8f7d500c11767f6caf20e808f9c1f5be5e68bd77bf081a37e35374fe6187c3",
+    "actual": "3c8f7d500c11767f6caf20e808f9c1f5be5e68bd77bf081a37e35374fe6187c3",
+    "match": true
+  },
+  {
+    "path": "PHASES/09-explicit-personal-memory-and-privacy-controls.md",
+    "expected": "e732b05dcbc07facdffa6d3099d73c54ae9ba05a4650479a5db9e8cf938d7fd9",
+    "actual": "e732b05dcbc07facdffa6d3099d73c54ae9ba05a4650479a5db9e8cf938d7fd9",
+    "match": true
+  },
+  {
+    "path": "PHASES/10-multi-turn-draft-correction-referents-and-idempotency.md",
+    "expected": "95983aacf2cdc093579e20c37972c33d46811de302c914abcc81c9b13fe5e070",
+    "actual": "95983aacf2cdc093579e20c37972c33d46811de302c914abcc81c9b13fe5e070",
+    "match": true
+  },
+  {
+    "path": "PHASES/11-multi-action-workflow-follow-ups-and-authoritative-results.md",
+    "expected": "fe7f47e2e3afec1383f8a52368f2a56b5c95079bea2dbc5fadb4df8b0fc45bac",
+    "actual": "fe7f47e2e3afec1383f8a52368f2a56b5c95079bea2dbc5fadb4df8b0fc45bac",
+    "match": true
+  },
+  {
+    "path": "PHASES/12-voice-choice-language-and-interaction-settings.md",
+    "expected": "358560a85778c5f98bf79aa9c761894a0bc4847ce79bf766c7b80b1d99191d42",
+    "actual": "358560a85778c5f98bf79aa9c761894a0bc4847ce79bf766c7b80b1d99191d42",
+    "match": true
+  },
+  {
+    "path": "PHASES/13-in-app-mini-call-background-call-feasibility-and-optional-multimodal-inputs.md",
+    "expected": "88808e7413a84828b95dc6640fce3b057e2696d7bf89e25fb20a134680d0ba2e",
+    "actual": "88808e7413a84828b95dc6640fce3b057e2696d7bf89e25fb20a134680d0ba2e",
+    "match": true
+  },
+  {
+    "path": "PHASES/14-reliability-security-privacy-audio-performance-regression.md",
+    "expected": "eb6933e60d56a04b58ba5be51819cf819f196ca3f590cb480dff4d02a56a73a7",
+    "actual": "eb6933e60d56a04b58ba5be51819cf819f196ca3f590cb480dff4d02a56a73a7",
+    "match": true
+  },
+  {
+    "path": "PHASES/15-traceability-audit-capstone-handoff-and-release-readiness.md",
+    "expected": "2c6b37309f2b318ce85b34d4c50b096c85da11e0e1681d6c0c90da43694a6483",
+    "actual": "2c6b37309f2b318ce85b34d4c50b096c85da11e0e1681d6c0c90da43694a6483",
+    "match": true
+  },
+  {
+    "path": "QA/ACCEPTANCE_MATRIX.csv",
+    "expected": "01346f79d6e9e80c69b7b25da25cce7ba72c97896129caf90ec7b76e93cced02",
+    "actual": "01346f79d6e9e80c69b7b25da25cce7ba72c97896129caf90ec7b76e93cced02",
+    "match": true
+  },
+  {
+    "path": "QA/CAPSTONE_DEMO_SCRIPT.md",
+    "expected": "d96936e3d4f2d6fbb30a74fba10a1b04750080b455b0f52bcbb2e6a84239393b",
+    "actual": "d96936e3d4f2d6fbb30a74fba10a1b04750080b455b0f52bcbb2e6a84239393b",
+    "match": true
+  },
+  {
+    "path": "QA/MANUAL_PHONE_CHECKLIST.md",
+    "expected": "f0aa023489f9aae41701946f1ac6cb928726055406f1b6f4588eaeacb10ac9e7",
+    "actual": "f0aa023489f9aae41701946f1ac6cb928726055406f1b6f4588eaeacb10ac9e7",
+    "match": true
+  },
+  {
+    "path": "QA/SECURITY_PRIVACY_CHECKLIST.md",
+    "expected": "3698d82470a0326f59acafc91455714c4e0903bd0d2ece50d6cc0acda658b7cd",
+    "actual": "3698d82470a0326f59acafc91455714c4e0903bd0d2ece50d6cc0acda658b7cd",
+    "match": true
+  },
+  {
+    "path": "QA/TEST_STRATEGY.md",
+    "expected": "93e3f2b112df5b91af08ee18fd9a0e0a7f0e25982e69f1bc69dba8025ff56257",
+    "actual": "93e3f2b112df5b91af08ee18fd9a0e0a7f0e25982e69f1bc69dba8025ff56257",
+    "match": true
+  },
+  {
+    "path": "README.md",
+    "expected": "ab25771c95e709efafaf038fd51570193097d5cb70cd1ca21c95b826202a38f3",
+    "actual": "ab25771c95e709efafaf038fd51570193097d5cb70cd1ca21c95b826202a38f3",
+    "match": true
+  },
+  {
+    "path": "REFERENCES/SOURCES.md",
+    "expected": "e76847423f687b02cfba92044895b2c395afd3b05e5f7cbdc917722448a4747e",
+    "actual": "e76847423f687b02cfba92044895b2c395afd3b05e5f7cbdc917722448a4747e",
+    "match": true
+  },
+  {
+    "path": "SPEC/ARCHITECTURE_AND_TOOLS.md",
+    "expected": "c4b34120449020e28b53d20272872b26df41ef6c6b7dcbd2b52ce0eb1f87bcad",
+    "actual": "c4b34120449020e28b53d20272872b26df41ef6c6b7dcbd2b52ce0eb1f87bcad",
+    "match": true
+  },
+  {
+    "path": "SPEC/FEATURE_INVENTORY.csv",
+    "expected": "6798aff631f33f680c9fe90001e9c48c25c45420a681d4cd50a6d67fd8758752",
+    "actual": "6798aff631f33f680c9fe90001e9c48c25c45420a681d4cd50a6d67fd8758752",
+    "match": true
+  },
+  {
+    "path": "SPEC/PRODUCT_AND_UI.md",
+    "expected": "f2a889a53d340d4fa8688242d2378e64a10ef5537d6c79b87e6cfa1879bd3bd9",
+    "actual": "f2a889a53d340d4fa8688242d2378e64a10ef5537d6c79b87e6cfa1879bd3bd9",
+    "match": true
+  },
+  {
+    "path": "SPEC/VOICE_PERSONA.md",
+    "expected": "c49e2b1668971824638ba79b868ef876b59de0290bd880dec3205b7f96ec7b0c",
+    "actual": "c49e2b1668971824638ba79b868ef876b59de0290bd880dec3205b7f96ec7b0c",
+    "match": true
+  },
+  {
+    "path": "START_PROMPT.md",
+    "expected": "c0f8d6eb77d98caa270937886f891f6e25eb526ea5c6dc2165aeeba74524ca44",
+    "actual": "c0f8d6eb77d98caa270937886f891f6e25eb526ea5c6dc2165aeeba74524ca44",
+    "match": true
+  },
+  {
+    "path": "TEMPLATES/OWNER_AUTHORIZATION.md",
+    "expected": "15b206b32984939c987757c5194f9dfda147e0944356dfa5e40915c333ef7c8c",
+    "actual": "15b206b32984939c987757c5194f9dfda147e0944356dfa5e40915c333ef7c8c",
+    "match": true
+  },
+  {
+    "path": "TEMPLATES/PHASE_REPORT.md",
+    "expected": "111a281df23eb30467f5edf60a26aa288a66b25f2b4e9fa9cfb6d086cc5a0580",
+    "actual": "111a281df23eb30467f5edf60a26aa288a66b25f2b4e9fa9cfb6d086cc5a0580",
+    "match": true
+  },
+  {
+    "path": "scripts/validate_pack.py",
+    "expected": "75e414c1cd8afc6552782c00591c2863a3c6aa0ff8e5ac5aa50a2f5cae00791c",
+    "actual": "75e414c1cd8afc6552782c00591c2863a3c6aa0ff8e5ac5aa50a2f5cae00791c",
+    "match": true
+  }
+]
