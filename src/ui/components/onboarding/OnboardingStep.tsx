@@ -1,10 +1,26 @@
 import React, { useState } from 'react';
-import { View, Text, TextInput, StyleSheet, TouchableOpacity } from 'react-native';
+import {
+  View,
+  Text,
+  TextInput,
+  StyleSheet,
+  TouchableOpacity,
+  ActivityIndicator,
+} from 'react-native';
 import { Colors, Fonts, Layout, Shadows, useThemedStyles } from '../../theme';
 import { useTheme } from '../../contexts/ThemeContext';
 import type { ThemeColors } from '../../contexts/ThemeContext';
-import type {ConversationTone} from '../../../storage/onboardingMemory';
-import { BookOpen, Clock, Activity, Award } from 'lucide-react-native';
+import type { ConversationTone } from '../../../storage/onboardingMemory';
+import {
+  BookOpen,
+
+  Activity,
+  Award,
+  FileText,
+  Camera,
+  CheckCircle,
+  GraduationCap,
+} from 'lucide-react-native';
 import DateTimePicker, { DateTimePickerEvent } from '@react-native-community/datetimepicker';
 import type {
   LongestClassGap,
@@ -12,6 +28,8 @@ import type {
   StudyPeakHour,
   WeeklyClassCount,
 } from '../../../storage';
+import type { ParsedUstpCorResult } from '../../../ai/vision/ustpCorParser';
+import type { ParsedScheduleResult } from '../../../ai/vision/scheduleParser';
 
 interface OnboardingStepProps {
   step: number;
@@ -36,6 +54,19 @@ interface OnboardingStepProps {
   tone: ConversationTone;
   setTone: (value: ConversationTone) => void;
   memoryEnabled: boolean;
+  isUstpStudent?: boolean | null;
+  setIsUstpStudent?: (value: boolean) => void;
+  parsedCor?: ParsedUstpCorResult | null;
+  corFileName?: string | null;
+  onAttachUstpCor?: () => void;
+  onClearUstpCor?: () => void;
+  scannedSchedule?: ParsedScheduleResult | null;
+  scheduleFileName?: string | null;
+  onScanScheduleGallery?: () => void;
+  onScanScheduleCamera?: () => void;
+  onClearScannedSchedule?: () => void;
+  isScanningDocument?: boolean;
+  scanStatusMessage?: string | null;
 }
 
 const studyPeakOptions: { label: string; value: StudyPeakHour }[] = [
@@ -99,6 +130,19 @@ export const OnboardingStep: React.FC<OnboardingStepProps> = ({
   tone,
   setTone,
   memoryEnabled,
+  isUstpStudent = null,
+  setIsUstpStudent,
+  parsedCor = null,
+  corFileName = null,
+  onAttachUstpCor,
+  onClearUstpCor,
+  scannedSchedule = null,
+  scheduleFileName = null,
+  onScanScheduleGallery,
+  onScanScheduleCamera,
+  onClearScannedSchedule,
+  isScanningDocument = false,
+  scanStatusMessage = null,
 }) => {
   const { colors } = useTheme();
   const themed = useThemedStyles(getThemedStyles);
@@ -135,12 +179,248 @@ export const OnboardingStep: React.FC<OnboardingStepProps> = ({
       return (
         <View>
           <View style={styles.iconHeaderContainer}>
-            <Clock size={40} color={Colors.blue} />
+            <GraduationCap size={40} color={Colors.blue} />
           </View>
-          <Text style={[styles.stepTitle, themed.stepTitle]}>Daily Routine</Text>
+          <Text style={[styles.stepTitle, themed.stepTitle]}>School & Daily Routine</Text>
           <Text style={[styles.stepDesc, themed.stepDesc]}>
-            When does your day usually begin and end?
+            Set up your class schedule automatically and tell us when your day begins and ends.
           </Text>
+
+          {/* USTP Student Question */}
+          <Text style={[styles.inputLabel, themed.inputLabel]}>Are you a USTP Student?</Text>
+          <View style={styles.chipContainer}>
+            <TouchableOpacity
+              testID="onboarding-ustp-yes"
+              accessibilityRole="radio"
+              accessibilityState={{ selected: isUstpStudent === true }}
+              style={[
+                styles.chip,
+                themed.chip,
+                isUstpStudent === true && styles.activeChip,
+              ]}
+              onPress={() => setIsUstpStudent?.(true)}
+            >
+              <Text
+                style={[
+                  styles.chipText,
+                  themed.chipText,
+                  isUstpStudent === true && styles.activeChipText,
+                ]}
+              >
+                Yes, USTP Student
+              </Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              testID="onboarding-ustp-no"
+              accessibilityRole="radio"
+              accessibilityState={{ selected: isUstpStudent === false }}
+              style={[
+                styles.chip,
+                themed.chip,
+                isUstpStudent === false && styles.activeChip,
+              ]}
+              onPress={() => setIsUstpStudent?.(false)}
+            >
+              <Text
+                style={[
+                  styles.chipText,
+                  themed.chipText,
+                  isUstpStudent === false && styles.activeChipText,
+                ]}
+              >
+                No, Another School
+              </Text>
+            </TouchableOpacity>
+          </View>
+
+          {/* Branch A: USTP Student -> Attach COR PDF/Image */}
+          {isUstpStudent === true && (
+            <View style={[styles.corBox, themed.summaryCard]}>
+              <View style={styles.corHeaderRow}>
+                <FileText size={18} color={Colors.blue} />
+                <Text style={[styles.corBoxTitle, themed.summaryTitle]}>
+                  Attach Your USTP COR (Optional)
+                </Text>
+              </View>
+              <Text style={[styles.corBoxDesc, themed.stepDesc]}>
+                Upload your USTP Certificate of Registration (PDF or screenshot). LAFINA will extract your student profile, subjects, section, rooms, and faculty into your Calendar and memory.
+              </Text>
+
+              <TouchableOpacity
+                testID="onboarding-attach-cor"
+                accessibilityRole="button"
+                accessibilityLabel="Attach USTP COR"
+                disabled={isScanningDocument}
+                onPress={onAttachUstpCor}
+                style={[styles.uploadButton, { backgroundColor: Colors.blue }]}
+              >
+                {isScanningDocument ? (
+                  <ActivityIndicator size="small" color="#FFFFFF" />
+                ) : (
+                  <Text style={styles.uploadButtonText}>
+                    {parsedCor ? 'Replace USTP COR (PDF / Image)' : 'Attach USTP COR (PDF / Image)'}
+                  </Text>
+                )}
+              </TouchableOpacity>
+
+              {scanStatusMessage ? (
+                <Text
+                  testID="onboarding-scan-status"
+                  style={[styles.statusNote, { color: colors.textSecondary }]}
+                >
+                  {scanStatusMessage}
+                </Text>
+              ) : null}
+
+              {parsedCor && (
+                <View testID="onboarding-cor-preview" style={[styles.previewCard, { borderColor: colors.border }]}>
+                  <View style={styles.previewHeaderRow}>
+                    <View style={styles.verifiedBadge}>
+                      <CheckCircle size={15} color={colors.success} />
+                      <Text style={[styles.verifiedText, { color: colors.success }]}>
+                        USTP COR Extracted{corFileName ? ` (${corFileName})` : ''}
+                      </Text>
+                    </View>
+                    {onClearUstpCor && (
+                      <TouchableOpacity
+                        testID="onboarding-remove-cor"
+                        onPress={onClearUstpCor}
+                        accessibilityRole="button"
+                      >
+                        <Text style={{ color: colors.error, fontSize: 12, fontWeight: 'bold' }}>
+                          Remove
+                        </Text>
+                      </TouchableOpacity>
+                    )}
+                  </View>
+
+                  {parsedCor.profile.formattedName ? (
+                    <Text style={[styles.previewDetail, themed.summaryItem]}>
+                      • Name: {parsedCor.profile.formattedName}
+                      {parsedCor.profile.studentNo ? ` (${parsedCor.profile.studentNo})` : ''}
+                    </Text>
+                  ) : null}
+                  {parsedCor.profile.program ? (
+                    <Text style={[styles.previewDetail, themed.summaryItem]}>
+                      • Program: {parsedCor.profile.program}
+                      {parsedCor.profile.yearLevelShort ? ` · ${parsedCor.profile.yearLevelShort}` : ''}
+                    </Text>
+                  ) : null}
+                  {parsedCor.profile.college ? (
+                    <Text style={[styles.previewDetail, themed.summaryItem]}>
+                      • College: {parsedCor.profile.collegeShort || parsedCor.profile.college}
+                      {parsedCor.profile.section ? ` · Sec ${parsedCor.profile.section}` : ''}
+                    </Text>
+                  ) : null}
+                  {parsedCor.profile.academicTerm ? (
+                    <Text style={[styles.previewDetail, themed.summaryItem]}>
+                      • Term: {parsedCor.profile.academicTerm}
+                      {parsedCor.profile.totalUnits ? ` (${parsedCor.profile.totalUnits} Units)` : ''}
+                    </Text>
+                  ) : null}
+
+                  <Text style={[styles.previewSubheader, themed.summaryTitle]}>
+                    Enrolled Subjects ({parsedCor.courses.length}):
+                  </Text>
+                  {parsedCor.courses.map((course) => (
+                    <View key={`${course.code}-${course.section}`} style={styles.courseRow}>
+                      <Text style={[styles.courseTitle, themed.summaryItem]}>
+                        {course.code} — {course.title} ({course.section})
+                      </Text>
+                      <Text style={[styles.courseMeta, { color: colors.textSecondary }]}>
+                        {course.scheduleSummary} · Prof. {course.faculty}
+                      </Text>
+                    </View>
+                  ))}
+                </View>
+              )}
+            </View>
+          )}
+
+          {/* Branch B: Non-USTP Student -> Scan Schedule Image */}
+          {isUstpStudent === false && (
+            <View style={[styles.corBox, themed.summaryCard]}>
+              <View style={styles.corHeaderRow}>
+                <Camera size={18} color={Colors.blue} />
+                <Text style={[styles.corBoxTitle, themed.summaryTitle]}>
+                  Add Your Class Schedule (Optional)
+                </Text>
+              </View>
+              <Text style={[styles.corBoxDesc, themed.stepDesc]}>
+                Attach a schedule image so our OCR can set up your recurring classes now, or skip and add them manually later.
+              </Text>
+
+              <View style={styles.actionRow}>
+                <TouchableOpacity
+                  testID="onboarding-scan-schedule-image"
+                  accessibilityRole="button"
+                  disabled={isScanningDocument}
+                  onPress={onScanScheduleGallery}
+                  style={[styles.uploadButton, styles.halfButton, { backgroundColor: Colors.blue }]}
+                >
+                  <Text style={styles.uploadButtonText}>Upload Schedule Image</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  testID="onboarding-scan-schedule-camera"
+                  accessibilityRole="button"
+                  disabled={isScanningDocument}
+                  onPress={onScanScheduleCamera}
+                  style={[
+                    styles.uploadButton,
+                    styles.halfButton,
+                    { backgroundColor: colors.inputBg, borderWidth: 1, borderColor: colors.border },
+                  ]}
+                >
+                  <Text style={[styles.uploadButtonText, { color: colors.textPrimary }]}>
+                    Take Photo
+                  </Text>
+                </TouchableOpacity>
+              </View>
+
+              {scanStatusMessage ? (
+                <Text
+                  testID="onboarding-scan-status"
+                  style={[styles.statusNote, { color: colors.textSecondary }]}
+                >
+                  {scanStatusMessage}
+                </Text>
+              ) : null}
+
+              {scannedSchedule && scannedSchedule.classes.length > 0 && (
+                <View testID="onboarding-schedule-preview" style={[styles.previewCard, { borderColor: colors.border }]}>
+                  <View style={styles.previewHeaderRow}>
+                    <View style={styles.verifiedBadge}>
+                      <CheckCircle size={15} color={colors.success} />
+                      <Text style={[styles.verifiedText, { color: colors.success }]}>
+                        {scannedSchedule.classes.length} Recurring Classes Detected
+                        {scheduleFileName ? ` (${scheduleFileName})` : ''}
+                      </Text>
+                    </View>
+                    {onClearScannedSchedule && (
+                      <TouchableOpacity
+                        testID="onboarding-remove-schedule"
+                        onPress={onClearScannedSchedule}
+                        accessibilityRole="button"
+                      >
+                        <Text style={{ color: colors.error, fontSize: 12, fontWeight: 'bold' }}>
+                          Remove
+                        </Text>
+                      </TouchableOpacity>
+                    )}
+                  </View>
+                  {scannedSchedule.classes.map((cls) => (
+                    <View key={cls.id} style={styles.courseRow}>
+                      <Text style={[styles.courseTitle, themed.summaryItem]}>{cls.subject}</Text>
+                      <Text style={[styles.courseMeta, { color: colors.textSecondary }]}>
+                        {cls.days.map(d => d.slice(0, 3)).join(', ')} · {cls.startTime12}–{cls.endTime12}
+                        {cls.room && cls.room !== 'TBA' ? ` · ${cls.room}` : ''}
+                      </Text>
+                    </View>
+                  ))}
+                </View>
+              )}
+            </View>
+          )}
 
           <Text style={[styles.inputLabel, themed.inputLabel]}>Typical Wake-Up Time</Text>
           <View style={styles.chipContainer}>
@@ -495,6 +775,25 @@ export const OnboardingStep: React.FC<OnboardingStepProps> = ({
 
           <View style={[styles.summaryCard, themed.summaryCard]}>
             <Text style={[styles.summaryTitle, themed.summaryTitle]}>Configuration Baseline</Text>
+            {parsedCor ? (
+              <>
+                <Text style={[styles.summaryItem, themed.summaryItem]}>
+                  • USTP Student: {parsedCor.profile.formattedName || parsedCor.profile.fullName}
+                  {parsedCor.profile.studentNo ? ` (${parsedCor.profile.studentNo})` : ''}
+                </Text>
+                <Text style={[styles.summaryItem, themed.summaryItem]}>
+                  • Program: {parsedCor.profile.program}
+                  {parsedCor.profile.yearLevelShort ? ` · ${parsedCor.profile.yearLevelShort}` : ''}
+                </Text>
+                <Text style={[styles.summaryItem, themed.summaryItem]}>
+                  • COR Schedule: {parsedCor.sessions.length} weekly class sessions ({parsedCor.courses.length} subjects)
+                </Text>
+              </>
+            ) : scannedSchedule && scannedSchedule.classes.length > 0 ? (
+              <Text style={[styles.summaryItem, themed.summaryItem]}>
+                • Scanned Schedule: {scannedSchedule.classes.length} recurring weekly classes
+              </Text>
+            ) : null}
             <Text style={[styles.summaryItem, themed.summaryItem]}>
               • Sleep Cycle: {formatTo12Hour(wakeTime)} - {formatTo12Hour(sleepTime)}
             </Text>
@@ -568,6 +867,102 @@ const styles = StyleSheet.create({
   activeChipText: {
     color: '#FFFFFF',
     fontWeight: 'bold',
+  },
+  corBox: {
+    borderWidth: 1.5,
+    borderRadius: Layout.borderRadiusCard,
+    padding: 14,
+    marginBottom: 10,
+  },
+  corHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginBottom: 6,
+  },
+  corBoxTitle: {
+    fontFamily: Fonts.heading,
+    fontSize: 14,
+    fontWeight: 'bold',
+  },
+  corBoxDesc: {
+    fontFamily: Fonts.body,
+    fontSize: 12,
+    textAlign: 'left',
+    marginTop: 0,
+    marginBottom: 12,
+    lineHeight: 17,
+  },
+  uploadButton: {
+    borderRadius: Layout.borderRadiusPill,
+    paddingVertical: 10,
+    paddingHorizontal: 14,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  uploadButtonText: {
+    fontFamily: Fonts.heading,
+    fontSize: 13,
+    fontWeight: 'bold',
+    color: '#FFFFFF',
+  },
+  actionRow: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+  halfButton: {
+    flex: 1,
+  },
+  statusNote: {
+    fontFamily: Fonts.body,
+    fontSize: 12,
+    marginTop: 8,
+  },
+  previewCard: {
+    marginTop: 12,
+    paddingTop: 10,
+    borderTopWidth: StyleSheet.hairlineWidth,
+  },
+  previewHeaderRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 6,
+  },
+  verifiedBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    flex: 1,
+  },
+  verifiedText: {
+    fontFamily: Fonts.heading,
+    fontSize: 12,
+    fontWeight: 'bold',
+  },
+  previewDetail: {
+    fontFamily: Fonts.body,
+    fontSize: 12,
+    marginBottom: 2,
+  },
+  previewSubheader: {
+    fontFamily: Fonts.heading,
+    fontSize: 12,
+    fontWeight: 'bold',
+    marginTop: 8,
+    marginBottom: 4,
+  },
+  courseRow: {
+    marginBottom: 6,
+  },
+  courseTitle: {
+    fontFamily: Fonts.body,
+    fontSize: 12,
+    fontWeight: 'bold',
+  },
+  courseMeta: {
+    fontFamily: Fonts.body,
+    fontSize: 11,
   },
   finishContainer: {
     alignItems: 'center',

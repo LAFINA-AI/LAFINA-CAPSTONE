@@ -9,8 +9,16 @@ import {
   Image,
 } from 'react-native';
 import {Colors, Fonts, Layout, Shadows} from '../theme';
-import {preferencesStore, userStore} from '../../storage';
-import type {UserPreferences, User} from '../../storage';
+import {
+  preferencesStore,
+  userStore,
+  academicProfileStore,
+} from '../../storage';
+import type {
+  UserPreferences,
+  User,
+  AcademicProfileRecord,
+} from '../../storage';
 import {useTheme} from '../contexts/ThemeContext';
 import {useThemedStyles} from '../theme/createThemedStyles';
 import type {ThemeColors} from '../contexts/ThemeContext';
@@ -18,7 +26,7 @@ import {APP_VERSION} from '../../appVersion';
 import {GUEST_USER_ID} from '../../constants';
 import {SvgXml} from 'react-native-svg';
 import {ARC_SCREEN_XML} from '../../assets/arc_screen_xml';
-import {Camera} from 'lucide-react-native';
+import {Camera, GraduationCap, FileText} from 'lucide-react-native';
 import {authService} from '../../cloud/authService';
 import {isStudentProAccount} from '../../cloud';
 import {
@@ -38,6 +46,10 @@ import {ReminderHealth} from '../components/profile/ReminderHealth';
 import {PersonalMemory} from '../components/profile/PersonalMemory';
 import {ChatMemorySettings} from '../components/profile/ChatMemorySettings';
 import {chatMemoryStore} from '../../storage/chatMemoryStore';
+import {
+  readOnboardingIdentity,
+  saveOnboardingMemories,
+} from '../../storage/onboardingMemory';
 import {OfflineVoice} from '../components/profile/OfflineVoice';
 import {OnlineVoice} from '../components/profile/OnlineVoice';
 import {onlineVoiceSettingsStore} from '../../storage/onlineVoiceSettingsStore';
@@ -54,6 +66,9 @@ import {
   resetPersonalData,
 } from '../../storage/accountDataReset';
 import type {DataResetAuthority} from '../../storage/accountDataReset';
+import {DeveloperModal} from '../components/profile/DeveloperModal';
+import {developerTestService} from '../components/profile/developerTestService';
+import {visionService} from '../../ai/vision/visionService';
 
 function getInitials(username: string | null | undefined): string {
   if (!username || username.trim().length === 0) {
@@ -108,6 +123,15 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
       return null;
     }
   });
+  const [academicProfile, setAcademicProfile] =
+    useState<AcademicProfileRecord | null>(() => {
+      try {
+        return academicProfileStore.get(userId);
+      } catch {
+        return null;
+      }
+    });
+  const [corUploading, setCorUploading] = useState(false);
 
   const [statistics, setStatistics] = useState<ProfileStatistics>(() =>
     profileStatisticsStore.read(userId),
@@ -174,6 +198,79 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
   const [preferencesVisible, setPreferencesVisible] = useState(false);
 
   const [privacyModalVisible, setPrivacyModalVisible] = useState(false);
+  const [developerModalVisible, setDeveloperModalVisible] = useState(false);
+  const [isDevMode, setIsDevMode] = useState(() =>
+    developerTestService.isDeveloperModeEnabled(),
+  );
+  const versionTapCountRef = useRef(0);
+  const lastVersionTapRef = useRef(0);
+
+  const handleVersionTap = () => {
+    const now = Date.now();
+    if (now - lastVersionTapRef.current > 2000) {
+      versionTapCountRef.current = 0;
+    }
+    lastVersionTapRef.current = now;
+    versionTapCountRef.current += 1;
+    if (versionTapCountRef.current >= 5) {
+      versionTapCountRef.current = 0;
+      const next = !isDevMode;
+      developerTestService.setDeveloperModeEnabled(next);
+      setIsDevMode(next);
+      Alert.alert(
+        'Developer Mode',
+        next
+          ? 'Developer Mode enabled! Test triggers and developer tools are now visible.'
+          : 'Developer Mode disabled.',
+      );
+    }
+  };
+
+  const handleQuickIncomingCall = async () => {
+    const res = await developerTestService.triggerImmediateCall(
+      userId,
+      'CS402 Capstone Progress Check',
+    );
+    if (!res.success) {
+      Alert.alert('Call Failed', res.message);
+    }
+  };
+
+  const handleQuickAlarm = async () => {
+    const res = await developerTestService.scheduleExactAlarmInSeconds(
+      userId,
+      5,
+      '5-Second Alarm Test',
+    );
+    Alert.alert(
+      res.success ? 'Alarm Scheduled' : 'Alarm Error',
+      res.message,
+    );
+    if (res.success) onRefresh();
+  };
+
+  const handleQuickSync = async () => {
+    Alert.alert('Syncing…', 'Starting sync roundtrip with cloud backend.');
+    const res = await developerTestService.triggerForceSync();
+    Alert.alert(
+      res.success ? 'Sync Complete' : 'Sync Failed',
+      res.message,
+    );
+    if (res.success) onRefresh();
+  };
+
+  const handleQuickSeedData = async () => {
+    const res = await developerTestService.seedStudentSampleData(userId);
+    if (res.success) {
+      Alert.alert(
+        'Student Data Seeded',
+        `Created sample tasks (${res.created.tasks}), events (${res.created.events}), block (${res.created.timeBlocks}), reminders (${res.created.reminders}), and notes (${res.created.notes}). Switch tabs to explore!`,
+      );
+      onRefresh();
+    } else {
+      Alert.alert('Seeding Error', 'Failed to seed sample student data.');
+    }
+  };
   const [ttsTesting, setTtsTesting] = useState(false);
 
   // Remediation audit P1: a Clear All Data confirmation is honoured only while
@@ -207,6 +304,8 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
 
   const loadSettings = () => {
     setCurrentUser(userStore.getUserById(userId));
+    setAcademicProfile(academicProfileStore.get(userId));
+    setChatMemorySummary(readChatMemorySummary());
 
     const mondayStart = userStore.getWeekStartsMonday(userId);
     setWeekStartsMonday(mondayStart);
@@ -245,6 +344,85 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
     setWeekStartsMonday(value);
     userStore.setWeekStartsMonday(userId, value);
     onRefresh();
+  };
+
+  const handleUploadCor = async () => {
+    if (corUploading) return;
+    try {
+      const picked = await visionService.pickCorDocument();
+      if (!picked) return;
+
+      setCorUploading(true);
+      const cor = await visionService.scanUstpCorFromUri(picked.uri);
+      if (
+        !cor ||
+        (cor.courses.length === 0 &&
+          !cor.profile.studentNo &&
+          !cor.profile.fullName)
+      ) {
+        Alert.alert(
+          'COR Not Recognized',
+          'Could not extract USTP COR details from that file. Please try a clearer COR PDF or screenshot.',
+        );
+        return;
+      }
+
+      const savedProfile = academicProfileStore.save(userId, {
+        ...cor.profile,
+        isUstpStudent: true,
+        courses: cor.courses.map((c) => ({
+          code: c.code,
+          subjectTitle: c.subjectTitle,
+          lecUnits: c.lecUnits,
+          labUnits: c.labUnits,
+          creditUnits: c.creditUnits,
+          section: c.section,
+          faculty: c.faculty,
+          scheduleSummary:
+            c.sessions.length > 0
+              ? c.sessions
+                  .map(
+                    (s) =>
+                      `${s.dayCode} ${s.startTime12}-${s.endTime12}${s.room && s.room !== 'TBA' ? ` (${s.room})` : ''}`,
+                  )
+                  .join(', ')
+              : 'TBA',
+        })),
+      });
+
+      const scheduledCount = academicProfileStore.persistRecurringSchedule(
+        userId,
+        cor.sessions,
+      );
+
+      const prefs = preferencesStore.get(userId);
+      const ident = readOnboardingIdentity(userId);
+      saveOnboardingMemories(
+        userId,
+        {
+          preferredName: cor.profile.preferredName || ident.preferredName,
+          tone: ident.tone,
+        },
+        prefs.studyPeakHours,
+        savedProfile,
+      );
+
+      setAcademicProfile(savedProfile);
+      setCurrentUser(userStore.getUserById(userId));
+      setChatMemorySummary(readChatMemorySummary());
+      loadStats();
+      onRefresh();
+
+      Alert.alert(
+        'USTP COR Updated',
+        `Updated profile for ${savedProfile.formattedName || 'Student'} (${savedProfile.program || 'USTP'}) and scheduled ${scheduledCount} recurring class sessions in your Calendar.`,
+      );
+    } catch (error) {
+      console.error('[ProfileScreen] Failed uploading USTP COR:', error);
+      Alert.alert('COR Upload Failed', 'Could not process the selected COR file.');
+    } finally {
+      setCorUploading(false);
+    }
   };
 
   const handleTestTtsVoice = async () => {
@@ -436,6 +614,9 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
       Alert.alert('Data Partly Cleared', lines.filter(Boolean).join(' '));
     }
     if (alive.current) {
+      setCurrentUser(userStore.getUserById(userId));
+      setAcademicProfile(academicProfileStore.get(userId));
+      setChatMemorySummary(readChatMemorySummary());
       loadStats();
       loadEventDefaultsSummary();
       onRefresh();
@@ -586,9 +767,163 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
         <Text style={[styles.userEmail, themed.userEmail]}>
           {currentUser?.email || 'No email set'}
         </Text>
+        {academicProfile &&
+          (academicProfile.program ||
+            academicProfile.yearLevelShort ||
+            academicProfile.yearLevel) && (
+            <View
+              testID="profile-academic-subtitle"
+              style={[
+                styles.academicSubtitlePill,
+                {
+                  backgroundColor: colors.cardBg,
+                  borderColor: colors.border,
+                },
+              ]}
+            >
+              <GraduationCap size={14} color={colors.blue} />
+              <Text
+                style={[styles.academicSubtitleText, {color: colors.textPrimary}]}
+                numberOfLines={1}
+              >
+                {[
+                  academicProfile.program,
+                  academicProfile.yearLevelShort || academicProfile.yearLevel,
+                  academicProfile.primarySection,
+                ]
+                  .filter(Boolean)
+                  .join(' · ')}
+              </Text>
+            </View>
+          )}
       </View>
 
       <View style={styles.mainContent}>
+        {academicProfile && (
+          <View
+            testID="profile-academic-card"
+            style={[
+              styles.academicCard,
+              Shadows.card,
+              themed.settingsGroupCard,
+              {borderColor: colors.border},
+            ]}
+          >
+            <View style={styles.academicCardHeader}>
+              <View style={styles.academicCardTitleRow}>
+                <GraduationCap size={18} color={colors.blue} />
+                <Text
+                  style={[styles.academicCardTitle, {color: colors.textPrimary}]}
+                >
+                  Academic Profile · USTP COR
+                </Text>
+              </View>
+              <TouchableOpacity
+                testID="profile-attach-cor-btn"
+                accessibilityRole="button"
+                onPress={() => void handleUploadCor()}
+                disabled={corUploading}
+                style={[
+                  styles.academicUpdateBtn,
+                  {borderColor: colors.blue},
+                ]}
+              >
+                <FileText size={12} color={colors.blue} />
+                <Text style={[styles.academicUpdateBtnText, {color: colors.blue}]}>
+                  {corUploading ? 'Scanning…' : 'Update COR'}
+                </Text>
+              </TouchableOpacity>
+            </View>
+
+            {academicProfile.program ? (
+              <View style={styles.academicRow}>
+                <Text style={[styles.academicLabel, {color: colors.textSecondary}]}>
+                  Program
+                </Text>
+                <Text style={[styles.academicValue, {color: colors.textPrimary}]}>
+                  {academicProfile.program}
+                </Text>
+              </View>
+            ) : null}
+
+            {academicProfile.yearLevel ? (
+              <View style={styles.academicRow}>
+                <Text style={[styles.academicLabel, {color: colors.textSecondary}]}>
+                  Year Level
+                </Text>
+                <Text style={[styles.academicValue, {color: colors.textPrimary}]}>
+                  {academicProfile.yearLevel}
+                </Text>
+              </View>
+            ) : null}
+
+            {academicProfile.primarySection ? (
+              <View style={styles.academicRow}>
+                <Text style={[styles.academicLabel, {color: colors.textSecondary}]}>
+                  Section
+                </Text>
+                <Text style={[styles.academicValue, {color: colors.textPrimary}]}>
+                  {academicProfile.primarySection}
+                </Text>
+              </View>
+            ) : null}
+
+            {academicProfile.college ? (
+              <View style={styles.academicRow}>
+                <Text style={[styles.academicLabel, {color: colors.textSecondary}]}>
+                  College
+                </Text>
+                <Text style={[styles.academicValue, {color: colors.textPrimary}]}>
+                  {academicProfile.collegeShort
+                    ? `${academicProfile.collegeShort} — ${academicProfile.college}`
+                    : academicProfile.college}
+                </Text>
+              </View>
+            ) : null}
+
+            {academicProfile.studentNo ? (
+              <View style={styles.academicRow}>
+                <Text style={[styles.academicLabel, {color: colors.textSecondary}]}>
+                  Student No.
+                </Text>
+                <Text style={[styles.academicValue, {color: colors.textPrimary}]}>
+                  {academicProfile.studentNo}
+                </Text>
+              </View>
+            ) : null}
+
+            {academicProfile.curriculum || academicProfile.academicYearTerm ? (
+              <View style={styles.academicRow}>
+                <Text style={[styles.academicLabel, {color: colors.textSecondary}]}>
+                  Term & Curriculum
+                </Text>
+                <Text style={[styles.academicValue, {color: colors.textPrimary}]}>
+                  {[
+                    academicProfile.academicYearTerm,
+                    academicProfile.curriculum,
+                  ]
+                    .filter(Boolean)
+                    .join(' · ')}
+                </Text>
+              </View>
+            ) : null}
+
+            {academicProfile.courses.length > 0 ? (
+              <View style={styles.academicRow}>
+                <Text style={[styles.academicLabel, {color: colors.textSecondary}]}>
+                  Enrolled Subjects
+                </Text>
+                <Text style={[styles.academicValue, {color: colors.textPrimary}]}>
+                  {academicProfile.courses.length} subjects
+                  {academicProfile.totalCreditUnits
+                    ? ` (${academicProfile.totalCreditUnits} units)`
+                    : ''}
+                </Text>
+              </View>
+            ) : null}
+          </View>
+        )}
+
         <ProfileStats statistics={statistics} />
 
         <View style={styles.settingsContainer}>
@@ -630,6 +965,23 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
               type="link"
               valueText={chatMemorySummary}
               onPress={() => setChatMemoryVisible(true)}
+            />
+            <View style={[styles.settingDivider, themed.settingDivider]} />
+            <SettingItem
+              text={
+                corUploading
+                  ? 'Scanning USTP COR…'
+                  : academicProfile
+                    ? 'Update USTP COR'
+                    : 'Attach USTP COR'
+              }
+              type="link"
+              valueText={
+                academicProfile?.studentNo ||
+                academicProfile?.yearLevelShort ||
+                'PDF / Image'
+              }
+              onPress={() => void handleUploadCor()}
             />
           </View>
 
@@ -740,7 +1092,7 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
             />
           </View>
 
-          {backendSelection.isAvailable() && (
+          {(isDevMode || backendSelection.isAvailable()) && (
             <>
               <Text
                 style={[styles.settingsGroupHeader, themed.settingsGroupHeader]}
@@ -750,12 +1102,60 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
               <View
                 style={[styles.settingsGroupCard, themed.settingsGroupCard]}
               >
-                <ServerSwitchItem
-                  isGuest={isGuest}
-                  endSession={endSessionForServerSwitch}
-                  onSessionEnded={() => onLogout?.(false)}
+                <SettingItem
+                  text="Developer Testing Hub"
+                  type="link"
+                  valueText="Triggers & Diagnostics"
+                  onPress={() => setDeveloperModalVisible(true)}
                 />
-                {onReplayOnboarding ? <SettingItem text="Replay onboarding" type="link" onPress={onReplayOnboarding} /> : null}
+                <View style={[styles.settingDivider, themed.settingDivider]} />
+                <SettingItem
+                  text="Simulate Incoming Call (Now)"
+                  type="clickable"
+                  onPress={handleQuickIncomingCall}
+                />
+                <View style={[styles.settingDivider, themed.settingDivider]} />
+                <SettingItem
+                  text="Schedule Native Alarm (in 5s)"
+                  type="clickable"
+                  onPress={handleQuickAlarm}
+                />
+                <View style={[styles.settingDivider, themed.settingDivider]} />
+                <SettingItem
+                  text="Force Cloud Sync Now"
+                  type="clickable"
+                  onPress={handleQuickSync}
+                />
+                <View style={[styles.settingDivider, themed.settingDivider]} />
+                <SettingItem
+                  text="Seed Sample Student Data"
+                  type="clickable"
+                  onPress={handleQuickSeedData}
+                />
+                {backendSelection.isAvailable() && (
+                  <>
+                    <View
+                      style={[styles.settingDivider, themed.settingDivider]}
+                    />
+                    <ServerSwitchItem
+                      isGuest={isGuest}
+                      endSession={endSessionForServerSwitch}
+                      onSessionEnded={() => onLogout?.(false)}
+                    />
+                  </>
+                )}
+                {onReplayOnboarding && (
+                  <>
+                    <View
+                      style={[styles.settingDivider, themed.settingDivider]}
+                    />
+                    <SettingItem
+                      text="Replay onboarding"
+                      type="link"
+                      onPress={onReplayOnboarding}
+                    />
+                  </>
+                )}
               </View>
             </>
           )}
@@ -770,6 +1170,7 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
               text="App Version"
               type="value"
               valueText={`${APP_VERSION} (Mobile)`}
+              onPress={handleVersionTap}
             />
             <View style={[styles.settingDivider, themed.settingDivider]} />
             <AppUpdateItem />
@@ -871,6 +1272,19 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
         onClose={() => setVoiceVisible(false)}
         onChanged={loadVoiceSummary}
       />
+      {developerModalVisible && (
+        <DeveloperModal
+          visible={developerModalVisible}
+          userId={userId}
+          isGuest={isGuest}
+          onClose={() => setDeveloperModalVisible(false)}
+          onRefreshProfile={onRefresh}
+          onReplayTour={onReplayTour}
+          onReplayOnboarding={onReplayOnboarding}
+          endSessionForServerSwitch={endSessionForServerSwitch}
+          onLogout={onLogout}
+        />
+      )}
     </ScrollView>
   );
 };
@@ -963,6 +1377,80 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontFamily: Fonts.body,
     marginTop: 4,
+  },
+  academicSubtitlePill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginTop: 10,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 999,
+    borderWidth: 1,
+    maxWidth: '90%',
+  },
+  academicSubtitleText: {
+    fontSize: 12,
+    fontFamily: Fonts.body,
+    fontWeight: '600',
+    flexShrink: 1,
+  },
+  academicCard: {
+    borderRadius: Layout.borderRadiusCard,
+    padding: 16,
+    marginBottom: 16,
+    borderWidth: 1,
+  },
+  academicCardHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 12,
+  },
+  academicCardTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    flexShrink: 1,
+  },
+  academicCardTitle: {
+    fontSize: 14,
+    fontFamily: Fonts.heading,
+    fontWeight: '700',
+  },
+  academicUpdateBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 8,
+    borderWidth: 1,
+  },
+  academicUpdateBtnText: {
+    fontSize: 11,
+    fontFamily: Fonts.body,
+    fontWeight: '700',
+  },
+  academicRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    paddingVertical: 5,
+    gap: 12,
+  },
+  academicLabel: {
+    fontSize: 12,
+    fontFamily: Fonts.body,
+    fontWeight: '600',
+    minWidth: 110,
+  },
+  academicValue: {
+    fontSize: 12,
+    fontFamily: Fonts.body,
+    fontWeight: '600',
+    flex: 1,
+    textAlign: 'right',
   },
   settingsContainer: {
     marginBottom: 24,

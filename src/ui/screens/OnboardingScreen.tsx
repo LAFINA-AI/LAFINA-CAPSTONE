@@ -9,7 +9,12 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Layout } from '../theme';
-import { userStore, behaviorStore, preferencesStore } from '../../storage';
+import {
+  userStore,
+  behaviorStore,
+  preferencesStore,
+  academicProfileStore,
+} from '../../storage';
 import type {
   StudyPeakHour,
   SnoozeTendency,
@@ -22,9 +27,15 @@ import type { ThemeColors } from '../contexts/ThemeContext';
 import { OnboardingProgress } from '../components/onboarding/OnboardingProgress';
 import { OnboardingStep } from '../components/onboarding/OnboardingStep';
 import { OnboardingNavigation } from '../components/onboarding/OnboardingNavigation';
-import {chatMemoryStore} from '../../storage/chatMemoryStore';
-import {readOnboardingIdentity, saveOnboardingMemories} from '../../storage/onboardingMemory';
-import type {ConversationTone} from '../../storage/onboardingMemory';
+import { chatMemoryStore } from '../../storage/chatMemoryStore';
+import {
+  readOnboardingIdentity,
+  saveOnboardingMemories,
+} from '../../storage/onboardingMemory';
+import type { ConversationTone } from '../../storage/onboardingMemory';
+import { visionService } from '../../ai/vision/visionService';
+import type { ParsedUstpCorResult } from '../../ai/vision/ustpCorParser';
+import type { ParsedScheduleResult } from '../../ai/vision/scheduleParser';
 
 interface OnboardingScreenProps {
   userId: string;
@@ -41,18 +52,39 @@ export const OnboardingScreen: React.FC<OnboardingScreenProps> = ({
   const [saveError, setSaveError] = useState<string | null>(null);
   const totalSteps = 6;
   const [existing] = useState(() => preferencesStore.get(userId));
+  const [existingAcademicProfile] = useState(() => academicProfileStore.get(userId));
   const [identity] = useState(() => readOnboardingIdentity(userId));
-  const [preferredName, setPreferredName] = useState(identity.preferredName);
+  const [preferredName, setPreferredName] = useState(
+    identity.preferredName || existingAcademicProfile?.preferredName || '',
+  );
   const [tone, setTone] = useState<ConversationTone>(identity.tone);
   const [memoryEnabled] = useState(() => chatMemoryStore.isEnabled(userId));
 
+  const [isUstpStudent, setIsUstpStudent] = useState<boolean | null>(
+    existingAcademicProfile ? existingAcademicProfile.isUstpStudent : null,
+  );
+  const [parsedCor, setParsedCor] = useState<ParsedUstpCorResult | null>(null);
+  const [corFileName, setCorFileName] = useState<string | null>(null);
+  const [scannedSchedule, setScannedSchedule] = useState<ParsedScheduleResult | null>(
+    null,
+  );
+  const [scheduleFileName, setScheduleFileName] = useState<string | null>(null);
+  const [isScanningDocument, setIsScanningDocument] = useState(false);
+  const [scanStatusMessage, setScanStatusMessage] = useState<string | null>(null);
+
   const [wakeTime, setWakeTime] = useState(existing.wakeTime);
   const [sleepTime, setSleepTime] = useState(existing.sleepTime);
-  const [studyPeak, setStudyPeak] = useState<StudyPeakHour[]>(onCancel ? existing.studyPeakHours : []);
+  const [studyPeak, setStudyPeak] = useState<StudyPeakHour[]>(
+    onCancel ? existing.studyPeakHours : [],
+  );
   const [busiestDay, setBusiestDay] = useState(existing.busiestDay);
   const [reminderLead, setReminderLead] = useState(String(existing.reminderLeadMinutes));
-  const [snoozeTendency, setSnoozeTendency] = useState<SnoozeTendency>(existing.snoozeTendency);
-  const [classCount, setClassCount] = useState<WeeklyClassCount>(existing.weeklyClassCount);
+  const [snoozeTendency, setSnoozeTendency] = useState<SnoozeTendency>(
+    existing.snoozeTendency,
+  );
+  const [classCount, setClassCount] = useState<WeeklyClassCount>(
+    existing.weeklyClassCount,
+  );
   const [longestGap, setLongestGap] = useState<LongestClassGap>(existing.longestClassGap);
 
   const { colors } = useTheme();
@@ -64,6 +96,101 @@ export const OnboardingScreen: React.FC<OnboardingScreenProps> = ({
     } else {
       setStudyPeak([...studyPeak, value]);
     }
+  };
+
+  const handleSelectUstpStudent = (value: boolean) => {
+    setIsUstpStudent(value);
+    setScanStatusMessage(null);
+  };
+
+  const handleAttachUstpCor = async () => {
+    if (isScanningDocument) return;
+    try {
+      const picked = await visionService.pickCorDocument();
+      if (!picked) return;
+
+      setIsScanningDocument(true);
+      setScanStatusMessage(null);
+
+      const cor = await visionService.scanUstpCorFromUri(picked.uri);
+      if (
+        !cor ||
+        (cor.courses.length === 0 &&
+          !cor.profile.studentNo &&
+          !cor.profile.fullName)
+      ) {
+        setScanStatusMessage(
+          'Could not recognize USTP COR details in that file. Please try a clearer COR PDF or screenshot.',
+        );
+        return;
+      }
+
+      setParsedCor(cor);
+      setCorFileName(picked.fileName || 'USTP COR');
+      if (cor.profile.preferredName && (!preferredName || preferredName === identity.preferredName)) {
+        setPreferredName(cor.profile.preferredName);
+      }
+      setBusiestDay(cor.recommendedPreferences.busiestDay);
+      setClassCount(cor.recommendedPreferences.weeklyClassCount);
+      setLongestGap(cor.recommendedPreferences.longestClassGap);
+    } catch (error) {
+      console.error('[OnboardingScreen] Failed scanning USTP COR:', error);
+      setScanStatusMessage('Failed to read COR document. Please try again.');
+    } finally {
+      setIsScanningDocument(false);
+    }
+  };
+
+  const handleClearUstpCor = () => {
+    setParsedCor(null);
+    setCorFileName(null);
+    setScanStatusMessage(null);
+  };
+
+  const runScheduleScan = async (
+    uri: string,
+    fileName?: string,
+  ): Promise<void> => {
+    setIsScanningDocument(true);
+    setScanStatusMessage(null);
+    try {
+      const result = await visionService.scanScheduleFromUri(uri);
+      if (!result || result.classes.length === 0) {
+        setScanStatusMessage(
+          'No clear class schedule was found in that image. You can try another photo or add classes manually later.',
+        );
+        return;
+      }
+      setScannedSchedule(result);
+      setScheduleFileName(fileName || 'Schedule Image');
+      const count = result.classes.length;
+      setClassCount(count <= 3 ? '1-3' : count <= 6 ? '4-6' : '7+');
+    } catch (error) {
+      console.error('[OnboardingScreen] Failed scanning schedule image:', error);
+      setScanStatusMessage('Failed to scan schedule image. Please try again.');
+    } finally {
+      setIsScanningDocument(false);
+    }
+  };
+
+  const handleScanScheduleGallery = async () => {
+    if (isScanningDocument) return;
+    const photo = await visionService.pickImageFromGallery();
+    if (!photo) return;
+    await runScheduleScan(photo.uri, photo.fileName);
+  };
+
+  const handleScanScheduleCamera = async () => {
+    if (isScanningDocument) return;
+    const photo = await visionService.takePhoto();
+    if (!photo) return;
+    await runScheduleScan(photo.uri, photo.fileName || 'Camera Capture');
+  };
+
+  const handleClearScannedSchedule = () => {
+    setScannedSchedule(null);
+    setScheduleFileName(null);
+    setScanStatusMessage(null);
   };
 
   const handleNext = () => {
@@ -85,7 +212,12 @@ export const OnboardingScreen: React.FC<OnboardingScreenProps> = ({
       setSaveError(null);
       const leadMinutes = parseInt(reminderLead, 10) || 15;
 
-      behaviorStore.logBehaviorEvent(userId, 'onboarding_response', 'typical_wake_time', wakeTime);
+      behaviorStore.logBehaviorEvent(
+        userId,
+        'onboarding_response',
+        'typical_wake_time',
+        wakeTime,
+      );
       behaviorStore.logBehaviorEvent(
         userId,
         'onboarding_response',
@@ -98,7 +230,12 @@ export const OnboardingScreen: React.FC<OnboardingScreenProps> = ({
         'study_peak_hours',
         JSON.stringify(studyPeak),
       );
-      behaviorStore.logBehaviorEvent(userId, 'onboarding_response', 'busiest_day', busiestDay);
+      behaviorStore.logBehaviorEvent(
+        userId,
+        'onboarding_response',
+        'busiest_day',
+        busiestDay,
+      );
       behaviorStore.logBehaviorEvent(
         userId,
         'onboarding_response',
@@ -117,7 +254,12 @@ export const OnboardingScreen: React.FC<OnboardingScreenProps> = ({
         'weekly_class_count',
         classCount,
       );
-      behaviorStore.logBehaviorEvent(userId, 'onboarding_response', 'longest_class_gap', longestGap);
+      behaviorStore.logBehaviorEvent(
+        userId,
+        'onboarding_response',
+        'longest_class_gap',
+        longestGap,
+      );
 
       const initialFeatureVector = JSON.stringify({
         preferredStudyTimes: studyPeak,
@@ -137,7 +279,11 @@ export const OnboardingScreen: React.FC<OnboardingScreenProps> = ({
                 : 2.0,
       });
 
-      behaviorStore.saveFeatureSnapshot(userId, 'schedule_preference', initialFeatureVector);
+      behaviorStore.saveFeatureSnapshot(
+        userId,
+        'schedule_preference',
+        initialFeatureVector,
+      );
 
       preferencesStore.save(userId, {
         wakeTime,
@@ -150,7 +296,71 @@ export const OnboardingScreen: React.FC<OnboardingScreenProps> = ({
         longestClassGap: longestGap,
       });
 
-      saveOnboardingMemories(userId, {preferredName, tone}, studyPeak);
+      let activeAcademicProfile = existingAcademicProfile;
+
+      if (isUstpStudent && parsedCor) {
+        activeAcademicProfile = academicProfileStore.save(userId, {
+          ...parsedCor.profile,
+          isUstpStudent: true,
+          courses: parsedCor.courses.map((c) => ({
+            code: c.code,
+            subjectTitle: c.subjectTitle,
+            lecUnits: c.lecUnits,
+            labUnits: c.labUnits,
+            creditUnits: c.creditUnits,
+            section: c.section,
+            faculty: c.faculty,
+            scheduleSummary:
+              c.sessions.length > 0
+                ? c.sessions
+                    .map(
+                      (s) =>
+                        `${s.dayCode} ${s.startTime12}-${s.endTime12}${s.room && s.room !== 'TBA' ? ` (${s.room})` : ''}`,
+                    )
+                    .join(', ')
+                : 'TBA',
+          })),
+        });
+        academicProfileStore.persistRecurringSchedule(userId, parsedCor.sessions);
+        behaviorStore.logBehaviorEvent(
+          userId,
+          'onboarding_response',
+          'ustp_cor_attached',
+          parsedCor.profile.studentNo || 'true',
+        );
+      } else if (
+        isUstpStudent === false &&
+        scannedSchedule &&
+        scannedSchedule.classes.length > 0
+      ) {
+        academicProfileStore.persistRecurringSchedule(
+          userId,
+          scannedSchedule.classes.map((c) => ({
+            code: c.code,
+            subjectTitle: c.subjectTitle || c.subject,
+            section: c.section,
+            faculty: c.faculty,
+            room: c.room,
+            days: c.days,
+            startTime: c.startTime,
+            endTime: c.endTime,
+            recurrenceRule: c.recurrenceRule,
+          })),
+        );
+        behaviorStore.logBehaviorEvent(
+          userId,
+          'onboarding_response',
+          'schedule_image_scanned',
+          String(scannedSchedule.classes.length),
+        );
+      }
+
+      saveOnboardingMemories(
+        userId,
+        { preferredName, tone },
+        studyPeak,
+        activeAcademicProfile,
+      );
       userStore.markOnboardingComplete(userId);
       onOnboardingComplete();
     } catch (error) {
@@ -163,10 +373,25 @@ export const OnboardingScreen: React.FC<OnboardingScreenProps> = ({
     <SafeAreaView style={[styles.container, themed.container]}>
       <StatusBar barStyle={colors.statusBarStyle} backgroundColor={colors.background} />
 
-      {onCancel ? <TouchableOpacity accessibilityRole="button" onPress={onCancel} style={styles.cancel}><Text style={{color: colors.textSecondary}}>Cancel replay</Text></TouchableOpacity> : null}
+      {onCancel ? (
+        <TouchableOpacity
+          accessibilityRole="button"
+          onPress={onCancel}
+          style={styles.cancel}
+        >
+          <Text style={{ color: colors.textSecondary }}>Cancel replay</Text>
+        </TouchableOpacity>
+      ) : null}
 
       <OnboardingProgress step={step} totalSteps={totalSteps} />
-      {saveError ? <Text accessibilityRole="alert" style={{color: colors.error, paddingHorizontal:24}}>{saveError}</Text> : null}
+      {saveError ? (
+        <Text
+          accessibilityRole="alert"
+          style={{ color: colors.error, paddingHorizontal: 24 }}
+        >
+          {saveError}
+        </Text>
+      ) : null}
 
       <ScrollView contentContainerStyle={styles.scrollContent}>
         <View style={[styles.card, themed.card]}>
@@ -193,6 +418,19 @@ export const OnboardingScreen: React.FC<OnboardingScreenProps> = ({
             tone={tone}
             setTone={setTone}
             memoryEnabled={memoryEnabled}
+            isUstpStudent={isUstpStudent}
+            setIsUstpStudent={handleSelectUstpStudent}
+            parsedCor={parsedCor}
+            corFileName={corFileName}
+            onAttachUstpCor={handleAttachUstpCor}
+            onClearUstpCor={handleClearUstpCor}
+            scannedSchedule={scannedSchedule}
+            scheduleFileName={scheduleFileName}
+            onScanScheduleGallery={handleScanScheduleGallery}
+            onScanScheduleCamera={handleScanScheduleCamera}
+            onClearScannedSchedule={handleClearScannedSchedule}
+            isScanningDocument={isScanningDocument}
+            scanStatusMessage={scanStatusMessage}
           />
         </View>
       </ScrollView>
@@ -228,7 +466,7 @@ const getOnboardThemedStyles = (colors: ThemeColors, isDarkMode: boolean) => ({
 });
 
 const styles = StyleSheet.create({
-  cancel: {alignSelf:'flex-end', paddingHorizontal:24, paddingVertical:10},
+  cancel: { alignSelf: 'flex-end', paddingHorizontal: 24, paddingVertical: 10 },
   container: {
     flex: 1,
   },
