@@ -188,6 +188,32 @@ interface ReminderChange {
   linked: boolean;
 }
 
+/** Structured draft fields exposed for inline card editing before Confirm. */
+export interface EditableProposalFields {
+  readonly title: string;
+  readonly date: string | null;
+  readonly time: string | null;
+  readonly endTime: string | null;
+  readonly durationMinutes: number | null;
+  readonly category: string | null;
+  readonly details: string | null;
+  readonly supportsDate: boolean;
+  readonly supportsTime: boolean;
+  readonly supportsEndTime: boolean;
+  readonly supportsCategory: boolean;
+  readonly supportsDetails: boolean;
+}
+
+/** Patch submitted from the inline review editor. */
+export interface ReviewEditPatch {
+  title?: string;
+  date?: string | null;
+  time?: string | null;
+  endTime?: string | null;
+  category?: string | null;
+  details?: string | null;
+}
+
 /** What the student sees on the review card. Immutable. */
 export interface CommandProposal {
   readonly conflictAlternatives?: readonly string[];
@@ -204,6 +230,7 @@ export interface CommandProposal {
   readonly warnings: readonly string[];
   readonly destructive: boolean;
   readonly expiresAt: number;
+  readonly draftFields?: EditableProposalFields | null;
   /** One-paragraph summary for the chat transcript and speech. */
   readonly reply: string;
 }
@@ -1961,6 +1988,161 @@ const composeReply = (draft: Draft): string => {
   return parts.join(' ');
 };
 
+const extractEditableFields = (
+  op: PlannedOperation,
+): EditableProposalFields | null => {
+  switch (op.op) {
+    case 'create_task':
+      return Object.freeze({
+        title: op.title,
+        date: op.dueDate,
+        time: op.dueTime,
+        endTime: null,
+        durationMinutes: null,
+        category: op.category,
+        details: op.notes,
+        supportsDate: true,
+        supportsTime: true,
+        supportsEndTime: false,
+        supportsCategory: true,
+        supportsDetails: true,
+      });
+    case 'create_time_block': {
+      const isBatchClasses = Boolean(
+        op.notes && op.notes.startsWith('[BATCH_CLASSES:'),
+      );
+      return Object.freeze({
+        title: op.title,
+        date: op.date,
+        time: op.startTime,
+        endTime: op.endTime,
+        durationMinutes: computeDurationMinutes(op.startTime, op.endTime),
+        category: op.category,
+        details: isBatchClasses ? null : op.notes,
+        supportsDate: true,
+        supportsTime: true,
+        supportsEndTime: true,
+        supportsCategory: !isBatchClasses,
+        supportsDetails: !isBatchClasses,
+      });
+    }
+    case 'create_reminder':
+      return Object.freeze({
+        title: op.title,
+        date: op.date,
+        time: op.time,
+        endTime: null,
+        durationMinutes: null,
+        category: op.category,
+        details: op.details,
+        supportsDate: true,
+        supportsTime: true,
+        supportsEndTime: false,
+        supportsCategory: true,
+        supportsDetails: true,
+      });
+    case 'create_note':
+      return Object.freeze({
+        title: op.title,
+        date: null,
+        time: null,
+        endTime: null,
+        durationMinutes: null,
+        category: op.category,
+        details: op.body,
+        supportsDate: false,
+        supportsTime: false,
+        supportsEndTime: false,
+        supportsCategory: true,
+        supportsDetails: true,
+      });
+    case 'update_task':
+      return Object.freeze({
+        title: op.title,
+        date: op.dueDate,
+        time: op.dueTime,
+        endTime: null,
+        durationMinutes: null,
+        category: null,
+        details: null,
+        supportsDate: true,
+        supportsTime: true,
+        supportsEndTime: false,
+        supportsCategory: false,
+        supportsDetails: false,
+      });
+    case 'update_schedule_item':
+      return Object.freeze({
+        title: op.title,
+        date: op.date,
+        time: op.startTime,
+        endTime: op.endTime,
+        durationMinutes: computeDurationMinutes(op.startTime, op.endTime),
+        category: null,
+        details: null,
+        supportsDate: true,
+        supportsTime: true,
+        supportsEndTime: true,
+        supportsCategory: false,
+        supportsDetails: false,
+      });
+    case 'update_note':
+      return Object.freeze({
+        title: op.title,
+        date: null,
+        time: null,
+        endTime: null,
+        durationMinutes: null,
+        category: null,
+        details: op.body,
+        supportsDate: false,
+        supportsTime: false,
+        supportsEndTime: false,
+        supportsCategory: false,
+        supportsDetails: true,
+      });
+    default:
+      return null;
+  }
+};
+
+const parseEditedDateInput = (raw: string, referenceDate: Date): string | null => {
+  const trimmed = raw.trim();
+  if (!trimmed) return null;
+  if (/^\d{4}-\d{2}-\d{2}$/.test(trimmed)) {
+    return isRealDate(trimmed) ? trimmed : null;
+  }
+  const parsed = parseDateAndTime(trimmed, referenceDate);
+  return parsed.date && isRealDate(parsed.date) ? parsed.date : null;
+};
+
+const parseEditedTimeInput = (raw: string, referenceDate: Date): string | null => {
+  const trimmed = raw.trim();
+  if (!trimmed) return null;
+  const hhmmMatch = /^([01]?\d|2[0-3]):([0-5]\d)$/.exec(trimmed);
+  if (hhmmMatch) {
+    const formatted = `${hhmmMatch[1].padStart(2, '0')}:${hhmmMatch[2]}`;
+    return isWallTime(formatted) ? formatted : null;
+  }
+  const ampmMatch = /^(\d{1,2})(?::([0-5]\d))?\s*(am|pm|a\.m\.|p\.m\.)$/i.exec(
+    trimmed,
+  );
+  if (ampmMatch) {
+    const rawHour = Number(ampmMatch[1]);
+    const min = Number(ampmMatch[2] ?? '0');
+    const meridiem = ampmMatch[3].toLowerCase().startsWith('p') ? 'pm' : 'am';
+    if (rawHour >= 1 && rawHour <= 12) {
+      let hour24 = rawHour;
+      if (meridiem === 'pm' && rawHour < 12) hour24 += 12;
+      if (meridiem === 'am' && rawHour === 12) hour24 = 0;
+      const formatted = `${String(hour24).padStart(2, '0')}:${String(min).padStart(2, '0')}`;
+      return isWallTime(formatted) ? formatted : null;
+    }
+  }
+  const parsed = parseDateAndTime(`at ${trimmed}`, referenceDate);
+  return parsed.time && isWallTime(parsed.time) ? parsed.time : null;
+};
+
 /**
  * Turns a validated intent into a private proposal, a clarification, or a
  * refusal. Writes nothing.
@@ -2103,6 +2285,7 @@ export const prepareReviewedCommand = (
       warnings: Object.freeze([...draft.warnings]),
       destructive: draft.destructive,
       expiresAt,
+      draftFields: extractEditableFields(draft.operation),
       reply: composeReply(draft),
     });
     reviews.set(operationId, {
@@ -2999,6 +3182,225 @@ export const reviseReviewedCommand = (
     {surface: current.proposal.surface},
   );
   if (result.status === 'proposal') current.state = 'cancelled';
+  return result;
+};
+
+/**
+ * Updates fields of a pending review proposal from structured inline UI edits
+ * without writing anything to storage until Confirm.
+ */
+export const editReviewedCommand = (
+  ownerId: string,
+  operationId: string,
+  patch: ReviewEditPatch,
+  referenceDate: Date = new Date(),
+): PrepareResult => {
+  const current = reviews.get(operationId);
+  if (
+    !current ||
+    current.ownerId !== ownerId ||
+    current.state !== 'pending' ||
+    current.sessionId !== sessionId ||
+    current.expiresAt <= Date.now()
+  ) {
+    return {
+      status: 'invalid',
+      reply: 'That draft is no longer available. Nothing was changed.',
+    };
+  }
+  const fields = extractEditableFields(current.operation);
+  if (!fields) {
+    return {
+      status: 'invalid',
+      reply: 'This draft cannot be edited inline.',
+    };
+  }
+  const op = current.operation;
+
+  let nextTitle = fields.title;
+  if (patch.title !== undefined) {
+    const trimmedTitle = patch.title.trim();
+    if (!trimmedTitle) {
+      return {
+        status: 'invalid',
+        reply: 'Please enter a title before saving.',
+      };
+    }
+    nextTitle = trimmedTitle;
+  }
+
+  let nextDate = fields.date;
+  if (fields.supportsDate && patch.date !== undefined) {
+    const rawDate = patch.date === null ? '' : patch.date.trim();
+    if (!rawDate) {
+      if (op.op === 'create_task' || op.op === 'update_task') {
+        nextDate = null;
+      } else {
+        return {
+          status: 'invalid',
+          reply: 'Please enter a valid date (YYYY-MM-DD).',
+        };
+      }
+    } else {
+      const parsedDate = parseEditedDateInput(rawDate, referenceDate);
+      if (!parsedDate) {
+        return {
+          status: 'invalid',
+          reply:
+            'Please enter a valid date (for example YYYY-MM-DD or tomorrow).',
+        };
+      }
+      nextDate = parsedDate;
+    }
+  }
+
+  let nextTime = fields.time;
+  if (fields.supportsTime && patch.time !== undefined) {
+    const rawTime = patch.time === null ? '' : patch.time.trim();
+    if (!rawTime) {
+      if (op.op === 'create_task' || op.op === 'update_task') {
+        nextTime = null;
+      } else {
+        return {
+          status: 'invalid',
+          reply:
+            'Please enter a valid start time (for example 15:00 or 3:00 PM).',
+        };
+      }
+    } else {
+      const parsedTime = parseEditedTimeInput(rawTime, referenceDate);
+      if (!parsedTime) {
+        return {
+          status: 'invalid',
+          reply: 'Please enter a valid time (for example 15:00 or 3:00 PM).',
+        };
+      }
+      nextTime = parsedTime;
+    }
+  }
+
+  if (
+    op.op === 'create_task' &&
+    patch.date !== undefined &&
+    nextDate === null &&
+    patch.time === undefined
+  ) {
+    nextTime = null;
+  }
+
+  let nextEndTime = fields.endTime;
+  if (fields.supportsEndTime) {
+    if (patch.endTime !== undefined) {
+      const rawEnd = patch.endTime === null ? '' : patch.endTime.trim();
+      if (!rawEnd) {
+        return {
+          status: 'invalid',
+          reply:
+            'Please enter a valid end time (for example 16:00 or 4:00 PM).',
+        };
+      }
+      const parsedEnd = parseEditedTimeInput(rawEnd, referenceDate);
+      if (!parsedEnd) {
+        return {
+          status: 'invalid',
+          reply:
+            'Please enter a valid end time (for example 16:00 or 4:00 PM).',
+        };
+      }
+      nextEndTime = parsedEnd;
+    } else if (patch.time !== undefined && nextTime && fields.time) {
+      const oldDuration = computeDurationMinutes(
+        fields.time,
+        fields.endTime || fields.time,
+      );
+      nextEndTime = addMinutesToTime(nextTime, oldDuration || 60);
+    }
+  }
+
+  const nextCategory =
+    fields.supportsCategory && patch.category !== undefined
+      ? (patch.category || '').trim() || fields.category || 'Personal'
+      : fields.category || 'Personal';
+
+  let nextDetails: string | null = fields.details;
+  if (
+    op.op === 'create_time_block' &&
+    op.notes &&
+    op.notes.startsWith('[BATCH_CLASSES:')
+  ) {
+    nextDetails = op.notes;
+  } else if (fields.supportsDetails && patch.details !== undefined) {
+    const rawDetails = patch.details === null ? '' : patch.details.trim();
+    nextDetails = rawDetails || null;
+  }
+
+  const isUpdate =
+    op.op === 'update_task' ||
+    op.op === 'update_schedule_item' ||
+    op.op === 'update_note';
+
+  let intentType: ParsedIntentType;
+  switch (op.op) {
+    case 'create_task':
+    case 'create_time_block':
+    case 'create_reminder':
+    case 'create_note':
+    case 'update_task':
+    case 'update_note':
+      intentType = op.op;
+      break;
+    case 'update_schedule_item':
+      intentType = 'update_time_block';
+      break;
+    default:
+      return {
+        status: 'invalid',
+        reply: 'This draft cannot be edited inline.',
+      };
+  }
+
+  const targetEntityType: CrudTargetEntityType | undefined =
+    isUpdate && 'target' in op
+      ? op.target.type === 'event'
+        ? 'event'
+        : op.target.type
+      : undefined;
+
+  const result = prepareReviewedCommand(
+    ownerId,
+    {
+      intent: intentType,
+      title: isUpdate && 'target' in op ? op.target.title : nextTitle,
+      ...(isUpdate && 'target' in op ? {targetTitle: op.target.title} : {}),
+      ...(isUpdate ? {newTitle: nextTitle} : {}),
+      ...(targetEntityType ? {targetEntityType} : {}),
+      date: nextDate,
+      time: nextTime,
+      endTime: nextEndTime,
+      durationMinutes:
+        nextTime && nextEndTime
+          ? computeDurationMinutes(nextTime, nextEndTime)
+          : fields.durationMinutes,
+      category: nextCategory,
+      details: nextDetails,
+      snoozeMinutes: null,
+      confidence: 1,
+      source: 'fast_path',
+      rawTranscript: nextTitle,
+      isValid: true,
+      recurrenceRule:
+        op.op === 'create_reminder' || op.op === 'create_time_block'
+          ? op.recurrenceRule ?? null
+          : null,
+    },
+    {
+      surface: current.proposal.surface,
+      referenceDate,
+    },
+  );
+  if (result.status === 'proposal') {
+    current.state = 'cancelled';
+  }
   return result;
 };
 
