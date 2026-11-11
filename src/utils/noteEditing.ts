@@ -46,7 +46,7 @@ const NESTABLE = /^[\t ]*([-*] \[[ xX]\] |[-*] |\d{1,3}[.)] )/;
 const INDENT_UNIT = '  ';
 
 const lineBounds = (body: string, selection: NoteSelection): NoteSelection => ({
-  start: body.lastIndexOf('\n', Math.max(0, selection.start - 1)) + 1,
+  start: selection.start === 0 ? 0 : body.lastIndexOf('\n', selection.start - 1) + 1,
   end: body.indexOf('\n', selection.end) === -1 ? body.length : body.indexOf('\n', selection.end),
 });
 
@@ -166,6 +166,30 @@ export const applyNoteFormat = (
   return applyBlock(body, selection, format as BlockFormat);
 };
 
+export interface ActiveLineFormat {
+  isBullet: boolean;
+  isChecklist: boolean;
+  isH1: boolean;
+  isH2: boolean;
+  isQuote: boolean;
+}
+
+export const getActiveLineFormat = (
+  body: string,
+  selection: NoteSelection,
+): ActiveLineFormat => {
+  const bounds = lineBounds(body, selection);
+  const line = body.slice(bounds.start, bounds.end);
+  const trimmed = splitIndent(line)[1];
+  return {
+    isBullet: /^[-*] (?!\[[ xX]\])/.test(trimmed),
+    isChecklist: /^[-*] \[[ xX]\] /.test(trimmed),
+    isH1: /^# (?!#)/.test(trimmed),
+    isH2: /^## (?!#)/.test(trimmed),
+    isQuote: /^> /.test(trimmed),
+  };
+};
+
 /**
  * Carries a list on when Enter is pressed at the end of one of its items, so
  * a checklist can be typed straight down without reaching for the toolbar.
@@ -175,13 +199,15 @@ export const applyNoteFormat = (
  * does on the desktop.
  */
 export const continueListOnNewline = (previous: string, next: string): NoteEdit | null => {
+  const normPrev = previous.replace(/\r\n/g, '\n');
+  const normNext = next.replace(/\r\n/g, '\n');
   // Exactly one newline typed at a caret, with nothing else changed.
-  if (next.length !== previous.length + 1) return null;
-  const at = findInsertedNewline(previous, next);
+  if (normNext.length !== normPrev.length + 1) return null;
+  const at = findInsertedNewline(normPrev, normNext);
   if (at === null) return null;
 
-  const lineStart = next.lastIndexOf('\n', at - 1) + 1;
-  const line = next.slice(lineStart, at);
+  const lineStart = normNext.lastIndexOf('\n', at - 1) + 1;
+  const line = normNext.slice(lineStart, at);
   const match = /^([\t ]*)([-*] \[[ xX]\] |[-*] |(\d{1,3})([.)]) )(.*)$/.exec(line);
   if (!match) return null;
 
@@ -189,7 +215,7 @@ export const continueListOnNewline = (previous: string, next: string): NoteEdit 
   if (!text.trim()) {
     // Enter on an empty item leaves the list: the marker goes, and that line
     // becomes the blank one the newline was asking for.
-    const body = next.slice(0, lineStart) + next.slice(at + 1);
+    const body = normNext.slice(0, lineStart) + normNext.slice(at + 1);
     return { body, selection: { start: lineStart, end: lineStart } };
   }
 
@@ -197,7 +223,7 @@ export const continueListOnNewline = (previous: string, next: string): NoteEdit 
     ? `${Number(number) + 1}${punctuation} `
     : marker.replace(/\[[xX]\]/, '[ ]');
   const insertion = indent + nextMarker;
-  const body = next.slice(0, at + 1) + insertion + next.slice(at + 1);
+  const body = normNext.slice(0, at + 1) + insertion + normNext.slice(at + 1);
   const caretAt = at + 1 + insertion.length;
   return { body, selection: { start: caretAt, end: caretAt } };
 };
