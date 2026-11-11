@@ -1,3 +1,13 @@
+## Wi-Fi local backend (USB optional)
+
+Run `npm run providers:server` on the computer. In the updated test app, open Profile → Server (debug) → Set local Wi-Fi address, enter `http://192.168.100.4:8000` (this PC's current Ethernet/LAN address), then Save and use local. Both devices must share the same LAN. The computer/server must remain awake and running. If DHCP changes the address, update it here; a router DHCP reservation keeps it stable.
+
+Permit inbound TCP 8000 only for the local subnet on the Windows Private network profile. Use a trusted home/test Wi-Fi: this QA connection uses plain HTTP; the release app remains HTTPS-only. No public port forwarding is needed. USB loopback remains available as `http://127.0.0.1:8000` with `adb reverse`.
+
+Local guest mode does not require a backend login. Local-server accounts and hosted-server accounts are separate; switching servers signs out an existing server session and keeps phone planner records.
+
+---
+
 # Real providers on this PC and in the test APK
 
 This temporary profile uses real DeepSeek streaming and ElevenLabs fast TTS through a server on this PC. It is a normal LAFINA app build, with package **`com.lafina.capstone.providers`**, separate from other installed apps. Internet is still needed for the providers. Local routing removes the hosted-server hop; it cannot guarantee instant responses.
