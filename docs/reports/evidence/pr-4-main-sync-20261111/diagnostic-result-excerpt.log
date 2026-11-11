@@ -1,0 +1,15 @@
+
+> lafina-capstone@1.3.4 test
+> jest --runInBand --detectOpenHandles
+
+
+[Excerpt: intervening suite and mocked-failure output omitted; complete run is summarized in summary.json.]
+
+PASS __tests__/ai/finalAuditF2Ducking.test.ts
+PASS __tests__/utils/noteEditing.test.ts
+
+Test Suites: 104 passed, 104 total
+Tests:       1 skipped, 1490 passed, 1491 total
+Snapshots:   0 total
+Time:        127.9 s
+Ran all test suites.

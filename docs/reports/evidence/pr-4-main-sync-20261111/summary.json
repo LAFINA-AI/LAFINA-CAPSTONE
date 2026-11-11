@@ -30,5 +30,23 @@
   "apkAssembly": "NOT RUN",
   "benchmarks": "NOT RUN",
   "changedCodeFormatting": "PASS (12 TS/TSX files)",
-  "repositoryFormatCheck": "FAIL (274 flagged before targeted formatting)"
+  "repositoryFormatCheck": "FAIL (274 flagged before targeted formatting)",
+  "fullDiagnostic": {
+    "command": "npm test -- --detectOpenHandles",
+    "exitCode": 0,
+    "suitesPassed": 104,
+    "testsPassed": 1490,
+    "testsSkipped": 1,
+    "reportedOpenHandles": 0
+  },
+  "history": {
+    "originalHead": "da128a185306ab6c98d6182941c688370643f0b9",
+    "sanitizedHead": "5aa2b17df8a046e5c3adae3bddf174984251a8b4",
+    "commitsInspected": 109,
+    "commitsRewritten": 109,
+    "coauthorTrailersRemoved": 41,
+    "allCommitTreesUnchanged": true,
+    "humanIdentitiesUnchanged": true
+  },
+  "verifiedAtUtc": "2026-11-11T09:36:40.162110+00:00"
 }

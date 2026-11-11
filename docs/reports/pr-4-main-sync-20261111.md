@@ -2,6 +2,10 @@
 
 **Branch:** `feat/call-lafina-v2` → `main`
 **Date:** 2026-11-11 (Asia/Manila)
+
+**Status:** READY FOR REVIEW; device validation NOT RUN.
+
+**Sanitized integration commit:** `5aa2b17df8a046e5c3adae3bddf174984251a8b4` (followed only by evidence documentation)
 **Original feature head:** `ce271ce9ab7bef836cb5ae0fac38e7d2cf97b284`
 **Main integrated:** `dcbef57ec3b069be939a28e6c4b1442ea38d126a`
 **Authorization:** Owner requested a PR to main, conflict resolution, branch push, and removal of Claude attribution from commits. This is branch integration, not authorization to start another product phase.
@@ -36,6 +40,7 @@ Evidence directory: `docs/reports/evidence/pr-4-main-sync-20261111/`.
 | TypeScript | `npm run typecheck` (via preflight) | PASS, zero errors. |
 | ESLint | `npm run lint` (via preflight) | PASS, zero errors/warnings. |
 | Jest | `npm test` (via preflight) | 104 suites passed; 1,490 tests passed, one opt-in test skipped. Preflight exited normally (exit 0) after a delayed-handle warning. |
+| Full handle diagnostic | `npm test -- --detectOpenHandles` | PASS, 104 suites / 1,490 tests passed / one skipped; exit 0; no open handles reported. |
 | Focused handle check | `npm test -- --runTestsByPath __tests__/ui/voiceConversationUi.test.tsx __tests__/cloud/voiceConversationController.test.ts __tests__/ai/groundedVoiceDraft.test.ts __tests__/cloud/voiceNativeAudioGate.test.ts --detectOpenHandles` | PASS, four suites / 78 tests; exited normally. |
 | Architecture | `npm run check:architecture` | PASS: 287 modules, zero cycles/forbidden dependencies, 82 offline leaves reach no network module. |
 | Android | JDK 17; `android/gradlew.bat -p android :app:compileDebugKotlin :app:testDebugUnitTest -PreactNativeArchitectures=arm64-v8a --offline --no-daemon --console=plain --max-workers=2` | PASS: build successful; seven JVM suites / 55 tests, zero failures/errors. |
@@ -44,7 +49,7 @@ Evidence directory: `docs/reports/evidence/pr-4-main-sync-20261111/`.
 | Merge whitespace | `git diff --cached --check` excluding raw evidence logs | PASS (raw tool output preserves its original whitespace). |
 | APK assembly/install, phone/audio, live services, benchmarks | Not executed | NOT RUN. |
 
-The first focused run had two failures: a review-message wording difference and an older test that supplied an action only through provider tool text. The UI wording was preserved and the test now supplies an actual student request before testing ambiguous cancellation. The first full run passed every assertion but printed Jest's open-handle warning; the process subsequently exited normally and preflight completed with exit 0. A diagnostic full-suite run was also started to record any reported handle sources.
+The first focused run had two failures: a review-message wording difference and an older test that supplied an action only through provider tool text. The UI wording was preserved and the test now supplies an actual student request before testing ambiguous cancellation. The first full run passed every assertion but printed Jest's open-handle warning; the process subsequently exited normally and preflight completed with exit 0. A second full-suite run with `--detectOpenHandles` also passed and exited 0 without reporting open handles; no force-exit flag or test-runner configuration change was needed.
 
 ## 4. Performance and device matrix
 
@@ -75,4 +80,4 @@ Human device validation and PR review remain. No next phase or backend change is
 
 ## 9. Review decision
 
-The integration is ready for source review once the final command/history summary and remote PR state are verified. Device checks above remain NOT RUN; automated success is not device certification.
+Automated integration and history verification passed. All 109 rewritten commit trees match their originals, 41 co-author trailers were removed, human identities are unchanged, and main is an ancestor. The SHA mapping and verification summary are in the evidence directory. The integration is ready for source review. Device checks above remain NOT RUN; automated success is not device certification.
