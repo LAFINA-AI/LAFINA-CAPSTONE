@@ -14,6 +14,7 @@ import {
   behaviorStore,
   preferencesStore,
   academicProfileStore,
+  mapCorCoursesToAcademicRecords,
 } from '../../storage';
 import type {
   StudyPeakHour,
@@ -302,24 +303,7 @@ export const OnboardingScreen: React.FC<OnboardingScreenProps> = ({
         activeAcademicProfile = academicProfileStore.save(userId, {
           ...parsedCor.profile,
           isUstpStudent: true,
-          courses: parsedCor.courses.map((c) => ({
-            code: c.code,
-            subjectTitle: c.subjectTitle,
-            lecUnits: c.lecUnits,
-            labUnits: c.labUnits,
-            creditUnits: c.creditUnits,
-            section: c.section,
-            faculty: c.faculty,
-            scheduleSummary:
-              c.sessions.length > 0
-                ? c.sessions
-                    .map(
-                      (s) =>
-                        `${s.dayCode} ${s.startTime12}-${s.endTime12}${s.room && s.room !== 'TBA' ? ` (${s.room})` : ''}`,
-                    )
-                    .join(', ')
-                : 'TBA',
-          })),
+          courses: mapCorCoursesToAcademicRecords(parsedCor.courses),
         });
         academicProfileStore.persistRecurringSchedule(userId, parsedCor.sessions);
         behaviorStore.logBehaviorEvent(

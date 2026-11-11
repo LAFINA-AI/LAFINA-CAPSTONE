@@ -115,12 +115,15 @@ export {localSettingsStore} from './localSettingsStore';
 export {
   academicProfileStore,
   formatClassBlockNotes,
+  mapCorCoursesToAcademicRecords,
   parseClassBlockMetadata,
+  pickSubjectColor,
 } from './academicProfileStore';
 export type {
   AcademicCourseRecord,
   AcademicProfileRecord,
   ClassBlockMetadata,
+  CorCourseInput,
   OnboardingScheduleSessionInput,
 } from './academicProfileStore';
 export {productTourStore, PRODUCT_TOUR_VERSION} from './productTourStore';
