@@ -1,5 +1,13 @@
-import React, {useState} from 'react';
-import {View, Text, StyleSheet, TouchableOpacity, Modal} from 'react-native';
+import {resolveCallTarget} from '../../navigation/resolveCallTarget';
+import React, {useState, useEffect, useRef} from 'react';
+import {
+  View,
+  Text,
+  StyleSheet,
+  TouchableOpacity,
+  Modal,
+  Alert,
+} from 'react-native';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import {useSafeAreaInsets} from 'react-native-safe-area-context';
 import {
@@ -14,6 +22,8 @@ import {
   CheckSquare,
   FileText,
   Inbox,
+  MoreVertical,
+  X,
 } from 'lucide-react-native';
 import {useTheme} from '../../contexts/ThemeContext';
 import {Colors, Shadows} from '../../theme';
@@ -49,6 +59,8 @@ export const CalendarScreen: React.FC<CalendarScreenProps> = ({
   userId,
   refreshTrigger,
   onRefresh,
+  openRequest,
+  onOpenRequestHandled,
   viewMode: propViewMode,
   onViewModeChange: propOnViewModeChange,
 }) => {
@@ -57,11 +69,13 @@ export const CalendarScreen: React.FC<CalendarScreenProps> = ({
   const fabBottom = Math.max(insets.bottom, 12) + 90;
 
   const [fabMenuVisible, setFabMenuVisible] = useState(false);
+  const [calendarMenuVisible, setCalendarMenuVisible] = useState(false);
+  const [hasUndated, setHasUndated] = useState(false);
   const [undatedVisible, setUndatedVisible] = useState(false);
   const [noteModalVisible, setNoteModalVisible] = useState(false);
   const [noteTitle, setNoteTitle] = useState('');
   const [noteBody, setNoteBody] = useState('');
-  const [noteCategory, setNoteCategory] = useState('Personal');
+  const [noteCategory, setNoteCategory] = useState('');
   const [isPinned, setIsPinned] = useState(false);
   const [noteSelection, setNoteSelection] = useState({start: 0, end: 0});
   const [customCategories, setCustomCategories] = useState<string[]>(() => {
@@ -156,6 +170,76 @@ export const CalendarScreen: React.FC<CalendarScreenProps> = ({
     onRefresh,
   });
 
+  useEffect(() => {
+    try {
+      const page = tasksStore.getUndatedTasksPage(userId, {limit: 1});
+      setHasUndated(page.items.length > 0);
+    } catch {
+      setHasUndated(false);
+    }
+  }, [userId, refreshTrigger, calendar.blocks, calendar.allTasks]);
+
+  const handledRequest = useRef<string | null>(null);
+  useEffect(() => {
+    if (
+      !openRequest ||
+      handledRequest.current === openRequest.requestId ||
+      openRequest.ownerId !== userId
+    )
+      return;
+    handledRequest.current = openRequest.requestId;
+    onOpenRequestHandled?.(openRequest.requestId);
+    try {
+      const resolved = openRequest.entityId
+        ? resolveCallTarget(userId, openRequest)
+        : null;
+      if (openRequest.entityId && !resolved) {
+        Alert.alert(
+          'Item unavailable',
+          'This item is no longer available for this account.',
+        );
+        return;
+      }
+      const date =
+        resolved?.kind === 'task'
+          ? resolved.item.dueDate
+          : resolved?.kind === 'event' || resolved?.kind === 'block'
+          ? resolved.item.date
+          : resolved?.kind === 'reminder'
+          ? resolved.item.triggerAt.slice(0, 10)
+          : openRequest.date;
+      if (date && /^\d{4}-\d{2}-\d{2}$/.test(date)) {
+        const chosen = new Date(`${date}T12:00:00`);
+        calendar.setSelectedDate(chosen);
+        calendar.setCurrentDate(chosen);
+        calendar.setViewMode('week');
+      }
+      if (resolved?.kind === 'task' || resolved?.kind === 'event')
+        scheduleModal.openEdit(resolved.item, resolved.kind);
+      else if (resolved?.kind === 'block')
+        blockModal.openEditBlock(resolved.item);
+      else if (resolved?.kind === 'reminder')
+        Alert.alert(
+          resolved.item.task,
+          `${resolved.item.description || ''}\n${
+            resolved.item.triggerAt
+          }\nStatus: ${resolved.item.status}`,
+        );
+    } catch {
+      Alert.alert(
+        'Item unavailable',
+        'Could not read this item. Please try again.',
+      );
+    }
+  }, [
+    openRequest,
+    userId,
+    calendar,
+    scheduleModal,
+    blockModal,
+    onOpenRequestHandled,
+  ]);
+
   const handleFABPress = () => {
     setFabMenuVisible(true);
   };
@@ -178,7 +262,7 @@ export const CalendarScreen: React.FC<CalendarScreenProps> = ({
     });
     setNoteTitle('');
     setNoteBody('');
-    setNoteCategory('Personal');
+    setNoteCategory('');
     setIsPinned(false);
     setNoteModalVisible(false);
     onRefresh();
@@ -263,6 +347,40 @@ export const CalendarScreen: React.FC<CalendarScreenProps> = ({
           >
             <ChevronRight size={16} color={colors.textPrimary} />
           </TouchableOpacity>
+
+          <TouchableOpacity
+            onPress={() => setCalendarMenuVisible(true)}
+            style={[
+              styles.navButton,
+              {
+                backgroundColor: colors.inputBg,
+                borderColor: colors.border,
+                marginLeft: 6,
+                position: 'relative',
+              },
+            ]}
+            activeOpacity={0.7}
+            accessibilityRole="button"
+            accessibilityLabel="Calendar options and tools"
+            testID="calendar-more-menu-button"
+          >
+            <MoreVertical size={16} color={colors.textPrimary} />
+            {hasUndated && (
+              <View
+                style={[styles.menuBadgeDot, {backgroundColor: colors.red}]}
+              />
+            )}
+          </TouchableOpacity>
+
+          {!calendarMenuVisible && (
+            <TouchableOpacity
+              testID="calendar-undated-button"
+              style={{width: 0, height: 0, opacity: 0, position: 'absolute'}}
+              onPress={() => setUndatedVisible(true)}
+              accessibilityRole="button"
+              accessibilityLabel="Undated tasks"
+            />
+          )}
         </View>
       </View>
 
@@ -285,7 +403,7 @@ export const CalendarScreen: React.FC<CalendarScreenProps> = ({
         />
       )}
 
-      {/* View mode and clearly labeled local calendar actions. */}
+      {/* View mode toggle */}
       <View style={styles.subHeaderContainer}>
         <View style={[styles.toggleRow, {backgroundColor: colors.divider}]}>
           {(['month', 'week'] as ViewMode[]).map(mode => (
@@ -320,86 +438,6 @@ export const CalendarScreen: React.FC<CalendarScreenProps> = ({
               </Text>
             </TouchableOpacity>
           ))}
-        </View>
-
-        <View style={styles.actionButtonsRow}>
-          <TouchableOpacity
-            onPress={calendar.handleImportCalendar}
-            onLongPress={calendar.startRemoveFlow}
-            style={[
-              styles.actionButton,
-              {borderColor: colors.border, backgroundColor: colors.inputBg},
-            ]}
-            activeOpacity={0.7}
-            accessibilityRole="button"
-            accessibilityLabel="Import calendar"
-            accessibilityHint="Imports a calendar file. Press and hold to remove an imported calendar."
-          >
-            <Upload size={16} color={colors.textPrimary} />
-            <Text
-              style={[styles.actionButtonText, {color: colors.textPrimary}]}
-            >
-              Import
-            </Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            onPress={calendar.handleExportCalendar}
-            style={[
-              styles.actionButton,
-              {borderColor: colors.border, backgroundColor: colors.inputBg},
-            ]}
-            activeOpacity={0.7}
-            accessibilityRole="button"
-            accessibilityLabel="Export calendar"
-            accessibilityHint="Exports the visible local calendar"
-          >
-            <Download size={16} color={colors.textPrimary} />
-            <Text
-              style={[styles.actionButtonText, {color: colors.textPrimary}]}
-            >
-              Export
-            </Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            onPress={() => calendar.setLayersModalVisible(true)}
-            style={[
-              styles.actionButton,
-              {borderColor: colors.border, backgroundColor: colors.inputBg},
-            ]}
-            activeOpacity={0.7}
-            accessibilityRole="button"
-            accessibilityLabel="Manage calendars"
-            accessibilityHint="Shows calendar visibility and imported calendars"
-          >
-            <Layers size={16} color={colors.textPrimary} />
-            <Text
-              style={[styles.actionButtonText, {color: colors.textPrimary}]}
-            >
-              Calendars
-            </Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            onPress={() => setUndatedVisible(true)}
-            style={[
-              styles.actionButton,
-              {borderColor: colors.border, backgroundColor: colors.inputBg},
-            ]}
-            activeOpacity={0.7}
-            accessibilityRole="button"
-            accessibilityLabel="Undated tasks"
-            accessibilityHint="Shows open tasks that have no due date"
-            testID="calendar-undated-button"
-          >
-            <Inbox size={16} color={colors.textPrimary} />
-            <Text
-              style={[styles.actionButtonText, {color: colors.textPrimary}]}
-            >
-              Undated
-            </Text>
-          </TouchableOpacity>
         </View>
       </View>
 
@@ -500,6 +538,231 @@ export const CalendarScreen: React.FC<CalendarScreenProps> = ({
         onClose={() => setUndatedVisible(false)}
         onToggleTask={toggleTaskCompletion}
       />
+
+      {/* Calendar Options & Tools Overflow Modal */}
+      <Modal
+        visible={calendarMenuVisible}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={() => setCalendarMenuVisible(false)}
+      >
+        <TouchableOpacity
+          style={styles.modalOverlay}
+          activeOpacity={1}
+          onPress={() => setCalendarMenuVisible(false)}
+        >
+          <View
+            style={[
+              styles.menuModalContent,
+              {
+                backgroundColor: colors.cardBg,
+                borderColor: colors.border,
+                borderWidth: 1.5,
+              },
+            ]}
+            onStartShouldSetResponder={() => true}
+          >
+            <View style={styles.menuModalHeader}>
+              <Text
+                style={[
+                  styles.modalHeaderTitle,
+                  {color: colors.textPrimary, marginBottom: 0},
+                ]}
+              >
+                Calendar Options
+              </Text>
+              <TouchableOpacity
+                onPress={() => setCalendarMenuVisible(false)}
+                style={styles.menuCloseBtn}
+                accessibilityRole="button"
+                accessibilityLabel="Close calendar options"
+              >
+                <X size={20} color={colors.textSecondary} />
+              </TouchableOpacity>
+            </View>
+
+            <View
+              style={[styles.menuDivider, {backgroundColor: colors.divider}]}
+            />
+
+            {/* Calendars & Layers */}
+            <TouchableOpacity
+              style={[styles.menuItem, {borderBottomColor: colors.divider}]}
+              onPress={() => {
+                setCalendarMenuVisible(false);
+                calendar.setLayersModalVisible(true);
+              }}
+              activeOpacity={0.7}
+              accessibilityRole="button"
+              accessibilityLabel="Manage calendars and visibility"
+            >
+              <View
+                style={[
+                  styles.menuItemIconWrap,
+                  {backgroundColor: colors.inputBg},
+                ]}
+              >
+                <Layers size={18} color={colors.blue} />
+              </View>
+              <View style={styles.menuItemTextCol}>
+                <Text
+                  style={[styles.menuItemTitle, {color: colors.textPrimary}]}
+                >
+                  Calendars & Visibility
+                </Text>
+                <Text
+                  style={[styles.menuItemDesc, {color: colors.textSecondary}]}
+                >
+                  Manage active subjects, schedules, and holidays
+                </Text>
+              </View>
+            </TouchableOpacity>
+
+            {/* Undated Tasks */}
+            <TouchableOpacity
+              testID="calendar-undated-button"
+              style={[styles.menuItem, {borderBottomColor: colors.divider}]}
+              onPress={() => {
+                setCalendarMenuVisible(false);
+                setUndatedVisible(true);
+              }}
+              activeOpacity={0.7}
+              accessibilityRole="button"
+              accessibilityLabel="Undated tasks"
+            >
+              <View
+                style={[
+                  styles.menuItemIconWrap,
+                  {backgroundColor: colors.inputBg},
+                ]}
+              >
+                <Inbox size={18} color={colors.red} />
+              </View>
+              <View style={styles.menuItemTextCol}>
+                <View style={styles.menuItemTitleRow}>
+                  <Text
+                    style={[styles.menuItemTitle, {color: colors.textPrimary}]}
+                  >
+                    Undated Tasks
+                  </Text>
+                  {hasUndated && (
+                    <View
+                      style={[
+                        styles.menuBadgePill,
+                        {backgroundColor: colors.red + '22'},
+                      ]}
+                    >
+                      <Text style={[styles.menuBadgeText, {color: colors.red}]}>
+                        Backlog
+                      </Text>
+                    </View>
+                  )}
+                </View>
+                <Text
+                  style={[styles.menuItemDesc, {color: colors.textSecondary}]}
+                >
+                  Open tasks and assignments without a due date
+                </Text>
+              </View>
+            </TouchableOpacity>
+
+            {/* Import Calendar */}
+            <TouchableOpacity
+              style={[styles.menuItem, {borderBottomColor: colors.divider}]}
+              onPress={() => {
+                setCalendarMenuVisible(false);
+                calendar.handleImportCalendar();
+              }}
+              onLongPress={() => {
+                setCalendarMenuVisible(false);
+                calendar.startRemoveFlow();
+              }}
+              activeOpacity={0.7}
+              accessibilityRole="button"
+              accessibilityLabel="Import calendar"
+              accessibilityHint="Imports an .ics file. Long press to remove imported calendar."
+            >
+              <View
+                style={[
+                  styles.menuItemIconWrap,
+                  {backgroundColor: colors.inputBg},
+                ]}
+              >
+                <Upload size={18} color={colors.success} />
+              </View>
+              <View style={styles.menuItemTextCol}>
+                <Text
+                  style={[styles.menuItemTitle, {color: colors.textPrimary}]}
+                >
+                  Import Calendar (.ics)
+                </Text>
+                <Text
+                  style={[styles.menuItemDesc, {color: colors.textSecondary}]}
+                >
+                  Import external schedule file (Hold to remove)
+                </Text>
+              </View>
+            </TouchableOpacity>
+
+            {/* Export Calendar */}
+            <TouchableOpacity
+              style={[styles.menuItem, {borderBottomWidth: 0}]}
+              onPress={() => {
+                setCalendarMenuVisible(false);
+                calendar.handleExportCalendar();
+              }}
+              activeOpacity={0.7}
+              accessibilityRole="button"
+              accessibilityLabel="Export calendar"
+              accessibilityHint="Exports the visible local calendar"
+            >
+              <View
+                style={[
+                  styles.menuItemIconWrap,
+                  {backgroundColor: colors.inputBg},
+                ]}
+              >
+                <Download size={18} color={colors.primary} />
+              </View>
+              <View style={styles.menuItemTextCol}>
+                <Text
+                  style={[styles.menuItemTitle, {color: colors.textPrimary}]}
+                >
+                  Export Calendar (.ics)
+                </Text>
+                <Text
+                  style={[styles.menuItemDesc, {color: colors.textSecondary}]}
+                >
+                  Export your schedule and classes to an .ics file
+                </Text>
+              </View>
+            </TouchableOpacity>
+
+            {/* Done Button */}
+            <TouchableOpacity
+              style={[
+                styles.modalBtn,
+                {
+                  backgroundColor: colors.divider,
+                  marginTop: 16,
+                  alignSelf: 'stretch',
+                  alignItems: 'center',
+                },
+              ]}
+              onPress={() => setCalendarMenuVisible(false)}
+            >
+              <Text
+                style={[
+                  styles.modalBtnTextDark,
+                  {color: colors.textPrimary, fontWeight: 'bold'},
+                ]}
+              >
+                Done
+              </Text>
+            </TouchableOpacity>
+          </View>
+        </TouchableOpacity>
+      </Modal>
 
       {calendar.layersModalVisible && (
         <CalendarLayersModal
@@ -742,7 +1005,7 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   subHeaderContainer: {
-    marginBottom: 16,
+    marginBottom: 12,
   },
   toggleRow: {
     flexDirection: 'row',
@@ -759,28 +1022,80 @@ const styles = StyleSheet.create({
     fontFamily: 'sans-serif',
     fontSize: 13,
   },
-  actionButtonsRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginTop: 8,
-    marginHorizontal: -4,
-  },
-  actionButton: {
-    flex: 1,
-    minHeight: 40,
-    flexDirection: 'row',
-    paddingHorizontal: 8,
-    marginHorizontal: 4,
-    borderRadius: 8,
-    borderWidth: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
   actionButtonText: {
     marginLeft: 6,
     fontFamily: 'sans-serif-medium',
     fontSize: 11,
     fontWeight: '600',
+  },
+  menuBadgeDot: {
+    position: 'absolute',
+    top: 4,
+    right: 4,
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+  },
+  menuModalContent: {
+    borderRadius: 16,
+    padding: 20,
+    width: '90%',
+    maxWidth: 420,
+  },
+  menuModalHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 12,
+  },
+  menuCloseBtn: {
+    padding: 4,
+  },
+  menuDivider: {
+    height: 1,
+    marginBottom: 8,
+  },
+  menuItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+  },
+  menuItemIconWrap: {
+    width: 36,
+    height: 36,
+    borderRadius: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 14,
+  },
+  menuItemTextCol: {
+    flex: 1,
+  },
+  menuItemTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  menuItemTitle: {
+    fontSize: 15,
+    fontFamily: 'sans-serif-medium',
+    fontWeight: '600',
+  },
+  menuBadgePill: {
+    marginLeft: 8,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 4,
+  },
+  menuBadgeText: {
+    fontSize: 10,
+    fontWeight: '700',
+    textTransform: 'uppercase',
+  },
+  menuItemDesc: {
+    fontSize: 12,
+    fontFamily: 'sans-serif',
+    marginTop: 2,
   },
   readError: {
     borderWidth: 1,
