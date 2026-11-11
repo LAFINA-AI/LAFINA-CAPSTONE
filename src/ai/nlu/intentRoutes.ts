@@ -40,6 +40,7 @@ export const INTENT_ROUTES: Readonly<
   snooze: {kind: 'reviewed_mutation', immediateInRingingCall: true},
   reschedule: {kind: 'reviewed_mutation', immediateInRingingCall: false},
   query_schedule: {kind: 'read_only', immediateInRingingCall: false},
+  query_notes: {kind: 'read_only', immediateInRingingCall: false},
   chat: {kind: 'conversation', immediateInRingingCall: false},
   out_of_scope: {kind: 'conversation', immediateInRingingCall: false},
 });

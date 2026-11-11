@@ -40,7 +40,7 @@ export async function directTestChat(
 
 export const directTestVoiceApi: VoiceConversationApi = {
   async capabilities() {
-    return {ok: true, data: {enabled: directProviderTestEnabled(), maxDurationSeconds: 300, maxTurns: 30}};
+    return {ok: true, data: {enabled: directProviderTestEnabled(), maxDurationSeconds: 3600, maxTurns: 200}};
   },
   async createSession(body, signal) {
     try {
@@ -51,7 +51,7 @@ export const directTestVoiceApi: VoiceConversationApi = {
       const result = await response.json();
       if (typeof result.signed_url !== 'string') return {ok: false, status: 'server_error', message: 'ElevenLabs returned an invalid session.'};
       return {ok: true, data: {sessionId: body.requestId, signedUrl: result.signed_url,
-        grant: '', voiceId: body.voiceId || c.directVoiceId || '', expiresAt: new Date(Date.now() + 300000).toISOString(), maxDurationSeconds: 300, maxTurns: 30}};
+        grant: '', voiceId: body.voiceId || c.directVoiceId || '', expiresAt: new Date(Date.now() + 3600000).toISOString(), maxDurationSeconds: 3600, maxTurns: 200}};
     } catch {
       return {ok: false, status: 'server_unavailable', message: 'Could not connect to ElevenLabs.'};
     }

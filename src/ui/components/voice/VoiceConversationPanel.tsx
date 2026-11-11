@@ -20,8 +20,7 @@ import {
   ArrowLeft,
   ArrowRight,
   AudioLines,
-  Bot,
-  CircleAlert,
+    CircleAlert,
   MessageSquareText,
   Mic,
   MicOff,
@@ -37,6 +36,7 @@ import {useTheme} from '../../contexts/ThemeContext';
 import type {ThemeColors} from '../../contexts/ThemeContext';
 import {useThemedStyles} from '../../theme/createThemedStyles';
 import {chatOrchestrator} from '../../../ai/chatOrchestrator';
+import {SynthWaveAvatar} from '../callLafina/SynthWaveAvatar';
 import {enableOnlineMode, voiceConsent} from '../../../cloud/voiceConversation';
 import type {
   ConversationPhase,
@@ -954,14 +954,12 @@ export const VoiceConversationPanel: React.FC<VoiceConversationPanelProps> = ({
             ]}
             testID="call-identity-ring"
           >
-            <View
-              style={[
-                styles.avatarInner,
-                {backgroundColor: colors.primary + '18'},
-              ]}
-            >
-              <Bot size={40} color={colors.primary} />
-            </View>
+            <SynthWaveAvatar
+              phase={snapshot.phase}
+              outputLevel={snapshot.outputLevel ?? 0}
+              muted={snapshot.muted}
+              size={76}
+            />
           </View>
 
           {live ? (

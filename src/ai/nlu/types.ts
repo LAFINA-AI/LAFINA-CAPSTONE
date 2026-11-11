@@ -13,6 +13,7 @@ export type ParsedIntentType =
   | 'snooze'
   | 'reschedule'
   | 'query_schedule'
+  | 'query_notes'
   | 'chat'
   | 'out_of_scope';
 
@@ -101,7 +102,7 @@ export function validateIntent(intent: ExtractedIntent): ValidatedIntent {
     return { ...intent, isValid: true };
   }
 
-  if (intent.intent === 'query_schedule') {
+  if (intent.intent === 'query_schedule' || intent.intent === 'query_notes') {
     return { ...intent, isValid: true };
   }
 

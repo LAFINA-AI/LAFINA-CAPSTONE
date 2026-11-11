@@ -45,6 +45,11 @@ export const COMMAND_GUIDE: readonly CommandGuideExample[] = Object.freeze([
     intent: 'create_note',
   },
   {
+    command: 'Check my notes about grocery list',
+    explanation: 'Finds and reads notes from your Notes tab. Works offline.',
+    intent: 'query_notes',
+  },
+  {
     command: 'Move my task Submit lab report to Friday at 3pm',
     explanation:
       'Prepares a change to a saved task. If several items match, LAFINA asks which one.',

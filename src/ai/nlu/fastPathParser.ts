@@ -1346,6 +1346,74 @@ export function parseIntentFastPath(
     };
   }
 
+  // 3b. Notes Query & Search (e.g. "check my notes about grocery list", "what are my notes", "find my note on physics", "read my note about...", etc.)
+  const isExplicitNoteQuery =
+    /\b(?:check|find|search|look\s+(?:up|for)|read(?:\s+out)?|show|view|open|get|list|display)\s+(?:me\s+)?(?:all\s+|any\s+|my\s+|the\s+)?notes?\b/i.test(commandLower) ||
+    /\b(?:check|find|search|look\s+(?:up|for)|read(?:\s+out)?|show|view|open|get)\s+(?:my\s+|the\s+)?([a-z0-9\s_-]+?)\s+notes?\b/i.test(commandLower) ||
+    /\b(?:what(?:'s|s| is| are)|what\s+do\s+i\s+have)\s+(?:in\s+|on\s+)?(?:my\s+|the\s+)?notes?\b/i.test(commandLower) ||
+    /\bwhat\s+(?:did\s+i\s+write|is\s+written)\s+(?:in|about|on)\s+(?:my\s+|the\s+)?notes?\b/i.test(commandLower) ||
+    /\b(?:do\s+i\s+have\s+any|any)\s+notes?\b/i.test(commandLower) ||
+    /\bnotes?\s+(?:about|on|for|regarding)\b/i.test(commandLower);
+
+  if (isExplicitNoteQuery && !isExplicitMutationStart) {
+    let noteTopic: string | null = null;
+
+    // Pattern 1: notes? (about|on|for|regarding|titled|named) <topic>
+    const matchAbout = commandLower.match(
+      /\bnotes?\s+(?:about|on|for|regarding|titled|named|with)\s+['"“]?([^'"”?.!]+)['"”]?/i,
+    );
+    if (matchAbout) {
+      noteTopic = matchAbout[1].trim();
+    } else {
+      // Pattern 2: (check|find|search|look up|read|show|view|open|get) (my|the)? <topic> notes?
+      const matchTopicNote = commandLower.match(
+        /\b(?:check|find|search|look\s+(?:up|for)|read(?:\s+out)?|show|view|open|get)\s+(?:my\s+|the\s+)?['"“]?([^'"”?.!]+?)['"”]?\s+notes?\b/i,
+      );
+      if (
+        matchTopicNote &&
+        !/^(?:all|any|the|my|these|those)$/i.test(matchTopicNote[1].trim())
+      ) {
+        noteTopic = matchTopicNote[1].trim();
+      } else {
+        // Pattern 3: what's in my <topic> note
+        const matchWhatsIn = commandLower.match(
+          /\bwhat(?:'s|s| is)\s+(?:in|on)\s+(?:my\s+|the\s+)?['"“]?([^'"”?.!]+?)['"”]?\s+notes?\b/i,
+        );
+        if (
+          matchWhatsIn &&
+          !/^(?:all|any|the|my)$/i.test(matchWhatsIn[1].trim())
+        ) {
+          noteTopic = matchWhatsIn[1].trim();
+        }
+      }
+    }
+
+    if (noteTopic) {
+      noteTopic = noteTopic
+        .replace(/^(?:all\s+my|all\s+the|all|the|a|an|my)\s+/i, '')
+        .replace(/\s+(?:please|lafina)$/i, '')
+        .trim();
+      if (/^(?:all|any|the|my|these|those|saved|active|recent)$/i.test(noteTopic) || !noteTopic) {
+        noteTopic = null;
+      }
+    }
+
+    return {
+      intent: 'query_notes',
+      title: noteTopic || null,
+      date: null,
+      time: null,
+      endTime: null,
+      durationMinutes: null,
+      category: 'Academic',
+      details: noteTopic || null,
+      snoozeMinutes: null,
+      confidence: 0.96,
+      source: 'fast_path',
+      rawTranscript: transcript,
+    };
+  }
+
   // 4. Conversational greetings & chatbot inquiries ("What are you", "Who are you", "What can you do", etc.)
   const isIdentityOrChatbotQuery =
     /^(?:(?:what|who)\s+(?:are|is)\s+(?:you|lafina)|what\s+can\s+you\s+do|tell\s+me\s+about\s+yourself|who\s+made\s+you|are\s+you\s+(?:an?\s+)?(?:ai|bot|assistant)|what(?:'s|\s+is)\s+your\s+name|how\s+are\s+you|who\s+are\s+u|what\s+are\s+u)\b/i.test(
