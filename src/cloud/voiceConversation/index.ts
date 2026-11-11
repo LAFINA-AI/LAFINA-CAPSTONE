@@ -17,12 +17,14 @@ import {VoiceConversationController} from './controller';
 import type {VoiceConversationDeps} from './controller';
 import {nativeVoiceTransport} from './nativeTransport';
 import {voiceConversationApi} from './voiceConversationApi';
+import {buildStudentVoiceContext} from './localVoiceData';
 
 export {
   VoiceConversationController,
   FAILURE_MESSAGES,
   DEFAULT_LIMITS,
 } from './controller';
+export {buildStudentVoiceContext} from './localVoiceData';
 export type {VoiceConversationDeps, VoiceConversationGates} from './controller';
 export {
   LAFINA_VOICE_SYSTEM_PROMPT,
@@ -124,6 +126,7 @@ export const defaultVoiceConversationDeps = (
   },
   getVoice: () => onlineVoiceSettingsStore.read(userId),
   useHandbook: () => handbookPreference.read(userId),
+  getStudentContext: () => buildStudentVoiceContext(userId),
   api: directProviderTestEnabled() ? directTestVoiceApi : voiceConversationApi,
   transport: nativeVoiceTransport,
   allowLocalTestServer: allowLocalTestServer(),

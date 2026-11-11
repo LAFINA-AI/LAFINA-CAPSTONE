@@ -64,7 +64,7 @@ import {
 import {directProviderTestEnabled} from '../../../cloud/directProviderTest';
 import {localSettingsStore} from '../../../storage/localSettingsStore';
 import {explicitMemory} from '../../../ai/explicitMemory';
-import {onboardingVoiceContext} from '../../../storage/onboardingMemory';
+import {buildStudentVoiceContext} from '../../../cloud/voiceConversation/localVoiceData';
 import {CallWaveform} from '../callLafina/CallWaveform';
 import {ttsService} from '../../../ai/tts/ttsService';
 import {generateId} from '../../../utils';
@@ -365,6 +365,9 @@ export const VoiceConversationPanel: React.FC<VoiceConversationPanelProps> = ({
           result.kind === 'memory'
         ) {
           setLocalNote(result.reply);
+          void conversationRef.current?.sendContext(
+            `Local verified database result for student request "${text}": ${result.reply}`,
+          );
         }
       })
       .catch(() => undefined);
@@ -680,13 +683,12 @@ export const VoiceConversationPanel: React.FC<VoiceConversationPanelProps> = ({
 
   useEffect(() => {
     if (
-      !directProviderTestEnabled() ||
       !dataConsented ||
       identityContextSent.current ||
       snapshot.phase !== 'listening'
     )
       return;
-    const context = onboardingVoiceContext(userId);
+    const context = buildStudentVoiceContext(userId);
     identityContextSent.current = true;
     if (context) void conversation.sendContext(context);
   }, [snapshot.phase, userId, dataConsented, conversation]);
@@ -808,6 +810,8 @@ export const VoiceConversationPanel: React.FC<VoiceConversationPanelProps> = ({
       void conversation.sendContext(
         `The student's on-screen review result: ${reply}`,
       );
+      const refreshed = buildStudentVoiceContext(userId);
+      if (refreshed) void conversation.sendContext(refreshed);
     }
   }, [conversation, userId]);
 
