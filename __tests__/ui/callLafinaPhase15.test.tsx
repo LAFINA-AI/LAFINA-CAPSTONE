@@ -63,31 +63,11 @@ describe('Phase 15 — Traceability, Release Readiness, and Anti-Hallucination A
   // 1. Traceability & Ledger Integrity (P15-01, F-064, F-065)
   // =========================================================================
   describe('Traceability and Feature Ledger Integrity (P15-01, F-064)', () => {
-    it('verifies that FEATURE_LEDGER.csv has exactly 78 features matching SPEC/FEATURE_INVENTORY.csv', () => {
-      const ledgerPath = path.resolve(
-        __dirname,
-        '../../docs/plans/call-lafina-v2/FEATURE_LEDGER.csv',
-      );
-      const inventoryPath = path.resolve(
-        __dirname,
-        '../../CALL_LAFINA_AUTONOMOUS_TASK_PACK_V1/SPEC/FEATURE_INVENTORY.csv',
-      );
-
-      expect(fs.existsSync(ledgerPath)).toBe(true);
-      expect(fs.existsSync(inventoryPath)).toBe(true);
-
-      const ledgerRaw = fs.readFileSync(ledgerPath, 'utf8').trim().split('\n');
-      const inventoryRaw = fs
-        .readFileSync(inventoryPath, 'utf8')
+    const extractFeatureIds = (csvPath: string): string[] =>
+      fs
+        .readFileSync(csvPath, 'utf8')
         .trim()
-        .split('\n');
-
-      // Both must have 78 feature entries (excluding header)
-      expect(ledgerRaw.length - 1).toBe(78);
-      expect(inventoryRaw.length - 1).toBe(78);
-
-      // Extract all feature IDs from inventory
-      const inventoryIds = inventoryRaw
+        .split(/\r?\n/)
         .slice(1)
         .map(line => {
           const match = line.match(/^"?([^",]+)"?/);
@@ -95,12 +75,38 @@ describe('Phase 15 — Traceability, Release Readiness, and Anti-Hallucination A
         })
         .filter(Boolean);
 
-      expect(inventoryIds.length).toBe(78);
+    it('verifies that FEATURE_LEDGER.csv has all 78 features matching tracked reconciliation and local inventory', () => {
+      const ledgerPath = path.resolve(
+        __dirname,
+        '../../docs/plans/call-lafina-v2/FEATURE_LEDGER.csv',
+      );
+      const reconciliationPath = path.resolve(
+        __dirname,
+        '../../docs/reports/call-lafina-remediation/FEATURE_RECONCILIATION.csv',
+      );
+      const inventoryPath = path.resolve(
+        __dirname,
+        '../../CALL_LAFINA_AUTONOMOUS_TASK_PACK_V1/SPEC/FEATURE_INVENTORY.csv',
+      );
 
-      // Verify every inventory ID is present in ledger
-      const ledgerContent = fs.readFileSync(ledgerPath, 'utf8');
-      for (const id of inventoryIds) {
-        expect(ledgerContent).toContain(`"${id}"`);
+      expect(fs.existsSync(ledgerPath)).toBe(true);
+      expect(fs.existsSync(reconciliationPath)).toBe(true);
+
+      const ledgerIds = extractFeatureIds(ledgerPath);
+      const reconciliationIds = extractFeatureIds(reconciliationPath);
+      const expectedIds = Array.from(
+        {length: 78},
+        (_, i) => `F-${String(i + 1).padStart(3, '0')}`,
+      );
+
+      expect(ledgerIds).toEqual(expectedIds);
+      expect(reconciliationIds).toEqual(expectedIds);
+
+      // CALL_LAFINA_AUTONOMOUS_TASK_PACK_V1 is gitignored on clean CI checkouts;
+      // cross-check it whenever the local task pack is present on disk.
+      if (fs.existsSync(inventoryPath)) {
+        const inventoryIds = extractFeatureIds(inventoryPath);
+        expect(inventoryIds).toEqual(expectedIds);
       }
     });
 
