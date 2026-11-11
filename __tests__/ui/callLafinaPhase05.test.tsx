@@ -527,60 +527,66 @@ describe('Phase 05: Transcript, Typed Messages, and Chat Continuity', () => {
         },
       });
 
-      await controller.start();
-      mockTransport.emit({kind: 'open'});
+      try {
+        await controller.start();
+        mockTransport.emit({kind: 'open'});
 
-      // Complete user turn
-      (
-        controller as unknown as {
-          onFinalUser: (w: string, id: string | null) => void;
-        }
-      ).onFinalUser('Submit assignment tomorrow', 'turn-u1');
+        // Complete user turn
+        (
+          controller as unknown as {
+            onFinalUser: (w: string, id: string | null) => void;
+          }
+        ).onFinalUser('Submit assignment tomorrow', 'turn-u1');
 
-      // Verify user turn saved
-      const messagesAfterUser = chatStore.getMessages(userId);
-      expect(messagesAfterUser.length).toBe(initialCount + 1);
-      expect(messagesAfterUser[messagesAfterUser.length - 1].content).toBe(
-        'Submit assignment tomorrow',
-      );
-      expect(messagesAfterUser[messagesAfterUser.length - 1].sender).toBe(
-        'user',
-      );
+        // Verify user turn saved
+        const messagesAfterUser = chatStore.getMessages(userId);
+        expect(messagesAfterUser.length).toBe(initialCount + 1);
+        expect(messagesAfterUser[messagesAfterUser.length - 1].content).toBe(
+          'Submit assignment tomorrow',
+        );
+        expect(messagesAfterUser[messagesAfterUser.length - 1].sender).toBe(
+          'user',
+        );
 
-      // Assistant begins answer then gets interrupted
-      (
-        controller as unknown as {appendAnswer: (p: string) => void}
-      ).appendAnswer('I noted your assignment for tomorrow morning.');
-      (
-        controller as unknown as {
-          onMessage: (m: Record<string, unknown>) => void;
-        }
-      ).onMessage({
-        type: 'interruption',
-      });
+        // Assistant begins answer then gets interrupted
+        (
+          controller as unknown as {appendAnswer: (p: string) => void}
+        ).appendAnswer('I noted your assignment for tomorrow morning.');
+        (
+          controller as unknown as {
+            onMessage: (m: Record<string, unknown>) => void;
+          }
+        ).onMessage({
+          type: 'interruption',
+        });
 
-      // New user turn closes the pending interrupted answer
-      (
-        controller as unknown as {
-          onFinalUser: (w: string, id: string | null) => void;
-        }
-      ).onFinalUser('Actually Thursday instead', 'turn-u2');
+        // New user turn closes the pending interrupted answer
+        (
+          controller as unknown as {
+            onFinalUser: (w: string, id: string | null) => void;
+          }
+        ).onFinalUser('Actually Thursday instead', 'turn-u2');
 
-      const allMessages = chatStore.getMessages(userId);
-      const assistantMsg = allMessages.find(m =>
-        m.content.includes('I noted your assignment for tomorrow morning.'),
-      );
-      expect(assistantMsg).toBeTruthy();
-      expect(assistantMsg?.sender).toBe('assistant');
-      expect(assistantMsg?.voiceInterrupted).toBe(true);
+        const allMessages = chatStore.getMessages(userId);
+        const assistantMsg = allMessages.find(m =>
+          m.content.includes('I noted your assignment for tomorrow morning.'),
+        );
+        expect(assistantMsg).toBeTruthy();
+        expect(assistantMsg?.sender).toBe('assistant');
+        expect(assistantMsg?.voiceInterrupted).toBe(true);
 
-      // Verify other users do not see this owner's chat history
-      const otherUserMessages = chatStore.getMessages('different-student-user');
-      expect(
-        otherUserMessages.some(m =>
-          m.content.includes('Submit assignment tomorrow'),
-        ),
-      ).toBe(false);
+        // Verify other users do not see this owner's chat history
+        const otherUserMessages = chatStore.getMessages(
+          'different-student-user',
+        );
+        expect(
+          otherUserMessages.some(m =>
+            m.content.includes('Submit assignment tomorrow'),
+          ),
+        ).toBe(false);
+      } finally {
+        controller.dispose();
+      }
     });
   });
 
@@ -605,33 +611,37 @@ describe('Phase 05: Transcript, Typed Messages, and Chat Continuity', () => {
         allowLocalTestServer: true,
       });
 
-      await controller.start();
-      mockTransport.emit({kind: 'open'});
+      try {
+        await controller.start();
+        mockTransport.emit({kind: 'open'});
 
-      // End call
-      controller.end();
+        // End call
+        controller.end();
 
-      expect(controller.getSnapshot().phase).toBe('ended');
+        expect(controller.getSnapshot().phase).toBe('ended');
 
-      // Late event from previous generation arrives
-      mockTransport.emit({
-        kind: 'message',
-        data: JSON.stringify({
-          type: 'agent_response',
-          agent_response_event: {
-            agent_response: 'Late response after end',
-            event_id: 999,
-          },
-        }),
-      });
+        // Late event from previous generation arrives
+        mockTransport.emit({
+          kind: 'message',
+          data: JSON.stringify({
+            type: 'agent_response',
+            agent_response_event: {
+              agent_response: 'Late response after end',
+              event_id: 999,
+            },
+          }),
+        });
 
-      // Verify late response is ignored
-      expect(controller.getSnapshot().phase).toBe('ended');
-      expect(
-        controller
-          .getSnapshot()
-          .turns.some(t => t.text.includes('Late response after end')),
-      ).toBe(false);
+        // Verify late response is ignored
+        expect(controller.getSnapshot().phase).toBe('ended');
+        expect(
+          controller
+            .getSnapshot()
+            .turns.some(t => t.text.includes('Late response after end')),
+        ).toBe(false);
+      } finally {
+        controller.dispose();
+      }
     });
   });
 });
