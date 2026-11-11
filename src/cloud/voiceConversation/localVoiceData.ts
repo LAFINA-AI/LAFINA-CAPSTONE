@@ -4,7 +4,7 @@ import {notesStore} from '../../storage/notesStore';
 import {plannerQueries} from '../../storage/plannerQueries';
 import {isRealDate, addDaysToDate} from '../../storage/eventTime';
 import {formatLocalDate} from '../../ai/nlu/fastPathParser';
-import {sanitizeUntrustedContext} from '../../ai/voiceActions/actionSecurity';
+import {sanitizeUntrustedContext} from '../../ai/voiceActions/promptSanitizer';
 import {readOnboardingIdentity} from '../../storage/onboardingMemory';
 import {noteBodyToMarkdown} from '../../utils/richText';
 
