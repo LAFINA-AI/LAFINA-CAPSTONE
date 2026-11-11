@@ -305,4 +305,62 @@ describe('Notes Tab To-Do Integration', () => {
     expect(onHandled).toHaveBeenCalledWith('req-todo-1');
     expect(screen.getByText('Deep linked to-do item')).toBeTruthy();
   });
+
+  test('keeps grid toggle on To-Do sub-tab, defaults category to None, and lets user add custom category', async () => {
+    const screen = render(
+      <ThemeProvider userId={userId}>
+        <NotesScreen userId={userId} refreshTrigger={0} onRefresh={jest.fn()} />
+      </ThemeProvider>,
+    );
+
+    expect(screen.getByTestId('notes-view-toggle')).toBeTruthy();
+    fireEvent.press(screen.getByTestId('notes-subtab-todo'));
+    await waitFor(() => {
+      expect(screen.getByTestId('notes-todo-view')).toBeTruthy();
+    });
+
+    // Grid toggle remains rendered on To-Do sub-tab and toggles safely
+    const gridToggle = screen.getByTestId('notes-view-toggle');
+    expect(gridToggle).toBeTruthy();
+    expect(screen.getByLabelText('Switch to list view')).toBeTruthy();
+    fireEvent.press(gridToggle);
+    expect(screen.getByLabelText('Switch to grid view')).toBeTruthy();
+
+    // Quick-add defaults to no category ('')
+    fireEvent.changeText(
+      screen.getByTestId('todo-quick-add-input'),
+      'Buy scantron sheet',
+    );
+    fireEvent.press(screen.getByTestId('todo-quick-add-submit'));
+    await waitFor(() => {
+      expect(screen.getByText('Buy scantron sheet')).toBeTruthy();
+    });
+    const quickTask = tasksStore
+      .getAllTasks(userId)
+      .find(t => t.title === 'Buy scantron sheet');
+    expect(quickTask?.category).toBe('');
+
+    // Modal defaults to None and can create + select a custom category
+    fireEvent.press(screen.getByTestId('todo-fab-add'));
+    expect(screen.getByTestId('todo-category-none')).toBeTruthy();
+    fireEvent.press(screen.getByTestId('todo-category-add-btn'));
+    fireEvent.changeText(
+      screen.getByTestId('todo-new-category-input'),
+      'Lab Prep',
+    );
+    fireEvent.press(screen.getByTestId('todo-new-category-submit'));
+    fireEvent.changeText(
+      screen.getByTestId('todo-modal-title-input'),
+      'Prepare circuit board',
+    );
+    fireEvent.press(screen.getByTestId('todo-modal-save'));
+
+    await waitFor(() => {
+      expect(screen.queryByTestId('todo-editor-modal')).toBeNull();
+    });
+    const customTask = tasksStore
+      .getAllTasks(userId)
+      .find(t => t.title === 'Prepare circuit board');
+    expect(customTask?.category).toBe('Lab Prep');
+  });
 });

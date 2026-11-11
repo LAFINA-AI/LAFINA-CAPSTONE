@@ -109,13 +109,13 @@ test('spoken revision invalidates old approval and commits the revised time', as
     ).rows[0].due_time,
   ).toBe('16:00');
 });
-test('provider confirmation never claims a write; authoritative cancellation rejects old approval', async () => {
+test('confirm_draft saves authorized pending draft and cancellation rejects old approval', async () => {
   let review: any;
   await actionService.executeTool(
     owner,
     'test-session',
     'prepare_lafina_action',
-    {request: 'Add task: Cancellation tomorrow at 2pm'},
+    {request: 'Add task: Confirmed via tool tomorrow at 2pm'},
     () => true,
     {
       onProposal: r => {
@@ -125,24 +125,51 @@ test('provider confirmation never claims a write; authoritative cancellation rej
   );
   const cardId = review.review.proposal.operationId;
   const before = count('tasks');
+  const confirmed = await actionService.executeTool(
+    owner,
+    'test-session',
+    'confirm_draft',
+    {cardId, revision: 1},
+    () => true,
+  );
+  expect(confirmed).toContain('Confirmed and saved');
+  expect(count('tasks')).toBe(before + 1);
+
+  let cancelReview: any;
+  await actionService.executeTool(
+    owner,
+    'test-session',
+    'prepare_lafina_action',
+    {request: 'Add task: Cancellation tomorrow at 3pm'},
+    () => true,
+    {
+      onProposal: r => {
+        cancelReview = r;
+      },
+    },
+  );
+  const canceledCardId = cancelReview.review.proposal.operationId;
+  const afterSave = count('tasks');
+  await actionService.executeTool(
+    owner,
+    'test-session',
+    'cancel_draft',
+    {cardId: canceledCardId, revision: 1},
+    () => true,
+  );
   expect(
     await actionService.executeTool(
       owner,
       'test-session',
       'confirm_draft',
-      {cardId, revision: 1},
+      {cardId: canceledCardId, revision: 1},
       () => true,
     ),
   ).toContain('Nothing has been saved');
-  await actionService.executeTool(
-    owner,
-    'test-session',
-    'cancel_draft',
-    {cardId, revision: 1},
-    () => true,
-  );
-  await chatOrchestrator.confirmReview(owner, cardId, {speakReply: false});
-  expect(count('tasks')).toBe(before);
+  await chatOrchestrator.confirmReview(owner, canceledCardId, {
+    speakReply: false,
+  });
+  expect(count('tasks')).toBe(afterSave);
 });
 test('legacy memory requests produce review without writing and expose the action ID', async () => {
   let actionId = '';

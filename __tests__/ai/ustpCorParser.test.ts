@@ -2,7 +2,7 @@ import {
   parseUstpCor,
   formatUstpStudentName,
 } from '../../src/ai/vision/ustpCorParser';
-import { parseScannedSchedule } from '../../src/ai/vision/scheduleParser';
+import {parseScannedSchedule} from '../../src/ai/vision/scheduleParser';
 import {
   db,
   initDatabase,
@@ -11,9 +11,9 @@ import {
   timeBlocksStore,
   parseClassBlockMetadata,
 } from '../../src/storage';
-import { chatMemoryStore } from '../../src/storage/chatMemoryStore';
-import { saveOnboardingMemories } from '../../src/storage/onboardingMemory';
-import { buildDayEntries } from '../../src/ui/screens/calendar/utils/timeGridLayout';
+import {chatMemoryStore} from '../../src/storage/chatMemoryStore';
+import {saveOnboardingMemories} from '../../src/storage/onboardingMemory';
+import {buildDayEntries} from '../../src/ui/screens/calendar/utils/timeGridLayout';
 
 /**
  * Exact raw text extracted from the sample USTP Certificate of Registration PDF
@@ -132,6 +132,22 @@ describe('USTP COR Tailored Parser & Onboarding/Profile/Calendar Integration', (
       expect(formatted.formattedName).toBe('John Lemar L. Gonzales');
       expect(formatted.preferredName).toBe('John Lemar');
     });
+
+    test('splits OCR-glued single-letter middle initial without breaking regular names', () => {
+      const glued = formatUstpStudentName('GONZALES, JOHN LEMARL');
+      expect(glued.formattedName).toBe('John Lemar L. Gonzales');
+      expect(glued.preferredName).toBe('John Lemar');
+
+      expect(formatUstpStudentName('REYES, JOHN PAUL').formattedName).toBe(
+        'John Paul Reyes',
+      );
+      expect(formatUstpStudentName('CRUZ, MARK CARL').formattedName).toBe(
+        'Mark Carl Cruz',
+      );
+      expect(formatUstpStudentName('ROJO, JAY NOEL').formattedName).toBe(
+        'Jay Noel Rojo',
+      );
+    });
   });
 
   describe.each([
@@ -171,7 +187,7 @@ describe('USTP COR Tailored Parser & Onboarding/Profile/Calendar Integration', (
       // 2. Enrolled Courses (6 total, including unscheduled IT411 and non-numeric GnS)
       expect(result.courses.length).toBe(6);
 
-      const it414 = result.courses.find((c) => c.code === 'IT414');
+      const it414 = result.courses.find(c => c.code === 'IT414');
       expect(it414).toMatchObject({
         code: 'IT414',
         subjectTitle: 'IT Elective 3',
@@ -197,7 +213,7 @@ describe('USTP COR Tailored Parser & Onboarding/Profile/Calendar Integration', (
         faculty: 'Loredel Tamayo',
       });
 
-      const it415 = result.courses.find((c) => c.code === 'IT415');
+      const it415 = result.courses.find(c => c.code === 'IT415');
       expect(it415).toMatchObject({
         code: 'IT415',
         subjectTitle: 'IT Elective 4',
@@ -218,7 +234,7 @@ describe('USTP COR Tailored Parser & Onboarding/Profile/Calendar Integration', (
         room: 'Modular Classroom 1',
       });
 
-      const it411 = result.courses.find((c) => c.code === 'IT411');
+      const it411 = result.courses.find(c => c.code === 'IT411');
       expect(it411).toMatchObject({
         code: 'IT411',
         subjectTitle: 'CAPSTONE Project and Research 2',
@@ -227,7 +243,7 @@ describe('USTP COR Tailored Parser & Onboarding/Profile/Calendar Integration', (
       });
       expect(it411?.sessions.length).toBe(0);
 
-      const it412 = result.courses.find((c) => c.code === 'IT412');
+      const it412 = result.courses.find(c => c.code === 'IT412');
       expect(it412).toMatchObject({
         code: 'IT412',
         subjectTitle: 'System Administration and Maintenance',
@@ -248,7 +264,7 @@ describe('USTP COR Tailored Parser & Onboarding/Profile/Calendar Integration', (
         room: 'Modular Classroom 2',
       });
 
-      const it413 = result.courses.find((c) => c.code === 'IT413');
+      const it413 = result.courses.find(c => c.code === 'IT413');
       expect(it413).toMatchObject({
         code: 'IT413',
         subjectTitle: 'Social and Professional Issues',
@@ -269,7 +285,7 @@ describe('USTP COR Tailored Parser & Onboarding/Profile/Calendar Integration', (
         room: '51-204',
       });
 
-      const gns = result.courses.find((c) => c.code === 'GnS');
+      const gns = result.courses.find(c => c.code === 'GnS');
       expect(gns).toMatchObject({
         code: 'GnS',
         subjectTitle: 'Gender and Society',
@@ -310,7 +326,7 @@ describe('USTP COR Tailored Parser & Onboarding/Profile/Calendar Integration', (
     const savedProfile = academicProfileStore.save(guest.id, {
       ...cor.profile,
       isUstpStudent: true,
-      courses: cor.courses.map((c) => ({
+      courses: cor.courses.map(c => ({
         code: c.code,
         subjectTitle: c.subjectTitle,
         lecUnits: c.lecUnits,
@@ -322,8 +338,10 @@ describe('USTP COR Tailored Parser & Onboarding/Profile/Calendar Integration', (
           c.sessions.length > 0
             ? c.sessions
                 .map(
-                  (s) =>
-                    `${s.dayCode} ${s.startTime12}-${s.endTime12}${s.room && s.room !== 'TBA' ? ` (${s.room})` : ''}`,
+                  s =>
+                    `${s.dayCode} ${s.startTime12}-${s.endTime12}${
+                      s.room && s.room !== 'TBA' ? ` (${s.room})` : ''
+                    }`,
                 )
                 .join(', ')
             : 'TBA',
@@ -346,7 +364,7 @@ describe('USTP COR Tailored Parser & Onboarding/Profile/Calendar Integration', (
     expect(allBlocks.length).toBe(10);
 
     const it414Fri = allBlocks.find(
-      (b) => b.title === 'IT414 · IT Elective 3' && b.date === '2026-11-13',
+      b => b.title === 'IT414 · IT Elective 3' && b.date === '2026-11-13',
     );
     expect(it414Fri).toBeDefined();
     expect(it414Fri?.category).toBe('Class');
@@ -360,7 +378,15 @@ describe('USTP COR Tailored Parser & Onboarding/Profile/Calendar Integration', (
     });
 
     // 3. Calendar DayView entries include location = "Room · Section · Faculty"
-    const friEntries = buildDayEntries({ date: new Date(2026, 10, 13), tasks: [], events: [], blocks: [it414Fri!], timeFormat24h: false, eventColor: '#2563EB', taskColor: () => '#059669' });
+    const friEntries = buildDayEntries({
+      date: new Date(2026, 10, 13),
+      tasks: [],
+      events: [],
+      blocks: [it414Fri!],
+      timeFormat24h: false,
+      eventColor: '#2563EB',
+      taskColor: () => '#059669',
+    });
     expect(friEntries.length).toBe(1);
     expect(friEntries[0].location).toBe(
       '09-302(CITC Lab 3) · IT4R11_Track2 · Loredel Tamayo',
@@ -369,15 +395,15 @@ describe('USTP COR Tailored Parser & Onboarding/Profile/Calendar Integration', (
     // 4. Memories saved in chatMemoryStore include student info, program, and all 6 courses (including unscheduled IT411)
     saveOnboardingMemories(
       guest.id,
-      { preferredName: cor.profile.preferredName, tone: 'casual' },
+      {preferredName: cor.profile.preferredName, tone: 'casual'},
       ['evening'],
       savedProfile,
     );
-    const memories = chatMemoryStore.list(guest.id).map((m) => m.text);
+    const memories = chatMemoryStore.list(guest.id).map(m => m.text);
     expect(memories).toContain('Prefers to be called John Lemar.');
     expect(
       memories.some(
-        (m) =>
+        m =>
           m.includes('John Lemar L. Gonzales') &&
           m.includes('2023305519') &&
           m.includes('USTP CDO Campus'),
@@ -385,7 +411,16 @@ describe('USTP COR Tailored Parser & Onboarding/Profile/Calendar Integration', (
     ).toBe(true);
     expect(
       memories.some(
-        (m) =>
+        m =>
+          m.includes('Student No: 2023305519') &&
+          m.includes('CITC') &&
+          m.includes('B.S. in Information Technology') &&
+          m.includes('Gender: Male'),
+      ),
+    ).toBe(true);
+    expect(
+      memories.some(
+        m =>
           m.includes('B.S. in Information Technology') &&
           m.includes('4th Year - Baccalaureate') &&
           m.includes('IT4R11_Track2'),
@@ -393,13 +428,13 @@ describe('USTP COR Tailored Parser & Onboarding/Profile/Calendar Integration', (
     ).toBe(true);
     expect(
       memories.some(
-        (m) =>
+        m =>
           m.includes('IT411 CAPSTONE Project and Research 2') &&
           m.includes('JAY NOEL ROJO'),
       ),
     ).toBe(true);
     // Never stores street address in memories
-    expect(memories.some((m) => m.includes('TIBASAK'))).toBe(false);
+    expect(memories.some(m => m.includes('TIBASAK'))).toBe(false);
   });
 
   test('parseScannedSchedule delegates USTP COR text to parseUstpCor for 100% accuracy', () => {
@@ -441,30 +476,97 @@ ASSESSSED FEES
     expect(result.profile.totalCreditUnits).toBe(20);
     expect(result.courses.length).toBe(7);
 
-    const sumCredits = result.courses.reduce((sum, c) => sum + c.creditUnits, 0);
+    const sumCredits = result.courses.reduce(
+      (sum, c) => sum + c.creditUnits,
+      0,
+    );
     expect(sumCredits).toBe(20);
 
-    const it211 = result.courses.find((c) => c.code === 'IT211');
-    expect(it211?.subjectTitle).toBe('Introduction to Human Computer Interaction');
+    const it211 = result.courses.find(c => c.code === 'IT211');
+    expect(it211?.subjectTitle).toBe(
+      'Introduction to Human Computer Interaction',
+    );
     expect(it211?.sessions[0]?.days).toEqual(['Wednesday', 'Friday']);
 
-    const it213 = result.courses.find((c) => c.code === 'IT213');
-    expect(it213?.subjectTitle).toBe('Integrative Programming and Technologies 1');
+    const it213 = result.courses.find(c => c.code === 'IT213');
+    expect(it213?.subjectTitle).toBe(
+      'Integrative Programming and Technologies 1',
+    );
 
-    const it214 = result.courses.find((c) => c.code === 'IT214');
+    const it214 = result.courses.find(c => c.code === 'IT214');
     expect(it214?.sessions[0]?.days).toEqual(['Monday', 'Thursday']);
 
-    const gec106 = result.courses.find((c) => c.code === 'GEC106');
+    const gec106 = result.courses.find(c => c.code === 'GEC106');
     expect(gec106?.labUnits).toBe(0);
     expect(gec106?.creditUnits).toBe(3);
 
-    const gec107 = result.courses.find((c) => c.code === 'GEC107');
+    const gec107 = result.courses.find(c => c.code === 'GEC107');
     expect(gec107?.sessions[0]?.room).toBe('Online');
     expect(gec107?.faculty).toBe('Mark Lopez');
 
-    const pathfit = result.courses.find((c) => c.code === 'PATHFit 3');
+    const pathfit = result.courses.find(c => c.code === 'PATHFit 3');
     expect(pathfit?.creditUnits).toBe(2);
     expect(pathfit?.sessions[0]?.room).toBe('Covered Court');
     expect(pathfit?.faculty).toBe('Carlo Tan');
+  });
+
+  test('recovers all 6 subjects when OCR drops unit digits, splits IT4R11 Track2, glues LEMARL, or reads 1:0O PM', () => {
+    const degradedOcr = `
+Registration No: 556711 Academic Year/Term : 1st Semester AY 2026-2027
+STUDENT GENERAL INFORMATION
+Student No: 2023305519 College: COLLEGE OF INFORMATION TECHNOLOGY AND COMPUTING
+Name: GONZALES, JOHN LEMARL Program: B.S. in Information Technology
+Gender: M Nationality: Filipino Major: N/A Curriculum: CITC-BSIT-2018-2019
+Age: 22 Contact #: Year Level: 4th Year - Baccalaureate
+CODE SUBJECT TITLE U N I T Lec Lab Credit SECTION SCHEDULE/ROOM FACULTY
+IT414 IT Elective 3 2 1 3 IT4R11 Track2 F 7:00 AM - 10:00 AM/09-302(CITC Lab 3) Loredel Tamayo
+W 7:00 AM - 9:00 AM/51-201 Loredel Tamayo
+IT415 IT Elective 4 2 3 IT4R11 Track2 W 10:00 AM - 1:0O PM/09-105 FLORETO JR. QUINITO
+T 3:00 PM - 5:00 PM/Modular Classroom 1 FLORETO JR. QUINITO
+IT411 CAPSTONE Project and Research 2 2 3 IT411_Rojo JAY NOEL ROJO
+IT412 System Administration and Maintenance 2 1 3 IT4R11_Track2 S 4:00 PM - 7:00 PM Shannice Cabili
+W 7:00 PM - 9:00 PM/Modular Classroom 2 Shannice Cabili
+IT413 Social and Professional Issues 3 3 IT4R11 Track2 M 3:00 PM - 4:30 PM/Modular Classroom 4 Sharmaine Gabrielle Babanto
+T 11:30 AM - 1:00 PM/51-204 Sharmaine Gabrielle Babanto
+GnS Gender and Society 3 IT4R11 Track2 TF 1:00 PM - 2:30 PM Anton Alfred Endaya
+Total Unit(s) 14 4 18
+ASSESSSED FEES
+`;
+    const result = parseUstpCor(degradedOcr);
+
+    expect(result.isValidUstpCor).toBe(true);
+    expect(result.profile.formattedName).toBe('John Lemar L. Gonzales');
+    expect(result.profile.preferredName).toBe('John Lemar');
+    expect(result.courses.length).toBe(6);
+    expect(result.courses.reduce((s, c) => s + c.creditUnits, 0)).toBe(18);
+
+    const it414 = result.courses.find(c => c.code === 'IT414');
+    expect(it414?.section).toBe('IT4R11_Track2');
+    expect(it414?.sessions.length).toBe(2);
+
+    const it415 = result.courses.find(c => c.code === 'IT415');
+    expect(it415?.subjectTitle).toBe('IT Elective 4');
+    expect(it415?.creditUnits).toBe(3);
+    expect(it415?.sessions[0]?.endTime).toBe('13:00');
+    expect(it415?.sessions.length).toBe(2);
+
+    const it411 = result.courses.find(c => c.code === 'IT411');
+    expect(it411?.subjectTitle).toBe('CAPSTONE Project and Research 2');
+    expect(it411?.creditUnits).toBe(3);
+
+    const it412 = result.courses.find(c => c.code === 'IT412');
+    expect(it412?.sessions.length).toBe(2);
+
+    const it413 = result.courses.find(c => c.code === 'IT413');
+    expect(it413?.subjectTitle).toBe('Social and Professional Issues');
+    expect(it413?.creditUnits).toBe(3);
+    expect(it413?.sessions.length).toBe(2);
+    expect(it413?.sessions[1]?.room).toBe('51-204');
+
+    const gns = result.courses.find(c => c.code === 'GnS');
+    expect(gns?.subjectTitle).toBe('Gender and Society');
+    expect(gns?.creditUnits).toBe(3);
+    expect(gns?.sessions.length).toBe(1);
+    expect(gns?.sessions[0]?.days).toEqual(['Tuesday', 'Friday']);
   });
 });

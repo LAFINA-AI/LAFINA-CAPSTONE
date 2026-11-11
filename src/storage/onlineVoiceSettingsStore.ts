@@ -6,6 +6,10 @@ export interface OnlineVoiceChoice {
   id: string;
   name: string;
 }
+export const DEFAULT_ONLINE_VOICE: OnlineVoiceChoice = {
+  id: 'BtcCEANLn920ZIoN9grW',
+  name: 'Camille',
+};
 export const ONLINE_VOICE_KEY = 'speech.onlineVoice.v1';
 export const validOnlineVoiceId = (id: unknown): id is string =>
   typeof id === 'string' && /^[A-Za-z0-9_-]{1,128}$/.test(id);
@@ -13,6 +17,7 @@ export const validOnlineVoiceId = (id: unknown): id is string =>
 export const onlineVoiceSettingsStore = {
   read(userId: string): OnlineVoiceChoice | null {
     const raw = localSettingsStore.get(userId, ONLINE_VOICE_KEY);
+    if (raw === null) return DEFAULT_ONLINE_VOICE;
     if (!raw) return null;
     try {
       const value = JSON.parse(raw) as OnlineVoiceChoice | null;

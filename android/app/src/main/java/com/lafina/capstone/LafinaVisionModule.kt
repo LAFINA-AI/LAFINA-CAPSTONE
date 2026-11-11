@@ -147,7 +147,7 @@ class LafinaVisionModule(private val reactContext: ReactApplicationContext) :
           throw IllegalStateException("The selected PDF has no pages.")
         }
         renderer.openPage(0).use { page ->
-          val scale = (2480f / page.width.coerceAtLeast(1)).coerceIn(2f, 4f)
+          val scale = (3100f / page.width.coerceAtLeast(1)).coerceIn(2.5f, 4.5f)
           val width = (page.width * scale).toInt().coerceAtLeast(1)
           val height = (page.height * scale).toInt().coerceAtLeast(1)
           val bitmap = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888)
@@ -162,6 +162,43 @@ class LafinaVisionModule(private val reactContext: ReactApplicationContext) :
   private data class PositionedLine(val text: String, val box: Rect)
 
   /**
+   * Reconstructs element-level spacing inside an ML Kit line so narrow spaces between
+   * words/initials (e.g. "LEMAR" + "L") or adjacent table tokens are not dropped.
+   */
+  private fun buildElementSpacedLineText(line: Text.Line): String {
+    val elements = line.elements
+    if (elements.isEmpty()) return line.text.trim()
+
+    val sorted = elements.sortedBy { it.boundingBox?.left ?: 0 }
+    val sb = StringBuilder()
+    var prevRight: Int? = null
+
+    for (el in sorted) {
+      val token = el.text.trim()
+      if (token.isEmpty()) continue
+      val box = el.boundingBox
+      if (sb.isNotEmpty()) {
+        val gap = if (prevRight != null && box != null) box.left - prevRight else 10
+        val avgCharW = if (box != null && token.isNotEmpty()) {
+          ((box.right - box.left).toFloat() / token.length).coerceAtLeast(4f)
+        } else {
+          10f
+        }
+        // Only glue directly if bounding boxes touch/overlap inside the same token;
+        // otherwise preserve whitespace between tokens (including single-letter initials).
+        if (gap > avgCharW * 0.15f) {
+          sb.append(' ')
+        }
+      }
+      sb.append(token)
+      if (box != null) prevRight = box.right
+    }
+
+    val rebuilt = sb.toString().trim()
+    return if (rebuilt.isNotEmpty()) rebuilt else line.text.trim()
+  }
+
+  /**
    * Reconstructs horizontal reading order across multi-column tables (such as USTP CORs)
    * by clustering ML Kit lines with similar vertical centerY and sorting left-to-right.
    */
@@ -170,7 +207,7 @@ class LafinaVisionModule(private val reactContext: ReactApplicationContext) :
     for (block in visionText.textBlocks) {
       for (line in block.lines) {
         val box = line.boundingBox
-        val clean = line.text.trim()
+        val clean = buildElementSpacedLineText(line)
         if (box != null && clean.isNotEmpty()) {
           lines.add(PositionedLine(clean, box))
         }

@@ -9,6 +9,7 @@ import {
   View,
 } from 'react-native';
 import {ArrowDown, ArrowUp, RotateCcw, X} from 'lucide-react-native';
+import {useSafeAreaInsets} from 'react-native-safe-area-context';
 import {
   DASHBOARD_PRESETS,
   DASHBOARD_WIDGET_META,
@@ -65,6 +66,7 @@ export const CustomizeDashboardModal: React.FC<
 }) => {
   const {colors} = useTheme();
   const themed = useThemedStyles(getThemedStyles);
+  const insets = useSafeAreaInsets();
   const hiddenSet = new Set(config.hiddenWidgets);
   const visibleCount = config.widgetOrder.length - hiddenSet.size;
 
@@ -78,7 +80,7 @@ export const CustomizeDashboardModal: React.FC<
       <View style={styles.overlay}>
         <View style={[styles.sheet, themed.sheet, Shadows.card]}>
           <View style={styles.header}>
-            <View>
+            <View style={styles.headerTextCol}>
               <Text style={[styles.title, themed.primaryText]}>
                 Customize Dashboard
               </Text>
@@ -278,7 +280,15 @@ export const CustomizeDashboardModal: React.FC<
             </View>
           </ScrollView>
 
-          <View style={[styles.footer, {borderTopColor: colors.border}]}>
+          <View
+            style={[
+              styles.footer,
+              {
+                borderTopColor: colors.border,
+                paddingBottom: Math.max(insets.bottom, Spacing.lg) + Spacing.sm,
+              },
+            ]}
+          >
             <TouchableOpacity
               style={[styles.resetBtn, themed.subCard]}
               onPress={onReset}
@@ -342,6 +352,11 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.xl,
     paddingBottom: Spacing.md,
     gap: Spacing.sm,
+  },
+  headerTextCol: {
+    flex: 1,
+    flexShrink: 1,
+    paddingRight: Spacing.xs,
   },
   title: {
     fontFamily: Fonts.heading,

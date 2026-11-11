@@ -17,11 +17,7 @@ import {
   avatarSeedStore,
   mapCorCoursesToAcademicRecords,
 } from '../../storage';
-import type {
-  UserPreferences,
-  User,
-  AcademicProfileRecord,
-} from '../../storage';
+import type {UserPreferences, User, AcademicProfileRecord} from '../../storage';
 import {useTheme} from '../contexts/ThemeContext';
 import {useThemedStyles} from '../theme/createThemedStyles';
 import type {ThemeColors} from '../contexts/ThemeContext';
@@ -196,7 +192,9 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
       return 'Unavailable';
     }
   };
-  const [chatMemorySummary, setChatMemorySummary] = useState(readChatMemorySummary);
+  const [chatMemorySummary, setChatMemorySummary] = useState(
+    readChatMemorySummary,
+  );
   const [eventDefaultsSummary, setEventDefaultsSummary] = useState('Off');
   const [voiceVisible, setVoiceVisible] = useState(false);
   const [voiceSummary, setVoiceSummary] = useState('Default');
@@ -229,7 +227,10 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
   const replyFormat = useChatReplyFormat(userId);
   const handleMarkdownRepliesChange = (enabled: boolean) => {
     if (!chatReplyFormatStore.save(userId, enabled ? 'markdown' : 'plain')) {
-      Alert.alert('Not saved', 'Could not save the chat reply format. Try again.');
+      Alert.alert(
+        'Not saved',
+        'Could not save the chat reply format. Try again.',
+      );
     }
   };
   const [dailyBriefingEnabled, setDailyBriefingEnabled] = useState(true);
@@ -265,6 +266,9 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
       const next = !isDevMode;
       developerTestService.setDeveloperModeEnabled(next);
       setIsDevMode(next);
+      if (!next) {
+        setDeveloperModalVisible(false);
+      }
       Alert.alert(
         'Developer Mode',
         next
@@ -290,20 +294,14 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
       5,
       '5-Second Alarm Test',
     );
-    Alert.alert(
-      res.success ? 'Alarm Scheduled' : 'Alarm Error',
-      res.message,
-    );
+    Alert.alert(res.success ? 'Alarm Scheduled' : 'Alarm Error', res.message);
     if (res.success) onRefresh();
   };
 
   const handleQuickSync = async () => {
     Alert.alert('Syncing…', 'Starting sync roundtrip with cloud backend.');
     const res = await developerTestService.triggerForceSync();
-    Alert.alert(
-      res.success ? 'Sync Complete' : 'Sync Failed',
-      res.message,
-    );
+    Alert.alert(res.success ? 'Sync Complete' : 'Sync Failed', res.message);
     if (res.success) onRefresh();
   };
 
@@ -455,11 +453,16 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
 
       Alert.alert(
         'USTP COR Updated',
-        `Updated profile for ${savedProfile.formattedName || 'Student'} (${savedProfile.program || 'USTP'}) and scheduled ${scheduledCount} recurring class sessions in your Calendar.`,
+        `Updated profile for ${savedProfile.formattedName || 'Student'} (${
+          savedProfile.program || 'USTP'
+        }) and scheduled ${scheduledCount} recurring class sessions in your Calendar.`,
       );
     } catch (error) {
       console.error('[ProfileScreen] Failed uploading USTP COR:', error);
-      Alert.alert('COR Upload Failed', 'Could not process the selected COR file.');
+      Alert.alert(
+        'COR Upload Failed',
+        'Could not process the selected COR file.',
+      );
     } finally {
       setCorUploading(false);
     }
@@ -894,7 +897,10 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
                 style={styles.academicSubtitleIcon}
               />
               <Text
-                style={[styles.academicSubtitleText, {color: colors.textPrimary}]}
+                style={[
+                  styles.academicSubtitleText,
+                  {color: colors.textPrimary},
+                ]}
                 numberOfLines={2}
               >
                 {[
@@ -928,7 +934,10 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
                 />
                 <View style={styles.academicCardTitleGroup}>
                   <Text
-                    style={[styles.academicCardTitle, {color: colors.textPrimary}]}
+                    style={[
+                      styles.academicCardTitle,
+                      {color: colors.textPrimary},
+                    ]}
                   >
                     Academic Profile
                   </Text>
@@ -962,24 +971,32 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
                 ) : (
                   <FileText size={12} color={colors.blue} />
                 )}
-                <Text style={[styles.academicUpdateBtnText, {color: colors.blue}]}>
+                <Text
+                  style={[styles.academicUpdateBtnText, {color: colors.blue}]}
+                >
                   {corUploading ? 'Scanning…' : 'Update COR'}
                 </Text>
               </TouchableOpacity>
             </View>
 
-            {(academicRows.length > 0 || academicProfile.courses.length > 0) && (
+            {(academicRows.length > 0 ||
+              academicProfile.courses.length > 0) && (
               <View style={[styles.settingDivider, themed.settingDivider]} />
             )}
 
             {academicRows.map((row, index) => (
               <React.Fragment key={row.label}>
                 {index > 0 && (
-                  <View style={[styles.settingDivider, themed.settingDivider]} />
+                  <View
+                    style={[styles.settingDivider, themed.settingDivider]}
+                  />
                 )}
                 <View style={styles.academicRow}>
                   <Text
-                    style={[styles.academicLabel, {color: colors.textSecondary}]}
+                    style={[
+                      styles.academicLabel,
+                      {color: colors.textSecondary},
+                    ]}
                   >
                     {row.label}
                   </Text>
@@ -995,7 +1012,9 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
             {academicProfile.courses.length > 0 ? (
               <>
                 {academicRows.length > 0 && (
-                  <View style={[styles.settingDivider, themed.settingDivider]} />
+                  <View
+                    style={[styles.settingDivider, themed.settingDivider]}
+                  />
                 )}
                 <TouchableOpacity
                   testID="profile-toggle-subjects-btn"
@@ -1006,7 +1025,10 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
                   style={styles.academicRow}
                 >
                   <Text
-                    style={[styles.academicLabel, {color: colors.textSecondary}]}
+                    style={[
+                      styles.academicLabel,
+                      {color: colors.textSecondary},
+                    ]}
                   >
                     Enrolled Subjects
                   </Text>
@@ -1103,11 +1125,16 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
             ) : academicProfile.totalCreditUnits ? (
               <>
                 {academicRows.length > 0 && (
-                  <View style={[styles.settingDivider, themed.settingDivider]} />
+                  <View
+                    style={[styles.settingDivider, themed.settingDivider]}
+                  />
                 )}
                 <View style={styles.academicRow}>
                   <Text
-                    style={[styles.academicLabel, {color: colors.textSecondary}]}
+                    style={[
+                      styles.academicLabel,
+                      {color: colors.textSecondary},
+                    ]}
                   >
                     Total Units
                   </Text>
@@ -1170,8 +1197,8 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
                 corUploading
                   ? 'Scanning USTP COR…'
                   : academicProfile
-                    ? 'Update USTP COR'
-                    : 'Attach USTP COR'
+                  ? 'Update USTP COR'
+                  : 'Attach USTP COR'
               }
               type="link"
               valueText={
@@ -1290,7 +1317,7 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
             />
           </View>
 
-          {(isDevMode || backendSelection.isAvailable()) && (
+          {isDevMode && (
             <>
               <Text
                 style={[styles.settingsGroupHeader, themed.settingsGroupHeader]}
@@ -1468,7 +1495,7 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
         onClose={() => setVoiceVisible(false)}
         onChanged={loadVoiceSummary}
       />
-      {developerModalVisible && (
+      {isDevMode && developerModalVisible && (
         <DeveloperModal
           visible={developerModalVisible}
           userId={userId}

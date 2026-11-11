@@ -17,6 +17,7 @@ import {
   userStore,
 } from '../../src/storage';
 import {
+  DEFAULT_ONLINE_VOICE,
   ONLINE_VOICE_KEY,
   onlineVoiceSettingsStore,
 } from '../../src/storage/onlineVoiceSettingsStore';
@@ -193,7 +194,7 @@ describe('Online voice preference store', () => {
       id: 'voice_b',
       name: 'Bella',
     });
-    expect(onlineVoiceSettingsStore.read(second)).toBeNull();
+    expect(onlineVoiceSettingsStore.read(second)).toEqual(DEFAULT_ONLINE_VOICE);
     expect(speechSettingsStore.read(first)).toEqual(offlineBefore);
     expect(localSettingsStore.get(first, 'speech_tts_v1')).toBeNull();
     onlineVoiceSettingsStore.save(first, null);
@@ -221,7 +222,7 @@ describe('Online voice preference store', () => {
     expect(() =>
       onlineVoiceSettingsStore.save(owner, {id: 'voice_a', name: 'A'}),
     ).toThrow(/Could not save/);
-    expect(onlineVoiceSettingsStore.read(owner)).toBeNull();
+    expect(onlineVoiceSettingsStore.read(owner)).toEqual(DEFAULT_ONLINE_VOICE);
   });
 
   it('never turns corrupt saved data into a request ID', () => {
@@ -366,6 +367,7 @@ describe('Online speech provider with a selected voice', () => {
   it('omits voiceId for the server default', async () => {
     const userId = student('speak-default');
     signIn(userId);
+    onlineVoiceSettingsStore.save(userId, null);
     const request = fakeCloud(() => ttsOk('server_default'));
     const provider = createCallSpeechProvider(userId);
     expect((await provider.speakText('Hello')).source).toBe('elevenlabs');
@@ -884,7 +886,7 @@ describe('Online Voice picker sheet', () => {
         <OnlineVoice userId={userId} visible={false} onClose={jest.fn()} />,
       ),
     );
-    expect(onlineVoiceSettingsStore.read(userId)).toBeNull();
+    expect(onlineVoiceSettingsStore.read(userId)).toEqual(DEFAULT_ONLINE_VOICE);
   });
 
   it('shows the server default and a notice when the saved choice is corrupt', async () => {

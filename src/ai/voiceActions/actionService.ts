@@ -14,6 +14,7 @@ import type {
   LafinaActionPhase,
   MemoryProposalData,
   MemoryProposalStatus,
+  DraftConfirmPayload,
   DraftRevisePayload,
   DraftCancelPayload,
   MultiActionBatchData,
@@ -35,6 +36,7 @@ import {chatMemoryStore} from '../../storage/chatMemoryStore';
 import {draftRegistry} from './draftRegistry';
 import {
   cancelReviewedCommand,
+  confirmReviewedCommand,
   reviseReviewedCommand,
 } from '../nlu/commandReview';
 import {explicitMemory} from '../explicitMemory';
@@ -64,6 +66,12 @@ export interface ExecuteToolOptions {
   onError?: (message: string) => void;
   onReadResult?: (result: LocalVoiceResult) => void;
   onDraftCanceled?: () => void;
+  onConfirmDraft?: (
+    cardId: string,
+    revision: number,
+  ) =>
+    | Promise<{saved: boolean; message: string}>
+    | {saved: boolean; message: string};
   sourceTurnId?: string;
   onProposal?: (review: SpokenTurnReview) => void;
   onMemoryProposal?: (proposal: MemoryProposalData, actionId: string) => void;
@@ -395,7 +403,7 @@ class ActionService {
               warnings: [...pProposal.warnings],
             });
           }
-          return `A review card is shown: ${review.reply} Card ID: ${pProposal?.operationId}; revision: 1. Nothing has been saved. Ask the student to check and confirm the card.`;
+          return `A review card is shown: ${review.reply} Card ID: ${pProposal?.operationId}; revision: 1. Nothing has been saved yet. Ask if they want changes or call confirm_draft to save it.`;
         }
 
         if (review.kind !== 'none') {
@@ -445,7 +453,7 @@ class ActionService {
             review: result,
             reply: result.reply,
           });
-          return `A review card is shown: ${result.reply} Card ID: ${result.proposal.operationId}; revision: 1. Nothing has been saved. Please tap Confirm.`;
+          return `A review card is shown: ${result.reply} Card ID: ${result.proposal.operationId}; revision: 1. Nothing has been saved yet. Call confirm_draft to save it if the student confirms or asks you to save it.`;
         }
         envelope.phase = 'failed';
         record.status = 'failed';
@@ -456,9 +464,74 @@ class ActionService {
       }
 
       if (toolDef.kind === 'draft.confirm') {
-        envelope.phase = 'waiting';
-        this.emit(actionId, toolDef.kind, 'waiting');
-        return 'Nothing has been saved. The student must tap Confirm on the review card.';
+        envelope.phase = 'confirming';
+        this.emit(actionId, toolDef.kind, 'confirming');
+        if (!isCurrent()) {
+          envelope.phase = 'canceled';
+          this.emit(
+            actionId,
+            toolDef.kind,
+            'canceled',
+            'Turn changed or cancelled.',
+          );
+          return 'Request cancelled. Nothing was saved.';
+        }
+        const p = envelope.payload as DraftConfirmPayload;
+        if (options?.onConfirmDraft) {
+          const outcome = await options.onConfirmDraft(p.cardId, p.revision);
+          if (outcome.saved) {
+            envelope.phase = 'done';
+            record.status = 'confirm';
+            record.result = outcome.message;
+            record.updatedEpoch = Date.now();
+            this.emit(actionId, toolDef.kind, 'done', outcome.message);
+            return outcome.message;
+          }
+          envelope.phase = 'failed';
+          record.status = 'failed';
+          record.error = outcome.message;
+          record.updatedEpoch = Date.now();
+          this.emit(actionId, toolDef.kind, 'failed', outcome.message);
+          return outcome.message;
+        }
+        if (p.revision !== 1) {
+          envelope.phase = 'failed';
+          record.status = 'failed';
+          record.error =
+            'Stale draft revision. Nothing has been saved. Please review the current card.';
+          this.emit(actionId, toolDef.kind, 'failed', record.error);
+          return record.error;
+        }
+        const decision = confirmReviewedCommand(userId, p.cardId);
+        if (decision.status === 'applied') {
+          envelope.phase = 'done';
+          record.status = 'confirm';
+          record.result = decision.reply;
+          record.updatedEpoch = Date.now();
+          this.emit(actionId, toolDef.kind, 'done', decision.reply);
+          return 'Confirmed and saved: ' + decision.reply;
+        }
+        const memRecord = this.actions.get(p.cardId);
+        if (
+          memRecord?.memoryProposal &&
+          memRecord.envelope.ownerId === userId
+        ) {
+          const memOutcome = this.confirmMemoryProposal(userId, p.cardId);
+          if (memOutcome.success) {
+            envelope.phase = 'done';
+            record.status = 'confirm';
+            record.result = 'Saved to personal memory.';
+            record.updatedEpoch = Date.now();
+            this.emit(actionId, toolDef.kind, 'done', record.result);
+            return 'Confirmed and saved to personal memory.';
+          }
+        }
+        envelope.phase = 'failed';
+        record.status = 'failed';
+        record.error = decision.reply + ' Nothing has been saved.';
+        record.updatedEpoch = Date.now();
+        this.emit(actionId, toolDef.kind, 'failed', record.error);
+        return record.error;
       }
 
       if (toolDef.kind === 'draft.cancel') {

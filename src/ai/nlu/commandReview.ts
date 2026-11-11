@@ -3219,16 +3219,48 @@ export const reviseReviewedCommand = (
       reply: 'Please cancel this draft and prepare a new request.',
     };
   }
-  const parsed = parseDateAndTime(instruction, new Date());
-  const renamed = instruction
-    .match(/(?:title to|call it|rename it to)\s+(.+)/i)?.[1]
+  const referenceDate = new Date();
+  const parsed = parseDateAndTime(instruction, referenceDate);
+  let durationMinutes = parsed.durationMinutes;
+  if (!durationMinutes) {
+    const durPhrase = instruction.match(
+      /(?:for|make\s+(?:it|that)|set\s+(?:the\s+)?duration\s+to|duration:?)\s*(half\s+an?\s+(?:hour|hr)|an?\s+(?:hour|hr)|(?:\d+(?:\.\d+)?|one|two|three|four|five|ten|fifteen|twenty|thirty|forty|fifty|sixty)\s*(?:hours?|hrs?|minutes?|mins?))/i,
+    );
+    if (durPhrase) {
+      durationMinutes =
+        parseDateAndTime('for ' + durPhrase[1], referenceDate)
+          .durationMinutes || null;
+    }
+  }
+  const explicitTitle = instruction
+    .match(
+      /(?:(?:change|update|set|make)\s+(?:the\s+)?(?:title|name)\s+(?:of\s+it\s+)?(?:to\s+)?|(?:rename(?:\s+it)?(?:\s+to)?|call\s+it|title(?:\s+it)?\s*(?:to|:))\s+)['"\u201c]?([^'"\u201d\n]+?)['"\u201d]?\.?$/i,
+    )?.[1]
     ?.trim();
-  const body = instruction.match(/(?:body|content)\s+to\s+(.+)/i)?.[1]?.trim();
+  const body = instruction
+    .match(
+      /(?:(?:change|update|set|make)\s+(?:the\s+)?)?(?:body|content|details?|description|notes?)\s*(?:to|:)\s*['"\u201c]?([^'"\u201d\n]+?)['"\u201d]?\.?$/i,
+    )?.[1]
+    ?.trim();
+  const fallbackRename =
+    !explicitTitle &&
+    !parsed.date &&
+    !parsed.time &&
+    !parsed.endTime &&
+    !durationMinutes &&
+    !body
+      ? instruction
+          .match(
+            /^(?:actually\s*,?\s*|no\s*,?\s*)?(?:change|make|set)\s+(?:it|that)\s+(?:to\s+)?['"\u201c]?([^'"\u201d\n]+?)['"\u201d]?\.?$/i,
+          )?.[1]
+          ?.trim()
+      : undefined;
+  const renamed = explicitTitle || fallbackRename;
   if (
     !parsed.date &&
     !parsed.time &&
     !parsed.endTime &&
-    !parsed.durationMinutes &&
+    !durationMinutes &&
     !renamed &&
     !body
   ) {
@@ -3244,8 +3276,7 @@ export const reviseReviewedCommand = (
       ? parsed.endTime ||
         addMinutesToTime(
           blockStart,
-          parsed.durationMinutes ||
-            computeDurationMinutes(op.startTime, op.endTime),
+          durationMinutes || computeDurationMinutes(op.startTime, op.endTime),
         )
       : null;
   const result = prepareReviewedCommand(
@@ -3266,7 +3297,7 @@ export const reviseReviewedCommand = (
           ? op.startTime
           : null),
       endTime: blockEnd || parsed.endTime || null,
-      durationMinutes: parsed.durationMinutes || null,
+      durationMinutes: durationMinutes || null,
       category: op.category,
       details:
         body ||

@@ -62,14 +62,5 @@ export const groundedVoiceDraft = (
       kind: 'clarify',
       reply: 'What time should I use? Nothing was changed.',
     };
-  if (
-    intent.intent === 'create_time_block' &&
-    !intent.endTime &&
-    !intent.durationMinutes
-  )
-    return {
-      kind: 'clarify',
-      reply: 'How long should it last? Nothing was changed.',
-    };
   return {kind: 'ready', intent};
 };

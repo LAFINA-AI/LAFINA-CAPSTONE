@@ -167,7 +167,9 @@ export const UndatedTasksModal: React.FC<UndatedTasksModalProps> = ({
                       {task.title}
                     </Text>
                     <Text style={[styles.rowMeta, themed.secondary]}>
-                      {task.category} · {task.priority} priority
+                      {task.category
+                        ? `${task.category} · ${task.priority} priority`
+                        : `${task.priority} priority`}
                     </Text>
                   </View>
                 </View>

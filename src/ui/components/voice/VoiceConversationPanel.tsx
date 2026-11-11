@@ -2,14 +2,10 @@ import {verifyReminderDelivery} from '../../../scheduler/verifyReminderDelivery'
 import {CallReadResults} from '../callLafina/CallReadResults';
 import type {LocalVoiceResult} from '../../../cloud/voiceConversation/localVoiceData';
 import type {CallNavigationTarget} from '../../navigation/callNavigation';
-import {resolveCallTarget} from '../../navigation/resolveCallTarget';
 import React, {useCallback, useEffect, useRef, useState} from 'react';
 import {
   ActivityIndicator,
   Linking,
-  NativeScrollEvent,
-  NativeSyntheticEvent,
-  ScrollView,
   StyleSheet,
   Text,
   TextInput,
@@ -78,6 +74,7 @@ import {
   prepareReviewedCommand,
   latestPendingReview,
   reviseReviewedCommand,
+  confirmReviewedCommand,
   cancelReviewedCommand,
 } from '../../../ai/nlu/commandReview';
 
@@ -136,6 +133,40 @@ const LIVE = new Set<ConversationPhase>([
   'speaking',
 ]);
 
+const isVoiceDraftConfirm = (text: string): boolean =>
+  /^(?:yes|yeah|yep|yup|sure|ok(?:ay)?|confirm(?:\s+(?:it|that))?|save(?:\s+(?:it|that))?|lock(?:\s+it)?\s+in|go\s+ahead|do\s+it|sounds\s+good|please\s+(?:save(?:\s+(?:it|that))?|confirm(?:\s+(?:it|that))?)|yes\s*,?\s*(?:please|save(?:\s+(?:it|that))?|confirm(?:\s+(?:it|that))?|lock(?:\s+it)?\s+in))(?:\s+(?:please|lafina))?[.!]?$/i.test(
+    text.trim(),
+  );
+
+const isVoiceDraftRevision = (text: string): boolean => {
+  const t = text.trim();
+  if (
+    !t ||
+    /\b(?:wait|hold on)[^a-z0-9]*(?:i['\u2019]?m|i am)\s+thinking\b/i.test(t)
+  ) {
+    return false;
+  }
+  if (
+    /^(?:what|which|who|where|when|why|how\s+(?:many|much|long\s+is\s+my)|do\s+i|is\s+(?:there|that|it)\s+on|check|find|search|show|list)\b/i.test(
+      t,
+    )
+  ) {
+    return false;
+  }
+  return (
+    /^(?:actually|no[, ]|change|make\s+(?:it|that|the)|move\s+(?:it|that|this|the)|shift\s+(?:it|that|this)|reschedule(?:\s+(?:it|that|this))?|set\s+(?:it|that|the\s+(?:time|date|title|duration|reminder))|update\s+(?:it|that|the)|edit\s+(?:it|that|the)|instead|rename|call\s+it|title(?:\s+it)?(?:\s+to|:)|let['\u2019]?s\s+(?:do|make|move|change|set)|how\s+about|what\s+about)\b/i.test(
+      t,
+    ) ||
+    (/\b(?:change|move|shift|reschedule|update|edit|rename|make|set|put|schedule)\b/i.test(
+      t,
+    ) &&
+      /\b(?:it|that|this|the\s+(?:time|date|title|name|duration|meeting|task|reminder|event|block|note))\b/i.test(
+        t,
+      )) ||
+    /\binstead[.!?]*$/i.test(t)
+  );
+};
+
 export const VoiceConversationPanel: React.FC<VoiceConversationPanelProps> = ({
   userId,
   review,
@@ -148,9 +179,6 @@ export const VoiceConversationPanel: React.FC<VoiceConversationPanelProps> = ({
   const {colors} = useTheme();
   const themed = useThemedStyles(getThemedStyles);
   const [readResult, setReadResult] = useState<LocalVoiceResult | null>(null);
-  const [savedTarget, setSavedTarget] = useState<CallNavigationTarget | null>(
-    null,
-  );
   const [localNote, setLocalNote] = useState<string | null>(null);
   const [typed, setTyped] = useState('');
   const [draftCorrection, setDraftCorrection] = useState('');
@@ -171,6 +199,31 @@ export const VoiceConversationPanel: React.FC<VoiceConversationPanelProps> = ({
   const voiceTurns = useRef<string[]>([]);
   const awaitingDetails = useRef(false);
   const groundedReply = useRef('No action was prepared. Nothing was saved.');
+  const lastLocalRevision = useRef<{
+    oldId: string;
+    newId: string;
+    utterance: string;
+    reply: string;
+    at: number;
+  } | null>(null);
+  const confirmHandlersRef = useRef<{
+    confirmDraft: () => Promise<{saved: boolean; message: string}>;
+    saveMemory: (editedText?: string) => {saved: boolean; message: string};
+    confirmMultiAll: () => Promise<{saved: boolean; message: string}>;
+  }>({
+    confirmDraft: async () => ({
+      saved: false,
+      message: 'No draft ready. Nothing has been saved.',
+    }),
+    saveMemory: () => ({
+      saved: false,
+      message: 'No memory draft ready. Nothing has been saved.',
+    }),
+    confirmMultiAll: async () => ({
+      saved: false,
+      message: 'No batch ready. Nothing has been saved.',
+    }),
+  });
   const identityContextSent = useRef(false);
   const conversationRef = useRef<ReturnType<
     typeof useVoiceConversation
@@ -199,26 +252,7 @@ export const VoiceConversationPanel: React.FC<VoiceConversationPanelProps> = ({
   const [callDuration, setCallDuration] = useState(0);
   const callConnectedAt = useRef<number | null>(null);
 
-  // Transcript drawer and auto-scroll state
-  const [transcriptCollapsed, setTranscriptCollapsed] = useState(false);
-  const [isAtBottom, setIsAtBottom] = useState(true);
-
-  const handleScroll = useCallback(
-    (event: NativeSyntheticEvent<NativeScrollEvent>) => {
-      const {layoutMeasurement, contentOffset, contentSize} = event.nativeEvent;
-      const paddingToBottom = 24;
-      const atBottom =
-        layoutMeasurement.height + contentOffset.y >=
-        contentSize.height - paddingToBottom;
-      setIsAtBottom(atBottom);
-    },
-    [],
-  );
-
-  const jumpToLatest = useCallback(() => {
-    scrollRef.current?.scrollToEnd({animated: true});
-    setIsAtBottom(true);
-  }, []);
+  // Non-scrolling ChatGPT-style screen swaps circular orb for active cards.
 
   // A finished spoken turn is also read on the device: a planner change
   // becomes a review card (nothing is saved until Confirm), and a schedule
@@ -241,18 +275,33 @@ export const VoiceConversationPanel: React.FC<VoiceConversationPanelProps> = ({
       activeMemoryActionId.current = prepared.actionId;
       setActiveMemoryProposal(prepared.proposal);
       setLocalNote('Review the memory card. Nothing has been saved.');
+      void conversationRef.current?.sendContext(
+        'Memory review card shown for "' +
+          prepared.proposal.text +
+          '". Card ID: ' +
+          prepared.actionId +
+          '; revision: 1. Call confirm_draft to save it if the student confirms or asks you to save it.',
+      );
       return;
     }
+    const cards = currentCards.current;
     const pending = latestPendingReview(owner, 'voice');
-    if (/^cancel that[.!]?$/i.test(text.trim())) {
-      const cards = currentCards.current;
-      const memoryOpen = cards.memory?.status === 'draft';
-      const batchOpen =
-        cards.batch &&
-        (cards.batch.status === 'draft' ||
-          cards.batch.status === 'partial' ||
-          cards.batch.status === 'failed');
-      if (Number(!!pending) + Number(memoryOpen) + Number(!!batchOpen) > 1) {
+    const memoryOpen = cards.memory?.status === 'draft';
+    const batchOpen =
+      cards.batch &&
+      (cards.batch.status === 'draft' ||
+        cards.batch.status === 'partial' ||
+        cards.batch.status === 'failed');
+    const openCount =
+      Number(!!pending) + Number(memoryOpen) + Number(!!batchOpen);
+    const trimmed = text.trim();
+
+    if (
+      /^(?:cancel(?:\s+that|\s+it)?|never\s*mind|don['\u2019]?t\s+save(?:\s+(?:it|that))?|discard(?:\s+(?:it|that))?)[.!]?$/i.test(
+        trimmed,
+      )
+    ) {
+      if (openCount > 1) {
         setLocalNote(
           'Which draft should I cancel? Use Cancel on the card you mean.',
         );
@@ -274,48 +323,101 @@ export const VoiceConversationPanel: React.FC<VoiceConversationPanelProps> = ({
         setLocalNote(result.spokenSummary);
         return;
       }
-    }
-
-    if (
-      pending &&
-      /^(?:actually|no[, ]|change|make (?:it|that)|cancel that|rename|call it)/i.test(
-        text.trim(),
-      )
-    ) {
-      if (/^cancel that/i.test(text.trim())) {
+      if (pending) {
         cancelReviewedCommand(owner, pending.operationId);
         reviewRef.current.dismiss();
         voiceTurns.current = [];
         awaitingDetails.current = false;
         groundedReply.current = 'Draft canceled. Nothing was saved.';
         setLocalNote(groundedReply.current);
-      } else {
-        const revised = reviseReviewedCommand(owner, pending.operationId, text);
-        if (revised.status === 'proposal') reviewRef.current.present(revised);
+        return;
+      }
+    }
+
+    if (openCount === 1 && isVoiceDraftConfirm(trimmed)) {
+      awaitingDetails.current = false;
+      voiceTurns.current = [];
+      if (pending) {
+        void confirmHandlersRef.current.confirmDraft();
+        return;
+      }
+      if (memoryOpen) {
+        const memRes = confirmHandlersRef.current.saveMemory();
+        void conversationRef.current?.sendContext(
+          'Confirmed and handled memory draft: ' + memRes.message,
+        );
+        return;
+      }
+      if (batchOpen) {
+        void confirmHandlersRef.current.confirmMultiAll();
+        return;
+      }
+    }
+
+    const fragment = parseIntentFastPath(text);
+    const hasRevisionDelta = Boolean(
+      fragment.date ||
+        fragment.time ||
+        fragment.endTime ||
+        fragment.durationMinutes,
+    );
+    if (
+      pending &&
+      (isVoiceDraftRevision(trimmed) ||
+        (!isVoiceScheduleStart(trimmed) && hasRevisionDelta))
+    ) {
+      const revised = reviseReviewedCommand(owner, pending.operationId, text);
+      if (revised.status === 'proposal') {
+        reviewRef.current.present(revised);
+        lastLocalRevision.current = {
+          oldId: pending.operationId,
+          newId: revised.proposal.operationId,
+          utterance: text,
+          reply: revised.reply,
+          at: Date.now(),
+        };
+        groundedReply.current =
+          'A review card is shown: ' +
+          revised.proposal.title +
+          ' (' +
+          revised.proposal.details.join(', ') +
+          '). Card ID: ' +
+          revised.proposal.operationId +
+          '; revision: 1. Nothing has been saved yet. Call confirm_draft to save it if confirmed.';
         setLocalNote(revised.reply);
+        void conversationRef.current?.sendContext(
+          'Draft card updated on screen: ' +
+            revised.proposal.title +
+            ' (' +
+            revised.proposal.details.join(', ') +
+            '). Card ID: ' +
+            revised.proposal.operationId +
+            '; revision: 1. Summarize the updated draft and call confirm_draft when the student confirms or asks you to save it.',
+        );
+      } else {
+        setLocalNote(revised.reply);
+        void conversationRef.current?.sendContext(
+          'The student asked to adjust the open draft ("' +
+            pending.title +
+            '", Card ID: ' +
+            pending.operationId +
+            ', revision: 1) with "' +
+            text +
+            '". ' +
+            revised.reply +
+            ' If they specified concrete details, call revise_draft with this Card ID.',
+        );
       }
       return;
     }
-    const fragment = parseIntentFastPath(text);
-    const supplementsDraft =
-      pending &&
-      !isVoiceScheduleStart(text) &&
-      !!(
-        fragment.date ||
-        fragment.time ||
-        fragment.endTime ||
-        fragment.durationMinutes
-      );
-    if (
-      isVoiceScheduleStart(text) ||
-      awaitingDetails.current ||
-      supplementsDraft
-    ) {
+
+    if (isVoiceScheduleStart(text) || awaitingDetails.current) {
       const now = new Date();
       const draft = groundedVoiceDraft(voiceTurns.current, now);
       if (draft.kind === 'clarify') {
         awaitingDetails.current = true;
         groundedReply.current = draft.reply;
+        setLocalNote(groundedReply.current);
       } else {
         if (pending) cancelReviewedCommand(owner, pending.operationId);
         const prepared = prepareReviewedCommand(owner, draft.intent, {
@@ -326,11 +428,20 @@ export const VoiceConversationPanel: React.FC<VoiceConversationPanelProps> = ({
         groundedReply.current = prepared.reply;
         if (prepared.status === 'proposal') {
           reviewRef.current.present(prepared);
+          const detailsSummary = prepared.proposal.details.join(', ');
           groundedReply.current =
-            'Check the card below. Nothing is saved until you tap Confirm.';
+            'A review card is shown: ' +
+            prepared.proposal.title +
+            (detailsSummary ? ' (' + detailsSummary + ')' : '') +
+            '. Card ID: ' +
+            prepared.proposal.operationId +
+            '; revision: 1. Nothing has been saved yet. Call confirm_draft to save it if confirmed.';
+          setLocalNote('Check the card — nothing is saved until confirmed.');
+          void conversationRef.current?.sendContext(groundedReply.current);
+        } else {
+          setLocalNote(groundedReply.current);
         }
       }
-      setLocalNote(groundedReply.current);
       return;
     }
     if (directProviderTestEnabled()) return;
@@ -357,9 +468,18 @@ export const VoiceConversationPanel: React.FC<VoiceConversationPanelProps> = ({
         }
         if (result.kind === 'proposal') {
           reviewRef.current.present(result.review);
-          setLocalNote(
-            'Check the card below. Nothing is saved until you tap Confirm.',
-          );
+          setLocalNote('Check the card — nothing is saved until confirmed.');
+          if (result.review.status === 'proposal') {
+            void conversationRef.current?.sendContext(
+              'A review card is shown: ' +
+                result.review.proposal.title +
+                ' (' +
+                result.review.proposal.details.join(', ') +
+                '). Card ID: ' +
+                result.review.proposal.operationId +
+                '; revision: 1. Call confirm_draft to save it if confirmed.',
+            );
+          }
         } else if (
           result.kind === 'note' ||
           result.kind === 'local_answer' ||
@@ -391,8 +511,37 @@ export const VoiceConversationPanel: React.FC<VoiceConversationPanelProps> = ({
       if (name === 'prepare_lafina_action') {
         const pending = latestPendingReview(owner, 'voice');
         return pending
-          ? `A review card is shown: ${pending.title}. Nothing has been saved. Check and confirm the card.`
+          ? 'A review card is shown: ' +
+              pending.title +
+              ' (' +
+              pending.details.join(', ') +
+              '). Card ID: ' +
+              pending.operationId +
+              '; revision: 1. Nothing has been saved yet. Call confirm_draft to save it if the student confirms or asks you to save it.'
           : groundedReply.current;
+      }
+      if (
+        name === 'revise_draft' &&
+        lastLocalRevision.current &&
+        parameters.cardId === lastLocalRevision.current.oldId &&
+        Date.now() - lastLocalRevision.current.at < 8000
+      ) {
+        const incomingInst = String(parameters.instruction || '')
+          .trim()
+          .toLowerCase();
+        if (
+          incomingInst ===
+          lastLocalRevision.current.utterance.trim().toLowerCase()
+        ) {
+          return (
+            'A review card is shown: ' +
+            lastLocalRevision.current.reply +
+            ' Card ID: ' +
+            lastLocalRevision.current.newId +
+            '; revision: 1. Nothing has been saved yet. Call confirm_draft to save it if confirmed.'
+          );
+        }
+        parameters = {...parameters, cardId: lastLocalRevision.current.newId};
       }
       if (name === 'save_lafina_memory') {
         if (!explicitMemory(lastUserRequest.current))
@@ -422,11 +571,53 @@ export const VoiceConversationPanel: React.FC<VoiceConversationPanelProps> = ({
               setReadResult(result);
           },
           onDraftCanceled: () => reviewRef.current.dismiss(),
+          onConfirmDraft: async (cardId, revision) => {
+            if (revision !== 1) {
+              return {
+                saved: false,
+                message:
+                  'Stale draft revision. Nothing has been saved. Please check the current card.',
+              };
+            }
+            const currentProposal = reviewRef.current.proposal;
+            const pendingReview = latestPendingReview(owner, 'voice');
+            if (
+              currentProposal?.operationId === cardId ||
+              pendingReview?.operationId === cardId ||
+              (currentProposal &&
+                lastLocalRevision.current?.oldId === cardId &&
+                Date.now() - lastLocalRevision.current.at < 8000)
+            ) {
+              return confirmHandlersRef.current.confirmDraft();
+            }
+            if (activeMemoryActionId.current === cardId) {
+              return confirmHandlersRef.current.saveMemory();
+            }
+            if (currentCards.current.batch?.id === cardId) {
+              return confirmHandlersRef.current.confirmMultiAll();
+            }
+            const direct = confirmReviewedCommand(owner, cardId);
+            if (direct.status === 'applied') {
+              reviewRef.current.dismiss();
+              setLocalNote(direct.reply);
+              const refreshed = buildStudentVoiceContext(owner);
+              if (refreshed)
+                void conversationRef.current?.sendContext(refreshed);
+              return {
+                saved: true,
+                message: 'Confirmed and saved: ' + direct.reply,
+              };
+            }
+            return {
+              saved: false,
+              message: direct.reply + ' Nothing has been saved.',
+            };
+          },
           onProposal: result => {
             if (result.kind === 'proposal') {
               reviewRef.current.present(result.review);
               setLocalNote(
-                'Check the card below. Nothing is saved until you tap Confirm.',
+                'Check the card — nothing is saved until confirmed.',
               );
             } else if (
               result.kind === 'note' ||
@@ -439,14 +630,12 @@ export const VoiceConversationPanel: React.FC<VoiceConversationPanelProps> = ({
           onMemoryProposal: (memProp, actionId) => {
             activeMemoryActionId.current = actionId;
             setActiveMemoryProposal(memProp);
-            setLocalNote(
-              'Check the memory card below. Nothing is saved until you tap Save.',
-            );
+            setLocalNote('Check the memory card — nothing is saved yet.');
           },
           onMultiActionBatch: batch => {
             setActiveMultiBatch(batch);
             setLocalNote(
-              'Check the grouped actions card below. Nothing is saved until you tap Save All.',
+              'Check the grouped actions card — nothing is saved yet.',
             );
           },
         },
@@ -458,8 +647,13 @@ export const VoiceConversationPanel: React.FC<VoiceConversationPanelProps> = ({
   );
 
   const handleSaveMemory = useCallback(
-    (editedText?: string) => {
-      if (!activeMemoryProposal || !activeMemoryActionId.current) return;
+    (editedText?: string): {saved: boolean; message: string} => {
+      if (!activeMemoryProposal || !activeMemoryActionId.current) {
+        return {
+          saved: false,
+          message: 'No memory card was active. Nothing has been saved.',
+        };
+      }
       const owner = ownerRef.current;
       const result = actionService.confirmMemoryProposal(
         owner,
@@ -478,20 +672,28 @@ export const VoiceConversationPanel: React.FC<VoiceConversationPanelProps> = ({
             : null,
         );
         setLocalNote('Saved to personal memory.');
+        return {saved: true, message: 'Saved to personal memory.'};
       } else if (result.status === 'duplicate') {
         setActiveMemoryProposal(prev =>
           prev ? {...prev, status: 'duplicate'} : null,
         );
         setLocalNote('That fact is already in your memory.');
+        return {saved: false, message: 'That fact is already in your memory.'};
       } else if (result.status === 'disabled') {
         setActiveMemoryProposal(prev =>
           prev ? {...prev, status: 'disabled'} : null,
         );
         setLocalNote('Memory is turned off in Settings.');
+        return {saved: false, message: 'Memory is turned off in Settings.'};
       } else {
         setActiveMemoryProposal(prev =>
           prev ? {...prev, status: 'failed', error: result.error} : null,
         );
+        return {
+          saved: false,
+          message:
+            result.error || 'Could not save memory. Nothing has been saved.',
+        };
       }
     },
     [activeMemoryProposal],
@@ -512,8 +714,16 @@ export const VoiceConversationPanel: React.FC<VoiceConversationPanelProps> = ({
     }
   }, [activeMemoryProposal]);
 
-  const handleConfirmMultiAll = useCallback(async () => {
-    if (!activeMultiBatch) return;
+  const handleConfirmMultiAll = useCallback(async (): Promise<{
+    saved: boolean;
+    message: string;
+  }> => {
+    if (!activeMultiBatch) {
+      return {
+        saved: false,
+        message: 'No grouped actions card is active. Nothing has been saved.',
+      };
+    }
     try {
       const {batch, spokenSummary} =
         await actionService.confirmMultiActionBatch(
@@ -523,22 +733,26 @@ export const VoiceConversationPanel: React.FC<VoiceConversationPanelProps> = ({
       if (
         ownerRef.current !== batch.ownerId ||
         actionSession.current !== batch.sessionId
-      )
-        return;
+      ) {
+        return {
+          saved: false,
+          message: 'Session ended. Nothing has been saved.',
+        };
+      }
       setActiveMultiBatch(batch);
       setLocalNote(spokenSummary);
-      if (
-        ownerRef.current !== batch.ownerId ||
-        actionSession.current !== batch.sessionId
-      )
-        return;
       void conversationRef.current?.sendContext(spokenSummary);
       const refreshed = buildStudentVoiceContext(ownerRef.current);
       if (refreshed) void conversationRef.current?.sendContext(refreshed);
+      return {
+        saved: batch.status === 'saved' || batch.status === 'partial',
+        message: spokenSummary,
+      };
     } catch {
-      setLocalNote(
-        'Those grouped actions could not be saved. Review the card before retrying.',
-      );
+      const msg =
+        'Those grouped actions could not be saved. Review the card before retrying.';
+      setLocalNote(msg);
+      return {saved: false, message: msg};
     }
   }, [activeMultiBatch]);
 
@@ -670,7 +884,6 @@ export const VoiceConversationPanel: React.FC<VoiceConversationPanelProps> = ({
     );
     setLocalNote(null);
     setReadResult(null);
-    setSavedTarget(null);
     setTyped('');
     setShowTyping(false);
     setActiveMemoryProposal(null);
@@ -696,24 +909,9 @@ export const VoiceConversationPanel: React.FC<VoiceConversationPanelProps> = ({
     if (context) void conversation.sendContext(context);
   }, [snapshot.phase, userId, dataConsented, conversation]);
 
-  const scrollRef = useRef<ScrollView | null>(null);
-  const mainScrollRef = useRef<ScrollView | null>(null);
-  useEffect(() => {
-    if (isAtBottom && !transcriptCollapsed) {
-      scrollRef.current?.scrollToEnd({animated: true});
-    }
-  }, [snapshot.turns, isAtBottom, transcriptCollapsed]);
-
   const hasActiveCard = Boolean(
     review?.proposal || activeMemoryProposal || activeMultiBatch,
   );
-  useEffect(() => {
-    if (hasActiveCard) {
-      setTimeout(() => {
-        mainScrollRef.current?.scrollTo({y: 120, animated: true});
-      }, 80);
-    }
-  }, [hasActiveCard, review?.proposal?.operationId]);
 
   useEffect(() => {
     return () => {
@@ -767,77 +965,53 @@ export const VoiceConversationPanel: React.FC<VoiceConversationPanelProps> = ({
     handleStart();
   }, [handleStart, userId]);
 
-  const handleConfirm = useCallback(async () => {
+  const handleConfirm = useCallback(async (): Promise<{
+    saved: boolean;
+    message: string;
+  }> => {
     const owner = userId;
     const session = actionSession.current;
     const decision = await reviewRef.current.confirm({speakReply: false});
-    if (decision) {
-      let reply = decision.reply;
-      if (
-        decision.outcome?.status === 'applied' &&
-        decision.outcome.receipt.reminderId
-      ) {
-        const delivery = await verifyReminderDelivery(
-          owner,
-          decision.outcome.receipt.reminderId,
-        );
-        reply = delivery.message;
-      }
-      if (
-        owner !== ownerRef.current ||
-        session !== actionSession.current ||
-        !conversationRef.current ||
-        !LIVE.has(conversationRef.current.snapshot.phase)
-      )
-        return;
-      setLocalNote(reply);
-      if (decision.outcome?.status === 'applied') {
-        const receipt = decision.outcome.receipt;
-        const kind =
-          receipt.entityType === 'time_block' ? 'block' : receipt.entityType;
-        if (
-          kind === 'note' ||
-          kind === 'task' ||
-          kind === 'event' ||
-          kind === 'block' ||
-          kind === 'reminder'
-        ) {
-          let targetScreen: 'notes' | 'calendar' =
-            kind === 'note' ? 'notes' : 'calendar';
-          let notesTab: 'notes' | 'todo' | undefined;
-          if (kind === 'task') {
-            const resolved = receipt.entityId
-              ? resolveCallTarget(userId, {
-                  ownerId: userId,
-                  screen: 'notes',
-                  entityKind: 'task',
-                  entityId: receipt.entityId,
-                })
-              : null;
-            if (
-              !resolved ||
-              (resolved.kind === 'task' && !resolved.item.dueDate)
-            ) {
-              targetScreen = 'notes';
-              notesTab = 'todo';
-            }
-          }
-          setSavedTarget({
-            ownerId: userId,
-            screen: targetScreen,
-            ...(notesTab ? {notesTab} : {}),
-            entityKind: kind,
-            entityId: receipt.entityId || undefined,
-          });
-        }
-      }
-      void conversation.sendContext(
-        `The student's on-screen review result: ${reply}`,
-      );
-      const refreshed = buildStudentVoiceContext(userId);
-      if (refreshed) void conversation.sendContext(refreshed);
+    if (!decision) {
+      return {
+        saved: false,
+        message: 'No pending draft card was found. Nothing has been saved.',
+      };
     }
+    let reply = decision.reply;
+    if (
+      decision.outcome?.status === 'applied' &&
+      decision.outcome.receipt.reminderId
+    ) {
+      const delivery = await verifyReminderDelivery(
+        owner,
+        decision.outcome.receipt.reminderId,
+      );
+      reply = delivery.message;
+    }
+    const saved = decision.outcome?.status === 'applied';
+    if (
+      owner !== ownerRef.current ||
+      session !== actionSession.current ||
+      !conversationRef.current ||
+      !LIVE.has(conversationRef.current.snapshot.phase)
+    ) {
+      return {saved, message: reply};
+    }
+    setLocalNote(reply);
+    void conversation.sendContext(
+      'Confirmed and saved action result: ' + reply,
+    );
+    const refreshed = buildStudentVoiceContext(userId);
+    if (refreshed) void conversation.sendContext(refreshed);
+    return {saved, message: reply};
   }, [conversation, userId]);
+
+  confirmHandlersRef.current = {
+    confirmDraft: handleConfirm,
+    saveMemory: handleSaveMemory,
+    confirmMultiAll: handleConfirmMultiAll,
+  };
 
   const handleCancelReview = useCallback(() => {
     const decision = reviewRef.current.cancel();
@@ -863,12 +1037,14 @@ export const VoiceConversationPanel: React.FC<VoiceConversationPanelProps> = ({
 
   const failure = snapshot.failure;
   const needsConsent = (!consented || !dataConsented) && !live && !connecting;
-  const turns = snapshot.turns;
-  const latestTurn = turns.length > 0 ? turns[turns.length - 1] : null;
-  const latestUserTurn = [...turns].reverse().find(t => t.role === 'user');
-  const latestAssistantTurn = [...turns]
-    .reverse()
-    .find(t => t.role === 'assistant');
+  const showOverlayContent = Boolean(
+    needsConsent ||
+      hasActiveCard ||
+      readResult !== null ||
+      failure ||
+      snapshot.phase === 'restart_required' ||
+      showTyping,
+  );
 
   return (
     <View
@@ -959,36 +1135,38 @@ export const VoiceConversationPanel: React.FC<VoiceConversationPanelProps> = ({
         </View>
       </View>
 
-      {/* Middle Scrollable Deck for Cards, Turns and Messages */}
-      <ScrollView
-        ref={mainScrollRef}
-        style={styles.contentScroll}
-        contentContainerStyle={styles.contentScrollContainer}
-        keyboardShouldPersistTaps="handled"
-        showsVerticalScrollIndicator={false}
-      >
-        {/* Centered Identity Stage */}
-        <View style={styles.centerStage} testID="call-center-stage">
-          <View
-            style={[
-              styles.avatarRing,
-              {
-                borderColor: live
-                  ? snapshot.muted
-                    ? colors.warning
-                    : colors.primary
-                  : colors.border,
-              },
-            ]}
-            testID="call-identity-ring"
-          >
-            <SynthWaveAvatar
-              phase={snapshot.phase}
-              outputLevel={snapshot.outputLevel ?? 0}
-              muted={snapshot.muted}
-              size={76}
-            />
-          </View>
+      {/* Fixed Non-Scrolling Visible Call Stage (ChatGPT-style) */}
+      <View style={styles.contentStage} testID="call-content-stage">
+        {/* Centered Identity & Waveform (hidden when a card or overlay is active) */}
+        <View
+          style={[
+            styles.centerStage,
+            showOverlayContent && styles.centerStageCompact,
+          ]}
+          testID="call-center-stage"
+        >
+          {!showOverlayContent ? (
+            <View
+              style={[
+                styles.avatarRing,
+                {
+                  borderColor: live
+                    ? snapshot.muted
+                      ? colors.warning
+                      : colors.primary
+                    : colors.border,
+                },
+              ]}
+              testID="call-identity-ring"
+            >
+              <SynthWaveAvatar
+                phase={snapshot.phase}
+                outputLevel={snapshot.outputLevel ?? 0}
+                muted={snapshot.muted}
+                size={76}
+              />
+            </View>
+          ) : null}
 
           {live ? (
             <Text style={[styles.timerText, themed.title]} testID="call-timer">
@@ -1022,15 +1200,16 @@ export const VoiceConversationPanel: React.FC<VoiceConversationPanelProps> = ({
             </Text>
           ) : null}
 
-          {/* Central Responsive Dual Waveform and Truthful Activity Indicators */}
-          <CallWaveform
-            phase={snapshot.phase}
-            muted={snapshot.muted}
-            micCapturing={snapshot.micCapturing}
-            userLevel={snapshot.level}
-            outputLevel={snapshot.outputLevel ?? 0}
-            hasReviewItem={Boolean(review?.proposal)}
-          />
+          {!showOverlayContent ? (
+            <CallWaveform
+              phase={snapshot.phase}
+              muted={snapshot.muted}
+              micCapturing={snapshot.micCapturing}
+              userLevel={snapshot.level}
+              outputLevel={snapshot.outputLevel ?? 0}
+              hasReviewItem={Boolean(review?.proposal)}
+            />
+          ) : null}
         </View>
 
         {needsConsent ? (
@@ -1049,7 +1228,8 @@ export const VoiceConversationPanel: React.FC<VoiceConversationPanelProps> = ({
               voice provider. Capture continues when minimized inside the app,
               with a visible call strip. It stops when you tap End or leave the
               app, and you can mute at any time. Finished turns are saved to
-              your Chat history. Planner changes still need your Confirm.
+              your Chat history. You can review, change, or confirm planner
+              items by voice or tap.
             </Text>
             <TouchableOpacity
               style={[styles.primaryButton, {backgroundColor: colors.primary}]}
@@ -1220,179 +1400,6 @@ export const VoiceConversationPanel: React.FC<VoiceConversationPanelProps> = ({
           </View>
         ) : null}
 
-        {/* Active Topic Showcase (ChatGPT-style: Topic at a time) */}
-        {latestTurn && (
-          <View
-            style={[
-              styles.activeTopicCard,
-              {
-                backgroundColor: colors.inputBg,
-                borderColor: colors.border,
-              },
-            ]}
-            testID="call-active-topic"
-          >
-            <View style={styles.activeTopicHeaderRow}>
-              <View
-                style={[
-                  styles.activeTopicDot,
-                  {
-                    backgroundColor: live
-                      ? colors.primary
-                      : colors.textSecondary,
-                  },
-                ]}
-              />
-              <Text
-                style={[styles.activeTopicBadge, {color: colors.textSecondary}]}
-              >
-                ACTIVE TOPIC
-              </Text>
-            </View>
-            {latestUserTurn && (
-              <View style={styles.activeTopicPromptRow}>
-                <Text style={[styles.activeTopicRole, {color: colors.primary}]}>
-                  You
-                </Text>
-                <Text
-                  style={[
-                    styles.activeTopicText,
-                    {color: colors.textPrimary},
-                    latestUserTurn.status === 'provisional' &&
-                      styles.provisional,
-                  ]}
-                  numberOfLines={3}
-                >
-                  {latestUserTurn.text}
-                </Text>
-              </View>
-            )}
-            {latestAssistantTurn && latestAssistantTurn.text ? (
-              <View style={styles.activeTopicReplyRow}>
-                <Text
-                  style={[
-                    styles.activeTopicRole,
-                    {color: colors.textSecondary},
-                  ]}
-                >
-                  LAFINA{' '}
-                  {latestAssistantTurn.status === 'interrupted'
-                    ? '· interrupted'
-                    : ''}
-                </Text>
-                <Text
-                  style={[
-                    styles.activeTopicReplyText,
-                    {color: colors.textPrimary},
-                    latestAssistantTurn.status === 'provisional' &&
-                      styles.provisional,
-                  ]}
-                >
-                  {latestAssistantTurn.text}
-                </Text>
-              </View>
-            ) : null}
-          </View>
-        )}
-
-        {snapshot.turns.length > 0 ? (
-          <View
-            style={styles.transcriptContainer}
-            testID="call-transcript-container"
-          >
-            <TouchableOpacity
-              style={[styles.transcriptToggle, themed.pill]}
-              onPress={() => setTranscriptCollapsed(prev => !prev)}
-              accessibilityRole="button"
-              accessibilityLabel={
-                transcriptCollapsed
-                  ? 'Expand transcript'
-                  : 'Collapse transcript'
-              }
-              testID="call-transcript-toggle"
-            >
-              <Text style={[styles.transcriptToggleText, themed.muted]}>
-                {transcriptCollapsed
-                  ? `Transcript (${snapshot.turns.length}) · Tap to expand`
-                  : 'Transcript · Tap to collapse'}
-              </Text>
-            </TouchableOpacity>
-
-            {!transcriptCollapsed ? (
-              <View style={styles.transcriptWrapper}>
-                <ScrollView
-                  ref={scrollRef}
-                  style={[styles.transcript, themed.card]}
-                  contentContainerStyle={styles.transcriptContent}
-                  nestedScrollEnabled
-                  onScroll={handleScroll}
-                  scrollEventThrottle={16}
-                  testID="voice-conversation-transcript"
-                >
-                  {snapshot.turns.map(turn => (
-                    <View
-                      key={turn.id}
-                      style={[
-                        styles.turn,
-                        turn.role === 'user'
-                          ? styles.userTurn
-                          : styles.agentTurn,
-                      ]}
-                      testID={`voice-turn-${turn.role}-${turn.status}`}
-                    >
-                      <Text style={[styles.turnLabel, themed.muted]}>
-                        {turn.role === 'user' ? 'You' : 'LAFINA'}
-                        {turn.status === 'interrupted' ? ' · interrupted' : ''}
-                      </Text>
-                      <Text
-                        style={[
-                          styles.turnText,
-                          themed.text,
-                          callSettings.captionSize === 'large' &&
-                            styles.turnTextLarge,
-                          callSettings.captionSize === 'extra_large' &&
-                            styles.turnTextExtraLarge,
-                          turn.status === 'provisional' && [
-                            styles.provisional,
-                            themed.muted,
-                          ],
-                        ]}
-                      >
-                        {turn.text}
-                      </Text>
-                    </View>
-                  ))}
-                </ScrollView>
-                {!isAtBottom ? (
-                  <TouchableOpacity
-                    style={[
-                      styles.jumpButton,
-                      {
-                        backgroundColor: colors.surface,
-                        borderColor: colors.border,
-                      },
-                    ]}
-                    onPress={jumpToLatest}
-                    accessibilityRole="button"
-                    accessibilityLabel="Jump to latest transcript message"
-                    testID="call-jump-to-latest"
-                  >
-                    <Text
-                      style={[styles.jumpButtonText, {color: colors.primary}]}
-                    >
-                      Jump to latest ↓
-                    </Text>
-                  </TouchableOpacity>
-                ) : null}
-              </View>
-            ) : null}
-          </View>
-        ) : live ? (
-          <Text style={[styles.placeholder, themed.muted]}>
-            Say something. Your words appear here as you speak.
-          </Text>
-        ) : null}
-
         {snapshot.notice ? (
           <Text
             style={[styles.notice, themed.muted]}
@@ -1411,16 +1418,6 @@ export const VoiceConversationPanel: React.FC<VoiceConversationPanelProps> = ({
           </Text>
         ) : null}
 
-        {onNavigate && (
-          <TouchableOpacity
-            style={{minHeight: 48, justifyContent: 'center'}}
-            accessibilityRole="button"
-            accessibilityLabel="Read earlier Chat messages"
-            onPress={() => onNavigate({ownerId: userId, screen: 'chat'})}
-          >
-            <Text style={{color: colors.primary}}>Open Chat history</Text>
-          </TouchableOpacity>
-        )}
         {readResult !== null && (
           <CallReadResults
             result={readResult}
@@ -1428,20 +1425,6 @@ export const VoiceConversationPanel: React.FC<VoiceConversationPanelProps> = ({
             onDismiss={() => setReadResult(null)}
             onNavigate={onNavigate}
           />
-        )}
-        {savedTarget && onNavigate && (
-          <TouchableOpacity
-            style={{minHeight: 48, justifyContent: 'center'}}
-            accessibilityRole="button"
-            accessibilityLabel="Open saved item"
-            onPress={() => onNavigate(savedTarget)}
-          >
-            <Text style={{color: colors.primary}}>
-              {savedTarget.notesTab === 'todo'
-                ? 'Open in Notes → To-Do'
-                : 'Open saved item'}
-            </Text>
-          </TouchableOpacity>
         )}
 
         {failure || snapshot.phase === 'restart_required' ? (
@@ -1554,7 +1537,7 @@ export const VoiceConversationPanel: React.FC<VoiceConversationPanelProps> = ({
             </TouchableOpacity>
           </View>
         ) : null}
-      </ScrollView>
+      </View>
 
       {/* Bottom Control Dock */}
       <View
@@ -1706,7 +1689,7 @@ const ControlButton: React.FC<{
 const getThemedStyles = (colors: ThemeColors) => ({
   card: {backgroundColor: colors.inputBg, borderColor: colors.border},
   pill: {backgroundColor: colors.inputBg},
-  dock: {backgroundColor: colors.cardBg, borderColor: colors.border},
+  dock: {backgroundColor: 'transparent', borderColor: 'transparent'},
   text: {color: colors.textPrimary},
   title: {color: colors.textPrimary},
   muted: {color: colors.textSecondary},
@@ -1822,15 +1805,18 @@ const styles = StyleSheet.create({
     borderRadius: 2,
     minHeight: 6,
   },
-  contentScroll: {
+  centerStageCompact: {
+    paddingVertical: 2,
+    gap: 2,
+  },
+  contentStage: {
     flex: 1,
     minHeight: 0,
     width: '100%',
-  },
-  contentScrollContainer: {
-    paddingVertical: 8,
-    gap: 12,
     alignItems: 'center',
+    justifyContent: 'center',
+    gap: 10,
+    overflow: 'hidden',
   },
   card: {width: '100%', borderRadius: 16, borderWidth: 1, padding: 14, gap: 10},
   cardTitle: {fontFamily: Fonts.heading, fontSize: 15, fontWeight: 'bold'},

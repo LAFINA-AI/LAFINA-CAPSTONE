@@ -3,7 +3,6 @@ import {StyleSheet, Text, TouchableOpacity, View} from 'react-native';
 import {
   Clock,
   SlidersHorizontal,
-  Sparkles,
   CheckCircle2,
   CalendarDays,
 } from 'lucide-react-native';
@@ -24,7 +23,7 @@ interface DashboardHeaderProps {
   usableFreeMinutes: number;
   pendingTasksCount: number;
   onOpenCustomize: () => void;
-  onAskLafina: () => void;
+  onAskLafina?: () => void;
 }
 
 export const DashboardHeader: React.FC<DashboardHeaderProps> = ({
@@ -35,7 +34,6 @@ export const DashboardHeader: React.FC<DashboardHeaderProps> = ({
   usableFreeMinutes,
   pendingTasksCount,
   onOpenCustomize,
-  onAskLafina,
 }) => {
   const {colors} = useTheme();
   const themed = useThemedStyles(getThemedStyles);
@@ -77,16 +75,6 @@ export const DashboardHeader: React.FC<DashboardHeaderProps> = ({
         <View style={styles.headerActions}>
           <TouchableOpacity
             style={[styles.iconPillBtn, themed.pillBtn, Shadows.card]}
-            onPress={onAskLafina}
-            activeOpacity={0.75}
-            accessibilityRole="button"
-            accessibilityLabel="Ask Lafina"
-            testID="dashboard-ask-lafina-btn"
-          >
-            <Sparkles size={15} color={colors.blue} />
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={[styles.customizeBtn, themed.pillBtn, Shadows.card]}
             onPress={onOpenCustomize}
             activeOpacity={0.75}
             accessibilityRole="button"
@@ -94,9 +82,6 @@ export const DashboardHeader: React.FC<DashboardHeaderProps> = ({
             testID="dashboard-customize-btn"
           >
             <SlidersHorizontal size={15} color={colors.textPrimary} />
-            <Text style={[styles.customizeBtnText, themed.primaryText]}>
-              Customize
-            </Text>
           </TouchableOpacity>
         </View>
       </View>
@@ -198,20 +183,6 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     alignItems: 'center',
     justifyContent: 'center',
-  },
-  customizeBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    height: 36,
-    paddingHorizontal: 12,
-    borderRadius: Layout.borderRadiusPill,
-    borderWidth: 1,
-  },
-  customizeBtnText: {
-    fontFamily: Fonts.heading,
-    fontSize: FontSize.small,
-    fontWeight: '600',
   },
   summaryStrip: {
     flexDirection: 'row',

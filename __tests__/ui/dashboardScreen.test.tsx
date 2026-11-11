@@ -356,6 +356,9 @@ describe('Dashboard Config Store, Schedule Calculations & Screen UI', () => {
         expect(timeBlocksStore.getAll(uid).length).toBe(2);
       });
 
+      expect(utils.queryByTestId('dashboard-ask-lafina-btn')).toBeNull();
+      expect(utils.queryByText('Customize')).toBeNull();
+
       // Open Customize modal and hide Pinned Notes
       fireEvent.press(utils.getByTestId('dashboard-customize-btn'));
       expect(utils.getByText('Customize Dashboard')).toBeTruthy();

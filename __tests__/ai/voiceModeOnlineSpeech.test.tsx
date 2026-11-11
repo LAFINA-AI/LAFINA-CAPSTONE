@@ -70,7 +70,7 @@ const fakeSpeech = (respond?: (text: string) => unknown | Promise<unknown>) => {
         } as never;
       }
       if (path === '/v1/ai/tts') {
-        const {text} = JSON.parse(String(init?.body));
+        const {text, voiceId} = JSON.parse(String(init?.body));
         texts.push(text);
         if (respond) return (await respond(text)) as never;
         return {
@@ -81,7 +81,7 @@ const fakeSpeech = (respond?: (text: string) => unknown | Promise<unknown>) => {
             audioBase64: AUDIO,
             mimeType: 'audio/mpeg',
             model: 'eleven_v4',
-            voice: 'default',
+            voice: voiceId ?? 'default',
             createdAt: new Date().toISOString(),
           },
         } as never;

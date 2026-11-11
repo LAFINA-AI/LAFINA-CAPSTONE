@@ -23,6 +23,7 @@ import {
   backendSelection,
 } from '../../src/cloud/backendSelection';
 import {ServerSwitchItem} from '../../src/ui/components/profile/ServerSwitchItem';
+import {developerTestService} from '../../src/ui/components/profile/developerTestService';
 import {ProfileScreen} from '../../src/ui/screens/ProfileScreen';
 import {ThemeProvider} from '../../src/ui/contexts/ThemeContext';
 
@@ -139,7 +140,7 @@ describe('a debug or test build', () => {
     expect(backendSelection.current()).toBeNull();
   });
 
-  it('shows the setting in Profile with the current server', () => {
+  it('hides Developer in Profile until developer mode is enabled', () => {
     const guest = userStore.createGuestUser();
     const screen = render(
       <ThemeProvider userId={guest.id}>
@@ -150,10 +151,31 @@ describe('a debug or test build', () => {
         />
       </ThemeProvider>,
     );
-    expect(screen.getByText('Developer')).toBeTruthy();
-    expect(screen.getByText('Server (debug)')).toBeTruthy();
-    expect(screen.getByText('Vercel')).toBeTruthy();
+    expect(screen.queryByText('Developer')).toBeNull();
+    expect(screen.queryByText('Server (debug)')).toBeNull();
     screen.unmount();
+  });
+
+  it('shows the setting in Profile with the current server', () => {
+    developerTestService.setDeveloperModeEnabled(true);
+    try {
+      const guest = userStore.createGuestUser();
+      const screen = render(
+        <ThemeProvider userId={guest.id}>
+          <ProfileScreen
+            userId={guest.id}
+            refreshTrigger={0}
+            onRefresh={jest.fn()}
+          />
+        </ThemeProvider>,
+      );
+      expect(screen.getByText('Developer')).toBeTruthy();
+      expect(screen.getByText('Server (debug)')).toBeTruthy();
+      expect(screen.getByText('Vercel')).toBeTruthy();
+      screen.unmount();
+    } finally {
+      developerTestService.setDeveloperModeEnabled(false);
+    }
   });
 
   it('switches a guest without signing out', async () => {
