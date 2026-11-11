@@ -360,7 +360,7 @@ describe('USTP COR Tailored Parser & Onboarding/Profile/Calendar Integration', (
     });
 
     // 3. Calendar DayView entries include location = "Room · Section · Faculty"
-    const friEntries = buildDayEntries({ date: new Date(2026, 10, 13), tasks: [], events: [], blocks: [it414Fri!], timeFormat24h: false, eventColor: '#2563EB', taskColor: '#059669' });
+    const friEntries = buildDayEntries({ date: new Date(2026, 10, 13), tasks: [], events: [], blocks: [it414Fri!], timeFormat24h: false, eventColor: '#2563EB', taskColor: () => '#059669' });
     expect(friEntries.length).toBe(1);
     expect(friEntries[0].location).toBe(
       '09-302(CITC Lab 3) · IT4R11_Track2 · Loredel Tamayo',
@@ -408,5 +408,63 @@ describe('USTP COR Tailored Parser & Onboarding/Profile/Calendar Integration', (
     expect(result.classes[0].subject).toBe('IT414 · IT Elective 3');
     expect(result.classes[0].faculty).toBe('Loredel Tamayo');
     expect(result.markdownTable).toContain('Scanned Class Schedule (USTP COR)');
+  });
+
+  test('recovers wrapped subject titles, vertically split rows, OCR O-as-0 units, spaced codes, and WF/MTH day codes for a full 20-unit load', () => {
+    const wrappedCor = `
+Registration No: 441234 Academic Year/Term : 1st Semester AY 2024-2025
+STUDENT GENERAL INFORMATION
+Student No: 2024300617 College: COLLEGE OF INFORMATION TECHNOLOGY AND COMPUTING
+Name: BLANCO, NOEL JHUMEL G Program: B.S. in Information Technology
+Gender: M Nationality: Filipino Major: N/A Curriculum: CITOC-BSIT-2018-2019
+Age: 20 Contact #: Year Level: 2nd Year - Baccalaureate
+CODE SUBJECT TITLE U N I T Lec Lab Credit SECTION SCHEDULE/ROOM FACULTY
+IT211 Introduction to Human Computer
+Interaction 2 1 3 IT2R13 WF 8:00 AM - 9:30 AM/09-301 Jane Doe
+IT212 Data Structures and Algorithms
+2 1 3 IT2R13 TTH 1:00 PM - 2:30 PM/09-302 Juan Dela Cruz
+*IT213 Integrative Programming and
+Technologies 1
+2 1 3 IT2R13 M 10:00 AM - 1:00 PM/09-303 Maria Santos
+IT214 Object-Oriented Programming 2 1 3 IT2R13 MTH 3:00 PM - 4:30 PM/51-201 Pedro Reyes
+GEC106 Ethics 3 O 3 IT2R13 TF 9:00 AM - 10:30 AM/Modular Classroom 1 Ana Cruz
+GEC107 Science, Technology and Society 3 0 3 IT2R13 S 1:00 PM - 4:00 PM/Online Mark Lopez
+PATHFit 3 Physical Activities Toward Health 2 O 2 IT2R13 F 3:00 PM - 5:00 PM/Covered Court Carlo Tan
+Total Unit(s) 16 4 20
+ASSESSSED FEES
+`;
+    const result = parseUstpCor(wrappedCor);
+
+    expect(result.isValidUstpCor).toBe(true);
+    expect(result.profile.formattedName).toBe('Noel Jhumel G. Blanco');
+    expect(result.profile.curriculum).toBe('CITOC-BSIT-2018-2019');
+    expect(result.profile.totalCreditUnits).toBe(20);
+    expect(result.courses.length).toBe(7);
+
+    const sumCredits = result.courses.reduce((sum, c) => sum + c.creditUnits, 0);
+    expect(sumCredits).toBe(20);
+
+    const it211 = result.courses.find((c) => c.code === 'IT211');
+    expect(it211?.subjectTitle).toBe('Introduction to Human Computer Interaction');
+    expect(it211?.sessions[0]?.days).toEqual(['Wednesday', 'Friday']);
+
+    const it213 = result.courses.find((c) => c.code === 'IT213');
+    expect(it213?.subjectTitle).toBe('Integrative Programming and Technologies 1');
+
+    const it214 = result.courses.find((c) => c.code === 'IT214');
+    expect(it214?.sessions[0]?.days).toEqual(['Monday', 'Thursday']);
+
+    const gec106 = result.courses.find((c) => c.code === 'GEC106');
+    expect(gec106?.labUnits).toBe(0);
+    expect(gec106?.creditUnits).toBe(3);
+
+    const gec107 = result.courses.find((c) => c.code === 'GEC107');
+    expect(gec107?.sessions[0]?.room).toBe('Online');
+    expect(gec107?.faculty).toBe('Mark Lopez');
+
+    const pathfit = result.courses.find((c) => c.code === 'PATHFit 3');
+    expect(pathfit?.creditUnits).toBe(2);
+    expect(pathfit?.sessions[0]?.room).toBe('Covered Court');
+    expect(pathfit?.faculty).toBe('Carlo Tan');
   });
 });

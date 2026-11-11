@@ -1,19 +1,19 @@
 import React from 'react';
-import { render, fireEvent } from '@testing-library/react-native';
-import { Text, TouchableOpacity } from 'react-native';
-import { ThemeProvider, useTheme } from '../../src/ui/contexts/ThemeContext';
-import { mixColors } from '../../src/ui/theme/colorMix';
+import {render, fireEvent} from '@testing-library/react-native';
+import {Text, TouchableOpacity} from 'react-native';
+import {ThemeProvider, useTheme} from '../../src/ui/contexts/ThemeContext';
+import {mixColors} from '../../src/ui/theme/colorMix';
 import {
   splashMomentAt,
   splashLookAt,
   SPLASH_TIMING,
 } from '../../src/ui/splash/synthWave';
-import { buildTourSteps } from '../../src/ui/tour/tourSteps';
-import { CustomTabBar } from '../../src/ui/components/CustomTabBar';
-import { initDatabase, userStore } from '../../src/storage';
+import {buildTourSteps} from '../../src/ui/tour/tourSteps';
+import {CustomTabBar} from '../../src/ui/components/CustomTabBar';
+import {initDatabase, userStore} from '../../src/storage';
 
 const ThemeProbe: React.FC = () => {
-  const { isDarkMode, colors, toggleTheme } = useTheme();
+  const {isDarkMode, colors, toggleTheme} = useTheme();
   return (
     <TouchableOpacity testID="theme-toggle" onPress={() => toggleTheme()}>
       <Text testID="theme-mode">{isDarkMode ? 'dark' : 'light'}</Text>
@@ -46,7 +46,7 @@ describe('Phase 01 Theme, SynthWave, ProductTour & CustomTabBar', () => {
     const guest = userStore.createGuestUser();
     userStore.setDarkModeEnabled(guest.id, false);
 
-    const { getByTestId } = render(
+    const {getByTestId} = render(
       <ThemeProvider userId={guest.id}>
         <ThemeProbe />
       </ThemeProvider>,
@@ -59,33 +59,33 @@ describe('Phase 01 Theme, SynthWave, ProductTour & CustomTabBar', () => {
   });
 
   test('buildTourSteps returns the 7 student steps with no study-tool or business steps', () => {
-    const guestSteps = buildTourSteps({ isGuest: true, isPro: false });
-    expect(guestSteps.map((s) => s.id)).toEqual([
+    const guestSteps = buildTourSteps({isGuest: true, isPro: false});
+    expect(guestSteps.map(s => s.id)).toEqual([
       'welcome',
+      'dashboard',
       'calendar',
       'notes',
       'assistant',
-      'voice',
+
       'account',
       'done',
     ]);
     expect(guestSteps[0]?.body).toContain('guest');
   });
 
-  test('CustomTabBar renders student tabs and triggers tab and mic callbacks', () => {
+  test('CustomTabBar renders student tabs without center mic button and triggers tab callbacks', () => {
     const onTabPress = jest.fn();
-    const onMicPress = jest.fn();
 
-    const { getByLabelText } = render(
+    const {getByLabelText, queryByLabelText} = render(
       <ThemeProvider userId={null}>
-        <CustomTabBar
-          activeTab="calendar"
-          onTabPress={onTabPress}
-          onMicPress={onMicPress}
-        />
+        <CustomTabBar activeTab="dashboard" onTabPress={onTabPress} />
       </ThemeProvider>,
     );
 
+    fireEvent.press(getByLabelText('Dashboard tab'));
+    expect(onTabPress).toHaveBeenCalledWith('dashboard');
+    fireEvent.press(getByLabelText('Calendar tab'));
+    expect(onTabPress).toHaveBeenCalledWith('calendar');
     fireEvent.press(getByLabelText('Notes tab'));
     expect(onTabPress).toHaveBeenCalledWith('notes');
 
@@ -95,7 +95,6 @@ describe('Phase 01 Theme, SynthWave, ProductTour & CustomTabBar', () => {
     fireEvent.press(getByLabelText('Profile tab'));
     expect(onTabPress).toHaveBeenCalledWith('profile');
 
-    fireEvent.press(getByLabelText('Voice Action button'));
-    expect(onMicPress).toHaveBeenCalledTimes(1);
+    expect(queryByLabelText('Voice Action button')).toBeNull();
   });
 });

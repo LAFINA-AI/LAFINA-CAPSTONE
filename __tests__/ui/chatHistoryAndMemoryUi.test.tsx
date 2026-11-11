@@ -9,6 +9,7 @@ import {ChatScreen} from '../../src/ui/screens/ChatScreen';
 import {ChatMemorySettings} from '../../src/ui/components/profile/ChatMemorySettings';
 import {ThemeProvider} from '../../src/ui/contexts/ThemeContext';
 import {chatMemoryStore, chatStore, initDatabase} from '../../src/storage';
+import {accountLinkService} from '../../src/cloud';
 import type {ChatMessage} from '../../src/storage';
 import {CHAT_MEMORY_CHANGED_EVENT} from '../../src/cloud/chatMemoryService';
 import {ownedChatSessionId} from '../../src/storage/chatOwnership';
@@ -130,6 +131,71 @@ describe('chat history sheet', () => {
     fireEvent.press(getByTestId('chat-history-button'));
     expect(getByTestId('chat-history-empty')).toBeTruthy();
     expect(() => getByText('Biology review')).toThrow();
+  });
+
+  it('expands sidebar to full screen via expand button or search focus, filters General vs USTP chats, and launches Create Document from sidebar', async () => {
+    const me = student();
+    chatStore.addMessage(me, 'user', 'Physics problem set');
+    const ustpId = chatStore.startNewUstpChat(me);
+    chatStore.addMessage(me, 'user', 'USTP Retention Rule');
+    chatStore.startNewChat(me, 'general');
+
+    jest.spyOn(accountLinkService, 'authorizeOnlineMode').mockResolvedValue({
+      status: 'success',
+      message: 'Online mode ready.',
+    });
+
+    const {getByTestId, queryByTestId, getAllByText, queryByText, findByText} = render(chat(me));
+
+    fireEvent.press(getByTestId('chat-history-button'));
+    expect(getByTestId('chat-history-sheet')).toBeTruthy();
+    expect(getByTestId('chat-history-expand').props.accessibilityState).toEqual({
+      expanded: false,
+    });
+
+    // Manual expand -> full screen -> collapse -> auto-expand on Search focus
+    fireEvent.press(getByTestId('chat-history-expand'));
+    expect(getByTestId('chat-history-expand').props.accessibilityState).toEqual({
+      expanded: true,
+    });
+    fireEvent.press(getByTestId('chat-history-expand'));
+    expect(getByTestId('chat-history-expand').props.accessibilityState).toEqual({
+      expanded: false,
+    });
+
+    fireEvent(getByTestId('chat-history-search'), 'focus');
+    expect(getByTestId('chat-history-expand').props.accessibilityState).toEqual({
+      expanded: true,
+    });
+    fireEvent.changeText(getByTestId('chat-history-search'), 'Retention');
+    expect(getByTestId(`chat-history-item-${ustpId}`)).toBeTruthy();
+    expect(getByTestId(`chat-history-ustp-badge-${ustpId}`)).toBeTruthy();
+    fireEvent.press(getByTestId('chat-history-search-clear'));
+    await waitFor(() => expect(getAllByText('Physics problem set').length).toBeGreaterThanOrEqual(1));
+
+    // Filter chips separate USTP RAG chats from General chats
+    fireEvent.press(getByTestId('chat-history-filter-ustp'));
+    expect(queryByText('Physics problem set')).toBeNull();
+    expect(getByTestId(`chat-history-item-${ustpId}`)).toBeTruthy();
+
+    fireEvent.press(getByTestId('chat-history-filter-general'));
+    expect(queryByTestId(`chat-history-item-${ustpId}`)).toBeNull();
+    expect(getAllByText('Physics problem set').length).toBeGreaterThanOrEqual(1);
+
+    fireEvent.press(getByTestId('chat-history-filter-all'));
+    fireEvent.press(getByTestId('chat-history-expand'));
+
+    // Launch Create PDF directly from the sidebar -> switches back from USTP/temp if needed & selects PDF format
+    await act(async () => {
+      fireEvent.press(getByTestId('chat-sidebar-doc-pdf'));
+    });
+    expect(queryByTestId('chat-history-sheet')).toBeNull();
+    expect(await findByText('Creating a PDF file')).toBeTruthy();
+
+    // Command Guide launches cleanly from the sidebar
+    fireEvent.press(getByTestId('chat-history-button'));
+    fireEvent.press(getByTestId('chat-sidebar-guide'));
+    expect(await findByText('What you can ask')).toBeTruthy();
   });
 });
 

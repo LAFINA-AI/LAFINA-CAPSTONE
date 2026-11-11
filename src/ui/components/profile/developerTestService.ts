@@ -29,7 +29,15 @@ import {
   DEVICE_SETTINGS_OWNER,
 } from '../../../cloud/backendSelection';
 import { IntentService } from '../../../ai/nlu/intentService';
-import { executeNluAction } from '../../../ai/nlu/actionExecutor';
+import { formatLocalDate } from '../../../ai/nlu/fastPathParser';
+import { routeIntent } from '../../../ai/nlu/intentRoutes';
+import {
+  prepareReviewedCommand,
+  confirmReviewedCommand,
+} from '../../../ai/nlu/commandReview';
+import { buildLocalConversationReply } from '../../../ai/localConversation';
+import { plannerQueries } from '../../../storage/plannerQueries';
+import { notesQueryStore } from '../../../storage/notesQueryStore';
 import type { ValidatedIntent, NluActionResult } from '../../../ai/nlu/types';
 
 export const DEVELOPER_MODE_KEY = 'debug.developer_mode';
@@ -737,13 +745,95 @@ export const developerTestService = {
   },
 
   /**
-   * Executes a validated NLU intent on behalf of the user.
+   * Executes a validated NLU intent on behalf of the user via the reviewed
+   * command gate for planner mutations or local read/conversation handlers.
    */
   executeNluIntent: async (
     intent: ValidatedIntent,
     userId: string,
   ): Promise<NluActionResult> => {
-    return executeNluAction(userId, intent);
+    if (!intent.isValid) {
+      return {
+        success: false,
+        intent: intent.intent,
+        reply: intent.validationError || 'Could not understand the request.',
+        error: intent.validationError,
+      };
+    }
+
+    const route = routeIntent(intent.intent);
+    if (route === 'reviewed_mutation') {
+      const prepared = prepareReviewedCommand(userId, intent, {
+        surface: 'chat',
+      });
+      if (prepared.status !== 'proposal') {
+        return {
+          success: false,
+          intent: intent.intent,
+          reply: prepared.reply,
+          error: prepared.reply,
+        };
+      }
+      const outcome = confirmReviewedCommand(
+        userId,
+        prepared.proposal.operationId,
+      );
+      if (outcome.status === 'applied') {
+        return {
+          success: true,
+          intent: intent.intent,
+          entityType: outcome.receipt.entityType as NluActionResult['entityType'],
+          entityId: outcome.receipt.entityId ?? undefined,
+          reply: outcome.reply,
+        };
+      }
+      return {
+        success: false,
+        intent: intent.intent,
+        reply: outcome.reply,
+        error: outcome.reply,
+      };
+    }
+
+    if (intent.intent === 'query_notes') {
+      const search = (intent.title || intent.details || '').trim() || undefined;
+      const page = notesQueryStore.page({
+        userId,
+        search,
+        limit: 5,
+      });
+      const count = page.items.length;
+      const reply =
+        count === 0
+          ? search
+            ? `No notes found matching "${search}".`
+            : 'You do not have any notes yet.'
+          : `Found ${count} note${count === 1 ? '' : 's'}: ${page.items
+              .map(n => n.title)
+              .join(', ')}.`;
+      return { success: true, intent: 'query_notes', reply };
+    }
+
+    if (intent.intent === 'query_schedule') {
+      const dateStr = intent.date || formatLocalDate(new Date());
+      const window = plannerQueries.window(userId, dateStr, dateStr);
+      const total =
+        window.tasks.length + window.events.length + window.blocks.length;
+      const reply =
+        total === 0
+          ? `No tasks, events, or time blocks scheduled for ${dateStr}.`
+          : `Schedule for ${dateStr}: ${window.tasks.length} task(s), ${window.events.length} event(s), ${window.blocks.length} time block(s).`;
+      return { success: true, intent: 'query_schedule', reply };
+    }
+
+    return {
+      success: true,
+      intent: intent.intent,
+      reply: buildLocalConversationReply(
+        userId,
+        intent.rawTranscript || intent.title || '',
+      ),
+    };
   },
 
   /**

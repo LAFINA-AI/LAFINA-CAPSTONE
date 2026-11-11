@@ -167,7 +167,10 @@ describe('AGY-PORT 06 planner replies and guide', () => {
         expect(parsed.isValid).toBe(true);
 
         const route = routeIntent(parsed.intent);
-        if (example.intent === 'query_schedule') {
+        if (
+          example.intent === 'query_schedule' ||
+          example.intent === 'query_notes'
+        ) {
           expect(route).toBe('read_only');
         } else {
           expect(route).toBe('reviewed_mutation');

@@ -1,12 +1,13 @@
 import {chatMemoryStore} from '../../storage/chatMemoryStore';
 import {notesQueryStore} from '../../storage/notesQueryStore';
 import {notesStore} from '../../storage/notesStore';
+import {tasksStore} from '../../storage/tasksStore';
 import {plannerQueries} from '../../storage/plannerQueries';
 import {isRealDate, addDaysToDate} from '../../storage/eventTime';
 import {formatLocalDate} from '../../ai/nlu/fastPathParser';
-import {sanitizeUntrustedContext} from '../../ai/voiceActions/actionSecurity';
+import {sanitizeUntrustedContext} from '../../ai/voiceActions/promptSanitizer';
 import {readOnboardingIdentity} from '../../storage/onboardingMemory';
-import {noteBodyToMarkdown} from '../../utils/richText';
+import {extractChecklistItems, noteBodyToMarkdown} from '../../utils/richText';
 
 /** Return only the current owner's requested records, bounded before network use. */
 export const readLocalVoiceResult = (
@@ -65,6 +66,72 @@ export const readLocalVoiceResult = (
         body: noteBodyToMarkdown(n.body).slice(0, 600),
       })),
       partial: pageResult.indexing || !!pageResult.nextCursor,
+      dataIsUntrusted: true,
+    };
+  }
+  if (kind === 'todos') {
+    const q = query.toLowerCase();
+    const limit = Math.min(options.limit || 12, 20);
+    const allTasks = tasksStore.getAllTasks(userId);
+    const openTasks = allTasks.filter(t => !t.isCompleted);
+    const matchedTasks = q
+      ? openTasks.filter(
+          t =>
+            t.title.toLowerCase().includes(q) ||
+            (t.category || '').toLowerCase().includes(q) ||
+            (t.notes || '').toLowerCase().includes(q),
+        )
+      : openTasks;
+    matchedTasks.sort((a, b) => {
+      const aUndated = a.dueDate ? 1 : 0;
+      const bUndated = b.dueDate ? 1 : 0;
+      if (aUndated !== bUndated) return aUndated - bUndated;
+      const prioRank: Record<string, number> = {High: 0, Medium: 1, Low: 2};
+      const prDiff = (prioRank[a.priority] ?? 1) - (prioRank[b.priority] ?? 1);
+      if (prDiff !== 0) return prDiff;
+      return (a.dueDate || '9999-99-99').localeCompare(
+        b.dueDate || '9999-99-99',
+      );
+    });
+
+    const noteChecklists: Array<{
+      noteId: string;
+      noteTitle: string;
+      text: string;
+    }> = [];
+    try {
+      for (const note of notesStore.getAll(userId)) {
+        for (const item of extractChecklistItems(note.body)) {
+          if (item.done || !item.text) continue;
+          if (
+            !q ||
+            item.text.toLowerCase().includes(q) ||
+            note.title.toLowerCase().includes(q)
+          ) {
+            noteChecklists.push({
+              noteId: note.id,
+              noteTitle: note.title.slice(0, 100),
+              text: item.text.slice(0, 150),
+            });
+          }
+        }
+      }
+    } catch {
+      // best-effort
+    }
+
+    return {
+      todos: matchedTasks.slice(0, limit).map(t => ({
+        id: t.id,
+        title: t.title.slice(0, 120),
+        dueDate: t.dueDate,
+        dueTime: t.dueTime,
+        priority: t.priority,
+        category: t.category,
+        completed: t.isCompleted,
+      })),
+      noteChecklists: noteChecklists.slice(0, 8),
+      partial: matchedTasks.length > limit || noteChecklists.length > 8,
       dataIsUntrusted: true,
     };
   }
@@ -170,24 +237,97 @@ export const buildStudentVoiceContext = (userId: string): string => {
 
     // Blocks
     for (const b of window.blocks.slice(0, 5)) {
-      items.push(`Time block "${b.title}" on ${b.date} (${b.startTime}-${b.endTime})`);
+      items.push(
+        `Time block "${b.title}" on ${b.date} (${b.startTime}-${b.endTime})`,
+      );
     }
     // Events
     for (const e of window.events.slice(0, 6)) {
-      items.push(`Event "${e.title}" on ${e.date}${e.startTime ? ` at ${e.startTime}` : ''}`);
+      items.push(
+        `Event "${e.title}" on ${e.date}${
+          e.startTime ? ` at ${e.startTime}` : ''
+        }`,
+      );
     }
     // Tasks (uncompleted first)
     const pendingTasks = window.tasks.filter(t => !t.isCompleted).slice(0, 8);
     for (const t of pendingTasks) {
       items.push(
-        `Task "${t.title}"${t.dueDate ? ` due ${t.dueDate}` : ''}${t.dueTime ? ` at ${t.dueTime}` : ''}`,
+        `Task "${t.title}"${t.dueDate ? ` due ${t.dueDate}` : ''}${
+          t.dueTime ? ` at ${t.dueTime}` : ''
+        }`,
       );
     }
 
     if (items.length > 0) {
-      sections.push(`Active Schedule & Calendar (Today is ${today}):\n- ${items.join('\n- ')}`);
+      sections.push(
+        `Active Schedule & Calendar (Today is ${today}):\n- ${items.join(
+          '\n- ',
+        )}`,
+      );
     } else {
-      sections.push(`Active Schedule & Calendar (Today is ${today}): No upcoming events or pending tasks scheduled.`);
+      sections.push(
+        `Active Schedule & Calendar (Today is ${today}): No upcoming events or pending tasks scheduled.`,
+      );
+    }
+  } catch {
+    // best-effort
+  }
+
+  let cachedNotes: ReturnType<typeof notesStore.getAll> | null = null;
+  try {
+    cachedNotes = notesStore.getAll(userId);
+  } catch {
+    cachedNotes = null;
+  }
+
+  // 2b. To-Do List in Notes Tab (undated To-Dos, open tasks, and Note checklists)
+  try {
+    const allTasks = tasksStore.getAllTasks(userId);
+    const openUndated = allTasks.filter(t => !t.isCompleted && !t.dueDate);
+    const openDated = allTasks.filter(
+      t => !t.isCompleted && Boolean(t.dueDate),
+    );
+    const checklistLines: string[] = [];
+    if (cachedNotes) {
+      for (const n of cachedNotes) {
+        for (const item of extractChecklistItems(n.body)) {
+          if (!item.done && item.text) {
+            checklistLines.push(
+              `• [Note Checklist] "${item.text.slice(
+                0,
+                100,
+              )}" (from note "${n.title.slice(0, 60)}")`,
+            );
+          }
+        }
+      }
+    }
+    const todoLines: string[] = [
+      ...openUndated
+        .slice(0, 10)
+        .map(
+          t =>
+            `• [To-Do] "${t.title.slice(0, 100)}" (undated, ${
+              t.priority
+            } priority, ${t.category})`,
+        ),
+      ...openDated
+        .slice(0, 8)
+        .map(
+          t =>
+            `• [Scheduled Task] "${t.title.slice(0, 100)}" (due ${t.dueDate}${
+              t.dueTime ? ` at ${t.dueTime}` : ''
+            }, ${t.priority} priority)`,
+        ),
+      ...checklistLines.slice(0, 8),
+    ];
+    if (todoLines.length > 0) {
+      sections.push(`To-Do List in Notes tab:\n${todoLines.join('\n')}`);
+    } else {
+      sections.push(
+        `To-Do List in Notes tab: No open To-Dos or unchecked checklists.`,
+      );
     }
   } catch {
     // best-effort
@@ -195,7 +335,7 @@ export const buildStudentVoiceContext = (userId: string): string => {
 
   // 3. Notes in Notes Tab
   try {
-    const allNotes = notesStore.getAll(userId);
+    const allNotes = cachedNotes ?? notesStore.getAll(userId);
     if (allNotes.length > 0) {
       const noteSummaries = allNotes.slice(0, 10).map(n => {
         const bodyClean = noteBodyToMarkdown(n.body)
@@ -203,7 +343,9 @@ export const buildStudentVoiceContext = (userId: string): string => {
           .replace(/\s+/g, ' ')
           .trim()
           .slice(0, 160);
-        return `• "${n.title}"${n.category ? ` [${n.category}]` : ''}: ${bodyClean || '(empty)'}`;
+        return `• "${n.title}"${n.category ? ` [${n.category}]` : ''}: ${
+          bodyClean || '(empty)'
+        }`;
       });
       sections.push(`Saved Notes in Notes tab:\n${noteSummaries.join('\n')}`);
     } else {

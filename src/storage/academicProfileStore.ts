@@ -1,8 +1,8 @@
-import { db, DatabaseTransaction } from './database';
-import { localSettingsStore } from './localSettingsStore';
-import { timeBlocksStore } from './timeBlocksStore';
-import { userStore } from './userStore';
-import { generateId } from '../utils';
+import {db, DatabaseTransaction} from './database';
+import {localSettingsStore} from './localSettingsStore';
+import {timeBlocksStore} from './timeBlocksStore';
+import {userStore} from './userStore';
+import {generateId} from '../utils';
 
 export const ACADEMIC_PROFILE_KEY = 'academic.profile.v1';
 
@@ -16,6 +16,51 @@ export interface AcademicCourseRecord {
   section: string;
   faculty: string;
   scheduleSummary: string;
+}
+
+export interface CorCourseInput {
+  code: string;
+  subjectTitle: string;
+  lecUnits: number;
+  labUnits: number;
+  creditUnits: number;
+  section: string;
+  faculty: string;
+  scheduleSummary?: string;
+  sessions: Array<{
+    dayCode: string;
+    startTime12: string;
+    endTime12: string;
+    room?: string;
+  }>;
+}
+
+/** Converts parsed USTP COR course entries into persisted AcademicCourseRecord rows. */
+export function mapCorCoursesToAcademicRecords(
+  courses: CorCourseInput[],
+): AcademicCourseRecord[] {
+  return courses.map(c => ({
+    code: c.code,
+    subjectTitle: c.subjectTitle,
+    lecUnits: c.lecUnits,
+    labUnits: c.labUnits,
+    creditUnits: c.creditUnits,
+    section: c.section,
+    faculty: c.faculty,
+    scheduleSummary:
+      c.scheduleSummary && c.scheduleSummary !== 'TBA'
+        ? c.scheduleSummary
+        : c.sessions.length > 0
+        ? c.sessions
+            .map(
+              s =>
+                `${s.dayCode} ${s.startTime12}-${s.endTime12}${
+                  s.room && s.room !== 'TBA' ? ` (${s.room})` : ''
+                }`,
+            )
+            .join(', ')
+        : 'TBA',
+  }));
 }
 
 export interface AcademicProfileRecord {
@@ -87,7 +132,7 @@ const WEEKDAY_INDEX: Record<string, number> = {
   saturday: 6,
 };
 
-function pickSubjectColor(subjectKey: string): string {
+export function pickSubjectColor(subjectKey: string): string {
   let hash = 0;
   const clean = subjectKey.trim().toUpperCase();
   for (let i = 0; i < clean.length; i++) {
@@ -96,7 +141,10 @@ function pickSubjectColor(subjectKey: string): string {
   return SUBJECT_COLOR_PALETTE[hash % SUBJECT_COLOR_PALETTE.length];
 }
 
-function getNextDateForWeekday(dayName: string, refDate: Date = new Date()): string {
+function getNextDateForWeekday(
+  dayName: string,
+  refDate: Date = new Date(),
+): string {
   const targetIdx = WEEKDAY_INDEX[dayName.trim().toLowerCase()];
   const d = new Date(refDate);
   if (targetIdx !== undefined) {
@@ -135,9 +183,11 @@ export function formatClassBlockNotes(input: {
 /**
  * Parses structured USTP COR / class schedule metadata from a TimeBlock's `notes` field.
  */
-export function parseClassBlockMetadata(notes?: string | null): ClassBlockMetadata {
+export function parseClassBlockMetadata(
+  notes?: string | null,
+): ClassBlockMetadata {
   if (!notes || !notes.trim()) {
-    return { section: null, room: null, faculty: null, summaryLine: null };
+    return {section: null, room: null, faculty: null, summaryLine: null};
   }
   const raw = notes.trim();
   let section: string | null = null;
@@ -172,10 +222,10 @@ export function parseClassBlockMetadata(notes?: string | null): ClassBlockMetada
     displayParts.length > 0
       ? displayParts.join(' · ')
       : !raw.startsWith('[BATCH_CLASSES:')
-        ? raw
-        : null;
+      ? raw
+      : null;
 
-  return { section, room, faculty, summaryLine };
+  return {section, room, faculty, summaryLine};
 }
 
 export const academicProfileStore = {
@@ -226,9 +276,13 @@ export const academicProfileStore = {
               : ''),
         ),
         totalLecUnits:
-          typeof parsed.totalLecUnits === 'number' ? parsed.totalLecUnits : null,
+          typeof parsed.totalLecUnits === 'number'
+            ? parsed.totalLecUnits
+            : null,
         totalLabUnits:
-          typeof parsed.totalLabUnits === 'number' ? parsed.totalLabUnits : null,
+          typeof parsed.totalLabUnits === 'number'
+            ? parsed.totalLabUnits
+            : null,
         totalCreditUnits:
           typeof parsed.totalCreditUnits === 'number'
             ? parsed.totalCreditUnits
@@ -303,10 +357,10 @@ export const academicProfileStore = {
       `UPDATE OR IGNORE local_settings SET user_id = ? WHERE user_id = ? AND key = ?`,
       [toUserId, fromUserId, ACADEMIC_PROFILE_KEY],
     );
-    tx.executeSync(
-      `DELETE FROM local_settings WHERE user_id = ? AND key = ?`,
-      [fromUserId, ACADEMIC_PROFILE_KEY],
-    );
+    tx.executeSync(`DELETE FROM local_settings WHERE user_id = ? AND key = ?`, [
+      fromUserId,
+      ACADEMIC_PROFILE_KEY,
+    ]);
   },
 
   /**
@@ -329,7 +383,8 @@ export const academicProfileStore = {
         const cleanCode = session.code?.trim();
         const cleanTitle = session.subjectTitle.trim();
         const blockTitle =
-          cleanCode && !cleanTitle.toLowerCase().startsWith(cleanCode.toLowerCase())
+          cleanCode &&
+          !cleanTitle.toLowerCase().startsWith(cleanCode.toLowerCase())
             ? `${cleanCode} · ${cleanTitle}`
             : cleanTitle;
         const color = pickSubjectColor(cleanCode || cleanTitle);
@@ -362,7 +417,8 @@ export const academicProfileStore = {
                 color,
                 category: 'Class',
                 notes: notes || existing.notes,
-                recurrenceRule: session.recurrenceRule || existing.recurrenceRule,
+                recurrenceRule:
+                  session.recurrenceRule || existing.recurrenceRule,
               },
               tx,
             );

@@ -54,6 +54,12 @@ const FROZEN_V1: Record<string, string> = {
     '13a83a3e48246e57c15d1947f59555c8a41b4d363e0f93f7734f201c5c57e75b',
 };
 
+/** Frozen v2 additions (intent contract updated after query_notes was added). */
+const FROZEN_V2: Record<string, string> = {
+  'intent-contract-v2.json':
+    '9c06bbd4bfd8f7c6b18edf66dbc31f54b6766937a3a58bc2b84ac7f1e39da218',
+};
+
 type IntentField =
   | 'intent'
   | 'title'
@@ -132,16 +138,18 @@ const manifestWith = (
 
 describe('AGY-PORT 12 frozen evaluation fixtures', () => {
   describe('fingerprints and versions', () => {
-    test('the manifest lists exactly the frozen v1 bytes', () => {
+    test('the manifest lists exactly the frozen v1 bytes and v2 additions', () => {
       const manifest = loadManifest();
-      expect(
-        Object.fromEntries(
-          Object.entries(manifest.files).map(([name, entry]) => [
-            name,
-            entry.sha256,
-          ]),
-        ),
-      ).toEqual(FROZEN_V1);
+      const digests = Object.fromEntries(
+        Object.entries(manifest.files).map(([name, entry]) => [
+          name,
+          entry.sha256,
+        ]),
+      );
+      for (const [name, sha] of Object.entries(FROZEN_V1)) {
+        expect(digests[name]).toBe(sha);
+      }
+      expect(digests).toEqual({...FROZEN_V1, ...FROZEN_V2});
     });
 
     test('every fixture verifies, and no fixture is unlisted', () => {
@@ -152,7 +160,11 @@ describe('AGY-PORT 12 frozen evaluation fixtures', () => {
         .sort();
       expect(onDisk).toEqual(Object.keys(manifest.files).sort());
       for (const name of onDisk) {
-        expect(readFrozenFixture<{version: number}>(name).version).toBe(1);
+        const match = /-v([1-9][0-9]*)\.json$/.exec(name);
+        const expectedVersion = match ? Number(match[1]) : 1;
+        expect(readFrozenFixture<{version: number}>(name).version).toBe(
+          expectedVersion,
+        );
       }
     });
 
@@ -255,7 +267,7 @@ describe('AGY-PORT 12 frozen evaluation fixtures', () => {
   });
 
   describe('intent contract (deterministic fast path and routes)', () => {
-    const fixture = readFrozenFixture<IntentFixture>('intent-contract-v1.json');
+    const fixture = readFrozenFixture<IntentFixture>('intent-contract-v2.json');
     let passed = 0;
 
     afterAll(() => {

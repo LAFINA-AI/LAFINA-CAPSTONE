@@ -7,6 +7,7 @@ import {
   TouchableOpacity,
   Modal,
   Alert,
+  ScrollView,
 } from 'react-native';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import {useSafeAreaInsets} from 'react-native-safe-area-context';
@@ -23,6 +24,7 @@ import {
   FileText,
   Inbox,
   MoreVertical,
+  GraduationCap,
   X,
 } from 'lucide-react-native';
 import {useTheme} from '../../contexts/ThemeContext';
@@ -39,6 +41,7 @@ import {
   MonthView,
   AddBlockModal,
   AddTaskEventModal,
+  ClassScheduleModal,
 } from './components';
 import {UndatedTasksModal} from './components/UndatedTasksModal';
 import {NoteEditor} from '../notes/components/NoteEditor';
@@ -72,6 +75,7 @@ export const CalendarScreen: React.FC<CalendarScreenProps> = ({
   const [calendarMenuVisible, setCalendarMenuVisible] = useState(false);
   const [hasUndated, setHasUndated] = useState(false);
   const [undatedVisible, setUndatedVisible] = useState(false);
+  const [classScheduleVisible, setClassScheduleVisible] = useState(false);
   const [noteModalVisible, setNoteModalVisible] = useState(false);
   const [noteTitle, setNoteTitle] = useState('');
   const [noteBody, setNoteBody] = useState('');
@@ -539,6 +543,17 @@ export const CalendarScreen: React.FC<CalendarScreenProps> = ({
         onToggleTask={toggleTaskCompletion}
       />
 
+      <ClassScheduleModal
+        visible={classScheduleVisible}
+        userId={userId}
+        timeFormat24h={calendar.timeFormat24h}
+        onClose={() => setClassScheduleVisible(false)}
+        onSaved={() => {
+          calendar.loadBlocks();
+          onRefresh();
+        }}
+      />
+
       {/* Calendar Options & Tools Overflow Modal */}
       <Modal
         visible={calendarMenuVisible}
@@ -585,158 +600,202 @@ export const CalendarScreen: React.FC<CalendarScreenProps> = ({
               style={[styles.menuDivider, {backgroundColor: colors.divider}]}
             />
 
-            {/* Calendars & Layers */}
-            <TouchableOpacity
-              style={[styles.menuItem, {borderBottomColor: colors.divider}]}
-              onPress={() => {
-                setCalendarMenuVisible(false);
-                calendar.setLayersModalVisible(true);
-              }}
-              activeOpacity={0.7}
-              accessibilityRole="button"
-              accessibilityLabel="Manage calendars and visibility"
+            <ScrollView
+              style={styles.menuScroll}
+              showsVerticalScrollIndicator={false}
             >
-              <View
-                style={[
-                  styles.menuItemIconWrap,
-                  {backgroundColor: colors.inputBg},
-                ]}
+              {/* Calendars & Layers */}
+              <TouchableOpacity
+                style={[styles.menuItem, {borderBottomColor: colors.divider}]}
+                onPress={() => {
+                  setCalendarMenuVisible(false);
+                  calendar.setLayersModalVisible(true);
+                }}
+                activeOpacity={0.7}
+                accessibilityRole="button"
+                accessibilityLabel="Manage calendars and visibility"
               >
-                <Layers size={18} color={colors.blue} />
-              </View>
-              <View style={styles.menuItemTextCol}>
-                <Text
-                  style={[styles.menuItemTitle, {color: colors.textPrimary}]}
+                <View
+                  style={[
+                    styles.menuItemIconWrap,
+                    {backgroundColor: colors.inputBg},
+                  ]}
                 >
-                  Calendars & Visibility
-                </Text>
-                <Text
-                  style={[styles.menuItemDesc, {color: colors.textSecondary}]}
-                >
-                  Manage active subjects, schedules, and holidays
-                </Text>
-              </View>
-            </TouchableOpacity>
-
-            {/* Undated Tasks */}
-            <TouchableOpacity
-              testID="calendar-undated-button"
-              style={[styles.menuItem, {borderBottomColor: colors.divider}]}
-              onPress={() => {
-                setCalendarMenuVisible(false);
-                setUndatedVisible(true);
-              }}
-              activeOpacity={0.7}
-              accessibilityRole="button"
-              accessibilityLabel="Undated tasks"
-            >
-              <View
-                style={[
-                  styles.menuItemIconWrap,
-                  {backgroundColor: colors.inputBg},
-                ]}
-              >
-                <Inbox size={18} color={colors.red} />
-              </View>
-              <View style={styles.menuItemTextCol}>
-                <View style={styles.menuItemTitleRow}>
+                  <Layers size={18} color={colors.blue} />
+                </View>
+                <View style={styles.menuItemTextCol}>
                   <Text
                     style={[styles.menuItemTitle, {color: colors.textPrimary}]}
                   >
-                    Undated Tasks
+                    Calendars & Visibility
                   </Text>
-                  {hasUndated && (
-                    <View
+                  <Text
+                    style={[styles.menuItemDesc, {color: colors.textSecondary}]}
+                  >
+                    Manage active subjects, schedules, and holidays
+                  </Text>
+                </View>
+              </TouchableOpacity>
+
+              {/* Add COR / Class Schedule */}
+              <TouchableOpacity
+                testID="calendar-add-cor-schedule-button"
+                style={[styles.menuItem, {borderBottomColor: colors.divider}]}
+                onPress={() => {
+                  setCalendarMenuVisible(false);
+                  setClassScheduleVisible(true);
+                }}
+                activeOpacity={0.7}
+                accessibilityRole="button"
+                accessibilityLabel="Add COR or class schedule"
+              >
+                <View
+                  style={[
+                    styles.menuItemIconWrap,
+                    {backgroundColor: colors.inputBg},
+                  ]}
+                >
+                  <GraduationCap size={18} color={colors.blue} />
+                </View>
+                <View style={styles.menuItemTextCol}>
+                  <Text
+                    style={[styles.menuItemTitle, {color: colors.textPrimary}]}
+                  >
+                    Add COR / Class Schedule
+                  </Text>
+                  <Text
+                    style={[styles.menuItemDesc, {color: colors.textSecondary}]}
+                  >
+                    Manually enter classes or scan a USTP COR / schedule
+                  </Text>
+                </View>
+              </TouchableOpacity>
+
+              {/* Undated Tasks */}
+              <TouchableOpacity
+                testID="calendar-undated-button"
+                style={[styles.menuItem, {borderBottomColor: colors.divider}]}
+                onPress={() => {
+                  setCalendarMenuVisible(false);
+                  setUndatedVisible(true);
+                }}
+                activeOpacity={0.7}
+                accessibilityRole="button"
+                accessibilityLabel="Undated tasks"
+              >
+                <View
+                  style={[
+                    styles.menuItemIconWrap,
+                    {backgroundColor: colors.inputBg},
+                  ]}
+                >
+                  <Inbox size={18} color={colors.red} />
+                </View>
+                <View style={styles.menuItemTextCol}>
+                  <View style={styles.menuItemTitleRow}>
+                    <Text
                       style={[
-                        styles.menuBadgePill,
-                        {backgroundColor: colors.red + '22'},
+                        styles.menuItemTitle,
+                        {color: colors.textPrimary},
                       ]}
                     >
-                      <Text style={[styles.menuBadgeText, {color: colors.red}]}>
-                        Backlog
-                      </Text>
-                    </View>
-                  )}
+                      Undated Tasks
+                    </Text>
+                    {hasUndated && (
+                      <View
+                        style={[
+                          styles.menuBadgePill,
+                          {backgroundColor: colors.red + '22'},
+                        ]}
+                      >
+                        <Text
+                          style={[styles.menuBadgeText, {color: colors.red}]}
+                        >
+                          Backlog
+                        </Text>
+                      </View>
+                    )}
+                  </View>
+                  <Text
+                    style={[styles.menuItemDesc, {color: colors.textSecondary}]}
+                  >
+                    Open tasks and assignments without a due date
+                  </Text>
                 </View>
-                <Text
-                  style={[styles.menuItemDesc, {color: colors.textSecondary}]}
-                >
-                  Open tasks and assignments without a due date
-                </Text>
-              </View>
-            </TouchableOpacity>
+              </TouchableOpacity>
 
-            {/* Import Calendar */}
-            <TouchableOpacity
-              style={[styles.menuItem, {borderBottomColor: colors.divider}]}
-              onPress={() => {
-                setCalendarMenuVisible(false);
-                calendar.handleImportCalendar();
-              }}
-              onLongPress={() => {
-                setCalendarMenuVisible(false);
-                calendar.startRemoveFlow();
-              }}
-              activeOpacity={0.7}
-              accessibilityRole="button"
-              accessibilityLabel="Import calendar"
-              accessibilityHint="Imports an .ics file. Long press to remove imported calendar."
-            >
-              <View
-                style={[
-                  styles.menuItemIconWrap,
-                  {backgroundColor: colors.inputBg},
-                ]}
+              {/* Import Calendar */}
+              <TouchableOpacity
+                style={[styles.menuItem, {borderBottomColor: colors.divider}]}
+                onPress={() => {
+                  setCalendarMenuVisible(false);
+                  calendar.handleImportCalendar();
+                }}
+                onLongPress={() => {
+                  setCalendarMenuVisible(false);
+                  calendar.startRemoveFlow();
+                }}
+                activeOpacity={0.7}
+                accessibilityRole="button"
+                accessibilityLabel="Import calendar"
+                accessibilityHint="Imports an .ics file. Long press to remove imported calendar."
               >
-                <Upload size={18} color={colors.success} />
-              </View>
-              <View style={styles.menuItemTextCol}>
-                <Text
-                  style={[styles.menuItemTitle, {color: colors.textPrimary}]}
+                <View
+                  style={[
+                    styles.menuItemIconWrap,
+                    {backgroundColor: colors.inputBg},
+                  ]}
                 >
-                  Import Calendar (.ics)
-                </Text>
-                <Text
-                  style={[styles.menuItemDesc, {color: colors.textSecondary}]}
-                >
-                  Import external schedule file (Hold to remove)
-                </Text>
-              </View>
-            </TouchableOpacity>
+                  <Upload size={18} color={colors.success} />
+                </View>
+                <View style={styles.menuItemTextCol}>
+                  <Text
+                    style={[styles.menuItemTitle, {color: colors.textPrimary}]}
+                  >
+                    Import Calendar (.ics)
+                  </Text>
+                  <Text
+                    style={[styles.menuItemDesc, {color: colors.textSecondary}]}
+                  >
+                    Import external schedule file (Hold to remove)
+                  </Text>
+                </View>
+              </TouchableOpacity>
 
-            {/* Export Calendar */}
-            <TouchableOpacity
-              style={[styles.menuItem, {borderBottomWidth: 0}]}
-              onPress={() => {
-                setCalendarMenuVisible(false);
-                calendar.handleExportCalendar();
-              }}
-              activeOpacity={0.7}
-              accessibilityRole="button"
-              accessibilityLabel="Export calendar"
-              accessibilityHint="Exports the visible local calendar"
-            >
-              <View
-                style={[
-                  styles.menuItemIconWrap,
-                  {backgroundColor: colors.inputBg},
-                ]}
+              {/* Export Calendar */}
+              <TouchableOpacity
+                style={[styles.menuItem, {borderBottomWidth: 0}]}
+                onPress={() => {
+                  setCalendarMenuVisible(false);
+                  calendar.handleExportCalendar();
+                }}
+                activeOpacity={0.7}
+                accessibilityRole="button"
+                accessibilityLabel="Export calendar"
+                accessibilityHint="Exports the visible local calendar"
               >
-                <Download size={18} color={colors.primary} />
-              </View>
-              <View style={styles.menuItemTextCol}>
-                <Text
-                  style={[styles.menuItemTitle, {color: colors.textPrimary}]}
+                <View
+                  style={[
+                    styles.menuItemIconWrap,
+                    {backgroundColor: colors.inputBg},
+                  ]}
                 >
-                  Export Calendar (.ics)
-                </Text>
-                <Text
-                  style={[styles.menuItemDesc, {color: colors.textSecondary}]}
-                >
-                  Export your schedule and classes to an .ics file
-                </Text>
-              </View>
-            </TouchableOpacity>
+                  <Download size={18} color={colors.primary} />
+                </View>
+                <View style={styles.menuItemTextCol}>
+                  <Text
+                    style={[styles.menuItemTitle, {color: colors.textPrimary}]}
+                  >
+                    Export Calendar (.ics)
+                  </Text>
+                  <Text
+                    style={[styles.menuItemDesc, {color: colors.textSecondary}]}
+                  >
+                    Export your schedule and classes to an .ics file
+                  </Text>
+                </View>
+              </TouchableOpacity>
+            </ScrollView>
 
             {/* Done Button */}
             <TouchableOpacity
@@ -1050,6 +1109,9 @@ const styles = StyleSheet.create({
   },
   menuCloseBtn: {
     padding: 4,
+  },
+  menuScroll: {
+    maxHeight: 420,
   },
   menuDivider: {
     height: 1,

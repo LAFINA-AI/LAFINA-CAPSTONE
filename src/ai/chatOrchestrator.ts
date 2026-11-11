@@ -6,7 +6,8 @@ import {
 import {chatMemoryStore} from '../storage/chatMemoryStore';
 import {chatMemoryService} from '../cloud/chatMemoryService';
 import {notesStore} from '../storage/notesStore';
-import {noteBodyToMarkdown} from '../utils/richText';
+import {tasksStore} from '../storage/tasksStore';
+import {extractChecklistItems, noteBodyToMarkdown} from '../utils/richText';
 import {directProviderTestEnabled} from '../cloud/directProviderTest';
 import {isForgetAllMemoriesRequest} from './chatMemoryCommands';
 import {studyPreference} from './studyPreference';
@@ -98,6 +99,8 @@ export interface ProcessMessageOptions {
   /** Temporary chat mode: does not save messages or update memories in SQLite. */
   temporaryChat?: boolean;
   temporaryHistory?: ChatMessage[];
+  /** Dedicated USTP Student Handbook RAG mode: routes straight to handbook Q&A. */
+  ustpRagOnly?: boolean;
 }
 
 /** Added when DeepSeek stops part-way, so a cut-off reply is never mistaken for a full one. */
@@ -516,6 +519,7 @@ export class ChatOrchestrator {
     const refDate = options.referenceDate || new Date();
     const todayStr = formatLocalDate(refDate);
     const isTemp = options.temporaryChat === true;
+    const ustpRagOnly = options.ustpRagOnly === true;
 
     // Step 1: Persist user message. The reply goes to the same chat even if
     // the student opens another one while waiting.
@@ -534,7 +538,7 @@ export class ChatOrchestrator {
     const sessionId = userMessage.sessionId;
     const memoryRevision = chatMemoryStore.revision(userId);
 
-    const preference = explicitMemory(trimmed);
+    const preference = isTemp || ustpRagOnly ? null : explicitMemory(trimmed);
     if (preference) {
       const enabled = chatMemoryStore.isEnabled(userId);
       const isStudy = !!studyPreference(trimmed);
@@ -600,7 +604,7 @@ export class ChatOrchestrator {
       };
     }
 
-    if (isForgetAllMemoriesRequest(trimmed)) {
+    if (!isTemp && !ustpRagOnly && isForgetAllMemoriesRequest(trimmed)) {
       const reply =
         "I've forgotten all saved memories on this phone. Your chats are kept.";
       const assistantMessage = db.transactionSync(tx => {
@@ -667,6 +671,8 @@ export class ChatOrchestrator {
     // Step 2: Check for explicit or natural-language document generation request
     const detectedDoc = options.documentFormat
       ? {format: options.documentFormat, prompt: trimmed}
+      : ustpRagOnly
+      ? null
       : detectDocumentRequest(trimmed);
 
     if (detectedDoc) {
@@ -753,6 +759,7 @@ export class ChatOrchestrator {
 
     // Step 2.5: Check for scanned class schedule
     const isScheduleScan =
+      !ustpRagOnly &&
       /^(?:scan\s+schedule|scanned\s+schedule|import\s+schedule|schedule\s+scan)[\s:]+/i.test(
         trimmed,
       );
@@ -890,20 +897,42 @@ export class ChatOrchestrator {
     }
 
     // Step 3: Extract validated intent (DeepSeek structured extraction when
-    // Online Mode is active for scheduling/planner commands, with local fallback)
-    const localValidated = await intentService.extractIntent(trimmed, {
-      referenceDate: refDate,
-    });
-    let validated = localValidated;
-    if (
-      options.onlineMode &&
-      shouldUseOnlineIntentExtraction(trimmed, localValidated)
-    ) {
-      const onlineValidated = await extractIntentWithDeepSeek(trimmed, refDate);
-      if (onlineValidated) {
-        validated = onlineValidated;
-        if (onlineValidated.intent !== 'chat') {
-          usedOnline = true;
+    // Online Mode is active for scheduling/planner commands, with local fallback).
+    // Dedicated USTP Handbook RAG chats bypass planner NLU so handbook queries never misroute.
+    const defaultChatIntent: ValidatedIntent = {
+      intent: 'chat',
+      title: '',
+      date: null,
+      time: null,
+      endTime: null,
+      durationMinutes: null,
+      category: 'Academic',
+      details: trimmed,
+      snoozeMinutes: null,
+      confidence: 1,
+      source: 'fast_path',
+      rawTranscript: trimmed,
+      isValid: true,
+    };
+    let validated: ValidatedIntent = defaultChatIntent;
+    if (!ustpRagOnly) {
+      const localValidated = await intentService.extractIntent(trimmed, {
+        referenceDate: refDate,
+      });
+      validated = localValidated;
+      if (
+        options.onlineMode &&
+        shouldUseOnlineIntentExtraction(trimmed, localValidated)
+      ) {
+        const onlineValidated = await extractIntentWithDeepSeek(
+          trimmed,
+          refDate,
+        );
+        if (onlineValidated) {
+          validated = onlineValidated;
+          if (onlineValidated.intent !== 'chat') {
+            usedOnline = true;
+          }
         }
       }
     }
@@ -1007,7 +1036,9 @@ export class ChatOrchestrator {
       } else if (route !== 'reviewed_mutation') {
         // Conversation. Online Mode always asks DeepSeek first, greetings
         // included; on-device replies are only the offline or fallback voice.
-        const recent = readRecentHistory(userId, 10, sessionId);
+        const recent = isTemp
+          ? (options.temporaryHistory ?? [userMessage]).slice(-10)
+          : readRecentHistory(userId, 10, sessionId);
         const recentReplies = recent
           .filter(msg => msg.sender === 'assistant')
           .map(msg => msg.content);
@@ -1021,57 +1052,147 @@ export class ChatOrchestrator {
               content: msg.content,
             }));
 
-          // AI Agent Context: If the student asks about notes or schedule,
+          // AI Agent Context: If the student asks about notes, to-dos, or schedule,
           // attach relevant local SQLite context so the AI model has full awareness.
-          const asksNotes = /\b(?:notes?|written|wrote|grocery|groceries|list)\b/i.test(trimmed);
-          const asksSchedule = /\b(?:schedule|calendar|agenda|free|busy|available|plans?|tasks?|due)\b/i.test(trimmed);
+          const asksNotes =
+            /\b(?:notes?|written|wrote|grocery|groceries|list|checklists?)\b/i.test(
+              trimmed,
+            );
+          const asksSchedule =
+            /\b(?:schedule|calendar|agenda|free|busy|available|plans?|tasks?|due)\b/i.test(
+              trimmed,
+            );
+          const asksTodos =
+            /\b(?:to-?dos?|to\s+dos?|todos?|tasks?|checklists?|pending|unfinished|overdue|priority|prioritize|list|do\s+next)\b/i.test(
+              trimmed,
+            ) ||
+            asksSchedule ||
+            asksNotes;
           let agentContext = '';
-          if (asksNotes) {
+          let allNotesSnapshot: ReturnType<typeof notesStore.getAll> = [];
+          if (!ustpRagOnly && (asksNotes || asksTodos)) {
             try {
-              const allNotes = notesStore.getAll(userId);
-              if (allNotes.length > 0) {
-                const noteSummaries = allNotes.slice(0, 5).map(n => {
-                  const bodyClean = noteBodyToMarkdown(n.body).replace(/\n+/g, ', ').slice(0, 150);
-                  return `"${n.title}"${n.category ? ` (${n.category})` : ''}: ${bodyClean}`;
-                }).join('; ');
+              allNotesSnapshot = notesStore.getAll(userId);
+              if (asksNotes && allNotesSnapshot.length > 0) {
+                const noteSummaries = allNotesSnapshot
+                  .slice(0, 5)
+                  .map(n => {
+                    const bodyClean = noteBodyToMarkdown(n.body)
+                      .replace(/\n+/g, ', ')
+                      .slice(0, 150);
+                    return `"${n.title}"${
+                      n.category ? ` (${n.category})` : ''
+                    }: ${bodyClean}`;
+                  })
+                  .join('; ');
                 agentContext += `\n\n[Active Notes in Notes tab: ${noteSummaries}]`;
               }
             } catch (err) {
-              console.warn('[ChatOrchestrator] Could not read notes context for AI chat:', err);
+              console.warn(
+                '[ChatOrchestrator] Could not read notes context for AI chat:',
+                err,
+              );
             }
           }
-          if (asksSchedule) {
+          if (!ustpRagOnly && asksSchedule) {
             try {
               const todayFormatted = formatLocalDate(refDate);
-              const day = plannerQueries.window(userId, todayFormatted, todayFormatted);
+              const day = plannerQueries.window(
+                userId,
+                todayFormatted,
+                todayFormatted,
+              );
               const items: string[] = [];
-              day.blocks.forEach(b => items.push(`Time block "${b.title}" (${b.startTime}-${b.endTime})`));
-              day.events.forEach(e => items.push(`Event "${e.title}" (${e.startTime})`));
-              day.tasks.filter(t => !t.isCompleted).forEach(t => items.push(`Task "${t.title}"${t.dueTime ? ` (due ${t.dueTime})` : ''}`));
+              day.blocks.forEach(b =>
+                items.push(
+                  `Time block "${b.title}" (${b.startTime}-${b.endTime})`,
+                ),
+              );
+              day.events.forEach(e =>
+                items.push(`Event "${e.title}" (${e.startTime})`),
+              );
+              day.tasks
+                .filter(t => !t.isCompleted)
+                .forEach(t =>
+                  items.push(
+                    `Task "${t.title}"${
+                      t.dueTime ? ` (due ${t.dueTime})` : ''
+                    }`,
+                  ),
+                );
               if (items.length > 0) {
-                agentContext += `\n\n[Today's Schedule in Calendar tab: ${items.join(', ')}]`;
+                agentContext += `\n\n[Today's Schedule in Calendar tab: ${items.join(
+                  ', ',
+                )}]`;
               }
             } catch (err) {
-              console.warn('[ChatOrchestrator] Could not read schedule context for AI chat:', err);
+              console.warn(
+                '[ChatOrchestrator] Could not read schedule context for AI chat:',
+                err,
+              );
+            }
+          }
+          if (!ustpRagOnly && asksTodos) {
+            try {
+              const openTodos = tasksStore
+                .getAllTasks(userId)
+                .filter(t => !t.isCompleted)
+                .slice(0, 15)
+                .map(t => {
+                  const due = t.dueDate
+                    ? `due ${t.dueDate}${t.dueTime ? ` ${t.dueTime}` : ''}`
+                    : 'undated';
+                  return `"${t.title}" (${due}, ${t.priority} priority)`;
+                });
+              if (openTodos.length > 0) {
+                agentContext += `\n\n[Open To-Dos in Notes → To-Do tab: ${openTodos.join(
+                  ', ',
+                )}]`;
+              }
+              const checklistItems: string[] = [];
+              for (const n of allNotesSnapshot) {
+                for (const item of extractChecklistItems(n.body)) {
+                  if (!item.done && item.text) {
+                    checklistItems.push(
+                      `"${item.text}" (from note "${n.title}")`,
+                    );
+                  }
+                }
+              }
+              if (checklistItems.length > 0) {
+                agentContext += `\n\n[Unchecked Note Checklists: ${checklistItems
+                  .slice(0, 12)
+                  .join(', ')}]`;
+              }
+            } catch (err) {
+              console.warn(
+                '[ChatOrchestrator] Could not read to-do context for AI chat:',
+                err,
+              );
             }
           }
 
-          if (agentContext && history.length > 0 && history[history.length - 1].role === 'user') {
+          if (
+            agentContext &&
+            history.length > 0 &&
+            history[history.length - 1].role === 'user'
+          ) {
             history[history.length - 1] = {
               ...history[history.length - 1],
               content: history[history.length - 1].content + agentContext,
             };
           }
           const onReplyText = options.onReplyText;
-          // A greeting or "thanks" needs no handbook search; skipping it lets
-          // DeepSeek start replying sooner.
-          const useHandbook =
-            options.useHandbook !== false &&
-            !(
-              smallTalk &&
-              trimmed.length <= SMALL_TALK_MAX_CHARS &&
-              !isHandbookQuestion(trimmed)
-            );
+          // Dedicated USTP RAG mode always uses the USTP Student Handbook. In
+          // general chat, respect options.useHandbook and skip greeting searches.
+          const useHandbook = ustpRagOnly
+            ? true
+            : options.useHandbook !== false &&
+              !(
+                smallTalk &&
+                trimmed.length <= SMALL_TALK_MAX_CHARS &&
+                !isHandbookQuestion(trimmed)
+              );
           // What LAFINA remembers about the student rides along (none when off).
           const memories = chatMemoryStore.isEnabled(userId)
             ? chatMemoryStore.forPrompt(userId)
@@ -1101,10 +1222,11 @@ export class ChatOrchestrator {
             );
             localReply = true;
             if (
-              options.useHandbook &&
-              /\b(?:ustp|handbook|dean'?s\s+list|grading|policy|curriculum|tuition|retention)\b/i.test(
-                trimmed,
-              )
+              ustpRagOnly ||
+              (options.useHandbook &&
+                /\b(?:ustp|handbook|dean'?s\s+list|grading|policy|curriculum|tuition|retention)\b/i.test(
+                  trimmed,
+                ))
             ) {
               finalReply =
                 "I couldn't verify that from the USTP Student Handbook right now. Please check your internet connection or refer directly to the USTP Student Affairs office.";
@@ -1125,9 +1247,10 @@ export class ChatOrchestrator {
 
         if (!finalReply) {
           localReply = true;
-          finalReply = isHandbookQuestion(trimmed)
-            ? 'Official USTP Student Handbook guidelines require Online Mode. Switch to Online Mode in the chat header to look up verified handbook policies and academic regulations.'
-            : buildLocalConversationReply(userId, trimmed, {recentReplies});
+          finalReply =
+            ustpRagOnly || isHandbookQuestion(trimmed)
+              ? 'Official USTP Student Handbook guidelines require Online Mode. Switch to Online Mode in the chat header to look up verified handbook policies and academic regulations.'
+              : buildLocalConversationReply(userId, trimmed, {recentReplies});
         }
       }
     }
@@ -1137,19 +1260,33 @@ export class ChatOrchestrator {
       .replace(/\bL[.-]?A[.-]?F[.-]?I[.-]?N[.-]?A\b/gi, 'lafina')
       .replace(/\bLAFINA\b/g, 'lafina');
 
-    // Step 6: Persist assistant message, keeping the Handbook citation with it
-    const assistantMessage = chatStore.addMessage(
-      userId,
-      'assistant',
-      finalReply,
-      attachment,
-      {handbookNote, localReply},
-      sessionId,
-    );
+    // Step 6: Persist assistant message (or return in-memory in Temporary Chat)
+    const assistantMessage: ChatMessage = isTemp
+      ? {
+          id: `temp_asst_${Date.now()}_${Math.random()
+            .toString(36)
+            .slice(2, 7)}`,
+          sessionId: 'temp_chat',
+          sender: 'assistant',
+          content: finalReply,
+          attachment,
+          handbookNote,
+          localReply,
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+        }
+      : chatStore.addMessage(
+          userId,
+          'assistant',
+          finalReply,
+          attachment,
+          {handbookNote, localReply},
+          sessionId,
+        );
 
     // Background: never delays or changes the reply. Chat hears about any
     // change through CHAT_MEMORY_CHANGED_EVENT and shows it under this reply.
-    if (learnFromReply && !directProviderTestEnabled()) {
+    if (learnFromReply && !isTemp && !directProviderTestEnabled()) {
       void chatMemoryService.afterExchange({
         userId,
         sessionId,

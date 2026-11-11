@@ -757,14 +757,13 @@ export const useNotesData = (options: UseNotesDataOptions) => {
                   .map(line => line.replace(/^[-*#>\s]+/, '').trim())
                   .filter(line => line.length > 5);
 
-          const today = new Date().toISOString().split('T')[0];
           candidates.forEach(title => {
             tasksStore.insertTask({
               id: generateId('task'),
               userId,
               title,
-              dueDate: today,
-              dueTime: '09:00',
+              dueDate: null,
+              dueTime: null,
               isCompleted: false,
               priority: 'Medium',
               category: noteCategory,
@@ -775,17 +774,17 @@ export const useNotesData = (options: UseNotesDataOptions) => {
           if (candidates.length > 0) {
             Alert.alert(
               'AI Task Extractor',
-              `Successfully created ${candidates.length} task${
+              `Successfully added ${candidates.length} to-do item${
                 candidates.length === 1 ? '' : 's'
-              } in your Schedule!`,
+              } to Notes → To-Do!`,
             );
           } else {
             tasksStore.insertTask({
               id: generateId('task'),
               userId,
               title: noteTitle || 'Untitled Note',
-              dueDate: today,
-              dueTime: '09:00',
+              dueDate: null,
+              dueTime: null,
               isCompleted: false,
               priority: 'Medium',
               category: noteCategory,
@@ -793,7 +792,7 @@ export const useNotesData = (options: UseNotesDataOptions) => {
             });
             Alert.alert(
               'AI Task Extractor',
-              `Created 1 task based on note: "${noteTitle}".`,
+              `Added 1 to-do item based on note: "${noteTitle}".`,
             );
           }
           onRefresh();

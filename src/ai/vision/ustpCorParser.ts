@@ -60,7 +60,34 @@ export function expandDays(dayStr: string): string[] {
       result.push(DAY_MAP[key]);
     }
   }
-  return result.length > 0 ? result : ['Monday'];
+  if (result.length > 0) return result;
+
+  // Compact multi-day combinations such as WF, MF, MTH, TTHS, MTWF, WS, etc.
+  if (/^(?:TH|SU|[MTWRFS])+$/.test(upper)) {
+    const compact: string[] = [];
+    let i = 0;
+    while (i < upper.length) {
+      const two = upper.slice(i, i + 2);
+      if (two === 'TH') {
+        if (!compact.includes('Thursday')) compact.push('Thursday');
+        i += 2;
+        continue;
+      }
+      if (two === 'SU') {
+        if (!compact.includes('Sunday')) compact.push('Sunday');
+        i += 2;
+        continue;
+      }
+      const mapped = DAY_MAP[upper[i].toLowerCase()];
+      if (mapped && !compact.includes(mapped)) {
+        compact.push(mapped);
+      }
+      i += 1;
+    }
+    if (compact.length > 0) return compact;
+  }
+
+  return ['Monday'];
 }
 
 export function normalizeTime24(timeStr: string): { time24: string; time12: string } | null {
@@ -183,6 +210,7 @@ const HARD_STOP_PATTERNS: RegExp[] = [
   /\bTOTAL\s+ASSESSED\b/i,
   /\bKEEP\s+THIS\s+CERTIFICATE\b/i,
   /\bAPPROVED\s+BY\s*:/i,
+  /^Note:\s*Subject\s+marked/i,
 ];
 
 const COLLEGE_ACRONYMS: Array<[RegExp, string]> = [
@@ -293,7 +321,7 @@ export function parseUstpScheduleTail(tail: string): {
 } | null {
   const cleaned = tail.replace(/\s+/g, ' ').trim();
   const scheduleRegex =
-    /^(MWF|TTH|MW|TF|FS|TR|MTWTH|MTWTHF|M|T|W|R|TH|F|S|SU|MON|TUE|WED|THU|FRI|SAT|SUN)\s+(\d{1,2}[:.]\d{2}\s*(?:AM|PM)?)\s*(?:-|–|—|to)\s*(\d{1,2}[:.]\d{2}\s*(?:AM|PM)?)\s*(.*)$/i;
+    /^(MON|TUE|TUES|WED|THU|THUR|THURS|FRI|SAT|SUN|MWF|MTWTHF|MTWTH|TTHS|TTH|MTH|MTWF|MW|MF|WF|MS|TS|WS|TF|FS|THS|TR|SU|TH|M|T|W|R|F|S|(?:[MTWRFS]|TH|SU)(?:[/-](?:[MTWRFS]|TH|SU))+)\s+(\d{1,2}[:.]\d{2}\s*(?:AM|PM)?)\s*(?:-|–|—|to)\s*(\d{1,2}[:.]\d{2}\s*(?:AM|PM)?)\s*(.*)$/i;
   const match = cleaned.match(scheduleRegex);
   if (!match) return null;
 
@@ -330,7 +358,7 @@ export function parseUstpScheduleTail(tail: string): {
     );
     // Pattern 2: Named classroom/lab e.g. "Modular Classroom 1 FLORETO JR. QUINITO" or "CITC Lab 3 Loredel Tamayo"
     const namedRoomMatch = afterSlash.match(
-      /^((?:Modular\s+Classroom\s*\d*|Room\s+[A-Za-z0-9-]+|Rm\.?\s*[A-Za-z0-9-]+|Building\s+[A-Za-z0-9-]+|CITC\s+Lab\s*\d*|ICT\s+Lab\s*\d*|Lab(?:oratory)?\s*\d+|AVR\s*\d*|Gym(?:nasium)?|TBA)(?:\s*\([^)]+\))?)\s*(.*)$/i,
+      /^((?:Modular\s+Classroom\s*\d*|Room\s+[A-Za-z0-9-]+|Rm\.?\s*[A-Za-z0-9-]+|Bldg\.?\s*[A-Za-z0-9-]+|Building\s+[A-Za-z0-9-]+|CITC\s+Lab\s*\d*|ICT\s+Lab\s*\d*|Lab(?:oratory)?\s*\d+|AVR\s*\d*|Covered\s+Court\s*\d*|Court\s*\d*|Field\s*\d*|Track\s*\d*|Pool\s*\d*|Gym(?:nasium)?|Online|TBA|[A-Za-z]{2,6}-\d{2,4})(?:\s*\([^)]+\))?)\s*(.*)$/i,
     );
 
     if (bldgRoomMatch) {
@@ -345,7 +373,7 @@ export function parseUstpScheduleTail(tail: string): {
   } else if (remainder.length > 0) {
     // Check if remainder starts with an explicit room keyword without a slash
     const explicitRoomMatch = remainder.match(
-      /^((?:Building\s+\d{1,3}-\d{2,4}|\d{1,3}-\d{2,4}|Modular\s+Classroom\s*\d*|Room\s+[A-Za-z0-9-]+)(?:\s*\([^)]+\))?)\s*(.*)$/i,
+      /^((?:Bldg\.?\s*\d{1,3}-\d{2,4}|Building\s+\d{1,3}-\d{2,4}|\d{1,3}-\d{2,4}|Modular\s+Classroom\s*\d*|Room\s+[A-Za-z0-9-]+)(?:\s*\([^)]+\))?)\s*(.*)$/i,
     );
     if (explicitRoomMatch) {
       room = explicitRoomMatch[1].trim();
@@ -437,9 +465,115 @@ export function computeCorRecommendations(
 }
 
 // Primary subject row regex:
-// <Code> <Subject Title> <Lec> <Lab> <Credit> <Section> [Schedule/Room & Faculty]
+// [*]<Code> <Subject Title> <Lec> <Lab> <Credit> <Section> [Schedule/Room & Faculty]
 const PRIMARY_COURSE_ROW_REGEX =
-  /^([A-Za-z]{2,8}\d{0,4}[A-Za-z]?)\s+(.+?)\s+(\d+(?:\.\d+)?)\s+(\d+(?:\.\d+)?)\s+(\d+(?:\.\d+)?)\s+([A-Za-z0-9_-]{3,25})(?:\s+(.*))?$/;
+  /^\*?\s*([A-Za-z]{2,10}-?\d{1,4}[A-Za-z]?(?:-[A-Za-z0-9]{1,4})?|[A-Za-z]{2,10}\s+\d{1,4}[A-Za-z]?|[A-Za-z]{2,10})\s+(.+?)\s+(\d+(?:\.\d+)?|[Oo])\s+(\d+(?:\.\d+)?|[Oo])\s+(\d+(?:\.\d+)?|[Oo])\s+([A-Za-z0-9_/-]{2,25})(?:\s+(.*))?$/;
+
+function parseUnitNumber(raw: string): number {
+  return parseFloat(raw.trim().replace(/[Oo]/g, '0'));
+}
+
+function parseTotalUnitsLine(
+  line: string,
+): { lec: number; lab: number; cred: number } | null {
+  const explicit = line.match(
+    /^Total\s+Unit\(s\)\s*:?\s*(\d+(?:\.\d+)?|[Oo])\s+(\d+(?:\.\d+)?|[Oo])\s+(\d+(?:\.\d+)?|[Oo])/i,
+  );
+  if (explicit) {
+    return {
+      lec: parseUnitNumber(explicit[1]),
+      lab: parseUnitNumber(explicit[2]),
+      cred: parseUnitNumber(explicit[3]),
+    };
+  }
+  const bare = line.match(
+    /^(\d{1,2}(?:\.\d+)?|[Oo])\s+(\d{1,2}(?:\.\d+)?|[Oo])\s+(\d{1,2}(?:\.\d+)?|[Oo])$/,
+  );
+  if (bare) {
+    const lec = parseUnitNumber(bare[1]);
+    const lab = parseUnitNumber(bare[2]);
+    const cred = parseUnitNumber(bare[3]);
+    if (Math.abs(lec + lab - cred) < 0.01) {
+      return { lec, lab, cred };
+    }
+  }
+  return null;
+}
+
+const NON_COURSE_PREFIX_REGEX =
+  /^(?:Document\s+Code|FM-USTP|Rev\.\s*No|01\s+\d|Republic\s+of|University\s+of|Alubijid|CERTIFICATE|STUDENT\s+GENERAL|CODE\s+SUBJECT|Lec\s+Lab|U\s+N\s+I\s+T|SECTION\s+SCHEDULE|Total\s+Unit|First\s+Payment|1st\s+Sem|2nd\s+Sem|First\s+Sem|Second\s+Sem|Midyear|Summer|COLLEGE\s+OF|B\.?\s*S\.?|Bachelor|Master|Doctor|[1-5](?:st|nd|rd|th)\s+Year|N\/A|Filipino|Note:|Free\s+Higher|[A-Z]{2,8}-[A-Z0-9-]{4,25}$|\d{4,12}$|[MF]\s+\d{2}$|[A-ZÑ][A-ZÑ\s'-]+,\s+[A-ZÑ])/i;
+
+const STUDENT_LABEL_COLON_REGEX = /^[A-Za-z][A-Za-z\s/#]{1,24}:/;
+
+function canStartSplitCourseRow(line: string): boolean {
+  if (
+    PRIMARY_COURSE_ROW_REGEX.test(line) ||
+    Boolean(parseUstpScheduleTail(line)) ||
+    Boolean(parseTotalUnitsLine(line)) ||
+    HARD_STOP_PATTERNS.some(regex => regex.test(line)) ||
+    STUDENT_LABEL_COLON_REGEX.test(line) ||
+    NON_COURSE_PREFIX_REGEX.test(line)
+  ) {
+    return false;
+  }
+  return /^\*?\s*[A-Za-z]{2,10}(?:-?\d{1,4}[A-Za-z]?)?(?:\s|$)/.test(line);
+}
+
+function canJoinSplitCourseLine(
+  line: string,
+  prevHasDigitCode: boolean,
+): boolean {
+  const startsWithDigitCode = /^\*?\s*[A-Za-z]{2,10}-?\d/.test(line);
+  if (startsWithDigitCode) return false;
+  if (!prevHasDigitCode && PRIMARY_COURSE_ROW_REGEX.test(line)) {
+    return false;
+  }
+  return (
+    !parseUstpScheduleTail(line) &&
+    !parseTotalUnitsLine(line) &&
+    !HARD_STOP_PATTERNS.some(regex => regex.test(line)) &&
+    !STUDENT_LABEL_COLON_REGEX.test(line) &&
+    !NON_COURSE_PREFIX_REGEX.test(line)
+  );
+}
+
+/**
+ * Reconstructs course rows split across 2–3 lines by wrapped subject titles
+ * or slight vertical cell misalignment during OCR / PDF extraction.
+ */
+function mergeSplitCourseLines(lines: string[]): string[] {
+  const merged: string[] = [];
+  let i = 0;
+  while (i < lines.length) {
+    const line = lines[i];
+    if (canStartSplitCourseRow(line) && i + 1 < lines.length) {
+      const prevHasDigitCode = /^\*?\s*[A-Za-z]{2,10}-?\d/.test(line);
+      const next = lines[i + 1];
+      if (canJoinSplitCourseLine(next, prevHasDigitCode)) {
+        const two = `${line} ${next}`;
+        if (PRIMARY_COURSE_ROW_REGEX.test(two)) {
+          merged.push(two);
+          i += 2;
+          continue;
+        }
+        if (i + 2 < lines.length) {
+          const third = lines[i + 2];
+          if (canJoinSplitCourseLine(third, prevHasDigitCode)) {
+            const three = `${two} ${third}`;
+            if (PRIMARY_COURSE_ROW_REGEX.test(three)) {
+              merged.push(three);
+              i += 3;
+              continue;
+            }
+          }
+        }
+      }
+    }
+    merged.push(line);
+    i += 1;
+  }
+  return merged;
+}
 
 /**
  * Parses a USTP Certificate of Registration (COR) from extracted PDF/OCR text.
@@ -451,10 +585,11 @@ export function parseUstpCor(
   rawText: string,
   referenceDate: Date = new Date(),
 ): ParsedUstpCorResult {
-  const allLines = rawText
+  const rawLines = rawText
     .split(/\r?\n/)
     .map(l => l.replace(/\s+/g, ' ').trim())
     .filter(Boolean);
+  const allLines = mergeSplitCourseLines(rawLines);
 
   // Detect whether this document is a USTP COR
   const joinedUpper = allLines.join('\n').toUpperCase();
@@ -466,7 +601,7 @@ export function parseUstpCor(
       joinedUpper,
     ) ||
     /STUDENT\s+GENERAL\s+INFORMATION/i.test(joinedUpper) ||
-    /\bCITC-BSIT\b|\bIT\dR\d+\b/i.test(joinedUpper);
+    /\bCITC-BSIT\b|\bCITOC-BSIT\b|\bIT\dR\d+\b/i.test(joinedUpper);
 
   // Split into Zone 1 (Header & Student Info) before the first primary course row,
   // and Zone 2 (Schedule Table) starting at the first primary course row and hard-stopping
@@ -490,19 +625,12 @@ export function parseUstpCor(
     }
 
     // Once inside Zone 2 (course rows started), check for Total Unit(s) or hard stop
-    const totalUnitsMatch =
-      line.match(/^Total\s+Unit\(s\)\s*:?\s*(\d+)\s+(\d+)\s+(\d+)/i) ||
-      line.match(/^(\d{1,2})\s+(\d{1,2})\s+(\d{1,2})$/);
-    if (totalUnitsMatch) {
-      const lec = parseInt(totalUnitsMatch[1], 10);
-      const lab = parseInt(totalUnitsMatch[2], 10);
-      const cred = parseInt(totalUnitsMatch[3], 10);
-      if (lec + lab === cred) {
-        totalLecUnits = lec;
-        totalLabUnits = lab;
-        totalCreditUnits = cred;
-        break;
-      }
+    const totalUnits = parseTotalUnitsLine(line);
+    if (totalUnits) {
+      totalLecUnits = totalUnits.lec;
+      totalLabUnits = totalUnits.lab;
+      totalCreditUnits = totalUnits.cred;
+      break;
     }
 
     if (HARD_STOP_PATTERNS.some(regex => regex.test(line))) {
@@ -706,11 +834,11 @@ export function parseUstpCor(
   for (const line of zone2Lines) {
     const primaryMatch = line.match(PRIMARY_COURSE_ROW_REGEX);
     if (primaryMatch) {
-      const code = primaryMatch[1].trim();
+      const code = primaryMatch[1].replace(/\s+/g, ' ').trim();
       const title = primaryMatch[2].trim();
-      const lecUnits = parseFloat(primaryMatch[3]);
-      const labUnits = parseFloat(primaryMatch[4]);
-      const creditUnits = parseFloat(primaryMatch[5]);
+      const lecUnits = parseUnitNumber(primaryMatch[3]);
+      const labUnits = parseUnitNumber(primaryMatch[4]);
+      const creditUnits = parseUnitNumber(primaryMatch[5]);
       const section = primaryMatch[6].trim();
       const tail = (primaryMatch[7] || '').trim();
 

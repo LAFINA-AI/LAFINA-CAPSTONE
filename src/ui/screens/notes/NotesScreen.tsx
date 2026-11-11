@@ -27,10 +27,16 @@ import {
 import {useTheme} from '../../contexts/ThemeContext';
 import {Colors, Shadows} from '../../theme';
 import {useNotesData} from './hooks/useNotesData';
-import {NoteFilters, NoteCardWithDrag} from './components';
+import {useTodoData} from './hooks/useTodoData';
+import {
+  NoteFilters,
+  NoteCardWithDrag,
+  TodoListView,
+  TodoEditorModal,
+} from './components';
 import {NoteEditor} from './components/NoteEditor';
 import {MeetingsScreen} from '../meetings';
-import {NotesScreenProps} from './types';
+import {NotesScreenProps, NotesSubTab} from './types';
 import type {NoteSnapshot} from '../../../storage';
 
 export const NotesScreen: React.FC<NotesScreenProps> = ({
@@ -43,13 +49,53 @@ export const NotesScreen: React.FC<NotesScreenProps> = ({
   const {colors} = useTheme();
   const insets = useSafeAreaInsets();
   const fabBottom = Math.max(insets.bottom, 12) + 90;
-  const data = useNotesData({userId, refreshTrigger, onRefresh});
+  const [activeSubTab, setActiveSubTab] = useState<NotesSubTab>('notes');
+  const todoReloadRef = useRef<() => void>(() => {});
+  const handleCombinedRefresh = useCallback(() => {
+    todoReloadRef.current();
+    onRefresh?.();
+  }, [onRefresh]);
+  const data = useNotesData({
+    userId,
+    refreshTrigger,
+    onRefresh: handleCombinedRefresh,
+  });
+  const todo = useTodoData({
+    userId,
+    refreshTrigger,
+    searchQuery: data.searchQuery,
+    onRefresh,
+  });
+  todoReloadRef.current = todo.loadTodos;
+  const {setHighlightedTaskId} = todo;
   const handledRequest = useRef<string | null>(null);
   useEffect(() => {
     if (!openRequest || handledRequest.current === openRequest.requestId)
       return;
     handledRequest.current = openRequest.requestId;
     onOpenRequestHandled?.(openRequest.requestId);
+    if (openRequest.notesTab === 'todo' || openRequest.entityKind === 'task') {
+      setActiveSubTab('todo');
+      if (!openRequest.entityId) return;
+      try {
+        const resolved = resolveCallTarget(userId, openRequest);
+        if (resolved?.kind === 'task') {
+          setHighlightedTaskId(resolved.item.id);
+        } else {
+          Alert.alert(
+            'To-Do unavailable',
+            'This to-do item is no longer available for this account.',
+          );
+        }
+      } catch {
+        Alert.alert(
+          'To-Do unavailable',
+          'Could not read this to-do item. Please try again.',
+        );
+      }
+      return;
+    }
+    setActiveSubTab('notes');
     try {
       const resolved = resolveCallTarget(userId, openRequest);
       if (resolved?.kind === 'note') data.openEditNote(resolved.item);
@@ -64,8 +110,29 @@ export const NotesScreen: React.FC<NotesScreenProps> = ({
         'Could not read this note. Please try again.',
       );
     }
-  }, [openRequest, userId, data, onOpenRequestHandled]);
+  }, [openRequest, userId, data, setHighlightedTaskId, onOpenRequestHandled]);
   const [meetingsOpen, setMeetingsOpen] = useState(false);
+
+  const handleOpenParentNote = useCallback(
+    (noteId: string) => {
+      const resolved = resolveCallTarget(userId, {
+        ownerId: userId,
+        screen: 'notes',
+        entityKind: 'note',
+        entityId: noteId,
+      });
+      if (resolved?.kind === 'note') {
+        setActiveSubTab('notes');
+        data.openEditNote(resolved.item);
+      } else {
+        Alert.alert(
+          'Note unavailable',
+          'This note is no longer available for this account.',
+        );
+      }
+    },
+    [userId, data],
+  );
 
   const keyExtractor = useCallback((item: NoteSnapshot) => item.id, []);
 
@@ -126,7 +193,10 @@ export const NotesScreen: React.FC<NotesScreenProps> = ({
                 style={{transform: [{rotate: '45deg'}], marginRight: 6}}
               />
               <Text
-                style={[styles.sectionHeaderText, {color: colors.textSecondary}]}
+                style={[
+                  styles.sectionHeaderText,
+                  {color: colors.textSecondary},
+                ]}
               >
                 PINNED
               </Text>
@@ -135,7 +205,10 @@ export const NotesScreen: React.FC<NotesScreenProps> = ({
           {showOtherHeader && (
             <View style={styles.sectionHeaderRow}>
               <Text
-                style={[styles.sectionHeaderText, {color: colors.textSecondary}]}
+                style={[
+                  styles.sectionHeaderText,
+                  {color: colors.textSecondary},
+                ]}
               >
                 OTHERS
               </Text>
@@ -188,7 +261,9 @@ export const NotesScreen: React.FC<NotesScreenProps> = ({
           <View style={[styles.searchRow, {backgroundColor: colors.inputBg}]}>
             <TextInput
               style={[styles.searchInput, {color: colors.textPrimary}]}
-              placeholder="Search notes..."
+              placeholder={
+                activeSubTab === 'todo' ? 'Search to-dos...' : 'Search notes...'
+              }
               placeholderTextColor={colors.textSecondary}
               autoFocus
               value={data.searchQuery}
@@ -222,164 +297,330 @@ export const NotesScreen: React.FC<NotesScreenProps> = ({
               <TouchableOpacity
                 onPress={() => data.setSearchActive(true)}
                 style={styles.headerIconBtn}
+                accessibilityRole="button"
+                accessibilityLabel={
+                  activeSubTab === 'todo' ? 'Search to-dos' : 'Search notes'
+                }
+                testID="notes-search-button"
               >
                 <Search size={18} color={colors.textPrimary} />
               </TouchableOpacity>
-              <TouchableOpacity
-                onPress={() => data.setIsGridView(!data.isGridView)}
-                style={styles.headerIconBtn}
-              >
-                {data.isGridView ? (
-                  <List size={18} color={colors.textPrimary} />
-                ) : (
-                  <Grid size={18} color={colors.textPrimary} />
-                )}
-              </TouchableOpacity>
+              {activeSubTab === 'notes' ? (
+                <TouchableOpacity
+                  onPress={() => data.setIsGridView(!data.isGridView)}
+                  style={styles.headerIconBtn}
+                >
+                  {data.isGridView ? (
+                    <List size={18} color={colors.textPrimary} />
+                  ) : (
+                    <Grid size={18} color={colors.textPrimary} />
+                  )}
+                </TouchableOpacity>
+              ) : null}
             </View>
           </>
         )}
       </View>
 
-      {/* Filters */}
-      <NoteFilters
-        selectedFilter={data.selectedFilter}
-        onFilterChange={data.setSelectedFilter}
-        customCategories={data.customCategories}
-      />
-
-      {data.indexing && (
-        <Text
-          style={[styles.notice, {color: colors.textSecondary}]}
-          testID="notes-indexing"
+      {/* Segmented Switcher: Notes | To-Do */}
+      <View
+        style={[
+          styles.segmentedBar,
+          {backgroundColor: colors.inputBg, borderColor: colors.border},
+        ]}
+        accessibilityRole="tablist"
+      >
+        <TouchableOpacity
+          onPress={() => setActiveSubTab('notes')}
+          accessibilityRole="tab"
+          accessibilityState={{selected: activeSubTab === 'notes'}}
+          testID="notes-subtab-notes"
+          style={[
+            styles.segmentBtn,
+            activeSubTab === 'notes' && {backgroundColor: colors.cardBg},
+            activeSubTab === 'notes' && Shadows.card,
+          ]}
         >
-          Preparing your notes for search. More results may appear in a moment.
-        </Text>
-      )}
-      {data.queryError && (
-        <Text
-          style={[styles.notice, {color: colors.textSecondary}]}
-          testID="notes-query-error"
-        >
-          {data.queryError}
-        </Text>
-      )}
+          <Text
+            style={[
+              styles.segmentText,
+              {
+                color:
+                  activeSubTab === 'notes'
+                    ? colors.textPrimary
+                    : colors.textSecondary,
+                fontWeight: activeSubTab === 'notes' ? '700' : '500',
+              },
+            ]}
+          >
+            Notes
+          </Text>
+        </TouchableOpacity>
 
-      {/* Content */}
-      {data.filtered.length === 0 ? (
-        <View style={styles.emptyState}>
-          <FileText size={48} color={colors.red} style={{marginBottom: 16}} />
-          <Text style={[styles.emptyTitle, {color: colors.textPrimary}]}>
-            No notes found
-          </Text>
-          <Text style={[styles.emptySubtitle, {color: colors.textSecondary}]}>
-            Tap the + button below to write a new note, or use the quick
-            templates below.
-          </Text>
-          <View style={styles.emptyStarterRow}>
-            <TouchableOpacity
+        <TouchableOpacity
+          onPress={() => setActiveSubTab('todo')}
+          accessibilityRole="tab"
+          accessibilityState={{selected: activeSubTab === 'todo'}}
+          testID="notes-subtab-todo"
+          style={[
+            styles.segmentBtn,
+            activeSubTab === 'todo' && {backgroundColor: colors.cardBg},
+            activeSubTab === 'todo' && Shadows.card,
+          ]}
+        >
+          <View style={styles.segmentLabelRow}>
+            <Text
               style={[
-                styles.starterChip,
-                {backgroundColor: colors.cardBg, borderColor: colors.border},
+                styles.segmentText,
+                {
+                  color:
+                    activeSubTab === 'todo'
+                      ? colors.textPrimary
+                      : colors.textSecondary,
+                  fontWeight: activeSubTab === 'todo' ? '700' : '500',
+                },
               ]}
-              onPress={data.openNewNote}
             >
-              <FileText size={14} color={colors.red} style={{marginRight: 6}} />
-              <Text
-                style={[styles.starterChipText, {color: colors.textPrimary}]}
+              To-Do
+            </Text>
+            {todo.pendingCount > 0 ? (
+              <View
+                style={[
+                  styles.segmentBadge,
+                  {
+                    backgroundColor:
+                      activeSubTab === 'todo' ? Colors.red : colors.border,
+                  },
+                ]}
               >
-                Quick Note
-              </Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={[
-                styles.starterChip,
-                {backgroundColor: colors.cardBg, borderColor: colors.border},
-              ]}
-              onPress={() => {
-                data.openNewNote();
-                data.setNoteTitle('To-Do Checklist');
-                data.setNoteBody('- [ ] ');
-                data.setSelection({start: 6, end: 6});
-              }}
-            >
-              <CheckSquare
-                size={14}
-                color={colors.blue}
-                style={{marginRight: 6}}
-              />
-              <Text
-                style={[styles.starterChipText, {color: colors.textPrimary}]}
-              >
-                New Checklist
-              </Text>
-            </TouchableOpacity>
+                <Text
+                  style={[
+                    styles.segmentBadgeText,
+                    {
+                      color:
+                        activeSubTab === 'todo'
+                          ? colors.white
+                          : colors.textPrimary,
+                    },
+                  ]}
+                >
+                  {todo.pendingCount}
+                </Text>
+              </View>
+            ) : null}
           </View>
-        </View>
-      ) : data.isGridView ? (
-        <ScrollView
-          style={styles.notesListScroll}
-          contentContainerStyle={[styles.notesList, styles.gridContainer]}
-          scrollEnabled={!data.isDragging}
-        >
-          {data.filtered.map((item, index) => (
-            <React.Fragment key={item.id}>
-              {hasPinned && item.id === firstPinnedId && (
-                <View style={styles.sectionHeaderRow}>
-                  <Pin
-                    size={11}
+        </TouchableOpacity>
+      </View>
+
+      {activeSubTab === 'todo' ? (
+        <TodoListView
+          undatedOpen={todo.undatedOpen}
+          scheduledOpen={todo.scheduledOpen}
+          completedTasks={todo.completedTasks}
+          noteChecklists={todo.noteChecklists}
+          allNoteChecklistCount={todo.allNoteChecklistCount}
+          filter={todo.filter}
+          onFilterChange={todo.setFilter}
+          quickTitle={todo.quickTitle}
+          onQuickTitleChange={todo.setQuickTitle}
+          quickPriority={todo.quickPriority}
+          onQuickPriorityChange={todo.setQuickPriority}
+          onQuickAdd={todo.submitQuickAdd}
+          onToggleTodo={todo.toggleTodo}
+          onPressTodo={todo.openEditTodo}
+          onToggleChecklistItem={todo.toggleNoteChecklistItem}
+          onOpenParentNote={handleOpenParentNote}
+          onOpenNewTodoModal={todo.openNewTodo}
+          highlightedTaskId={todo.highlightedTaskId}
+          searchQuery={data.searchQuery}
+        />
+      ) : (
+        <>
+          {/* Filters */}
+          <NoteFilters
+            selectedFilter={data.selectedFilter}
+            onFilterChange={data.setSelectedFilter}
+            customCategories={data.customCategories}
+          />
+
+          {data.indexing && (
+            <Text
+              style={[styles.notice, {color: colors.textSecondary}]}
+              testID="notes-indexing"
+            >
+              Preparing your notes for search. More results may appear in a
+              moment.
+            </Text>
+          )}
+          {data.queryError && (
+            <Text
+              style={[styles.notice, {color: colors.textSecondary}]}
+              testID="notes-query-error"
+            >
+              {data.queryError}
+            </Text>
+          )}
+
+          {/* Content */}
+          {data.filtered.length === 0 ? (
+            <View style={styles.emptyState}>
+              <FileText
+                size={48}
+                color={colors.red}
+                style={{marginBottom: 16}}
+              />
+              <Text style={[styles.emptyTitle, {color: colors.textPrimary}]}>
+                No notes found
+              </Text>
+              <Text
+                style={[styles.emptySubtitle, {color: colors.textSecondary}]}
+              >
+                Tap the + button below to write a new note, or use the quick
+                templates below.
+              </Text>
+              <View style={styles.emptyStarterRow}>
+                <TouchableOpacity
+                  style={[
+                    styles.starterChip,
+                    {
+                      backgroundColor: colors.cardBg,
+                      borderColor: colors.border,
+                    },
+                  ]}
+                  onPress={data.openNewNote}
+                >
+                  <FileText
+                    size={14}
                     color={colors.red}
-                    style={{transform: [{rotate: '45deg'}], marginRight: 6}}
+                    style={{marginRight: 6}}
                   />
                   <Text
                     style={[
-                      styles.sectionHeaderText,
-                      {color: colors.textSecondary},
+                      styles.starterChipText,
+                      {color: colors.textPrimary},
                     ]}
                   >
-                    PINNED
+                    Quick Note
                   </Text>
-                </View>
-              )}
-              {hasPinned && item.id === firstOtherId && (
-                <View style={styles.sectionHeaderRow}>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[
+                    styles.starterChip,
+                    {
+                      backgroundColor: colors.cardBg,
+                      borderColor: colors.border,
+                    },
+                  ]}
+                  onPress={() => {
+                    data.openNewNote();
+                    data.setNoteTitle('To-Do Checklist');
+                    data.setNoteBody('- [ ] ');
+                    data.setSelection({start: 6, end: 6});
+                  }}
+                >
+                  <CheckSquare
+                    size={14}
+                    color={colors.blue}
+                    style={{marginRight: 6}}
+                  />
                   <Text
                     style={[
-                      styles.sectionHeaderText,
-                      {color: colors.textSecondary},
+                      styles.starterChipText,
+                      {color: colors.textPrimary},
                     ]}
                   >
-                    OTHERS
+                    New Checklist
                   </Text>
-                </View>
-              )}
-              {renderItem({item, index})}
-            </React.Fragment>
-          ))}
-          {loadMoreButton}
-        </ScrollView>
-      ) : (
-        <FlatList
-          key="list"
-          data={data.filtered}
-          numColumns={1}
-          keyExtractor={keyExtractor}
-          contentContainerStyle={styles.notesList}
-          scrollEnabled={!data.isDragging}
-          extraData={data.renderGen}
-          renderItem={renderItem}
-          removeClippedSubviews={false}
-          windowSize={21}
-          ListFooterComponent={loadMoreButton}
-        />
+                </TouchableOpacity>
+              </View>
+            </View>
+          ) : data.isGridView ? (
+            <ScrollView
+              style={styles.notesListScroll}
+              contentContainerStyle={[styles.notesList, styles.gridContainer]}
+              scrollEnabled={!data.isDragging}
+            >
+              {data.filtered.map((item, index) => (
+                <React.Fragment key={item.id}>
+                  {hasPinned && item.id === firstPinnedId && (
+                    <View style={styles.sectionHeaderRow}>
+                      <Pin
+                        size={11}
+                        color={colors.red}
+                        style={{transform: [{rotate: '45deg'}], marginRight: 6}}
+                      />
+                      <Text
+                        style={[
+                          styles.sectionHeaderText,
+                          {color: colors.textSecondary},
+                        ]}
+                      >
+                        PINNED
+                      </Text>
+                    </View>
+                  )}
+                  {hasPinned && item.id === firstOtherId && (
+                    <View style={styles.sectionHeaderRow}>
+                      <Text
+                        style={[
+                          styles.sectionHeaderText,
+                          {color: colors.textSecondary},
+                        ]}
+                      >
+                        OTHERS
+                      </Text>
+                    </View>
+                  )}
+                  {renderItem({item, index})}
+                </React.Fragment>
+              ))}
+              {loadMoreButton}
+            </ScrollView>
+          ) : (
+            <FlatList
+              key="list"
+              data={data.filtered}
+              numColumns={1}
+              keyExtractor={keyExtractor}
+              contentContainerStyle={styles.notesList}
+              scrollEnabled={!data.isDragging}
+              extraData={data.renderGen}
+              renderItem={renderItem}
+              removeClippedSubviews={false}
+              windowSize={21}
+              ListFooterComponent={loadMoreButton}
+            />
+          )}
+        </>
       )}
 
       {/* FAB */}
       <TouchableOpacity
         style={[styles.fab, Shadows.card, {bottom: fabBottom}]}
-        onPress={data.openNewNote}
+        onPress={activeSubTab === 'todo' ? todo.openNewTodo : data.openNewNote}
+        testID={activeSubTab === 'todo' ? 'todo-fab-add' : 'notes-fab-add'}
       >
         <Plus size={24} color={colors.white} />
       </TouchableOpacity>
+
+      {todo.editorVisible && (
+        <TodoEditorModal
+          key={todo.editingTask?.id || 'new-todo'}
+          visible={todo.editorVisible}
+          editingTask={todo.editingTask}
+          customCategories={data.customCategories}
+          onClose={todo.closeEditor}
+          onSave={(draft, editing) => {
+            if (editing) {
+              todo.updateTodo(editing, draft);
+            } else {
+              todo.addTodo(draft);
+            }
+            todo.closeEditor();
+          }}
+          onDelete={todo.deleteTodo}
+        />
+      )}
 
       {/* Editor Modal */}
       {data.editorVisible && (
@@ -455,8 +696,45 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 16,
+    marginBottom: 10,
     height: 40,
+  },
+  segmentedBar: {
+    flexDirection: 'row',
+    borderRadius: 12,
+    borderWidth: 1,
+    padding: 3,
+    marginBottom: 12,
+    gap: 4,
+  },
+  segmentBtn: {
+    flex: 1,
+    paddingVertical: 7,
+    borderRadius: 9,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  segmentLabelRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  segmentText: {
+    fontFamily: 'sans-serif-medium',
+    fontSize: 13,
+  },
+  segmentBadge: {
+    minWidth: 18,
+    height: 18,
+    borderRadius: 9,
+    paddingHorizontal: 5,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  segmentBadgeText: {
+    fontFamily: 'sans-serif-medium',
+    fontSize: 10,
+    fontWeight: '700',
   },
   searchRow: {
     flexDirection: 'row',

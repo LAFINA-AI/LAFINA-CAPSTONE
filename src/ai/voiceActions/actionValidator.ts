@@ -723,12 +723,12 @@ export function validatePayload(
     }
 
     case 'legacy.read_data': {
-      const allowedKinds = ['calendar', 'notes', 'memory'];
+      const allowedKinds = ['calendar', 'todos', 'notes', 'memory'];
       if (typeof p.kind !== 'string' || !allowedKinds.includes(p.kind)) {
         return {
           valid: false,
           error:
-            "legacy.read_data requires kind: 'calendar' | 'notes' | 'memory'.",
+            "legacy.read_data requires kind: 'calendar' | 'todos' | 'notes' | 'memory'.",
         };
       }
       return {

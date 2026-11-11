@@ -1,10 +1,7 @@
 import {onlineChatSkill} from '../skills/onlineChatSkill';
 import {isRealDate} from '../storage/eventTime';
 import {classifySmallTalk} from './localConversation';
-import {
-  detectCategory,
-  formatLocalDate,
-} from './nlu/fastPathParser';
+import {detectCategory, formatLocalDate} from './nlu/fastPathParser';
 import {routeIntent} from './nlu/intentRoutes';
 import {
   validateIntent,
@@ -45,13 +42,13 @@ const ENTITY_TYPES = new Set<CrudTargetEntityType>([
 ]);
 
 const UNSTRUCTURED_PLANNER_PHRASE =
-  /\b(?:schedule|reschedule|book|block\s+out|remind\s+me|set\s+(?:a|an)?\s*reminder|add\s+(?:a\s+)?(?:task|todo|to-do|event|meeting|appointment|note|reminder)|create\s+(?:a\s+)?(?:task|event|time\s*block|reminder|note)|don['’]?t\s+forget\s+to|i\s+have\s+(?:a|an)\s+(?:meeting|appointment|exam|quiz|class|call|deadline|presentation)\b|need\s+to\s+(?:submit|finish|meet|attend|study|review|call)|put\s+.+\s+on\s+my\s+(?:calendar|schedule)|jot\s+(?:this\s+)?down|cancel\s+(?:my|the)|delete\s+(?:my|the)|move\s+(?:my|the)\s+.+\s+to)\b/i;
+  /\b(?:schedule|reschedule|book|block\s+out|remind\s+me|set\s+(?:a|an)?\s*reminder|add\s+(?:a\s+)?(?:task|todo|to-?do|to\s+do|event|meeting|appointment|note|reminder)|put\s+.+\s+on\s+(?:my|the)\s+(?:calendar|schedule|to-?do|to\s+do|todo)(?:\s+list)?|add\s+.+\s+to\s+(?:my|the)\s+(?:to-?do|to\s+do|todo)(?:\s+list)?|create\s+(?:a\s+)?(?:task|todo|to-?do|event|time\s*block|reminder|note)|check\s+off|tick\s+off|mark\s+.+\s+as\s+(?:done|complete|completed)|don['’]?t\s+forget\s+to|i\s+have\s+(?:a|an)\s+(?:meeting|appointment|exam|quiz|class|call|deadline|presentation)\b|need\s+to\s+(?:submit|finish|meet|attend|study|review|call|buy|print)|jot\s+(?:this\s+)?down|cancel\s+(?:my|the)|delete\s+(?:my|the)|move\s+(?:my|the)\s+.+\s+to)\b/i;
 
 const OPEN_ENDED_PLANNING_OR_STUDY_QUESTION =
   /^(?:what|why|how|who|where|when|explain|summarize|define|compare|outline|tell\s+me|give\s+me|plan\s+my\s+(?:week|day|month|semester)|help\s+me\s+plan)\b/i;
 
 const POLITE_COMMAND_QUESTION =
-  /^(?:can|could|would|will)\s+you\s+(?:please\s+)?(?:schedule|reschedule|book|block|remind|add|create|make|set|put|cancel|delete|move|update|edit|jot|save)\b/i;
+  /^(?:can|could|would|will)\s+you\s+(?:please\s+)?(?:schedule|reschedule|book|block|remind|add|create|make|set|put|cancel|delete|move|update|edit|jot|save|complete|finish|check\s+off)\b/i;
 
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
 const TIME_RE = /^(?:[01]\d|2[0-3]):[0-5]\d$/;
@@ -140,11 +137,11 @@ function buildIntentExtractionPrompt(
     '- "update_task", "update_time_block", "update_note", "delete_task", "delete_time_block", "delete_note", "complete_task"',
     '- "chat": NOT a planner action (questions, advice, open-ended chat, cancelled requests)',
     'JSON schema:',
-    '{"intent":string,"title":string|null,"date":"YYYY-MM-DD"|null,"time":"HH:MM"|null,"endTime":"HH:MM"|null,"durationMinutes":number|null,"category":"Academic"|"Personal","details":string|null,"targetTitle":string|null,"newTitle":string|null,"targetEntityType":"task"|"time_block"|"event"|"reminder"|"note"|"any"|null}',
+    '{"intent":string,"title":string|null,"date":"YYYY-MM-DD"|null,"time":"HH:MM"|null,"endTime":"HH:MM"|null,"durationMinutes":number|null,"category":"Academic"|"Personal","priority":"High"|"Medium"|"Low"|null,"details":string|null,"targetTitle":string|null,"newTitle":string|null,"targetEntityType":"task"|"time_block"|"event"|"reminder"|"note"|"any"|null}',
     'Rules:',
-    '1. "title" must be clean and concise: strip command prefixes ("schedule me a", "remind me to", "make me a"), indirect pronouns ("me", "for me"), articles ("a", "an", "the"), and extracted date/time phrases. Example: "schedule me a meeting tommorow at 3pm" -> title "Meeting".',
-    '2. Fix obvious spelling typos like "tommorow"/"tomorow"/"tmr" and resolve relative dates against the reference date.',
-    '3. Use 24-hour "HH:MM" for time/endTime. Use "Academic" for class, study, exam, homework, lab, thesis, or faculty/advisor items; otherwise "Personal".',
+    '1. "title" must be clean and concise: strip command prefixes ("schedule me a", "remind me to", "make me a"), indirect pronouns ("me", "for me"), articles ("a", "an", "the"), destination phrases ("to my to-do list"), and extracted date/time phrases. Example: "schedule me a meeting tommorow at 3pm" -> title "Meeting".',
+    '2. Fix obvious spelling typos like "tommorow"/"tomorow"/"tmr" and resolve relative dates against the reference date. Leave "date" null for undated To-Dos.',
+    '3. Use 24-hour "HH:MM" for time/endTime. Use "Academic" for class, study, exam, homework, lab, thesis, or faculty/advisor items; otherwise "Personal". Set "priority" if mentioned.',
     `User message: ${JSON.stringify(transcript)}`,
   ].join('\n');
 }
@@ -265,6 +262,17 @@ function parseDurationMinutes(
   return null;
 }
 
+function parsePriority(value: unknown): 'High' | 'Medium' | 'Low' | null {
+  if (typeof value !== 'string') {
+    return null;
+  }
+  const lower = value.trim().toLowerCase();
+  if (lower === 'high' || lower === 'urgent') return 'High';
+  if (lower === 'medium' || lower === 'normal') return 'Medium';
+  if (lower === 'low') return 'Low';
+  return null;
+}
+
 function parseCategory(
   value: unknown,
   intent: ParsedIntentType,
@@ -299,7 +307,12 @@ export async function extractIntentWithDeepSeek(
   let result;
   try {
     result = await onlineChatSkill.sendChatMessage(
-      [{role: 'user', content: buildIntentExtractionPrompt(trimmed, referenceDate)}],
+      [
+        {
+          role: 'user',
+          content: buildIntentExtractionPrompt(trimmed, referenceDate),
+        },
+      ],
       {useHandbook: false},
     );
   } catch (error) {
@@ -352,6 +365,7 @@ export async function extractIntentWithDeepSeek(
   const date = parseValidatedDate(obj.date);
   const time = parseValidatedTime(obj.time);
   const endTime = parseValidatedTime(obj.endTime);
+  const priority = parsePriority(obj.priority);
   const durationMinutes = parseDurationMinutes(
     obj.durationMinutes,
     time,
@@ -386,12 +400,13 @@ export async function extractIntentWithDeepSeek(
       intent,
       `${title || ''} ${targetTitle || ''} ${trimmed}`,
     ),
+    ...(priority ? {priority} : {}),
     details:
       intent === 'create_note'
         ? details || title || trimmed
         : details && details.toLowerCase() !== (title || '').toLowerCase()
-          ? details
-          : null,
+        ? details
+        : null,
     snoozeMinutes: null,
     confidence: 0.94,
     source: 'cloud',

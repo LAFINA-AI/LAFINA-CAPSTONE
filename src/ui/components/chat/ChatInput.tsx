@@ -37,6 +37,7 @@ export interface ChatInputProps {
   onClearFormat?: () => void;
   onSelectPrompt?: (prompt: string) => void;
   showSuggestions?: boolean;
+  placeholderOverride?: string;
   onFocus?: () => void;
 }
 
@@ -45,6 +46,13 @@ export const SUGGESTED_PROMPTS = [
   'Add study block for Math tomorrow from 2pm to 4pm',
   'Remind me tomorrow at 9am to submit lab report',
   'Take a note: Operating Systems lecture topics',
+];
+
+export const USTP_SUGGESTED_PROMPTS = [
+  "What are the requirements for the Dean's List?",
+  'How does the USTP grading system and GPA work?',
+  'What is the retention policy and maximum academic load?',
+  'What are the USTP rules on attendance and excused absences?',
 ];
 
 /**
@@ -86,6 +94,7 @@ export const ChatInput: React.FC<ChatInputProps> = ({
   onClearFormat,
   onSelectPrompt,
   showSuggestions = false,
+  placeholderOverride,
   onFocus,
 }) => {
   const { colors } = useTheme();
@@ -93,9 +102,11 @@ export const ChatInput: React.FC<ChatInputProps> = ({
   const formatMeta = selectedFormat ? DOCUMENT_FORMATS[selectedFormat] : null;
   const placeholder = formatMeta
     ? `Describe the ${formatMeta.shortLabel} file…`
-    : isOnlineMode
-      ? 'Ask lafina or request a file…'
-      : 'Ask lafina or add a schedule item…';
+    : placeholderOverride
+      ? placeholderOverride
+      : isOnlineMode
+        ? 'Ask lafina or request a file…'
+        : 'Ask lafina or add a schedule item…';
 
   const [isRecording, setIsRecording] = useState(false);
   const [isTranscribing, setIsTranscribing] = useState(false);

@@ -55,13 +55,20 @@ export type {
 } from './eventTime';
 export {timeBlocksStore} from './timeBlocksStore';
 export type {TimeBlock} from './timeBlocksStore';
-export {chatStore, CHAT_PAGE_SIZE, InvalidChatCursorError} from './chatStore';
+export {
+  chatStore,
+  CHAT_PAGE_SIZE,
+  InvalidChatCursorError,
+  USTP_CHAT_PREFIX,
+  isUstpSessionId,
+} from './chatStore';
 export type {
   ChatAttachment,
   ChatMessage,
   ChatMessageMetadata,
   ChatPage,
   ChatSession,
+  ChatSessionKind,
   ChatSummary,
   LegacyChatSummary,
 } from './chatStore';
@@ -113,16 +120,41 @@ export type {
 } from './syncTypes';
 export {localSettingsStore} from './localSettingsStore';
 export {
+  avatarSeedStore,
+  generateAvatarSeed,
+  PROFILE_AVATAR_SEED_KEY,
+} from './avatarSeedStore';
+export {
   academicProfileStore,
   formatClassBlockNotes,
+  mapCorCoursesToAcademicRecords,
   parseClassBlockMetadata,
+  pickSubjectColor,
 } from './academicProfileStore';
 export type {
   AcademicCourseRecord,
   AcademicProfileRecord,
   ClassBlockMetadata,
+  CorCourseInput,
   OnboardingScheduleSessionInput,
 } from './academicProfileStore';
+export {
+  ALL_DASHBOARD_WIDGET_IDS,
+  DASHBOARD_PRESETS,
+  DASHBOARD_WIDGET_META,
+  dashboardConfigStore,
+  getDefaultDashboardConfig,
+  normalizeDashboardConfig,
+} from './dashboardConfigStore';
+export type {
+  DashboardConfig,
+  DashboardPreset,
+  DashboardPresetId,
+  DashboardScheduleFilter,
+  DashboardWidgetId,
+  DashboardWidgetMeta,
+  MinFreeGapMinutes,
+} from './dashboardConfigStore';
 export {productTourStore, PRODUCT_TOUR_VERSION} from './productTourStore';
 export {calendarVisibilityStore} from './calendarVisibilityStore';
 export type {CalendarVisibilityMap} from './calendarVisibilityStore';

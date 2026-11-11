@@ -1,5 +1,5 @@
 import React from 'react';
-import { render, fireEvent } from '@testing-library/react-native';
+import { render, fireEvent, waitFor } from '@testing-library/react-native';
 import { ThemeProvider } from '../../src/ui/contexts/ThemeContext';
 import { MeetingsProvider } from '../../src/ui/contexts/MeetingsContext';
 import { ChatScreen } from '../../src/ui/screens/ChatScreen';
@@ -236,6 +236,34 @@ describe('Phase 10: USTP Student Handbook RAG & Citation-Backed Answers', () => 
       expect(result.reply).toContain('incomplete (INC) grade must be completed');
       expect(result.handbookNote).toBe('Referenced USTP Student Handbook (p. 46)');
     });
+
+    it('routes dedicated ustpRagOnly questions directly to Handbook RAG without planner NLU', async () => {
+      const sendSpy = jest
+        .spyOn(onlineChatSkill, 'sendChatMessage')
+        .mockResolvedValueOnce({
+          status: 'success',
+          data: {
+            reply: 'Dropping of subjects must be done within the official dropping period per the USTP Handbook.',
+            usedHandbook: true,
+            sources: [{ title: 'USTP Student Handbook', page: 38 }],
+          },
+        });
+
+      const result = await chatOrchestrator.processMessage(
+        testUserId,
+        'What is my schedule policy for dropping subjects?',
+        {
+          onlineMode: true,
+          useHandbook: true,
+          ustpRagOnly: true,
+        },
+      );
+
+      expect(sendSpy).toHaveBeenCalledTimes(1);
+      expect(sendSpy.mock.calls[0]?.[1]?.useHandbook).toBe(true);
+      expect(result.usedOnline).toBe(true);
+      expect(result.handbookNote).toBe('Referenced USTP Student Handbook (p. 38)');
+    });
   });
 
   describe('5. UI Verification: Citation Rendering & Handbook Toggle', () => {
@@ -279,15 +307,25 @@ describe('Phase 10: USTP Student Handbook RAG & Citation-Backed Answers', () => 
       expect(queryByTestId('chat-handbook-citation')).toBeNull();
     });
 
-    it('renders and toggles USTP handbook switch in ChatScreen header during Online Mode', async () => {
+    it('separates Ask LAFINA about USTP into its own RAG chat and sends handbook queries with useHandbook: true', async () => {
       jest
         .spyOn(accountLinkService, 'authorizeOnlineMode')
         .mockResolvedValue({
           status: 'success',
           message: 'Online mode ready.',
         });
+      const streamSpy = jest
+        .spyOn(onlineChatSkill, 'streamChatMessage')
+        .mockResolvedValue({
+          status: 'success',
+          data: {
+            reply: "A GPA of 1.75 or higher qualifies for Dean's List.",
+            usedHandbook: true,
+            sources: [{ title: 'USTP Student Handbook', page: 44 }],
+          },
+        });
 
-      const { getByTestId, findByTestId } = render(
+      const { getByTestId, queryByTestId, findByTestId, getByText } = render(
         <ThemeProvider userId={testUserId}>
           <MeetingsProvider userId={testUserId}>
             <ChatScreen userId={testUserId} />
@@ -295,20 +333,26 @@ describe('Phase 10: USTP Student Handbook RAG & Citation-Backed Answers', () => 
         </ThemeProvider>,
       );
 
-      // Switch to Online Mode first to reveal the USTP chip
-      const onlineToggle = getByTestId('chat-online-toggle-button');
-      fireEvent.press(onlineToggle);
+      // General chat header no longer mixes in the USTP toggle chip
+      expect(queryByTestId('chat-handbook-toggle-button')).toBeNull();
+      expect(getByTestId('chat-switch-to-ustp-button')).toBeTruthy();
 
-      const handbookToggle = await findByTestId('chat-handbook-toggle-button');
-      expect(handbookToggle).toBeTruthy();
+      // Open the Gemini-style sidebar and switch to Ask LAFINA about USTP
+      fireEvent.press(getByTestId('chat-history-button'));
+      fireEvent.press(getByTestId('chat-history-ustp-new'));
 
-      // Toggle off
-      fireEvent.press(handbookToggle);
-      expect(handbookPreference.read(testUserId)).toBe(false);
+      expect(await findByTestId('chat-ustp-mode-badge')).toBeTruthy();
+      expect(getByText('Ask LAFINA anything about USTP')).toBeTruthy();
+      expect(getByTestId('chat-ustp-prompt-chip-0')).toBeTruthy();
 
-      // Toggle back on
-      fireEvent.press(handbookToggle);
-      expect(handbookPreference.read(testUserId)).toBe(true);
+      // Enable Online Mode and send a USTP starter prompt
+      fireEvent.press(getByTestId('chat-ustp-enable-online'));
+      await waitFor(() => expect(queryByTestId('chat-ustp-enable-online')).toBeNull());
+
+      fireEvent.press(getByTestId('chat-ustp-prompt-chip-0'));
+      await waitFor(() => expect(streamSpy).toHaveBeenCalledTimes(1));
+      expect(streamSpy.mock.calls[0][1].useHandbook).toBe(true);
+      expect(await findByTestId('chat-handbook-citation')).toBeTruthy();
     });
   });
 });

@@ -1,18 +1,21 @@
 import React, {useState, useEffect, useRef} from 'react';
 import {
-  View,
-  Text,
-  StyleSheet,
-  TouchableOpacity,
-  ScrollView,
+  ActivityIndicator,
   Alert,
   Image,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
 } from 'react-native';
 import {Colors, Fonts, Layout, Shadows} from '../theme';
 import {
   preferencesStore,
   userStore,
   academicProfileStore,
+  avatarSeedStore,
+  mapCorCoursesToAcademicRecords,
 } from '../../storage';
 import type {
   UserPreferences,
@@ -26,7 +29,14 @@ import {APP_VERSION} from '../../appVersion';
 import {GUEST_USER_ID} from '../../constants';
 import {SvgXml} from 'react-native-svg';
 import {ARC_SCREEN_XML} from '../../assets/arc_screen_xml';
-import {Camera, GraduationCap, FileText} from 'lucide-react-native';
+import {
+  Camera,
+  ChevronDown,
+  ChevronUp,
+  Dices,
+  FileText,
+  GraduationCap,
+} from 'lucide-react-native';
 import {authService} from '../../cloud/authService';
 import {isStudentProAccount} from '../../cloud';
 import {
@@ -34,6 +44,11 @@ import {
   pickAvatarImage,
   removeAvatarImage,
 } from '../components/profile/avatarFile';
+import {CharacterAvatar} from '../components/profile/CharacterAvatar';
+import {
+  areTraitsVisuallyDistinct,
+  resolveCharacterTraits,
+} from '../components/profile/characterAvatarGenerator';
 import {ProfileStats} from '../components/profile/ProfileStats';
 import {SettingItem} from '../components/profile/SettingItem';
 import {ServerSwitchItem} from '../components/profile/ServerSwitchItem';
@@ -70,18 +85,50 @@ import {DeveloperModal} from '../components/profile/DeveloperModal';
 import {developerTestService} from '../components/profile/developerTestService';
 import {visionService} from '../../ai/vision/visionService';
 
-function getInitials(username: string | null | undefined): string {
-  if (!username || username.trim().length === 0) {
-    return '?';
+const COLLEGE_LOWER_WORDS = new Set([
+  'of',
+  'and',
+  'in',
+  'for',
+  'the',
+  'at',
+  'on',
+  'to',
+  'with',
+]);
+
+/** Converts uppercase COR college headers into readable Title Case for profile display. */
+function formatCollegeDisplay(college: string, collegeShort?: string): string {
+  const clean = college.replace(/\s+/g, ' ').trim();
+  const short = collegeShort?.trim() || '';
+  if (!clean) return short;
+
+  const letters = clean.replace(/[^A-Za-z]/g, '');
+  const upperRatio =
+    letters.length > 0
+      ? clean.replace(/[^A-Z]/g, '').length / letters.length
+      : 0;
+  const formatted =
+    upperRatio < 0.7
+      ? clean
+      : clean
+          .split(' ')
+          .map((word, index) => {
+            const lower = word.toLowerCase();
+            if (index > 0 && COLLEGE_LOWER_WORDS.has(lower)) {
+              return lower;
+            }
+            if (/^(?:ustp|citc|cea|csm|cste|cot|com)$/i.test(word)) {
+              return word.toUpperCase();
+            }
+            return lower.charAt(0).toUpperCase() + lower.slice(1);
+          })
+          .join(' ');
+
+  if (short && !formatted.toUpperCase().startsWith(short.toUpperCase())) {
+    return `${short} — ${formatted}`;
   }
-  const words = username
-    .trim()
-    .split(/[\s_-]+/)
-    .filter(Boolean);
-  if (words.length === 1) {
-    return words[0].slice(0, 2).toUpperCase();
-  }
-  return (words[0][0] + words[1][0]).toUpperCase();
+  return formatted;
 }
 
 const getSnoozePreferenceLabel = (preferences: UserPreferences): string => {
@@ -132,6 +179,7 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
       }
     });
   const [corUploading, setCorUploading] = useState(false);
+  const [subjectsExpanded, setSubjectsExpanded] = useState(false);
 
   const [statistics, setStatistics] = useState<ProfileStatistics>(() =>
     profileStatisticsStore.read(userId),
@@ -290,7 +338,15 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
 
   const isGuest = userId === GUEST_USER_ID;
   const photoSource = avatarSource(currentUser?.avatarUri ?? null);
+  const [avatarSeed, setAvatarSeed] = useState<string>(() =>
+    avatarSeedStore.getOrCreate(userId),
+  );
   const studentPro = currentUser ? isStudentProAccount(userId) : false;
+
+  useEffect(() => {
+    setSubjectsExpanded(false);
+    setAvatarSeed(avatarSeedStore.getOrCreate(userId));
+  }, [userId]);
 
   const prevProfileKeyRef = useRef(`${userId}:${refreshTrigger}`);
   useEffect(() => {
@@ -305,6 +361,7 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
   const loadSettings = () => {
     setCurrentUser(userStore.getUserById(userId));
     setAcademicProfile(academicProfileStore.get(userId));
+    setAvatarSeed(avatarSeedStore.getOrCreate(userId));
     setChatMemorySummary(readChatMemorySummary());
 
     const mondayStart = userStore.getWeekStartsMonday(userId);
@@ -370,24 +427,7 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
       const savedProfile = academicProfileStore.save(userId, {
         ...cor.profile,
         isUstpStudent: true,
-        courses: cor.courses.map((c) => ({
-          code: c.code,
-          subjectTitle: c.subjectTitle,
-          lecUnits: c.lecUnits,
-          labUnits: c.labUnits,
-          creditUnits: c.creditUnits,
-          section: c.section,
-          faculty: c.faculty,
-          scheduleSummary:
-            c.sessions.length > 0
-              ? c.sessions
-                  .map(
-                    (s) =>
-                      `${s.dayCode} ${s.startTime12}-${s.endTime12}${s.room && s.room !== 'TBA' ? ` (${s.room})` : ''}`,
-                  )
-                  .join(', ')
-              : 'TBA',
-        })),
+        courses: mapCorCoursesToAcademicRecords(cor.courses),
       });
 
       const scheduledCount = academicProfileStore.persistRecurringSchedule(
@@ -497,14 +537,42 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
     onRefresh();
   };
 
+  const randomizeCharacterAvatar = () => {
+    const prevTraits = resolveCharacterTraits(avatarSeed);
+    let nextSeed = avatarSeedStore.randomize(userId, avatarSeed);
+    for (let attempt = 0; attempt < 5; attempt += 1) {
+      const nextTraits = resolveCharacterTraits(nextSeed);
+      if (areTraitsVisuallyDistinct(prevTraits, nextTraits)) {
+        break;
+      }
+      nextSeed = avatarSeedStore.randomize(userId, nextSeed);
+    }
+    setAvatarSeed(nextSeed);
+  };
+
+  const switchToRandomCharacter = async () => {
+    randomizeCharacterAvatar();
+    await clearPhoto();
+  };
+
   const handleEditProfile = () => {
     const hasPhoto = Boolean(currentUser?.avatarUri);
     Alert.alert(
-      'Profile Photo',
+      'Profile Avatar',
       hasPhoto
-        ? 'Change or remove your profile photo.'
-        : 'Pick a photo from this device.',
+        ? 'Change your photo or switch back to a character avatar.'
+        : 'Roll a new random character or pick a photo from this device.',
       [
+        {
+          text: hasPhoto ? 'Use Random Character' : 'New Random Character',
+          onPress: () => {
+            if (hasPhoto) {
+              void switchToRandomCharacter();
+            } else {
+              randomizeCharacterAvatar();
+            }
+          },
+        },
         {
           text: hasPhoto ? 'Choose New Photo' : 'Choose Photo',
           onPress: () => void choosePhoto(),
@@ -706,6 +774,28 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
     );
   }
 
+  const academicSection =
+    academicProfile?.primarySection || academicProfile?.section || '';
+  const academicTerm =
+    academicProfile?.academicYearTerm || academicProfile?.academicTerm || '';
+  const academicRows = academicProfile
+    ? [
+        {label: 'Program', value: academicProfile.program},
+        {label: 'Year Level', value: academicProfile.yearLevel},
+        {label: 'Section', value: academicSection},
+        {
+          label: 'College',
+          value: formatCollegeDisplay(
+            academicProfile.college,
+            academicProfile.collegeShort,
+          ),
+        },
+        {label: 'Student No.', value: academicProfile.studentNo},
+        {label: 'Academic Term', value: academicTerm},
+        {label: 'Curriculum', value: academicProfile.curriculum},
+      ].filter(row => Boolean(row.value))
+    : [];
+
   return (
     <ScrollView
       style={[styles.container, themed.container]}
@@ -725,14 +815,15 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
           <TouchableOpacity
             onPress={handleEditProfile}
             activeOpacity={0.85}
+            testID="profile-avatar-btn"
             accessibilityRole="button"
             accessibilityLabel={
-              photoSource ? 'Change profile photo' : 'Add a profile photo'
+              photoSource ? 'Change profile photo' : 'Change profile avatar'
             }
             style={[
               styles.avatarCircle,
               themed.avatarCircle,
-              {backgroundColor: colors.blue},
+              {backgroundColor: colors.cardBg},
             ]}
           >
             {photoSource ? (
@@ -742,14 +833,28 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
                 resizeMode="cover"
               />
             ) : (
-              <Text style={[styles.avatarInitials, {color: colors.white}]}>
-                {getInitials(currentUser?.username)}
-              </Text>
+              <CharacterAvatar
+                seed={avatarSeed}
+                size={112}
+                testID="profile-character-avatar"
+              />
             )}
           </TouchableOpacity>
+          {!photoSource && (
+            <TouchableOpacity
+              onPress={randomizeCharacterAvatar}
+              style={[styles.randomizeBadge, themed.editBadge, Shadows.card]}
+              testID="profile-randomize-avatar-btn"
+              accessibilityRole="button"
+              accessibilityLabel="Randomize character avatar"
+            >
+              <Dices size={16} color={colors.textPrimary} />
+            </TouchableOpacity>
+          )}
           <TouchableOpacity
             onPress={handleEditProfile}
             style={[styles.editBadge, themed.editBadge, Shadows.card]}
+            testID="profile-photo-badge-btn"
             accessibilityRole="button"
             accessibilityLabel={
               photoSource ? 'Change profile photo' : 'Add a profile photo'
@@ -759,18 +864,20 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
           </TouchableOpacity>
         </View>
         <View style={styles.nameRow}>
-          <Text style={[styles.userName, themed.userName]} numberOfLines={1}>
+          <Text style={[styles.userName, themed.userName]} numberOfLines={2}>
             {currentUser?.username || 'Student'}
           </Text>
           {studentPro && <StudentProTag />}
         </View>
         <Text style={[styles.userEmail, themed.userEmail]}>
-          {currentUser?.email || 'No email set'}
+          {currentUser?.email ||
+            (isGuest ? 'Offline Guest Account' : 'No email set')}
         </Text>
         {academicProfile &&
           (academicProfile.program ||
             academicProfile.yearLevelShort ||
-            academicProfile.yearLevel) && (
+            academicProfile.yearLevel ||
+            academicSection) && (
             <View
               testID="profile-academic-subtitle"
               style={[
@@ -781,15 +888,19 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
                 },
               ]}
             >
-              <GraduationCap size={14} color={colors.blue} />
+              <GraduationCap
+                size={14}
+                color={colors.blue}
+                style={styles.academicSubtitleIcon}
+              />
               <Text
                 style={[styles.academicSubtitleText, {color: colors.textPrimary}]}
-                numberOfLines={1}
+                numberOfLines={2}
               >
                 {[
                   academicProfile.program,
                   academicProfile.yearLevelShort || academicProfile.yearLevel,
-                  academicProfile.primarySection,
+                  academicSection,
                 ]
                   .filter(Boolean)
                   .join(' · ')}
@@ -806,120 +917,207 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
               styles.academicCard,
               Shadows.card,
               themed.settingsGroupCard,
-              {borderColor: colors.border},
             ]}
           >
             <View style={styles.academicCardHeader}>
               <View style={styles.academicCardTitleRow}>
-                <GraduationCap size={18} color={colors.blue} />
-                <Text
-                  style={[styles.academicCardTitle, {color: colors.textPrimary}]}
-                >
-                  Academic Profile · USTP COR
-                </Text>
+                <GraduationCap
+                  size={18}
+                  color={colors.blue}
+                  style={styles.academicHeaderIcon}
+                />
+                <View style={styles.academicCardTitleGroup}>
+                  <Text
+                    style={[styles.academicCardTitle, {color: colors.textPrimary}]}
+                  >
+                    Academic Profile
+                  </Text>
+                  <Text
+                    style={[
+                      styles.academicCardSubtitle,
+                      {color: colors.textSecondary},
+                    ]}
+                    numberOfLines={1}
+                  >
+                    USTP COR
+                  </Text>
+                </View>
               </View>
               <TouchableOpacity
                 testID="profile-attach-cor-btn"
                 accessibilityRole="button"
+                accessibilityLabel={
+                  corUploading ? 'Scanning USTP COR' : 'Update COR'
+                }
                 onPress={() => void handleUploadCor()}
                 disabled={corUploading}
                 style={[
                   styles.academicUpdateBtn,
                   {borderColor: colors.blue},
+                  corUploading && styles.academicUpdateBtnDisabled,
                 ]}
               >
-                <FileText size={12} color={colors.blue} />
+                {corUploading ? (
+                  <ActivityIndicator size="small" color={colors.blue} />
+                ) : (
+                  <FileText size={12} color={colors.blue} />
+                )}
                 <Text style={[styles.academicUpdateBtnText, {color: colors.blue}]}>
                   {corUploading ? 'Scanning…' : 'Update COR'}
                 </Text>
               </TouchableOpacity>
             </View>
 
-            {academicProfile.program ? (
-              <View style={styles.academicRow}>
-                <Text style={[styles.academicLabel, {color: colors.textSecondary}]}>
-                  Program
-                </Text>
-                <Text style={[styles.academicValue, {color: colors.textPrimary}]}>
-                  {academicProfile.program}
-                </Text>
-              </View>
-            ) : null}
+            {(academicRows.length > 0 || academicProfile.courses.length > 0) && (
+              <View style={[styles.settingDivider, themed.settingDivider]} />
+            )}
 
-            {academicProfile.yearLevel ? (
-              <View style={styles.academicRow}>
-                <Text style={[styles.academicLabel, {color: colors.textSecondary}]}>
-                  Year Level
-                </Text>
-                <Text style={[styles.academicValue, {color: colors.textPrimary}]}>
-                  {academicProfile.yearLevel}
-                </Text>
-              </View>
-            ) : null}
-
-            {academicProfile.primarySection ? (
-              <View style={styles.academicRow}>
-                <Text style={[styles.academicLabel, {color: colors.textSecondary}]}>
-                  Section
-                </Text>
-                <Text style={[styles.academicValue, {color: colors.textPrimary}]}>
-                  {academicProfile.primarySection}
-                </Text>
-              </View>
-            ) : null}
-
-            {academicProfile.college ? (
-              <View style={styles.academicRow}>
-                <Text style={[styles.academicLabel, {color: colors.textSecondary}]}>
-                  College
-                </Text>
-                <Text style={[styles.academicValue, {color: colors.textPrimary}]}>
-                  {academicProfile.collegeShort
-                    ? `${academicProfile.collegeShort} — ${academicProfile.college}`
-                    : academicProfile.college}
-                </Text>
-              </View>
-            ) : null}
-
-            {academicProfile.studentNo ? (
-              <View style={styles.academicRow}>
-                <Text style={[styles.academicLabel, {color: colors.textSecondary}]}>
-                  Student No.
-                </Text>
-                <Text style={[styles.academicValue, {color: colors.textPrimary}]}>
-                  {academicProfile.studentNo}
-                </Text>
-              </View>
-            ) : null}
-
-            {academicProfile.curriculum || academicProfile.academicYearTerm ? (
-              <View style={styles.academicRow}>
-                <Text style={[styles.academicLabel, {color: colors.textSecondary}]}>
-                  Term & Curriculum
-                </Text>
-                <Text style={[styles.academicValue, {color: colors.textPrimary}]}>
-                  {[
-                    academicProfile.academicYearTerm,
-                    academicProfile.curriculum,
-                  ]
-                    .filter(Boolean)
-                    .join(' · ')}
-                </Text>
-              </View>
-            ) : null}
+            {academicRows.map((row, index) => (
+              <React.Fragment key={row.label}>
+                {index > 0 && (
+                  <View style={[styles.settingDivider, themed.settingDivider]} />
+                )}
+                <View style={styles.academicRow}>
+                  <Text
+                    style={[styles.academicLabel, {color: colors.textSecondary}]}
+                  >
+                    {row.label}
+                  </Text>
+                  <Text
+                    style={[styles.academicValue, {color: colors.textPrimary}]}
+                  >
+                    {row.value}
+                  </Text>
+                </View>
+              </React.Fragment>
+            ))}
 
             {academicProfile.courses.length > 0 ? (
-              <View style={styles.academicRow}>
-                <Text style={[styles.academicLabel, {color: colors.textSecondary}]}>
-                  Enrolled Subjects
-                </Text>
-                <Text style={[styles.academicValue, {color: colors.textPrimary}]}>
-                  {academicProfile.courses.length} subjects
-                  {academicProfile.totalCreditUnits
-                    ? ` (${academicProfile.totalCreditUnits} units)`
-                    : ''}
-                </Text>
-              </View>
+              <>
+                {academicRows.length > 0 && (
+                  <View style={[styles.settingDivider, themed.settingDivider]} />
+                )}
+                <TouchableOpacity
+                  testID="profile-toggle-subjects-btn"
+                  accessibilityRole="button"
+                  accessibilityState={{expanded: subjectsExpanded}}
+                  onPress={() => setSubjectsExpanded(prev => !prev)}
+                  activeOpacity={0.7}
+                  style={styles.academicRow}
+                >
+                  <Text
+                    style={[styles.academicLabel, {color: colors.textSecondary}]}
+                  >
+                    Enrolled Subjects
+                  </Text>
+                  <View style={styles.academicSubjectsValueWrap}>
+                    <Text
+                      style={[
+                        styles.academicSubjectsValue,
+                        {color: colors.textPrimary},
+                      ]}
+                    >
+                      {academicProfile.courses.length}{' '}
+                      {academicProfile.courses.length === 1
+                        ? 'subject'
+                        : 'subjects'}
+                      {academicProfile.totalCreditUnits
+                        ? ` (${academicProfile.totalCreditUnits} units)`
+                        : ''}
+                    </Text>
+                    {subjectsExpanded ? (
+                      <ChevronUp size={15} color={colors.blue} />
+                    ) : (
+                      <ChevronDown size={15} color={colors.blue} />
+                    )}
+                  </View>
+                </TouchableOpacity>
+
+                {subjectsExpanded && (
+                  <View
+                    testID="profile-academic-subjects-list"
+                    style={[
+                      styles.academicSubjectsList,
+                      {
+                        backgroundColor: colors.inputBg,
+                        borderColor: colors.border,
+                      },
+                    ]}
+                  >
+                    {academicProfile.courses.map((course, idx) => (
+                      <View
+                        key={`${course.code}-${course.section}-${idx}`}
+                        style={[
+                          styles.academicSubjectItem,
+                          idx > 0 && [
+                            styles.academicSubjectItemBorder,
+                            {borderTopColor: colors.divider},
+                          ],
+                        ]}
+                      >
+                        <View style={styles.academicSubjectTopRow}>
+                          <Text
+                            style={[
+                              styles.academicSubjectTitle,
+                              {color: colors.textPrimary},
+                            ]}
+                          >
+                            <Text style={{color: colors.blue}}>
+                              {course.code}
+                            </Text>
+                            {course.subjectTitle
+                              ? ` · ${course.subjectTitle}`
+                              : ''}
+                          </Text>
+                          <Text
+                            style={[
+                              styles.academicSubjectUnits,
+                              {color: colors.textSecondary},
+                            ]}
+                          >
+                            {course.creditUnits}{' '}
+                            {course.creditUnits === 1 ? 'unit' : 'units'}
+                          </Text>
+                        </View>
+                        <Text
+                          style={[
+                            styles.academicSubjectMeta,
+                            {color: colors.textSecondary},
+                          ]}
+                        >
+                          {[
+                            course.scheduleSummary,
+                            course.section,
+                            course.faculty && course.faculty !== 'TBA'
+                              ? course.faculty
+                              : '',
+                          ]
+                            .filter(Boolean)
+                            .join(' · ')}
+                        </Text>
+                      </View>
+                    ))}
+                  </View>
+                )}
+              </>
+            ) : academicProfile.totalCreditUnits ? (
+              <>
+                {academicRows.length > 0 && (
+                  <View style={[styles.settingDivider, themed.settingDivider]} />
+                )}
+                <View style={styles.academicRow}>
+                  <Text
+                    style={[styles.academicLabel, {color: colors.textSecondary}]}
+                  >
+                    Total Units
+                  </Text>
+                  <Text
+                    style={[styles.academicValue, {color: colors.textPrimary}]}
+                  >
+                    {academicProfile.totalCreditUnits} units
+                  </Text>
+                </View>
+              </>
             ) : null}
           </View>
         )}
@@ -1230,8 +1428,6 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
         )}
       </View>
 
-      <View style={styles.bottomSpacer} />
-
       {privacyModalVisible && (
         <PrivacyModal
           visible={privacyModalVisible}
@@ -1308,7 +1504,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   contentContainer: {
-    paddingBottom: 140,
+    paddingBottom: 130,
   },
   headerBackground: {
     width: '100%',
@@ -1318,7 +1514,7 @@ const styles = StyleSheet.create({
   avatarSection: {
     alignItems: 'center',
     marginTop: -80,
-    marginBottom: 24,
+    marginBottom: 14,
   },
   avatarWrapper: {
     position: 'relative',
@@ -1340,10 +1536,16 @@ const styles = StyleSheet.create({
     width: '100%',
     height: '100%',
   },
-  avatarInitials: {
-    fontSize: 40,
-    fontFamily: Fonts.heading,
-    fontWeight: 'bold',
+  randomizeBadge: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1.5,
   },
   editBadge: {
     position: 'absolute',
@@ -1358,11 +1560,12 @@ const styles = StyleSheet.create({
   },
   mainContent: {
     paddingHorizontal: 16,
-    paddingTop: 16,
+    paddingTop: 8,
   },
   nameRow: {
     flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'center',
     gap: 8,
     maxWidth: '100%',
     paddingHorizontal: 24,
@@ -1372,6 +1575,7 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontFamily: Fonts.heading,
     fontWeight: 'bold',
+    textAlign: 'center',
   },
   userEmail: {
     fontSize: 12,
@@ -1385,47 +1589,71 @@ const styles = StyleSheet.create({
     marginTop: 10,
     paddingHorizontal: 12,
     paddingVertical: 6,
-    borderRadius: 999,
+    borderRadius: 18,
     borderWidth: 1,
     maxWidth: '90%',
+  },
+  academicSubtitleIcon: {
+    flexShrink: 0,
   },
   academicSubtitleText: {
     fontSize: 12,
     fontFamily: Fonts.body,
     fontWeight: '600',
     flexShrink: 1,
+    textAlign: 'center',
   },
   academicCard: {
     borderRadius: Layout.borderRadiusCard,
     padding: 16,
     marginBottom: 16,
-    borderWidth: 1,
   },
   academicCardHeader: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    marginBottom: 12,
+    gap: 12,
+    marginBottom: 10,
   },
   academicCardTitleRow: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
-    flexShrink: 1,
+    flex: 1,
+    minWidth: 0,
+  },
+  academicHeaderIcon: {
+    flexShrink: 0,
+  },
+  academicCardTitleGroup: {
+    flex: 1,
+    minWidth: 0,
   },
   academicCardTitle: {
-    fontSize: 14,
+    fontSize: 15,
     fontFamily: Fonts.heading,
     fontWeight: '700',
+    flexShrink: 1,
+  },
+  academicCardSubtitle: {
+    fontSize: 11,
+    fontFamily: Fonts.body,
+    fontWeight: '600',
+    marginTop: 1,
+    flexShrink: 1,
   },
   academicUpdateBtn: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
+    gap: 5,
     paddingHorizontal: 10,
-    paddingVertical: 5,
+    paddingVertical: 6,
     borderRadius: 8,
     borderWidth: 1,
+    flexShrink: 0,
+  },
+  academicUpdateBtnDisabled: {
+    opacity: 0.6,
   },
   academicUpdateBtnText: {
     fontSize: 11,
@@ -1436,14 +1664,15 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'flex-start',
-    paddingVertical: 5,
+    paddingVertical: 8,
     gap: 12,
   },
   academicLabel: {
     fontSize: 12,
     fontFamily: Fonts.body,
     fontWeight: '600',
-    minWidth: 110,
+    minWidth: 100,
+    flexShrink: 0,
   },
   academicValue: {
     fontSize: 12,
@@ -1451,6 +1680,56 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     flex: 1,
     textAlign: 'right',
+  },
+  academicSubjectsValueWrap: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'flex-end',
+    gap: 4,
+  },
+  academicSubjectsValue: {
+    fontSize: 12,
+    fontFamily: Fonts.body,
+    fontWeight: '600',
+    textAlign: 'right',
+    flexShrink: 1,
+  },
+  academicSubjectsList: {
+    marginTop: 4,
+    borderRadius: 12,
+    borderWidth: 1,
+    paddingHorizontal: 12,
+    paddingVertical: 4,
+  },
+  academicSubjectItem: {
+    paddingVertical: 8,
+  },
+  academicSubjectItemBorder: {
+    borderTopWidth: 1,
+  },
+  academicSubjectTopRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    justifyContent: 'space-between',
+    gap: 8,
+  },
+  academicSubjectTitle: {
+    flex: 1,
+    fontSize: 12,
+    fontFamily: Fonts.body,
+    fontWeight: '600',
+  },
+  academicSubjectUnits: {
+    fontSize: 11,
+    fontFamily: Fonts.body,
+    fontWeight: '600',
+    flexShrink: 0,
+  },
+  academicSubjectMeta: {
+    fontSize: 11,
+    fontFamily: Fonts.body,
+    marginTop: 2,
   },
   settingsContainer: {
     marginBottom: 24,
@@ -1528,8 +1807,5 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     fontSize: 14,
     fontFamily: Fonts.body,
-  },
-  bottomSpacer: {
-    height: 120,
   },
 });
