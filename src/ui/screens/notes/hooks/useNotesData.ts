@@ -115,12 +115,17 @@ export const useNotesData = (options: UseNotesDataOptions) => {
   const [editingNote, setEditingNote] = useState<NoteSnapshot | null>(null);
   const [noteTitle, setNoteTitle] = useState('');
   const [noteBody, setNoteBody] = useState('');
-  const [noteCategory, setNoteCategory] = useState('Personal');
+  const [noteCategory, setNoteCategory] = useState('');
   const [noteTags, setNoteTags] = useState<string[]>([]);
   const [isPinned, setIsPinned] = useState(false);
   const [isVoice, setIsVoice] = useState(false);
   const [imageUri, setImageUri] = useState<string | null>(null);
   const [selection, setSelection] = useState({start: 0, end: 0});
+  const programmaticSelectionRef = useRef<{
+    start: number;
+    end: number;
+    expiresAt: number;
+  } | null>(null);
 
   // Drag state
   const [activeDragId, setActiveDragId] = useState<string | null>(null);
@@ -278,6 +283,7 @@ export const useNotesData = (options: UseNotesDataOptions) => {
     setEditingNote(null);
     setNoteTitle('');
     setNoteBody('');
+    setNoteCategory('');
     setNoteTags([]);
     setImageUri(null);
     setAiLoading(false);
@@ -423,7 +429,7 @@ export const useNotesData = (options: UseNotesDataOptions) => {
     setEditingNote(null);
     setNoteTitle('');
     setNoteBody('');
-    setNoteCategory('Personal');
+    setNoteCategory('');
     setNoteTags([]);
     setIsPinned(false);
     setIsVoice(false);
@@ -470,6 +476,11 @@ export const useNotesData = (options: UseNotesDataOptions) => {
     (type: NoteFormat) => {
       const edit = applyNoteFormat(noteBody, selection, type);
       setNoteBody(edit.body);
+      programmaticSelectionRef.current = {
+        start: edit.selection.start,
+        end: edit.selection.end,
+        expiresAt: Date.now() + 400,
+      };
       setSelection(edit.selection);
     },
     [noteBody, selection],
@@ -483,9 +494,31 @@ export const useNotesData = (options: UseNotesDataOptions) => {
         return;
       }
       setNoteBody(carried.body);
+      programmaticSelectionRef.current = {
+        start: carried.selection.start,
+        end: carried.selection.end,
+        expiresAt: Date.now() + 400,
+      };
       setSelection(carried.selection);
     },
     [noteBody],
+  );
+
+  const handleSelectionChange = useCallback(
+    (newSelection: {start: number; end: number}) => {
+      const pending = programmaticSelectionRef.current;
+      if (pending) {
+        if (Date.now() < pending.expiresAt) {
+          // If the incoming event is a stale position from before the programmatic edit, ignore it
+          if (newSelection.start < pending.start) {
+            return;
+          }
+        }
+        programmaticSelectionRef.current = null;
+      }
+      setSelection(newSelection);
+    },
+    [],
   );
 
   const toggleEditorChecklist = useCallback((index: number) => {
@@ -851,7 +884,7 @@ export const useNotesData = (options: UseNotesDataOptions) => {
     setIsPinned,
     setIsVoice,
     setImageUri,
-    setSelection,
+    setSelection: handleSelectionChange,
     // Actions
     loadNotes,
     loadMoreNotes,

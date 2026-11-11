@@ -31,6 +31,7 @@ import {
   Italic,
   List,
   ListChecks,
+  Maximize2,
   PenLine,
   Pencil,
   Pin,
@@ -47,6 +48,7 @@ import { NoteBody } from './NoteBody';
 import { getCategoryColor } from '../../../theme/categoryColors';
 import type { Note } from '../../../../storage';
 import type { NoteFormat } from '../../../../utils';
+import { getActiveLineFormat } from '../../../../utils';
 
 interface NoteEditorProps {
   visible: boolean;
@@ -172,11 +174,12 @@ const TOOLBAR_BUTTONS: {
 const AI_ACTIONS: {
   action: 'summarize' | 'clean' | 'tasks';
   label: string;
+  desc: string;
   icon: React.ComponentType<{ size: number; color: string }>;
 }[] = [
-  { action: 'summarize', label: 'Summarize', icon: Sparkles },
-  { action: 'clean', label: 'Clean Up', icon: PenLine },
-  { action: 'tasks', label: 'Extract Tasks', icon: ListChecks },
+  { action: 'summarize', label: 'Summarize', desc: 'Add bullet takeaways', icon: Sparkles },
+  { action: 'clean', label: 'Clean Up', desc: 'Tidy blank spacing', icon: PenLine },
+  { action: 'tasks', label: 'Extract Tasks', desc: 'Save to To-Do list', icon: ListChecks },
 ];
 
 const COLOR_OPTIONS = [
@@ -207,6 +210,42 @@ export const NoteEditor: React.FC<NoteEditorProps> = ({
 
   /** False while writing, true while reading — where to-dos can be ticked. */
   const [preview, setPreview] = useState(false);
+  const [showAiMenu, setShowAiMenu] = useState(false);
+  const [showFullImage, setShowFullImage] = useState(false);
+  const bodyInputRef = useRef<TextInput>(null);
+
+  useEffect(() => {
+    if (!visible) {
+      setShowFullImage(false);
+      setShowAiMenu(false);
+    }
+  }, [visible]);
+
+  // Controlled selection during programmatic actions, uncontrolled during natural typing
+  const [tempSelection, setTempSelection] = useState<{start: number; end: number} | undefined>(undefined);
+  const pendingProgrammaticSelection = useRef<{start: number; end: number; expiresAt: number} | null>(null);
+
+  useEffect(() => {
+    if (selection) {
+      setTempSelection(selection);
+      pendingProgrammaticSelection.current = {
+        start: selection.start,
+        end: selection.end,
+        expiresAt: Date.now() + 350,
+      };
+      const t = setTimeout(() => {
+        setTempSelection(undefined);
+      }, 120);
+      return () => clearTimeout(t);
+    }
+  }, [selection]);
+
+  const activeFormats = getActiveLineFormat(noteBody, selection || {start: 0, end: 0});
+
+  const handleFormatPress = (format: NoteFormat) => {
+    onFormatting(format);
+    bodyInputRef.current?.focus();
+  };
 
   const [showAddModal, setShowAddModal] = useState(false);
   const [newCatName, setNewCatName] = useState('');
@@ -275,7 +314,7 @@ export const NoteEditor: React.FC<NoteEditorProps> = ({
       Vibration.vibrate(50);
       onDeleteCategory(cat);
       if (noteCategory === cat) {
-        onCategoryChange('Personal');
+        onCategoryChange('');
       }
       return;
     }
@@ -346,6 +385,33 @@ export const NoteEditor: React.FC<NoteEditorProps> = ({
               </TouchableOpacity>
             )}
             <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.catScroll}>
+              <TouchableOpacity
+                disabled={isEditingCats}
+                style={[
+                  styles.catChipSmall,
+                  { borderColor: colors.border },
+                  (!noteCategory || noteCategory === 'None') && {
+                    backgroundColor: colors.inputBg,
+                    borderColor: colors.textSecondary,
+                  },
+                  isEditingCats && { opacity: 0.4 },
+                ]}
+                onPress={() => onCategoryChange('')}
+              >
+                <Text
+                  style={[
+                    { color: colors.textSecondary },
+                    (!noteCategory || noteCategory === 'None') && {
+                      color: colors.textPrimary,
+                      fontWeight: 'bold',
+                    },
+                    { fontSize: 11 },
+                  ]}
+                >
+                  None
+                </Text>
+              </TouchableOpacity>
+
               {['Work', 'Personal', 'Health', 'Learning'].map((cat) => (
                 <TouchableOpacity
                   key={cat}
@@ -356,7 +422,7 @@ export const NoteEditor: React.FC<NoteEditorProps> = ({
                     noteCategory === cat && { backgroundColor: getCategoryColor(cat), borderColor: 'transparent' },
                     isEditingCats && { opacity: 0.4 },
                   ]}
-                  onPress={() => onCategoryChange(cat)}
+                  onPress={() => onCategoryChange(noteCategory === cat ? '' : cat)}
                 >
                   <Text style={[
                     { color: colors.textSecondary },
@@ -377,7 +443,7 @@ export const NoteEditor: React.FC<NoteEditorProps> = ({
                   wiggleStyle={wiggleStyle}
                   color={getCategoryColor(cat)}
                   dragVal={dragVal}
-                  onPress={() => onCategoryChange(cat)}
+                  onPress={() => onCategoryChange(noteCategory === cat ? '' : cat)}
                   onLongPress={() => {
                     Vibration.vibrate(50);
                     setIsEditingCats(true);
@@ -545,44 +611,186 @@ export const NoteEditor: React.FC<NoteEditorProps> = ({
 
           {imageUri && (
             <View style={[styles.editorImageContainer, { borderColor: colors.border }]}>
-              <Image source={getLocalImage(imageUri)} style={styles.editorImage} resizeMode="cover" />
-              <TouchableOpacity style={styles.removeImageOverlayBtn} onPress={onRemoveImage} activeOpacity={0.7}>
+              <TouchableOpacity
+                activeOpacity={0.9}
+                onPress={() => setShowFullImage(true)}
+                style={styles.editorImageTouchable}
+                accessibilityRole="button"
+                accessibilityLabel="View full image"
+              >
+                <Image source={getLocalImage(imageUri)} style={styles.editorImage} resizeMode="cover" />
+                <View style={styles.viewFullBadge}>
+                  <Maximize2 size={12} color={colors.white} style={{ marginRight: 4 }} />
+                  <Text style={styles.viewFullBadgeText}>View Full</Text>
+                </View>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.removeImageOverlayBtn}
+                onPress={onRemoveImage}
+                activeOpacity={0.7}
+                accessibilityRole="button"
+                accessibilityLabel="Remove image"
+              >
                 <X size={16} color={colors.white} />
               </TouchableOpacity>
             </View>
           )}
 
-          {/* Toolbar */}
+          {/* Toolbar at top */}
           <View style={[styles.editorToolbar, { borderColor: colors.border }]}>
-            <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-              {TOOLBAR_BUTTONS.map(({ format, label, icon: Icon }) => (
-                <TouchableOpacity
-                  key={format}
-                  onPress={() => onFormatting(format)}
-                  style={[styles.toolbarBtn, { backgroundColor: colors.inputBg }]}
-                  activeOpacity={0.7}
-                  disabled={preview}
-                  accessibilityRole="button"
-                  accessibilityLabel={label}
-                  accessibilityState={{ disabled: preview }}
-                >
-                  <Icon size={16} color={preview ? colors.textMuted : colors.textPrimary} />
-                </TouchableOpacity>
-              ))}
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} keyboardShouldPersistTaps="always">
+              {TOOLBAR_BUTTONS.map(({ format, label, icon: Icon }) => {
+                const isActive =
+                  (format === 'bullet' && activeFormats.isBullet) ||
+                  (format === 'checklist' && activeFormats.isChecklist) ||
+                  (format === 'h1' && activeFormats.isH1) ||
+                  (format === 'h2' && activeFormats.isH2) ||
+                  (format === 'quote' && activeFormats.isQuote);
+                return (
+                  <TouchableOpacity
+                    key={format}
+                    onPress={() => handleFormatPress(format)}
+                    style={[
+                      styles.toolbarBtn,
+                      {
+                        backgroundColor: isActive
+                          ? Colors.red
+                          : colors.inputBg,
+                      },
+                    ]}
+                    activeOpacity={0.7}
+                    disabled={preview}
+                    accessibilityRole="button"
+                    accessibilityLabel={label}
+                    accessibilityState={{ disabled: preview }}
+                  >
+                    <Icon
+                      size={16}
+                      color={
+                        preview
+                          ? colors.textMuted
+                          : isActive
+                            ? colors.white
+                            : colors.textPrimary
+                      }
+                    />
+                  </TouchableOpacity>
+                );
+              })}
               <TouchableOpacity
                 onPress={imageUri ? onRemoveImage : onAttachImage}
-                style={[styles.toolbarBtn, { backgroundColor: colors.inputBg }, styles.imageToolbarBtn, imageUri && { backgroundColor: Colors.red }]}
+                style={[
+                  styles.toolbarBtn,
+                  { backgroundColor: colors.inputBg },
+                  styles.imageToolbarBtn,
+                  imageUri && { backgroundColor: Colors.red },
+                ]}
                 activeOpacity={0.7}
                 accessibilityRole="button"
                 accessibilityLabel={imageUri ? 'Remove image' : 'Add image'}
               >
-                <ImageIcon size={16} color={imageUri ? colors.white : colors.textPrimary} style={{ marginRight: 4 }} />
-                <Text style={[styles.imageToolbarText, { color: colors.textPrimary }, imageUri && { color: colors.white, fontWeight: 'bold' }]}>
+                <ImageIcon
+                  size={16}
+                  color={imageUri ? colors.white : colors.textPrimary}
+                  style={{ marginRight: 4 }}
+                />
+                <Text
+                  style={[
+                    styles.imageToolbarText,
+                    { color: colors.textPrimary },
+                    imageUri && { color: colors.white, fontWeight: 'bold' },
+                  ]}
+                >
                   {imageUri ? 'Remove Image' : 'Image'}
                 </Text>
               </TouchableOpacity>
+              <TouchableOpacity
+                onPress={() => setShowAiMenu(!showAiMenu)}
+                style={[
+                  styles.toolbarBtn,
+                  styles.aiToolbarBtn,
+                  {
+                    backgroundColor: showAiMenu ? colors.cardBg : colors.inputBg,
+                    borderColor: showAiMenu ? colors.red : 'transparent',
+                    borderWidth: showAiMenu ? 1 : 0,
+                  },
+                ]}
+                activeOpacity={0.7}
+                disabled={preview}
+                accessibilityRole="button"
+                accessibilityLabel="AI Assist"
+              >
+                <Sparkles size={15} color={colors.red} style={{ marginRight: 4 }} />
+                <Text style={[styles.aiToolbarText, { color: colors.textPrimary }]}>AI Assist</Text>
+              </TouchableOpacity>
             </ScrollView>
           </View>
+
+          {/* AI Assist Menu Card */}
+          {showAiMenu && (
+            <View
+              style={[
+                styles.aiMenuCard,
+                { backgroundColor: colors.cardBg, borderColor: colors.border },
+              ]}
+            >
+              <View style={styles.aiMenuHeader}>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                  <Sparkles size={14} color={colors.red} />
+                  <Text style={[styles.aiMenuTitle, { color: colors.textPrimary }]}>
+                    AI Note Assistant
+                  </Text>
+                </View>
+                <TouchableOpacity
+                  onPress={() => setShowAiMenu(false)}
+                  style={styles.aiMenuCloseBtn}
+                >
+                  <X size={14} color={colors.textSecondary} />
+                </TouchableOpacity>
+              </View>
+
+              <View style={styles.aiMenuActionsRow}>
+                {AI_ACTIONS.map(({ action, label, desc, icon: Icon }) => (
+                  <TouchableOpacity
+                    key={action}
+                    onPress={() => {
+                      setShowAiMenu(false);
+                      onAiAction(action);
+                    }}
+                    style={[
+                      styles.aiActionCard,
+                      {
+                        backgroundColor: colors.inputBg,
+                        borderColor: colors.border,
+                      },
+                    ]}
+                    activeOpacity={0.7}
+                    accessibilityRole="button"
+                    accessibilityLabel={label}
+                  >
+                    <View
+                      style={[
+                        styles.aiActionIconWrap,
+                        { backgroundColor: colors.cardBg },
+                      ]}
+                    >
+                      <Icon size={16} color={colors.red} />
+                    </View>
+                    <Text
+                      style={[styles.aiActionTitle, { color: colors.textPrimary }]}
+                    >
+                      {label}
+                    </Text>
+                    <Text
+                      style={[styles.aiActionDesc, { color: colors.textSecondary }]}
+                    >
+                      {desc}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+            </View>
+          )}
 
           {/* Mode Switcher */}
           <View style={[styles.modeRow, { borderColor: colors.border }]}>
@@ -622,14 +830,26 @@ export const NoteEditor: React.FC<NoteEditorProps> = ({
             </View>
           ) : (
             <TextInput
+              ref={bodyInputRef}
               style={[styles.editorBodyInput, { color: colors.textPrimary }]}
               placeholder="Start writing..."
               placeholderTextColor={colors.textSecondary}
               multiline
               value={noteBody}
               onChangeText={onBodyChange}
-              selection={selection}
-              onSelectionChange={(e) => onSelectionChange(e.nativeEvent.selection)}
+              selection={tempSelection}
+              onSelectionChange={(e) => {
+                const sel = e.nativeEvent.selection;
+                if (pendingProgrammaticSelection.current) {
+                  if (Date.now() < pendingProgrammaticSelection.current.expiresAt) {
+                    if (sel.start < pendingProgrammaticSelection.current.start) {
+                      return; // ignore stale in-flight event
+                    }
+                  }
+                  pendingProgrammaticSelection.current = null;
+                }
+                onSelectionChange(sel);
+              }}
             />
           )}
         </ScrollView>
@@ -642,29 +862,7 @@ export const NoteEditor: React.FC<NoteEditorProps> = ({
           </View>
         )}
 
-        {/* AI Actions */}
-        <View
-          style={[
-            styles.aiActionsStrip,
-            {
-              backgroundColor: colors.cardBg,
-              paddingBottom: Math.max(insets.bottom, 10),
-            },
-          ]}
-        >
-          {AI_ACTIONS.map(({ action, label, icon: Icon }) => (
-            <TouchableOpacity
-              key={action}
-              onPress={() => onAiAction(action)}
-              style={[styles.aiActionBtn, { backgroundColor: colors.inputBg }]}
-              accessibilityRole="button"
-              accessibilityLabel={label}
-            >
-              <Icon size={13} color={Colors.yellow} />
-              <Text style={styles.aiActionBtnText}>{label}</Text>
-            </TouchableOpacity>
-          ))}
-        </View>
+
 
         {draggingCat && (
           <Animated.View
@@ -685,6 +883,43 @@ export const NoteEditor: React.FC<NoteEditorProps> = ({
             <Text style={styles.dragCloneText}>{draggingCat}</Text>
           </Animated.View>
         )}
+
+        {/* Full Image Viewer Modal */}
+        {imageUri && (
+          <Modal
+            visible={showFullImage}
+            transparent={true}
+            animationType="fade"
+            onRequestClose={() => setShowFullImage(false)}
+            statusBarTranslucent
+          >
+            <View style={styles.fullImageBackdrop}>
+              <StatusBar barStyle="light-content" backgroundColor="#000000" />
+              <TouchableOpacity
+                style={[styles.fullImageCloseBtn, { top: topInset + 10 }]}
+                onPress={() => setShowFullImage(false)}
+                activeOpacity={0.8}
+                accessibilityRole="button"
+                accessibilityLabel="Close full image view"
+              >
+                <X size={22} color="#FFFFFF" />
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={styles.fullImageTouchableArea}
+                activeOpacity={1}
+                onPress={() => setShowFullImage(false)}
+              >
+                <Image
+                  source={getLocalImage(imageUri)}
+                  style={styles.fullScreenImage}
+                  resizeMode="contain"
+                />
+                <Text style={styles.fullImageDismissHint}>Tap anywhere to close</Text>
+              </TouchableOpacity>
+            </View>
+          </Modal>
+        )}
       </View>
     </Modal>
   );
@@ -704,23 +939,127 @@ const styles = StyleSheet.create({
   categoryEditorRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 12 },
   categoryLabel: { fontSize: 12, marginRight: 8 },
   catChipSmall: { paddingVertical: 4, paddingHorizontal: 8, borderRadius: 8, borderWidth: 1, marginRight: 4 },
-  editorToolbar: { flexDirection: 'row', alignItems: 'center', borderTopWidth: 1, borderBottomWidth: 1, paddingVertical: 6 },
+  editorToolbar: { flexDirection: 'row', alignItems: 'center', borderTopWidth: 1, borderBottomWidth: 1, paddingVertical: 6, marginVertical: 4 },
   toolbarBtn: { padding: 8, marginRight: 8, borderRadius: 8, justifyContent: 'center', alignItems: 'center' },
-  modeRow: { flexDirection: 'row', alignSelf: 'flex-start', borderWidth: 1, borderRadius: 10, overflow: 'hidden', marginTop: 10, marginBottom: 12 },
+  modeRow: { flexDirection: 'row', alignSelf: 'flex-start', borderWidth: 1, borderRadius: 10, overflow: 'hidden', marginTop: 8, marginBottom: 10 },
   modeBtn: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 12, paddingVertical: 6 },
   modeText: { fontSize: 12, fontFamily: 'sans-serif', marginLeft: 5 },
-  editorPreview: { minHeight: 400, paddingBottom: 8 },
+  editorPreview: { minHeight: 350, paddingBottom: 8 },
   imageToolbarBtn: { flexDirection: 'row', paddingHorizontal: 12 },
   imageToolbarText: { fontSize: 12, fontFamily: 'sans-serif' },
+  aiToolbarBtn: { flexDirection: 'row', paddingHorizontal: 12 },
+  aiToolbarText: { fontSize: 12, fontFamily: 'sans-serif', fontWeight: 'bold' },
+  aiMenuCard: {
+    borderRadius: 14,
+    borderWidth: 1,
+    padding: 12,
+    marginTop: 6,
+    marginBottom: 10,
+  },
+  aiMenuHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 10,
+  },
+  aiMenuTitle: {
+    fontSize: 13,
+    fontWeight: 'bold',
+    fontFamily: 'sans-serif',
+  },
+  aiMenuCloseBtn: {
+    padding: 4,
+  },
+  aiMenuActionsRow: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+  aiActionCard: {
+    flex: 1,
+    borderRadius: 10,
+    borderWidth: 1,
+    padding: 10,
+    alignItems: 'center',
+  },
+  aiActionIconWrap: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 6,
+  },
+  aiActionTitle: {
+    fontSize: 11,
+    fontWeight: 'bold',
+    fontFamily: 'sans-serif',
+    marginBottom: 2,
+    textAlign: 'center',
+  },
+  aiActionDesc: {
+    fontSize: 9,
+    fontFamily: 'sans-serif',
+    textAlign: 'center',
+    lineHeight: 12,
+  },
   editorImageContainer: { position: 'relative', marginVertical: 12, borderRadius: 12, overflow: 'hidden', borderWidth: 1, height: 180, width: '100%' },
+  editorImageTouchable: { width: '100%', height: '100%' },
   editorImage: { width: '100%', height: '100%' },
+  viewFullBadge: {
+    position: 'absolute',
+    bottom: 8,
+    left: 8,
+    backgroundColor: 'rgba(0, 0, 0, 0.65)',
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 4,
+    paddingHorizontal: 8,
+    borderRadius: 8,
+  },
+  viewFullBadgeText: {
+    color: '#FFFFFF',
+    fontSize: 11,
+    fontWeight: '600',
+    fontFamily: 'sans-serif',
+  },
   removeImageOverlayBtn: { position: 'absolute', top: 8, right: 8, backgroundColor: 'rgba(0,0,0,0.6)', borderRadius: 12, width: 24, height: 24, justifyContent: 'center', alignItems: 'center' },
-  editorBodyInput: { fontFamily: 'sans-serif', fontSize: 15, lineHeight: 22, height: 400, textAlignVertical: 'top', paddingVertical: 0 },
+  fullImageBackdrop: {
+    flex: 1,
+    backgroundColor: '#000000',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  fullImageCloseBtn: {
+    position: 'absolute',
+    right: 16,
+    zIndex: 20,
+    backgroundColor: 'rgba(255, 255, 255, 0.25)',
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  fullImageTouchableArea: {
+    width: '100%',
+    height: '100%',
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 12,
+  },
+  fullScreenImage: {
+    width: '100%',
+    height: '85%',
+  },
+  fullImageDismissHint: {
+    color: 'rgba(255, 255, 255, 0.6)',
+    fontSize: 12,
+    fontFamily: 'sans-serif',
+    marginTop: 12,
+  },
+  editorBodyInput: { fontFamily: 'sans-serif', fontSize: 15, lineHeight: 22, minHeight: 350, flex: 1, textAlignVertical: 'top', paddingVertical: 4 },
   aiLoadingOverlay: { position: 'absolute', top: 0, bottom: 0, left: 0, right: 0, justifyContent: 'center', alignItems: 'center', zIndex: 100 },
   aiLoadingText: { marginTop: 12, fontWeight: 'bold', fontFamily: 'sans-serif' },
-  aiActionsStrip: { flexDirection: 'row', paddingTop: 10, paddingBottom: 10, paddingHorizontal: 12, justifyContent: 'space-between' },
-  aiActionBtn: { flex: 1, flexDirection: 'row', borderRadius: 8, paddingVertical: 8, marginHorizontal: 4, alignItems: 'center', justifyContent: 'center' },
-  aiActionBtnText: { color: Colors.yellow, fontSize: 11, fontWeight: 'bold', fontFamily: 'sans-serif', marginLeft: 5 },
   catScroll: { flexDirection: 'row', alignItems: 'center', paddingRight: 16 },
   addCatBtn: { padding: 4, borderRadius: 8, borderWidth: 1, justifyContent: 'center', alignItems: 'center', minWidth: 28, height: 22 },
   modalOverlay: {

@@ -56,6 +56,30 @@ export const NoteCardBase: React.FC<NoteCardBaseProps> = ({
   const checklist = checklistStats(item.body);
   const toggle = (index: number) => onToggleChecklist(item, index);
 
+  const hasCategory = Boolean(item.category && item.category !== 'None' && item.category.trim().length > 0);
+  const categoryColor = hasCategory ? getCategoryColor(item.category) : '';
+  const categoryPill = hasCategory ? (
+    <View
+      style={[
+        styles.categoryPill,
+        {
+          backgroundColor: categoryColor + '18',
+          borderColor: categoryColor + '40',
+        },
+      ]}
+    >
+      <View
+        style={[styles.categoryPillDot, { backgroundColor: categoryColor }]}
+      />
+      <Text
+        style={[styles.categoryPillText, { color: categoryColor }]}
+        numberOfLines={1}
+      >
+        {item.category}
+      </Text>
+    </View>
+  ) : null;
+
   const progressBadge = checklist.total > 0 && (
     <View style={[styles.checklistBadge, { backgroundColor: colors.inputBg }]}>
       <CheckSquare size={9} color={checklist.done === checklist.total ? colors.success : colors.textMuted} />
@@ -91,7 +115,7 @@ export const NoteCardBase: React.FC<NoteCardBaseProps> = ({
         { backgroundColor: colors.cardBg },
       ]}
     >
-      <View style={[styles.noteTopStrip, { backgroundColor: getCategoryColor(item.category) }]} />
+      <View style={[styles.noteTopStrip, { backgroundColor: hasCategory ? categoryColor : 'transparent' }]} />
 
       {isGridView ? (
         <TouchableOpacity style={{ flex: 1 }} onPress={() => onPress(item)} activeOpacity={0.7} disabled={isActive}>
@@ -113,15 +137,20 @@ export const NoteCardBase: React.FC<NoteCardBaseProps> = ({
               />
             </View>
             <View style={styles.cardFooter}>
-              <Text style={[styles.cardDate, { color: colors.textMuted }]}>
-                {new Date(item.updatedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
-              </Text>
-              {progressBadge}
-              {item.isVoiceTranscribed && (
-                <View style={[styles.voiceBadge, { backgroundColor: 'rgba(91, 91, 255, 0.15)' }]}>
-                  <Text style={[styles.voiceBadgeText, { color: colors.blue }]}>AI</Text>
-                </View>
-              )}
+              <View style={styles.cardFooterLeft}>
+                <Text style={[styles.cardDate, { color: colors.textMuted }]}>
+                  {new Date(item.updatedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                </Text>
+                {categoryPill}
+              </View>
+              <View style={styles.cardFooterRight}>
+                {progressBadge}
+                {item.isVoiceTranscribed && (
+                  <View style={[styles.voiceBadge, { backgroundColor: 'rgba(91, 91, 255, 0.15)' }]}>
+                    <Text style={[styles.voiceBadgeText, { color: colors.blue }]}>AI</Text>
+                  </View>
+                )}
+              </View>
             </View>
           </View>
         </TouchableOpacity>
@@ -143,15 +172,20 @@ export const NoteCardBase: React.FC<NoteCardBaseProps> = ({
                   />
                 </View>
                 <View style={styles.cardFooter}>
-                  <Text style={[styles.cardDate, { color: colors.textMuted }]}>
-                    {new Date(item.updatedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
-                  </Text>
-                  {progressBadge}
-                  {item.isVoiceTranscribed && (
-                    <View style={[styles.voiceBadge, { backgroundColor: 'rgba(91, 91, 255, 0.15)' }]}>
-                      <Text style={[styles.voiceBadgeText, { color: colors.blue }]}>AI Transcribed</Text>
-                    </View>
-                  )}
+                  <View style={styles.cardFooterLeft}>
+                    <Text style={[styles.cardDate, { color: colors.textMuted }]}>
+                      {new Date(item.updatedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                    </Text>
+                    {categoryPill}
+                  </View>
+                  <View style={styles.cardFooterRight}>
+                    {progressBadge}
+                    {item.isVoiceTranscribed && (
+                      <View style={[styles.voiceBadge, { backgroundColor: 'rgba(91, 91, 255, 0.15)' }]}>
+                        <Text style={[styles.voiceBadgeText, { color: colors.blue }]}>AI Transcribed</Text>
+                      </View>
+                    )}
+                  </View>
                 </View>
               </View>
               {item.imageUri && (
@@ -257,8 +291,21 @@ const styles = StyleSheet.create({
   noteCardBody: { marginBottom: 8 },
   checklistBadge: { flexDirection: 'row', alignItems: 'center', borderRadius: 6, paddingHorizontal: 5, paddingVertical: 2 },
   checklistBadgeText: { fontSize: 9, fontWeight: 'bold', marginLeft: 3 },
-  cardFooter: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+  cardFooter: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 4 },
+  cardFooterLeft: { flexDirection: 'row', alignItems: 'center', flexShrink: 1, gap: 6 },
+  cardFooterRight: { flexDirection: 'row', alignItems: 'center', gap: 4 },
   cardDate: { fontSize: 10, fontFamily: 'sans-serif' },
+  categoryPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 5,
+    paddingVertical: 1.5,
+    borderRadius: 6,
+    borderWidth: 0.5,
+    maxWidth: 90,
+  },
+  categoryPillDot: { width: 4, height: 4, borderRadius: 2, marginRight: 3 },
+  categoryPillText: { fontSize: 8.5, fontWeight: '600', fontFamily: 'sans-serif' },
   voiceBadge: { borderRadius: 6, paddingHorizontal: 6, paddingVertical: 2 },
   voiceBadgeText: { fontSize: 8, fontWeight: 'bold' },
   gridCardImage: { width: '100%', height: 80 },
