@@ -212,6 +212,10 @@ describe('Phase 05: Fast TTS via react-native-tts & Optional ElevenLabs Cloud TT
     });
 
     test('falls back safely when the online server capability is unavailable', async () => {
+      jest.spyOn(cloudClient, 'request').mockResolvedValueOnce({
+        status: 'server_unavailable',
+        error: 'Capability check unavailable',
+      });
       const provider = createCallSpeechProvider(testUserId, {
         isOnlineMode: () => true,
       });

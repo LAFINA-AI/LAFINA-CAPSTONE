@@ -536,6 +536,7 @@ export const ChatScreen: React.FC<ChatScreenProps> = ({
       isConnected: boolean | null,
       isInternetReachable: boolean | null,
     ) => {
+      if (!active) return;
       const isDeviceConnected = Boolean(
         isConnected && isInternetReachable !== false,
       );
@@ -560,6 +561,7 @@ export const ChatScreen: React.FC<ChatScreenProps> = ({
 
     void NetInfo.fetch()
       .then(state => {
+        if (!active) return;
         void syncConnectivity(
           state.isConnected,
           state.isInternetReachable,

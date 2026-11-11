@@ -98,6 +98,12 @@ const fakeServer = () => {
           data: {status: 'active', lastErrorCode: null, lastErrorMessage: null},
         } as never;
       }
+      if (path === '/v1/ai/tts/capabilities' || path === '/v1/auth/me') {
+        return {
+          status: 'server_unavailable',
+          error: `Mocked unavailable in test: ${path}`,
+        } as never;
+      }
       throw new Error(`Unexpected path: ${path}`);
     });
   return paths;
@@ -183,9 +189,10 @@ afterEach(() => {
 });
 
 describe('Phase 01: Call Lafina Navigation & Premium Full-Screen UI', () => {
-  test('F-001: VoiceModal displays "Call Lafina" button while preserving offline "Hold to talk"', () => {
+  test('F-001: VoiceModal displays "Call Lafina" button while preserving offline "Hold to talk"', async () => {
     const userId = createTestUser('f001-modal');
     setupActiveUser(userId);
+    fakeServer();
     const onOpenCallLafina = jest.fn();
 
     const utils = render(
@@ -216,11 +223,19 @@ describe('Phase 01: Call Lafina Navigation & Premium Full-Screen UI', () => {
     // Tapping Call Lafina triggers onOpenCallLafina
     fireEvent.press(callButton);
     expect(onOpenCallLafina).toHaveBeenCalledTimes(1);
+
+    await act(async () => {
+      utils.unmount();
+      for (let i = 0; i < 5; i += 1) {
+        await Promise.resolve();
+      }
+    });
   });
 
-  test('F-001: ChatScreen provides a Call Lafina header CTA', () => {
+  test('F-001: ChatScreen provides a Call Lafina header CTA', async () => {
     const userId = createTestUser('f001-chat');
     setupActiveUser(userId);
+    fakeServer();
     const onCallLafina = jest.fn();
 
     const utils = render(
@@ -235,6 +250,13 @@ describe('Phase 01: Call Lafina Navigation & Premium Full-Screen UI', () => {
 
     fireEvent.press(callHeaderBtn);
     expect(onCallLafina).toHaveBeenCalledTimes(1);
+
+    await act(async () => {
+      utils.unmount();
+      for (let i = 0; i < 5; i += 1) {
+        await Promise.resolve();
+      }
+    });
   });
 
   test('F-002: CallLafinaScreen renders a dedicated full-screen surface without 75% sheet height constraint', () => {

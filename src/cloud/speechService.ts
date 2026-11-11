@@ -824,19 +824,32 @@ export const createCallSpeechProvider = (
   };
 
   const warmUp = async (): Promise<void> => {
-    if (capabilityChecked || !(await canUseElevenLabs())) return;
-    const capability = await cloudClient.request<{
-      provider: string;
-      enabled: boolean;
-    }>('/v1/ai/tts/capabilities', {method: 'GET'}, true);
-    if (
-      !capabilityChecked &&
-      capability.status === 'success' &&
-      capability.data?.provider === 'elevenlabs' &&
-      capability.data.enabled === true
-    ) {
-      elevenlabsAvailable = true;
-      capabilityChecked = true;
+    if (capabilityChecked || disposed || !(await canUseElevenLabs()) || disposed)
+      return;
+    const controller = new AbortController();
+    preparationControllers.add(controller);
+    try {
+      const capability = await cloudClient.request<{
+        provider: string;
+        enabled: boolean;
+      }>(
+        '/v1/ai/tts/capabilities',
+        {method: 'GET', signal: controller.signal},
+        true,
+      );
+      if (
+        !disposed &&
+        !controller.signal.aborted &&
+        !capabilityChecked &&
+        capability.status === 'success' &&
+        capability.data?.provider === 'elevenlabs' &&
+        capability.data.enabled === true
+      ) {
+        elevenlabsAvailable = true;
+        capabilityChecked = true;
+      }
+    } finally {
+      preparationControllers.delete(controller);
     }
   };
 
