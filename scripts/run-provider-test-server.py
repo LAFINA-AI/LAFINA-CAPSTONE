@@ -87,10 +87,10 @@ def main():
     from app.api.v1 import ai
     from local_chat_memory_adapter import install_local_memory_adapter
     install_local_memory_adapter(app, ai)
-    print('Local provider test: http://127.0.0.1:8000; DeepSeek + fast ElevenLabs TTS.', flush=True)
+    print('Local provider test listening on port 8000. On the phone use this computer’s Wi-Fi IPv4 address.', flush=True)
     print('Conversation routes loaded from isolated codex/voice-conversation snapshot.', flush=True)
     print('Local accounts/database only. Provider keys remain on this computer.', flush=True)
-    uvicorn.run(app, host='127.0.0.1', port=8000, log_level='warning', access_log=False)
+    uvicorn.run(app, host=os.environ.get('LAFINA_LOCAL_HOST', '0.0.0.0'), port=8000, log_level='warning', access_log=False)
 
 
 if __name__ == '__main__':

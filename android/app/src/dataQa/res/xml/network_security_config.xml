@@ -1,13 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!--
-  Test builds only. Plain HTTP is allowed to this device's own loopback
-  address, which `adb reverse` forwards to a backend on the developer's
-  computer. Everything else stays HTTPS-only, as in release builds.
--->
+<!-- Private QA variant only: editable local IPv4 endpoints require HTTP on LAN.
+     Production release keeps its HTTPS-only manifest. -->
 <network-security-config>
-    <base-config cleartextTrafficPermitted="false" />
-    <domain-config cleartextTrafficPermitted="true">
-        <domain includeSubdomains="false">127.0.0.1</domain>
-        <domain includeSubdomains="false">localhost</domain>
-    </domain-config>
+    <base-config cleartextTrafficPermitted="true" />
 </network-security-config>

@@ -20,19 +20,47 @@ export type BackendChoice = 'vercel' | 'local';
 /** Device-wide settings owner; not an account. */
 export const DEVICE_SETTINGS_OWNER = '__device__';
 export const BACKEND_CHOICE_KEY = 'debug.api_backend';
+export const LOCAL_BACKEND_URL_KEY = 'debug.local_api_url';
+
+export const validLocalBackendUrl = (value: string): boolean => {
+  const match = /^http:\/\/(\d{1,3}(?:\.\d{1,3}){3}):(\d{1,5})$/.exec(value);
+  if (!match) return false;
+  const octets = match[1].split('.').map(Number);
+  return (
+    octets.every(n => n <= 255) &&
+    Number(match[2]) > 0 &&
+    Number(match[2]) <= 65535 &&
+    (octets[0] === 10 ||
+      octets[0] === 127 ||
+      (octets[0] === 192 && octets[1] === 168) ||
+      (octets[0] === 172 && octets[1] >= 16 && octets[1] <= 31))
+  );
+};
+
+export const localBackendUrl = (): string => {
+  const saved = localSettingsStore.get(
+    DEVICE_SETTINGS_OWNER,
+    LOCAL_BACKEND_URL_KEY,
+  );
+  return saved && validLocalBackendUrl(saved) ? saved : LOCAL_API_BASE_URL;
+};
 
 export const BACKEND_LABELS: Record<BackendChoice, string> = {
   vercel: 'Vercel (Singapore)',
-  local: 'Local computer (127.0.0.1:8000)',
+  local: 'Local computer (Wi-Fi or USB)',
 };
 
 export const backendUrlFor = (choice: BackendChoice): string =>
-  choice === 'local' ? LOCAL_API_BASE_URL : CLOUD_API_BASE_URL;
+  choice === 'local' ? localBackendUrl() : CLOUD_API_BASE_URL;
 
 const isChoice = (value: unknown): value is BackendChoice =>
   value === 'vercel' || value === 'local';
 
 export const backendSelection = {
+  saveLocalUrl: (value: string): boolean =>
+    backendSelection.isAvailable() &&
+    validLocalBackendUrl(value) &&
+    localSettingsStore.set(DEVICE_SETTINGS_OWNER, LOCAL_BACKEND_URL_KEY, value),
   /** True only in builds compiled with the debug server switch. */
   isAvailable: (): boolean =>
     (
@@ -45,7 +73,7 @@ export const backendSelection = {
   current: (): BackendChoice | null => {
     const url = cloudClient.getBaseUrl();
     if (url === CLOUD_API_BASE_URL) return 'vercel';
-    if (url === LOCAL_API_BASE_URL) return 'local';
+    if (url === LOCAL_API_BASE_URL || url === localBackendUrl()) return 'local';
     return null;
   },
 
