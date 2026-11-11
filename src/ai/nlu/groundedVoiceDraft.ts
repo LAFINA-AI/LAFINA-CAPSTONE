@@ -7,7 +7,9 @@ type GroundedDraft =
   | {kind: 'clarify'; reply: string};
 
 export const isVoiceScheduleStart = (turn: string): boolean =>
-  /\b(?:add|create|schedule|plan|set|make|remind|book|block)\b/i.test(turn) &&
+  /\b(?:add|put|create|schedule|plan|set|make|remind|book|block)\b/i.test(
+    turn,
+  ) &&
   ['create_task', 'create_time_block', 'create_reminder'].includes(
     parseIntentFastPath(turn).intent,
   );

@@ -1,4 +1,8 @@
-import type { CrudTargetEntityType, ExtractedIntent, ParsedIntentType } from './types';
+import type {
+  CrudTargetEntityType,
+  ExtractedIntent,
+  ParsedIntentType,
+} from './types';
 
 /** Dictionary mapping spoken number words to integers. */
 export const NUMBER_WORDS: Record<string, number> = {
@@ -91,7 +95,11 @@ export function parseNumberWordOrDigits(
     return dict[trimmed];
   }
   const parts = trimmed.split(/[\s-]+/);
-  if (parts.length === 2 && dict[parts[0]] !== undefined && dict[parts[1]] !== undefined) {
+  if (
+    parts.length === 2 &&
+    dict[parts[0]] !== undefined &&
+    dict[parts[1]] !== undefined
+  ) {
     const first = dict[parts[0]];
     const second = dict[parts[1]];
     if ((parts[0] === 'oh' || parts[0] === 'o') && second >= 1 && second <= 9) {
@@ -117,8 +125,7 @@ const SPOKEN_MINUTE_PATTERN =
 const MERIDIEM_OR_ANCHOR_PATTERN =
   '(?:(?:am|pm)\\s+(?:noon|midday|mid-day|midnight)|noon|midday|mid-day|midnight|am|pm|in\\s+the\\s+morning|in\\s+the\\s+afternoon|in\\s+the\\s+evening|at\\s+night|tonight)';
 
-const TIME_ENDPOINT_PATTERN =
-  `(?:(?:noon|midday|mid-day|midnight)(?:\\s+(?:12|twelve)(?::00)?)?|(${HOUR_TOKEN_PATTERN})(?:(?::(\\d{2}))|(?:\\s+(${SPOKEN_MINUTE_PATTERN})))?(?:\\s+oclock)?(?:\\s*(${MERIDIEM_OR_ANCHOR_PATTERN}))?)`;
+const TIME_ENDPOINT_PATTERN = `(?:(?:noon|midday|mid-day|midnight)(?:\\s+(?:12|twelve)(?::00)?)?|(${HOUR_TOKEN_PATTERN})(?:(?::(\\d{2}))|(?:\\s+(${SPOKEN_MINUTE_PATTERN})))?(?:\\s+oclock)?(?:\\s*(${MERIDIEM_OR_ANCHOR_PATTERN}))?)`;
 
 /** Formats a Date object to YYYY-MM-DD in local time. */
 export function formatLocalDate(date: Date): string {
@@ -130,14 +137,17 @@ export function formatLocalDate(date: Date): string {
 
 /** Formats hours and minutes to HH:mm in 24-hour format. */
 export function formatLocalTime(hours: number, minutes: number): string {
-  return `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}`;
+  return `${String(hours).padStart(2, '0')}:${String(minutes).padStart(
+    2,
+    '0',
+  )}`;
 }
 
 /** Splits a 3- or 4-digit compact time token (e.g. "730" -> 7:30, "1030" -> 10:30, "0730" -> 07:30) if valid. */
 function splitCompactDigitsToTime(
   digits: string,
   requireStandardMinuteWhenBare: boolean = false,
-): { hourStr: string; hour: number; minuteStr: string; minute: number } | null {
+): {hourStr: string; hour: number; minuteStr: string; minute: number} | null {
   if (!/^\d{3,4}$/.test(digits)) return null;
   const hourStr = digits.length === 3 ? digits.slice(0, 1) : digits.slice(0, 2);
   const minuteStr = digits.slice(-2);
@@ -146,13 +156,23 @@ function splitCompactDigitsToTime(
 
   if (hour < 0 || hour > 23 || minute < 0 || minute > 59) return null;
   // Avoid treating years like 2025, 2026, 2027 as bare military times when no meridiem is attached
-  if (digits.length === 4 && hour === 20 && minute >= 20 && minute <= 35 && requireStandardMinuteWhenBare) {
+  if (
+    digits.length === 4 &&
+    hour === 20 &&
+    minute >= 20 &&
+    minute <= 35 &&
+    requireStandardMinuteWhenBare
+  ) {
     return null;
   }
-  if (requireStandardMinuteWhenBare && digits.length === 3 && minute % 5 !== 0) {
+  if (
+    requireStandardMinuteWhenBare &&
+    digits.length === 3 &&
+    minute % 5 !== 0
+  ) {
     return null;
   }
-  return { hourStr, hour, minuteStr, minute };
+  return {hourStr, hour, minuteStr, minute};
 }
 
 /**
@@ -171,11 +191,17 @@ export function normalizeSpeech(transcript: string): string {
     .replace(/(?:(?<=\d)|\b)a\s*\.\s*m\.?(?=\s|$|[.,!?;:])/gi, ' am')
     // Normalize spaced "a m" / "p m" after digits or time words (e.g. "7:30 a m", "730 p m", "nine a m")
     .replace(
-      new RegExp(`(\\b(?:\\d{1,4}(?::\\d{2})?|${HOUR_TOKEN_PATTERN}|${SPOKEN_MINUTE_PATTERN}))\\s+a\\s+m\\b`, 'gi'),
+      new RegExp(
+        `(\\b(?:\\d{1,4}(?::\\d{2})?|${HOUR_TOKEN_PATTERN}|${SPOKEN_MINUTE_PATTERN}))\\s+a\\s+m\\b`,
+        'gi',
+      ),
       '$1 am',
     )
     .replace(
-      new RegExp(`(\\b(?:\\d{1,4}(?::\\d{2})?|${HOUR_TOKEN_PATTERN}|${SPOKEN_MINUTE_PATTERN}))\\s+p\\s+m\\b`, 'gi'),
+      new RegExp(
+        `(\\b(?:\\d{1,4}(?::\\d{2})?|${HOUR_TOKEN_PATTERN}|${SPOKEN_MINUTE_PATTERN}))\\s+p\\s+m\\b`,
+        'gi',
+      ),
       '$1 pm',
     )
     // Normalize "in the am" / "in the pm"
@@ -241,11 +267,19 @@ export function normalizeSpeech(transcript: string): string {
   result = result.replace(
     /\b(\d{3,4}|\d{1,2}(?::\d{2})?\s*(?:am|pm|noon|midnight)?)\s*(to|until|till|'til|through|thru|[-–—])\s*(\d{3,4}|\d{1,2}(?::\d{2})?\s*(?:am|pm|noon|midnight)?)\b/gi,
     (full, leftTok: string, conn: string, rightTok: string) => {
-      const leftDigits = /^\d{3,4}$/.test(leftTok.trim()) ? splitCompactDigitsToTime(leftTok.trim(), true) : null;
-      const rightDigits = /^\d{3,4}$/.test(rightTok.trim()) ? splitCompactDigitsToTime(rightTok.trim(), true) : null;
+      const leftDigits = /^\d{3,4}$/.test(leftTok.trim())
+        ? splitCompactDigitsToTime(leftTok.trim(), true)
+        : null;
+      const rightDigits = /^\d{3,4}$/.test(rightTok.trim())
+        ? splitCompactDigitsToTime(rightTok.trim(), true)
+        : null;
       if (!leftDigits && !rightDigits) return full;
-      const newLeft = leftDigits ? `${leftDigits.hourStr}:${leftDigits.minuteStr}` : leftTok;
-      const newRight = rightDigits ? `${rightDigits.hourStr}:${rightDigits.minuteStr}` : rightTok;
+      const newLeft = leftDigits
+        ? `${leftDigits.hourStr}:${leftDigits.minuteStr}`
+        : leftTok;
+      const newRight = rightDigits
+        ? `${rightDigits.hourStr}:${rightDigits.minuteStr}`
+        : rightTok;
       return `${newLeft} ${conn} ${newRight}`;
     },
   );
@@ -274,7 +308,10 @@ export function normalizeSpeech(transcript: string): string {
 
   // Convert "half past <hour>", "quarter past <hour>", "quarter to <hour>", "<M> past <hour>", "<M> to <hour>"
   result = result.replace(
-    new RegExp(`\\bhalf\\s+past\\s+(noon|midday|midnight|${HOUR_TOKEN_PATTERN})\\b`, 'gi'),
+    new RegExp(
+      `\\bhalf\\s+past\\s+(noon|midday|midnight|${HOUR_TOKEN_PATTERN})\\b`,
+      'gi',
+    ),
     (_, hToken: string) => {
       const lowerH = hToken.toLowerCase();
       if (lowerH === 'noon' || lowerH === 'midday') return '12:30 noon';
@@ -284,7 +321,10 @@ export function normalizeSpeech(transcript: string): string {
     },
   );
   result = result.replace(
-    new RegExp(`\\bquarter\\s+past\\s+(noon|midday|midnight|${HOUR_TOKEN_PATTERN})\\b`, 'gi'),
+    new RegExp(
+      `\\bquarter\\s+past\\s+(noon|midday|midnight|${HOUR_TOKEN_PATTERN})\\b`,
+      'gi',
+    ),
     (_, hToken: string) => {
       const lowerH = hToken.toLowerCase();
       if (lowerH === 'noon' || lowerH === 'midday') return '12:15 noon';
@@ -294,7 +334,10 @@ export function normalizeSpeech(transcript: string): string {
     },
   );
   result = result.replace(
-    new RegExp(`\\bquarter\\s+(?:to|till)\\s+(noon|midday|midnight|${HOUR_TOKEN_PATTERN})\\b`, 'gi'),
+    new RegExp(
+      `\\bquarter\\s+(?:to|till)\\s+(noon|midday|midnight|${HOUR_TOKEN_PATTERN})\\b`,
+      'gi',
+    ),
     (_, hToken: string) => {
       const lowerH = hToken.toLowerCase();
       if (lowerH === 'noon' || lowerH === 'midday') return '11:45 am';
@@ -308,7 +351,10 @@ export function normalizeSpeech(transcript: string): string {
     },
   );
   result = result.replace(
-    new RegExp(`\\b(ten|fifteen|twenty|twenty[\\s-]five|5|10|15|20|25)\\s+(?:minutes?\\s+)?past\\s+(${HOUR_TOKEN_PATTERN})\\b`, 'gi'),
+    new RegExp(
+      `\\b(ten|fifteen|twenty|twenty[\\s-]five|5|10|15|20|25)\\s+(?:minutes?\\s+)?past\\s+(${HOUR_TOKEN_PATTERN})\\b`,
+      'gi',
+    ),
     (full, minTok: string, hTok: string) => {
       const m = parseNumberWordOrDigits(minTok);
       const h = parseNumberWordOrDigits(hTok);
@@ -319,7 +365,10 @@ export function normalizeSpeech(transcript: string): string {
     },
   );
   result = result.replace(
-    new RegExp(`\\b(ten|fifteen|twenty|twenty[\\s-]five|5|10|15|20|25)\\s+(?:minutes?\\s+)?(?:to|till)\\s+(${HOUR_TOKEN_PATTERN})\\b`, 'gi'),
+    new RegExp(
+      `\\b(ten|fifteen|twenty|twenty[\\s-]five|5|10|15|20|25)\\s+(?:minutes?\\s+)?(?:to|till)\\s+(${HOUR_TOKEN_PATTERN})\\b`,
+      'gi',
+    ),
     (full, minTok: string, hTok: string) => {
       const m = parseNumberWordOrDigits(minTok);
       const h = parseNumberWordOrDigits(hTok);
@@ -339,10 +388,34 @@ export function normalizeSpeech(transcript: string): string {
 export function detectCategory(text: string): string {
   const lower = text.toLowerCase();
   const academicKeywords = [
-    'exam', 'quiz', 'midterm', 'final', 'lecture', 'assignment', 'homework',
-    'thesis', 'capstone', 'lab', 'class', 'study', 'professor', 'course', 'project',
-    'defense', 'subject', 'school', 'university', 'ustp', 'syllabus', 'calculus',
-    'physics', 'algorithms', 'programming', 'research', 'report', 'seminar',
+    'exam',
+    'quiz',
+    'midterm',
+    'final',
+    'lecture',
+    'assignment',
+    'homework',
+    'thesis',
+    'capstone',
+    'lab',
+    'class',
+    'study',
+    'professor',
+    'course',
+    'project',
+    'defense',
+    'subject',
+    'school',
+    'university',
+    'ustp',
+    'syllabus',
+    'calculus',
+    'physics',
+    'algorithms',
+    'programming',
+    'research',
+    'report',
+    'seminar',
   ];
   for (const kw of academicKeywords) {
     if (new RegExp(`\\b${kw}\\b`, 'i').test(lower)) {
@@ -402,7 +475,11 @@ interface ParsedTimeEndpoint {
 function classifyMeridiemToken(raw: string | undefined): EndpointMeridiem {
   if (!raw) return null;
   const cleaned = raw.trim().toLowerCase().replace(/\s+/g, ' ');
-  if (cleaned.includes('noon') || cleaned.includes('midday') || cleaned.includes('mid-day')) {
+  if (
+    cleaned.includes('noon') ||
+    cleaned.includes('midday') ||
+    cleaned.includes('mid-day')
+  ) {
     return 'noon';
   }
   if (cleaned.includes('midnight')) {
@@ -411,7 +488,11 @@ function classifyMeridiemToken(raw: string | undefined): EndpointMeridiem {
   if (cleaned === 'am' || cleaned === 'in the morning') {
     return 'am';
   }
-  if (cleaned === 'pm' || cleaned === 'in the afternoon' || cleaned === 'in the evening') {
+  if (
+    cleaned === 'pm' ||
+    cleaned === 'in the afternoon' ||
+    cleaned === 'in the evening'
+  ) {
     return 'pm';
   }
   if (cleaned === 'at night' || cleaned === 'tonight') {
@@ -420,7 +501,10 @@ function classifyMeridiemToken(raw: string | undefined): EndpointMeridiem {
   return null;
 }
 
-function parseTimeEndpoint(rawEndpoint: string, allowBareSpokenMinutes: boolean = false): ParsedTimeEndpoint | null {
+function parseTimeEndpoint(
+  rawEndpoint: string,
+  allowBareSpokenMinutes: boolean = false,
+): ParsedTimeEndpoint | null {
   const trimmed = rawEndpoint.trim().toLowerCase();
   if (!trimmed) return null;
 
@@ -477,7 +561,9 @@ function parseTimeEndpoint(rawEndpoint: string, allowBareSpokenMinutes: boolean 
   const hasLeadingZero = /^0\d$/.test(hourToken);
   const is24Hour =
     meridiem === null &&
-    (parsedHour >= 13 || parsedHour === 0 || (hasLeadingZero && colonMinToken !== undefined));
+    (parsedHour >= 13 ||
+      parsedHour === 0 ||
+      (hasLeadingZero && colonMinToken !== undefined));
 
   // If > 12 and user also said am/pm/noon/midnight, reject invalid combinations like "15 pm"
   if (parsedHour > 12 && meridiem !== null) return null;
@@ -551,17 +637,35 @@ function resolveImplicitHour24(
   return rawHour + 12;
 }
 
-function detectContextPeriod(lowerText: string): 'morning' | 'afternoon' | 'evening' | 'night' | null {
-  if (/\b(?:in\s+the\s+morning|this\s+morning|(?:to-?morrow|tommorow|tomorow|tommorrow|morrow|tmrw|tmr)\s+morning|(?:monday|tuesday|wednesday|thursday|friday|saturday|sunday)\s+morning|before\s+class|before\s+school)\b/i.test(lowerText)) {
+function detectContextPeriod(
+  lowerText: string,
+): 'morning' | 'afternoon' | 'evening' | 'night' | null {
+  if (
+    /\b(?:in\s+the\s+morning|this\s+morning|(?:to-?morrow|tommorow|tomorow|tommorrow|morrow|tmrw|tmr)\s+morning|(?:monday|tuesday|wednesday|thursday|friday|saturday|sunday)\s+morning|before\s+class|before\s+school)\b/i.test(
+      lowerText,
+    )
+  ) {
     return 'morning';
   }
-  if (/\b(?:in\s+the\s+afternoon|this\s+afternoon|(?:to-?morrow|tommorow|tomorow|tommorrow|morrow|tmrw|tmr)\s+afternoon|(?:monday|tuesday|wednesday|thursday|friday|saturday|sunday)\s+afternoon|after\s+lunch)\b/i.test(lowerText)) {
+  if (
+    /\b(?:in\s+the\s+afternoon|this\s+afternoon|(?:to-?morrow|tommorow|tomorow|tommorrow|morrow|tmrw|tmr)\s+afternoon|(?:monday|tuesday|wednesday|thursday|friday|saturday|sunday)\s+afternoon|after\s+lunch)\b/i.test(
+      lowerText,
+    )
+  ) {
     return 'afternoon';
   }
-  if (/\b(?:in\s+the\s+evening|this\s+evening|(?:to-?morrow|tommorow|tomorow|tommorrow|morrow|tmrw|tmr)\s+evening|(?:monday|tuesday|wednesday|thursday|friday|saturday|sunday)\s+evening|after\s+class|after\s+school|after\s+work)\b/i.test(lowerText)) {
+  if (
+    /\b(?:in\s+the\s+evening|this\s+evening|(?:to-?morrow|tommorow|tomorow|tommorrow|morrow|tmrw|tmr)\s+evening|(?:monday|tuesday|wednesday|thursday|friday|saturday|sunday)\s+evening|after\s+class|after\s+school|after\s+work)\b/i.test(
+      lowerText,
+    )
+  ) {
     return 'evening';
   }
-  if (/\b(?:at\s+night|tonight|(?:to-?morrow|tommorow|tomorow|tommorrow|morrow|tmrw|tmr)\s+night|(?:monday|tuesday|wednesday|thursday|friday|saturday|sunday)\s+night|late\s+night)\b/i.test(lowerText)) {
+  if (
+    /\b(?:at\s+night|tonight|(?:to-?morrow|tommorow|tomorow|tommorrow|morrow|tmrw|tmr)\s+night|(?:monday|tuesday|wednesday|thursday|friday|saturday|sunday)\s+night|late\s+night)\b/i.test(
+      lowerText,
+    )
+  ) {
     return 'night';
   }
   return null;
@@ -571,7 +675,13 @@ function resolveTimeRangeEndpoints(
   startEp: ParsedTimeEndpoint,
   endEp: ParsedTimeEndpoint,
   contextPeriod: 'morning' | 'afternoon' | 'evening' | 'night' | null,
-): { startHour: number; startMin: number; endHour: number; endMin: number; durationMinutes: number } {
+): {
+  startHour: number;
+  startMin: number;
+  endHour: number;
+  endMin: number;
+  durationMinutes: number;
+} {
   let startH = resolveExplicitHour24(startEp);
   let endH = resolveExplicitHour24(endEp);
 
@@ -582,7 +692,10 @@ function resolveTimeRangeEndpoints(
         endH = 12;
       } else if (startH === 0) {
         endH = eh;
-      } else if (eh > startH || (eh === startH && endEp.minute > startEp.minute)) {
+      } else if (
+        eh > startH ||
+        (eh === startH && endEp.minute > startEp.minute)
+      ) {
         endH = eh;
       } else {
         endH = eh + 12;
@@ -592,7 +705,10 @@ function resolveTimeRangeEndpoints(
         endH = 0;
       } else if (startH === 12) {
         endH = eh + 12;
-      } else if (eh + 12 > startH || (eh + 12 === startH && endEp.minute > startEp.minute)) {
+      } else if (
+        eh + 12 > startH ||
+        (eh + 12 === startH && endEp.minute > startEp.minute)
+      ) {
         endH = eh + 12;
       } else {
         endH = eh;
@@ -624,7 +740,10 @@ function resolveTimeRangeEndpoints(
       const end12 = endH - 12;
       if (sh === 12) {
         startH = 12;
-      } else if (sh < end12 || (sh === end12 && startEp.minute < endEp.minute)) {
+      } else if (
+        sh < end12 ||
+        (sh === end12 && startEp.minute < endEp.minute)
+      ) {
         startH = sh + 12;
       } else {
         startH = sh;
@@ -701,7 +820,10 @@ interface ParsedDateTime {
 }
 
 /** Parses dates and times deterministically using local calendar arithmetic. */
-export function parseDateAndTime(text: string, referenceDate: Date = new Date()): ParsedDateTime {
+export function parseDateAndTime(
+  text: string,
+  referenceDate: Date = new Date(),
+): ParsedDateTime {
   const matchedText: string[] = [];
   let date: string | null = null;
   let time: string | null = null;
@@ -719,7 +841,10 @@ export function parseDateAndTime(text: string, referenceDate: Date = new Date())
     date = formatLocalDate(d);
     matchedText.push('day after tomorrow');
   } else {
-    const morrowMatch = /\b(?:to-?morrow|tommorow|tomorow|tommorrow|morrow|tmrw|tmr)\b/i.exec(lower);
+    const morrowMatch =
+      /\b(?:to-?morrow|tommorow|tomorow|tommorrow|morrow|tmrw|tmr)\b/i.exec(
+        lower,
+      );
     if (morrowMatch) {
       const d = new Date(referenceDate);
       d.setDate(d.getDate() + 1);
@@ -745,23 +870,46 @@ export function parseDateAndTime(text: string, referenceDate: Date = new Date())
 
   // Month name and day: e.g. "on October 31", "Oct 31", "October 31st"
   if (!date) {
-    const monthRegex = /\b(?:on\s+)?(january|february|march|april|may|june|july|august|september|october|november|december|jan|feb|mar|apr|jun|jul|aug|sep|sept|oct|nov|dec)\s+(\d{1,2})(?:st|nd|rd|th)?(?:\s*,?\s*(\d{4}))?\b/i;
+    const monthRegex =
+      /\b(?:on\s+)?(january|february|march|april|may|june|july|august|september|october|november|december|jan|feb|mar|apr|jun|jul|aug|sep|sept|oct|nov|dec)\s+(\d{1,2})(?:st|nd|rd|th)?(?:\s*,?\s*(\d{4}))?\b/i;
     const monthMatch = monthRegex.exec(lower);
     if (monthMatch) {
       const monthNames = [
-        'january', 'february', 'march', 'april', 'may', 'june',
-        'july', 'august', 'september', 'october', 'november', 'december',
+        'january',
+        'february',
+        'march',
+        'april',
+        'may',
+        'june',
+        'july',
+        'august',
+        'september',
+        'october',
+        'november',
+        'december',
       ];
       const monthShort = [
-        'jan', 'feb', 'mar', 'apr', 'may', 'jun',
-        'jul', 'aug', 'sep', 'oct', 'nov', 'dec',
+        'jan',
+        'feb',
+        'mar',
+        'apr',
+        'may',
+        'jun',
+        'jul',
+        'aug',
+        'sep',
+        'oct',
+        'nov',
+        'dec',
       ];
       const mStr = monthMatch[1].toLowerCase();
       let mIdx = monthNames.indexOf(mStr);
       if (mIdx === -1) mIdx = monthShort.indexOf(mStr.slice(0, 3));
       if (mIdx !== -1) {
         const dNum = parseInt(monthMatch[2], 10);
-        const yNum = monthMatch[3] ? parseInt(monthMatch[3], 10) : referenceDate.getFullYear();
+        const yNum = monthMatch[3]
+          ? parseInt(monthMatch[3], 10)
+          : referenceDate.getFullYear();
         if (dNum >= 1 && dNum <= 31) {
           const d = new Date(yNum, mIdx, dNum);
           date = formatLocalDate(d);
@@ -772,9 +920,20 @@ export function parseDateAndTime(text: string, referenceDate: Date = new Date())
   }
 
   // Weekdays: e.g. "next Monday", "this Friday", "on Wednesday", "every Monday"
-  const weekdayMatch = /\b(?:on\s+|this\s+|next\s+|every\s+)?(monday|tuesday|wednesday|thursday|friday|saturday|sunday)\b/i.exec(lower);
+  const weekdayMatch =
+    /\b(?:on\s+|this\s+|next\s+|every\s+)?(monday|tuesday|wednesday|thursday|friday|saturday|sunday)\b/i.exec(
+      lower,
+    );
   if (weekdayMatch && !date) {
-    const days = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
+    const days = [
+      'sunday',
+      'monday',
+      'tuesday',
+      'wednesday',
+      'thursday',
+      'friday',
+      'saturday',
+    ];
     const targetDayIndex = days.indexOf(weekdayMatch[1].toLowerCase());
     if (targetDayIndex !== -1) {
       const currentDayIndex = referenceDate.getDay();
@@ -791,7 +950,10 @@ export function parseDateAndTime(text: string, referenceDate: Date = new Date())
 
   // "next week" / "this coming week"
   if (!date) {
-    const nextWeekMatch = /\b(?:(?:for|in|on)\s+)?(?:next\s+week|this\s+coming\s+week)\b/i.exec(lower);
+    const nextWeekMatch =
+      /\b(?:(?:for|in|on)\s+)?(?:next\s+week|this\s+coming\s+week)\b/i.exec(
+        lower,
+      );
     if (nextWeekMatch) {
       const currentDayIndex = referenceDate.getDay();
       let daysUntilNextMonday = (8 - currentDayIndex) % 7;
@@ -805,7 +967,10 @@ export function parseDateAndTime(text: string, referenceDate: Date = new Date())
 
   // "this weekend" / "next weekend"
   if (!date) {
-    const weekendMatch = /\b(?:(?:for|on|over)\s+)?(?:this\s+weekend|next\s+weekend)\b/i.exec(lower);
+    const weekendMatch =
+      /\b(?:(?:for|on|over)\s+)?(?:this\s+weekend|next\s+weekend)\b/i.exec(
+        lower,
+      );
     if (weekendMatch) {
       const isNext = /\bnext\b/i.test(weekendMatch[0]);
       const currentDayIndex = referenceDate.getDay();
@@ -841,7 +1006,10 @@ export function parseDateAndTime(text: string, referenceDate: Date = new Date())
 
   // Relative time expressions:
   // "in half an hour", "half an hour from now", "half an hour later", "half hour from now"
-  const halfHourMatch = /\b(?:in\s+(?:about\s+)?half\s+(?:an?\s+)?hour(?:\s+(?:from\s+now|later))?|(?:about\s+)?half\s+(?:an?\s+)?hour\s+(?:from\s+now|later))\b/i.exec(lower);
+  const halfHourMatch =
+    /\b(?:in\s+(?:about\s+)?half\s+(?:an?\s+)?hour(?:\s+(?:from\s+now|later))?|(?:about\s+)?half\s+(?:an?\s+)?hour\s+(?:from\s+now|later))\b/i.exec(
+      lower,
+    );
   if (halfHourMatch && !time) {
     const target = new Date(referenceDate.getTime() + 30 * 60000);
     date = formatLocalDate(target);
@@ -850,7 +1018,10 @@ export function parseDateAndTime(text: string, referenceDate: Date = new Date())
   }
 
   // "in an hour", "an hour from now", "an hour later"
-  const anHourMatch = /\b(?:in\s+(?:about\s+)?an\s+hour(?:\s+(?:from\s+now|later))?|(?:about\s+)?an\s+hour\s+(?:from\s+now|later))\b/i.exec(lower);
+  const anHourMatch =
+    /\b(?:in\s+(?:about\s+)?an\s+hour(?:\s+(?:from\s+now|later))?|(?:about\s+)?an\s+hour\s+(?:from\s+now|later))\b/i.exec(
+      lower,
+    );
   if (anHourMatch && !time) {
     const target = new Date(referenceDate.getTime() + 60 * 60000);
     date = formatLocalDate(target);
@@ -859,7 +1030,10 @@ export function parseDateAndTime(text: string, referenceDate: Date = new Date())
   }
 
   // "a couple minutes from now", "in a couple minutes", "a couple of minutes"
-  const coupleMatch = /\b(?:in\s+(?:about\s+)?(?:a\s+)?couple(?:\s+of)?\s*(?:minutes?|mins?)(?:\s+(?:from\s+now|later))?|(?:about\s+)?(?:a\s+)?couple(?:\s+of)?\s*(?:minutes?|mins?)\s+(?:from\s+now|later))\b/i.exec(lower);
+  const coupleMatch =
+    /\b(?:in\s+(?:about\s+)?(?:a\s+)?couple(?:\s+of)?\s*(?:minutes?|mins?)(?:\s+(?:from\s+now|later))?|(?:about\s+)?(?:a\s+)?couple(?:\s+of)?\s*(?:minutes?|mins?)\s+(?:from\s+now|later))\b/i.exec(
+      lower,
+    );
   if (coupleMatch && !time) {
     const target = new Date(referenceDate.getTime() + 2 * 60000);
     date = formatLocalDate(target);
@@ -868,7 +1042,10 @@ export function parseDateAndTime(text: string, referenceDate: Date = new Date())
   }
 
   // "a few minutes from now", "in a few minutes", "few minutes later"
-  const fewMatch = /\b(?:in\s+(?:about\s+)?(?:a\s+)?few\s*(?:minutes?|mins?)(?:\s+(?:from\s+now|later))?|(?:about\s+)?(?:a\s+)?few\s*(?:minutes?|mins?)\s+(?:from\s+now|later))\b/i.exec(lower);
+  const fewMatch =
+    /\b(?:in\s+(?:about\s+)?(?:a\s+)?few\s*(?:minutes?|mins?)(?:\s+(?:from\s+now|later))?|(?:about\s+)?(?:a\s+)?few\s*(?:minutes?|mins?)\s+(?:from\s+now|later))\b/i.exec(
+      lower,
+    );
   if (fewMatch && !time) {
     const target = new Date(referenceDate.getTime() + 5 * 60000);
     date = formatLocalDate(target);
@@ -916,7 +1093,10 @@ export function parseDateAndTime(text: string, referenceDate: Date = new Date())
       const rawEnd = rangeCandidate[7];
 
       const middlePart = fullMatch
-        .slice((rangeCandidate[1] || '').length + rawStart.length, fullMatch.length - rawEnd.length)
+        .slice(
+          (rangeCandidate[1] || '').length + rawStart.length,
+          fullMatch.length - rawEnd.length,
+        )
         .trim()
         .toLowerCase();
       if (middlePart === 'and' && prefix !== 'between') {
@@ -925,7 +1105,11 @@ export function parseDateAndTime(text: string, referenceDate: Date = new Date())
 
       // Avoid false-matching non-time ranges like "chapters 1 through 4" or "pages 9 to 12"
       const precedingSlice = lower.slice(0, rangeCandidate.index).trim();
-      if (/\b(?:chapters?|pages?|sections?|parts?|items?|questions?|problems?|steps?|units?|modules?|verses?|exercises?)$/i.test(precedingSlice)) {
+      if (
+        /\b(?:chapters?|pages?|sections?|parts?|items?|questions?|problems?|steps?|units?|modules?|verses?|exercises?)$/i.test(
+          precedingSlice,
+        )
+      ) {
         continue;
       }
 
@@ -995,10 +1179,14 @@ export function parseDateAndTime(text: string, referenceDate: Date = new Date())
           colonMinTok !== undefined
             ? parseInt(colonMinTok, 10)
             : spokenMinTok !== undefined
-              ? (parseNumberWordOrDigits(spokenMinTok) ?? 0)
-              : 0;
+            ? parseNumberWordOrDigits(spokenMinTok) ?? 0
+            : 0;
         if (rawH !== null && rawH >= 0 && rawH <= 23 && min >= 0 && min <= 59) {
-          const resolvedH = resolveImplicitHour24(rawH, contextPeriod, /^0\d$/.test(hourTok));
+          const resolvedH = resolveImplicitHour24(
+            rawH,
+            contextPeriod,
+            /^0\d$/.test(hourTok),
+          );
           time = formatLocalTime(resolvedH, min);
           matchedText.push(colonOrOclockMatch[0]);
         }
@@ -1016,7 +1204,11 @@ export function parseDateAndTime(text: string, referenceDate: Date = new Date())
     if (bareAtMatch) {
       const rawH = parseNumberWordOrDigits(bareAtMatch[1]);
       if (rawH !== null && rawH >= 1 && rawH <= 24) {
-        const resolvedH = resolveImplicitHour24(rawH % 24, contextPeriod, /^0\d$/.test(bareAtMatch[1]));
+        const resolvedH = resolveImplicitHour24(
+          rawH % 24,
+          contextPeriod,
+          /^0\d$/.test(bareAtMatch[1]),
+        );
         time = formatLocalTime(resolvedH, 0);
         matchedText.push(bareAtMatch[0]);
       }
@@ -1046,11 +1238,14 @@ export function parseDateAndTime(text: string, referenceDate: Date = new Date())
       'i',
     ).exec(lower);
     if (hourAndHalfMatch) {
-      const baseHours = hourAndHalfMatch[1] ? (parseNumberWordOrDigits(hourAndHalfMatch[1]) ?? 1) : 1;
+      const baseHours = hourAndHalfMatch[1]
+        ? parseNumberWordOrDigits(hourAndHalfMatch[1]) ?? 1
+        : 1;
       durationMinutes = baseHours * 60 + 30;
       matchedText.push(hourAndHalfMatch[0]);
     } else {
-      const halfHourDurMatch = /\bfor\s+(?:half\s+an?\s+hour|a\s+half\s+hour)\b/i.exec(lower);
+      const halfHourDurMatch =
+        /\bfor\s+(?:half\s+an?\s+hour|a\s+half\s+hour)\b/i.exec(lower);
       if (halfHourDurMatch) {
         durationMinutes = 30;
         matchedText.push(halfHourDurMatch[0]);
@@ -1076,7 +1271,7 @@ export function parseDateAndTime(text: string, referenceDate: Date = new Date())
     }
 
     if (time && !endTime && durationMinutes !== null && durationMinutes > 0) {
-      const [h, m] = time.split(':').map((v) => parseInt(v, 10));
+      const [h, m] = time.split(':').map(v => parseInt(v, 10));
       const totalMin = h * 60 + m + durationMinutes;
       const endH = Math.floor(totalMin / 60) % 24;
       const endM = totalMin % 60;
@@ -1084,7 +1279,28 @@ export function parseDateAndTime(text: string, referenceDate: Date = new Date())
     }
   }
 
-  return { date, time, endTime, durationMinutes, matchedText };
+  return {date, time, endTime, durationMinutes, matchedText};
+}
+
+function extractPriority(text: string): 'High' | 'Medium' | 'Low' | null {
+  if (
+    /\b(?:high\s+priority|priority\s*:\s*high|urgent|asap|critical)\b/i.test(
+      text,
+    )
+  ) {
+    return 'High';
+  }
+  if (
+    /\b(?:medium\s+priority|priority\s*:\s*medium|normal\s+priority)\b/i.test(
+      text,
+    )
+  ) {
+    return 'Medium';
+  }
+  if (/\b(?:low\s+priority|priority\s*:\s*low|no\s+rush)\b/i.test(text)) {
+    return 'Low';
+  }
+  return null;
 }
 
 function stripConversationalCommandPrefix(text: string): string {
@@ -1123,11 +1339,33 @@ function classifyCrudEntityType(text: string): {
       updateIntent: 'update_time_block',
     };
   }
-  if (/\b(?:time\s*blocks?|timeblocks?|study\s*blocks?|focus\s*blocks?|work\s*blocks?|blocks?)\b/i.test(text)) {
+  if (
+    /\b(?:time\s*blocks?|timeblocks?|study\s*blocks?|focus\s*blocks?|work\s*blocks?|blocks?)\b/i.test(
+      text,
+    )
+  ) {
     return {
       entityType: 'time_block',
       deleteIntent: 'delete_time_block',
       updateIntent: 'update_time_block',
+    };
+  }
+  const targetsTodoDestination =
+    /\b(?:from|off|on|onto|in)\s+(?:my\s+|the\s+)?(?:to-?do|to\s+do|todo|task|checklist)(?:\s+list)?(?:\s+in\s+(?:my\s+|the\s+)?notes?(?:\s+tab)?)?\b/i.test(
+      text,
+    );
+  const isExplicitNoteTarget =
+    /\b(?:delete|remove|cancel|update|edit|rename|append\s+to|check)\s+(?:my\s+|the\s+|a\s+)?notes?\b|\bnotes?\s+(?:titled|called|named|about)\b/i.test(
+      text,
+    );
+  if (
+    /\b(?:tasks?|todos?|to-?dos?|to\s+dos?|checklists?)\b/i.test(text) &&
+    (targetsTodoDestination || !isExplicitNoteTarget)
+  ) {
+    return {
+      entityType: 'task',
+      deleteIntent: 'delete_task',
+      updateIntent: 'update_task',
     };
   }
   if (/\b(?:notes?)\b/i.test(text)) {
@@ -1144,7 +1382,7 @@ function classifyCrudEntityType(text: string): {
       updateIntent: 'update_task',
     };
   }
-  if (/\b(?:tasks?|todos?|to-dos?)\b/i.test(text)) {
+  if (/\b(?:tasks?|todos?|to-?dos?|to\s+dos?)\b/i.test(text)) {
     return {
       entityType: 'task',
       deleteIntent: 'delete_task',
@@ -1165,20 +1403,25 @@ function cleanCrudTargetTitle(
 ): string {
   let cleaned = stripConversationalCommandPrefix(rawTarget);
 
-  // Strip trailing "from my schedule / calendar" or trailing ", cancel it / delete that"
+  // Strip trailing "from my schedule / calendar / to-do list" or trailing ", cancel it / delete that"
   cleaned = cleaned
     .replace(
       /(?:,\s*|\s+and\s+|\s+please\s+|\s+)(?:cancel|delete|remove|unschedule)\s+(?:it|that|this|them)[\s.!?]*$/i,
       ' ',
     )
     .replace(
-      /\s+(?:from|off|on|in)\s+(?:my\s+|the\s+)?(?:schedule|calendar|agenda|list|tasks?|events?|time\s*blocks?)\b[\s.!?]*$/i,
+      /\s+(?:from|off|on|onto|in)\s+(?:my\s+|the\s+)?(?:(?:to-?do|to\s+do|todo|task)\s+)?(?:schedule|calendar|agenda|list|to-?dos?|to\s+dos?|todos?|tasks?|events?|time\s*blocks?)(?:\s+in\s+(?:my\s+|the\s+)?notes?(?:\s+tab)?)?\b[\s.!?]*$/i,
       ' ',
     );
 
-  const sortedMatches = [...matchedDateTimeTokens].sort((a, b) => b.length - a.length);
+  const sortedMatches = [...matchedDateTimeTokens].sort(
+    (a, b) => b.length - a.length,
+  );
   for (const m of sortedMatches) {
-    cleaned = cleaned.replace(new RegExp(`\\b${escapeRegExp(m)}\\b`, 'gi'), ' ');
+    cleaned = cleaned.replace(
+      new RegExp(`\\b${escapeRegExp(m)}\\b`, 'gi'),
+      ' ',
+    );
   }
 
   cleaned = stripConversationalCommandPrefix(cleaned)
@@ -1193,7 +1436,7 @@ function cleanCrudTargetTitle(
     .replace(/\b(?:earlier|previously|before|recently)\b/gi, ' ')
     .replace(/\b(?:recurring|repeated|repeats?|one-time|single)\b/gi, ' ')
     .replace(
-      /\b(?:what\s+i\s+have(?:\s+scheduled)?|what(?:'s|s|\s+is)\s+(?:scheduled|on\s+my\s+schedule|on\s+my\s+calendar)|whatever\s+is(?:\s+scheduled)?|time\s*blocks?|timeblocks?|study\s*blocks?|focus\s*blocks?|work\s*blocks?|blocks?|tasks?|todos?|to-dos?|reminders?|alarms?|notes?|events?|appointments?)\b/gi,
+      /\b(?:what\s+i\s+have(?:\s+scheduled)?|what(?:'s|s|\s+is)\s+(?:scheduled|on\s+my\s+schedule|on\s+my\s+calendar)|whatever\s+is(?:\s+scheduled)?|time\s*blocks?|timeblocks?|study\s*blocks?|focus\s*blocks?|work\s*blocks?|blocks?|tasks?|to-?do\s+lists?|todo\s+lists?|to\s+do\s+lists?|todos?|to-?dos?|to\s+dos?|checklists?|reminders?|alarms?|notes?|events?|appointments?)\b/gi,
       ' ',
     )
     .replace(/\s+/g, ' ')
@@ -1201,11 +1444,20 @@ function cleanCrudTargetTitle(
 
   // Check if the remaining target is a recent-reference token ("that", "this", "it", "last", "latest", "recent", "previous")
   const recentCandidate = cleaned
-    .replace(/^(?:[\s,.:;!?-]*(?:my|the|a|an|our|for|about|of|to|on|at|from)\b)+/gi, '')
-    .replace(/(?:[\s,.:;!?-]*\b(?:one|item|thing|for|about|of|to|on|at|from|my|the|a|an)\b)+$/gi, '')
+    .replace(
+      /^(?:[\s,.:;!?-]*(?:my|the|a|an|our|for|about|of|to|on|at|from)\b)+/gi,
+      '',
+    )
+    .replace(
+      /(?:[\s,.:;!?-]*\b(?:one|item|thing|for|about|of|to|on|at|from|my|the|a|an)\b)+$/gi,
+      '',
+    )
     .replace(/^[\s,.;:!?'"“”‘’:-]+|[\s,.;:!?'"“”‘’:-]+$/g, '')
     .trim();
-  if (!hasDateTime && /^(?:last|latest|recent|previous|that|this|it)$/i.test(recentCandidate)) {
+  if (
+    !hasDateTime &&
+    /^(?:last|latest|recent|previous|that|this|it)$/i.test(recentCandidate)
+  ) {
     return recentCandidate;
   }
 
@@ -1224,9 +1476,15 @@ function cleanCrudTargetTitle(
 
   // Strip leading "schedule for (a/an/the)" when followed by actual title words (e.g. "schedule for a coffee date" -> "coffee date")
   const withoutLeadingSchedule = cleaned
-    .replace(/^(?:schedule|scheduled|plan|plans|item|items|activity|session)\s+(?:(?:for|to|about|on|at)\s+)?(?:(?:a|an|the|my)\s+)?/i, '')
+    .replace(
+      /^(?:schedule|scheduled|plan|plans|item|items|activity|session)\s+(?:(?:for|to|about|on|at)\s+)?(?:(?:a|an|the|my)\s+)?/i,
+      '',
+    )
     .trim();
-  if (withoutLeadingSchedule.length > 0 && withoutLeadingSchedule.toLowerCase() !== cleaned.toLowerCase()) {
+  if (
+    withoutLeadingSchedule.length > 0 &&
+    withoutLeadingSchedule.toLowerCase() !== cleaned.toLowerCase()
+  ) {
     cleaned = withoutLeadingSchedule;
   } else if (
     hasDateTime &&
@@ -1254,7 +1512,10 @@ export function parseIntentFastPath(
   const commandRaw = stripConversationalCommandPrefix(normalized);
 
   // 1. Call Responses / Acknowledge
-  const isAck = /^(?:i(?:'m| am)? done|i did it|finished|got it|okay|ok|understood|acknowledged|thanks?)(?:[,.!\s]+(?:thanks?|bye))?[\s.!,]*$/i.test(lower);
+  const isAck =
+    /^(?:i(?:'m| am)? done|i did it|finished|got it|okay|ok|understood|acknowledged|thanks?)(?:[,.!\s]+(?:thanks?|bye))?[\s.!,]*$/i.test(
+      lower,
+    );
   const ackMatch =
     /^(?:i(?:'ve| have)?\s+already\s+|i\s+)?acknowledged?(?:\s+(?:the|my|this))?(?:\s+(event|task|reminder|call\s*reminder))?(?:\s+(.+))?[\s.!,]*$/i.exec(
       commandRaw,
@@ -1265,12 +1526,15 @@ export function parseIntentFastPath(
       rawEntity === 'event'
         ? 'event'
         : rawEntity === 'task'
-          ? 'task'
-          : rawEntity && rawEntity.includes('reminder')
-            ? 'reminder'
-            : undefined;
-    const rawTarget = ackMatch && ackMatch[2] ? cleanCrudTargetTitle(ackMatch[2]) : null;
-    const formattedTarget = rawTarget ? rawTarget.charAt(0).toUpperCase() + rawTarget.slice(1) : null;
+        ? 'task'
+        : rawEntity && rawEntity.includes('reminder')
+        ? 'reminder'
+        : undefined;
+    const rawTarget =
+      ackMatch && ackMatch[2] ? cleanCrudTargetTitle(ackMatch[2]) : null;
+    const formattedTarget = rawTarget
+      ? rawTarget.charAt(0).toUpperCase() + rawTarget.slice(1)
+      : null;
     return {
       intent: 'acknowledge',
       title: formattedTarget,
@@ -1290,9 +1554,15 @@ export function parseIntentFastPath(
   }
 
   // 2. Call Responses / Snooze
-  const snoozeMatch = /^\s*(?:please\s+)?(?:snooze(?:\s+for)?|give me|remind me in)\s*([a-z0-9-]+)?\s*(?:minute|minutes|min|mins)?[\s.!,]*$/i.exec(lower);
+  const snoozeMatch =
+    /^\s*(?:please\s+)?(?:snooze(?:\s+for)?|give me|remind me in)\s*([a-z0-9-]+)?\s*(?:minute|minutes|min|mins)?[\s.!,]*$/i.exec(
+      lower,
+    );
   if (snoozeMatch || /^\s*snooze\b/i.test(lower)) {
-    const parsedMins = snoozeMatch && snoozeMatch[1] ? parseNumberWordOrDigits(snoozeMatch[1]) : null;
+    const parsedMins =
+      snoozeMatch && snoozeMatch[1]
+        ? parseNumberWordOrDigits(snoozeMatch[1])
+        : null;
     const mins = parsedMins !== null && parsedMins > 0 ? parsedMins : 10;
     return {
       intent: 'snooze',
@@ -1313,22 +1583,34 @@ export function parseIntentFastPath(
   // 3. Schedule Audit & Schedule Query
   // Must run BEFORE CRUD/Creation intents unless the utterance starts with an explicit creation/mutation command
   const isExplicitMutationStart =
-    /^(?:remind\s+me|set\s+(?:a\s+|an\s+|up\s+)?(?:reminder|task|event|time\s*block)|add\s+|create\s+|make\s+|schedule\s+(?!audit\b|(?:for\s+)?(?:today|to-?morrow|tommorow|tomorow|tommorrow|morrow|tmrw|tmr|tonight|monday|tuesday|wednesday|thursday|friday|saturday|sunday)[\s.!?]*$)|book\s+|plan\s+|take\s+(?:a\s+)?note|save\s+(?:a\s+)?note|note\s+down|write\s+down|jot\s+down|cancel\b|remove\b|delete\b|clear\b|erase\b|drop\b|scratch\b|discard\b|unschedule\b|wipe\b|get\s+rid\s+of\b|take\s+off\b|call\s+off\b|cross\s+off\b|cross\s+out\b|update\s+|edit\s+|rename\s+|reschedule\s+|move\s+|postpone\s+|push\s+back\s+|complete\s+|finish\s+|mark\s+)/i.test(
+    /^(?:remind\s+me|set\s+(?:a\s+|an\s+|up\s+)?(?:reminder|task|event|time\s*block)|add\s+|put\s+|create\s+|make\s+|schedule\s+(?!audit\b|(?:for\s+)?(?:today|to-?morrow|tommorow|tomorow|tommorrow|morrow|tmrw|tmr|tonight|monday|tuesday|wednesday|thursday|friday|saturday|sunday)[\s.!?]*$)|book\s+|plan\s+|(?:to-?do|to\s+do|todo)(?:\s+list)?\s*[:,-]\s*\S|take\s+(?:a\s+)?note|save\s+(?:a\s+)?note|note\s+down|write\s+down|jot\s+down|cancel\b|remove\b|delete\b|clear\b|erase\b|drop\b|scratch\b|discard\b|unschedule\b|wipe\b|get\s+rid\s+of\b|take\s+off\b|call\s+off\b|cross\s+off\b|cross\s+out\b|check\s+off\b|tick\s+off\b|update\s+|edit\s+|rename\s+|reschedule\s+|move\s+|postpone\s+|push\s+back\s+|complete\s+|finish\s+|mark\s+)/i.test(
       commandLower,
     );
 
   const isScheduleQuery =
-    /\b(?:what(?:'s|s| is| are) (?:on |in |for )?(?:my |the )?(?:schedule|calendar|agenda|plans?|tasks?|todos?|events?|time\s*blocks?|blocks?|reminders?|classes?)|what(?:'s|s| is) (?:happening|upcoming|planned|scheduled|on\s+deck)|what (?:do i have|have i got|i have|am i doing|do i need to do)|what (?:tasks?|todos?|events?|time\s*blocks?|blocks?|reminders?|classes?|plans?|items?) (?:do i have|have i got|i have|are due|are scheduled|are on)|what does my (?:day|schedule|calendar|morning|afternoon|evening|week) look|how(?:'s|s| is| does) my (?:schedule|day|calendar|agenda)(?: look(?:ing)?)?|do i have (?:anything|any (?:tasks?|todos?|events?|time\s*blocks?|blocks?|reminders?|classes?|plans?))|is there anything (?:on |in |for )?(?:my |the )?(?:schedule|calendar|agenda)|is anything (?:scheduled|planned|due)|am i (?:free|busy|available)|(?:audit|check|show|tell(?:\s+me)?|give(?:\s+me)?|read(?:\s+out)?|list|get|view|review|summarize|brief(?:\s+me(?:\s+on)?)?)(?:\s+(?:me|you|us))?\s+(?:what(?:'s|s| is| are)\s+(?:on\s+|in\s+)?)?(?:everything|all|a\s+|my\s+|the\s+|today'?s\s+|tomorrow'?s\s+)?(?:schedule(?:\s+audit)?|calendar|agenda|tasks?|todos?|time\s*blocks?|plans?|events?|scheduled|planned)|(?:show|tell|list|view|read|summarize|give)\s+(?:me|you|us\s+)?(?:everything|all|what(?:'s|\s+is))\s+(?:that(?:'s|\s+is)\s+)?(?:scheduled|planned|on\s+(?:my\s+|the\s+)?(?:schedule|calendar|agenda))|(?:everything|anything)\s+scheduled\s+(?:for\s+)?(?:this|next)\s+week|(?:this|next)\s+week(?:'?s)?\s+(?:schedule|agenda|calendar|plans?|tasks?)|what\s+do\s+i\s+have\s+(?:scheduled\s+)?(?:this|next)\s+week|schedule\s+audit|my\s+schedule|today'?s\s+schedule|tomorrow'?s\s+schedule|^schedule\s+(?:for\s+)?(?:today|to-?morrow|tommorow|tomorow|tommorrow|morrow|tmrw|tmr|tonight|monday|tuesday|wednesday|thursday|friday|saturday|sunday)|any\s+(?:plans?|tasks?|events?|time\s*blocks?|classes?)\s+(?:for\s+|on\s+)?(?:today|to-?morrow|tommorow|tomorow|tommorrow|morrow|tmrw|tmr|tonight))\b/i.test(
+    /\b(?:what(?:'s|s| is| are) (?:on |in |for )?(?:my |the )?(?:schedule|calendar|agenda|plans?|tasks?|todos?|to-?dos?(?:\s+list)?|to\s+dos?(?:\s+list)?|checklists?|events?|time\s*blocks?|blocks?|reminders?|classes?)|what(?:'s|s| is) (?:happening|upcoming|planned|scheduled|on\s+deck)|what (?:do i have|have i got|i have|am i doing|do i need to do)|what (?:tasks?|todos?|to-?dos?|to\s+dos?|checklists?|events?|time\s*blocks?|blocks?|reminders?|classes?|plans?|items?) (?:do i have|have i got|i have|are due|are scheduled|are on|are left|are pending)|what does my (?:day|schedule|calendar|morning|afternoon|evening|week|to-?do(?:\s+list)?) look|how(?:'s|s| is| does) my (?:schedule|day|calendar|agenda|to-?do(?:\s+list)?)(?: look(?:ing)?)?|do i have (?:anything(?:(?:\s+(?:on|in)\s+(?:my\s+|the\s+)?(?:to-?do|to\s+do|todo)(?:\s+list)?))?|any (?:tasks?|todos?|to-?dos?|to\s+dos?|checklists?|events?|time\s*blocks?|blocks?|reminders?|classes?|plans?))|is there anything (?:on |in |for )?(?:my |the )?(?:schedule|calendar|agenda|to-?do(?:\s+list)?|todo\s+list)|is anything (?:scheduled|planned|due|pending)|am i (?:free|busy|available)|(?:audit|check|show|tell(?:\s+me)?|give(?:\s+me)?|read(?:\s+out)?|list|get|view|review|summarize|brief(?:\s+me(?:\s+on)?)?)(?:\s+(?:me|you|us))?\s+(?:what(?:'s|s| is| are)\s+(?:on\s+|in\s+)?)?(?:everything|all|a\s+|my\s+|the\s+|today'?s\s+|tomorrow'?s\s+)?(?:schedule(?:\s+audit)?|calendar|agenda|tasks?|todos?|to-?dos?(?:\s+list)?|to\s+dos?(?:\s+list)?|checklists?|time\s*blocks?|plans?|events?|scheduled|planned)|(?:show|tell|list|view|read|summarize|give)\s+(?:me|you|us\s+)?(?:everything|all|what(?:'s|\s+is))\s+(?:that(?:'s|\s+is)\s+)?(?:scheduled|planned|on\s+(?:my\s+|the\s+)?(?:schedule|calendar|agenda|to-?do(?:\s+list)?|todo\s+list))|(?:everything|anything)\s+scheduled\s+(?:for\s+)?(?:this|next)\s+week|(?:this|next)\s+week(?:'?s)?\s+(?:schedule|agenda|calendar|plans?|tasks?)|what\s+do\s+i\s+have\s+(?:scheduled\s+)?(?:this|next)\s+week|schedule\s+audit|my\s+schedule|my\s+to-?do(?:\s+list)?|today'?s\s+schedule|tomorrow'?s\s+schedule|^schedule\s+(?:for\s+)?(?:today|to-?morrow|tommorow|tomorow|tommorrow|morrow|tmrw|tmr|tonight|monday|tuesday|wednesday|thursday|friday|saturday|sunday)|any\s+(?:plans?|tasks?|to-?dos?|todos?|events?|time\s*blocks?|classes?)\s+(?:for\s+|on\s+)?(?:today|to-?morrow|tommorow|tomorow|tommorrow|morrow|tmrw|tmr|tonight))\b/i.test(
       commandLower,
     );
 
   if (isScheduleQuery && !isExplicitMutationStart) {
-    const isThisWeek = /\b(?:this\s+week|for\s+the\s+week|upcoming\s+week)\b/i.test(commandLower);
+    const isThisWeek =
+      /\b(?:this\s+week|for\s+the\s+week|upcoming\s+week)\b/i.test(
+        commandLower,
+      );
     const isNextWeek = /\b(?:next\s+week)\b/i.test(commandLower);
-    const dateRange: 'this_week' | 'next_week' | null = isNextWeek ? 'next_week' : isThisWeek ? 'this_week' : null;
+    const dateRange: 'this_week' | 'next_week' | null = isNextWeek
+      ? 'next_week'
+      : isThisWeek
+      ? 'this_week'
+      : null;
 
     const dt = parseDateAndTime(normalized, referenceDate);
     const targetDate = dt.date || formatLocalDate(referenceDate);
+    const isTodoFocusQuery =
+      !dateRange &&
+      /\b(?:todos?(?:\s+list)?|to-?dos?(?:\s+list)?|to\s+dos?(?:\s+list)?|checklists?|undated(?:\s+tasks?)?|pending\s+tasks?)\b/i.test(
+        commandLower,
+      );
     return {
       intent: 'query_schedule',
       title: null,
@@ -1337,7 +1619,11 @@ export function parseIntentFastPath(
       endTime: null,
       durationMinutes: null,
       category: 'Academic',
-      details: null,
+      details: isTodoFocusQuery
+        ? dt.matchedText.length > 0
+          ? 'todo_list_dated'
+          : 'todo_list'
+        : null,
       snoozeMinutes: null,
       confidence: 0.96,
       source: 'fast_path',
@@ -1348,10 +1634,18 @@ export function parseIntentFastPath(
 
   // 3b. Notes Query & Search (e.g. "check my notes about grocery list", "what are my notes", "find my note on physics", "read my note about...", etc.)
   const isExplicitNoteQuery =
-    /\b(?:check|find|search|look\s+(?:up|for)|read(?:\s+out)?|show|view|open|get|list|display)\s+(?:me\s+)?(?:all\s+|any\s+|my\s+|the\s+)?notes?\b/i.test(commandLower) ||
-    /\b(?:check|find|search|look\s+(?:up|for)|read(?:\s+out)?|show|view|open|get)\s+(?:my\s+|the\s+)?([a-z0-9\s_-]+?)\s+notes?\b/i.test(commandLower) ||
-    /\b(?:what(?:'s|s| is| are)|what\s+do\s+i\s+have)\s+(?:in\s+|on\s+)?(?:my\s+|the\s+)?notes?\b/i.test(commandLower) ||
-    /\bwhat\s+(?:did\s+i\s+write|is\s+written)\s+(?:in|about|on)\s+(?:my\s+|the\s+)?notes?\b/i.test(commandLower) ||
+    /\b(?:check|find|search|look\s+(?:up|for)|read(?:\s+out)?|show|view|open|get|list|display)\s+(?:me\s+)?(?:all\s+|any\s+|my\s+|the\s+)?notes?\b/i.test(
+      commandLower,
+    ) ||
+    /\b(?:check|find|search|look\s+(?:up|for)|read(?:\s+out)?|show|view|open|get)\s+(?:my\s+|the\s+)?([a-z0-9\s_-]+?)\s+notes?\b/i.test(
+      commandLower,
+    ) ||
+    /\b(?:what(?:'s|s| is| are)|what\s+do\s+i\s+have)\s+(?:in\s+|on\s+)?(?:my\s+|the\s+)?notes?\b/i.test(
+      commandLower,
+    ) ||
+    /\bwhat\s+(?:did\s+i\s+write|is\s+written)\s+(?:in|about|on)\s+(?:my\s+|the\s+)?notes?\b/i.test(
+      commandLower,
+    ) ||
     /\b(?:do\s+i\s+have\s+any|any)\s+notes?\b/i.test(commandLower) ||
     /\bnotes?\s+(?:about|on|for|regarding)\b/i.test(commandLower);
 
@@ -1393,7 +1687,12 @@ export function parseIntentFastPath(
         .replace(/^(?:all\s+my|all\s+the|all|the|a|an|my)\s+/i, '')
         .replace(/\s+(?:please|lafina)$/i, '')
         .trim();
-      if (/^(?:all|any|the|my|these|those|saved|active|recent)$/i.test(noteTopic) || !noteTopic) {
+      if (
+        /^(?:all|any|the|my|these|those|saved|active|recent)$/i.test(
+          noteTopic,
+        ) ||
+        !noteTopic
+      ) {
         noteTopic = null;
       }
     }
@@ -1420,8 +1719,9 @@ export function parseIntentFastPath(
       commandLower,
     );
   const isGreeting =
-    /^(?:hey|hi|hello|good\s+morning|good\s+afternoon|good\s+evening|sup|what'?s\s+up)\b/i.test(lower) &&
-    lower.split(' ').length <= 4;
+    /^(?:hey|hi|hello|good\s+morning|good\s+afternoon|good\s+evening|sup|what'?s\s+up)\b/i.test(
+      lower,
+    ) && lower.split(' ').length <= 4;
 
   if (isGreeting || isIdentityOrChatbotQuery) {
     return {
@@ -1442,7 +1742,7 @@ export function parseIntentFastPath(
 
   // 5. CRUD: Delete / Cancel / Remove Time Block, Event, Task, Reminder, or Note
   const isCreationStart =
-    /^(?:remind\s+me|set\s+(?:a\s+|an\s+|new\s+)?reminder|(?:create|add|make|take|save|write|jot)\s+(?:a\s+|an\s+|new\s+|quick\s+)?(?:note|task|todo|time\s*block|timeblock|study\s*block|event)|note\s+down|write\s+down|jot\s+down)\b/i.test(
+    /^(?:remind\s+me|set\s+(?:a\s+|an\s+|new\s+)?reminder|(?:create|add|make|take|save|write|jot|put)\s+(?:a\s+|an\s+|new\s+|quick\s+)?(?:note|task|todo|to-?do|to\s+do|time\s*block|timeblock|study\s*block|event)|(?:add|put|create)\s+.+\s+(?:to|on|onto|into)\s+(?:my\s+|the\s+)?(?:todos?|to-?dos?|to\s+dos?)(?:\s+list)?|(?:to-?do|to\s+do|todo)(?:\s+list)?\s*[:,-]|note\s+down|write\s+down|jot\s+down)\b/i.test(
       commandLower,
     );
   const isDeleteCommand =
@@ -1453,18 +1753,30 @@ export function parseIntentFastPath(
       (/(?:,\s*|\s+and\s+|\s+please\s+|\s+)(?:cancel|delete|remove|unschedule)\s+(?:it|that|this|them)[\s.!?]*$/i.test(
         commandLower,
       ) ||
-        /\b(?:cancel|delete|remove|unschedule)\s+(?:my|the|this|that|all)\s+(?:tasks?|todos?|to-dos?|events?|appointments?|time\s*blocks?|timeblocks?|study\s*blocks?|focus\s*blocks?|work\s*blocks?|blocks?|reminders?|alarms?|schedule|plans?|notes?)\b/i.test(
+        /\b(?:cancel|delete|remove|unschedule)\s+(?:my|the|this|that|all)\s+(?:tasks?|todos?|to-?dos?|to\s+dos?|events?|appointments?|time\s*blocks?|timeblocks?|study\s*blocks?|focus\s*blocks?|work\s*blocks?|blocks?|reminders?|alarms?|schedule|plans?|notes?)\b/i.test(
           commandLower,
         )));
   if (isDeleteCommand) {
-    const { entityType, deleteIntent } = classifyCrudEntityType(commandLower);
+    const {entityType, deleteIntent} = classifyCrudEntityType(commandLower);
     const dt =
       deleteIntent === 'delete_note'
-        ? { date: null, time: null, endTime: null, durationMinutes: null, matchedText: [] }
+        ? {
+            date: null,
+            time: null,
+            endTime: null,
+            durationMinutes: null,
+            matchedText: [],
+          }
         : parseDateAndTime(normalized, referenceDate);
     const hasDateTime = Boolean(dt.time || dt.date);
-    const targetTitle = cleanCrudTargetTitle(normalized, dt.matchedText, hasDateTime);
-    const formattedTarget = targetTitle ? targetTitle.charAt(0).toUpperCase() + targetTitle.slice(1) : null;
+    const targetTitle = cleanCrudTargetTitle(
+      normalized,
+      dt.matchedText,
+      hasDateTime,
+    );
+    const formattedTarget = targetTitle
+      ? targetTitle.charAt(0).toUpperCase() + targetTitle.slice(1)
+      : null;
 
     return {
       intent: deleteIntent,
@@ -1487,14 +1799,25 @@ export function parseIntentFastPath(
 
   // 6. CRUD: Complete / Mark Task as Done
   const markDoneMatch =
-    /\bmark\s+(.+?)\s+as\s+(?:done|complete|completed|finished)\b/i.exec(commandLower) ||
-    /^(?:complete|finish|check\s+off|tick\s+off)\s+(?:(?:my|the|a|an)\s+)?(?:(?:task|todo|to-do)\s+)(.+)$/i.exec(commandLower) ||
-    /^(?:complete|check\s+off|tick\s+off)\s+(?:(?:my|the)\s+)(.+)$/i.exec(commandLower) ||
-    /^(?:i(?:'m| am)?\s+done\s+with|i\s+(?:already\s+)?finished)\s+(?:(?:my|the|a|an)\s+)?(?:(?:task|event|todo)\s+)?(.+)$/i.exec(commandLower);
+    /\bmark\s+(.+?)\s+as\s+(?:done|complete|completed|finished)\b/i.exec(
+      commandLower,
+    ) ||
+    /^(?:complete|finish|check\s+off|tick\s+off)\s+(?:(?:my|the|a|an)\s+)?(?:(?:task|todo|to-?do|to\s+do)\s+)(.+)$/i.exec(
+      commandLower,
+    ) ||
+    /^(?:complete|check\s+off|tick\s+off)\s+(?:(?:my|the)\s+)(.+)$/i.exec(
+      commandLower,
+    ) ||
+    /^(?:check\s+off|tick\s+off)\s+(.+)$/i.exec(commandLower) ||
+    /^(?:i(?:'m| am)?\s+done\s+with|i\s+(?:already\s+)?finished)\s+(?:(?:my|the|a|an)\s+)?(?:(?:task|event|todo|to-?do|to\s+do)\s+)?(.+)$/i.exec(
+      commandLower,
+    );
   if (markDoneMatch) {
     const rawTarget = markDoneMatch[1];
     const targetTitle = cleanCrudTargetTitle(rawTarget);
-    const formattedTarget = targetTitle ? targetTitle.charAt(0).toUpperCase() + targetTitle.slice(1) : null;
+    const formattedTarget = targetTitle
+      ? targetTitle.charAt(0).toUpperCase() + targetTitle.slice(1)
+      : null;
     if (formattedTarget) {
       return {
         intent: 'update_task',
@@ -1522,15 +1845,28 @@ export function parseIntentFastPath(
       commandLower,
     );
   if (isNoteUpdateCommand) {
-    const isRename = /^rename\b/i.test(commandLower) || /\bchange\s+(?:the\s+)?(?:title|name)\b/i.test(commandLower);
+    const isRename =
+      /^rename\b/i.test(commandLower) ||
+      /\bchange\s+(?:the\s+)?(?:title|name)\b/i.test(commandLower);
     const isAppend = /^(?:append|add)\s+to\b/i.test(commandLower);
 
     if (isRename) {
-      const renameMatch = /\bnote\s+(?:(?:called|titled|named|about)\s+)?(.+?)\s+to\s+(.+)$/i.exec(commandLower);
-      const rawTarget = renameMatch ? cleanCrudTargetTitle(renameMatch[1]) : cleanCrudTargetTitle(commandLower);
-      const rawNew = renameMatch ? renameMatch[2].replace(/^[\s,:-]+|[\s,:-]+$/g, '').trim() : '';
-      const targetTitle = rawTarget ? rawTarget.charAt(0).toUpperCase() + rawTarget.slice(1) : 'Voice Note';
-      const newTitle = rawNew ? rawNew.charAt(0).toUpperCase() + rawNew.slice(1) : null;
+      const renameMatch =
+        /\bnote\s+(?:(?:called|titled|named|about)\s+)?(.+?)\s+to\s+(.+)$/i.exec(
+          commandLower,
+        );
+      const rawTarget = renameMatch
+        ? cleanCrudTargetTitle(renameMatch[1])
+        : cleanCrudTargetTitle(commandLower);
+      const rawNew = renameMatch
+        ? renameMatch[2].replace(/^[\s,:-]+|[\s,:-]+$/g, '').trim()
+        : '';
+      const targetTitle = rawTarget
+        ? rawTarget.charAt(0).toUpperCase() + rawTarget.slice(1)
+        : 'Voice Note';
+      const newTitle = rawNew
+        ? rawNew.charAt(0).toUpperCase() + rawNew.slice(1)
+        : null;
       return {
         intent: 'update_note',
         title: targetTitle,
@@ -1559,8 +1895,12 @@ export function parseIntentFastPath(
     let bodyContent = '';
     if (noteSplitMatch) {
       const cleanedT = cleanCrudTargetTitle(noteSplitMatch[1]);
-      targetTitle = cleanedT ? cleanedT.charAt(0).toUpperCase() + cleanedT.slice(1) : 'Voice Note';
-      bodyContent = noteSplitMatch[2].replace(/^[\s,:-]+|[\s,:-]+$/g, '').trim();
+      targetTitle = cleanedT
+        ? cleanedT.charAt(0).toUpperCase() + cleanedT.slice(1)
+        : 'Voice Note';
+      bodyContent = noteSplitMatch[2]
+        .replace(/^[\s,:-]+|[\s,:-]+$/g, '')
+        .trim();
     } else {
       const fallbackCleaned = cleanCrudTargetTitle(normalized);
       bodyContent = fallbackCleaned;
@@ -1578,7 +1918,9 @@ export function parseIntentFastPath(
       time: null,
       endTime: null,
       durationMinutes: null,
-      category: isAppend ? 'APPEND' : detectCategory(`${targetTitle} ${bodyContent}`),
+      category: isAppend
+        ? 'APPEND'
+        : detectCategory(`${targetTitle} ${bodyContent}`),
       details: bodyContent || null,
       snoozeMinutes: null,
       confidence: 0.95,
@@ -1589,10 +1931,16 @@ export function parseIntentFastPath(
 
   // 8. CRUD: Update / Edit / Move / Reschedule / Rename Time Block or Task (or Call Reschedule)
   const isUpdateOrRescheduleCommand =
-    /^(?:update|edit|change|modify|move|reschedule|shift|push\s+back|postpone|rename)\b/i.test(commandLower);
+    /^(?:update|edit|change|modify|move|reschedule|shift|push\s+back|postpone|rename)\b/i.test(
+      commandLower,
+    );
   if (isUpdateOrRescheduleCommand) {
-    const { entityType, updateIntent } = classifyCrudEntityType(commandLower);
-    const isRenameVerb = /^rename\b/i.test(commandLower) || /\b(?:change|update)\s+(?:the\s+)?(?:title|name)\s+of\b/i.test(commandLower);
+    const {entityType, updateIntent} = classifyCrudEntityType(commandLower);
+    const isRenameVerb =
+      /^rename\b/i.test(commandLower) ||
+      /\b(?:change|update)\s+(?:the\s+)?(?:title|name)\s+of\b/i.test(
+        commandLower,
+      );
 
     // Check if there is a "to <new specification>" clause
     // Note: if the new specification is a time range ("to 10am to 12 noon"), we split at the FIRST "to" that precedes the new schedule/title
@@ -1617,12 +1965,16 @@ export function parseIntentFastPath(
 
     if (isRenameVerb && rightPart) {
       const targetTitle = cleanCrudTargetTitle(leftPart);
-      const formattedTarget = targetTitle ? targetTitle.charAt(0).toUpperCase() + targetTitle.slice(1) : null;
+      const formattedTarget = targetTitle
+        ? targetTitle.charAt(0).toUpperCase() + targetTitle.slice(1)
+        : null;
       const cleanedNew = rightPart
         .replace(/^(?:be\s+|called\s+|titled\s+|named\s+)/i, '')
         .replace(/^[\s,;:'"“”‘’:-]+|[\s,;:'"“”‘’:-]+$/g, '')
         .trim();
-      const formattedNew = cleanedNew ? cleanedNew.charAt(0).toUpperCase() + cleanedNew.slice(1) : null;
+      const formattedNew = cleanedNew
+        ? cleanedNew.charAt(0).toUpperCase() + cleanedNew.slice(1)
+        : null;
 
       return {
         intent: updateIntent,
@@ -1634,7 +1986,9 @@ export function parseIntentFastPath(
         time: null,
         endTime: null,
         durationMinutes: null,
-        category: detectCategory(`${formattedTarget || ''} ${formattedNew || ''}`),
+        category: detectCategory(
+          `${formattedTarget || ''} ${formattedNew || ''}`,
+        ),
         details: null,
         snoozeMinutes: null,
         confidence: 0.95,
@@ -1643,26 +1997,49 @@ export function parseIntentFastPath(
       };
     }
 
-    const rightDt = rightPart ? parseDateAndTime(`at ${rightPart}`, referenceDate) : { date: null, time: null, endTime: null, durationMinutes: null, matchedText: [] };
+    const rightDt = rightPart
+      ? parseDateAndTime(`at ${rightPart}`, referenceDate)
+      : {
+          date: null,
+          time: null,
+          endTime: null,
+          durationMinutes: null,
+          matchedText: [],
+        };
     const fullDt = parseDateAndTime(normalized, referenceDate);
-    const leftDt = rightPart ? parseDateAndTime(leftPart, referenceDate) : { date: null, time: null, endTime: null, durationMinutes: null, matchedText: [] };
+    const leftDt = rightPart
+      ? parseDateAndTime(leftPart, referenceDate)
+      : {
+          date: null,
+          time: null,
+          endTime: null,
+          durationMinutes: null,
+          matchedText: [],
+        };
 
     const newDate = rightDt.date || fullDt.date;
     const newTime = rightDt.time || fullDt.time;
     const newEndTime = rightDt.endTime || fullDt.endTime;
     const newDuration = rightDt.durationMinutes || fullDt.durationMinutes;
-    const targetTime = rightPart && leftDt.time && leftDt.time !== newTime ? leftDt.time : null;
+    const targetTime =
+      rightPart && leftDt.time && leftDt.time !== newTime ? leftDt.time : null;
 
     const targetTitleRaw = cleanCrudTargetTitle(
       rightPart ? leftPart : normalized,
       rightPart ? leftDt.matchedText : fullDt.matchedText,
     );
-    const formattedTarget = targetTitleRaw ? targetTitleRaw.charAt(0).toUpperCase() + targetTitleRaw.slice(1) : null;
+    const formattedTarget = targetTitleRaw
+      ? targetTitleRaw.charAt(0).toUpperCase() + targetTitleRaw.slice(1)
+      : null;
 
     // If rightPart had NO date/time and a targetTitle was given, treat "Update/Change task X to Y" as a rename!
     if (rightPart && !newDate && !newTime && formattedTarget) {
-      const cleanedNew = rightPart.replace(/^[\s,;:'"“”‘’:-]+|[\s,;:'"“”‘’:-]+$/g, '').trim();
-      const formattedNew = cleanedNew ? cleanedNew.charAt(0).toUpperCase() + cleanedNew.slice(1) : null;
+      const cleanedNew = rightPart
+        .replace(/^[\s,;:'"“”‘’:-]+|[\s,;:'"“”‘’:-]+$/g, '')
+        .trim();
+      const formattedNew = cleanedNew
+        ? cleanedNew.charAt(0).toUpperCase() + cleanedNew.slice(1)
+        : null;
       return {
         intent: updateIntent,
         title: formattedTarget,
@@ -1684,7 +2061,12 @@ export function parseIntentFastPath(
 
     // If the user said "Reschedule to tomorrow at 4pm" with NO target title and NO explicit entity type ("task"/"time block"),
     // preserve the 'reschedule' intent for active reminder calls & fallback rescheduling
-    if (!formattedTarget && !targetTime && entityType === 'any' && /^(?:reschedule|move|push\s+back|postpone)\b/i.test(commandLower)) {
+    if (
+      !formattedTarget &&
+      !targetTime &&
+      entityType === 'any' &&
+      /^(?:reschedule|move|push\s+back|postpone)\b/i.test(commandLower)
+    ) {
       return {
         intent: 'reschedule',
         title: null,
@@ -1722,10 +2104,18 @@ export function parseIntentFastPath(
 
   // 9. Creation Intents (Note, Time Block, Task, Reminder)
   // Check explicit Note creation FIRST so dates/times inside note bodies are never stripped or hijacked as tasks!
-  const isExplicitNoteCreate =
-    /\b(?:(?:create|add|make|take|save)\s+(?:(?:this|that)\s+)?(?:as\s+)?(?:a\s+|an\s+|new\s+|quick\s+)?notes?|(?:save|add)\s+to\s+(?:my\s+)?notes?|to\s+note\b|take\s+note\b|note\s+down|write\s+down|jot\s+down|(?:write|jot)\s+(?:a\s+|an\s+|new\s+|quick\s+)?notes?)\b/i.test(
+  const targetsTodoList =
+    /(?:add|put|create)\s+.+\s+(?:to|on|onto|into)\s+(?:my\s+|the\s+)?(?:todos?|to-?dos?|to\s+dos?)(?:\s+list)?\b/i.test(
       commandLower,
-    ) || /^(?:(?:new|to)\s+)?note(?::|\s+that\s+|\s+about\s+|\s+for\s+|\s+titled\s+|\s+called\s+|\s+to\s+|\s*:\s*)/i.test(commandLower);
+    );
+  const isExplicitNoteCreate =
+    !targetsTodoList &&
+    (/\b(?:(?:create|add|make|take|save)\s+(?:(?:this|that)\s+)?(?:as\s+)?(?:a\s+|an\s+|new\s+|quick\s+)?notes?|(?:save|add)\s+to\s+(?:my\s+)?notes?|to\s+note\b|take\s+note\b|note\s+down|write\s+down|jot\s+down|(?:write|jot)\s+(?:a\s+|an\s+|new\s+|quick\s+)?notes?)\b/i.test(
+      commandLower,
+    ) ||
+      /^(?:(?:new|to)\s+)?note(?::|\s+that\s+|\s+about\s+|\s+for\s+|\s+titled\s+|\s+called\s+|\s+to\s+|\s*:\s*)/i.test(
+        commandLower,
+      ));
 
   if (isExplicitNoteCreate) {
     // Support explicit title + body ("Create a note titled Biology that mitochondria is the powerhouse")
@@ -1734,8 +2124,12 @@ export function parseIntentFastPath(
         normalized,
       );
     if (titledNoteMatch) {
-      const rawNoteTitle = titledNoteMatch[1].replace(/^[\s,;:'"“”‘’:-]+|[\s,;:'"“”‘’:-]+$/g, '').trim();
-      const rawNoteBody = titledNoteMatch[2].replace(/^[\s,;:'"“”‘’:-]+|[\s,;:'"“”‘’:-]+$/g, '').trim();
+      const rawNoteTitle = titledNoteMatch[1]
+        .replace(/^[\s,;:'"“”‘’:-]+|[\s,;:'"“”‘’:-]+$/g, '')
+        .trim();
+      const rawNoteBody = titledNoteMatch[2]
+        .replace(/^[\s,;:'"“”‘’:-]+|[\s,;:'"“”‘’:-]+$/g, '')
+        .trim();
       const finalNoteTitle = rawNoteTitle
         ? rawNoteTitle.charAt(0).toUpperCase() + rawNoteTitle.slice(1)
         : 'Voice Note';
@@ -1758,9 +2152,10 @@ export function parseIntentFastPath(
       };
     }
 
-    const hadColonNotePrefix = /^(?:(?:please\s+)?(?:take|create|add|make|save)\s+(?:(?:this|that)\s+)?(?:as\s+)?(?:a\s+|an\s+|new\s+)?note|to\s+note|note)\s*:/i.test(
-      commandLower,
-    );
+    const hadColonNotePrefix =
+      /^(?:(?:please\s+)?(?:take|create|add|make|save)\s+(?:(?:this|that)\s+)?(?:as\s+)?(?:a\s+|an\s+|new\s+)?note|to\s+note|note)\s*:/i.test(
+        commandLower,
+      );
     let noteContent = normalized
       .replace(
         /^(?:(?:hey|hi|hello|okay|ok)\s+(?:lafina\s*)?[,.!]?\s*)?(?:(?:can|could|would|will)\s+you\s+)?(?:please\s+)?/i,
@@ -1812,11 +2207,18 @@ export function parseIntentFastPath(
     ) || /^blocks?\b/i.test(commandLower);
 
   const isExplicitTask =
-    /\b(?:(?:create|add|set|make|schedule|put|book|plan)\s+(?:(?:for\s+)?(?:me|us)\s+)?(?:a\s+|an\s+|new\s+)?(?:tasks?|todos?|to-dos?))\b/i.test(
+    /\b(?:(?:create|add|set|make|schedule|put|book|plan)\s+(?:(?:for\s+)?(?:me|us)\s+)?(?:a\s+|an\s+|new\s+)?(?:tasks?|todos?|to-?dos?|to\s+dos?))\b/i.test(
       commandLower,
-    ) || /^(?:new\s+)?(?:tasks?|todos?|to-dos?)\b/i.test(commandLower);
+    ) ||
+    targetsTodoList ||
+    /^(?:new\s+)?(?:tasks?|todos?|to-?dos?|to\s+dos?)\b/i.test(commandLower);
 
   const isExplicitReminder = /\b(?:remind|reminders?)\b/i.test(commandLower);
+
+  const isQuestionPhrase =
+    /^(?:what|which|who|where|when|why|how|should|can|could|would|do|does|did|is|are|will|am)\b/i.test(
+      commandLower,
+    ) || commandLower.endsWith('?');
 
   if (isExplicitTimeBlock) {
     intentType = 'create_time_block';
@@ -1824,13 +2226,13 @@ export function parseIntentFastPath(
     intentType = 'create_task';
   } else if (isExplicitReminder) {
     intentType = 'create_reminder';
-  } else if (/\b(?:tasks?|todos?|to-dos?)\b/i.test(commandLower)) {
-    intentType = 'create_task';
-  } else if (dt.endTime !== null) {
+  } else if (!isQuestionPhrase && dt.endTime !== null) {
     intentType = 'create_time_block';
-  } else if (dt.date !== null || dt.time !== null) {
+  } else if (!isQuestionPhrase && (dt.date !== null || dt.time !== null)) {
     intentType = 'create_task';
-  } else if (/^(?:add|set|create|put|schedule|make|book|plan)\b/i.test(commandLower)) {
+  } else if (
+    /^(?:add|set|create|put|schedule|make|book|plan)\b/i.test(commandLower)
+  ) {
     intentType = 'create_task';
   } else {
     // Neither date/time nor schedule mutation command:
@@ -1855,23 +2257,42 @@ export function parseIntentFastPath(
   // Clean title by stripping command prefixes and matched date/time tokens
   let cleanTitle = stripConversationalCommandPrefix(normalized);
 
+  // Strip leading priority label like "high priority task: ..."
+  cleanTitle = cleanTitle.replace(
+    /^(?:with\s+)?(?:high|medium|low)\s+priority\s*[:,-]?\s*/i,
+    '',
+  );
+
   // Strip command verb + optional article/adjective + entity noun
   cleanTitle = cleanTitle.replace(
-    /^(?:remind\s+me(?:\s+to\b|\s+for\b|\s+about\b)?|set(?:\s+up)?\s+(?:a\s+|an\s+|new\s+)?reminder\s*(?:to\b|for\b|about\b)?|(?:(?:create|add|set(?:\s+up)?|schedule|make|put|book|plan)\s+)(?:(?:for\s+)?(?:me|us)\s+)?(?:a\s+|an\s+|the\s+)?(?:new\s+)?(?:time\s*blocks?|timeblocks?|study\s*blocks?|focus\s*blocks?|work\s*blocks?|block\s+time|block\s+out|blocks?|tasks?|todos?|to-dos?|reminders?|events?|notes?)|(?:add|create|schedule|set(?:\s+up)?|make|book|plan)(?:\s+(?:for\s+)?(?:me|us)(?:\s+(?:to|about))?)?\b)\s*[:\s,-]*(?:(?:a|an|the|new)\s+)*[:\s,-]*/i,
+    /^(?:remind\s+me(?:\s+to\b|\s+for\b|\s+about\b)?|set(?:\s+up)?\s+(?:a\s+|an\s+|new\s+)?reminder\s*(?:to\b|for\b|about\b)?|(?:(?:create|add|set(?:\s+up)?|schedule|make|put|book|plan)\s+)(?:(?:for\s+)?(?:me|us)\s+)?(?:a\s+|an\s+|the\s+)?(?:new\s+)?(?:time\s*blocks?|timeblocks?|study\s*blocks?|focus\s*blocks?|work\s*blocks?|block\s+time|block\s+out|blocks?|tasks?|todos?|to-?dos?|to\s+dos?|reminders?|events?|notes?)|(?:add|create|schedule|set(?:\s+up)?|make|put|book|plan)(?:\s+(?:for\s+)?(?:me|us)(?:\s+(?:to|about))?)?\b)\s*[:\s,-]*(?:(?:a|an|the|new)\s+)*[:\s,-]*/i,
     '',
   );
 
   cleanTitle = cleanTitle.replace(
-    /^(?:(?:new\s+)?(?:tasks?|events?|time\s*blocks?|timeblocks?|study\s*blocks?|focus\s*blocks?|work\s*blocks?|blocks?|reminders?|notes?))\s*[:\s,-]*(?:(?:called|titled|named|for|to|about|on|at)\b)?\s*[:\s,-]*/i,
+    /^(?:(?:new\s+)?(?:tasks?|todos?|to-?dos?|to\s+dos?(?:\s+list)?|events?|time\s*blocks?|timeblocks?|study\s*blocks?|focus\s*blocks?|work\s*blocks?|blocks?|reminders?|notes?))\s*[:\s,-]*(?:(?:called|titled|named|for|to|about|on|at)\b)?\s*[:\s,-]*/i,
     '',
   );
+
+  cleanTitle = cleanTitle
+    .replace(
+      /\s+(?:to|on|onto|into|in)\s+(?:my\s+|the\s+)?(?:todos?|to-?dos?|to\s+dos?|task)(?:\s+list)?(?:\s+in\s+(?:my\s+|the\s+)?notes?(?:\s+tab)?)?[\s.!?]*$/i,
+      '',
+    )
+    .replace(
+      /(?:,\s*|\s+(?:with|at|as)\s+|\s+)\b(?:high|medium|low)\s+priority\b[\s.!?]*$/i,
+      '',
+    );
 
   cleanTitle = cleanTitle.replace(/^(?:called|titled|named)\s+/i, '');
 
   // Strip matched date/time phrases (longest first to avoid partial replacements)
   const sortedMatches = [...dt.matchedText].sort((a, b) => b.length - a.length);
   for (const match of sortedMatches) {
-    cleanTitle = cleanTitle.replace(new RegExp(`\\b${escapeRegExp(match)}\\b`, 'gi'), '');
+    cleanTitle = cleanTitle.replace(
+      new RegExp(`\\b${escapeRegExp(match)}\\b`, 'gi'),
+      '',
+    );
   }
 
   // Strip leftover time-of-day qualifiers if time was parsed
@@ -1884,8 +2305,14 @@ export function parseIntentFastPath(
 
   // Strip recurring repetition phrases from title: e.g. "that repeats every Monday", "repeating every week", "every Monday"
   cleanTitle = cleanTitle
-    .replace(/\b(?:that\s+repeats?|repeating|repeats?)\s+(?:every|each|on)?\b/gi, ' ')
-    .replace(/\bevery\s+(?:monday|tuesday|wednesday|thursday|friday|saturday|sunday|day|week|month)\b/gi, ' ')
+    .replace(
+      /\b(?:that\s+repeats?|repeating|repeats?)\s+(?:every|each|on)?\b/gi,
+      ' ',
+    )
+    .replace(
+      /\bevery\s+(?:monday|tuesday|wednesday|thursday|friday|saturday|sunday|day|week|month)\b/gi,
+      ' ',
+    )
     .replace(/\bthat\s+repeats?\b/gi, ' ');
 
   // Strip lingering leading prepositions and articles/possessives (e.g. "for a coffee" -> "coffee", "for your class" -> "class", "to submit" -> "submit")
@@ -1895,11 +2322,17 @@ export function parseIntentFastPath(
   );
 
   // Strip bare leading article or possessive pronoun for action items
-  cleanTitle = cleanTitle.replace(/^[\s,:-]*(?:a|an|the|your|our)\b[\s,:-]*/i, '');
+  cleanTitle = cleanTitle.replace(
+    /^[\s,:-]*(?:a|an|the|your|our)\b[\s,:-]*/i,
+    '',
+  );
 
   // Strip lingering trailing prepositions and punctuation at edges (including trailing periods)
   cleanTitle = cleanTitle
-    .replace(/(?:[\s,:-]*\b(?:on|at|by|for|from|between|starting|with|to|about|regarding|of)\b)+[\s,.;:!?-]*$/i, '')
+    .replace(
+      /(?:[\s,:-]*\b(?:on|at|by|for|from|between|starting|with|to|about|regarding|of)\b)+[\s,.;:!?-]*$/i,
+      '',
+    )
     .replace(/^[\s,.;:!?'"“”‘’:-]+|[\s,.;:!?'"“”‘’:-]+$/g, '')
     .replace(/\s+/g, ' ')
     .trim();
@@ -1928,6 +2361,8 @@ export function parseIntentFastPath(
   finalTitle = finalTitle.charAt(0).toUpperCase() + finalTitle.slice(1);
 
   const category = detectCategory(finalTitle + ' ' + normalized);
+  const priority =
+    intentType === 'create_task' ? extractPriority(normalized) : null;
 
   let confidence = 0.5;
   if (noisy) {
@@ -1942,8 +2377,10 @@ export function parseIntentFastPath(
     date: dt.date,
     time: dt.time,
     endTime: dt.endTime,
-    durationMinutes: dt.durationMinutes || (intentType === 'create_time_block' ? 60 : null),
+    durationMinutes:
+      dt.durationMinutes || (intentType === 'create_time_block' ? 60 : null),
     category,
+    ...(priority ? {priority} : {}),
     details: finalDetails,
     snoozeMinutes: null,
     recurrenceRule: extractRecurrenceRule(normalized) || undefined,
@@ -1954,9 +2391,30 @@ export function parseIntentFastPath(
 }
 
 const MINOR_TITLE_WORDS = new Set([
-  'a', 'an', 'the', 'and', 'but', 'or', 'nor', 'for', 'so', 'yet',
-  'at', 'by', 'in', 'of', 'on', 'to', 'up', 'as', 'with', 'from',
-  'into', 'onto', 'upon', 'vs',
+  'a',
+  'an',
+  'the',
+  'and',
+  'but',
+  'or',
+  'nor',
+  'for',
+  'so',
+  'yet',
+  'at',
+  'by',
+  'in',
+  'of',
+  'on',
+  'to',
+  'up',
+  'as',
+  'with',
+  'from',
+  'into',
+  'onto',
+  'upon',
+  'vs',
 ]);
 
 const GERUND_TO_INFINITIVE: Record<string, string> = {
@@ -2002,7 +2460,10 @@ export function toTitleCase(title: string): string {
  * Detects whether a candidate title or raw transcript contains conversational noise,
  * colloquial temporal tokens, or rambling phrasing that should trigger on-device SLM distillation.
  */
-export function isTitleNoisy(title: string, rawTranscript: string = ''): boolean {
+export function isTitleNoisy(
+  title: string,
+  rawTranscript: string = '',
+): boolean {
   const trimmed = (title || '').trim();
   if (!trimmed) return true;
 
@@ -2012,19 +2473,30 @@ export function isTitleNoisy(title: string, rawTranscript: string = ''): boolean
   // 1. Conversational pronouns or modal/obligation verbs
   const modalOrPronounRegex =
     /\b(?:i|i['’]m|i['’]ve|i['’]ll|we|we['’]ll|we['’]re|let['’]?s|you|gotta|gonna|wanna|need\s+to|have\s+to|should|must|remember\s+to|don['’]?t\s+forget(?:\s+to)?|planning\s+to|want\s+to|trying\s+to|supposed\s+to)\b/i;
-  if (modalOrPronounRegex.test(lowerTitle) || modalOrPronounRegex.test(lowerRaw) || /^(?:me|us|for\s+me|for\s+us)\b/i.test(lowerTitle)) {
+  if (
+    modalOrPronounRegex.test(lowerTitle) ||
+    modalOrPronounRegex.test(lowerRaw) ||
+    /^(?:me|us|for\s+me|for\s+us)\b/i.test(lowerTitle)
+  ) {
     return true;
   }
 
   // 2. Lingering temporal or hedging adverbs
   const colloquialTemporalOrFillerRegex =
     /\b(?:morrow|tmrw|tmr|later|sometime|maybe|probably|just|around|somewhere|after\s+class|before\s+class)\b/i;
-  if (colloquialTemporalOrFillerRegex.test(lowerTitle) || colloquialTemporalOrFillerRegex.test(lowerRaw)) {
+  if (
+    colloquialTemporalOrFillerRegex.test(lowerTitle) ||
+    colloquialTemporalOrFillerRegex.test(lowerRaw)
+  ) {
     return true;
   }
 
   // 3. Starts with a preposition, conjunction, or filler word
-  if (/^(?:and|but|so|or|that|because|if|when|with|also|actually|honestly|basically)\b/i.test(lowerTitle)) {
+  if (
+    /^(?:and|but|so|or|that|because|if|when|with|also|actually|honestly|basically)\b/i.test(
+      lowerTitle,
+    )
+  ) {
     return true;
   }
 

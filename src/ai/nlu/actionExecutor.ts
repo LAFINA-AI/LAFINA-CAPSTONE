@@ -19,7 +19,7 @@ import {ttsService} from '../tts/ttsService';
 import {computeAdaptiveTriggerAt} from '../ml';
 import type {ValidatedIntent, NluActionResult} from './types';
 import {buildLocalConversationReply} from '../localConversation';
-import {noteBodyToMarkdown} from '../../utils/richText';
+import {extractChecklistItems, noteBodyToMarkdown} from '../../utils/richText';
 
 export interface ActionExecutorOptions {
   activeReminderId?: string;
@@ -1277,7 +1277,10 @@ export async function executeNluAction(
       }
 
       const updatedTitle = intent.newTitle || task.title;
-      const updatedDate = intent.date || task.dueDate || todayStr;
+      let updatedDate = intent.date || task.dueDate || null;
+      if (!updatedDate && intent.time) {
+        updatedDate = todayStr;
+      }
       const updatedTime = intent.time !== null ? intent.time : task.dueTime;
 
       tasksStore.updateTask({
@@ -1640,6 +1643,131 @@ export async function executeNluAction(
       const targetDate = intent.date || formatLocalDate(refDate);
       const dayLabel = formatSpokenDayLabel(targetDate, refDate);
 
+      const isTodoQuery =
+        intent.details === 'todo_list' ||
+        intent.details === 'todo_list_dated' ||
+        (/\b(?:to-?dos?(?:\s+list)?|to\s+dos?(?:\s+list)?|checklists?|undated(?:\s+tasks?)?)\b/i.test(
+          intent.rawTranscript || '',
+        ) &&
+          !intent.dateRange);
+
+      if (isTodoQuery) {
+        let allTasks: Task[] = [];
+        try {
+          allTasks = tasksStore.getAllTasks(userId);
+        } catch (error) {
+          console.error('[ActionExecutor] Could not read to-do list:', error);
+          return {
+            success: false,
+            intent: 'query_schedule',
+            error: 'storage_unavailable',
+            reply:
+              "I couldn't read your to-do list right now. Please open the Notes tab and check To-Do.",
+          };
+        }
+
+        let openChecklists: Array<{text: string; noteTitle: string}> = [];
+        try {
+          const allNotes = notesStore.getAll(userId);
+          for (const note of allNotes) {
+            for (const item of extractChecklistItems(note.body)) {
+              if (!item.done && item.text) {
+                openChecklists.push({text: item.text, noteTitle: note.title});
+              }
+            }
+          }
+        } catch (error) {
+          console.warn(
+            '[ActionExecutor] Could not read note checklists:',
+            error,
+          );
+        }
+
+        const openTasks = allTasks.filter(t => !t.isCompleted);
+        const undatedTodos = openTasks.filter(t => !t.dueDate);
+        const scheduledTodos =
+          intent.details === 'todo_list_dated'
+            ? openTasks.filter(t => t.dueDate === targetDate)
+            : openTasks.filter(t => Boolean(t.dueDate));
+
+        const totalTodoCount =
+          undatedTodos.length + scheduledTodos.length + openChecklists.length;
+
+        if (totalTodoCount === 0) {
+          const emptyReply =
+            intent.details === 'todo_list_dated'
+              ? `${dayLabel}, you have no open To-Dos due, no undated To-Dos, and no pending Note checklists.`
+              : 'Your To-Do list in Notes is clear! You have no pending To-Dos or unchecked Note checklists.';
+          if (options.speakResult) {
+            try {
+              await ttsService.speak(emptyReply);
+            } catch (e) {
+              console.warn('[ActionExecutor] TTS playback error:', e);
+            }
+          }
+          return {
+            success: true,
+            intent: 'query_schedule',
+            reply: emptyReply,
+          };
+        }
+
+        const lines: string[] = [];
+        if (undatedTodos.length > 0) {
+          lines.push(`**To-Do (${undatedTodos.length})**`);
+          for (const t of undatedTodos.slice(0, 12)) {
+            const prio =
+              t.priority && t.priority !== 'Medium' ? ` [${t.priority}]` : '';
+            lines.push(`• ${t.title}${prio}`);
+          }
+        }
+        if (scheduledTodos.length > 0) {
+          lines.push(
+            `**${
+              intent.details === 'todo_list_dated'
+                ? `Due ${dayLabel}`
+                : 'Scheduled Tasks'
+            } (${scheduledTodos.length})**`,
+          );
+          for (const t of scheduledTodos.slice(0, 12)) {
+            const when = t.dueTime
+              ? `${t.dueDate} at ${format12HourTime(t.dueTime)}`
+              : t.dueDate || '';
+            lines.push(`• ${t.title}${when ? ` (${when})` : ''}`);
+          }
+        }
+        if (openChecklists.length > 0) {
+          lines.push(`**From Notes Checklists (${openChecklists.length})**`);
+          for (const c of openChecklists.slice(0, 10)) {
+            lines.push(`• ${c.text} *(from "${c.noteTitle}")*`);
+          }
+        }
+
+        const reply = `Here is your To-Do list (${totalTodoCount} open):\n\n${lines.join(
+          '\n',
+        )}`;
+        if (options.speakResult) {
+          const spokenItems = [
+            ...undatedTodos.map(t => t.title),
+            ...scheduledTodos.map(t => t.title),
+            ...openChecklists.map(c => c.text),
+          ].slice(0, 6);
+          const spokenSummary = `You have ${totalTodoCount} open item${
+            totalTodoCount === 1 ? '' : 's'
+          } on your to-do list: ${formatListWithAnd(spokenItems)}.`;
+          try {
+            await ttsService.speak(spokenSummary);
+          } catch (e) {
+            console.warn('[ActionExecutor] TTS playback error:', e);
+          }
+        }
+        return {
+          success: true,
+          intent: 'query_schedule',
+          reply,
+        };
+      }
+
       // AGY-PORT 06: one bounded read of that day, with recurring occurrences. A
       // storage failure is reported as such, never as an empty ("clear") day.
       let day;
@@ -1818,8 +1946,10 @@ export async function executeNluAction(
 
       if (notes.length === 0) {
         const reply = query
-          ? `You don't have any notes saved in your Notes tab yet, so I couldn't find "${intent.details || intent.title}".\n\nWould you like me to create a note for that?`
-          : "You don't have any notes saved in your Notes tab yet. You can ask me to create one anytime (for example: \"Create a note: Grocery list: Milk, Eggs, Bread\")!";
+          ? `You don't have any notes saved in your Notes tab yet, so I couldn't find "${
+              intent.details || intent.title
+            }".\n\nWould you like me to create a note for that?`
+          : 'You don\'t have any notes saved in your Notes tab yet. You can ask me to create one anytime (for example: "Create a note: Grocery list: Milk, Eggs, Bread")!';
         if (options.speakResult) {
           try {
             await ttsService.speak(reply);
@@ -1838,12 +1968,16 @@ export async function executeNluAction(
         // Return summary list of user's notes
         const recent = notes.slice(0, 8);
         const noteList = recent
-          .map(n => `• 📝 **${n.title}**${n.category ? ` *(${n.category})*` : ''}`)
+          .map(
+            n => `• 📝 **${n.title}**${n.category ? ` *(${n.category})*` : ''}`,
+          )
           .join('\n');
         const reply = `Here are your saved notes in the Notes tab (${notes.length} total):\n\n${noteList}\n\nAsk me to check or read any note for its details!`;
         if (options.speakResult) {
           try {
-            await ttsService.speak(`You have ${notes.length} saved notes. Ask me to check any note for details.`);
+            await ttsService.speak(
+              `You have ${notes.length} saved notes. Ask me to check any note for details.`,
+            );
           } catch (e) {
             console.warn('[ActionExecutor] TTS playback error:', e);
           }
@@ -1888,10 +2022,18 @@ export async function executeNluAction(
       scored.sort((a, b) => b.score - a.score);
 
       if (scored.length === 0) {
-        const reply = `I checked your Notes tab, but didn't find any notes matching "${intent.details || intent.title}".\n\nWould you like me to create a new note titled "${intent.details || intent.title}"?`;
+        const reply = `I checked your Notes tab, but didn't find any notes matching "${
+          intent.details || intent.title
+        }".\n\nWould you like me to create a new note titled "${
+          intent.details || intent.title
+        }"?`;
         if (options.speakResult) {
           try {
-            await ttsService.speak(`I couldn't find any notes matching "${intent.details || intent.title}".`);
+            await ttsService.speak(
+              `I couldn't find any notes matching "${
+                intent.details || intent.title
+              }".`,
+            );
           } catch (e) {
             console.warn('[ActionExecutor] TTS playback error:', e);
           }

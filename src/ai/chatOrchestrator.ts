@@ -6,7 +6,8 @@ import {
 import {chatMemoryStore} from '../storage/chatMemoryStore';
 import {chatMemoryService} from '../cloud/chatMemoryService';
 import {notesStore} from '../storage/notesStore';
-import {noteBodyToMarkdown} from '../utils/richText';
+import {tasksStore} from '../storage/tasksStore';
+import {extractChecklistItems, noteBodyToMarkdown} from '../utils/richText';
 import {directProviderTestEnabled} from '../cloud/directProviderTest';
 import {isForgetAllMemoriesRequest} from './chatMemoryCommands';
 import {studyPreference} from './studyPreference';
@@ -1021,38 +1022,123 @@ export class ChatOrchestrator {
               content: msg.content,
             }));
 
-          // AI Agent Context: If the student asks about notes or schedule,
+          // AI Agent Context: If the student asks about notes, to-dos, or schedule,
           // attach relevant local SQLite context so the AI model has full awareness.
-          const asksNotes = /\b(?:notes?|written|wrote|grocery|groceries|list)\b/i.test(trimmed);
-          const asksSchedule = /\b(?:schedule|calendar|agenda|free|busy|available|plans?|tasks?|due)\b/i.test(trimmed);
+          const asksNotes =
+            /\b(?:notes?|written|wrote|grocery|groceries|list|checklists?)\b/i.test(
+              trimmed,
+            );
+          const asksSchedule =
+            /\b(?:schedule|calendar|agenda|free|busy|available|plans?|tasks?|due)\b/i.test(
+              trimmed,
+            );
+          const asksTodos =
+            /\b(?:to-?dos?|to\s+dos?|todos?|tasks?|checklists?|pending|unfinished|overdue|priority|prioritize|list|do\s+next)\b/i.test(
+              trimmed,
+            ) ||
+            asksSchedule ||
+            asksNotes;
           let agentContext = '';
-          if (asksNotes) {
+          let allNotesSnapshot: ReturnType<typeof notesStore.getAll> = [];
+          if ((asksNotes || asksTodos)) {
             try {
-              const allNotes = notesStore.getAll(userId);
-              if (allNotes.length > 0) {
-                const noteSummaries = allNotes.slice(0, 5).map(n => {
-                  const bodyClean = noteBodyToMarkdown(n.body).replace(/\n+/g, ', ').slice(0, 150);
-                  return `"${n.title}"${n.category ? ` (${n.category})` : ''}: ${bodyClean}`;
-                }).join('; ');
+              allNotesSnapshot = notesStore.getAll(userId);
+              if (asksNotes && allNotesSnapshot.length > 0) {
+                const noteSummaries = allNotesSnapshot
+                  .slice(0, 5)
+                  .map(n => {
+                    const bodyClean = noteBodyToMarkdown(n.body)
+                      .replace(/\n+/g, ', ')
+                      .slice(0, 150);
+                    return `"${n.title}"${
+                      n.category ? ` (${n.category})` : ''
+                    }: ${bodyClean}`;
+                  })
+                  .join('; ');
                 agentContext += `\n\n[Active Notes in Notes tab: ${noteSummaries}]`;
               }
             } catch (err) {
-              console.warn('[ChatOrchestrator] Could not read notes context for AI chat:', err);
+              console.warn(
+                '[ChatOrchestrator] Could not read notes context for AI chat:',
+                err,
+              );
             }
           }
           if (asksSchedule) {
             try {
               const todayFormatted = formatLocalDate(refDate);
-              const day = plannerQueries.window(userId, todayFormatted, todayFormatted);
+              const day = plannerQueries.window(
+                userId,
+                todayFormatted,
+                todayFormatted,
+              );
               const items: string[] = [];
-              day.blocks.forEach(b => items.push(`Time block "${b.title}" (${b.startTime}-${b.endTime})`));
-              day.events.forEach(e => items.push(`Event "${e.title}" (${e.startTime})`));
-              day.tasks.filter(t => !t.isCompleted).forEach(t => items.push(`Task "${t.title}"${t.dueTime ? ` (due ${t.dueTime})` : ''}`));
+              day.blocks.forEach(b =>
+                items.push(
+                  `Time block "${b.title}" (${b.startTime}-${b.endTime})`,
+                ),
+              );
+              day.events.forEach(e =>
+                items.push(`Event "${e.title}" (${e.startTime})`),
+              );
+              day.tasks
+                .filter(t => !t.isCompleted)
+                .forEach(t =>
+                  items.push(
+                    `Task "${t.title}"${
+                      t.dueTime ? ` (due ${t.dueTime})` : ''
+                    }`,
+                  ),
+                );
               if (items.length > 0) {
-                agentContext += `\n\n[Today's Schedule in Calendar tab: ${items.join(', ')}]`;
+                agentContext += `\n\n[Today's Schedule in Calendar tab: ${items.join(
+                  ', ',
+                )}]`;
               }
             } catch (err) {
-              console.warn('[ChatOrchestrator] Could not read schedule context for AI chat:', err);
+              console.warn(
+                '[ChatOrchestrator] Could not read schedule context for AI chat:',
+                err,
+              );
+            }
+          }
+          if (asksTodos) {
+            try {
+              const openTodos = tasksStore
+                .getAllTasks(userId)
+                .filter(t => !t.isCompleted)
+                .slice(0, 15)
+                .map(t => {
+                  const due = t.dueDate
+                    ? `due ${t.dueDate}${t.dueTime ? ` ${t.dueTime}` : ''}`
+                    : 'undated';
+                  return `"${t.title}" (${due}, ${t.priority} priority)`;
+                });
+              if (openTodos.length > 0) {
+                agentContext += `\n\n[Open To-Dos in Notes → To-Do tab: ${openTodos.join(
+                  ', ',
+                )}]`;
+              }
+              const checklistItems: string[] = [];
+              for (const n of allNotesSnapshot) {
+                for (const item of extractChecklistItems(n.body)) {
+                  if (!item.done && item.text) {
+                    checklistItems.push(
+                      `"${item.text}" (from note "${n.title}")`,
+                    );
+                  }
+                }
+              }
+              if (checklistItems.length > 0) {
+                agentContext += `\n\n[Unchecked Note Checklists: ${checklistItems
+                  .slice(0, 12)
+                  .join(', ')}]`;
+              }
+            } catch (err) {
+              console.warn(
+                '[ChatOrchestrator] Could not read to-do context for AI chat:',
+                err,
+              );
             }
           }
 

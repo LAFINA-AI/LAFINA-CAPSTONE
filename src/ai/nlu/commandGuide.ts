@@ -19,6 +19,18 @@ export interface CommandGuideExample {
 
 export const COMMAND_GUIDE: readonly CommandGuideExample[] = Object.freeze([
   {
+    command: "What's on my to-do list?",
+    explanation:
+      'Lists your open To-Dos (including undated items in Notes → To-Do) and active Note checklists. Works offline.',
+    intent: 'query_schedule',
+  },
+  {
+    command: 'Add Buy lab manual to my to-do list',
+    explanation:
+      'Prepares an undated To-Do for Notes → To-Do. Tap Confirm to save.',
+    intent: 'create_task',
+  },
+  {
     command: "What's on my schedule tomorrow?",
     explanation:
       'Lists your saved tasks, events and study blocks for that day. Works offline.',

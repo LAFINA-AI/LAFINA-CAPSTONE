@@ -2,6 +2,7 @@ import {verifyReminderDelivery} from '../../../scheduler/verifyReminderDelivery'
 import {CallReadResults} from '../callLafina/CallReadResults';
 import type {LocalVoiceResult} from '../../../cloud/voiceConversation/localVoiceData';
 import type {CallNavigationTarget} from '../../navigation/callNavigation';
+import {resolveCallTarget} from '../../navigation/resolveCallTarget';
 import React, {useCallback, useEffect, useRef, useState} from 'react';
 import {
   ActivityIndicator,
@@ -20,7 +21,7 @@ import {
   ArrowLeft,
   ArrowRight,
   AudioLines,
-    CircleAlert,
+  CircleAlert,
   MessageSquareText,
   Mic,
   MicOff,
@@ -532,6 +533,8 @@ export const VoiceConversationPanel: React.FC<VoiceConversationPanelProps> = ({
       )
         return;
       void conversationRef.current?.sendContext(spokenSummary);
+      const refreshed = buildStudentVoiceContext(ownerRef.current);
+      if (refreshed) void conversationRef.current?.sendContext(refreshed);
     } catch {
       setLocalNote(
         'Those grouped actions could not be saved. Review the card before retrying.',
@@ -799,9 +802,30 @@ export const VoiceConversationPanel: React.FC<VoiceConversationPanelProps> = ({
           kind === 'block' ||
           kind === 'reminder'
         ) {
+          let targetScreen: 'notes' | 'calendar' =
+            kind === 'note' ? 'notes' : 'calendar';
+          let notesTab: 'notes' | 'todo' | undefined;
+          if (kind === 'task') {
+            const resolved = receipt.entityId
+              ? resolveCallTarget(userId, {
+                  ownerId: userId,
+                  screen: 'notes',
+                  entityKind: 'task',
+                  entityId: receipt.entityId,
+                })
+              : null;
+            if (
+              !resolved ||
+              (resolved.kind === 'task' && !resolved.item.dueDate)
+            ) {
+              targetScreen = 'notes';
+              notesTab = 'todo';
+            }
+          }
           setSavedTarget({
             ownerId: userId,
-            screen: kind === 'note' ? 'notes' : 'calendar',
+            screen: targetScreen,
+            ...(notesTab ? {notesTab} : {}),
             entityKind: kind,
             entityId: receipt.entityId || undefined,
           });
@@ -1093,7 +1117,14 @@ export const VoiceConversationPanel: React.FC<VoiceConversationPanelProps> = ({
                       if (item.status === 'saved' && item.savedEntityId)
                         onNavigate({
                           ownerId: userId,
-                          screen: item.kind === 'note' ? 'notes' : 'calendar',
+                          screen:
+                            item.kind === 'note' ||
+                            (item.kind === 'task' && !item.date)
+                              ? 'notes'
+                              : 'calendar',
+                          ...(item.kind === 'task' && !item.date
+                            ? {notesTab: 'todo'}
+                            : {}),
                           entityKind: item.kind,
                           entityId: item.savedEntityId,
                           date: item.date,
@@ -1405,7 +1436,11 @@ export const VoiceConversationPanel: React.FC<VoiceConversationPanelProps> = ({
             accessibilityLabel="Open saved item"
             onPress={() => onNavigate(savedTarget)}
           >
-            <Text style={{color: colors.primary}}>Open saved item</Text>
+            <Text style={{color: colors.primary}}>
+              {savedTarget.notesTab === 'todo'
+                ? 'Open in Notes → To-Do'
+                : 'Open saved item'}
+            </Text>
           </TouchableOpacity>
         )}
 

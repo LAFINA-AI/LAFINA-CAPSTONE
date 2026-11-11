@@ -5,6 +5,7 @@ import type {CallNavigationTarget} from '../../navigation/callNavigation';
 import {AgendaCard} from './cards/AgendaCard';
 import {NoteResultCard} from './cards/NoteResultCard';
 import {useTheme} from '../../contexts/ThemeContext';
+import {Fonts, FontSize, Layout, Spacing} from '../../theme';
 
 export function CallReadResults({
   result,
@@ -20,7 +21,99 @@ export function CallReadResults({
   const {colors} = useTheme();
   if (typeof result === 'string')
     return <Text style={{color: colors.textPrimary}}>{result}</Text>;
-  if (result.notes)
+  if ('todos' in result && result.todos) {
+    const totalCount =
+      result.todos.length + (result.noteChecklists?.length || 0);
+    return (
+      <View
+        testID="call-todo-results"
+        style={[
+          styles.todoCard,
+          {backgroundColor: colors.surface, borderColor: colors.primary},
+        ]}
+      >
+        <View style={styles.todoHeader}>
+          <Text
+            style={[styles.todoKicker, {color: colors.primary}]}
+            accessibilityRole="header"
+          >
+            To-Do List ({totalCount})
+          </Text>
+          <TouchableOpacity
+            onPress={onDismiss}
+            accessibilityRole="button"
+            accessibilityLabel="Dismiss to-do results"
+          >
+            <Text
+              style={{color: colors.textSecondary, fontSize: FontSize.small}}
+            >
+              Dismiss
+            </Text>
+          </TouchableOpacity>
+        </View>
+        {totalCount === 0 ? (
+          <Text style={{color: colors.textSecondary, fontSize: FontSize.small}}>
+            No open To-Dos or unchecked checklists.
+          </Text>
+        ) : (
+          <View style={styles.todoList}>
+            {result.todos.map(todo => (
+              <Text
+                key={todo.id}
+                style={[styles.todoItem, {color: colors.textPrimary}]}
+              >
+                • {todo.title}
+                {todo.dueDate
+                  ? ` (${todo.dueDate}${
+                      todo.dueTime ? ` ${todo.dueTime}` : ''
+                    })`
+                  : ' (To-Do)'}
+                {todo.priority && todo.priority !== 'Medium'
+                  ? ` [${todo.priority}]`
+                  : ''}
+              </Text>
+            ))}
+            {result.noteChecklists.map((c, idx) => (
+              <Text
+                key={`${c.noteId}-${idx}`}
+                style={[styles.todoItem, {color: colors.textSecondary}]}
+              >
+                • {c.text} (from "{c.noteTitle}")
+              </Text>
+            ))}
+          </View>
+        )}
+        {result.partial ? (
+          <Text
+            style={{
+              color: colors.textSecondary,
+              fontSize: FontSize.small,
+              marginTop: 4,
+            }}
+          >
+            Showing top matches; open To-Do for the full list.
+          </Text>
+        ) : null}
+        {onNavigate && (
+          <TouchableOpacity
+            accessibilityRole="button"
+            accessibilityLabel="Open Notes To-Do"
+            style={styles.link}
+            onPress={() =>
+              onNavigate({
+                ownerId,
+                screen: 'notes',
+                notesTab: 'todo',
+              })
+            }
+          >
+            <Text style={{color: colors.primary}}>Open Notes → To-Do</Text>
+          </TouchableOpacity>
+        )}
+      </View>
+    );
+  }
+  if ('notes' in result && result.notes)
     return (
       <View testID="call-note-results">
         <Text style={{color: colors.textSecondary}}>
@@ -54,7 +147,7 @@ export function CallReadResults({
         ))}
       </View>
     );
-  if (result.window)
+  if ('window' in result && result.window)
     return (
       <View testID="call-agenda-result">
         <AgendaCard
@@ -116,4 +209,28 @@ export function CallReadResults({
 }
 const styles = StyleSheet.create({
   link: {minHeight: 48, justifyContent: 'center'},
+  todoCard: {
+    borderWidth: 1,
+    borderRadius: Layout.borderRadiusButton,
+    padding: Spacing.md,
+    marginBottom: Spacing.sm,
+  },
+  todoHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: Spacing.xs,
+  },
+  todoKicker: {
+    fontFamily: Fonts.heading,
+    fontSize: FontSize.small,
+    fontWeight: '700',
+  },
+  todoList: {
+    gap: 4,
+  },
+  todoItem: {
+    fontFamily: Fonts.body,
+    fontSize: FontSize.body,
+  },
 });

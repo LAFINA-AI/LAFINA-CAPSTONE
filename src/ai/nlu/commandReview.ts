@@ -21,6 +21,7 @@ import type {Task, Event} from '../../storage/tasksStore';
 import {timeBlocksStore} from '../../storage/timeBlocksStore';
 import type {TimeBlock} from '../../storage/timeBlocksStore';
 import {notesStore} from '../../storage/notesStore';
+import {extractChecklistItems, toggleChecklistItem} from '../../utils/richText';
 import type {Note} from '../../storage/notesStore';
 import {remindersStore} from '../../storage/remindersStore';
 import type {Reminder} from '../../storage/remindersStore';
@@ -103,6 +104,7 @@ type PlannedOperation =
       title: string;
       dueDate: string | null;
       dueTime: string | null;
+      priority: 'High' | 'Medium' | 'Low';
       category: string;
       notes: string | null;
       reminder: PlannedReminder | null;
@@ -854,7 +856,7 @@ const buildCreateTask = (
   let reminder: PlannedReminder | null = null;
   if (!dueDate) {
     details.push(
-      'No due date. It will be listed under Undated tasks in Calendar.',
+      'No due date. It will be saved in Notes → To-Do (and Undated tasks in Calendar).',
     );
     details.push('No reminder (no time was given).');
   } else if (!dueTime) {
@@ -878,6 +880,10 @@ const buildCreateTask = (
   }
   if (reminder && reminder.triggerAt !== reminder.scheduledAt)
     details.push(adaptiveReminderLine(reminder));
+  const taskPriority: 'High' | 'Medium' | 'Low' = c.priority ?? 'Medium';
+  if (c.priority && c.priority !== 'Medium') {
+    details.push(`Priority: ${taskPriority}.`);
+  }
   details.push(`Category: ${c.category}.`);
   if (c.details) details.push(`Notes: ${c.details}`);
   return {
@@ -894,6 +900,7 @@ const buildCreateTask = (
         title,
         dueDate,
         dueTime: dueDate ? dueTime : null,
+        priority: taskPriority,
         category: c.category,
         notes: c.details,
         reminder,
@@ -974,7 +981,8 @@ const buildCreateTimeBlock = (
       const conflict = checkScheduleConflict(userId, date, startTime, endTime);
       if (conflict.hasConflict) {
         const personalConflicts = conflict.conflictingItems.filter(
-          item => item.title.toLowerCase().trim() !== title.toLowerCase().trim(),
+          item =>
+            item.title.toLowerCase().trim() !== title.toLowerCase().trim(),
         );
         if (personalConflicts.length > 0) {
           const conflictTitles = personalConflicts
@@ -1024,7 +1032,8 @@ const buildCreateTimeBlock = (
         endTime,
         category: c.category,
         notes: c.details,
-        recurrenceRule: c.recurrenceRule || (isWeeklyClass ? 'FREQ=WEEKLY' : null),
+        recurrenceRule:
+          c.recurrenceRule || (isWeeklyClass ? 'FREQ=WEEKLY' : null),
       },
     },
   };
@@ -1576,8 +1585,66 @@ const buildUpdate = (
       ),
     };
   }
-  if (resolution.kind === 'none')
+  if (resolution.kind === 'none') {
+    if (c.isCompleted && queryTitle) {
+      const normalizedQuery = queryTitle.trim().toLowerCase();
+      const noteMatches: Array<{
+        note: Note;
+        checklistIndex: number;
+        text: string;
+      }> = [];
+      for (const note of notesStore.getAll(userId)) {
+        const items = extractChecklistItems(note.body);
+        items.forEach((item, checklistIndex) => {
+          if (item.done) return;
+          const lowerText = item.text.toLowerCase();
+          if (
+            lowerText === normalizedQuery ||
+            lowerText.includes(normalizedQuery) ||
+            (normalizedQuery.length >= 4 && normalizedQuery.includes(lowerText))
+          ) {
+            noteMatches.push({note, checklistIndex, text: item.text});
+          }
+        });
+      }
+      if (noteMatches.length === 1) {
+        const match = noteMatches[0];
+        const nextBody = toggleChecklistItem(
+          match.note.body,
+          match.checklistIndex,
+        );
+        return {
+          draft: {
+            heading: 'Check off checklist item',
+            title: match.text,
+            details: [
+              `Checks off ${quote(match.text)} inside the note ${quote(
+                match.note.title,
+              )}.`,
+            ],
+            assumptions: [],
+            warnings: [],
+            destructive: false,
+            operation: {
+              op: 'update_note',
+              target: {
+                type: 'note',
+                id: match.note.id,
+                title: match.note.title,
+                revision: assistantOperationStore.revisionOf(
+                  'note',
+                  match.note.id,
+                ),
+              },
+              title: match.note.title,
+              body: nextBody,
+            },
+          },
+        };
+      }
+    }
     return {result: notFound('task', queryTitle, c.targetTime)};
+  }
   const candidate = resolution.candidate;
   if (candidate.type !== 'task')
     return buildScheduleItemUpdate(userId, candidate, c, resolution.viaRecent);
@@ -2106,7 +2173,10 @@ const extractEditableFields = (
   }
 };
 
-const parseEditedDateInput = (raw: string, referenceDate: Date): string | null => {
+const parseEditedDateInput = (
+  raw: string,
+  referenceDate: Date,
+): string | null => {
   const trimmed = raw.trim();
   if (!trimmed) return null;
   if (/^\d{4}-\d{2}-\d{2}$/.test(trimmed)) {
@@ -2116,7 +2186,10 @@ const parseEditedDateInput = (raw: string, referenceDate: Date): string | null =
   return parsed.date && isRealDate(parsed.date) ? parsed.date : null;
 };
 
-const parseEditedTimeInput = (raw: string, referenceDate: Date): string | null => {
+const parseEditedTimeInput = (
+  raw: string,
+  referenceDate: Date,
+): string | null => {
   const trimmed = raw.trim();
   if (!trimmed) return null;
   const hhmmMatch = /^([01]?\d|2[0-3]):([0-5]\d)$/.exec(trimmed);
@@ -2135,7 +2208,9 @@ const parseEditedTimeInput = (raw: string, referenceDate: Date): string | null =
       let hour24 = rawHour;
       if (meridiem === 'pm' && rawHour < 12) hour24 += 12;
       if (meridiem === 'am' && rawHour === 12) hour24 = 0;
-      const formatted = `${String(hour24).padStart(2, '0')}:${String(min).padStart(2, '0')}`;
+      const formatted = `${String(hour24).padStart(2, '0')}:${String(
+        min,
+      ).padStart(2, '0')}`;
       return isWallTime(formatted) ? formatted : null;
     }
   }
@@ -2472,7 +2547,7 @@ const applyOperation = (
           dueDate: op.dueDate,
           dueTime: op.dueTime,
           isCompleted: false,
-          priority: 'Medium',
+          priority: op.priority,
           category: op.category,
           notes: op.notes,
           recurrenceRule: null,
@@ -2542,7 +2617,9 @@ const applyOperation = (
           const triggerMs = classInstant.getTime() - 15 * 60 * 1000;
           if (triggerMs > Date.now()) {
             const reminderId = generateId('rem');
-            const alertTask = `Upcoming class in 15 mins: ${classTitle}${notesStr ? ` (${notesStr})` : ''}`;
+            const alertTask = `Upcoming class in 15 mins: ${classTitle}${
+              notesStr ? ` (${notesStr})` : ''
+            }`;
             const triggerAt = new Date(triggerMs).toISOString();
             const scheduledAt = classInstant.toISOString();
 
@@ -2568,11 +2645,17 @@ const applyOperation = (
       };
 
       const existingBlocks = timeBlocksStore.getAll(ownerId);
-      const findExisting = (classTitle: string, dateStr: string, startTimeStr: string) => {
+      const findExisting = (
+        classTitle: string,
+        dateStr: string,
+        startTimeStr: string,
+      ) => {
         const targetDay = new Date(`${dateStr}T12:00:00Z`).getUTCDay();
         return existingBlocks.find(b => {
-          if (b.category !== 'Class' || b.startTime !== startTimeStr) return false;
-          if (b.title.toLowerCase().trim() !== classTitle.toLowerCase().trim()) return false;
+          if (b.category !== 'Class' || b.startTime !== startTimeStr)
+            return false;
+          if (b.title.toLowerCase().trim() !== classTitle.toLowerCase().trim())
+            return false;
           const bDay = new Date(`${b.date}T12:00:00Z`).getUTCDay();
           return bDay === targetDay;
         });
@@ -2590,8 +2673,14 @@ const applyOperation = (
 
           if (Array.isArray(extraClasses)) {
             for (const item of extraClasses) {
-              const existing = findExisting(item.title, item.date, item.startTime);
-              const targetBlockId = existing ? existing.id : generateId('block');
+              const existing = findExisting(
+                item.title,
+                item.date,
+                item.startTime,
+              );
+              const targetBlockId = existing
+                ? existing.id
+                : generateId('block');
               if (existing) {
                 timeBlocksStore.update(
                   {
@@ -2602,7 +2691,8 @@ const applyOperation = (
                     endTime: item.endTime,
                     category: 'Class',
                     notes: item.notes || existing.notes,
-                    recurrenceRule: item.recurrenceRule || existing.recurrenceRule,
+                    recurrenceRule:
+                      item.recurrenceRule || existing.recurrenceRule,
                   },
                   tx,
                 );
@@ -2623,7 +2713,13 @@ const applyOperation = (
                   tx,
                 );
               }
-              scheduleClassAlarm(targetBlockId, item.title, item.date, item.startTime, item.notes);
+              scheduleClassAlarm(
+                targetBlockId,
+                item.title,
+                item.date,
+                item.startTime,
+                item.notes,
+              );
               extraCount += 1;
             }
           }
@@ -2644,8 +2740,7 @@ const applyOperation = (
             endTime: op.endTime,
             category: op.category,
             notes: cleanNotes || existingPrimary.notes,
-            recurrenceRule:
-              op.recurrenceRule || existingPrimary.recurrenceRule,
+            recurrenceRule: op.recurrenceRule || existingPrimary.recurrenceRule,
           },
           tx,
         );
@@ -2662,12 +2757,19 @@ const applyOperation = (
             category: op.category,
             notes: cleanNotes,
             recurrenceRule:
-              op.recurrenceRule || (op.category === 'Class' ? 'FREQ=WEEKLY' : null),
+              op.recurrenceRule ||
+              (op.category === 'Class' ? 'FREQ=WEEKLY' : null),
           },
           tx,
         );
       }
-      scheduleClassAlarm(primaryBlockId, op.title, op.date, op.startTime, cleanNotes);
+      scheduleClassAlarm(
+        primaryBlockId,
+        op.title,
+        op.date,
+        op.startTime,
+        cleanNotes,
+      );
 
       return {
         operation: op.op,
@@ -2676,7 +2778,9 @@ const applyOperation = (
         reminderId: null,
         reply:
           extraCount > 0
-            ? `Scheduled ${extraCount + 1} classes into your Calendar (repeating weekly).`
+            ? `Scheduled ${
+                extraCount + 1
+              } classes into your Calendar (repeating weekly).`
             : `Scheduled time block: "${op.title}" on ${
                 op.date
               } from ${format12HourTime(op.startTime)} to ${format12HourTime(
@@ -3381,6 +3485,7 @@ export const editReviewedCommand = (
         nextTime && nextEndTime
           ? computeDurationMinutes(nextTime, nextEndTime)
           : fields.durationMinutes,
+      priority: op.op === 'create_task' ? op.priority : undefined,
       category: nextCategory,
       details: nextDetails,
       snoozeMinutes: null,
