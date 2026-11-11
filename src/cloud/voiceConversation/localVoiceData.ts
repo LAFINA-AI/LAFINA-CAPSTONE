@@ -310,7 +310,7 @@ export const buildStudentVoiceContext = (userId: string): string => {
           t =>
             `• [To-Do] "${t.title.slice(0, 100)}" (undated, ${
               t.priority
-            } priority, ${t.category})`,
+            } priority${t.category ? `, ${t.category}` : ''})`,
         ),
       ...openDated
         .slice(0, 8)

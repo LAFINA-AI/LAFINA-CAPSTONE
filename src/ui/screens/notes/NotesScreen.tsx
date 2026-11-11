@@ -305,18 +305,23 @@ export const NotesScreen: React.FC<NotesScreenProps> = ({
               >
                 <Search size={18} color={colors.textPrimary} />
               </TouchableOpacity>
-              {activeSubTab === 'notes' ? (
-                <TouchableOpacity
-                  onPress={() => data.setIsGridView(!data.isGridView)}
-                  style={styles.headerIconBtn}
-                >
-                  {data.isGridView ? (
-                    <List size={18} color={colors.textPrimary} />
-                  ) : (
-                    <Grid size={18} color={colors.textPrimary} />
-                  )}
-                </TouchableOpacity>
-              ) : null}
+              <TouchableOpacity
+                onPress={() => data.setIsGridView(!data.isGridView)}
+                style={styles.headerIconBtn}
+                accessibilityRole="button"
+                accessibilityLabel={
+                  data.isGridView
+                    ? 'Switch to list view'
+                    : 'Switch to grid view'
+                }
+                testID="notes-view-toggle"
+              >
+                {data.isGridView ? (
+                  <List size={18} color={colors.textPrimary} />
+                ) : (
+                  <Grid size={18} color={colors.textPrimary} />
+                )}
+              </TouchableOpacity>
             </View>
           </>
         )}
@@ -433,6 +438,7 @@ export const NotesScreen: React.FC<NotesScreenProps> = ({
           onOpenNewTodoModal={todo.openNewTodo}
           highlightedTaskId={todo.highlightedTaskId}
           searchQuery={data.searchQuery}
+          isGridView={data.isGridView}
         />
       ) : (
         <>
@@ -610,6 +616,7 @@ export const NotesScreen: React.FC<NotesScreenProps> = ({
           editingTask={todo.editingTask}
           customCategories={data.customCategories}
           onClose={todo.closeEditor}
+          onAddCategory={data.addCategory}
           onSave={(draft, editing) => {
             if (editing) {
               todo.updateTodo(editing, draft);

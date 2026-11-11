@@ -156,6 +156,16 @@ describe('Phase 05: Transcript, Typed Messages, and Chat Continuity', () => {
       transport: mockTransport.transport,
       allowLocalTestServer: true,
       onClientTool: options?.onClientTool,
+      persistence: {
+        userTurn: (text: string) => {
+          chatStore.addMessage(userId, 'user', text);
+        },
+        assistantTurn: (text: string, heard: 'complete' | 'interrupted') => {
+          chatStore.addMessage(userId, 'assistant', text, null, {
+            voiceInterrupted: heard === 'interrupted',
+          });
+        },
+      },
       limits: {
         connectTimeoutMs: 2000,
         thinkingTimeoutMs: 5000,
@@ -200,9 +210,9 @@ describe('Phase 05: Transcript, Typed Messages, and Chat Continuity', () => {
     };
   };
 
-  describe('F-022 & P05-01: Live Provisional, Final Captions, and Interruption Markers', () => {
-    test('renders provisional words in italics and stable final transcript with correct roles', async () => {
-      const {getByTestId, mockTransport} = renderPanel();
+  describe('F-022 & P05-01: Live Provisional, Final Captions, and Interruption Persistence', () => {
+    test('hides provisional and final captions on Call screen while persisting finalized turns to chat history', async () => {
+      const {getByTestId, queryByTestId, mockTransport} = renderPanel();
 
       fireEvent.press(getByTestId('voice-conversation-start'));
       await waitFor(() =>
@@ -210,7 +220,7 @@ describe('Phase 05: Transcript, Typed Messages, and Chat Continuity', () => {
       );
       mockTransport.emit({kind: 'open'});
 
-      // Provisional user speech
+      // Provisional user speech stays hidden in Call Mode
       mockTransport.emit({
         kind: 'message',
         data: JSON.stringify({
@@ -221,15 +231,8 @@ describe('Phase 05: Transcript, Typed Messages, and Chat Continuity', () => {
         }),
       });
 
-      await waitFor(() => {
-        expect(getByTestId('voice-turn-user-provisional')).toBeTruthy();
-        expect(getByTestId('voice-turn-user-provisional')).toHaveTextContent(
-          /You/,
-        );
-        expect(getByTestId('voice-turn-user-provisional')).toHaveTextContent(
-          /Hello there\.\.\./,
-        );
-      });
+      expect(queryByTestId('voice-turn-user-provisional')).toBeNull();
+      expect(queryByTestId('voice-conversation-transcript')).toBeNull();
 
       // Final user speech
       mockTransport.emit({
@@ -243,13 +246,6 @@ describe('Phase 05: Transcript, Typed Messages, and Chat Continuity', () => {
         }),
       });
 
-      await waitFor(() => {
-        expect(getByTestId('voice-turn-user-final')).toBeTruthy();
-        expect(getByTestId('voice-turn-user-final')).toHaveTextContent(
-          /Hello there, Lafina!/,
-        );
-      });
-
       // Assistant streaming response part (provisional)
       mockTransport.emit({
         kind: 'message',
@@ -259,15 +255,7 @@ describe('Phase 05: Transcript, Typed Messages, and Chat Continuity', () => {
         }),
       });
 
-      await waitFor(() => {
-        expect(getByTestId('voice-turn-assistant-provisional')).toBeTruthy();
-        expect(
-          getByTestId('voice-turn-assistant-provisional'),
-        ).toHaveTextContent(/LAFINA/);
-        expect(
-          getByTestId('voice-turn-assistant-provisional'),
-        ).toHaveTextContent(/Hello!/);
-      });
+      expect(queryByTestId('voice-turn-assistant-provisional')).toBeNull();
 
       // Assistant final response
       mockTransport.emit({
@@ -281,16 +269,28 @@ describe('Phase 05: Transcript, Typed Messages, and Chat Continuity', () => {
         }),
       });
 
+      fireEvent.press(getByTestId('voice-conversation-end'));
+
       await waitFor(() => {
-        expect(getByTestId('voice-turn-assistant-final')).toBeTruthy();
-        expect(getByTestId('voice-turn-assistant-final')).toHaveTextContent(
-          /Hello! How can I help you today\?/,
-        );
+        const msgs = chatStore.getMessages(userId);
+        expect(
+          msgs.some(
+            m => m.sender === 'user' && m.content === 'Hello there, Lafina!',
+          ),
+        ).toBe(true);
+        expect(
+          msgs.some(
+            m =>
+              m.sender === 'assistant' &&
+              m.content === 'Hello! How can I help you today?',
+          ),
+        ).toBe(true);
       });
+      expect(queryByTestId('voice-conversation-transcript')).toBeNull();
     });
 
-    test('interrupted assistant answer displays accurate interruption marker', async () => {
-      const {getByTestId, mockTransport} = renderPanel();
+    test('interrupted assistant answer persists voiceInterrupted metadata while Call transcript remains hidden', async () => {
+      const {getByTestId, queryByTestId, mockTransport} = renderPanel();
 
       fireEvent.press(getByTestId('voice-conversation-start'));
       await waitFor(() =>
@@ -310,11 +310,7 @@ describe('Phase 05: Transcript, Typed Messages, and Chat Continuity', () => {
         }),
       });
 
-      await waitFor(() => {
-        expect(getByTestId('voice-conversation-transcript')).toHaveTextContent(
-          /Your next class/,
-        );
-      });
+      expect(queryByTestId('voice-conversation-transcript')).toBeNull();
 
       // Interruption arrives
       mockTransport.emit({
@@ -323,16 +319,22 @@ describe('Phase 05: Transcript, Typed Messages, and Chat Continuity', () => {
       });
 
       await waitFor(() => {
-        expect(getByTestId('voice-turn-assistant-interrupted')).toBeTruthy();
-        expect(
-          getByTestId('voice-turn-assistant-interrupted'),
-        ).toHaveTextContent(/· interrupted/);
+        const interrupted = chatStore
+          .getMessages(userId)
+          .find(
+            m =>
+              m.sender === 'assistant' &&
+              m.content.includes('Your next class is in room 304') &&
+              m.voiceInterrupted === true,
+          );
+        expect(interrupted).toBeTruthy();
       });
+      expect(queryByTestId('voice-turn-assistant-interrupted')).toBeNull();
     });
   });
 
-  describe('F-023 & P05-02: Collapsible Transcript and Jump to Latest', () => {
-    test('transcript can be collapsed and expanded with toggle button', async () => {
+  describe('F-023 & P05-02: Non-scrolling Call Stage Without Live Transcript', () => {
+    test('keeps transcript chrome hidden during live call and renders non-scrolling View stage', async () => {
       const {getByTestId, queryByTestId, mockTransport} = renderPanel();
 
       fireEvent.press(getByTestId('voice-conversation-start'));
@@ -341,7 +343,6 @@ describe('Phase 05: Transcript, Typed Messages, and Chat Continuity', () => {
       );
       mockTransport.emit({kind: 'open'});
 
-      // Add turn so transcript appears
       mockTransport.emit({
         kind: 'message',
         data: JSON.stringify({
@@ -354,83 +355,25 @@ describe('Phase 05: Transcript, Typed Messages, and Chat Continuity', () => {
       });
 
       await waitFor(() => {
-        expect(getByTestId('call-transcript-container')).toBeTruthy();
-        expect(getByTestId('voice-conversation-transcript')).toBeTruthy();
+        expect(
+          chatStore
+            .getMessages(userId)
+            .some(m => m.content.includes('Check my schedule')),
+        ).toBe(true);
       });
 
-      // Tap collapse toggle
-      fireEvent.press(getByTestId('call-transcript-toggle'));
-
-      await waitFor(() => {
-        expect(getByTestId('call-transcript-toggle')).toHaveTextContent(
-          /Tap to expand/,
-        );
-        expect(queryByTestId('voice-conversation-transcript')).toBeNull();
-      });
-
-      // Tap expand toggle
-      fireEvent.press(getByTestId('call-transcript-toggle'));
-
-      await waitFor(() => {
-        expect(getByTestId('call-transcript-toggle')).toHaveTextContent(
-          /Tap to collapse/,
-        );
-        expect(getByTestId('voice-conversation-transcript')).toBeTruthy();
-      });
-    });
-
-    test('scrolling up reveals Jump to latest button, which scrolls back to end', async () => {
-      const {getByTestId, queryByTestId, mockTransport} = renderPanel();
-
-      fireEvent.press(getByTestId('voice-conversation-start'));
-      await waitFor(() =>
-        expect(mockTransport.transport.start).toHaveBeenCalled(),
-      );
-      mockTransport.emit({kind: 'open'});
-
-      mockTransport.emit({
-        kind: 'message',
-        data: JSON.stringify({
-          type: 'user_transcript',
-          user_transcription_event: {
-            user_transcript: 'Show me all upcoming assignments',
-            event_id: 202,
-          },
-        }),
-      });
-
-      await waitFor(() => {
-        expect(getByTestId('voice-conversation-transcript')).toBeTruthy();
-      });
-
-      // Initially at bottom -> jump button not shown
+      expect(getByTestId('call-content-stage').type).toBe('View');
+      expect(queryByTestId('call-transcript-container')).toBeNull();
+      expect(queryByTestId('call-transcript-toggle')).toBeNull();
+      expect(queryByTestId('voice-conversation-transcript')).toBeNull();
+      expect(queryByTestId('call-active-topic')).toBeNull();
       expect(queryByTestId('call-jump-to-latest')).toBeNull();
-
-      // Simulate user scrolling up away from bottom
-      fireEvent.scroll(getByTestId('voice-conversation-transcript'), {
-        nativeEvent: {
-          layoutMeasurement: {height: 200, width: 300},
-          contentOffset: {y: 0, x: 0},
-          contentSize: {height: 1000, width: 300},
-        },
-      });
-
-      await waitFor(() => {
-        expect(getByTestId('call-jump-to-latest')).toBeTruthy();
-      });
-
-      // Tap Jump to latest
-      fireEvent.press(getByTestId('call-jump-to-latest'));
-
-      await waitFor(() => {
-        expect(queryByTestId('call-jump-to-latest')).toBeNull();
-      });
     });
   });
 
   describe('F-024 & P05-03: Typed Input Inside Live Voice Call', () => {
     test('typing during call sends user_message without terminating voice transport or duplicating echo', async () => {
-      const {getByTestId, mockTransport} = renderPanel();
+      const {getByTestId, queryByTestId, mockTransport} = renderPanel();
 
       fireEvent.press(getByTestId('voice-conversation-start'));
       await waitFor(() =>
@@ -464,12 +407,15 @@ describe('Phase 05: Transcript, Typed Messages, and Chat Continuity', () => {
         ).toBe(true);
       });
 
-      // Verify typed turn is shown in transcript
+      // Verify typed turn persists to chat history while Call transcript stays hidden
       await waitFor(() => {
-        expect(getByTestId('voice-conversation-transcript')).toHaveTextContent(
-          /What are the library hours today\?/,
-        );
+        expect(
+          chatStore
+            .getMessages(userId)
+            .some(m => m.content.includes('What are the library hours today?')),
+        ).toBe(true);
       });
+      expect(queryByTestId('voice-conversation-transcript')).toBeNull();
 
       // Verify voice transport was NOT terminated
       expect(mockTransport.transport.end).not.toHaveBeenCalled();

@@ -162,7 +162,11 @@ export const TasksDueWidget: React.FC<TasksDueWidgetProps> = ({
                       ]}
                       numberOfLines={1}
                     >
-                      {formatTaskDueLabel(task, todayStr)} · {task.category}
+                      {task.category
+                        ? `${formatTaskDueLabel(task, todayStr)} · ${
+                            task.category
+                          }`
+                        : formatTaskDueLabel(task, todayStr)}
                     </Text>
                   </View>
                 </TouchableOpacity>

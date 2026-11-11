@@ -127,8 +127,12 @@ function AppContent({
   useEffect(() => {
     if (!callLafinaVisible) return;
     const listener = BackHandler.addEventListener('hardwareBackPress', () => {
+      const stillLive = isVoiceConversationActive();
       setCallLafinaVisible(false);
-      setCallLafinaMinimized(isVoiceConversationActive());
+      setCallLafinaMinimized(stillLive);
+      if (!stillLive) {
+        setActiveTab('chat');
+      }
       return true;
     });
     return () => listener.remove();
@@ -786,6 +790,7 @@ function AppContent({
             onClose={() => {
               setCallLafinaVisible(false);
               setCallLafinaMinimized(false);
+              setActiveTab('chat');
               triggerRefresh();
             }}
             onMinimize={() => {

@@ -13,6 +13,7 @@ import {
   localSettingsStore,
   userStore,
 } from '../../src/storage';
+import {DEFAULT_ONLINE_VOICE} from '../../src/storage/onlineVoiceSettingsStore';
 import {
   createCallSpeechProvider,
   speakableText,
@@ -84,7 +85,7 @@ const fakeSpeech = (
             audioBase64: AUDIO,
             mimeType: 'audio/mpeg',
             model: 'eleven_v4_turbo',
-            voice: 'default',
+            voice: body.voiceId ?? 'default',
             createdAt: new Date().toISOString(),
           },
         } as never;
@@ -134,8 +135,14 @@ describe('Cutting a reply that is still being written', () => {
   it('starts with the first finished sentence and waits for unfinished ones', () => {
     expect(takeSpeechSegment('Hey Lem, kumusta', 0, first)).toBeNull();
     // A sentence counts as finished once the next word has begun.
-    expect(takeSpeechSegment('Hey Lem, kumusta ka today?', 0, first)).toBeNull();
-    const piece = takeSpeechSegment('Hey Lem, kumusta ka today? Photo', 0, first);
+    expect(
+      takeSpeechSegment('Hey Lem, kumusta ka today?', 0, first),
+    ).toBeNull();
+    const piece = takeSpeechSegment(
+      'Hey Lem, kumusta ka today? Photo',
+      0,
+      first,
+    );
     expect(piece).toEqual({text: 'Hey Lem, kumusta ka today?', end: 26});
     // Too short to be worth its own request: it joins the next sentence.
     expect(takeSpeechSegment('Hi! How are you doing? I', 0, first)?.text).toBe(
@@ -144,14 +151,15 @@ describe('Cutting a reply that is still being written', () => {
   });
 
   it('later pieces take every finished sentence, and the last takes the rest', () => {
-    const text = 'One sentence here. Two sentences here. Three is still being wri';
+    const text =
+      'One sentence here. Two sentences here. Three is still being wri';
     expect(takeSpeechSegment(text, 0, later)?.text).toBe(
       'One sentence here. Two sentences here.',
     );
     expect(takeSpeechSegment(text, 38, later)).toBeNull();
-    expect(
-      takeSpeechSegment(text, 38, {first: false, final: true})?.text,
-    ).toBe('Three is still being wri');
+    expect(takeSpeechSegment(text, 38, {first: false, final: true})?.text).toBe(
+      'Three is still being wri',
+    );
   });
 
   it('a long first sentence is cut at a comma so the voice still starts early', () => {
@@ -212,7 +220,7 @@ describe('Speaking a streamed reply', () => {
           audioBase64: AUDIO,
           mimeType: 'audio/mpeg',
           model: 'eleven_v4_turbo',
-          voice: 'default',
+          voice: DEFAULT_ONLINE_VOICE.id,
           createdAt: new Date().toISOString(),
         },
       };

@@ -11,10 +11,18 @@ import {
   Modal,
 } from 'react-native';
 import DateTimePicker from '@react-native-community/datetimepicker';
-import {Calendar, Clock, Trash2, X} from 'lucide-react-native';
+import {Calendar, Clock, Plus, Trash2, X} from 'lucide-react-native';
+import {useSafeAreaInsets} from 'react-native-safe-area-context';
 import type {Task} from '../../../../storage';
 import {useTheme} from '../../../contexts/ThemeContext';
-import {Colors, Fonts, FontSize, Layout, Spacing} from '../../../theme';
+import {
+  Colors,
+  Fonts,
+  FontSize,
+  Layout,
+  Spacing,
+  registerCustomCategoryColor,
+} from '../../../theme';
 import type {TodoDraftInput} from '../hooks/useTodoData';
 import {toLocalYmd} from '../hooks/useTodoData';
 
@@ -25,10 +33,21 @@ interface TodoEditorModalProps {
   onClose: () => void;
   onSave: (draft: TodoDraftInput, editingTask: Task | null) => void;
   onDelete?: (task: Task) => void;
+  onAddCategory?: (name: string, color: string) => void;
 }
 
 const PRIORITIES: Task['priority'][] = ['High', 'Medium', 'Low'];
 const BASE_CATEGORIES = ['Personal', 'Academic', 'Work', 'Health', 'Learning'];
+const CUSTOM_COLOR_OPTIONS = [
+  '#3498DB',
+  '#2ECC71',
+  '#C8A800',
+  '#9B59B6',
+  '#F75A5A',
+  '#E67E22',
+  '#E91E63',
+  '#1ABC9C',
+];
 
 const timeStringToDate = (timeStr: string | null): Date => {
   const base = new Date();
@@ -57,13 +76,15 @@ export const TodoEditorModal: React.FC<TodoEditorModalProps> = ({
   onClose,
   onSave,
   onDelete,
+  onAddCategory,
 }) => {
   const {colors} = useTheme();
+  const insets = useSafeAreaInsets();
   const [title, setTitle] = useState(editingTask?.title || '');
   const [priority, setPriority] = useState<Task['priority']>(
     editingTask?.priority || 'Medium',
   );
-  const [category, setCategory] = useState(editingTask?.category || 'Personal');
+  const [category, setCategory] = useState(editingTask?.category?.trim() || '');
   const [dueDate, setDueDate] = useState<string | null>(
     editingTask?.dueDate || null,
   );
@@ -73,14 +94,49 @@ export const TodoEditorModal: React.FC<TodoEditorModalProps> = ({
   const [notes, setNotes] = useState(editingTask?.notes || '');
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [showTimePicker, setShowTimePicker] = useState(false);
+  const [addingCategory, setAddingCategory] = useState(false);
+  const [newCategoryName, setNewCategoryName] = useState('');
+  const [selectedCategoryColor, setSelectedCategoryColor] = useState(
+    CUSTOM_COLOR_OPTIONS[0],
+  );
+  const [localCustomCategories, setLocalCustomCategories] = useState<string[]>(
+    [],
+  );
 
+  const existingCategory = editingTask?.category?.trim();
   const categories = Array.from(
     new Set([
       ...BASE_CATEGORIES,
       ...customCategories,
-      ...(editingTask?.category ? [editingTask.category] : []),
+      ...localCustomCategories,
+      ...(existingCategory ? [existingCategory] : []),
     ]),
   );
+
+  const handleAddCategory = () => {
+    const trimmed = newCategoryName.trim();
+    if (!trimmed) return;
+    const match = categories.find(
+      c => c.toLowerCase() === trimmed.toLowerCase(),
+    );
+    if (match) {
+      setCategory(match);
+      setNewCategoryName('');
+      setAddingCategory(false);
+      return;
+    }
+    if (onAddCategory) {
+      onAddCategory(trimmed, selectedCategoryColor);
+    } else {
+      registerCustomCategoryColor(trimmed, selectedCategoryColor);
+    }
+    setLocalCustomCategories(prev =>
+      prev.includes(trimmed) ? prev : [...prev, trimmed],
+    );
+    setCategory(trimmed);
+    setNewCategoryName('');
+    setAddingCategory(false);
+  };
 
   const todayStr = toLocalYmd(new Date());
   const tomorrowDate = new Date();
@@ -134,7 +190,11 @@ export const TodoEditorModal: React.FC<TodoEditorModalProps> = ({
         <View
           style={[
             styles.sheet,
-            {backgroundColor: colors.cardBg, borderColor: colors.border},
+            {
+              backgroundColor: colors.cardBg,
+              borderColor: colors.border,
+              paddingBottom: Math.max(insets.bottom, Spacing.lg) + Spacing.md,
+            },
           ]}
         >
           <View style={styles.header}>
@@ -426,12 +486,34 @@ export const TodoEditorModal: React.FC<TodoEditorModalProps> = ({
               Category
             </Text>
             <View style={styles.chipRow}>
+              <TouchableOpacity
+                key="__none__"
+                onPress={() => setCategory('')}
+                testID="todo-category-none"
+                style={[
+                  styles.chip,
+                  {
+                    backgroundColor: !category ? Colors.red : colors.inputBg,
+                    borderColor: !category ? Colors.red : colors.border,
+                  },
+                ]}
+              >
+                <Text
+                  style={[
+                    styles.chipText,
+                    {color: !category ? colors.white : colors.textPrimary},
+                  ]}
+                >
+                  None
+                </Text>
+              </TouchableOpacity>
               {categories.map(cat => {
                 const active = category === cat;
                 return (
                   <TouchableOpacity
                     key={cat}
-                    onPress={() => setCategory(cat)}
+                    onPress={() => setCategory(active ? '' : cat)}
+                    testID={`todo-category-${cat}`}
                     style={[
                       styles.chip,
                       {
@@ -451,7 +533,105 @@ export const TodoEditorModal: React.FC<TodoEditorModalProps> = ({
                   </TouchableOpacity>
                 );
               })}
+              <TouchableOpacity
+                onPress={() => setAddingCategory(prev => !prev)}
+                testID="todo-category-add-btn"
+                style={[
+                  styles.chip,
+                  styles.chipIconRow,
+                  {
+                    backgroundColor: colors.inputBg,
+                    borderColor: addingCategory ? Colors.red : colors.border,
+                  },
+                ]}
+              >
+                <Plus size={13} color={colors.textSecondary} />
+                <Text style={[styles.chipText, {color: colors.textSecondary}]}>
+                  New
+                </Text>
+              </TouchableOpacity>
             </View>
+
+            {addingCategory && (
+              <View
+                style={[
+                  styles.addCatBox,
+                  {
+                    backgroundColor: colors.inputBg,
+                    borderColor: colors.border,
+                  },
+                ]}
+              >
+                <TextInput
+                  style={[
+                    styles.input,
+                    {
+                      backgroundColor: colors.cardBg,
+                      color: colors.textPrimary,
+                      borderColor: colors.border,
+                    },
+                  ]}
+                  placeholder="Custom category name"
+                  placeholderTextColor={colors.placeholder}
+                  value={newCategoryName}
+                  onChangeText={setNewCategoryName}
+                  testID="todo-new-category-input"
+                  autoFocus
+                />
+                <View style={styles.colorPaletteRow}>
+                  {CUSTOM_COLOR_OPTIONS.map((hex, idx) => (
+                    <TouchableOpacity
+                      key={hex}
+                      onPress={() => setSelectedCategoryColor(hex)}
+                      testID={`todo-new-category-color-${idx}`}
+                      style={[
+                        styles.colorCircle,
+                        {backgroundColor: hex},
+                        selectedCategoryColor === hex && {
+                          borderWidth: 2,
+                          borderColor: colors.textPrimary,
+                        },
+                      ]}
+                    />
+                  ))}
+                </View>
+                <View style={styles.addCatActions}>
+                  <TouchableOpacity
+                    onPress={() => {
+                      setAddingCategory(false);
+                      setNewCategoryName('');
+                    }}
+                    style={[styles.clearBtn, {borderColor: colors.border}]}
+                  >
+                    <Text
+                      style={[styles.chipText, {color: colors.textSecondary}]}
+                    >
+                      Cancel
+                    </Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    onPress={handleAddCategory}
+                    testID="todo-new-category-submit"
+                    style={[
+                      styles.clearBtn,
+                      {
+                        backgroundColor: Colors.red,
+                        borderColor: Colors.red,
+                      },
+                    ]}
+                  >
+                    <Text
+                      style={[
+                        styles.chipText,
+                        {color: colors.white, fontWeight: '600'},
+                      ]}
+                    >
+                      Add
+                    </Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
+            )}
 
             <Text style={[styles.label, {color: colors.textSecondary}]}>
               Details (Optional)
@@ -602,6 +782,28 @@ const styles = StyleSheet.create({
     fontFamily: Fonts.body,
     fontSize: FontSize.caption,
     marginTop: 6,
+  },
+  addCatBox: {
+    marginTop: 10,
+    padding: Spacing.sm,
+    borderRadius: Layout.borderRadiusButton,
+    borderWidth: 1,
+    gap: 10,
+  },
+  colorPaletteRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+  },
+  colorCircle: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+  },
+  addCatActions: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    gap: 8,
   },
   footer: {
     flexDirection: 'row',

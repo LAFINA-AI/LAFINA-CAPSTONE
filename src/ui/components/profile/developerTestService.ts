@@ -1,13 +1,17 @@
-import { DeviceEventEmitter } from 'react-native';
-import { db, StorageHealth, DatabaseTransaction } from '../../../storage/database';
-import { generateId } from '../../../utils/id';
-import { remindersStore } from '../../../storage/remindersStore';
-import { deliveryStore } from '../../../storage/deliveryStore';
-import { tasksStore } from '../../../storage/tasksStore';
-import { notesStore } from '../../../storage/notesStore';
-import { timeBlocksStore } from '../../../storage/timeBlocksStore';
-import { syncStateStore } from '../../../storage/syncStateStore';
-import { localSettingsStore } from '../../../storage/localSettingsStore';
+import {DeviceEventEmitter} from 'react-native';
+import {
+  db,
+  StorageHealth,
+  DatabaseTransaction,
+} from '../../../storage/database';
+import {generateId} from '../../../utils/id';
+import {remindersStore} from '../../../storage/remindersStore';
+import {deliveryStore} from '../../../storage/deliveryStore';
+import {tasksStore} from '../../../storage/tasksStore';
+import {notesStore} from '../../../storage/notesStore';
+import {timeBlocksStore} from '../../../storage/timeBlocksStore';
+import {syncStateStore} from '../../../storage/syncStateStore';
+import {localSettingsStore} from '../../../storage/localSettingsStore';
 import {
   reconcileReminderDelivery,
   EVENT_CALL_TRIGGER,
@@ -17,28 +21,28 @@ import {
   openNotificationSettings,
   cancelReminderAlarm,
 } from '../../../scheduler';
-import { getNativeDeliveryModule } from '../../../scheduler/reminderAlarm';
+import {getNativeDeliveryModule} from '../../../scheduler/reminderAlarm';
 import type {
   ReminderPermissionStatus,
   NativeDeliveryRegistration,
 } from '../../../scheduler';
-import { syncWorker } from '../../../sync/syncWorker';
-import { cloudClient } from '../../../cloud/cloudClient';
+import {syncWorker} from '../../../sync/syncWorker';
+import {cloudClient} from '../../../cloud/cloudClient';
 import {
   backendSelection,
   DEVICE_SETTINGS_OWNER,
 } from '../../../cloud/backendSelection';
-import { IntentService } from '../../../ai/nlu/intentService';
-import { formatLocalDate } from '../../../ai/nlu/fastPathParser';
-import { routeIntent } from '../../../ai/nlu/intentRoutes';
+import {IntentService} from '../../../ai/nlu/intentService';
+import {formatLocalDate} from '../../../ai/nlu/fastPathParser';
+import {routeIntent} from '../../../ai/nlu/intentRoutes';
 import {
   prepareReviewedCommand,
   confirmReviewedCommand,
 } from '../../../ai/nlu/commandReview';
-import { buildLocalConversationReply } from '../../../ai/localConversation';
-import { plannerQueries } from '../../../storage/plannerQueries';
-import { notesQueryStore } from '../../../storage/notesQueryStore';
-import type { ValidatedIntent, NluActionResult } from '../../../ai/nlu/types';
+import {buildLocalConversationReply} from '../../../ai/localConversation';
+import {plannerQueries} from '../../../storage/plannerQueries';
+import {notesQueryStore} from '../../../storage/notesQueryStore';
+import type {ValidatedIntent, NluActionResult} from '../../../ai/nlu/types';
 
 export const DEVELOPER_MODE_KEY = 'debug.developer_mode';
 export const DEV_FIXTURE_TAG = '[DevFixture]';
@@ -81,17 +85,14 @@ export interface AlarmDiagnostics {
 export const developerTestService = {
   /**
    * Checks whether developer mode is active.
-   * True if explicitly toggled on, or running in __DEV__, or if backend switch is available.
+   * Only enabled when explicitly toggled on (5 taps on App Version).
    */
   isDeveloperModeEnabled: (): boolean => {
     const saved = localSettingsStore.get(
       DEVICE_SETTINGS_OWNER,
       DEVELOPER_MODE_KEY,
     );
-    if (saved === 'true') return true;
-    if (saved === 'false') return false;
-    // Enabled by default in builds where the backend switch is compiled in (debug/test builds)
-    return backendSelection.isAvailable();
+    return saved === 'true';
   },
 
   /**
@@ -113,7 +114,7 @@ export const developerTestService = {
   triggerImmediateCall: async (
     userId: string,
     taskTitle: string = 'CS402 Capstone Progress Check',
-  ): Promise<{ success: boolean; message: string; reminderId?: string }> => {
+  ): Promise<{success: boolean; message: string; reminderId?: string}> => {
     try {
       const reminderId = generateId('dev-call');
       const nowIso = new Date().toISOString();
@@ -148,7 +149,7 @@ export const developerTestService = {
       };
     } catch (error) {
       const msg = error instanceof Error ? error.message : String(error);
-      return { success: false, message: `Failed to trigger call: ${msg}` };
+      return {success: false, message: `Failed to trigger call: ${msg}`};
     }
   },
 
@@ -161,7 +162,7 @@ export const developerTestService = {
     userId: string,
     seconds: number,
     taskTitle: string = 'Test Native Alarm',
-  ): Promise<{ success: boolean; message: string; reminderId?: string }> => {
+  ): Promise<{success: boolean; message: string; reminderId?: string}> => {
     try {
       const reminderId = generateId('dev-alarm');
       const now = Date.now();
@@ -194,16 +195,14 @@ export const developerTestService = {
       };
     } catch (error) {
       const msg = error instanceof Error ? error.message : String(error);
-      return { success: false, message: `Failed to schedule alarm: ${msg}` };
+      return {success: false, message: `Failed to schedule alarm: ${msg}`};
     }
   },
 
   /**
    * Cancels all test reminders created by developer tools.
    */
-  cancelAllTestReminders: async (
-    userId: string,
-  ): Promise<{ count: number }> => {
+  cancelAllTestReminders: async (userId: string): Promise<{count: number}> => {
     let count = 0;
     try {
       const pending = remindersStore.getPendingReminders(userId);
@@ -220,9 +219,12 @@ export const developerTestService = {
       }
       await reconcileReminderDelivery(userId);
     } catch (error) {
-      console.warn('[DeveloperTestService] cancelAllTestReminders error:', error);
+      console.warn(
+        '[DeveloperTestService] cancelAllTestReminders error:',
+        error,
+      );
     }
-    return { count };
+    return {count};
   },
 
   /**
@@ -307,10 +309,9 @@ export const developerTestService = {
    */
   clearSyncOutbox: (userId: string): number => {
     try {
-      const res = db.executeSync(
-        'DELETE FROM sync_outbox WHERE user_id = ?',
-        [userId],
-      );
+      const res = db.executeSync('DELETE FROM sync_outbox WHERE user_id = ?', [
+        userId,
+      ]);
       return res.rowsAffected || 0;
     } catch {
       return 0;
@@ -361,11 +362,13 @@ export const developerTestService = {
     try {
       // 1. Ensure sample Categories
       const existingCats = notesStore.getCustomCategories(userId);
-      const catNames = new Set(existingCats.map((c: { name: string }) => c.name.toLowerCase()));
+      const catNames = new Set(
+        existingCats.map((c: {name: string}) => c.name.toLowerCase()),
+      );
       const sampleCats = [
-        { name: 'Academics', color: '#3B82F6' },
-        { name: 'Capstone Project', color: '#8B5CF6' },
-        { name: 'Personal', color: '#10B981' },
+        {name: 'Academics', color: '#3B82F6'},
+        {name: 'Capstone Project', color: '#8B5CF6'},
+        {name: 'Personal', color: '#10B981'},
       ];
       for (const cat of sampleCats) {
         if (!catNames.has(cat.name.toLowerCase())) {
@@ -392,7 +395,8 @@ export const developerTestService = {
           dueTime: '17:00',
           priority: 'High' as const,
           category: 'Capstone Project',
-          notes: 'Include system architecture diagrams and offline synchronization design.',
+          notes:
+            'Include system architecture diagrams and offline synchronization design.',
         },
         {
           title: `${DEV_FIXTURE_TAG} Read Database Internals Chapter 4 (B-Trees & WAL)`,
@@ -400,7 +404,8 @@ export const developerTestService = {
           dueTime: '20:00',
           priority: 'Medium' as const,
           category: 'Academics',
-          notes: 'Prepare notes on write-ahead logging and atomic transactions.',
+          notes:
+            'Prepare notes on write-ahead logging and atomic transactions.',
         },
         {
           title: `${DEV_FIXTURE_TAG} Buy engineering notebook & sticky flags`,
@@ -484,14 +489,19 @@ export const developerTestService = {
       created.timeBlocks++;
 
       // 5. Sample Reminders
-      const remTrigger1 = new Date(Date.now() + 4 * 60 * 60 * 1000).toISOString();
-      const remTrigger2 = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
+      const remTrigger1 = new Date(
+        Date.now() + 4 * 60 * 60 * 1000,
+      ).toISOString();
+      const remTrigger2 = new Date(
+        Date.now() + 24 * 60 * 60 * 1000,
+      ).toISOString();
 
       remindersStore.insertReminder({
         id: generateId('reminder'),
         userId,
         task: `${DEV_FIXTURE_TAG} Review System Architecture Diagram with Mentor`,
-        description: 'Verify op-sqlite transaction boundaries and sync outbox pipeline.',
+        description:
+          'Verify op-sqlite transaction boundaries and sync outbox pipeline.',
         scheduledAt: today.toISOString(),
         triggerAt: remTrigger1,
         status: 'pending',
@@ -503,7 +513,8 @@ export const developerTestService = {
         id: generateId('reminder'),
         userId,
         task: `${DEV_FIXTURE_TAG} Submit Capstone Weekly Progress Report`,
-        description: 'Summarize offline NLU intent accuracy and ElevenLabs TTS fallback.',
+        description:
+          'Summarize offline NLU intent accuracy and ElevenLabs TTS fallback.',
         scheduledAt: today.toISOString(),
         triggerAt: remTrigger2,
         status: 'pending',
@@ -566,10 +577,13 @@ export const developerTestService = {
       // Reconcile reminder delivery jobs
       await reconcileReminderDelivery(userId);
 
-      return { success: true, created };
+      return {success: true, created};
     } catch (error) {
-      console.error('[DeveloperTestService] seedStudentSampleData error:', error);
-      return { success: false, created };
+      console.error(
+        '[DeveloperTestService] seedStudentSampleData error:',
+        error,
+      );
+      return {success: false, created};
     }
   },
 
@@ -578,7 +592,7 @@ export const developerTestService = {
    */
   clearSeededStudentData: async (
     userId: string,
-  ): Promise<{ success: boolean; removed: number }> => {
+  ): Promise<{success: boolean; removed: number}> => {
     let removed = 0;
     try {
       db.transactionSync((tx: DatabaseTransaction) => {
@@ -619,10 +633,13 @@ export const developerTestService = {
       });
 
       await reconcileReminderDelivery(userId);
-      return { success: true, removed };
+      return {success: true, removed};
     } catch (error) {
-      console.error('[DeveloperTestService] clearSeededStudentData error:', error);
-      return { success: false, removed };
+      console.error(
+        '[DeveloperTestService] clearSeededStudentData error:',
+        error,
+      );
+      return {success: false, removed};
     }
   },
 
@@ -741,7 +758,7 @@ export const developerTestService = {
     referenceDate?: Date,
   ): Promise<ValidatedIntent> => {
     const service = new IntentService();
-    return service.extractIntent(transcript, { referenceDate });
+    return service.extractIntent(transcript, {referenceDate});
   },
 
   /**
@@ -782,7 +799,8 @@ export const developerTestService = {
         return {
           success: true,
           intent: intent.intent,
-          entityType: outcome.receipt.entityType as NluActionResult['entityType'],
+          entityType: outcome.receipt
+            .entityType as NluActionResult['entityType'],
           entityId: outcome.receipt.entityId ?? undefined,
           reply: outcome.reply,
         };
@@ -811,7 +829,7 @@ export const developerTestService = {
           : `Found ${count} note${count === 1 ? '' : 's'}: ${page.items
               .map(n => n.title)
               .join(', ')}.`;
-      return { success: true, intent: 'query_notes', reply };
+      return {success: true, intent: 'query_notes', reply};
     }
 
     if (intent.intent === 'query_schedule') {
@@ -823,7 +841,7 @@ export const developerTestService = {
         total === 0
           ? `No tasks, events, or time blocks scheduled for ${dateStr}.`
           : `Schedule for ${dateStr}: ${window.tasks.length} task(s), ${window.events.length} event(s), ${window.blocks.length} time block(s).`;
-      return { success: true, intent: 'query_schedule', reply };
+      return {success: true, intent: 'query_schedule', reply};
     }
 
     return {

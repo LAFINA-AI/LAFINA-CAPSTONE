@@ -20,6 +20,7 @@ import {createCallSpeechProvider} from '../../src/cloud/speechService';
 import {cloudClient} from '../../src/cloud/cloudClient';
 import {accountLinkService} from '../../src/cloud/accountLinkService';
 import {userStore} from '../../src/storage/userStore';
+import {DEFAULT_ONLINE_VOICE} from '../../src/storage/onlineVoiceSettingsStore';
 
 describe('Phase 05: Fast TTS via react-native-tts & Optional ElevenLabs Cloud TTS', () => {
   beforeEach(() => {
@@ -265,7 +266,7 @@ describe('Phase 05: Fast TTS via react-native-tts & Optional ElevenLabs Cloud TT
             provider: 'elevenlabs',
             mimeType: 'audio/mpeg',
             model: 'elevenlabs-tts',
-            voice: 'Puck',
+            voice: DEFAULT_ONLINE_VOICE.id,
             createdAt: new Date().toISOString(),
           },
         });
@@ -342,7 +343,7 @@ describe('Phase 05: Fast TTS via react-native-tts & Optional ElevenLabs Cloud TT
             provider: 'elevenlabs',
             mimeType: 'audio/mpeg',
             model: 'elevenlabs-tts',
-            voice: 'Puck',
+            voice: DEFAULT_ONLINE_VOICE.id,
             createdAt: new Date().toISOString(),
           },
         });
@@ -438,6 +439,7 @@ describe('Phase 05: Fast TTS via react-native-tts & Optional ElevenLabs Cloud TT
           status: 'success',
           data: {
             provider: 'elevenlabs',
+            voice: DEFAULT_ONLINE_VOICE.id,
             mimeType: 'audio/mpeg',
             audioBase64: 'YXVkaW8=',
           },
@@ -482,6 +484,7 @@ describe('Phase 05: Fast TTS via react-native-tts & Optional ElevenLabs Cloud TT
           status: 'success',
           data: {
             provider: 'elevenlabs',
+            voice: DEFAULT_ONLINE_VOICE.id,
             mimeType: 'audio/mpeg',
             audioBase64: 'YXVkaW8=',
           },

@@ -279,7 +279,7 @@ export const useTodoData = ({
         dueTime: input.dueDate ? input.dueTime || null : null,
         isCompleted: false,
         priority: input.priority || 'Medium',
-        category: (input.category || 'Personal').trim() || 'Personal',
+        category: (input.category ?? '').trim(),
         notes: input.notes?.trim() || '',
         recurrenceRule: null,
       });
@@ -307,7 +307,7 @@ export const useTodoData = ({
       dueDate: null,
       dueTime: null,
       priority: quickPriority,
-      category: 'Personal',
+      category: '',
       notes: '',
     });
     setQuickTitle('');
@@ -327,7 +327,7 @@ export const useTodoData = ({
         dueDate: cleanDate,
         dueTime: cleanTime,
         priority: input.priority,
-        category: (input.category || 'Personal').trim() || 'Personal',
+        category: (input.category ?? '').trim(),
         notes: input.notes?.trim() || '',
       });
       if (!task.isCompleted && cleanDate && cleanTime) {

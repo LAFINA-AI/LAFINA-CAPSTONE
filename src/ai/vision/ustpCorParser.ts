@@ -25,7 +25,10 @@ const DAY_MAP: Record<string, string> = {
   sunday: 'Sunday',
 };
 
-export function computeSemesterEndDate(refDate: Date = new Date(), weeks: number = 18): string {
+export function computeSemesterEndDate(
+  refDate: Date = new Date(),
+  weeks: number = 18,
+): string {
   const until = new Date(refDate.getTime() + weeks * 7 * 24 * 60 * 60 * 1000);
   const yyyy = until.getUTCFullYear();
   const mm = String(until.getUTCMonth() + 1).padStart(2, '0');
@@ -39,11 +42,13 @@ export function expandDays(dayStr: string): string[] {
 
   if (upper === 'MWF') return ['Monday', 'Wednesday', 'Friday'];
   if (upper === 'MW') return ['Monday', 'Wednesday'];
-  if (upper === 'TTH' || upper === 'T-TH' || upper === 'TR' || upper === 'T-R') return ['Tuesday', 'Thursday'];
+  if (upper === 'TTH' || upper === 'T-TH' || upper === 'TR' || upper === 'T-R')
+    return ['Tuesday', 'Thursday'];
   if (upper === 'TF' || upper === 'T-F') return ['Tuesday', 'Friday'];
   if (upper === 'FS' || upper === 'FRI-SAT') return ['Friday', 'Saturday'];
   if (upper === 'MTWTH') return ['Monday', 'Tuesday', 'Wednesday', 'Thursday'];
-  if (upper === 'MTWTHF') return ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'];
+  if (upper === 'MTWTHF')
+    return ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'];
   if (upper === 'M' || upper === 'MON') return ['Monday'];
   if (upper === 'T' || upper === 'TUE') return ['Tuesday'];
   if (upper === 'W' || upper === 'WED') return ['Wednesday'];
@@ -90,14 +95,22 @@ export function expandDays(dayStr: string): string[] {
   return ['Monday'];
 }
 
-export function normalizeTime24(timeStr: string): { time24: string; time12: string } | null {
-  const cleaned = timeStr.trim().replace(/o/gi, '0');
-  const match = cleaned.match(/^(\d{1,2})(?:[:.](\d{2}))?\s*(am|pm)?$/i);
+export function normalizeTime24(
+  timeStr: string,
+): {time24: string; time12: string} | null {
+  const periodMatch = timeStr.trim().match(/\s*(am|pm)\s*$/i);
+  const periodPart = periodMatch ? periodMatch[1].toLowerCase() : '';
+  const numPart = (
+    periodMatch ? timeStr.trim().slice(0, periodMatch.index) : timeStr.trim()
+  )
+    .replace(/[oO]/g, '0')
+    .replace(/[Il]/g, '1');
+  const match = numPart.match(/^(\d{1,2})(?:[:.](\d{2}))?$/);
   if (!match) return null;
 
   let hour = parseInt(match[1], 10);
   const minute = match[2] ? parseInt(match[2], 10) : 0;
-  const period = match[3]?.toLowerCase();
+  const period = periodPart || undefined;
 
   if (minute < 0 || minute > 59) return null;
 
@@ -113,7 +126,7 @@ export function normalizeTime24(timeStr: string): { time24: string; time12: stri
   const dispPeriod = hour >= 12 ? 'PM' : 'AM';
   const time12 = `${dispHour}:${mm} ${dispPeriod}`;
 
-  return { time24: `${hh}:${mm}`, time12 };
+  return {time24: `${hh}:${mm}`, time12};
 }
 import type {
   LongestClassGap,
@@ -234,6 +247,153 @@ function toTitleCaseWord(word: string): string {
   return clean.charAt(0).toUpperCase() + clean.slice(1).toLowerCase();
 }
 
+const KNOWN_INTACT_ALLCAPS_NAMES = new Set([
+  'PEARL',
+  'MERLE',
+  'RUSSELL',
+  'MITCHELL',
+  'DARRELL',
+  'MAXWELL',
+  'RANDALL',
+  'KENDALL',
+  'MARSHALL',
+  'WENDELL',
+  'LOWELL',
+  'HOWELL',
+  'NEWELL',
+  'JEWELL',
+  'CARLOS',
+  'MARCUS',
+  'RICHARD',
+  'EDWARD',
+  'RAYMOND',
+  'ARNOLD',
+  'RONALD',
+  'DONALD',
+  'HAROLD',
+  'GERALD',
+  'REGINALD',
+  'ROBERT',
+  'ALBERT',
+  'HERBERT',
+  'GILBERT',
+  'WILBERT',
+  'NORBERT',
+  'ARTHUR',
+  'VICTOR',
+  'HECTOR',
+  'NESTOR',
+  'CESAR',
+  'OSCAR',
+  'EDGAR',
+  'PETER',
+  'WALTER',
+  'OLIVER',
+  'ROGER',
+  'DAVID',
+  'KEVIN',
+  'BRIAN',
+  'JASON',
+  'JUSTIN',
+  'MARTIN',
+  'STEVEN',
+  'ALLEN',
+  'JOSEPH',
+  'PHILIP',
+  'PATRICK',
+  'DOMINIC',
+  'RODERICK',
+  'ALEXANDER',
+  'CHRISTOPHER',
+  'FERDINAND',
+  'CHRISTIAN',
+  'SEBASTIAN',
+  'NATHAN',
+  'JONATHAN',
+  'ANTHONY',
+  'TIMOTHY',
+  'GREGORY',
+  'JEFFREY',
+  'BRADLEY',
+  'STANLEY',
+  'WESLEY',
+  'ASHLEY',
+  'LESLIE',
+  'VINCENT',
+  'LAWRENCE',
+  'TERRENCE',
+  'CLARENCE',
+  'KENNETH',
+  'STEPHEN',
+  'MATTHEW',
+  'ANDREW',
+  'EDWARD',
+]);
+
+const VALID_WORD_FINAL_BIGRAMS = new Set([
+  'NG',
+  'NT',
+  'ND',
+  'NK',
+  'RM',
+  'RN',
+  'RT',
+  'RD',
+  'RK',
+  'CH',
+  'SH',
+  'TH',
+  'CK',
+  'FF',
+  'LL',
+  'SS',
+  'LT',
+  'ST',
+  'SP',
+  'SK',
+  'PH',
+  'ER',
+  'OR',
+  'AR',
+  'AN',
+  'EN',
+  'ON',
+  'IN',
+  'EL',
+  'AL',
+  'UL',
+  'OL',
+  'ES',
+  'US',
+  'IS',
+  'AS',
+  'OS',
+  'EY',
+  'AY',
+  'OY',
+]);
+
+/**
+ * Splits an OCR-glued single-letter middle initial from an ALL-CAPS USTP given name token
+ * (e.g. "LEMARL" -> ["LEMAR", "L"]) while preserving ordinary names like PAUL, CARL, NOEL, PEARL.
+ */
+function splitOcrGluedMiddleInitial(token: string): string[] {
+  if (!/^[A-Z]{5,}$/.test(token)) return [token];
+  if (KNOWN_INTACT_ALLCAPS_NAMES.has(token)) return [token];
+
+  const tail2 = token.slice(-2);
+  if (VALID_WORD_FINAL_BIGRAMS.has(tail2)) return [token];
+
+  // Consonant + L / rare consonant + consonant ending attached by missing narrow space (e.g. LEMAR + L)
+  const penultimate = tail2[0];
+  const last = tail2[1];
+  const isVowel = (ch: string) => /[AEIOUY]/.test(ch);
+  if (!isVowel(penultimate) && last === 'L') {
+    return [token.slice(0, -1), last];
+  }
+  return [token];
+}
+
 /**
  * Formats USTP COR "LASTNAME, FIRSTNAME MIDDLE" into display name and preferred first name.
  * Example: "GONZALES, JOHN LEMAR L" -> { formattedName: "John Lemar L. Gonzales", preferredName: "John Lemar" }
@@ -244,7 +404,7 @@ export function formatUstpStudentName(rawName: string): {
 } {
   const cleaned = rawName.replace(/\s+/g, ' ').trim();
   if (!cleaned) {
-    return { formattedName: '', preferredName: '' };
+    return {formattedName: '', preferredName: ''};
   }
 
   if (cleaned.includes(',')) {
@@ -254,16 +414,33 @@ export function formatUstpStudentName(rawName: string): {
       .split(/\s+/)
       .filter(Boolean)
       .map(toTitleCaseWord);
-    const givenTokens = restPart
-      .trim()
-      .split(/\s+/)
-      .filter(Boolean);
+    let givenTokens = restPart.trim().split(/\s+/).filter(Boolean);
+
+    const hasExplicitInitialOrSuffix = givenTokens.some(
+      t => /^[A-Za-z]\.?$/.test(t) || /^(?:JR\.?|SR\.?|II|III|IV)$/i.test(t),
+    );
+    if (
+      givenTokens.length >= 2 &&
+      !hasExplicitInitialOrSuffix &&
+      lastPart.trim() === lastPart.trim().toUpperCase() &&
+      restPart.trim() === restPart.trim().toUpperCase()
+    ) {
+      const lastGiven = givenTokens[givenTokens.length - 1];
+      const splitLast = splitOcrGluedMiddleInitial(lastGiven);
+      if (splitLast.length === 2) {
+        givenTokens = [...givenTokens.slice(0, -1), ...splitLast];
+      }
+    }
 
     const formattedGiven = givenTokens.map(toTitleCaseWord);
     const preferredTokens = givenTokens.filter(
-      token => !/^[A-Za-z]\.?$/.test(token) && !/^(?:JR\.?|SR\.?|II|III|IV)$/i.test(token),
+      token =>
+        !/^[A-Za-z]\.?$/.test(token) &&
+        !/^(?:JR\.?|SR\.?|II|III|IV)$/i.test(token),
     );
-    const preferredName = (preferredTokens.length > 0 ? preferredTokens : givenTokens)
+    const preferredName = (
+      preferredTokens.length > 0 ? preferredTokens : givenTokens
+    )
       .map(toTitleCaseWord)
       .join(' ');
     const formattedName = [...formattedGiven, ...lastWords].join(' ').trim();
@@ -321,7 +498,7 @@ export function parseUstpScheduleTail(tail: string): {
 } | null {
   const cleaned = tail.replace(/\s+/g, ' ').trim();
   const scheduleRegex =
-    /^(MON|TUE|TUES|WED|THU|THUR|THURS|FRI|SAT|SUN|MWF|MTWTHF|MTWTH|TTHS|TTH|MTH|MTWF|MW|MF|WF|MS|TS|WS|TF|FS|THS|TR|SU|TH|M|T|W|R|F|S|(?:[MTWRFS]|TH|SU)(?:[/-](?:[MTWRFS]|TH|SU))+)\s+(\d{1,2}[:.]\d{2}\s*(?:AM|PM)?)\s*(?:-|–|—|to)\s*(\d{1,2}[:.]\d{2}\s*(?:AM|PM)?)\s*(.*)$/i;
+    /^(MON|TUE|TUES|WED|THU|THUR|THURS|FRI|SAT|SUN|MWF|MTWTHF|MTWTH|TTHS|TTH|MTH|MTWF|MW|MF|WF|MS|TS|WS|TF|FS|THS|TR|SU|TH|M|T|W|R|F|S|(?:[MTWRFS]|TH|SU)(?:[/-](?:[MTWRFS]|TH|SU))+)(?:\s+|(?=[0-9]))([0-9oOIl]{1,2}[:.][0-9oOIl]{2}\s*(?:AM|PM)?)\s*(?:-|–|—|to)\s*([0-9oOIl]{1,2}[:.][0-9oOIl]{2}\s*(?:AM|PM)?)\s*(.*)$/i;
   const match = cleaned.match(scheduleRegex);
   if (!match) return null;
 
@@ -333,8 +510,10 @@ export function parseUstpScheduleTail(tail: string): {
   // Inherit AM/PM if start time omitted it
   if (!/am|pm/i.test(startRaw) && /am|pm/i.test(endRaw)) {
     const endPeriod = endRaw.match(/am|pm/i)![0].toUpperCase();
-    const startH = parseInt(startRaw.split(/[:.]/)[0], 10);
-    const endH = parseInt(endRaw.split(/[:.]/)[0], 10);
+    const normDigits = (s: string) =>
+      s.replace(/[oO]/g, '0').replace(/[Il]/g, '1');
+    const startH = parseInt(normDigits(startRaw.split(/[:.]/)[0]), 10);
+    const endH = parseInt(normDigits(endRaw.split(/[:.]/)[0]), 10);
     if (endPeriod === 'PM' && startH >= 7 && startH <= 11 && endH < 12) {
       startRaw = `${startRaw} AM`;
     } else {
@@ -414,7 +593,7 @@ export function computeCorRecommendations(
 
   // 2. Busiest weekday (by total class minutes) and longest gap between same-day classes
   const dayMinutes: Record<string, number> = {};
-  const dayIntervals: Record<string, Array<{ start: number; end: number }>> = {};
+  const dayIntervals: Record<string, Array<{start: number; end: number}>> = {};
 
   for (const session of sessions) {
     const start = timeToMins(session.startTime);
@@ -423,7 +602,7 @@ export function computeCorRecommendations(
     for (const day of session.days) {
       dayMinutes[day] = (dayMinutes[day] || 0) + duration;
       if (!dayIntervals[day]) dayIntervals[day] = [];
-      dayIntervals[day].push({ start, end });
+      dayIntervals[day].push({start, end});
     }
   }
 
@@ -464,18 +643,206 @@ export function computeCorRecommendations(
   };
 }
 
-// Primary subject row regex:
-// [*]<Code> <Subject Title> <Lec> <Lab> <Credit> <Section> [Schedule/Room & Faculty]
+interface MatchedCourseRow {
+  code: string;
+  title: string;
+  lecUnits: number;
+  labUnits: number;
+  creditUnits: number;
+  section: string;
+  tail: string;
+}
+
+// Legacy strict 3-unit regex kept as fallback for synthetic minimal sections (e.g. "A")
 const PRIMARY_COURSE_ROW_REGEX =
-  /^\*?\s*([A-Za-z]{2,10}-?\d{1,4}[A-Za-z]?(?:-[A-Za-z0-9]{1,4})?|[A-Za-z]{2,10}\s+\d{1,4}[A-Za-z]?|[A-Za-z]{2,10})\s+(.+?)\s+(\d+(?:\.\d+)?|[Oo])\s+(\d+(?:\.\d+)?|[Oo])\s+(\d+(?:\.\d+)?|[Oo])\s+([A-Za-z0-9_/-]{2,25})(?:\s+(.*))?$/;
+  /^\*?\s*([A-Za-z]{2,10}-?\d{1,4}[A-Za-z]?(?:-[A-Za-z0-9]{1,4})?|[A-Za-z]{2,10}\s+\d{1,4}[A-Za-z]?|[A-Za-z]{2,10})\s+(.+?)\s+(\d+(?:\.\d+)?|[Oo])\s+(\d+(?:\.\d+)?|[Oo])\s+(\d+(?:\.\d+)?|[Oo])\s+([A-Za-z0-9_/-]{1,25})(?:\s+(.*))?$/;
+
+const USTP_SECTION_TOKEN_REGEX =
+  /^(?:[A-Za-z]{2,8}\d+[A-Za-z0-9_-]*|[A-Za-z0-9]+_[A-Za-z0-9_-]+)$/;
+const UNIT_NUMBER_TOKEN_REGEX = /^(?:\d+(?:\.\d+)?|[Oo])$/;
+const LEADING_COURSE_CODE_REGEX =
+  /^\*?\s*([A-Za-z]{2,10}-?\d{1,4}[A-Za-z]?(?:-[A-Za-z0-9]{1,4})?|[A-Za-z]{2,10}\s+\d{1,4}[A-Za-z]?|[A-Za-z]{2,10})\s+(.+)$/;
 
 function parseUnitNumber(raw: string): number {
   return parseFloat(raw.trim().replace(/[Oo]/g, '0'));
 }
 
+function isUnitNumberToken(tok: string): boolean {
+  if (!UNIT_NUMBER_TOKEN_REGEX.test(tok)) return false;
+  const val = parseUnitNumber(tok);
+  return Number.isFinite(val) && val >= 0 && val <= 12;
+}
+
+/**
+ * Matches a USTP course row tolerantly even if OCR drops 1-3 unit column digits (which otherwise
+ * cause course numbers like "4" in "IT Elective 4" or "2" in "Research 2" to be mistaken for
+ * lecUnits) or splits section suffixes like "IT4R11 Track2".
+ */
+function matchPrimaryCourseRow(line: string): MatchedCourseRow | null {
+  const trimmed = line.trim();
+  if (
+    !trimmed ||
+    Boolean(parseUstpScheduleTail(trimmed)) ||
+    Boolean(parseTotalUnitsLine(trimmed)) ||
+    HARD_STOP_PATTERNS.some(regex => regex.test(trimmed)) ||
+    STUDENT_LABEL_COLON_REGEX.test(trimmed) ||
+    NON_COURSE_PREFIX_REGEX.test(trimmed) ||
+    /^(?:BLOCK|BLK|LOT|PUROK|BRGY|BARANGAY)\b/i.test(trimmed)
+  ) {
+    return null;
+  }
+
+  const codeMatch = trimmed.match(LEADING_COURSE_CODE_REGEX);
+  if (codeMatch) {
+    const code = codeMatch[1].replace(/\s+/g, ' ').trim();
+    const rest = codeMatch[2].trim();
+    const tokens = rest.split(/\s+/);
+
+    // Anchor on a recognizable USTP section token (e.g. IT4R11_Track2, IT411_Rojo, IT4R11 Track2, IT2R13)
+    let sectionIdx = -1;
+    for (let i = 1; i < tokens.length; i++) {
+      if (USTP_SECTION_TOKEN_REGEX.test(tokens[i])) {
+        sectionIdx = i;
+        break;
+      }
+    }
+
+    if (sectionIdx >= 1) {
+      let section = tokens[sectionIdx];
+      let tailStartIdx = sectionIdx + 1;
+
+      // Rejoin OCR-split Track suffix (e.g. "IT4R11 Track2" -> "IT4R11_Track2")
+      if (
+        tailStartIdx < tokens.length &&
+        /^Track\d+$/i.test(tokens[tailStartIdx])
+      ) {
+        section = `${section}_${tokens[tailStartIdx]}`;
+        tailStartIdx += 1;
+      }
+
+      const beforeSection = tokens.slice(0, sectionIdx);
+      const trailingNums: number[] = [];
+      let numCount = 0;
+      for (let j = beforeSection.length - 1; j >= 1 && numCount < 3; j--) {
+        if (!isUnitNumberToken(beforeSection[j])) break;
+        trailingNums.unshift(parseUnitNumber(beforeSection[j]));
+        numCount += 1;
+      }
+
+      let consumeCount = 0;
+      let lecUnits = 0;
+      let labUnits = 0;
+      let creditUnits = 0;
+
+      if (trailingNums.length === 3) {
+        const [u0, u1, u2] = trailingNums;
+        if (u2 > 0 && Math.abs(u0 + u1 - u2) < 0.01) {
+          consumeCount = 3;
+          lecUnits = u0;
+          labUnits = u1;
+          creditUnits = u2;
+        } else if (u2 > 0 && u1 <= u2) {
+          // One unit digit dropped -> last two are [lec, credit], preserving title trailing digit
+          consumeCount = 2;
+          lecUnits = u1;
+          creditUnits = u2;
+          labUnits = Math.max(0, u2 - u1);
+        } else if (u2 > 0) {
+          consumeCount = 1;
+          creditUnits = u2;
+          lecUnits = u2;
+          labUnits = 0;
+        }
+      } else if (trailingNums.length === 2) {
+        const [u0, u1] = trailingNums;
+        if (u1 > 0 && u0 <= u1) {
+          consumeCount = 2;
+          lecUnits = u0;
+          creditUnits = u1;
+          labUnits = Math.max(0, u1 - u0);
+        } else if (u1 > 0) {
+          consumeCount = 1;
+          creditUnits = u1;
+          lecUnits = u1;
+          labUnits = 0;
+        }
+      } else if (trailingNums.length === 1 && beforeSection.length >= 2) {
+        const u0 = trailingNums[0];
+        if (u0 > 0) {
+          consumeCount = 1;
+          creditUnits = u0;
+          lecUnits = u0;
+          labUnits = 0;
+        }
+      }
+
+      const titleTokens = beforeSection.slice(
+        0,
+        beforeSection.length - consumeCount,
+      );
+      const title = titleTokens.join(' ').trim();
+      let tail = tokens.slice(tailStartIdx).join(' ').trim();
+
+      // If OCR split an arbitrary suffix between section and schedule, absorb it if remainder parses
+      if (tail && !parseUstpScheduleTail(tail)) {
+        const splitTailMatch = tail.match(/^([^\s]+)\s+(.+)$/);
+        if (
+          splitTailMatch &&
+          parseUstpScheduleTail(splitTailMatch[2]) &&
+          !/^[MTWRFS]{1,4}$|^MON|TUE|WED|THU|FRI|SAT|SUN/i.test(
+            splitTailMatch[1],
+          )
+        ) {
+          if (/^[A-Za-z0-9_-]{2,15}$/.test(splitTailMatch[1])) {
+            section = `${section}_${splitTailMatch[1]}`;
+          }
+          tail = splitTailMatch[2].trim();
+        }
+      }
+
+      const hasDigitsInCode = /\d/.test(code);
+      const hasStrongTail =
+        Boolean(parseUstpScheduleTail(tail)) || tail.length >= 3;
+      if (
+        title.length >= 2 &&
+        (hasDigitsInCode || consumeCount > 0 || section.includes('_')) &&
+        (consumeCount > 0 || hasStrongTail)
+      ) {
+        return {
+          code,
+          title,
+          lecUnits,
+          labUnits,
+          creditUnits,
+          section,
+          tail,
+        };
+      }
+    }
+  }
+
+  const strict = trimmed.match(PRIMARY_COURSE_ROW_REGEX);
+  if (!strict) return null;
+  const lecUnits = parseUnitNumber(strict[3]);
+  const labUnits = parseUnitNumber(strict[4]);
+  const creditUnits = parseUnitNumber(strict[5]);
+  if (Math.abs(lecUnits + labUnits - creditUnits) > 0.01) {
+    return null;
+  }
+  return {
+    code: strict[1].replace(/\s+/g, ' ').trim(),
+    title: strict[2].trim(),
+    lecUnits,
+    labUnits,
+    creditUnits,
+    section: strict[6].trim(),
+    tail: (strict[7] || '').trim(),
+  };
+}
+
 function parseTotalUnitsLine(
   line: string,
-): { lec: number; lab: number; cred: number } | null {
+): {lec: number; lab: number; cred: number} | null {
   const explicit = line.match(
     /^Total\s+Unit\(s\)\s*:?\s*(\d+(?:\.\d+)?|[Oo])\s+(\d+(?:\.\d+)?|[Oo])\s+(\d+(?:\.\d+)?|[Oo])/i,
   );
@@ -494,20 +861,20 @@ function parseTotalUnitsLine(
     const lab = parseUnitNumber(bare[2]);
     const cred = parseUnitNumber(bare[3]);
     if (Math.abs(lec + lab - cred) < 0.01) {
-      return { lec, lab, cred };
+      return {lec, lab, cred};
     }
   }
   return null;
 }
 
 const NON_COURSE_PREFIX_REGEX =
-  /^(?:Document\s+Code|FM-USTP|Rev\.\s*No|01\s+\d|Republic\s+of|University\s+of|Alubijid|CERTIFICATE|STUDENT\s+GENERAL|CODE\s+SUBJECT|Lec\s+Lab|U\s+N\s+I\s+T|SECTION\s+SCHEDULE|Total\s+Unit|First\s+Payment|1st\s+Sem|2nd\s+Sem|First\s+Sem|Second\s+Sem|Midyear|Summer|COLLEGE\s+OF|B\.?\s*S\.?|Bachelor|Master|Doctor|[1-5](?:st|nd|rd|th)\s+Year|N\/A|Filipino|Note:|Free\s+Higher|[A-Z]{2,8}-[A-Z0-9-]{4,25}$|\d{4,12}$|[MF]\s+\d{2}$|[A-ZÑ][A-ZÑ\s'-]+,\s+[A-ZÑ])/i;
+  /^(?:Document\s+Code|FM-USTP|Rev\.\s*No|01\s+\d|Republic\s+of|University\s+of|Alubijid|CERTIFICATE|STUDENT\s+GENERAL|CODE\s+SUBJECT|Lec\s+Lab|U\s+N\s+I\s+T|SECTION\s+SCHEDULE|Total\s+Unit|First\s+Payment|1st\s+Sem|2nd\s+Sem|First\s+Sem|Second\s+Sem|Midyear|Summer|COLLEGE\s+OF|B\.?\s*S\.?|Bachelor|Master|Doctor|[1-5](?:st|nd|rd|th)\s+Year|N\/A|Filipino|Note:|Free\s+Higher|[A-Z]{2,8}-[A-Z0-9-]{4,25}$|\d{4,12}$|[MF]\s+\d{2}$|[A-ZÑ][A-ZÑ\s'-]+,\s*[A-ZÑ])/i;
 
 const STUDENT_LABEL_COLON_REGEX = /^[A-Za-z][A-Za-z\s/#]{1,24}:/;
 
 function canStartSplitCourseRow(line: string): boolean {
   if (
-    PRIMARY_COURSE_ROW_REGEX.test(line) ||
+    Boolean(matchPrimaryCourseRow(line)) ||
     Boolean(parseUstpScheduleTail(line)) ||
     Boolean(parseTotalUnitsLine(line)) ||
     HARD_STOP_PATTERNS.some(regex => regex.test(line)) ||
@@ -525,7 +892,7 @@ function canJoinSplitCourseLine(
 ): boolean {
   const startsWithDigitCode = /^\*?\s*[A-Za-z]{2,10}-?\d/.test(line);
   if (startsWithDigitCode) return false;
-  if (!prevHasDigitCode && PRIMARY_COURSE_ROW_REGEX.test(line)) {
+  if (!prevHasDigitCode && Boolean(matchPrimaryCourseRow(line))) {
     return false;
   }
   return (
@@ -551,7 +918,7 @@ function mergeSplitCourseLines(lines: string[]): string[] {
       const next = lines[i + 1];
       if (canJoinSplitCourseLine(next, prevHasDigitCode)) {
         const two = `${line} ${next}`;
-        if (PRIMARY_COURSE_ROW_REGEX.test(two)) {
+        if (matchPrimaryCourseRow(two)) {
           merged.push(two);
           i += 2;
           continue;
@@ -560,7 +927,7 @@ function mergeSplitCourseLines(lines: string[]): string[] {
           const third = lines[i + 2];
           if (canJoinSplitCourseLine(third, prevHasDigitCode)) {
             const three = `${two} ${third}`;
-            if (PRIMARY_COURSE_ROW_REGEX.test(three)) {
+            if (matchPrimaryCourseRow(three)) {
               merged.push(three);
               i += 3;
               continue;
@@ -615,7 +982,7 @@ export function parseUstpCor(
 
   for (const line of allLines) {
     if (!inZone2) {
-      if (PRIMARY_COURSE_ROW_REGEX.test(line)) {
+      if (matchPrimaryCourseRow(line)) {
         inZone2 = true;
         zone2Lines.push(line);
       } else if (!HARD_STOP_PATTERNS.some(regex => regex.test(line))) {
@@ -682,10 +1049,7 @@ export function parseUstpCor(
     const m = l.match(
       /Name\s*:\s*([A-ZÑ][A-ZÑ\s.,'-]+?)(?=\s+(?:Program|College|Gender|Major|Year|Curriculum|Student)\s*:|$)/i,
     );
-    if (
-      m &&
-      !/^(?:Student|Gender|Age|College|Program)/i.test(m[1].trim())
-    ) {
+    if (m && !/^(?:Student|Gender|Age|College|Program)/i.test(m[1].trim())) {
       fullName = m[1].trim();
       break;
     }
@@ -693,7 +1057,7 @@ export function parseUstpCor(
   if (!fullName) {
     const commaNameLine = zone1Lines.find(
       l =>
-        /^[A-ZÑ][A-ZÑ\s'-]+,\s+[A-ZÑ][A-ZÑ\s.'-]+$/.test(l) &&
+        /^[A-ZÑ][A-ZÑ\s'-]+,\s*[A-ZÑ][A-ZÑ\s.'-]+$/.test(l) &&
         !/UNIVERSITY|PHILIPPINES|REPUBLIC|COLLEGE|INFORMATION|MACASANDIG|CAGAYAN|TIBASAK|BLOCK/i.test(
           l,
         ),
@@ -701,14 +1065,15 @@ export function parseUstpCor(
     if (commaNameLine) fullName = commaNameLine;
   }
 
-  const { formattedName, preferredName } = formatUstpStudentName(fullName);
+  const {formattedName, preferredName} = formatUstpStudentName(fullName);
 
   let gender = '';
   let age: number | null = null;
 
   const genderInline = zone1Text.match(/Gender\s*:\s*(M|F|Male|Female)\b/i);
   if (genderInline) {
-    gender = genderInline[1].toUpperCase();
+    const g = genderInline[1].trim().toUpperCase();
+    gender = g === 'MALE' ? 'M' : g === 'FEMALE' ? 'F' : g;
   }
   const ageInline = zone1Text.match(/Age\s*:\s*(\d{2})\b/i);
   if (ageInline) {
@@ -804,7 +1169,9 @@ export function parseUstpCor(
     yearLevel.match(/^[1-5](?:st|nd|rd|th)\s+Year/i)?.[0] || yearLevel;
 
   let curriculum = '';
-  const currInline = zone1Text.match(/Curriculum\s*:\s*([A-Z]{2,8}-[A-Z0-9-]{4,25})/i);
+  const currInline = zone1Text.match(
+    /Curriculum\s*:\s*([A-Z]{2,8}-[A-Z0-9-]{4,25})/i,
+  );
   if (currInline) {
     curriculum = currInline[1].trim();
   } else {
@@ -832,15 +1199,10 @@ export function parseUstpCor(
   let activeCourse: UstpEnrolledCourse | null = null;
 
   for (const line of zone2Lines) {
-    const primaryMatch = line.match(PRIMARY_COURSE_ROW_REGEX);
+    const primaryMatch = matchPrimaryCourseRow(line);
     if (primaryMatch) {
-      const code = primaryMatch[1].replace(/\s+/g, ' ').trim();
-      const title = primaryMatch[2].trim();
-      const lecUnits = parseUnitNumber(primaryMatch[3]);
-      const labUnits = parseUnitNumber(primaryMatch[4]);
-      const creditUnits = parseUnitNumber(primaryMatch[5]);
-      const section = primaryMatch[6].trim();
-      const tail = (primaryMatch[7] || '').trim();
+      const {code, title, lecUnits, labUnits, creditUnits, section, tail} =
+        primaryMatch;
 
       const course: UstpEnrolledCourse = {
         code,
@@ -923,6 +1285,16 @@ export function parseUstpCor(
   }
 
   // Finalize schedule summaries and primary section
+  const zeroUnitCourses = courses.filter(c => c.creditUnits === 0);
+  if (totalCreditUnits !== null && zeroUnitCourses.length === 1) {
+    const knownCred = courses.reduce((s, c) => s + c.creditUnits, 0);
+    const missingCred = totalCreditUnits - knownCred;
+    if (missingCred > 0 && missingCred <= 6) {
+      zeroUnitCourses[0].creditUnits = missingCred;
+      zeroUnitCourses[0].lecUnits = missingCred;
+    }
+  }
+
   const sectionCounts: Record<string, number> = {};
   let sumLec = 0;
   let sumLab = 0;
@@ -964,7 +1336,8 @@ export function parseUstpCor(
 
   if (totalLecUnits === null && courses.length > 0) totalLecUnits = sumLec;
   if (totalLabUnits === null && courses.length > 0) totalLabUnits = sumLab;
-  if (totalCreditUnits === null && courses.length > 0) totalCreditUnits = sumCred;
+  if (totalCreditUnits === null && courses.length > 0)
+    totalCreditUnits = sumCred;
   const totalUnits = totalCreditUnits !== null ? String(totalCreditUnits) : '';
 
   const profile: UstpStudentProfile = {
@@ -995,14 +1368,23 @@ export function parseUstpCor(
     totalCreditUnits,
   };
 
-  const recommendedPreferences = computeCorRecommendations(courses, allSessions);
+  const recommendedPreferences = computeCorRecommendations(
+    courses,
+    allSessions,
+  );
 
   const markdownLines: string[] = [
     '### 🎓 USTP Certificate of Registration',
     '',
-    `**Student:** ${formattedName || fullName || 'USTP Student'}${studentNo ? ` (${studentNo})` : ''}`,
-    `**Program:** ${program || 'N/A'}${yearLevelShort ? ` · ${yearLevelShort}` : ''}`,
-    `**Section:** ${primarySection || 'N/A'}${academicTerm ? ` · ${academicTerm}` : ''}`,
+    `**Student:** ${formattedName || fullName || 'USTP Student'}${
+      studentNo ? ` (${studentNo})` : ''
+    }`,
+    `**Program:** ${program || 'N/A'}${
+      yearLevelShort ? ` · ${yearLevelShort}` : ''
+    }`,
+    `**Section:** ${primarySection || 'N/A'}${
+      academicTerm ? ` · ${academicTerm}` : ''
+    }`,
     '',
     '| Code | Subject Title | Section | Schedule / Room | Faculty |',
     '| :--- | :--- | :--- | :--- | :--- |',

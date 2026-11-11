@@ -138,11 +138,11 @@ describe('Phase 15 — Traceability, Release Readiness, and Anti-Hallucination A
         pacing: 'normal',
       });
 
-      // Strict anti-hallucination instruction verification
+      // Strict anti-hallucination and agentic draft save/revise instruction verification
       expect(prompt).toContain('Do not invent tool progress');
-      expect(prompt).toContain(
-        'require on-screen user confirmation before committing',
-      );
+      expect(prompt).toContain('revise_draft');
+      expect(prompt).toContain('confirm_draft');
+      expect(prompt).toContain('never claim you cannot save');
       expect(LAFINA_VOICE_SYSTEM_PROMPT).toContain(
         'Do not invent tool progress',
       );

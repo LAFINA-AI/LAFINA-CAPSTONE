@@ -84,8 +84,8 @@ describe('Phase 12 — Voice Choice, Language, and Interaction Settings', () => 
       seedUser(freshUser);
       const settings = getCallLafinaSettings(freshUser);
 
-      expect(settings.voiceId).toBeNull();
-      expect(settings.voiceName).toBeNull();
+      expect(settings.voiceId).toBe('BtcCEANLn920ZIoN9grW');
+      expect(settings.voiceName).toBe('Camille');
       expect(settings.language).toBe('en');
       expect(settings.verbosity).toBe('brief');
       expect(settings.pacing).toBe('normal');

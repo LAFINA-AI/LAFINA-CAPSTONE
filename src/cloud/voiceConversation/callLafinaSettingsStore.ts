@@ -13,6 +13,7 @@
 import {localSettingsStore} from '../../storage/localSettingsStore';
 import {db} from '../../storage/database';
 import {
+  DEFAULT_ONLINE_VOICE,
   onlineVoiceSettingsStore,
   validOnlineVoiceId,
 } from '../../storage/onlineVoiceSettingsStore';
@@ -49,8 +50,8 @@ export const CALL_LAFINA_SETTINGS_KEYS = {
 } as const;
 
 export const DEFAULT_CALL_LAFINA_SETTINGS: CallLafinaSettings = {
-  voiceId: null,
-  voiceName: null,
+  voiceId: DEFAULT_ONLINE_VOICE.id,
+  voiceName: DEFAULT_ONLINE_VOICE.name,
   language: 'en',
   verbosity: 'brief',
   pacing: 'normal',

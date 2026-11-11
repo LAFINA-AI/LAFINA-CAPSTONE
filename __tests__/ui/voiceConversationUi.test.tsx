@@ -646,16 +646,15 @@ describe('a live conversation', () => {
       JSON.parse(calls.initiation).conversation_config_override.tts.voice_id,
     ).toBe('default_voice');
     expect(utils.getByTestId('voice-conversation-voice')).toHaveTextContent(
-      /Server default voice/,
+      /Camille/,
     );
 
     message({
       type: 'tentative_user_transcript',
       tentative_user_transcription_event: {user_transcript: 'Add task'},
     });
-    expect(utils.getByTestId('voice-turn-user-provisional')).toHaveTextContent(
-      /Add task$/,
-    );
+    expect(utils.queryByTestId('voice-turn-user-provisional')).toBeNull();
+    expect(utils.queryByTestId('voice-conversation-transcript')).toBeNull();
     message({
       type: 'user_transcript',
       user_transcription_event: {
@@ -663,9 +662,7 @@ describe('a live conversation', () => {
         event_id: 1,
       },
     });
-    expect(utils.getByTestId('voice-turn-user-final')).toHaveTextContent(
-      /Add task: read chapter 5$/,
-    );
+    expect(utils.queryByTestId('voice-turn-user-final')).toBeNull();
 
     // The planner change waits on the card; nothing is saved by speaking.
     expect(
@@ -673,7 +670,7 @@ describe('a live conversation', () => {
     ).toBeTruthy();
     expect(
       utils.getByTestId('voice-conversation-local-note'),
-    ).toHaveTextContent(/Nothing is saved until you tap Confirm/);
+    ).toHaveTextContent(/nothing is saved until confirmed/i);
     expect(tasksStore.getAllTasks(userId)).toHaveLength(tasksBefore);
 
     message({
@@ -833,11 +830,9 @@ describe('connected Call Lafina result cards', () => {
       entityId: 'panel-note',
     });
     expect(calls.end).toBe(0);
-    fireEvent.press(utils.getByLabelText('Read earlier Chat messages'));
-    expect(navigate).toHaveBeenLastCalledWith({
-      ownerId: userId,
-      screen: 'chat',
-    });
+    expect(utils.queryByLabelText('Read earlier Chat messages')).toBeNull();
+    expect(utils.queryByText('Open Chat history')).toBeNull();
+    expect(utils.queryByText('Open saved item')).toBeNull();
   });
   test('provider calendar read renders a bounded agenda and opens Calendar on the requested date', async () => {
     const userId = student('agenda');
@@ -918,9 +913,7 @@ describe('Call Lafina draft ambiguity and grouped editing', () => {
     });
     await waitFor(() =>
       expect(
-        utils.getByText(
-          'Check the card below. Nothing is saved until you tap Confirm.',
-        ),
+        utils.getByText('Check the card — nothing is saved until confirmed.'),
       ).toBeTruthy(),
     );
     message({
@@ -967,5 +960,125 @@ describe('Call Lafina draft ambiguity and grouped editing', () => {
       dueDate: '2030-06-12',
       dueTime: '16:00',
     });
+  });
+});
+
+describe('Call Mode ChatGPT-style UX, live card revisions, and saving', () => {
+  test('uses non-scrolling stage, hides waveform while card is active, revises open draft on follow-up, and saves via voice', async () => {
+    const userId = student('chatgpt-ux');
+    signIn(userId);
+    fakeServer();
+    const {transport, calls, message} = fakeTransport();
+    const utils = renderPanel(userId, transport);
+    fireEvent.press(utils.getByTestId('voice-conversation-start'));
+    await waitFor(() => expect(calls.start).toBe(1));
+
+    // Non-scrolling stage, avatar/waveform visible initially, transcript & extra nav buttons hidden
+    expect(utils.getByTestId('call-content-stage').type).toBe('View');
+    expect(utils.getByTestId('call-identity-ring')).toBeTruthy();
+    expect(utils.queryByTestId('voice-conversation-transcript')).toBeNull();
+    expect(utils.queryByText('Open Chat history')).toBeNull();
+    expect(utils.queryByText('Open saved item')).toBeNull();
+
+    // Ask Lafina to schedule a meeting at 1pm
+    message({
+      type: 'user_transcript',
+      user_transcription_event: {
+        user_transcript: 'schedule me a meeting at 1pm',
+        event_id: 201,
+      },
+    });
+
+    const card = await utils.findByTestId('voice-conversation-review-card');
+    expect(card).toHaveTextContent(/1:00 PM/);
+    // Waveform/avatar hides while card is shown on screen
+    expect(utils.queryByTestId('call-identity-ring')).toBeNull();
+
+    // Follow-up spoken edit dynamically updates the displayed card
+    message({
+      type: 'user_transcript',
+      user_transcription_event: {
+        user_transcript: 'change it to 2pm',
+        event_id: 202,
+      },
+    });
+    await waitFor(() => {
+      const updated = utils.getByTestId('voice-conversation-review-card');
+      expect(updated).toHaveTextContent(/2:00 PM/);
+    });
+
+    message({
+      type: 'user_transcript',
+      user_transcription_event: {
+        user_transcript: 'rename it to Team Sync',
+        event_id: 203,
+      },
+    });
+    await waitFor(() => {
+      const renamed = utils.getByTestId('voice-conversation-review-card');
+      expect(renamed).toHaveTextContent(/Team Sync/);
+    });
+
+    // Spoken confirmation saves the revised draft directly
+    message({
+      type: 'user_transcript',
+      user_transcription_event: {
+        user_transcript: 'yes, lock it in',
+        event_id: 204,
+      },
+    });
+
+    await waitFor(() => expect(tasksStore.getAllTasks(userId)).toHaveLength(1));
+    expect(tasksStore.getAllTasks(userId)[0]).toMatchObject({
+      title: 'Team Sync',
+      dueTime: '14:00',
+    });
+    expect(utils.queryByTestId('voice-conversation-review-card')).toBeNull();
+    expect(utils.queryByText('Open saved item')).toBeNull();
+  });
+
+  test('confirm_draft client tool call commits pending card inside panel', async () => {
+    const userId = student('confirm-tool');
+    signIn(userId);
+    fakeServer();
+    const {transport, calls, message} = fakeTransport();
+    const utils = renderPanel(userId, transport);
+    fireEvent.press(utils.getByTestId('voice-conversation-start'));
+    await waitFor(() => expect(calls.start).toBe(1));
+
+    message({
+      type: 'user_transcript',
+      user_transcription_event: {
+        user_transcript: 'Add task: Submit slides tomorrow at 3pm',
+        event_id: 301,
+      },
+    });
+    message({
+      type: 'client_tool_call',
+      client_tool_call: {
+        tool_name: 'prepare_lafina_action',
+        tool_call_id: 'prep-save',
+        parameters: {request: 'Add task: Submit slides tomorrow at 3pm'},
+      },
+    });
+
+    await utils.findByTestId('voice-conversation-review-card');
+    const cardId = latestPendingReview(userId, 'voice')?.operationId;
+    expect(cardId).toBeTruthy();
+
+    message({
+      type: 'client_tool_call',
+      client_tool_call: {
+        tool_name: 'confirm_draft',
+        tool_call_id: 'confirm-save',
+        parameters: {cardId, revision: 1},
+      },
+    });
+
+    await waitFor(() => expect(tasksStore.getAllTasks(userId)).toHaveLength(1));
+    expect(tasksStore.getAllTasks(userId)[0]).toMatchObject({
+      dueTime: '15:00',
+    });
+    expect(utils.queryByTestId('voice-conversation-review-card')).toBeNull();
   });
 });

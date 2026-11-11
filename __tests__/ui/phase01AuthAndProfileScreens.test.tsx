@@ -1,9 +1,10 @@
 import React from 'react';
-import { render, fireEvent, waitFor } from '@testing-library/react-native';
-import { ThemeProvider } from '../../src/ui/contexts/ThemeContext';
-import { WelcomeScreen } from '../../src/ui/screens/WelcomeScreen';
-import { OnboardingScreen } from '../../src/ui/screens/OnboardingScreen';
-import { ProfileScreen } from '../../src/ui/screens/ProfileScreen';
+import {render, fireEvent, waitFor} from '@testing-library/react-native';
+import {ThemeProvider} from '../../src/ui/contexts/ThemeContext';
+import {WelcomeScreen} from '../../src/ui/screens/WelcomeScreen';
+import {OnboardingScreen} from '../../src/ui/screens/OnboardingScreen';
+import {ProfileScreen} from '../../src/ui/screens/ProfileScreen';
+import {developerTestService} from '../../src/ui/components/profile/developerTestService';
 import {
   db,
   initDatabase,
@@ -11,11 +12,11 @@ import {
   academicProfileStore,
   timeBlocksStore,
 } from '../../src/storage';
-import { GUEST_USER_ID } from '../../src/constants';
-import { chatMemoryStore } from '../../src/storage/chatMemoryStore';
-import { visionService } from '../../src/ai/vision/visionService';
-import { parseUstpCor } from '../../src/ai/vision/ustpCorParser';
-import { NativeModules } from 'react-native';
+import {GUEST_USER_ID} from '../../src/constants';
+import {chatMemoryStore} from '../../src/storage/chatMemoryStore';
+import {visionService} from '../../src/ai/vision/visionService';
+import {parseUstpCor} from '../../src/ai/vision/ustpCorParser';
+import {NativeModules} from 'react-native';
 
 const SAMPLE_COR_TEXT = `
 Registration No: 556711 Academic Year/Term : 1st Semester AY 2026-2027
@@ -53,7 +54,7 @@ describe('Phase 01 Welcome, Onboarding, and Profile Screens', () => {
     const onNavigateToLogin = jest.fn();
     const onNavigateToRegister = jest.fn();
 
-    const { getByText } = render(
+    const {getByText} = render(
       <ThemeProvider userId={null}>
         <WelcomeScreen
           onGetStarted={onGetStarted}
@@ -77,12 +78,9 @@ describe('Phase 01 Welcome, Onboarding, and Profile Screens', () => {
     const guest = userStore.createGuestUser();
     const onComplete = jest.fn();
 
-    const { getByText } = render(
+    const {getByText} = render(
       <ThemeProvider userId={guest.id}>
-        <OnboardingScreen
-          userId={guest.id}
-          onOnboardingComplete={onComplete}
-        />
+        <OnboardingScreen userId={guest.id} onOnboardingComplete={onComplete} />
       </ThemeProvider>,
     );
 
@@ -112,7 +110,7 @@ describe('Phase 01 Welcome, Onboarding, and Profile Screens', () => {
     fireEvent.press(ui.getByText('Continue'));
     fireEvent.press(ui.getByText('Get Started'));
     await waitFor(() => expect(onComplete).toHaveBeenCalledTimes(1));
-    const values = chatMemoryStore.list(guest.id).map((m) => m.text);
+    const values = chatMemoryStore.list(guest.id).map(m => m.text);
     expect(values).toContain('Prefers to be called Alex.');
     expect(values).toContain('Prefers a casual conversational tone.');
   });
@@ -168,12 +166,12 @@ describe('Phase 01 Welcome, Onboarding, and Profile Screens', () => {
     // Verify recurring schedule persisted in timeBlocksStore (F + W + T + F = 4 blocks)
     const blocks = timeBlocksStore.getAll(guest.id);
     expect(blocks.length).toBe(4);
-    expect(blocks.some((b) => b.title === 'IT414 · IT Elective 3')).toBe(true);
+    expect(blocks.some(b => b.title === 'IT414 · IT Elective 3')).toBe(true);
 
     // Verify memories saved
-    const memories = chatMemoryStore.list(guest.id).map((m) => m.text);
+    const memories = chatMemoryStore.list(guest.id).map(m => m.text);
     expect(memories).toContain('Prefers to be called John Lemar.');
-    expect(memories.some((m) => m.includes('2023305519'))).toBe(true);
+    expect(memories.some(m => m.includes('2023305519'))).toBe(true);
   });
 
   test('OnboardingScreen Non-USTP Student flow prompts to upload schedule image or skip', async () => {
@@ -205,7 +203,7 @@ describe('Phase 01 Welcome, Onboarding, and Profile Screens', () => {
     academicProfileStore.save(guest.id, {
       ...cor.profile,
       isUstpStudent: true,
-      courses: cor.courses.map((c) => ({
+      courses: cor.courses.map(c => ({
         code: c.code,
         subjectTitle: c.subjectTitle,
         lecUnits: c.lecUnits,
@@ -316,7 +314,8 @@ describe('Phase 01 Welcome, Onboarding, and Profile Screens', () => {
     const guest = userStore.createGuestUser();
     const modules = NativeModules as Record<string, unknown>;
     const original = modules.CapstoneBuild;
-    modules.CapstoneBuild = { backendSwitchEnabled: true };
+    modules.CapstoneBuild = {backendSwitchEnabled: true};
+    developerTestService.setDeveloperModeEnabled(true);
     const onReplayOnboarding = jest.fn();
     try {
       const ui = render(
@@ -333,13 +332,14 @@ describe('Phase 01 Welcome, Onboarding, and Profile Screens', () => {
       expect(onReplayOnboarding).toHaveBeenCalledTimes(1);
       ui.unmount();
     } finally {
+      developerTestService.setDeveloperModeEnabled(false);
       modules.CapstoneBuild = original;
     }
   });
 
   test('canceling an onboarding replay preserves existing memories', () => {
     const guest = userStore.createGuestUser();
-    const prior = chatMemoryStore.list(guest.id).map((m) => m.text);
+    const prior = chatMemoryStore.list(guest.id).map(m => m.text);
     const cancel = jest.fn();
     const ui = render(
       <ThemeProvider userId={guest.id}>
@@ -352,7 +352,7 @@ describe('Phase 01 Welcome, Onboarding, and Profile Screens', () => {
     );
     fireEvent.press(ui.getByText('Cancel replay'));
     expect(cancel).toHaveBeenCalledTimes(1);
-    expect(chatMemoryStore.list(guest.id).map((m) => m.text)).toEqual(prior);
+    expect(chatMemoryStore.list(guest.id).map(m => m.text)).toEqual(prior);
   });
 
   test('ProfileScreen renders guest profile banner and settings items', () => {
@@ -362,7 +362,7 @@ describe('Phase 01 Welcome, Onboarding, and Profile Screens', () => {
     const onReplayTour = jest.fn();
     const onRefresh = jest.fn();
 
-    const { getByText, queryByText } = render(
+    const {getByText, queryByText} = render(
       <ThemeProvider userId={guest.id}>
         <ProfileScreen
           userId={guest.id}

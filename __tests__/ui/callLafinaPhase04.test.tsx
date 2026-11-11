@@ -4,6 +4,7 @@ import {VoiceConversationPanel} from '../../src/ui/components/voice/VoiceConvers
 import {ThemeProvider} from '../../src/ui/contexts/ThemeContext';
 import {ttsService} from '../../src/ai/tts/ttsService';
 import {
+  chatStore,
   db,
   initDatabase,
   localSettingsStore,
@@ -165,6 +166,16 @@ describe('Phase 04: Human-Feeling Voice Persona and Turn-Taking', () => {
       transport: mockTransport.transport,
       allowLocalTestServer: true,
       onClientTool: options?.onClientTool,
+      persistence: {
+        userTurn: (text: string) => {
+          chatStore.addMessage(userId, 'user', text);
+        },
+        assistantTurn: (text: string, heard: 'complete' | 'interrupted') => {
+          chatStore.addMessage(userId, 'assistant', text, null, {
+            voiceInterrupted: heard === 'interrupted',
+          });
+        },
+      },
       limits: {
         connectTimeoutMs: 2000,
         thinkingTimeoutMs: options?.thinkingTimeoutMs ?? 5000,
@@ -289,8 +300,8 @@ describe('Phase 04: Human-Feeling Voice Persona and Turn-Taking', () => {
       expect(clean).toContain('physics');
     });
 
-    test('assistant response with leaked thinking tags is scrubbed before UI and transcript display', async () => {
-      const {getByTestId, mockTransport} = renderPanel();
+    test('assistant response with leaked thinking tags is scrubbed before persistence while transcript stays hidden in Call Mode', async () => {
+      const {getByTestId, queryByTestId, mockTransport} = renderPanel();
 
       fireEvent.press(getByTestId('voice-conversation-start'));
       await waitFor(() =>
@@ -323,23 +334,26 @@ describe('Phase 04: Human-Feeling Voice Persona and Turn-Taking', () => {
         }),
       });
 
+      fireEvent.press(getByTestId('voice-conversation-end'));
+
       await waitFor(() => {
-        expect(getByTestId('voice-conversation-transcript')).toHaveTextContent(
-          /Your next class is Physics 101 at 2 PM\./,
+        const saved = chatStore.getRecentMessages(userId, 10);
+        const assistant = saved.find(
+          m =>
+            m.sender === 'assistant' &&
+            m.content.includes('Your next class is Physics 101 at 2 PM.'),
         );
-        expect(
-          getByTestId('voice-conversation-transcript'),
-        ).not.toHaveTextContent('think');
-        expect(
-          getByTestId('voice-conversation-transcript'),
-        ).not.toHaveTextContent('**');
+        expect(assistant).toBeTruthy();
+        expect(assistant?.content).not.toContain('think');
+        expect(assistant?.content).not.toContain('**');
       });
+      expect(queryByTestId('voice-conversation-transcript')).toBeNull();
     });
   });
 
   describe('F-016 & P04-03: Patient Turn-Taking and Pauses', () => {
     test('tentative user speech does not commit or force reply; only final transcript does', async () => {
-      const {getByTestId, mockTransport} = renderPanel();
+      const {getByTestId, queryByTestId, mockTransport} = renderPanel();
 
       fireEvent.press(getByTestId('voice-conversation-start'));
       await waitFor(() =>
@@ -358,16 +372,16 @@ describe('Phase 04: Human-Feeling Voice Persona and Turn-Taking', () => {
         }),
       });
 
-      await waitFor(() => {
-        expect(getByTestId('voice-conversation-transcript')).toHaveTextContent(
-          /Remind me to submit/,
-        );
-      });
-
-      // Status remains listening (patient turn taking), not thinking yet
+      // Status remains listening (patient turn taking), and transcript stays hidden
+      expect(queryByTestId('voice-conversation-transcript')).toBeNull();
       expect(getByTestId('voice-conversation-status')).toHaveTextContent(
         /Listening/,
       );
+      expect(
+        chatStore
+          .getRecentMessages(userId, 10)
+          .some(m => m.content.includes('Remind me to submit')),
+      ).toBe(false);
 
       // Student pauses and finishes speaking -> final user transcript emitted
       mockTransport.emit({
