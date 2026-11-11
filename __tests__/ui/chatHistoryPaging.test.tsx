@@ -3,11 +3,17 @@
  * switching, and Handbook citations that survive a reload.
  */
 import React from 'react';
+import {FlatList} from 'react-native';
 import {act, fireEvent, render, waitFor} from '@testing-library/react-native';
 import {ChatScreen} from '../../src/ui/screens/ChatScreen';
 import {ThemeProvider} from '../../src/ui/contexts/ThemeContext';
 import {mergeChatPages} from '../../src/ui/screens/chat/chatPaging';
-import {chatStore, initDatabase, userStore} from '../../src/storage';
+import {
+  CHAT_PAGE_SIZE,
+  chatStore,
+  initDatabase,
+  userStore,
+} from '../../src/storage';
 import type {ChatMessage} from '../../src/storage';
 import {chatOrchestrator} from '../../src/ai';
 import {cloudClient} from '../../src/cloud';
@@ -264,5 +270,98 @@ describe('AGY-PORT 02: Chat history paging UI', () => {
     expect(
       await findByText(/Referenced USTP Student Handbook \(p\. 46\)/),
     ).toBeTruthy();
+  });
+
+  const flushAnimationFrame = () =>
+    act(async () => {
+      await new Promise<void>(resolve =>
+        requestAnimationFrame(() => resolve()),
+      );
+    });
+
+  test('opening or returning to a non-empty chat snaps to bottom immediately without animated scroll-down', async () => {
+    const user = 'initial-scroll-user';
+    seed(user, 30);
+    const scrollToEndSpy = jest.spyOn(FlatList.prototype, 'scrollToEnd');
+    const {getByTestId} = render(screen(user));
+
+    const list = getByTestId('chat-messages-list');
+    expect(list.props.initialNumToRender).toBe(CHAT_PAGE_SIZE);
+
+    act(() => {
+      fireEvent(list, 'layout', {
+        nativeEvent: {layout: {width: 360, height: 600}},
+      });
+      fireEvent(list, 'contentSizeChange', 360, 2400);
+      fireEvent(list, 'contentSizeChange', 360, 2480);
+    });
+    await flushAnimationFrame();
+
+    expect(scrollToEndSpy).toHaveBeenCalled();
+    expect(
+      scrollToEndSpy.mock.calls.every(args => args[0]?.animated === false),
+    ).toBe(true);
+
+    // Sending a message after initial positioning scrolls smoothly.
+    scrollToEndSpy.mockClear();
+    fireEvent.changeText(getByTestId('chat-text-input'), 'Check bottom scroll');
+    await act(async () => {
+      fireEvent.press(getByTestId('chat-send-button'));
+    });
+    act(() => {
+      fireEvent(list, 'contentSizeChange', 360, 2600);
+    });
+    expect(scrollToEndSpy).toHaveBeenCalledWith({animated: true});
+
+    // When scrolled up, layout/content changes do not yank back to bottom.
+    scrollToEndSpy.mockClear();
+    act(() => {
+      fireEvent.scroll(list, {
+        nativeEvent: {
+          contentOffset: {x: 0, y: 120},
+          contentSize: {width: 360, height: 2600},
+          layoutMeasurement: {width: 360, height: 600},
+        },
+      });
+      fireEvent(list, 'layout', {
+        nativeEvent: {layout: {width: 360, height: 580}},
+      });
+      fireEvent(list, 'contentSizeChange', 360, 2640);
+    });
+    expect(scrollToEndSpy).not.toHaveBeenCalled();
+  });
+
+  test('switching chats in history snaps to bottom without animated scroll-down', async () => {
+    const user = 'switch-chat-scroll-user';
+    seed(user, 15);
+    const firstId = chatStore.currentSessionId(user);
+    chatStore.startNewChat(user);
+    seed(user, 10);
+
+    const scrollToEndSpy = jest.spyOn(FlatList.prototype, 'scrollToEnd');
+    const {getByTestId} = render(screen(user));
+
+    const list = getByTestId('chat-messages-list');
+    act(() => {
+      fireEvent(list, 'layout', {
+        nativeEvent: {layout: {width: 360, height: 600}},
+      });
+      fireEvent(list, 'contentSizeChange', 360, 1200);
+    });
+
+    scrollToEndSpy.mockClear();
+    fireEvent.press(getByTestId('chat-history-button'));
+    await act(async () => {
+      fireEvent.press(getByTestId(`chat-history-item-${firstId}`));
+    });
+    act(() => {
+      fireEvent(list, 'contentSizeChange', 360, 1800);
+    });
+    await flushAnimationFrame();
+
+    expect(scrollToEndSpy).toHaveBeenCalled();
+    expect(
+      scrollToEndSpy.mock.calls.every(args => args[0]?.animated === false),
+    ).toBe(true);
   });
 });

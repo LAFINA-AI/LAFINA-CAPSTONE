@@ -32,9 +32,13 @@ export interface ChatMessage {
   updatedAt: string;
 }
 
+export type ChatSessionKind = 'general' | 'ustp';
+
 /** One row of the chat list, newest activity first. */
 export interface ChatSummary {
   id: string;
+  /** Whether this is a general assistant chat or a USTP Handbook RAG chat. */
+  kind: ChatSessionKind;
   /** The student's own title, or the start of their first message. */
   title: string;
   /** True when the student renamed the chat. */
@@ -86,8 +90,12 @@ export const CHAT_PAGE_SIZE = 50;
 export const CURRENT_CHAT_KEY = 'chat.currentSession';
 /** Ids of chats started with New chat; the first chat keeps its owner-bound id. */
 export const NEW_CHAT_PREFIX = 'chat_session:';
+/** Sub-prefix for dedicated USTP Student Handbook RAG chats. */
+export const USTP_CHAT_PREFIX = `${NEW_CHAT_PREFIX}ustp_`;
+export const isUstpSessionId = (sessionId?: string | null): boolean =>
+  typeof sessionId === 'string' && sessionId.startsWith(USTP_CHAT_PREFIX);
 export const MAX_CHAT_TITLE = 60;
-const PLACEHOLDER_TITLES = ['Default Chat', 'New chat'];
+const PLACEHOLDER_TITLES = ['Default Chat', 'New chat', 'Ask about USTP'];
 const MAX_PAGE_SIZE = 100;
 const CURSOR_VERSION = 1;
 
@@ -408,13 +416,22 @@ export const chatStore = {
    * The account's chats that have messages, most recent activity first.
    * `search` matches the title or any message (case-insensitive).
    */
-  listSessions: (userId: string, search = ''): ChatSummary[] => {
+  listSessions: (
+    userId: string,
+    search = '',
+    kindFilter: ChatSessionKind | 'all' = 'all',
+  ): ChatSummary[] => {
     const params: unknown[] = ownedSessionParams(userId);
     let filter = '';
+    if (kindFilter === 'ustp') {
+      filter += `AND substr(s.id, 1, ${USTP_CHAT_PREFIX.length}) = '${USTP_CHAT_PREFIX}' `;
+    } else if (kindFilter === 'general') {
+      filter += `AND substr(s.id, 1, ${USTP_CHAT_PREFIX.length}) <> '${USTP_CHAT_PREFIX}' `;
+    }
     const query = search.trim();
     if (query) {
       const pattern = `%${escapeLike(query)}%`;
-      filter = `AND (s.title LIKE ? ESCAPE '\\' OR EXISTS (
+      filter += `AND (s.title LIKE ? ESCAPE '\\' OR EXISTS (
         SELECT 1 FROM messages f WHERE f.session_id = s.id AND f.content LIKE ? ESCAPE '\\'))`;
       params.push(pattern, pattern);
     }
@@ -439,8 +456,10 @@ export const chatStore = {
         stored.length > 0 && !PLACEHOLDER_TITLES.includes(stored);
       const firstUser =
         typeof row.first_user === 'string' ? row.first_user : '';
+      const id = String(row.id);
       return {
-        id: String(row.id),
+        id,
+        kind: isUstpSessionId(id) ? 'ustp' : 'general',
         title: customTitle
           ? stored
           : firstUser.trim()
@@ -475,7 +494,10 @@ export const chatStore = {
          WHERE s.id = ?`,
         [chosen.sessionId],
       ).rows;
-      if (!rows.length) return 'New chat';
+      const fallback = isUstpSessionId(chosen.sessionId)
+        ? 'Ask about USTP'
+        : 'New chat';
+      if (!rows.length) return fallback;
       const row = rows[0];
       const stored = typeof row.title === 'string' ? row.title.trim() : '';
       const customTitle =
@@ -484,17 +506,34 @@ export const chatStore = {
       const firstUser =
         typeof row.first_user === 'string' ? row.first_user : '';
       if (firstUser.trim()) return oneLine(firstUser, MAX_CHAT_TITLE);
-      return 'New chat';
+      return fallback;
     }),
 
   /**
    * Starts an empty chat and opens it. If the open chat is still empty it is
    * reused, so tapping New chat twice does not leave empty chats behind.
    */
-  startNewChat: (userId: string): string =>
+  startNewChat: (userId: string, kind: ChatSessionKind = 'general'): string =>
     db.transactionSync(tx => {
       const open = currentSession(userId, tx);
-      if (messageCount(open.sessionId, tx) === 0) {
+      const openIsUstp = isUstpSessionId(open.sessionId);
+      if (kind === 'ustp') {
+        if (messageCount(open.sessionId, tx) === 0 && openIsUstp) {
+          dropEmptyNewChats(userId, open.sessionId, tx);
+          return open.sessionId;
+        }
+        const next = `${USTP_CHAT_PREFIX}${generateId('chat')}`;
+        const now = new Date().toISOString();
+        tx.executeSync(
+          `INSERT INTO chat_sessions (id, user_id, title, created_at, updated_at, generation)
+           VALUES (?, ?, 'Ask about USTP', ?, ?, ${NEW_SESSION_GENERATION_SQL})`,
+          [next, userId, now, now],
+        );
+        setCurrentChat(userId, next, tx);
+        dropEmptyNewChats(userId, next, tx);
+        return next;
+      }
+      if (messageCount(open.sessionId, tx) === 0 && !openIsUstp) {
         dropEmptyNewChats(userId, open.sessionId, tx);
         return open.sessionId;
       }
@@ -514,6 +553,10 @@ export const chatStore = {
       return next;
     }),
 
+  /** Starts a dedicated empty USTP Student Handbook RAG chat and opens it. */
+  startNewUstpChat: (userId: string): string =>
+    chatStore.startNewChat(userId, 'ustp'),
+
   /** Renames one of the account's chats; an empty title goes back to the automatic one. */
   renameSession: (userId: string, sessionId: string, title: string): void => {
     const clean = title
@@ -526,7 +569,8 @@ export const chatStore = {
       tx.executeSync(
         'UPDATE chat_sessions SET title = ?, updated_at = ? WHERE id = ? AND user_id = ?',
         [
-          clean || 'New chat',
+          clean ||
+            (isUstpSessionId(chosen.sessionId) ? 'Ask about USTP' : 'New chat'),
           new Date().toISOString(),
           chosen.sessionId,
           userId,
@@ -572,17 +616,28 @@ export const chatStore = {
         );
       }
       if (wasOpen) {
-        setCurrentChat(userId, null, tx);
-        const first = ensureOwnedSession(userId, tx);
-        if (messageCount(first.sessionId, tx) > 0) {
-          const next = `${NEW_CHAT_PREFIX}${generateId('chat')}`;
+        if (isUstpSessionId(chosen.sessionId)) {
+          const next = `${USTP_CHAT_PREFIX}${generateId('chat')}`;
           const now = new Date().toISOString();
           tx.executeSync(
             `INSERT INTO chat_sessions (id, user_id, title, created_at, updated_at, generation)
-             VALUES (?, ?, 'New chat', ?, ?, ${NEW_SESSION_GENERATION_SQL})`,
+             VALUES (?, ?, 'Ask about USTP', ?, ?, ${NEW_SESSION_GENERATION_SQL})`,
             [next, userId, now, now],
           );
           setCurrentChat(userId, next, tx);
+        } else {
+          setCurrentChat(userId, null, tx);
+          const first = ensureOwnedSession(userId, tx);
+          if (messageCount(first.sessionId, tx) > 0) {
+            const next = `${NEW_CHAT_PREFIX}${generateId('chat')}`;
+            const now = new Date().toISOString();
+            tx.executeSync(
+              `INSERT INTO chat_sessions (id, user_id, title, created_at, updated_at, generation)
+               VALUES (?, ?, 'New chat', ?, ?, ${NEW_SESSION_GENERATION_SQL})`,
+              [next, userId, now, now],
+            );
+            setCurrentChat(userId, next, tx);
+          }
         }
       }
       return {attachmentUris};

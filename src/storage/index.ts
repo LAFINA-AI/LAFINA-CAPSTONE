@@ -55,13 +55,20 @@ export type {
 } from './eventTime';
 export {timeBlocksStore} from './timeBlocksStore';
 export type {TimeBlock} from './timeBlocksStore';
-export {chatStore, CHAT_PAGE_SIZE, InvalidChatCursorError} from './chatStore';
+export {
+  chatStore,
+  CHAT_PAGE_SIZE,
+  InvalidChatCursorError,
+  USTP_CHAT_PREFIX,
+  isUstpSessionId,
+} from './chatStore';
 export type {
   ChatAttachment,
   ChatMessage,
   ChatMessageMetadata,
   ChatPage,
   ChatSession,
+  ChatSessionKind,
   ChatSummary,
   LegacyChatSummary,
 } from './chatStore';

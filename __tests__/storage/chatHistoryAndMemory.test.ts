@@ -3,7 +3,12 @@
  * memory (short facts LAFINA keeps about a student), both on this phone only.
  */
 import {db, initDatabase, chatStore, chatMemoryStore} from '../../src/storage';
-import {CURRENT_CHAT_KEY, NEW_CHAT_PREFIX} from '../../src/storage/chatStore';
+import {
+  CURRENT_CHAT_KEY,
+  NEW_CHAT_PREFIX,
+  USTP_CHAT_PREFIX,
+  isUstpSessionId,
+} from '../../src/storage/chatStore';
 import {
   MAX_PROMPT_MEMORIES,
   MAX_STORED_MEMORIES,
@@ -270,6 +275,50 @@ describe('several chats per account', () => {
       'Studies nursing.',
     ]);
     expect(chatMemoryStore.list(guest)).toEqual([]);
+  });
+
+  it('separates USTP Handbook RAG chats from general chats, filters by kind, and preserves ownership', () => {
+    const me = student();
+    chatStore.addMessage(me, 'user', 'Plan my study week');
+
+    const ustpId = chatStore.startNewUstpChat(me);
+    expect(ustpId.startsWith(USTP_CHAT_PREFIX)).toBe(true);
+    expect(isUstpSessionId(ustpId)).toBe(true);
+    expect(chatStore.getSessionTitle(me, ustpId)).toBe('Ask about USTP');
+
+    // Reusing an open empty USTP chat does not allocate a duplicate; switching back to general allocates/reuses general.
+    expect(chatStore.startNewUstpChat(me)).toBe(ustpId);
+    const generalAgain = chatStore.startNewChat(me, 'general');
+    expect(isUstpSessionId(generalAgain)).toBe(false);
+    expect(generalAgain).not.toBe(ustpId);
+
+    const ustpActive = chatStore.startNewUstpChat(me);
+    chatStore.addMessage(me, 'user', "What are the Dean's List requirements?");
+    expect(chatStore.getSessionTitle(me, ustpActive)).toBe(
+      "What are the Dean's List requirements?",
+    );
+
+    expect(chatStore.listSessions(me, '', 'all').map(c => c.kind)).toEqual([
+      'ustp',
+      'general',
+    ]);
+    expect(chatStore.listSessions(me, '', 'ustp').map(c => c.id)).toEqual([
+      ustpActive,
+    ]);
+    expect(chatStore.listSessions(me, '', 'general').map(c => c.id)).toEqual([
+      ownedChatSessionId(me),
+    ]);
+    expect(chatStore.listSessions(me, 'dean', 'ustp').map(c => c.id)).toEqual([
+      ustpActive,
+    ]);
+    expect(chatStore.listSessions(me, 'dean', 'general')).toEqual([]);
+
+    // Deleting the open USTP chat resets to a fresh empty USTP chat.
+    chatStore.deleteSession(me, ustpActive);
+    const afterDelete = chatStore.currentSessionId(me);
+    expect(afterDelete).not.toBe(ustpActive);
+    expect(isUstpSessionId(afterDelete)).toBe(true);
+    expect(chatStore.getMessages(me)).toEqual([]);
   });
 });
 
