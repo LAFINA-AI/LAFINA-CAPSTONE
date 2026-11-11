@@ -8,7 +8,7 @@
  */
 import {plannerQueries} from '../storage/plannerQueries';
 import {userStore} from '../storage/userStore';
-import {GUEST_USER_ID, GUEST_USERNAME} from '../constants';
+import {GUEST_USERNAME} from '../constants';
 
 export type SmallTalkKind =
   | 'greeting'
@@ -92,7 +92,7 @@ const localDate = (d: Date): string =>
   `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
 
 const firstName = (userId: string): string | null => {
-  if (!userId || userId === GUEST_USER_ID) return null;
+  if (!userId) return null;
   try {
     const raw = userStore.getUserById(userId)?.username?.trim();
     if (!raw || raw === GUEST_USERNAME || raw.includes('@')) return null;

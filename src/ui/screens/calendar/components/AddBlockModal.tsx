@@ -195,7 +195,7 @@ export const AddBlockModal: React.FC<AddBlockModalProps> = ({ state, timeFormat2
             </View>
 
             <View style={styles.categoryRow}>
-              {['Academic', 'Work', 'Personal', 'Health', 'Learning'].map((cat) => (
+              {['Class', 'Academic', 'Work', 'Personal', 'Health', 'Learning'].map((cat) => (
                 <TouchableOpacity
                   key={cat}
                   style={[

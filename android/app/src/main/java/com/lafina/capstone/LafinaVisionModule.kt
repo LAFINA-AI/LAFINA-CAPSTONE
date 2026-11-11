@@ -2,7 +2,12 @@ package com.lafina.capstone
 
 import android.app.Activity
 import android.content.Intent
+import android.graphics.Bitmap
+import android.graphics.Color
+import android.graphics.Rect
+import android.graphics.pdf.PdfRenderer
 import android.net.Uri
+import android.os.ParcelFileDescriptor
 import android.provider.MediaStore
 import androidx.core.content.FileProvider
 import com.facebook.react.bridge.ActivityEventListener
@@ -14,9 +19,11 @@ import com.facebook.react.bridge.ReactContextBaseJavaModule
 import com.facebook.react.bridge.ReactMethod
 import com.facebook.react.bridge.WritableMap
 import com.google.mlkit.vision.common.InputImage
+import com.google.mlkit.vision.text.Text
 import com.google.mlkit.vision.text.TextRecognition
 import com.google.mlkit.vision.text.latin.TextRecognizerOptions
 import java.io.File
+import kotlin.math.abs
 
 class LafinaVisionModule(private val reactContext: ReactApplicationContext) :
   ReactContextBaseJavaModule(reactContext) {
@@ -114,17 +121,106 @@ class LafinaVisionModule(private val reactContext: ReactApplicationContext) :
     }
   }
 
+  private fun isPdfUri(uri: Uri, uriString: String): Boolean {
+    val mimeType = try {
+      reactContext.contentResolver.getType(uri) ?: ""
+    } catch (_: Exception) {
+      ""
+    }
+    if (mimeType.equals("application/pdf", ignoreCase = true)) return true
+    val lower = uriString.lowercase()
+    return lower.endsWith(".pdf") || lower.contains(".pdf?")
+  }
+
+  private fun renderPdfFirstPage(uri: Uri): Bitmap {
+    val pfd: ParcelFileDescriptor =
+      if (uri.scheme == "file" && !uri.path.isNullOrBlank()) {
+        ParcelFileDescriptor.open(File(uri.path!!), ParcelFileDescriptor.MODE_READ_ONLY)
+      } else {
+        reactContext.contentResolver.openFileDescriptor(uri, "r")
+          ?: throw IllegalStateException("Could not open PDF file descriptor.")
+      }
+
+    pfd.use { descriptor ->
+      PdfRenderer(descriptor).use { renderer ->
+        if (renderer.pageCount <= 0) {
+          throw IllegalStateException("The selected PDF has no pages.")
+        }
+        renderer.openPage(0).use { page ->
+          val scale = (2480f / page.width.coerceAtLeast(1)).coerceIn(2f, 4f)
+          val width = (page.width * scale).toInt().coerceAtLeast(1)
+          val height = (page.height * scale).toInt().coerceAtLeast(1)
+          val bitmap = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888)
+          bitmap.eraseColor(Color.WHITE)
+          page.render(bitmap, null, null, PdfRenderer.Page.RENDER_MODE_FOR_PRINT)
+          return bitmap
+        }
+      }
+    }
+  }
+
+  private data class PositionedLine(val text: String, val box: Rect)
+
+  /**
+   * Reconstructs horizontal reading order across multi-column tables (such as USTP CORs)
+   * by clustering ML Kit lines with similar vertical centerY and sorting left-to-right.
+   */
+  private fun buildCoordinateSortedText(visionText: Text): String {
+    val lines = mutableListOf<PositionedLine>()
+    for (block in visionText.textBlocks) {
+      for (line in block.lines) {
+        val box = line.boundingBox
+        val clean = line.text.trim()
+        if (box != null && clean.isNotEmpty()) {
+          lines.add(PositionedLine(clean, box))
+        }
+      }
+    }
+    if (lines.isEmpty()) return visionText.text
+
+    val avgHeight = lines.map { (it.box.bottom - it.box.top).coerceAtLeast(1) }.average()
+    val rowTolerance = (avgHeight * 0.55).coerceAtLeast(8.0)
+
+    val sortedByY = lines.sortedWith(compareBy({ it.box.centerY() }, { it.box.left }))
+    val rows = mutableListOf<MutableList<PositionedLine>>()
+
+    for (item in sortedByY) {
+      val currentRow = rows.lastOrNull()
+      if (currentRow == null) {
+        rows.add(mutableListOf(item))
+      } else {
+        val rowCenterY = currentRow.map { it.box.centerY() }.average()
+        if (abs(item.box.centerY() - rowCenterY) <= rowTolerance) {
+          currentRow.add(item)
+        } else {
+          rows.add(mutableListOf(item))
+        }
+      }
+    }
+
+    return rows.joinToString("\n") { row ->
+      row.sortedBy { it.box.left }.joinToString(" ") { it.text }
+    }
+  }
+
   @ReactMethod
   fun recognizeText(uriString: String, promise: Promise) {
     try {
       val uri = Uri.parse(uriString)
-      val image: InputImage = InputImage.fromFilePath(reactContext, uri)
+      val image: InputImage = if (isPdfUri(uri, uriString)) {
+        val pdfBitmap = renderPdfFirstPage(uri)
+        InputImage.fromBitmap(pdfBitmap, 0)
+      } else {
+        InputImage.fromFilePath(reactContext, uri)
+      }
       val recognizer = TextRecognition.getClient(TextRecognizerOptions.DEFAULT_OPTIONS)
 
       recognizer.process(image)
         .addOnSuccessListener { visionText ->
+          val structuredText = buildCoordinateSortedText(visionText)
           val result: WritableMap = Arguments.createMap()
           result.putString("text", visionText.text)
+          result.putString("structuredText", structuredText)
           result.putInt("blockCount", visionText.textBlocks.size)
           promise.resolve(result)
         }
@@ -140,4 +236,3 @@ class LafinaVisionModule(private val reactContext: ReactApplicationContext) :
     private const val REQUEST_IMAGE_CAPTURE = 9201
   }
 }
-

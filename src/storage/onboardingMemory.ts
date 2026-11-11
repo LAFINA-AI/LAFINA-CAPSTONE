@@ -2,6 +2,7 @@ import {db} from './database';
 import {chatMemoryStore} from './chatMemoryStore';
 import {localSettingsStore} from './localSettingsStore';
 import type {StudyPeakHour} from './preferencesStore';
+import type {AcademicProfileRecord} from './academicProfileStore';
 
 export type ConversationTone = '' | 'casual' | 'professional';
 export type OnboardingIdentity = {preferredName: string; tone: ConversationTone};
@@ -29,7 +30,7 @@ export const onboardingVoiceContext = (userId: string): string => {
   try {
     const saved = JSON.parse(localSettingsStore.get(userId, KEY, '{}') || '{}') as Partial<Stored>;
     const memories = chatMemoryStore.list(userId);
-    const facts = ['name', 'tone'].flatMap(key => {
+    const facts = ['name', 'tone', 'cor_student', 'cor_program'].flatMap(key => {
       const entry = saved.entries?.[key];
       const fact = memories.find(m => m.id === entry?.id)?.text;
       return fact ? [fact] : [];
@@ -38,8 +39,51 @@ export const onboardingVoiceContext = (userId: string): string => {
   } catch { return ''; }
 };
 
+function buildCorMemoryFacts(profile: AcademicProfileRecord): Record<string, string> {
+  const facts: Record<string, string> = {};
+  const namePart = profile.formattedName || profile.fullName;
+  const studentDetails = [
+    profile.studentNo ? `Student No: ${profile.studentNo}` : '',
+    profile.gender ? `Gender: ${profile.gender}` : '',
+    profile.age ? `Age: ${profile.age}` : '',
+    profile.campus || '',
+  ].filter(Boolean).join(', ');
+
+  if (namePart || studentDetails) {
+    facts.cor_student = `USTP Student: ${namePart || 'Student'}${studentDetails ? ` (${studentDetails})` : ''}.`.slice(0, 195);
+  }
+
+  const section = profile.section || profile.primarySection;
+  const term = profile.academicTerm || profile.academicYearTerm;
+  const programDetails = [
+    profile.program,
+    profile.yearLevel || profile.yearLevelShort,
+    section ? `Sec ${section}` : '',
+    profile.collegeShort || profile.college,
+    term,
+    profile.curriculum ? `Curr ${profile.curriculum}` : '',
+  ].filter(Boolean).join(', ');
+
+  if (programDetails) {
+    facts.cor_program = `Academic Profile: ${programDetails}.`.slice(0, 195);
+  }
+
+  profile.courses.forEach((course, idx) => {
+    const courseTitle = course.subjectTitle || course.title || '';
+    const line = `COR Subject: ${course.code} ${courseTitle} (Sec ${course.section}, Faculty: ${course.faculty}, Sched: ${course.scheduleSummary}).`;
+    facts[`cor_course_${idx}`] = line.slice(0, 195);
+  });
+
+  return facts;
+}
+
 /** Replace only still-unchanged onboarding-owned facts; never clear other memories. */
-export const saveOnboardingMemories = (userId: string, identity: OnboardingIdentity, peaks: StudyPeakHour[]): void => {
+export const saveOnboardingMemories = (
+  userId: string,
+  identity: OnboardingIdentity,
+  peaks: StudyPeakHour[],
+  academicProfile?: AcademicProfileRecord | null,
+): void => {
   if (!chatMemoryStore.isEnabled(userId)) return;
   const name = identity.preferredName.replace(/\s+/g, ' ').trim().slice(0, 60);
   const tone = identity.tone === 'casual' || identity.tone === 'professional' ? identity.tone : '';
@@ -47,6 +91,11 @@ export const saveOnboardingMemories = (userId: string, identity: OnboardingIdent
   if (name) wanted.name = `Prefers to be called ${name}.`;
   if (tone) wanted.tone = `Prefers a ${tone} conversational tone.`;
   if (peaks.length) wanted.study = `Prefers studying during: ${peaks.map(p => p.replace('_', ' ')).join(', ')}.`;
+
+  if (academicProfile && academicProfile.isUstpStudent) {
+    Object.assign(wanted, buildCorMemoryFacts(academicProfile));
+  }
+
   db.transactionSync(tx => {
     let previous: Partial<Stored> = {};
     try {
@@ -55,7 +104,22 @@ export const saveOnboardingMemories = (userId: string, identity: OnboardingIdent
     } catch { previous = {}; }
     const existing = chatMemoryStore.list(userId, tx);
     const entries: Record<string, Entry> = {};
-    for (const key of ['name', 'tone', 'study']) {
+
+    const allKeys = new Set<string>([
+      'name',
+      'tone',
+      'study',
+      ...Object.keys(previous.entries ?? {}),
+      ...Object.keys(wanted),
+    ]);
+
+    for (const key of allKeys) {
+      // If academicProfile was not provided in this call, preserve existing cor_* entries untouched
+      if (academicProfile === undefined && key.startsWith('cor_')) {
+        const oldCor = previous.entries?.[key];
+        if (oldCor) entries[key] = oldCor;
+        continue;
+      }
       const old = previous.entries?.[key];
       const owned = old && existing.find(m => m.id === old.id);
       const text = wanted[key];

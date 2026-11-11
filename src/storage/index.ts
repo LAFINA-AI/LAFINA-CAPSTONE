@@ -112,6 +112,17 @@ export type {
   SubscriptionPlan,
 } from './syncTypes';
 export {localSettingsStore} from './localSettingsStore';
+export {
+  academicProfileStore,
+  formatClassBlockNotes,
+  parseClassBlockMetadata,
+} from './academicProfileStore';
+export type {
+  AcademicCourseRecord,
+  AcademicProfileRecord,
+  ClassBlockMetadata,
+  OnboardingScheduleSessionInput,
+} from './academicProfileStore';
 export {productTourStore, PRODUCT_TOUR_VERSION} from './productTourStore';
 export {calendarVisibilityStore} from './calendarVisibilityStore';
 export type {CalendarVisibilityMap} from './calendarVisibilityStore';

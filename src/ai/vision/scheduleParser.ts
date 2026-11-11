@@ -4,10 +4,15 @@
  * Extracts subjects, days of the week, start/end times, and room locations
  * from OCR text, and formats them into a clean Markdown table and Calendar drafts.
  */
+import { parseUstpCor } from './ustpCorParser';
 
 export interface ScannedClassItem {
   id: string;
   subject: string;
+  code?: string;
+  subjectTitle?: string;
+  section?: string;
+  faculty?: string;
   days: string[];
   startTime: string; // HH:mm (24-hour)
   endTime: string;   // HH:mm (24-hour)
@@ -182,260 +187,306 @@ const REAL_SUBJECT_CODE_REGEX = /\b(?!(?:AM|PM|RM|TBA|MON|TUE|WED|THU|FRI|SAT|SU
 /**
  * Extracts class schedule entries from OCR text.
  */
-  export function parseScannedSchedule(ocrText: string, referenceDate: Date = new Date()): ParsedScheduleResult {
-    const rawLines = ocrText.split(/\r?\n/).map(l => l.trim()).filter(Boolean);
-    const classes: ScannedClassItem[] = [];
-
-    // Time span regex supporting colons, dots, spaces, dashes: e.g. "9:00 AM - 10:30 AM", "11.30 AM - 1.00 PM"
-    const timeSpanRegex = /(\d{1,2}(?:[:.]\d{2})?\s*(?:am|pm)?)\s*(?:-|–|—|to)\s*(\d{1,2}(?:[:.]\d{2})?\s*(?:am|pm)?)/i;
-    const dayPrefixRegex = /\b(MWF|TTH|MW|TF|FS|TR|MTWTH|MTWTHF|M|T|W|R|TH|F|S|SU|MON|TUE|WED|THU|FRI|SAT|SUN|Monday|Tuesday|Wednesday|Thursday|Friday|Saturday|Sunday)\b/i;
-
-    const semesterEndDate = computeSemesterEndDate(referenceDate, 18);
-    const recurrenceRule = `FREQ=WEEKLY;UNTIL=${semesterEndDate}`;
-
-    let currentSectionDay: string | null = null;
-    let lastSubjectCandidate = '';
-    let counter = 0;
-
-    // Detect if top lines have a clustered list of days (columnar reading)
-    const clusteredDaysQueue: string[] = [];
-    let isClusteredDaysHeader = false;
-    let clusterEndIndex = -1;
-    let consecutiveDays = 0;
-    for (let idx = 0; idx < Math.min(10, rawLines.length); idx++) {
-      const day = checkDayHeader(rawLines[idx]);
-      if (day) {
-        clusteredDaysQueue.push(day);
-        consecutiveDays++;
-        clusterEndIndex = idx;
-      }
+export function parseScannedSchedule(ocrText: string, referenceDate: Date = new Date()): ParsedScheduleResult {
+  if (/STUDENT\s+GENERAL\s+INFORMATION|SCHEDULE\s*\/\s*ROOM/i.test(ocrText)) {
+    const cor = parseUstpCor(ocrText, referenceDate);
+    if (cor.sessions.length > 0) {
+      const corClasses: ScannedClassItem[] = cor.sessions.map((s) => ({
+        id: s.id,
+        subject: s.code ? `${s.code} · ${s.subjectTitle}` : s.subjectTitle,
+        code: s.code,
+        subjectTitle: s.subjectTitle,
+        section: s.section,
+        faculty: s.faculty,
+        days: s.days,
+        startTime: s.startTime,
+        endTime: s.endTime,
+        startTime12: s.startTime12,
+        endTime12: s.endTime12,
+        room: s.room || 'TBA',
+        recurrenceRule: s.recurrenceRule,
+        rawText: s.rawText,
+      }));
+      const commandSummary = corClasses
+        .map(
+          (c) =>
+            `Add time block "${c.subject}" on ${c.days.join(', ')} from ${c.startTime} to ${c.endTime}${c.room && c.room !== 'TBA' ? ` at ${c.room}` : ''} (repeats weekly)`,
+        )
+        .join(' and ');
+      return {
+        classes: corClasses,
+        markdownTable: [
+          '### 📅 Scanned Class Schedule (USTP COR)',
+          '',
+          '| Subject | Days | Time | Room | Faculty |',
+          '| :--- | :--- | :--- | :--- | :--- |',
+          ...corClasses.map(
+            (c) =>
+              `| **${c.subject}** | ${c.days.map((d) => d.slice(0, 3)).join(', ')} | ${c.startTime12} – ${c.endTime12} | ${c.room || 'TBA'} | ${c.faculty || 'TBA'} |`,
+          ),
+          '',
+          `*Detected ${corClasses.length} recurring class${corClasses.length > 1 ? 'es' : ''} from your USTP COR.*`,
+        ].join('\n'),
+        rawText: ocrText,
+        commandSummary,
+        semesterEndDate: cor.semesterEndDate,
+      };
     }
-    if (consecutiveDays >= 3) {
-      isClusteredDaysHeader = true;
+  }
+
+  const rawLines = ocrText.split(/\r?\n/).map(l => l.trim()).filter(Boolean);
+  const classes: ScannedClassItem[] = [];
+
+  // Time span regex supporting colons, dots, spaces, dashes: e.g. "9:00 AM - 10:30 AM", "11.30 AM - 1.00 PM"
+  const timeSpanRegex = /(\d{1,2}(?:[:.]\d{2})?\s*(?:am|pm)?)\s*(?:-|–|—|to)\s*(\d{1,2}(?:[:.]\d{2})?\s*(?:am|pm)?)/i;
+  const dayPrefixRegex = /\b(MWF|TTH|MW|TF|FS|TR|MTWTH|MTWTHF|M|T|W|R|TH|F|S|SU|MON|TUE|WED|THU|FRI|SAT|SUN|Monday|Tuesday|Wednesday|Thursday|Friday|Saturday|Sunday)\b/i;
+
+  const semesterEndDate = computeSemesterEndDate(referenceDate, 18);
+  const recurrenceRule = `FREQ=WEEKLY;UNTIL=${semesterEndDate}`;
+
+  let currentSectionDay: string | null = null;
+  let lastSubjectCandidate = '';
+  let counter = 0;
+
+  // Detect if top lines have a clustered list of days (columnar reading)
+  const clusteredDaysQueue: string[] = [];
+  let isClusteredDaysHeader = false;
+  let clusterEndIndex = -1;
+  let consecutiveDays = 0;
+  for (let idx = 0; idx < Math.min(10, rawLines.length); idx++) {
+    const day = checkDayHeader(rawLines[idx]);
+    if (day) {
+      clusteredDaysQueue.push(day);
+      consecutiveDays++;
+      clusterEndIndex = idx;
     }
-    let clusteredDayIndex = 0;
+  }
+  if (consecutiveDays >= 3) {
+    isClusteredDaysHeader = true;
+  }
+  let clusteredDayIndex = 0;
 
-    for (let i = 0; i < rawLines.length; i++) {
-      const line = rawLines[i];
+  for (let i = 0; i < rawLines.length; i++) {
+    const line = rawLines[i];
 
-      // If day headers are clustered at the top, skip those lines and use the queue
-      if (isClusteredDaysHeader && i <= clusterEndIndex) {
-        continue;
+    // If day headers are clustered at the top, skip those lines and use the queue
+    if (isClusteredDaysHeader && i <= clusterEndIndex) {
+      continue;
+    }
+
+    // 1. Check for day header lines (e.g. "mon", "tue", "Wednesday")
+    const dayHeader = checkDayHeader(line);
+    if (dayHeader) {
+      currentSectionDay = dayHeader;
+      lastSubjectCandidate = '';
+      continue;
+    }
+
+    // 2. Skip general document header titles
+    if (isDocumentHeader(line)) {
+      continue;
+    }
+
+    // 3. Check for time span in this line
+    const timeMatch = line.match(timeSpanRegex);
+
+    if (timeMatch && timeMatch.index !== undefined) {
+      let startStr = timeMatch[1].trim();
+      let endStr = timeMatch[2].trim();
+
+      const startHasPeriod = /am|pm/i.test(startStr);
+      const endHasPeriod = /am|pm/i.test(endStr);
+      const startH = parseInt(startStr.replace(/[^\d]/g, '').slice(0, 2), 10);
+      const endH = parseInt(endStr.replace(/[^\d]/g, '').slice(0, 2), 10);
+
+      // Handle cross-noon and period inheritance
+      if (!startHasPeriod && endHasPeriod) {
+        const period = endStr.match(/am|pm/i)![0].toLowerCase();
+        if (period === 'pm') {
+          // If start is morning hours (8-11) and end is afternoon (1-5), start was AM
+          if (startH >= 8 && startH <= 11 && endH < 12) {
+            startStr = `${startStr} AM`;
+          } else {
+            startStr = `${startStr} PM`;
+          }
+        } else {
+          startStr = `${startStr} AM`;
+        }
+      } else if (!startHasPeriod && !endHasPeriod) {
+        if (startH >= 7 && startH <= 11 && endH >= 1 && endH <= 9) {
+          startStr = `${startStr} AM`;
+          endStr = `${endStr} PM`;
+        } else if (startH >= 12 || startH <= 6) {
+          startStr = `${startStr} PM`;
+          endStr = `${endStr} PM`;
+        } else {
+          startStr = `${startStr} AM`;
+          endStr = `${endStr} AM`;
+        }
       }
 
-      // 1. Check for day header lines (e.g. "mon", "tue", "Wednesday")
-      const dayHeader = checkDayHeader(line);
-      if (dayHeader) {
-        currentSectionDay = dayHeader;
+      const startNorm = normalizeTime24(startStr);
+      const endNorm = normalizeTime24(endStr);
+
+      if (startNorm && endNorm) {
+        const prefix = line.slice(0, timeMatch.index).trim();
+        const suffix = line.slice(timeMatch.index + timeMatch[0].length).trim();
+
+        // --- Room Extraction ---
+        let room: string | undefined;
+        let cleanSuffix = suffix.replace(/^[/\-–—|,:;\s]+/, '').trim();
+        if (cleanSuffix.includes('|')) {
+          cleanSuffix = cleanSuffix.split('|')[0].trim();
+        }
+        if (cleanSuffix.length >= 2 && !/^(?:am|pm|mon|tue|wed|thu|fri|sat|sun)$/i.test(cleanSuffix)) {
+          room = cleanSuffix;
+        }
+
+        // --- Day Resolution ---
+        let assignedDays: string[] = [];
+
+        // Check if prefix has day tokens like "TF", "T", "W", "F", "S", "MWF", "TR"
+        const prefixDayMatch = prefix.match(dayPrefixRegex);
+        if (prefixDayMatch) {
+          const daysFromPrefix = expandDays(prefixDayMatch[0]);
+          if (currentSectionDay && daysFromPrefix.includes(currentSectionDay)) {
+            // Under section "fri" with "TF", this specific session belongs to Friday
+            assignedDays = [currentSectionDay];
+          } else {
+            assignedDays = daysFromPrefix;
+          }
+        } else if (currentSectionDay) {
+          assignedDays = [currentSectionDay];
+        } else if (isClusteredDaysHeader && clusteredDayIndex < clusteredDaysQueue.length) {
+          assignedDays = [clusteredDaysQueue[clusteredDayIndex]];
+          clusteredDayIndex++;
+        } else {
+          assignedDays = ['Monday'];
+        }
+
+        // --- Subject Extraction ---
+        let subject = '';
+
+        // Check if prefix contains subject before the day token
+        let prefixWithoutDays = prefix;
+        if (prefixDayMatch && prefixDayMatch.index !== undefined) {
+          prefixWithoutDays = prefix.slice(0, prefixDayMatch.index).trim();
+        }
+        prefixWithoutDays = prefixWithoutDays.replace(/[|/\-–—,:;]+$/, '').trim();
+
+        if (prefixWithoutDays.length >= 3 && !isInvalidSubject(prefixWithoutDays)) {
+          // If prefix has a course code like "CS 101 Intro to Computing", extract code if present
+          const codeMatch = prefixWithoutDays.match(REAL_SUBJECT_CODE_REGEX);
+          if (codeMatch && prefixWithoutDays.startsWith(codeMatch[0])) {
+            subject = codeMatch[0].replace(/\s+/g, ' ').toUpperCase();
+          } else {
+            subject = prefixWithoutDays;
+          }
+        } else if (lastSubjectCandidate && !isInvalidSubject(lastSubjectCandidate)) {
+          subject = lastSubjectCandidate;
+        } else {
+          // Check preceding lines if available
+          let foundSubject = '';
+          for (let back = i - 1; back >= Math.max(0, i - 3); back--) {
+            const prev = rawLines[back].trim();
+            if (
+              !checkDayHeader(prev) &&
+              !isDocumentHeader(prev) &&
+              !timeSpanRegex.test(prev) &&
+              !isInvalidSubject(prev) &&
+              prev.length >= 3
+            ) {
+              foundSubject = prev;
+              break;
+            }
+          }
+          subject = foundSubject || `Class ${counter + 1}`;
+        }
+
+        // Clean subject of pipe chars or leading numbers/dashes
+        subject = subject.replace(/^[|/\-–—,:;\s]+|[|/\-–—,:;\s]+$/g, '').trim();
+
+        counter += 1;
+        classes.push({
+          id: `scanned-class-${counter}-${Date.now().toString(36)}`,
+          subject,
+          days: assignedDays,
+          startTime: startNorm.time24,
+          endTime: endNorm.time24,
+          startTime12: startNorm.time12,
+          endTime12: endNorm.time12,
+          room: room || 'TBA',
+          recurrenceRule,
+          rawText: line,
+        });
+
         lastSubjectCandidate = '';
         continue;
       }
+    }
 
-      // 2. Skip general document header titles
-      if (isDocumentHeader(line)) {
-        continue;
-      }
+    // 4. If line does not have a time span, it could be a subject candidate
+    if (
+      !checkDayHeader(line) &&
+      !isDocumentHeader(line) &&
+      !isInvalidSubject(line) &&
+      line.length >= 3
+    ) {
+      lastSubjectCandidate = line;
+    }
+  }
 
-      // 3. Check for time span in this line
-      const timeMatch = line.match(timeSpanRegex);
+  // Deduplicate exact duplicate items (same subject, day, startTime, endTime)
+  const uniqueClasses: ScannedClassItem[] = [];
+  const seenKeys = new Set<string>();
 
-      if (timeMatch && timeMatch.index !== undefined) {
-        let startStr = timeMatch[1].trim();
-        let endStr = timeMatch[2].trim();
+  for (const c of classes) {
+    const dayKey = [...c.days].sort().join(',');
+    const key = `${c.subject.toLowerCase()}|${dayKey}|${c.startTime}|${c.endTime}`;
+    if (!seenKeys.has(key)) {
+      seenKeys.add(key);
+      uniqueClasses.push(c);
+    }
+  }
 
-            const startHasPeriod = /am|pm/i.test(startStr);
-            const endHasPeriod = /am|pm/i.test(endStr);
-            const startH = parseInt(startStr.replace(/[^\d]/g, '').slice(0, 2), 10);
-            const endH = parseInt(endStr.replace(/[^\d]/g, '').slice(0, 2), 10);
+  // Format Markdown summary table
+  let markdownTable = '';
+  if (uniqueClasses.length > 0) {
+    markdownTable = [
+      '### 📅 Scanned Class Schedule',
+      '',
+      '| Subject | Days | Time | Room |',
+      '| :--- | :--- | :--- | :--- |',
+      ...uniqueClasses.map(
+        c =>
+          `| **${c.subject}** | ${c.days.map(d => d.slice(0, 3)).join(', ')} | ${c.startTime12} – ${c.endTime12} | ${c.room || 'TBA'} |`,
+      ),
+      '',
+      `*Detected ${uniqueClasses.length} recurring class${uniqueClasses.length > 1 ? 'es' : ''} from your schedule.*`,
+    ].join('\n');
+  } else {
+    markdownTable = [
+      '### 📄 Scanned Document Text',
+      '',
+      ocrText.length > 500 ? `${ocrText.slice(0, 500)}...` : ocrText,
+      '',
+      '*No clear timetable grid with times and subjects was recognized in this image.*',
+    ].join('\n');
+  }
 
-            // Handle cross-noon and period inheritance
-            if (!startHasPeriod && endHasPeriod) {
-              const period = endStr.match(/am|pm/i)![0].toLowerCase();
-              if (period === 'pm') {
-                // If start is morning hours (8-11) and end is afternoon (1-5), start was AM
-                if (startH >= 8 && startH <= 11 && endH < 12) {
-                  startStr = `${startStr} AM`;
-                } else {
-                  startStr = `${startStr} PM`;
-                }
-              } else {
-                startStr = `${startStr} AM`;
-              }
-            } else if (!startHasPeriod && !endHasPeriod) {
-              if (startH >= 7 && startH <= 11 && endH >= 1 && endH <= 9) {
-                startStr = `${startStr} AM`;
-                endStr = `${endStr} PM`;
-              } else if (startH >= 12 || startH <= 6) {
-                startStr = `${startStr} PM`;
-                endStr = `${endStr} PM`;
-              } else {
-                startStr = `${startStr} AM`;
-                endStr = `${endStr} AM`;
-              }
-            }
+  // Command summary for calendar review proposals
+  const commandSummary = uniqueClasses
+    .map(
+      c =>
+        `Add time block "${c.subject}" on ${c.days.join(', ')} from ${c.startTime} to ${c.endTime}${c.room && c.room !== 'TBA' ? ` at ${c.room}` : ''} (repeats weekly)`,
+    )
+    .join(' and ');
 
-            const startNorm = normalizeTime24(startStr);
-            const endNorm = normalizeTime24(endStr);
-
-            if (startNorm && endNorm) {
-              const prefix = line.slice(0, timeMatch.index).trim();
-              const suffix = line.slice(timeMatch.index + timeMatch[0].length).trim();
-
-              // --- Room Extraction ---
-              let room: string | undefined;
-              let cleanSuffix = suffix.replace(/^[/\-–—|,:;\s]+/, '').trim();
-              if (cleanSuffix.includes('|')) {
-                cleanSuffix = cleanSuffix.split('|')[0].trim();
-              }
-              if (cleanSuffix.length >= 2 && !/^(?:am|pm|mon|tue|wed|thu|fri|sat|sun)$/i.test(cleanSuffix)) {
-                room = cleanSuffix;
-              }
-
-              // --- Day Resolution ---
-              let assignedDays: string[] = [];
-
-              // Check if prefix has day tokens like "TF", "T", "W", "F", "S", "MWF", "TR"
-              const prefixDayMatch = prefix.match(dayPrefixRegex);
-              if (prefixDayMatch) {
-                const daysFromPrefix = expandDays(prefixDayMatch[0]);
-                if (currentSectionDay && daysFromPrefix.includes(currentSectionDay)) {
-                  // Under section "fri" with "TF", this specific session belongs to Friday
-                  assignedDays = [currentSectionDay];
-                } else {
-                  assignedDays = daysFromPrefix;
-                }
-              } else if (currentSectionDay) {
-                assignedDays = [currentSectionDay];
-              } else if (isClusteredDaysHeader && clusteredDayIndex < clusteredDaysQueue.length) {
-                assignedDays = [clusteredDaysQueue[clusteredDayIndex]];
-                clusteredDayIndex++;
-              } else {
-                assignedDays = ['Monday'];
-              }
-
-              // --- Subject Extraction ---
-              let subject = '';
-
-              // Check if prefix contains subject before the day token
-              let prefixWithoutDays = prefix;
-              if (prefixDayMatch && prefixDayMatch.index !== undefined) {
-                prefixWithoutDays = prefix.slice(0, prefixDayMatch.index).trim();
-              }
-              prefixWithoutDays = prefixWithoutDays.replace(/[|/\-–—,:;]+$/, '').trim();
-
-              if (prefixWithoutDays.length >= 3 && !isInvalidSubject(prefixWithoutDays)) {
-                // If prefix has a course code like "CS 101 Intro to Computing", extract code if present
-                const codeMatch = prefixWithoutDays.match(REAL_SUBJECT_CODE_REGEX);
-                if (codeMatch && prefixWithoutDays.startsWith(codeMatch[0])) {
-                  subject = codeMatch[0].replace(/\s+/g, ' ').toUpperCase();
-                } else {
-                  subject = prefixWithoutDays;
-                }
-              } else if (lastSubjectCandidate && !isInvalidSubject(lastSubjectCandidate)) {
-                subject = lastSubjectCandidate;
-              } else {
-                // Check preceding lines if available
-                let foundSubject = '';
-                for (let back = i - 1; back >= Math.max(0, i - 3); back--) {
-                  const prev = rawLines[back].trim();
-                  if (
-                    !checkDayHeader(prev) &&
-                    !isDocumentHeader(prev) &&
-                    !timeSpanRegex.test(prev) &&
-                    !isInvalidSubject(prev) &&
-                    prev.length >= 3
-                  ) {
-                    foundSubject = prev;
-                    break;
-                  }
-                }
-                subject = foundSubject || `Class ${counter + 1}`;
-              }
-
-              // Clean subject of pipe chars or leading numbers/dashes
-              subject = subject.replace(/^[|/\-–—,:;\s]+|[|/\-–—,:;\s]+$/g, '').trim();
-
-              counter += 1;
-              classes.push({
-                id: `scanned-class-${counter}-${Date.now().toString(36)}`,
-                subject,
-                days: assignedDays,
-                startTime: startNorm.time24,
-                endTime: endNorm.time24,
-                startTime12: startNorm.time12,
-                endTime12: endNorm.time12,
-                room: room || 'TBA',
-                recurrenceRule,
-                rawText: line,
-              });
-
-              lastSubjectCandidate = '';
-              continue;
-            }
-          }
-
-          // 4. If line does not have a time span, it could be a subject candidate
-          if (
-            !checkDayHeader(line) &&
-            !isDocumentHeader(line) &&
-            !isInvalidSubject(line) &&
-            line.length >= 3
-          ) {
-            lastSubjectCandidate = line;
-          }
-        }
-
-        // Deduplicate exact duplicate items (same subject, day, startTime, endTime)
-        const uniqueClasses: ScannedClassItem[] = [];
-        const seenKeys = new Set<string>();
-
-        for (const c of classes) {
-          const dayKey = [...c.days].sort().join(',');
-          const key = `${c.subject.toLowerCase()}|${dayKey}|${c.startTime}|${c.endTime}`;
-          if (!seenKeys.has(key)) {
-            seenKeys.add(key);
-            uniqueClasses.push(c);
-          }
-        }
-
-        // Format Markdown summary table
-        let markdownTable = '';
-        if (uniqueClasses.length > 0) {
-          markdownTable = [
-            '### 📅 Scanned Class Schedule',
-            '',
-            '| Subject | Days | Time | Room |',
-            '| :--- | :--- | :--- | :--- |',
-            ...uniqueClasses.map(
-              c =>
-                `| **${c.subject}** | ${c.days.map(d => d.slice(0, 3)).join(', ')} | ${c.startTime12} – ${c.endTime12} | ${c.room || 'TBA'} |`,
-            ),
-            '',
-            `*Detected ${uniqueClasses.length} recurring class${uniqueClasses.length > 1 ? 'es' : ''} from your schedule.*`,
-          ].join('\n');
-        } else {
-          markdownTable = [
-            '### 📄 Scanned Document Text',
-            '',
-            ocrText.length > 500 ? `${ocrText.slice(0, 500)}...` : ocrText,
-            '',
-            '*No clear timetable grid with times and subjects was recognized in this image.*',
-          ].join('\n');
-        }
-
-        // Command summary for calendar review proposals
-        const commandSummary = uniqueClasses
-          .map(
-            c =>
-              `Add time block "${c.subject}" on ${c.days.join(', ')} from ${c.startTime} to ${c.endTime}${c.room && c.room !== 'TBA' ? ` at ${c.room}` : ''} (repeats weekly)`,
-          )
-          .join(' and ');
-
-        return {
-          classes: uniqueClasses,
-          markdownTable,
-          rawText: ocrText,
-          commandSummary,
-          semesterEndDate,
-        };
-      }
+  return {
+    classes: uniqueClasses,
+    markdownTable,
+    rawText: ocrText,
+    commandSummary,
+    semesterEndDate,
+  };
+}

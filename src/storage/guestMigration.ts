@@ -1,5 +1,6 @@
 import { db, DatabaseTransaction } from './database';
-import { GUEST_USER_ID } from '../constants';
+import { GUEST_USER_ID, GUEST_USERNAME } from '../constants';
+import { academicProfileStore } from './academicProfileStore';
 import { syncOutboxStore } from './syncOutboxStore';
 import { buildProfileSyncPayload } from './profileSyncPayload';
 import { transferChatOwnership } from './chatOwnership';
@@ -48,12 +49,26 @@ export const guestMigration = {
     db.transactionSync((tx: DatabaseTransaction) => {
       const now = new Date().toISOString();
 
+      const guestRow = tx.executeSync('SELECT username FROM users WHERE id = ?', [GUEST_USER_ID]).rows?.[0];
+      const guestCustomName =
+        typeof guestRow?.username === 'string' &&
+        guestRow.username.trim().length > 0 &&
+        guestRow.username.trim() !== GUEST_USERNAME
+          ? guestRow.username.trim()
+          : null;
+
       // 1. Insert or ignore new user entry for cloudUserId
       tx.executeSync(
         `INSERT OR IGNORE INTO users (id, username, email, password_hash, role, is_new_user, time_format_24h, week_starts_monday, dark_mode, created_at, updated_at)
          VALUES (?, ?, ?, NULL, 'student', 0, 0, 0, 0, ?, ?)`,
-        [cloudUserId, cloudEmail.split('@')[0], cloudEmail, now, now]
+        [cloudUserId, guestCustomName || cloudEmail.split('@')[0], cloudEmail, now, now]
       );
+      if (guestCustomName) {
+        tx.executeSync(
+          `UPDATE users SET username = ?, updated_at = ? WHERE id = ? AND (username = ? OR username = '')`,
+          [guestCustomName, now, cloudUserId, cloudEmail.split('@')[0]],
+        );
+      }
 
       // 2. Re-key child entity tables
       tx.executeSync(`UPDATE tasks SET user_id = ? WHERE user_id = ?`, [cloudUserId, GUEST_USER_ID]);
@@ -74,6 +89,7 @@ export const guestMigration = {
       personalMemoryStore.transferFromGuest(tx, cloudUserId, now);
       // Device-local offline voice choice (AGY-PORT 10), same rule.
       speechSettingsStore.transferFromGuest(tx, cloudUserId, now);
+      academicProfileStore.transferFromGuest(tx, GUEST_USER_ID, cloudUserId);
       // Pending attachment cleanup (ADR-026) follows the conversation that owned
       // the files; an obligation the account already holds is kept once.
       tx.executeSync(
