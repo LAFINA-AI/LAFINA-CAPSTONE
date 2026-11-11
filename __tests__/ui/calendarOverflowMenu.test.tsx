@@ -2,12 +2,7 @@ import React from 'react';
 import {render, fireEvent} from '@testing-library/react-native';
 import {ThemeProvider} from '../../src/ui/contexts/ThemeContext';
 import {CalendarScreen} from '../../src/ui/screens/calendar';
-import {
-  db,
-  initDatabase,
-  tasksStore,
-  userStore,
-} from '../../src/storage';
+import {db, initDatabase, tasksStore, userStore} from '../../src/storage';
 
 describe('Calendar Tab Option A - Overflow Options Menu', () => {
   let userId: string;
@@ -67,6 +62,7 @@ describe('Calendar Tab Option A - Overflow Options Menu', () => {
     // Modal title and items appear
     expect(getByText('Calendar Options')).toBeTruthy();
     expect(getByText('Calendars & Visibility')).toBeTruthy();
+    expect(getByText('Add COR / Class Schedule')).toBeTruthy();
     expect(getByText('Undated Tasks')).toBeTruthy();
     expect(getByText('Import Calendar (.ics)')).toBeTruthy();
     expect(getByText('Export Calendar (.ics)')).toBeTruthy();
@@ -102,6 +98,22 @@ describe('Calendar Tab Option A - Overflow Options Menu', () => {
     // Undated tasks modal opens
     expect(await findByTestId('undated-tasks-modal')).toBeTruthy();
     expect(getByText('Unscheduled Reading Assignment')).toBeTruthy();
+  });
+
+  test('opens class schedule modal from the calendar options menu', () => {
+    const {getByTestId} = render(
+      <ThemeProvider userId={userId}>
+        <CalendarScreen
+          userId={userId}
+          refreshTrigger={0}
+          onRefresh={jest.fn()}
+        />
+      </ThemeProvider>,
+    );
+
+    fireEvent.press(getByTestId('calendar-more-menu-button'));
+    fireEvent.press(getByTestId('calendar-add-cor-schedule-button'));
+    expect(getByTestId('class-schedule-modal')).toBeTruthy();
   });
 
   test('dismisses options modal when Done is pressed', () => {
