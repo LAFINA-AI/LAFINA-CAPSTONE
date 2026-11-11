@@ -202,9 +202,45 @@ export const htmlToMarkdown = (html: string): string => {
   return lines.join('\n').replace(/\n{3,}/g, '\n\n').trim();
 };
 
+const extractDeltaText = (raw: string): string | null => {
+  try {
+    const trimmed = raw.trim();
+    if (!trimmed.startsWith('[') && !trimmed.startsWith('{')) return null;
+    const parsed = JSON.parse(trimmed);
+    const ops = Array.isArray(parsed)
+      ? parsed
+      : parsed && typeof parsed === 'object' && Array.isArray((parsed as {ops?: unknown[]}).ops)
+      ? (parsed as {ops: unknown[]}).ops
+      : null;
+    if (
+      Array.isArray(ops) &&
+      ops.length > 0 &&
+      typeof ops[0] === 'object' &&
+      ops[0] !== null &&
+      'insert' in ops[0]
+    ) {
+      const texts = ops
+        .map(op =>
+          typeof (op as {insert?: unknown}).insert === 'string'
+            ? (op as {insert: string}).insert
+            : '',
+        )
+        .filter(Boolean);
+      return texts.join('');
+    }
+  } catch {
+    return null;
+  }
+  return null;
+};
+
 /** A note body in the mobile dialect, whichever app last saved it. */
-export const noteBodyToMarkdown = (body: string): string =>
-  body && isHtmlBody(body) ? htmlToMarkdown(body) : body;
+export const noteBodyToMarkdown = (body: string): string => {
+  if (!body) return '';
+  const delta = extractDeltaText(body);
+  const text = delta !== null ? delta : body;
+  return isHtmlBody(text) ? htmlToMarkdown(text) : text;
+};
 
 /** Every `<li>` that carries a checked state, in document order. */
 const CHECKED_ITEM_TAG = /<li\b[^>]*\bdata-checked\s*=\s*(?:"[^"]*"|'[^']*'|[^\s>]+)[^>]*>/gi;

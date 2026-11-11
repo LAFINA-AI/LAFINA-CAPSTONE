@@ -75,6 +75,7 @@ export interface VoiceConversationDeps {
   /** The saved online voice, null for the server default. Throws when unreadable. */
   getVoice(): {id: string; name: string} | null;
   useHandbook(): boolean;
+  getStudentContext?(): string;
   api: VoiceConversationApi;
   transport: VoiceTransport;
   clock?: ConversationClock;
@@ -406,11 +407,18 @@ export class VoiceConversationController {
     );
     this.live = live;
     // Built here, handed to native once, never stored or logged.
+    const studentContext = this.deps.getStudentContext?.() ?? '';
     const initiation = JSON.stringify({
       type: 'conversation_initiation_client_data',
       conversation_config_override: {tts: {voice_id: session.data.voiceId}},
-      dynamic_variables: {lafina_voice_grant: session.data.grant},
-      custom_llm_extra_body: {lafina_voice_grant: session.data.grant},
+      dynamic_variables: {
+        lafina_voice_grant: session.data.grant,
+        ...(studentContext ? {student_context: studentContext} : {}),
+      },
+      custom_llm_extra_body: {
+        lafina_voice_grant: session.data.grant,
+        ...(studentContext ? {student_context: studentContext} : {}),
+      },
     });
     let timedOut = false;
     try {
@@ -685,7 +693,7 @@ export class VoiceConversationController {
 
   sendContext = async (information: string): Promise<boolean> => {
     const live = this.live;
-    const text = information.trim().slice(0, 1000);
+    const text = information.trim().slice(0, 4000);
     if (!live || !text || this.snapshot.phase === 'connecting') return false;
     const sent = await this.deps.transport
       .sendMessage(live.key, JSON.stringify({type: 'contextual_update', text}))

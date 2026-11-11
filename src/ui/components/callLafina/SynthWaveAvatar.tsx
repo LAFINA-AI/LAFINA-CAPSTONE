@@ -107,8 +107,6 @@ export const SynthWaveAvatar: React.FC<SynthWaveAvatarProps> = ({
   useEffect(() => {
     // In automated Jest test environments, avoid running background animation timers to prevent act() warnings
     if (process.env.NODE_ENV === 'test') {
-      const targetAmp = getTargetAmplitude(phase, outputLevel);
-      setStrands(computeStrands(0, targetAmp));
       return undefined;
     }
 
