@@ -23,7 +23,7 @@ import type { CallResolution, CallState } from '../../../scheduler';
 import { Fonts, Layout, Shadows } from '../../theme';
 import { useTheme } from '../../contexts/ThemeContext';
 
-const lafinaLogo = require('../../../assets/lafina_default_logo.png');
+const lafinaLogo = require('../../../assets/new_lafina_app_logo/lafina_app_logo.png');
 
 interface CallAnsweredViewProps {
   task: string;

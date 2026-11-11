@@ -46,7 +46,7 @@ import { isGuestAccount } from '../../cloud/entitlements';
 import { voiceConsent, waitForVoiceConversationRelease } from '../../cloud/voiceConversation';
 import type { ConversationSnapshot } from '../../cloud/voiceConversation';
 
-const lafinaLogo = require('../../assets/lafina_default_logo.png');
+const lafinaLogo = require('../../assets/new_lafina_app_logo/lafina_app_logo.png');
 
 interface IncomingCallScreenProps {
   visible: boolean;
