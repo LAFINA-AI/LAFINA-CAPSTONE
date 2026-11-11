@@ -473,6 +473,7 @@ describe('AGY preserved contracts', () => {
       snooze: {snoozeMinutes: 10},
       reschedule: {time: '15:00'},
       query_schedule: {date: '2026-11-10'},
+      query_notes: {title: 'Idea'},
       chat: {},
       out_of_scope: {},
     };

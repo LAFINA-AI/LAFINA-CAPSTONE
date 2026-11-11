@@ -69,7 +69,8 @@ def configure_environment() -> Path:
         'DEEPSEEK_MODEL': 'deepseek-flash',
         # Isolated local QA account: allow repeat phone tests after earlier runs.
         # The production backend and its quotas are not changed.
-        'VOICE_CONVERSATION_SESSIONS_PER_DAY': '12',
+        'VOICE_CONVERSATION_SESSIONS_PER_DAY': '0',
+        'VOICE_CONVERSATION_TURNS_PER_DAY': '0',
         'ELEVENLABS_MODEL_ID': 'eleven_v4_turbo',
         'ELEVENLABS_FAST_MODEL_ID': 'eleven_v4_turbo',
         'ELEVENLABS_VOICE_ID': 'BtcCEANLn920ZIoN9grW',

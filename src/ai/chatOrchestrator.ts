@@ -5,6 +5,8 @@ import {
 } from '../storage/chatStore';
 import {chatMemoryStore} from '../storage/chatMemoryStore';
 import {chatMemoryService} from '../cloud/chatMemoryService';
+import {notesStore} from '../storage/notesStore';
+import {noteBodyToMarkdown} from '../utils/richText';
 import {directProviderTestEnabled} from '../cloud/directProviderTest';
 import {isForgetAllMemoriesRequest} from './chatMemoryCommands';
 import {studyPreference} from './studyPreference';
@@ -988,6 +990,48 @@ export class ChatOrchestrator {
               role: msg.sender,
               content: msg.content,
             }));
+
+          // AI Agent Context: If the student asks about notes or schedule,
+          // attach relevant local SQLite context so the AI model has full awareness.
+          const asksNotes = /\b(?:notes?|written|wrote|grocery|groceries|list)\b/i.test(trimmed);
+          const asksSchedule = /\b(?:schedule|calendar|agenda|free|busy|available|plans?|tasks?|due)\b/i.test(trimmed);
+          let agentContext = '';
+          if (asksNotes) {
+            try {
+              const allNotes = notesStore.getAll(userId);
+              if (allNotes.length > 0) {
+                const noteSummaries = allNotes.slice(0, 5).map(n => {
+                  const bodyClean = noteBodyToMarkdown(n.body).replace(/\n+/g, ', ').slice(0, 150);
+                  return `"${n.title}"${n.category ? ` (${n.category})` : ''}: ${bodyClean}`;
+                }).join('; ');
+                agentContext += `\n\n[Active Notes in Notes tab: ${noteSummaries}]`;
+              }
+            } catch (err) {
+              console.warn('[ChatOrchestrator] Could not read notes context for AI chat:', err);
+            }
+          }
+          if (asksSchedule) {
+            try {
+              const todayFormatted = formatLocalDate(refDate);
+              const day = plannerQueries.window(userId, todayFormatted, todayFormatted);
+              const items: string[] = [];
+              day.blocks.forEach(b => items.push(`Time block "${b.title}" (${b.startTime}-${b.endTime})`));
+              day.events.forEach(e => items.push(`Event "${e.title}" (${e.startTime})`));
+              day.tasks.filter(t => !t.isCompleted).forEach(t => items.push(`Task "${t.title}"${t.dueTime ? ` (due ${t.dueTime})` : ''}`));
+              if (items.length > 0) {
+                agentContext += `\n\n[Today's Schedule in Calendar tab: ${items.join(', ')}]`;
+              }
+            } catch (err) {
+              console.warn('[ChatOrchestrator] Could not read schedule context for AI chat:', err);
+            }
+          }
+
+          if (agentContext && history.length > 0 && history[history.length - 1].role === 'user') {
+            history[history.length - 1] = {
+              ...history[history.length - 1],
+              content: history[history.length - 1].content + agentContext,
+            };
+          }
           const onReplyText = options.onReplyText;
           // A greeting or "thanks" needs no handbook search; skipping it lets
           // DeepSeek start replying sooner.

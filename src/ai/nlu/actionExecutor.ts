@@ -19,6 +19,7 @@ import {ttsService} from '../tts/ttsService';
 import {computeAdaptiveTriggerAt} from '../ml';
 import type {ValidatedIntent, NluActionResult} from './types';
 import {buildLocalConversationReply} from '../localConversation';
+import {noteBodyToMarkdown} from '../../utils/richText';
 
 export interface ActionExecutorOptions {
   activeReminderId?: string;
@@ -1795,6 +1796,160 @@ export async function executeNluAction(
         success: true,
         intent: 'query_schedule',
         reply: summary,
+      };
+    }
+
+    case 'query_notes': {
+      let notes: Note[] = [];
+      try {
+        notes = notesStore.getAll(userId);
+      } catch (error) {
+        console.error('[ActionExecutor] Could not read notes:', error);
+        return {
+          success: false,
+          intent: 'query_notes',
+          error: 'storage_unavailable',
+          reply:
+            "I couldn't read your notes right now. Please open the Notes tab or try again.",
+        };
+      }
+
+      const query = (intent.details || intent.title || '').trim().toLowerCase();
+
+      if (notes.length === 0) {
+        const reply = query
+          ? `You don't have any notes saved in your Notes tab yet, so I couldn't find "${intent.details || intent.title}".\n\nWould you like me to create a note for that?`
+          : "You don't have any notes saved in your Notes tab yet. You can ask me to create one anytime (for example: \"Create a note: Grocery list: Milk, Eggs, Bread\")!";
+        if (options.speakResult) {
+          try {
+            await ttsService.speak(reply);
+          } catch (e) {
+            console.warn('[ActionExecutor] TTS playback error:', e);
+          }
+        }
+        return {
+          success: true,
+          intent: 'query_notes',
+          reply,
+        };
+      }
+
+      if (!query) {
+        // Return summary list of user's notes
+        const recent = notes.slice(0, 8);
+        const noteList = recent
+          .map(n => `• 📝 **${n.title}**${n.category ? ` *(${n.category})*` : ''}`)
+          .join('\n');
+        const reply = `Here are your saved notes in the Notes tab (${notes.length} total):\n\n${noteList}\n\nAsk me to check or read any note for its details!`;
+        if (options.speakResult) {
+          try {
+            await ttsService.speak(`You have ${notes.length} saved notes. Ask me to check any note for details.`);
+          } catch (e) {
+            console.warn('[ActionExecutor] TTS playback error:', e);
+          }
+        }
+        return {
+          success: true,
+          intent: 'query_notes',
+          reply,
+        };
+      }
+
+      // Filter notes matching query
+      const queryWords = query.split(/\s+/).filter(w => w.length > 2);
+
+      const scored = notes
+        .map(n => {
+          const title = (n.title || '').toLowerCase();
+          const body = (n.body || '').toLowerCase();
+          const category = (n.category || '').toLowerCase();
+          let score = 0;
+
+          if (title === query) {
+            score += 100;
+          } else if (title.includes(query)) {
+            score += 60;
+          } else if (query.includes(title) && title.length >= 3) {
+            score += 50;
+          } else if (body.includes(query)) {
+            score += 40;
+          } else if (category === query) {
+            score += 30;
+          } else {
+            for (const word of queryWords) {
+              if (title.includes(word)) score += 20;
+              if (body.includes(word)) score += 10;
+            }
+          }
+          return {note: n, score};
+        })
+        .filter(item => item.score > 0);
+
+      scored.sort((a, b) => b.score - a.score);
+
+      if (scored.length === 0) {
+        const reply = `I checked your Notes tab, but didn't find any notes matching "${intent.details || intent.title}".\n\nWould you like me to create a new note titled "${intent.details || intent.title}"?`;
+        if (options.speakResult) {
+          try {
+            await ttsService.speak(`I couldn't find any notes matching "${intent.details || intent.title}".`);
+          } catch (e) {
+            console.warn('[ActionExecutor] TTS playback error:', e);
+          }
+        }
+        return {
+          success: true,
+          intent: 'query_notes',
+          reply,
+        };
+      }
+
+      let reply = '';
+      if (scored.length === 1) {
+        const n = scored[0].note;
+        const bodyMd = noteBodyToMarkdown(n.body).trim();
+        const categoryTag = n.category ? ` *[${n.category}]*` : '';
+        const bodyContent =
+          bodyMd.length > 0 ? bodyMd : '*(This note is empty)*';
+        reply = `Here is what I found in your Notes tab:\n\n📝 **${n.title}**${categoryTag}\n\n${bodyContent}`;
+      } else {
+        const topMatches = scored.slice(0, 3);
+        const formatted = topMatches
+          .map(({note: n}) => {
+            const bodyMd = noteBodyToMarkdown(n.body).trim();
+            const snippet =
+              bodyMd.length > 250
+                ? `${bodyMd.slice(0, 250)}…`
+                : bodyMd || '*(Empty note)*';
+            const categoryTag = n.category ? ` *[${n.category}]*` : '';
+            return `📝 **${n.title}**${categoryTag}\n${snippet}`;
+          })
+          .join('\n\n---\n\n');
+        reply = `I found ${scored.length} matching note${
+          scored.length > 1 ? 's' : ''
+        } in your Notes tab:\n\n${formatted}`;
+      }
+
+      if (options.speakResult) {
+        try {
+          const firstNote = scored[0].note;
+          const spokenSnippet = noteBodyToMarkdown(firstNote.body)
+            .replace(/[#*`_~[\]()-]/g, '')
+            .trim()
+            .slice(0, 150);
+          await ttsService.speak(
+            `Here is your note for ${firstNote.title}: ${spokenSnippet}`,
+          );
+        } catch (e) {
+          console.warn('[ActionExecutor] TTS playback error:', e);
+        }
+      }
+
+      return {
+        success: true,
+        intent: 'query_notes',
+        entityType: 'note',
+        entityId: scored[0].note.id,
+        reply,
       };
     }
 
