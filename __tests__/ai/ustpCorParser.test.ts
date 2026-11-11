@@ -360,7 +360,7 @@ describe('USTP COR Tailored Parser & Onboarding/Profile/Calendar Integration', (
     });
 
     // 3. Calendar DayView entries include location = "Room · Section · Faculty"
-    const friEntries = buildDayEntries({ date: new Date(2026, 10, 13), tasks: [], events: [], blocks: [it414Fri!], timeFormat24h: false, eventColor: '#2563EB', taskColor: '#059669' });
+    const friEntries = buildDayEntries({ date: new Date(2026, 10, 13), tasks: [], events: [], blocks: [it414Fri!], timeFormat24h: false, eventColor: '#2563EB', taskColor: () => '#059669' });
     expect(friEntries.length).toBe(1);
     expect(friEntries[0].location).toBe(
       '09-302(CITC Lab 3) · IT4R11_Track2 · Loredel Tamayo',
