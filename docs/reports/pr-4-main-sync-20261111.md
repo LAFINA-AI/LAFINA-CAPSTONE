@@ -1,4 +1,4 @@
-# PR #4 — main synchronization and commit attribution cleanup
+# PR #5 (replacing #4) — main synchronization and commit attribution cleanup
 
 **Branch:** `feat/call-lafina-v2` → `main`
 **Date:** 2026-11-11 (Asia/Manila)
@@ -13,7 +13,7 @@
 
 ## 1. Scope completed
 
-Resolve the existing merge of `origin/main`, preserve the Call Lafina 2.0 remediation and the six feature commits described in PR #4, and reopen the existing closed/unmerged PR after updating its branch.
+Resolve the existing merge of `origin/main`, preserve the Call Lafina 2.0 remediation and the six feature commits described in PR #4, and submit the updated branch for review. GitHub refused to reopen closed PR #4 after its head was rewritten (`state cannot be changed. The feat/call-lafina-v2 branch was force-pushed or recreated.`), so replacement [PR #5](https://github.com/LAFINA-AI/LAFINA-CAPSTONE/pull/5) was created. GitHub verified it is open and mergeable into main.
 
 The checkout initially contained 39 unresolved paths. Main had squashed earlier feature history, making many identical or evolved files appear as add/add conflicts. The source snapshot `cae65fe` matches main before its additional voice changes: comparison against main isolates 19 actual changed paths. Each conflict was merged against this matching source snapshot, then the remaining voice conflicts were reviewed explicitly.
 
