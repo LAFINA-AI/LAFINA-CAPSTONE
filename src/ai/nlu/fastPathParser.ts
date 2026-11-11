@@ -552,16 +552,16 @@ function resolveImplicitHour24(
 }
 
 function detectContextPeriod(lowerText: string): 'morning' | 'afternoon' | 'evening' | 'night' | null {
-  if (/\b(?:in\s+the\s+morning|this\s+morning|to-?morrow\s+morning|morrow\s+morning|(?:monday|tuesday|wednesday|thursday|friday|saturday|sunday)\s+morning|before\s+class|before\s+school)\b/i.test(lowerText)) {
+  if (/\b(?:in\s+the\s+morning|this\s+morning|(?:to-?morrow|tommorow|tomorow|tommorrow|morrow|tmrw|tmr)\s+morning|(?:monday|tuesday|wednesday|thursday|friday|saturday|sunday)\s+morning|before\s+class|before\s+school)\b/i.test(lowerText)) {
     return 'morning';
   }
-  if (/\b(?:in\s+the\s+afternoon|this\s+afternoon|to-?morrow\s+afternoon|morrow\s+afternoon|(?:monday|tuesday|wednesday|thursday|friday|saturday|sunday)\s+afternoon|after\s+lunch)\b/i.test(lowerText)) {
+  if (/\b(?:in\s+the\s+afternoon|this\s+afternoon|(?:to-?morrow|tommorow|tomorow|tommorrow|morrow|tmrw|tmr)\s+afternoon|(?:monday|tuesday|wednesday|thursday|friday|saturday|sunday)\s+afternoon|after\s+lunch)\b/i.test(lowerText)) {
     return 'afternoon';
   }
-  if (/\b(?:in\s+the\s+evening|this\s+evening|to-?morrow\s+evening|morrow\s+evening|(?:monday|tuesday|wednesday|thursday|friday|saturday|sunday)\s+evening|after\s+class|after\s+school|after\s+work)\b/i.test(lowerText)) {
+  if (/\b(?:in\s+the\s+evening|this\s+evening|(?:to-?morrow|tommorow|tomorow|tommorrow|morrow|tmrw|tmr)\s+evening|(?:monday|tuesday|wednesday|thursday|friday|saturday|sunday)\s+evening|after\s+class|after\s+school|after\s+work)\b/i.test(lowerText)) {
     return 'evening';
   }
-  if (/\b(?:at\s+night|tonight|to-?morrow\s+night|morrow\s+night|(?:monday|tuesday|wednesday|thursday|friday|saturday|sunday)\s+night|late\s+night)\b/i.test(lowerText)) {
+  if (/\b(?:at\s+night|tonight|(?:to-?morrow|tommorow|tomorow|tommorrow|morrow|tmrw|tmr)\s+night|(?:monday|tuesday|wednesday|thursday|friday|saturday|sunday)\s+night|late\s+night)\b/i.test(lowerText)) {
     return 'night';
   }
   return null;
@@ -719,7 +719,7 @@ export function parseDateAndTime(text: string, referenceDate: Date = new Date())
     date = formatLocalDate(d);
     matchedText.push('day after tomorrow');
   } else {
-    const morrowMatch = /\b(?:to-?morrow|morrow|tmrw)\b/i.exec(lower);
+    const morrowMatch = /\b(?:to-?morrow|tommorow|tomorow|tommorrow|morrow|tmrw|tmr)\b/i.exec(lower);
     if (morrowMatch) {
       const d = new Date(referenceDate);
       d.setDate(d.getDate() + 1);
@@ -1027,7 +1027,7 @@ export function parseDateAndTime(text: string, referenceDate: Date = new Date())
   // is explicitly spoken without a clock hour, preventing timed tasks from falling into All-Day!
   if (!time && contextPeriod) {
     const explicitPeriodMatch =
-      /\b(?:in\s+the\s+(?:morning|afternoon|evening)|this\s+(?:morning|afternoon|evening)|to-?morrow\s+(?:morning|afternoon|evening|night)|morrow\s+(?:morning|afternoon|evening|night)|(?:monday|tuesday|wednesday|thursday|friday|saturday|sunday)\s+(?:morning|afternoon|evening|night)|tonight|at\s+night)\b/i.exec(
+      /\b(?:in\s+the\s+(?:morning|afternoon|evening)|this\s+(?:morning|afternoon|evening)|(?:to-?morrow|tommorow|tomorow|tommorrow|morrow|tmrw|tmr)\s+(?:morning|afternoon|evening|night)|(?:monday|tuesday|wednesday|thursday|friday|saturday|sunday)\s+(?:morning|afternoon|evening|night)|tonight|at\s+night)\b/i.exec(
         lower,
       );
     if (explicitPeriodMatch) {
@@ -1313,12 +1313,12 @@ export function parseIntentFastPath(
   // 3. Schedule Audit & Schedule Query
   // Must run BEFORE CRUD/Creation intents unless the utterance starts with an explicit creation/mutation command
   const isExplicitMutationStart =
-    /^(?:remind\s+me|set\s+(?:a\s+|an\s+|up\s+)?(?:reminder|task|event|time\s*block)|add\s+|create\s+|make\s+|schedule\s+(?!audit\b|(?:for\s+)?(?:today|to-?morrow|morrow|tonight|monday|tuesday|wednesday|thursday|friday|saturday|sunday)[\s.!?]*$)|book\s+|plan\s+|take\s+(?:a\s+)?note|save\s+(?:a\s+)?note|note\s+down|write\s+down|jot\s+down|cancel\b|remove\b|delete\b|clear\b|erase\b|drop\b|scratch\b|discard\b|unschedule\b|wipe\b|get\s+rid\s+of\b|take\s+off\b|call\s+off\b|cross\s+off\b|cross\s+out\b|update\s+|edit\s+|rename\s+|reschedule\s+|move\s+|postpone\s+|push\s+back\s+|complete\s+|finish\s+|mark\s+)/i.test(
+    /^(?:remind\s+me|set\s+(?:a\s+|an\s+|up\s+)?(?:reminder|task|event|time\s*block)|add\s+|create\s+|make\s+|schedule\s+(?!audit\b|(?:for\s+)?(?:today|to-?morrow|tommorow|tomorow|tommorrow|morrow|tmrw|tmr|tonight|monday|tuesday|wednesday|thursday|friday|saturday|sunday)[\s.!?]*$)|book\s+|plan\s+|take\s+(?:a\s+)?note|save\s+(?:a\s+)?note|note\s+down|write\s+down|jot\s+down|cancel\b|remove\b|delete\b|clear\b|erase\b|drop\b|scratch\b|discard\b|unschedule\b|wipe\b|get\s+rid\s+of\b|take\s+off\b|call\s+off\b|cross\s+off\b|cross\s+out\b|update\s+|edit\s+|rename\s+|reschedule\s+|move\s+|postpone\s+|push\s+back\s+|complete\s+|finish\s+|mark\s+)/i.test(
       commandLower,
     );
 
   const isScheduleQuery =
-    /\b(?:what(?:'s|s| is| are) (?:on |in |for )?(?:my |the )?(?:schedule|calendar|agenda|plans?|tasks?|todos?|events?|time\s*blocks?|blocks?|reminders?|classes?)|what(?:'s|s| is) (?:happening|upcoming|planned|scheduled|on\s+deck)|what (?:do i have|have i got|i have|am i doing|do i need to do)|what (?:tasks?|todos?|events?|time\s*blocks?|blocks?|reminders?|classes?|plans?|items?) (?:do i have|have i got|i have|are due|are scheduled|are on)|what does my (?:day|schedule|calendar|morning|afternoon|evening|week) look|how(?:'s|s| is| does) my (?:schedule|day|calendar|agenda)(?: look(?:ing)?)?|do i have (?:anything|any (?:tasks?|todos?|events?|time\s*blocks?|blocks?|reminders?|classes?|plans?))|is there anything (?:on |in |for )?(?:my |the )?(?:schedule|calendar|agenda)|is anything (?:scheduled|planned|due)|am i (?:free|busy|available)|(?:audit|check|show|tell(?:\s+me)?|give(?:\s+me)?|read(?:\s+out)?|list|get|view|review|summarize|brief(?:\s+me(?:\s+on)?)?)(?:\s+(?:me|you|us))?\s+(?:what(?:'s|s| is| are)\s+(?:on\s+|in\s+)?)?(?:everything|all|a\s+|my\s+|the\s+|today'?s\s+|tomorrow'?s\s+)?(?:schedule(?:\s+audit)?|calendar|agenda|tasks?|todos?|time\s*blocks?|plans?|events?|scheduled|planned)|(?:show|tell|list|view|read|summarize|give)\s+(?:me|you|us\s+)?(?:everything|all|what(?:'s|\s+is))\s+(?:that(?:'s|\s+is)\s+)?(?:scheduled|planned|on\s+(?:my\s+|the\s+)?(?:schedule|calendar|agenda))|(?:everything|anything)\s+scheduled\s+(?:for\s+)?(?:this|next)\s+week|(?:this|next)\s+week(?:'?s)?\s+(?:schedule|agenda|calendar|plans?|tasks?)|what\s+do\s+i\s+have\s+(?:scheduled\s+)?(?:this|next)\s+week|schedule\s+audit|my\s+schedule|today'?s\s+schedule|tomorrow'?s\s+schedule|^schedule\s+(?:for\s+)?(?:today|to-?morrow|morrow|tonight|monday|tuesday|wednesday|thursday|friday|saturday|sunday)|any\s+(?:plans?|tasks?|events?|time\s*blocks?|classes?)\s+(?:for\s+|on\s+)?(?:today|to-?morrow|morrow|tonight))\b/i.test(
+    /\b(?:what(?:'s|s| is| are) (?:on |in |for )?(?:my |the )?(?:schedule|calendar|agenda|plans?|tasks?|todos?|events?|time\s*blocks?|blocks?|reminders?|classes?)|what(?:'s|s| is) (?:happening|upcoming|planned|scheduled|on\s+deck)|what (?:do i have|have i got|i have|am i doing|do i need to do)|what (?:tasks?|todos?|events?|time\s*blocks?|blocks?|reminders?|classes?|plans?|items?) (?:do i have|have i got|i have|are due|are scheduled|are on)|what does my (?:day|schedule|calendar|morning|afternoon|evening|week) look|how(?:'s|s| is| does) my (?:schedule|day|calendar|agenda)(?: look(?:ing)?)?|do i have (?:anything|any (?:tasks?|todos?|events?|time\s*blocks?|blocks?|reminders?|classes?|plans?))|is there anything (?:on |in |for )?(?:my |the )?(?:schedule|calendar|agenda)|is anything (?:scheduled|planned|due)|am i (?:free|busy|available)|(?:audit|check|show|tell(?:\s+me)?|give(?:\s+me)?|read(?:\s+out)?|list|get|view|review|summarize|brief(?:\s+me(?:\s+on)?)?)(?:\s+(?:me|you|us))?\s+(?:what(?:'s|s| is| are)\s+(?:on\s+|in\s+)?)?(?:everything|all|a\s+|my\s+|the\s+|today'?s\s+|tomorrow'?s\s+)?(?:schedule(?:\s+audit)?|calendar|agenda|tasks?|todos?|time\s*blocks?|plans?|events?|scheduled|planned)|(?:show|tell|list|view|read|summarize|give)\s+(?:me|you|us\s+)?(?:everything|all|what(?:'s|\s+is))\s+(?:that(?:'s|\s+is)\s+)?(?:scheduled|planned|on\s+(?:my\s+|the\s+)?(?:schedule|calendar|agenda))|(?:everything|anything)\s+scheduled\s+(?:for\s+)?(?:this|next)\s+week|(?:this|next)\s+week(?:'?s)?\s+(?:schedule|agenda|calendar|plans?|tasks?)|what\s+do\s+i\s+have\s+(?:scheduled\s+)?(?:this|next)\s+week|schedule\s+audit|my\s+schedule|today'?s\s+schedule|tomorrow'?s\s+schedule|^schedule\s+(?:for\s+)?(?:today|to-?morrow|tommorow|tomorow|tommorrow|morrow|tmrw|tmr|tonight|monday|tuesday|wednesday|thursday|friday|saturday|sunday)|any\s+(?:plans?|tasks?|events?|time\s*blocks?|classes?)\s+(?:for\s+|on\s+)?(?:today|to-?morrow|tommorow|tomorow|tommorrow|morrow|tmrw|tmr|tonight))\b/i.test(
       commandLower,
     );
 
@@ -1807,12 +1807,12 @@ export function parseIntentFastPath(
   let intentType: ParsedIntentType = 'create_task';
 
   const isExplicitTimeBlock =
-    /\b(?:time\s*blocks?|timeblocks?|study\s*blocks?|focus\s*blocks?|work\s*blocks?|block\s+time|block\s+out|(?:create|add|set|schedule|make|put)\s+(?:a\s+|an\s+|new\s+)?blocks?|events?)\b/i.test(
+    /\b(?:time\s*blocks?|timeblocks?|study\s*blocks?|focus\s*blocks?|work\s*blocks?|block\s+time|block\s+out|(?:create|add|set|schedule|make|put|book|plan)\s+(?:(?:for\s+)?(?:me|us)\s+)?(?:a\s+|an\s+|new\s+)?blocks?|events?)\b/i.test(
       commandLower,
     ) || /^blocks?\b/i.test(commandLower);
 
   const isExplicitTask =
-    /\b(?:(?:create|add|set|make|schedule|put)\s+(?:a\s+|an\s+|new\s+)?(?:tasks?|todos?|to-dos?))\b/i.test(
+    /\b(?:(?:create|add|set|make|schedule|put|book|plan)\s+(?:(?:for\s+)?(?:me|us)\s+)?(?:a\s+|an\s+|new\s+)?(?:tasks?|todos?|to-dos?))\b/i.test(
       commandLower,
     ) || /^(?:new\s+)?(?:tasks?|todos?|to-dos?)\b/i.test(commandLower);
 
@@ -1857,7 +1857,7 @@ export function parseIntentFastPath(
 
   // Strip command verb + optional article/adjective + entity noun
   cleanTitle = cleanTitle.replace(
-    /^(?:remind\s+me(?:\s+to\b|\s+for\b|\s+about\b)?|set(?:\s+up)?\s+(?:a\s+|an\s+|new\s+)?reminder\s*(?:to\b|for\b|about\b)?|(?:(?:create|add|set(?:\s+up)?|schedule|make|put|book|plan)\s+)?(?:a\s+|an\s+|the\s+)?(?:new\s+)?(?:time\s*blocks?|timeblocks?|study\s*blocks?|focus\s*blocks?|work\s*blocks?|block\s+time|block\s+out|blocks?|tasks?|todos?|to-dos?|reminders?|events?|notes?)|add|create|schedule|set(?:\s+up)?|book|plan)\s*[:\s,-]*(?:(?:a|an|the|new)\s+)*[:\s,-]*/i,
+    /^(?:remind\s+me(?:\s+to\b|\s+for\b|\s+about\b)?|set(?:\s+up)?\s+(?:a\s+|an\s+|new\s+)?reminder\s*(?:to\b|for\b|about\b)?|(?:(?:create|add|set(?:\s+up)?|schedule|make|put|book|plan)\s+)(?:(?:for\s+)?(?:me|us)\s+)?(?:a\s+|an\s+|the\s+)?(?:new\s+)?(?:time\s*blocks?|timeblocks?|study\s*blocks?|focus\s*blocks?|work\s*blocks?|block\s+time|block\s+out|blocks?|tasks?|todos?|to-dos?|reminders?|events?|notes?)|(?:add|create|schedule|set(?:\s+up)?|make|book|plan)(?:\s+(?:for\s+)?(?:me|us)(?:\s+(?:to|about))?)?\b)\s*[:\s,-]*(?:(?:a|an|the|new)\s+)*[:\s,-]*/i,
     '',
   );
 
@@ -1877,7 +1877,7 @@ export function parseIntentFastPath(
   // Strip leftover time-of-day qualifiers if time was parsed
   if (dt.time) {
     cleanTitle = cleanTitle.replace(
-      /\b(?:in\s+the\s+(?:morning|afternoon|evening)|this\s+(?:morning|afternoon|evening)|to-?morrow\s+(?:morning|afternoon|evening|night)|at\s+night)\b/gi,
+      /\b(?:in\s+the\s+(?:morning|afternoon|evening)|this\s+(?:morning|afternoon|evening)|(?:to-?morrow|tommorow|tomorow|tommorrow|morrow|tmrw|tmr)\s+(?:morning|afternoon|evening|night)|at\s+night)\b/gi,
       '',
     );
   }
@@ -1906,7 +1906,7 @@ export function parseIntentFastPath(
 
   // Evaluate whether the extracted title or raw transcript had conversational noise
   const hasExplicitCommandPrefix =
-    /^(?:remind\s+me|set\s+a?\s*reminder|add\s+a?\s*reminder|(?:(?:create|add|set|schedule|make)\s+)?(?:a\s+|an\s+)?(?:new\s+)?(?:time\s*block|timeblock|study\s*block|focus\s*block|block\s+time|block\s+out|block|take\s+a?\s*note|save\s+a?\s*note|note\s+down|write\s+down|task|todo|note)|add|create|schedule|set(?:\s+up)?)\b/i.test(
+    /^(?:remind\s+me|set\s+a?\s*reminder|add\s+a?\s*reminder|(?:(?:create|add|set|schedule|make|book|plan)\s+)?(?:(?:for\s+)?(?:me|us)\s+)?(?:a\s+|an\s+)?(?:new\s+)?(?:time\s*block|timeblock|study\s*block|focus\s*block|block\s+time|block\s+out|block|take\s+a?\s*note|save\s+a?\s*note|note\s+down|write\s+down|task|todo|note)|add|create|schedule|set(?:\s+up)?|make|book|plan)\b/i.test(
       commandLower,
     );
   const noisy = isTitleNoisy(cleanTitle, normalized);
@@ -2012,13 +2012,13 @@ export function isTitleNoisy(title: string, rawTranscript: string = ''): boolean
   // 1. Conversational pronouns or modal/obligation verbs
   const modalOrPronounRegex =
     /\b(?:i|i['’]m|i['’]ve|i['’]ll|we|we['’]ll|we['’]re|let['’]?s|you|gotta|gonna|wanna|need\s+to|have\s+to|should|must|remember\s+to|don['’]?t\s+forget(?:\s+to)?|planning\s+to|want\s+to|trying\s+to|supposed\s+to)\b/i;
-  if (modalOrPronounRegex.test(lowerTitle) || modalOrPronounRegex.test(lowerRaw)) {
+  if (modalOrPronounRegex.test(lowerTitle) || modalOrPronounRegex.test(lowerRaw) || /^(?:me|us|for\s+me|for\s+us)\b/i.test(lowerTitle)) {
     return true;
   }
 
   // 2. Lingering temporal or hedging adverbs
   const colloquialTemporalOrFillerRegex =
-    /\b(?:morrow|tmrw|later|sometime|maybe|probably|just|around|somewhere|after\s+class|before\s+class)\b/i;
+    /\b(?:morrow|tmrw|tmr|later|sometime|maybe|probably|just|around|somewhere|after\s+class|before\s+class)\b/i;
   if (colloquialTemporalOrFillerRegex.test(lowerTitle) || colloquialTemporalOrFillerRegex.test(lowerRaw)) {
     return true;
   }
@@ -2072,7 +2072,7 @@ export function distillScheduleTitle(rawTitle: string): string {
         '',
       )
       .replace(
-        /^(?:remind\s+me(?:\s+to\b|\s+for\b|\s+about\b)?|set(?:\s+up)?\s+(?:a\s+|an\s+|new\s+)?reminder\s*(?:to\b|for\b|about\b)?|(?:(?:create|add|set(?:\s+up)?|schedule|make|put|book|plan)\s+)(?:a\s+|an\s+|the\s+)?(?:new\s+)?(?:time\s*blocks?|timeblocks?|study\s*blocks?|focus\s*blocks?|work\s*blocks?|block\s+time|block\s+out|blocks?|tasks?|todos?|to-dos?|reminders?|events?)|(?:create|add|schedule|set(?:\s+up)?|book|plan)\b)(?:\s+(?:called|titled|named|for|to|about)\b)?(?:\s+(?:a|an|the|new)\b)*[\s,:-]*/i,
+        /^(?:remind\s+me(?:\s+to\b|\s+for\b|\s+about\b)?|set(?:\s+up)?\s+(?:a\s+|an\s+|new\s+)?reminder\s*(?:to\b|for\b|about\b)?|(?:(?:create|add|set(?:\s+up)?|schedule|make|put|book|plan)\s+)(?:(?:for\s+)?(?:me|us)\s+)?(?:a\s+|an\s+|the\s+)?(?:new\s+)?(?:time\s*blocks?|timeblocks?|study\s*blocks?|focus\s*blocks?|work\s*blocks?|block\s+time|block\s+out|blocks?|tasks?|todos?|to-dos?|reminders?|events?)|(?:create|add|schedule|set(?:\s+up)?|make|book|plan)(?:\s+(?:for\s+)?(?:me|us)(?:\s+(?:to|about))?)?\b)(?:\s+(?:called|titled|named|for|to|about)\b)?(?:\s+(?:a|an|the|new)\b)*[\s,:-]*/i,
         '',
       )
       .trim();
@@ -2095,7 +2095,7 @@ export function distillScheduleTitle(rawTitle: string): string {
 
   // Strip lingering temporal/contextual phrases and time tokens
   cleaned = cleaned.replace(
-    /\b(?:to-?morrow|morrow|tmrw|today|tonight|yesterday|after\s+class|before\s+class|after\s+school|before\s+school|after\s+work|in\s+the\s+(?:morning|afternoon|evening)|this\s+(?:morning|afternoon|evening)|at\s+night|later\s+today|later\s+tonight|sometime|later|(?:(?:at|from|by|around)\s+)?\d{1,2}(?::\d{2})?\s*(?:am|pm|a\.m\.|p\.m\.|noon|midnight))\b/gi,
+    /\b(?:to-?morrow|tommorow|tomorow|tommorrow|morrow|tmrw|tmr|today|tonight|yesterday|after\s+class|before\s+class|after\s+school|before\s+school|after\s+work|in\s+the\s+(?:morning|afternoon|evening)|this\s+(?:morning|afternoon|evening)|at\s+night|later\s+today|later\s+tonight|sometime|later|(?:(?:at|from|by|around)\s+)?\d{1,2}(?::\d{2})?\s*(?:am|pm|a\.m\.|p\.m\.|noon|midnight))\b/gi,
     '',
   );
 
