@@ -138,6 +138,23 @@ export type {
   CorCourseInput,
   OnboardingScheduleSessionInput,
 } from './academicProfileStore';
+export {
+  ALL_DASHBOARD_WIDGET_IDS,
+  DASHBOARD_PRESETS,
+  DASHBOARD_WIDGET_META,
+  dashboardConfigStore,
+  getDefaultDashboardConfig,
+  normalizeDashboardConfig,
+} from './dashboardConfigStore';
+export type {
+  DashboardConfig,
+  DashboardPreset,
+  DashboardPresetId,
+  DashboardScheduleFilter,
+  DashboardWidgetId,
+  DashboardWidgetMeta,
+  MinFreeGapMinutes,
+} from './dashboardConfigStore';
 export {productTourStore, PRODUCT_TOUR_VERSION} from './productTourStore';
 export {calendarVisibilityStore} from './calendarVisibilityStore';
 export type {CalendarVisibilityMap} from './calendarVisibilityStore';

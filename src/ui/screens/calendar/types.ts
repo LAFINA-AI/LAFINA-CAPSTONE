@@ -92,6 +92,15 @@ export interface TimeBlockModalState {
   showStartPicker: boolean;
   showEndPicker: boolean;
   openNewBlock: (initialHour?: number, targetDate?: Date) => void;
+  openNewSlot?: (slot: {
+    date: string;
+    startTime: string;
+    endTime: string;
+    title?: string;
+    category?: string;
+    color?: string;
+    notes?: string;
+  }) => void;
   openEditBlock: (block: TimeBlock) => void;
   close: () => void;
   updateField: <K extends keyof TimeBlockForm>(

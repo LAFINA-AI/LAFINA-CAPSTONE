@@ -2,6 +2,7 @@ import {db, DatabaseTransaction} from './database';
 import {GUEST_USER_ID, GUEST_USERNAME} from '../constants';
 import {academicProfileStore} from './academicProfileStore';
 import {avatarSeedStore} from './avatarSeedStore';
+import {dashboardConfigStore} from './dashboardConfigStore';
 import {syncOutboxStore} from './syncOutboxStore';
 import {buildProfileSyncPayload} from './profileSyncPayload';
 import {transferChatOwnership} from './chatOwnership';
@@ -151,6 +152,7 @@ export const guestMigration = {
       // Device-local offline voice choice (AGY-PORT 10), same rule.
       speechSettingsStore.transferFromGuest(tx, cloudUserId, now);
       academicProfileStore.transferFromGuest(tx, GUEST_USER_ID, cloudUserId);
+      dashboardConfigStore.transferFromGuest(tx, GUEST_USER_ID, cloudUserId);
       avatarSeedStore.transferFromGuest(tx, GUEST_USER_ID, cloudUserId);
       // Pending attachment cleanup (ADR-026) follows the conversation that owned
       // the files; an obligation the account already holds is kept once.

@@ -1,6 +1,11 @@
-import type { TabType } from '../components/CustomTabBar';
+import type {TabType} from '../components/CustomTabBar';
 
-export type TourAnchor = 'tab-chat' | 'tab-calendar' | 'tab-notes' | 'tab-profile' | 'mic';
+export type TourAnchor =
+  | 'tab-chat'
+  | 'tab-calendar'
+  | 'tab-dashboard'
+  | 'tab-notes'
+  | 'tab-profile';
 
 export interface TourStep {
   id: string;
@@ -15,13 +20,20 @@ export interface TourAudience {
   isPro: boolean;
 }
 
-export const buildTourSteps = ({ isGuest }: TourAudience): TourStep[] => [
+export const buildTourSteps = ({isGuest}: TourAudience): TourStep[] => [
   {
     id: 'welcome',
     title: 'Welcome to LAFINA',
     body: isGuest
       ? 'You are using LAFINA as a guest, so everything you do stays on this phone. Here is a quick look around — it takes about a minute.'
       : 'Your account is ready. Here is a quick look around — it takes about a minute, and you can skip it at any point.',
+  },
+  {
+    id: 'dashboard',
+    title: 'Dashboard',
+    body: 'Your daily command center: see what class or event is live or up next, spot open study blocks between classes, and customize which cards appear.',
+    anchor: 'tab-dashboard',
+    tab: 'dashboard',
   },
   {
     id: 'calendar',
@@ -39,16 +51,10 @@ export const buildTourSteps = ({ isGuest }: TourAudience): TourStep[] => [
   },
   {
     id: 'assistant',
-    title: 'Chat',
-    body: 'Ask in plain language — "block 2 to 4 pm for thesis writing tomorrow" — and LAFINA schedules it. Scheduling runs on this phone, so it works with no connection.',
+    title: 'Chat & Voice',
+    body: 'Ask in plain language or hold the mic inside Chat to speak — "block 2 to 4 pm for thesis writing tomorrow" — and LAFINA schedules it on this phone, even offline.',
     anchor: 'tab-chat',
     tab: 'chat',
-  },
-  {
-    id: 'voice',
-    title: 'Talk to it',
-    body: 'Tap the mic to speak instead of typing: dictate a note, or say what you want scheduled. Your voice is transcribed on this phone and never uploaded.',
-    anchor: 'mic',
   },
   {
     id: 'account',

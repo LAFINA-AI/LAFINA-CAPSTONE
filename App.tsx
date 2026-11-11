@@ -62,6 +62,7 @@ import {appUpdater} from './src/updates';
 import {ChatScreen} from './src/ui/screens/ChatScreen';
 import {ProfileScreen} from './src/ui/screens/ProfileScreen';
 import {CalendarScreen} from './src/ui/screens/calendar';
+import {DashboardScreen} from './src/ui/screens/dashboard';
 import {NotesScreen} from './src/ui/screens/notes';
 import {SynthSplash} from './src/ui/splash';
 import {WelcomeScreen} from './src/ui/screens/WelcomeScreen';
@@ -73,7 +74,7 @@ import {ReminderPermissionModal} from './src/ui/components/call/ReminderPermissi
 import {AuthBackdrop} from './src/ui/components/auth/AuthBackdrop';
 import {ProductTour} from './src/ui/tour/ProductTour';
 import {buildTourSteps} from './src/ui/tour/tourSteps';
-import {VoiceModal} from './src/ui/components/VoiceModal';
+
 import {CallLafinaScreen} from './src/ui/screens/CallLafinaScreen';
 import {MiniCallBar} from './src/ui/components/callLafina/MiniCallBar';
 import {
@@ -103,8 +104,8 @@ function AppContent({
   >('welcome');
   const [isOnboarding, setIsOnboarding] = useState(false);
   const [isOnboardingReplay, setIsOnboardingReplay] = useState(false);
-  const [activeTab, setActiveTab] = useState<TabType>('calendar');
-  const [voiceVisible, setVoiceVisible] = useState(false);
+  const [activeTab, setActiveTab] = useState<TabType>('dashboard');
+
   const [tourOpen, setTourOpen] = useState(false);
   const [isKeyboardVisible, setIsKeyboardVisible] = useState(false);
   const [startupReady, setStartupReady] = useState(false);
@@ -209,7 +210,7 @@ function AppContent({
     );
     // AGY-PORT 05: the previous owner's unsent Chat text and open voice sheet go too.
     chatDraftStore.retainOnly(userId);
-    setVoiceVisible(false);
+
     if (callOwnerRef.current && callOwnerRef.current !== userId) {
       callOwnerRef.current = null;
       setCallVisible(false);
@@ -477,7 +478,7 @@ function AppContent({
     setUserId(uid);
     const user = userStore.getUserById(uid);
     setIsOnboarding(user ? user.isNewUser : false);
-    setActiveTab('calendar');
+    setActiveTab('dashboard');
   };
 
   const handleGuestCreateAccount = () => {
@@ -490,7 +491,7 @@ function AppContent({
     setUserId(uid);
     const user = userStore.getUserById(uid);
     setIsOnboarding(user ? user.isNewUser : false);
-    setActiveTab('calendar');
+    setActiveTab('dashboard');
     syncWorker
       .performSync()
       .then(() => {
@@ -502,7 +503,7 @@ function AppContent({
   const handleRegisterSuccess = (uid: string) => {
     setUserId(uid);
     setIsOnboarding(true);
-    setActiveTab('calendar');
+    setActiveTab('dashboard');
   };
 
   const handleOnboardingComplete = () => {
@@ -535,7 +536,7 @@ function AppContent({
     setUserId(null);
     setAuthScreen(isGuestParam ? 'welcome' : 'login');
     setIsOnboarding(false);
-    setActiveTab('calendar');
+    setActiveTab('dashboard');
   };
 
   const renderScreen = () => {
@@ -547,6 +548,43 @@ function AppContent({
       );
     }
     switch (activeTab) {
+      case 'dashboard':
+        return (
+          <DashboardScreen
+            userId={userId}
+            refreshTrigger={refreshTrigger}
+            onRefresh={triggerRefresh}
+            onOpenCalendarTab={target => {
+              if (target) {
+                setCallNavigation({
+                  ownerId: userId,
+                  screen: 'calendar',
+                  ...target,
+                  requestId: generateId('dash-nav'),
+                });
+              }
+              setActiveTab('calendar');
+            }}
+            onOpenNotesTab={noteId => {
+              if (noteId) {
+                setCallNavigation({
+                  ownerId: userId,
+                  screen: 'notes',
+                  entityId: noteId,
+                  entityKind: 'note',
+                  requestId: generateId('dash-nav'),
+                });
+              }
+              setActiveTab('notes');
+            }}
+            onOpenChatTab={prefillPrompt => {
+              if (prefillPrompt) {
+                chatDraftStore.set(userId, prefillPrompt);
+              }
+              setActiveTab('chat');
+            }}
+          />
+        );
       case 'chat':
         return (
           <ChatScreen
@@ -727,28 +765,8 @@ function AppContent({
         )}
 
       {!isKeyboardVisible && (
-        <CustomTabBar
-          activeTab={activeTab}
-          onTabPress={setActiveTab}
-          onMicPress={() => setVoiceVisible(true)}
-        />
+        <CustomTabBar activeTab={activeTab} onTabPress={setActiveTab} />
       )}
-
-      <VoiceModal
-        visible={voiceVisible}
-        userId={userId || 'local_guest_user'}
-        onClose={didUpdate => {
-          setVoiceVisible(false);
-          if (didUpdate) {
-            setRefreshTrigger(prev => prev + 1);
-          }
-        }}
-        onUseInChat={() => setActiveTab('chat')}
-        onOpenCallLafina={() => {
-          setVoiceVisible(false);
-          setCallLafinaVisible(true);
-        }}
-      />
 
       {(callLafinaVisible || callLafinaMinimized) && (
         <View
@@ -768,6 +786,7 @@ function AppContent({
             onClose={() => {
               setCallLafinaVisible(false);
               setCallLafinaMinimized(false);
+              triggerRefresh();
             }}
             onMinimize={() => {
               setCallLafinaVisible(false);
