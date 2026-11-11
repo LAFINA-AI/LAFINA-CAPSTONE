@@ -108,15 +108,18 @@ describe('chat history sheet', () => {
     expect(chatStore.listSessions(me).map(c => c.title)).toEqual(['Bio finals']);
   });
 
-  it('the trash button deletes only the open chat', async () => {
-    const {me, first} = twoChats();
+  it('temporary chat does not save messages to history', async () => {
+    const me = student();
     const {getByTestId} = render(chat(me));
-    confirmAlerts('Clear');
+    // Toggle temporary chat on
+    fireEvent.press(getByTestId('chat-temporary-toggle-button'));
+    // In temporary chat, send a message
+    fireEvent.changeText(getByTestId('chat-text-input'), 'Hello in temporary mode');
     await act(async () => {
-      fireEvent.press(getByTestId('chat-clear-history-button'));
+      fireEvent.press(getByTestId('chat-send-button'));
     });
-    expect(shown(getByTestId)).toEqual([]);
-    expect(chatStore.listSessions(me).map(c => c.id)).toEqual([first]);
+    // Messages must NOT be saved in chatStore
+    expect(chatStore.getMessages(me)).toHaveLength(0);
   });
 
   it('a new account sees none of the previous chats', () => {
