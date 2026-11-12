@@ -96,7 +96,7 @@ export interface VoiceConversationPanelProps {
 }
 
 const PHASE_TEXT: Record<ConversationPhase, string> = {
-  idle: 'Talk with LAFINA naturally, hands-free',
+  idle: '',
   connecting: 'Connecting…',
   listening: 'Listening. Pause whenever you like',
   thinking: 'Thinking…',
@@ -123,7 +123,7 @@ const statusLine = (snapshot: ConversationSnapshot, hasReviewItem = false) => {
   ) {
     return 'Waiting for confirmation';
   }
-  return PHASE_TEXT[snapshot.phase] ?? 'Talk with LAFINA naturally, hands-free';
+  return PHASE_TEXT[snapshot.phase] ?? '';
 };
 
 const LIVE = new Set<ConversationPhase>([
@@ -189,6 +189,7 @@ export const VoiceConversationPanel: React.FC<VoiceConversationPanelProps> = ({
   );
   const [enabling, setEnabling] = useState(false);
   const [enableError, setEnableError] = useState<string | null>(null);
+  const [dismissedTurnId, setDismissedTurnId] = useState<string | null>(null);
   const reviewRef = useRef(review);
   reviewRef.current = review;
   const turnTicket = useRef(0);
@@ -224,7 +225,6 @@ export const VoiceConversationPanel: React.FC<VoiceConversationPanelProps> = ({
       message: 'No batch ready. Nothing has been saved.',
     }),
   });
-  const identityContextSent = useRef(false);
   const conversationRef = useRef<ReturnType<
     typeof useVoiceConversation
   > | null>(null);
@@ -430,12 +430,12 @@ export const VoiceConversationPanel: React.FC<VoiceConversationPanelProps> = ({
           reviewRef.current.present(prepared);
           const detailsSummary = prepared.proposal.details.join(', ');
           groundedReply.current =
-            'A review card is shown: ' +
+            'Review card is now on screen: ' +
             prepared.proposal.title +
             (detailsSummary ? ' (' + detailsSummary + ')' : '') +
             '. Card ID: ' +
             prepared.proposal.operationId +
-            '; revision: 1. Nothing has been saved yet. Call confirm_draft to save it if confirmed.';
+            '; revision: 1. Nothing has been saved yet. Always speak directly in first person ("I", "me", "my") and tell the student you put a confirmation card on their screen to confirm or adjust. Call confirm_draft only if they confirm or ask you to save it.';
           setLocalNote('Check the card — nothing is saved until confirmed.');
           void conversationRef.current?.sendContext(groundedReply.current);
         } else {
@@ -444,9 +444,12 @@ export const VoiceConversationPanel: React.FC<VoiceConversationPanelProps> = ({
       }
       return;
     }
+    setLocalNote(null);
     if (directProviderTestEnabled()) return;
     void chatOrchestrator
       .reviewSpokenTurn(owner, text, {
+        onlineMode: true,
+        actionSessionId: session,
         isCurrent: () =>
           ticket === turnTicket.current &&
           owner === ownerRef.current &&
@@ -480,6 +483,22 @@ export const VoiceConversationPanel: React.FC<VoiceConversationPanelProps> = ({
                 '; revision: 1. Call confirm_draft to save it if confirmed.',
             );
           }
+        } else if (result.kind === 'executed') {
+          setLocalNote(result.reply);
+          groundedReply.current = result.reply;
+          const updatedContext = buildStudentVoiceContext(owner);
+          void conversationRef.current?.sendContext(
+            `Executed immediately on device: ${result.reply}${
+              updatedContext ? `\n\n[UPDATED PLANNER CONTEXT]\n${updatedContext}` : ''
+            }`,
+          );
+        } else if (result.kind === 'multi') {
+          reviewRef.current.dismiss();
+          setActiveMultiBatch(result.batch);
+          setLocalNote(result.reply);
+          void conversationRef.current?.sendContext(
+            `Grouped review card is now on screen with ${result.batch.items.length} items. Tell the student to review and confirm all or cancel.`,
+          );
         } else if (
           result.kind === 'note' ||
           result.kind === 'local_answer' ||
@@ -509,15 +528,56 @@ export const VoiceConversationPanel: React.FC<VoiceConversationPanelProps> = ({
       // Legacy model tool arguments cannot invent or replace a student's request.
       // New structured tools keep their validated on-screen review contracts.
       if (name === 'prepare_lafina_action') {
-        const pending = latestPendingReview(owner, 'voice');
+        let pending = latestPendingReview(owner, 'voice');
+        if (
+          !pending &&
+          !awaitingDetails.current &&
+          lastUserRequest.current &&
+          !isVoiceScheduleStart(lastUserRequest.current) &&
+          !directProviderTestEnabled()
+        ) {
+          const reviewed = await chatOrchestrator
+            .reviewSpokenTurn(owner, lastUserRequest.current, {
+              onlineMode: true,
+              actionSessionId: actionSession.current,
+              isCurrent,
+            })
+            .catch(() => null);
+          if (!isCurrent()) {
+            throw new Error('Request cancelled because conversational turn updated.');
+          }
+          if (reviewed?.kind === 'proposal' && reviewed.review.status === 'proposal') {
+            reviewRef.current.present(reviewed.review);
+            setLocalNote('Check the card — nothing is saved until confirmed.');
+            pending = reviewed.review.proposal;
+          } else if (reviewed?.kind === 'executed') {
+            setLocalNote(reviewed.reply);
+            groundedReply.current = reviewed.reply;
+            return `Done. Executed immediately: ${reviewed.reply}`;
+          } else if (reviewed?.kind === 'multi') {
+            reviewRef.current.dismiss();
+            setActiveMultiBatch(reviewed.batch);
+            setLocalNote(reviewed.reply);
+            groundedReply.current = reviewed.reply;
+            return `Grouped review card is now on screen with ${reviewed.batch.items.length} items. Tell the student to review and tap Confirm All.`;
+          } else if (
+            reviewed &&
+            (reviewed.kind === 'note' ||
+              reviewed.kind === 'local_answer' ||
+              reviewed.kind === 'memory')
+          ) {
+            setLocalNote(reviewed.reply);
+            groundedReply.current = reviewed.reply;
+          }
+        }
         return pending
-          ? 'A review card is shown: ' +
+          ? 'Review card is now on screen: ' +
               pending.title +
               ' (' +
               pending.details.join(', ') +
               '). Card ID: ' +
               pending.operationId +
-              '; revision: 1. Nothing has been saved yet. Call confirm_draft to save it if the student confirms or asks you to save it.'
+              '; revision: 1. Nothing has been saved yet. Always speak directly in first person ("I", "me", "my") and tell the student to review and confirm it. Call confirm_draft if they confirm.'
           : groundedReply.current;
       }
       if (
@@ -741,9 +801,10 @@ export const VoiceConversationPanel: React.FC<VoiceConversationPanelProps> = ({
       }
       setActiveMultiBatch(batch);
       setLocalNote(spokenSummary);
-      void conversationRef.current?.sendContext(spokenSummary);
       const refreshed = buildStudentVoiceContext(ownerRef.current);
-      if (refreshed) void conversationRef.current?.sendContext(refreshed);
+      void conversationRef.current?.sendContext(
+        refreshed ? `${spokenSummary}\n\n${refreshed}` : spokenSummary,
+      );
       return {
         saved: batch.status === 'saved' || batch.status === 'partial',
         message: spokenSummary,
@@ -883,6 +944,7 @@ export const VoiceConversationPanel: React.FC<VoiceConversationPanelProps> = ({
       localSettingsStore.get(userId, DATA_CONSENT, null) === 'true',
     );
     setLocalNote(null);
+    setDismissedTurnId(null);
     setReadResult(null);
     setTyped('');
     setShowTyping(false);
@@ -896,18 +958,6 @@ export const VoiceConversationPanel: React.FC<VoiceConversationPanelProps> = ({
       if (pending) cancelReviewedCommand(userId, pending.operationId);
     };
   }, [userId]);
-
-  useEffect(() => {
-    if (
-      !dataConsented ||
-      identityContextSent.current ||
-      snapshot.phase !== 'listening'
-    )
-      return;
-    const context = buildStudentVoiceContext(userId);
-    identityContextSent.current = true;
-    if (context) void conversation.sendContext(context);
-  }, [snapshot.phase, userId, dataConsented, conversation]);
 
   const hasActiveCard = Boolean(
     review?.proposal || activeMemoryProposal || activeMultiBatch,
@@ -932,8 +982,8 @@ export const VoiceConversationPanel: React.FC<VoiceConversationPanelProps> = ({
     voiceTurns.current = [];
     awaitingDetails.current = false;
     groundedReply.current = 'No action was prepared. Nothing was saved.';
-    identityContextSent.current = false;
     turnTicket.current += 1;
+    setDismissedTurnId(null);
     setLocalNote(null);
     setEnableError(null);
     conversation.start();
@@ -999,11 +1049,11 @@ export const VoiceConversationPanel: React.FC<VoiceConversationPanelProps> = ({
       return {saved, message: reply};
     }
     setLocalNote(reply);
-    void conversation.sendContext(
-      'Confirmed and saved action result: ' + reply,
-    );
     const refreshed = buildStudentVoiceContext(userId);
-    if (refreshed) void conversation.sendContext(refreshed);
+    const confirmMsg = 'Confirmed and saved action result: ' + reply;
+    void conversation.sendContext(
+      refreshed ? `${confirmMsg}\n\n${refreshed}` : confirmMsg,
+    );
     return {saved, message: reply};
   }, [conversation, userId]);
 
@@ -1035,12 +1085,41 @@ export const VoiceConversationPanel: React.FC<VoiceConversationPanelProps> = ({
     onBack();
   }, [conversation, onBack]);
 
+  const latestAgentReply = (() => {
+    for (let i = snapshot.turns.length - 1; i >= 0; i -= 1) {
+      const turn = snapshot.turns[i];
+      if (
+        turn.role === 'assistant' &&
+        turn.status !== 'provisional' &&
+        turn.text.trim()
+      ) {
+        return turn;
+      }
+    }
+    return null;
+  })();
+  const visibleAgentReply =
+    latestAgentReply && latestAgentReply.id !== dismissedTurnId
+      ? latestAgentReply
+      : null;
   const failure = snapshot.failure;
   const needsConsent = (!consented || !dataConsented) && !live && !connecting;
+  const hasDetailsCard = Boolean(
+    !hasActiveCard &&
+      readResult === null &&
+      !needsConsent &&
+      !failure &&
+      snapshot.phase !== 'restart_required' &&
+      (localNote || snapshot.notice || visibleAgentReply),
+  );
+  const statusText = statusLine(snapshot, Boolean(review?.proposal));
   const showOverlayContent = Boolean(
     needsConsent ||
       hasActiveCard ||
       readResult !== null ||
+      hasDetailsCard ||
+      localNote ||
+      snapshot.notice ||
       failure ||
       snapshot.phase === 'restart_required' ||
       showTyping,
@@ -1177,6 +1256,7 @@ export const VoiceConversationPanel: React.FC<VoiceConversationPanelProps> = ({
           <Text
             style={[
               styles.status,
+              !statusText && styles.emptyStatus,
               {
                 color: failure
                   ? colors.error
@@ -1188,17 +1268,8 @@ export const VoiceConversationPanel: React.FC<VoiceConversationPanelProps> = ({
             accessibilityLiveRegion="polite"
             testID="voice-conversation-status"
           >
-            {statusLine(snapshot, Boolean(review?.proposal))}
+            {statusText}
           </Text>
-
-          {snapshot.voiceName && (live || connecting) ? (
-            <Text
-              style={[styles.voiceName, themed.muted]}
-              testID="voice-conversation-voice"
-            >
-              Voice: {snapshot.voiceName}
-            </Text>
-          ) : null}
 
           {!showOverlayContent ? (
             <CallWaveform
@@ -1400,23 +1471,78 @@ export const VoiceConversationPanel: React.FC<VoiceConversationPanelProps> = ({
           </View>
         ) : null}
 
-        {snapshot.notice ? (
-          <Text
-            style={[styles.notice, themed.muted]}
-            testID="voice-conversation-notice"
+        {hasDetailsCard ? (
+          <View
+            style={[styles.card, themed.card, styles.detailsCard]}
+            testID="call-details-card"
           >
-            {snapshot.notice}
-          </Text>
-        ) : null}
+            <View style={styles.detailsHeader}>
+              <Text style={[styles.detailsLabel, {color: colors.primary}]}>
+                {visibleAgentReply ? 'LAFINA' : 'Details'}
+              </Text>
+              <TouchableOpacity
+                onPress={() => {
+                  setLocalNote(null);
+                  if (visibleAgentReply) {
+                    setDismissedTurnId(visibleAgentReply.id);
+                  }
+                }}
+                style={styles.detailsDismissBtn}
+                accessibilityRole="button"
+                accessibilityLabel="Back to voice view"
+                testID="call-details-dismiss"
+              >
+                <Text style={[styles.detailsDismissText, themed.muted]}>
+                  Done
+                </Text>
+              </TouchableOpacity>
+            </View>
+            {visibleAgentReply ? (
+              <Text
+                style={[styles.detailsReplyText, themed.text]}
+                testID="call-details-reply"
+              >
+                {visibleAgentReply.text}
+              </Text>
+            ) : null}
+            {localNote ? (
+              <Text
+                style={[styles.detailsNoteText, themed.text]}
+                testID="voice-conversation-local-note"
+              >
+                {localNote}
+              </Text>
+            ) : null}
+            {snapshot.notice ? (
+              <Text
+                style={[styles.detailsNoteText, themed.muted]}
+                testID="voice-conversation-notice"
+              >
+                {snapshot.notice}
+              </Text>
+            ) : null}
+          </View>
+        ) : (
+          <>
+            {snapshot.notice ? (
+              <Text
+                style={[styles.notice, themed.muted]}
+                testID="voice-conversation-notice"
+              >
+                {snapshot.notice}
+              </Text>
+            ) : null}
 
-        {localNote ? (
-          <Text
-            style={[styles.notice, themed.text]}
-            testID="voice-conversation-local-note"
-          >
-            {localNote}
-          </Text>
-        ) : null}
+            {localNote ? (
+              <Text
+                style={[styles.notice, themed.text]}
+                testID="voice-conversation-local-note"
+              >
+                {localNote}
+              </Text>
+            ) : null}
+          </>
+        )}
 
         {readResult !== null && (
           <CallReadResults
@@ -1787,7 +1913,38 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     textAlign: 'center',
   },
-  voiceName: {fontFamily: Fonts.body, fontSize: 12, marginTop: -2},
+  emptyStatus: {height: 0, margin: 0, padding: 0},
+  detailsCard: {maxWidth: 420},
+  detailsHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  detailsLabel: {
+    fontFamily: Fonts.heading,
+    fontSize: 12,
+    fontWeight: '700',
+    letterSpacing: 0.4,
+  },
+  detailsDismissBtn: {
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+  },
+  detailsDismissText: {
+    fontFamily: Fonts.body,
+    fontSize: 12,
+    fontWeight: '600',
+  },
+  detailsReplyText: {
+    fontFamily: Fonts.body,
+    fontSize: 15,
+    lineHeight: 22,
+  },
+  detailsNoteText: {
+    fontFamily: Fonts.body,
+    fontSize: 13,
+    lineHeight: 19,
+  },
   waveformContainer: {
     height: 36,
     alignItems: 'center',

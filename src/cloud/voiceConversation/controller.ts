@@ -61,6 +61,19 @@ export interface VoiceConversationLimits {
   maxTypedChars: number;
 }
 
+const humanizeProviderError = (raw: string): string => {
+  const trimmed = raw.trim();
+  if (!trimmed) return '';
+  if (
+    /custom_llm|generation\s*failed|elevenlabs|upstream|bad\s*gateway|502|503|504|econnreset|socket/i.test(
+      trimmed,
+    )
+  ) {
+    return 'I hit a temporary connection issue answering that. Please try again.';
+  }
+  return trimmed;
+};
+
 export const DEFAULT_LIMITS: VoiceConversationLimits = {
   connectTimeoutMs: 20_000,
   thinkingTimeoutMs: 25_000,
@@ -745,11 +758,12 @@ export class VoiceConversationController {
         this.stopForSystem(
           'The conversation connection closed. Start again when you are ready.',
         );
+        const postStopGen = this.generation;
         if (event.reason && !/network/i.test(event.reason)) {
-          this.update({notice: event.reason});
+          this.update({notice: humanizeProviderError(event.reason)});
         }
         if (sessionId) {
-          void this.checkServerFailureReason(gen, sessionId);
+          void this.checkServerFailureReason(postStopGen, sessionId);
         }
         return;
       }
@@ -766,7 +780,11 @@ export class VoiceConversationController {
           event.code === 'MIC_FAILED' || event.code.startsWith('AUDIO')
             ? 'audio'
             : 'provider';
-        return this.fail(gen, kind, event.message || undefined);
+        return this.fail(
+          gen,
+          kind,
+          event.message ? humanizeProviderError(event.message) : undefined,
+        );
       }
       case 'ended':
         return this.stopForSystem('The conversation ended.');
@@ -970,10 +988,11 @@ export class VoiceConversationController {
         this.log(
           `client_error from voice provider: ${errDetail || 'no details'}`,
         );
+        const friendlyDetail = humanizeProviderError(errDetail);
         this.update({
           notice:
-            errDetail ||
-            'LAFINA could not answer that turn. Try saying it again.',
+            friendlyDetail ||
+            'I could not answer that turn. Try saying it again.',
         });
         void this.explainSilence(gen);
         return;
@@ -1252,7 +1271,7 @@ export class VoiceConversationController {
     if (gen !== this.generation) return;
     const message =
       status?.ok && status.data.lastErrorMessage
-        ? status.data.lastErrorMessage
+        ? humanizeProviderError(status.data.lastErrorMessage)
         : 'LAFINA is taking longer than usual. Keep talking, or end the conversation and use text chat.';
     this.update({
       notice: message,
@@ -1274,7 +1293,7 @@ export class VoiceConversationController {
       }
       this.log(`server failure status recorded: ${status.data.lastErrorCode}`);
       this.update({
-        notice: status.data.lastErrorMessage,
+        notice: humanizeProviderError(status.data.lastErrorMessage),
       });
     } catch {
       // Retain existing state

@@ -281,7 +281,7 @@ describe('Phase 02: Dual Audio Waveforms & Truthful Visual State Transitions', (
         phase: 'idle',
         muted: false,
         userLevel: 0,
-        expected: 'Talk with LAFINA naturally, hands-free',
+        expected: '',
       },
     ];
 

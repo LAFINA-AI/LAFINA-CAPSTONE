@@ -121,6 +121,17 @@ type PlannedOperation =
       recurrenceRule?: string | null;
     }
   | {
+      op: 'create_event';
+      eventId: string;
+      title: string;
+      date: string;
+      startTime: string;
+      endTime: string;
+      category: string;
+      location: string | null;
+      recurrenceRule?: string | null;
+    }
+  | {
       op: 'create_reminder';
       taskId: string;
       title: string;
@@ -138,13 +149,16 @@ type PlannedOperation =
       body: string;
       category: string;
     }
-  | {op: 'complete_task'; target: TargetRef}
+  | {op: 'complete_task'; target: TargetRef; isCompleted?: boolean}
   | {
       op: 'update_task';
       target: TargetRef;
       title: string;
       dueDate: string | null;
       dueTime: string | null;
+      priority?: 'High' | 'Medium' | 'Low';
+      category?: string;
+      notes?: string | null;
       reminderChanges: ReadonlyArray<ReminderChange>;
     }
   | {
@@ -156,7 +170,15 @@ type PlannedOperation =
       endTime: string;
       reminderChanges: ReadonlyArray<ReminderChange>;
     }
-  | {op: 'update_note'; target: TargetRef; title: string; body: string}
+  | {
+      op: 'update_note';
+      target: TargetRef;
+      title: string;
+      body: string;
+      isPinned?: boolean;
+      category?: string;
+      isLowRiskMetaOnly?: boolean;
+    }
   | {
       op: 'delete_item';
       target: TargetRef;
@@ -399,9 +421,14 @@ interface CleanIntent {
   category: string;
   appendToNote: boolean;
   isCompleted: boolean;
+  rawIsCompleted: boolean | null;
   targetEntityType: CrudTargetEntityType | null;
   priority: 'High' | 'Medium' | 'Low' | null;
   recurrenceRule: string | null;
+  location: string | null;
+  isPinned: boolean | null;
+  newCategory: string | null;
+  checklistItems: string[] | null;
 }
 
 const cleanIntent = (intent: ValidatedIntent): CleanIntent => {
@@ -436,11 +463,21 @@ const cleanIntent = (intent: ValidatedIntent): CleanIntent => {
       rawCategory && rawCategory !== 'APPEND' ? rawCategory : 'Academic',
     appendToNote: rawCategory === 'APPEND',
     isCompleted: intent.isCompleted === true,
+    rawIsCompleted:
+      typeof intent.isCompleted === 'boolean' ? intent.isCompleted : null,
     targetEntityType,
     priority: ['High', 'Medium', 'Low'].includes(intent.priority ?? '')
       ? intent.priority!
       : null,
     recurrenceRule: recurrenceRule?.replace(/^RRULE:/i, '') ?? null,
+    location: cleanText(intent.location, 120),
+    isPinned: typeof intent.isPinned === 'boolean' ? intent.isPinned : null,
+    newCategory: cleanText(intent.newCategory, MAX_CATEGORY_LENGTH),
+    checklistItems: Array.isArray(intent.checklistItems)
+      ? intent.checklistItems
+          .map(item => cleanText(item, 200))
+          .filter((item): item is string => Boolean(item))
+      : null,
   };
 };
 
@@ -1000,6 +1037,46 @@ const buildCreateTimeBlock = (
     ? 'Reminder: 15-min notification before each class.'
     : 'No reminder is added for time blocks.';
 
+  if (
+    c.targetEntityType === 'event' &&
+    !(c.details && c.details.startsWith('[BATCH_CLASSES:'))
+  ) {
+    const eventLocation = c.location || null;
+    return {
+      draft: {
+        heading: 'Create event',
+        title,
+        details: [
+          `When: ${friendlyDate(date)}, ${format12HourTime(
+            startTime,
+          )} to ${format12HourTime(endTime)}${
+            c.recurrenceRule ? ' (Repeats)' : ''
+          }.`,
+          ...(eventLocation ? [`Location: ${eventLocation}.`] : []),
+          ...[overnightNote(date, startTime, endTime)].filter(
+            (note): note is string => note !== null,
+          ),
+          `Category: ${c.category}.`,
+          'Added to your Calendar events.',
+        ],
+        assumptions,
+        warnings,
+        destructive: false,
+        operation: {
+          op: 'create_event',
+          eventId: generateId('evt'),
+          title,
+          date,
+          startTime,
+          endTime,
+          category: c.category,
+          location: eventLocation,
+          recurrenceRule: c.recurrenceRule || null,
+        },
+      },
+    };
+  }
+
   return {
     draft: {
       heading: displayHeading,
@@ -1119,7 +1196,11 @@ const buildCreateReminder = (
 
 const buildCreateNote = (c: CleanIntent): BuildResult => {
   const title = c.title || 'Voice Note';
-  const body = c.details || c.title || '';
+  const checklistMarkdown =
+    c.checklistItems && c.checklistItems.length > 0
+      ? c.checklistItems.map(item => `- [ ] ${item}`).join('\n')
+      : null;
+  const body = checklistMarkdown || c.details || c.title || '';
   const assumptions = c.title
     ? []
     : ['No title was given, so it is called “Voice Note”.'];
@@ -1491,12 +1572,25 @@ const buildUpdate = (
       return {result: notFound('note', queryTitle, null)};
     const note = resolution.candidate.note;
     const title = c.newTitle || note.title;
-    const body = c.details
+    const checklistAddition =
+      c.checklistItems && c.checklistItems.length > 0
+        ? c.checklistItems.map(item => `- [ ] ${item}`).join('\n')
+        : null;
+    const incomingText = checklistAddition || c.details;
+    const body = incomingText
       ? c.appendToNote && note.body
-        ? `${note.body}\n${c.details}`
-        : c.details
+        ? `${note.body}\n${incomingText}`
+        : incomingText
       : note.body;
-    if (title === note.title && body === note.body) {
+    const nextPinned =
+      typeof c.isPinned === 'boolean' ? c.isPinned : note.isPinned;
+    const nextCategory = c.newCategory || note.category;
+    if (
+      title === note.title &&
+      body === note.body &&
+      nextPinned === note.isPinned &&
+      nextCategory === note.category
+    ) {
       return {
         result: {
           status: 'clarify',
@@ -1510,16 +1604,29 @@ const buildUpdate = (
     const details: string[] = [];
     if (title !== note.title)
       details.push(`Rename: ${quote(note.title)} to ${quote(title)}.`);
+    if (nextPinned !== note.isPinned)
+      details.push(nextPinned ? 'Pin note to top.' : 'Unpin note.');
+    if (nextCategory !== note.category)
+      details.push(`Category: ${nextCategory}.`);
     if (body !== note.body) {
       details.push(
         c.appendToNote
-          ? `Add text: ${c.details}`
-          : `Replace the text with: ${c.details}`,
+          ? `Add text: ${incomingText}`
+          : `Replace the text with: ${incomingText}`,
       );
     }
+    const isLowRiskMetaOnly =
+      title === note.title &&
+      body === note.body &&
+      (nextPinned !== note.isPinned || nextCategory !== note.category);
     return {
       draft: {
-        heading: 'Change note',
+        heading:
+          nextPinned !== note.isPinned && title === note.title && body === note.body
+            ? nextPinned
+              ? 'Pin note'
+              : 'Unpin note'
+            : 'Change note',
         title: note.title,
         details,
         assumptions: resolution.viaRecent
@@ -1532,6 +1639,9 @@ const buildUpdate = (
           target: refOf(resolution.candidate),
           title,
           body,
+          ...(nextPinned !== note.isPinned ? {isPinned: nextPinned} : {}),
+          ...(nextCategory !== note.category ? {category: nextCategory} : {}),
+          isLowRiskMetaOnly,
         },
       },
     };
@@ -1586,7 +1696,8 @@ const buildUpdate = (
     };
   }
   if (resolution.kind === 'none') {
-    if (c.isCompleted && queryTitle) {
+    if (c.rawIsCompleted !== null && queryTitle) {
+      const wantDone = c.rawIsCompleted;
       const normalizedQuery = queryTitle.trim().toLowerCase();
       const noteMatches: Array<{
         note: Note;
@@ -1596,7 +1707,7 @@ const buildUpdate = (
       for (const note of notesStore.getAll(userId)) {
         const items = extractChecklistItems(note.body);
         items.forEach((item, checklistIndex) => {
-          if (item.done) return;
+          if (item.done === wantDone) return;
           const lowerText = item.text.toLowerCase();
           if (
             lowerText === normalizedQuery ||
@@ -1615,12 +1726,14 @@ const buildUpdate = (
         );
         return {
           draft: {
-            heading: 'Check off checklist item',
+            heading: wantDone
+              ? 'Check off checklist item'
+              : 'Uncheck checklist item',
             title: match.text,
             details: [
-              `Checks off ${quote(match.text)} inside the note ${quote(
-                match.note.title,
-              )}.`,
+              `${wantDone ? 'Checks off' : 'Unchecks'} ${quote(
+                match.text,
+              )} inside the note ${quote(match.note.title)}.`,
             ],
             assumptions: [],
             warnings: [],
@@ -1638,6 +1751,7 @@ const buildUpdate = (
               },
               title: match.note.title,
               body: nextBody,
+              isLowRiskMetaOnly: true,
             },
           },
         };
@@ -1651,29 +1765,36 @@ const buildUpdate = (
   const task = candidate.task as Task;
   const assumptions = resolution.viaRecent ? [recentAssumption(candidate)] : [];
 
-  if (c.isCompleted) {
-    if (task.isCompleted) {
+  if (c.rawIsCompleted !== null) {
+    const targetDone = c.rawIsCompleted;
+    if (task.isCompleted === targetDone) {
       return {
         result: {
           status: 'clarify',
-          reply: `The task ${quote(
-            task.title,
-          )} is already done. Nothing was changed.`,
+          reply: `The task ${quote(task.title)} is already ${
+            targetDone ? 'done' : 'open'
+          }. Nothing was changed.`,
           candidates: [],
         },
       };
     }
     return {
       draft: {
-        heading: 'Mark task done',
+        heading: targetDone ? 'Mark task done' : 'Reopen task',
         title: task.title,
         details: [
-          'Marks the task as completed and turns off its pending reminders.',
+          targetDone
+            ? 'Marks the task as completed and turns off its pending reminders.'
+            : 'Marks the task as open again.',
         ],
         assumptions,
         warnings: [],
         destructive: false,
-        operation: {op: 'complete_task', target: refOf(candidate)},
+        operation: {
+          op: 'complete_task',
+          target: refOf(candidate),
+          isCompleted: targetDone,
+        },
       },
     };
   }
@@ -1689,10 +1810,17 @@ const buildUpdate = (
       )}).`,
     );
   }
+  const nextPriority = c.priority || task.priority;
+  const nextCategory = c.newCategory || task.category;
+  const nextNotes =
+    c.details !== null && c.details !== undefined ? c.details : task.notes ?? null;
   if (
     title === task.title &&
     dueDate === (task.dueDate || null) &&
-    dueTime === (task.dueTime || null)
+    dueTime === (task.dueTime || null) &&
+    nextPriority === task.priority &&
+    nextCategory === task.category &&
+    nextNotes === (task.notes ?? null)
   ) {
     return {
       result: {
@@ -1708,6 +1836,12 @@ const buildUpdate = (
   const warnings: string[] = [];
   if (title !== task.title)
     details.push(`Rename: ${quote(task.title)} to ${quote(title)}.`);
+  if (nextPriority !== task.priority)
+    details.push(`Priority: ${nextPriority}.`);
+  if (nextCategory !== task.category)
+    details.push(`Category: ${nextCategory}.`);
+  if (nextNotes !== (task.notes ?? null) && nextNotes)
+    details.push(`Notes: ${nextNotes}`);
   details.push(
     dueDate
       ? `Due: ${friendlyDate(dueDate)}${
@@ -1742,6 +1876,9 @@ const buildUpdate = (
         title,
         dueDate,
         dueTime: dueDate ? dueTime : null,
+        ...(nextPriority !== task.priority ? {priority: nextPriority} : {}),
+        ...(nextCategory !== task.category ? {category: nextCategory} : {}),
+        ...(nextNotes !== (task.notes ?? null) ? {notes: nextNotes} : {}),
         reminderChanges,
       },
     },
@@ -2074,6 +2211,21 @@ const extractEditableFields = (
         supportsCategory: true,
         supportsDetails: true,
       });
+    case 'create_event':
+      return Object.freeze({
+        title: op.title,
+        date: op.date,
+        time: op.startTime,
+        endTime: op.endTime,
+        durationMinutes: computeDurationMinutes(op.startTime, op.endTime),
+        category: op.category,
+        details: op.location,
+        supportsDate: true,
+        supportsTime: true,
+        supportsEndTime: true,
+        supportsCategory: true,
+        supportsDetails: true,
+      });
     case 'create_time_block': {
       const isBatchClasses = Boolean(
         op.notes && op.notes.startsWith('[BATCH_CLASSES:'),
@@ -2332,6 +2484,7 @@ export const prepareReviewedCommand = (
     if (
       surface === 'voice' &&
       (planned.op === 'create_time_block' ||
+        planned.op === 'create_event' ||
         planned.op === 'update_schedule_item')
     ) {
       const conflicts = checkScheduleConflict(
@@ -2538,6 +2691,32 @@ const applyOperation = (
   op: PlannedOperation,
 ): Applied => {
   switch (op.op) {
+    case 'create_event': {
+      tasksStore.insertEvent(
+        {
+          id: op.eventId,
+          userId: ownerId,
+          title: op.title,
+          date: op.date,
+          startTime: op.startTime,
+          endTime: op.endTime,
+          location: op.location,
+          recurrenceRule: op.recurrenceRule || null,
+        },
+        tx,
+      );
+      return {
+        operation: op.op,
+        entityType: 'event',
+        entityId: op.eventId,
+        reminderId: null,
+        reply: `Scheduled event: "${op.title}" on ${
+          op.date
+        } from ${format12HourTime(op.startTime)} to ${format12HourTime(
+          op.endTime,
+        )}${op.location ? ` at ${op.location}` : ''}.`,
+      };
+    }
     case 'create_task': {
       tasksStore.insertTask(
         {
@@ -2863,13 +3042,16 @@ const applyOperation = (
     }
     case 'complete_task': {
       verifyTarget(tx, op.target, ownerId);
-      tasksStore.updateTask({id: op.target.id, isCompleted: true}, tx);
+      const nextCompleted = op.isCompleted !== false;
+      tasksStore.updateTask({id: op.target.id, isCompleted: nextCompleted}, tx);
       return {
         operation: op.op,
         entityType: 'task',
         entityId: op.target.id,
         reminderId: null,
-        reply: `Marked task "${op.target.title}" as completed. Its pending reminders are turned off.`,
+        reply: nextCompleted
+          ? `Marked task "${op.target.title}" as completed. Its pending reminders are turned off.`
+          : `Reopened task "${op.target.title}".`,
       };
     }
     case 'update_task': {
@@ -2881,6 +3063,9 @@ const applyOperation = (
           title: op.title,
           dueDate: op.dueDate,
           dueTime: op.dueTime,
+          ...(op.priority ? {priority: op.priority} : {}),
+          ...(op.category ? {category: op.category} : {}),
+          ...(op.notes !== undefined ? {notes: op.notes} : {}),
         },
         tx,
       );
@@ -2932,13 +3117,28 @@ const applyOperation = (
     }
     case 'update_note': {
       verifyTarget(tx, op.target, ownerId);
-      notesStore.update({id: op.target.id, title: op.title, body: op.body}, tx);
+      notesStore.update(
+        {
+          id: op.target.id,
+          title: op.title,
+          body: op.body,
+          ...(typeof op.isPinned === 'boolean' ? {isPinned: op.isPinned} : {}),
+          ...(op.category ? {category: op.category} : {}),
+        },
+        tx,
+      );
+      const actionNoteReply =
+        typeof op.isPinned === 'boolean' && op.isLowRiskMetaOnly
+          ? `${op.isPinned ? 'Pinned' : 'Unpinned'} note: "${op.title}".`
+          : op.category && op.isLowRiskMetaOnly
+          ? `Moved note "${op.title}" to ${op.category}.`
+          : `Updated note: "${op.title}".`;
       return {
         operation: op.op,
         entityType: 'note',
         entityId: op.target.id,
         reminderId: null,
-        reply: `Updated note: "${op.title}".`,
+        reply: actionNoteReply,
       };
     }
     case 'delete_item': {
@@ -3212,6 +3412,7 @@ export const reviseReviewedCommand = (
     op.op !== 'create_task' &&
     op.op !== 'create_reminder' &&
     op.op !== 'create_time_block' &&
+    op.op !== 'create_event' &&
     op.op !== 'create_note'
   ) {
     return {
@@ -3270,9 +3471,11 @@ export const reviseReviewedCommand = (
     };
   }
   const blockStart =
-    op.op === 'create_time_block' ? parsed.time || op.startTime : null;
+    op.op === 'create_time_block' || op.op === 'create_event'
+      ? parsed.time || op.startTime
+      : null;
   const blockEnd =
-    op.op === 'create_time_block' && blockStart
+    (op.op === 'create_time_block' || op.op === 'create_event') && blockStart
       ? parsed.endTime ||
         addMinutesToTime(
           blockStart,
@@ -3282,7 +3485,8 @@ export const reviseReviewedCommand = (
   const result = prepareReviewedCommand(
     ownerId,
     {
-      intent: op.op,
+      intent: op.op === 'create_event' ? 'create_time_block' : op.op,
+      ...(op.op === 'create_event' ? {targetEntityType: 'event' as const} : {}),
       title: renamed || op.title,
       date:
         parsed.date ||
@@ -3293,7 +3497,7 @@ export const reviseReviewedCommand = (
           ? op.dueTime
           : op.op === 'create_reminder'
           ? op.time
-          : op.op === 'create_time_block'
+          : op.op === 'create_time_block' || op.op === 'create_event'
           ? op.startTime
           : null),
       endTime: blockEnd || parsed.endTime || null,
@@ -3305,6 +3509,8 @@ export const reviseReviewedCommand = (
           ? op.body
           : op.op === 'create_reminder'
           ? op.details
+          : op.op === 'create_event'
+          ? op.location
           : op.notes) ||
         null,
       snoozeMinutes: null,
@@ -3484,6 +3690,9 @@ export const editReviewedCommand = (
     case 'update_note':
       intentType = op.op;
       break;
+    case 'create_event':
+      intentType = 'create_time_block';
+      break;
     case 'update_schedule_item':
       intentType = 'update_time_block';
       break;
@@ -3495,7 +3704,9 @@ export const editReviewedCommand = (
   }
 
   const targetEntityType: CrudTargetEntityType | undefined =
-    isUpdate && 'target' in op
+    op.op === 'create_event'
+      ? 'event'
+      : isUpdate && 'target' in op
       ? op.target.type === 'event'
         ? 'event'
         : op.target.type
@@ -3560,6 +3771,154 @@ export const latestPendingReview = (
     }
   }
   return latest ? latest.proposal : null;
+};
+
+/**
+ * Returns true for safe, easily reversible low-risk actions (task completion,
+ * checklist item toggle, note pin/category toggle, reminder ack/snooze) that
+ * should execute immediately without requiring a confirmation gate.
+ */
+export const isLowRiskOperation = (op: PlannedOperation): boolean =>
+  op.op === 'complete_task' ||
+  op.op === 'acknowledge_reminder' ||
+  op.op === 'snooze_reminder' ||
+  (op.op === 'update_note' && op.isLowRiskMetaOnly === true);
+
+export type ExecuteLowRiskResult =
+  | {
+      status: 'applied';
+      receipt: OperationReceipt;
+      reply: string;
+      entityType: RevisionEntityType;
+      entityId: string | null;
+    }
+  | {
+      status: 'clarify';
+      reply: string;
+      candidates: readonly ClarificationCandidate[];
+    }
+  | {status: 'invalid'; reply: string}
+  | {status: 'requires_review'};
+
+/**
+ * Validates and immediately executes low-risk actions inside one SQLite
+ * transaction (with operation receipt + sync outbox), returning
+ * `requires_review` when a request is higher-risk and must show a review card.
+ */
+export const executeLowRiskCommand = (
+  userId: string,
+  intent: ValidatedIntent,
+  options: PrepareOptions = {},
+): ExecuteLowRiskResult => {
+  if (!userId || typeof userId !== 'string') {
+    return {
+      status: 'invalid',
+      reply: 'No active account is loaded. Nothing was changed.',
+    };
+  }
+  if (!intent.isValid) {
+    return {
+      status: 'invalid',
+      reply: `${
+        intent.validationError || 'I could not understand that request.'
+      } Nothing was changed.`,
+    };
+  }
+  let clean: CleanIntent;
+  try {
+    clean = cleanIntent(intent);
+  } catch (error) {
+    if (error instanceof InvalidFieldError) {
+      return {
+        status: 'invalid',
+        reply: `I could not read the ${error.message} in that request. Nothing was changed.`,
+      };
+    }
+    throw error;
+  }
+
+  const today = formatLocalDate(options.referenceDate || new Date());
+  try {
+    let built: BuildResult;
+    switch (clean.intent) {
+      case 'update_task':
+      case 'update_time_block':
+      case 'update_note':
+        built = buildUpdate(userId, clean, today);
+        break;
+      case 'acknowledge':
+      case 'snooze':
+      case 'reschedule':
+        built = buildReminderAction(userId, clean, options.ringingCall, today);
+        break;
+      default:
+        return {status: 'requires_review'};
+    }
+    if ('result' in built) {
+      if (built.result.status === 'clarify') {
+        return {
+          status: 'clarify',
+          reply: built.result.reply,
+          candidates: built.result.candidates,
+        };
+      }
+      if (built.result.status === 'invalid') {
+        return {status: 'invalid', reply: built.result.reply};
+      }
+      return {status: 'requires_review'};
+    }
+    if (!isLowRiskOperation(built.draft.operation)) {
+      return {status: 'requires_review'};
+    }
+    const operationId = generateId('op');
+    let savedReceipt: OperationReceipt | null = null;
+    let appliedEntityType: RevisionEntityType = 'task';
+    let appliedEntityId: string | null = null;
+    db.transactionSync(tx => {
+      const applied = applyOperation(tx, userId, built.draft.operation);
+      appliedEntityType =
+        applied.entityType === 'event' ||
+        applied.entityType === 'time_block' ||
+        applied.entityType === 'reminder' ||
+        applied.entityType === 'note'
+          ? applied.entityType
+          : 'task';
+      appliedEntityId = applied.entityId;
+      savedReceipt = assistantOperationStore.insertReceipt(
+        {
+          operationId,
+          userId,
+          intent: clean.intent,
+          operation: applied.operation,
+          entityType: applied.entityType,
+          entityId: applied.entityId,
+          reminderId: applied.reminderId,
+          reply: applied.reply,
+        },
+        tx,
+      );
+    });
+    const receipt = savedReceipt as OperationReceipt | null;
+    if (!receipt) {
+      return {status: 'invalid', reply: 'Could not save that change.'};
+    }
+    return {
+      status: 'applied',
+      receipt,
+      reply: receipt.reply,
+      entityType: appliedEntityType,
+      entityId: appliedEntityId,
+    };
+  } catch (error) {
+    if (error instanceof ReviewRefusedError && error.userMessage) {
+      return {status: 'invalid', reply: error.userMessage};
+    }
+    console.warn('[CommandReview] Low-risk execution failed:', error);
+    return {
+      status: 'invalid',
+      reply: 'I could not complete that request right now. Nothing was changed.',
+    };
+  }
 };
 
 /** Ends the review session: every open proposal becomes unconfirmable. */

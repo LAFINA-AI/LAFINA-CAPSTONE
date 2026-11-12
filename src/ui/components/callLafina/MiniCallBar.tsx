@@ -34,6 +34,7 @@ export interface MiniCallBarProps {
   onExpand: () => void;
   onToggleMute: () => void;
   onEndCall: () => void;
+  bottomOffset?: number;
 }
 
 export const formatMiniDuration = (secs: number): string => {
@@ -49,6 +50,7 @@ export const MiniCallBar: React.FC<MiniCallBarProps> = ({
   onExpand,
   onToggleMute,
   onEndCall,
+  bottomOffset,
 }) => {
   const {colors} = useTheme();
   const themed = useThemedStyles(getThemedStyles);
@@ -63,7 +65,22 @@ export const MiniCallBar: React.FC<MiniCallBarProps> = ({
     : 'Listening…';
 
   return (
-    <View style={[styles.outerContainer, themed.outer]} testID="mini-call-bar-container">
+    <View
+      style={[
+        styles.outerContainer,
+        themed.outer,
+        bottomOffset !== undefined && {
+          position: 'absolute',
+          left: 0,
+          right: 0,
+          bottom: bottomOffset,
+          marginBottom: 0,
+          zIndex: 60,
+          elevation: 12,
+        },
+      ]}
+      testID="mini-call-bar-container"
+    >
       <TouchableOpacity
         style={styles.mainContent}
         onPress={onExpand}

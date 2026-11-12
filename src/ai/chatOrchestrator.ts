@@ -5,9 +5,6 @@ import {
 } from '../storage/chatStore';
 import {chatMemoryStore} from '../storage/chatMemoryStore';
 import {chatMemoryService} from '../cloud/chatMemoryService';
-import {notesStore} from '../storage/notesStore';
-import {tasksStore} from '../storage/tasksStore';
-import {extractChecklistItems, noteBodyToMarkdown} from '../utils/richText';
 import {directProviderTestEnabled} from '../cloud/directProviderTest';
 import {isForgetAllMemoriesRequest} from './chatMemoryCommands';
 import {studyPreference} from './studyPreference';
@@ -17,18 +14,11 @@ import {plannerQueries} from '../storage/plannerQueries';
 import type {PlannerWindow} from '../storage/plannerQueries';
 import {addDaysToDate, isRealDate, MINUTES_PER_DAY} from '../storage/eventTime';
 import {
-  DOCUMENT_FORMATS,
-  describeDocumentFailure,
-  documentSkill,
-  type DocumentFormat,
-} from '../skills/documentSkill';
-import {
   handbookSourceLabel,
   onlineChatSkill,
   type OnlineChatMessage,
 } from '../skills/onlineChatSkill';
-import {saveGeneratedFile} from '../ui/components/chat/chatFiles';
-import {detectDocumentRequest} from './documentIntent';
+import {buildStudentVoiceContext} from '../cloud/voiceConversation/localVoiceData';
 import {parseScannedSchedule} from './vision/scheduleParser';
 import {intentService} from './nlu/intentService';
 import {executeNluAction} from './nlu/actionExecutor';
@@ -37,8 +27,21 @@ import type {ResolvedIntentRoute, RingingCallContext} from './nlu/intentRoutes';
 import {
   cancelReviewedCommand,
   confirmReviewedCommand,
+  executeLowRiskCommand,
+  latestPendingReview,
   prepareReviewedCommand,
+  reviseReviewedCommand,
 } from './nlu/commandReview';
+import {
+  createMultiActionBatch,
+  parseGroupedRequest,
+  splitGroupedClauses,
+} from './voiceActions/multiActionService';
+import type {
+  MultiActionBatchData,
+  MultiActionItemData,
+} from './voiceActions/types';
+import {generateId} from '../utils';
 import type {
   ConfirmResult,
   PrepareResult,
@@ -59,6 +62,7 @@ import {
 import type {ValidatedIntent, NluActionResult} from './nlu/types';
 import {
   extractIntentWithDeepSeek,
+  extractMultiIntentsWithDeepSeek,
   isHandbookQuestion,
   shouldUseOnlineIntentExtraction,
 } from './onlineIntentExtractor';
@@ -82,7 +86,6 @@ export interface ProcessMessageOptions {
   forceSchedule?: boolean;
   onlineMode?: boolean;
   useHandbook?: boolean;
-  documentFormat?: DocumentFormat | null;
   /** Which review card shows a proposal (AGY-PORT 04). Defaults to Chat. */
   reviewSurface?: ReviewSurface;
   /**
@@ -131,6 +134,13 @@ export interface ChatOrchestratorResult {
   route?: ResolvedIntentRoute;
   /** Present when the request would change the planner: a proposal, clarification or refusal. Nothing was written. */
   review?: PrepareResult;
+  /** Present when a compound request was parsed into a grouped multi-action review card. */
+  multiBatch?: MultiActionBatchData;
+  /** Set when a conversational reply confirmed, revised, or cancelled an open review card. */
+  resolvedReview?: {
+    operationId: string;
+    status: 'applied' | 'cancelled' | 'refused';
+  };
   reply: string;
 }
 
@@ -139,6 +149,13 @@ export type SpokenTurnReview =
   | {kind: 'none'}
   | {kind: 'memory'; reply: string}
   | {kind: 'proposal'; review: PrepareResult; reply: string}
+  | {
+      kind: 'executed';
+      reply: string;
+      entityType?: string;
+      entityId?: string | null;
+    }
+  | {kind: 'multi'; batch: MultiActionBatchData; reply: string}
   | {kind: 'note'; reply: string}
   | {kind: 'local_answer'; reply: string};
 
@@ -445,6 +462,7 @@ export class ChatOrchestrator {
     options: {
       referenceDate?: Date;
       onlineMode?: boolean;
+      actionSessionId?: string;
       isCurrent?: () => boolean;
     } = {},
   ): Promise<SpokenTurnReview> {
@@ -482,6 +500,23 @@ export class ChatOrchestrator {
         validated = onlineValidated;
       }
     }
+    if (hasCompoundPlannerActions(trimmed, validated)) {
+      const batch = await buildCompoundBatch(
+        userId,
+        trimmed,
+        refDate,
+        options.onlineMode === true,
+        options.actionSessionId || generateId('voice-batch'),
+      );
+      if (options.isCurrent && !options.isCurrent()) return {kind: 'none'};
+      if (batch) {
+        return {
+          kind: 'multi',
+          batch,
+          reply: `Prepared ${batch.items.length} actions for review. Say confirm all or tap Confirm All on the card.`,
+        };
+      }
+    }
     const route = routeIntent(validated.intent);
     if (route === 'reviewed_mutation') {
       const smallTalk = classifySmallTalk(trimmed);
@@ -492,6 +527,21 @@ export class ChatOrchestrator {
       ) {
         // "yes", "okay", "thanks": conversation, never an authorization.
         return {kind: 'none'};
+      }
+      const lowRisk = executeLowRiskCommand(userId, validated, {
+        referenceDate: refDate,
+        surface: 'voice',
+      });
+      if (lowRisk.status === 'applied') {
+        return {
+          kind: 'executed',
+          reply: lowRisk.reply,
+          entityType: lowRisk.entityType,
+          entityId: lowRisk.entityId,
+        };
+      }
+      if (lowRisk.status === 'clarify' || lowRisk.status === 'invalid') {
+        return {kind: 'note', reply: lowRisk.reply};
       }
       const review = prepareReviewedCommand(userId, validated, {
         referenceDate: refDate,
@@ -665,96 +715,130 @@ export class ChatOrchestrator {
     let localReply = false;
     let route: ResolvedIntentRoute | undefined;
     let review: PrepareResult | undefined;
+    let multiBatch: MultiActionBatchData | undefined;
     // A complete DeepSeek conversation reply is checked for memories afterwards.
     let learnFromReply = false;
 
-    // Step 2: Check for explicit or natural-language document generation request
-    const detectedDoc = options.documentFormat
-      ? {format: options.documentFormat, prompt: trimmed}
-      : ustpRagOnly
-      ? null
-      : detectDocumentRequest(trimmed);
-
-    if (detectedDoc) {
-      const formatMeta = DOCUMENT_FORMATS[detectedDoc.format];
-      const docIntent: ValidatedIntent = {
-        intent: 'chat',
-        title: formatMeta.label,
-        date: null,
-        time: null,
-        endTime: null,
-        durationMinutes: null,
-        category: 'Academic',
-        details: detectedDoc.prompt,
-        snoozeMinutes: null,
-        confidence: 1,
-        source: 'fast_path',
-        rawTranscript: trimmed,
-        isValid: true,
-      };
-
-      if (!options.onlineMode) {
-        finalReply = `Creating ${
-          formatMeta.shortLabel
-        } files requires Online Mode. Switch to Online Mode in the chat header to generate ${formatMeta.label.toLowerCase()}s.`;
-      } else {
-        const previousMessages: OnlineChatMessage[] = readRecentHistory(
+    // Step 1.5: Conversational Confirm / Cancel / Revise on an active Chat review card
+    const activeSurface: ReviewSurface = options.reviewSurface ?? 'chat';
+    const pendingProposal =
+      !isTemp && !ustpRagOnly && !options.ringingCall
+        ? latestPendingReview(userId, activeSurface)
+        : null;
+    if (pendingProposal) {
+      if (CHAT_REVIEW_CONFIRM_RE.test(trimmed)) {
+        const outcome = confirmReviewedCommand(userId, pendingProposal.operationId);
+        const assistantMessage = chatStore.addMessage(
           userId,
-          11,
+          'assistant',
+          outcome.reply,
+          null,
+          {localReply: true},
           sessionId,
-        )
-          .filter(msg => msg.id !== userMessage.id)
-          .map(msg => ({
-            role: msg.sender,
-            content: msg.content,
-          }));
-        const docResult = await documentSkill.generate({
-          prompt: detectedDoc.prompt,
-          format: detectedDoc.format,
-          history: previousMessages,
-        });
-        if (docResult.status === 'success' && docResult.data) {
-          try {
-            attachment = await saveGeneratedFile(docResult.data);
-            finalReply = docResult.data.summary;
-            usedOnline = true;
-          } catch (saveError) {
-            console.warn(
-              '[ChatOrchestrator] Failed to save generated document:',
-              saveError,
-            );
-            finalReply = `${docResult.data.summary}\n\n(The ${formatMeta.shortLabel} file was created, but could not be saved to device storage.)`;
-            usedOnline = true;
-          }
-        } else {
-          finalReply = describeDocumentFailure(docResult);
+        );
+        return {
+          userMessage,
+          assistantMessage,
+          intent: {
+            intent: 'chat',
+            title: pendingProposal.title,
+            date: null,
+            time: null,
+            endTime: null,
+            durationMinutes: null,
+            category: 'Academic',
+            details: trimmed,
+            snoozeMinutes: null,
+            confidence: 1,
+            source: 'fast_path',
+            rawTranscript: trimmed,
+            isValid: true,
+          },
+          resolvedReview: {
+            operationId: pendingProposal.operationId,
+            status: outcome.status,
+          },
+          usedOnline: false,
+          reply: outcome.reply,
+        };
+      }
+      if (CHAT_REVIEW_CANCEL_RE.test(trimmed)) {
+        cancelReviewedCommand(userId, pendingProposal.operationId);
+        const cancelMsg = 'Cancelled. Nothing was changed.';
+        const assistantMessage = chatStore.addMessage(
+          userId,
+          'assistant',
+          cancelMsg,
+          null,
+          {localReply: true},
+          sessionId,
+        );
+        return {
+          userMessage,
+          assistantMessage,
+          intent: {
+            intent: 'chat',
+            title: pendingProposal.title,
+            date: null,
+            time: null,
+            endTime: null,
+            durationMinutes: null,
+            category: 'Academic',
+            details: trimmed,
+            snoozeMinutes: null,
+            confidence: 1,
+            source: 'fast_path',
+            rawTranscript: trimmed,
+            isValid: true,
+          },
+          resolvedReview: {
+            operationId: pendingProposal.operationId,
+            status: 'cancelled',
+          },
+          usedOnline: false,
+          reply: cancelMsg,
+        };
+      }
+      if (CHAT_REVIEW_REVISE_RE.test(trimmed)) {
+        const revised = reviseReviewedCommand(
+          userId,
+          pendingProposal.operationId,
+          trimmed,
+        );
+        if (revised.status === 'proposal') {
+          const assistantMessage = chatStore.addMessage(
+            userId,
+            'assistant',
+            revised.reply,
+            null,
+            {localReply: true},
+            sessionId,
+          );
+          return {
+            userMessage,
+            assistantMessage,
+            intent: {
+              intent: 'chat',
+              title: revised.proposal.title,
+              date: null,
+              time: null,
+              endTime: null,
+              durationMinutes: null,
+              category: 'Academic',
+              details: trimmed,
+              snoozeMinutes: null,
+              confidence: 1,
+              source: 'fast_path',
+              rawTranscript: trimmed,
+              isValid: true,
+            },
+            review: revised,
+            route: 'reviewed_mutation',
+            usedOnline: false,
+            reply: revised.reply,
+          };
         }
       }
-
-      const assistantMessage = chatStore.addMessage(
-        userId,
-        'assistant',
-        finalReply,
-        attachment,
-        null,
-        sessionId,
-      );
-      if (options.speakReply) {
-        try {
-          await ttsService.speak(finalReply);
-        } catch (err) {
-          console.warn('[ChatOrchestrator] TTS playback error:', err);
-        }
-      }
-      return {
-        userMessage,
-        assistantMessage,
-        intent: docIntent,
-        attachment,
-        handbookNote,
-        usedOnline,
-        reply: finalReply,
-      };
     }
 
     // Step 2.5: Check for scanned class schedule
@@ -937,6 +1021,25 @@ export class ChatOrchestrator {
       }
     }
 
+    if (
+      !finalReply &&
+      !ustpRagOnly &&
+      !isScheduleScan &&
+      hasCompoundPlannerActions(trimmed, validated)
+    ) {
+      const batch = await buildCompoundBatch(
+        userId,
+        trimmed,
+        refDate,
+        options.onlineMode === true,
+        `chat-${sessionId}`,
+      );
+      if (batch) {
+        multiBatch = batch;
+        finalReply = `I prepared ${batch.items.length} actions for your review below. Tap Confirm All when ready.`;
+      }
+    }
+
     // Step 4: Conflict-aware scheduling for time blocks
     if (validated.intent === 'create_time_block' && !options.forceSchedule) {
       const blockDate = validated.date || todayStr;
@@ -979,22 +1082,48 @@ export class ChatOrchestrator {
       }
     }
 
-    // Step 5: Planner changes become a private proposal that waits for Confirm
-    // (AGY-PORT 04). Reads, call actions and conversation keep their routes.
+    // Step 5: Low-risk planner updates execute immediately; higher-risk changes
+    // become a private proposal waiting for Confirm. Reads & calls keep their routes.
     if (!finalReply) {
       route = routeIntent(validated.intent, {ringingCall: options.ringingCall});
       if (route === 'reviewed_mutation') {
-        review = prepareReviewedCommand(userId, validated, {
+        const lowRisk = executeLowRiskCommand(userId, validated, {
           referenceDate: refDate,
           surface: options.reviewSurface,
           ringingCall: options.ringingCall,
         });
-        finalReply = review.reply;
+        if (lowRisk.status === 'applied') {
+          actionResult = {
+            success: true,
+            intent: validated.intent,
+            entityType: lowRisk.entityType,
+            entityId: lowRisk.entityId ?? undefined,
+            reply: lowRisk.reply,
+          };
+          finalReply = lowRisk.reply;
+        } else if (lowRisk.status === 'clarify') {
+          review = {
+            status: 'clarify',
+            reply: lowRisk.reply,
+            candidates: lowRisk.candidates,
+          };
+          finalReply = lowRisk.reply;
+        } else if (lowRisk.status === 'invalid') {
+          review = {status: 'invalid', reply: lowRisk.reply};
+          finalReply = lowRisk.reply;
+        } else {
+          review = prepareReviewedCommand(userId, validated, {
+            referenceDate: refDate,
+            surface: options.reviewSurface,
+            ringingCall: options.ringingCall,
+          });
+          finalReply = review.reply;
+        }
         // "thanks" / "ok" with no ringing call and nothing to acknowledge is
         // just conversation. The refused review wrote nothing, so drop it.
         const smallTalk = classifySmallTalk(trimmed);
         if (
-          review.status === 'invalid' &&
+          review?.status === 'invalid' &&
           !options.ringingCall &&
           validated.intent === 'acknowledge' &&
           (smallTalk === 'thanks' || smallTalk === 'acknowledgement')
@@ -1052,121 +1181,18 @@ export class ChatOrchestrator {
               content: msg.content,
             }));
 
-          // AI Agent Context: If the student asks about notes, to-dos, or schedule,
-          // attach relevant local SQLite context so the AI model has full awareness.
-          const asksNotes =
-            /\b(?:notes?|written|wrote|grocery|groceries|list|checklists?)\b/i.test(
-              trimmed,
-            );
-          const asksSchedule =
-            /\b(?:schedule|calendar|agenda|free|busy|available|plans?|tasks?|due)\b/i.test(
-              trimmed,
-            );
-          const asksTodos =
-            /\b(?:to-?dos?|to\s+dos?|todos?|tasks?|checklists?|pending|unfinished|overdue|priority|prioritize|list|do\s+next)\b/i.test(
-              trimmed,
-            ) ||
-            asksSchedule ||
-            asksNotes;
+          // AI Agent Context: Attach full 7-day Calendar, To-Do & Notes snapshot on
+          // online planner/conversational turns (skip handbook Q&A & brief small talk).
           let agentContext = '';
-          let allNotesSnapshot: ReturnType<typeof notesStore.getAll> = [];
-          if (!ustpRagOnly && (asksNotes || asksTodos)) {
+          if (!ustpRagOnly && !smallTalk && !isHandbookQuestion(trimmed)) {
             try {
-              allNotesSnapshot = notesStore.getAll(userId);
-              if (asksNotes && allNotesSnapshot.length > 0) {
-                const noteSummaries = allNotesSnapshot
-                  .slice(0, 5)
-                  .map(n => {
-                    const bodyClean = noteBodyToMarkdown(n.body)
-                      .replace(/\n+/g, ', ')
-                      .slice(0, 150);
-                    return `"${n.title}"${
-                      n.category ? ` (${n.category})` : ''
-                    }: ${bodyClean}`;
-                  })
-                  .join('; ');
-                agentContext += `\n\n[Active Notes in Notes tab: ${noteSummaries}]`;
+              const plannerSnap = buildStudentVoiceContext(userId);
+              if (plannerSnap) {
+                agentContext = `\n\n[AI Agent Database Context — Student Planner (Today is ${todayStr}):\n${plannerSnap}]`;
               }
             } catch (err) {
               console.warn(
-                '[ChatOrchestrator] Could not read notes context for AI chat:',
-                err,
-              );
-            }
-          }
-          if (!ustpRagOnly && asksSchedule) {
-            try {
-              const todayFormatted = formatLocalDate(refDate);
-              const day = plannerQueries.window(
-                userId,
-                todayFormatted,
-                todayFormatted,
-              );
-              const items: string[] = [];
-              day.blocks.forEach(b =>
-                items.push(
-                  `Time block "${b.title}" (${b.startTime}-${b.endTime})`,
-                ),
-              );
-              day.events.forEach(e =>
-                items.push(`Event "${e.title}" (${e.startTime})`),
-              );
-              day.tasks
-                .filter(t => !t.isCompleted)
-                .forEach(t =>
-                  items.push(
-                    `Task "${t.title}"${
-                      t.dueTime ? ` (due ${t.dueTime})` : ''
-                    }`,
-                  ),
-                );
-              if (items.length > 0) {
-                agentContext += `\n\n[Today's Schedule in Calendar tab: ${items.join(
-                  ', ',
-                )}]`;
-              }
-            } catch (err) {
-              console.warn(
-                '[ChatOrchestrator] Could not read schedule context for AI chat:',
-                err,
-              );
-            }
-          }
-          if (!ustpRagOnly && asksTodos) {
-            try {
-              const openTodos = tasksStore
-                .getAllTasks(userId)
-                .filter(t => !t.isCompleted)
-                .slice(0, 15)
-                .map(t => {
-                  const due = t.dueDate
-                    ? `due ${t.dueDate}${t.dueTime ? ` ${t.dueTime}` : ''}`
-                    : 'undated';
-                  return `"${t.title}" (${due}, ${t.priority} priority)`;
-                });
-              if (openTodos.length > 0) {
-                agentContext += `\n\n[Open To-Dos in Notes → To-Do tab: ${openTodos.join(
-                  ', ',
-                )}]`;
-              }
-              const checklistItems: string[] = [];
-              for (const n of allNotesSnapshot) {
-                for (const item of extractChecklistItems(n.body)) {
-                  if (!item.done && item.text) {
-                    checklistItems.push(
-                      `"${item.text}" (from note "${n.title}")`,
-                    );
-                  }
-                }
-              }
-              if (checklistItems.length > 0) {
-                agentContext += `\n\n[Unchecked Note Checklists: ${checklistItems
-                  .slice(0, 12)
-                  .join(', ')}]`;
-              }
-            } catch (err) {
-              console.warn(
-                '[ChatOrchestrator] Could not read to-do context for AI chat:',
+                '[ChatOrchestrator] Could not build student planner context for AI chat:',
                 err,
               );
             }
@@ -1318,6 +1344,7 @@ export class ChatOrchestrator {
       usedOnline,
       route,
       review,
+      ...(multiBatch ? {multiBatch} : {}),
       reply: finalReply,
     };
   }
@@ -1383,3 +1410,106 @@ export class ChatOrchestrator {
 }
 
 export const chatOrchestrator = new ChatOrchestrator();
+
+const CHAT_REVIEW_CONFIRM_RE =
+  /^(?:(?:yes|yeah|yep|yup|sure|ok(?:ay)?)(?:\s+please)?(?:\s+(?:confirm|save(?:\s+(?:it|that))?|do\s+it|go\s+ahead|apply))?|(?:confirm|save(?:\s+(?:it|that))?|do\s+it|go\s+ahead|apply)(?:\s+please)?)[.!]*$/i;
+
+const CHAT_REVIEW_CANCEL_RE =
+  /^(?:no|nope|cancel(?:\s+(?:it|that))?|never\s*mind|nevermind|forget\s+it|stop|discard(?:\s+(?:it|that))?)[.!]*$/i;
+
+const CHAT_REVIEW_REVISE_RE =
+  /^(?:change|rename|move|make|set|shift|update|reschedule|put|switch|actually)\b/i;
+
+const CLAUSE_ACTION_VERB_RE =
+  /\b(?:add|schedule|create|make|remind|set|mark|complete|reopen|pin|unpin|delete|remove|cancel|move|reschedule|update|edit|change|rename|jot|write|save|note:|task:|event:|reminder:)\b/i;
+
+function hasCompoundPlannerActions(
+  text: string,
+  localValidated: ValidatedIntent,
+): boolean {
+  if (!text) return false;
+  if (localValidated.checklistItems && localValidated.checklistItems.length > 0) {
+    return false;
+  }
+  if (localValidated.details?.startsWith('[BATCH_CLASSES:')) {
+    return false;
+  }
+  if (classifySmallTalk(text) || isHandbookQuestion(text)) {
+    return false;
+  }
+  const clauses = splitGroupedClauses(text);
+  if (clauses.length < 2) return false;
+  const actionClauses = clauses.filter(c => CLAUSE_ACTION_VERB_RE.test(c));
+  return actionClauses.length >= 2;
+}
+
+function validatedIntentToMultiItem(
+  v: ValidatedIntent,
+  index: number,
+): MultiActionItemData | null {
+  let kind: MultiActionItemData['kind'];
+  if (v.intent === 'create_task') {
+    kind = 'task';
+  } else if (v.intent === 'create_reminder') {
+    kind = 'reminder';
+  } else if (v.intent === 'create_time_block') {
+    kind = 'event';
+  } else if (v.intent === 'create_note') {
+    kind = 'note';
+  } else {
+    return null;
+  }
+  return {
+    id: `item-${index + 1}-${generateId().slice(0, 6)}`,
+    kind,
+    title: v.title || `Action ${index + 1}`,
+    date: v.date || undefined,
+    time: v.time || undefined,
+    endTime: v.endTime || undefined,
+    priority:
+      v.priority?.toLowerCase() === 'high'
+        ? 'high'
+        : v.priority?.toLowerCase() === 'low'
+        ? 'low'
+        : 'medium',
+    body: kind === 'note' ? v.details || v.title || '' : v.details || undefined,
+    status: 'draft',
+    savedEntityId: null,
+    error: null,
+  };
+}
+
+async function buildCompoundBatch(
+  userId: string,
+  text: string,
+  referenceDate: Date,
+  onlineMode: boolean,
+  sessionId: string,
+): Promise<MultiActionBatchData | null> {
+  if (onlineMode) {
+    const extracted = await extractMultiIntentsWithDeepSeek(text, referenceDate);
+    if (extracted && extracted.length >= 2) {
+      const mapped = extracted
+        .map((v, idx) => validatedIntentToMultiItem(v, idx))
+        .filter((item): item is MultiActionItemData => item !== null);
+      if (mapped.length >= 2) {
+        return createMultiActionBatch(
+          sessionId,
+          userId,
+          mapped,
+          extracted.length > 5,
+        );
+      }
+    }
+  }
+  const parsed = parseGroupedRequest(text, referenceDate);
+  if (parsed.items.length >= 2) {
+    return createMultiActionBatch(
+      sessionId,
+      userId,
+      parsed.items,
+      parsed.truncated,
+    );
+  }
+  return null;
+}

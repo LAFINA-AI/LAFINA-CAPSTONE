@@ -1155,28 +1155,15 @@ describe('AGY-PORT 04 reviewed assistant commands', () => {
       expect(footprint(userId)).toEqual(before);
     });
 
-    test('document requests are routed exactly as before, with no review', async () => {
+    test('former document requests are not intercepted into document generation', async () => {
       const userId = owner('doc');
+      const generate = jest.spyOn(documentSkill, 'generate');
       const offline = await chatOrchestrator.processMessage(
         userId,
         'Create a PDF study guide for Calculus',
       );
-      expect(offline.review).toBeUndefined();
-      expect(offline.route).toBeUndefined();
-      expect(offline.reply).toMatch(/requires Online Mode/);
-      const generate = jest.spyOn(documentSkill, 'generate').mockResolvedValue({
-        status: 'error',
-        error: 'offline',
-      } as never);
-      const online = await chatOrchestrator.processMessage(
-        userId,
-        'Create a PDF study guide for Calculus',
-        {
-          onlineMode: true,
-        },
-      );
-      expect(generate).toHaveBeenCalled();
-      expect(online.review).toBeUndefined();
+      expect(generate).not.toHaveBeenCalled();
+      expect(offline.attachment ?? null).toBeNull();
     });
 
     test('online chat and Handbook RAG are routed exactly as before, with no review', async () => {

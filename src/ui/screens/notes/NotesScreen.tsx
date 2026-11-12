@@ -9,12 +9,10 @@ import {
   ScrollView,
   FlatList,
   Alert,
-  Modal,
 } from 'react-native';
 import {pick} from '@react-native-documents/picker';
 import {useSafeAreaInsets} from 'react-native-safe-area-context';
 import {
-  AudioLines,
   FileText,
   Plus,
   Search,
@@ -35,7 +33,6 @@ import {
   TodoEditorModal,
 } from './components';
 import {NoteEditor} from './components/NoteEditor';
-import {MeetingsScreen} from '../meetings';
 import {NotesScreenProps, NotesSubTab} from './types';
 import type {NoteSnapshot} from '../../../storage';
 
@@ -111,7 +108,6 @@ export const NotesScreen: React.FC<NotesScreenProps> = ({
       );
     }
   }, [openRequest, userId, data, setHighlightedTaskId, onOpenRequestHandled]);
-  const [meetingsOpen, setMeetingsOpen] = useState(false);
 
   const handleOpenParentNote = useCallback(
     (noteId: string) => {
@@ -285,15 +281,6 @@ export const NotesScreen: React.FC<NotesScreenProps> = ({
               Notes
             </Text>
             <View style={styles.headerIcons}>
-              <TouchableOpacity
-                onPress={() => setMeetingsOpen(true)}
-                style={styles.headerIconBtn}
-                accessibilityRole="button"
-                accessibilityLabel="Open Lecture and Meeting Recorder"
-                testID="notes-meetings-button"
-              >
-                <AudioLines size={18} color={colors.textPrimary} />
-              </TouchableOpacity>
               <TouchableOpacity
                 onPress={() => data.setSearchActive(true)}
                 style={styles.headerIconBtn}
@@ -666,26 +653,6 @@ export const NotesScreen: React.FC<NotesScreenProps> = ({
         />
       )}
 
-      {/* Lecture & Meeting Recorder Modal */}
-      {meetingsOpen && (
-        <Modal
-          visible={meetingsOpen}
-          animationType="slide"
-          statusBarTranslucent={true}
-          onRequestClose={() => setMeetingsOpen(false)}
-        >
-          <View
-            style={[styles.modalFill, {backgroundColor: colors.background}]}
-          >
-            <MeetingsScreen
-              onBack={() => setMeetingsOpen(false)}
-              onNotesSaved={() => {
-                onRefresh?.();
-              }}
-            />
-          </View>
-        </Modal>
-      )}
     </View>
   );
 };

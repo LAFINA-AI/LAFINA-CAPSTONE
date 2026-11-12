@@ -18,6 +18,7 @@ import type {ConversationSnapshot} from '../../../cloud/voiceConversation';
 
 export interface OnlineReminderHandle {
   endAndWait: () => Promise<void>;
+  sendContext: (context: string) => Promise<boolean>;
 }
 
 interface Props {
@@ -49,6 +50,7 @@ export const OnlineReminderConversation = forwardRef<
       endAndWait: async () => {
         await current.current.endAndWait();
       },
+      sendContext: (context: string) => current.current.sendContext(context),
     }),
     [],
   );

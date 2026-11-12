@@ -322,9 +322,9 @@ describe('To-Do NLU, Reviewed Commands, and Chat Context', () => {
     expect(sendSpy).toHaveBeenCalledTimes(1);
     const sentHistory = sendSpy.mock.calls[0][0];
     const lastUserContent = sentHistory[sentHistory.length - 1]?.content ?? '';
-    expect(lastUserContent).toContain('[Open To-Dos in Notes');
+    expect(lastUserContent).toContain('To-Do List in Notes tab:');
     expect(lastUserContent).toContain('Email scholarship coordinator');
-    expect(lastUserContent).toContain('[Unchecked Note Checklists:');
+    expect(lastUserContent).toContain('[Note Checklist]');
     expect(lastUserContent).toContain('Export slides PDF');
   });
 });

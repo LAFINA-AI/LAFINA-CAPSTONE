@@ -210,8 +210,8 @@ describe('Phase 03: Live Audio Ownership, Provider Voice, Interruptions & Lifecy
   });
 
   describe('F-014 & P03-02: Selected ElevenLabs voice identity used and displayed truthfully', () => {
-    test('displays the exact saved online voice name, never misleading device voice', async () => {
-      const {getByTestId, mockTransport} = renderPanel({
+    test('sends the selected online voice id and hides the redundant voice label', async () => {
+      const {getByTestId, queryByTestId, mockTransport, mockApi} = renderPanel({
         getVoice: () => ({id: 'voice-adam-id', name: 'Adam (ElevenLabs)'}),
       });
 
@@ -222,12 +222,12 @@ describe('Phase 03: Live Audio Ownership, Provider Voice, Interruptions & Lifecy
       mockTransport.emit({kind: 'open'});
 
       await waitFor(() => {
-        const voiceText = getByTestId('voice-conversation-voice');
-        expect(voiceText.props.children).toEqual([
-          'Voice: ',
-          'Adam (ElevenLabs)',
-        ]);
+        expect(queryByTestId('voice-conversation-voice')).toBeNull();
       });
+      expect(mockApi.api.createSession).toHaveBeenCalledWith(
+        expect.objectContaining({voiceId: 'voice-adam-id'}),
+        expect.anything(),
+      );
     });
   });
 

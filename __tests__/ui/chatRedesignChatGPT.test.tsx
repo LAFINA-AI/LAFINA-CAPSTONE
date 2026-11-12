@@ -187,9 +187,9 @@ describe('ChatGPT-style Chat Tab Redesign', () => {
     expect(queryByTestId(`chat-speak-btn-${msg.id}`)).toBeNull();
   });
 
-  test('8. Attachment plus (+) button opens Gemini-style action sheet with Camera, Photos, and Documents', async () => {
+  test('8. Attachment plus (+) button opens action sheet with Camera and Photos without Document generation', async () => {
     const user = nextUser();
-    const {getByTestId, getByText} = renderChat(user);
+    const {getByTestId, getByText, queryByText, queryByTestId} = renderChat(user);
 
     // Click the attachment / plus button
     fireEvent.press(getByTestId('chat-document-format-button'));
@@ -202,12 +202,12 @@ describe('ChatGPT-style Chat Tab Redesign', () => {
     expect(getByTestId('chat-attach-gallery')).toBeTruthy();
     expect(getByText('Photos & Screenshots')).toBeTruthy();
 
-    // Document creation options are present
-    expect(getByText(/Create a Document/i)).toBeTruthy();
-    expect(getByTestId('chat-format-option-pdf')).toBeTruthy();
-    expect(getByTestId('chat-format-option-docx')).toBeTruthy();
-    expect(getByTestId('chat-format-option-xlsx')).toBeTruthy();
-    expect(getByTestId('chat-format-option-pptx')).toBeTruthy();
+    // Document creation options are removed per Calendar/Notes/To-Do scope cleanup
+    expect(queryByText(/Create a Document/i)).toBeNull();
+    expect(queryByTestId('chat-format-option-pdf')).toBeNull();
+    expect(queryByTestId('chat-format-option-docx')).toBeNull();
+    expect(queryByTestId('chat-format-option-xlsx')).toBeNull();
+    expect(queryByTestId('chat-format-option-pptx')).toBeNull();
   });
 
   test('9. When input is empty, mic button is visible and send button is not', () => {

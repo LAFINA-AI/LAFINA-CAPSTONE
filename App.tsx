@@ -21,7 +21,7 @@ import {
   useSafeAreaInsets,
 } from 'react-native-safe-area-context';
 import NetInfo from '@react-native-community/netinfo';
-import {Fonts, useThemedStyles} from './src/ui/theme';
+import {Fonts, Layout, Spacing, useThemedStyles} from './src/ui/theme';
 import {
   db,
   initDatabase,
@@ -35,7 +35,6 @@ import {hasProEntitlement} from './src/cloud';
 import {endActiveVoiceConversation} from './src/cloud/voiceConversation';
 import {backendSelection} from './src/cloud/backendSelection';
 import {ThemeProvider, useTheme} from './src/ui/contexts/ThemeContext';
-import {MeetingsProvider} from './src/ui/contexts/MeetingsContext';
 import type {ThemeColors} from './src/ui/contexts/ThemeContext';
 import {
   rescheduleUserReminders,
@@ -742,6 +741,10 @@ function AppContent({
 
       <View style={styles.content}>{renderScreen()}</View>
 
+      {!isKeyboardVisible && (
+        <CustomTabBar activeTab={activeTab} onTabPress={setActiveTab} />
+      )}
+
       {callLafinaMinimized &&
         miniCallSnapshot &&
         isVoiceConversationActive() && (
@@ -749,6 +752,12 @@ function AppContent({
             phase={miniCallSnapshot.phase}
             muted={miniCallSnapshot.muted}
             durationSeconds={miniCallDuration}
+            bottomOffset={
+              (isKeyboardVisible
+                ? Math.max(insets.bottom, 12)
+                : Math.max(insets.bottom, 12) + 14 + Layout.navbarHeight) +
+              Spacing.sm
+            }
             onExpand={() => {
               setCallLafinaMinimized(false);
               setCallLafinaVisible(true);
@@ -767,10 +776,6 @@ function AppContent({
             }}
           />
         )}
-
-      {!isKeyboardVisible && (
-        <CustomTabBar activeTab={activeTab} onTabPress={setActiveTab} />
-      )}
 
       {(callLafinaVisible || callLafinaMinimized) && (
         <View
@@ -869,14 +874,12 @@ export function App() {
   return (
     <SafeAreaProvider>
       <ThemeProvider userId={userId} refreshTrigger={refreshTrigger}>
-        <MeetingsProvider userId={userId || 'local_guest_user'}>
-          <AppContent
-            userId={userId}
-            setUserId={setUserId}
-            refreshTrigger={refreshTrigger}
-            setRefreshTrigger={setRefreshTrigger}
-          />
-        </MeetingsProvider>
+        <AppContent
+          userId={userId}
+          setUserId={setUserId}
+          refreshTrigger={refreshTrigger}
+          setRefreshTrigger={setRefreshTrigger}
+        />
       </ThemeProvider>
     </SafeAreaProvider>
   );

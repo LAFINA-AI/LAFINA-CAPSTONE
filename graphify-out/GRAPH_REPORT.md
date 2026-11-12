@@ -1,445 +1,540 @@
-# Graph Report - src  (2026-11-08)
+# Graph Report - src  (2026-11-12)
 
 ## Corpus Check
-- 241 files · ~199,419 words
+- 317 files · ~297,220 words
 - Verdict: corpus is large enough that graph structure adds value.
 - Unclassified: 1 file(s) not represented in the graph (top: .ico 1)
 
 ## Summary
-- 2245 nodes · 6630 edges · 79 communities (74 shown, 5 thin omitted)
-- Extraction: 98% EXTRACTED · 2% INFERRED · 0% AMBIGUOUS · INFERRED: 105 edges (avg confidence: 0.85)
+- 2924 nodes · 9227 edges · 98 communities (93 shown, 5 thin omitted)
+- Extraction: 98% EXTRACTED · 2% INFERRED · 0% AMBIGUOUS · INFERRED: 139 edges (avg confidence: 0.85)
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
-- Built from commit: `8c8319e2`
+- Built from commit: `2c3298b3`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 
 ## Community Hubs (Navigation)
-- MeetingsContext.tsx
-- timingAdvisor.ts
-- chatOrchestrator.ts
 - commandReview.ts
-- MeetingDetail.tsx
-- updateService.ts
-- useTheme
-- ref_react_native
-- syncWorker.ts
-- accountDataReset.ts
-- callDispatcher.ts
-- ProfileScreen.tsx
-- database.ts
-- ChatMessageItem.tsx
-- syncOutboxStore.ts
-- useCalendarData.ts
-- ttsService.ts
-- fastPathParser.ts
-- dbInit.ts
-- plannerQueries.ts
-- controller.ts
 - chatStore.ts
-- OfflineVoice.tsx
+- timingAdvisor.ts
+- ref_react
+- ChatScreen.tsx
 - storage/index.ts
-- reminderActions.ts
-- OnboardingStep.tsx
-- ProductTour.tsx
-- synthWave.ts
-- ai/index.ts
-- meetingRecorder.ts
-- VoiceModal.tsx
-- icsHelper.ts
-- scheduler/index.ts
-- PreferencesSettingsScreen.tsx
-- AddTaskEventModal.tsx
-- deliveryReconciler.ts
-- DatabaseService
-- VoiceConversationController
-- DayView.tsx
-- NoteEditor.tsx
+- updateService.ts
 - actionExecutor.ts
-- notesQueryStore.ts
-- accountLinkService.ts
-- cloudClient.ts
-- eventTime.ts
-- localConversation.ts
+- actionService.ts
+- ThemeColors
+- synthWave.ts
+- syncWorker.ts
+- useTheme
+- useDashboardData.ts
+- database.ts
+- ProfileScreen.tsx
+- callDispatcher.ts
 - CalendarScreen.tsx
-- .onMessage
-- reminderHealth.ts
-- useScheduleItemModal.ts
-- speechPreferences.ts
-- cancelReminderAlarm
-- deliveryStore.ts
-- notesEditStore.ts
-- NoteBody.tsx
-- utils/index.ts
-- onlineChatSkill.ts
-- philippineHolidays.ts
-- userStore
-- cloud/index.ts
-- assistantOperationSchema.ts
-- richText.ts
+- chatOrchestrator.ts
+- OfflineVoice.tsx
+- characterAvatarGenerator.ts
+- ttsService.ts
+- VoiceConversationController
+- ref_react_native
+- plannerQueries.ts
+- db
+- controller.ts
+- VoiceConversationPanel.tsx
 - speechService.ts
-- nativeTransport.ts
-- ThemeContext.tsx
 - useNotesData.ts
 - NotesScreen.tsx
-- CleanIntent
-- VoiceConversationDeps
+- ref_lucide_react_native
+- scheduler/index.ts
+- syncOutboxStore.ts
+- notesQueryStore.ts
+- ai/index.ts
+- ReminderHealth.tsx
+- accountDataReset.ts
+- utils/index.ts
+- ustpCorParser.ts
 - voiceConversation/index.ts
-- calendarVisibilityStore.ts
-- AuthBackdrop.tsx
-- OnlineVoice.tsx
-- VoiceTransport
-- VoiceConversationGates
+- icsHelper.ts
+- fastPathParser.ts
+- draftRegistry.ts
+- tools/index.ts
+- ClassScheduleModal.tsx
+- DatabaseService
+- eventTime.ts
+- useCalendarData.ts
+- useThemedStyles
+- DayView.tsx
+- accountLinkService.ts
+- notesPipeline.ts
+- sourceReminders.ts
+- personalMemoryStore.ts
+- onlineChatSkill.ts
+- OnboardingScreen.tsx
+- ProductTour.tsx
+- nativeTransport.ts
+- Task
+- OnboardingStep.tsx
+- cloudClient.ts
+- onlineIntentExtractor.ts
+- CallLafinaSettingsModal.tsx
+- ChatHistorySheet.tsx
+- syncStateStore.ts
+- localConversation.ts
+- scheduleParser.ts
+- backendSelection.ts
+- src/meetings/index.ts
+- deliveryStore.ts
+- ThemeContext.tsx
+- documentSkill.ts
+- meetingRecorder.ts
+- reminderActions.ts
+- philippineHolidays.ts
+- MeetingsContext.tsx
+- normalizeNotes
+- chatMarkdown.ts
+- LafinaMeetingRecorderNative
+- reminderAlarm.ts
+- cloud/index.ts
+- generateMeetingNotes
+- assistantOperationSchema.ts
+- useTodoData.ts
+- VoiceConversationDeps
+- notes/types.ts
+- .finalAnswer
+- developerTestService.ts
+- NoteBody.tsx
 - avatarFile.ts
+- remindersStore.ts
+- VoiceConversationGates
+- CustomTabBar.tsx
+- notesStore.ts
 - syncScheduler.ts
 - StreamXhr
 - lafina_logo_chat_header_xml.ts
 
 ## God Nodes (most connected - your core abstractions)
-1. `useTheme()` - 109 edges
-2. `useThemedStyles()` - 86 edges
-3. `Fonts` - 48 edges
-4. `VoiceConversationController` - 41 edges
-5. `DatabaseTransaction` - 40 edges
-6. `db` - 40 edges
-7. `ThemeColors` - 39 edges
-8. `generateId()` - 36 edges
-9. `ProfileScreen()` - 27 edges
-10. `executeNluAction()` - 26 edges
+1. `useTheme()` - 173 edges
+2. `useThemedStyles()` - 126 edges
+3. `Fonts` - 75 edges
+4. `generateId()` - 63 edges
+5. `ThemeColors` - 59 edges
+6. `VoiceConversationController` - 53 edges
+7. `db` - 51 edges
+8. `Layout` - 48 edges
+9. `DatabaseTransaction` - 47 edges
+10. `Spacing` - 45 edges
 
 ## Surprising Connections (you probably didn't know these)
-- `ReminderHealth()` --indirect_call--> `openExactAlarmSettings()`  [INFERRED]
-  src/ui/components/profile/ReminderHealth.tsx → src/scheduler/reminderAlarm.ts
-- `ReminderHealth()` --indirect_call--> `openFullScreenIntentSettings()`  [INFERRED]
-  src/ui/components/profile/ReminderHealth.tsx → src/scheduler/reminderAlarm.ts
-- `ReminderHealth()` --indirect_call--> `openNotificationSettings()`  [INFERRED]
-  src/ui/components/profile/ReminderHealth.tsx → src/scheduler/reminderAlarm.ts
-- `createNotesQueryStore()` --indirect_call--> `toNoteSnapshot()`  [INFERRED]
-  src/storage/notesQueryStore.ts → src/storage/notesEditStore.ts
-- `MutationResult` --references--> `SyncEntityType`  [EXTRACTED]
-  src/sync/syncWorker.ts → src/storage/syncTypes.ts
+- `VoiceModal()` --indirect_call--> `warmupOfflineSpeech()`  [INFERRED]
+  src/ui/components/VoiceModal.tsx → src/ai/native/speechCapture.ts
+- `ServerSwitchItem()` --indirect_call--> `localBackendUrl()`  [INFERRED]
+  src/ui/components/profile/ServerSwitchItem.tsx → src/cloud/backendSelection.ts
+- `parseNotesResult()` --calls--> `normalizeNotes()`  [EXTRACTED]
+  src/skills/meetingNotesSkill.ts → src/meetings/meetingNotes.ts
+- `bumpRevision()` --calls--> `generateId()`  [EXTRACTED]
+  src/storage/chatMemoryStore.ts → src/utils/id.ts
+- `Section()` --indirect_call--> `getMeetingThemedStyles()`  [INFERRED]
+  src/ui/screens/meetings/NotesView.tsx → src/ui/screens/meetings/meetingStyles.ts
 
 ## Import Cycles
 - None detected.
 
-## Communities (79 total, 5 thin omitted)
+## Communities (98 total, 5 thin omitted)
 
-### Community 0 - "MeetingsContext.tsx"
-Cohesion: 0.06
-Nodes (76): CloudResult, CATALOG, classifyNotesFailure(), describeMeetingError(), isRetryable(), MeetingError, MeetingErrorCode, MeetingErrorInfo (+68 more)
+### Community 0 - "commandReview.ts"
+Cohesion: 0.05
+Nodes (88): addMinutesToTime(), computeDurationMinutes(), format12HourTime(), adaptiveReminderLine(), Applied, applyOperation(), applyReminderChanges(), buildCreateNote() (+80 more)
 
-### Community 1 - "timingAdvisor.ts"
+### Community 1 - "chatStore.ts"
+Cohesion: 0.04
+Nodes (58): ReviewDecisionResult, ConfirmResult, CHAT_MEMORY_CHANGED_EVENT, ChatMemoryChangedEvent, chatMemoryService, bumpRevision(), ChatMemory, ChatMemoryChanges (+50 more)
+
+### Community 2 - "timingAdvisor.ts"
 Cohesion: 0.06
 Nodes (43): clampAlpha(), DEFAULT_EWMA_ALPHA, EwmaTracker, stepEwma(), extractStudentFeatures(), featuresToVector(), getEwmaLatency(), getInteractionHistory() (+35 more)
 
-### Community 2 - "chatOrchestrator.ts"
-Cohesion: 0.05
-Nodes (54): chatOrchestrator, ChatOrchestratorResult, describeOnlineChatFailure(), format12HourTime(), INTERRUPTED_REPLY_NOTE, isHandbookQuestion(), isLocalReply(), minutesToTime() (+46 more)
+### Community 3 - "ref_react"
+Cohesion: 0.06
+Nodes (46): accountLinkService, syncWorker, AuthButton(), AuthButtonProps, styles, AuthHeader(), styles, AuthInput() (+38 more)
 
-### Community 3 - "commandReview.ts"
-Cohesion: 0.07
-Nodes (67): format12HourTime(), adaptiveReminderLine(), Applied, applyOperation(), applyReminderChanges(), buildCreateNote(), buildCreateReminder(), buildCreateTask() (+59 more)
+### Community 4 - "ChatScreen.tsx"
+Cohesion: 0.06
+Nodes (56): PrepareResult, ReviewEditPatch, readInitialOnlineMode(), ChatInput(), ChatInputProps, getThemedStyles(), isHallucinatedSpeech(), styles (+48 more)
 
-### Community 4 - "MeetingDetail.tsx"
-Cohesion: 0.08
-Nodes (53): isBusy(), wordCount(), MIME_DOCX, MIME_PDF, MIME_PPTX, pickDocument(), PickedDocument, PickOutcome (+45 more)
+### Community 5 - "storage/index.ts"
+Cohesion: 0.06
+Nodes (51): DATA_CONSENT_KEY, ToolPermissionResult, label(), loadOnlineVoices(), GUEST_USER_ID, GUEST_USERNAME, ACADEMIC_PROFILE_KEY, AcademicCourseRecord (+43 more)
 
-### Community 5 - "updateService.ts"
+### Community 6 - "updateService.ts"
 Cohesion: 0.06
 Nodes (55): APP_VERSION, AppUpdateItem(), AppUpdateItemProps, ask(), getThemedStyles(), labelFor(), notesPreview(), sizeLabel() (+47 more)
 
-### Community 6 - "useTheme"
-Cohesion: 0.08
-Nodes (53): enableOnlineMode(), DOCUMENT_FORMATS, removeAttachmentFiles(), shareAttachment(), toLocalPath(), ChatInput(), getThemedStyles(), styles (+45 more)
-
-### Community 7 - "ref_react_native"
-Cohesion: 0.08
-Nodes (37): accountLinkService, syncWorker, AuthButton(), AuthButtonProps, styles, AuthHeader(), styles, AuthInput() (+29 more)
-
-### Community 8 - "syncWorker.ts"
+### Community 7 - "actionExecutor.ts"
 Cohesion: 0.07
-Nodes (48): AUTHORITATIVE_SYNC_ENTITY_TYPES, CLIENT_SYNC_ENTITY_TYPES, effectiveSyncEntityTypes(), LAST_WRITE_WINS_ENTITY_TYPES, LEGACY_SYNC_ENTITY_TYPES, PERSONAL_SYNC_ENTITY_TYPES, sameEntityTypeSet(), SINGLETON_SYNC_ENTITY_TYPES (+40 more)
+Nodes (53): ChatOrchestratorResult, computeAdaptiveTriggerAt(), ActionExecutorOptions, cleanupMatchingReminders(), executeNluAction(), findMatchingEvent(), findMatchingNote(), findMatchingTask() (+45 more)
 
-### Community 9 - "accountDataReset.ts"
+### Community 8 - "actionService.ts"
+Cohesion: 0.07
+Nodes (43): SpokenTurnReview, getRegisteredTool(), REGISTERED_TOOLS, RegisteredToolDefinition, TOOL_MAP, ToolParameterSchema, isToolExecutionPermitted(), ActionLifecycleListener (+35 more)
+
+### Community 9 - "ThemeColors"
+Cohesion: 0.08
+Nodes (47): ThemeColors, getThemedStyles(), styles, UNDATED_PAGE_SIZE, UndatedTasksModal(), CustomizeDashboardModal(), FILTER_OPTIONS, GAP_OPTIONS (+39 more)
+
+### Community 10 - "synthWave.ts"
 Cohesion: 0.06
-Nodes (48): authorizeDataReset(), clearPlanner(), DataResetAuthority, DataResetOutcome, DataResetRefused, DataResetStep, finishAttachmentCleanup(), PLANNER_LEFT (+40 more)
+Nodes (47): ConversationPhase, AuthBackdrop(), styles, useReducedMotion(), Grainient(), GrainientProps, nativeSupported, styles (+39 more)
 
-### Community 10 - "callDispatcher.ts"
-Cohesion: 0.10
-Nodes (47): stopSpeechPlayback(), CallRequest, answerCall(), autoSnoozeCall(), buildAnnouncement(), CALL_SPOKEN_NUMBERS, CallDispatcherSession, CallResolution (+39 more)
+### Community 11 - "syncWorker.ts"
+Cohesion: 0.08
+Nodes (45): AUTHORITATIVE_SYNC_ENTITY_TYPES, CLIENT_SYNC_ENTITY_TYPES, effectiveSyncEntityTypes(), LAST_WRITE_WINS_ENTITY_TYPES, LEGACY_SYNC_ENTITY_TYPES, PERSONAL_SYNC_ENTITY_TYPES, sameEntityTypeSet(), SINGLETON_SYNC_ENTITY_TYPES (+37 more)
 
-### Community 11 - "ProfileScreen.tsx"
+### Community 12 - "useTheme"
+Cohesion: 0.09
+Nodes (42): CommandProposal, MultiActionItemData, ActionCardHost(), ActionCardHostProps, getThemedStyles(), styles, CallReadResults(), styles (+34 more)
+
+### Community 13 - "useDashboardData.ts"
+Cohesion: 0.08
+Nodes (47): parseClassBlockMetadata(), CalendarVisibilityMap, calendarVisibilityStore, DEFAULT_VISIBILITY, parseStoredFile(), parseVisibilityMap(), readStoredFile(), StoredUserVisibility (+39 more)
+
+### Community 14 - "database.ts"
+Cohesion: 0.06
+Nodes (40): ADR-0016, ATTACHMENT_CLEANUP_QUEUE_COLUMN, ATTACHMENT_CLEANUP_TABLE, migrateAttachmentCleanup(), migrateAttachmentCleanupQueue(), ADR-0026, migrateChatMemories(), DatabaseTransaction (+32 more)
+
+### Community 15 - "ProfileScreen.tsx"
 Cohesion: 0.07
-Nodes (37): ARC_SCREEN_XML, hasAttachmentCleanup(), chatReplyFormatStore, ProfileStatistics, profileStatisticsStore, UNAVAILABLE_STATISTICS, avatarSource(), removeAvatarImage() (+29 more)
+Nodes (40): ARC_SCREEN_XML, hasAttachmentCleanup(), ProfileStatistics, profileStatisticsStore, UNAVAILABLE_STATISTICS, avatarSource(), removeAvatarImage(), areTraitsVisuallyDistinct() (+32 more)
 
-### Community 12 - "database.ts"
-Cohesion: 0.05
-Nodes (38): ATTACHMENT_CLEANUP_QUEUE_COLUMN, ATTACHMENT_CLEANUP_TABLE, migrateAttachmentCleanup(), migrateAttachmentCleanupQueue(), ADR-0026, DatabaseTransaction, db, FAILURE_MESSAGES (+30 more)
+### Community 16 - "callDispatcher.ts"
+Cohesion: 0.11
+Nodes (45): waitForVoiceConversationRelease(), ConversationSnapshot, CALL_RESULT_DELAY_MS, answerCall(), autoSnoozeCall(), buildAnnouncement(), CALL_SPOKEN_NUMBERS, CallResolution (+37 more)
 
-### Community 13 - "ChatMessageItem.tsx"
-Cohesion: 0.08
-Nodes (42): ttsService, formatFileSize(), isDocumentFormat(), CHAT_REPLY_FORMAT_KEY, ChatReplyFormat, DEFAULT_CHAT_REPLY_FORMAT, Listener, listeners (+34 more)
+### Community 17 - "CalendarScreen.tsx"
+Cohesion: 0.11
+Nodes (39): EventFolds, isEventTimeError(), ImportBatch, applyEventMemoryToDraft(), EventMemoryOffer, parseRrule(), CalendarLayersModal(), CalendarLayersModalProps (+31 more)
 
-### Community 14 - "syncOutboxStore.ts"
-Cohesion: 0.08
-Nodes (28): SyncConflict, SyncConflictInput, syncConflictStore, SyncMetadataInput, syncMetadataStore, enqueueListeners, OutboxEnqueueListener, OutboxItem (+20 more)
-
-### Community 15 - "useCalendarData.ts"
+### Community 18 - "chatOrchestrator.ts"
 Cohesion: 0.10
-Nodes (37): Candidate, ImportBatch, importedBatchesStore, isStringArray(), parseStoredBatch(), readStoredBatches(), StoredImportBatch, PlannerExport (+29 more)
+Nodes (39): isForgetAllMemoriesRequest(), buildCompoundBatch(), chatOrchestrator, describeOnlineChatFailure(), format12HourTime(), getNextDateForDay(), hasCompoundPlannerActions(), INTERRUPTED_REPLY_NOTE (+31 more)
 
-### Community 16 - "ttsService.ts"
-Cohesion: 0.09
-Nodes (38): ActiveSpeech, applyConfiguration(), bounded(), configureChain, configureTts(), deletePreCachedReminderAudio(), eligibleOfflineVoices(), enableDucking() (+30 more)
-
-### Community 17 - "fastPathParser.ts"
-Cohesion: 0.11
-Nodes (36): classifyCrudEntityType(), classifyMeridiemToken(), cleanCrudTargetTitle(), detectCategory(), detectContextPeriod(), distillScheduleTitle(), EndpointMeridiem, escapeRegExp() (+28 more)
-
-### Community 18 - "dbInit.ts"
-Cohesion: 0.11
-Nodes (33): CALL_RESULT_DELAY_MS, DEFAULT_BUSIEST_DAY, DEFAULT_CLASS_COUNT, DEFAULT_DAILY_DIGEST, DEFAULT_LONGEST_GAP, DEFAULT_NOTIFICATIONS, DEFAULT_QUIET_HOURS, DEFAULT_REMINDER_LEAD (+25 more)
-
-### Community 19 - "plannerQueries.ts"
+### Community 19 - "OfflineVoice.tsx"
 Cohesion: 0.08
-Nodes (30): EventZoneTiming, FoldChoice, EVENT_TIME_COLUMNS, eventTimeStore, EventWallRow, fold(), ADR-0021, VALID_EVENT_TIME_JOIN() (+22 more)
+Nodes (38): applySpeechPreferences(), createPreviewTicket(), meetingRecording(), PREVIEW_TEXT, PreviewHandle, PreviewRefusal, PreviewTicket, startVoicePreview() (+30 more)
 
-### Community 20 - "controller.ts"
+### Community 20 - "characterAvatarGenerator.ts"
+Cohesion: 0.06
+Nodes (42): BACKDROP_ACCENTS, CharacterAvatar(), CharacterAvatarProps, renderAccessory(), renderBackHair(), renderBrows(), renderCheeks(), renderEyes() (+34 more)
+
+### Community 21 - "ttsService.ts"
+Cohesion: 0.09
+Nodes (37): ActiveSpeech, applyConfiguration(), bounded(), configureChain, configureTts(), eligibleOfflineVoices(), enableDucking(), establishOfflineVoice() (+29 more)
+
+### Community 22 - "VoiceConversationController"
+Cohesion: 0.14
+Nodes (3): humanizeProviderError(), VoiceConversationController, useVoiceConversation()
+
+### Community 23 - "ref_react_native"
+Cohesion: 0.15
+Nodes (30): isBusy(), wordCount(), formatWhen(), useToolBack(), useMeetings(), describeMeetingProblem(), formatBytes(), formatClock() (+22 more)
+
+### Community 24 - "plannerQueries.ts"
+Cohesion: 0.08
+Nodes (31): EventZoneTiming, FoldChoice, EVENT_TIME_COLUMNS, eventTimeStore, EventWallRow, fold(), ADR-0021, VALID_EVENT_TIME_JOIN() (+23 more)
+
+### Community 25 - "db"
+Cohesion: 0.10
+Nodes (33): DEFAULT_BUSIEST_DAY, DEFAULT_CLASS_COUNT, DEFAULT_DAILY_DIGEST, DEFAULT_LONGEST_GAP, DEFAULT_NOTIFICATIONS, DEFAULT_QUIET_HOURS, DEFAULT_REMINDER_LEAD, DEFAULT_SLEEP_TIME (+25 more)
+
+### Community 26 - "controller.ts"
 Cohesion: 0.07
-Nodes (22): ACTIVE, DEFAULT_LIMITS, FAILURE_MESSAGES, LiveSession, ownTimers(), PendingAnswer, randomId(), systemClock (+14 more)
+Nodes (21): ACTIVE, LiveSession, ownTimers(), PendingAnswer, systemClock, ADR-0030, VoiceConversationLimits, ApiOutcome (+13 more)
 
-### Community 21 - "chatStore.ts"
-Cohesion: 0.09
-Nodes (29): isValidChatOwner(), LEGACY_SHARED_SESSION_ID, LegacyChatDecision, LegacyChatOutcome, migrateChatOwnership(), NEW_SESSION_GENERATION_SQL, ownedChatSessionId(), transferChatOwnership() (+21 more)
+### Community 27 - "VoiceConversationPanel.tsx"
+Cohesion: 0.11
+Nodes (31): cancelReviewedCommand(), latestPendingReview(), parseEditedDateInput(), parseEditedTimeInput(), GroundedDraft, groundedVoiceDraft(), isVoiceScheduleStart(), validateIntent() (+23 more)
 
-### Community 22 - "OfflineVoice.tsx"
+### Community 28 - "speechService.ts"
 Cohesion: 0.10
-Nodes (29): PreviewRefusal, TtsReadiness, ADR-0022, assertActive(), clampSpeechFactor(), DEFAULT_SPEECH_SETTINGS, NEUTRAL_FACTOR, parse() (+21 more)
+Nodes (32): getActiveOfflineCaptureId(), admissionRefusal(), getNativeAudioPlayer(), isSpeechBusy(), playSpeechFile(), stopSpeechPlayback(), OnlineVoiceOption, isProviderTestingEnabled() (+24 more)
 
-### Community 23 - "storage/index.ts"
-Cohesion: 0.14
-Nodes (24): AuthResponseData, UserProfileData, hashPassword(), MAX_PASSWORD_LENGTH, MIN_PASSWORD_LENGTH, normalizeEmail(), PasswordValidationResult, sha256() (+16 more)
+### Community 29 - "useNotesData.ts"
+Cohesion: 0.11
+Nodes (31): INJECTION_PATTERNS, sanitizeUntrustedContext(), readLocalVoiceData(), readLocalVoiceResult(), NOTES_PAGE_SIZE, notesQueryStore, BUILT_IN_FILTERS, swapAnimation (+23 more)
 
-### Community 24 - "reminderActions.ts"
-Cohesion: 0.14
-Nodes (29): recordReminderInteraction(), acknowledgeReminderAction(), autoSnoozeReminderAction(), createNextRecurringReminder(), fenceFailure(), FencePreparation, fenceRejection(), prepareFence() (+21 more)
-
-### Community 25 - "OnboardingStep.tsx"
-Cohesion: 0.09
-Nodes (26): LongestClassGap, SnoozeTendency, StudyPeakHour, WeeklyClassCount, getThemedStyles(), OnboardingNavigation(), OnboardingNavigationProps, styles (+18 more)
-
-### Community 26 - "ProductTour.tsx"
+### Community 30 - "NotesScreen.tsx"
 Cohesion: 0.12
-Nodes (25): CustomTabBar(), CustomTabBarProps, getTabThemedStyles(), MIC_CENTER_FROM_BOTTOM, styles, TabType, TOUR_TABS, getThemedStyles() (+17 more)
+Nodes (29): Note, NoteBody(), dragHandleStyles, getLocalImage(), NoteCardBase(), NoteCardBaseProps, NoteCardWithDrag, NoteCardWithDragProps (+21 more)
 
-### Community 27 - "synthWave.ts"
-Cohesion: 0.12
-Nodes (27): EMPTY_FRAME, Frame, styles, SynthSplash(), SynthSplashProps, bump(), clamp01(), DARK_STOPS (+19 more)
-
-### Community 28 - "ai/index.ts"
-Cohesion: 0.20
-Nodes (24): cancelNativeQuietly(), cancelOfflineSpeechCapture(), getNativeModule(), hasOfflineSpeechCapture(), MAX_CAPTURE_DURATION_MS, MICROPHONE_BUSY_CODES, MicrophoneBusyError, OfflineSpeechCaptureHandle (+16 more)
-
-### Community 29 - "meetingRecorder.ts"
+### Community 31 - "ref_lucide_react_native"
 Cohesion: 0.10
-Nodes (11): MeetingTranscriptionProgress, transcribeMeetingChunks(), TranscribeMeetingOptions, ImportedAudioResult, LafinaMeetingRecorderNative, MeetingAudioChunk, MeetingAudioListing, meetingRecorder (+3 more)
-
-### Community 30 - "VoiceModal.tsx"
-Cohesion: 0.09
-Nodes (25): isMicrophoneBusyError(), warmupOfflineSpeech(), stopSpeaking, NLU_PARSER_DELAY_MS, VOICE_SUCCESS_DELAY_MS, DraftDialogRequest, DRAFT_READY_NOTICE, executeDefaultCommand() (+17 more)
-
-### Community 31 - "icsHelper.ts"
-Cohesion: 0.14
-Nodes (25): cleanIcsValue(), DATE_KEYS, escapeText(), expandRecurringEvent(), foldLine(), formatDateForRRule(), formatIcsDateTime(), formatIcsUtcInstant() (+17 more)
+Nodes (29): formatFileSize(), isDocumentFormat(), CHAT_REPLY_FORMAT_KEY, ChatReplyFormat, chatReplyFormatStore, DEFAULT_CHAT_REPLY_FORMAT, Listener, listeners (+21 more)
 
 ### Community 32 - "scheduler/index.ts"
-Cohesion: 0.16
-Nodes (25): CallCommand, CallResolutionOutcome, consumePendingNativeCall(), errorCode(), getNativeModule(), getReminderPermissionStatus(), isNativeReminderDeliveryAvailable(), LafinaReminderNativeModule (+17 more)
-
-### Community 33 - "PreferencesSettingsScreen.tsx"
 Cohesion: 0.14
-Nodes (24): cancelModelDownload(), deleteQwenModel(), downloadQwenModel(), getModelsDirectory(), getModelStatus(), getQwenModelPath(), isQwenModelReady(), QWEN_MODEL_INFO (+16 more)
+Nodes (30): CallCommand, CallResolutionOutcome, boundedNative(), chain, claimForegroundRing(), DeliveryReconcileSummary, drainNativeDeliveryReceipts(), emptySummary() (+22 more)
 
-### Community 34 - "AddTaskEventModal.tsx"
-Cohesion: 0.20
-Nodes (21): overnightNote(), addDaysToDate(), checkEventWallTime(), endsNextDay(), eventEndDate(), isRealDate(), isWallTime(), endDateOf() (+13 more)
+### Community 33 - "syncOutboxStore.ts"
+Cohesion: 0.12
+Nodes (22): AuthResponseData, UserProfileData, SyncConflict, SyncConflictInput, syncConflictStore, SyncMetadataInput, syncMetadataStore, enqueueListeners (+14 more)
 
-### Community 35 - "deliveryReconciler.ts"
-Cohesion: 0.17
-Nodes (23): boundedNative(), chain, claimForegroundRing(), DeliveryReconcileSummary, drainNativeDeliveryReceipts(), emptySummary(), isDesired(), matches() (+15 more)
+### Community 34 - "notesQueryStore.ts"
+Cohesion: 0.10
+Nodes (29): assertActiveOwner(), NoteEditConflictError, NoteEditFailure, NoteEditPatch, NoteSnapshot, NoteWriteTarget, read(), requireCurrent() (+21 more)
 
-### Community 36 - "DatabaseService"
+### Community 35 - "ai/index.ts"
+Cohesion: 0.18
+Nodes (26): cancelNativeQuietly(), cancelOfflineSpeechCapture(), getNativeModule(), hasOfflineSpeechCapture(), isMicrophoneBusyError(), MAX_CAPTURE_DURATION_MS, MICROPHONE_BUSY_CODES, MicrophoneBusyError (+18 more)
+
+### Community 36 - "ReminderHealth.tsx"
+Cohesion: 0.11
+Nodes (25): openExactAlarmSettings(), openFullScreenIntentSettings(), openNotificationSettings(), ReminderPermissionStatus, bounded(), HealthTimeoutError, isPermissionStatus(), PERMISSION_READ_TIMEOUT_MS (+17 more)
+
+### Community 37 - "accountDataReset.ts"
+Cohesion: 0.11
+Nodes (28): authorizeDataReset(), clearPlanner(), DataResetAuthority, DataResetOutcome, DataResetRefused, DataResetStep, finishAttachmentCleanup(), PLANNER_LEFT (+20 more)
+
+### Community 38 - "utils/index.ts"
+Cohesion: 0.13
+Nodes (27): getNotePreviewText(), ActiveLineFormat, applyBlock(), applyIndent(), applyInline(), applyNoteFormat(), BlockFormat, continueListOnNewline() (+19 more)
+
+### Community 39 - "ustpCorParser.ts"
 Cohesion: 0.15
-Nodes (12): DatabaseService, describeQuery(), storageErrorMessage(), StorageUnavailableError, applySessionPragmas(), assertFileIsUsable(), failureReasonFor(), initDatabase() (+4 more)
+Nodes (28): canJoinSplitCourseLine(), canStartSplitCourseRow(), COLLEGE_ACRONYMS, computeCorRecommendations(), computeSemesterEndDate(), DAY_MAP, deriveCollegeShort(), expandDays() (+20 more)
 
-### Community 37 - "VoiceConversationController"
-Cohesion: 0.21
-Nodes (6): VoiceConversationController, registerVoiceConversation(), ConversationSnapshot, IDLE, useVoiceConversation(), VoiceConversationHandle
+### Community 40 - "voiceConversation/index.ts"
+Cohesion: 0.11
+Nodes (23): DEFAULT_LIMITS, FAILURE_MESSAGES, allowLocalTestServer(), defaultVoiceConversationDeps(), endActiveVoiceConversation(), isSignedInOwner(), ONLINE_MODE_CHANGED_EVENT, ONLINE_MODE_KEY (+15 more)
 
-### Community 38 - "DayView.tsx"
+### Community 41 - "icsHelper.ts"
+Cohesion: 0.14
+Nodes (26): cleanIcsValue(), DATE_KEYS, escapeText(), expandRecurringEvent(), foldLine(), formatDateForRRule(), formatIcsDateTime(), formatIcsUtcInstant() (+18 more)
+
+### Community 42 - "fastPathParser.ts"
+Cohesion: 0.14
+Nodes (26): classifyCrudEntityType(), classifyMeridiemToken(), cleanCrudTargetTitle(), detectContextPeriod(), EndpointMeridiem, escapeRegExp(), extractPriority(), extractRecurrenceRule() (+18 more)
+
+### Community 43 - "draftRegistry.ts"
+Cohesion: 0.11
+Nodes (15): checkScheduleConflict(), ConflictCheckResult, ConflictingItem, minutesToTime(), timeToMinutes(), CancelDraftResult, ConfirmDraftResult, DRAFT_TTL_MS (+7 more)
+
+### Community 44 - "tools/index.ts"
+Cohesion: 0.12
+Nodes (20): MIME_DOCX, MIME_PDF, MIME_PPTX, pickDocument(), PickedDocument, PickOutcome, ShareOutcome, shareTextFile() (+12 more)
+
+### Community 45 - "ClassScheduleModal.tsx"
+Cohesion: 0.19
+Nodes (24): pickSubjectColor(), ClassScheduleModal(), ClassScheduleModalProps, EMPTY_COR_INFO, styles, buildAcademicCoursesFromEntries(), buildMergedAcademicProfile(), ClassRecurrenceMode (+16 more)
+
+### Community 46 - "DatabaseService"
+Cohesion: 0.16
+Nodes (11): DatabaseService, storageErrorMessage(), StorageUnavailableError, applySessionPragmas(), assertFileIsUsable(), failureReasonFor(), initDatabase(), readInstalledVersion() (+3 more)
+
+### Community 47 - "eventTime.ts"
+Cohesion: 0.16
+Nodes (23): checkEventWallTime(), deviceTimeZone(), endsNextDay(), engineFormatsWallTime(), eventEndDate(), eventSpanMinutes(), EventTimeError, EventTimeProblem (+15 more)
+
+### Community 48 - "useCalendarData.ts"
+Cohesion: 0.13
+Nodes (22): importedBatchesStore, isStringArray(), parseStoredBatch(), readStoredBatches(), StoredImportBatch, tasksStore, getExistingOwnedIds(), ImportedEntityTable (+14 more)
+
+### Community 49 - "useThemedStyles"
+Cohesion: 0.14
+Nodes (21): CommandGuide(), CommandGuideProps, getThemedStyles(), styles, getThemedStyles(), PersonalMemory(), PersonalMemoryProps, Review (+13 more)
+
+### Community 50 - "DayView.tsx"
 Cohesion: 0.16
 Nodes (22): DayView(), HolidayChip(), styles, TaskCheckbox(), tintFor(), describeHoliday(), getHolidaysOn(), buildDayEntries() (+14 more)
 
-### Community 39 - "NoteEditor.tsx"
+### Community 51 - "accountLinkService.ts"
+Cohesion: 0.15
+Nodes (23): AccountFlowResult, AccountFlowStatus, attachAuthenticatedCloudSession(), authenticateExistingCloudAccount(), clearDeferredCredentialSafely(), completeDeferredCloudLink(), deferredLinkAttempts, isFlowResult() (+15 more)
+
+### Community 52 - "notesPipeline.ts"
 Cohesion: 0.16
-Nodes (19): Note, NoteBody(), dragHandleStyles, getLocalImage(), NoteCardBase(), NoteCardBaseProps, NoteCardWithDrag, NoteCardWithDragProps (+11 more)
+Nodes (20): CloudResult, MeetingErrorCode, MeetingNotes, GenerateNotesOptions, GenerateNotesResult, NotesSkill, SectionPromptInput, TranscriptSegment (+12 more)
 
-### Community 40 - "actionExecutor.ts"
-Cohesion: 0.21
-Nodes (20): computeAdaptiveTriggerAt(), ActionExecutorOptions, addMinutesToTime(), cleanupMatchingReminders(), computeDurationMinutes(), executeNluAction(), findMatchingEvent(), findMatchingNote() (+12 more)
-
-### Community 41 - "notesQueryStore.ts"
+### Community 53 - "sourceReminders.ts"
 Cohesion: 0.13
-Nodes (21): NoteSnapshot, createNotesQueryStore(), decodeCursor(), escapeLike(), hasControlCharacter(), INDEX_BATCH, INDEX_CHAR_BUDGET, indexBatch() (+13 more)
+Nodes (21): admitReminderCall(), CallAdmission, CallRejection, CallRequest, recordRejection(), NativeCallAction, alertSuppression(), inferLegacySource() (+13 more)
 
-### Community 42 - "accountLinkService.ts"
-Cohesion: 0.16
-Nodes (21): AccountFlowResult, AccountFlowStatus, attachAuthenticatedCloudSession(), authenticateExistingCloudAccount(), clearDeferredCredentialSafely(), completeDeferredCloudLink(), deferredLinkAttempts, isFlowResult() (+13 more)
-
-### Community 43 - "cloudClient.ts"
+### Community 54 - "personalMemoryStore.ts"
 Cohesion: 0.12
-Nodes (16): androidConnectivity(), AndroidConnectivityModule, canResolveHost(), CLOUD_API_BASE_URL, CloudStreamOptions, defaultApiBaseUrls, describeConnectionFailure(), hostOf() (+8 more)
+Nodes (20): assertActive(), EMPTY(), EVENT_MEMORY_KEY, EventMemoryError, EventMemoryInput, EventMemoryProblem, EventMemorySnapshot, EventMemoryValue (+12 more)
 
-### Community 44 - "eventTime.ts"
+### Community 55 - "onlineChatSkill.ts"
+Cohesion: 0.10
+Nodes (15): Config, directTestChat(), directTestVoiceApi, BackendChatResponse, BackendChatSource, BackendHandbookStatusResponse, EMPTY_MESSAGE, handbookPreference (+7 more)
+
+### Community 56 - "OnboardingScreen.tsx"
+Cohesion: 0.14
+Nodes (19): AcademicProfileRecord, mapCorCoursesToAcademicRecords(), chatMemoryStore, buildCorMemoryFacts(), Entry, formatCollegeForMemory(), formatGenderForMemory(), OnboardingIdentity (+11 more)
+
+### Community 57 - "ProductTour.tsx"
+Cohesion: 0.16
+Nodes (18): TabType, getThemedStyles(), lerp(), MOVE_MS, placeCard(), ProductTour(), ProductTourProps, spotlightPath() (+10 more)
+
+### Community 58 - "nativeTransport.ts"
+Cohesion: 0.10
+Nodes (5): NATIVE_EVENT, NativeVoiceConversation, nativeVoiceTransport, RawEvent, VoiceTransport
+
+### Community 59 - "Task"
+Cohesion: 0.23
+Nodes (18): Candidate, PlannerExport, PlannerWindow, Event, Task, TimeBlock, DayViewProps, MonthViewProps (+10 more)
+
+### Community 60 - "OnboardingStep.tsx"
+Cohesion: 0.14
+Nodes (19): ParsedUstpCorResult, UstpCorOnboardingRecommendations, ConversationTone, LongestClassGap, SnoozeTendency, StudyPeakHour, WeeklyClassCount, busiestDayOptions (+11 more)
+
+### Community 61 - "cloudClient.ts"
+Cohesion: 0.14
+Nodes (14): androidConnectivity(), AndroidConnectivityModule, canResolveHost(), CloudStreamOptions, defaultApiBaseUrls, describeConnectionFailure(), hostOf(), renewAccessToken() (+6 more)
+
+### Community 62 - "onlineIntentExtractor.ts"
+Cohesion: 0.20
+Nodes (18): detectCategory(), buildIntentExtractionPrompt(), cleanString(), ENTITY_TYPES, extractIntentWithDeepSeek(), extractJsonObject(), extractMultiIntentsWithDeepSeek(), formatReferenceClock() (+10 more)
+
+### Community 63 - "CallLafinaSettingsModal.tsx"
+Cohesion: 0.18
+Nodes (16): CALL_LAFINA_SETTINGS_KEYS, CallLafinaCaptionSize, CallLafinaLanguage, CallLafinaPacing, CallLafinaSettings, CallLafinaVerbosity, DEFAULT_CALL_LAFINA_SETTINGS, getCallLafinaSettings() (+8 more)
+
+### Community 64 - "ChatHistorySheet.tsx"
+Cohesion: 0.15
+Nodes (17): GeneratedDocument, CHAT_FILES_SUBDIR, ChatSessionKind, ChatSummary, isUstpSessionId(), MAX_CHAT_TITLE, getChatFilesDir(), removeAttachmentFiles() (+9 more)
+
+### Community 65 - "syncStateStore.ts"
+Cohesion: 0.13
+Nodes (13): executorFor(), PersistedEntityTypes, PersistedSyncState, saveTypeList(), syncStateStore, SyncStateUpdate, PersistedSyncStatus, currentState (+5 more)
+
+### Community 66 - "localConversation.ts"
+Cohesion: 0.18
+Nodes (17): buildLocalConversationReply(), DayGlance, firstName(), formatTime(), glanceLine(), glanceToday(), localDate(), LocalReplyOptions (+9 more)
+
+### Community 67 - "scheduleParser.ts"
+Cohesion: 0.17
+Nodes (13): checkDayHeader(), computeSemesterEndDate(), DAY_MAP, expandDays(), isDocumentHeader(), isInvalidSubject(), normalizeTime24(), ParsedScheduleResult (+5 more)
+
+### Community 68 - "backendSelection.ts"
+Cohesion: 0.15
+Nodes (15): BACKEND_CHOICE_KEY, BACKEND_LABELS, BackendChoice, backendSelection, backendUrlFor(), DEVICE_SETTINGS_OWNER, LOCAL_BACKEND_URL_KEY, localBackendUrl() (+7 more)
+
+### Community 69 - "src/meetings/index.ts"
 Cohesion: 0.19
-Nodes (20): deviceTimeZone(), engineFormatsWallTime(), eventSpanMinutes(), EventTimeError, EventTimeProblem, EventWallTime, formatterFor(), formatters (+12 more)
+Nodes (15): CATALOG, classifyNotesFailure(), isRetryable(), MeetingErrorInfo, RecoveryAction, canTransition(), isInterruptible(), MeetingFacts (+7 more)
 
-### Community 45 - "localConversation.ts"
-Cohesion: 0.16
-Nodes (19): buildLocalConversationReply(), classifySmallTalk(), DayGlance, firstName(), formatTime(), glanceLine(), glanceToday(), localDate() (+11 more)
-
-### Community 46 - "CalendarScreen.tsx"
-Cohesion: 0.16
-Nodes (16): endReviewSession(), tasksStore, CalendarLayersModal(), CalendarScreen(), styles, WeekView(), defaultForm(), useTimeBlockModal() (+8 more)
-
-### Community 48 - "reminderHealth.ts"
-Cohesion: 0.15
-Nodes (14): bounded(), HealthTimeoutError, isPermissionStatus(), PERMISSION_READ_TIMEOUT_MS, readReminderHealth(), recoverReminderHealth(), RECOVERY_TIMEOUT_MS, ReminderHealthSnapshot (+6 more)
-
-### Community 49 - "useScheduleItemModal.ts"
-Cohesion: 0.18
-Nodes (16): EventFolds, isEventTimeError(), applyEventMemoryToDraft(), EventMemoryOffer, AddTaskEventModalProps, defaultForm(), LIVE_REMINDER_STATUSES, ownReminderIds() (+8 more)
-
-### Community 50 - "speechPreferences.ts"
-Cohesion: 0.18
-Nodes (12): getActiveOfflineCaptureId(), admissionRefusal(), applySpeechPreferences(), createPreviewTicket(), meetingRecording(), PREVIEW_TEXT, PreviewHandle, PreviewTicket (+4 more)
-
-### Community 51 - "cancelReminderAlarm"
-Cohesion: 0.15
-Nodes (14): admitReminderCall(), CallAdmission, CallRejection, recordRejection(), cancelReminderAlarm(), deliveryStore, enqueueReminderUpdate(), Reminder (+6 more)
-
-### Community 52 - "deliveryStore.ts"
+### Community 70 - "deliveryStore.ts"
 Cohesion: 0.13
 Nodes (14): DeliveryEventName, DeliveryFenceError, DeliveryFenceResult, DeliveryIdentity, deliveryIdentityUri(), DeliveryJob, DeliveryJobState, deliveryNotificationTag() (+6 more)
 
-### Community 53 - "notesEditStore.ts"
-Cohesion: 0.16
-Nodes (14): assertActiveOwner(), NoteEditConflictError, NoteEditFailure, NoteEditPatch, notesEditStore, NoteWriteTarget, read(), requireCurrent() (+6 more)
+### Community 71 - "ThemeContext.tsx"
+Cohesion: 0.20
+Nodes (15): formatMiniDuration(), getThemedStyles(), MiniCallBar(), styles, darkColors, lightColors, ThemeContext, ThemeContextType (+7 more)
 
-### Community 54 - "NoteBody.tsx"
-Cohesion: 0.15
-Nodes (16): compactSizes, compactText, fullSizes, fullText, NoteBodyProps, Spans(), spanStyle(), styles (+8 more)
+### Community 72 - "documentSkill.ts"
+Cohesion: 0.14
+Nodes (11): DetectedDocumentRequest, FORMAT_PATTERNS, BackendDocumentResponse, DOCUMENT_FORMAT_ORDER, DOCUMENT_FORMATS, DocumentFormat, DocumentFormatMeta, documentSkill (+3 more)
 
-### Community 55 - "utils/index.ts"
-Cohesion: 0.21
-Nodes (16): applyBlock(), applyIndent(), applyInline(), applyNoteFormat(), BlockFormat, continueListOnNewline(), escapeRegExp(), findInsertedNewline() (+8 more)
+### Community 73 - "meetingRecorder.ts"
+Cohesion: 0.24
+Nodes (12): MeetingTranscriptionProgress, transcribeMeetingChunks(), TranscribeMeetingOptions, ImportedAudioResult, MeetingAudioChunk, MeetingAudioListing, meetingRecorder, MeetingRecordingResult (+4 more)
 
-### Community 56 - "onlineChatSkill.ts"
-Cohesion: 0.12
-Nodes (11): BackendChatResponse, BackendChatSource, BackendHandbookStatusResponse, EMPTY_MESSAGE, HandbookSource, HandbookStatus, OnlineChatReply, onlineChatSkill (+3 more)
+### Community 74 - "reminderActions.ts"
+Cohesion: 0.30
+Nodes (16): recordReminderInteraction(), acknowledgeReminderAction(), autoSnoozeReminderAction(), createNextRecurringReminder(), fenceFailure(), FencePreparation, fenceRejection(), prepareFence() (+8 more)
 
-### Community 57 - "philippineHolidays.ts"
+### Community 75 - "philippineHolidays.ts"
 Cohesion: 0.17
 Nodes (16): buildYear(), byYear, dateKey(), easterSunday(), getPhilippineHolidays(), Holiday, HOLIDAY_CALENDAR_ID, HOLIDAY_CALENDAR_NAME (+8 more)
 
-### Community 58 - "userStore"
-Cohesion: 0.22
-Nodes (12): label(), loadOnlineVoices(), OnlineVoiceOption, GUEST_USER_ID, localSettingsStore, ONLINE_VOICE_KEY, OnlineVoiceChoice, onlineVoiceSettingsStore (+4 more)
+### Community 76 - "MeetingsContext.tsx"
+Cohesion: 0.17
+Nodes (13): describeMeetingError(), ActiveRecording, defaultMeetingTitle(), detailOf(), elapsedOf(), isDefaultTitle(), MAX_RECORDING_MS, MeetingsContext (+5 more)
 
-### Community 59 - "cloud/index.ts"
+### Community 77 - "normalizeNotes"
 Cohesion: 0.23
-Nodes (12): cloudClient, CloudResultStatus, hasProEntitlement(), isGuestAccount(), isStudentProAccount(), isStudentProRole(), BackendMeetingSummaryResponse, MeetingActionItem (+4 more)
+Nodes (15): ActionItem, cleanActionItems(), cleanMultiline(), cleanStringList(), cleanText(), cleanTopics(), deadlinesOf(), emptyNotes() (+7 more)
 
-### Community 60 - "assistantOperationSchema.ts"
+### Community 78 - "chatMarkdown.ts"
+Cohesion: 0.20
+Nodes (15): ChatBlock, ChatInline, ChatMarkdownOptions, chatMarkdownToPlainText(), count(), dropLast(), hideDanglingMarkers(), INLINE_RULES (+7 more)
+
+### Community 80 - "reminderAlarm.ts"
+Cohesion: 0.23
+Nodes (13): consumePendingNativeCall(), errorCode(), getNativeModule(), getReminderPermissionStatus(), LafinaReminderNativeModule, reconcileReminderAlarms(), recordReceipt(), ScheduleAlarmOptions (+5 more)
+
+### Community 81 - "cloud/index.ts"
+Cohesion: 0.25
+Nodes (11): cloudClient, hasProEntitlement(), isGuestAccount(), isStudentProAccount(), isStudentProRole(), BackendMeetingSummaryResponse, MeetingActionItem, MeetingSummaryResponse (+3 more)
+
+### Community 82 - "generateMeetingNotes"
+Cohesion: 0.26
+Nodes (13): MeetingError, checkAborted(), generateMeetingNotes(), wait(), withRetry(), cleanSegments(), formatTimestamp(), HALLUCINATION_PATTERNS (+5 more)
+
+### Community 83 - "assistantOperationSchema.ts"
 Cohesion: 0.18
 Nodes (11): ASSISTANT_OPERATION_TABLES, bumpSql(), migrateAssistantOperations(), RECEIPT_RETENTION, REVISION_TRACKED_COLUMNS, REVISION_TRACKED_TABLES, RevisionEntityType, revisionTriggerNames() (+3 more)
 
-### Community 61 - "richText.ts"
-Cohesion: 0.22
-Nodes (13): ChecklistStat, decodeEntities(), HtmlElement, HtmlNode, HtmlText, htmlToMarkdown(), inlineToMarkdown(), isList() (+5 more)
+### Community 84 - "useTodoData.ts"
+Cohesion: 0.26
+Nodes (12): cancelReminderAlarm(), isNoteEditConflict(), remindersForSource(), TodoListViewProps, LIVE_REMINDER_STATUSES, NoteChecklistTodoItem, PRIORITY_RANK, retireTaskReminders() (+4 more)
 
-### Community 62 - "speechService.ts"
-Cohesion: 0.22
-Nodes (11): getNativeAudioPlayer(), playSpeechFile(), createCallSpeechProvider(), FIRST_SEGMENT_MAX_CHARS, FIRST_SEGMENT_MIN_CHARS, speakableText(), SPEECH_CHUNK_CHARS, splitForSpeech() (+3 more)
+### Community 85 - "VoiceConversationDeps"
+Cohesion: 0.23
+Nodes (3): randomId(), VoiceConversationDeps, voicePreferenceContext()
 
-### Community 63 - "nativeTransport.ts"
-Cohesion: 0.15
-Nodes (5): NATIVE_EVENT, NativeVoiceConversation, nativeVoiceTransport, RawEvent, TransportEvent
+### Community 86 - "notes/types.ts"
+Cohesion: 0.27
+Nodes (8): VoiceConversationPanelProps, CallNavigationRequest, CallNavigationTarget, CallLafinaScreenProps, NoteFiltersProps, FilterType, NotesScreenProps, NotesSubTab
 
-### Community 64 - "ThemeContext.tsx"
-Cohesion: 0.29
-Nodes (11): darkColors, lightColors, ThemeContext, ThemeContextType, ThemeProvider(), captureForReveal(), isThemeRevealAvailable(), LafinaThemeRevealModule (+3 more)
-
-### Community 65 - "useNotesData.ts"
-Cohesion: 0.33
-Nodes (11): isNoteEditConflict(), BUILT_IN_FILTERS, swapAnimation, targetOf(), useNotesData(), UseNotesDataOptions, extractChecklistItems(), isBodyEmpty() (+3 more)
-
-### Community 66 - "NotesScreen.tsx"
-Cohesion: 0.32
-Nodes (8): NoteFilters(), NoteFiltersProps, styles, NotesScreen(), styles, FilterType, NotesScreenProps, Colors
-
-### Community 67 - "CleanIntent"
+### Community 88 - "developerTestService.ts"
 Cohesion: 0.24
-Nodes (10): COMMAND_GUIDE, CommandGuideExample, cleanDate(), CleanIntent, cleanMinutes(), cleanText(), cleanTime(), InvalidFieldError (+2 more)
+Nodes (9): NativeDeliveryRegistration, StorageHealth, deliveryStore, AlarmDiagnostics, DatabaseDiagnostics, DEV_FIXTURE_TAG, DEVELOPER_MODE_KEY, SyncDiagnostics (+1 more)
 
-### Community 68 - "VoiceConversationDeps"
-Cohesion: 0.18
-Nodes (3): VoiceConversationDeps, ConversationClock, ConversationPersistence
+### Community 89 - "NoteBody.tsx"
+Cohesion: 0.25
+Nodes (8): compactSizes, compactText, fullSizes, fullText, NoteBodyProps, Spans(), spanStyle(), styles
 
-### Community 69 - "voiceConversation/index.ts"
-Cohesion: 0.22
-Nodes (8): allowLocalTestServer(), defaultVoiceConversationDeps(), isSignedInOwner(), ONLINE_MODE_CHANGED_EVENT, ONLINE_MODE_KEY, VOICE_CONSENT_KEY, voiceConsent, handbookPreference
-
-### Community 70 - "calendarVisibilityStore.ts"
-Cohesion: 0.28
-Nodes (8): CalendarVisibilityMap, calendarVisibilityStore, DEFAULT_VISIBILITY, parseStoredFile(), parseVisibilityMap(), readStoredFile(), StoredUserVisibility, StoredVisibilityFile
-
-### Community 71 - "AuthBackdrop.tsx"
-Cohesion: 0.31
-Nodes (7): AuthBackdrop(), styles, useReducedMotion(), Grainient(), GrainientProps, nativeSupported, styles
-
-### Community 72 - "OnlineVoice.tsx"
-Cohesion: 0.31
-Nodes (8): audioBusy(), describeOnlineVoice(), getThemedStyles(), LANGUAGE_NAMES, ONLINE_PREVIEW_TEXT, OnlineVoice(), Props, styles
-
-### Community 75 - "avatarFile.ts"
-Cohesion: 0.38
+### Community 90 - "avatarFile.ts"
+Cohesion: 0.32
 Nodes (5): AVATARS_DIR, extensionOf(), isCancellation(), pickAvatarImage(), PickAvatarResult
 
-### Community 76 - "syncScheduler.ts"
+### Community 91 - "remindersStore.ts"
+Cohesion: 0.29
+Nodes (5): enqueueReminderUpdate(), ReminderMutationGuard, reminderPayload(), ReminderStatus, StoredReminderRow
+
+### Community 93 - "CustomTabBar.tsx"
+Cohesion: 0.38
+Nodes (6): CustomTabBar(), CustomTabBarProps, getTabThemedStyles(), styles, TOUR_TABS, tourTargetRef()
+
+### Community 94 - "notesStore.ts"
+Cohesion: 0.40
+Nodes (4): enqueueNoteUpdate(), notePayload(), StoredNoteRow, syncOutboxStore
+
+### Community 95 - "syncScheduler.ts"
 Cohesion: 0.33
 Nodes (4): DEFAULT_SYNC_DEBOUNCE_MS, DEFAULT_SYNC_INTERVAL_MS, SyncScheduler, SyncSchedulerOptions
 
 ## Knowledge Gaps
-- **22 isolated node(s):** `ADR-0018`, `ADR-0030`, `ADR-0030`, `ADR-0025`, `ADR-0026` (+17 more)
-  These have ≤1 connection - possible missing edges. (Counts symbols only; 612 node(s) total have ≤1 connection when file, concept and rationale nodes are included.)
+- **23 isolated node(s):** `ADR-0018`, `ADR-0030`, `ADR-0030`, `ADR-0030`, `ADR-0025` (+18 more)
+  These have ≤1 connection - possible missing edges. (Counts symbols only; 801 node(s) total have ≤1 connection when file, concept and rationale nodes are included.)
 - **5 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
 
 ## Suggested Questions
 _Questions this graph is uniquely positioned to answer:_
 
-- **Why does `useTheme()` connect `useTheme` to `MeetingDetail.tsx`, `updateService.ts`, `ref_react_native`, `callDispatcher.ts`, `ProfileScreen.tsx`, `ChatMessageItem.tsx`, `useCalendarData.ts`, `OnboardingStep.tsx`, `ProductTour.tsx`, `synthWave.ts`, `VoiceModal.tsx`, `scheduler/index.ts`, `PreferencesSettingsScreen.tsx`, `AddTaskEventModal.tsx`, `DayView.tsx`, `NoteEditor.tsx`, `CalendarScreen.tsx`, `NoteBody.tsx`, `ThemeContext.tsx`, `NotesScreen.tsx`, `AuthBackdrop.tsx`?**
-  _High betweenness centrality (0.036) - this node is a cross-community bridge._
+- **Why does `useTheme()` connect `useTheme` to `ref_react`, `ChatScreen.tsx`, `updateService.ts`, `actionExecutor.ts`, `ThemeColors`, `synthWave.ts`, `ProfileScreen.tsx`, `callDispatcher.ts`, `CalendarScreen.tsx`, `ref_react_native`, `VoiceConversationPanel.tsx`, `NotesScreen.tsx`, `ref_lucide_react_native`, `ReminderHealth.tsx`, `tools/index.ts`, `ClassScheduleModal.tsx`, `useThemedStyles`, `DayView.tsx`, `OnboardingScreen.tsx`, `ProductTour.tsx`, `Task`, `OnboardingStep.tsx`, `CallLafinaSettingsModal.tsx`, `ChatHistorySheet.tsx`, `backendSelection.ts`, `ThemeContext.tsx`, `NoteBody.tsx`, `CustomTabBar.tsx`?**
+  _High betweenness centrality (0.043) - this node is a cross-community bridge._
 - **What connects `ADR-0018`, `ADR-0030`, `ADR-0030` to the rest of the system?**
-  _22 weakly-connected nodes found - possible documentation gaps or missing edges._
-- **Should `MeetingsContext.tsx` be split into smaller, more focused modules?**
-  _Cohesion score 0.05854049719326383 - nodes in this community are weakly interconnected._
-- **Why does `db` connect `database.ts` to `MeetingsContext.tsx`, `commandReview.ts`, `syncWorker.ts`, `accountDataReset.ts`, `callDispatcher.ts`, `ProfileScreen.tsx`, `syncOutboxStore.ts`, `useCalendarData.ts`, `dbInit.ts`, `plannerQueries.ts`, `chatStore.ts`, `OfflineVoice.tsx`, `storage/index.ts`, `reminderActions.ts`, `deliveryReconciler.ts`, `notesQueryStore.ts`, `reminderHealth.ts`, `useScheduleItemModal.ts`, `cancelReminderAlarm`, `deliveryStore.ts`, `notesEditStore.ts`, `userStore`, `assistantOperationSchema.ts`?**
-  _High betweenness centrality (0.027) - this node is a cross-community bridge._
+  _23 weakly-connected nodes found - possible documentation gaps or missing edges._
+- **Should `commandReview.ts` be split into smaller, more focused modules?**
+  _Cohesion score 0.054706163401815576 - nodes in this community are weakly interconnected._
+- **Why does `db` connect `db` to `commandReview.ts`, `chatStore.ts`, `storage/index.ts`, `syncWorker.ts`, `database.ts`, `ProfileScreen.tsx`, `callDispatcher.ts`, `CalendarScreen.tsx`, `chatOrchestrator.ts`, `OfflineVoice.tsx`, `plannerQueries.ts`, `VoiceConversationPanel.tsx`, `scheduler/index.ts`, `syncOutboxStore.ts`, `notesQueryStore.ts`, `ReminderHealth.tsx`, `accountDataReset.ts`, `ClassScheduleModal.tsx`, `useCalendarData.ts`, `notesPipeline.ts`, `sourceReminders.ts`, `personalMemoryStore.ts`, `OnboardingScreen.tsx`, `CallLafinaSettingsModal.tsx`, `syncStateStore.ts`, `deliveryStore.ts`, `reminderActions.ts`, `assistantOperationSchema.ts`, `useTodoData.ts`, `developerTestService.ts`, `remindersStore.ts`, `notesStore.ts`?**
+  _High betweenness centrality (0.023) - this node is a cross-community bridge._
+- **Should `chatStore.ts` be split into smaller, more focused modules?**
+  _Cohesion score 0.04146612365790448 - nodes in this community are weakly interconnected._
+- **Why does `VoiceConversationController` connect `VoiceConversationController` to `voiceConversation/index.ts`, `callDispatcher.ts`, `VoiceConversationDeps`, `.finalAnswer`, `controller.ts`?**
+  _High betweenness centrality (0.022) - this node is a cross-community bridge._
 - **Should `timingAdvisor.ts` be split into smaller, more focused modules?**
   _Cohesion score 0.06128364389233954 - nodes in this community are weakly interconnected._
-- **Why does `DatabaseTransaction` connect `database.ts` to `MeetingsContext.tsx`, `commandReview.ts`, `syncWorker.ts`, `accountDataReset.ts`, `notesQueryStore.ts`, `syncOutboxStore.ts`, `useCalendarData.ts`, `dbInit.ts`, `plannerQueries.ts`, `deliveryStore.ts`, `chatStore.ts`, `notesEditStore.ts`, `storage/index.ts`, `reminderActions.ts`, `cancelReminderAlarm`, `OfflineVoice.tsx`, `assistantOperationSchema.ts`?**
-  _High betweenness centrality (0.024) - this node is a cross-community bridge._
-- **Should `chatOrchestrator.ts` be split into smaller, more focused modules?**
-  _Cohesion score 0.051577152600170505 - nodes in this community are weakly interconnected._

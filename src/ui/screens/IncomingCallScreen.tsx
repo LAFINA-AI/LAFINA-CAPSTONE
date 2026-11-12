@@ -38,6 +38,7 @@ import type {
   NativeCallAction,
 } from '../../scheduler';
 import { CALL_RESULT_DELAY_MS } from '../../constants';
+import { chatOrchestrator } from '../../ai/chatOrchestrator';
 import { Fonts, Shadows } from '../theme';
 import { useTheme } from '../contexts/ThemeContext';
 import { createCallSpeechProvider } from '../../cloud/speechService';
@@ -347,13 +348,72 @@ export const IncomingCallScreen: React.FC<IncomingCallScreenProps> = ({
   }, [reminderId, stopOnline, userId]);
 
   const handleOnlineTurn = useCallback((text: string): void => {
-    // Only a direct reminder response can change a reminder. Ordinary
-    // conversation about snoozing or acknowledging must not resolve it.
-    if (!/^(?:please\s+)?(?:acknowledge(?:\s+(?:it|this|the reminder))?|got it|understood|snooze(?:\s+(?:it|this|the reminder))?(?:\s+(?:for\s+)?(?:\d{1,3}|one|two|three|four|five|ten|fifteen|twenty|thirty|sixty)(?:\s*(?:minutes?|mins?))?)?)(?:\s+please)?[.!?]*$/i.test(text.trim())) return;
-    const command = detectCallKeyword(text);
-    if (command?.intent === 'acknowledge') void handleManualAcknowledge();
-    if (command?.intent === 'snooze') void handleManualSnooze(command.minutes ?? snoozeMinutes);
-  }, [handleManualAcknowledge, handleManualSnooze, snoozeMinutes]);
+    const trimmed = text.trim();
+    if (!trimmed) return;
+    // Ordinary conversation or questions about snoozing/acknowledging must not resolve the reminder.
+    const isDirectAckOrSnooze =
+      /^(?:please\s+)?(?:acknowledge(?:\s+(?:it|this|the reminder))?|got it|understood|snooze(?:\s+(?:it|this|the reminder))?(?:\s+(?:for\s+)?(?:\d{1,3}|one|two|three|four|five|ten|fifteen|twenty|thirty|sixty)(?:\s*(?:minutes?|mins?))?)?)(?:\s+please)?[.!?]*$/i.test(
+        trimmed,
+      );
+    if (isDirectAckOrSnooze) {
+      const command = detectCallKeyword(trimmed);
+      if (command?.intent === 'acknowledge') void handleManualAcknowledge();
+      if (command?.intent === 'snooze') void handleManualSnooze(command.minutes ?? snoozeMinutes);
+      return;
+    }
+
+    if (
+      /\?$/.test(trimmed) &&
+      !/^(?:can|could|would)\s+you\s+(?:please\s+)?(?:mark|reschedule|move|schedule|add|create|pin|unpin)/i.test(
+        trimmed,
+      )
+    ) {
+      return;
+    }
+    if (/\b(?:about\s+snoozing|what\s+does\s+snooze|should\s+i\s+snooze)\b/i.test(trimmed)) {
+      return;
+    }
+
+    const isDoneCommand =
+      /^(?:please\s+)?(?:i\s+(?:finished|completed|did)\s+(?:it|this|that)|mark\s+(?:it|this|that|the\s+(?:task|reminder))\s+(?:as\s+)?done|complete\s+(?:it|this|the\s+(?:task|reminder)))(?:\s+please)?[.!]*$/i.test(
+        trimmed,
+      );
+    const isPlannerActionCommand =
+      isDoneCommand ||
+      /^(?:please\s+)?(?:(?:can|could|will)\s+you\s+(?:please\s+)?)?(?:reschedule\s+(?:it|this|the\s+reminder)|move\s+(?:it|this|the\s+reminder)\s+to|postpone\s+(?:it|this)|push\s+(?:it|this)\s+back|add\s+(?:a\s+)?(?:task|todo|to-?do|note|reminder|event)|schedule\s+|create\s+(?:a\s+)?(?:task|todo|to-?do|note|reminder|event)|pin\s+|unpin\s+)/i.test(
+        trimmed,
+      );
+
+    if (!isPlannerActionCommand) return;
+
+    const routedPrompt = isDoneCommand && task ? `Mark task "${task}" as done` : trimmed;
+    void chatOrchestrator
+      .processMessage(userId, routedPrompt, {
+        onlineMode: true,
+        ringingCall: {
+          reminderId,
+          generation: deliveryGeneration ?? 1,
+        },
+        reviewSurface: 'voice',
+      })
+      .then(result => {
+        if (closingRef.current) return;
+        setReply(result.reply);
+        void onlineRef.current?.sendContext(`Planner update: ${result.reply}`);
+        if (isDoneCommand) {
+          void handleManualAcknowledge();
+        }
+      })
+      .catch(() => undefined);
+  }, [
+    deliveryGeneration,
+    handleManualAcknowledge,
+    handleManualSnooze,
+    reminderId,
+    snoozeMinutes,
+    task,
+    userId,
+  ]);
 
   const handleOnlineSnapshot = useCallback((snapshot: ConversationSnapshot): void => {
     const latestUser = [...snapshot.turns].reverse().find(turn => turn.role === 'user');

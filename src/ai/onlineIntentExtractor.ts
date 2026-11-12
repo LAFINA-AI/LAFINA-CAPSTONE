@@ -42,13 +42,13 @@ const ENTITY_TYPES = new Set<CrudTargetEntityType>([
 ]);
 
 const UNSTRUCTURED_PLANNER_PHRASE =
-  /\b(?:schedule|reschedule|book|block\s+out|remind\s+me|set\s+(?:a|an)?\s*reminder|add\s+(?:a\s+)?(?:task|todo|to-?do|to\s+do|event|meeting|appointment|note|reminder)|put\s+.+\s+on\s+(?:my|the)\s+(?:calendar|schedule|to-?do|to\s+do|todo)(?:\s+list)?|add\s+.+\s+to\s+(?:my|the)\s+(?:to-?do|to\s+do|todo)(?:\s+list)?|create\s+(?:a\s+)?(?:task|todo|to-?do|event|time\s*block|reminder|note)|check\s+off|tick\s+off|mark\s+.+\s+as\s+(?:done|complete|completed)|don['’]?t\s+forget\s+to|i\s+have\s+(?:a|an)\s+(?:meeting|appointment|exam|quiz|class|call|deadline|presentation)\b|need\s+to\s+(?:submit|finish|meet|attend|study|review|call|buy|print)|jot\s+(?:this\s+)?down|cancel\s+(?:my|the)|delete\s+(?:my|the)|move\s+(?:my|the)\s+.+\s+to)\b/i;
+  /\b(?:schedule|reschedule|book|block\s+out|remind\s+me|set\s+(?:a|an)?\s*reminder|add\s+(?:a\s+)?(?:task|todo|to-?do|to\s+do|event|meeting|appointment|note|reminder|checklist)|put\s+.+\s+on\s+(?:my|the)\s+(?:calendar|schedule|to-?do|to\s+do|todo)(?:\s+list)?|add\s+.+\s+to\s+(?:my|the)\s+(?:to-?do|to\s+do|todo)(?:\s+list)?|create\s+(?:a\s+)?(?:task|todo|to-?do|event|time\s*block|reminder|note|checklist)|check\s+off|tick\s+off|uncheck|untick|reopen|pin|unpin|mark\s+.+\s+as\s+(?:done|complete|completed|not\s+done|incomplete|open|pending)|don['’]?t\s+forget\s+to|i\s+have\s+(?:a|an)\s+(?:meeting|appointment|exam|quiz|class|call|deadline|presentation|event)\b|need\s+to\s+(?:submit|finish|meet|attend|study|review|call|buy|print)|jot\s+(?:this\s+)?down|cancel\s+(?:my|the)|delete\s+(?:my|the)|move\s+(?:my|the)\s+.+\s+to|change\s+(?:the\s+)?(?:priority|category|title|time|date))\b/i;
 
 const OPEN_ENDED_PLANNING_OR_STUDY_QUESTION =
   /^(?:what|why|how|who|where|when|explain|summarize|define|compare|outline|tell\s+me|give\s+me|plan\s+my\s+(?:week|day|month|semester)|help\s+me\s+plan)\b/i;
 
 const POLITE_COMMAND_QUESTION =
-  /^(?:can|could|would|will)\s+you\s+(?:please\s+)?(?:schedule|reschedule|book|block|remind|add|create|make|set|put|cancel|delete|move|update|edit|jot|save|complete|finish|check\s+off)\b/i;
+  /^(?:can|could|would|will)\s+you\s+(?:please\s+)?(?:schedule|reschedule|book|block|remind|add|create|make|set|put|cancel|delete|move|update|edit|change|rename|jot|save|complete|finish|check\s+off|uncheck|reopen|pin|unpin)\b/i;
 
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
 const TIME_RE = /^(?:[01]\d|2[0-3]):[0-5]\d$/;
@@ -130,18 +130,20 @@ function buildIntentExtractionPrompt(
     'Extract the structured student planner command from the user message and return ONLY a single valid JSON object (no markdown fences, no commentary).',
     `Current local reference: ${dateStr} (${weekday}), time ${timeStr}.`,
     'Allowed "intent" values:',
-    '- "create_task": tasks, to-dos, meetings, deadlines, or appointments without an explicit duration/time-range',
-    '- "create_time_block": explicit time blocks, study blocks, focus blocks, work blocks, events, or anything with a start+end time or duration',
+    '- "create_task": tasks, to-dos, deadlines without an explicit duration/time-range',
+    '- "create_event": standalone calendar events or appointments ("add an event...", "book an appointment...")',
+    '- "create_time_block": explicit time blocks, study blocks, focus blocks, work blocks, or scheduled slots with start+end time/duration',
     '- "create_reminder": explicit reminders ("remind me...", "set a reminder...")',
-    '- "create_note": saving a note ("note...", "jot down...", "save a note...")',
+    '- "create_note": saving a note or checklist ("note...", "jot down...", "checklist...")',
     '- "update_task", "update_time_block", "update_note", "delete_task", "delete_time_block", "delete_note", "complete_task"',
     '- "chat": NOT a planner action (questions, advice, open-ended chat, cancelled requests)',
     'JSON schema:',
-    '{"intent":string,"title":string|null,"date":"YYYY-MM-DD"|null,"time":"HH:MM"|null,"endTime":"HH:MM"|null,"durationMinutes":number|null,"category":"Academic"|"Personal","priority":"High"|"Medium"|"Low"|null,"details":string|null,"targetTitle":string|null,"newTitle":string|null,"targetEntityType":"task"|"time_block"|"event"|"reminder"|"note"|"any"|null}',
+    '{"intent":string,"title":string|null,"date":"YYYY-MM-DD"|null,"time":"HH:MM"|null,"endTime":"HH:MM"|null,"durationMinutes":number|null,"category":"Academic"|"Personal"|"APPEND","priority":"High"|"Medium"|"Low"|null,"details":string|null,"location":string|null,"isCompleted":boolean|null,"isPinned":boolean|null,"newCategory":string|null,"checklistItems":string[]|null,"targetTitle":string|null,"newTitle":string|null,"targetEntityType":"task"|"time_block"|"event"|"reminder"|"note"|"any"|null}',
     'Rules:',
     '1. "title" must be clean and concise: strip command prefixes ("schedule me a", "remind me to", "make me a"), indirect pronouns ("me", "for me"), articles ("a", "an", "the"), destination phrases ("to my to-do list"), and extracted date/time phrases. Example: "schedule me a meeting tommorow at 3pm" -> title "Meeting".',
     '2. Fix obvious spelling typos like "tommorow"/"tomorow"/"tmr" and resolve relative dates against the reference date. Leave "date" null for undated To-Dos.',
-    '3. Use 24-hour "HH:MM" for time/endTime. Use "Academic" for class, study, exam, homework, lab, thesis, or faculty/advisor items; otherwise "Personal". Set "priority" if mentioned.',
+    '3. Use 24-hour "HH:MM" for time/endTime. Use "Academic" for class, study, exam, homework, lab, thesis, or faculty/advisor items; otherwise "Personal" (or "APPEND" on update_note when appending text).',
+    '4. For reopening/unchecking a task, use "intent":"update_task","isCompleted":false. For pinning/unpinning a note, use "intent":"update_note","isPinned":true|false. For checklist notes, set "checklistItems".',
     `User message: ${JSON.stringify(transcript)}`,
   ].join('\n');
 }
@@ -185,19 +187,26 @@ function cleanString(value: unknown, maxLen: number = 240): string | null {
 function parseRawIntentType(
   value: unknown,
   entityType?: CrudTargetEntityType,
-): {intent: ParsedIntentType; isCompleted?: boolean} | null {
+): {
+  intent: ParsedIntentType;
+  isCompleted?: boolean;
+  defaultEntityType?: CrudTargetEntityType;
+} | null {
   if (typeof value !== 'string') {
     return null;
   }
   const normalized = value.trim().toLowerCase();
   if (normalized === 'create_event') {
-    return {intent: 'create_time_block'};
+    return {intent: 'create_time_block', defaultEntityType: 'event'};
   }
   if (normalized === 'update_schedule_item' || normalized === 'update_event') {
-    return {intent: 'update_time_block'};
+    return {intent: 'update_time_block', defaultEntityType: 'event'};
   }
   if (normalized === 'complete_task') {
-    return {intent: 'update_task', isCompleted: true};
+    return {intent: 'update_task', isCompleted: true, defaultEntityType: 'task'};
+  }
+  if (normalized === 'reopen_task') {
+    return {intent: 'update_task', isCompleted: false, defaultEntityType: 'task'};
   }
   if (normalized === 'delete_event') {
     return {intent: 'delete_time_block'};
@@ -328,18 +337,29 @@ export async function extractIntentWithDeepSeek(
   if (!obj) {
     return null;
   }
+  return parseExtractedIntentObject(obj, trimmed);
+}
 
-  const targetEntityType =
+function parseExtractedIntentObject(
+  obj: Record<string, unknown>,
+  trimmed: string,
+): ValidatedIntent | null {
+  const rawEntityType =
     typeof obj.targetEntityType === 'string' &&
     ENTITY_TYPES.has(obj.targetEntityType as CrudTargetEntityType)
       ? (obj.targetEntityType as CrudTargetEntityType)
       : undefined;
 
-  const parsedIntent = parseRawIntentType(obj.intent, targetEntityType);
+  const parsedIntent = parseRawIntentType(obj.intent, rawEntityType);
   if (!parsedIntent) {
     return null;
   }
-  const {intent, isCompleted} = parsedIntent;
+  const {intent, defaultEntityType} = parsedIntent;
+  const targetEntityType = rawEntityType || defaultEntityType;
+  const isCompleted =
+    typeof obj.isCompleted === 'boolean'
+      ? obj.isCompleted
+      : parsedIntent.isCompleted;
 
   if (intent === 'chat') {
     return validateIntent({
@@ -362,6 +382,15 @@ export async function extractIntentWithDeepSeek(
   const targetTitle = cleanString(obj.targetTitle);
   const newTitle = cleanString(obj.newTitle);
   const details = cleanString(obj.details, 1000);
+  const location = cleanString(obj.location, 120);
+  const newCategory = cleanString(obj.newCategory, 40);
+  const isPinned =
+    typeof obj.isPinned === 'boolean' ? obj.isPinned : undefined;
+  const checklistItems = Array.isArray(obj.checklistItems)
+    ? obj.checklistItems
+        .map(item => cleanString(item, 200))
+        .filter((item): item is string => Boolean(item))
+    : undefined;
   const date = parseValidatedDate(obj.date);
   const time = parseValidatedTime(obj.time);
   const endTime = parseValidatedTime(obj.endTime);
@@ -380,7 +409,12 @@ export async function extractIntentWithDeepSeek(
   ) {
     return null;
   }
-  if (intent === 'create_note' && !title && !details) {
+  if (
+    intent === 'create_note' &&
+    !title &&
+    !details &&
+    !(checklistItems && checklistItems.length > 0)
+  ) {
     return null;
   }
 
@@ -389,7 +423,11 @@ export async function extractIntentWithDeepSeek(
     title: title || targetTitle || null,
     ...(targetTitle ? {targetTitle} : {}),
     ...(newTitle ? {newTitle} : {}),
-    ...(isCompleted ? {isCompleted} : {}),
+    ...(typeof isCompleted === 'boolean' ? {isCompleted} : {}),
+    ...(typeof isPinned === 'boolean' ? {isPinned} : {}),
+    ...(location ? {location} : {}),
+    ...(newCategory ? {newCategory} : {}),
+    ...(checklistItems && checklistItems.length > 0 ? {checklistItems} : {}),
     ...(targetEntityType ? {targetEntityType} : {}),
     date,
     time,
@@ -403,7 +441,10 @@ export async function extractIntentWithDeepSeek(
     ...(priority ? {priority} : {}),
     details:
       intent === 'create_note'
-        ? details || title || trimmed
+        ? details ||
+          (checklistItems && checklistItems.length > 0
+            ? checklistItems.map(i => `- [ ] ${i}`).join('\n')
+            : title || trimmed)
         : details && details.toLowerCase() !== (title || '').toLowerCase()
         ? details
         : null,
@@ -418,4 +459,45 @@ export async function extractIntentWithDeepSeek(
     return null;
   }
   return validated;
+}
+
+/**
+ * Extracts multiple planner actions from one compound student message using DeepSeek.
+ * Returns null if fewer than 2 valid actions are extracted so single-action flows proceed.
+ */
+export async function extractMultiIntentsWithDeepSeek(
+  transcript: string,
+  referenceDate: Date = new Date(),
+): Promise<ValidatedIntent[] | null> {
+  const trimmed = (transcript || '').trim();
+  if (!trimmed) return null;
+  const {dateStr, weekday, timeStr} = formatReferenceClock(referenceDate);
+  const prompt = [
+    'Extract ALL distinct student planner commands from the compound user message and return ONLY a JSON object: {"intents":[...]}.',
+    `Current local reference: ${dateStr} (${weekday}), time ${timeStr}.`,
+    'Each item uses the same schema: {"intent":string,"title":string|null,"date":"YYYY-MM-DD"|null,"time":"HH:MM"|null,"endTime":"HH:MM"|null,"durationMinutes":number|null,"category":"Academic"|"Personal","priority":"High"|"Medium"|"Low"|null,"details":string|null,"location":string|null,"checklistItems":string[]|null,"targetTitle":string|null,"newTitle":string|null,"targetEntityType":"task"|"time_block"|"event"|"reminder"|"note"|"any"|null}.',
+    'Allowed intents per item: create_task, create_event, create_time_block, create_reminder, create_note, update_task, update_time_block, update_note, delete_task, delete_time_block, delete_note, complete_task. Max 5 items.',
+    `User message: ${JSON.stringify(trimmed)}`,
+  ].join('\n');
+
+  try {
+    const result = await onlineChatSkill.sendChatMessage(
+      [{role: 'user', content: prompt}],
+      {useHandbook: false},
+    );
+    if (result.status !== 'success' || !result.data?.reply) return null;
+    const obj = extractJsonObject(result.data.reply);
+    if (!obj || !Array.isArray(obj.intents)) return null;
+    const valid = obj.intents
+      .slice(0, 5)
+      .map(item =>
+        item && typeof item === 'object' && !Array.isArray(item)
+          ? parseExtractedIntentObject(item as Record<string, unknown>, trimmed)
+          : null,
+      )
+      .filter((v): v is ValidatedIntent => v !== null && v.intent !== 'chat');
+    return valid.length >= 2 ? valid : null;
+  } catch {
+    return null;
+  }
 }

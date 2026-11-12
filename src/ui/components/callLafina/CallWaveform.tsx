@@ -73,7 +73,7 @@ export function getTruthfulStateText(props: {
   if (phase === 'restart_required') return 'Call stopped';
   if (phase === 'ended') return 'Call ended';
   if (phase === 'failed') return 'Call Lafina unavailable';
-  return 'Talk with LAFINA naturally, hands-free';
+  return '';
 }
 
 export const CallWaveform: React.FC<CallWaveformProps> = ({
