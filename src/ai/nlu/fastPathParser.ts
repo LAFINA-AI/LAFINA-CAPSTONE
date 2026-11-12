@@ -1583,7 +1583,7 @@ export function parseIntentFastPath(
   // 3. Schedule Audit & Schedule Query
   // Must run BEFORE CRUD/Creation intents unless the utterance starts with an explicit creation/mutation command
   const isExplicitMutationStart =
-    /^(?:remind\s+me|set\s+(?:a\s+|an\s+|up\s+)?(?:reminder|task|event|time\s*block)|add\s+|put\s+|create\s+|make\s+|schedule\s+(?!audit\b|(?:for\s+)?(?:today|to-?morrow|tommorow|tomorow|tommorrow|morrow|tmrw|tmr|tonight|monday|tuesday|wednesday|thursday|friday|saturday|sunday)[\s.!?]*$)|book\s+|plan\s+|(?:to-?do|to\s+do|todo)(?:\s+list)?\s*[:,-]\s*\S|take\s+(?:a\s+)?note|save\s+(?:a\s+)?note|note\s+down|write\s+down|jot\s+down|cancel\b|remove\b|delete\b|clear\b|erase\b|drop\b|scratch\b|discard\b|unschedule\b|wipe\b|get\s+rid\s+of\b|take\s+off\b|call\s+off\b|cross\s+off\b|cross\s+out\b|check\s+off\b|tick\s+off\b|update\s+|edit\s+|rename\s+|reschedule\s+|move\s+|postpone\s+|push\s+back\s+|complete\s+|finish\s+|mark\s+)/i.test(
+    /^(?:remind\s+me|set\s+(?:a\s+|an\s+|up\s+)?(?:reminder|task|event|time\s*block|meeting|appointment|class|session)|add\s+|put\s+|create\s+|make\s+|schedule\s+(?!audit\b|(?:for\s+)?(?:today|to-?morrow|tommorow|tomorow|tommorrow|morrow|tmrw|tmr|tonight|monday|tuesday|wednesday|thursday|friday|saturday|sunday)[\s.!?]*$)|book\s+|plan\s+|(?:to-?do|to\s+do|todo)(?:\s+list)?\s*[:,-]\s*\S|take\s+(?:a\s+)?note|save\s+(?:a\s+)?note|note\s+down|write\s+down|jot\s+down|cancel\b|remove\b|delete\b|clear\b|erase\b|drop\b|scratch\b|discard\b|unschedule\b|wipe\b|get\s+rid\s+of\b|take\s+off\b|call\s+off\b|cross\s+off\b|cross\s+out\b|check\s+off\b|tick\s+off\b|update\s+|edit\s+|rename\s+|reschedule\s+|move\s+|postpone\s+|push\s+back\s+|complete\s+|finish\s+|mark\s+)/i.test(
       commandLower,
     );
 
@@ -1798,20 +1798,25 @@ export function parseIntentFastPath(
   }
 
   // 6. CRUD: Complete / Mark Task as Done
-  const markDoneMatch =
-    /\bmark\s+(.+?)\s+as\s+(?:done|complete|completed|finished)\b/i.exec(
-      commandLower,
-    ) ||
-    /^(?:complete|finish|check\s+off|tick\s+off)\s+(?:(?:my|the|a|an)\s+)?(?:(?:task|todo|to-?do|to\s+do)\s+)(.+)$/i.exec(
-      commandLower,
-    ) ||
-    /^(?:complete|check\s+off|tick\s+off)\s+(?:(?:my|the)\s+)(.+)$/i.exec(
-      commandLower,
-    ) ||
-    /^(?:check\s+off|tick\s+off)\s+(.+)$/i.exec(commandLower) ||
-    /^(?:i(?:'m| am)?\s+done\s+with|i\s+(?:already\s+)?finished)\s+(?:(?:my|the|a|an)\s+)?(?:(?:task|event|todo|to-?do|to\s+do)\s+)?(.+)$/i.exec(
+  const isNegativeCompletion =
+    /\b(?:not\s+done|incomplete|undone|uncompleted|still\s+pending)\b/i.test(
       commandLower,
     );
+  const markDoneMatch = isNegativeCompletion
+    ? null
+    : (/\bmark\s+(.+?)\s+(?:as\s+)?(?:done|complete|completed|finished)\b/i.exec(
+        commandLower,
+      ) ||
+      /^(?:complete|finish|check\s+off|tick\s+off)\s+(?:(?:my|the|a|an)\s+)?(?:(?:task|todo|to-?do|to\s+do)\s+)(.+)$/i.exec(
+        commandLower,
+      ) ||
+      /^(?:complete|check\s+off|tick\s+off)\s+(?:(?:my|the)\s+)(.+)$/i.exec(
+        commandLower,
+      ) ||
+      /^(?:check\s+off|tick\s+off)\s+(.+)$/i.exec(commandLower) ||
+      /^(?:i(?:'m| am)?\s+done\s+with|i\s+(?:already\s+)?finished)\s+(?:(?:my|the|a|an)\s+)?(?:(?:task|event|todo|to-?do|to\s+do)\s+)?(.+)$/i.exec(
+        commandLower,
+      ));
   if (markDoneMatch) {
     const rawTarget = markDoneMatch[1];
     const targetTitle = cleanCrudTargetTitle(rawTarget);
@@ -1833,6 +1838,110 @@ export function parseIntentFastPath(
         details: null,
         snoozeMinutes: null,
         confidence: 0.95,
+        source: 'fast_path',
+        rawTranscript: transcript,
+      };
+    }
+  }
+
+  // 6b. CRUD: Reopen / Uncheck / Mark Task Not Done
+  const reopenMatch =
+    /\bmark\s+(.+?)\s+as\s+(?:not\s+done|incomplete|undone|uncompleted|open|pending)\b/i.exec(
+      commandLower,
+    ) ||
+    /^(?:reopen|unmark|uncheck|untick)\s+(?:(?:my|the|a|an)\s+)?(?:(?:task|todo|to-?do|to\s+do)\s+)?(.+)$/i.exec(
+      commandLower,
+    );
+  if (reopenMatch) {
+    const targetTitle = cleanCrudTargetTitle(reopenMatch[1]);
+    const formattedTarget = targetTitle
+      ? targetTitle.charAt(0).toUpperCase() + targetTitle.slice(1)
+      : null;
+    if (formattedTarget) {
+      return {
+        intent: 'update_task',
+        title: formattedTarget,
+        targetTitle: formattedTarget,
+        targetEntityType: 'task',
+        isCompleted: false,
+        date: null,
+        time: null,
+        endTime: null,
+        durationMinutes: null,
+        category: detectCategory(formattedTarget),
+        details: null,
+        snoozeMinutes: null,
+        confidence: 0.95,
+        source: 'fast_path',
+        rawTranscript: transcript,
+      };
+    }
+  }
+
+  // 6c. CRUD: Pin / Unpin Note
+  const pinMatch =
+    /^(?:(pin|unpin))\s+(?:(?:my|the|a|an)\s+)?(?:notes?\s+(?:(?:called|titled|named|about)\s+)?)?(.+)$/i.exec(
+      commandLower,
+    );
+  if (pinMatch) {
+    const isPinned = pinMatch[1].toLowerCase() === 'pin';
+    const targetTitle = cleanCrudTargetTitle(pinMatch[2]);
+    const formattedTarget = targetTitle
+      ? targetTitle.charAt(0).toUpperCase() + targetTitle.slice(1)
+      : null;
+    if (formattedTarget) {
+      return {
+        intent: 'update_note',
+        title: formattedTarget,
+        targetTitle: formattedTarget,
+        targetEntityType: 'note',
+        isPinned,
+        date: null,
+        time: null,
+        endTime: null,
+        durationMinutes: null,
+        category: detectCategory(formattedTarget),
+        details: null,
+        snoozeMinutes: null,
+        confidence: 0.95,
+        source: 'fast_path',
+        rawTranscript: transcript,
+      };
+    }
+  }
+
+  // 6d. CRUD: Update Task Priority ("set physics homework priority to high")
+  const priorityUpdateMatch =
+    /^(?:set|change|update|make)\s+(?:the\s+)?(?:priority\s+of\s+)?(?:(?:my|the|a|an)\s+)?(?:(?:task|todo|to-?do|to\s+do)\s+)?(.+?)(?:\s+priority)?\s+(?:to|as)\s+(high|medium|low|urgent|normal)(?:\s+priority)?$/i.exec(
+      commandLower,
+    );
+  if (priorityUpdateMatch) {
+    const rawTarget = cleanCrudTargetTitle(priorityUpdateMatch[1]);
+    const formattedTarget = rawTarget
+      ? rawTarget.charAt(0).toUpperCase() + rawTarget.slice(1)
+      : null;
+    const rawPrio = priorityUpdateMatch[2].toLowerCase();
+    const priority: 'High' | 'Medium' | 'Low' =
+      rawPrio === 'high' || rawPrio === 'urgent'
+        ? 'High'
+        : rawPrio === 'low'
+        ? 'Low'
+        : 'Medium';
+    if (formattedTarget) {
+      return {
+        intent: 'update_task',
+        title: formattedTarget,
+        targetTitle: formattedTarget,
+        targetEntityType: 'task',
+        priority,
+        date: null,
+        time: null,
+        endTime: null,
+        durationMinutes: null,
+        category: detectCategory(formattedTarget),
+        details: null,
+        snoozeMinutes: null,
+        confidence: 0.94,
         source: 'fast_path',
         rawTranscript: transcript,
       };
@@ -2108,6 +2217,37 @@ export function parseIntentFastPath(
     /(?:add|put|create)\s+.+\s+(?:to|on|onto|into)\s+(?:my\s+|the\s+)?(?:todos?|to-?dos?|to\s+dos?)(?:\s+list)?\b/i.test(
       commandLower,
     );
+  const checklistNoteMatch =
+    !targetsTodoList &&
+    /^(?:(?:please\s+)?(?:create|add|make|start|new)\s+(?:a\s+|new\s+)?(?:checklist|check\s*list)(?:\s+note)?(?:\s+(?:(?:called|titled|named|for|about)\s+)?([^:]+?))?(?:\s*(?::|with)\s*(.+)))$/i.exec(
+      normalized,
+    );
+  if (checklistNoteMatch && checklistNoteMatch[2]) {
+    const titleRaw = (checklistNoteMatch[1] || 'Checklist').trim();
+    const noteTitle = titleRaw.charAt(0).toUpperCase() + titleRaw.slice(1);
+    const items = checklistNoteMatch[2]
+      .split(/[,;]+|\s+and\s+/i)
+      .map(s => s.trim())
+      .filter(Boolean);
+    if (items.length > 0) {
+      return {
+        intent: 'create_note',
+        title: noteTitle,
+        date: null,
+        time: null,
+        endTime: null,
+        durationMinutes: null,
+        category: detectCategory(`${noteTitle} ${checklistNoteMatch[2]}`),
+        details: items.map(item => `- [ ] ${item}`).join('\n'),
+        checklistItems: items,
+        snoozeMinutes: null,
+        confidence: 0.95,
+        source: 'fast_path',
+        rawTranscript: transcript,
+      };
+    }
+  }
+
   const isExplicitNoteCreate =
     !targetsTodoList &&
     (/\b(?:(?:create|add|make|take|save)\s+(?:(?:this|that)\s+)?(?:as\s+)?(?:a\s+|an\s+|new\s+|quick\s+)?notes?|(?:save|add)\s+to\s+(?:my\s+)?notes?|to\s+note\b|take\s+note\b|note\s+down|write\s+down|jot\s+down|(?:write|jot)\s+(?:a\s+|an\s+|new\s+|quick\s+)?notes?)\b/i.test(
@@ -2215,10 +2355,17 @@ export function parseIntentFastPath(
 
   const isExplicitReminder = /\b(?:remind|reminders?)\b/i.test(commandLower);
 
-  const isQuestionPhrase =
-    /^(?:what|which|who|where|when|why|how|should|can|could|would|do|does|did|is|are|will|am)\b/i.test(
+  const isImperativeScheduleVerb =
+    /^(?:add|set(?:\s+up)?|create|put|schedule|make|book|plan|remind)\b/i.test(
       commandLower,
-    ) || commandLower.endsWith('?');
+    );
+
+  const isQuestionPhrase =
+    !isImperativeScheduleVerb &&
+    (/^(?:what|which|who|where|when|why|how|should|can|could|would|do|does|did|is|are|will|am)\b/i.test(
+      commandLower,
+    ) ||
+      commandLower.endsWith('?'));
 
   if (isExplicitTimeBlock) {
     intentType = 'create_time_block';
@@ -2282,7 +2429,8 @@ export function parseIntentFastPath(
     .replace(
       /(?:,\s*|\s+(?:with|at|as)\s+|\s+)\b(?:high|medium|low)\s+priority\b[\s.!?]*$/i,
       '',
-    );
+    )
+    .replace(/\s+for\s+(?:me|us)[\s.!?]*$/i, '');
 
   cleanTitle = cleanTitle.replace(/^(?:called|titled|named)\s+/i, '');
 
@@ -2371,9 +2519,17 @@ export function parseIntentFastPath(
     confidence = dt.matchedText.length > 0 ? 0.95 : 0.85;
   }
 
+  const isExplicitEventKeyword =
+    intentType === 'create_time_block' &&
+    /\b(?:events?|appointments?)\b/i.test(commandLower) &&
+    !/\b(?:time\s*blocks?|timeblocks?|study\s*blocks?|focus\s*blocks?|work\s*blocks?)\b/i.test(
+      commandLower,
+    );
+
   return {
     intent: intentType,
     title: finalTitle,
+    ...(isExplicitEventKeyword ? {targetEntityType: 'event' as const} : {}),
     date: dt.date,
     time: dt.time,
     endTime: dt.endTime,

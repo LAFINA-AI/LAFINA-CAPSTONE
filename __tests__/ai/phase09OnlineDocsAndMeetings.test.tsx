@@ -1,7 +1,6 @@
 import React from 'react';
 import { render, fireEvent, waitFor } from '@testing-library/react-native';
-import RNFS from 'react-native-fs';
-import Share from 'react-native-share';
+
 import { ThemeProvider } from '../../src/ui/contexts/ThemeContext';
 import { MeetingsProvider } from '../../src/ui/contexts/MeetingsContext';
 import { ChatScreen } from '../../src/ui/screens/ChatScreen';
@@ -21,7 +20,6 @@ import {
   transcribeMeetingChunks,
 } from '../../src/ai';
 import {
-  accountLinkService,
   cloudClient,
   requestMeetingSummary,
 } from '../../src/cloud';
@@ -139,21 +137,11 @@ describe('Phase 09: Online Mode, Document Generation & Meeting Transcription', (
       ).toBeNull();
     });
 
-    it('generates, decodes, saves base64 document via RNFS, and persists attachment in chatStore', async () => {
-      const requestSpy = jest
-        .spyOn(cloudClient, 'request')
-        .mockResolvedValueOnce({
-          status: 'success',
-          data: {
-            format: 'pdf',
-            filename: 'os_study_guide.pdf',
-            mimeType: 'application/pdf',
-            contentBase64: 'JVBERi0xLjQK',
-            sizeBytes: 9,
-            title: 'OS Study Guide',
-            summary: 'Created your Operating Systems PDF study guide.',
-          },
-        });
+    it('does not intercept document generation phrases in chatOrchestrator anymore', async () => {
+      const requestSpy = jest.spyOn(cloudClient, 'request').mockResolvedValue({
+        status: 'success',
+        data: { reply: 'Happy to help with your planning!', sources: [] },
+      });
 
       const result = await chatOrchestrator.processMessage(
         testUserId,
@@ -161,96 +149,25 @@ describe('Phase 09: Online Mode, Document Generation & Meeting Transcription', (
         { onlineMode: true },
       );
 
-      expect(requestSpy).toHaveBeenCalledWith(
+      expect(result.attachment ?? null).toBeNull();
+      expect(requestSpy).not.toHaveBeenCalledWith(
         '/v1/ai/documents',
-        expect.objectContaining({
-          method: 'POST',
-          body: expect.stringContaining('"messages":['),
-        }),
-        true,
+        expect.anything(),
+        expect.anything(),
       );
-      expect(RNFS.writeFile).toHaveBeenCalledWith(
-        expect.stringContaining('os_study_guide.pdf'),
-        'JVBERi0xLjQK',
-        'base64',
-      );
-      expect(result.attachment).not.toBeNull();
-      expect(result.attachment?.format).toBe('pdf');
-      expect(result.attachment?.fileName).toBe('os_study_guide.pdf');
-      expect(result.reply).toBe(
-        'Created your Operating Systems PDF study guide.',
-      );
-
-      const stored = chatStore.getMessages(testUserId);
-      const lastMsg = stored[stored.length - 1];
-      expect(lastMsg.attachment?.fileName).toBe('os_study_guide.pdf');
     });
 
-    it('informs the user when trying to generate a document while in Offline Mode', async () => {
-      const result = await chatOrchestrator.processMessage(
-        testUserId,
-        'Generate an Excel spreadsheet for my grades',
-        { onlineMode: false },
-      );
-
-      expect(result.attachment).toBeNull();
-      expect(result.reply).toContain('requires Online Mode');
-    });
-
-    it('renders attachment card in ChatScreen and opens share sheet when tapped', async () => {
-      jest
-        .spyOn(accountLinkService, 'authorizeOnlineMode')
-        .mockResolvedValue({
-          status: 'success',
-          message: 'Online mode ready.',
-        });
-      jest.spyOn(cloudClient, 'request').mockResolvedValueOnce({
-        status: 'success',
-        data: {
-          format: 'docx',
-          file_name: 'thesis_draft.docx',
-          mime_type:
-            'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-          content_base64: 'UEsDBBQAAAAIA==',
-          title: 'Thesis Draft',
-          summary: 'Generated Thesis Draft (Word).',
-        },
-      });
-      (RNFS.exists as jest.Mock).mockResolvedValue(true);
-
-      const { getByTestId, findByTestId } = render(
+    it('hides Create a Document from ChatScreen tool sheet (Calendar, Notes & To-Do focus)', () => {
+      const { getByTestId, queryByText, queryByTestId } = render(
         <ThemeProvider userId={testUserId}>
-          <MeetingsProvider userId={testUserId}>
-            <ChatScreen userId={testUserId} />
-          </MeetingsProvider>
+          <ChatScreen userId={testUserId} />
         </ThemeProvider>,
       );
 
-      fireEvent.press(getByTestId('chat-online-toggle-button'));
-      await waitFor(() => {
-        expect(accountLinkService.authorizeOnlineMode).toHaveBeenCalledWith(
-          testUserId,
-        );
-      });
-
-      const input = getByTestId('chat-text-input');
-      fireEvent.changeText(
-        input,
-        'Create a Word document for my thesis outline',
-      );
-      fireEvent.press(getByTestId('chat-send-button'));
-
-      const card = await findByTestId('chat-attachment-card');
-      expect(card).toBeTruthy();
-
-      fireEvent.press(card);
-      await waitFor(() => {
-        expect(Share.open).toHaveBeenCalledWith(
-          expect.objectContaining({
-            filename: 'thesis_draft.docx',
-          }),
-        );
-      });
+      fireEvent.press(getByTestId('chat-document-format-button'));
+      expect(getByTestId('chat-attach-camera')).toBeTruthy();
+      expect(queryByText(/Create a Document/i)).toBeNull();
+      expect(queryByTestId('chat-format-option-pdf')).toBeNull();
     });
   });
 

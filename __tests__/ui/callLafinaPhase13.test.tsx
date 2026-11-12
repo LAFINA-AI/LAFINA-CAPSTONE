@@ -107,6 +107,30 @@ describe('Phase 13 — In-App Mini-Call and Feasibility Analysis', () => {
       expect(getByText('02:05')).toBeTruthy();
     });
 
+    it('applies floating above-tab positioning when bottomOffset is provided', () => {
+      const {getByTestId} = render(
+        <ThemeProvider userId={TEST_USER}>
+          <MiniCallBar
+            phase="listening"
+            muted={false}
+            durationSeconds={12}
+            bottomOffset={102}
+            onExpand={jest.fn()}
+            onToggleMute={jest.fn()}
+            onEndCall={jest.fn()}
+          />
+        </ThemeProvider>,
+      );
+
+      const container = getByTestId('mini-call-bar-container');
+      const flat = Array.isArray(container.props.style)
+        ? Object.assign({}, ...container.props.style.filter(Boolean))
+        : container.props.style;
+      expect(flat.position).toBe('absolute');
+      expect(flat.bottom).toBe(102);
+      expect(flat.zIndex).toBe(60);
+    });
+
     it('renders muted status when muted is true', () => {
       const {getByText} = render(
         <ThemeProvider userId={TEST_USER}>

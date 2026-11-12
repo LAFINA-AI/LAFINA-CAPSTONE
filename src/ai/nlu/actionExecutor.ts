@@ -1135,14 +1135,25 @@ export async function executeNluAction(
         id: note.id,
         title: updatedTitle,
         body: updatedBody,
+        ...(typeof intent.isPinned === 'boolean'
+          ? {isPinned: intent.isPinned}
+          : {}),
+        ...(intent.newCategory ? {category: intent.newCategory} : {}),
       });
+
+      const noteReply =
+        typeof intent.isPinned === 'boolean'
+          ? `${intent.isPinned ? 'Pinned' : 'Unpinned'} note: "${updatedTitle}".`
+          : intent.newCategory
+          ? `Moved note "${updatedTitle}" to ${intent.newCategory}.`
+          : `Updated note: "${updatedTitle}".`;
 
       return {
         success: true,
         intent: 'update_note',
         entityType: 'note',
         entityId: note.id,
-        reply: `Updated note: "${updatedTitle}".`,
+        reply: noteReply,
       };
     }
 
@@ -1275,6 +1286,19 @@ export async function executeNluAction(
           reply: `Marked task "${task.title}" as completed. All reminder alarms for it have been cancelled.`,
         };
       }
+      if (intent.isCompleted === false) {
+        tasksStore.updateTask({
+          id: task.id,
+          isCompleted: false,
+        });
+        return {
+          success: true,
+          intent: 'update_task',
+          entityType: 'task',
+          entityId: task.id,
+          reply: `Reopened task "${task.title}".`,
+        };
+      }
 
       const updatedTitle = intent.newTitle || task.title;
       let updatedDate = intent.date || task.dueDate || null;
@@ -1288,6 +1312,11 @@ export async function executeNluAction(
         title: updatedTitle,
         dueDate: updatedDate,
         dueTime: updatedTime,
+        ...(intent.priority ? {priority: intent.priority} : {}),
+        ...(intent.newCategory ? {category: intent.newCategory} : {}),
+        ...(intent.details !== null && intent.details !== undefined
+          ? {notes: intent.details}
+          : {}),
       });
 
       // Also update or create a reminder if dueTime is present

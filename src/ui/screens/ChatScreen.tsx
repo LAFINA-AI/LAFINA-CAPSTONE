@@ -22,10 +22,7 @@ import {
   Bot,
   BookOpen,
   Camera,
-  FileSpreadsheet,
-  FileText,
   Image as ImageIcon,
-  Presentation,
   Sparkles,
   MessageCircleDashed,
   Lightbulb,
@@ -53,11 +50,6 @@ import {
   chatMemoryService,
 } from '../../cloud/chatMemoryService';
 import type {ChatMemoryChangedEvent} from '../../cloud/chatMemoryService';
-import {
-  DOCUMENT_FORMAT_ORDER,
-  DOCUMENT_FORMATS,
-  type DocumentFormat,
-} from '../../skills/documentSkill';
 import {chatOrchestrator} from '../../ai/chatOrchestrator';
 import {ChatMessageItem} from '../components/chat/ChatMessageItem';
 import {ChatHistorySheet} from '../components/chat/ChatHistorySheet';
@@ -77,6 +69,12 @@ import {DraftDecisionDialog} from '../components/DraftDecisionDialog';
 import {chatDraftStore} from '../drafts/chatDraftStore';
 import {shareAttachment} from '../components/chat/chatFiles';
 import {ToolSheet} from '../components/tools';
+import {MultiActionCard} from '../components/callLafina/cards/MultiActionCard';
+import {actionService} from '../../ai/voiceActions/actionService';
+import type {
+  MultiActionBatchData,
+  MultiActionItemData,
+} from '../../ai/voiceActions/types';
 
 /** How often a reply that is still arriving repaints (about 20 times a second). */
 const STREAM_REPAINT_MS = 50;
@@ -190,6 +188,9 @@ export const ChatScreen: React.FC<ChatScreenProps> = ({
     null,
   );
   const [isSending, setIsSending] = useState(false);
+  const [chatMultiBatch, setChatMultiBatch] =
+    useState<MultiActionBatchData | null>(null);
+  const [chatMultiBusy, setChatMultiBusy] = useState(false);
   isSendingRef.current = isSending;
   // DeepSeek's reply while it is still being written (Online Mode only).
   const [streamingReply, setStreamingReply] = useState<{
@@ -203,9 +204,6 @@ export const ChatScreen: React.FC<ChatScreenProps> = ({
   const isUstpChat = !isTemporaryChat && isUstpSessionId(currentChatId);
   const [handbookNotes, setHandbookNotes] = useState<Record<string, string>>(
     {},
-  );
-  const [selectedFormat, setSelectedFormat] = useState<DocumentFormat | null>(
-    null,
   );
   const [formatPickerOpen, setFormatPickerOpen] = useState(false);
   const [guideVisible, setGuideVisible] = useState(false);
@@ -655,7 +653,6 @@ export const ChatScreen: React.FC<ChatScreenProps> = ({
   const handleStartUstpChat = () => {
     if (isSending) return;
     setHistoryVisible(false);
-    setSelectedFormat(null);
     setIsTemporaryChat(false);
     setTempMessages([]);
     try {
@@ -674,18 +671,9 @@ export const ChatScreen: React.FC<ChatScreenProps> = ({
   const handleStartTemporaryFromSidebar = () => {
     if (isSending) return;
     setHistoryVisible(false);
-    setSelectedFormat(null);
     setIsTemporaryChat(true);
     setTempMessages([]);
     beginInitialScroll(false);
-  };
-
-  const handleSelectDocumentFormatFromSidebar = async (
-    format: DocumentFormat,
-  ) => {
-    setHistoryVisible(false);
-    ensureGeneralSessionForTool();
-    await handleSelectFormat(format);
   };
 
   const onlineToggleTicket = useRef(0);
@@ -694,7 +682,6 @@ export const ChatScreen: React.FC<ChatScreenProps> = ({
     const ticket = ++onlineToggleTicket.current;
     if (isOnlineMode) {
       setIsOnlineMode(false);
-      setSelectedFormat(null);
       localSettingsStore.set(userId, 'chat.onlineMode', 'false');
       return false;
     }
@@ -737,15 +724,6 @@ export const ChatScreen: React.FC<ChatScreenProps> = ({
 
   const handleOpenFormatPicker = () => {
     setFormatPickerOpen(true);
-  };
-
-  const handleSelectFormat = async (format: DocumentFormat) => {
-    if (!isOnlineMode) {
-      const enabled = await handleToggleOnline();
-      if (!enabled) return;
-    }
-    setSelectedFormat(format);
-    setFormatPickerOpen(false);
   };
 
   const handleScanCamera = async () => {
@@ -830,10 +808,8 @@ export const ChatScreen: React.FC<ChatScreenProps> = ({
     const query = (overrideText || inputText).trim();
     if (!query || isSending) return;
 
-    const requestedFormat = selectedFormat;
     const requestUser = userId;
     setInputText('');
-    setSelectedFormat(null);
     isSendingRef.current = true;
     needsInitialScrollRef.current = false;
     initialSettleUntilRef.current = 0;
@@ -886,7 +862,6 @@ export const ChatScreen: React.FC<ChatScreenProps> = ({
         onlineMode: isOnlineMode,
         useHandbook: isUstpChat,
         ustpRagOnly: isUstpChat,
-        documentFormat: requestedFormat,
         onReplyText,
         temporaryChat: isTemporaryChat,
         temporaryHistory: isTemporaryChat
@@ -904,13 +879,23 @@ export const ChatScreen: React.FC<ChatScreenProps> = ({
           [result.assistantMessage.id]: result.handbookNote as string,
         }));
       }
-      if (result.review?.status === 'proposal') {
-        reviewSourceRef.current = {
-          operationId: result.review.proposal.operationId,
-          text: query,
-        };
+      if (result.multiBatch) {
+        reviewSourceRef.current = null;
+        review.dismiss();
+        setChatMultiBatch(result.multiBatch);
+      } else if (result.resolvedReview) {
+        reviewSourceRef.current = null;
+        review.dismiss();
+      } else {
+        setChatMultiBatch(null);
+        if (result.review?.status === 'proposal') {
+          reviewSourceRef.current = {
+            operationId: result.review.proposal.operationId,
+            text: query,
+          };
+        }
+        review.present(result.review);
       }
-      review.present(result.review);
       if (isTemporaryChat) {
         setTempMessages(prev => [...prev, result.assistantMessage]);
       } else {
@@ -981,6 +966,87 @@ export const ChatScreen: React.FC<ChatScreenProps> = ({
       };
     }
     return edited;
+  };
+
+  const handleConfirmChatMultiAll = async () => {
+    if (!chatMultiBatch || chatMultiBusy) return;
+    setChatMultiBusy(true);
+    try {
+      const {batch, spokenSummary} = await actionService.confirmMultiActionBatch(
+        userId,
+        chatMultiBatch,
+      );
+      setChatMultiBatch(batch);
+      chatStore.addMessage(
+        userId,
+        'assistant',
+        spokenSummary,
+        null,
+        {localReply: true},
+        readCurrentChat(),
+      );
+      loadMessages();
+      onRefresh?.();
+    } catch (err) {
+      console.warn('[ChatScreen] Multi-action confirm failed:', err);
+    } finally {
+      setChatMultiBusy(false);
+    }
+  };
+
+  const handleCancelChatMultiAll = () => {
+    if (!chatMultiBatch) return;
+    actionService.cancelMultiActionBatch(userId, chatMultiBatch);
+    setChatMultiBatch(null);
+  };
+
+  const handleCancelChatMultiItem = (itemId: string) => {
+    if (!chatMultiBatch) return;
+    const remaining = chatMultiBatch.items.filter(i => i.id !== itemId);
+    if (remaining.length === 0) {
+      setChatMultiBatch(null);
+      return;
+    }
+    setChatMultiBatch({
+      ...chatMultiBatch,
+      revision: chatMultiBatch.revision + 1,
+      items: remaining,
+    });
+  };
+
+  const handleRetryChatMultiItem = async (itemId: string) => {
+    if (!chatMultiBatch || chatMultiBusy) return;
+    setChatMultiBusy(true);
+    try {
+      const {batch} = await actionService.confirmMultiActionBatch(
+        userId,
+        chatMultiBatch,
+        itemId,
+      );
+      setChatMultiBatch(batch);
+      loadMessages();
+      onRefresh?.();
+    } catch (err) {
+      console.warn('[ChatScreen] Multi-action item retry failed:', err);
+    } finally {
+      setChatMultiBusy(false);
+    }
+  };
+
+  const handleEditChatMultiItemFields = (
+    itemId: string,
+    patch: Partial<
+      Pick<MultiActionItemData, 'date' | 'time' | 'endTime' | 'body'>
+    >,
+  ) => {
+    if (!chatMultiBatch) return;
+    setChatMultiBatch({
+      ...chatMultiBatch,
+      revision: chatMultiBatch.revision + 1,
+      items: chatMultiBatch.items.map(item =>
+        item.id === itemId ? {...item, ...patch} : item,
+      ),
+    });
   };
 
   const dismissLegacyNotice = () => {
@@ -1430,7 +1496,24 @@ export const ChatScreen: React.FC<ChatScreenProps> = ({
         />
       </Animated.View>
 
-      {review.proposal ? (
+      {chatMultiBatch ? (
+        <View style={styles.reviewContainer}>
+          <MultiActionCard
+            batch={chatMultiBatch}
+            busy={chatMultiBusy}
+            onConfirmAll={() => {
+              void handleConfirmChatMultiAll();
+            }}
+            onCancelAll={handleCancelChatMultiAll}
+            onCancelItem={handleCancelChatMultiItem}
+            onRetryItem={itemId => {
+              void handleRetryChatMultiItem(itemId);
+            }}
+            onDismiss={() => setChatMultiBatch(null)}
+            onEditItemFields={handleEditChatMultiItemFields}
+          />
+        </View>
+      ) : review.proposal ? (
         <View style={styles.reviewContainer}>
           <CommandReviewCard
             proposal={review.proposal}
@@ -1455,7 +1538,6 @@ export const ChatScreen: React.FC<ChatScreenProps> = ({
         onSend={text => handleSend(text)}
         isSending={isSending}
         isOnlineMode={isOnlineMode}
-        selectedFormat={selectedFormat}
         onOpenFormatPicker={
           isUstpChat
             ? undefined
@@ -1463,7 +1545,6 @@ export const ChatScreen: React.FC<ChatScreenProps> = ({
                 void handleOpenFormatPicker();
               }
         }
-        onClearFormat={() => setSelectedFormat(null)}
         onSelectPrompt={prompt => handleSend(prompt)}
         showSuggestions={false}
         placeholderOverride={
@@ -1535,60 +1616,6 @@ export const ChatScreen: React.FC<ChatScreenProps> = ({
           </View>
         </TouchableOpacity>
 
-        <Text
-          style={[styles.sectionHeader, themed.sectionHeader, {marginTop: 18}]}
-        >
-          Create a Document
-        </Text>
-        <Text style={[styles.sheetHint, themed.sheetHint]}>
-          Choose a file format, then describe what you want inside it.
-        </Text>
-        {DOCUMENT_FORMAT_ORDER.map(format => {
-          const meta = DOCUMENT_FORMATS[format];
-          const active = selectedFormat === format;
-          const Icon =
-            format === 'xlsx'
-              ? FileSpreadsheet
-              : format === 'pptx'
-              ? Presentation
-              : FileText;
-          return (
-            <TouchableOpacity
-              key={format}
-              style={[
-                styles.formatOption,
-                themed.formatOption,
-                active && themed.formatOptionActive,
-              ]}
-              onPress={() => {
-                void handleSelectFormat(format);
-              }}
-              accessibilityRole="button"
-              accessibilityLabel={meta.label}
-              testID={`chat-format-option-${format}`}
-            >
-              <Icon
-                size={20}
-                color={active ? colors.red : colors.textPrimary}
-              />
-              <View style={styles.formatOptionText}>
-                <Text
-                  style={[styles.formatOptionTitle, themed.formatOptionTitle]}
-                >
-                  {meta.label}
-                </Text>
-                <Text
-                  style={[
-                    styles.formatOptionSubtitle,
-                    themed.formatOptionSubtitle,
-                  ]}
-                >
-                  .{meta.extension}
-                </Text>
-              </View>
-            </TouchableOpacity>
-          );
-        })}
       </ToolSheet>
 
       <ChatHistorySheet
@@ -1601,9 +1628,6 @@ export const ChatScreen: React.FC<ChatScreenProps> = ({
         onChanged={showCurrentChat}
         onStartUstpChat={handleStartUstpChat}
         onStartTemporaryChat={handleStartTemporaryFromSidebar}
-        onSelectDocumentFormat={format => {
-          void handleSelectDocumentFormatFromSidebar(format);
-        }}
         onScanCamera={() => {
           setHistoryVisible(false);
           ensureGeneralSessionForTool();

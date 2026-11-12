@@ -185,15 +185,11 @@ describe('chat history sheet', () => {
     fireEvent.press(getByTestId('chat-history-filter-all'));
     fireEvent.press(getByTestId('chat-history-expand'));
 
-    // Launch Create PDF directly from the sidebar -> switches back from USTP/temp if needed & selects PDF format
-    await act(async () => {
-      fireEvent.press(getByTestId('chat-sidebar-doc-pdf'));
-    });
-    expect(queryByTestId('chat-history-sheet')).toBeNull();
-    expect(await findByText('Creating a PDF file')).toBeTruthy();
+    // Document creation chips were removed from sidebar (Calendar, Notes & To-Do scope cleanup)
+    expect(queryByTestId('chat-sidebar-doc-pdf')).toBeNull();
+    expect(getByTestId('chat-sidebar-scan-camera')).toBeTruthy();
 
     // Command Guide launches cleanly from the sidebar
-    fireEvent.press(getByTestId('chat-history-button'));
     fireEvent.press(getByTestId('chat-sidebar-guide'));
     expect(await findByText('What you can ask')).toBeTruthy();
   });

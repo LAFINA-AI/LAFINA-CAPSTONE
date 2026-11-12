@@ -12,15 +12,11 @@ import {
   Alert,
   GestureResponderEvent,
 } from 'react-native';
-import { FileText, Mic, Plus, Send, Sparkles, X } from 'lucide-react-native';
+import { Mic, Plus, Send, Sparkles, X } from 'lucide-react-native';
 import { Fonts, Shadows } from '../../theme';
 import { useTheme } from '../../contexts/ThemeContext';
 import { useThemedStyles } from '../../theme/createThemedStyles';
 import type { ThemeColors } from '../../contexts/ThemeContext';
-import {
-  DOCUMENT_FORMATS,
-  type DocumentFormat,
-} from '../../../skills/documentSkill';
 import {
   sttService,
   type OfflineSpeechCaptureHandle,
@@ -32,9 +28,7 @@ export interface ChatInputProps {
   onSend: (overrideText?: string) => void;
   isSending?: boolean;
   isOnlineMode?: boolean;
-  selectedFormat?: DocumentFormat | null;
   onOpenFormatPicker?: () => void;
-  onClearFormat?: () => void;
   onSelectPrompt?: (prompt: string) => void;
   showSuggestions?: boolean;
   placeholderOverride?: string;
@@ -89,9 +83,7 @@ export const ChatInput: React.FC<ChatInputProps> = ({
   onSend,
   isSending = false,
   isOnlineMode = false,
-  selectedFormat = null,
   onOpenFormatPicker,
-  onClearFormat,
   onSelectPrompt,
   showSuggestions = false,
   placeholderOverride,
@@ -99,14 +91,11 @@ export const ChatInput: React.FC<ChatInputProps> = ({
 }) => {
   const { colors } = useTheme();
   const themed = useThemedStyles(getThemedStyles);
-  const formatMeta = selectedFormat ? DOCUMENT_FORMATS[selectedFormat] : null;
-  const placeholder = formatMeta
-    ? `Describe the ${formatMeta.shortLabel} file…`
-    : placeholderOverride
-      ? placeholderOverride
-      : isOnlineMode
-        ? 'Ask lafina or request a file…'
-        : 'Ask lafina or add a schedule item…';
+  const placeholder = placeholderOverride
+    ? placeholderOverride
+    : isOnlineMode
+      ? 'Ask lafina or manage calendar, notes & to-do…'
+      : 'Ask lafina or add a schedule, note, or to-do…';
 
   const [isRecording, setIsRecording] = useState(false);
   const [isTranscribing, setIsTranscribing] = useState(false);
@@ -306,7 +295,7 @@ export const ChatInput: React.FC<ChatInputProps> = ({
 
   return (
     <View style={[styles.container, themed.container]}>
-      {showSuggestions && !inputText && !formatMeta && (
+      {showSuggestions && !inputText && (
         <ScrollView
           horizontal
           showsHorizontalScrollIndicator={false}
@@ -334,43 +323,22 @@ export const ChatInput: React.FC<ChatInputProps> = ({
         </ScrollView>
       )}
 
-      {formatMeta && (
-        <View style={[styles.formatPill, themed.formatPill]}>
-          <FileText size={13} color={colors.red} />
-          <Text style={[styles.formatPillText, themed.formatPillText]}>
-            Creating a {formatMeta.shortLabel} file
-          </Text>
-          {onClearFormat && (
-            <TouchableOpacity
-              onPress={onClearFormat}
-              hitSlop={8}
-              accessibilityRole="button"
-              accessibilityLabel={`Cancel ${formatMeta.label}`}
-              testID="chat-clear-format-button"
-            >
-              <X size={14} color={colors.textSecondary} />
-            </TouchableOpacity>
-          )}
-        </View>
-      )}
-
       <View style={styles.inputRow}>
         {onOpenFormatPicker && (
           <TouchableOpacity
             style={[
               styles.attachButton,
               themed.attachButton,
-              formatMeta && themed.attachButtonActive,
             ]}
             onPress={onOpenFormatPicker}
             disabled={isSending || isRecording || isTranscribing}
             accessibilityRole="button"
-            accessibilityLabel="Add attachment, scan schedule, or create document"
+            accessibilityLabel="Scan schedule from camera or photos"
             testID="chat-document-format-button"
           >
             <Plus
               size={20}
-              color={formatMeta ? colors.primary : colors.textSecondary}
+              color={colors.textSecondary}
             />
           </TouchableOpacity>
         )}

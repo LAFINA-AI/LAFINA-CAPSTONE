@@ -228,34 +228,34 @@ export const buildStudentVoiceContext = (userId: string): string => {
     // best-effort
   }
 
-  // 2. Calendar Schedule (Today & upcoming 2 days)
+  // 2. Calendar Schedule (Today & upcoming 6 days — full 7-day planner window)
   try {
     const today = formatLocalDate(new Date());
-    const upcomingEnd = addDaysToDate(today, 2);
+    const upcomingEnd = addDaysToDate(today, 6);
     const window = plannerQueries.window(userId, today, upcomingEnd);
     const items: string[] = [];
 
     // Blocks
-    for (const b of window.blocks.slice(0, 5)) {
+    for (const b of window.blocks.slice(0, 10)) {
       items.push(
         `Time block "${b.title}" on ${b.date} (${b.startTime}-${b.endTime})`,
       );
     }
     // Events
-    for (const e of window.events.slice(0, 6)) {
+    for (const e of window.events.slice(0, 12)) {
       items.push(
         `Event "${e.title}" on ${e.date}${
           e.startTime ? ` at ${e.startTime}` : ''
-        }`,
+        }${e.location ? ` @ ${e.location}` : ''}`,
       );
     }
     // Tasks (uncompleted first)
-    const pendingTasks = window.tasks.filter(t => !t.isCompleted).slice(0, 8);
+    const pendingTasks = window.tasks.filter(t => !t.isCompleted).slice(0, 12);
     for (const t of pendingTasks) {
       items.push(
-        `Task "${t.title}"${t.dueDate ? ` due ${t.dueDate}` : ''}${
-          t.dueTime ? ` at ${t.dueTime}` : ''
-        }`,
+        `Task "${t.title}" (${t.priority} priority)${
+          t.dueDate ? ` due ${t.dueDate}` : ''
+        }${t.dueTime ? ` at ${t.dueTime}` : ''}`,
       );
     }
 
@@ -305,7 +305,7 @@ export const buildStudentVoiceContext = (userId: string): string => {
     }
     const todoLines: string[] = [
       ...openUndated
-        .slice(0, 10)
+        .slice(0, 12)
         .map(
           t =>
             `• [To-Do] "${t.title.slice(0, 100)}" (undated, ${
@@ -337,15 +337,15 @@ export const buildStudentVoiceContext = (userId: string): string => {
   try {
     const allNotes = cachedNotes ?? notesStore.getAll(userId);
     if (allNotes.length > 0) {
-      const noteSummaries = allNotes.slice(0, 10).map(n => {
+      const noteSummaries = allNotes.slice(0, 15).map(n => {
         const bodyClean = noteBodyToMarkdown(n.body)
           .replace(/\n+/g, ' ')
           .replace(/\s+/g, ' ')
           .trim()
           .slice(0, 160);
-        return `• "${n.title}"${n.category ? ` [${n.category}]` : ''}: ${
-          bodyClean || '(empty)'
-        }`;
+        return `• ${n.isPinned ? '[Pinned] ' : ''}"${n.title}"${
+          n.category ? ` [${n.category}]` : ''
+        }: ${bodyClean || '(empty)'}`;
       });
       sections.push(`Saved Notes in Notes tab:\n${noteSummaries.join('\n')}`);
     } else {

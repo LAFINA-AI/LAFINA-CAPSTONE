@@ -966,3 +966,34 @@ it('returns an explicit partial result instead of cutting a large JSON tool resu
   expect(packet.is_error).toBe(false);
   await controller.endAndWait();
 });
+
+describe('provider error humanization and close status checks', () => {
+  it('humanizes raw custom_llm generation failed errors instead of surfacing technical strings', async () => {
+    const {controller, message, emit} = setup();
+    await controller.start();
+
+    message({
+      type: 'client_error',
+      client_error: {message: 'custom_llm generation failed'},
+    });
+    expect(controller.getSnapshot().notice).toMatch(
+      /temporary connection issue/i,
+    );
+    expect(controller.getSnapshot().notice).not.toContain('custom_llm');
+
+    emit({kind: 'closed', code: 1006, reason: 'custom_llm generation failed'});
+    expect(controller.getSnapshot().phase).toBe('restart_required');
+    expect(controller.getSnapshot().notice).not.toContain('custom_llm');
+  });
+
+  it('queries server failure status after remote close with post-stop generation', async () => {
+    const {controller, emit, calls} = setup();
+    await controller.start();
+
+    emit({kind: 'closed', code: 1006, reason: ''});
+    await flush();
+
+    expect(calls.status).toBe(1);
+    expect(controller.getSnapshot().notice).toBe('Answers are paused right now.');
+  });
+});

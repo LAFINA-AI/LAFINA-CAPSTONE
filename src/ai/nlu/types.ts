@@ -41,6 +41,10 @@ export interface ExtractedIntent {
   dateRange?: 'this_week' | 'next_week' | null;
   recurrenceRule?: string | null;
   priority?: 'High' | 'Medium' | 'Low' | null;
+  location?: string | null;
+  isPinned?: boolean | null;
+  newCategory?: string | null;
+  checklistItems?: string[] | null;
 }
 
 export interface ValidatedIntent extends ExtractedIntent {
@@ -177,7 +181,12 @@ export function validateIntent(intent: ExtractedIntent): ValidatedIntent {
         intent.date ||
         sanitizedNewTitle ||
         intent.details ||
-        typeof intent.isCompleted === 'boolean',
+        typeof intent.isCompleted === 'boolean' ||
+        typeof intent.isPinned === 'boolean' ||
+        Boolean((intent.newCategory || '').trim()) ||
+        Boolean(intent.priority) ||
+        Boolean((intent.location || '').trim()) ||
+        Boolean(intent.checklistItems && intent.checklistItems.length > 0),
     );
     if (!hasTarget && !hasMutation) {
       return {

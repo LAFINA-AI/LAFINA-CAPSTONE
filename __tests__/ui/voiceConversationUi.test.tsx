@@ -23,6 +23,7 @@ import {cloudClient} from '../../src/cloud/cloudClient';
 import {
   defaultVoiceConversationDeps,
   endActiveVoiceConversation,
+  LAFINA_VOICE_SYSTEM_PROMPT,
   VOICE_CONSENT_KEY,
 } from '../../src/cloud/voiceConversation';
 import type {
@@ -121,7 +122,7 @@ const fakeServer = (options: {enabled?: boolean} = {}) => {
 
 const fakeTransport = () => {
   let listener: ((event: TransportEvent) => void) | null = null;
-  const calls = {start: 0, end: 0, muted: [] as boolean[], initiation: ''};
+  const calls = {start: 0, end: 0, muted: [] as boolean[], initiation: '', sent: [] as string[]};
   const transport: VoiceTransport = {
     available: () => true,
     start: async options => {
@@ -133,7 +134,10 @@ const fakeTransport = () => {
       return true;
     },
     stopResponse: async () => true,
-    sendMessage: async () => true,
+    sendMessage: async (_key, payload) => {
+      calls.sent.push(payload);
+      return true;
+    },
     end: async () => {
       calls.end += 1;
       return true;
@@ -645,9 +649,8 @@ describe('a live conversation', () => {
     expect(
       JSON.parse(calls.initiation).conversation_config_override.tts.voice_id,
     ).toBe('default_voice');
-    expect(utils.getByTestId('voice-conversation-voice')).toHaveTextContent(
-      /Camille/,
-    );
+    expect(utils.queryByTestId('voice-conversation-voice')).toBeNull();
+    expect(utils.queryByText('Talk with LAFINA naturally, hands-free')).toBeNull();
 
     message({
       type: 'tentative_user_transcript',
@@ -1080,5 +1083,88 @@ describe('Call Mode ChatGPT-style UX, live card revisions, and saving', () => {
       dueTime: '15:00',
     });
     expect(utils.queryByTestId('voice-conversation-review-card')).toBeNull();
+  });
+
+  test('schedule me a meeting and polite question form show confirmation card and hide orb/waveform', async () => {
+    const userId = student('schedule-meeting');
+    signIn(userId);
+    fakeServer();
+    const {transport, calls, message} = fakeTransport();
+    const utils = renderPanel(userId, transport);
+    fireEvent.press(utils.getByTestId('voice-conversation-start'));
+    await waitFor(() => expect(calls.start).toBe(1));
+
+    // Initial connect must not send duplicate student-context contextual_update frames
+    expect(
+      calls.sent.some(
+        s => s.includes('contextual_update') && s.includes('Student timezone'),
+      ),
+    ).toBe(false);
+
+    expect(utils.getByTestId('call-identity-ring')).toBeTruthy();
+    expect(utils.getByTestId('call-waveform-area')).toBeTruthy();
+
+    message({
+      type: 'user_transcript',
+      user_transcription_event: {
+        user_transcript: 'schedule me a meeting',
+        event_id: 401,
+      },
+    });
+    const card = await utils.findByTestId('voice-conversation-review-card');
+    expect(card).toHaveTextContent(/Meeting/);
+    expect(utils.queryByTestId('call-identity-ring')).toBeNull();
+    expect(utils.queryByTestId('call-waveform-area')).toBeNull();
+
+    // Cancel first draft, then test polite question variant
+    fireEvent.press(utils.getByTestId('voice-conversation-review-cancel'));
+    await waitFor(() =>
+      expect(utils.queryByTestId('voice-conversation-review-card')).toBeNull(),
+    );
+
+    message({
+      type: 'user_transcript',
+      user_transcription_event: {
+        user_transcript: 'Can you schedule me a meeting?',
+        event_id: 402,
+      },
+    });
+    const politeCard = await utils.findByTestId('voice-conversation-review-card');
+    expect(politeCard).toHaveTextContent(/Meeting/);
+    expect(utils.queryByTestId('call-identity-ring')).toBeNull();
+    expect(utils.queryByTestId('call-waveform-area')).toBeNull();
+  });
+
+  test('hides orb and waveform when displaying clarification details or assistant reply, and Done restores orb', async () => {
+    const userId = student('details-card');
+    signIn(userId);
+    fakeServer();
+    const {transport, calls, message} = fakeTransport();
+    const utils = renderPanel(userId, transport);
+    fireEvent.press(utils.getByTestId('voice-conversation-start'));
+    await waitFor(() => expect(calls.start).toBe(1));
+
+    message({
+      type: 'agent_response',
+      agent_response_event: {
+        agent_response: 'I can help plan your week. Just tell me the day and time.',
+        event_id: 501,
+      },
+    });
+
+    const detailsCard = await utils.findByTestId('call-details-card');
+    expect(detailsCard).toHaveTextContent(/I can help plan your week/);
+    expect(utils.queryByTestId('call-identity-ring')).toBeNull();
+    expect(utils.queryByTestId('call-waveform-area')).toBeNull();
+
+    fireEvent.press(utils.getByTestId('call-details-dismiss'));
+    await waitFor(() => {
+      expect(utils.queryByTestId('call-details-card')).toBeNull();
+      expect(utils.getByTestId('call-identity-ring')).toBeTruthy();
+      expect(utils.getByTestId('call-waveform-area')).toBeTruthy();
+    });
+
+    expect(LAFINA_VOICE_SYSTEM_PROMPT).toContain('first person');
+    expect(LAFINA_VOICE_SYSTEM_PROMPT).not.toContain('LAFINA shows');
   });
 });

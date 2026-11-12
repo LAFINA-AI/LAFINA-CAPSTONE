@@ -26,7 +26,7 @@ import {
 import {COMMAND_GUIDE} from '../../src/ai/nlu/commandGuide';
 import {chatOrchestrator} from '../../src/ai/chatOrchestrator';
 import {onlineChatSkill} from '../../src/skills/onlineChatSkill';
-import {documentSkill} from '../../src/skills/documentSkill';
+
 import {ChatScreen} from '../../src/ui/screens/ChatScreen';
 import {CalendarScreen} from '../../src/ui/screens/calendar';
 import {addDaysToDate} from '../../src/storage/eventTime';
@@ -269,20 +269,25 @@ describe('AGY-PORT 06 planner replies and guide', () => {
       expect(result.reply).toContain('Physics problem set');
     });
 
-    test('a document request in Online mode still goes to document generation', async () => {
+    test('an open-ended thesis outline request in Online mode goes to online AI conversation', async () => {
       const me = owner('doc');
-      const generate = jest.spyOn(documentSkill, 'generate').mockResolvedValue({
-        status: 'error',
-        error: 'network',
-      } as never);
+      const online = jest
+        .spyOn(onlineChatSkill, 'sendChatMessage')
+        .mockResolvedValue({
+          status: 'success',
+          data: {reply: 'Here is a structured thesis outline.', sources: []},
+        } as never);
 
-      await chatOrchestrator.processMessage(me, 'Outline for my thesis', {
-        onlineMode: true,
-        documentFormat: 'docx',
-        referenceDate: REF,
-      });
-      expect(generate).toHaveBeenCalledTimes(1);
-      expect(generate.mock.calls[0][0]).toMatchObject({format: 'docx'});
+      const result = await chatOrchestrator.processMessage(
+        me,
+        'Outline for my thesis',
+        {
+          onlineMode: true,
+          referenceDate: REF,
+        },
+      );
+      expect(online).toHaveBeenCalledTimes(1);
+      expect(result.reply).toContain('thesis outline');
     });
   });
 

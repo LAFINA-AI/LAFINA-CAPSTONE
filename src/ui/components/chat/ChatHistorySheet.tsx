@@ -16,8 +16,6 @@ import {useSafeAreaInsets} from 'react-native-safe-area-context';
 import {
   BookOpen,
   Camera,
-  FileSpreadsheet,
-  FileText,
   Image as ImageIcon,
   Lightbulb,
   Maximize2,
@@ -26,7 +24,6 @@ import {
   MessageSquarePlus,
   Minimize2,
   Pencil,
-  Presentation,
   Search,
   X,
 } from 'lucide-react-native';
@@ -39,11 +36,6 @@ import {
   type ChatSessionKind,
   type ChatSummary,
 } from '../../../storage/chatStore';
-import {
-  DOCUMENT_FORMAT_ORDER,
-  DOCUMENT_FORMATS,
-  type DocumentFormat,
-} from '../../../skills/documentSkill';
 import {removeAttachmentFiles} from './chatFiles';
 
 export interface ChatHistorySheetProps {
@@ -58,7 +50,6 @@ export interface ChatHistorySheetProps {
   onChanged: () => void;
   onStartUstpChat?: () => void;
   onStartTemporaryChat?: () => void;
-  onSelectDocumentFormat?: (format: DocumentFormat) => void;
   onScanCamera?: () => void;
   onScanGallery?: () => void;
   onOpenGuide?: () => void;
@@ -89,24 +80,10 @@ const formatWhen = (iso: string, now = new Date()): string => {
   });
 };
 
-const DocFormatIcon: React.FC<{format: DocumentFormat; color: string}> = ({
-  format,
-  color,
-}) => {
-  switch (format) {
-    case 'xlsx':
-      return <FileSpreadsheet size={14} color={color} />;
-    case 'pptx':
-      return <Presentation size={14} color={color} />;
-    default:
-      return <FileText size={14} color={color} />;
-  }
-};
-
 /**
  * Gemini-style slide-out sidebar that expands into a full-screen drawer for
  * searching chats, switching to the dedicated "Ask LAFINA about USTP" RAG chat,
- * and launching quick tools like document creation and schedule scanning.
+ * and launching quick schedule-scanning and command-guide tools.
  */
 export const ChatHistorySheet: React.FC<ChatHistorySheetProps> = ({
   visible,
@@ -118,7 +95,6 @@ export const ChatHistorySheet: React.FC<ChatHistorySheetProps> = ({
   onChanged,
   onStartUstpChat,
   onStartTemporaryChat,
-  onSelectDocumentFormat,
   onScanCamera,
   onScanGallery,
   onOpenGuide,
@@ -548,56 +524,13 @@ export const ChatHistorySheet: React.FC<ChatHistorySheetProps> = ({
               </TouchableOpacity>
             )}
 
-            {(onSelectDocumentFormat ||
-              onScanCamera ||
-              onScanGallery ||
-              onOpenGuide) && (
+            {(onScanCamera || onScanGallery || onOpenGuide) && (
               <View style={styles.toolsSection}>
                 <Text
                   style={[styles.sectionLabel, {color: colors.textSecondary}]}
                 >
-                  Create & Tools
+                  Tools
                 </Text>
-
-                {onSelectDocumentFormat && (
-                  <View style={styles.chipGrid}>
-                    {DOCUMENT_FORMAT_ORDER.map(format => {
-                      const meta = DOCUMENT_FORMATS[format];
-                      return (
-                        <TouchableOpacity
-                          key={format}
-                          style={[
-                            styles.toolChip,
-                            {
-                              backgroundColor: colors.cardBg,
-                              borderColor: colors.border,
-                            },
-                          ]}
-                          onPress={() => {
-                            if (blockedWhileBusy()) return;
-                            onSelectDocumentFormat(format);
-                          }}
-                          accessibilityRole="button"
-                          accessibilityLabel={`Create ${meta.label}`}
-                          testID={`chat-sidebar-doc-${format}`}
-                        >
-                          <DocFormatIcon
-                            format={format}
-                            color={colors.primary}
-                          />
-                          <Text
-                            style={[
-                              styles.toolChipText,
-                              {color: colors.textPrimary},
-                            ]}
-                          >
-                            {meta.shortLabel}
-                          </Text>
-                        </TouchableOpacity>
-                      );
-                    })}
-                  </View>
-                )}
 
                 <View style={styles.chipGrid}>
                   {onScanCamera && (

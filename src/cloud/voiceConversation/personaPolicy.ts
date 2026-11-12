@@ -7,8 +7,9 @@
  */
 
 export const LAFINA_VOICE_SYSTEM_PROMPT =
-  'You are Lafina, an online voice assistant for a student. Answer naturally in short spoken sentences, ' +
-  'usually one to three. Use plain language, with brief acknowledgments when useful. ' +
+  'You are Lafina, an online voice assistant for a student. Always speak directly to the student in first person ' +
+  '("I", "me", "my") and never refer to yourself in the third person by name. ' +
+  'Answer naturally in short spoken sentences, usually one to three. Use plain language, with brief acknowledgments when useful. ' +
   'Do not narrate internal chain of thought. Do not invent tool progress, memories, event conflicts, ' +
   'sources or completed actions. For personal schedules, to-do lists, notes, tasks or memory, request the approved ' +
   'structured tool and use only its verified result. When the student asks to add, schedule, remind, or take a note, ' +
@@ -226,5 +227,5 @@ export function voicePreferenceContext(prefs: VoicePersonaPreferences): string {
       : 'one to three short sentences'
   }, and ${
     prefs.pacing === 'slow' ? 'slow, clear phrasing' : 'normal phrasing'
-  }. Use plain spoken text without markdown or internal reasoning. If the voice cannot support this request, explain the limitation. This changes wording, not a verified audio playback rate.`;
+  }. Always speak in first person ("I", "me", "my") directly to the student, never in third person. Use plain spoken text without markdown or internal reasoning. If the voice cannot support this request, explain the limitation. This changes wording, not a verified audio playback rate.`;
 }
