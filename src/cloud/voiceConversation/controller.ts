@@ -203,6 +203,21 @@ const systemClock: ConversationClock = {
 const randomId = () =>
   `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`;
 
+/**
+ * The answered reminder, as start-of-call context for the agent. It travels
+ * with the student summary in the session's initiation (`student_context`),
+ * which LAFINA's server gives DeepSeek as data. A mid-call contextual update
+ * is not used: the server keeps only the student's and LAFINA's own turns, so
+ * the reminder would be lost. The app already read the reminder aloud, so the
+ * agent is told not to announce it again (audit finding 12). No chat turn is
+ * created.
+ */
+export const reminderCallContext = (task: string): string => {
+  const reminder = task.trim().replace(/\s+/g, ' ').slice(0, 300);
+  if (!reminder) return '';
+  return `Reminder call: the student just answered a reminder call about "${reminder}". The app already read this reminder aloud, so do not announce or repeat it. Wait for the student to speak, and help with it only if they ask (for example to snooze, reschedule or plan around it).`;
+};
+
 export class VoiceConversationController {
   private readonly deps: VoiceConversationDeps;
   private readonly clock: ConversationClock;
@@ -686,19 +701,6 @@ export class VoiceConversationController {
     this.typedEcho = {text: trimmed, at: this.clock.now()};
     this.acceptUserTurn(trimmed, `typed-${++this.turnCounter}`);
     return true;
-  };
-
-  /**
-   * Gives an answered call's reminder to the agent as silent context. The app
-   * already read the reminder aloud before connecting, so the agent is told
-   * not to announce it again (audit finding 12). No chat turn is created.
-   */
-  sendReminderContext = async (task: string): Promise<boolean> => {
-    const reminder = task.trim().replace(/\s+/g, ' ').slice(0, 300);
-    if (!reminder) return false;
-    return this.sendContext(
-      `The student just answered a reminder call about: ${reminder}. The app already read this reminder aloud, so do not announce or repeat it. Wait for the student to speak, and help with it only if they ask (for example to snooze, reschedule or plan around it).`,
-    );
   };
 
   sendContext = async (information: string): Promise<boolean> => {

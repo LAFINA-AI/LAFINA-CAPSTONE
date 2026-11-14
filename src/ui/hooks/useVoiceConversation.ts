@@ -44,7 +44,6 @@ export interface VoiceConversationHandle {
   appSpeechFinished: (heard: boolean) => void;
   stopResponse: () => void;
   sendText: (text: string) => Promise<boolean>;
-  sendReminderContext: (task: string) => Promise<boolean>;
   sendContext: (information: string) => Promise<boolean>;
   setPreferences: (preferences: Partial<VoicePersonaPreferences>) => void;
 }
@@ -67,6 +66,11 @@ export const useVoiceConversation = (
       parameters: Record<string, unknown>,
       isCurrent: () => boolean,
     ) => Promise<string>;
+    /**
+     * Start-of-call context put before the student summary (for example the
+     * answered reminder). Read once, when the conversation is created.
+     */
+    extraContext?: string;
     /** Tests inject fakes here. */
     deps?: (userId: string) => VoiceConversationDeps;
   } = {},
@@ -83,11 +87,16 @@ export const useVoiceConversation = (
   const toolRef = useRef(options.onClientTool);
   toolRef.current = options.onClientTool;
   const depsFactory = useRef(options.deps ?? defaultVoiceConversationDeps);
+  const extraContext = useRef(options.extraContext?.trim() ?? '');
 
   useEffect(() => {
     const deps = depsFactory.current(userId);
     const controller = new VoiceConversationController({
       ...deps,
+      getStudentContext: () =>
+        [extraContext.current, deps.getStudentContext?.() ?? '']
+          .filter(Boolean)
+          .join('\n\n'),
       onFinalUserText: text => finalTextRef.current?.(text),
       onAgentText: text => agentTextRef.current?.(text),
       suppressAgentResponse: () => suppressRef.current?.() ?? false,
@@ -166,8 +175,6 @@ export const useVoiceConversation = (
     stopResponse: () => controllerRef.current?.stopResponse(),
     sendText: async text =>
       (await controllerRef.current?.sendText(text)) ?? false,
-    sendReminderContext: async task =>
-      (await controllerRef.current?.sendReminderContext(task)) ?? false,
     sendContext: async information =>
       (await controllerRef.current?.sendContext(information)) ?? false,
   };

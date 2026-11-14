@@ -45,7 +45,8 @@ import { useTheme } from '../contexts/ThemeContext';
 import { createCallSpeechProvider } from '../../cloud/speechService';
 import { localSettingsStore } from '../../storage/localSettingsStore';
 import { isGuestAccount } from '../../cloud/entitlements';
-import { voiceConsent, waitForVoiceConversationRelease } from '../../cloud/voiceConversation';
+import { REMINDER_CALL_CONSENT_KEY, voiceConsent, waitForVoiceConversationRelease } from '../../cloud/voiceConversation';
+import { DATA_CONSENT_KEY } from '../../ai/voiceActions/actionSecurity';
 import { useCommandReview } from '../hooks/useCommandReview';
 import { CommandReviewCard } from '../components/chat/CommandReviewCard';
 import type { ConversationSnapshot } from '../../cloud/voiceConversation';
@@ -259,15 +260,19 @@ export const IncomingCallScreen: React.FC<IncomingCallScreenProps> = ({
 
     let useOnline = localSettingsStore.get(userId, 'chat.onlineMode', null) === 'true' &&
       !isGuestAccount(userId);
+    // The online conversation also checks the data-sharing consent; this
+    // dialog discloses the same data, so accepting it records both.
     if (useOnline && (!voiceConsent.read(userId) ||
-        localSettingsStore.get(userId, 'voiceConversation.reminderConsent.v1', null) !== 'true')) {
+        localSettingsStore.get(userId, REMINDER_CALL_CONSENT_KEY, null) !== 'true' ||
+        localSettingsStore.get(userId, DATA_CONSENT_KEY, null) !== 'true')) {
       useOnline = await new Promise<boolean>(resolve => {
         Alert.alert('Online Call Lafina conversation',
           'When you answer, microphone audio streams to ElevenLabs. Your words, this reminder and a short summary of your next 7 days, notes and saved memories are sent to ElevenLabs and to LAFINA’s server and DeepSeek so the assistant can discuss it. End or mute the call to stop listening.',
           [
             {text: 'Use offline voice', style: 'cancel', onPress: () => resolve(false)},
             {text: 'Continue online', onPress: () => resolve(attempt === attemptRef.current &&
-              voiceConsent.write(userId) && localSettingsStore.set(userId, 'voiceConversation.reminderConsent.v1', 'true'))},
+              voiceConsent.write(userId) && localSettingsStore.set(userId, REMINDER_CALL_CONSENT_KEY, 'true') &&
+              localSettingsStore.set(userId, DATA_CONSENT_KEY, 'true'))},
           ], {cancelable: true, onDismiss: () => resolve(false)});
       });
     }

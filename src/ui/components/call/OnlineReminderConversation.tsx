@@ -1,10 +1,4 @@
-import React, {
-  forwardRef,
-  useEffect,
-  useImperativeHandle,
-  useRef,
-  useState,
-} from 'react';
+import React, {forwardRef, useEffect, useImperativeHandle, useRef} from 'react';
 import {
   ActivityIndicator,
   StyleSheet,
@@ -14,6 +8,7 @@ import {
 } from 'react-native';
 import {useVoiceConversation} from '../../hooks/useVoiceConversation';
 import {useTheme} from '../../contexts/ThemeContext';
+import {reminderCallContext} from '../../../cloud/voiceConversation';
 import type {ConversationSnapshot} from '../../../cloud/voiceConversation';
 
 export interface OnlineReminderHandle {
@@ -34,15 +29,14 @@ export const OnlineReminderConversation = forwardRef<
   Props
 >(({userId, task, onSnapshot, onSpokenTurn}, ref) => {
   const {colors} = useTheme();
+  // The reminder rides in the start-of-call context (audit finding 12).
   const conversation = useVoiceConversation(userId, {
     onFinalUserText: onSpokenTurn,
+    extraContext: reminderCallContext(task),
   });
   const current = useRef(conversation);
   current.current = conversation;
   const snapshotCallback = useRef(onSnapshot);
-  const contextSent = useRef(false);
-  const mounted = useRef(false);
-  const [contextFailed, setContextFailed] = useState(false);
   snapshotCallback.current = onSnapshot;
   useImperativeHandle(
     ref,
@@ -55,25 +49,14 @@ export const OnlineReminderConversation = forwardRef<
     [],
   );
   useEffect(() => {
-    mounted.current = true;
     current.current.start();
     return () => {
-      mounted.current = false;
       current.current.end();
     };
   }, []);
   useEffect(() => {
     snapshotCallback.current(conversation.snapshot);
   }, [conversation.snapshot]);
-
-  useEffect(() => {
-    if (!contextSent.current && conversation.snapshot.phase === 'listening') {
-      contextSent.current = true;
-      void current.current.sendReminderContext(task).then(sent => {
-        if (mounted.current && !sent) setContextFailed(true);
-      });
-    }
-  }, [conversation.snapshot.phase, task]);
 
   const {snapshot} = conversation;
   const label = snapshot.muted
@@ -96,11 +79,6 @@ export const OnlineReminderConversation = forwardRef<
       >
         {label}
       </Text>
-      {contextFailed ? (
-        <Text style={{color: colors.textSecondary}}>
-          LAFINA could not receive the reminder details. You can say them aloud.
-        </Text>
-      ) : null}
       {['listening', 'speaking', 'thinking'].includes(snapshot.phase) ? (
         <TouchableOpacity
           onPress={() => conversation.setMuted(!snapshot.muted)}

@@ -8,7 +8,7 @@
     {
       "type": "client",
       "name": "read_lafina_data",
-      "description": "Reads the student’s schedule/calendar, saved notes, or personal memories from local device storage.",
+      "description": "Reads the student’s schedule/calendar, to-do list, saved notes, or personal memories from local device storage.",
       "parameters": {
         "type": "object",
         "properties": {
@@ -16,6 +16,7 @@
             "type": "string",
             "enum": [
               "calendar",
+              "todos",
               "notes",
               "memory"
             ],
@@ -37,7 +38,7 @@
     {
       "type": "client",
       "name": "prepare_lafina_action",
-      "description": "Prepares a task, event, time block, reminder, or note review card for student confirmation. Nothing is saved until confirmed.",
+      "description": "Prepares a to-do, task, event, time block, reminder, or note review card (creation, completion, edit, or deletion) for student confirmation. Nothing is saved until confirmed.",
       "parameters": {
         "type": "object",
         "properties": {
@@ -343,7 +344,7 @@
       "type": "function",
       "function": {
         "name": "read_lafina_data",
-        "description": "Reads the student’s schedule/calendar, saved notes, or personal memories from local device storage.",
+        "description": "Reads the student’s schedule/calendar, to-do list, saved notes, or personal memories from local device storage.",
         "parameters": {
           "type": "object",
           "properties": {
@@ -351,6 +352,7 @@
               "type": "string",
               "enum": [
                 "calendar",
+                "todos",
                 "notes",
                 "memory"
               ],
@@ -372,7 +374,7 @@
       "type": "function",
       "function": {
         "name": "prepare_lafina_action",
-        "description": "Prepares a task, event, time block, reminder, or note review card for student confirmation. Nothing is saved until confirmed.",
+        "description": "Prepares a to-do, task, event, time block, reminder, or note review card (creation, completion, edit, or deletion) for student confirmation. Nothing is saved until confirmed.",
         "parameters": {
           "type": "object",
           "properties": {

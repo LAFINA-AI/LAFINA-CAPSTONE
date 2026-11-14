@@ -23,6 +23,7 @@ export {
   VoiceConversationController,
   FAILURE_MESSAGES,
   DEFAULT_LIMITS,
+  reminderCallContext,
 } from './controller';
 export {buildStudentVoiceContext} from './localVoiceData';
 export type {VoiceConversationDeps, VoiceConversationGates} from './controller';
@@ -41,7 +42,14 @@ export type {
 } from './personaPolicy';
 export type * from './types';
 
-export const VOICE_CONSENT_KEY = 'voiceConversation.consent.v1';
+/**
+ * v2 (2026-11-14): the disclosure now says a 7-day summary, notes and saved
+ * memories are shared when a call starts. Raising the version makes students
+ * who agreed to the older wording see and accept the new text once.
+ */
+export const VOICE_CONSENT_KEY = 'voiceConversation.consent.v2';
+/** Reminder-call disclosure; raised with VOICE_CONSENT_KEY for the same reason. */
+export const REMINDER_CALL_CONSENT_KEY = 'voiceConversation.reminderConsent.v2';
 export const ONLINE_MODE_KEY = 'chat.onlineMode';
 
 /** Chat listens for this so its Online Mode switch stays in step. */
