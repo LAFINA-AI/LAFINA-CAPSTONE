@@ -682,6 +682,7 @@ export const IncomingCallScreen: React.FC<IncomingCallScreenProps> = ({
                 onCancel={handleReviewCancel}
                 onDismiss={review.dismiss}
                 onEdit={review.edit}
+                onDeliveryChange={review.setDelivery}
                 editError={review.editError}
                 testIDPrefix="reminder-call-review"
               />

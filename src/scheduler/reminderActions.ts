@@ -2,6 +2,7 @@ import type {Reminder} from '../storage/remindersStore';
 import {remindersStore} from '../storage/remindersStore';
 import {getOccurrences} from '../storage/rruleHelper';
 import {DeliveryFenceError, deliveryStore} from '../storage/deliveryStore';
+import {reminderDeliveryStyleStore} from '../storage/reminderDeliveryStyleStore';
 import type {DeliveryFenceReason} from '../storage/deliveryStore';
 import {db} from '../storage/database';
 import type {DatabaseTransaction} from '../storage/database';
@@ -235,6 +236,9 @@ export const createNextRecurringReminder = (
     tx,
   );
   if (source) deliveryStore.linkSource(next.id, source.type, source.id, tx);
+  // The next occurrence keeps the student's "Notify only" choice.
+  const style = reminderDeliveryStyleStore.get(reminder.id, tx);
+  if (style !== 'call') reminderDeliveryStyleStore.set(next.id, style, tx);
   return next;
 };
 

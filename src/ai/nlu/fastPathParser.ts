@@ -1686,10 +1686,54 @@ export const VAGUE_ITEM_TITLE =
 const NOTE_CREATION_START =
   /^(?:(?:please\s+)?(?:take|create|add|make|save|write|jot)\s+(?:a\s+|an\s+|new\s+|quick\s+)?notes?\b|note\s*:|jot\s+down|note\s+down|isulat)/i;
 
+/** "notify me at 5 to…" reads as "remind me at 5 to…" with a notification. */
+const NOTIFY_LEAD = /^(\s*(?:please\s+)?)(?:just\s+)?notify\s+me\b/i;
+/** "…, don't call me", "no call", "notification only", "just a notification". */
+const NOTIFY_PHRASE =
+  /[\s,;]*\b(?:(?:but|and)\s+)?(?:please\s+)?(?:(?:don'?t|do\s+not|no\s+need\s+to)\s+call(?:\s+me)?|(?:with\s+)?no\s+call|without\s+(?:a\s+)?call(?:ing)?(?:\s+me)?|(?:as\s+a\s+|by\s+|via\s+)?notification\s+only|(?:just|only)\s+(?:a\s+|send\s+(?:me\s+)?a\s+)?notification|(?:just|only)\s+notify(?:\s+me)?|as\s+a\s+notification)\b[.!]?/gi;
+
+const REMINDER_CREATING_INTENTS = new Set([
+  'create_reminder',
+  'create_task',
+  'create_time_block',
+]);
+
+/**
+ * Finds a "Notify only" request (audit finding 16) and returns the command
+ * without it. Null when the student did not ask for a notification.
+ */
+export function extractNotifyOnlyRequest(transcript: string): string | null {
+  const text = transcript || '';
+  let found = false;
+  let stripped = text.replace(NOTIFY_LEAD, (_match, prefix: string) => {
+    found = true;
+    return `${prefix}remind me`;
+  });
+  stripped = stripped.replace(NOTIFY_PHRASE, () => {
+    found = true;
+    return '';
+  });
+  return found ? stripped.replace(/\s{2,}/g, ' ').trim() : null;
+}
+
 /** Deterministic Fast-Path NLU Intent Extractor. */
 export function parseIntentFastPath(
   transcript: string,
   referenceDate: Date = new Date(),
+): ExtractedIntent {
+  const notifyCommand = extractNotifyOnlyRequest(transcript);
+  if (notifyCommand) {
+    const parsed = parseIntentWithoutDelivery(notifyCommand, referenceDate);
+    if (REMINDER_CREATING_INTENTS.has(parsed.intent)) {
+      return {...parsed, deliveryStyle: 'notify', rawTranscript: transcript};
+    }
+  }
+  return parseIntentWithoutDelivery(transcript, referenceDate);
+}
+
+function parseIntentWithoutDelivery(
+  transcript: string,
+  referenceDate: Date,
 ): ExtractedIntent {
   // Offline Taglish: translate the planner words, never a note's own text.
   const taglish = NOTE_CREATION_START.test((transcript || '').trim())

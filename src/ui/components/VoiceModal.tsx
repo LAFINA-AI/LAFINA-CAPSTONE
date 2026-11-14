@@ -1092,6 +1092,7 @@ export const VoiceModal: React.FC<VoiceModalProps> = ({
                   onCancel={handleCancelReview}
                   onDismiss={review.dismiss}
                   onEdit={review.edit}
+                  onDeliveryChange={review.setDelivery}
                   editError={review.editError}
                   testIDPrefix="voice-review"
                 />

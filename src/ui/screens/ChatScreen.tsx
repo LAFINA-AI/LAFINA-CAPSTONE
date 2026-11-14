@@ -1543,6 +1543,7 @@ export const ChatScreen: React.FC<ChatScreenProps> = ({
             expired={review.expired}
             busy={review.busy}
             onEdit={handleEditReview}
+            onDeliveryChange={review.setDelivery}
             editError={review.editError}
             onConfirm={() => {
               void handleConfirmReview();

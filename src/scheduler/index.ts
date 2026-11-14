@@ -31,6 +31,14 @@ export {
 } from './deliveryReconciler';
 export type { DeliveryReconcileSummary } from './deliveryReconciler';
 export { admitReminderCall } from './callAdmission';
+export {
+  NOTIFY_SNOOZE_MINUTES,
+  applyNotificationAction,
+  isNotificationAction,
+  isNotifyOnlyReminder,
+  showNotifyOnlyReminderAlert,
+} from './notifyOnlyDelivery';
+export type { NotificationAction } from './notifyOnlyDelivery';
 export type { CallAdmission, CallRejection, CallRequest } from './callAdmission';
 export {
   snoozeReminderAction,

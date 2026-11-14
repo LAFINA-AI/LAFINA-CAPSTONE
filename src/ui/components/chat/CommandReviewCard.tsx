@@ -19,6 +19,15 @@ import type {
   PrepareResult,
   ReviewEditPatch,
 } from '../../../ai/nlu/commandReview';
+import type {ReminderDeliveryStyle} from '../../../storage/reminderDeliveryStyleStore';
+
+const DELIVERY_CHOICES: ReadonlyArray<{
+  style: ReminderDeliveryStyle;
+  label: string;
+}> = [
+  {style: 'call', label: 'Call me'},
+  {style: 'notify', label: 'Notify only'},
+];
 
 export interface CommandReviewCardProps {
   proposal: CommandProposal;
@@ -28,6 +37,8 @@ export interface CommandReviewCardProps {
   onCancel: () => void;
   onDismiss: () => void;
   onEdit?: (patch: ReviewEditPatch) => PrepareResult | null;
+  /** Switches the reminder this card creates between a call and a notification. */
+  onDeliveryChange?: (style: ReminderDeliveryStyle) => void;
   editError?: string | null;
   /** Prefix for test IDs, for example "chat-review" or "voice-review". */
   testIDPrefix: string;
@@ -106,6 +117,7 @@ export const CommandReviewCard: React.FC<CommandReviewCardProps> = ({
   onCancel,
   onDismiss,
   onEdit,
+  onDeliveryChange,
   editError,
   testIDPrefix,
 }) => {
@@ -519,6 +531,52 @@ export const CommandReviewCard: React.FC<CommandReviewCardProps> = ({
                     </Text>
                   </TouchableOpacity>
                 ))}
+              </View>
+            </View>
+          ) : null}
+
+          {!expired && proposal.reminderDelivery && onDeliveryChange ? (
+            <View
+              style={styles.alternatives}
+              testID={`${testIDPrefix}-delivery`}
+            >
+              <Text style={[styles.sectionLabel, themed.secondaryText]}>
+                When it is due
+              </Text>
+              <View style={styles.alternativeRow} accessibilityRole="radiogroup">
+                {DELIVERY_CHOICES.map(choice => {
+                  const selected = proposal.reminderDelivery === choice.style;
+                  return (
+                    <TouchableOpacity
+                      key={choice.style}
+                      style={[
+                        styles.alternativeChip,
+                        selected
+                          ? {backgroundColor: accent, borderColor: accent}
+                          : themed.secondaryButton,
+                      ]}
+                      onPress={() => {
+                        if (!selected) onDeliveryChange(choice.style);
+                      }}
+                      disabled={busy}
+                      accessibilityRole="radio"
+                      accessibilityLabel={choice.label}
+                      accessibilityState={{checked: selected, disabled: busy}}
+                      testID={`${testIDPrefix}-delivery-${choice.style}`}
+                    >
+                      <Text
+                        style={[
+                          styles.alternativeText,
+                          selected
+                            ? {color: colors.textOnPrimary}
+                            : themed.primaryText,
+                        ]}
+                      >
+                        {choice.label}
+                      </Text>
+                    </TouchableOpacity>
+                  );
+                })}
               </View>
             </View>
           ) : null}

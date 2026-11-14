@@ -1,7 +1,7 @@
 # Lafina Agent Audit Fixes / Completion Report
 
-**Branch / commit SHA:** `Lem-branch`. The fixes are uncommitted working-tree changes on top of `24c39b1`.  
-**Date:** 2026-11-13  
+**Branch / commit SHA:** `Lem-branch`. The fixes are committed as `dbcc923`, with the follow-up in §9 on top. Backend PR: [LAFINA-AI/LAFINA-backend#4](https://github.com/LAFINA-AI/LAFINA-backend/pull/4).  
+**Date:** 2026-11-13 (follow-up 2026-11-14)  
 **Device(s) available:** NONE. No phone or emulator was used for this work.  
 **Status:** `AWAITING DEVICE VALIDATION`  
 **Request:** "fix all the bugs you found on the audit" (Lafina Agent Audit, branch `Lem-branch`, commit `24c39b1`, 2026-11-13)
@@ -10,7 +10,7 @@
 
 | # | Severity | Finding | Result |
 |---|---|---|---|
-| 1 | High | Lafina Call tool bridge is EXTERNAL_BLOCKED | **Not fixed (external).** It needs the backend owner and the `LAFINA-backend` repo, which this task may not modify. |
+| 1 | High | Lafina Call tool bridge is EXTERNAL_BLOCKED | **Fixed in code, deploy pending.** The bridge was already merged in the backend (PR #3), but its tool contract had drifted and the voice route dropped the app's student context. Backend PR #4 fixes both (§9). After merge, it needs a Vercel deploy and, ideally, the ElevenLabs agent re-provisioned. |
 | 2 | High | End after Answer runs `declineCall` and auto-snoozes | **Fixed.** New `endAnsweredCall`. An answered call that is hung up is now **acknowledged** (received, not task completed). A call that was never answered still declines with the snooze policy. Android Back on an answered call does the same. |
 | 3 | High | Online reminder call makes a voice card with no UI | **Fixed.** `IncomingCallScreen` shows the voice review card inside `CallAnsweredView` with Confirm, Cancel and Edit. Saying "confirm" or "cancel" answers it. Any card left open when the call ends is discarded, never applied. |
 | 4 | High | Planning questions become junk tasks | **Fixed.** "plan my week…" and "help me plan…" are now conversation. "find a free slot tomorrow for 2 hours" lists the real free windows (7 AM–10 PM, after now when the day is today) and writes nothing. |
@@ -25,7 +25,7 @@
 | 13 | Low | "add it" creates "It"; "yes" offline says "needs Online Mode" | **Fixed.** Vague titles ask which item. "yes" or "cancel" with nothing pending, offline, says nothing is waiting. |
 | 14 | Low | Cards expire after 5 minutes and are lost on restart | **Partly fixed.** TTL is now 30 minutes and the card footnote is updated. Cards are still cleared on app restart by design (ADR-018 session check). Persisting them is an owner decision. |
 | 15 | Low | Online chat sends the planner on every turn | **Fixed (send only what is needed).** The snapshot is attached only to questions about the student's own schedule, tasks, notes or time (`needsPlannerContext`). The Call Lafina and reminder-call consent texts now say a 7-day summary, notes and memories are shared when a call starts. |
-| 16 | Low | Per-reminder "Call me / Notify only" | **Not done.** See §8. |
+| 16 | Low | Per-reminder "Call me / Notify only" | **Fixed (local-only).** See §9 and ADR-032. |
 
 ## 2. Change summary
 
@@ -63,7 +63,7 @@ N/A. No benchmarks were run.
 
 - Every new write path goes through the existing review/confirm transaction: revision checks, `sync_outbox` in the same transaction, and reminders scheduled after commit. Undo uses the same transaction and refuses stale items.
 - Hanging up an answered call marks the reminder **acknowledged** (received). It does not complete the task.
-- The consent texts changed, but the stored consent keys (`voiceConversation.reminderConsent.v1`, voice consent) were **not** bumped. Students who consented before will not see the new wording until the key version is raised. This is an owner decision.
+- The consent texts changed. In the follow-up (§9), the keys were raised to `voiceConversation.consent.v2` and `voiceConversation.reminderConsent.v2`, so every student sees the new wording once.
 
 ## 6. Human phone verification
 
@@ -73,7 +73,7 @@ See the checklist in the chat handoff.
 
 This report only. The architecture check passed.
 
-## 8. Open blockers and recommended next steps
+## 8. Open blockers and recommended next steps (as of 2026-11-13; see §9 for what changed)
 
 1. **#1 Call tool bridge.** Blocked on the backend owner, who needs to enable the tool bridge in `LAFINA-backend` and the ElevenLabs agent.
 2. **#16 Call me / Notify only.** This needs:
@@ -84,3 +84,56 @@ This report only. The architecture check passed.
    If the choice should sync, the `reminder` entity in `LAFINA-backend` must change too. Deciding whether it is local-only or synced is an owner call, and the native path needs device testing.
 3. **#14** Optionally persist open review cards across restarts. This would revise ADR-018.
 4. Bump the consent key versions if existing students must see the new wording.
+
+## 9. Follow-up, 2026-11-14
+
+Owner: "proceed and do everything except the physical tests. also you can just pr the backend … do everything you think is best".
+
+### Commits
+
+| Commit | Change |
+|---|---|
+| `dbcc923` | The audit fixes above (§1–§2). |
+| `7f9becf` | Consent keys raised to v2; reminder-call consent also records the data consent; reminder context sent at call start; tool contract regenerated. |
+| *(next commit)* | #16 "Call me / Notify only" (ADR-032), plus this report. |
+| Backend `c362992`, [PR #4](https://github.com/LAFINA-AI/LAFINA-backend/pull/4) | Voice turns get the phone's student context; tool contract synced. |
+
+### What was found and fixed
+
+1. **#1 Call tool bridge.** Backend PR #3 had already merged the bridge (allowlist, DeepSeek tool streaming, continuations, provisioning script). Two problems remained:
+   - **Contract drift.** The app's `read_lafina_data` had gained the `todos` kind, and its descriptions mention To-Dos and completion/edit/deletion. The backend contract had neither. PR #4 syncs it. All 12 tools now match between the app, `tool-contract.json` and the backend. The contract check now ignores CRLF/LF differences, which made it fail on Windows checkouts.
+   - **Student context never reached DeepSeek.** The app sends the 7-day planner, To-Do, notes and memories summary as `custom_llm_extra_body.student_context`. `/v1/ai/voice/llm/chat/completions` read only the grant from it. As a result:
+     - the #11 context improvements had no effect in Call Lafina;
+     - the #12 silent reminder context (a `contextual_update`) was also lost, because the route keeps only user and assistant turns.
+
+     PR #4 passes the summary to DeepSeek as a fenced, bounded data note: `VOICE_CONVERSATION_MAX_STUDENT_CONTEXT_CHARS`, default 12000. The app now puts the answered reminder in that start-of-call context (`reminderCallContext`) instead of sending a mid-call update.
+2. **Consent keys bumped** to v2 (see §5).
+3. **Reminder-call consent gap.** The online reminder conversation also checks `voiceConversation.directDataConsent.v1`, but the reminder dialog never set it. A student who had only accepted the reminder dialog got `consent_required`. Accepting the dialog, which discloses the same data, now records it, and its absence re-asks.
+4. **#16 Call me / Notify only**, local-only (ADR-032):
+   - schema 26 table;
+   - card toggle in Chat, the offline voice sheet and the reminder call;
+   - "notify me…" and "don't call me" phrasing;
+   - native style field, backward compatible;
+   - a normal notification with Acknowledge and Snooze 10 min;
+   - fenced actions;
+   - an in-app alert fallback;
+   - recurrences keep the style.
+
+### Checks
+
+| Check | Command | Result |
+|---|---|---|
+| Typecheck, lint, Jest, architecture | `npm run preflight` | PASS: 122/122 suites, 1660 passed, 1 skipped (pre-existing); 321 modules, 0 cycles, 0 forbidden dependencies |
+| Kotlin | `gradlew :app:compileDebugKotlin` | PASS |
+| JVM | `gradlew :app:testDebugUnitTest --tests LafinaDeliveryContractTest --tests LafinaReminderTest` | PASS: 18 + 3 tests, including 3 new style tests |
+| Backend | `pytest` (Python 3.14 venv) | PASS: 266 tests, including 5 new |
+| Backend lint | `ruff check app tests scripts` | 249 findings before and after; none new |
+| Tool contract | `node backend_integration/call_lafina_v2/generate-contract.cjs --check` | PASS |
+| Device / online / APK | — | **NOT RUN** |
+
+### Still open
+
+- **Backend PR #4** needs review and merge; Vercel then deploys `main`. Nobody here has Vercel dashboard access, so check the deploy from GitHub's deployment status.
+- **Re-provision the ElevenLabs agent** with `python -m scripts.provision_voice_agent … --apply --update`, then `--check`. This needs the ElevenLabs key. Without it, DeepSeek still gets the new schema, because the backend swaps in its own copy by name.
+- **Device checks** for everything in §6 and the follow-up checklist in the chat handoff.
+- **#14** is unchanged (by design, ADR-018).

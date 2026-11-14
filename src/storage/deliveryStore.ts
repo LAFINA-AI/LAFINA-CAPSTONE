@@ -16,7 +16,13 @@ export type DeliveryRegistrationState =
   | 'suppressed'
   | 'idle';
 export type ReminderSourceType = 'task' | 'event' | 'time_block';
-export type DeliveryOperation = 'due' | 'call' | 'answer' | 'decline';
+export type DeliveryOperation =
+  | 'due'
+  | 'call'
+  | 'answer'
+  | 'decline'
+  | 'acknowledge'
+  | 'snooze';
 
 export interface DeliveryJob {
   reminderId: string;
@@ -100,7 +106,9 @@ export const deliveryIdentityUri = (
     !isIdentifier(identity.reminderId, false) ||
     !Number.isSafeInteger(identity.generation) ||
     identity.generation < 0 ||
-    !['due', 'call', 'answer', 'decline'].includes(operation)
+    !['due', 'call', 'answer', 'decline', 'acknowledge', 'snooze'].includes(
+      operation,
+    )
   ) {
     throw new Error('Invalid reminder delivery identity.');
   }

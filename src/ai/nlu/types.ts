@@ -52,6 +52,11 @@ export interface ExtractedIntent {
   bulkScope?: 'completed_tasks' | 'date_items' | null;
   /** "remind me 30 minutes before my math exam": minutes before `targetTitle` starts. */
   leadMinutes?: number | null;
+  /**
+   * How a new reminder reaches the student: a reminder call (default) or an
+   * ordinary notification ("notify me", "no call"). Device-local, never synced.
+   */
+  deliveryStyle?: 'call' | 'notify' | null;
 }
 
 export interface ValidatedIntent extends ExtractedIntent {

@@ -44,7 +44,11 @@ import {
   getReminderPermissionStatus,
   reconcileReminderDelivery,
   admitReminderCall,
+  applyNotificationAction,
   disconnectCall,
+  isNotificationAction,
+  isNotifyOnlyReminder,
+  showNotifyOnlyReminderAlert,
   EVENT_CALL_TRIGGER,
 } from './src/scheduler';
 import type {
@@ -182,7 +186,30 @@ function AppContent({
   const presentCall = useCallback(
     (request: CallRequest): boolean => {
       const admission = admitReminderCall(request, userId);
-      if (!admission.admitted) return false;
+      if (!admission.admitted || !userId) return false;
+      // "Notify only" (audit finding 16): the notification's own buttons are
+      // applied directly, and the in-app fallback is an alert, never a call.
+      if (isNotificationAction(admission.action)) {
+        void applyNotificationAction(
+          admission.reminder.id,
+          userId,
+          admission.action,
+          admission.generation,
+        );
+        return false;
+      }
+      if (
+        admission.action === 'call' &&
+        isNotifyOnlyReminder(admission.reminder.id)
+      ) {
+        showNotifyOnlyReminderAlert(
+          admission.reminder.id,
+          userId,
+          admission.task,
+          admission.generation,
+        );
+        return false;
+      }
       // The reminder call takes the microphone and speaker; a live voice
       // conversation ends first and is never resumed by itself.
       endActiveVoiceConversation(

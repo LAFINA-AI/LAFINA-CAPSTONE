@@ -65,10 +65,18 @@ class LafinaReminderModule(private val reactContext: ReactApplicationContext) :
       val generation =
           if (options.hasKey("generation") && !options.isNull("generation")) options.getDouble("generation").toLong()
           else 0L
+      // Optional: older JS bundles send no style and keep ringing as a call.
+      val style =
+          if (options.hasKey("style") && !options.isNull("style")) options.getString("style").orEmpty()
+          else DeliveryContract.STYLE_CALL
       require(reminderId.isNotEmpty()) { "reminderId is required" }
       require(triggerAtMs > System.currentTimeMillis()) { "triggerAtMs must be in the future" }
       val registration =
-          DeliveryRegistration(DeliveryIdentity(ownerId, reminderId, generation), triggerAtMs, task)
+          DeliveryRegistration(
+              DeliveryIdentity(ownerId, reminderId, generation),
+              triggerAtMs,
+              task,
+              if (style in DeliveryContract.STYLES) style else DeliveryContract.STYLE_CALL)
       scheduleRegistration(reactContext, registration)
       promise.resolve(true)
     } catch (e: Exception) {
@@ -193,6 +201,7 @@ class LafinaReminderModule(private val reactContext: ReactApplicationContext) :
     try {
       val notifications = NotificationManagerCompat.from(reactContext)
       notifications.cancel(DeliveryContract.notificationTag(reminderId), CALL_NOTIFICATION_ID)
+      notifications.cancel(DeliveryContract.notificationTag(reminderId), REMINDER_NOTIFICATION_ID)
       notifications.cancel(legacyNotificationId(reminderId))
       stopRingtoneInternal()
       clearPendingCallIfOwnedBy(reactContext, reminderId)
@@ -360,6 +369,8 @@ class LafinaReminderModule(private val reactContext: ReactApplicationContext) :
     const val ACTION_CALL = "call"
     const val ACTION_ANSWER = "answer"
     const val ACTION_DECLINE = "decline"
+    const val ACTION_ACKNOWLEDGE = DeliveryContract.OP_ACKNOWLEDGE
+    const val ACTION_SNOOZE = DeliveryContract.OP_SNOOZE
     const val EVENT_CALL_TRIGGER = "LAFINA_NATIVE_CALL_TRIGGER"
 
     const val EXTRA_OWNER_ID = "ownerId"
@@ -376,9 +387,12 @@ class LafinaReminderModule(private val reactContext: ReactApplicationContext) :
     private const val KEY_PENDING_OWNER_ID = "owner_id"
     private const val KEY_PENDING_GENERATION = "generation"
     private const val CALL_CHANNEL_ID = "lafina_incoming_calls_v2"
+    private const val REMINDER_CHANNEL_ID = "lafina_reminder_notifications_v1"
     /** Identity lives in the Intent data URI, so every request code can be constant. */
     private const val IDENTITY_REQUEST_CODE = 7301
     const val CALL_NOTIFICATION_ID = 7302
+    /** Notify-only reminders; same per-reminder tag, so each reminder has its own notification. */
+    const val REMINDER_NOTIFICATION_ID = 7303
 
     /** One lock per process for registry, cutover and claims (receiver vs. bridge threads). */
     private val DELIVERY_LOCK = Any()
@@ -538,6 +552,10 @@ class LafinaReminderModule(private val reactContext: ReactApplicationContext) :
     }
 
     private fun showIncomingCall(context: Context, registration: DeliveryRegistration) {
+      if (registration.notifyOnly) {
+        showReminderNotification(context, registration)
+        return
+      }
       val identity = registration.identity
       val task = registration.task
       createCallChannel(context)
@@ -568,6 +586,61 @@ class LafinaReminderModule(private val reactContext: ReactApplicationContext) :
         registry(context).receipt("post_denied", identity)
       }
     }
+
+    /**
+     * "Notify only" (audit finding 16): an ordinary heads-up notification, not
+     * a full-screen insistent call. No pending call is stored, so opening the
+     * app does not start a call. Tapping it, or Acknowledge, opens LAFINA and
+     * marks the reminder acknowledged (received, not task completed); Snooze
+     * opens LAFINA and snoozes it. JS applies both through the same identity
+     * fence as call actions.
+     */
+    private fun showReminderNotification(context: Context, registration: DeliveryRegistration) {
+      val identity = registration.identity
+      val task = registration.task
+      createReminderChannel(context)
+      val acknowledge = callActivityPendingIntent(context, registration, ACTION_ACKNOWLEDGE)
+      val snooze = callActivityPendingIntent(context, registration, ACTION_SNOOZE)
+      val notification = NotificationCompat.Builder(context, REMINDER_CHANNEL_ID)
+          .setSmallIcon(android.R.drawable.ic_popup_reminder)
+          .setContentTitle("LAFINA Reminder")
+          .setContentText(task.ifBlank { "Scheduled academic reminder" })
+          .setStyle(NotificationCompat.BigTextStyle().bigText(task.ifBlank { "Scheduled academic reminder" }))
+          .setCategory(NotificationCompat.CATEGORY_REMINDER)
+          .setPriority(NotificationCompat.PRIORITY_HIGH)
+          .setVisibility(NotificationCompat.VISIBILITY_PRIVATE)
+          .setAutoCancel(true)
+          .setContentIntent(acknowledge)
+          .addAction(0, "Acknowledge", acknowledge)
+          .addAction(0, "Snooze 10 min", snooze)
+          .build()
+      try {
+        NotificationManagerCompat.from(context)
+            .notify(identity.notificationTag(), REMINDER_NOTIFICATION_ID, notification)
+        registry(context).receipt("posted_notification", identity)
+      } catch (_: SecurityException) {
+        registry(context).receipt("post_denied", identity)
+      }
+    }
+
+    private fun createReminderChannel(context: Context) {
+      if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) return
+      val channel = NotificationChannel(
+          REMINDER_CHANNEL_ID,
+          "LAFINA reminders (notify only)",
+          NotificationManager.IMPORTANCE_HIGH
+      ).apply {
+        description = "Reminders you chose to receive as a notification instead of a call"
+        lockscreenVisibility = Notification.VISIBILITY_PRIVATE
+        enableVibration(true)
+      }
+      (context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager)
+          .createNotificationChannel(channel)
+    }
+
+    /** True for notification actions of a notify-only reminder (no lock-screen call UI). */
+    fun isNotificationAction(intent: Intent?): Boolean =
+        intent?.getStringExtra("action") in setOf(ACTION_ACKNOWLEDGE, ACTION_SNOOZE)
 
     fun captureActivityIntent(context: Context, intent: Intent?) {
       val reminderId = intent?.getStringExtra("reminderId")?.takeIf { it.isNotBlank() } ?: return

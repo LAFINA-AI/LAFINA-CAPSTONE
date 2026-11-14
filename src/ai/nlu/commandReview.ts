@@ -24,6 +24,8 @@ import {notesStore} from '../../storage/notesStore';
 import {extractChecklistItems, toggleChecklistItem} from '../../utils/richText';
 import type {Note} from '../../storage/notesStore';
 import {remindersStore} from '../../storage/remindersStore';
+import {reminderDeliveryStyleStore} from '../../storage/reminderDeliveryStyleStore';
+import type {ReminderDeliveryStyle} from '../../storage/reminderDeliveryStyleStore';
 import type {Reminder} from '../../storage/remindersStore';
 import {deliveryStore, DeliveryFenceError} from '../../storage/deliveryStore';
 import {remindersForSource} from '../../storage/sourceReminders';
@@ -254,6 +256,8 @@ export interface EditableProposalFields {
 
 /** Patch submitted from the inline review editor. */
 export interface ReviewEditPatch {
+  /** "Call me" or "Notify only" for the reminder this card creates. */
+  reminderDelivery?: ReminderDeliveryStyle;
   title?: string;
   date?: string | null;
   time?: string | null;
@@ -279,6 +283,11 @@ export interface CommandProposal {
   readonly destructive: boolean;
   readonly expiresAt: number;
   readonly draftFields?: EditableProposalFields | null;
+  /**
+   * How the reminder this card creates will reach the student, or null when
+   * the card creates no reminder (audit finding 16). Changeable before Confirm.
+   */
+  readonly reminderDelivery?: ReminderDeliveryStyle | null;
   /** One-paragraph summary for the chat transcript and speech. */
   readonly reply: string;
 }
@@ -332,6 +341,8 @@ interface PendingReview {
   readonly sessionId: string;
   readonly expiresAt: number;
   state: 'pending' | 'cancelled' | 'refused';
+  /** Null when the operation creates no reminder. */
+  reminderDelivery: ReminderDeliveryStyle | null;
 }
 
 class ReviewRefusedError extends Error {
@@ -455,6 +466,7 @@ interface CleanIntent {
   checklistItems: string[] | null;
   bulkScope: 'completed_tasks' | 'date_items' | null;
   leadMinutes: number | null;
+  deliveryStyle: ReminderDeliveryStyle;
 }
 
 const cleanIntent = (intent: ValidatedIntent): CleanIntent => {
@@ -510,7 +522,22 @@ const cleanIntent = (intent: ValidatedIntent): CleanIntent => {
         ? intent.bulkScope
         : null,
     leadMinutes: cleanMinutes(intent.leadMinutes, 7 * 24 * 60),
+    deliveryStyle: intent.deliveryStyle === 'notify' ? 'notify' : 'call',
   };
+};
+
+/** The reminders a confirmed operation will create (each gets the card's delivery style). */
+const createdReminderIds = (op: PlannedOperation): string[] => {
+  switch (op.op) {
+    case 'create_task':
+    case 'create_event':
+      return op.reminder ? [op.reminder.id] : [];
+    case 'create_reminder':
+    case 'create_linked_reminder':
+      return [op.reminder.id];
+    default:
+      return [];
+  }
 };
 
 // ---------------------------------------------------------------------------
@@ -2838,6 +2865,10 @@ export const prepareReviewedCommand = (
     }
     const operationId = generateId('op');
     const expiresAt = now + REVIEW_TTL_MS;
+    const reminderDelivery: ReminderDeliveryStyle | null =
+      createdReminderIds(draft.operation).length > 0
+        ? clean.deliveryStyle
+        : null;
     const proposal: CommandProposal = Object.freeze({
       operationId,
       conflictAlternatives: Object.freeze(conflictAlternatives),
@@ -2852,6 +2883,7 @@ export const prepareReviewedCommand = (
       destructive: draft.destructive,
       expiresAt,
       draftFields: extractEditableFields(draft.operation),
+      reminderDelivery,
       reply: composeReply(draft),
     });
     reviews.set(operationId, {
@@ -2862,6 +2894,7 @@ export const prepareReviewedCommand = (
       sessionId,
       expiresAt,
       state: 'pending',
+      reminderDelivery,
     });
     return {status: 'proposal', proposal, reply: proposal.reply};
   } catch (error) {
@@ -3777,6 +3810,13 @@ export const confirmReviewedCommand = (
         throw new ReviewRefusedError('owner_mismatch');
       }
       const applied = applyOperation(tx, review.ownerId, review.operation);
+      // Same transaction as the reminder, so the alarm registered after the
+      // commit already knows it is notify-only.
+      if (review.reminderDelivery === 'notify') {
+        for (const reminderId of createdReminderIds(review.operation)) {
+          reminderDeliveryStyleStore.set(reminderId, 'notify', tx);
+        }
+      }
       receipt = assistantOperationStore.insertReceipt(
         {
           operationId,
@@ -4181,6 +4221,7 @@ export const editReviewedCommand = (
         op.op === 'create_reminder' || op.op === 'create_time_block'
           ? op.recurrenceRule ?? null
           : null,
+      deliveryStyle: patch.reminderDelivery ?? current.reminderDelivery,
     },
     {
       surface: current.proposal.surface,
@@ -4191,6 +4232,43 @@ export const editReviewedCommand = (
     current.state = 'cancelled';
   }
   return result;
+};
+
+/**
+ * Switches an open card between "Call me" and "Notify only" (audit finding
+ * 16). Same card and operation ID; nothing is written until Confirm.
+ */
+export const setReviewReminderDelivery = (
+  ownerId: string,
+  operationId: string,
+  style: ReminderDeliveryStyle,
+): PrepareResult => {
+  const current = reviews.get(operationId);
+  if (
+    !current ||
+    current.ownerId !== ownerId ||
+    current.state !== 'pending' ||
+    current.sessionId !== sessionId ||
+    current.expiresAt <= Date.now()
+  ) {
+    return {
+      status: 'invalid',
+      reply: 'That draft is no longer available. Nothing was changed.',
+    };
+  }
+  if (current.reminderDelivery === null) {
+    return {status: 'invalid', reply: 'This card does not create a reminder.'};
+  }
+  if (style !== 'call' && style !== 'notify') {
+    return {status: 'invalid', reply: 'Choose Call me or Notify only.'};
+  }
+  current.reminderDelivery = style;
+  const proposal: CommandProposal = Object.freeze({
+    ...current.proposal,
+    reminderDelivery: style,
+  });
+  reviews.set(operationId, {...current, proposal});
+  return {status: 'proposal', proposal, reply: proposal.reply};
 };
 
 /** The newest proposal that can still be confirmed for this owner and surface. */

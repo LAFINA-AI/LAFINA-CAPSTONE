@@ -5,7 +5,9 @@ import {
   cancelReviewedCommand,
   editReviewedCommand,
   latestPendingReview,
+  setReviewReminderDelivery,
 } from '../../ai/nlu/commandReview';
+import type {ReminderDeliveryStyle} from '../../storage/reminderDeliveryStyleStore';
 import type {
   CommandProposal,
   PrepareResult,
@@ -26,6 +28,8 @@ export interface CommandReviewState {
   present: (review: PrepareResult | null | undefined) => void;
   /** Updates fields on the current pending proposal before Confirm. */
   edit?: (patch: ReviewEditPatch) => PrepareResult | null;
+  /** "Call me" or "Notify only" for the reminder this card creates. Saves nothing. */
+  setDelivery?: (style: ReminderDeliveryStyle) => void;
   /** Applies the proposal once. A second tap while busy does nothing. */
   confirm: (options?: {
     speakReply?: boolean;
@@ -107,6 +111,28 @@ export const useCommandReview = (
     [proposal, expired],
   );
 
+  const setDelivery = useCallback(
+    (style: ReminderDeliveryStyle): void => {
+      const current = proposal;
+      if (!current || expired || busyRef.current) return;
+      const result = setReviewReminderDelivery(
+        current.ownerId,
+        current.operationId,
+        style,
+      );
+      if (
+        result.status === 'proposal' &&
+        result.proposal.ownerId === ownerRef.current
+      ) {
+        setProposal(result.proposal);
+        setEditError(null);
+      } else if (result.status !== 'proposal') {
+        setEditError(result.reply);
+      }
+    },
+    [proposal, expired],
+  );
+
   const confirm = useCallback(
     async (options?: {
       speakReply?: boolean;
@@ -173,6 +199,7 @@ export const useCommandReview = (
     editError,
     present,
     edit,
+    setDelivery,
     confirm,
     cancel,
     dismiss,
