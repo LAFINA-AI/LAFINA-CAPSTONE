@@ -207,7 +207,10 @@ export const readLocalVoiceData = (
  * This context is provided to ElevenLabs / DeepSeek in Call Lafina so Lafina
  * has complete awareness of personal student data.
  */
-export const buildStudentVoiceContext = (userId: string): string => {
+export const buildStudentVoiceContext = (
+  userId: string,
+  options: {referenceDate?: Date} = {},
+): string => {
   if (!userId) return '';
   const sections: string[] = [];
 
@@ -228,46 +231,105 @@ export const buildStudentVoiceContext = (userId: string): string => {
     // best-effort
   }
 
-  // 2. Calendar Schedule (Today & upcoming 6 days — full 7-day planner window)
+  // 2. Calendar Schedule: the current time, overdue work and a per-day
+  // summary of the next 7 days, so "what's next?" and "am I free tonight?"
+  // can be answered (audit finding 11). Bounded so the prompt stays small.
   try {
-    const today = formatLocalDate(new Date());
+    const now = options.referenceDate ?? new Date();
+    const today = formatLocalDate(now);
+    const nowTime = `${String(now.getHours()).padStart(2, '0')}:${String(
+      now.getMinutes(),
+    ).padStart(2, '0')}`;
     const upcomingEnd = addDaysToDate(today, 6);
     const window = plannerQueries.window(userId, today, upcomingEnd);
-    const items: string[] = [];
 
-    // Blocks
-    for (const b of window.blocks.slice(0, 10)) {
-      items.push(
+    const MAX_PER_DAY = 12;
+    const MAX_ITEMS = 60;
+    const byDay = new Map<string, {sortKey: string; line: string}[]>();
+    const add = (date: string, sortKey: string, line: string) => {
+      const list = byDay.get(date) ?? [];
+      list.push({sortKey, line});
+      byDay.set(date, list);
+    };
+
+    for (const b of window.blocks) {
+      add(
+        b.date,
+        b.startTime || '',
         `Time block "${b.title}" on ${b.date} (${b.startTime}-${b.endTime})`,
       );
     }
-    // Events
-    for (const e of window.events.slice(0, 12)) {
-      items.push(
+    for (const e of window.events) {
+      add(
+        e.date,
+        e.startTime || '',
         `Event "${e.title}" on ${e.date}${
           e.startTime ? ` at ${e.startTime}` : ''
         }${e.location ? ` @ ${e.location}` : ''}`,
       );
     }
-    // Tasks (uncompleted first)
-    const pendingTasks = window.tasks.filter(t => !t.isCompleted).slice(0, 12);
-    for (const t of pendingTasks) {
-      items.push(
+    for (const t of window.tasks.filter(task => !task.isCompleted)) {
+      add(
+        t.dueDate || today,
+        t.dueTime || '99:99',
         `Task "${t.title}" (${t.priority} priority)${
           t.dueDate ? ` due ${t.dueDate}` : ''
         }${t.dueTime ? ` at ${t.dueTime}` : ''}`,
       );
     }
 
-    if (items.length > 0) {
-      sections.push(
-        `Active Schedule & Calendar (Today is ${today}):\n- ${items.join(
-          '\n- ',
-        )}`,
+    const dayLines: string[] = [];
+    let total = 0;
+    for (const date of [...byDay.keys()].sort()) {
+      const entries = byDay
+        .get(date)!
+        .sort((x, y) => x.sortKey.localeCompare(y.sortKey));
+      const shown = entries.slice(0, MAX_PER_DAY);
+      if (total + shown.length > MAX_ITEMS) break;
+      total += shown.length;
+      const weekday = new Date(`${date}T12:00:00`).toLocaleDateString('en-US', {
+        weekday: 'long',
+      });
+      const more =
+        entries.length > shown.length
+          ? `\n  (+${entries.length - shown.length} more that day)`
+          : '';
+      dayLines.push(
+        `${weekday} ${date}${date === today ? ' (today)' : ''} — ${
+          entries.length
+        } item${entries.length === 1 ? '' : 's'}:\n- ${shown
+          .map(entry => entry.line)
+          .join('\n- ')}${more}`,
       );
+    }
+
+    let overdueLine = '';
+    try {
+      const {items: overdue, total: overdueTotal} = plannerQueries.overdueTasks(
+        userId,
+        today,
+        10,
+      );
+      if (overdue.length > 0) {
+        overdueLine = `\nOverdue tasks (${overdueTotal}):\n- ${overdue
+          .map(
+            t =>
+              `Task "${t.title}" (${t.priority} priority) was due ${t.dueDate}${
+                t.dueTime ? ` at ${t.dueTime}` : ''
+              }`,
+          )
+          .join('\n- ')}`;
+      }
+    } catch {
+      // best-effort
+    }
+
+    const header = `Active Schedule & Calendar (Today is ${today}, now ${nowTime})`;
+    if (dayLines.length > 0) {
+      sections.push(`${header}:\n${dayLines.join('\n')}${overdueLine}`);
     } else {
       sections.push(
-        `Active Schedule & Calendar (Today is ${today}): No upcoming events or pending tasks scheduled.`,
+        `${header}: No upcoming events or pending tasks scheduled.${overdueLine}`,
       );
     }
   } catch {

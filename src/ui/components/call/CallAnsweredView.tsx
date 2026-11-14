@@ -37,6 +37,8 @@ interface CallAnsweredViewProps {
   reply: string;
   onlineConversation?: React.ReactNode;
   busy?: boolean;
+  /** A planner change waiting for Confirm, asked for during the call. */
+  reviewCard?: React.ReactNode;
 }
 
 const formatCallDuration = (seconds: number): string => {
@@ -60,6 +62,7 @@ export const CallAnsweredView: React.FC<CallAnsweredViewProps> = ({
   reply,
   onlineConversation,
   busy = false,
+  reviewCard,
 }) => {
   const { isDarkMode, colors } = useTheme();
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
@@ -337,6 +340,13 @@ export const CallAnsweredView: React.FC<CallAnsweredViewProps> = ({
             </>
           ) : null}
 
+          {reviewCard ? (
+            <>
+              <View style={[styles.cardDivider, themed.divider]} />
+              {reviewCard}
+            </>
+          ) : null}
+
           {callState === 'listening' || transcript ? (
             <>
               <View style={[styles.cardDivider, themed.divider]} />
@@ -365,6 +375,7 @@ export const CallAnsweredView: React.FC<CallAnsweredViewProps> = ({
               ]}
               accessibilityRole="button"
               accessibilityLabel="End reminder call"
+              accessibilityHint="Ends the call. The reminder counts as received."
               accessibilityState={{ disabled: !endEnabled }}
             >
               <PhoneOff size={30} color={colors.white} />

@@ -45,6 +45,13 @@ export interface ExtractedIntent {
   isPinned?: boolean | null;
   newCategory?: string | null;
   checklistItems?: string[] | null;
+  /**
+   * Bulk delete ("clear completed tasks", "delete tomorrow's events"). The
+   * review card lists every item before anything is removed.
+   */
+  bulkScope?: 'completed_tasks' | 'date_items' | null;
+  /** "remind me 30 minutes before my math exam": minutes before `targetTitle` starts. */
+  leadMinutes?: number | null;
 }
 
 export interface ValidatedIntent extends ExtractedIntent {
@@ -153,7 +160,16 @@ export function validateIntent(intent: ExtractedIntent): ValidatedIntent {
     intent.intent === 'delete_time_block' ||
     intent.intent === 'delete_note'
   ) {
-    if (!sanitizedTargetTitle && !sanitizedTitle && !intent.targetTime && !intent.time && !intent.date) {
+    if (intent.bulkScope) {
+      return {...intent, isValid: true};
+    }
+    if (
+      !sanitizedTargetTitle &&
+      !sanitizedTitle &&
+      !intent.targetTime &&
+      !intent.time &&
+      !intent.date
+    ) {
       return {
         ...intent,
         isValid: false,

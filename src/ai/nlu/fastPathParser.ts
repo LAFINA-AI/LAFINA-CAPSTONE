@@ -384,6 +384,92 @@ export function normalizeSpeech(transcript: string): string {
   return result.replace(/\s+/g, ' ').trim();
 }
 
+const TAGLISH_MARKER =
+  /\b(?:paalala(?:han)?|ipaalala|dagdag(?:an)?|idagdag|ilagay|ano(?:ng)?|bukas|mamaya(?:ng)?|ngayon(?:g)?|sakin|saakin|mag-?aral|mag-?review|bumili|magpasa|ipasa|alas)\b/i;
+
+const TAGLISH_WEEKDAYS: Record<string, string> = {
+  lunes: 'monday',
+  martes: 'tuesday',
+  miyerkules: 'wednesday',
+  myerkules: 'wednesday',
+  huwebes: 'thursday',
+  biyernes: 'friday',
+  sabado: 'saturday',
+  linggo: 'sunday',
+};
+
+/**
+ * Offline Taglish support: rewrites the common Filipino words students mix into
+ * planner commands ("paalala mo sakin mag-aral bukas ng 7pm") into the English
+ * the parser understands ("remind me to study tomorrow at 7pm"). Returns null
+ * when the text has no Taglish planner words, so English input is untouched.
+ */
+export function translateTaglishCommand(text: string): string | null {
+  const source = (text || '').trim();
+  if (!source || !TAGLISH_MARKER.test(source)) return null;
+  let result = ` ${source.toLowerCase()} `;
+  const replace = (
+    pattern: RegExp,
+    value: string | ((match: string, ...groups: string[]) => string),
+  ): void => {
+    result =
+      typeof value === 'string'
+        ? result.replace(pattern, value)
+        : result.replace(pattern, value);
+  };
+  // Command frames first, so their pronouns ("mo", "sakin") go with them.
+  replace(
+    /\s(?:i?paalala(?:han)?)\s+(?:mo\s+)?(?:ako|sakin|saakin|sa\s+akin)?\s*(?:na\s+|ng\s+|to\s+)?/g,
+    ' remind me to ',
+  );
+  replace(
+    /\s(?:i?dagdag(?:an)?|ilagay)\s+(?:mo\s+)?(?:ito\s+)?(?:sa|ng)\s+(?:aking\s+|ang\s+)?(?:to-?do|to\s+do|todo|listahan)(?:\s+ko)?\s+(.+?)\s*$/g,
+    ' add $1 to my to-do ',
+  );
+  replace(
+    /\s(?:i?dagdag(?:an)?|ilagay)\s+(?:mo\s+)?(.+?)\s+sa\s+(?:aking\s+|ang\s+)?(?:to-?do|to\s+do|todo|listahan)(?:\s+ko)?\s*$/g,
+    ' add $1 to my to-do ',
+  );
+  replace(
+    /\sano(?:ng)?\s+(?:ang\s+)?(?:sched(?:ule)?|iskedyul|gagawin|lakad)\s+(?:ko|natin)\b/g,
+    ' what is my schedule',
+  );
+  replace(
+    /\sano(?:ng)?\s+(?:ang\s+)?(?:to-?do|todo)\s+ko\b/g,
+    ' what is on my to-do list',
+  );
+  // Verbs students use as task titles.
+  replace(/\smag-?aral\b/g, ' study');
+  replace(/\smag-?review\b/g, ' review');
+  replace(/\sbumili\s+(?:ng\s+)?/g, ' buy ');
+  replace(/\s(?:magpasa|ipasa)\s+(?:ng\s+|ang\s+)?/g, ' submit ');
+  replace(/\smaglinis\s+(?:ng\s+)?/g, ' clean ');
+  replace(/\stapusin\s+(?:ang\s+)?/g, ' finish ');
+  // Time words.
+  replace(/\sbukas\s+ng\s+umaga\b/g, ' tomorrow morning');
+  replace(/\sbukas\s+ng\s+hapon\b/g, ' tomorrow afternoon');
+  replace(/\sbukas\s+ng\s+gabi\b/g, ' tomorrow night');
+  replace(/\sbukas\b/g, ' tomorrow');
+  replace(/\s(?:mamayang|ngayong)\s+gabi\b/g, ' tonight');
+  replace(/\smamayang\s+hapon\b/g, ' this afternoon');
+  replace(/\smamaya(?:ng)?\b/g, ' later');
+  replace(/\sngayon(?:g)?\s+araw\b/g, ' today');
+  replace(/\sngayon\b/g, ' today');
+  replace(
+    /\s(?:sa\s+)?(lunes|martes|miyerkules|myerkules|huwebes|biyernes|sabado|linggo)\b/g,
+    (_m: string, day: string) => ` on ${TAGLISH_WEEKDAYS[day] || day}`,
+  );
+  replace(/\salas\s+(\d{1,2}(?::\d{2})?)/g, ' at $1');
+  replace(
+    /\sng\s+(?=\d{1,2}(?::\d{2})?\s*(?:am|pm|a\.m\.|p\.m\.)?\b)/g,
+    ' at ',
+  );
+  // Leftover pronouns and particles.
+  replace(/\s(?:mo|ko|sakin|saakin|sa\s+akin|po|naman|nga)\b/g, ' ');
+  const translated = result.replace(/\s+/g, ' ').trim();
+  return translated && translated !== source.toLowerCase() ? translated : null;
+}
+
 /** Detects academic vs personal category from keywords. */
 export function detectCategory(text: string): string {
   const lower = text.toLowerCase();
@@ -428,6 +514,31 @@ export function detectCategory(text: string): string {
 /** Detects recurrence rules (e.g. "repeats every Monday", "every week", "daily") as standard iCalendar RRULE strings. */
 export function extractRecurrenceRule(text: string): string | null {
   const lower = text.toLowerCase();
+  // "every monday and wednesday", "every mon, wed and fri"
+  const multiDay =
+    /\b(?:repeats?|repeating|every)\s+((?:(?:monday|tuesday|wednesday|thursday|friday|saturday|sunday)s?(?:\s*,\s*|\s+and\s+|\s*&\s*|\s*\/\s*)?){2,})/i.exec(
+      lower,
+    );
+  if (multiDay) {
+    const codes: Record<string, string> = {
+      monday: 'MO',
+      tuesday: 'TU',
+      wednesday: 'WE',
+      thursday: 'TH',
+      friday: 'FR',
+      saturday: 'SA',
+      sunday: 'SU',
+    };
+    const found = [
+      ...multiDay[1].matchAll(
+        /(monday|tuesday|wednesday|thursday|friday|saturday|sunday)/gi,
+      ),
+    ].map(m => codes[m[1].toLowerCase()]);
+    const unique = [...new Set(found)];
+    if (unique.length >= 2) {
+      return `RRULE:FREQ=WEEKLY;BYDAY=${unique.join(',')}`;
+    }
+  }
   if (/\b(?:repeats?|repeating|every)\s+mondays?\b/i.test(lower)) {
     return 'RRULE:FREQ=WEEKLY;BYDAY=MO';
   }
@@ -817,6 +928,11 @@ interface ParsedDateTime {
   endTime: string | null;
   durationMinutes: number | null;
   matchedText: string[];
+  /**
+   * True when a bare hour with no am/pm was read as later today because the
+   * morning reading had already passed ("later at 7" at 10 AM -> 7 PM).
+   */
+  shiftedToEvening?: boolean;
 }
 
 /** Parses dates and times deterministically using local calendar arithmetic. */
@@ -829,6 +945,9 @@ export function parseDateAndTime(
   let time: string | null = null;
   let endTime: string | null = null;
   let durationMinutes: number | null = null;
+  // A bare hour read with the daytime assumption (no am/pm, no part of day).
+  let implicitHour = false;
+  let shiftedToEvening = false;
 
   const normalized = normalizeSpeech(text);
   const lower = normalized.toLowerCase();
@@ -1187,6 +1306,8 @@ export function parseDateAndTime(
             contextPeriod,
             /^0\d$/.test(hourTok),
           );
+          implicitHour =
+            !contextPeriod && !/^0\d$/.test(hourTok) && rawH >= 1 && rawH <= 11;
           time = formatLocalTime(resolvedH, min);
           matchedText.push(colonOrOclockMatch[0]);
         }
@@ -1209,6 +1330,11 @@ export function parseDateAndTime(
           contextPeriod,
           /^0\d$/.test(bareAtMatch[1]),
         );
+        implicitHour =
+          !contextPeriod &&
+          !/^0\d$/.test(bareAtMatch[1]) &&
+          rawH >= 1 &&
+          rawH <= 11;
         time = formatLocalTime(resolvedH, 0);
         matchedText.push(bareAtMatch[0]);
       }
@@ -1228,6 +1354,24 @@ export function parseDateAndTime(
       else if (contextPeriod === 'evening') time = '18:00';
       else if (contextPeriod === 'night') time = '20:00';
       matchedText.push(explicitPeriodMatch[0]);
+    }
+  }
+
+  // A bare hour that already passed this morning means this evening: at 10 AM,
+  // "later at 7" is 7 PM, not 7 AM. Only for today (or no date) and only when
+  // the evening reading is still ahead.
+  if (
+    time &&
+    implicitHour &&
+    !endTime &&
+    (date === null || date === formatLocalDate(referenceDate))
+  ) {
+    const [h, m] = time.split(':').map(v => parseInt(v, 10));
+    const nowMinutes =
+      referenceDate.getHours() * 60 + referenceDate.getMinutes();
+    if (h < 12 && h * 60 + m <= nowMinutes && (h + 12) * 60 + m > nowMinutes) {
+      time = formatLocalTime(h + 12, m);
+      shiftedToEvening = true;
     }
   }
 
@@ -1266,6 +1410,31 @@ export function parseDateAndTime(
             durationMinutes = Math.round(numericAmount * (isHour ? 60 : 1));
             matchedText.push(durMatch[0]);
           }
+        } else {
+          // "for an hour", "block out 2 hours", "2 hours of studying": a bare
+          // length that is not an offset ("in 2 hours", "2 hours before").
+          const anHour = /\bfor\s+an?\s+hour\b/i.exec(lower);
+          const bareDur = new RegExp(
+            `(?<!\\b(?:in|after|within|every|each|about|around)\\s)\\b(${NUM_WORDS_PATTERN}|\\d+\\.5)\\s*(hours?|hrs?)\\b(?!\\s+(?:from\\s+now|later|before|after|ago|early|earlier|prior))`,
+            'i',
+          ).exec(lower);
+          if (anHour) {
+            durationMinutes = 60;
+            matchedText.push(anHour[0]);
+          } else if (bareDur) {
+            const rawAmount = bareDur[1];
+            const numericAmount = /^\d+\.\d+$/.test(rawAmount)
+              ? parseFloat(rawAmount)
+              : parseNumberWordOrDigits(rawAmount);
+            if (
+              numericAmount !== null &&
+              numericAmount > 0 &&
+              numericAmount <= 12
+            ) {
+              durationMinutes = Math.round(numericAmount * 60);
+              matchedText.push(bareDur[0]);
+            }
+          }
         }
       }
     }
@@ -1279,7 +1448,14 @@ export function parseDateAndTime(
     }
   }
 
-  return {date, time, endTime, durationMinutes, matchedText};
+  return {
+    date,
+    time,
+    endTime,
+    durationMinutes,
+    matchedText,
+    ...(shiftedToEvening ? {shiftedToEvening} : {}),
+  };
 }
 
 function extractPriority(text: string): 'High' | 'Medium' | 'Low' | null {
@@ -1499,10 +1675,38 @@ function cleanCrudTargetTitle(
   return cleaned;
 }
 
+/** Items that belong on the calendar as events when a time is given. */
+const EVENT_NOUN =
+  /\b(?:exams?|midterms?|finals?\s+exams?|prelims?|quiz(?:zes)?|appointments?|meetings?|interviews?|seminars?|consultations?|defen[cs]e|orientation|webinars?|recitals?|tryouts?|check-?ups?)\b/i;
+
+/** Bare pronouns and fillers that never name a real item ("add it"). */
+export const VAGUE_ITEM_TITLE =
+  /^(?:it|that|this|them|those|these|one|something|anything|stuff|thing|things|item|the\s+thing)$/i;
+
+const NOTE_CREATION_START =
+  /^(?:(?:please\s+)?(?:take|create|add|make|save|write|jot)\s+(?:a\s+|an\s+|new\s+|quick\s+)?notes?\b|note\s*:|jot\s+down|note\s+down|isulat)/i;
+
 /** Deterministic Fast-Path NLU Intent Extractor. */
 export function parseIntentFastPath(
   transcript: string,
   referenceDate: Date = new Date(),
+): ExtractedIntent {
+  // Offline Taglish: translate the planner words, never a note's own text.
+  const taglish = NOTE_CREATION_START.test((transcript || '').trim())
+    ? null
+    : translateTaglishCommand(transcript);
+  if (taglish) {
+    return {
+      ...parseEnglishIntent(taglish, referenceDate),
+      rawTranscript: transcript,
+    };
+  }
+  return parseEnglishIntent(transcript, referenceDate);
+}
+
+function parseEnglishIntent(
+  transcript: string,
+  referenceDate: Date,
 ): ExtractedIntent {
   const normalized = normalizeSpeech(transcript);
   const lower = normalized.toLowerCase();
@@ -1578,6 +1782,249 @@ export function parseIntentFastPath(
       source: 'fast_path',
       rawTranscript: transcript,
     };
+  }
+
+  const base = {
+    date: null,
+    time: null,
+    endTime: null,
+    durationMinutes: null,
+    snoozeMinutes: null,
+    confidence: 0.95,
+    source: 'fast_path' as const,
+    rawTranscript: transcript,
+  };
+
+  // 2b. Planning requests are questions, never items to save ("plan my week
+  // around my exams" must not become a task titled "My Week Around My Exams").
+  if (
+    /^(?:(?:can|could|would)\s+you\s+)?(?:help\s+me\s+)?(?:plan|map)\s+(?:out\s+)?(?:my|the|this|next|our)\s+(?:whole\s+)?(?:week|day|days|weekend|month|semester|schedule|study\s+schedule|review(?:\s+schedule)?|exam\s+week)\b|^(?:(?:can|could|would)\s+you\s+)?help\s+me\s+(?:plan|organi[sz]e|prioriti[sz]e|figure\s+out|decide|manage)\b/i.test(
+      commandLower,
+    )
+  ) {
+    return {
+      ...base,
+      intent: 'chat',
+      title: null,
+      category: detectCategory(normalized),
+      details: transcript,
+      confidence: 0.9,
+    };
+  }
+
+  // 2c. Free time ("find a free slot tomorrow for 2 hours of studying").
+  if (
+    /\b(?:find|any|get|show|look\s+for|suggest|give)\s+(?:me\s+)?(?:an?\s+|some\s+|the\s+)?(?:free|open|available|empty)\s+(?:slots?|time(?:\s+slots?)?|times|windows?|hours?|blocks?|periods?)\b|\bwhen\s+(?:am\s+i|are\s+we)\s+free\b|\bwhen\s+can\s+i\s+(?:study|fit|squeeze|schedule)\b|\b(?:do\s+i\s+have|is\s+there)\s+(?:any\s+)?(?:free|open)\s+(?:time|slots?)\b/i.test(
+      commandLower,
+    )
+  ) {
+    const dt = parseDateAndTime(normalized, referenceDate);
+    return {
+      ...base,
+      intent: 'query_schedule',
+      title: null,
+      date: dt.date || formatLocalDate(referenceDate),
+      durationMinutes: dt.durationMinutes,
+      category: 'Academic',
+      details: 'free_slots',
+    };
+  }
+
+  // 2d. Overdue work ("show overdue tasks", "what am I behind on").
+  if (
+    /\b(?:overdue|past[\s-]+due|late)\s+(?:tasks?|to-?dos?|todos?|to\s+dos?|assignments?|homework|work|items?)\b|\b(?:tasks?|to-?dos?|todos?|assignments?|homework)\s+(?:that\s+(?:are|is)\s+)?(?:overdue|past\s+due|late)\b|\bwhat(?:'s|s|\s+is|\s+am\s+i)\s+(?:overdue|behind(?:\s+on)?)\b|\bam\s+i\s+behind\b|^(?:show|list|check)\s+(?:my\s+)?overdue\b/i.test(
+      commandLower,
+    )
+  ) {
+    return {
+      ...base,
+      intent: 'query_schedule',
+      title: null,
+      date: formatLocalDate(referenceDate),
+      category: 'Academic',
+      details: 'overdue',
+    };
+  }
+
+  // 2e. What comes next ("what's my next class", "what's next").
+  const nextMatch =
+    /\b(?:what(?:'s|s|\s+is)|when(?:'s|s|\s+is)|where(?:'s|s|\s+is)|show|tell\s+me|read)\s+(?:me\s+)?(?:my\s+|the\s+)?next\s*(class|lecture|subject|event|exam|quiz|meeting|appointment|task|deadline|thing|item|schedule)?\b|^next\s+(class|lecture|event|exam|task)\b/i.exec(
+      commandLower,
+    );
+  if (nextMatch) {
+    const kind = (nextMatch[1] || nextMatch[2] || '').toLowerCase();
+    return {
+      ...base,
+      intent: 'query_schedule',
+      title: null,
+      date: formatLocalDate(referenceDate),
+      category: 'Academic',
+      details:
+        kind === 'class' || kind === 'lecture' || kind === 'subject'
+          ? 'next_class'
+          : kind === 'task' || kind === 'deadline'
+          ? 'next_task'
+          : 'next_item',
+    };
+  }
+
+  // 2f. Searching notes by topic ("what did I write about physics?").
+  const noteSearchMatch =
+    /\bwhat\s+(?:did|have)\s+i\s+(?:write|written|wrote|note|noted|jot|jotted|save|saved|put)(?:\s+down)?\s+(?:about|on|regarding|for|in)\s+['"“]?([^'"”?.!]+)/i.exec(
+      commandLower,
+    ) ||
+    /\b(?:search|find|look\s+(?:up|for))\s+(?:in\s+|through\s+)?(?:my\s+|the\s+)?notes?\s+(?:for|about|on)\s+['"“]?([^'"”?.!]+)/i.exec(
+      commandLower,
+    ) ||
+    /\b(?:search\s+for|find|look\s+for)\s+['"“]?([^'"”?.!]+?)['"”]?\s+in\s+(?:my\s+|the\s+)?notes?\b/i.exec(
+      commandLower,
+    ) ||
+    /\b(?:summari[sz]e|recap)\s+(?:my\s+|the\s+)?notes?\s+(?:about|on|for)\s+['"“]?([^'"”?.!]+)/i.exec(
+      commandLower,
+    );
+  if (noteSearchMatch) {
+    const topic = noteSearchMatch[1]
+      .replace(/^(?:my|the|a|an)\s+/i, '')
+      .replace(/\s+(?:notes?|please|lafina)$/i, '')
+      .trim();
+    if (topic && !/^(?:it|that|this|them|everything|anything)$/i.test(topic)) {
+      return {
+        ...base,
+        intent: 'query_notes',
+        title: topic,
+        category: detectCategory(topic),
+        details: topic,
+      };
+    }
+  }
+
+  // 2g. Bulk removal. Always a review card that lists every item first.
+  if (
+    /^(?:clear|delete|remove|erase|wipe|get\s+rid\s+of)\s+(?:out\s+)?(?:all\s+)?(?:of\s+)?(?:my\s+|the\s+)?(?:completed|finished|done|checked(?:[\s-]+off)?|ticked(?:\s+off)?)\s+(?:tasks?|to-?dos?|todos?|to\s+dos?|items?)\b/i.test(
+      commandLower,
+    )
+  ) {
+    return {
+      ...base,
+      intent: 'delete_task',
+      title: 'Completed tasks',
+      targetTitle: 'Completed tasks',
+      targetEntityType: 'task',
+      bulkScope: 'completed_tasks',
+      category: 'Academic',
+      details: null,
+    };
+  }
+  const bulkDateMatch =
+    /^(?:clear|delete|remove|cancel|erase|wipe)\s+(?:out\s+)?(?:(all|everything)\s+)?(?:(?:of\s+)?(?:my|the)\s+)?(?:(today|tomorrow|tonight|monday|tuesday|wednesday|thursday|friday|saturday|sunday)(?:'s|s)?\s+)?(events|appointments|time\s*blocks|blocks|classes|tasks|to-?dos|todos|plans|schedule|calendar|everything)\b(?:\s+(?:for|on)\s+)?(.*)$/i.exec(
+      commandLower,
+    );
+  if (bulkDateMatch) {
+    const dayWord = bulkDateMatch[2] || '';
+    const rest = bulkDateMatch[4] || '';
+    const dt = parseDateAndTime(`${dayWord} ${rest}`, referenceDate);
+    const noun = bulkDateMatch[3].toLowerCase();
+    const hasAll = Boolean(bulkDateMatch[1]) || noun === 'everything';
+    if (
+      dt.date &&
+      (hasAll ||
+        dayWord ||
+        /^(?:today|tomorrow|tonight|on\s|this\s|next\s|monday|tuesday|wednesday|thursday|friday|saturday|sunday)/i.test(
+          rest.trim(),
+        ))
+    ) {
+      const entity: CrudTargetEntityType = /event|appointment/.test(noun)
+        ? 'event'
+        : /block|class/.test(noun)
+        ? 'time_block'
+        : /task|to-?do|todo/.test(noun)
+        ? 'task'
+        : 'any';
+      return {
+        ...base,
+        intent: entity === 'task' ? 'delete_task' : 'delete_time_block',
+        title: `Items on ${dt.date}`,
+        targetTitle: `Items on ${dt.date}`,
+        targetEntityType: entity,
+        bulkScope: 'date_items',
+        date: dt.date,
+        category: 'Academic',
+        details: null,
+      };
+    }
+  }
+
+  // 2h. Adding to an existing checklist or list note ("add rice to my
+  // groceries checklist"). Never the To-Do list, which holds tasks.
+  const listAddMatch =
+    /^(?:add|put|include|append)\s+(.+?)\s+(?:to|on|in|into|onto)\s+(?:my\s+|the\s+)?(.+?)\s+(checklist|check\s*list|list|note)$/i.exec(
+      commandLower.replace(/[.!?]+$/, ''),
+    );
+  if (
+    listAddMatch &&
+    !/^(?:to-?do|to\s+do|todo|task|tasks|reading)$/i.test(
+      listAddMatch[2].trim(),
+    )
+  ) {
+    const items = listAddMatch[1]
+      .split(/\s*,\s*|\s+and\s+/i)
+      .map(item => item.replace(/^(?:some|a|an|the)\s+/i, '').trim())
+      .filter(Boolean)
+      .map(item => item.charAt(0).toUpperCase() + item.slice(1));
+    const listName = listAddMatch[2].trim();
+    if (items.length > 0 && listName) {
+      const targetTitle = listName.charAt(0).toUpperCase() + listName.slice(1);
+      return {
+        ...base,
+        intent: 'update_note',
+        title: targetTitle,
+        targetTitle,
+        targetEntityType: 'note',
+        checklistItems: items,
+        category: 'APPEND',
+        details: null,
+      };
+    }
+  }
+
+  // 2i. A reminder tied to an item ("remind me 30 minutes before my math exam").
+  const leadMatch = new RegExp(
+    `^(?:remind\\s+me|set\\s+(?:a\\s+)?reminder|ping\\s+me|alert\\s+me)\\s+(?:about\\s+(?:my\\s+|the\\s+)?(.+?)\\s+)?(?:(an?|${NUM_WORDS_PATTERN})\\s*(minutes?|mins?|hours?|hrs?)|(half\\s+an?\\s+hour))\\s+(?:before|ahead\\s+of|prior\\s+to)\\s+(?:my\\s+|the\\s+)?(.+?)(?:\\s+(?:starts?|begins?))?[.!?]*$`,
+    'i',
+  ).exec(commandLower);
+  if (leadMatch) {
+    const amountToken = leadMatch[2];
+    const unit = (leadMatch[3] || '').toLowerCase();
+    let minutes: number | null = null;
+    if (leadMatch[4]) minutes = 30;
+    else if (amountToken) {
+      const amount = /^an?$/i.test(amountToken)
+        ? 1
+        : parseNumberWordOrDigits(amountToken);
+      if (amount !== null && amount > 0) {
+        minutes =
+          unit.startsWith('hour') || unit.startsWith('hr')
+            ? amount * 60
+            : amount;
+      }
+    }
+    const rawTarget = (leadMatch[5] || '').trim();
+    const target =
+      rawTarget && !/^(?:it|that|this)$/i.test(rawTarget)
+        ? rawTarget
+        : (leadMatch[1] || '').trim();
+    if (minutes && minutes <= 7 * 24 * 60 && target) {
+      const targetTitle = target.charAt(0).toUpperCase() + target.slice(1);
+      return {
+        ...base,
+        intent: 'create_reminder',
+        title: targetTitle,
+        targetTitle,
+        leadMinutes: minutes,
+        category: detectCategory(targetTitle),
+        details: null,
+      };
+    }
   }
 
   // 3. Schedule Audit & Schedule Query
@@ -2336,7 +2783,28 @@ export function parseIntentFastPath(
     };
   }
 
-  const dt = parseDateAndTime(normalized, referenceDate);
+  const parsedDt = parseDateAndTime(normalized, referenceDate);
+  // An alarm or wake-up call at a bare hour means the morning: "wake me up at
+  // 6" at 10 AM is 6 AM tomorrow, not 6 PM today.
+  const dt =
+    parsedDt.time &&
+    Number(parsedDt.time.slice(0, 2)) >= 13 &&
+    /^(?:wake\s+me\s+up|(?:set|add|create|make|put)\s+(?:up\s+)?(?:my\s+|an?\s+|the\s+|new\s+)?alarms?)\b/i.test(
+      normalized.trim(),
+    ) &&
+    // Only a bare hour: "6pm", "18:00", "tonight" or "evening" stay as said.
+    !/\b(?:\d{1,2}(?::\d{2})?\s*(?:pm|p\.m\.?)|(?:1[3-9]|2[0-3]):\d{2}|tonight|evening|afternoon|night|noon)\b/i.test(
+      normalized,
+    )
+      ? {
+          ...parsedDt,
+          time: `${String(Number(parsedDt.time.slice(0, 2)) - 12).padStart(
+            2,
+            '0',
+          )}${parsedDt.time.slice(2)}`,
+          shiftedToEvening: false,
+        }
+      : parsedDt;
 
   // Determine schedule creation intent (Time Block, Task, Reminder)
   let intentType: ParsedIntentType = 'create_task';
@@ -2353,10 +2821,16 @@ export function parseIntentFastPath(
     targetsTodoList ||
     /^(?:new\s+)?(?:tasks?|todos?|to-?dos?|to\s+dos?)\b/i.test(commandLower);
 
-  const isExplicitReminder = /\b(?:remind|reminders?)\b/i.test(commandLower);
+  const isAlarmRequest =
+    /^(?:set|add|create|make|put)\s+(?:up\s+)?(?:my\s+|an?\s+|the\s+|new\s+)?alarms?\b/i.test(
+      commandLower,
+    ) || /^wake\s+me\s+up\b/i.test(commandLower);
+
+  const isExplicitReminder =
+    /\b(?:remind|reminders?)\b/i.test(commandLower) || isAlarmRequest;
 
   const isImperativeScheduleVerb =
-    /^(?:add|set(?:\s+up)?|create|put|schedule|make|book|plan|remind)\b/i.test(
+    /^(?:add|set(?:\s+up)?|create|put|schedule|make|book|plan|remind|wake)\b/i.test(
       commandLower,
     );
 
@@ -2366,6 +2840,30 @@ export function parseIntentFastPath(
       commandLower,
     ) ||
       commandLower.endsWith('?'));
+
+  // Looking, asking and planning verbs never create an item on their own:
+  // "find a free slot tomorrow" is a question even though it has a date.
+  const isInquiryPhrase =
+    !isImperativeScheduleVerb &&
+    /^(?:find|search|look|check|show|tell|give|list|suggest|recommend|explain|summari[sz]e|review\s+my|compare|help|figure|decide)\b/i.test(
+      commandLower,
+    );
+  if (isInquiryPhrase && !isExplicitTimeBlock && !isExplicitTask) {
+    return {
+      intent: 'chat',
+      title: null,
+      date: null,
+      time: null,
+      endTime: null,
+      durationMinutes: null,
+      category: detectCategory(normalized),
+      details: transcript,
+      snoozeMinutes: null,
+      confidence: 0.85,
+      source: 'fast_path',
+      rawTranscript: transcript,
+    };
+  }
 
   if (isExplicitTimeBlock) {
     intentType = 'create_time_block';
@@ -2409,6 +2907,21 @@ export function parseIntentFastPath(
     /^(?:with\s+)?(?:high|medium|low)\s+priority\s*[:,-]?\s*/i,
     '',
   );
+
+  // "block out 2 hours for thesis", "set my alarm for 6am", "wake me up at 6"
+  cleanTitle = cleanTitle
+    .replace(/^block\s+(?:out|off)\s+(?:some\s+)?(?:time\s+)?/i, '')
+    .replace(
+      /^(?:set|add|create|make|put)\s+(?:up\s+)?(?:my\s+|an?\s+|the\s+|new\s+)?alarms?\s*/i,
+      '',
+    )
+    .replace(/^wake\s+me\s+up\s*/i, '')
+    // "every monday and wednesday", "every mon, wed and fri" (before the
+    // single matched weekday is cut out and leaves "and wednesday" behind)
+    .replace(
+      /\b(?:every|each|on)\s+(?:(?:monday|tuesday|wednesday|thursday|friday|saturday|sunday)s?(?:\s*,\s*|\s+and\s+|\s*&\s*|\s*\/\s*)?){2,}/gi,
+      ' ',
+    );
 
   // Strip command verb + optional article/adjective + entity noun
   cleanTitle = cleanTitle.replace(
@@ -2457,6 +2970,11 @@ export function parseIntentFastPath(
       /\b(?:that\s+repeats?|repeating|repeats?)\s+(?:every|each|on)?\b/gi,
       ' ',
     )
+    // "... on my calendar" / "to my schedule"
+    .replace(
+      /\s+(?:on|to|in|into|onto)\s+(?:my\s+|the\s+)?(?:calendar|schedule|agenda|planner)\b/gi,
+      ' ',
+    )
     .replace(
       /\bevery\s+(?:monday|tuesday|wednesday|thursday|friday|saturday|sunday|day|week|month)\b/gi,
       ' ',
@@ -2500,7 +3018,8 @@ export function parseIntentFastPath(
   let finalDetails: string | null = cleanTitle || normalized;
 
   if (!cleanTitle) {
-    if (intentType === 'create_reminder') finalTitle = 'Reminder';
+    if (isAlarmRequest) finalTitle = 'Alarm';
+    else if (intentType === 'create_reminder') finalTitle = 'Reminder';
     else if (intentType === 'create_time_block') finalTitle = 'Study Session';
     else finalTitle = 'New Task';
   }
@@ -2519,12 +3038,28 @@ export function parseIntentFastPath(
     confidence = dt.matchedText.length > 0 ? 0.95 : 0.85;
   }
 
-  const isExplicitEventKeyword =
-    intentType === 'create_time_block' &&
-    /\b(?:events?|appointments?)\b/i.test(commandLower) &&
-    !/\b(?:time\s*blocks?|timeblocks?|study\s*blocks?|focus\s*blocks?|work\s*blocks?)\b/i.test(
+  // Exams, appointments and meetings at a set time are calendar events, not
+  // to-dos. Without a time they stay tasks (a deadline on that day).
+  const namesBlockExplicitly =
+    /\b(?:time\s*blocks?|timeblocks?|study\s*blocks?|focus\s*blocks?|work\s*blocks?|block\s+(?:out|off|time))\b/i.test(
       commandLower,
     );
+  if (
+    !namesBlockExplicitly &&
+    !isExplicitReminder &&
+    !(isExplicitTask && intentType === 'create_task') &&
+    (intentType === 'create_task' || intentType === 'create_time_block') &&
+    dt.time !== null &&
+    EVENT_NOUN.test(`${finalTitle} ${commandLower}`)
+  ) {
+    intentType = 'create_time_block';
+  }
+
+  const isExplicitEventKeyword =
+    intentType === 'create_time_block' &&
+    !namesBlockExplicitly &&
+    (/\b(?:events?|appointments?)\b/i.test(commandLower) ||
+      (dt.time !== null && EVENT_NOUN.test(`${finalTitle} ${commandLower}`)));
 
   return {
     intent: intentType,

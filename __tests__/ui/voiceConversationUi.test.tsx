@@ -548,7 +548,7 @@ describe('a live conversation', () => {
         const utils = renderPanel(userId, transport);
         expect(
           utils.getByTestId('voice-conversation-consent'),
-        ).toHaveTextContent(/calendar, notes or saved memories/);
+        ).toHaveTextContent(/next 7 days.*notes and saved memories/);
         expect(utils.queryByTestId('voice-conversation-start')).toBeNull();
         utils.unmount();
       } finally {
@@ -1031,10 +1031,13 @@ describe('Call Mode ChatGPT-style UX, live card revisions, and saving', () => {
       },
     });
 
-    await waitFor(() => expect(tasksStore.getAllTasks(userId)).toHaveLength(1));
-    expect(tasksStore.getAllTasks(userId)[0]).toMatchObject({
+    // A meeting with a time is saved as a calendar event (audit finding 9).
+    await waitFor(() =>
+      expect(tasksStore.getAllEvents(userId)).toHaveLength(1),
+    );
+    expect(tasksStore.getAllEvents(userId)[0]).toMatchObject({
       title: 'Team Sync',
-      dueTime: '14:00',
+      startTime: '14:00',
     });
     expect(utils.queryByTestId('voice-conversation-review-card')).toBeNull();
     expect(utils.queryByText('Open saved item')).toBeNull();

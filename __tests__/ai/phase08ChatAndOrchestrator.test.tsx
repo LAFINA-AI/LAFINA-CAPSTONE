@@ -190,17 +190,19 @@ describe('Phase 08: End-to-End Offline Student Assistant & ChatScreen Integratio
         { referenceDate: fixedDate },
       );
 
-      expect(result.conflict?.hasConflict).toBe(true);
-      expect(result.recommendedSlot).toBeDefined();
-      expect(result.reply).toContain('Compiler Design Lecture');
-      expect(result.reply).toContain('Would you like me to schedule it then?');
-
-      // 4. Test force scheduling ignores conflict when specified
-      const forceResult = await chatOrchestrator.processMessage(
-        testUserId,
-        'Add study block for Algorithms from 11am to 1pm on 2026-10-31',
-        { referenceDate: fixedDate, forceSchedule: true },
+      // The overlap is shown on the review card with one-tap free times;
+      // chat no longer asks a question nothing could answer (audit finding 5).
+      expect(result.reply).not.toContain(
+        'Would you like me to schedule it then?',
       );
+      expect(result.review?.status).toBe('proposal');
+      const proposal =
+        result.review?.status === 'proposal' ? result.review.proposal : null;
+      expect(proposal?.warnings.join(' ')).toContain('Compiler Design Lecture');
+      expect(proposal?.conflictAlternatives?.length ?? 0).toBeGreaterThan(0);
+
+      // 4. Confirming the card still schedules it as asked.
+      const forceResult = result;
       const forced = await confirmProposal(testUserId, forceResult);
       expect(forced.outcome?.status === 'applied' && forced.outcome.receipt.entityType).toBe(
         'time_block',

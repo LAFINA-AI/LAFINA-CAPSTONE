@@ -52,10 +52,12 @@ export const groundedVoiceDraft = (
       kind: 'clarify',
       reply: 'What should I call it? Nothing was changed.',
     };
-  if (intent.intent !== 'create_task' && !intent.date)
+  // A time without a date is fine: the review card schedules it today, or
+  // tomorrow if that time has passed, and says so (audit finding 6).
+  if (intent.intent !== 'create_task' && !intent.date && !intent.time)
     return {
       kind: 'clarify',
-      reply: 'What date should I use? Nothing was changed.',
+      reply: 'What date and time should I use? Nothing was changed.',
     };
   if (intent.intent !== 'create_task' && !intent.time)
     return {

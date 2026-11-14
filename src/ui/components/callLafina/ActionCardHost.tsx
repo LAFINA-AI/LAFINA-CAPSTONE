@@ -17,7 +17,10 @@ import {Fonts, FontSize, Layout, Spacing} from '../../theme';
 import {useTheme} from '../../contexts/ThemeContext';
 import {useThemedStyles} from '../../theme/createThemedStyles';
 import type {ThemeColors} from '../../contexts/ThemeContext';
-import type {CommandProposal} from '../../../ai/nlu/commandReview';
+import type {
+  CommandProposal,
+  ReviewEditPatch,
+} from '../../../ai/nlu/commandReview';
 import {CommandReviewCard} from '../chat/CommandReviewCard';
 import type {ActionCardStatus} from '../../../ai/voiceActions/types';
 import {ReminderDraftCard} from './cards/ReminderDraftCard';
@@ -49,6 +52,8 @@ export interface ActionCardHostProps {
   onConfirm?: () => void;
   onCancel?: () => void;
   onDismiss?: () => void;
+  /** Moves an event or time-block draft to a suggested free slot. */
+  onEdit?: (patch: ReviewEditPatch) => unknown;
   onOpenNote?: (noteId: string) => void;
   onSaveMemory?: (editedText?: string) => void;
   onUndoMemory?: () => void;
@@ -81,6 +86,7 @@ export const ActionCardHost: React.FC<ActionCardHostProps> = ({
   onConfirm = () => {},
   onCancel = () => {},
   onDismiss = () => {},
+  onEdit,
   onOpenNote,
   onSaveMemory,
   onUndoMemory,
@@ -254,6 +260,11 @@ export const ActionCardHost: React.FC<ActionCardHostProps> = ({
           onConfirm={onConfirm}
           onCancel={onCancel}
           onDismiss={onDismiss}
+          onPickAlternative={
+            onEdit
+              ? (start, end) => onEdit({time: start, endTime: end})
+              : undefined
+          }
           testIDPrefix={testIDPrefix}
         />
       ) : isNote ? (

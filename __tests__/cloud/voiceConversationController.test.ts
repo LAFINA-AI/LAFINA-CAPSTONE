@@ -330,18 +330,15 @@ it('keeps the release promise after the prior voice panel unregisters', async ()
   expect(finished).toBe(true);
 });
 
-it('gives the agent the reminder without saving a fabricated user transcript', async () => {
-  const {controller, calls, message} = setup();
+it('gives the agent the reminder as silent context, not a turn that re-announces it', async () => {
+  const {controller, calls} = setup();
   await controller.start();
   expect(await controller.sendReminderContext('Review math at 10')).toBe(true);
   const sent = JSON.parse(calls.sent[0]);
-  expect(sent.type).toBe('user_message');
+  // A contextual update never makes the agent speak or creates a user turn.
+  expect(sent.type).toBe('contextual_update');
   expect(sent.text).toContain('Review math at 10');
-  message({
-    type: 'tentative_user_transcript',
-    tentative_user_transcription_event: {user_transcript: sent.text},
-  });
-  message(userFinal(sent.text));
+  expect(sent.text).toMatch(/do not announce or repeat it/);
   expect(calls.userTurns).toEqual([]);
   expect(calls.finalUserText).toEqual([]);
   expect(

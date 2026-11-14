@@ -63,6 +63,7 @@ export {
   resumeOfflineCall,
   autoSnoozeCall,
   declineCall,
+  endAnsweredCall,
   manualSnoozeCall,
   manualAcknowledgeCall,
   disconnectCall,

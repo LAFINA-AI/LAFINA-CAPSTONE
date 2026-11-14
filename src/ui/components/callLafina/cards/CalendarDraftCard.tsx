@@ -29,8 +29,13 @@ export interface CalendarDraftCardProps {
   onConfirm: () => void;
   onCancel: () => void;
   onDismiss: () => void;
+  /** Moves the draft to a suggested free slot (still saved only on Confirm). */
+  onPickAlternative?: (start: string, end: string) => void;
   testIDPrefix?: string;
 }
+
+const SLOT_RE = /^(\d{1,2}:\d{2})\s*-\s*(\d{1,2}:\d{2})$/;
+const padTime = (t: string): string => (t.length === 4 ? `0${t}` : t);
 
 export const CalendarDraftCard: React.FC<CalendarDraftCardProps> = ({
   proposal,
@@ -40,6 +45,7 @@ export const CalendarDraftCard: React.FC<CalendarDraftCardProps> = ({
   onConfirm,
   onCancel,
   onDismiss,
+  onPickAlternative,
   testIDPrefix = 'calendar-draft',
 }) => {
   const {colors} = useTheme();
@@ -138,14 +144,37 @@ export const CalendarDraftCard: React.FC<CalendarDraftCardProps> = ({
           <Text style={[styles.sectionLabel, {color: colors.warning}]}>
             Suggested Free Slots:
           </Text>
-          {alternatives.map((slot, index) => (
-            <Text
-              key={`alt-${index}`}
-              style={[styles.line, themed.primaryText]}
-            >
-              • {slot}
-            </Text>
-          ))}
+          {alternatives.map((slot, index) => {
+            const match = SLOT_RE.exec(slot.trim());
+            if (!match || !onPickAlternative || expired) {
+              return (
+                <Text
+                  key={`alt-${index}`}
+                  style={[styles.line, themed.primaryText]}
+                >
+                  • {slot}
+                </Text>
+              );
+            }
+            const start = padTime(match[1]);
+            const end = padTime(match[2]);
+            return (
+              <TouchableOpacity
+                key={`alt-${index}`}
+                onPress={() => onPickAlternative(start, end)}
+                disabled={busy}
+                accessibilityRole="button"
+                accessibilityLabel={`Move to ${slot}`}
+                accessibilityState={{disabled: busy}}
+                testID={`${testIDPrefix}-alternative-${start}`}
+                style={styles.alternativeButton}
+              >
+                <Text style={[styles.line, {color: colors.primary}]}>
+                  • {slot} — tap to use
+                </Text>
+              </TouchableOpacity>
+            );
+          })}
         </View>
       ) : null}
 
@@ -283,6 +312,10 @@ const styles = StyleSheet.create({
     padding: Spacing.sm,
     borderRadius: Layout.borderRadiusButton,
     borderWidth: 1,
+  },
+  alternativeButton: {
+    minHeight: 36,
+    justifyContent: 'center',
   },
   alternativesBox: {
     marginTop: Spacing.xs,

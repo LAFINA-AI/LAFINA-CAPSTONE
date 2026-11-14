@@ -14,8 +14,13 @@ const originalAppState = AppState.currentState;
 
 jest.mock('../../src/scheduler', () => ({
   ...jest.requireActual('../../src/scheduler'),
-  answerCall: jest.fn(), declineCall: jest.fn(), manualAcknowledgeCall: jest.fn(), manualSnoozeCall: jest.fn(),
-  resumeOfflineCall: jest.fn(), prepareCallSpeech: jest.fn(),
+  answerCall: jest.fn(),
+  declineCall: jest.fn(),
+  endAnsweredCall: jest.fn(),
+  manualAcknowledgeCall: jest.fn(),
+  manualSnoozeCall: jest.fn(),
+  resumeOfflineCall: jest.fn(),
+  prepareCallSpeech: jest.fn(),
 }));
 
 jest.mock('../../src/ui/components/call/OnlineReminderConversation', () => {
@@ -54,8 +59,15 @@ beforeEach(() => {
   jest.spyOn(PermissionsAndroid, 'request').mockResolvedValue(PermissionsAndroid.RESULTS.GRANTED);
   (scheduler.answerCall as jest.Mock).mockReset().mockResolvedValue(true);
   (scheduler.declineCall as jest.Mock).mockReset().mockResolvedValue(undefined);
-  (scheduler.manualAcknowledgeCall as jest.Mock).mockReset().mockResolvedValue(undefined);
-  (scheduler.manualSnoozeCall as jest.Mock).mockReset().mockResolvedValue(undefined);
+  (scheduler.endAnsweredCall as jest.Mock)
+    .mockReset()
+    .mockResolvedValue(undefined);
+  (scheduler.manualAcknowledgeCall as jest.Mock)
+    .mockReset()
+    .mockResolvedValue(undefined);
+  (scheduler.manualSnoozeCall as jest.Mock)
+    .mockReset()
+    .mockResolvedValue(undefined);
   (scheduler.resumeOfflineCall as jest.Mock).mockReset().mockReturnValue(true);
   (scheduler.prepareCallSpeech as jest.Mock).mockReset().mockResolvedValue(undefined);
   mockEndAndWait.mockClear();
@@ -163,10 +175,18 @@ it('lets the student end while microphone permission is pending', async () => {
   (PermissionsAndroid.request as jest.Mock).mockImplementationOnce(() =>
     new Promise(resolve => { grant = resolve; }));
   const screen = renderCall();
-  await act(async () => { fireEvent.press(screen.getByLabelText('Answer reminder call')); });
-  await act(async () => { fireEvent.press(screen.getByLabelText('End reminder call')); });
-  await act(async () => { grant(PermissionsAndroid.RESULTS.GRANTED); });
-  expect(scheduler.declineCall).toHaveBeenCalled();
+  await act(async () => {
+    fireEvent.press(screen.getByLabelText('Answer reminder call'));
+  });
+  await act(async () => {
+    fireEvent.press(screen.getByLabelText('End reminder call'));
+  });
+  await act(async () => {
+    grant(PermissionsAndroid.RESULTS.GRANTED);
+  });
+  // End after Answer goes through endAnsweredCall, which declines (snoozes)
+  // only when no answered session exists yet.
+  expect(scheduler.endAnsweredCall).toHaveBeenCalled();
   expect(scheduler.answerCall).not.toHaveBeenCalled();
   expect(screen.queryByTestId('online-reminder-conversation')).toBeNull();
 });

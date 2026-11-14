@@ -33,6 +33,8 @@ import {useTheme} from '../../contexts/ThemeContext';
 import type {ThemeColors} from '../../contexts/ThemeContext';
 import {useThemedStyles} from '../../theme/createThemedStyles';
 import {chatOrchestrator} from '../../../ai/chatOrchestrator';
+import {UndoSnackbar} from '../chat/UndoSnackbar';
+import type {UndoOffer} from '../../../ai/nlu/commandReview';
 import {SynthWaveAvatar} from '../callLafina/SynthWaveAvatar';
 import {enableOnlineMode, voiceConsent} from '../../../cloud/voiceConversation';
 import type {
@@ -180,6 +182,9 @@ export const VoiceConversationPanel: React.FC<VoiceConversationPanelProps> = ({
   const themed = useThemedStyles(getThemedStyles);
   const [readResult, setReadResult] = useState<LocalVoiceResult | null>(null);
   const [localNote, setLocalNote] = useState<string | null>(null);
+  // "Marked done · Undo" after an immediate action (audit finding 10).
+  const [undoOffer, setUndoOffer] = useState<UndoOffer | null>(null);
+  const hideUndo = useCallback(() => setUndoOffer(null), []);
   const [typed, setTyped] = useState('');
   const [draftCorrection, setDraftCorrection] = useState('');
   const [showTyping, setShowTyping] = useState(false);
@@ -485,6 +490,7 @@ export const VoiceConversationPanel: React.FC<VoiceConversationPanelProps> = ({
           }
         } else if (result.kind === 'executed') {
           setLocalNote(result.reply);
+          setUndoOffer(result.undo ?? null);
           groundedReply.current = result.reply;
           const updatedContext = buildStudentVoiceContext(owner);
           void conversationRef.current?.sendContext(
@@ -552,6 +558,7 @@ export const VoiceConversationPanel: React.FC<VoiceConversationPanelProps> = ({
             pending = reviewed.review.proposal;
           } else if (reviewed?.kind === 'executed') {
             setLocalNote(reviewed.reply);
+            setUndoOffer(reviewed.undo ?? null);
             groundedReply.current = reviewed.reply;
             return `Done. Executed immediately: ${reviewed.reply}`;
           } else if (reviewed?.kind === 'multi') {
@@ -1294,9 +1301,10 @@ export const VoiceConversationPanel: React.FC<VoiceConversationPanelProps> = ({
             <Text style={[styles.cardBody, themed.text]}>
               While a call is open, your microphone audio streams to ElevenLabs
               for transcription and speech, and your words go to DeepSeek and
-              LAFINA's server for answers. If you ask about your calendar, notes
-              or saved memories, bounded relevant records are shared with the
-              voice provider. Capture continues when minimized inside the app,
+              LAFINA's server for answers. When a call starts, a short summary
+              of your next 7 days (schedule, tasks and overdue items), recent
+              notes and saved memories is shared with them so LAFINA can help
+              with your plans. Capture continues when minimized inside the app,
               with a visible call strip. It stops when you tap End or leave the
               app, and you can mute at any time. Finished turns are saved to
               your Chat history. You can review, change, or confirm planner
@@ -1327,6 +1335,7 @@ export const VoiceConversationPanel: React.FC<VoiceConversationPanelProps> = ({
               multiActionBatch={activeMultiBatch}
               expired={review?.expired}
               busy={review?.busy}
+              onEdit={review?.edit}
               onConfirm={() => {
                 void handleConfirm();
               }}
@@ -1543,6 +1552,23 @@ export const VoiceConversationPanel: React.FC<VoiceConversationPanelProps> = ({
             ) : null}
           </>
         )}
+
+        {undoOffer ? (
+          <UndoSnackbar
+            offer={undoOffer}
+            onHide={hideUndo}
+            onUndo={token => {
+              const owner = ownerRef.current;
+              setUndoOffer(null);
+              const outcome = chatOrchestrator.undoAction(owner, token);
+              setLocalNote(outcome.reply);
+              void conversationRef.current?.sendContext(
+                `Planner update: ${outcome.reply}`,
+              );
+            }}
+            testID="voice-undo"
+          />
+        ) : null}
 
         {readResult !== null && (
           <CallReadResults

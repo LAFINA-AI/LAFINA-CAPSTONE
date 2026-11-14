@@ -755,8 +755,13 @@ describe('Phase 07: Smart Hybrid On-Device NLU & Action Execution', () => {
     });
 
     test('executes clean fast-path schedule title ("Dentist appointment at 2pm") in <5ms without SLM overhead', async () => {
-      const fastPath = parseIntentFastPath('Dentist appointment at 2pm', fixedDate);
-      expect(fastPath.intent).toBe('create_task');
+      const fastPath = parseIntentFastPath(
+        'Dentist appointment at 2pm',
+        fixedDate,
+      );
+      // An appointment with a time is a calendar event (audit finding 9).
+      expect(fastPath.intent).toBe('create_time_block');
+      expect(fastPath.targetEntityType).toBe('event');
       expect(fastPath.title).toBe('Dentist Appointment');
       expect(fastPath.time).toBe('14:00');
       expect(fastPath.confidence).toBeGreaterThanOrEqual(0.85);
@@ -969,12 +974,25 @@ describe('Phase 07: Smart Hybrid On-Device NLU & Action Execution', () => {
       expect(parseDateAndTime('at 7:30 a m', fixedDate).time).toBe('07:30');
       expect(parseDateAndTime('at 7 30 am', fixedDate).time).toBe('07:30');
       expect(parseDateAndTime('at 7.30 am', fixedDate).time).toBe('07:30');
-      expect(parseDateAndTime('at 7.30', fixedDate).time).toBe('07:30');
-      expect(parseDateAndTime('at 730', fixedDate).time).toBe('07:30');
+      // A bare hour reads as the morning before it has passed...
+      expect(
+        parseDateAndTime('at 7.30', new Date(2026, 9, 27, 6, 0, 0)).time,
+      ).toBe('07:30');
+      // ...and as the evening once the morning time is gone (08:30 now).
+      expect(parseDateAndTime('at 7.30', fixedDate).time).toBe('19:30');
+      expect(parseDateAndTime('at 730', fixedDate).time).toBe('19:30');
+      expect(
+        parseDateAndTime('at 730', new Date(2026, 9, 27, 6, 0, 0)).time,
+      ).toBe('07:30');
 
       // 5. Spoken minutes and "oh" minutes ("at seven thirty", "7 oh 5 am", "7 o 5 am")
-      expect(parseDateAndTime('at seven thirty', fixedDate).time).toBe('07:30');
-      expect(parseDateAndTime('at seven thirty pm', fixedDate).time).toBe('19:30');
+      expect(
+        parseDateAndTime('at seven thirty', new Date(2026, 9, 27, 6, 0, 0))
+          .time,
+      ).toBe('07:30');
+      expect(parseDateAndTime('at seven thirty pm', fixedDate).time).toBe(
+        '19:30',
+      );
       expect(parseDateAndTime('at 7 oh 5 am', fixedDate).time).toBe('07:05');
       expect(parseDateAndTime('at seven o five am', fixedDate).time).toBe('07:05');
 

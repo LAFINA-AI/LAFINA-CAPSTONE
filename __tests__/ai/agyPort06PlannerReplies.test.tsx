@@ -144,6 +144,26 @@ describe('AGY-PORT 06 planner replies and guide', () => {
   });
 
   describe('command guide examples are tested against the parser and review contract', () => {
+    // The examples are dated relative to REF; pin the clock to it so "has the
+    // time passed?" does not depend on the day the suite runs. Timers stay real.
+    beforeAll(() => {
+      jest.useFakeTimers({
+        doNotFake: [
+          'nextTick',
+          'setImmediate',
+          'setTimeout',
+          'setInterval',
+          'clearTimeout',
+          'clearInterval',
+          'queueMicrotask',
+        ],
+      });
+      jest.setSystemTime(REF);
+    });
+    afterAll(() => {
+      jest.useRealTimers();
+    });
+
     test.each(COMMAND_GUIDE.map(example => [example.command, example]))(
       '%s',
       async (_label, example) => {
