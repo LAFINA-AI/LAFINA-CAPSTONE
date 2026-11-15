@@ -1,8 +1,7 @@
-import React, {useId, useMemo, useState} from 'react';
+import React, {useMemo, useState} from 'react';
 import {
   Image,
   Pressable,
-  ScrollView,
   StyleSheet,
   Text,
   TextInput,
@@ -25,7 +24,7 @@ import {
   SlidersHorizontal,
   Sparkles,
 } from 'lucide-react-native';
-import Svg, {Circle, Defs, LinearGradient, Rect, Stop} from 'react-native-svg';
+import Svg, {Circle} from 'react-native-svg';
 import {
   avatarSeedStore,
   userStore,
@@ -111,6 +110,7 @@ const formatReminderShort = (isoStr: string, todayStr: string): string => {
 interface ProgressRingProps {
   progress: number;
   label: string;
+  hasItems?: boolean;
   size?: number;
   trackColor: string;
   ringColor: string;
@@ -120,6 +120,7 @@ interface ProgressRingProps {
 const ProgressRing: React.FC<ProgressRingProps> = ({
   progress,
   label,
+  hasItems = false,
   size = 46,
   trackColor,
   ringColor,
@@ -129,7 +130,8 @@ const ProgressRing: React.FC<ProgressRingProps> = ({
   const r = (size - stroke) / 2;
   const circ = 2 * Math.PI * r;
   const clamped = Math.max(0, Math.min(1, progress));
-  const offset = circ * (1 - clamped);
+  const displayProgress = clamped > 0 ? clamped : hasItems ? 0.04 : 0;
+  const offset = circ * (1 - displayProgress);
 
   return (
     <View
@@ -186,11 +188,6 @@ export const ModernHomeContent: React.FC<ModernHomeContentProps> = ({
   onRefresh,
 }) => {
   const {colors, isDarkMode, modernPalette} = useTheme();
-  const reactId = useId();
-  const heroGradientId = useMemo(
-    () => `homeHeroGrad_${reactId.replace(/[^a-zA-Z0-9_-]/g, '')}`,
-    [reactId],
-  );
 
   const [searchQuery, setSearchQuery] = useState('');
   const [filter, setFilter] = useState<HomeFilter>('All');
@@ -287,17 +284,18 @@ export const ModernHomeContent: React.FC<ModernHomeContentProps> = ({
       const timeRange = `${formatTimeLabel(
         primary.startTime,
       )} – ${formatTimeLabel(primary.endTime)}`;
-      const detailParts = [
+      const roomSuffix = primary.room ? ` · ${primary.room}` : '';
+      const detail =
         data.upNext.mode === 'live' && data.upNext.minutesRemaining !== null
-          ? `${formatDurationMinutes(data.upNext.minutesRemaining)} left`
-          : `Today · ${timeRange}`,
-        primary.subtitle,
-      ].filter(Boolean);
+          ? `${formatDurationMinutes(
+              data.upNext.minutesRemaining,
+            )} left${roomSuffix}`
+          : `Today · ${timeRange}${roomSuffix}`;
 
       return {
         badge: data.upNext.mode === 'live' ? 'LIVE NOW' : 'UP NEXT',
         title: primary.title,
-        subtitle: detailParts.join(' · '),
+        subtitle: detail,
         cta: 'VIEW SCHEDULE',
         onPress: () => onPressScheduleItem(primary),
       };
@@ -362,9 +360,12 @@ export const ModernHomeContent: React.FC<ModernHomeContentProps> = ({
   const firstStudySlot = data.freeStudy.freeBlocks[0] ?? null;
   const hasAlertDot = Boolean(activeAlarm || data.pendingReminders.length > 0);
   const subtitleText = data.academicBadge || 'USTP · Cagayan de Oro';
-  const heroGradientColors = isDarkMode
-    ? ['#6E7FF3', '#4734D4']
-    : ['#95AEFF', '#6C4DFF'];
+  const heroBgColor = isDarkMode ? '#4734D4' : '#6C4DFF';
+  const heroHighlightColor = isDarkMode ? '#6E7FF3' : '#95AEFF';
+  const subtleCardBorder = isDarkMode
+    ? modernPalette.border
+    : 'rgba(21,19,39,0.05)';
+  const whiteCardBorder = modernPalette.border;
 
   return (
     <View style={styles.container}>
@@ -529,70 +530,59 @@ export const ModernHomeContent: React.FC<ModernHomeContentProps> = ({
           onPress={hero.onPress}
           accessibilityRole="button"
           accessibilityLabel={`${hero.badge}: ${hero.title}`}
-          style={[styles.heroCard, ModernShadows.floating]}
+          style={[
+            styles.heroCard,
+            styles.heroElevation,
+            {backgroundColor: heroBgColor},
+          ]}
         >
-          <Svg
-            width="100%"
-            height="100%"
-            style={StyleSheet.absoluteFill}
-            preserveAspectRatio="none"
-          >
-            <Defs>
-              <LinearGradient id={heroGradientId} x1="0" y1="0" x2="1" y2="1">
-                <Stop offset="0" stopColor={heroGradientColors[0]} />
-                <Stop offset="1" stopColor={heroGradientColors[1]} />
-              </LinearGradient>
-            </Defs>
-            <Rect
-              x="0"
-              y="0"
-              width="100%"
-              height="100%"
-              fill={`url(#${heroGradientId})`}
-            />
-          </Svg>
+          <View
+            pointerEvents="none"
+            style={[
+              styles.heroGradientTopLeft,
+              {backgroundColor: heroHighlightColor},
+            ]}
+          />
           <View pointerEvents="none" style={styles.heroGlowTopRight} />
           <View pointerEvents="none" style={styles.heroGlowBottomRight} />
 
-          <View style={styles.heroTopRow}>
-            <View style={styles.heroBadgePill}>
-              <Sparkles color="#FFFFFF" size={13} />
-              <Text style={styles.heroPillText}>{hero.badge}</Text>
+          <View style={styles.heroContent}>
+            <View style={styles.heroTopRow}>
+              <View style={styles.heroBadgePill}>
+                <Sparkles color="#FFFFFF" size={13} />
+                <Text style={styles.heroPillText}>{hero.badge}</Text>
+              </View>
+              <View style={styles.heroStatsPill}>
+                <Text style={styles.heroPillText} numberOfLines={1}>
+                  {data.todayItems.length} today · {allPendingTasks.length} todo
+                </Text>
+              </View>
             </View>
-            <View style={styles.heroStatsPill}>
-              <Text style={styles.heroPillText}>
-                {data.todayItems.length} today · {allPendingTasks.length} todo
+
+            <View style={styles.heroBody}>
+              <Text style={styles.heroTitle} numberOfLines={2}>
+                {hero.title}
+              </Text>
+              <Text style={styles.heroSub} numberOfLines={1}>
+                {hero.subtitle}
               </Text>
             </View>
-          </View>
 
-          <View style={styles.heroBody}>
-            <Text style={styles.heroTitle} numberOfLines={2}>
-              {hero.title}
-            </Text>
-            <Text style={styles.heroSub} numberOfLines={2}>
-              {hero.subtitle}
-            </Text>
-          </View>
-
-          <View style={styles.heroFooter}>
-            <TouchableOpacity
-              onPress={hero.onPress}
-              activeOpacity={0.85}
-              style={styles.heroCtaBtn}
-            >
-              <Text style={styles.heroCtaText}>{hero.cta}</Text>
-            </TouchableOpacity>
+            <View style={styles.heroFooter}>
+              <TouchableOpacity
+                onPress={hero.onPress}
+                activeOpacity={0.85}
+                style={styles.heroCtaBtn}
+              >
+                <Text style={styles.heroCtaText}>{hero.cta}</Text>
+              </TouchableOpacity>
+            </View>
           </View>
         </Pressable>
       )}
 
       {/* Filter Pills */}
-      <ScrollView
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        contentContainerStyle={styles.filterRow}
-      >
+      <View style={styles.filterRow}>
         {HOME_FILTERS.map(item => {
           const active = filter === item;
           return (
@@ -625,7 +615,7 @@ export const ModernHomeContent: React.FC<ModernHomeContentProps> = ({
             </Pressable>
           );
         })}
-      </ScrollView>
+      </View>
 
       {/* 2-Column Bento Grid */}
       <View style={styles.bentoRow}>
@@ -638,8 +628,11 @@ export const ModernHomeContent: React.FC<ModernHomeContentProps> = ({
           }
           style={[
             styles.bentoCard,
-            ModernShadows.card,
-            {backgroundColor: modernPalette.lilac},
+            ModernShadows.subtle,
+            {
+              backgroundColor: modernPalette.lilac,
+              borderColor: subtleCardBorder,
+            },
           ]}
         >
           <View style={styles.bentoTopRow}>
@@ -653,6 +646,7 @@ export const ModernHomeContent: React.FC<ModernHomeContentProps> = ({
             </View>
             <ProgressRing
               progress={taskProgress}
+              hasItems={totalTasksCount > 0}
               label={`${completedTasksCount}/${totalTasksCount}`}
               trackColor={
                 isDarkMode ? 'rgba(247,246,255,0.18)' : 'rgba(21,19,39,0.12)'
@@ -685,8 +679,11 @@ export const ModernHomeContent: React.FC<ModernHomeContentProps> = ({
           onPress={() => onOpenNotesTab()}
           style={[
             styles.bentoCard,
-            ModernShadows.card,
-            {backgroundColor: modernPalette.cream},
+            ModernShadows.subtle,
+            {
+              backgroundColor: modernPalette.cream,
+              borderColor: subtleCardBorder,
+            },
           ]}
         >
           <View style={styles.bentoTopRow}>
@@ -714,7 +711,9 @@ export const ModernHomeContent: React.FC<ModernHomeContentProps> = ({
                   {color: isDarkMode ? modernPalette.text : '#151327'},
                 ]}
               >
-                {data.highlightedNotes.length} Offline
+                {data.highlightedNotes.length > 0
+                  ? `${data.highlightedNotes.length} Saved`
+                  : 'Notes'}
               </Text>
             </View>
           </View>
@@ -745,8 +744,11 @@ export const ModernHomeContent: React.FC<ModernHomeContentProps> = ({
             testID="dashboard-widget-free-study-blocks"
             style={[
               styles.mintBanner,
-              ModernShadows.card,
-              {backgroundColor: modernPalette.mint},
+              ModernShadows.subtle,
+              {
+                backgroundColor: modernPalette.mint,
+                borderColor: subtleCardBorder,
+              },
             ]}
           >
             <View style={styles.mintBannerTop}>
@@ -773,9 +775,9 @@ export const ModernHomeContent: React.FC<ModernHomeContentProps> = ({
                   numberOfLines={1}
                 >
                   {firstStudySlot
-                    ? `Next gap · ${formatTimeLabel(
+                    ? `Next window · ${formatTimeLabel(
                         firstStudySlot.startTime,
-                      )} – ${formatTimeLabel(firstStudySlot.endTime)}`
+                      )} – ${formatTimeLabel(firstStudySlot.suggestedEndTime)}`
                     : data.freeStudy.dayEnded
                     ? 'Active study hours ended for today'
                     : 'No open study gaps remaining today'}
@@ -856,8 +858,11 @@ export const ModernHomeContent: React.FC<ModernHomeContentProps> = ({
           testID="dashboard-widget-tasks-due"
           style={[
             styles.sectionCard,
-            ModernShadows.card,
-            {backgroundColor: modernPalette.card},
+            ModernShadows.subtle,
+            {
+              backgroundColor: modernPalette.card,
+              borderColor: whiteCardBorder,
+            },
           ]}
         >
           <View style={styles.sectionHeaderRow}>
@@ -965,8 +970,11 @@ export const ModernHomeContent: React.FC<ModernHomeContentProps> = ({
             testID="dashboard-widget-upcoming-reminders"
             style={[
               styles.sectionCard,
-              ModernShadows.card,
-              {backgroundColor: modernPalette.blueSoft},
+              ModernShadows.subtle,
+              {
+                backgroundColor: modernPalette.blueSoft,
+                borderColor: subtleCardBorder,
+              },
             ]}
           >
             <View style={styles.sectionHeaderRow}>
@@ -1076,8 +1084,11 @@ export const ModernHomeContent: React.FC<ModernHomeContentProps> = ({
           testID="dashboard-widget-today-schedule"
           style={[
             styles.sectionCard,
-            ModernShadows.card,
-            {backgroundColor: modernPalette.card},
+            ModernShadows.subtle,
+            {
+              backgroundColor: modernPalette.card,
+              borderColor: whiteCardBorder,
+            },
           ]}
         >
           <View style={styles.sectionHeaderRow}>
@@ -1159,8 +1170,11 @@ export const ModernHomeContent: React.FC<ModernHomeContentProps> = ({
           testID="dashboard-widget-pinned-notes"
           style={[
             styles.sectionCard,
-            ModernShadows.card,
-            {backgroundColor: modernPalette.card},
+            ModernShadows.subtle,
+            {
+              backgroundColor: modernPalette.card,
+              borderColor: whiteCardBorder,
+            },
           ]}
         >
           <View style={styles.sectionHeaderRow}>
@@ -1343,27 +1357,45 @@ const styles = StyleSheet.create({
   },
   heroCard: {
     borderRadius: 26,
-    padding: 20,
-    minHeight: 175,
-    justifyContent: 'space-between',
     overflow: 'hidden',
+  },
+  heroElevation: {
+    shadowColor: '#4C379A',
+    shadowOffset: {width: 0, height: 6},
+    shadowOpacity: 0.14,
+    shadowRadius: 14,
+    elevation: 3,
+  },
+  heroContent: {
+    padding: 20,
+    minHeight: 172,
+    justifyContent: 'space-between',
+  },
+  heroGradientTopLeft: {
+    position: 'absolute',
+    left: -50,
+    top: -70,
+    width: 300,
+    height: 240,
+    borderRadius: 150,
+    opacity: 0.72,
   },
   heroGlowTopRight: {
     position: 'absolute',
-    right: -32,
-    top: -42,
-    width: 152,
-    height: 152,
-    borderRadius: 76,
-    backgroundColor: 'rgba(255,255,255,0.1)',
+    right: -28,
+    top: -36,
+    width: 148,
+    height: 148,
+    borderRadius: 74,
+    backgroundColor: 'rgba(255,255,255,0.12)',
   },
   heroGlowBottomRight: {
     position: 'absolute',
-    right: -12,
-    bottom: -48,
-    width: 116,
-    height: 116,
-    borderRadius: 58,
+    right: 12,
+    bottom: -52,
+    width: 120,
+    height: 120,
+    borderRadius: 60,
     backgroundColor: 'rgba(255,255,255,0.08)',
   },
   heroTopRow: {
@@ -1429,7 +1461,9 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
   },
   filterRow: {
-    gap: 8,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
     paddingVertical: 2,
   },
   filterChip: {
@@ -1451,8 +1485,9 @@ const styles = StyleSheet.create({
     flex: 1,
     borderRadius: 24,
     padding: 16,
-    minHeight: 188,
+    minHeight: 168,
     justifyContent: 'space-between',
+    borderWidth: 1,
   },
   bentoTopRow: {
     flexDirection: 'row',
@@ -1496,11 +1531,15 @@ const styles = StyleSheet.create({
     fontFamily: Fonts.heading,
     fontSize: 11,
     fontWeight: '700',
+    lineHeight: 14,
+    textAlign: 'center',
+    includeFontPadding: false,
   },
   mintBanner: {
     borderRadius: 24,
     padding: 18,
     gap: 10,
+    borderWidth: 1,
   },
   mintBannerTop: {
     flexDirection: 'row',
@@ -1572,6 +1611,7 @@ const styles = StyleSheet.create({
     borderRadius: 24,
     padding: 18,
     gap: 10,
+    borderWidth: 1,
   },
   sectionHeaderRow: {
     flexDirection: 'row',

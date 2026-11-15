@@ -17,13 +17,7 @@ import {
 } from 'lucide-react-native';
 import {useTheme} from '../contexts/ThemeContext';
 import type {ThemeColors} from '../contexts/ThemeContext';
-import {
-  Fonts,
-  Layout,
-  ModernLayout,
-  ModernShadows,
-  Shadows,
-} from '../theme';
+import {Fonts, Layout, ModernLayout, Shadows} from '../theme';
 import {useThemedStyles} from '../theme/createThemedStyles';
 import type {TourAnchor} from '../tour/tourSteps';
 import {tourTargetRef} from '../tour/tourTargets';
@@ -74,7 +68,7 @@ const TOUR_TABS: Record<TabType, TourAnchor> = {
 };
 
 const BAR_BOTTOM_OFFSET = 24;
-const MODERN_FAB_OVERHANG = 20;
+const MODERN_FAB_OVERHANG = 28;
 
 interface CustomTabBarProps {
   activeTab: TabType;
@@ -87,15 +81,17 @@ function buildCurvedTabBarPath(width: number, totalHeight: number): string {
   const centerX = safeW / 2;
   const notchHalf = ModernLayout.navbarNotchHalf;
   const notchDepth = ModernLayout.navbarNotchDepth;
-  const notchLeft = Math.max(r + 8, centerX - notchHalf);
-  const notchRight = Math.min(safeW - r - 8, centerX + notchHalf);
+  const outerLeft = Math.max(r + 4, centerX - notchHalf - 14);
+  const innerLeft = Math.max(r + 8, centerX - notchHalf);
+  const outerRight = Math.min(safeW - r - 4, centerX + notchHalf + 14);
+  const innerRight = Math.min(safeW - r - 8, centerX + notchHalf);
 
   return [
     `M0,${r}`,
     `Q0,0 ${r},0`,
-    `L${notchLeft},0`,
-    `C${notchLeft + 18},0 ${centerX - 24},${notchDepth} ${centerX},${notchDepth}`,
-    `C${centerX + 24},${notchDepth} ${notchRight - 18},0 ${notchRight},0`,
+    `L${outerLeft},0`,
+    `C${innerLeft},0 ${innerLeft + 8},${notchDepth} ${centerX},${notchDepth}`,
+    `C${innerRight - 8},${notchDepth} ${innerRight},0 ${outerRight},0`,
     `L${safeW - r},0`,
     `Q${safeW},0 ${safeW},${r}`,
     `L${safeW},${totalHeight}`,
@@ -145,12 +141,7 @@ export const CustomTabBar: React.FC<CustomTabBarProps> = ({
           pointerEvents="none"
         >
           <Svg width={barWidth} height={totalHeight}>
-            <Path
-              d={navPath}
-              fill={modernPalette.card}
-              stroke={modernPalette.border}
-              strokeWidth={1}
-            />
+            <Path d={navPath} fill={modernPalette.card} />
           </Svg>
         </View>
 
@@ -159,8 +150,8 @@ export const CustomTabBar: React.FC<CustomTabBarProps> = ({
           style={[
             styles.modernTabRow,
             {
-              height: contentHeight + MODERN_FAB_OVERHANG,
-              marginBottom: bottomInset,
+              height: contentHeight,
+              bottom: bottomInset,
             },
           ]}
           accessibilityRole="tablist"
@@ -189,12 +180,11 @@ export const CustomTabBar: React.FC<CustomTabBarProps> = ({
                   <View
                     style={[
                       styles.modernCenterFab,
-                      ModernShadows.floating,
+                      styles.modernCenterFabShadow,
                       {
                         backgroundColor: isActive
                           ? modernPalette.accentDeep
                           : modernPalette.accent,
-                        borderColor: modernPalette.card,
                       },
                     ]}
                   >
@@ -202,13 +192,11 @@ export const CustomTabBar: React.FC<CustomTabBarProps> = ({
                   </View>
                   <Text
                     style={[
-                      styles.modernLabel,
                       styles.modernCenterLabel,
                       {
                         color: isActive
                           ? modernPalette.accent
-                          : modernPalette.muted,
-                        fontWeight: isActive ? '700' : '600',
+                          : modernPalette.text,
                       },
                     ]}
                     numberOfLines={1}
@@ -232,19 +220,10 @@ export const CustomTabBar: React.FC<CustomTabBarProps> = ({
                 accessibilityLabel={`${label} tab`}
                 accessibilityState={{selected: isActive}}
               >
-                <View
-                  style={[
-                    styles.modernIconPill,
-                    isActive && {backgroundColor: modernPalette.softViolet},
-                  ]}
-                >
-                  <IconComponent
-                    size={20}
-                    color={
-                      isActive ? modernPalette.accent : modernPalette.muted
-                    }
-                  />
-                </View>
+                <IconComponent
+                  size={22}
+                  color={isActive ? modernPalette.accent : modernPalette.muted}
+                />
                 <Text
                   style={[
                     styles.modernLabel,
@@ -411,8 +390,11 @@ const styles = StyleSheet.create({
     left: 0,
   },
   modernTabRow: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
     flexDirection: 'row',
-    alignItems: 'flex-end',
+    alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: 6,
   },
@@ -423,40 +405,39 @@ const styles = StyleSheet.create({
     minWidth: 44,
     alignItems: 'center',
     justifyContent: 'center',
-    paddingTop: 4,
-  },
-  modernIconPill: {
-    paddingHorizontal: 12,
-    paddingVertical: 4,
-    borderRadius: ModernLayout.borderRadiusPill,
-    alignItems: 'center',
-    justifyContent: 'center',
+    gap: 4,
   },
   modernLabel: {
-    fontSize: 11,
+    fontSize: 10.5,
     fontFamily: Fonts.body,
-    marginTop: 2,
   },
   modernCenterSlot: {
     flex: 1,
     alignItems: 'center',
     justifyContent: 'flex-end',
-    paddingBottom: 6,
-    height: ModernLayout.navbarContentHeight + MODERN_FAB_OVERHANG,
+    paddingBottom: 11,
+    height: ModernLayout.navbarContentHeight,
   },
   modernCenterFab: {
-    width: ModernLayout.centerFabSize,
-    height: ModernLayout.centerFabSize,
-    borderRadius: ModernLayout.centerFabSize / 2,
-    borderWidth: 3,
+    position: 'absolute',
+    top: -28,
+    width: 54,
+    height: 54,
+    borderRadius: 27,
     alignItems: 'center',
     justifyContent: 'center',
-    marginTop: 0,
+  },
+  modernCenterFabShadow: {
+    shadowColor: '#4C379A',
+    shadowOffset: {width: 0, height: 6},
+    shadowOpacity: 0.18,
+    shadowRadius: 12,
+    elevation: 4,
   },
   modernCenterLabel: {
     fontFamily: Fonts.heading,
     fontSize: 10.5,
-    marginTop: 3,
+    fontWeight: '700',
   },
   outerContainer: {
     position: 'absolute',
