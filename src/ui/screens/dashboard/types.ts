@@ -76,6 +76,7 @@ export interface DashboardTasksSummary {
   overdueTotal: number;
   dueTodayTasks: Task[];
   upcomingTasks: Task[];
+  completedCount?: number;
 }
 
 export interface DashboardActions {

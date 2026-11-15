@@ -411,9 +411,14 @@ export const summarizeDashboardTasks = (
   const overdueIds = new Set(overdueResult.items.map(t => t.id));
   const dueTodayTasks: Task[] = [];
   const upcomingTasks: Task[] = [];
+  let completedCount = 0;
 
   for (const task of windowTasks) {
-    if (task.isCompleted || overdueIds.has(task.id)) continue;
+    if (task.isCompleted) {
+      completedCount += 1;
+      continue;
+    }
+    if (overdueIds.has(task.id)) continue;
     if (task.dueDate === todayStr) {
       dueTodayTasks.push(task);
     } else if (task.dueDate && task.dueDate > todayStr) {
@@ -429,5 +434,6 @@ export const summarizeDashboardTasks = (
     overdueTotal: overdueResult.total,
     dueTodayTasks,
     upcomingTasks,
+    completedCount,
   };
 };

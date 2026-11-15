@@ -19,6 +19,7 @@ import {
   CustomizeDashboardModal,
   DashboardHeader,
   FreeStudyBlocksWidget,
+  ModernHomeContent,
   PinnedNotesWidget,
   TasksDueWidget,
   TodayScheduleWidget,
@@ -37,12 +38,14 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({
   onOpenNotesTab,
   onOpenChatTab,
 }) => {
-  const {colors, isModern, modernPalette} = useTheme();
+  const {colors, isModern} = useTheme();
   const themed = useThemedStyles(getThemedStyles);
   const insets = useSafeAreaInsets();
   const bottomClearance =
     Math.max(insets.bottom, 12) +
-    (isModern ? ModernLayout.navbarContentHeight + 36 : Layout.navbarHeight + 28);
+    (isModern
+      ? ModernLayout.navbarContentHeight + 36
+      : Layout.navbarHeight + 28);
 
   const {now, data, actions, blockModal} = useDashboardData({
     userId,
@@ -185,6 +188,7 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({
         style={styles.scroll}
         contentContainerStyle={[
           styles.scrollContent,
+          isModern && styles.modernScrollContent,
           {paddingBottom: bottomClearance},
         ]}
         showsVerticalScrollIndicator={false}
@@ -200,59 +204,94 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({
           />
         }
       >
-        <DashboardHeader
-          now={now}
-          greetingName={data.greetingName}
-          academicBadge={data.academicBadge}
-          todayItemsCount={data.todayItems.length}
-          usableFreeMinutes={data.freeStudy.totalRemainingFreeMinutes}
-          pendingTasksCount={pendingTasksCount}
-          onOpenCustomize={() => setCustomizeVisible(true)}
-          onAskLafina={() =>
-            onOpenChatTab(
-              "What's on my schedule today and when am I free to study?",
-            )
-          }
-        />
+        {isModern ? (
+          <ModernHomeContent
+            userId={userId}
+            now={now}
+            timeFormat24h={timeFormat24h}
+            data={data}
+            visibleWidgets={visibleWidgets}
+            onToggleTask={actions.toggleTaskComplete}
+            onPressTask={task =>
+              onOpenCalendarTab({
+                entityId: task.id,
+                entityKind: 'task',
+                date: task.dueDate || data.todayStr,
+              })
+            }
+            onPressScheduleItem={handleOpenScheduleItem}
+            onPressReminder={rem =>
+              onOpenCalendarTab({
+                entityId: rem.id,
+                entityKind: 'reminder',
+                date: rem.triggerAt.slice(0, 10),
+              })
+            }
+            onPressNote={noteId => onOpenNotesTab(noteId)}
+            onAddStudyBlock={actions.openStudyBlockSlot}
+            onOpenCalendarTab={onOpenCalendarTab}
+            onOpenNotesTab={onOpenNotesTab}
+            onOpenChatTab={onOpenChatTab}
+            onOpenAlarms={() => onOpenCalendarTab({scheduleSection: 'alarms'})}
+            onOpenCustomize={() => setCustomizeVisible(true)}
+            onRefresh={actions.refresh}
+          />
+        ) : (
+          <>
+            <DashboardHeader
+              now={now}
+              greetingName={data.greetingName}
+              academicBadge={data.academicBadge}
+              todayItemsCount={data.todayItems.length}
+              usableFreeMinutes={data.freeStudy.totalRemainingFreeMinutes}
+              pendingTasksCount={pendingTasksCount}
+              onOpenCustomize={() => setCustomizeVisible(true)}
+              onAskLafina={() =>
+                onOpenChatTab(
+                  "What's on my schedule today and when am I free to study?",
+                )
+              }
+            />
 
-        {data.readError && (
-          <View
-            style={[
-              styles.errorBanner,
-              isModern && {borderRadius: ModernLayout.borderRadiusSubCard},
-              {
-                backgroundColor: isModern
-                  ? modernPalette.dangerSoft
-                  : colors.error + '14',
-                borderColor: colors.error + '40',
-              },
-            ]}
-          >
-            <AlertCircle size={16} color={colors.error} />
-            <Text style={[styles.errorText, {color: colors.error}]}>
-              {data.readError}
-            </Text>
-            <TouchableOpacity
-              style={styles.retryBtn}
-              onPress={actions.refresh}
-              activeOpacity={0.75}
-            >
-              <RefreshCw size={13} color={colors.error} />
-              <Text style={[styles.retryText, {color: colors.error}]}>
-                Retry
-              </Text>
-            </TouchableOpacity>
-          </View>
+            {data.readError && (
+              <View
+                style={[
+                  styles.errorBanner,
+                  {
+                    backgroundColor: colors.error + '14',
+                    borderColor: colors.error + '40',
+                  },
+                ]}
+              >
+                <AlertCircle size={16} color={colors.error} />
+                <Text style={[styles.errorText, {color: colors.error}]}>
+                  {data.readError}
+                </Text>
+                <TouchableOpacity
+                  style={styles.retryBtn}
+                  onPress={actions.refresh}
+                  activeOpacity={0.75}
+                >
+                  <RefreshCw size={13} color={colors.error} />
+                  <Text style={[styles.retryText, {color: colors.error}]}>
+                    Retry
+                  </Text>
+                </TouchableOpacity>
+              </View>
+            )}
+
+            <NextAlarmCard
+              userId={userId}
+              timeFormat24h={timeFormat24h}
+              now={now}
+              onOpenAlarms={() =>
+                onOpenCalendarTab({scheduleSection: 'alarms'})
+              }
+            />
+
+            {visibleWidgets.map(renderWidget)}
+          </>
         )}
-
-        <NextAlarmCard
-          userId={userId}
-          timeFormat24h={timeFormat24h}
-          now={now}
-          onOpenAlarms={() => onOpenCalendarTab({scheduleSection: 'alarms'})}
-        />
-
-        {visibleWidgets.map(renderWidget)}
       </ScrollView>
 
       <AddBlockModal state={blockModal} timeFormat24h={timeFormat24h} />
@@ -288,6 +327,10 @@ const styles = StyleSheet.create({
   scrollContent: {
     paddingHorizontal: Spacing.lg,
     paddingTop: Spacing.sm,
+  },
+  modernScrollContent: {
+    paddingHorizontal: 18,
+    paddingTop: 14,
   },
   errorBanner: {
     flexDirection: 'row',
