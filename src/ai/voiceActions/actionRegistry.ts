@@ -118,6 +118,11 @@ export const REGISTERED_TOOLS: readonly RegisteredToolDefinition[] = [
           description:
             'Optional. For reminders: "call" rings a reminder call, "notify" posts an ordinary notification.',
         },
+        repeat: {
+          type: 'string',
+          description:
+            'Optional, new items only. "daily", "weekdays", or "weekly:" plus two-letter days, e.g. "weekly:mo,we".',
+        },
       },
       required: ['request'],
     },

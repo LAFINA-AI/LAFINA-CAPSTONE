@@ -281,3 +281,96 @@ it('small talk and study questions never start the agent', async () => {
   });
   expect(agent).not.toHaveBeenCalled();
 });
+
+describe('follow-ups that point back at the conversation (audit 2, B2)', () => {
+  const bookFirst = () =>
+    jest
+      .spyOn(onlineChatSkill, 'agentStep')
+      .mockResolvedValueOnce(
+        step('', [
+          call('f1', 'prepare_lafina_action', {
+            request: 'book the first one',
+            action: 'create_time_block',
+            title: 'Physics review',
+            date: '2026-11-16',
+            time: '07:00',
+            endTime: '09:00',
+          }),
+        ]),
+      )
+      .mockResolvedValueOnce(step('I put the 7 to 9 AM slot on a card.'));
+
+  it('"book the first one" goes to the agent, not a card called "First one"', async () => {
+    const agent = bookFirst();
+    const result = await chatOrchestrator.processMessage(
+      user,
+      'book the first one',
+      {onlineMode: true, useHandbook: true, referenceDate: REF},
+    );
+    expect(agent).toHaveBeenCalled();
+    expect(result.review?.status).toBe('proposal');
+    expect(result.review.proposal.title).toBe('Physics review');
+    expect(JSON.stringify(result.review)).not.toMatch(/First one/i);
+    // Planner turns never ask for handbook passages (B4).
+    const [, options] = stepCalls(agent)[0];
+    expect((options as unknown as {useHandbook: boolean}).useHandbook).toBe(
+      false,
+    );
+  });
+
+  it('without the agent, a pointer is asked about, never guessed', async () => {
+    jest.spyOn(onlineChatSkill, 'agentStep').mockResolvedValue({
+      status: 'server_unavailable',
+      httpStatus: 404,
+    });
+    const result = await chatOrchestrator.processMessage(
+      user,
+      'book the first one',
+      {onlineMode: true, referenceDate: REF},
+    );
+    expect(result.review).toBeUndefined();
+    expect(result.reply).toMatch(/Which one do you mean/);
+    expect(storage.tasksStore.getAllTasks(user)).toHaveLength(0);
+  });
+
+  it('offline, a pointer asks instead of preparing a junk card', async () => {
+    const result = await chatOrchestrator.processMessage(
+      user,
+      'book the first one',
+      {onlineMode: false, referenceDate: REF},
+    );
+    expect(result.review).toBeUndefined();
+    expect(result.reply).toMatch(/Which one do you mean/);
+  });
+
+  it('a short Taglish follow-up after a free-time answer reaches the agent', async () => {
+    jest
+      .spyOn(onlineChatSkill, 'agentStep')
+      .mockResolvedValueOnce(
+        step('You are free Monday 7 to 9 AM and 1 to 3 PM.'),
+      );
+    await chatOrchestrator.processMessage(user, QUESTION, {
+      onlineMode: true,
+      referenceDate: REF,
+    });
+    const agent = bookFirst();
+    const result = await chatOrchestrator.processMessage(
+      user,
+      'yung una na lang',
+      {onlineMode: true, referenceDate: REF},
+    );
+    expect(agent).toHaveBeenCalled();
+    expect(result.review?.proposal?.title).toBe('Physics review');
+  });
+
+  it('a request with real content keeps its own card', async () => {
+    const agent = jest.spyOn(onlineChatSkill, 'agentStep');
+    const result = await chatOrchestrator.processMessage(
+      user,
+      'add a task first aid kit review tomorrow at 3pm',
+      {onlineMode: true, referenceDate: REF},
+    );
+    expect(agent).not.toHaveBeenCalled();
+    expect(JSON.stringify(result)).toMatch(/[Ff]irst aid kit review/);
+  });
+});

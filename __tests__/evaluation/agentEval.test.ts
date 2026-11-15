@@ -23,8 +23,11 @@ import {
   type AgentEvalCase,
 } from '../fixtures/agentEvalCases';
 
-/** Measured 2026-11-15 on this commit; raise it when the parser improves. */
-const OFFLINE_BASELINE = 36;
+/**
+ * Measured 2026-11-15: 36 at ADR-033, 42 after the audit-2 Taglish rules
+ * (Taglish 3/10 → 9/10). Raise it when the parser improves.
+ */
+const OFFLINE_BASELINE = 42;
 
 const problemsWith = (c: AgentEvalCase, got: ValidatedIntent): string[] => {
   // An invalid planner command makes no card: for the student it is a

@@ -764,7 +764,13 @@ export function validatePayload(
         !STRUCTURED_ACTIONS.includes(p.action as string)
       )
         return {valid: false, error: 'Unsupported action.'};
-      for (const field of ['newTitle', 'details', 'deliveryStyle', 'action'])
+      for (const field of [
+        'newTitle',
+        'details',
+        'deliveryStyle',
+        'action',
+        'repeat',
+      ])
         if (p[field] !== undefined && typeof p[field] !== 'string')
           return {valid: false, error: `${field} must be a string.`};
       if (typeof p.date === 'string' && !DATE_REGEX.test(p.date))
@@ -789,6 +795,13 @@ export function validatePayload(
         p.deliveryStyle !== 'notify'
       )
         return {valid: false, error: 'Invalid deliveryStyle.'};
+      if (
+        p.repeat !== undefined &&
+        !/^(?:daily|weekdays|weekly:(?:mo|tu|we|th|fr|sa|su)(?:,(?:mo|tu|we|th|fr|sa|su)){0,6})$/.test(
+          String(p.repeat).trim().toLowerCase(),
+        )
+      )
+        return {valid: false, error: 'Invalid repeat.'};
       const data: Record<string, unknown> = {request: p.request.trim()};
       for (const field of [
         'action',
@@ -801,6 +814,7 @@ export function validatePayload(
         'newTitle',
         'details',
         'deliveryStyle',
+        'repeat',
       ])
         if (p[field] !== undefined) {
           const value = p[field];

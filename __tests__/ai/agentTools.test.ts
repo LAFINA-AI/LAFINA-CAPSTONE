@@ -249,6 +249,38 @@ describe('agent tools on the device', () => {
     expect(review.appliedReviewReply(user, pending.operationId)).toBeNull();
   });
 
+  it('model-written grouped and memory cards are confirmed only by the student (audit 2, B6)', async () => {
+    let batchId = '';
+    await run(
+      'prepare_multi_action',
+      {
+        items: [
+          {kind: 'task', title: 'Buy bond paper', date: '2026-11-16'},
+          {kind: 'task', title: 'Print thesis', date: '2026-11-16'},
+        ],
+      },
+      {onMultiActionBatch: (batch: {id: string}) => (batchId = batch.id)},
+    );
+    expect(batchId).not.toBe('');
+    expect(actionService.isSuggestedCard(batchId)).toBe(true);
+    expect(await run('confirm_draft', {cardId: batchId, revision: 1})).toBe(
+      SUGGESTED_CONFIRM_REFUSAL,
+    );
+    expect(storage.tasksStore.getAllTasks(user)).toHaveLength(0);
+
+    let memoryId = '';
+    await run(
+      'prepare_memory',
+      {text: 'Prefers morning study'},
+      {onMemoryProposal: (_p: unknown, id: string) => (memoryId = id)},
+    );
+    if (memoryId) {
+      expect(await run('confirm_draft', {cardId: memoryId, revision: 1})).toBe(
+        SUGGESTED_CONFIRM_REFUSAL,
+      );
+    }
+  });
+
   it('refuses confirm_draft for a suggested card until the student confirms', async () => {
     await bookFirstSlot();
     const pending = review.latestPendingReview(user, 'voice');
@@ -326,5 +358,109 @@ describe('agent tools on the device', () => {
       await run('snooze_reminder', {minutes: 15}, {onSnoozeReminder}),
     ).toBe('Snoozed 15');
     expect(onSnoozeReminder).toHaveBeenCalledWith(15);
+  });
+});
+
+describe('reference requests (audit 2, B2/B3)', () => {
+  const {
+    isReferenceRequest,
+    isShortReferenceFollowUp,
+  } = require('../../src/ai/voiceActions/structuredAction');
+  const {chatOrchestrator} = require('../../src/ai/chatOrchestrator');
+  const storage = require('../../src/storage');
+
+  it.each([
+    [{intent: 'create_task', title: 'First one'}, 'book the first one', true],
+    [{intent: 'create_task', title: 'Yung una'}, 'yung una na lang', true],
+    [{intent: 'update_task', title: null, targetTitle: 'it'}, 'move it to 4pm', true],
+    [{intent: 'create_task', title: 'First aid kit review'}, 'add first aid kit review', false],
+    [{intent: 'update_task', title: null, targetTitle: 'Thesis'}, 'move thesis to 4pm', false],
+    [{intent: 'delete_task', title: null, targetTitle: 'it'}, 'delete it', false],
+  ])('%j / "%s" -> %s', (intent, text, expected) => {
+    expect(isReferenceRequest(intent, text)).toBe(expected);
+  });
+
+  it('short follow-ups', () => {
+    expect(isShortReferenceFollowUp('yung una na lang')).toBe(true);
+    expect(isShortReferenceFollowUp('that one please')).toBe(true);
+    expect(isShortReferenceFollowUp('what is the dean list policy')).toBe(false);
+  });
+
+  it('a spoken "book the first one" makes no card on its own (B3)', async () => {
+    await storage.initDatabase();
+    const result = await chatOrchestrator.reviewSpokenTurn(
+      'ref-voice-user',
+      'book the first one',
+      {onlineMode: false},
+    );
+    expect(result).toEqual({kind: 'none'});
+  });
+});
+
+describe('repeat field (audit 2, B7)', () => {
+  const {repeatToRule} = require('../../src/ai/voiceActions/structuredAction');
+
+  it('maps the allowed values to the stored rule', () => {
+    expect(repeatToRule('daily')).toBe('RRULE:FREQ=DAILY');
+    expect(repeatToRule('weekdays')).toBe(
+      'RRULE:FREQ=WEEKLY;BYDAY=MO,TU,WE,TH,FR',
+    );
+    expect(repeatToRule('weekly:mo,we,mo')).toBe('RRULE:FREQ=WEEKLY;BYDAY=MO,WE');
+    expect(repeatToRule('hourly')).toBeNull();
+  });
+
+  it('validates repeat and carries it onto a new item only', () => {
+    expect(
+      validatePayload('legacy.prepare_action', {
+        request: 'every monday',
+        action: 'create_reminder',
+        title: 'Lab report',
+        repeat: 'every minute',
+      }).valid,
+    ).toBe(false);
+    const created = intentFromToolArguments({
+      request: 'remind me every weekday',
+      action: 'create_reminder',
+      title: 'Stretch',
+      time: '07:00',
+      repeat: 'weekdays',
+    });
+    expect(created?.recurrenceRule).toBe(
+      'RRULE:FREQ=WEEKLY;BYDAY=MO,TU,WE,TH,FR',
+    );
+    const updated = intentFromToolArguments({
+      request: 'move it',
+      action: 'update_task',
+      title: 'Thesis',
+      time: '16:00',
+      repeat: 'daily',
+    });
+    expect(updated?.recurrenceRule ?? null).toBeNull();
+  });
+});
+
+describe('offline Taglish (audit 2, B8)', () => {
+  const {
+    translateTaglishCommand,
+  } = require('../../src/ai/nlu/fastPathParser');
+
+  it.each([
+    ['pa-remind ako mamaya 5pm na mag-submit ng essay', 'remind me today at 5pm to submit essay'],
+    ['tapos na yung lab report', 'mark lab report as done'],
+    ['free ba ako sa Biyernes?', 'when am i free on friday?'],
+    ['gisingin mo ako ng 6 bukas', 'wake me up at 6 tomorrow'],
+    ['paalala mo sakin mag-aral bukas ng 7pm', 'remind me to study tomorrow at 7pm'],
+  ])('"%s" -> "%s"', (text, english) => {
+    expect(translateTaglishCommand(text)).toBe(english);
+  });
+
+  it('a note keeps its own words exactly', () => {
+    expect(
+      translateTaglishCommand('gawa ka ng note: Dalhin mo ang calculator ko'),
+    ).toBe('note: Dalhin mo ang calculator ko');
+  });
+
+  it('English stays untouched', () => {
+    expect(translateTaglishCommand('may I add a task for friday')).toBeNull();
   });
 });

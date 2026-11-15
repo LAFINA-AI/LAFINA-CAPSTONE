@@ -64,6 +64,10 @@ import {
 import type {ValidatedIntent, NluActionResult} from './nlu/types';
 import {runChatAgent} from './chatAgent';
 import {
+  isReferenceRequest,
+  isShortReferenceFollowUp,
+} from './voiceActions/structuredAction';
+import {
   extractIntentWithDeepSeek,
   extractMultiIntentsWithDeepSeek,
   isHandbookQuestion,
@@ -190,6 +194,25 @@ export function format12HourTime(timeStr?: string | null): string {
   if (hour === 0) hour = 12;
   const minStr = min < 10 ? `0${min}` : `${min}`;
   return `${hour}:${minStr} ${meridiem}`;
+}
+
+const REFERENCE_CLARIFY_REPLY =
+  'Which one do you mean? Tell me what to add or change and when, for example "add physics review Monday at 2 PM".';
+
+/** True when LAFINA's last reply (before this message) was about the planner. */
+function lastAssistantIsPlanner(
+  recent: ChatMessage[],
+  current: string,
+): boolean {
+  const earlier = [...recent].reverse();
+  const lastReply = earlier.find(msg => msg.sender === 'assistant');
+  if (!lastReply || lastReply.content.trim() === current.trim()) return false;
+  return (
+    needsPlannerContext(lastReply.content) ||
+    /\b(?:free|slot|slots|open|available|\d{1,2}(?::\d{2})?\s*(?:am|pm))\b/i.test(
+      lastReply.content,
+    )
+  );
 }
 
 /**
@@ -531,6 +554,11 @@ export class ChatOrchestrator {
         // "yes", "okay", "thanks": conversation, never an authorization.
         return {kind: 'none'};
       }
+      // "book the first one" only points back at the call. The voice model
+      // knows what it meant and describes it through prepare_lafina_action's
+      // fields; a card called "First one" first would flicker or stay
+      // (audit 2, B3).
+      if (isReferenceRequest(validated, trimmed)) return {kind: 'none'};
       const lowRisk = executeLowRiskCommand(userId, validated, {
         referenceDate: refDate,
         surface: 'voice',
@@ -1092,10 +1120,41 @@ export class ChatOrchestrator {
     // offers the free times as one-tap choices, so chat never asks a question
     // nothing could answer (audit finding 5).
 
+    // A request that only points back at the conversation ("book the first
+    // one", "move it to 4pm") goes to the Chat agent, which sees the history;
+    // offline, a new item named only by a pointer asks instead of saving a
+    // card called "First one" (audit 2, B2).
+    let followUpAgent = false;
+    let pointerOnly = false;
+    if (
+      !finalReply &&
+      !ustpRagOnly &&
+      !isScheduleScan &&
+      !options.ringingCall
+    ) {
+      const pointsBack =
+        isReferenceRequest(validated, trimmed) ||
+        (validated.intent === 'chat' &&
+          !isTemp &&
+          options.onlineMode === true &&
+          isShortReferenceFollowUp(trimmed) &&
+          lastAssistantIsPlanner(
+            readRecentHistory(userId, 6, sessionId),
+            trimmed,
+          ));
+      if (pointsBack && options.onlineMode && !isTemp) {
+        followUpAgent = true;
+      } else if (pointsBack) {
+        pointerOnly = true;
+      }
+    }
+
     // Step 5: Low-risk planner updates execute immediately; higher-risk changes
     // become a private proposal waiting for Confirm. Reads & calls keep their routes.
     if (!finalReply) {
-      route = routeIntent(validated.intent, {ringingCall: options.ringingCall});
+      route = followUpAgent
+        ? 'conversation'
+        : routeIntent(validated.intent, {ringingCall: options.ringingCall});
       if (route === 'reviewed_mutation') {
         const lowRisk = executeLowRiskCommand(userId, validated, {
           referenceDate: refDate,
@@ -1129,6 +1188,13 @@ export class ChatOrchestrator {
             ringingCall: options.ringingCall,
           });
           finalReply = review.reply;
+          // Offline, a card named only by a pointer ("First one") is
+          // withdrawn and LAFINA asks instead.
+          if (pointerOnly && review.status === 'proposal') {
+            cancelReviewedCommand(userId, review.proposal.operationId);
+            review = undefined;
+            finalReply = REFERENCE_CLARIFY_REPLY;
+          }
         }
         // "thanks" / "ok" with no ringing call and nothing to acknowledge is
         // just conversation. The refused review wrote nothing, so drop it.
@@ -1250,13 +1316,15 @@ export class ChatOrchestrator {
           // Questions about the student's own plans go to the Chat agent
           // first (ADR-033): it can look things up and prepare one card.
           const agent =
-            !isTemp &&
-            !ustpRagOnly &&
-            !smallTalk &&
-            !isHandbookQuestion(trimmed) &&
-            needsPlannerContext(trimmed)
+            followUpAgent ||
+            (!isTemp &&
+              !ustpRagOnly &&
+              !smallTalk &&
+              !isHandbookQuestion(trimmed) &&
+              needsPlannerContext(trimmed))
               ? await runChatAgent(userId, plainHistory, {
-                  useHandbook,
+                  // Handbook passages don't help a planner turn (audit 2, B4).
+                  useHandbook: false,
                   ...memoryOption,
                   referenceDate: refDate,
                   localNow: describeNow(refDate),
@@ -1269,7 +1337,12 @@ export class ChatOrchestrator {
             learnFromReply = Boolean(agent.reply);
             if (agent.review) review = agent.review;
           }
-          const onlineResult = agent
+          // Without the agent, a pointer can't be resolved: ask, never guess.
+          if (!agent && followUpAgent) {
+            finalReply = REFERENCE_CLARIFY_REPLY;
+          }
+          const onlineResult =
+            agent || followUpAgent
             ? null
             : onReplyText
             ? await onlineChatSkill.streamChatMessage(history, {

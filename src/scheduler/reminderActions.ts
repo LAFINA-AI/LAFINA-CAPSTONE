@@ -185,16 +185,22 @@ export const snoozeReminderAction = async (
   };
 };
 
-/** Retains AGY recurrence, including when ACK is committed through a Review card. */
+/**
+ * Retains AGY recurrence, including when ACK is committed through a Review card.
+ * A missed occurrence also continues the series (audit 2, B1); `notBefore`
+ * skips occurrences already in the past, so a phone that was off for a week
+ * gets the next real one, not seven stale ones.
+ */
 export const createNextRecurringReminder = (
   reminder: Reminder,
   userId: string,
   tx?: DatabaseTransaction,
+  notBefore?: Date,
 ): {id: string; task: string; triggerAt: string} | null => {
   if (reminder.userId !== userId) return null;
   if (!tx)
     return db.transactionSync(inner =>
-      createNextRecurringReminder(reminder, userId, inner),
+      createNextRecurringReminder(reminder, userId, inner, notBefore),
     );
   const rule = /\[RRULE:([^\]]+)\]/
     .exec(reminder.description || '')?.[1]
@@ -212,14 +218,32 @@ export const createNextRecurringReminder = (
   const nextDay = new Date(at);
   nextDay.setDate(nextDay.getDate() + 1);
   nextDay.setHours(0, 0, 0, 0);
-  const until = new Date(nextDay);
+  const floor =
+    notBefore && Number.isFinite(notBefore.getTime()) ? notBefore : null;
+  let from = nextDay;
+  if (floor && floor.getTime() > nextDay.getTime()) {
+    from = new Date(floor);
+    from.setHours(0, 0, 0, 0);
+  }
+  const until = new Date(from);
   until.setDate(until.getDate() + 60);
-  const nextDate = getOccurrences(date, rule, nextDay, until)[0];
+  const nextDate = getOccurrences(date, rule, from, until).find(
+    day =>
+      !floor || new Date(`${day}T${time}:00`).getTime() > floor.getTime(),
+  );
   if (!nextDate) return null;
+  // Never a second copy of the same occurrence (a sweep after a miss, then
+  // a late acknowledge of a stale call).
+  const nextAt = new Date(`${nextDate}T${time}:00`).toISOString();
+  const existing = tx.executeSync(
+    `SELECT id FROM reminders WHERE user_id = ? AND task = ? AND trigger_at = ? AND deleted_at IS NULL AND status IN ('pending','snoozed','triggered') LIMIT 1`,
+    [userId, reminder.task, nextAt],
+  ).rows;
+  if (existing && existing.length > 0) return null;
   const next = {
     id: generateId('rem'),
     task: reminder.task,
-    triggerAt: new Date(`${nextDate}T${time}:00`).toISOString(),
+    triggerAt: nextAt,
   };
   const source = resolveReminderSource(tx, reminder);
   remindersStore.insertReminder(
@@ -375,13 +399,48 @@ export const autoSnoozeReminderAction = async (
   const fence = prepareFence(reminderId, userId, expectedGeneration);
   if (!fence.ok) return fence.result;
 
+  let nextAfterMiss: {id: string; task: string; triggerAt: string} | null =
+    null;
   try {
-    remindersStore.updateReminderStatus(reminder.id, 'missed', fence.guard);
+    // A missed occurrence still continues a repeating reminder (audit 2, B1).
+    db.transactionSync(tx => {
+      remindersStore.updateReminderStatus(
+        reminder.id,
+        'missed',
+        fence.guard,
+        tx,
+      );
+      nextAfterMiss = createNextRecurringReminder(
+        reminder,
+        userId,
+        tx,
+        new Date(),
+      );
+    });
   } catch (error) {
     const fenced = fenceFailure(error);
     if (fenced) return fenced;
     console.error('[ReminderActions] Mark missed failed:', error);
     return rejection('I could not close this reminder. Please try again.');
+  }
+  const scheduledNext = nextAfterMiss as {
+    id: string;
+    task: string;
+    triggerAt: string;
+  } | null;
+  if (scheduledNext) {
+    try {
+      await scheduleReminderAlarm(
+        scheduledNext.id,
+        scheduledNext.task,
+        scheduledNext.triggerAt,
+      );
+    } catch (error) {
+      console.warn(
+        '[ReminderActions] Failed to schedule next recurring reminder:',
+        error,
+      );
+    }
   }
 
   try {

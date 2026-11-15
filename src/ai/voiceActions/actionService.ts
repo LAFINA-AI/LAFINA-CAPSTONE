@@ -339,6 +339,8 @@ class ActionService {
           revision: 1,
         };
         record.memoryProposal = memProp;
+        // The model wrote this text, so only the student confirms it (audit 2, B6).
+        this.markSuggestedCard(actionId);
         envelope.phase = 'waiting';
         record.status = 'prepare';
         record.updatedEpoch = Date.now();
@@ -727,6 +729,8 @@ class ActionService {
           items,
           truncated,
         );
+        // Items described by the model: only the student confirms them (B6).
+        this.markSuggestedCard(batch.id);
         envelope.phase = 'waiting';
         record.status = 'prepare';
         record.multiActionBatch = batch;
@@ -782,6 +786,7 @@ class ActionService {
         }
 
         const batch = createMultiActionBatch(sessionId, userId, [reminderItem]);
+        this.markSuggestedCard(batch.id);
         envelope.phase = 'waiting';
         record.status = 'prepare';
         record.multiActionBatch = batch;

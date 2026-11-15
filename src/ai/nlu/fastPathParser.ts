@@ -385,7 +385,11 @@ export function normalizeSpeech(transcript: string): string {
 }
 
 const TAGLISH_MARKER =
-  /\b(?:paalala(?:han)?|ipaalala|dagdag(?:an)?|idagdag|ilagay|ano(?:ng)?|bukas|mamaya(?:ng)?|ngayon(?:g)?|sakin|saakin|mag-?aral|mag-?review|bumili|magpasa|ipasa|alas)\b/i;
+  /\b(?:paalala(?:han)?|ipaalala|dagdag(?:an)?|idagdag|i?lagay|ano(?:ng)?|bukas|mamaya(?:ng)?|ngayon(?:g)?|sakin|saakin|mag-?aral|mag-?review|bumili|magpasa|ipasa|alas|pa-?remind|i-?cancel|i-?delete|burahin|tanggalin|tapos\s+na|natapos|gisingin|gisingan|free\s+ba|bakante\s+ba|lunes|martes|miyerkules|myerkules|huwebes|biyernes|sabado)\b|\bmay\s+\S+(?:\s+\S+)?\s+ako\b/i;
+
+/** "gawa ka ng note: …": the note's own words stay exactly as said. */
+const TAGLISH_NOTE_FRAME =
+  /^(?:gawa|gumawa)(?:\s+(?:ka|mo|ako))?\s+(?:ng\s+|ang\s+)?(?:note|notes|tala)\s*[:,-]?\s*(.+)$/i;
 
 const TAGLISH_WEEKDAYS: Record<string, string> = {
   lunes: 'monday',
@@ -406,6 +410,8 @@ const TAGLISH_WEEKDAYS: Record<string, string> = {
  */
 export function translateTaglishCommand(text: string): string | null {
   const source = (text || '').trim();
+  const noteFrame = TAGLISH_NOTE_FRAME.exec(source);
+  if (noteFrame) return `note: ${noteFrame[1].trim()}`;
   if (!source || !TAGLISH_MARKER.test(source)) return null;
   let result = ` ${source.toLowerCase()} `;
   const replace = (
@@ -423,13 +429,39 @@ export function translateTaglishCommand(text: string): string | null {
     ' remind me to ',
   );
   replace(
-    /\s(?:i?dagdag(?:an)?|ilagay)\s+(?:mo\s+)?(?:ito\s+)?(?:sa|ng)\s+(?:aking\s+|ang\s+)?(?:to-?do|to\s+do|todo|listahan)(?:\s+ko)?\s+(.+?)\s*$/g,
+    /\s(?:i?dagdag(?:an)?|i?lagay)\s+(?:mo\s+)?(?:ito\s+)?(?:sa|ng)\s+(?:aking\s+|ang\s+)?(?:to-?do|to\s+do|todo|listahan)(?:\s+ko)?\s+(?:yung\s+|ang\s+)?(.+?)\s*$/g,
     ' add $1 to my to-do ',
   );
   replace(
-    /\s(?:i?dagdag(?:an)?|ilagay)\s+(?:mo\s+)?(.+?)\s+sa\s+(?:aking\s+|ang\s+)?(?:to-?do|to\s+do|todo|listahan)(?:\s+ko)?\s*$/g,
+    /\s(?:i?dagdag(?:an)?|i?lagay)\s+(?:mo\s+)?(?:yung\s+|ang\s+)?(.+?)\s+sa\s+(?:aking\s+|ang\s+)?(?:to-?do|to\s+do|todo|listahan)(?:\s+ko)?\s*$/g,
     ' add $1 to my to-do ',
   );
+  // "pa-remind ako", "remind mo ako": a reminder for the speaker.
+  replace(
+    /\s(?:pa-?remind|remind\s+mo)\s+(?:mo\s+)?(?:ako|sakin|saakin|sa\s+akin)\b\s*/g,
+    ' remind me ',
+  );
+  // Wake-up requests: "gisingin mo ako ng 6 bukas".
+  replace(
+    /\s(?:gisingin|gisingan)\s+(?:mo\s+)?(?:ako|sakin)\b/g,
+    ' wake me up',
+  );
+  // Removing or finishing an item named after the frame.
+  replace(
+    /\s(?:i-?cancel|i-?delete|burahin|tanggalin)\s+(?:mo\s+)?(?:na\s+)?(?:yung|ang)?\s*/g,
+    ' delete my ',
+  );
+  replace(
+    /^\s(?:tapos\s+na|natapos\s+(?:ko\s+)?na)\s+(?:yung\s+|ang\s+)?(.+?)\s*$/g,
+    ' mark $1 as done ',
+  );
+  // Schedule questions: "free ba ako sa biyernes?".
+  replace(
+    /\s(?:free|bakante)\s+ba\s+(?:ako|ko)\b/g,
+    ' when am i free',
+  );
+  // "may quiz ako sa lunes": the student has something on a day.
+  replace(/^\smay\s+(\S+(?:\s+\S+)?)\s+ako\b/g, ' i have a $1');
   replace(
     /\sano(?:ng)?\s+(?:ang\s+)?(?:sched(?:ule)?|iskedyul|gagawin|lakad)\s+(?:ko|natin)\b/g,
     ' what is my schedule',
@@ -445,6 +477,8 @@ export function translateTaglishCommand(text: string): string | null {
   replace(/\s(?:magpasa|ipasa)\s+(?:ng\s+|ang\s+)?/g, ' submit ');
   replace(/\smaglinis\s+(?:ng\s+)?/g, ' clean ');
   replace(/\stapusin\s+(?:ang\s+)?/g, ' finish ');
+  // Any other "na mag-submit ng essay" → "to submit essay".
+  replace(/\s(?:na\s+)?mag-(\w+)(?:\s+ng)?\b/g, ' to $1');
   // Time words.
   replace(/\sbukas\s+ng\s+umaga\b/g, ' tomorrow morning');
   replace(/\sbukas\s+ng\s+hapon\b/g, ' tomorrow afternoon');
@@ -452,6 +486,11 @@ export function translateTaglishCommand(text: string): string | null {
   replace(/\sbukas\b/g, ' tomorrow');
   replace(/\s(?:mamayang|ngayong)\s+gabi\b/g, ' tonight');
   replace(/\smamayang\s+hapon\b/g, ' this afternoon');
+  // "mamaya 5pm" with a clock time is today at that time.
+  replace(
+    /\smamaya(?:ng)?\s+(?:ng\s+|alas\s+)?(?=\d{1,2}(?::\d{2})?\s*(?:am|pm|a\.m\.|p\.m\.)?\b)/g,
+    ' today at ',
+  );
   replace(/\smamaya(?:ng)?\b/g, ' later');
   replace(/\sngayon(?:g)?\s+araw\b/g, ' today');
   replace(/\sngayon\b/g, ' today');

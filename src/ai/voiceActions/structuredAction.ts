@@ -27,7 +27,23 @@ export interface StructuredActionArgs {
   newTitle?: string;
   details?: string;
   deliveryStyle?: string;
+  /** "daily", "weekdays" or "weekly:mo,we" (new items only). */
+  repeat?: string;
 }
+
+/** The `repeat` field as the RRULE subset the planner stores (audit 2, B7). */
+export const repeatToRule = (repeat: string | undefined): string | null => {
+  const value = (repeat || '').trim().toLowerCase();
+  if (value === 'daily') return 'RRULE:FREQ=DAILY';
+  if (value === 'weekdays') return 'RRULE:FREQ=WEEKLY;BYDAY=MO,TU,WE,TH,FR';
+  const weekly =
+    /^weekly:((?:mo|tu|we|th|fr|sa|su)(?:,(?:mo|tu|we|th|fr|sa|su)){0,6})$/.exec(
+      value,
+    );
+  if (!weekly) return null;
+  const days = Array.from(new Set(weekly[1].split(',')));
+  return `RRULE:FREQ=WEEKLY;BYDAY=${days.join(',').toUpperCase()}`;
+};
 
 /** Changes to an existing item name it by `title`. */
 const TARGETS_EXISTING = new Set([
@@ -99,6 +115,45 @@ export const isReferenceTitle = (title: string | null | undefined): boolean =>
     .filter(word => word && !REFERENCE_WORDS.has(word) && !/^\d/.test(word))
     .length === 0;
 
+/** Words that only make sense with the conversation before them. */
+const POINTER_RE =
+  /\b(?:first|second|third|last|that|this|it|those|these|one|option|yung|iyon|yun|yan|una|pangalawa|ikalawa|huli)\b/i;
+
+const CHANGES_EXISTING = new Set([
+  'update_task',
+  'update_time_block',
+  'update_note',
+  'reschedule',
+]);
+
+/**
+ * True when a planner request read from the student's words only points back
+ * at the conversation ("book the first one", "move it to 4pm"), so the words
+ * alone can't say what to change (audit 2, B2). Deletion is never included:
+ * it keeps the device's own clarify card.
+ */
+export const isReferenceRequest = (
+  intent: Pick<ValidatedIntent, 'intent' | 'title' | 'targetTitle'>,
+  text: string,
+): boolean => {
+  if (intent.intent.startsWith('create_')) {
+    return intent.title?.trim()
+      ? isReferenceTitle(intent.title)
+      : POINTER_RE.test(text);
+  }
+  if (CHANGES_EXISTING.has(intent.intent)) {
+    return (
+      isReferenceTitle(intent.targetTitle ?? intent.title) &&
+      POINTER_RE.test(text)
+    );
+  }
+  return false;
+};
+
+/** A short reply that points at something said before ("yung una na lang"). */
+export const isShortReferenceFollowUp = (text: string): boolean =>
+  text.trim().split(/\s+/).length <= 8 && POINTER_RE.test(text);
+
 /** True when the model filled in an action, not only free text. */
 export const hasStructuredAction = (args: StructuredActionArgs): boolean =>
   typeof args.action === 'string' && STRUCTURED_ACTIONS.includes(args.action);
@@ -144,7 +199,12 @@ export const intentFromToolArguments = (
     args.deliveryStyle === 'notify' || args.deliveryStyle === 'call'
       ? args.deliveryStyle
       : null;
-  return deliveryStyle ? {...intent, deliveryStyle} : intent;
+  const recurrenceRule = existing ? null : repeatToRule(args.repeat);
+  return {
+    ...intent,
+    ...(deliveryStyle ? {deliveryStyle} : {}),
+    ...(recurrenceRule ? {recurrenceRule} : {}),
+  };
 };
 
 /**
