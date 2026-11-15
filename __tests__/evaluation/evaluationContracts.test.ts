@@ -60,6 +60,12 @@ const FROZEN_V2: Record<string, string> = {
     '9c06bbd4bfd8f7c6b18edf66dbc31f54b6766937a3a58bc2b84ac7f1e39da218',
 };
 
+/** Frozen v3 additions (intent contract updated for the alarm intents, alarm plan A3). */
+const FROZEN_V3: Record<string, string> = {
+  'intent-contract-v3.json':
+    '044f65d3bb187c01311b84ce28586d1f9612dae1caec8503bd595233eab306ac',
+};
+
 type IntentField =
   | 'intent'
   | 'title'
@@ -149,7 +155,7 @@ describe('AGY-PORT 12 frozen evaluation fixtures', () => {
       for (const [name, sha] of Object.entries(FROZEN_V1)) {
         expect(digests[name]).toBe(sha);
       }
-      expect(digests).toEqual({...FROZEN_V1, ...FROZEN_V2});
+      expect(digests).toEqual({...FROZEN_V1, ...FROZEN_V2, ...FROZEN_V3});
     });
 
     test('every fixture verifies, and no fixture is unlisted', () => {
@@ -267,7 +273,7 @@ describe('AGY-PORT 12 frozen evaluation fixtures', () => {
   });
 
   describe('intent contract (deterministic fast path and routes)', () => {
-    const fixture = readFrozenFixture<IntentFixture>('intent-contract-v2.json');
+    const fixture = readFrozenFixture<IntentFixture>('intent-contract-v3.json');
     let passed = 0;
 
     afterAll(() => {

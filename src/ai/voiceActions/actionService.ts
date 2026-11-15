@@ -35,11 +35,24 @@ import type {SpokenTurnReview} from '../chatOrchestrator';
 import {chatMemoryStore} from '../../storage/chatMemoryStore';
 import {draftRegistry} from './draftRegistry';
 import {
+  appliedReviewReply,
   cancelReviewedCommand,
   confirmReviewedCommand,
   reviseReviewedCommand,
 } from '../nlu/commandReview';
 import {explicitMemory} from '../explicitMemory';
+import {
+  answerFreeTime,
+  hasStructuredAction,
+  prepareStructuredReview,
+  SUGGESTED_CARD_NOTE,
+  isReferenceTitle,
+} from './structuredAction';
+import type {StructuredActionArgs} from './structuredAction';
+
+/** What the model hears when it tries to confirm a card it suggested. */
+export const SUGGESTED_CONFIRM_REFUSAL =
+  'Not saved: this card was suggested from the conversation, so the student must confirm it themselves. Ask them to say yes or tap Confirm.';
 import {
   parseGroupedRequest,
   createMultiActionBatch,
@@ -76,6 +89,8 @@ export interface ExecuteToolOptions {
   onProposal?: (review: SpokenTurnReview) => void;
   onMemoryProposal?: (proposal: MemoryProposalData, actionId: string) => void;
   onMultiActionBatch?: (batch: MultiActionBatchData) => void;
+  /** Present only during a reminder call: snoozes that reminder. */
+  onSnoozeReminder?: (minutes: number) => Promise<string>;
 }
 
 class ActionService {
@@ -110,6 +125,25 @@ class ActionService {
         // Safe dispatch: listeners must not break execution
       }
     }
+  }
+
+  /**
+   * Cards built from the model's own fields (not the student's words). Only
+   * the student confirms these: by voice, through the device's own reading of
+   * "yes", or with the card's button. confirm_draft from the model is refused.
+   */
+  private suggestedCards = new Set<string>();
+
+  markSuggestedCard(cardId: string): void {
+    this.suggestedCards.add(cardId);
+    if (this.suggestedCards.size > 50) {
+      const oldest = this.suggestedCards.values().next().value;
+      if (oldest !== undefined) this.suggestedCards.delete(oldest);
+    }
+  }
+
+  isSuggestedCard(cardId: string): boolean {
+    return this.suggestedCards.has(cardId);
   }
 
   getAction(actionId: string): ActionRecord | undefined {
@@ -305,6 +339,8 @@ class ActionService {
           revision: 1,
         };
         record.memoryProposal = memProp;
+        // The model wrote this text, so only the student confirms it (audit 2, B6).
+        this.markSuggestedCard(actionId);
         envelope.phase = 'waiting';
         record.status = 'prepare';
         record.updatedEpoch = Date.now();
@@ -348,10 +384,40 @@ class ActionService {
           options?.onMemoryProposal?.(prepared.proposal, prepared.actionId);
           return 'A memory review card is shown. Nothing has been saved. Please tap Save to confirm.';
         }
-        const review = await chatOrchestrator.reviewSpokenTurn(
+        const structured = envelope.payload as StructuredActionArgs;
+        let review = await chatOrchestrator.reviewSpokenTurn(
           userId,
           p.request,
+          {onlineMode: true, isCurrent},
         );
+        // The request text gave nothing to act on, or a card about something
+        // else ("book the first one" reads as a task "First one"): use the
+        // fields the model filled in. That card always waits for the student.
+        let suggested = false;
+        const grounded =
+          review.kind === 'proposal' && review.review.status === 'proposal'
+            ? review.review.proposal
+            : null;
+        if (
+          isCurrent() &&
+          hasStructuredAction(structured) &&
+          (review.kind === 'none' ||
+            review.kind === 'note' ||
+            (grounded !== null && isReferenceTitle(grounded.title)))
+        ) {
+          const prepared = prepareStructuredReview(userId, structured, 'voice');
+          if (prepared?.status === 'proposal') {
+            if (grounded) cancelReviewedCommand(userId, grounded.operationId);
+            review = {
+              kind: 'proposal',
+              review: prepared,
+              reply: prepared.reply,
+            };
+            suggested = true;
+          } else if (prepared && !grounded) {
+            review = {kind: 'note', reply: prepared.reply};
+          }
+        }
 
         if (!isCurrent()) {
           envelope.phase = 'canceled';
@@ -403,7 +469,11 @@ class ActionService {
               warnings: [...pProposal.warnings],
             });
           }
-          return `A review card is shown: ${review.reply} Card ID: ${pProposal?.operationId}; revision: 1. Nothing has been saved yet. Ask if they want changes or call confirm_draft to save it.`;
+          if (suggested && pProposal)
+            this.markSuggestedCard(pProposal.operationId);
+          return suggested
+            ? `A review card is shown: ${review.reply} Card ID: ${pProposal?.operationId}; revision: 1. Nothing has been saved yet. ${SUGGESTED_CARD_NOTE}`
+            : `A review card is shown: ${review.reply} Card ID: ${pProposal?.operationId}; revision: 1. Nothing has been saved yet. Ask if they want changes or call confirm_draft to save it.`;
         }
 
         if (review.kind !== 'none') {
@@ -443,6 +513,9 @@ class ActionService {
                 reply: 'Stale draft revision. Please review the current card.',
               };
         if (result.status === 'proposal') {
+          // A revised suggestion is still a suggestion.
+          if (this.isSuggestedCard(p.cardId))
+            this.markSuggestedCard(result.proposal.operationId);
           envelope.phase = 'waiting';
           record.status = 'prepare';
           record.result = result.reply;
@@ -453,7 +526,13 @@ class ActionService {
             review: result,
             reply: result.reply,
           });
-          return `A review card is shown: ${result.reply} Card ID: ${result.proposal.operationId}; revision: 1. Nothing has been saved yet. Call confirm_draft to save it if the student confirms or asks you to save it.`;
+          return `A review card is shown: ${result.reply} Card ID: ${
+            result.proposal.operationId
+          }; revision: 1. Nothing has been saved yet. ${
+            this.isSuggestedCard(result.proposal.operationId)
+              ? SUGGESTED_CARD_NOTE
+              : 'Call confirm_draft to save it if the student confirms or asks you to save it.'
+          }`;
         }
         envelope.phase = 'failed';
         record.status = 'failed';
@@ -493,6 +572,21 @@ class ActionService {
           record.updatedEpoch = Date.now();
           this.emit(actionId, toolDef.kind, 'failed', outcome.message);
           return outcome.message;
+        }
+        if (this.isSuggestedCard(p.cardId)) {
+          const saved = appliedReviewReply(userId, p.cardId);
+          if (saved) {
+            envelope.phase = 'done';
+            record.status = 'confirm';
+            record.result = saved;
+            this.emit(actionId, toolDef.kind, 'done', saved);
+            return 'The student already confirmed it: ' + saved;
+          }
+          envelope.phase = 'failed';
+          record.status = 'failed';
+          record.error = SUGGESTED_CONFIRM_REFUSAL;
+          this.emit(actionId, toolDef.kind, 'failed', record.error);
+          return record.error;
         }
         if (p.revision !== 1) {
           envelope.phase = 'failed';
@@ -559,6 +653,40 @@ class ActionService {
         return record.error;
       }
 
+      if (toolDef.kind === 'calendar.free_time') {
+        envelope.phase = 'checking';
+        this.emit(actionId, toolDef.kind, 'checking');
+        const p = envelope.payload as {date?: string; durationMinutes?: number};
+        const answer = await answerFreeTime(userId, p);
+        if (!isCurrent()) return 'Request canceled. Nothing was changed.';
+        envelope.phase = 'done';
+        record.status = 'result';
+        record.result = answer;
+        record.updatedEpoch = Date.now();
+        this.emit(actionId, toolDef.kind, 'done');
+        return answer;
+      }
+
+      if (toolDef.kind === 'reminder.snooze') {
+        const p = envelope.payload as {minutes: number};
+        if (!options?.onSnoozeReminder) {
+          envelope.phase = 'failed';
+          record.status = 'failed';
+          record.error = 'No reminder call is active.';
+          this.emit(actionId, toolDef.kind, 'failed', record.error);
+          return 'No reminder call is active, so nothing was snoozed. To move a reminder, prepare a change card with prepare_lafina_action.';
+        }
+        envelope.phase = 'saving';
+        this.emit(actionId, toolDef.kind, 'saving');
+        const answer = await options.onSnoozeReminder(p.minutes);
+        envelope.phase = 'done';
+        record.status = 'result';
+        record.result = answer;
+        record.updatedEpoch = Date.now();
+        this.emit(actionId, toolDef.kind, 'done', answer);
+        return answer;
+      }
+
       if (toolDef.kind === 'multi.prepare') {
         envelope.phase = 'preparing';
         this.emit(actionId, toolDef.kind, 'preparing');
@@ -601,6 +729,8 @@ class ActionService {
           items,
           truncated,
         );
+        // Items described by the model: only the student confirms them (B6).
+        this.markSuggestedCard(batch.id);
         envelope.phase = 'waiting';
         record.status = 'prepare';
         record.multiActionBatch = batch;
@@ -656,6 +786,7 @@ class ActionService {
         }
 
         const batch = createMultiActionBatch(sessionId, userId, [reminderItem]);
+        this.markSuggestedCard(batch.id);
         envelope.phase = 'waiting';
         record.status = 'prepare';
         record.multiActionBatch = batch;

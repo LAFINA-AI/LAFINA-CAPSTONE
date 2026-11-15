@@ -19,6 +19,7 @@ import {ttsService} from '../tts/ttsService';
 import {computeAdaptiveTriggerAt} from '../ml';
 import type {ValidatedIntent, NluActionResult} from './types';
 import {buildLocalConversationReply} from '../localConversation';
+import {describeAlarmsReply} from './alarmReview';
 import {extractChecklistItems, noteBodyToMarkdown} from '../../utils/richText';
 
 export interface ActionExecutorOptions {
@@ -45,6 +46,205 @@ function formatListWithAnd(items: string[]): string {
   if (items.length === 1) return items[0];
   if (items.length === 2) return `${items[0]} and ${items[1]}`;
   return `${items.slice(0, -1).join(', ')}, and ${items[items.length - 1]}`;
+}
+
+const wallMinutes = (hhmm: string): number => {
+  const [h, m] = hhmm.split(':').map(v => parseInt(v, 10));
+  return (Number.isFinite(h) ? h : 0) * 60 + (Number.isFinite(m) ? m : 0);
+};
+
+const wallTime = (minutes: number): string => {
+  const clamped = Math.max(0, Math.min(24 * 60 - 1, minutes));
+  return `${String(Math.floor(clamped / 60)).padStart(2, '0')}:${String(
+    clamped % 60,
+  ).padStart(2, '0')}`;
+};
+
+const describeLength = (minutes: number): string => {
+  if (minutes % 60 === 0) {
+    const hours = minutes / 60;
+    return `${hours} hour${hours === 1 ? '' : 's'}`;
+  }
+  if (minutes > 60) {
+    return `${Math.floor(minutes / 60)} h ${minutes % 60} min`;
+  }
+  return `${minutes} minutes`;
+};
+
+const CLASS_HINT =
+  /\b(?:class|lecture|lab|laboratory|recitation|tutorial|seminar|subject|course)\b|\b[A-Z]{2,5}\s?-?\d{2,4}[A-Z]?\b/i;
+
+/**
+ * Read-only answers from local data (audit finding 8): free time on a day,
+ * overdue tasks, and what comes next. Nothing is written. Exported for the
+ * agents' find_free_time tool (ADR-033).
+ */
+export function answerPlannerLookup(
+  userId: string,
+  intent: ValidatedIntent,
+  refDate: Date,
+): string {
+  const today = formatLocalDate(refDate);
+  const nowMinutes = refDate.getHours() * 60 + refDate.getMinutes();
+
+  if (intent.details === 'overdue') {
+    const {items, total} = plannerQueries.overdueTasks(userId, today, 10);
+    if (total === 0) return 'You have no overdue tasks. Nice work!';
+    const lines = items.map(t => {
+      const label = formatSpokenDayLabel(t.dueDate as string, refDate);
+      const when = `${label.charAt(0).toLowerCase()}${label.slice(1)}${
+        t.dueTime ? ` at ${format12HourTime(t.dueTime)}` : ''
+      }`;
+      return `• ${t.title} (was due ${when})`;
+    });
+    const more =
+      total > items.length ? `\n…and ${total - items.length} more.` : '';
+    return `You have ${total} overdue task${
+      total === 1 ? '' : 's'
+    }:\n${lines.join('\n')}${more}`;
+  }
+
+  if (intent.details === 'free_slots') {
+    const date = intent.date || today;
+    const duration = Math.max(
+      15,
+      Math.min(12 * 60, intent.durationMinutes || 60),
+    );
+    const window = plannerQueries.window(userId, date, date);
+    const busy = [
+      ...window.blocks.filter(b => b.date === date),
+      ...window.events.filter(e => e.date === date),
+    ]
+      .filter(item => item.startTime && item.endTime)
+      .map(item => {
+        const start = wallMinutes(item.startTime);
+        let end = wallMinutes(item.endTime);
+        if (end <= start) end = 24 * 60;
+        return {start, end};
+      })
+      .sort((a, b) => a.start - b.start);
+    const DAY_START = 7 * 60;
+    const DAY_END = 22 * 60;
+    let cursor = DAY_START;
+    if (date === today) {
+      cursor = Math.max(cursor, Math.ceil((nowMinutes + 1) / 30) * 30);
+    }
+    const gaps: Array<{start: number; end: number}> = [];
+    for (const item of busy) {
+      if (item.start > cursor)
+        gaps.push({start: cursor, end: Math.min(item.start, DAY_END)});
+      cursor = Math.max(cursor, item.end);
+      if (cursor >= DAY_END) break;
+    }
+    if (cursor < DAY_END) gaps.push({start: cursor, end: DAY_END});
+    const fitting = gaps.filter(g => g.end - g.start >= duration);
+    const dayLabel = formatSpokenDayLabel(date, refDate);
+    if (fitting.length === 0) {
+      return `I couldn't find ${describeLength(
+        duration,
+      )} free between 7:00 AM and 10:00 PM ${dayLabel.toLowerCase()}. Try a shorter session or another day.`;
+    }
+    const lines = fitting
+      .slice(0, 4)
+      .map(
+        g =>
+          `• ${format12HourTime(wallTime(g.start))} – ${format12HourTime(
+            wallTime(g.end),
+          )}`,
+      );
+    const first = fitting[0];
+    return `${dayLabel}, you have room for ${describeLength(
+      duration,
+    )} in these free windows:\n${lines.join(
+      '\n',
+    )}\n\nSay "block ${describeLength(duration)} at ${format12HourTime(
+      wallTime(first.start),
+    ).replace(
+      ':00',
+      '',
+    )} ${dayLabel.toLowerCase()} for studying" and I'll prepare it for you to confirm.`;
+  }
+
+  // next_class / next_task / next_item: look a week ahead.
+  const end = formatLocalDate(
+    new Date(refDate.getFullYear(), refDate.getMonth(), refDate.getDate() + 7),
+  );
+  const window = plannerQueries.window(userId, today, end);
+  type Upcoming = {title: string; date: string; time: string; kind: string};
+  const upcoming: Upcoming[] = [];
+  const isAhead = (date: string, time: string): boolean =>
+    date > today || (date === today && wallMinutes(time) >= nowMinutes);
+  if (intent.details !== 'next_task') {
+    for (const b of window.blocks) {
+      if (b.startTime && isAhead(b.date, b.startTime))
+        upcoming.push({
+          title: b.title,
+          date: b.date,
+          time: b.startTime,
+          kind: b.category === 'Class' ? 'class' : 'block',
+        });
+    }
+    for (const e of window.events) {
+      if (e.startTime && isAhead(e.date, e.startTime))
+        upcoming.push({
+          title: e.title,
+          date: e.date,
+          time: e.startTime,
+          kind: 'event',
+        });
+    }
+  }
+  if (intent.details !== 'next_class') {
+    for (const t of window.tasks) {
+      if (
+        !t.isCompleted &&
+        t.dueDate &&
+        t.dueTime &&
+        isAhead(t.dueDate, t.dueTime)
+      )
+        upcoming.push({
+          title: t.title,
+          date: t.dueDate,
+          time: t.dueTime,
+          kind: 'task',
+        });
+    }
+  }
+  const candidates =
+    intent.details === 'next_class'
+      ? upcoming.filter(u => u.kind === 'class' || CLASS_HINT.test(u.title))
+      : upcoming;
+  candidates.sort((a, b) =>
+    a.date === b.date
+      ? wallMinutes(a.time) - wallMinutes(b.time)
+      : a.date < b.date
+      ? -1
+      : 1,
+  );
+  const next = candidates[0];
+  const noun =
+    intent.details === 'next_class'
+      ? 'class'
+      : intent.details === 'next_task'
+      ? 'task with a due time'
+      : 'scheduled item';
+  if (!next) {
+    return `You have no upcoming ${noun} in the next 7 days.`;
+  }
+  const when = `${formatSpokenDayLabel(
+    next.date,
+    refDate,
+  )} at ${format12HourTime(next.time)}`;
+  const lowerFirst = (text: string) =>
+    text.charAt(0).toLowerCase() + text.slice(1);
+  const after = candidates[1]
+    ? ` After that: ${candidates[1].title}, ${lowerFirst(
+        formatSpokenDayLabel(candidates[1].date, refDate),
+      )} at ${format12HourTime(candidates[1].time)}.`
+    : '';
+  return `Your next ${intent.details === 'next_class' ? 'class' : 'item'} is ${
+    next.title
+  }, ${lowerFirst(when)}.${after}`;
 }
 
 export function formatSpokenDayLabel(
@@ -1534,6 +1734,31 @@ export async function executeNluAction(
       const refDate = options.referenceDate || new Date();
 
       if (
+        intent.details === 'free_slots' ||
+        intent.details === 'overdue' ||
+        intent.details === 'next_class' ||
+        intent.details === 'next_task' ||
+        intent.details === 'next_item'
+      ) {
+        try {
+          return {
+            success: true,
+            intent: 'query_schedule',
+            reply: answerPlannerLookup(userId, intent, refDate),
+          };
+        } catch (error) {
+          console.error('[ActionExecutor] Could not read the planner:', error);
+          return {
+            success: false,
+            intent: 'query_schedule',
+            error: 'storage_unavailable',
+            reply:
+              "I couldn't read your schedule right now. Please open the Calendar or try again.",
+          };
+        }
+      }
+
+      if (
         intent.dateRange === 'this_week' ||
         intent.dateRange === 'next_week'
       ) {
@@ -2123,6 +2348,25 @@ export async function executeNluAction(
         reply,
       };
     }
+
+    case 'list_alarms':
+      return {
+        success: true,
+        intent: 'list_alarms',
+        reply: describeAlarmsReply(userId, options.referenceDate || new Date()),
+      };
+
+    // Alarm changes only ever go through a review card (alarm plan A3).
+    case 'create_alarm':
+    case 'update_alarm':
+    case 'delete_alarm':
+    case 'toggle_alarm':
+      return {
+        success: false,
+        intent: intent.intent,
+        reply:
+          'Alarm changes are made from a review card in Chat or Call LAFINA. Nothing was changed.',
+      };
 
     case 'chat':
     case 'out_of_scope':

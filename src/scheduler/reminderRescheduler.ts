@@ -1,6 +1,8 @@
 import { remindersStore } from '../storage/remindersStore';
 import { checkAndTriggerReminders } from './reminderPoller';
 import { reconcileReminderDelivery } from './deliveryReconciler';
+import { createNextRecurringReminder } from './reminderActions';
+import { db } from '../storage/database';
 
 export interface RescheduleSummary {
   checked: number;
@@ -38,7 +40,12 @@ export const rescheduleUserReminders = async (
         const overdueBy = now - triggerMs;
         if (overdueBy > OVERDUE_MISSED_THRESHOLD_MS) {
           // Beyond grace period -> mark as missed
-          remindersStore.updateReminderStatus(reminder.id, 'missed');
+          // A repeating reminder continues with its next future occurrence
+          // (audit 2, B1); the reconcile pass below registers it.
+          db.transactionSync((tx) => {
+            remindersStore.updateReminderStatus(reminder.id, 'missed', undefined, tx);
+            createNextRecurringReminder(reminder, userId, tx, new Date(now));
+          });
           summary.missed += 1;
         } else {
           // Within grace period -> trigger immediately

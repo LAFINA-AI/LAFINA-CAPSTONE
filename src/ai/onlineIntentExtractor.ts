@@ -1,7 +1,11 @@
 import {onlineChatSkill} from '../skills/onlineChatSkill';
 import {isRealDate} from '../storage/eventTime';
 import {classifySmallTalk} from './localConversation';
-import {detectCategory, formatLocalDate} from './nlu/fastPathParser';
+import {
+  alarmRepeatRule,
+  detectCategory,
+  formatLocalDate,
+} from './nlu/fastPathParser';
 import {routeIntent} from './nlu/intentRoutes';
 import {
   validateIntent,
@@ -29,7 +33,19 @@ const ONLINE_EXTRACTABLE_INTENTS = new Set<ParsedIntentType>([
   'delete_time_block',
   'delete_note',
   'reschedule',
+  // Alarm plan A3: a wake-up phrasing the device parser missed. Changing or
+  // deleting an existing alarm stays on the device parser.
+  'create_alarm',
   'chat',
+]);
+
+/** Alarm requests the device parser recognised: it is authoritative for them. */
+const DEVICE_ONLY_INTENTS = new Set<ParsedIntentType>([
+  'create_alarm',
+  'update_alarm',
+  'delete_alarm',
+  'toggle_alarm',
+  'list_alarms',
 ]);
 
 const ENTITY_TYPES = new Set<CrudTargetEntityType>([
@@ -75,6 +91,7 @@ export function shouldUseOnlineIntentExtraction(
   if (
     fastPath.intent === 'query_schedule' ||
     fastPath.intent === 'query_notes' ||
+    DEVICE_ONLY_INTENTS.has(fastPath.intent) ||
     fastPath.intent === 'acknowledge' ||
     fastPath.intent === 'snooze'
   ) {
@@ -135,6 +152,7 @@ function buildIntentExtractionPrompt(
     '- "create_time_block": explicit time blocks, study blocks, focus blocks, work blocks, or scheduled slots with start+end time/duration',
     '- "create_reminder": explicit reminders ("remind me...", "set a reminder...")',
     '- "create_note": saving a note or checklist ("note...", "jot down...", "checklist...")',
+    '- "create_alarm": a clock alarm that rings to wake the student ("set an alarm...", "wake me up at...", "get me up at six"); "time" is required and "title" is an optional short label. Use "create_reminder" only when the student asks to be reminded of something.',
     '- "update_task", "update_time_block", "update_note", "delete_task", "delete_time_block", "delete_note", "complete_task"',
     '- "chat": NOT a planner action (questions, advice, open-ended chat, cancelled requests)',
     'JSON schema:',
@@ -340,7 +358,8 @@ export async function extractIntentWithDeepSeek(
   return parseExtractedIntentObject(obj, trimmed);
 }
 
-function parseExtractedIntentObject(
+/** Turns a model-written planner object into a validated intent, or null. */
+export function parseExtractedIntentObject(
   obj: Record<string, unknown>,
   trimmed: string,
 ): ValidatedIntent | null {
@@ -409,6 +428,9 @@ function parseExtractedIntentObject(
   ) {
     return null;
   }
+  if (intent === 'create_alarm' && !time) {
+    return null;
+  }
   if (
     intent === 'create_note' &&
     !title &&
@@ -449,6 +471,10 @@ function parseExtractedIntentObject(
         ? details
         : null,
     snoozeMinutes: null,
+    // Alarm repeat days come from the student's own words, not the model.
+    ...(intent === 'create_alarm' && alarmRepeatRule(trimmed)
+      ? {recurrenceRule: alarmRepeatRule(trimmed)}
+      : {}),
     confidence: 0.94,
     source: 'cloud',
     rawTranscript: trimmed,

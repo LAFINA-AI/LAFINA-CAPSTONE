@@ -34,9 +34,11 @@ import {StorageRecoveryScreen} from './src/ui/screens/StorageRecoveryScreen';
 import {hasProEntitlement} from './src/cloud';
 import {endActiveVoiceConversation} from './src/cloud/voiceConversation';
 import {backendSelection} from './src/cloud/backendSelection';
+import {startMorningBriefing} from './src/ai/briefing/morningBriefing';
 import {ThemeProvider, useTheme} from './src/ui/contexts/ThemeContext';
 import type {ThemeColors} from './src/ui/contexts/ThemeContext';
 import {
+  startAlarmLifecycle,
   rescheduleUserReminders,
   startReminderPoller,
   stopReminderPoller,
@@ -44,7 +46,11 @@ import {
   getReminderPermissionStatus,
   reconcileReminderDelivery,
   admitReminderCall,
+  applyNotificationAction,
   disconnectCall,
+  isNotificationAction,
+  isNotifyOnlyReminder,
+  showNotifyOnlyReminderAlert,
   EVENT_CALL_TRIGGER,
 } from './src/scheduler';
 import type {
@@ -182,7 +188,30 @@ function AppContent({
   const presentCall = useCallback(
     (request: CallRequest): boolean => {
       const admission = admitReminderCall(request, userId);
-      if (!admission.admitted) return false;
+      if (!admission.admitted || !userId) return false;
+      // "Notify only" (audit finding 16): the notification's own buttons are
+      // applied directly, and the in-app fallback is an alert, never a call.
+      if (isNotificationAction(admission.action)) {
+        void applyNotificationAction(
+          admission.reminder.id,
+          userId,
+          admission.action,
+          admission.generation,
+        );
+        return false;
+      }
+      if (
+        admission.action === 'call' &&
+        isNotifyOnlyReminder(admission.reminder.id)
+      ) {
+        showNotifyOnlyReminderAlert(
+          admission.reminder.id,
+          userId,
+          admission.task,
+          admission.generation,
+        );
+        return false;
+      }
       // The reminder call takes the microphone and speaker; a live voice
       // conversation ends first and is never resumed by itself.
       endActiveVoiceConversation(
@@ -278,6 +307,13 @@ function AppContent({
       }
     }
   }, [activeTab, userId, callLafinaVisible, callLafinaMinimized]);
+
+  // Alarm plan A2: Android holds exactly the active student's alarms (none
+  // when signed out); native's ring/dismiss/snooze events are recorded here.
+  // Alarm plan A4: the optional morning briefing after a dismissed alarm
+  // (registered first, so the first event read finds it).
+  useEffect(() => startMorningBriefing(), []);
+  useEffect(() => startAlarmLifecycle(userId ?? null), [userId]);
 
   useEffect(() => {
     if (!userId) {

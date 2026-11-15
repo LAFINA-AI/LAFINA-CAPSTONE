@@ -124,7 +124,7 @@ describe('schema migrations', () => {
     expect(readUserVersion(first)).toBe(CURRENT_SCHEMA_VERSION);
     first.close();
 
-    // Schemas 18-25 only add: every schema-17 column of every row is unchanged.
+    // Schemas 18-26 only add: every schema-17 column of every row is unchanged.
     const afterUpgrade = inspect(path, snapshotAllRows);
     const projected = inspect(path, c => snapshotSchema17Columns(c, schema17Columns));
     for (const [table, rows] of Object.entries(before)) {
@@ -132,6 +132,8 @@ describe('schema migrations', () => {
     }
     const added = Object.keys(afterUpgrade).filter(t => !(t in before));
     expect(added).toEqual([
+      // Schema 27 (alarm plan A2): device-local alarms, empty at first.
+      'alarms',
       'assistant_operation_receipts',
       // Schema 23 (clear-data audit C1): attachment cleanup obligations.
       'attachment_cleanup',
@@ -146,6 +148,8 @@ describe('schema migrations', () => {
       'notes_search_index',
       'reminder_delivery_events',
       'reminder_delivery_jobs',
+      // Schema 26 (agent audit 16): per-reminder call/notify choice; no row means call.
+      'reminder_delivery_styles',
     ]);
     // Schema 20 (AGY-PORT 04) starts empty: a missing revision row means 0, and
     // no receipt exists before a reviewed command is confirmed.
@@ -154,6 +158,8 @@ describe('schema migrations', () => {
     expect(afterUpgrade.notes_search_index).toEqual([]);
     expect(afterUpgrade.event_time_local).toEqual([]);
     expect(afterUpgrade.chat_memories).toEqual([]);
+    expect(afterUpgrade.reminder_delivery_styles).toEqual([]);
+    expect(afterUpgrade.alarms).toEqual([]);
     // Schema 19 backfills one delivery job per reminder, owned by its owner,
     // with no events and nothing added to the outbox.
     expect(

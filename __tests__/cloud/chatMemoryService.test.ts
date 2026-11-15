@@ -278,7 +278,12 @@ describe('chat replies and memory', () => {
     });
     await settle();
     expect(send.mock.calls[0][1]).not.toHaveProperty('memories');
-    expect(request).not.toHaveBeenCalled();
+    // Nothing is learned. The Chat agent step (ADR-033) may run for a
+    // planner question, but it carries no memories either.
+    const paths = request.mock.calls.map(([path]) => path);
+    expect(paths).not.toContain('/v1/ai/memory/extract');
+    for (const [, init] of request.mock.calls)
+      expect(JSON.parse(String(init?.body))).not.toHaveProperty('memories');
   });
 
   it('a cut-off reply, a failed reply and offline chat never touch memory', async () => {

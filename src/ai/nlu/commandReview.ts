@@ -24,6 +24,8 @@ import {notesStore} from '../../storage/notesStore';
 import {extractChecklistItems, toggleChecklistItem} from '../../utils/richText';
 import type {Note} from '../../storage/notesStore';
 import {remindersStore} from '../../storage/remindersStore';
+import {reminderDeliveryStyleStore} from '../../storage/reminderDeliveryStyleStore';
+import type {ReminderDeliveryStyle} from '../../storage/reminderDeliveryStyleStore';
 import type {Reminder} from '../../storage/remindersStore';
 import {deliveryStore, DeliveryFenceError} from '../../storage/deliveryStore';
 import {remindersForSource} from '../../storage/sourceReminders';
@@ -61,6 +63,8 @@ import {
   scoreEntityMatch,
 } from './actionExecutor';
 import {INTENT_ROUTES} from './intentRoutes';
+import {applyAlarmOperation, buildAlarmDraft} from './alarmReview';
+import type {AlarmOperation} from './alarmReview';
 import type {RingingCallContext} from './intentRoutes';
 import type {
   CrudTargetEntityType,
@@ -70,8 +74,14 @@ import type {
 
 export type ReviewSurface = 'chat' | 'voice';
 
-/** How long a proposal can be confirmed. It never confirms itself. */
-export const REVIEW_TTL_MS = 5 * 60 * 1000;
+/**
+ * How long a proposal can be confirmed. It never confirms itself. Long enough
+ * for a card made during a long call or a slow decision (audit finding 14).
+ */
+export const REVIEW_TTL_MS = 30 * 60 * 1000;
+
+/** How long an immediate action can be undone from its snackbar. */
+export const UNDO_TTL_MS = 2 * 60 * 1000;
 
 const MAX_TITLE_LENGTH = 200;
 const MAX_TEXT_LENGTH = 4000;
@@ -130,6 +140,24 @@ type PlannedOperation =
       category: string;
       location: string | null;
       recurrenceRule?: string | null;
+      /** Rings the student's usual lead time before the event starts. */
+      reminder?: PlannedReminder | null;
+    }
+  | {
+      /** A reminder for an existing item ("30 minutes before my math exam"). */
+      op: 'create_linked_reminder';
+      source: TargetRef;
+      title: string;
+      reminder: PlannedReminder;
+    }
+  | {
+      /** Several removals shown together on one card ("clear completed tasks"). */
+      op: 'delete_many';
+      label: string;
+      items: ReadonlyArray<{
+        target: TargetRef;
+        cascadeReminderIds: readonly string[];
+      }>;
     }
   | {
       op: 'create_reminder';
@@ -198,7 +226,9 @@ type PlannedOperation =
       target: TargetRef;
       generation: number;
       triggerAt: string;
-    };
+    }
+  // Alarm plan A3: device-local alarms (alarmReview.ts).
+  | AlarmOperation;
 
 /**
  * One reminder that follows its task, event or time block when that item is
@@ -230,6 +260,8 @@ export interface EditableProposalFields {
 
 /** Patch submitted from the inline review editor. */
 export interface ReviewEditPatch {
+  /** "Call me" or "Notify only" for the reminder this card creates. */
+  reminderDelivery?: ReminderDeliveryStyle;
   title?: string;
   date?: string | null;
   time?: string | null;
@@ -255,6 +287,11 @@ export interface CommandProposal {
   readonly destructive: boolean;
   readonly expiresAt: number;
   readonly draftFields?: EditableProposalFields | null;
+  /**
+   * How the reminder this card creates will reach the student, or null when
+   * the card creates no reminder (audit finding 16). Changeable before Confirm.
+   */
+  readonly reminderDelivery?: ReminderDeliveryStyle | null;
   /** One-paragraph summary for the chat transcript and speech. */
   readonly reply: string;
 }
@@ -308,6 +345,8 @@ interface PendingReview {
   readonly sessionId: string;
   readonly expiresAt: number;
   state: 'pending' | 'cancelled' | 'refused';
+  /** Null when the operation creates no reminder. */
+  reminderDelivery: ReminderDeliveryStyle | null;
 }
 
 class ReviewRefusedError extends Error {
@@ -429,6 +468,10 @@ interface CleanIntent {
   isPinned: boolean | null;
   newCategory: string | null;
   checklistItems: string[] | null;
+  bulkScope: 'completed_tasks' | 'date_items' | null;
+  leadMinutes: number | null;
+  deliveryStyle: ReminderDeliveryStyle;
+  alarmEnabled: boolean | null;
 }
 
 const cleanIntent = (intent: ValidatedIntent): CleanIntent => {
@@ -478,7 +521,30 @@ const cleanIntent = (intent: ValidatedIntent): CleanIntent => {
           .map(item => cleanText(item, 200))
           .filter((item): item is string => Boolean(item))
       : null,
+    bulkScope:
+      intent.bulkScope === 'completed_tasks' ||
+      intent.bulkScope === 'date_items'
+        ? intent.bulkScope
+        : null,
+    leadMinutes: cleanMinutes(intent.leadMinutes, 7 * 24 * 60),
+    deliveryStyle: intent.deliveryStyle === 'notify' ? 'notify' : 'call',
+    alarmEnabled:
+      typeof intent.alarmEnabled === 'boolean' ? intent.alarmEnabled : null,
   };
+};
+
+/** The reminders a confirmed operation will create (each gets the card's delivery style). */
+const createdReminderIds = (op: PlannedOperation): string[] => {
+  switch (op.op) {
+    case 'create_task':
+    case 'create_event':
+      return op.reminder ? [op.reminder.id] : [];
+    case 'create_reminder':
+    case 'create_linked_reminder':
+      return [op.reminder.id];
+    default:
+      return [];
+  }
 };
 
 // ---------------------------------------------------------------------------
@@ -866,10 +932,51 @@ const adaptiveReminderLine = (reminder: PlannedReminder): string => {
   )} at ${format12HourTime(parts.time!)} instead of the original time.`;
 };
 
+/** "add it", "remind me about that": the item has no real name yet. */
+const VAGUE_TITLE =
+  /^(?:it|that|this|them|those|these|one|something|anything|stuff|things?|items?|the\s+thing)$/i;
+
+const vagueTitleRefusal = (kind: string): BuildResult => ({
+  result: {
+    status: 'clarify',
+    reply: `Which ${kind} do you mean? Say its name, for example "add review chapter 4 to my to-do". Nothing was changed.`,
+    candidates: [],
+  },
+});
+
+/**
+ * A time with no date means the next time it comes around: today if it is
+ * still ahead, otherwise tomorrow, said plainly on the card.
+ */
+const resolveUndatedTime = (
+  time: string,
+  today: string,
+  nowMs: number,
+  assumptions: string[],
+  noun: string,
+): string => {
+  if (localInstant(today, time) > nowMs) {
+    assumptions.push(
+      `No date was given, so ${noun} today (${friendlyDate(today)}).`,
+    );
+    return today;
+  }
+  const tomorrow = addDaysToDate(today, 1);
+  assumptions.push(
+    `No date was given and ${format12HourTime(
+      time,
+    )} has already passed today, so ${noun} tomorrow (${friendlyDate(
+      tomorrow,
+    )}).`,
+  );
+  return tomorrow;
+};
+
 const buildCreateTask = (
   userId: string,
   c: CleanIntent,
   today: string,
+  nowMs: number = Date.now(),
 ): BuildResult => {
   const title = c.title;
   if (!title)
@@ -879,15 +986,19 @@ const buildCreateTask = (
         reply: 'What should the task be called? Nothing was changed.',
       },
     };
+  if (VAGUE_TITLE.test(title)) return vagueTitleRefusal('task');
   const assumptions: string[] = [];
   const warnings: string[] = [];
   const details: string[] = [];
   let dueDate = c.date;
   const dueTime = c.time;
   if (dueTime && !dueDate) {
-    dueDate = today;
-    assumptions.push(
-      `No date was given, so it is due today (${friendlyDate(today)}).`,
+    dueDate = resolveUndatedTime(
+      dueTime,
+      today,
+      nowMs,
+      assumptions,
+      'it is due',
     );
   }
   let reminder: PlannedReminder | null = null;
@@ -950,6 +1061,7 @@ const buildCreateTimeBlock = (
   c: CleanIntent,
   today: string,
   userId?: string,
+  nowMs: number = Date.now(),
 ): BuildResult => {
   const title = c.title;
   if (!title)
@@ -959,12 +1071,27 @@ const buildCreateTimeBlock = (
         reply: 'What should the time block be called? Nothing was changed.',
       },
     };
-  const assumptions: string[] = [];
-  const date = c.date ?? today;
-  if (!c.date)
-    assumptions.push(
-      `No date was given, so it is scheduled today (${friendlyDate(today)}).`,
+  if (VAGUE_TITLE.test(title))
+    return vagueTitleRefusal(
+      c.targetEntityType === 'event' ? 'event' : 'block',
     );
+  const assumptions: string[] = [];
+  let date = c.date ?? today;
+  if (!c.date) {
+    if (c.time) {
+      date = resolveUndatedTime(
+        c.time,
+        today,
+        nowMs,
+        assumptions,
+        'it is scheduled',
+      );
+    } else {
+      assumptions.push(
+        `No date was given, so it is scheduled today (${friendlyDate(today)}).`,
+      );
+    }
+  }
   const startTime = c.time ?? '09:00';
   if (!c.time)
     assumptions.push('No start time was given, so it starts at 9:00 AM.');
@@ -1042,6 +1169,26 @@ const buildCreateTimeBlock = (
     !(c.details && c.details.startsWith('[BATCH_CLASSES:'))
   ) {
     const eventLocation = c.location || null;
+    // An exam or appointment saved as an event keeps a reminder, at the
+    // student's usual lead time before it starts.
+    let eventReminder: PlannedReminder | null = null;
+    let leadMinutes = 15;
+    if (userId && !c.recurrenceRule) {
+      try {
+        leadMinutes = getReminderPreferences(userId).leadTimeMinutes || 15;
+      } catch {
+        leadMinutes = 15;
+      }
+      const startMs = localInstant(date, startTime);
+      const triggerMs = startMs - leadMinutes * 60 * 1000;
+      if (Number.isFinite(triggerMs) && triggerMs > nowMs) {
+        eventReminder = {
+          id: generateId('rem'),
+          scheduledAt: new Date(startMs).toISOString(),
+          triggerAt: new Date(triggerMs).toISOString(),
+        };
+      }
+    }
     return {
       draft: {
         heading: 'Create event',
@@ -1058,6 +1205,9 @@ const buildCreateTimeBlock = (
           ),
           `Category: ${c.category}.`,
           'Added to your Calendar events.',
+          ...(eventReminder
+            ? [`Reminder: rings ${leadMinutes} minutes before it starts.`]
+            : []),
         ],
         assumptions,
         warnings,
@@ -1072,6 +1222,7 @@ const buildCreateTimeBlock = (
           category: c.category,
           location: eventLocation,
           recurrenceRule: c.recurrenceRule || null,
+          reminder: eventReminder,
         },
       },
     };
@@ -1120,6 +1271,7 @@ const buildCreateReminder = (
   userId: string,
   c: CleanIntent,
   today: string,
+  nowMs: number = Date.now(),
 ): BuildResult => {
   const title = c.title;
   if (!title)
@@ -1129,6 +1281,8 @@ const buildCreateReminder = (
         reply: 'What should I remind you about? Nothing was changed.',
       },
     };
+  if (c.leadMinutes) return buildLinkedReminder(userId, c, nowMs);
+  if (VAGUE_TITLE.test(title)) return vagueTitleRefusal('reminder');
   if (!c.time) {
     return {
       result: {
@@ -1141,11 +1295,8 @@ const buildCreateReminder = (
     };
   }
   const assumptions: string[] = [];
-  const date = c.date ?? today;
-  if (!c.date)
-    assumptions.push(
-      `No date was given, so it rings today (${friendlyDate(today)}).`,
-    );
+  const date =
+    c.date ?? resolveUndatedTime(c.time, today, nowMs, assumptions, 'it rings');
   const reminder = reminderPlan(userId, date, c.time, c.priority ?? 'High');
   if (!reminder) {
     return {
@@ -1189,6 +1340,95 @@ const buildCreateReminder = (
         details: c.details,
         recurrenceRule: c.recurrenceRule,
         reminder,
+      },
+    },
+  };
+};
+
+const describeLead = (minutes: number): string => {
+  if (minutes % (24 * 60) === 0) {
+    const days = minutes / (24 * 60);
+    return `${days} day${days === 1 ? '' : 's'}`;
+  }
+  if (minutes % 60 === 0) {
+    const hours = minutes / 60;
+    return `${hours} hour${hours === 1 ? '' : 's'}`;
+  }
+  return `${minutes} minute${minutes === 1 ? '' : 's'}`;
+};
+
+/** "remind me 30 minutes before my math exam": rings ahead of an existing item. */
+const buildLinkedReminder = (
+  userId: string,
+  c: CleanIntent,
+  nowMs: number,
+): BuildResult => {
+  const lead = c.leadMinutes as number;
+  const queryTitle = c.targetTitle || c.title;
+  const resolution = resolveTarget(
+    userId,
+    ['event', 'time_block', 'task'],
+    ['event', 'task'],
+    {title: queryTitle, date: c.date, time: null, endTime: null},
+  );
+  if (resolution.kind === 'ambiguous')
+    return {
+      result: clarifyAmbiguous(queryTitle || 'that', resolution.candidates),
+    };
+  if (resolution.kind === 'none')
+    return {result: notFound('task or event', queryTitle, null)};
+  const candidate = resolution.candidate;
+  if (!candidate.date || !candidate.time) {
+    return {
+      result: {
+        status: 'clarify',
+        reply: `${quote(
+          candidate.title,
+        )} has no start time, so I cannot count back from it. Say a time instead, for example "remind me at 8am tomorrow". Nothing was changed.`,
+        candidates: [],
+      },
+    };
+  }
+  const startMs = localInstant(candidate.date, candidate.time);
+  const triggerMs = startMs - lead * 60 * 1000;
+  if (!Number.isFinite(triggerMs) || triggerMs <= nowMs) {
+    return {
+      result: {
+        status: 'clarify',
+        reply: `${describeLead(lead)} before ${quote(
+          candidate.title,
+        )} has already passed. Nothing was changed.`,
+        candidates: [],
+      },
+    };
+  }
+  const trigger = new Date(triggerMs);
+  const parts = localParts(trigger.toISOString());
+  const reminderTitle = `${candidate.title} starts in ${describeLead(lead)}`;
+  return {
+    draft: {
+      heading: 'Set reminder',
+      title: reminderTitle,
+      details: [
+        `Rings: ${friendlyDate(parts.date!)} at ${format12HourTime(
+          parts.time!,
+        )}, ${describeLead(lead)} before the ${
+          TYPE_LABELS[candidate.type]
+        } ${quote(candidate.title)} (${describeWhen(candidate)}).`,
+        'It is linked to that item, so deleting the item removes it too.',
+      ],
+      assumptions: [],
+      warnings: [],
+      destructive: false,
+      operation: {
+        op: 'create_linked_reminder',
+        source: refOf(candidate),
+        title: reminderTitle,
+        reminder: {
+          id: generateId('rem'),
+          scheduledAt: new Date(startMs).toISOString(),
+          triggerAt: trigger.toISOString(),
+        },
       },
     },
   };
@@ -1358,7 +1598,118 @@ const planReminderChanges = (
   return changes;
 };
 
+const MAX_BULK_ITEMS = 50;
+
+/** "clear completed tasks", "delete tomorrow's events": one card lists every item. */
+const buildBulkDelete = (userId: string, c: CleanIntent): BuildResult => {
+  let candidates: Candidate[];
+  let label: string;
+  if (c.bulkScope === 'completed_tasks') {
+    candidates = loadCandidates(userId, ['task']).filter(
+      candidate => candidate.task?.isCompleted === true,
+    );
+    label = 'completed tasks';
+  } else {
+    if (!c.date) {
+      return {
+        result: {
+          status: 'clarify',
+          reply: 'Which day should I clear? Nothing was changed.',
+          candidates: [],
+        },
+      };
+    }
+    const types: TargetType[] =
+      c.targetEntityType === 'event'
+        ? ['event']
+        : c.targetEntityType === 'time_block'
+        ? ['time_block']
+        : c.targetEntityType === 'task'
+        ? ['task']
+        : ['event', 'time_block', 'task'];
+    // Only one-time items on that day: a repeating class is never removed
+    // for every week by a "clear tomorrow" request.
+    candidates = loadCandidates(userId, types).filter(
+      candidate =>
+        candidate.date === c.date &&
+        !(candidate.event?.recurrenceRule || candidate.block?.recurrenceRule),
+    );
+    const noun =
+      c.targetEntityType === 'event'
+        ? 'events'
+        : c.targetEntityType === 'time_block'
+        ? 'time blocks'
+        : c.targetEntityType === 'task'
+        ? 'tasks'
+        : 'items';
+    label = `${noun} on ${friendlyDate(c.date)}`;
+  }
+  if (candidates.length === 0) {
+    return {
+      result: {
+        status: 'clarify',
+        reply: `You have no ${label}, so there is nothing to remove. Nothing was changed.`,
+        candidates: [],
+      },
+    };
+  }
+  const shown = candidates.slice(0, MAX_BULK_ITEMS);
+  const items = shown.map(candidate => {
+    const cascade =
+      candidate.type === 'task' ||
+      candidate.type === 'event' ||
+      candidate.type === 'time_block'
+        ? remindersForSource(
+            db,
+            userId,
+            candidate.type,
+            candidate.id,
+            candidate.title,
+            ['pending', 'snoozed'],
+          )
+        : [];
+    return {target: refOf(candidate), cascadeReminderIds: sortedIds(cascade)};
+  });
+  const reminderCount = items.reduce(
+    (sum, item) => sum + item.cascadeReminderIds.length,
+    0,
+  );
+  const details = shown.map(candidate => {
+    const when = describeWhen(candidate);
+    return `• ${TYPE_LABELS[candidate.type]} ${quote(candidate.title)}${
+      when ? ` (${when})` : ''
+    }`;
+  });
+  if (reminderCount > 0)
+    details.push(
+      `Also removes ${reminderCount} reminder${
+        reminderCount === 1 ? '' : 's'
+      } linked to these.`,
+    );
+  const warnings =
+    candidates.length > MAX_BULK_ITEMS
+      ? [
+          `Only the first ${MAX_BULK_ITEMS} of ${candidates.length} are included. Ask again to remove the rest.`,
+        ]
+      : [];
+  return {
+    draft: {
+      heading: `Delete ${shown.length}`,
+      title: label,
+      details,
+      assumptions:
+        c.bulkScope === 'date_items'
+          ? ['Repeating classes and events are kept.']
+          : [],
+      warnings,
+      destructive: true,
+      operation: {op: 'delete_many', label, items},
+    },
+  };
+};
+
 const buildDelete = (userId: string, c: CleanIntent): BuildResult => {
+  if (c.bulkScope) return buildBulkDelete(userId, c);
   const query: TargetQuery = {
     title: c.targetTitle || c.title,
     date: c.date,
@@ -1822,6 +2173,17 @@ const buildUpdate = (
     nextCategory === task.category &&
     nextNotes === (task.notes ?? null)
   ) {
+    if (c.priority) {
+      return {
+        result: {
+          status: 'clarify',
+          reply: `The task ${quote(task.title)} is already ${
+            task.priority
+          } priority. Nothing was changed.`,
+          candidates: [],
+        },
+      };
+    }
     return {
       result: {
         status: 'clarify',
@@ -2425,18 +2787,20 @@ export const prepareReviewedCommand = (
 
   const now = Date.now();
   const today = formatLocalDate(options.referenceDate || new Date());
+  // "Has this time passed?" is judged at the request's own moment.
+  const nowMs = options.referenceDate ? options.referenceDate.getTime() : now;
   const surface: ReviewSurface = options.surface === 'voice' ? 'voice' : 'chat';
   try {
     let built: BuildResult;
     switch (clean.intent) {
       case 'create_task':
-        built = buildCreateTask(userId, clean, today);
+        built = buildCreateTask(userId, clean, today, nowMs);
         break;
       case 'create_time_block':
-        built = buildCreateTimeBlock(clean, today, userId);
+        built = buildCreateTimeBlock(clean, today, userId, nowMs);
         break;
       case 'create_reminder':
-        built = buildCreateReminder(userId, clean, today);
+        built = buildCreateReminder(userId, clean, today, nowMs);
         break;
       case 'create_note':
         built = buildCreateNote(clean);
@@ -2455,6 +2819,26 @@ export const prepareReviewedCommand = (
       case 'snooze':
       case 'reschedule':
         built = buildReminderAction(userId, clean, options.ringingCall, today);
+        break;
+      case 'create_alarm':
+      case 'update_alarm':
+      case 'delete_alarm':
+      case 'toggle_alarm':
+        built = buildAlarmDraft(
+          userId,
+          {
+            intent: clean.intent,
+            title: clean.title,
+            targetTitle: clean.targetTitle,
+            newTitle: clean.newTitle,
+            date: clean.date,
+            time: clean.time,
+            targetTime: clean.targetTime,
+            recurrenceRule: clean.recurrenceRule,
+            alarmEnabled: clean.alarmEnabled,
+          },
+          new Date(nowMs),
+        );
         break;
       default:
         return {
@@ -2481,25 +2865,37 @@ export const prepareReviewedCommand = (
     const draft = built.draft;
     let conflictAlternatives: string[] = [];
     const planned = draft.operation;
+    // Chat and Voice cards both show a conflict and offer the free times as
+    // one-tap choices; nothing asks a follow-up question about it in chat.
     if (
-      surface === 'voice' &&
-      (planned.op === 'create_time_block' ||
-        planned.op === 'create_event' ||
-        planned.op === 'update_schedule_item')
+      planned.op === 'create_time_block' ||
+      planned.op === 'create_event' ||
+      planned.op === 'update_schedule_item'
     ) {
-      const conflicts = checkScheduleConflict(
-        userId,
-        planned.date,
-        planned.startTime,
-        planned.endTime,
-        planned.op === 'update_schedule_item' ? planned.target.id : undefined,
-      );
-      if (conflicts.warningMessage)
-        draft.warnings.push(conflicts.warningMessage);
-      conflictAlternatives = conflicts.alternatives;
+      try {
+        const conflicts = checkScheduleConflict(
+          userId,
+          planned.date,
+          planned.startTime,
+          planned.endTime,
+          planned.op === 'update_schedule_item' ? planned.target.id : undefined,
+        );
+        const alreadyWarned = draft.warnings.some(w =>
+          /^Notice: Overlaps with/.test(w),
+        );
+        if (conflicts.warningMessage && !alreadyWarned)
+          draft.warnings.push(conflicts.warningMessage);
+        conflictAlternatives = conflicts.alternatives;
+      } catch (error) {
+        console.warn('[CommandReview] Conflict check unavailable:', error);
+      }
     }
     const operationId = generateId('op');
     const expiresAt = now + REVIEW_TTL_MS;
+    const reminderDelivery: ReminderDeliveryStyle | null =
+      createdReminderIds(draft.operation).length > 0
+        ? clean.deliveryStyle
+        : null;
     const proposal: CommandProposal = Object.freeze({
       operationId,
       conflictAlternatives: Object.freeze(conflictAlternatives),
@@ -2514,6 +2910,7 @@ export const prepareReviewedCommand = (
       destructive: draft.destructive,
       expiresAt,
       draftFields: extractEditableFields(draft.operation),
+      reminderDelivery,
       reply: composeReply(draft),
     });
     reviews.set(operationId, {
@@ -2524,6 +2921,7 @@ export const prepareReviewedCommand = (
       sessionId,
       expiresAt,
       state: 'pending',
+      reminderDelivery,
     });
     return {status: 'proposal', proposal, reply: proposal.reply};
   } catch (error) {
@@ -2691,6 +3089,25 @@ const applyOperation = (
   op: PlannedOperation,
 ): Applied => {
   switch (op.op) {
+    case 'create_alarm':
+    case 'update_alarm':
+    case 'toggle_alarm':
+    case 'delete_alarm': {
+      const done = applyAlarmOperation(tx, ownerId, op);
+      if (done.status === 'stale') throw new ReviewRefusedError('stale');
+      if (done.status === 'expired')
+        throw new ReviewRefusedError(
+          'expired',
+          'The alarm time in this review has passed while it was waiting. Nothing was changed. Please ask again.',
+        );
+      return {
+        operation: op.op,
+        entityType: 'alarm',
+        entityId: done.entityId,
+        reminderId: null,
+        reply: done.reply,
+      };
+    }
     case 'create_event': {
       tasksStore.insertEvent(
         {
@@ -2705,11 +3122,38 @@ const applyOperation = (
         },
         tx,
       );
+      let eventReminderId: string | null = null;
+      if (
+        op.reminder &&
+        new Date(op.reminder.triggerAt).getTime() > Date.now()
+      ) {
+        remindersStore.insertReminder(
+          {
+            id: op.reminder.id,
+            userId: ownerId,
+            task: op.title,
+            description: null,
+            scheduledAt: op.reminder.scheduledAt,
+            triggerAt: op.reminder.triggerAt,
+            status: 'pending',
+            preCastAudioPath: null,
+          },
+          tx,
+        );
+        deliveryStore.linkSource(op.reminder.id, 'event', op.eventId, tx);
+        scheduleAfterCommit(
+          tx,
+          op.reminder.id,
+          op.title,
+          op.reminder.triggerAt,
+        );
+        eventReminderId = op.reminder.id;
+      }
       return {
         operation: op.op,
         entityType: 'event',
         entityId: op.eventId,
-        reminderId: null,
+        reminderId: eventReminderId,
         reply: `Scheduled event: "${op.title}" on ${
           op.date
         } from ${format12HourTime(op.startTime)} to ${format12HourTime(
@@ -3014,6 +3458,83 @@ const applyOperation = (
             ? ` ${adaptiveReminderLine(op.reminder)}`
             : ''
         }`,
+      };
+    }
+    case 'create_linked_reminder': {
+      verifyTarget(tx, op.source, ownerId);
+      requireFuture(op.reminder.triggerAt);
+      remindersStore.insertReminder(
+        {
+          id: op.reminder.id,
+          userId: ownerId,
+          task: op.title,
+          description: null,
+          scheduledAt: op.reminder.scheduledAt,
+          triggerAt: op.reminder.triggerAt,
+          status: 'pending',
+          preCastAudioPath: null,
+        },
+        tx,
+      );
+      if (op.source.type !== 'note' && op.source.type !== 'reminder') {
+        deliveryStore.linkSource(
+          op.reminder.id,
+          op.source.type,
+          op.source.id,
+          tx,
+        );
+      }
+      scheduleAfterCommit(tx, op.reminder.id, op.title, op.reminder.triggerAt);
+      const parts = localParts(op.reminder.triggerAt);
+      return {
+        operation: op.op,
+        entityType: 'reminder',
+        entityId: op.reminder.id,
+        reminderId: op.reminder.id,
+        reply: `Reminder set: "${op.title}" on ${
+          parts.date
+        } at ${format12HourTime(parts.time)}.`,
+      };
+    }
+    case 'delete_many': {
+      let removed = 0;
+      for (const item of op.items) {
+        const target = item.target;
+        verifyTarget(tx, target, ownerId);
+        if (
+          target.type === 'task' ||
+          target.type === 'event' ||
+          target.type === 'time_block'
+        ) {
+          const now = remindersForSource(
+            tx,
+            ownerId,
+            target.type,
+            target.id,
+            target.title,
+            ['pending', 'snoozed'],
+          );
+          const shown = item.cascadeReminderIds;
+          if (
+            now.length !== shown.length ||
+            sortedIds(now).some((id, index) => id !== shown[index])
+          ) {
+            throw new ReviewRefusedError('stale');
+          }
+        }
+        if (target.type === 'task') tasksStore.deleteTask(target.id, tx);
+        else if (target.type === 'event') tasksStore.deleteEvent(target.id, tx);
+        else if (target.type === 'time_block')
+          timeBlocksStore.delete(target.id, tx);
+        else if (target.type === 'note') notesStore.delete(target.id, tx);
+        removed += 1;
+      }
+      return {
+        operation: op.op,
+        entityType: op.items[0]?.target.type ?? null,
+        entityId: null,
+        reminderId: null,
+        reply: `Removed ${removed} ${op.label}.`,
       };
     }
     case 'create_note': {
@@ -3335,6 +3856,13 @@ export const confirmReviewedCommand = (
         throw new ReviewRefusedError('owner_mismatch');
       }
       const applied = applyOperation(tx, review.ownerId, review.operation);
+      // Same transaction as the reminder, so the alarm registered after the
+      // commit already knows it is notify-only.
+      if (review.reminderDelivery === 'notify') {
+        for (const reminderId of createdReminderIds(review.operation)) {
+          reminderDeliveryStyleStore.set(reminderId, 'notify', tx);
+        }
+      }
       receipt = assistantOperationStore.insertReceipt(
         {
           operationId,
@@ -3374,6 +3902,19 @@ export const confirmReviewedCommand = (
     reply: saved.reply,
     repeated: false,
   };
+};
+
+/** The saved receipt's reply when this operation was already applied for this owner. */
+export const appliedReviewReply = (
+  activeUserId: string,
+  operationId: string,
+): string | null => {
+  try {
+    const receipt = assistantOperationStore.getReceipt(operationId);
+    return receipt && receipt.userId === activeUserId ? receipt.reply : null;
+  } catch {
+    return null;
+  }
 };
 
 /** Discards a proposal. Never writes. Returns false when there was nothing to cancel. */
@@ -3739,6 +4280,7 @@ export const editReviewedCommand = (
         op.op === 'create_reminder' || op.op === 'create_time_block'
           ? op.recurrenceRule ?? null
           : null,
+      deliveryStyle: patch.reminderDelivery ?? current.reminderDelivery,
     },
     {
       surface: current.proposal.surface,
@@ -3749,6 +4291,43 @@ export const editReviewedCommand = (
     current.state = 'cancelled';
   }
   return result;
+};
+
+/**
+ * Switches an open card between "Call me" and "Notify only" (audit finding
+ * 16). Same card and operation ID; nothing is written until Confirm.
+ */
+export const setReviewReminderDelivery = (
+  ownerId: string,
+  operationId: string,
+  style: ReminderDeliveryStyle,
+): PrepareResult => {
+  const current = reviews.get(operationId);
+  if (
+    !current ||
+    current.ownerId !== ownerId ||
+    current.state !== 'pending' ||
+    current.sessionId !== sessionId ||
+    current.expiresAt <= Date.now()
+  ) {
+    return {
+      status: 'invalid',
+      reply: 'That draft is no longer available. Nothing was changed.',
+    };
+  }
+  if (current.reminderDelivery === null) {
+    return {status: 'invalid', reply: 'This card does not create a reminder.'};
+  }
+  if (style !== 'call' && style !== 'notify') {
+    return {status: 'invalid', reply: 'Choose Call me or Notify only.'};
+  }
+  current.reminderDelivery = style;
+  const proposal: CommandProposal = Object.freeze({
+    ...current.proposal,
+    reminderDelivery: style,
+  });
+  reviews.set(operationId, {...current, proposal});
+  return {status: 'proposal', proposal, reply: proposal.reply};
 };
 
 /** The newest proposal that can still be confirmed for this owner and surface. */
@@ -3791,6 +4370,8 @@ export type ExecuteLowRiskResult =
       reply: string;
       entityType: RevisionEntityType;
       entityId: string | null;
+      /** Present when the action can be reversed from a snackbar. */
+      undo?: UndoOffer;
     }
   | {
       status: 'clarify';
@@ -3874,8 +4455,12 @@ export const executeLowRiskCommand = (
     let savedReceipt: OperationReceipt | null = null;
     let appliedEntityType: RevisionEntityType = 'task';
     let appliedEntityId: string | null = null;
+    let undo: UndoOffer | undefined;
     db.transactionSync(tx => {
+      const pendingUndo = inverseOf(tx, built.draft.operation);
       const applied = applyOperation(tx, userId, built.draft.operation);
+      if (pendingUndo)
+        undo = rememberUndo(tx, userId, operationId, pendingUndo);
       appliedEntityType =
         applied.entityType === 'event' ||
         applied.entityType === 'time_block' ||
@@ -3908,6 +4493,7 @@ export const executeLowRiskCommand = (
       reply: receipt.reply,
       entityType: appliedEntityType,
       entityId: appliedEntityId,
+      ...(undo ? {undo} : {}),
     };
   } catch (error) {
     if (error instanceof ReviewRefusedError && error.userMessage) {
@@ -3921,8 +4507,192 @@ export const executeLowRiskCommand = (
   }
 };
 
+// ---------------------------------------------------------------------------
+// Undo for immediate actions (audit finding 10)
+// ---------------------------------------------------------------------------
+
+interface UndoEntry {
+  readonly ownerId: string;
+  readonly sessionId: string;
+  readonly expiresAt: number;
+  /** Puts the item back exactly as it was; checked against the revision left by the action. */
+  readonly inverse: PlannedOperation;
+  readonly label: string;
+}
+
+const undoEntries = new Map<string, UndoEntry>();
+
+/** What the snackbar shows after an immediate action. */
+export interface UndoOffer {
+  readonly token: string;
+  readonly label: string;
+  readonly expiresAt: number;
+}
+
+/**
+ * Builds the inverse of a low-risk action from the row as it was before the
+ * action ran. Acknowledge and snooze change reminder delivery and are not
+ * offered (the reminder itself can be snoozed or re-set instead).
+ */
+const inverseOf = (
+  tx: DatabaseTransaction,
+  op: PlannedOperation,
+): {inverse: PlannedOperation; label: string} | null => {
+  if (op.op === 'complete_task') {
+    const row = tx.executeSync('SELECT is_completed FROM tasks WHERE id = ?', [
+      op.target.id,
+    ]).rows?.[0];
+    if (!row) return null;
+    const wasCompleted = Number(row.is_completed ?? 0) === 1;
+    return {
+      inverse: {
+        op: 'complete_task',
+        target: op.target,
+        isCompleted: wasCompleted,
+      },
+      label:
+        op.isCompleted !== false
+          ? `Marked “${op.target.title}” done`
+          : `Reopened “${op.target.title}”`,
+    };
+  }
+  if (op.op === 'update_note') {
+    const note = notesStore
+      .getAll(
+        String(
+          tx.executeSync('SELECT user_id FROM notes WHERE id = ?', [
+            op.target.id,
+          ]).rows?.[0]?.user_id ?? '',
+        ),
+      )
+      .find(n => n.id === op.target.id);
+    if (!note) return null;
+    const label =
+      typeof op.isPinned === 'boolean' && op.body === note.body
+        ? `${op.isPinned ? 'Pinned' : 'Unpinned'} “${note.title}”`
+        : op.body !== note.body
+        ? `Updated checklist in “${note.title}”`
+        : `Updated “${note.title}”`;
+    return {
+      inverse: {
+        op: 'update_note',
+        target: op.target,
+        title: note.title,
+        body: note.body,
+        ...(typeof op.isPinned === 'boolean' ? {isPinned: note.isPinned} : {}),
+        ...(op.category ? {category: note.category} : {}),
+        isLowRiskMetaOnly: true,
+      },
+      label,
+    };
+  }
+  return null;
+};
+
+/** Records an undo for an action that just ran inside `tx`. */
+const rememberUndo = (
+  tx: DatabaseTransaction,
+  ownerId: string,
+  operationId: string,
+  pending: {inverse: PlannedOperation; label: string},
+): UndoOffer => {
+  const target =
+    'target' in pending.inverse ? (pending.inverse.target as TargetRef) : null;
+  const inverse =
+    target && 'target' in pending.inverse
+      ? ({
+          ...pending.inverse,
+          target: {
+            ...target,
+            // The action itself bumped the revision; undo must see exactly that.
+            revision: assistantOperationStore.revisionOf(
+              target.type,
+              target.id,
+              tx,
+            ),
+          },
+        } as PlannedOperation)
+      : pending.inverse;
+  const now = Date.now();
+  for (const [token, entry] of undoEntries) {
+    if (entry.expiresAt <= now) undoEntries.delete(token);
+  }
+  const expiresAt = now + UNDO_TTL_MS;
+  undoEntries.set(operationId, {
+    ownerId,
+    sessionId,
+    expiresAt,
+    inverse,
+    label: pending.label,
+  });
+  return {token: operationId, label: pending.label, expiresAt};
+};
+
+export type UndoResult =
+  | {status: 'undone'; reply: string}
+  | {status: 'refused'; reply: string};
+
+/**
+ * Reverses an immediate action from its snackbar. Refuses if the item changed
+ * since (another edit wins), if the offer expired, or for another account.
+ */
+export const undoLowRiskCommand = (
+  activeUserId: string,
+  token: string,
+): UndoResult => {
+  const entry = undoEntries.get(token);
+  if (
+    !entry ||
+    entry.ownerId !== activeUserId ||
+    entry.sessionId !== sessionId ||
+    Date.now() >= entry.expiresAt
+  ) {
+    undoEntries.delete(token);
+    return {
+      status: 'refused',
+      reply: 'That change can no longer be undone.',
+    };
+  }
+  undoEntries.delete(token);
+  try {
+    db.transactionSync(tx => {
+      applyOperation(tx, entry.ownerId, entry.inverse);
+      assistantOperationStore.insertReceipt(
+        {
+          operationId: generateId('op'),
+          userId: entry.ownerId,
+          intent: 'update_task',
+          operation: `undo_${entry.inverse.op}`,
+          entityType:
+            'target' in entry.inverse
+              ? (entry.inverse.target as TargetRef).type
+              : null,
+          entityId:
+            'target' in entry.inverse
+              ? (entry.inverse.target as TargetRef).id
+              : null,
+          reminderId: null,
+          reply: `Undid: ${entry.label}.`,
+        },
+        tx,
+      );
+    });
+  } catch (error) {
+    if (!(error instanceof ReviewRefusedError)) {
+      console.warn('[CommandReview] Undo failed:', error);
+    }
+    return {
+      status: 'refused',
+      reply:
+        'That item changed after the action, so it was not undone. Nothing was changed.',
+    };
+  }
+  return {status: 'undone', reply: `Undone. ${entry.label} was reversed.`};
+};
+
 /** Ends the review session: every open proposal becomes unconfirmable. */
 export const endReviewSession = (): void => {
   reviews.clear();
+  undoEntries.clear();
   sessionId = generateId('review_session');
 };

@@ -60,9 +60,10 @@ import {
 } from '../components/chat/ChatInput';
 import {TypingBubble} from '../components/chat/TypingBubble';
 import {CommandReviewCard} from '../components/chat/CommandReviewCard';
+import {UndoSnackbar} from '../components/chat/UndoSnackbar';
 import {CommandGuide} from '../components/chat/CommandGuide';
 import {useCommandReview} from '../hooks/useCommandReview';
-import type {ReviewEditPatch} from '../../ai/nlu/commandReview';
+import type {ReviewEditPatch, UndoOffer} from '../../ai/nlu/commandReview';
 import {useDraftProtection} from '../hooks/useDraftProtection';
 import {useChatReplyFormat} from '../hooks/useChatReplyFormat';
 import {DraftDecisionDialog} from '../components/DraftDecisionDialog';
@@ -188,6 +189,9 @@ export const ChatScreen: React.FC<ChatScreenProps> = ({
     null,
   );
   const [isSending, setIsSending] = useState(false);
+  // "Marked done · Undo" after an immediate action (audit finding 10).
+  const [undoOffer, setUndoOffer] = useState<UndoOffer | null>(null);
+  const hideUndo = useCallback(() => setUndoOffer(null), []);
   const [chatMultiBatch, setChatMultiBatch] =
     useState<MultiActionBatchData | null>(null);
   const [chatMultiBusy, setChatMultiBusy] = useState(false);
@@ -234,6 +238,7 @@ export const ChatScreen: React.FC<ChatScreenProps> = ({
   useEffect(() => {
     setInputTextState(chatDraftStore.get(userId));
     reviewSourceRef.current = null;
+    setUndoOffer(null);
     return chatDraftStore.subscribe((owner, text) => {
       if (owner === userId) setInputTextState(text);
     });
@@ -873,6 +878,7 @@ export const ChatScreen: React.FC<ChatScreenProps> = ({
       // If the account changed while the reply was pending, the reply was saved
       // for the account that sent it and must not appear in this one.
       if (activeUserRef.current !== requestUser) return;
+      setUndoOffer(result.undo ?? null);
       if (result.handbookNote && result.assistantMessage) {
         setHandbookNotes(prev => ({
           ...prev,
@@ -922,6 +928,23 @@ export const ChatScreen: React.FC<ChatScreenProps> = ({
       isSendingRef.current = false;
       setIsSending(false);
     }
+  };
+
+  const handleUndo = (token: string) => {
+    const requestUser = userId;
+    setUndoOffer(null);
+    const outcome = chatOrchestrator.undoAction(requestUser, token, {
+      recordInChat: !isTemporaryChat,
+    });
+    if (activeUserRef.current !== requestUser) return;
+    if (isTemporaryChat || outcome.status === 'refused') {
+      Alert.alert(
+        outcome.status === 'undone' ? 'Undone' : 'Not undone',
+        outcome.reply,
+      );
+    }
+    if (!isTemporaryChat) loadMessages();
+    onRefresh?.();
   };
 
   const handleConfirmReview = async () => {
@@ -1520,6 +1543,7 @@ export const ChatScreen: React.FC<ChatScreenProps> = ({
             expired={review.expired}
             busy={review.busy}
             onEdit={handleEditReview}
+            onDeliveryChange={review.setDelivery}
             editError={review.editError}
             onConfirm={() => {
               void handleConfirmReview();
@@ -1527,6 +1551,17 @@ export const ChatScreen: React.FC<ChatScreenProps> = ({
             onCancel={handleCancelReview}
             onDismiss={review.dismiss}
             testIDPrefix="chat-review"
+          />
+        </View>
+      ) : null}
+
+      {undoOffer ? (
+        <View style={styles.reviewContainer}>
+          <UndoSnackbar
+            offer={undoOffer}
+            onUndo={handleUndo}
+            onHide={hideUndo}
+            testID="chat-undo"
           />
         </View>
       ) : null}

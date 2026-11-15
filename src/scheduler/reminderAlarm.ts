@@ -1,8 +1,19 @@
 import { NativeModules } from 'react-native';
 import type { Reminder } from '../storage/remindersStore';
 import { deliveryStore } from '../storage/deliveryStore';
+import { reminderDeliveryStyleStore } from '../storage/reminderDeliveryStyleStore';
+import type { ReminderDeliveryStyle } from '../storage/reminderDeliveryStyleStore';
 
-export type NativeCallAction = 'call' | 'answer' | 'decline';
+/**
+ * `acknowledge` and `snooze` come from a notify-only reminder's notification
+ * (audit finding 16); they are applied without showing the call screen.
+ */
+export type NativeCallAction =
+  | 'call'
+  | 'answer'
+  | 'decline'
+  | 'acknowledge'
+  | 'snooze';
 
 export interface NativeCallTrigger {
   reminderId: string;
@@ -44,6 +55,8 @@ interface ScheduleAlarmOptions {
   triggerAtMs: number;
   ownerId: string;
   generation: number;
+  /** Ignored by older native builds, which keep ringing a call. */
+  style: ReminderDeliveryStyle;
 }
 
 interface LafinaReminderNativeModule {
@@ -128,6 +141,7 @@ export const scheduleReminderAlarm = async (
   }
   const ownerId = job?.userId ?? '';
   const generation = job?.generation ?? 0;
+  const style = reminderDeliveryStyleStore.get(reminderId);
 
   let scheduled: boolean;
   try {
@@ -137,6 +151,7 @@ export const scheduleReminderAlarm = async (
       triggerAtMs,
       ownerId,
       generation,
+      style,
     });
   } catch (error) {
     recordReceipt(reminderId, generation, 'failed', errorCode(error));

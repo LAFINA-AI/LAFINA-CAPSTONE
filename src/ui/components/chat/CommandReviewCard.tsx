@@ -19,6 +19,15 @@ import type {
   PrepareResult,
   ReviewEditPatch,
 } from '../../../ai/nlu/commandReview';
+import type {ReminderDeliveryStyle} from '../../../storage/reminderDeliveryStyleStore';
+
+const DELIVERY_CHOICES: ReadonlyArray<{
+  style: ReminderDeliveryStyle;
+  label: string;
+}> = [
+  {style: 'call', label: 'Call me'},
+  {style: 'notify', label: 'Notify only'},
+];
 
 export interface CommandReviewCardProps {
   proposal: CommandProposal;
@@ -28,10 +37,31 @@ export interface CommandReviewCardProps {
   onCancel: () => void;
   onDismiss: () => void;
   onEdit?: (patch: ReviewEditPatch) => PrepareResult | null;
+  /** Switches the reminder this card creates between a call and a notification. */
+  onDeliveryChange?: (style: ReminderDeliveryStyle) => void;
   editError?: string | null;
   /** Prefix for test IDs, for example "chat-review" or "voice-review". */
   testIDPrefix: string;
 }
+
+/** "13:30" → "1:30 PM" for the alternative-time buttons. */
+const to12Hour = (hhmm: string): string => {
+  const [h, m] = hhmm.split(':').map(part => parseInt(part, 10));
+  if (Number.isNaN(h) || Number.isNaN(m)) return hhmm;
+  const suffix = h >= 12 ? 'PM' : 'AM';
+  const hour = h % 12 === 0 ? 12 : h % 12;
+  return `${hour}:${String(m).padStart(2, '0')} ${suffix}`;
+};
+
+/** Parses "HH:MM - HH:MM" from the conflict checker into a start/end pair. */
+const parseAlternative = (
+  value: string,
+): {start: string; end: string} | null => {
+  const match = /^(\d{1,2}:\d{2})\s*-\s*(\d{1,2}:\d{2})$/.exec(value.trim());
+  if (!match) return null;
+  const pad = (t: string) => (t.length === 4 ? `0${t}` : t);
+  return {start: pad(match[1]), end: pad(match[2])};
+};
 
 const toLocalIsoDate = (offsetDays: number = 0): string => {
   const d = new Date();
@@ -87,6 +117,7 @@ export const CommandReviewCard: React.FC<CommandReviewCardProps> = ({
   onCancel,
   onDismiss,
   onEdit,
+  onDeliveryChange,
   editError,
   testIDPrefix,
 }) => {
@@ -165,6 +196,16 @@ export const CommandReviewCard: React.FC<CommandReviewCardProps> = ({
       setEditing(false);
     }
   };
+
+  // Free times offered when the requested time overlaps something. One tap
+  // moves the draft there; it is still only saved on Confirm (audit finding 5).
+  const alternatives =
+    canEdit && fields?.supportsTime && fields.supportsEndTime
+      ? (proposal.conflictAlternatives ?? [])
+          .map(parseAlternative)
+          .filter((slot): slot is {start: string; end: string} => slot !== null)
+          .slice(0, 4)
+      : [];
 
   const categoryChoices =
     fields &&
@@ -461,6 +502,85 @@ export const CommandReviewCard: React.FC<CommandReviewCardProps> = ({
             </View>
           ))}
 
+          {!editing && alternatives.length > 0 ? (
+            <View
+              style={styles.alternatives}
+              testID={`${testIDPrefix}-alternatives`}
+            >
+              <Text style={[styles.sectionLabel, themed.secondaryText]}>
+                Free instead
+              </Text>
+              <View style={styles.alternativeRow}>
+                {alternatives.map(slot => (
+                  <TouchableOpacity
+                    key={`${slot.start}-${slot.end}`}
+                    style={[styles.alternativeChip, themed.secondaryButton]}
+                    onPress={() =>
+                      onEdit?.({time: slot.start, endTime: slot.end})
+                    }
+                    disabled={busy}
+                    accessibilityRole="button"
+                    accessibilityLabel={`Move to ${to12Hour(
+                      slot.start,
+                    )} to ${to12Hour(slot.end)}`}
+                    accessibilityState={{disabled: busy}}
+                    testID={`${testIDPrefix}-alternative-${slot.start}`}
+                  >
+                    <Text style={[styles.alternativeText, themed.primaryText]}>
+                      {to12Hour(slot.start)} – {to12Hour(slot.end)}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+            </View>
+          ) : null}
+
+          {!expired && proposal.reminderDelivery && onDeliveryChange ? (
+            <View
+              style={styles.alternatives}
+              testID={`${testIDPrefix}-delivery`}
+            >
+              <Text style={[styles.sectionLabel, themed.secondaryText]}>
+                When it is due
+              </Text>
+              <View style={styles.alternativeRow} accessibilityRole="radiogroup">
+                {DELIVERY_CHOICES.map(choice => {
+                  const selected = proposal.reminderDelivery === choice.style;
+                  return (
+                    <TouchableOpacity
+                      key={choice.style}
+                      style={[
+                        styles.alternativeChip,
+                        selected
+                          ? {backgroundColor: accent, borderColor: accent}
+                          : themed.secondaryButton,
+                      ]}
+                      onPress={() => {
+                        if (!selected) onDeliveryChange(choice.style);
+                      }}
+                      disabled={busy}
+                      accessibilityRole="radio"
+                      accessibilityLabel={choice.label}
+                      accessibilityState={{checked: selected, disabled: busy}}
+                      testID={`${testIDPrefix}-delivery-${choice.style}`}
+                    >
+                      <Text
+                        style={[
+                          styles.alternativeText,
+                          selected
+                            ? {color: colors.textOnPrimary}
+                            : themed.primaryText,
+                        ]}
+                      >
+                        {choice.label}
+                      </Text>
+                    </TouchableOpacity>
+                  );
+                })}
+              </View>
+            </View>
+          ) : null}
+
           {expired ? (
             <>
               <Text
@@ -488,7 +608,7 @@ export const CommandReviewCard: React.FC<CommandReviewCardProps> = ({
           ) : (
             <>
               <Text style={[styles.footnote, themed.secondaryText]}>
-                Nothing is saved until you confirm. This review expires in 5
+                Nothing is saved until you confirm. This review expires in 30
                 minutes.
               </Text>
               <View style={styles.buttonRow}>
@@ -632,6 +752,27 @@ const styles = StyleSheet.create({
   },
   warningText: {
     flex: 1,
+  },
+  alternatives: {
+    marginTop: Spacing.sm,
+    gap: Spacing.xs,
+  },
+  alternativeRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: Spacing.xs,
+  },
+  alternativeChip: {
+    borderWidth: 1,
+    borderRadius: Layout.borderRadiusCard,
+    paddingVertical: Spacing.xs,
+    paddingHorizontal: Spacing.sm,
+    minHeight: 36,
+    justifyContent: 'center',
+  },
+  alternativeText: {
+    fontFamily: Fonts.heading,
+    fontSize: FontSize.small,
   },
   editForm: {
     marginTop: Spacing.xs,

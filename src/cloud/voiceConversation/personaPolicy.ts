@@ -201,6 +201,7 @@ export const getToolWorkingPhrase = (
     if (kind === 'calendar') return 'Checking your calendar...';
     if (kind === 'todos') return 'Checking your to-do list...';
     if (kind === 'notes') return 'Searching your notes...';
+    if (kind === 'alarms') return 'Checking your alarms...';
     if (kind === 'memory') return 'Checking saved preferences...';
     return 'Reading your records...';
   }
@@ -209,6 +210,12 @@ export const getToolWorkingPhrase = (
   }
   if (toolName === 'save_lafina_memory') {
     return 'Checking memory request...';
+  }
+  if (toolName === 'find_free_time') {
+    return 'Looking for free time...';
+  }
+  if (toolName === 'snooze_reminder') {
+    return 'Snoozing the reminder...';
   }
   return 'Working on your request...';
 };

@@ -33,6 +33,8 @@ import {useTheme} from '../../contexts/ThemeContext';
 import type {ThemeColors} from '../../contexts/ThemeContext';
 import {useThemedStyles} from '../../theme/createThemedStyles';
 import {chatOrchestrator} from '../../../ai/chatOrchestrator';
+import {UndoSnackbar} from '../chat/UndoSnackbar';
+import type {UndoOffer} from '../../../ai/nlu/commandReview';
 import {SynthWaveAvatar} from '../callLafina/SynthWaveAvatar';
 import {enableOnlineMode, voiceConsent} from '../../../cloud/voiceConversation';
 import type {
@@ -44,7 +46,10 @@ import {useVoiceConversation} from '../../hooks/useVoiceConversation';
 import type {CommandReviewState} from '../../hooks/useCommandReview';
 import {ActionCardHost} from '../callLafina/ActionCardHost';
 import {isToolExecutionPermitted} from '../../../ai/voiceActions/actionSecurity';
-import {actionService} from '../../../ai/voiceActions/actionService';
+import {
+  actionService,
+  SUGGESTED_CONFIRM_REFUSAL,
+} from '../../../ai/voiceActions/actionService';
 import type {
   MemoryProposalData,
   MultiActionBatchData,
@@ -76,7 +81,16 @@ import {
   reviseReviewedCommand,
   confirmReviewedCommand,
   cancelReviewedCommand,
+  appliedReviewReply,
 } from '../../../ai/nlu/commandReview';
+import {
+  hasStructuredAction,
+  prepareStructuredReview,
+  SUGGESTED_CARD_NOTE,
+  isReferenceTitle,
+} from '../../../ai/voiceActions/structuredAction';
+import type {StructuredActionArgs} from '../../../ai/voiceActions/structuredAction';
+import {validatePayload} from '../../../ai/voiceActions/actionValidator';
 
 const DATA_CONSENT = 'voiceConversation.directDataConsent.v1';
 
@@ -180,6 +194,9 @@ export const VoiceConversationPanel: React.FC<VoiceConversationPanelProps> = ({
   const themed = useThemedStyles(getThemedStyles);
   const [readResult, setReadResult] = useState<LocalVoiceResult | null>(null);
   const [localNote, setLocalNote] = useState<string | null>(null);
+  // "Marked done · Undo" after an immediate action (audit finding 10).
+  const [undoOffer, setUndoOffer] = useState<UndoOffer | null>(null);
+  const hideUndo = useCallback(() => setUndoOffer(null), []);
   const [typed, setTyped] = useState('');
   const [draftCorrection, setDraftCorrection] = useState('');
   const [showTyping, setShowTyping] = useState(false);
@@ -367,6 +384,11 @@ export const VoiceConversationPanel: React.FC<VoiceConversationPanelProps> = ({
         (!isVoiceScheduleStart(trimmed) && hasRevisionDelta))
     ) {
       const revised = reviseReviewedCommand(owner, pending.operationId, text);
+      if (
+        revised.status === 'proposal' &&
+        actionService.isSuggestedCard(pending.operationId)
+      )
+        actionService.markSuggestedCard(revised.proposal.operationId);
       if (revised.status === 'proposal') {
         reviewRef.current.present(revised);
         lastLocalRevision.current = {
@@ -485,6 +507,7 @@ export const VoiceConversationPanel: React.FC<VoiceConversationPanelProps> = ({
           }
         } else if (result.kind === 'executed') {
           setLocalNote(result.reply);
+          setUndoOffer(result.undo ?? null);
           groundedReply.current = result.reply;
           const updatedContext = buildStudentVoiceContext(owner);
           void conversationRef.current?.sendContext(
@@ -552,6 +575,7 @@ export const VoiceConversationPanel: React.FC<VoiceConversationPanelProps> = ({
             pending = reviewed.review.proposal;
           } else if (reviewed?.kind === 'executed') {
             setLocalNote(reviewed.reply);
+            setUndoOffer(reviewed.undo ?? null);
             groundedReply.current = reviewed.reply;
             return `Done. Executed immediately: ${reviewed.reply}`;
           } else if (reviewed?.kind === 'multi') {
@@ -568,6 +592,53 @@ export const VoiceConversationPanel: React.FC<VoiceConversationPanelProps> = ({
           ) {
             setLocalNote(reviewed.reply);
             groundedReply.current = reviewed.reply;
+          }
+        }
+        // The student's own words gave nothing to act on, or a card about
+        // something else ("book the first one" after find_free_time reads as
+        // a task "First one"): use the model's fields. The card waits for the
+        // student's own yes or tap (ADR-033).
+        const fields = parameters as StructuredActionArgs;
+        if (
+          hasStructuredAction(fields) &&
+          (!pending || isReferenceTitle(pending.title))
+        ) {
+          const checked = validatePayload('legacy.prepare_action', parameters);
+          if (!checked.valid) return `Nothing was prepared: ${checked.error}`;
+          const prepared = prepareStructuredReview(
+            owner,
+            checked.data as StructuredActionArgs,
+            'voice',
+          );
+          if (prepared?.status === 'proposal' && pending) {
+            cancelReviewedCommand(owner, pending.operationId);
+            pending = null;
+          }
+          if (!isCurrent()) {
+            if (prepared?.status === 'proposal')
+              cancelReviewedCommand(owner, prepared.proposal.operationId);
+            throw new Error('Request cancelled because conversational turn updated.');
+          }
+          if (prepared?.status === 'proposal') {
+            actionService.markSuggestedCard(prepared.proposal.operationId);
+            reviewRef.current.present(prepared);
+            setLocalNote('Check the card — nothing is saved until you confirm.');
+            const summary = prepared.proposal.details.join(', ');
+            groundedReply.current =
+              'Review card is now on screen: ' +
+              prepared.proposal.title +
+              (summary ? ' (' + summary + ')' : '') +
+              '. Card ID: ' +
+              prepared.proposal.operationId +
+              '; revision: 1. Nothing has been saved yet. ' +
+              SUGGESTED_CARD_NOTE;
+            return groundedReply.current;
+          }
+          // A card from the student's words stays when the fields made none.
+          if (prepared && !pending) {
+            setLocalNote(prepared.reply);
+            groundedReply.current = prepared.reply;
+            return prepared.reply;
           }
         }
         return pending
@@ -641,6 +712,19 @@ export const VoiceConversationPanel: React.FC<VoiceConversationPanelProps> = ({
             }
             const currentProposal = reviewRef.current.proposal;
             const pendingReview = latestPendingReview(owner, 'voice');
+            // A card built from the model's fields is confirmed only by the
+            // student (their "yes" is read on the device, or the button).
+            const target =
+              currentProposal?.operationId ?? pendingReview?.operationId;
+            if (
+              actionService.isSuggestedCard(cardId) ||
+              (target && actionService.isSuggestedCard(target))
+            ) {
+              const saved = appliedReviewReply(owner, cardId);
+              return saved
+                ? {saved: true, message: 'The student already confirmed it: ' + saved}
+                : {saved: false, message: SUGGESTED_CONFIRM_REFUSAL};
+            }
             if (
               currentProposal?.operationId === cardId ||
               pendingReview?.operationId === cardId ||
@@ -1294,9 +1378,10 @@ export const VoiceConversationPanel: React.FC<VoiceConversationPanelProps> = ({
             <Text style={[styles.cardBody, themed.text]}>
               While a call is open, your microphone audio streams to ElevenLabs
               for transcription and speech, and your words go to DeepSeek and
-              LAFINA's server for answers. If you ask about your calendar, notes
-              or saved memories, bounded relevant records are shared with the
-              voice provider. Capture continues when minimized inside the app,
+              LAFINA's server for answers. When a call starts, a short summary
+              of your next 7 days (schedule, tasks and overdue items), recent
+              notes and saved memories is shared with them so LAFINA can help
+              with your plans. Capture continues when minimized inside the app,
               with a visible call strip. It stops when you tap End or leave the
               app, and you can mute at any time. Finished turns are saved to
               your Chat history. You can review, change, or confirm planner
@@ -1327,6 +1412,7 @@ export const VoiceConversationPanel: React.FC<VoiceConversationPanelProps> = ({
               multiActionBatch={activeMultiBatch}
               expired={review?.expired}
               busy={review?.busy}
+              onEdit={review?.edit}
               onConfirm={() => {
                 void handleConfirm();
               }}
@@ -1543,6 +1629,23 @@ export const VoiceConversationPanel: React.FC<VoiceConversationPanelProps> = ({
             ) : null}
           </>
         )}
+
+        {undoOffer ? (
+          <UndoSnackbar
+            offer={undoOffer}
+            onHide={hideUndo}
+            onUndo={token => {
+              const owner = ownerRef.current;
+              setUndoOffer(null);
+              const outcome = chatOrchestrator.undoAction(owner, token);
+              setLocalNote(outcome.reply);
+              void conversationRef.current?.sendContext(
+                `Planner update: ${outcome.reply}`,
+              );
+            }}
+            testID="voice-undo"
+          />
+        ) : null}
 
         {readResult !== null && (
           <CallReadResults

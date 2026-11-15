@@ -1,9 +1,9 @@
 import React, {
   forwardRef,
+  useCallback,
   useEffect,
   useImperativeHandle,
   useRef,
-  useState,
 } from 'react';
 import {
   ActivityIndicator,
@@ -14,7 +14,10 @@ import {
 } from 'react-native';
 import {useVoiceConversation} from '../../hooks/useVoiceConversation';
 import {useTheme} from '../../contexts/ThemeContext';
+import {reminderCallContext} from '../../../cloud/voiceConversation';
 import type {ConversationSnapshot} from '../../../cloud/voiceConversation';
+import {actionService} from '../../../ai/voiceActions/actionService';
+import {generateId} from '../../../utils';
 
 export interface OnlineReminderHandle {
   endAndWait: () => Promise<void>;
@@ -26,23 +29,76 @@ interface Props {
   task: string;
   onSnapshot: (snapshot: ConversationSnapshot) => void;
   onSpokenTurn: (text: string) => void;
+  /** Snoozes the reminder this call is about (the agent's snooze_reminder). */
+  onSnooze?: (minutes: number) => Promise<string>;
 }
+
+/** Tools the agent may run during a reminder call: reads and the snooze. */
+const REMINDER_CALL_TOOLS = new Set([
+  'read_lafina_data',
+  'read_calendar',
+  'search_notes',
+  'read_memories',
+  'find_free_time',
+  'snooze_reminder',
+]);
+
+/**
+ * Planner changes in a reminder call come from the student's own words: the
+ * call screen reads each turn and shows a review card.
+ */
+export const REMINDER_CALL_WRITE_NOTE =
+  'In a reminder call the app turns the student’s own words into a review card on screen. Ask the student to say the change they want, then let them confirm it. Nothing was changed.';
 
 /** Mounted only after Answer, admission, permission and streaming consent. */
 export const OnlineReminderConversation = forwardRef<
   OnlineReminderHandle,
   Props
->(({userId, task, onSnapshot, onSpokenTurn}, ref) => {
+>(({userId, task, onSnapshot, onSpokenTurn, onSnooze}, ref) => {
   const {colors} = useTheme();
+  const snooze = useRef(onSnooze);
+  snooze.current = onSnooze;
+  const toolSession = useRef(generateId('reminder-call'));
+  useEffect(() => {
+    const session = toolSession.current;
+    return () => actionService.clearSessionActions(session);
+  }, []);
+  const onClientTool = useCallback(
+    async (
+      name: string,
+      parameters: Record<string, unknown>,
+      isCurrent: () => boolean,
+    ): Promise<string> => {
+      if (!REMINDER_CALL_TOOLS.has(name)) return REMINDER_CALL_WRITE_NOTE;
+      let failed = false;
+      const snoozeNow = snooze.current;
+      const answer = await actionService.executeTool(
+        userId,
+        toolSession.current,
+        name,
+        parameters,
+        isCurrent,
+        {
+          onError: () => {
+            failed = true;
+          },
+          ...(snoozeNow ? {onSnoozeReminder: snoozeNow} : {}),
+        },
+      );
+      if (failed) throw new Error(answer);
+      return answer;
+    },
+    [userId],
+  );
+  // The reminder rides in the start-of-call context (audit finding 12).
   const conversation = useVoiceConversation(userId, {
     onFinalUserText: onSpokenTurn,
+    extraContext: reminderCallContext(task),
+    onClientTool,
   });
   const current = useRef(conversation);
   current.current = conversation;
   const snapshotCallback = useRef(onSnapshot);
-  const contextSent = useRef(false);
-  const mounted = useRef(false);
-  const [contextFailed, setContextFailed] = useState(false);
   snapshotCallback.current = onSnapshot;
   useImperativeHandle(
     ref,
@@ -55,25 +111,14 @@ export const OnlineReminderConversation = forwardRef<
     [],
   );
   useEffect(() => {
-    mounted.current = true;
     current.current.start();
     return () => {
-      mounted.current = false;
       current.current.end();
     };
   }, []);
   useEffect(() => {
     snapshotCallback.current(conversation.snapshot);
   }, [conversation.snapshot]);
-
-  useEffect(() => {
-    if (!contextSent.current && conversation.snapshot.phase === 'listening') {
-      contextSent.current = true;
-      void current.current.sendReminderContext(task).then(sent => {
-        if (mounted.current && !sent) setContextFailed(true);
-      });
-    }
-  }, [conversation.snapshot.phase, task]);
 
   const {snapshot} = conversation;
   const label = snapshot.muted
@@ -96,11 +141,6 @@ export const OnlineReminderConversation = forwardRef<
       >
         {label}
       </Text>
-      {contextFailed ? (
-        <Text style={{color: colors.textSecondary}}>
-          LAFINA could not receive the reminder details. You can say them aloud.
-        </Text>
-      ) : null}
       {['listening', 'speaking', 'thinking'].includes(snapshot.phase) ? (
         <TouchableOpacity
           onPress={() => conversation.setMuted(!snapshot.muted)}

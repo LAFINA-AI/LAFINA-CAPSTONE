@@ -384,6 +384,154 @@ export function normalizeSpeech(transcript: string): string {
   return result.replace(/\s+/g, ' ').trim();
 }
 
+const TAGLISH_MARKER =
+  /\b(?:paalala(?:han)?|ipaalala|dagdag(?:an)?|idagdag|i?lagay|ano(?:ng)?|bukas|mamaya(?:ng)?|ngayon(?:g)?|sakin|saakin|mag-?aral|mag-?review|bumili|magpasa|ipasa|alas|pa-?remind|i-?cancel|i-?delete|burahin|tanggalin|tapos\s+na|natapos|gisingin|gisingan|alarm\s+ko|i-?alarm|mag-?alarm|tuwing|araw-?araw|patayin|buksan|i-?off|free\s+ba|bakante\s+ba|lunes|martes|miyerkules|myerkules|huwebes|biyernes|sabado)\b|\bmay\s+\S+(?:\s+\S+)?\s+ako\b/i;
+
+/** "gawa ka ng note: …": the note's own words stay exactly as said. */
+const TAGLISH_NOTE_FRAME =
+  /^(?:gawa|gumawa)(?:\s+(?:ka|mo|ako))?\s+(?:ng\s+|ang\s+)?(?:note|notes|tala)\s*[:,-]?\s*(.+)$/i;
+
+const TAGLISH_WEEKDAYS: Record<string, string> = {
+  lunes: 'monday',
+  martes: 'tuesday',
+  miyerkules: 'wednesday',
+  myerkules: 'wednesday',
+  huwebes: 'thursday',
+  biyernes: 'friday',
+  sabado: 'saturday',
+  linggo: 'sunday',
+};
+
+/**
+ * Offline Taglish support: rewrites the common Filipino words students mix into
+ * planner commands ("paalala mo sakin mag-aral bukas ng 7pm") into the English
+ * the parser understands ("remind me to study tomorrow at 7pm"). Returns null
+ * when the text has no Taglish planner words, so English input is untouched.
+ */
+export function translateTaglishCommand(text: string): string | null {
+  const source = (text || '').trim();
+  const noteFrame = TAGLISH_NOTE_FRAME.exec(source);
+  if (noteFrame) return `note: ${noteFrame[1].trim()}`;
+  if (!source || !TAGLISH_MARKER.test(source)) return null;
+  let result = ` ${source.toLowerCase()} `;
+  const replace = (
+    pattern: RegExp,
+    value: string | ((match: string, ...groups: string[]) => string),
+  ): void => {
+    result =
+      typeof value === 'string'
+        ? result.replace(pattern, value)
+        : result.replace(pattern, value);
+  };
+  // Command frames first, so their pronouns ("mo", "sakin") go with them.
+  replace(
+    /\s(?:i?paalala(?:han)?)\s+(?:mo\s+)?(?:ako|sakin|saakin|sa\s+akin)?\s*(?:na\s+|ng\s+|to\s+)?/g,
+    ' remind me to ',
+  );
+  replace(
+    /\s(?:i?dagdag(?:an)?|i?lagay)\s+(?:mo\s+)?(?:ito\s+)?(?:sa|ng)\s+(?:aking\s+|ang\s+)?(?:to-?do|to\s+do|todo|listahan)(?:\s+ko)?\s+(?:yung\s+|ang\s+)?(.+?)\s*$/g,
+    ' add $1 to my to-do ',
+  );
+  replace(
+    /\s(?:i?dagdag(?:an)?|i?lagay)\s+(?:mo\s+)?(?:yung\s+|ang\s+)?(.+?)\s+sa\s+(?:aking\s+|ang\s+)?(?:to-?do|to\s+do|todo|listahan)(?:\s+ko)?\s*$/g,
+    ' add $1 to my to-do ',
+  );
+  // "pa-remind ako", "remind mo ako": a reminder for the speaker.
+  replace(
+    /\s(?:pa-?remind|remind\s+mo)\s+(?:mo\s+)?(?:ako|sakin|saakin|sa\s+akin)\b\s*/g,
+    ' remind me ',
+  );
+  // Wake-up requests: "gisingin mo ako ng 6 bukas".
+  replace(
+    /\s(?:gisingin|gisingan)\s+(?:mo\s+)?(?:ako|sakin)\b/g,
+    ' wake me up',
+  );
+  // Alarms (alarm plan A3): "patayin mo yung alarm ko", "alarm ko 5:30 tuwing weekdays".
+  replace(
+    /\s(?:patayin|i-?off|isara)\s+(?:mo\s+)?(?:na\s+)?(?:yung\s+|ang\s+)?(.*?)\balarm\b(?:\s+ko)?/g,
+    ' turn off my $1 alarm',
+  );
+  replace(
+    /\s(?:buksan|i-?on)\s+(?:mo\s+)?(?:ulit\s+)?(?:yung\s+|ang\s+)?(.*?)\balarm\b(?:\s+ko)?/g,
+    ' turn on my $1 alarm',
+  );
+  replace(
+    /^\s(?:alarm\s+ko|i-?alarm\s+mo(?:\s+ako)?|mag-?alarm(?:\s+ka)?)\b(?:\s+(?:ng\s+alas|ng|sa|alas))?/g,
+    ' set an alarm at',
+  );
+  replace(
+    /\stuwing\s+(lunes|martes|miyerkules|myerkules|huwebes|biyernes|sabado|linggo)\b/g,
+    (_m: string, day: string) => ` every ${TAGLISH_WEEKDAYS[day] || day}`,
+  );
+  replace(
+    /\stuwing\s+(?:weekdays?|week\s+days?|may\s+pasok)\b/g,
+    ' on weekdays',
+  );
+  replace(/\stuwing\s+weekends?\b/g, ' on weekends');
+  replace(/\s(?:araw-?araw|tuwing\s+araw)\b/g, ' every day');
+  // Removing or finishing an item named after the frame.
+  replace(
+    /\s(?:i-?cancel|i-?delete|burahin|tanggalin)\s+(?:mo\s+)?(?:na\s+)?(?:yung|ang)?\s*/g,
+    ' delete my ',
+  );
+  replace(
+    /^\s(?:tapos\s+na|natapos\s+(?:ko\s+)?na)\s+(?:yung\s+|ang\s+)?(.+?)\s*$/g,
+    ' mark $1 as done ',
+  );
+  // Schedule questions: "free ba ako sa biyernes?".
+  replace(
+    /\s(?:free|bakante)\s+ba\s+(?:ako|ko)\b/g,
+    ' when am i free',
+  );
+  // "may quiz ako sa lunes": the student has something on a day.
+  replace(/^\smay\s+(\S+(?:\s+\S+)?)\s+ako\b/g, ' i have a $1');
+  replace(
+    /\sano(?:ng)?\s+(?:ang\s+)?(?:sched(?:ule)?|iskedyul|gagawin|lakad)\s+(?:ko|natin)\b/g,
+    ' what is my schedule',
+  );
+  replace(
+    /\sano(?:ng)?\s+(?:ang\s+)?(?:to-?do|todo)\s+ko\b/g,
+    ' what is on my to-do list',
+  );
+  // Verbs students use as task titles.
+  replace(/\smag-?aral\b/g, ' study');
+  replace(/\smag-?review\b/g, ' review');
+  replace(/\sbumili\s+(?:ng\s+)?/g, ' buy ');
+  replace(/\s(?:magpasa|ipasa)\s+(?:ng\s+|ang\s+)?/g, ' submit ');
+  replace(/\smaglinis\s+(?:ng\s+)?/g, ' clean ');
+  replace(/\stapusin\s+(?:ang\s+)?/g, ' finish ');
+  // Any other "na mag-submit ng essay" → "to submit essay".
+  replace(/\s(?:na\s+)?mag-(\w+)(?:\s+ng)?\b/g, ' to $1');
+  // Time words.
+  replace(/\sbukas\s+ng\s+umaga\b/g, ' tomorrow morning');
+  replace(/\sbukas\s+ng\s+hapon\b/g, ' tomorrow afternoon');
+  replace(/\sbukas\s+ng\s+gabi\b/g, ' tomorrow night');
+  replace(/\sbukas\b/g, ' tomorrow');
+  replace(/\s(?:mamayang|ngayong)\s+gabi\b/g, ' tonight');
+  replace(/\smamayang\s+hapon\b/g, ' this afternoon');
+  // "mamaya 5pm" with a clock time is today at that time.
+  replace(
+    /\smamaya(?:ng)?\s+(?:ng\s+|alas\s+)?(?=\d{1,2}(?::\d{2})?\s*(?:am|pm|a\.m\.|p\.m\.)?\b)/g,
+    ' today at ',
+  );
+  replace(/\smamaya(?:ng)?\b/g, ' later');
+  replace(/\sngayon(?:g)?\s+araw\b/g, ' today');
+  replace(/\sngayon\b/g, ' today');
+  replace(
+    /\s(?:sa\s+)?(lunes|martes|miyerkules|myerkules|huwebes|biyernes|sabado|linggo)\b/g,
+    (_m: string, day: string) => ` on ${TAGLISH_WEEKDAYS[day] || day}`,
+  );
+  replace(/\salas\s+(\d{1,2}(?::\d{2})?)/g, ' at $1');
+  replace(
+    /\sng\s+(?=\d{1,2}(?::\d{2})?\s*(?:am|pm|a\.m\.|p\.m\.)?\b)/g,
+    ' at ',
+  );
+  // Leftover pronouns and particles.
+  replace(/\s(?:mo|ko|sakin|saakin|sa\s+akin|po|naman|nga)\b/g, ' ');
+  const translated = result.replace(/\s+/g, ' ').trim();
+  return translated && translated !== source.toLowerCase() ? translated : null;
+}
+
 /** Detects academic vs personal category from keywords. */
 export function detectCategory(text: string): string {
   const lower = text.toLowerCase();
@@ -428,6 +576,31 @@ export function detectCategory(text: string): string {
 /** Detects recurrence rules (e.g. "repeats every Monday", "every week", "daily") as standard iCalendar RRULE strings. */
 export function extractRecurrenceRule(text: string): string | null {
   const lower = text.toLowerCase();
+  // "every monday and wednesday", "every mon, wed and fri"
+  const multiDay =
+    /\b(?:repeats?|repeating|every)\s+((?:(?:monday|tuesday|wednesday|thursday|friday|saturday|sunday)s?(?:\s*,\s*|\s+and\s+|\s*&\s*|\s*\/\s*)?){2,})/i.exec(
+      lower,
+    );
+  if (multiDay) {
+    const codes: Record<string, string> = {
+      monday: 'MO',
+      tuesday: 'TU',
+      wednesday: 'WE',
+      thursday: 'TH',
+      friday: 'FR',
+      saturday: 'SA',
+      sunday: 'SU',
+    };
+    const found = [
+      ...multiDay[1].matchAll(
+        /(monday|tuesday|wednesday|thursday|friday|saturday|sunday)/gi,
+      ),
+    ].map(m => codes[m[1].toLowerCase()]);
+    const unique = [...new Set(found)];
+    if (unique.length >= 2) {
+      return `RRULE:FREQ=WEEKLY;BYDAY=${unique.join(',')}`;
+    }
+  }
   if (/\b(?:repeats?|repeating|every)\s+mondays?\b/i.test(lower)) {
     return 'RRULE:FREQ=WEEKLY;BYDAY=MO';
   }
@@ -817,6 +990,11 @@ interface ParsedDateTime {
   endTime: string | null;
   durationMinutes: number | null;
   matchedText: string[];
+  /**
+   * True when a bare hour with no am/pm was read as later today because the
+   * morning reading had already passed ("later at 7" at 10 AM -> 7 PM).
+   */
+  shiftedToEvening?: boolean;
 }
 
 /** Parses dates and times deterministically using local calendar arithmetic. */
@@ -829,6 +1007,9 @@ export function parseDateAndTime(
   let time: string | null = null;
   let endTime: string | null = null;
   let durationMinutes: number | null = null;
+  // A bare hour read with the daytime assumption (no am/pm, no part of day).
+  let implicitHour = false;
+  let shiftedToEvening = false;
 
   const normalized = normalizeSpeech(text);
   const lower = normalized.toLowerCase();
@@ -1187,6 +1368,8 @@ export function parseDateAndTime(
             contextPeriod,
             /^0\d$/.test(hourTok),
           );
+          implicitHour =
+            !contextPeriod && !/^0\d$/.test(hourTok) && rawH >= 1 && rawH <= 11;
           time = formatLocalTime(resolvedH, min);
           matchedText.push(colonOrOclockMatch[0]);
         }
@@ -1209,6 +1392,11 @@ export function parseDateAndTime(
           contextPeriod,
           /^0\d$/.test(bareAtMatch[1]),
         );
+        implicitHour =
+          !contextPeriod &&
+          !/^0\d$/.test(bareAtMatch[1]) &&
+          rawH >= 1 &&
+          rawH <= 11;
         time = formatLocalTime(resolvedH, 0);
         matchedText.push(bareAtMatch[0]);
       }
@@ -1228,6 +1416,24 @@ export function parseDateAndTime(
       else if (contextPeriod === 'evening') time = '18:00';
       else if (contextPeriod === 'night') time = '20:00';
       matchedText.push(explicitPeriodMatch[0]);
+    }
+  }
+
+  // A bare hour that already passed this morning means this evening: at 10 AM,
+  // "later at 7" is 7 PM, not 7 AM. Only for today (or no date) and only when
+  // the evening reading is still ahead.
+  if (
+    time &&
+    implicitHour &&
+    !endTime &&
+    (date === null || date === formatLocalDate(referenceDate))
+  ) {
+    const [h, m] = time.split(':').map(v => parseInt(v, 10));
+    const nowMinutes =
+      referenceDate.getHours() * 60 + referenceDate.getMinutes();
+    if (h < 12 && h * 60 + m <= nowMinutes && (h + 12) * 60 + m > nowMinutes) {
+      time = formatLocalTime(h + 12, m);
+      shiftedToEvening = true;
     }
   }
 
@@ -1266,6 +1472,31 @@ export function parseDateAndTime(
             durationMinutes = Math.round(numericAmount * (isHour ? 60 : 1));
             matchedText.push(durMatch[0]);
           }
+        } else {
+          // "for an hour", "block out 2 hours", "2 hours of studying": a bare
+          // length that is not an offset ("in 2 hours", "2 hours before").
+          const anHour = /\bfor\s+an?\s+hour\b/i.exec(lower);
+          const bareDur = new RegExp(
+            `(?<!\\b(?:in|after|within|every|each|about|around)\\s)\\b(${NUM_WORDS_PATTERN}|\\d+\\.5)\\s*(hours?|hrs?)\\b(?!\\s+(?:from\\s+now|later|before|after|ago|early|earlier|prior))`,
+            'i',
+          ).exec(lower);
+          if (anHour) {
+            durationMinutes = 60;
+            matchedText.push(anHour[0]);
+          } else if (bareDur) {
+            const rawAmount = bareDur[1];
+            const numericAmount = /^\d+\.\d+$/.test(rawAmount)
+              ? parseFloat(rawAmount)
+              : parseNumberWordOrDigits(rawAmount);
+            if (
+              numericAmount !== null &&
+              numericAmount > 0 &&
+              numericAmount <= 12
+            ) {
+              durationMinutes = Math.round(numericAmount * 60);
+              matchedText.push(bareDur[0]);
+            }
+          }
         }
       }
     }
@@ -1279,7 +1510,14 @@ export function parseDateAndTime(
     }
   }
 
-  return {date, time, endTime, durationMinutes, matchedText};
+  return {
+    date,
+    time,
+    endTime,
+    durationMinutes,
+    matchedText,
+    ...(shiftedToEvening ? {shiftedToEvening} : {}),
+  };
 }
 
 function extractPriority(text: string): 'High' | 'Medium' | 'Low' | null {
@@ -1499,10 +1737,390 @@ function cleanCrudTargetTitle(
   return cleaned;
 }
 
+/** Items that belong on the calendar as events when a time is given. */
+const EVENT_NOUN =
+  /\b(?:exams?|midterms?|finals?\s+exams?|prelims?|quiz(?:zes)?|appointments?|meetings?|interviews?|seminars?|consultations?|defen[cs]e|orientation|webinars?|recitals?|tryouts?|check-?ups?)\b/i;
+
+/** Bare pronouns and fillers that never name a real item ("add it"). */
+export const VAGUE_ITEM_TITLE =
+  /^(?:it|that|this|them|those|these|one|something|anything|stuff|thing|things|item|the\s+thing)$/i;
+
+const NOTE_CREATION_START =
+  /^(?:(?:please\s+)?(?:take|create|add|make|save|write|jot)\s+(?:a\s+|an\s+|new\s+|quick\s+)?notes?\b|note\s*:|jot\s+down|note\s+down|isulat)/i;
+
+/** "notify me at 5 to…" reads as "remind me at 5 to…" with a notification. */
+const NOTIFY_LEAD = /^(\s*(?:please\s+)?)(?:just\s+)?notify\s+me\b/i;
+/** "…, don't call me", "no call", "notification only", "just a notification". */
+const NOTIFY_PHRASE =
+  /[\s,;]*\b(?:(?:but|and)\s+)?(?:please\s+)?(?:(?:don'?t|do\s+not|no\s+need\s+to)\s+call(?:\s+me)?|(?:with\s+)?no\s+call|without\s+(?:a\s+)?call(?:ing)?(?:\s+me)?|(?:as\s+a\s+|by\s+|via\s+)?notification\s+only|(?:just|only)\s+(?:a\s+|send\s+(?:me\s+)?a\s+)?notification|(?:just|only)\s+notify(?:\s+me)?|as\s+a\s+notification)\b[.!]?/gi;
+
+const REMINDER_CREATING_INTENTS = new Set([
+  'create_reminder',
+  'create_task',
+  'create_time_block',
+]);
+
+/**
+ * Finds a "Notify only" request (audit finding 16) and returns the command
+ * without it. Null when the student did not ask for a notification.
+ */
+export function extractNotifyOnlyRequest(transcript: string): string | null {
+  const text = transcript || '';
+  let found = false;
+  let stripped = text.replace(NOTIFY_LEAD, (_match, prefix: string) => {
+    found = true;
+    return `${prefix}remind me`;
+  });
+  stripped = stripped.replace(NOTIFY_PHRASE, () => {
+    found = true;
+    return '';
+  });
+  return found ? stripped.replace(/\s{2,}/g, ' ').trim() : null;
+}
+
 /** Deterministic Fast-Path NLU Intent Extractor. */
+// ---------------------------------------------------------------------------
+// Alarm plan A3: alarm commands. An alarm rings like a clock alarm (never a
+// call) and lives in Schedule → Alarms. A bare hour means the morning: "wake
+// me up at 6" is 6 AM, and "6pm", "18:00" or "tonight" stay as said.
+// ---------------------------------------------------------------------------
+
+const ALARM_EVENING_WORDS =
+  /\b(?:\d{1,2}(?::\d{2})?\s*(?:pm|p\.m\.?)|(?:1[3-9]|2[0-3]):\d{2}|tonight|evening|afternoon|night|noon)\b/i;
+
+const ALARM_DAY_CODES: Record<string, string> = {
+  monday: 'MO',
+  tuesday: 'TU',
+  wednesday: 'WE',
+  thursday: 'TH',
+  friday: 'FR',
+  saturday: 'SA',
+  sunday: 'SU',
+};
+
+const ALARM_REPEAT_PHRASE =
+  /\b(?:(?:on|every|each)\s+)?(?:week\s?days?|weekends?|school\s+days?|every\s+day|everyday|daily|monday\s+(?:to|through|thru)\s+friday|(?:(?:monday|tuesday|wednesday|thursday|friday|saturday|sunday)s?(?:\s*,\s*|\s+and\s+|\s*&\s*)?)+)/gi;
+
+function alarmClock(
+  text: string,
+  referenceDate: Date,
+): {date: string | null; time: string | null; matched: string[]} {
+  if (!text.trim()) return {date: null, time: null, matched: []};
+  const dt = parseDateAndTime(text, referenceDate);
+  let time = dt.time;
+  let date = dt.date;
+  const matched = [...dt.matchedText];
+  if (!time) {
+    // "set an alarm for 6", "move my alarm to 7", "set an alarm for six".
+    const bare =
+      /\b(?:for|at|by|to)\s+(\d{1,2}|[a-z]+)(?::([0-5]\d))?(?=\s|$)/i.exec(
+        text,
+      ) || /^()(\d{1,2})(?::([0-5]\d))?(?=\s|$)/.exec(text.trim());
+    const hourToken = bare ? bare[1] || bare[2] : null;
+    const minutes = bare ? (bare[1] ? bare[2] : bare[3]) : null;
+    const hour = hourToken ? parseNumberWordOrDigits(hourToken) : null;
+    if (bare && hour !== null && hour >= 1 && hour <= 12) {
+      time = `${String(hour).padStart(2, '0')}:${minutes || '00'}`;
+      matched.push(bare[0]);
+    }
+  }
+  if (
+    time &&
+    Number(time.slice(0, 2)) >= 13 &&
+    !ALARM_EVENING_WORDS.test(text)
+  ) {
+    time = `${String(Number(time.slice(0, 2)) - 12).padStart(
+      2,
+      '0',
+    )}${time.slice(2)}`;
+    // A date that only came from reading the hour as today's evening is
+    // dropped; the review rings it the next time that morning hour comes.
+    if (!/\b(?:today|tomorrow|tonight)\b/i.test(text)) date = null;
+  }
+  // "every monday" names a repeat, not one date.
+  if (
+    date &&
+    /\b(?:every|each)\b|\b(?:monday|tuesday|wednesday|thursday|friday|saturday|sunday)s\b|\bweek\s?days?\b|\bweekends?\b/i.test(
+      text,
+    )
+  )
+    date = null;
+  return {date, time, matched};
+}
+
+/** The weekday repeat an alarm request names, as an RRULE, or null for once. */
+export function alarmRepeatRule(text: string): string | null {
+  const lower = text.toLowerCase();
+  if (
+    /\b(?:week\s?days?|school\s+days?|monday\s+(?:to|through|thru)\s+friday)\b/.test(
+      lower,
+    )
+  )
+    return 'RRULE:FREQ=WEEKLY;BYDAY=MO,TU,WE,TH,FR';
+  if (/\bweekends?\b/.test(lower)) return 'RRULE:FREQ=WEEKLY;BYDAY=SA,SU';
+  if (/\beveryday\b/.test(lower)) return 'RRULE:FREQ=DAILY';
+  const rule = extractRecurrenceRule(lower);
+  if (rule) return rule;
+  // "on mondays and wednesdays": plural days repeat.
+  const plural = [
+    ...lower.matchAll(
+      /\b(monday|tuesday|wednesday|thursday|friday|saturday|sunday)s\b/g,
+    ),
+  ].map(match => ALARM_DAY_CODES[match[1]]);
+  return plural.length
+    ? `RRULE:FREQ=WEEKLY;BYDAY=${[...new Set(plural)].join(',')}`
+    : null;
+}
+
+const ALARM_FILLER =
+  /\b(?:my|the|that|this|all|of|an?|for|at|on|in|by|to|and|me|please|set|alarms?|o'?clock|called|labell?ed|named|titled|ko|mo|yung|ang)\b/gi;
+
+/** Whatever is left once the time, date and repeat words are taken out. */
+function alarmLeftover(text: string, matched: readonly string[]): string {
+  // Repeat phrases first, before a matched weekday splits "monday and wednesday".
+  let rest = ` ${text} `.replace(ALARM_REPEAT_PHRASE, ' ');
+  for (const piece of matched) {
+    if (piece.trim())
+      rest = rest.replace(new RegExp(escapeRegExp(piece), 'i'), ' ');
+  }
+  return rest
+    .replace(/\b(?:today|tomorrow|tonight)(?:'s)?\b/gi, ' ')
+    .replace(/'s\b/g, ' ')
+    .replace(/\b\d{1,2}(?::\d{2})?\s*(?:am|pm|a\.m\.|p\.m\.)?(?=\s|$)/gi, ' ')
+    .replace(/[,.!?]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+function alarmLabelFrom(
+  text: string,
+  matched: readonly string[],
+): string | null {
+  const rest = alarmLeftover(text, matched);
+  const marked = /\b(?:called|labell?ed|named|titled|for|to)\s+(.+)$/i.exec(
+    rest,
+  );
+  const label = (marked ? marked[1] : rest)
+    .replace(ALARM_FILLER, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+  if (!label || label.split(' ').length > 6) return null;
+  return label.charAt(0).toUpperCase() + label.slice(1);
+}
+
+function alarmTarget(
+  descriptor: string,
+  tail: string,
+  referenceDate: Date,
+): {targetTime: string | null; targetTitle: string | null} {
+  const source = `${descriptor} ${tail}`.trim();
+  const clock = alarmClock(source, referenceDate);
+  const label = alarmLabelFrom(source, clock.matched);
+  return {targetTime: clock.time, targetTitle: label};
+}
+
+/** Words before "alarm" that say which alarm, never a whole other request. */
+const alarmDescriptorOk = (pre: string): boolean =>
+  pre.trim().split(/\s+/).filter(Boolean).length <= 5 &&
+  !/\b(?:remind(?:er)?s?|tasks?|events?|notes?|blocks?|to|clock)\b/i.test(pre);
+
+export function parseAlarmCommand(
+  commandLower: string,
+  transcript: string,
+  referenceDate: Date,
+): ExtractedIntent | null {
+  const text = commandLower
+    .replace(/[.!?]+$/g, '')
+    .replace(/\s+/g, ' ')
+    .trim();
+  const namesAlarm =
+    /\balarms?\b/.test(text) && !/\balarms?\s+clocks?\b/.test(text);
+  // "wake me up at 6" asks for an alarm; "wake up at 7:30" alone stays a
+  // to-do titled "Wake up", as before alarms existed.
+  const wakeRequest = /^wake\s+me(?:\s+up)?\b/.test(text);
+  if (!namesAlarm && !wakeRequest) return null;
+  const base = {
+    title: null,
+    date: null,
+    time: null,
+    endTime: null,
+    durationMinutes: null,
+    category: 'Personal',
+    details: null,
+    snoozeMinutes: null,
+    confidence: 0.95,
+    source: 'fast_path' as const,
+    rawTranscript: transcript,
+  };
+
+  if (namesAlarm) {
+    // Questions: "what time is my alarm", "do I have an alarm tomorrow".
+    if (
+      /^(?:what|when|which|how\s+many)\b/.test(text) ||
+      /^(?:show|list|check|see|view|open)\s+(?:me\s+)?(?:all\s+)?(?:of\s+)?(?:my|the)\s+(?:\w+\s+)?alarms?\b/.test(
+        text,
+      ) ||
+      /^(?:do|did|have)\s+i\b/.test(text) ||
+      /^(?:is|are)\s+(?:my|there|the)\b/.test(text) ||
+      /^(?:my|all\s+my)\s+alarms?$/.test(text)
+    ) {
+      return {...base, intent: 'list_alarms'};
+    }
+
+    // On or off: "turn off my 6am alarm", "turn my alarm off", "disable the gym alarm".
+    let enabled: boolean | null = null;
+    let descriptor = '';
+    let tail = '';
+    let match = /^(?:turn|switch)\s+(off|on)\s+(.*?)\balarms?\b(.*)$/.exec(
+      text,
+    );
+    if (match) {
+      enabled = match[1] === 'on';
+      descriptor = match[2];
+      tail = match[3];
+    } else if (
+      (match =
+        /^(?:turn|switch)\s+(.*?)\balarms?\s+(?:back\s+)?(off|on)\b(.*)$/.exec(
+        text,
+      ))
+    ) {
+      enabled = match[2] === 'on';
+      descriptor = match[1];
+      tail = match[3];
+    } else if (
+      (match =
+        /^(disable|enable|deactivate|activate|pause|unpause|resume|mute|silence)\s+(.*?)\balarms?\b(.*)$/.exec(
+          text,
+        ))
+    ) {
+      enabled = /^(?:enable|activate|unpause|resume)$/.test(match[1]);
+      descriptor = match[2];
+      tail = match[3];
+    }
+    if (enabled !== null && alarmDescriptorOk(descriptor)) {
+      return {
+        ...base,
+        intent: 'toggle_alarm',
+        alarmEnabled: enabled,
+        ...alarmTarget(descriptor, tail, referenceDate),
+      };
+    }
+
+    match =
+      /^(?:delete|remove|cancel|clear|erase|get\s+rid\s+of)\s+(.*?)\balarms?\b(.*)$/.exec(
+        text,
+      );
+    if (match && alarmDescriptorOk(match[1])) {
+      return {
+        ...base,
+        intent: 'delete_alarm',
+        ...alarmTarget(match[1], match[2], referenceDate),
+      };
+    }
+
+    match = /^(?:rename|relabel)\s+(.*?)\balarms?\s+(?:to|as)\s+(.+)$/.exec(
+      text,
+    );
+    if (match && alarmDescriptorOk(match[1])) {
+      const label = match[2].trim();
+      return {
+        ...base,
+        intent: 'update_alarm',
+        newTitle: label.charAt(0).toUpperCase() + label.slice(1),
+        ...alarmTarget(match[1], '', referenceDate),
+      };
+    }
+
+    // "change my 6am alarm to 6:30", "move my alarm to 7", "set my 6am alarm to weekdays".
+    match =
+      /^(change|move|reschedule|update|push|adjust|edit|set|make)\s+(?:my|the|that|this)\s+(.*?)\balarms?\s+(?:to|for|at|into|on)\s+(.+)$/.exec(
+        text,
+      );
+    if (match && alarmDescriptorOk(match[2])) {
+      const isSetVerb = /^(?:set|make)$/.test(match[1]);
+      const target = alarmTarget(match[2], '', referenceDate);
+      if (!isSetVerb || target.targetTime || target.targetTitle) {
+        const clock = alarmClock(match[3], referenceDate);
+        return {
+          ...base,
+          intent: 'update_alarm',
+          date: clock.date,
+          time: clock.time,
+          recurrenceRule: alarmRepeatRule(match[3]) || undefined,
+          ...target,
+        };
+      }
+    }
+
+    // "set an alarm for 6", "set a 5:30 alarm on weekdays", "alarm at 7 tomorrow".
+    match =
+      /^(?:set|add|create|make|put|schedule|program)\s+(?:up\s+)?(?:me\s+)?(.*?)\balarms?\b(.*)$/.exec(
+        text,
+      ) || /^()alarms?\s+((?:at|for|on|tomorrow|every|this)\b.*)$/.exec(text);
+    if (match && alarmDescriptorOk(match[1])) {
+      const rest = `${match[1]} ${match[2]}`.trim();
+      const clock = alarmClock(rest, referenceDate);
+      return {
+        ...base,
+        intent: 'create_alarm',
+        title: alarmLabelFrom(rest, clock.matched),
+        date: clock.date,
+        time: clock.time,
+        recurrenceRule: alarmRepeatRule(rest) || undefined,
+      };
+    }
+    return null;
+  }
+
+  // "wake me up at 6 on weekdays", "wake me at 5:30 tomorrow".
+  const rest = text
+    .replace(/^wake\s+me(?:\s+up)?\b/, '')
+    .trim();
+  const clock = alarmClock(rest, referenceDate);
+  return {
+    ...base,
+    intent: 'create_alarm',
+    title: alarmLabelFrom(rest, clock.matched) || 'Wake up',
+    date: clock.date,
+    time: clock.time,
+    recurrenceRule: alarmRepeatRule(rest) || undefined,
+  };
+}
+
 export function parseIntentFastPath(
   transcript: string,
   referenceDate: Date = new Date(),
+): ExtractedIntent {
+  const notifyCommand = extractNotifyOnlyRequest(transcript);
+  if (notifyCommand) {
+    const parsed = parseIntentWithoutDelivery(notifyCommand, referenceDate);
+    if (REMINDER_CREATING_INTENTS.has(parsed.intent)) {
+      return {...parsed, deliveryStyle: 'notify', rawTranscript: transcript};
+    }
+  }
+  return parseIntentWithoutDelivery(transcript, referenceDate);
+}
+
+function parseIntentWithoutDelivery(
+  transcript: string,
+  referenceDate: Date,
+): ExtractedIntent {
+  // Offline Taglish: translate the planner words, never a note's own text.
+  const taglish = NOTE_CREATION_START.test((transcript || '').trim())
+    ? null
+    : translateTaglishCommand(transcript);
+  if (taglish) {
+    return {
+      ...parseEnglishIntent(taglish, referenceDate),
+      rawTranscript: transcript,
+    };
+  }
+  return parseEnglishIntent(transcript, referenceDate);
+}
+
+function parseEnglishIntent(
+  transcript: string,
+  referenceDate: Date,
 ): ExtractedIntent {
   const normalized = normalizeSpeech(transcript);
   const lower = normalized.toLowerCase();
@@ -1578,6 +2196,258 @@ export function parseIntentFastPath(
       source: 'fast_path',
       rawTranscript: transcript,
     };
+  }
+
+  // Alarms (alarm plan A3) before reminders, queries and edits, which would
+  // otherwise read "alarm" as a reminder.
+  const alarmCommand = parseAlarmCommand(
+    commandLower,
+    transcript,
+    referenceDate,
+  );
+  if (alarmCommand) return alarmCommand;
+
+  const base = {
+    date: null,
+    time: null,
+    endTime: null,
+    durationMinutes: null,
+    snoozeMinutes: null,
+    confidence: 0.95,
+    source: 'fast_path' as const,
+    rawTranscript: transcript,
+  };
+
+  // 2b. Planning requests are questions, never items to save ("plan my week
+  // around my exams" must not become a task titled "My Week Around My Exams").
+  if (
+    /^(?:(?:can|could|would)\s+you\s+)?(?:help\s+me\s+)?(?:plan|map)\s+(?:out\s+)?(?:my|the|this|next|our)\s+(?:whole\s+)?(?:week|day|days|weekend|month|semester|schedule|study\s+schedule|review(?:\s+schedule)?|exam\s+week)\b|^(?:(?:can|could|would)\s+you\s+)?help\s+me\s+(?:plan|organi[sz]e|prioriti[sz]e|figure\s+out|decide|manage)\b/i.test(
+      commandLower,
+    )
+  ) {
+    return {
+      ...base,
+      intent: 'chat',
+      title: null,
+      category: detectCategory(normalized),
+      details: transcript,
+      confidence: 0.9,
+    };
+  }
+
+  // 2c. Free time ("find a free slot tomorrow for 2 hours of studying").
+  if (
+    /\b(?:find|any|get|show|look\s+for|suggest|give)\s+(?:me\s+)?(?:an?\s+|some\s+|the\s+)?(?:free|open|available|empty)\s+(?:slots?|time(?:\s+slots?)?|times|windows?|hours?|blocks?|periods?)\b|\bwhen\s+(?:am\s+i|are\s+we)\s+free\b|\bwhen\s+can\s+i\s+(?:study|fit|squeeze|schedule)\b|\b(?:do\s+i\s+have|is\s+there)\s+(?:any\s+)?(?:free|open)\s+(?:time|slots?)\b/i.test(
+      commandLower,
+    )
+  ) {
+    const dt = parseDateAndTime(normalized, referenceDate);
+    return {
+      ...base,
+      intent: 'query_schedule',
+      title: null,
+      date: dt.date || formatLocalDate(referenceDate),
+      durationMinutes: dt.durationMinutes,
+      category: 'Academic',
+      details: 'free_slots',
+    };
+  }
+
+  // 2d. Overdue work ("show overdue tasks", "what am I behind on").
+  if (
+    /\b(?:overdue|past[\s-]+due|late)\s+(?:tasks?|to-?dos?|todos?|to\s+dos?|assignments?|homework|work|items?)\b|\b(?:tasks?|to-?dos?|todos?|assignments?|homework)\s+(?:that\s+(?:are|is)\s+)?(?:overdue|past\s+due|late)\b|\bwhat(?:'s|s|\s+is|\s+am\s+i)\s+(?:overdue|behind(?:\s+on)?)\b|\bam\s+i\s+behind\b|^(?:show|list|check)\s+(?:my\s+)?overdue\b/i.test(
+      commandLower,
+    )
+  ) {
+    return {
+      ...base,
+      intent: 'query_schedule',
+      title: null,
+      date: formatLocalDate(referenceDate),
+      category: 'Academic',
+      details: 'overdue',
+    };
+  }
+
+  // 2e. What comes next ("what's my next class", "what's next").
+  const nextMatch =
+    /\b(?:what(?:'s|s|\s+is)|when(?:'s|s|\s+is)|where(?:'s|s|\s+is)|show|tell\s+me|read)\s+(?:me\s+)?(?:my\s+|the\s+)?next\s*(class|lecture|subject|event|exam|quiz|meeting|appointment|task|deadline|thing|item|schedule)?\b|^next\s+(class|lecture|event|exam|task)\b/i.exec(
+      commandLower,
+    );
+  if (nextMatch) {
+    const kind = (nextMatch[1] || nextMatch[2] || '').toLowerCase();
+    return {
+      ...base,
+      intent: 'query_schedule',
+      title: null,
+      date: formatLocalDate(referenceDate),
+      category: 'Academic',
+      details:
+        kind === 'class' || kind === 'lecture' || kind === 'subject'
+          ? 'next_class'
+          : kind === 'task' || kind === 'deadline'
+          ? 'next_task'
+          : 'next_item',
+    };
+  }
+
+  // 2f. Searching notes by topic ("what did I write about physics?").
+  const noteSearchMatch =
+    /\bwhat\s+(?:did|have)\s+i\s+(?:write|written|wrote|note|noted|jot|jotted|save|saved|put)(?:\s+down)?\s+(?:about|on|regarding|for|in)\s+['"“]?([^'"”?.!]+)/i.exec(
+      commandLower,
+    ) ||
+    /\b(?:search|find|look\s+(?:up|for))\s+(?:in\s+|through\s+)?(?:my\s+|the\s+)?notes?\s+(?:for|about|on)\s+['"“]?([^'"”?.!]+)/i.exec(
+      commandLower,
+    ) ||
+    /\b(?:search\s+for|find|look\s+for)\s+['"“]?([^'"”?.!]+?)['"”]?\s+in\s+(?:my\s+|the\s+)?notes?\b/i.exec(
+      commandLower,
+    ) ||
+    /\b(?:summari[sz]e|recap)\s+(?:my\s+|the\s+)?notes?\s+(?:about|on|for)\s+['"“]?([^'"”?.!]+)/i.exec(
+      commandLower,
+    );
+  if (noteSearchMatch) {
+    const topic = noteSearchMatch[1]
+      .replace(/^(?:my|the|a|an)\s+/i, '')
+      .replace(/\s+(?:notes?|please|lafina)$/i, '')
+      .trim();
+    if (topic && !/^(?:it|that|this|them|everything|anything)$/i.test(topic)) {
+      return {
+        ...base,
+        intent: 'query_notes',
+        title: topic,
+        category: detectCategory(topic),
+        details: topic,
+      };
+    }
+  }
+
+  // 2g. Bulk removal. Always a review card that lists every item first.
+  if (
+    /^(?:clear|delete|remove|erase|wipe|get\s+rid\s+of)\s+(?:out\s+)?(?:all\s+)?(?:of\s+)?(?:my\s+|the\s+)?(?:completed|finished|done|checked(?:[\s-]+off)?|ticked(?:\s+off)?)\s+(?:tasks?|to-?dos?|todos?|to\s+dos?|items?)\b/i.test(
+      commandLower,
+    )
+  ) {
+    return {
+      ...base,
+      intent: 'delete_task',
+      title: 'Completed tasks',
+      targetTitle: 'Completed tasks',
+      targetEntityType: 'task',
+      bulkScope: 'completed_tasks',
+      category: 'Academic',
+      details: null,
+    };
+  }
+  const bulkDateMatch =
+    /^(?:clear|delete|remove|cancel|erase|wipe)\s+(?:out\s+)?(?:(all|everything)\s+)?(?:(?:of\s+)?(?:my|the)\s+)?(?:(today|tomorrow|tonight|monday|tuesday|wednesday|thursday|friday|saturday|sunday)(?:'s|s)?\s+)?(events|appointments|time\s*blocks|blocks|classes|tasks|to-?dos|todos|plans|schedule|calendar|everything)\b(?:\s+(?:for|on)\s+)?(.*)$/i.exec(
+      commandLower,
+    );
+  if (bulkDateMatch) {
+    const dayWord = bulkDateMatch[2] || '';
+    const rest = bulkDateMatch[4] || '';
+    const dt = parseDateAndTime(`${dayWord} ${rest}`, referenceDate);
+    const noun = bulkDateMatch[3].toLowerCase();
+    const hasAll = Boolean(bulkDateMatch[1]) || noun === 'everything';
+    if (
+      dt.date &&
+      (hasAll ||
+        dayWord ||
+        /^(?:today|tomorrow|tonight|on\s|this\s|next\s|monday|tuesday|wednesday|thursday|friday|saturday|sunday)/i.test(
+          rest.trim(),
+        ))
+    ) {
+      const entity: CrudTargetEntityType = /event|appointment/.test(noun)
+        ? 'event'
+        : /block|class/.test(noun)
+        ? 'time_block'
+        : /task|to-?do|todo/.test(noun)
+        ? 'task'
+        : 'any';
+      return {
+        ...base,
+        intent: entity === 'task' ? 'delete_task' : 'delete_time_block',
+        title: `Items on ${dt.date}`,
+        targetTitle: `Items on ${dt.date}`,
+        targetEntityType: entity,
+        bulkScope: 'date_items',
+        date: dt.date,
+        category: 'Academic',
+        details: null,
+      };
+    }
+  }
+
+  // 2h. Adding to an existing checklist or list note ("add rice to my
+  // groceries checklist"). Never the To-Do list, which holds tasks.
+  const listAddMatch =
+    /^(?:add|put|include|append)\s+(.+?)\s+(?:to|on|in|into|onto)\s+(?:my\s+|the\s+)?(.+?)\s+(checklist|check\s*list|list|note)$/i.exec(
+      commandLower.replace(/[.!?]+$/, ''),
+    );
+  if (
+    listAddMatch &&
+    !/^(?:to-?do|to\s+do|todo|task|tasks|reading)$/i.test(
+      listAddMatch[2].trim(),
+    )
+  ) {
+    const items = listAddMatch[1]
+      .split(/\s*,\s*|\s+and\s+/i)
+      .map(item => item.replace(/^(?:some|a|an|the)\s+/i, '').trim())
+      .filter(Boolean)
+      .map(item => item.charAt(0).toUpperCase() + item.slice(1));
+    const listName = listAddMatch[2].trim();
+    if (items.length > 0 && listName) {
+      const targetTitle = listName.charAt(0).toUpperCase() + listName.slice(1);
+      return {
+        ...base,
+        intent: 'update_note',
+        title: targetTitle,
+        targetTitle,
+        targetEntityType: 'note',
+        checklistItems: items,
+        category: 'APPEND',
+        details: null,
+      };
+    }
+  }
+
+  // 2i. A reminder tied to an item ("remind me 30 minutes before my math exam").
+  const leadMatch = new RegExp(
+    `^(?:remind\\s+me|set\\s+(?:a\\s+)?reminder|ping\\s+me|alert\\s+me)\\s+(?:about\\s+(?:my\\s+|the\\s+)?(.+?)\\s+)?(?:(an?|${NUM_WORDS_PATTERN})\\s*(minutes?|mins?|hours?|hrs?)|(half\\s+an?\\s+hour))\\s+(?:before|ahead\\s+of|prior\\s+to)\\s+(?:my\\s+|the\\s+)?(.+?)(?:\\s+(?:starts?|begins?))?[.!?]*$`,
+    'i',
+  ).exec(commandLower);
+  if (leadMatch) {
+    const amountToken = leadMatch[2];
+    const unit = (leadMatch[3] || '').toLowerCase();
+    let minutes: number | null = null;
+    if (leadMatch[4]) minutes = 30;
+    else if (amountToken) {
+      const amount = /^an?$/i.test(amountToken)
+        ? 1
+        : parseNumberWordOrDigits(amountToken);
+      if (amount !== null && amount > 0) {
+        minutes =
+          unit.startsWith('hour') || unit.startsWith('hr')
+            ? amount * 60
+            : amount;
+      }
+    }
+    const rawTarget = (leadMatch[5] || '').trim();
+    const target =
+      rawTarget && !/^(?:it|that|this)$/i.test(rawTarget)
+        ? rawTarget
+        : (leadMatch[1] || '').trim();
+    if (minutes && minutes <= 7 * 24 * 60 && target) {
+      const targetTitle = target.charAt(0).toUpperCase() + target.slice(1);
+      return {
+        ...base,
+        intent: 'create_reminder',
+        title: targetTitle,
+        targetTitle,
+        leadMinutes: minutes,
+        category: detectCategory(targetTitle),
+        details: null,
+      };
+    }
   }
 
   // 3. Schedule Audit & Schedule Query
@@ -2336,7 +3206,28 @@ export function parseIntentFastPath(
     };
   }
 
-  const dt = parseDateAndTime(normalized, referenceDate);
+  const parsedDt = parseDateAndTime(normalized, referenceDate);
+  // An alarm or wake-up call at a bare hour means the morning: "wake me up at
+  // 6" at 10 AM is 6 AM tomorrow, not 6 PM today.
+  const dt =
+    parsedDt.time &&
+    Number(parsedDt.time.slice(0, 2)) >= 13 &&
+    /^(?:wake\s+me\s+up|(?:set|add|create|make|put)\s+(?:up\s+)?(?:my\s+|an?\s+|the\s+|new\s+)?alarms?)\b/i.test(
+      normalized.trim(),
+    ) &&
+    // Only a bare hour: "6pm", "18:00", "tonight" or "evening" stay as said.
+    !/\b(?:\d{1,2}(?::\d{2})?\s*(?:pm|p\.m\.?)|(?:1[3-9]|2[0-3]):\d{2}|tonight|evening|afternoon|night|noon)\b/i.test(
+      normalized,
+    )
+      ? {
+          ...parsedDt,
+          time: `${String(Number(parsedDt.time.slice(0, 2)) - 12).padStart(
+            2,
+            '0',
+          )}${parsedDt.time.slice(2)}`,
+          shiftedToEvening: false,
+        }
+      : parsedDt;
 
   // Determine schedule creation intent (Time Block, Task, Reminder)
   let intentType: ParsedIntentType = 'create_task';
@@ -2353,10 +3244,16 @@ export function parseIntentFastPath(
     targetsTodoList ||
     /^(?:new\s+)?(?:tasks?|todos?|to-?dos?|to\s+dos?)\b/i.test(commandLower);
 
-  const isExplicitReminder = /\b(?:remind|reminders?)\b/i.test(commandLower);
+  const isAlarmRequest =
+    /^(?:set|add|create|make|put)\s+(?:up\s+)?(?:my\s+|an?\s+|the\s+|new\s+)?alarms?\b/i.test(
+      commandLower,
+    ) || /^wake\s+me\s+up\b/i.test(commandLower);
+
+  const isExplicitReminder =
+    /\b(?:remind|reminders?)\b/i.test(commandLower) || isAlarmRequest;
 
   const isImperativeScheduleVerb =
-    /^(?:add|set(?:\s+up)?|create|put|schedule|make|book|plan|remind)\b/i.test(
+    /^(?:add|set(?:\s+up)?|create|put|schedule|make|book|plan|remind|wake)\b/i.test(
       commandLower,
     );
 
@@ -2366,6 +3263,30 @@ export function parseIntentFastPath(
       commandLower,
     ) ||
       commandLower.endsWith('?'));
+
+  // Looking, asking and planning verbs never create an item on their own:
+  // "find a free slot tomorrow" is a question even though it has a date.
+  const isInquiryPhrase =
+    !isImperativeScheduleVerb &&
+    /^(?:find|search|look|check|show|tell|give|list|suggest|recommend|explain|summari[sz]e|review\s+my|compare|help|figure|decide)\b/i.test(
+      commandLower,
+    );
+  if (isInquiryPhrase && !isExplicitTimeBlock && !isExplicitTask) {
+    return {
+      intent: 'chat',
+      title: null,
+      date: null,
+      time: null,
+      endTime: null,
+      durationMinutes: null,
+      category: detectCategory(normalized),
+      details: transcript,
+      snoozeMinutes: null,
+      confidence: 0.85,
+      source: 'fast_path',
+      rawTranscript: transcript,
+    };
+  }
 
   if (isExplicitTimeBlock) {
     intentType = 'create_time_block';
@@ -2409,6 +3330,21 @@ export function parseIntentFastPath(
     /^(?:with\s+)?(?:high|medium|low)\s+priority\s*[:,-]?\s*/i,
     '',
   );
+
+  // "block out 2 hours for thesis", "set my alarm for 6am", "wake me up at 6"
+  cleanTitle = cleanTitle
+    .replace(/^block\s+(?:out|off)\s+(?:some\s+)?(?:time\s+)?/i, '')
+    .replace(
+      /^(?:set|add|create|make|put)\s+(?:up\s+)?(?:my\s+|an?\s+|the\s+|new\s+)?alarms?\s*/i,
+      '',
+    )
+    .replace(/^wake\s+me\s+up\s*/i, '')
+    // "every monday and wednesday", "every mon, wed and fri" (before the
+    // single matched weekday is cut out and leaves "and wednesday" behind)
+    .replace(
+      /\b(?:every|each|on)\s+(?:(?:monday|tuesday|wednesday|thursday|friday|saturday|sunday)s?(?:\s*,\s*|\s+and\s+|\s*&\s*|\s*\/\s*)?){2,}/gi,
+      ' ',
+    );
 
   // Strip command verb + optional article/adjective + entity noun
   cleanTitle = cleanTitle.replace(
@@ -2457,6 +3393,11 @@ export function parseIntentFastPath(
       /\b(?:that\s+repeats?|repeating|repeats?)\s+(?:every|each|on)?\b/gi,
       ' ',
     )
+    // "... on my calendar" / "to my schedule"
+    .replace(
+      /\s+(?:on|to|in|into|onto)\s+(?:my\s+|the\s+)?(?:calendar|schedule|agenda|planner)\b/gi,
+      ' ',
+    )
     .replace(
       /\bevery\s+(?:monday|tuesday|wednesday|thursday|friday|saturday|sunday|day|week|month)\b/gi,
       ' ',
@@ -2500,7 +3441,8 @@ export function parseIntentFastPath(
   let finalDetails: string | null = cleanTitle || normalized;
 
   if (!cleanTitle) {
-    if (intentType === 'create_reminder') finalTitle = 'Reminder';
+    if (isAlarmRequest) finalTitle = 'Alarm';
+    else if (intentType === 'create_reminder') finalTitle = 'Reminder';
     else if (intentType === 'create_time_block') finalTitle = 'Study Session';
     else finalTitle = 'New Task';
   }
@@ -2519,12 +3461,28 @@ export function parseIntentFastPath(
     confidence = dt.matchedText.length > 0 ? 0.95 : 0.85;
   }
 
-  const isExplicitEventKeyword =
-    intentType === 'create_time_block' &&
-    /\b(?:events?|appointments?)\b/i.test(commandLower) &&
-    !/\b(?:time\s*blocks?|timeblocks?|study\s*blocks?|focus\s*blocks?|work\s*blocks?)\b/i.test(
+  // Exams, appointments and meetings at a set time are calendar events, not
+  // to-dos. Without a time they stay tasks (a deadline on that day).
+  const namesBlockExplicitly =
+    /\b(?:time\s*blocks?|timeblocks?|study\s*blocks?|focus\s*blocks?|work\s*blocks?|block\s+(?:out|off|time))\b/i.test(
       commandLower,
     );
+  if (
+    !namesBlockExplicitly &&
+    !isExplicitReminder &&
+    !(isExplicitTask && intentType === 'create_task') &&
+    (intentType === 'create_task' || intentType === 'create_time_block') &&
+    dt.time !== null &&
+    EVENT_NOUN.test(`${finalTitle} ${commandLower}`)
+  ) {
+    intentType = 'create_time_block';
+  }
+
+  const isExplicitEventKeyword =
+    intentType === 'create_time_block' &&
+    !namesBlockExplicitly &&
+    (/\b(?:events?|appointments?)\b/i.test(commandLower) ||
+      (dt.time !== null && EVENT_NOUN.test(`${finalTitle} ${commandLower}`)));
 
   return {
     intent: intentType,

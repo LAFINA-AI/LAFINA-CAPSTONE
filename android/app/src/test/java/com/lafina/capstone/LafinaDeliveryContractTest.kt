@@ -74,6 +74,35 @@ class LafinaDeliveryContractTest {
   }
 
   @Test
+  fun `delivery style round-trips and a call record keeps the older six-field format`() {
+    val call = registration("r1")
+    assertEquals(DeliveryContract.STYLE_CALL, call.style)
+    assertEquals(6, call.encode().split("|").size)
+    assertEquals(call, DeliveryRegistration.decode(call.encode()))
+    val notify = registration("r2").copy(style = DeliveryContract.STYLE_NOTIFY)
+    assertTrue(notify.notifyOnly)
+    assertEquals(7, notify.encode().split("|").size)
+    assertEquals(notify, DeliveryRegistration.decode(notify.encode()))
+    // An unknown style is malformed, never silently treated as a call.
+    assertNull(DeliveryRegistration.decode(call.encode() + "|ring"))
+  }
+
+  @Test
+  fun `notify-only actions have their own identity uris`() {
+    val identity = DeliveryIdentity("o", "r", 3)
+    assertEquals("lafina-capstone://reminder/acknowledge/o/r/3", identity.uri(DeliveryContract.OP_ACKNOWLEDGE))
+    assertEquals("snooze", DeliveryContract.parse(identity.uri(DeliveryContract.OP_SNOOZE))!!.operation)
+  }
+
+  @Test
+  fun `restore keeps the delivery style`() {
+    core.put(registration("late", offsetMs = -60_000).copy(style = DeliveryContract.STYLE_NOTIFY))
+    val action = core.restore().single()
+    assertTrue(action is RestoreAction.FireLate)
+    assertTrue((action as RestoreAction.FireLate).registration.notifyOnly)
+  }
+
+  @Test
   fun `only the exact current identity fires, once`() {
     core.put(registration("r1", generation = 2))
     assertEquals(FireOutcome.STALE, core.claim(DeliveryIdentity("owner-a", "r1", 1)).outcome)

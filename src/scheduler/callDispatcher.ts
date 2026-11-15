@@ -740,6 +740,40 @@ export const declineCall = async (
 };
 
 /**
+ * Hanging up a call the student already answered. They heard the reminder,
+ * so it is acknowledged (received, not task completed) instead of being
+ * auto-snoozed. A call that was never answered still declines (audit
+ * finding 2).
+ */
+export const endAnsweredCall = async (
+  reminderId: string,
+  userId: string,
+  speechProvider: CallSpeechProvider = defaultCallSpeechProvider,
+  expectedGeneration?: number | null,
+): Promise<void> => {
+  const session = activeSession;
+  if (
+    !session ||
+    session.reminderId !== reminderId ||
+    session.userId !== userId ||
+    session.state === 'ringing'
+  ) {
+    await declineCall(reminderId, userId, speechProvider, expectedGeneration);
+    return;
+  }
+  if (!claimCallResolution(session)) return;
+  await stopActiveAudioAndCapture(session);
+  const action = await acknowledgeReminderAction(
+    reminderId,
+    userId,
+    session.generation,
+  );
+  if (!isCurrentSession(session)) return;
+  // No spoken confirmation: the student hung up.
+  disconnectCall(resolutionFromAction(action));
+};
+
+/**
  * Applies a manual snooze through the coordinated scheduler path.
  */
 export const manualSnoozeCall = async (

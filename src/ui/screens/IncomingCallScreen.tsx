@@ -25,6 +25,7 @@ import {
   resumeOfflineCall,
   detectCallKeyword,
   declineCall,
+  endAnsweredCall,
   getReminderPreferences,
   manualAcknowledgeCall,
   manualSnoozeCall,
@@ -44,7 +45,10 @@ import { useTheme } from '../contexts/ThemeContext';
 import { createCallSpeechProvider } from '../../cloud/speechService';
 import { localSettingsStore } from '../../storage/localSettingsStore';
 import { isGuestAccount } from '../../cloud/entitlements';
-import { voiceConsent, waitForVoiceConversationRelease } from '../../cloud/voiceConversation';
+import { REMINDER_CALL_CONSENT_KEY, voiceConsent, waitForVoiceConversationRelease } from '../../cloud/voiceConversation';
+import { DATA_CONSENT_KEY } from '../../ai/voiceActions/actionSecurity';
+import { useCommandReview } from '../hooks/useCommandReview';
+import { CommandReviewCard } from '../components/chat/CommandReviewCard';
 import type { ConversationSnapshot } from '../../cloud/voiceConversation';
 
 const lafinaLogo = require('../../assets/new_lafina_app_logo/lafina_app_logo.png');
@@ -60,6 +64,11 @@ interface IncomingCallScreenProps {
   deliveryGeneration?: number | null;
 }
 
+const SPOKEN_CONFIRM_RE =
+  /^(?:(?:yes|yeah|yep|okay|ok|sure)[,\s]*)?(?:please\s+)?(?:confirm|save\s+(?:it|that)|do\s+it|go\s+ahead|yes|yeah|yep|that'?s\s+right|correct)(?:\s+(?:it|that))?(?:\s+please)?[.!]*$/i;
+const SPOKEN_CANCEL_RE =
+  /^(?:(?:no|nope)[,\s]*)?(?:please\s+)?(?:cancel|discard|never\s*mind|don'?t\s+(?:save|add)\s+(?:it|that)|no|nope)(?:\s+(?:it|that))?(?:\s+please)?[.!]*$/i;
+
 /** Renders and coordinates the complete offline reminder call experience. */
 export const IncomingCallScreen: React.FC<IncomingCallScreenProps> = ({
   visible,
@@ -71,6 +80,11 @@ export const IncomingCallScreen: React.FC<IncomingCallScreenProps> = ({
   deliveryGeneration = null,
 }) => {
   const { isDarkMode, colors } = useTheme();
+  // A planner change asked for during an online reminder call becomes a voice
+  // review card; it is shown here so it can be confirmed (audit finding 3).
+  const review = useCommandReview(userId, 'voice');
+  const reviewRef = useRef(review);
+  reviewRef.current = review;
   const [callState, setCallState] = useState<CallState>('ringing');
   const [resolution, setResolution] = useState<CallResolution | null>(null);
   const [snoozeMinutes, setSnoozeMinutes] = useState(5);
@@ -120,6 +134,8 @@ export const IncomingCallScreen: React.FC<IncomingCallScreenProps> = ({
   const closeCallScreen = useCallback((): void => {
     if (closingRef.current) return;
     closingRef.current = true;
+    // A card nobody confirmed during the call is discarded, never applied.
+    reviewRef.current.cancel({silent: true});
     resetPresentation();
     onClose();
   }, [onClose, resetPresentation]);
@@ -244,15 +260,19 @@ export const IncomingCallScreen: React.FC<IncomingCallScreenProps> = ({
 
     let useOnline = localSettingsStore.get(userId, 'chat.onlineMode', null) === 'true' &&
       !isGuestAccount(userId);
+    // The online conversation also checks the data-sharing consent; this
+    // dialog discloses the same data, so accepting it records both.
     if (useOnline && (!voiceConsent.read(userId) ||
-        localSettingsStore.get(userId, 'voiceConversation.reminderConsent.v1', null) !== 'true')) {
+        localSettingsStore.get(userId, REMINDER_CALL_CONSENT_KEY, null) !== 'true' ||
+        localSettingsStore.get(userId, DATA_CONSENT_KEY, null) !== 'true')) {
       useOnline = await new Promise<boolean>(resolve => {
         Alert.alert('Online Call Lafina conversation',
-          'When you answer, microphone audio streams to ElevenLabs. Your words and this reminder are sent to ElevenLabs and to LAFINA’s server and DeepSeek so the assistant can discuss it. End or mute the call to stop listening.',
+          'When you answer, microphone audio streams to ElevenLabs. Your words, this reminder and a short summary of your next 7 days, notes and saved memories are sent to ElevenLabs and to LAFINA’s server and DeepSeek so the assistant can discuss it. End or mute the call to stop listening.',
           [
             {text: 'Use offline voice', style: 'cancel', onPress: () => resolve(false)},
             {text: 'Continue online', onPress: () => resolve(attempt === attemptRef.current &&
-              voiceConsent.write(userId) && localSettingsStore.set(userId, 'voiceConversation.reminderConsent.v1', 'true'))},
+              voiceConsent.write(userId) && localSettingsStore.set(userId, REMINDER_CALL_CONSENT_KEY, 'true') &&
+              localSettingsStore.set(userId, DATA_CONSENT_KEY, 'true'))},
           ], {cancelable: true, onDismiss: () => resolve(false)});
       });
     }
@@ -324,6 +344,36 @@ export const IncomingCallScreen: React.FC<IncomingCallScreenProps> = ({
     }
   }, [closeCallScreen, deliveryGeneration, reminderId, stopOnline, userId]);
 
+  /** End after Answer: the reminder was received, so it is acknowledged. */
+  const handleEndAnswered = useCallback(async (): Promise<void> => {
+    Vibration.cancel();
+    attemptRef.current += 1;
+    try {
+      await stopOnline();
+      const speechProvider =
+        speechProviderRef.current || createCallSpeechProvider(userId);
+      await endAnsweredCall(reminderId, userId, speechProvider, deliveryGeneration);
+    } catch (error) {
+      console.error('[CallScreen] Could not end reminder call:', error);
+    } finally {
+      closeCallScreen();
+    }
+  }, [closeCallScreen, deliveryGeneration, reminderId, stopOnline, userId]);
+
+  const handleReviewConfirm = useCallback(async (): Promise<void> => {
+    const decision = await reviewRef.current.confirm({speakReply: false});
+    if (!decision || closingRef.current) return;
+    setReply(decision.reply);
+    void onlineRef.current?.sendContext(`Planner update: ${decision.reply}`);
+  }, []);
+
+  const handleReviewCancel = useCallback((): void => {
+    const decision = reviewRef.current.cancel();
+    if (!decision || closingRef.current) return;
+    setReply(decision.reply);
+    void onlineRef.current?.sendContext(`Planner update: ${decision.reply}`);
+  }, []);
+
   const handleManualSnooze = useCallback(
     async (minutes: number): Promise<void> => {
       try {
@@ -335,6 +385,18 @@ export const IncomingCallScreen: React.FC<IncomingCallScreenProps> = ({
       }
     },
     [reminderId, stopOnline, userId],
+  );
+
+  // The online agent's snooze_reminder tool. The dispatcher speaks the result
+  // and ends the call, so the snooze runs after the tool answers.
+  const handleAgentSnooze = useCallback(
+    async (minutes: number): Promise<string> => {
+      setTimeout(() => {
+        void handleManualSnooze(minutes);
+      }, 0);
+      return `Snoozing this reminder for ${minutes} minutes. The call ends now.`;
+    },
+    [handleManualSnooze],
   );
 
   const handleManualAcknowledge = useCallback(async (): Promise<void> => {
@@ -350,6 +412,17 @@ export const IncomingCallScreen: React.FC<IncomingCallScreenProps> = ({
   const handleOnlineTurn = useCallback((text: string): void => {
     const trimmed = text.trim();
     if (!trimmed) return;
+    // A spoken "confirm" / "cancel" answers the card on screen.
+    if (reviewRef.current.proposal && !reviewRef.current.expired) {
+      if (SPOKEN_CONFIRM_RE.test(trimmed)) {
+        void handleReviewConfirm();
+        return;
+      }
+      if (SPOKEN_CANCEL_RE.test(trimmed)) {
+        handleReviewCancel();
+        return;
+      }
+    }
     // Ordinary conversation or questions about snoozing/acknowledging must not resolve the reminder.
     const isDirectAckOrSnooze =
       /^(?:please\s+)?(?:acknowledge(?:\s+(?:it|this|the reminder))?|got it|understood|snooze(?:\s+(?:it|this|the reminder))?(?:\s+(?:for\s+)?(?:\d{1,3}|one|two|three|four|five|ten|fifteen|twenty|thirty|sixty)(?:\s*(?:minutes?|mins?))?)?)(?:\s+please)?[.!?]*$/i.test(
@@ -398,6 +471,7 @@ export const IncomingCallScreen: React.FC<IncomingCallScreenProps> = ({
       })
       .then(result => {
         if (closingRef.current) return;
+        reviewRef.current.present(result.review);
         setReply(result.reply);
         void onlineRef.current?.sendContext(`Planner update: ${result.reply}`);
         if (isDoneCommand) {
@@ -409,6 +483,8 @@ export const IncomingCallScreen: React.FC<IncomingCallScreenProps> = ({
     deliveryGeneration,
     handleManualAcknowledge,
     handleManualSnooze,
+    handleReviewCancel,
+    handleReviewConfirm,
     reminderId,
     snoozeMinutes,
     task,
@@ -493,7 +569,9 @@ export const IncomingCallScreen: React.FC<IncomingCallScreenProps> = ({
       animationType="fade"
       presentationStyle="fullScreen"
       statusBarTranslucent={false}
-      onRequestClose={() => void handleDecline()}
+      onRequestClose={() =>
+        void (callState === 'ringing' ? handleDecline() : handleEndAnswered())
+      }
     >
       <StatusBar
         barStyle={colors.statusBarStyle}
@@ -603,13 +681,28 @@ export const IncomingCallScreen: React.FC<IncomingCallScreenProps> = ({
             snoozeMinutes={snoozeMinutes}
             onSnooze={handleManualSnooze}
             onAcknowledge={handleManualAcknowledge}
-            onDecline={handleDecline}
+            onDecline={handleEndAnswered}
             transcript={transcript}
             reply={reply}
             busy={answering}
+            reviewCard={review.proposal ? (
+              <CommandReviewCard
+                proposal={review.proposal}
+                expired={review.expired}
+                busy={review.busy}
+                onConfirm={() => void handleReviewConfirm()}
+                onCancel={handleReviewCancel}
+                onDismiss={review.dismiss}
+                onEdit={review.edit}
+                onDeliveryChange={review.setDelivery}
+                editError={review.editError}
+                testIDPrefix="reminder-call-review"
+              />
+            ) : undefined}
             onlineConversation={onlineCall ? (
               <OnlineReminderConversation ref={onlineRef} userId={userId} task={task}
-                onSnapshot={handleOnlineSnapshot} onSpokenTurn={handleOnlineTurn} />
+                onSnapshot={handleOnlineSnapshot} onSpokenTurn={handleOnlineTurn}
+                onSnooze={handleAgentSnooze} />
             ) : undefined}
           />
         )}

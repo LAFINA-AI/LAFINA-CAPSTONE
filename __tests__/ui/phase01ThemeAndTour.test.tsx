@@ -64,8 +64,8 @@ describe('Phase 01 Theme, SynthWave, ProductTour & CustomTabBar', () => {
       'welcome',
       'dashboard',
       'calendar',
-      'notes',
       'assistant',
+      'notes',
 
       'account',
       'done',
@@ -82,19 +82,36 @@ describe('Phase 01 Theme, SynthWave, ProductTour & CustomTabBar', () => {
       </ThemeProvider>,
     );
 
-    fireEvent.press(getByLabelText('Dashboard tab'));
+    fireEvent.press(getByLabelText('Home tab'));
     expect(onTabPress).toHaveBeenCalledWith('dashboard');
-    fireEvent.press(getByLabelText('Calendar tab'));
+    fireEvent.press(getByLabelText('Schedule tab'));
     expect(onTabPress).toHaveBeenCalledWith('calendar');
     fireEvent.press(getByLabelText('Notes tab'));
     expect(onTabPress).toHaveBeenCalledWith('notes');
 
-    fireEvent.press(getByLabelText('Chat tab'));
+    fireEvent.press(getByLabelText('AI tab'));
     expect(onTabPress).toHaveBeenCalledWith('chat');
 
     fireEvent.press(getByLabelText('Profile tab'));
     expect(onTabPress).toHaveBeenCalledWith('profile');
 
     expect(queryByLabelText('Voice Action button')).toBeNull();
+  });
+
+  test('tab redesign T1: Home | Schedule | AI | Notes | Profile, AI in the centre', () => {
+    const {TAB_ORDER, TAB_LABELS} = require('../../src/ui/components/CustomTabBar');
+    expect(TAB_ORDER.map((t: string) => TAB_LABELS[t])).toEqual([
+      'Home',
+      'Schedule',
+      'AI',
+      'Notes',
+      'Profile',
+    ]);
+    expect(TAB_ORDER[2]).toBe('chat');
+    // Every tab has a tour step pointing at it.
+    const anchors = buildTourSteps({isGuest: false, isPro: false})
+      .map(s => s.anchor)
+      .filter(Boolean);
+    for (const tab of TAB_ORDER) expect(anchors).toContain(`tab-${tab}`);
   });
 });

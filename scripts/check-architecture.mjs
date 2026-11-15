@@ -184,6 +184,8 @@ const allowedPermissions = new Set([
   'WAKE_LOCK',
   'FOREGROUND_SERVICE',
   'FOREGROUND_SERVICE_MICROPHONE',
+  // Alarm plan A1 (owner approved 2026-11-15): the alarm tone's foreground service.
+  'FOREGROUND_SERVICE_MEDIA_PLAYBACK',
   'REQUEST_INSTALL_PACKAGES',
 ]);
 for (const [, permission] of manifest.matchAll(

@@ -1,4 +1,7 @@
-import {VoiceConversationController} from '../../src/cloud/voiceConversation/controller';
+import {
+  VoiceConversationController,
+  reminderCallContext,
+} from '../../src/cloud/voiceConversation/controller';
 import type {VoiceConversationDeps} from '../../src/cloud/voiceConversation/controller';
 import type {
   ApiOutcome,
@@ -330,23 +333,19 @@ it('keeps the release promise after the prior voice panel unregisters', async ()
   expect(finished).toBe(true);
 });
 
-it('gives the agent the reminder without saving a fabricated user transcript', async () => {
-  const {controller, calls, message} = setup();
+it('describes the answered reminder as start-of-call context that is not re-announced', () => {
+  const text = reminderCallContext('  Review   math at 10 ');
+  expect(text).toContain('"Review math at 10"');
+  expect(text).toMatch(/do not announce or repeat it/);
+  expect(reminderCallContext('   ')).toBe('');
+  expect(reminderCallContext('x'.repeat(500))).toContain(`"${'x'.repeat(300)}"`);
+});
+
+it('sends no mid-call message for the reminder: nothing a user turn or contextual update', async () => {
+  const {controller, calls} = setup();
   await controller.start();
-  expect(await controller.sendReminderContext('Review math at 10')).toBe(true);
-  const sent = JSON.parse(calls.sent[0]);
-  expect(sent.type).toBe('user_message');
-  expect(sent.text).toContain('Review math at 10');
-  message({
-    type: 'tentative_user_transcript',
-    tentative_user_transcription_event: {user_transcript: sent.text},
-  });
-  message(userFinal(sent.text));
+  expect(calls.sent).toEqual([]);
   expect(calls.userTurns).toEqual([]);
-  expect(calls.finalUserText).toEqual([]);
-  expect(
-    controller.getSnapshot().turns.filter(turn => turn.role === 'user'),
-  ).toEqual([]);
   await controller.endAndWait();
 });
 

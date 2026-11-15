@@ -32,6 +32,6 @@ const output = {schemaVersion: 1, source: 'src/ai/voiceActions/actionRegistry.ts
   clientEventsToAdd: ['client_tool_call'], elevenlabsClientTools: client, deepseekTools: deepseek};
 const body = JSON.stringify(output, null, 2) + '\n';
 const target = path.join(__dirname, 'tool-contract.json');
-if (process.argv.includes('--check')) assert.equal(fs.readFileSync(target, 'utf8'), body, 'Contract drift: regenerate and review.');
+if (process.argv.includes('--check')) assert.equal(fs.readFileSync(target, 'utf8').replace(/\r\n/g, '\n'), body, 'Contract drift: regenerate and review.');
 else fs.writeFileSync(target, body);
 console.log(`PASS: ${tools.length} unique tools; flat grouped schema; ${process.argv.includes('--check') ? 'contract matches' : 'contract generated'}; no network used.`);

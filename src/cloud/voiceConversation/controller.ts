@@ -203,6 +203,21 @@ const systemClock: ConversationClock = {
 const randomId = () =>
   `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`;
 
+/**
+ * The answered reminder, as start-of-call context for the agent. It travels
+ * with the student summary in the session's initiation (`student_context`),
+ * which LAFINA's server gives DeepSeek as data. A mid-call contextual update
+ * is not used: the server keeps only the student's and LAFINA's own turns, so
+ * the reminder would be lost. The app already read the reminder aloud, so the
+ * agent is told not to announce it again (audit finding 12). No chat turn is
+ * created.
+ */
+export const reminderCallContext = (task: string): string => {
+  const reminder = task.trim().replace(/\s+/g, ' ').slice(0, 300);
+  if (!reminder) return '';
+  return `Reminder call: the student just answered a reminder call about "${reminder}". The app already read this reminder aloud, so do not announce or repeat it. Wait for the student to speak, and help with it only if they ask (for example to snooze, reschedule or plan around it).`;
+};
+
 export class VoiceConversationController {
   private readonly deps: VoiceConversationDeps;
   private readonly clock: ConversationClock;
@@ -233,7 +248,6 @@ export class VoiceConversationController {
   private provisionalUserId: string | null = null;
   private pending: PendingAnswer | null = null;
   private typedEcho: {text: string; at: number} | null = null;
-  private reminderContextEcho: string | null = null;
   private userFinalAt: number | null = null;
   private firstTextAt: number | null = null;
   private firstAudioAt: number | null = null;
@@ -689,21 +703,6 @@ export class VoiceConversationController {
     return true;
   };
 
-  /** Give an answered call's reminder to the agent without fabricating a chat turn. */
-  sendReminderContext = async (task: string): Promise<boolean> => {
-    const live = this.live;
-    const reminder = task.trim().replace(/\s+/g, ' ').slice(0, 300);
-    if (!live || !reminder || this.snapshot.phase === 'connecting')
-      return false;
-    const text = `I answered a reminder about: ${reminder}. Please briefly remind me about it.`;
-    this.reminderContextEcho = text;
-    const sent = await this.deps.transport
-      .sendMessage(live.key, JSON.stringify({type: 'user_message', text}))
-      .catch(() => false);
-    if (!sent || this.live !== live) this.reminderContextEcho = null;
-    return sent && this.live === live;
-  };
-
   sendContext = async (information: string): Promise<boolean> => {
     const live = this.live;
     const text = information.trim().slice(0, 4000);
@@ -1040,16 +1039,6 @@ export class VoiceConversationController {
       }
       return;
     }
-    if (this.reminderContextEcho === trimmed) {
-      this.reminderContextEcho = null;
-      if (this.provisionalUserId) {
-        this.setTurns(
-          this.snapshot.turns.filter(t => t.id !== this.provisionalUserId),
-        );
-        this.provisionalUserId = null;
-      }
-      return;
-    }
     const echo = this.typedEcho;
     if (echo && echo.text === trimmed && this.clock.now() - echo.at < 5000) {
       this.typedEcho = null;
@@ -1350,6 +1339,5 @@ export class VoiceConversationController {
       this.provisionalUserId = null;
     }
     this.typedEcho = null;
-    this.reminderContextEcho = null;
   }
 }

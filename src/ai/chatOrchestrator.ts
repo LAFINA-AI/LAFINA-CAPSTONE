@@ -31,7 +31,9 @@ import {
   latestPendingReview,
   prepareReviewedCommand,
   reviseReviewedCommand,
+  undoLowRiskCommand,
 } from './nlu/commandReview';
+import type {UndoOffer, UndoResult} from './nlu/commandReview';
 import {
   createMultiActionBatch,
   parseGroupedRequest,
@@ -60,6 +62,11 @@ import {
   SIGNED_OUT_REPLY_NOTE,
 } from './localConversation';
 import type {ValidatedIntent, NluActionResult} from './nlu/types';
+import {runChatAgent} from './chatAgent';
+import {
+  isReferenceRequest,
+  isShortReferenceFollowUp,
+} from './voiceActions/structuredAction';
 import {
   extractIntentWithDeepSeek,
   extractMultiIntentsWithDeepSeek,
@@ -83,7 +90,6 @@ export interface TimeSlot {
 export interface ProcessMessageOptions {
   referenceDate?: Date;
   speakReply?: boolean;
-  forceSchedule?: boolean;
   onlineMode?: boolean;
   useHandbook?: boolean;
   /** Which review card shows a proposal (AGY-PORT 04). Defaults to Chat. */
@@ -125,8 +131,8 @@ export interface ChatOrchestratorResult {
   assistantMessage: ChatMessage;
   intent: ValidatedIntent;
   actionResult?: NluActionResult;
-  conflict?: ScheduleConflict;
-  recommendedSlot?: TimeSlot | null;
+  /** An immediate change that can be reversed from a snackbar. */
+  undo?: UndoOffer;
   attachment?: ChatAttachment | null;
   handbookNote?: string | null;
   usedOnline?: boolean;
@@ -154,6 +160,7 @@ export type SpokenTurnReview =
       reply: string;
       entityType?: string;
       entityId?: string | null;
+      undo?: UndoOffer;
     }
   | {kind: 'multi'; batch: MultiActionBatchData; reply: string}
   | {kind: 'note'; reply: string}
@@ -187,6 +194,25 @@ export function format12HourTime(timeStr?: string | null): string {
   if (hour === 0) hour = 12;
   const minStr = min < 10 ? `0${min}` : `${min}`;
   return `${hour}:${minStr} ${meridiem}`;
+}
+
+const REFERENCE_CLARIFY_REPLY =
+  'Which one do you mean? Tell me what to add or change and when, for example "add physics review Monday at 2 PM".';
+
+/** True when LAFINA's last reply (before this message) was about the planner. */
+function lastAssistantIsPlanner(
+  recent: ChatMessage[],
+  current: string,
+): boolean {
+  const earlier = [...recent].reverse();
+  const lastReply = earlier.find(msg => msg.sender === 'assistant');
+  if (!lastReply || lastReply.content.trim() === current.trim()) return false;
+  return (
+    needsPlannerContext(lastReply.content) ||
+    /\b(?:free|slot|slots|open|available|\d{1,2}(?::\d{2})?\s*(?:am|pm))\b/i.test(
+      lastReply.content,
+    )
+  );
 }
 
 /**
@@ -528,6 +554,11 @@ export class ChatOrchestrator {
         // "yes", "okay", "thanks": conversation, never an authorization.
         return {kind: 'none'};
       }
+      // "book the first one" only points back at the call. The voice model
+      // knows what it meant and describes it through prepare_lafina_action's
+      // fields; a card called "First one" first would flicker or stay
+      // (audit 2, B3).
+      if (isReferenceRequest(validated, trimmed)) return {kind: 'none'};
       const lowRisk = executeLowRiskCommand(userId, validated, {
         referenceDate: refDate,
         surface: 'voice',
@@ -538,6 +569,7 @@ export class ChatOrchestrator {
           reply: lowRisk.reply,
           entityType: lowRisk.entityType,
           entityId: lowRisk.entityId,
+          ...(lowRisk.undo ? {undo: lowRisk.undo} : {}),
         };
       }
       if (lowRisk.status === 'clarify' || lowRisk.status === 'invalid') {
@@ -567,7 +599,6 @@ export class ChatOrchestrator {
   ): Promise<ChatOrchestratorResult> {
     const trimmed = (text || '').trim();
     const refDate = options.referenceDate || new Date();
-    const todayStr = formatLocalDate(refDate);
     const isTemp = options.temporaryChat === true;
     const ustpRagOnly = options.ustpRagOnly === true;
 
@@ -706,8 +737,7 @@ export class ChatOrchestrator {
 
     let finalReply = '';
     let actionResult: NluActionResult | undefined;
-    let conflictResult: ScheduleConflict | undefined;
-    let recommendedSlot: TimeSlot | null = null;
+    let undo: UndoOffer | undefined;
     let attachment: ChatAttachment | null = null;
     let handbookNote: string | null = null;
     let usedOnline = false;
@@ -839,6 +869,52 @@ export class ChatOrchestrator {
           };
         }
       }
+    }
+
+    // "yes" / "confirm" with no card waiting. Offline there is no conversation
+    // it could answer, so say so instead of "needs Online Mode". Online, it may
+    // answer DeepSeek's own question, so it goes to the conversation.
+    if (
+      !pendingProposal &&
+      !isTemp &&
+      !ustpRagOnly &&
+      !options.ringingCall &&
+      !options.onlineMode &&
+      (NOTHING_PENDING_CONFIRM_RE.test(trimmed) ||
+        NOTHING_PENDING_CANCEL_RE.test(trimmed))
+    ) {
+      const reply = NOTHING_PENDING_CONFIRM_RE.test(trimmed)
+        ? 'There\'s nothing waiting for confirmation right now. Tell me what to add or change, for example "add review chapter 4 to my to-do".'
+        : "There's nothing to cancel right now. Nothing was changed.";
+      const assistantMessage = chatStore.addMessage(
+        userId,
+        'assistant',
+        reply,
+        null,
+        {localReply: true},
+        sessionId,
+      );
+      return {
+        userMessage,
+        assistantMessage,
+        intent: {
+          intent: 'chat',
+          title: '',
+          date: null,
+          time: null,
+          endTime: null,
+          durationMinutes: null,
+          category: 'Academic',
+          details: trimmed,
+          snoozeMinutes: null,
+          confidence: 1,
+          source: 'fast_path',
+          rawTranscript: trimmed,
+          isValid: true,
+        },
+        usedOnline: false,
+        reply,
+      };
     }
 
     // Step 2.5: Check for scanned class schedule
@@ -1040,52 +1116,45 @@ export class ChatOrchestrator {
       }
     }
 
-    // Step 4: Conflict-aware scheduling for time blocks
-    if (validated.intent === 'create_time_block' && !options.forceSchedule) {
-      const blockDate = validated.date || todayStr;
-      const startTime = validated.time || '09:00';
-      const duration = validated.durationMinutes || 60;
-      const endTime =
-        validated.endTime || minutesToTime(timeToMinutes(startTime) + duration);
+    // Step 4 (conflicts) lives on the review card: it lists the overlap and
+    // offers the free times as one-tap choices, so chat never asks a question
+    // nothing could answer (audit finding 5).
 
-      conflictResult = this.checkScheduleConflict(
-        userId,
-        blockDate,
-        startTime,
-        endTime,
-      );
-
-      if (conflictResult.hasConflict) {
-        recommendedSlot = this.recommendAvailableSlot(
-          userId,
-          blockDate,
-          duration,
-        );
-        const conflictStart12 = format12HourTime(
-          conflictResult.conflictingStartTime,
-        );
-        const conflictEnd12 = format12HourTime(
-          conflictResult.conflictingEndTime,
-        );
-
-        let conflictMessage = `You already have "${conflictResult.conflictingTitle}" scheduled from ${conflictStart12} to ${conflictEnd12} on ${blockDate}.`;
-        if (recommendedSlot) {
-          const recStart12 = format12HourTime(recommendedSlot.startTime);
-          const recEnd12 = format12HourTime(recommendedSlot.endTime);
-          conflictMessage += ` I found an open slot from ${recStart12} to ${recEnd12}. Would you like me to schedule it then?`;
-        } else {
-          conflictMessage +=
-            ' There are no open daytime slots available on that day.';
-        }
-
-        finalReply = conflictMessage;
+    // A request that only points back at the conversation ("book the first
+    // one", "move it to 4pm") goes to the Chat agent, which sees the history;
+    // offline, a new item named only by a pointer asks instead of saving a
+    // card called "First one" (audit 2, B2).
+    let followUpAgent = false;
+    let pointerOnly = false;
+    if (
+      !finalReply &&
+      !ustpRagOnly &&
+      !isScheduleScan &&
+      !options.ringingCall
+    ) {
+      const pointsBack =
+        isReferenceRequest(validated, trimmed) ||
+        (validated.intent === 'chat' &&
+          !isTemp &&
+          options.onlineMode === true &&
+          isShortReferenceFollowUp(trimmed) &&
+          lastAssistantIsPlanner(
+            readRecentHistory(userId, 6, sessionId),
+            trimmed,
+          ));
+      if (pointsBack && options.onlineMode && !isTemp) {
+        followUpAgent = true;
+      } else if (pointsBack) {
+        pointerOnly = true;
       }
     }
 
     // Step 5: Low-risk planner updates execute immediately; higher-risk changes
     // become a private proposal waiting for Confirm. Reads & calls keep their routes.
     if (!finalReply) {
-      route = routeIntent(validated.intent, {ringingCall: options.ringingCall});
+      route = followUpAgent
+        ? 'conversation'
+        : routeIntent(validated.intent, {ringingCall: options.ringingCall});
       if (route === 'reviewed_mutation') {
         const lowRisk = executeLowRiskCommand(userId, validated, {
           referenceDate: refDate,
@@ -1101,6 +1170,7 @@ export class ChatOrchestrator {
             reply: lowRisk.reply,
           };
           finalReply = lowRisk.reply;
+          undo = lowRisk.undo;
         } else if (lowRisk.status === 'clarify') {
           review = {
             status: 'clarify',
@@ -1118,6 +1188,13 @@ export class ChatOrchestrator {
             ringingCall: options.ringingCall,
           });
           finalReply = review.reply;
+          // Offline, a card named only by a pointer ("First one") is
+          // withdrawn and LAFINA asks instead.
+          if (pointerOnly && review.status === 'proposal') {
+            cancelReviewedCommand(userId, review.proposal.operationId);
+            review = undefined;
+            finalReply = REFERENCE_CLARIFY_REPLY;
+          }
         }
         // "thanks" / "ok" with no ringing call and nothing to acknowledge is
         // just conversation. The refused review wrote nothing, so drop it.
@@ -1181,14 +1258,26 @@ export class ChatOrchestrator {
               content: msg.content,
             }));
 
-          // AI Agent Context: Attach full 7-day Calendar, To-Do & Notes snapshot on
-          // online planner/conversational turns (skip handbook Q&A & brief small talk).
+          // The agent reads the planner itself, only what it needs.
+          const plainHistory = history.map(msg => ({...msg}));
+          // The planner snapshot rides along only when the question is about
+          // the student's own plans, notes or time (audit findings 11 and 15);
+          // a general study question never sends their planner.
           let agentContext = '';
-          if (!ustpRagOnly && !smallTalk && !isHandbookQuestion(trimmed)) {
+          if (
+            !ustpRagOnly &&
+            !smallTalk &&
+            !isHandbookQuestion(trimmed) &&
+            needsPlannerContext(trimmed)
+          ) {
             try {
-              const plannerSnap = buildStudentVoiceContext(userId);
+              const plannerSnap = buildStudentVoiceContext(userId, {
+                referenceDate: refDate,
+              });
               if (plannerSnap) {
-                agentContext = `\n\n[AI Agent Database Context — Student Planner (Today is ${todayStr}):\n${plannerSnap}]`;
+                agentContext = `\n\n[AI Agent Database Context — Student Planner (Now: ${describeNow(
+                  refDate,
+                )}):\n${plannerSnap}]`;
               }
             } catch (err) {
               console.warn(
@@ -1224,7 +1313,38 @@ export class ChatOrchestrator {
             ? chatMemoryStore.forPrompt(userId)
             : [];
           const memoryOption = memories.length > 0 ? {memories} : {};
-          const onlineResult = onReplyText
+          // Questions about the student's own plans go to the Chat agent
+          // first (ADR-033): it can look things up and prepare one card.
+          const agent =
+            followUpAgent ||
+            (!isTemp &&
+              !ustpRagOnly &&
+              !smallTalk &&
+              !isHandbookQuestion(trimmed) &&
+              needsPlannerContext(trimmed))
+              ? await runChatAgent(userId, plainHistory, {
+                  // Handbook passages don't help a planner turn (audit 2, B4).
+                  useHandbook: false,
+                  ...memoryOption,
+                  referenceDate: refDate,
+                  localNow: describeNow(refDate),
+                })
+              : null;
+          if (agent) {
+            finalReply = agent.reply || agent.review?.reply || '';
+            handbookNote = handbookSourceLabel(agent.sources);
+            usedOnline = true;
+            learnFromReply = Boolean(agent.reply);
+            if (agent.review) review = agent.review;
+          }
+          // Without the agent, a pointer can't be resolved: ask, never guess.
+          if (!agent && followUpAgent) {
+            finalReply = REFERENCE_CLARIFY_REPLY;
+          }
+          const onlineResult =
+            agent || followUpAgent
+            ? null
+            : onReplyText
             ? await onlineChatSkill.streamChatMessage(history, {
                 useHandbook,
                 onReplyText,
@@ -1234,7 +1354,9 @@ export class ChatOrchestrator {
                 useHandbook,
                 ...memoryOption,
               });
-          if (onlineResult.status === 'success' && onlineResult.data) {
+          if (!onlineResult) {
+            // Answered by the Chat agent above.
+          } else if (onlineResult.status === 'success' && onlineResult.data) {
             finalReply = onlineResult.data.interrupted
               ? `${onlineResult.data.reply}\n\n${INTERRUPTED_REPLY_NOTE}`
               : onlineResult.data.reply;
@@ -1337,8 +1459,7 @@ export class ChatOrchestrator {
       assistantMessage,
       intent: validated,
       actionResult,
-      conflict: conflictResult,
-      recommendedSlot,
+      ...(undo ? {undo} : {}),
       attachment,
       handbookNote,
       usedOnline,
@@ -1384,6 +1505,31 @@ export class ChatOrchestrator {
     return {outcome, assistantMessage, reply: outcome.reply};
   }
 
+  /**
+   * Reverses an immediate action from its Undo snackbar and notes it in the
+   * transcript. Refused (nothing changes) when the item changed since.
+   */
+  undoAction(
+    userId: string,
+    token: string,
+    options: {recordInChat?: boolean} = {},
+  ): UndoResult {
+    const result = undoLowRiskCommand(userId, token);
+    if (result.status === 'undone' && options.recordInChat !== false) {
+      try {
+        chatStore.addMessage(userId, 'assistant', result.reply, null, {
+          localReply: true,
+        });
+      } catch (error) {
+        console.warn(
+          '[ChatOrchestrator] Could not save the undo to chat:',
+          error,
+        );
+      }
+    }
+    return result;
+  }
+
   /** Discards a proposal. Writes no planner data. */
   cancelReview(
     userId: string,
@@ -1413,6 +1559,42 @@ export const chatOrchestrator = new ChatOrchestrator();
 
 const CHAT_REVIEW_CONFIRM_RE =
   /^(?:(?:yes|yeah|yep|yup|sure|ok(?:ay)?)(?:\s+please)?(?:\s+(?:confirm|save(?:\s+(?:it|that))?|do\s+it|go\s+ahead|apply))?|(?:confirm|save(?:\s+(?:it|that))?|do\s+it|go\s+ahead|apply)(?:\s+please)?)[.!]*$/i;
+
+/** "yes" / "confirm" said when no review card is open. */
+const NOTHING_PENDING_CONFIRM_RE =
+  /^(?:(?:yes|yeah|yep|yup)(?:\s+please)?(?:\s+(?:confirm|save(?:\s+(?:it|that))?|do\s+it|go\s+ahead|apply))?|(?:confirm|save\s+(?:it|that)|do\s+it|go\s+ahead|apply)(?:\s+(?:it|that))?(?:\s+please)?)[.!]*$/i;
+
+/** "cancel" / "never mind" said when no review card is open. */
+const NOTHING_PENDING_CANCEL_RE =
+  /^(?:cancel(?:\s+(?:it|that))?|discard(?:\s+(?:it|that))?)[.!]*$/i;
+
+/**
+ * Online chat sends the planner snapshot only for questions about the
+ * student's own schedule, tasks, notes or time.
+ */
+const PLANNER_TOPIC_RE =
+  /\b(?:schedule|calendar|agenda|plan|plans|planning|class(?:es)?|lecture|exams?|quiz(?:zes)?|midterms?|finals?|deadlines?|due|tasks?|to-?dos?|todo|checklists?|notes?|remind(?:ers?)?|alarm|free|busy|available|week(?:end)?|today|tonight|tomorrow|monday|tuesday|wednesday|thursday|friday|saturday|sunday|next|overdue|behind|study\s+(?:time|session|plan|schedule)|homework|assignments?|projects?|when\s+(?:is|are|do|should)|what\s+(?:do|should)\s+i|my\s+(?:day|morning|afternoon|evening))\b/i;
+
+export const needsPlannerContext = (text: string): boolean =>
+  PLANNER_TOPIC_RE.test(text);
+
+const WEEKDAY_NAMES = [
+  'Sunday',
+  'Monday',
+  'Tuesday',
+  'Wednesday',
+  'Thursday',
+  'Friday',
+  'Saturday',
+];
+
+/** "Friday 2026-11-13, 10:00 AM" so "what's next?" can be answered. */
+const describeNow = (now: Date): string =>
+  `${WEEKDAY_NAMES[now.getDay()]} ${formatLocalDate(now)}, ${format12HourTime(
+    `${String(now.getHours()).padStart(2, '0')}:${String(
+      now.getMinutes(),
+    ).padStart(2, '0')}`,
+  )}`;
 
 const CHAT_REVIEW_CANCEL_RE =
   /^(?:no|nope|cancel(?:\s+(?:it|that))?|never\s*mind|nevermind|forget\s+it|stop|discard(?:\s+(?:it|that))?)[.!]*$/i;

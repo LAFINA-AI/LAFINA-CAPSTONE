@@ -1,0 +1,555 @@
+{
+  "kind": "agent-eval-offline",
+  "reference": "2026-11-14T01:00:00.000Z",
+  "passed": 61,
+  "total": 71,
+  "byCategory": {
+    "create": {
+      "pass": 10,
+      "total": 10
+    },
+    "edit": {
+      "pass": 6,
+      "total": 8
+    },
+    "read": {
+      "pass": 7,
+      "total": 8
+    },
+    "taglish": {
+      "pass": 9,
+      "total": 10
+    },
+    "conversation": {
+      "pass": 6,
+      "total": 6
+    },
+    "reference": {
+      "pass": 6,
+      "total": 12
+    },
+    "alarm": {
+      "pass": 17,
+      "total": 17
+    }
+  },
+  "rows": [
+    {
+      "id": "c01",
+      "category": "create",
+      "text": "remind me tomorrow at 7pm to review physics",
+      "pass": true,
+      "problems": []
+    },
+    {
+      "id": "c02",
+      "category": "create",
+      "text": "add a task to submit the lab report on Friday",
+      "pass": true,
+      "problems": []
+    },
+    {
+      "id": "c03",
+      "category": "create",
+      "text": "schedule a study session tomorrow from 2pm to 4pm",
+      "pass": true,
+      "problems": []
+    },
+    {
+      "id": "c04",
+      "category": "create",
+      "text": "I have a math quiz on Monday at 10am",
+      "pass": true,
+      "problems": []
+    },
+    {
+      "id": "c05",
+      "category": "create",
+      "text": "note: bring calculator to the exam",
+      "pass": true,
+      "problems": []
+    },
+    {
+      "id": "c06",
+      "category": "create",
+      "text": "remind me in 30 minutes to stretch",
+      "pass": true,
+      "problems": []
+    },
+    {
+      "id": "c07",
+      "category": "create",
+      "text": "add buy rice to my to-do list",
+      "pass": true,
+      "problems": []
+    },
+    {
+      "id": "c08",
+      "category": "create",
+      "text": "set a reminder for my dentist appointment next Tuesday at 3pm",
+      "pass": true,
+      "problems": []
+    },
+    {
+      "id": "c09",
+      "category": "create",
+      "text": "jot down that the quiz covers chapters 4 to 6",
+      "pass": true,
+      "problems": []
+    },
+    {
+      "id": "c10",
+      "category": "create",
+      "text": "block 3 hours on Sunday at 1pm for thesis writing",
+      "pass": true,
+      "problems": []
+    },
+    {
+      "id": "e01",
+      "category": "edit",
+      "text": "mark the lab report as done",
+      "pass": true,
+      "problems": []
+    },
+    {
+      "id": "e02",
+      "category": "edit",
+      "text": "move my study session to 5pm",
+      "pass": false,
+      "problems": [
+        "intent=update_task"
+      ]
+    },
+    {
+      "id": "e03",
+      "category": "edit",
+      "text": "cancel my math tutorial tomorrow",
+      "pass": false,
+      "problems": [
+        "intent=delete_task"
+      ]
+    },
+    {
+      "id": "e04",
+      "category": "edit",
+      "text": "pin my exam note",
+      "pass": true,
+      "problems": []
+    },
+    {
+      "id": "e05",
+      "category": "edit",
+      "text": "delete the note about the calculator",
+      "pass": true,
+      "problems": []
+    },
+    {
+      "id": "e06",
+      "category": "edit",
+      "text": "reopen the lab report task",
+      "pass": true,
+      "problems": []
+    },
+    {
+      "id": "e07",
+      "category": "edit",
+      "text": "change the essay deadline to Wednesday",
+      "pass": true,
+      "problems": []
+    },
+    {
+      "id": "e08",
+      "category": "edit",
+      "text": "delete the buy rice task",
+      "pass": true,
+      "problems": []
+    },
+    {
+      "id": "r01",
+      "category": "read",
+      "text": "what's on my schedule tomorrow?",
+      "pass": true,
+      "problems": []
+    },
+    {
+      "id": "r02",
+      "category": "read",
+      "text": "do I have anything on Monday?",
+      "pass": true,
+      "problems": []
+    },
+    {
+      "id": "r03",
+      "category": "read",
+      "text": "find a free slot tomorrow for 2 hours",
+      "pass": true,
+      "problems": []
+    },
+    {
+      "id": "r04",
+      "category": "read",
+      "text": "what tasks are overdue?",
+      "pass": false,
+      "problems": [
+        "intent=chat"
+      ]
+    },
+    {
+      "id": "r05",
+      "category": "read",
+      "text": "what's my next class?",
+      "pass": true,
+      "problems": []
+    },
+    {
+      "id": "r06",
+      "category": "read",
+      "text": "search my notes for photosynthesis",
+      "pass": true,
+      "problems": []
+    },
+    {
+      "id": "r07",
+      "category": "read",
+      "text": "show my to-do list",
+      "pass": true,
+      "problems": []
+    },
+    {
+      "id": "r08",
+      "category": "read",
+      "text": "when am I free on Monday?",
+      "pass": true,
+      "problems": []
+    },
+    {
+      "id": "t01",
+      "category": "taglish",
+      "text": "paalala bukas ng 7pm na mag-review ng physics",
+      "pass": true,
+      "problems": []
+    },
+    {
+      "id": "t02",
+      "category": "taglish",
+      "text": "pa-remind ako mamaya 5pm na mag-submit ng essay",
+      "pass": true,
+      "problems": []
+    },
+    {
+      "id": "t03",
+      "category": "taglish",
+      "text": "lagay mo sa to-do ko yung pagbili ng bigas",
+      "pass": true,
+      "problems": []
+    },
+    {
+      "id": "t04",
+      "category": "taglish",
+      "text": "may quiz ako sa Lunes ng 10am",
+      "pass": true,
+      "problems": []
+    },
+    {
+      "id": "t05",
+      "category": "taglish",
+      "text": "ano schedule ko bukas?",
+      "pass": true,
+      "problems": []
+    },
+    {
+      "id": "t06",
+      "category": "taglish",
+      "text": "i-cancel mo yung study session bukas",
+      "pass": false,
+      "problems": [
+        "intent=delete_task"
+      ]
+    },
+    {
+      "id": "t07",
+      "category": "taglish",
+      "text": "tapos na yung lab report",
+      "pass": true,
+      "problems": []
+    },
+    {
+      "id": "t08",
+      "category": "taglish",
+      "text": "remind mo ako in 15 minutes mag-stretch",
+      "pass": true,
+      "problems": []
+    },
+    {
+      "id": "t09",
+      "category": "taglish",
+      "text": "gawa ka ng note: dalhin ang calculator",
+      "pass": true,
+      "problems": []
+    },
+    {
+      "id": "t10",
+      "category": "taglish",
+      "text": "free ba ako sa Biyernes?",
+      "pass": true,
+      "problems": []
+    },
+    {
+      "id": "v01",
+      "category": "conversation",
+      "text": "explain photosynthesis",
+      "pass": true,
+      "problems": []
+    },
+    {
+      "id": "v02",
+      "category": "conversation",
+      "text": "how do I study better for exams?",
+      "pass": true,
+      "problems": []
+    },
+    {
+      "id": "v03",
+      "category": "conversation",
+      "text": "thanks!",
+      "pass": true,
+      "problems": []
+    },
+    {
+      "id": "v04",
+      "category": "conversation",
+      "text": "what is the grading system in USTP?",
+      "pass": true,
+      "problems": []
+    },
+    {
+      "id": "v05",
+      "category": "conversation",
+      "text": "can you help me fit physics review into my Monday?",
+      "pass": true,
+      "problems": []
+    },
+    {
+      "id": "v06",
+      "category": "conversation",
+      "text": "what should I prioritize this week?",
+      "pass": true,
+      "problems": []
+    },
+    {
+      "id": "x01",
+      "category": "reference",
+      "text": "book the first one",
+      "pass": false,
+      "problems": [
+        "intent=create_task"
+      ]
+    },
+    {
+      "id": "x02",
+      "category": "reference",
+      "text": "move it to 4pm",
+      "pass": true,
+      "problems": []
+    },
+    {
+      "id": "x03",
+      "category": "reference",
+      "text": "help me plan my study time for the physics exam",
+      "pass": false,
+      "problems": [
+        "intent=create_task"
+      ]
+    },
+    {
+      "id": "x04",
+      "category": "reference",
+      "text": "add that to my calendar",
+      "pass": false,
+      "problems": [
+        "intent=create_task"
+      ]
+    },
+    {
+      "id": "x05",
+      "category": "reference",
+      "text": "schedule the same thing next week",
+      "pass": false,
+      "problems": [
+        "intent=create_task"
+      ]
+    },
+    {
+      "id": "x06",
+      "category": "reference",
+      "text": "remind me about it later",
+      "pass": false,
+      "problems": [
+        "intent=create_reminder"
+      ]
+    },
+    {
+      "id": "x07",
+      "category": "reference",
+      "text": "yung una na lang",
+      "pass": true,
+      "problems": []
+    },
+    {
+      "id": "x08",
+      "category": "reference",
+      "text": "sige, i-mark mo nang tapos yun",
+      "pass": true,
+      "problems": []
+    },
+    {
+      "id": "x09",
+      "category": "reference",
+      "text": "I have a physics exam on Tuesday, help me plan my study time",
+      "pass": false,
+      "problems": [
+        "intent=create_task"
+      ]
+    },
+    {
+      "id": "x10",
+      "category": "reference",
+      "text": "do the same for chemistry",
+      "pass": true,
+      "problems": []
+    },
+    {
+      "id": "a01",
+      "category": "alarm",
+      "text": "set an alarm for 6am tomorrow",
+      "pass": true,
+      "problems": []
+    },
+    {
+      "id": "a02",
+      "category": "alarm",
+      "text": "wake me up at 5:30 on weekdays",
+      "pass": true,
+      "problems": []
+    },
+    {
+      "id": "a03",
+      "category": "alarm",
+      "text": "set an alarm for 7",
+      "pass": true,
+      "problems": []
+    },
+    {
+      "id": "a04",
+      "category": "alarm",
+      "text": "wake me up at 6 every day",
+      "pass": true,
+      "problems": []
+    },
+    {
+      "id": "a05",
+      "category": "alarm",
+      "text": "set an alarm at 10pm",
+      "pass": true,
+      "problems": []
+    },
+    {
+      "id": "a06",
+      "category": "alarm",
+      "text": "can you set my alarm for 5 am tomorrow",
+      "pass": true,
+      "problems": []
+    },
+    {
+      "id": "a07",
+      "category": "alarm",
+      "text": "turn off my 6am alarm",
+      "pass": true,
+      "problems": []
+    },
+    {
+      "id": "a08",
+      "category": "alarm",
+      "text": "disable my weekday alarm",
+      "pass": true,
+      "problems": []
+    },
+    {
+      "id": "a09",
+      "category": "alarm",
+      "text": "turn my alarm back on",
+      "pass": true,
+      "problems": []
+    },
+    {
+      "id": "a10",
+      "category": "alarm",
+      "text": "delete my 7:30 alarm",
+      "pass": true,
+      "problems": []
+    },
+    {
+      "id": "a11",
+      "category": "alarm",
+      "text": "change my 6am alarm to 6:30",
+      "pass": true,
+      "problems": []
+    },
+    {
+      "id": "a12",
+      "category": "alarm",
+      "text": "what time is my alarm tomorrow?",
+      "pass": true,
+      "problems": []
+    },
+    {
+      "id": "a13",
+      "category": "alarm",
+      "text": "do I have any alarms set",
+      "pass": true,
+      "problems": []
+    },
+    {
+      "id": "a14",
+      "category": "alarm",
+      "text": "remind me to buy a new alarm clock",
+      "pass": true,
+      "problems": []
+    },
+    {
+      "id": "a15",
+      "category": "alarm",
+      "text": "gisingin mo ako ng 5 bukas",
+      "pass": true,
+      "problems": []
+    },
+    {
+      "id": "a16",
+      "category": "alarm",
+      "text": "alarm ko 6:00 tuwing lunes",
+      "pass": true,
+      "problems": []
+    },
+    {
+      "id": "a17",
+      "category": "alarm",
+      "text": "patayin mo yung alarm ko bukas",
+      "pass": true,
+      "problems": []
+    },
+    {
+      "id": "a18",
+      "category": "reference",
+      "text": "set an alarm for that time",
+      "pass": true,
+      "problems": []
+    },
+    {
+      "id": "a19",
+      "category": "reference",
+      "text": "turn that one off",
+      "pass": true,
+      "problems": []
+    }
+  ]
+}

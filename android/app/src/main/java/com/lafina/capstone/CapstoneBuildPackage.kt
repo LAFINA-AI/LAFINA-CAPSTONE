@@ -18,6 +18,7 @@ class CapstoneBuildPackage : ReactPackage {
       LafinaThemeRevealModule(context),
       LafinaGrainientModule(context),
       LafinaReminderModule(context),
+      LafinaAlarmModule(context),
       LafinaAudioPlayerModule(context),
       LafinaSpeechToTextModule(context),
       LafinaIntentExtractorModule(context),

@@ -14,8 +14,13 @@ const originalAppState = AppState.currentState;
 
 jest.mock('../../src/scheduler', () => ({
   ...jest.requireActual('../../src/scheduler'),
-  answerCall: jest.fn(), declineCall: jest.fn(), manualAcknowledgeCall: jest.fn(), manualSnoozeCall: jest.fn(),
-  resumeOfflineCall: jest.fn(), prepareCallSpeech: jest.fn(),
+  answerCall: jest.fn(),
+  declineCall: jest.fn(),
+  endAnsweredCall: jest.fn(),
+  manualAcknowledgeCall: jest.fn(),
+  manualSnoozeCall: jest.fn(),
+  resumeOfflineCall: jest.fn(),
+  prepareCallSpeech: jest.fn(),
 }));
 
 jest.mock('../../src/ui/components/call/OnlineReminderConversation', () => {
@@ -54,8 +59,15 @@ beforeEach(() => {
   jest.spyOn(PermissionsAndroid, 'request').mockResolvedValue(PermissionsAndroid.RESULTS.GRANTED);
   (scheduler.answerCall as jest.Mock).mockReset().mockResolvedValue(true);
   (scheduler.declineCall as jest.Mock).mockReset().mockResolvedValue(undefined);
-  (scheduler.manualAcknowledgeCall as jest.Mock).mockReset().mockResolvedValue(undefined);
-  (scheduler.manualSnoozeCall as jest.Mock).mockReset().mockResolvedValue(undefined);
+  (scheduler.endAnsweredCall as jest.Mock)
+    .mockReset()
+    .mockResolvedValue(undefined);
+  (scheduler.manualAcknowledgeCall as jest.Mock)
+    .mockReset()
+    .mockResolvedValue(undefined);
+  (scheduler.manualSnoozeCall as jest.Mock)
+    .mockReset()
+    .mockResolvedValue(undefined);
   (scheduler.resumeOfflineCall as jest.Mock).mockReset().mockReturnValue(true);
   (scheduler.prepareCallSpeech as jest.Mock).mockReset().mockResolvedValue(undefined);
   mockEndAndWait.mockClear();
@@ -96,13 +108,35 @@ it('persists explicit consent for sharing reminder details before starting onlin
   expect(alert.mock.calls[0][1]).toContain('this reminder');
   await act(async () => { alert.mock.calls[0][2]![1].onPress?.(); });
   expect(write).toHaveBeenCalledWith('student-online-call');
-  expect(store).toHaveBeenCalledWith('student-online-call', 'voiceConversation.reminderConsent.v1', 'true');
+  expect(store).toHaveBeenCalledWith('student-online-call', 'voiceConversation.reminderConsent.v2', 'true');
+  // The online conversation also requires the data-sharing consent this dialog discloses.
+  expect(store).toHaveBeenCalledWith('student-online-call', 'voiceConversation.directDataConsent.v1', 'true');
   expect(screen.getByTestId('online-reminder-conversation')).toBeTruthy();
+});
+
+it('asks again when only the data-sharing consent is missing', async () => {
+  jest.spyOn(localSettingsStore, 'get').mockImplementation((_user, key) =>
+    key === 'voiceConversation.directDataConsent.v1' ? null : 'true');
+  const alert = jest.spyOn(Alert, 'alert').mockImplementation(() => undefined);
+  const screen = renderCall();
+  await act(async () => { fireEvent.press(screen.getByLabelText('Answer reminder call')); });
+  expect(alert).toHaveBeenCalled();
+});
+
+it('does not accept consent given to the older v1 wording', async () => {
+  jest.spyOn(voiceConsent, 'read').mockRestore();
+  jest.spyOn(localSettingsStore, 'get').mockImplementation((_user, key) =>
+    key === 'voiceConversation.consent.v2' || key === 'voiceConversation.reminderConsent.v2' ? null : 'true');
+  const alert = jest.spyOn(Alert, 'alert').mockImplementation(() => undefined);
+  const screen = renderCall();
+  await act(async () => { fireEvent.press(screen.getByLabelText('Answer reminder call')); });
+  expect(alert).toHaveBeenCalled();
+  expect(alert.mock.calls[0][1]).toContain('next 7 days');
 });
 
 it('asks separately before sharing reminders even if general voice consent exists', async () => {
   jest.spyOn(localSettingsStore, 'get').mockImplementation((_user, key) =>
-    key === 'voiceConversation.reminderConsent.v1' ? null : 'true');
+    key === 'voiceConversation.reminderConsent.v2' ? null : 'true');
   const alert = jest.spyOn(Alert, 'alert').mockImplementation(() => undefined);
   const screen = renderCall();
   await act(async () => { fireEvent.press(screen.getByLabelText('Answer reminder call')); });
@@ -163,10 +197,18 @@ it('lets the student end while microphone permission is pending', async () => {
   (PermissionsAndroid.request as jest.Mock).mockImplementationOnce(() =>
     new Promise(resolve => { grant = resolve; }));
   const screen = renderCall();
-  await act(async () => { fireEvent.press(screen.getByLabelText('Answer reminder call')); });
-  await act(async () => { fireEvent.press(screen.getByLabelText('End reminder call')); });
-  await act(async () => { grant(PermissionsAndroid.RESULTS.GRANTED); });
-  expect(scheduler.declineCall).toHaveBeenCalled();
+  await act(async () => {
+    fireEvent.press(screen.getByLabelText('Answer reminder call'));
+  });
+  await act(async () => {
+    fireEvent.press(screen.getByLabelText('End reminder call'));
+  });
+  await act(async () => {
+    grant(PermissionsAndroid.RESULTS.GRANTED);
+  });
+  // End after Answer goes through endAnsweredCall, which declines (snoozes)
+  // only when no answered session exists yet.
+  expect(scheduler.endAnsweredCall).toHaveBeenCalled();
   expect(scheduler.answerCall).not.toHaveBeenCalled();
   expect(screen.queryByTestId('online-reminder-conversation')).toBeNull();
 });

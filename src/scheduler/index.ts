@@ -31,6 +31,14 @@ export {
 } from './deliveryReconciler';
 export type { DeliveryReconcileSummary } from './deliveryReconciler';
 export { admitReminderCall } from './callAdmission';
+export {
+  NOTIFY_SNOOZE_MINUTES,
+  applyNotificationAction,
+  isNotificationAction,
+  isNotifyOnlyReminder,
+  showNotifyOnlyReminderAlert,
+} from './notifyOnlyDelivery';
+export type { NotificationAction } from './notifyOnlyDelivery';
 export type { CallAdmission, CallRejection, CallRequest } from './callAdmission';
 export {
   snoozeReminderAction,
@@ -50,6 +58,19 @@ export {
 export {
   rescheduleUserReminders,
 } from './reminderRescheduler';
+export {
+  getAlarmHealth,
+  needsBatteryGuidance,
+  nextAlarm,
+  onAlarmDismissedForBriefing,
+  openBatterySettings,
+  reconcileAlarms,
+  ringTestAlarm,
+  startAlarmLifecycle,
+  syncAlarmEvents,
+} from './alarmService';
+export type { AlarmHealth, AlarmNativeEvent } from './alarmService';
+export { migrateAlarmReminders } from './alarmMigration';
 export type { RescheduleSummary } from './reminderRescheduler';
 export { refreshPendingReminderLeadTimes } from './reminderPreferenceSync';
 export type { ReminderPreferenceRefreshResult } from './reminderPreferenceSync';
@@ -63,6 +84,7 @@ export {
   resumeOfflineCall,
   autoSnoozeCall,
   declineCall,
+  endAnsweredCall,
   manualSnoozeCall,
   manualAcknowledgeCall,
   disconnectCall,

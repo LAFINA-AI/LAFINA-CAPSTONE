@@ -13,6 +13,7 @@ import {
   detectCallKeyword,
   answerCall,
   declineCall,
+  endAnsweredCall,
   manualAcknowledgeCall,
   manualSnoozeCall,
   resumeOfflineCall,
@@ -390,6 +391,48 @@ describe('Call Dispatcher, Simulated Incoming Call & Permission Subsystem', () =
 
       const updated = remindersStore.getReminderById(reminder.id);
       expect(updated?.status).toBe('snoozed');
+    });
+
+    it('End after Answer acknowledges the reminder instead of snoozing it (audit finding 2)', async () => {
+      const now = new Date().toISOString();
+      remindersStore.insertReminder({
+        id: 'rem-end-answered',
+        userId,
+        task: 'Read chapter 5',
+        description: null,
+        scheduledAt: now,
+        triggerAt: now,
+        status: 'pending',
+        preCastAudioPath: null,
+      });
+
+      await answerCall('rem-end-answered', userId, false);
+      await endAnsweredCall('rem-end-answered', userId);
+
+      // Received, not task completed: the reminder is acknowledged only.
+      expect(remindersStore.getReminderById('rem-end-answered')?.status).toBe(
+        'acknowledged',
+      );
+    });
+
+    it('End before the call was answered still declines with the snooze policy', async () => {
+      const now = new Date().toISOString();
+      remindersStore.insertReminder({
+        id: 'rem-end-ringing',
+        userId,
+        task: 'Pay tuition',
+        description: null,
+        scheduledAt: now,
+        triggerAt: now,
+        status: 'pending',
+        preCastAudioPath: null,
+      });
+
+      await endAnsweredCall('rem-end-ringing', userId);
+
+      expect(remindersStore.getReminderById('rem-end-ringing')?.status).toBe(
+        'snoozed',
+      );
     });
   });
 

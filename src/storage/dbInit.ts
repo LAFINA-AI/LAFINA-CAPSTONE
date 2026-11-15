@@ -28,6 +28,8 @@ import {
   migrateAttachmentCleanupQueue,
 } from './attachmentCleanupSchema';
 import {migrateChatMemories} from './chatMemorySchema';
+import {migrateReminderDeliveryStyles} from './reminderDeliveryStyleSchema';
+import {migrateAlarms} from './alarmSchema';
 
 export interface SchemaMigration {
   /** The `user_version` this step produces. */
@@ -107,6 +109,22 @@ export const SCHEMA_MIGRATIONS: readonly SchemaMigration[] = [
       'Several chats per account and on-device chat memories (chat history and memory)',
     up: tx => {
       migrateChatMemories(tx);
+    },
+  },
+  {
+    version: 26,
+    description:
+      'Device-local per-reminder delivery style: call or notify only (agent audit finding 16)',
+    up: tx => {
+      migrateReminderDeliveryStyles(tx);
+    },
+  },
+  {
+    version: 27,
+    description:
+      'Device-local LAFINA alarms with repeat days, snooze and generations (alarm plan A2)',
+    up: tx => {
+      migrateAlarms(tx);
     },
   },
 ];

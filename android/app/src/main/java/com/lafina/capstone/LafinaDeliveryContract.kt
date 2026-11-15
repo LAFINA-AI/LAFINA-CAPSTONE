@@ -33,26 +33,42 @@ data class DeliveryIdentity(val ownerId: String, val reminderId: String, val gen
   fun notificationTag(): String = DeliveryContract.notificationTag(reminderId)
 }
 
+/**
+ * [style] is how the reminder reaches the student: [DeliveryContract.STYLE_CALL]
+ * (full-screen reminder call) or [DeliveryContract.STYLE_NOTIFY] (an ordinary
+ * notification with Acknowledge and Snooze). A call record is written exactly as
+ * before (six fields), so an older build still reads it; a notify record adds a
+ * seventh field.
+ */
 data class DeliveryRegistration(
     val identity: DeliveryIdentity,
     val triggerAtMs: Long,
-    val task: String
+    val task: String,
+    val style: String = DeliveryContract.STYLE_CALL
 ) {
+  init {
+    require(style in DeliveryContract.STYLES) { "unknown delivery style" }
+  }
+
+  val notifyOnly: Boolean
+    get() = style == DeliveryContract.STYLE_NOTIFY
+
   fun encode(): String =
-      listOf(
+      (listOf(
               DeliveryContract.RECORD_FORMAT,
               DeliveryContract.encode(identity.ownerId),
               DeliveryContract.encode(identity.reminderId),
               identity.generation.toString(),
               triggerAtMs.toString(),
-              DeliveryContract.encode(task))
+              DeliveryContract.encode(task)) +
+              (if (notifyOnly) listOf(style) else emptyList()))
           .joinToString("|")
 
   companion object {
     /** Null for a malformed record or one written by a newer format (left untouched). */
     fun decode(raw: String?): DeliveryRegistration? {
       val parts = raw?.split("|") ?: return null
-      if (parts.size != 6 || parts[0] != DeliveryContract.RECORD_FORMAT) return null
+      if (parts.size !in 6..7 || parts[0] != DeliveryContract.RECORD_FORMAT) return null
       return try {
         DeliveryRegistration(
             DeliveryIdentity(
@@ -60,7 +76,8 @@ data class DeliveryRegistration(
                 DeliveryContract.decode(parts[2]),
                 parts[3].toLong()),
             parts[4].toLong(),
-            DeliveryContract.decode(parts[5]))
+            DeliveryContract.decode(parts[5]),
+            if (parts.size == 7) parts[6] else DeliveryContract.STYLE_CALL)
       } catch (_: Exception) {
         null
       }
@@ -109,7 +126,13 @@ object DeliveryContract {
   const val OP_CALL = "call"
   const val OP_ANSWER = "answer"
   const val OP_DECLINE = "decline"
-  val OPERATIONS = setOf(OP_DUE, OP_CALL, OP_ANSWER, OP_DECLINE)
+  /** Notify-only reminders: the notification's tap/Acknowledge and Snooze actions. */
+  const val OP_ACKNOWLEDGE = "acknowledge"
+  const val OP_SNOOZE = "snooze"
+  val OPERATIONS = setOf(OP_DUE, OP_CALL, OP_ANSWER, OP_DECLINE, OP_ACKNOWLEDGE, OP_SNOOZE)
+  const val STYLE_CALL = "call"
+  const val STYLE_NOTIFY = "notify"
+  val STYLES = setOf(STYLE_CALL, STYLE_NOTIFY)
   const val RECORD_FORMAT = "v2"
   const val MAX_ID_LENGTH = 2048
   /** Same finite late-delivery bound as the JS rescheduler's missed threshold. */

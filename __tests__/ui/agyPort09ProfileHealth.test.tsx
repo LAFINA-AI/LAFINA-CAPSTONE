@@ -114,7 +114,7 @@ describe('AGY-PORT 09 Profile statistics card', () => {
       'Privacy Policy',
       'Sign Out',
       'Event Defaults',
-      'Reminder Health',
+      'Alarm & Reminder Health',
       'Tasks Done',
       'Notes Saved',
       'On Time',

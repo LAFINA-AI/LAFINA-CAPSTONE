@@ -64,6 +64,11 @@ const ALL_INTENTS: ParsedIntentType[] = [
   'reschedule',
   'query_schedule',
   'query_notes',
+  'create_alarm',
+  'update_alarm',
+  'delete_alarm',
+  'toggle_alarm',
+  'list_alarms',
   'chat',
   'out_of_scope',
 ];
@@ -250,6 +255,12 @@ describe('AGY-PORT 04 reviewed assistant commands', () => {
         reschedule: 'reviewed_mutation',
         query_schedule: 'read_only',
         query_notes: 'read_only',
+        // Alarm plan A3: alarm changes are reviewed like every planner change.
+        create_alarm: 'reviewed_mutation',
+        update_alarm: 'reviewed_mutation',
+        delete_alarm: 'reviewed_mutation',
+        toggle_alarm: 'reviewed_mutation',
+        list_alarms: 'read_only',
         chat: 'conversation',
         out_of_scope: 'conversation',
       });

@@ -56,6 +56,7 @@ import {
   toggleChecklistItem,
 } from '../../../utils';
 import {CalendarLayersModal} from '../../components/calendar/CalendarLayersModal';
+import {AlarmsView} from './components/AlarmsView';
 
 /** Renders the offline calendar workspace and its local scheduling actions. */
 export const CalendarScreen: React.FC<CalendarScreenProps> = ({
@@ -71,6 +72,8 @@ export const CalendarScreen: React.FC<CalendarScreenProps> = ({
   const insets = useSafeAreaInsets();
   const fabBottom = Math.max(insets.bottom, 12) + 90;
 
+  // Tab redesign T1 / alarm plan A2: Schedule = Calendar | Alarms.
+  const [section, setSection] = useState<'calendar' | 'alarms'>('calendar');
   const [fabMenuVisible, setFabMenuVisible] = useState(false);
   const [calendarMenuVisible, setCalendarMenuVisible] = useState(false);
   const [hasUndated, setHasUndated] = useState(false);
@@ -193,6 +196,10 @@ export const CalendarScreen: React.FC<CalendarScreenProps> = ({
       return;
     handledRequest.current = openRequest.requestId;
     onOpenRequestHandled?.(openRequest.requestId);
+    setSection(
+      openRequest.scheduleSection === 'alarms' ? 'alarms' : 'calendar',
+    );
+    if (openRequest.scheduleSection === 'alarms') return;
     try {
       const resolved = openRequest.entityId
         ? resolveCallTarget(userId, openRequest)
@@ -278,8 +285,63 @@ export const CalendarScreen: React.FC<CalendarScreenProps> = ({
     onRefresh();
   };
 
+  const sectionSwitch = (
+    <View style={styles.sectionSwitchContainer}>
+      <View
+        style={[styles.toggleRow, {backgroundColor: colors.divider}]}
+        accessibilityRole="tablist"
+      >
+        {(['calendar', 'alarms'] as const).map(key => (
+          <TouchableOpacity
+            key={key}
+            testID={`schedule-section-${key}`}
+            style={[
+              styles.toggleBtn,
+              {backgroundColor: 'transparent'},
+              section === key && {
+                backgroundColor: colors.cardBg,
+                ...Shadows.card,
+              },
+            ]}
+            onPress={() => setSection(key)}
+            accessibilityRole="tab"
+            accessibilityLabel={key === 'calendar' ? 'Calendar' : 'Alarms'}
+            accessibilityState={{selected: section === key}}
+          >
+            <Text
+              style={[
+                styles.toggleText,
+                {color: colors.textSecondary},
+                section === key && {
+                  color: colors.textPrimary,
+                  fontWeight: 'bold',
+                },
+              ]}
+            >
+              {key === 'calendar' ? 'Calendar' : 'Alarms'}
+            </Text>
+          </TouchableOpacity>
+        ))}
+      </View>
+    </View>
+  );
+
+  if (section === 'alarms') {
+    return (
+      <View style={[styles.container, {backgroundColor: colors.background}]}>
+        {sectionSwitch}
+        <AlarmsView
+          userId={userId}
+          refreshTrigger={refreshTrigger}
+          onRefresh={onRefresh}
+        />
+      </View>
+    );
+  }
+
   return (
     <View style={[styles.container, {backgroundColor: colors.background}]}>
+      {sectionSwitch}
       {/* Shared date header for the month and week views. */}
       <View style={styles.topHeaderRow}>
         <TouchableOpacity
@@ -1013,6 +1075,10 @@ export const CalendarScreen: React.FC<CalendarScreenProps> = ({
 };
 
 const styles = StyleSheet.create({
+  sectionSwitchContainer: {
+    paddingHorizontal: 16,
+    paddingTop: 8,
+  },
   container: {
     flex: 1,
     paddingHorizontal: 16,

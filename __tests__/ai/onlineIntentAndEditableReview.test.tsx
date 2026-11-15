@@ -50,7 +50,9 @@ describe('Fast-path NLU indirect pronouns & tomorrow typos', () => {
       'schedule me a meeting tommorow at 3pm',
       REF,
     );
-    expect(parsed.intent).toBe('create_task');
+    // A meeting with a time is a calendar event (audit finding 9).
+    expect(parsed.intent).toBe('create_time_block');
+    expect(parsed.targetEntityType).toBe('event');
     expect(parsed.title).toBe('Meeting');
     expect(parsed.date).toBe(TOMORROW);
     expect(parsed.time).toBe('15:00');
@@ -546,7 +548,7 @@ describe('Editable CommandReviewCard & editReviewedCommand', () => {
 
     fireEvent.changeText(
       utils.getByTestId('chat-text-input'),
-      'schedule me a meeting tommorow at 3pm',
+      'add a task meeting tommorow at 3pm',
     );
     fireEvent.press(utils.getByTestId('chat-send-button'));
 
@@ -579,7 +581,7 @@ describe('Editable CommandReviewCard & editReviewedCommand', () => {
     fireEvent.press(utils.getByTestId('chat-review-cancel'));
     await waitFor(() =>
       expect(utils.getByTestId('chat-text-input').props.value).toBe(
-        'schedule me a meeting tommorow at 3pm',
+        'add a task meeting tommorow at 3pm',
       ),
     );
     expect(tasksStore.getAllTasks(userId)).toHaveLength(0);
