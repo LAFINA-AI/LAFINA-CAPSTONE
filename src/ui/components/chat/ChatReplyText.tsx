@@ -12,7 +12,6 @@ import {
 import {CheckSquare, Square} from 'lucide-react-native';
 import {Fonts} from '../../theme';
 import {useTheme} from '../../contexts/ThemeContext';
-import type {ThemeColors} from '../../contexts/ThemeContext';
 import {chatMarkdownToPlainText, parseChatMarkdown} from '../../../utils';
 import type {ChatBlock, ChatInline} from '../../../utils';
 import type {ChatReplyFormat} from '../../../storage/chatReplyFormatStore';
@@ -38,17 +37,26 @@ const openLink = (href: string): void => {
   });
 };
 
-const spanStyle = (span: ChatInline, colors: ThemeColors): TextStyle | undefined => {
+const spanStyle = (
+  span: ChatInline,
+  accent: string,
+  softBg: string,
+): TextStyle | undefined => {
   const style: TextStyle = {};
-  if (span.bold) style.fontWeight = 'bold';
+  if (span.bold) {
+    // Keep body font family so Android resolves true 700 bold instead of medium 500.
+    style.fontWeight = '700';
+  }
   if (span.italic) style.fontStyle = 'italic';
   if (span.strike) style.textDecorationLine = 'line-through';
   if (span.code) {
     style.fontFamily = 'monospace';
-    style.backgroundColor = colors.inputBg;
+    style.fontSize = 13;
+    style.backgroundColor = softBg;
+    style.color = accent;
   }
   if (span.href) {
-    style.color = colors.primary;
+    style.color = accent;
     style.textDecorationLine = 'underline';
   }
   return Object.keys(style).length > 0 ? style : undefined;
@@ -59,9 +67,13 @@ const spanStyle = (span: ChatInline, colors: ThemeColors): TextStyle | undefined
  * line of ordinary words is a single text element (screen readers and tests
  * read it as one).
  */
-const renderSpans = (spans: ChatInline[], colors: ThemeColors): React.ReactNode[] =>
+const renderSpans = (
+  spans: ChatInline[],
+  accent: string,
+  softBg: string,
+): React.ReactNode[] =>
   spans.map((span, index) => {
-    const style = spanStyle(span, colors);
+    const style = spanStyle(span, accent, softBg);
     if (!style) return span.text;
     const href = span.href;
     return (
@@ -95,17 +107,20 @@ const CHAR_WIDTH = 7.4;
 const WORD_CHAR_WIDTH = 8.6;
 const CELL_PADDING = 16;
 const cellText = (cell: ChatInline[] | undefined): string =>
-  (cell ?? []).map((span) => span.text).join('');
-export const tableColumnSizes = (rows: ChatInline[][][], fontScale = 1): ColumnSize[] => {
-  const columns = Math.max(0, ...rows.map((row) => row.length));
+  (cell ?? []).map(span => span.text).join('');
+export const tableColumnSizes = (
+  rows: ChatInline[][][],
+  fontScale = 1,
+): ColumnSize[] => {
+  const columns = Math.max(0, ...rows.map(row => row.length));
   const width = (chars: number, perChar: number) =>
     Math.round(chars * perChar * fontScale + CELL_PADDING);
   return Array.from({length: columns}, (_, column) => {
-    const texts = rows.map((row) => cellText(row[column]));
-    const longestCell = Math.max(0, ...texts.map((text) => text.length));
+    const texts = rows.map(row => cellText(row[column]));
+    const longestCell = Math.max(0, ...texts.map(text => text.length));
     const longestWord = Math.max(
       0,
-      ...texts.flatMap((text) => text.split(/\s+/).map((word) => word.length)),
+      ...texts.flatMap(text => text.split(/\s+/).map(word => word.length)),
     );
     const minimum = Math.max(MIN_COLUMN, width(longestWord, WORD_CHAR_WIDTH));
     const preferred = Math.max(
@@ -122,14 +137,20 @@ export const tableColumnSizes = (rows: ChatInline[][][], fontScale = 1): ColumnS
  * the table keeps them and scrolls sideways.
  */
 const TABLE_EDGE = 4;
-export const fitColumnWidths = (sizes: ColumnSize[], available: number): number[] => {
-  const preferred = sizes.map((size) => size.preferred);
+export const fitColumnWidths = (
+  sizes: ColumnSize[],
+  available: number,
+): number[] => {
+  const preferred = sizes.map(size => size.preferred);
   const total = preferred.reduce((sum, width) => sum + width, 0) + TABLE_EDGE;
   if (available <= 0 || total <= available) return preferred;
-  const slack = sizes.reduce((sum, size) => sum + size.preferred - size.minimum, 0);
-  if (slack <= 0) return sizes.map((size) => size.minimum);
+  const slack = sizes.reduce(
+    (sum, size) => sum + size.preferred - size.minimum,
+    0,
+  );
+  if (slack <= 0) return sizes.map(size => size.minimum);
   const ratio = Math.min(1, (total - available) / slack);
-  return sizes.map((size) =>
+  return sizes.map(size =>
     Math.floor(size.preferred - (size.preferred - size.minimum) * ratio),
   );
 };
@@ -156,14 +177,20 @@ export const ChatReplyText: React.FC<ChatReplyTextProps> = ({
   trailing,
   testID,
 }) => {
-  const {colors} = useTheme();
+  const {colors, isModern, modernPalette} = useTheme();
   const [availableWidth, setAvailableWidth] = useState(0);
+  const accent = isModern ? modernPalette.accent : colors.primary;
+  const softBg = isModern ? modernPalette.softViolet : colors.inputBg;
+  const textInk = isModern ? modernPalette.text : colors.textPrimary;
+  const borderInk = isModern ? modernPalette.border : colors.border;
   const blocks = useMemo(
-    () => (format === 'markdown' ? parseChatMarkdown(content, {streaming}) : []),
+    () =>
+      format === 'markdown' ? parseChatMarkdown(content, {streaming}) : [],
     [content, format, streaming],
   );
   const plain = useMemo(
-    () => (format === 'plain' ? chatMarkdownToPlainText(content, {streaming}) : ''),
+    () =>
+      format === 'plain' ? chatMarkdownToPlainText(content, {streaming}) : '',
     [content, format, streaming],
   );
 
@@ -190,26 +217,48 @@ export const ChatReplyText: React.FC<ChatReplyTextProps> = ({
         return <View key={key} style={styles.blank} />;
 
       case 'divider':
-        return <View key={key} style={[styles.divider, {backgroundColor: colors.border}]} />;
+        return (
+          <View
+            key={key}
+            style={[styles.divider, {backgroundColor: borderInk}]}
+          />
+        );
 
       case 'heading':
         return (
           <Text
             key={key}
-            style={[textStyle, styles.heading, headingSizes[block.level]]}
+            style={[
+              textStyle,
+              styles.heading,
+              headingSizes[block.level],
+              {color: block.level === 3 ? accent : textInk},
+            ]}
             accessibilityRole="header"
           >
-            {renderSpans(block.spans, colors)}
+            {renderSpans(block.spans, accent, softBg)}
             {tail}
           </Text>
         );
 
       case 'quote':
         return (
-          <View key={key} style={styles.quoteRow}>
-            <View style={[styles.quoteBar, {backgroundColor: colors.border}]} />
-            <Text style={[textStyle, styles.flexText, {color: colors.textSecondary}]}>
-              {renderSpans(block.spans, colors)}
+          <View
+            key={key}
+            style={[
+              styles.quoteRow,
+              isModern && [styles.modernQuoteBox, {backgroundColor: softBg}],
+            ]}
+          >
+            <View style={[styles.quoteBar, {backgroundColor: accent}]} />
+            <Text
+              style={[
+                textStyle,
+                styles.flexText,
+                {color: isModern ? textInk : colors.textSecondary},
+              ]}
+            >
+              {renderSpans(block.spans, accent, softBg)}
               {tail}
             </Text>
           </View>
@@ -218,18 +267,27 @@ export const ChatReplyText: React.FC<ChatReplyTextProps> = ({
       case 'bullet':
       case 'ordered':
         return (
-          <View key={key} style={[styles.listRow, {marginLeft: block.depth * INDENT}]}>
+          <View
+            key={key}
+            style={[styles.listRow, {marginLeft: block.depth * INDENT}]}
+          >
             <Text
               style={[
                 textStyle,
-                block.kind === 'bullet' ? styles.bulletMarker : styles.orderedMarker,
-                {color: colors.textSecondary},
+                block.kind === 'bullet'
+                  ? styles.bulletMarker
+                  : styles.orderedMarker,
+                {color: accent, fontWeight: '700'},
               ]}
             >
-              {block.kind === 'bullet' ? (block.depth > 0 ? '◦' : '•') : `${block.marker}.`}
+              {block.kind === 'bullet'
+                ? block.depth > 0
+                  ? '◦'
+                  : '•'
+                : `${block.marker}.`}
             </Text>
             <Text style={[textStyle, styles.flexText]}>
-              {renderSpans(block.spans, colors)}
+              {renderSpans(block.spans, accent, softBg)}
               {tail}
             </Text>
           </View>
@@ -238,14 +296,17 @@ export const ChatReplyText: React.FC<ChatReplyTextProps> = ({
       case 'checklist': {
         const Box = block.checked ? CheckSquare : Square;
         return (
-          <View key={key} style={[styles.listRow, {marginLeft: block.depth * INDENT}]}>
+          <View
+            key={key}
+            style={[styles.listRow, {marginLeft: block.depth * INDENT}]}
+          >
             <Box
               size={15}
-              color={block.checked ? colors.success : colors.textSecondary}
+              color={block.checked ? colors.success : accent}
               style={styles.checkbox}
             />
             <Text style={[textStyle, styles.flexText]}>
-              {renderSpans(block.spans, colors)}
+              {renderSpans(block.spans, accent, softBg)}
               {tail}
             </Text>
           </View>
@@ -258,10 +319,13 @@ export const ChatReplyText: React.FC<ChatReplyTextProps> = ({
             key={key}
             horizontal
             nestedScrollEnabled
-            style={[styles.codeBlock, {backgroundColor: colors.inputBg, borderColor: colors.border}]}
+            style={[
+              styles.codeBlock,
+              {backgroundColor: colors.inputBg, borderColor: borderInk},
+            ]}
             contentContainerStyle={styles.codeContent}
           >
-            <Text style={[styles.codeText, {color: colors.textPrimary}]} selectable>
+            <Text style={[styles.codeText, {color: textInk}]} selectable>
               {block.text}
             </Text>
           </ScrollView>
@@ -269,7 +333,10 @@ export const ChatReplyText: React.FC<ChatReplyTextProps> = ({
 
       case 'table': {
         const widths = fitColumnWidths(
-          tableColumnSizes([block.header, ...block.rows], PixelRatio.getFontScale()),
+          tableColumnSizes(
+            [block.header, ...block.rows],
+            PixelRatio.getFontScale(),
+          ),
           availableWidth,
         );
         return (
@@ -279,14 +346,17 @@ export const ChatReplyText: React.FC<ChatReplyTextProps> = ({
             nestedScrollEnabled
             style={styles.tableScroll}
           >
-            <View style={[styles.table, {borderColor: colors.border}]}>
+            <View style={[styles.table, {borderColor: borderInk}]}>
               {[block.header, ...block.rows].map((row, rowIndex) => (
                 <View
                   key={rowIndex}
                   style={[
                     styles.tableRow,
-                    rowIndex > 0 && {borderTopColor: colors.border, borderTopWidth: 1},
-                    rowIndex === 0 && {backgroundColor: colors.inputBg},
+                    rowIndex > 0 && {
+                      borderTopColor: borderInk,
+                      borderTopWidth: 1,
+                    },
+                    rowIndex === 0 && {backgroundColor: softBg},
                   ]}
                 >
                   {widths.map((width, cellIndex) => (
@@ -296,11 +366,14 @@ export const ChatReplyText: React.FC<ChatReplyTextProps> = ({
                         textStyle,
                         styles.tableCell,
                         {width},
-                        cellIndex > 0 && {borderLeftColor: colors.border, borderLeftWidth: 1},
+                        cellIndex > 0 && {
+                          borderLeftColor: borderInk,
+                          borderLeftWidth: 1,
+                        },
                         rowIndex === 0 && styles.tableHeaderCell,
                       ]}
                     >
-                      {renderSpans(row[cellIndex] ?? [], colors)}
+                      {renderSpans(row[cellIndex] ?? [], accent, softBg)}
                     </Text>
                   ))}
                 </View>
@@ -313,7 +386,7 @@ export const ChatReplyText: React.FC<ChatReplyTextProps> = ({
       default:
         return (
           <Text key={key} style={textStyle}>
-            {renderSpans(block.spans, colors)}
+            {renderSpans(block.spans, accent, softBg)}
             {tail}
           </Text>
         );
@@ -324,22 +397,38 @@ export const ChatReplyText: React.FC<ChatReplyTextProps> = ({
     <View
       testID={testID}
       accessibilityLiveRegion={streaming ? 'polite' : undefined}
-      onLayout={(event) => setAvailableWidth(Math.floor(event.nativeEvent.layout.width))}
+      onLayout={event =>
+        setAvailableWidth(Math.floor(event.nativeEvent.layout.width))
+      }
     >
       {blocks.map(renderBlock)}
-      {!trailingInline && trailing ? <Text style={textStyle}>{trailing}</Text> : null}
+      {!trailingInline && trailing ? (
+        <Text style={textStyle}>{trailing}</Text>
+      ) : null}
     </View>
   );
 };
 
 const styles = StyleSheet.create({
-  blank: {height: 8},
-  divider: {height: 1, marginVertical: 10},
-  heading: {fontFamily: Fonts.heading, fontWeight: '700', marginTop: 4, marginBottom: 2},
-  quoteRow: {flexDirection: 'row', alignItems: 'stretch', marginVertical: 2},
-  quoteBar: {width: 3, borderRadius: 2, marginRight: 8},
-  listRow: {flexDirection: 'row', alignItems: 'flex-start', marginVertical: 1},
-  bulletMarker: {width: 14},
+  blank: {height: 7},
+  divider: {height: 1, marginVertical: 9, opacity: 0.7},
+  heading: {
+    fontFamily: Fonts.heading,
+    fontWeight: '700',
+    marginTop: 6,
+    marginBottom: 3,
+    letterSpacing: -0.2,
+  },
+  quoteRow: {flexDirection: 'row', alignItems: 'stretch', marginVertical: 3},
+  modernQuoteBox: {
+    borderRadius: 10,
+    paddingHorizontal: 10,
+    paddingVertical: 7,
+    marginVertical: 4,
+  },
+  quoteBar: {width: 3, borderRadius: 2, marginRight: 9},
+  listRow: {flexDirection: 'row', alignItems: 'flex-start', marginVertical: 2},
+  bulletMarker: {width: 15},
   orderedMarker: {minWidth: 20, marginRight: 4},
   checkbox: {marginTop: 3, marginRight: 6},
   flexText: {flex: 1},
@@ -349,12 +438,17 @@ const styles = StyleSheet.create({
   tableScroll: {marginVertical: 4},
   table: {borderWidth: 1, borderRadius: 8, overflow: 'hidden'},
   tableRow: {flexDirection: 'row'},
-  tableCell: {paddingHorizontal: 8, paddingVertical: 6, fontSize: 13.5, lineHeight: 19},
+  tableCell: {
+    paddingHorizontal: 8,
+    paddingVertical: 6,
+    fontSize: 13.5,
+    lineHeight: 19,
+  },
   tableHeaderCell: {fontWeight: '700'},
 });
 
 const headingSizes = StyleSheet.create({
-  1: {fontSize: 18, lineHeight: 25},
-  2: {fontSize: 16.5, lineHeight: 23},
-  3: {fontSize: 15, lineHeight: 21},
+  1: {fontSize: 17, lineHeight: 23},
+  2: {fontSize: 15.5, lineHeight: 21},
+  3: {fontSize: 14, lineHeight: 20},
 });

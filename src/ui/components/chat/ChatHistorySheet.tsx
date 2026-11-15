@@ -60,7 +60,7 @@ type FilterTab = 'all' | ChatSessionKind;
 const FILTER_OPTIONS: readonly {key: FilterTab; label: string}[] = [
   {key: 'all', label: 'All'},
   {key: 'general', label: 'General'},
-  {key: 'ustp', label: 'USTP RAG'},
+  {key: 'ustp', label: 'USTP'},
 ];
 
 const formatWhen = (iso: string, now = new Date()): string => {
@@ -99,8 +99,17 @@ export const ChatHistorySheet: React.FC<ChatHistorySheetProps> = ({
   onScanGallery,
   onOpenGuide,
 }) => {
-  const {colors} = useTheme();
+  const {colors, isModern, modernPalette, modernShadows} = useTheme();
   const insets = useSafeAreaInsets();
+  const accent = isModern ? modernPalette.accent : colors.primary;
+  const surfaceBg = isModern ? modernPalette.surface : colors.cardBg;
+  const cardBg = isModern ? modernPalette.card : colors.background;
+  const softViolet = isModern
+    ? modernPalette.softViolet
+    : colors.primary + '16';
+  const textPrimary = isModern ? modernPalette.text : colors.textPrimary;
+  const textSecondary = isModern ? modernPalette.muted : colors.textSecondary;
+  const borderColor = isModern ? modernPalette.border : colors.border;
   const {width: windowWidth} = useWindowDimensions();
   const safeWindowWidth = Math.max(windowWidth || 360, 320);
   const sidebarWidth = Math.min(Math.round(safeWindowWidth * 0.85), 360);
@@ -273,10 +282,7 @@ export const ChatHistorySheet: React.FC<ChatHistorySheetProps> = ({
           style: 'destructive',
           onPress: () => {
             try {
-              const {attachmentUris} = chatStore.deleteSession(
-                userId,
-                chat.id,
-              );
+              const {attachmentUris} = chatStore.deleteSession(userId, chat.id);
               void removeAttachmentFiles(attachmentUris);
             } catch (error) {
               console.error('[ChatHistory] Could not delete chat:', error);
@@ -297,9 +303,10 @@ export const ChatHistorySheet: React.FC<ChatHistorySheetProps> = ({
   const renderChat = ({item}: {item: ChatSummary}) => {
     const isOpen = !isTemporaryChat && item.id === currentSessionId;
     const isUstp = item.kind === 'ustp';
+    const isSearching = search.trim().length > 0;
     if (renaming?.id === item.id) {
       return (
-        <View style={[styles.row, {borderColor: colors.border}]}>
+        <View style={[styles.row, {borderColor}]}>
           <TextInput
             value={renaming.title}
             onChangeText={title => setRenaming({id: item.id, title})}
@@ -308,7 +315,7 @@ export const ChatHistorySheet: React.FC<ChatHistorySheetProps> = ({
             autoFocus
             style={[
               styles.renameInput,
-              {color: colors.textPrimary, borderColor: colors.primary},
+              {color: textPrimary, borderColor: accent},
             ]}
             accessibilityLabel="Chat title"
             testID="chat-history-rename-input"
@@ -320,63 +327,63 @@ export const ChatHistorySheet: React.FC<ChatHistorySheetProps> = ({
             testID="chat-history-rename-save"
             style={styles.textButton}
           >
-            <Text style={[styles.textButtonLabel, {color: colors.primary}]}>
-              Save
-            </Text>
+            <Text style={[styles.textButtonLabel, {color: accent}]}>Save</Text>
           </TouchableOpacity>
         </View>
       );
     }
     return (
-      <View
-        style={[
-          styles.row,
-          {borderColor: colors.border},
-          isOpen && {backgroundColor: colors.primary + '14'},
-        ]}
-      >
+      <View style={[styles.row, isOpen && {backgroundColor: softViolet}]}>
         <TouchableOpacity
           style={styles.rowMain}
           onPress={() => openChat(item.id)}
           accessibilityRole="button"
-          accessibilityLabel={`Open chat ${item.title}${isOpen ? ', open now' : ''}`}
+          accessibilityLabel={`Open chat ${item.title}${
+            isOpen ? ', open now' : ''
+          }`}
           testID={`chat-history-item-${item.id}`}
         >
           <View style={styles.titleRow}>
             {isUstp ? (
-              <BookOpen size={14} color={colors.primary} />
+              <BookOpen size={14} color={accent} />
             ) : (
-              <MessageSquare size={14} color={colors.textSecondary} />
+              <MessageSquare
+                size={14}
+                color={isOpen ? accent : textSecondary}
+              />
             )}
             <Text
-              style={[styles.title, {color: colors.textPrimary}]}
+              style={[
+                styles.title,
+                {color: textPrimary},
+                isOpen && {fontWeight: '700'},
+              ]}
               numberOfLines={1}
             >
               {item.title}
             </Text>
             {isUstp && (
               <View
-                style={[
-                  styles.itemBadge,
-                  {backgroundColor: colors.primary + '16'},
-                ]}
+                style={[styles.itemBadge, {backgroundColor: softViolet}]}
                 testID={`chat-history-ustp-badge-${item.id}`}
               >
-                <Text style={[styles.itemBadgeText, {color: colors.primary}]}>
+                <Text style={[styles.itemBadgeText, {color: accent}]}>
                   USTP
                 </Text>
               </View>
             )}
-            <Text style={[styles.when, {color: colors.textSecondary}]}>
+            <Text style={[styles.when, {color: textSecondary}]}>
               {formatWhen(item.lastMessageAt)}
             </Text>
           </View>
-          <Text
-            style={[styles.preview, {color: colors.textSecondary}]}
-            numberOfLines={isFullScreen ? 2 : 1}
-          >
-            {item.preview}
-          </Text>
+          {(isSearching || isFullScreen) && !!item.preview && (
+            <Text
+              style={[styles.preview, {color: textSecondary}]}
+              numberOfLines={1}
+            >
+              {item.preview}
+            </Text>
+          )}
         </TouchableOpacity>
         <TouchableOpacity
           onPress={() =>
@@ -391,7 +398,7 @@ export const ChatHistorySheet: React.FC<ChatHistorySheetProps> = ({
           testID={`chat-history-rename-${item.id}`}
           style={styles.iconButton}
         >
-          <Pencil size={15} color={colors.textSecondary} />
+          <Pencil size={14} color={textSecondary} />
         </TouchableOpacity>
         <TouchableOpacity
           onPress={() => confirmDelete(item)}
@@ -401,7 +408,7 @@ export const ChatHistorySheet: React.FC<ChatHistorySheetProps> = ({
           testID={`chat-history-delete-${item.id}`}
           style={styles.iconButton}
         >
-          <X size={16} color={colors.textSecondary} />
+          <X size={15} color={textSecondary} />
         </TouchableOpacity>
       </View>
     );
@@ -413,27 +420,59 @@ export const ChatHistorySheet: React.FC<ChatHistorySheetProps> = ({
       <View style={styles.listTopSections}>
         {!isSearching && (
           <>
-            <TouchableOpacity
-              style={[styles.newChat, {backgroundColor: colors.primary}]}
-              onPress={startNewChat}
-              accessibilityRole="button"
-              accessibilityLabel="New chat"
-              testID="chat-history-new"
-            >
-              <MessageSquarePlus size={16} color={colors.white} />
-              <Text style={[styles.newChatText, {color: colors.white}]}>
-                New chat
-              </Text>
-            </TouchableOpacity>
+            <View style={styles.primaryActionsRow}>
+              <TouchableOpacity
+                style={[styles.newChat, {backgroundColor: accent}]}
+                onPress={startNewChat}
+                accessibilityRole="button"
+                accessibilityLabel="New chat"
+                testID="chat-history-new"
+              >
+                <MessageSquarePlus size={16} color="#FFFFFF" />
+                <Text style={[styles.newChatText, {color: '#FFFFFF'}]}>
+                  New chat
+                </Text>
+              </TouchableOpacity>
+
+              {onStartTemporaryChat && (
+                <TouchableOpacity
+                  style={[
+                    styles.tempChatBtn,
+                    {
+                      backgroundColor: isTemporaryChat ? softViolet : surfaceBg,
+                      borderColor: isTemporaryChat ? accent : borderColor,
+                    },
+                  ]}
+                  onPress={() => {
+                    if (blockedWhileBusy()) return;
+                    onStartTemporaryChat();
+                  }}
+                  accessibilityRole="button"
+                  accessibilityLabel="Temporary chat"
+                  testID="chat-history-temp-new"
+                >
+                  <MessageCircleDashed
+                    size={16}
+                    color={isTemporaryChat ? accent : textSecondary}
+                  />
+                  <Text
+                    style={[
+                      styles.tempChatText,
+                      {color: isTemporaryChat ? accent : textPrimary},
+                    ]}
+                  >
+                    Temporary
+                  </Text>
+                </TouchableOpacity>
+              )}
+            </View>
 
             <TouchableOpacity
               style={[
-                styles.assistantCard,
+                styles.ustpRow,
                 {
-                  backgroundColor: isCurrentUstp
-                    ? colors.primary + '16'
-                    : colors.cardBg,
-                  borderColor: isCurrentUstp ? colors.primary : colors.border,
+                  backgroundColor: isCurrentUstp ? softViolet : surfaceBg,
+                  borderColor: isCurrentUstp ? accent : borderColor,
                 },
               ]}
               onPress={startUstpChat}
@@ -441,105 +480,28 @@ export const ChatHistorySheet: React.FC<ChatHistorySheetProps> = ({
               accessibilityLabel="Ask LAFINA anything about USTP"
               testID="chat-history-ustp-new"
             >
-              <View
-                style={[
-                  styles.assistantIconBadge,
-                  {backgroundColor: colors.primary + '20'},
-                ]}
+              <BookOpen size={16} color={accent} />
+              <Text
+                style={[styles.ustpRowTitle, {color: textPrimary}]}
+                numberOfLines={1}
               >
-                <BookOpen size={17} color={colors.primary} />
-              </View>
-              <View style={styles.assistantTextWrap}>
-                <Text
-                  style={[styles.assistantTitle, {color: colors.textPrimary}]}
-                  numberOfLines={1}
-                >
-                  Ask LAFINA about USTP
-                </Text>
-                <Text
-                  style={[
-                    styles.assistantSubtitle,
-                    {color: colors.textSecondary},
-                  ]}
-                  numberOfLines={isFullScreen ? 2 : 1}
-                >
-                  USTP Student Handbook RAG · Citations
-                </Text>
-              </View>
-              <View
-                style={[
-                  styles.ragPill,
-                  {backgroundColor: colors.primary + '18'},
-                ]}
-              >
-                <Text style={[styles.ragPillText, {color: colors.primary}]}>
-                  RAG
-                </Text>
+                USTP Handbook
+              </Text>
+              <View style={[styles.ragPill, {backgroundColor: softViolet}]}>
+                <Text style={[styles.ragPillText, {color: accent}]}>RAG</Text>
               </View>
             </TouchableOpacity>
 
-            {onStartTemporaryChat && (
-              <TouchableOpacity
-                style={[
-                  styles.secondaryActionRow,
-                  {
-                    backgroundColor: isTemporaryChat
-                      ? colors.primary + '12'
-                      : colors.cardBg,
-                    borderColor: isTemporaryChat
-                      ? colors.primary
-                      : colors.border,
-                  },
-                ]}
-                onPress={() => {
-                  if (blockedWhileBusy()) return;
-                  onStartTemporaryChat();
-                }}
-                accessibilityRole="button"
-                accessibilityLabel="Temporary chat"
-                testID="chat-history-temp-new"
-              >
-                <MessageCircleDashed
-                  size={16}
-                  color={
-                    isTemporaryChat ? colors.primary : colors.textSecondary
-                  }
-                />
-                <Text
-                  style={[
-                    styles.secondaryActionTitle,
-                    {color: colors.textPrimary},
-                  ]}
-                >
-                  Temporary chat
-                </Text>
-                <Text
-                  style={[
-                    styles.secondaryActionHint,
-                    {color: colors.textSecondary},
-                  ]}
-                >
-                  Unsaved
-                </Text>
-              </TouchableOpacity>
-            )}
-
             {(onScanCamera || onScanGallery || onOpenGuide) && (
               <View style={styles.toolsSection}>
-                <Text
-                  style={[styles.sectionLabel, {color: colors.textSecondary}]}
-                >
-                  Tools
-                </Text>
-
-                <View style={styles.chipGrid}>
+                <View style={styles.quickScanRow}>
                   {onScanCamera && (
                     <TouchableOpacity
                       style={[
-                        styles.toolChip,
+                        styles.toolPill,
                         {
-                          backgroundColor: colors.cardBg,
-                          borderColor: colors.border,
+                          backgroundColor: surfaceBg,
+                          borderColor,
                         },
                       ]}
                       onPress={() => {
@@ -550,13 +512,8 @@ export const ChatHistorySheet: React.FC<ChatHistorySheetProps> = ({
                       accessibilityLabel="Scan schedule with camera"
                       testID="chat-sidebar-scan-camera"
                     >
-                      <Camera size={14} color={colors.primary} />
-                      <Text
-                        style={[
-                          styles.toolChipText,
-                          {color: colors.textPrimary},
-                        ]}
-                      >
+                      <Camera size={15} color={accent} />
+                      <Text style={[styles.toolPillText, {color: textPrimary}]}>
                         Camera
                       </Text>
                     </TouchableOpacity>
@@ -565,10 +522,10 @@ export const ChatHistorySheet: React.FC<ChatHistorySheetProps> = ({
                   {onScanGallery && (
                     <TouchableOpacity
                       style={[
-                        styles.toolChip,
+                        styles.toolPill,
                         {
-                          backgroundColor: colors.cardBg,
-                          borderColor: colors.border,
+                          backgroundColor: surfaceBg,
+                          borderColor,
                         },
                       ]}
                       onPress={() => {
@@ -579,67 +536,52 @@ export const ChatHistorySheet: React.FC<ChatHistorySheetProps> = ({
                       accessibilityLabel="Scan schedule from photos"
                       testID="chat-sidebar-scan-gallery"
                     >
-                      <ImageIcon size={14} color={colors.primary} />
-                      <Text
-                        style={[
-                          styles.toolChipText,
-                          {color: colors.textPrimary},
-                        ]}
-                      >
+                      <ImageIcon size={15} color={accent} />
+                      <Text style={[styles.toolPillText, {color: textPrimary}]}>
                         Gallery
                       </Text>
                     </TouchableOpacity>
                   )}
-
-                  {onOpenGuide && (
-                    <TouchableOpacity
-                      style={[
-                        styles.toolChip,
-                        {
-                          backgroundColor: colors.cardBg,
-                          borderColor: colors.border,
-                        },
-                      ]}
-                      onPress={onOpenGuide}
-                      accessibilityRole="button"
-                      accessibilityLabel="Show what you can ask"
-                      testID="chat-sidebar-guide"
-                    >
-                      <Lightbulb size={14} color={colors.textSecondary} />
-                      <Text
-                        style={[
-                          styles.toolChipText,
-                          {color: colors.textPrimary},
-                        ]}
-                      >
-                        Ask Guide
-                      </Text>
-                    </TouchableOpacity>
-                  )}
                 </View>
+
+                {onOpenGuide && (
+                  <TouchableOpacity
+                    style={[
+                      styles.guideRow,
+                      {
+                        backgroundColor: surfaceBg,
+                        borderColor,
+                      },
+                    ]}
+                    onPress={onOpenGuide}
+                    accessibilityRole="button"
+                    accessibilityLabel="Show what you can ask"
+                    testID="chat-sidebar-guide"
+                  >
+                    <Lightbulb size={15} color={accent} />
+                    <Text style={[styles.guideRowTitle, {color: textPrimary}]}>
+                      What can you ask?
+                    </Text>
+                  </TouchableOpacity>
+                )}
               </View>
             )}
           </>
         )}
 
-        <View style={styles.recentHeaderRow}>
-          <Text style={[styles.sectionLabel, {color: colors.textSecondary}]}>
-            {isSearching ? 'Search Results' : 'Recent Chats'}
-          </Text>
-          <View style={styles.filterPillsRow}>
+        <View style={[styles.recentHeaderRow, {borderTopColor: borderColor}]}>
+          <View style={[styles.segmentedFilter, {backgroundColor: surfaceBg}]}>
             {FILTER_OPTIONS.map(option => {
               const active = kindFilter === option.key;
               return (
                 <TouchableOpacity
                   key={option.key}
                   style={[
-                    styles.filterPill,
-                    {
-                      backgroundColor: active
-                        ? colors.primary + '18'
-                        : 'transparent',
-                      borderColor: active ? colors.primary : colors.border,
+                    styles.filterTab,
+                    active && {
+                      backgroundColor: cardBg,
                     },
+                    active && modernShadows.subtle,
                   ]}
                   onPress={() => setKindFilter(option.key)}
                   accessibilityRole="button"
@@ -649,8 +591,9 @@ export const ChatHistorySheet: React.FC<ChatHistorySheetProps> = ({
                 >
                   <Text
                     style={[
-                      styles.filterPillText,
-                      {color: active ? colors.primary : colors.textSecondary},
+                      styles.filterTabText,
+                      {color: active ? textPrimary : textSecondary},
+                      active && {fontWeight: '700'},
                     ]}
                   >
                     {option.label}
@@ -714,8 +657,8 @@ export const ChatHistorySheet: React.FC<ChatHistorySheetProps> = ({
           style={[
             styles.drawer,
             {
-              backgroundColor: colors.background,
-              borderRightColor: colors.border,
+              backgroundColor: cardBg,
+              borderRightColor: borderColor,
               borderRightWidth: isFullScreen ? 0 : StyleSheet.hairlineWidth,
               width: drawerWidth,
               borderTopRightRadius: drawerRadius,
@@ -728,43 +671,27 @@ export const ChatHistorySheet: React.FC<ChatHistorySheetProps> = ({
           testID="chat-history-sheet"
         >
           <View style={styles.header}>
-            <View style={styles.headerTitleGroup}>
-              <Text style={[styles.heading, {color: colors.textPrimary}]}>
-                lafina
-              </Text>
-              <View
-                style={[
-                  styles.modePill,
-                  {backgroundColor: colors.primary + '14'},
-                ]}
-              >
-                <Text style={[styles.modePillText, {color: colors.primary}]}>
-                  {isFullScreen ? 'All Chats' : 'Chats & Tools'}
-                </Text>
-              </View>
-            </View>
+            <Text style={[styles.heading, {color: textPrimary}]}>Chat</Text>
 
             <View style={styles.headerActions}>
               <TouchableOpacity
                 onPress={() => setIsFullScreen(prev => !prev)}
                 accessibilityRole="button"
                 accessibilityLabel={
-                  isFullScreen
-                    ? 'Collapse to sidebar'
-                    : 'Expand to full screen'
+                  isFullScreen ? 'Collapse to sidebar' : 'Expand to full screen'
                 }
                 accessibilityState={{expanded: isFullScreen}}
                 testID="chat-history-expand"
                 style={[
                   styles.headerActionBtn,
-                  {backgroundColor: colors.cardBg, borderColor: colors.border},
+                  {backgroundColor: surfaceBg, borderColor},
                 ]}
                 hitSlop={{top: 8, bottom: 8, left: 4, right: 4}}
               >
                 {isFullScreen ? (
-                  <Minimize2 size={16} color={colors.textPrimary} />
+                  <Minimize2 size={16} color={textPrimary} />
                 ) : (
-                  <Maximize2 size={16} color={colors.textPrimary} />
+                  <Maximize2 size={16} color={textPrimary} />
                 )}
               </TouchableOpacity>
               <TouchableOpacity
@@ -774,11 +701,11 @@ export const ChatHistorySheet: React.FC<ChatHistorySheetProps> = ({
                 testID="chat-history-close"
                 style={[
                   styles.headerActionBtn,
-                  {backgroundColor: colors.cardBg, borderColor: colors.border},
+                  {backgroundColor: surfaceBg, borderColor},
                 ]}
                 hitSlop={{top: 8, bottom: 8, left: 4, right: 8}}
               >
-                <X size={17} color={colors.textSecondary} />
+                <X size={17} color={textSecondary} />
               </TouchableOpacity>
             </View>
           </View>
@@ -787,19 +714,19 @@ export const ChatHistorySheet: React.FC<ChatHistorySheetProps> = ({
             style={[
               styles.searchBox,
               {
-                backgroundColor: colors.inputBg,
-                borderColor: isFullScreen ? colors.primary : colors.border,
+                backgroundColor: surfaceBg,
+                borderColor: isFullScreen ? accent : borderColor,
               },
             ]}
           >
-            <Search size={15} color={colors.textSecondary} />
+            <Search size={15} color={textSecondary} />
             <TextInput
               value={search}
               onChangeText={setSearch}
               onFocus={() => setIsFullScreen(true)}
-              placeholder="Search chats & messages…"
-              placeholderTextColor={colors.textSecondary}
-              style={[styles.searchInput, {color: colors.textPrimary}]}
+              placeholder="Search chats…"
+              placeholderTextColor={textSecondary}
+              style={[styles.searchInput, {color: textPrimary}]}
               accessibilityLabel="Search chats"
               testID="chat-history-search"
             />
@@ -811,13 +738,13 @@ export const ChatHistorySheet: React.FC<ChatHistorySheetProps> = ({
                 testID="chat-history-search-clear"
                 hitSlop={{top: 6, bottom: 6, left: 6, right: 6}}
               >
-                <X size={15} color={colors.textSecondary} />
+                <X size={15} color={textSecondary} />
               </TouchableOpacity>
             )}
           </View>
 
           {loadError ? (
-            <Text style={[styles.empty, {color: colors.textSecondary}]}>
+            <Text style={[styles.empty, {color: textSecondary}]}>
               Your chats could not be loaded right now. Nothing was deleted.
             </Text>
           ) : (
@@ -831,7 +758,7 @@ export const ChatHistorySheet: React.FC<ChatHistorySheetProps> = ({
               contentContainerStyle={styles.listContainer}
               ListEmptyComponent={
                 <Text
-                  style={[styles.empty, {color: colors.textSecondary}]}
+                  style={[styles.empty, {color: textSecondary}]}
                   testID="chat-history-empty"
                 >
                   {emptyMessage}
@@ -839,10 +766,6 @@ export const ChatHistorySheet: React.FC<ChatHistorySheetProps> = ({
               }
             />
           )}
-
-          <Text style={[styles.footnote, {color: colors.textSecondary}]}>
-            Chats are kept on this phone only.
-          </Text>
         </Animated.View>
       </View>
     </Modal>
@@ -874,27 +797,11 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     gap: 8,
   },
-  headerTitleGroup: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    flex: 1,
-    minWidth: 0,
-  },
   heading: {
     fontFamily: Fonts.heading,
-    fontSize: FontSize.subtitle,
-    fontWeight: '700',
-  },
-  modePill: {
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: 10,
-  },
-  modePillText: {
-    fontFamily: Fonts.heading,
-    fontSize: 10.5,
-    fontWeight: '700',
+    fontSize: 22,
+    fontWeight: '800',
+    letterSpacing: -0.3,
   },
   headerActions: {
     flexDirection: 'row',
@@ -903,9 +810,9 @@ const styles = StyleSheet.create({
     flexShrink: 0,
   },
   headerActionBtn: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
+    width: 34,
+    height: 34,
+    borderRadius: 17,
     borderWidth: 1,
     alignItems: 'center',
     justifyContent: 'center',
@@ -915,8 +822,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 8,
     borderWidth: 1,
-    borderRadius: 22,
-    paddingHorizontal: 12,
+    borderRadius: 999,
+    paddingHorizontal: 13,
   },
   searchInput: {
     flex: 1,
@@ -925,17 +832,23 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
   },
   listContainer: {
-    paddingBottom: 12,
+    paddingBottom: 16,
   },
   listTopSections: {
     gap: 8,
     marginBottom: 8,
   },
+  primaryActionsRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
   newChat: {
+    flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 8,
+    gap: 7,
     borderRadius: 14,
     paddingVertical: 11,
   },
@@ -944,34 +857,35 @@ const styles = StyleSheet.create({
     fontSize: FontSize.body,
     fontWeight: '700',
   },
-  assistantCard: {
+  tempChatBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    borderRadius: 14,
+    borderWidth: 1,
+    paddingHorizontal: 13,
+    paddingVertical: 11,
+  },
+  tempChatText: {
+    fontFamily: Fonts.body,
+    fontSize: 13,
+    fontWeight: '600',
+  },
+  ustpRow: {
     flexDirection: 'row',
     alignItems: 'center',
     borderRadius: 14,
     borderWidth: 1,
-    padding: 10,
-    gap: 10,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    gap: 9,
   },
-  assistantIconBadge: {
-    width: 34,
-    height: 34,
-    borderRadius: 12,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  assistantTextWrap: {
+  ustpRowTitle: {
     flex: 1,
-    minWidth: 0,
-  },
-  assistantTitle: {
     fontFamily: Fonts.heading,
     fontSize: 13.5,
-    fontWeight: '700',
-  },
-  assistantSubtitle: {
-    fontFamily: Fonts.body,
-    fontSize: 11.5,
-    marginTop: 1,
+    fontWeight: '600',
   },
   ragPill: {
     paddingHorizontal: 7,
@@ -984,82 +898,75 @@ const styles = StyleSheet.create({
     fontSize: 10,
     fontWeight: '700',
   },
-  secondaryActionRow: {
+  toolsSection: {
+    gap: 7,
+  },
+  quickScanRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    borderRadius: 12,
-    borderWidth: 1,
-    paddingHorizontal: 12,
-    paddingVertical: 9,
     gap: 8,
   },
-  secondaryActionTitle: {
+  toolPill: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    borderWidth: 1,
+    borderRadius: 12,
+    paddingHorizontal: 10,
+    paddingVertical: 9,
+  },
+  toolPillText: {
+    fontFamily: Fonts.body,
+    fontSize: 13,
+    fontWeight: '600',
+  },
+  guideRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    borderWidth: 1,
+    borderRadius: 12,
+    paddingHorizontal: 12,
+    paddingVertical: 9,
+  },
+  guideRowTitle: {
     flex: 1,
     fontFamily: Fonts.body,
     fontSize: 13,
     fontWeight: '600',
   },
-  secondaryActionHint: {
-    fontFamily: Fonts.body,
-    fontSize: 11,
-  },
-  toolsSection: {
+  recentHeaderRow: {
     marginTop: 4,
-    gap: 7,
+    paddingTop: 10,
+    borderTopWidth: StyleSheet.hairlineWidth,
   },
-  sectionLabel: {
-    fontFamily: Fonts.heading,
-    fontSize: 11,
-    fontWeight: '700',
-    letterSpacing: 0.5,
-    textTransform: 'uppercase',
-  },
-  chipGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 6,
-  },
-  toolChip: {
+  segmentedFilter: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 5,
-    borderWidth: 1,
-    borderRadius: 16,
-    paddingHorizontal: 10,
-    paddingVertical: 6,
+    borderRadius: 12,
+    padding: 3,
+    gap: 3,
   },
-  toolChipText: {
+  filterTab: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 6,
+    borderRadius: 9,
+  },
+  filterTabText: {
     fontFamily: Fonts.body,
     fontSize: 12,
-    fontWeight: '600',
-  },
-  recentHeaderRow: {
-    marginTop: 6,
-    gap: 6,
-  },
-  filterPillsRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-  },
-  filterPill: {
-    borderWidth: 1,
-    borderRadius: 14,
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-  },
-  filterPillText: {
-    fontFamily: Fonts.body,
-    fontSize: 11.5,
     fontWeight: '600',
   },
   row: {
     flexDirection: 'row',
     alignItems: 'center',
-    borderBottomWidth: StyleSheet.hairlineWidth,
     paddingVertical: 9,
-    paddingHorizontal: 6,
-    borderRadius: 8,
+    paddingHorizontal: 8,
+    borderRadius: 10,
     gap: 4,
   },
   rowMain: {
@@ -1121,10 +1028,5 @@ const styles = StyleSheet.create({
     fontFamily: Fonts.body,
     fontSize: FontSize.small,
     paddingVertical: 24,
-  },
-  footnote: {
-    textAlign: 'center',
-    fontFamily: Fonts.body,
-    fontSize: FontSize.caption,
   },
 });

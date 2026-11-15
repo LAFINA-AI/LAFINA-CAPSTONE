@@ -95,13 +95,13 @@ export function answerPlannerLookup(
       const when = `${label.charAt(0).toLowerCase()}${label.slice(1)}${
         t.dueTime ? ` at ${format12HourTime(t.dueTime)}` : ''
       }`;
-      return `• ${t.title} (was due ${when})`;
+      return `• **${t.title}** — *due ${when}*`;
     });
     const more =
-      total > items.length ? `\n…and ${total - items.length} more.` : '';
-    return `You have ${total} overdue task${
+      total > items.length ? `\n• *+${total - items.length} more*` : '';
+    return `You have **${total} overdue task${
       total === 1 ? '' : 's'
-    }:\n${lines.join('\n')}${more}`;
+    }**:\n\n${lines.join('\n')}${more}`;
   }
 
   if (intent.details === 'free_slots') {
@@ -148,21 +148,21 @@ export function answerPlannerLookup(
       .slice(0, 4)
       .map(
         g =>
-          `• ${format12HourTime(wallTime(g.start))} – ${format12HourTime(
+          `• **${format12HourTime(wallTime(g.start))} – ${format12HourTime(
             wallTime(g.end),
-          )}`,
+          )}**`,
       );
     const first = fitting[0];
-    return `${dayLabel}, you have room for ${describeLength(
+    return `${dayLabel}, you have room for **${describeLength(
       duration,
-    )} in these free windows:\n${lines.join(
+    )}** in these free windows:\n\n${lines.join(
       '\n',
-    )}\n\nSay "block ${describeLength(duration)} at ${format12HourTime(
+    )}\n\n> Say *"block ${describeLength(duration)} at ${format12HourTime(
       wallTime(first.start),
     ).replace(
       ':00',
       '',
-    )} ${dayLabel.toLowerCase()} for studying" and I'll prepare it for you to confirm.`;
+    )} ${dayLabel.toLowerCase()} for studying"* and I'll prepare it for you to confirm.`;
   }
 
   // next_class / next_task / next_item: look a week ahead.
@@ -237,14 +237,19 @@ export function answerPlannerLookup(
   )} at ${format12HourTime(next.time)}`;
   const lowerFirst = (text: string) =>
     text.charAt(0).toLowerCase() + text.slice(1);
+  const label =
+    intent.details === 'next_class'
+      ? 'Next class'
+      : intent.details === 'next_task'
+      ? 'Next task'
+      : 'Next up';
+  const primary = `> **${label}:** **${next.title}** — *${lowerFirst(when)}*`;
   const after = candidates[1]
-    ? ` After that: ${candidates[1].title}, ${lowerFirst(
+    ? `\n\n*After that:* **${candidates[1].title}** — *${lowerFirst(
         formatSpokenDayLabel(candidates[1].date, refDate),
-      )} at ${format12HourTime(candidates[1].time)}.`
+      )} at ${format12HourTime(candidates[1].time)}*`
     : '';
-  return `Your next ${intent.details === 'next_class' ? 'class' : 'item'} is ${
-    next.title
-  }, ${lowerFirst(when)}.${after}`;
+  return `${primary}${after}`;
 }
 
 export function formatSpokenDayLabel(
@@ -1343,7 +1348,9 @@ export async function executeNluAction(
 
       const noteReply =
         typeof intent.isPinned === 'boolean'
-          ? `${intent.isPinned ? 'Pinned' : 'Unpinned'} note: "${updatedTitle}".`
+          ? `${
+              intent.isPinned ? 'Pinned' : 'Unpinned'
+            } note: "${updatedTitle}".`
           : intent.newCategory
           ? `Moved note "${updatedTitle}" to ${intent.newCategory}.`
           : `Updated note: "${updatedTitle}".`;
@@ -1817,7 +1824,7 @@ export async function executeNluAction(
           'Saturday',
           'Sunday',
         ];
-        const daySummaries: string[] = [];
+        const daySections: string[] = [];
 
         for (let i = 0; i < 7; i++) {
           const dateStr = weekDates[i];
@@ -1826,67 +1833,79 @@ export async function executeNluAction(
           const dayBlocks = allBlocks.filter(b => b.date === dateStr);
           const dayEvents = allEvents.filter(e => e.date === dateStr);
 
-          const dayItems: string[] = [];
+          const dayEntries: Array<{timeKey: string; line: string}> = [];
           for (const b of dayBlocks) {
-            const timeDesc =
+            const start = format12HourTime(b.startTime);
+            const end =
               b.endTime && b.endTime !== b.startTime
-                ? `from ${format12HourTime(b.startTime)} to ${format12HourTime(
-                    b.endTime,
-                  )}`
-                : `at ${format12HourTime(b.startTime)}`;
-            dayItems.push(`${b.title} ${timeDesc}`);
+                ? format12HourTime(b.endTime)
+                : '';
+            const timeLabel = end ? `${start} – ${end}` : start;
+            dayEntries.push({
+              timeKey: b.startTime || '00:00',
+              line: `• **${timeLabel}** — ${b.title} *(Block)*`,
+            });
           }
           for (const e of dayEvents) {
-            const timeDesc =
+            const start = format12HourTime(e.startTime);
+            const end =
               e.endTime && e.endTime !== e.startTime
-                ? `from ${format12HourTime(e.startTime)} to ${format12HourTime(
-                    e.endTime,
-                  )}`
-                : `at ${format12HourTime(e.startTime)}`;
-            dayItems.push(`${e.title} ${timeDesc}`);
+                ? format12HourTime(e.endTime)
+                : '';
+            const timeLabel = end ? `${start} – ${end}` : start;
+            dayEntries.push({
+              timeKey: e.startTime || '00:00',
+              line: `• **${timeLabel}** — ${e.title} *(Event)*`,
+            });
           }
           for (const t of dayTasks) {
             if (t.dueTime) {
-              dayItems.push(`${t.title} at ${format12HourTime(t.dueTime)}`);
+              dayEntries.push({
+                timeKey: t.dueTime,
+                line: `• **${format12HourTime(t.dueTime)}** — ${
+                  t.title
+                } *(Task)*`,
+              });
             } else {
-              dayItems.push(t.title);
+              dayEntries.push({
+                timeKey: '99:99',
+                line: `• **${t.title}** *(all day)*`,
+              });
             }
           }
 
-          if (dayItems.length > 0) {
-            if (dayItems.length <= 3) {
-              daySummaries.push(
-                `On ${dayName}: ${formatListWithAnd(dayItems)}.`,
-              );
-            } else {
-              const shown = dayItems.slice(0, 3);
-              const remaining = dayItems.length - 3;
-              daySummaries.push(
-                `On ${dayName}: ${shown.join(
-                  ', ',
-                )}, and ${remaining} more item${remaining > 1 ? 's' : ''}.`,
+          if (dayEntries.length > 0) {
+            dayEntries.sort((a, b) => a.timeKey.localeCompare(b.timeKey));
+            const shown = dayEntries.slice(0, 4).map(item => item.line);
+            if (dayEntries.length > 4) {
+              const remaining = dayEntries.length - 4;
+              shown.push(
+                `• *+${remaining} more item${remaining > 1 ? 's' : ''}*`,
               );
             }
+            daySections.push([`### ${dayName}`, ...shown].join('\n'));
           }
         }
 
         const countParts: string[] = [];
         if (allTasks.length > 0)
           countParts.push(
-            `${allTasks.length} task${allTasks.length > 1 ? 's' : ''}`,
+            `**${allTasks.length} task${allTasks.length > 1 ? 's' : ''}**`,
           );
         if (allBlocks.length > 0)
           countParts.push(
-            `${allBlocks.length} time block${allBlocks.length > 1 ? 's' : ''}`,
+            `**${allBlocks.length} time block${
+              allBlocks.length > 1 ? 's' : ''
+            }**`,
           );
         if (allEvents.length > 0)
           countParts.push(
-            `${allEvents.length} event${allEvents.length > 1 ? 's' : ''}`,
+            `**${allEvents.length} event${allEvents.length > 1 ? 's' : ''}**`,
           );
 
         const summary = `${rangeLabel} you have ${formatListWithAnd(
           countParts,
-        )} scheduled: ${daySummaries.join(' ')}`;
+        )} scheduled:\n\n${daySections.join('\n\n')}`;
         return {
           success: true,
           intent: 'query_schedule',
@@ -2045,8 +2064,10 @@ export async function executeNluAction(
       const totalCount = tasks.length + blocks.length + events.length;
 
       let summary = '';
+      let spokenSummary = '';
       if (totalCount === 0) {
         summary = `${dayLabel}, your schedule is completely clear! You have no tasks, events, or time blocks.`;
+        spokenSummary = summary;
       } else {
         const countParts: string[] = [];
         if (tasks.length > 0) {
@@ -2066,6 +2087,8 @@ export async function executeNluAction(
         interface TimedItem {
           title: string;
           timeStr: string;
+          timeLabel: string;
+          kindLabel: 'Block' | 'Event' | 'Task';
           spokenDetail: string;
         }
 
@@ -2084,6 +2107,10 @@ export async function executeNluAction(
           timedItems.push({
             title: b.title,
             timeStr: b.startTime || '00:00',
+            timeLabel: endSpoken
+              ? `${startSpoken} – ${endSpoken}`
+              : startSpoken,
+            kindLabel: 'Block',
             spokenDetail: `${b.title} ${timePhrase}`,
           });
         }
@@ -2100,6 +2127,10 @@ export async function executeNluAction(
           timedItems.push({
             title: e.title,
             timeStr: e.startTime || '00:00',
+            timeLabel: endSpoken
+              ? `${startSpoken} – ${endSpoken}`
+              : startSpoken,
+            kindLabel: 'Event',
             spokenDetail: `${e.title} ${timePhrase}`,
           });
         }
@@ -2110,6 +2141,8 @@ export async function executeNluAction(
             timedItems.push({
               title: t.title,
               timeStr: t.dueTime,
+              timeLabel: dueSpoken,
+              kindLabel: 'Task',
               spokenDetail: `${t.title} at ${dueSpoken}`,
             });
           } else {
@@ -2123,15 +2156,40 @@ export async function executeNluAction(
         const countSentence = `${dayLabel} you have ${formatListWithAnd(
           countParts,
         )}:`;
+        const sections: string[] = [
+          `${dayLabel} you have ${formatListWithAnd(
+            countParts.map(part => `**${part}**`),
+          )}:`,
+        ];
+        if (timedItems.length > 0) {
+          sections.push(
+            [
+              '### Timed',
+              ...timedItems.map(
+                item =>
+                  `• **${item.timeLabel}** — ${item.title} *(${item.kindLabel})*`,
+              ),
+            ].join('\n'),
+          );
+        }
+        if (allDayTasks.length > 0) {
+          sections.push(
+            [
+              '### All-Day Tasks',
+              ...allDayTasks.map(title => `• **${title}**`),
+            ].join('\n'),
+          );
+        }
+        summary = sections.join('\n\n');
 
         if (timedItems.length === 0 && allDayTasks.length > 0) {
-          summary = `${countSentence} ${formatListWithAnd(
+          spokenSummary = `${countSentence} ${formatListWithAnd(
             allDayTasks.map(t => `"${t}"`),
           )}.`;
         } else if (timedItems.length === 1 && allDayTasks.length === 0) {
-          summary = `${countSentence} ${timedItems[0].spokenDetail}.`;
+          spokenSummary = `${countSentence} ${timedItems[0].spokenDetail}.`;
         } else if (timedItems.length === 2 && allDayTasks.length === 0) {
-          summary = `${countSentence} First, ${timedItems[0].spokenDetail}. Then, ${timedItems[1].spokenDetail}.`;
+          spokenSummary = `${countSentence} First, ${timedItems[0].spokenDetail}. Then, ${timedItems[1].spokenDetail}.`;
         } else if (timedItems.length > 2 && allDayTasks.length === 0) {
           const parts = timedItems.map((item, idx) => {
             if (idx === 0) return `First, ${item.spokenDetail}.`;
@@ -2139,7 +2197,7 @@ export async function executeNluAction(
               return `Finally, ${item.spokenDetail}.`;
             return `Next, ${item.spokenDetail}.`;
           });
-          summary = `${countSentence} ${parts.join(' ')}`;
+          spokenSummary = `${countSentence} ${parts.join(' ')}`;
         } else {
           // Mixed: timed items and all-day tasks
           let timedSentence = '';
@@ -2162,13 +2220,13 @@ export async function executeNluAction(
           } all-day task${
             allDayTasks.length > 1 ? 's' : ''
           }: ${formatListWithAnd(allDayTasks.map(t => `"${t}"`))}.`;
-          summary = `${countSentence} ${timedSentence} ${allDaySentence}`;
+          spokenSummary = `${countSentence} ${timedSentence} ${allDaySentence}`;
         }
       }
 
       if (options.speakResult) {
         try {
-          await ttsService.speak(summary);
+          await ttsService.speak(spokenSummary);
         } catch (e) {
           console.warn('[ActionExecutor] TTS playback error:', e);
         }

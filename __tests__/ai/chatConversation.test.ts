@@ -219,12 +219,10 @@ describe('Chat routing', () => {
   });
 
   it('online failure: small talk stays friendly but labelled; real questions say DeepSeek did not reply', async () => {
-    jest
-      .spyOn(cloudClient, 'request')
-      .mockResolvedValue({
-        status: 'server_unavailable',
-        error: 'down',
-      } as never);
+    jest.spyOn(cloudClient, 'request').mockResolvedValue({
+      status: 'server_unavailable',
+      error: 'down',
+    } as never);
     const hi = await chatOrchestrator.processMessage(GUEST_USER_ID, 'hi', {
       onlineMode: true,
     });
@@ -292,7 +290,7 @@ describe('Chat routing', () => {
     );
   });
 
-  it('offline handbook questions still point to Online Mode', async () => {
+  it('offline handbook questions answer from the local USTP Handbook index', async () => {
     const result = await chatOrchestrator.processMessage(
       GUEST_USER_ID,
       'What is the USTP dress code?',
@@ -301,7 +299,8 @@ describe('Chat routing', () => {
       },
     );
     expect(result.reply).toContain(
-      'Official USTP Student Handbook guidelines require Online Mode',
+      'According to the local USTP Student Handbook',
     );
+    expect(result.handbookNote).toContain('Referenced USTP Student Handbook');
   });
 });

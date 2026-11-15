@@ -247,7 +247,7 @@ describe('AGY-PORT 06 planner replies and guide', () => {
   });
 
   describe('online, Handbook and document routes are unchanged', () => {
-    test('a general question in Online mode goes to online AI with the Handbook flag', async () => {
+    test('a general handbook question in Online mode enriches DeepSeek locally while skipping backend Pinecone', async () => {
       const me = owner('online');
       const online = jest
         .spyOn(onlineChatSkill, 'sendChatMessage')
@@ -262,7 +262,11 @@ describe('AGY-PORT 06 planner replies and guide', () => {
         {onlineMode: true, useHandbook: true, referenceDate: REF},
       );
       expect(online).toHaveBeenCalledTimes(1);
-      expect(online.mock.calls[0][1]).toEqual({useHandbook: true});
+      expect(online.mock.calls[0][1]).toEqual({useHandbook: false});
+      const sentMsgs = online.mock.calls[0][0];
+      expect(sentMsgs[sentMsgs.length - 1].content).toContain(
+        '<handbook_excerpts',
+      );
       expect(result.usedOnline).toBe(true);
     });
 
@@ -331,7 +335,8 @@ describe('AGY-PORT 06 planner replies and guide', () => {
       expect(utils.getByTestId('chat-temporary-toggle-button')).toBeTruthy();
       expect(utils.getByTestId('chat-document-format-button')).toBeTruthy();
 
-      fireEvent.press(utils.getByTestId('chat-guide-button'));
+      fireEvent.press(utils.getByTestId('chat-history-button'));
+      fireEvent.press(utils.getByTestId('chat-sidebar-guide'));
       fireEvent.press(utils.getByTestId('chat-guide-example-1'));
 
       await waitFor(() =>
@@ -350,7 +355,8 @@ describe('AGY-PORT 06 planner replies and guide', () => {
       chatDraftStore.set(me, 'my own unsent question');
       const utils = renderChat(me);
 
-      fireEvent.press(utils.getByTestId('chat-guide-button'));
+      fireEvent.press(utils.getByTestId('chat-history-button'));
+      fireEvent.press(utils.getByTestId('chat-sidebar-guide'));
       fireEvent.press(utils.getByTestId('chat-guide-example-0'));
       expect(utils.getByTestId('chat-draft-dialog')).toBeTruthy();
       fireEvent.press(utils.getByTestId('chat-draft-dialog-keep'));
@@ -358,7 +364,8 @@ describe('AGY-PORT 06 planner replies and guide', () => {
         'my own unsent question',
       );
 
-      fireEvent.press(utils.getByTestId('chat-guide-button'));
+      fireEvent.press(utils.getByTestId('chat-history-button'));
+      fireEvent.press(utils.getByTestId('chat-sidebar-guide'));
       fireEvent.press(utils.getByTestId('chat-guide-example-0'));
       fireEvent.press(utils.getByTestId('chat-draft-dialog-confirm'));
       await waitFor(() =>

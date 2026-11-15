@@ -130,6 +130,11 @@ describe('Speech text', () => {
         '## Steps\n**Bold** idea:\n- first `item`\n2. second\n\n\nDone',
       ),
     ).toBe('Steps\nBold idea:\nfirst item\nsecond\nDone');
+    expect(
+      speakableText(
+        '> **Next alarm:** **6:30 AM** *(Once)*\n---\n• *IT413* at 3:00 PM',
+      ),
+    ).toBe('Next alarm: 6:30 AM (Once)\nIT413 at 3:00 PM');
   });
 
   it('splits long text at sentence ends, within the limit, losing nothing', () => {

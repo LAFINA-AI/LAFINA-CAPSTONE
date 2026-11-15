@@ -625,6 +625,26 @@ export const describeAlarmsReply = (
       )}.`
     : 'All your alarms are off.';
   if (alarms.length === 1) return head;
-  const more = alarms.length > 5 ? ` and ${alarms.length - 5} more` : '';
-  return `${head} You have ${alarms.length} alarms: ${listing(alarms)}${more}.`;
+  const bulletLines = alarms.slice(0, 5).map(a => {
+    const meta = [describeRepeat(a.repeatDays), a.label]
+      .filter(Boolean)
+      .join(', ');
+    const status = a.enabled ? '' : ' — *Off*';
+    return `• **${timeOf(a.hour, a.minute)}**${
+      meta ? ` *(${meta})*` : ''
+    }${status}`;
+  });
+  if (alarms.length > 5) {
+    bulletLines.push(`• *+${alarms.length - 5} more*`);
+  }
+  return [
+    next
+      ? `> **Next alarm:** **${describeAlarm(
+          next.alarm,
+        )}**, ${describeTimeUntil(next.at, now)}`
+      : '> All your alarms are off.',
+    '',
+    `### All Alarms (${alarms.length})`,
+    ...bulletLines,
+  ].join('\n');
 };

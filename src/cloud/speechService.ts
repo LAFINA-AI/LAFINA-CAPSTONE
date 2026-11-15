@@ -67,8 +67,11 @@ export const SPEECH_CHUNK_CHARS = 500;
 export const speakableText = (text: string): string =>
   text
     .replace(/\*\*|__|`+/g, '')
+    .replace(/(^|[^\w*])\*(\S(?:[^*\n]*?\S)?)\*/g, '$1$2')
     .replace(/^\s{0,3}#{1,6}\s+/gm, '')
-    .replace(/^\s*(?:[-*•]|\d+[.)])\s+/gm, '')
+    .replace(/^\s*>\s?/gm, '')
+    .replace(/^\s*(?:[-*_]){3,}\s*$/gm, '')
+    .replace(/^\s*(?:[-*•◦]|\d+[.)])\s+/gm, '')
     .replace(/[ \t]+/g, ' ')
     .replace(/\n{2,}/g, '\n')
     .trim();
@@ -156,9 +159,12 @@ export const takeSpeechSegment = (
     ends.push((match.index ?? 0) + match[0].length);
   }
   if (options.first) {
-    const end = ends.find(e => rest.slice(0, e).trim().length >= FIRST_SEGMENT_MIN_CHARS);
+    const end = ends.find(
+      e => rest.slice(0, e).trim().length >= FIRST_SEGMENT_MIN_CHARS,
+    );
     if (end !== undefined && end <= FIRST_SEGMENT_MAX_CHARS) return finish(end);
-    if (rest.length > FIRST_SEGMENT_MAX_CHARS) return cutAtSpace(FIRST_SEGMENT_MAX_CHARS);
+    if (rest.length > FIRST_SEGMENT_MAX_CHARS)
+      return cutAtSpace(FIRST_SEGMENT_MAX_CHARS);
     return options.final ? finish(Math.min(rest.length, limit)) : null;
   }
   if (options.final && rest.length <= limit) return finish(rest.length);
@@ -824,7 +830,12 @@ export const createCallSpeechProvider = (
   };
 
   const warmUp = async (): Promise<void> => {
-    if (capabilityChecked || disposed || !(await canUseElevenLabs()) || disposed)
+    if (
+      capabilityChecked ||
+      disposed ||
+      !(await canUseElevenLabs()) ||
+      disposed
+    )
       return;
     const controller = new AbortController();
     preparationControllers.add(controller);

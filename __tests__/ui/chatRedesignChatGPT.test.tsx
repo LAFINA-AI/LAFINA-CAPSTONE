@@ -35,9 +35,9 @@ beforeEach(() => {
   jest.spyOn(console, 'error').mockImplementation(() => undefined);
   jest.spyOn(console, 'warn').mockImplementation(() => undefined);
   jest.spyOn(PermissionsAndroid, 'check').mockResolvedValue(true);
-  jest.spyOn(PermissionsAndroid, 'request').mockResolvedValue(
-    PermissionsAndroid.RESULTS.GRANTED,
-  );
+  jest
+    .spyOn(PermissionsAndroid, 'request')
+    .mockResolvedValue(PermissionsAndroid.RESULTS.GRANTED);
 });
 
 afterEach(() => {
@@ -54,15 +54,22 @@ describe('ChatGPT-style Chat Tab Redesign', () => {
 
     // The ugly wall of text is REMOVED
     expect(
-      queryByText(/Your offline secretary for university life\. I can schedule your study blocks/i),
+      queryByText(
+        /Your offline secretary for university life\. I can schedule your study blocks/i,
+      ),
     ).toBeNull();
 
-    // Suggestion pills are rendered in the empty state
+    // Suggestion cards with distinct labels and LAFINA mascot are rendered in empty state
+    expect(getByTestId('chat-empty-mascot')).toBeTruthy();
+    expect(getByText('How can I help you today?')).toBeTruthy();
     expect(getByTestId('chat-prompt-chip-0')).toBeTruthy();
     expect(getByTestId('chat-prompt-chip-1')).toBeTruthy();
     expect(getByTestId('chat-prompt-chip-2')).toBeTruthy();
     expect(getByTestId('chat-prompt-chip-3')).toBeTruthy();
-    expect(getByText("What's on my schedule today?")).toBeTruthy();
+    expect(getByText("Today's Schedule")).toBeTruthy();
+    expect(getByText('Plan Study Block')).toBeTruthy();
+    expect(getByText('Set Reminder')).toBeTruthy();
+    expect(getByText('Quick Note')).toBeTruthy();
   });
 
   test('2. Header circle waveform (AudioLines/meetings) is removed from header', () => {
@@ -81,20 +88,28 @@ describe('ChatGPT-style Chat Tab Redesign', () => {
     expect(queryByTestId('chat-clear-history-button')).toBeNull();
   });
 
-  test('4. Header title dynamically shows the chat title rather than static LAFINA Assistant', async () => {
+  test('4. Header uses UniGuide layout (left Menu, center model/online pill, right Temporary Chat; Call beside Mic in composer)', async () => {
     const user = nextUser();
-    const {getByText, findAllByText, getByTestId} = renderChat(user);
+    const {getByText, findAllByText, getByTestId, queryByTestId} =
+      renderChat(user);
 
-    // Initially displays "New chat"
-    expect(getByText('New chat')).toBeTruthy();
+    // Header has left menu, center online/model selector pill, and no guide button directly in header
+    expect(getByTestId('chat-history-button')).toBeTruthy();
+    expect(getByTestId('chat-online-toggle-button')).toBeTruthy();
+    expect(getByTestId('chat-temporary-toggle-button')).toBeTruthy();
+    expect(queryByTestId('chat-guide-button')).toBeNull();
+    expect(getByText('How can I help you today?')).toBeTruthy();
 
     // Send a message
-    fireEvent.changeText(getByTestId('chat-text-input'), 'Review Biology Midterms');
+    fireEvent.changeText(
+      getByTestId('chat-text-input'),
+      'Review Biology Midterms',
+    );
     await act(async () => {
       fireEvent.press(getByTestId('chat-send-button'));
     });
 
-    // The title dynamically updates to the chat prompt
+    // The message renders cleanly in the conversation
     await waitFor(async () => {
       const titles = await findAllByText(/Review Biology Midterms/i);
       expect(titles.length).toBeGreaterThanOrEqual(1);
@@ -134,11 +149,14 @@ describe('ChatGPT-style Chat Tab Redesign', () => {
     chatStore.addMessage(user, 'user', 'Permanent message');
     chatStore.addMessage(user, 'assistant', 'Permanent reply');
 
-    jest.spyOn(Alert, 'alert').mockImplementation((_title, _message, buttons) => {
-      buttons?.find(b => b.text === 'End')?.onPress?.();
-    });
+    jest
+      .spyOn(Alert, 'alert')
+      .mockImplementation((_title, _message, buttons) => {
+        buttons?.find(b => b.text === 'End')?.onPress?.();
+      });
 
-    const {getByTestId, getAllByText, findByText, queryByText, queryAllByText} = renderChat(user);
+    const {getByTestId, getAllByText, findByText, queryByText, queryAllByText} =
+      renderChat(user);
     expect(getAllByText('Permanent message').length).toBeGreaterThanOrEqual(1);
 
     // Turn temporary chat on
@@ -147,7 +165,10 @@ describe('ChatGPT-style Chat Tab Redesign', () => {
     expect(queryAllByText('Permanent message')).toHaveLength(0);
 
     // Send a message in temporary chat
-    fireEvent.changeText(getByTestId('chat-text-input'), 'Secret temporary note');
+    fireEvent.changeText(
+      getByTestId('chat-text-input'),
+      'Secret temporary note',
+    );
     await act(async () => {
       fireEvent.press(getByTestId('chat-send-button'));
     });
@@ -159,7 +180,9 @@ describe('ChatGPT-style Chat Tab Redesign', () => {
     // Temporary message is gone, permanent chat restored
     await waitFor(() => {
       expect(queryByText('Secret temporary note')).toBeNull();
-      expect(getAllByText('Permanent message').length).toBeGreaterThanOrEqual(1);
+      expect(getAllByText('Permanent message').length).toBeGreaterThanOrEqual(
+        1,
+      );
     });
     expect(chatStore.getMessages(user)).toHaveLength(2);
   });
@@ -167,7 +190,11 @@ describe('ChatGPT-style Chat Tab Redesign', () => {
   test('6. Assistant reply bubbles do NOT contain redundant "✨ lafina" header', async () => {
     const user = nextUser();
     chatStore.addMessage(user, 'user', 'What is machine learning?');
-    chatStore.addMessage(user, 'assistant', 'Machine learning is a field of AI.');
+    chatStore.addMessage(
+      user,
+      'assistant',
+      'Machine learning is a field of AI.',
+    );
 
     const {getByText, queryByText} = renderChat(user);
 
@@ -180,7 +207,11 @@ describe('ChatGPT-style Chat Tab Redesign', () => {
 
   test('7. Assistant reply bubbles do NOT render speaker/TTS button (ChatGPT minimal style)', async () => {
     const user = nextUser();
-    const msg = chatStore.addMessage(user, 'assistant', 'Clean response without speaker icon.');
+    const msg = chatStore.addMessage(
+      user,
+      'assistant',
+      'Clean response without speaker icon.',
+    );
 
     const {queryByTestId} = renderChat(user);
 
@@ -189,7 +220,8 @@ describe('ChatGPT-style Chat Tab Redesign', () => {
 
   test('8. Attachment plus (+) button opens action sheet with Camera and Photos without Document generation', async () => {
     const user = nextUser();
-    const {getByTestId, getByText, queryByText, queryByTestId} = renderChat(user);
+    const {getByTestId, getByText, queryByText, queryByTestId} =
+      renderChat(user);
 
     // Click the attachment / plus button
     fireEvent.press(getByTestId('chat-document-format-button'));
@@ -354,7 +386,8 @@ describe('ChatGPT-style Chat Tab Redesign', () => {
     const {getByTestId, queryByText} = renderChat(user);
 
     const {NativeModules} = require('react-native');
-    const originalStartListening = NativeModules.LafinaSpeechToText.startListening;
+    const originalStartListening =
+      NativeModules.LafinaSpeechToText.startListening;
     // Mock STT returning a known Whisper silence hallucination
     NativeModules.LafinaSpeechToText.startListening = jest.fn(options =>
       Promise.resolve({
@@ -386,7 +419,8 @@ describe('ChatGPT-style Chat Tab Redesign', () => {
 
   test('16. Explicit tap-to-cancel target in recording bar cancels recording immediately', async () => {
     const user = nextUser();
-    const {getByTestId, getByText, getByLabelText, queryByText} = renderChat(user);
+    const {getByTestId, getByText, getByLabelText, queryByText} =
+      renderChat(user);
 
     const micBtn = getByTestId('chat-mic-button');
     await act(async () => {
