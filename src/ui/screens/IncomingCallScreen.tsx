@@ -387,6 +387,18 @@ export const IncomingCallScreen: React.FC<IncomingCallScreenProps> = ({
     [reminderId, stopOnline, userId],
   );
 
+  // The online agent's snooze_reminder tool. The dispatcher speaks the result
+  // and ends the call, so the snooze runs after the tool answers.
+  const handleAgentSnooze = useCallback(
+    async (minutes: number): Promise<string> => {
+      setTimeout(() => {
+        void handleManualSnooze(minutes);
+      }, 0);
+      return `Snoozing this reminder for ${minutes} minutes. The call ends now.`;
+    },
+    [handleManualSnooze],
+  );
+
   const handleManualAcknowledge = useCallback(async (): Promise<void> => {
     try {
       await stopOnline();
@@ -689,7 +701,8 @@ export const IncomingCallScreen: React.FC<IncomingCallScreenProps> = ({
             ) : undefined}
             onlineConversation={onlineCall ? (
               <OnlineReminderConversation ref={onlineRef} userId={userId} task={task}
-                onSnapshot={handleOnlineSnapshot} onSpokenTurn={handleOnlineTurn} />
+                onSnapshot={handleOnlineSnapshot} onSpokenTurn={handleOnlineTurn}
+                onSnooze={handleAgentSnooze} />
             ) : undefined}
           />
         )}

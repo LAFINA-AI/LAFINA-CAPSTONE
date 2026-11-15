@@ -15,6 +15,23 @@ export interface ToolParameterSchema {
   items?: Record<string, unknown>;
 }
 
+/**
+ * Planner changes the model may describe in fields (see `structuredAction.ts`).
+ * Deletion is left out on purpose: removing data needs the student's own words.
+ */
+export const STRUCTURED_ACTIONS = [
+  'create_task',
+  'create_event',
+  'create_time_block',
+  'create_reminder',
+  'create_note',
+  'update_task',
+  'update_time_block',
+  'update_note',
+  'complete_task',
+  'reopen_task',
+];
+
 export interface RegisteredToolDefinition {
   name: string;
   kind: LafinaActionKind;
@@ -49,7 +66,7 @@ export const REGISTERED_TOOLS: readonly RegisteredToolDefinition[] = [
     name: 'prepare_lafina_action',
     kind: 'legacy.prepare_action',
     description:
-      'Prepares a to-do, task, event, time block, reminder, or note review card (creation, completion, edit, or deletion) for student confirmation. Nothing is saved until confirmed.',
+      'Prepares a to-do, task, event, time block, reminder, or note review card (creation, completion, edit, or deletion) for student confirmation. Nothing is saved until confirmed. The app first reads the student’s own words; fill the structured fields too when the details came from earlier in the conversation (for example a free time you found), so the card can still be prepared. Deleting needs the student’s own words.',
     parameters: {
       type: 'object',
       properties: {
@@ -58,8 +75,85 @@ export const REGISTERED_TOOLS: readonly RegisteredToolDefinition[] = [
           description:
             'The natural language description of the item to prepare.',
         },
+        action: {
+          type: 'string',
+          enum: STRUCTURED_ACTIONS,
+          description:
+            'Optional. What to prepare when the details came from the conversation.',
+        },
+        title: {
+          type: 'string',
+          description:
+            'Optional. Short title of the new item, or of the existing item to change.',
+        },
+        date: {type: 'string', description: 'Optional. Date (YYYY-MM-DD).'},
+        time: {
+          type: 'string',
+          description: 'Optional. Start or due time (HH:MM, 24-hour).',
+        },
+        endTime: {
+          type: 'string',
+          description: 'Optional. End time (HH:MM, 24-hour).',
+        },
+        durationMinutes: {
+          type: 'number',
+          description: 'Optional. Length in minutes (5..720).',
+        },
+        priority: {
+          type: 'string',
+          enum: ['low', 'medium', 'high'],
+          description: 'Optional. Task priority.',
+        },
+        newTitle: {
+          type: 'string',
+          description: 'Optional. New title when renaming an existing item.',
+        },
+        details: {
+          type: 'string',
+          description: 'Optional. Note text or extra details.',
+        },
+        deliveryStyle: {
+          type: 'string',
+          enum: ['call', 'notify'],
+          description:
+            'Optional. For reminders: "call" rings a reminder call, "notify" posts an ordinary notification.',
+        },
       },
       required: ['request'],
+    },
+  },
+  {
+    name: 'find_free_time',
+    kind: 'calendar.free_time',
+    description:
+      'Finds free windows on one day between 7:00 AM and 10:00 PM that fit a session of the given length, using the student’s local calendar. Read-only.',
+    parameters: {
+      type: 'object',
+      properties: {
+        date: {
+          type: 'string',
+          description: 'Day to check (YYYY-MM-DD). Defaults to today.',
+        },
+        durationMinutes: {
+          type: 'number',
+          description: 'Session length in minutes (15..720). Defaults to 60.',
+        },
+      },
+    },
+  },
+  {
+    name: 'snooze_reminder',
+    kind: 'reminder.snooze',
+    description:
+      'Snoozes the reminder this reminder call is about. Only works during a reminder call; use it when the student asks to be reminded again later.',
+    parameters: {
+      type: 'object',
+      properties: {
+        minutes: {
+          type: 'number',
+          description: 'Minutes to snooze (1..120). Defaults to 10.',
+        },
+      },
     },
   },
   {

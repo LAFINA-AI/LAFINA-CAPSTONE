@@ -200,7 +200,58 @@ let streamRouteMissing = false;
 
 export const resetChatStreamSupport = (): void => {
   streamRouteMissing = false;
+  agentRouteMissing = false;
 };
+
+/** Set when the server has no `/v1/ai/chat/agent` route (not deployed yet). */
+let agentRouteMissing = false;
+
+const AGENT_UNAVAILABLE = {
+  status: 'server_unavailable' as const,
+  error: 'Chat agent is unavailable.',
+  httpStatus: 404,
+};
+
+export interface AgentToolCall {
+  id: string;
+  name: string;
+  arguments: Record<string, unknown>;
+}
+
+/** This turn's tool exchange, in the OpenAI shape the server checks. */
+export type AgentExchangeMessage =
+  | {
+      role: 'assistant';
+      content: null;
+      tool_calls: {
+        id: string;
+        type: 'function';
+        function: {name: string; arguments: string};
+      }[];
+    }
+  | {role: 'tool'; tool_call_id: string; content: string};
+
+export interface AgentStepOptions extends SendChatMessageOptions {
+  tools: string[];
+  exchange: AgentExchangeMessage[];
+  /** "Sunday 2026-11-15, 9:00 AM": the phone's own clock. */
+  localNow?: string;
+}
+
+export interface AgentStepReply {
+  reply: string;
+  toolCalls: AgentToolCall[];
+  sources: HandbookSource[];
+  usedHandbook: boolean;
+}
+
+interface BackendAgentResponse {
+  reply?: string;
+  toolCalls?: AgentToolCall[];
+  sources?: BackendChatSource[];
+  usedHandbook?: boolean;
+}
+
 
 export const onlineChatSkill = {
   sendChatMessage: async (
@@ -338,6 +389,77 @@ export const onlineChatSkill = {
         sources: normalizeSources(finished?.sources),
         usedHandbook: Boolean(finished?.usedHandbook ?? finished?.sources?.length),
         ...(finished && !failed ? {} : { interrupted: true }),
+      },
+    };
+  },
+
+  /**
+   * One Chat agent step (`POST /v1/ai/chat/agent`): DeepSeek either replies or
+   * asks the phone to run tools. Any failure (including a server without the
+   * agent route yet) lets the caller fall back to the ordinary chat reply.
+   */
+  agentStep: async (
+    messages: OnlineChatMessage[],
+    options: AgentStepOptions,
+  ): Promise<CloudResult<AgentStepReply>> => {
+    const bounded = boundMessages(messages);
+    if (!bounded || bounded[bounded.length - 1].role !== 'user')
+      return {status: 'validation_error', error: 'Message cannot be empty.'};
+    if (agentRouteMissing || directProviderTestEnabled())
+      return AGENT_UNAVAILABLE;
+    const result = await cloudClient.request<BackendAgentResponse>(
+      '/v1/ai/chat/agent',
+      {
+        method: 'POST',
+        body: JSON.stringify({
+          messages: bounded,
+          useHandbook: options.useHandbook !== false,
+          ...(options.memories?.length ? {memories: options.memories} : {}),
+          tools: options.tools,
+          exchange: options.exchange,
+          ...(options.localNow ? {localNow: options.localNow} : {}),
+        }),
+      },
+      true,
+    );
+    if (result.httpStatus === 404 || result.httpStatus === 405) {
+      agentRouteMissing = true;
+      return AGENT_UNAVAILABLE;
+    }
+    if (result.status !== 'success' || !result.data) {
+      return {
+        status: result.status === 'success' ? 'server_error' : result.status,
+        error: result.error || 'Chat agent request failed.',
+        httpStatus: result.httpStatus,
+      };
+    }
+    const toolCalls = Array.isArray(result.data.toolCalls)
+      ? result.data.toolCalls.filter(
+          (call): call is AgentToolCall =>
+            Boolean(call) &&
+            typeof call.id === 'string' &&
+            typeof call.name === 'string' &&
+            Boolean(call.arguments) &&
+            typeof call.arguments === 'object' &&
+            !Array.isArray(call.arguments),
+        )
+      : [];
+    const reply = normalizeName((result.data.reply || '').trim());
+    if (!reply && toolCalls.length === 0) {
+      return {
+        status: 'server_error',
+        error: 'Cloud AI returned an empty response.',
+      };
+    }
+    return {
+      status: 'success',
+      data: {
+        reply,
+        toolCalls,
+        sources: normalizeSources(result.data.sources),
+        usedHandbook: Boolean(
+          result.data.usedHandbook ?? result.data.sources?.length,
+        ),
       },
     };
   },

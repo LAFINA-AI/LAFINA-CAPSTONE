@@ -24,7 +24,7 @@ import type {
 } from './types';
 import {isRealDate} from '../../storage/eventTime';
 import {containsPromptInjection} from './actionSecurity';
-import {REGISTERED_TOOLS} from './actionRegistry';
+import {REGISTERED_TOOLS, STRUCTURED_ACTIONS} from './actionRegistry';
 
 const ALLOWED_KINDS: readonly LafinaActionKind[] = [
   'calendar.read',
@@ -42,6 +42,8 @@ const ALLOWED_KINDS: readonly LafinaActionKind[] = [
   'legacy.read_data',
   'legacy.prepare_action',
   'legacy.save_memory',
+  'calendar.free_time',
+  'reminder.snooze',
 ];
 
 const ALLOWED_PHASES: readonly LafinaActionPhase[] = [
@@ -753,7 +755,104 @@ export function validatePayload(
           error: `${kind} requires request string (1..1000 chars).`,
         };
       }
-      return {valid: true, data: {request: p.request.trim()}};
+      if (kind === 'legacy.save_memory')
+        return {valid: true, data: {request: p.request.trim()}};
+      // Optional structured fields (audit follow-up: agent arguments). Each is
+      // checked here; `structuredAction.ts` decides whether they make a card.
+      if (
+        p.action !== undefined &&
+        !STRUCTURED_ACTIONS.includes(p.action as string)
+      )
+        return {valid: false, error: 'Unsupported action.'};
+      for (const field of ['newTitle', 'details', 'deliveryStyle', 'action'])
+        if (p[field] !== undefined && typeof p[field] !== 'string')
+          return {valid: false, error: `${field} must be a string.`};
+      if (typeof p.date === 'string' && !DATE_REGEX.test(p.date))
+        return {valid: false, error: 'Invalid date.'};
+      for (const field of ['time', 'endTime'])
+        if (
+          typeof p[field] === 'string' &&
+          !TIME_REGEX.test(p[field] as string)
+        )
+          return {valid: false, error: `Invalid ${field}.`};
+      if (
+        p.durationMinutes !== undefined &&
+        (typeof p.durationMinutes !== 'number' ||
+          !Number.isFinite(p.durationMinutes) ||
+          p.durationMinutes < 5 ||
+          p.durationMinutes > 720)
+      )
+        return {valid: false, error: 'durationMinutes must be 5..720.'};
+      if (
+        p.deliveryStyle !== undefined &&
+        p.deliveryStyle !== 'call' &&
+        p.deliveryStyle !== 'notify'
+      )
+        return {valid: false, error: 'Invalid deliveryStyle.'};
+      const data: Record<string, unknown> = {request: p.request.trim()};
+      for (const field of [
+        'action',
+        'title',
+        'date',
+        'time',
+        'endTime',
+        'durationMinutes',
+        'priority',
+        'newTitle',
+        'details',
+        'deliveryStyle',
+      ])
+        if (p[field] !== undefined) {
+          const value = p[field];
+          if (typeof value === 'string') {
+            const limit = field === 'details' ? 1000 : 200;
+            if (value.length > limit)
+              return {valid: false, error: `${field} is too long.`};
+            if (containsPromptInjection(value))
+              return {valid: false, error: `${field} was rejected.`};
+            data[field] = value.trim();
+          } else data[field] = value;
+        }
+      return {valid: true, data};
+    }
+
+    case 'calendar.free_time': {
+      if (typeof p.date === 'string' && !DATE_REGEX.test(p.date))
+        return {valid: false, error: 'Invalid date.'};
+      if (
+        p.durationMinutes !== undefined &&
+        (typeof p.durationMinutes !== 'number' ||
+          !Number.isFinite(p.durationMinutes) ||
+          p.durationMinutes < 15 ||
+          p.durationMinutes > 720)
+      )
+        return {valid: false, error: 'durationMinutes must be 15..720.'};
+      return {
+        valid: true,
+        data: {
+          ...(typeof p.date === 'string' ? {date: p.date} : {}),
+          ...(typeof p.durationMinutes === 'number'
+            ? {durationMinutes: Math.round(p.durationMinutes)}
+            : {}),
+        },
+      };
+    }
+
+    case 'reminder.snooze': {
+      if (
+        p.minutes !== undefined &&
+        (typeof p.minutes !== 'number' ||
+          !Number.isFinite(p.minutes) ||
+          p.minutes < 1 ||
+          p.minutes > 120)
+      )
+        return {valid: false, error: 'minutes must be 1..120.'};
+      return {
+        valid: true,
+        data: {
+          minutes: typeof p.minutes === 'number' ? Math.round(p.minutes) : 10,
+        },
+      };
     }
 
     default:

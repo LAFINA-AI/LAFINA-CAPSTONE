@@ -20,7 +20,9 @@ export type LafinaActionKind =
   | 'multi.prepare'
   | 'legacy.read_data'
   | 'legacy.prepare_action'
-  | 'legacy.save_memory';
+  | 'legacy.save_memory'
+  | 'calendar.free_time'
+  | 'reminder.snooze';
 
 export type LafinaActionPhase =
   | 'requested'

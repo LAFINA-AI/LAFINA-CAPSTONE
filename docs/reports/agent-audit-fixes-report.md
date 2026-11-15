@@ -134,6 +134,57 @@ Owner: "proceed and do everything except the physical tests. also you can just p
 ### Still open
 
 - **Backend PR #4** needs review and merge; Vercel then deploys `main`. Nobody here has Vercel dashboard access, so check the deploy from GitHub's deployment status.
-- **Re-provision the ElevenLabs agent** with `python -m scripts.provision_voice_agent … --apply --update`, then `--check`. This needs the ElevenLabs key. Without it, DeepSeek still gets the new schema, because the backend swaps in its own copy by name.
+- **Re-provision the ElevenLabs agent** with `python -m scripts.provision_voice_agent … --apply --update`, then `--check`. This needs the ElevenLabs key. Without it, DeepSeek still gets the new schema, because the backend swaps in its own copy by name. (After §10 it is required for the two new tools.)
 - **Device checks** for everything in §6 and the follow-up checklist in the chat handoff.
 - **#14** is unchanged (by design, ADR-018).
+
+## 10. Agent capability follow-up, 2026-11-15
+
+Owner: "proceed, fix all", after the analysis of whether LAFINA is a true agent. Decision record: ADR-033.
+
+### What changed
+
+| Area | Change |
+|---|---|
+| Call Lafina | `prepare_lafina_action` takes optional structured fields (no delete). The student's words still come first; the fields are used when those words made nothing, or only a reference card ("First one"). |
+| Safety | A card built from the model's fields is confirmed only by the student; `confirm_draft` for it is refused and the model is told why. |
+| New tools | `find_free_time` (read-only, on-device lookup) and `snooze_reminder` (reminder call only). |
+| Reminder call | The online reminder call now has a tool handler: reads, free time and snooze. Planner changes still come from the student's words. Before this, every tool call failed. |
+| Chat | Online planner questions run a bounded tool loop through `POST /v1/ai/chat/agent`: up to 4 steps, reads, free time, one card. No confirm tool. It falls back to the ordinary reply on any failure. |
+| Backend ([PR #5](https://github.com/LAFINA-AI/LAFINA-backend/pull/5), stacked on #4) | Chat agent route; mid-call app updates reach the voice model as a fenced note; role-count log; 14-tool contract. |
+| Eval | 52 English and Taglish requests with the expected outcomes; offline score 36/52. |
+
+### Correction to the analysis
+
+The first analysis said Call Lafina's drafts used only the offline parser (`actionService.ts:351`). In practice, the Call Lafina panel intercepts `prepare_lafina_action` and re-reads the student's sentence with DeepSeek extraction (`onlineMode: true`). The `actionService` path now matches it. The real gaps were the ones listed above.
+
+### Eval (offline pipeline, Jest, no SmolLM2 or DeepSeek)
+
+| Category | Score |
+|---|---|
+| Create | 10/10 |
+| Edit | 6/8 |
+| Read | 7/8 |
+| Taglish | 3/10 |
+| Conversation (nothing should change) | 6/6 |
+| Reference to earlier conversation | 4/10 offline; 8/8 of those with model fields become the right change |
+| **Total** | **36/52** |
+
+Failures are listed in `docs/reports/agent-eval-offline-2026-11-15.json`. The clearest next work is the offline Taglish phrasing ("tapos na yung…", "lagay mo sa to-do", "mamaya 5pm", "sa Lunes"). Online DeepSeek accuracy was **not measured**.
+
+### Checks
+
+| Check | Command | Result |
+|---|---|---|
+| Typecheck, lint, Jest, architecture | `npm run preflight` | PASS: 125/125 suites, 1701 passed, 1 skipped (pre-existing); 323 modules, 0 cycles |
+| Tool contract | `generate-contract.cjs --check` | PASS: 14 tools |
+| Backend | `pytest` | PASS: 278 |
+| Backend lint | `ruff check .` | 253 before, 256 after; the 3 new are B008 `Depends(...)` on the new route, the same pattern as every route |
+| Device / online / APK / re-provisioning | — | **NOT RUN** |
+
+### Still open
+
+- Merge backend PR #4, then PR #5 (retarget #5 to `main` if GitHub does not do it). Then re-provision the ElevenLabs agent so Call Lafina gets the new tools.
+- On the first real call, check the Vercel log line `Voice turn messages: …`. If the `system` count grows during the call, mid-call updates now reach the model.
+- Device checks in the chat handoff.
+

@@ -3858,6 +3858,19 @@ export const confirmReviewedCommand = (
   };
 };
 
+/** The saved receipt's reply when this operation was already applied for this owner. */
+export const appliedReviewReply = (
+  activeUserId: string,
+  operationId: string,
+): string | null => {
+  try {
+    const receipt = assistantOperationStore.getReceipt(operationId);
+    return receipt && receipt.userId === activeUserId ? receipt.reply : null;
+  } catch {
+    return null;
+  }
+};
+
 /** Discards a proposal. Never writes. Returns false when there was nothing to cancel. */
 export const cancelReviewedCommand = (
   activeUserId: string,

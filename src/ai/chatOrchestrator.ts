@@ -62,6 +62,7 @@ import {
   SIGNED_OUT_REPLY_NOTE,
 } from './localConversation';
 import type {ValidatedIntent, NluActionResult} from './nlu/types';
+import {runChatAgent} from './chatAgent';
 import {
   extractIntentWithDeepSeek,
   extractMultiIntentsWithDeepSeek,
@@ -1191,6 +1192,8 @@ export class ChatOrchestrator {
               content: msg.content,
             }));
 
+          // The agent reads the planner itself, only what it needs.
+          const plainHistory = history.map(msg => ({...msg}));
           // The planner snapshot rides along only when the question is about
           // the student's own plans, notes or time (audit findings 11 and 15);
           // a general study question never sends their planner.
@@ -1244,7 +1247,31 @@ export class ChatOrchestrator {
             ? chatMemoryStore.forPrompt(userId)
             : [];
           const memoryOption = memories.length > 0 ? {memories} : {};
-          const onlineResult = onReplyText
+          // Questions about the student's own plans go to the Chat agent
+          // first (ADR-033): it can look things up and prepare one card.
+          const agent =
+            !isTemp &&
+            !ustpRagOnly &&
+            !smallTalk &&
+            !isHandbookQuestion(trimmed) &&
+            needsPlannerContext(trimmed)
+              ? await runChatAgent(userId, plainHistory, {
+                  useHandbook,
+                  ...memoryOption,
+                  referenceDate: refDate,
+                  localNow: describeNow(refDate),
+                })
+              : null;
+          if (agent) {
+            finalReply = agent.reply || agent.review?.reply || '';
+            handbookNote = handbookSourceLabel(agent.sources);
+            usedOnline = true;
+            learnFromReply = Boolean(agent.reply);
+            if (agent.review) review = agent.review;
+          }
+          const onlineResult = agent
+            ? null
+            : onReplyText
             ? await onlineChatSkill.streamChatMessage(history, {
                 useHandbook,
                 onReplyText,
@@ -1254,7 +1281,9 @@ export class ChatOrchestrator {
                 useHandbook,
                 ...memoryOption,
               });
-          if (onlineResult.status === 'success' && onlineResult.data) {
+          if (!onlineResult) {
+            // Answered by the Chat agent above.
+          } else if (onlineResult.status === 'success' && onlineResult.data) {
             finalReply = onlineResult.data.interrupted
               ? `${onlineResult.data.reply}\n\n${INTERRUPTED_REPLY_NOTE}`
               : onlineResult.data.reply;

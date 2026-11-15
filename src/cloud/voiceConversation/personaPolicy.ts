@@ -210,6 +210,12 @@ export const getToolWorkingPhrase = (
   if (toolName === 'save_lafina_memory') {
     return 'Checking memory request...';
   }
+  if (toolName === 'find_free_time') {
+    return 'Looking for free time...';
+  }
+  if (toolName === 'snooze_reminder') {
+    return 'Snoozing the reminder...';
+  }
   return 'Working on your request...';
 };
 

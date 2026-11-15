@@ -340,7 +340,8 @@ export async function extractIntentWithDeepSeek(
   return parseExtractedIntentObject(obj, trimmed);
 }
 
-function parseExtractedIntentObject(
+/** Turns a model-written planner object into a validated intent, or null. */
+export function parseExtractedIntentObject(
   obj: Record<string, unknown>,
   trimmed: string,
 ): ValidatedIntent | null {

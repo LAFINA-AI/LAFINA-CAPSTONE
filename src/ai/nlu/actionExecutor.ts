@@ -75,9 +75,10 @@ const CLASS_HINT =
 
 /**
  * Read-only answers from local data (audit finding 8): free time on a day,
- * overdue tasks, and what comes next. Nothing is written.
+ * overdue tasks, and what comes next. Nothing is written. Exported for the
+ * agents' find_free_time tool (ADR-033).
  */
-function answerPlannerLookup(
+export function answerPlannerLookup(
   userId: string,
   intent: ValidatedIntent,
   refDate: Date,

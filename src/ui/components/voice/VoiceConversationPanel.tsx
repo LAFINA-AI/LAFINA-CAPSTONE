@@ -46,7 +46,10 @@ import {useVoiceConversation} from '../../hooks/useVoiceConversation';
 import type {CommandReviewState} from '../../hooks/useCommandReview';
 import {ActionCardHost} from '../callLafina/ActionCardHost';
 import {isToolExecutionPermitted} from '../../../ai/voiceActions/actionSecurity';
-import {actionService} from '../../../ai/voiceActions/actionService';
+import {
+  actionService,
+  SUGGESTED_CONFIRM_REFUSAL,
+} from '../../../ai/voiceActions/actionService';
 import type {
   MemoryProposalData,
   MultiActionBatchData,
@@ -78,7 +81,16 @@ import {
   reviseReviewedCommand,
   confirmReviewedCommand,
   cancelReviewedCommand,
+  appliedReviewReply,
 } from '../../../ai/nlu/commandReview';
+import {
+  hasStructuredAction,
+  prepareStructuredReview,
+  SUGGESTED_CARD_NOTE,
+  isReferenceTitle,
+} from '../../../ai/voiceActions/structuredAction';
+import type {StructuredActionArgs} from '../../../ai/voiceActions/structuredAction';
+import {validatePayload} from '../../../ai/voiceActions/actionValidator';
 
 const DATA_CONSENT = 'voiceConversation.directDataConsent.v1';
 
@@ -372,6 +384,11 @@ export const VoiceConversationPanel: React.FC<VoiceConversationPanelProps> = ({
         (!isVoiceScheduleStart(trimmed) && hasRevisionDelta))
     ) {
       const revised = reviseReviewedCommand(owner, pending.operationId, text);
+      if (
+        revised.status === 'proposal' &&
+        actionService.isSuggestedCard(pending.operationId)
+      )
+        actionService.markSuggestedCard(revised.proposal.operationId);
       if (revised.status === 'proposal') {
         reviewRef.current.present(revised);
         lastLocalRevision.current = {
@@ -577,6 +594,53 @@ export const VoiceConversationPanel: React.FC<VoiceConversationPanelProps> = ({
             groundedReply.current = reviewed.reply;
           }
         }
+        // The student's own words gave nothing to act on, or a card about
+        // something else ("book the first one" after find_free_time reads as
+        // a task "First one"): use the model's fields. The card waits for the
+        // student's own yes or tap (ADR-033).
+        const fields = parameters as StructuredActionArgs;
+        if (
+          hasStructuredAction(fields) &&
+          (!pending || isReferenceTitle(pending.title))
+        ) {
+          const checked = validatePayload('legacy.prepare_action', parameters);
+          if (!checked.valid) return `Nothing was prepared: ${checked.error}`;
+          const prepared = prepareStructuredReview(
+            owner,
+            checked.data as StructuredActionArgs,
+            'voice',
+          );
+          if (prepared?.status === 'proposal' && pending) {
+            cancelReviewedCommand(owner, pending.operationId);
+            pending = null;
+          }
+          if (!isCurrent()) {
+            if (prepared?.status === 'proposal')
+              cancelReviewedCommand(owner, prepared.proposal.operationId);
+            throw new Error('Request cancelled because conversational turn updated.');
+          }
+          if (prepared?.status === 'proposal') {
+            actionService.markSuggestedCard(prepared.proposal.operationId);
+            reviewRef.current.present(prepared);
+            setLocalNote('Check the card — nothing is saved until you confirm.');
+            const summary = prepared.proposal.details.join(', ');
+            groundedReply.current =
+              'Review card is now on screen: ' +
+              prepared.proposal.title +
+              (summary ? ' (' + summary + ')' : '') +
+              '. Card ID: ' +
+              prepared.proposal.operationId +
+              '; revision: 1. Nothing has been saved yet. ' +
+              SUGGESTED_CARD_NOTE;
+            return groundedReply.current;
+          }
+          // A card from the student's words stays when the fields made none.
+          if (prepared && !pending) {
+            setLocalNote(prepared.reply);
+            groundedReply.current = prepared.reply;
+            return prepared.reply;
+          }
+        }
         return pending
           ? 'Review card is now on screen: ' +
               pending.title +
@@ -648,6 +712,19 @@ export const VoiceConversationPanel: React.FC<VoiceConversationPanelProps> = ({
             }
             const currentProposal = reviewRef.current.proposal;
             const pendingReview = latestPendingReview(owner, 'voice');
+            // A card built from the model's fields is confirmed only by the
+            // student (their "yes" is read on the device, or the button).
+            const target =
+              currentProposal?.operationId ?? pendingReview?.operationId;
+            if (
+              actionService.isSuggestedCard(cardId) ||
+              (target && actionService.isSuggestedCard(target))
+            ) {
+              const saved = appliedReviewReply(owner, cardId);
+              return saved
+                ? {saved: true, message: 'The student already confirmed it: ' + saved}
+                : {saved: false, message: SUGGESTED_CONFIRM_REFUSAL};
+            }
             if (
               currentProposal?.operationId === cardId ||
               pendingReview?.operationId === cardId ||
