@@ -81,6 +81,29 @@ export interface NluActionResult {
   error?: string;
 }
 
+export type DownloadableOfflineModelId =
+  | 'smollm2-135m'
+  | 'gemma-3-270m'
+  | 'qwen2.5-0.5b'
+  | 'gemma-3-1b';
+
+export type OfflineModelId = 'fast_path_only' | DownloadableOfflineModelId;
+
+export type OfflinePromptFormat = 'chatml' | 'gemma';
+
+export interface OfflineModelPreset {
+  id: OfflineModelId;
+  name: string;
+  shortLabel: string;
+  filename: string | null;
+  url: string | null;
+  approximateSizeBytes: number;
+  minValidSizeBytes: number;
+  promptFormat: OfflinePromptFormat;
+  recommendedRamGb: number;
+  description: string;
+}
+
 export interface ModelDownloadProgress {
   bytesWritten: number;
   contentLength: number;
@@ -94,6 +117,54 @@ export interface ModelStatus {
   filePath: string;
   fileSizeBytes: number;
   modelName: string;
+  modelId?: OfflineModelId;
+  shortLabel?: string;
+  approximateSizeBytes?: number;
+  recommendedRamGb?: number;
+  description?: string;
+  isSelected?: boolean;
+}
+
+export interface DeviceHardwareSpecs {
+  isDetected: boolean;
+  totalRamBytes: number;
+  availableRamBytes: number;
+  totalRamGb: number;
+  availableRamGb: number;
+  advertisedRamGb: number;
+  isLowRamDevice: boolean;
+  isLowMemoryNow: boolean;
+  cpuCores: number;
+  supports64Bit: boolean;
+  primaryAbi: string;
+  availableStorageBytes: number;
+  totalStorageBytes: number;
+  deviceLabel: string;
+  androidSdk: number | null;
+}
+
+export type ModelCompatibilityTier =
+  | 'recommended'
+  | 'compatible'
+  | 'tight_fit'
+  | 'unsupported';
+
+export interface OfflineModelFitAssessment {
+  modelId: OfflineModelId;
+  tier: ModelCompatibilityTier;
+  isRecommended: boolean;
+  hasEnoughRam: boolean;
+  hasEnoughStorage: boolean;
+  note: string | null;
+}
+
+export interface DeviceAiRecommendation {
+  specs: DeviceHardwareSpecs;
+  recommendedModelId: OfflineModelId;
+  headline: string;
+  reason: string;
+  specSummary: string;
+  assessments: Record<OfflineModelId, OfflineModelFitAssessment>;
 }
 
 const TIME_FORMAT_REGEX = /^([01]\d|2[0-3]):([0-5]\d)$/;

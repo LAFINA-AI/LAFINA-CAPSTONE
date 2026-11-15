@@ -8,3 +8,4 @@ export type { ActionExecutorOptions } from './actionExecutor';
 export * from './intentService';
 export * from './intentRoutes';
 export * from './commandReview';
+export * from './deviceSpecs';

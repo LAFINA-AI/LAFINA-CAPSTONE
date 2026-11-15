@@ -1,8 +1,13 @@
 package com.lafina.capstone
 
+import android.app.ActivityManager
+import android.content.Context
+import android.os.Build
 import android.os.Handler
 import android.os.Looper
+import android.os.StatFs
 import android.util.Log
+import com.facebook.react.bridge.Arguments
 import com.facebook.react.bridge.Promise
 import com.facebook.react.bridge.ReactApplicationContext
 import com.facebook.react.bridge.ReactContextBaseJavaModule
@@ -10,6 +15,7 @@ import com.facebook.react.bridge.ReactMethod
 import com.facebook.react.bridge.ReadableMap
 import org.json.JSONObject
 import java.io.File
+import java.util.Locale
 import java.util.concurrent.Executors
 import java.util.concurrent.atomic.AtomicLong
 
@@ -35,7 +41,8 @@ object LafinaLlamaBridge {
 
 /**
  * Android Native Module for On-Device NLU and Intent Extraction.
- * Supports dynamic GGUF models (e.g. Qwen2.5-0.5B-Instruct) with 60-second idle auto-unload
+ * Supports curated dynamic GGUF models (SmolLM2-135M-Instruct, Gemma-3-270M-Instruct,
+ * Qwen2.5-0.5B-Instruct, Gemma-3-1B-Instruct) with 60-second idle auto-unload
  * and deterministic fast-path fallback.
  */
 class LafinaIntentExtractorModule(reactContext: ReactApplicationContext) :
@@ -44,6 +51,73 @@ class LafinaIntentExtractorModule(reactContext: ReactApplicationContext) :
   companion object {
     private const val TAG = "LafinaIntentExtractor"
     private const val IDLE_UNLOAD_TIMEOUT_MS = 60_000L
+    private const val MIN_VALID_MODEL_BYTES = 40_000_000L
+
+    private const val NLU_CORE_INSTRUCTIONS = """You are LAFINA's on-device academic NLU extractor. Extract student intent from speech into valid JSON only.
+
+CRITICAL TITLE RULES:
+1. Rewrite "title" into a concise, clean Title Case noun phrase or imperative verb phrase (2 to 6 words).
+2. Strip ALL dates, times, relative time words ("tomorrow", "morrow", "tmrw", "today", "tonight", "9am", "at 2pm", "in 10 minutes", "after class", "bukas", "mamaya").
+3. Strip ALL command prefixes and conversational filler ("remind me to", "pa-remind", "I need to", "I have to", "don't forget to", "add a task for", "create a timeblock for", "please").
+
+JSON SCHEMA:
+{"intent":"create_task"|"create_time_block"|"create_reminder"|"create_note"|"query_schedule"|"acknowledge"|"snooze"|"reschedule", "title":string|null, "date":string|null, "time":string|null, "category":"Academic"|"Personal"}
+
+FEW-SHOT EXAMPLES:
+User: Morrow 9am coffee break
+Assistant: {"intent":"create_task","title":"Coffee Break","date":null,"time":"09:00","category":"Personal"}
+
+User: I need to finish studying for my operating systems midterm tomorrow at 8pm
+Assistant: {"intent":"create_task","title":"Study for Operating Systems Midterm","date":null,"time":"20:00","category":"Academic"}
+
+User: Remind me in ten minutes for a coffee break
+Assistant: {"intent":"create_reminder","title":"Coffee Break","date":null,"time":null,"category":"Personal"}
+
+User: Pa-remind bukas 9am magpasa ng lab report
+Assistant: {"intent":"create_reminder","title":"Submit Lab Report","date":null,"time":"09:00","category":"Academic"}
+
+User: Create a timeblock from 9am to 12 noon for thesis writing
+Assistant: {"intent":"create_time_block","title":"Thesis Writing","date":null,"time":"09:00","category":"Academic"}
+
+User: What is my schedule for today
+Assistant: {"intent":"query_schedule","title":null,"date":null,"time":null,"category":"Academic"}"""
+
+    @JvmStatic
+    internal fun resolvePromptFormat(requestedFormat: String?, modelPath: String?): String {
+      return if (
+        requestedFormat?.lowercase() == "gemma" ||
+        (requestedFormat.isNullOrBlank() && modelPath?.lowercase()?.contains("gemma") == true)
+      ) {
+        "gemma"
+      } else {
+        "chatml"
+      }
+    }
+
+    @JvmStatic
+    internal fun buildNluPrompt(transcript: String, promptFormat: String): String {
+      return if (promptFormat == "gemma") {
+        "<bos><start_of_turn>user\n$NLU_CORE_INSTRUCTIONS\n\nUser: $transcript\n<end_of_turn>\n<start_of_turn>model\n"
+      } else {
+        "<|im_start|>system\n$NLU_CORE_INSTRUCTIONS\n<|im_end|>\n<|im_start|>user\n$transcript\n<|im_end|>\n<|im_start|>assistant\n"
+      }
+    }
+
+    @JvmStatic
+    internal fun formatDeviceLabel(manufacturer: String?, model: String?): String {
+      val cleanMaker = manufacturer?.trim().orEmpty()
+      val cleanModel = model?.trim().orEmpty()
+      if (cleanMaker.isEmpty() && cleanModel.isEmpty()) return "Android Device"
+      val combined = when {
+        cleanModel.isEmpty() -> cleanMaker
+        cleanMaker.isEmpty() -> cleanModel
+        cleanModel.startsWith(cleanMaker, ignoreCase = true) -> cleanModel
+        else -> "$cleanMaker $cleanModel"
+      }
+      return combined.replaceFirstChar { ch ->
+        if (ch.isLowerCase()) ch.titlecase(Locale.getDefault()) else ch.toString()
+      }
+    }
   }
 
   override fun getName(): String = "LafinaIntentExtractor"
@@ -81,7 +155,7 @@ class LafinaIntentExtractorModule(reactContext: ReactApplicationContext) :
   fun isModelAvailable(modelPath: String, promise: Promise) {
     try {
       val file = File(modelPath)
-      val available = file.exists() && file.isFile && file.length() > 100_000_000L
+      val available = file.exists() && file.isFile && file.length() > MIN_VALID_MODEL_BYTES
       promise.resolve(available)
     } catch (e: Exception) {
       promise.resolve(false)
@@ -97,9 +171,63 @@ class LafinaIntentExtractorModule(reactContext: ReactApplicationContext) :
   }
 
   @ReactMethod
+  fun getDeviceSpecs(promise: Promise) {
+    try {
+      val context = reactApplicationContext
+      val activityManager = context.getSystemService(Context.ACTIVITY_SERVICE) as? ActivityManager
+      val memInfo = ActivityManager.MemoryInfo()
+      var totalRamBytes = 0L
+      var availableRamBytes = 0L
+      var isLowMemoryNow = false
+      if (activityManager != null) {
+        activityManager.getMemoryInfo(memInfo)
+        totalRamBytes = memInfo.totalMem
+        availableRamBytes = memInfo.availMem
+        isLowMemoryNow = memInfo.lowMemory
+      }
+      val isLowRamDevice = activityManager?.isLowRamDevice == true
+
+      var availableStorageBytes = 0L
+      var totalStorageBytes = 0L
+      try {
+        val statFs = StatFs(context.filesDir.absolutePath)
+        availableStorageBytes = statFs.availableBytes
+        totalStorageBytes = statFs.totalBytes
+      } catch (_: Exception) {
+        // Ignore StatFs read errors and report 0 bytes
+      }
+
+      val cpuCores = maxOf(1, Runtime.getRuntime().availableProcessors())
+      val abis64 = Build.SUPPORTED_64_BIT_ABIS ?: emptyArray()
+      val allAbis = Build.SUPPORTED_ABIS ?: emptyArray()
+      val supports64Bit = abis64.isNotEmpty()
+      val primaryAbi = allAbis.firstOrNull() ?: ""
+
+      val result = Arguments.createMap().apply {
+        putDouble("totalRamBytes", totalRamBytes.toDouble())
+        putDouble("availableRamBytes", availableRamBytes.toDouble())
+        putBoolean("isLowRamDevice", isLowRamDevice)
+        putBoolean("isLowMemoryNow", isLowMemoryNow)
+        putInt("cpuCores", cpuCores)
+        putBoolean("supports64Bit", supports64Bit)
+        putString("primaryAbi", primaryAbi)
+        putDouble("availableStorageBytes", availableStorageBytes.toDouble())
+        putDouble("totalStorageBytes", totalStorageBytes.toDouble())
+        putString("deviceLabel", formatDeviceLabel(Build.MANUFACTURER, Build.MODEL))
+        putInt("androidSdk", Build.VERSION.SDK_INT)
+      }
+      promise.resolve(result)
+    } catch (e: Exception) {
+      promise.reject("DEVICE_SPECS_ERROR", e.message, e)
+    }
+  }
+
+  @ReactMethod
   fun extractIntent(options: ReadableMap, promise: Promise) {
     val transcript = if (options.hasKey("transcript")) options.getString("transcript") ?: "" else ""
     val modelPath = if (options.hasKey("modelPath")) options.getString("modelPath") else null
+    val requestedFormat = if (options.hasKey("promptFormat")) options.getString("promptFormat") else null
+    val promptFormat = resolvePromptFormat(requestedFormat, modelPath)
 
     executor.execute {
       try {
@@ -121,9 +249,9 @@ class LafinaIntentExtractorModule(reactContext: ReactApplicationContext) :
         // Check if dynamic model is available and requested
         if (!modelPath.isNullOrBlank() && LafinaLlamaBridge.isLoaded()) {
           val modelFile = File(modelPath)
-          if (modelFile.exists() && modelFile.length() > 100_000_000L) {
+          if (modelFile.exists() && modelFile.length() > MIN_VALID_MODEL_BYTES) {
             try {
-              val resultJson = executeOnDeviceLlm(modelPath, trimmed)
+              val resultJson = executeOnDeviceLlm(modelPath, trimmed, promptFormat)
               if (resultJson != null) {
                 scheduleAutoUnload()
                 promise.resolve(resultJson)
@@ -144,7 +272,7 @@ class LafinaIntentExtractorModule(reactContext: ReactApplicationContext) :
     }
   }
 
-  private fun executeOnDeviceLlm(modelPath: String, transcript: String): String? {
+  private fun executeOnDeviceLlm(modelPath: String, transcript: String, promptFormat: String): String? {
     var ptr = nativeContextPointer.get()
     if (ptr == 0L || loadedModelPath != modelPath) {
       unloadNativeModelInternal()
@@ -155,39 +283,7 @@ class LafinaIntentExtractorModule(reactContext: ReactApplicationContext) :
       loadedModelPath = modelPath
     }
 
-    val prompt = """
-      <|im_start|>system
-      You are LAFINA's on-device academic NLU extractor. Extract student intent from speech into valid JSON only.
-
-      CRITICAL TITLE RULES:
-      1. Rewrite "title" into a concise, clean Title Case noun phrase or imperative verb phrase (2 to 6 words).
-      2. Strip ALL dates, times, relative time words ("tomorrow", "morrow", "tmrw", "today", "tonight", "9am", "at 2pm", "in 10 minutes", "after class").
-      3. Strip ALL command prefixes and conversational filler ("remind me to", "I need to", "I have to", "don't forget to", "add a task for", "create a timeblock for", "please").
-
-      JSON SCHEMA:
-      {"intent":"create_task"|"create_time_block"|"create_reminder"|"create_note"|"query_schedule"|"acknowledge"|"snooze"|"reschedule", "title":string|null, "date":string|null, "time":string|null, "category":"Academic"|"Personal"}
-
-      FEW-SHOT EXAMPLES:
-      User: Morrow 9am coffee break
-      Assistant: {"intent":"create_task","title":"Coffee Break","date":null,"time":"09:00","category":"Personal"}
-
-      User: I need to finish studying for my operating systems midterm tomorrow at 8pm
-      Assistant: {"intent":"create_task","title":"Study for Operating Systems Midterm","date":null,"time":"20:00","category":"Academic"}
-
-      User: Remind me in ten minutes for a coffee break
-      Assistant: {"intent":"create_reminder","title":"Coffee Break","date":null,"time":null,"category":"Personal"}
-
-      User: Create a timeblock from 9am to 12 noon for thesis writing
-      Assistant: {"intent":"create_time_block","title":"Thesis Writing","date":null,"time":"09:00","category":"Academic"}
-
-      User: What is my schedule for today
-      Assistant: {"intent":"query_schedule","title":null,"date":null,"time":null,"category":"Academic"}
-      <|im_end|>
-      <|im_start|>user
-      $transcript
-      <|im_end|>
-      <|im_start|>assistant
-    """.trimIndent()
+    val prompt = buildNluPrompt(transcript, promptFormat)
 
     val rawOutput = LafinaLlamaBridge.generate(ptr, prompt, 128)
     val jsonStart = rawOutput.indexOf('{')
