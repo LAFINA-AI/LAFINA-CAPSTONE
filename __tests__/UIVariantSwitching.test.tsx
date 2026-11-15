@@ -146,7 +146,12 @@ describe('UI Variant Persistence & Independent Appearance Switching (Phase 02)',
     cd.unmount();
   });
 
-  test('ProfileScreen App Interface switches immediately between Modern and Classic without altering user data or dark mode', async () => {
+  test('ProfileScreen hides App Interface until Developer Mode is active, keeps Dark Mode accessible normally, and switches Modern/Classic in Dev Mode without altering user data', async () => {
+    const {
+      developerTestService,
+    } = require('../src/ui/components/profile/developerTestService');
+    developerTestService.setDeveloperModeEnabled(false);
+
     const userId = GUEST_USER_ID;
     db.executeSync('UPDATE users SET is_new_user = 0 WHERE id = ?', [userId]);
     localSettingsStore.set(userId, 'custom_setting_keep', 'intact');
@@ -173,48 +178,75 @@ describe('UI Variant Persistence & Independent Appearance Switching (Phase 02)',
       </ThemeProvider>,
     );
 
+    // Normal Profile keeps Dark Mode visible, while App Interface (Modern/Classic) is hidden.
     await waitFor(() => {
-      expect(ui.getByText('App Interface')).toBeTruthy();
-      expect(ui.getByText('Choose how LAFINA looks')).toBeTruthy();
+      expect(ui.getByLabelText('Dark Mode')).toBeTruthy();
+      expect(ui.queryByText('App Interface')).toBeNull();
+      expect(ui.queryByTestId('ui-variant-modern')).toBeNull();
+      expect(ui.queryByTestId('ui-variant-classic')).toBeNull();
     });
 
-    // Starts in Modern Light
-    expect(ui.getByTestId('probe-variant').props.children).toBe('modern');
-    expect(
-      ui.getByTestId('ui-variant-modern').props.accessibilityState.checked,
-    ).toBe(true);
-
-    // Switch to Classic offline immediately
-    fireEvent.press(ui.getByTestId('ui-variant-classic'));
-    await waitFor(() => {
-      expect(ui.getByTestId('probe-variant').props.children).toBe('classic');
-      expect(getSavedUIVariant(userId)).toBe('classic');
-    });
-    expect(ui.getByTestId('probe-dark').props.children).toBe('false');
-
-    // Toggle Dark Mode independently in Classic
-    fireEvent(ui.getByLabelText('Dark Mode'), 'valueChange', true);
-    await waitFor(() => {
-      expect(ui.getByTestId('probe-dark').props.children).toBe('true');
-      expect(ui.getByTestId('probe-variant').props.children).toBe('classic');
-    });
-
-    // Switch back to Modern Dark — Dark Mode stays true and user data/onboarding are untouched
-    fireEvent.press(ui.getByTestId('ui-variant-modern'));
-    await waitFor(() => {
-      expect(ui.getByTestId('probe-variant').props.children).toBe('modern');
-      expect(ui.getByTestId('probe-dark').props.children).toBe('true');
-    });
-
-    expect(userStore.getUserById(userId)?.isNewUser).toBe(false);
-    expect(localSettingsStore.get(userId, 'custom_setting_keep', '')).toBe(
-      'intact',
+    // Enable Developer Mode to access Modern / Classic switcher.
+    developerTestService.setDeveloperModeEnabled(true);
+    const devUi = render(
+      <ThemeProvider userId={userId}>
+        <ThemeProbe />
+        <ProfileScreen
+          userId={userId}
+          refreshTrigger={1}
+          onRefresh={onRefresh}
+        />
+      </ThemeProvider>,
     );
-    const keptNotes = db.executeSync('SELECT title FROM notes WHERE id = ?', [
-      'note-keep-1',
-    ]).rows;
-    expect(keptNotes).toHaveLength(1);
-    expect(keptNotes?.[0]?.title).toBe('Algorithm Notes');
+
+    try {
+      await waitFor(() => {
+        expect(devUi.getByText('App Interface')).toBeTruthy();
+        expect(devUi.getByText('Choose how LAFINA looks')).toBeTruthy();
+      });
+
+      // Starts in Modern Light
+      expect(devUi.getByTestId('probe-variant').props.children).toBe('modern');
+      expect(
+        devUi.getByTestId('ui-variant-modern').props.accessibilityState.checked,
+      ).toBe(true);
+
+      // Switch to Classic offline immediately
+      fireEvent.press(devUi.getByTestId('ui-variant-classic'));
+      await waitFor(() => {
+        expect(devUi.getByTestId('probe-variant').props.children).toBe('classic');
+        expect(getSavedUIVariant(userId)).toBe('classic');
+      });
+      expect(devUi.getByTestId('probe-dark').props.children).toBe('false');
+
+      // Toggle Dark Mode independently in Classic
+      fireEvent(devUi.getByLabelText('Dark Mode'), 'valueChange', true);
+      await waitFor(() => {
+        expect(devUi.getByTestId('probe-dark').props.children).toBe('true');
+        expect(devUi.getByTestId('probe-variant').props.children).toBe('classic');
+      });
+
+      // Switch back to Modern Dark — Dark Mode stays true and user data/onboarding are untouched
+      fireEvent.press(devUi.getByTestId('ui-variant-modern'));
+      await waitFor(() => {
+        expect(devUi.getByTestId('probe-variant').props.children).toBe('modern');
+        expect(devUi.getByTestId('probe-dark').props.children).toBe('true');
+      });
+
+      expect(userStore.getUserById(userId)?.isNewUser).toBe(false);
+      expect(localSettingsStore.get(userId, 'custom_setting_keep', '')).toBe(
+        'intact',
+      );
+      const keptNotes = db.executeSync('SELECT title FROM notes WHERE id = ?', [
+        'note-keep-1',
+      ]).rows;
+      expect(keptNotes).toHaveLength(1);
+      expect(keptNotes?.[0]?.title).toBe('Algorithm Notes');
+    } finally {
+      developerTestService.setDeveloperModeEnabled(false);
+      ui.unmount();
+      devUi.unmount();
+    }
   });
 
   test('loads saved variant safely across guest/signed-in account transitions', async () => {

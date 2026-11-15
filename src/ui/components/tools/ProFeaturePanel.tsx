@@ -23,10 +23,10 @@ export const ProFeaturePanel: React.FC<ProFeaturePanelProps> = ({
       <View style={[styles.card, Shadows.card, themed.card]}>
         <View style={[styles.badge, themed.badge]}>
           <Sparkles size={14} color={colors.red} />
-          <Text style={[styles.badgeText, themed.badgeText]}>Student Pro</Text>
+          <Text style={[styles.badgeText, themed.badgeText]}>Online AI</Text>
         </View>
         <Text style={[styles.title, themed.title]}>
-          {feature} is part of Student Pro
+          {feature} uses a cloud account
         </Text>
         <Text style={[styles.body, themed.body]}>{description}</Text>
       </View>

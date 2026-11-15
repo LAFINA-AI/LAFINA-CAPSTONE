@@ -12,8 +12,8 @@ import {
 import {
   Fonts,
   Layout,
+  MODERN_THEMES,
   ModernLayout,
-  ModernShadows,
   ModernTypography,
   Shadows,
 } from '../theme';
@@ -44,7 +44,6 @@ import {
   Sparkles,
 } from 'lucide-react-native';
 import {authService} from '../../cloud/authService';
-import {isStudentProAccount} from '../../cloud';
 import {
   avatarSource,
   pickAvatarImage,
@@ -56,11 +55,11 @@ import {
   resolveCharacterTraits,
 } from '../components/profile/characterAvatarGenerator';
 import {ProfileStats} from '../components/profile/ProfileStats';
+import {ProfileStatsModal} from '../components/profile/ProfileStatsModal';
 import {SettingItem} from '../components/profile/SettingItem';
 import {ServerSwitchItem} from '../components/profile/ServerSwitchItem';
 import {backendSelection} from '../../cloud/backendSelection';
 import {PrivacyModal} from '../components/profile/PrivacyModal';
-import {StudentProTag} from '../components/profile/StudentProTag';
 import {AppUpdateItem} from '../components/profile/AppUpdateItem';
 import {PreferencesSettingsScreen} from './PreferencesSettingsScreen';
 import {ReminderHealth} from '../components/profile/ReminderHealth';
@@ -78,7 +77,7 @@ import {chatReplyFormatStore} from '../../storage/chatReplyFormatStore';
 import {useChatReplyFormat} from '../hooks/useChatReplyFormat';
 import {speechSettingsStore} from '../../storage/speechSettingsStore';
 import {profileStatisticsStore} from '../../storage/profileStatisticsStore';
-import type {ProfileStatistics} from '../../storage/profileStatisticsStore';
+import type {DetailedProfileStatistics} from '../../storage/profileStatisticsStore';
 import {personalMemoryStore} from '../../storage/personalMemoryStore';
 import {
   authorizeDataReset,
@@ -187,9 +186,10 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
   const [corUploading, setCorUploading] = useState(false);
   const [subjectsExpanded, setSubjectsExpanded] = useState(false);
 
-  const [statistics, setStatistics] = useState<ProfileStatistics>(() =>
-    profileStatisticsStore.read(userId),
+  const [statistics, setStatistics] = useState<DetailedProfileStatistics>(() =>
+    profileStatisticsStore.readDetailed(userId),
   );
+  const [statsModalVisible, setStatsModalVisible] = useState(false);
   const [healthVisible, setHealthVisible] = useState(false);
   const [memoryVisible, setMemoryVisible] = useState(false);
   const [chatMemoryVisible, setChatMemoryVisible] = useState(false);
@@ -349,12 +349,16 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
     isModern,
     setUIVariant,
     modernPalette,
+    modernTheme,
+    modernThemeMeta,
+    modernShadows,
+    setModernTheme,
   } = useTheme();
   const themed = useThemedStyles(getProfileThemedStyles);
   const cardSurfaceStyle = isModern
     ? [
         themed.settingsGroupCard,
-        ModernShadows.card,
+        modernShadows.card,
         {
           borderRadius: ModernLayout.borderRadiusCard,
           borderWidth: 1,
@@ -368,7 +372,6 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
   const [avatarSeed, setAvatarSeed] = useState<string>(() =>
     avatarSeedStore.getOrCreate(userId),
   );
-  const studentPro = currentUser ? isStudentProAccount(userId) : false;
 
   useEffect(() => {
     setSubjectsExpanded(false);
@@ -541,7 +544,7 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
 
   // AGY-PORT 09: counts from actual records; nothing is inferred from words or flags.
   const loadStats = () => {
-    setStatistics(profileStatisticsStore.read(userId));
+    setStatistics(profileStatisticsStore.readDetailed(userId));
   };
 
   const choosePhoto = async () => {
@@ -849,7 +852,7 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
           styles.avatarSection,
           isModern && [
             styles.modernHeroCard,
-            ModernShadows.card,
+            modernShadows.card,
             {
               backgroundColor: modernPalette.card,
               borderColor: modernPalette.border,
@@ -920,20 +923,25 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
             <Camera size={16} color={colors.textPrimary} />
           </TouchableOpacity>
         </View>
-        <View style={styles.nameRow}>
+        <View style={styles.nameRow} testID="profile-identity-block">
           <Text
             style={[
               styles.userName,
               themed.userName,
               isModern && ModernTypography.title,
+              styles.userNameAlign,
             ]}
             numberOfLines={2}
+            testID="profile-display-name"
           >
-            {currentUser?.username || 'Student'}
+            {currentUser?.username?.trim() || 'Student'}
           </Text>
-          {studentPro && <StudentProTag />}
         </View>
-        <Text style={[styles.userEmail, themed.userEmail]}>
+        <Text
+          style={[styles.userEmail, themed.userEmail]}
+          numberOfLines={1}
+          testID="profile-display-email"
+        >
           {currentUser?.email ||
             (isGuest ? 'Offline Guest Account' : 'No email set')}
         </Text>
@@ -1212,7 +1220,10 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
           </View>
         )}
 
-        <ProfileStats statistics={statistics} />
+        <ProfileStats
+          statistics={statistics}
+          onPressViewStats={() => setStatsModalVisible(true)}
+        />
 
         <View style={styles.settingsContainer}>
           <Text
@@ -1354,158 +1365,155 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
           <View
             style={[styles.settingsGroupCard, ...cardSurfaceStyle]}
           >
-            <View style={styles.interfaceSelectorBlock}>
-              <Text style={[styles.interfaceTitle, {color: colors.textPrimary}]}>
-                App Interface
-              </Text>
-              <Text
-                style={[styles.interfaceSubtitle, {color: colors.textSecondary}]}
-              >
-                Choose how LAFINA looks
-              </Text>
-              <View style={styles.interfaceCardsRow}>
-                <TouchableOpacity
-                  testID="ui-variant-modern"
-                  accessibilityRole="radio"
-                  accessibilityState={{
-                    checked: uiVariant === 'modern',
-                    selected: uiVariant === 'modern',
-                  }}
-                  accessibilityLabel="Modern — UniGuide-inspired interface"
-                  activeOpacity={0.8}
-                  onPress={() => setUIVariant('modern')}
-                  style={[
-                    styles.interfaceCard,
-                    {
-                      backgroundColor:
-                        uiVariant === 'modern'
-                          ? modernPalette.softViolet
-                          : colors.inputBg,
-                      borderColor:
-                        uiVariant === 'modern'
-                          ? modernPalette.accent
-                          : colors.border,
-                    },
-                  ]}
-                >
-                  <View style={styles.interfaceCardTop}>
-                    <Sparkles
-                      size={16}
-                      color={
-                        uiVariant === 'modern'
-                          ? modernPalette.accent
-                          : colors.textSecondary
-                      }
-                    />
-                    {uiVariant === 'modern' && (
-                      <View
-                        style={[
-                          styles.interfaceCheckBadge,
-                          {backgroundColor: modernPalette.accent},
-                        ]}
-                      >
-                        <Check size={11} color="#FFFFFF" strokeWidth={3} />
-                      </View>
-                    )}
-                  </View>
-                  <Text
-                    style={[
-                      styles.interfaceCardTitle,
-                      {
-                        color:
-                          uiVariant === 'modern'
-                            ? modernPalette.accent
-                            : colors.textPrimary,
-                      },
-                    ]}
-                  >
-                    Modern
-                  </Text>
-                  <Text
-                    style={[
-                      styles.interfaceCardDesc,
-                      {color: colors.textSecondary},
-                    ]}
-                  >
-                    UniGuide-inspired interface
-                  </Text>
-                </TouchableOpacity>
-
-                <TouchableOpacity
-                  testID="ui-variant-classic"
-                  accessibilityRole="radio"
-                  accessibilityState={{
-                    checked: uiVariant === 'classic',
-                    selected: uiVariant === 'classic',
-                  }}
-                  accessibilityLabel="Classic — Original LAFINA interface"
-                  activeOpacity={0.8}
-                  onPress={() => setUIVariant('classic')}
-                  style={[
-                    styles.interfaceCard,
-                    {
-                      backgroundColor:
-                        uiVariant === 'classic'
-                          ? colors.primary + '14'
-                          : colors.inputBg,
-                      borderColor:
-                        uiVariant === 'classic'
-                          ? colors.primary
-                          : colors.border,
-                    },
-                  ]}
-                >
-                  <View style={styles.interfaceCardTop}>
-                    <LayoutGrid
-                      size={16}
-                      color={
-                        uiVariant === 'classic'
-                          ? colors.primary
-                          : colors.textSecondary
-                      }
-                    />
-                    {uiVariant === 'classic' && (
-                      <View
-                        style={[
-                          styles.interfaceCheckBadge,
-                          {backgroundColor: colors.primary},
-                        ]}
-                      >
-                        <Check size={11} color="#FFFFFF" strokeWidth={3} />
-                      </View>
-                    )}
-                  </View>
-                  <Text
-                    style={[
-                      styles.interfaceCardTitle,
-                      {
-                        color:
-                          uiVariant === 'classic'
-                            ? colors.primary
-                            : colors.textPrimary,
-                      },
-                    ]}
-                  >
-                    Classic
-                  </Text>
-                  <Text
-                    style={[
-                      styles.interfaceCardDesc,
-                      {color: colors.textSecondary},
-                    ]}
-                  >
-                    Original LAFINA interface
-                  </Text>
-                </TouchableOpacity>
-              </View>
-            </View>
-            <View style={[styles.settingDivider, themed.settingDivider]} />
             <SettingItem
               text="Dark Mode"
               type="toggle"
               value={isDarkMode}
               onValueChange={(_enabled, origin) => toggleTheme(origin)}
             />
+            {isModern && (
+              <>
+                <View
+                  style={[
+                    styles.settingDivider,
+                    {backgroundColor: colors.divider},
+                  ]}
+                />
+                <View
+                  style={styles.themePickerBlock}
+                  testID="modern-theme-selector"
+                >
+                  <View style={styles.themePickerHeader}>
+                    <View style={styles.themePickerHeaderCopy}>
+                      <Text
+                        style={[
+                          styles.interfaceTitle,
+                          {color: colors.textPrimary},
+                        ]}
+                      >
+                        Color Theme
+                      </Text>
+                      <Text
+                        style={[
+                          styles.themePickerSubtitle,
+                          {color: colors.textSecondary},
+                        ]}
+                      >
+                        Choose your palette across Modern mode
+                      </Text>
+                    </View>
+                    <View
+                      style={[
+                        styles.themeActiveBadge,
+                        {backgroundColor: modernPalette.softViolet},
+                      ]}
+                      testID="modern-theme-active-badge"
+                    >
+                      <Text
+                        style={[
+                          styles.themeActiveBadgeText,
+                          {color: modernPalette.accent},
+                        ]}
+                      >
+                        {modernThemeMeta.label}
+                      </Text>
+                    </View>
+                  </View>
+                  <View
+                    style={styles.themeGrid}
+                    accessibilityRole="radiogroup"
+                    accessibilityLabel="Color theme"
+                  >
+                    {MODERN_THEMES.map(theme => {
+                      const active = modernTheme === theme.id;
+                      const preview = isDarkMode
+                        ? theme.previewDark
+                        : theme.previewLight;
+                      return (
+                        <TouchableOpacity
+                          key={theme.id}
+                          testID={`modern-theme-${theme.id}`}
+                          accessibilityRole="radio"
+                          accessibilityState={{
+                            checked: active,
+                            selected: active,
+                          }}
+                          accessibilityLabel={`${theme.label} theme — ${theme.subtitle}`}
+                          activeOpacity={0.8}
+                          onPress={() => setModernTheme(theme.id)}
+                          style={[
+                            styles.themeTile,
+                            {
+                              backgroundColor: active
+                                ? modernPalette.softViolet
+                                : modernPalette.surface,
+                              borderColor: active
+                                ? modernPalette.accent
+                                : modernPalette.border,
+                            },
+                          ]}
+                        >
+                          <View style={styles.themeSwatchCluster}>
+                            <View
+                              style={[
+                                styles.themeSwatchPrimary,
+                                {
+                                  backgroundColor: preview[0],
+                                  borderColor: modernPalette.card,
+                                },
+                              ]}
+                            />
+                            <View
+                              style={[
+                                styles.themeSwatchSecondary,
+                                {
+                                  backgroundColor: preview[1],
+                                  borderColor: modernPalette.card,
+                                },
+                              ]}
+                            />
+                          </View>
+                          <View style={styles.themeTileTextCol}>
+                            <Text
+                              style={[
+                                styles.themeTileLabel,
+                                {
+                                  color: active
+                                    ? modernPalette.accent
+                                    : colors.textPrimary,
+                                },
+                              ]}
+                              numberOfLines={1}
+                            >
+                              {theme.label}
+                            </Text>
+                            <Text
+                              style={[
+                                styles.themeTileSubtitle,
+                                {color: colors.textSecondary},
+                              ]}
+                              numberOfLines={1}
+                            >
+                              {theme.subtitle}
+                            </Text>
+                          </View>
+                          {active && (
+                            <View
+                              style={[
+                                styles.themeTileCheck,
+                                {backgroundColor: modernPalette.accent},
+                              ]}
+                            >
+                              <Check size={10} color="#FFFFFF" strokeWidth={3} />
+                            </View>
+                          )}
+                        </TouchableOpacity>
+                      );
+                    })}
+                  </View>
+                </View>
+              </>
+            )}
           </View>
 
           <Text
@@ -1542,6 +1550,152 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
                   themed.settingsGroupCard,
                 ]}
               >
+                <View style={styles.interfaceSelectorBlock}>
+                  <Text style={[styles.interfaceTitle, {color: colors.textPrimary}]}>
+                    App Interface
+                  </Text>
+                  <Text
+                    style={[styles.interfaceSubtitle, {color: colors.textSecondary}]}
+                  >
+                    Choose how LAFINA looks
+                  </Text>
+                  <View style={styles.interfaceCardsRow}>
+                    <TouchableOpacity
+                      testID="ui-variant-modern"
+                      accessibilityRole="radio"
+                      accessibilityState={{
+                        checked: uiVariant === 'modern',
+                        selected: uiVariant === 'modern',
+                      }}
+                      accessibilityLabel="Modern — UniGuide-inspired interface"
+                      activeOpacity={0.8}
+                      onPress={() => setUIVariant('modern')}
+                      style={[
+                        styles.interfaceCard,
+                        {
+                          backgroundColor:
+                            uiVariant === 'modern'
+                              ? modernPalette.softViolet
+                              : colors.inputBg,
+                          borderColor:
+                            uiVariant === 'modern'
+                              ? modernPalette.accent
+                              : colors.border,
+                        },
+                      ]}
+                    >
+                      <View style={styles.interfaceCardTop}>
+                        <Sparkles
+                          size={16}
+                          color={
+                            uiVariant === 'modern'
+                              ? modernPalette.accent
+                              : colors.textSecondary
+                          }
+                        />
+                        {uiVariant === 'modern' && (
+                          <View
+                            style={[
+                              styles.interfaceCheckBadge,
+                              {backgroundColor: modernPalette.accent},
+                            ]}
+                          >
+                            <Check size={11} color="#FFFFFF" strokeWidth={3} />
+                          </View>
+                        )}
+                      </View>
+                      <Text
+                        style={[
+                          styles.interfaceCardTitle,
+                          {
+                            color:
+                              uiVariant === 'modern'
+                                ? modernPalette.accent
+                                : colors.textPrimary,
+                          },
+                        ]}
+                      >
+                        Modern
+                      </Text>
+                      <Text
+                        style={[
+                          styles.interfaceCardDesc,
+                          {color: colors.textSecondary},
+                        ]}
+                      >
+                        UniGuide-inspired interface
+                      </Text>
+                    </TouchableOpacity>
+
+                    <TouchableOpacity
+                      testID="ui-variant-classic"
+                      accessibilityRole="radio"
+                      accessibilityState={{
+                        checked: uiVariant === 'classic',
+                        selected: uiVariant === 'classic',
+                      }}
+                      accessibilityLabel="Classic — Original LAFINA interface"
+                      activeOpacity={0.8}
+                      onPress={() => setUIVariant('classic')}
+                      style={[
+                        styles.interfaceCard,
+                        {
+                          backgroundColor:
+                            uiVariant === 'classic'
+                              ? colors.primary + '14'
+                              : colors.inputBg,
+                          borderColor:
+                            uiVariant === 'classic'
+                              ? colors.primary
+                              : colors.border,
+                        },
+                      ]}
+                    >
+                      <View style={styles.interfaceCardTop}>
+                        <LayoutGrid
+                          size={16}
+                          color={
+                            uiVariant === 'classic'
+                              ? colors.primary
+                              : colors.textSecondary
+                          }
+                        />
+                        {uiVariant === 'classic' && (
+                          <View
+                            style={[
+                              styles.interfaceCheckBadge,
+                              {backgroundColor: colors.primary},
+                            ]}
+                          >
+                            <Check size={11} color="#FFFFFF" strokeWidth={3} />
+                          </View>
+                        )}
+                      </View>
+                      <Text
+                        style={[
+                          styles.interfaceCardTitle,
+                          {
+                            color:
+                              uiVariant === 'classic'
+                                ? colors.primary
+                                : colors.textPrimary,
+                          },
+                        ]}
+                      >
+                        Classic
+                      </Text>
+                      <Text
+                        style={[
+                          styles.interfaceCardDesc,
+                          {color: colors.textSecondary},
+                        ]}
+                      >
+                        Original LAFINA interface
+                      </Text>
+                    </TouchableOpacity>
+                  </View>
+                </View>
+                <View style={[styles.settingDivider, themed.settingDivider]} />
                 <SettingItem
                   text="Developer Testing Hub"
                   type="link"
@@ -1644,11 +1798,11 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
             style={[styles.guestPromptCard, ...cardSurfaceStyle]}
           >
             <Text style={[styles.guestPromptTitle, themed.settingText]}>
-              Go Full Access
+              Save & Sync Your Data
             </Text>
             <Text style={[styles.guestPromptBody, themed.settingValue]}>
-              Create an account to save your data across devices and unlock all
-              features.
+              Create an account or sign in to back up your schedule across
+              devices and use Online AI mode.
             </Text>
             <TouchableOpacity
               onPress={handleCreateAccount}
@@ -1704,6 +1858,11 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
           onClose={() => setPrivacyModalVisible(false)}
         />
       )}
+      <ProfileStatsModal
+        visible={statsModalVisible}
+        statistics={statistics}
+        onClose={() => setStatsModalVisible(false)}
+      />
       <ReminderHealth
         userId={userId}
         visible={healthVisible}
@@ -1838,21 +1997,25 @@ const styles = StyleSheet.create({
     paddingTop: 8,
   },
   nameRow: {
-    flexDirection: 'row',
+    width: '100%',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 8,
-    maxWidth: '100%',
-    paddingHorizontal: 24,
+    paddingHorizontal: 16,
   },
   userName: {
-    flexShrink: 1,
     fontSize: 18,
     fontFamily: Fonts.heading,
     fontWeight: 'bold',
+  },
+  userNameAlign: {
+    width: '100%',
     textAlign: 'center',
+    includeFontPadding: false,
   },
   userEmail: {
+    width: '100%',
+    paddingHorizontal: 16,
+    textAlign: 'center',
     fontSize: 12,
     fontFamily: Fonts.body,
     marginTop: 4,
@@ -2080,6 +2243,92 @@ const styles = StyleSheet.create({
     marginTop: 2,
     lineHeight: 15,
     fontFamily: Fonts.body,
+  },
+  themePickerBlock: {
+    paddingVertical: 14,
+  },
+  themePickerHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 10,
+    marginBottom: 12,
+  },
+  themePickerHeaderCopy: {
+    flex: 1,
+  },
+  themePickerSubtitle: {
+    fontSize: 12,
+    marginTop: 2,
+    fontFamily: Fonts.body,
+  },
+  themeActiveBadge: {
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 999,
+  },
+  themeActiveBadgeText: {
+    fontSize: 11.5,
+    fontWeight: '700',
+    fontFamily: Fonts.heading,
+  },
+  themeGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+  },
+  themeTile: {
+    width: '48.2%',
+    flexGrow: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 9,
+    borderRadius: ModernLayout.borderRadiusSubCard,
+    borderWidth: 1.5,
+    paddingHorizontal: 11,
+    paddingVertical: 10,
+  },
+  themeSwatchCluster: {
+    width: 28,
+    height: 24,
+    position: 'relative',
+    justifyContent: 'center',
+  },
+  themeSwatchPrimary: {
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    borderWidth: 1.5,
+  },
+  themeSwatchSecondary: {
+    width: 14,
+    height: 14,
+    borderRadius: 7,
+    borderWidth: 1.5,
+    position: 'absolute',
+    right: 0,
+    bottom: 0,
+  },
+  themeTileTextCol: {
+    flex: 1,
+    minWidth: 0,
+  },
+  themeTileLabel: {
+    fontSize: 13,
+    fontWeight: '700',
+    fontFamily: Fonts.heading,
+  },
+  themeTileSubtitle: {
+    fontSize: 10.5,
+    marginTop: 1,
+    fontFamily: Fonts.body,
+  },
+  themeTileCheck: {
+    width: 16,
+    height: 16,
+    borderRadius: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   settingsGroupCard: {
     borderRadius: Layout.borderRadiusCard,

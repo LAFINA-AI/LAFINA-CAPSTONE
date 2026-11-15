@@ -202,3 +202,14 @@ export type {
   HandbookPack,
   HandbookPackChunk,
 } from './localHandbookStore';
+export {
+  completionRate,
+  onTimeRate,
+  profileStatisticsStore,
+  UNAVAILABLE_DETAILED_STATISTICS,
+  UNAVAILABLE_STATISTICS,
+} from './profileStatisticsStore';
+export type {
+  DetailedProfileStatistics,
+  ProfileStatistics,
+} from './profileStatisticsStore';

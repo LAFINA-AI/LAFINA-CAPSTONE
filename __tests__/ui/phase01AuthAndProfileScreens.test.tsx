@@ -1,5 +1,5 @@
 import React from 'react';
-import {render, fireEvent, waitFor} from '@testing-library/react-native';
+import {render, fireEvent, waitFor, act} from '@testing-library/react-native';
 import {ThemeProvider} from '../../src/ui/contexts/ThemeContext';
 import {WelcomeScreen} from '../../src/ui/screens/WelcomeScreen';
 import {OnboardingScreen} from '../../src/ui/screens/OnboardingScreen';
@@ -16,7 +16,14 @@ import {GUEST_USER_ID} from '../../src/constants';
 import {chatMemoryStore} from '../../src/storage/chatMemoryStore';
 import {visionService} from '../../src/ai/vision/visionService';
 import {parseUstpCor} from '../../src/ai/vision/ustpCorParser';
-import {NativeModules} from 'react-native';
+import {NativeModules, Alert, Platform} from 'react-native';
+import RNFS from 'react-native-fs';
+import {PreferencesSettingsScreen} from '../../src/ui/screens/PreferencesSettingsScreen';
+import {
+  setSelectedOfflineModelId,
+  deleteOfflineModel,
+  getSelectedOfflineModelId,
+} from '../../src/ai/nlu';
 
 const SAMPLE_COR_TEXT = `
 Registration No: 556711 Academic Year/Term : 1st Semester AY 2026-2027
@@ -381,5 +388,236 @@ describe('Phase 01 Welcome, Onboarding, and Profile Screens', () => {
     expect(getByText('Week Starts on Monday')).toBeTruthy();
     expect(getByText('Dark Mode')).toBeTruthy();
     expect(getByText('Test TTS Voice')).toBeTruthy();
+    expect(queryByText('App Interface')).toBeNull();
+    expect(queryByText('Student Pro')).toBeNull();
+  });
+
+  test('ProfileScreen centers long display names symmetrically without Student Pro badge for student accounts', async () => {
+    const uid = await userStore.register(
+      'Maria Concepcion D. Villanueva-Reyes',
+      'maria.villanueva@ustp.edu.ph',
+      'StrongPass123!',
+    );
+    const ui = render(
+      <ThemeProvider userId={uid}>
+        <ProfileScreen
+          userId={uid}
+          refreshTrigger={0}
+          onRefresh={jest.fn()}
+          onLogout={jest.fn()}
+        />
+      </ThemeProvider>,
+    );
+
+    expect(
+      ui.getByTestId('profile-display-name').props.children,
+    ).toBe('Maria Concepcion D. Villanueva-Reyes');
+    expect(ui.queryByTestId('student-pro-tag')).toBeNull();
+    expect(ui.queryByText('Student Pro')).toBeNull();
+    expect(ui.queryByText('App Interface')).toBeNull();
+    expect(ui.getByLabelText('Dark Mode')).toBeTruthy();
+  });
+
+  describe('PreferencesSettingsScreen Curated Offline AI Model Presets', () => {
+    const rnfsMutable = RNFS as unknown as Record<string, unknown>;
+    const originalPlatformOS = Platform.OS;
+    const originalNativeExtractor = NativeModules.LafinaIntentExtractor;
+    let mockFiles: Record<string, {size: number}> = {};
+    let savedRnfsProps: Record<string, unknown> = {};
+
+    beforeEach(() => {
+      mockFiles = {};
+      savedRnfsProps = {
+        exists: rnfsMutable.exists,
+        stat: rnfsMutable.stat,
+        mkdir: rnfsMutable.mkdir,
+        unlink: rnfsMutable.unlink,
+        downloadFile: rnfsMutable.downloadFile,
+        stopDownload: rnfsMutable.stopDownload,
+        moveFile: rnfsMutable.moveFile,
+      };
+
+      Platform.OS = 'android';
+      NativeModules.LafinaIntentExtractor = {
+        unloadModel: jest.fn(async () => true),
+        getDeviceSpecs: jest.fn(async () => ({
+          totalRamBytes: 3_900_000_000,
+          availableRamBytes: 1_500_000_000,
+          isLowRamDevice: false,
+          isLowMemoryNow: false,
+          cpuCores: 8,
+          supports64Bit: true,
+          primaryAbi: 'arm64-v8a',
+          availableStorageBytes: 8_000_000_000,
+          totalStorageBytes: 64_000_000_000,
+          deviceLabel: 'Redmi Note Test',
+          androidSdk: 34,
+        })),
+      };
+
+      rnfsMutable.exists = jest.fn(async (filePath: string) =>
+        Boolean(mockFiles[filePath]),
+      );
+      rnfsMutable.stat = jest.fn(async (filePath: string) => {
+        if (!mockFiles[filePath]) {
+          throw new Error('File does not exist');
+        }
+        return {size: mockFiles[filePath].size};
+      });
+      rnfsMutable.mkdir = jest.fn(async () => undefined);
+      rnfsMutable.unlink = jest.fn(async (filePath: string) => {
+        delete mockFiles[filePath];
+      });
+      rnfsMutable.downloadFile = jest.fn(
+        ({
+          toFile,
+          progress,
+        }: {
+          toFile: string;
+          progress?: (res: {bytesWritten: number; contentLength: number}) => void;
+        }) => {
+          const mockSize = toFile.includes('gemma-3-1b')
+            ? 845000000
+            : toFile.includes('gemma-3-270m')
+              ? 193986560
+              : 397800000;
+          if (progress) {
+            progress({bytesWritten: mockSize, contentLength: mockSize});
+          }
+          return {
+            jobId: 201,
+            promise: Promise.resolve({statusCode: 200}).then(() => {
+              mockFiles[toFile] = {size: mockSize};
+              return {statusCode: 200};
+            }),
+          };
+        },
+      );
+      rnfsMutable.stopDownload = jest.fn();
+      rnfsMutable.moveFile = jest.fn(async (from: string, to: string) => {
+        mockFiles[to] = mockFiles[from] || {size: 193986560};
+        delete mockFiles[from];
+      });
+    });
+
+    afterEach(async () => {
+      await deleteOfflineModel('gemma-3-270m', GUEST_USER_ID);
+      setSelectedOfflineModelId('qwen2.5-0.5b', GUEST_USER_ID);
+      Platform.OS = originalPlatformOS;
+      if (originalNativeExtractor === undefined) {
+        delete NativeModules.LafinaIntentExtractor;
+      } else {
+        NativeModules.LafinaIntentExtractor = originalNativeExtractor;
+      }
+
+      for (const [key, originalValue] of Object.entries(savedRnfsProps)) {
+        if (originalValue === undefined) {
+          delete rnfsMutable[key];
+        } else {
+          rnfsMutable[key] = originalValue;
+        }
+      }
+    });
+
+    test('renders all 5 curated presets, downloads Gemma 3 270M, switches models, and deletes downloaded preset', async () => {
+      const alertSpy = jest
+        .spyOn(Alert, 'alert')
+        .mockImplementation(() => undefined);
+      const guest = userStore.createGuestUser();
+
+      const ui = render(
+        <ThemeProvider userId={guest.id}>
+          <PreferencesSettingsScreen
+            userId={guest.id}
+            onBack={jest.fn()}
+            onSaved={jest.fn()}
+          />
+        </ThemeProvider>,
+      );
+
+      await waitFor(() => {
+        expect(ui.getByTestId('offline-ai-header-badge').props.children).toBe(
+          'Fast-Path Only',
+        );
+        expect(ui.getByTestId('offline-ai-recommendation-card')).toBeTruthy();
+      });
+
+      expect(ui.getByTestId('offline-ai-device-specs').props.children).toContain(
+        '4 GB RAM',
+      );
+      expect(
+        ui.getByTestId('offline-model-recommended-gemma-3-270m'),
+      ).toBeTruthy();
+      expect(
+        ui.getByTestId('offline-model-compat-gemma-3-1b').props.children.props
+          .children,
+      ).toContain('6GB+ RAM');
+
+      expect(ui.getByTestId('offline-model-card-fast_path_only')).toBeTruthy();
+      expect(ui.getByTestId('offline-model-card-smollm2-135m')).toBeTruthy();
+      expect(ui.getByTestId('offline-model-card-gemma-3-270m')).toBeTruthy();
+      expect(ui.getByTestId('offline-model-card-qwen2.5-0.5b')).toBeTruthy();
+      expect(ui.getByTestId('offline-model-card-gemma-3-1b')).toBeTruthy();
+
+      fireEvent.press(ui.getByTestId('offline-model-download-gemma-3-270m'));
+
+      await waitFor(() => {
+        expect(ui.getByTestId('offline-ai-header-badge').props.children).toBe(
+          'Active: Gemma 3 270M',
+        );
+        expect(ui.getByTestId('offline-model-active-gemma-3-270m')).toBeTruthy();
+      });
+
+      expect(getSelectedOfflineModelId(guest.id)).toBe('gemma-3-270m');
+
+      fireEvent.press(ui.getByTestId('offline-model-select-fast_path_only'));
+
+      await waitFor(() => {
+        expect(getSelectedOfflineModelId(guest.id)).toBe('fast_path_only');
+        expect(ui.getByTestId('offline-ai-header-badge').props.children).toBe(
+          'Fast-Path Only',
+        );
+        expect(ui.getByTestId('offline-model-select-gemma-3-270m')).toBeTruthy();
+      });
+
+      fireEvent.press(ui.getByTestId('offline-model-select-gemma-3-270m'));
+
+      await waitFor(() => {
+        expect(getSelectedOfflineModelId(guest.id)).toBe('gemma-3-270m');
+        expect(ui.getByTestId('offline-ai-header-badge').props.children).toBe(
+          'Active: Gemma 3 270M',
+        );
+        expect(ui.getByTestId('offline-model-active-gemma-3-270m')).toBeTruthy();
+      });
+
+      alertSpy.mockClear();
+      fireEvent.press(ui.getByTestId('offline-model-delete-gemma-3-270m'));
+
+      expect(alertSpy).toHaveBeenCalledWith(
+        'Remove Offline AI Model',
+        expect.stringContaining('Gemma-3-270M-Instruct'),
+        expect.any(Array),
+      );
+
+      const buttons = alertSpy.mock.calls[0][2] as
+        | Array<{text?: string; onPress?: () => void | Promise<void>}>
+        | undefined;
+      const deleteButton = buttons?.find(btn => btn.text === 'Delete');
+      expect(deleteButton).toBeTruthy();
+      await act(async () => {
+        await deleteButton?.onPress?.();
+      });
+
+      await waitFor(() => {
+        expect(
+          ui.getByTestId('offline-model-download-gemma-3-270m'),
+        ).toBeTruthy();
+        expect(ui.getByTestId('offline-ai-header-badge').props.children).toBe(
+          'Fast-Path Only',
+        );
+      });
+
+      ui.unmount();
+    });
   });
 });

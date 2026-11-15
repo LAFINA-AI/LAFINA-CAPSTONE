@@ -503,4 +503,155 @@ describe('AGY-PORT 09 Profile statistics', () => {
     });
     expect(profileStatisticsStore.read('').available).toBe(false);
   });
+
+  it('computes detailed student analytics and reports read errors as unavailable', () => {
+    const a = owner('stats-detailed');
+    const b = owner('stats-detailed-other');
+    const refDate = new Date(2026, 10, 16, 10, 0, 0); // Mon 2026-11-16
+    const today = '2026-11-16';
+    const yesterday = '2026-11-15';
+
+    // Tasks for owner a: 1 completed, 1 overdue high priority, 1 due today, 1 soft-deleted
+    tasksStore.insertTask({
+      id: `${a}-done`,
+      userId: a,
+      title: 'Lab Report',
+      isCompleted: true,
+      priority: 'Medium',
+      category: 'Academic',
+      dueDate: yesterday,
+    });
+    tasksStore.insertTask({
+      id: `${a}-overdue`,
+      userId: a,
+      title: 'Overdue Quiz Prep',
+      isCompleted: false,
+      priority: 'High',
+      category: 'Academic',
+      dueDate: yesterday,
+    });
+    tasksStore.insertTask({
+      id: `${a}-today`,
+      userId: a,
+      title: 'Draft Slides',
+      isCompleted: false,
+      priority: 'Low',
+      category: 'Academic',
+      dueDate: today,
+    });
+    tasksStore.insertTask({
+      id: `${a}-deleted`,
+      userId: a,
+      title: 'Deleted',
+      isCompleted: true,
+      priority: 'Low',
+      category: 'Academic',
+    });
+    tasksStore.deleteTask(`${a}-deleted`);
+    tasksStore.insertTask({
+      id: `${b}-task`,
+      userId: b,
+      title: 'Other Student Task',
+      isCompleted: true,
+      priority: 'High',
+      category: 'Academic',
+    });
+
+    const stamp = refDate.toISOString();
+    // Notes: 2 active (1 pinned + 1 voice), 1 deleted, 1 other owner
+    db.executeSync(
+      `INSERT INTO notes (id, user_id, title, body, is_pinned, is_voice_transcribed, created_at, updated_at, deleted_at)
+       VALUES (?, ?, 'Pinned Note', 'Body', 1, 0, ?, ?, NULL),
+              (?, ?, 'Voice Note', 'Transcript', 0, 1, ?, ?, NULL),
+              (?, ?, 'Deleted Note', 'Body', 1, 0, ?, ?, ?),
+              (?, ?, 'Other Note', 'Body', 1, 0, ?, ?, NULL)`,
+      [
+        `${a}-n1`, a, stamp, stamp,
+        `${a}-n2`, a, stamp, stamp,
+        `${a}-n3`, a, stamp, stamp, stamp,
+        `${b}-n1`, b, stamp, stamp,
+      ],
+    );
+
+    // Time blocks this week: 1 class block (90m), 1 study block (60m), 1 event (30m)
+    db.executeSync(
+      `INSERT INTO time_blocks (id, user_id, title, date, start_time, end_time, color, category, created_at, updated_at, deleted_at)
+       VALUES (?, ?, 'IT 311 Class', ?, '08:00', '09:30', '#4F46E5', 'Class', ?, ?, NULL),
+              (?, ?, 'Deep Study', ?, '14:00', '15:00', '#10B981', 'Focus', ?, ?, NULL)`,
+      [`${a}-cls`, a, today, stamp, stamp, `${a}-std`, a, today, stamp, stamp],
+    );
+    db.executeSync(
+      `INSERT INTO events (id, user_id, title, date, start_time, end_time, created_at, updated_at, deleted_at)
+       VALUES (?, ?, 'Capstone Standup', ?, '16:00', '16:30', ?, ?, NULL)`,
+      [`${a}-ev`, a, today, stamp, stamp],
+    );
+
+    // Alarms: 1 enabled, 1 disabled
+    db.executeSync(
+      `INSERT INTO alarms (id, user_id, hour, minute, repeat_days, label, enabled, created_at, updated_at)
+       VALUES (?, ?, 6, 30, 0, 'Wake', 1, ?, ?),
+              (?, ?, 7, 0, 0, 'Off', 0, ?, ?)`,
+      [`${a}-al1`, a, stamp, stamp, `${a}-al2`, a, stamp, stamp],
+    );
+
+    // Recorded lectures: 2 active (1 with transcript & AI notes, 1 audio only)
+    db.executeSync(
+      `INSERT INTO recorded_meetings (id, user_id, title, status, started_at, duration_seconds, transcript_json, notes_json, created_at, updated_at, deleted_at)
+       VALUES (?, ?, 'Lecture 1', 'completed', ?, 600, '[{"text":"hello"}]', '{"summary":"ok"}', ?, ?, NULL),
+              (?, ?, 'Lecture 2', 'transcription_complete', ?, 300, '[{"text":"world"}]', NULL, ?, ?, NULL)`,
+      [`${a}-rec1`, a, stamp, stamp, stamp, `${a}-rec2`, a, stamp, stamp, stamp],
+    );
+
+    // Reminders: 1 pending, 1 acknowledged on time, 1 acknowledged snoozed, 1 missed
+    reminder(`${a}-pend`, a, 3600000, 'pending');
+    reminder(`${a}-ok`, a, -3600000, 'acknowledged');
+    reminder(`${a}-snz`, a, -3600000, 'acknowledged');
+    db.executeSync('UPDATE reminders SET snooze_count = 1 WHERE id = ?', [`${a}-snz`]);
+    reminder(`${a}-miss`, a, -3600000, 'missed');
+
+    const detailed = profileStatisticsStore.readDetailed(a, refDate);
+    expect(detailed).toMatchObject({
+      available: true,
+      completedTasksCount: 1,
+      pendingTasksCount: 2,
+      totalTasksCount: 3,
+      overdueTasksCount: 1,
+      dueTodayTasksCount: 1,
+      highPriorityPendingCount: 1,
+      taskCompletionRate: 33,
+      weeklyClassCount: 1,
+      weeklyClassMinutes: 90,
+      weeklyStudyBlockCount: 1,
+      weeklyStudyMinutes: 60,
+      weeklyEventCount: 1,
+      weeklyEventMinutes: 30,
+      weeklyScheduledMinutes: 180,
+      notesCount: 2,
+      pinnedNotesCount: 1,
+      voiceNotesCount: 1,
+      lecturesCount: 2,
+      transcribedLecturesCount: 2,
+      lectureNotesCount: 1,
+      totalLectureSeconds: 900,
+      pendingRemindersCount: 1,
+      onTimeCount: 1,
+      snoozedOutcomesCount: 1,
+      missedRemindersCount: 1,
+      finishedRemindersCount: 3,
+      onTimeRate: 33,
+      enabledAlarmsCount: 1,
+      totalAlarmsCount: 2,
+    });
+
+    jest.spyOn(db, 'executeSync').mockImplementation(() => {
+      throw new Error('database locked');
+    });
+    expect(profileStatisticsStore.readDetailed(a, refDate)).toMatchObject({
+      available: false,
+      totalTasksCount: null,
+      weeklyScheduledMinutes: null,
+      enabledAlarmsCount: null,
+    });
+    expect(profileStatisticsStore.readDetailed('').available).toBe(false);
+  });
 });
