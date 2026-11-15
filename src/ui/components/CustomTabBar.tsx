@@ -1,13 +1,7 @@
 import React from 'react';
 import {StyleSheet, Text, TouchableOpacity, View} from 'react-native';
 import {useSafeAreaInsets} from 'react-native-safe-area-context';
-import {
-  Calendar,
-  FileText,
-  LayoutDashboard,
-  MessageSquare,
-  User,
-} from 'lucide-react-native';
+import {CalendarDays, FileText, House, Sparkles, User} from 'lucide-react-native';
 import {useTheme} from '../contexts/ThemeContext';
 import type {ThemeColors} from '../contexts/ThemeContext';
 import {Fonts, Layout, Shadows} from '../theme';
@@ -16,6 +10,41 @@ import type {TourAnchor} from '../tour/tourSteps';
 import {tourTargetRef} from '../tour/tourTargets';
 
 export type TabType = 'chat' | 'calendar' | 'dashboard' | 'notes' | 'profile';
+
+/**
+ * Home | Schedule | AI | Notes | Profile (tab redesign plan T1). The keys stay
+ * as they were, so call navigation, tour anchors and widget links still work;
+ * only what the student sees changes.
+ */
+export const TAB_ORDER: readonly TabType[] = [
+  'dashboard',
+  'calendar',
+  'chat',
+  'notes',
+  'profile',
+];
+
+export const TAB_LABELS: Record<TabType, string> = {
+  dashboard: 'Home',
+  calendar: 'Schedule',
+  chat: 'AI',
+  notes: 'Notes',
+  profile: 'Profile',
+};
+
+const TAB_ICONS: Record<
+  TabType,
+  React.ComponentType<{size: number; color: string}>
+> = {
+  dashboard: House,
+  calendar: CalendarDays,
+  chat: Sparkles,
+  notes: FileText,
+  profile: User,
+};
+
+/** LAFINA's AI sits in the raised centre slot. */
+const CENTER_TAB: TabType = 'chat';
 
 const TOUR_TABS: Record<TabType, TourAnchor> = {
   chat: 'tab-chat',
@@ -136,11 +165,9 @@ export const CustomTabBar: React.FC<CustomTabBarProps> = ({
         style={[styles.container, themed.container]}
         accessibilityRole="tablist"
       >
-        {renderTab('chat', 'Chat', MessageSquare)}
-        {renderTab('calendar', 'Calendar', Calendar)}
-        {renderTab('dashboard', 'Dashboard', LayoutDashboard, true)}
-        {renderTab('notes', 'Notes', FileText)}
-        {renderTab('profile', 'Profile', User)}
+        {TAB_ORDER.map(tab =>
+          renderTab(tab, TAB_LABELS[tab], TAB_ICONS[tab], tab === CENTER_TAB),
+        )}
       </View>
     </View>
   );

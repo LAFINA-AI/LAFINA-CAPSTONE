@@ -63,6 +63,8 @@ import {
   scoreEntityMatch,
 } from './actionExecutor';
 import {INTENT_ROUTES} from './intentRoutes';
+import {applyAlarmOperation, buildAlarmDraft} from './alarmReview';
+import type {AlarmOperation} from './alarmReview';
 import type {RingingCallContext} from './intentRoutes';
 import type {
   CrudTargetEntityType,
@@ -224,7 +226,9 @@ type PlannedOperation =
       target: TargetRef;
       generation: number;
       triggerAt: string;
-    };
+    }
+  // Alarm plan A3: device-local alarms (alarmReview.ts).
+  | AlarmOperation;
 
 /**
  * One reminder that follows its task, event or time block when that item is
@@ -467,6 +471,7 @@ interface CleanIntent {
   bulkScope: 'completed_tasks' | 'date_items' | null;
   leadMinutes: number | null;
   deliveryStyle: ReminderDeliveryStyle;
+  alarmEnabled: boolean | null;
 }
 
 const cleanIntent = (intent: ValidatedIntent): CleanIntent => {
@@ -523,6 +528,8 @@ const cleanIntent = (intent: ValidatedIntent): CleanIntent => {
         : null,
     leadMinutes: cleanMinutes(intent.leadMinutes, 7 * 24 * 60),
     deliveryStyle: intent.deliveryStyle === 'notify' ? 'notify' : 'call',
+    alarmEnabled:
+      typeof intent.alarmEnabled === 'boolean' ? intent.alarmEnabled : null,
   };
 };
 
@@ -2813,6 +2820,26 @@ export const prepareReviewedCommand = (
       case 'reschedule':
         built = buildReminderAction(userId, clean, options.ringingCall, today);
         break;
+      case 'create_alarm':
+      case 'update_alarm':
+      case 'delete_alarm':
+      case 'toggle_alarm':
+        built = buildAlarmDraft(
+          userId,
+          {
+            intent: clean.intent,
+            title: clean.title,
+            targetTitle: clean.targetTitle,
+            newTitle: clean.newTitle,
+            date: clean.date,
+            time: clean.time,
+            targetTime: clean.targetTime,
+            recurrenceRule: clean.recurrenceRule,
+            alarmEnabled: clean.alarmEnabled,
+          },
+          new Date(nowMs),
+        );
+        break;
       default:
         return {
           status: 'invalid',
@@ -3062,6 +3089,25 @@ const applyOperation = (
   op: PlannedOperation,
 ): Applied => {
   switch (op.op) {
+    case 'create_alarm':
+    case 'update_alarm':
+    case 'toggle_alarm':
+    case 'delete_alarm': {
+      const done = applyAlarmOperation(tx, ownerId, op);
+      if (done.status === 'stale') throw new ReviewRefusedError('stale');
+      if (done.status === 'expired')
+        throw new ReviewRefusedError(
+          'expired',
+          'The alarm time in this review has passed while it was waiting. Nothing was changed. Please ask again.',
+        );
+      return {
+        operation: op.op,
+        entityType: 'alarm',
+        entityId: done.entityId,
+        reminderId: null,
+        reply: done.reply,
+      };
+    }
     case 'create_event': {
       tasksStore.insertEvent(
         {

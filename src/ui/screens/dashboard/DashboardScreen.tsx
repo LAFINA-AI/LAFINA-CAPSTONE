@@ -26,6 +26,7 @@ import {
   UpcomingRemindersWidget,
 } from './components';
 import {useDashboardData} from './hooks/useDashboardData';
+import {NextAlarmCard} from './components/NextAlarmCard';
 import type {DashboardScheduleItem, DashboardScreenProps} from './types';
 
 export const DashboardScreen: React.FC<DashboardScreenProps> = ({
@@ -239,6 +240,13 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({
             </TouchableOpacity>
           </View>
         )}
+
+        <NextAlarmCard
+          userId={userId}
+          timeFormat24h={timeFormat24h}
+          now={now}
+          onOpenAlarms={() => onOpenCalendarTab({scheduleSection: 'alarms'})}
+        />
 
         {visibleWidgets.map(renderWidget)}
       </ScrollView>

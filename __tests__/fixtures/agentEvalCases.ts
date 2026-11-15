@@ -1,6 +1,6 @@
 /**
- * Agent eval set (ADR-033): 52 realistic student requests in English and
- * Taglish, with the outcome a careful human would expect. Written by hand
+ * Agent eval set (ADR-033): 71 realistic student requests in English and
+ * Taglish (19 of them about alarms, alarm plan A3), with the outcome a careful human would expect. Written by hand
  * from the request, not from what the parser does, so failures are real gaps.
  *
  * Reference time for every case: Saturday 14 Nov 2026, 09:00 local.
@@ -14,7 +14,8 @@ export type EvalCategory =
   | 'read'
   | 'taglish'
   | 'conversation'
-  | 'reference';
+  | 'reference'
+  | 'alarm';
 
 export interface AgentEvalCase {
   id: string;
@@ -25,6 +26,10 @@ export interface AgentEvalCase {
   time?: string | null;
   endTime?: string | null;
   isCompleted?: boolean;
+  /** Alarm repeat as the RRULE the parser produces; absent means "not checked". */
+  recurrenceRule?: string | null;
+  /** toggle_alarm: on (true) or off (false). */
+  alarmEnabled?: boolean;
   /** Words the title must contain (lowercase). */
   titleHas?: string[];
   /**
@@ -445,5 +450,147 @@ export const AGENT_EVAL_CASES: AgentEvalCase[] = [
       time: '07:00',
       endTime: '09:00',
     },
+  },
+  // ── Alarms (alarm plan A3) ────────────────────────────────────────────
+  {
+    id: 'a01',
+    category: 'alarm',
+    text: 'set an alarm for 6am tomorrow',
+    intent: ['create_alarm'],
+    date: '2026-11-15',
+    time: '06:00',
+  },
+  {
+    id: 'a02',
+    category: 'alarm',
+    text: 'wake me up at 5:30 on weekdays',
+    intent: ['create_alarm'],
+    time: '05:30',
+    recurrenceRule: 'RRULE:FREQ=WEEKLY;BYDAY=MO,TU,WE,TH,FR',
+  },
+  {
+    id: 'a03',
+    category: 'alarm',
+    text: 'set an alarm for 7',
+    intent: ['create_alarm'],
+    time: '07:00',
+  },
+  {
+    id: 'a04',
+    category: 'alarm',
+    text: 'wake me up at 6 every day',
+    intent: ['create_alarm'],
+    time: '06:00',
+    recurrenceRule: 'RRULE:FREQ=DAILY',
+  },
+  {
+    id: 'a05',
+    category: 'alarm',
+    text: 'set an alarm at 10pm',
+    intent: ['create_alarm'],
+    time: '22:00',
+  },
+  {
+    id: 'a06',
+    category: 'alarm',
+    text: 'can you set my alarm for 5 am tomorrow',
+    intent: ['create_alarm'],
+    date: '2026-11-15',
+    time: '05:00',
+  },
+  {
+    id: 'a07',
+    category: 'alarm',
+    text: 'turn off my 6am alarm',
+    intent: ['toggle_alarm'],
+    alarmEnabled: false,
+  },
+  {
+    id: 'a08',
+    category: 'alarm',
+    text: 'disable my weekday alarm',
+    intent: ['toggle_alarm'],
+    alarmEnabled: false,
+  },
+  {
+    id: 'a09',
+    category: 'alarm',
+    text: 'turn my alarm back on',
+    intent: ['toggle_alarm'],
+    alarmEnabled: true,
+  },
+  {
+    id: 'a10',
+    category: 'alarm',
+    text: 'delete my 7:30 alarm',
+    intent: ['delete_alarm'],
+  },
+  {
+    id: 'a11',
+    category: 'alarm',
+    text: 'change my 6am alarm to 6:30',
+    intent: ['update_alarm'],
+    time: '06:30',
+  },
+  {
+    id: 'a12',
+    category: 'alarm',
+    text: 'what time is my alarm tomorrow?',
+    intent: ['list_alarms'],
+  },
+  {
+    id: 'a13',
+    category: 'alarm',
+    text: 'do I have any alarms set',
+    intent: ['list_alarms'],
+  },
+  {
+    id: 'a14',
+    category: 'alarm',
+    text: 'remind me to buy a new alarm clock',
+    intent: ['create_reminder', 'create_task'],
+    titleHas: ['alarm clock'],
+  },
+  {
+    id: 'a15',
+    category: 'alarm',
+    text: 'gisingin mo ako ng 5 bukas',
+    intent: ['create_alarm'],
+    date: '2026-11-15',
+    time: '05:00',
+  },
+  {
+    id: 'a16',
+    category: 'alarm',
+    text: 'alarm ko 6:00 tuwing lunes',
+    intent: ['create_alarm'],
+    time: '06:00',
+    recurrenceRule: 'RRULE:FREQ=WEEKLY;BYDAY=MO',
+  },
+  {
+    id: 'a17',
+    category: 'alarm',
+    text: 'patayin mo yung alarm ko bukas',
+    intent: ['toggle_alarm'],
+    alarmEnabled: false,
+  },
+  {
+    id: 'a18',
+    category: 'reference',
+    text: 'set an alarm for that time',
+    intent: ['chat', 'create_alarm'],
+    agentFields: {
+      action: 'create_alarm',
+      title: 'Exam day',
+      date: '2026-11-16',
+      time: '05:00',
+    },
+  },
+  {
+    id: 'a19',
+    category: 'reference',
+    text: 'turn that one off',
+    intent: ['chat'],
+    agentFields: {action: 'toggle_alarm', title: 'Gym', enabled: false},
   },
 ];

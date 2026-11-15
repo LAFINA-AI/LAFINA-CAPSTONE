@@ -14,6 +14,12 @@ export type ParsedIntentType =
   | 'reschedule'
   | 'query_schedule'
   | 'query_notes'
+  // Alarm plan A3: device-local wake-up alarms (not reminders, not synced).
+  | 'create_alarm'
+  | 'update_alarm'
+  | 'delete_alarm'
+  | 'toggle_alarm'
+  | 'list_alarms'
   | 'chat'
   | 'out_of_scope';
 
@@ -57,6 +63,8 @@ export interface ExtractedIntent {
    * ordinary notification ("notify me", "no call"). Device-local, never synced.
    */
   deliveryStyle?: 'call' | 'notify' | null;
+  /** toggle_alarm: true turns the alarm on, false turns it off. */
+  alarmEnabled?: boolean | null;
 }
 
 export interface ValidatedIntent extends ExtractedIntent {
@@ -118,7 +126,11 @@ export function validateIntent(intent: ExtractedIntent): ValidatedIntent {
     return { ...intent, isValid: true };
   }
 
-  if (intent.intent === 'query_schedule' || intent.intent === 'query_notes') {
+  if (
+    intent.intent === 'query_schedule' ||
+    intent.intent === 'query_notes' ||
+    intent.intent === 'list_alarms'
+  ) {
     return { ...intent, isValid: true };
   }
 
@@ -157,6 +169,42 @@ export function validateIntent(intent: ExtractedIntent): ValidatedIntent {
       isValid: false,
       validationError: `Invalid date format: ${intent.date}. Expected YYYY-MM-DD.`,
     };
+  }
+
+  // Alarm plan A3. Which alarm is meant is resolved against the owner's
+  // alarms when the review card is prepared; an empty target means "my alarm".
+  if (intent.intent === 'create_alarm') {
+    if (!intent.time) {
+      return {
+        ...intent,
+        isValid: false,
+        validationError: 'What time should the alarm ring? For example "set an alarm for 6 AM".',
+      };
+    }
+    return {...intent, title: sanitizedTitle || null, isValid: true};
+  }
+  if (intent.intent === 'update_alarm') {
+    if (!intent.time && !intent.recurrenceRule && !sanitizedNewTitle) {
+      return {
+        ...intent,
+        isValid: false,
+        validationError: 'Tell me the new alarm time, for example "change my 6 AM alarm to 6:30".',
+      };
+    }
+    return {...intent, isValid: true};
+  }
+  if (intent.intent === 'toggle_alarm') {
+    if (typeof intent.alarmEnabled !== 'boolean') {
+      return {
+        ...intent,
+        isValid: false,
+        validationError: 'Should the alarm be turned on or off?',
+      };
+    }
+    return {...intent, isValid: true};
+  }
+  if (intent.intent === 'delete_alarm') {
+    return {...intent, isValid: true};
   }
 
   // Delete / Cancel / Remove intents

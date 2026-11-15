@@ -27,6 +27,10 @@
     "intent-contract-v2.json": {
       "version": 2,
       "sha256": "9c06bbd4bfd8f7c6b18edf66dbc31f54b6766937a3a58bc2b84ac7f1e39da218"
+    },
+    "intent-contract-v3.json": {
+      "version": 3,
+      "sha256": "044f65d3bb187c01311b84ce28586d1f9612dae1caec8503bd595233eab306ac"
     }
   }
 }

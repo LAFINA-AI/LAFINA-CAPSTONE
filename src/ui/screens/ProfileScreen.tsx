@@ -1277,7 +1277,7 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
             />
             <View style={[styles.settingDivider, themed.settingDivider]} />
             <SettingItem
-              text="Reminder Health"
+              text="Alarm & Reminder Health"
               type="link"
               onPress={() => setHealthVisible(true)}
             />

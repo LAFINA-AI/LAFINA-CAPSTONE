@@ -725,12 +725,12 @@ export function validatePayload(
     }
 
     case 'legacy.read_data': {
-      const allowedKinds = ['calendar', 'todos', 'notes', 'memory'];
+      const allowedKinds = ['calendar', 'todos', 'notes', 'alarms', 'memory'];
       if (typeof p.kind !== 'string' || !allowedKinds.includes(p.kind)) {
         return {
           valid: false,
           error:
-            "legacy.read_data requires kind: 'calendar' | 'todos' | 'notes' | 'memory'.",
+            "legacy.read_data requires kind: 'calendar' | 'todos' | 'notes' | 'alarms' | 'memory'.",
         };
       }
       return {
@@ -802,6 +802,8 @@ export function validatePayload(
         )
       )
         return {valid: false, error: 'Invalid repeat.'};
+      if (p.enabled !== undefined && typeof p.enabled !== 'boolean')
+        return {valid: false, error: 'enabled must be a boolean.'};
       const data: Record<string, unknown> = {request: p.request.trim()};
       for (const field of [
         'action',
@@ -815,6 +817,7 @@ export function validatePayload(
         'details',
         'deliveryStyle',
         'repeat',
+        'enabled',
       ])
         if (p[field] !== undefined) {
           const value = p[field];

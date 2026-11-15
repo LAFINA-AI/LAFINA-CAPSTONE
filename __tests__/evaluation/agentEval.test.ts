@@ -1,6 +1,6 @@
 /**
- * Agent eval (ADR-033): how often the right card or answer comes out of 52
- * realistic English and Taglish requests.
+ * Agent eval (ADR-033): how often the right card or answer comes out of 71
+ * realistic English and Taglish requests (19 about alarms, alarm plan A3).
  *
  * 1. Offline pipeline: the deterministic fast path the phone uses with no
  *    internet (no SmolLM2 in Jest, no DeepSeek). Scored per category; the
@@ -25,9 +25,10 @@ import {
 
 /**
  * Measured 2026-11-15: 36 at ADR-033, 42 after the audit-2 Taglish rules
- * (Taglish 3/10 → 9/10). Raise it when the parser improves.
+ * (Taglish 3/10 → 9/10), 61/71 after the 19 alarm cases (alarm 17/17, the
+ * two alarm agent-field cases also pass). Raise it when the parser improves.
  */
-const OFFLINE_BASELINE = 42;
+const OFFLINE_BASELINE = 61;
 
 const problemsWith = (c: AgentEvalCase, got: ValidatedIntent): string[] => {
   // An invalid planner command makes no card: for the student it is a
@@ -40,6 +41,13 @@ const problemsWith = (c: AgentEvalCase, got: ValidatedIntent): string[] => {
       problems.push(`${field}=${got[field] ?? null}`);
   if ('isCompleted' in c && got.isCompleted !== c.isCompleted)
     problems.push(`isCompleted=${got.isCompleted}`);
+  if (
+    'recurrenceRule' in c &&
+    (got.recurrenceRule ?? null) !== c.recurrenceRule
+  )
+    problems.push(`recurrenceRule=${got.recurrenceRule ?? null}`);
+  if ('alarmEnabled' in c && got.alarmEnabled !== c.alarmEnabled)
+    problems.push(`alarmEnabled=${got.alarmEnabled}`);
   const title = (got.title || got.targetTitle || '').toLowerCase();
   for (const word of c.titleHas ?? [])
     if (!title.includes(word)) problems.push(`title="${got.title}"`);
@@ -104,7 +112,7 @@ describe('agent eval: offline pipeline', () => {
         ) + '\n',
       );
     }
-    expect(rows).toHaveLength(52);
+    expect(rows).toHaveLength(71);
     expect(passed).toBeGreaterThanOrEqual(OFFLINE_BASELINE);
   });
 
@@ -139,6 +147,8 @@ describe('agent eval: fields from the conversation', () => {
       if (fields.time) expect(intent?.time).toBe(fields.time);
       if (fields.action === 'complete_task')
         expect(intent?.isCompleted).toBe(true);
+      if (fields.action === 'toggle_alarm')
+        expect(intent?.alarmEnabled).toBe(fields.enabled);
       expect(intent?.intent.startsWith('delete_')).toBe(false);
     },
   );

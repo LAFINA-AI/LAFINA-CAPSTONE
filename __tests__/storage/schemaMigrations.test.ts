@@ -132,6 +132,8 @@ describe('schema migrations', () => {
     }
     const added = Object.keys(afterUpgrade).filter(t => !(t in before));
     expect(added).toEqual([
+      // Schema 27 (alarm plan A2): device-local alarms, empty at first.
+      'alarms',
       'assistant_operation_receipts',
       // Schema 23 (clear-data audit C1): attachment cleanup obligations.
       'attachment_cleanup',
@@ -157,6 +159,7 @@ describe('schema migrations', () => {
     expect(afterUpgrade.event_time_local).toEqual([]);
     expect(afterUpgrade.chat_memories).toEqual([]);
     expect(afterUpgrade.reminder_delivery_styles).toEqual([]);
+    expect(afterUpgrade.alarms).toEqual([]);
     // Schema 19 backfills one delivery job per reminder, owned by its owner,
     // with no events and nothing added to the outbox.
     expect(

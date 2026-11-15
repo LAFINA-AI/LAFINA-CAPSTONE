@@ -1,0 +1,68 @@
+package com.lafina.capstone
+
+import android.content.BroadcastReceiver
+import android.content.Context
+import android.content.Intent
+
+/**
+ * Alarm phase A1: an alarm is due, or the student pressed Dismiss/Snooze on the
+ * alarm notification. For a regular ring the following occurrence is booked
+ * first, so a crash while ringing can never end a repeating series.
+ */
+class AlarmFireReceiver : BroadcastReceiver() {
+  override fun onReceive(context: Context, intent: Intent) {
+    when (intent.action) {
+      LafinaAlarms.ACTION_DISMISS -> LafinaAlarmService.finish(context, AlarmEvent.DISMISSED)
+      LafinaAlarms.ACTION_SNOOZE -> LafinaAlarmService.finish(context, AlarmEvent.SNOOZED)
+      LafinaAlarms.ACTION_FIRE -> fire(context, intent)
+    }
+  }
+
+  private fun fire(context: Context, intent: Intent) {
+    val alarmId = intent.getStringExtra(LafinaAlarms.EXTRA_ALARM_ID) ?: return
+    val now = System.currentTimeMillis()
+    if (intent.getBooleanExtra(LafinaAlarms.EXTRA_IS_TEST, false)) {
+      LafinaAlarmService.start(context, RingRequest(alarmId, 0L, "Test alarm", vibrate = true, soundUri = null, isTest = true))
+      return
+    }
+    val generation = intent.getLongExtra(LafinaAlarms.EXTRA_GENERATION, -1L)
+    val isSnooze = intent.getBooleanExtra(LafinaAlarms.EXTRA_IS_SNOOZE, false)
+    val triggerAt = intent.getLongExtra(LafinaAlarms.EXTRA_TRIGGER_AT, now)
+    val definition = synchronized(LafinaAlarms.LOCK) {
+      val registry = LafinaAlarms.registry(context)
+      val current = registry.get(alarmId) ?: return
+      // A booking from before the last change never rings.
+      if (current.generation != generation) return
+      if (isSnooze) {
+        if (current.snoozeUntilMs <= 0L) return
+        registry.put(current.copy(snoozeUntilMs = 0L))
+      } else {
+        if (!current.enabled) return
+        if (current.isRepeating) {
+          LafinaAlarms.bookFollowing(context, current, maxOf(now, triggerAt))
+        } else {
+          registry.put(current.copy(enabled = false, snoozeUntilMs = 0L))
+          LafinaAlarms.recordEvent(context, AlarmEvent(alarmId, AlarmEvent.ONE_SHOT_DONE, now, generation))
+        }
+      }
+      current
+    }
+    LafinaAlarms.recordEvent(context, AlarmEvent(alarmId, AlarmEvent.FIRED, now, generation))
+    LafinaAlarmService.start(
+        context,
+        RingRequest(
+            alarmId = definition.id,
+            generation = definition.generation,
+            label = definition.label,
+            vibrate = definition.vibrate,
+            soundUri = definition.soundUri,
+            isTest = false))
+  }
+}
+
+/** Boot, package replace, time or zone change, exact-alarm permission change. */
+class AlarmBootReceiver : BroadcastReceiver() {
+  override fun onReceive(context: Context, intent: Intent) {
+    LafinaAlarms.restoreAll(context)
+  }
+}

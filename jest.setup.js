@@ -24,6 +24,28 @@ NativeModules.LafinaReminder = {
   drainDeliveryReceipts: jest.fn(() => Promise.resolve([])),
 };
 
+// Alarm plan A1/A2: native alarms (tests needing state install their own fake).
+NativeModules.LafinaAlarm = {
+  reconcile: jest.fn(alarms =>
+    Promise.resolve(
+      (alarms || []).map(alarm => ({id: alarm.id, nextTriggerMs: null})),
+    ),
+  ),
+  drainEvents: jest.fn(() => Promise.resolve([])),
+  testAlarm: jest.fn(() => Promise.resolve(Date.now() + 60000)),
+  stopRinging: jest.fn(() => Promise.resolve(true)),
+  getStatus: jest.fn(() =>
+    Promise.resolve({
+      canScheduleExactAlarms: true,
+      canUseFullScreenIntent: true,
+      notificationsEnabled: true,
+      ignoringBatteryOptimizations: true,
+      manufacturer: 'Google',
+    }),
+  ),
+  openBatterySettings: jest.fn(() => Promise.resolve(true)),
+};
+
 NativeModules.LafinaAudioPlayer = {
   playAudio: jest.fn(() => Promise.resolve(true)),
   stopAudio: jest.fn(() => Promise.resolve(true)),

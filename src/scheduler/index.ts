@@ -58,6 +58,19 @@ export {
 export {
   rescheduleUserReminders,
 } from './reminderRescheduler';
+export {
+  getAlarmHealth,
+  needsBatteryGuidance,
+  nextAlarm,
+  onAlarmDismissedForBriefing,
+  openBatterySettings,
+  reconcileAlarms,
+  ringTestAlarm,
+  startAlarmLifecycle,
+  syncAlarmEvents,
+} from './alarmService';
+export type { AlarmHealth, AlarmNativeEvent } from './alarmService';
+export { migrateAlarmReminders } from './alarmMigration';
 export type { RescheduleSummary } from './reminderRescheduler';
 export { refreshPendingReminderLeadTimes } from './reminderPreferenceSync';
 export type { ReminderPreferenceRefreshResult } from './reminderPreferenceSync';

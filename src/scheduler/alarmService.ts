@@ -1,0 +1,242 @@
+import {AppState, NativeModules, Platform} from 'react-native';
+import {alarmsStore, onAlarmsChanged} from '../storage/alarmsStore';
+import type {Alarm} from '../storage/alarmsStore';
+import {nextAlarmTrigger} from './alarmSchedule';
+import {migrateAlarmReminders} from './alarmMigration';
+
+/**
+ * Alarm plan A2: keeps Android's copy of the active student's alarms in step
+ * with SQLite, and records what native did (rang, dismissed, snoozed, timed
+ * out). Native never writes lafina.db (ADR-016); this is the only bridge.
+ */
+
+export interface AlarmNativeEvent {
+  alarmId: string;
+  kind: 'fired' | 'dismissed' | 'snoozed' | 'timed_out' | 'one_shot_done';
+  atMs: number;
+  generation: number;
+}
+
+export interface AlarmHealth {
+  canScheduleExactAlarms: boolean;
+  canUseFullScreenIntent: boolean;
+  notificationsEnabled: boolean;
+  ignoringBatteryOptimizations: boolean;
+  manufacturer: string;
+  /** False when nothing native is available (tests without it, other platforms). */
+  available: boolean;
+}
+
+interface NativeAlarmModule {
+  reconcile(
+    alarms: Record<string, unknown>[],
+  ): Promise<{id: string; nextTriggerMs: number | null}[]>;
+  drainEvents(): Promise<AlarmNativeEvent[]>;
+  testAlarm(seconds: number): Promise<number>;
+  stopRinging(): Promise<boolean>;
+  getStatus(): Promise<Omit<AlarmHealth, 'available'>>;
+  openBatterySettings(): Promise<boolean>;
+}
+
+const native = (): NativeAlarmModule | null =>
+  Platform.OS === 'android'
+    ? (NativeModules.LafinaAlarm as NativeAlarmModule | undefined) ?? null
+    : null;
+
+const toNative = (alarm: Alarm) => ({
+  id: alarm.id,
+  ownerId: alarm.userId,
+  hour: alarm.hour,
+  minute: alarm.minute,
+  repeatDays: alarm.repeatDays,
+  oneShotDate: alarm.oneShotDate,
+  label: alarm.label || 'Alarm',
+  enabled: alarm.enabled,
+  snoozeMinutes: alarm.snoozeMinutes,
+  vibrate: alarm.vibrate,
+  soundUri: alarm.soundUri,
+  generation: alarm.generation,
+  briefing: alarm.briefing,
+});
+
+/** Brands whose battery savers are known to stop alarm apps (guidance only). */
+const AGGRESSIVE_OEMS =
+  /xiaomi|redmi|poco|oppo|realme|vivo|oneplus|huawei|honor|infinix|tecno|itel|samsung/i;
+
+export const needsBatteryGuidance = (health: AlarmHealth): boolean =>
+  health.available &&
+  !health.ignoringBatteryOptimizations &&
+  AGGRESSIVE_OEMS.test(health.manufacturer);
+
+/** How long after Dismiss opening LAFINA still plays the morning briefing. */
+export const BRIEFING_WINDOW_MS = 10 * 60 * 1000;
+
+let activeOwner: string | null = null;
+let pending: Promise<void> = Promise.resolve();
+const briefingListeners = new Set<(alarm: Alarm) => void>();
+
+/** Called when a wake-up alarm with a morning briefing was dismissed (A4). */
+export const onAlarmDismissedForBriefing = (
+  listener: (alarm: Alarm) => void,
+) => {
+  briefingListeners.add(listener);
+  return () => {
+    briefingListeners.delete(listener);
+  };
+};
+
+/**
+ * Hands native exactly the active owner's alarms (none when signed out) and
+ * stores each alarm's next ring for the screens. Serialized, so two quick
+ * edits can't book out of order.
+ */
+export const reconcileAlarms = (userId: string | null): Promise<void> => {
+  const run = async (): Promise<void> => {
+    const alarms = userId ? alarmsStore.list(userId) : [];
+    const module = native();
+    if (!module) {
+      for (const alarm of alarms) {
+        const next = nextAlarmTrigger(alarm);
+        alarmsStore.setNextTrigger(alarm.id, next ? next.toISOString() : null);
+      }
+      return;
+    }
+    try {
+      const booked = await module.reconcile(alarms.map(toNative));
+      for (const entry of booked) {
+        alarmsStore.setNextTrigger(
+          entry.id,
+          typeof entry.nextTriggerMs === 'number'
+            ? new Date(entry.nextTriggerMs).toISOString()
+            : null,
+        );
+      }
+    } catch (error) {
+      console.warn('[alarmService] Could not book alarms:', error);
+    }
+  };
+  pending = pending.then(run, run);
+  return pending;
+};
+
+/** Records native's queued events: last ring, outcome, finished one-shots. */
+export const syncAlarmEvents = async (
+  userId: string | null,
+  now: number = Date.now(),
+): Promise<AlarmNativeEvent[]> => {
+  const module = native();
+  if (!module) return [];
+  let events: AlarmNativeEvent[] = [];
+  try {
+    events = await module.drainEvents();
+  } catch (error) {
+    console.warn('[alarmService] Could not read alarm events:', error);
+    return [];
+  }
+  let changed = false;
+  for (const event of events) {
+    const at = new Date(event.atMs).toISOString();
+    if (event.kind === 'one_shot_done') {
+      alarmsStore.markOneShotDone(event.alarmId, event.generation);
+      changed = true;
+    } else {
+      alarmsStore.recordOutcome(event.alarmId, event.kind, at);
+    }
+    // A wake-up briefing only soon after the student dismissed the alarm
+    // (long enough to unlock the phone, never hours later).
+    if (
+      userId &&
+      event.kind === 'dismissed' &&
+      now - event.atMs < BRIEFING_WINDOW_MS
+    ) {
+      const alarm = alarmsStore.get(event.alarmId, userId);
+      if (alarm?.briefing)
+        for (const listener of Array.from(briefingListeners)) listener(alarm);
+    }
+  }
+  if (changed) await reconcileAlarms(userId);
+  return events;
+};
+
+export const getAlarmHealth = async (): Promise<AlarmHealth> => {
+  const module = native();
+  if (!module)
+    return {
+      canScheduleExactAlarms: true,
+      canUseFullScreenIntent: true,
+      notificationsEnabled: true,
+      ignoringBatteryOptimizations: true,
+      manufacturer: '',
+      available: false,
+    };
+  try {
+    return {...(await module.getStatus()), available: true};
+  } catch {
+    return {
+      canScheduleExactAlarms: false,
+      canUseFullScreenIntent: false,
+      notificationsEnabled: false,
+      ignoringBatteryOptimizations: false,
+      manufacturer: '',
+      available: true,
+    };
+  }
+};
+
+/** Rings a test alarm (default 60 s from now). Resolves the time, or null. */
+export const ringTestAlarm = async (seconds = 60): Promise<Date | null> => {
+  const module = native();
+  if (!module) return null;
+  try {
+    return new Date(await module.testAlarm(seconds));
+  } catch (error) {
+    console.warn('[alarmService] Test alarm failed:', error);
+    return null;
+  }
+};
+
+export const openBatterySettings = async (): Promise<boolean> => {
+  try {
+    return (await native()?.openBatterySettings()) ?? false;
+  } catch {
+    return false;
+  }
+};
+
+/** The next ring among the owner's alarms (for Home and Schedule). */
+export const nextAlarm = (
+  userId: string,
+  now: Date = new Date(),
+): {alarm: Alarm; at: Date} | null => {
+  let best: {alarm: Alarm; at: Date} | null = null;
+  for (const alarm of alarmsStore.list(userId)) {
+    const at = nextAlarmTrigger(alarm, now);
+    if (at && (!best || at.getTime() < best.at.getTime())) best = {alarm, at};
+  }
+  return best;
+};
+
+/**
+ * App lifecycle: book on start, on owner change, after every change and when
+ * the app comes back; read native's events at the same points. Returns the
+ * cleanup for React's effect.
+ */
+export const startAlarmLifecycle = (userId: string | null): (() => void) => {
+  activeOwner = userId;
+  // Alarm plan A4: old "Alarm" reminders become real alarms (idempotent).
+  if (userId) migrateAlarmReminders(userId);
+  void syncAlarmEvents(userId).then(() => reconcileAlarms(userId));
+  const unsubscribeStore = onAlarmsChanged(changedOwner => {
+    if (changedOwner === activeOwner) void reconcileAlarms(activeOwner);
+  });
+  const subscription = AppState.addEventListener('change', state => {
+    if (state === 'active')
+      void syncAlarmEvents(activeOwner).then(() =>
+        reconcileAlarms(activeOwner),
+      );
+  });
+  return () => {
+    unsubscribeStore();
+    subscription.remove();
+  };
+};

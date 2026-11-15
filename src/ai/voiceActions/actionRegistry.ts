@@ -30,6 +30,9 @@ export const STRUCTURED_ACTIONS = [
   'update_note',
   'complete_task',
   'reopen_task',
+  // Alarm plan A3: a new alarm, or one switched on or off (named by its time).
+  'create_alarm',
+  'toggle_alarm',
 ];
 
 export interface RegisteredToolDefinition {
@@ -44,13 +47,13 @@ export const REGISTERED_TOOLS: readonly RegisteredToolDefinition[] = [
     name: 'read_lafina_data',
     kind: 'legacy.read_data',
     description:
-      'Reads the student’s schedule/calendar, to-do list, saved notes, or personal memories from local device storage.',
+      'Reads the student’s schedule/calendar, to-do list, saved notes, alarms, or personal memories from local device storage.',
     parameters: {
       type: 'object',
       properties: {
         kind: {
           type: 'string',
-          enum: ['calendar', 'todos', 'notes', 'memory'],
+          enum: ['calendar', 'todos', 'notes', 'alarms', 'memory'],
           description: 'The type of local student data to read.',
         },
         query: {
@@ -66,7 +69,7 @@ export const REGISTERED_TOOLS: readonly RegisteredToolDefinition[] = [
     name: 'prepare_lafina_action',
     kind: 'legacy.prepare_action',
     description:
-      'Prepares a to-do, task, event, time block, reminder, or note review card (creation, completion, edit, or deletion) for student confirmation. Nothing is saved until confirmed. The app first reads the student’s own words; fill the structured fields too when the details came from earlier in the conversation (for example a free time you found), so the card can still be prepared. Deleting needs the student’s own words.',
+      'Prepares a to-do, task, event, time block, reminder, alarm, or note review card (creation, completion, edit, or deletion) for student confirmation. Nothing is saved until confirmed. The app first reads the student’s own words; fill the structured fields too when the details came from earlier in the conversation (for example a free time you found), so the card can still be prepared. Deleting needs the student’s own words.',
     parameters: {
       type: 'object',
       properties: {
@@ -122,6 +125,11 @@ export const REGISTERED_TOOLS: readonly RegisteredToolDefinition[] = [
           type: 'string',
           description:
             'Optional, new items only. "daily", "weekdays", or "weekly:" plus two-letter days, e.g. "weekly:mo,we".',
+        },
+        enabled: {
+          type: 'boolean',
+          description:
+            'Optional. For toggle_alarm: true turns the alarm on, false turns it off. Name the alarm by "time" (HH:MM) or its label in "title".',
         },
       },
       required: ['request'],

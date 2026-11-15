@@ -157,13 +157,14 @@ describe('finding 6: times that already passed', () => {
   test.each([
     ['set my alarm for 6am', '06:00'],
     ['wake me up at 6', '06:00'],
-  ])('"%s" rings tomorrow morning, titled Alarm', async (text, time) => {
+  ])('"%s" rings tomorrow morning as a real alarm', async (text, time) => {
+    // Alarm plan A3: alarms are no longer reminders titled "Alarm".
     const parsed = parse(text);
-    expect(parsed.intent).toBe('create_reminder');
-    expect(parsed.title).toBe('Alarm');
+    expect(parsed.intent).toBe('create_alarm');
     expect(parsed.time).toBe(time);
     const userId = owner('alarm');
     const proposal = proposalOf(await send(userId, text));
+    expect(proposal.heading).toBe('Set alarm');
     expect(proposal.details.join(' ')).toContain('Nov 14');
     expect(proposal.assumptions.join(' ')).toMatch(/already passed today/);
   });

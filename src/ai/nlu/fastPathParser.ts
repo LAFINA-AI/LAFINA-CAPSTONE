@@ -385,7 +385,7 @@ export function normalizeSpeech(transcript: string): string {
 }
 
 const TAGLISH_MARKER =
-  /\b(?:paalala(?:han)?|ipaalala|dagdag(?:an)?|idagdag|i?lagay|ano(?:ng)?|bukas|mamaya(?:ng)?|ngayon(?:g)?|sakin|saakin|mag-?aral|mag-?review|bumili|magpasa|ipasa|alas|pa-?remind|i-?cancel|i-?delete|burahin|tanggalin|tapos\s+na|natapos|gisingin|gisingan|free\s+ba|bakante\s+ba|lunes|martes|miyerkules|myerkules|huwebes|biyernes|sabado)\b|\bmay\s+\S+(?:\s+\S+)?\s+ako\b/i;
+  /\b(?:paalala(?:han)?|ipaalala|dagdag(?:an)?|idagdag|i?lagay|ano(?:ng)?|bukas|mamaya(?:ng)?|ngayon(?:g)?|sakin|saakin|mag-?aral|mag-?review|bumili|magpasa|ipasa|alas|pa-?remind|i-?cancel|i-?delete|burahin|tanggalin|tapos\s+na|natapos|gisingin|gisingan|alarm\s+ko|i-?alarm|mag-?alarm|tuwing|araw-?araw|patayin|buksan|i-?off|free\s+ba|bakante\s+ba|lunes|martes|miyerkules|myerkules|huwebes|biyernes|sabado)\b|\bmay\s+\S+(?:\s+\S+)?\s+ako\b/i;
 
 /** "gawa ka ng note: …": the note's own words stay exactly as said. */
 const TAGLISH_NOTE_FRAME =
@@ -446,6 +446,29 @@ export function translateTaglishCommand(text: string): string | null {
     /\s(?:gisingin|gisingan)\s+(?:mo\s+)?(?:ako|sakin)\b/g,
     ' wake me up',
   );
+  // Alarms (alarm plan A3): "patayin mo yung alarm ko", "alarm ko 5:30 tuwing weekdays".
+  replace(
+    /\s(?:patayin|i-?off|isara)\s+(?:mo\s+)?(?:na\s+)?(?:yung\s+|ang\s+)?(.*?)\balarm\b(?:\s+ko)?/g,
+    ' turn off my $1 alarm',
+  );
+  replace(
+    /\s(?:buksan|i-?on)\s+(?:mo\s+)?(?:ulit\s+)?(?:yung\s+|ang\s+)?(.*?)\balarm\b(?:\s+ko)?/g,
+    ' turn on my $1 alarm',
+  );
+  replace(
+    /^\s(?:alarm\s+ko|i-?alarm\s+mo(?:\s+ako)?|mag-?alarm(?:\s+ka)?)\b(?:\s+(?:ng\s+alas|ng|sa|alas))?/g,
+    ' set an alarm at',
+  );
+  replace(
+    /\stuwing\s+(lunes|martes|miyerkules|myerkules|huwebes|biyernes|sabado|linggo)\b/g,
+    (_m: string, day: string) => ` every ${TAGLISH_WEEKDAYS[day] || day}`,
+  );
+  replace(
+    /\stuwing\s+(?:weekdays?|week\s+days?|may\s+pasok)\b/g,
+    ' on weekdays',
+  );
+  replace(/\stuwing\s+weekends?\b/g, ' on weekends');
+  replace(/\s(?:araw-?araw|tuwing\s+araw)\b/g, ' every day');
   // Removing or finishing an item named after the frame.
   replace(
     /\s(?:i-?cancel|i-?delete|burahin|tanggalin)\s+(?:mo\s+)?(?:na\s+)?(?:yung|ang)?\s*/g,
@@ -1756,6 +1779,314 @@ export function extractNotifyOnlyRequest(transcript: string): string | null {
 }
 
 /** Deterministic Fast-Path NLU Intent Extractor. */
+// ---------------------------------------------------------------------------
+// Alarm plan A3: alarm commands. An alarm rings like a clock alarm (never a
+// call) and lives in Schedule → Alarms. A bare hour means the morning: "wake
+// me up at 6" is 6 AM, and "6pm", "18:00" or "tonight" stay as said.
+// ---------------------------------------------------------------------------
+
+const ALARM_EVENING_WORDS =
+  /\b(?:\d{1,2}(?::\d{2})?\s*(?:pm|p\.m\.?)|(?:1[3-9]|2[0-3]):\d{2}|tonight|evening|afternoon|night|noon)\b/i;
+
+const ALARM_DAY_CODES: Record<string, string> = {
+  monday: 'MO',
+  tuesday: 'TU',
+  wednesday: 'WE',
+  thursday: 'TH',
+  friday: 'FR',
+  saturday: 'SA',
+  sunday: 'SU',
+};
+
+const ALARM_REPEAT_PHRASE =
+  /\b(?:(?:on|every|each)\s+)?(?:week\s?days?|weekends?|school\s+days?|every\s+day|everyday|daily|monday\s+(?:to|through|thru)\s+friday|(?:(?:monday|tuesday|wednesday|thursday|friday|saturday|sunday)s?(?:\s*,\s*|\s+and\s+|\s*&\s*)?)+)/gi;
+
+function alarmClock(
+  text: string,
+  referenceDate: Date,
+): {date: string | null; time: string | null; matched: string[]} {
+  if (!text.trim()) return {date: null, time: null, matched: []};
+  const dt = parseDateAndTime(text, referenceDate);
+  let time = dt.time;
+  let date = dt.date;
+  const matched = [...dt.matchedText];
+  if (!time) {
+    // "set an alarm for 6", "move my alarm to 7", "set an alarm for six".
+    const bare =
+      /\b(?:for|at|by|to)\s+(\d{1,2}|[a-z]+)(?::([0-5]\d))?(?=\s|$)/i.exec(
+        text,
+      ) || /^()(\d{1,2})(?::([0-5]\d))?(?=\s|$)/.exec(text.trim());
+    const hourToken = bare ? bare[1] || bare[2] : null;
+    const minutes = bare ? (bare[1] ? bare[2] : bare[3]) : null;
+    const hour = hourToken ? parseNumberWordOrDigits(hourToken) : null;
+    if (bare && hour !== null && hour >= 1 && hour <= 12) {
+      time = `${String(hour).padStart(2, '0')}:${minutes || '00'}`;
+      matched.push(bare[0]);
+    }
+  }
+  if (
+    time &&
+    Number(time.slice(0, 2)) >= 13 &&
+    !ALARM_EVENING_WORDS.test(text)
+  ) {
+    time = `${String(Number(time.slice(0, 2)) - 12).padStart(
+      2,
+      '0',
+    )}${time.slice(2)}`;
+    // A date that only came from reading the hour as today's evening is
+    // dropped; the review rings it the next time that morning hour comes.
+    if (!/\b(?:today|tomorrow|tonight)\b/i.test(text)) date = null;
+  }
+  // "every monday" names a repeat, not one date.
+  if (
+    date &&
+    /\b(?:every|each)\b|\b(?:monday|tuesday|wednesday|thursday|friday|saturday|sunday)s\b|\bweek\s?days?\b|\bweekends?\b/i.test(
+      text,
+    )
+  )
+    date = null;
+  return {date, time, matched};
+}
+
+/** The weekday repeat an alarm request names, as an RRULE, or null for once. */
+export function alarmRepeatRule(text: string): string | null {
+  const lower = text.toLowerCase();
+  if (
+    /\b(?:week\s?days?|school\s+days?|monday\s+(?:to|through|thru)\s+friday)\b/.test(
+      lower,
+    )
+  )
+    return 'RRULE:FREQ=WEEKLY;BYDAY=MO,TU,WE,TH,FR';
+  if (/\bweekends?\b/.test(lower)) return 'RRULE:FREQ=WEEKLY;BYDAY=SA,SU';
+  if (/\beveryday\b/.test(lower)) return 'RRULE:FREQ=DAILY';
+  const rule = extractRecurrenceRule(lower);
+  if (rule) return rule;
+  // "on mondays and wednesdays": plural days repeat.
+  const plural = [
+    ...lower.matchAll(
+      /\b(monday|tuesday|wednesday|thursday|friday|saturday|sunday)s\b/g,
+    ),
+  ].map(match => ALARM_DAY_CODES[match[1]]);
+  return plural.length
+    ? `RRULE:FREQ=WEEKLY;BYDAY=${[...new Set(plural)].join(',')}`
+    : null;
+}
+
+const ALARM_FILLER =
+  /\b(?:my|the|that|this|all|of|an?|for|at|on|in|by|to|and|me|please|set|alarms?|o'?clock|called|labell?ed|named|titled|ko|mo|yung|ang)\b/gi;
+
+/** Whatever is left once the time, date and repeat words are taken out. */
+function alarmLeftover(text: string, matched: readonly string[]): string {
+  // Repeat phrases first, before a matched weekday splits "monday and wednesday".
+  let rest = ` ${text} `.replace(ALARM_REPEAT_PHRASE, ' ');
+  for (const piece of matched) {
+    if (piece.trim())
+      rest = rest.replace(new RegExp(escapeRegExp(piece), 'i'), ' ');
+  }
+  return rest
+    .replace(/\b(?:today|tomorrow|tonight)(?:'s)?\b/gi, ' ')
+    .replace(/'s\b/g, ' ')
+    .replace(/\b\d{1,2}(?::\d{2})?\s*(?:am|pm|a\.m\.|p\.m\.)?(?=\s|$)/gi, ' ')
+    .replace(/[,.!?]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+function alarmLabelFrom(
+  text: string,
+  matched: readonly string[],
+): string | null {
+  const rest = alarmLeftover(text, matched);
+  const marked = /\b(?:called|labell?ed|named|titled|for|to)\s+(.+)$/i.exec(
+    rest,
+  );
+  const label = (marked ? marked[1] : rest)
+    .replace(ALARM_FILLER, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+  if (!label || label.split(' ').length > 6) return null;
+  return label.charAt(0).toUpperCase() + label.slice(1);
+}
+
+function alarmTarget(
+  descriptor: string,
+  tail: string,
+  referenceDate: Date,
+): {targetTime: string | null; targetTitle: string | null} {
+  const source = `${descriptor} ${tail}`.trim();
+  const clock = alarmClock(source, referenceDate);
+  const label = alarmLabelFrom(source, clock.matched);
+  return {targetTime: clock.time, targetTitle: label};
+}
+
+/** Words before "alarm" that say which alarm, never a whole other request. */
+const alarmDescriptorOk = (pre: string): boolean =>
+  pre.trim().split(/\s+/).filter(Boolean).length <= 5 &&
+  !/\b(?:remind(?:er)?s?|tasks?|events?|notes?|blocks?|to|clock)\b/i.test(pre);
+
+export function parseAlarmCommand(
+  commandLower: string,
+  transcript: string,
+  referenceDate: Date,
+): ExtractedIntent | null {
+  const text = commandLower
+    .replace(/[.!?]+$/g, '')
+    .replace(/\s+/g, ' ')
+    .trim();
+  const namesAlarm =
+    /\balarms?\b/.test(text) && !/\balarms?\s+clocks?\b/.test(text);
+  // "wake me up at 6" asks for an alarm; "wake up at 7:30" alone stays a
+  // to-do titled "Wake up", as before alarms existed.
+  const wakeRequest = /^wake\s+me(?:\s+up)?\b/.test(text);
+  if (!namesAlarm && !wakeRequest) return null;
+  const base = {
+    title: null,
+    date: null,
+    time: null,
+    endTime: null,
+    durationMinutes: null,
+    category: 'Personal',
+    details: null,
+    snoozeMinutes: null,
+    confidence: 0.95,
+    source: 'fast_path' as const,
+    rawTranscript: transcript,
+  };
+
+  if (namesAlarm) {
+    // Questions: "what time is my alarm", "do I have an alarm tomorrow".
+    if (
+      /^(?:what|when|which|how\s+many)\b/.test(text) ||
+      /^(?:show|list|check|see|view|open)\s+(?:me\s+)?(?:all\s+)?(?:of\s+)?(?:my|the)\s+(?:\w+\s+)?alarms?\b/.test(
+        text,
+      ) ||
+      /^(?:do|did|have)\s+i\b/.test(text) ||
+      /^(?:is|are)\s+(?:my|there|the)\b/.test(text) ||
+      /^(?:my|all\s+my)\s+alarms?$/.test(text)
+    ) {
+      return {...base, intent: 'list_alarms'};
+    }
+
+    // On or off: "turn off my 6am alarm", "turn my alarm off", "disable the gym alarm".
+    let enabled: boolean | null = null;
+    let descriptor = '';
+    let tail = '';
+    let match = /^(?:turn|switch)\s+(off|on)\s+(.*?)\balarms?\b(.*)$/.exec(
+      text,
+    );
+    if (match) {
+      enabled = match[1] === 'on';
+      descriptor = match[2];
+      tail = match[3];
+    } else if (
+      (match =
+        /^(?:turn|switch)\s+(.*?)\balarms?\s+(?:back\s+)?(off|on)\b(.*)$/.exec(
+        text,
+      ))
+    ) {
+      enabled = match[2] === 'on';
+      descriptor = match[1];
+      tail = match[3];
+    } else if (
+      (match =
+        /^(disable|enable|deactivate|activate|pause|unpause|resume|mute|silence)\s+(.*?)\balarms?\b(.*)$/.exec(
+          text,
+        ))
+    ) {
+      enabled = /^(?:enable|activate|unpause|resume)$/.test(match[1]);
+      descriptor = match[2];
+      tail = match[3];
+    }
+    if (enabled !== null && alarmDescriptorOk(descriptor)) {
+      return {
+        ...base,
+        intent: 'toggle_alarm',
+        alarmEnabled: enabled,
+        ...alarmTarget(descriptor, tail, referenceDate),
+      };
+    }
+
+    match =
+      /^(?:delete|remove|cancel|clear|erase|get\s+rid\s+of)\s+(.*?)\balarms?\b(.*)$/.exec(
+        text,
+      );
+    if (match && alarmDescriptorOk(match[1])) {
+      return {
+        ...base,
+        intent: 'delete_alarm',
+        ...alarmTarget(match[1], match[2], referenceDate),
+      };
+    }
+
+    match = /^(?:rename|relabel)\s+(.*?)\balarms?\s+(?:to|as)\s+(.+)$/.exec(
+      text,
+    );
+    if (match && alarmDescriptorOk(match[1])) {
+      const label = match[2].trim();
+      return {
+        ...base,
+        intent: 'update_alarm',
+        newTitle: label.charAt(0).toUpperCase() + label.slice(1),
+        ...alarmTarget(match[1], '', referenceDate),
+      };
+    }
+
+    // "change my 6am alarm to 6:30", "move my alarm to 7", "set my 6am alarm to weekdays".
+    match =
+      /^(change|move|reschedule|update|push|adjust|edit|set|make)\s+(?:my|the|that|this)\s+(.*?)\balarms?\s+(?:to|for|at|into|on)\s+(.+)$/.exec(
+        text,
+      );
+    if (match && alarmDescriptorOk(match[2])) {
+      const isSetVerb = /^(?:set|make)$/.test(match[1]);
+      const target = alarmTarget(match[2], '', referenceDate);
+      if (!isSetVerb || target.targetTime || target.targetTitle) {
+        const clock = alarmClock(match[3], referenceDate);
+        return {
+          ...base,
+          intent: 'update_alarm',
+          date: clock.date,
+          time: clock.time,
+          recurrenceRule: alarmRepeatRule(match[3]) || undefined,
+          ...target,
+        };
+      }
+    }
+
+    // "set an alarm for 6", "set a 5:30 alarm on weekdays", "alarm at 7 tomorrow".
+    match =
+      /^(?:set|add|create|make|put|schedule|program)\s+(?:up\s+)?(?:me\s+)?(.*?)\balarms?\b(.*)$/.exec(
+        text,
+      ) || /^()alarms?\s+((?:at|for|on|tomorrow|every|this)\b.*)$/.exec(text);
+    if (match && alarmDescriptorOk(match[1])) {
+      const rest = `${match[1]} ${match[2]}`.trim();
+      const clock = alarmClock(rest, referenceDate);
+      return {
+        ...base,
+        intent: 'create_alarm',
+        title: alarmLabelFrom(rest, clock.matched),
+        date: clock.date,
+        time: clock.time,
+        recurrenceRule: alarmRepeatRule(rest) || undefined,
+      };
+    }
+    return null;
+  }
+
+  // "wake me up at 6 on weekdays", "wake me at 5:30 tomorrow".
+  const rest = text
+    .replace(/^wake\s+me(?:\s+up)?\b/, '')
+    .trim();
+  const clock = alarmClock(rest, referenceDate);
+  return {
+    ...base,
+    intent: 'create_alarm',
+    title: alarmLabelFrom(rest, clock.matched) || 'Wake up',
+    date: clock.date,
+    time: clock.time,
+    recurrenceRule: alarmRepeatRule(rest) || undefined,
+  };
+}
+
 export function parseIntentFastPath(
   transcript: string,
   referenceDate: Date = new Date(),
@@ -1866,6 +2197,15 @@ function parseEnglishIntent(
       rawTranscript: transcript,
     };
   }
+
+  // Alarms (alarm plan A3) before reminders, queries and edits, which would
+  // otherwise read "alarm" as a reminder.
+  const alarmCommand = parseAlarmCommand(
+    commandLower,
+    transcript,
+    referenceDate,
+  );
+  if (alarmCommand) return alarmCommand;
 
   const base = {
     date: null,

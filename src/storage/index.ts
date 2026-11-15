@@ -87,6 +87,8 @@ export type {
   UserPreferences,
   WeeklyClassCount,
 } from './preferencesStore';
+export {alarmsStore, onAlarmsChanged, validateAlarmInput} from './alarmsStore';
+export type {Alarm, AlarmInput} from './alarmsStore';
 export {remindersStore} from './remindersStore';
 export type {Reminder, ReminderStatus} from './remindersStore';
 export {

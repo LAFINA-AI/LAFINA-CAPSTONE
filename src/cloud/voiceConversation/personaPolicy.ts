@@ -201,6 +201,7 @@ export const getToolWorkingPhrase = (
     if (kind === 'calendar') return 'Checking your calendar...';
     if (kind === 'todos') return 'Checking your to-do list...';
     if (kind === 'notes') return 'Searching your notes...';
+    if (kind === 'alarms') return 'Checking your alarms...';
     if (kind === 'memory') return 'Checking saved preferences...';
     return 'Reading your records...';
   }

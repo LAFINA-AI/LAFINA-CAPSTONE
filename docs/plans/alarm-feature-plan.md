@@ -1,6 +1,6 @@
-# Alarm feature plan (draft for owner approval)
+# Alarm feature plan
 
-**Status:** proposal only. Nothing in this plan is implemented. Each phase below needs explicit owner approval (`APPROVE ALARM PHASE A1`, and so on).
+**Status:** implemented on `Lem-branch` (owner: "proceed fix all", 2026-11-15, with the recommended defaults for all four decisions). Device validation is NOT RUN. See `docs/reports/alarms-and-tabs-report-2026-11-15.md` and ADR-034. Deviations are listed at the end of this file.
 **Date:** 2026-11-15
 **Depends on:** fixing audit finding B1 (recurring reminders after a miss) first, since both change the reminder scheduling code.
 
@@ -56,7 +56,7 @@ Migration 27 adds a local-only `alarms` table. It is not added to `sync_outbox`.
   - holds the full alarm definition and a generation number;
   - native owns this copy so it can compute the next occurrence without JS (ADR-016 stays intact: native never writes `lafina.db`).
 - **`AlarmSchedule`** (pure Kotlin, JVM-testable):
-  - `nextTrigger(definition, now, zone)` handles repeat days, one-shot, DST gaps (a 2:30 alarm on a spring-forward day rings at 3:00) and repeated hours;
+  - `nextTrigger(definition, now, zone)` handles repeat days, one-shot, DST gaps (a 2:30 alarm on a spring-forward day rings at 3:30, shifted by the gap; see deviations) and repeated hours;
   - no Android types, like `LafinaDeliveryContract`.
 - **Scheduling:** `AlarmManager.setAlarmClock(AlarmClockInfo(trigger, showIntent), firePendingIntent)`. It is exact in Doze, and the system shows the alarm icon and the next alarm time.
 - **`AlarmFireReceiver`:**
@@ -129,3 +129,12 @@ Each phase ends with `npm run preflight`, `gradlew assembleDebug` plus the JVM t
 - Alarm challenges (maths or shake to dismiss).
 - Wear OS.
 - Syncing alarms across devices, unless chosen in decision 1.
+
+## Implementation deviations (2026-11-15)
+
+1. **DST gap:** a 2:30 alarm on a spring-forward day rings at 3:30 (java.time shifts by the gap length), not 3:00.
+2. **Home card:** a fixed "Next alarm" card above the widgets, not a customizable widget.
+3. **SmolLM2 unchanged:** alarm intents return before the title cleaner runs, so no prompt change was needed.
+4. **No conversion note yet:** old "Alarm" reminders are converted (and their companion "Alarm" to-do removed), but the one-time note to the student is not shown yet.
+5. **Briefing from the notification:** Android 10+ cannot open an activity from a notification action, so the briefing plays only if LAFINA is opened within 10 minutes of that Dismiss.
+6. **Sound picker deferred:** `sound_uri` exists; the UI always uses the default alarm tone.

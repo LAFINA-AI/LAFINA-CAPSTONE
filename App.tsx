@@ -34,9 +34,11 @@ import {StorageRecoveryScreen} from './src/ui/screens/StorageRecoveryScreen';
 import {hasProEntitlement} from './src/cloud';
 import {endActiveVoiceConversation} from './src/cloud/voiceConversation';
 import {backendSelection} from './src/cloud/backendSelection';
+import {startMorningBriefing} from './src/ai/briefing/morningBriefing';
 import {ThemeProvider, useTheme} from './src/ui/contexts/ThemeContext';
 import type {ThemeColors} from './src/ui/contexts/ThemeContext';
 import {
+  startAlarmLifecycle,
   rescheduleUserReminders,
   startReminderPoller,
   stopReminderPoller,
@@ -305,6 +307,13 @@ function AppContent({
       }
     }
   }, [activeTab, userId, callLafinaVisible, callLafinaMinimized]);
+
+  // Alarm plan A2: Android holds exactly the active student's alarms (none
+  // when signed out); native's ring/dismiss/snooze events are recorded here.
+  // Alarm plan A4: the optional morning briefing after a dismissed alarm
+  // (registered first, so the first event read finds it).
+  useEffect(() => startMorningBriefing(), []);
+  useEffect(() => startAlarmLifecycle(userId ?? null), [userId]);
 
   useEffect(() => {
     if (!userId) {

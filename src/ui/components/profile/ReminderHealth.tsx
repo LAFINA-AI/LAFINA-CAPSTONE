@@ -11,6 +11,13 @@ import {
   openFullScreenIntentSettings,
   openNotificationSettings,
 } from '../../../scheduler/reminderAlarm';
+import {
+  getAlarmHealth,
+  needsBatteryGuidance,
+  openBatterySettings,
+  ringTestAlarm,
+} from '../../../scheduler/alarmService';
+import type { AlarmHealth } from '../../../scheduler/alarmService';
 
 interface ReminderHealthProps {
   userId: string;
@@ -33,14 +40,17 @@ export const ReminderHealth: React.FC<ReminderHealthProps> = ({ userId, visible,
   const [loading, setLoading] = useState(false);
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState('');
+  const [alarmHealth, setAlarmHealth] = useState<AlarmHealth | null>(null);
   const epoch = useRef(0);
 
   const refresh = useCallback(async () => {
     const current = ++epoch.current;
     setLoading(true);
     const value = await readReminderHealth(userId);
+    const alarms = await getAlarmHealth();
     if (current !== epoch.current) return;
     setSnapshot(value.userId === userId ? value : null);
+    setAlarmHealth(alarms);
     setLoading(false);
   }, [userId]);
 
@@ -115,7 +125,7 @@ export const ReminderHealth: React.FC<ReminderHealthProps> = ({ userId, visible,
   );
 
   return (
-    <ToolSheet visible={visible} title="Reminder Health" onClose={onClose}>
+    <ToolSheet visible={visible} title="Alarm & Reminder Health" onClose={onClose}>
       <Text style={[styles.section, themed.text]}>Android access</Text>
       {shown || !loading ? (
         <>
@@ -150,6 +160,38 @@ export const ReminderHealth: React.FC<ReminderHealthProps> = ({ userId, visible,
       ) : (
         <Text testID="health-local-unavailable" style={themed.muted}>
           {loading && !shown ? 'Checking…' : 'Delivery records unavailable.'}
+        </Text>
+      )}
+
+      <Text style={[styles.section, themed.text]}>Alarms</Text>
+      {alarmHealth?.available ? (
+        <>
+          {row(
+            'Battery optimisation',
+            alarmHealth.ignoringBatteryOptimizations ? 'Not restricted' : 'Restricted',
+            'health-battery',
+          )}
+          {needsBatteryGuidance(alarmHealth) && (
+            <Text testID="health-battery-guidance" style={[styles.note, themed.text]}>
+              {`On ${alarmHealth.manufacturer} phones the battery saver can stop alarms. In Battery settings, set LAFINA to "Don't optimize" or "No restrictions", and allow it to start in the background.`}
+            </Text>
+          )}
+          {button('Battery settings', () => void openSettings(async () => {
+            await openBatterySettings();
+          }), 'health-open-battery')}
+          {button('Test alarm in 1 minute', () => {
+            void ringTestAlarm(60).then(at =>
+              setMessage(
+                at
+                  ? 'A test alarm rings in about 1 minute. Lock the phone and put it on silent to check it.'
+                  : 'The test alarm could not be set.',
+              ),
+            );
+          }, 'health-test-alarm')}
+        </>
+      ) : (
+        <Text style={themed.muted}>
+          {loading ? 'Checking…' : 'Alarm checks are available on Android only.'}
         </Text>
       )}
 

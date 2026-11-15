@@ -19,6 +19,7 @@ import {ttsService} from '../tts/ttsService';
 import {computeAdaptiveTriggerAt} from '../ml';
 import type {ValidatedIntent, NluActionResult} from './types';
 import {buildLocalConversationReply} from '../localConversation';
+import {describeAlarmsReply} from './alarmReview';
 import {extractChecklistItems, noteBodyToMarkdown} from '../../utils/richText';
 
 export interface ActionExecutorOptions {
@@ -2347,6 +2348,25 @@ export async function executeNluAction(
         reply,
       };
     }
+
+    case 'list_alarms':
+      return {
+        success: true,
+        intent: 'list_alarms',
+        reply: describeAlarmsReply(userId, options.referenceDate || new Date()),
+      };
+
+    // Alarm changes only ever go through a review card (alarm plan A3).
+    case 'create_alarm':
+    case 'update_alarm':
+    case 'delete_alarm':
+    case 'toggle_alarm':
+      return {
+        success: false,
+        intent: intent.intent,
+        reply:
+          'Alarm changes are made from a review card in Chat or Call LAFINA. Nothing was changed.',
+      };
 
     case 'chat':
     case 'out_of_scope':

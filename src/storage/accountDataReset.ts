@@ -5,6 +5,7 @@ import {notesStore} from './notesStore';
 import {tasksStore} from './tasksStore';
 import {timeBlocksStore} from './timeBlocksStore';
 import {remindersStore} from './remindersStore';
+import {alarmsStore} from './alarmsStore';
 import {chatStore} from './chatStore';
 import {chatMemoryStore} from './chatMemoryStore';
 import {personalMemoryStore} from './personalMemoryStore';
@@ -119,6 +120,7 @@ const PLANNER_LEFT = [
   'SELECT COUNT(*) AS n FROM reminders WHERE user_id = ? AND deleted_at IS NULL',
   'SELECT COUNT(*) AS n FROM user_behavior_logs WHERE user_id = ?',
   'SELECT COUNT(*) AS n FROM ml_feature_snapshots WHERE user_id = ?',
+  'SELECT COUNT(*) AS n FROM alarms WHERE user_id = ?',
 ];
 
 const clearPlanner = (tx: DatabaseTransaction, userId: string): void => {
@@ -140,6 +142,8 @@ const clearPlanner = (tx: DatabaseTransaction, userId: string): void => {
   tx.executeSync('DELETE FROM ml_feature_snapshots WHERE user_id = ?', [
     userId,
   ]);
+  // Alarms are personal too; native drops its copy after the commit.
+  alarmsStore.clear(userId, tx);
   // Confirmed, not inferred: anything still live rolls the whole step back.
   for (const sql of PLANNER_LEFT) {
     const left = Number(

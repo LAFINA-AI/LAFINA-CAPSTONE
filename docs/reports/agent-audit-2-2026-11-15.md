@@ -1,6 +1,7 @@
 # Agent audit 2: is LAFINA truly agentic now? (2026-11-15)
 
 **Scope:** a read-only audit after commit `cfc5653` (ADR-033). No app code was changed for this report.
+**Fix status (2026-11-15):** B1–B8 are fixed in mobile commit `5f69782`. The backend half of B5 (one Chat question charged once) is in LAFINA-backend PR #7. See §5.
 **Method:** code reading, plus temporary Jest probes of the Chat and voice pipelines (deleted afterwards). Everything was found with mocked models.
 **NOT RUN:** any device, emulator, or live DeepSeek or ElevenLabs session. The online behaviour described below is inferred from the code paths, not observed.
 
@@ -99,3 +100,12 @@ Severity reflects user impact: **HIGH** loses data or silently breaks a core pro
 4. **B6, B7, B8** when convenient.
 
 The alarm feature (`docs/plans/alarm-feature-plan.md`) should start after B1, because both touch the reminder scheduling code.
+
+## 5. Fix status
+
+| Finding | Status | Where |
+|---|---|---|
+| B1–B4, B6–B8 | Fixed | mobile `5f69782` |
+| B5 | Fixed in the app; the server metering is in a backend PR | mobile `5f69782`; [LAFINA-backend PR #7](https://github.com/LAFINA-AI/LAFINA-backend/pull/7) (open; needs merge and deploy) |
+
+All fixes are verified by Jest and backend pytest only. Device and live online checks are NOT RUN.

@@ -41,6 +41,11 @@ export const INTENT_ROUTES: Readonly<
   reschedule: {kind: 'reviewed_mutation', immediateInRingingCall: false},
   query_schedule: {kind: 'read_only', immediateInRingingCall: false},
   query_notes: {kind: 'read_only', immediateInRingingCall: false},
+  create_alarm: {kind: 'reviewed_mutation', immediateInRingingCall: false},
+  update_alarm: {kind: 'reviewed_mutation', immediateInRingingCall: false},
+  delete_alarm: {kind: 'reviewed_mutation', immediateInRingingCall: false},
+  toggle_alarm: {kind: 'reviewed_mutation', immediateInRingingCall: false},
+  list_alarms: {kind: 'read_only', immediateInRingingCall: false},
   chat: {kind: 'conversation', immediateInRingingCall: false},
   out_of_scope: {kind: 'conversation', immediateInRingingCall: false},
 });

@@ -30,17 +30,24 @@ export const buildTourSteps = ({isGuest}: TourAudience): TourStep[] => [
   },
   {
     id: 'dashboard',
-    title: 'Dashboard',
-    body: 'Your daily command center: see what class or event is live or up next, spot open study blocks between classes, and customize which cards appear.',
+    title: 'Home',
+    body: 'Your day at a glance: see what class or event is live or up next, spot open study blocks between classes, and customize which cards appear.',
     anchor: 'tab-dashboard',
     tab: 'dashboard',
   },
   {
     id: 'calendar',
-    title: 'Calendar',
+    title: 'Schedule',
     body: 'Your classes, deadlines and study blocks in one place. Tap a day in the week strip to see it hour by hour, tap an empty hour or the + button to add something, and use Import to bring in a class schedule.',
     anchor: 'tab-calendar',
     tab: 'calendar',
+  },
+  {
+    id: 'assistant',
+    title: 'AI',
+    body: 'The middle tab. Ask in plain language or hold the mic to speak — "block 2 to 4 pm for thesis writing tomorrow" — and LAFINA schedules it on this phone, even offline.',
+    anchor: 'tab-chat',
+    tab: 'chat',
   },
   {
     id: 'notes',
@@ -48,13 +55,6 @@ export const buildTourSteps = ({isGuest}: TourAudience): TourStep[] => [
     body: 'Lecture notes with headings, checklists and images. Pin the ones you keep coming back to, and search or filter by category to find the rest.',
     anchor: 'tab-notes',
     tab: 'notes',
-  },
-  {
-    id: 'assistant',
-    title: 'Chat & Voice',
-    body: 'Ask in plain language or hold the mic inside Chat to speak — "block 2 to 4 pm for thesis writing tomorrow" — and LAFINA schedules it on this phone, even offline.',
-    anchor: 'tab-chat',
-    tab: 'chat',
   },
   {
     id: 'account',

@@ -474,6 +474,11 @@ describe('AGY preserved contracts', () => {
       reschedule: {time: '15:00'},
       query_schedule: {date: '2026-11-10'},
       query_notes: {title: 'Idea'},
+      create_alarm: {time: '06:00'},
+      update_alarm: {targetTime: '06:00', time: '06:30'},
+      delete_alarm: {targetTime: '06:00'},
+      toggle_alarm: {targetTime: '06:00', alarmEnabled: false},
+      list_alarms: {},
       chat: {},
       out_of_scope: {},
     };

@@ -6,6 +6,8 @@ export interface CallNavigationTarget {
   entityId?: string;
   entityKind?: 'note' | 'task' | 'event' | 'block' | 'reminder';
   date?: string;
+  /** Schedule tab: open the Alarms switch (alarm plan A2). */
+  scheduleSection?: 'calendar' | 'alarms';
 }
 
 export interface CallNavigationRequest extends CallNavigationTarget {

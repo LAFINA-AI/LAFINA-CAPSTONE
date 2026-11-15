@@ -8,6 +8,13 @@ import {formatLocalDate} from '../../ai/nlu/fastPathParser';
 import {sanitizeUntrustedContext} from '../../ai/voiceActions/promptSanitizer';
 import {readOnboardingIdentity} from '../../storage/onboardingMemory';
 import {extractChecklistItems, noteBodyToMarkdown} from '../../utils/richText';
+import {alarmsStore} from '../../storage/alarmsStore';
+import {
+  describeRepeat,
+  describeTimeUntil,
+  formatAlarmTime,
+  nextAlarmTrigger,
+} from '../../scheduler/alarmSchedule';
 
 /** Return only the current owner's requested records, bounded before network use. */
 export const readLocalVoiceResult = (
@@ -33,6 +40,22 @@ export const readLocalVoiceResult = (
       partial: matched.length > 10,
       dataIsUntrusted: true,
     };
+  }
+  if (kind === 'alarms') {
+    // Alarm plan A3: the owner's alarms, newest first, at most ten.
+    const now = new Date();
+    const all = alarmsStore.list(userId);
+    const alarms = all.slice(0, 10).map(alarm => {
+      const next = nextAlarmTrigger(alarm, now);
+      return {
+        time: formatAlarmTime(alarm.hour, alarm.minute),
+        repeat: describeRepeat(alarm.repeatDays),
+        label: sanitizeUntrustedContext(alarm.label).slice(0, 60),
+        on: alarm.enabled,
+        rings: next ? describeTimeUntil(next, now) : null,
+      };
+    });
+    return {alarms, partial: all.length > 10, dataIsUntrusted: true};
   }
   if (kind === 'notes') {
     const pageResult = notesQueryStore.page({

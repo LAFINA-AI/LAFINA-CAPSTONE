@@ -1,6 +1,6 @@
-# Tab bar redesign plan (draft for owner approval)
+# Tab bar redesign plan
 
-**Status:** proposal only, not implemented. It needs explicit approval (`APPROVE TAB PHASE T1`).
+**Status:** implemented on `Lem-branch` (owner: "proceed fix all", 2026-11-15). See ADR-035. Not yet checked on a device at small widths. Deviation: the Home "Next alarm" card is fixed, not a customizable widget.
 **Date:** 2026-11-15
 **Related:** `docs/plans/alarm-feature-plan.md` and `docs/reports/agent-audit-2-2026-11-15.md`
 

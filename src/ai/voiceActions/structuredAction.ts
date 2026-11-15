@@ -11,6 +11,7 @@ import {answerPlannerLookup} from '../nlu/actionExecutor';
 import {prepareReviewedCommand} from '../nlu/commandReview';
 import type {PrepareResult, ReviewSurface} from '../nlu/commandReview';
 import {formatLocalDate} from '../nlu/fastPathParser';
+import {validateIntent} from '../nlu/types';
 import type {ValidatedIntent} from '../nlu/types';
 import {parseExtractedIntentObject} from '../onlineIntentExtractor';
 import {STRUCTURED_ACTIONS} from './actionRegistry';
@@ -29,6 +30,8 @@ export interface StructuredActionArgs {
   deliveryStyle?: string;
   /** "daily", "weekdays" or "weekly:mo,we" (new items only). */
   repeat?: string;
+  /** toggle_alarm: turn the alarm on (true) or off (false). */
+  enabled?: boolean;
 }
 
 /** The `repeat` field as the RRULE subset the planner stores (audit 2, B7). */
@@ -168,6 +171,29 @@ export const intentFromToolArguments = (
   if (!hasStructuredAction(args)) return null;
   const action = args.action as string;
   const title = args.title?.trim() || null;
+  if (action === 'toggle_alarm') {
+    // Alarm plan A3: an existing alarm, named by its time or label.
+    if (typeof args.enabled !== 'boolean' || (!args.time && !title))
+      return null;
+    const toggle = validateIntent({
+      intent: 'toggle_alarm',
+      title: null,
+      targetTitle: title,
+      targetTime: args.time ?? null,
+      alarmEnabled: args.enabled,
+      date: null,
+      time: null,
+      endTime: null,
+      durationMinutes: null,
+      category: 'Personal',
+      details: null,
+      snoozeMinutes: null,
+      confidence: 0.9,
+      source: 'cloud',
+      rawTranscript: (args.request || title || action).trim(),
+    });
+    return toggle.isValid ? toggle : null;
+  }
   const existing = TARGETS_EXISTING.has(action);
   const intent = parseExtractedIntentObject(
     {
