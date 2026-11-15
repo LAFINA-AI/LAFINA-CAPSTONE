@@ -141,7 +141,7 @@ export function pickSubjectColor(subjectKey: string): string {
   return SUBJECT_COLOR_PALETTE[hash % SUBJECT_COLOR_PALETTE.length];
 }
 
-function getNextDateForWeekday(
+export function getNextDateForWeekday(
   dayName: string,
   refDate: Date = new Date(),
 ): string {

@@ -1,13 +1,16 @@
 import React from 'react';
-import { render, fireEvent, waitFor } from '@testing-library/react-native';
-import { ThemeProvider } from '../../src/ui/contexts/ThemeContext';
-import { CalendarScreen } from '../../src/ui/screens/calendar';
-import { NotesScreen } from '../../src/ui/screens/notes';
+import {ScrollView} from 'react-native';
+import {render, fireEvent, waitFor} from '@testing-library/react-native';
+import {ThemeProvider} from '../../src/ui/contexts/ThemeContext';
+import {CalendarScreen} from '../../src/ui/screens/calendar';
+import {DayView} from '../../src/ui/screens/calendar/components/DayView';
+import {NotesScreen} from '../../src/ui/screens/notes';
 import {
   db,
   initDatabase,
   tasksStore,
   notesStore,
+  remindersStore,
   userStore,
 } from '../../src/storage';
 
@@ -83,6 +86,85 @@ describe('Phase 02 Calendar & Notes UI Screens', () => {
       expect(getByText('Week')).toBeTruthy();
     });
 
+    test('switches between Month, Week, and Day views showing Today’s Plan, pastel items, reminders, and hourly slots', async () => {
+      const now = new Date();
+      const todayStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+      const triggerAtLocal = new Date(
+        now.getFullYear(),
+        now.getMonth(),
+        now.getDate(),
+        7,
+        30,
+        0,
+      ).toISOString();
+
+      tasksStore.insertEvent({
+        id: 'ev-uniguide-1',
+        userId,
+        title: 'CS 101 Data Structures',
+        date: todayStr,
+        startTime: '09:00',
+        endTime: '10:30',
+        location: 'ICT Bldg · Rm 302',
+      });
+
+      tasksStore.insertTask({
+        id: 't-uniguide-1',
+        userId,
+        title: 'Submit CS 101 Lab Report',
+        dueDate: todayStr,
+        dueTime: '17:00',
+        priority: 'High',
+        category: 'Academics',
+        isCompleted: false,
+      });
+
+      remindersStore.insertReminder({
+        id: 'rem-uniguide-1',
+        userId,
+        task: 'Morning class prep',
+        description: null,
+        scheduledAt: triggerAtLocal,
+        triggerAt: triggerAtLocal,
+        status: 'pending',
+        preCastAudioPath: null,
+      });
+
+      const {getByText} = render(
+        <ThemeProvider userId={userId}>
+          <CalendarScreen
+            userId={userId}
+            refreshTrigger={0}
+            onRefresh={jest.fn()}
+          />
+        </ThemeProvider>,
+      );
+
+      // Default Month view displays Today's Plan and all 3 item types
+      expect(getByText('Today’s Plan')).toBeTruthy();
+      expect(getByText('Morning class prep')).toBeTruthy();
+      expect(getByText('CS 101 Data Structures')).toBeTruthy();
+      expect(getByText('Submit CS 101 Lab Report')).toBeTruthy();
+
+      // Switch to Week view
+      fireEvent.press(getByText('Week'));
+      expect(getByText('Reminder · 7:30 AM')).toBeTruthy();
+      expect(
+        getByText('ICT Bldg · Rm 302 · 9:00 AM - 10:30 AM'),
+      ).toBeTruthy();
+      expect(getByText('To Do · 5:00 PM')).toBeTruthy();
+
+      // Switch to Day view
+      fireEvent.press(getByText('Day'));
+      expect(getByText('7 AM')).toBeTruthy();
+      expect(getByText('9 AM')).toBeTruthy();
+      expect(getByText('5 PM')).toBeTruthy();
+      expect(getByText('8 PM')).toBeTruthy();
+      expect(getByText('Morning class prep')).toBeTruthy();
+      expect(getByText('CS 101 Data Structures')).toBeTruthy();
+      expect(getByText('Submit CS 101 Lab Report')).toBeTruthy();
+    });
+
     test('opens FAB actions menu when plus icon is tapped', async () => {
       const { getByLabelText, getByText } = render(
         <ThemeProvider userId={userId}>
@@ -151,6 +233,128 @@ describe('Phase 02 Calendar & Notes UI Screens', () => {
 
       // Verify calendar reloaded
       expect(onRefresh).toHaveBeenCalled();
+    });
+
+    test('renders Overdue section below the calendar views and omits Alarms section', () => {
+      tasksStore.insertTask({
+        id: 'overdue-task-ui-1',
+        userId,
+        title: 'Past due lab report',
+        dueDate: '2020-01-15',
+        isCompleted: false,
+        priority: 'Medium',
+        category: 'Academics',
+      });
+
+      const screen = render(
+        <ThemeProvider userId={userId}>
+          <CalendarScreen
+            userId={userId}
+            refreshTrigger={0}
+            onRefresh={jest.fn()}
+          />
+        </ThemeProvider>,
+      );
+
+      expect(screen.queryByTestId('schedule-section-alarms')).toBeNull();
+      const serialized = JSON.stringify(screen.toJSON());
+      expect(serialized.indexOf('Past due lab report')).toBeGreaterThan(
+        serialized.indexOf('Today’s Plan'),
+      );
+    });
+
+    test('DayView highlights current hour, shows live time line only on today, and auto-scrolls CalendarScreen in Day view', () => {
+      const todayAtEarlyMorning = new Date(2026, 10, 16, 2, 36, 0);
+      const weekDays = Array.from(
+        {length: 7},
+        (_, idx) => new Date(2026, 10, 15 + idx),
+      );
+      const onCurrentTimeLayout = jest.fn();
+
+      const dayScreen = render(
+        <ThemeProvider userId={userId}>
+          <DayView
+            weekDays={weekDays}
+            selectedDate={new Date(2026, 10, 16, 12, 0, 0)}
+            timeFormat24h={false}
+            blocks={[]}
+            tasks={[]}
+            events={[]}
+            onSelectDate={jest.fn()}
+            onAddBlock={jest.fn()}
+            onPressItem={jest.fn()}
+            now={todayAtEarlyMorning}
+            onCurrentTimeLayout={onCurrentTimeLayout}
+          />
+        </ThemeProvider>,
+      );
+
+      expect(dayScreen.getByTestId('day-current-hour-row')).toBeTruthy();
+      expect(dayScreen.getByTestId('day-current-time-line')).toBeTruthy();
+      expect(dayScreen.getByTestId('day-current-time-badge')).toBeTruthy();
+      expect(dayScreen.getByText('2 AM')).toBeTruthy();
+      expect(dayScreen.getByText('2:36 AM')).toBeTruthy();
+
+      const timelineView = dayScreen.getByTestId('day-timeline');
+      fireEvent(timelineView, 'layout', {
+        nativeEvent: {layout: {y: 96, height: 800, x: 0, width: 360}},
+      });
+      fireEvent(dayScreen.getByTestId('day-current-hour-row'), 'layout', {
+        nativeEvent: {layout: {y: 290, height: 58, x: 0, width: 320}},
+      });
+      expect(onCurrentTimeLayout).toHaveBeenCalledWith(386);
+
+      // Viewing another date hides the current-time indicator
+      dayScreen.rerender(
+        <ThemeProvider userId={userId}>
+          <DayView
+            weekDays={weekDays}
+            selectedDate={new Date(2026, 10, 17, 12, 0, 0)}
+            timeFormat24h={false}
+            blocks={[]}
+            tasks={[]}
+            events={[]}
+            onSelectDate={jest.fn()}
+            onAddBlock={jest.fn()}
+            onPressItem={jest.fn()}
+            now={todayAtEarlyMorning}
+            onCurrentTimeLayout={onCurrentTimeLayout}
+          />
+        </ThemeProvider>,
+      );
+      expect(dayScreen.queryByTestId('day-current-time-line')).toBeNull();
+      expect(dayScreen.queryByTestId('day-current-time-badge')).toBeNull();
+
+      // Switching CalendarScreen to Day view renders the indicator and scrolls ScrollView
+      const scrollSpy = jest
+        .spyOn(ScrollView.prototype, 'scrollTo')
+        .mockImplementation(() => {});
+
+      try {
+        const calScreen = render(
+          <ThemeProvider userId={userId}>
+            <CalendarScreen
+              userId={userId}
+              refreshTrigger={0}
+              onRefresh={jest.fn()}
+            />
+          </ThemeProvider>,
+        );
+
+        fireEvent.press(calScreen.getByText('Day'));
+        expect(calScreen.getByTestId('day-current-time-line')).toBeTruthy();
+
+        fireEvent(calScreen.getByTestId('day-timeline'), 'layout', {
+          nativeEvent: {layout: {y: 100, height: 900, x: 0, width: 360}},
+        });
+        fireEvent(calScreen.getByTestId('day-current-hour-row'), 'layout', {
+          nativeEvent: {layout: {y: 420, height: 58, x: 0, width: 320}},
+        });
+
+        expect(scrollSpy).toHaveBeenCalledWith({y: 380, animated: false});
+      } finally {
+        scrollSpy.mockRestore();
+      }
     });
   });
 
@@ -271,6 +475,50 @@ describe('Phase 02 Calendar & Notes UI Screens', () => {
       expect(getByText('Instant Render Note')).toBeTruthy();
       // 2. The empty state ("No notes found") must NOT be rendered
       expect(queryByText('No notes found')).toBeNull();
+    });
+
+    test('renders Tools header with Alarms | Todo | Notes tabs and opens Alarms view', () => {
+      const { getByText, getByTestId } = render(
+        <ThemeProvider userId={userId}>
+          <NotesScreen
+            userId={userId}
+            refreshTrigger={0}
+            onRefresh={jest.fn()}
+          />
+        </ThemeProvider>,
+      );
+
+      expect(getByText('Tools')).toBeTruthy();
+      const alarmsTab = getByTestId('notes-subtab-alarms');
+      const todoTab = getByTestId('notes-subtab-todo');
+      const notesTab = getByTestId('notes-subtab-notes');
+      expect(alarmsTab).toBeTruthy();
+      expect(todoTab).toBeTruthy();
+      expect(notesTab).toBeTruthy();
+
+      fireEvent.press(alarmsTab);
+      expect(getByTestId('alarms-view')).toBeTruthy();
+      expect(getByTestId('alarms-next')).toBeTruthy();
+    });
+
+    test('opens Alarms sub-tab directly when openRequest specifies alarms', () => {
+      const { getByTestId } = render(
+        <ThemeProvider userId={userId}>
+          <NotesScreen
+            userId={userId}
+            refreshTrigger={0}
+            onRefresh={jest.fn()}
+            openRequest={{
+              requestId: 'req-alarms-1',
+              ownerId: userId,
+              screen: 'notes',
+              notesTab: 'alarms',
+            }}
+          />
+        </ThemeProvider>,
+      );
+
+      expect(getByTestId('alarms-view')).toBeTruthy();
     });
   });
 });

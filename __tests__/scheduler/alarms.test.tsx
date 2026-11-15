@@ -52,8 +52,8 @@ beforeEach(() => {
 });
 
 describe('schema and store', () => {
-  it('schema 27 adds the alarms table', () => {
-    expect(CURRENT_SCHEMA_VERSION).toBe(27);
+  it('schema 27+ includes the alarms table', () => {
+    expect(CURRENT_SCHEMA_VERSION).toBeGreaterThanOrEqual(27);
     const columns = db
       .executeSync('PRAGMA table_info(alarms)')
       .rows.map((row: Record<string, unknown>) => row.name);
@@ -227,7 +227,7 @@ describe('screens', () => {
     <ThemeProvider userId={null}>{node}</ThemeProvider>
   );
 
-  it('Schedule → Alarms: empty state, add, list, toggle', async () => {
+  it('Tools → Alarms: empty state, add, list, toggle', async () => {
     const screen = render(
       wrap(
         <AlarmsView userId={user} refreshTrigger={0} onRefresh={jest.fn()} />,
@@ -242,13 +242,21 @@ describe('screens', () => {
     const [saved] = alarmsStore.list(user);
     expect(saved.label).toBe('Lab day');
     expect(saved.repeatDays).toBe(1);
-    expect(screen.getByText('6:00 AM')).toBeTruthy();
+    expect(screen.getAllByText('6:00 AM').length).toBeGreaterThanOrEqual(1);
     fireEvent(
       screen.getByTestId(`alarm-switch-${saved.id}`),
       'valueChange',
       false,
     );
     expect(alarmsStore.get(saved.id, user)?.enabled).toBe(false);
+
+    // Standalone view toggles between grid and list ("long") layout
+    expect(screen.getByTestId(`alarm-grid-card-${saved.id}`)).toBeTruthy();
+    fireEvent.press(screen.getByTestId('alarm-view-toggle'));
+    expect(screen.queryByTestId(`alarm-grid-card-${saved.id}`)).toBeNull();
+    expect(screen.getByTestId(`alarm-row-${saved.id}`)).toBeTruthy();
+    fireEvent.press(screen.getByTestId('alarm-view-toggle'));
+    expect(screen.getByTestId(`alarm-grid-card-${saved.id}`)).toBeTruthy();
   });
 
   it('shows what could stop an alarm, with a fix', async () => {

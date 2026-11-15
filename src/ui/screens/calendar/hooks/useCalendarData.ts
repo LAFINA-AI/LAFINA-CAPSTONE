@@ -1,7 +1,7 @@
 import {useState, useEffect, useLayoutEffect, useCallback, useRef} from 'react';
 import {ViewMode, CalendarData} from '../types';
-import type {TimeBlock, Task, Event} from '../../../../storage';
-import {userStore} from '../../../../storage';
+import type {TimeBlock, Task, Event, Reminder} from '../../../../storage';
+import {remindersStore, userStore} from '../../../../storage';
 import {plannerQueries} from '../../../../storage/plannerQueries';
 
 import {
@@ -77,7 +77,7 @@ export const useCalendarData = (
     propOnViewModeChange,
   } = options;
 
-  const [localViewMode, setLocalViewMode] = useState<ViewMode>('week');
+  const [localViewMode, setLocalViewMode] = useState<ViewMode>('month');
   const viewMode = propViewMode !== undefined ? propViewMode : localViewMode;
   const setViewMode =
     propOnViewModeChange !== undefined
@@ -91,6 +91,7 @@ export const useCalendarData = (
   const [events, setEvents] = useState<Event[]>([]);
   const [allTasks, setAllTasks] = useState<Task[]>([]);
   const [allEvents, setAllEvents] = useState<Event[]>([]);
+  const [reminders, setReminders] = useState<Reminder[]>([]);
   const [overdue, setOverdue] = useState<{items: Task[]; total: number}>({
     items: [],
     total: 0,
@@ -155,14 +156,18 @@ export const useCalendarData = (
 
   const generateWeekDays = useCallback(() => {
     const days: Date[] = [];
-    const base = new Date(selectedDate);
-    for (let i = -3; i <= 3; i++) {
-      const d = new Date(base);
-      d.setDate(base.getDate() + i);
+    const start = new Date(selectedDate);
+    start.setHours(0, 0, 0, 0);
+    const dayOfWeek = start.getDay();
+    const offsetToStart = weekStartsMonday ? (dayOfWeek + 6) % 7 : dayOfWeek;
+    start.setDate(start.getDate() - offsetToStart);
+    for (let i = 0; i < 7; i++) {
+      const d = new Date(start);
+      d.setDate(start.getDate() + i);
       days.push(d);
     }
     setWeekDays(days);
-  }, [selectedDate]);
+  }, [selectedDate, weekStartsMonday]);
 
   const loadSettings = useCallback(() => {
     const is24h = userStore.get24HourFormat(userId);
@@ -204,12 +209,12 @@ export const useCalendarData = (
   }, [userId]);
 
   const getViewRange = useCallback((): {start: Date; end: Date} => {
-    if (viewMode === 'week') {
+    if (viewMode === 'week' || viewMode === 'day') {
       const start = new Date(selectedDate);
-      start.setDate(selectedDate.getDate() - 3);
+      start.setDate(selectedDate.getDate() - 7);
       start.setHours(0, 0, 0, 0);
       const end = new Date(selectedDate);
-      end.setDate(selectedDate.getDate() + 3);
+      end.setDate(selectedDate.getDate() + 7);
       end.setHours(23, 59, 59, 999);
       return {start, end};
     } else {
@@ -377,6 +382,16 @@ export const useCalendarData = (
 
     setTasks(dayTasks);
     setEvents(dayEvents);
+    try {
+      setReminders(
+        remindersStore?.getPendingReminders
+          ? remindersStore.getPendingReminders(userId)
+          : [],
+      );
+    } catch (error) {
+      console.error('[Calendar] Could not read reminders:', error);
+      setReminders([]);
+    }
   }, [userId, batches, visibilityMap, selectedDate, getViewRange, markRead]);
 
   const retryRead = useCallback(() => {
@@ -670,28 +685,44 @@ export const useCalendarData = (
     [selectedDate],
   );
 
-  const navigateMonth = useCallback(
+  const navigateDay = useCallback(
     (direction: 'prev' | 'next') => {
-      const newDate = new Date(currentDate);
-      if (direction === 'prev') {
-        newDate.setMonth(newDate.getMonth() - 1);
-      } else {
-        newDate.setMonth(newDate.getMonth() + 1);
-      }
+      const newDate = new Date(selectedDate);
+      newDate.setDate(newDate.getDate() + (direction === 'prev' ? -1 : 1));
+      setSelectedDate(newDate);
       setCurrentDate(newDate);
     },
-    [currentDate],
+    [selectedDate],
+  );
+
+  const navigateMonth = useCallback(
+    (direction: 'prev' | 'next') => {
+      const delta = direction === 'prev' ? -1 : 1;
+      const targetMonth = currentDate.getMonth() + delta;
+      const maxDay = new Date(
+        currentDate.getFullYear(),
+        targetMonth + 1,
+        0,
+      ).getDate();
+      const clampedDay = Math.min(selectedDate.getDate(), maxDay);
+      const next = new Date(currentDate.getFullYear(), targetMonth, clampedDay);
+      setCurrentDate(next);
+      setSelectedDate(next);
+    },
+    [currentDate, selectedDate],
   );
 
   const handlePrevPress = useCallback(() => {
     if (viewMode === 'week') navigateWeek('prev');
+    else if (viewMode === 'day') navigateDay('prev');
     else navigateMonth('prev');
-  }, [viewMode, navigateWeek, navigateMonth]);
+  }, [viewMode, navigateWeek, navigateDay, navigateMonth]);
 
   const handleNextPress = useCallback(() => {
     if (viewMode === 'week') navigateWeek('next');
+    else if (viewMode === 'day') navigateDay('next');
     else navigateMonth('next');
-  }, [viewMode, navigateWeek, navigateMonth]);
+  }, [viewMode, navigateWeek, navigateDay, navigateMonth]);
 
   const handleGoToToday = useCallback(() => {
     const today = new Date();
@@ -707,9 +738,8 @@ export const useCalendarData = (
         dayNum,
       );
       setSelectedDate(targetDate);
-      setViewMode('week');
     },
-    [currentDate, setViewMode],
+    [currentDate],
   );
 
   // Bounded and loaded with the schedule (no full read per render).
@@ -725,6 +755,7 @@ export const useCalendarData = (
     events,
     allTasks,
     allEvents,
+    reminders,
     timeFormat24h,
     weekStartsMonday,
     showDatePicker,

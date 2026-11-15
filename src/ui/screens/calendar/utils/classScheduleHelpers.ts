@@ -5,6 +5,15 @@ import type {
   AcademicCourseRecord,
   AcademicProfileRecord,
   OnboardingScheduleSessionInput,
+  TimeBlock,
+} from '../../../../storage';
+import {
+  db,
+  formatClassBlockNotes,
+  getNextDateForWeekday,
+  parseClassBlockMetadata,
+  pickSubjectColor,
+  timeBlocksStore,
 } from '../../../../storage';
 import {generateId} from '../../../../utils';
 import {formatTimeForDisplay} from './calendarHelpers';
@@ -388,4 +397,245 @@ export function buildMergedAcademicProfile(params: {
     totalCreditUnits: baseProfile.totalCreditUnits ?? null,
     courses,
   };
+}
+
+export interface GroupedClassSchedule {
+  key: string;
+  code: string;
+  subjectTitle: string;
+  displayTitle: string;
+  days: string[];
+  daysLabel: string;
+  startTime: string;
+  endTime: string;
+  room: string;
+  section: string;
+  faculty: string;
+  color: string;
+  recurrenceMode: ClassRecurrenceMode;
+  recurrenceRule: string;
+  blocks: TimeBlock[];
+}
+
+const UTC_WEEKDAY_NAMES = [
+  'Sunday',
+  'Monday',
+  'Tuesday',
+  'Wednesday',
+  'Thursday',
+  'Friday',
+  'Saturday',
+] as const;
+
+/** Extracts canonical English weekday name for a YYYY-MM-DD block date. */
+export function weekdayNameForDate(dateStr: string): string | null {
+  const parsed = new Date(`${dateStr}T12:00:00Z`);
+  if (Number.isNaN(parsed.getTime())) return null;
+  return UTC_WEEKDAY_NAMES[parsed.getUTCDay()] ?? null;
+}
+
+/** Splits stored block title `'IT311 · Systems Integration'` into code and subject title. */
+export function splitClassBlockTitle(title: string): {
+  code: string;
+  subjectTitle: string;
+} {
+  const clean = title.trim();
+  const sepIdx = clean.indexOf(' · ');
+  if (sepIdx > 0) {
+    return {
+      code: clean.slice(0, sepIdx).trim(),
+      subjectTitle: clean.slice(sepIdx + 3).trim() || clean,
+    };
+  }
+  return {code: '', subjectTitle: clean};
+}
+
+/**
+ * Collapses weekday `TimeBlock` rows created for repeating `'Class'` schedules
+ * into logical class entries for reviewing, editing, or deleting a whole subject.
+ */
+export function groupClassBlocks(blocks: TimeBlock[]): GroupedClassSchedule[] {
+  const classBlocks = blocks.filter(
+    block => block.category === 'Class' && !block.deletedAt,
+  );
+  const grouped = new Map<string, GroupedClassSchedule>();
+
+  for (const block of classBlocks) {
+    const cleanTitle = block.title.trim();
+    const meta = parseClassBlockMetadata(block.notes);
+    const recurrenceRule = block.recurrenceRule?.trim() || '';
+    const groupKey = [
+      cleanTitle.toLowerCase(),
+      block.startTime,
+      block.endTime,
+      (block.notes || '').trim(),
+      recurrenceRule,
+    ].join('::');
+
+    const dayName = weekdayNameForDate(block.date);
+    const existing = grouped.get(groupKey);
+    if (existing) {
+      if (dayName && !existing.days.includes(dayName)) {
+        existing.days = sortWeekdays([...existing.days, dayName]);
+        existing.daysLabel = formatDaysBadge(existing.days);
+      }
+      existing.blocks.push(block);
+    } else {
+      const {code, subjectTitle} = splitClassBlockTitle(cleanTitle);
+      const days = dayName ? [dayName] : [];
+      grouped.set(groupKey, {
+        key: `${groupKey}::${block.id}`,
+        code,
+        subjectTitle,
+        displayTitle: cleanTitle,
+        days,
+        daysLabel: days.length > 0 ? formatDaysBadge(days) : block.date,
+        startTime: block.startTime,
+        endTime: block.endTime,
+        room: meta.room || '',
+        section: meta.section || '',
+        faculty: meta.faculty || '',
+        color: block.color || pickSubjectColor(code || subjectTitle),
+        recurrenceMode:
+          recurrenceRule && !recurrenceRule.includes('UNTIL=')
+            ? 'weekly'
+            : 'semester',
+        recurrenceRule,
+        blocks: [block],
+      });
+    }
+  }
+
+  return Array.from(grouped.values()).sort((a, b) => {
+    const timeCmp = a.startTime.localeCompare(b.startTime);
+    if (timeCmp !== 0) return timeCmp;
+    return a.displayTitle.localeCompare(b.displayTitle);
+  });
+}
+
+export function groupedClassToDraft(
+  group: GroupedClassSchedule,
+): ManualClassDraft {
+  return {
+    id: group.key,
+    code: group.code,
+    subjectTitle: group.subjectTitle,
+    days: [...group.days],
+    startTime: group.startTime,
+    endTime: group.endTime,
+    room: group.room,
+    section: group.section,
+    faculty: group.faculty,
+    recurrenceMode: group.recurrenceMode,
+  };
+}
+
+/**
+ * Updates a grouped repeating class in SQLite in one transaction: preserves/updates
+ * blocks for retained weekdays, inserts new weekday rows, and deletes removed days.
+ */
+export function updateClassGroupInStore(params: {
+  userId: string;
+  group: GroupedClassSchedule;
+  draft: ManualClassDraft;
+  referenceDate?: Date;
+}): void {
+  const {userId, group, draft, referenceDate = new Date()} = params;
+  const normalized = normalizeDraftToEntry({...draft, id: group.key});
+  const blockTitle =
+    normalized.code &&
+    !normalized.subjectTitle
+      .toLowerCase()
+      .startsWith(normalized.code.toLowerCase())
+      ? `${normalized.code} · ${normalized.subjectTitle}`
+      : normalized.subjectTitle;
+  const notes = formatClassBlockNotes({
+    section: normalized.section,
+    room: normalized.room,
+    faculty: normalized.faculty,
+  });
+  const color = pickSubjectColor(normalized.code || normalized.subjectTitle);
+  const recurrenceRule =
+    normalized.recurrenceMode === 'weekly'
+      ? 'FREQ=WEEKLY'
+      : group.recurrenceRule.includes('UNTIL=')
+        ? group.recurrenceRule
+        : `FREQ=WEEKLY;UNTIL=${computeSemesterEndDate(referenceDate)}`;
+
+  db.transactionSync(tx => {
+    const remainingBlocks = [...group.blocks];
+    const matchedIndices = new Set<number>();
+
+    const assignments: Array<{
+      dayName: string;
+      existing: TimeBlock | null;
+    }> = normalized.days.map(dayName => {
+      const idx = remainingBlocks.findIndex(
+        (b, i) => !matchedIndices.has(i) && weekdayNameForDate(b.date) === dayName,
+      );
+      if (idx >= 0) {
+        matchedIndices.add(idx);
+        return {dayName, existing: remainingBlocks[idx]};
+      }
+      return {dayName, existing: null};
+    });
+
+    const reusableBlocks = remainingBlocks.filter(
+      (_b, i) => !matchedIndices.has(i),
+    );
+
+    for (const item of assignments) {
+      const targetBlock = item.existing ?? reusableBlocks.shift() ?? null;
+      const targetDate = item.existing
+        ? item.existing.date
+        : getNextDateForWeekday(item.dayName, referenceDate);
+
+      if (targetBlock) {
+        timeBlocksStore.update(
+          {
+            id: targetBlock.id,
+            title: blockTitle,
+            date: targetDate,
+            startTime: normalized.startTime,
+            endTime: normalized.endTime,
+            color,
+            category: 'Class',
+            notes: notes || '',
+            recurrenceRule,
+          },
+          tx,
+        );
+      } else {
+        timeBlocksStore.insert(
+          {
+            id: generateId('block'),
+            userId,
+            title: blockTitle,
+            date: targetDate,
+            startTime: normalized.startTime,
+            endTime: normalized.endTime,
+            color,
+            category: 'Class',
+            notes,
+            recurrenceRule,
+          },
+          tx,
+        );
+      }
+    }
+
+    for (const unused of reusableBlocks) {
+      timeBlocksStore.delete(unused.id, tx);
+    }
+  });
+}
+
+/** Deletes all underlying weekday `TimeBlock` rows belonging to one or more class groups. */
+export function deleteClassGroupFromStore(blockIds: string[]): void {
+  if (blockIds.length === 0) return;
+  db.transactionSync(tx => {
+    for (const id of blockIds) {
+      timeBlocksStore.delete(id, tx);
+    }
+  });
 }

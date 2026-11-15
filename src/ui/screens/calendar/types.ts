@@ -1,12 +1,27 @@
 import type {CallNavigationRequest} from '../../navigation/callNavigation';
-import type {Task, Event, TimeBlock} from '../../../storage';
+import type {Task, Event, TimeBlock, Reminder} from '../../../storage';
 import {ImportBatch} from '../../../storage/importedBatchesStore';
 import type {EventFolds} from '../../../storage/eventTime';
 import type {EventMemoryOffer} from '../../../storage/personalMemoryStore';
 
 // ── View Modes ──
-/** The week view shows the chosen day's timeline under its strip, so there is no separate day view. */
-export type ViewMode = 'month' | 'week';
+export type ViewMode = 'month' | 'week' | 'day';
+
+export interface ScheduleTimelineItem {
+  id: string;
+  kind: 'event' | 'block' | 'task' | 'reminder';
+  title: string;
+  subtitle: string;
+  categoryLabel: string;
+  timeLabel: string;
+  hour: number;
+  sortMinutes: number;
+  tone: 'peach' | 'mint' | 'blueSoft';
+  rawEvent?: Event;
+  rawBlock?: TimeBlock;
+  rawTask?: Task;
+  rawReminder?: Reminder;
+}
 
 // ── CalendarScreen Props ──
 export interface CalendarScreenProps {
@@ -52,6 +67,7 @@ export interface CalendarData {
   weekDays: Date[];
   tasks: Task[];
   events: Event[];
+  reminders?: Reminder[];
   allTasks: Task[];
   allEvents: Event[];
   timeFormat24h: boolean;

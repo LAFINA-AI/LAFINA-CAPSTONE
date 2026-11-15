@@ -9,6 +9,7 @@ import {
 import {ThemeProvider} from '../../src/ui/contexts/ThemeContext';
 import {NotesScreen} from '../../src/ui/screens/notes';
 import {
+  alarmsStore,
   db,
   initDatabase,
   notesStore,
@@ -27,6 +28,7 @@ describe('Notes Tab To-Do Integration', () => {
   beforeEach(() => {
     db.executeSync('DELETE FROM active_session');
     db.executeSync('DELETE FROM sync_outbox');
+    db.executeSync('DELETE FROM alarms');
     db.executeSync('DELETE FROM reminders');
     db.executeSync('DELETE FROM notes_search_index');
     db.executeSync('DELETE FROM notes');
@@ -362,5 +364,111 @@ describe('Notes Tab To-Do Integration', () => {
       .getAllTasks(userId)
       .find(t => t.title === 'Prepare circuit board');
     expect(customTask?.category).toBe('Lab Prep');
+  });
+
+  test('Tools header keeps + and view toggle consistent on Alarms and supports grid/list alarm views', async () => {
+    const screen = render(
+      <ThemeProvider userId={userId}>
+        <NotesScreen userId={userId} refreshTrigger={0} onRefresh={jest.fn()} />
+      </ThemeProvider>,
+    );
+
+    fireEvent.press(screen.getByTestId('notes-subtab-alarms'));
+    await waitFor(() => {
+      expect(screen.getByTestId('alarms-view')).toBeTruthy();
+    });
+
+    // Shared header controls remain in Tools header without a duplicate inner "Alarms" header
+    expect(screen.getByTestId('notes-view-toggle')).toBeTruthy();
+    expect(screen.getByTestId('alarm-add-button')).toBeTruthy();
+    expect(screen.queryByTestId('alarm-view-toggle')).toBeNull();
+    expect(screen.getAllByText('Alarms')).toHaveLength(1);
+
+    // Header + opens AlarmEditorModal and creates an alarm
+    fireEvent.press(screen.getByTestId('alarm-add-button'));
+    fireEvent.changeText(screen.getByTestId('alarm-label-input'), 'Morning Lab');
+    fireEvent.press(screen.getByTestId('alarm-save-button'));
+
+    const [created] = alarmsStore.list(userId);
+    expect(created).toBeDefined();
+    expect(created.label).toBe('Morning Lab');
+
+    // Starts in Grid view, toggles cleanly to Long/List view via the shared header toggle
+    expect(screen.getByTestId(`alarm-grid-card-${created.id}`)).toBeTruthy();
+    fireEvent.press(screen.getByTestId('notes-view-toggle'));
+    expect(screen.queryByTestId(`alarm-grid-card-${created.id}`)).toBeNull();
+    expect(screen.getByTestId(`alarm-row-${created.id}`)).toBeTruthy();
+    fireEvent.press(screen.getByTestId('notes-view-toggle'));
+    expect(screen.getByTestId(`alarm-grid-card-${created.id}`)).toBeTruthy();
+  });
+
+  test('Notes and To-Do grid views show concise uncluttered previews while list view keeps full details', async () => {
+    notesStore.insert({
+      id: 'note-grid-concise-1',
+      userId,
+      title: 'Sample Note',
+      body: [
+        'Hello, this is a quick note sample.',
+        '## Notes',
+        '- one',
+        '- two',
+        '- three',
+        '- four',
+      ].join('\n'),
+      category: 'Personal',
+      isPinned: false,
+      tags: [],
+      isVoiceTranscribed: false,
+    });
+
+    tasksStore.insertTask({
+      id: 'todo-grid-concise-1',
+      userId,
+      title: 'Learn AI Engineering Course',
+      dueDate: '2026-11-27',
+      dueTime: null,
+      isCompleted: false,
+      priority: 'High',
+      category: 'Academic',
+      notes: 'Complete modules 1 through 4 before finals',
+    });
+
+    const screen = render(
+      <ThemeProvider userId={userId}>
+        <NotesScreen userId={userId} refreshTrigger={0} onRefresh={jest.fn()} />
+      </ThemeProvider>,
+    );
+
+    // Notes Grid View: shows concise 3-block preview without "+N more lines" or trailing overflow items
+    expect(screen.getByText('Sample Note')).toBeTruthy();
+    expect(screen.getByText('Hello, this is a quick note sample.')).toBeTruthy();
+    expect(screen.getByText('one')).toBeTruthy();
+    expect(screen.queryByText('two')).toBeNull();
+    expect(screen.queryByText(/more line/)).toBeNull();
+
+    // Switch to To-Do Grid View: hides task notes, formats date compactly, omits extra category pill when High + due date exist
+    fireEvent.press(screen.getByTestId('notes-subtab-todo'));
+    await waitFor(() => {
+      expect(screen.getByTestId('notes-todo-view')).toBeTruthy();
+    });
+    expect(screen.getByText('Learn AI Engineering Course')).toBeTruthy();
+    expect(screen.getByText('High')).toBeTruthy();
+    expect(screen.getByText('Nov 27')).toBeTruthy();
+    expect(screen.queryByText('2026-11-27')).toBeNull();
+    expect(
+      screen.queryByText('Complete modules 1 through 4 before finals'),
+    ).toBeNull();
+
+    // Toggle to List View: full details appear for To-Do and Notes
+    fireEvent.press(screen.getByTestId('notes-view-toggle'));
+    expect(
+      screen.getByText('Complete modules 1 through 4 before finals'),
+    ).toBeTruthy();
+    expect(screen.getByText('Academic')).toBeTruthy();
+    expect(screen.getByText('2026-11-27')).toBeTruthy();
+
+    fireEvent.press(screen.getByTestId('notes-subtab-notes'));
+    expect(screen.getByText('two')).toBeTruthy();
+    expect(screen.getByText(/\+2 more lines/)).toBeTruthy();
   });
 });

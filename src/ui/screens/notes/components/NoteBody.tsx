@@ -18,6 +18,8 @@ interface NoteBodyProps {
   onToggleChecklist?: (index: number) => void;
   /** Card sizing rather than editor sizing. */
   compact?: boolean;
+  /** Concise 2-column grid card preview: drops blank spacers, limits line wraps, hides overflow count. */
+  gridPreview?: boolean;
 }
 
 const spanStyle = (
@@ -61,13 +63,27 @@ export const NoteBody: React.FC<NoteBodyProps> = ({
   maxBlocks,
   onToggleChecklist,
   compact = false,
+  gridPreview = false,
 }) => {
   const { colors } = useTheme();
   const blocks = useMemo(() => parseNoteBlocks(noteBodyToMarkdown(body)), [body]);
+  const displayBlocks = useMemo(() => {
+    if (!gridPreview) return blocks;
+    return blocks.filter((block) => {
+      if (block.kind === 'divider') return false;
+      if (block.kind === 'paragraph') {
+        return block.spans.some((span) => span.text.trim().length > 0);
+      }
+      return true;
+    });
+  }, [blocks, gridPreview]);
 
-  const sizes = compact ? compactSizes : fullSizes;
-  const shown = maxBlocks === undefined ? blocks : blocks.slice(0, maxBlocks);
-  const hidden = blocks.length - shown.length;
+  const sizes = gridPreview ? gridPreviewSizes : compact ? compactSizes : fullSizes;
+  const shown = maxBlocks === undefined ? displayBlocks : displayBlocks.slice(0, maxBlocks);
+  const hidden = gridPreview ? 0 : displayBlocks.length - shown.length;
+
+  const getIndent = (depth: number): number =>
+    gridPreview ? Math.min(depth, 1) * 10 : depth * INDENT;
 
   const renderBlock = (block: NoteBlock, key: number): React.ReactNode => {
     switch (block.kind) {
@@ -77,8 +93,11 @@ export const NoteBody: React.FC<NoteBodyProps> = ({
       case 'image':
         return (
           <View key={key} style={styles.imageRow}>
-            <ImageIcon size={compact ? 11 : 14} color={colors.textMuted} />
-            <Text style={[sizes.body, styles.imageLabel, { color: colors.textMuted }]}>
+            <ImageIcon size={compact || gridPreview ? 11 : 14} color={colors.textMuted} />
+            <Text
+              style={[sizes.body, styles.imageLabel, { color: colors.textMuted }]}
+              numberOfLines={gridPreview ? 1 : undefined}
+            >
               {block.alt || 'Image'}
             </Text>
           </View>
@@ -89,6 +108,7 @@ export const NoteBody: React.FC<NoteBodyProps> = ({
           <Text
             key={key}
             style={[sizes.heading[block.level], { color: colors.textPrimary }]}
+            numberOfLines={gridPreview ? 1 : undefined}
           >
             <Spans spans={block.spans} colors={colors} />
           </Text>
@@ -98,7 +118,10 @@ export const NoteBody: React.FC<NoteBodyProps> = ({
         return (
           <View key={key} style={styles.quoteRow}>
             <View style={[styles.quoteBar, { backgroundColor: colors.border }]} />
-            <Text style={[sizes.body, styles.quoteText, { color: colors.textSecondary }]}>
+            <Text
+              style={[sizes.body, styles.quoteText, { color: colors.textSecondary }]}
+              numberOfLines={gridPreview ? 2 : undefined}
+            >
               <Spans spans={block.spans} colors={colors} />
             </Text>
           </View>
@@ -107,11 +130,14 @@ export const NoteBody: React.FC<NoteBodyProps> = ({
       case 'bullet':
       case 'ordered':
         return (
-          <View key={key} style={[styles.row, { marginLeft: block.depth * INDENT }]}>
+          <View key={key} style={[styles.row, { marginLeft: getIndent(block.depth) }]}>
             <Text style={[sizes.body, styles.marker, { color: colors.textMuted }]}>
               {block.kind === 'bullet' ? '•' : `${block.marker}.`}
             </Text>
-            <Text style={[sizes.body, styles.flexText, { color: colors.textSecondary }]}>
+            <Text
+              style={[sizes.body, styles.flexText, { color: colors.textSecondary }]}
+              numberOfLines={gridPreview ? 1 : undefined}
+            >
               <Spans spans={block.spans} colors={colors} />
             </Text>
           </View>
@@ -119,13 +145,13 @@ export const NoteBody: React.FC<NoteBodyProps> = ({
 
       case 'checklist': {
         const Box = block.checked ? CheckSquare : Square;
-        const size = compact ? 13 : 18;
+        const size = gridPreview ? 12 : compact ? 13 : 18;
         const content = (
           <>
             <Box
               size={size}
               color={block.checked ? colors.success : colors.textMuted}
-              style={styles.checkbox}
+              style={[styles.checkbox, gridPreview && styles.gridCheckbox]}
             />
             <Text
               style={[
@@ -134,12 +160,17 @@ export const NoteBody: React.FC<NoteBodyProps> = ({
                 { color: block.checked ? colors.textMuted : colors.textPrimary },
                 block.checked && styles.done,
               ]}
+              numberOfLines={gridPreview ? 1 : undefined}
             >
               <Spans spans={block.spans} colors={colors} />
             </Text>
           </>
         );
-        const style = [styles.row, styles.checkRow, { marginLeft: block.depth * INDENT }];
+        const style = [
+          styles.row,
+          gridPreview ? styles.gridCheckRow : styles.checkRow,
+          { marginLeft: getIndent(block.depth) },
+        ];
         return onToggleChecklist ? (
           <TouchableOpacity
             key={key}
@@ -164,7 +195,11 @@ export const NoteBody: React.FC<NoteBodyProps> = ({
         // A blank line is spacing between paragraphs, not an empty row.
         if (!text.trim()) return <View key={key} style={styles.blankLine} />;
         return (
-          <Text key={key} style={[sizes.body, { color: colors.textSecondary }]}>
+          <Text
+            key={key}
+            style={[sizes.body, { color: colors.textSecondary }]}
+            numberOfLines={gridPreview ? (displayBlocks.length === 1 ? 3 : 2) : undefined}
+          >
             <Spans spans={block.spans} colors={colors} />
           </Text>
         );
@@ -187,7 +222,9 @@ export const NoteBody: React.FC<NoteBodyProps> = ({
 const styles = StyleSheet.create({
   row: { flexDirection: 'row', alignItems: 'flex-start' },
   checkRow: { paddingVertical: 2 },
+  gridCheckRow: { paddingVertical: 1 },
   checkbox: { marginTop: 2, marginRight: 8 },
+  gridCheckbox: { marginTop: 2, marginRight: 5 },
   marker: { marginRight: 6 },
   flexText: { flex: 1 },
   done: { textDecorationLine: 'line-through' },
@@ -207,6 +244,13 @@ const compactText = StyleSheet.create({
   h3: { fontFamily: 'sans-serif-medium', fontSize: 12, fontWeight: 'bold', marginBottom: 2 },
 });
 
+const gridPreviewText = StyleSheet.create({
+  body: { fontFamily: 'sans-serif', fontSize: 12, lineHeight: 16 },
+  h1: { fontFamily: 'sans-serif-medium', fontSize: 12.5, fontWeight: '700', marginBottom: 1 },
+  h2: { fontFamily: 'sans-serif-medium', fontSize: 12.5, fontWeight: '600', marginBottom: 1 },
+  h3: { fontFamily: 'sans-serif-medium', fontSize: 12, fontWeight: '600', marginBottom: 1 },
+});
+
 const fullText = StyleSheet.create({
   body: { fontFamily: 'sans-serif', fontSize: 15, lineHeight: 22 },
   h1: { fontFamily: 'sans-serif-medium', fontSize: 22, fontWeight: 'bold', marginTop: 8, marginBottom: 4 },
@@ -217,6 +261,11 @@ const fullText = StyleSheet.create({
 const compactSizes = {
   body: compactText.body,
   heading: { 1: compactText.h1, 2: compactText.h2, 3: compactText.h3 },
+};
+
+const gridPreviewSizes = {
+  body: gridPreviewText.body,
+  heading: { 1: gridPreviewText.h1, 2: gridPreviewText.h2, 3: gridPreviewText.h3 },
 };
 
 const fullSizes = {

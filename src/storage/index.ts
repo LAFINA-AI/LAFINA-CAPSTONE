@@ -148,6 +148,7 @@ export {
 export {
   academicProfileStore,
   formatClassBlockNotes,
+  getNextDateForWeekday,
   mapCorCoursesToAcademicRecords,
   parseClassBlockMetadata,
   pickSubjectColor,

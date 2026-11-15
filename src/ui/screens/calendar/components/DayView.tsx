@@ -1,462 +1,349 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { Alert, View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
-import { Check } from 'lucide-react-native';
-import { useTheme } from '../../../contexts/ThemeContext';
-import type { ThemeColors } from '../../../contexts/ThemeContext';
-import { Fonts } from '../../../theme';
-import { mixColors } from '../../../theme/colorMix';
+import React, {useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import {
-  HOUR_HEIGHT,
-  SHORT_ENTRY_MINUTES,
-  buildDayEntries,
-  formatLocalDate,
-  hourLabel,
-  layoutIntervals,
-  minutesToPixels,
-} from '../utils/timeGridLayout';
-import type { DayEntry } from '../utils/timeGridLayout';
-import { describeHoliday, getHolidaysOn } from '../utils/philippineHolidays';
-import type { Holiday } from '../utils/philippineHolidays';
-import type { TimeBlock, Task, Event } from '../../../../storage';
+  View,
+  Text,
+  TouchableOpacity,
+  StyleSheet,
+  type LayoutChangeEvent,
+} from 'react-native';
+import type {TimeBlock, Task, Event, Reminder} from '../../../../storage';
+import type {ScheduleTimelineItem} from '../types';
+import {buildDayTimelineItems, formatLocalDate} from '../utils/calendarHelpers';
+import {WeekStrip} from './WeekStrip';
+import {ScheduleItemCard} from './ScheduleItemCard';
+import {useSchedulePalette} from './schedulePalette';
 
 interface DayViewProps {
-  targetDate: Date;
-  blocks: TimeBlock[];
-  allTasks: Task[];
-  allEvents: Event[];
+  weekDays: Date[];
+  selectedDate: Date;
   timeFormat24h: boolean;
-  onEditTask: (task: Task, type: 'task') => void;
-  onEditEvent: (event: Event, type: 'event') => void;
-  onEditBlock: (block: TimeBlock) => void;
-  onToggleTask: (task: Task) => void;
-  onAddBlock: (hour?: number) => void;
-  getCategoryColor: (cat: string) => string;
-  /** The built-in "Holidays in the Philippines" layer, on unless hidden in My Calendars. */
-  showHolidays?: boolean;
+  blocks: TimeBlock[];
+  tasks: Task[];
+  events: Event[];
+  reminders?: Reminder[];
+  onSelectDate: (date: Date) => void;
+  onAddBlock: (hour: number) => void;
+  onPressItem: (item: ScheduleTimelineItem) => void;
+  onToggleTask?: (task: Task) => void;
+  now?: Date;
+  onCurrentTimeLayout?: (y: number) => void;
 }
 
-/** Room above midnight and below the next midnight, so their labels are not cut in half. */
-const GRID_PADDING = 10;
-const AXIS_WIDTH = 56;
-const LABEL_HEIGHT = 14;
-const GRID_HEIGHT = 24 * HOUR_HEIGHT;
-/** Where the day opens, as on the desktop: most days have nothing before 7 AM. */
-const INITIAL_SCROLL_HOUR = 7;
+const formatHourLabel = (hour: number, timeFormat24h: boolean): string => {
+  if (timeFormat24h) {
+    return `${String(hour).padStart(2, '0')}:00`;
+  }
+  if (hour === 0) return '12 AM';
+  if (hour < 12) return `${hour} AM`;
+  if (hour === 12) return '12 PM';
+  return `${hour - 12} PM`;
+};
 
-/** Item tint over the card colour, as on the desktop (`color-mix` 14% light, 25% dark). */
-const tintFor = (color: string, colors: ThemeColors, isDarkMode: boolean): string =>
-  mixColors(color, colors.cardBg, isDarkMode ? 0.25 : 0.14);
+const formatExactTimeLabel = (date: Date, timeFormat24h: boolean): string => {
+  const hour = date.getHours();
+  const min = String(date.getMinutes()).padStart(2, '0');
+  if (timeFormat24h) {
+    return `${String(hour).padStart(2, '0')}:${min}`;
+  }
+  const suffix = hour >= 12 ? 'PM' : 'AM';
+  const h12 = hour % 12 === 0 ? 12 : hour % 12;
+  return `${h12}:${min} ${suffix}`;
+};
 
-/**
- * The day, drawn to scale like the desktop calendar: one hour is always
- * HOUR_HEIGHT tall, so every item starts and ends exactly on its time, and
- * items that overlap sit side by side.
- */
 export const DayView: React.FC<DayViewProps> = ({
-  targetDate,
-  blocks,
-  allTasks,
-  allEvents,
+  weekDays,
+  selectedDate,
   timeFormat24h,
-  onEditTask,
-  onEditEvent,
-  onEditBlock,
-  onToggleTask,
+  blocks,
+  tasks,
+  events,
+  reminders = [],
+  onSelectDate,
   onAddBlock,
-  getCategoryColor,
-  showHolidays = true,
+  onPressItem,
+  onToggleTask,
+  now,
+  onCurrentTimeLayout,
 }) => {
-  const { colors, isDarkMode } = useTheme();
-  const scrollRef = useRef<ScrollView>(null);
-  const dateStr = formatLocalDate(targetDate);
-  const [now, setNow] = useState(new Date());
+  const palette = useSchedulePalette();
+  const [clockNow, setClockNow] = useState<Date>(() => now ?? new Date());
+  const timelineYRef = useRef<number | null>(null);
+  const currentRowYRef = useRef<number | null>(null);
 
   useEffect(() => {
-    const timer = setInterval(() => setNow(new Date()), 60_000);
-    return () => clearInterval(timer);
-  }, []);
+    if (now) {
+      return;
+    }
+    setClockNow(new Date());
+    const id = setInterval(() => {
+      setClockNow(new Date());
+    }, 60_000);
+    return () => clearInterval(id);
+  }, [now]);
 
-  // Open each day at the start of a normal day rather than at midnight.
-  useEffect(() => {
-    const frame = requestAnimationFrame(() =>
-      scrollRef.current?.scrollTo({ y: minutesToPixels(INITIAL_SCROLL_HOUR * 60), animated: false }),
-    );
-    return () => cancelAnimationFrame(frame);
-  }, [dateStr]);
+  const effectiveNow = now ?? clockNow;
+  const isToday = useMemo(
+    () => formatLocalDate(selectedDate) === formatLocalDate(effectiveNow),
+    [selectedDate, effectiveNow],
+  );
+  const currentHour = effectiveNow.getHours();
+  const currentMinute = effectiveNow.getMinutes();
+  const currentTimeLabel = useMemo(
+    () => formatExactTimeLabel(effectiveNow, timeFormat24h),
+    [effectiveNow, timeFormat24h],
+  );
 
-  const isToday = dateStr === formatLocalDate(now);
-  const allDayTasks = allTasks.filter((task) => task.dueDate === dateStr && !task.dueTime);
-  const holidays = showHolidays ? getHolidaysOn(dateStr) : [];
-
-  const entries = useMemo(
+  const dayItems = useMemo(
     () =>
-      layoutIntervals(
-        buildDayEntries({
-          date: targetDate,
-          blocks,
-          events: allEvents,
-          tasks: allTasks,
-          timeFormat24h,
-          eventColor: colors.blue,
-          taskColor: (task) => getCategoryColor(task.category),
-        }),
-      ),
-    [targetDate, blocks, allEvents, allTasks, timeFormat24h, colors.blue, getCategoryColor],
+      buildDayTimelineItems({
+        date: selectedDate,
+        blocks,
+        events,
+        tasks,
+        reminders,
+        timeFormat24h,
+      }),
+    [selectedDate, blocks, events, tasks, reminders, timeFormat24h],
   );
 
-  const openEntry = (entry: DayEntry): void => {
-    if (entry.block) onEditBlock(entry.block);
-    else if (entry.event) onEditEvent(entry.event, 'event');
-    else if (entry.task) onEditTask(entry.task, 'task');
-  };
+  const {hours, itemsByHour} = useMemo(() => {
+    const grouped = new Map<number, ScheduleTimelineItem[]>();
+    let minHour = isToday ? Math.min(7, currentHour) : 7;
+    let maxHour = isToday ? Math.max(20, currentHour) : 20;
 
-  const nowMinutes = now.getHours() * 60 + now.getMinutes();
+    for (const item of dayItems) {
+      if (item.hour < minHour) minHour = item.hour;
+      if (item.hour > maxHour) maxHour = item.hour;
+      const list = grouped.get(item.hour) ?? [];
+      list.push(item);
+      grouped.set(item.hour, list);
+    }
+
+    const hourList: number[] = [];
+    for (let h = minHour; h <= maxHour; h++) {
+      hourList.push(h);
+    }
+
+    return {
+      hours: hourList,
+      itemsByHour: grouped,
+    };
+  }, [dayItems, isToday, currentHour]);
+
+  useEffect(() => {
+    if (!isToday) {
+      currentRowYRef.current = null;
+    }
+  }, [isToday]);
+
+  const reportCurrentTimeLayout = useCallback(() => {
+    if (
+      !isToday ||
+      timelineYRef.current === null ||
+      currentRowYRef.current === null
+    ) {
+      return;
+    }
+    onCurrentTimeLayout?.(timelineYRef.current + currentRowYRef.current);
+  }, [isToday, onCurrentTimeLayout]);
+
+  const handleTimelineLayout = useCallback(
+    (e: LayoutChangeEvent) => {
+      timelineYRef.current = e.nativeEvent.layout.y;
+      reportCurrentTimeLayout();
+    },
+    [reportCurrentTimeLayout],
+  );
+
+  const handleCurrentRowLayout = useCallback(
+    (e: LayoutChangeEvent) => {
+      currentRowYRef.current = e.nativeEvent.layout.y;
+      reportCurrentTimeLayout();
+    },
+    [reportCurrentTimeLayout],
+  );
+
+  const minutePct = Math.min(
+    90,
+    Math.max(4, Math.round((currentMinute / 60) * 100)),
+  );
+  const currentRowBg = palette.isDarkMode
+    ? 'rgba(239, 68, 68, 0.10)'
+    : 'rgba(239, 68, 68, 0.05)';
 
   return (
-    <ScrollView ref={scrollRef} style={styles.container} testID="day-view">
-      {(holidays.length > 0 || allDayTasks.length > 0) && (
-        <View style={[styles.allDay, { borderBottomColor: colors.border }]}>
-          <Text style={[styles.allDayLabel, { color: colors.textSecondary }]}>All-day</Text>
-          <View style={styles.allDayList}>
-            {holidays.map((holiday) => (
-              <HolidayChip key={holiday.name} holiday={holiday} colors={colors} isDarkMode={isDarkMode} />
-            ))}
-            {allDayTasks.map((task) => {
-              const color = getCategoryColor(task.category);
-              return (
-                <View
-                  key={task.id}
-                  style={[
-                    styles.allDayTask,
-                    { borderLeftColor: color, backgroundColor: tintFor(color, colors, isDarkMode) },
-                  ]}
-                >
-                  <TaskCheckbox task={task} colors={colors} onToggle={onToggleTask} compact />
-                  <TouchableOpacity style={styles.allDayTitleButton} onPress={() => onEditTask(task, 'task')}>
-                    <Text
-                      style={[styles.entryTitle, { color: colors.textPrimary }, task.isCompleted && styles.done]}
-                      numberOfLines={1}
-                    >
-                      {task.title}
-                    </Text>
-                  </TouchableOpacity>
-                </View>
-              );
-            })}
-          </View>
-        </View>
-      )}
+    <View style={styles.container}>
+      <WeekStrip
+        weekDays={weekDays}
+        selectedDate={selectedDate}
+        onSelectDate={onSelectDate}
+      />
 
-      <View style={[styles.grid, { height: GRID_HEIGHT + GRID_PADDING * 2 }]}>
-        {/* Hour labels, each centred on its hour line */}
-        <View style={styles.axis} pointerEvents="none">
-          {Array.from({ length: 25 }, (_, hour) => (
-            <Text
-              key={hour}
-              style={[
-                styles.hourLabel,
-                { color: colors.textSecondary, top: GRID_PADDING + hour * HOUR_HEIGHT - LABEL_HEIGHT / 2 },
-              ]}
-            >
-              {hourLabel(hour, timeFormat24h)}
-            </Text>
-          ))}
-        </View>
+      <View
+        testID="day-timeline"
+        style={styles.timeline}
+        onLayout={handleTimelineLayout}>
+        {hours.map(hour => {
+          const slotItems = itemsByHour.get(hour) ?? [];
+          const hourLabel = formatHourLabel(hour, timeFormat24h);
+          const isCurrentHour = isToday && hour === currentHour;
 
-        <View
-          style={[
-            styles.column,
-            { borderLeftColor: colors.border, borderBottomColor: colors.border },
-            isToday && { backgroundColor: mixColors(colors.red, colors.background, 0.03) },
-          ]}
-        >
-          {/* Hour lines, with an empty slot under each hour for adding a block */}
-          {Array.from({ length: 24 }, (_, hour) => (
-            <TouchableOpacity
-              key={hour}
-              style={[styles.slot, { top: hour * HOUR_HEIGHT, borderTopColor: colors.border }]}
-              onPress={() => onAddBlock(hour)}
-              accessibilityRole="button"
-              accessibilityLabel={`Add a time block at ${hourLabel(hour, timeFormat24h)}`}
-            />
-          ))}
-
-          {entries.map((entry) => {
-            const short = entry.end - entry.start < SHORT_ENTRY_MINUTES;
-            return (
-              <View
-                key={entry.id}
-                style={[
-                  styles.entryFrame,
-                  {
-                    top: minutesToPixels(entry.start),
-                    height: minutesToPixels(entry.end - entry.start),
-                    left: `${(entry.column / entry.columns) * 100}%`,
-                    width: `${100 / entry.columns}%`,
-                  },
-                ]}
-              >
-                <View
-                  style={[
-                    styles.entry,
-                    { borderLeftColor: entry.color, backgroundColor: tintFor(entry.color, colors, isDarkMode) },
-                  ]}
-                >
-                  {entry.task && (
-                    <TaskCheckbox task={entry.task} colors={colors} onToggle={onToggleTask} compact={short} />
-                  )}
-                  <TouchableOpacity
-                    style={[styles.entryBody, short && styles.entryBodyShort]}
-                    onPress={() => openEntry(entry)}
-                    accessibilityRole="button"
-                    accessibilityLabel={`${entry.title}, ${entry.time}`}
-                  >
-                    <Text
-                      style={[
-                        styles.entryTitle,
-                        { color: colors.textPrimary },
-                        entry.task?.isCompleted && styles.done,
-                      ]}
-                      numberOfLines={short ? 1 : undefined}
-                    >
-                      {entry.title}
-                    </Text>
-                    {!short && <Text style={[styles.entryDetail, { color: colors.textSecondary }]}>{entry.time}</Text>}
-                    {!short && entry.location ? (
-                      <Text style={[styles.entryDetail, { color: colors.textSecondary }]}>{entry.location}</Text>
-                    ) : null}
-                  </TouchableOpacity>
-                </View>
-              </View>
-            );
-          })}
-
-          {isToday && (
+          return (
             <View
-              pointerEvents="none"
-              style={[styles.nowLine, { top: minutesToPixels(nowMinutes) - 1, backgroundColor: colors.red }]}
-              testID="day-view-now"
-            >
-              <View style={[styles.nowDot, { backgroundColor: colors.red }]} />
+              key={hour}
+              testID={isCurrentHour ? 'day-current-hour-row' : undefined}
+              onLayout={isCurrentHour ? handleCurrentRowLayout : undefined}
+              style={styles.hourRow}>
+              <View style={styles.hourLabelCol}>
+                <Text
+                  style={[
+                    styles.hourLabel,
+                    {color: isCurrentHour ? palette.danger : palette.muted},
+                    isCurrentHour && styles.hourLabelActive,
+                  ]}>
+                  {hourLabel}
+                </Text>
+                {isCurrentHour && (
+                  <View
+                    testID="day-current-time-badge"
+                    style={[
+                      styles.nowBadge,
+                      {backgroundColor: palette.danger},
+                    ]}>
+                    <Text style={styles.nowBadgeText} numberOfLines={1}>
+                      {currentTimeLabel}
+                    </Text>
+                  </View>
+                )}
+              </View>
+              <View
+                style={[
+                  styles.slotCol,
+                  {
+                    borderTopColor: isCurrentHour
+                      ? palette.danger
+                      : palette.border,
+                  },
+                  isCurrentHour && {backgroundColor: currentRowBg},
+                ]}>
+                {isCurrentHour && (
+                  <View
+                    testID="day-current-time-line"
+                    pointerEvents="none"
+                    style={[styles.nowLineRow, {top: `${minutePct}%`}]}>
+                    <View
+                      style={[
+                        styles.nowDot,
+                        {backgroundColor: palette.danger},
+                      ]}
+                    />
+                    <View
+                      style={[
+                        styles.nowLine,
+                        {backgroundColor: palette.danger},
+                      ]}
+                    />
+                  </View>
+                )}
+                {slotItems.length === 0 ? (
+                  <TouchableOpacity
+                    style={styles.emptySlot}
+                    onPress={() => onAddBlock(hour)}
+                    accessibilityRole="button"
+                    accessibilityLabel={`Add block at ${hourLabel}`}
+                  />
+                ) : (
+                  <View style={styles.slotList}>
+                    {slotItems.map(item => (
+                      <ScheduleItemCard
+                        key={item.id}
+                        item={item}
+                        compact
+                        onPress={onPressItem}
+                        onToggleTask={onToggleTask}
+                      />
+                    ))}
+                  </View>
+                )}
+              </View>
             </View>
-          )}
-        </View>
+          );
+        })}
       </View>
-      <View style={styles.bottomSpacer} />
-    </ScrollView>
-  );
-};
-
-/**
- * A holiday in the all-day row, as on the desktop: solid green, or a dashed
- * outline while the date is only an estimate. Tapping it says what kind of
- * holiday it is.
- */
-const HolidayChip: React.FC<{ holiday: Holiday; colors: ThemeColors; isDarkMode: boolean }> = ({
-  holiday,
-  colors,
-  isDarkMode,
-}) => {
-  const [name, ...rest] = describeHoliday(holiday).split('\n');
-  return (
-    <TouchableOpacity
-      style={[
-        styles.holiday,
-        holiday.tentative
-          ? {
-              backgroundColor: mixColors(colors.holiday, colors.cardBg, isDarkMode ? 0.28 : 0.14),
-              borderColor: colors.holiday,
-            }
-          : { backgroundColor: colors.holiday, borderColor: colors.holiday },
-        holiday.tentative && styles.holidayTentative,
-      ]}
-      onPress={() => Alert.alert(name, rest.join('\n'))}
-      accessibilityRole="button"
-      accessibilityLabel={describeHoliday(holiday).replace('\n', ', ')}
-      testID="holiday-chip"
-    >
-      <Text style={[styles.holidayText, { color: holiday.tentative ? colors.textPrimary : colors.white }]}>
-        {holiday.name}
-      </Text>
-    </TouchableOpacity>
-  );
-};
-
-const TaskCheckbox: React.FC<{
-  task: Task;
-  colors: ThemeColors;
-  onToggle: (task: Task) => void;
-  compact?: boolean;
-}> = ({ task, colors, onToggle, compact = false }) => (
-  <TouchableOpacity
-    onPress={() => onToggle(task)}
-    style={[styles.checkboxHit, compact && styles.checkboxHitCompact]}
-    accessibilityRole="checkbox"
-    accessibilityState={{ checked: task.isCompleted }}
-    accessibilityLabel={`Complete ${task.title}`}
-  >
-    <View
-      style={[
-        styles.checkbox,
-        { borderColor: colors.textSecondary },
-        task.isCompleted && { backgroundColor: colors.success, borderColor: colors.success },
-      ]}
-    >
-      {task.isCompleted && <Check size={10} color={colors.white} strokeWidth={3} />}
     </View>
-  </TouchableOpacity>
-);
+  );
+};
 
 const styles = StyleSheet.create({
-  container: { flex: 1 },
-  grid: {
-    flexDirection: 'row',
+  container: {
+    paddingBottom: 24,
   },
-  axis: {
-    width: AXIS_WIDTH,
-    position: 'relative',
+  timeline: {
+    paddingHorizontal: 18,
   },
-  hourLabel: {
-    position: 'absolute',
-    right: 8,
-    height: LABEL_HEIGHT,
-    lineHeight: LABEL_HEIGHT,
-    fontSize: 10,
-    fontFamily: Fonts.body,
-  },
-  column: {
-    flex: 1,
-    position: 'relative',
-    marginTop: GRID_PADDING,
-    height: GRID_HEIGHT,
-    marginRight: 8,
-    borderLeftWidth: StyleSheet.hairlineWidth,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-  },
-  slot: {
-    position: 'absolute',
-    left: 0,
-    right: 0,
-    height: HOUR_HEIGHT,
-    borderTopWidth: StyleSheet.hairlineWidth,
-  },
-  entryFrame: {
-    position: 'absolute',
-    paddingHorizontal: 3,
-    zIndex: 2,
-  },
-  entry: {
-    flex: 1,
+  hourRow: {
     flexDirection: 'row',
     alignItems: 'flex-start',
-    overflow: 'hidden',
-    borderRadius: 7,
-    borderLeftWidth: 3,
+    minHeight: 58,
   },
-  entryBody: {
-    flex: 1,
-    alignSelf: 'stretch',
-    paddingHorizontal: 8,
-    paddingVertical: 7,
-    gap: 3,
+  hourLabelCol: {
+    width: 58,
+    paddingTop: 2,
+    paddingRight: 6,
+    alignItems: 'flex-start',
   },
-  entryBodyShort: {
+  hourLabel: {
+    fontSize: 12,
+    fontWeight: '600',
+  },
+  hourLabelActive: {
+    fontWeight: '700',
+  },
+  nowBadge: {
+    marginTop: 4,
     paddingHorizontal: 5,
     paddingVertical: 2,
-    gap: 0,
-    justifyContent: 'center',
+    borderRadius: 6,
+    overflow: 'hidden',
   },
-  entryTitle: {
-    fontFamily: Fonts.body,
-    fontSize: 12,
-    lineHeight: 16,
-    fontWeight: 'bold',
-  },
-  entryDetail: {
-    fontFamily: Fonts.body,
+  nowBadgeText: {
+    color: '#FFFFFF',
     fontSize: 10,
-    lineHeight: 14,
+    fontWeight: '700',
   },
-  done: {
-    textDecorationLine: 'line-through',
-    opacity: 0.6,
+  slotCol: {
+    flex: 1,
+    position: 'relative',
+    borderTopWidth: 1,
+    paddingTop: 6,
+    paddingBottom: 10,
+    minHeight: 58,
+    borderRadius: 8,
   },
-  checkboxHit: {
-    paddingLeft: 7,
-    paddingTop: 8,
-    paddingRight: 1,
-  },
-  checkboxHitCompact: {
-    paddingTop: 0,
-    alignSelf: 'center',
-  },
-  checkbox: {
-    width: 14,
-    height: 14,
-    borderRadius: 4,
-    borderWidth: 1.5,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  nowLine: {
+  nowLineRow: {
     position: 'absolute',
     left: 0,
     right: 0,
-    height: 2,
-    zIndex: 5,
+    zIndex: 4,
+    flexDirection: 'row',
+    alignItems: 'center',
+    transform: [{translateY: -4}],
   },
   nowDot: {
-    position: 'absolute',
-    left: -4,
-    top: -3,
     width: 8,
     height: 8,
     borderRadius: 4,
+    overflow: 'hidden',
   },
-  allDay: {
-    flexDirection: 'row',
-    paddingVertical: 8,
-    paddingRight: 8,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-  },
-  allDayLabel: {
-    width: AXIS_WIDTH,
-    paddingRight: 8,
-    paddingTop: 6,
-    textAlign: 'right',
-    fontSize: 10,
-    fontFamily: Fonts.body,
-  },
-  allDayList: {
+  nowLine: {
     flex: 1,
-    gap: 4,
+    height: 2,
   },
-  allDayTask: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    borderRadius: 7,
-    borderLeftWidth: 3,
-    minHeight: 28,
-  },
-  holiday: {
-    borderRadius: 5,
-    borderWidth: 1,
-    paddingHorizontal: 6,
-    paddingVertical: 3,
-  },
-  holidayTentative: {
-    borderStyle: 'dashed',
-  },
-  holidayText: {
-    fontFamily: Fonts.body,
-    fontSize: 11,
-    lineHeight: 15,
-    fontWeight: '600',
-  },
-  allDayTitleButton: {
+  emptySlot: {
     flex: 1,
-    paddingHorizontal: 8,
-    paddingVertical: 6,
+    minHeight: 40,
   },
-  bottomSpacer: { height: 100 },
+  slotList: {
+    gap: 8,
+  },
 });

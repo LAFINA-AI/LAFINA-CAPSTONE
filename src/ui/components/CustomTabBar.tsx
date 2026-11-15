@@ -10,10 +10,10 @@ import {useSafeAreaInsets} from 'react-native-safe-area-context';
 import Svg, {Path} from 'react-native-svg';
 import {
   CalendarDays,
-  FileText,
   House,
   Sparkles,
   User,
+  Wrench,
 } from 'lucide-react-native';
 import {useTheme} from '../contexts/ThemeContext';
 import type {ThemeColors} from '../contexts/ThemeContext';
@@ -41,7 +41,7 @@ export const TAB_LABELS: Record<TabType, string> = {
   dashboard: 'Home',
   calendar: 'Schedule',
   chat: 'AI',
-  notes: 'Notes',
+  notes: 'Tools',
   profile: 'Profile',
 };
 
@@ -52,7 +52,7 @@ const TAB_ICONS: Record<
   dashboard: House,
   calendar: CalendarDays,
   chat: Sparkles,
-  notes: FileText,
+  notes: Wrench,
   profile: User,
 };
 
@@ -104,7 +104,7 @@ export const CustomTabBar: React.FC<CustomTabBarProps> = ({
   activeTab,
   onTabPress,
 }) => {
-  const {colors, isModern, modernPalette} = useTheme();
+  const {colors, isModern, modernPalette, modernShadows} = useTheme();
   const themed = useThemedStyles(getTabThemedStyles);
   const insets = useSafeAreaInsets();
   const [barWidth, setBarWidth] = useState(360);
@@ -178,10 +178,12 @@ export const CustomTabBar: React.FC<CustomTabBarProps> = ({
                   accessibilityState={{selected: isActive}}
                 >
                   <View
+                    testID="modern-tab-chat-fab"
                     style={[
                       styles.modernCenterFab,
                       styles.modernCenterFabShadow,
                       {
+                        shadowColor: modernShadows.floating.shadowColor,
                         backgroundColor: isActive
                           ? modernPalette.accentDeep
                           : modernPalette.accent,
@@ -428,7 +430,6 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   modernCenterFabShadow: {
-    shadowColor: '#4C379A',
     shadowOffset: {width: 0, height: 6},
     shadowOpacity: 0.18,
     shadowRadius: 12,

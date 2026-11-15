@@ -24,7 +24,7 @@ describe('CustomTabBar (Phase 03 Modern Curved SVG + Classic Pill)', () => {
     expect(ui.getByText('Home')).toBeTruthy();
     expect(ui.getByText('Schedule')).toBeTruthy();
     expect(ui.getByText('AI')).toBeTruthy();
-    expect(ui.getByText('Notes')).toBeTruthy();
+    expect(ui.getByText('Tools')).toBeTruthy();
     expect(ui.getByText('Profile')).toBeTruthy();
 
     fireEvent.press(ui.getByLabelText('Schedule tab'));
@@ -33,7 +33,7 @@ describe('CustomTabBar (Phase 03 Modern Curved SVG + Classic Pill)', () => {
     fireEvent.press(ui.getByLabelText('AI tab'));
     expect(onTabPress).toHaveBeenCalledWith('chat');
 
-    fireEvent.press(ui.getByLabelText('Notes tab'));
+    fireEvent.press(ui.getByLabelText('Tools tab'));
     expect(onTabPress).toHaveBeenCalledWith('notes');
 
     fireEvent.press(ui.getByLabelText('Profile tab'));
@@ -54,7 +54,7 @@ describe('CustomTabBar (Phase 03 Modern Curved SVG + Classic Pill)', () => {
     // Classic mode shows only the active tab's label
     expect(ui.getByText('Home')).toBeTruthy();
     expect(ui.queryByText('Schedule')).toBeNull();
-    expect(ui.queryByText('Notes')).toBeNull();
+    expect(ui.queryByText('Tools')).toBeNull();
     expect(ui.queryByText('Profile')).toBeNull();
 
     fireEvent.press(ui.getByLabelText('AI tab'));
