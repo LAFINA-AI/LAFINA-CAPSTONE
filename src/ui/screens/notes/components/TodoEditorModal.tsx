@@ -16,7 +16,7 @@ import {useSafeAreaInsets} from 'react-native-safe-area-context';
 import type {Task} from '../../../../storage';
 import {useTheme} from '../../../contexts/ThemeContext';
 import {
-  Colors,
+  CUSTOM_CATEGORY_SWATCHES,
   Fonts,
   FontSize,
   Layout,
@@ -38,16 +38,6 @@ interface TodoEditorModalProps {
 
 const PRIORITIES: Task['priority'][] = ['High', 'Medium', 'Low'];
 const BASE_CATEGORIES = ['Personal', 'Academic', 'Work', 'Health', 'Learning'];
-const CUSTOM_COLOR_OPTIONS = [
-  '#3498DB',
-  '#2ECC71',
-  '#C8A800',
-  '#9B59B6',
-  '#F75A5A',
-  '#E67E22',
-  '#E91E63',
-  '#1ABC9C',
-];
 
 const timeStringToDate = (timeStr: string | null): Date => {
   const base = new Date();
@@ -97,7 +87,7 @@ export const TodoEditorModal: React.FC<TodoEditorModalProps> = ({
   const [addingCategory, setAddingCategory] = useState(false);
   const [newCategoryName, setNewCategoryName] = useState('');
   const [selectedCategoryColor, setSelectedCategoryColor] = useState(
-    CUSTOM_COLOR_OPTIONS[0],
+    CUSTOM_CATEGORY_SWATCHES[0],
   );
   const [localCustomCategories, setLocalCustomCategories] = useState<string[]>(
     [],
@@ -258,7 +248,7 @@ export const TodoEditorModal: React.FC<TodoEditorModalProps> = ({
                   p === 'High'
                     ? colors.error
                     : p === 'Medium'
-                    ? Colors.red
+                    ? colors.red
                     : colors.success;
                 return (
                   <TouchableOpacity
@@ -301,8 +291,8 @@ export const TodoEditorModal: React.FC<TodoEditorModalProps> = ({
                 style={[
                   styles.chip,
                   {
-                    backgroundColor: !dueDate ? Colors.red : colors.inputBg,
-                    borderColor: !dueDate ? Colors.red : colors.border,
+                    backgroundColor: !dueDate ? colors.red : colors.inputBg,
+                    borderColor: !dueDate ? colors.red : colors.border,
                   },
                 ]}
               >
@@ -321,9 +311,9 @@ export const TodoEditorModal: React.FC<TodoEditorModalProps> = ({
                   styles.chip,
                   {
                     backgroundColor:
-                      dueDate === todayStr ? Colors.red : colors.inputBg,
+                      dueDate === todayStr ? colors.red : colors.inputBg,
                     borderColor:
-                      dueDate === todayStr ? Colors.red : colors.border,
+                      dueDate === todayStr ? colors.red : colors.border,
                   },
                 ]}
               >
@@ -347,9 +337,9 @@ export const TodoEditorModal: React.FC<TodoEditorModalProps> = ({
                   styles.chip,
                   {
                     backgroundColor:
-                      dueDate === tomorrowStr ? Colors.red : colors.inputBg,
+                      dueDate === tomorrowStr ? colors.red : colors.inputBg,
                     borderColor:
-                      dueDate === tomorrowStr ? Colors.red : colors.border,
+                      dueDate === tomorrowStr ? colors.red : colors.border,
                   },
                 ]}
               >
@@ -374,7 +364,7 @@ export const TodoEditorModal: React.FC<TodoEditorModalProps> = ({
                   {
                     backgroundColor:
                       dueDate && dueDate !== todayStr && dueDate !== tomorrowStr
-                        ? Colors.red
+                        ? colors.red
                         : colors.inputBg,
                     borderColor: colors.border,
                   },
@@ -493,8 +483,8 @@ export const TodoEditorModal: React.FC<TodoEditorModalProps> = ({
                 style={[
                   styles.chip,
                   {
-                    backgroundColor: !category ? Colors.red : colors.inputBg,
-                    borderColor: !category ? Colors.red : colors.border,
+                    backgroundColor: !category ? colors.red : colors.inputBg,
+                    borderColor: !category ? colors.red : colors.border,
                   },
                 ]}
               >
@@ -517,8 +507,8 @@ export const TodoEditorModal: React.FC<TodoEditorModalProps> = ({
                     style={[
                       styles.chip,
                       {
-                        backgroundColor: active ? Colors.red : colors.inputBg,
-                        borderColor: active ? Colors.red : colors.border,
+                        backgroundColor: active ? colors.red : colors.inputBg,
+                        borderColor: active ? colors.red : colors.border,
                       },
                     ]}
                   >
@@ -541,7 +531,7 @@ export const TodoEditorModal: React.FC<TodoEditorModalProps> = ({
                   styles.chipIconRow,
                   {
                     backgroundColor: colors.inputBg,
-                    borderColor: addingCategory ? Colors.red : colors.border,
+                    borderColor: addingCategory ? colors.red : colors.border,
                   },
                 ]}
               >
@@ -579,7 +569,7 @@ export const TodoEditorModal: React.FC<TodoEditorModalProps> = ({
                   autoFocus
                 />
                 <View style={styles.colorPaletteRow}>
-                  {CUSTOM_COLOR_OPTIONS.map((hex, idx) => (
+                  {CUSTOM_CATEGORY_SWATCHES.map((hex, idx) => (
                     <TouchableOpacity
                       key={hex}
                       onPress={() => setSelectedCategoryColor(hex)}
@@ -615,8 +605,8 @@ export const TodoEditorModal: React.FC<TodoEditorModalProps> = ({
                     style={[
                       styles.clearBtn,
                       {
-                        backgroundColor: Colors.red,
-                        borderColor: Colors.red,
+                        backgroundColor: colors.red,
+                        borderColor: colors.red,
                       },
                     ]}
                   >
@@ -669,7 +659,7 @@ export const TodoEditorModal: React.FC<TodoEditorModalProps> = ({
             </TouchableOpacity>
             <TouchableOpacity
               onPress={handleSavePress}
-              style={[styles.saveBtn, {backgroundColor: Colors.red}]}
+              style={[styles.saveBtn, {backgroundColor: colors.red}]}
               testID="todo-modal-save"
             >
               <Text style={[styles.saveBtnText, {color: colors.white}]}>

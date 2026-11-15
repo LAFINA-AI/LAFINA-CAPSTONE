@@ -3,17 +3,24 @@ import {render} from '@testing-library/react-native';
 import {Text} from 'react-native';
 import {ThemeProvider} from '../src/ui/contexts/ThemeContext';
 import {
+  CALENDAR_LAYER_SWATCHES,
+  CUSTOM_CATEGORY_SWATCHES,
   Colors,
   Layout,
   ModernLayout,
   ModernShadows,
   ModernTypography,
+  classicDarkColors,
+  classicLightColors,
   getModernPalette,
+  getThemeColors,
   modernDarkPalette,
   modernDarkThemeColors,
   modernLightPalette,
   modernLightThemeColors,
+  useThemedStyles,
 } from '../src/ui/theme';
+import * as palettesModule from '../src/ui/theme/palettes';
 import {
   ModernBadge,
   ModernCard,
@@ -93,5 +100,80 @@ describe('Modern Design System (Phase 01)', () => {
     expect(ui.getByText('View All')).toBeTruthy();
     expect(ui.getByText('All')).toBeTruthy();
     expect(ui.getByText('LIVE NOW')).toBeTruthy();
+  });
+
+  test('exposes centralized palettes, swatches, and variant-aware getThemeColors helper', () => {
+    expect(palettesModule.classicLightColors).toBe(classicLightColors);
+    expect(palettesModule.classicDarkColors).toBe(classicDarkColors);
+    expect(palettesModule.modernLightPalette).toBe(modernLightPalette);
+    expect(palettesModule.modernDarkPalette).toBe(modernDarkPalette);
+    expect(palettesModule.modernLightThemeColors).toBe(modernLightThemeColors);
+    expect(palettesModule.modernDarkThemeColors).toBe(modernDarkThemeColors);
+    expect(palettesModule.getThemeColors).toBe(getThemeColors);
+    expect(palettesModule.CUSTOM_CATEGORY_SWATCHES).toBe(
+      CUSTOM_CATEGORY_SWATCHES,
+    );
+    expect(palettesModule.CALENDAR_LAYER_SWATCHES).toBe(
+      CALENDAR_LAYER_SWATCHES,
+    );
+    expect(CUSTOM_CATEGORY_SWATCHES.length).toBeGreaterThanOrEqual(8);
+    expect(CALENDAR_LAYER_SWATCHES.length).toBeGreaterThanOrEqual(10);
+
+    expect(getThemeColors('classic', false)).toBe(classicLightColors);
+    expect(getThemeColors('classic', true)).toBe(classicDarkColors);
+    expect(getThemeColors('modern', false)).toBe(modernLightThemeColors);
+    expect(getThemeColors('modern', true)).toBe(modernDarkThemeColors);
+  });
+
+  test('useThemedStyles passes (colors, isDarkMode, { isModern, modernPalette }) to factory', () => {
+    const styleFactory = jest.fn((colors, isDarkMode, modern) => ({
+      box: {
+        backgroundColor: modern.isModern
+          ? modern.modernPalette.card
+          : colors.cardBg,
+        borderColor: isDarkMode ? colors.border : modern.modernPalette.border,
+      },
+    }));
+
+    const Probe = () => {
+      const themed = useThemedStyles(styleFactory);
+      return <Text testID="themed-probe">{themed.box.backgroundColor}</Text>;
+    };
+
+    const modernUi = render(
+      <ThemeProvider userId={null} initialUIVariant="modern">
+        <Probe />
+      </ThemeProvider>,
+    );
+    expect(modernUi.getByTestId('themed-probe').props.children).toBe(
+      modernLightPalette.card,
+    );
+    expect(styleFactory).toHaveBeenCalledWith(
+      modernLightThemeColors,
+      false,
+      expect.objectContaining({
+        isModern: true,
+        modernPalette: modernLightPalette,
+      }),
+    );
+
+    styleFactory.mockClear();
+
+    const classicUi = render(
+      <ThemeProvider userId={null} initialUIVariant="classic">
+        <Probe />
+      </ThemeProvider>,
+    );
+    expect(classicUi.getByTestId('themed-probe').props.children).toBe(
+      classicLightColors.cardBg,
+    );
+    expect(styleFactory).toHaveBeenCalledWith(
+      classicLightColors,
+      false,
+      expect.objectContaining({
+        isModern: false,
+        modernPalette: modernLightPalette,
+      }),
+    );
   });
 });

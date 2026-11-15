@@ -24,7 +24,6 @@ import {
 } from 'lucide-react-native';
 import {useTheme} from '../../contexts/ThemeContext';
 import {
-  Colors,
   ModernLayout,
   ModernShadows,
   ModernTypography,
@@ -417,7 +416,7 @@ export const NotesScreen: React.FC<NotesScreenProps> = ({
                       activeSubTab === 'todo'
                         ? isModern
                           ? modernPalette.accent
-                          : Colors.red
+                          : colors.red
                         : colors.border,
                   },
                 ]}
@@ -628,9 +627,8 @@ export const NotesScreen: React.FC<NotesScreenProps> = ({
       <TouchableOpacity
         style={[
           styles.fab,
-          isModern
-            ? [ModernShadows.floating, {backgroundColor: modernPalette.accent}]
-            : Shadows.card,
+          {backgroundColor: isModern ? modernPalette.accent : colors.red},
+          isModern ? ModernShadows.floating : Shadows.card,
           {bottom: fabBottom},
         ]}
         onPress={activeSubTab === 'todo' ? todo.openNewTodo : data.openNewNote}
@@ -866,7 +864,6 @@ const styles = StyleSheet.create({
     width: 56,
     height: 56,
     borderRadius: 28,
-    backgroundColor: Colors.red,
     alignItems: 'center',
     justifyContent: 'center',
   },

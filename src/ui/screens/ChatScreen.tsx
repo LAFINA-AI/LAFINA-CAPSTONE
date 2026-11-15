@@ -1381,7 +1381,7 @@ export const ChatScreen: React.FC<ChatScreenProps> = ({
                           borderColor: modernPalette.accent,
                           backgroundColor: modernPalette.softViolet,
                         }
-                      : styles.handbookChipActive,
+                      : themed.handbookChipActive,
                   ]}
                   testID="chat-ustp-mode-badge"
                 >
@@ -1487,7 +1487,7 @@ export const ChatScreen: React.FC<ChatScreenProps> = ({
             style={[
               styles.onlineToggle,
               themed.headerButton,
-              isOnlineMode && styles.onlineToggleActive,
+              isOnlineMode && themed.onlineToggleActive,
             ]}
             onPress={() => {
               void handleToggleOnline();
@@ -1512,7 +1512,7 @@ export const ChatScreen: React.FC<ChatScreenProps> = ({
               style={[
                 styles.onlineToggleText,
                 themed.onlineToggleText,
-                isOnlineMode && styles.onlineToggleTextActive,
+                isOnlineMode && themed.onlineToggleTextActive,
               ]}
             >
               {isOnlineMode ? 'Online' : 'Offline'}
@@ -1847,10 +1847,6 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     borderWidth: 1,
   },
-  handbookChipActive: {
-    borderColor: '#D32F2F',
-    backgroundColor: '#D32F2F12',
-  },
   handbookChipText: {
     fontFamily: Fonts.body,
     fontSize: 10,
@@ -1884,17 +1880,10 @@ const styles = StyleSheet.create({
     height: 6,
     borderRadius: 3,
   },
-  onlineToggleActive: {
-    backgroundColor: '#2E7D32',
-    borderColor: '#2E7D32',
-  },
   onlineToggleText: {
     fontFamily: Fonts.body,
     fontSize: 11,
     fontWeight: '600',
-  },
-  onlineToggleTextActive: {
-    color: '#FFFFFF',
   },
   listContent: {
     paddingVertical: 12,
@@ -2067,6 +2056,13 @@ const getThemedStyles = (colors: ThemeColors) => ({
   },
   onlineToggleText: {
     color: colors.textSecondary,
+  },
+  onlineToggleActive: {
+    backgroundColor: colors.success,
+    borderColor: colors.success,
+  },
+  onlineToggleTextActive: {
+    color: colors.white,
   },
   handbookChip: {
     backgroundColor: colors.cardBg,

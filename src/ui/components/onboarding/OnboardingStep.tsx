@@ -7,7 +7,8 @@ import {
   TouchableOpacity,
   ActivityIndicator,
 } from 'react-native';
-import { Colors, Fonts, Layout, Shadows, useThemedStyles } from '../../theme';
+import { Fonts, Layout, Shadows, useThemedStyles } from '../../theme';
+import type { ThemedStyleMeta } from '../../theme';
 import { useTheme } from '../../contexts/ThemeContext';
 import type { ThemeColors } from '../../contexts/ThemeContext';
 import type { ConversationTone } from '../../../storage/onboardingMemory';
@@ -179,7 +180,7 @@ export const OnboardingStep: React.FC<OnboardingStepProps> = ({
       return (
         <View>
           <View style={styles.iconHeaderContainer}>
-            <GraduationCap size={40} color={Colors.blue} />
+            <GraduationCap size={40} color={colors.blue} />
           </View>
           <Text style={[styles.stepTitle, themed.stepTitle]}>School & Daily Routine</Text>
           <Text style={[styles.stepDesc, themed.stepDesc]}>
@@ -196,7 +197,7 @@ export const OnboardingStep: React.FC<OnboardingStepProps> = ({
               style={[
                 styles.chip,
                 themed.chip,
-                isUstpStudent === true && styles.activeChip,
+                isUstpStudent === true && themed.activeChip,
               ]}
               onPress={() => setIsUstpStudent?.(true)}
             >
@@ -204,7 +205,7 @@ export const OnboardingStep: React.FC<OnboardingStepProps> = ({
                 style={[
                   styles.chipText,
                   themed.chipText,
-                  isUstpStudent === true && styles.activeChipText,
+                  isUstpStudent === true && [styles.activeChipText, themed.activeChipText],
                 ]}
               >
                 Yes, USTP Student
@@ -217,7 +218,7 @@ export const OnboardingStep: React.FC<OnboardingStepProps> = ({
               style={[
                 styles.chip,
                 themed.chip,
-                isUstpStudent === false && styles.activeChip,
+                isUstpStudent === false && themed.activeChip,
               ]}
               onPress={() => setIsUstpStudent?.(false)}
             >
@@ -225,7 +226,7 @@ export const OnboardingStep: React.FC<OnboardingStepProps> = ({
                 style={[
                   styles.chipText,
                   themed.chipText,
-                  isUstpStudent === false && styles.activeChipText,
+                  isUstpStudent === false && [styles.activeChipText, themed.activeChipText],
                 ]}
               >
                 No, Another School
@@ -237,7 +238,7 @@ export const OnboardingStep: React.FC<OnboardingStepProps> = ({
           {isUstpStudent === true && (
             <View style={[styles.corBox, themed.summaryCard]}>
               <View style={styles.corHeaderRow}>
-                <FileText size={18} color={Colors.blue} />
+                <FileText size={18} color={colors.blue} />
                 <Text style={[styles.corBoxTitle, themed.summaryTitle]}>
                   Attach Your USTP COR (Optional)
                 </Text>
@@ -252,12 +253,12 @@ export const OnboardingStep: React.FC<OnboardingStepProps> = ({
                 accessibilityLabel="Attach USTP COR"
                 disabled={isScanningDocument}
                 onPress={onAttachUstpCor}
-                style={[styles.uploadButton, { backgroundColor: Colors.blue }]}
+                style={[styles.uploadButton, { backgroundColor: colors.blue }]}
               >
                 {isScanningDocument ? (
-                  <ActivityIndicator size="small" color="#FFFFFF" />
+                  <ActivityIndicator size="small" color={colors.white} />
                 ) : (
-                  <Text style={styles.uploadButtonText}>
+                  <Text style={[styles.uploadButtonText, themed.uploadButtonText]}>
                     {parsedCor ? 'Replace USTP COR (PDF / Image)' : 'Attach USTP COR (PDF / Image)'}
                   </Text>
                 )}
@@ -341,7 +342,7 @@ export const OnboardingStep: React.FC<OnboardingStepProps> = ({
           {isUstpStudent === false && (
             <View style={[styles.corBox, themed.summaryCard]}>
               <View style={styles.corHeaderRow}>
-                <Camera size={18} color={Colors.blue} />
+                <Camera size={18} color={colors.blue} />
                 <Text style={[styles.corBoxTitle, themed.summaryTitle]}>
                   Add Your Class Schedule (Optional)
                 </Text>
@@ -356,9 +357,9 @@ export const OnboardingStep: React.FC<OnboardingStepProps> = ({
                   accessibilityRole="button"
                   disabled={isScanningDocument}
                   onPress={onScanScheduleGallery}
-                  style={[styles.uploadButton, styles.halfButton, { backgroundColor: Colors.blue }]}
+                  style={[styles.uploadButton, styles.halfButton, { backgroundColor: colors.blue }]}
                 >
-                  <Text style={styles.uploadButtonText}>Upload Schedule Image</Text>
+                  <Text style={[styles.uploadButtonText, themed.uploadButtonText]}>Upload Schedule Image</Text>
                 </TouchableOpacity>
                 <TouchableOpacity
                   testID="onboarding-scan-schedule-camera"
@@ -430,7 +431,7 @@ export const OnboardingStep: React.FC<OnboardingStepProps> = ({
                 style={[
                   styles.chip,
                   themed.chip,
-                  wakeTime === time && styles.activeChip,
+                  wakeTime === time && themed.activeChip,
                 ]}
                 onPress={() => setWakeTime(time)}
               >
@@ -438,7 +439,7 @@ export const OnboardingStep: React.FC<OnboardingStepProps> = ({
                   style={[
                     styles.chipText,
                     themed.chipText,
-                    wakeTime === time && styles.activeChipText,
+                    wakeTime === time && [styles.activeChipText, themed.activeChipText],
                   ]}
                 >
                   {formatTo12Hour(time)}
@@ -449,7 +450,7 @@ export const OnboardingStep: React.FC<OnboardingStepProps> = ({
               style={[
                 styles.chip,
                 themed.chip,
-                isWakeCustom && styles.activeChip,
+                isWakeCustom && themed.activeChip,
               ]}
               onPress={() => setShowWakePicker(true)}
             >
@@ -457,7 +458,7 @@ export const OnboardingStep: React.FC<OnboardingStepProps> = ({
                 style={[
                   styles.chipText,
                   themed.chipText,
-                  isWakeCustom && styles.activeChipText,
+                  isWakeCustom && [styles.activeChipText, themed.activeChipText],
                 ]}
               >
                 {isWakeCustom ? `Custom: ${formatTo12Hour(wakeTime)}` : 'Custom...'}
@@ -490,7 +491,7 @@ export const OnboardingStep: React.FC<OnboardingStepProps> = ({
                 style={[
                   styles.chip,
                   themed.chip,
-                  sleepTime === time && styles.activeChip,
+                  sleepTime === time && themed.activeChip,
                 ]}
                 onPress={() => setSleepTime(time)}
               >
@@ -498,7 +499,7 @@ export const OnboardingStep: React.FC<OnboardingStepProps> = ({
                   style={[
                     styles.chipText,
                     themed.chipText,
-                    sleepTime === time && styles.activeChipText,
+                    sleepTime === time && [styles.activeChipText, themed.activeChipText],
                   ]}
                 >
                   {formatTo12Hour(time)}
@@ -509,7 +510,7 @@ export const OnboardingStep: React.FC<OnboardingStepProps> = ({
               style={[
                 styles.chip,
                 themed.chip,
-                isSleepCustom && styles.activeChip,
+                isSleepCustom && themed.activeChip,
               ]}
               onPress={() => setShowSleepPicker(true)}
             >
@@ -517,7 +518,7 @@ export const OnboardingStep: React.FC<OnboardingStepProps> = ({
                 style={[
                   styles.chipText,
                   themed.chipText,
-                  isSleepCustom && styles.activeChipText,
+                  isSleepCustom && [styles.activeChipText, themed.activeChipText],
                 ]}
               >
                 {isSleepCustom ? `Custom: ${formatTo12Hour(sleepTime)}` : 'Custom...'}
@@ -547,7 +548,7 @@ export const OnboardingStep: React.FC<OnboardingStepProps> = ({
       return (
         <View>
           <View style={styles.iconHeaderContainer}>
-            <BookOpen size={40} color={Colors.blue} />
+            <BookOpen size={40} color={colors.blue} />
           </View>
           <Text style={[styles.stepTitle, themed.stepTitle]}>Study Habits</Text>
           <Text style={[styles.stepDesc, themed.stepDesc]}>
@@ -566,7 +567,7 @@ export const OnboardingStep: React.FC<OnboardingStepProps> = ({
                   style={[
                     styles.chip,
                     themed.chip,
-                    isSelected && styles.activeChip,
+                    isSelected && themed.activeChip,
                   ]}
                   onPress={() => toggleStudyPeak(option.value)}
                 >
@@ -574,7 +575,7 @@ export const OnboardingStep: React.FC<OnboardingStepProps> = ({
                     style={[
                       styles.chipText,
                       themed.chipText,
-                      isSelected && styles.activeChipText,
+                      isSelected && [styles.activeChipText, themed.activeChipText],
                     ]}
                   >
                     {option.label}
@@ -592,7 +593,7 @@ export const OnboardingStep: React.FC<OnboardingStepProps> = ({
                 style={[
                   styles.chip,
                   themed.chip,
-                  busiestDay === day && styles.activeChip,
+                  busiestDay === day && themed.activeChip,
                 ]}
                 onPress={() => setBusiestDay(day)}
               >
@@ -600,7 +601,7 @@ export const OnboardingStep: React.FC<OnboardingStepProps> = ({
                   style={[
                     styles.chipText,
                     themed.chipText,
-                    busiestDay === day && styles.activeChipText,
+                    busiestDay === day && [styles.activeChipText, themed.activeChipText],
                   ]}
                 >
                   {day}
@@ -614,7 +615,7 @@ export const OnboardingStep: React.FC<OnboardingStepProps> = ({
       return (
         <View>
           <View style={styles.iconHeaderContainer}>
-            <Activity size={40} color={Colors.blue} />
+            <Activity size={40} color={colors.blue} />
           </View>
           <Text style={[styles.stepTitle, themed.stepTitle]}>Task Reminders</Text>
           <Text style={[styles.stepDesc, themed.stepDesc]}>
@@ -629,7 +630,7 @@ export const OnboardingStep: React.FC<OnboardingStepProps> = ({
                 style={[
                   styles.chip,
                   themed.chip,
-                  reminderLead === opt.value && styles.activeChip,
+                  reminderLead === opt.value && themed.activeChip,
                 ]}
                 onPress={() => setReminderLead(opt.value)}
               >
@@ -637,7 +638,7 @@ export const OnboardingStep: React.FC<OnboardingStepProps> = ({
                   style={[
                     styles.chipText,
                     themed.chipText,
-                    reminderLead === opt.value && styles.activeChipText,
+                    reminderLead === opt.value && [styles.activeChipText, themed.activeChipText],
                   ]}
                 >
                   {opt.label}
@@ -656,7 +657,7 @@ export const OnboardingStep: React.FC<OnboardingStepProps> = ({
                 style={[
                   styles.chip,
                   themed.chip,
-                  snoozeTendency === opt.value && styles.activeChip,
+                  snoozeTendency === opt.value && themed.activeChip,
                 ]}
                 onPress={() => setSnoozeTendency(opt.value)}
               >
@@ -664,7 +665,7 @@ export const OnboardingStep: React.FC<OnboardingStepProps> = ({
                   style={[
                     styles.chipText,
                     themed.chipText,
-                    snoozeTendency === opt.value && styles.activeChipText,
+                    snoozeTendency === opt.value && [styles.activeChipText, themed.activeChipText],
                   ]}
                 >
                   {opt.label}
@@ -678,7 +679,7 @@ export const OnboardingStep: React.FC<OnboardingStepProps> = ({
       return (
         <View>
           <View style={styles.iconHeaderContainer}>
-            <Award size={40} color={Colors.blue} />
+            <Award size={40} color={colors.blue} />
           </View>
           <Text style={[styles.stepTitle, themed.stepTitle]}>Academic Load</Text>
           <Text style={[styles.stepDesc, themed.stepDesc]}>
@@ -693,7 +694,7 @@ export const OnboardingStep: React.FC<OnboardingStepProps> = ({
                 style={[
                   styles.chip,
                   themed.chip,
-                  classCount === load && styles.activeChip,
+                  classCount === load && themed.activeChip,
                 ]}
                 onPress={() => setClassCount(load)}
               >
@@ -701,7 +702,7 @@ export const OnboardingStep: React.FC<OnboardingStepProps> = ({
                   style={[
                     styles.chipText,
                     themed.chipText,
-                    classCount === load && styles.activeChipText,
+                    classCount === load && [styles.activeChipText, themed.activeChipText],
                   ]}
                 >
                   {load} Classes
@@ -718,7 +719,7 @@ export const OnboardingStep: React.FC<OnboardingStepProps> = ({
                 style={[
                   styles.chip,
                   themed.chip,
-                  longestGap === gap && styles.activeChip,
+                  longestGap === gap && themed.activeChip,
                 ]}
                 onPress={() => setLongestGap(gap)}
               >
@@ -726,7 +727,7 @@ export const OnboardingStep: React.FC<OnboardingStepProps> = ({
                   style={[
                     styles.chipText,
                     themed.chipText,
-                    longestGap === gap && styles.activeChipText,
+                    longestGap === gap && [styles.activeChipText, themed.activeChipText],
                   ]}
                 >
                   {gap}
@@ -753,8 +754,8 @@ export const OnboardingStep: React.FC<OnboardingStepProps> = ({
             {(['casual', 'professional'] as const).map(value => (
               <TouchableOpacity key={value} testID={`onboarding-tone-${value}`} accessibilityRole="radio"
                 accessibilityState={{selected:tone === value, disabled:!memoryEnabled}} disabled={!memoryEnabled}
-                onPress={() => setTone(tone === value ? '' : value)} style={[styles.chip, themed.chip, tone === value && styles.activeChip]}>
-                <Text style={[styles.chipText, themed.chipText, tone === value && styles.activeChipText]}>{value === 'casual' ? 'Casual' : 'Professional'}</Text>
+                onPress={() => setTone(tone === value ? '' : value)} style={[styles.chip, themed.chip, tone === value && themed.activeChip]}>
+                <Text style={[styles.chipText, themed.chipText, tone === value && [styles.activeChipText, themed.activeChipText]]}>{value === 'casual' ? 'Casual' : 'Professional'}</Text>
               </TouchableOpacity>
             ))}
           </View>
@@ -856,16 +857,11 @@ const styles = StyleSheet.create({
     marginRight: 8,
     marginBottom: 8,
   },
-  activeChip: {
-    backgroundColor: Colors.blue,
-    borderColor: Colors.blue,
-  },
   chipText: {
     fontFamily: Fonts.body,
     fontSize: 13,
   },
   activeChipText: {
-    color: '#FFFFFF',
     fontWeight: 'bold',
   },
   corBox: {
@@ -904,7 +900,6 @@ const styles = StyleSheet.create({
     fontFamily: Fonts.heading,
     fontSize: 13,
     fontWeight: 'bold',
-    color: '#FFFFFF',
   },
   actionRow: {
     flexDirection: 'row',
@@ -996,7 +991,11 @@ const styles = StyleSheet.create({
   },
 });
 
-const getThemedStyles = (colors: ThemeColors, isDarkMode: boolean) => ({
+const getThemedStyles = (
+  colors: ThemeColors,
+  isDarkMode: boolean,
+  {isModern, modernPalette}: ThemedStyleMeta,
+) => ({
   stepTitle: {
     color: colors.textPrimary,
   },
@@ -1010,11 +1009,25 @@ const getThemedStyles = (colors: ThemeColors, isDarkMode: boolean) => ({
     backgroundColor: colors.inputBg,
     borderColor: colors.border,
   },
+  activeChip: {
+    backgroundColor: colors.blue,
+    borderColor: colors.blue,
+  },
   chipText: {
     color: colors.textPrimary,
   },
+  activeChipText: {
+    color: colors.white,
+  },
+  uploadButtonText: {
+    color: colors.white,
+  },
   iconCircle: {
-    backgroundColor: isDarkMode ? 'rgba(46, 204, 113, 0.15)' : '#E8F8F0',
+    backgroundColor: isModern
+      ? modernPalette.mint
+      : isDarkMode
+        ? 'rgba(46, 204, 113, 0.15)'
+        : '#E8F8F0',
   },
   summaryCard: {
     backgroundColor: colors.inputBg,

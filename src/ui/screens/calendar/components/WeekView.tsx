@@ -7,7 +7,7 @@ import {
   TouchableOpacity,
 } from 'react-native';
 import { useTheme } from '../../../contexts/ThemeContext';
-import { Colors, ModernLayout, ModernShadows } from '../../../theme';
+import { ModernLayout, ModernShadows } from '../../../theme';
 import type { TimeBlock, Task, Event } from '../../../../storage';
 import { useCalendarData } from '../hooks/useCalendarData';
 import { DayView } from './DayView';
@@ -111,7 +111,7 @@ export const WeekView: React.FC<WeekViewProps> = ({
                     styles.pillDayName,
                     { color: colors.textSecondary },
                     isSelected && {
-                      color: isModern ? '#FFFFFF' : colors.textPrimary,
+                      color: isModern ? colors.white : colors.textPrimary,
                       fontWeight: isModern ? '600' : 'normal',
                     },
                   ]}>
@@ -121,7 +121,7 @@ export const WeekView: React.FC<WeekViewProps> = ({
                     styles.pillDayNum,
                     isModern && styles.modernPillDayNum,
                     { color: colors.textSecondary },
-                    isSelected && { color: isModern ? '#FFFFFF' : colors.textPrimary },
+                    isSelected && { color: isModern ? colors.white : colors.textPrimary },
                     isToday &&
                       !isSelected && {
                         color: isModern ? modernPalette.accent : colors.red,
@@ -130,7 +130,12 @@ export const WeekView: React.FC<WeekViewProps> = ({
                     {day.getDate()}
                   </Text>
                   {isSelected && !isModern && (
-                    <View style={styles.selectedPillUnderline} />
+                    <View
+                      style={[
+                        styles.selectedPillUnderline,
+                        { borderBottomColor: colors.blue },
+                      ]}
+                    />
                   )}
                 </TouchableOpacity>
               </View>
@@ -152,7 +157,7 @@ export const WeekView: React.FC<WeekViewProps> = ({
             },
           ]}
         >
-          <View style={[styles.overdueBadge, { backgroundColor: Colors.error }]}>
+          <View style={[styles.overdueBadge, { backgroundColor: colors.error }]}>
             <Text style={[styles.overdueBadgeText, { color: colors.white }]}>OVERDUE</Text>
           </View>
           <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.overdueScroll}>
@@ -242,7 +247,6 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     borderWidth: 5,
     borderColor: 'transparent',
-    borderBottomColor: Colors.blue,
   },
   overdueBanner: { borderRadius: 12, padding: 8, flexDirection: 'row', alignItems: 'center', marginBottom: 12 },
   overdueBadge: { borderRadius: 6, paddingHorizontal: 6, paddingVertical: 2, marginRight: 8 },

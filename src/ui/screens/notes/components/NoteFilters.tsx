@@ -7,7 +7,6 @@ import {
   TouchableOpacity,
 } from 'react-native';
 import { useTheme } from '../../../contexts/ThemeContext';
-import { Colors } from '../../../theme';
 import { FilterType } from '../types';
 
 interface NoteFiltersProps {
@@ -40,8 +39,8 @@ export const NoteFilters: React.FC<NoteFiltersProps> = ({
                 borderColor: modernPalette.border,
               },
               selectedFilter === filter && {
-                backgroundColor: isModern ? modernPalette.darkInkBtn : Colors.red,
-                borderColor: isModern ? modernPalette.darkInkBtn : Colors.red,
+                backgroundColor: isModern ? modernPalette.darkInkBtn : colors.red,
+                borderColor: isModern ? modernPalette.darkInkBtn : colors.red,
               },
             ]}
             onPress={() => onFilterChange(filter)}

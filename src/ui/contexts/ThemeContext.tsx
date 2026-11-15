@@ -14,13 +14,12 @@ import {
   userStore,
   type UIVariant,
 } from '../../storage';
-import {Colors} from '../theme/colors';
 import {
   getModernPalette,
-  modernDarkThemeColors,
-  modernLightThemeColors,
+  getThemeColors,
   type ModernPalette,
-} from '../theme/modern';
+  type ThemeColors,
+} from '../theme/palettes';
 import {
   captureForReveal,
   isThemeRevealAvailable,
@@ -28,128 +27,7 @@ import {
 } from '../theme/themeReveal';
 import type {ThemeRevealOrigin} from '../theme/themeReveal';
 
-export interface ThemeColors {
-  background: string;
-  surface: string;
-  cardBg: string;
-  inputBg: string;
-  divider: string;
-  textPrimary: string;
-  textSecondary: string;
-  textMuted: string;
-  border: string;
-  statusBarStyle: 'dark-content' | 'light-content';
-  primary: string;
-  textOnPrimary: string;
-  red: string;
-  blue: string;
-  yellow: string;
-  success: string;
-  warning: string;
-  error: string;
-  white: string;
-  black: string;
-  overlay: string;
-  chipActiveText: string;
-  switchTrackOff: string;
-  switchThumb: string;
-  placeholder: string;
-  iconMuted: string;
-  eventIconBg: string;
-  bannerBg: string;
-  noteHighlightBg: string;
-  noteHighlightText: string;
-  proGradientStart: string;
-  proGradientMid: string;
-  proGradientEnd: string;
-  authGradientYellow: string;
-  authGradientCrimson: string;
-  authGradientBlue: string;
-  authVeil: string;
-  holiday: string;
-}
-
-const lightColors: ThemeColors = {
-  background: '#FAF9F6',
-  surface: Colors.cardBg,
-  cardBg: Colors.cardBg,
-  inputBg: '#FAF9F6',
-  divider: '#F0F0F0',
-  textPrimary: Colors.textDark,
-  textSecondary: Colors.textMuted,
-  textMuted: Colors.textMutedLight,
-  border: Colors.border,
-  statusBarStyle: 'dark-content',
-  primary: Colors.red,
-  textOnPrimary: '#FFFFFF',
-  red: Colors.red,
-  blue: Colors.blue,
-  yellow: Colors.yellow,
-  success: Colors.success,
-  warning: Colors.warning,
-  error: Colors.error,
-  white: '#FFFFFF',
-  black: '#000000',
-  overlay: 'rgba(0,0,0,0.5)',
-  chipActiveText: '#FFFFFF',
-  switchTrackOff: '#767577',
-  switchThumb: '#FFF',
-  placeholder: '#888',
-  iconMuted: '#AAA',
-  eventIconBg: '#F0F0FF',
-  bannerBg: '#FCE4D6',
-  noteHighlightBg: '#FFF3A3',
-  noteHighlightText: Colors.textDark,
-  proGradientStart: Colors.gradientRed,
-  proGradientMid: Colors.gradientMagenta,
-  proGradientEnd: Colors.gradientPurple,
-  authGradientYellow: '#F8E81C',
-  authGradientCrimson: '#D8163F',
-  authGradientBlue: '#2A10F0',
-  authVeil: 'rgba(255, 255, 255, 0.12)',
-  holiday: '#0B8043',
-};
-
-const darkColors: ThemeColors = {
-  background: '#121212',
-  surface: Colors.cardBgDark,
-  cardBg: Colors.cardBgDark,
-  inputBg: '#2C2C2E',
-  divider: '#3A3A3C',
-  textPrimary: Colors.textLight,
-  textSecondary: Colors.textMutedLight,
-  textMuted: '#666666',
-  border: Colors.borderDark,
-  statusBarStyle: 'light-content',
-  primary: Colors.red,
-  textOnPrimary: '#FFFFFF',
-  red: Colors.red,
-  blue: Colors.blue,
-  yellow: Colors.yellow,
-  success: Colors.success,
-  warning: Colors.warning,
-  error: Colors.error,
-  white: '#FFFFFF',
-  black: '#000000',
-  overlay: 'rgba(0,0,0,0.5)',
-  chipActiveText: '#FFFFFF',
-  switchTrackOff: '#767577',
-  switchThumb: '#FFF',
-  placeholder: '#666',
-  iconMuted: '#666',
-  eventIconBg: '#1E1E3F',
-  bannerBg: '#2C1B18',
-  noteHighlightBg: '#6B5D1F',
-  noteHighlightText: Colors.textLight,
-  proGradientStart: Colors.gradientRed,
-  proGradientMid: Colors.gradientMagenta,
-  proGradientEnd: Colors.gradientPurple,
-  authGradientYellow: '#E8A812',
-  authGradientCrimson: '#B80E36',
-  authGradientBlue: '#2410C8',
-  authVeil: 'rgba(10, 6, 28, 0.22)',
-  holiday: '#0B8043',
-};
+export type {ThemeColors};
 
 export interface ThemeContextType {
   isDarkMode: boolean;
@@ -198,12 +76,10 @@ export const ThemeProvider: React.FC<{
     setUIVariantState(getSavedUIVariant(userId));
   }, [userId, refreshTrigger, initialUIVariant]);
 
-  const colors = useMemo<ThemeColors>(() => {
-    if (uiVariant === 'classic') {
-      return isDarkMode ? darkColors : lightColors;
-    }
-    return isDarkMode ? modernDarkThemeColors : modernLightThemeColors;
-  }, [uiVariant, isDarkMode]);
+  const colors = useMemo<ThemeColors>(
+    () => getThemeColors(uiVariant, isDarkMode),
+    [uiVariant, isDarkMode],
+  );
 
   const modernPalette = useMemo<ModernPalette>(
     () => getModernPalette(isDarkMode),

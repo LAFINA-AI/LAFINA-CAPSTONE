@@ -6,7 +6,6 @@ import {
   TouchableOpacity,
 } from 'react-native';
 import { useTheme } from '../../../contexts/ThemeContext';
-import { Colors } from '../../../theme';
 import { getDaysInMonth } from '../utils/calendarHelpers';
 import type { TimeBlock, Task, Event } from '../../../../storage';
 
@@ -108,7 +107,7 @@ export const MonthView: React.FC<MonthViewProps> = ({
       combined.push({ title: t.title, time: t.dueTime || '00:00', color: getCategoryColor(t.category) });
     });
     cellEvents.forEach((e) => {
-      combined.push({ title: e.title, time: e.startTime, color: Colors.blue });
+      combined.push({ title: e.title, time: e.startTime, color: colors.blue });
     });
 
     combined.sort((a, b) => a.time.localeCompare(b.time));
@@ -154,11 +153,17 @@ export const MonthView: React.FC<MonthViewProps> = ({
             styles.dayContainer,
             isToday && [
               styles.todayContainer,
-              isModern && { backgroundColor: modernPalette.accent },
+              { backgroundColor: isModern ? modernPalette.accent : colors.red },
             ],
           ]}
         >
-          <Text style={[styles.dayText, { color: colors.textPrimary }, isToday && styles.todayText]}>
+          <Text
+            style={[
+              styles.dayText,
+              { color: colors.textPrimary },
+              isToday && [styles.todayText, { color: colors.white }],
+            ]}
+          >
             {day}
           </Text>
         </View>
@@ -208,9 +213,9 @@ const styles = StyleSheet.create({
   calendarCell: { width: '14.28%', minHeight: 70, padding: 2, borderWidth: 0.5, alignItems: 'stretch' },
   calendarCellEmpty: { width: '14.28%', minHeight: 70, borderWidth: 0.5, borderColor: 'transparent' },
   dayContainer: { width: 20, height: 20, borderRadius: 10, alignItems: 'center', justifyContent: 'center', alignSelf: 'center', marginBottom: 2 },
-  todayContainer: { backgroundColor: Colors.red },
+  todayContainer: {},
   dayText: { fontFamily: 'sans-serif', fontSize: 11 },
-  todayText: { color: Colors.textLight, fontWeight: 'bold' },
+  todayText: { fontWeight: 'bold' },
   selectedCell: { borderWidth: 1.5 },
   monthItemsWrapper: { flex: 1, width: '100%' },
   monthItemPreview: { borderLeftWidth: 2, paddingLeft: 3, marginVertical: 1, marginHorizontal: 1, borderRadius: 2 },

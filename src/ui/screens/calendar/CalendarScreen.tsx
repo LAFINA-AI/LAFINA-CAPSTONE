@@ -29,7 +29,6 @@ import {
 } from 'lucide-react-native';
 import {useTheme} from '../../contexts/ThemeContext';
 import {
-  Colors,
   ModernLayout,
   ModernShadows,
   ModernTypography,
@@ -608,9 +607,8 @@ export const CalendarScreen: React.FC<CalendarScreenProps> = ({
       <TouchableOpacity
         style={[
           styles.fab,
-          isModern
-            ? [ModernShadows.floating, {backgroundColor: modernPalette.accent}]
-            : Shadows.card,
+          {backgroundColor: isModern ? modernPalette.accent : colors.red},
+          isModern ? ModernShadows.floating : Shadows.card,
           {bottom: fabBottom},
         ]}
         onPress={handleFABPress}
@@ -1290,7 +1288,6 @@ const styles = StyleSheet.create({
     width: 56,
     height: 56,
     borderRadius: 28,
-    backgroundColor: Colors.red,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -1334,12 +1331,9 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     marginLeft: 8,
   },
-  saveBtn: {
-    backgroundColor: Colors.red,
-  },
+  saveBtn: {},
   cancelBtn: {},
   modalBtnText: {
-    color: Colors.textLight,
     fontWeight: 'bold',
     fontSize: 14,
   },

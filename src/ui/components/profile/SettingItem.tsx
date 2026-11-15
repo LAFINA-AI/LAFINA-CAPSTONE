@@ -50,8 +50,8 @@ export const SettingItem: React.FC<SettingItemProps> = ({
               touchRef.current = null;
               onValueChange?.(next, origin);
             }}
-            trackColor={{ false: '#767577', true: colors.red }}
-            thumbColor={Platform.OS === 'android' ? '#FFF' : undefined}
+            trackColor={{ false: colors.switchTrackOff, true: colors.red }}
+            thumbColor={Platform.OS === 'android' ? colors.switchThumb : undefined}
           />
         </View>
       </View>

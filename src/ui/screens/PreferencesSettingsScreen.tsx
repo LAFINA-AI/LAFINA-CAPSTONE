@@ -534,7 +534,7 @@ export const PreferencesSettingsScreen: React.FC<
               <Text
                 style={[
                   styles.badgeText,
-                  {color: modelStatus?.isDownloaded ? '#2ECC71' : colors.blue},
+                  {color: modelStatus?.isDownloaded ? colors.success : colors.blue},
                 ]}
               >
                 {modelStatus?.isDownloaded
@@ -595,7 +595,7 @@ export const PreferencesSettingsScreen: React.FC<
           ) : modelStatus?.isDownloaded ? (
             <View style={styles.modelActionsRow}>
               <View style={styles.modelInfoCol}>
-                <Sparkles size={16} color="#2ECC71" />
+                <Sparkles size={16} color={colors.success} />
                 <Text
                   style={[styles.modelSizeText, {color: colors.textSecondary}]}
                 >

@@ -18,7 +18,6 @@ import {
 import type {Task} from '../../../../storage';
 import {useTheme} from '../../../contexts/ThemeContext';
 import {
-  Colors,
   Fonts,
   FontSize,
   Layout,
@@ -137,7 +136,7 @@ export const TodoListView: React.FC<TodoListViewProps> = ({
     return colors.success;
   };
 
-  const accentColor = isModern ? modernPalette.accent : Colors.red;
+  const accentColor = isModern ? modernPalette.accent : colors.red;
   const activeCardShadow = isModern ? ModernShadows.card : Shadows.card;
 
   const renderTaskRow = (task: Task) => {
@@ -370,7 +369,7 @@ export const TodoListView: React.FC<TodoListViewProps> = ({
                   active && {
                     backgroundColor: isModern
                       ? modernPalette.darkInkBtn
-                      : Colors.red,
+                      : colors.red,
                   },
                 ]}
               >

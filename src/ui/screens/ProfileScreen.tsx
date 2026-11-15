@@ -10,7 +10,6 @@ import {
   View,
 } from 'react-native';
 import {
-  Colors,
   Fonts,
   Layout,
   ModernLayout,
@@ -1655,19 +1654,20 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
               onPress={handleCreateAccount}
               style={[
                 styles.createAccountBtn,
+                themed.createAccountBtn,
                 isModern && {
                   backgroundColor: modernPalette.accent,
                   borderRadius: ModernLayout.borderRadiusPill,
                 },
               ]}
             >
-              <Text style={styles.createAccountBtnText}>Create Account</Text>
+              <Text style={[styles.createAccountBtnText, themed.createAccountBtnText]}>Create Account</Text>
             </TouchableOpacity>
             <TouchableOpacity
               onPress={handleSignOut}
               style={styles.signOutLink}
             >
-              <Text style={styles.signOutLinkText}>
+              <Text style={[styles.signOutLinkText, themed.signOutLinkText]}>
                 Dismiss Guest & Sign Out
               </Text>
             </TouchableOpacity>
@@ -1677,6 +1677,7 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
             onPress={handleSignOut}
             style={[
               styles.signOutBtn,
+              themed.signOutBtn,
               isModern && {
                 borderColor: modernPalette.danger,
                 backgroundColor: modernPalette.dangerSoft,
@@ -1687,6 +1688,7 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
             <Text
               style={[
                 styles.signOutText,
+                themed.signOutText,
                 isModern && {color: modernPalette.danger},
               ]}
             >
@@ -1765,6 +1767,11 @@ const getProfileThemedStyles = (colors: ThemeColors) => ({
   settingDivider: {backgroundColor: colors.divider},
   avatarCircle: {borderColor: colors.cardBg},
   editBadge: {backgroundColor: colors.cardBg, borderColor: colors.border},
+  createAccountBtn: {backgroundColor: colors.blue},
+  createAccountBtnText: {color: colors.white},
+  signOutLinkText: {color: colors.textMuted},
+  signOutBtn: {borderColor: colors.red},
+  signOutText: {color: colors.red},
 });
 
 const styles = StyleSheet.create({
@@ -2104,7 +2111,6 @@ const styles = StyleSheet.create({
   createAccountBtn: {
     width: '100%',
     height: 44,
-    backgroundColor: Colors.blue,
     borderRadius: Layout.borderRadiusButton,
     justifyContent: 'center',
     alignItems: 'center',
@@ -2112,7 +2118,6 @@ const styles = StyleSheet.create({
   },
   createAccountBtnText: {
     fontFamily: Fonts.body,
-    color: Colors.textLight,
     fontWeight: 'bold',
     fontSize: 14,
   },
@@ -2121,7 +2126,6 @@ const styles = StyleSheet.create({
   },
   signOutLinkText: {
     fontFamily: Fonts.body,
-    color: Colors.textMuted,
     fontSize: 12,
     textDecorationLine: 'underline',
   },
@@ -2130,13 +2134,11 @@ const styles = StyleSheet.create({
     height: 48,
     borderRadius: Layout.borderRadiusButton,
     borderWidth: 1.5,
-    borderColor: Colors.red,
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: 'transparent',
   },
   signOutText: {
-    color: Colors.red,
     fontWeight: 'bold',
     fontSize: 14,
     fontFamily: Fonts.body,

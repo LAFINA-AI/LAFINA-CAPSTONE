@@ -2,18 +2,13 @@
  * Centralized category-to-color mapping.
  * All screens should use `getCategoryColor` instead of switch statements.
  */
-import { Colors } from './colors';
+import {CATEGORY_COLOR_DEFAULTS, DEFAULT_CATEGORY_COLOR} from './palettes';
 
 export type Category = 'work' | 'personal' | 'health' | 'learning';
 
 const CATEGORY_COLOR_MAP: Record<string, string> = {
-  work: Colors.blue,
-  personal: Colors.yellow,
-  health: Colors.success,
-  learning: '#9B59B6',
+  ...CATEGORY_COLOR_DEFAULTS,
 };
-
-const DEFAULT_CATEGORY_COLOR = '#9E9E9E';
 
 /**
  * Get the color associated with a category string.

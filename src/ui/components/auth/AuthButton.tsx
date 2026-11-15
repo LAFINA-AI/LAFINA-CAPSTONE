@@ -6,7 +6,6 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import {
-  Colors,
   Fonts,
   Layout,
   ModernLayout,
@@ -27,7 +26,7 @@ export const AuthButton: React.FC<AuthButtonProps> = ({
   loading,
   disabled = false,
 }) => {
-  const {isModern, modernPalette} = useTheme();
+  const {colors, isModern, modernPalette} = useTheme();
   const isButtonDisabled = disabled || loading;
 
   return (
@@ -36,23 +35,31 @@ export const AuthButton: React.FC<AuthButtonProps> = ({
         styles.button,
         isModern && styles.modernButton,
         isModern && !isButtonDisabled && ModernShadows.subtle,
-        isModern && {
+        {
           backgroundColor: isButtonDisabled
-            ? modernPalette.surface
-            : modernPalette.accent,
+            ? isModern
+              ? modernPalette.surface
+              : colors.textMuted
+            : isModern
+              ? modernPalette.accent
+              : colors.blue,
         },
-        !isModern && isButtonDisabled && styles.disabledButton,
       ]}
       onPress={onPress}
       disabled={isButtonDisabled}
     >
       {loading ? (
-        <ActivityIndicator color="#FFFFFF" size="small" />
+        <ActivityIndicator color={colors.textOnPrimary} size="small" />
       ) : (
         <Text
           style={[
             styles.buttonText,
-            isModern && isButtonDisabled && {color: modernPalette.muted},
+            {
+              color:
+                isModern && isButtonDisabled
+                  ? modernPalette.muted
+                  : colors.textOnPrimary,
+            },
           ]}
         >
           {title}
@@ -65,7 +72,6 @@ export const AuthButton: React.FC<AuthButtonProps> = ({
 const styles = StyleSheet.create({
   button: {
     height: 48,
-    backgroundColor: Colors.blue,
     borderRadius: Layout.borderRadiusButton,
     justifyContent: 'center',
     alignItems: 'center',
@@ -75,12 +81,8 @@ const styles = StyleSheet.create({
     height: 50,
     borderRadius: ModernLayout.borderRadiusPill,
   },
-  disabledButton: {
-    backgroundColor: Colors.textMutedLight,
-  },
   buttonText: {
     fontFamily: Fonts.body,
-    color: '#FFFFFF',
     fontWeight: 'bold',
     fontSize: 15,
   },

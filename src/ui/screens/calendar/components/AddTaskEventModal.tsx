@@ -10,7 +10,6 @@ import {
 } from 'react-native';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { useTheme } from '../../../contexts/ThemeContext';
-import { Colors } from '../../../theme';
 import {
   timeStringToDate,
   dateToTimeString,
@@ -446,10 +445,10 @@ export const AddTaskEventModal: React.FC<AddTaskEventModalProps> = ({ state, tim
           <View style={styles.actionRow}>
             {state.editingItem && (
               <TouchableOpacity
-                style={[styles.modalBtn, styles.deleteBtn]}
+                style={[styles.modalBtn, styles.deleteBtn, { backgroundColor: colors.error }]}
                 onPress={() => state.delete(state.editingItem!.id, state.modalType)}
               >
-                <Text style={styles.modalBtnText}>Delete</Text>
+                <Text style={[styles.modalBtnText, { color: colors.white }]}>Delete</Text>
               </TouchableOpacity>
             )}
             <TouchableOpacity
@@ -459,10 +458,10 @@ export const AddTaskEventModal: React.FC<AddTaskEventModalProps> = ({ state, tim
               <Text style={[styles.modalBtnTextDark, { color: colors.textPrimary }]}>Cancel</Text>
             </TouchableOpacity>
             <TouchableOpacity
-              style={[styles.modalBtn, styles.saveBtn]}
+              style={[styles.modalBtn, styles.saveBtn, { backgroundColor: colors.red }]}
               onPress={handleSaveLocal}
             >
-              <Text style={styles.modalBtnText}>Save</Text>
+              <Text style={[styles.modalBtnText, { color: colors.white }]}>Save</Text>
             </TouchableOpacity>
           </View>
           </ScrollView>
@@ -584,17 +583,13 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     marginLeft: 8,
   },
-  saveBtn: {
-    backgroundColor: Colors.red,
-  },
+  saveBtn: {},
   cancelBtn: {},
   deleteBtn: {
-    backgroundColor: Colors.error,
     marginRight: 'auto',
     marginLeft: 0,
   },
   modalBtnText: {
-    color: Colors.textLight,
     fontWeight: 'bold',
     fontSize: 14,
   },

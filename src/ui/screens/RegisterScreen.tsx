@@ -10,7 +10,6 @@ import {
 } from 'react-native';
 import { Mail, Lock, User } from 'lucide-react-native';
 import {
-  Colors,
   Fonts,
   Layout,
   ModernLayout,
@@ -41,6 +40,7 @@ const getThemedStyles = (colors: ThemeColors) => ({
   inputContainer: { borderColor: colors.border, backgroundColor: colors.inputBg },
   input: { color: colors.textPrimary },
   footerText: { color: colors.textSecondary },
+  errorText: { color: colors.error },
 });
 
 export const RegisterScreen: React.FC<RegisterScreenProps> = ({
@@ -182,6 +182,7 @@ export const RegisterScreen: React.FC<RegisterScreenProps> = ({
             <Text
               style={[
                 styles.errorText,
+                themed.errorText,
                 isModern && {color: modernPalette.danger},
               ]}
             >
@@ -279,7 +280,6 @@ const styles = StyleSheet.create({
   },
   errorText: {
     fontFamily: Fonts.body,
-    color: Colors.error,
     fontSize: 13,
     marginBottom: 16,
     fontWeight: '500',

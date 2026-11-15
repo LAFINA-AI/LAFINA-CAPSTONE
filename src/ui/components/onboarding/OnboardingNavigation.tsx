@@ -1,7 +1,6 @@
 import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import {
-  Colors,
   Fonts,
   Layout,
   ModernLayout,
@@ -49,13 +48,14 @@ export const OnboardingNavigation: React.FC<OnboardingNavigationProps> = ({
       <TouchableOpacity
         style={[
           styles.nextButton,
+          themed.nextButton,
           isModern && styles.modernNextButton,
           isModern && ModernShadows.subtle,
           isModern && {backgroundColor: modernPalette.accent},
         ]}
         onPress={onNext}
       >
-        <Text style={styles.nextButtonText}>
+        <Text style={[styles.nextButtonText, themed.nextButtonText]}>
           {step === totalSteps ? 'Get Started' : 'Continue'}
         </Text>
       </TouchableOpacity>
@@ -85,7 +85,6 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   nextButton: {
-    backgroundColor: Colors.blue,
     borderRadius: Layout.borderRadiusButton,
     paddingVertical: 12,
     paddingHorizontal: 24,
@@ -99,7 +98,6 @@ const styles = StyleSheet.create({
   },
   nextButtonText: {
     fontFamily: Fonts.body,
-    color: '#FFFFFF',
     fontSize: 15,
     fontWeight: 'bold',
   },
@@ -111,5 +109,11 @@ const getThemedStyles = (colors: ThemeColors) => ({
   },
   backButtonText: {
     color: colors.textSecondary,
+  },
+  nextButton: {
+    backgroundColor: colors.blue,
+  },
+  nextButtonText: {
+    color: colors.textOnPrimary,
   },
 });
