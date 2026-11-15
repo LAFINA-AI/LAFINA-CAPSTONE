@@ -462,15 +462,15 @@ export const NoteEditor: React.FC<NoteEditorProps> = ({
           {isEditingCats && (
             <View style={styles.targetsRow}>
               <View
-                style={[styles.targetBox, styles.deleteTarget, { borderColor: colors.red }]}
+                style={[styles.targetBox, styles.deleteTarget, { borderColor: colors.error }]}
                 onLayout={(e) => {
                   e.currentTarget.measureInWindow((x, y, w, h) => {
                     setDeleteLayout({ x, y, w, h });
                   });
                 }}
               >
-                <Trash size={20} color={colors.red} style={{ marginBottom: 4 }} />
-                <Text style={[styles.targetText, { color: colors.red }]}>Drag here to delete</Text>
+                <Trash size={20} color={colors.error} style={{ marginBottom: 4 }} />
+                <Text style={[styles.targetText, { color: colors.error }]}>Drag here to delete</Text>
               </View>
 
               <View

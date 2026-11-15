@@ -5,6 +5,7 @@ export {
   classicLightColors,
   CUSTOM_CATEGORY_SWATCHES,
   getThemeColors,
+  TIME_BLOCK_SWATCHES,
 } from './palettes';
 export type {ThemeColors} from './palettes';
 export {Fonts, FontSize} from './typography';

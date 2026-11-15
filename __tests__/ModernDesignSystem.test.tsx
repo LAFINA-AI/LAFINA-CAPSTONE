@@ -10,6 +10,7 @@ import {
   ModernLayout,
   ModernShadows,
   ModernTypography,
+  TIME_BLOCK_SWATCHES,
   classicDarkColors,
   classicLightColors,
   getModernPalette,
@@ -116,8 +117,10 @@ describe('Modern Design System (Phase 01)', () => {
     expect(palettesModule.CALENDAR_LAYER_SWATCHES).toBe(
       CALENDAR_LAYER_SWATCHES,
     );
+    expect(palettesModule.TIME_BLOCK_SWATCHES).toBe(TIME_BLOCK_SWATCHES);
     expect(CUSTOM_CATEGORY_SWATCHES.length).toBeGreaterThanOrEqual(8);
     expect(CALENDAR_LAYER_SWATCHES.length).toBeGreaterThanOrEqual(10);
+    expect(new Set(TIME_BLOCK_SWATCHES).size).toBe(TIME_BLOCK_SWATCHES.length);
 
     expect(getThemeColors('classic', false)).toBe(classicLightColors);
     expect(getThemeColors('classic', true)).toBe(classicDarkColors);

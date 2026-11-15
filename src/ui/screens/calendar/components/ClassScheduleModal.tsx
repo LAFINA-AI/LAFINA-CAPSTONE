@@ -550,10 +550,10 @@ export const ClassScheduleModal: React.FC<ClassScheduleModalProps> = ({
                   {
                     backgroundColor:
                       statusMessage.kind === 'error'
-                        ? colors.red + '18'
+                        ? colors.error + '18'
                         : colors.blue + '18',
                     borderColor:
-                      statusMessage.kind === 'error' ? colors.red : colors.blue,
+                      statusMessage.kind === 'error' ? colors.error : colors.blue,
                   },
                 ]}
               >
@@ -563,7 +563,7 @@ export const ClassScheduleModal: React.FC<ClassScheduleModalProps> = ({
                     {
                       color:
                         statusMessage.kind === 'error'
-                          ? colors.red
+                          ? colors.error
                           : colors.textPrimary,
                     },
                   ]}

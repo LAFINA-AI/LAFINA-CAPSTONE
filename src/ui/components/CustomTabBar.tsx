@@ -74,6 +74,7 @@ const TOUR_TABS: Record<TabType, TourAnchor> = {
 };
 
 const BAR_BOTTOM_OFFSET = 24;
+const MODERN_FAB_OVERHANG = 20;
 
 interface CustomTabBarProps {
   activeTab: TabType;
@@ -129,14 +130,20 @@ export const CustomTabBar: React.FC<CustomTabBarProps> = ({
       <View
         testID="modern-custom-tab-bar"
         onLayout={handleModernLayout}
+        pointerEvents="box-none"
         style={[
           styles.modernOuterContainer,
-          ModernShadows.card,
-          {height: totalHeight},
+          {height: totalHeight + MODERN_FAB_OVERHANG},
         ]}
         accessible={false}
       >
-        <View style={styles.modernSvgBackdrop} pointerEvents="none">
+        <View
+          style={[
+            styles.modernSvgBackdrop,
+            {top: MODERN_FAB_OVERHANG, height: totalHeight},
+          ]}
+          pointerEvents="none"
+        >
           <Svg width={barWidth} height={totalHeight}>
             <Path
               d={navPath}
@@ -148,9 +155,13 @@ export const CustomTabBar: React.FC<CustomTabBarProps> = ({
         </View>
 
         <View
+          pointerEvents="box-none"
           style={[
             styles.modernTabRow,
-            {height: contentHeight, marginBottom: bottomInset},
+            {
+              height: contentHeight + MODERN_FAB_OVERHANG,
+              marginBottom: bottomInset,
+            },
           ]}
           accessibilityRole="tablist"
         >
@@ -401,12 +412,13 @@ const styles = StyleSheet.create({
   },
   modernTabRow: {
     flexDirection: 'row',
-    alignItems: 'center',
+    alignItems: 'flex-end',
     justifyContent: 'space-between',
     paddingHorizontal: 6,
   },
   modernTab: {
     flex: 1,
+    height: ModernLayout.navbarContentHeight,
     minHeight: 48,
     minWidth: 44,
     alignItems: 'center',
@@ -430,7 +442,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'flex-end',
     paddingBottom: 6,
-    height: '100%',
+    height: ModernLayout.navbarContentHeight + MODERN_FAB_OVERHANG,
   },
   modernCenterFab: {
     width: ModernLayout.centerFabSize,
@@ -439,7 +451,7 @@ const styles = StyleSheet.create({
     borderWidth: 3,
     alignItems: 'center',
     justifyContent: 'center',
-    marginTop: -24,
+    marginTop: 0,
   },
   modernCenterLabel: {
     fontFamily: Fonts.heading,

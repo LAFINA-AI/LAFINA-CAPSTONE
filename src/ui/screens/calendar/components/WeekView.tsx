@@ -73,7 +73,6 @@ export const WeekView: React.FC<WeekViewProps> = ({
                 style={[
                   styles.datePill,
                   isModern && styles.modernDatePill,
-                  isSelected && (isModern ? ModernShadows.subtle : { elevation: 6 }),
                 ]}
               >
                 <TouchableOpacity
@@ -83,6 +82,7 @@ export const WeekView: React.FC<WeekViewProps> = ({
                     isSelected
                       ? [
                           styles.pillSelected,
+                          isModern ? ModernShadows.subtle : { elevation: 6 },
                           {
                             backgroundColor: isModern
                               ? modernPalette.accent

@@ -389,3 +389,12 @@ export const CALENDAR_LAYER_SWATCHES: readonly string[] = [
   '#FF5722',
   '#795548',
 ];
+
+/** Distinct preset swatches for calendar time blocks (safe across Light/Dark & Classic/Modern). */
+export const TIME_BLOCK_SWATCHES: readonly string[] = [
+  Colors.blue,
+  Colors.red,
+  Colors.yellow,
+  Colors.success,
+  Colors.gradientPurple,
+];

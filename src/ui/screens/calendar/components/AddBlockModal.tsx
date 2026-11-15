@@ -11,7 +11,7 @@ import {
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { Calendar } from 'lucide-react-native';
 import { useTheme } from '../../../contexts/ThemeContext';
-import { Colors } from '../../../theme';
+import { Shadows, TIME_BLOCK_SWATCHES } from '../../../theme';
 import {
   timeStringToDate,
   dateToTimeString,
@@ -19,7 +19,6 @@ import {
   formatLocalDate,
 } from '../utils/calendarHelpers';
 import { TimeBlockModalState } from '../types';
-import { Shadows } from '../../../theme';
 import { parseRrule } from '../../../../storage/rruleHelper';
 
 interface AddBlockModalProps {
@@ -217,7 +216,7 @@ export const AddBlockModal: React.FC<AddBlockModalProps> = ({ state, timeFormat2
             </View>
 
             <View style={styles.colorRow}>
-              {[colors.blue, colors.red, colors.yellow, colors.success, Colors.gradientPurple].map((c) => (
+              {TIME_BLOCK_SWATCHES.map((c) => (
                 <TouchableOpacity
                   key={c}
                   style={[
