@@ -4,7 +4,6 @@ import {
   Fonts,
   Layout,
   ModernLayout,
-  ModernShadows,
   useThemedStyles,
 } from '../../theme';
 import {useTheme} from '../../contexts/ThemeContext';
@@ -23,7 +22,7 @@ export const OnboardingNavigation: React.FC<OnboardingNavigationProps> = ({
   onBack,
   onNext,
 }) => {
-  const {isModern, modernPalette} = useTheme();
+  const {isModern, modernPalette, modernShadows} = useTheme();
   const themed = useThemedStyles(getThemedStyles);
 
   return (
@@ -50,7 +49,7 @@ export const OnboardingNavigation: React.FC<OnboardingNavigationProps> = ({
           styles.nextButton,
           themed.nextButton,
           isModern && styles.modernNextButton,
-          isModern && ModernShadows.subtle,
+          isModern && modernShadows.subtle,
           isModern && {backgroundColor: modernPalette.accent},
         ]}
         onPress={onNext}

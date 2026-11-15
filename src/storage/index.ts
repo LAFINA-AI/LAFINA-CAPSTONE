@@ -131,6 +131,16 @@ export {
 } from './uiVariantStore';
 export type {UIVariant} from './uiVariantStore';
 export {
+  DEFAULT_MODERN_THEME,
+  getSavedModernTheme,
+  MODERN_THEME_DEVICE_SCOPE,
+  MODERN_THEME_IDS,
+  MODERN_THEME_SETTING_KEY,
+  normalizeModernTheme,
+  saveModernTheme,
+} from './modernThemeStore';
+export type {ModernThemeId} from './modernThemeStore';
+export {
   avatarSeedStore,
   generateAvatarSeed,
   PROFILE_AVATAR_SEED_KEY,

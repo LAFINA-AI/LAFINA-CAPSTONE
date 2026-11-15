@@ -63,7 +63,8 @@ export const DeveloperModal: React.FC<DeveloperModalProps> = ({
   endSessionForServerSwitch,
   onLogout,
 }) => {
-  const { colors } = useTheme();
+  const { colors, isModern, modernPalette } = useTheme();
+  const accentColor = isModern ? modernPalette.accent : '#8B5CF6';
   const themed = useThemedStyles(getThemedStyles);
 
   const [activeTab, setActiveTab] = useState<TabType>('alarms');
@@ -379,7 +380,7 @@ export const DeveloperModal: React.FC<DeveloperModalProps> = ({
               {/* Exact Native Alarm Countdown */}
               <View style={[styles.card, themed.card, Shadows.card]}>
                 <View style={styles.cardHeader}>
-                  <Bell size={18} color={'#8B5CF6'} />
+                  <Bell size={18} color={accentColor} />
                   <Text style={[styles.cardTitle, themed.textPrimary]}>Schedule Native Alarm (AlarmManager)</Text>
                 </View>
                 <Text style={[styles.cardDescription, themed.textSecondary]}>
@@ -415,7 +416,7 @@ export const DeveloperModal: React.FC<DeveloperModalProps> = ({
                   ))}
                 </View>
                 <TouchableOpacity
-                  style={[styles.primaryBtn, { backgroundColor: '#8B5CF6' }]}
+                  style={[styles.primaryBtn, { backgroundColor: accentColor }]}
                   onPress={handleScheduleExactAlarm}
                   disabled={alarmBusy}
                 >
@@ -769,7 +770,7 @@ export const DeveloperModal: React.FC<DeveloperModalProps> = ({
               {dbDiag && (
                 <View style={[styles.card, themed.card, Shadows.card]}>
                   <View style={styles.cardHeader}>
-                    <Database size={18} color={'#8B5CF6'} />
+                    <Database size={18} color={accentColor} />
                     <Text style={[styles.cardTitle, themed.textPrimary]}>SQLite Table Row Counts</Text>
                   </View>
                   <Text style={[styles.cardDescription, themed.textSecondary]}>

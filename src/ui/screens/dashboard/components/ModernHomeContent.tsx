@@ -36,7 +36,7 @@ import {nextAlarm} from '../../../../scheduler/alarmService';
 import {useTheme} from '../../../contexts/ThemeContext';
 import {CharacterAvatar} from '../../../components/profile/CharacterAvatar';
 import {avatarSource} from '../../../components/profile/avatarFile';
-import {Fonts, ModernLayout, ModernShadows, Spacing} from '../../../theme';
+import {Fonts, ModernLayout, Spacing} from '../../../theme';
 import type {CallNavigationTarget} from '../../../navigation/callNavigation';
 import {
   formatDurationMinutes,
@@ -187,7 +187,13 @@ export const ModernHomeContent: React.FC<ModernHomeContentProps> = ({
   onOpenCustomize,
   onRefresh,
 }) => {
-  const {colors, isDarkMode, modernPalette} = useTheme();
+  const {
+    colors,
+    isDarkMode,
+    modernPalette,
+    modernThemeExtras,
+    modernShadows,
+  } = useTheme();
 
   const [searchQuery, setSearchQuery] = useState('');
   const [filter, setFilter] = useState<HomeFilter>('All');
@@ -360,8 +366,8 @@ export const ModernHomeContent: React.FC<ModernHomeContentProps> = ({
   const firstStudySlot = data.freeStudy.freeBlocks[0] ?? null;
   const hasAlertDot = Boolean(activeAlarm || data.pendingReminders.length > 0);
   const subtitleText = data.academicBadge || 'USTP · Cagayan de Oro';
-  const heroBgColor = isDarkMode ? '#4734D4' : '#6C4DFF';
-  const heroHighlightColor = isDarkMode ? '#6E7FF3' : '#95AEFF';
+  const heroBgColor = modernThemeExtras.heroBgColor;
+  const heroHighlightColor = modernThemeExtras.heroHighlightColor;
   const subtleCardBorder = isDarkMode
     ? modernPalette.border
     : 'rgba(21,19,39,0.05)';
@@ -421,7 +427,7 @@ export const ModernHomeContent: React.FC<ModernHomeContentProps> = ({
             activeOpacity={0.8}
             style={[
               styles.circleActionBtn,
-              ModernShadows.subtle,
+              modernShadows.subtle,
               {
                 backgroundColor: modernPalette.card,
                 borderColor: modernPalette.border,
@@ -447,7 +453,7 @@ export const ModernHomeContent: React.FC<ModernHomeContentProps> = ({
             activeOpacity={0.8}
             style={[
               styles.circleActionBtn,
-              ModernShadows.subtle,
+              modernShadows.subtle,
               {
                 backgroundColor: modernPalette.card,
                 borderColor: modernPalette.border,
@@ -533,7 +539,10 @@ export const ModernHomeContent: React.FC<ModernHomeContentProps> = ({
           style={[
             styles.heroCard,
             styles.heroElevation,
-            {backgroundColor: heroBgColor},
+            {
+              backgroundColor: heroBgColor,
+              shadowColor: modernThemeExtras.shadowColor,
+            },
           ]}
         >
           <View
@@ -574,7 +583,10 @@ export const ModernHomeContent: React.FC<ModernHomeContentProps> = ({
                     testID="dashboard-hero-cta"
                     onPress={hero.onPress}
                     activeOpacity={0.85}
-                    style={styles.heroCtaBtn}
+                    style={[
+                      styles.heroCtaBtn,
+                      {backgroundColor: modernPalette.darkInkBtn},
+                    ]}
                   >
                     <Text style={styles.heroCtaText}>{hero.cta}</Text>
                   </TouchableOpacity>
@@ -643,7 +655,7 @@ export const ModernHomeContent: React.FC<ModernHomeContentProps> = ({
           }
           style={[
             styles.bentoCard,
-            ModernShadows.subtle,
+            modernShadows.subtle,
             {
               backgroundColor: modernPalette.lilac,
               borderColor: subtleCardBorder,
@@ -694,7 +706,7 @@ export const ModernHomeContent: React.FC<ModernHomeContentProps> = ({
           onPress={() => onOpenNotesTab()}
           style={[
             styles.bentoCard,
-            ModernShadows.subtle,
+            modernShadows.subtle,
             {
               backgroundColor: modernPalette.cream,
               borderColor: subtleCardBorder,
@@ -723,7 +735,7 @@ export const ModernHomeContent: React.FC<ModernHomeContentProps> = ({
               <Text
                 style={[
                   styles.bentoBadgeText,
-                  {color: isDarkMode ? modernPalette.text : '#151327'},
+                  {color: modernPalette.text},
                 ]}
               >
                 {data.highlightedNotes.length > 0
@@ -759,7 +771,7 @@ export const ModernHomeContent: React.FC<ModernHomeContentProps> = ({
             testID="dashboard-widget-free-study-blocks"
             style={[
               styles.mintBanner,
-              ModernShadows.subtle,
+              modernShadows.subtle,
               {
                 backgroundColor: modernPalette.mint,
                 borderColor: subtleCardBorder,
@@ -873,7 +885,7 @@ export const ModernHomeContent: React.FC<ModernHomeContentProps> = ({
           testID="dashboard-widget-tasks-due"
           style={[
             styles.sectionCard,
-            ModernShadows.subtle,
+            modernShadows.subtle,
             {
               backgroundColor: modernPalette.card,
               borderColor: whiteCardBorder,
@@ -985,7 +997,7 @@ export const ModernHomeContent: React.FC<ModernHomeContentProps> = ({
             testID="dashboard-widget-upcoming-reminders"
             style={[
               styles.sectionCard,
-              ModernShadows.subtle,
+              modernShadows.subtle,
               {
                 backgroundColor: modernPalette.blueSoft,
                 borderColor: subtleCardBorder,
@@ -1099,7 +1111,7 @@ export const ModernHomeContent: React.FC<ModernHomeContentProps> = ({
           testID="dashboard-widget-today-schedule"
           style={[
             styles.sectionCard,
-            ModernShadows.subtle,
+            modernShadows.subtle,
             {
               backgroundColor: modernPalette.card,
               borderColor: whiteCardBorder,
@@ -1185,7 +1197,7 @@ export const ModernHomeContent: React.FC<ModernHomeContentProps> = ({
           testID="dashboard-widget-pinned-notes"
           style={[
             styles.sectionCard,
-            ModernShadows.subtle,
+            modernShadows.subtle,
             {
               backgroundColor: modernPalette.card,
               borderColor: whiteCardBorder,
@@ -1375,7 +1387,6 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
   },
   heroElevation: {
-    shadowColor: '#4C379A',
     shadowOffset: {width: 0, height: 6},
     shadowOpacity: 0.14,
     shadowRadius: 14,
@@ -1489,7 +1500,6 @@ const styles = StyleSheet.create({
     height: 84,
   },
   heroCtaBtn: {
-    backgroundColor: '#151327',
     paddingHorizontal: 18,
     paddingVertical: 10,
     borderRadius: 999,

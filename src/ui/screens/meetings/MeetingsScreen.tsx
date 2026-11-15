@@ -28,7 +28,6 @@ import {
   FontSize,
   Layout,
   ModernLayout,
-  ModernShadows,
   Spacing,
 } from '../../theme';
 import { formatDuration } from './meetingCopy';
@@ -48,7 +47,7 @@ export const MeetingsScreen: React.FC<MeetingsScreenProps> = ({
   registerBack,
   onNotesSaved,
 }) => {
-  const {colors, isModern, modernPalette} = useTheme();
+  const {colors, isModern, modernPalette, modernShadows} = useTheme();
   const themed = useThemedStyles(getMeetingThemedStyles);
   const {
     meetings,
@@ -200,7 +199,7 @@ export const MeetingsScreen: React.FC<MeetingsScreenProps> = ({
               style={[
                 meetingStyles.card,
                 themed.card,
-                isModern && ModernShadows.card,
+                isModern && modernShadows.card,
                 isModern && {
                   borderRadius: ModernLayout.borderRadiusCard,
                   borderColor: modernPalette.border,
@@ -261,7 +260,7 @@ export const MeetingsScreen: React.FC<MeetingsScreenProps> = ({
               style={[
                 styles.row,
                 themed.card,
-                isModern && ModernShadows.card,
+                isModern && modernShadows.card,
                 isModern && {
                   borderRadius: ModernLayout.borderRadiusCard,
                   borderColor: modernPalette.border,

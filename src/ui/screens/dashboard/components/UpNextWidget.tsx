@@ -14,7 +14,6 @@ import {
   FontSize,
   Layout,
   ModernLayout,
-  ModernShadows,
   ModernTypography,
   Shadows,
   Spacing,
@@ -38,7 +37,7 @@ export const UpNextWidget: React.FC<UpNextWidgetProps> = ({
   onPressItem,
   onOpenCalendar,
 }) => {
-  const {colors, isModern, modernPalette} = useTheme();
+  const {colors, isModern, modernPalette, modernShadows} = useTheme();
   const themed = useThemedStyles(getThemedStyles);
 
   if (summary.mode === 'wrapped_up') {
@@ -50,7 +49,7 @@ export const UpNextWidget: React.FC<UpNextWidgetProps> = ({
           themed.card,
           isModern
             ? [
-                ModernShadows.card,
+                modernShadows.card,
                 {
                   borderRadius: ModernLayout.borderRadiusCard,
                   backgroundColor: modernPalette.card,
@@ -158,7 +157,7 @@ export const UpNextWidget: React.FC<UpNextWidgetProps> = ({
         styles.card,
         isModern
           ? [
-              ModernShadows.floating,
+              modernShadows.floating,
               {
                 borderRadius: ModernLayout.borderRadiusCard,
                 backgroundColor: modernPalette.heroCardBg,

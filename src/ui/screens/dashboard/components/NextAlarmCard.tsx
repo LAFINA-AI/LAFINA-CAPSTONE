@@ -7,7 +7,6 @@ import {
   FontSize,
   Layout,
   ModernLayout,
-  ModernShadows,
   Shadows,
   Spacing,
 } from '../../../theme';
@@ -35,7 +34,7 @@ export const NextAlarmCard: React.FC<NextAlarmCardProps> = ({
   now,
   onOpenAlarms,
 }) => {
-  const {colors, isModern, modernPalette} = useTheme();
+  const {colors, isModern, modernPalette, modernShadows} = useTheme();
   let next: ReturnType<typeof nextAlarm> = null;
   try {
     next = nextAlarm(userId, now);
@@ -66,7 +65,7 @@ export const NextAlarmCard: React.FC<NextAlarmCardProps> = ({
         styles.card,
         isModern
           ? [
-              ModernShadows.card,
+              modernShadows.card,
               {
                 borderRadius: ModernLayout.borderRadiusCard,
                 borderWidth: 1,

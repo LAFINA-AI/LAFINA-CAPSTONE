@@ -9,7 +9,6 @@ import {
   FontSize,
   Layout,
   ModernLayout,
-  ModernShadows,
   Shadows,
   Spacing,
 } from '../../../theme';
@@ -30,7 +29,7 @@ export const FreeStudyBlocksWidget: React.FC<FreeStudyBlocksWidgetProps> = ({
   onAddStudyBlock,
   onOpenCustomize,
 }) => {
-  const {colors, isModern, modernPalette} = useTheme();
+  const {colors, isModern, modernPalette, modernShadows} = useTheme();
   const themed = useThemedStyles(getThemedStyles);
   const [expanded, setExpanded] = useState(false);
 
@@ -44,7 +43,7 @@ export const FreeStudyBlocksWidget: React.FC<FreeStudyBlocksWidgetProps> = ({
         styles.card,
         themed.card,
         isModern
-          ? [ModernShadows.card, {borderRadius: ModernLayout.borderRadiusCard}]
+          ? [modernShadows.card, {borderRadius: ModernLayout.borderRadiusCard}]
           : Shadows.card,
       ]}
       testID="dashboard-widget-free-study-blocks"

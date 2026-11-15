@@ -9,7 +9,6 @@ import {
   Fonts,
   Layout,
   ModernLayout,
-  ModernShadows,
 } from '../../theme';
 import {useTheme} from '../../contexts/ThemeContext';
 
@@ -26,7 +25,7 @@ export const AuthButton: React.FC<AuthButtonProps> = ({
   loading,
   disabled = false,
 }) => {
-  const {colors, isModern, modernPalette} = useTheme();
+  const {colors, isModern, modernPalette, modernShadows} = useTheme();
   const isButtonDisabled = disabled || loading;
 
   return (
@@ -34,7 +33,7 @@ export const AuthButton: React.FC<AuthButtonProps> = ({
       style={[
         styles.button,
         isModern && styles.modernButton,
-        isModern && !isButtonDisabled && ModernShadows.subtle,
+        isModern && !isButtonDisabled && modernShadows.subtle,
         {
           backgroundColor: isButtonDisabled
             ? isModern

@@ -9,7 +9,6 @@ import {
   FontSize,
   Layout,
   ModernLayout,
-  ModernShadows,
   Shadows,
   Spacing,
 } from '../../../theme';
@@ -42,7 +41,7 @@ const formatReminderTrigger = (isoStr: string, todayStr: string): string => {
 export const UpcomingRemindersWidget: React.FC<
   UpcomingRemindersWidgetProps
 > = ({reminders, todayStr, onPressReminder, onOpenCalendar}) => {
-  const {colors, isModern, modernPalette} = useTheme();
+  const {colors, isModern, modernPalette, modernShadows} = useTheme();
   const themed = useThemedStyles(getThemedStyles);
 
   return (
@@ -51,7 +50,7 @@ export const UpcomingRemindersWidget: React.FC<
         styles.card,
         themed.card,
         isModern
-          ? [ModernShadows.card, {borderRadius: ModernLayout.borderRadiusCard}]
+          ? [modernShadows.card, {borderRadius: ModernLayout.borderRadiusCard}]
           : Shadows.card,
       ]}
       testID="dashboard-widget-upcoming-reminders"

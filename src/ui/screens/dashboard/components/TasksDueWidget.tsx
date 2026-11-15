@@ -14,7 +14,6 @@ import {
   FontSize,
   Layout,
   ModernLayout,
-  ModernShadows,
   Shadows,
   Spacing,
 } from '../../../theme';
@@ -58,7 +57,7 @@ export const TasksDueWidget: React.FC<TasksDueWidgetProps> = ({
   onPressTask,
   onOpenCalendar,
 }) => {
-  const {colors, isModern, modernPalette} = useTheme();
+  const {colors, isModern, modernPalette, modernShadows} = useTheme();
   const themed = useThemedStyles(getThemedStyles);
 
   const priorityColor = (priority: Task['priority']): string => {
@@ -79,7 +78,7 @@ export const TasksDueWidget: React.FC<TasksDueWidgetProps> = ({
         styles.card,
         themed.card,
         isModern
-          ? [ModernShadows.card, {borderRadius: ModernLayout.borderRadiusCard}]
+          ? [modernShadows.card, {borderRadius: ModernLayout.borderRadiusCard}]
           : Shadows.card,
       ]}
       testID="dashboard-widget-tasks-due"

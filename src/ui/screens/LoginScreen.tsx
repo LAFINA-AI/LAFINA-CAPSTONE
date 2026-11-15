@@ -13,7 +13,7 @@ import {
   Platform,
 } from 'react-native';
 import { Mail, Lock, Check, Eye, EyeOff, AlertCircle } from 'lucide-react-native';
-import {Fonts, ModernLayout, ModernShadows} from '../theme';
+import {Fonts, ModernLayout} from '../theme';
 import { userStore } from '../../storage';
 import { accountLinkService } from '../../cloud/accountLinkService';
 import { syncWorker } from '../../sync/syncWorker';
@@ -42,7 +42,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({
     null,
   );
 
-  const {colors, isDarkMode, isModern, modernPalette} = useTheme();
+  const {colors, isDarkMode, isModern, modernPalette, modernShadows} = useTheme();
   const themed = useThemedStyles(getLoginThemedStyles);
 
   useEffect(() => {
@@ -134,7 +134,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({
             style={[
               styles.card,
               themed.card,
-              isModern && ModernShadows.card,
+              isModern && modernShadows.card,
               isModern
                 ? {
                     borderRadius: ModernLayout.borderRadiusCard,
@@ -312,7 +312,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({
                         <TouchableOpacity
                           style={[
                             styles.primaryButton,
-                            isModern && ModernShadows.subtle,
+                            isModern && modernShadows.subtle,
                             {
                               backgroundColor: isModern
                                 ? modernPalette.accent

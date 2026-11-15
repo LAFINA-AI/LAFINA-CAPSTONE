@@ -15,7 +15,6 @@ import {
   FontSize,
   Layout,
   ModernLayout,
-  ModernShadows,
   Shadows,
   Spacing,
 } from '../../../theme';
@@ -45,7 +44,7 @@ export const PinnedNotesWidget: React.FC<PinnedNotesWidgetProps> = ({
   onPressNote,
   onOpenAllNotes,
 }) => {
-  const {colors, isModern, modernPalette} = useTheme();
+  const {colors, isModern, modernPalette, modernShadows} = useTheme();
   const themed = useThemedStyles(getThemedStyles);
 
   return (
@@ -54,7 +53,7 @@ export const PinnedNotesWidget: React.FC<PinnedNotesWidgetProps> = ({
         styles.card,
         themed.card,
         isModern
-          ? [ModernShadows.card, {borderRadius: ModernLayout.borderRadiusCard}]
+          ? [modernShadows.card, {borderRadius: ModernLayout.borderRadiusCard}]
           : Shadows.card,
       ]}
       testID="dashboard-widget-pinned-notes"

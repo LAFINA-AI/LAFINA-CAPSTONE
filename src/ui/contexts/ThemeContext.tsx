@@ -9,15 +9,23 @@ import React, {
 } from 'react';
 import {useColorScheme} from 'react-native';
 import {
+  getSavedModernTheme,
   getSavedUIVariant,
+  saveModernTheme,
   saveUIVariant,
   userStore,
+  type ModernThemeId,
   type UIVariant,
 } from '../../storage';
+import {getModernShadows, type ModernShadowSet} from '../theme/modern';
 import {
   getModernPalette,
+  getModernThemeExtras,
+  getModernThemeMeta,
   getThemeColors,
   type ModernPalette,
+  type ModernThemeExtras,
+  type ModernThemeMeta,
   type ThemeColors,
 } from '../theme/palettes';
 import {
@@ -27,7 +35,7 @@ import {
 } from '../theme/themeReveal';
 import type {ThemeRevealOrigin} from '../theme/themeReveal';
 
-export type {ThemeColors};
+export type {ModernThemeId, ThemeColors};
 
 export interface ThemeContextType {
   isDarkMode: boolean;
@@ -37,6 +45,11 @@ export interface ThemeContextType {
   isModern: boolean;
   setUIVariant: (variant: UIVariant) => void;
   modernPalette: ModernPalette;
+  modernTheme: ModernThemeId;
+  modernThemeMeta: ModernThemeMeta;
+  modernThemeExtras: ModernThemeExtras;
+  modernShadows: ModernShadowSet;
+  setModernTheme: (themeId: ModernThemeId) => void;
 }
 
 const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
@@ -45,8 +58,15 @@ export const ThemeProvider: React.FC<{
   userId: string | null;
   refreshTrigger?: number;
   initialUIVariant?: UIVariant;
+  initialModernTheme?: ModernThemeId;
   children: React.ReactNode;
-}> = ({userId, refreshTrigger, initialUIVariant, children}) => {
+}> = ({
+  userId,
+  refreshTrigger,
+  initialUIVariant,
+  initialModernTheme,
+  children,
+}) => {
   const systemScheme = useColorScheme();
 
   const [isDarkMode, setIsDarkMode] = useState(() => {
@@ -58,6 +78,10 @@ export const ThemeProvider: React.FC<{
 
   const [uiVariant, setUIVariantState] = useState<UIVariant>(
     () => initialUIVariant ?? getSavedUIVariant(userId),
+  );
+
+  const [modernTheme, setModernThemeState] = useState<ModernThemeId>(
+    () => initialModernTheme ?? getSavedModernTheme(userId),
   );
 
   useEffect(() => {
@@ -76,14 +100,37 @@ export const ThemeProvider: React.FC<{
     setUIVariantState(getSavedUIVariant(userId));
   }, [userId, refreshTrigger, initialUIVariant]);
 
+  useEffect(() => {
+    if (initialModernTheme) {
+      setModernThemeState(initialModernTheme);
+      return;
+    }
+    setModernThemeState(getSavedModernTheme(userId));
+  }, [userId, refreshTrigger, initialModernTheme]);
+
   const colors = useMemo<ThemeColors>(
-    () => getThemeColors(uiVariant, isDarkMode),
-    [uiVariant, isDarkMode],
+    () => getThemeColors(uiVariant, isDarkMode, modernTheme),
+    [uiVariant, isDarkMode, modernTheme],
   );
 
   const modernPalette = useMemo<ModernPalette>(
-    () => getModernPalette(isDarkMode),
-    [isDarkMode],
+    () => getModernPalette(isDarkMode, modernTheme),
+    [isDarkMode, modernTheme],
+  );
+
+  const modernThemeMeta = useMemo<ModernThemeMeta>(
+    () => getModernThemeMeta(modernTheme),
+    [modernTheme],
+  );
+
+  const modernThemeExtras = useMemo<ModernThemeExtras>(
+    () => getModernThemeExtras(isDarkMode, modernTheme),
+    [isDarkMode, modernTheme],
+  );
+
+  const modernShadows = useMemo<ModernShadowSet>(
+    () => getModernShadows(modernThemeExtras.shadowColor),
+    [modernThemeExtras.shadowColor],
   );
 
   const capturingRef = useRef(false);
@@ -123,6 +170,14 @@ export const ThemeProvider: React.FC<{
     [userId],
   );
 
+  const setModernTheme = useCallback(
+    (nextTheme: ModernThemeId) => {
+      saveModernTheme(userId, nextTheme);
+      setModernThemeState(nextTheme);
+    },
+    [userId],
+  );
+
   useEffect(() => {
     if (!revealPendingRef.current) return;
     revealPendingRef.current = false;
@@ -140,6 +195,11 @@ export const ThemeProvider: React.FC<{
       isModern,
       setUIVariant,
       modernPalette,
+      modernTheme,
+      modernThemeMeta,
+      modernThemeExtras,
+      modernShadows,
+      setModernTheme,
     }),
     [
       isDarkMode,
@@ -149,6 +209,11 @@ export const ThemeProvider: React.FC<{
       isModern,
       setUIVariant,
       modernPalette,
+      modernTheme,
+      modernThemeMeta,
+      modernThemeExtras,
+      modernShadows,
+      setModernTheme,
     ],
   );
 
@@ -170,4 +235,23 @@ export const useTheme = (): ThemeContextType => {
 export const useUIVariant = () => {
   const {uiVariant, isModern, setUIVariant, modernPalette} = useTheme();
   return {uiVariant, isModern, setUIVariant, modernPalette};
+};
+
+export const useModernTheme = () => {
+  const {
+    modernTheme,
+    modernThemeMeta,
+    modernThemeExtras,
+    modernPalette,
+    modernShadows,
+    setModernTheme,
+  } = useTheme();
+  return {
+    modernTheme,
+    modernThemeMeta,
+    modernThemeExtras,
+    modernPalette,
+    modernShadows,
+    setModernTheme,
+  };
 };

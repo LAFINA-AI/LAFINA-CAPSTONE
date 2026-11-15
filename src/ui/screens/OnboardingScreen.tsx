@@ -8,7 +8,7 @@ import {
   TouchableOpacity,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import {Layout, ModernLayout, ModernShadows} from '../theme';
+import {Layout, ModernLayout} from '../theme';
 import {
   userStore,
   behaviorStore,
@@ -88,7 +88,7 @@ export const OnboardingScreen: React.FC<OnboardingScreenProps> = ({
   );
   const [longestGap, setLongestGap] = useState<LongestClassGap>(existing.longestClassGap);
 
-  const {colors, isModern, modernPalette} = useTheme();
+  const {colors, isModern, modernPalette, modernShadows} = useTheme();
   const themed = useThemedStyles(getOnboardThemedStyles);
 
   const toggleStudyPeak = (value: StudyPeakHour) => {
@@ -381,7 +381,7 @@ export const OnboardingScreen: React.FC<OnboardingScreenProps> = ({
         <View
           style={[
             styles.card,
-            isModern && ModernShadows.card,
+            isModern && modernShadows.card,
             themed.card,
             isModern && {
               borderRadius: ModernLayout.borderRadiusCard,

@@ -10,7 +10,6 @@ import {
 import {useTheme} from '../../contexts/ThemeContext';
 import {
   ModernLayout,
-  ModernShadows,
   ModernTypography,
   type ModernPalette,
 } from '../../theme/modern';
@@ -76,7 +75,7 @@ export const ModernCard: React.FC<ModernCardProps> = ({
   style,
   testID,
 }) => {
-  const {modernPalette} = useTheme();
+  const {modernPalette, modernShadows} = useTheme();
   const resolved = resolveModernToneSurface(modernPalette, tone);
 
   return (
@@ -91,7 +90,7 @@ export const ModernCard: React.FC<ModernCardProps> = ({
             borderWidth: 1,
             borderColor: modernPalette.border,
           },
-        elevated && tone !== 'surface' && ModernShadows.card,
+        elevated && tone !== 'surface' && modernShadows.card,
         style,
       ]}
     >

@@ -13,7 +13,6 @@ import {
   FontSize,
   Layout,
   ModernLayout,
-  ModernShadows,
   ModernTypography,
   Shadows,
   Spacing,
@@ -44,7 +43,7 @@ export const DashboardHeader: React.FC<DashboardHeaderProps> = ({
   pendingTasksCount,
   onOpenCustomize,
 }) => {
-  const {colors, isModern, modernPalette} = useTheme();
+  const {colors, isModern, modernPalette, modernShadows} = useTheme();
   const themed = useThemedStyles(getThemedStyles);
 
   const dateLabel = now.toLocaleDateString('en-US', {
@@ -110,7 +109,7 @@ export const DashboardHeader: React.FC<DashboardHeaderProps> = ({
               styles.iconPillBtn,
               themed.pillBtn,
               isModern
-                ? [styles.modernIconPillBtn, ModernShadows.subtle]
+                ? [styles.modernIconPillBtn, modernShadows.subtle]
                 : Shadows.card,
             ]}
             onPress={onOpenCustomize}

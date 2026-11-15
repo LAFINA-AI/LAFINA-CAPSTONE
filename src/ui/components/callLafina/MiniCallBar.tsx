@@ -26,7 +26,6 @@ import {
   FontSize,
   Layout,
   ModernLayout,
-  ModernShadows,
   Spacing,
 } from '../../theme';
 import {useTheme} from '../../contexts/ThemeContext';
@@ -59,7 +58,7 @@ export const MiniCallBar: React.FC<MiniCallBarProps> = ({
   onEndCall,
   bottomOffset,
 }) => {
-  const {colors, isModern, modernPalette} = useTheme();
+  const {colors, isModern, modernPalette, modernShadows} = useTheme();
   const themed = useThemedStyles(getThemedStyles);
 
   const isLive = phase === 'speaking' || phase === 'listening' || phase === 'thinking' || phase === 'tool_working';
@@ -76,7 +75,7 @@ export const MiniCallBar: React.FC<MiniCallBarProps> = ({
       style={[
         styles.outerContainer,
         themed.outer,
-        isModern && ModernShadows.floating,
+        isModern && modernShadows.floating,
         isModern && {
           backgroundColor: modernPalette.card,
           borderColor: modernPalette.border,

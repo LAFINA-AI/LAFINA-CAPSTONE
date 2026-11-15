@@ -13,7 +13,6 @@ import {
   Fonts,
   Layout,
   ModernLayout,
-  ModernShadows,
   Shadows,
 } from '../theme';
 import { validatePassword } from '../../storage';
@@ -55,7 +54,7 @@ export const RegisterScreen: React.FC<RegisterScreenProps> = ({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const {colors, isModern, modernPalette} = useTheme();
+  const {colors, isModern, modernPalette, modernShadows} = useTheme();
   const themed = useThemedStyles(getThemedStyles);
 
   const completeRegistration = (userId: string, message?: string) => {
@@ -163,7 +162,7 @@ export const RegisterScreen: React.FC<RegisterScreenProps> = ({
         <View
           style={[
             styles.card,
-            isModern ? ModernShadows.card : Shadows.card,
+            isModern ? modernShadows.card : Shadows.card,
             themed.card,
             isModern && {
               borderRadius: ModernLayout.borderRadiusCard,

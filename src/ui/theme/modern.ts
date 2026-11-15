@@ -2,17 +2,32 @@ import type {ViewStyle, TextStyle} from 'react-native';
 import type {UIVariant} from '../../storage/uiVariantStore';
 import {
   getModernPalette,
+  getModernThemeExtras,
+  getModernThemeMeta,
+  MODERN_THEMES,
   modernDarkPalette,
   modernDarkThemeColors,
   modernLightPalette,
   modernLightThemeColors,
   type ModernPalette,
+  type ModernThemeExtras,
+  type ModernThemeId,
+  type ModernThemeMeta,
 } from './palettes';
 import {Fonts} from './typography';
 
-export type {ModernPalette, UIVariant};
+export type {
+  ModernPalette,
+  ModernThemeExtras,
+  ModernThemeId,
+  ModernThemeMeta,
+  UIVariant,
+};
 export {
   getModernPalette,
+  getModernThemeExtras,
+  getModernThemeMeta,
+  MODERN_THEMES,
   modernDarkPalette,
   modernDarkThemeColors,
   modernLightPalette,
@@ -42,30 +57,36 @@ export const ModernLayout = {
   centerFabSize: 58,
 } as const;
 
-export const ModernShadows: Record<'card' | 'floating' | 'subtle', ViewStyle> =
-  {
-    card: {
-      shadowColor: '#4C379A',
-      shadowOffset: {width: 0, height: 8},
-      shadowOpacity: 0.08,
-      shadowRadius: 18,
-      elevation: 3,
-    },
-    floating: {
-      shadowColor: '#4C379A',
-      shadowOffset: {width: 0, height: 10},
-      shadowOpacity: 0.18,
-      shadowRadius: 20,
-      elevation: 8,
-    },
-    subtle: {
-      shadowColor: '#4C379A',
-      shadowOffset: {width: 0, height: 4},
-      shadowOpacity: 0.05,
-      shadowRadius: 10,
-      elevation: 1,
-    },
-  };
+export type ModernShadowSet = Record<'card' | 'floating' | 'subtle', ViewStyle>;
+
+/** Builds elevation/shadow presets tinted to the active Modern color theme. */
+export const getModernShadows = (
+  shadowColor: string = '#4C379A',
+): ModernShadowSet => ({
+  card: {
+    shadowColor,
+    shadowOffset: {width: 0, height: 8},
+    shadowOpacity: 0.08,
+    shadowRadius: 18,
+    elevation: 3,
+  },
+  floating: {
+    shadowColor,
+    shadowOffset: {width: 0, height: 10},
+    shadowOpacity: 0.18,
+    shadowRadius: 20,
+    elevation: 8,
+  },
+  subtle: {
+    shadowColor,
+    shadowOffset: {width: 0, height: 4},
+    shadowOpacity: 0.05,
+    shadowRadius: 10,
+    elevation: 1,
+  },
+});
+
+export const ModernShadows: ModernShadowSet = getModernShadows('#4C379A');
 
 export const ModernTypography: Record<
   | 'hero'

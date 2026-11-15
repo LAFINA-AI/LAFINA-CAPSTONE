@@ -40,7 +40,7 @@ import type {
 } from '../../scheduler';
 import { CALL_RESULT_DELAY_MS } from '../../constants';
 import { chatOrchestrator } from '../../ai/chatOrchestrator';
-import {Fonts, ModernLayout, ModernShadows, Shadows} from '../theme';
+import {Fonts, ModernLayout, Shadows} from '../theme';
 import { useTheme } from '../contexts/ThemeContext';
 import { createCallSpeechProvider } from '../../cloud/speechService';
 import { localSettingsStore } from '../../storage/localSettingsStore';
@@ -79,7 +79,7 @@ export const IncomingCallScreen: React.FC<IncomingCallScreenProps> = ({
   initialAction = 'call',
   deliveryGeneration = null,
 }) => {
-  const {isDarkMode, colors, isModern, modernPalette} = useTheme();
+  const {isDarkMode, colors, isModern, modernPalette, modernShadows} = useTheme();
   // A planner change asked for during an online reminder call becomes a voice
   // review card; it is shown here so it can be confirmed (audit finding 3).
   const review = useCommandReview(userId, 'voice');
@@ -644,7 +644,7 @@ export const IncomingCallScreen: React.FC<IncomingCallScreenProps> = ({
               <View
                 style={[
                   styles.taskCard,
-                  isModern && ModernShadows.card,
+                  isModern && modernShadows.card,
                   themed.taskCard,
                   isModern && {borderRadius: ModernLayout.borderRadiusCard},
                 ]}

@@ -56,12 +56,17 @@ export const SynthWaveAvatar: React.FC<SynthWaveAvatarProps> = ({
   size = 76,
   testID = 'synth-wave-avatar',
 }) => {
-  const {isDarkMode} = useTheme();
+  const {isDarkMode, isModern, modernTheme, modernThemeExtras} = useTheme();
   const startRef = useRef(Date.now());
 
   const stops = useMemo(
-    () => (isDarkMode ? DARK_STOPS : LIGHT_STOPS),
-    [isDarkMode],
+    () =>
+      isModern
+        ? modernThemeExtras.synthWaveStops
+        : isDarkMode
+        ? DARK_STOPS
+        : LIGHT_STOPS,
+    [isModern, isDarkMode, modernThemeExtras.synthWaveStops],
   );
 
   const halfHeight = size * 0.35;
@@ -139,8 +144,11 @@ export const SynthWaveAvatar: React.FC<SynthWaveAvatarProps> = ({
   const centerStrand = strands[centerIndex] ?? '';
 
   const gradientId = useMemo(
-    () => `synthWaveGrad_${Math.round(size)}_${isDarkMode ? 'dark' : 'light'}`,
-    [size, isDarkMode],
+    () =>
+      `synthWaveGrad_${Math.round(size)}_${
+        isDarkMode ? 'dark' : 'light'
+      }_${modernTheme}`,
+    [size, isDarkMode, modernTheme],
   );
 
   const containerRadius = size / 2;
@@ -153,7 +161,11 @@ export const SynthWaveAvatar: React.FC<SynthWaveAvatarProps> = ({
           width: size,
           height: size,
           borderRadius: containerRadius,
-          backgroundColor: isDarkMode ? '#14121E' : '#F6F3FC',
+          backgroundColor: isModern
+            ? modernThemeExtras.synthAvatarBg
+            : isDarkMode
+            ? '#14121E'
+            : '#F6F3FC',
         },
       ]}
       testID={testID}

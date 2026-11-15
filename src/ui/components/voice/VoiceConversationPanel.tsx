@@ -28,7 +28,7 @@ import {
   Sliders,
   Square,
 } from 'lucide-react-native';
-import {Fonts, ModernLayout, ModernShadows} from '../../theme';
+import {Fonts, ModernLayout} from '../../theme';
 import {useTheme} from '../../contexts/ThemeContext';
 import type {ThemeColors} from '../../contexts/ThemeContext';
 import {useThemedStyles} from '../../theme/createThemedStyles';
@@ -190,11 +190,11 @@ export const VoiceConversationPanel: React.FC<VoiceConversationPanelProps> = ({
   deps,
   fullScreen = true,
 }) => {
-  const {colors, isModern, modernPalette} = useTheme();
+  const {colors, isModern, modernPalette, modernShadows} = useTheme();
   const themed = useThemedStyles(getThemedStyles);
   const modernCardStyle = isModern
     ? [
-        ModernShadows.card,
+        modernShadows.card,
         {
           borderRadius: ModernLayout.borderRadiusCard,
           backgroundColor: modernPalette.card,

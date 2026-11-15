@@ -22,6 +22,10 @@ export {createThemedStyles, useThemedStyles} from './createThemedStyles';
 export type {ThemedStyleMeta} from './createThemedStyles';
 export {
   getModernPalette,
+  getModernShadows,
+  getModernThemeExtras,
+  getModernThemeMeta,
+  MODERN_THEMES,
   modernDarkPalette,
   modernDarkThemeColors,
   ModernLayout,
@@ -30,4 +34,11 @@ export {
   ModernShadows,
   ModernTypography,
 } from './modern';
-export type {ModernPalette, UIVariant} from './modern';
+export type {
+  ModernPalette,
+  ModernShadowSet,
+  ModernThemeExtras,
+  ModernThemeId,
+  ModernThemeMeta,
+  UIVariant,
+} from './modern';

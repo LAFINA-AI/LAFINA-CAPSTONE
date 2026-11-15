@@ -7,7 +7,7 @@ import {
   Image,
   ScrollView,
 } from 'react-native';
-import {Fonts, Layout, ModernLayout, ModernShadows, Shadows} from '../theme';
+import {Fonts, Layout, ModernLayout, Shadows} from '../theme';
 import {userStore} from '../../storage';
 import {useThemedStyles} from '../theme/createThemedStyles';
 import {useTheme} from '../contexts/ThemeContext';
@@ -24,7 +24,7 @@ export const WelcomeScreen: React.FC<WelcomeScreenProps> = ({
   onNavigateToLogin,
   onNavigateToRegister,
 }) => {
-  const {isModern, modernPalette} = useTheme();
+  const {isModern, modernPalette, modernShadows} = useTheme();
   const themed = useThemedStyles(getWelcomeThemedStyles);
   const [startFailed, setStartFailed] = useState(false);
 
@@ -48,7 +48,7 @@ export const WelcomeScreen: React.FC<WelcomeScreenProps> = ({
       <View
         style={[
           styles.card,
-          isModern ? ModernShadows.card : Shadows.card,
+          isModern ? modernShadows.card : Shadows.card,
           themed.card,
           isModern && {
             borderRadius: ModernLayout.borderRadiusCard,
@@ -72,7 +72,7 @@ export const WelcomeScreen: React.FC<WelcomeScreenProps> = ({
           style={[
             styles.primaryButton,
             themed.primaryButton,
-            isModern && ModernShadows.subtle,
+            isModern && modernShadows.subtle,
             isModern && {
               borderRadius: ModernLayout.borderRadiusPill,
               backgroundColor: modernPalette.accent,

@@ -12,7 +12,7 @@ import {
 } from 'react-native';
 import Svg, { Path, Rect } from 'react-native-svg';
 import { X } from 'lucide-react-native';
-import {Fonts, Layout, ModernLayout, ModernShadows, Shadows} from '../theme';
+import {Fonts, Layout, ModernLayout, Shadows} from '../theme';
 import { useTheme } from '../contexts/ThemeContext';
 import { useThemedStyles } from '../theme/createThemedStyles';
 import type { ThemeColors } from '../contexts/ThemeContext';
@@ -66,7 +66,7 @@ const lerp = (from: ScreenRect, to: ScreenRect, t: number): ScreenRect => ({
 });
 
 export const ProductTour: React.FC<ProductTourProps> = ({ steps, onNavigate, onFinish }) => {
-  const {colors, isModern, modernPalette} = useTheme();
+  const {colors, isModern, modernPalette, modernShadows} = useTheme();
   const themed = useThemedStyles(getThemedStyles);
   const [index, setIndex] = useState(0);
   const [area, setArea] = useState({ width: 0, height: 0 });
@@ -227,7 +227,7 @@ export const ProductTour: React.FC<ProductTourProps> = ({ steps, onNavigate, onF
       <Animated.View
         style={[
           styles.card,
-          isModern && ModernShadows.card,
+          isModern && modernShadows.card,
           themed.card,
           isModern && {
             borderRadius: ModernLayout.borderRadiusCard,

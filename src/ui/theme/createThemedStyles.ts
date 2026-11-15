@@ -1,10 +1,13 @@
 import {useMemo} from 'react';
 import {useTheme} from '../contexts/ThemeContext';
-import type {ModernPalette, ThemeColors} from './palettes';
+import type {ModernShadowSet} from './modern';
+import type {ModernPalette, ModernThemeId, ThemeColors} from './palettes';
 
 export interface ThemedStyleMeta {
   isModern: boolean;
   modernPalette: ModernPalette;
+  modernTheme: ModernThemeId;
+  modernShadows: ModernShadowSet;
 }
 
 /**
@@ -19,10 +22,31 @@ export const useThemedStyles = <T extends Record<string, object>>(
     modern: ThemedStyleMeta,
   ) => T,
 ): T => {
-  const {colors, isDarkMode, isModern, modernPalette} = useTheme();
+  const {
+    colors,
+    isDarkMode,
+    isModern,
+    modernPalette,
+    modernTheme,
+    modernShadows,
+  } = useTheme();
   return useMemo(
-    () => styleFactory(colors, isDarkMode, {isModern, modernPalette}),
-    [colors, isDarkMode, isModern, modernPalette, styleFactory],
+    () =>
+      styleFactory(colors, isDarkMode, {
+        isModern,
+        modernPalette,
+        modernTheme,
+        modernShadows,
+      }),
+    [
+      colors,
+      isDarkMode,
+      isModern,
+      modernPalette,
+      modernTheme,
+      modernShadows,
+      styleFactory,
+    ],
   );
 };
 

@@ -17,7 +17,6 @@ import { useThemedStyles } from '../../theme/createThemedStyles';
 import {
   Fonts,
   ModernLayout,
-  ModernShadows,
   Shadows,
   Spacing,
 } from '../../theme';
@@ -25,7 +24,7 @@ import { describeMeetingProblem, formatClock } from './meetingCopy';
 import { getMeetingThemedStyles, meetingStyles } from './meetingStyles';
 
 export const RecorderCard: React.FC = () => {
-  const {colors, isModern, modernPalette} = useTheme();
+  const {colors, isModern, modernPalette, modernShadows} = useTheme();
   const themed = useThemedStyles(getMeetingThemedStyles);
   const {
     recorder,
@@ -110,7 +109,7 @@ export const RecorderCard: React.FC = () => {
 
   const cardSurface = isModern
     ? [
-        ModernShadows.card,
+        modernShadows.card,
         {
           borderRadius: ModernLayout.borderRadiusCard,
           borderColor: modernPalette.border,
@@ -160,7 +159,7 @@ export const RecorderCard: React.FC = () => {
           style={[
             meetingStyles.primaryButton,
             themed.primaryButton,
-            isModern && ModernShadows.subtle,
+            isModern && modernShadows.subtle,
             isModern && {backgroundColor: modernPalette.accent},
           ]}
           onPress={() => {
