@@ -22,7 +22,6 @@ import {
   RefreshCw,
   Search,
   SlidersHorizontal,
-  Sparkles,
 } from 'lucide-react-native';
 import Svg, {Circle} from 'react-native-svg';
 import {
@@ -53,6 +52,7 @@ import type {
 type HomeFilter = 'All' | 'Tasks' | 'Alarms' | 'Docs';
 
 const HOME_FILTERS: readonly HomeFilter[] = ['All', 'Tasks', 'Alarms', 'Docs'];
+const LAFINA_MASCOT = require('../../../../assets/new_lafina_app_logo/lafina_app_logo.png');
 
 export interface ModernHomeContentProps {
   userId: string;
@@ -297,7 +297,7 @@ export const ModernHomeContent: React.FC<ModernHomeContentProps> = ({
         title: primary.title,
         subtitle: detail,
         cta: 'VIEW SCHEDULE',
-        onPress: () => onPressScheduleItem(primary),
+        onPress: () => onOpenCalendarTab({date: primary.date}),
       };
     }
 
@@ -334,7 +334,7 @@ export const ModernHomeContent: React.FC<ModernHomeContentProps> = ({
         title: tomorrow.title,
         subtitle: `Tomorrow · ${formatTimeLabel(tomorrow.startTime)}`,
         cta: 'VIEW SCHEDULE',
-        onPress: () => onPressScheduleItem(tomorrow),
+        onPress: () => onOpenCalendarTab({date: tomorrow.date}),
       };
     }
 
@@ -351,7 +351,7 @@ export const ModernHomeContent: React.FC<ModernHomeContentProps> = ({
     activeAlarm,
     timeFormat24h,
     allPendingTasks,
-    onPressScheduleItem,
+    onOpenCalendarTab,
     onOpenAlarms,
     onPressTask,
     onOpenChatTab,
@@ -523,7 +523,7 @@ export const ModernHomeContent: React.FC<ModernHomeContentProps> = ({
         )}
       </View>
 
-      {/* Periwinkle / Indigo Hero Card (No Mascot) */}
+      {/* Periwinkle / Indigo Hero Card with LAFINA Mascot */}
       {isVisible('up_next') && (
         <Pressable
           testID="dashboard-widget-up-next"
@@ -548,8 +548,10 @@ export const ModernHomeContent: React.FC<ModernHomeContentProps> = ({
 
           <View style={styles.heroContent}>
             <View style={styles.heroTopRow}>
-              <View style={styles.heroBadgePill}>
-                <Sparkles color="#FFFFFF" size={13} />
+              <View
+                style={styles.heroBadgePill}
+                testID="dashboard-hero-badge-pill"
+              >
                 <Text style={styles.heroPillText}>{hero.badge}</Text>
               </View>
               <View style={styles.heroStatsPill}>
@@ -559,23 +561,36 @@ export const ModernHomeContent: React.FC<ModernHomeContentProps> = ({
               </View>
             </View>
 
-            <View style={styles.heroBody}>
-              <Text style={styles.heroTitle} numberOfLines={2}>
-                {hero.title}
-              </Text>
-              <Text style={styles.heroSub} numberOfLines={1}>
-                {hero.subtitle}
-              </Text>
-            </View>
+            <View style={styles.heroMainRow}>
+              <View style={styles.heroTextCol}>
+                <Text style={styles.heroTitle} numberOfLines={2}>
+                  {hero.title}
+                </Text>
+                <Text style={styles.heroSub} numberOfLines={2}>
+                  {hero.subtitle}
+                </Text>
+                <View style={styles.heroFooter}>
+                  <TouchableOpacity
+                    testID="dashboard-hero-cta"
+                    onPress={hero.onPress}
+                    activeOpacity={0.85}
+                    style={styles.heroCtaBtn}
+                  >
+                    <Text style={styles.heroCtaText}>{hero.cta}</Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
 
-            <View style={styles.heroFooter}>
-              <TouchableOpacity
-                onPress={hero.onPress}
-                activeOpacity={0.85}
-                style={styles.heroCtaBtn}
-              >
-                <Text style={styles.heroCtaText}>{hero.cta}</Text>
-              </TouchableOpacity>
+              <View style={styles.heroMascotWrap} pointerEvents="none">
+                <View style={styles.heroMascotGlow} />
+                <Image
+                  source={LAFINA_MASCOT}
+                  style={styles.heroMascotImage}
+                  resizeMode="contain"
+                  testID="dashboard-hero-mascot"
+                  accessibilityLabel="LAFINA mascot"
+                />
+              </View>
             </View>
           </View>
         </Pressable>
@@ -1367,7 +1382,7 @@ const styles = StyleSheet.create({
     elevation: 3,
   },
   heroContent: {
-    padding: 20,
+    padding: 18,
     minHeight: 172,
     justifyContent: 'space-between',
   },
@@ -1405,13 +1420,12 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   heroBadgePill: {
-    paddingHorizontal: 10,
+    paddingHorizontal: 11,
     paddingVertical: 5,
     borderRadius: 999,
     backgroundColor: 'rgba(255,255,255,0.24)',
-    flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
+    justifyContent: 'center',
   },
   heroStatsPill: {
     paddingHorizontal: 10,
@@ -1425,28 +1439,54 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: '#FFFFFF',
   },
-  heroBody: {
+  heroMainRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-end',
+    justifyContent: 'space-between',
+    gap: 10,
     marginTop: 12,
+  },
+  heroTextCol: {
+    flex: 1,
   },
   heroTitle: {
     fontFamily: Fonts.heading,
-    fontSize: 20,
+    fontSize: 19,
     fontWeight: '700',
     color: '#FFFFFF',
-    lineHeight: 26,
+    lineHeight: 24,
     letterSpacing: -0.3,
   },
   heroSub: {
     fontFamily: Fonts.body,
-    fontSize: 13,
+    fontSize: 12.5,
     color: 'rgba(255,255,255,0.9)',
-    marginTop: 3,
-    lineHeight: 18,
+    marginTop: 4,
+    lineHeight: 17,
   },
   heroFooter: {
     marginTop: 14,
     flexDirection: 'row',
     alignItems: 'center',
+  },
+  heroMascotWrap: {
+    width: 94,
+    height: 94,
+    alignItems: 'center',
+    justifyContent: 'flex-end',
+    position: 'relative',
+  },
+  heroMascotGlow: {
+    position: 'absolute',
+    width: 90,
+    height: 90,
+    borderRadius: 45,
+    backgroundColor: 'rgba(255,255,255,0.22)',
+    bottom: 2,
+  },
+  heroMascotImage: {
+    width: 88,
+    height: 84,
   },
   heroCtaBtn: {
     backgroundColor: '#151327',

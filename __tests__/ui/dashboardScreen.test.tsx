@@ -320,6 +320,7 @@ describe('Dashboard Config Store, Schedule Calculations & Screen UI', () => {
 
       // All default widgets render with live data
       expect(utils.getByTestId('dashboard-widget-up-next')).toBeTruthy();
+      expect(utils.getByTestId('dashboard-hero-mascot')).toBeTruthy();
       expect(
         utils.getByTestId('dashboard-widget-free-study-blocks'),
       ).toBeTruthy();
@@ -336,6 +337,13 @@ describe('Dashboard Config Store, Schedule Calculations & Screen UI', () => {
       expect(utils.getByText('Submit Packet Tracer Lab')).toBeTruthy();
       expect(utils.getByText('Review Subnetting Quiz')).toBeTruthy();
       expect(utils.getByText('OS Semaphores Summary')).toBeTruthy();
+
+      // Clicking VIEW SCHEDULE opens the Schedule tab without opening Edit Time Block
+      fireEvent.press(utils.getByTestId('dashboard-hero-cta'));
+      expect(onOpenCalendarTab).toHaveBeenCalledWith({date: todayStr});
+      expect(onOpenCalendarTab).not.toHaveBeenCalledWith(
+        expect.objectContaining({entityId: expect.anything()}),
+      );
 
       // Inline task completion writes to SQLite and triggers refresh
       fireEvent.press(utils.getByTestId('dashboard-task-toggle-task-1'));
