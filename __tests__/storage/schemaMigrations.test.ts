@@ -92,7 +92,9 @@ describe('schema migrations', () => {
     const snapshot: Record<string, string[]> = {};
     for (const [table, columns] of Object.entries(columnsByTable)) {
       snapshot[table] = connection
-        .executeSync(`SELECT ${columns.map(c => `"${c}"`).join(', ')} FROM ${table}`)
+        .executeSync(
+          `SELECT ${columns.map(c => `"${c}"`).join(', ')} FROM ${table}`,
+        )
         .rows.map(row => JSON.stringify(row))
         .sort();
     }
@@ -126,7 +128,9 @@ describe('schema migrations', () => {
 
     // Schemas 18-26 only add: every schema-17 column of every row is unchanged.
     const afterUpgrade = inspect(path, snapshotAllRows);
-    const projected = inspect(path, c => snapshotSchema17Columns(c, schema17Columns));
+    const projected = inspect(path, c =>
+      snapshotSchema17Columns(c, schema17Columns),
+    );
     for (const [table, rows] of Object.entries(before)) {
       expect(projected[table]).toEqual(rows);
     }
@@ -144,6 +148,14 @@ describe('schema migrations', () => {
       // Schema 22 (AGY-PORT 08): device-local event timezone metadata; legacy
       // events get no row and keep their floating meaning.
       'event_time_local',
+      // Schema 28: device-local USTP Student Handbook chunks & FTS5 index, empty at first.
+      'handbook_chunks',
+      'handbook_chunks_fts',
+      'handbook_chunks_fts_config',
+      'handbook_chunks_fts_data',
+      'handbook_chunks_fts_docsize',
+      'handbook_chunks_fts_idx',
+      'handbook_meta',
       // Schema 21 (AGY-PORT 07): derived Notes search cache, empty until a search.
       'notes_search_index',
       'reminder_delivery_events',
@@ -160,6 +172,9 @@ describe('schema migrations', () => {
     expect(afterUpgrade.chat_memories).toEqual([]);
     expect(afterUpgrade.reminder_delivery_styles).toEqual([]);
     expect(afterUpgrade.alarms).toEqual([]);
+    expect(afterUpgrade.handbook_meta).toEqual([]);
+    expect(afterUpgrade.handbook_chunks).toEqual([]);
+    expect(afterUpgrade.handbook_chunks_fts).toEqual([]);
     // Schema 19 backfills one delivery job per reminder, owned by its owner,
     // with no events and nothing added to the outbox.
     expect(
@@ -171,10 +186,34 @@ describe('schema migrations', () => {
           ).rows,
       ),
     ).toEqual([
-      {reminder_id: 'r-a', user_id: FIXTURE_ACCOUNT_A, generation: 1, state: 'armed', registration_state: 'unregistered'},
-      {reminder_id: 'r-a-ack', user_id: FIXTURE_ACCOUNT_A, generation: 1, state: 'retired', registration_state: 'idle'},
-      {reminder_id: 'r-a-deleted', user_id: FIXTURE_ACCOUNT_A, generation: 1, state: 'retired', registration_state: 'idle'},
-      {reminder_id: 'r-b', user_id: FIXTURE_ACCOUNT_B, generation: 1, state: 'armed', registration_state: 'unregistered'},
+      {
+        reminder_id: 'r-a',
+        user_id: FIXTURE_ACCOUNT_A,
+        generation: 1,
+        state: 'armed',
+        registration_state: 'unregistered',
+      },
+      {
+        reminder_id: 'r-a-ack',
+        user_id: FIXTURE_ACCOUNT_A,
+        generation: 1,
+        state: 'retired',
+        registration_state: 'idle',
+      },
+      {
+        reminder_id: 'r-a-deleted',
+        user_id: FIXTURE_ACCOUNT_A,
+        generation: 1,
+        state: 'retired',
+        registration_state: 'idle',
+      },
+      {
+        reminder_id: 'r-b',
+        user_id: FIXTURE_ACCOUNT_B,
+        generation: 1,
+        state: 'armed',
+        registration_state: 'unregistered',
+      },
     ]);
     expect(afterUpgrade.reminder_delivery_events).toEqual([]);
     expect(afterUpgrade.sync_outbox).toEqual(before.sync_outbox);
@@ -186,10 +225,10 @@ describe('schema migrations', () => {
         table === 'messages'
           ? ['seq', 'metadata_json']
           : table === 'chat_sessions'
-            ? ['generation']
-            : table === 'remember_me'
-              ? ['password']
-              : [],
+          ? ['generation']
+          : table === 'remember_me'
+          ? ['password']
+          : [],
       ]);
     }
 
@@ -204,9 +243,24 @@ describe('schema migrations', () => {
       ).rows,
     }));
     expect(chat.messages).toEqual([
-      {id: 'm-user', session_id: 'default_chat_session', seq: 1, metadata_json: null},
-      {id: 'm-cited', session_id: 'default_chat_session', seq: 2, metadata_json: null},
-      {id: 'm-doc', session_id: 'default_chat_session', seq: 3, metadata_json: null},
+      {
+        id: 'm-user',
+        session_id: 'default_chat_session',
+        seq: 1,
+        metadata_json: null,
+      },
+      {
+        id: 'm-cited',
+        session_id: 'default_chat_session',
+        seq: 2,
+        metadata_json: null,
+      },
+      {
+        id: 'm-doc',
+        session_id: 'default_chat_session',
+        seq: 3,
+        metadata_json: null,
+      },
     ]);
     expect(chat.quarantine).toEqual([
       {
@@ -236,11 +290,19 @@ describe('schema migrations', () => {
       );
     expect(revision('task', 't-a')).toBe(0);
     // Raw writes, as a sync pull or an older code path would make them.
-    connection.executeSync("UPDATE tasks SET title = 'Pulled title' WHERE id = 't-a'");
-    connection.executeSync("UPDATE events SET location = 'Room 2' WHERE id = 'e-a'");
-    connection.executeSync("UPDATE time_blocks SET notes = 'x' WHERE id = 'b-a'");
+    connection.executeSync(
+      "UPDATE tasks SET title = 'Pulled title' WHERE id = 't-a'",
+    );
+    connection.executeSync(
+      "UPDATE events SET location = 'Room 2' WHERE id = 'e-a'",
+    );
+    connection.executeSync(
+      "UPDATE time_blocks SET notes = 'x' WHERE id = 'b-a'",
+    );
     connection.executeSync("UPDATE notes SET body = 'y' WHERE id = 'n-b'");
-    connection.executeSync("UPDATE reminders SET task = task || ' (edited)' WHERE id = 'r-b'");
+    connection.executeSync(
+      "UPDATE reminders SET task = task || ' (edited)' WHERE id = 'r-b'",
+    );
     expect([
       revision('task', 't-a'),
       revision('event', 'e-a'),

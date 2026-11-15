@@ -194,3 +194,10 @@ export type {MeetingPatch, RecordedMeeting} from './recordedMeetingStore';
 export {assistantOperationStore} from './assistantOperationStore';
 export type {OperationReceipt} from './assistantOperationStore';
 export type {RevisionEntityType} from './assistantOperationSchema';
+export {localHandbookStore, parseHandbookPack} from './localHandbookStore';
+export type {
+  HandbookFtsHit,
+  HandbookMeta,
+  HandbookPack,
+  HandbookPackChunk,
+} from './localHandbookStore';
