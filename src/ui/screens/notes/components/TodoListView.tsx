@@ -22,6 +22,8 @@ import {
   Fonts,
   FontSize,
   Layout,
+  ModernLayout,
+  ModernShadows,
   Shadows,
   Spacing,
   getCategoryColor,
@@ -114,7 +116,7 @@ export const TodoListView: React.FC<TodoListViewProps> = ({
   searchQuery,
   isGridView = false,
 }) => {
-  const {colors} = useTheme();
+  const {colors, isModern, modernPalette} = useTheme();
   const [showCompletedInline, setShowCompletedInline] = useState(false);
   const todayStr = toLocalYmd(new Date());
 
@@ -135,6 +137,9 @@ export const TodoListView: React.FC<TodoListViewProps> = ({
     return colors.success;
   };
 
+  const accentColor = isModern ? modernPalette.accent : Colors.red;
+  const activeCardShadow = isModern ? ModernShadows.card : Shadows.card;
+
   const renderTaskRow = (task: Task) => {
     const isOverdue =
       !task.isCompleted && Boolean(task.dueDate && task.dueDate < todayStr);
@@ -149,10 +154,15 @@ export const TodoListView: React.FC<TodoListViewProps> = ({
         style={[
           styles.taskRow,
           isGridView && styles.taskCardGrid,
-          Shadows.card,
+          activeCardShadow,
+          isModern && styles.modernTaskRow,
           {
             backgroundColor: colors.cardBg,
-            borderColor: isHighlighted ? Colors.red : colors.border,
+            borderColor: isHighlighted
+              ? accentColor
+              : isModern
+              ? modernPalette.border
+              : colors.border,
             borderWidth: isHighlighted ? 1.5 : 1,
           },
         ]}
@@ -166,8 +176,8 @@ export const TodoListView: React.FC<TodoListViewProps> = ({
           style={[
             styles.checkbox,
             {
-              borderColor: task.isCompleted ? Colors.red : prioColor,
-              backgroundColor: task.isCompleted ? Colors.red : 'transparent',
+              borderColor: task.isCompleted ? accentColor : prioColor,
+              backgroundColor: task.isCompleted ? accentColor : 'transparent',
             },
           ]}
         >
@@ -270,7 +280,11 @@ export const TodoListView: React.FC<TodoListViewProps> = ({
       <View
         style={[
           styles.quickAddBox,
-          {backgroundColor: colors.cardBg, borderColor: colors.border},
+          isModern && styles.modernQuickAddBox,
+          {
+            backgroundColor: colors.cardBg,
+            borderColor: isModern ? modernPalette.border : colors.border,
+          },
         ]}
       >
         <TextInput
@@ -309,8 +323,13 @@ export const TodoListView: React.FC<TodoListViewProps> = ({
           testID="todo-quick-add-submit"
           style={[
             styles.addBtn,
+            isModern && styles.modernAddBtn,
             {
-              backgroundColor: quickTitle.trim() ? Colors.red : colors.inputBg,
+              backgroundColor: quickTitle.trim()
+                ? accentColor
+                : isModern
+                ? modernPalette.surface
+                : colors.inputBg,
             },
           ]}
         >
@@ -343,15 +362,26 @@ export const TodoListView: React.FC<TodoListViewProps> = ({
                 testID={`todo-filter-${opt.key}`}
                 style={[
                   styles.filterChip,
-                  {backgroundColor: colors.inputBg},
-                  active && {backgroundColor: Colors.red},
+                  {
+                    backgroundColor: isModern
+                      ? modernPalette.surface
+                      : colors.inputBg,
+                  },
+                  active && {
+                    backgroundColor: isModern
+                      ? modernPalette.darkInkBtn
+                      : Colors.red,
+                  },
                 ]}
               >
                 <Text
                   style={[
                     styles.filterChipText,
                     {color: colors.textSecondary},
-                    active && {color: colors.white, fontWeight: '700'},
+                    active && {
+                      color: colors.white,
+                      fontWeight: '700',
+                    },
                   ]}
                 >
                   {opt.label}
@@ -387,10 +417,11 @@ export const TodoListView: React.FC<TodoListViewProps> = ({
                 onPress={onOpenNewTodoModal}
                 style={[
                   styles.emptyBtn,
-                  {borderColor: Colors.red, backgroundColor: colors.cardBg},
+                  isModern && styles.modernPill,
+                  {borderColor: accentColor, backgroundColor: colors.cardBg},
                 ]}
               >
-                <Text style={{color: Colors.red, fontWeight: '700'}}>
+                <Text style={{color: accentColor, fontWeight: '700'}}>
                   Add detailed To-Do
                 </Text>
               </TouchableOpacity>
@@ -433,10 +464,13 @@ export const TodoListView: React.FC<TodoListViewProps> = ({
                   style={[
                     styles.taskRow,
                     isGridView && styles.taskCardGrid,
-                    Shadows.card,
+                    activeCardShadow,
+                    isModern && styles.modernTaskRow,
                     {
                       backgroundColor: colors.cardBg,
-                      borderColor: colors.border,
+                      borderColor: isModern
+                        ? modernPalette.border
+                        : colors.border,
                       borderWidth: 1,
                     },
                   ]}
@@ -450,8 +484,10 @@ export const TodoListView: React.FC<TodoListViewProps> = ({
                     style={[
                       styles.checkbox,
                       {
-                        borderColor: item.done ? Colors.red : colors.primary,
-                        backgroundColor: item.done ? Colors.red : 'transparent',
+                        borderColor: item.done ? accentColor : colors.primary,
+                        backgroundColor: item.done
+                          ? accentColor
+                          : 'transparent',
                       },
                     ]}
                   >
@@ -714,5 +750,17 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
     borderRadius: Layout.borderRadiusButton,
     borderWidth: 1,
+  },
+  modernQuickAddBox: {
+    borderRadius: ModernLayout.borderRadiusCard,
+  },
+  modernAddBtn: {
+    borderRadius: ModernLayout.borderRadiusPill,
+  },
+  modernTaskRow: {
+    borderRadius: ModernLayout.borderRadiusCard,
+  },
+  modernPill: {
+    borderRadius: ModernLayout.borderRadiusPill,
   },
 });

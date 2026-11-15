@@ -1,9 +1,32 @@
-import React, { createContext, useContext, useState, useEffect, useMemo, useCallback, useRef } from 'react';
-import { useColorScheme } from 'react-native';
-import { userStore } from '../../storage';
-import { Colors } from '../theme/colors';
-import { captureForReveal, isThemeRevealAvailable, revealNewTheme } from '../theme/themeReveal';
-import type { ThemeRevealOrigin } from '../theme/themeReveal';
+import React, {
+  createContext,
+  useContext,
+  useState,
+  useEffect,
+  useMemo,
+  useCallback,
+  useRef,
+} from 'react';
+import {useColorScheme} from 'react-native';
+import {
+  getSavedUIVariant,
+  saveUIVariant,
+  userStore,
+  type UIVariant,
+} from '../../storage';
+import {Colors} from '../theme/colors';
+import {
+  getModernPalette,
+  modernDarkThemeColors,
+  modernLightThemeColors,
+  type ModernPalette,
+} from '../theme/modern';
+import {
+  captureForReveal,
+  isThemeRevealAvailable,
+  revealNewTheme,
+} from '../theme/themeReveal';
+import type {ThemeRevealOrigin} from '../theme/themeReveal';
 
 export interface ThemeColors {
   background: string;
@@ -132,6 +155,10 @@ export interface ThemeContextType {
   isDarkMode: boolean;
   colors: ThemeColors;
   toggleTheme: (origin?: ThemeRevealOrigin | null) => void;
+  uiVariant: UIVariant;
+  isModern: boolean;
+  setUIVariant: (variant: UIVariant) => void;
+  modernPalette: ModernPalette;
 }
 
 const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
@@ -139,8 +166,9 @@ const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
 export const ThemeProvider: React.FC<{
   userId: string | null;
   refreshTrigger?: number;
+  initialUIVariant?: UIVariant;
   children: React.ReactNode;
-}> = ({ userId, refreshTrigger, children }) => {
+}> = ({userId, refreshTrigger, initialUIVariant, children}) => {
   const systemScheme = useColorScheme();
 
   const [isDarkMode, setIsDarkMode] = useState(() => {
@@ -150,6 +178,10 @@ export const ThemeProvider: React.FC<{
     return systemScheme === 'dark';
   });
 
+  const [uiVariant, setUIVariantState] = useState<UIVariant>(
+    () => initialUIVariant ?? getSavedUIVariant(userId),
+  );
+
   useEffect(() => {
     if (userId) {
       setIsDarkMode(userStore.getDarkModeEnabled(userId));
@@ -158,36 +190,62 @@ export const ThemeProvider: React.FC<{
     }
   }, [userId, systemScheme, refreshTrigger]);
 
-  const colors = useMemo<ThemeColors>(
-    () => (isDarkMode ? darkColors : lightColors),
-    [isDarkMode]
+  useEffect(() => {
+    if (initialUIVariant) {
+      setUIVariantState(initialUIVariant);
+      return;
+    }
+    setUIVariantState(getSavedUIVariant(userId));
+  }, [userId, refreshTrigger, initialUIVariant]);
+
+  const colors = useMemo<ThemeColors>(() => {
+    if (uiVariant === 'classic') {
+      return isDarkMode ? darkColors : lightColors;
+    }
+    return isDarkMode ? modernDarkThemeColors : modernLightThemeColors;
+  }, [uiVariant, isDarkMode]);
+
+  const modernPalette = useMemo<ModernPalette>(
+    () => getModernPalette(isDarkMode),
+    [isDarkMode],
   );
 
   const capturingRef = useRef(false);
   const revealPendingRef = useRef(false);
 
-  const toggleTheme = useCallback((origin?: ThemeRevealOrigin | null) => {
-    const flip = (): void =>
-      setIsDarkMode((prev) => {
-        const next = !prev;
-        if (userId) {
-          userStore.setDarkModeEnabled(userId, next);
-        }
-        return next;
-      });
+  const toggleTheme = useCallback(
+    (origin?: ThemeRevealOrigin | null) => {
+      const flip = (): void =>
+        setIsDarkMode(prev => {
+          const next = !prev;
+          if (userId) {
+            userStore.setDarkModeEnabled(userId, next);
+          }
+          return next;
+        });
 
-    if (!isThemeRevealAvailable()) {
-      flip();
-      return;
-    }
-    if (capturingRef.current) return;
-    capturingRef.current = true;
-    void captureForReveal(origin).then((captured) => {
-      capturingRef.current = false;
-      revealPendingRef.current = captured;
-      flip();
-    });
-  }, [userId]);
+      if (!isThemeRevealAvailable()) {
+        flip();
+        return;
+      }
+      if (capturingRef.current) return;
+      capturingRef.current = true;
+      void captureForReveal(origin).then(captured => {
+        capturingRef.current = false;
+        revealPendingRef.current = captured;
+        flip();
+      });
+    },
+    [userId],
+  );
+
+  const setUIVariant = useCallback(
+    (nextVariant: UIVariant) => {
+      saveUIVariant(userId, nextVariant);
+      setUIVariantState(nextVariant);
+    },
+    [userId],
+  );
 
   useEffect(() => {
     if (!revealPendingRef.current) return;
@@ -195,12 +253,34 @@ export const ThemeProvider: React.FC<{
     revealNewTheme();
   }, [isDarkMode]);
 
+  const isModern = uiVariant === 'modern';
+
   const contextValue = useMemo(
-    () => ({ isDarkMode, colors, toggleTheme }),
-    [isDarkMode, colors, toggleTheme]
+    () => ({
+      isDarkMode,
+      colors,
+      toggleTheme,
+      uiVariant,
+      isModern,
+      setUIVariant,
+      modernPalette,
+    }),
+    [
+      isDarkMode,
+      colors,
+      toggleTheme,
+      uiVariant,
+      isModern,
+      setUIVariant,
+      modernPalette,
+    ],
   );
 
-  return <ThemeContext.Provider value={contextValue}>{children}</ThemeContext.Provider>;
+  return (
+    <ThemeContext.Provider value={contextValue}>
+      {children}
+    </ThemeContext.Provider>
+  );
 };
 
 export const useTheme = (): ThemeContextType => {
@@ -209,4 +289,9 @@ export const useTheme = (): ThemeContextType => {
     throw new Error('useTheme must be used within a ThemeProvider');
   }
   return ctx;
+};
+
+export const useUIVariant = () => {
+  const {uiVariant, isModern, setUIVariant, modernPalette} = useTheme();
+  return {uiVariant, isModern, setUIVariant, modernPalette};
 };

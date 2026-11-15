@@ -13,7 +13,7 @@ import {
   GestureResponderEvent,
 } from 'react-native';
 import { Mic, Plus, Send, Sparkles, X } from 'lucide-react-native';
-import { Fonts, Shadows } from '../../theme';
+import { Fonts, ModernLayout, ModernShadows, Shadows } from '../../theme';
 import { useTheme } from '../../contexts/ThemeContext';
 import { useThemedStyles } from '../../theme/createThemedStyles';
 import type { ThemeColors } from '../../contexts/ThemeContext';
@@ -89,7 +89,7 @@ export const ChatInput: React.FC<ChatInputProps> = ({
   placeholderOverride,
   onFocus,
 }) => {
-  const { colors } = useTheme();
+  const { colors, isModern, modernPalette } = useTheme();
   const themed = useThemedStyles(getThemedStyles);
   const placeholder = placeholderOverride
     ? placeholderOverride
@@ -381,7 +381,14 @@ export const ChatInput: React.FC<ChatInputProps> = ({
           </View>
         ) : (
           <TextInput
-            style={[styles.input, themed.input]}
+            style={[
+              styles.input,
+              themed.input,
+              isModern && {
+                borderRadius: ModernLayout.borderRadiusCard,
+                backgroundColor: modernPalette.surface,
+              },
+            ]}
             placeholder={placeholder}
             placeholderTextColor={colors.textSecondary}
             cursorColor={colors.primary}
@@ -402,6 +409,7 @@ export const ChatInput: React.FC<ChatInputProps> = ({
             onPress={() => onSend()}
             style={[
               styles.sendButton,
+              isModern && ModernShadows.subtle,
               { backgroundColor: colors.primary },
               isSending && styles.sendDisabled,
             ]}

@@ -4,7 +4,15 @@ import {Calendar, ChevronRight} from 'lucide-react-native';
 import type {DashboardScheduleFilter} from '../../../../storage';
 import {useTheme} from '../../../contexts/ThemeContext';
 import type {ThemeColors} from '../../../contexts/ThemeContext';
-import {Fonts, FontSize, Layout, Shadows, Spacing} from '../../../theme';
+import {
+  Fonts,
+  FontSize,
+  Layout,
+  ModernLayout,
+  ModernShadows,
+  Shadows,
+  Spacing,
+} from '../../../theme';
 import {useThemedStyles} from '../../../theme/createThemedStyles';
 import {formatTimeLabel} from '../dashboardCalculations';
 import type {DashboardScheduleItem} from '../types';
@@ -32,7 +40,7 @@ export const TodayScheduleWidget: React.FC<TodayScheduleWidgetProps> = ({
   onPressItem,
   onOpenCalendar,
 }) => {
-  const {colors} = useTheme();
+  const {colors, isModern, modernPalette} = useTheme();
   const themed = useThemedStyles(getThemedStyles);
 
   const filteredItems = items.filter(item => {
@@ -41,14 +49,25 @@ export const TodayScheduleWidget: React.FC<TodayScheduleWidgetProps> = ({
     return true;
   });
 
+  const activePillBg = isModern ? modernPalette.darkInkBtn : colors.primary;
+
   return (
     <View
-      style={[styles.card, themed.card, Shadows.card]}
+      style={[
+        styles.card,
+        themed.card,
+        isModern
+          ? [ModernShadows.card, {borderRadius: ModernLayout.borderRadiusCard}]
+          : Shadows.card,
+      ]}
       testID="dashboard-widget-today-schedule"
     >
       <View style={styles.headerRow}>
         <View style={styles.headerTitleWrap}>
-          <Calendar size={17} color={colors.red} />
+          <Calendar
+            size={17}
+            color={isModern ? modernPalette.accent : colors.red}
+          />
           <Text style={[styles.headerTitle, themed.primaryText]}>
             Today's Schedule
           </Text>
@@ -74,9 +93,10 @@ export const TodayScheduleWidget: React.FC<TodayScheduleWidgetProps> = ({
               style={[
                 styles.filterChip,
                 themed.filterChip,
+                isModern && {borderRadius: ModernLayout.borderRadiusPill},
                 active && {
-                  backgroundColor: colors.primary,
-                  borderColor: colors.primary,
+                  backgroundColor: activePillBg,
+                  borderColor: activePillBg,
                 },
               ]}
               onPress={() => onChangeFilter(f.id)}
@@ -117,6 +137,7 @@ export const TodayScheduleWidget: React.FC<TodayScheduleWidgetProps> = ({
                 style={[
                   styles.itemRow,
                   themed.itemRow,
+                  isModern && {borderRadius: ModernLayout.borderRadiusSubCard},
                   isPast && styles.itemRowPast,
                   isNow && {borderColor: item.color || colors.red},
                 ]}

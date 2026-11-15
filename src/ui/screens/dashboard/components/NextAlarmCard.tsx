@@ -2,7 +2,15 @@ import React from 'react';
 import {StyleSheet, Text, TouchableOpacity, View} from 'react-native';
 import {AlarmClock, ChevronRight} from 'lucide-react-native';
 import {useTheme} from '../../../contexts/ThemeContext';
-import {Fonts, FontSize, Layout, Shadows, Spacing} from '../../../theme';
+import {
+  Fonts,
+  FontSize,
+  Layout,
+  ModernLayout,
+  ModernShadows,
+  Shadows,
+  Spacing,
+} from '../../../theme';
 import {
   describeRepeat,
   describeTimeUntil,
@@ -27,7 +35,7 @@ export const NextAlarmCard: React.FC<NextAlarmCardProps> = ({
   now,
   onOpenAlarms,
 }) => {
-  const {colors} = useTheme();
+  const {colors, isModern, modernPalette} = useTheme();
   let next: ReturnType<typeof nextAlarm> = null;
   try {
     next = nextAlarm(userId, now);
@@ -56,12 +64,36 @@ export const NextAlarmCard: React.FC<NextAlarmCardProps> = ({
       accessibilityLabel={`Next alarm ${time}, ${detail}. Open alarms`}
       style={[
         styles.card,
-        Shadows.card,
-        {backgroundColor: colors.cardBg, borderColor: colors.border},
+        isModern
+          ? [
+              ModernShadows.card,
+              {
+                borderRadius: ModernLayout.borderRadiusCard,
+                borderWidth: 1,
+                backgroundColor: modernPalette.card,
+                borderColor: modernPalette.border,
+              },
+            ]
+          : [
+              Shadows.card,
+              {backgroundColor: colors.cardBg, borderColor: colors.border},
+            ],
       ]}
     >
-      <View style={[styles.icon, {backgroundColor: colors.inputBg}]}>
-        <AlarmClock size={18} color={colors.red} />
+      <View
+        style={[
+          styles.icon,
+          {
+            backgroundColor: isModern
+              ? modernPalette.blueSoft
+              : colors.inputBg,
+          },
+        ]}
+      >
+        <AlarmClock
+          size={18}
+          color={isModern ? modernPalette.accent : colors.red}
+        />
       </View>
       <View style={styles.text}>
         <Text style={[styles.title, {color: colors.textPrimary}]}>

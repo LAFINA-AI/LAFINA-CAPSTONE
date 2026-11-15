@@ -12,7 +12,7 @@ import {AlertCircle, RefreshCw} from 'lucide-react-native';
 import {userStore, type DashboardWidgetId} from '../../../storage';
 import {useTheme} from '../../contexts/ThemeContext';
 import type {ThemeColors} from '../../contexts/ThemeContext';
-import {Fonts, FontSize, Layout, Spacing} from '../../theme';
+import {Fonts, FontSize, Layout, ModernLayout, Spacing} from '../../theme';
 import {useThemedStyles} from '../../theme/createThemedStyles';
 import {AddBlockModal} from '../calendar/components/AddBlockModal';
 import {
@@ -37,11 +37,12 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({
   onOpenNotesTab,
   onOpenChatTab,
 }) => {
-  const {colors} = useTheme();
+  const {colors, isModern, modernPalette} = useTheme();
   const themed = useThemedStyles(getThemedStyles);
   const insets = useSafeAreaInsets();
   const bottomClearance =
-    Math.max(insets.bottom, 12) + Layout.navbarHeight + 28;
+    Math.max(insets.bottom, 12) +
+    (isModern ? ModernLayout.navbarContentHeight + 36 : Layout.navbarHeight + 28);
 
   const {now, data, actions, blockModal} = useDashboardData({
     userId,
@@ -218,8 +219,11 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({
           <View
             style={[
               styles.errorBanner,
+              isModern && {borderRadius: ModernLayout.borderRadiusSubCard},
               {
-                backgroundColor: colors.error + '14',
+                backgroundColor: isModern
+                  ? modernPalette.dangerSoft
+                  : colors.error + '14',
                 borderColor: colors.error + '40',
               },
             ]}

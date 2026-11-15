@@ -23,7 +23,13 @@ import {
   CheckSquare,
 } from 'lucide-react-native';
 import {useTheme} from '../../contexts/ThemeContext';
-import {Colors, Shadows} from '../../theme';
+import {
+  Colors,
+  ModernLayout,
+  ModernShadows,
+  ModernTypography,
+  Shadows,
+} from '../../theme';
 import {useNotesData} from './hooks/useNotesData';
 import {useTodoData} from './hooks/useTodoData';
 import {
@@ -43,9 +49,9 @@ export const NotesScreen: React.FC<NotesScreenProps> = ({
   openRequest,
   onOpenRequestHandled,
 }) => {
-  const {colors} = useTheme();
+  const {colors, isModern, modernPalette} = useTheme();
   const insets = useSafeAreaInsets();
-  const fabBottom = Math.max(insets.bottom, 12) + 90;
+  const fabBottom = Math.max(insets.bottom, 12) + (isModern ? 86 : 90);
   const [activeSubTab, setActiveSubTab] = useState<NotesSubTab>('notes');
   const todoReloadRef = useRef<() => void>(() => {});
   const handleCombinedRefresh = useCallback(() => {
@@ -254,7 +260,13 @@ export const NotesScreen: React.FC<NotesScreenProps> = ({
       {/* Header */}
       <View style={styles.header}>
         {data.searchActive ? (
-          <View style={[styles.searchRow, {backgroundColor: colors.inputBg}]}>
+          <View
+            style={[
+              styles.searchRow,
+              isModern && {borderRadius: ModernLayout.borderRadiusInput},
+              {backgroundColor: isModern ? modernPalette.surface : colors.inputBg},
+            ]}
+          >
             <TextInput
               style={[styles.searchInput, {color: colors.textPrimary}]}
               placeholder={
@@ -277,7 +289,13 @@ export const NotesScreen: React.FC<NotesScreenProps> = ({
           </View>
         ) : (
           <>
-            <Text style={[styles.headerTitle, {color: colors.textPrimary}]}>
+            <Text
+              style={[
+                styles.headerTitle,
+                isModern && ModernTypography.hero,
+                {color: colors.textPrimary},
+              ]}
+            >
               Notes
             </Text>
             <View style={styles.headerIcons}>
@@ -318,7 +336,14 @@ export const NotesScreen: React.FC<NotesScreenProps> = ({
       <View
         style={[
           styles.segmentedBar,
-          {backgroundColor: colors.inputBg, borderColor: colors.border},
+          isModern && {
+            borderRadius: ModernLayout.borderRadiusPill,
+            padding: 4,
+          },
+          {
+            backgroundColor: isModern ? modernPalette.surface : colors.inputBg,
+            borderColor: colors.border,
+          },
         ]}
         accessibilityRole="tablist"
       >
@@ -329,8 +354,10 @@ export const NotesScreen: React.FC<NotesScreenProps> = ({
           testID="notes-subtab-notes"
           style={[
             styles.segmentBtn,
+            isModern && {borderRadius: ModernLayout.borderRadiusPill},
             activeSubTab === 'notes' && {backgroundColor: colors.cardBg},
-            activeSubTab === 'notes' && Shadows.card,
+            activeSubTab === 'notes' &&
+              (isModern ? ModernShadows.subtle : Shadows.card),
           ]}
         >
           <Text
@@ -339,7 +366,9 @@ export const NotesScreen: React.FC<NotesScreenProps> = ({
               {
                 color:
                   activeSubTab === 'notes'
-                    ? colors.textPrimary
+                    ? isModern
+                      ? modernPalette.accent
+                      : colors.textPrimary
                     : colors.textSecondary,
                 fontWeight: activeSubTab === 'notes' ? '700' : '500',
               },
@@ -356,8 +385,10 @@ export const NotesScreen: React.FC<NotesScreenProps> = ({
           testID="notes-subtab-todo"
           style={[
             styles.segmentBtn,
+            isModern && {borderRadius: ModernLayout.borderRadiusPill},
             activeSubTab === 'todo' && {backgroundColor: colors.cardBg},
-            activeSubTab === 'todo' && Shadows.card,
+            activeSubTab === 'todo' &&
+              (isModern ? ModernShadows.subtle : Shadows.card),
           ]}
         >
           <View style={styles.segmentLabelRow}>
@@ -367,7 +398,9 @@ export const NotesScreen: React.FC<NotesScreenProps> = ({
                 {
                   color:
                     activeSubTab === 'todo'
-                      ? colors.textPrimary
+                      ? isModern
+                        ? modernPalette.accent
+                        : colors.textPrimary
                       : colors.textSecondary,
                   fontWeight: activeSubTab === 'todo' ? '700' : '500',
                 },
@@ -381,7 +414,11 @@ export const NotesScreen: React.FC<NotesScreenProps> = ({
                   styles.segmentBadge,
                   {
                     backgroundColor:
-                      activeSubTab === 'todo' ? Colors.red : colors.border,
+                      activeSubTab === 'todo'
+                        ? isModern
+                          ? modernPalette.accent
+                          : Colors.red
+                        : colors.border,
                   },
                 ]}
               >
@@ -589,7 +626,13 @@ export const NotesScreen: React.FC<NotesScreenProps> = ({
 
       {/* FAB */}
       <TouchableOpacity
-        style={[styles.fab, Shadows.card, {bottom: fabBottom}]}
+        style={[
+          styles.fab,
+          isModern
+            ? [ModernShadows.floating, {backgroundColor: modernPalette.accent}]
+            : Shadows.card,
+          {bottom: fabBottom},
+        ]}
         onPress={activeSubTab === 'todo' ? todo.openNewTodo : data.openNewNote}
         testID={activeSubTab === 'todo' ? 'todo-fab-add' : 'notes-fab-add'}
       >

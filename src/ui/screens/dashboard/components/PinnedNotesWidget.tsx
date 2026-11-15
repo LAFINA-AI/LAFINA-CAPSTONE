@@ -10,7 +10,15 @@ import {
 } from '../../../../utils';
 import {useTheme} from '../../../contexts/ThemeContext';
 import type {ThemeColors} from '../../../contexts/ThemeContext';
-import {Fonts, FontSize, Layout, Shadows, Spacing} from '../../../theme';
+import {
+  Fonts,
+  FontSize,
+  Layout,
+  ModernLayout,
+  ModernShadows,
+  Shadows,
+  Spacing,
+} from '../../../theme';
 import {getCategoryColor} from '../../../theme/categoryColors';
 import {useThemedStyles} from '../../../theme/createThemedStyles';
 
@@ -37,20 +45,32 @@ export const PinnedNotesWidget: React.FC<PinnedNotesWidgetProps> = ({
   onPressNote,
   onOpenAllNotes,
 }) => {
-  const {colors} = useTheme();
+  const {colors, isModern, modernPalette} = useTheme();
   const themed = useThemedStyles(getThemedStyles);
 
   return (
     <View
-      style={[styles.card, themed.card, Shadows.card]}
+      style={[
+        styles.card,
+        themed.card,
+        isModern
+          ? [ModernShadows.card, {borderRadius: ModernLayout.borderRadiusCard}]
+          : Shadows.card,
+      ]}
       testID="dashboard-widget-pinned-notes"
     >
       <View style={styles.headerRow}>
         <View style={styles.headerTitleWrap}>
           {hasPinnedNotes ? (
-            <Pin size={16} color={colors.red} />
+            <Pin
+              size={16}
+              color={isModern ? modernPalette.lilacInk : colors.red}
+            />
           ) : (
-            <FileText size={17} color={colors.blue} />
+            <FileText
+              size={17}
+              color={isModern ? modernPalette.lilacInk : colors.blue}
+            />
           )}
           <Text style={[styles.headerTitle, themed.primaryText]}>
             {hasPinnedNotes ? 'Pinned Notes' : 'Recent Notes'}
@@ -92,7 +112,11 @@ export const PinnedNotesWidget: React.FC<PinnedNotesWidgetProps> = ({
             return (
               <TouchableOpacity
                 key={note.id}
-                style={[styles.noteCard, themed.noteCard]}
+                style={[
+                  styles.noteCard,
+                  themed.noteCard,
+                  isModern && {borderRadius: ModernLayout.borderRadiusSubCard},
+                ]}
                 onPress={() => onPressNote(note.id)}
                 activeOpacity={0.75}
                 accessibilityRole="button"

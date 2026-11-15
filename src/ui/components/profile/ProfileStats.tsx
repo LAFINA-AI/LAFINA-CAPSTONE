@@ -1,6 +1,7 @@
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
-import { Fonts, Layout, Shadows, useThemedStyles } from '../../theme';
+import { Fonts, Layout, ModernLayout, ModernShadows, Shadows, useThemedStyles } from '../../theme';
+import { useTheme } from '../../contexts/ThemeContext';
 import type { ThemeColors } from '../../contexts/ThemeContext';
 import type { ProfileStatistics } from '../../../storage/profileStatisticsStore';
 
@@ -16,6 +17,7 @@ const UNAVAILABLE = '—';
  * acknowledged or missed; before any outcome it says "No data".
  */
 export const ProfileStats: React.FC<ProfileStatsProps> = ({ statistics }) => {
+  const { isModern, modernPalette } = useTheme();
   const themed = useThemedStyles(getThemedStyles);
   const number = (value: number | null): string =>
     statistics.available && value !== null ? String(value) : UNAVAILABLE;
@@ -34,14 +36,32 @@ export const ProfileStats: React.FC<ProfileStatsProps> = ({ statistics }) => {
     }
   }
 
-  const card = (value: string, label: string, accessibilityLabel: string, testID: string) => (
+  const card = (
+    value: string,
+    label: string,
+    accessibilityLabel: string,
+    testID: string,
+    modernTint: string,
+  ) => (
     <View
-      style={[styles.statCard, Shadows.card, themed.statCard]}
+      style={[
+        styles.statCard,
+        isModern
+          ? [
+              ModernShadows.subtle,
+              styles.modernStatCard,
+              {
+                backgroundColor: modernTint,
+                borderColor: modernPalette.border,
+              },
+            ]
+          : [Shadows.card, themed.statCard],
+      ]}
       accessible
       accessibilityLabel={accessibilityLabel}
       testID={testID}
     >
-      <Text style={[styles.statVal, themed.statVal]}>{value}</Text>
+      <Text style={[styles.statVal, isModern && styles.modernStatVal, themed.statVal]}>{value}</Text>
       <Text style={[styles.statLabel, themed.statLabel]}>{label}</Text>
     </View>
   );
@@ -53,14 +73,16 @@ export const ProfileStats: React.FC<ProfileStatsProps> = ({ statistics }) => {
         'Tasks Done',
         `Tasks done: ${number(statistics.completedTasksCount)}`,
         'stat-tasks-done',
+        modernPalette.softViolet,
       )}
       {card(
         number(statistics.notesCount),
         'Notes Saved',
         `Notes saved: ${number(statistics.notesCount)}`,
         'stat-notes-saved',
+        modernPalette.mint,
       )}
-      {card(onTime, 'On Time', onTimeLabel, 'stat-on-time')}
+      {card(onTime, 'On Time', onTimeLabel, 'stat-on-time', modernPalette.blueSoft)}
     </View>
   );
 };
@@ -78,9 +100,19 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginHorizontal: 4,
   },
+  modernStatCard: {
+    borderRadius: ModernLayout.borderRadiusCard,
+    borderWidth: 1,
+    paddingVertical: 14,
+  },
   statVal: {
     fontSize: 18,
     fontWeight: 'bold',
+  },
+  modernStatVal: {
+    fontSize: 20,
+    fontWeight: '800',
+    fontFamily: Fonts.heading,
   },
   statLabel: {
     fontSize: 10,

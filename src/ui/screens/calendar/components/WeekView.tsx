@@ -7,7 +7,7 @@ import {
   TouchableOpacity,
 } from 'react-native';
 import { useTheme } from '../../../contexts/ThemeContext';
-import { Colors } from '../../../theme';
+import { Colors, ModernLayout, ModernShadows } from '../../../theme';
 import type { TimeBlock, Task, Event } from '../../../../storage';
 import { useCalendarData } from '../hooks/useCalendarData';
 import { DayView } from './DayView';
@@ -45,13 +45,24 @@ export const WeekView: React.FC<WeekViewProps> = ({
   onAddBlock,
   getCategoryColor,
 }) => {
-  const { colors, isDarkMode } = useTheme();
+  const { colors, isDarkMode, isModern, modernPalette } = useTheme();
   const overdueList = calendar.getOverdueTasks();
 
   return (
     <View style={[styles.container, { backgroundColor: 'transparent' }]}>
       {/* Date Pill Scroller */}
-      <View style={styles.scrollerContainer}>
+      <View
+        style={[
+          styles.scrollerContainer,
+          isModern && [
+            styles.modernScrollerCard,
+            {
+              backgroundColor: modernPalette.surface,
+              borderColor: modernPalette.border,
+            },
+          ],
+        ]}
+      >
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.weekScroller}>
           {weekDays.map((day, i) => {
             const isSelected = day.toDateString() === selectedDate.toDateString();
@@ -61,16 +72,37 @@ export const WeekView: React.FC<WeekViewProps> = ({
                 key={i}
                 style={[
                   styles.datePill,
-                  isSelected && { elevation: 6 },
+                  isModern && styles.modernDatePill,
+                  isSelected && (isModern ? ModernShadows.subtle : { elevation: 6 }),
                 ]}
               >
                 <TouchableOpacity
                   style={[
                     styles.pillTouchTarget,
+                    isModern && styles.modernPillTouchTarget,
                     isSelected
-                      ? [styles.pillSelected, { backgroundColor: colors.cardBg }]
-                      : [styles.pillUnselected, { borderColor: colors.border }],
-                    isToday && !isSelected && { borderColor: colors.red, borderWidth: 1.5 },
+                      ? [
+                          styles.pillSelected,
+                          {
+                            backgroundColor: isModern
+                              ? modernPalette.accent
+                              : colors.cardBg,
+                          },
+                        ]
+                      : [
+                          styles.pillUnselected,
+                          {
+                            borderColor: isModern ? 'transparent' : colors.border,
+                            backgroundColor: isModern
+                              ? modernPalette.card
+                              : 'transparent',
+                          },
+                        ],
+                    isToday &&
+                      !isSelected && {
+                        borderColor: isModern ? modernPalette.accent : colors.red,
+                        borderWidth: 1.5,
+                      },
                   ]}
                   onPress={() => setSelectedDate(day)}
                   activeOpacity={0.7}
@@ -78,19 +110,26 @@ export const WeekView: React.FC<WeekViewProps> = ({
                   <Text style={[
                     styles.pillDayName,
                     { color: colors.textSecondary },
-                    isSelected && { color: colors.textPrimary },
+                    isSelected && {
+                      color: isModern ? '#FFFFFF' : colors.textPrimary,
+                      fontWeight: isModern ? '600' : 'normal',
+                    },
                   ]}>
                     {day.toLocaleDateString('en-US', { weekday: 'short' }).slice(0, 3)}
                   </Text>
                   <Text style={[
                     styles.pillDayNum,
+                    isModern && styles.modernPillDayNum,
                     { color: colors.textSecondary },
-                    isSelected && { color: colors.textPrimary },
-                    isToday && !isSelected && { color: colors.red },
+                    isSelected && { color: isModern ? '#FFFFFF' : colors.textPrimary },
+                    isToday &&
+                      !isSelected && {
+                        color: isModern ? modernPalette.accent : colors.red,
+                      },
                   ]}>
                     {day.getDate()}
                   </Text>
-                  {isSelected && (
+                  {isSelected && !isModern && (
                     <View style={styles.selectedPillUnderline} />
                   )}
                 </TouchableOpacity>
@@ -102,7 +141,17 @@ export const WeekView: React.FC<WeekViewProps> = ({
 
       {/* Overdue Section */}
       {overdueList.length > 0 && (
-        <View style={[styles.overdueBanner, { backgroundColor: colors.bannerBg }]}>
+        <View
+          style={[
+            styles.overdueBanner,
+            isModern && { borderRadius: ModernLayout.borderRadiusSubCard },
+            {
+              backgroundColor: isModern
+                ? modernPalette.dangerSoft
+                : colors.bannerBg,
+            },
+          ]}
+        >
           <View style={[styles.overdueBadge, { backgroundColor: Colors.error }]}>
             <Text style={[styles.overdueBadgeText, { color: colors.white }]}>OVERDUE</Text>
           </View>
@@ -154,8 +203,15 @@ export const WeekView: React.FC<WeekViewProps> = ({
 const styles = StyleSheet.create({
   container: { flex: 1 },
   scrollerContainer: { marginBottom: 12 },
+  modernScrollerCard: {
+    borderRadius: 20,
+    borderWidth: 1,
+    paddingHorizontal: 6,
+    paddingVertical: 6,
+  },
   weekScroller: { paddingVertical: 4 },
   datePill: { width: 56, height: 74, borderRadius: 16, marginRight: 8 },
+  modernDatePill: { height: 68, borderRadius: 16 },
   pillTouchTarget: {
     width: '100%',
     height: '100%',
@@ -165,6 +221,9 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
     borderWidth: 1,
   },
+  modernPillTouchTarget: {
+    borderRadius: 16,
+  },
   pillSelected: {
     borderWidth: 0,
   },
@@ -173,6 +232,7 @@ const styles = StyleSheet.create({
   },
   pillDayName: { fontSize: 12, fontFamily: 'sans-serif', fontWeight: 'normal' },
   pillDayNum: { fontSize: 28, fontFamily: 'sans-serif', fontWeight: 'bold', marginTop: 2 },
+  modernPillDayNum: { fontSize: 22 },
   selectedPillUnderline: {
     position: 'absolute',
     top: 0,

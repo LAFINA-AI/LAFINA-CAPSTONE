@@ -9,7 +9,15 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
-import {Colors, Fonts, Layout, Shadows} from '../theme';
+import {
+  Colors,
+  Fonts,
+  Layout,
+  ModernLayout,
+  ModernShadows,
+  ModernTypography,
+  Shadows,
+} from '../theme';
 import {
   preferencesStore,
   userStore,
@@ -27,11 +35,14 @@ import {SvgXml} from 'react-native-svg';
 import {ARC_SCREEN_XML} from '../../assets/arc_screen_xml';
 import {
   Camera,
+  Check,
   ChevronDown,
   ChevronUp,
   Dices,
   FileText,
   GraduationCap,
+  LayoutGrid,
+  Sparkles,
 } from 'lucide-react-native';
 import {authService} from '../../cloud/authService';
 import {isStudentProAccount} from '../../cloud';
@@ -331,8 +342,27 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
     [],
   );
 
-  const {colors, isDarkMode, toggleTheme} = useTheme();
+  const {
+    colors,
+    isDarkMode,
+    toggleTheme,
+    uiVariant,
+    isModern,
+    setUIVariant,
+    modernPalette,
+  } = useTheme();
   const themed = useThemedStyles(getProfileThemedStyles);
+  const cardSurfaceStyle = isModern
+    ? [
+        themed.settingsGroupCard,
+        ModernShadows.card,
+        {
+          borderRadius: ModernLayout.borderRadiusCard,
+          borderWidth: 1,
+          borderColor: modernPalette.border,
+        },
+      ]
+    : [Shadows.card, themed.settingsGroupCard];
 
   const isGuest = userId === GUEST_USER_ID;
   const photoSource = avatarSource(currentUser?.avatarUri ?? null);
@@ -804,16 +834,38 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
       style={[styles.container, themed.container]}
       contentContainerStyle={styles.contentContainer}
     >
-      <View style={styles.headerBackground}>
-        <SvgXml
-          xml={ARC_SCREEN_XML}
-          width="100%"
-          height={180}
-          preserveAspectRatio="none"
-        />
-      </View>
+      {!isModern && (
+        <View style={styles.headerBackground}>
+          <SvgXml
+            xml={ARC_SCREEN_XML}
+            width="100%"
+            height={180}
+            preserveAspectRatio="none"
+          />
+        </View>
+      )}
 
-      <View style={styles.avatarSection}>
+      <View
+        style={[
+          styles.avatarSection,
+          isModern && [
+            styles.modernHeroCard,
+            ModernShadows.card,
+            {
+              backgroundColor: modernPalette.card,
+              borderColor: modernPalette.border,
+            },
+          ],
+        ]}
+      >
+        {isModern && (
+          <View
+            style={[
+              styles.modernHeroAccentBand,
+              {backgroundColor: modernPalette.softViolet},
+            ]}
+          />
+        )}
         <View style={styles.avatarWrapper}>
           <TouchableOpacity
             onPress={handleEditProfile}
@@ -826,7 +878,10 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
             style={[
               styles.avatarCircle,
               themed.avatarCircle,
-              {backgroundColor: colors.cardBg},
+              {
+                backgroundColor: colors.cardBg,
+                borderColor: isModern ? modernPalette.accent : colors.cardBg,
+              },
             ]}
           >
             {photoSource ? (
@@ -867,7 +922,14 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
           </TouchableOpacity>
         </View>
         <View style={styles.nameRow}>
-          <Text style={[styles.userName, themed.userName]} numberOfLines={2}>
+          <Text
+            style={[
+              styles.userName,
+              themed.userName,
+              isModern && ModernTypography.title,
+            ]}
+            numberOfLines={2}
+          >
             {currentUser?.username || 'Student'}
           </Text>
           {studentPro && <StudentProTag />}
@@ -886,20 +948,26 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
               style={[
                 styles.academicSubtitlePill,
                 {
-                  backgroundColor: colors.cardBg,
-                  borderColor: colors.border,
+                  backgroundColor: isModern
+                    ? modernPalette.blueSoft
+                    : colors.cardBg,
+                  borderColor: isModern ? 'transparent' : colors.border,
                 },
               ]}
             >
               <GraduationCap
                 size={14}
-                color={colors.blue}
+                color={isModern ? modernPalette.blueInk : colors.blue}
                 style={styles.academicSubtitleIcon}
               />
               <Text
                 style={[
                   styles.academicSubtitleText,
-                  {color: colors.textPrimary},
+                  {
+                    color: isModern
+                      ? modernPalette.blueInk
+                      : colors.textPrimary,
+                  },
                 ]}
                 numberOfLines={2}
               >
@@ -919,11 +987,7 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
         {academicProfile && (
           <View
             testID="profile-academic-card"
-            style={[
-              styles.academicCard,
-              Shadows.card,
-              themed.settingsGroupCard,
-            ]}
+            style={[styles.academicCard, ...cardSurfaceStyle]}
           >
             <View style={styles.academicCardHeader}>
               <View style={styles.academicCardTitleRow}>
@@ -1160,7 +1224,7 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
           <View
             style={[
               styles.settingsGroupCard,
-              Shadows.card,
+              cardSurfaceStyle,
               themed.settingsGroupCard,
             ]}
           >
@@ -1218,7 +1282,7 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
           <View
             style={[
               styles.settingsGroupCard,
-              Shadows.card,
+              cardSurfaceStyle,
               themed.settingsGroupCard,
             ]}
           >
@@ -1265,7 +1329,7 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
           <View
             style={[
               styles.settingsGroupCard,
-              Shadows.card,
+              cardSurfaceStyle,
               themed.settingsGroupCard,
             ]}
           >
@@ -1289,12 +1353,154 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
             Appearance
           </Text>
           <View
-            style={[
-              styles.settingsGroupCard,
-              Shadows.card,
-              themed.settingsGroupCard,
-            ]}
+            style={[styles.settingsGroupCard, ...cardSurfaceStyle]}
           >
+            <View style={styles.interfaceSelectorBlock}>
+              <Text style={[styles.interfaceTitle, {color: colors.textPrimary}]}>
+                App Interface
+              </Text>
+              <Text
+                style={[styles.interfaceSubtitle, {color: colors.textSecondary}]}
+              >
+                Choose how LAFINA looks
+              </Text>
+              <View style={styles.interfaceCardsRow}>
+                <TouchableOpacity
+                  testID="ui-variant-modern"
+                  accessibilityRole="radio"
+                  accessibilityState={{
+                    checked: uiVariant === 'modern',
+                    selected: uiVariant === 'modern',
+                  }}
+                  accessibilityLabel="Modern — UniGuide-inspired interface"
+                  activeOpacity={0.8}
+                  onPress={() => setUIVariant('modern')}
+                  style={[
+                    styles.interfaceCard,
+                    {
+                      backgroundColor:
+                        uiVariant === 'modern'
+                          ? modernPalette.softViolet
+                          : colors.inputBg,
+                      borderColor:
+                        uiVariant === 'modern'
+                          ? modernPalette.accent
+                          : colors.border,
+                    },
+                  ]}
+                >
+                  <View style={styles.interfaceCardTop}>
+                    <Sparkles
+                      size={16}
+                      color={
+                        uiVariant === 'modern'
+                          ? modernPalette.accent
+                          : colors.textSecondary
+                      }
+                    />
+                    {uiVariant === 'modern' && (
+                      <View
+                        style={[
+                          styles.interfaceCheckBadge,
+                          {backgroundColor: modernPalette.accent},
+                        ]}
+                      >
+                        <Check size={11} color="#FFFFFF" strokeWidth={3} />
+                      </View>
+                    )}
+                  </View>
+                  <Text
+                    style={[
+                      styles.interfaceCardTitle,
+                      {
+                        color:
+                          uiVariant === 'modern'
+                            ? modernPalette.accent
+                            : colors.textPrimary,
+                      },
+                    ]}
+                  >
+                    Modern
+                  </Text>
+                  <Text
+                    style={[
+                      styles.interfaceCardDesc,
+                      {color: colors.textSecondary},
+                    ]}
+                  >
+                    UniGuide-inspired interface
+                  </Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  testID="ui-variant-classic"
+                  accessibilityRole="radio"
+                  accessibilityState={{
+                    checked: uiVariant === 'classic',
+                    selected: uiVariant === 'classic',
+                  }}
+                  accessibilityLabel="Classic — Original LAFINA interface"
+                  activeOpacity={0.8}
+                  onPress={() => setUIVariant('classic')}
+                  style={[
+                    styles.interfaceCard,
+                    {
+                      backgroundColor:
+                        uiVariant === 'classic'
+                          ? colors.primary + '14'
+                          : colors.inputBg,
+                      borderColor:
+                        uiVariant === 'classic'
+                          ? colors.primary
+                          : colors.border,
+                    },
+                  ]}
+                >
+                  <View style={styles.interfaceCardTop}>
+                    <LayoutGrid
+                      size={16}
+                      color={
+                        uiVariant === 'classic'
+                          ? colors.primary
+                          : colors.textSecondary
+                      }
+                    />
+                    {uiVariant === 'classic' && (
+                      <View
+                        style={[
+                          styles.interfaceCheckBadge,
+                          {backgroundColor: colors.primary},
+                        ]}
+                      >
+                        <Check size={11} color="#FFFFFF" strokeWidth={3} />
+                      </View>
+                    )}
+                  </View>
+                  <Text
+                    style={[
+                      styles.interfaceCardTitle,
+                      {
+                        color:
+                          uiVariant === 'classic'
+                            ? colors.primary
+                            : colors.textPrimary,
+                      },
+                    ]}
+                  >
+                    Classic
+                  </Text>
+                  <Text
+                    style={[
+                      styles.interfaceCardDesc,
+                      {color: colors.textSecondary},
+                    ]}
+                  >
+                    Original LAFINA interface
+                  </Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+            <View style={[styles.settingDivider, themed.settingDivider]} />
             <SettingItem
               text="Dark Mode"
               type="toggle"
@@ -1308,7 +1514,13 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
           >
             Data Settings
           </Text>
-          <View style={[styles.settingsGroupCard, themed.settingsGroupCard]}>
+          <View
+            style={[
+              styles.settingsGroupCard,
+              cardSurfaceStyle,
+              themed.settingsGroupCard,
+            ]}
+          >
             <SettingItem
               text="Clear All Data"
               type="clickable"
@@ -1325,7 +1537,11 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
                 Developer
               </Text>
               <View
-                style={[styles.settingsGroupCard, themed.settingsGroupCard]}
+                style={[
+                  styles.settingsGroupCard,
+                  cardSurfaceStyle,
+                  themed.settingsGroupCard,
+                ]}
               >
                 <SettingItem
                   text="Developer Testing Hub"
@@ -1390,7 +1606,13 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
           >
             About
           </Text>
-          <View style={[styles.settingsGroupCard, themed.settingsGroupCard]}>
+          <View
+            style={[
+              styles.settingsGroupCard,
+              cardSurfaceStyle,
+              themed.settingsGroupCard,
+            ]}
+          >
             <SettingItem
               text="App Version"
               type="value"
@@ -1420,11 +1642,7 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
 
         {isGuest ? (
           <View
-            style={[
-              styles.guestPromptCard,
-              Shadows.card,
-              themed.settingsGroupCard,
-            ]}
+            style={[styles.guestPromptCard, ...cardSurfaceStyle]}
           >
             <Text style={[styles.guestPromptTitle, themed.settingText]}>
               Go Full Access
@@ -1435,7 +1653,13 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
             </Text>
             <TouchableOpacity
               onPress={handleCreateAccount}
-              style={styles.createAccountBtn}
+              style={[
+                styles.createAccountBtn,
+                isModern && {
+                  backgroundColor: modernPalette.accent,
+                  borderRadius: ModernLayout.borderRadiusPill,
+                },
+              ]}
             >
               <Text style={styles.createAccountBtnText}>Create Account</Text>
             </TouchableOpacity>
@@ -1449,8 +1673,25 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
             </TouchableOpacity>
           </View>
         ) : (
-          <TouchableOpacity onPress={handleSignOut} style={styles.signOutBtn}>
-            <Text style={styles.signOutText}>Sign Out</Text>
+          <TouchableOpacity
+            onPress={handleSignOut}
+            style={[
+              styles.signOutBtn,
+              isModern && {
+                borderColor: modernPalette.danger,
+                backgroundColor: modernPalette.dangerSoft,
+                borderRadius: ModernLayout.borderRadiusPill,
+              },
+            ]}
+          >
+            <Text
+              style={[
+                styles.signOutText,
+                isModern && {color: modernPalette.danger},
+              ]}
+            >
+              Sign Out
+            </Text>
           </TouchableOpacity>
         )}
       </View>
@@ -1767,6 +2008,71 @@ const styles = StyleSheet.create({
     marginBottom: 8,
     textTransform: 'uppercase',
     letterSpacing: 0.5,
+  },
+  modernHeroCard: {
+    marginTop: 12,
+    marginHorizontal: 16,
+    borderRadius: ModernLayout.borderRadiusCard,
+    borderWidth: 1,
+    paddingTop: 24,
+    paddingBottom: 20,
+    paddingHorizontal: 16,
+    overflow: 'hidden',
+  },
+  modernHeroAccentBand: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    height: 76,
+  },
+  interfaceSelectorBlock: {
+    paddingVertical: 14,
+  },
+  interfaceTitle: {
+    fontSize: 15,
+    fontWeight: '700',
+    fontFamily: Fonts.heading,
+  },
+  interfaceSubtitle: {
+    fontSize: 12,
+    marginTop: 2,
+    marginBottom: 12,
+    fontFamily: Fonts.body,
+  },
+  interfaceCardsRow: {
+    flexDirection: 'row',
+    gap: 10,
+  },
+  interfaceCard: {
+    flex: 1,
+    borderRadius: ModernLayout.borderRadiusSubCard,
+    borderWidth: 1.5,
+    padding: 12,
+  },
+  interfaceCardTop: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 8,
+  },
+  interfaceCheckBadge: {
+    width: 18,
+    height: 18,
+    borderRadius: 9,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  interfaceCardTitle: {
+    fontSize: 14,
+    fontWeight: '700',
+    fontFamily: Fonts.heading,
+  },
+  interfaceCardDesc: {
+    fontSize: 11,
+    marginTop: 2,
+    lineHeight: 15,
+    fontFamily: Fonts.body,
   },
   settingsGroupCard: {
     borderRadius: Layout.borderRadiusCard,

@@ -1,5 +1,6 @@
 import React, { useRef } from 'react';
 import { View, Text, Switch, TouchableOpacity, StyleSheet, Platform } from 'react-native';
+import { ChevronRight } from 'lucide-react-native';
 import { Fonts, useThemedStyles } from '../../theme';
 import { useTheme } from '../../contexts/ThemeContext';
 import type { ThemeColors } from '../../contexts/ThemeContext';
@@ -28,7 +29,7 @@ export const SettingItem: React.FC<SettingItemProps> = ({
   onPress,
   isDestructive = false,
 }) => {
-  const { colors } = useTheme();
+  const { colors, isModern } = useTheme();
   const themed = useThemedStyles(getThemedStyles);
   const touchRef = useRef<ToggleOrigin | null>(null);
 
@@ -99,7 +100,11 @@ export const SettingItem: React.FC<SettingItemProps> = ({
     >
       <Text style={[styles.settingText, themed.settingText]}>{text}</Text>
       {valueText && <Text style={[styles.linkValue, themed.settingValue]}>{valueText}</Text>}
-      <Text style={[styles.linkArrow, themed.linkArrow]}>➔</Text>
+      {isModern ? (
+        <ChevronRight size={16} color={colors.textMuted} />
+      ) : (
+        <Text style={[styles.linkArrow, themed.linkArrow]}>➔</Text>
+      )}
     </TouchableOpacity>
   );
 };

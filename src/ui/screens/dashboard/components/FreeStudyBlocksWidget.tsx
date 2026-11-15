@@ -4,7 +4,15 @@ import {BookOpen, Clock, Plus, Sparkles} from 'lucide-react-native';
 import type {MinFreeGapMinutes} from '../../../../storage';
 import {useTheme} from '../../../contexts/ThemeContext';
 import type {ThemeColors} from '../../../contexts/ThemeContext';
-import {Fonts, FontSize, Layout, Shadows, Spacing} from '../../../theme';
+import {
+  Fonts,
+  FontSize,
+  Layout,
+  ModernLayout,
+  ModernShadows,
+  Shadows,
+  Spacing,
+} from '../../../theme';
 import {useThemedStyles} from '../../../theme/createThemedStyles';
 import {formatDurationMinutes, formatTimeLabel} from '../dashboardCalculations';
 import type {FreeStudyBlock, FreeStudySummary} from '../types';
@@ -22,7 +30,7 @@ export const FreeStudyBlocksWidget: React.FC<FreeStudyBlocksWidgetProps> = ({
   onAddStudyBlock,
   onOpenCustomize,
 }) => {
-  const {colors} = useTheme();
+  const {colors, isModern, modernPalette} = useTheme();
   const themed = useThemedStyles(getThemedStyles);
   const [expanded, setExpanded] = useState(false);
 
@@ -32,12 +40,21 @@ export const FreeStudyBlocksWidget: React.FC<FreeStudyBlocksWidgetProps> = ({
 
   return (
     <View
-      style={[styles.card, themed.card, Shadows.card]}
+      style={[
+        styles.card,
+        themed.card,
+        isModern
+          ? [ModernShadows.card, {borderRadius: ModernLayout.borderRadiusCard}]
+          : Shadows.card,
+      ]}
       testID="dashboard-widget-free-study-blocks"
     >
       <View style={styles.headerRow}>
         <View style={styles.headerTitleWrap}>
-          <BookOpen size={17} color={colors.blue} />
+          <BookOpen
+            size={17}
+            color={isModern ? modernPalette.mintInk : colors.blue}
+          />
           <Text style={[styles.headerTitle, themed.primaryText]}>
             Free Study Blocks
           </Text>
@@ -50,8 +67,24 @@ export const FreeStudyBlocksWidget: React.FC<FreeStudyBlocksWidgetProps> = ({
       </View>
 
       <View style={styles.metricsRow}>
-        <View style={[styles.metricBox, themed.metricBox]}>
-          <Text style={[styles.metricValue, {color: colors.success}]}>
+        <View
+          style={[
+            styles.metricBox,
+            isModern
+              ? {
+                  backgroundColor: modernPalette.mint,
+                  borderColor: 'transparent',
+                  borderRadius: ModernLayout.borderRadiusSubCard,
+                }
+              : themed.metricBox,
+          ]}
+        >
+          <Text
+            style={[
+              styles.metricValue,
+              {color: isModern ? modernPalette.mintInk : colors.success},
+            ]}
+          >
             {formatDurationMinutes(summary.totalRemainingFreeMinutes)}
           </Text>
           <Text style={[styles.metricLabel, themed.secondaryText]}>
@@ -59,8 +92,24 @@ export const FreeStudyBlocksWidget: React.FC<FreeStudyBlocksWidgetProps> = ({
           </Text>
         </View>
 
-        <View style={[styles.metricBox, themed.metricBox]}>
-          <Text style={[styles.metricValue, {color: colors.blue}]}>
+        <View
+          style={[
+            styles.metricBox,
+            isModern
+              ? {
+                  backgroundColor: modernPalette.blueSoft,
+                  borderColor: 'transparent',
+                  borderRadius: ModernLayout.borderRadiusSubCard,
+                }
+              : themed.metricBox,
+          ]}
+        >
+          <Text
+            style={[
+              styles.metricValue,
+              {color: isModern ? modernPalette.blueInk : colors.blue},
+            ]}
+          >
             {formatDurationMinutes(summary.plannedStudyMinutesToday)}
           </Text>
           <Text style={[styles.metricLabel, themed.secondaryText]}>
@@ -88,7 +137,11 @@ export const FreeStudyBlocksWidget: React.FC<FreeStudyBlocksWidgetProps> = ({
           {visibleSlots.map(slot => (
             <View
               key={slot.id}
-              style={[styles.slotRow, themed.slotRow]}
+              style={[
+                styles.slotRow,
+                themed.slotRow,
+                isModern && {borderRadius: ModernLayout.borderRadiusSubCard},
+              ]}
               testID={`dashboard-free-slot-${slot.id}`}
             >
               <View style={styles.slotInfo}>

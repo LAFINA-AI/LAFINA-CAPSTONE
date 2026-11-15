@@ -28,7 +28,14 @@ import {
   Lightbulb,
   Phone,
 } from 'lucide-react-native';
-import {Fonts, FontSize, Layout, Spacing} from '../theme';
+import {
+  Fonts,
+  FontSize,
+  Layout,
+  ModernLayout,
+  ModernShadows,
+  Spacing,
+} from '../theme';
 import {useTheme} from '../contexts/ThemeContext';
 import {useThemedStyles} from '../theme/createThemedStyles';
 import type {ThemeColors} from '../contexts/ThemeContext';
@@ -220,7 +227,7 @@ export const ChatScreen: React.FC<ChatScreenProps> = ({
   const maxHeightRef = useRef<number>(currentHeight);
   const flatListRef = useRef<FlatList<ChatMessage>>(null);
 
-  const {colors} = useTheme();
+  const {colors, isModern, modernPalette} = useTheme();
   const themed = useThemedStyles(getThemedStyles);
   // AGY-PORT 04: planner changes wait on this card until Confirm.
   const review = useCommandReview(userId, 'chat');
@@ -1081,7 +1088,11 @@ export const ChatScreen: React.FC<ChatScreenProps> = ({
     <View>
       {legacyHiddenCount > 0 && !legacyNoticeDismissed ? (
         <View
-          style={[styles.noticeCard, themed.headerButton]}
+          style={[
+            styles.noticeCard,
+            themed.headerButton,
+            isModern && styles.modernNoticeCard,
+          ]}
           testID="chat-legacy-notice"
         >
           <Text style={[styles.noticeText, themed.emptySubtitle]}>
@@ -1103,7 +1114,11 @@ export const ChatScreen: React.FC<ChatScreenProps> = ({
       ) : null}
       {loadError ? (
         <View
-          style={[styles.noticeCard, themed.headerButton]}
+          style={[
+            styles.noticeCard,
+            themed.headerButton,
+            isModern && styles.modernNoticeCard,
+          ]}
           testID="chat-load-error"
         >
           <Text style={[styles.noticeText, themed.emptySubtitle]}>
@@ -1123,7 +1138,11 @@ export const ChatScreen: React.FC<ChatScreenProps> = ({
       ) : null}
       {olderCursor ? (
         <TouchableOpacity
-          style={[styles.loadEarlierButton, themed.headerButton]}
+          style={[
+            styles.loadEarlierButton,
+            themed.headerButton,
+            isModern && {backgroundColor: modernPalette.surface},
+          ]}
           onPress={handleLoadEarlier}
           disabled={isLoadingEarlier}
           accessibilityRole="button"
@@ -1139,13 +1158,18 @@ export const ChatScreen: React.FC<ChatScreenProps> = ({
   );
 
   const renderEmptyState = () => {
+    const emptyBadgeBg = isModern
+      ? modernPalette.softViolet
+      : colors.primary + '18';
+
     if (isUstpChat) {
       return (
         <View style={styles.emptyContainer} testID="chat-empty-state">
           <View
             style={[
               styles.emptyIconBadge,
-              {backgroundColor: colors.primary + '18'},
+              isModern && styles.modernEmptyIconBadge,
+              {backgroundColor: emptyBadgeBg},
             ]}
             testID="chat-ustp-empty-badge"
           >
@@ -1162,9 +1186,14 @@ export const ChatScreen: React.FC<ChatScreenProps> = ({
             <TouchableOpacity
               style={[
                 styles.ustpOnlineBanner,
+                isModern && styles.modernUstpBanner,
                 {
-                  backgroundColor: colors.primary + '14',
-                  borderColor: colors.primary + '44',
+                  backgroundColor: isModern
+                    ? modernPalette.softViolet
+                    : colors.primary + '14',
+                  borderColor: isModern
+                    ? modernPalette.border
+                    : colors.primary + '44',
                 },
               ]}
               onPress={() => {
@@ -1184,7 +1213,12 @@ export const ChatScreen: React.FC<ChatScreenProps> = ({
             {USTP_SUGGESTED_PROMPTS.map((prompt, index) => (
               <TouchableOpacity
                 key={index}
-                style={[styles.emptySuggestionPill, themed.headerButton]}
+                style={[
+                  styles.emptySuggestionPill,
+                  themed.headerButton,
+                  isModern && styles.modernEmptySuggestionPill,
+                  isModern && ModernShadows.subtle,
+                ]}
                 onPress={() => handleSend(prompt)}
                 accessibilityRole="button"
                 accessibilityLabel={prompt}
@@ -1213,7 +1247,8 @@ export const ChatScreen: React.FC<ChatScreenProps> = ({
         <View
           style={[
             styles.emptyIconBadge,
-            {backgroundColor: colors.primary + '18'},
+            isModern && styles.modernEmptyIconBadge,
+            {backgroundColor: emptyBadgeBg},
           ]}
         >
           {isTemporaryChat ? (
@@ -1235,7 +1270,12 @@ export const ChatScreen: React.FC<ChatScreenProps> = ({
           {SUGGESTED_PROMPTS.map((prompt, index) => (
             <TouchableOpacity
               key={index}
-              style={[styles.emptySuggestionPill, themed.headerButton]}
+              style={[
+                styles.emptySuggestionPill,
+                themed.headerButton,
+                isModern && styles.modernEmptySuggestionPill,
+                isModern && ModernShadows.subtle,
+              ]}
               onPress={() => handleSend(prompt)}
               accessibilityRole="button"
               accessibilityLabel={prompt}
@@ -1255,9 +1295,14 @@ export const ChatScreen: React.FC<ChatScreenProps> = ({
             <TouchableOpacity
               style={[
                 styles.ustpEntryPill,
+                isModern && styles.modernEmptySuggestionPill,
                 {
-                  backgroundColor: colors.primary + '12',
-                  borderColor: colors.primary + '44',
+                  backgroundColor: isModern
+                    ? modernPalette.softViolet
+                    : colors.primary + '12',
+                  borderColor: isModern
+                    ? modernPalette.border
+                    : colors.primary + '44',
                 },
               ]}
               onPress={handleStartUstpChat}
@@ -1305,7 +1350,12 @@ export const ChatScreen: React.FC<ChatScreenProps> = ({
           <TouchableOpacity
             style={[
               styles.headerBadge,
-              {backgroundColor: colors.primary + '18'},
+              isModern && styles.modernHeaderBadge,
+              {
+                backgroundColor: isModern
+                  ? modernPalette.softViolet
+                  : colors.primary + '18',
+              },
             ]}
             onPress={() => setHistoryVisible(true)}
             accessibilityRole="button"
@@ -1324,14 +1374,24 @@ export const ChatScreen: React.FC<ChatScreenProps> = ({
             <View style={styles.headerSubtitleRow}>
               {isUstpChat ? (
                 <View
-                  style={[styles.handbookChip, styles.handbookChipActive]}
+                  style={[
+                    styles.handbookChip,
+                    isModern
+                      ? {
+                          borderColor: modernPalette.accent,
+                          backgroundColor: modernPalette.softViolet,
+                        }
+                      : styles.handbookChipActive,
+                  ]}
                   testID="chat-ustp-mode-badge"
                 >
                   <BookOpen size={10} color={colors.primary} />
                   <Text
                     style={[
                       styles.handbookChipText,
-                      themed.handbookToggleTextActive,
+                      isModern
+                        ? {color: modernPalette.accent}
+                        : themed.handbookToggleTextActive,
                     ]}
                   >
                     USTP Handbook RAG
@@ -1962,6 +2022,25 @@ const styles = StyleSheet.create({
     marginBottom: Spacing.xs,
     letterSpacing: 0.5,
     textTransform: 'uppercase',
+  },
+  modernNoticeCard: {
+    borderRadius: ModernLayout.borderRadiusCard,
+  },
+  modernHeaderBadge: {
+    borderRadius: 12,
+  },
+  modernEmptyIconBadge: {
+    width: 72,
+    height: 72,
+    borderRadius: ModernLayout.borderRadiusCard,
+  },
+  modernEmptySuggestionPill: {
+    borderRadius: ModernLayout.borderRadiusCard,
+    paddingVertical: 13,
+    paddingHorizontal: 16,
+  },
+  modernUstpBanner: {
+    borderRadius: ModernLayout.borderRadiusSubCard,
   },
 });
 

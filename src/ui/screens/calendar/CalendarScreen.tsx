@@ -28,7 +28,13 @@ import {
   X,
 } from 'lucide-react-native';
 import {useTheme} from '../../contexts/ThemeContext';
-import {Colors, Shadows} from '../../theme';
+import {
+  Colors,
+  ModernLayout,
+  ModernShadows,
+  ModernTypography,
+  Shadows,
+} from '../../theme';
 import {
   getCategoryColor,
   registerCustomCategoryColor,
@@ -68,9 +74,9 @@ export const CalendarScreen: React.FC<CalendarScreenProps> = ({
   viewMode: propViewMode,
   onViewModeChange: propOnViewModeChange,
 }) => {
-  const {colors} = useTheme();
+  const {colors, isModern, modernPalette} = useTheme();
   const insets = useSafeAreaInsets();
-  const fabBottom = Math.max(insets.bottom, 12) + 90;
+  const fabBottom = Math.max(insets.bottom, 12) + (isModern ? 86 : 90);
 
   // Tab redesign T1 / alarm plan A2: Schedule = Calendar | Alarms.
   const [section, setSection] = useState<'calendar' | 'alarms'>('calendar');
@@ -288,7 +294,15 @@ export const CalendarScreen: React.FC<CalendarScreenProps> = ({
   const sectionSwitch = (
     <View style={styles.sectionSwitchContainer}>
       <View
-        style={[styles.toggleRow, {backgroundColor: colors.divider}]}
+        style={[
+          styles.toggleRow,
+          isModern && {
+            borderRadius: ModernLayout.borderRadiusPill,
+            padding: 4,
+            backgroundColor: modernPalette.surface,
+          },
+          !isModern && {backgroundColor: colors.divider},
+        ]}
         accessibilityRole="tablist"
       >
         {(['calendar', 'alarms'] as const).map(key => (
@@ -297,10 +311,11 @@ export const CalendarScreen: React.FC<CalendarScreenProps> = ({
             testID={`schedule-section-${key}`}
             style={[
               styles.toggleBtn,
+              isModern && {borderRadius: ModernLayout.borderRadiusPill},
               {backgroundColor: 'transparent'},
               section === key && {
                 backgroundColor: colors.cardBg,
-                ...Shadows.card,
+                ...(isModern ? ModernShadows.subtle : Shadows.card),
               },
             ]}
             onPress={() => setSection(key)}
@@ -313,7 +328,7 @@ export const CalendarScreen: React.FC<CalendarScreenProps> = ({
                 styles.toggleText,
                 {color: colors.textSecondary},
                 section === key && {
-                  color: colors.textPrimary,
+                  color: isModern ? modernPalette.accent : colors.textPrimary,
                   fontWeight: 'bold',
                 },
               ]}
@@ -353,7 +368,11 @@ export const CalendarScreen: React.FC<CalendarScreenProps> = ({
           accessibilityHint="Opens the date picker"
         >
           <Text
-            style={[styles.headerTitle, {color: colors.textPrimary}]}
+            style={[
+              styles.headerTitle,
+              isModern && ModernTypography.title,
+              {color: colors.textPrimary},
+            ]}
             numberOfLines={1}
             adjustsFontSizeToFit
             minimumFontScale={0.8}
@@ -471,16 +490,27 @@ export const CalendarScreen: React.FC<CalendarScreenProps> = ({
 
       {/* View mode toggle */}
       <View style={styles.subHeaderContainer}>
-        <View style={[styles.toggleRow, {backgroundColor: colors.divider}]}>
+        <View
+          style={[
+            styles.toggleRow,
+            isModern && {
+              borderRadius: ModernLayout.borderRadiusPill,
+              padding: 4,
+              backgroundColor: modernPalette.surface,
+            },
+            !isModern && {backgroundColor: colors.divider},
+          ]}
+        >
           {(['month', 'week'] as ViewMode[]).map(mode => (
             <TouchableOpacity
               key={mode}
               style={[
                 styles.toggleBtn,
+                isModern && {borderRadius: ModernLayout.borderRadiusPill},
                 {backgroundColor: 'transparent'},
                 calendar.viewMode === mode && {
                   backgroundColor: colors.cardBg,
-                  ...Shadows.card,
+                  ...(isModern ? ModernShadows.subtle : Shadows.card),
                 },
               ]}
               onPress={() => calendar.setViewMode(mode)}
@@ -495,7 +525,7 @@ export const CalendarScreen: React.FC<CalendarScreenProps> = ({
                   styles.toggleText,
                   {color: colors.textSecondary},
                   calendar.viewMode === mode && {
-                    color: colors.textPrimary,
+                    color: isModern ? modernPalette.accent : colors.textPrimary,
                     fontWeight: 'bold',
                   },
                 ]}
@@ -576,7 +606,13 @@ export const CalendarScreen: React.FC<CalendarScreenProps> = ({
 
       {/* FAB */}
       <TouchableOpacity
-        style={[styles.fab, Shadows.card, {bottom: fabBottom}]}
+        style={[
+          styles.fab,
+          isModern
+            ? [ModernShadows.floating, {backgroundColor: modernPalette.accent}]
+            : Shadows.card,
+          {bottom: fabBottom},
+        ]}
         onPress={handleFABPress}
         accessibilityLabel="Add New Item"
         accessibilityRole="button"

@@ -10,7 +10,14 @@ import {
 } from 'react-native';
 import {AlarmClock, AlarmClockPlus, TriangleAlert} from 'lucide-react-native';
 import {useTheme} from '../../../contexts/ThemeContext';
-import {FontSize, Fonts, Layout, Spacing} from '../../../theme';
+import {
+  FontSize,
+  Fonts,
+  Layout,
+  ModernLayout,
+  ModernShadows,
+  Spacing,
+} from '../../../theme';
 import {alarmsStore, userStore} from '../../../../storage';
 import type {Alarm, AlarmInput} from '../../../../storage';
 import {
@@ -90,7 +97,7 @@ export const AlarmsView: React.FC<AlarmsViewProps> = ({
   refreshTrigger,
   onRefresh,
 }) => {
-  const {colors} = useTheme();
+  const {colors, isModern, modernPalette} = useTheme();
   const [alarms, setAlarms] = useState<Alarm[]>([]);
   const [health, setHealth] = useState<AlarmHealth | null>(null);
   const [editing, setEditing] = useState<Alarm | null>(null);
@@ -185,10 +192,23 @@ export const AlarmsView: React.FC<AlarmsViewProps> = ({
         <View
           style={[
             styles.nextCard,
-            {backgroundColor: colors.cardBg, borderColor: colors.border},
+            isModern
+              ? [
+                  ModernShadows.card,
+                  {
+                    borderRadius: ModernLayout.borderRadiusCard,
+                    borderWidth: 1,
+                    backgroundColor: modernPalette.softViolet,
+                    borderColor: modernPalette.border,
+                  },
+                ]
+              : {backgroundColor: colors.cardBg, borderColor: colors.border},
           ]}
         >
-          <AlarmClock size={22} color={colors.red} />
+          <AlarmClock
+            size={22}
+            color={isModern ? modernPalette.accent : colors.red}
+          />
           <Text
             style={[styles.nextText, {color: colors.textPrimary}]}
             testID="alarms-next"
@@ -256,6 +276,13 @@ export const AlarmsView: React.FC<AlarmsViewProps> = ({
                 }, ${alarm.enabled ? 'on' : 'off'}. Edit`}
                 style={[
                   styles.row,
+                  isModern && [
+                    ModernShadows.subtle,
+                    {
+                      borderRadius: ModernLayout.borderRadiusCard,
+                      borderWidth: 1,
+                    },
+                  ],
                   {backgroundColor: colors.cardBg, borderColor: colors.border},
                 ]}
               >
@@ -314,7 +341,11 @@ export const AlarmsView: React.FC<AlarmsViewProps> = ({
           accessibilityLabel="Add alarm"
           style={[
             styles.addButton,
-            {backgroundColor: colors.red, borderColor: colors.red},
+            isModern && ModernShadows.floating,
+            {
+              backgroundColor: isModern ? modernPalette.accent : colors.red,
+              borderColor: isModern ? modernPalette.accent : colors.red,
+            },
           ]}
         >
           <AlarmClockPlus size={20} color={colors.white} />

@@ -8,7 +8,7 @@ import {
   TouchableOpacity,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Layout } from '../theme';
+import {Layout, ModernLayout, ModernShadows} from '../theme';
 import {
   userStore,
   behaviorStore,
@@ -88,7 +88,7 @@ export const OnboardingScreen: React.FC<OnboardingScreenProps> = ({
   );
   const [longestGap, setLongestGap] = useState<LongestClassGap>(existing.longestClassGap);
 
-  const { colors } = useTheme();
+  const {colors, isModern, modernPalette} = useTheme();
   const themed = useThemedStyles(getOnboardThemedStyles);
 
   const toggleStudyPeak = (value: StudyPeakHour) => {
@@ -378,7 +378,18 @@ export const OnboardingScreen: React.FC<OnboardingScreenProps> = ({
       ) : null}
 
       <ScrollView contentContainerStyle={styles.scrollContent}>
-        <View style={[styles.card, themed.card]}>
+        <View
+          style={[
+            styles.card,
+            isModern && ModernShadows.card,
+            themed.card,
+            isModern && {
+              borderRadius: ModernLayout.borderRadiusCard,
+              borderWidth: 1,
+              borderColor: modernPalette.border,
+            },
+          ]}
+        >
           <OnboardingStep
             step={step}
             wakeTime={wakeTime}

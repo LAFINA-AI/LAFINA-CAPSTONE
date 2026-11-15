@@ -7,7 +7,7 @@ import {
   Presentation,
   Share2,
 } from 'lucide-react-native';
-import {Fonts, Shadows} from '../../theme';
+import {Fonts, ModernShadows, Shadows} from '../../theme';
 import {useTheme} from '../../contexts/ThemeContext';
 import {useThemedStyles} from '../../theme/createThemedStyles';
 import type {ThemeColors} from '../../contexts/ThemeContext';
@@ -57,7 +57,7 @@ export const ChatMessageItem: React.FC<ChatMessageItemProps> = ({
   onUndoMemory,
 }) => {
   const isUser = item.sender === 'user';
-  const {colors} = useTheme();
+  const {colors, isModern, modernPalette} = useTheme();
   const themed = useThemedStyles(getThemedStyles);
 
   const attachment = item.attachment ?? null;
@@ -88,11 +88,20 @@ export const ChatMessageItem: React.FC<ChatMessageItemProps> = ({
       <View
         style={[
           styles.bubble,
+          isModern && {borderRadius: 22},
           isUser
-            ? [styles.userBubble, {backgroundColor: colors.primary}]
+            ? [
+                styles.userBubble,
+                {
+                  backgroundColor: isModern
+                    ? modernPalette.accent
+                    : colors.primary,
+                },
+              ]
             : [
                 styles.assistantBubble,
                 themed.assistantBubble,
+                isModern && ModernShadows.subtle,
                 // Tables and code need the whole width of a phone to be read.
                 replyFormat === 'markdown' &&
                   hasWideMarkdownBlock(item.content) &&

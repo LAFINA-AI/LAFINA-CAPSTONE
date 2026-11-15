@@ -122,6 +122,15 @@ export type {
 } from './syncTypes';
 export {localSettingsStore} from './localSettingsStore';
 export {
+  DEFAULT_UI_VARIANT,
+  getSavedUIVariant,
+  normalizeUIVariant,
+  saveUIVariant,
+  UI_VARIANT_DEVICE_SCOPE,
+  UI_VARIANT_SETTING_KEY,
+} from './uiVariantStore';
+export type {UIVariant} from './uiVariantStore';
+export {
   avatarSeedStore,
   generateAvatarSeed,
   PROFILE_AVATAR_SEED_KEY,

@@ -9,4 +9,15 @@ export {
   CATEGORIES,
 } from './categoryColors';
 export type { Category } from './categoryColors';
-export { createThemedStyles, useThemedStyles } from './createThemedStyles';
+export {createThemedStyles, useThemedStyles} from './createThemedStyles';
+export {
+  getModernPalette,
+  modernDarkPalette,
+  modernDarkThemeColors,
+  ModernLayout,
+  modernLightPalette,
+  modernLightThemeColors,
+  ModernShadows,
+  ModernTypography,
+} from './modern';
+export type {ModernPalette, UIVariant} from './modern';

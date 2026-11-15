@@ -5,7 +5,14 @@ import {
   StyleSheet,
   ActivityIndicator,
 } from 'react-native';
-import { Colors, Fonts, Layout } from '../../theme';
+import {
+  Colors,
+  Fonts,
+  Layout,
+  ModernLayout,
+  ModernShadows,
+} from '../../theme';
+import {useTheme} from '../../contexts/ThemeContext';
 
 interface AuthButtonProps {
   title: string;
@@ -20,18 +27,36 @@ export const AuthButton: React.FC<AuthButtonProps> = ({
   loading,
   disabled = false,
 }) => {
+  const {isModern, modernPalette} = useTheme();
   const isButtonDisabled = disabled || loading;
 
   return (
     <TouchableOpacity
-      style={[styles.button, isButtonDisabled && styles.disabledButton]}
+      style={[
+        styles.button,
+        isModern && styles.modernButton,
+        isModern && !isButtonDisabled && ModernShadows.subtle,
+        isModern && {
+          backgroundColor: isButtonDisabled
+            ? modernPalette.surface
+            : modernPalette.accent,
+        },
+        !isModern && isButtonDisabled && styles.disabledButton,
+      ]}
       onPress={onPress}
       disabled={isButtonDisabled}
     >
       {loading ? (
         <ActivityIndicator color="#FFFFFF" size="small" />
       ) : (
-        <Text style={styles.buttonText}>{title}</Text>
+        <Text
+          style={[
+            styles.buttonText,
+            isModern && isButtonDisabled && {color: modernPalette.muted},
+          ]}
+        >
+          {title}
+        </Text>
       )}
     </TouchableOpacity>
   );
@@ -45,6 +70,10 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     marginTop: 12,
+  },
+  modernButton: {
+    height: 50,
+    borderRadius: ModernLayout.borderRadiusPill,
   },
   disabledButton: {
     backgroundColor: Colors.textMutedLight,

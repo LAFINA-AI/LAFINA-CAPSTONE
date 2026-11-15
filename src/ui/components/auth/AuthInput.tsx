@@ -8,7 +8,7 @@ import {
   KeyboardTypeOptions,
 } from 'react-native';
 import { Eye, EyeOff } from 'lucide-react-native';
-import { Fonts, Layout, useThemedStyles } from '../../theme';
+import {Fonts, Layout, ModernLayout, useThemedStyles} from '../../theme';
 import { useTheme } from '../../contexts/ThemeContext';
 import type { ThemeColors } from '../../contexts/ThemeContext';
 
@@ -41,13 +41,23 @@ export const AuthInput: React.FC<AuthInputProps> = ({
   showPassword = false,
   onPasswordToggle,
 }) => {
-  const { colors } = useTheme();
+  const {colors, isModern, modernPalette} = useTheme();
   const themed = useThemedStyles(getThemedStyles);
 
   return (
     <View>
       <Text style={[styles.fieldLabel, themed.fieldLabel]}>{label}</Text>
-      <View style={[styles.inputContainer, themed.inputContainer]}>
+      <View
+        style={[
+          styles.inputContainer,
+          themed.inputContainer,
+          isModern && {
+            borderRadius: ModernLayout.borderRadiusInput,
+            borderColor: modernPalette.border,
+            backgroundColor: modernPalette.surface,
+          },
+        ]}
+      >
         {icon && <View style={styles.inputIcon}>{icon}</View>}
         <TextInput
           style={[styles.input, themed.input]}

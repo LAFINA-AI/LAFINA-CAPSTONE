@@ -39,7 +39,13 @@ import {
   refreshPendingReminderLeadTimes,
 } from '../../scheduler';
 import type {ReminderPermissionStatus} from '../../scheduler';
-import {Fonts, Layout, Shadows} from '../theme';
+import {
+  Fonts,
+  Layout,
+  ModernLayout,
+  ModernShadows,
+  Shadows,
+} from '../theme';
 import {useTheme} from '../contexts/ThemeContext';
 import {ReminderPermissionModal} from '../components/call/ReminderPermissionModal';
 
@@ -134,7 +140,7 @@ const PreferenceOptionGroup: React.FC<PreferenceOptionGroupProps> = ({
   selectedValues,
   onSelect,
 }) => {
-  const {colors} = useTheme();
+  const {colors, isModern, modernPalette} = useTheme();
 
   return (
     <View style={styles.optionGroup}>
@@ -149,10 +155,18 @@ const PreferenceOptionGroup: React.FC<PreferenceOptionGroupProps> = ({
               key={option.value}
               style={[
                 styles.chip,
-                {backgroundColor: colors.inputBg, borderColor: colors.border},
+                {
+                  backgroundColor: isModern
+                    ? modernPalette.surface
+                    : colors.inputBg,
+                  borderColor: isModern ? modernPalette.border : colors.border,
+                },
+                isModern && styles.modernChip,
                 isSelected && {
-                  backgroundColor: colors.blue,
-                  borderColor: colors.blue,
+                  backgroundColor: isModern
+                    ? modernPalette.accent
+                    : colors.blue,
+                  borderColor: isModern ? modernPalette.accent : colors.blue,
                 },
               ]}
               onPress={() => onSelect(option.value)}
@@ -210,7 +224,16 @@ export const PreferencesSettingsScreen: React.FC<
   const [downloadProgress, setDownloadProgress] =
     useState<ModelDownloadProgress | null>(null);
   const [isDownloading, setIsDownloading] = useState(false);
-  const {colors} = useTheme();
+  const {colors, isModern, modernPalette} = useTheme();
+  const cardShadow = isModern ? ModernShadows.card : Shadows.card;
+  const cardSurfaceStyle = isModern
+    ? {
+        borderRadius: ModernLayout.borderRadiusCard,
+        borderWidth: 1,
+        borderColor: modernPalette.border,
+      }
+    : null;
+  const pillShapeStyle = isModern ? styles.modernPillButton : null;
 
   React.useEffect(() => {
     void getModelStatus().then(setModelStatus);
@@ -373,7 +396,12 @@ export const PreferencesSettingsScreen: React.FC<
 
       <ScrollView contentContainerStyle={styles.content}>
         <View
-          style={[styles.card, Shadows.card, {backgroundColor: colors.cardBg}]}
+          style={[
+            styles.card,
+            cardShadow,
+            {backgroundColor: colors.cardBg},
+            cardSurfaceStyle,
+          ]}
         >
           <Text style={[styles.sectionTitle, {color: colors.textPrimary}]}>
             Daily routine
@@ -393,7 +421,12 @@ export const PreferencesSettingsScreen: React.FC<
         </View>
 
         <View
-          style={[styles.card, Shadows.card, {backgroundColor: colors.cardBg}]}
+          style={[
+            styles.card,
+            cardShadow,
+            {backgroundColor: colors.cardBg},
+            cardSurfaceStyle,
+          ]}
         >
           <Text style={[styles.sectionTitle, {color: colors.textPrimary}]}>
             Study habits
@@ -413,7 +446,12 @@ export const PreferencesSettingsScreen: React.FC<
         </View>
 
         <View
-          style={[styles.card, Shadows.card, {backgroundColor: colors.cardBg}]}
+          style={[
+            styles.card,
+            cardShadow,
+            {backgroundColor: colors.cardBg},
+            cardSurfaceStyle,
+          ]}
         >
           <Text style={[styles.sectionTitle, {color: colors.textPrimary}]}>
             Reminders
@@ -442,7 +480,12 @@ export const PreferencesSettingsScreen: React.FC<
         </View>
 
         <View
-          style={[styles.card, Shadows.card, {backgroundColor: colors.cardBg}]}
+          style={[
+            styles.card,
+            cardShadow,
+            {backgroundColor: colors.cardBg},
+            cardSurfaceStyle,
+          ]}
         >
           <Text style={[styles.sectionTitle, {color: colors.textPrimary}]}>
             Academic load
@@ -462,7 +505,12 @@ export const PreferencesSettingsScreen: React.FC<
         </View>
 
         <View
-          style={[styles.card, Shadows.card, {backgroundColor: colors.cardBg}]}
+          style={[
+            styles.card,
+            cardShadow,
+            {backgroundColor: colors.cardBg},
+            cardSurfaceStyle,
+          ]}
         >
           <View style={styles.cardHeaderRow}>
             <Text
@@ -556,7 +604,11 @@ export const PreferencesSettingsScreen: React.FC<
                 </Text>
               </View>
               <TouchableOpacity
-                style={[styles.deleteModelButton, {borderColor: colors.error}]}
+                style={[
+                  styles.deleteModelButton,
+                  pillShapeStyle,
+                  {borderColor: colors.error},
+                ]}
                 onPress={handleDeleteModel}
               >
                 <Trash2 size={15} color={colors.error} />
@@ -569,6 +621,7 @@ export const PreferencesSettingsScreen: React.FC<
             <TouchableOpacity
               style={[
                 styles.permissionButton,
+                pillShapeStyle,
                 {borderColor: colors.blue, marginTop: 4},
               ]}
               onPress={() => void handleStartDownload()}
@@ -582,7 +635,12 @@ export const PreferencesSettingsScreen: React.FC<
         </View>
 
         <View
-          style={[styles.card, Shadows.card, {backgroundColor: colors.cardBg}]}
+          style={[
+            styles.card,
+            cardShadow,
+            {backgroundColor: colors.cardBg},
+            cardSurfaceStyle,
+          ]}
         >
           <Text style={[styles.sectionTitle, {color: colors.textPrimary}]}>
             Device permissions
@@ -594,7 +652,11 @@ export const PreferencesSettingsScreen: React.FC<
             enabled so LAFINA can remind you on schedule.
           </Text>
           <TouchableOpacity
-            style={[styles.permissionButton, {borderColor: colors.blue}]}
+            style={[
+              styles.permissionButton,
+              pillShapeStyle,
+              {borderColor: colors.blue},
+            ]}
             onPress={() => void handleOpenPermissions()}
           >
             <Bell size={18} color={colors.blue} />
@@ -609,7 +671,12 @@ export const PreferencesSettingsScreen: React.FC<
         )}
 
         <TouchableOpacity
-          style={[styles.saveButton, {backgroundColor: colors.blue}]}
+          style={[
+            styles.saveButton,
+            pillShapeStyle,
+            isModern && ModernShadows.subtle,
+            {backgroundColor: isModern ? modernPalette.accent : colors.blue},
+          ]}
           onPress={() => void handleSave()}
           disabled={isSaving}
         >
@@ -815,5 +882,11 @@ const styles = StyleSheet.create({
     fontFamily: Fonts.body,
     fontSize: 12,
     fontWeight: '600',
+  },
+  modernChip: {
+    borderRadius: ModernLayout.borderRadiusPill,
+  },
+  modernPillButton: {
+    borderRadius: ModernLayout.borderRadiusPill,
   },
 });

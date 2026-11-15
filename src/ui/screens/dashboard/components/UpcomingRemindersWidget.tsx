@@ -4,7 +4,15 @@ import {BellRing, ChevronRight} from 'lucide-react-native';
 import type {Reminder} from '../../../../storage';
 import {useTheme} from '../../../contexts/ThemeContext';
 import type {ThemeColors} from '../../../contexts/ThemeContext';
-import {Fonts, FontSize, Layout, Shadows, Spacing} from '../../../theme';
+import {
+  Fonts,
+  FontSize,
+  Layout,
+  ModernLayout,
+  ModernShadows,
+  Shadows,
+  Spacing,
+} from '../../../theme';
 import {useThemedStyles} from '../../../theme/createThemedStyles';
 import {formatLocalDateStr} from '../dashboardCalculations';
 
@@ -34,17 +42,26 @@ const formatReminderTrigger = (isoStr: string, todayStr: string): string => {
 export const UpcomingRemindersWidget: React.FC<
   UpcomingRemindersWidgetProps
 > = ({reminders, todayStr, onPressReminder, onOpenCalendar}) => {
-  const {colors} = useTheme();
+  const {colors, isModern, modernPalette} = useTheme();
   const themed = useThemedStyles(getThemedStyles);
 
   return (
     <View
-      style={[styles.card, themed.card, Shadows.card]}
+      style={[
+        styles.card,
+        themed.card,
+        isModern
+          ? [ModernShadows.card, {borderRadius: ModernLayout.borderRadiusCard}]
+          : Shadows.card,
+      ]}
       testID="dashboard-widget-upcoming-reminders"
     >
       <View style={styles.headerRow}>
         <View style={styles.headerTitleWrap}>
-          <BellRing size={17} color={colors.primary} />
+          <BellRing
+            size={17}
+            color={isModern ? modernPalette.peachInk : colors.primary}
+          />
           <Text style={[styles.headerTitle, themed.primaryText]}>
             Upcoming Reminders
           </Text>
@@ -76,7 +93,11 @@ export const UpcomingRemindersWidget: React.FC<
             return (
               <TouchableOpacity
                 key={rem.id}
-                style={[styles.row, themed.row]}
+                style={[
+                  styles.row,
+                  themed.row,
+                  isModern && {borderRadius: ModernLayout.borderRadiusSubCard},
+                ]}
                 onPress={() => onPressReminder(rem)}
                 activeOpacity={0.75}
                 accessibilityRole="button"

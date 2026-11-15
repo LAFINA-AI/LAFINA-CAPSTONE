@@ -7,10 +7,11 @@ import {
   Image,
   ScrollView,
 } from 'react-native';
-import { Fonts, Layout, Shadows } from '../theme';
-import { userStore } from '../../storage';
-import { useThemedStyles } from '../theme/createThemedStyles';
-import type { ThemeColors } from '../contexts/ThemeContext';
+import {Fonts, Layout, ModernLayout, ModernShadows, Shadows} from '../theme';
+import {userStore} from '../../storage';
+import {useThemedStyles} from '../theme/createThemedStyles';
+import {useTheme} from '../contexts/ThemeContext';
+import type {ThemeColors} from '../contexts/ThemeContext';
 
 interface WelcomeScreenProps {
   onGetStarted: (userId: string) => void;
@@ -23,6 +24,7 @@ export const WelcomeScreen: React.FC<WelcomeScreenProps> = ({
   onNavigateToLogin,
   onNavigateToRegister,
 }) => {
+  const {isModern, modernPalette} = useTheme();
   const themed = useThemedStyles(getWelcomeThemedStyles);
   const [startFailed, setStartFailed] = useState(false);
 
@@ -43,7 +45,18 @@ export const WelcomeScreen: React.FC<WelcomeScreenProps> = ({
 
   return (
     <ScrollView contentContainerStyle={styles.container} bounces={false}>
-      <View style={[styles.card, Shadows.card, themed.card]}>
+      <View
+        style={[
+          styles.card,
+          isModern ? ModernShadows.card : Shadows.card,
+          themed.card,
+          isModern && {
+            borderRadius: ModernLayout.borderRadiusCard,
+            borderWidth: 1,
+            borderColor: modernPalette.border,
+          },
+        ]}
+      >
         <Image
           source={require('../../assets/lafina_default_logo.png')}
           style={styles.logo}
@@ -56,7 +69,15 @@ export const WelcomeScreen: React.FC<WelcomeScreenProps> = ({
         </Text>
 
         <TouchableOpacity
-          style={[styles.primaryButton, themed.primaryButton]}
+          style={[
+            styles.primaryButton,
+            themed.primaryButton,
+            isModern && ModernShadows.subtle,
+            isModern && {
+              borderRadius: ModernLayout.borderRadiusPill,
+              backgroundColor: modernPalette.accent,
+            },
+          ]}
           onPress={handleGetStarted}
           activeOpacity={0.8}
         >
@@ -79,7 +100,14 @@ export const WelcomeScreen: React.FC<WelcomeScreenProps> = ({
         </View>
 
         <TouchableOpacity
-          style={[styles.secondaryButton, themed.secondaryButton]}
+          style={[
+            styles.secondaryButton,
+            themed.secondaryButton,
+            isModern && {
+              borderRadius: ModernLayout.borderRadiusPill,
+              borderColor: modernPalette.border,
+            },
+          ]}
           onPress={onNavigateToRegister}
           activeOpacity={0.8}
         >
@@ -91,7 +119,15 @@ export const WelcomeScreen: React.FC<WelcomeScreenProps> = ({
         <View style={styles.footer}>
           <Text style={[styles.footerText, themed.footerText]}>Already have an account? </Text>
           <TouchableOpacity onPress={onNavigateToLogin}>
-            <Text style={[styles.loginLink, themed.loginLink]}>Log In</Text>
+            <Text
+              style={[
+                styles.loginLink,
+                themed.loginLink,
+                isModern && {color: modernPalette.accent},
+              ]}
+            >
+              Log In
+            </Text>
           </TouchableOpacity>
         </View>
       </View>

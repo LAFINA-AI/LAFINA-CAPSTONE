@@ -11,7 +11,7 @@ import {
 } from 'react-native';
 import { CheckSquare, GripVertical, Pin } from 'lucide-react-native';
 import { useTheme } from '../../../contexts/ThemeContext';
-import { Shadows } from '../../../theme';
+import { ModernLayout, ModernShadows, Shadows } from '../../../theme';
 import { getCategoryColor } from '../../../theme/categoryColors';
 import type { Note } from '../../../../storage';
 import { checklistStats } from '../../../../utils';
@@ -52,7 +52,7 @@ export const NoteCardBase: React.FC<NoteCardBaseProps> = ({
   item, isGridView, onPress, isActive, canDrag, panHandlers,
   dragX, dragY, onLayout, onToggleChecklist,
 }) => {
-  const { colors } = useTheme();
+  const { colors, isModern, modernPalette } = useTheme();
   const checklist = checklistStats(item.body);
   const toggle = (index: number) => onToggleChecklist(item, index);
 
@@ -110,7 +110,16 @@ export const NoteCardBase: React.FC<NoteCardBaseProps> = ({
       }}
       style={[
         isGridView ? styles.gridCard : styles.listCard,
-        Shadows.card,
+        isModern
+          ? [
+              ModernShadows.card,
+              {
+                borderRadius: ModernLayout.borderRadiusCard,
+                borderWidth: 1,
+                borderColor: modernPalette.border,
+              },
+            ]
+          : Shadows.card,
         cardStyle,
         { backgroundColor: colors.cardBg },
       ]}

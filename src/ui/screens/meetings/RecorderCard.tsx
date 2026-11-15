@@ -14,12 +14,18 @@ import { Mic, Pause, Play, Square, Trash2, Upload } from 'lucide-react-native';
 import { useMeetings, MAX_RECORDING_MS } from '../../contexts/MeetingsContext';
 import { useTheme } from '../../contexts/ThemeContext';
 import { useThemedStyles } from '../../theme/createThemedStyles';
-import { Fonts, Shadows, Spacing } from '../../theme';
+import {
+  Fonts,
+  ModernLayout,
+  ModernShadows,
+  Shadows,
+  Spacing,
+} from '../../theme';
 import { describeMeetingProblem, formatClock } from './meetingCopy';
 import { getMeetingThemedStyles, meetingStyles } from './meetingStyles';
 
 export const RecorderCard: React.FC = () => {
-  const { colors } = useTheme();
+  const {colors, isModern, modernPalette} = useTheme();
   const themed = useThemedStyles(getMeetingThemedStyles);
   const {
     recorder,
@@ -102,13 +108,31 @@ export const RecorderCard: React.FC = () => {
     </View>
   ) : null;
 
+  const cardSurface = isModern
+    ? [
+        ModernShadows.card,
+        {
+          borderRadius: ModernLayout.borderRadiusCard,
+          borderColor: modernPalette.border,
+        },
+      ]
+    : Shadows.card;
+
   if (!recorder) {
     const busy = processing !== null;
     return (
-      <View style={[meetingStyles.card, Shadows.card, themed.card]}>
+      <View style={[meetingStyles.card, cardSurface, themed.card]}>
         {errorBanner}
         <TextInput
-          style={[meetingStyles.input, themed.input]}
+          style={[
+            meetingStyles.input,
+            themed.input,
+            isModern && {
+              borderRadius: ModernLayout.borderRadiusInput,
+              backgroundColor: modernPalette.surface,
+              borderColor: modernPalette.border,
+            },
+          ]}
           placeholder="Lecture or study group title (optional)"
           placeholderTextColor={colors.placeholder}
           value={title}
@@ -124,13 +148,21 @@ export const RecorderCard: React.FC = () => {
           <Switch
             value={keepAudio}
             onValueChange={setKeepAudio}
-            trackColor={{ false: colors.border, true: colors.red }}
+            trackColor={{
+              false: colors.border,
+              true: isModern ? modernPalette.accent : colors.red,
+            }}
             accessibilityLabel="Keep raw audio after transcription"
             testID="meeting-keep-audio-switch"
           />
         </View>
         <TouchableOpacity
-          style={[meetingStyles.primaryButton, themed.primaryButton]}
+          style={[
+            meetingStyles.primaryButton,
+            themed.primaryButton,
+            isModern && ModernShadows.subtle,
+            isModern && {backgroundColor: modernPalette.accent},
+          ]}
           onPress={() => {
             void startRecording({ title });
             setTitle('');
@@ -158,6 +190,10 @@ export const RecorderCard: React.FC = () => {
             meetingStyles.secondaryButton,
             styles.importButton,
             themed.secondaryButton,
+            isModern && {
+              borderRadius: ModernLayout.borderRadiusPill,
+              borderColor: modernPalette.border,
+            },
           ]}
           onPress={() => void handleImport()}
           disabled={busy || isImporting}
@@ -193,7 +229,7 @@ export const RecorderCard: React.FC = () => {
 
   return (
     <View
-      style={[meetingStyles.card, Shadows.card, themed.card]}
+      style={[meetingStyles.card, cardSurface, themed.card]}
       accessibilityLiveRegion="polite"
     >
       {errorBanner}
@@ -220,7 +256,9 @@ export const RecorderCard: React.FC = () => {
       </Text>
 
       {stopping ? (
-        <ActivityIndicator color={colors.red} />
+        <ActivityIndicator
+          color={isModern ? modernPalette.accent : colors.red}
+        />
       ) : (
         <View style={[meetingStyles.buttonRow, styles.controls]}>
           <TouchableOpacity
@@ -246,6 +284,7 @@ export const RecorderCard: React.FC = () => {
             style={[
               meetingStyles.primaryButton,
               themed.primaryButton,
+              isModern && {backgroundColor: modernPalette.accent},
               styles.control,
             ]}
             onPress={() => void stopRecording()}

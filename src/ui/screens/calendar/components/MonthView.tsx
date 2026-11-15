@@ -36,7 +36,7 @@ export const MonthView: React.FC<MonthViewProps> = ({
   onSwipeLeft,
   onSwipeRight,
 }) => {
-  const { colors, isDarkMode } = useTheme();
+  const { colors, isDarkMode, isModern, modernPalette } = useTheme();
 
   const touchStartX = useRef(0);
   const touchStartY = useRef(0);
@@ -133,7 +133,14 @@ export const MonthView: React.FC<MonthViewProps> = ({
         key={`day-${day}`}
         style={[
           styles.calendarCell,
-          { borderColor: isSelected ? colors.red : colors.border },
+          isModern && { borderRadius: 8 },
+          {
+            borderColor: isSelected
+              ? isModern
+                ? modernPalette.accent
+                : colors.red
+              : colors.border,
+          },
           isSelected && styles.selectedCell,
         ]}
         onPress={() => handleDayPress(day)}
@@ -142,7 +149,15 @@ export const MonthView: React.FC<MonthViewProps> = ({
         accessibilityHint="Opens this date in day view"
         accessibilityState={{ selected: isSelected }}
       >
-        <View style={[styles.dayContainer, isToday && styles.todayContainer]}>
+        <View
+          style={[
+            styles.dayContainer,
+            isToday && [
+              styles.todayContainer,
+              isModern && { backgroundColor: modernPalette.accent },
+            ],
+          ]}
+        >
           <Text style={[styles.dayText, { color: colors.textPrimary }, isToday && styles.todayText]}>
             {day}
           </Text>
