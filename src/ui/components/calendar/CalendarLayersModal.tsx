@@ -10,7 +10,7 @@ import {
 } from 'react-native';
 import { Check, X, Trash2 } from 'lucide-react-native';
 import { useTheme } from '../../contexts/ThemeContext';
-import { Fonts, Colors, Shadows } from '../../theme';
+import { CALENDAR_LAYER_SWATCHES, Fonts, Shadows } from '../../theme';
 import { ImportBatch } from '../../../storage/importedBatchesStore';
 import { HOLIDAY_CALENDAR_ID, HOLIDAY_CALENDAR_NAME } from '../../screens/calendar/utils/philippineHolidays';
 
@@ -50,13 +50,8 @@ export const CalendarLayersModal: React.FC<CalendarLayersModalProps> = ({
     for (let i = 0; i < str.length; i++) {
       hash = str.charCodeAt(i) + ((hash << 5) - hash);
     }
-    const colorsList = [
-      '#F44336', '#E91E63', '#9C27B0', '#673AB7', '#3F51B5', 
-      '#2196F3', '#03A9F4', '#00BCD4', '#009688', '#4CAF50', 
-      '#8BC34A', '#FF9800', '#FF5722', '#795548'
-    ];
-    const index = Math.abs(hash) % colorsList.length;
-    return colorsList[index];
+    const index = Math.abs(hash) % CALENDAR_LAYER_SWATCHES.length;
+    return CALENDAR_LAYER_SWATCHES[index];
   };
 
   return (
@@ -87,10 +82,10 @@ export const CalendarLayersModal: React.FC<CalendarLayersModalProps> = ({
                 >
                   <View style={[
                     styles.checkbox,
-                    { borderColor: Colors.blue },
-                    mainVisible && { backgroundColor: Colors.blue }
+                    { borderColor: colors.blue },
+                    mainVisible && { backgroundColor: colors.blue }
                   ]}>
-                    {mainVisible && <Check size={12} color="#FFFFFF" strokeWidth={3} />}
+                    {mainVisible && <Check size={12} color={colors.white} strokeWidth={3} />}
                   </View>
                   <View style={styles.textContainer}>
                     <Text style={[styles.itemTitle, { color: colors.textPrimary }]}>
@@ -153,7 +148,7 @@ export const CalendarLayersModal: React.FC<CalendarLayersModalProps> = ({
                             { borderColor: color },
                             batchVisible && { backgroundColor: color }
                           ]}>
-                            {batchVisible && <Check size={12} color="#FFFFFF" strokeWidth={3} />}
+                            {batchVisible && <Check size={12} color={colors.white} strokeWidth={3} />}
                           </View>
                           <View style={styles.textContainer}>
                             <Text style={[styles.itemTitle, { color: colors.textPrimary }]} numberOfLines={1}>

@@ -6,3 +6,4 @@ export {TasksDueWidget} from './TasksDueWidget';
 export {UpcomingRemindersWidget} from './UpcomingRemindersWidget';
 export {PinnedNotesWidget} from './PinnedNotesWidget';
 export {CustomizeDashboardModal} from './CustomizeDashboardModal';
+export {ModernHomeContent} from './ModernHomeContent';

@@ -7,7 +7,6 @@ import {
   TouchableOpacity,
 } from 'react-native';
 import { useTheme } from '../../../contexts/ThemeContext';
-import { Colors } from '../../../theme';
 import { FilterType } from '../types';
 
 interface NoteFiltersProps {
@@ -21,7 +20,7 @@ export const NoteFilters: React.FC<NoteFiltersProps> = ({
   onFilterChange,
   customCategories,
 }) => {
-  const { colors } = useTheme();
+  const { colors, isModern, modernPalette } = useTheme();
 
   const categories = ['Personal', 'Work', 'Health', 'Learning', ...customCategories];
   const allFilters: FilterType[] = ['All', 'AI Transcribed', 'Pinned', ...categories];
@@ -34,8 +33,15 @@ export const NoteFilters: React.FC<NoteFiltersProps> = ({
             key={filter}
             style={[
               styles.filterChip,
-              { backgroundColor: colors.inputBg },
-              selectedFilter === filter && { backgroundColor: Colors.red },
+              {
+                backgroundColor: isModern ? modernPalette.surface : colors.inputBg,
+                borderWidth: isModern ? 1 : 0,
+                borderColor: modernPalette.border,
+              },
+              selectedFilter === filter && {
+                backgroundColor: isModern ? modernPalette.darkInkBtn : colors.red,
+                borderColor: isModern ? modernPalette.darkInkBtn : colors.red,
+              },
             ]}
             onPress={() => onFilterChange(filter)}
           >

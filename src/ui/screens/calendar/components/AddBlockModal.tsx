@@ -11,7 +11,7 @@ import {
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { Calendar } from 'lucide-react-native';
 import { useTheme } from '../../../contexts/ThemeContext';
-import { Colors } from '../../../theme';
+import { Shadows, TIME_BLOCK_SWATCHES } from '../../../theme';
 import {
   timeStringToDate,
   dateToTimeString,
@@ -19,7 +19,6 @@ import {
   formatLocalDate,
 } from '../utils/calendarHelpers';
 import { TimeBlockModalState } from '../types';
-import { Shadows } from '../../../theme';
 import { parseRrule } from '../../../../storage/rruleHelper';
 
 interface AddBlockModalProps {
@@ -217,7 +216,7 @@ export const AddBlockModal: React.FC<AddBlockModalProps> = ({ state, timeFormat2
             </View>
 
             <View style={styles.colorRow}>
-              {[Colors.blue, Colors.red, Colors.yellow, Colors.success, Colors.gradientPurple].map((c) => (
+              {TIME_BLOCK_SWATCHES.map((c) => (
                 <TouchableOpacity
                   key={c}
                   style={[
@@ -393,10 +392,10 @@ export const AddBlockModal: React.FC<AddBlockModalProps> = ({ state, timeFormat2
             <View style={styles.actionRow}>
               {state.editingBlock && (
                 <TouchableOpacity
-                  style={[styles.modalBtn, styles.deleteBtn]}
+                  style={[styles.modalBtn, styles.deleteBtn, { backgroundColor: colors.error }]}
                   onPress={() => state.delete(state.editingBlock!.id)}
                 >
-                  <Text style={styles.modalBtnText}>Delete</Text>
+                  <Text style={[styles.modalBtnText, { color: colors.white }]}>Delete</Text>
                 </TouchableOpacity>
               )}
               <TouchableOpacity
@@ -406,10 +405,10 @@ export const AddBlockModal: React.FC<AddBlockModalProps> = ({ state, timeFormat2
                 <Text style={[styles.modalBtnTextDark, { color: colors.textPrimary }]}>Cancel</Text>
               </TouchableOpacity>
               <TouchableOpacity
-                style={[styles.modalBtn, styles.saveBtn]}
+                style={[styles.modalBtn, styles.saveBtn, { backgroundColor: colors.red }]}
                 onPress={handleSaveLocal}
               >
-                <Text style={styles.modalBtnText}>Save</Text>
+                <Text style={[styles.modalBtnText, { color: colors.white }]}>Save</Text>
               </TouchableOpacity>
             </View>
           </ScrollView>
@@ -521,17 +520,13 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     marginLeft: 8,
   },
-  saveBtn: {
-    backgroundColor: Colors.red,
-  },
+  saveBtn: {},
   cancelBtn: {},
   deleteBtn: {
-    backgroundColor: Colors.error,
     marginRight: 'auto',
     marginLeft: 0,
   },
   modalBtnText: {
-    color: Colors.textLight,
     fontWeight: 'bold',
     fontSize: 14,
   },

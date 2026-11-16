@@ -6,7 +6,7 @@ import {
   toTitleCase,
   detectCategory,
 } from './fastPathParser';
-import { getQwenModelPath, isQwenModelReady } from './modelManager';
+import { getActiveOfflineModelReadyConfig } from './modelManager';
 import { executeNluAction, type ActionExecutorOptions } from './actionExecutor';
 import {
   validateIntent,
@@ -19,6 +19,7 @@ import {
 export interface IntentExtractionOptions {
   referenceDate?: Date;
   preferOnDeviceSlm?: boolean;
+  userId?: string;
 }
 
 const SCHEDULE_INTENTS: ReadonlySet<ParsedIntentType> = new Set([
@@ -26,6 +27,33 @@ const SCHEDULE_INTENTS: ReadonlySet<ParsedIntentType> = new Set([
   'create_time_block',
   'create_reminder',
 ]);
+
+const QUESTION_PREFIX_REGEX =
+  /^(?:what|who|where|when|why|how|tell\s+me|show\s+me|check\s+my|audit|am\s+i\s+free|can\s+you\s+check|give\s+me)\b/i;
+
+const UNSTRUCTURED_TAGLISH_SCHEDULE_REGEX =
+  /\b(?:pa-?(?:remind|schedule|add|book)|mag-?(?:aral|study|review|meeting|pasa)|may\s+(?:quiz|exam|midterm|finals|pasok|klase|meeting|defense|deadline|reporting)\s+(?:kami|ako|tayo)|bukas\s+(?:ng\s+)?\d|mamaya(?:ng)?\s+\d)\b/i;
+
+const TAGLISH_OR_COLLOQUIAL_SCHEDULE_REGEX =
+  /\b(?:pa-?(?:remind|schedule|add|book)|bukas|mamaya|magpasa|mag-?(?:aral|study|review|pasa))\b/i;
+
+function isUnstructuredOfflineScheduleCandidate(
+  transcript: string,
+  fastPathResult: ExtractedIntent,
+): boolean {
+  if (fastPathResult.intent !== 'chat') {
+    return false;
+  }
+  const trimmed = transcript.trim();
+  if (!trimmed || trimmed.endsWith('?') || QUESTION_PREFIX_REGEX.test(trimmed)) {
+    return false;
+  }
+  return UNSTRUCTURED_TAGLISH_SCHEDULE_REGEX.test(trimmed);
+}
+
+function isTaglishOrColloquialSchedule(transcript: string): boolean {
+  return TAGLISH_OR_COLLOQUIAL_SCHEDULE_REGEX.test(transcript.trim());
+}
 
 function formatSlmTitle(
   slmTitle: string | null | undefined,
@@ -58,10 +86,11 @@ export class IntentService {
    * Smart Hybrid Intent Extractor:
    * 1. Evaluates deterministic fast path (< 5ms).
    * 2. Non-schedule-creation intents (query_schedule, CRUD update/delete, create_note, call responses)
-   *    always return deterministically without SLM interference.
-   * 3. If confidence is high (>= 0.85) and title is clean, returns immediately with zero battery/memory overhead.
-   * 4. If ambiguous or noisy title detected on a schedule creation intent, and Qwen model is downloaded,
-   *    invokes on-device SLM and fuses Qwen's distilled semantic title with Fast Path's deterministic local date/time arithmetic.
+   *    return deterministically without SLM interference unless an explicit unstructured scheduling phrase fell back to `chat`.
+   * 3. If confidence is high (>= 0.85) and title is clean (and not Taglish/colloquial), returns immediately with zero battery/memory overhead.
+   * 4. If ambiguous, noisy, or unstructured scheduling is detected, and the user's selected offline model is downloaded
+   *    (and not set to `fast_path_only`), invokes the on-device SLM with the preset's promptFormat (`chatml` or `gemma`)
+   *    and fuses its distilled semantic fields with Fast Path's deterministic local date/time arithmetic.
    * 5. Enforces strict schema validation before returning.
    */
   async extractIntent(
@@ -88,34 +117,51 @@ export class IntentService {
 
     // Step 1: Run Deterministic Fast Path
     const fastPathResult = parseIntentFastPath(trimmed, options.referenceDate);
+    const unstructuredCandidate = isUnstructuredOfflineScheduleCandidate(
+      trimmed,
+      fastPathResult,
+    );
 
     // Non-creation intents (query_schedule, CRUD update/delete, create_note, call responses, chat)
-    // must NEVER be sent to the SLM title distiller (which previously overwrote query_schedule with create_task).
-    if (!SCHEDULE_INTENTS.has(fastPathResult.intent)) {
+    // must NEVER be sent to the SLM title distiller (except explicit unstructured scheduling phrases in `chat`).
+    if (!SCHEDULE_INTENTS.has(fastPathResult.intent) && !unstructuredCandidate) {
       return validateIntent(fastPathResult);
     }
 
     const noisy = isTitleNoisy(fastPathResult.title || '', trimmed);
+    const taglishOrColloquial = isTaglishOrColloquialSchedule(trimmed);
 
     // If fast path has high confidence and a clean title (e.g. clear command, exact date/time)
-    if (fastPathResult.confidence >= 0.85 && !options.preferOnDeviceSlm && !noisy) {
+    if (
+      SCHEDULE_INTENTS.has(fastPathResult.intent) &&
+      fastPathResult.confidence >= 0.85 &&
+      !options.preferOnDeviceSlm &&
+      !noisy &&
+      !taglishOrColloquial
+    ) {
       return validateIntent(fastPathResult);
     }
 
-    // Step 2: Check if Qwen on-device model is available for noisy schedule creation titles
+    // Step 2: Check if the user's selected offline AI preset is downloaded and active
     const extractor = NativeModules.LafinaIntentExtractor;
     if (Platform.OS === 'android' && extractor) {
       try {
-        const modelReady = await isQwenModelReady();
-        if (modelReady) {
-          const modelPath = getQwenModelPath();
+        const activeModel = await getActiveOfflineModelReadyConfig(
+          options.userId,
+        );
+        if (activeModel) {
           const rawNativeJson = await extractor.extractIntent({
             transcript: trimmed,
-            modelPath,
+            modelPath: activeModel.modelPath,
+            promptFormat: activeModel.promptFormat,
           });
 
           if (rawNativeJson) {
             const parsed = JSON.parse(rawNativeJson);
+            if (unstructuredCandidate && !SCHEDULE_INTENTS.has(parsed.intent)) {
+              return validateIntent(fastPathResult);
+            }
+
             // Preserve explicit time_block or reminder intent from fast path so SLM doesn't downgrade them to create_task
             const resolvedIntent: ParsedIntentType =
               fastPathResult.intent === 'create_time_block' ||
@@ -133,7 +179,7 @@ export class IntentService {
             );
 
             // Best-of-Both Fusion:
-            // - Title comes from Qwen's semantic distillation (cleaned & Title-Cased)
+            // - Title comes from the active offline SLM's semantic distillation (cleaned & Title-Cased)
             // - Date, Time, EndTime, and Duration prioritize Fast Path's exact local clock math
             const slmIntent: ExtractedIntent = {
               intent: resolvedIntent,
@@ -150,7 +196,8 @@ export class IntentService {
                     fastPathResult.category ||
                     detectCategory(`${fusedTitle || ''} ${trimmed}`),
               details: parsed.details || fusedTitle || trimmed,
-              snoozeMinutes: fastPathResult.snoozeMinutes ?? parsed.snooze_minutes ?? null,
+              snoozeMinutes:
+                fastPathResult.snoozeMinutes ?? parsed.snooze_minutes ?? null,
               confidence: 0.95,
               source: 'on_device_slm',
               rawTranscript: transcript,
@@ -159,7 +206,10 @@ export class IntentService {
           }
         }
       } catch (err) {
-        console.warn('[IntentService] Native SLM extraction error, falling back to fast-path:', err);
+        console.warn(
+          '[IntentService] Native SLM extraction error, falling back to fast-path:',
+          err,
+        );
       }
     }
 
@@ -184,7 +234,10 @@ export class IntentService {
     transcript: string,
     options: ActionExecutorOptions = {},
   ): Promise<NluActionResult> {
-    const validated = await this.extractIntent(transcript, { referenceDate: options.referenceDate });
+    const validated = await this.extractIntent(transcript, {
+      referenceDate: options.referenceDate,
+      userId,
+    });
     return executeNluAction(userId, validated, options);
   }
 }

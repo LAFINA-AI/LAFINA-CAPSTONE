@@ -1,7 +1,8 @@
-import React, {useState, useEffect, useRef, useCallback} from 'react';
+import React, {useState, useEffect, useRef, useCallback, useMemo} from 'react';
 import {
   View,
   Text,
+  Image,
   StyleSheet,
   FlatList,
   TouchableOpacity,
@@ -17,18 +18,29 @@ import {
 } from 'react-native';
 import {useSafeAreaInsets} from 'react-native-safe-area-context';
 import NetInfo from '@react-native-community/netinfo';
+import Svg, {Defs, LinearGradient, Rect, Stop} from 'react-native-svg';
 import {
-  PanelLeft,
-  Bot,
+  Menu,
+  ChevronDown,
+  Clock,
   BookOpen,
+  AlarmClock,
+  FileText,
+  Award,
+  Scale,
+  ShieldCheck,
+  GraduationCap,
   Camera,
   Image as ImageIcon,
-  Sparkles,
   MessageCircleDashed,
-  Lightbulb,
-  Phone,
 } from 'lucide-react-native';
-import {Fonts, FontSize, Layout, Spacing} from '../theme';
+import {
+  Fonts,
+  FontSize,
+  Layout,
+  ModernLayout,
+  Spacing,
+} from '../theme';
 import {useTheme} from '../contexts/ThemeContext';
 import {useThemedStyles} from '../theme/createThemedStyles';
 import type {ThemeColors} from '../contexts/ThemeContext';
@@ -39,6 +51,8 @@ import {
   type ChatAttachment,
   type ChatMessage,
 } from '../../storage/chatStore';
+import {academicProfileStore} from '../../storage/academicProfileStore';
+import {userStore} from '../../storage/userStore';
 import {mergeChatPages} from './chat/chatPaging';
 import {localSettingsStore} from '../../storage/localSettingsStore';
 import {accountLinkService} from '../../cloud';
@@ -51,8 +65,22 @@ import {
 } from '../../cloud/chatMemoryService';
 import type {ChatMemoryChangedEvent} from '../../cloud/chatMemoryService';
 import {chatOrchestrator} from '../../ai/chatOrchestrator';
+import {localHandbookService, type LocalHandbookStatus} from '../../handbook';
+import {
+  OFFLINE_MODEL_CATALOG,
+  getAllModelsStatus,
+  getOfflineModelPreset,
+  getSelectedOfflineModelId,
+} from '../../ai/nlu/modelManager';
+import {getDeviceAiRecommendation} from '../../ai/nlu/deviceSpecs';
+import type {
+  DeviceAiRecommendation,
+  ModelStatus,
+  OfflineModelId,
+} from '../../ai/nlu/types';
 import {ChatMessageItem} from '../components/chat/ChatMessageItem';
 import {ChatHistorySheet} from '../components/chat/ChatHistorySheet';
+import {ChatEngineSheet} from '../components/chat/ChatEngineSheet';
 import {
   ChatInput,
   SUGGESTED_PROMPTS,
@@ -79,6 +107,147 @@ import type {
 
 /** How often a reply that is still arriving repaints (about 20 times a second). */
 const STREAM_REPAINT_MS = 50;
+
+const LAFINA_MASCOT = require('../../assets/new_lafina_app_logo/lafina_app_logo.png');
+
+type SampleCardIconKey =
+  | 'clock'
+  | 'book'
+  | 'alarm'
+  | 'note'
+  | 'award'
+  | 'scale'
+  | 'shield'
+  | 'grad';
+
+interface SampleChatCardConfig {
+  label: string;
+  prompt: string;
+  iconKey: SampleCardIconKey;
+}
+
+const GENERAL_SAMPLE_CARDS: readonly SampleChatCardConfig[] = [
+  {
+    label: "Today's Schedule",
+    prompt: SUGGESTED_PROMPTS[0],
+    iconKey: 'clock',
+  },
+  {
+    label: 'Plan Study Block',
+    prompt: SUGGESTED_PROMPTS[1],
+    iconKey: 'book',
+  },
+  {
+    label: 'Set Reminder',
+    prompt: SUGGESTED_PROMPTS[2],
+    iconKey: 'alarm',
+  },
+  {
+    label: 'Quick Note',
+    prompt: SUGGESTED_PROMPTS[3],
+    iconKey: 'note',
+  },
+];
+
+const USTP_SAMPLE_CARDS: readonly SampleChatCardConfig[] = [
+  {
+    label: "Dean's List GPA",
+    prompt: USTP_SUGGESTED_PROMPTS[0],
+    iconKey: 'award',
+  },
+  {
+    label: 'Grading & GPA',
+    prompt: USTP_SUGGESTED_PROMPTS[1],
+    iconKey: 'scale',
+  },
+  {
+    label: 'Retention Policy',
+    prompt: USTP_SUGGESTED_PROMPTS[2],
+    iconKey: 'shield',
+  },
+  {
+    label: 'Absences Rules',
+    prompt: USTP_SUGGESTED_PROMPTS[3],
+    iconKey: 'grad',
+  },
+];
+
+function buildInitialModelStatuses(
+  selectedModelId: OfflineModelId,
+): ModelStatus[] {
+  return OFFLINE_MODEL_CATALOG.map(preset => ({
+    isDownloaded: preset.id === 'fast_path_only',
+    filePath: '',
+    fileSizeBytes: 0,
+    modelName: preset.name,
+    modelId: preset.id,
+    shortLabel: preset.shortLabel,
+    approximateSizeBytes: preset.approximateSizeBytes,
+    recommendedRamGb: preset.recommendedRamGb,
+    description: preset.description,
+    isSelected: preset.id === selectedModelId,
+  }));
+}
+
+function areModelStatusesEqual(
+  prev: ModelStatus[],
+  next: ModelStatus[],
+): boolean {
+  if (prev.length !== next.length) {
+    return false;
+  }
+  return prev.every((item, index) => {
+    const other = next[index];
+    return (
+      item.modelId === other.modelId &&
+      item.isDownloaded === other.isDownloaded &&
+      item.isSelected === other.isSelected &&
+      item.fileSizeBytes === other.fileSizeBytes
+    );
+  });
+}
+
+function resolveStudentGreetingName(userId: string): string {
+  const academic = academicProfileStore.get(userId);
+  const preferred = academic?.preferredName?.trim();
+  if (preferred) {
+    return preferred;
+  }
+  const formatted = academic?.formattedName?.trim();
+  if (formatted) {
+    const firstWord = formatted.split(/\s+/)[0]?.trim();
+    if (firstWord) {
+      return firstWord;
+    }
+  }
+  const user = userStore.getUserById(userId);
+  const username = user?.username?.trim();
+  if (username && username.toLowerCase() !== 'guest') {
+    return username;
+  }
+  return 'Student';
+}
+
+function renderSampleCardIcon(iconKey: SampleCardIconKey, color: string) {
+  switch (iconKey) {
+    case 'clock':
+      return <Clock size={18} color={color} />;
+    case 'book':
+      return <BookOpen size={18} color={color} />;
+    case 'alarm':
+      return <AlarmClock size={18} color={color} />;
+    case 'note':
+      return <FileText size={18} color={color} />;
+    case 'award':
+      return <Award size={18} color={color} />;
+    case 'scale':
+      return <Scale size={18} color={color} />;
+    case 'shield':
+      return <ShieldCheck size={18} color={color} />;
+    case 'grad':
+      return <GraduationCap size={18} color={color} />;
+  }
+}
 
 export interface ChatScreenProps {
   userId: string;
@@ -211,6 +380,32 @@ export const ChatScreen: React.FC<ChatScreenProps> = ({
   );
   const [formatPickerOpen, setFormatPickerOpen] = useState(false);
   const [guideVisible, setGuideVisible] = useState(false);
+  const [engineSheetVisible, setEngineSheetVisible] = useState(false);
+  const [selectedOfflineModelId, setSelectedOfflineModelIdState] =
+    useState<OfflineModelId>(() => getSelectedOfflineModelId(userId));
+  const [modelsStatus, setModelsStatus] = useState<ModelStatus[]>(() =>
+    buildInitialModelStatuses(getSelectedOfflineModelId(userId)),
+  );
+  const [deviceRecommendation, setDeviceRecommendation] =
+    useState<DeviceAiRecommendation | null>(null);
+  const [localHandbookStatus, setLocalHandbookStatus] =
+    useState<LocalHandbookStatus>(() => localHandbookService.getStatus());
+  const modelsStatusRef = useRef<ModelStatus[]>(modelsStatus);
+  modelsStatusRef.current = modelsStatus;
+  const [studentName, setStudentName] = useState(() =>
+    resolveStudentGreetingName(userId),
+  );
+  const studentNameRef = useRef(studentName);
+  studentNameRef.current = studentName;
+  const selectedModelRef = useRef(selectedOfflineModelId);
+  selectedModelRef.current = selectedOfflineModelId;
+  const isMountedRef = useRef(true);
+  useEffect(() => {
+    isMountedRef.current = true;
+    return () => {
+      isMountedRef.current = false;
+    };
+  }, []);
   const [isKeyboardVisible, setIsKeyboardVisible] = useState(false);
   const [keyboardHeight, setKeyboardHeight] = useState(0);
   const insets = useSafeAreaInsets();
@@ -220,8 +415,110 @@ export const ChatScreen: React.FC<ChatScreenProps> = ({
   const maxHeightRef = useRef<number>(currentHeight);
   const flatListRef = useRef<FlatList<ChatMessage>>(null);
 
-  const {colors} = useTheme();
+  const {
+    colors,
+    isDarkMode,
+    isModern,
+    modernPalette,
+    modernTheme,
+    modernThemeExtras,
+    modernShadows,
+  } = useTheme();
   const themed = useThemedStyles(getThemedStyles);
+
+  const refreshModelAndProfileState = useCallback(async () => {
+    const nextName = resolveStudentGreetingName(userId);
+    const nextSelected = getSelectedOfflineModelId(userId);
+    if (studentNameRef.current !== nextName) {
+      studentNameRef.current = nextName;
+      setStudentName(nextName);
+    }
+    if (selectedModelRef.current !== nextSelected) {
+      selectedModelRef.current = nextSelected;
+      setSelectedOfflineModelIdState(nextSelected);
+    }
+    try {
+      const statuses = await getAllModelsStatus(userId);
+      if (!isMountedRef.current) {
+        return;
+      }
+      if (!areModelStatusesEqual(modelsStatusRef.current, statuses)) {
+        modelsStatusRef.current = statuses;
+        setModelsStatus(statuses);
+      }
+    } catch {
+      // Preserve last known model download statuses if storage inspection fails
+    }
+  }, [userId]);
+
+  useEffect(() => {
+    void refreshModelAndProfileState();
+  }, [refreshModelAndProfileState, refreshTrigger]);
+
+  useEffect(() => {
+    let cancelled = false;
+    void localHandbookService
+      .ensureReady()
+      .then(status => {
+        if (!cancelled && isMountedRef.current) {
+          setLocalHandbookStatus(status);
+        }
+      })
+      .catch(() => {
+        // Keep last known local handbook status
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [isUstpChat, refreshTrigger]);
+
+  useEffect(() => {
+    if (!engineSheetVisible) {
+      return;
+    }
+    let cancelled = false;
+    void getDeviceAiRecommendation(modelsStatus)
+      .then(rec => {
+        if (!cancelled && isMountedRef.current) {
+          setDeviceRecommendation(rec);
+        }
+      })
+      .catch(() => {
+        // Keep last recommendation if device telemetry read fails
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [engineSheetVisible, modelsStatus]);
+
+  const centerPillInfo = useMemo(() => {
+    if (isOnlineMode) {
+      return {
+        label: 'Online',
+        isReady: true,
+      };
+    }
+    const preset = getOfflineModelPreset(selectedOfflineModelId);
+    if (selectedOfflineModelId === 'fast_path_only') {
+      return {
+        label: preset.shortLabel,
+        isReady: true,
+      };
+    }
+    const status = modelsStatus.find(
+      item => item.modelId === selectedOfflineModelId,
+    );
+    if (status?.isDownloaded) {
+      return {
+        label: preset.shortLabel,
+        isReady: true,
+      };
+    }
+    return {
+      label: `${preset.shortLabel} · Setup`,
+      isReady: false,
+    };
+  }, [isOnlineMode, modelsStatus, selectedOfflineModelId]);
   // AGY-PORT 04: planner changes wait on this card until Confirm.
   const review = useCommandReview(userId, 'chat');
 
@@ -263,7 +560,9 @@ export const ChatScreen: React.FC<ChatScreenProps> = ({
 
   // Floating bottom CustomTabBar clearance when keyboard is closed
   const tabBarBottomOffset = Math.max(insets.bottom, 12) + 14;
-  const tabBarClearance = tabBarBottomOffset + Layout.navbarHeight + 8;
+  const tabBarClearance = isModern
+    ? ModernLayout.navbarContentHeight + Math.max(insets.bottom, 8) + 40
+    : tabBarBottomOffset + Layout.navbarHeight + 8;
 
   // Bottom clearance when soft keyboard is open:
   // On modern Android edge-to-edge / targetSdkVersion 35+, adjustResize may not shrink the root view.
@@ -995,10 +1294,8 @@ export const ChatScreen: React.FC<ChatScreenProps> = ({
     if (!chatMultiBatch || chatMultiBusy) return;
     setChatMultiBusy(true);
     try {
-      const {batch, spokenSummary} = await actionService.confirmMultiActionBatch(
-        userId,
-        chatMultiBatch,
-      );
+      const {batch, spokenSummary} =
+        await actionService.confirmMultiActionBatch(userId, chatMultiBatch);
       setChatMultiBatch(batch);
       chatStore.addMessage(
         userId,
@@ -1081,7 +1378,11 @@ export const ChatScreen: React.FC<ChatScreenProps> = ({
     <View>
       {legacyHiddenCount > 0 && !legacyNoticeDismissed ? (
         <View
-          style={[styles.noticeCard, themed.headerButton]}
+          style={[
+            styles.noticeCard,
+            themed.headerButton,
+            isModern && styles.modernNoticeCard,
+          ]}
           testID="chat-legacy-notice"
         >
           <Text style={[styles.noticeText, themed.emptySubtitle]}>
@@ -1103,7 +1404,11 @@ export const ChatScreen: React.FC<ChatScreenProps> = ({
       ) : null}
       {loadError ? (
         <View
-          style={[styles.noticeCard, themed.headerButton]}
+          style={[
+            styles.noticeCard,
+            themed.headerButton,
+            isModern && styles.modernNoticeCard,
+          ]}
           testID="chat-load-error"
         >
           <Text style={[styles.noticeText, themed.emptySubtitle]}>
@@ -1123,7 +1428,11 @@ export const ChatScreen: React.FC<ChatScreenProps> = ({
       ) : null}
       {olderCursor ? (
         <TouchableOpacity
-          style={[styles.loadEarlierButton, themed.headerButton]}
+          style={[
+            styles.loadEarlierButton,
+            themed.headerButton,
+            isModern && {backgroundColor: modernPalette.surface},
+          ]}
           onPress={handleLoadEarlier}
           disabled={isLoadingEarlier}
           accessibilityRole="button"
@@ -1138,71 +1447,133 @@ export const ChatScreen: React.FC<ChatScreenProps> = ({
     </View>
   );
 
+  const renderSampleGrid = (
+    cards: readonly SampleChatCardConfig[],
+    testIdPrefix: string,
+  ) => {
+    const iconColor = isModern ? modernPalette.accent : colors.primary;
+    const cardBg = isModern ? modernPalette.card : colors.surface;
+    const cardBorder = isModern ? modernPalette.border : colors.border;
+    const textColor = isModern ? modernPalette.text : colors.textPrimary;
+
+    return (
+      <View style={styles.sampleGrid}>
+        {[cards.slice(0, 2), cards.slice(2, 4)].map((row, rowIndex) => (
+          <View key={rowIndex} style={styles.sampleGridRow}>
+            {row.map((card, colIndex) => {
+              const index = rowIndex * 2 + colIndex;
+              return (
+                <TouchableOpacity
+                  key={card.label}
+                  style={[
+                    styles.sampleCard,
+                    isModern && modernShadows.card,
+                    {
+                      backgroundColor: cardBg,
+                      borderColor: cardBorder,
+                    },
+                  ]}
+                  onPress={() => handleSend(card.prompt)}
+                  accessibilityRole="button"
+                  accessibilityLabel={card.prompt}
+                  testID={`${testIdPrefix}-${index}`}
+                  activeOpacity={0.78}
+                >
+                  <View style={styles.sampleCardIcon}>
+                    {renderSampleCardIcon(card.iconKey, iconColor)}
+                  </View>
+                  <Text
+                    style={[styles.sampleCardText, {color: textColor}]}
+                    numberOfLines={2}
+                  >
+                    {card.label}
+                  </Text>
+                </TouchableOpacity>
+              );
+            })}
+          </View>
+        ))}
+      </View>
+    );
+  };
+
   const renderEmptyState = () => {
+    const greetingColor = isModern ? modernPalette.text : colors.textPrimary;
+    const subtitleColor = isModern ? modernPalette.muted : colors.textSecondary;
+    const accentColor = isModern ? modernPalette.accent : colors.primary;
+    const softVioletBg = isModern
+      ? modernPalette.softViolet
+      : colors.primary + '16';
+
     if (isUstpChat) {
       return (
         <View style={styles.emptyContainer} testID="chat-empty-state">
-          <View
-            style={[
-              styles.emptyIconBadge,
-              {backgroundColor: colors.primary + '18'},
-            ]}
-            testID="chat-ustp-empty-badge"
-          >
-            <BookOpen size={34} color={colors.primary} />
+          <View style={styles.greetingBlock}>
+            <Text style={[styles.greetingEyebrow, {color: subtitleColor}]}>
+              USTP Academic Policy & Handbook
+            </Text>
+            <Text style={[styles.greetingTitle, {color: greetingColor}]}>
+              Ask LAFINA anything about USTP
+            </Text>
           </View>
-          <Text style={[styles.emptyTitle, themed.emptyTitle]}>
-            Ask LAFINA anything about USTP
-          </Text>
-          <Text style={[styles.emptySubtitle, themed.emptySubtitle]}>
-            Get citation-backed answers from the USTP Student Handbook on
-            grading, Dean's List honors, retention, and policies.
-          </Text>
-          {!isOnlineMode && (
-            <TouchableOpacity
+
+          <View style={styles.mascotStage} testID="chat-ustp-empty-badge">
+            <Image
+              source={LAFINA_MASCOT}
+              style={styles.mascotImage}
+              resizeMode="contain"
+              testID="chat-empty-mascot"
+              accessibilityLabel="LAFINA mascot"
+            />
+            <View
               style={[
-                styles.ustpOnlineBanner,
+                styles.mascotModeTag,
                 {
-                  backgroundColor: colors.primary + '14',
-                  borderColor: colors.primary + '44',
+                  backgroundColor: isModern
+                    ? modernPalette.card
+                    : colors.surface,
+                  borderColor: accentColor + '44',
                 },
               ]}
-              onPress={() => {
-                void handleToggleOnline();
-              }}
-              accessibilityRole="button"
-              accessibilityLabel="Enable Online Mode for USTP Handbook lookup"
-              testID="chat-ustp-enable-online"
-              activeOpacity={0.75}
             >
-              <Text style={[styles.ustpOnlineBannerText, {color: colors.primary}]}>
-                Online Mode is off · Tap to enable USTP lookup
+              <BookOpen size={13} color={accentColor} />
+              <Text style={[styles.mascotModeTagText, {color: accentColor}]}>
+                {localHandbookStatus.populated
+                  ? 'Local FTS5 Ready'
+                  : 'Handbook RAG'}
               </Text>
-            </TouchableOpacity>
-          )}
-          <View style={styles.emptySuggestionsWrapper}>
-            {USTP_SUGGESTED_PROMPTS.map((prompt, index) => (
+            </View>
+          </View>
+
+          <View style={styles.emptyBottomSection}>
+            {!isOnlineMode && (
               <TouchableOpacity
-                key={index}
-                style={[styles.emptySuggestionPill, themed.headerButton]}
-                onPress={() => handleSend(prompt)}
+                style={[
+                  styles.ustpOnlineBanner,
+                  isModern && styles.modernUstpBanner,
+                  {
+                    backgroundColor: softVioletBg,
+                    borderColor: accentColor + '35',
+                  },
+                ]}
+                onPress={() => {
+                  void handleToggleOnline();
+                }}
                 accessibilityRole="button"
-                accessibilityLabel={prompt}
-                testID={`chat-ustp-prompt-chip-${index}`}
-                activeOpacity={0.7}
+                accessibilityLabel="Enable Online Mode for USTP Handbook lookup"
+                testID="chat-ustp-enable-online"
+                activeOpacity={0.75}
               >
-                <BookOpen size={14} color={colors.primary} />
                 <Text
-                  style={[
-                    styles.emptySuggestionText,
-                    themed.emptySuggestionText,
-                  ]}
-                  numberOfLines={2}
+                  style={[styles.ustpOnlineBannerText, {color: accentColor}]}
                 >
-                  {prompt}
+                  {localHandbookStatus.populated
+                    ? `Offline USTP Handbook ready (${localHandbookStatus.chunkCount} sections) · Tap to turn on Online AI`
+                    : 'Online Mode is off · Tap to enable USTP lookup'}
                 </Text>
               </TouchableOpacity>
-            ))}
+            )}
+            {renderSampleGrid(USTP_SAMPLE_CARDS, 'chat-ustp-prompt-chip')}
           </View>
         </View>
       );
@@ -1210,72 +1581,83 @@ export const ChatScreen: React.FC<ChatScreenProps> = ({
 
     return (
       <View style={styles.emptyContainer} testID="chat-empty-state">
-        <View
-          style={[
-            styles.emptyIconBadge,
-            {backgroundColor: colors.primary + '18'},
-          ]}
-        >
-          {isTemporaryChat ? (
-            <MessageCircleDashed size={32} color={colors.primary} />
-          ) : (
-            <Bot size={36} color={colors.primary} />
+        <View style={styles.greetingBlock}>
+          <Text style={[styles.greetingEyebrow, {color: subtitleColor}]}>
+            {isTemporaryChat
+              ? 'Not saved in history'
+              : `Hello, ${studentName}!`}
+          </Text>
+          <Text style={[styles.greetingTitle, {color: greetingColor}]}>
+            {isTemporaryChat ? 'Temporary Chat' : 'How can I help you today?'}
+          </Text>
+        </View>
+
+        <View style={styles.mascotStage}>
+          <Image
+            source={LAFINA_MASCOT}
+            style={styles.mascotImage}
+            resizeMode="contain"
+            testID="chat-empty-mascot"
+            accessibilityLabel="LAFINA mascot"
+          />
+          {isTemporaryChat && (
+            <View
+              style={[
+                styles.mascotModeTag,
+                {
+                  backgroundColor: isModern
+                    ? modernPalette.card
+                    : colors.surface,
+                  borderColor: accentColor + '44',
+                },
+              ]}
+            >
+              <MessageCircleDashed size={13} color={accentColor} />
+              <Text style={[styles.mascotModeTagText, {color: accentColor}]}>
+                Unsaved
+              </Text>
+            </View>
           )}
         </View>
-        <Text style={[styles.emptyTitle, themed.emptyTitle]}>
-          {isTemporaryChat ? 'Temporary Chat' : 'LAFINA Academic Assistant'}
-        </Text>
-        {isTemporaryChat && (
-          <Text style={[styles.emptySubtitle, themed.emptySubtitle]}>
-            Messages in this chat are not saved in history and will disappear
-            when you leave.
-          </Text>
-        )}
-        <View style={styles.emptySuggestionsWrapper}>
-          {SUGGESTED_PROMPTS.map((prompt, index) => (
-            <TouchableOpacity
-              key={index}
-              style={[styles.emptySuggestionPill, themed.headerButton]}
-              onPress={() => handleSend(prompt)}
-              accessibilityRole="button"
-              accessibilityLabel={prompt}
-              testID={`chat-prompt-chip-${index}`}
-              activeOpacity={0.7}
-            >
-              <Sparkles size={14} color={colors.primary} />
-              <Text
-                style={[styles.emptySuggestionText, themed.emptySuggestionText]}
-                numberOfLines={2}
-              >
-                {prompt}
-              </Text>
-            </TouchableOpacity>
-          ))}
+
+        <View style={styles.emptyBottomSection}>
+          {renderSampleGrid(GENERAL_SAMPLE_CARDS, 'chat-prompt-chip')}
           {!isTemporaryChat && (
             <TouchableOpacity
               style={[
-                styles.ustpEntryPill,
+                styles.ustpCompactLink,
                 {
-                  backgroundColor: colors.primary + '12',
-                  borderColor: colors.primary + '44',
+                  backgroundColor: softVioletBg,
+                  borderColor: isModern
+                    ? modernPalette.border
+                    : colors.primary + '38',
                 },
               ]}
               onPress={handleStartUstpChat}
               accessibilityRole="button"
               accessibilityLabel="Ask LAFINA anything about USTP"
               testID="chat-switch-to-ustp-button"
-              activeOpacity={0.75}
+              activeOpacity={0.78}
             >
-              <BookOpen size={15} color={colors.primary} />
+              <BookOpen size={14} color={accentColor} />
               <Text
-                style={[styles.ustpEntryText, {color: colors.primary}]}
+                style={[styles.ustpCompactLinkText, {color: accentColor}]}
                 numberOfLines={1}
               >
                 Ask LAFINA anything about USTP
               </Text>
-              <Text style={[styles.ustpEntryTag, {color: colors.primary}]}>
-                RAG
-              </Text>
+              <View
+                style={[
+                  styles.ustpCompactBadge,
+                  {backgroundColor: accentColor + '1E'},
+                ]}
+              >
+                <Text
+                  style={[styles.ustpCompactBadgeText, {color: accentColor}]}
+                >
+                  RAG
+                </Text>
+              </View>
             </TouchableOpacity>
           )}
         </View>
@@ -1299,80 +1681,128 @@ export const ChatScreen: React.FC<ChatScreenProps> = ({
       }}
       testID="chat-screen-container"
     >
+      <Svg
+        style={StyleSheet.absoluteFill}
+        width="100%"
+        height="100%"
+        preserveAspectRatio="none"
+        pointerEvents="none"
+      >
+        <Defs>
+          <LinearGradient
+            id={`chatUniGuideBg_${modernTheme}_${isDarkMode ? 'dark' : 'light'}`}
+            x1="0"
+            y1="0"
+            x2="0"
+            y2="1"
+          >
+            <Stop
+              offset="0%"
+              stopColor={
+                isModern ? modernThemeExtras.chatBgStops[0] : colors.background
+              }
+            />
+            <Stop
+              offset="44%"
+              stopColor={
+                isModern ? modernThemeExtras.chatBgStops[1] : colors.background
+              }
+            />
+            <Stop
+              offset="100%"
+              stopColor={
+                isModern ? modernThemeExtras.chatBgStops[2] : colors.background
+              }
+            />
+          </LinearGradient>
+        </Defs>
+        <Rect
+          width="100%"
+          height="100%"
+          fill={
+            isModern
+              ? `url(#chatUniGuideBg_${modernTheme}_${
+                  isDarkMode ? 'dark' : 'light'
+                })`
+              : colors.background
+          }
+        />
+      </Svg>
+
       {/* Top Header */}
-      <View style={[styles.header, themed.header]}>
-        <View style={styles.headerTitleRow}>
+      <View
+        style={[styles.header, themed.header, isModern && styles.modernHeader]}
+      >
+        <TouchableOpacity
+          style={[
+            styles.headerCircleButton,
+            themed.headerCircleButton,
+            isModern && modernShadows.subtle,
+          ]}
+          onPress={() => setHistoryVisible(true)}
+          accessibilityRole="button"
+          accessibilityLabel="Open chats, USTP Handbook, and tools sidebar"
+          testID="chat-history-button"
+        >
+          <Menu size={20} color={themed.headerTitle.color} strokeWidth={2.2} />
+        </TouchableOpacity>
+
+        <View style={styles.headerCenter}>
           <TouchableOpacity
             style={[
-              styles.headerBadge,
-              {backgroundColor: colors.primary + '18'},
+              styles.centerStatusPill,
+              themed.headerCircleButton,
+              isModern && modernShadows.subtle,
             ]}
-            onPress={() => setHistoryVisible(true)}
+            onPress={() => {
+              void refreshModelAndProfileState();
+              setEngineSheetVisible(true);
+            }}
             accessibilityRole="button"
-            accessibilityLabel="Open chats, USTP Handbook, and tools sidebar"
-            testID="chat-history-button"
+            accessibilityLabel={
+              isOnlineMode
+                ? 'Online mode active. Tap to switch mode or download offline models'
+                : `Offline model: ${centerPillInfo.label}. Tap to view or download offline models`
+            }
+            testID="chat-online-toggle-button"
           >
-            <PanelLeft size={16} color={colors.primary} />
-          </TouchableOpacity>
-          <View style={styles.headerTextWrap}>
+            <View
+              style={[
+                styles.centerPillDot,
+                {
+                  backgroundColor: centerPillInfo.isReady
+                    ? '#10B981'
+                    : isModern
+                    ? modernPalette.accent
+                    : colors.primary,
+                },
+              ]}
+            />
             <Text
-              style={[styles.headerTitle, themed.headerTitle]}
+              style={[styles.centerPillText, themed.headerTitle]}
               numberOfLines={1}
             >
-              {isTemporaryChat ? 'Temporary Chat' : chatTitle}
+              {centerPillInfo.label}
             </Text>
-            <View style={styles.headerSubtitleRow}>
-              {isUstpChat ? (
-                <View
-                  style={[styles.handbookChip, styles.handbookChipActive]}
-                  testID="chat-ustp-mode-badge"
-                >
-                  <BookOpen size={10} color={colors.primary} />
-                  <Text
-                    style={[
-                      styles.handbookChipText,
-                      themed.handbookToggleTextActive,
-                    ]}
-                  >
-                    USTP Handbook RAG
-                  </Text>
-                </View>
-              ) : (
-                <Text
-                  style={[styles.headerSubtitle, themed.headerSubtitle]}
-                  numberOfLines={1}
-                >
-                  {isTemporaryChat
-                    ? 'Not saved in history'
-                    : isOnlineMode
-                    ? 'Online AI'
-                    : 'Offline Secretary'}
-                </Text>
-              )}
-            </View>
-          </View>
+            <ChevronDown
+              size={13}
+              color={themed.headerSubtitle.color}
+              strokeWidth={2.2}
+            />
+          </TouchableOpacity>
         </View>
 
         <View style={styles.headerRight}>
-          {onCallLafina && (
-            <TouchableOpacity
-              style={[styles.headerIconButton, themed.headerButton]}
-              onPress={onCallLafina}
-              accessibilityRole="button"
-              accessibilityLabel="Call Lafina"
-              testID="chat-call-lafina-button"
-            >
-              <Phone size={15} color={colors.primary} />
-            </TouchableOpacity>
-          )}
-
           <TouchableOpacity
             style={[
-              styles.headerIconButton,
-              themed.headerButton,
+              styles.headerCircleButton,
+              themed.headerCircleButton,
+              isModern && modernShadows.subtle,
               isTemporaryChat && {
-                backgroundColor: colors.primary + '20',
-                borderColor: colors.primary,
+                backgroundColor: isModern
+                  ? modernPalette.softViolet
+                  : colors.primary + '20',
+                borderColor: isModern ? modernPalette.accent : colors.primary,
               },
             ]}
             onPress={() => {
@@ -1405,61 +1835,115 @@ export const ChatScreen: React.FC<ChatScreenProps> = ({
                 ? 'Turn off temporary chat'
                 : 'Turn on temporary chat'
             }
+            accessibilityState={{selected: isTemporaryChat}}
             testID="chat-temporary-toggle-button"
           >
             <MessageCircleDashed
-              size={15}
-              color={isTemporaryChat ? colors.primary : colors.textSecondary}
+              size={18}
+              color={
+                isTemporaryChat
+                  ? isModern
+                    ? modernPalette.accent
+                    : colors.primary
+                  : themed.headerTitle.color
+              }
             />
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={[styles.headerIconButton, themed.headerButton]}
-            onPress={() => setGuideVisible(true)}
-            accessibilityRole="button"
-            accessibilityLabel="Show what you can ask"
-            testID="chat-guide-button"
-          >
-            <Lightbulb size={15} color={colors.textSecondary} />
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={[
-              styles.onlineToggle,
-              themed.headerButton,
-              isOnlineMode && styles.onlineToggleActive,
-            ]}
-            onPress={() => {
-              void handleToggleOnline();
-            }}
-            accessibilityRole="button"
-            accessibilityLabel={
-              isOnlineMode ? 'Switch to Offline Mode' : 'Switch to Online Mode'
-            }
-            testID="chat-online-toggle-button"
-          >
-            <View
-              style={[
-                styles.statusDot,
-                {
-                  backgroundColor: isOnlineMode
-                    ? colors.white
-                    : colors.textSecondary,
-                },
-              ]}
-            />
-            <Text
-              style={[
-                styles.onlineToggleText,
-                themed.onlineToggleText,
-                isOnlineMode && styles.onlineToggleTextActive,
-              ]}
-            >
-              {isOnlineMode ? 'Online' : 'Offline'}
-            </Text>
           </TouchableOpacity>
         </View>
       </View>
+
+      {(isUstpChat ||
+        (isTemporaryChat && messages.length > 0) ||
+        (chatTitle &&
+          chatTitle !== 'New chat' &&
+          chatTitle !== messages[0]?.content)) && (
+        <View style={styles.contextStrip}>
+          {isUstpChat ? (
+            <View
+              style={[
+                styles.contextPill,
+                {
+                  backgroundColor: isModern
+                    ? modernPalette.softViolet
+                    : colors.primary + '16',
+                  borderColor: isModern
+                    ? modernPalette.accent + '38'
+                    : colors.primary + '38',
+                },
+              ]}
+              testID="chat-ustp-mode-badge"
+            >
+              <BookOpen
+                size={12}
+                color={isModern ? modernPalette.accent : colors.primary}
+              />
+              <Text
+                style={[
+                  styles.contextPillText,
+                  {color: isModern ? modernPalette.accent : colors.primary},
+                ]}
+                numberOfLines={1}
+              >
+                {chatTitle &&
+                chatTitle !== 'New chat' &&
+                chatTitle !== 'Ask LAFINA about USTP'
+                  ? localHandbookStatus.populated
+                    ? `Offline USTP Handbook · ${chatTitle}`
+                    : `USTP Handbook RAG · ${chatTitle}`
+                  : localHandbookStatus.populated
+                  ? 'Offline USTP Handbook'
+                  : 'USTP Handbook RAG'}
+              </Text>
+            </View>
+          ) : isTemporaryChat ? (
+            <View
+              style={[
+                styles.contextPill,
+                {
+                  backgroundColor: isModern
+                    ? modernPalette.softViolet
+                    : colors.primary + '16',
+                  borderColor: isModern
+                    ? modernPalette.accent + '45'
+                    : colors.primary + '45',
+                },
+              ]}
+            >
+              <MessageCircleDashed
+                size={12}
+                color={isModern ? modernPalette.accent : colors.primary}
+              />
+              <Text
+                style={[
+                  styles.contextPillText,
+                  {color: isModern ? modernPalette.accent : colors.primary},
+                ]}
+              >
+                Temporary Chat · Not saved in history
+              </Text>
+            </View>
+          ) : (
+            <View
+              style={[
+                styles.contextPill,
+                {
+                  backgroundColor: isModern
+                    ? modernPalette.card
+                    : colors.surface,
+                  borderColor: isModern ? modernPalette.border : colors.border,
+                },
+              ]}
+            >
+              <Text
+                style={[styles.contextPillText, themed.headerSubtitle]}
+                numberOfLines={1}
+              >
+                {chatTitle}
+              </Text>
+            </View>
+          )}
+        </View>
+      )}
 
       {/* Messages List */}
       <Animated.View style={[styles.messagesList, {opacity: listOpacity}]}>
@@ -1467,8 +1951,8 @@ export const ChatScreen: React.FC<ChatScreenProps> = ({
           ref={flatListRef}
           data={isTemporaryChat ? tempMessages : messages}
           initialNumToRender={CHAT_PAGE_SIZE}
-          // Switching the reply format in Profile redraws replies already shown.
-          extraData={replyFormat}
+          // Switching the reply format or chat mode redraws replies/empty state.
+          extraData={`${replyFormat}:${isOnlineMode}:${isTemporaryChat}:${isUstpChat}:${studentName}:${modernTheme}:${isDarkMode}`}
           keyExtractor={item => item.id}
           style={styles.messagesList}
           keyboardShouldPersistTaps="handled"
@@ -1573,6 +2057,7 @@ export const ChatScreen: React.FC<ChatScreenProps> = ({
         onSend={text => handleSend(text)}
         isSending={isSending}
         isOnlineMode={isOnlineMode}
+        onCallLafina={onCallLafina}
         onOpenFormatPicker={
           isUstpChat
             ? undefined
@@ -1650,7 +2135,6 @@ export const ChatScreen: React.FC<ChatScreenProps> = ({
             </Text>
           </View>
         </TouchableOpacity>
-
       </ToolSheet>
 
       <ChatHistorySheet
@@ -1691,6 +2175,21 @@ export const ChatScreen: React.FC<ChatScreenProps> = ({
               'Keep your current text, or replace it with this example. Nothing will be sent.',
           });
         }}
+      />
+
+      <ChatEngineSheet
+        visible={engineSheetVisible}
+        onClose={() => setEngineSheetVisible(false)}
+        userId={userId}
+        isOnlineMode={isOnlineMode}
+        onToggleOnline={async () => {
+          await handleToggleOnline();
+          await refreshModelAndProfileState();
+        }}
+        selectedModelId={selectedOfflineModelId}
+        modelsStatus={modelsStatus}
+        onModelsUpdated={refreshModelAndProfileState}
+        deviceRecommendation={deviceRecommendation}
       />
 
       <DraftDecisionDialog request={draft.dialog} testIDPrefix="chat-draft" />
@@ -1745,179 +2244,201 @@ const styles = StyleSheet.create({
     paddingBottom: 10,
     borderBottomWidth: StyleSheet.hairlineWidth,
   },
-  headerTitleRow: {
+  modernHeader: {
+    backgroundColor: 'transparent',
+    borderBottomWidth: 0,
+    paddingTop: 8,
+    paddingBottom: 6,
+  },
+  headerCircleButton: {
+    width: 42,
+    height: 42,
+    borderRadius: 21,
+    borderWidth: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  headerCenter: {
     flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 8,
+  },
+  centerStatusPill: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 10,
-    marginRight: 8,
-  },
-  headerBadge: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    alignItems: 'center',
     justifyContent: 'center',
+    gap: 7,
+    paddingHorizontal: 14,
+    paddingVertical: 9,
+    borderRadius: 999,
+    borderWidth: 1,
+    maxWidth: '100%',
   },
-  headerTextWrap: {
-    flex: 1,
-    justifyContent: 'center',
+  centerPillDot: {
+    width: 7,
+    height: 7,
+    borderRadius: 3.5,
   },
-  headerTitle: {
+  centerPillText: {
     fontFamily: Fonts.heading,
-    fontSize: 16,
+    fontSize: 13,
     fontWeight: '700',
+    flexShrink: 1,
   },
-  headerSubtitleRow: {
+  contextStrip: {
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingBottom: 4,
+  },
+  contextPill: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
-    marginTop: 1,
-  },
-  headerSubtitle: {
-    fontFamily: Fonts.body,
-    fontSize: 11.5,
-  },
-  handbookChip: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 3,
-    paddingHorizontal: 6,
-    paddingVertical: 1.5,
-    borderRadius: 8,
     borderWidth: 1,
+    borderRadius: 999,
+    paddingHorizontal: 12,
+    paddingVertical: 4,
+    maxWidth: '90%',
   },
-  handbookChipActive: {
-    borderColor: '#D32F2F',
-    backgroundColor: '#D32F2F12',
-  },
-  handbookChipText: {
-    fontFamily: Fonts.body,
-    fontSize: 10,
-    fontWeight: '700',
+  contextPillText: {
+    fontFamily: Fonts.heading,
+    fontSize: 11.5,
+    fontWeight: '600',
   },
   headerRight: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
+    gap: 8,
     flexShrink: 0,
-  },
-  headerIconButton: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    borderWidth: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  onlineToggle: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 5,
-    paddingHorizontal: 9,
-    paddingVertical: 5,
-    borderRadius: 14,
-    borderWidth: 1,
-  },
-  statusDot: {
-    width: 6,
-    height: 6,
-    borderRadius: 3,
-  },
-  onlineToggleActive: {
-    backgroundColor: '#2E7D32',
-    borderColor: '#2E7D32',
-  },
-  onlineToggleText: {
-    fontFamily: Fonts.body,
-    fontSize: 11,
-    fontWeight: '600',
-  },
-  onlineToggleTextActive: {
-    color: '#FFFFFF',
   },
   listContent: {
     paddingVertical: 12,
   },
   listContentEmpty: {
     flexGrow: 1,
-    justifyContent: 'center',
+    justifyContent: 'space-between',
   },
   emptyContainer: {
+    flex: 1,
+    width: '100%',
     alignItems: 'center',
-    paddingHorizontal: 20,
-    paddingVertical: 24,
+    justifyContent: 'space-between',
+    paddingHorizontal: 18,
+    paddingTop: 10,
+    paddingBottom: 14,
   },
-  emptyIconBadge: {
-    width: 64,
-    height: 64,
-    borderRadius: 32,
+  greetingBlock: {
+    alignItems: 'center',
+    paddingHorizontal: 12,
+    gap: 4,
+  },
+  greetingEyebrow: {
+    fontFamily: Fonts.body,
+    fontSize: 15,
+    fontWeight: '500',
+    textAlign: 'center',
+  },
+  greetingTitle: {
+    fontFamily: Fonts.heading,
+    fontSize: 22,
+    fontWeight: '800',
+    letterSpacing: -0.3,
+    textAlign: 'center',
+  },
+  mascotStage: {
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: 14,
+    paddingVertical: 10,
   },
-  emptyTitle: {
-    fontFamily: Fonts.heading,
-    fontSize: 18,
-    fontWeight: '700',
-    marginBottom: 16,
-    textAlign: 'center',
+  mascotImage: {
+    width: 176,
+    height: 176,
   },
-  emptySubtitle: {
-    fontFamily: Fonts.body,
-    fontSize: 13,
-    lineHeight: 18,
-    textAlign: 'center',
-    marginBottom: 16,
-  },
-  emptySuggestionsWrapper: {
-    width: '100%',
-    maxWidth: 420,
-    gap: 10,
-    alignSelf: 'center',
-  },
-  emptySuggestionPill: {
+  mascotModeTag: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: 11,
-    paddingHorizontal: 15,
-    borderRadius: 20,
+    gap: 5,
     borderWidth: 1,
-    gap: 10,
-  },
-  emptySuggestionText: {
-    flex: 1,
-    fontFamily: Fonts.body,
-    fontSize: 13.5,
-    lineHeight: 18,
-  },
-  ustpEntryPill: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: 11,
-    paddingHorizontal: 15,
-    borderRadius: 20,
-    borderWidth: 1,
-    gap: 10,
+    borderRadius: 999,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
     marginTop: 4,
   },
-  ustpEntryText: {
+  mascotModeTagText: {
+    fontFamily: Fonts.heading,
+    fontSize: 11,
+    fontWeight: '700',
+  },
+  emptyBottomSection: {
+    width: '100%',
+    maxWidth: 440,
+    alignItems: 'center',
+    gap: 10,
+  },
+  sampleGrid: {
+    width: '100%',
+    gap: 10,
+  },
+  sampleGridRow: {
+    flexDirection: 'row',
+    gap: 10,
+  },
+  sampleCard: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    borderRadius: 18,
+    borderWidth: 1,
+    paddingVertical: 14,
+    paddingHorizontal: 13,
+    minHeight: 54,
+  },
+  sampleCardIcon: {
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  sampleCardText: {
     flex: 1,
     fontFamily: Fonts.heading,
     fontSize: 13.5,
     fontWeight: '700',
+    lineHeight: 17.5,
   },
-  ustpEntryTag: {
+  ustpCompactLink: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    borderWidth: 1,
+    borderRadius: 999,
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    marginTop: 2,
+  },
+  ustpCompactLinkText: {
     fontFamily: Fonts.heading,
-    fontSize: 10.5,
+    fontSize: 12.5,
+    fontWeight: '700',
+  },
+  ustpCompactBadge: {
+    paddingHorizontal: 7,
+    paddingVertical: 2,
+    borderRadius: 999,
+  },
+  ustpCompactBadgeText: {
+    fontFamily: Fonts.heading,
+    fontSize: 10,
     fontWeight: '700',
   },
   ustpOnlineBanner: {
+    width: '100%',
     borderWidth: 1,
     borderRadius: 14,
     paddingHorizontal: 12,
     paddingVertical: 8,
-    marginBottom: 14,
+    marginBottom: 4,
   },
   ustpOnlineBannerText: {
     fontFamily: Fonts.heading,
@@ -1963,6 +2484,12 @@ const styles = StyleSheet.create({
     letterSpacing: 0.5,
     textTransform: 'uppercase',
   },
+  modernNoticeCard: {
+    borderRadius: ModernLayout.borderRadiusCard,
+  },
+  modernUstpBanner: {
+    borderRadius: ModernLayout.borderRadiusSubCard,
+  },
 });
 
 const getThemedStyles = (colors: ThemeColors) => ({
@@ -1976,6 +2503,10 @@ const getThemedStyles = (colors: ThemeColors) => ({
     backgroundColor: colors.background,
     borderBottomColor: colors.border,
   },
+  headerCircleButton: {
+    backgroundColor: colors.surface,
+    borderColor: colors.border,
+  },
   headerTitle: {
     color: colors.textPrimary,
   },
@@ -1986,37 +2517,11 @@ const getThemedStyles = (colors: ThemeColors) => ({
     backgroundColor: colors.cardBg,
     borderColor: colors.border,
   },
-  onlineToggleText: {
-    color: colors.textSecondary,
-  },
-  handbookChip: {
-    backgroundColor: colors.cardBg,
-    borderColor: colors.border,
-  },
-  handbookChipActive: {
-    borderColor: colors.primary,
-    backgroundColor: colors.primary + '14',
-  },
-  handbookChipTextActive: {
-    color: colors.primary,
-  },
-  handbookChipTextInactive: {
-    color: colors.textSecondary,
-  },
-  handbookToggleActive: {
-    borderColor: colors.red,
-  },
-  handbookToggleTextActive: {
-    color: colors.red,
-  },
-  emptyTitle: {
-    color: colors.textPrimary,
-  },
   emptySubtitle: {
     color: colors.textSecondary,
   },
-  emptySuggestionText: {
-    color: colors.textPrimary,
+  onlineToggleText: {
+    color: colors.textSecondary,
   },
   sheetHint: {
     color: colors.textSecondary,

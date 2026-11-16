@@ -148,8 +148,8 @@ describe('AGY preserved contracts', () => {
 
   describe('PF02 tier and entitlement matrix', () => {
     test.each([
-      ['student', false, false],
-      ['student_pro', true, true],
+      ['student', true, false],
+      ['student_pro', true, false],
       ['admin', true, false],
     ])(
       '%s: pro entitlement=%s, student-pro badge=%s',

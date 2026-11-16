@@ -1199,7 +1199,11 @@ describe('AGY-PORT 04 reviewed assistant commands', () => {
         },
       );
       expect(send).toHaveBeenCalledTimes(1);
-      expect(send.mock.calls[0][1]).toEqual({useHandbook: true});
+      expect(send.mock.calls[0][1]).toEqual({useHandbook: false});
+      const sentMsgs = send.mock.calls[0][0];
+      expect(sentMsgs[sentMsgs.length - 1]?.content).toContain(
+        '<handbook_excerpts',
+      );
       expect(result.route).toBe('conversation');
       expect(result.review).toBeUndefined();
       expect(result.handbookNote).toBe(
@@ -1298,7 +1302,12 @@ describe('AGY-PORT 04 reviewed assistant commands', () => {
         '15:00',
         5,
       );
-      const foreign = seedItemReminder(other, 'Review notes', tomorrow(), '15:00');
+      const foreign = seedItemReminder(
+        other,
+        'Review notes',
+        tomorrow(),
+        '15:00',
+      );
       const titleOnly = seedItemReminder(
         userId,
         'Review notes',
@@ -1455,7 +1464,10 @@ describe('AGY-PORT 04 reviewed assistant commands', () => {
       const userId = owner('legacy-case');
       const other = owner('legacy-case-other');
       const date = tomorrow();
-      const taskId = seedTask(userId, 'Quiz', {dueDate: date, dueTime: '11:00'});
+      const taskId = seedTask(userId, 'Quiz', {
+        dueDate: date,
+        dueTime: '11:00',
+      });
       const mine = seedItemReminder(userId, '  QUIZ ', date, '11:00');
       const spaced = seedItemReminder(userId, 'quiz', date, '11:00', 10);
       const foreign = seedItemReminder(other, 'Quiz', date, '11:00');
@@ -1503,9 +1515,9 @@ describe('AGY-PORT 04 reviewed assistant commands', () => {
         line.startsWith('Also removes'),
       );
       expect(lines).toHaveLength(2);
-      expect(lines.filter(line => /older reminder with no link/.test(line))).toEqual([
-        expect.stringContaining('“essay”'),
-      ]);
+      expect(
+        lines.filter(line => /older reminder with no link/.test(line)),
+      ).toEqual([expect.stringContaining('“essay”')]);
       expect(proposal.details.join(' ')).not.toMatch(/its own pending/);
 
       // A new same-title reminder appears before Confirm: not on the card, so refuse.

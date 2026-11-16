@@ -57,7 +57,7 @@ export const ChatMessageItem: React.FC<ChatMessageItemProps> = ({
   onUndoMemory,
 }) => {
   const isUser = item.sender === 'user';
-  const {colors} = useTheme();
+  const {colors, isModern, modernPalette, modernShadows} = useTheme();
   const themed = useThemedStyles(getThemedStyles);
 
   const attachment = item.attachment ?? null;
@@ -88,11 +88,27 @@ export const ChatMessageItem: React.FC<ChatMessageItemProps> = ({
       <View
         style={[
           styles.bubble,
+          isModern && {borderRadius: 22},
           isUser
-            ? [styles.userBubble, {backgroundColor: colors.primary}]
+            ? [
+                styles.userBubble,
+                {
+                  backgroundColor: isModern
+                    ? modernPalette.accent
+                    : colors.primary,
+                },
+              ]
             : [
                 styles.assistantBubble,
                 themed.assistantBubble,
+                isModern && [
+                  styles.modernAssistantBubble,
+                  modernShadows.subtle,
+                  {
+                    backgroundColor: modernPalette.card,
+                    borderColor: modernPalette.border,
+                  },
+                ],
                 // Tables and code need the whole width of a phone to be read.
                 replyFormat === 'markdown' &&
                   hasWideMarkdownBlock(item.content) &&
@@ -160,9 +176,27 @@ export const ChatMessageItem: React.FC<ChatMessageItemProps> = ({
         )}
 
         {!isUser && handbookNote ? (
-          <View style={styles.handbookRow} testID="chat-handbook-citation">
-            <BookOpen size={11} color={colors.textSecondary} />
-            <Text style={[styles.handbookText, themed.assistantTime]}>
+          <View
+            style={[
+              styles.handbookRow,
+              isModern && [
+                styles.modernHandbookPill,
+                {backgroundColor: modernPalette.softViolet},
+              ],
+            ]}
+            testID="chat-handbook-citation"
+          >
+            <BookOpen
+              size={11}
+              color={isModern ? modernPalette.accent : colors.textSecondary}
+            />
+            <Text
+              style={[
+                styles.handbookText,
+                themed.assistantTime,
+                isModern && {color: modernPalette.accent, fontWeight: '600'},
+              ]}
+            >
               {handbookNote}
             </Text>
           </View>
@@ -170,7 +204,11 @@ export const ChatMessageItem: React.FC<ChatMessageItemProps> = ({
 
         {!isUser && item.voiceInterrupted ? (
           <Text
-            style={[styles.handbookText, styles.interruptedText, themed.assistantTime]}
+            style={[
+              styles.handbookText,
+              styles.interruptedText,
+              themed.assistantTime,
+            ]}
             testID="chat-voice-interrupted"
           >
             Interrupted in Call Lafina (not heard to the end)
@@ -186,16 +224,16 @@ export const ChatMessageItem: React.FC<ChatMessageItemProps> = ({
         ) : null}
 
         {streaming ? null : (
-        <View style={styles.footerRow}>
-          <Text
-            style={[
-              styles.timeText,
-              isUser ? styles.userTime : themed.assistantTime,
-            ]}
-          >
-            {formattedTime}
-          </Text>
-        </View>
+          <View style={styles.footerRow}>
+            <Text
+              style={[
+                styles.timeText,
+                isUser ? styles.userTime : themed.assistantTime,
+              ]}
+            >
+              {formattedTime}
+            </Text>
+          </View>
         )}
       </View>
     </View>
@@ -229,6 +267,12 @@ const styles = StyleSheet.create({
   assistantBubble: {
     borderBottomLeftRadius: 3,
     borderWidth: 1,
+  },
+  modernAssistantBubble: {
+    borderBottomLeftRadius: 6,
+    paddingHorizontal: 15,
+    paddingTop: 12,
+    paddingBottom: 9,
   },
   wideBubble: {
     width: '100%',
@@ -275,8 +319,14 @@ const styles = StyleSheet.create({
   handbookRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
-    marginTop: 6,
+    gap: 5,
+    marginTop: 8,
+  },
+  modernHandbookPill: {
+    alignSelf: 'flex-start',
+    paddingHorizontal: 9,
+    paddingVertical: 4,
+    borderRadius: 999,
   },
   handbookText: {
     fontFamily: Fonts.body,

@@ -8,7 +8,15 @@ import {
 } from 'lucide-react-native';
 import {useTheme} from '../../../contexts/ThemeContext';
 import type {ThemeColors} from '../../../contexts/ThemeContext';
-import {Fonts, FontSize, Layout, Shadows, Spacing} from '../../../theme';
+import {
+  Fonts,
+  FontSize,
+  Layout,
+  ModernLayout,
+  ModernTypography,
+  Shadows,
+  Spacing,
+} from '../../../theme';
 import {useThemedStyles} from '../../../theme/createThemedStyles';
 import {
   formatDurationMinutes,
@@ -35,7 +43,7 @@ export const DashboardHeader: React.FC<DashboardHeaderProps> = ({
   pendingTasksCount,
   onOpenCustomize,
 }) => {
-  const {colors} = useTheme();
+  const {colors, isModern, modernPalette, modernShadows} = useTheme();
   const themed = useThemedStyles(getThemedStyles);
 
   const dateLabel = now.toLocaleDateString('en-US', {
@@ -49,11 +57,21 @@ export const DashboardHeader: React.FC<DashboardHeaderProps> = ({
     <View style={styles.wrapper}>
       <View style={styles.topRow}>
         <View style={styles.titleBlock}>
-          <Text style={[styles.dateText, themed.secondaryText]}>
+          <Text
+            style={[
+              styles.dateText,
+              themed.secondaryText,
+              isModern && ModernTypography.overline,
+            ]}
+          >
             {dateLabel.toUpperCase()}
           </Text>
           <Text
-            style={[styles.greetingText, themed.primaryText]}
+            style={[
+              styles.greetingText,
+              themed.primaryText,
+              isModern && ModernTypography.hero,
+            ]}
             numberOfLines={1}
             adjustsFontSizeToFit
             minimumFontScale={0.85}
@@ -61,9 +79,22 @@ export const DashboardHeader: React.FC<DashboardHeaderProps> = ({
             {greeting}, {greetingName}
           </Text>
           {academicBadge && (
-            <View style={[styles.academicBadge, themed.academicBadge]}>
+            <View
+              style={[
+                styles.academicBadge,
+                isModern
+                  ? {
+                      backgroundColor: modernPalette.softViolet,
+                      borderColor: modernPalette.border,
+                    }
+                  : themed.academicBadge,
+              ]}
+            >
               <Text
-                style={[styles.academicBadgeText, {color: colors.primary}]}
+                style={[
+                  styles.academicBadgeText,
+                  {color: isModern ? modernPalette.accent : colors.primary},
+                ]}
                 numberOfLines={1}
               >
                 {academicBadge}
@@ -74,7 +105,13 @@ export const DashboardHeader: React.FC<DashboardHeaderProps> = ({
 
         <View style={styles.headerActions}>
           <TouchableOpacity
-            style={[styles.iconPillBtn, themed.pillBtn, Shadows.card]}
+            style={[
+              styles.iconPillBtn,
+              themed.pillBtn,
+              isModern
+                ? [styles.modernIconPillBtn, modernShadows.subtle]
+                : Shadows.card,
+            ]}
             onPress={onOpenCustomize}
             activeOpacity={0.75}
             accessibilityRole="button"
@@ -87,24 +124,66 @@ export const DashboardHeader: React.FC<DashboardHeaderProps> = ({
       </View>
 
       <View style={styles.summaryStrip}>
-        <View style={[styles.summaryChip, themed.summaryChip]}>
-          <CalendarDays size={13} color={colors.blue} />
+        <View
+          style={[
+            styles.summaryChip,
+            isModern
+              ? {
+                  backgroundColor: modernPalette.blueSoft,
+                  borderColor: 'transparent',
+                }
+              : themed.summaryChip,
+          ]}
+        >
+          <CalendarDays
+            size={13}
+            color={isModern ? modernPalette.blueInk : colors.blue}
+          />
           <Text style={[styles.summaryChipText, themed.primaryText]}>
             {todayItemsCount} {todayItemsCount === 1 ? 'session' : 'sessions'}
           </Text>
         </View>
 
-        <View style={[styles.summaryChip, themed.summaryChip]}>
-          <Clock size={13} color={colors.success} />
+        <View
+          style={[
+            styles.summaryChip,
+            isModern
+              ? {
+                  backgroundColor: modernPalette.mint,
+                  borderColor: 'transparent',
+                }
+              : themed.summaryChip,
+          ]}
+        >
+          <Clock
+            size={13}
+            color={isModern ? modernPalette.mintInk : colors.success}
+          />
           <Text style={[styles.summaryChipText, themed.primaryText]}>
             {formatDurationMinutes(usableFreeMinutes)} free
           </Text>
         </View>
 
-        <View style={[styles.summaryChip, themed.summaryChip]}>
+        <View
+          style={[
+            styles.summaryChip,
+            isModern
+              ? {
+                  backgroundColor: modernPalette.peach,
+                  borderColor: 'transparent',
+                }
+              : themed.summaryChip,
+          ]}
+        >
           <CheckCircle2
             size={13}
-            color={pendingTasksCount > 0 ? colors.warning : colors.textMuted}
+            color={
+              isModern
+                ? modernPalette.peachInk
+                : pendingTasksCount > 0
+                  ? colors.warning
+                  : colors.textMuted
+            }
           />
           <Text style={[styles.summaryChipText, themed.primaryText]}>
             {pendingTasksCount}{' '}
@@ -183,6 +262,11 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  modernIconPillBtn: {
+    width: 40,
+    height: 40,
+    borderRadius: ModernLayout.borderRadiusPill,
   },
   summaryStrip: {
     flexDirection: 'row',

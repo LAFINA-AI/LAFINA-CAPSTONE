@@ -18,10 +18,10 @@ import {
 import type {Task} from '../../../../storage';
 import {useTheme} from '../../../contexts/ThemeContext';
 import {
-  Colors,
   Fonts,
   FontSize,
   Layout,
+  ModernLayout,
   Shadows,
   Spacing,
   getCategoryColor,
@@ -77,6 +77,14 @@ const formatTime12h = (timeStr?: string | null): string => {
   return `${h % 12 || 12}:${String(m).padStart(2, '0')} ${meridiem}`;
 };
 
+const formatShortDate = (ymd: string): string => {
+  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(ymd);
+  if (!match) return ymd;
+  const date = new Date(Number(match[1]), Number(match[2]) - 1, Number(match[3]));
+  if (Number.isNaN(date.getTime())) return ymd;
+  return date.toLocaleDateString('en-US', {month: 'short', day: 'numeric'});
+};
+
 const formatDueLabel = (task: Task, todayStr: string): string => {
   if (!task.dueDate) return '';
   if (task.dueDate < todayStr) {
@@ -90,6 +98,18 @@ const formatDueLabel = (task: Task, todayStr: string): string => {
   return task.dueTime
     ? `${task.dueDate} · ${formatTime12h(task.dueTime)}`
     : task.dueDate;
+};
+
+const formatCompactDueLabel = (task: Task, todayStr: string): string => {
+  if (!task.dueDate) return '';
+  const shortDate = formatShortDate(task.dueDate);
+  if (task.dueDate < todayStr) {
+    return `Overdue · ${shortDate}`;
+  }
+  if (task.dueDate === todayStr) {
+    return task.dueTime ? `Today · ${formatTime12h(task.dueTime)}` : 'Today';
+  }
+  return shortDate;
 };
 
 export const TodoListView: React.FC<TodoListViewProps> = ({
@@ -114,7 +134,7 @@ export const TodoListView: React.FC<TodoListViewProps> = ({
   searchQuery,
   isGridView = false,
 }) => {
-  const {colors} = useTheme();
+  const {colors, isModern, modernPalette, modernShadows} = useTheme();
   const [showCompletedInline, setShowCompletedInline] = useState(false);
   const todayStr = toLocalYmd(new Date());
 
@@ -135,44 +155,178 @@ export const TodoListView: React.FC<TodoListViewProps> = ({
     return colors.success;
   };
 
+  const accentColor = isModern ? modernPalette.accent : colors.red;
+  const activeCardShadow = isModern ? modernShadows.card : Shadows.card;
+
+  const getCardContainerStyle = (isHighlighted: boolean = false) => [
+    styles.taskRow,
+    activeCardShadow,
+    isModern && styles.modernTaskRow,
+    isGridView && styles.taskCardGrid,
+    isGridView && isModern && styles.modernTaskGridCard,
+    {
+      backgroundColor: colors.cardBg,
+      borderColor: isHighlighted
+        ? accentColor
+        : isModern
+        ? modernPalette.border
+        : colors.border,
+      borderWidth: isHighlighted ? 1.5 : 1,
+    },
+  ];
+
+  const renderCategoryPill = (category: string) => {
+    const trimmed = category.trim();
+    if (!trimmed) return null;
+    const catColor = getCategoryColor(trimmed);
+    return (
+      <View
+        style={[
+          styles.metaPill,
+          isGridView && styles.gridSinglePill,
+          {backgroundColor: `${catColor}18`},
+        ]}
+      >
+        <Text
+          style={[
+            styles.metaPillText,
+            styles.gridSinglePillText,
+            {color: catColor},
+          ]}
+          numberOfLines={1}
+          ellipsizeMode="tail"
+        >
+          {trimmed}
+        </Text>
+      </View>
+    );
+  };
+
   const renderTaskRow = (task: Task) => {
     const isOverdue =
       !task.isCompleted && Boolean(task.dueDate && task.dueDate < todayStr);
-    const dueLabel = formatDueLabel(task, todayStr);
+    const dueLabel = isGridView
+      ? formatCompactDueLabel(task, todayStr)
+      : formatDueLabel(task, todayStr);
     const isHighlighted = highlightedTaskId === task.id;
     const prioColor = priorityBadgeColor(task.priority);
+    const hasCategory = Boolean(task.category?.trim());
+
+    const checkboxNode = (
+      <TouchableOpacity
+        onPress={() => onToggleTodo(task)}
+        accessibilityRole="checkbox"
+        accessibilityState={{checked: task.isCompleted}}
+        accessibilityLabel={`Toggle ${task.title}`}
+        testID={`todo-checkbox-${task.id}`}
+        hitSlop={isGridView ? {top: 6, bottom: 6, left: 6, right: 6} : undefined}
+        style={[
+          styles.checkbox,
+          isGridView && styles.gridCheckbox,
+          {
+            borderColor: task.isCompleted ? accentColor : prioColor,
+            backgroundColor: task.isCompleted ? accentColor : 'transparent',
+          },
+        ]}
+      >
+        {task.isCompleted ? (
+          <Check size={isGridView ? 12 : 14} color={colors.white} />
+        ) : null}
+      </TouchableOpacity>
+    );
+
+    const priorityPill =
+      task.priority !== 'Medium' ? (
+        <View style={[styles.metaPill, {backgroundColor: `${prioColor}18`}]}>
+          <Text style={[styles.metaPillText, {color: prioColor}]}>
+            {task.priority}
+          </Text>
+        </View>
+      ) : null;
+
+    const duePill = dueLabel ? (
+      <View
+        style={[
+          styles.metaPill,
+          styles.duePill,
+          styles.gridSinglePill,
+          {
+            backgroundColor: isOverdue
+              ? `${colors.error}18`
+              : colors.inputBg,
+          },
+        ]}
+      >
+        <Calendar
+          size={11}
+          color={isOverdue ? colors.error : colors.textSecondary}
+        />
+        <Text
+          style={[
+            styles.metaPillText,
+            styles.gridSinglePillText,
+            {color: isOverdue ? colors.error : colors.textSecondary},
+          ]}
+          numberOfLines={1}
+          ellipsizeMode="tail"
+        >
+          {dueLabel}
+        </Text>
+      </View>
+    ) : null;
+
+    if (isGridView) {
+      const topRightBadge =
+        priorityPill ?? (hasCategory ? renderCategoryPill(task.category) : null);
+      const bottomBadge =
+        duePill ??
+        (priorityPill && hasCategory ? renderCategoryPill(task.category) : null);
+
+      return (
+        <View
+          key={task.id}
+          testID={`todo-row-${task.id}`}
+          style={getCardContainerStyle(isHighlighted)}
+        >
+          <View style={styles.gridTopRow}>
+            {checkboxNode}
+            {topRightBadge}
+          </View>
+          <TouchableOpacity
+            style={styles.gridBody}
+            onPress={() => onPressTodo(task)}
+            activeOpacity={0.7}
+          >
+            <Text
+              style={[
+                styles.taskTitle,
+                styles.gridTaskTitle,
+                {
+                  color: task.isCompleted
+                    ? colors.textSecondary
+                    : colors.textPrimary,
+                  textDecorationLine: task.isCompleted ? 'line-through' : 'none',
+                },
+              ]}
+              numberOfLines={2}
+            >
+              {task.title}
+            </Text>
+            {bottomBadge ? (
+              <View style={styles.gridFooter}>{bottomBadge}</View>
+            ) : null}
+          </TouchableOpacity>
+        </View>
+      );
+    }
 
     return (
       <View
         key={task.id}
         testID={`todo-row-${task.id}`}
-        style={[
-          styles.taskRow,
-          isGridView && styles.taskCardGrid,
-          Shadows.card,
-          {
-            backgroundColor: colors.cardBg,
-            borderColor: isHighlighted ? Colors.red : colors.border,
-            borderWidth: isHighlighted ? 1.5 : 1,
-          },
-        ]}
+        style={getCardContainerStyle(isHighlighted)}
       >
-        <TouchableOpacity
-          onPress={() => onToggleTodo(task)}
-          accessibilityRole="checkbox"
-          accessibilityState={{checked: task.isCompleted}}
-          accessibilityLabel={`Toggle ${task.title}`}
-          testID={`todo-checkbox-${task.id}`}
-          style={[
-            styles.checkbox,
-            {
-              borderColor: task.isCompleted ? Colors.red : prioColor,
-              backgroundColor: task.isCompleted ? Colors.red : 'transparent',
-            },
-          ]}
-        >
-          {task.isCompleted ? <Check size={14} color={colors.white} /> : null}
-        </TouchableOpacity>
+        {checkboxNode}
 
         <TouchableOpacity
           style={styles.taskBody}
@@ -204,61 +358,121 @@ export const TodoListView: React.FC<TodoListViewProps> = ({
           ) : null}
 
           <View style={styles.metaRow}>
-            {task.priority !== 'Medium' ? (
-              <View
-                style={[styles.metaPill, {backgroundColor: `${prioColor}18`}]}
-              >
-                <Text style={[styles.metaPillText, {color: prioColor}]}>
-                  {task.priority}
-                </Text>
-              </View>
-            ) : null}
-
-            {task.category?.trim() ? (
-              <View
-                style={[
-                  styles.metaPill,
-                  {backgroundColor: `${getCategoryColor(task.category)}18`},
-                ]}
-              >
-                <Text
-                  style={[
-                    styles.metaPillText,
-                    {color: getCategoryColor(task.category)},
-                  ]}
-                >
-                  {task.category}
-                </Text>
-              </View>
-            ) : null}
-
-            {dueLabel ? (
-              <View
-                style={[
-                  styles.metaPill,
-                  styles.duePill,
-                  {
-                    backgroundColor: isOverdue
-                      ? `${colors.error}18`
-                      : colors.inputBg,
-                  },
-                ]}
-              >
-                <Calendar
-                  size={11}
-                  color={isOverdue ? colors.error : colors.textSecondary}
-                />
-                <Text
-                  style={[
-                    styles.metaPillText,
-                    {color: isOverdue ? colors.error : colors.textSecondary},
-                  ]}
-                >
-                  {dueLabel}
-                </Text>
-              </View>
-            ) : null}
+            {priorityPill}
+            {hasCategory ? renderCategoryPill(task.category) : null}
+            {duePill}
           </View>
+        </TouchableOpacity>
+      </View>
+    );
+  };
+
+  const renderChecklistCard = (item: NoteChecklistTodoItem) => {
+    const checkboxNode = (
+      <TouchableOpacity
+        onPress={() => onToggleChecklistItem(item)}
+        accessibilityRole="checkbox"
+        accessibilityState={{checked: item.done}}
+        accessibilityLabel={`Toggle checklist item ${item.text}`}
+        testID={`todo-note-checklist-${item.noteId}-${item.checklistIndex}`}
+        hitSlop={isGridView ? {top: 6, bottom: 6, left: 6, right: 6} : undefined}
+        style={[
+          styles.checkbox,
+          isGridView && styles.gridCheckbox,
+          {
+            borderColor: item.done ? accentColor : colors.primary,
+            backgroundColor: item.done ? accentColor : 'transparent',
+          },
+        ]}
+      >
+        {item.done ? (
+          <Check size={isGridView ? 12 : 14} color={colors.white} />
+        ) : null}
+      </TouchableOpacity>
+    );
+
+    const sourcePill = (
+      <View
+        style={[
+          styles.metaPill,
+          styles.duePill,
+          styles.gridSinglePill,
+          {backgroundColor: colors.inputBg},
+        ]}
+      >
+        <FileText size={11} color={colors.textSecondary} />
+        <Text
+          style={[
+            styles.metaPillText,
+            styles.gridSinglePillText,
+            {color: colors.textSecondary},
+          ]}
+          numberOfLines={1}
+          ellipsizeMode="tail"
+        >
+          From: {item.noteTitle}
+        </Text>
+      </View>
+    );
+
+    if (isGridView) {
+      return (
+        <View
+          key={item.id}
+          testID={`todo-note-checklist-row-${item.noteId}-${item.checklistIndex}`}
+          style={getCardContainerStyle(false)}
+        >
+          <View style={styles.gridTopRow}>{checkboxNode}</View>
+          <TouchableOpacity
+            style={styles.gridBody}
+            onPress={() => onOpenParentNote(item.noteId)}
+            activeOpacity={0.7}
+          >
+            <Text
+              style={[
+                styles.taskTitle,
+                styles.gridTaskTitle,
+                {
+                  color: item.done ? colors.textSecondary : colors.textPrimary,
+                  textDecorationLine: item.done ? 'line-through' : 'none',
+                },
+              ]}
+              numberOfLines={2}
+            >
+              {item.text}
+            </Text>
+            <View style={styles.gridFooter}>{sourcePill}</View>
+          </TouchableOpacity>
+        </View>
+      );
+    }
+
+    return (
+      <View
+        key={item.id}
+        testID={`todo-note-checklist-row-${item.noteId}-${item.checklistIndex}`}
+        style={getCardContainerStyle(false)}
+      >
+        {checkboxNode}
+
+        <TouchableOpacity
+          style={styles.taskBody}
+          onPress={() => onOpenParentNote(item.noteId)}
+          activeOpacity={0.7}
+        >
+          <Text
+            style={[
+              styles.taskTitle,
+              {
+                color: item.done ? colors.textSecondary : colors.textPrimary,
+                textDecorationLine: item.done ? 'line-through' : 'none',
+              },
+            ]}
+            numberOfLines={2}
+          >
+            {item.text}
+          </Text>
+          <View style={styles.metaRow}>{sourcePill}</View>
         </TouchableOpacity>
       </View>
     );
@@ -270,7 +484,11 @@ export const TodoListView: React.FC<TodoListViewProps> = ({
       <View
         style={[
           styles.quickAddBox,
-          {backgroundColor: colors.cardBg, borderColor: colors.border},
+          isModern && styles.modernQuickAddBox,
+          {
+            backgroundColor: colors.cardBg,
+            borderColor: isModern ? modernPalette.border : colors.border,
+          },
         ]}
       >
         <TextInput
@@ -309,8 +527,13 @@ export const TodoListView: React.FC<TodoListViewProps> = ({
           testID="todo-quick-add-submit"
           style={[
             styles.addBtn,
+            isModern && styles.modernAddBtn,
             {
-              backgroundColor: quickTitle.trim() ? Colors.red : colors.inputBg,
+              backgroundColor: quickTitle.trim()
+                ? accentColor
+                : isModern
+                ? modernPalette.surface
+                : colors.inputBg,
             },
           ]}
         >
@@ -343,15 +566,26 @@ export const TodoListView: React.FC<TodoListViewProps> = ({
                 testID={`todo-filter-${opt.key}`}
                 style={[
                   styles.filterChip,
-                  {backgroundColor: colors.inputBg},
-                  active && {backgroundColor: Colors.red},
+                  {
+                    backgroundColor: isModern
+                      ? modernPalette.surface
+                      : colors.inputBg,
+                  },
+                  active && {
+                    backgroundColor: isModern
+                      ? modernPalette.darkInkBtn
+                      : colors.red,
+                  },
                 ]}
               >
                 <Text
                   style={[
                     styles.filterChipText,
                     {color: colors.textSecondary},
-                    active && {color: colors.white, fontWeight: '700'},
+                    active && {
+                      color: colors.white,
+                      fontWeight: '700',
+                    },
                   ]}
                 >
                   {opt.label}
@@ -387,10 +621,11 @@ export const TodoListView: React.FC<TodoListViewProps> = ({
                 onPress={onOpenNewTodoModal}
                 style={[
                   styles.emptyBtn,
-                  {borderColor: Colors.red, backgroundColor: colors.cardBg},
+                  isModern && styles.modernPill,
+                  {borderColor: accentColor, backgroundColor: colors.cardBg},
                 ]}
               >
-                <Text style={{color: Colors.red, fontWeight: '700'}}>
+                <Text style={{color: accentColor, fontWeight: '700'}}>
                   Add detailed To-Do
                 </Text>
               </TouchableOpacity>
@@ -426,83 +661,7 @@ export const TodoListView: React.FC<TodoListViewProps> = ({
               FROM NOTES CHECKLISTS ({noteChecklists.length})
             </Text>
             <View style={isGridView ? styles.gridContainer : undefined}>
-              {noteChecklists.map(item => (
-                <View
-                  key={item.id}
-                  testID={`todo-note-checklist-row-${item.noteId}-${item.checklistIndex}`}
-                  style={[
-                    styles.taskRow,
-                    isGridView && styles.taskCardGrid,
-                    Shadows.card,
-                    {
-                      backgroundColor: colors.cardBg,
-                      borderColor: colors.border,
-                      borderWidth: 1,
-                    },
-                  ]}
-                >
-                  <TouchableOpacity
-                    onPress={() => onToggleChecklistItem(item)}
-                    accessibilityRole="checkbox"
-                    accessibilityState={{checked: item.done}}
-                    accessibilityLabel={`Toggle checklist item ${item.text}`}
-                    testID={`todo-note-checklist-${item.noteId}-${item.checklistIndex}`}
-                    style={[
-                      styles.checkbox,
-                      {
-                        borderColor: item.done ? Colors.red : colors.primary,
-                        backgroundColor: item.done ? Colors.red : 'transparent',
-                      },
-                    ]}
-                  >
-                    {item.done ? (
-                      <Check size={14} color={colors.white} />
-                    ) : null}
-                  </TouchableOpacity>
-
-                  <TouchableOpacity
-                    style={styles.taskBody}
-                    onPress={() => onOpenParentNote(item.noteId)}
-                    activeOpacity={0.7}
-                  >
-                    <Text
-                      style={[
-                        styles.taskTitle,
-                        {
-                          color: item.done
-                            ? colors.textSecondary
-                            : colors.textPrimary,
-                          textDecorationLine: item.done
-                            ? 'line-through'
-                            : 'none',
-                        },
-                      ]}
-                      numberOfLines={2}
-                    >
-                      {item.text}
-                    </Text>
-                    <View style={styles.metaRow}>
-                      <View
-                        style={[
-                          styles.metaPill,
-                          styles.duePill,
-                          {backgroundColor: colors.inputBg},
-                        ]}
-                      >
-                        <FileText size={11} color={colors.textSecondary} />
-                        <Text
-                          style={[
-                            styles.metaPillText,
-                            {color: colors.textSecondary},
-                          ]}
-                        >
-                          From: {item.noteTitle}
-                        </Text>
-                      </View>
-                    </View>
-                  </TouchableOpacity>
-                </View>
-              ))}
+              {noteChecklists.map(renderChecklistCard)}
             </View>
           </View>
         ) : null}
@@ -613,7 +772,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     flexWrap: 'wrap',
     justifyContent: 'space-between',
-    rowGap: Spacing.sm,
+    rowGap: 10,
   },
   sectionHeader: {
     fontFamily: Fonts.heading,
@@ -631,13 +790,33 @@ const styles = StyleSheet.create({
     paddingVertical: Spacing.md,
     marginBottom: Spacing.sm,
     gap: 12,
+    overflow: 'hidden',
   },
   taskCardGrid: {
-    width: '48.5%',
+    width: '48.2%',
+    flexDirection: 'column',
+    justifyContent: 'space-between',
     marginBottom: 0,
-    paddingHorizontal: Spacing.sm,
-    paddingVertical: Spacing.sm,
+    paddingHorizontal: 12,
+    paddingVertical: 12,
     gap: 8,
+    minHeight: 96,
+  },
+  gridTopRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 6,
+  },
+  gridBody: {
+    flex: 1,
+    minWidth: 0,
+    justifyContent: 'space-between',
+    gap: 8,
+  },
+  gridFooter: {
+    flexDirection: 'row',
+    alignItems: 'center',
   },
   checkbox: {
     width: 22,
@@ -648,14 +827,24 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     marginTop: 1,
   },
+  gridCheckbox: {
+    width: 20,
+    height: 20,
+    marginTop: 0,
+  },
   taskBody: {
     flex: 1,
+    minWidth: 0,
   },
   taskTitle: {
     fontFamily: Fonts.heading,
     fontSize: FontSize.body,
     fontWeight: '600',
     lineHeight: 20,
+  },
+  gridTaskTitle: {
+    fontSize: 14,
+    lineHeight: 19,
   },
   taskNotes: {
     fontFamily: Fonts.body,
@@ -672,6 +861,15 @@ const styles = StyleSheet.create({
     paddingHorizontal: 8,
     paddingVertical: 2,
     borderRadius: Layout.borderRadiusPill,
+  },
+  gridSinglePill: {
+    maxWidth: '100%',
+    flexShrink: 1,
+    alignSelf: 'flex-start',
+    overflow: 'hidden',
+  },
+  gridSinglePillText: {
+    flexShrink: 1,
   },
   duePill: {
     flexDirection: 'row',
@@ -714,5 +912,20 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
     borderRadius: Layout.borderRadiusButton,
     borderWidth: 1,
+  },
+  modernQuickAddBox: {
+    borderRadius: ModernLayout.borderRadiusCard,
+  },
+  modernAddBtn: {
+    borderRadius: ModernLayout.borderRadiusPill,
+  },
+  modernTaskRow: {
+    borderRadius: ModernLayout.borderRadiusCard,
+  },
+  modernTaskGridCard: {
+    borderRadius: ModernLayout.borderRadiusSubCard,
+  },
+  modernPill: {
+    borderRadius: ModernLayout.borderRadiusPill,
   },
 });

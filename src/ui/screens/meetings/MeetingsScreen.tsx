@@ -23,7 +23,13 @@ import type { RegisterToolBack } from '../../components/tools';
 import { useMeetings } from '../../contexts/MeetingsContext';
 import { useTheme } from '../../contexts/ThemeContext';
 import { useThemedStyles } from '../../theme/createThemedStyles';
-import { Fonts, FontSize, Layout, Spacing } from '../../theme';
+import {
+  Fonts,
+  FontSize,
+  Layout,
+  ModernLayout,
+  Spacing,
+} from '../../theme';
 import { formatDuration } from './meetingCopy';
 import { getMeetingThemedStyles, meetingStyles } from './meetingStyles';
 import { MeetingDetail } from './MeetingDetail';
@@ -41,7 +47,7 @@ export const MeetingsScreen: React.FC<MeetingsScreenProps> = ({
   registerBack,
   onNotesSaved,
 }) => {
-  const { colors } = useTheme();
+  const {colors, isModern, modernPalette, modernShadows} = useTheme();
   const themed = useThemedStyles(getMeetingThemedStyles);
   const {
     meetings,
@@ -189,7 +195,17 @@ export const MeetingsScreen: React.FC<MeetingsScreenProps> = ({
           available ? (
             <RecorderCard />
           ) : (
-            <View style={[meetingStyles.card, themed.card]}>
+            <View
+              style={[
+                meetingStyles.card,
+                themed.card,
+                isModern && modernShadows.card,
+                isModern && {
+                  borderRadius: ModernLayout.borderRadiusCard,
+                  borderColor: modernPalette.border,
+                },
+              ]}
+            >
               <Text style={[meetingStyles.body, themed.textSecondary]}>
                 Recording requires the latest native Android build with meeting recorder support. Reinstall the app with 'npm run android'. Previous transcripts still appear below.
               </Text>
@@ -198,7 +214,10 @@ export const MeetingsScreen: React.FC<MeetingsScreenProps> = ({
         }
         ListEmptyComponent={
           <View style={styles.empty}>
-            <Users size={40} color={colors.red} />
+            <Users
+              size={40}
+              color={isModern ? modernPalette.accent : colors.red}
+            />
             <Text style={[styles.emptyTitle, themed.textPrimary]}>
               No recordings yet
             </Text>
@@ -217,6 +236,10 @@ export const MeetingsScreen: React.FC<MeetingsScreenProps> = ({
                 meetingStyles.secondaryButton,
                 styles.emptyImportBtn,
                 themed.secondaryButton,
+                isModern && {
+                  borderRadius: ModernLayout.borderRadiusPill,
+                  borderColor: modernPalette.border,
+                },
               ]}
               onPress={() => void importAudio()}
               accessibilityRole="button"
@@ -234,7 +257,15 @@ export const MeetingsScreen: React.FC<MeetingsScreenProps> = ({
           const running = processing?.meetingId === meeting.id;
           return (
             <TouchableOpacity
-              style={[styles.row, themed.card]}
+              style={[
+                styles.row,
+                themed.card,
+                isModern && modernShadows.card,
+                isModern && {
+                  borderRadius: ModernLayout.borderRadiusCard,
+                  borderColor: modernPalette.border,
+                },
+              ]}
               onPress={() => setOpenId(meeting.id)}
               onLongPress={() =>
                 isBusy(meeting.status) ? undefined : confirmDelete(meeting)
@@ -243,7 +274,10 @@ export const MeetingsScreen: React.FC<MeetingsScreenProps> = ({
               accessibilityHint="Double tap to open. Double tap and hold to delete."
               testID={`meeting-row-${meeting.id}`}
             >
-              <Users size={20} color={colors.red} />
+              <Users
+                size={20}
+                color={isModern ? modernPalette.accent : colors.red}
+              />
               <View style={styles.rowText}>
                 <Text
                   style={[styles.rowTitle, themed.textPrimary]}

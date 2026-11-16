@@ -1,7 +1,8 @@
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
-import { Colors, Fonts, useThemedStyles } from '../../theme';
-import type { ThemeColors } from '../../contexts/ThemeContext';
+import {Fonts, useThemedStyles} from '../../theme';
+import {useTheme} from '../../contexts/ThemeContext';
+import type {ThemeColors} from '../../contexts/ThemeContext';
 
 interface OnboardingProgressProps {
   step: number;
@@ -12,15 +13,25 @@ export const OnboardingProgress: React.FC<OnboardingProgressProps> = ({
   step,
   totalSteps,
 }) => {
+  const {colors, isModern, modernPalette} = useTheme();
   const themed = useThemedStyles(getThemedStyles);
 
   return (
     <View style={styles.progressContainer}>
-      <View style={[styles.progressBarBg, themed.progressBarBg]}>
+      <View
+        style={[
+          styles.progressBarBg,
+          themed.progressBarBg,
+          isModern && {backgroundColor: modernPalette.surface},
+        ]}
+      >
         <View
           style={[
             styles.progressBarActive,
-            { width: `${(step / totalSteps) * 100}%` },
+            {
+              width: `${(step / totalSteps) * 100}%`,
+              backgroundColor: isModern ? modernPalette.accent : colors.blue,
+            },
           ]}
         />
       </View>
@@ -44,7 +55,6 @@ const styles = StyleSheet.create({
   },
   progressBarActive: {
     height: '100%',
-    backgroundColor: Colors.blue,
   },
   progressText: {
     fontFamily: Fonts.body,

@@ -1,17 +1,18 @@
 import React from 'react';
-import { render, fireEvent, waitFor } from '@testing-library/react-native';
-import { ThemeProvider } from '../../src/ui/contexts/ThemeContext';
-import { MeetingsProvider } from '../../src/ui/contexts/MeetingsContext';
-import { ChatScreen } from '../../src/ui/screens/ChatScreen';
-import { ChatMessageItem } from '../../src/ui/components/chat/ChatMessageItem';
+import {render, fireEvent, waitFor} from '@testing-library/react-native';
+import {ThemeProvider} from '../../src/ui/contexts/ThemeContext';
+import {MeetingsProvider} from '../../src/ui/contexts/MeetingsContext';
+import {ChatScreen} from '../../src/ui/screens/ChatScreen';
+import {ChatMessageItem} from '../../src/ui/components/chat/ChatMessageItem';
 import {
   initDatabase,
   userStore,
   chatStore,
   localSettingsStore,
 } from '../../src/storage';
-import { chatOrchestrator } from '../../src/ai';
-import { accountLinkService, cloudClient } from '../../src/cloud';
+import {chatOrchestrator} from '../../src/ai';
+import {accountLinkService, cloudClient} from '../../src/cloud';
+import {localHandbookService} from '../../src/handbook';
 import {
   onlineChatSkill,
   handbookPreference,
@@ -40,13 +41,21 @@ describe('Phase 10: USTP Student Handbook RAG & Citation-Backed Answers', () => 
     it('writes and reads both chat.useHandbook and ustp_handbook_enabled', () => {
       handbookPreference.write(testUserId, false);
       expect(handbookPreference.read(testUserId)).toBe(false);
-      expect(localSettingsStore.get(testUserId, 'chat.useHandbook')).toBe('false');
-      expect(localSettingsStore.get(testUserId, 'ustp_handbook_enabled')).toBe('false');
+      expect(localSettingsStore.get(testUserId, 'chat.useHandbook')).toBe(
+        'false',
+      );
+      expect(localSettingsStore.get(testUserId, 'ustp_handbook_enabled')).toBe(
+        'false',
+      );
 
       handbookPreference.write(testUserId, true);
       expect(handbookPreference.read(testUserId)).toBe(true);
-      expect(localSettingsStore.get(testUserId, 'chat.useHandbook')).toBe('true');
-      expect(localSettingsStore.get(testUserId, 'ustp_handbook_enabled')).toBe('true');
+      expect(localSettingsStore.get(testUserId, 'chat.useHandbook')).toBe(
+        'true',
+      );
+      expect(localSettingsStore.get(testUserId, 'ustp_handbook_enabled')).toBe(
+        'true',
+      );
     });
   });
 
@@ -68,16 +77,16 @@ describe('Phase 10: USTP Student Handbook RAG & Citation-Backed Answers', () => 
 
     it('formats multiple distinct page references and deduplicates', () => {
       const label = handbookSourceLabel([
-        { title: 'USTP Student Handbook', page: 14 },
-        { title: 'USTP Student Handbook', page: 14 },
-        { title: 'USTP Student Handbook', page: 22 },
+        {title: 'USTP Student Handbook', page: 14},
+        {title: 'USTP Student Handbook', page: 14},
+        {title: 'USTP Student Handbook', page: 22},
       ]);
       expect(label).toBe('Referenced USTP Student Handbook (p. 14, p. 22)');
     });
 
     it('falls back to title without pages if page numbers are absent', () => {
       const label = handbookSourceLabel([
-        { title: 'USTP Student Handbook', page: null },
+        {title: 'USTP Student Handbook', page: null},
       ]);
       expect(label).toBe('Referenced USTP Student Handbook');
     });
@@ -85,25 +94,28 @@ describe('Phase 10: USTP Student Handbook RAG & Citation-Backed Answers', () => 
 
   describe('3. onlineChatSkill Handbook Integration', () => {
     it('sends useHandbook: true and parses sources with citations', async () => {
-      const requestSpy = jest.spyOn(cloudClient, 'request').mockResolvedValueOnce({
-        status: 'success',
-        data: {
-          reply: 'To qualify for the USTP Dean\'s List, a student must attain a GPA of 1.75 or higher.',
-          used_handbook: true,
-          sources: [
-            {
-              title: 'USTP Student Handbook 2023',
-              section: 'Dean\'s Honor List',
-              page: 35,
-              snippet: 'A student who obtains a GPA of 1.75...',
-            },
-          ],
-        },
-      });
+      const requestSpy = jest
+        .spyOn(cloudClient, 'request')
+        .mockResolvedValueOnce({
+          status: 'success',
+          data: {
+            reply:
+              "To qualify for the USTP Dean's List, a student must attain a GPA of 1.75 or higher.",
+            used_handbook: true,
+            sources: [
+              {
+                title: 'USTP Student Handbook 2023',
+                section: "Dean's Honor List",
+                page: 35,
+                snippet: 'A student who obtains a GPA of 1.75...',
+              },
+            ],
+          },
+        });
 
       const result = await onlineChatSkill.sendChatMessage(
-        [{ role: 'user', content: 'What are the Dean\'s List requirements?' }],
-        { useHandbook: true },
+        [{role: 'user', content: "What are the Dean's List requirements?"}],
+        {useHandbook: true},
       );
 
       expect(requestSpy).toHaveBeenCalledWith(
@@ -123,18 +135,20 @@ describe('Phase 10: USTP Student Handbook RAG & Citation-Backed Answers', () => 
     });
 
     it('sends useHandbook: false when handbook toggle is disabled', async () => {
-      const requestSpy = jest.spyOn(cloudClient, 'request').mockResolvedValueOnce({
-        status: 'success',
-        data: {
-          reply: 'General knowledge answer without handbook lookup.',
-          used_handbook: false,
-          sources: [],
-        },
-      });
+      const requestSpy = jest
+        .spyOn(cloudClient, 'request')
+        .mockResolvedValueOnce({
+          status: 'success',
+          data: {
+            reply: 'General knowledge answer without handbook lookup.',
+            used_handbook: false,
+            sources: [],
+          },
+        });
 
       const result = await onlineChatSkill.sendChatMessage(
-        [{ role: 'user', content: 'What is photosynthesis?' }],
-        { useHandbook: false },
+        [{role: 'user', content: 'What is photosynthesis?'}],
+        {useHandbook: false},
       );
 
       expect(requestSpy).toHaveBeenCalledWith(
@@ -169,10 +183,21 @@ describe('Phase 10: USTP Student Handbook RAG & Citation-Backed Answers', () => 
   });
 
   describe('4. ChatOrchestrator Offline & Online Fail-Closed Handbook Routing', () => {
-    it('returns fail-closed handbook offline message when user asks handbook query while offline', async () => {
+    it('returns fail-closed handbook offline message when local handbook index is unavailable while offline', async () => {
+      jest.spyOn(localHandbookService, 'ensureReady').mockResolvedValueOnce({
+        ready: true,
+        populated: false,
+        chunkCount: 0,
+        title: 'USTP Student Handbook',
+        edition: 'Unavailable',
+        sourceLabel: 'USTP Student Handbook',
+        sha256: 'empty-0',
+        origin: 'none',
+      });
+
       const result = await chatOrchestrator.processMessage(
         testUserId,
-        'What are the USTP Dean\'s List requirements?',
+        "What are the USTP Dean's List requirements?",
         {
           onlineMode: false,
           useHandbook: true,
@@ -185,7 +210,17 @@ describe('Phase 10: USTP Student Handbook RAG & Citation-Backed Answers', () => 
       );
     });
 
-    it('returns fail-closed fallback message if online handbook request fails', async () => {
+    it('returns fail-closed fallback message if online handbook request fails without local excerpts', async () => {
+      jest.spyOn(localHandbookService, 'ensureReady').mockResolvedValueOnce({
+        ready: true,
+        populated: false,
+        chunkCount: 0,
+        title: 'USTP Student Handbook',
+        edition: 'Unavailable',
+        sourceLabel: 'USTP Student Handbook',
+        sha256: 'empty-0',
+        origin: 'none',
+      });
       jest.spyOn(cloudClient, 'request').mockResolvedValueOnce({
         status: 'server_error',
         error: 'Backend handbook index unavailable',
@@ -211,7 +246,8 @@ describe('Phase 10: USTP Student Handbook RAG & Citation-Backed Answers', () => 
       jest.spyOn(cloudClient, 'request').mockResolvedValueOnce({
         status: 'success',
         data: {
-          reply: 'Under the USTP Student Handbook, an incomplete (INC) grade must be completed within one school year.',
+          reply:
+            'Under the USTP Student Handbook, an incomplete (INC) grade must be completed within one school year.',
           used_handbook: true,
           sources: [
             {
@@ -233,8 +269,12 @@ describe('Phase 10: USTP Student Handbook RAG & Citation-Backed Answers', () => 
       );
 
       expect(result.usedOnline).toBe(true);
-      expect(result.reply).toContain('incomplete (INC) grade must be completed');
-      expect(result.handbookNote).toBe('Referenced USTP Student Handbook (p. 46)');
+      expect(result.reply).toContain(
+        'incomplete (INC) grade must be completed',
+      );
+      expect(result.handbookNote).toBe(
+        'Referenced USTP Student Handbook (p. 46)',
+      );
     });
 
     it('routes dedicated ustpRagOnly questions directly to Handbook RAG without planner NLU', async () => {
@@ -243,9 +283,10 @@ describe('Phase 10: USTP Student Handbook RAG & Citation-Backed Answers', () => 
         .mockResolvedValueOnce({
           status: 'success',
           data: {
-            reply: 'Dropping of subjects must be done within the official dropping period per the USTP Handbook.',
+            reply:
+              'Dropping of subjects must be done within the official dropping period per the USTP Handbook.',
             usedHandbook: true,
-            sources: [{ title: 'USTP Student Handbook', page: 38 }],
+            sources: [{title: 'USTP Student Handbook', page: 38}],
           },
         });
 
@@ -260,15 +301,21 @@ describe('Phase 10: USTP Student Handbook RAG & Citation-Backed Answers', () => 
       );
 
       expect(sendSpy).toHaveBeenCalledTimes(1);
-      expect(sendSpy.mock.calls[0]?.[1]?.useHandbook).toBe(true);
+      expect(sendSpy.mock.calls[0]?.[1]?.useHandbook).toBe(false);
+      const sentMsgs = sendSpy.mock.calls[0]?.[0] ?? [];
+      expect(sentMsgs[sentMsgs.length - 1]?.content).toContain(
+        '<handbook_excerpts',
+      );
       expect(result.usedOnline).toBe(true);
-      expect(result.handbookNote).toBe('Referenced USTP Student Handbook (p. 38)');
+      expect(result.handbookNote).toBe(
+        'Referenced USTP Student Handbook (p. 38)',
+      );
     });
   });
 
   describe('5. UI Verification: Citation Rendering & Handbook Toggle', () => {
     it('renders citation badge in ChatMessageItem when handbookNote is present', () => {
-      const { getByTestId, getByText } = render(
+      const {getByTestId, getByText} = render(
         <ThemeProvider userId={testUserId}>
           <ChatMessageItem
             item={{
@@ -285,11 +332,13 @@ describe('Phase 10: USTP Student Handbook RAG & Citation-Backed Answers', () => 
       );
 
       expect(getByTestId('chat-handbook-citation')).toBeTruthy();
-      expect(getByText('Referenced USTP Student Handbook (p. 42)')).toBeTruthy();
+      expect(
+        getByText('Referenced USTP Student Handbook (p. 42)'),
+      ).toBeTruthy();
     });
 
     it('does not render citation badge when handbookNote is absent', () => {
-      const { queryByTestId } = render(
+      const {queryByTestId} = render(
         <ThemeProvider userId={testUserId}>
           <ChatMessageItem
             item={{
@@ -308,12 +357,10 @@ describe('Phase 10: USTP Student Handbook RAG & Citation-Backed Answers', () => 
     });
 
     it('separates Ask LAFINA about USTP into its own RAG chat and sends handbook queries with useHandbook: true', async () => {
-      jest
-        .spyOn(accountLinkService, 'authorizeOnlineMode')
-        .mockResolvedValue({
-          status: 'success',
-          message: 'Online mode ready.',
-        });
+      jest.spyOn(accountLinkService, 'authorizeOnlineMode').mockResolvedValue({
+        status: 'success',
+        message: 'Online mode ready.',
+      });
       const streamSpy = jest
         .spyOn(onlineChatSkill, 'streamChatMessage')
         .mockResolvedValue({
@@ -321,11 +368,11 @@ describe('Phase 10: USTP Student Handbook RAG & Citation-Backed Answers', () => 
           data: {
             reply: "A GPA of 1.75 or higher qualifies for Dean's List.",
             usedHandbook: true,
-            sources: [{ title: 'USTP Student Handbook', page: 44 }],
+            sources: [{title: 'USTP Student Handbook', page: 44}],
           },
         });
 
-      const { getByTestId, queryByTestId, findByTestId, getByText } = render(
+      const {getByTestId, queryByTestId, findByTestId, getByText} = render(
         <ThemeProvider userId={testUserId}>
           <MeetingsProvider userId={testUserId}>
             <ChatScreen userId={testUserId} />
@@ -347,11 +394,17 @@ describe('Phase 10: USTP Student Handbook RAG & Citation-Backed Answers', () => 
 
       // Enable Online Mode and send a USTP starter prompt
       fireEvent.press(getByTestId('chat-ustp-enable-online'));
-      await waitFor(() => expect(queryByTestId('chat-ustp-enable-online')).toBeNull());
+      await waitFor(() =>
+        expect(queryByTestId('chat-ustp-enable-online')).toBeNull(),
+      );
 
       fireEvent.press(getByTestId('chat-ustp-prompt-chip-0'));
       await waitFor(() => expect(streamSpy).toHaveBeenCalledTimes(1));
-      expect(streamSpy.mock.calls[0][1].useHandbook).toBe(true);
+      expect(streamSpy.mock.calls[0][1].useHandbook).toBe(false);
+      const streamedMsgs = streamSpy.mock.calls[0][0];
+      expect(streamedMsgs[streamedMsgs.length - 1].content).toContain(
+        '<handbook_excerpts',
+      );
       expect(await findByTestId('chat-handbook-citation')).toBeTruthy();
     });
   });

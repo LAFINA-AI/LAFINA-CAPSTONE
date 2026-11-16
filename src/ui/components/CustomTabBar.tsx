@@ -1,10 +1,23 @@
-import React from 'react';
-import {StyleSheet, Text, TouchableOpacity, View} from 'react-native';
+import React, {useState} from 'react';
+import {
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+  type LayoutChangeEvent,
+} from 'react-native';
 import {useSafeAreaInsets} from 'react-native-safe-area-context';
-import {CalendarDays, FileText, House, Sparkles, User} from 'lucide-react-native';
+import Svg, {Path} from 'react-native-svg';
+import {
+  CalendarDays,
+  House,
+  Sparkles,
+  User,
+  Wrench,
+} from 'lucide-react-native';
 import {useTheme} from '../contexts/ThemeContext';
 import type {ThemeColors} from '../contexts/ThemeContext';
-import {Fonts, Layout, Shadows} from '../theme';
+import {Fonts, Layout, ModernLayout, Shadows} from '../theme';
 import {useThemedStyles} from '../theme/createThemedStyles';
 import type {TourAnchor} from '../tour/tourSteps';
 import {tourTargetRef} from '../tour/tourTargets';
@@ -28,7 +41,7 @@ export const TAB_LABELS: Record<TabType, string> = {
   dashboard: 'Home',
   calendar: 'Schedule',
   chat: 'AI',
-  notes: 'Notes',
+  notes: 'Tools',
   profile: 'Profile',
 };
 
@@ -39,7 +52,7 @@ const TAB_ICONS: Record<
   dashboard: House,
   calendar: CalendarDays,
   chat: Sparkles,
-  notes: FileText,
+  notes: Wrench,
   profile: User,
 };
 
@@ -55,22 +68,191 @@ const TOUR_TABS: Record<TabType, TourAnchor> = {
 };
 
 const BAR_BOTTOM_OFFSET = 24;
+const MODERN_FAB_OVERHANG = 28;
 
 interface CustomTabBarProps {
   activeTab: TabType;
   onTabPress: (tab: TabType) => void;
 }
 
+function buildCurvedTabBarPath(width: number, totalHeight: number): string {
+  const safeW = Math.max(width, 240);
+  const r = ModernLayout.navbarTopRadius;
+  const centerX = safeW / 2;
+  const notchHalf = ModernLayout.navbarNotchHalf;
+  const notchDepth = ModernLayout.navbarNotchDepth;
+  const outerLeft = Math.max(r + 4, centerX - notchHalf - 14);
+  const innerLeft = Math.max(r + 8, centerX - notchHalf);
+  const outerRight = Math.min(safeW - r - 4, centerX + notchHalf + 14);
+  const innerRight = Math.min(safeW - r - 8, centerX + notchHalf);
+
+  return [
+    `M0,${r}`,
+    `Q0,0 ${r},0`,
+    `L${outerLeft},0`,
+    `C${innerLeft},0 ${innerLeft + 8},${notchDepth} ${centerX},${notchDepth}`,
+    `C${innerRight - 8},${notchDepth} ${innerRight},0 ${outerRight},0`,
+    `L${safeW - r},0`,
+    `Q${safeW},0 ${safeW},${r}`,
+    `L${safeW},${totalHeight}`,
+    `L0,${totalHeight}`,
+    'Z',
+  ].join(' ');
+}
+
 export const CustomTabBar: React.FC<CustomTabBarProps> = ({
   activeTab,
   onTabPress,
 }) => {
-  const {colors} = useTheme();
+  const {colors, isModern, modernPalette, modernShadows} = useTheme();
   const themed = useThemedStyles(getTabThemedStyles);
   const insets = useSafeAreaInsets();
+  const [barWidth, setBarWidth] = useState(360);
+
+  const handleModernLayout = (event: LayoutChangeEvent) => {
+    const measured = Math.round(event.nativeEvent.layout.width);
+    if (measured > 0 && measured !== barWidth) {
+      setBarWidth(measured);
+    }
+  };
+
+  if (isModern) {
+    const bottomInset = Math.max(insets.bottom, 8);
+    const contentHeight = ModernLayout.navbarContentHeight;
+    const totalHeight = contentHeight + bottomInset;
+    const navPath = buildCurvedTabBarPath(barWidth, totalHeight);
+
+    return (
+      <View
+        testID="modern-custom-tab-bar"
+        onLayout={handleModernLayout}
+        pointerEvents="box-none"
+        style={[
+          styles.modernOuterContainer,
+          {height: totalHeight + MODERN_FAB_OVERHANG},
+        ]}
+        accessible={false}
+      >
+        <View
+          style={[
+            styles.modernSvgBackdrop,
+            {top: MODERN_FAB_OVERHANG, height: totalHeight},
+          ]}
+          pointerEvents="none"
+        >
+          <Svg width={barWidth} height={totalHeight}>
+            <Path d={navPath} fill={modernPalette.card} />
+          </Svg>
+        </View>
+
+        <View
+          pointerEvents="box-none"
+          style={[
+            styles.modernTabRow,
+            {
+              height: contentHeight,
+              bottom: bottomInset,
+            },
+          ]}
+          accessibilityRole="tablist"
+        >
+          {TAB_ORDER.map(tab => {
+            const label = TAB_LABELS[tab];
+            const IconComponent = TAB_ICONS[tab];
+            const isActive = activeTab === tab;
+            const anchor = TOUR_TABS[tab];
+            const isCenter = tab === CENTER_TAB;
+
+            if (isCenter) {
+              return (
+                <TouchableOpacity
+                  key={tab}
+                  ref={tourTargetRef(anchor)}
+                  testID={`modern-tab-${tab}`}
+                  style={styles.modernCenterSlot}
+                  onPress={() => onTabPress(tab)}
+                  activeOpacity={0.85}
+                  accessible={true}
+                  accessibilityRole="tab"
+                  accessibilityLabel={`${label} tab`}
+                  accessibilityState={{selected: isActive}}
+                >
+                  <View
+                    testID="modern-tab-chat-fab"
+                    style={[
+                      styles.modernCenterFab,
+                      styles.modernCenterFabShadow,
+                      {
+                        shadowColor: modernShadows.floating.shadowColor,
+                        backgroundColor: isActive
+                          ? modernPalette.accentDeep
+                          : modernPalette.accent,
+                      },
+                    ]}
+                  >
+                    <IconComponent size={24} color="#FFFFFF" />
+                  </View>
+                  <Text
+                    style={[
+                      styles.modernCenterLabel,
+                      {
+                        color: isActive
+                          ? modernPalette.accent
+                          : modernPalette.text,
+                      },
+                    ]}
+                    numberOfLines={1}
+                  >
+                    {label}
+                  </Text>
+                </TouchableOpacity>
+              );
+            }
+
+            return (
+              <TouchableOpacity
+                key={tab}
+                ref={tourTargetRef(anchor)}
+                testID={`modern-tab-${tab}`}
+                style={styles.modernTab}
+                onPress={() => onTabPress(tab)}
+                activeOpacity={0.8}
+                accessible={true}
+                accessibilityRole="tab"
+                accessibilityLabel={`${label} tab`}
+                accessibilityState={{selected: isActive}}
+              >
+                <IconComponent
+                  size={22}
+                  color={isActive ? modernPalette.accent : modernPalette.muted}
+                />
+                <Text
+                  style={[
+                    styles.modernLabel,
+                    {
+                      color: isActive
+                        ? modernPalette.accent
+                        : modernPalette.muted,
+                      fontWeight: isActive ? '700' : '500',
+                    },
+                  ]}
+                  numberOfLines={1}
+                  adjustsFontSizeToFit
+                  minimumFontScale={0.85}
+                >
+                  {label}
+                </Text>
+              </TouchableOpacity>
+            );
+          })}
+        </View>
+      </View>
+    );
+  }
+
   const bottomOffset = Math.max(insets.bottom, 12) + 14;
 
-  const renderTab = (
+  const renderClassicTab = (
     tab: TabType,
     label: string,
     IconComponent: React.ComponentType<{size: number; color: string}>,
@@ -158,6 +340,7 @@ export const CustomTabBar: React.FC<CustomTabBarProps> = ({
 
   return (
     <View
+      testID="classic-custom-tab-bar"
       style={[styles.outerContainer, {bottom: bottomOffset}]}
       accessible={false}
     >
@@ -166,7 +349,12 @@ export const CustomTabBar: React.FC<CustomTabBarProps> = ({
         accessibilityRole="tablist"
       >
         {TAB_ORDER.map(tab =>
-          renderTab(tab, TAB_LABELS[tab], TAB_ICONS[tab], tab === CENTER_TAB),
+          renderClassicTab(
+            tab,
+            TAB_LABELS[tab],
+            TAB_ICONS[tab],
+            tab === CENTER_TAB,
+          ),
         )}
       </View>
     </View>
@@ -188,6 +376,70 @@ const getTabThemedStyles = (colors: ThemeColors) => ({
 });
 
 const styles = StyleSheet.create({
+  modernOuterContainer: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    bottom: 0,
+    justifyContent: 'flex-start',
+    backgroundColor: 'transparent',
+  },
+  modernSvgBackdrop: {
+    position: 'absolute',
+    top: 0,
+    right: 0,
+    bottom: 0,
+    left: 0,
+  },
+  modernTabRow: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 6,
+  },
+  modernTab: {
+    flex: 1,
+    height: ModernLayout.navbarContentHeight,
+    minHeight: 48,
+    minWidth: 44,
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 4,
+  },
+  modernLabel: {
+    fontSize: 10.5,
+    fontFamily: Fonts.body,
+  },
+  modernCenterSlot: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'flex-end',
+    paddingBottom: 11,
+    height: ModernLayout.navbarContentHeight,
+  },
+  modernCenterFab: {
+    position: 'absolute',
+    top: -28,
+    width: 54,
+    height: 54,
+    borderRadius: 27,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  modernCenterFabShadow: {
+    shadowOffset: {width: 0, height: 6},
+    shadowOpacity: 0.18,
+    shadowRadius: 12,
+    elevation: 4,
+  },
+  modernCenterLabel: {
+    fontFamily: Fonts.heading,
+    fontSize: 10.5,
+    fontWeight: '700',
+  },
   outerContainer: {
     position: 'absolute',
     bottom: BAR_BOTTOM_OFFSET,

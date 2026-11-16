@@ -122,6 +122,25 @@ export type {
 } from './syncTypes';
 export {localSettingsStore} from './localSettingsStore';
 export {
+  DEFAULT_UI_VARIANT,
+  getSavedUIVariant,
+  normalizeUIVariant,
+  saveUIVariant,
+  UI_VARIANT_DEVICE_SCOPE,
+  UI_VARIANT_SETTING_KEY,
+} from './uiVariantStore';
+export type {UIVariant} from './uiVariantStore';
+export {
+  DEFAULT_MODERN_THEME,
+  getSavedModernTheme,
+  MODERN_THEME_DEVICE_SCOPE,
+  MODERN_THEME_IDS,
+  MODERN_THEME_SETTING_KEY,
+  normalizeModernTheme,
+  saveModernTheme,
+} from './modernThemeStore';
+export type {ModernThemeId} from './modernThemeStore';
+export {
   avatarSeedStore,
   generateAvatarSeed,
   PROFILE_AVATAR_SEED_KEY,
@@ -129,6 +148,7 @@ export {
 export {
   academicProfileStore,
   formatClassBlockNotes,
+  getNextDateForWeekday,
   mapCorCoursesToAcademicRecords,
   parseClassBlockMetadata,
   pickSubjectColor,
@@ -175,3 +195,21 @@ export type {MeetingPatch, RecordedMeeting} from './recordedMeetingStore';
 export {assistantOperationStore} from './assistantOperationStore';
 export type {OperationReceipt} from './assistantOperationStore';
 export type {RevisionEntityType} from './assistantOperationSchema';
+export {localHandbookStore, parseHandbookPack} from './localHandbookStore';
+export type {
+  HandbookFtsHit,
+  HandbookMeta,
+  HandbookPack,
+  HandbookPackChunk,
+} from './localHandbookStore';
+export {
+  completionRate,
+  onTimeRate,
+  profileStatisticsStore,
+  UNAVAILABLE_DETAILED_STATISTICS,
+  UNAVAILABLE_STATISTICS,
+} from './profileStatisticsStore';
+export type {
+  DetailedProfileStatistics,
+  ProfileStatistics,
+} from './profileStatisticsStore';

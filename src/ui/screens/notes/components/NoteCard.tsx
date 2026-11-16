@@ -11,7 +11,7 @@ import {
 } from 'react-native';
 import { CheckSquare, GripVertical, Pin } from 'lucide-react-native';
 import { useTheme } from '../../../contexts/ThemeContext';
-import { Shadows } from '../../../theme';
+import { ModernLayout, Shadows } from '../../../theme';
 import { getCategoryColor } from '../../../theme/categoryColors';
 import type { Note } from '../../../../storage';
 import { checklistStats } from '../../../../utils';
@@ -30,7 +30,7 @@ export const getLocalImage = (uri: string | null) => {
 };
 
 const dragHandleStyles = StyleSheet.create({
-  gridHandle: { padding: 6, justifyContent: 'center', alignItems: 'center' },
+  gridHandle: { paddingLeft: 4, paddingVertical: 2, justifyContent: 'center', alignItems: 'center' },
   listHandle: { paddingHorizontal: 16, paddingVertical: 24, justifyContent: 'center', alignItems: 'center', borderLeftWidth: 1 },
 });
 
@@ -52,7 +52,7 @@ export const NoteCardBase: React.FC<NoteCardBaseProps> = ({
   item, isGridView, onPress, isActive, canDrag, panHandlers,
   dragX, dragY, onLayout, onToggleChecklist,
 }) => {
-  const { colors } = useTheme();
+  const { colors, isModern, modernPalette, modernShadows } = useTheme();
   const checklist = checklistStats(item.body);
   const toggle = (index: number) => onToggleChecklist(item, index);
 
@@ -110,31 +110,45 @@ export const NoteCardBase: React.FC<NoteCardBaseProps> = ({
       }}
       style={[
         isGridView ? styles.gridCard : styles.listCard,
-        Shadows.card,
+        isGridView && !item.imageUri && styles.gridCardMinHeight,
+        isModern
+          ? [
+              modernShadows.card,
+              {
+                borderRadius: isGridView
+                  ? ModernLayout.borderRadiusSubCard
+                  : ModernLayout.borderRadiusCard,
+                borderWidth: 1,
+                borderColor: modernPalette.border,
+              },
+            ]
+          : Shadows.card,
         cardStyle,
         { backgroundColor: colors.cardBg },
       ]}
     >
-      <View style={[styles.noteTopStrip, { backgroundColor: hasCategory ? categoryColor : 'transparent' }]} />
+      {hasCategory && <View style={[styles.noteTopStrip, { backgroundColor: categoryColor }]} />}
 
       {isGridView ? (
-        <TouchableOpacity style={{ flex: 1 }} onPress={() => onPress(item)} activeOpacity={0.7} disabled={isActive}>
+        <TouchableOpacity style={styles.gridTouchable} onPress={() => onPress(item)} activeOpacity={0.7} disabled={isActive}>
           {item.imageUri && (
             <Image source={getLocalImage(item.imageUri)} style={[styles.gridCardImage, { backgroundColor: colors.inputBg }]} resizeMode="cover" />
           )}
-          <View style={styles.cardPadding}>
-            <View style={styles.titleRow}>
-              <Text style={[styles.noteCardTitle, { color: colors.textPrimary }]} numberOfLines={1}>{item.title}</Text>
-              {canDrag && <View {...panHandlers} style={dragHandleStyles.gridHandle}><GripVertical size={14} color={colors.iconMuted} /></View>}
-              {item.isPinned && <Pin size={12} color={colors.red} style={{ transform: [{ rotate: '45deg' }] }} />}
-            </View>
-            <View style={styles.noteCardBody}>
-              <NoteBody
-                body={item.body}
-                compact
-                maxBlocks={item.imageUri ? 3 : 6}
-                onToggleChecklist={toggle}
-              />
+          <View style={styles.gridCardPadding}>
+            <View>
+              <View style={[styles.titleRow, styles.gridTitleRow]}>
+                <Text style={[styles.noteCardTitle, styles.gridCardTitle, { color: colors.textPrimary }]} numberOfLines={2}>{item.title}</Text>
+                {canDrag && <View {...panHandlers} style={dragHandleStyles.gridHandle}><GripVertical size={13} color={colors.iconMuted} /></View>}
+                {item.isPinned && <Pin size={12} color={colors.red} style={styles.gridPinIcon} />}
+              </View>
+              <View style={styles.noteCardBody}>
+                <NoteBody
+                  body={item.body}
+                  compact
+                  gridPreview
+                  maxBlocks={item.imageUri ? 2 : 3}
+                />
+              </View>
             </View>
             <View style={styles.cardFooter}>
               <View style={styles.cardFooterLeft}>
@@ -146,7 +160,7 @@ export const NoteCardBase: React.FC<NoteCardBaseProps> = ({
               <View style={styles.cardFooterRight}>
                 {progressBadge}
                 {item.isVoiceTranscribed && (
-                  <View style={[styles.voiceBadge, { backgroundColor: 'rgba(91, 91, 255, 0.15)' }]}>
+                  <View style={[styles.voiceBadge, { backgroundColor: isModern ? modernPalette.softViolet : colors.blue + '22' }]}>
                     <Text style={[styles.voiceBadgeText, { color: colors.blue }]}>AI</Text>
                   </View>
                 )}
@@ -181,7 +195,7 @@ export const NoteCardBase: React.FC<NoteCardBaseProps> = ({
                   <View style={styles.cardFooterRight}>
                     {progressBadge}
                     {item.isVoiceTranscribed && (
-                      <View style={[styles.voiceBadge, { backgroundColor: 'rgba(91, 91, 255, 0.15)' }]}>
+                      <View style={[styles.voiceBadge, { backgroundColor: isModern ? modernPalette.softViolet : colors.blue + '22' }]}>
                         <Text style={[styles.voiceBadgeText, { color: colors.blue }]}>AI Transcribed</Text>
                       </View>
                     )}
@@ -282,19 +296,24 @@ export const NoteCardWithDrag = React.memo<NoteCardWithDragProps>(({
 });
 
 const styles = StyleSheet.create({
-  gridCard: { width: '48%', borderRadius: 16, marginBottom: 12, overflow: 'hidden' },
+  gridCard: { width: '48.2%', borderRadius: 16, marginBottom: 12, overflow: 'hidden' },
+  gridCardMinHeight: { minHeight: 114 },
   listCard: { width: '100%', borderRadius: 16, marginBottom: 12, overflow: 'hidden' },
-  noteTopStrip: { height: 4, width: '100%' },
-  cardPadding: { padding: 12 },
+  noteTopStrip: { height: 3, width: '100%' },
+  gridTouchable: { flex: 1 },
+  gridCardPadding: { flex: 1, padding: 14, justifyContent: 'space-between' },
   titleRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 },
+  gridTitleRow: { alignItems: 'flex-start', marginBottom: 5, gap: 4 },
   noteCardTitle: { fontFamily: 'sans-serif', fontSize: 14, fontWeight: 'bold', flex: 1 },
+  gridCardTitle: { lineHeight: 19 },
+  gridPinIcon: { transform: [{ rotate: '45deg' }], marginTop: 3 },
   noteCardBody: { marginBottom: 8 },
   checklistBadge: { flexDirection: 'row', alignItems: 'center', borderRadius: 6, paddingHorizontal: 5, paddingVertical: 2 },
   checklistBadgeText: { fontSize: 9, fontWeight: 'bold', marginLeft: 3 },
   cardFooter: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 4 },
-  cardFooterLeft: { flexDirection: 'row', alignItems: 'center', flexShrink: 1, gap: 6 },
-  cardFooterRight: { flexDirection: 'row', alignItems: 'center', gap: 4 },
-  cardDate: { fontSize: 10, fontFamily: 'sans-serif' },
+  cardFooterLeft: { flex: 1, minWidth: 0, flexDirection: 'row', alignItems: 'center', gap: 5 },
+  cardFooterRight: { flexShrink: 0, flexDirection: 'row', alignItems: 'center', gap: 4, marginLeft: 4 },
+  cardDate: { fontSize: 10.5, fontFamily: 'sans-serif', flexShrink: 0 },
   categoryPill: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -302,12 +321,14 @@ const styles = StyleSheet.create({
     paddingVertical: 1.5,
     borderRadius: 6,
     borderWidth: 0.5,
-    maxWidth: 90,
+    flexShrink: 1,
+    minWidth: 0,
+    maxWidth: 82,
   },
-  categoryPillDot: { width: 4, height: 4, borderRadius: 2, marginRight: 3 },
-  categoryPillText: { fontSize: 8.5, fontWeight: '600', fontFamily: 'sans-serif' },
+  categoryPillDot: { width: 4, height: 4, borderRadius: 2, marginRight: 3, flexShrink: 0 },
+  categoryPillText: { fontSize: 8.5, fontWeight: '600', fontFamily: 'sans-serif', flexShrink: 1 },
   voiceBadge: { borderRadius: 6, paddingHorizontal: 6, paddingVertical: 2 },
   voiceBadgeText: { fontSize: 8, fontWeight: 'bold' },
-  gridCardImage: { width: '100%', height: 80 },
+  gridCardImage: { width: '100%', height: 76 },
   listCardImage: { width: 60, height: 60, borderRadius: 8 },
 });

@@ -1,6 +1,7 @@
-import { NativeModules } from 'react-native';
+import {NativeModules} from 'react-native';
 import RNFS from 'react-native-fs';
 import Tts from 'react-native-tts';
+import {chatMarkdownToPlainText} from '../../utils/chatMarkdown';
 
 interface NativeAudioPlayerModule {
   playAudio?: (filePath: string) => Promise<boolean>;
@@ -99,7 +100,11 @@ class TtsTimeoutError extends Error {
   }
 }
 
-const bounded = <T>(work: Promise<T> | T, ms: number, what: string): Promise<T> =>
+const bounded = <T>(
+  work: Promise<T> | T,
+  ms: number,
+  what: string,
+): Promise<T> =>
   new Promise((resolve, reject) => {
     const timer = setTimeout(() => reject(new TtsTimeoutError(what)), ms);
     Promise.resolve(work).then(
@@ -115,7 +120,8 @@ const bounded = <T>(work: Promise<T> | T, ms: number, what: string): Promise<T> 
   });
 
 const isEnglish = (voice: TtsVoice): boolean =>
-  typeof voice.language === 'string' && voice.language.toLowerCase().startsWith('en');
+  typeof voice.language === 'string' &&
+  voice.language.toLowerCase().startsWith('en');
 
 /** The engine positively reports this voice as installed and needing no network. */
 const isPositivelyOffline = (voice: TtsVoice): boolean =>
@@ -132,7 +138,9 @@ const isPositivelyOffline = (voice: TtsVoice): boolean =>
  * metadata is unknown and is never treated as offline.
  */
 export const selectOfflineVoice = (voices: TtsVoice[]): TtsVoice | null => {
-  const offlineInstalled = (Array.isArray(voices) ? voices : []).filter(isPositivelyOffline);
+  const offlineInstalled = (Array.isArray(voices) ? voices : []).filter(
+    isPositivelyOffline,
+  );
   if (offlineInstalled.length === 0) {
     return null;
   }
@@ -156,12 +164,19 @@ export const eligibleOfflineVoices = (voices: unknown): TtsVoice[] => {
   if (!Array.isArray(voices)) return [];
   return (voices as TtsVoice[])
     .filter(isPositivelyOffline)
-    .sort((a, b) => a.language.localeCompare(b.language) || a.id.localeCompare(b.id));
+    .sort(
+      (a, b) =>
+        a.language.localeCompare(b.language) || a.id.localeCompare(b.id),
+    );
 };
 
 const readVoices = async (): Promise<TtsVoice[] | null> => {
   try {
-    const raw = await bounded(Tts.voices() as Promise<TtsVoice[]>, TTS_VOICES_TIMEOUT_MS, 'Voice list');
+    const raw = await bounded(
+      Tts.voices() as Promise<TtsVoice[]>,
+      TTS_VOICES_TIMEOUT_MS,
+      'Voice list',
+    );
     return Array.isArray(raw) ? raw : null;
   } catch {
     return null;
@@ -187,10 +202,15 @@ const setting = async (work: () => unknown, what: string): Promise<boolean> => {
 const enableDucking = async (): Promise<void> => {
   if (typeof Tts.setDucking !== 'function') return;
   try {
-    await bounded(Tts.setDucking(true) as Promise<unknown>, TTS_SETTING_TIMEOUT_MS, 'Ducking');
+    await bounded(
+      Tts.setDucking(true) as Promise<unknown>,
+      TTS_SETTING_TIMEOUT_MS,
+      'Ducking',
+    );
   } catch (error) {
     // Ducking is optional on some Android engines
-    if (error instanceof TtsTimeoutError) console.warn('[TTS] Ducking setup did not answer:', error);
+    if (error instanceof TtsTimeoutError)
+      console.warn('[TTS] Ducking setup did not answer:', error);
   }
 };
 
@@ -220,7 +240,8 @@ const applyConfiguration = async (voices: TtsVoice[] | null): Promise<void> => {
   if (voices) {
     automaticVoiceId = selectOfflineVoice(voices)?.id ?? null;
     // A voice that is no longer listed as installed + offline is not used.
-    if (offlineVoiceId && !isListedOffline(voices, offlineVoiceId)) offlineVoiceId = null;
+    if (offlineVoiceId && !isListedOffline(voices, offlineVoiceId))
+      offlineVoiceId = null;
   }
   if (!desired) {
     selectedVoiceMissing = false;
@@ -283,10 +304,18 @@ const startEngine = async (): Promise<boolean> => {
   const generation = ++initGeneration;
   initPromise = (async (): Promise<boolean> => {
     try {
-      await bounded(Tts.getInitStatus(), TTS_INIT_TIMEOUT_MS, 'Speech engine start');
+      await bounded(
+        Tts.getInitStatus(),
+        TTS_INIT_TIMEOUT_MS,
+        'Speech engine start',
+      );
       if (generation !== initGeneration) return false;
       try {
-        await bounded(Tts.setDefaultLanguage('en-US'), TTS_SETTING_TIMEOUT_MS, 'English');
+        await bounded(
+          Tts.setDefaultLanguage('en-US'),
+          TTS_SETTING_TIMEOUT_MS,
+          'English',
+        );
         englishAccepted = true;
       } catch {
         // Ignore if specific locale is unavailable; voice selection handles fallback
@@ -348,8 +377,10 @@ export const getSelectedOfflineVoiceId = (): string | null => offlineVoiceId;
  * Sets the explicit local choice (null = AGY's automatic default) and applies
  * it once the engine is ready. Calls are serialized; the last one wins.
  */
-export const configureTts = (configuration: TtsConfiguration | null): Promise<void> => {
-  desiredConfiguration = configuration ? { ...configuration } : null;
+export const configureTts = (
+  configuration: TtsConfiguration | null,
+): Promise<void> => {
+  desiredConfiguration = configuration ? {...configuration} : null;
   const run = async () => {
     if (!(ttsInitialized && ttsAvailable)) {
       // The engine start applies the desired configuration when it succeeds.
@@ -456,16 +487,18 @@ export const stopOwnedSpeech = async (token: number): Promise<boolean> => {
 };
 
 const normalizeUtterance = (text: string): string =>
-  // Avoid capitalizing LAFINA so Android TTS pronounces it as a word ("lah-fee-nah")
-  // rather than spelling out individual letters ("L-A-F-I-N-A").
-  text
+  // Strip Markdown formatting and list bullets so TTS never speaks asterisks,
+  // hashes, or "bullet", and avoid capitalizing LAFINA so Android TTS
+  // pronounces it naturally ("lah-fee-nah").
+  chatMarkdownToPlainText(text)
+    .replace(/^\s*[•◦]\s+/gm, '')
     .replace(/\bL[.-]?A[.-]?F[.-]?I[.-]?N[.-]?A\b/gi, 'lafina')
     .replace(/\bLAFINA\b/g, 'lafina')
     .trim();
 
 const eventUtteranceId = (event: unknown): string | null => {
   if (typeof event === 'string') return event;
-  const id = (event as { utteranceId?: unknown } | null)?.utteranceId;
+  const id = (event as {utteranceId?: unknown} | null)?.utteranceId;
   return typeof id === 'string' ? id : null;
 };
 
@@ -491,10 +524,10 @@ const speakOwned = (
     let settled = false;
     let ownId: string | null = null;
     let idKnown = false;
-    const early: Array<{ kind: OwnedSpeechOutcome; id: string | null }> = [];
-    let finishSub: { remove?: () => void } | undefined;
-    let cancelSub: { remove?: () => void } | undefined;
-    let errorSub: { remove?: () => void } | undefined;
+    const early: Array<{kind: OwnedSpeechOutcome; id: string | null}> = [];
+    let finishSub: {remove?: () => void} | undefined;
+    let cancelSub: {remove?: () => void} | undefined;
+    let errorSub: {remove?: () => void} | undefined;
 
     const cleanup = () => {
       clearTimeout(timeoutId);
@@ -515,30 +548,31 @@ const speakOwned = (
     const handle = (kind: OwnedSpeechOutcome, event: unknown) => {
       const id = eventUtteranceId(event);
       if (!idKnown && id !== null) {
-        early.push({ kind, id });
+        early.push({kind, id});
         return;
       }
       if (id !== null && ownId !== null && id !== ownId) return;
-      if (kind === 'failed') settle('failed', new Error('react-native-tts playback error'));
+      if (kind === 'failed')
+        settle('failed', new Error('react-native-tts playback error'));
       else settle(kind);
     };
 
     const timeoutMs = Math.min(30000, Math.max(4000, trimmed.length * 120));
     const timeoutId = setTimeout(() => settle('finished'), timeoutMs);
-    activeSpeech = { token, owner, stop: () => settle('stopped') };
+    activeSpeech = {token, owner, stop: () => settle('stopped')};
     onToken?.(token);
 
     try {
       if (typeof Tts.addEventListener === 'function') {
         finishSub = Tts.addEventListener('tts-finish', (event: unknown) =>
           handle('finished', event),
-        ) as unknown as { remove?: () => void };
+        ) as unknown as {remove?: () => void};
         cancelSub = Tts.addEventListener('tts-cancel', (event: unknown) =>
           handle('stopped', event),
-        ) as unknown as { remove?: () => void };
+        ) as unknown as {remove?: () => void};
         errorSub = Tts.addEventListener('tts-error', (event: unknown) =>
           handle('failed', event),
-        ) as unknown as { remove?: () => void };
+        ) as unknown as {remove?: () => void};
       }
 
       const started = Tts.speak(trimmed) as unknown;
@@ -549,7 +583,10 @@ const speakOwned = (
       };
       if (started && typeof (started as Promise<unknown>).then === 'function') {
         (started as Promise<unknown>).then(onId, (error: unknown) =>
-          settle('failed', error instanceof Error ? error : new Error(String(error))),
+          settle(
+            'failed',
+            error instanceof Error ? error : new Error(String(error)),
+          ),
         );
       } else {
         onId(started);
@@ -561,7 +598,10 @@ const speakOwned = (
         settle('finished');
       }
     } catch (error) {
-      settle('failed', error instanceof Error ? error : new Error(String(error)));
+      settle(
+        'failed',
+        error instanceof Error ? error : new Error(String(error)),
+      );
     }
   });
 
@@ -593,7 +633,7 @@ export const startOwnedSpeech = (
   text: string,
   owner: string,
   admit?: () => boolean,
-): { token: Promise<number | null>; result: Promise<OwnedSpeechOutcome> } => {
+): {token: Promise<number | null>; result: Promise<OwnedSpeechOutcome>} => {
   let reportToken: (token: number | null) => void = () => undefined;
   const token = new Promise<number | null>(resolve => {
     reportToken = resolve;
@@ -612,7 +652,7 @@ export const startOwnedSpeech = (
       reportToken(null);
     }
   })();
-  return { token, result };
+  return {token, result};
 };
 
 /**

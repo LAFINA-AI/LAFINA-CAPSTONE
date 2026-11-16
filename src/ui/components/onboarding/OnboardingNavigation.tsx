@@ -1,7 +1,13 @@
 import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
-import { Colors, Fonts, Layout, useThemedStyles } from '../../theme';
-import type { ThemeColors } from '../../contexts/ThemeContext';
+import {
+  Fonts,
+  Layout,
+  ModernLayout,
+  useThemedStyles,
+} from '../../theme';
+import {useTheme} from '../../contexts/ThemeContext';
+import type {ThemeColors} from '../../contexts/ThemeContext';
 
 interface OnboardingNavigationProps {
   step: number;
@@ -16,10 +22,20 @@ export const OnboardingNavigation: React.FC<OnboardingNavigationProps> = ({
   onBack,
   onNext,
 }) => {
+  const {isModern, modernPalette, modernShadows} = useTheme();
   const themed = useThemedStyles(getThemedStyles);
 
   return (
-    <View style={[styles.navigation, themed.navigation]}>
+    <View
+      style={[
+        styles.navigation,
+        themed.navigation,
+        isModern && {
+          backgroundColor: modernPalette.bg,
+          borderTopColor: modernPalette.border,
+        },
+      ]}
+    >
       {step > 1 ? (
         <TouchableOpacity style={styles.backButton} onPress={onBack}>
           <Text style={[styles.backButtonText, themed.backButtonText]}>Back</Text>
@@ -28,8 +44,17 @@ export const OnboardingNavigation: React.FC<OnboardingNavigationProps> = ({
         <View style={styles.backSpacer} />
       )}
 
-      <TouchableOpacity style={styles.nextButton} onPress={onNext}>
-        <Text style={styles.nextButtonText}>
+      <TouchableOpacity
+        style={[
+          styles.nextButton,
+          themed.nextButton,
+          isModern && styles.modernNextButton,
+          isModern && modernShadows.subtle,
+          isModern && {backgroundColor: modernPalette.accent},
+        ]}
+        onPress={onNext}
+      >
+        <Text style={[styles.nextButtonText, themed.nextButtonText]}>
           {step === totalSteps ? 'Get Started' : 'Continue'}
         </Text>
       </TouchableOpacity>
@@ -59,16 +84,19 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   nextButton: {
-    backgroundColor: Colors.blue,
     borderRadius: Layout.borderRadiusButton,
     paddingVertical: 12,
     paddingHorizontal: 24,
     minWidth: 120,
     alignItems: 'center',
   },
+  modernNextButton: {
+    borderRadius: ModernLayout.borderRadiusPill,
+    paddingVertical: 13,
+    paddingHorizontal: 26,
+  },
   nextButtonText: {
     fontFamily: Fonts.body,
-    color: '#FFFFFF',
     fontSize: 15,
     fontWeight: 'bold',
   },
@@ -80,5 +108,11 @@ const getThemedStyles = (colors: ThemeColors) => ({
   },
   backButtonText: {
     color: colors.textSecondary,
+  },
+  nextButton: {
+    backgroundColor: colors.blue,
+  },
+  nextButtonText: {
+    color: colors.textOnPrimary,
   },
 });

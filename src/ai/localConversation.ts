@@ -299,16 +299,26 @@ export const buildLocalConversationReply = (
         recent,
         random,
       );
-    case 'capabilities':
-      return pick(
+    case 'capabilities': {
+      const lead = pick(
         [
-          `I can plan study blocks, set reminders that ring like a call, track tasks and keep notes. Try saying ${example}.`,
-          `Quite a lot! I handle your schedule, reminders, tasks and notes. For example: ${example}.`,
-          `I am best at keeping your school life organized: schedules, deadlines, reminders and notes. You could try ${example}.`,
+          `Here is what I can help you with${hey}:`,
+          `I am ready to keep your school life organized${hey}:`,
         ],
         recent,
         random,
       );
+      return [
+        lead,
+        '',
+        '• **Schedule & Classes** — View today, this week, or free slots',
+        '• **Tasks & Study Blocks** — Add deadlines and study sessions',
+        '• **Reminders & Alarms** — Call alerts when something is due',
+        '• **Notes & USTP Handbook** — Save notes or look up policies',
+        '',
+        `> Try: *${example.replace(/^"|"$/g, '')}*`,
+      ].join('\n');
+    }
     case 'thanks':
       return pick(
         [
@@ -359,15 +369,23 @@ export const buildLocalConversationReply = (
           random,
         );
       }
-      return pick(
+      const lead = pick(
         [
-          `I can't answer general questions offline. Turn on Online Mode and I will ask DeepSeek for you. Offline, I can still help you plan, like ${example}.`,
-          `That one needs Online Mode, where DeepSeek can answer it. While offline, I am great with schedules and reminders. Try ${example}.`,
-          `I would need Online Mode to answer that properly. In the meantime I can handle your planning, for example ${example}.`,
+          `I need **Online Mode** (DeepSeek) to answer general questions like that.`,
+          `That question needs **Online Mode**, where DeepSeek can answer it.`,
+          `Switch to **Online Mode** in the top bar for general Q&A with DeepSeek.`,
         ],
         recent,
         random,
       );
+      return [
+        lead,
+        '',
+        '### Available Offline Right Now',
+        '• **Check your schedule** — *"What\'s on my schedule today?"*',
+        `• **Manage tasks & reminders** — *${example.replace(/^"|"$/g, '')}*`,
+        '• **Save or search notes** — *"Take a note: lecture topics"*',
+      ].join('\n');
   }
 };
 

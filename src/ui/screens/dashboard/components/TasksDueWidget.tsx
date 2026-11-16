@@ -9,7 +9,14 @@ import {
 import type {Task} from '../../../../storage';
 import {useTheme} from '../../../contexts/ThemeContext';
 import type {ThemeColors} from '../../../contexts/ThemeContext';
-import {Fonts, FontSize, Layout, Shadows, Spacing} from '../../../theme';
+import {
+  Fonts,
+  FontSize,
+  Layout,
+  ModernLayout,
+  Shadows,
+  Spacing,
+} from '../../../theme';
 import {useThemedStyles} from '../../../theme/createThemedStyles';
 import {formatTimeLabel} from '../dashboardCalculations';
 import type {DashboardTasksSummary} from '../types';
@@ -50,7 +57,7 @@ export const TasksDueWidget: React.FC<TasksDueWidgetProps> = ({
   onPressTask,
   onOpenCalendar,
 }) => {
-  const {colors} = useTheme();
+  const {colors, isModern, modernPalette, modernShadows} = useTheme();
   const themed = useThemedStyles(getThemedStyles);
 
   const priorityColor = (priority: Task['priority']): string => {
@@ -67,12 +74,21 @@ export const TasksDueWidget: React.FC<TasksDueWidgetProps> = ({
 
   return (
     <View
-      style={[styles.card, themed.card, Shadows.card]}
+      style={[
+        styles.card,
+        themed.card,
+        isModern
+          ? [modernShadows.card, {borderRadius: ModernLayout.borderRadiusCard}]
+          : Shadows.card,
+      ]}
       testID="dashboard-widget-tasks-due"
     >
       <View style={styles.headerRow}>
         <View style={styles.headerTitleWrap}>
-          <CheckSquare size={17} color={colors.warning} />
+          <CheckSquare
+            size={17}
+            color={isModern ? modernPalette.peachInk : colors.warning}
+          />
           <Text style={[styles.headerTitle, themed.primaryText]}>
             Tasks & Deadlines
           </Text>
@@ -93,8 +109,11 @@ export const TasksDueWidget: React.FC<TasksDueWidgetProps> = ({
         <View
           style={[
             styles.overdueBanner,
+            isModern && {borderRadius: ModernLayout.borderRadiusSubCard},
             {
-              backgroundColor: colors.error + '14',
+              backgroundColor: isModern
+                ? modernPalette.dangerSoft
+                : colors.error + '14',
               borderColor: colors.error + '38',
             },
           ]}
@@ -121,7 +140,14 @@ export const TasksDueWidget: React.FC<TasksDueWidgetProps> = ({
             const dotColor = priorityColor(task.priority);
 
             return (
-              <View key={task.id} style={[styles.taskRow, themed.taskRow]}>
+              <View
+                key={task.id}
+                style={[
+                  styles.taskRow,
+                  themed.taskRow,
+                  isModern && {borderRadius: ModernLayout.borderRadiusSubCard},
+                ]}
+              >
                 <TouchableOpacity
                   style={styles.checkboxHit}
                   onPress={() => onToggleTask(task)}

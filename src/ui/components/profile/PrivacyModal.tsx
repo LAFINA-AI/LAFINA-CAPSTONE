@@ -8,7 +8,7 @@ import {
   TouchableOpacity,
   Modal,
 } from 'react-native';
-import { Colors, Fonts, useThemedStyles } from '../../theme';
+import { Fonts, useThemedStyles } from '../../theme';
 import type { ThemeColors } from '../../contexts/ThemeContext';
 
 interface PrivacyModalProps {
@@ -30,7 +30,7 @@ export const PrivacyModal: React.FC<PrivacyModalProps> = ({
             Privacy Policy
           </Text>
           <TouchableOpacity onPress={onClose} style={styles.privacyCloseBtn}>
-            <Text style={styles.privacyCloseBtnText}>Close</Text>
+            <Text style={[styles.privacyCloseBtnText, themed.privacyCloseBtnText]}>Close</Text>
           </TouchableOpacity>
         </View>
         <ScrollView
@@ -111,7 +111,6 @@ const styles = StyleSheet.create({
   },
   privacyCloseBtnText: {
     fontFamily: Fonts.body,
-    color: Colors.red,
     fontWeight: 'bold',
   },
   privacyContent: {
@@ -144,6 +143,9 @@ const getThemedStyles = (colors: ThemeColors) => ({
   },
   privacyHeaderTitle: {
     color: colors.textPrimary,
+  },
+  privacyCloseBtnText: {
+    color: colors.red,
   },
   privacySectionTitle: {
     color: colors.textPrimary,

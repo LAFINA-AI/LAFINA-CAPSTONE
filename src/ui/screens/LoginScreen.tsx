@@ -13,7 +13,7 @@ import {
   Platform,
 } from 'react-native';
 import { Mail, Lock, Check, Eye, EyeOff, AlertCircle } from 'lucide-react-native';
-import { Fonts } from '../theme';
+import {Fonts, ModernLayout} from '../theme';
 import { userStore } from '../../storage';
 import { accountLinkService } from '../../cloud/accountLinkService';
 import { syncWorker } from '../../sync/syncWorker';
@@ -42,7 +42,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({
     null,
   );
 
-  const { colors, isDarkMode } = useTheme();
+  const {colors, isDarkMode, isModern, modernPalette, modernShadows} = useTheme();
   const themed = useThemedStyles(getLoginThemedStyles);
 
   useEffect(() => {
@@ -134,7 +134,16 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({
             style={[
               styles.card,
               themed.card,
-              isDarkMode ? styles.cardDarkBorder : styles.cardLightBorder,
+              isModern && modernShadows.card,
+              isModern
+                ? {
+                    borderRadius: ModernLayout.borderRadiusCard,
+                    borderWidth: 1,
+                    borderColor: modernPalette.border,
+                  }
+                : isDarkMode
+                ? styles.cardDarkBorder
+                : styles.cardLightBorder,
             ]}
           >
               {/* Brand Mark */}
@@ -158,7 +167,15 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({
                   <View
                     style={[
                       styles.errorCard,
-                      isDarkMode ? styles.errorCardDark : styles.errorCardLight,
+                      isModern
+                        ? {
+                            borderRadius: ModernLayout.borderRadiusSubCard,
+                            backgroundColor: modernPalette.dangerSoft,
+                            borderColor: modernPalette.danger + '44',
+                          }
+                        : isDarkMode
+                        ? styles.errorCardDark
+                        : styles.errorCardLight,
                     ]}
                     accessibilityRole="alert"
                   >
@@ -182,6 +199,10 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({
                       style={[
                         styles.inputWrapper,
                         themed.inputWrapper,
+                        isModern && {
+                          borderRadius: ModernLayout.borderRadiusInput,
+                          backgroundColor: modernPalette.surface,
+                        },
                         isEmailFocused && themed.inputWrapperFocused,
                       ]}
                     >
@@ -214,6 +235,10 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({
                           style={[
                             styles.inputWrapper,
                             themed.inputWrapper,
+                            isModern && {
+                              borderRadius: ModernLayout.borderRadiusInput,
+                              backgroundColor: modernPalette.surface,
+                            },
                             isPasswordFocused && themed.inputWrapperFocused,
                           ]}
                         >
@@ -287,7 +312,16 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({
                         <TouchableOpacity
                           style={[
                             styles.primaryButton,
-                            { backgroundColor: colors.blue },
+                            isModern && modernShadows.subtle,
+                            {
+                              backgroundColor: isModern
+                                ? modernPalette.accent
+                                : colors.blue,
+                              borderRadius: isModern
+                                ? ModernLayout.borderRadiusPill
+                                : 14,
+                            },
+                            isModern && {shadowOpacity: 0},
                             loading && styles.buttonDisabled,
                           ]}
                           onPress={handleLogin}
@@ -315,7 +349,15 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({
                             accessibilityRole="button"
                             accessibilityLabel="Register for an account"
                           >
-                            <Text style={[styles.registerLink, themed.link]}>Register</Text>
+                            <Text
+                              style={[
+                                styles.registerLink,
+                                themed.link,
+                                isModern && {color: modernPalette.accent},
+                              ]}
+                            >
+                              Register
+                            </Text>
                           </TouchableOpacity>
                         </View>
                       </View>

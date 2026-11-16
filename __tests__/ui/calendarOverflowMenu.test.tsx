@@ -1,8 +1,17 @@
 import React from 'react';
-import {render, fireEvent} from '@testing-library/react-native';
+import {Alert} from 'react-native';
+import {act, render, fireEvent} from '@testing-library/react-native';
 import {ThemeProvider} from '../../src/ui/contexts/ThemeContext';
 import {CalendarScreen} from '../../src/ui/screens/calendar';
-import {db, initDatabase, tasksStore, userStore} from '../../src/storage';
+import {
+  academicProfileStore,
+  db,
+  initDatabase,
+  parseClassBlockMetadata,
+  tasksStore,
+  timeBlocksStore,
+  userStore,
+} from '../../src/storage';
 
 describe('Calendar Tab Option A - Overflow Options Menu', () => {
   let userId: string;
@@ -45,7 +54,7 @@ describe('Calendar Tab Option A - Overflow Options Menu', () => {
     expect(queryByText('Week')).toBeTruthy();
   });
 
-  test('opens calendar options modal when more menu button is tapped', async () => {
+  test('opens calendar options sidebar when more menu button is tapped', async () => {
     const {getByTestId, getByText} = render(
       <ThemeProvider userId={userId}>
         <CalendarScreen
@@ -59,8 +68,11 @@ describe('Calendar Tab Option A - Overflow Options Menu', () => {
     const moreBtn = getByTestId('calendar-more-menu-button');
     fireEvent.press(moreBtn);
 
-    // Modal title and items appear
+    // Chat-style sidebar drawer and items appear
+    expect(getByTestId('calendar-options-sidebar')).toBeTruthy();
+    expect(getByTestId('calendar-options-expand')).toBeTruthy();
     expect(getByText('Calendar Options')).toBeTruthy();
+    expect(getByText('View Classes')).toBeTruthy();
     expect(getByText('Calendars & Visibility')).toBeTruthy();
     expect(getByText('Add COR / Class Schedule')).toBeTruthy();
     expect(getByText('Undated Tasks')).toBeTruthy();
@@ -131,5 +143,83 @@ describe('Calendar Tab Option A - Overflow Options Menu', () => {
     expect(getByText('Calendar Options')).toBeTruthy();
 
     fireEvent.press(getByText('Done'));
+  });
+
+  test('views grouped repeating COR classes, edits a class across weekdays, and removes a class', () => {
+    academicProfileStore.persistRecurringSchedule(userId, [
+      {
+        code: 'IT311',
+        subjectTitle: 'Systems Integration',
+        section: 'IT3R1',
+        room: '09-301',
+        faculty: 'Loredel Tamayo',
+        days: ['Monday', 'Wednesday', 'Friday'],
+        startTime: '09:00',
+        endTime: '10:00',
+        recurrenceRule: 'FREQ=WEEKLY;UNTIL=2027-03-01',
+      },
+    ]);
+    expect(timeBlocksStore.getAll(userId)).toHaveLength(3);
+
+    const alertSpy = jest.spyOn(Alert, 'alert');
+    const onRefresh = jest.fn();
+
+    const {getByTestId, getByText, queryByTestId} = render(
+      <ThemeProvider userId={userId}>
+        <CalendarScreen
+          userId={userId}
+          refreshTrigger={0}
+          onRefresh={onRefresh}
+        />
+      </ThemeProvider>,
+    );
+
+    // Open Calendar Options sidebar -> View Classes
+    fireEvent.press(getByTestId('calendar-more-menu-button'));
+    fireEvent.press(getByTestId('calendar-view-classes-button'));
+
+    expect(getByTestId('view-classes-modal')).toBeTruthy();
+    expect(getByText('Systems Integration')).toBeTruthy();
+    expect(getByText('IT311')).toBeTruthy();
+    expect(getByText(/MWF · 09:00 AM/)).toBeTruthy();
+    expect(getByText('Room 09-301')).toBeTruthy();
+    expect(getByText('Section IT3R1')).toBeTruthy();
+    expect(getByText('Loredel Tamayo')).toBeTruthy();
+
+    // Edit the grouped repeating class (change title, room, and MWF -> TTH)
+    fireEvent.press(getByTestId('view-class-edit-0'));
+    fireEvent.changeText(
+      getByTestId('view-class-edit-title'),
+      'Systems Architecture',
+    );
+    fireEvent.changeText(getByTestId('view-class-edit-room'), '51-202');
+    fireEvent.press(getByTestId('view-class-edit-preset-TTH'));
+    fireEvent.press(getByTestId('view-class-edit-save'));
+
+    const updatedBlocks = timeBlocksStore.getAll(userId);
+    expect(updatedBlocks).toHaveLength(2);
+    expect(
+      updatedBlocks.every(b => b.title === 'IT311 · Systems Architecture'),
+    ).toBe(true);
+    expect(
+      parseClassBlockMetadata(updatedBlocks[0].notes).room,
+    ).toBe('51-202');
+    expect(onRefresh).toHaveBeenCalled();
+
+    // Delete the grouped repeating class (confirms alert, deletes both weekday slots)
+    fireEvent.press(getByTestId('view-class-delete-0'));
+    expect(alertSpy).toHaveBeenCalled();
+    const buttons = alertSpy.mock.calls[0][2] as Array<{
+      text: string;
+      onPress?: () => void;
+    }>;
+    act(() => {
+      buttons.find(b => b.text === 'Remove')?.onPress?.();
+    });
+
+    expect(timeBlocksStore.getAll(userId)).toHaveLength(0);
+    expect(getByTestId('view-classes-empty')).toBeTruthy();
+    expect(queryByTestId('view-class-card-0')).toBeNull();
+    alertSpy.mockRestore();
   });
 });

@@ -9,7 +9,15 @@ import {
 } from 'lucide-react-native';
 import {useTheme} from '../../../contexts/ThemeContext';
 import type {ThemeColors} from '../../../contexts/ThemeContext';
-import {Fonts, FontSize, Layout, Shadows, Spacing} from '../../../theme';
+import {
+  Fonts,
+  FontSize,
+  Layout,
+  ModernLayout,
+  ModernTypography,
+  Shadows,
+  Spacing,
+} from '../../../theme';
 import {useThemedStyles} from '../../../theme/createThemedStyles';
 import {
   formatCountdownText,
@@ -29,42 +37,87 @@ export const UpNextWidget: React.FC<UpNextWidgetProps> = ({
   onPressItem,
   onOpenCalendar,
 }) => {
-  const {colors} = useTheme();
+  const {colors, isModern, modernPalette, modernShadows} = useTheme();
   const themed = useThemedStyles(getThemedStyles);
 
   if (summary.mode === 'wrapped_up') {
     const tomorrow = summary.tomorrowPreview;
     return (
       <View
-        style={[styles.card, themed.card, Shadows.card]}
+        style={[
+          styles.card,
+          themed.card,
+          isModern
+            ? [
+                modernShadows.card,
+                {
+                  borderRadius: ModernLayout.borderRadiusCard,
+                  backgroundColor: modernPalette.card,
+                  borderColor: modernPalette.border,
+                },
+              ]
+            : Shadows.card,
+        ]}
         testID="dashboard-widget-up-next"
       >
         <View style={styles.badgeRow}>
           <View
             style={[
               styles.statusPill,
-              {backgroundColor: colors.success + '18'},
+              {
+                backgroundColor: isModern
+                  ? modernPalette.mint
+                  : colors.success + '18',
+              },
             ]}
           >
-            <CheckCircle2 size={12} color={colors.success} />
-            <Text style={[styles.statusPillText, {color: colors.success}]}>
+            <CheckCircle2
+              size={12}
+              color={isModern ? modernPalette.mintInk : colors.success}
+            />
+            <Text
+              style={[
+                styles.statusPillText,
+                {color: isModern ? modernPalette.mintInk : colors.success},
+              ]}
+            >
               ALL CAUGHT UP
             </Text>
           </View>
           <TouchableOpacity onPress={onOpenCalendar} activeOpacity={0.7}>
-            <Text style={[styles.linkText, {color: colors.primary}]}>
+            <Text
+              style={[
+                styles.linkText,
+                {color: isModern ? modernPalette.accent : colors.primary},
+              ]}
+            >
               Open Calendar
             </Text>
           </TouchableOpacity>
         </View>
 
-        <Text style={[styles.title, themed.primaryText]}>
+        <Text
+          style={[
+            styles.title,
+            themed.primaryText,
+            isModern && ModernTypography.sectionTitle,
+          ]}
+        >
           No more classes or events today
         </Text>
 
         {tomorrow ? (
           <TouchableOpacity
-            style={[styles.followingBox, themed.followingBox]}
+            style={[
+              styles.followingBox,
+              isModern
+                ? {
+                    backgroundColor: modernPalette.surface,
+                    borderColor: modernPalette.border,
+                    borderRadius: ModernLayout.borderRadiusSubCard,
+                  }
+                : themed.followingBox,
+            ]}
             onPress={() => onPressItem(tomorrow)}
             activeOpacity={0.75}
           >
@@ -102,9 +155,20 @@ export const UpNextWidget: React.FC<UpNextWidgetProps> = ({
     <TouchableOpacity
       style={[
         styles.card,
-        themed.card,
-        Shadows.card,
-        {borderLeftWidth: 4, borderLeftColor: item.color || badgeColor},
+        isModern
+          ? [
+              modernShadows.floating,
+              {
+                borderRadius: ModernLayout.borderRadiusCard,
+                backgroundColor: modernPalette.heroCardBg,
+                borderColor: modernPalette.accentDeep,
+              },
+            ]
+          : [
+              themed.card,
+              Shadows.card,
+              {borderLeftWidth: 4, borderLeftColor: item.color || badgeColor},
+            ],
       ]}
       onPress={() => onPressItem(item)}
       activeOpacity={0.85}
@@ -113,39 +177,94 @@ export const UpNextWidget: React.FC<UpNextWidgetProps> = ({
       testID="dashboard-widget-up-next"
     >
       <View style={styles.badgeRow}>
-        <View style={[styles.statusPill, {backgroundColor: badgeColor + '1A'}]}>
+        <View
+          style={[
+            styles.statusPill,
+            {
+              backgroundColor: isModern
+                ? modernPalette.heroPillBg
+                : badgeColor + '1A',
+            },
+          ]}
+        >
           {isLive ? (
-            <Radio size={12} color={badgeColor} />
+            <Radio
+              size={12}
+              color={isModern ? modernPalette.heroText : badgeColor}
+            />
           ) : (
-            <Clock size={12} color={badgeColor} />
+            <Clock
+              size={12}
+              color={isModern ? modernPalette.heroText : badgeColor}
+            />
           )}
-          <Text style={[styles.statusPillText, {color: badgeColor}]}>
+          <Text
+            style={[
+              styles.statusPillText,
+              {color: isModern ? modernPalette.heroText : badgeColor},
+            ]}
+          >
             {badgeLabel}
           </Text>
         </View>
 
-        <Text style={[styles.timingCopy, {color: badgeColor}]}>
+        <Text
+          style={[
+            styles.timingCopy,
+            {color: isModern ? modernPalette.heroText : badgeColor},
+          ]}
+        >
           {timingCopy}
         </Text>
       </View>
 
-      <Text style={[styles.title, themed.primaryText]} numberOfLines={2}>
+      <Text
+        style={[
+          styles.title,
+          isModern
+            ? [ModernTypography.title, {color: modernPalette.heroText}]
+            : themed.primaryText,
+        ]}
+        numberOfLines={2}
+      >
         {item.title}
       </Text>
 
       <View style={styles.metaRow}>
         <View style={styles.metaItem}>
-          <Clock size={13} color={colors.textSecondary} />
-          <Text style={[styles.metaText, themed.secondaryText]}>
+          <Clock
+            size={13}
+            color={
+              isModern ? modernPalette.heroMutedText : colors.textSecondary
+            }
+          />
+          <Text
+            style={[
+              styles.metaText,
+              isModern
+                ? {color: modernPalette.heroMutedText}
+                : themed.secondaryText,
+            ]}
+          >
             {formatTimeLabel(item.startTime)} – {formatTimeLabel(item.endTime)}
           </Text>
         </View>
 
         {item.subtitle && (
           <View style={styles.metaItem}>
-            <MapPin size={13} color={colors.textSecondary} />
+            <MapPin
+              size={13}
+              color={
+                isModern ? modernPalette.heroMutedText : colors.textSecondary
+              }
+            />
             <Text
-              style={[styles.metaText, themed.secondaryText]}
+              style={[
+                styles.metaText,
+                isModern
+                  ? {color: modernPalette.heroMutedText}
+                  : themed.secondaryText,
+              ]}
               numberOfLines={1}
             >
               {item.subtitle}
@@ -156,37 +275,77 @@ export const UpNextWidget: React.FC<UpNextWidgetProps> = ({
 
       {isLive && (
         <View style={styles.progressContainer}>
-          <View style={[styles.progressTrack, themed.progressTrack]}>
+          <View
+            style={[
+              styles.progressTrack,
+              isModern
+                ? {backgroundColor: 'rgba(255, 255, 255, 0.24)'}
+                : themed.progressTrack,
+            ]}
+          >
             <View
               style={[
                 styles.progressFill,
                 {
                   width: `${summary.progressPercent}%`,
-                  backgroundColor: item.color || badgeColor,
+                  backgroundColor: isModern
+                    ? '#FFFFFF'
+                    : item.color || badgeColor,
                 },
               ]}
             />
           </View>
-          <Text style={[styles.progressPct, themed.secondaryText]}>
+          <Text
+            style={[
+              styles.progressPct,
+              isModern
+                ? {color: modernPalette.heroText}
+                : themed.secondaryText,
+            ]}
+          >
             {summary.progressPercent}%
           </Text>
         </View>
       )}
 
       {summary.followingItem && (
-        <View style={[styles.followingBox, themed.followingBox]}>
+        <View
+          style={[
+            styles.followingBox,
+            isModern
+              ? {
+                  backgroundColor: 'rgba(255, 255, 255, 0.14)',
+                  borderColor: 'rgba(255, 255, 255, 0.24)',
+                  borderRadius: ModernLayout.borderRadiusSubCard,
+                }
+              : themed.followingBox,
+          ]}
+        >
           <View style={styles.followingLeft}>
-            <Text style={[styles.followingEyebrow, themed.secondaryText]}>
+            <Text
+              style={[
+                styles.followingEyebrow,
+                isModern
+                  ? {color: modernPalette.heroMutedText}
+                  : themed.secondaryText,
+              ]}
+            >
               AFTER THIS · {formatTimeLabel(summary.followingItem.startTime)}
             </Text>
             <Text
-              style={[styles.followingTitle, themed.primaryText]}
+              style={[
+                styles.followingTitle,
+                isModern ? {color: modernPalette.heroText} : themed.primaryText,
+              ]}
               numberOfLines={1}
             >
               {summary.followingItem.title}
             </Text>
           </View>
-          <ArrowRight size={14} color={colors.textSecondary} />
+          <ArrowRight
+            size={14}
+            color={isModern ? modernPalette.heroText : colors.textSecondary}
+          />
         </View>
       )}
     </TouchableOpacity>

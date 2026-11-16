@@ -11,18 +11,26 @@ import {
 import {SafeAreaView} from 'react-native-safe-area-context';
 import {
   Bell,
+  Check,
   ChevronLeft,
   Download,
   Sparkles,
   Trash2,
 } from 'lucide-react-native';
 import {
-  getModelStatus,
-  downloadQwenModel,
+  OFFLINE_MODEL_CATALOG,
+  getAllModelsStatus,
+  getSelectedOfflineModelId,
+  setSelectedOfflineModelId,
+  downloadOfflineModel,
   cancelModelDownload,
-  deleteQwenModel,
+  deleteOfflineModel,
+  getDeviceAiRecommendation,
+  type OfflineModelId,
+  type DownloadableOfflineModelId,
   type ModelStatus,
   type ModelDownloadProgress,
+  type DeviceAiRecommendation,
 } from '../../ai/nlu';
 import {preferencesStore} from '../../storage';
 import {localSettingsStore} from '../../storage/localSettingsStore';
@@ -39,7 +47,13 @@ import {
   refreshPendingReminderLeadTimes,
 } from '../../scheduler';
 import type {ReminderPermissionStatus} from '../../scheduler';
-import {Fonts, Layout, Shadows} from '../theme';
+import {
+  Fonts,
+  Layout,
+  ModernLayout,
+  Shadows,
+} from '../theme';
+import {mixColors} from '../theme/colorMix';
 import {useTheme} from '../contexts/ThemeContext';
 import {ReminderPermissionModal} from '../components/call/ReminderPermissionModal';
 
@@ -134,7 +148,7 @@ const PreferenceOptionGroup: React.FC<PreferenceOptionGroupProps> = ({
   selectedValues,
   onSelect,
 }) => {
-  const {colors} = useTheme();
+  const {colors, isModern, modernPalette} = useTheme();
 
   return (
     <View style={styles.optionGroup}>
@@ -149,10 +163,18 @@ const PreferenceOptionGroup: React.FC<PreferenceOptionGroupProps> = ({
               key={option.value}
               style={[
                 styles.chip,
-                {backgroundColor: colors.inputBg, borderColor: colors.border},
+                {
+                  backgroundColor: isModern
+                    ? modernPalette.surface
+                    : colors.inputBg,
+                  borderColor: isModern ? modernPalette.border : colors.border,
+                },
+                isModern && styles.modernChip,
                 isSelected && {
-                  backgroundColor: colors.blue,
-                  borderColor: colors.blue,
+                  backgroundColor: isModern
+                    ? modernPalette.accent
+                    : colors.blue,
+                  borderColor: isModern ? modernPalette.accent : colors.blue,
                 },
               ]}
               onPress={() => onSelect(option.value)}
@@ -206,38 +228,104 @@ export const PreferencesSettingsScreen: React.FC<
   const [permissionModalVisible, setPermissionModalVisible] = useState(false);
   const [permissionStatus, setPermissionStatus] =
     useState<ReminderPermissionStatus | null>(null);
-  const [modelStatus, setModelStatus] = useState<ModelStatus | null>(null);
+  const [selectedModelId, setSelectedModelId] = useState<OfflineModelId>(() =>
+    getSelectedOfflineModelId(userId),
+  );
+  const [modelsStatus, setModelsStatus] = useState<Record<string, ModelStatus>>(
+    {},
+  );
+  const [deviceRecommendation, setDeviceRecommendation] =
+    useState<DeviceAiRecommendation | null>(null);
   const [downloadProgress, setDownloadProgress] =
     useState<ModelDownloadProgress | null>(null);
-  const [isDownloading, setIsDownloading] = useState(false);
-  const {colors} = useTheme();
+  const [downloadingModelId, setDownloadingModelId] =
+    useState<DownloadableOfflineModelId | null>(null);
+  const {colors, isModern, modernPalette, modernShadows} = useTheme();
+  const cardShadow = isModern ? modernShadows.card : Shadows.card;
+  const cardSurfaceStyle = isModern
+    ? {
+        borderRadius: ModernLayout.borderRadiusCard,
+        borderWidth: 1,
+        borderColor: modernPalette.border,
+      }
+    : null;
+  const pillShapeStyle = isModern ? styles.modernPillButton : null;
+
+  const refreshModelsState = React.useCallback(async () => {
+    const [allStatuses, currentSelection] = await Promise.all([
+      getAllModelsStatus(userId),
+      Promise.resolve(getSelectedOfflineModelId(userId)),
+    ]);
+    const rec = await getDeviceAiRecommendation(allStatuses);
+    const statusMap: Record<string, ModelStatus> = {};
+    for (const item of allStatuses) {
+      if (item.modelId) {
+        statusMap[item.modelId] = item;
+      }
+    }
+    setModelsStatus(statusMap);
+    setSelectedModelId(currentSelection);
+    setDeviceRecommendation(rec);
+  }, [userId]);
 
   React.useEffect(() => {
-    void getModelStatus().then(setModelStatus);
-  }, []);
+    void refreshModelsState();
+  }, [refreshModelsState]);
 
-  const handleStartDownload = async () => {
-    setIsDownloading(true);
+  const activePreset =
+    OFFLINE_MODEL_CATALOG.find(item => item.id === selectedModelId) ||
+    OFFLINE_MODEL_CATALOG[0];
+  const activeStatus = modelsStatus[selectedModelId];
+  const isActiveOnDeviceModelReady =
+    selectedModelId !== 'fast_path_only' && Boolean(activeStatus?.isDownloaded);
+  const recommendedPreset = deviceRecommendation
+    ? OFFLINE_MODEL_CATALOG.find(
+        item => item.id === deviceRecommendation.recommendedModelId,
+      ) || null
+    : null;
+  const recommendedStatus = deviceRecommendation
+    ? modelsStatus[deviceRecommendation.recommendedModelId]
+    : undefined;
+  const recommendedReadyAndActive = Boolean(
+    deviceRecommendation &&
+      selectedModelId === deviceRecommendation.recommendedModelId &&
+      (deviceRecommendation.recommendedModelId === 'fast_path_only' ||
+        recommendedStatus?.isDownloaded),
+  );
+
+  const handleSelectModel = async (modelId: OfflineModelId) => {
+    setSelectedOfflineModelId(modelId, userId);
+    setSelectedModelId(modelId);
+    await refreshModelsState();
+  };
+
+  const handleStartDownload = async (modelId: DownloadableOfflineModelId) => {
+    const preset = OFFLINE_MODEL_CATALOG.find(item => item.id === modelId);
+    const approxBytes = preset?.approximateSizeBytes || 0;
+    setDownloadingModelId(modelId);
     setDownloadProgress({
       bytesWritten: 0,
-      contentLength: 397800000,
+      contentLength: approxBytes,
       percent: 0,
       status: 'downloading',
     });
     try {
-      await downloadQwenModel(prog => {
-        setDownloadProgress(prog);
-      });
-      const updated = await getModelStatus();
-      setModelStatus(updated);
-      setIsDownloading(false);
+      await downloadOfflineModel(
+        modelId,
+        prog => {
+          setDownloadProgress(prog);
+        },
+        userId,
+      );
+      await refreshModelsState();
+      setDownloadingModelId(null);
       setDownloadProgress(null);
       Alert.alert(
         'AI Model Ready',
-        'Qwen2.5-0.5B model is downloaded and ready for offline voice intelligence!',
+        `${preset?.name || 'Offline model'} is downloaded and ready for offline voice intelligence!`,
       );
     } catch (err: any) {
-      setIsDownloading(false);
+      setDownloadingModelId(null);
       setDownloadProgress(null);
       Alert.alert(
         'Download Error',
@@ -248,23 +336,23 @@ export const PreferencesSettingsScreen: React.FC<
 
   const handleCancelDownload = async () => {
     await cancelModelDownload();
-    setIsDownloading(false);
+    setDownloadingModelId(null);
     setDownloadProgress(null);
   };
 
-  const handleDeleteModel = () => {
+  const handleDeleteModel = (modelId: DownloadableOfflineModelId) => {
+    const preset = OFFLINE_MODEL_CATALOG.find(item => item.id === modelId);
     Alert.alert(
       'Remove Offline AI Model',
-      'Are you sure you want to delete the on-device AI model? LAFINA will continue working using high-accuracy fast-path parsing.',
+      `Are you sure you want to delete ${preset?.name || 'the on-device AI model'}? LAFINA will continue working using high-accuracy fast-path parsing.`,
       [
         {text: 'Cancel', style: 'cancel'},
         {
           text: 'Delete',
           style: 'destructive',
           onPress: async () => {
-            await deleteQwenModel();
-            const updated = await getModelStatus();
-            setModelStatus(updated);
+            await deleteOfflineModel(modelId, userId);
+            await refreshModelsState();
           },
         },
       ],
@@ -373,7 +461,12 @@ export const PreferencesSettingsScreen: React.FC<
 
       <ScrollView contentContainerStyle={styles.content}>
         <View
-          style={[styles.card, Shadows.card, {backgroundColor: colors.cardBg}]}
+          style={[
+            styles.card,
+            cardShadow,
+            {backgroundColor: colors.cardBg},
+            cardSurfaceStyle,
+          ]}
         >
           <Text style={[styles.sectionTitle, {color: colors.textPrimary}]}>
             Daily routine
@@ -393,7 +486,12 @@ export const PreferencesSettingsScreen: React.FC<
         </View>
 
         <View
-          style={[styles.card, Shadows.card, {backgroundColor: colors.cardBg}]}
+          style={[
+            styles.card,
+            cardShadow,
+            {backgroundColor: colors.cardBg},
+            cardSurfaceStyle,
+          ]}
         >
           <Text style={[styles.sectionTitle, {color: colors.textPrimary}]}>
             Study habits
@@ -413,7 +511,12 @@ export const PreferencesSettingsScreen: React.FC<
         </View>
 
         <View
-          style={[styles.card, Shadows.card, {backgroundColor: colors.cardBg}]}
+          style={[
+            styles.card,
+            cardShadow,
+            {backgroundColor: colors.cardBg},
+            cardSurfaceStyle,
+          ]}
         >
           <Text style={[styles.sectionTitle, {color: colors.textPrimary}]}>
             Reminders
@@ -442,7 +545,12 @@ export const PreferencesSettingsScreen: React.FC<
         </View>
 
         <View
-          style={[styles.card, Shadows.card, {backgroundColor: colors.cardBg}]}
+          style={[
+            styles.card,
+            cardShadow,
+            {backgroundColor: colors.cardBg},
+            cardSurfaceStyle,
+          ]}
         >
           <Text style={[styles.sectionTitle, {color: colors.textPrimary}]}>
             Academic load
@@ -462,7 +570,12 @@ export const PreferencesSettingsScreen: React.FC<
         </View>
 
         <View
-          style={[styles.card, Shadows.card, {backgroundColor: colors.cardBg}]}
+          style={[
+            styles.card,
+            cardShadow,
+            {backgroundColor: colors.cardBg},
+            cardSurfaceStyle,
+          ]}
         >
           <View style={styles.cardHeaderRow}>
             <Text
@@ -477,20 +590,25 @@ export const PreferencesSettingsScreen: React.FC<
               style={[
                 styles.badge,
                 {
-                  backgroundColor: modelStatus?.isDownloaded
+                  backgroundColor: isActiveOnDeviceModelReady
                     ? 'rgba(46, 204, 113, 0.15)'
-                    : 'rgba(52, 152, 219, 0.15)',
+                    : mixColors(colors.blue, colors.cardBg, 0.15),
                 },
               ]}
             >
               <Text
+                testID="offline-ai-header-badge"
                 style={[
                   styles.badgeText,
-                  {color: modelStatus?.isDownloaded ? '#2ECC71' : colors.blue},
+                  {
+                    color: isActiveOnDeviceModelReady
+                      ? colors.success
+                      : colors.blue,
+                  },
                 ]}
               >
-                {modelStatus?.isDownloaded
-                  ? 'Ready (On-Device)'
+                {isActiveOnDeviceModelReady
+                  ? `Active: ${activePreset.shortLabel}`
                   : 'Fast-Path Only'}
               </Text>
             </View>
@@ -502,87 +620,475 @@ export const PreferencesSettingsScreen: React.FC<
               {color: colors.textSecondary, marginTop: 8},
             ]}
           >
-            {modelStatus?.isDownloaded
-              ? 'Qwen2.5-0.5B model is active on-device. Speech commands are smartly parsed offline with contextual title and parameter extraction.'
-              : 'Download the lightweight on-device AI model (Qwen2.5-0.5B, ~398 MB) to enable contextual speech parsing completely offline.'}
+            Choose which offline engine extracts tasks, reminders, and schedule
+            commands from your voice and text when you are offline.
           </Text>
 
-          {isDownloading ? (
-            <View style={styles.downloadProgressContainer}>
-              <View style={styles.progressBarBackground}>
+          {deviceRecommendation && recommendedPreset && (
+            <View
+              testID="offline-ai-recommendation-card"
+              style={[
+                styles.recommendationBanner,
+                {
+                  borderColor: colors.blue,
+                  backgroundColor: mixColors(colors.blue, colors.cardBg, 0.08),
+                },
+              ]}
+            >
+              <View style={styles.recommendationHeaderRow}>
+                <View style={styles.recommendationTitleCol}>
+                  <Sparkles size={15} color={colors.blue} />
+                  <Text
+                    style={[styles.recommendationEyebrow, {color: colors.blue}]}
+                  >
+                    Recommended For Your Phone
+                  </Text>
+                </View>
+                <View style={styles.modelMetaBadge}>
+                  <Text
+                    testID="offline-ai-device-specs"
+                    style={[
+                      styles.modelMetaText,
+                      {color: colors.textSecondary},
+                    ]}
+                  >
+                    {deviceRecommendation.specs.isDetected
+                      ? deviceRecommendation.specSummary
+                      : 'Auto Fit'}
+                  </Text>
+                </View>
+              </View>
+
+              <Text
+                testID="offline-ai-recommended-model"
+                style={[styles.modelPresetName, {color: colors.textPrimary, marginTop: 4}]}
+              >
+                {recommendedPreset.name}
+                {deviceRecommendation.specs.isDetected
+                  ? ` · ${deviceRecommendation.specs.deviceLabel}`
+                  : ''}
+              </Text>
+              <Text
+                style={[
+                  styles.modelPresetDesc,
+                  {color: colors.textSecondary},
+                ]}
+              >
+                {deviceRecommendation.reason}
+              </Text>
+
+              {recommendedReadyAndActive ? (
                 <View
+                  testID="offline-ai-recommended-active"
                   style={[
-                    styles.progressBarFill,
+                    styles.activeModelPill,
                     {
-                      width: `${downloadProgress?.percent || 0}%`,
-                      backgroundColor: colors.blue,
+                      backgroundColor: 'rgba(46, 204, 113, 0.15)',
+                      alignSelf: 'flex-start',
+                      marginTop: 8,
                     },
                   ]}
-                />
-              </View>
-              <View style={styles.progressRow}>
-                <Text
-                  style={[styles.progressText, {color: colors.textSecondary}]}
                 >
-                  Downloading: {downloadProgress?.percent || 0}% (
-                  {Math.round(
-                    (downloadProgress?.bytesWritten || 0) / (1024 * 1024),
-                  )}{' '}
-                  /{' '}
-                  {Math.round(
-                    (downloadProgress?.contentLength || 397800000) /
-                      (1024 * 1024),
-                  )}{' '}
-                  MB)
-                </Text>
-                <TouchableOpacity onPress={() => void handleCancelDownload()}>
+                  <Check size={14} color={colors.success} />
                   <Text
-                    style={[styles.cancelDownloadText, {color: colors.error}]}
+                    style={[styles.activeModelText, {color: colors.success}]}
                   >
-                    Cancel
+                    Active Recommended Model
+                  </Text>
+                </View>
+              ) : deviceRecommendation.recommendedModelId === 'fast_path_only' ||
+                recommendedStatus?.isDownloaded ? (
+                <TouchableOpacity
+                  testID="offline-ai-use-recommended"
+                  style={[
+                    styles.selectModelButton,
+                    pillShapeStyle,
+                    {
+                      borderColor: colors.blue,
+                      alignSelf: 'flex-start',
+                      marginTop: 8,
+                    },
+                  ]}
+                  onPress={() =>
+                    void handleSelectModel(
+                      deviceRecommendation.recommendedModelId,
+                    )
+                  }
+                >
+                  <Text style={[styles.selectModelText, {color: colors.blue}]}>
+                    Use {recommendedPreset.shortLabel}
                   </Text>
                 </TouchableOpacity>
-              </View>
-            </View>
-          ) : modelStatus?.isDownloaded ? (
-            <View style={styles.modelActionsRow}>
-              <View style={styles.modelInfoCol}>
-                <Sparkles size={16} color="#2ECC71" />
-                <Text
-                  style={[styles.modelSizeText, {color: colors.textSecondary}]}
+              ) : (
+                <TouchableOpacity
+                  testID="offline-ai-download-recommended"
+                  disabled={downloadingModelId !== null}
+                  style={[
+                    styles.selectModelButton,
+                    pillShapeStyle,
+                    {
+                      borderColor: colors.blue,
+                      alignSelf: 'flex-start',
+                      marginTop: 8,
+                      opacity: downloadingModelId !== null ? 0.5 : 1,
+                    },
+                  ]}
+                  onPress={() =>
+                    void handleStartDownload(
+                      deviceRecommendation.recommendedModelId as DownloadableOfflineModelId,
+                    )
+                  }
                 >
-                  {Math.round((modelStatus.fileSizeBytes || 0) / (1024 * 1024))}{' '}
-                  MB on disk
-                </Text>
-              </View>
-              <TouchableOpacity
-                style={[styles.deleteModelButton, {borderColor: colors.error}]}
-                onPress={handleDeleteModel}
-              >
-                <Trash2 size={15} color={colors.error} />
-                <Text style={[styles.deleteModelText, {color: colors.error}]}>
-                  Remove Model
-                </Text>
-              </TouchableOpacity>
+                  <Text style={[styles.selectModelText, {color: colors.blue}]}>
+                    {downloadingModelId ===
+                    deviceRecommendation.recommendedModelId
+                      ? `Downloading ${recommendedPreset.shortLabel}…`
+                      : `Download & Use ${recommendedPreset.shortLabel}`}
+                  </Text>
+                </TouchableOpacity>
+              )}
             </View>
-          ) : (
-            <TouchableOpacity
-              style={[
-                styles.permissionButton,
-                {borderColor: colors.blue, marginTop: 4},
-              ]}
-              onPress={() => void handleStartDownload()}
-            >
-              <Download size={18} color={colors.blue} />
-              <Text style={[styles.permissionButtonText, {color: colors.blue}]}>
-                Download AI Model (~398 MB)
-              </Text>
-            </TouchableOpacity>
           )}
+
+          <View style={styles.modelPresetList}>
+            {OFFLINE_MODEL_CATALOG.map(preset => {
+              const status = modelsStatus[preset.id];
+              const isSelected = selectedModelId === preset.id;
+              const isFastPath = preset.id === 'fast_path_only';
+              const assessment =
+                deviceRecommendation?.assessments?.[preset.id];
+              const downloadableId = isFastPath
+                ? null
+                : (preset.id as DownloadableOfflineModelId);
+              const isDownloaded = Boolean(status?.isDownloaded);
+              const isDownloadingThis =
+                downloadableId !== null &&
+                downloadingModelId === downloadableId;
+              const isAnotherDownloading =
+                downloadingModelId !== null &&
+                downloadingModelId !== downloadableId;
+              const approxMB = Math.round(
+                preset.approximateSizeBytes / (1024 * 1024),
+              );
+              const metaText = isFastPath
+                ? '0 MB • Built-in'
+                : `~${approxMB} MB • ${preset.recommendedRamGb}GB+ RAM`;
+
+              return (
+                <View
+                  key={preset.id}
+                  testID={`offline-model-card-${preset.id}`}
+                  style={[
+                    styles.modelPresetCard,
+                    {
+                      borderColor: isSelected
+                        ? colors.blue
+                        : 'rgba(150, 150, 150, 0.25)',
+                      backgroundColor: isSelected
+                        ? mixColors(colors.blue, colors.cardBg, 0.06)
+                        : 'transparent',
+                    },
+                  ]}
+                >
+                  <View style={styles.modelPresetHeader}>
+                    <Text
+                      style={[
+                        styles.modelPresetName,
+                        {color: colors.textPrimary},
+                      ]}
+                    >
+                      {preset.name}
+                    </Text>
+                    <View style={styles.modelMetaRow}>
+                      {assessment?.isRecommended && (
+                        <View
+                          testID={`offline-model-recommended-${preset.id}`}
+                          style={[
+                            styles.modelMetaBadge,
+                            {
+                              backgroundColor: mixColors(
+                                colors.blue,
+                                colors.cardBg,
+                                0.16,
+                              ),
+                            },
+                          ]}
+                        >
+                          <Text
+                            style={[styles.modelMetaText, {color: colors.blue}]}
+                          >
+                            Recommended
+                          </Text>
+                        </View>
+                      )}
+                      {assessment &&
+                        !assessment.isRecommended &&
+                        assessment.note && (
+                          <View
+                            testID={`offline-model-compat-${preset.id}`}
+                            style={[
+                              styles.modelMetaBadge,
+                              {
+                                backgroundColor:
+                                  assessment.tier === 'unsupported'
+                                    ? 'rgba(255, 59, 48, 0.14)'
+                                    : assessment.tier === 'tight_fit'
+                                      ? 'rgba(244, 161, 0, 0.18)'
+                                      : 'rgba(150, 150, 150, 0.14)',
+                              },
+                            ]}
+                          >
+                            <Text
+                              style={[
+                                styles.modelMetaText,
+                                {
+                                  color:
+                                    assessment.tier === 'unsupported'
+                                      ? colors.error
+                                      : assessment.tier === 'tight_fit'
+                                        ? colors.warning
+                                        : colors.textSecondary,
+                                },
+                              ]}
+                            >
+                              {assessment.note}
+                            </Text>
+                          </View>
+                        )}
+                      <View style={styles.modelMetaBadge}>
+                        <Text
+                          style={[
+                            styles.modelMetaText,
+                            {color: colors.textSecondary},
+                          ]}
+                        >
+                          {metaText}
+                        </Text>
+                      </View>
+                    </View>
+                  </View>
+
+                  <Text
+                    style={[
+                      styles.modelPresetDesc,
+                      {color: colors.textSecondary},
+                    ]}
+                  >
+                    {preset.description}
+                  </Text>
+
+                  {isFastPath ? (
+                    <View style={styles.modelActionsRow}>
+                      {isSelected ? (
+                        <View
+                          testID="offline-model-active-fast_path_only"
+                          style={[
+                            styles.activeModelPill,
+                            {backgroundColor: 'rgba(46, 204, 113, 0.15)'},
+                          ]}
+                        >
+                          <Check size={14} color={colors.success} />
+                          <Text
+                            style={[
+                              styles.activeModelText,
+                              {color: colors.success},
+                            ]}
+                          >
+                            Active
+                          </Text>
+                        </View>
+                      ) : (
+                        <TouchableOpacity
+                          testID="offline-model-select-fast_path_only"
+                          style={[
+                            styles.selectModelButton,
+                            pillShapeStyle,
+                            {borderColor: colors.blue},
+                          ]}
+                          onPress={() =>
+                            void handleSelectModel('fast_path_only')
+                          }
+                        >
+                          <Text
+                            style={[
+                              styles.selectModelText,
+                              {color: colors.blue},
+                            ]}
+                          >
+                            Use Fast-Path Only
+                          </Text>
+                        </TouchableOpacity>
+                      )}
+                    </View>
+                  ) : isDownloadingThis ? (
+                    <View style={styles.downloadProgressContainer}>
+                      <View style={styles.progressBarBackground}>
+                        <View
+                          style={[
+                            styles.progressBarFill,
+                            {
+                              width: `${downloadProgress?.percent || 0}%`,
+                              backgroundColor: colors.blue,
+                            },
+                          ]}
+                        />
+                      </View>
+                      <View style={styles.progressRow}>
+                        <Text
+                          style={[
+                            styles.progressText,
+                            {color: colors.textSecondary},
+                          ]}
+                        >
+                          Downloading: {downloadProgress?.percent || 0}% (
+                          {Math.round(
+                            (downloadProgress?.bytesWritten || 0) /
+                              (1024 * 1024),
+                          )}{' '}
+                          /{' '}
+                          {Math.round(
+                            (downloadProgress?.contentLength ||
+                              preset.approximateSizeBytes) /
+                              (1024 * 1024),
+                          )}{' '}
+                          MB)
+                        </Text>
+                        <TouchableOpacity
+                          testID={`offline-model-cancel-${preset.id}`}
+                          onPress={() => void handleCancelDownload()}
+                        >
+                          <Text
+                            style={[
+                              styles.cancelDownloadText,
+                              {color: colors.error},
+                            ]}
+                          >
+                            Cancel
+                          </Text>
+                        </TouchableOpacity>
+                      </View>
+                    </View>
+                  ) : isDownloaded ? (
+                    <View style={styles.modelActionsRow}>
+                      <View style={styles.modelInfoCol}>
+                        <Sparkles size={15} color={colors.success} />
+                        <Text
+                          style={[
+                            styles.modelSizeText,
+                            {color: colors.textSecondary},
+                          ]}
+                        >
+                          {Math.round(
+                            (status?.fileSizeBytes || 0) / (1024 * 1024),
+                          )}{' '}
+                          MB on disk
+                        </Text>
+                      </View>
+                      <View style={styles.modelActionButtons}>
+                        {isSelected ? (
+                          <View
+                            testID={`offline-model-active-${preset.id}`}
+                            style={[
+                              styles.activeModelPill,
+                              {backgroundColor: 'rgba(46, 204, 113, 0.15)'},
+                            ]}
+                          >
+                            <Check size={14} color={colors.success} />
+                            <Text
+                              style={[
+                                styles.activeModelText,
+                                {color: colors.success},
+                              ]}
+                            >
+                              Active
+                            </Text>
+                          </View>
+                        ) : (
+                          <TouchableOpacity
+                            testID={`offline-model-select-${preset.id}`}
+                            style={[
+                              styles.selectModelButton,
+                              pillShapeStyle,
+                              {borderColor: colors.blue},
+                            ]}
+                            onPress={() => void handleSelectModel(preset.id)}
+                          >
+                            <Text
+                              style={[
+                                styles.selectModelText,
+                                {color: colors.blue},
+                              ]}
+                            >
+                              Use Model
+                            </Text>
+                          </TouchableOpacity>
+                        )}
+                        <TouchableOpacity
+                          testID={`offline-model-delete-${preset.id}`}
+                          accessibilityLabel={`Remove ${preset.shortLabel}`}
+                          style={[
+                            styles.deleteModelButton,
+                            pillShapeStyle,
+                            {borderColor: colors.error},
+                          ]}
+                          onPress={() =>
+                            downloadableId && handleDeleteModel(downloadableId)
+                          }
+                        >
+                          <Trash2 size={14} color={colors.error} />
+                          <Text
+                            style={[
+                              styles.deleteModelText,
+                              {color: colors.error},
+                            ]}
+                          >
+                            Remove
+                          </Text>
+                        </TouchableOpacity>
+                      </View>
+                    </View>
+                  ) : (
+                    <TouchableOpacity
+                      testID={`offline-model-download-${preset.id}`}
+                      disabled={isAnotherDownloading}
+                      style={[
+                        styles.permissionButton,
+                        pillShapeStyle,
+                        {
+                          borderColor: colors.blue,
+                          marginTop: 8,
+                          opacity: isAnotherDownloading ? 0.5 : 1,
+                        },
+                      ]}
+                      onPress={() =>
+                        downloadableId &&
+                        void handleStartDownload(downloadableId)
+                      }
+                    >
+                      <Download size={16} color={colors.blue} />
+                      <Text
+                        style={[
+                          styles.permissionButtonText,
+                          {color: colors.blue},
+                        ]}
+                      >
+                        Download {preset.shortLabel} (~{approxMB} MB)
+                      </Text>
+                    </TouchableOpacity>
+                  )}
+                </View>
+              );
+            })}
+          </View>
         </View>
 
         <View
-          style={[styles.card, Shadows.card, {backgroundColor: colors.cardBg}]}
+          style={[
+            styles.card,
+            cardShadow,
+            {backgroundColor: colors.cardBg},
+            cardSurfaceStyle,
+          ]}
         >
           <Text style={[styles.sectionTitle, {color: colors.textPrimary}]}>
             Device permissions
@@ -594,7 +1100,11 @@ export const PreferencesSettingsScreen: React.FC<
             enabled so LAFINA can remind you on schedule.
           </Text>
           <TouchableOpacity
-            style={[styles.permissionButton, {borderColor: colors.blue}]}
+            style={[
+              styles.permissionButton,
+              pillShapeStyle,
+              {borderColor: colors.blue},
+            ]}
             onPress={() => void handleOpenPermissions()}
           >
             <Bell size={18} color={colors.blue} />
@@ -609,7 +1119,12 @@ export const PreferencesSettingsScreen: React.FC<
         )}
 
         <TouchableOpacity
-          style={[styles.saveButton, {backgroundColor: colors.blue}]}
+          style={[
+            styles.saveButton,
+            pillShapeStyle,
+            isModern && modernShadows.subtle,
+            {backgroundColor: isModern ? modernPalette.accent : colors.blue},
+          ]}
           onPress={() => void handleSave()}
           disabled={isSaving}
         >
@@ -787,16 +1302,117 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: 'bold',
   },
+  recommendationBanner: {
+    borderWidth: 1,
+    borderRadius: Layout.borderRadiusButton,
+    padding: 12,
+    marginBottom: 12,
+  },
+  recommendationHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    flexWrap: 'wrap',
+    gap: 6,
+  },
+  recommendationTitleCol: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  recommendationEyebrow: {
+    fontFamily: Fonts.body,
+    fontSize: 11,
+    fontWeight: '700',
+    textTransform: 'uppercase',
+    letterSpacing: 0.4,
+  },
+  modelMetaRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flexWrap: 'wrap',
+    gap: 6,
+  },
+  modelPresetList: {
+    gap: 10,
+    marginTop: 2,
+  },
+  modelPresetCard: {
+    borderWidth: 1.5,
+    borderRadius: Layout.borderRadiusButton,
+    padding: 12,
+  },
+  modelPresetHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    flexWrap: 'wrap',
+    gap: 6,
+  },
+  modelPresetName: {
+    fontFamily: Fonts.body,
+    fontSize: 14,
+    fontWeight: '700',
+    flexShrink: 1,
+  },
+  modelMetaBadge: {
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: Layout.borderRadiusPill,
+    backgroundColor: 'rgba(150, 150, 150, 0.14)',
+  },
+  modelMetaText: {
+    fontFamily: Fonts.body,
+    fontSize: 11,
+    fontWeight: '600',
+  },
+  modelPresetDesc: {
+    fontFamily: Fonts.body,
+    fontSize: 12,
+    lineHeight: 17,
+    marginTop: 6,
+  },
   modelActionsRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
+    flexWrap: 'wrap',
+    gap: 8,
     marginTop: 10,
   },
   modelInfoCol: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
+  },
+  modelActionButtons: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  activeModelPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: Layout.borderRadiusPill,
+  },
+  activeModelText: {
+    fontFamily: Fonts.body,
+    fontSize: 12,
+    fontWeight: '700',
+  },
+  selectModelButton: {
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderWidth: 1,
+    borderRadius: Layout.borderRadiusButton,
+  },
+  selectModelText: {
+    fontFamily: Fonts.body,
+    fontSize: 12,
+    fontWeight: '600',
   },
   modelSizeText: {
     fontFamily: Fonts.body,
@@ -815,5 +1431,11 @@ const styles = StyleSheet.create({
     fontFamily: Fonts.body,
     fontSize: 12,
     fontWeight: '600',
+  },
+  modernChip: {
+    borderRadius: ModernLayout.borderRadiusPill,
+  },
+  modernPillButton: {
+    borderRadius: ModernLayout.borderRadiusPill,
   },
 });

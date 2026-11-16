@@ -51,8 +51,8 @@ export const buildTourSteps = ({isGuest}: TourAudience): TourStep[] => [
   },
   {
     id: 'notes',
-    title: 'Notes',
-    body: 'Lecture notes with headings, checklists and images. Pin the ones you keep coming back to, and search or filter by category to find the rest.',
+    title: 'Tools',
+    body: 'Alarms, to-dos and lecture notes in one workspace. Manage reminder alarms, track tasks and capture study notes with checklists and images.',
     anchor: 'tab-notes',
     tab: 'notes',
   },

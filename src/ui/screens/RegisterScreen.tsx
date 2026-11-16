@@ -9,7 +9,12 @@ import {
   Alert,
 } from 'react-native';
 import { Mail, Lock, User } from 'lucide-react-native';
-import { Colors, Fonts, Layout, Shadows } from '../theme';
+import {
+  Fonts,
+  Layout,
+  ModernLayout,
+  Shadows,
+} from '../theme';
 import { validatePassword } from '../../storage';
 import { accountLinkService } from '../../cloud/accountLinkService';
 import { syncWorker } from '../../sync/syncWorker';
@@ -34,6 +39,7 @@ const getThemedStyles = (colors: ThemeColors) => ({
   inputContainer: { borderColor: colors.border, backgroundColor: colors.inputBg },
   input: { color: colors.textPrimary },
   footerText: { color: colors.textSecondary },
+  errorText: { color: colors.error },
 });
 
 export const RegisterScreen: React.FC<RegisterScreenProps> = ({
@@ -48,7 +54,7 @@ export const RegisterScreen: React.FC<RegisterScreenProps> = ({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const { colors } = useTheme();
+  const {colors, isModern, modernPalette, modernShadows} = useTheme();
   const themed = useThemedStyles(getThemedStyles);
 
   const completeRegistration = (userId: string, message?: string) => {
@@ -153,14 +159,35 @@ export const RegisterScreen: React.FC<RegisterScreenProps> = ({
         contentContainerStyle={styles.scrollContainer}
         keyboardShouldPersistTaps="handled"
       >
-        <View style={[styles.card, Shadows.card, themed.card]}>
+        <View
+          style={[
+            styles.card,
+            isModern ? modernShadows.card : Shadows.card,
+            themed.card,
+            isModern && {
+              borderRadius: ModernLayout.borderRadiusCard,
+              borderWidth: 1,
+              borderColor: modernPalette.border,
+            },
+          ]}
+        >
           <AuthHeader />
           <Text style={[styles.cardTitle, themed.cardTitle]}>Create Account</Text>
           <Text style={[styles.cardSubtitle, themed.cardSubtitle]}>
             Get started with your smart study companion
           </Text>
 
-          {error && <Text style={styles.errorText}>{error}</Text>}
+          {error && (
+            <Text
+              style={[
+                styles.errorText,
+                themed.errorText,
+                isModern && {color: modernPalette.danger},
+              ]}
+            >
+              {error}
+            </Text>
+          )}
 
           <AuthInput
             label="Display Name"
@@ -206,7 +233,15 @@ export const RegisterScreen: React.FC<RegisterScreenProps> = ({
           <View style={styles.footer}>
             <Text style={[styles.footerText, themed.footerText]}>Already have an account? </Text>
             <TouchableOpacity onPress={onNavigateToLogin}>
-              <Text style={[styles.loginLink, themed.link]}>Log In</Text>
+              <Text
+                style={[
+                  styles.loginLink,
+                  themed.link,
+                  isModern && {color: modernPalette.accent},
+                ]}
+              >
+                Log In
+              </Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -244,7 +279,6 @@ const styles = StyleSheet.create({
   },
   errorText: {
     fontFamily: Fonts.body,
-    color: Colors.error,
     fontSize: 13,
     marginBottom: 16,
     fontWeight: '500',

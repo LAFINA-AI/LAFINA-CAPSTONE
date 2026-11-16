@@ -594,6 +594,17 @@ function AppContent({
             refreshTrigger={refreshTrigger}
             onRefresh={triggerRefresh}
             onOpenCalendarTab={target => {
+              if (target?.scheduleSection === 'alarms') {
+                setCallNavigation({
+                  ownerId: userId,
+                  screen: 'notes',
+                  notesTab: 'alarms',
+                  ...target,
+                  requestId: generateId('dash-nav'),
+                });
+                setActiveTab('notes');
+                return;
+              }
               if (target) {
                 setCallNavigation({
                   ownerId: userId,

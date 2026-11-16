@@ -40,7 +40,7 @@ import type {
 } from '../../scheduler';
 import { CALL_RESULT_DELAY_MS } from '../../constants';
 import { chatOrchestrator } from '../../ai/chatOrchestrator';
-import { Fonts, Shadows } from '../theme';
+import {Fonts, ModernLayout, Shadows} from '../theme';
 import { useTheme } from '../contexts/ThemeContext';
 import { createCallSpeechProvider } from '../../cloud/speechService';
 import { localSettingsStore } from '../../storage/localSettingsStore';
@@ -79,7 +79,7 @@ export const IncomingCallScreen: React.FC<IncomingCallScreenProps> = ({
   initialAction = 'call',
   deliveryGeneration = null,
 }) => {
-  const { isDarkMode, colors } = useTheme();
+  const {isDarkMode, colors, isModern, modernPalette, modernShadows} = useTheme();
   // A planner change asked for during an online reminder call becomes a voice
   // review card; it is shown here so it can be confirmed (audit finding 3).
   const review = useCommandReview(userId, 'voice');
@@ -545,21 +545,30 @@ export const IncomingCallScreen: React.FC<IncomingCallScreenProps> = ({
     primaryText: { color: colors.textPrimary },
     secondaryText: { color: colors.textSecondary },
     mutedText: { color: colors.textMuted },
-    badge: {
-      backgroundColor: isDarkMode
-        ? 'rgba(230, 0, 58, 0.16)'
-        : 'rgba(230, 0, 58, 0.08)',
-      borderColor: isDarkMode
-        ? 'rgba(230, 0, 58, 0.36)'
-        : 'rgba(230, 0, 58, 0.20)',
-    },
+    badge: isModern
+      ? {
+          backgroundColor: modernPalette.softViolet,
+          borderColor: modernPalette.border,
+        }
+      : {
+          backgroundColor: isDarkMode
+            ? 'rgba(230, 0, 58, 0.16)'
+            : 'rgba(230, 0, 58, 0.08)',
+          borderColor: isDarkMode
+            ? 'rgba(230, 0, 58, 0.36)'
+            : 'rgba(230, 0, 58, 0.20)',
+        },
     logoSurface: {
-      backgroundColor: isDarkMode ? 'rgba(255, 255, 255, 0.05)' : colors.cardBg,
-      borderColor: colors.blue,
+      backgroundColor: isModern
+        ? modernPalette.card
+        : isDarkMode
+        ? 'rgba(255, 255, 255, 0.05)'
+        : colors.cardBg,
+      borderColor: isModern ? modernPalette.accent : colors.blue,
     },
     taskCard: {
       backgroundColor: colors.cardBg,
-      borderColor: colors.border,
+      borderColor: isModern ? modernPalette.border : colors.border,
     },
   };
 
@@ -582,7 +591,12 @@ export const IncomingCallScreen: React.FC<IncomingCallScreenProps> = ({
           <View style={styles.ringingContainer}>
             <View style={styles.header}>
               <View style={[styles.badge, themed.badge]}>
-                <Text style={[styles.badgeText, { color: colors.blue }]}>
+                <Text
+                  style={[
+                    styles.badgeText,
+                    { color: isModern ? modernPalette.accent : colors.blue },
+                  ]}
+                >
                   INCOMING SCHEDULED CALL
                 </Text>
               </View>
@@ -599,13 +613,22 @@ export const IncomingCallScreen: React.FC<IncomingCallScreenProps> = ({
                 style={[
                   styles.avatarRingOuter,
                   {
-                    borderColor: colors.yellow,
+                    borderColor: isModern
+                      ? modernPalette.periwinkle
+                      : colors.yellow,
                     transform: [{ scale: ringAnim }],
                   },
                 ]}
               >
                 <View
-                  style={[styles.avatarRingInner, { borderColor: colors.red }]}
+                  style={[
+                    styles.avatarRingInner,
+                    {
+                      borderColor: isModern
+                        ? modernPalette.accent
+                        : colors.red,
+                    },
+                  ]}
                 >
                   <View style={[styles.avatarCircle, themed.logoSurface]}>
                     <Image
@@ -618,7 +641,14 @@ export const IncomingCallScreen: React.FC<IncomingCallScreenProps> = ({
                 </View>
               </Animated.View>
 
-              <View style={[styles.taskCard, themed.taskCard]}>
+              <View
+                style={[
+                  styles.taskCard,
+                  isModern && modernShadows.card,
+                  themed.taskCard,
+                  isModern && {borderRadius: ModernLayout.borderRadiusCard},
+                ]}
+              >
                 <Text style={[styles.taskLabel, themed.mutedText]}>
                   REMINDER
                 </Text>

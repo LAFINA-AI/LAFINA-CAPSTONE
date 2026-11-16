@@ -5,7 +5,12 @@ import {
   StyleSheet,
   ActivityIndicator,
 } from 'react-native';
-import { Colors, Fonts, Layout } from '../../theme';
+import {
+  Fonts,
+  Layout,
+  ModernLayout,
+} from '../../theme';
+import {useTheme} from '../../contexts/ThemeContext';
 
 interface AuthButtonProps {
   title: string;
@@ -20,18 +25,44 @@ export const AuthButton: React.FC<AuthButtonProps> = ({
   loading,
   disabled = false,
 }) => {
+  const {colors, isModern, modernPalette, modernShadows} = useTheme();
   const isButtonDisabled = disabled || loading;
 
   return (
     <TouchableOpacity
-      style={[styles.button, isButtonDisabled && styles.disabledButton]}
+      style={[
+        styles.button,
+        isModern && styles.modernButton,
+        isModern && !isButtonDisabled && modernShadows.subtle,
+        {
+          backgroundColor: isButtonDisabled
+            ? isModern
+              ? modernPalette.surface
+              : colors.textMuted
+            : isModern
+              ? modernPalette.accent
+              : colors.blue,
+        },
+      ]}
       onPress={onPress}
       disabled={isButtonDisabled}
     >
       {loading ? (
-        <ActivityIndicator color="#FFFFFF" size="small" />
+        <ActivityIndicator color={colors.textOnPrimary} size="small" />
       ) : (
-        <Text style={styles.buttonText}>{title}</Text>
+        <Text
+          style={[
+            styles.buttonText,
+            {
+              color:
+                isModern && isButtonDisabled
+                  ? modernPalette.muted
+                  : colors.textOnPrimary,
+            },
+          ]}
+        >
+          {title}
+        </Text>
       )}
     </TouchableOpacity>
   );
@@ -40,18 +71,17 @@ export const AuthButton: React.FC<AuthButtonProps> = ({
 const styles = StyleSheet.create({
   button: {
     height: 48,
-    backgroundColor: Colors.blue,
     borderRadius: Layout.borderRadiusButton,
     justifyContent: 'center',
     alignItems: 'center',
     marginTop: 12,
   },
-  disabledButton: {
-    backgroundColor: Colors.textMutedLight,
+  modernButton: {
+    height: 50,
+    borderRadius: ModernLayout.borderRadiusPill,
   },
   buttonText: {
     fontFamily: Fonts.body,
-    color: '#FFFFFF',
     fontWeight: 'bold',
     fontSize: 15,
   },

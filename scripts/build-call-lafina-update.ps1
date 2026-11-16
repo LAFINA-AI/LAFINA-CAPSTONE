@@ -1,5 +1,5 @@
 param(
-    [ValidateSet('main', 'providers', 'both')][string]$Variant = 'both',
+    [ValidateSet('main', 'providers', 'both')][string]$Variant = 'main',
     [string]$JavaHome = 'C:\Program Files\Microsoft\jdk-17.0.20.101-hotspot'
 )
 # Offline assembly only. Installation is separate and never clears app data.

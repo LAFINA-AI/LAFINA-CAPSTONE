@@ -1,4 +1,4 @@
-import React, {useCallback, useEffect, useState} from 'react';
+import React, {useCallback, useEffect, useRef, useState} from 'react';
 import {
   Alert,
   ScrollView,
@@ -8,12 +8,21 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
-import {AlarmClock, AlarmClockPlus, TriangleAlert} from 'lucide-react-native';
+import {
+  AlarmClock,
+  BellRing,
+  Grid,
+  List,
+  Plus,
+  TriangleAlert,
+} from 'lucide-react-native';
+import {useSafeAreaInsets} from 'react-native-safe-area-context';
 import {useTheme} from '../../../contexts/ThemeContext';
-import {FontSize, Fonts, Layout, Spacing} from '../../../theme';
+import {useSchedulePalette, scheduleCardShadow} from './schedulePalette';
 import {alarmsStore, userStore} from '../../../../storage';
 import type {Alarm, AlarmInput} from '../../../../storage';
 import {
+  bitForDate,
   describeRepeat,
   describeTimeUntil,
   formatAlarmTime,
@@ -38,6 +47,12 @@ interface AlarmsViewProps {
   userId: string;
   refreshTrigger: number;
   onRefresh: () => void;
+  /** When false (hosted inside the Tools header), suppresses the duplicate inner header. */
+  showHeader?: boolean;
+  /** Controlled grid/list view mode from parent; falls back to internal toggle when omitted. */
+  isGridView?: boolean;
+  /** Incrementing signal from the parent Tools header + button to open a new alarm. */
+  createTrigger?: number;
 }
 
 interface HealthIssue {
@@ -85,17 +100,41 @@ export const alarmHealthIssues = (
 };
 
 /** Alarm plan A2: Schedule → Alarms. */
+const SHORT_WEEKDAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'] as const;
+
+const formatRelativeAlarmDay = (target: Date, now: Date = new Date()): string => {
+  const startToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const startTarget = new Date(
+    target.getFullYear(),
+    target.getMonth(),
+    target.getDate(),
+  );
+  const diffDays = Math.round((startTarget.getTime() - startToday.getTime()) / 86400000);
+  if (diffDays === 0) return 'Today';
+  if (diffDays === 1) return 'Tomorrow';
+  return SHORT_WEEKDAYS[target.getDay()];
+};
+
 export const AlarmsView: React.FC<AlarmsViewProps> = ({
   userId,
   refreshTrigger,
   onRefresh,
+  showHeader = true,
+  isGridView,
+  createTrigger,
 }) => {
-  const {colors} = useTheme();
+  const {colors, modernPalette} = useTheme();
+  const palette = useSchedulePalette();
+  const insets = useSafeAreaInsets();
+  const scrollBottomPad = Math.max(insets.bottom, 16) + 96;
   const [alarms, setAlarms] = useState<Alarm[]>([]);
   const [health, setHealth] = useState<AlarmHealth | null>(null);
   const [editing, setEditing] = useState<Alarm | null>(null);
   const [editorOpen, setEditorOpen] = useState(false);
   const [note, setNote] = useState<string | null>(null);
+  const [localIsGridView, setLocalIsGridView] = useState(true);
+  const effectiveIsGridView = isGridView ?? localIsGridView;
+  const lastCreateTriggerRef = useRef(createTrigger ?? 0);
   const [use24h] = useState(() => {
     try {
       return userStore.get24HourFormat(userId);
@@ -103,6 +142,17 @@ export const AlarmsView: React.FC<AlarmsViewProps> = ({
       return false;
     }
   });
+
+  useEffect(() => {
+    if (
+      createTrigger !== undefined &&
+      createTrigger !== lastCreateTriggerRef.current
+    ) {
+      lastCreateTriggerRef.current = createTrigger;
+      setEditing(null);
+      setEditorOpen(true);
+    }
+  }, [createTrigger]);
 
   const load = useCallback(() => {
     try {
@@ -179,29 +229,343 @@ export const AlarmsView: React.FC<AlarmsViewProps> = ({
     );
   };
 
-  return (
-    <View style={styles.container} testID="alarms-view">
-      <ScrollView contentContainerStyle={styles.content}>
+  const enabledCount = alarms.filter(alarm => alarm.enabled).length;
+  const now = new Date();
+  const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const weekSunday = new Date(todayStart);
+  weekSunday.setDate(todayStart.getDate() - todayStart.getDay());
+  const weekColumns = SHORT_WEEKDAYS.map((dayLabel, offset) => {
+    const dayDate = new Date(
+      weekSunday.getFullYear(),
+      weekSunday.getMonth(),
+      weekSunday.getDate() + offset,
+    );
+    const isToday = dayDate.getTime() === todayStart.getTime();
+    const dayBit = bitForDate(dayDate);
+    const hasAlarm = alarms.some(alarm => {
+      if (!alarm.enabled) return false;
+      if (alarm.repeatDays > 0) return (alarm.repeatDays & dayBit) !== 0;
+      const upcoming = nextAlarmTrigger(alarm);
+      if (!upcoming) return false;
+      return (
+        upcoming.getFullYear() === dayDate.getFullYear() &&
+        upcoming.getMonth() === dayDate.getMonth() &&
+        upcoming.getDate() === dayDate.getDate()
+      );
+    });
+    return {dayLabel, dayDate, isToday, hasAlarm};
+  });
+
+  const todayCircleBg = palette.isDarkMode ? palette.text : palette.darkInkBtn;
+  const todayCircleIcon = palette.isDarkMode ? palette.bg : '#FFFFFF';
+  const labelTileBg = palette.isDarkMode ? palette.surface : modernPalette.softViolet;
+  const repeatTileBg = palette.isDarkMode ? palette.surface : palette.blueSoft;
+  const repeatTileInk = palette.isDarkMode ? palette.accent : modernPalette.blueInk;
+  const cardSurfaceStyle = [
+    {
+      backgroundColor: palette.card,
+      borderColor: palette.isDarkMode ? palette.border : 'transparent',
+      borderWidth: palette.isDarkMode ? 1 : 0,
+    },
+    !palette.isDarkMode && scheduleCardShadow,
+  ];
+
+  const renderAlarmItem = (alarm: Alarm) => {
+    const repeatText = describeRepeat(alarm.repeatDays);
+    const labelText = alarm.label?.trim() || '';
+    const timeText = formatAlarmTime(alarm.hour, alarm.minute, use24h);
+    const openEditor = () => {
+      setEditing(alarm);
+      setEditorOpen(true);
+    };
+    const rowLabel = `Alarm ${timeText}, ${repeatText}${
+      labelText ? `, ${labelText}` : ''
+    }, ${alarm.enabled ? 'on' : 'off'}. Edit`;
+    const switchNode = (
+      <Switch
+        testID={`alarm-switch-${alarm.id}`}
+        value={alarm.enabled}
+        onValueChange={value => toggle(alarm, value)}
+        trackColor={{
+          false: palette.surface,
+          true: palette.accent,
+        }}
+        thumbColor="#FFFFFF"
+        accessibilityLabel={`Alarm ${timeText} on`}
+      />
+    );
+
+    if (effectiveIsGridView) {
+      return (
         <View
-          style={[
-            styles.nextCard,
-            {backgroundColor: colors.cardBg, borderColor: colors.border},
-          ]}
+          key={alarm.id}
+          testID={`alarm-grid-card-${alarm.id}`}
+          style={[styles.alarmGridCard, cardSurfaceStyle]}
         >
-          <AlarmClock size={22} color={colors.red} />
-          <Text
-            style={[styles.nextText, {color: colors.textPrimary}]}
-            testID="alarms-next"
+          <View style={styles.alarmGridTopRow}>
+            <TouchableOpacity
+              style={styles.alarmGridRepeatTouch}
+              onPress={openEditor}
+              onLongPress={() => remove(alarm)}
+              activeOpacity={0.7}
+            >
+              <Text
+                style={[
+                  styles.alarmGridRepeat,
+                  {color: alarm.enabled ? palette.accent : palette.muted},
+                ]}
+                numberOfLines={1}
+              >
+                {repeatText}
+              </Text>
+            </TouchableOpacity>
+            {switchNode}
+          </View>
+          <TouchableOpacity
+            testID={`alarm-row-${alarm.id}`}
+            style={styles.alarmGridBody}
+            onPress={openEditor}
+            onLongPress={() => remove(alarm)}
+            activeOpacity={0.7}
+            accessibilityRole="button"
+            accessibilityLabel={rowLabel}
           >
-            {next
-              ? `Next alarm ${describeTimeUntil(next.at)} · ${formatAlarmTime(
-                  next.alarm.hour,
-                  next.alarm.minute,
-                  use24h,
-                )}`
-              : 'No alarm is on.'}
-          </Text>
+            <Text
+              style={[
+                styles.alarmGridTime,
+                {color: alarm.enabled ? palette.text : palette.muted},
+              ]}
+              numberOfLines={1}
+              adjustsFontSizeToFit
+              minimumFontScale={0.8}
+            >
+              {timeText}
+            </Text>
+            <Text
+              style={[styles.alarmGridLabel, {color: palette.muted}]}
+              numberOfLines={1}
+            >
+              {labelText || 'Alarm'}
+            </Text>
+          </TouchableOpacity>
         </View>
+      );
+    }
+
+    return (
+      <View key={alarm.id} style={[styles.alarmCard, cardSurfaceStyle]}>
+        <TouchableOpacity
+          testID={`alarm-row-${alarm.id}`}
+          style={styles.rowText}
+          onPress={openEditor}
+          onLongPress={() => remove(alarm)}
+          accessibilityRole="button"
+          accessibilityLabel={rowLabel}
+        >
+          <Text
+            style={[
+              styles.rowTime,
+              {
+                color: alarm.enabled ? palette.text : palette.muted,
+              },
+            ]}
+          >
+            {timeText}
+          </Text>
+          <Text style={styles.rowSub} numberOfLines={1}>
+            <Text
+              style={{
+                color: alarm.enabled ? palette.accent : palette.muted,
+                fontWeight: '600',
+              }}
+            >
+              {repeatText}
+            </Text>
+            {labelText ? (
+              <Text style={{color: palette.muted}}>{` · ${labelText}`}</Text>
+            ) : null}
+          </Text>
+        </TouchableOpacity>
+        {switchNode}
+      </View>
+    );
+  };
+
+  return (
+    <View style={[styles.container, {backgroundColor: palette.bg}]} testID="alarms-view">
+      <ScrollView
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={[
+          styles.content,
+          {paddingTop: showHeader ? 6 : 0, paddingBottom: scrollBottomPad},
+        ]}
+      >
+        {showHeader && (
+          <View style={styles.headerRow}>
+            <View style={styles.headerTitleGroup}>
+              <Text style={[styles.headerTitle, {color: palette.text}]}>
+                Alarms
+              </Text>
+              <Text style={[styles.headerSubtitle, {color: palette.muted}]}>
+                {`${enabledCount} active`}
+              </Text>
+            </View>
+            <View style={styles.headerActions}>
+              <TouchableOpacity
+                testID="alarm-view-toggle"
+                onPress={() => setLocalIsGridView(prev => !prev)}
+                accessibilityRole="button"
+                accessibilityLabel={
+                  effectiveIsGridView
+                    ? 'Switch to list view'
+                    : 'Switch to grid view'
+                }
+                style={[
+                  styles.circleToggleBtn,
+                  {backgroundColor: palette.surface},
+                ]}
+              >
+                {effectiveIsGridView ? (
+                  <List size={17} color={palette.text} />
+                ) : (
+                  <Grid size={17} color={palette.text} />
+                )}
+              </TouchableOpacity>
+              <TouchableOpacity
+                testID="alarm-add-button"
+                onPress={() => {
+                  setEditing(null);
+                  setEditorOpen(true);
+                }}
+                accessibilityRole="button"
+                accessibilityLabel="Add alarm"
+                activeOpacity={0.85}
+                style={[styles.circleAddBtn, {backgroundColor: palette.accent}]}
+              >
+                <Plus size={20} color="#FFFFFF" strokeWidth={2.4} />
+              </TouchableOpacity>
+            </View>
+          </View>
+        )}
+
+        <View style={[styles.weekCard, cardSurfaceStyle]}>
+          {weekColumns.map(col => {
+            const circleBg = col.isToday
+              ? todayCircleBg
+              : col.hasAlarm
+                ? palette.accent
+                : palette.surface;
+            const iconColor = col.isToday
+              ? todayCircleIcon
+              : col.hasAlarm
+                ? '#FFFFFF'
+                : palette.muted;
+            const pillState = col.isToday ? 'today' : col.hasAlarm ? 'active' : 'idle';
+
+            return (
+              <View key={col.dayLabel} style={styles.weekCol}>
+                <Text
+                  style={[
+                    styles.weekDayText,
+                    {
+                      color: col.isToday ? palette.text : palette.muted,
+                      fontWeight: col.isToday ? '700' : '500',
+                    },
+                  ]}
+                >
+                  {col.dayLabel}
+                </Text>
+                <View
+                  key={`alarm-day-${col.dayLabel}-${pillState}`}
+                  collapsable={false}
+                  style={[styles.weekCircle, {backgroundColor: circleBg}]}
+                >
+                  <AlarmClock size={16} color={iconColor} />
+                </View>
+              </View>
+            );
+          })}
+        </View>
+
+        <Text style={[styles.sectionLabel, {color: palette.text}]}>
+          Next Alarm
+        </Text>
+
+        {next ? (
+          <TouchableOpacity
+            testID="alarms-next"
+            activeOpacity={0.85}
+            onPress={() => {
+              setEditing(next.alarm);
+              setEditorOpen(true);
+            }}
+            style={[
+              styles.nextCard,
+              {
+                backgroundColor: palette.card,
+                borderColor: palette.isDarkMode ? palette.border : 'transparent',
+                borderWidth: palette.isDarkMode ? 1 : 0,
+              },
+              !palette.isDarkMode && scheduleCardShadow,
+            ]}
+          >
+            <View style={styles.nextTopRow}>
+              <View style={styles.nextLeft}>
+                <Text style={[styles.nextDayLabel, {color: palette.accent}]}>
+                  {formatRelativeAlarmDay(next.at)}
+                </Text>
+                <Text style={[styles.nextCountdown, {color: palette.muted}]}>
+                  {`Rings ${describeTimeUntil(next.at)}`}
+                </Text>
+              </View>
+              <Text style={[styles.nextBigTime, {color: palette.text}]}>
+                {formatAlarmTime(next.alarm.hour, next.alarm.minute, use24h)}
+              </Text>
+            </View>
+            <View style={styles.nextTilesRow}>
+              <View style={[styles.nextTile, {backgroundColor: labelTileBg}]}>
+                <Text style={[styles.nextTileLabel, {color: palette.accent}]}>
+                  LABEL
+                </Text>
+                <Text
+                  style={[styles.nextTileValue, {color: palette.text}]}
+                  numberOfLines={2}
+                >
+                  {next.alarm.label?.trim() || 'Alarm'}
+                </Text>
+              </View>
+              <View style={[styles.nextTile, {backgroundColor: repeatTileBg}]}>
+                <Text style={[styles.nextTileLabel, {color: repeatTileInk}]}>
+                  REPEAT
+                </Text>
+                <Text
+                  style={[styles.nextTileValue, {color: palette.text}]}
+                  numberOfLines={2}
+                >
+                  {describeRepeat(next.alarm.repeatDays)}
+                </Text>
+              </View>
+            </View>
+          </TouchableOpacity>
+        ) : (
+          <View
+            testID="alarms-next"
+            style={[
+              styles.nextEmptyCard,
+              {
+                backgroundColor: palette.card,
+                borderColor: palette.isDarkMode ? palette.border : 'transparent',
+                borderWidth: palette.isDarkMode ? 1 : 0,
+              },
+              !palette.isDarkMode && scheduleCardShadow,
+            ]}
+          >
+            <AlarmClock size={20} color={palette.muted} />
+            <Text style={[styles.nextEmptyText, {color: palette.muted}]}>
+              No alarm is on.
+            </Text>
+          </View>
+        )}
 
         {issues.map(issue => (
           <View
@@ -209,131 +573,76 @@ export const AlarmsView: React.FC<AlarmsViewProps> = ({
             accessibilityRole="alert"
             style={[
               styles.issue,
-              {borderColor: colors.warning, backgroundColor: colors.inputBg},
+              {
+                borderColor: colors.warning,
+                backgroundColor: palette.card,
+              },
             ]}
           >
             <TriangleAlert size={18} color={colors.warning} />
-            <Text style={[styles.issueText, {color: colors.textPrimary}]}>
+            <Text style={[styles.issueText, {color: palette.text}]}>
               {issue.text}
             </Text>
             <TouchableOpacity
               onPress={issue.onPress}
               accessibilityRole="button"
               accessibilityLabel={`${issue.action}: ${issue.text}`}
-              style={[styles.issueButton, {borderColor: colors.border}]}
+              style={[styles.issueButton, {borderColor: palette.border}]}
             >
-              <Text style={[styles.issueAction, {color: colors.red}]}>
+              <Text style={[styles.issueAction, {color: palette.danger}]}>
                 {issue.action}
               </Text>
             </TouchableOpacity>
           </View>
         ))}
 
-        {alarms.length === 0 ? (
-          <Text style={[styles.empty, {color: colors.textSecondary}]}>
-            No alarms yet. Tap Add alarm, or ask LAFINA: “wake me up at 6 on
-            weekdays”.
+        <View style={styles.sectionHeaderRow}>
+          <Text style={[styles.sectionLabel, {color: palette.text}]}>
+            All alarms
           </Text>
-        ) : (
-          alarms.map(alarm => {
-            const upcoming = nextAlarmTrigger(alarm);
-            return (
-              <TouchableOpacity
-                key={alarm.id}
-                testID={`alarm-row-${alarm.id}`}
-                onPress={() => {
-                  setEditing(alarm);
-                  setEditorOpen(true);
-                }}
-                onLongPress={() => remove(alarm)}
-                accessibilityRole="button"
-                accessibilityLabel={`Alarm ${formatAlarmTime(
-                  alarm.hour,
-                  alarm.minute,
-                  use24h,
-                )}, ${describeRepeat(alarm.repeatDays)}${
-                  alarm.label ? `, ${alarm.label}` : ''
-                }, ${alarm.enabled ? 'on' : 'off'}. Edit`}
-                style={[
-                  styles.row,
-                  {backgroundColor: colors.cardBg, borderColor: colors.border},
-                ]}
-              >
-                <View style={styles.rowText}>
-                  <Text
-                    style={[
-                      styles.rowTime,
-                      {
-                        color: alarm.enabled
-                          ? colors.textPrimary
-                          : colors.textMuted,
-                      },
-                    ]}
-                  >
-                    {formatAlarmTime(alarm.hour, alarm.minute, use24h)}
-                  </Text>
-                  <Text
-                    style={[styles.rowSub, {color: colors.textSecondary}]}
-                    numberOfLines={1}
-                  >
-                    {[
-                      alarm.label,
-                      describeRepeat(alarm.repeatDays),
-                      alarm.enabled && upcoming
-                        ? describeTimeUntil(upcoming)
-                        : null,
-                    ]
-                      .filter(Boolean)
-                      .join(' · ')}
-                  </Text>
-                </View>
-                <Switch
-                  testID={`alarm-switch-${alarm.id}`}
-                  value={alarm.enabled}
-                  onValueChange={value => toggle(alarm, value)}
-                  trackColor={{false: colors.switchTrackOff, true: colors.red}}
-                  thumbColor={colors.switchThumb}
-                  accessibilityLabel={`Alarm ${formatAlarmTime(
-                    alarm.hour,
-                    alarm.minute,
-                    use24h,
-                  )} on`}
-                />
-              </TouchableOpacity>
-            );
-          })
-        )}
+          {!showHeader && (
+            <Text style={[styles.headerSubtitle, {color: palette.muted}]}>
+              {`${enabledCount} active`}
+            </Text>
+          )}
+        </View>
 
-        <TouchableOpacity
-          testID="alarm-add-button"
-          onPress={() => {
-            setEditing(null);
-            setEditorOpen(true);
-          }}
-          accessibilityRole="button"
-          accessibilityLabel="Add alarm"
-          style={[
-            styles.addButton,
-            {backgroundColor: colors.red, borderColor: colors.red},
-          ]}
-        >
-          <AlarmClockPlus size={20} color={colors.white} />
-          <Text style={[styles.addText, {color: colors.white}]}>Add alarm</Text>
-        </TouchableOpacity>
+        {alarms.length === 0 ? (
+          <View style={[styles.emptyCard, cardSurfaceStyle]}>
+            <Text style={[styles.empty, {color: palette.muted}]}>
+              No alarms yet. Tap + to add one, or ask LAFINA: “wake me up at 6
+              on weekdays”.
+            </Text>
+          </View>
+        ) : (
+          <View
+            testID="alarms-list"
+            style={effectiveIsGridView ? styles.alarmsGrid : styles.alarmsList}
+          >
+            {alarms.map(renderAlarmItem)}
+          </View>
+        )}
 
         <TouchableOpacity
           testID="alarm-test-button"
           onPress={() => void test()}
           accessibilityRole="button"
           accessibilityLabel="Ring a test alarm in 1 minute"
-          style={[styles.testButton, {borderColor: colors.border}]}
+          style={[
+            styles.testButton,
+            {
+              backgroundColor: palette.card,
+              borderColor: palette.border,
+            },
+          ]}
         >
-          <Text style={[styles.testText, {color: colors.textPrimary}]}>
+          <BellRing size={15} color={palette.accent} />
+          <Text style={[styles.testText, {color: palette.text}]}>
             Test alarm in 1 minute
           </Text>
         </TouchableOpacity>
         {note && (
-          <Text style={[styles.note, {color: colors.textSecondary}]}>
+          <Text style={[styles.note, {color: palette.muted}]}>
             {note}
           </Text>
         )}
@@ -352,68 +661,262 @@ export const AlarmsView: React.FC<AlarmsViewProps> = ({
 };
 
 const styles = StyleSheet.create({
-  container: {flex: 1},
-  content: {padding: Spacing.lg, paddingBottom: 140, gap: Spacing.md},
-  nextCard: {
+  container: {
+    flex: 1,
+  },
+  content: {
+    paddingTop: 6,
+    gap: 12,
+  },
+  headerRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: Spacing.md,
-    padding: Spacing.lg,
-    borderRadius: Layout.borderRadiusCard,
-    borderWidth: StyleSheet.hairlineWidth,
+    justifyContent: 'space-between',
+    marginBottom: 2,
   },
-  nextText: {flex: 1, fontFamily: Fonts.heading, fontSize: FontSize.bodyLarge},
+  headerTitleGroup: {
+    flexDirection: 'row',
+    alignItems: 'baseline',
+    gap: 8,
+  },
+  headerTitle: {
+    fontSize: 24,
+    fontWeight: '800',
+    letterSpacing: -0.4,
+  },
+  headerSubtitle: {
+    fontSize: 13,
+    fontWeight: '500',
+  },
+  headerActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  circleToggleBtn: {
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  circleAddBtn: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    overflow: 'hidden',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  sectionHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'baseline',
+    justifyContent: 'space-between',
+  },
+  weekCard: {
+    borderRadius: 22,
+    paddingVertical: 14,
+    paddingHorizontal: 10,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  weekCol: {
+    flex: 1,
+    alignItems: 'center',
+  },
+  weekDayText: {
+    fontSize: 12,
+    marginBottom: 8,
+  },
+  weekCircle: {
+    width: 34,
+    height: 34,
+    borderRadius: 17,
+    overflow: 'hidden',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  sectionLabel: {
+    fontSize: 17,
+    fontWeight: '700',
+    letterSpacing: -0.2,
+    marginTop: 4,
+  },
+  nextCard: {
+    borderRadius: 24,
+    padding: 18,
+  },
+  nextTopRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    justifyContent: 'space-between',
+  },
+  nextLeft: {
+    flex: 1,
+    marginRight: 12,
+  },
+  nextDayLabel: {
+    fontSize: 15,
+    fontWeight: '700',
+  },
+  nextCountdown: {
+    fontSize: 13,
+    marginTop: 3,
+  },
+  nextBigTime: {
+    fontSize: 28,
+    fontWeight: '800',
+    letterSpacing: -0.6,
+  },
+  nextTilesRow: {
+    flexDirection: 'row',
+    gap: 10,
+    marginTop: 14,
+  },
+  nextTile: {
+    flex: 1,
+    borderRadius: 16,
+    paddingHorizontal: 12,
+    paddingVertical: 11,
+  },
+  nextTileLabel: {
+    fontSize: 11,
+    fontWeight: '700',
+    letterSpacing: 0.5,
+  },
+  nextTileValue: {
+    fontSize: 14,
+    fontWeight: '600',
+    marginTop: 4,
+  },
+  nextEmptyCard: {
+    borderRadius: 22,
+    padding: 18,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+  },
+  nextEmptyText: {
+    fontSize: 14,
+    fontWeight: '500',
+  },
   issue: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: Spacing.sm,
-    padding: Spacing.md,
-    borderRadius: Layout.borderRadiusButton,
+    gap: 10,
+    padding: 14,
+    borderRadius: 18,
     borderWidth: 1,
   },
-  issueText: {flex: 1, fontFamily: Fonts.body, fontSize: FontSize.body},
+  issueText: {
+    flex: 1,
+    fontSize: 13,
+    lineHeight: 18,
+  },
   issueButton: {
-    minHeight: 40,
-    paddingHorizontal: Spacing.md,
-    borderRadius: Layout.borderRadiusPill,
+    minHeight: 36,
+    paddingHorizontal: 12,
+    borderRadius: 18,
     borderWidth: 1,
     justifyContent: 'center',
   },
-  issueAction: {fontFamily: Fonts.heading, fontSize: FontSize.body},
+  issueAction: {
+    fontSize: 13,
+    fontWeight: '700',
+  },
+  emptyCard: {
+    borderRadius: 22,
+    paddingVertical: 28,
+    paddingHorizontal: 18,
+    alignItems: 'center',
+  },
   empty: {
-    fontFamily: Fonts.body,
-    fontSize: FontSize.bodyLarge,
+    fontSize: 14,
+    lineHeight: 20,
     textAlign: 'center',
-    paddingVertical: Spacing.xxl,
   },
-  row: {
+  alarmCard: {
     flexDirection: 'row',
     alignItems: 'center',
-    padding: Spacing.lg,
-    borderRadius: Layout.borderRadiusCard,
-    borderWidth: StyleSheet.hairlineWidth,
+    paddingVertical: 16,
+    paddingHorizontal: 18,
+    borderRadius: 22,
   },
-  rowText: {flex: 1, paddingRight: Spacing.md},
-  rowTime: {fontFamily: Fonts.heading, fontSize: FontSize.hero},
-  rowSub: {fontFamily: Fonts.body, fontSize: FontSize.body, marginTop: 2},
-  addButton: {
+  alarmsList: {
+    gap: 12,
+  },
+  alarmsGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'space-between',
+    rowGap: 10,
+  },
+  alarmGridCard: {
+    width: '48.3%',
+    borderRadius: 20,
+    padding: 14,
+    justifyContent: 'space-between',
+    minHeight: 118,
+  },
+  alarmGridTopRow: {
     flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 6,
+    marginBottom: 10,
+  },
+  alarmGridRepeatTouch: {
+    flex: 1,
+    minWidth: 0,
     justifyContent: 'center',
-    gap: Spacing.sm,
-    minHeight: 52,
-    borderRadius: Layout.borderRadiusPill,
-    borderWidth: 1,
-    marginTop: Spacing.sm,
   },
-  addText: {fontFamily: Fonts.heading, fontSize: FontSize.bodyLarge},
+  alarmGridRepeat: {
+    fontSize: 12,
+    fontWeight: '600',
+  },
+  alarmGridBody: {
+    gap: 2,
+  },
+  alarmGridTime: {
+    fontSize: 22,
+    fontWeight: '800',
+    letterSpacing: -0.5,
+  },
+  alarmGridLabel: {
+    fontSize: 12.5,
+    fontWeight: '500',
+  },
+  rowText: {
+    flex: 1,
+    paddingRight: 12,
+  },
+  rowTime: {
+    fontSize: 24,
+    fontWeight: '800',
+    letterSpacing: -0.4,
+  },
+  rowSub: {
+    fontSize: 13,
+    marginTop: 3,
+  },
   testButton: {
-    minHeight: 48,
-    borderRadius: Layout.borderRadiusPill,
+    minHeight: 44,
+    borderRadius: 22,
     borderWidth: 1,
+    flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
+    gap: 8,
+    marginTop: 4,
   },
-  testText: {fontFamily: Fonts.body, fontSize: FontSize.body},
-  note: {fontFamily: Fonts.body, fontSize: FontSize.small, textAlign: 'center'},
+  testText: {
+    fontSize: 13,
+    fontWeight: '600',
+  },
+  note: {
+    fontSize: 12,
+    textAlign: 'center',
+    marginTop: 2,
+  },
 });

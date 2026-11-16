@@ -86,7 +86,7 @@ describe('Phase 01 Theme, SynthWave, ProductTour & CustomTabBar', () => {
     expect(onTabPress).toHaveBeenCalledWith('dashboard');
     fireEvent.press(getByLabelText('Schedule tab'));
     expect(onTabPress).toHaveBeenCalledWith('calendar');
-    fireEvent.press(getByLabelText('Notes tab'));
+    fireEvent.press(getByLabelText('Tools tab'));
     expect(onTabPress).toHaveBeenCalledWith('notes');
 
     fireEvent.press(getByLabelText('AI tab'));
@@ -98,13 +98,13 @@ describe('Phase 01 Theme, SynthWave, ProductTour & CustomTabBar', () => {
     expect(queryByLabelText('Voice Action button')).toBeNull();
   });
 
-  test('tab redesign T1: Home | Schedule | AI | Notes | Profile, AI in the centre', () => {
+  test('tab redesign T1: Home | Schedule | AI | Tools | Profile, AI in the centre', () => {
     const {TAB_ORDER, TAB_LABELS} = require('../../src/ui/components/CustomTabBar');
     expect(TAB_ORDER.map((t: string) => TAB_LABELS[t])).toEqual([
       'Home',
       'Schedule',
       'AI',
-      'Notes',
+      'Tools',
       'Profile',
     ]);
     expect(TAB_ORDER[2]).toBe('chat');

@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, {useState, useRef, useEffect} from 'react';
 import {
   View,
   TextInput,
@@ -12,11 +12,11 @@ import {
   Alert,
   GestureResponderEvent,
 } from 'react-native';
-import { Mic, Plus, Send, Sparkles, X } from 'lucide-react-native';
-import { Fonts, Shadows } from '../../theme';
-import { useTheme } from '../../contexts/ThemeContext';
-import { useThemedStyles } from '../../theme/createThemedStyles';
-import type { ThemeColors } from '../../contexts/ThemeContext';
+import {Mic, Phone, Plus, Send, Sparkles, X} from 'lucide-react-native';
+import {Fonts, Shadows} from '../../theme';
+import {useTheme} from '../../contexts/ThemeContext';
+import {useThemedStyles} from '../../theme/createThemedStyles';
+import type {ThemeColors} from '../../contexts/ThemeContext';
 import {
   sttService,
   type OfflineSpeechCaptureHandle,
@@ -28,6 +28,7 @@ export interface ChatInputProps {
   onSend: (overrideText?: string) => void;
   isSending?: boolean;
   isOnlineMode?: boolean;
+  onCallLafina?: () => void;
   onOpenFormatPicker?: () => void;
   onSelectPrompt?: (prompt: string) => void;
   showSuggestions?: boolean;
@@ -83,19 +84,22 @@ export const ChatInput: React.FC<ChatInputProps> = ({
   onSend,
   isSending = false,
   isOnlineMode = false,
+  onCallLafina,
   onOpenFormatPicker,
   onSelectPrompt,
   showSuggestions = false,
   placeholderOverride,
   onFocus,
 }) => {
-  const { colors } = useTheme();
+  const {colors, isModern, modernPalette, modernShadows} = useTheme();
   const themed = useThemedStyles(getThemedStyles);
   const placeholder = placeholderOverride
     ? placeholderOverride
+    : isModern
+    ? 'Ask me anything...'
     : isOnlineMode
-      ? 'Ask lafina or manage calendar, notes & to-do…'
-      : 'Ask lafina or add a schedule, note, or to-do…';
+    ? 'Ask lafina or manage calendar, notes & to-do…'
+    : 'Ask lafina or add a schedule, note, or to-do…';
 
   const [isRecording, setIsRecording] = useState(false);
   const [isTranscribing, setIsTranscribing] = useState(false);
@@ -190,7 +194,9 @@ export const ChatInput: React.FC<ChatInputProps> = ({
       // Immediately cancel native recording in background so no speech is captured
       const handle = activeCaptureRef.current;
       if (handle) {
-        void sttService.cancelListening(handle.captureId).catch(() => undefined);
+        void sttService
+          .cancelListening(handle.captureId)
+          .catch(() => undefined);
       }
     }
   };
@@ -282,7 +288,10 @@ export const ChatInput: React.FC<ChatInputProps> = ({
 
       const text = result.transcript ? result.transcript.trim() : '';
       if (!text || isHallucinatedSpeech(text)) {
-        console.log('[ChatInput] Discarding empty or hallucinated speech artifact:', text);
+        console.log(
+          '[ChatInput] Discarding empty or hallucinated speech artifact:',
+          text,
+        );
         return;
       }
 
@@ -294,7 +303,13 @@ export const ChatInput: React.FC<ChatInputProps> = ({
   };
 
   return (
-    <View style={[styles.container, themed.container]}>
+    <View
+      style={[
+        styles.container,
+        themed.container,
+        isModern && styles.modernContainer,
+      ]}
+    >
       {showSuggestions && !inputText && (
         <ScrollView
           horizontal
@@ -323,12 +338,29 @@ export const ChatInput: React.FC<ChatInputProps> = ({
         </ScrollView>
       )}
 
-      <View style={styles.inputRow}>
+      <View
+        testID="chat-composer-input-row"
+        style={[
+          styles.inputRow,
+          isModern && [
+            styles.modernInputPill,
+            modernShadows.card,
+            {
+              backgroundColor: modernPalette.card,
+              borderColor: modernPalette.border,
+            },
+          ],
+        ]}
+      >
         {onOpenFormatPicker && (
           <TouchableOpacity
             style={[
               styles.attachButton,
               themed.attachButton,
+              isModern && {
+                backgroundColor: modernPalette.softViolet,
+                borderWidth: 0,
+              },
             ]}
             onPress={onOpenFormatPicker}
             disabled={isSending || isRecording || isTranscribing}
@@ -338,13 +370,23 @@ export const ChatInput: React.FC<ChatInputProps> = ({
           >
             <Plus
               size={20}
-              color={colors.textSecondary}
+              color={isModern ? modernPalette.accent : colors.textSecondary}
             />
           </TouchableOpacity>
         )}
 
         {isRecording || isTranscribing ? (
-          <View style={[styles.recordingContainer, themed.recordingContainer]}>
+          <View
+            style={[
+              styles.recordingContainer,
+              themed.recordingContainer,
+              isModern && {
+                backgroundColor: 'transparent',
+                borderWidth: 0,
+                paddingHorizontal: 8,
+              },
+            ]}
+          >
             {isTranscribing ? (
               <View style={styles.recordingStatusRow}>
                 <ActivityIndicator size="small" color={colors.primary} />
@@ -355,24 +397,31 @@ export const ChatInput: React.FC<ChatInputProps> = ({
             ) : isCancelled ? (
               <View style={styles.recordingStatusRow}>
                 <X size={15} color={colors.red} />
-                <Text style={[styles.recordingCancelText, { color: colors.red }]}>
+                <Text style={[styles.recordingCancelText, {color: colors.red}]}>
                   Release to cancel
                 </Text>
               </View>
             ) : (
               <View style={styles.recordingStatusRow}>
-                <View style={[styles.recordingDot, { backgroundColor: colors.red }]} />
+                <View
+                  style={[styles.recordingDot, {backgroundColor: colors.red}]}
+                />
                 <Text style={[styles.recordingText, themed.recordingText]}>
                   Listening…
                 </Text>
                 <TouchableOpacity
                   onPress={handleManualCancel}
-                  hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                  hitSlop={{top: 8, bottom: 8, left: 8, right: 8}}
                   accessibilityRole="button"
                   accessibilityLabel="Cancel recording"
                   style={styles.cancelTapTarget}
                 >
-                  <Text style={[styles.cancelHintText, { color: colors.textSecondary }]}>
+                  <Text
+                    style={[
+                      styles.cancelHintText,
+                      {color: colors.textSecondary},
+                    ]}
+                  >
                     slide ← cancel
                   </Text>
                 </TouchableOpacity>
@@ -381,11 +430,19 @@ export const ChatInput: React.FC<ChatInputProps> = ({
           </View>
         ) : (
           <TextInput
-            style={[styles.input, themed.input]}
+            style={[
+              styles.input,
+              themed.input,
+              isModern && styles.modernTextInput,
+            ]}
             placeholder={placeholder}
-            placeholderTextColor={colors.textSecondary}
-            cursorColor={colors.primary}
-            selectionColor={colors.primary + '40'}
+            placeholderTextColor={
+              isModern ? modernPalette.muted : colors.textSecondary
+            }
+            cursorColor={isModern ? modernPalette.accent : colors.primary}
+            selectionColor={
+              (isModern ? modernPalette.accent : colors.primary) + '40'
+            }
             value={inputText}
             onChangeText={setInputText}
             onFocus={onFocus}
@@ -402,7 +459,12 @@ export const ChatInput: React.FC<ChatInputProps> = ({
             onPress={() => onSend()}
             style={[
               styles.sendButton,
-              { backgroundColor: colors.primary },
+              isModern && modernShadows.subtle,
+              {
+                backgroundColor: isModern
+                  ? modernPalette.accent
+                  : colors.primary,
+              },
               isSending && styles.sendDisabled,
             ]}
             disabled={isSending}
@@ -410,50 +472,85 @@ export const ChatInput: React.FC<ChatInputProps> = ({
             accessibilityLabel="Send message"
             testID="chat-send-button"
           >
-            <Send size={18} color={colors.textOnPrimary} />
+            <Send size={18} color="#FFFFFF" />
           </TouchableOpacity>
         ) : (
-          <Pressable
-            onPressIn={handleMicPressIn}
-            onPressOut={handleMicPressOut}
-            onTouchMove={handleTouchMove}
-            onTouchCancel={handleTouchCancel}
-            onResponderTerminate={handleTouchCancel}
-            style={({ pressed }) => [
-              styles.sendButton,
-              isRecording
-                ? [
-                    styles.micButtonRecording,
-                    {
-                      backgroundColor: isCancelled
-                        ? colors.border
-                        : colors.red,
-                    },
-                  ]
-                : [styles.micButtonIdle, themed.micButtonIdle],
-              (isSending || isTranscribing) && styles.sendDisabled,
-              pressed && { opacity: 0.8 },
-            ]}
-            disabled={isSending || isTranscribing}
-            accessibilityRole="button"
-            accessibilityLabel={isCancelled ? 'Cancelled' : 'Hold to speak'}
-            testID="chat-mic-button"
-          >
-            {isTranscribing ? (
-              <ActivityIndicator size="small" color={colors.primary} />
-            ) : isCancelled ? (
-              <X size={20} color={colors.red} />
-            ) : (
-              <Mic
-                size={20}
-                color={
-                  isRecording
-                    ? colors.textOnPrimary || '#ffffff'
-                    : colors.textPrimary
-                }
-              />
+          <>
+            {!isRecording && !isTranscribing && onCallLafina && (
+              <TouchableOpacity
+                onPress={onCallLafina}
+                style={[
+                  styles.callButton,
+                  isModern
+                    ? {
+                        backgroundColor: modernPalette.surface,
+                        borderColor: modernPalette.border,
+                        borderWidth: 1,
+                      }
+                    : [styles.micButtonIdle, themed.micButtonIdle],
+                ]}
+                accessibilityRole="button"
+                accessibilityLabel="Call Lafina"
+                testID="chat-call-lafina-button"
+              >
+                <Phone
+                  size={18}
+                  color={isModern ? modernPalette.accent : colors.primary}
+                />
+              </TouchableOpacity>
             )}
-          </Pressable>
+
+            <Pressable
+              onPressIn={handleMicPressIn}
+              onPressOut={handleMicPressOut}
+              onTouchMove={handleTouchMove}
+              onTouchCancel={handleTouchCancel}
+              onResponderTerminate={handleTouchCancel}
+              style={({pressed}) => [
+                styles.sendButton,
+                isRecording
+                  ? [
+                      styles.micButtonRecording,
+                      {
+                        backgroundColor: isCancelled
+                          ? colors.border
+                          : colors.red,
+                      },
+                    ]
+                  : isModern
+                  ? {
+                      backgroundColor: modernPalette.softViolet,
+                      borderWidth: 0,
+                      shadowOpacity: 0,
+                      elevation: 0,
+                    }
+                  : [styles.micButtonIdle, themed.micButtonIdle],
+                (isSending || isTranscribing) && styles.sendDisabled,
+                pressed && {opacity: 0.8},
+              ]}
+              disabled={isSending || isTranscribing}
+              accessibilityRole="button"
+              accessibilityLabel={isCancelled ? 'Cancelled' : 'Hold to speak'}
+              testID="chat-mic-button"
+            >
+              {isTranscribing ? (
+                <ActivityIndicator size="small" color={colors.primary} />
+              ) : isCancelled ? (
+                <X size={20} color={colors.red} />
+              ) : (
+                <Mic
+                  size={20}
+                  color={
+                    isRecording
+                      ? '#ffffff'
+                      : isModern
+                      ? modernPalette.accent
+                      : colors.textPrimary
+                  }
+                />
+              )}
+            </Pressable>
+          </>
         )}
       </View>
     </View>
@@ -467,6 +564,14 @@ const styles = StyleSheet.create({
     paddingBottom: 8,
     borderTopWidth: StyleSheet.hairlineWidth,
     borderBottomWidth: StyleSheet.hairlineWidth,
+  },
+  modernContainer: {
+    backgroundColor: 'transparent',
+    borderTopWidth: 0,
+    borderBottomWidth: 0,
+    paddingHorizontal: 16,
+    paddingTop: 4,
+    paddingBottom: 6,
   },
   suggestionsScroll: {
     paddingBottom: 6,
@@ -508,6 +613,22 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
+  },
+  modernInputPill: {
+    borderRadius: 28,
+    borderWidth: 1,
+    paddingHorizontal: 8,
+    paddingVertical: 6,
+    minHeight: 54,
+    gap: 6,
+  },
+  modernTextInput: {
+    borderWidth: 0,
+    backgroundColor: 'transparent',
+    borderRadius: 16,
+    paddingHorizontal: 8,
+    fontSize: 15,
+    height: 40,
   },
   attachButton: {
     width: 40,
@@ -565,6 +686,13 @@ const styles = StyleSheet.create({
     paddingVertical: 4,
     paddingHorizontal: 6,
   },
+  callButton: {
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   sendButton: {
     width: 40,
     height: 40,
@@ -578,7 +706,7 @@ const styles = StyleSheet.create({
   },
   micButtonRecording: {
     ...Shadows.card,
-    transform: [{ scale: 1.05 }],
+    transform: [{scale: 1.05}],
   },
   sendDisabled: {
     opacity: 0.45,

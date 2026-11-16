@@ -370,9 +370,12 @@ describe('Handbook search for small talk', () => {
       useHandbook: true,
       onReplyText: () => undefined,
     });
-    const used = stream.mock.calls[0][1].useHandbook;
+    const [messages, opts] = stream.mock.calls[0];
+    const lastContent = messages[messages.length - 1]?.content ?? '';
+    const searched =
+      Boolean(opts.useHandbook) || lastContent.includes('<handbook_excerpts');
     stream.mockRestore();
-    return used;
+    return searched;
   };
 
   it('greetings skip the search; real questions keep it', async () => {

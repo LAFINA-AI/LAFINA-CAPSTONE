@@ -1,5 +1,5 @@
 import Tts from 'react-native-tts';
-import { selectOfflineVoice, ttsService } from '../../src/ai/tts/ttsService';
+import {selectOfflineVoice, ttsService} from '../../src/ai/tts/ttsService';
 
 describe('Phase 01 react-native-tts Service (Replacing Kokoro 82M)', () => {
   test('selectOfflineVoice filters out uninstalled and network-required voices and prefers en-US', () => {
@@ -46,6 +46,11 @@ describe('Phase 01 react-native-tts Service (Replacing Kokoro 82M)', () => {
 
     await ttsService.speak('Reminder: Thesis defense at 2 PM');
     expect(Tts.speak).toHaveBeenCalledWith('Reminder: Thesis defense at 2 PM');
+
+    await ttsService.speak('### Timed\n• **3:00 PM** — *IT413* with LAFINA');
+    expect(Tts.speak).toHaveBeenCalledWith(
+      'Timed\n3:00 PM — IT413 with lafina',
+    );
 
     await ttsService.stop();
     expect(Tts.stop).toHaveBeenCalled();

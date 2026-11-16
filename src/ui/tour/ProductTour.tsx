@@ -12,7 +12,7 @@ import {
 } from 'react-native';
 import Svg, { Path, Rect } from 'react-native-svg';
 import { X } from 'lucide-react-native';
-import { Fonts, Layout, Shadows } from '../theme';
+import {Fonts, Layout, ModernLayout, Shadows} from '../theme';
 import { useTheme } from '../contexts/ThemeContext';
 import { useThemedStyles } from '../theme/createThemedStyles';
 import type { ThemeColors } from '../contexts/ThemeContext';
@@ -66,7 +66,7 @@ const lerp = (from: ScreenRect, to: ScreenRect, t: number): ScreenRect => ({
 });
 
 export const ProductTour: React.FC<ProductTourProps> = ({ steps, onNavigate, onFinish }) => {
-  const { colors } = useTheme();
+  const {colors, isModern, modernPalette, modernShadows} = useTheme();
   const themed = useThemedStyles(getThemedStyles);
   const [index, setIndex] = useState(0);
   const [area, setArea] = useState({ width: 0, height: 0 });
@@ -214,7 +214,7 @@ export const ProductTour: React.FC<ProductTourProps> = ({ steps, onNavigate, onF
               height={hole.height}
               rx={Math.min(RADIUS, hole.width / 2, hole.height / 2)}
               fill="none"
-              stroke={colors.white}
+              stroke={isModern ? modernPalette.accent : colors.white}
               strokeOpacity={0.85}
               strokeWidth={2}
             />
@@ -225,7 +225,17 @@ export const ProductTour: React.FC<ProductTourProps> = ({ steps, onNavigate, onF
       <Pressable style={StyleSheet.absoluteFill} onPress={() => undefined} accessible={false} />
 
       <Animated.View
-        style={[styles.card, themed.card, { top: cardTop, opacity: cardOpacity }]}
+        style={[
+          styles.card,
+          isModern && modernShadows.card,
+          themed.card,
+          isModern && {
+            borderRadius: ModernLayout.borderRadiusCard,
+            borderWidth: 1,
+            borderColor: modernPalette.border,
+          },
+          { top: cardTop, opacity: cardOpacity },
+        ]}
         onLayout={(event) => {
           const height = event.nativeEvent.layout.height;
           if (Math.abs(height - cardHeight) > 2) setCardHeight(height);
@@ -233,7 +243,13 @@ export const ProductTour: React.FC<ProductTourProps> = ({ steps, onNavigate, onF
         accessibilityLiveRegion="polite"
       >
         <View style={styles.head}>
-          <Text style={[styles.stepCount, themed.muted]}>
+          <Text
+            style={[
+              styles.stepCount,
+              themed.muted,
+              isModern && {color: modernPalette.accent},
+            ]}
+          >
             {index + 1} of {steps.length}
           </Text>
           <TouchableOpacity
@@ -263,7 +279,12 @@ export const ProductTour: React.FC<ProductTourProps> = ({ steps, onNavigate, onF
           {index > 0 && (
             <TouchableOpacity
               onPress={back}
-              style={[styles.button, styles.ghostButton, themed.ghostButton]}
+              style={[
+                styles.button,
+                styles.ghostButton,
+                themed.ghostButton,
+                isModern && {borderRadius: ModernLayout.borderRadiusPill},
+              ]}
               accessibilityRole="button"
             >
               <Text style={[styles.buttonText, themed.title]}>Back</Text>
@@ -271,7 +292,11 @@ export const ProductTour: React.FC<ProductTourProps> = ({ steps, onNavigate, onF
           )}
           <TouchableOpacity
             onPress={next}
-            style={[styles.button, { backgroundColor: colors.blue }]}
+            style={[
+              styles.button,
+              isModern && {borderRadius: ModernLayout.borderRadiusPill},
+              { backgroundColor: isModern ? modernPalette.accent : colors.blue },
+            ]}
             accessibilityRole="button"
           >
             <Text style={[styles.buttonText, { color: colors.white }]}>

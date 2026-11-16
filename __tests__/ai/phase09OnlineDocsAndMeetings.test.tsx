@@ -1,10 +1,10 @@
 import React from 'react';
-import { render, fireEvent, waitFor } from '@testing-library/react-native';
+import {render, fireEvent, waitFor} from '@testing-library/react-native';
 
-import { ThemeProvider } from '../../src/ui/contexts/ThemeContext';
-import { MeetingsProvider } from '../../src/ui/contexts/MeetingsContext';
-import { ChatScreen } from '../../src/ui/screens/ChatScreen';
-import { MeetingsScreen } from '../../src/ui/screens/meetings';
+import {ThemeProvider} from '../../src/ui/contexts/ThemeContext';
+import {MeetingsProvider} from '../../src/ui/contexts/MeetingsContext';
+import {ChatScreen} from '../../src/ui/screens/ChatScreen';
+import {MeetingsScreen} from '../../src/ui/screens/meetings';
 import {
   initDatabase,
   userStore,
@@ -19,10 +19,7 @@ import {
   meetingRecorder,
   transcribeMeetingChunks,
 } from '../../src/ai';
-import {
-  cloudClient,
-  requestMeetingSummary,
-} from '../../src/cloud';
+import {cloudClient, requestMeetingSummary} from '../../src/cloud';
 
 describe('Phase 09: Online Mode, Document Generation & Meeting Transcription', () => {
   const testUserId = 'local_guest_user';
@@ -77,10 +74,16 @@ describe('Phase 09: Online Mode, Document Generation & Meeting Transcription', (
         '/v1/ai/chat',
         expect.objectContaining({
           method: 'POST',
-          body: expect.stringContaining('"useHandbook":true'),
+          body: expect.stringContaining('"useHandbook":false'),
         }),
         true,
       );
+      const sentBody = JSON.parse(
+        String(requestSpy.mock.calls[0][1]?.body ?? '{}'),
+      );
+      expect(
+        sentBody.messages[sentBody.messages.length - 1]?.content,
+      ).toContain('<handbook_excerpts');
       expect(res.usedOnline).toBe(true);
       expect(res.reply).toContain('minimum passing grade is 3.0');
       expect(res.handbookNote).toBe('Referenced USTP Student Handbook (p. 42)');
@@ -104,7 +107,9 @@ describe('Phase 09: Online Mode, Document Generation & Meeting Transcription', (
       // friendly on-device answer carrying an explicit offline label.
       expect(res.usedOnline).toBe(false);
       expect(res.reply).toMatch(/lafina/i);
-      expect(res.reply).toContain('Offline reply: DeepSeek is not available right now.');
+      expect(res.reply).toContain(
+        'Offline reply: DeepSeek is not available right now.',
+      );
       expect(res.assistantMessage.localReply).toBe(true);
     });
   });
@@ -119,15 +124,15 @@ describe('Phase 09: Online Mode, Document Generation & Meeting Transcription', (
       });
       expect(
         detectDocumentRequest('Generate a Word document for my thesis outline'),
-      )?.toMatchObject({ format: 'docx' });
+      )?.toMatchObject({format: 'docx'});
       expect(
         detectDocumentRequest('Make an Excel spreadsheet of my weekly budget'),
-      )?.toMatchObject({ format: 'xlsx' });
+      )?.toMatchObject({format: 'xlsx'});
       expect(
         detectDocumentRequest(
           'Build a PowerPoint slide deck on CPU scheduling',
         ),
-      )?.toMatchObject({ format: 'pptx' });
+      )?.toMatchObject({format: 'pptx'});
 
       // Scheduling command mentioning PDF must NOT be intercepted as document generation
       expect(
@@ -140,13 +145,13 @@ describe('Phase 09: Online Mode, Document Generation & Meeting Transcription', (
     it('does not intercept document generation phrases in chatOrchestrator anymore', async () => {
       const requestSpy = jest.spyOn(cloudClient, 'request').mockResolvedValue({
         status: 'success',
-        data: { reply: 'Happy to help with your planning!', sources: [] },
+        data: {reply: 'Happy to help with your planning!', sources: []},
       });
 
       const result = await chatOrchestrator.processMessage(
         testUserId,
         'Create a PDF study guide for Operating Systems',
-        { onlineMode: true },
+        {onlineMode: true},
       );
 
       expect(result.attachment ?? null).toBeNull();
@@ -158,7 +163,7 @@ describe('Phase 09: Online Mode, Document Generation & Meeting Transcription', (
     });
 
     it('hides Create a Document from ChatScreen tool sheet (Calendar, Notes & To-Do focus)', () => {
-      const { getByTestId, queryByText, queryByTestId } = render(
+      const {getByTestId, queryByText, queryByTestId} = render(
         <ThemeProvider userId={testUserId}>
           <ChatScreen userId={testUserId} />
         </ThemeProvider>,
@@ -218,9 +223,11 @@ describe('Phase 09: Online Mode, Document Generation & Meeting Transcription', (
     });
 
     it('preserves raw audio chunks when keepAudio: true is explicitly requested', async () => {
-      jest.spyOn(meetingRecorder, 'transcribeChunk').mockResolvedValue([
-        { start_ms: 0, end_ms: 2000, text: 'Saved audio lecture.' },
-      ]);
+      jest
+        .spyOn(meetingRecorder, 'transcribeChunk')
+        .mockResolvedValue([
+          {start_ms: 0, end_ms: 2000, text: 'Saved audio lecture.'},
+        ]);
       const deleteSpy = jest
         .spyOn(meetingRecorder, 'deleteAudioFile')
         .mockResolvedValue(true);
@@ -239,7 +246,7 @@ describe('Phase 09: Online Mode, Document Generation & Meeting Transcription', (
         title: 'Algorithms Lecture',
         consentGiven: false,
         segments: [
-          { start_ms: 0, end_ms: 5000, text: 'Homework 3 is due Friday.' },
+          {start_ms: 0, end_ms: 5000, text: 'Homework 3 is due Friday.'},
         ],
       });
       expect(denied.status).toBe('validation_error');
@@ -267,7 +274,7 @@ describe('Phase 09: Online Mode, Document Generation & Meeting Transcription', (
         title: 'Algorithms Lecture',
         consentGiven: true,
         segments: [
-          { start_ms: 0, end_ms: 5000, text: 'Homework 3 is due Friday.' },
+          {start_ms: 0, end_ms: 5000, text: 'Homework 3 is due Friday.'},
         ],
       });
 
@@ -300,7 +307,7 @@ describe('Phase 09: Online Mode, Document Generation & Meeting Transcription', (
           title: 'Software Engineering Lecture',
           summary: 'Reviewed agile sprint planning.',
           key_topics: [
-            { topic: 'Sprint Backlog', discussion: 'Prioritize user stories.' },
+            {topic: 'Sprint Backlog', discussion: 'Prioritize user stories.'},
           ],
           decisions: ['Freeze scope by Tuesday'],
           action_items: [
@@ -318,7 +325,7 @@ describe('Phase 09: Online Mode, Document Generation & Meeting Transcription', (
         },
       });
 
-      const { getByTestId, findByTestId } = render(
+      const {getByTestId, findByTestId} = render(
         <ThemeProvider userId={testUserId}>
           <MeetingsProvider userId={testUserId}>
             <MeetingsScreen onBack={jest.fn()} />
@@ -346,7 +353,7 @@ describe('Phase 09: Online Mode, Document Generation & Meeting Transcription', (
     });
 
     it('imports an audio recording file from device, creates a meeting, and triggers transcription', async () => {
-      const { pick } = require('@react-native-documents/picker');
+      const {pick} = require('@react-native-documents/picker');
       pick.mockResolvedValueOnce([
         {
           uri: 'content://media/external/audio/media/12345',
@@ -365,7 +372,7 @@ describe('Phase 09: Online Mode, Document Generation & Meeting Transcription', (
           chunkDurationsMs: [30000],
         });
 
-      const { getByTestId } = render(
+      const {getByTestId} = render(
         <ThemeProvider userId={testUserId}>
           <MeetingsProvider userId={testUserId}>
             <MeetingsScreen onBack={jest.fn()} />
@@ -389,7 +396,7 @@ describe('Phase 09: Online Mode, Document Generation & Meeting Transcription', (
       });
 
       const meetings = recordedMeetingStore.list(testUserId);
-      const importedMeeting = meetings.find((m) => m.source === 'upload');
+      const importedMeeting = meetings.find(m => m.source === 'upload');
       expect(importedMeeting).toBeDefined();
       expect(importedMeeting?.title).toBe('Physics_Lecture_101');
       expect(importedMeeting?.sourceFileName).toBe('Physics_Lecture_101.m4a');

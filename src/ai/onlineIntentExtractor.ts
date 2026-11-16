@@ -15,9 +15,9 @@ import {
   type ValidatedIntent,
 } from './nlu/types';
 
-/** Handbook topics answer only from the verified online handbook, never offline. */
+/** Detects USTP Student Handbook / academic policy questions for local FTS5 or online RAG. */
 export const isHandbookQuestion = (text: string): boolean =>
-  /\b(?:ustp|handbook|dean'?s\s+list|grading\s+system|retention\s+policy|tuition|graduation\s+requirements|uniform\s+policy|dress\s+code|drop(?:ping)?\s+subject|prerequisite|academic\s+probation)\b/i.test(
+  /\b(?:ustp|handbook|dean['\u2018\u2019]?s\s+list|grading\s+system|retention\s+policy|tuition|graduation\s+requirements|uniform\s+policy|dress\s+code|drop(?:ping)?\s+subject|prerequisite|academic\s+probation|inc\s+(?:grade|completion|policy)|gwa|gpa|cum\s+laude|latin\s+honors|leave\s+of\s+absence|attendance\s+policy|absenteeism|(?:unexcused\s+|allowable\s+|max(?:imum)?\s+|how\s+many\s+)?absences|plagiarism|academic\s+dishonesty|student\s+conduct|shifting\s+policy|transferee|honorable\s+dismissal|scholarship\s+policy)\b/i.test(
     text,
   );
 
@@ -221,10 +221,18 @@ function parseRawIntentType(
     return {intent: 'update_time_block', defaultEntityType: 'event'};
   }
   if (normalized === 'complete_task') {
-    return {intent: 'update_task', isCompleted: true, defaultEntityType: 'task'};
+    return {
+      intent: 'update_task',
+      isCompleted: true,
+      defaultEntityType: 'task',
+    };
   }
   if (normalized === 'reopen_task') {
-    return {intent: 'update_task', isCompleted: false, defaultEntityType: 'task'};
+    return {
+      intent: 'update_task',
+      isCompleted: false,
+      defaultEntityType: 'task',
+    };
   }
   if (normalized === 'delete_event') {
     return {intent: 'delete_time_block'};
@@ -403,8 +411,7 @@ export function parseExtractedIntentObject(
   const details = cleanString(obj.details, 1000);
   const location = cleanString(obj.location, 120);
   const newCategory = cleanString(obj.newCategory, 40);
-  const isPinned =
-    typeof obj.isPinned === 'boolean' ? obj.isPinned : undefined;
+  const isPinned = typeof obj.isPinned === 'boolean' ? obj.isPinned : undefined;
   const checklistItems = Array.isArray(obj.checklistItems)
     ? obj.checklistItems
         .map(item => cleanString(item, 200))

@@ -285,7 +285,8 @@ describe('Phase 08: End-to-End Offline Student Assistant & ChatScreen Integratio
       );
 
       expect(getByTestId('chat-empty-state')).toBeTruthy();
-      expect(getByText('LAFINA Academic Assistant')).toBeTruthy();
+      expect(getByText('How can I help you today?')).toBeTruthy();
+      expect(getByTestId('chat-empty-mascot')).toBeTruthy();
       expect(getByTestId('chat-prompt-chip-0')).toBeTruthy();
     });
 

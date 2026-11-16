@@ -124,8 +124,8 @@ export const ChatMemorySettings: React.FC<ChatMemorySettingsProps> = ({
           onValueChange={toggle}
           accessibilityLabel="Use memory in online chat"
           testID="memory-enabled-switch"
-          trackColor={{false: '#767577', true: colors.red}}
-          thumbColor="#FFF"
+          trackColor={{false: colors.switchTrackOff, true: colors.red}}
+          thumbColor={colors.switchThumb}
         />
       </View>
 

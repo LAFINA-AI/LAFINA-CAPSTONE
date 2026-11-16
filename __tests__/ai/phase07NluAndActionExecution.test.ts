@@ -1,4 +1,4 @@
-import { NativeModules, Platform } from 'react-native';
+import {NativeModules, Platform} from 'react-native';
 import {
   parseIntentFastPath,
   parseDateAndTime,
@@ -7,9 +7,9 @@ import {
   distillScheduleTitle,
   toTitleCase,
 } from '../../src/ai/nlu/fastPathParser';
-import { validateIntent } from '../../src/ai/nlu/types';
-import { executeNluAction } from '../../src/ai/nlu/actionExecutor';
-import { intentService } from '../../src/ai/nlu/intentService';
+import {validateIntent} from '../../src/ai/nlu/types';
+import {executeNluAction} from '../../src/ai/nlu/actionExecutor';
+import {intentService} from '../../src/ai/nlu/intentService';
 import {
   getModelStatus,
   isQwenModelReady,
@@ -17,7 +17,23 @@ import {
   deleteQwenModel,
   getQwenModelPath,
   QWEN_MODEL_INFO,
+  OFFLINE_MODEL_CATALOG,
+  SETTING_KEY_OFFLINE_AI_MODEL,
+  getSelectedOfflineModelId,
+  setSelectedOfflineModelId,
+  getAllModelsStatus,
+  downloadOfflineModel,
+  deleteOfflineModel,
+  getModelPathForId,
+  isModelReadyById,
+  getActiveOfflineModelReadyConfig,
 } from '../../src/ai/nlu/modelManager';
+import {
+  classifyAdvertisedRamGb,
+  normalizeRawDeviceSpecs,
+  recommendOfflineModelForSpecs,
+  getDeviceAiRecommendation,
+} from '../../src/ai/nlu/deviceSpecs';
 import {
   tasksStore,
   timeBlocksStore,
@@ -25,34 +41,37 @@ import {
   notesStore,
   initDatabase,
 } from '../../src/storage';
-import { acknowledgeReminderAction } from '../../src/scheduler';
-import { ttsService } from '../../src/ai/tts/ttsService';
+import {acknowledgeReminderAction} from '../../src/scheduler';
+import {ttsService} from '../../src/ai/tts/ttsService';
 
 jest.mock('react-native-fs', () => {
-  const files: Record<string, { size: number }> = {};
+  const files: Record<string, {size: number}> = {};
   return {
     DocumentDirectoryPath: '/mock/documents',
     exists: jest.fn(async (path: string) => Boolean(files[path])),
     stat: jest.fn(async (path: string) => {
       if (!files[path]) throw new Error('File does not exist');
-      return { size: files[path].size };
+      return {size: files[path].size};
     }),
     mkdir: jest.fn(async () => {}),
-    downloadFile: jest.fn(({ toFile, progress }: { toFile: string; progress?: (res: any) => void }) => {
-      if (progress) {
-        progress({ bytesWritten: 397800000, contentLength: 397800000 });
-      }
-      return {
-        jobId: 101,
-        promise: Promise.resolve({ statusCode: 200 }).then(() => {
-          files[toFile] = { size: 397800000 };
-          return { statusCode: 200 };
-        }),
-      };
-    }),
+    downloadFile: jest.fn(
+      ({toFile, progress}: {toFile: string; progress?: (res: any) => void}) => {
+        const mockSize = toFile.includes('gemma-3-1b') ? 845000000 : 397800000;
+        if (progress) {
+          progress({bytesWritten: mockSize, contentLength: mockSize});
+        }
+        return {
+          jobId: 101,
+          promise: Promise.resolve({statusCode: 200}).then(() => {
+            files[toFile] = {size: mockSize};
+            return {statusCode: 200};
+          }),
+        };
+      },
+    ),
     stopDownload: jest.fn(),
     moveFile: jest.fn(async (from: string, to: string) => {
-      files[to] = files[from] || { size: 397800000 };
+      files[to] = files[from] || {size: 397800000};
       delete files[from];
     }),
     unlink: jest.fn(async (path: string) => {
@@ -78,7 +97,10 @@ describe('Phase 07: Smart Hybrid On-Device NLU & Action Execution', () => {
       const tomorrow = parseDateAndTime('submit homework tomorrow', fixedDate);
       expect(tomorrow.date).toBe('2026-10-28');
 
-      const dayAfter = parseDateAndTime('lab presentation day after tomorrow', fixedDate);
+      const dayAfter = parseDateAndTime(
+        'lab presentation day after tomorrow',
+        fixedDate,
+      );
       expect(dayAfter.date).toBe('2026-10-29');
     });
 
@@ -97,23 +119,48 @@ describe('Phase 07: Smart Hybrid On-Device NLU & Action Execution', () => {
     });
 
     test('extracts 12 Noon, exact 12, and 12 Midnight single times and edge cases', () => {
-      expect(parseDateAndTime('remind me at 12 Noon', fixedDate).time).toBe('12:00');
-      expect(parseDateAndTime('remind me at noon', fixedDate).time).toBe('12:00');
-      expect(parseDateAndTime('remind me at midday', fixedDate).time).toBe('12:00');
-      expect(parseDateAndTime('remind me at 12nn', fixedDate).time).toBe('12:00');
-      expect(parseDateAndTime('remind me at twelve noon', fixedDate).time).toBe('12:00');
+      expect(parseDateAndTime('remind me at 12 Noon', fixedDate).time).toBe(
+        '12:00',
+      );
+      expect(parseDateAndTime('remind me at noon', fixedDate).time).toBe(
+        '12:00',
+      );
+      expect(parseDateAndTime('remind me at midday', fixedDate).time).toBe(
+        '12:00',
+      );
+      expect(parseDateAndTime('remind me at 12nn', fixedDate).time).toBe(
+        '12:00',
+      );
+      expect(parseDateAndTime('remind me at twelve noon', fixedDate).time).toBe(
+        '12:00',
+      );
       expect(parseDateAndTime('remind me at 12', fixedDate).time).toBe('12:00');
-      expect(parseDateAndTime('remind me at twelve o\'clock', fixedDate).time).toBe('12:00');
+      expect(
+        parseDateAndTime("remind me at twelve o'clock", fixedDate).time,
+      ).toBe('12:00');
 
-      expect(parseDateAndTime('remind me at 12 Midnight', fixedDate).time).toBe('00:00');
-      expect(parseDateAndTime('remind me at midnight', fixedDate).time).toBe('00:00');
-      expect(parseDateAndTime('remind me at 12mn', fixedDate).time).toBe('00:00');
-      expect(parseDateAndTime('remind me at twelve midnight', fixedDate).time).toBe('00:00');
-      expect(parseDateAndTime('remind me at 12 tonight', fixedDate).time).toBe('00:00');
+      expect(parseDateAndTime('remind me at 12 Midnight', fixedDate).time).toBe(
+        '00:00',
+      );
+      expect(parseDateAndTime('remind me at midnight', fixedDate).time).toBe(
+        '00:00',
+      );
+      expect(parseDateAndTime('remind me at 12mn', fixedDate).time).toBe(
+        '00:00',
+      );
+      expect(
+        parseDateAndTime('remind me at twelve midnight', fixedDate).time,
+      ).toBe('00:00');
+      expect(parseDateAndTime('remind me at 12 tonight', fixedDate).time).toBe(
+        '00:00',
+      );
     });
 
     test('extracts relative durations with number words and offsets accurately', () => {
-      const fiveMins = parseDateAndTime('remind me five minutes from now', fixedDate);
+      const fiveMins = parseDateAndTime(
+        'remind me five minutes from now',
+        fixedDate,
+      );
       expect(fiveMins.date).toBe('2026-10-27');
       expect(fiveMins.time).toBe('08:35');
 
@@ -136,7 +183,10 @@ describe('Phase 07: Smart Hybrid On-Device NLU & Action Execution', () => {
       expect(range.endTime).toBe('11:00');
       expect(range.durationMinutes).toBe(120);
 
-      const hyphenRange = parseDateAndTime('library session from 2pm to 4pm', fixedDate);
+      const hyphenRange = parseDateAndTime(
+        'library session from 2pm to 4pm',
+        fixedDate,
+      );
       expect(hyphenRange.time).toBe('14:00');
       expect(hyphenRange.endTime).toBe('16:00');
       expect(hyphenRange.durationMinutes).toBe(120);
@@ -203,7 +253,10 @@ describe('Phase 07: Smart Hybrid On-Device NLU & Action Execution', () => {
       expect(crossNoon2.durationMinutes).toBe(180);
 
       // 12 Midnight at end or start of range: "9pm to 12 Midnight", "9pm to midnight", "9pm to 12", "12 Midnight to 2am", "from 12 to 2am"
-      const ninePmToMidnight = parseDateAndTime('from 9pm to 12 Midnight', fixedDate);
+      const ninePmToMidnight = parseDateAndTime(
+        'from 9pm to 12 Midnight',
+        fixedDate,
+      );
       expect(ninePmToMidnight.time).toBe('21:00');
       expect(ninePmToMidnight.endTime).toBe('00:00');
       expect(ninePmToMidnight.durationMinutes).toBe(180);
@@ -213,7 +266,10 @@ describe('Phase 07: Smart Hybrid On-Device NLU & Action Execution', () => {
       expect(ninePmToBare12.endTime).toBe('00:00');
       expect(ninePmToBare12.durationMinutes).toBe(180);
 
-      const midnightTo2Am = parseDateAndTime('from 12 Midnight to 2am', fixedDate);
+      const midnightTo2Am = parseDateAndTime(
+        'from 12 Midnight to 2am',
+        fixedDate,
+      );
       expect(midnightTo2Am.time).toBe('00:00');
       expect(midnightTo2Am.endTime).toBe('02:00');
       expect(midnightTo2Am.durationMinutes).toBe(120);
@@ -231,7 +287,9 @@ describe('Phase 07: Smart Hybrid On-Device NLU & Action Execution', () => {
     });
 
     test('detects academic vs personal categories', () => {
-      expect(detectCategory('prepare for data structures quiz')).toBe('Academic');
+      expect(detectCategory('prepare for data structures quiz')).toBe(
+        'Academic',
+      );
       expect(detectCategory('buy groceries for the dorm')).toBe('Personal');
       expect(detectCategory('meet with thesis adviser')).toBe('Academic');
     });
@@ -363,7 +421,9 @@ describe('Phase 07: Smart Hybrid On-Device NLU & Action Execution', () => {
       expect(ackEvent.intent).toBe('acknowledge');
       expect(ackEvent.targetEntityType).toBe('event');
 
-      const ackEventAlready = parseIntentFastPath("I've already acknowledged the event");
+      const ackEventAlready = parseIntentFastPath(
+        "I've already acknowledged the event",
+      );
       expect(ackEventAlready.intent).toBe('acknowledge');
       expect(ackEventAlready.targetEntityType).toBe('event');
 
@@ -384,7 +444,10 @@ describe('Phase 07: Smart Hybrid On-Device NLU & Action Execution', () => {
       expect(snoozeWord.intent).toBe('snooze');
       expect(snoozeWord.snoozeMinutes).toBe(5);
 
-      const resched = parseIntentFastPath('Reschedule to tomorrow at 4pm', fixedDate);
+      const resched = parseIntentFastPath(
+        'Reschedule to tomorrow at 4pm',
+        fixedDate,
+      );
       expect(resched.intent).toBe('reschedule');
       expect(resched.date).toBe('2026-10-28');
       expect(resched.time).toBe('16:00');
@@ -392,41 +455,80 @@ describe('Phase 07: Smart Hybrid On-Device NLU & Action Execution', () => {
 
     test('parses schedule query intent and diverse conversational edge cases', () => {
       // Standard query
-      const queryToday = parseIntentFastPath("What's on my schedule today?", fixedDate);
+      const queryToday = parseIntentFastPath(
+        "What's on my schedule today?",
+        fixedDate,
+      );
       expect(queryToday.intent).toBe('query_schedule');
       expect(queryToday.date).toBe('2026-10-27');
 
       // Tomorrow query
-      const queryTomorrow = parseIntentFastPath("What do I have tomorrow?", fixedDate);
+      const queryTomorrow = parseIntentFastPath(
+        'What do I have tomorrow?',
+        fixedDate,
+      );
       expect(queryTomorrow.intent).toBe('query_schedule');
       expect(queryTomorrow.date).toBe('2026-10-28');
 
       // Weekday query
-      const queryFriday = parseIntentFastPath("What is on my calendar on Friday?", fixedDate);
+      const queryFriday = parseIntentFastPath(
+        'What is on my calendar on Friday?',
+        fixedDate,
+      );
       expect(queryFriday.intent).toBe('query_schedule');
       expect(queryFriday.date).toBe('2026-10-30');
 
       // "What do I have" / "Do I have anything" variations
-      expect(parseIntentFastPath("What do I have today?", fixedDate).intent).toBe('query_schedule');
-      expect(parseIntentFastPath("Do I have anything today?", fixedDate).intent).toBe('query_schedule');
-      expect(parseIntentFastPath("Do I have any tasks today?", fixedDate).intent).toBe('query_schedule');
-      expect(parseIntentFastPath("Do I have any classes today?", fixedDate).intent).toBe('query_schedule');
-      expect(parseIntentFastPath("Is anything scheduled today?", fixedDate).intent).toBe('query_schedule');
+      expect(
+        parseIntentFastPath('What do I have today?', fixedDate).intent,
+      ).toBe('query_schedule');
+      expect(
+        parseIntentFastPath('Do I have anything today?', fixedDate).intent,
+      ).toBe('query_schedule');
+      expect(
+        parseIntentFastPath('Do I have any tasks today?', fixedDate).intent,
+      ).toBe('query_schedule');
+      expect(
+        parseIntentFastPath('Do I have any classes today?', fixedDate).intent,
+      ).toBe('query_schedule');
+      expect(
+        parseIntentFastPath('Is anything scheduled today?', fixedDate).intent,
+      ).toBe('query_schedule');
 
       // Imperative "show / check / read / tell me" commands
-      expect(parseIntentFastPath("Show my schedule", fixedDate).intent).toBe('query_schedule');
-      expect(parseIntentFastPath("Check my schedule", fixedDate).intent).toBe('query_schedule');
-      expect(parseIntentFastPath("Check my calendar", fixedDate).intent).toBe('query_schedule');
-      expect(parseIntentFastPath("Tell me what's on my schedule", fixedDate).intent).toBe('query_schedule');
-      expect(parseIntentFastPath("Read out my schedule today", fixedDate).intent).toBe('query_schedule');
+      expect(parseIntentFastPath('Show my schedule', fixedDate).intent).toBe(
+        'query_schedule',
+      );
+      expect(parseIntentFastPath('Check my schedule', fixedDate).intent).toBe(
+        'query_schedule',
+      );
+      expect(parseIntentFastPath('Check my calendar', fixedDate).intent).toBe(
+        'query_schedule',
+      );
+      expect(
+        parseIntentFastPath("Tell me what's on my schedule", fixedDate).intent,
+      ).toBe('query_schedule');
+      expect(
+        parseIntentFastPath('Read out my schedule today', fixedDate).intent,
+      ).toBe('query_schedule');
 
       // Conversational queries
-      expect(parseIntentFastPath("How's my schedule looking today?", fixedDate).intent).toBe('query_schedule');
-      expect(parseIntentFastPath("What does my day look like?", fixedDate).intent).toBe('query_schedule');
-      expect(parseIntentFastPath("What are my plans for today?", fixedDate).intent).toBe('query_schedule');
+      expect(
+        parseIntentFastPath("How's my schedule looking today?", fixedDate)
+          .intent,
+      ).toBe('query_schedule');
+      expect(
+        parseIntentFastPath('What does my day look like?', fixedDate).intent,
+      ).toBe('query_schedule');
+      expect(
+        parseIntentFastPath('What are my plans for today?', fixedDate).intent,
+      ).toBe('query_schedule');
 
       // Action commands with schedule words must NOT be hijacked
-      const reminderCmd = parseIntentFastPath("Remind me to check my schedule tomorrow", fixedDate);
+      const reminderCmd = parseIntentFastPath(
+        'Remind me to check my schedule tomorrow',
+        fixedDate,
+      );
       expect(reminderCmd.intent).toBe('create_reminder');
       expect(reminderCmd.title).toBe('Check my schedule');
     });
@@ -508,13 +610,17 @@ describe('Phase 07: Smart Hybrid On-Device NLU & Action Execution', () => {
         rawTranscript: 'add task',
       });
 
-      const result = await executeNluAction(testUserId, validated, { referenceDate: fixedDate });
+      const result = await executeNluAction(testUserId, validated, {
+        referenceDate: fixedDate,
+      });
       expect(result.success).toBe(true);
       expect(result.entityType).toBe('task');
       expect(result.reply).toContain('Finish Physics Laboratory Report');
 
       const tasks = tasksStore.getAllTasks(testUserId);
-      const created = tasks.find((t) => t.title === 'Finish Physics Laboratory Report');
+      const created = tasks.find(
+        t => t.title === 'Finish Physics Laboratory Report',
+      );
       expect(created).toBeDefined();
       expect(created?.category).toBe('Academic');
       expect(created?.dueDate).toBe('2026-10-28');
@@ -536,12 +642,16 @@ describe('Phase 07: Smart Hybrid On-Device NLU & Action Execution', () => {
         rawTranscript: 'remind me to oral defense',
       });
 
-      const result = await executeNluAction(testUserId, validated, { referenceDate: fixedDate });
+      const result = await executeNluAction(testUserId, validated, {
+        referenceDate: fixedDate,
+      });
       expect(result.success).toBe(true);
       expect(result.entityType).toBe('reminder');
 
       const reminders = remindersStore.getAllReminders(testUserId);
-      const created = reminders.find((r) => r.task === 'Oral Defense Consultation');
+      const created = reminders.find(
+        r => r.task === 'Oral Defense Consultation',
+      );
       expect(created).toBeDefined();
     });
 
@@ -561,12 +671,16 @@ describe('Phase 07: Smart Hybrid On-Device NLU & Action Execution', () => {
         rawTranscript: 'time block',
       });
 
-      const result = await executeNluAction(testUserId, validated, { referenceDate: fixedDate });
+      const result = await executeNluAction(testUserId, validated, {
+        referenceDate: fixedDate,
+      });
       expect(result.success).toBe(true);
       expect(result.entityType).toBe('time_block');
 
       const blocks = timeBlocksStore.getAll(testUserId);
-      const created = blocks.find((b) => b.title === 'Software Engineering Sprint Review');
+      const created = blocks.find(
+        b => b.title === 'Software Engineering Sprint Review',
+      );
       expect(created).toBeDefined();
       expect(created?.startTime).toBe('10:00');
       expect(created?.endTime).toBe('12:00');
@@ -593,7 +707,9 @@ describe('Phase 07: Smart Hybrid On-Device NLU & Action Execution', () => {
       expect(result.entityType).toBe('note');
 
       const notes = notesStore.getAll(testUserId);
-      const created = notes.find((n) => n.title === 'Operating Systems Quiz Topics');
+      const created = notes.find(
+        n => n.title === 'Operating Systems Quiz Topics',
+      );
       expect(created).toBeDefined();
       expect(created?.body).toBe('Semaphores, Deadlocks, Mutex locks');
     });
@@ -614,12 +730,19 @@ describe('Phase 07: Smart Hybrid On-Device NLU & Action Execution', () => {
         rawTranscript: 'what is on my schedule tomorrow',
       });
 
-      const resultTomorrow = await executeNluAction(testUserId, validatedTomorrow, { referenceDate: fixedDate });
+      const resultTomorrow = await executeNluAction(
+        testUserId,
+        validatedTomorrow,
+        {referenceDate: fixedDate},
+      );
       expect(resultTomorrow.success).toBe(true);
       expect(resultTomorrow.intent).toBe('query_schedule');
-      // Natural 12-hour spoken format: "Tomorrow you have 1 task: Finish Physics Laboratory Report at 2:00 PM."
-      expect(resultTomorrow.reply).toContain('Tomorrow you have 1 task');
-      expect(resultTomorrow.reply).toContain('Finish Physics Laboratory Report at 2:00 PM');
+      // Structured markdown card format for display:
+      expect(resultTomorrow.reply).toContain('Tomorrow you have **1 task**:');
+      expect(resultTomorrow.reply).toContain('### Timed');
+      expect(resultTomorrow.reply).toContain(
+        '• **2:00 PM** — Finish Physics Laboratory Report *(Task)*',
+      );
 
       // Test empty schedule day
       const validatedEmpty = validateIntent({
@@ -637,9 +760,13 @@ describe('Phase 07: Smart Hybrid On-Device NLU & Action Execution', () => {
         rawTranscript: "what's on my schedule today",
       });
 
-      const resultEmpty = await executeNluAction(testUserId, validatedEmpty, { referenceDate: fixedDate });
+      const resultEmpty = await executeNluAction(testUserId, validatedEmpty, {
+        referenceDate: fixedDate,
+      });
       expect(resultEmpty.success).toBe(true);
-      expect(resultEmpty.reply).toContain('Today, your schedule is completely clear!');
+      expect(resultEmpty.reply).toContain(
+        'Today, your schedule is completely clear!',
+      );
 
       // Add multiple items to 2026-10-27 and verify chronological ordering
       timeBlocksStore.insert({
@@ -674,18 +801,30 @@ describe('Phase 07: Smart Hybrid On-Device NLU & Action Execution', () => {
       });
 
       const speakSpy = jest.spyOn(ttsService, 'speak');
-      const resultMulti = await executeNluAction(
-        testUserId,
-        validatedEmpty,
-        { referenceDate: fixedDate, speakResult: true },
-      );
+      const resultMulti = await executeNluAction(testUserId, validatedEmpty, {
+        referenceDate: fixedDate,
+        speakResult: true,
+      });
 
       expect(resultMulti.success).toBe(true);
-      expect(resultMulti.reply).toContain('Today you have 1 task, 1 time block, and 1 event');
-      expect(resultMulti.reply).toContain('First, Algorithms Lecture from 9:00 AM to 10:30 AM.');
-      expect(resultMulti.reply).toContain('Next, Dean Consultation from 1:00 PM to 2:00 PM.');
-      expect(resultMulti.reply).toContain('Finally, Submit Operating Systems Assignment at 4:00 PM.');
-      expect(speakSpy).toHaveBeenCalledWith(resultMulti.reply);
+      expect(resultMulti.reply).toContain(
+        'Today you have **1 task**, **1 time block**, and **1 event**:',
+      );
+      expect(resultMulti.reply).toContain('### Timed');
+      expect(resultMulti.reply).toContain(
+        '• **9:00 AM – 10:30 AM** — Algorithms Lecture *(Block)*',
+      );
+      expect(resultMulti.reply).toContain(
+        '• **1:00 PM – 2:00 PM** — Dean Consultation *(Event)*',
+      );
+      expect(resultMulti.reply).toContain(
+        '• **4:00 PM** — Submit Operating Systems Assignment *(Task)*',
+      );
+      expect(speakSpy).toHaveBeenCalledWith(
+        expect.stringContaining(
+          'Today you have 1 task, 1 time block, and 1 event: First, Algorithms Lecture from 9:00 AM to 10:30 AM. Next, Dean Consultation from 1:00 PM to 2:00 PM. Finally, Submit Operating Systems Assignment at 4:00 PM.',
+        ),
+      );
       speakSpy.mockRestore();
     });
   });
@@ -707,7 +846,7 @@ describe('Phase 07: Smart Hybrid On-Device NLU & Action Execution', () => {
       const result = await intentService.processAndExecuteIntent(
         testUserId,
         'Add study block for Algorithms from 3pm to 5pm tomorrow',
-        { referenceDate: fixedDate },
+        {referenceDate: fixedDate},
       );
 
       expect(result.success).toBe(true);
@@ -715,14 +854,14 @@ describe('Phase 07: Smart Hybrid On-Device NLU & Action Execution', () => {
       expect(result.reply).toContain('Algorithms');
 
       const blocks = timeBlocksStore.getAll(testUserId);
-      expect(blocks.some((b) => b.title.includes('Algorithms'))).toBe(true);
+      expect(blocks.some(b => b.title.includes('Algorithms'))).toBe(true);
     });
 
     test('executes 9am to 12 Noon timeblock command end-to-end with 09:00 to 12:00', async () => {
       const result = await intentService.processAndExecuteIntent(
         testUserId,
         'Create a timeblock at 9am to 12 Noon for a Coffee break',
-        { referenceDate: fixedDate },
+        {referenceDate: fixedDate},
       );
 
       expect(result.success).toBe(true);
@@ -730,7 +869,7 @@ describe('Phase 07: Smart Hybrid On-Device NLU & Action Execution', () => {
       expect(result.reply).toContain('from 9:00 AM to 12:00 PM');
 
       const blocks = timeBlocksStore.getAll(testUserId);
-      const coffeeBlock = blocks.find((b) => b.title === 'Coffee break');
+      const coffeeBlock = blocks.find(b => b.title === 'Coffee break');
       expect(coffeeBlock).toBeDefined();
       expect(coffeeBlock?.startTime).toBe('09:00');
       expect(coffeeBlock?.endTime).toBe('12:00');
@@ -765,11 +904,16 @@ describe('Phase 07: Smart Hybrid On-Device NLU & Action Execution', () => {
       expect(fastPath.title).toBe('Dentist Appointment');
       expect(fastPath.time).toBe('14:00');
       expect(fastPath.confidence).toBeGreaterThanOrEqual(0.85);
-      expect(isTitleNoisy(fastPath.title || '', 'Dentist appointment at 2pm')).toBe(false);
+      expect(
+        isTitleNoisy(fastPath.title || '', 'Dentist appointment at 2pm'),
+      ).toBe(false);
 
-      const extracted = await intentService.extractIntent('Dentist appointment at 2pm', {
-        referenceDate: fixedDate,
-      });
+      const extracted = await intentService.extractIntent(
+        'Dentist appointment at 2pm',
+        {
+          referenceDate: fixedDate,
+        },
+      );
       expect(extracted.isValid).toBe(true);
       expect(extracted.source).toBe('fast_path');
       expect(extracted.title).toBe('Dentist Appointment');
@@ -847,9 +991,12 @@ describe('Phase 07: Smart Hybrid On-Device NLU & Action Execution', () => {
       await deleteQwenModel();
       expect(await isQwenModelReady()).toBe(false);
 
-      const morrowCoffee = await intentService.extractIntent('Morrow 9am coffee break', {
-        referenceDate: fixedDate,
-      });
+      const morrowCoffee = await intentService.extractIntent(
+        'Morrow 9am coffee break',
+        {
+          referenceDate: fixedDate,
+        },
+      );
       expect(morrowCoffee.source).toBe('fast_path');
       expect(morrowCoffee.title).toBe('Coffee Break');
       expect(morrowCoffee.date).toBe('2026-10-28');
@@ -857,7 +1004,7 @@ describe('Phase 07: Smart Hybrid On-Device NLU & Action Execution', () => {
 
       const studyMidterm = await intentService.extractIntent(
         'I need to finish studying for operating systems midterm tomorrow 8pm',
-        { referenceDate: fixedDate },
+        {referenceDate: fixedDate},
       );
       expect(studyMidterm.source).toBe('fast_path');
       expect(studyMidterm.title).toBe('Study for Operating Systems Midterm');
@@ -867,7 +1014,7 @@ describe('Phase 07: Smart Hybrid On-Device NLU & Action Execution', () => {
 
       const capstoneDraft = await intentService.extractIntent(
         'I really gotta submit my capstone draft chapter 2 tomorrow at 8pm',
-        { referenceDate: fixedDate },
+        {referenceDate: fixedDate},
       );
       expect(capstoneDraft.title).toBe('Submit Capstone Draft Chapter 2');
       expect(capstoneDraft.date).toBe('2026-10-28');
@@ -875,20 +1022,22 @@ describe('Phase 07: Smart Hybrid On-Device NLU & Action Execution', () => {
 
       const groceries = await intentService.extractIntent(
         'Remind me to buy groceries after class',
-        { referenceDate: fixedDate },
+        {referenceDate: fixedDate},
       );
       expect(groceries.intent).toBe('create_reminder');
       expect(groceries.title).toBe('Buy Groceries');
 
       const examReview = await intentService.extractIntent(
         "Don't forget exam review session with Alex on Friday 2pm",
-        { referenceDate: fixedDate },
+        {referenceDate: fixedDate},
       );
       expect(examReview.title).toBe('Exam Review Session with Alex');
       expect(examReview.date).toBe('2026-10-30');
       expect(examReview.time).toBe('14:00');
 
-      expect(toTitleCase(distillScheduleTitle('morrow 9am coffee break'))).toBe('Coffee Break');
+      expect(toTitleCase(distillScheduleTitle('morrow 9am coffee break'))).toBe(
+        'Coffee Break',
+      );
     });
   });
 
@@ -924,7 +1073,9 @@ describe('Phase 07: Smart Hybrid On-Device NLU & Action Execution', () => {
       ];
 
       for (const prompt of schedulePrompts) {
-        const extracted = await intentService.extractIntent(prompt, { referenceDate: fixedDate });
+        const extracted = await intentService.extractIntent(prompt, {
+          referenceDate: fixedDate,
+        });
         expect(extracted.intent).toBe('query_schedule');
         expect(extracted.source).toBe('fast_path');
       }
@@ -942,7 +1093,10 @@ describe('Phase 07: Smart Hybrid On-Device NLU & Action Execution', () => {
       expect(wakeUp.time).toBe('07:30');
       expect(wakeUp.title).toBe('Wake up');
 
-      const task730 = parseIntentFastPath('Create a task at 730AM for morning exercise', fixedDate);
+      const task730 = parseIntentFastPath(
+        'Create a task at 730AM for morning exercise',
+        fixedDate,
+      );
       expect(task730.intent).toBe('create_task');
       expect(task730.time).toBe('07:30');
       expect(task730.title).toBe('Morning exercise');
@@ -950,7 +1104,9 @@ describe('Phase 07: Smart Hybrid On-Device NLU & Action Execution', () => {
       // 2. 4-digit compact time ("1030pm", "1230pm", "1230am")
       expect(parseDateAndTime('sleep at 1030pm', fixedDate).time).toBe('22:30');
       expect(parseDateAndTime('lunch at 1230pm', fixedDate).time).toBe('12:30');
-      expect(parseDateAndTime('late study at 1230am', fixedDate).time).toBe('00:30');
+      expect(parseDateAndTime('late study at 1230am', fixedDate).time).toBe(
+        '00:30',
+      );
 
       // 3. Compact time range ("from 730AM to 930AM", "from 730 to 930")
       const rangeCompact = parseIntentFastPath(
@@ -994,16 +1150,29 @@ describe('Phase 07: Smart Hybrid On-Device NLU & Action Execution', () => {
         '19:30',
       );
       expect(parseDateAndTime('at 7 oh 5 am', fixedDate).time).toBe('07:05');
-      expect(parseDateAndTime('at seven o five am', fixedDate).time).toBe('07:05');
+      expect(parseDateAndTime('at seven o five am', fixedDate).time).toBe(
+        '07:05',
+      );
 
       // 6. Whisper homophones before am/pm ("at to pm", "at too pm", "at for pm", "at ate am")
-      expect(parseDateAndTime('meeting at to pm', fixedDate).time).toBe('14:00');
-      expect(parseDateAndTime('meeting at too pm', fixedDate).time).toBe('14:00');
-      expect(parseDateAndTime('meeting at for pm', fixedDate).time).toBe('16:00');
-      expect(parseDateAndTime('meeting at ate am', fixedDate).time).toBe('08:00');
+      expect(parseDateAndTime('meeting at to pm', fixedDate).time).toBe(
+        '14:00',
+      );
+      expect(parseDateAndTime('meeting at too pm', fixedDate).time).toBe(
+        '14:00',
+      );
+      expect(parseDateAndTime('meeting at for pm', fixedDate).time).toBe(
+        '16:00',
+      );
+      expect(parseDateAndTime('meeting at ate am', fixedDate).time).toBe(
+        '08:00',
+      );
 
       // 7. Period-of-day fallback so tasks with "this afternoon" / "tonight" get a timeline slot instead of All-Day
-      const afternoonTask = parseIntentFastPath('Create a task this afternoon to email professor', fixedDate);
+      const afternoonTask = parseIntentFastPath(
+        'Create a task this afternoon to email professor',
+        fixedDate,
+      );
       expect(afternoonTask.intent).toBe('create_task');
       expect(afternoonTask.time).toBe('14:00');
       expect(afternoonTask.title).toBe('Email professor');
@@ -1011,11 +1180,17 @@ describe('Phase 07: Smart Hybrid On-Device NLU & Action Execution', () => {
 
     test('parses Create/Add Time Block, Create/Add Task, and Create/Add Note commands reliably', () => {
       // Create / Add Note variations
-      const createNote = parseIntentFastPath('Create a note about operating systems deadlock conditions', fixedDate);
+      const createNote = parseIntentFastPath(
+        'Create a note about operating systems deadlock conditions',
+        fixedDate,
+      );
       expect(createNote.intent).toBe('create_note');
       expect(createNote.title).toBe('Operating systems deadlock conditions');
 
-      const addNote = parseIntentFastPath('Add a note that the quiz is moved to next Monday at 9am', fixedDate);
+      const addNote = parseIntentFastPath(
+        'Add a note that the quiz is moved to next Monday at 9am',
+        fixedDate,
+      );
       expect(addNote.intent).toBe('create_note');
       expect(addNote.title).toBe('The quiz is moved to next Monday at 9am');
 
@@ -1025,10 +1200,15 @@ describe('Phase 07: Smart Hybrid On-Device NLU & Action Execution', () => {
       );
       expect(titledNote.intent).toBe('create_note');
       expect(titledNote.title).toBe('Biology Chapter 3');
-      expect(titledNote.details).toBe('Mitochondria is the powerhouse of the cell');
+      expect(titledNote.details).toBe(
+        'Mitochondria is the powerhouse of the cell',
+      );
 
       // Create / Add Task variations
-      const createTask = parseIntentFastPath('Create a new task called Submit Thesis Form tomorrow at 730AM', fixedDate);
+      const createTask = parseIntentFastPath(
+        'Create a new task called Submit Thesis Form tomorrow at 730AM',
+        fixedDate,
+      );
       expect(createTask.intent).toBe('create_task');
       expect(createTask.title).toBe('Submit Thesis Form');
       expect(createTask.date).toBe('2026-10-28');
@@ -1045,15 +1225,24 @@ describe('Phase 07: Smart Hybrid On-Device NLU & Action Execution', () => {
       expect(addTimeBlock.endTime).toBe('15:30');
 
       // Explicit Note commands vs Chat queries
-      const saveAsNote = parseIntentFastPath('Save this as a note that bring index cards to exam', fixedDate);
+      const saveAsNote = parseIntentFastPath(
+        'Save this as a note that bring index cards to exam',
+        fixedDate,
+      );
       expect(saveAsNote.intent).toBe('create_note');
       expect(saveAsNote.title).toBe('Bring index cards to exam');
 
-      const toNote = parseIntentFastPath('To note that lab safety rules require goggles', fixedDate);
+      const toNote = parseIntentFastPath(
+        'To note that lab safety rules require goggles',
+        fixedDate,
+      );
       expect(toNote.intent).toBe('create_note');
       expect(toNote.title).toBe('Lab safety rules require goggles');
 
-      const colonNote = parseIntentFastPath('Take a note: Bring index cards to exam', fixedDate);
+      const colonNote = parseIntentFastPath(
+        'Take a note: Bring index cards to exam',
+        fixedDate,
+      );
       expect(colonNote.intent).toBe('create_note');
       expect(colonNote.title).toBe('Voice Note');
       expect(colonNote.details).toBe('Bring index cards to exam');
@@ -1075,7 +1264,7 @@ describe('Phase 07: Smart Hybrid On-Device NLU & Action Execution', () => {
       const createTb = await intentService.processAndExecuteIntent(
         crudUser,
         'Create a time block from 9am to 11am for Deep Coding',
-        { referenceDate: fixedDate },
+        {referenceDate: fixedDate},
       );
       expect(createTb.success).toBe(true);
       expect(createTb.intent).toBe('create_time_block');
@@ -1084,7 +1273,7 @@ describe('Phase 07: Smart Hybrid On-Device NLU & Action Execution', () => {
       const updateTb = await intentService.processAndExecuteIntent(
         crudUser,
         'Update time block Deep Coding to 1pm to 3pm',
-        { referenceDate: fixedDate },
+        {referenceDate: fixedDate},
       );
       expect(updateTb.success).toBe(true);
       expect(updateTb.intent).toBe('update_time_block');
@@ -1096,7 +1285,7 @@ describe('Phase 07: Smart Hybrid On-Device NLU & Action Execution', () => {
       const renameTb = await intentService.processAndExecuteIntent(
         crudUser,
         'Rename time block Deep Coding to System Design Session',
-        { referenceDate: fixedDate },
+        {referenceDate: fixedDate},
       );
       expect(renameTb.success).toBe(true);
       blocks = timeBlocksStore.getAll(crudUser);
@@ -1106,7 +1295,7 @@ describe('Phase 07: Smart Hybrid On-Device NLU & Action Execution', () => {
       const deleteTb = await intentService.processAndExecuteIntent(
         crudUser,
         'Cancel my System Design Session time block',
-        { referenceDate: fixedDate },
+        {referenceDate: fixedDate},
       );
       expect(deleteTb.success).toBe(true);
       expect(deleteTb.intent).toBe('delete_time_block');
@@ -1116,7 +1305,7 @@ describe('Phase 07: Smart Hybrid On-Device NLU & Action Execution', () => {
       const createT = await intentService.processAndExecuteIntent(
         crudUser,
         'Create a task at 730AM for Calculus Problem Set',
-        { referenceDate: fixedDate },
+        {referenceDate: fixedDate},
       );
       expect(createT.success).toBe(true);
       expect(createT.intent).toBe('create_task');
@@ -1128,7 +1317,7 @@ describe('Phase 07: Smart Hybrid On-Device NLU & Action Execution', () => {
       const updateT = await intentService.processAndExecuteIntent(
         crudUser,
         'Update task Calculus Problem Set to 430PM',
-        { referenceDate: fixedDate },
+        {referenceDate: fixedDate},
       );
       expect(updateT.success).toBe(true);
       expect(updateT.intent).toBe('update_task');
@@ -1139,7 +1328,7 @@ describe('Phase 07: Smart Hybrid On-Device NLU & Action Execution', () => {
       const completeT = await intentService.processAndExecuteIntent(
         crudUser,
         'Mark task Calculus Problem Set as done',
-        { referenceDate: fixedDate },
+        {referenceDate: fixedDate},
       );
       expect(completeT.success).toBe(true);
       tasks = tasksStore.getAllTasks(crudUser);
@@ -1149,7 +1338,7 @@ describe('Phase 07: Smart Hybrid On-Device NLU & Action Execution', () => {
       const deleteT = await intentService.processAndExecuteIntent(
         crudUser,
         'Remove task Calculus Problem Set',
-        { referenceDate: fixedDate },
+        {referenceDate: fixedDate},
       );
       expect(deleteT.success).toBe(true);
       expect(deleteT.intent).toBe('delete_task');
@@ -1159,7 +1348,7 @@ describe('Phase 07: Smart Hybrid On-Device NLU & Action Execution', () => {
       const createN = await intentService.processAndExecuteIntent(
         crudUser,
         'Create a note titled Lab Checklist that bring oscilloscope probes',
-        { referenceDate: fixedDate },
+        {referenceDate: fixedDate},
       );
       expect(createN.success).toBe(true);
       expect(createN.intent).toBe('create_note');
@@ -1172,7 +1361,7 @@ describe('Phase 07: Smart Hybrid On-Device NLU & Action Execution', () => {
       const appendN = await intentService.processAndExecuteIntent(
         crudUser,
         'Append to note Lab Checklist: bring safety goggles',
-        { referenceDate: fixedDate },
+        {referenceDate: fixedDate},
       );
       expect(appendN.success).toBe(true);
       expect(appendN.intent).toBe('update_note');
@@ -1184,7 +1373,7 @@ describe('Phase 07: Smart Hybrid On-Device NLU & Action Execution', () => {
       const editN = await intentService.processAndExecuteIntent(
         crudUser,
         'Update note Lab Checklist to bring multimeter and jumper wires',
-        { referenceDate: fixedDate },
+        {referenceDate: fixedDate},
       );
       expect(editN.success).toBe(true);
       notes = notesStore.getAll(crudUser);
@@ -1194,7 +1383,7 @@ describe('Phase 07: Smart Hybrid On-Device NLU & Action Execution', () => {
       const deleteN = await intentService.processAndExecuteIntent(
         crudUser,
         'Delete note Lab Checklist',
-        { referenceDate: fixedDate },
+        {referenceDate: fixedDate},
       );
       expect(deleteN.success).toBe(true);
       expect(deleteN.intent).toBe('delete_note');
@@ -1208,7 +1397,7 @@ describe('Phase 07: Smart Hybrid On-Device NLU & Action Execution', () => {
       const coffeeCreate = await intentService.processAndExecuteIntent(
         cancelUser,
         "So let's schedule at 2 PM for a coffee date.",
-        { referenceDate: fixedDate },
+        {referenceDate: fixedDate},
       );
       expect(coffeeCreate.success).toBe(true);
       expect(coffeeCreate.intent).toBe('create_task');
@@ -1222,7 +1411,7 @@ describe('Phase 07: Smart Hybrid On-Device NLU & Action Execution', () => {
       const cancelByTime = await intentService.processAndExecuteIntent(
         cancelUser,
         'Cancel what I have at 2 PM',
-        { referenceDate: fixedDate },
+        {referenceDate: fixedDate},
       );
       expect(cancelByTime.success).toBe(true);
       expect(tasksStore.getAllTasks(cancelUser)).toHaveLength(0);
@@ -1253,16 +1442,18 @@ describe('Phase 07: Smart Hybrid On-Device NLU & Action Execution', () => {
       const delete1Pm = await intentService.processAndExecuteIntent(
         cancelUser,
         'Delete my 1 PM schedule',
-        { referenceDate: fixedDate },
+        {referenceDate: fixedDate},
       );
       expect(delete1Pm.success).toBe(true);
-      expect(tasksStore.getAllTasks(cancelUser).map((t) => t.id)).toEqual(['legacy-coffee-dot']);
+      expect(tasksStore.getAllTasks(cancelUser).map(t => t.id)).toEqual([
+        'legacy-coffee-dot',
+      ]);
 
       // Cancel the 2 PM legacy task by name ("I want to cancel the coffee date")
       const cancelCoffee = await intentService.processAndExecuteIntent(
         cancelUser,
         'I want to cancel the coffee date',
-        { referenceDate: fixedDate },
+        {referenceDate: fixedDate},
       );
       expect(cancelCoffee.success).toBe(true);
       expect(tasksStore.getAllTasks(cancelUser)).toHaveLength(0);
@@ -1288,16 +1479,18 @@ describe('Phase 07: Smart Hybrid On-Device NLU & Action Execution', () => {
       const cancelEvByName = await intentService.processAndExecuteIntent(
         cancelUser,
         'Cancel event Department Assembly',
-        { referenceDate: fixedDate },
+        {referenceDate: fixedDate},
       );
       expect(cancelEvByName.success).toBe(true);
       expect(cancelEvByName.entityType).toBe('event');
-      expect(tasksStore.getAllEvents(cancelUser).map((e) => e.id)).toEqual(['ev-cancel-2']);
+      expect(tasksStore.getAllEvents(cancelUser).map(e => e.id)).toEqual([
+        'ev-cancel-2',
+      ]);
 
       const deleteEvByTime = await intentService.processAndExecuteIntent(
         cancelUser,
         'Delete my 3 PM event',
-        { referenceDate: fixedDate },
+        {referenceDate: fixedDate},
       );
       expect(deleteEvByTime.success).toBe(true);
       expect(deleteEvByTime.entityType).toBe('event');
@@ -1307,14 +1500,14 @@ describe('Phase 07: Smart Hybrid On-Device NLU & Action Execution', () => {
       await intentService.processAndExecuteIntent(
         cancelUser,
         'Create a time block from 4pm to 6pm for Capstone Debugging',
-        { referenceDate: fixedDate },
+        {referenceDate: fixedDate},
       );
       expect(timeBlocksStore.getAll(cancelUser)).toHaveLength(1);
 
       const deleteTbByTime = await intentService.processAndExecuteIntent(
         cancelUser,
         'Delete my 4 PM time block',
-        { referenceDate: fixedDate },
+        {referenceDate: fixedDate},
       );
       expect(deleteTbByTime.success).toBe(true);
       expect(timeBlocksStore.getAll(cancelUser)).toHaveLength(0);
@@ -1322,14 +1515,14 @@ describe('Phase 07: Smart Hybrid On-Device NLU & Action Execution', () => {
       await intentService.processAndExecuteIntent(
         cancelUser,
         'Add task at 5 PM for Laundry',
-        { referenceDate: fixedDate },
+        {referenceDate: fixedDate},
       );
       expect(tasksStore.getAllTasks(cancelUser)).toHaveLength(1);
 
       const cancelRecent = await intentService.processAndExecuteIntent(
         cancelUser,
         'Cancel that',
-        { referenceDate: fixedDate },
+        {referenceDate: fixedDate},
       );
       expect(cancelRecent.success).toBe(true);
       expect(tasksStore.getAllTasks(cancelUser)).toHaveLength(0);
@@ -1343,30 +1536,49 @@ describe('Phase 07: Smart Hybrid On-Device NLU & Action Execution', () => {
 
     beforeEach(async () => {
       await initDatabase();
-      tasksStore.getAllTasks(studentUser).forEach((t) => tasksStore.deleteTask(t.id));
-      tasksStore.getAllEvents(studentUser).forEach((e) => tasksStore.deleteEvent(e.id));
-      timeBlocksStore.getAll(studentUser).forEach((b) => timeBlocksStore.delete(b.id));
-      remindersStore.getAllReminders(studentUser).forEach((r) => remindersStore.deleteReminder(r.id));
+      tasksStore
+        .getAllTasks(studentUser)
+        .forEach(t => tasksStore.deleteTask(t.id));
+      tasksStore
+        .getAllEvents(studentUser)
+        .forEach(e => tasksStore.deleteEvent(e.id));
+      timeBlocksStore
+        .getAll(studentUser)
+        .forEach(b => timeBlocksStore.delete(b.id));
+      remindersStore
+        .getAllReminders(studentUser)
+        .forEach(r => remindersStore.deleteReminder(r.id));
     });
 
     it('Scenario 1: Simple reminder — "Create a reminder for your Software Engineering final exam this Friday at 2 PM."', async () => {
-      const transcript = 'Create a reminder for your Software Engineering final exam this Friday at 2 PM.';
+      const transcript =
+        'Create a reminder for your Software Engineering final exam this Friday at 2 PM.';
       const parsed = parseIntentFastPath(transcript, fixedRefMonday);
       expect(parsed.intent).toBe('create_reminder');
-      expect(parsed.title?.toLowerCase()).toContain('software engineering final exam');
+      expect(parsed.title?.toLowerCase()).toContain(
+        'software engineering final exam',
+      );
       expect(parsed.date).toBe('2026-11-06'); // Friday
       expect(parsed.time).toBe('14:00'); // 2 PM
 
-      const result = await intentService.processAndExecuteIntent(studentUser, transcript, {
-        referenceDate: fixedRefMonday,
-      });
+      const result = await intentService.processAndExecuteIntent(
+        studentUser,
+        transcript,
+        {
+          referenceDate: fixedRefMonday,
+        },
+      );
       expect(result.success).toBe(true);
       expect(result.entityType).toBe('reminder');
 
       const reminders = remindersStore.getPendingReminders(studentUser);
       expect(reminders).toHaveLength(1);
-      expect(reminders[0].task.toLowerCase()).toContain('software engineering final exam');
-      expect(new Date(reminders[0].scheduledAt).getTime()).toBe(new Date('2026-11-06T14:00:00').getTime());
+      expect(reminders[0].task.toLowerCase()).toContain(
+        'software engineering final exam',
+      );
+      expect(new Date(reminders[0].scheduledAt).getTime()).toBe(
+        new Date('2026-11-06T14:00:00').getTime(),
+      );
 
       const tasks = tasksStore.getAllTasks(studentUser);
       expect(tasks).toHaveLength(1);
@@ -1375,26 +1587,36 @@ describe('Phase 07: Smart Hybrid On-Device NLU & Action Execution', () => {
     });
 
     it('Scenario 2: Recurring reminder — "Create a reminder that repeats every Monday for your 8 AM class."', async () => {
-      const transcript = 'Create a reminder that repeats every Monday for your 8 AM class.';
+      const transcript =
+        'Create a reminder that repeats every Monday for your 8 AM class.';
       const parsed = parseIntentFastPath(transcript, fixedRefMonday);
       expect(parsed.intent).toBe('create_reminder');
       expect(parsed.recurrenceRule).toBe('RRULE:FREQ=WEEKLY;BYDAY=MO');
       expect(parsed.time).toBe('08:00');
       expect(parsed.date).toBe('2026-11-09'); // Next Monday
 
-      const result = await intentService.processAndExecuteIntent(studentUser, transcript, {
-        referenceDate: fixedRefMonday,
-      });
+      const result = await intentService.processAndExecuteIntent(
+        studentUser,
+        transcript,
+        {
+          referenceDate: fixedRefMonday,
+        },
+      );
       expect(result.success).toBe(true);
       expect(result.reply).toContain('repeating every Monday');
 
       const reminders = remindersStore.getPendingReminders(studentUser);
       expect(reminders).toHaveLength(1);
-      expect(reminders[0].description).toContain('[RRULE:RRULE:FREQ=WEEKLY;BYDAY=MO]');
+      expect(reminders[0].description).toContain(
+        '[RRULE:RRULE:FREQ=WEEKLY;BYDAY=MO]',
+      );
 
       // Acknowledging the recurring reminder automatically creates and schedules the subsequent Monday occurrence
       const firstReminderId = reminders[0].id;
-      const ackResult = await acknowledgeReminderAction(firstReminderId, studentUser);
+      const ackResult = await acknowledgeReminderAction(
+        firstReminderId,
+        studentUser,
+      );
       expect(ackResult.ok).toBe(true);
 
       const updatedFirst = remindersStore.getReminderById(firstReminderId);
@@ -1403,7 +1625,9 @@ describe('Phase 07: Smart Hybrid On-Device NLU & Action Execution', () => {
       const pendingAfterAck = remindersStore.getPendingReminders(studentUser);
       expect(pendingAfterAck).toHaveLength(1);
       expect(pendingAfterAck[0].id).not.toBe(firstReminderId);
-      expect(new Date(pendingAfterAck[0].scheduledAt).getTime()).toBe(new Date('2026-11-16T08:00:00').getTime()); // Second Monday
+      expect(new Date(pendingAfterAck[0].scheduledAt).getTime()).toBe(
+        new Date('2026-11-16T08:00:00').getTime(),
+      ); // Second Monday
     });
 
     it('Scenario 3: View queue — "Ask LAFINA to show you everything scheduled this week."', async () => {
@@ -1439,19 +1663,33 @@ describe('Phase 07: Smart Hybrid On-Device NLU & Action Execution', () => {
         category: 'Academic',
       });
 
-      const transcript = 'Ask LAFINA to show you everything scheduled this week.';
+      const transcript =
+        'Ask LAFINA to show you everything scheduled this week.';
       const parsed = parseIntentFastPath(transcript, fixedRefWed);
       expect(parsed.intent).toBe('query_schedule');
       expect(parsed.dateRange).toBe('this_week');
 
-      const result = await intentService.processAndExecuteIntent(studentUser, transcript, {
-        referenceDate: fixedRefWed,
-      });
+      const result = await intentService.processAndExecuteIntent(
+        studentUser,
+        transcript,
+        {
+          referenceDate: fixedRefWed,
+        },
+      );
       expect(result.success).toBe(true);
       expect(result.reply).toContain('This week you have');
-      expect(result.reply).toContain('On Monday: Algorithms Homework at 9:00 AM.');
-      expect(result.reply).toContain('On Wednesday: Database Systems Lecture from 1:00 PM to 3:00 PM.');
-      expect(result.reply).toContain('On Friday: Capstone Focus Session from 4:00 PM to 6:00 PM.');
+      expect(result.reply).toContain('### Monday');
+      expect(result.reply).toContain(
+        '• **9:00 AM** — Algorithms Homework *(Task)*',
+      );
+      expect(result.reply).toContain('### Wednesday');
+      expect(result.reply).toContain(
+        '• **1:00 PM – 3:00 PM** — Database Systems Lecture *(Event)*',
+      );
+      expect(result.reply).toContain('### Friday');
+      expect(result.reply).toContain(
+        '• **4:00 PM – 6:00 PM** — Capstone Focus Session *(Block)*',
+      );
     });
 
     it('Scenario 3 (High-density schedule): truncates cleanly when reciting many items on a day so it will not flood the UI', async () => {
@@ -1476,10 +1714,18 @@ describe('Phase 07: Smart Hybrid On-Device NLU & Action Execution', () => {
       const result = await intentService.processAndExecuteIntent(
         studentUser,
         'Ask LAFINA to show you everything scheduled this week.',
-        { referenceDate: fixedRefWed },
+        {referenceDate: fixedRefWed},
       );
       expect(result.success).toBe(true);
-      expect(result.reply).toContain('On Monday: Study Session 1 at 9:00 AM, Study Session 2 at 10:00 AM, Study Session 3 at 11:00 AM, and 2 more items.');
+      expect(result.reply).toContain('### Monday');
+      expect(result.reply).toContain(
+        '• **9:00 AM** — Study Session 1 *(Task)*',
+      );
+      expect(result.reply).toContain(
+        '• **12:00 PM** — Study Session 4 *(Task)*',
+      );
+      expect(result.reply).toContain('• *+1 more item*');
+      expect(result.reply).not.toContain('Study Session 5');
     });
 
     it('Scenario 6: Cancel — "Cancel the recurring 8 AM reminder you created earlier."', async () => {
@@ -1487,19 +1733,24 @@ describe('Phase 07: Smart Hybrid On-Device NLU & Action Execution', () => {
       await intentService.processAndExecuteIntent(
         studentUser,
         'Create a reminder that repeats every Monday for your 8 AM class.',
-        { referenceDate: fixedRefMonday },
+        {referenceDate: fixedRefMonday},
       );
       expect(remindersStore.getPendingReminders(studentUser)).toHaveLength(1);
 
-      const cancelTranscript = 'Cancel the recurring 8 AM reminder you created earlier.';
+      const cancelTranscript =
+        'Cancel the recurring 8 AM reminder you created earlier.';
       const parsed = parseIntentFastPath(cancelTranscript, fixedRefMonday);
       expect(parsed.intent).toBe('delete_task');
       expect(parsed.targetEntityType).toBe('reminder');
       expect(parsed.targetTime).toBe('08:00');
 
-      const result = await intentService.processAndExecuteIntent(studentUser, cancelTranscript, {
-        referenceDate: fixedRefMonday,
-      });
+      const result = await intentService.processAndExecuteIntent(
+        studentUser,
+        cancelTranscript,
+        {
+          referenceDate: fixedRefMonday,
+        },
+      );
       expect(result.success).toBe(true);
       expect(result.entityType).toBe('reminder');
       expect(result.reply).toContain('Cancelled reminder');
@@ -1507,21 +1758,345 @@ describe('Phase 07: Smart Hybrid On-Device NLU & Action Execution', () => {
     });
 
     it('Scenario 8: Ambiguous date — "Create a reminder for your project deadline next week."', async () => {
-      const transcript = 'Create a reminder for your project deadline next week.';
+      const transcript =
+        'Create a reminder for your project deadline next week.';
       const parsed = parseIntentFastPath(transcript, fixedRefMonday);
       expect(parsed.intent).toBe('create_reminder');
       expect(parsed.date).toBe('2026-11-09'); // Resolves to Monday of next week
       expect(parsed.title?.toLowerCase()).toBe('project deadline');
 
-      const result = await intentService.processAndExecuteIntent(studentUser, transcript, {
-        referenceDate: fixedRefMonday,
-      });
+      const result = await intentService.processAndExecuteIntent(
+        studentUser,
+        transcript,
+        {
+          referenceDate: fixedRefMonday,
+        },
+      );
       expect(result.success).toBe(true);
       expect(result.entityType).toBe('reminder');
       const reminders = remindersStore.getPendingReminders(studentUser);
       expect(reminders).toHaveLength(1);
-      expect(new Date(reminders[0].scheduledAt).getTime()).toBe(new Date('2026-11-09T09:00:00').getTime());
+      expect(new Date(reminders[0].scheduledAt).getTime()).toBe(
+        new Date('2026-11-09T09:00:00').getTime(),
+      );
       expect(reminders[0].task).toBe('Project deadline');
+    });
+  });
+
+  describe('9. Curated Offline AI Model Presets (SmolLM2, Gemma 3 270M, Qwen 2.5 0.5B, Gemma 3 1B, Fast-Path Only)', () => {
+    const presetTestUser = 'test-student-preset-selection';
+    const originalPlatformOS = Platform.OS;
+    const originalNativeExtractor = NativeModules.LafinaIntentExtractor;
+
+    afterEach(async () => {
+      Platform.OS = originalPlatformOS;
+      if (originalNativeExtractor === undefined) {
+        delete NativeModules.LafinaIntentExtractor;
+      } else {
+        NativeModules.LafinaIntentExtractor = originalNativeExtractor;
+      }
+
+      await deleteOfflineModel('smollm2-135m', presetTestUser);
+      await deleteOfflineModel('gemma-3-270m', presetTestUser);
+      await deleteOfflineModel('qwen2.5-0.5b', presetTestUser);
+      await deleteOfflineModel('gemma-3-1b', presetTestUser);
+      setSelectedOfflineModelId('qwen2.5-0.5b', presetTestUser);
+    });
+
+    test('exposes all 5 curated presets in OFFLINE_MODEL_CATALOG with accurate prompt formats', () => {
+      expect(SETTING_KEY_OFFLINE_AI_MODEL).toBe('offline_ai_model_id');
+      expect(OFFLINE_MODEL_CATALOG.map(p => p.id)).toEqual([
+        'fast_path_only',
+        'smollm2-135m',
+        'gemma-3-270m',
+        'qwen2.5-0.5b',
+        'gemma-3-1b',
+      ]);
+
+      const byId = Object.fromEntries(
+        OFFLINE_MODEL_CATALOG.map(preset => [preset.id, preset]),
+      );
+      expect(byId.fast_path_only.approximateSizeBytes).toBe(0);
+      expect(byId['smollm2-135m'].promptFormat).toBe('chatml');
+      expect(byId['qwen2.5-0.5b'].promptFormat).toBe('chatml');
+      expect(byId['gemma-3-270m'].promptFormat).toBe('gemma');
+      expect(byId['gemma-3-1b'].promptFormat).toBe('gemma');
+    });
+
+    test('persists preset selection, downloads Gemma 3 270M, and reports statuses across catalog', async () => {
+      expect(getSelectedOfflineModelId(presetTestUser)).toBe('qwen2.5-0.5b');
+      expect(await getActiveOfflineModelReadyConfig(presetTestUser)).toBeNull();
+
+      await downloadOfflineModel('gemma-3-270m', undefined, presetTestUser);
+
+      expect(await isModelReadyById('gemma-3-270m')).toBe(true);
+      expect(getSelectedOfflineModelId(presetTestUser)).toBe('gemma-3-270m');
+
+      const activeConfig = await getActiveOfflineModelReadyConfig(
+        presetTestUser,
+      );
+      expect(activeConfig).not.toBeNull();
+      expect(activeConfig?.modelId).toBe('gemma-3-270m');
+      expect(activeConfig?.promptFormat).toBe('gemma');
+      expect(activeConfig?.modelPath).toBe(getModelPathForId('gemma-3-270m'));
+
+      const statuses = await getAllModelsStatus(presetTestUser);
+      const gemma270Status = statuses.find(s => s.modelId === 'gemma-3-270m');
+      expect(gemma270Status?.isDownloaded).toBe(true);
+      expect(gemma270Status?.isSelected).toBe(true);
+    });
+
+    test('invokes LafinaIntentExtractor with promptFormat "gemma" for Gemma 3 270M and Gemma 3 1B', async () => {
+      const extractIntentMock = jest.fn(async () =>
+        JSON.stringify({
+          intent: 'create_reminder',
+          title: 'Submit Physics Worksheet',
+          date: '2026-10-28',
+          time: '09:00',
+          category: 'Academic',
+        }),
+      );
+      const unloadModelMock = jest.fn(async () => true);
+
+      Platform.OS = 'android';
+      NativeModules.LafinaIntentExtractor = {
+        extractIntent: extractIntentMock,
+        unloadModel: unloadModelMock,
+      };
+
+      await downloadOfflineModel('gemma-3-270m', undefined, presetTestUser);
+
+      const res270 = await intentService.extractIntent(
+        'Remind me tomorrow morning that we might have to submit the physics worksheet',
+        {referenceDate: fixedDate, userId: presetTestUser},
+      );
+
+      expect(res270.source).toBe('on_device_slm');
+      expect(extractIntentMock).toHaveBeenCalledTimes(1);
+      expect(extractIntentMock).toHaveBeenCalledWith({
+        transcript:
+          'Remind me tomorrow morning that we might have to submit the physics worksheet',
+        modelPath: getModelPathForId('gemma-3-270m'),
+        promptFormat: 'gemma',
+      });
+
+      await downloadOfflineModel('gemma-3-1b', undefined, presetTestUser);
+      expect(getSelectedOfflineModelId(presetTestUser)).toBe('gemma-3-1b');
+
+      const res1b = await intentService.extractIntent(
+        'Remind me tomorrow morning that we might have to submit the physics worksheet',
+        {referenceDate: fixedDate, userId: presetTestUser},
+      );
+
+      expect(res1b.source).toBe('on_device_slm');
+      expect(extractIntentMock).toHaveBeenLastCalledWith({
+        transcript:
+          'Remind me tomorrow morning that we might have to submit the physics worksheet',
+        modelPath: getModelPathForId('gemma-3-1b'),
+        promptFormat: 'gemma',
+      });
+    });
+
+    test('switches to fast_path_only, unloads native model, and bypasses SLM despite downloaded GGUFs', async () => {
+      const extractIntentMock = jest.fn(async () =>
+        JSON.stringify({
+          intent: 'create_task',
+          title: 'Physics Worksheet',
+        }),
+      );
+      const unloadModelMock = jest.fn(async () => true);
+
+      Platform.OS = 'android';
+      NativeModules.LafinaIntentExtractor = {
+        extractIntent: extractIntentMock,
+        unloadModel: unloadModelMock,
+      };
+
+      await downloadOfflineModel('smollm2-135m', undefined, presetTestUser);
+      expect(getSelectedOfflineModelId(presetTestUser)).toBe('smollm2-135m');
+
+      unloadModelMock.mockClear();
+      setSelectedOfflineModelId('fast_path_only', presetTestUser);
+      expect(unloadModelMock).toHaveBeenCalledTimes(1);
+      expect(await getActiveOfflineModelReadyConfig(presetTestUser)).toBeNull();
+
+      const fastRes = await intentService.extractIntent(
+        'Remind me tomorrow morning that we might have to submit the physics worksheet',
+        {referenceDate: fixedDate, userId: presetTestUser},
+      );
+      expect(fastRes.source).toBe('fast_path');
+      expect(extractIntentMock).not.toHaveBeenCalled();
+
+      setSelectedOfflineModelId('smollm2-135m', presetTestUser);
+      const smolRes = await intentService.extractIntent(
+        'Remind me tomorrow morning that we might have to submit the physics worksheet',
+        {referenceDate: fixedDate, userId: presetTestUser},
+      );
+      expect(smolRes.source).toBe('on_device_slm');
+      expect(extractIntentMock).toHaveBeenCalledWith({
+        transcript:
+          'Remind me tomorrow morning that we might have to submit the physics worksheet',
+        modelPath: getModelPathForId('smollm2-135m'),
+        promptFormat: 'chatml',
+      });
+    });
+
+    test('routes Taglish scheduling phrases to active SLM while keeping schedule queries on fast path', async () => {
+      const extractIntentMock = jest.fn(async () =>
+        JSON.stringify({
+          intent: 'create_reminder',
+          title: 'Magpasa Ng Lab Report',
+          date: '2026-10-28',
+          time: '09:00',
+          category: 'Academic',
+        }),
+      );
+
+      Platform.OS = 'android';
+      NativeModules.LafinaIntentExtractor = {
+        extractIntent: extractIntentMock,
+        unloadModel: jest.fn(async () => true),
+      };
+
+      await downloadOfflineModel('gemma-3-270m', undefined, presetTestUser);
+
+      const taglishResult = await intentService.extractIntent(
+        'Pa-remind bukas 9am magpasa ng lab report',
+        {referenceDate: fixedDate, userId: presetTestUser},
+      );
+
+      expect(extractIntentMock).toHaveBeenCalledTimes(1);
+      expect(taglishResult.source).toBe('on_device_slm');
+      expect(taglishResult.intent).toBe('create_reminder');
+
+      extractIntentMock.mockClear();
+
+      const queryResult = await intentService.extractIntent(
+        'What is on my schedule tomorrow?',
+        {referenceDate: fixedDate, userId: presetTestUser},
+      );
+
+      expect(queryResult.intent).toBe('query_schedule');
+      expect(queryResult.source).toBe('fast_path');
+      expect(extractIntentMock).not.toHaveBeenCalled();
+    });
+
+    test('recommends the best offline AI model based on device RAM, CPU, ABI, and storage specs', async () => {
+      expect(classifyAdvertisedRamGb(7_900_000_000)).toBe(8);
+      expect(classifyAdvertisedRamGb(5_800_000_000)).toBe(6);
+      expect(classifyAdvertisedRamGb(3_850_000_000)).toBe(4);
+      expect(classifyAdvertisedRamGb(2_800_000_000)).toBe(3);
+      expect(classifyAdvertisedRamGb(1_900_000_000)).toBe(2);
+
+      const eightGbPhone = normalizeRawDeviceSpecs({
+        totalRamBytes: 8_000_000_000,
+        availableRamBytes: 3_100_000_000,
+        isLowRamDevice: false,
+        isLowMemoryNow: false,
+        cpuCores: 8,
+        supports64Bit: true,
+        primaryAbi: 'arm64-v8a',
+        availableStorageBytes: 12_000_000_000,
+        totalStorageBytes: 128_000_000_000,
+        deviceLabel: 'Samsung SM-A546E',
+      });
+      const rec8gb = recommendOfflineModelForSpecs(eightGbPhone);
+      expect(rec8gb.recommendedModelId).toBe('gemma-3-1b');
+      expect(rec8gb.assessments['gemma-3-1b'].isRecommended).toBe(true);
+      expect(rec8gb.assessments['gemma-3-1b'].tier).toBe('recommended');
+
+      // Constrained free storage on an 8 GB phone downgrades cleanly unless already downloaded
+      const lowStorage8gb = normalizeRawDeviceSpecs({
+        ...eightGbPhone,
+        availableStorageBytes: 650_000_000,
+      });
+      const recLowStorage = recommendOfflineModelForSpecs(lowStorage8gb);
+      expect(recLowStorage.recommendedModelId).toBe('qwen2.5-0.5b');
+      expect(recLowStorage.assessments['gemma-3-1b'].tier).toBe('unsupported');
+
+      const recAlreadyDownloaded = recommendOfflineModelForSpecs(
+        lowStorage8gb,
+        {
+          downloadedModelIds: ['gemma-3-1b'],
+        },
+      );
+      expect(recAlreadyDownloaded.recommendedModelId).toBe('gemma-3-1b');
+
+      // 4 GB phone recommends Gemma 3 270M and flags 1B as unsupported
+      const fourGbPhone = normalizeRawDeviceSpecs({
+        totalRamBytes: 3_900_000_000,
+        availableRamBytes: 1_450_000_000,
+        cpuCores: 8,
+        supports64Bit: true,
+        availableStorageBytes: 8_000_000_000,
+        totalStorageBytes: 64_000_000_000,
+      });
+      const rec4gb = recommendOfflineModelForSpecs(fourGbPhone);
+      expect(rec4gb.recommendedModelId).toBe('gemma-3-270m');
+      expect(rec4gb.assessments['qwen2.5-0.5b'].tier).toBe('compatible');
+      expect(rec4gb.assessments['gemma-3-1b'].hasEnoughRam).toBe(false);
+      expect(rec4gb.assessments['gemma-3-1b'].tier).toBe('unsupported');
+
+      // 3 GB phone recommends SmolLM2-135M
+      const threeGbPhone = normalizeRawDeviceSpecs({
+        totalRamBytes: 2_850_000_000,
+        availableRamBytes: 950_000_000,
+        cpuCores: 8,
+        supports64Bit: true,
+        availableStorageBytes: 4_000_000_000,
+        totalStorageBytes: 32_000_000_000,
+      });
+      expect(
+        recommendOfflineModelForSpecs(threeGbPhone).recommendedModelId,
+      ).toBe('smollm2-135m');
+
+      // 2 GB / low-RAM or 32-bit ABI recommends Fast-Path Only
+      const twoGbPhone = normalizeRawDeviceSpecs({
+        totalRamBytes: 1_900_000_000,
+        isLowRamDevice: true,
+        cpuCores: 4,
+        supports64Bit: true,
+        availableStorageBytes: 4_000_000_000,
+        totalStorageBytes: 32_000_000_000,
+      });
+      expect(recommendOfflineModelForSpecs(twoGbPhone).recommendedModelId).toBe(
+        'fast_path_only',
+      );
+
+      const arm32Phone = normalizeRawDeviceSpecs({
+        totalRamBytes: 4_000_000_000,
+        cpuCores: 4,
+        supports64Bit: false,
+        availableStorageBytes: 8_000_000_000,
+        totalStorageBytes: 64_000_000_000,
+      });
+      expect(recommendOfflineModelForSpecs(arm32Phone).recommendedModelId).toBe(
+        'fast_path_only',
+      );
+
+      // Native bridge integration
+      Platform.OS = 'android';
+      NativeModules.LafinaIntentExtractor = {
+        getDeviceSpecs: jest.fn(async () => ({
+          totalRamBytes: 5_900_000_000,
+          availableRamBytes: 2_400_000_000,
+          isLowRamDevice: false,
+          isLowMemoryNow: false,
+          cpuCores: 8,
+          supports64Bit: true,
+          primaryAbi: 'arm64-v8a',
+          availableStorageBytes: 10_000_000_000,
+          totalStorageBytes: 128_000_000_000,
+          deviceLabel: 'Pixel 7a',
+          androidSdk: 34,
+        })),
+      };
+
+      const nativeRec = await getDeviceAiRecommendation();
+      expect(nativeRec.specs.isDetected).toBe(true);
+      expect(nativeRec.specs.advertisedRamGb).toBe(6);
+      expect(nativeRec.specs.deviceLabel).toBe('Pixel 7a');
+      expect(nativeRec.recommendedModelId).toBe('gemma-3-1b');
     });
   });
 });

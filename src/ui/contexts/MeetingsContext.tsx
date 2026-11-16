@@ -285,7 +285,7 @@ export const MeetingsProvider: React.FC<{
         } else if (code === 'plan_required' || code === 'unauthorized') {
           update(id, {
             status: 'transcription_complete',
-            errorCode: hasProEntitlement(userId) ? code : 'plan_required',
+            errorCode: hasProEntitlement(userId) ? code : 'unauthorized',
           });
         } else {
           update(id, {

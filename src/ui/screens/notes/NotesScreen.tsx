@@ -11,7 +11,6 @@ import {
   Alert,
 } from 'react-native';
 import {pick} from '@react-native-documents/picker';
-import {useSafeAreaInsets} from 'react-native-safe-area-context';
 import {
   FileText,
   Plus,
@@ -23,7 +22,6 @@ import {
   CheckSquare,
 } from 'lucide-react-native';
 import {useTheme} from '../../contexts/ThemeContext';
-import {Colors, Shadows} from '../../theme';
 import {useNotesData} from './hooks/useNotesData';
 import {useTodoData} from './hooks/useTodoData';
 import {
@@ -33,6 +31,11 @@ import {
   TodoEditorModal,
 } from './components';
 import {NoteEditor} from './components/NoteEditor';
+import {AlarmsView} from '../calendar/components/AlarmsView';
+import {
+  useSchedulePalette,
+  scheduleCardShadow,
+} from '../calendar/components/schedulePalette';
 import {NotesScreenProps, NotesSubTab} from './types';
 import type {NoteSnapshot} from '../../../storage';
 
@@ -44,9 +47,12 @@ export const NotesScreen: React.FC<NotesScreenProps> = ({
   onOpenRequestHandled,
 }) => {
   const {colors} = useTheme();
-  const insets = useSafeAreaInsets();
-  const fabBottom = Math.max(insets.bottom, 12) + 90;
+  const palette = useSchedulePalette();
   const [activeSubTab, setActiveSubTab] = useState<NotesSubTab>('notes');
+  const [alarmCreateTick, setAlarmCreateTick] = useState(0);
+  const handleAddAlarm = useCallback(() => {
+    setAlarmCreateTick(tick => tick + 1);
+  }, []);
   const todoReloadRef = useRef<() => void>(() => {});
   const handleCombinedRefresh = useCallback(() => {
     todoReloadRef.current();
@@ -71,6 +77,15 @@ export const NotesScreen: React.FC<NotesScreenProps> = ({
       return;
     handledRequest.current = openRequest.requestId;
     onOpenRequestHandled?.(openRequest.requestId);
+    if (
+      openRequest.notesTab === 'alarms' ||
+      openRequest.scheduleSection === 'alarms'
+    ) {
+      data.setSearchActive(false);
+      data.setSearchQuery('');
+      setActiveSubTab('alarms');
+      return;
+    }
     if (openRequest.notesTab === 'todo' || openRequest.entityKind === 'task') {
       setActiveSubTab('todo');
       if (!openRequest.entityId) return;
@@ -250,17 +265,28 @@ export const NotesScreen: React.FC<NotesScreenProps> = ({
   ) : null;
 
   return (
-    <View style={[styles.container, {backgroundColor: colors.background}]}>
+    <View style={[styles.container, {backgroundColor: palette.bg}]}>
       {/* Header */}
       <View style={styles.header}>
-        {data.searchActive ? (
-          <View style={[styles.searchRow, {backgroundColor: colors.inputBg}]}>
+        {data.searchActive && activeSubTab !== 'alarms' ? (
+          <View
+            style={[
+              styles.searchRow,
+              {
+                backgroundColor: palette.card,
+                borderColor: palette.isDarkMode ? palette.border : 'transparent',
+                borderWidth: palette.isDarkMode ? 1 : 0,
+              },
+              !palette.isDarkMode && scheduleCardShadow,
+            ]}
+          >
+            <Search size={16} color={palette.muted} style={styles.searchPrefixIcon} />
             <TextInput
-              style={[styles.searchInput, {color: colors.textPrimary}]}
+              style={[styles.searchInput, {color: palette.text}]}
               placeholder={
                 activeSubTab === 'todo' ? 'Search to-dos...' : 'Search notes...'
               }
-              placeholderTextColor={colors.textSecondary}
+              placeholderTextColor={palette.muted}
               autoFocus
               value={data.searchQuery}
               onChangeText={data.setSearchQuery}
@@ -270,31 +296,39 @@ export const NotesScreen: React.FC<NotesScreenProps> = ({
                 data.setSearchActive(false);
                 data.setSearchQuery('');
               }}
-              style={styles.headerIconBtn}
+              style={styles.searchClearBtn}
             >
-              <X size={16} color={colors.textPrimary} />
+              <X size={16} color={palette.text} />
             </TouchableOpacity>
           </View>
         ) : (
           <>
-            <Text style={[styles.headerTitle, {color: colors.textPrimary}]}>
-              Notes
+            <Text style={[styles.headerTitle, {color: palette.text}]}>
+              Tools
             </Text>
             <View style={styles.headerIcons}>
-              <TouchableOpacity
-                onPress={() => data.setSearchActive(true)}
-                style={styles.headerIconBtn}
-                accessibilityRole="button"
-                accessibilityLabel={
-                  activeSubTab === 'todo' ? 'Search to-dos' : 'Search notes'
-                }
-                testID="notes-search-button"
-              >
-                <Search size={18} color={colors.textPrimary} />
-              </TouchableOpacity>
+              {activeSubTab !== 'alarms' && (
+                <TouchableOpacity
+                  onPress={() => data.setSearchActive(true)}
+                  style={[
+                    styles.headerIconBtn,
+                    {backgroundColor: palette.surface},
+                  ]}
+                  accessibilityRole="button"
+                  accessibilityLabel={
+                    activeSubTab === 'todo' ? 'Search to-dos' : 'Search notes'
+                  }
+                  testID="notes-search-button"
+                >
+                  <Search size={17} color={palette.text} />
+                </TouchableOpacity>
+              )}
               <TouchableOpacity
                 onPress={() => data.setIsGridView(!data.isGridView)}
-                style={styles.headerIconBtn}
+                style={[
+                  styles.headerIconBtn,
+                  {backgroundColor: palette.surface},
+                ]}
                 accessibilityRole="button"
                 accessibilityLabel={
                   data.isGridView
@@ -304,33 +338,68 @@ export const NotesScreen: React.FC<NotesScreenProps> = ({
                 testID="notes-view-toggle"
               >
                 {data.isGridView ? (
-                  <List size={18} color={colors.textPrimary} />
+                  <List size={17} color={palette.text} />
                 ) : (
-                  <Grid size={18} color={colors.textPrimary} />
+                  <Grid size={17} color={palette.text} />
                 )}
+              </TouchableOpacity>
+              <TouchableOpacity
+                onPress={
+                  activeSubTab === 'alarms'
+                    ? handleAddAlarm
+                    : activeSubTab === 'todo'
+                    ? todo.openNewTodo
+                    : data.openNewNote
+                }
+                testID={
+                  activeSubTab === 'alarms'
+                    ? 'alarm-add-button'
+                    : activeSubTab === 'todo'
+                    ? 'todo-fab-add'
+                    : 'notes-fab-add'
+                }
+                accessibilityRole={
+                  activeSubTab === 'alarms' ? 'button' : undefined
+                }
+                accessibilityLabel={
+                  activeSubTab === 'alarms' ? 'Add alarm' : undefined
+                }
+                style={[
+                  styles.headerAddBtn,
+                  {backgroundColor: palette.accent},
+                ]}
+              >
+                <Plus size={20} color="#FFFFFF" strokeWidth={2.4} />
               </TouchableOpacity>
             </View>
           </>
         )}
       </View>
 
-      {/* Segmented Switcher: Notes | To-Do */}
+      {/* Segmented Switcher: Alarms | Todo | Notes */}
       <View
         style={[
           styles.segmentedBar,
-          {backgroundColor: colors.inputBg, borderColor: colors.border},
+          {backgroundColor: palette.surface},
         ]}
         accessibilityRole="tablist"
       >
         <TouchableOpacity
-          onPress={() => setActiveSubTab('notes')}
+          onPress={() => {
+            data.setSearchActive(false);
+            data.setSearchQuery('');
+            setActiveSubTab('alarms');
+          }}
           accessibilityRole="tab"
-          accessibilityState={{selected: activeSubTab === 'notes'}}
-          testID="notes-subtab-notes"
+          accessibilityState={{selected: activeSubTab === 'alarms'}}
+          testID="notes-subtab-alarms"
           style={[
             styles.segmentBtn,
-            activeSubTab === 'notes' && {backgroundColor: colors.cardBg},
-            activeSubTab === 'notes' && Shadows.card,
+            activeSubTab === 'alarms' && [
+              styles.segmentBtnActive,
+              {backgroundColor: palette.card},
+              !palette.isDarkMode && scheduleCardShadow,
+            ],
           ]}
         >
           <Text
@@ -338,14 +407,12 @@ export const NotesScreen: React.FC<NotesScreenProps> = ({
               styles.segmentText,
               {
                 color:
-                  activeSubTab === 'notes'
-                    ? colors.textPrimary
-                    : colors.textSecondary,
-                fontWeight: activeSubTab === 'notes' ? '700' : '500',
+                  activeSubTab === 'alarms' ? palette.text : palette.muted,
+                fontWeight: activeSubTab === 'alarms' ? '700' : '500',
               },
             ]}
           >
-            Notes
+            Alarms
           </Text>
         </TouchableOpacity>
 
@@ -356,8 +423,11 @@ export const NotesScreen: React.FC<NotesScreenProps> = ({
           testID="notes-subtab-todo"
           style={[
             styles.segmentBtn,
-            activeSubTab === 'todo' && {backgroundColor: colors.cardBg},
-            activeSubTab === 'todo' && Shadows.card,
+            activeSubTab === 'todo' && [
+              styles.segmentBtnActive,
+              {backgroundColor: palette.card},
+              !palette.isDarkMode && scheduleCardShadow,
+            ],
           ]}
         >
           <View style={styles.segmentLabelRow}>
@@ -366,14 +436,12 @@ export const NotesScreen: React.FC<NotesScreenProps> = ({
                 styles.segmentText,
                 {
                   color:
-                    activeSubTab === 'todo'
-                      ? colors.textPrimary
-                      : colors.textSecondary,
+                    activeSubTab === 'todo' ? palette.text : palette.muted,
                   fontWeight: activeSubTab === 'todo' ? '700' : '500',
                 },
               ]}
             >
-              To-Do
+              Todo
             </Text>
             {todo.pendingCount > 0 ? (
               <View
@@ -381,7 +449,9 @@ export const NotesScreen: React.FC<NotesScreenProps> = ({
                   styles.segmentBadge,
                   {
                     backgroundColor:
-                      activeSubTab === 'todo' ? Colors.red : colors.border,
+                      activeSubTab === 'todo'
+                        ? palette.accent
+                        : palette.border,
                   },
                 ]}
               >
@@ -390,9 +460,7 @@ export const NotesScreen: React.FC<NotesScreenProps> = ({
                     styles.segmentBadgeText,
                     {
                       color:
-                        activeSubTab === 'todo'
-                          ? colors.white
-                          : colors.textPrimary,
+                        activeSubTab === 'todo' ? '#FFFFFF' : palette.text,
                     },
                   ]}
                 >
@@ -402,9 +470,46 @@ export const NotesScreen: React.FC<NotesScreenProps> = ({
             ) : null}
           </View>
         </TouchableOpacity>
+
+        <TouchableOpacity
+          onPress={() => setActiveSubTab('notes')}
+          accessibilityRole="tab"
+          accessibilityState={{selected: activeSubTab === 'notes'}}
+          testID="notes-subtab-notes"
+          style={[
+            styles.segmentBtn,
+            activeSubTab === 'notes' && [
+              styles.segmentBtnActive,
+              {backgroundColor: palette.card},
+              !palette.isDarkMode && scheduleCardShadow,
+            ],
+          ]}
+        >
+          <Text
+            style={[
+              styles.segmentText,
+              {
+                color:
+                  activeSubTab === 'notes' ? palette.text : palette.muted,
+                fontWeight: activeSubTab === 'notes' ? '700' : '500',
+              },
+            ]}
+          >
+            Notes
+          </Text>
+        </TouchableOpacity>
       </View>
 
-      {activeSubTab === 'todo' ? (
+      {activeSubTab === 'alarms' ? (
+        <AlarmsView
+          userId={userId}
+          refreshTrigger={refreshTrigger}
+          onRefresh={handleCombinedRefresh}
+          showHeader={false}
+          isGridView={data.isGridView}
+          createTrigger={alarmCreateTick}
+        />
+      ) : activeSubTab === 'todo' ? (
         <TodoListView
           undatedOpen={todo.undatedOpen}
           scheduledOpen={todo.scheduledOpen}
@@ -587,15 +692,6 @@ export const NotesScreen: React.FC<NotesScreenProps> = ({
         </>
       )}
 
-      {/* FAB */}
-      <TouchableOpacity
-        style={[styles.fab, Shadows.card, {bottom: fabBottom}]}
-        onPress={activeSubTab === 'todo' ? todo.openNewTodo : data.openNewNote}
-        testID={activeSubTab === 'todo' ? 'todo-fab-add' : 'notes-fab-add'}
-      >
-        <Plus size={24} color={colors.white} />
-      </TouchableOpacity>
-
       {todo.editorVisible && (
         <TodoEditorModal
           key={todo.editingTask?.id || 'new-todo'}
@@ -670,23 +766,25 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 10,
-    height: 40,
+    marginBottom: 12,
+    height: 44,
   },
   segmentedBar: {
     flexDirection: 'row',
-    borderRadius: 12,
-    borderWidth: 1,
-    padding: 3,
+    borderRadius: 16,
+    padding: 4,
     marginBottom: 12,
     gap: 4,
   },
   segmentBtn: {
     flex: 1,
-    paddingVertical: 7,
-    borderRadius: 9,
+    paddingVertical: 9,
+    borderRadius: 12,
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  segmentBtnActive: {
+    borderRadius: 12,
   },
   segmentLabelRow: {
     flexDirection: 'row',
@@ -714,8 +812,20 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     flex: 1,
-    borderRadius: 8,
+    height: 42,
+    borderRadius: 16,
     paddingLeft: 12,
+    paddingRight: 6,
+  },
+  searchPrefixIcon: {
+    marginRight: 8,
+  },
+  searchClearBtn: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   searchInput: {
     flex: 1,
@@ -725,16 +835,29 @@ const styles = StyleSheet.create({
     paddingVertical: 0,
   },
   headerTitle: {
-    fontFamily: 'sans-serif-medium',
-    fontSize: 24,
-    fontWeight: 'bold',
+    fontSize: 26,
+    fontWeight: '800',
+    letterSpacing: -0.5,
   },
   headerIcons: {
     flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
   },
   headerIconBtn: {
-    padding: 8,
-    marginLeft: 8,
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  headerAddBtn: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    overflow: 'hidden',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   notesList: {
     paddingBottom: 190,
@@ -815,16 +938,5 @@ const styles = StyleSheet.create({
   },
   cardContainerWrapper: {
     width: '100%',
-  },
-  fab: {
-    position: 'absolute',
-    bottom: 96,
-    right: 16,
-    width: 56,
-    height: 56,
-    borderRadius: 28,
-    backgroundColor: Colors.red,
-    alignItems: 'center',
-    justifyContent: 'center',
   },
 });

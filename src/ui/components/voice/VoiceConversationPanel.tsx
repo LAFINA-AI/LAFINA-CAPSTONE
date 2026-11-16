@@ -28,7 +28,7 @@ import {
   Sliders,
   Square,
 } from 'lucide-react-native';
-import {Fonts} from '../../theme';
+import {Fonts, ModernLayout} from '../../theme';
 import {useTheme} from '../../contexts/ThemeContext';
 import type {ThemeColors} from '../../contexts/ThemeContext';
 import {useThemedStyles} from '../../theme/createThemedStyles';
@@ -190,8 +190,18 @@ export const VoiceConversationPanel: React.FC<VoiceConversationPanelProps> = ({
   deps,
   fullScreen = true,
 }) => {
-  const {colors} = useTheme();
+  const {colors, isModern, modernPalette, modernShadows} = useTheme();
   const themed = useThemedStyles(getThemedStyles);
+  const modernCardStyle = isModern
+    ? [
+        modernShadows.card,
+        {
+          borderRadius: ModernLayout.borderRadiusCard,
+          backgroundColor: modernPalette.card,
+          borderColor: modernPalette.border,
+        },
+      ]
+    : null;
   const [readResult, setReadResult] = useState<LocalVoiceResult | null>(null);
   const [localNote, setLocalNote] = useState<string | null>(null);
   // "Marked done · Undo" after an immediate action (audit finding 10).
@@ -1260,7 +1270,14 @@ export const VoiceConversationPanel: React.FC<VoiceConversationPanelProps> = ({
           </TouchableOpacity>
 
           <View
-            style={[styles.onlinePill, themed.pill]}
+            style={[
+              styles.onlinePill,
+              themed.pill,
+              isModern && {
+                backgroundColor: modernPalette.softViolet,
+                borderRadius: ModernLayout.borderRadiusPill,
+              },
+            ]}
             testID="call-status-badge"
           >
             {snapshot.muted ? (
@@ -1369,7 +1386,7 @@ export const VoiceConversationPanel: React.FC<VoiceConversationPanelProps> = ({
 
         {needsConsent ? (
           <View
-            style={[styles.card, themed.card]}
+            style={[styles.card, themed.card, modernCardStyle]}
             testID="voice-conversation-consent"
           >
             <Text style={[styles.cardTitle, themed.text]}>
@@ -1559,7 +1576,7 @@ export const VoiceConversationPanel: React.FC<VoiceConversationPanelProps> = ({
 
         {hasDetailsCard ? (
           <View
-            style={[styles.card, themed.card, styles.detailsCard]}
+            style={[styles.card, themed.card, styles.detailsCard, modernCardStyle]}
             testID="call-details-card"
           >
             <View style={styles.detailsHeader}>
@@ -1658,7 +1675,7 @@ export const VoiceConversationPanel: React.FC<VoiceConversationPanelProps> = ({
 
         {failure || snapshot.phase === 'restart_required' ? (
           <View
-            style={[styles.card, themed.card]}
+            style={[styles.card, themed.card, modernCardStyle]}
             testID="voice-conversation-problem"
           >
             <View style={styles.problemRow}>
@@ -1739,7 +1756,17 @@ export const VoiceConversationPanel: React.FC<VoiceConversationPanelProps> = ({
         ) : null}
 
         {showTyping ? (
-          <View style={[styles.inputRow, themed.card]}>
+          <View
+            style={[
+              styles.inputRow,
+              themed.card,
+              isModern && {
+                backgroundColor: modernPalette.surface,
+                borderColor: modernPalette.border,
+                borderRadius: ModernLayout.borderRadiusPill,
+              },
+            ]}
+          >
             <TextInput
               style={[styles.input, themed.text]}
               value={typed}

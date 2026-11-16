@@ -73,6 +73,13 @@ import {
   isHandbookQuestion,
   shouldUseOnlineIntentExtraction,
 } from './onlineIntentExtractor';
+import {
+  buildPromptHandbookContext,
+  formatOfflineHandbookReply,
+  LOCAL_NO_EVIDENCE_REPLY,
+  localHandbookService,
+  type OnlineHandbookContext,
+} from '../handbook';
 
 export interface ScheduleConflict {
   hasConflict: boolean;
@@ -757,7 +764,10 @@ export class ChatOrchestrator {
         : null;
     if (pendingProposal) {
       if (CHAT_REVIEW_CONFIRM_RE.test(trimmed)) {
-        const outcome = confirmReviewedCommand(userId, pendingProposal.operationId);
+        const outcome = confirmReviewedCommand(
+          userId,
+          pendingProposal.operationId,
+        );
         const assistantMessage = chatStore.addMessage(
           userId,
           'assistant',
@@ -1248,6 +1258,15 @@ export class ChatOrchestrator {
         const recentReplies = recent
           .filter(msg => msg.sender === 'assistant')
           .map(msg => msg.content);
+        const recentUserQueries = recent
+          .filter(
+            msg => msg.sender === 'user' && msg.content.trim() !== trimmed,
+          )
+          .map(msg => msg.content);
+        const previousUserQuery =
+          recentUserQueries.length > 0
+            ? recentUserQueries[recentUserQueries.length - 1]
+            : null;
         const smallTalk = classifySmallTalk(trimmed);
         if (options.onlineMode) {
           const history: OnlineChatMessage[] = recent
@@ -1341,26 +1360,76 @@ export class ChatOrchestrator {
           if (!agent && followUpAgent) {
             finalReply = REFERENCE_CLARIFY_REPLY;
           }
-          const onlineResult =
-            agent || followUpAgent
-            ? null
-            : onReplyText
-            ? await onlineChatSkill.streamChatMessage(history, {
-                useHandbook,
-                onReplyText,
-                ...memoryOption,
-              })
-            : await onlineChatSkill.sendChatMessage(history, {
-                useHandbook,
-                ...memoryOption,
+          const localHandbookStatus = await localHandbookService.ensureReady();
+          const localPopulated = localHandbookStatus.populated;
+          let localHandbookContext: OnlineHandbookContext | null = null;
+          if (!agent && !followUpAgent && useHandbook && localPopulated) {
+            localHandbookContext =
+              await localHandbookService.buildOnlineContext(trimmed, {
+                previousUserQuery,
               });
+            if (
+              localHandbookContext &&
+              history.length > 0 &&
+              history[history.length - 1].role === 'user'
+            ) {
+              const existing = history[history.length - 1].content;
+              const allowedExtra = Math.max(0, 3900 - existing.length);
+              if (allowedExtra >= 250) {
+                const trimmedContext =
+                  localHandbookContext.contextBlock.length <= allowedExtra
+                    ? localHandbookContext.contextBlock
+                    : buildPromptHandbookContext(
+                        localHandbookContext.matches,
+                        allowedExtra,
+                      );
+                if (trimmedContext) {
+                  history[history.length - 1] = {
+                    ...history[history.length - 1],
+                    content: existing + trimmedContext,
+                  };
+                }
+              }
+            }
+          }
+          const localUstpUnsupported =
+            !agent &&
+            !followUpAgent &&
+            ustpRagOnly &&
+            !smallTalk &&
+            localPopulated &&
+            !localHandbookContext;
+          if (localUstpUnsupported) {
+            finalReply = LOCAL_NO_EVIDENCE_REPLY;
+            localReply = true;
+          }
+          // When local USTP handbook chunks are present, send useHandbook=false
+          // so LAFINA-backend skips Pinecone completely while still streaming DeepSeek.
+          const remoteUseHandbook = localPopulated ? false : useHandbook;
+          const onlineResult =
+            agent || followUpAgent || localUstpUnsupported
+              ? null
+              : onReplyText
+              ? await onlineChatSkill.streamChatMessage(history, {
+                  useHandbook: remoteUseHandbook,
+                  onReplyText,
+                  ...memoryOption,
+                })
+              : await onlineChatSkill.sendChatMessage(history, {
+                  useHandbook: remoteUseHandbook,
+                  ...memoryOption,
+                });
           if (!onlineResult) {
-            // Answered by the Chat agent above.
+            // Answered by the Chat agent or local fail-closed refusal above.
           } else if (onlineResult.status === 'success' && onlineResult.data) {
             finalReply = onlineResult.data.interrupted
               ? `${onlineResult.data.reply}\n\n${INTERRUPTED_REPLY_NOTE}`
               : onlineResult.data.reply;
-            handbookNote = handbookSourceLabel(onlineResult.data.sources);
+            handbookNote =
+              handbookSourceLabel(onlineResult.data.sources) ??
+              (localHandbookContext
+                ? handbookSourceLabel(localHandbookContext.sources)
+                : null);
             usedOnline = true;
             learnFromReply = !onlineResult.data.interrupted;
           } else {
@@ -1369,7 +1438,25 @@ export class ChatOrchestrator {
               onlineResult.status,
             );
             localReply = true;
-            if (
+            if (localHandbookContext) {
+              finalReply = formatOfflineHandbookReply({
+                matches: localHandbookContext.matches,
+                sources: localHandbookContext.sources,
+                insufficientEvidence: false,
+                queryUsed: trimmed,
+              });
+              handbookNote = handbookSourceLabel(localHandbookContext.sources);
+            } else if (
+              localPopulated &&
+              (ustpRagOnly || isHandbookQuestion(trimmed))
+            ) {
+              const offlineFallback = await localHandbookService.answerOffline(
+                trimmed,
+                {previousUserQuery},
+              );
+              finalReply = offlineFallback.reply;
+              handbookNote = handbookSourceLabel(offlineFallback.sources);
+            } else if (
               ustpRagOnly ||
               (options.useHandbook &&
                 /\b(?:ustp|handbook|dean'?s\s+list|grading|policy|curriculum|tuition|retention)\b/i.test(
@@ -1395,10 +1482,24 @@ export class ChatOrchestrator {
 
         if (!finalReply) {
           localReply = true;
-          finalReply =
-            ustpRagOnly || isHandbookQuestion(trimmed)
-              ? 'Official USTP Student Handbook guidelines require Online Mode. Switch to Online Mode in the chat header to look up verified handbook policies and academic regulations.'
-              : buildLocalConversationReply(userId, trimmed, {recentReplies});
+          if (ustpRagOnly || isHandbookQuestion(trimmed)) {
+            const localStatus = await localHandbookService.ensureReady();
+            if (localStatus.populated) {
+              const offlineAns = await localHandbookService.answerOffline(
+                trimmed,
+                {previousUserQuery},
+              );
+              finalReply = offlineAns.reply;
+              handbookNote = handbookSourceLabel(offlineAns.sources);
+            } else {
+              finalReply =
+                'Official USTP Student Handbook guidelines require Online Mode. Switch to Online Mode in the chat header to look up verified handbook policies and academic regulations.';
+            }
+          } else {
+            finalReply = buildLocalConversationReply(userId, trimmed, {
+              recentReplies,
+            });
+          }
         }
       }
     }
@@ -1610,7 +1711,10 @@ function hasCompoundPlannerActions(
   localValidated: ValidatedIntent,
 ): boolean {
   if (!text) return false;
-  if (localValidated.checklistItems && localValidated.checklistItems.length > 0) {
+  if (
+    localValidated.checklistItems &&
+    localValidated.checklistItems.length > 0
+  ) {
     return false;
   }
   if (localValidated.details?.startsWith('[BATCH_CLASSES:')) {
@@ -1669,7 +1773,10 @@ async function buildCompoundBatch(
   sessionId: string,
 ): Promise<MultiActionBatchData | null> {
   if (onlineMode) {
-    const extracted = await extractMultiIntentsWithDeepSeek(text, referenceDate);
+    const extracted = await extractMultiIntentsWithDeepSeek(
+      text,
+      referenceDate,
+    );
     if (extracted && extracted.length >= 2) {
       const mapped = extracted
         .map((v, idx) => validatedIntentToMultiItem(v, idx))

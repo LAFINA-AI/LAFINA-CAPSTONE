@@ -30,6 +30,7 @@ import {
 import {migrateChatMemories} from './chatMemorySchema';
 import {migrateReminderDeliveryStyles} from './reminderDeliveryStyleSchema';
 import {migrateAlarms} from './alarmSchema';
+import {migrateHandbookIndex} from './handbookSchema';
 
 export interface SchemaMigration {
   /** The `user_version` this step produces. */
@@ -125,6 +126,14 @@ export const SCHEMA_MIGRATIONS: readonly SchemaMigration[] = [
       'Device-local LAFINA alarms with repeat days, snooze and generations (alarm plan A2)',
     up: tx => {
       migrateAlarms(tx);
+    },
+  },
+  {
+    version: 28,
+    description:
+      'On-device USTP Student Handbook chunks and SQLite FTS5 BM25 index',
+    up: tx => {
+      migrateHandbookIndex(tx);
     },
   },
 ];

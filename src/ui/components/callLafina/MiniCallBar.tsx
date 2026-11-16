@@ -21,7 +21,13 @@ import {
   PhoneOff,
   Maximize2,
 } from 'lucide-react-native';
-import {Fonts, FontSize, Layout, Spacing} from '../../theme';
+import {
+  Fonts,
+  FontSize,
+  Layout,
+  ModernLayout,
+  Spacing,
+} from '../../theme';
 import {useTheme} from '../../contexts/ThemeContext';
 import {useThemedStyles} from '../../theme/createThemedStyles';
 import type {ThemeColors} from '../../contexts/ThemeContext';
@@ -52,7 +58,7 @@ export const MiniCallBar: React.FC<MiniCallBarProps> = ({
   onEndCall,
   bottomOffset,
 }) => {
-  const {colors} = useTheme();
+  const {colors, isModern, modernPalette, modernShadows} = useTheme();
   const themed = useThemedStyles(getThemedStyles);
 
   const isLive = phase === 'speaking' || phase === 'listening' || phase === 'thinking' || phase === 'tool_working';
@@ -69,6 +75,12 @@ export const MiniCallBar: React.FC<MiniCallBarProps> = ({
       style={[
         styles.outerContainer,
         themed.outer,
+        isModern && modernShadows.floating,
+        isModern && {
+          backgroundColor: modernPalette.card,
+          borderColor: modernPalette.border,
+          borderRadius: ModernLayout.borderRadiusCard,
+        },
         bottomOffset !== undefined && {
           position: 'absolute',
           left: 0,
@@ -94,7 +106,9 @@ export const MiniCallBar: React.FC<MiniCallBarProps> = ({
           style={[
             styles.avatarBadge,
             {
-              backgroundColor: colors.primary + '18',
+              backgroundColor: isModern
+                ? modernPalette.softViolet
+                : colors.primary + '18',
               borderColor: muted ? colors.warning : colors.primary,
             },
           ]}

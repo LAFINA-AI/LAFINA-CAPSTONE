@@ -7,9 +7,11 @@ import React from 'react';
 import {Alert, AppState, NativeModules} from 'react-native';
 import type {AppStateStatus} from 'react-native';
 import {act, fireEvent, render, renderHook, waitFor} from '@testing-library/react-native';
-import {db, initDatabase, userStore} from '../../src/storage';
+import {db, initDatabase, UNAVAILABLE_DETAILED_STATISTICS, userStore} from '../../src/storage';
+import type {DetailedProfileStatistics} from '../../src/storage';
 import {personalMemoryStore as memory} from '../../src/storage/personalMemoryStore';
 import {ProfileStats} from '../../src/ui/components/profile/ProfileStats';
+import {ProfileStatsModal} from '../../src/ui/components/profile/ProfileStatsModal';
 import {ReminderHealth} from '../../src/ui/components/profile/ReminderHealth';
 import {PersonalMemory} from '../../src/ui/components/profile/PersonalMemory';
 import {ProfileScreen} from '../../src/ui/screens/ProfileScreen';
@@ -54,48 +56,106 @@ afterEach(() => {
   db.executeSync('DELETE FROM active_session');
 });
 
-describe('AGY-PORT 09 Profile statistics card', () => {
-  it('shows counts, No data before outcomes and a dash when unavailable', () => {
-    const base = {available: true, completedTasksCount: 4, notesCount: 2, onTimeCount: 0};
+describe('AGY-PORT 09 Profile statistics card & modal', () => {
+  const sampleStats: DetailedProfileStatistics = {
+    available: true,
+    completedTasksCount: 4,
+    pendingTasksCount: 2,
+    totalTasksCount: 6,
+    overdueTasksCount: 0,
+    dueTodayTasksCount: 1,
+    highPriorityPendingCount: 1,
+    taskCompletionRate: 67,
+    weeklyClassCount: 3,
+    weeklyClassMinutes: 270,
+    weeklyStudyBlockCount: 2,
+    weeklyStudyMinutes: 120,
+    weeklyEventCount: 1,
+    weeklyEventMinutes: 30,
+    weeklyScheduledMinutes: 420,
+    enrolledCoursesCount: 6,
+    totalCreditUnits: 18,
+    notesCount: 5,
+    pinnedNotesCount: 2,
+    voiceNotesCount: 1,
+    lecturesCount: 2,
+    transcribedLecturesCount: 2,
+    lectureNotesCount: 1,
+    totalLectureSeconds: 1800,
+    onTimeRate: null,
+    onTimeCount: 0,
+    snoozedOutcomesCount: 0,
+    missedRemindersCount: 0,
+    finishedRemindersCount: 0,
+    pendingRemindersCount: 1,
+    enabledAlarmsCount: 2,
+    totalAlarmsCount: 3,
+  };
+
+  it('shows relevant student stats, View Stats trigger, and dashes when unavailable', () => {
+    const onViewStats = jest.fn();
     const empty = render(
-      themed(<ProfileStats statistics={{...base, onTimeRate: null, finishedRemindersCount: 0}} />),
+      themed(<ProfileStats statistics={sampleStats} onPressViewStats={onViewStats} />),
     );
-    expect(empty.getByText('4')).toBeTruthy();
-    expect(empty.getByText('No data')).toBeTruthy();
+    expect(empty.getByText('Study Overview')).toBeTruthy();
+    expect(empty.getByText('67%')).toBeTruthy();
+    expect(empty.getByText('7h')).toBeTruthy();
+    expect(empty.getByText('2')).toBeTruthy();
+    expect(empty.queryByText('No data')).toBeNull();
     expect(empty.queryByText('Voice Uses')).toBeNull();
+    fireEvent.press(empty.getByTestId('profile-view-stats-btn'));
+    expect(onViewStats).toHaveBeenCalledTimes(1);
     empty.unmount();
 
     const rated = render(
       themed(
         <ProfileStats
-          statistics={{...base, onTimeRate: 67, onTimeCount: 2, finishedRemindersCount: 3}}
-        />,
-      ),
-    );
-    expect(rated.getByText('67%')).toBeTruthy();
-    expect(rated.getByTestId('stat-on-time').props.accessibilityLabel).toBe(
-      'On-time reminders: 2 of 3 acknowledged without snoozing',
-    );
-    rated.unmount();
-
-    const failed = render(
-      themed(
-        <ProfileStats
           statistics={{
-            available: false,
-            completedTasksCount: null,
-            notesCount: null,
-            onTimeRate: null,
-            onTimeCount: null,
-            finishedRemindersCount: null,
+            ...sampleStats,
+            onTimeRate: 67,
+            onTimeCount: 2,
+            finishedRemindersCount: 3,
           }}
         />,
       ),
     );
+    expect(rated.getByText('On Time')).toBeTruthy();
+    expect(rated.getByTestId('stat-alerts-status').props.accessibilityLabel).toBe(
+      'On-time rate: 67 percent across 3 reminders, 2 alarms enabled',
+    );
+    rated.unmount();
+
+    const failed = render(
+      themed(<ProfileStats statistics={UNAVAILABLE_DETAILED_STATISTICS} />),
+    );
     expect(failed.getAllByText('—')).toHaveLength(3);
+    expect(failed.getByText('Local stats unavailable')).toBeTruthy();
+    failed.unmount();
+
+    const modal = render(
+      themed(
+        <ProfileStatsModal
+          visible
+          statistics={{
+            ...sampleStats,
+            onTimeRate: 67,
+            onTimeCount: 2,
+            snoozedOutcomesCount: 1,
+            finishedRemindersCount: 3,
+          }}
+          onClose={jest.fn()}
+        />,
+      ),
+    );
+    expect(modal.getByText('Student Statistics')).toBeTruthy();
+    expect(modal.getByTestId('stats-modal-tasks')).toBeTruthy();
+    expect(modal.getByTestId('stats-modal-schedule')).toBeTruthy();
+    expect(modal.getByTestId('stats-modal-lectures')).toBeTruthy();
+    expect(modal.getByTestId('stats-modal-alerts')).toBeTruthy();
+    modal.unmount();
   });
 
-  it('keeps every existing Profile control and adds the two new rows', () => {
+  it('keeps every existing Profile control, opens View Stats modal, hides Student Pro & Modern/Classic outside Dev Mode', () => {
     const userId = owner('profile');
     userStore.setCurrentUser(userId);
     const screen = render(
@@ -115,13 +175,21 @@ describe('AGY-PORT 09 Profile statistics card', () => {
       'Sign Out',
       'Event Defaults',
       'Alarm & Reminder Health',
-      'Tasks Done',
-      'Notes Saved',
-      'On Time',
+      'Study Overview',
+      'Task Rate',
+      'This Week',
+      'Alarms On',
+      'View Stats',
     ]) {
       expect(screen.getByText(text)).toBeTruthy();
     }
-    expect(screen.getByText('No data')).toBeTruthy();
+    expect(screen.queryByTestId('student-pro-tag')).toBeNull();
+    expect(screen.queryByText('Student Pro')).toBeNull();
+    expect(screen.queryByText('App Interface')).toBeNull();
+
+    fireEvent.press(screen.getByTestId('profile-view-stats-btn'));
+    expect(screen.getByText('Student Statistics')).toBeTruthy();
+    expect(screen.getByTestId('stats-modal-tasks')).toBeTruthy();
   });
 });
 
