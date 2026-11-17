@@ -12,6 +12,8 @@ import android.os.Build
 import android.os.IBinder
 import android.os.PowerManager
 import androidx.core.app.NotificationCompat
+import androidx.core.content.ContextCompat
+import com.facebook.react.bridge.Promise
 
 class LafinaReminderService : Service() {
 
@@ -30,14 +32,28 @@ class LafinaReminderService : Service() {
 
     val task = intent.getStringExtra(EXTRA_TASK).orEmpty()
     val notification = createNotification(task)
-    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-      startForeground(
-        NOTIFICATION_ID,
-        notification,
-        ServiceInfo.FOREGROUND_SERVICE_TYPE_MICROPHONE
-      )
-    } else {
-      startForeground(NOTIFICATION_ID, notification)
+    try {
+      if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+        startForeground(NOTIFICATION_ID, notification, ServiceInfo.FOREGROUND_SERVICE_TYPE_MICROPHONE)
+      } else {
+        startForeground(NOTIFICATION_ID, notification)
+      }
+    } catch (error: SecurityException) {
+      synchronized(START_LOCK) {
+        startPromise?.reject("PERMISSION_DENIED", "Microphone service could not start.", error)
+        startPromise = null
+      }
+      stopSelf()
+      return START_NOT_STICKY
+    }
+    synchronized(START_LOCK) {
+      running = this
+      startPromise?.resolve(!stopRequested)
+      startPromise = null
+      if (stopRequested) {
+        stopSelf()
+        return START_NOT_STICKY
+      }
     }
     acquireWakeLock()
     return START_NOT_STICKY
@@ -102,6 +118,7 @@ class LafinaReminderService : Service() {
   }
 
   override fun onDestroy() {
+    synchronized(START_LOCK) { if (running === this) running = null }
     releaseWakeLock()
     super.onDestroy()
   }
@@ -109,6 +126,25 @@ class LafinaReminderService : Service() {
   override fun onBind(intent: Intent?): IBinder? = null
 
   companion object {
+    private val START_LOCK = Any()
+    private var running: LafinaReminderService? = null
+    private var stopRequested = false
+    private var startPromise: Promise? = null
+
+    fun begin(context: Context, intent: Intent, promise: Promise) = synchronized(START_LOCK) {
+      startPromise?.reject("SUPERSEDED", "Another call replaced this startup.")
+      startPromise = promise
+      stopRequested = false
+      try { ContextCompat.startForegroundService(context, intent) }
+      catch (error: Exception) { startPromise = null; throw error }
+    }
+
+    fun requestStop() = synchronized(START_LOCK) {
+      stopRequested = true
+      // A pending start must first reach startForeground; stopping before then
+      // can trigger ForegroundServiceDidNotStartInTimeException.
+      running?.stopSelf()
+    }
     const val ACTION_START_ACTIVE_CALL = "com.lafina.capstone.ACTION_START_ACTIVE_CALL"
     const val EXTRA_TASK = "extra_task"
     private const val CHANNEL_ID = "lafina_active_call_channel"

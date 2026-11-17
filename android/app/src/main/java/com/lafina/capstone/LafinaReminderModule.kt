@@ -77,11 +77,29 @@ class LafinaReminderModule(private val reactContext: ReactApplicationContext) :
               triggerAtMs,
               task,
               if (style in DeliveryContract.STYLES) style else DeliveryContract.STYLE_CALL)
+      if (options.hasKey("autoSnoozeMinutes") && options.hasKey("remainingSnoozes")) {
+        check(reactContext.getSharedPreferences("lafina_call_policies", Context.MODE_PRIVATE).edit()
+          .putString(registration.identity.uri(ACTION_CALL), JSONObject()
+            .put("minutes", options.getInt("autoSnoozeMinutes"))
+            .put("remaining", options.getInt("remainingSnoozes")).toString()).commit())
+      }
       scheduleRegistration(reactContext, registration)
       promise.resolve(true)
     } catch (e: Exception) {
       promise.reject("ALARM_ERROR", e.message, e)
     }
+  }
+
+  @ReactMethod
+  fun cancelAlarmIdentity(reminderId: String, ownerId: String, generation: Double, promise: Promise) {
+    try { synchronized(DELIVERY_LOCK) {
+      val current = registry(reactContext).get(reminderId)
+      val newer = PendingReminderCalls(reactContext).all().any { it.getString("reminderId") == reminderId &&
+        (it.optString("ownerId") != ownerId || it.optLong("generation") > generation.toLong()) }
+      if (!newer && (current == null || current.identity == DeliveryIdentity(ownerId, reminderId, generation.toLong())))
+        cancelScheduledAlarm(reactContext, reminderId, removePersisted = true)
+      promise.resolve(true)
+    } } catch (e: Exception) { promise.reject("ALARM_ERROR", e.message, e) }
   }
 
   @ReactMethod
@@ -121,7 +139,16 @@ class LafinaReminderModule(private val reactContext: ReactApplicationContext) :
   @ReactMethod
   fun setDeliveryOwner(ownerId: String, promise: Promise) {
     try {
-      synchronized(DELIVERY_LOCK) { registry(reactContext).setActiveOwner(ownerId) }
+      synchronized(DELIVERY_LOCK) {
+        registry(reactContext).setActiveOwner(ownerId)
+        val store = PendingReminderCalls(reactContext)
+        for (row in store.all().filter { it.optString("ownerId") != ownerId }) {
+          val id = row.getString("reminderId")
+          cancelCallDeadline(reactContext, DeliveryIdentity(row.optString("ownerId"), id, row.optLong("generation")))
+          NotificationManagerCompat.from(reactContext).cancel(DeliveryContract.notificationTag(id), CALL_NOTIFICATION_ID)
+          store.remove(row.optString("ownerId"), id, row.optLong("generation"))
+        }
+      }
       promise.resolve(true)
     } catch (e: Exception) {
       promise.reject("DELIVERY_REGISTRY_ERROR", e.message, e)
@@ -167,28 +194,63 @@ class LafinaReminderModule(private val reactContext: ReactApplicationContext) :
   }
 
   @ReactMethod
-  fun consumePendingCall(promise: Promise) {
-    try {
-      val preferences = reactContext.getSharedPreferences(PENDING_CALL_PREFS, Context.MODE_PRIVATE)
-      val reminderId = preferences.getString(KEY_PENDING_REMINDER_ID, null)
-      if (reminderId.isNullOrBlank()) {
-        promise.resolve(null)
-        return
-      }
-      val payload = Arguments.createMap().apply {
-        putString("reminderId", reminderId)
-        putString("task", preferences.getString(KEY_PENDING_TASK, "") ?: "")
-        putString("action", preferences.getString(KEY_PENDING_ACTION, ACTION_CALL) ?: ACTION_CALL)
-        preferences.getString(KEY_PENDING_OWNER_ID, null)?.let { putString("ownerId", it) }
-        if (preferences.contains(KEY_PENDING_GENERATION)) {
-          putDouble("generation", preferences.getLong(KEY_PENDING_GENERATION, 0L).toDouble())
+  fun claimIncomingCall(reminderId: String, ownerId: String, generation: Double, promise: Promise) {
+    try { synchronized(DELIVERY_LOCK) {
+      val row = PendingReminderCalls(reactContext).get(ownerId, reminderId, generation.toLong())
+      if (row != null && (row.optString("action") == "timeout" ||
+          (!row.optBoolean("silenced") && row.optLong("deadlineMs", Long.MAX_VALUE) <= System.currentTimeMillis()))) {
+        handleCallDeadline(reactContext, deadlineIntent(reactContext, DeliveryIdentity(ownerId, reminderId, generation.toLong())))
+        promise.resolve(false)
+      } else {
+        if (row != null) {
+          cancelCallDeadline(reactContext, DeliveryIdentity(ownerId, reminderId, generation.toLong()))
+          row.put("silenced", true)
+          PendingReminderCalls(reactContext).put(row)
         }
+        promise.resolve(true)
       }
-      preferences.edit().clear().commit()
-      promise.resolve(payload)
-    } catch (e: Exception) {
-      promise.reject("PENDING_CALL_ERROR", e.message, e)
-    }
+    } } catch (e: Exception) { promise.reject("CALL_CLAIM_ERROR", e.message, e) }
+  }
+
+  @ReactMethod
+  fun listPendingCalls(promise: Promise) {
+    try {
+      val result = Arguments.createArray()
+      synchronized(DELIVERY_LOCK) {
+        for (row in PendingReminderCalls(reactContext).all()) result.pushMap(pendingPayload(row))
+      }
+      promise.resolve(result)
+    } catch (e: Exception) { promise.reject("PENDING_CALL_ERROR", e.message, e) }
+  }
+
+  @ReactMethod
+  fun consumePendingCall(promise: Promise) {
+    // Compatibility method is now non-destructive. Settlement acknowledges it.
+    try { synchronized(DELIVERY_LOCK) {
+      promise.resolve(PendingReminderCalls(reactContext).all().firstOrNull()?.let { pendingPayload(it) })
+    } } catch (e: Exception) { promise.reject("PENDING_CALL_ERROR", e.message, e) }
+  }
+
+  @ReactMethod
+  fun finishIncomingCallIdentity(reminderId: String, ownerId: String, generation: Double, silenceOnly: Boolean, promise: Promise) {
+    try { synchronized(DELIVERY_LOCK) {
+      val pending = PendingReminderCalls(reactContext)
+      val row = pending.get(ownerId, reminderId, generation.toLong())
+      val newer = pending.all().any { it.getString("reminderId") == reminderId &&
+          (it.optString("ownerId") != ownerId || it.optLong("generation") > generation.toLong()) }
+      if (!newer) {
+        NotificationManagerCompat.from(reactContext).cancel(DeliveryContract.notificationTag(reminderId), CALL_NOTIFICATION_ID)
+        NotificationManagerCompat.from(reactContext).cancel(DeliveryContract.notificationTag(reminderId), REMINDER_NOTIFICATION_ID)
+      }
+      if (row != null) {
+        cancelCallDeadline(reactContext, DeliveryIdentity(ownerId, reminderId, generation.toLong()))
+        if (silenceOnly) {
+          row.put("silenced", true).put("deadlineMs", System.currentTimeMillis() + 15 * 60_000L)
+          pending.put(row)
+        } else pending.remove(ownerId, reminderId, generation.toLong())
+      }
+      promise.resolve(true)
+    } } catch (e: Exception) { promise.reject("CALL_FINISH_ERROR", e.message, e) }
   }
 
   /**
@@ -218,8 +280,7 @@ class LafinaReminderModule(private val reactContext: ReactApplicationContext) :
         action = LafinaReminderService.ACTION_START_ACTIVE_CALL
         putExtra(LafinaReminderService.EXTRA_TASK, task)
       }
-      ContextCompat.startForegroundService(reactContext, intent)
-      promise.resolve(true)
+      LafinaReminderService.begin(reactContext, intent, promise)
     } catch (e: Exception) {
       promise.reject("ACTIVE_CALL_SERVICE_ERROR", e.message, e)
     }
@@ -228,7 +289,7 @@ class LafinaReminderModule(private val reactContext: ReactApplicationContext) :
   @ReactMethod
   fun stopActiveCall(promise: Promise) {
     try {
-      reactContext.stopService(Intent(reactContext, LafinaReminderService::class.java))
+      LafinaReminderService.requestStop()
       promise.resolve(true)
     } catch (e: Exception) {
       promise.reject("ACTIVE_CALL_SERVICE_ERROR", e.message, e)
@@ -340,7 +401,10 @@ class LafinaReminderModule(private val reactContext: ReactApplicationContext) :
     )
     if (reactContext.hasActiveReactInstance()) {
       reactContext.getJSModule(DeviceEventManagerModule.RCTDeviceEventEmitter::class.java)
-          .emit(EVENT_CALL_TRIGGER, payload)
+          .emit(EVENT_CALL_TRIGGER, synchronized(DELIVERY_LOCK) {
+            PendingReminderCalls(reactContext).get(intent.getStringExtra(EXTRA_OWNER_ID).orEmpty(),
+              intent.getStringExtra("reminderId").orEmpty(), intent.getLongExtra(EXTRA_GENERATION, 0))?.let { pendingPayload(it) } ?: payload
+          })
     }
   }
 
@@ -375,6 +439,7 @@ class LafinaReminderModule(private val reactContext: ReactApplicationContext) :
 
     const val EXTRA_OWNER_ID = "ownerId"
     const val EXTRA_GENERATION = "generation"
+    const val ACTION_CALL_DEADLINE = "com.lafina.capstone.ACTION_CALL_DEADLINE"
 
     /** Pre-AGY-PORT-03 registry; read only by the one-time cutover. */
     private const val ALARM_PREFS = "lafina_alarm_registry"
@@ -414,6 +479,13 @@ class LafinaReminderModule(private val reactContext: ReactApplicationContext) :
         ensureLegacyCutover(context)
         val core = registry(context)
         val reminderId = registration.identity.reminderId
+        val pending = PendingReminderCalls(context)
+        for (row in pending.all().filter { it.getString("reminderId") == reminderId &&
+          (it.optString("ownerId") != registration.identity.ownerId || it.optLong("generation") != registration.identity.generation) }) {
+          cancelCallDeadline(context, DeliveryIdentity(row.optString("ownerId"), reminderId, row.optLong("generation")))
+          pending.remove(row.optString("ownerId"), reminderId, row.optLong("generation"))
+          NotificationManagerCompat.from(context).cancel(DeliveryContract.notificationTag(reminderId), CALL_NOTIFICATION_ID)
+        }
         val previous = core.get(reminderId)
         if (previous != null && previous.identity != registration.identity) {
           cancelIdentity(context, previous.identity)
@@ -447,6 +519,10 @@ class LafinaReminderModule(private val reactContext: ReactApplicationContext) :
 
     fun cancelScheduledAlarm(context: Context, reminderId: String, removePersisted: Boolean) {
       synchronized(DELIVERY_LOCK) {
+        if (removePersisted) {
+          clearPendingCallIfOwnedBy(context, reminderId)
+          NotificationManagerCompat.from(context).cancel(DeliveryContract.notificationTag(reminderId), CALL_NOTIFICATION_ID)
+        }
         ensureLegacyCutover(context)
         val core = registry(context)
         core.get(reminderId)?.let { registration ->
@@ -465,6 +541,11 @@ class LafinaReminderModule(private val reactContext: ReactApplicationContext) :
       synchronized(DELIVERY_LOCK) {
         ensureLegacyCutover(context)
         applyRestoreActions(context, registry(context).restore())
+        for (row in PendingReminderCalls(context).all()) {
+          if (row.optBoolean("silenced") || row.optBoolean("exhausted")) continue
+          val at = if (row.optString("action") == "timeout") row.optLong("retryAtMs") else row.optLong("deadlineMs")
+          if (at > 0) scheduleCallDeadline(context, DeliveryIdentity(row.optString("ownerId"), row.getString("reminderId"), row.optLong("generation")), at)
+        }
       }
     }
 
@@ -560,6 +641,19 @@ class LafinaReminderModule(private val reactContext: ReactApplicationContext) :
       val task = registration.task
       createCallChannel(context)
       persistPendingCall(context, identity.reminderId, task, ACTION_CALL, identity.ownerId, identity.generation)
+      synchronized(DELIVERY_LOCK) {
+        val store = PendingReminderCalls(context)
+        val row = store.get(identity.ownerId, identity.reminderId, identity.generation) ?: return
+        row.put("action", ACTION_CALL).put("silenced", false)
+        store.put(row)
+      }
+      synchronized(DELIVERY_LOCK) {
+        val pending = PendingReminderCalls(context)
+        val row = pending.get(identity.ownerId, identity.reminderId, identity.generation) ?: return
+        row.put("deadlineMs", System.currentTimeMillis() + 45_000L)
+        pending.put(row)
+        scheduleCallDeadline(context, identity, row.getLong("deadlineMs"))
+      }
       val fullScreenIntent = callActivityPendingIntent(context, registration, ACTION_CALL)
       val ringtoneUri = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_RINGTONE)
       val notification = NotificationCompat.Builder(context, CALL_CHANNEL_ID)
@@ -570,6 +664,7 @@ class LafinaReminderModule(private val reactContext: ReactApplicationContext) :
           .setPriority(NotificationCompat.PRIORITY_MAX)
           .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
           .setOngoing(true)
+          .setTimeoutAfter(45_000L)
           .setAutoCancel(false)
           .setSound(ringtoneUri)
           .setVibrate(longArrayOf(0, 1000, 1000, 1000, 1000))
@@ -667,31 +762,98 @@ class LafinaReminderModule(private val reactContext: ReactApplicationContext) :
       }
     }
 
-    private fun persistPendingCall(
-        context: Context,
-        reminderId: String,
-        task: String,
-        action: String,
-        ownerId: String?,
-        generation: Long?
-    ) {
-      val editor = context.getSharedPreferences(PENDING_CALL_PREFS, Context.MODE_PRIVATE)
-          .edit()
-          .clear()
-          .putString(KEY_PENDING_REMINDER_ID, reminderId)
-          .putString(KEY_PENDING_TASK, task)
-          .putString(KEY_PENDING_ACTION, action)
-      if (ownerId != null) editor.putString(KEY_PENDING_OWNER_ID, ownerId)
-      if (generation != null) editor.putLong(KEY_PENDING_GENERATION, generation)
-      // Synchronous like the registry: the call must be recoverable if the process dies right after.
-      editor.commit()
+    private fun persistPendingCall(context: Context, reminderId: String, task: String, action: String, ownerId: String?, generation: Long?) {
+      synchronized(DELIVERY_LOCK) {
+        val pending = PendingReminderCalls(context)
+        val row = pending.get(ownerId.orEmpty(), reminderId, generation ?: 0L)
+          ?: JSONObject().put("reminderId", reminderId).put("ownerId", ownerId.orEmpty())
+            .put("generation", generation ?: 0L).put("atMs", System.currentTimeMillis())
+        row.put("task", task)
+        // A late activity intent cannot resurrect a timed-out generation.
+        if (row.optString("action") != "timeout") row.put("action", action)
+        pending.put(row)
+      }
     }
 
     private fun clearPendingCallIfOwnedBy(context: Context, reminderId: String) {
-      val preferences = context.getSharedPreferences(PENDING_CALL_PREFS, Context.MODE_PRIVATE)
-      if (preferences.getString(KEY_PENDING_REMINDER_ID, null) == reminderId) {
-        preferences.edit().clear().commit()
+      synchronized(DELIVERY_LOCK) {
+        val pending = PendingReminderCalls(context)
+        for (row in pending.all().filter { it.getString("reminderId") == reminderId }) {
+          cancelCallDeadline(context, DeliveryIdentity(row.optString("ownerId"), reminderId, row.optLong("generation")))
+          pending.remove(row.optString("ownerId"), reminderId, row.optLong("generation"))
+        }
       }
+    }
+
+    private fun pendingPayload(row: JSONObject): WritableMap = Arguments.createMap().apply {
+      putString("reminderId", row.getString("reminderId"))
+      putString("task", row.optString("task"))
+      putString("ownerId", row.optString("ownerId"))
+      putString("action", row.optString("action", ACTION_CALL))
+      putDouble("generation", row.optLong("generation").toDouble())
+      putDouble("timeoutCount", row.optInt("timeoutCount").toDouble())
+      putDouble("retryAtMs", row.optLong("retryAtMs").toDouble())
+    }
+
+    private fun deadlineIntent(context: Context, identity: DeliveryIdentity): Intent =
+      Intent(context, LafinaReminderReceiver::class.java).apply {
+        action = ACTION_CALL_DEADLINE
+        data = Uri.parse(identity.uri(ACTION_CALL) + "/deadline")
+        putExtra("reminderId", identity.reminderId)
+        putExtra(EXTRA_OWNER_ID, identity.ownerId)
+        putExtra(EXTRA_GENERATION, identity.generation)
+      }
+
+    private fun cancelCallDeadline(context: Context, identity: DeliveryIdentity) {
+      val intent = PendingIntent.getBroadcast(context, 7304, deadlineIntent(context, identity), PendingIntent.FLAG_NO_CREATE or PendingIntent.FLAG_IMMUTABLE)
+      if (intent != null) {
+        (context.getSystemService(Context.ALARM_SERVICE) as AlarmManager).cancel(intent)
+        intent.cancel()
+      }
+    }
+
+    private fun scheduleCallDeadline(context: Context, identity: DeliveryIdentity, at: Long) {
+      val intent = PendingIntent.getBroadcast(context, 7304, deadlineIntent(context, identity), PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE)
+      val alarms = context.getSystemService(Context.ALARM_SERVICE) as AlarmManager
+      try { alarms.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, at, intent) }
+      catch (_: SecurityException) { alarms.setAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, at, intent) }
+    }
+
+    fun handleCallDeadline(context: Context, intent: Intent) = synchronized(DELIVERY_LOCK) {
+      val id = intent.getStringExtra("reminderId") ?: return@synchronized
+      val owner = intent.getStringExtra(EXTRA_OWNER_ID).orEmpty()
+      val generation = intent.getLongExtra(EXTRA_GENERATION, 0)
+      val pending = PendingReminderCalls(context)
+      val row = pending.get(owner, id, generation) ?: return@synchronized
+      if (row.optBoolean("silenced")) return@synchronized
+      if (registry(context).activeOwner()?.let { it != owner } == true) {
+        pending.remove(owner, id, generation)
+        return@synchronized
+      }
+      val current = registry(context).get(id)
+      if (current != null && current.identity != DeliveryIdentity(owner, id, generation)) return@synchronized
+      val now = System.currentTimeMillis()
+      val identity = DeliveryIdentity(owner, id, generation)
+      if (row.optString("action") == "timeout") {
+        if (row.optBoolean("exhausted")) return@synchronized
+        if (row.optLong("retryAtMs") > now) return@synchronized
+        row.put("action", ACTION_CALL)
+        pending.put(row)
+        showIncomingCall(context, DeliveryRegistration(identity, now, row.optString("task")))
+        return@synchronized
+      }
+      if (row.optLong("deadlineMs") > now) return@synchronized
+      NotificationManagerCompat.from(context).cancel(identity.notificationTag(), CALL_NOTIFICATION_ID)
+      val policy = context.getSharedPreferences("lafina_call_policies", Context.MODE_PRIVATE).getString(identity.uri(ACTION_CALL), null)
+      val snapshot = policy?.let { JSONObject(it) } ?: JSONObject().put("remaining", 1).put("minutes", 5)
+      if (row.optString("action") == "timeout") return@synchronized
+      val count = row.optInt("timeoutCount") + 1
+      val exhausted = count > snapshot.optInt("remaining", 1)
+      val retryAt = now + snapshot.optInt("minutes", 5).coerceIn(1, 120) * 60_000L
+      row.put("action", "timeout").put("timeoutCount", count).put("retryAtMs", retryAt).put("exhausted", exhausted)
+      pending.put(row)
+      registry(context).receipt("call_timeout", identity)
+      if (!exhausted) scheduleCallDeadline(context, identity, retryAt)
     }
 
     private fun triggerIntent(context: Context, identity: DeliveryIdentity): Intent =

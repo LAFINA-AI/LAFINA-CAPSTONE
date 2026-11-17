@@ -1,7 +1,12 @@
-import { db, DatabaseTransaction } from './database';
-import { syncOutboxStore } from './syncOutboxStore';
+import {db, DatabaseTransaction} from './database';
+import {syncOutboxStore} from './syncOutboxStore';
 
-export type ReminderStatus = 'pending' | 'triggered' | 'snoozed' | 'acknowledged' | 'missed';
+export type ReminderStatus =
+  | 'pending'
+  | 'triggered'
+  | 'snoozed'
+  | 'acknowledged'
+  | 'missed';
 
 export interface Reminder {
   id: string;
@@ -61,9 +66,8 @@ const runWrite = <T>(
 ): T => (executor ? write(executor) : db.transactionSync(write));
 
 const enqueueReminderUpdate = (id: string, tx: DatabaseTransaction): void => {
-  const row = tx.executeSync('SELECT * FROM reminders WHERE id = ?', [id]).rows?.[0] as
-    | StoredReminderRow
-    | undefined;
+  const row = tx.executeSync('SELECT * FROM reminders WHERE id = ?', [id])
+    .rows?.[0] as StoredReminderRow | undefined;
   if (!row) return;
   const userId = String(row.user_id);
   syncOutboxStore.enqueueMutation(
@@ -78,10 +82,25 @@ const enqueueReminderUpdate = (id: string, tx: DatabaseTransaction): void => {
   );
 };
 
-const ALL_REMINDERS_SQL =
-  `SELECT * FROM reminders WHERE user_id = ? AND deleted_at IS NULL ORDER BY trigger_at ASC`;
+const ALL_REMINDERS_SQL = `SELECT * FROM reminders WHERE user_id = ? AND deleted_at IS NULL ORDER BY trigger_at ASC`;
 
 export const remindersStore = {
+  /** Commits a native timeout snapshot with the outbox in the caller's transaction. */
+  adoptCallTimeout: (
+    id: string,
+    status: ReminderStatus,
+    triggerAt: string,
+    snoozeCount: number,
+    guard: ReminderMutationGuard,
+    tx: DatabaseTransaction,
+  ): void => {
+    guard(tx);
+    tx.executeSync(
+      'UPDATE reminders SET status = ?, trigger_at = ?, snooze_count = ?, updated_at = ? WHERE id = ?',
+      [status, triggerAt, snoozeCount, new Date().toISOString(), id],
+    );
+    enqueueReminderUpdate(id, tx);
+  },
   getAllReminders: (userId: string): Reminder[] => {
     try {
       const result = db.executeSync(ALL_REMINDERS_SQL, [userId]);
@@ -97,8 +116,13 @@ export const remindersStore = {
    * P2): same query, but a failed read throws instead of looking empty.
    * The display getter above keeps its best-effort behaviour.
    */
-  getAllRemindersOrThrow: (userId: string, executor: Pick<DatabaseTransaction, 'executeSync'> = db): Reminder[] =>
-    (executor.executeSync(ALL_REMINDERS_SQL, [userId]).rows ?? []).map(mapRowToReminder),
+  getAllRemindersOrThrow: (
+    userId: string,
+    executor: Pick<DatabaseTransaction, 'executeSync'> = db,
+  ): Reminder[] =>
+    (executor.executeSync(ALL_REMINDERS_SQL, [userId]).rows ?? []).map(
+      mapRowToReminder,
+    ),
 
   getPendingReminders: (userId: string): Reminder[] => {
     try {
@@ -113,9 +137,14 @@ export const remindersStore = {
     }
   },
 
-  getUpcomingReminders: (userId: string, windowMinutes: number = 1): Reminder[] => {
+  getUpcomingReminders: (
+    userId: string,
+    windowMinutes: number = 1,
+  ): Reminder[] => {
     const now = new Date();
-    const futureLimit = new Date(now.getTime() + windowMinutes * 60 * 1000).toISOString();
+    const futureLimit = new Date(
+      now.getTime() + windowMinutes * 60 * 1000,
+    ).toISOString();
     try {
       const result = db.executeSync(
         `SELECT * FROM reminders WHERE user_id = ? AND status IN ('pending', 'snoozed') AND trigger_at <= ? AND deleted_at IS NULL ORDER BY trigger_at ASC`,
@@ -145,12 +174,15 @@ export const remindersStore = {
   },
 
   insertReminder: (
-    reminder: Omit<Reminder, 'createdAt' | 'updatedAt' | 'deletedAt' | 'snoozeCount'>,
+    reminder: Omit<
+      Reminder,
+      'createdAt' | 'updatedAt' | 'deletedAt' | 'snoozeCount'
+    >,
     executor?: DatabaseTransaction,
   ): void => {
     const now = new Date().toISOString();
     try {
-      runWrite(executor, (tx) => {
+      runWrite(executor, tx => {
         tx.executeSync(
           `INSERT INTO reminders (id, user_id, task, description, scheduled_at, trigger_at, status, precast_audio_path, snooze_count, created_at, updated_at)
            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
@@ -203,7 +235,7 @@ export const remindersStore = {
     }
     const now = new Date().toISOString();
     try {
-      runWrite(executor, (tx) => {
+      runWrite(executor, tx => {
         tx.executeSync(
           `UPDATE reminders SET trigger_at = ?, updated_at = ? WHERE id = ?`,
           [triggerAt, now, id],
@@ -228,7 +260,7 @@ export const remindersStore = {
   ): string | null => {
     const now = new Date().toISOString();
     try {
-      return runWrite(executor, (tx) => {
+      return runWrite(executor, tx => {
         const previous = tx.executeSync(
           'SELECT precast_audio_path FROM reminders WHERE id = ?',
           [id],
@@ -254,7 +286,7 @@ export const remindersStore = {
   ): void => {
     const now = new Date().toISOString();
     try {
-      runWrite(executor, (tx) => {
+      runWrite(executor, tx => {
         guard?.(tx);
         tx.executeSync(
           `UPDATE reminders SET status = ?, updated_at = ? WHERE id = ?`,
@@ -269,10 +301,16 @@ export const remindersStore = {
   },
 
   snoozeReminder: (id: string, snoozeMinutes: number): void => {
-    if (!Number.isFinite(snoozeMinutes) || snoozeMinutes < 1 || snoozeMinutes > 120) {
+    if (
+      !Number.isFinite(snoozeMinutes) ||
+      snoozeMinutes < 1 ||
+      snoozeMinutes > 120
+    ) {
       throw new Error('Snooze duration must be between 1 and 120 minutes.');
     }
-    const triggerAt = new Date(Date.now() + snoozeMinutes * 60 * 1000).toISOString();
+    const triggerAt = new Date(
+      Date.now() + snoozeMinutes * 60 * 1000,
+    ).toISOString();
     remindersStore.snoozeReminderAt(id, triggerAt);
   },
 
@@ -288,7 +326,7 @@ export const remindersStore = {
     }
     const now = new Date().toISOString();
     try {
-      runWrite(executor, (tx) => {
+      runWrite(executor, tx => {
         guard?.(tx);
         tx.executeSync(
           `UPDATE reminders SET status = 'snoozed', trigger_at = ?, snooze_count = snooze_count + 1, updated_at = ? WHERE id = ?`,
@@ -309,7 +347,7 @@ export const remindersStore = {
   ): void => {
     const now = new Date().toISOString();
     try {
-      runWrite(executor, (tx) => {
+      runWrite(executor, tx => {
         guard?.(tx);
         tx.executeSync(
           `UPDATE reminders SET status = 'acknowledged', updated_at = ? WHERE id = ?`,
@@ -338,8 +376,11 @@ export const remindersStore = {
   deleteReminder: (id: string, executor?: DatabaseTransaction): void => {
     const now = new Date().toISOString();
     try {
-      runWrite(executor, (tx) => {
-        const row = tx.executeSync('SELECT user_id FROM reminders WHERE id = ?', [id]).rows?.[0];
+      runWrite(executor, tx => {
+        const row = tx.executeSync(
+          'SELECT user_id FROM reminders WHERE id = ?',
+          [id],
+        ).rows?.[0];
         if (!row) return;
         tx.executeSync(
           `UPDATE reminders SET deleted_at = ?, updated_at = ? WHERE id = ?`,

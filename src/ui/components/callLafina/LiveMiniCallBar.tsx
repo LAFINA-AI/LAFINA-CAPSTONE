@@ -1,5 +1,8 @@
 import React, {useEffect, useState} from 'react';
-import {getActiveVoiceConversation} from '../../../cloud/voiceConversation';
+import {
+  getActiveVoiceConversation,
+  subscribeVoiceConversation,
+} from '../../../cloud/voiceConversation';
 import {MiniCallBar} from './MiniCallBar';
 
 /** Meter events never reach AppContent; this component needs only call status. */
@@ -12,7 +15,14 @@ export function LiveMiniCallBar({
   onExpand: () => void;
   onEnd: () => void;
 }) {
-  const controller = getActiveVoiceConversation();
+  const [controller, setController] = useState(getActiveVoiceConversation);
+  useEffect(
+    () =>
+      subscribeVoiceConversation(() =>
+        setController(getActiveVoiceConversation()),
+      ),
+    [],
+  );
   const [status, setStatus] = useState(() => controller?.getSnapshot());
   const [duration, setDuration] = useState(0);
   useEffect(() => {

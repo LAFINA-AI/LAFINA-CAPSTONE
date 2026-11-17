@@ -1,9 +1,11 @@
-import { DeviceEventEmitter } from 'react-native';
-import { remindersStore } from '../storage/remindersStore';
-import { deliveryStore } from '../storage/deliveryStore';
-import { db } from '../storage/database';
-import { alertSuppression } from '../storage/sourceReminders';
-import { initTts, stopSpeechPlayback } from '../ai/tts/ttsService';
+import {detectCallKeyword} from './callCommand';
+export {detectCallKeyword} from './callCommand';
+import {DeviceEventEmitter} from 'react-native';
+import {remindersStore} from '../storage/remindersStore';
+import {deliveryStore} from '../storage/deliveryStore';
+import {db} from '../storage/database';
+import {alertSuppression} from '../storage/sourceReminders';
+import {initTts, stopSpeechPlayback} from '../ai/tts/ttsService';
 import {
   cancelOfflineSpeechCapture,
   hasOfflineSpeechCapture,
@@ -14,7 +16,7 @@ import type {
   OfflineSpeechCaptureHandle,
   OfflineSpeechResult,
 } from '../ai/native/speechCapture';
-import { getReminderPreferences } from './userPreferences';
+import {getReminderPreferences} from './userPreferences';
 import {
   ACKNOWLEDGE_MESSAGE,
   acknowledgeReminderAction,
@@ -31,11 +33,9 @@ import {
   finishNativeIncomingCall,
   startActiveCallSession,
   stopActiveCallSession,
+  getNativeDeliveryModule,
 } from './reminderAlarm';
-import {
-  CallSpeechProvider,
-  defaultCallSpeechProvider,
-} from './speechProvider';
+import {CallSpeechProvider, defaultCallSpeechProvider} from './speechProvider';
 
 export type CallState =
   | 'ringing'
@@ -62,6 +62,10 @@ export interface CallStateEvent {
    * confirmation is spoken, and again with `disconnected` when the call closes.
    */
   resolution?: CallResolution;
+  reminderId?: string;
+  userId?: string;
+  generation?: number | null;
+  sessionId?: number;
 }
 
 interface CallDispatcherSession {
@@ -97,6 +101,7 @@ export interface CallCommand {
 let activeSession: CallDispatcherSession | null = null;
 let activeCallCapture: ActiveCallCapture | null = null;
 let sessionSequence = 0;
+let audioRelease: Promise<void> = Promise.resolve();
 
 // The sentences the actions really return, so the prepared audio is the audio
 // that plays (the old copy differed and the confirmation started late).
@@ -152,7 +157,13 @@ const publishCallState = (
   resolution?: CallResolution,
 ): void => {
   if (activeSession) activeSession.state = state;
-  const payload: CallStateEvent = { state };
+  const payload: CallStateEvent = {
+    state,
+    reminderId: activeSession?.reminderId,
+    userId: activeSession?.userId,
+    generation: activeSession?.generation,
+    sessionId: activeSession?.id,
+  };
   if (text !== undefined) payload.text = text;
   if (resolution) payload.resolution = resolution;
   DeviceEventEmitter.emit('LAFINA_CALL_STATE_CHANGE', payload);
@@ -196,7 +207,8 @@ const cancelActiveCapture = (): void => {
 const stopActiveAudioAndCapture = async (
   session: CallDispatcherSession | null = activeSession,
 ): Promise<void> => {
-  cancelActiveCapture();
+  if (activeCallCapture && (!session || activeCallCapture.session === session))
+    cancelActiveCapture();
   if (session?.speechProvider.stopSpeech) {
     await session.speechProvider.stopSpeech().catch(() => undefined);
     return;
@@ -209,15 +221,16 @@ const stopActiveAudioAndCapture = async (
  */
 export const speakText = async (
   text: string,
-  options?: { fallbackAudioPath?: string | null },
+  options?: {fallbackAudioPath?: string | null},
 ): Promise<void> => {
+  const session = activeSession;
   try {
     publishCallState('speaking', text);
     const provider = activeSession?.speechProvider || defaultCallSpeechProvider;
     await provider.speakText(text, options);
   } catch (error) {
     console.error('[CallDispatcher] speakText error:', error);
-    publishCallState('connected', '');
+    if (activeSession === session) publishCallState('connected', '');
   }
 };
 
@@ -227,12 +240,16 @@ export const speakText = async (
  * instead of after the sentence ends, and a stuck speech engine cannot hold
  * the call open.
  */
-const speakOutcome = async (action: ReminderActionResult): Promise<void> => {
+const speakOutcome = async (
+  action: ReminderActionResult,
+  session: CallDispatcherSession,
+): Promise<void> => {
+  if (!isCurrentSession(session)) return;
   const resolution = resolutionFromAction(action);
   let timer: ReturnType<typeof setTimeout> | null = null;
   try {
     publishCallState('speaking', action.message, resolution);
-    const provider = activeSession?.speechProvider || defaultCallSpeechProvider;
+    const provider = session.speechProvider;
     await Promise.race([
       provider.speakText(action.message),
       new Promise<void>(resolve => {
@@ -241,197 +258,11 @@ const speakOutcome = async (action: ReminderActionResult): Promise<void> => {
     ]);
   } catch (error) {
     console.error('[CallDispatcher] Outcome speech error:', error);
-    if (!resolution) publishCallState('connected', action.message);
+    if (!resolution && isCurrentSession(session))
+      publishCallState('connected', action.message);
   } finally {
     if (timer) clearTimeout(timer);
   }
-};
-
-const normalizeCallCommand = (transcript: string): string =>
-  transcript
-    .trim()
-    .toLowerCase()
-    .replace(/[.,/#!$%^&*;:{}=_`~?()-]/g, '')
-    .replace(/\s+/g, ' ');
-
-const editDistance = (left: string, right: string): number => {
-  const previous = Array.from(
-    { length: right.length + 1 },
-    (_, index) => index,
-  );
-  const current = new Array<number>(right.length + 1);
-  for (let leftIndex = 1; leftIndex <= left.length; leftIndex += 1) {
-    current[0] = leftIndex;
-    for (let rightIndex = 1; rightIndex <= right.length; rightIndex += 1) {
-      const substitutionCost =
-        left[leftIndex - 1] === right[rightIndex - 1] ? 0 : 1;
-      current[rightIndex] = Math.min(
-        current[rightIndex - 1] + 1,
-        previous[rightIndex] + 1,
-        previous[rightIndex - 1] + substitutionCost,
-      );
-    }
-    previous.splice(0, previous.length, ...current);
-  }
-  return previous[right.length];
-};
-
-const isNearKeyword = (
-  candidates: readonly string[],
-  keywords: readonly string[],
-  maximumDistance: number,
-): boolean =>
-  candidates.some((candidate) =>
-    keywords.some(
-      (keyword) => editDistance(candidate, keyword) <= maximumDistance,
-    ),
-  );
-
-const CALL_SPOKEN_NUMBERS: Record<string, number> = {
-  one: 1,
-  two: 2,
-  three: 3,
-  four: 4,
-  five: 5,
-  six: 6,
-  seven: 7,
-  eight: 8,
-  nine: 9,
-  ten: 10,
-  eleven: 11,
-  twelve: 12,
-  fifteen: 15,
-  twenty: 20,
-  thirty: 30,
-  forty: 40,
-  fifty: 50,
-  sixty: 60,
-};
-
-const MINUTE_WORDS =
-  '\\d{1,3}|one|two|three|four|five|six|seven|eight|nine|ten|eleven|twelve|fifteen|twenty|thirty|forty|fifty|sixty';
-
-/** "don't snooze", "do not acknowledge": never the action it names. */
-const NEGATED_COMMAND_RE =
-  /\b(?:don'?t|do\s+not|never|not)\s+(?:\w+\s+){0,2}?(?:snooz|ac?k?nowledg)/i;
-
-/**
- * Short everyday answers. They count only as the whole reply to the offline
- * call's own question ("acknowledge or snooze?"), never inside a longer
- * sentence and never in the online conversation, where "okay" or "later"
- * is ordinary talk.
- */
-const CASUAL_ACKNOWLEDGE_RE =
-  /^(?:(?:yes|yeah|yep|yup|ok|okay|alright|all\s+right|sure|noted|copy(?:\s+that)?|will\s+do|i\s+will|i'?ll\s+do\s+it|i'?m\s+doing\s+it|doing\s+it(?:\s+now)?|on\s+my\s+way|sige|oo|opo)(?:\s+(?:lafina|please|thanks|thank\s+you|po))?)$/i;
-const CASUAL_SNOOZE_RE =
-  /^(?:(?:not\s+now|later|maybe\s+later|in\s+a\s+bit|in\s+a\s+while|a\s+bit\s+later|wait|hold\s+on|i'?m\s+busy|busy|mamaya(?:\s+na)?|saglit(?:\s+lang)?|teka(?:\s+lang)?)(?:\s+(?:lafina|please|po))?)$/i;
-const BARE_MINUTES_RE = new RegExp(
-  `^(?:in\\s+|for\\s+)?(${MINUTE_WORDS})\\s*(?:more\\s+)?(?:minutes?|mins?)(?:\\s+more)?(?:\\s+please)?$`,
-  'i',
-);
-
-/**
- * Detects supported reminder-call keywords from speech text. `casual` also
- * accepts short everyday answers ("okay", "later", "ten more minutes"); use it
- * only when the app has just asked for one of the two choices.
- */
-export const detectCallKeyword = (
-  transcript: string,
-  options: {casual?: boolean} = {},
-): CallCommand | null => {
-  const normalized = normalizeCallCommand(transcript);
-  if (!normalized) return null;
-  if (NEGATED_COMMAND_RE.test(normalized)) return null;
-
-  if (options.casual) {
-    const bareMinutes = BARE_MINUTES_RE.exec(normalized);
-    if (bareMinutes) {
-      const raw = bareMinutes[1].toLowerCase();
-      const minutes = /^\d+$/.test(raw)
-        ? Number.parseInt(raw, 10)
-        : CALL_SPOKEN_NUMBERS[raw] ?? 0;
-      if (minutes >= 1 && minutes <= 120) return {intent: 'snooze', minutes};
-    }
-    if (CASUAL_ACKNOWLEDGE_RE.test(normalized)) {
-      return {intent: 'acknowledge', minutes: null};
-    }
-    if (CASUAL_SNOOZE_RE.test(normalized)) {
-      return {intent: 'snooze', minutes: null};
-    }
-  }
-
-  const acknowledgeExact =
-    /\b(?:ac?k?nowledg?(?:e|ed|es|ing|ement|ment)?|nowledg?(?:e|ed|es|ing)?|got\s+it|understood|i'?m\s+on\s+it|on\s+it)\b/i.test(
-      normalized,
-    );
-  const snoozeExact = /\bsnooz(?:e|ed)\b/i.test(normalized);
-  if (acknowledgeExact && snoozeExact) return null;
-  if (acknowledgeExact) {
-    return { intent: 'acknowledge', minutes: null };
-  }
-
-  // 1. Explicit or natural snooze with minute specification (e.g. "snooze for 5 minutes", "remind me in 5 minutes", "remind me again in five minutes", "call me back in 10 minutes", "give me 5 minutes")
-  const naturalMinuteMatch = normalized.match(
-    /\b(?:snooz(?:e|ed)|remind\s+(?:(?:me|you)\s+)?(?:again\s+)?|call\s+(?:(?:me|you)\s+)?(?:back\s+)?|give\s+(?:me|us)|in)\s*(?:for\s+)?(\d{1,3}|one|two|three|four|five|six|seven|eight|nine|ten|eleven|twelve|fifteen|twenty|thirty|forty|fifty|sixty)\s*(?:minutes?|mins?)\b/i,
-  );
-  if (naturalMinuteMatch?.[1]) {
-    const rawVal = naturalMinuteMatch[1].toLowerCase();
-    const minutes = /^\d+$/.test(rawVal)
-      ? Number.parseInt(rawVal, 10)
-      : CALL_SPOKEN_NUMBERS[rawVal] || 10;
-    if (minutes >= 1 && minutes <= 120) {
-      return { intent: 'snooze', minutes };
-    }
-  }
-
-  // 2. Exact snooze without minutes
-  const snoozeMatch = normalized.match(
-    /\bsnooz(?:e|ed)\b(?:\s+(?:it|this|reminder))?(?:\s+(?:for\s+)?(\d{1,3})(?:\s*(?:minutes?|mins?))?)?/i,
-  );
-  if (snoozeExact && !snoozeMatch?.[1]) {
-    return { intent: 'snooze', minutes: null };
-  }
-  if (snoozeExact && snoozeMatch?.[1]) {
-    const minutes = Number.parseInt(snoozeMatch[1], 10);
-    if (minutes < 1 || minutes > 120) return null;
-    return { intent: 'snooze', minutes };
-  }
-
-  // 3. Natural conversational snooze without minute count (e.g. "remind me again", "remind me later", "call me back later", "postpone")
-  const naturalSnoozeWithoutMinutes =
-    /\b(?:remind\s+(?:me|you)\s+again|remind\s+(?:me|you)\s+later|call\s+(?:me|you)\s+later|call\s+(?:me|you)\s+back|postpone)\b/i.test(
-      normalized,
-    );
-  if (naturalSnoozeWithoutMinutes) {
-    return { intent: 'snooze', minutes: null };
-  }
-
-  // 4. Token near-matching fallback
-  const tokens = normalized
-    .split(' ')
-    .filter(
-      (token) =>
-        !['please', 'say', 'i', 'it', 'this', 'reminder'].includes(token),
-    );
-  if (tokens.length === 0 || tokens.length > 3) return null;
-  const candidates = [...tokens, tokens.join('')];
-  const nearAcknowledge = isNearKeyword(
-    candidates,
-    [
-      'acknowledge',
-      'acknowledged',
-      'knowledge',
-      'knowledged',
-      'acknowlege',
-      'knowlege',
-    ],
-    2,
-  );
-  const nearSnooze = isNearKeyword(candidates, ['snooze', 'snoozed'], 2);
-  if (nearAcknowledge === nearSnooze) return null;
-  return nearAcknowledge
-    ? { intent: 'acknowledge', minutes: null }
-    : { intent: 'snooze', minutes: null };
 };
 
 const publishSttMetric = (result: OfflineSpeechResult): void => {
@@ -483,9 +314,9 @@ const processCallTranscript = async (
         session.userId,
         session.generation,
       );
-      await speakOutcome(action);
-      if (action.ok) {
-        disconnectCall(resolutionFromAction(action));
+      await speakOutcome(action, session);
+      if (action.ok && isCurrentSession(session)) {
+        disconnectCall(resolutionFromAction(action), session);
       } else if (isCurrentSession(session)) {
         session.isResolving = false;
         await handleFailedAttempt(session);
@@ -500,9 +331,9 @@ const processCallTranscript = async (
       minutes,
       session.generation,
     );
-    await speakOutcome(action);
-    if (action.ok) {
-      disconnectCall(resolutionFromAction(action));
+    await speakOutcome(action, session);
+    if (action.ok && isCurrentSession(session)) {
+      disconnectCall(resolutionFromAction(action), session);
     } else if (isCurrentSession(session)) {
       session.isResolving = false;
       await handleFailedAttempt(session);
@@ -536,7 +367,7 @@ async function startAutomaticAttempt(
   try {
     publishCallState('speaking', prompt);
     const provider = session.speechProvider || defaultCallSpeechProvider;
-    await provider.speakText(prompt, { fallbackAudioPath: cachedPath });
+    await provider.speakText(prompt, {fallbackAudioPath: cachedPath});
   } catch (error) {
     console.error('[CallDispatcher] TTS playback failed:', error);
   }
@@ -567,7 +398,7 @@ async function startAutomaticAttempt(
 
   const speechStartedSubscription = DeviceEventEmitter.addListener(
     'onSpeechStarted',
-    (event: { captureId?: string }) => {
+    (event: {captureId?: string}) => {
       if (
         event.captureId !== handle.captureId ||
         !isCurrentSession(session) ||
@@ -607,7 +438,7 @@ async function startAutomaticAttempt(
       // alone. MIC_IN_USE names the other recorder; CAPTURE_BUSY is another voice
       // capture still finishing, which must not be described as a recording.
       session.voiceEnabled = false;
-      const code = (error as { code?: unknown } | null)?.code;
+      const code = (error as {code?: unknown} | null)?.code;
       publishCallState(
         'connected',
         code === 'MIC_IN_USE'
@@ -617,7 +448,12 @@ async function startAutomaticAttempt(
       return;
     }
     console.error('[CallDispatcher] Capture result error:', error);
-    await handleFailedAttempt(session);
+    session.voiceEnabled = false;
+    void stopActiveCallSession().catch(() => undefined);
+    publishCallState(
+      'connected',
+      'Speech recognition is unavailable. Use Acknowledge or Snooze below.',
+    );
   }
 }
 
@@ -631,9 +467,7 @@ const captureCallGeneration = (
   reminderId: string,
   userId: string,
   expectedGeneration: number | null | undefined,
-):
-  | { ok: true; generation: number | null }
-  | { ok: false; retired: boolean } => {
+): {ok: true; generation: number | null} | {ok: false; retired: boolean} => {
   const fence = deliveryStore.checkFence(
     reminderId,
     userId,
@@ -641,16 +475,18 @@ const captureCallGeneration = (
   );
   if (!fence.ok) {
     console.warn('[CallDispatcher] Ignoring stale call:', fence.reason);
-    return { ok: false, retired: fence.reason === 'not_actionable' };
+    return {ok: false, retired: fence.reason === 'not_actionable'};
   }
   if (expectedGeneration !== undefined && expectedGeneration !== null) {
     return {
       ok: true,
       generation:
-        expectedGeneration > 0 ? expectedGeneration : fence.job?.generation ?? null,
+        expectedGeneration > 0
+          ? expectedGeneration
+          : fence.job?.generation ?? null,
     };
   }
-  return { ok: true, generation: fence.job?.generation ?? null };
+  return {ok: true, generation: fence.job?.generation ?? null};
 };
 
 /**
@@ -669,16 +505,21 @@ export const answerCall = async (
     console.error('[CallDispatcher] Reminder not found:', reminderId);
     return false;
   }
-  const captured = captureCallGeneration(reminderId, userId, expectedGeneration);
+  const captured = captureCallGeneration(
+    reminderId,
+    userId,
+    expectedGeneration,
+  );
   if (!captured.ok) {
-    await finishNativeIncomingCall(reminderId);
+    await finishNativeIncomingCall(reminderId, userId, expectedGeneration);
     // A retired job has no newer work to protect; a stale generation might.
-    if (captured.retired) await cancelReminderAlarm(reminderId);
+    if (captured.retired)
+      await cancelReminderAlarm(reminderId, userId, expectedGeneration);
     return false;
   }
   if (reminder.status === 'acknowledged' || reminder.status === 'missed') {
-    await finishNativeIncomingCall(reminderId);
-    await cancelReminderAlarm(reminderId);
+    await finishNativeIncomingCall(reminderId, userId, expectedGeneration);
+    await cancelReminderAlarm(reminderId, userId, expectedGeneration);
     return false;
   }
 
@@ -687,13 +528,25 @@ export const answerCall = async (
   const isTaskDone = alertSuppression(db, reminder) === 'task_completed';
   if (isTaskDone) {
     remindersStore.acknowledgeReminder(reminder.id);
-    await cancelReminderAlarm(reminder.id);
-    await finishNativeIncomingCall(reminderId);
+    await cancelReminderAlarm(reminder.id, userId, expectedGeneration);
+    await finishNativeIncomingCall(reminderId, userId, expectedGeneration);
     return false;
   }
 
+  const native = getNativeDeliveryModule();
+  if (
+    captured.generation != null &&
+    native?.claimIncomingCall &&
+    !(await native.claimIncomingCall(reminderId, userId, captured.generation))
+  )
+    return false;
   const answerSequence = ++sessionSequence;
-  await stopActiveAudioAndCapture();
+  const previousSession = activeSession;
+  // Invalidate A before cancelling its speech: cancellation can synchronously
+  // resolve A's outcome promise, whose continuation must no longer own the call.
+  activeSession = null;
+  await audioRelease;
+  await stopActiveAudioAndCapture(previousSession);
   if (answerSequence !== sessionSequence) return false;
   const session: CallDispatcherSession = {
     id: sessionSequence,
@@ -710,18 +563,21 @@ export const answerCall = async (
   };
   activeSession = session;
 
-  if (voiceEnabled) {
+  if (voiceEnabled && (externalVoice || hasOfflineSpeechCapture())) {
     try {
       await startActiveCallSession(reminder.task);
     } catch (error) {
       console.error('[CallDispatcher] Active-call service failed:', error);
+      voiceEnabled = false;
+      session.voiceEnabled = false;
+      session.externalVoice = false;
     }
   }
   if (!isCurrentSession(session)) {
     if (!activeSession) void stopActiveCallSession().catch(() => undefined);
     return false;
   }
-  await finishNativeIncomingCall(reminderId);
+  await finishNativeIncomingCall(reminderId, userId, expectedGeneration);
   if (!isCurrentSession(session)) return false;
   remindersStore.updateReminderStatus(reminderId, 'triggered');
   publishCallState('connected');
@@ -729,7 +585,9 @@ export const answerCall = async (
   if (session.externalVoice) {
     // Deliver the actual reminder before handing the speaker and microphone to
     // the conversation. No offline capture runs during the online session.
-    await speakText(buildAnnouncement(reminder.task), {fallbackAudioPath: reminder.preCastAudioPath});
+    await speakText(buildAnnouncement(reminder.task), {
+      fallbackAudioPath: reminder.preCastAudioPath,
+    });
     if (!isCurrentSession(session)) return false;
     publishCallState('connected', 'Connecting to online conversation…');
     return true;
@@ -763,21 +621,44 @@ export const answerCall = async (
 };
 
 /** Resume the existing offline call only while the same accepted call remains active. */
-export const resumeOfflineCall = (reminderId: string, userId: string): boolean => {
+export const resumeOfflineCall = (
+  reminderId: string,
+  userId: string,
+): boolean => {
   const session = activeSession;
-  if (!session || session.reminderId !== reminderId || session.userId !== userId ||
-      !session.externalVoice || session.isResolving) return false;
+  if (
+    !session ||
+    session.reminderId !== reminderId ||
+    session.userId !== userId ||
+    !session.externalVoice ||
+    session.isResolving
+  )
+    return false;
   session.externalVoice = false;
-  const reminder = remindersStore.getReminderById(reminderId);
-  void startAutomaticAttempt(session, buildAnnouncement(session.task), reminder?.preCastAudioPath);
+  void startAutomaticAttempt(
+    session,
+    'Offline voice is ready. Choose one of the two responses shown on screen.',
+  );
   return true;
 };
 
 /**
  * Automatically snoozes the active reminder or marks it missed at its limit.
  */
-export const autoSnoozeCall = async (): Promise<void> => {
+export const autoSnoozeCall = async (expected?: {
+  reminderId: string;
+  userId: string;
+  generation: number | null;
+}): Promise<void> => {
   const session = activeSession;
+  if (
+    expected &&
+    (!session ||
+      session.reminderId !== expected.reminderId ||
+      session.userId !== expected.userId ||
+      session.generation !== expected.generation)
+  )
+    return;
   if (!session || !claimCallResolution(session)) return;
   const showResolution = session.state !== 'ringing';
   await stopActiveAudioAndCapture(session);
@@ -788,9 +669,12 @@ export const autoSnoozeCall = async (): Promise<void> => {
     session.generation,
   );
   if (session.state !== 'ringing') {
-    await speakOutcome(action);
+    await speakOutcome(action, session);
   }
-  disconnectCall(showResolution ? resolutionFromAction(action) : undefined);
+  disconnectCall(
+    showResolution ? resolutionFromAction(action) : undefined,
+    session,
+  );
 };
 
 /**
@@ -802,14 +686,26 @@ export const declineCall = async (
   speechProvider: CallSpeechProvider = defaultCallSpeechProvider,
   expectedGeneration?: number | null,
 ): Promise<void> => {
+  if (
+    activeSession &&
+    (activeSession.reminderId !== reminderId ||
+      activeSession.userId !== userId ||
+      (expectedGeneration != null &&
+        activeSession.generation !== expectedGeneration))
+  )
+    return;
   const reminder = remindersStore.getReminderById(reminderId);
   if (!reminder || reminder.userId !== userId) {
-    await finishNativeIncomingCall(reminderId);
+    await finishNativeIncomingCall(reminderId, userId, expectedGeneration);
     return;
   }
-  const captured = captureCallGeneration(reminderId, userId, expectedGeneration);
+  const captured = captureCallGeneration(
+    reminderId,
+    userId,
+    expectedGeneration,
+  );
   if (!captured.ok) {
-    await finishNativeIncomingCall(reminderId);
+    await finishNativeIncomingCall(reminderId, userId, expectedGeneration);
     return;
   }
   sessionSequence += 1;
@@ -859,7 +755,7 @@ export const endAnsweredCall = async (
   );
   if (!isCurrentSession(session)) return;
   // No spoken confirmation: the student hung up.
-  disconnectCall(resolutionFromAction(action));
+  disconnectCall(resolutionFromAction(action), session);
 };
 
 /**
@@ -892,20 +788,34 @@ const settleCallManually = async (
     await stopActiveAudioAndCapture(session);
     const action = await act(session.generation);
     if (!isCurrentSession(session)) return action.ok ? 'done' : 'failed';
-    await speakOutcome(action);
-    if (action.ok) {
-      disconnectCall(resolutionFromAction(action));
+    await speakOutcome(action, session);
+    if (!isCurrentSession(session)) return action.ok ? 'done' : 'failed';
+    if (action.ok && isCurrentSession(session)) {
+      disconnectCall(resolutionFromAction(action), session);
       return 'done';
     }
     if (isCurrentSession(session)) session.isResolving = false;
     return 'failed';
   }
 
+  if (session) return 'busy';
   const action = await act(expectedGeneration);
   const resolution = resolutionFromAction(action);
   const event: CallStateEvent = resolution
-    ? { state: 'disconnected', resolution }
-    : { state: 'connected', text: action.message };
+    ? {
+        state: 'disconnected',
+        resolution,
+        reminderId,
+        userId,
+        generation: expectedGeneration,
+      }
+    : {
+        state: 'connected',
+        text: action.message,
+        reminderId,
+        userId,
+        generation: expectedGeneration,
+      };
   DeviceEventEmitter.emit('LAFINA_CALL_STATE_CHANGE', event);
   return action.ok ? 'done' : 'failed';
 };
@@ -923,6 +833,37 @@ export const manualSnoozeCall = (
     snoozeReminderAction(reminderId, userId, minutes, generation),
   );
 
+/** The tool receives the committed result before the online transport closes. */
+export const commitAgentSnooze = async (
+  reminderId: string,
+  userId: string,
+  minutes: number,
+  generation: number | null,
+): Promise<{result: ReminderActionResult; close: () => void} | null> => {
+  const session = activeSession;
+  if (
+    !session ||
+    session.reminderId !== reminderId ||
+    session.userId !== userId ||
+    session.generation !== generation ||
+    !claimCallResolution(session)
+  )
+    return null;
+  const result = await snoozeReminderAction(
+    reminderId,
+    userId,
+    minutes,
+    generation,
+  );
+  if (!isCurrentSession(session)) return null;
+  if (!result.ok) session.isResolving = false;
+  publishCallState('connected', result.message, resolutionFromAction(result));
+  return {
+    result,
+    close: () => disconnectCall(resolutionFromAction(result), session),
+  };
+};
+
 /**
  * Applies a manual acknowledgement through the coordinated scheduler path.
  */
@@ -938,15 +879,46 @@ export const manualAcknowledgeCall = (
 /**
  * Stops the active call loop, microphone service, and terminal UI state.
  */
-export const disconnectCall = (resolution?: CallResolution): void => {
+export const disconnectCall = (
+  resolution?: CallResolution,
+  expectedSession?: CallDispatcherSession,
+): void => {
+  if (expectedSession && activeSession !== expectedSession) return;
   sessionSequence += 1;
   const session = activeSession;
   if (!session) return;
   session.state = 'disconnected';
   activeSession = null;
-  void stopActiveAudioAndCapture(session);
+  audioRelease = stopActiveAudioAndCapture(session);
   void stopActiveCallSession().catch(() => undefined);
-  const event: CallStateEvent = { state: 'disconnected' };
+  const event: CallStateEvent = {
+    state: 'disconnected',
+    reminderId: session.reminderId,
+    userId: session.userId,
+    generation: session.generation,
+    sessionId: session.id,
+  };
   if (resolution) event.resolution = resolution;
   DeviceEventEmitter.emit('LAFINA_CALL_STATE_CHANGE', event);
 };
+
+export const isCallInProgress = (
+  ownerId: string,
+  reminderId: string,
+  generation: number,
+): boolean =>
+  activeSession?.userId === ownerId &&
+  activeSession.reminderId === reminderId &&
+  activeSession.generation === generation &&
+  activeSession.state !== 'disconnected';
+
+export const ownsCallCapture = (
+  ownerId: string,
+  reminderId: string,
+  captureId?: string,
+): boolean =>
+  !!captureId &&
+  activeCallCapture?.handle.captureId === captureId &&
+  activeCallCapture.session === activeSession &&
+  activeSession?.userId === ownerId &&
+  activeSession.reminderId === reminderId;

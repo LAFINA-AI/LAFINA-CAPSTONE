@@ -7,6 +7,7 @@ import {
   VoiceConversationController,
   defaultVoiceConversationDeps,
   registerVoiceConversation,
+  startVoiceConversation,
 } from '../../cloud/voiceConversation';
 import type {
   ConversationSnapshot,
@@ -96,6 +97,10 @@ export const useVoiceConversation = (
     const deps = depsFactory.current(userId);
     const controller = new VoiceConversationController({
       ...deps,
+      gates: {
+        ...deps.gates,
+        isForeground: () => AppState.currentState === 'active',
+      },
       getStudentContext: () =>
         [extraContext.current, deps.getStudentContext?.() ?? '']
           .filter(Boolean)
@@ -117,7 +122,11 @@ export const useVoiceConversation = (
     const unregister = registerVoiceConversation(controller);
 
     const app = AppState.addEventListener('change', state => {
-      if (state !== 'active' && controller.isActive()) {
+      if (
+        state !== 'active' &&
+        controller.isActive() &&
+        !controller.isRequestingPermission()
+      ) {
         controller.stopForSystem(
           'The conversation stopped when LAFINA left the screen. Nothing listens in the background.',
         );
@@ -163,7 +172,8 @@ export const useVoiceConversation = (
     setPreferences: preferences =>
       controllerRef.current?.setPreferences(preferences),
     start: () => {
-      void controllerRef.current?.start();
+      const controller = controllerRef.current;
+      if (controller) void startVoiceConversation(controller);
     },
     end: () => controllerRef.current?.end(),
     endAndWait: async () =>

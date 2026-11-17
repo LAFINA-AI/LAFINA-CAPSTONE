@@ -39,6 +39,7 @@ import {
  */
 
 export interface VoiceConversationGates {
+  isForeground?(): boolean;
   isGuest(): boolean;
   isSignedInOwner(): boolean;
   isOnlineMode(): boolean;
@@ -243,6 +244,8 @@ export class VoiceConversationController {
     lastTiming: null,
   };
   private generation = 0;
+  private permissionPending = false;
+  isRequestingPermission = (): boolean => this.permissionPending;
   /** Invalidates work within a live call when the student takes another turn. */
   private turnGeneration = 0;
   private abort: AbortController | null = null;
@@ -366,12 +369,19 @@ export class VoiceConversationController {
     if (!online) return this.fail(gen, 'offline');
     let permitted = false;
     try {
+      this.permissionPending = true;
       permitted = await gates.ensureMicPermission();
     } catch {
       permitted = false;
+    } finally {
+      this.permissionPending = false;
     }
     if (stale()) return;
     if (!permitted) return this.fail(gen, 'mic_denied');
+    if (gates.isForeground?.() === false)
+      return this.stopForSystem(
+        'The app left the screen before microphone access was ready. Tap Start when you return.',
+      );
     let voice: {id: string; name: string} | null;
     try {
       voice = this.deps.getVoice();
@@ -424,6 +434,12 @@ export class VoiceConversationController {
     if (!session) return this.fail(gen, 'connect_failed');
     if (!session.ok) return this.failFromApi(gen, session);
     this.abort = null;
+    if (gates.isForeground?.() === false) {
+      void api.end(session.data.sessionId, null).catch(() => undefined);
+      return this.stopForSystem(
+        'The app left the screen before audio started.',
+      );
+    }
 
     const key = `vc-${gen}-${randomId()}`;
     const live: LiveSession = {
@@ -470,6 +486,7 @@ export class VoiceConversationController {
     } catch (error) {
       this.timers.clear('connect');
       if (stale()) return;
+      if (this.snapshot.phase === 'failed') return;
       const code = (error as {code?: unknown})?.code;
       this.log(
         `start failed (${typeof code === 'string' ? code : 'unknown'}${
@@ -792,6 +809,7 @@ export class VoiceConversationController {
         );
       }
       case 'ended':
+        if (this.snapshot.phase === 'failed') return;
         return this.stopForSystem('The conversation ended.');
       default:
     }

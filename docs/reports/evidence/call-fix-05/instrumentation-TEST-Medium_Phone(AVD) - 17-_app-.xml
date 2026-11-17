@@ -1,0 +1,17 @@
+<?xml version='1.0' encoding='UTF-8' ?>
+<testsuite name="com.lafina.capstone.CallPrivacyTest" tests="9" failures="0" errors="0" skipped="0" time="2.128" timestamp="2026-11-17T07:45:10" hostname="localhost">
+  <properties>
+    <property name="device" value="Medium_Phone(AVD) - 17" />
+    <property name="flavor" value="" />
+    <property name="project" value=":app" />
+  </properties>
+  <testcase name="mainActivityNeverOptsOutOfKeyguard" classname="com.lafina.capstone.CallPrivacyTest" time="0.023" />
+  <testcase name="dataUrisKeepHashCollidingPendingIntentsApart" classname="com.lafina.capstone.LafinaDeliveryInstrumentedTest" time="0.058" />
+  <testcase name="claimsSurviveReopeningTheRegistry" classname="com.lafina.capstone.LafinaDeliveryInstrumentedTest" time="0.082" />
+  <testcase name="reminderReceiverActionContract" classname="com.lafina.capstone.LafinaReminderAndroidTest" time="0.034" />
+  <testcase name="systemServicesAreAvailable" classname="com.lafina.capstone.LafinaReminderAndroidTest" time="0.01" />
+  <testcase name="receiversInstantiateCleanly" classname="com.lafina.capstone.LafinaReminderAndroidTest" time="0.005" />
+  <testcase name="timeoutPersistsOnceAndSchedulesARetryWithoutJavascript" classname="com.lafina.capstone.NativeCallDeadlineTest" time="0.134" />
+  <testcase name="adoptsLegacySlotWithoutLosingSubsequentCalls" classname="com.lafina.capstone.PendingReminderCallsTest" time="0.005" />
+  <testcase name="queueIsDurableAndSettlementCannotEraseAnotherCall" classname="com.lafina.capstone.PendingReminderCallsTest" time="0.031" />
+</testsuite>

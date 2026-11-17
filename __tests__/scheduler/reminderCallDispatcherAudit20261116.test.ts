@@ -94,7 +94,18 @@ beforeEach(() => {
   db.executeSync(
     `INSERT INTO users (id, username, email, role, is_new_user, time_format_24h, week_starts_monday, dark_mode, created_at, updated_at)
      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-    [userId, 'Call Student', 'audit@example.invalid', 'student', 0, 0, 0, 0, now, now],
+    [
+      userId,
+      'Call Student',
+      'audit@example.invalid',
+      'student',
+      0,
+      0,
+      0,
+      0,
+      now,
+      now,
+    ],
   );
   preferencesStore.save(userId, {
     ...getDefaultUserPreferences(),
@@ -152,7 +163,9 @@ describe('Acknowledge and Snooze buttons', () => {
     speech.finishAll();
     expect(await first).toBe('done');
     // The first tap won: snoozed, not acknowledged.
-    expect(remindersStore.getReminderById('rem-double')?.status).toBe('snoozed');
+    expect(remindersStore.getReminderById('rem-double')?.status).toBe(
+      'snoozed',
+    );
   });
 
   it('still works when the call session is gone', async () => {
@@ -243,5 +256,38 @@ describe('spoken answers', () => {
     expect(detectCallKeyword("don't snooze")).toBeNull();
     expect(detectCallKeyword('do not acknowledge it')).toBeNull();
     expect(casual("don't snooze it")).toBeNull();
+  });
+});
+
+describe('Call ownership regression (CALL-FIX-01)', () => {
+  it('a late outcome from A cannot disconnect an answered B', async () => {
+    addReminder('late-a');
+    addReminder('late-b', 'Review chemistry');
+    const first = heldSpeech();
+    await answerCall('late-a', userId, false, first.provider);
+    const pending = manualAcknowledgeCall('late-a', userId);
+    await flush();
+    const second = heldSpeech();
+    expect(await answerCall('late-b', userId, false, second.provider)).toBe(
+      true,
+    );
+    const {events, stop} = recordEvents();
+    first.finishAll();
+    await pending;
+    await flush();
+    expect(
+      events.some(
+        event =>
+          event.state === 'disconnected' && event.reminderId === 'late-b',
+      ),
+    ).toBe(false);
+    const acknowledgeB = manualAcknowledgeCall('late-b', userId);
+    await flush();
+    second.finishAll();
+    expect(await acknowledgeB).toBe('done');
+    expect(remindersStore.getReminderById('late-b')?.status).toBe(
+      'acknowledged',
+    );
+    stop();
   });
 });

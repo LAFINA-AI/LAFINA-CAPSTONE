@@ -1,4 +1,11 @@
 const {NativeModules} = require('react-native');
+// Rendered UI tests represent a visible activity. Lifecycle tests override this
+// explicitly; React Native's default Jest mock otherwise reports null forever.
+Object.defineProperty(require('react-native').AppState, 'currentState', {
+  configurable: true,
+  writable: true,
+  value: 'active',
+});
 NativeModules.LafinaReminder = {
   scheduleExactAlarm: jest.fn(() => Promise.resolve(true)),
   cancelAlarm: jest.fn(() => Promise.resolve(true)),

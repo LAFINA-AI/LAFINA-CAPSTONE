@@ -1,9 +1,7 @@
 package com.lafina.capstone
 
 import android.content.Intent
-import android.os.Build
 import android.os.Bundle
-import android.view.WindowManager
 import com.facebook.react.ReactActivity
 import com.facebook.react.ReactActivityDelegate
 import com.facebook.react.defaults.DefaultNewArchitectureEntryPoint.fabricEnabled
@@ -25,24 +23,11 @@ class MainActivity : ReactActivity() {
   private fun handleLockScreenIntent(intent: Intent?) {
     if (intent != null && intent.hasExtra("reminderId")) {
       LafinaReminderModule.captureActivityIntent(this, intent)
-      // A notify-only reminder's Acknowledge/Snooze is not a call: no lock-screen takeover.
-      if (!LafinaReminderModule.isNotificationAction(intent)) setupLockScreenFlags()
     }
   }
 
-  private fun setupLockScreenFlags() {
-    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O_MR1) {
-      setShowWhenLocked(true)
-      setTurnScreenOn(true)
-    } else {
-      @Suppress("DEPRECATION")
-      window.addFlags(
-        WindowManager.LayoutParams.FLAG_SHOW_WHEN_LOCKED or
-        WindowManager.LayoutParams.FLAG_TURN_SCREEN_ON or
-        WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON
-      )
-    }
-  }
+  // The React Native root contains private planner data. Notification intents
+  // must pass Android keyguard before opening it, including during a call.
 
   /**
    * Returns the name of the main component registered from JavaScript. This is used to schedule

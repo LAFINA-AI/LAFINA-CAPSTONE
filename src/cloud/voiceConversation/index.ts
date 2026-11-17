@@ -1,4 +1,4 @@
-import {DeviceEventEmitter, NativeModules} from 'react-native';
+import {AppState, DeviceEventEmitter, NativeModules} from 'react-native';
 import {
   directProviderTestEnabled,
   directTestVoiceApi,
@@ -119,6 +119,7 @@ export const defaultVoiceConversationDeps = (
   extra: Pick<VoiceConversationDeps, 'onFinalUserText'> = {},
 ): VoiceConversationDeps => ({
   gates: {
+    isForeground: () => AppState.currentState === 'active',
     isGuest: () => isGuestAccount(userId),
     isSignedInOwner: () => isSignedInOwner(userId),
     isOnlineMode: () =>
@@ -160,19 +161,61 @@ export const defaultVoiceConversationDeps = (
 // One conversation app-wide, so a reminder call or sign-out can end it.
 let active: VoiceConversationController | null = null;
 let pendingRelease: Promise<void> = Promise.resolve();
+const voiceOwners = new Set<() => void>();
+const notifyVoiceOwner = (): void =>
+  voiceOwners.forEach(listener => listener());
+export const subscribeVoiceConversation = (
+  listener: () => void,
+): (() => void) => {
+  voiceOwners.add(listener);
+  return () => {
+    voiceOwners.delete(listener);
+  };
+};
+let acquisition = 0;
+
+/** Every explicit start reacquires ownership, including a retained panel restart. */
+export const startVoiceConversation = async (
+  controller: VoiceConversationController,
+): Promise<void> => {
+  const token = ++acquisition;
+  if (active && active !== controller) {
+    if (!(await active.endAndWait())) return;
+  }
+  await pendingRelease;
+  if (token !== acquisition) return;
+  active = controller;
+  notifyVoiceOwner();
+  await controller.start();
+  notifyVoiceOwner();
+};
 
 export const registerVoiceConversation = (
   controller: VoiceConversationController,
 ): (() => void) => {
-  if (active && active !== controller) active.end();
-  active = controller;
+  // Mounting an idle reminder panel must not displace a retained live panel.
+  const update = () => {
+    if (controller.isActive() && active !== controller) {
+      if (active?.isActive())
+        active.stopForSystem('Another conversation started.');
+      active = controller;
+    }
+    notifyVoiceOwner();
+  };
+  const unsubscribe = controller.subscribe?.(update) ?? (() => undefined);
+  update();
   return () => {
-    if (active === controller) active = null;
+    unsubscribe();
+    if (active === controller) {
+      active = null;
+      notifyVoiceOwner();
+    }
   };
 };
 
 /** Ends a running conversation for a system reason (call, sign-out). No restart. */
 export const endActiveVoiceConversation = (reason: string): void => {
+  acquisition += 1;
   const controller = active;
   if (!controller) return;
   controller.stopForSystem(reason);

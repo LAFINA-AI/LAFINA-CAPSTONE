@@ -1,0 +1,95 @@
+{
+  "atUtc": "2026-11-17T07:59:27.111538+00:00",
+  "baseCommit": "d331b970d946ae02d3df34f6ed2c7ee84a74164e",
+  "preflight": {
+    "suitesPassed": 156,
+    "testsPassed": 2102,
+    "skipped": 1,
+    "log": "preflight-complete.log"
+  },
+  "laterReplayRegression": {
+    "suitesPassed": 3,
+    "testsPassed": 23,
+    "log": "replay-regressions.log"
+  },
+  "android": {
+    "instrumentation": {
+      "tests": 9,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "files": [
+        "docs\\reports\\evidence\\call-fix-05\\instrumentation-TEST-Medium_Phone(AVD) - 17-_app-.xml"
+      ]
+    },
+    "jvm": {
+      "tests": 87,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "files": [
+        "android\\app\\build\\test-results\\testDebugUnitTest\\TEST-com.lafina.capstone.AlarmScheduleTest.xml",
+        "android\\app\\build\\test-results\\testDebugUnitTest\\TEST-com.lafina.capstone.FloatingOrbRulesTest.xml",
+        "android\\app\\build\\test-results\\testDebugUnitTest\\TEST-com.lafina.capstone.LafinaAudioPlayerTest.xml",
+        "android\\app\\build\\test-results\\testDebugUnitTest\\TEST-com.lafina.capstone.LafinaDeliveryContractTest.xml",
+        "android\\app\\build\\test-results\\testDebugUnitTest\\TEST-com.lafina.capstone.LafinaIntentExtractorTest.xml",
+        "android\\app\\build\\test-results\\testDebugUnitTest\\TEST-com.lafina.capstone.LafinaReminderTest.xml",
+        "android\\app\\build\\test-results\\testDebugUnitTest\\TEST-com.lafina.capstone.LafinaSpeechToTextTest.xml",
+        "android\\app\\build\\test-results\\testDebugUnitTest\\TEST-com.lafina.capstone.MicrophoneLeaseTest.xml",
+        "android\\app\\build\\test-results\\testDebugUnitTest\\TEST-com.lafina.capstone.VoiceConversationRulesTest.xml"
+      ]
+    },
+    "emulator": {
+      "model": "sdk_gphone16k_x86_64",
+      "api": 37,
+      "android": "17",
+      "identifier": "emulator-5554"
+    },
+    "physicalPhone": {
+      "model": "Infinix X6880",
+      "status": "disconnected before device tests; NOT RUN"
+    }
+  },
+  "artifact": {
+    "bundle_sha256": "662bd112aa556f14f7117351e7387aff33b245b5713bfd1133d4f4d091089365",
+    "server": "https://lafina-backend.vercel.app",
+    "apk": "C:\\L3mxr\\Github Repositories\\LAFINA-CAPSTONE-agy-development-cont\\.local\\provider-testing\\LAFINA-hosted-arm64-v8a.apk",
+    "provider_keys_in_apk": false,
+    "package": "com.lafina.capstone.providers",
+    "architecture": "arm64-v8a",
+    "fast_tts_default": true,
+    "apk_sha256": "89d4937ce4290c1bf9891c5707f2276b758bce3a87cf1aad44715c2608718f29"
+  },
+  "formatting": {
+    "scopedCallFiles": "PASS",
+    "repository": "FAIL: 252 baseline files and 8 unrelated Floating Assistant files"
+  },
+  "sourceSha256": {
+    "App.tsx": "4ae637bd8d6c57344973a4b06a03391caf980491dc1ac2ed06461043876296c3",
+    "jest.setup.js": "a49446fcdc40f9c41b532ff9bd3f97b6daaa8f21c3ee7cd8f3782f79394162ac",
+    "src/scheduler/callCommand.ts": "2db82bc9def3302ecad0e63f8b8535cba9ae5461957ba2d0412b923bb06c82ed",
+    "src/scheduler/callLifecycle.ts": "34164cef61c67cc719e0eee3ac7bada4cf7307d6f9c80cff8f123fd603086c31",
+    "src/scheduler/nativeCallRecovery.ts": "cbca65d59d4f83da4a243b4f8f64e18d6dd89e83b863677edaa144013591ab31",
+    "src/scheduler/callAdmission.ts": "023963b31ea7821f8f8805d0ff2509e39bc3573b9fb14ac45b8196e2ed71162d",
+    "src/scheduler/callDispatcher.ts": "791e23f785078dc51234d30fdc82698bdfd96b10ec6fc3bd0e34a152891b1e87",
+    "src/scheduler/reminderActions.ts": "ee51a86e68731422b1b2ac30501cafc46a41e0e63b924e5b83d419813f68b629",
+    "src/scheduler/reminderAlarm.ts": "3e09103fa1e2a0b1c2633ae32b8983b9e1c9fefdf12378574e27902e2a61a95f",
+    "src/scheduler/reminderPoller.ts": "4e57d633dbc5872bd2dbf84afac51981e7b465a8d2fe39bce1fcc6bef74ed338",
+    "src/scheduler/reminderRescheduler.ts": "36d7b6d07e8374217a337fb63d00bcec120e76108368742278cef9dcfd5d411f",
+    "src/storage/remindersStore.ts": "c05f8e71b7ab5ba762c70f0502fc991f4f2eb260e5722beca18280443cd8c986",
+    "src/cloud/voiceConversation/controller.ts": "1e7d182a322a819945848d6117891d6dcc2c7e4644ea6982a675444efd75f5d1",
+    "src/cloud/voiceConversation/index.ts": "3cadcd68a30e9c30d9b841d3340c0809592b69fe0167286644af7fe37a7262f4",
+    "src/ui/hooks/useVoiceConversation.ts": "3e411666eb6c36d01b22e0e37fe90093f9c956134b6e9952a07ed8b82fe721d0",
+    "src/ui/screens/IncomingCallScreen.tsx": "8f34b7c5d01498f04680b019ce9d2aa2ab903dc0f1a995368e30c982665f7e3e",
+    "src/ui/components/call/CallAnsweredView.tsx": "8880f2bc06edc3356ebcd49368c21fca8a92900fea1f09af6269a1a86334150d",
+    "src/ui/components/callLafina/LiveMiniCallBar.tsx": "fccbcf6dc30a856c62b4666f84c69c7d4b3787b863233ae1c43199dafe3c2083",
+    "android/app/src/main/AndroidManifest.xml": "6857b4313613504b453220d00f7cc2505565d3c9cfaf4f2fbeb9b488a62fb0cd",
+    "android/app/src/main/java/com/lafina/capstone/MainActivity.kt": "cc5d4f4e0cc91a808669b394e50d0d461dd7f9d49da7c2248a83d504fb9610d5",
+    "android/app/src/main/java/com/lafina/capstone/LafinaReminderModule.kt": "42d4cdea9c7b6fb4d8f349cc19085a3584584746f7fc4b09ea912b64daf84fa6",
+    "android/app/src/main/java/com/lafina/capstone/LafinaReminderReceiver.kt": "a677253b8ca5102fb243a7e3a28ceeccc59b56960c10761a3bd8feeb9489ea54",
+    "android/app/src/main/java/com/lafina/capstone/LafinaReminderService.kt": "b4751211b402cf8e6cd9c8871cde1277d708e963c831178f59bc63f8aaca1127",
+    "android/app/src/main/java/com/lafina/capstone/PendingReminderCalls.kt": "31896e7137a55677aba98b8ee98cef2a9ac14651cdf7cf464ecba271ba9e57b4",
+    "android/app/src/main/java/com/lafina/capstone/LafinaSpeechToTextModule.kt": "2d883962d61869fd950659cc37b429f1db45be27174277065ca5daed18e54fa8",
+    "android/app/src/main/java/com/lafina/capstone/LafinaVoiceConversationModule.kt": "57e179fd895267707ff323820b66e4461ae0e694544dcef023edc30948a56340"
+  }
+}

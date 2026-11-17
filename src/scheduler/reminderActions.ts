@@ -161,7 +161,7 @@ export const snoozeReminderAction = async (
   }
 
   try {
-    await finishNativeIncomingCall(reminder.id);
+    await finishNativeIncomingCall(reminder.id, userId, expectedGeneration);
   } catch (error) {
     console.error('[ReminderActions] Snoozed, but call cleanup failed:', error);
   }
@@ -239,8 +239,7 @@ export const createNextRecurringReminder = (
   const until = new Date(from);
   until.setDate(until.getDate() + 60);
   const nextDate = getOccurrences(date, rule, from, until).find(
-    day =>
-      !floor || new Date(`${day}T${time}:00`).getTime() > floor.getTime(),
+    day => !floor || new Date(`${day}T${time}:00`).getTime() > floor.getTime(),
   );
   if (!nextDate) return null;
   // Never a second copy of the same occurrence (a sweep after a miss, then
@@ -305,8 +304,8 @@ export const acknowledgeReminderAction = async (
   }
 
   try {
-    await cancelReminderAlarm(reminder.id);
-    await finishNativeIncomingCall(reminder.id);
+    await cancelReminderAlarm(reminder.id, userId, expectedGeneration);
+    await finishNativeIncomingCall(reminder.id, userId, expectedGeneration);
     await deletePreCachedReminderAudio(reminder.preCastAudioPath);
   } catch (error) {
     console.error('[ReminderActions] Acknowledged, but cleanup failed:', error);
@@ -455,8 +454,8 @@ export const autoSnoozeReminderAction = async (
   }
 
   try {
-    await cancelReminderAlarm(reminder.id);
-    await finishNativeIncomingCall(reminder.id);
+    await cancelReminderAlarm(reminder.id, userId, expectedGeneration);
+    await finishNativeIncomingCall(reminder.id, userId, expectedGeneration);
   } catch (error) {
     console.error(
       '[ReminderActions] Marked missed, but cleanup failed:',

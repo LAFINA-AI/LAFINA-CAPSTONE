@@ -1,0 +1,39 @@
+PASS __tests__/ui/appQuickChatIntegration.test.tsx (15.245 s)
+PASS __tests__/ui/callQueueIntegration.test.tsx
+  ● Console
+
+    console.log
+      [ReminderPoller] Poller started for user local_guest_user
+
+      at log (src/scheduler/reminderPoller.ts:111:11)
+
+    console.log
+      [ReminderPoller] Poller stopped
+
+      at log (src/scheduler/reminderPoller.ts:130:13)
+
+FAIL __tests__/scheduler/reminderCallDispatcherAudit20261116.test.ts
+  ● Call ownership regression (CALL-FIX-01) › a late outcome from A cannot disconnect an answered B
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: true
+    Received: false
+
+      269 |     await flush();
+      270 |     const second = heldSpeech();
+    > 271 |     expect(await answerCall('late-b', userId, false, second.provider)).toBe(
+          |                                                                        ^
+      272 |       true,
+      273 |     );
+      274 |     const {events, stop} = recordEvents();
+
+      at Object.toBe (__tests__/scheduler/reminderCallDispatcherAudit20261116.test.ts:271:72)
+      at asyncGeneratorStep (node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+      at _next (node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
+
+Test Suites: 1 failed, 2 passed, 3 total
+Tests:       1 failed, 28 passed, 29 total
+Snapshots:   0 total
+Time:        18.333 s, estimated 21 s
+Ran all test suites matching /__tests__\\ui\\appQuickChatIntegration.test.tsx|__tests__\\ui\\callQueueIntegration.test.tsx|__tests__\\scheduler\\reminderCallDispatcherAudit20261116.test.ts/i.

@@ -1,0 +1,35 @@
+PASS __tests__/ui/callQueueIntegration.test.tsx (23.154 s)
+  ● Console
+
+    console.log
+      [ReminderPoller] Poller started for user local_guest_user
+
+      at log (src/scheduler/reminderPoller.ts:130:11)
+
+    console.log
+      [ReminderPoller] Poller stopped
+
+      at log (src/scheduler/reminderPoller.ts:149:13)
+
+PASS __tests__/scheduler/reminderCallDispatcherAudit20261116.test.ts
+PASS __tests__/scheduler/callFixLifecycle.test.ts
+  ● Console
+
+    console.log
+      [ReminderPoller] Triggering reminder: poll-A - Academic reminder
+
+      at log (src/scheduler/reminderPoller.ts:63:17)
+          at _loop.next (<anonymous>)
+
+    console.log
+      [ReminderPoller] Triggering reminder: poll-B - Academic reminder
+
+      at log (src/scheduler/reminderPoller.ts:63:17)
+          at _loop.next (<anonymous>)
+
+
+Test Suites: 3 passed, 3 total
+Tests:       44 passed, 44 total
+Snapshots:   0 total
+Time:        26.155 s
+Ran all test suites matching /__tests__\\scheduler\\callFixLifecycle.test.ts|__tests__\\ui\\callQueueIntegration.test.tsx|__tests__\\scheduler\\reminderCallDispatcherAudit20261116.test.ts/i.

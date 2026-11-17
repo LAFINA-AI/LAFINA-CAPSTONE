@@ -1,0 +1,1047 @@
+{
+  "repositoryWarnings": 260,
+  "alreadyUnformattedAtHead": 252,
+  "newOrUnreadable": 8,
+  "records": [
+    {
+      "path": "src\\ai\\chatAgent.ts",
+      "baselineUnformatted": true
+    },
+    {
+      "path": "src\\ai\\documentIntent.ts",
+      "baselineUnformatted": true
+    },
+    {
+      "path": "src\\ai\\explicitMemory.ts",
+      "baselineUnformatted": true
+    },
+    {
+      "path": "src\\ai\\index.ts",
+      "baselineUnformatted": true
+    },
+    {
+      "path": "src\\ai\\meeting\\meetingTranscriber.ts",
+      "baselineUnformatted": true
+    },
+    {
+      "path": "src\\ai\\native\\meetingRecorder.ts",
+      "baselineUnformatted": true
+    },
+    {
+      "path": "src\\ai\\native\\speechCapture.ts",
+      "baselineUnformatted": true
+    },
+    {
+      "path": "src\\ai\\nlu\\actionExecutor.ts",
+      "baselineUnformatted": true
+    },
+    {
+      "path": "src\\ai\\nlu\\deviceSpecs.ts",
+      "baselineUnformatted": true
+    },
+    {
+      "path": "src\\ai\\nlu\\index.ts",
+      "baselineUnformatted": true
+    },
+    {
+      "path": "src\\ai\\nlu\\intentService.ts",
+      "baselineUnformatted": true
+    },
+    {
+      "path": "src\\ai\\nlu\\modelManager.ts",
+      "baselineUnformatted": true
+    },
+    {
+      "path": "src\\ai\\nlu\\types.ts",
+      "baselineUnformatted": true
+    },
+    {
+      "path": "src\\ai\\onlineIntentExtractor.ts",
+      "baselineUnformatted": true
+    },
+    {
+      "path": "src\\ai\\stt\\sttService.ts",
+      "baselineUnformatted": true
+    },
+    {
+      "path": "src\\ai\\studyPreference.ts",
+      "baselineUnformatted": true
+    },
+    {
+      "path": "src\\ai\\tts\\speechPreferences.ts",
+      "baselineUnformatted": true
+    },
+    {
+      "path": "src\\ai\\vision\\scheduleParser.ts",
+      "baselineUnformatted": true
+    },
+    {
+      "path": "src\\ai\\vision\\ustpCorParser.ts",
+      "baselineUnformatted": true
+    },
+    {
+      "path": "src\\ai\\vision\\visionService.ts",
+      "baselineUnformatted": true
+    },
+    {
+      "path": "src\\ai\\voiceActions\\draftRegistry.ts",
+      "baselineUnformatted": true
+    },
+    {
+      "path": "src\\appVersion.ts",
+      "baselineUnformatted": true
+    },
+    {
+      "path": "src\\cloud\\accountLinkService.ts",
+      "baselineUnformatted": true
+    },
+    {
+      "path": "src\\cloud\\authService.ts",
+      "baselineUnformatted": true
+    },
+    {
+      "path": "src\\cloud\\cloudClient.ts",
+      "baselineUnformatted": true
+    },
+    {
+      "path": "src\\cloud\\directProviderTest.ts",
+      "baselineUnformatted": true
+    },
+    {
+      "path": "src\\cloud\\elevenlabsTranscriber.ts",
+      "baselineUnformatted": true
+    },
+    {
+      "path": "src\\cloud\\entitlements.ts",
+      "baselineUnformatted": true
+    },
+    {
+      "path": "src\\cloud\\index.ts",
+      "baselineUnformatted": true
+    },
+    {
+      "path": "src\\cloud\\meetingService.ts",
+      "baselineUnformatted": true
+    },
+    {
+      "path": "src\\cloud\\onlineModeGate.ts",
+      "baselineUnformatted": null
+    },
+    {
+      "path": "src\\constants.ts",
+      "baselineUnformatted": true
+    },
+    {
+      "path": "src\\graphify-out\\cache\\semantic\\12ae4971b6985125134375d80208a91f50b76d4852ced39cfd0b302f61dbe53e.json",
+      "baselineUnformatted": true
+    },
+    {
+      "path": "src\\graphify-out\\cache\\semantic\\330401e461e2dcb19efcc9485d444b868fdaf453e15376170c1ca05ab4f16802.json",
+      "baselineUnformatted": true
+    },
+    {
+      "path": "src\\graphify-out\\cache\\semantic\\a14018d1dd351b827d02fa460167d3f35e482d15980946465ac51f5081c25b1d.json",
+      "baselineUnformatted": true
+    },
+    {
+      "path": "src\\graphify-out\\cache\\semantic\\e6374c1f06b57435a7ae29714fa171cff6b6bcdb6e690b400284b27709440914.json",
+      "baselineUnformatted": true
+    },
+    {
+      "path": "src\\graphify-out\\cache\\semantic\\f0e5885e97f9f68bb36fa1c6417f4e89e6e732d0ff44630cd3323d81274463c5.json",
+      "baselineUnformatted": true
+    },
+    {
+      "path": "src\\graphify-out\\cache\\semantic\\f4647d1dbb0567cbb5c9c203ad988ee3da5bbed8dec542b05b343906bf8fef15.json",
+      "baselineUnformatted": true
+    },
+    {
+      "path": "src\\graphify-out\\cache\\semantic\\f941ebc86a07cdfec8d2e20343fd513c809bb0f15f9fd45826ef17b170d914e5.json",
+      "baselineUnformatted": true
+    },
+    {
+      "path": "src\\graphify-out\\cache\\stat-index.json",
+      "baselineUnformatted": true
+    },
+    {
+      "path": "src\\handbook\\handbookSearch.ts",
+      "baselineUnformatted": true
+    },
+    {
+      "path": "src\\meetings\\index.ts",
+      "baselineUnformatted": true
+    },
+    {
+      "path": "src\\meetings\\meetingErrors.ts",
+      "baselineUnformatted": true
+    },
+    {
+      "path": "src\\meetings\\meetingNotes.ts",
+      "baselineUnformatted": true
+    },
+    {
+      "path": "src\\meetings\\meetingState.ts",
+      "baselineUnformatted": true
+    },
+    {
+      "path": "src\\meetings\\notesPipeline.ts",
+      "baselineUnformatted": true
+    },
+    {
+      "path": "src\\meetings\\transcript.ts",
+      "baselineUnformatted": true
+    },
+    {
+      "path": "src\\scheduler\\deliveryReconciler.ts",
+      "baselineUnformatted": true
+    },
+    {
+      "path": "src\\scheduler\\index.ts",
+      "baselineUnformatted": true
+    },
+    {
+      "path": "src\\scheduler\\notifyOnlyDelivery.ts",
+      "baselineUnformatted": true
+    },
+    {
+      "path": "src\\scheduler\\reminderHealth.ts",
+      "baselineUnformatted": true
+    },
+    {
+      "path": "src\\scheduler\\reminderPreferenceSync.ts",
+      "baselineUnformatted": true
+    },
+    {
+      "path": "src\\scheduler\\userPreferences.ts",
+      "baselineUnformatted": true
+    },
+    {
+      "path": "src\\skills\\documentSkill.ts",
+      "baselineUnformatted": true
+    },
+    {
+      "path": "src\\skills\\meetingNotesSkill.ts",
+      "baselineUnformatted": true
+    },
+    {
+      "path": "src\\skills\\onlineChatSkill.ts",
+      "baselineUnformatted": true
+    },
+    {
+      "path": "src\\storage\\attachmentCleanup.ts",
+      "baselineUnformatted": true
+    },
+    {
+      "path": "src\\storage\\attachmentCleanupSchema.ts",
+      "baselineUnformatted": true
+    },
+    {
+      "path": "src\\storage\\authUtils.ts",
+      "baselineUnformatted": true
+    },
+    {
+      "path": "src\\storage\\behaviorStore.ts",
+      "baselineUnformatted": true
+    },
+    {
+      "path": "src\\storage\\calendarVisibilityStore.ts",
+      "baselineUnformatted": true
+    },
+    {
+      "path": "src\\storage\\chatMemorySchema.ts",
+      "baselineUnformatted": true
+    },
+    {
+      "path": "src\\storage\\chatReplyFormatStore.ts",
+      "baselineUnformatted": true
+    },
+    {
+      "path": "src\\storage\\icsHelper.ts",
+      "baselineUnformatted": true
+    },
+    {
+      "path": "src\\storage\\importedBatchesStore.ts",
+      "baselineUnformatted": true
+    },
+    {
+      "path": "src\\storage\\notesStore.ts",
+      "baselineUnformatted": true
+    },
+    {
+      "path": "src\\storage\\onboardingStore.ts",
+      "baselineUnformatted": true
+    },
+    {
+      "path": "src\\storage\\personalMemoryStore.ts",
+      "baselineUnformatted": true
+    },
+    {
+      "path": "src\\storage\\plannerQueries.ts",
+      "baselineUnformatted": true
+    },
+    {
+      "path": "src\\storage\\preferencesStore.ts",
+      "baselineUnformatted": true
+    },
+    {
+      "path": "src\\storage\\productTourStore.ts",
+      "baselineUnformatted": true
+    },
+    {
+      "path": "src\\storage\\profileSyncPayload.ts",
+      "baselineUnformatted": true
+    },
+    {
+      "path": "src\\storage\\recordedMeetingStore.ts",
+      "baselineUnformatted": true
+    },
+    {
+      "path": "src\\storage\\reminderHealthStore.ts",
+      "baselineUnformatted": true
+    },
+    {
+      "path": "src\\storage\\rruleHelper.ts",
+      "baselineUnformatted": true
+    },
+    {
+      "path": "src\\storage\\sessionEpoch.ts",
+      "baselineUnformatted": true
+    },
+    {
+      "path": "src\\storage\\speechSettingsStore.ts",
+      "baselineUnformatted": true
+    },
+    {
+      "path": "src\\storage\\syncConflictStore.ts",
+      "baselineUnformatted": true
+    },
+    {
+      "path": "src\\storage\\syncMetadataStore.ts",
+      "baselineUnformatted": true
+    },
+    {
+      "path": "src\\storage\\syncOutboxStore.ts",
+      "baselineUnformatted": true
+    },
+    {
+      "path": "src\\storage\\syncStateStore.ts",
+      "baselineUnformatted": true
+    },
+    {
+      "path": "src\\storage\\tasksStore.ts",
+      "baselineUnformatted": true
+    },
+    {
+      "path": "src\\storage\\userStore.ts",
+      "baselineUnformatted": true
+    },
+    {
+      "path": "src\\sync\\syncEntityTypes.ts",
+      "baselineUnformatted": true
+    },
+    {
+      "path": "src\\sync\\syncScheduler.ts",
+      "baselineUnformatted": true
+    },
+    {
+      "path": "src\\sync\\syncState.ts",
+      "baselineUnformatted": true
+    },
+    {
+      "path": "src\\sync\\syncWorker.ts",
+      "baselineUnformatted": true
+    },
+    {
+      "path": "src\\ui\\components\\auth\\AuthBackdrop.tsx",
+      "baselineUnformatted": true
+    },
+    {
+      "path": "src\\ui\\components\\auth\\AuthButton.tsx",
+      "baselineUnformatted": true
+    },
+    {
+      "path": "src\\ui\\components\\auth\\AuthHeader.tsx",
+      "baselineUnformatted": true
+    },
+    {
+      "path": "src\\ui\\components\\auth\\AuthInput.tsx",
+      "baselineUnformatted": true
+    },
+    {
+      "path": "src\\ui\\components\\auth\\Grainient.tsx",
+      "baselineUnformatted": true
+    },
+    {
+      "path": "src\\ui\\components\\calendar\\CalendarLayersModal.tsx",
+      "baselineUnformatted": true
+    },
+    {
+      "path": "src\\ui\\components\\call\\ReminderPermissionModal.tsx",
+      "baselineUnformatted": true
+    },
+    {
+      "path": "src\\ui\\components\\callLafina\\cards\\AgendaCard.tsx",
+      "baselineUnformatted": true
+    },
+    {
+      "path": "src\\ui\\components\\callLafina\\cards\\MemoryReviewCard.tsx",
+      "baselineUnformatted": true
+    },
+    {
+      "path": "src\\ui\\components\\callLafina\\cards\\NoteDraftCard.tsx",
+      "baselineUnformatted": true
+    },
+    {
+      "path": "src\\ui\\components\\callLafina\\cards\\NoteResultCard.tsx",
+      "baselineUnformatted": true
+    },
+    {
+      "path": "src\\ui\\components\\callLafina\\cards\\ReminderDraftCard.tsx",
+      "baselineUnformatted": true
+    },
+    {
+      "path": "src\\ui\\components\\callLafina\\MiniCallBar.tsx",
+      "baselineUnformatted": true
+    },
+    {
+      "path": "src\\ui\\components\\chat\\ChatEngineSheet.tsx",
+      "baselineUnformatted": true
+    },
+    {
+      "path": "src\\ui\\components\\chat\\chatFiles.ts",
+      "baselineUnformatted": true
+    },
+    {
+      "path": "src\\ui\\components\\chat\\MemoryNote.tsx",
+      "baselineUnformatted": true
+    },
+    {
+      "path": "src\\ui\\components\\chat\\TypingBubble.tsx",
+      "baselineUnformatted": true
+    },
+    {
+      "path": "src\\ui\\components\\CustomTabBar.tsx",
+      "baselineUnformatted": true
+    },
+    {
+      "path": "src\\ui\\components\\onboarding\\OnboardingNavigation.tsx",
+      "baselineUnformatted": true
+    },
+    {
+      "path": "src\\ui\\components\\onboarding\\OnboardingProgress.tsx",
+      "baselineUnformatted": true
+    },
+    {
+      "path": "src\\ui\\components\\onboarding\\OnboardingStep.tsx",
+      "baselineUnformatted": true
+    },
+    {
+      "path": "src\\ui\\components\\profile\\AppUpdateItem.tsx",
+      "baselineUnformatted": true
+    },
+    {
+      "path": "src\\ui\\components\\profile\\avatarFile.ts",
+      "baselineUnformatted": true
+    },
+    {
+      "path": "src\\ui\\components\\profile\\ChatMemorySettings.tsx",
+      "baselineUnformatted": true
+    },
+    {
+      "path": "src\\ui\\components\\profile\\DeveloperModal.tsx",
+      "baselineUnformatted": true
+    },
+    {
+      "path": "src\\ui\\components\\profile\\FloatingAssistantSettings.tsx",
+      "baselineUnformatted": null
+    },
+    {
+      "path": "src\\ui\\components\\profile\\OfflineVoice.tsx",
+      "baselineUnformatted": true
+    },
+    {
+      "path": "src\\ui\\components\\profile\\PersonalMemory.tsx",
+      "baselineUnformatted": true
+    },
+    {
+      "path": "src\\ui\\components\\profile\\PrivacyModal.tsx",
+      "baselineUnformatted": true
+    },
+    {
+      "path": "src\\ui\\components\\profile\\ReminderHealth.tsx",
+      "baselineUnformatted": true
+    },
+    {
+      "path": "src\\ui\\components\\profile\\StudentProTag.tsx",
+      "baselineUnformatted": true
+    },
+    {
+      "path": "src\\ui\\components\\tools\\files.ts",
+      "baselineUnformatted": true
+    },
+    {
+      "path": "src\\ui\\components\\tools\\index.ts",
+      "baselineUnformatted": true
+    },
+    {
+      "path": "src\\ui\\components\\tools\\ProFeaturePanel.tsx",
+      "baselineUnformatted": true
+    },
+    {
+      "path": "src\\ui\\components\\tools\\toolBack.ts",
+      "baselineUnformatted": true
+    },
+    {
+      "path": "src\\ui\\components\\tools\\ToolScreenHeader.tsx",
+      "baselineUnformatted": true
+    },
+    {
+      "path": "src\\ui\\components\\tools\\ToolSheet.tsx",
+      "baselineUnformatted": true
+    },
+    {
+      "path": "src\\ui\\components\\VoiceModal.tsx",
+      "baselineUnformatted": true
+    },
+    {
+      "path": "src\\ui\\contexts\\MeetingsContext.tsx",
+      "baselineUnformatted": true
+    },
+    {
+      "path": "src\\ui\\quickChat\\QuickChatPanel.tsx",
+      "baselineUnformatted": null
+    },
+    {
+      "path": "src\\ui\\screens\\calendar\\components\\AddBlockModal.tsx",
+      "baselineUnformatted": true
+    },
+    {
+      "path": "src\\ui\\screens\\calendar\\components\\AddTaskEventModal.tsx",
+      "baselineUnformatted": true
+    },
+    {
+      "path": "src\\ui\\screens\\calendar\\components\\CalendarOptionsSidebar.tsx",
+      "baselineUnformatted": true
+    },
+    {
+      "path": "src\\ui\\screens\\calendar\\components\\ClassScheduleModal.tsx",
+      "baselineUnformatted": true
+    },
+    {
+      "path": "src\\ui\\screens\\calendar\\components\\ScheduleItemCard.tsx",
+      "baselineUnformatted": true
+    },
+    {
+      "path": "src\\ui\\screens\\calendar\\components\\WeekStrip.tsx",
+      "baselineUnformatted": true
+    },
+    {
+      "path": "src\\ui\\screens\\calendar\\hooks\\calendarImportPersistence.ts",
+      "baselineUnformatted": true
+    },
+    {
+      "path": "src\\ui\\screens\\calendar\\hooks\\useScheduleItemModal.ts",
+      "baselineUnformatted": true
+    },
+    {
+      "path": "src\\ui\\screens\\calendar\\index.ts",
+      "baselineUnformatted": true
+    },
+    {
+      "path": "src\\ui\\screens\\calendar\\utils\\calendarHelpers.ts",
+      "baselineUnformatted": true
+    },
+    {
+      "path": "src\\ui\\screens\\calendar\\utils\\classScheduleHelpers.ts",
+      "baselineUnformatted": true
+    },
+    {
+      "path": "src\\ui\\screens\\calendar\\utils\\philippineHolidays.ts",
+      "baselineUnformatted": true
+    },
+    {
+      "path": "src\\ui\\screens\\calendar\\utils\\timeGridLayout.ts",
+      "baselineUnformatted": true
+    },
+    {
+      "path": "src\\ui\\screens\\dashboard\\components\\DashboardHeader.tsx",
+      "baselineUnformatted": true
+    },
+    {
+      "path": "src\\ui\\screens\\dashboard\\components\\ModernHomeContent.tsx",
+      "baselineUnformatted": true
+    },
+    {
+      "path": "src\\ui\\screens\\dashboard\\components\\NextAlarmCard.tsx",
+      "baselineUnformatted": true
+    },
+    {
+      "path": "src\\ui\\screens\\dashboard\\components\\UpNextWidget.tsx",
+      "baselineUnformatted": true
+    },
+    {
+      "path": "src\\ui\\screens\\LoginScreen.tsx",
+      "baselineUnformatted": true
+    },
+    {
+      "path": "src\\ui\\screens\\meetings\\index.ts",
+      "baselineUnformatted": true
+    },
+    {
+      "path": "src\\ui\\screens\\meetings\\meetingCopy.ts",
+      "baselineUnformatted": true
+    },
+    {
+      "path": "src\\ui\\screens\\meetings\\MeetingDetail.tsx",
+      "baselineUnformatted": true
+    },
+    {
+      "path": "src\\ui\\screens\\meetings\\MeetingsScreen.tsx",
+      "baselineUnformatted": true
+    },
+    {
+      "path": "src\\ui\\screens\\meetings\\meetingStyles.ts",
+      "baselineUnformatted": true
+    },
+    {
+      "path": "src\\ui\\screens\\meetings\\NotesView.tsx",
+      "baselineUnformatted": true
+    },
+    {
+      "path": "src\\ui\\screens\\meetings\\PrivacyNotice.tsx",
+      "baselineUnformatted": true
+    },
+    {
+      "path": "src\\ui\\screens\\meetings\\ProcessingCard.tsx",
+      "baselineUnformatted": true
+    },
+    {
+      "path": "src\\ui\\screens\\meetings\\RecorderCard.tsx",
+      "baselineUnformatted": true
+    },
+    {
+      "path": "src\\ui\\screens\\meetings\\TranscriptList.tsx",
+      "baselineUnformatted": true
+    },
+    {
+      "path": "src\\ui\\screens\\notes\\components\\NoteEditor.tsx",
+      "baselineUnformatted": true
+    },
+    {
+      "path": "src\\ui\\screens\\notes\\components\\NoteFilters.tsx",
+      "baselineUnformatted": true
+    },
+    {
+      "path": "src\\ui\\screens\\notes\\index.ts",
+      "baselineUnformatted": true
+    },
+    {
+      "path": "src\\ui\\screens\\PreferencesSettingsScreen.tsx",
+      "baselineUnformatted": true
+    },
+    {
+      "path": "src\\ui\\screens\\RegisterScreen.tsx",
+      "baselineUnformatted": true
+    },
+    {
+      "path": "src\\ui\\screens\\WelcomeScreen.tsx",
+      "baselineUnformatted": true
+    },
+    {
+      "path": "src\\ui\\splash\\index.ts",
+      "baselineUnformatted": true
+    },
+    {
+      "path": "src\\ui\\theme\\colorMix.ts",
+      "baselineUnformatted": true
+    },
+    {
+      "path": "src\\ui\\theme\\themeReveal.ts",
+      "baselineUnformatted": true
+    },
+    {
+      "path": "src\\ui\\tour\\ProductTour.tsx",
+      "baselineUnformatted": true
+    },
+    {
+      "path": "src\\ui\\tour\\tourTargets.ts",
+      "baselineUnformatted": true
+    },
+    {
+      "path": "src\\updates\\index.ts",
+      "baselineUnformatted": true
+    },
+    {
+      "path": "src\\updates\\nativeUpdater.ts",
+      "baselineUnformatted": true
+    },
+    {
+      "path": "src\\updates\\updateConfig.ts",
+      "baselineUnformatted": true
+    },
+    {
+      "path": "src\\updates\\updateManifest.ts",
+      "baselineUnformatted": true
+    },
+    {
+      "path": "src\\updates\\updateService.ts",
+      "baselineUnformatted": true
+    },
+    {
+      "path": "src\\utils\\chatMarkdown.ts",
+      "baselineUnformatted": true
+    },
+    {
+      "path": "src\\utils\\index.ts",
+      "baselineUnformatted": true
+    },
+    {
+      "path": "src\\utils\\keystore.ts",
+      "baselineUnformatted": true
+    },
+    {
+      "path": "src\\utils\\noteEditing.ts",
+      "baselineUnformatted": true
+    },
+    {
+      "path": "src\\utils\\noteMarkdown.ts",
+      "baselineUnformatted": true
+    },
+    {
+      "path": "src\\utils\\richText.ts",
+      "baselineUnformatted": true
+    },
+    {
+      "path": "__tests__\\ai\\agenticCalendarNotesTodo.test.tsx",
+      "baselineUnformatted": true
+    },
+    {
+      "path": "__tests__\\ai\\agentTools.test.ts",
+      "baselineUnformatted": true
+    },
+    {
+      "path": "__tests__\\ai\\agyPort10Speech.test.ts",
+      "baselineUnformatted": true
+    },
+    {
+      "path": "__tests__\\ai\\appStatusAudit20261116.test.ts",
+      "baselineUnformatted": true
+    },
+    {
+      "path": "__tests__\\ai\\auditA1OfflineEligibility.test.ts",
+      "baselineUnformatted": true
+    },
+    {
+      "path": "__tests__\\ai\\chatAgent.test.ts",
+      "baselineUnformatted": true
+    },
+    {
+      "path": "__tests__\\ai\\chatNotesAgent.test.ts",
+      "baselineUnformatted": true
+    },
+    {
+      "path": "__tests__\\ai\\finalAuditF1PreviewAdmission.test.ts",
+      "baselineUnformatted": true
+    },
+    {
+      "path": "__tests__\\ai\\finalAuditF2Ducking.test.ts",
+      "baselineUnformatted": true
+    },
+    {
+      "path": "__tests__\\ai\\mlTimingAdvisor.test.ts",
+      "baselineUnformatted": true
+    },
+    {
+      "path": "__tests__\\ai\\onlineIntentAndEditableReview.test.tsx",
+      "baselineUnformatted": true
+    },
+    {
+      "path": "__tests__\\ai\\phase06SttAndVoiceModal.test.tsx",
+      "baselineUnformatted": true
+    },
+    {
+      "path": "__tests__\\ai\\phase07NluAndActionExecution.test.ts",
+      "baselineUnformatted": true
+    },
+    {
+      "path": "__tests__\\ai\\quickChatController.test.ts",
+      "baselineUnformatted": null
+    },
+    {
+      "path": "__tests__\\ai\\quickReviewSurface.test.ts",
+      "baselineUnformatted": null
+    },
+    {
+      "path": "__tests__\\ai\\scheduleScanOcr.test.ts",
+      "baselineUnformatted": true
+    },
+    {
+      "path": "__tests__\\ai\\ustpCorParser.test.ts",
+      "baselineUnformatted": true
+    },
+    {
+      "path": "__tests__\\App.test.tsx",
+      "baselineUnformatted": true
+    },
+    {
+      "path": "__tests__\\cloud\\callLafinaStudentContext.test.ts",
+      "baselineUnformatted": true
+    },
+    {
+      "path": "__tests__\\cloud\\chatMemoryReliability.test.ts",
+      "baselineUnformatted": true
+    },
+    {
+      "path": "__tests__\\cloud\\directProviderTest.test.ts",
+      "baselineUnformatted": true
+    },
+    {
+      "path": "__tests__\\cloud\\localVoiceData.test.ts",
+      "baselineUnformatted": true
+    },
+    {
+      "path": "__tests__\\cloud\\tokenRenewal.test.ts",
+      "baselineUnformatted": true
+    },
+    {
+      "path": "__tests__\\cloud\\voiceConversationExtraContext.test.ts",
+      "baselineUnformatted": true
+    },
+    {
+      "path": "__tests__\\evaluation\\evaluationContracts.test.ts",
+      "baselineUnformatted": true
+    },
+    {
+      "path": "__tests__\\evaluation\\offlineBoundary.test.ts",
+      "baselineUnformatted": true
+    },
+    {
+      "path": "__tests__\\evaluation\\qaSqlChecks.test.ts",
+      "baselineUnformatted": true
+    },
+    {
+      "path": "__tests__\\evaluation\\support\\evaluationEvidence.ts",
+      "baselineUnformatted": true
+    },
+    {
+      "path": "__tests__\\evaluation\\support\\qaSqlChecks.ts",
+      "baselineUnformatted": true
+    },
+    {
+      "path": "__tests__\\features\\ponytailFeatures.test.tsx",
+      "baselineUnformatted": true
+    },
+    {
+      "path": "__tests__\\scheduler\\agyPort03Delivery.test.ts",
+      "baselineUnformatted": true
+    },
+    {
+      "path": "__tests__\\scheduler\\agyPortReminderOwnership.test.tsx",
+      "baselineUnformatted": true
+    },
+    {
+      "path": "__tests__\\scheduler\\auditA4InterruptedReconcile.test.ts",
+      "baselineUnformatted": true
+    },
+    {
+      "path": "__tests__\\scheduler\\callDispatcherAndCallScreen.test.tsx",
+      "baselineUnformatted": true
+    },
+    {
+      "path": "__tests__\\scheduler\\notifyOnlyDelivery.test.ts",
+      "baselineUnformatted": true
+    },
+    {
+      "path": "__tests__\\scheduler\\onlineReminderCall.test.tsx",
+      "baselineUnformatted": true
+    },
+    {
+      "path": "__tests__\\scheduler\\onlineReminderConversation.test.tsx",
+      "baselineUnformatted": true
+    },
+    {
+      "path": "__tests__\\scheduler\\phase03ReminderScheduler.test.ts",
+      "baselineUnformatted": true
+    },
+    {
+      "path": "__tests__\\scheduler\\recurringAfterMiss.test.ts",
+      "baselineUnformatted": true
+    },
+    {
+      "path": "__tests__\\scheduler\\reminderCallScreenAudit20261116.test.tsx",
+      "baselineUnformatted": true
+    },
+    {
+      "path": "__tests__\\storage\\accountDataReset.test.ts",
+      "baselineUnformatted": true
+    },
+    {
+      "path": "__tests__\\storage\\agyPort06PlannerQueries.test.ts",
+      "baselineUnformatted": true
+    },
+    {
+      "path": "__tests__\\storage\\agyPort09HealthPreferencesStats.test.ts",
+      "baselineUnformatted": true
+    },
+    {
+      "path": "__tests__\\storage\\attachmentCleanup.test.ts",
+      "baselineUnformatted": true
+    },
+    {
+      "path": "__tests__\\storage\\attachmentCleanupFairness.test.ts",
+      "baselineUnformatted": true
+    },
+    {
+      "path": "__tests__\\storage\\chatOwnership.test.ts",
+      "baselineUnformatted": true
+    },
+    {
+      "path": "__tests__\\storage\\phase01Storage.test.ts",
+      "baselineUnformatted": true
+    },
+    {
+      "path": "__tests__\\storage\\phase02CalendarAndNotes.test.ts",
+      "baselineUnformatted": true
+    },
+    {
+      "path": "__tests__\\ui\\agyPort09ProfileHealth.test.tsx",
+      "baselineUnformatted": true
+    },
+    {
+      "path": "__tests__\\ui\\agyPort10OfflineVoice.test.tsx",
+      "baselineUnformatted": true
+    },
+    {
+      "path": "__tests__\\ui\\appQuickChatIntegration.test.tsx",
+      "baselineUnformatted": null
+    },
+    {
+      "path": "__tests__\\ui\\auditA3ClearAllData.test.tsx",
+      "baselineUnformatted": true
+    },
+    {
+      "path": "__tests__\\ui\\calendarOverflowMenu.test.tsx",
+      "baselineUnformatted": true
+    },
+    {
+      "path": "__tests__\\ui\\callLafinaPhase07.test.tsx",
+      "baselineUnformatted": true
+    },
+    {
+      "path": "__tests__\\ui\\callLafinaPhase08.test.tsx",
+      "baselineUnformatted": true
+    },
+    {
+      "path": "__tests__\\ui\\callLafinaPhase09.test.tsx",
+      "baselineUnformatted": true
+    },
+    {
+      "path": "__tests__\\ui\\chatEngineSheet.test.tsx",
+      "baselineUnformatted": true
+    },
+    {
+      "path": "__tests__\\ui\\chatReplyFormat.test.tsx",
+      "baselineUnformatted": true
+    },
+    {
+      "path": "__tests__\\ui\\clearDataAttachmentCleanup.test.tsx",
+      "baselineUnformatted": true
+    },
+    {
+      "path": "__tests__\\ui\\developerSettingsUi.test.tsx",
+      "baselineUnformatted": true
+    },
+    {
+      "path": "__tests__\\ui\\developerTestService.test.ts",
+      "baselineUnformatted": true
+    },
+    {
+      "path": "__tests__\\ui\\finalAuditF1OfflineVoicePending.test.tsx",
+      "baselineUnformatted": true
+    },
+    {
+      "path": "__tests__\\ui\\finalAuditF3ClearAllDataFailure.test.tsx",
+      "baselineUnformatted": true
+    },
+    {
+      "path": "__tests__\\ui\\floatingAssistantSettings.test.tsx",
+      "baselineUnformatted": null
+    },
+    {
+      "path": "__tests__\\ui\\notesTodoTab.test.tsx",
+      "baselineUnformatted": true
+    },
+    {
+      "path": "__tests__\\ui\\phase01ThemeAndTour.test.tsx",
+      "baselineUnformatted": true
+    },
+    {
+      "path": "__tests__\\ui\\phase02CalendarAndNotesScreens.test.tsx",
+      "baselineUnformatted": true
+    },
+    {
+      "path": "__tests__\\ui\\quickChatRoot.test.tsx",
+      "baselineUnformatted": null
+    },
+    {
+      "path": "__tests__\\ui\\remediationAuditClearAllData.test.tsx",
+      "baselineUnformatted": true
+    },
+    {
+      "path": "__tests__\\ui\\reminderDeliveryToggle.test.tsx",
+      "baselineUnformatted": true
+    },
+    {
+      "path": "__tests__\\UIVariantSwitching.test.tsx",
+      "baselineUnformatted": true
+    },
+    {
+      "path": "__tests__\\utils\\noteEditing.test.ts",
+      "baselineUnformatted": true
+    },
+    {
+      "path": "scripts\\check-architecture.mjs",
+      "baselineUnformatted": true
+    },
+    {
+      "path": "scripts\\doctor.mjs",
+      "baselineUnformatted": true
+    },
+    {
+      "path": "scripts\\offline-boundary.cjs",
+      "baselineUnformatted": true
+    },
+    {
+      "path": "scripts\\patch-android-libs.mjs",
+      "baselineUnformatted": true
+    },
+    {
+      "path": "scripts\\stt-metrics.cjs",
+      "baselineUnformatted": true
+    },
+    {
+      "path": "scripts\\tests\\doctor.test.mjs",
+      "baselineUnformatted": true
+    },
+    {
+      "path": "scripts\\tests\\stt-metrics.test.cjs",
+      "baselineUnformatted": true
+    },
+    {
+      "path": ".eslintrc.js",
+      "baselineUnformatted": true
+    },
+    {
+      "path": "index.js",
+      "baselineUnformatted": true
+    },
+    {
+      "path": "jest.config.js",
+      "baselineUnformatted": true
+    },
+    {
+      "path": "tsconfig.json",
+      "baselineUnformatted": true
+    }
+  ]
+}
