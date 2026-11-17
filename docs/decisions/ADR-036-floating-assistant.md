@@ -92,6 +92,13 @@ The owner found the 56 dp orb too big and asked for a smaller button that stays 
 - **Hide in full-screen apps (default on):** the button's own window reads only whether the status bar is visible (`WindowInsets.isVisible(statusBars())`). It learns nothing about which app is open or what it shows. While hidden, the window is fully transparent and not touchable, so touches reach the app underneath (Android 12+ touch rules).
 - No new permission, dependency, timer or wake lock. The only one-shot timers are the idle fade (3 s) and the long press.
 
+### Open speed (owner report 2026-11-18)
+
+The owner found opening from the edge bar slow. Measured with timing logs on the Infinix (debug build, Metro), the Quick Chat window was up about 0.13 s after the tap, but its content waited for the shared JS thread. Opening Quick Chat resumes the shared React host, so the hidden main screen ran its full "back in front" refresh at the same moment: data reload, reminder re-arm, permission read, sync and a Home re-render, about 0.5–0.6 s of JS work.
+- **Decision:** that refresh (in `App.tsx` and the Home hook) now waits until the panel's open animation has finished (`quickChatPresence.deferWhileOpening`), or 1.5 s at the latest. It is dropped if Quick Chat closes first, because the main screen's own return to the front, or the background handler, does the same work. Outside Quick Chat it still runs at once. The R-03 rule is unchanged: the deferred work still checks whether Quick Chat is in front when it runs.
+- A reopen skips Quick Chat's repeat of the storage schema pass, though the storage health check still runs every time. The panel reads the reduce-motion setting once and then follows Android's change event.
+- **Result (same method, warm opens):** the open animation started 0.92–1.31 s after the tap before the fix, and 0.32–0.38 s after it. The first open after LAFINA starts now starts its animation at 0.66 s, because the panel's first render is still the cost there. These are debug-build numbers; release timings are not measured.
+
 ## Rollback
 
 Turn the feature off (default). To remove it: delete the new Kotlin and JS files, revert the listed edits, and remove the two permissions and their allow-list entries. No schema change and no stored data depend on the feature, so local schedules, reminders and notes are unaffected.

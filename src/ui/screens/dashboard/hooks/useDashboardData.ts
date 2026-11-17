@@ -7,6 +7,7 @@ import {
   useState,
 } from 'react';
 import {AppState} from 'react-native';
+import {quickChatPresence} from '../../../quickChat/quickChatPresence';
 import {
   dashboardConfigStore,
   notesQueryStore,
@@ -342,14 +343,19 @@ export const useDashboardData = ({
     if (!isActive) return undefined;
     const tick = () => setNow(new Date());
     const interval = setInterval(tick, 30_000);
+    // Floating LAFINA: a hidden Home waits for the opening Quick Chat panel.
+    let cancelRefresh: () => void = () => undefined;
     const sub = AppState.addEventListener('change', state => {
+      cancelRefresh();
+      cancelRefresh = () => undefined;
       if (state === 'active') {
-        refresh();
+        cancelRefresh = quickChatPresence.deferWhileOpening(refresh);
       }
     });
     return () => {
       clearInterval(interval);
       sub.remove();
+      cancelRefresh();
     };
   }, [isActive, refresh]);
 

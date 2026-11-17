@@ -3,6 +3,8 @@
  * - While Quick Chat is the visible screen, returning to "active" does not
  *   start the foreground reminder poller or take the pending native call
  *   (ADR-036 Decision 6, risk R-03, FLOAT-00 Spike D).
+ * - The hidden main screen's refresh waits until the Quick Chat panel has
+ *   appeared, and is dropped if Quick Chat closes first.
  * - A data change confirmed in Quick Chat refreshes the student's data.
  * - A navigation request is consumed once Quick Chat has left the front,
  *   only for the current student.
@@ -94,6 +96,43 @@ test('Quick Chat in front: no foreground poller and no native call taken; main i
   await becomeActive();
   expect(pollerStarts(userId)).toBe(startsBefore + 1);
   expect(native.LafinaReminder.consumePendingCall).toHaveBeenCalled();
+}, 20000);
+
+test('opening Quick Chat: the hidden main screen refreshes only after the panel appears', async () => {
+  await startApp();
+  native.LafinaReminder.getPermissionStatus.mockClear();
+  native.LafinaReminder.consumePendingCall.mockClear();
+
+  quickChatPresence.setOpen(true);
+  await becomeActive();
+  // Held: the panel has not appeared yet, so the JS thread is left to it.
+  expect(native.LafinaReminder.getPermissionStatus).not.toHaveBeenCalled();
+
+  await act(async () => {
+    quickChatPresence.markPanelShown();
+    await Promise.resolve();
+  });
+  expect(native.LafinaReminder.getPermissionStatus).toHaveBeenCalledTimes(1);
+  // Still Quick Chat in front: the R-03 rule is unchanged.
+  expect(native.LafinaReminder.consumePendingCall).not.toHaveBeenCalled();
+}, 20000);
+
+test('Quick Chat closed before its panel appeared: the held refresh is dropped', async () => {
+  await startApp();
+  native.LafinaReminder.getPermissionStatus.mockClear();
+
+  quickChatPresence.setOpen(true);
+  await becomeActive();
+  act(() => quickChatPresence.setOpen(false));
+  await act(async () => {
+    quickChatPresence.markPanelShown();
+    await Promise.resolve();
+  });
+  expect(native.LafinaReminder.getPermissionStatus).not.toHaveBeenCalled();
+
+  // The main screen's own return to the front does the work.
+  await becomeActive();
+  expect(native.LafinaReminder.getPermissionStatus).toHaveBeenCalledTimes(1);
 }, 20000);
 
 test('data changed in Quick Chat refreshes only for the current student', async () => {

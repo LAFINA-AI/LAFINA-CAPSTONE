@@ -595,42 +595,53 @@ function AppContent({
       wasOnline = isOnline;
     });
 
+    const runForegroundWork = (): void => {
+      db.invalidateData(['alarms', 'reminders', 'tasks']);
+      scheduler.start();
+      // Floating LAFINA (ADR-036 Decision 6, risk R-03): while Quick Chat is
+      // the visible screen this root is hidden, so reminders stay with
+      // Android exactly as when LAFINA is in the background.
+      const quickChatInFront = quickChatPresence.isOpen();
+      if (!quickChatInFront) startReminderPoller(userId);
+      void rescheduleUserReminders(userId, !quickChatPresence.isOpen());
+      if (!quickChatInFront) {
+        void consumePendingNativeCalls().then(payloads => {
+          payloads.forEach(presentCall);
+        });
+      }
+      void getReminderPermissionStatus().then(status => {
+        if (status) setPermissionStatus(status);
+      });
+      syncWorker
+        .performSync()
+        .then(() => {
+          setRefreshTrigger(previous => previous + 1);
+          void rescheduleUserReminders(userId, !quickChatPresence.isOpen());
+        })
+        .catch(() => undefined);
+    };
+
+    // Opening Quick Chat also makes this hidden root "active". That refresh
+    // waits until the panel has appeared, so the two do not compete for the
+    // one JS thread (measured on device: the panel was ~0.5 s later). Not
+    // in Quick Chat, it runs at once, as before.
+    let cancelForegroundWork: () => void = () => undefined;
     const appStateSubscription = AppState.addEventListener(
       'change',
       nextState => {
-        if (nextState !== 'active') {
-          scheduler.stop();
-          stopReminderPoller();
-          // Leaving the foreground: make Android hold exactly the armed work in
-          // SQLite, so a retired or edited reminder cannot ring while the app
-          // stays closed.
-          if (nextState === 'background')
-            void reconcileReminderDelivery(userId);
+        cancelForegroundWork();
+        cancelForegroundWork = () => undefined;
+        if (nextState === 'active') {
+          cancelForegroundWork =
+            quickChatPresence.deferWhileOpening(runForegroundWork);
           return;
         }
-        db.invalidateData(['alarms', 'reminders', 'tasks']);
-        scheduler.start();
-        // Floating LAFINA (ADR-036 Decision 6, risk R-03): while Quick Chat is
-        // the visible screen this root is hidden, so reminders stay with
-        // Android exactly as when LAFINA is in the background.
-        const quickChatInFront = quickChatPresence.isOpen();
-        if (!quickChatInFront) startReminderPoller(userId);
-        void rescheduleUserReminders(userId, !quickChatPresence.isOpen());
-        if (!quickChatInFront) {
-          void consumePendingNativeCalls().then(payloads => {
-            payloads.forEach(presentCall);
-          });
-        }
-        void getReminderPermissionStatus().then(status => {
-          if (status) setPermissionStatus(status);
-        });
-        syncWorker
-          .performSync()
-          .then(() => {
-            setRefreshTrigger(previous => previous + 1);
-            void rescheduleUserReminders(userId, !quickChatPresence.isOpen());
-          })
-          .catch(() => undefined);
+        scheduler.stop();
+        stopReminderPoller();
+        // Leaving the foreground: make Android hold exactly the armed work in
+        // SQLite, so a retired or edited reminder cannot ring while the app
+        // stays closed.
+        if (nextState === 'background') void reconcileReminderDelivery(userId);
       },
     );
     const unsubscribeOutbox = syncOutboxStore.onEnqueue(localUserId => {
@@ -639,6 +650,7 @@ function AppContent({
 
     return () => {
       appStateSubscription.remove();
+      cancelForegroundWork();
       unsubscribeOutbox();
       unsubscribeRemoteChanges();
       unsubscribeNetInfo();

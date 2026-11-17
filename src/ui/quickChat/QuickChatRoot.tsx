@@ -13,6 +13,13 @@ import {quickChatPresence} from './quickChatPresence';
 export const QUICK_CHAT_VISIBILITY_EVENT = 'LAFINA_QUICK_CHAT_VISIBILITY';
 
 let visibilityBridge: {remove: () => void} | null = null;
+/** True after Quick Chat's own `initDatabase` succeeded in this JS runtime. */
+let storagePrepared = false;
+
+/** Test-only reset. */
+export const resetQuickChatStorageForTests = (): void => {
+  storagePrepared = false;
+};
 
 /**
  * Keeps `quickChatPresence.isOpen()` equal to "the Quick Chat activity is
@@ -55,10 +62,16 @@ export const QuickChatRoot: React.FC = () => {
   const [phase, setPhase] = useState<Phase>({kind: 'loading'});
 
   const resolve = useCallback(async () => {
-    try {
-      await initDatabase();
-    } catch (error) {
-      console.warn('[QuickChat] Storage is not ready:', error);
+    // Once prepared in this JS runtime, a reopen skips the schema pass; the
+    // health check below still runs every time.
+    if (!storagePrepared || db.getHealth().status !== 'ready') {
+      try {
+        await initDatabase();
+        storagePrepared = true;
+      } catch (error) {
+        storagePrepared = false;
+        console.warn('[QuickChat] Storage is not ready:', error);
+      }
     }
     const health = db.getHealth();
     if (health.status === 'unavailable' || health.status === 'quarantined') {

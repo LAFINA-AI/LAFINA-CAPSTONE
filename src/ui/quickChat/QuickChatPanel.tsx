@@ -40,6 +40,34 @@ const STATE_MESSAGES: Record<Exclude<QuickChatPanelState, 'ready'>, string> = {
   storage: 'LAFINA’s storage needs attention.',
 };
 
+/**
+ * Read once, then kept current by Android's change event, so each open starts
+ * its animation without a native round trip first.
+ */
+let reduceMotionCache: boolean | null = null;
+let reduceMotionWatch: {remove: () => void} | null = null;
+const readReduceMotion = (): Promise<boolean> => {
+  if (!reduceMotionWatch) {
+    try {
+      reduceMotionWatch = AccessibilityInfo.addEventListener(
+        'reduceMotionChanged',
+        enabled => {
+          reduceMotionCache = enabled;
+        },
+      );
+    } catch {
+      reduceMotionWatch = {remove: () => undefined};
+    }
+  }
+  if (reduceMotionCache !== null) return Promise.resolve(reduceMotionCache);
+  return AccessibilityInfo.isReduceMotionEnabled()
+    .catch(() => false)
+    .then(enabled => {
+      reduceMotionCache = enabled;
+      return enabled;
+    });
+};
+
 export const closeQuickChat = (): void => {
   Keyboard.dismiss();
   void floatingAssistantNative.closeQuickChat();
@@ -76,15 +104,13 @@ export const QuickChatPanel: React.FC<QuickChatPanelProps> = ({
 
   const playOpen = useCallback(() => {
     appear.setValue(0);
-    void AccessibilityInfo.isReduceMotionEnabled()
-      .catch(() => false)
-      .then(reduced => {
-        Animated.timing(appear, {
-          toValue: 1,
-          duration: reduced ? OPEN_REDUCED_MS : OPEN_MS,
-          useNativeDriver: true,
-        }).start();
-      });
+    void readReduceMotion().then(reduced => {
+      Animated.timing(appear, {
+        toValue: 1,
+        duration: reduced ? OPEN_REDUCED_MS : OPEN_MS,
+        useNativeDriver: true,
+      }).start(() => quickChatPresence.markPanelShown());
+    });
   }, [appear]);
 
   const refreshOnline = useCallback(() => {
