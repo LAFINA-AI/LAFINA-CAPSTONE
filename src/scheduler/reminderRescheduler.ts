@@ -1,8 +1,13 @@
-import { remindersStore } from '../storage/remindersStore';
-import { checkAndTriggerReminders } from './reminderPoller';
-import { reconcileReminderDelivery } from './deliveryReconciler';
-import { createNextRecurringReminder } from './reminderActions';
-import { db } from '../storage/database';
+import {isCallInProgress} from './callDispatcher';
+import {consumePendingNativeCalls} from './reminderAlarm';
+import {recoverNativeCall} from './nativeCallRecovery';
+import {callLifecycle} from './callLifecycle';
+import {deliveryStore} from '../storage/deliveryStore';
+import {remindersStore} from '../storage/remindersStore';
+import {checkAndTriggerReminders} from './reminderPoller';
+import {reconcileReminderDelivery} from './deliveryReconciler';
+import {createNextRecurringReminder} from './reminderActions';
+import {db} from '../storage/database';
 
 export interface RescheduleSummary {
   checked: number;
@@ -19,6 +24,7 @@ const OVERDUE_MISSED_THRESHOLD_MS = 15 * 60 * 1000; // 15 minutes
  */
 export const rescheduleUserReminders = async (
   userId: string,
+  foregroundDelivery = true,
 ): Promise<RescheduleSummary> => {
   const summary: RescheduleSummary = {
     checked: 0,
@@ -28,11 +34,24 @@ export const rescheduleUserReminders = async (
   };
 
   try {
+    for (const request of foregroundDelivery
+      ? await consumePendingNativeCalls()
+      : []) {
+      if (!request.ownerId || request.ownerId === userId)
+        recoverNativeCall(request, userId);
+    }
     const pending = remindersStore.getPendingReminders(userId);
     summary.checked = pending.length;
     const now = Date.now();
 
     for (const reminder of pending) {
+      const generation = deliveryStore.get(reminder.id)?.generation;
+      if (
+        (generation != null &&
+          isCallInProgress(userId, reminder.id, generation)) ||
+        callLifecycle.protects(userId, reminder.id, generation)
+      )
+        continue;
       const triggerMs = new Date(reminder.triggerAt).getTime();
 
       if (triggerMs <= now) {
@@ -42,8 +61,13 @@ export const rescheduleUserReminders = async (
           // Beyond grace period -> mark as missed
           // A repeating reminder continues with its next future occurrence
           // (audit 2, B1); the reconcile pass below registers it.
-          db.transactionSync((tx) => {
-            remindersStore.updateReminderStatus(reminder.id, 'missed', undefined, tx);
+          db.transactionSync(tx => {
+            remindersStore.updateReminderStatus(
+              reminder.id,
+              'missed',
+              undefined,
+              tx,
+            );
             createNextRecurringReminder(reminder, userId, tx, new Date(now));
           });
           summary.missed += 1;
@@ -59,11 +83,14 @@ export const rescheduleUserReminders = async (
     const delivery = await reconcileReminderDelivery(userId);
     summary.rescheduled = delivery.registered + delivery.kept;
 
-    if (summary.triggered > 0) {
+    if (foregroundDelivery && summary.triggered > 0) {
       await checkAndTriggerReminders(userId);
     }
   } catch (error) {
-    console.error('[ReminderRescheduler] Lifecycle reconciliation failed:', error);
+    console.error(
+      '[ReminderRescheduler] Lifecycle reconciliation failed:',
+      error,
+    );
   }
 
   return summary;

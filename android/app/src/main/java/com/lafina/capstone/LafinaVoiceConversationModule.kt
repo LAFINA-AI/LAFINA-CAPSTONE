@@ -189,6 +189,8 @@ class LafinaVoiceConversationModule(private val reactContext: ReactApplicationCo
         } catch (e: Exception) {
           Log.w(TAG, "Conversation audio could not start (${e.javaClass.simpleName})")
           val focus = e is AudioFocusDeniedException
+          owner.startPromise?.reject(if (focus) "AUDIO_FOCUS_DENIED" else "AUDIO_START_FAILED", "Conversation audio could not start.")
+          owner.startPromise = null
           emit(owner.key, "error") {
             putString("code", if (focus) "AUDIO_FOCUS_DENIED" else "AUDIO_START_FAILED")
             putString(
@@ -354,6 +356,9 @@ class LafinaVoiceConversationModule(private val reactContext: ReactApplicationCo
 
   private fun startCapture(owner: Session) {
     if (owner.ended.get() || owner.muted || owner.captureRunning) return
+    if (ContextCompat.checkSelfPermission(reactContext, Manifest.permission.RECORD_AUDIO) != PackageManager.PERMISSION_GRANTED) {
+      throw SecurityException("Microphone permission was revoked")
+    }
     val minBuffer = AudioRecord.getMinBufferSize(
       VoiceConversationRules.SAMPLE_RATE, AudioFormat.CHANNEL_IN_MONO, AudioFormat.ENCODING_PCM_16BIT
     )

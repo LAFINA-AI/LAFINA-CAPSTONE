@@ -501,6 +501,10 @@ class LafinaSpeechToTextModule(private val reactContext: ReactApplicationContext
     } else {
       MediaRecorder.AudioSource.VOICE_RECOGNITION
     }
+    // Permission can be revoked after the bridge's initial check.
+    if (ContextCompat.checkSelfPermission(reactContext, Manifest.permission.RECORD_AUDIO) != PackageManager.PERMISSION_GRANTED) {
+      throw SecurityException("Microphone permission was revoked")
+    }
     val recorder = AudioRecord(
       audioSource,
       SAMPLE_RATE,

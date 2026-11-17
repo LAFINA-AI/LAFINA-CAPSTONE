@@ -1,0 +1,10 @@
+{
+  "bundle_sha256": "662bd112aa556f14f7117351e7387aff33b245b5713bfd1133d4f4d091089365",
+  "server": "https://lafina-backend.vercel.app",
+  "apk": "C:\\L3mxr\\Github Repositories\\LAFINA-CAPSTONE-agy-development-cont\\.local\\provider-testing\\LAFINA-hosted-arm64-v8a.apk",
+  "provider_keys_in_apk": false,
+  "package": "com.lafina.capstone.providers",
+  "architecture": "arm64-v8a",
+  "fast_tts_default": true,
+  "apk_sha256": "89d4937ce4290c1bf9891c5707f2276b758bce3a87cf1aad44715c2608718f29"
+}

@@ -1,16 +1,17 @@
-import { DeviceEventEmitter } from 'react-native';
-import { remindersStore } from '../storage/remindersStore';
-import { db } from '../storage/database';
-import { alertSuppression } from '../storage/sourceReminders';
-import { deliveryStore } from '../storage/deliveryStore';
-import { cancelReminderAlarm, finishNativeIncomingCall } from './reminderAlarm';
+import {DeviceEventEmitter} from 'react-native';
+import {callLifecycle} from './callLifecycle';
+import {remindersStore} from '../storage/remindersStore';
+import {db} from '../storage/database';
+import {alertSuppression} from '../storage/sourceReminders';
+import {deliveryStore} from '../storage/deliveryStore';
+import {cancelReminderAlarm, finishNativeIncomingCall} from './reminderAlarm';
 import {
   claimForegroundRing,
   readLiveNativeRegistrations,
   reconcileIfDeliveryChanged,
   shouldDispatchInJs,
 } from './deliveryReconciler';
-import type { NativeRegistrationSnapshot } from './deliveryReconciler';
+import type {NativeRegistrationSnapshot} from './deliveryReconciler';
 
 let pollerInterval: ReturnType<typeof setInterval> | null = null;
 let activeUserId: string | null = null;
@@ -25,7 +26,7 @@ export const EVENT_CALL_TRIGGER = 'LAFINA_CALL_TRIGGER';
  * AlarmManager registry holds is left to Android, so one reminder generation
  * never rings from both engines.
  */
-export const checkAndTriggerReminders = async (userId: string): Promise<void> => {
+const runReminderPoll = async (userId: string): Promise<void> => {
   try {
     const upcoming = remindersStore.getUpcomingReminders(userId, 1);
     const now = new Date();
@@ -53,15 +54,50 @@ export const checkAndTriggerReminders = async (userId: string): Promise<void> =>
           continue;
         }
 
+        // The listing above was read before awaiting native state. A native
+        // call adopted meanwhile (for example a timed-out call moved to its
+        // retry time by `recoverNativeCall`) is no longer due and must not
+        // ring again, nor have its retry registration claimed away.
+        const current = remindersStore.getReminderById(reminder.id);
+        if (
+          !current ||
+          current.userId !== userId ||
+          (current.status !== 'pending' && current.status !== 'snoozed') ||
+          new Date(current.triggerAt).getTime() > Date.now() + 30 * 1000
+        ) {
+          continue;
+        }
+
         // Exactly one engine per generation: native may have fired since the
         // listing above; after this claim it can no longer ring this one.
         const job = deliveryStore.get(reminder.id);
-        if (!(await claimForegroundRing(reminder.id, userId, job?.generation))) continue;
+        if (!(await claimForegroundRing(reminder.id, userId, job?.generation)))
+          continue;
 
-        console.log(`[ReminderPoller] Triggering reminder: ${reminder.id} - ${reminder.task}`);
+        console.log(
+          `[ReminderPoller] Triggering reminder: ${reminder.id} - ${reminder.task}`,
+        );
 
         // 1. Mark status as triggered immediately to avoid double-triggers
-        remindersStore.updateReminderStatus(reminder.id, 'triggered');
+        db.transactionSync(tx => {
+          remindersStore.updateReminderStatus(
+            reminder.id,
+            'triggered',
+            undefined,
+            tx,
+          );
+          callLifecycle.put(
+            userId,
+            {
+              reminderId: reminder.id,
+              ownerId: userId,
+              generation: job?.generation,
+              action: 'call',
+            },
+            'queued',
+            tx,
+          );
+        });
         if (job) {
           deliveryStore.recordEvent({
             reminderId: job.reminderId,
@@ -96,7 +132,10 @@ export const checkAndTriggerReminders = async (userId: string): Promise<void> =>
 /**
  * Starts the foreground poller loop (defaults to every 15 seconds).
  */
-export const startReminderPoller = (userId: string, intervalMs: number = 15000): void => {
+export const startReminderPoller = (
+  userId: string,
+  intervalMs: number = 15000,
+): void => {
   if (pollerInterval) {
     clearInterval(pollerInterval);
   }
@@ -124,4 +163,12 @@ export const stopReminderPoller = (): void => {
     console.log('[ReminderPoller] Poller stopped');
   }
   activeUserId = null;
+};
+
+// Startup, resume and interval callbacks can overlap while native listing awaits.
+let pollWork: Promise<void> = Promise.resolve();
+export const checkAndTriggerReminders = (userId: string): Promise<void> => {
+  const next = pollWork.then(() => runReminderPoll(userId));
+  pollWork = next.catch(() => undefined);
+  return next;
 };

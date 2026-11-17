@@ -71,6 +71,10 @@ import {chatMemoryStore} from '../../storage/chatMemoryStore';
 import {} from '../../storage/onboardingMemory';
 import {OfflineVoice} from '../components/profile/OfflineVoice';
 import {OnlineVoice} from '../components/profile/OnlineVoice';
+import {
+  FloatingAssistantSettings,
+  useFloatingAssistantSummary,
+} from '../components/profile/FloatingAssistantSettings';
 import {onlineVoiceSettingsStore} from '../../storage/onlineVoiceSettingsStore';
 import {chatReplyFormatStore} from '../../storage/chatReplyFormatStore';
 import {useChatReplyFormat} from '../hooks/useChatReplyFormat';
@@ -256,6 +260,10 @@ export const ProfileScreen = React.memo(function ProfileScreenView({
       setOnlineVoiceSummary('Choose again');
     }
   };
+  // Floating LAFINA (ADR-036)
+  const [floatingVisible, setFloatingVisible] = useState(false);
+  const {summary: floatingSummary, refresh: refreshFloatingSummary} =
+    useFloatingAssistantSummary(userId);
 
   const [weekStartsMonday, setWeekStartsMonday] = useState(() => {
     try {
@@ -1826,6 +1834,13 @@ export const ProfileScreen = React.memo(function ProfileScreenView({
               valueText={onlineVoiceSummary}
               onPress={() => setOnlineVoiceVisible(true)}
             />
+            <View style={[styles.settingDivider, themed.settingDivider]} />
+            <SettingItem
+              text="Floating LAFINA"
+              type="link"
+              valueText={floatingSummary}
+              onPress={() => setFloatingVisible(true)}
+            />
           </View>
 
           <Text
@@ -2457,6 +2472,16 @@ export const ProfileScreen = React.memo(function ProfileScreenView({
           visible={voiceVisible}
           onClose={() => setVoiceVisible(false)}
           onChanged={loadVoiceSummary}
+        />
+        <FloatingAssistantSettings
+          key={`floating-${userId}`}
+          userId={userId}
+          visible={floatingVisible}
+          onClose={() => {
+            setFloatingVisible(false);
+            refreshFloatingSummary();
+          }}
+          onChanged={refreshFloatingSummary}
         />
         {isDevMode && developerModalVisible && (
           <DeveloperModal

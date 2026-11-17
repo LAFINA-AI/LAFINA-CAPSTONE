@@ -12,6 +12,8 @@ import type {
 import {parseNativeEvent} from '../../src/cloud/voiceConversation/nativeTransport';
 import {
   registerVoiceConversation,
+  startVoiceConversation,
+  getActiveVoiceConversation,
   endActiveVoiceConversation,
   waitForVoiceConversationRelease,
 } from '../../src/cloud/voiceConversation';
@@ -1049,4 +1051,57 @@ describe('provider error humanization and close status checks', () => {
       'Answers are paused right now.',
     );
   });
+});
+
+it('reacquires a retained live controller after the reminder panel unmounts', async () => {
+  const live = setup();
+  const reminder = setup();
+  const releaseLive = registerVoiceConversation(live.controller);
+  await startVoiceConversation(live.controller);
+  expect(getActiveVoiceConversation()).toBe(live.controller);
+  const releaseReminder = registerVoiceConversation(reminder.controller);
+  expect(getActiveVoiceConversation()).toBe(live.controller);
+  await startVoiceConversation(reminder.controller);
+  expect(live.controller.isActive()).toBe(false);
+  reminder.controller.end();
+  releaseReminder();
+  await startVoiceConversation(live.controller);
+  expect(getActiveVoiceConversation()).toBe(live.controller);
+  endActiveVoiceConversation('Reminder incoming');
+  expect(live.controller.isActive()).toBe(false);
+  await waitForVoiceConversationRelease();
+  releaseLive();
+});
+
+it('keeps the native audio-focus failure when startup rejects with ENDED afterwards', async () => {
+  const pending = deferred<void>();
+  const app = setup({transportStart: () => pending.promise});
+  const start = app.controller.start();
+  await flush();
+  app.emit({
+    kind: 'error',
+    code: 'AUDIO_FOCUS_DENIED',
+    message: 'Another call is using audio.',
+  });
+  pending.reject(Object.assign(new Error('ended'), {code: 'ENDED'}));
+  await start;
+  expect(app.controller.getSnapshot().failure?.kind).toBe('audio');
+  expect(app.controller.getSnapshot().failure?.message).toMatch(/using audio/);
+});
+
+it('never opens transport after a permission grant arrives while backgrounded', async () => {
+  const permission = deferred<boolean>();
+  const app = setup({
+    gates: {
+      ensureMicPermission: () => permission.promise,
+      isForeground: () => false,
+    },
+  });
+  const start = app.controller.start();
+  await flush();
+  expect(app.controller.isRequestingPermission()).toBe(true);
+  permission.resolve(true);
+  await start;
+  expect(app.calls.transportStart).toHaveLength(0);
+  expect(app.controller.getSnapshot().phase).toBe('restart_required');
 });

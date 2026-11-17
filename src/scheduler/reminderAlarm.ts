@@ -1,8 +1,10 @@
-import { NativeModules } from 'react-native';
-import type { Reminder } from '../storage/remindersStore';
-import { deliveryStore } from '../storage/deliveryStore';
-import { reminderDeliveryStyleStore } from '../storage/reminderDeliveryStyleStore';
-import type { ReminderDeliveryStyle } from '../storage/reminderDeliveryStyleStore';
+import {NativeModules} from 'react-native';
+import type {Reminder} from '../storage/remindersStore';
+import {deliveryStore} from '../storage/deliveryStore';
+import {reminderDeliveryStyleStore} from '../storage/reminderDeliveryStyleStore';
+import type {ReminderDeliveryStyle} from '../storage/reminderDeliveryStyleStore';
+import {remindersStore} from '../storage/remindersStore';
+import {getReminderPreferences} from './userPreferences';
 
 /**
  * `acknowledge` and `snooze` come from a notify-only reminder's notification
@@ -13,9 +15,12 @@ export type NativeCallAction =
   | 'answer'
   | 'decline'
   | 'acknowledge'
-  | 'snooze';
+  | 'snooze'
+  | 'timeout';
 
 export interface NativeCallTrigger {
+  timeoutCount?: number;
+  retryAtMs?: number;
   reminderId: string;
   task: string;
   action: NativeCallAction;
@@ -50,6 +55,8 @@ export interface ReminderPermissionStatus {
 }
 
 interface ScheduleAlarmOptions {
+  autoSnoozeMinutes: number;
+  remainingSnoozes: number;
   reminderId: string;
   task: string;
   triggerAtMs: number;
@@ -60,8 +67,25 @@ interface ScheduleAlarmOptions {
 }
 
 interface LafinaReminderNativeModule {
+  cancelAlarmIdentity?: (
+    reminderId: string,
+    ownerId: string,
+    generation: number,
+  ) => Promise<boolean>;
+  claimIncomingCall?: (
+    reminderId: string,
+    ownerId: string,
+    generation: number,
+  ) => Promise<boolean>;
   scheduleExactAlarm: (options: ScheduleAlarmOptions) => Promise<boolean>;
   cancelAlarm: (reminderId: string) => Promise<boolean>;
+  listPendingCalls?: () => Promise<NativeCallTrigger[]>;
+  finishIncomingCallIdentity?: (
+    reminderId: string,
+    ownerId: string,
+    generation: number,
+    silenceOnly: boolean,
+  ) => Promise<boolean>;
   consumePendingCall: () => Promise<NativeCallTrigger | null>;
   finishIncomingCall: (reminderId: string) => Promise<boolean>;
   startActiveCall?: (task: string) => Promise<boolean>;
@@ -97,7 +121,7 @@ export const getNativeDeliveryModule = (): LafinaReminderNativeModule | null =>
   getNativeModule();
 
 const errorCode = (error: unknown): string => {
-  const code = (error as { code?: unknown } | null)?.code;
+  const code = (error as {code?: unknown} | null)?.code;
   return typeof code === 'string' && code.length > 0 ? code : 'native_rejected';
 };
 
@@ -111,7 +135,10 @@ const recordReceipt = (
   try {
     deliveryStore.recordRegistration(reminderId, generation, outcome, code);
   } catch (error) {
-    console.warn('[ReminderAlarm] Could not record registration receipt:', error);
+    console.warn(
+      '[ReminderAlarm] Could not record registration receipt:',
+      error,
+    );
   }
 };
 
@@ -144,6 +171,9 @@ export const scheduleReminderAlarm = async (
   const style = reminderDeliveryStyleStore.get(reminderId);
 
   let scheduled: boolean;
+  const preferences = getReminderPreferences(ownerId);
+  const snoozeCount =
+    remindersStore.getReminderById(reminderId)?.snoozeCount ?? 0;
   try {
     scheduled = await module.scheduleExactAlarm({
       reminderId,
@@ -152,6 +182,8 @@ export const scheduleReminderAlarm = async (
       ownerId,
       generation,
       style,
+      autoSnoozeMinutes: preferences.autoSnoozeDurationMinutes,
+      remainingSnoozes: Math.max(0, preferences.maxSnoozeCount - snoozeCount),
     });
   } catch (error) {
     recordReceipt(reminderId, generation, 'failed', errorCode(error));
@@ -166,24 +198,43 @@ export const scheduleReminderAlarm = async (
 
 export const cancelReminderAlarm = async (
   reminderId: string,
+  ownerId?: string,
+  generation?: number | null,
 ): Promise<void> => {
   const module = getNativeModule();
   if (!module) return;
+  if (module.cancelAlarmIdentity && ownerId && generation != null) {
+    await module.cancelAlarmIdentity(reminderId, ownerId, generation);
+    return;
+  }
   await module.cancelAlarm(reminderId);
 };
 
 export const finishNativeIncomingCall = async (
   reminderId: string,
+  ownerId?: string,
+  generation?: number | null,
+  silenceOnly = false,
 ): Promise<void> => {
   const module = getNativeModule();
   if (!module) return;
-  await module.finishIncomingCall(reminderId);
+  if (module.finishIncomingCallIdentity && ownerId && generation != null) {
+    await module.finishIncomingCallIdentity(
+      reminderId,
+      ownerId,
+      generation,
+      silenceOnly,
+    );
+    return;
+  }
+  if (!silenceOnly) await module.finishIncomingCall(reminderId);
 };
 
 export const startActiveCallSession = async (task: string): Promise<void> => {
   const module = getNativeModule();
   if (!module?.startActiveCall) return;
-  await module.startActiveCall(task);
+  if (!(await module.startActiveCall(task)))
+    throw new Error('Active call startup was cancelled.');
 };
 
 export const stopActiveCallSession = async (): Promise<void> => {
@@ -228,7 +279,7 @@ export const reconcileReminderAlarms = async (
   reminders: Reminder[],
 ): Promise<void> => {
   const futureReminders = reminders.filter(
-    (reminder) =>
+    reminder =>
       (reminder.status === 'pending' || reminder.status === 'snoozed') &&
       new Date(reminder.triggerAt).getTime() > Date.now(),
   );
@@ -248,4 +299,13 @@ export const reconcileReminderAlarms = async (
       );
     }
   }
+};
+
+export const consumePendingNativeCalls = async (): Promise<
+  NativeCallTrigger[]
+> => {
+  const module = getNativeModule();
+  if (module?.listPendingCalls) return module.listPendingCalls();
+  const old = await consumePendingNativeCall();
+  return old ? [old] : [];
 };

@@ -7,6 +7,7 @@ import android.content.Intent
 open class LafinaReminderReceiver : BroadcastReceiver() {
   override fun onReceive(context: Context, intent: Intent) {
     when (intent.action) {
+      LafinaReminderModule.ACTION_CALL_DEADLINE -> LafinaReminderModule.handleCallDeadline(context, intent)
       LafinaReminderModule.ACTION_TRIGGER_REMINDER -> {
         LafinaReminderModule.handleTriggerIntent(context, intent)
       }

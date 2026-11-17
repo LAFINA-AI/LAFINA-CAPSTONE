@@ -1,0 +1,25 @@
+11-17 13:18:32.110 I/ReactNativeJS(27896): [SPIKE] keyboardDidHide
+11-17 13:18:32.384 I/ReactNativeJS(27896): [SPIKE] quick BackHandler fired
+11-17 13:18:32.400 I/LAFINA_SPIKE(27896): quick onPause
+11-17 13:18:32.411 I/ReactNativeJS(27896): [ReminderPoller] Poller stopped
+11-17 13:18:32.412 I/ReactNativeJS(27896): [SPIKE] quick sees AppState background
+11-17 13:18:32.717 I/LAFINA_SPIKE(27896): quick onStop
+11-17 13:18:32.720 I/LAFINA_SPIKE(27896): quick onDestroy
+11-17 13:18:32.779 I/ReactNativeJS(27896): [SPIKE] quick root unmounted
+11-17 13:18:34.819 I/LAFINA_SPIKE(27896): orb tap #2 -> startActivity
+11-17 13:18:34.868 I/LAFINA_SPIKE(27896): quick onCreate guard=false mainResumed=false
+11-17 13:18:34.881 I/ReactNativeJS(27896): Running "LafinaSpikeQuick" with {"rootTag":21,"initialProps":{},"fabric":true}
+11-17 13:18:34.882 I/LAFINA_SPIKE(27896): quick onResume
+11-17 13:18:34.951 I/ReactNativeJS(27896): [ReminderPoller] Poller started for user local_guest_user
+11-17 13:18:34.966 I/ReactNativeJS(27896): [SPIKE] quick root mounted, AppState=active
+11-17 13:18:35.575 I/ReactNativeJS(27896): [SPIKE] keyboardDidShow h=254.90908813476562
+11-17 13:18:35.932 I/ReactNativeJS(27896): [SPIKE] keyboardDidHide
+11-17 13:18:36.343 I/LAFINA_SPIKE(27896): orb tap #2 check after 1524ms quickResumed=true
+11-17 13:19:08.965 I/LAFINA_SPIKE(27896): quick onPause
+11-17 13:19:08.971 I/ReactNativeJS(27896): [ReminderPoller] Poller stopped
+11-17 13:19:08.971 I/ReactNativeJS(27896): [SPIKE] quick sees AppState background
+11-17 13:19:09.024 I/LAFINA_SPIKE(27896): main onResume quickResumed=false
+11-17 13:19:09.034 I/ReactNativeJS(27896): [ReminderPoller] Poller started for user local_guest_user
+11-17 13:19:09.040 I/ReactNativeJS(27896): [SPIKE] quick sees AppState active
+11-17 13:19:09.152 I/LAFINA_SPIKE(27896): service startForeground ok
+11-17 13:19:09.342 I/LAFINA_SPIKE(27896): quick onStop

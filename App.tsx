@@ -1,3 +1,9 @@
+import {recoverNativeCall} from './src/scheduler/nativeCallRecovery';
+import {callLifecycle, sameCall} from './src/scheduler/callLifecycle';
+import {
+  finishNativeIncomingCall,
+  consumePendingNativeCalls,
+} from './src/scheduler/reminderAlarm';
 import {preparePerformanceFixture} from './src/utils/performanceFixture';
 import {beginTabSwitch, finishTabSwitch} from './src/utils/tabPerformance';
 import {generateId} from './src/utils';
@@ -51,7 +57,6 @@ import {
   rescheduleUserReminders,
   startReminderPoller,
   stopReminderPoller,
-  consumePendingNativeCall,
   getReminderPermissionStatus,
   reconcileReminderDelivery,
   admitReminderCall,
@@ -100,6 +105,10 @@ import {getCallLafinaSettings} from './src/cloud/voiceConversation/callLafinaSet
 import {endReviewSession} from './src/ai/nlu/commandReview';
 import {chatDraftStore} from './src/ui/drafts/chatDraftStore';
 import {applySpeechPreferences} from './src/ai/tts/speechPreferences';
+import {QUICK_CHAT_DATA_CHANGED_EVENT} from './src/ai/quickChat/quickChatController';
+import type {QuickChatDataChangedEvent} from './src/ai/quickChat/quickChatController';
+import {quickChatPresence} from './src/ui/quickChat/quickChatPresence';
+import {applyFloatingAssistantForUser} from './src/ui/quickChat/floatingAssistantAccount';
 
 const TAB_DATA_TABLES = {
   calendar: [
@@ -194,6 +203,7 @@ function AppContent({
   const [callGeneration, setCallGeneration] = useState<number | null>(null);
   const callOwnerRef = useRef<string | null>(null);
   const previousUserRef = useRef<string | null>(null);
+  const activeCallRequest = useRef<CallRequest | null>(null);
 
   // Reminder Permission State
   const [permissionStatus, setPermissionStatus] =
@@ -228,7 +238,12 @@ function AppContent({
 
   // One admission path for every call source: owner + captured identity fence first.
   const presentCall = useCallback(
-    (request: CallRequest): boolean => {
+    (incoming: CallRequest): boolean => {
+      if (!userId || quickChatPresence.isOpen()) return false;
+      const request = recoverNativeCall(incoming, userId);
+      if (!request) return false;
+      // Startup events are retained natively until account hydration finishes.
+      if (!userId) return false;
       const admission = admitReminderCall(request, userId);
       if (!admission.admitted || !userId) return false;
       // "Notify only" (audit finding 16): the notification's own buttons are
@@ -254,6 +269,31 @@ function AppContent({
         );
         return false;
       }
+      const identity: CallRequest = {
+        reminderId: admission.reminder.id,
+        ownerId: userId,
+        generation: admission.generation,
+        action: admission.action,
+      };
+      if (isOnboarding && !isOnboardingReplay) {
+        callLifecycle.put(userId, {...identity, action: 'call'});
+        return false;
+      }
+      if (activeCallRequest.current) {
+        if (!sameCall(activeCallRequest.current, identity)) {
+          callLifecycle.put(userId, {...identity, action: 'call'});
+          // Silence competing notification audio without deleting its durable request.
+          void finishNativeIncomingCall(
+            identity.reminderId,
+            userId,
+            identity.generation,
+            true,
+          );
+        }
+        return false;
+      }
+      callLifecycle.put(userId, identity, 'ringing');
+      activeCallRequest.current = identity;
       // The reminder call takes the microphone and speaker; a live voice
       // conversation ends first and is never resumed by itself.
       endActiveVoiceConversation(
@@ -267,7 +307,7 @@ function AppContent({
       setCallVisible(true);
       return true;
     },
-    [userId],
+    [userId, isOnboarding, isOnboardingReplay],
   );
 
   // Account switch or logout retires the previous owner's call UI, speech and
@@ -286,6 +326,7 @@ function AppContent({
     chatDraftStore.retainOnly(userId);
 
     if (callOwnerRef.current && callOwnerRef.current !== userId) {
+      activeCallRequest.current = null;
       callOwnerRef.current = null;
       setCallVisible(false);
       setCallGeneration(null);
@@ -301,6 +342,53 @@ function AppContent({
   useEffect(() => {
     void applySpeechPreferences(userId);
   }, [userId]);
+
+  // Floating LAFINA (ADR-036): only the active student's own choice runs the
+  // orb, and Quick Chat keeps nothing from another account. Waits for startup
+  // so the not-yet-known user does not stop an orb that should stay.
+  useEffect(() => {
+    if (!startupReady) return;
+    void applyFloatingAssistantForUser(userId ?? null);
+  }, [userId, startupReady]);
+
+  // Floating LAFINA: a change confirmed in Quick Chat refreshes these screens.
+  useEffect(() => {
+    const subscription = DeviceEventEmitter.addListener(
+      QUICK_CHAT_DATA_CHANGED_EVENT,
+      (event: QuickChatDataChangedEvent) => {
+        if (!userId || event?.ownerId !== userId) return;
+        db.invalidateData(['alarms', 'reminders', 'tasks']);
+        setRefreshTrigger(previous => previous + 1);
+      },
+    );
+    return () => subscription.remove();
+  }, [userId, setRefreshTrigger]);
+
+  // Floating LAFINA: "Open LAFINA" / "View in LAFINA" from Quick Chat, once,
+  // for the same student only, after Quick Chat has left the front.
+  const navigateFromCallRef = useRef(navigateFromCall);
+  navigateFromCallRef.current = navigateFromCall;
+  useEffect(() => {
+    if (!userId || !startupReady) return undefined;
+    const consume = () => {
+      if (
+        quickChatPresence.isOpen() ||
+        !quickChatPresence.hasPendingNavigation()
+      )
+        return;
+      const target = quickChatPresence.consumeNavigation(userId);
+      if (target) navigateFromCallRef.current(target);
+    };
+    consume();
+    const unsubscribe = quickChatPresence.subscribe(consume);
+    const appState = AppState.addEventListener('change', state => {
+      if (state === 'active') consume();
+    });
+    return () => {
+      unsubscribe();
+      appState.remove();
+    };
+  }, [userId, startupReady]);
 
   const lastCallEntryTab = useRef(activeTab);
   useEffect(() => {
@@ -330,7 +418,7 @@ function AppContent({
       stopReminderPoller();
       return undefined;
     }
-    void rescheduleUserReminders(userId);
+    void rescheduleUserReminders(userId, !quickChatPresence.isOpen());
     startReminderPoller(userId);
     return () => {
       stopReminderPoller();
@@ -374,10 +462,39 @@ function AppContent({
       }
     })();
 
-    void consumePendingNativeCall().then(payload => {
-      if (payload && presentCall(payload)) setIsLoading(false);
+    if (quickChatPresence.isOpen()) return;
+    void consumePendingNativeCalls().then(payloads => {
+      for (const payload of payloads)
+        if (presentCall(payload)) setIsLoading(false);
     });
   }, [userId, presentCall, isOnboarding]);
+
+  // Recover durable queue entries after a close/restart; never auto-answer recovery.
+  useEffect(() => {
+    if (
+      !userId ||
+      (isOnboarding && !isOnboardingReplay) ||
+      isLoading ||
+      callVisible
+    )
+      return;
+    const entries = callLifecycle.list(userId);
+    for (const entry of entries) {
+      if (entry.deadline <= Date.now()) {
+        callLifecycle.expire(userId, entry.request);
+        continue;
+      }
+      if (presentCall({...entry.request, action: 'call'})) break;
+      callLifecycle.remove(userId, entry.request);
+    }
+  }, [
+    userId,
+    isOnboarding,
+    isOnboardingReplay,
+    isLoading,
+    callVisible,
+    presentCall,
+  ]);
 
   // Listen for both foreground scheduler events and native alarm/activity intents
   useEffect(() => {
@@ -463,7 +580,7 @@ function AppContent({
     const unsubscribeRemoteChanges = syncWorker.onRemoteChanges(
       changedUserId => {
         if (changedUserId === userId) {
-          void rescheduleUserReminders(userId);
+          void rescheduleUserReminders(userId, !quickChatPresence.isOpen());
         }
       },
     );
@@ -478,36 +595,53 @@ function AppContent({
       wasOnline = isOnline;
     });
 
+    const runForegroundWork = (): void => {
+      db.invalidateData(['alarms', 'reminders', 'tasks']);
+      scheduler.start();
+      // Floating LAFINA (ADR-036 Decision 6, risk R-03): while Quick Chat is
+      // the visible screen this root is hidden, so reminders stay with
+      // Android exactly as when LAFINA is in the background.
+      const quickChatInFront = quickChatPresence.isOpen();
+      if (!quickChatInFront) startReminderPoller(userId);
+      void rescheduleUserReminders(userId, !quickChatPresence.isOpen());
+      if (!quickChatInFront) {
+        void consumePendingNativeCalls().then(payloads => {
+          payloads.forEach(presentCall);
+        });
+      }
+      void getReminderPermissionStatus().then(status => {
+        if (status) setPermissionStatus(status);
+      });
+      syncWorker
+        .performSync()
+        .then(() => {
+          setRefreshTrigger(previous => previous + 1);
+          void rescheduleUserReminders(userId, !quickChatPresence.isOpen());
+        })
+        .catch(() => undefined);
+    };
+
+    // Opening Quick Chat also makes this hidden root "active". That refresh
+    // waits until the panel has appeared, so the two do not compete for the
+    // one JS thread (measured on device: the panel was ~0.5 s later). Not
+    // in Quick Chat, it runs at once, as before.
+    let cancelForegroundWork: () => void = () => undefined;
     const appStateSubscription = AppState.addEventListener(
       'change',
       nextState => {
-        if (nextState !== 'active') {
-          scheduler.stop();
-          stopReminderPoller();
-          // Leaving the foreground: make Android hold exactly the armed work in
-          // SQLite, so a retired or edited reminder cannot ring while the app
-          // stays closed.
-          if (nextState === 'background')
-            void reconcileReminderDelivery(userId);
+        cancelForegroundWork();
+        cancelForegroundWork = () => undefined;
+        if (nextState === 'active') {
+          cancelForegroundWork =
+            quickChatPresence.deferWhileOpening(runForegroundWork);
           return;
         }
-        db.invalidateData(['alarms', 'reminders', 'tasks']);
-        scheduler.start();
-        startReminderPoller(userId);
-        void rescheduleUserReminders(userId);
-        void consumePendingNativeCall().then(payload => {
-          if (payload) presentCall(payload);
-        });
-        void getReminderPermissionStatus().then(status => {
-          if (status) setPermissionStatus(status);
-        });
-        syncWorker
-          .performSync()
-          .then(() => {
-            setRefreshTrigger(previous => previous + 1);
-            void rescheduleUserReminders(userId);
-          })
-          .catch(() => undefined);
+        scheduler.stop();
+        stopReminderPoller();
+        // Leaving the foreground: make Android hold exactly the armed work in
+        // SQLite, so a retired or edited reminder cannot ring while the app
+        // stays closed.
+        if (nextState === 'background') void reconcileReminderDelivery(userId);
       },
     );
     const unsubscribeOutbox = syncOutboxStore.onEnqueue(localUserId => {
@@ -516,6 +650,7 @@ function AppContent({
 
     return () => {
       appStateSubscription.remove();
+      cancelForegroundWork();
       unsubscribeOutbox();
       unsubscribeRemoteChanges();
       unsubscribeNetInfo();
@@ -806,20 +941,50 @@ function AppContent({
     );
   }
 
+  const incomingCallLayer = (
+    <IncomingCallScreen
+      key={`${userId}:${callReminderId}:${callGeneration}`}
+      visible={callVisible}
+      reminderId={callReminderId}
+      task={callTask}
+      userId={userId}
+      initialAction={callAction}
+      deliveryGeneration={callGeneration}
+      onClose={() => {
+        const current = activeCallRequest.current;
+        if (
+          !current ||
+          current.reminderId !== callReminderId ||
+          current.ownerId !== userId ||
+          current.generation !== callGeneration
+        )
+          return;
+        if (current && userId) callLifecycle.remove(userId, current);
+        activeCallRequest.current = null;
+        callOwnerRef.current = null;
+        setCallVisible(false);
+        triggerRefresh();
+      }}
+    />
+  );
+
   if (isOnboarding) {
     return (
-      <OnboardingScreen
-        userId={userId}
-        onOnboardingComplete={handleOnboardingComplete}
-        onCancel={
-          isOnboardingReplay
-            ? () => {
-                setIsOnboardingReplay(false);
-                setIsOnboarding(false);
-              }
-            : undefined
-        }
-      />
+      <>
+        <OnboardingScreen
+          userId={userId}
+          onOnboardingComplete={handleOnboardingComplete}
+          onCancel={
+            isOnboardingReplay
+              ? () => {
+                  setIsOnboardingReplay(false);
+                  setIsOnboarding(false);
+                }
+              : undefined
+          }
+        />
+        {incomingCallLayer}
+      </>
     );
   }
 
@@ -882,7 +1047,7 @@ function AppContent({
         />
       )}
 
-      {callLafinaMinimized && isVoiceConversationActive() && (
+      {callLafinaMinimized && (
         <LiveMiniCallBar
           bottomOffset={
             (isKeyboardVisible
@@ -921,7 +1086,7 @@ function AppContent({
             }}
             onMinimize={() => {
               setCallLafinaVisible(false);
-              setCallLafinaMinimized(true);
+              setCallLafinaMinimized(isVoiceConversationActive());
             }}
             onAttention={() => {
               // LAFINA just put up a card that needs an answer. A minimized
@@ -949,20 +1114,7 @@ function AppContent({
         />
       )}
 
-      {/* Proactive Incoming Reminder Call */}
-      <IncomingCallScreen
-        visible={callVisible}
-        reminderId={callReminderId}
-        task={callTask}
-        userId={userId}
-        initialAction={callAction}
-        deliveryGeneration={callGeneration}
-        onClose={() => {
-          callOwnerRef.current = null;
-          setCallVisible(false);
-          triggerRefresh();
-        }}
-      />
+      {incomingCallLayer}
 
       {/* Reminder Permissions Educational / Onboarding Modal */}
       <ReminderPermissionModal

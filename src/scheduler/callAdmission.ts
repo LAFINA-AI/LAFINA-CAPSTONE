@@ -13,6 +13,8 @@ export interface CallRequest {
   action?: NativeCallAction;
   ownerId?: string | null;
   generation?: number | null;
+  timeoutCount?: number;
+  retryAtMs?: number;
 }
 
 export type CallRejection =
@@ -76,7 +78,11 @@ export const admitReminderCall = (
     reason: CallRejection,
     options: {cancelAlarm?: boolean; userId?: string} = {},
   ): CallAdmission => {
-    void finishNativeIncomingCall(reminderId).catch(() => undefined);
+    void finishNativeIncomingCall(
+      reminderId,
+      request.ownerId ?? activeUserId ?? undefined,
+      captured,
+    ).catch(() => undefined);
     if (options.cancelAlarm) {
       void cancelReminderAlarm(reminderId).catch(() => undefined);
     }

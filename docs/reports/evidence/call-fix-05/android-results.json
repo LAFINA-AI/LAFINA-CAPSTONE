@@ -1,0 +1,38 @@
+{
+  "instrumentation": {
+    "tests": 9,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0,
+    "files": [
+      "docs\\reports\\evidence\\call-fix-05\\instrumentation-TEST-Medium_Phone(AVD) - 17-_app-.xml"
+    ]
+  },
+  "jvm": {
+    "tests": 87,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0,
+    "files": [
+      "android\\app\\build\\test-results\\testDebugUnitTest\\TEST-com.lafina.capstone.AlarmScheduleTest.xml",
+      "android\\app\\build\\test-results\\testDebugUnitTest\\TEST-com.lafina.capstone.FloatingOrbRulesTest.xml",
+      "android\\app\\build\\test-results\\testDebugUnitTest\\TEST-com.lafina.capstone.LafinaAudioPlayerTest.xml",
+      "android\\app\\build\\test-results\\testDebugUnitTest\\TEST-com.lafina.capstone.LafinaDeliveryContractTest.xml",
+      "android\\app\\build\\test-results\\testDebugUnitTest\\TEST-com.lafina.capstone.LafinaIntentExtractorTest.xml",
+      "android\\app\\build\\test-results\\testDebugUnitTest\\TEST-com.lafina.capstone.LafinaReminderTest.xml",
+      "android\\app\\build\\test-results\\testDebugUnitTest\\TEST-com.lafina.capstone.LafinaSpeechToTextTest.xml",
+      "android\\app\\build\\test-results\\testDebugUnitTest\\TEST-com.lafina.capstone.MicrophoneLeaseTest.xml",
+      "android\\app\\build\\test-results\\testDebugUnitTest\\TEST-com.lafina.capstone.VoiceConversationRulesTest.xml"
+    ]
+  },
+  "emulator": {
+    "model": "sdk_gphone16k_x86_64",
+    "api": 37,
+    "android": "17",
+    "identifier": "emulator-5554"
+  },
+  "physicalPhone": {
+    "model": "Infinix X6880",
+    "status": "disconnected before device tests; NOT RUN"
+  }
+}

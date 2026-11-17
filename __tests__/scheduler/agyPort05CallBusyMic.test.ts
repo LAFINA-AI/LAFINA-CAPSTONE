@@ -102,10 +102,12 @@ describe('AGY-PORT 05 reminder call with a busy microphone', () => {
 
     sub.remove();
     expect(speech.startListening).toHaveBeenCalledTimes(1);
-    expect(events).toContainEqual({
-      state: 'connected',
-      text: 'The microphone is being used by a recording. Use the buttons below.',
-    });
+    expect(events).toContainEqual(
+      expect.objectContaining({
+        state: 'connected',
+        text: 'The microphone is being used by a recording. Use the buttons below.',
+      }),
+    );
     // Answered (triggered); not retried into an auto-snooze.
     expect(remindersStore.getReminderById('rem-busy')?.status).toBe(
       'triggered',
@@ -148,15 +150,57 @@ describe('AGY-PORT 05 reminder call with a busy microphone', () => {
 
     sub.remove();
     expect(speech.startListening).toHaveBeenCalledTimes(1);
-    expect(events).toContainEqual({
-      state: 'connected',
-      text: 'The microphone is still busy with another voice capture. Use the buttons below.',
-    });
+    expect(events).toContainEqual(
+      expect.objectContaining({
+        state: 'connected',
+        text: 'The microphone is still busy with another voice capture. Use the buttons below.',
+      }),
+    );
     expect(
       events.some(e => /being used by a recording/.test(e.text ?? '')),
     ).toBe(false);
     expect(remindersStore.getReminderById('rem-capture-busy')?.status).toBe(
       'triggered',
     );
+  });
+});
+
+describe('CALL-FIX-03 recognizer errors', () => {
+  beforeAll(() => initDatabase());
+  it('a decoder failure is buttons-only, never three failed answers', async () => {
+    const now = new Date().toISOString();
+    const owner = 'call-engine-error';
+    db.executeSync(
+      `INSERT OR IGNORE INTO users (id, username, email, role, is_new_user, time_format_24h, week_starts_monday, dark_mode, created_at, updated_at)
+      VALUES (?, ?, ?, 'student', 0, 0, 0, 0, ?, ?)`,
+      [owner, owner, 'engine@example.invalid', now, now],
+    );
+    remindersStore.insertReminder({
+      id: 'decoder-error',
+      userId: owner,
+      task: 'Review lesson',
+      description: null,
+      scheduledAt: now,
+      triggerAt: now,
+      status: 'pending',
+      preCastAudioPath: null,
+    });
+    speech.startListening = jest.fn(async () => {
+      throw Object.assign(new Error('Model failed'), {code: 'DECODE_FAILED'});
+    });
+    try {
+      await answerCall('decoder-error', owner, true, {
+        speakText: async () => ({source: 'native_tts'}),
+      });
+      for (let i = 0; i < 30; i += 1) await Promise.resolve();
+      expect(speech.startListening).toHaveBeenCalledTimes(1);
+      expect(remindersStore.getReminderById('decoder-error')).toMatchObject({
+        status: 'triggered',
+        snoozeCount: 0,
+      });
+    } finally {
+      disconnectCall();
+      speech.startListening = originalStart;
+    }
   });
 });

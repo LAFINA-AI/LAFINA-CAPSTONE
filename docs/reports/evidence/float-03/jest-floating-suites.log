@@ -1,0 +1,17 @@
+PASS __tests__/ui/floatingAssistantSettings.test.tsx
+PASS __tests__/ui/appQuickChatIntegration.test.tsx
+PASS __tests__/ui/quickChatPanel.test.tsx
+PASS __tests__/ui/quickChatReviewFlow.test.tsx
+PASS __tests__/ui/quickChatRoot.test.tsx
+PASS __tests__/ai/quickChatController.test.ts
+PASS __tests__/ai/quickReviewSurface.test.ts
+PASS __tests__/ai/quickChatStarters.test.ts
+PASS __tests__/cloud/onlineModeGate.test.ts
+PASS __tests__/utils/floatingAssistantNative.test.ts
+PASS __tests__/ui/quickChatPresence.test.ts
+
+Test Suites: 11 passed, 11 total
+Tests:       85 passed, 85 total
+Snapshots:   0 total
+Time:        15.339 s, estimated 21 s
+Ran all test suites matching /__tests__\\ai\\quickReviewSurface.test.ts|__tests__\\ai\\quickChatController.test.ts|__tests__\\ai\\quickChatStarters.test.ts|__tests__\\cloud\\onlineModeGate.test.ts|__tests__\\ui\\quickChatPresence.test.ts|__tests__\\utils\\floatingAssistantNative.test.ts|__tests__\\ui\\floatingAssistantSettings.test.tsx|__tests__\\ui\\quickChatRoot.test.tsx|__tests__\\ui\\appQuickChatIntegration.test.tsx|__tests__\\ui\\quickChatPanel.test.tsx|__tests__\\ui\\quickChatReviewFlow.test.tsx/i.

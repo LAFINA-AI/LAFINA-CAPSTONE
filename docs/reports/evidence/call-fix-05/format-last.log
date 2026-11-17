@@ -1,0 +1,4 @@
+App.tsx 691ms
+src\scheduler\callLifecycle.ts 42ms
+src\scheduler\reminderPoller.ts 27ms
+__tests__\scheduler\callFixLifecycle.test.ts 61ms

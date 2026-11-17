@@ -848,6 +848,44 @@ describe('pre-advance remediation: one engine per generation and no stale regist
     }
   });
 
+  test('a native timeout adopted while the poll awaits native state does not ring again (device finding)', async () => {
+    const emit = jest.spyOn(DeviceEventEmitter, 'emit');
+    const fake = installFakeRegistry();
+    const module = native();
+    try {
+      // Native rang this reminder and timed out while JS was away; the app
+      // is now coming back, so the poller sees it as overdue.
+      insert('r-timeout', A, -50_000);
+      deliveryStore.recordRegistration(
+        'r-timeout',
+        1,
+        'failed',
+        'receipt_lost',
+      );
+      fake.registry.delete('r-timeout');
+      // While the poller waits for the native listing, the lifecycle pass
+      // adopts the native timeout: snoozed until the retry, new generation.
+      module.listDeliveryRegistrations = jest.fn(async () => {
+        remindersStore.snoozeReminderAt('r-timeout', iso(4 * 60_000));
+        return [];
+      });
+      module.claimForegroundDelivery = jest.fn(async () => 'claimed');
+
+      await checkAndTriggerReminders(A);
+
+      expect(module.claimForegroundDelivery).not.toHaveBeenCalled();
+      expect(
+        emit.mock.calls.filter(call => call[0] === EVENT_CALL_TRIGGER),
+      ).toHaveLength(0);
+      const after = remindersStore.getReminderById('r-timeout')!;
+      expect(after.status).toBe('snoozed');
+      expect(new Date(after.triggerAt).getTime()).toBeGreaterThan(Date.now());
+    } finally {
+      delete module.claimForegroundDelivery;
+      fake.restore();
+    }
+  });
+
   test('a writer that does not cancel its alarm is corrected on the next poll, not at the next start', async () => {
     const fake = installFakeRegistry();
     try {

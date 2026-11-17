@@ -1,4 +1,11 @@
 const {NativeModules} = require('react-native');
+// Rendered UI tests represent a visible activity. Lifecycle tests override this
+// explicitly; React Native's default Jest mock otherwise reports null forever.
+Object.defineProperty(require('react-native').AppState, 'currentState', {
+  configurable: true,
+  writable: true,
+  value: 'active',
+});
 NativeModules.LafinaReminder = {
   scheduleExactAlarm: jest.fn(() => Promise.resolve(true)),
   cancelAlarm: jest.fn(() => Promise.resolve(true)),
@@ -44,6 +51,43 @@ NativeModules.LafinaAlarm = {
     }),
   ),
   openBatterySettings: jest.fn(() => Promise.resolve(true)),
+};
+
+// Floating LAFINA (ADR-036): no overlay in Jest; tests needing state install their own fake.
+NativeModules.LafinaFloatingAssistant = {
+  getStatus: jest.fn(() =>
+    Promise.resolve({
+      supported: true,
+      overlayGranted: false,
+      notificationsGranted: true,
+      enabled: false,
+      running: false,
+      hiddenUntilAppOpen: false,
+      launchBlockedSeen: false,
+      lowRamDevice: false,
+    }),
+  ),
+  setEnabled: jest.fn(enabled =>
+    Promise.resolve({
+      supported: true,
+      overlayGranted: false,
+      notificationsGranted: true,
+      enabled: Boolean(enabled),
+      running: false,
+      hiddenUntilAppOpen: false,
+      launchBlockedSeen: false,
+      lowRamDevice: false,
+    }),
+  ),
+  openOverlaySettings: jest.fn(() => Promise.resolve()),
+  openAppDetailsSettings: jest.fn(() => Promise.resolve()),
+  setOrbAppearance: jest.fn(() => Promise.resolve()),
+  resetOrbPosition: jest.fn(() => Promise.resolve()),
+  getOrbCustomization: jest.fn(() => Promise.resolve(null)),
+  setOrbCustomization: jest.fn(changes => Promise.resolve({...changes})),
+  resetOrbCustomization: jest.fn(() => Promise.resolve(null)),
+  closeQuickChat: jest.fn(() => Promise.resolve()),
+  openMainApp: jest.fn(() => Promise.resolve()),
 };
 
 NativeModules.LafinaAudioPlayer = {

@@ -1,4 +1,5 @@
-import React, { useEffect, useRef, useState } from 'react';
+import {ANSWERED_CALL_LIMIT_MS} from '../../../scheduler/callLifecycle';
+import React, {useEffect, useRef, useState} from 'react';
 import {
   ActivityIndicator,
   Animated,
@@ -19,9 +20,9 @@ import {
   PhoneOff,
   Volume2,
 } from 'lucide-react-native';
-import type { CallResolution, CallState } from '../../../scheduler';
-import { Fonts, Layout, ModernLayout, Shadows } from '../../theme';
-import { useTheme } from '../../contexts/ThemeContext';
+import type {CallResolution, CallState} from '../../../scheduler';
+import {Fonts, Layout, ModernLayout, Shadows} from '../../theme';
+import {useTheme} from '../../contexts/ThemeContext';
 
 /** The button the student just tapped, while the app carries it out. */
 export type CallPendingAction = 'acknowledge' | 'snooze' | 'end';
@@ -78,14 +79,14 @@ export const CallAnsweredView: React.FC<CallAnsweredViewProps> = ({
   pendingAction = null,
   reviewCard,
 }) => {
-  const { colors, isModern, modernPalette, modernShadows } = useTheme();
+  const {colors, isModern, modernPalette, modernShadows} = useTheme();
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
   const callStartedAtRef = useRef(Date.now());
   const pulse = useRef(new Animated.Value(1)).current;
   const wavePhaseRef = useRef(0);
   const waveBars = useRef(
     Array.from(
-      { length: 9 },
+      {length: 9},
       (_, index) => new Animated.Value(8 + (index % 4) * 6),
     ),
   ).current;
@@ -167,7 +168,7 @@ export const CallAnsweredView: React.FC<CallAnsweredViewProps> = ({
   const card = [
     styles.card,
     cardShadow,
-    { backgroundColor: cardSurface, borderColor, borderRadius: cardRadius },
+    {backgroundColor: cardSurface, borderColor, borderRadius: cardRadius},
   ];
 
   const getBarColor = (index: number): string => {
@@ -198,7 +199,7 @@ export const CallAnsweredView: React.FC<CallAnsweredViewProps> = ({
           key={index}
           style={[
             styles.waveformBar,
-            { height: bar, backgroundColor: getBarColor(index) },
+            {height: bar, backgroundColor: getBarColor(index)},
           ]}
         />
       ))}
@@ -212,7 +213,7 @@ export const CallAnsweredView: React.FC<CallAnsweredViewProps> = ({
           {renderWaveform()}
           <View style={styles.statusLabelRow}>
             <Volume2 size={16} color={accent} />
-            <Text style={[styles.statusLabel, { color: accent }]}>
+            <Text style={[styles.statusLabel, {color: accent}]}>
               {callState === 'speaking_listening'
                 ? 'LAFINA is speaking. You can answer now'
                 : 'LAFINA is speaking…'}
@@ -231,13 +232,13 @@ export const CallAnsweredView: React.FC<CallAnsweredViewProps> = ({
               {
                 backgroundColor: softSurface,
                 borderColor: accent,
-                transform: [{ scale: pulse }],
+                transform: [{scale: pulse}],
               },
             ]}
           >
             <Mic size={26} color={accent} />
           </Animated.View>
-          <Text style={[styles.statusLabel, { color: accent }]}>
+          <Text style={[styles.statusLabel, {color: accent}]}>
             Listening. Say “acknowledge” or “snooze”
           </Text>
         </View>
@@ -250,12 +251,12 @@ export const CallAnsweredView: React.FC<CallAnsweredViewProps> = ({
           <View
             style={[
               styles.statusIcon,
-              { backgroundColor: softSurface, borderColor },
+              {backgroundColor: softSurface, borderColor},
             ]}
           >
             <ActivityIndicator color={accent} />
           </View>
-          <Text style={[styles.statusLabel, { color: colors.textSecondary }]}>
+          <Text style={[styles.statusLabel, {color: colors.textSecondary}]}>
             Working on it…
           </Text>
         </View>
@@ -267,12 +268,12 @@ export const CallAnsweredView: React.FC<CallAnsweredViewProps> = ({
         <View
           style={[
             styles.statusIcon,
-            { backgroundColor: softSurface, borderColor },
+            {backgroundColor: softSurface, borderColor},
           ]}
         >
           <PhoneCall size={26} color={accent} />
         </View>
-        <Text style={[styles.statusLabel, { color: colors.textSecondary }]}>
+        <Text style={[styles.statusLabel, {color: colors.textSecondary}]}>
           Say “acknowledge” or “snooze”, or use the buttons
         </Text>
       </View>
@@ -305,15 +306,15 @@ export const CallAnsweredView: React.FC<CallAnsweredViewProps> = ({
         <View
           style={[
             styles.resultIcon,
-            { borderColor: resolutionColor, backgroundColor: cardSurface },
+            {borderColor: resolutionColor, backgroundColor: cardSurface},
           ]}
         >
           {icon}
         </View>
-        <Text style={[styles.resultTitle, { color: resolutionColor }]}>
+        <Text style={[styles.resultTitle, {color: resolutionColor}]}>
           {title}
         </Text>
-        <Text style={[styles.resultMessage, { color: colors.textSecondary }]}>
+        <Text style={[styles.resultMessage, {color: colors.textSecondary}]}>
           {resolution.message}
         </Text>
       </View>
@@ -325,33 +326,34 @@ export const CallAnsweredView: React.FC<CallAnsweredViewProps> = ({
   );
 
   return (
-    <View style={[styles.container, { backgroundColor: colors.background }]}>
+    <View style={[styles.container, {backgroundColor: colors.background}]}>
       <View style={styles.header}>
-        <Text style={[styles.eyebrow, { color: colors.textSecondary }]}>
+        <Text style={[styles.eyebrow, {color: colors.textSecondary}]}>
           REMINDER CALL
         </Text>
-        <Text style={[styles.assistantName, { color: colors.textPrimary }]}>
+        <Text style={[styles.assistantName, {color: colors.textPrimary}]}>
           LAFINA
         </Text>
         <View
           style={[
             styles.durationPill,
-            { backgroundColor: softSurface, borderColor },
+            {backgroundColor: softSurface, borderColor},
           ]}
         >
           <View
             style={[
               styles.connectionDot,
               {
-                backgroundColor: resolution
-                  ? colors.textMuted
-                  : colors.success,
+                backgroundColor: resolution ? colors.textMuted : colors.success,
               },
             ]}
           />
-          <Text style={[styles.duration, { color: colors.textPrimary }]}>
+          <Text style={[styles.duration, {color: colors.textPrimary}]}>
             {resolution ? 'Call ended' : 'On call'} ·{' '}
-            {formatCallDuration(elapsedSeconds)}
+            {formatCallDuration(elapsedSeconds)} · Ends in{' '}
+            {formatCallDuration(
+              Math.max(0, ANSWERED_CALL_LIMIT_MS / 1000 - elapsedSeconds),
+            )}
           </Text>
         </View>
       </View>
@@ -366,9 +368,9 @@ export const CallAnsweredView: React.FC<CallAnsweredViewProps> = ({
         <View style={card}>
           <View style={styles.cardLabelRow}>
             <BellRing size={13} color={accent} />
-            <Text style={[styles.cardLabel, { color: accent }]}>REMINDER</Text>
+            <Text style={[styles.cardLabel, {color: accent}]}>REMINDER</Text>
           </View>
-          <Text style={[styles.taskText, { color: colors.textPrimary }]}>
+          <Text style={[styles.taskText, {color: colors.textPrimary}]}>
             {task || 'Scheduled academic reminder'}
           </Text>
         </View>
@@ -380,8 +382,11 @@ export const CallAnsweredView: React.FC<CallAnsweredViewProps> = ({
             {/* A card that needs an answer sits in the open, directly under
                 the reminder, never inside the small conversation box. */}
             {reviewCard ? (
-              <View style={styles.reviewSlot} testID="reminder-call-review-slot">
-                <Text style={[styles.cardLabel, { color: accent }]}>
+              <View
+                style={styles.reviewSlot}
+                testID="reminder-call-review-slot"
+              >
+                <Text style={[styles.cardLabel, {color: accent}]}>
                   NEEDS YOUR CONFIRMATION
                 </Text>
                 {reviewCard}
@@ -392,12 +397,12 @@ export const CallAnsweredView: React.FC<CallAnsweredViewProps> = ({
               <View
                 style={[
                   styles.notice,
-                  { backgroundColor: softSurface, borderColor },
+                  {backgroundColor: softSurface, borderColor},
                 ]}
                 accessibilityLiveRegion="polite"
                 testID="reminder-call-notice"
               >
-                <Text style={[styles.noticeText, { color: colors.textPrimary }]}>
+                <Text style={[styles.noticeText, {color: colors.textPrimary}]}>
                   {notice}
                 </Text>
               </View>
@@ -411,13 +416,11 @@ export const CallAnsweredView: React.FC<CallAnsweredViewProps> = ({
               <View style={card} testID="reminder-call-conversation">
                 {reply ? (
                   <>
-                    <Text
-                      style={[styles.cardLabel, { color: colors.textMuted }]}
-                    >
+                    <Text style={[styles.cardLabel, {color: colors.textMuted}]}>
                       LAFINA
                     </Text>
                     <Text
-                      style={[styles.replyText, { color: colors.textPrimary }]}
+                      style={[styles.replyText, {color: colors.textPrimary}]}
                     >
                       {reply}
                     </Text>
@@ -427,21 +430,19 @@ export const CallAnsweredView: React.FC<CallAnsweredViewProps> = ({
                   <View
                     style={[
                       styles.cardDivider,
-                      { backgroundColor: colors.divider },
+                      {backgroundColor: colors.divider},
                     ]}
                   />
                 ) : null}
                 {transcript ? (
                   <>
-                    <Text
-                      style={[styles.cardLabel, { color: colors.textMuted }]}
-                    >
+                    <Text style={[styles.cardLabel, {color: colors.textMuted}]}>
                       YOU SAID
                     </Text>
                     <Text
                       style={[
                         styles.transcriptText,
-                        { color: colors.textSecondary },
+                        {color: colors.textSecondary},
                       ]}
                     >
                       {transcript}
@@ -462,7 +463,7 @@ export const CallAnsweredView: React.FC<CallAnsweredViewProps> = ({
             onPress={onAcknowledge}
             style={[
               styles.actionButton,
-              { backgroundColor: colors.success, borderColor: colors.success },
+              {backgroundColor: colors.success, borderColor: colors.success},
               !controlsEnabled &&
                 pendingAction !== 'acknowledge' &&
                 styles.disabledControl,
@@ -481,8 +482,10 @@ export const CallAnsweredView: React.FC<CallAnsweredViewProps> = ({
             ) : (
               <Check size={18} color={colors.white} strokeWidth={2.6} />
             )}
-            <Text style={[styles.actionText, { color: colors.white }]}>
-              {pendingAction === 'acknowledge' ? 'Acknowledging…' : 'Acknowledge'}
+            <Text style={[styles.actionText, {color: colors.white}]}>
+              {pendingAction === 'acknowledge'
+                ? 'Acknowledging…'
+                : 'Acknowledge'}
             </Text>
           </TouchableOpacity>
 
@@ -492,7 +495,7 @@ export const CallAnsweredView: React.FC<CallAnsweredViewProps> = ({
             onPress={() => onSnooze(snoozeMinutes)}
             style={[
               styles.actionButton,
-              { backgroundColor: cardSurface, borderColor },
+              {backgroundColor: cardSurface, borderColor},
               !controlsEnabled &&
                 pendingAction !== 'snooze' &&
                 styles.disabledControl,
@@ -512,7 +515,7 @@ export const CallAnsweredView: React.FC<CallAnsweredViewProps> = ({
             ) : (
               <Clock size={18} color={accent} />
             )}
-            <Text style={[styles.actionText, { color: colors.textPrimary }]}>
+            <Text style={[styles.actionText, {color: colors.textPrimary}]}>
               {pendingAction === 'snooze'
                 ? 'Snoozing…'
                 : `Snooze ${snoozeMinutes}m`}
@@ -521,7 +524,7 @@ export const CallAnsweredView: React.FC<CallAnsweredViewProps> = ({
         </View>
 
         <View style={styles.snoozeChoices}>
-          <Text style={[styles.snoozeHint, { color: colors.textMuted }]}>
+          <Text style={[styles.snoozeHint, {color: colors.textMuted}]}>
             Or snooze for
           </Text>
           {otherSnoozeChoices.map(minutes => (
@@ -532,15 +535,15 @@ export const CallAnsweredView: React.FC<CallAnsweredViewProps> = ({
               onPress={() => onSnooze(minutes)}
               style={[
                 styles.snoozeChip,
-                { backgroundColor: softSurface, borderColor },
+                {backgroundColor: softSurface, borderColor},
                 !controlsEnabled && styles.disabledControl,
               ]}
               accessibilityRole="button"
               accessibilityLabel={`Snooze reminder for ${minutes} minutes`}
-              accessibilityState={{ disabled: !controlsEnabled }}
+              accessibilityState={{disabled: !controlsEnabled}}
               testID={`reminder-call-snooze-${minutes}`}
             >
-              <Text style={[styles.snoozeChipText, { color: accent }]}>
+              <Text style={[styles.snoozeChipText, {color: accent}]}>
                 {minutes}m
               </Text>
             </TouchableOpacity>
@@ -553,21 +556,21 @@ export const CallAnsweredView: React.FC<CallAnsweredViewProps> = ({
           onPress={onDecline}
           style={[
             styles.endButton,
-            { backgroundColor: colors.error },
+            {backgroundColor: colors.error},
             !endEnabled && styles.disabledControl,
           ]}
           accessibilityRole="button"
           accessibilityLabel="End reminder call"
           accessibilityHint="Ends the call. The reminder counts as received."
-          accessibilityState={{ disabled: !endEnabled }}
+          accessibilityState={{disabled: !endEnabled}}
           testID="reminder-call-end"
         >
           <PhoneOff size={18} color={colors.white} />
-          <Text style={[styles.actionText, { color: colors.white }]}>
+          <Text style={[styles.actionText, {color: colors.white}]}>
             End call
           </Text>
         </TouchableOpacity>
-        <Text style={[styles.footnote, { color: colors.textMuted }]}>
+        <Text style={[styles.footnote, {color: colors.textMuted}]}>
           Ending the call counts the reminder as received.
         </Text>
       </View>

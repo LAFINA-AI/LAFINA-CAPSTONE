@@ -187,6 +187,10 @@ const allowedPermissions = new Set([
   // Alarm plan A1 (owner approved 2026-11-15): the alarm tone's foreground service.
   'FOREGROUND_SERVICE_MEDIA_PLAYBACK',
   'REQUEST_INSTALL_PACKAGES',
+  // Floating LAFINA (owner approved 2026-11-17, docs/plans/lafina-floating-assistant/OWNER-AUTHORIZATION.md):
+  // the optional floating button over other apps and its specialUse foreground service.
+  'SYSTEM_ALERT_WINDOW',
+  'FOREGROUND_SERVICE_SPECIAL_USE',
 ]);
 for (const [, permission] of manifest.matchAll(
   /<uses-permission\s+android:name="android\.permission\.([A-Z_]+)"/g,
