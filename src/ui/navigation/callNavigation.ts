@@ -6,7 +6,10 @@ export interface CallNavigationTarget {
   entityId?: string;
   entityKind?: 'note' | 'task' | 'event' | 'block' | 'reminder';
   date?: string;
-  /** Schedule tab: open the Alarms switch (alarm plan A2). */
+  /**
+   * Legacy deep link from the dashboards: `'alarms'` is redirected in
+   * `App.tsx` to Tools → Alarms (Alarms moved off the Schedule tab).
+   */
   scheduleSection?: 'calendar' | 'alarms';
 }
 

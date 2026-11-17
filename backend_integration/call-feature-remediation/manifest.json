@@ -1,0 +1,41 @@
+{
+  "base_commit": "417f242191453a14fdf1b9fb49b80fadac5b1e4d",
+  "files": [
+    {
+      "path": "app/api/v1/voice.py",
+      "base_sha256": "b75a52544d6f23830134fba027af3baaf74198677be371da4711e822bd2ede93",
+      "patched_sha256": "2059bccc6ed59ca3cbca50f76aeb603cdd464cd61deb5857bb15fc5278d4d8c6"
+    },
+    {
+      "path": "app/services/voice_conversation.py",
+      "base_sha256": "a4cefa98cbf38f4fbae0baa2c7dada81cabdb30a5b120622a9ca828afcc012a6",
+      "patched_sha256": "7b670e2ea82e8c7820919a4d395bbb8a2aa410c1d61378d936fcd1571ae8c548"
+    },
+    {
+      "path": "app/clients/deepseek.py",
+      "base_sha256": "668290f6c13b88c3b2be35affe8b82c8affb7d33d7564d9914542fcd318116b1",
+      "patched_sha256": "ed7ae902e5f70742d7dd70914901039cef832100dc23bd6ead90b10ee18bad63"
+    },
+    {
+      "path": "scripts/provision_voice_agent.py",
+      "base_sha256": "80cfc9353f1791414f1c9d0cbbd499fe78ed256ca20199213eb19150ebcd76b9",
+      "patched_sha256": "56084fe93d5828bddfc32ed8181c5d614b61b35261fc7fe64dfedc72ccc46ce3"
+    },
+    {
+      "path": "app/services/voice_tool_contract.json",
+      "base_sha256": "ea13fcf7d7c8dd16fab55fc7a81b3104e344055fab7b1e6b4a8365458a883c4c",
+      "patched_sha256": "48bd5e9230049a2c0088f5eb8837dc66276dcdbb17cb4c0f7b25946d9bdb128c"
+    },
+    {
+      "path": "tests/test_voice_conversation.py",
+      "base_sha256": "5f7f61e6a8816b1ff3d8083fa4d5dbd22b24cae63a39a36194117458d3d728ac",
+      "patched_sha256": "c38a0d67c836949e8dd2e3336a762eec56efc564056ad0cb3414ec825a28f993"
+    },
+    {
+      "path": "tests/test_voice_tool_bridge.py",
+      "base_sha256": "08749a585695229f7f15888d03cfe07eaf58e44c4d0ddfa5f6a17a0d6876f67a",
+      "patched_sha256": "cf66377b5fcd75469e15158e9ef4682a4c8a87033b4d732ab158a3775b65c508"
+    }
+  ],
+  "patch_sha256": "c51ff34a904dad3b3e84c06860bd8de634d879c459ec439a211ff008088d4198"
+}

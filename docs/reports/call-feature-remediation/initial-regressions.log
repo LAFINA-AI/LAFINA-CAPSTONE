@@ -1,0 +1,5775 @@
+PASS __tests__/ui/synthWaveAvatar.test.tsx (5.792 s)
+FAIL __tests__/ui/voiceConversationUi.test.tsx (17.039 s)
+  ● a live conversation › closing during intent extraction cannot leave a late review
+
+    expect(received).toBeDefined()
+
+    Received: undefined
+
+      358 |       },
+      359 |     });
+    > 360 |     await waitFor(() => expect(release).toBeDefined());
+          |                  ^
+      361 |     fireEvent.press(utils.getByTestId('voice-conversation-end'));
+      362 |     await act(async () => {
+      363 |       release?.();
+
+      at Object.<anonymous> (__tests__/ui/voiceConversationUi.test.tsx:360:18)
+      at asyncGeneratorStep (node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+      at _next (node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
+
+  ● a live conversation › missing schedule details come from follow-up speech rather than tool guesses
+
+    Unable to find an element with testID: voice-conversation-local-note
+
+    <View
+      testID="voice-conversation-panel"
+    >
+      <View>
+        <View>
+          <View
+            accessibilityLabel="Back to push-to-talk"
+            accessibilityRole="button"
+            accessible={true}
+            testID="voice-conversation-back"
+          >
+            <View
+              accessibilityLabel="ArrowLeft"
+            />
+          </View>
+        </View>
+        <View>
+          <Text
+            testID="call-header-title"
+          >
+            Call Lafina
+          </Text>
+          <View
+            testID="call-status-badge"
+          >
+            <View
+              accessibilityLabel="AudioLines"
+            />
+            <Text
+              testID="call-online-badge"
+            >
+              Online
+            </Text>
+          </View>
+        </View>
+        <View>
+          <View
+            accessibilityLabel="Call Lafina settings"
+            accessibilityRole="button"
+            accessible={true}
+            testID="call-settings-button"
+          >
+            <View
+              accessibilityLabel="Sliders"
+            />
+          </View>
+        </View>
+      </View>
+      <View
+        testID="call-content-stage"
+      >
+        <View
+          testID="call-center-stage"
+        >
+          <View
+            testID="call-identity-ring"
+          >
+            <View
+              accessibilityLabel="Lafina is thinking"
+              accessibilityRole="image"
+              accessible={true}
+              testID="synth-wave-avatar"
+            >
+              <RNSVGSvgView>
+                <RNSVGGroup>
+                  <RNSVGDefs>
+                    <RNSVGLinearGradient />
+                  </RNSVGDefs>
+                  <RNSVGPath />
+                  <RNSVGPath />
+                  <RNSVGPath />
+                  <RNSVGPath />
+                  <RNSVGPath />
+                  <RNSVGPath />
+                  <RNSVGPath />
+                  <RNSVGPath />
+                  <RNSVGPath />
+                  <RNSVGPath />
+                </RNSVGGroup>
+              </RNSVGSvgView>
+            </View>
+          </View>
+          <Text
+            testID="call-timer"
+          >
+            00:00
+          </Text>
+          <Text
+            testID="voice-conversation-status"
+          >
+            Thinking…
+          </Text>
+          <View
+            testID="call-waveform-area"
+          >
+            <View
+              accessibilityLabel="Lafina is thinking"
+              accessibilityRole="progressbar"
+              accessibilityValue={
+                {
+                  "max": 100,
+                  "min": 0,
+                  "now": 0,
+                }
+              }
+              accessible={true}
+              testID="call-assistant-waveform-idle"
+            >
+              <View
+                testID="assistant-waveform-bar-0"
+              />
+              <View
+                testID="assistant-waveform-bar-1"
+              />
+              <View
+                testID="assistant-waveform-bar-2"
+              />
+              <View
+                testID="assistant-waveform-bar-3"
+              />
+              <View
+                testID="assistant-waveform-bar-4"
+              />
+              <View
+                testID="assistant-waveform-bar-5"
+              />
+              <View
+                testID="assistant-waveform-bar-6"
+              />
+              <View
+                testID="assistant-waveform-bar-7"
+              />
+              <View
+                testID="assistant-waveform-bar-8"
+              />
+            </View>
+            <View
+              testID="call-thinking-indicator"
+            >
+              <View />
+              <View />
+              <View />
+            </View>
+            <Text
+              testID="call-waveform-status-text"
+            >
+              Thinking…
+            </Text>
+            <View
+              accessibilityLabel="Microphone idle"
+              accessibilityValue={
+                {
+                  "max": 100,
+                  "min": 0,
+                  "now": 0,
+                }
+              }
+              accessible={true}
+              testID="call-user-waveform"
+            >
+              <View
+                testID="call-user-waveform-idle"
+              />
+            </View>
+          </View>
+        </View>
+        <RCTScrollView
+          testID="call-overlay-scroll"
+        >
+          <View />
+        </RCTScrollView>
+      </View>
+      <View
+        testID="call-control-dock"
+      >
+        <View>
+          <View
+            accessibilityLabel="Mute"
+            accessibilityRole="button"
+            accessibilityState={
+              {
+                "disabled": false,
+                "selected": false,
+              }
+            }
+            accessible={true}
+            testID="voice-conversation-mute"
+          >
+            <View>
+              <View
+                accessibilityLabel="Mic"
+              />
+            </View>
+            <Text>
+              Mute
+            </Text>
+          </View>
+          <View
+            accessibilityLabel="Type a turn instead of speaking"
+            accessibilityRole="button"
+            accessibilityState={
+              {
+                "disabled": false,
+                "selected": false,
+              }
+            }
+            accessible={true}
+            testID="voice-conversation-type-instead"
+          >
+            <View>
+              <View
+                accessibilityLabel="MessageSquareText"
+              />
+            </View>
+            <Text>
+              Type
+            </Text>
+          </View>
+          <View
+            accessibilityLabel="Stop LAFINA's answer"
+            accessibilityRole="button"
+            accessibilityState={
+              {
+                "disabled": false,
+                "selected": false,
+              }
+            }
+            accessible={true}
+            testID="voice-conversation-stop"
+          >
+            <View>
+              <View
+                accessibilityLabel="Square"
+              />
+            </View>
+            <Text>
+              Stop
+            </Text>
+          </View>
+          <View
+            accessibilityLabel="End Call Lafina"
+            accessibilityRole="button"
+            accessibilityState={
+              {
+                "disabled": false,
+                "selected": false,
+              }
+            }
+            accessible={true}
+            testID="voice-conversation-end"
+          >
+            <View>
+              <View
+                accessibilityLabel="PhoneOff"
+              />
+            </View>
+            <Text>
+              End
+            </Text>
+          </View>
+        </View>
+      </View>
+    </View>
+
+      416 |     });
+      417 |     expect(
+    > 418 |       utils.getByTestId('voice-conversation-local-note'),
+          |             ^
+      419 |     ).toHaveTextContent(/What time/);
+      420 |     message({
+      421 |       type: 'client_tool_call',
+
+      at Object.getByTestId (__tests__/ui/voiceConversationUi.test.tsx:418:13)
+      at asyncGeneratorStep (node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+      at _next (node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
+
+  ● a live conversation › direct agent receives a truthful review result without saving the task
+
+    Unable to find an element with testID: voice-conversation-review-card
+
+    <View
+      testID="voice-conversation-panel"
+    >
+      <View>
+        <View>
+          <View
+            accessibilityLabel="Back to push-to-talk"
+            accessibilityRole="button"
+            accessible={true}
+            testID="voice-conversation-back"
+          >
+            <View
+              accessibilityLabel="ArrowLeft"
+            />
+          </View>
+        </View>
+        <View>
+          <Text
+            testID="call-header-title"
+          >
+            Call Lafina
+          </Text>
+          <View
+            testID="call-status-badge"
+          >
+            <View
+              accessibilityLabel="AudioLines"
+            />
+            <Text
+              testID="call-online-badge"
+            >
+              Online
+            </Text>
+          </View>
+        </View>
+        <View>
+          <View
+            accessibilityLabel="Call Lafina settings"
+            accessibilityRole="button"
+            accessible={true}
+            testID="call-settings-button"
+          >
+            <View
+              accessibilityLabel="Sliders"
+            />
+          </View>
+        </View>
+      </View>
+      <View
+        testID="call-content-stage"
+      >
+        <View
+          testID="call-center-stage"
+        >
+          <View
+            testID="call-identity-ring"
+          >
+            <View
+              accessibilityLabel="Lafina is thinking"
+              accessibilityRole="image"
+              accessible={true}
+              testID="synth-wave-avatar"
+            >
+              <RNSVGSvgView>
+                <RNSVGGroup>
+                  <RNSVGDefs>
+                    <RNSVGLinearGradient />
+                  </RNSVGDefs>
+                  <RNSVGPath />
+                  <RNSVGPath />
+                  <RNSVGPath />
+                  <RNSVGPath />
+                  <RNSVGPath />
+                  <RNSVGPath />
+                  <RNSVGPath />
+                  <RNSVGPath />
+                  <RNSVGPath />
+                  <RNSVGPath />
+                </RNSVGGroup>
+              </RNSVGSvgView>
+            </View>
+          </View>
+          <Text
+            testID="call-timer"
+          >
+            00:00
+          </Text>
+          <Text
+            testID="voice-conversation-status"
+          >
+            Thinking…
+          </Text>
+          <View
+            testID="call-waveform-area"
+          >
+            <View
+              accessibilityLabel="Lafina is thinking"
+              accessibilityRole="progressbar"
+              accessibilityValue={
+                {
+                  "max": 100,
+                  "min": 0,
+                  "now": 0,
+                }
+              }
+              accessible={true}
+              testID="call-assistant-waveform-idle"
+            >
+              <View
+                testID="assistant-waveform-bar-0"
+              />
+              <View
+                testID="assistant-waveform-bar-1"
+              />
+              <View
+                testID="assistant-waveform-bar-2"
+              />
+              <View
+                testID="assistant-waveform-bar-3"
+              />
+              <View
+                testID="assistant-waveform-bar-4"
+              />
+              <View
+                testID="assistant-waveform-bar-5"
+              />
+              <View
+                testID="assistant-waveform-bar-6"
+              />
+              <View
+                testID="assistant-waveform-bar-7"
+              />
+              <View
+                testID="assistant-waveform-bar-8"
+              />
+            </View>
+            <View
+              testID="call-thinking-indicator"
+            >
+              <View />
+              <View />
+              <View />
+            </View>
+            <Text
+              testID="call-waveform-status-text"
+            >
+              Thinking…
+            </Text>
+            <View
+              accessibilityLabel="Microphone idle"
+              accessibilityValue={
+                {
+                  "max": 100,
+                  "min": 0,
+                  "now": 0,
+                }
+              }
+              accessible={true}
+              testID="call-user-waveform"
+            >
+              <View
+                testID="call-user-waveform-idle"
+              />
+            </View>
+          </View>
+        </View>
+        <RCTScrollView
+          testID="call-overlay-scroll"
+        >
+          <View />
+        </RCTScrollView>
+      </View>
+      <View
+        testID="call-control-dock"
+      >
+        <View>
+          <View
+            accessibilityLabel="Mute"
+            accessibilityRole="button"
+            accessibilityState={
+              {
+                "disabled": false,
+                "selected": false,
+              }
+            }
+            accessible={true}
+            testID="voice-conversation-mute"
+          >
+            <View>
+              <View
+                accessibilityLabel="Mic"
+              />
+            </View>
+            <Text>
+              Mute
+            </Text>
+          </View>
+          <View
+            accessibilityLabel="Type a turn instead of speaking"
+            accessibilityRole="button"
+            accessibilityState={
+              {
+                "disabled": false,
+                "selected": false,
+              }
+            }
+            accessible={true}
+            testID="voice-conversation-type-instead"
+          >
+            <View>
+              <View
+                accessibilityLabel="MessageSquareText"
+              />
+            </View>
+            <Text>
+              Type
+            </Text>
+          </View>
+          <View
+            accessibilityLabel="Stop LAFINA's answer"
+            accessibilityRole="button"
+            accessibilityState={
+              {
+                "disabled": false,
+                "selected": false,
+              }
+            }
+            accessible={true}
+            testID="voice-conversation-stop"
+          >
+            <View>
+              <View
+                accessibilityLabel="Square"
+              />
+            </View>
+            <Text>
+              Stop
+            </Text>
+          </View>
+          <View
+            accessibilityLabel="End Call Lafina"
+            accessibilityRole="button"
+            accessibilityState={
+              {
+                "disabled": false,
+                "selected": false,
+              }
+            }
+            accessible={true}
+            testID="voice-conversation-end"
+          >
+            <View>
+              <View
+                accessibilityLabel="PhoneOff"
+              />
+            </View>
+            <Text>
+              End
+            </Text>
+          </View>
+        </View>
+      </View>
+    </View>
+
+      620 |       });
+      621 |       expect(
+    > 622 |         await utils.findByTestId('voice-conversation-review-card'),
+          |                     ^
+      623 |       ).toBeTruthy();
+      624 |       await waitFor(() =>
+      625 |         expect(sent.some(s => s.includes('Nothing has been saved'))).toBe(true),
+
+      at Object.findByTestId (__tests__/ui/voiceConversationUi.test.tsx:622:21)
+      at asyncGeneratorStep (node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+      at _next (node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
+
+  ● a live conversation › live words, controls, a reviewed planner change and saved turns
+
+    Unable to find an element with testID: voice-conversation-review-card
+
+    <View
+      testID="voice-conversation-panel"
+    >
+      <View>
+        <View>
+          <View
+            accessibilityLabel="Back to push-to-talk"
+            accessibilityRole="button"
+            accessible={true}
+            testID="voice-conversation-back"
+          >
+            <View
+              accessibilityLabel="ArrowLeft"
+            />
+          </View>
+        </View>
+        <View>
+          <Text
+            testID="call-header-title"
+          >
+            Call Lafina
+          </Text>
+          <View
+            testID="call-status-badge"
+          >
+            <View
+              accessibilityLabel="AudioLines"
+            />
+            <Text
+              testID="call-online-badge"
+            >
+              Online
+            </Text>
+          </View>
+        </View>
+        <View>
+          <View
+            accessibilityLabel="Call Lafina settings"
+            accessibilityRole="button"
+            accessible={true}
+            testID="call-settings-button"
+          >
+            <View
+              accessibilityLabel="Sliders"
+            />
+          </View>
+        </View>
+      </View>
+      <View
+        testID="call-content-stage"
+      >
+        <View
+          testID="call-center-stage"
+        >
+          <View
+            testID="call-identity-ring"
+          >
+            <View
+              accessibilityLabel="Lafina is thinking"
+              accessibilityRole="image"
+              accessible={true}
+              testID="synth-wave-avatar"
+            >
+              <RNSVGSvgView>
+                <RNSVGGroup>
+                  <RNSVGDefs>
+                    <RNSVGLinearGradient />
+                  </RNSVGDefs>
+                  <RNSVGPath />
+                  <RNSVGPath />
+                  <RNSVGPath />
+                  <RNSVGPath />
+                  <RNSVGPath />
+                  <RNSVGPath />
+                  <RNSVGPath />
+                  <RNSVGPath />
+                  <RNSVGPath />
+                  <RNSVGPath />
+                </RNSVGGroup>
+              </RNSVGSvgView>
+            </View>
+          </View>
+          <Text
+            testID="call-timer"
+          >
+            00:00
+          </Text>
+          <Text
+            testID="voice-conversation-status"
+          >
+            Thinking…
+          </Text>
+          <View
+            testID="call-waveform-area"
+          >
+            <View
+              accessibilityLabel="Lafina is thinking"
+              accessibilityRole="progressbar"
+              accessibilityValue={
+                {
+                  "max": 100,
+                  "min": 0,
+                  "now": 0,
+                }
+              }
+              accessible={true}
+              testID="call-assistant-waveform-idle"
+            >
+              <View
+                testID="assistant-waveform-bar-0"
+              />
+              <View
+                testID="assistant-waveform-bar-1"
+              />
+              <View
+                testID="assistant-waveform-bar-2"
+              />
+              <View
+                testID="assistant-waveform-bar-3"
+              />
+              <View
+                testID="assistant-waveform-bar-4"
+              />
+              <View
+                testID="assistant-waveform-bar-5"
+              />
+              <View
+                testID="assistant-waveform-bar-6"
+              />
+              <View
+                testID="assistant-waveform-bar-7"
+              />
+              <View
+                testID="assistant-waveform-bar-8"
+              />
+            </View>
+            <View
+              testID="call-thinking-indicator"
+            >
+              <View />
+              <View />
+              <View />
+            </View>
+            <Text
+              testID="call-waveform-status-text"
+            >
+              Thinking…
+            </Text>
+            <View
+              accessibilityLabel="Microphone idle"
+              accessibilityValue={
+                {
+                  "max": 100,
+                  "min": 0,
+                  "now": 0,
+                }
+              }
+              accessible={true}
+              testID="call-user-waveform"
+            >
+              <View
+                testID="call-user-waveform-idle"
+              />
+            </View>
+          </View>
+        </View>
+        <RCTScrollView
+          testID="call-overlay-scroll"
+        >
+          <View />
+        </RCTScrollView>
+      </View>
+      <View
+        testID="call-control-dock"
+      >
+        <View>
+          <View
+            accessibilityLabel="Mute"
+            accessibilityRole="button"
+            accessibilityState={
+              {
+                "disabled": false,
+                "selected": false,
+              }
+            }
+            accessible={true}
+            testID="voice-conversation-mute"
+          >
+            <View>
+              <View
+                accessibilityLabel="Mic"
+              />
+            </View>
+            <Text>
+              Mute
+            </Text>
+          </View>
+          <View
+            accessibilityLabel="Type a turn instead of speaking"
+            accessibilityRole="button"
+            accessibilityState={
+              {
+                "disabled": false,
+                "selected": false,
+              }
+            }
+            accessible={true}
+            testID="voice-conversation-type-instead"
+          >
+            <View>
+              <View
+                accessibilityLabel="MessageSquareText"
+              />
+            </View>
+            <Text>
+              Type
+            </Text>
+          </View>
+          <View
+            accessibilityLabel="Stop LAFINA's answer"
+            accessibilityRole="button"
+            accessibilityState={
+              {
+                "disabled": false,
+                "selected": false,
+              }
+            }
+            accessible={true}
+            testID="voice-conversation-stop"
+          >
+            <View>
+              <View
+                accessibilityLabel="Square"
+              />
+            </View>
+            <Text>
+              Stop
+            </Text>
+          </View>
+          <View
+            accessibilityLabel="End Call Lafina"
+            accessibilityRole="button"
+            accessibilityState={
+              {
+                "disabled": false,
+                "selected": false,
+              }
+            }
+            accessible={true}
+            testID="voice-conversation-end"
+          >
+            <View>
+              <View
+                accessibilityLabel="PhoneOff"
+              />
+            </View>
+            <Text>
+              End
+            </Text>
+          </View>
+        </View>
+      </View>
+    </View>
+
+      670 |     // The planner change waits on the card; nothing is saved by speaking.
+      671 |     expect(
+    > 672 |       await utils.findByTestId('voice-conversation-review-card'),
+          |                   ^
+      673 |     ).toBeTruthy();
+      674 |     expect(
+      675 |       utils.getByTestId('voice-conversation-local-note'),
+
+      at Object.findByTestId (__tests__/ui/voiceConversationUi.test.tsx:672:19)
+      at asyncGeneratorStep (node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+      at _next (node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
+
+  ● Call Lafina draft ambiguity and grouped editing › ambiguous cancel with a memory and planner draft does not choose one
+
+    Unable to find an element with text: Check the card — nothing is saved until confirmed.
+
+    <View
+      testID="voice-conversation-panel"
+    >
+      <View>
+        <View>
+          <View
+            accessibilityLabel="Back to push-to-talk"
+            accessibilityRole="button"
+            accessible={true}
+            testID="voice-conversation-back"
+          >
+            <View
+              accessibilityLabel="ArrowLeft"
+            />
+          </View>
+        </View>
+        <View>
+          <Text
+            testID="call-header-title"
+          >
+            Call Lafina
+          </Text>
+          <View
+            testID="call-status-badge"
+          >
+            <View
+              accessibilityLabel="AudioLines"
+            />
+            <Text
+              testID="call-online-badge"
+            >
+              Online
+            </Text>
+          </View>
+        </View>
+        <View>
+          <View
+            accessibilityLabel="Call Lafina settings"
+            accessibilityRole="button"
+            accessible={true}
+            testID="call-settings-button"
+          >
+            <View
+              accessibilityLabel="Sliders"
+            />
+          </View>
+        </View>
+      </View>
+      <View
+        testID="call-content-stage"
+      >
+        <View
+          testID="call-center-stage"
+        >
+          <View
+            testID="call-identity-ring"
+          >
+            <View
+              accessibilityLabel="Lafina is thinking"
+              accessibilityRole="image"
+              accessible={true}
+              testID="synth-wave-avatar"
+            >
+              <RNSVGSvgView>
+                <RNSVGGroup>
+                  <RNSVGDefs>
+                    <RNSVGLinearGradient />
+                  </RNSVGDefs>
+                  <RNSVGPath />
+                  <RNSVGPath />
+                  <RNSVGPath />
+                  <RNSVGPath />
+                  <RNSVGPath />
+                  <RNSVGPath />
+                  <RNSVGPath />
+                  <RNSVGPath />
+                  <RNSVGPath />
+                  <RNSVGPath />
+                </RNSVGGroup>
+              </RNSVGSvgView>
+            </View>
+          </View>
+          <Text
+            testID="call-timer"
+          >
+            00:00
+          </Text>
+          <Text
+            testID="voice-conversation-status"
+          >
+            Thinking…
+          </Text>
+        </View>
+        <RCTScrollView
+          testID="call-overlay-scroll"
+        >
+          <View>
+            <View
+              testID="call-action-card-stage"
+            >
+              <View
+                accessibilityLabel="Memory card: draft"
+                testID="action-card-host"
+              >
+                <View
+                  accessibilityLabel="Memory review card: Draft"
+                  testID="voice-conversation-review-card"
+                >
+                  <View
+                    pointerEvents="none"
+                    testID="memory-review-card"
+                  />
+                  <View>
+                    <View>
+                      <View
+                        accessibilityLabel="Brain"
+                      />
+                      <Text
+                        accessibilityRole="header"
+                      >
+                        Personal Memory
+                      </Text>
+                    </View>
+                    <View>
+                      <Text>
+                        Draft
+                      </Text>
+                    </View>
+                  </View>
+                  <View>
+                    <View>
+                      <Text>
+                        Review the fact Lafina will remember about you:
+                      </Text>
+                      <TextInput
+                        accessibilityLabel="Memory fact text input"
+                        editable={true}
+                        placeholder="Fact to remember..."
+                        testID="memory-draft-text-input"
+                        value="I prefer afternoon classes"
+                      />
+                    </View>
+                  </View>
+                  <Text
+                    testID="memory-disclosure-text"
+                  >
+                    Stored on this device only. Relevant memories are shared with the voice provider during calls to personalize assistance.
+                  </Text>
+                  <View>
+                    <View
+                      accessibilityLabel="Decline memory save"
+                      accessibilityRole="button"
+                      accessibilityState={
+                        {
+                          "disabled": false,
+                        }
+                      }
+                      accessible={true}
+                      testID="memory-draft-cancel"
+                    >
+                      <Text>
+                        Decline
+                      </Text>
+                    </View>
+                    <View
+                      accessibilityLabel="Confirm memory save"
+                      accessibilityRole="button"
+                      accessibilityState={
+                        {
+                          "disabled": false,
+                        }
+                      }
+                      accessible={true}
+                      testID="memory-draft-confirm"
+                    >
+                      <Text>
+                        Save Memory
+                      </Text>
+                    </View>
+                  </View>
+                </View>
+              </View>
+            </View>
+          </View>
+        </RCTScrollView>
+      </View>
+      <View
+        testID="call-control-dock"
+      >
+        <View>
+          <View
+            accessibilityLabel="Mute"
+            accessibilityRole="button"
+            accessibilityState={
+              {
+                "disabled": false,
+                "selected": false,
+              }
+            }
+            accessible={true}
+            testID="voice-conversation-mute"
+          >
+            <View>
+              <View
+                accessibilityLabel="Mic"
+              />
+            </View>
+            <Text>
+              Mute
+            </Text>
+          </View>
+          <View
+            accessibilityLabel="Type a turn instead of speaking"
+            accessibilityRole="button"
+            accessibilityState={
+              {
+                "disabled": false,
+                "selected": false,
+              }
+            }
+            accessible={true}
+            testID="voice-conversation-type-instead"
+          >
+            <View>
+              <View
+                accessibilityLabel="MessageSquareText"
+              />
+            </View>
+            <Text>
+              Type
+            </Text>
+          </View>
+          <View
+            accessibilityLabel="Stop LAFINA's answer"
+            accessibilityRole="button"
+            accessibilityState={
+              {
+                "disabled": false,
+                "selected": false,
+              }
+            }
+            accessible={true}
+            testID="voice-conversation-stop"
+          >
+            <View>
+              <View
+                accessibilityLabel="Square"
+              />
+            </View>
+            <Text>
+              Stop
+            </Text>
+          </View>
+          <View
+            accessibilityLabel="End Call Lafina"
+            accessibilityRole="button"
+            accessibilityState={
+              {
+                "disabled": false,
+                "selected": false,
+              }
+            }
+            accessible={true}
+            testID="voice-conversation-end"
+          >
+            <View>
+              <View
+                accessibilityLabel="PhoneOff"
+              />
+            </View>
+            <Text>
+              End
+            </Text>
+          </View>
+        </View>
+      </View>
+    </View>
+
+      915 |       },
+      916 |     });
+    > 917 |     await waitFor(() =>
+          |                  ^
+      918 |       expect(
+      919 |         utils.getByText('Check the card — nothing is saved until confirmed.'),
+      920 |       ).toBeTruthy(),
+
+      at Object.<anonymous> (__tests__/ui/voiceConversationUi.test.tsx:917:18)
+      at asyncGeneratorStep (node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+      at _next (node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
+
+  ● Call Mode ChatGPT-style UX, live card revisions, and saving › uses non-scrolling stage, hides waveform while card is active, revises open draft on follow-up, and saves via voice
+
+    Unable to find an element with testID: voice-conversation-review-card
+
+    <View
+      testID="voice-conversation-panel"
+    >
+      <View>
+        <View>
+          <View
+            accessibilityLabel="Back to push-to-talk"
+            accessibilityRole="button"
+            accessible={true}
+            testID="voice-conversation-back"
+          >
+            <View
+              accessibilityLabel="ArrowLeft"
+            />
+          </View>
+        </View>
+        <View>
+          <Text
+            testID="call-header-title"
+          >
+            Call Lafina
+          </Text>
+          <View
+            testID="call-status-badge"
+          >
+            <View
+              accessibilityLabel="AudioLines"
+            />
+            <Text
+              testID="call-online-badge"
+            >
+              Online
+            </Text>
+          </View>
+        </View>
+        <View>
+          <View
+            accessibilityLabel="Call Lafina settings"
+            accessibilityRole="button"
+            accessible={true}
+            testID="call-settings-button"
+          >
+            <View
+              accessibilityLabel="Sliders"
+            />
+          </View>
+        </View>
+      </View>
+      <View
+        testID="call-content-stage"
+      >
+        <View
+          testID="call-center-stage"
+        >
+          <View
+            testID="call-identity-ring"
+          >
+            <View
+              accessibilityLabel="Lafina is thinking"
+              accessibilityRole="image"
+              accessible={true}
+              testID="synth-wave-avatar"
+            >
+              <RNSVGSvgView>
+                <RNSVGGroup>
+                  <RNSVGDefs>
+                    <RNSVGLinearGradient />
+                  </RNSVGDefs>
+                  <RNSVGPath />
+                  <RNSVGPath />
+                  <RNSVGPath />
+                  <RNSVGPath />
+                  <RNSVGPath />
+                  <RNSVGPath />
+                  <RNSVGPath />
+                  <RNSVGPath />
+                  <RNSVGPath />
+                  <RNSVGPath />
+                </RNSVGGroup>
+              </RNSVGSvgView>
+            </View>
+          </View>
+          <Text
+            testID="call-timer"
+          >
+            00:00
+          </Text>
+          <Text
+            testID="voice-conversation-status"
+          >
+            Thinking…
+          </Text>
+          <View
+            testID="call-waveform-area"
+          >
+            <View
+              accessibilityLabel="Lafina is thinking"
+              accessibilityRole="progressbar"
+              accessibilityValue={
+                {
+                  "max": 100,
+                  "min": 0,
+                  "now": 0,
+                }
+              }
+              accessible={true}
+              testID="call-assistant-waveform-idle"
+            >
+              <View
+                testID="assistant-waveform-bar-0"
+              />
+              <View
+                testID="assistant-waveform-bar-1"
+              />
+              <View
+                testID="assistant-waveform-bar-2"
+              />
+              <View
+                testID="assistant-waveform-bar-3"
+              />
+              <View
+                testID="assistant-waveform-bar-4"
+              />
+              <View
+                testID="assistant-waveform-bar-5"
+              />
+              <View
+                testID="assistant-waveform-bar-6"
+              />
+              <View
+                testID="assistant-waveform-bar-7"
+              />
+              <View
+                testID="assistant-waveform-bar-8"
+              />
+            </View>
+            <View
+              testID="call-thinking-indicator"
+            >
+              <View />
+              <View />
+              <View />
+            </View>
+            <Text
+              testID="call-waveform-status-text"
+            >
+              Thinking…
+            </Text>
+            <View
+              accessibilityLabel="Microphone idle"
+              accessibilityValue={
+                {
+                  "max": 100,
+                  "min": 0,
+                  "now": 0,
+                }
+              }
+              accessible={true}
+              testID="call-user-waveform"
+            >
+              <View
+                testID="call-user-waveform-idle"
+              />
+            </View>
+          </View>
+        </View>
+        <RCTScrollView
+          testID="call-overlay-scroll"
+        >
+          <View />
+        </RCTScrollView>
+      </View>
+      <View
+        testID="call-control-dock"
+      >
+        <View>
+          <View
+            accessibilityLabel="Mute"
+            accessibilityRole="button"
+            accessibilityState={
+              {
+                "disabled": false,
+                "selected": false,
+              }
+            }
+            accessible={true}
+            testID="voice-conversation-mute"
+          >
+            <View>
+              <View
+                accessibilityLabel="Mic"
+              />
+            </View>
+            <Text>
+              Mute
+            </Text>
+          </View>
+          <View
+            accessibilityLabel="Type a turn instead of speaking"
+            accessibilityRole="button"
+            accessibilityState={
+              {
+                "disabled": false,
+                "selected": false,
+              }
+            }
+            accessible={true}
+            testID="voice-conversation-type-instead"
+          >
+            <View>
+              <View
+                accessibilityLabel="MessageSquareText"
+              />
+            </View>
+            <Text>
+              Type
+            </Text>
+          </View>
+          <View
+            accessibilityLabel="Stop LAFINA's answer"
+            accessibilityRole="button"
+            accessibilityState={
+              {
+                "disabled": false,
+                "selected": false,
+              }
+            }
+            accessible={true}
+            testID="voice-conversation-stop"
+          >
+            <View>
+              <View
+                accessibilityLabel="Square"
+              />
+            </View>
+            <Text>
+              Stop
+            </Text>
+          </View>
+          <View
+            accessibilityLabel="End Call Lafina"
+            accessibilityRole="button"
+            accessibilityState={
+              {
+                "disabled": false,
+                "selected": false,
+              }
+            }
+            accessible={true}
+            testID="voice-conversation-end"
+          >
+            <View>
+              <View
+                accessibilityLabel="PhoneOff"
+              />
+            </View>
+            <Text>
+              End
+            </Text>
+          </View>
+        </View>
+      </View>
+    </View>
+
+      993 |     });
+      994 |
+    > 995 |     const card = await utils.findByTestId('voice-conversation-review-card');
+          |                              ^
+      996 |     expect(card).toHaveTextContent(/1:00 PM/);
+      997 |     // Waveform/avatar hides while card is shown on screen
+      998 |     expect(utils.queryByTestId('call-identity-ring')).toBeNull();
+
+      at Object.findByTestId (__tests__/ui/voiceConversationUi.test.tsx:995:30)
+      at asyncGeneratorStep (node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+      at _next (node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
+
+  ● Call Mode ChatGPT-style UX, live card revisions, and saving › confirm_draft client tool call commits pending card inside panel
+
+    Unable to find an element with testID: voice-conversation-review-card
+
+    <View
+      testID="voice-conversation-panel"
+    >
+      <View>
+        <View>
+          <View
+            accessibilityLabel="Back to push-to-talk"
+            accessibilityRole="button"
+            accessible={true}
+            testID="voice-conversation-back"
+          >
+            <View
+              accessibilityLabel="ArrowLeft"
+            />
+          </View>
+        </View>
+        <View>
+          <Text
+            testID="call-header-title"
+          >
+            Call Lafina
+          </Text>
+          <View
+            testID="call-status-badge"
+          >
+            <View
+              accessibilityLabel="AudioLines"
+            />
+            <Text
+              testID="call-online-badge"
+            >
+              Online
+            </Text>
+          </View>
+        </View>
+        <View>
+          <View
+            accessibilityLabel="Call Lafina settings"
+            accessibilityRole="button"
+            accessible={true}
+            testID="call-settings-button"
+          >
+            <View
+              accessibilityLabel="Sliders"
+            />
+          </View>
+        </View>
+      </View>
+      <View
+        testID="call-content-stage"
+      >
+        <View
+          testID="call-center-stage"
+        >
+          <View
+            testID="call-identity-ring"
+          >
+            <View
+              accessibilityLabel="Lafina is thinking"
+              accessibilityRole="image"
+              accessible={true}
+              testID="synth-wave-avatar"
+            >
+              <RNSVGSvgView>
+                <RNSVGGroup>
+                  <RNSVGDefs>
+                    <RNSVGLinearGradient />
+                  </RNSVGDefs>
+                  <RNSVGPath />
+                  <RNSVGPath />
+                  <RNSVGPath />
+                  <RNSVGPath />
+                  <RNSVGPath />
+                  <RNSVGPath />
+                  <RNSVGPath />
+                  <RNSVGPath />
+                  <RNSVGPath />
+                  <RNSVGPath />
+                </RNSVGGroup>
+              </RNSVGSvgView>
+            </View>
+          </View>
+          <Text
+            testID="call-timer"
+          >
+            00:00
+          </Text>
+          <Text
+            testID="voice-conversation-status"
+          >
+            Thinking…
+          </Text>
+          <View
+            testID="call-waveform-area"
+          >
+            <View
+              accessibilityLabel="Lafina is thinking"
+              accessibilityRole="progressbar"
+              accessibilityValue={
+                {
+                  "max": 100,
+                  "min": 0,
+                  "now": 0,
+                }
+              }
+              accessible={true}
+              testID="call-assistant-waveform-idle"
+            >
+              <View
+                testID="assistant-waveform-bar-0"
+              />
+              <View
+                testID="assistant-waveform-bar-1"
+              />
+              <View
+                testID="assistant-waveform-bar-2"
+              />
+              <View
+                testID="assistant-waveform-bar-3"
+              />
+              <View
+                testID="assistant-waveform-bar-4"
+              />
+              <View
+                testID="assistant-waveform-bar-5"
+              />
+              <View
+                testID="assistant-waveform-bar-6"
+              />
+              <View
+                testID="assistant-waveform-bar-7"
+              />
+              <View
+                testID="assistant-waveform-bar-8"
+              />
+            </View>
+            <View
+              testID="call-thinking-indicator"
+            >
+              <View />
+              <View />
+              <View />
+            </View>
+            <Text
+              testID="call-waveform-status-text"
+            >
+              Thinking…
+            </Text>
+            <View
+              accessibilityLabel="Microphone idle"
+              accessibilityValue={
+                {
+                  "max": 100,
+                  "min": 0,
+                  "now": 0,
+                }
+              }
+              accessible={true}
+              testID="call-user-waveform"
+            >
+              <View
+                testID="call-user-waveform-idle"
+              />
+            </View>
+          </View>
+        </View>
+        <RCTScrollView
+          testID="call-overlay-scroll"
+        >
+          <View />
+        </RCTScrollView>
+      </View>
+      <View
+        testID="call-control-dock"
+      >
+        <View>
+          <View
+            accessibilityLabel="Mute"
+            accessibilityRole="button"
+            accessibilityState={
+              {
+                "disabled": false,
+                "selected": false,
+              }
+            }
+            accessible={true}
+            testID="voice-conversation-mute"
+          >
+            <View>
+              <View
+                accessibilityLabel="Mic"
+              />
+            </View>
+            <Text>
+              Mute
+            </Text>
+          </View>
+          <View
+            accessibilityLabel="Type a turn instead of speaking"
+            accessibilityRole="button"
+            accessibilityState={
+              {
+                "disabled": false,
+                "selected": false,
+              }
+            }
+            accessible={true}
+            testID="voice-conversation-type-instead"
+          >
+            <View>
+              <View
+                accessibilityLabel="MessageSquareText"
+              />
+            </View>
+            <Text>
+              Type
+            </Text>
+          </View>
+          <View
+            accessibilityLabel="Stop LAFINA's answer"
+            accessibilityRole="button"
+            accessibilityState={
+              {
+                "disabled": false,
+                "selected": false,
+              }
+            }
+            accessible={true}
+            testID="voice-conversation-stop"
+          >
+            <View>
+              <View
+                accessibilityLabel="Square"
+              />
+            </View>
+            <Text>
+              Stop
+            </Text>
+          </View>
+          <View
+            accessibilityLabel="End Call Lafina"
+            accessibilityRole="button"
+            accessibilityState={
+              {
+                "disabled": false,
+                "selected": false,
+              }
+            }
+            accessible={true}
+            testID="voice-conversation-end"
+          >
+            <View>
+              <View
+                accessibilityLabel="PhoneOff"
+              />
+            </View>
+            <Text>
+              End
+            </Text>
+          </View>
+        </View>
+      </View>
+    </View>
+
+      1069 |     });
+      1070 |
+    > 1071 |     await utils.findByTestId('voice-conversation-review-card');
+           |                 ^
+      1072 |     const cardId = latestPendingReview(userId, 'voice')?.operationId;
+      1073 |     expect(cardId).toBeTruthy();
+      1074 |
+
+      at Object.findByTestId (__tests__/ui/voiceConversationUi.test.tsx:1071:17)
+      at asyncGeneratorStep (node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+      at _next (node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
+
+  ● Call Mode ChatGPT-style UX, live card revisions, and saving › schedule me a meeting and polite question form show confirmation card and hide orb/waveform
+
+    Unable to find an element with testID: voice-conversation-review-card
+
+    <View
+      testID="voice-conversation-panel"
+    >
+      <View>
+        <View>
+          <View
+            accessibilityLabel="Back to push-to-talk"
+            accessibilityRole="button"
+            accessible={true}
+            testID="voice-conversation-back"
+          >
+            <View
+              accessibilityLabel="ArrowLeft"
+            />
+          </View>
+        </View>
+        <View>
+          <Text
+            testID="call-header-title"
+          >
+            Call Lafina
+          </Text>
+          <View
+            testID="call-status-badge"
+          >
+            <View
+              accessibilityLabel="AudioLines"
+            />
+            <Text
+              testID="call-online-badge"
+            >
+              Online
+            </Text>
+          </View>
+        </View>
+        <View>
+          <View
+            accessibilityLabel="Call Lafina settings"
+            accessibilityRole="button"
+            accessible={true}
+            testID="call-settings-button"
+          >
+            <View
+              accessibilityLabel="Sliders"
+            />
+          </View>
+        </View>
+      </View>
+      <View
+        testID="call-content-stage"
+      >
+        <View
+          testID="call-center-stage"
+        >
+          <View
+            testID="call-identity-ring"
+          >
+            <View
+              accessibilityLabel="Lafina is thinking"
+              accessibilityRole="image"
+              accessible={true}
+              testID="synth-wave-avatar"
+            >
+              <RNSVGSvgView>
+                <RNSVGGroup>
+                  <RNSVGDefs>
+                    <RNSVGLinearGradient />
+                  </RNSVGDefs>
+                  <RNSVGPath />
+                  <RNSVGPath />
+                  <RNSVGPath />
+                  <RNSVGPath />
+                  <RNSVGPath />
+                  <RNSVGPath />
+                  <RNSVGPath />
+                  <RNSVGPath />
+                  <RNSVGPath />
+                  <RNSVGPath />
+                </RNSVGGroup>
+              </RNSVGSvgView>
+            </View>
+          </View>
+          <Text
+            testID="call-timer"
+          >
+            00:01
+          </Text>
+          <Text
+            testID="voice-conversation-status"
+          >
+            Thinking…
+          </Text>
+          <View
+            testID="call-waveform-area"
+          >
+            <View
+              accessibilityLabel="Lafina is thinking"
+              accessibilityRole="progressbar"
+              accessibilityValue={
+                {
+                  "max": 100,
+                  "min": 0,
+                  "now": 0,
+                }
+              }
+              accessible={true}
+              testID="call-assistant-waveform-idle"
+            >
+              <View
+                testID="assistant-waveform-bar-0"
+              />
+              <View
+                testID="assistant-waveform-bar-1"
+              />
+              <View
+                testID="assistant-waveform-bar-2"
+              />
+              <View
+                testID="assistant-waveform-bar-3"
+              />
+              <View
+                testID="assistant-waveform-bar-4"
+              />
+              <View
+                testID="assistant-waveform-bar-5"
+              />
+              <View
+                testID="assistant-waveform-bar-6"
+              />
+              <View
+                testID="assistant-waveform-bar-7"
+              />
+              <View
+                testID="assistant-waveform-bar-8"
+              />
+            </View>
+            <View
+              testID="call-thinking-indicator"
+            >
+              <View />
+              <View />
+              <View />
+            </View>
+            <Text
+              testID="call-waveform-status-text"
+            >
+              Thinking…
+            </Text>
+            <View
+              accessibilityLabel="Microphone idle"
+              accessibilityValue={
+                {
+                  "max": 100,
+                  "min": 0,
+                  "now": 0,
+                }
+              }
+              accessible={true}
+              testID="call-user-waveform"
+            >
+              <View
+                testID="call-user-waveform-idle"
+              />
+            </View>
+          </View>
+        </View>
+        <RCTScrollView
+          testID="call-overlay-scroll"
+        >
+          <View />
+        </RCTScrollView>
+      </View>
+      <View
+        testID="call-control-dock"
+      >
+        <View>
+          <View
+            accessibilityLabel="Mute"
+            accessibilityRole="button"
+            accessibilityState={
+              {
+                "disabled": false,
+                "selected": false,
+              }
+            }
+            accessible={true}
+            testID="voice-conversation-mute"
+          >
+            <View>
+              <View
+                accessibilityLabel="Mic"
+              />
+            </View>
+            <Text>
+              Mute
+            </Text>
+          </View>
+          <View
+            accessibilityLabel="Type a turn instead of speaking"
+            accessibilityRole="button"
+            accessibilityState={
+              {
+                "disabled": false,
+                "selected": false,
+              }
+            }
+            accessible={true}
+            testID="voice-conversation-type-instead"
+          >
+            <View>
+              <View
+                accessibilityLabel="MessageSquareText"
+              />
+            </View>
+            <Text>
+              Type
+            </Text>
+          </View>
+          <View
+            accessibilityLabel="Stop LAFINA's answer"
+            accessibilityRole="button"
+            accessibilityState={
+              {
+                "disabled": false,
+                "selected": false,
+              }
+            }
+            accessible={true}
+            testID="voice-conversation-stop"
+          >
+            <View>
+              <View
+                accessibilityLabel="Square"
+              />
+            </View>
+            <Text>
+              Stop
+            </Text>
+          </View>
+          <View
+            accessibilityLabel="End Call Lafina"
+            accessibilityRole="button"
+            accessibilityState={
+              {
+                "disabled": false,
+                "selected": false,
+              }
+            }
+            accessible={true}
+            testID="voice-conversation-end"
+          >
+            <View>
+              <View
+                accessibilityLabel="PhoneOff"
+              />
+            </View>
+            <Text>
+              End
+            </Text>
+          </View>
+        </View>
+      </View>
+    </View>
+
+      1115 |       },
+      1116 |     });
+    > 1117 |     const card = await utils.findByTestId('voice-conversation-review-card');
+           |                              ^
+      1118 |     expect(card).toHaveTextContent(/Meeting/);
+      1119 |     expect(utils.queryByTestId('call-identity-ring')).toBeNull();
+      1120 |     expect(utils.queryByTestId('call-waveform-area')).toBeNull();
+
+      at Object.findByTestId (__tests__/ui/voiceConversationUi.test.tsx:1117:30)
+      at asyncGeneratorStep (node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+      at _next (node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
+
+  ● Call Mode ChatGPT-style UX, live card revisions, and saving › hides orb and waveform when displaying clarification details or assistant reply, and Done restores orb
+
+    expect(received).toBeNull()
+
+    Received: {"_fiber": {"_debugHookTypes": null, "_debugInfo": null, "_debugNeedsRemount": false, "_debugOwner": [FiberNode], "_debugStack": [Error: react-stack-top-frame], "_debugTask": null, "actualDuration": 4, "actualStartTime": 1794851366064, "alternate": [FiberNode], "child": [FiberNode], "childLanes": 0, "deletions": null, "dependencies": null, "elementType": "View", "flags": 0, "index": 0, "key": null, "lanes": 0, "memoizedProps": [Object], "memoizedState": null, "mode": 3, "pendingProps": [Object], "ref": null, "refCleanup": null, "return": [FiberNode], "selfBaseDuration": 0, "sibling": null, "stateNode": [Object], "subtreeFlags": 13107717, "tag": 5, "treeBaseDuration": 4, "type": "View", "updateQueue": null}}
+
+      1158 |     const detailsCard = await utils.findByTestId('call-details-card');
+      1159 |     expect(detailsCard).toHaveTextContent(/I can help plan your week/);
+    > 1160 |     expect(utils.queryByTestId('call-identity-ring')).toBeNull();
+           |                                                       ^
+      1161 |     expect(utils.queryByTestId('call-waveform-area')).toBeNull();
+      1162 |
+      1163 |     fireEvent.press(utils.getByTestId('call-details-dismiss'));
+
+      at Object.toBeNull (__tests__/ui/voiceConversationUi.test.tsx:1160:55)
+      at asyncGeneratorStep (node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+      at _next (node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
+
+PASS __tests__/ui/callLafinaPhase01.test.tsx
+PASS __tests__/ui/callLafinaPhase04.test.tsx
+FAIL __tests__/ui/callFlowAudit20261116.test.tsx (5.8 s)
+  ● Call Lafina: a card the call talks about is on screen › a finished memory card does not hide the next review card
+
+    expect(element).toHaveTextContent()
+
+    Expected element to have text content:
+      /Submit slides/i
+    Received:
+      Personal MemorySavedFrom spoken request:“Remember that I prefer studying at night”Saved to personal memory“Prefers studying at night.”Stored on this device only. Relevant memories are shared with the voice provider during calls to personalize assistance.UndoDone
+
+      219 |     message(said('Add task: Submit slides tomorrow at 3pm'));
+      220 |     const card = await utils.findByTestId('voice-conversation-review-card');
+    > 221 |     expect(card).toHaveTextContent(/Submit slides/i);
+          |                  ^
+      222 |     // The saved memory card gave way to the card that needs an answer.
+      223 |     expect(utils.queryByTestId('memory-review-card')).toBeNull();
+      224 |   });
+
+      at Object.toHaveTextContent (__tests__/ui/callFlowAudit20261116.test.tsx:221:18)
+      at asyncGeneratorStep (node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+      at _next (node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
+
+  ● Call Lafina: a card the call talks about is on screen › a card claim with a card on screen leaves the card alone
+
+    Unable to find an element with testID: voice-conversation-review-card
+
+    <View
+      testID="voice-conversation-panel"
+    >
+      <View>
+        <View>
+          <View
+            accessibilityLabel="Back to push-to-talk"
+            accessibilityRole="button"
+            accessible={true}
+            testID="voice-conversation-back"
+          >
+            <View
+              accessibilityLabel="ArrowLeft"
+            />
+          </View>
+        </View>
+        <View>
+          <Text
+            testID="call-header-title"
+          >
+            Call Lafina
+          </Text>
+          <View
+            testID="call-status-badge"
+          >
+            <View
+              accessibilityLabel="AudioLines"
+            />
+            <Text
+              testID="call-online-badge"
+            >
+              Online
+            </Text>
+          </View>
+        </View>
+        <View>
+          <View
+            accessibilityLabel="Call Lafina settings"
+            accessibilityRole="button"
+            accessible={true}
+            testID="call-settings-button"
+          >
+            <View
+              accessibilityLabel="Sliders"
+            />
+          </View>
+        </View>
+      </View>
+      <View
+        testID="call-content-stage"
+      >
+        <View
+          testID="call-center-stage"
+        >
+          <View
+            testID="call-identity-ring"
+          >
+            <View
+              accessibilityLabel="Lafina is thinking"
+              accessibilityRole="image"
+              accessible={true}
+              testID="synth-wave-avatar"
+            >
+              <RNSVGSvgView>
+                <RNSVGGroup>
+                  <RNSVGDefs>
+                    <RNSVGLinearGradient />
+                  </RNSVGDefs>
+                  <RNSVGPath />
+                  <RNSVGPath />
+                  <RNSVGPath />
+                  <RNSVGPath />
+                  <RNSVGPath />
+                  <RNSVGPath />
+                  <RNSVGPath />
+                  <RNSVGPath />
+                  <RNSVGPath />
+                  <RNSVGPath />
+                </RNSVGGroup>
+              </RNSVGSvgView>
+            </View>
+          </View>
+          <Text
+            testID="call-timer"
+          >
+            00:00
+          </Text>
+          <Text
+            testID="voice-conversation-status"
+          >
+            Thinking…
+          </Text>
+          <View
+            testID="call-waveform-area"
+          >
+            <View
+              accessibilityLabel="Lafina is thinking"
+              accessibilityRole="progressbar"
+              accessibilityValue={
+                {
+                  "max": 100,
+                  "min": 0,
+                  "now": 0,
+                }
+              }
+              accessible={true}
+              testID="call-assistant-waveform-idle"
+            >
+              <View
+                testID="assistant-waveform-bar-0"
+              />
+              <View
+                testID="assistant-waveform-bar-1"
+              />
+              <View
+                testID="assistant-waveform-bar-2"
+              />
+              <View
+                testID="assistant-waveform-bar-3"
+              />
+              <View
+                testID="assistant-waveform-bar-4"
+              />
+              <View
+                testID="assistant-waveform-bar-5"
+              />
+              <View
+                testID="assistant-waveform-bar-6"
+              />
+              <View
+                testID="assistant-waveform-bar-7"
+              />
+              <View
+                testID="assistant-waveform-bar-8"
+              />
+            </View>
+            <View
+              testID="call-thinking-indicator"
+            >
+              <View />
+              <View />
+              <View />
+            </View>
+            <Text
+              testID="call-waveform-status-text"
+            >
+              Thinking…
+            </Text>
+            <View
+              accessibilityLabel="Microphone idle"
+              accessibilityValue={
+                {
+                  "max": 100,
+                  "min": 0,
+                  "now": 0,
+                }
+              }
+              accessible={true}
+              testID="call-user-waveform"
+            >
+              <View
+                testID="call-user-waveform-idle"
+              />
+            </View>
+          </View>
+        </View>
+        <RCTScrollView
+          testID="call-overlay-scroll"
+        >
+          <View />
+        </RCTScrollView>
+      </View>
+      <View
+        testID="call-control-dock"
+      >
+        <View>
+          <View
+            accessibilityLabel="Mute"
+            accessibilityRole="button"
+            accessibilityState={
+              {
+                "disabled": false,
+                "selected": false,
+              }
+            }
+            accessible={true}
+            testID="voice-conversation-mute"
+          >
+            <View>
+              <View
+                accessibilityLabel="Mic"
+              />
+            </View>
+            <Text>
+              Mute
+            </Text>
+          </View>
+          <View
+            accessibilityLabel="Type a turn instead of speaking"
+            accessibilityRole="button"
+            accessibilityState={
+              {
+                "disabled": false,
+                "selected": false,
+              }
+            }
+            accessible={true}
+            testID="voice-conversation-type-instead"
+          >
+            <View>
+              <View
+                accessibilityLabel="MessageSquareText"
+              />
+            </View>
+            <Text>
+              Type
+            </Text>
+          </View>
+          <View
+            accessibilityLabel="Stop LAFINA's answer"
+            accessibilityRole="button"
+            accessibilityState={
+              {
+                "disabled": false,
+                "selected": false,
+              }
+            }
+            accessible={true}
+            testID="voice-conversation-stop"
+          >
+            <View>
+              <View
+                accessibilityLabel="Square"
+              />
+            </View>
+            <Text>
+              Stop
+            </Text>
+          </View>
+          <View
+            accessibilityLabel="End Call Lafina"
+            accessibilityRole="button"
+            accessibilityState={
+              {
+                "disabled": false,
+                "selected": false,
+              }
+            }
+            accessible={true}
+            testID="voice-conversation-end"
+          >
+            <View>
+              <View
+                accessibilityLabel="PhoneOff"
+              />
+            </View>
+            <Text>
+              End
+            </Text>
+          </View>
+        </View>
+      </View>
+    </View>
+
+      290 |
+      291 |     message(said('Add task: Submit slides tomorrow at 3pm'));
+    > 292 |     await utils.findByTestId('voice-conversation-review-card');
+          |                 ^
+      293 |     message(agentSaid('I put a card on your screen. Check it and confirm.'));
+      294 |
+      295 |     await waitFor(() =>
+
+      at Object.findByTestId (__tests__/ui/callFlowAudit20261116.test.tsx:292:17)
+      at asyncGeneratorStep (node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+      at _next (node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
+
+  ● Call Lafina: a card the call talks about is on screen › a new card asks the app to bring a minimized call forward
+
+    Unable to find an element with testID: voice-conversation-review-card
+
+    <View
+      testID="voice-conversation-panel"
+    >
+      <View>
+        <View>
+          <View
+            accessibilityLabel="Back to push-to-talk"
+            accessibilityRole="button"
+            accessible={true}
+            testID="voice-conversation-back"
+          >
+            <View
+              accessibilityLabel="ArrowLeft"
+            />
+          </View>
+        </View>
+        <View>
+          <Text
+            testID="call-header-title"
+          >
+            Call Lafina
+          </Text>
+          <View
+            testID="call-status-badge"
+          >
+            <View
+              accessibilityLabel="AudioLines"
+            />
+            <Text
+              testID="call-online-badge"
+            >
+              Online
+            </Text>
+          </View>
+        </View>
+        <View>
+          <View
+            accessibilityLabel="Call Lafina settings"
+            accessibilityRole="button"
+            accessible={true}
+            testID="call-settings-button"
+          >
+            <View
+              accessibilityLabel="Sliders"
+            />
+          </View>
+        </View>
+      </View>
+      <View
+        testID="call-content-stage"
+      >
+        <View
+          testID="call-center-stage"
+        >
+          <View
+            testID="call-identity-ring"
+          >
+            <View
+              accessibilityLabel="Lafina is thinking"
+              accessibilityRole="image"
+              accessible={true}
+              testID="synth-wave-avatar"
+            >
+              <RNSVGSvgView>
+                <RNSVGGroup>
+                  <RNSVGDefs>
+                    <RNSVGLinearGradient />
+                  </RNSVGDefs>
+                  <RNSVGPath />
+                  <RNSVGPath />
+                  <RNSVGPath />
+                  <RNSVGPath />
+                  <RNSVGPath />
+                  <RNSVGPath />
+                  <RNSVGPath />
+                  <RNSVGPath />
+                  <RNSVGPath />
+                  <RNSVGPath />
+                </RNSVGGroup>
+              </RNSVGSvgView>
+            </View>
+          </View>
+          <Text
+            testID="call-timer"
+          >
+            00:00
+          </Text>
+          <Text
+            testID="voice-conversation-status"
+          >
+            Thinking…
+          </Text>
+          <View
+            testID="call-waveform-area"
+          >
+            <View
+              accessibilityLabel="Lafina is thinking"
+              accessibilityRole="progressbar"
+              accessibilityValue={
+                {
+                  "max": 100,
+                  "min": 0,
+                  "now": 0,
+                }
+              }
+              accessible={true}
+              testID="call-assistant-waveform-idle"
+            >
+              <View
+                testID="assistant-waveform-bar-0"
+              />
+              <View
+                testID="assistant-waveform-bar-1"
+              />
+              <View
+                testID="assistant-waveform-bar-2"
+              />
+              <View
+                testID="assistant-waveform-bar-3"
+              />
+              <View
+                testID="assistant-waveform-bar-4"
+              />
+              <View
+                testID="assistant-waveform-bar-5"
+              />
+              <View
+                testID="assistant-waveform-bar-6"
+              />
+              <View
+                testID="assistant-waveform-bar-7"
+              />
+              <View
+                testID="assistant-waveform-bar-8"
+              />
+            </View>
+            <View
+              testID="call-thinking-indicator"
+            >
+              <View />
+              <View />
+              <View />
+            </View>
+            <Text
+              testID="call-waveform-status-text"
+            >
+              Thinking…
+            </Text>
+            <View
+              accessibilityLabel="Microphone idle"
+              accessibilityValue={
+                {
+                  "max": 100,
+                  "min": 0,
+                  "now": 0,
+                }
+              }
+              accessible={true}
+              testID="call-user-waveform"
+            >
+              <View
+                testID="call-user-waveform-idle"
+              />
+            </View>
+          </View>
+        </View>
+        <RCTScrollView
+          testID="call-overlay-scroll"
+        >
+          <View />
+        </RCTScrollView>
+      </View>
+      <View
+        testID="call-control-dock"
+      >
+        <View>
+          <View
+            accessibilityLabel="Mute"
+            accessibilityRole="button"
+            accessibilityState={
+              {
+                "disabled": false,
+                "selected": false,
+              }
+            }
+            accessible={true}
+            testID="voice-conversation-mute"
+          >
+            <View>
+              <View
+                accessibilityLabel="Mic"
+              />
+            </View>
+            <Text>
+              Mute
+            </Text>
+          </View>
+          <View
+            accessibilityLabel="Type a turn instead of speaking"
+            accessibilityRole="button"
+            accessibilityState={
+              {
+                "disabled": false,
+                "selected": false,
+              }
+            }
+            accessible={true}
+            testID="voice-conversation-type-instead"
+          >
+            <View>
+              <View
+                accessibilityLabel="MessageSquareText"
+              />
+            </View>
+            <Text>
+              Type
+            </Text>
+          </View>
+          <View
+            accessibilityLabel="Stop LAFINA's answer"
+            accessibilityRole="button"
+            accessibilityState={
+              {
+                "disabled": false,
+                "selected": false,
+              }
+            }
+            accessible={true}
+            testID="voice-conversation-stop"
+          >
+            <View>
+              <View
+                accessibilityLabel="Square"
+              />
+            </View>
+            <Text>
+              Stop
+            </Text>
+          </View>
+          <View
+            accessibilityLabel="End Call Lafina"
+            accessibilityRole="button"
+            accessibilityState={
+              {
+                "disabled": false,
+                "selected": false,
+              }
+            }
+            accessible={true}
+            testID="voice-conversation-end"
+          >
+            <View>
+              <View
+                accessibilityLabel="PhoneOff"
+              />
+            </View>
+            <Text>
+              End
+            </Text>
+          </View>
+        </View>
+      </View>
+    </View>
+
+      305 |
+      306 |     message(said('Add task: Submit slides tomorrow at 3pm'));
+    > 307 |     await utils.findByTestId('voice-conversation-review-card');
+          |                 ^
+      308 |     await waitFor(() => expect(onAttention).toHaveBeenCalled());
+      309 |   });
+      310 |
+
+      at Object.findByTestId (__tests__/ui/callFlowAudit20261116.test.tsx:307:17)
+      at asyncGeneratorStep (node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+      at _next (node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
+
+  ● Call Lafina: a card the call talks about is on screen › cards sit in a scrolling area so tall cards are never clipped
+
+    Unable to find an element with testID: voice-conversation-review-card
+
+    <View
+      testID="voice-conversation-panel"
+    >
+      <View>
+        <View>
+          <View
+            accessibilityLabel="Back to push-to-talk"
+            accessibilityRole="button"
+            accessible={true}
+            testID="voice-conversation-back"
+          >
+            <View
+              accessibilityLabel="ArrowLeft"
+            />
+          </View>
+        </View>
+        <View>
+          <Text
+            testID="call-header-title"
+          >
+            Call Lafina
+          </Text>
+          <View
+            testID="call-status-badge"
+          >
+            <View
+              accessibilityLabel="AudioLines"
+            />
+            <Text
+              testID="call-online-badge"
+            >
+              Online
+            </Text>
+          </View>
+        </View>
+        <View>
+          <View
+            accessibilityLabel="Call Lafina settings"
+            accessibilityRole="button"
+            accessible={true}
+            testID="call-settings-button"
+          >
+            <View
+              accessibilityLabel="Sliders"
+            />
+          </View>
+        </View>
+      </View>
+      <View
+        testID="call-content-stage"
+      >
+        <View
+          testID="call-center-stage"
+        >
+          <View
+            testID="call-identity-ring"
+          >
+            <View
+              accessibilityLabel="Lafina is thinking"
+              accessibilityRole="image"
+              accessible={true}
+              testID="synth-wave-avatar"
+            >
+              <RNSVGSvgView>
+                <RNSVGGroup>
+                  <RNSVGDefs>
+                    <RNSVGLinearGradient />
+                  </RNSVGDefs>
+                  <RNSVGPath />
+                  <RNSVGPath />
+                  <RNSVGPath />
+                  <RNSVGPath />
+                  <RNSVGPath />
+                  <RNSVGPath />
+                  <RNSVGPath />
+                  <RNSVGPath />
+                  <RNSVGPath />
+                  <RNSVGPath />
+                </RNSVGGroup>
+              </RNSVGSvgView>
+            </View>
+          </View>
+          <Text
+            testID="call-timer"
+          >
+            00:01
+          </Text>
+          <Text
+            testID="voice-conversation-status"
+          >
+            Thinking…
+          </Text>
+          <View
+            testID="call-waveform-area"
+          >
+            <View
+              accessibilityLabel="Lafina is thinking"
+              accessibilityRole="progressbar"
+              accessibilityValue={
+                {
+                  "max": 100,
+                  "min": 0,
+                  "now": 0,
+                }
+              }
+              accessible={true}
+              testID="call-assistant-waveform-idle"
+            >
+              <View
+                testID="assistant-waveform-bar-0"
+              />
+              <View
+                testID="assistant-waveform-bar-1"
+              />
+              <View
+                testID="assistant-waveform-bar-2"
+              />
+              <View
+                testID="assistant-waveform-bar-3"
+              />
+              <View
+                testID="assistant-waveform-bar-4"
+              />
+              <View
+                testID="assistant-waveform-bar-5"
+              />
+              <View
+                testID="assistant-waveform-bar-6"
+              />
+              <View
+                testID="assistant-waveform-bar-7"
+              />
+              <View
+                testID="assistant-waveform-bar-8"
+              />
+            </View>
+            <View
+              testID="call-thinking-indicator"
+            >
+              <View />
+              <View />
+              <View />
+            </View>
+            <Text
+              testID="call-waveform-status-text"
+            >
+              Thinking…
+            </Text>
+            <View
+              accessibilityLabel="Microphone idle"
+              accessibilityValue={
+                {
+                  "max": 100,
+                  "min": 0,
+                  "now": 0,
+                }
+              }
+              accessible={true}
+              testID="call-user-waveform"
+            >
+              <View
+                testID="call-user-waveform-idle"
+              />
+            </View>
+          </View>
+        </View>
+        <RCTScrollView
+          testID="call-overlay-scroll"
+        >
+          <View />
+        </RCTScrollView>
+      </View>
+      <View
+        testID="call-control-dock"
+      >
+        <View>
+          <View
+            accessibilityLabel="Mute"
+            accessibilityRole="button"
+            accessibilityState={
+              {
+                "disabled": false,
+                "selected": false,
+              }
+            }
+            accessible={true}
+            testID="voice-conversation-mute"
+          >
+            <View>
+              <View
+                accessibilityLabel="Mic"
+              />
+            </View>
+            <Text>
+              Mute
+            </Text>
+          </View>
+          <View
+            accessibilityLabel="Type a turn instead of speaking"
+            accessibilityRole="button"
+            accessibilityState={
+              {
+                "disabled": false,
+                "selected": false,
+              }
+            }
+            accessible={true}
+            testID="voice-conversation-type-instead"
+          >
+            <View>
+              <View
+                accessibilityLabel="MessageSquareText"
+              />
+            </View>
+            <Text>
+              Type
+            </Text>
+          </View>
+          <View
+            accessibilityLabel="Stop LAFINA's answer"
+            accessibilityRole="button"
+            accessibilityState={
+              {
+                "disabled": false,
+                "selected": false,
+              }
+            }
+            accessible={true}
+            testID="voice-conversation-stop"
+          >
+            <View>
+              <View
+                accessibilityLabel="Square"
+              />
+            </View>
+            <Text>
+              Stop
+            </Text>
+          </View>
+          <View
+            accessibilityLabel="End Call Lafina"
+            accessibilityRole="button"
+            accessibilityState={
+              {
+                "disabled": false,
+                "selected": false,
+              }
+            }
+            accessible={true}
+            testID="voice-conversation-end"
+          >
+            <View>
+              <View
+                accessibilityLabel="PhoneOff"
+              />
+            </View>
+            <Text>
+              End
+            </Text>
+          </View>
+        </View>
+      </View>
+    </View>
+
+      313 |
+      314 |     message(said('Add task: Submit slides tomorrow at 3pm'));
+    > 315 |     await utils.findByTestId('voice-conversation-review-card');
+          |                 ^
+      316 |     // The stage stays a fixed View; only the overlay content scrolls.
+      317 |     expect(utils.getByTestId('call-content-stage').type).toBe('View');
+      318 |     expect(utils.getByTestId('call-overlay-scroll')).toBeTruthy();
+
+      at Object.findByTestId (__tests__/ui/callFlowAudit20261116.test.tsx:315:17)
+      at asyncGeneratorStep (node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+      at _next (node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
+
+PASS __tests__/ui/callLafinaPhase03.test.tsx
+PASS __tests__/ui/callLafinaPhase12.test.tsx
+PASS __tests__/ui/callLafinaPhase05.test.tsx
+PASS __tests__/ui/callLafinaPhase13.test.tsx
+PASS __tests__/ui/callLafinaPhase11.test.tsx
+PASS __tests__/ui/callLafinaPhase09.test.tsx
+PASS __tests__/ui/callLafinaPhase07.test.tsx
+PASS __tests__/ui/callLafinaPhase06.test.tsx
+PASS __tests__/ui/callLafinaPhase14.test.tsx
+PASS __tests__/cloud/voiceConversationController.test.ts
+PASS __tests__/ui/callLafinaPhase02.test.tsx
+PASS __tests__/ui/callLafinaPhase08.test.tsx
+PASS __tests__/cloud/todoCallLafina.test.tsx
+PASS __tests__/ui/callLafinaRemediation.test.ts
+PASS __tests__/cloud/voiceConversationExtraContext.test.ts
+PASS __tests__/ui/callLafinaPhase10.test.tsx
+PASS __tests__/ui/callLafinaPhase15.test.tsx
+PASS __tests__/cloud/callLafinaStudentContext.test.ts
+PASS __tests__/ai/groundedVoiceDraft.test.ts
+
+Summary of all failing tests
+FAIL __tests__/ui/voiceConversationUi.test.tsx (17.039 s)
+  ● a live conversation › closing during intent extraction cannot leave a late review
+
+    expect(received).toBeDefined()
+
+    Received: undefined
+
+      358 |       },
+      359 |     });
+    > 360 |     await waitFor(() => expect(release).toBeDefined());
+          |                  ^
+      361 |     fireEvent.press(utils.getByTestId('voice-conversation-end'));
+      362 |     await act(async () => {
+      363 |       release?.();
+
+      at Object.<anonymous> (__tests__/ui/voiceConversationUi.test.tsx:360:18)
+      at asyncGeneratorStep (node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+      at _next (node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
+
+  ● a live conversation › missing schedule details come from follow-up speech rather than tool guesses
+
+    Unable to find an element with testID: voice-conversation-local-note
+
+    <View
+      testID="voice-conversation-panel"
+    >
+      <View>
+        <View>
+          <View
+            accessibilityLabel="Back to push-to-talk"
+            accessibilityRole="button"
+            accessible={true}
+            testID="voice-conversation-back"
+          >
+            <View
+              accessibilityLabel="ArrowLeft"
+            />
+          </View>
+        </View>
+        <View>
+          <Text
+            testID="call-header-title"
+          >
+            Call Lafina
+          </Text>
+          <View
+            testID="call-status-badge"
+          >
+            <View
+              accessibilityLabel="AudioLines"
+            />
+            <Text
+              testID="call-online-badge"
+            >
+              Online
+            </Text>
+          </View>
+        </View>
+        <View>
+          <View
+            accessibilityLabel="Call Lafina settings"
+            accessibilityRole="button"
+            accessible={true}
+            testID="call-settings-button"
+          >
+            <View
+              accessibilityLabel="Sliders"
+            />
+          </View>
+        </View>
+      </View>
+      <View
+        testID="call-content-stage"
+      >
+        <View
+          testID="call-center-stage"
+        >
+          <View
+            testID="call-identity-ring"
+          >
+            <View
+              accessibilityLabel="Lafina is thinking"
+              accessibilityRole="image"
+              accessible={true}
+              testID="synth-wave-avatar"
+            >
+              <RNSVGSvgView>
+                <RNSVGGroup>
+                  <RNSVGDefs>
+                    <RNSVGLinearGradient />
+                  </RNSVGDefs>
+                  <RNSVGPath />
+                  <RNSVGPath />
+                  <RNSVGPath />
+                  <RNSVGPath />
+                  <RNSVGPath />
+                  <RNSVGPath />
+                  <RNSVGPath />
+                  <RNSVGPath />
+                  <RNSVGPath />
+                  <RNSVGPath />
+                </RNSVGGroup>
+              </RNSVGSvgView>
+            </View>
+          </View>
+          <Text
+            testID="call-timer"
+          >
+            00:00
+          </Text>
+          <Text
+            testID="voice-conversation-status"
+          >
+            Thinking…
+          </Text>
+          <View
+            testID="call-waveform-area"
+          >
+            <View
+              accessibilityLabel="Lafina is thinking"
+              accessibilityRole="progressbar"
+              accessibilityValue={
+                {
+                  "max": 100,
+                  "min": 0,
+                  "now": 0,
+                }
+              }
+              accessible={true}
+              testID="call-assistant-waveform-idle"
+            >
+              <View
+                testID="assistant-waveform-bar-0"
+              />
+              <View
+                testID="assistant-waveform-bar-1"
+              />
+              <View
+                testID="assistant-waveform-bar-2"
+              />
+              <View
+                testID="assistant-waveform-bar-3"
+              />
+              <View
+                testID="assistant-waveform-bar-4"
+              />
+              <View
+                testID="assistant-waveform-bar-5"
+              />
+              <View
+                testID="assistant-waveform-bar-6"
+              />
+              <View
+                testID="assistant-waveform-bar-7"
+              />
+              <View
+                testID="assistant-waveform-bar-8"
+              />
+            </View>
+            <View
+              testID="call-thinking-indicator"
+            >
+              <View />
+              <View />
+              <View />
+            </View>
+            <Text
+              testID="call-waveform-status-text"
+            >
+              Thinking…
+            </Text>
+            <View
+              accessibilityLabel="Microphone idle"
+              accessibilityValue={
+                {
+                  "max": 100,
+                  "min": 0,
+                  "now": 0,
+                }
+              }
+              accessible={true}
+              testID="call-user-waveform"
+            >
+              <View
+                testID="call-user-waveform-idle"
+              />
+            </View>
+          </View>
+        </View>
+        <RCTScrollView
+          testID="call-overlay-scroll"
+        >
+          <View />
+        </RCTScrollView>
+      </View>
+      <View
+        testID="call-control-dock"
+      >
+        <View>
+          <View
+            accessibilityLabel="Mute"
+            accessibilityRole="button"
+            accessibilityState={
+              {
+                "disabled": false,
+                "selected": false,
+              }
+            }
+            accessible={true}
+            testID="voice-conversation-mute"
+          >
+            <View>
+              <View
+                accessibilityLabel="Mic"
+              />
+            </View>
+            <Text>
+              Mute
+            </Text>
+          </View>
+          <View
+            accessibilityLabel="Type a turn instead of speaking"
+            accessibilityRole="button"
+            accessibilityState={
+              {
+                "disabled": false,
+                "selected": false,
+              }
+            }
+            accessible={true}
+            testID="voice-conversation-type-instead"
+          >
+            <View>
+              <View
+                accessibilityLabel="MessageSquareText"
+              />
+            </View>
+            <Text>
+              Type
+            </Text>
+          </View>
+          <View
+            accessibilityLabel="Stop LAFINA's answer"
+            accessibilityRole="button"
+            accessibilityState={
+              {
+                "disabled": false,
+                "selected": false,
+              }
+            }
+            accessible={true}
+            testID="voice-conversation-stop"
+          >
+            <View>
+              <View
+                accessibilityLabel="Square"
+              />
+            </View>
+            <Text>
+              Stop
+            </Text>
+          </View>
+          <View
+            accessibilityLabel="End Call Lafina"
+            accessibilityRole="button"
+            accessibilityState={
+              {
+                "disabled": false,
+                "selected": false,
+              }
+            }
+            accessible={true}
+            testID="voice-conversation-end"
+          >
+            <View>
+              <View
+                accessibilityLabel="PhoneOff"
+              />
+            </View>
+            <Text>
+              End
+            </Text>
+          </View>
+        </View>
+      </View>
+    </View>
+
+      416 |     });
+      417 |     expect(
+    > 418 |       utils.getByTestId('voice-conversation-local-note'),
+          |             ^
+      419 |     ).toHaveTextContent(/What time/);
+      420 |     message({
+      421 |       type: 'client_tool_call',
+
+      at Object.getByTestId (__tests__/ui/voiceConversationUi.test.tsx:418:13)
+      at asyncGeneratorStep (node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+      at _next (node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
+
+  ● a live conversation › direct agent receives a truthful review result without saving the task
+
+    Unable to find an element with testID: voice-conversation-review-card
+
+    <View
+      testID="voice-conversation-panel"
+    >
+      <View>
+        <View>
+          <View
+            accessibilityLabel="Back to push-to-talk"
+            accessibilityRole="button"
+            accessible={true}
+            testID="voice-conversation-back"
+          >
+            <View
+              accessibilityLabel="ArrowLeft"
+            />
+          </View>
+        </View>
+        <View>
+          <Text
+            testID="call-header-title"
+          >
+            Call Lafina
+          </Text>
+          <View
+            testID="call-status-badge"
+          >
+            <View
+              accessibilityLabel="AudioLines"
+            />
+            <Text
+              testID="call-online-badge"
+            >
+              Online
+            </Text>
+          </View>
+        </View>
+        <View>
+          <View
+            accessibilityLabel="Call Lafina settings"
+            accessibilityRole="button"
+            accessible={true}
+            testID="call-settings-button"
+          >
+            <View
+              accessibilityLabel="Sliders"
+            />
+          </View>
+        </View>
+      </View>
+      <View
+        testID="call-content-stage"
+      >
+        <View
+          testID="call-center-stage"
+        >
+          <View
+            testID="call-identity-ring"
+          >
+            <View
+              accessibilityLabel="Lafina is thinking"
+              accessibilityRole="image"
+              accessible={true}
+              testID="synth-wave-avatar"
+            >
+              <RNSVGSvgView>
+                <RNSVGGroup>
+                  <RNSVGDefs>
+                    <RNSVGLinearGradient />
+                  </RNSVGDefs>
+                  <RNSVGPath />
+                  <RNSVGPath />
+                  <RNSVGPath />
+                  <RNSVGPath />
+                  <RNSVGPath />
+                  <RNSVGPath />
+                  <RNSVGPath />
+                  <RNSVGPath />
+                  <RNSVGPath />
+                  <RNSVGPath />
+                </RNSVGGroup>
+              </RNSVGSvgView>
+            </View>
+          </View>
+          <Text
+            testID="call-timer"
+          >
+            00:00
+          </Text>
+          <Text
+            testID="voice-conversation-status"
+          >
+            Thinking…
+          </Text>
+          <View
+            testID="call-waveform-area"
+          >
+            <View
+              accessibilityLabel="Lafina is thinking"
+              accessibilityRole="progressbar"
+              accessibilityValue={
+                {
+                  "max": 100,
+                  "min": 0,
+                  "now": 0,
+                }
+              }
+              accessible={true}
+              testID="call-assistant-waveform-idle"
+            >
+              <View
+                testID="assistant-waveform-bar-0"
+              />
+              <View
+                testID="assistant-waveform-bar-1"
+              />
+              <View
+                testID="assistant-waveform-bar-2"
+              />
+              <View
+                testID="assistant-waveform-bar-3"
+              />
+              <View
+                testID="assistant-waveform-bar-4"
+              />
+              <View
+                testID="assistant-waveform-bar-5"
+              />
+              <View
+                testID="assistant-waveform-bar-6"
+              />
+              <View
+                testID="assistant-waveform-bar-7"
+              />
+              <View
+                testID="assistant-waveform-bar-8"
+              />
+            </View>
+            <View
+              testID="call-thinking-indicator"
+            >
+              <View />
+              <View />
+              <View />
+            </View>
+            <Text
+              testID="call-waveform-status-text"
+            >
+              Thinking…
+            </Text>
+            <View
+              accessibilityLabel="Microphone idle"
+              accessibilityValue={
+                {
+                  "max": 100,
+                  "min": 0,
+                  "now": 0,
+                }
+              }
+              accessible={true}
+              testID="call-user-waveform"
+            >
+              <View
+                testID="call-user-waveform-idle"
+              />
+            </View>
+          </View>
+        </View>
+        <RCTScrollView
+          testID="call-overlay-scroll"
+        >
+          <View />
+        </RCTScrollView>
+      </View>
+      <View
+        testID="call-control-dock"
+      >
+        <View>
+          <View
+            accessibilityLabel="Mute"
+            accessibilityRole="button"
+            accessibilityState={
+              {
+                "disabled": false,
+                "selected": false,
+              }
+            }
+            accessible={true}
+            testID="voice-conversation-mute"
+          >
+            <View>
+              <View
+                accessibilityLabel="Mic"
+              />
+            </View>
+            <Text>
+              Mute
+            </Text>
+          </View>
+          <View
+            accessibilityLabel="Type a turn instead of speaking"
+            accessibilityRole="button"
+            accessibilityState={
+              {
+                "disabled": false,
+                "selected": false,
+              }
+            }
+            accessible={true}
+            testID="voice-conversation-type-instead"
+          >
+            <View>
+              <View
+                accessibilityLabel="MessageSquareText"
+              />
+            </View>
+            <Text>
+              Type
+            </Text>
+          </View>
+          <View
+            accessibilityLabel="Stop LAFINA's answer"
+            accessibilityRole="button"
+            accessibilityState={
+              {
+                "disabled": false,
+                "selected": false,
+              }
+            }
+            accessible={true}
+            testID="voice-conversation-stop"
+          >
+            <View>
+              <View
+                accessibilityLabel="Square"
+              />
+            </View>
+            <Text>
+              Stop
+            </Text>
+          </View>
+          <View
+            accessibilityLabel="End Call Lafina"
+            accessibilityRole="button"
+            accessibilityState={
+              {
+                "disabled": false,
+                "selected": false,
+              }
+            }
+            accessible={true}
+            testID="voice-conversation-end"
+          >
+            <View>
+              <View
+                accessibilityLabel="PhoneOff"
+              />
+            </View>
+            <Text>
+              End
+            </Text>
+          </View>
+        </View>
+      </View>
+    </View>
+
+      620 |       });
+      621 |       expect(
+    > 622 |         await utils.findByTestId('voice-conversation-review-card'),
+          |                     ^
+      623 |       ).toBeTruthy();
+      624 |       await waitFor(() =>
+      625 |         expect(sent.some(s => s.includes('Nothing has been saved'))).toBe(true),
+
+      at Object.findByTestId (__tests__/ui/voiceConversationUi.test.tsx:622:21)
+      at asyncGeneratorStep (node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+      at _next (node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
+
+  ● a live conversation › live words, controls, a reviewed planner change and saved turns
+
+    Unable to find an element with testID: voice-conversation-review-card
+
+    <View
+      testID="voice-conversation-panel"
+    >
+      <View>
+        <View>
+          <View
+            accessibilityLabel="Back to push-to-talk"
+            accessibilityRole="button"
+            accessible={true}
+            testID="voice-conversation-back"
+          >
+            <View
+              accessibilityLabel="ArrowLeft"
+            />
+          </View>
+        </View>
+        <View>
+          <Text
+            testID="call-header-title"
+          >
+            Call Lafina
+          </Text>
+          <View
+            testID="call-status-badge"
+          >
+            <View
+              accessibilityLabel="AudioLines"
+            />
+            <Text
+              testID="call-online-badge"
+            >
+              Online
+            </Text>
+          </View>
+        </View>
+        <View>
+          <View
+            accessibilityLabel="Call Lafina settings"
+            accessibilityRole="button"
+            accessible={true}
+            testID="call-settings-button"
+          >
+            <View
+              accessibilityLabel="Sliders"
+            />
+          </View>
+        </View>
+      </View>
+      <View
+        testID="call-content-stage"
+      >
+        <View
+          testID="call-center-stage"
+        >
+          <View
+            testID="call-identity-ring"
+          >
+            <View
+              accessibilityLabel="Lafina is thinking"
+              accessibilityRole="image"
+              accessible={true}
+              testID="synth-wave-avatar"
+            >
+              <RNSVGSvgView>
+                <RNSVGGroup>
+                  <RNSVGDefs>
+                    <RNSVGLinearGradient />
+                  </RNSVGDefs>
+                  <RNSVGPath />
+                  <RNSVGPath />
+                  <RNSVGPath />
+                  <RNSVGPath />
+                  <RNSVGPath />
+                  <RNSVGPath />
+                  <RNSVGPath />
+                  <RNSVGPath />
+                  <RNSVGPath />
+                  <RNSVGPath />
+                </RNSVGGroup>
+              </RNSVGSvgView>
+            </View>
+          </View>
+          <Text
+            testID="call-timer"
+          >
+            00:00
+          </Text>
+          <Text
+            testID="voice-conversation-status"
+          >
+            Thinking…
+          </Text>
+          <View
+            testID="call-waveform-area"
+          >
+            <View
+              accessibilityLabel="Lafina is thinking"
+              accessibilityRole="progressbar"
+              accessibilityValue={
+                {
+                  "max": 100,
+                  "min": 0,
+                  "now": 0,
+                }
+              }
+              accessible={true}
+              testID="call-assistant-waveform-idle"
+            >
+              <View
+                testID="assistant-waveform-bar-0"
+              />
+              <View
+                testID="assistant-waveform-bar-1"
+              />
+              <View
+                testID="assistant-waveform-bar-2"
+              />
+              <View
+                testID="assistant-waveform-bar-3"
+              />
+              <View
+                testID="assistant-waveform-bar-4"
+              />
+              <View
+                testID="assistant-waveform-bar-5"
+              />
+              <View
+                testID="assistant-waveform-bar-6"
+              />
+              <View
+                testID="assistant-waveform-bar-7"
+              />
+              <View
+                testID="assistant-waveform-bar-8"
+              />
+            </View>
+            <View
+              testID="call-thinking-indicator"
+            >
+              <View />
+              <View />
+              <View />
+            </View>
+            <Text
+              testID="call-waveform-status-text"
+            >
+              Thinking…
+            </Text>
+            <View
+              accessibilityLabel="Microphone idle"
+              accessibilityValue={
+                {
+                  "max": 100,
+                  "min": 0,
+                  "now": 0,
+                }
+              }
+              accessible={true}
+              testID="call-user-waveform"
+            >
+              <View
+                testID="call-user-waveform-idle"
+              />
+            </View>
+          </View>
+        </View>
+        <RCTScrollView
+          testID="call-overlay-scroll"
+        >
+          <View />
+        </RCTScrollView>
+      </View>
+      <View
+        testID="call-control-dock"
+      >
+        <View>
+          <View
+            accessibilityLabel="Mute"
+            accessibilityRole="button"
+            accessibilityState={
+              {
+                "disabled": false,
+                "selected": false,
+              }
+            }
+            accessible={true}
+            testID="voice-conversation-mute"
+          >
+            <View>
+              <View
+                accessibilityLabel="Mic"
+              />
+            </View>
+            <Text>
+              Mute
+            </Text>
+          </View>
+          <View
+            accessibilityLabel="Type a turn instead of speaking"
+            accessibilityRole="button"
+            accessibilityState={
+              {
+                "disabled": false,
+                "selected": false,
+              }
+            }
+            accessible={true}
+            testID="voice-conversation-type-instead"
+          >
+            <View>
+              <View
+                accessibilityLabel="MessageSquareText"
+              />
+            </View>
+            <Text>
+              Type
+            </Text>
+          </View>
+          <View
+            accessibilityLabel="Stop LAFINA's answer"
+            accessibilityRole="button"
+            accessibilityState={
+              {
+                "disabled": false,
+                "selected": false,
+              }
+            }
+            accessible={true}
+            testID="voice-conversation-stop"
+          >
+            <View>
+              <View
+                accessibilityLabel="Square"
+              />
+            </View>
+            <Text>
+              Stop
+            </Text>
+          </View>
+          <View
+            accessibilityLabel="End Call Lafina"
+            accessibilityRole="button"
+            accessibilityState={
+              {
+                "disabled": false,
+                "selected": false,
+              }
+            }
+            accessible={true}
+            testID="voice-conversation-end"
+          >
+            <View>
+              <View
+                accessibilityLabel="PhoneOff"
+              />
+            </View>
+            <Text>
+              End
+            </Text>
+          </View>
+        </View>
+      </View>
+    </View>
+
+      670 |     // The planner change waits on the card; nothing is saved by speaking.
+      671 |     expect(
+    > 672 |       await utils.findByTestId('voice-conversation-review-card'),
+          |                   ^
+      673 |     ).toBeTruthy();
+      674 |     expect(
+      675 |       utils.getByTestId('voice-conversation-local-note'),
+
+      at Object.findByTestId (__tests__/ui/voiceConversationUi.test.tsx:672:19)
+      at asyncGeneratorStep (node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+      at _next (node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
+
+  ● Call Lafina draft ambiguity and grouped editing › ambiguous cancel with a memory and planner draft does not choose one
+
+    Unable to find an element with text: Check the card — nothing is saved until confirmed.
+
+    <View
+      testID="voice-conversation-panel"
+    >
+      <View>
+        <View>
+          <View
+            accessibilityLabel="Back to push-to-talk"
+            accessibilityRole="button"
+            accessible={true}
+            testID="voice-conversation-back"
+          >
+            <View
+              accessibilityLabel="ArrowLeft"
+            />
+          </View>
+        </View>
+        <View>
+          <Text
+            testID="call-header-title"
+          >
+            Call Lafina
+          </Text>
+          <View
+            testID="call-status-badge"
+          >
+            <View
+              accessibilityLabel="AudioLines"
+            />
+            <Text
+              testID="call-online-badge"
+            >
+              Online
+            </Text>
+          </View>
+        </View>
+        <View>
+          <View
+            accessibilityLabel="Call Lafina settings"
+            accessibilityRole="button"
+            accessible={true}
+            testID="call-settings-button"
+          >
+            <View
+              accessibilityLabel="Sliders"
+            />
+          </View>
+        </View>
+      </View>
+      <View
+        testID="call-content-stage"
+      >
+        <View
+          testID="call-center-stage"
+        >
+          <View
+            testID="call-identity-ring"
+          >
+            <View
+              accessibilityLabel="Lafina is thinking"
+              accessibilityRole="image"
+              accessible={true}
+              testID="synth-wave-avatar"
+            >
+              <RNSVGSvgView>
+                <RNSVGGroup>
+                  <RNSVGDefs>
+                    <RNSVGLinearGradient />
+                  </RNSVGDefs>
+                  <RNSVGPath />
+                  <RNSVGPath />
+                  <RNSVGPath />
+                  <RNSVGPath />
+                  <RNSVGPath />
+                  <RNSVGPath />
+                  <RNSVGPath />
+                  <RNSVGPath />
+                  <RNSVGPath />
+                  <RNSVGPath />
+                </RNSVGGroup>
+              </RNSVGSvgView>
+            </View>
+          </View>
+          <Text
+            testID="call-timer"
+          >
+            00:00
+          </Text>
+          <Text
+            testID="voice-conversation-status"
+          >
+            Thinking…
+          </Text>
+        </View>
+        <RCTScrollView
+          testID="call-overlay-scroll"
+        >
+          <View>
+            <View
+              testID="call-action-card-stage"
+            >
+              <View
+                accessibilityLabel="Memory card: draft"
+                testID="action-card-host"
+              >
+                <View
+                  accessibilityLabel="Memory review card: Draft"
+                  testID="voice-conversation-review-card"
+                >
+                  <View
+                    pointerEvents="none"
+                    testID="memory-review-card"
+                  />
+                  <View>
+                    <View>
+                      <View
+                        accessibilityLabel="Brain"
+                      />
+                      <Text
+                        accessibilityRole="header"
+                      >
+                        Personal Memory
+                      </Text>
+                    </View>
+                    <View>
+                      <Text>
+                        Draft
+                      </Text>
+                    </View>
+                  </View>
+                  <View>
+                    <View>
+                      <Text>
+                        Review the fact Lafina will remember about you:
+                      </Text>
+                      <TextInput
+                        accessibilityLabel="Memory fact text input"
+                        editable={true}
+                        placeholder="Fact to remember..."
+                        testID="memory-draft-text-input"
+                        value="I prefer afternoon classes"
+                      />
+                    </View>
+                  </View>
+                  <Text
+                    testID="memory-disclosure-text"
+                  >
+                    Stored on this device only. Relevant memories are shared with the voice provider during calls to personalize assistance.
+                  </Text>
+                  <View>
+                    <View
+                      accessibilityLabel="Decline memory save"
+                      accessibilityRole="button"
+                      accessibilityState={
+                        {
+                          "disabled": false,
+                        }
+                      }
+                      accessible={true}
+                      testID="memory-draft-cancel"
+                    >
+                      <Text>
+                        Decline
+                      </Text>
+                    </View>
+                    <View
+                      accessibilityLabel="Confirm memory save"
+                      accessibilityRole="button"
+                      accessibilityState={
+                        {
+                          "disabled": false,
+                        }
+                      }
+                      accessible={true}
+                      testID="memory-draft-confirm"
+                    >
+                      <Text>
+                        Save Memory
+                      </Text>
+                    </View>
+                  </View>
+                </View>
+              </View>
+            </View>
+          </View>
+        </RCTScrollView>
+      </View>
+      <View
+        testID="call-control-dock"
+      >
+        <View>
+          <View
+            accessibilityLabel="Mute"
+            accessibilityRole="button"
+            accessibilityState={
+              {
+                "disabled": false,
+                "selected": false,
+              }
+            }
+            accessible={true}
+            testID="voice-conversation-mute"
+          >
+            <View>
+              <View
+                accessibilityLabel="Mic"
+              />
+            </View>
+            <Text>
+              Mute
+            </Text>
+          </View>
+          <View
+            accessibilityLabel="Type a turn instead of speaking"
+            accessibilityRole="button"
+            accessibilityState={
+              {
+                "disabled": false,
+                "selected": false,
+              }
+            }
+            accessible={true}
+            testID="voice-conversation-type-instead"
+          >
+            <View>
+              <View
+                accessibilityLabel="MessageSquareText"
+              />
+            </View>
+            <Text>
+              Type
+            </Text>
+          </View>
+          <View
+            accessibilityLabel="Stop LAFINA's answer"
+            accessibilityRole="button"
+            accessibilityState={
+              {
+                "disabled": false,
+                "selected": false,
+              }
+            }
+            accessible={true}
+            testID="voice-conversation-stop"
+          >
+            <View>
+              <View
+                accessibilityLabel="Square"
+              />
+            </View>
+            <Text>
+              Stop
+            </Text>
+          </View>
+          <View
+            accessibilityLabel="End Call Lafina"
+            accessibilityRole="button"
+            accessibilityState={
+              {
+                "disabled": false,
+                "selected": false,
+              }
+            }
+            accessible={true}
+            testID="voice-conversation-end"
+          >
+            <View>
+              <View
+                accessibilityLabel="PhoneOff"
+              />
+            </View>
+            <Text>
+              End
+            </Text>
+          </View>
+        </View>
+      </View>
+    </View>
+
+      915 |       },
+      916 |     });
+    > 917 |     await waitFor(() =>
+          |                  ^
+      918 |       expect(
+      919 |         utils.getByText('Check the card — nothing is saved until confirmed.'),
+      920 |       ).toBeTruthy(),
+
+      at Object.<anonymous> (__tests__/ui/voiceConversationUi.test.tsx:917:18)
+      at asyncGeneratorStep (node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+      at _next (node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
+
+  ● Call Mode ChatGPT-style UX, live card revisions, and saving › uses non-scrolling stage, hides waveform while card is active, revises open draft on follow-up, and saves via voice
+
+    Unable to find an element with testID: voice-conversation-review-card
+
+    <View
+      testID="voice-conversation-panel"
+    >
+      <View>
+        <View>
+          <View
+            accessibilityLabel="Back to push-to-talk"
+            accessibilityRole="button"
+            accessible={true}
+            testID="voice-conversation-back"
+          >
+            <View
+              accessibilityLabel="ArrowLeft"
+            />
+          </View>
+        </View>
+        <View>
+          <Text
+            testID="call-header-title"
+          >
+            Call Lafina
+          </Text>
+          <View
+            testID="call-status-badge"
+          >
+            <View
+              accessibilityLabel="AudioLines"
+            />
+            <Text
+              testID="call-online-badge"
+            >
+              Online
+            </Text>
+          </View>
+        </View>
+        <View>
+          <View
+            accessibilityLabel="Call Lafina settings"
+            accessibilityRole="button"
+            accessible={true}
+            testID="call-settings-button"
+          >
+            <View
+              accessibilityLabel="Sliders"
+            />
+          </View>
+        </View>
+      </View>
+      <View
+        testID="call-content-stage"
+      >
+        <View
+          testID="call-center-stage"
+        >
+          <View
+            testID="call-identity-ring"
+          >
+            <View
+              accessibilityLabel="Lafina is thinking"
+              accessibilityRole="image"
+              accessible={true}
+              testID="synth-wave-avatar"
+            >
+              <RNSVGSvgView>
+                <RNSVGGroup>
+                  <RNSVGDefs>
+                    <RNSVGLinearGradient />
+                  </RNSVGDefs>
+                  <RNSVGPath />
+                  <RNSVGPath />
+                  <RNSVGPath />
+                  <RNSVGPath />
+                  <RNSVGPath />
+                  <RNSVGPath />
+                  <RNSVGPath />
+                  <RNSVGPath />
+                  <RNSVGPath />
+                  <RNSVGPath />
+                </RNSVGGroup>
+              </RNSVGSvgView>
+            </View>
+          </View>
+          <Text
+            testID="call-timer"
+          >
+            00:00
+          </Text>
+          <Text
+            testID="voice-conversation-status"
+          >
+            Thinking…
+          </Text>
+          <View
+            testID="call-waveform-area"
+          >
+            <View
+              accessibilityLabel="Lafina is thinking"
+              accessibilityRole="progressbar"
+              accessibilityValue={
+                {
+                  "max": 100,
+                  "min": 0,
+                  "now": 0,
+                }
+              }
+              accessible={true}
+              testID="call-assistant-waveform-idle"
+            >
+              <View
+                testID="assistant-waveform-bar-0"
+              />
+              <View
+                testID="assistant-waveform-bar-1"
+              />
+              <View
+                testID="assistant-waveform-bar-2"
+              />
+              <View
+                testID="assistant-waveform-bar-3"
+              />
+              <View
+                testID="assistant-waveform-bar-4"
+              />
+              <View
+                testID="assistant-waveform-bar-5"
+              />
+              <View
+                testID="assistant-waveform-bar-6"
+              />
+              <View
+                testID="assistant-waveform-bar-7"
+              />
+              <View
+                testID="assistant-waveform-bar-8"
+              />
+            </View>
+            <View
+              testID="call-thinking-indicator"
+            >
+              <View />
+              <View />
+              <View />
+            </View>
+            <Text
+              testID="call-waveform-status-text"
+            >
+              Thinking…
+            </Text>
+            <View
+              accessibilityLabel="Microphone idle"
+              accessibilityValue={
+                {
+                  "max": 100,
+                  "min": 0,
+                  "now": 0,
+                }
+              }
+              accessible={true}
+              testID="call-user-waveform"
+            >
+              <View
+                testID="call-user-waveform-idle"
+              />
+            </View>
+          </View>
+        </View>
+        <RCTScrollView
+          testID="call-overlay-scroll"
+        >
+          <View />
+        </RCTScrollView>
+      </View>
+      <View
+        testID="call-control-dock"
+      >
+        <View>
+          <View
+            accessibilityLabel="Mute"
+            accessibilityRole="button"
+            accessibilityState={
+              {
+                "disabled": false,
+                "selected": false,
+              }
+            }
+            accessible={true}
+            testID="voice-conversation-mute"
+          >
+            <View>
+              <View
+                accessibilityLabel="Mic"
+              />
+            </View>
+            <Text>
+              Mute
+            </Text>
+          </View>
+          <View
+            accessibilityLabel="Type a turn instead of speaking"
+            accessibilityRole="button"
+            accessibilityState={
+              {
+                "disabled": false,
+                "selected": false,
+              }
+            }
+            accessible={true}
+            testID="voice-conversation-type-instead"
+          >
+            <View>
+              <View
+                accessibilityLabel="MessageSquareText"
+              />
+            </View>
+            <Text>
+              Type
+            </Text>
+          </View>
+          <View
+            accessibilityLabel="Stop LAFINA's answer"
+            accessibilityRole="button"
+            accessibilityState={
+              {
+                "disabled": false,
+                "selected": false,
+              }
+            }
+            accessible={true}
+            testID="voice-conversation-stop"
+          >
+            <View>
+              <View
+                accessibilityLabel="Square"
+              />
+            </View>
+            <Text>
+              Stop
+            </Text>
+          </View>
+          <View
+            accessibilityLabel="End Call Lafina"
+            accessibilityRole="button"
+            accessibilityState={
+              {
+                "disabled": false,
+                "selected": false,
+              }
+            }
+            accessible={true}
+            testID="voice-conversation-end"
+          >
+            <View>
+              <View
+                accessibilityLabel="PhoneOff"
+              />
+            </View>
+            <Text>
+              End
+            </Text>
+          </View>
+        </View>
+      </View>
+    </View>
+
+      993 |     });
+      994 |
+    > 995 |     const card = await utils.findByTestId('voice-conversation-review-card');
+          |                              ^
+      996 |     expect(card).toHaveTextContent(/1:00 PM/);
+      997 |     // Waveform/avatar hides while card is shown on screen
+      998 |     expect(utils.queryByTestId('call-identity-ring')).toBeNull();
+
+      at Object.findByTestId (__tests__/ui/voiceConversationUi.test.tsx:995:30)
+      at asyncGeneratorStep (node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+      at _next (node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
+
+  ● Call Mode ChatGPT-style UX, live card revisions, and saving › confirm_draft client tool call commits pending card inside panel
+
+    Unable to find an element with testID: voice-conversation-review-card
+
+    <View
+      testID="voice-conversation-panel"
+    >
+      <View>
+        <View>
+          <View
+            accessibilityLabel="Back to push-to-talk"
+            accessibilityRole="button"
+            accessible={true}
+            testID="voice-conversation-back"
+          >
+            <View
+              accessibilityLabel="ArrowLeft"
+            />
+          </View>
+        </View>
+        <View>
+          <Text
+            testID="call-header-title"
+          >
+            Call Lafina
+          </Text>
+          <View
+            testID="call-status-badge"
+          >
+            <View
+              accessibilityLabel="AudioLines"
+            />
+            <Text
+              testID="call-online-badge"
+            >
+              Online
+            </Text>
+          </View>
+        </View>
+        <View>
+          <View
+            accessibilityLabel="Call Lafina settings"
+            accessibilityRole="button"
+            accessible={true}
+            testID="call-settings-button"
+          >
+            <View
+              accessibilityLabel="Sliders"
+            />
+          </View>
+        </View>
+      </View>
+      <View
+        testID="call-content-stage"
+      >
+        <View
+          testID="call-center-stage"
+        >
+          <View
+            testID="call-identity-ring"
+          >
+            <View
+              accessibilityLabel="Lafina is thinking"
+              accessibilityRole="image"
+              accessible={true}
+              testID="synth-wave-avatar"
+            >
+              <RNSVGSvgView>
+                <RNSVGGroup>
+                  <RNSVGDefs>
+                    <RNSVGLinearGradient />
+                  </RNSVGDefs>
+                  <RNSVGPath />
+                  <RNSVGPath />
+                  <RNSVGPath />
+                  <RNSVGPath />
+                  <RNSVGPath />
+                  <RNSVGPath />
+                  <RNSVGPath />
+                  <RNSVGPath />
+                  <RNSVGPath />
+                  <RNSVGPath />
+                </RNSVGGroup>
+              </RNSVGSvgView>
+            </View>
+          </View>
+          <Text
+            testID="call-timer"
+          >
+            00:00
+          </Text>
+          <Text
+            testID="voice-conversation-status"
+          >
+            Thinking…
+          </Text>
+          <View
+            testID="call-waveform-area"
+          >
+            <View
+              accessibilityLabel="Lafina is thinking"
+              accessibilityRole="progressbar"
+              accessibilityValue={
+                {
+                  "max": 100,
+                  "min": 0,
+                  "now": 0,
+                }
+              }
+              accessible={true}
+              testID="call-assistant-waveform-idle"
+            >
+              <View
+                testID="assistant-waveform-bar-0"
+              />
+              <View
+                testID="assistant-waveform-bar-1"
+              />
+              <View
+                testID="assistant-waveform-bar-2"
+              />
+              <View
+                testID="assistant-waveform-bar-3"
+              />
+              <View
+                testID="assistant-waveform-bar-4"
+              />
+              <View
+                testID="assistant-waveform-bar-5"
+              />
+              <View
+                testID="assistant-waveform-bar-6"
+              />
+              <View
+                testID="assistant-waveform-bar-7"
+              />
+              <View
+                testID="assistant-waveform-bar-8"
+              />
+            </View>
+            <View
+              testID="call-thinking-indicator"
+            >
+              <View />
+              <View />
+              <View />
+            </View>
+            <Text
+              testID="call-waveform-status-text"
+            >
+              Thinking…
+            </Text>
+            <View
+              accessibilityLabel="Microphone idle"
+              accessibilityValue={
+                {
+                  "max": 100,
+                  "min": 0,
+                  "now": 0,
+                }
+              }
+              accessible={true}
+              testID="call-user-waveform"
+            >
+              <View
+                testID="call-user-waveform-idle"
+              />
+            </View>
+          </View>
+        </View>
+        <RCTScrollView
+          testID="call-overlay-scroll"
+        >
+          <View />
+        </RCTScrollView>
+      </View>
+      <View
+        testID="call-control-dock"
+      >
+        <View>
+          <View
+            accessibilityLabel="Mute"
+            accessibilityRole="button"
+            accessibilityState={
+              {
+                "disabled": false,
+                "selected": false,
+              }
+            }
+            accessible={true}
+            testID="voice-conversation-mute"
+          >
+            <View>
+              <View
+                accessibilityLabel="Mic"
+              />
+            </View>
+            <Text>
+              Mute
+            </Text>
+          </View>
+          <View
+            accessibilityLabel="Type a turn instead of speaking"
+            accessibilityRole="button"
+            accessibilityState={
+              {
+                "disabled": false,
+                "selected": false,
+              }
+            }
+            accessible={true}
+            testID="voice-conversation-type-instead"
+          >
+            <View>
+              <View
+                accessibilityLabel="MessageSquareText"
+              />
+            </View>
+            <Text>
+              Type
+            </Text>
+          </View>
+          <View
+            accessibilityLabel="Stop LAFINA's answer"
+            accessibilityRole="button"
+            accessibilityState={
+              {
+                "disabled": false,
+                "selected": false,
+              }
+            }
+            accessible={true}
+            testID="voice-conversation-stop"
+          >
+            <View>
+              <View
+                accessibilityLabel="Square"
+              />
+            </View>
+            <Text>
+              Stop
+            </Text>
+          </View>
+          <View
+            accessibilityLabel="End Call Lafina"
+            accessibilityRole="button"
+            accessibilityState={
+              {
+                "disabled": false,
+                "selected": false,
+              }
+            }
+            accessible={true}
+            testID="voice-conversation-end"
+          >
+            <View>
+              <View
+                accessibilityLabel="PhoneOff"
+              />
+            </View>
+            <Text>
+              End
+            </Text>
+          </View>
+        </View>
+      </View>
+    </View>
+
+      1069 |     });
+      1070 |
+    > 1071 |     await utils.findByTestId('voice-conversation-review-card');
+           |                 ^
+      1072 |     const cardId = latestPendingReview(userId, 'voice')?.operationId;
+      1073 |     expect(cardId).toBeTruthy();
+      1074 |
+
+      at Object.findByTestId (__tests__/ui/voiceConversationUi.test.tsx:1071:17)
+      at asyncGeneratorStep (node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+      at _next (node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
+
+  ● Call Mode ChatGPT-style UX, live card revisions, and saving › schedule me a meeting and polite question form show confirmation card and hide orb/waveform
+
+    Unable to find an element with testID: voice-conversation-review-card
+
+    <View
+      testID="voice-conversation-panel"
+    >
+      <View>
+        <View>
+          <View
+            accessibilityLabel="Back to push-to-talk"
+            accessibilityRole="button"
+            accessible={true}
+            testID="voice-conversation-back"
+          >
+            <View
+              accessibilityLabel="ArrowLeft"
+            />
+          </View>
+        </View>
+        <View>
+          <Text
+            testID="call-header-title"
+          >
+            Call Lafina
+          </Text>
+          <View
+            testID="call-status-badge"
+          >
+            <View
+              accessibilityLabel="AudioLines"
+            />
+            <Text
+              testID="call-online-badge"
+            >
+              Online
+            </Text>
+          </View>
+        </View>
+        <View>
+          <View
+            accessibilityLabel="Call Lafina settings"
+            accessibilityRole="button"
+            accessible={true}
+            testID="call-settings-button"
+          >
+            <View
+              accessibilityLabel="Sliders"
+            />
+          </View>
+        </View>
+      </View>
+      <View
+        testID="call-content-stage"
+      >
+        <View
+          testID="call-center-stage"
+        >
+          <View
+            testID="call-identity-ring"
+          >
+            <View
+              accessibilityLabel="Lafina is thinking"
+              accessibilityRole="image"
+              accessible={true}
+              testID="synth-wave-avatar"
+            >
+              <RNSVGSvgView>
+                <RNSVGGroup>
+                  <RNSVGDefs>
+                    <RNSVGLinearGradient />
+                  </RNSVGDefs>
+                  <RNSVGPath />
+                  <RNSVGPath />
+                  <RNSVGPath />
+                  <RNSVGPath />
+                  <RNSVGPath />
+                  <RNSVGPath />
+                  <RNSVGPath />
+                  <RNSVGPath />
+                  <RNSVGPath />
+                  <RNSVGPath />
+                </RNSVGGroup>
+              </RNSVGSvgView>
+            </View>
+          </View>
+          <Text
+            testID="call-timer"
+          >
+            00:01
+          </Text>
+          <Text
+            testID="voice-conversation-status"
+          >
+            Thinking…
+          </Text>
+          <View
+            testID="call-waveform-area"
+          >
+            <View
+              accessibilityLabel="Lafina is thinking"
+              accessibilityRole="progressbar"
+              accessibilityValue={
+                {
+                  "max": 100,
+                  "min": 0,
+                  "now": 0,
+                }
+              }
+              accessible={true}
+              testID="call-assistant-waveform-idle"
+            >
+              <View
+                testID="assistant-waveform-bar-0"
+              />
+              <View
+                testID="assistant-waveform-bar-1"
+              />
+              <View
+                testID="assistant-waveform-bar-2"
+              />
+              <View
+                testID="assistant-waveform-bar-3"
+              />
+              <View
+                testID="assistant-waveform-bar-4"
+              />
+              <View
+                testID="assistant-waveform-bar-5"
+              />
+              <View
+                testID="assistant-waveform-bar-6"
+              />
+              <View
+                testID="assistant-waveform-bar-7"
+              />
+              <View
+                testID="assistant-waveform-bar-8"
+              />
+            </View>
+            <View
+              testID="call-thinking-indicator"
+            >
+              <View />
+              <View />
+              <View />
+            </View>
+            <Text
+              testID="call-waveform-status-text"
+            >
+              Thinking…
+            </Text>
+            <View
+              accessibilityLabel="Microphone idle"
+              accessibilityValue={
+                {
+                  "max": 100,
+                  "min": 0,
+                  "now": 0,
+                }
+              }
+              accessible={true}
+              testID="call-user-waveform"
+            >
+              <View
+                testID="call-user-waveform-idle"
+              />
+            </View>
+          </View>
+        </View>
+        <RCTScrollView
+          testID="call-overlay-scroll"
+        >
+          <View />
+        </RCTScrollView>
+      </View>
+      <View
+        testID="call-control-dock"
+      >
+        <View>
+          <View
+            accessibilityLabel="Mute"
+            accessibilityRole="button"
+            accessibilityState={
+              {
+                "disabled": false,
+                "selected": false,
+              }
+            }
+            accessible={true}
+            testID="voice-conversation-mute"
+          >
+            <View>
+              <View
+                accessibilityLabel="Mic"
+              />
+            </View>
+            <Text>
+              Mute
+            </Text>
+          </View>
+          <View
+            accessibilityLabel="Type a turn instead of speaking"
+            accessibilityRole="button"
+            accessibilityState={
+              {
+                "disabled": false,
+                "selected": false,
+              }
+            }
+            accessible={true}
+            testID="voice-conversation-type-instead"
+          >
+            <View>
+              <View
+                accessibilityLabel="MessageSquareText"
+              />
+            </View>
+            <Text>
+              Type
+            </Text>
+          </View>
+          <View
+            accessibilityLabel="Stop LAFINA's answer"
+            accessibilityRole="button"
+            accessibilityState={
+              {
+                "disabled": false,
+                "selected": false,
+              }
+            }
+            accessible={true}
+            testID="voice-conversation-stop"
+          >
+            <View>
+              <View
+                accessibilityLabel="Square"
+              />
+            </View>
+            <Text>
+              Stop
+            </Text>
+          </View>
+          <View
+            accessibilityLabel="End Call Lafina"
+            accessibilityRole="button"
+            accessibilityState={
+              {
+                "disabled": false,
+                "selected": false,
+              }
+            }
+            accessible={true}
+            testID="voice-conversation-end"
+          >
+            <View>
+              <View
+                accessibilityLabel="PhoneOff"
+              />
+            </View>
+            <Text>
+              End
+            </Text>
+          </View>
+        </View>
+      </View>
+    </View>
+
+      1115 |       },
+      1116 |     });
+    > 1117 |     const card = await utils.findByTestId('voice-conversation-review-card');
+           |                              ^
+      1118 |     expect(card).toHaveTextContent(/Meeting/);
+      1119 |     expect(utils.queryByTestId('call-identity-ring')).toBeNull();
+      1120 |     expect(utils.queryByTestId('call-waveform-area')).toBeNull();
+
+      at Object.findByTestId (__tests__/ui/voiceConversationUi.test.tsx:1117:30)
+      at asyncGeneratorStep (node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+      at _next (node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
+
+  ● Call Mode ChatGPT-style UX, live card revisions, and saving › hides orb and waveform when displaying clarification details or assistant reply, and Done restores orb
+
+    expect(received).toBeNull()
+
+    Received: {"_fiber": {"_debugHookTypes": null, "_debugInfo": null, "_debugNeedsRemount": false, "_debugOwner": [FiberNode], "_debugStack": [Error: react-stack-top-frame], "_debugTask": null, "actualDuration": 4, "actualStartTime": 1794851366064, "alternate": [FiberNode], "child": [FiberNode], "childLanes": 0, "deletions": null, "dependencies": null, "elementType": "View", "flags": 0, "index": 0, "key": null, "lanes": 0, "memoizedProps": [Object], "memoizedState": null, "mode": 3, "pendingProps": [Object], "ref": null, "refCleanup": null, "return": [FiberNode], "selfBaseDuration": 0, "sibling": null, "stateNode": [Object], "subtreeFlags": 13107717, "tag": 5, "treeBaseDuration": 4, "type": "View", "updateQueue": null}}
+
+      1158 |     const detailsCard = await utils.findByTestId('call-details-card');
+      1159 |     expect(detailsCard).toHaveTextContent(/I can help plan your week/);
+    > 1160 |     expect(utils.queryByTestId('call-identity-ring')).toBeNull();
+           |                                                       ^
+      1161 |     expect(utils.queryByTestId('call-waveform-area')).toBeNull();
+      1162 |
+      1163 |     fireEvent.press(utils.getByTestId('call-details-dismiss'));
+
+      at Object.toBeNull (__tests__/ui/voiceConversationUi.test.tsx:1160:55)
+      at asyncGeneratorStep (node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+      at _next (node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
+
+FAIL __tests__/ui/callFlowAudit20261116.test.tsx (5.8 s)
+  ● Call Lafina: a card the call talks about is on screen › a finished memory card does not hide the next review card
+
+    expect(element).toHaveTextContent()
+
+    Expected element to have text content:
+      /Submit slides/i
+    Received:
+      Personal MemorySavedFrom spoken request:“Remember that I prefer studying at night”Saved to personal memory“Prefers studying at night.”Stored on this device only. Relevant memories are shared with the voice provider during calls to personalize assistance.UndoDone
+
+      219 |     message(said('Add task: Submit slides tomorrow at 3pm'));
+      220 |     const card = await utils.findByTestId('voice-conversation-review-card');
+    > 221 |     expect(card).toHaveTextContent(/Submit slides/i);
+          |                  ^
+      222 |     // The saved memory card gave way to the card that needs an answer.
+      223 |     expect(utils.queryByTestId('memory-review-card')).toBeNull();
+      224 |   });
+
+      at Object.toHaveTextContent (__tests__/ui/callFlowAudit20261116.test.tsx:221:18)
+      at asyncGeneratorStep (node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+      at _next (node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
+
+  ● Call Lafina: a card the call talks about is on screen › a card claim with a card on screen leaves the card alone
+
+    Unable to find an element with testID: voice-conversation-review-card
+
+    <View
+      testID="voice-conversation-panel"
+    >
+      <View>
+        <View>
+          <View
+            accessibilityLabel="Back to push-to-talk"
+            accessibilityRole="button"
+            accessible={true}
+            testID="voice-conversation-back"
+          >
+            <View
+              accessibilityLabel="ArrowLeft"
+            />
+          </View>
+        </View>
+        <View>
+          <Text
+            testID="call-header-title"
+          >
+            Call Lafina
+          </Text>
+          <View
+            testID="call-status-badge"
+          >
+            <View
+              accessibilityLabel="AudioLines"
+            />
+            <Text
+              testID="call-online-badge"
+            >
+              Online
+            </Text>
+          </View>
+        </View>
+        <View>
+          <View
+            accessibilityLabel="Call Lafina settings"
+            accessibilityRole="button"
+            accessible={true}
+            testID="call-settings-button"
+          >
+            <View
+              accessibilityLabel="Sliders"
+            />
+          </View>
+        </View>
+      </View>
+      <View
+        testID="call-content-stage"
+      >
+        <View
+          testID="call-center-stage"
+        >
+          <View
+            testID="call-identity-ring"
+          >
+            <View
+              accessibilityLabel="Lafina is thinking"
+              accessibilityRole="image"
+              accessible={true}
+              testID="synth-wave-avatar"
+            >
+              <RNSVGSvgView>
+                <RNSVGGroup>
+                  <RNSVGDefs>
+                    <RNSVGLinearGradient />
+                  </RNSVGDefs>
+                  <RNSVGPath />
+                  <RNSVGPath />
+                  <RNSVGPath />
+                  <RNSVGPath />
+                  <RNSVGPath />
+                  <RNSVGPath />
+                  <RNSVGPath />
+                  <RNSVGPath />
+                  <RNSVGPath />
+                  <RNSVGPath />
+                </RNSVGGroup>
+              </RNSVGSvgView>
+            </View>
+          </View>
+          <Text
+            testID="call-timer"
+          >
+            00:00
+          </Text>
+          <Text
+            testID="voice-conversation-status"
+          >
+            Thinking…
+          </Text>
+          <View
+            testID="call-waveform-area"
+          >
+            <View
+              accessibilityLabel="Lafina is thinking"
+              accessibilityRole="progressbar"
+              accessibilityValue={
+                {
+                  "max": 100,
+                  "min": 0,
+                  "now": 0,
+                }
+              }
+              accessible={true}
+              testID="call-assistant-waveform-idle"
+            >
+              <View
+                testID="assistant-waveform-bar-0"
+              />
+              <View
+                testID="assistant-waveform-bar-1"
+              />
+              <View
+                testID="assistant-waveform-bar-2"
+              />
+              <View
+                testID="assistant-waveform-bar-3"
+              />
+              <View
+                testID="assistant-waveform-bar-4"
+              />
+              <View
+                testID="assistant-waveform-bar-5"
+              />
+              <View
+                testID="assistant-waveform-bar-6"
+              />
+              <View
+                testID="assistant-waveform-bar-7"
+              />
+              <View
+                testID="assistant-waveform-bar-8"
+              />
+            </View>
+            <View
+              testID="call-thinking-indicator"
+            >
+              <View />
+              <View />
+              <View />
+            </View>
+            <Text
+              testID="call-waveform-status-text"
+            >
+              Thinking…
+            </Text>
+            <View
+              accessibilityLabel="Microphone idle"
+              accessibilityValue={
+                {
+                  "max": 100,
+                  "min": 0,
+                  "now": 0,
+                }
+              }
+              accessible={true}
+              testID="call-user-waveform"
+            >
+              <View
+                testID="call-user-waveform-idle"
+              />
+            </View>
+          </View>
+        </View>
+        <RCTScrollView
+          testID="call-overlay-scroll"
+        >
+          <View />
+        </RCTScrollView>
+      </View>
+      <View
+        testID="call-control-dock"
+      >
+        <View>
+          <View
+            accessibilityLabel="Mute"
+            accessibilityRole="button"
+            accessibilityState={
+              {
+                "disabled": false,
+                "selected": false,
+              }
+            }
+            accessible={true}
+            testID="voice-conversation-mute"
+          >
+            <View>
+              <View
+                accessibilityLabel="Mic"
+              />
+            </View>
+            <Text>
+              Mute
+            </Text>
+          </View>
+          <View
+            accessibilityLabel="Type a turn instead of speaking"
+            accessibilityRole="button"
+            accessibilityState={
+              {
+                "disabled": false,
+                "selected": false,
+              }
+            }
+            accessible={true}
+            testID="voice-conversation-type-instead"
+          >
+            <View>
+              <View
+                accessibilityLabel="MessageSquareText"
+              />
+            </View>
+            <Text>
+              Type
+            </Text>
+          </View>
+          <View
+            accessibilityLabel="Stop LAFINA's answer"
+            accessibilityRole="button"
+            accessibilityState={
+              {
+                "disabled": false,
+                "selected": false,
+              }
+            }
+            accessible={true}
+            testID="voice-conversation-stop"
+          >
+            <View>
+              <View
+                accessibilityLabel="Square"
+              />
+            </View>
+            <Text>
+              Stop
+            </Text>
+          </View>
+          <View
+            accessibilityLabel="End Call Lafina"
+            accessibilityRole="button"
+            accessibilityState={
+              {
+                "disabled": false,
+                "selected": false,
+              }
+            }
+            accessible={true}
+            testID="voice-conversation-end"
+          >
+            <View>
+              <View
+                accessibilityLabel="PhoneOff"
+              />
+            </View>
+            <Text>
+              End
+            </Text>
+          </View>
+        </View>
+      </View>
+    </View>
+
+      290 |
+      291 |     message(said('Add task: Submit slides tomorrow at 3pm'));
+    > 292 |     await utils.findByTestId('voice-conversation-review-card');
+          |                 ^
+      293 |     message(agentSaid('I put a card on your screen. Check it and confirm.'));
+      294 |
+      295 |     await waitFor(() =>
+
+      at Object.findByTestId (__tests__/ui/callFlowAudit20261116.test.tsx:292:17)
+      at asyncGeneratorStep (node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+      at _next (node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
+
+  ● Call Lafina: a card the call talks about is on screen › a new card asks the app to bring a minimized call forward
+
+    Unable to find an element with testID: voice-conversation-review-card
+
+    <View
+      testID="voice-conversation-panel"
+    >
+      <View>
+        <View>
+          <View
+            accessibilityLabel="Back to push-to-talk"
+            accessibilityRole="button"
+            accessible={true}
+            testID="voice-conversation-back"
+          >
+            <View
+              accessibilityLabel="ArrowLeft"
+            />
+          </View>
+        </View>
+        <View>
+          <Text
+            testID="call-header-title"
+          >
+            Call Lafina
+          </Text>
+          <View
+            testID="call-status-badge"
+          >
+            <View
+              accessibilityLabel="AudioLines"
+            />
+            <Text
+              testID="call-online-badge"
+            >
+              Online
+            </Text>
+          </View>
+        </View>
+        <View>
+          <View
+            accessibilityLabel="Call Lafina settings"
+            accessibilityRole="button"
+            accessible={true}
+            testID="call-settings-button"
+          >
+            <View
+              accessibilityLabel="Sliders"
+            />
+          </View>
+        </View>
+      </View>
+      <View
+        testID="call-content-stage"
+      >
+        <View
+          testID="call-center-stage"
+        >
+          <View
+            testID="call-identity-ring"
+          >
+            <View
+              accessibilityLabel="Lafina is thinking"
+              accessibilityRole="image"
+              accessible={true}
+              testID="synth-wave-avatar"
+            >
+              <RNSVGSvgView>
+                <RNSVGGroup>
+                  <RNSVGDefs>
+                    <RNSVGLinearGradient />
+                  </RNSVGDefs>
+                  <RNSVGPath />
+                  <RNSVGPath />
+                  <RNSVGPath />
+                  <RNSVGPath />
+                  <RNSVGPath />
+                  <RNSVGPath />
+                  <RNSVGPath />
+                  <RNSVGPath />
+                  <RNSVGPath />
+                  <RNSVGPath />
+                </RNSVGGroup>
+              </RNSVGSvgView>
+            </View>
+          </View>
+          <Text
+            testID="call-timer"
+          >
+            00:00
+          </Text>
+          <Text
+            testID="voice-conversation-status"
+          >
+            Thinking…
+          </Text>
+          <View
+            testID="call-waveform-area"
+          >
+            <View
+              accessibilityLabel="Lafina is thinking"
+              accessibilityRole="progressbar"
+              accessibilityValue={
+                {
+                  "max": 100,
+                  "min": 0,
+                  "now": 0,
+                }
+              }
+              accessible={true}
+              testID="call-assistant-waveform-idle"
+            >
+              <View
+                testID="assistant-waveform-bar-0"
+              />
+              <View
+                testID="assistant-waveform-bar-1"
+              />
+              <View
+                testID="assistant-waveform-bar-2"
+              />
+              <View
+                testID="assistant-waveform-bar-3"
+              />
+              <View
+                testID="assistant-waveform-bar-4"
+              />
+              <View
+                testID="assistant-waveform-bar-5"
+              />
+              <View
+                testID="assistant-waveform-bar-6"
+              />
+              <View
+                testID="assistant-waveform-bar-7"
+              />
+              <View
+                testID="assistant-waveform-bar-8"
+              />
+            </View>
+            <View
+              testID="call-thinking-indicator"
+            >
+              <View />
+              <View />
+              <View />
+            </View>
+            <Text
+              testID="call-waveform-status-text"
+            >
+              Thinking…
+            </Text>
+            <View
+              accessibilityLabel="Microphone idle"
+              accessibilityValue={
+                {
+                  "max": 100,
+                  "min": 0,
+                  "now": 0,
+                }
+              }
+              accessible={true}
+              testID="call-user-waveform"
+            >
+              <View
+                testID="call-user-waveform-idle"
+              />
+            </View>
+          </View>
+        </View>
+        <RCTScrollView
+          testID="call-overlay-scroll"
+        >
+          <View />
+        </RCTScrollView>
+      </View>
+      <View
+        testID="call-control-dock"
+      >
+        <View>
+          <View
+            accessibilityLabel="Mute"
+            accessibilityRole="button"
+            accessibilityState={
+              {
+                "disabled": false,
+                "selected": false,
+              }
+            }
+            accessible={true}
+            testID="voice-conversation-mute"
+          >
+            <View>
+              <View
+                accessibilityLabel="Mic"
+              />
+            </View>
+            <Text>
+              Mute
+            </Text>
+          </View>
+          <View
+            accessibilityLabel="Type a turn instead of speaking"
+            accessibilityRole="button"
+            accessibilityState={
+              {
+                "disabled": false,
+                "selected": false,
+              }
+            }
+            accessible={true}
+            testID="voice-conversation-type-instead"
+          >
+            <View>
+              <View
+                accessibilityLabel="MessageSquareText"
+              />
+            </View>
+            <Text>
+              Type
+            </Text>
+          </View>
+          <View
+            accessibilityLabel="Stop LAFINA's answer"
+            accessibilityRole="button"
+            accessibilityState={
+              {
+                "disabled": false,
+                "selected": false,
+              }
+            }
+            accessible={true}
+            testID="voice-conversation-stop"
+          >
+            <View>
+              <View
+                accessibilityLabel="Square"
+              />
+            </View>
+            <Text>
+              Stop
+            </Text>
+          </View>
+          <View
+            accessibilityLabel="End Call Lafina"
+            accessibilityRole="button"
+            accessibilityState={
+              {
+                "disabled": false,
+                "selected": false,
+              }
+            }
+            accessible={true}
+            testID="voice-conversation-end"
+          >
+            <View>
+              <View
+                accessibilityLabel="PhoneOff"
+              />
+            </View>
+            <Text>
+              End
+            </Text>
+          </View>
+        </View>
+      </View>
+    </View>
+
+      305 |
+      306 |     message(said('Add task: Submit slides tomorrow at 3pm'));
+    > 307 |     await utils.findByTestId('voice-conversation-review-card');
+          |                 ^
+      308 |     await waitFor(() => expect(onAttention).toHaveBeenCalled());
+      309 |   });
+      310 |
+
+      at Object.findByTestId (__tests__/ui/callFlowAudit20261116.test.tsx:307:17)
+      at asyncGeneratorStep (node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+      at _next (node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
+
+  ● Call Lafina: a card the call talks about is on screen › cards sit in a scrolling area so tall cards are never clipped
+
+    Unable to find an element with testID: voice-conversation-review-card
+
+    <View
+      testID="voice-conversation-panel"
+    >
+      <View>
+        <View>
+          <View
+            accessibilityLabel="Back to push-to-talk"
+            accessibilityRole="button"
+            accessible={true}
+            testID="voice-conversation-back"
+          >
+            <View
+              accessibilityLabel="ArrowLeft"
+            />
+          </View>
+        </View>
+        <View>
+          <Text
+            testID="call-header-title"
+          >
+            Call Lafina
+          </Text>
+          <View
+            testID="call-status-badge"
+          >
+            <View
+              accessibilityLabel="AudioLines"
+            />
+            <Text
+              testID="call-online-badge"
+            >
+              Online
+            </Text>
+          </View>
+        </View>
+        <View>
+          <View
+            accessibilityLabel="Call Lafina settings"
+            accessibilityRole="button"
+            accessible={true}
+            testID="call-settings-button"
+          >
+            <View
+              accessibilityLabel="Sliders"
+            />
+          </View>
+        </View>
+      </View>
+      <View
+        testID="call-content-stage"
+      >
+        <View
+          testID="call-center-stage"
+        >
+          <View
+            testID="call-identity-ring"
+          >
+            <View
+              accessibilityLabel="Lafina is thinking"
+              accessibilityRole="image"
+              accessible={true}
+              testID="synth-wave-avatar"
+            >
+              <RNSVGSvgView>
+                <RNSVGGroup>
+                  <RNSVGDefs>
+                    <RNSVGLinearGradient />
+                  </RNSVGDefs>
+                  <RNSVGPath />
+                  <RNSVGPath />
+                  <RNSVGPath />
+                  <RNSVGPath />
+                  <RNSVGPath />
+                  <RNSVGPath />
+                  <RNSVGPath />
+                  <RNSVGPath />
+                  <RNSVGPath />
+                  <RNSVGPath />
+                </RNSVGGroup>
+              </RNSVGSvgView>
+            </View>
+          </View>
+          <Text
+            testID="call-timer"
+          >
+            00:01
+          </Text>
+          <Text
+            testID="voice-conversation-status"
+          >
+            Thinking…
+          </Text>
+          <View
+            testID="call-waveform-area"
+          >
+            <View
+              accessibilityLabel="Lafina is thinking"
+              accessibilityRole="progressbar"
+              accessibilityValue={
+                {
+                  "max": 100,
+                  "min": 0,
+                  "now": 0,
+                }
+              }
+              accessible={true}
+              testID="call-assistant-waveform-idle"
+            >
+              <View
+                testID="assistant-waveform-bar-0"
+              />
+              <View
+                testID="assistant-waveform-bar-1"
+              />
+              <View
+                testID="assistant-waveform-bar-2"
+              />
+              <View
+                testID="assistant-waveform-bar-3"
+              />
+              <View
+                testID="assistant-waveform-bar-4"
+              />
+              <View
+                testID="assistant-waveform-bar-5"
+              />
+              <View
+                testID="assistant-waveform-bar-6"
+              />
+              <View
+                testID="assistant-waveform-bar-7"
+              />
+              <View
+                testID="assistant-waveform-bar-8"
+              />
+            </View>
+            <View
+              testID="call-thinking-indicator"
+            >
+              <View />
+              <View />
+              <View />
+            </View>
+            <Text
+              testID="call-waveform-status-text"
+            >
+              Thinking…
+            </Text>
+            <View
+              accessibilityLabel="Microphone idle"
+              accessibilityValue={
+                {
+                  "max": 100,
+                  "min": 0,
+                  "now": 0,
+                }
+              }
+              accessible={true}
+              testID="call-user-waveform"
+            >
+              <View
+                testID="call-user-waveform-idle"
+              />
+            </View>
+          </View>
+        </View>
+        <RCTScrollView
+          testID="call-overlay-scroll"
+        >
+          <View />
+        </RCTScrollView>
+      </View>
+      <View
+        testID="call-control-dock"
+      >
+        <View>
+          <View
+            accessibilityLabel="Mute"
+            accessibilityRole="button"
+            accessibilityState={
+              {
+                "disabled": false,
+                "selected": false,
+              }
+            }
+            accessible={true}
+            testID="voice-conversation-mute"
+          >
+            <View>
+              <View
+                accessibilityLabel="Mic"
+              />
+            </View>
+            <Text>
+              Mute
+            </Text>
+          </View>
+          <View
+            accessibilityLabel="Type a turn instead of speaking"
+            accessibilityRole="button"
+            accessibilityState={
+              {
+                "disabled": false,
+                "selected": false,
+              }
+            }
+            accessible={true}
+            testID="voice-conversation-type-instead"
+          >
+            <View>
+              <View
+                accessibilityLabel="MessageSquareText"
+              />
+            </View>
+            <Text>
+              Type
+            </Text>
+          </View>
+          <View
+            accessibilityLabel="Stop LAFINA's answer"
+            accessibilityRole="button"
+            accessibilityState={
+              {
+                "disabled": false,
+                "selected": false,
+              }
+            }
+            accessible={true}
+            testID="voice-conversation-stop"
+          >
+            <View>
+              <View
+                accessibilityLabel="Square"
+              />
+            </View>
+            <Text>
+              Stop
+            </Text>
+          </View>
+          <View
+            accessibilityLabel="End Call Lafina"
+            accessibilityRole="button"
+            accessibilityState={
+              {
+                "disabled": false,
+                "selected": false,
+              }
+            }
+            accessible={true}
+            testID="voice-conversation-end"
+          >
+            <View>
+              <View
+                accessibilityLabel="PhoneOff"
+              />
+            </View>
+            <Text>
+              End
+            </Text>
+          </View>
+        </View>
+      </View>
+    </View>
+
+      313 |
+      314 |     message(said('Add task: Submit slides tomorrow at 3pm'));
+    > 315 |     await utils.findByTestId('voice-conversation-review-card');
+          |                 ^
+      316 |     // The stage stays a fixed View; only the overlay content scrolls.
+      317 |     expect(utils.getByTestId('call-content-stage').type).toBe('View');
+      318 |     expect(utils.getByTestId('call-overlay-scroll')).toBeTruthy();
+
+      at Object.findByTestId (__tests__/ui/callFlowAudit20261116.test.tsx:315:17)
+      at asyncGeneratorStep (node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+      at _next (node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
+
+
+Test Suites: 2 failed, 22 passed, 24 total
+Tests:       13 failed, 312 passed, 325 total
+Snapshots:   0 total
+Time:        53.37 s

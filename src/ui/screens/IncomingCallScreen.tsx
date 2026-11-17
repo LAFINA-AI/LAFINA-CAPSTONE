@@ -16,8 +16,9 @@ import {
   View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Phone, PhoneOff } from 'lucide-react-native';
+import { BellRing, Phone, PhoneOff } from 'lucide-react-native';
 import { CallAnsweredView } from '../components/call/CallAnsweredView';
+import type { CallPendingAction } from '../components/call/CallAnsweredView';
 import { OnlineReminderConversation } from '../components/call/OnlineReminderConversation';
 import type { OnlineReminderHandle } from '../components/call/OnlineReminderConversation';
 import {
@@ -40,6 +41,7 @@ import type {
 } from '../../scheduler';
 import { CALL_RESULT_DELAY_MS } from '../../constants';
 import { chatOrchestrator } from '../../ai/chatOrchestrator';
+import { parseIntentFastPath } from '../../ai/nlu/fastPathParser';
 import {Fonts, ModernLayout, Shadows} from '../theme';
 import { useTheme } from '../contexts/ThemeContext';
 import { createCallSpeechProvider } from '../../cloud/speechService';
@@ -69,6 +71,30 @@ const SPOKEN_CONFIRM_RE =
 const SPOKEN_CANCEL_RE =
   /^(?:(?:no|nope)[,\s]*)?(?:please\s+)?(?:cancel|discard|never\s*mind|don'?t\s+(?:save|add)\s+(?:it|that)|no|nope)(?:\s+(?:it|that))?(?:\s+please)?[.!]*$/i;
 
+/** Planner changes the device can turn into a review card from spoken words. */
+const CARD_INTENTS = new Set([
+  'create_task',
+  'create_time_block',
+  'create_reminder',
+  'create_note',
+  'update_task',
+  'update_time_block',
+  'update_note',
+  'delete_task',
+  'delete_time_block',
+  'delete_note',
+]);
+
+/** LAFINA telling the student a card or draft is on screen. */
+const CARD_CLAIM_RE =
+  /\b(?:card|draft)\b[^.?!]*\b(?:on\s+(?:your|the)\s+screen|is\s+(?:now\s+)?(?:shown|showing|ready|up)|check|review|confirm|tap)\b|\b(?:put|placed|prepared|showing|pulled\s+up)\b[^.?!]*\b(?:card|draft)\b|\b(?:check|review|confirm|tap)\b[^.?!]*\b(?:card|draft)\b/i;
+const CARD_DENIAL_RE =
+  /\b(?:no|not|never|without|cannot|can['’]?t|couldn['’]?t|didn['’]?t|wasn['’]?t|isn['’]?t)\b[^.?!]*\b(?:card|draft)\b/i;
+/** How long a card may still arrive after LAFINA mentions it. */
+const CARD_CLAIM_GRACE_MS = 600;
+const NO_CARD_NOTE =
+  'No card was prepared, so nothing was changed. Say the change again, for example “add a task to review notes tomorrow at 5 PM”.';
+
 /** Renders and coordinates the complete offline reminder call experience. */
 export const IncomingCallScreen: React.FC<IncomingCallScreenProps> = ({
   visible,
@@ -90,8 +116,26 @@ export const IncomingCallScreen: React.FC<IncomingCallScreenProps> = ({
   const [snoozeMinutes, setSnoozeMinutes] = useState(5);
   const [transcript, setTranscript] = useState('');
   const [reply, setReply] = useState('');
+  /** A line from the app itself (not the agent) that stays until the next turn. */
+  const [notice, setNotice] = useState('');
   const [onlineCall, setOnlineCall] = useState(false);
   const [answering, setAnswering] = useState(false);
+  // The button just tapped. Shown at once: acknowledging cancels alarms and
+  // speaks a confirmation, which used to leave the screen looking unchanged.
+  const [pendingAction, setPendingAction] = useState<CallPendingAction | null>(
+    null,
+  );
+  const pendingActionRef = useRef<CallPendingAction | null>(null);
+  // The scheduler's call session exists (it has reported a state), so the
+  // buttons can act even while the reminder is still being read aloud.
+  const [sessionLive, setSessionLive] = useState(false);
+  const resolvedRef = useRef(false);
+  /** Spoken planner requests the device is still turning into a card. */
+  const plannerInFlightRef = useRef(0);
+  const claimCheckRef = useRef<{
+    turnId: string | null;
+    timer: ReturnType<typeof setTimeout> | null;
+  }>({turnId: null, timer: null});
   const ringAnim = useRef(new Animated.Value(1)).current;
   const resultTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const processedActionRef = useRef('');
@@ -115,12 +159,19 @@ export const IncomingCallScreen: React.FC<IncomingCallScreenProps> = ({
     transitioningRef.current = false;
     setAnswering(false);
     setOnlineCall(false);
+    pendingActionRef.current = null;
+    setPendingAction(null);
+    setSessionLive(false);
+    resolvedRef.current = false;
+    if (claimCheckRef.current.timer) clearTimeout(claimCheckRef.current.timer);
+    claimCheckRef.current = {turnId: null, timer: null};
     clearResultTimeout();
     Vibration.cancel();
     setCallState('ringing');
     setResolution(null);
     setTranscript('');
     setReply('');
+    setNotice('');
     ringAnim.setValue(1);
     processedActionRef.current = '';
   }, [clearResultTimeout, ringAnim]);
@@ -204,6 +255,7 @@ export const IncomingCallScreen: React.FC<IncomingCallScreenProps> = ({
         if (event.state === 'disconnected') {
           if (event.resolution) {
             Vibration.cancel();
+            resolvedRef.current = true;
             setCallState('disconnected');
             setResolution(event.resolution);
             setReply(event.resolution.message);
@@ -219,9 +271,17 @@ export const IncomingCallScreen: React.FC<IncomingCallScreenProps> = ({
           return;
         }
 
+        setSessionLive(true);
         setCallState(event.state);
         if (event.text !== undefined) {
           setReply(event.text);
+        }
+        // The reminder is already acknowledged or snoozed: show that now,
+        // while the confirmation is spoken, not after it ends.
+        if (event.resolution) {
+          Vibration.cancel();
+          resolvedRef.current = true;
+          setResolution(event.resolution);
         }
       },
     );
@@ -306,7 +366,9 @@ export const IncomingCallScreen: React.FC<IncomingCallScreenProps> = ({
       );
       if (attempt !== attemptRef.current || closingRef.current) return;
       if (!accepted) {
-        closeCallScreen();
+        // A button settled the call while the reminder was being read: the
+        // result is on screen and closes it; do not cut it short.
+        if (!resolvedRef.current && !pendingActionRef.current) closeCallScreen();
         return;
       }
       if (useOnline && microphoneGranted) {
@@ -348,6 +410,8 @@ export const IncomingCallScreen: React.FC<IncomingCallScreenProps> = ({
   const handleEndAnswered = useCallback(async (): Promise<void> => {
     Vibration.cancel();
     attemptRef.current += 1;
+    pendingActionRef.current = 'end';
+    setPendingAction('end');
     try {
       await stopOnline();
       const speechProvider =
@@ -374,17 +438,52 @@ export const IncomingCallScreen: React.FC<IncomingCallScreenProps> = ({
     void onlineRef.current?.sendContext(`Planner update: ${decision.reply}`);
   }, []);
 
-  const handleManualSnooze = useCallback(
-    async (minutes: number): Promise<void> => {
+  /**
+   * Runs Acknowledge or Snooze once. The button shows its working state at
+   * once and a second tap is ignored; if the reminder could not be changed
+   * the buttons come back with the reason, instead of silently doing nothing.
+   */
+  const settle = useCallback(
+    async (
+      action: 'acknowledge' | 'snooze',
+      run: () => Promise<'done' | 'busy' | 'failed' | void>,
+      failure: string,
+    ): Promise<void> => {
+      if (pendingActionRef.current || resolvedRef.current) return;
+      pendingActionRef.current = action;
+      setPendingAction(action);
+      const attempt = attemptRef.current;
+      const release = (message?: string): void => {
+        if (attempt !== attemptRef.current || closingRef.current) return;
+        if (pendingActionRef.current === action) {
+          pendingActionRef.current = null;
+          setPendingAction(null);
+        }
+        if (message) setReply(message);
+      };
       try {
         await stopOnline();
-        await manualSnoozeCall(reminderId, userId, minutes);
+        const result = await run();
+        // "busy": a spoken answer is already settling the call; its result
+        // arrives on its own. "failed": the scheduler said why (shown as
+        // LAFINA's reply), so only the buttons are given back.
+        if (result === 'failed' || result === 'busy') release();
       } catch (error) {
-        console.error('[CallScreen] Could not snooze reminder:', error);
-        setReply('LAFINA could not snooze this reminder. Please try again.');
+        console.error(`[CallScreen] Could not ${action} reminder:`, error);
+        release(failure);
       }
     },
-    [reminderId, stopOnline, userId],
+    [stopOnline],
+  );
+
+  const handleManualSnooze = useCallback(
+    (minutes: number): Promise<void> =>
+      settle(
+        'snooze',
+        () => manualSnoozeCall(reminderId, userId, minutes, deliveryGeneration),
+        'LAFINA could not snooze this reminder. Please try again.',
+      ),
+    [deliveryGeneration, reminderId, settle, userId],
   );
 
   // The online agent's snooze_reminder tool. The dispatcher speaks the result
@@ -399,19 +498,20 @@ export const IncomingCallScreen: React.FC<IncomingCallScreenProps> = ({
     [handleManualSnooze],
   );
 
-  const handleManualAcknowledge = useCallback(async (): Promise<void> => {
-    try {
-      await stopOnline();
-      await manualAcknowledgeCall(reminderId, userId);
-    } catch (error) {
-      console.error('[CallScreen] Could not acknowledge reminder:', error);
-      setReply('LAFINA could not acknowledge this reminder. Please try again.');
-    }
-  }, [reminderId, stopOnline, userId]);
+  const handleManualAcknowledge = useCallback(
+    (): Promise<void> =>
+      settle(
+        'acknowledge',
+        () => manualAcknowledgeCall(reminderId, userId, deliveryGeneration),
+        'LAFINA could not acknowledge this reminder. Please try again.',
+      ),
+    [deliveryGeneration, reminderId, settle, userId],
+  );
 
   const handleOnlineTurn = useCallback((text: string): void => {
     const trimmed = text.trim();
     if (!trimmed) return;
+    setNotice('');
     // A spoken "confirm" / "cancel" answers the card on screen.
     if (reviewRef.current.proposal && !reviewRef.current.expired) {
       if (SPOKEN_CONFIRM_RE.test(trimmed)) {
@@ -424,8 +524,10 @@ export const IncomingCallScreen: React.FC<IncomingCallScreenProps> = ({
       }
     }
     // Ordinary conversation or questions about snoozing/acknowledging must not resolve the reminder.
+    // The whole reply has to be the command, with at most a polite lead-in
+    // or ending ("okay, got it, thanks"); "I got it from the library" is talk.
     const isDirectAckOrSnooze =
-      /^(?:please\s+)?(?:acknowledge(?:\s+(?:it|this|the reminder))?|got it|understood|snooze(?:\s+(?:it|this|the reminder))?(?:\s+(?:for\s+)?(?:\d{1,3}|one|two|three|four|five|ten|fifteen|twenty|thirty|sixty)(?:\s*(?:minutes?|mins?))?)?)(?:\s+please)?[.!?]*$/i.test(
+      /^(?:(?:ok(?:ay)?|yes|yeah|yep|alright|sure|thanks|thank\s+you|lafina)[,\s]+)*(?:please\s+)?(?:(?:i\s+)?acknowledged?(?:\s+(?:it|this|the\s+reminder))?|(?:i['’]?ve\s+|i\s+)?got\s+it|understood|noted|i['’]?m\s+on\s+it|snooze(?:\s+(?:it|this|the\s+reminder))?(?:\s+(?:for\s+)?(?:\d{1,3}|one|two|three|four|five|ten|fifteen|twenty|thirty|sixty)(?:\s*(?:minutes?|mins?))?)?|(?:remind\s+me(?:\s+again)?|call\s+me(?:\s+back)?)\s+(?:later|in\s+(?:\d{1,3}|one|two|three|four|five|ten|fifteen|twenty|thirty|sixty)\s*(?:minutes?|mins?)))(?:[,\s]+(?:please|thanks|thank\s+you|lafina))*[.!?]*$/i.test(
         trimmed,
       );
     if (isDirectAckOrSnooze) {
@@ -437,7 +539,7 @@ export const IncomingCallScreen: React.FC<IncomingCallScreenProps> = ({
 
     if (
       /\?$/.test(trimmed) &&
-      !/^(?:can|could|would)\s+you\s+(?:please\s+)?(?:mark|reschedule|move|schedule|add|create|pin|unpin)/i.test(
+      !/^(?:can|could|would|will)\s+you\s+(?:please\s+)?(?:mark|reschedule|move|schedule|add|create|pin|unpin|remind|note|take|put|set|delete|remove|cancel|change|rename)/i.test(
         trimmed,
       )
     ) {
@@ -457,9 +559,24 @@ export const IncomingCallScreen: React.FC<IncomingCallScreenProps> = ({
         trimmed,
       );
 
-    if (!isPlannerActionCommand) return;
+    // LAFINA tells the student the app makes a card from their words, so any
+    // clear planner request has to make one ("I need to add a task to…",
+    // "remind me to…", "take a note that…"), not only a few fixed openings.
+    // A command verb is required so ordinary talk ("okay, I will do it
+    // later") does not turn into a card.
+    const spokenIntent = parseIntentFastPath(trimmed);
+    const isSpokenPlannerRequest =
+      CARD_INTENTS.has(spokenIntent.intent) &&
+      !!(spokenIntent.title || spokenIntent.targetTitle) &&
+      (spokenIntent.confidence >= 0.9 ||
+        /\b(?:add|create|schedule|remind|note|put|set|move|reschedule|postpone|delete|remove|cancel|mark|rename|change|block)\b/i.test(
+          trimmed,
+        ));
+
+    if (!isPlannerActionCommand && !isSpokenPlannerRequest) return;
 
     const routedPrompt = isDoneCommand && task ? `Mark task "${task}" as done` : trimmed;
+    plannerInFlightRef.current += 1;
     void chatOrchestrator
       .processMessage(userId, routedPrompt, {
         onlineMode: true,
@@ -473,12 +590,27 @@ export const IncomingCallScreen: React.FC<IncomingCallScreenProps> = ({
         if (closingRef.current) return;
         reviewRef.current.present(result.review);
         setReply(result.reply);
-        void onlineRef.current?.sendContext(`Planner update: ${result.reply}`);
-        if (isDoneCommand) {
+        // The conversation keeps replacing the reply line; a result that
+        // made no card stays readable as a note until the next turn.
+        setNotice(result.review?.status === 'proposal' ? '' : result.reply);
+        const cardShown = result.review?.status === 'proposal';
+        // The agent hears exactly what the screen shows, so it never
+        // announces a card that is not there.
+        void onlineRef.current?.sendContext(
+          cardShown
+            ? `Planner update: a review card is now shown on screen: ${result.reply} Nothing is saved until the student says confirm or taps Confirm.`
+            : `Planner update: ${result.reply} No review card is on screen.`,
+        );
+        // Ending the call discards an unanswered card, so "I finished it"
+        // acknowledges only when nothing is waiting for Confirm.
+        if (isDoneCommand && !cardShown) {
           void handleManualAcknowledge();
         }
       })
-      .catch(() => undefined);
+      .catch(() => undefined)
+      .finally(() => {
+        plannerInFlightRef.current = Math.max(0, plannerInFlightRef.current - 1);
+      });
   }, [
     deliveryGeneration,
     handleManualAcknowledge,
@@ -496,6 +628,34 @@ export const IncomingCallScreen: React.FC<IncomingCallScreenProps> = ({
     const latestAssistant = [...snapshot.turns].reverse().find(turn => turn.role === 'assistant');
     if (latestUser) setTranscript(latestUser.text);
     if (latestAssistant) setReply(latestAssistant.text);
+    // LAFINA said a card is on screen. If none is there once the device has
+    // finished reading the student's words, say so and tell the agent.
+    if (
+      latestAssistant &&
+      latestAssistant.status !== 'provisional' &&
+      claimCheckRef.current.turnId !== latestAssistant.id &&
+      CARD_CLAIM_RE.test(latestAssistant.text) &&
+      !CARD_DENIAL_RE.test(latestAssistant.text)
+    ) {
+      const check = claimCheckRef.current;
+      check.turnId = latestAssistant.id;
+      if (check.timer) clearTimeout(check.timer);
+      const attempt = attemptRef.current;
+      const verify = (): void => {
+        check.timer = null;
+        if (closingRef.current || attempt !== attemptRef.current) return;
+        if (plannerInFlightRef.current > 0) {
+          check.timer = setTimeout(verify, CARD_CLAIM_GRACE_MS);
+          return;
+        }
+        if (reviewRef.current.proposal) return;
+        setNotice(NO_CARD_NOTE);
+        void onlineRef.current?.sendContext(
+          'No review card is on screen and nothing was changed. Do not say a card is shown unless an app update says so. Ask the student to say the change again with a title, and a day and time if it needs one.',
+        );
+      };
+      check.timer = setTimeout(verify, CARD_CLAIM_GRACE_MS);
+    }
     if (snapshot.phase !== 'failed' && snapshot.phase !== 'restart_required') return;
     if (transitioningRef.current) return;
     transitioningRef.current = true;
@@ -591,20 +751,24 @@ export const IncomingCallScreen: React.FC<IncomingCallScreenProps> = ({
           <View style={styles.ringingContainer}>
             <View style={styles.header}>
               <View style={[styles.badge, themed.badge]}>
+                <BellRing
+                  size={13}
+                  color={isModern ? modernPalette.accent : colors.blue}
+                />
                 <Text
                   style={[
                     styles.badgeText,
                     { color: isModern ? modernPalette.accent : colors.blue },
                   ]}
                 >
-                  INCOMING SCHEDULED CALL
+                  REMINDER CALL
                 </Text>
               </View>
               <Text style={[styles.callerName, themed.primaryText]}>
-                LAFINA Scheduler
+                LAFINA
               </Text>
               <Text style={[styles.callType, themed.secondaryText]}>
-                University Academic Assistant
+                Your academic secretary is calling
               </Text>
             </View>
 
@@ -660,7 +824,7 @@ export const IncomingCallScreen: React.FC<IncomingCallScreenProps> = ({
 
             <View style={styles.footer}>
               <Text style={[styles.offlineLabel, themed.mutedText]}>
-                Offline reminder call
+                Simulated reminder call from the app, not a phone call
               </Text>
               <View style={styles.actionRow}>
                 <View style={styles.buttonColumn}>
@@ -679,6 +843,9 @@ export const IncomingCallScreen: React.FC<IncomingCallScreenProps> = ({
                   </TouchableOpacity>
                   <Text style={[styles.buttonLabel, themed.secondaryText]}>
                     Decline
+                  </Text>
+                  <Text style={[styles.buttonSubLabel, themed.mutedText]}>
+                    Rings again later
                   </Text>
                 </View>
 
@@ -699,6 +866,9 @@ export const IncomingCallScreen: React.FC<IncomingCallScreenProps> = ({
                   <Text style={[styles.buttonLabel, themed.secondaryText]}>
                     Answer
                   </Text>
+                  <Text style={[styles.buttonSubLabel, themed.mutedText]}>
+                    Hear the reminder
+                  </Text>
                 </View>
               </View>
             </View>
@@ -714,7 +884,9 @@ export const IncomingCallScreen: React.FC<IncomingCallScreenProps> = ({
             onDecline={handleEndAnswered}
             transcript={transcript}
             reply={reply}
-            busy={answering}
+            notice={notice}
+            busy={answering && !sessionLive}
+            pendingAction={pendingAction}
             reviewCard={review.proposal ? (
               <CommandReviewCard
                 proposal={review.proposal}
@@ -759,10 +931,19 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   badge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
     borderWidth: 1,
     borderRadius: 999,
     paddingHorizontal: 14,
     paddingVertical: 7,
+  },
+  buttonSubLabel: {
+    fontFamily: Fonts.body,
+    fontSize: 11,
+    marginTop: 2,
+    textAlign: 'center',
   },
   badgeText: {
     fontFamily: Fonts.body,

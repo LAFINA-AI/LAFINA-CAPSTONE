@@ -1,0 +1,66 @@
+{
+  "scope": "Before Calendar row-budget follow-up; other performance fixes already present. Not a legacy/original app baseline.",
+  "appSha256": "b6ebe1c866f788a90e24a3ba78f6eedd8f0256d53dc7da9d354115e634a7ebb4",
+  "receivedSamples": 150,
+  "expectedSamples": 150,
+  "warmSummary": [
+    {
+      "tab": "dashboard",
+      "n": 30,
+      "jsCommitP50Ms": 91.96346098184586,
+      "jsCommitP95Ms": 131.86153900623322,
+      "nextAnimationFrameP95Ms": 207.398461997509
+    },
+    {
+      "tab": "calendar",
+      "n": 30,
+      "jsCommitP50Ms": 98.0448459982872,
+      "jsCommitP95Ms": 123.11438500881195,
+      "nextAnimationFrameP95Ms": 164.50515401363373
+    },
+    {
+      "tab": "chat",
+      "n": 30,
+      "jsCommitP50Ms": 78.81230801343918,
+      "jsCommitP95Ms": 100.22184598445892,
+      "nextAnimationFrameP95Ms": 149.37376901507378
+    },
+    {
+      "tab": "notes",
+      "n": 30,
+      "jsCommitP50Ms": 61.48792299628258,
+      "jsCommitP95Ms": 94.8926149904728,
+      "nextAnimationFrameP95Ms": 170.5494609773159
+    },
+    {
+      "tab": "profile",
+      "n": 30,
+      "jsCommitP50Ms": 63.45507702231407,
+      "jsCommitP95Ms": 88.78515401482582,
+      "nextAnimationFrameP95Ms": 163.0817690193653
+    }
+  ],
+  "memory": {
+    "memory-after": {
+      "pssKiB": 911120,
+      "views": 6198
+    },
+    "memory-before": {
+      "pssKiB": 534286,
+      "views": 6198
+    },
+    "memory-round-10": {
+      "pssKiB": 691817,
+      "views": 6198
+    },
+    "memory-round-20": {
+      "pssKiB": 673004,
+      "views": 6198
+    },
+    "memory-round-30": {
+      "pssKiB": 949880,
+      "views": 6198
+    }
+  },
+  "frameSummary": "Applications Graphics Acceleration Info:\r\nUptime: 157918396 Realtime: 270039967\r\n\r\n** Graphics info for pid 26801 [com.lafina.capstone.performance] **\r\n\r\nStats since: 157797041083481ns\r\nTotal frames rendered: 957\r\nJanky frames: 240 (25.08%)\r\nJanky frames (legacy): 589 (61.55%)\r\n50th percentile: 18ms\r\n90th percentile: 97ms\r\n95th percentile: 400ms\r\n99th percentile: 450ms\r\nNumber Missed Vsync: 2\r\nNumber High input latency: 495\r\nNumber Slow UI thread: 154\r\nNumber Slow bitmap uploads: 203\r\nNumber Slow issue draw commands: 236\r\nNumber Frame deadline missed: 240\r\nNumber Frame deadline missed (legacy): 453\r\n"
+}

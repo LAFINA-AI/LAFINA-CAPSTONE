@@ -77,9 +77,10 @@ const asText = (value: unknown): string =>
 /** The planner change a request-only prepare call describes, read on the device. */
 const intentFromRequestText = async (
   request: string,
+  userId: string,
   referenceDate: Date,
 ): Promise<ValidatedIntent | null> => {
-  const intent = await intentService.extractIntent(request, {referenceDate});
+  const intent = await intentService.extractIntent(request, {referenceDate, userId});
   if (!intent.isValid || routeIntent(intent.intent) !== 'reviewed_mutation')
     return null;
   if (
@@ -152,7 +153,11 @@ export async function runChatAgent(
         const intent =
           intentFromToolArguments(fields) ??
           (typeof fields.request === 'string'
-            ? await intentFromRequestText(fields.request, options.referenceDate)
+            ? await intentFromRequestText(
+                fields.request,
+                userId,
+                options.referenceDate,
+              )
             : null);
         if (!intent)
           return 'Nothing was prepared: give the action and its details (deleting needs the student to ask in their own words).';

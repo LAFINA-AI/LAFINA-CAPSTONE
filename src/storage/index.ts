@@ -67,6 +67,8 @@ export type {
   ChatMessage,
   ChatMessageMetadata,
   ChatPage,
+  ChatReviewResolution,
+  ChatReviewResolutionStatus,
   ChatSession,
   ChatSessionKind,
   ChatSummary,

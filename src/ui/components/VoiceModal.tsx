@@ -48,6 +48,7 @@ import type {
 } from '../../scheduler/speechProvider';
 import {localSettingsStore} from '../../storage/localSettingsStore';
 import {handbookPreference} from '../../skills/onlineChatSkill';
+import {isUstpSchoolEnabled} from '../../storage/ustpEligibility';
 import type {PrepareResult} from '../../ai/nlu/commandReview';
 import {useCommandReview} from '../hooks/useCommandReview';
 import {CommandReviewCard} from './chat/CommandReviewCard';
@@ -111,6 +112,8 @@ export const DRAFT_READY_NOTICE =
 
 interface CommandOutcome {
   reply: string;
+  /** A natural sentence to speak instead of the Markdown card (audit M6). */
+  spoken?: string;
   /** A planner change waiting for Confirm (AGY-PORT 04); nothing was written yet. */
   review?: PrepareResult;
 }
@@ -131,10 +134,14 @@ const executeDefaultCommand = async (
       reviewSurface: 'voice',
       onlineMode:
         localSettingsStore.get(userId, 'chat.onlineMode', null) === 'true',
-      useHandbook: handbookPreference.read(userId),
+      useHandbook: handbookPreference.read(userId) && isUstpSchoolEnabled(userId),
       ...(onReplyText ? {onReplyText} : {}),
     });
-    return {reply: result.reply, review: result.review};
+    return {
+      reply: result.reply,
+      ...(result.spokenReply ? {spoken: result.spokenReply} : {}),
+      review: result.review,
+    };
   } catch (err) {
     console.error('Chat orchestrator execution error:', err);
     return {reply: `Heard: "${trimmed}"`};
@@ -520,7 +527,12 @@ export const VoiceModal: React.FC<VoiceModalProps> = ({
       setVoiceState('speaking');
 
       try {
-        await speakReply(outcome.reply, stream);
+        // A streamed reply finishes as written; a read card speaks its
+        // natural summary instead of "Timed. 2:00 PM – 4:00 PM — …".
+        await speakReply(
+          outcome.spoken && !stream ? outcome.spoken : outcome.reply,
+          stream,
+        );
       } catch (err) {
         console.warn('[VoiceModal] TTS playback error:', err);
       }

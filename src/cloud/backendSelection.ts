@@ -17,7 +17,11 @@ import {
 
 export type BackendChoice = 'vercel' | 'local';
 
-/** Device-wide settings owner; not an account. */
+/**
+ * Device-wide settings owner; not an account. Kept as the legacy
+ * `'__device__'` id (see `src/storage/deviceScope.ts`): renaming it would
+ * reset every install's backend choice.
+ */
 export const DEVICE_SETTINGS_OWNER = '__device__';
 export const BACKEND_CHOICE_KEY = 'debug.api_backend';
 export const LOCAL_BACKEND_URL_KEY = 'debug.local_api_url';

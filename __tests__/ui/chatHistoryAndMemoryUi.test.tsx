@@ -13,6 +13,7 @@ import {accountLinkService} from '../../src/cloud';
 import type {ChatMessage} from '../../src/storage';
 import {CHAT_MEMORY_CHANGED_EVENT} from '../../src/cloud/chatMemoryService';
 import {ownedChatSessionId} from '../../src/storage/chatOwnership';
+import {enableUstpForTest} from '../fixtures/ustpEligibility';
 
 let serial = 0;
 const student = (): string => {
@@ -26,8 +27,12 @@ const chat = (userId: string) => (
   </ThemeProvider>
 );
 
-const shown = (getByTestId: (id: string) => {props: Record<string, unknown>}): string[] =>
-  (getByTestId('chat-messages-list').props.data as ChatMessage[]).map(m => m.content);
+const shown = (
+  getByTestId: (id: string) => {props: Record<string, unknown>},
+): string[] =>
+  [...(getByTestId('chat-messages-list').props.data as ChatMessage[])]
+    .reverse()
+    .map(m => m.content);
 
 /** Presses the button labelled `label` in the next Alert. */
 const confirmAlerts = (label: string) =>
@@ -87,26 +92,45 @@ describe('chat history sheet', () => {
     fireEvent.press(getByTestId('chat-history-button'));
 
     fireEvent.changeText(getByTestId('chat-history-search'), 'cells');
-    await waitFor(() => expect(queryByTestId(`chat-history-item-${second}`)).toBeNull());
+    await waitFor(() =>
+      expect(queryByTestId(`chat-history-item-${second}`)).toBeNull(),
+    );
     expect(getByTestId(`chat-history-item-${first}`)).toBeTruthy();
     fireEvent.changeText(getByTestId('chat-history-search'), 'zzz');
     await waitFor(() => expect(getByTestId('chat-history-empty')).toBeTruthy());
     fireEvent.changeText(getByTestId('chat-history-search'), '');
 
-    await waitFor(() => expect(getByTestId(`chat-history-rename-${first}`)).toBeTruthy());
+    await waitFor(() =>
+      expect(getByTestId(`chat-history-rename-${first}`)).toBeTruthy(),
+    );
     fireEvent.press(getByTestId(`chat-history-rename-${first}`));
-    fireEvent.changeText(getByTestId('chat-history-rename-input'), 'Bio finals');
+    fireEvent.changeText(
+      getByTestId('chat-history-rename-input'),
+      'Bio finals',
+    );
     fireEvent.press(getByTestId('chat-history-rename-save'));
     expect(getByText('Bio finals')).toBeTruthy();
 
+    // Cancelling the custom delete confirmation keeps both chats untouched.
+    fireEvent.press(getByTestId(`chat-history-delete-${second}`));
+    expect(getByTestId('chat-history-delete-dialog')).toBeTruthy();
+    expect(getByText('Delete this chat?')).toBeTruthy();
+    expect(getByText('Removed from this phone')).toBeTruthy();
+    expect(getByText('Kept safely')).toBeTruthy();
+    fireEvent.press(getByTestId('chat-history-delete-cancel'));
+    expect(queryByTestId('chat-history-delete-dialog')).toBeNull();
+    expect(getByTestId(`chat-history-item-${second}`)).toBeTruthy();
+
     // Deleting the open chat leaves an empty chat on screen.
-    confirmAlerts('Delete');
+    fireEvent.press(getByTestId(`chat-history-delete-${second}`));
     await act(async () => {
-      fireEvent.press(getByTestId(`chat-history-delete-${second}`));
+      fireEvent.press(getByTestId('chat-history-delete-confirm'));
     });
     expect(queryByTestId(`chat-history-item-${second}`)).toBeNull();
     expect(shown(getByTestId)).toEqual([]);
-    expect(chatStore.listSessions(me).map(c => c.title)).toEqual(['Bio finals']);
+    expect(chatStore.listSessions(me).map(c => c.title)).toEqual([
+      'Bio finals',
+    ]);
   });
 
   it('temporary chat does not save messages to history', async () => {
@@ -115,7 +139,10 @@ describe('chat history sheet', () => {
     // Toggle temporary chat on
     fireEvent.press(getByTestId('chat-temporary-toggle-button'));
     // In temporary chat, send a message
-    fireEvent.changeText(getByTestId('chat-text-input'), 'Hello in temporary mode');
+    fireEvent.changeText(
+      getByTestId('chat-text-input'),
+      'Hello in temporary mode',
+    );
     await act(async () => {
       fireEvent.press(getByTestId('chat-send-button'));
     });
@@ -135,6 +162,7 @@ describe('chat history sheet', () => {
 
   it('expands sidebar to full screen via expand button or search focus, filters General vs USTP chats, and launches Create Document from sidebar', async () => {
     const me = student();
+    enableUstpForTest(me);
     chatStore.addMessage(me, 'user', 'Physics problem set');
     const ustpId = chatStore.startNewUstpChat(me);
     chatStore.addMessage(me, 'user', 'USTP Retention Rule');
@@ -145,33 +173,46 @@ describe('chat history sheet', () => {
       message: 'Online mode ready.',
     });
 
-    const {getByTestId, queryByTestId, getAllByText, queryByText, findByText} = render(chat(me));
+    const {getByTestId, queryByTestId, getAllByText, queryByText, findByText} =
+      render(chat(me));
 
     fireEvent.press(getByTestId('chat-history-button'));
     expect(getByTestId('chat-history-sheet')).toBeTruthy();
-    expect(getByTestId('chat-history-expand').props.accessibilityState).toEqual({
-      expanded: false,
-    });
+    expect(getByTestId('chat-history-expand').props.accessibilityState).toEqual(
+      {
+        expanded: false,
+      },
+    );
 
     // Manual expand -> full screen -> collapse -> auto-expand on Search focus
     fireEvent.press(getByTestId('chat-history-expand'));
-    expect(getByTestId('chat-history-expand').props.accessibilityState).toEqual({
-      expanded: true,
-    });
+    expect(getByTestId('chat-history-expand').props.accessibilityState).toEqual(
+      {
+        expanded: true,
+      },
+    );
     fireEvent.press(getByTestId('chat-history-expand'));
-    expect(getByTestId('chat-history-expand').props.accessibilityState).toEqual({
-      expanded: false,
-    });
+    expect(getByTestId('chat-history-expand').props.accessibilityState).toEqual(
+      {
+        expanded: false,
+      },
+    );
 
     fireEvent(getByTestId('chat-history-search'), 'focus');
-    expect(getByTestId('chat-history-expand').props.accessibilityState).toEqual({
-      expanded: true,
-    });
+    expect(getByTestId('chat-history-expand').props.accessibilityState).toEqual(
+      {
+        expanded: true,
+      },
+    );
     fireEvent.changeText(getByTestId('chat-history-search'), 'Retention');
     expect(getByTestId(`chat-history-item-${ustpId}`)).toBeTruthy();
     expect(getByTestId(`chat-history-ustp-badge-${ustpId}`)).toBeTruthy();
     fireEvent.press(getByTestId('chat-history-search-clear'));
-    await waitFor(() => expect(getAllByText('Physics problem set').length).toBeGreaterThanOrEqual(1));
+    await waitFor(() =>
+      expect(getAllByText('Physics problem set').length).toBeGreaterThanOrEqual(
+        1,
+      ),
+    );
 
     // Filter chips separate USTP RAG chats from General chats
     fireEvent.press(getByTestId('chat-history-filter-ustp'));
@@ -180,7 +221,9 @@ describe('chat history sheet', () => {
 
     fireEvent.press(getByTestId('chat-history-filter-general'));
     expect(queryByTestId(`chat-history-item-${ustpId}`)).toBeNull();
-    expect(getAllByText('Physics problem set').length).toBeGreaterThanOrEqual(1);
+    expect(getAllByText('Physics problem set').length).toBeGreaterThanOrEqual(
+      1,
+    );
 
     fireEvent.press(getByTestId('chat-history-filter-all'));
     fireEvent.press(getByTestId('chat-history-expand'));
@@ -204,10 +247,18 @@ describe('memory note under a reply', () => {
     expect(queryByTestId(`chat-memory-note-${reply.id}`)).toBeNull();
 
     // What chatMemoryService does once the server answers.
-    const changes = chatMemoryStore.applyChanges(me, {add: ['Is a nursing student.'], remove: []}, reply.sessionId);
+    const changes = chatMemoryStore.applyChanges(
+      me,
+      {add: ['Is a nursing student.'], remove: []},
+      reply.sessionId,
+    );
     chatStore.setMemoryChanges(me, reply.id, changes);
     act(() => {
-      DeviceEventEmitter.emit(CHAT_MEMORY_CHANGED_EVENT, {userId: me, messageId: reply.id, changes});
+      DeviceEventEmitter.emit(CHAT_MEMORY_CHANGED_EVENT, {
+        userId: me,
+        messageId: reply.id,
+        changes,
+      });
     });
     expect(getByText('Memory updated')).toBeTruthy();
     expect(getByText('Remembered: Is a nursing student.')).toBeTruthy();
@@ -223,7 +274,10 @@ describe('memory note under a reply', () => {
   it('is kept with the reply after reopening Chat, and ignores other accounts', () => {
     const me = student();
     const reply = chatStore.addMessage(me, 'assistant', 'Okay');
-    chatStore.setMemoryChanges(me, reply.id, {added: [], removed: [{id: 'm1', text: 'Works nights.'}]});
+    chatStore.setMemoryChanges(me, reply.id, {
+      added: [],
+      removed: [{id: 'm1', text: 'Works nights.'}],
+    });
     const {getByText, queryByText} = render(chat(me));
     expect(getByText('Forgot: Works nights.')).toBeTruthy();
     act(() => {
@@ -240,24 +294,41 @@ describe('memory note under a reply', () => {
 describe('Profile → Memory', () => {
   const sheet = (userId: string, onChanged = jest.fn()) => (
     <ThemeProvider userId={userId}>
-      <ChatMemorySettings userId={userId} isGuest={false} visible onClose={jest.fn()} onChanged={onChanged} />
+      <ChatMemorySettings
+        userId={userId}
+        isGuest={false}
+        visible
+        onClose={jest.fn()}
+        onChanged={onChanged}
+      />
     </ThemeProvider>
   );
 
   it('adds, lists, deletes and forgets memories', () => {
     const me = student();
     const onChanged = jest.fn();
-    const {getByTestId, getByText, queryByTestId} = render(sheet(me, onChanged));
+    const {getByTestId, getByText, queryByTestId} = render(
+      sheet(me, onChanged),
+    );
     expect(getByTestId('memory-empty')).toBeTruthy();
 
-    fireEvent.changeText(getByTestId('memory-add-input'), 'Lives in Cagayan de Oro.');
+    fireEvent.changeText(
+      getByTestId('memory-add-input'),
+      'Lives in Cagayan de Oro.',
+    );
     fireEvent.press(getByTestId('memory-add-button'));
-    fireEvent.changeText(getByTestId('memory-add-input'), 'Prefers bullet points.');
+    fireEvent.changeText(
+      getByTestId('memory-add-input'),
+      'Prefers bullet points.',
+    );
     fireEvent.press(getByTestId('memory-add-button'));
     expect(getByText('Lives in Cagayan de Oro.')).toBeTruthy();
     expect(onChanged).toHaveBeenCalledTimes(2);
 
-    fireEvent.changeText(getByTestId('memory-add-input'), 'prefers BULLET points.');
+    fireEvent.changeText(
+      getByTestId('memory-add-input'),
+      'prefers BULLET points.',
+    );
     fireEvent.press(getByTestId('memory-add-button'));
     expect(getByTestId('memory-notice')).toBeTruthy();
 

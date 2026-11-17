@@ -10,14 +10,17 @@ import {
 } from 'react-native';
 import {
   AlertCircle,
+  BatteryCharging,
   Bell,
   CheckCircle2,
   Clock,
   PhoneCall,
   X,
 } from 'lucide-react-native';
-import type { ReminderPermissionStatus } from '../../../scheduler';
+import type { AlarmHealth, ReminderPermissionStatus } from '../../../scheduler';
 import {
+  needsBatteryGuidance,
+  openBatterySettings,
   openExactAlarmSettings,
   openFullScreenIntentSettings,
   openNotificationSettings,
@@ -28,6 +31,7 @@ import { useTheme } from '../../contexts/ThemeContext';
 interface ReminderPermissionModalProps {
   visible: boolean;
   status: ReminderPermissionStatus | null;
+  alarmHealth?: AlarmHealth | null;
   onClose: () => void;
   onRefreshStatus?: () => void;
 }
@@ -35,6 +39,7 @@ interface ReminderPermissionModalProps {
 export const ReminderPermissionModal: React.FC<ReminderPermissionModalProps> = ({
   visible,
   status,
+  alarmHealth,
   onClose,
   onRefreshStatus,
 }) => {
@@ -45,6 +50,8 @@ export const ReminderPermissionModal: React.FC<ReminderPermissionModalProps> = (
   const notificationsOk = status?.notificationsEnabled ?? false;
   const exactAlarmsOk = status?.canScheduleExactAlarms ?? false;
   const fullScreenOk = status?.canUseFullScreenIntent ?? false;
+  const batteryAvailable = Boolean(alarmHealth?.available);
+  const batteryOk = alarmHealth ? !needsBatteryGuidance(alarmHealth) : true;
 
   const handleRequestNotifications = async () => {
     if (Platform.OS === 'android') {
@@ -70,6 +77,11 @@ export const ReminderPermissionModal: React.FC<ReminderPermissionModalProps> = (
 
   const handleOpenFullScreenSettings = async () => {
     await openFullScreenIntentSettings();
+    onRefreshStatus?.();
+  };
+
+  const handleOpenBatterySettings = async () => {
+    await openBatterySettings();
     onRefreshStatus?.();
   };
 
@@ -242,7 +254,50 @@ export const ReminderPermissionModal: React.FC<ReminderPermissionModalProps> = (
             </View>
           </View>
 
-          {!notificationsOk || !exactAlarmsOk || !fullScreenOk ? (
+          {/* 4. Battery Saver */}
+          {batteryAvailable && (
+            <View style={[styles.permissionItem, themed.itemBg]}>
+              <View style={styles.itemIconContainer}>
+                <BatteryCharging
+                  size={22}
+                  color={batteryOk ? colors.success : colors.warning}
+                />
+              </View>
+              <View style={styles.itemContent}>
+                <View style={styles.itemHeader}>
+                  <Text style={[styles.itemTitle, themed.primaryText]}>
+                    Battery Saver
+                  </Text>
+                  {alarmHealth?.ignoringBatteryOptimizations ? (
+                    <View style={styles.statusBadgeGranted}>
+                      <CheckCircle2 size={14} color={colors.success} />
+                      <Text style={[styles.statusTextGranted, { color: colors.success }]}>
+                        Unrestricted
+                      </Text>
+                    </View>
+                  ) : (
+                    <TouchableOpacity
+                      testID="permission-open-battery"
+                      style={[styles.actionButton, { backgroundColor: colors.warning }]}
+                      onPress={handleOpenBatterySettings}
+                      accessibilityRole="button"
+                    >
+                      <Text style={[styles.actionButtonText, { color: '#000000' }]}>
+                        Open
+                      </Text>
+                    </TouchableOpacity>
+                  )}
+                </View>
+                <Text style={[styles.itemDescription, themed.mutedText]}>
+                  {batteryOk
+                    ? 'Background battery settings allow scheduled alarms.'
+                    : 'This phone’s battery saver may stop alarms. Set LAFINA to “Don’t optimize” or “No restrictions”.'}
+                </Text>
+              </View>
+            </View>
+          )}
+
+          {!notificationsOk || !exactAlarmsOk || !fullScreenOk || !batteryOk ? (
             <View style={styles.warningNoteRow}>
               <AlertCircle size={15} color={colors.warning} />
               <Text style={[styles.warningNoteText, { color: colors.warning }]}>

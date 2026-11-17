@@ -1,0 +1,241 @@
+FAIL __tests__/ui/agyPort07NotesUi.test.tsx (10.893 s)
+  ● AGY-PORT 07 Notes UI › the screen searches through SQLite, shows indexing progress and a "Show more" button
+
+    expect(received).toBeNull()
+
+    Received: {"_fiber": {"_debugHookTypes": null, "_debugInfo": null, "_debugNeedsRemount": false, "_debugOwner": [FiberNode], "_debugStack": [Error: react-stack-top-frame], "_debugTask": null, "actualDuration": 0, "actualStartTime": 1794851673025, "alternate": [FiberNode], "child": [FiberNode], "childLanes": 0, "deletions": null, "dependencies": null, "elementType": "Text", "flags": 0, "index": 0, "key": null, "lanes": 0, "memoizedProps": [Object], "memoizedState": null, "mode": 3, "pendingProps": [Object], "ref": null, "refCleanup": null, "return": [FiberNode], "selfBaseDuration": 0, "sibling": null, "stateNode": [Object], "subtreeFlags": 0, "tag": 5, "treeBaseDuration": 0, "type": "Text", "updateQueue": null}}
+
+      230 |       await new Promise(resolve => setTimeout(resolve, 300));
+      231 |     });
+    > 232 |     await waitFor(() =>
+          |                  ^
+      233 |       expect(screen.queryByTestId('notes-indexing')).toBeNull(),
+      234 |     );
+      235 |     const visibleMatches = screen.getAllByText('calculus');
+
+      at Object.<anonymous> (__tests__/ui/agyPort07NotesUi.test.tsx:232:18)
+      at asyncGeneratorStep (node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+      at _next (node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
+
+PASS __tests__/storage/agyPort09HealthPreferencesStats.test.ts
+  ● Console
+
+    console.warn
+      [ReminderHealth] Local delivery evidence unavailable: Error: Account changed. Reopen reminder health.
+          at Object.read (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\src\storage\reminderHealthStore.ts:92:13)
+          at read (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\src\scheduler\reminderHealth.ts:63:33)
+          at Generator.next (<anonymous>)
+          at asyncGeneratorStep (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\@babel\runtime\helpers\asyncToGenerator.js:3:17)
+          at _next (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\@babel\runtime\helpers\asyncToGenerator.js:17:9)
+          at C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\@babel\runtime\helpers\asyncToGenerator.js:22:7
+          at new Promise (<anonymous>)
+          at C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\@babel\runtime\helpers\asyncToGenerator.js:14:12
+          at apply (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\src\scheduler\reminderHealth.ts:57:32)
+          at Object.<anonymous> (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\__tests__\storage\agyPort09HealthPreferencesStats.test.ts:178:46)
+          at Generator.next (<anonymous>)
+          at asyncGeneratorStep (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\@babel\runtime\helpers\asyncToGenerator.js:3:17)
+          at _next (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\@babel\runtime\helpers\asyncToGenerator.js:17:9)
+          at C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\@babel\runtime\helpers\asyncToGenerator.js:22:7
+          at new Promise (<anonymous>)
+          at Object.<anonymous> (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\@babel\runtime\helpers\asyncToGenerator.js:14:12)
+          at Promise.then.completed (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-circus\build\utils.js:298:28)
+          at new Promise (<anonymous>)
+          at callAsyncCircusFn (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-circus\build\utils.js:231:10)
+          at _callCircusTest (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-circus\build\run.js:316:40)
+          at _runTest (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-circus\build\run.js:252:3)
+          at _runTestsForDescribeBlock (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-circus\build\run.js:126:9)
+          at _runTestsForDescribeBlock (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-circus\build\run.js:121:9)
+          at run (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-circus\build\run.js:71:3)
+          at runAndTransformResultsToJestFormat (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-circus\build\legacy-code-todo-rewrite\jestAdapterInit.js:122:21)
+          at jestAdapter (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-circus\build\legacy-code-todo-rewrite\jestAdapter.js:79:19)
+          at runTestInternal (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-runner\build\runTest.js:367:16)
+          at runTest (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-runner\build\runTest.js:444:34)
+
+      63 |     local = reminderHealthStore.read(userId);
+      64 |   } catch (error) {
+    > 65 |     console.warn('[ReminderHealth] Local delivery evidence unavailable:', error);
+         |             ^
+      66 |   }
+      67 |   try {
+      68 |     const value = await bounded(getReminderPermissionStatus(), PERMISSION_READ_TIMEOUT_MS);
+
+      at warn (src/scheduler/reminderHealth.ts:65:13)
+      at asyncGeneratorStep (node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+      at _next (node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
+      at node_modules/@babel/runtime/helpers/asyncToGenerator.js:22:7
+      at node_modules/@babel/runtime/helpers/asyncToGenerator.js:14:12
+      at apply (src/scheduler/reminderHealth.ts:57:32)
+      at Object.<anonymous> (__tests__/storage/agyPort09HealthPreferencesStats.test.ts:178:46)
+      at asyncGeneratorStep (node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+      at _next (node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
+      at node_modules/@babel/runtime/helpers/asyncToGenerator.js:22:7
+      at Object.<anonymous> (node_modules/@babel/runtime/helpers/asyncToGenerator.js:14:12)
+
+    console.warn
+      [ReminderHealth] Android access unavailable: Error: binder died
+          at Object.<anonymous> (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\__tests__\storage\agyPort09HealthPreferencesStats.test.ts:206:56)
+          at Generator.next (<anonymous>)
+          at asyncGeneratorStep (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\@babel\runtime\helpers\asyncToGenerator.js:3:17)
+          at _next (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\@babel\runtime\helpers\asyncToGenerator.js:17:9)
+
+      69 |     if (isPermissionStatus(value)) permissions = value;
+      70 |   } catch (error) {
+    > 71 |     console.warn('[ReminderHealth] Android access unavailable:', error);
+         |             ^
+      72 |   }
+      73 |   return {userId, permissions, local, checkedAt: new Date().toISOString()};
+      74 | };
+
+      at warn (src/scheduler/reminderHealth.ts:71:13)
+          at Generator.throw (<anonymous>)
+      at asyncGeneratorStep (node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+      at _throw (node_modules/@babel/runtime/helpers/asyncToGenerator.js:20:9)
+
+    console.warn
+      [ReminderHealth] Android access unavailable: HealthTimeoutError: Reminder health request timed out.
+          at C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\src\scheduler\reminderHealth.ts:36:43
+          at callTimer (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\@sinonjs\fake-timers\src\fake-timers-src.js:744:24)
+          at doTickInner (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\@sinonjs\fake-timers\src\fake-timers-src.js:1312:29)
+          at doTick (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\@sinonjs\fake-timers\src\fake-timers-src.js:1393:20)
+          at Immediate.<anonymous> (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\@sinonjs\fake-timers\src\fake-timers-src.js:1413:29)
+          at processImmediate (node:internal/timers:534:21)
+
+      69 |     if (isPermissionStatus(value)) permissions = value;
+      70 |   } catch (error) {
+    > 71 |     console.warn('[ReminderHealth] Android access unavailable:', error);
+         |             ^
+      72 |   }
+      73 |   return {userId, permissions, local, checkedAt: new Date().toISOString()};
+      74 | };
+
+      at warn (src/scheduler/reminderHealth.ts:71:13)
+          at Generator.throw (<anonymous>)
+      at asyncGeneratorStep (node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+      at _throw (node_modules/@babel/runtime/helpers/asyncToGenerator.js:20:9)
+
+    console.warn
+      [ProfileStatistics] Statistics unavailable: Error: database locked
+          at DatabaseService.<anonymous> (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\__tests__\storage\agyPort09HealthPreferencesStats.test.ts:494:13)
+          at C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-mock\build\index.js:397:39
+          at DatabaseService.<anonymous> (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-mock\build\index.js:404:13)
+          at DatabaseService.mockConstructor [as executeSync] (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-mock\build\index.js:148:19)
+          at Object.executeSync [as read] (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\src\storage\profileStatisticsStore.ts:165:12)
+          at Object.read (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\__tests__\storage\agyPort09HealthPreferencesStats.test.ts:496:35)
+          at Promise.then.completed (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-circus\build\utils.js:298:28)
+          at new Promise (<anonymous>)
+          at callAsyncCircusFn (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-circus\build\utils.js:231:10)
+          at _callCircusTest (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-circus\build\run.js:316:40)
+          at _runTest (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-circus\build\run.js:252:3)
+          at _runTestsForDescribeBlock (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-circus\build\run.js:126:9)
+          at _runTestsForDescribeBlock (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-circus\build\run.js:121:9)
+          at run (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-circus\build\run.js:71:3)
+          at runAndTransformResultsToJestFormat (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-circus\build\legacy-code-todo-rewrite\jestAdapterInit.js:122:21)
+          at jestAdapter (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-circus\build\legacy-code-todo-rewrite\jestAdapter.js:79:19)
+          at runTestInternal (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-runner\build\runTest.js:367:16)
+          at runTest (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-runner\build\runTest.js:444:34)
+
+      192 |       };
+      193 |     } catch (error) {
+    > 194 |       console.warn('[ProfileStatistics] Statistics unavailable:', error);
+          |               ^
+      195 |       return {...UNAVAILABLE_STATISTICS};
+      196 |     }
+      197 |   },
+
+      at Object.warn (src/storage/profileStatisticsStore.ts:194:15)
+      at Object.read (__tests__/storage/agyPort09HealthPreferencesStats.test.ts:496:35)
+
+    console.warn
+      [ProfileStatistics] Statistics unavailable: Error: Statistics owner required.
+          at Object.read (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\src\storage\profileStatisticsStore.ts:163:26)
+          at Object.read (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\__tests__\storage\agyPort09HealthPreferencesStats.test.ts:504:35)
+          at Promise.then.completed (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-circus\build\utils.js:298:28)
+          at new Promise (<anonymous>)
+          at callAsyncCircusFn (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-circus\build\utils.js:231:10)
+          at _callCircusTest (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-circus\build\run.js:316:40)
+          at _runTest (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-circus\build\run.js:252:3)
+          at _runTestsForDescribeBlock (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-circus\build\run.js:126:9)
+          at _runTestsForDescribeBlock (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-circus\build\run.js:121:9)
+          at run (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-circus\build\run.js:71:3)
+          at runAndTransformResultsToJestFormat (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-circus\build\legacy-code-todo-rewrite\jestAdapterInit.js:122:21)
+          at jestAdapter (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-circus\build\legacy-code-todo-rewrite\jestAdapter.js:79:19)
+          at runTestInternal (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-runner\build\runTest.js:367:16)
+          at runTest (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-runner\build\runTest.js:444:34)
+
+      192 |       };
+      193 |     } catch (error) {
+    > 194 |       console.warn('[ProfileStatistics] Statistics unavailable:', error);
+          |               ^
+      195 |       return {...UNAVAILABLE_STATISTICS};
+      196 |     }
+      197 |   },
+
+      at Object.warn (src/storage/profileStatisticsStore.ts:194:15)
+      at Object.read (__tests__/storage/agyPort09HealthPreferencesStats.test.ts:504:35)
+
+    console.warn
+      [ProfileStatistics] Detailed statistics unavailable: Error: database locked
+          at DatabaseService.<anonymous> (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\__tests__\storage\agyPort09HealthPreferencesStats.test.ts:647:13)
+          at C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-mock\build\index.js:397:39
+          at DatabaseService.<anonymous> (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-mock\build\index.js:404:13)
+          at DatabaseService.mockConstructor [as executeSync] (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-mock\build\index.js:148:19)
+          at Object.executeSync [as readDetailed] (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\src\storage\profileStatisticsStore.ts:221:12)
+          at Object.readDetailed (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\__tests__\storage\agyPort09HealthPreferencesStats.test.ts:649:35)
+          at Promise.then.completed (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-circus\build\utils.js:298:28)
+          at new Promise (<anonymous>)
+          at callAsyncCircusFn (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-circus\build\utils.js:231:10)
+          at _callCircusTest (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-circus\build\run.js:316:40)
+          at _runTest (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-circus\build\run.js:252:3)
+          at _runTestsForDescribeBlock (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-circus\build\run.js:126:9)
+          at _runTestsForDescribeBlock (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-circus\build\run.js:121:9)
+          at run (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-circus\build\run.js:71:3)
+          at runAndTransformResultsToJestFormat (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-circus\build\legacy-code-todo-rewrite\jestAdapterInit.js:122:21)
+          at jestAdapter (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-circus\build\legacy-code-todo-rewrite\jestAdapter.js:79:19)
+          at runTestInternal (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-runner\build\runTest.js:367:16)
+          at runTest (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-runner\build\runTest.js:444:34)
+
+      383 |       return value;
+      384 |     } catch (error) {
+    > 385 |       console.warn(
+          |               ^
+      386 |         '[ProfileStatistics] Detailed statistics unavailable:',
+      387 |         error,
+      388 |       );
+
+      at Object.warn [as readDetailed] (src/storage/profileStatisticsStore.ts:385:15)
+      at Object.readDetailed (__tests__/storage/agyPort09HealthPreferencesStats.test.ts:649:35)
+
+    console.warn
+      [ProfileStatistics] Detailed statistics unavailable: Error: Statistics owner required.
+          at Object.readDetailed (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\src\storage\profileStatisticsStore.ts:204:26)
+          at Object.readDetailed (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\__tests__\storage\agyPort09HealthPreferencesStats.test.ts:655:35)
+          at Promise.then.completed (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-circus\build\utils.js:298:28)
+          at new Promise (<anonymous>)
+          at callAsyncCircusFn (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-circus\build\utils.js:231:10)
+          at _callCircusTest (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-circus\build\run.js:316:40)
+          at _runTest (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-circus\build\run.js:252:3)
+          at _runTestsForDescribeBlock (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-circus\build\run.js:126:9)
+          at _runTestsForDescribeBlock (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-circus\build\run.js:121:9)
+          at run (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-circus\build\run.js:71:3)
+          at runAndTransformResultsToJestFormat (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-circus\build\legacy-code-todo-rewrite\jestAdapterInit.js:122:21)
+          at jestAdapter (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-circus\build\legacy-code-todo-rewrite\jestAdapter.js:79:19)
+          at runTestInternal (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-runner\build\runTest.js:367:16)
+          at runTest (C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\node_modules\jest-runner\build\runTest.js:444:34)
+
+      383 |       return value;
+      384 |     } catch (error) {
+    > 385 |       console.warn(
+          |               ^
+      386 |         '[ProfileStatistics] Detailed statistics unavailable:',
+      387 |         error,
+      388 |       );
+
+      at Object.warn [as readDetailed] (src/storage/profileStatisticsStore.ts:385:15)
+      at Object.readDetailed (__tests__/storage/agyPort09HealthPreferencesStats.test.ts:655:35)
+
+
+Test Suites: 1 failed, 1 passed, 2 total
+Tests:       1 failed, 26 passed, 27 total
+Snapshots:   0 total
+Time:        11.766 s
+Ran all test suites matching /__tests__\\ui\\agyPort07NotesUi.test.tsx|__tests__\\storage\\agyPort09HealthPreferencesStats.test.ts/i.

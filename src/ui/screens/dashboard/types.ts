@@ -13,6 +13,7 @@ import type {CallNavigationTarget} from '../../navigation/callNavigation';
 export interface DashboardScreenProps {
   userId: string;
   refreshTrigger: number;
+  isActive?: boolean;
   onRefresh: () => void;
   onOpenCalendarTab: (
     target?: Omit<CallNavigationTarget, 'ownerId' | 'screen'>,

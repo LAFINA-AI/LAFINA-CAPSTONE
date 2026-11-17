@@ -1,0 +1,5 @@
+Applications Graphics Acceleration Info:
+Uptime: 151238883 Realtime: 263360454
+
+** Graphics info for pid 19248 [com.lafina.capstone.performance] **
+Failure while dumping the app: ProcessRecord{33472b 19248:com.lafina.capstone.performance/u0a425}

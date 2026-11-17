@@ -40,6 +40,7 @@ import {
 import {ThemeProvider} from '../../src/ui/contexts/ThemeContext';
 import {GUEST_USER_ID} from '../../src/constants';
 import {meetingRecorder} from '../../src/ai/native/meetingRecorder';
+import {enableUstpForTest} from '../fixtures/ustpEligibility';
 
 const tts = Tts as unknown as Record<string, jest.Mock>;
 const AUDIO = Buffer.from('SYNTHETIC_MP3_BYTES').toString('base64');
@@ -563,6 +564,9 @@ describe('Online speech provider with a selected voice', () => {
 
 describe('DeepSeek chat contract', () => {
   it('sends camelCase useHandbook and fits the server limits while keeping the newest turn', async () => {
+    const contractUser = student('contract');
+    enableUstpForTest(contractUser);
+    userStore.setCurrentUser(contractUser);
     const request = jest.spyOn(cloudClient, 'request').mockResolvedValue({
       status: 'success',
       data: {reply: 'ok', usedHandbook: false, sources: []},

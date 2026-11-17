@@ -122,7 +122,13 @@ const fakeServer = (options: {enabled?: boolean} = {}) => {
 
 const fakeTransport = () => {
   let listener: ((event: TransportEvent) => void) | null = null;
-  const calls = {start: 0, end: 0, muted: [] as boolean[], initiation: '', sent: [] as string[]};
+  const calls = {
+    start: 0,
+    end: 0,
+    muted: [] as boolean[],
+    initiation: '',
+    sent: [] as string[],
+  };
   const transport: VoiceTransport = {
     available: () => true,
     start: async options => {
@@ -357,6 +363,14 @@ describe('a live conversation', () => {
         event_id: 1,
       },
     });
+    message({
+      type: 'client_tool_call',
+      client_tool_call: {
+        tool_name: 'prepare_lafina_action',
+        tool_call_id: 'online-fixture-1',
+        parameters: {request: 'Delete task: read chapter 5'},
+      },
+    });
     await waitFor(() => expect(release).toBeDefined());
     fireEvent.press(utils.getByTestId('voice-conversation-end'));
     await act(async () => {
@@ -414,6 +428,14 @@ describe('a live conversation', () => {
         event_id: 1,
       },
     });
+    message({
+      type: 'client_tool_call',
+      client_tool_call: {
+        tool_name: 'prepare_lafina_action',
+        tool_call_id: 'online-fixture-2',
+        parameters: {request: 'Add a time block for study session tomorrow'},
+      },
+    });
     expect(
       utils.getByTestId('voice-conversation-local-note'),
     ).toHaveTextContent(/What time/);
@@ -431,6 +453,21 @@ describe('a live conversation', () => {
     message({
       type: 'user_transcript',
       user_transcription_event: {user_transcript: 'from 2 to 4pm', event_id: 2},
+    });
+    message({
+      type: 'client_tool_call',
+      client_tool_call: {
+        tool_name: 'prepare_lafina_action',
+        tool_call_id: 'followup-fields',
+        parameters: {
+          request: 'study session tomorrow from 2 to 4pm',
+          action: 'create_time_block',
+          title: 'Study session',
+          date: '2030-06-12',
+          time: '14:00',
+          endTime: '16:00',
+        },
+      },
     });
     await utils.findByTestId('voice-conversation-review-card');
     expect(
@@ -650,7 +687,9 @@ describe('a live conversation', () => {
       JSON.parse(calls.initiation).conversation_config_override.tts.voice_id,
     ).toBe('default_voice');
     expect(utils.queryByTestId('voice-conversation-voice')).toBeNull();
-    expect(utils.queryByText('Talk with LAFINA naturally, hands-free')).toBeNull();
+    expect(
+      utils.queryByText('Talk with LAFINA naturally, hands-free'),
+    ).toBeNull();
 
     message({
       type: 'tentative_user_transcript',
@@ -665,6 +704,18 @@ describe('a live conversation', () => {
         event_id: 1,
       },
     });
+    message({
+      type: 'client_tool_call',
+      client_tool_call: {
+        tool_name: 'prepare_lafina_action',
+        tool_call_id: 'online-fixture-3',
+        parameters: {
+          request: 'Add task: read chapter 5',
+          action: 'create_task',
+          title: 'Read chapter 5',
+        },
+      },
+    });
     expect(utils.queryByTestId('voice-turn-user-final')).toBeNull();
 
     // The planner change waits on the card; nothing is saved by speaking.
@@ -673,7 +724,7 @@ describe('a live conversation', () => {
     ).toBeTruthy();
     expect(
       utils.getByTestId('voice-conversation-local-note'),
-    ).toHaveTextContent(/nothing is saved until confirmed/i);
+    ).toHaveTextContent(/nothing is saved until (?:confirmed|you confirm)/i);
     expect(tasksStore.getAllTasks(userId)).toHaveLength(tasksBefore);
 
     message({
@@ -967,7 +1018,7 @@ describe('Call Lafina draft ambiguity and grouped editing', () => {
 });
 
 describe('Call Mode ChatGPT-style UX, live card revisions, and saving', () => {
-  test('uses non-scrolling stage, hides waveform while card is active, revises open draft on follow-up, and saves via voice', async () => {
+  test('uses non-scrolling stage, keeps waveform while card is active, revises open draft on follow-up, and saves via voice', async () => {
     const userId = student('chatgpt-ux');
     signIn(userId);
     fakeServer();
@@ -991,11 +1042,25 @@ describe('Call Mode ChatGPT-style UX, live card revisions, and saving', () => {
         event_id: 201,
       },
     });
+    message({
+      type: 'client_tool_call',
+      client_tool_call: {
+        tool_name: 'prepare_lafina_action',
+        tool_call_id: 'online-fixture-4',
+        parameters: {
+          request: 'schedule me a meeting at 1pm',
+          action: 'create_event',
+          title: 'Meeting',
+          date: '2030-06-12',
+          time: '13:00',
+        },
+      },
+    });
 
     const card = await utils.findByTestId('voice-conversation-review-card');
     expect(card).toHaveTextContent(/1:00 PM/);
     // Waveform/avatar hides while card is shown on screen
-    expect(utils.queryByTestId('call-identity-ring')).toBeNull();
+    expect(utils.getByTestId('call-identity-ring')).toBeTruthy();
 
     // Follow-up spoken edit dynamically updates the displayed card
     message({
@@ -1043,7 +1108,7 @@ describe('Call Mode ChatGPT-style UX, live card revisions, and saving', () => {
     expect(utils.queryByText('Open saved item')).toBeNull();
   });
 
-  test('confirm_draft client tool call commits pending card inside panel', async () => {
+  test('confirm_draft cannot commit without separate student approval', async () => {
     const userId = student('confirm-tool');
     signIn(userId);
     fakeServer();
@@ -1081,6 +1146,13 @@ describe('Call Mode ChatGPT-style UX, live card revisions, and saving', () => {
       },
     });
 
+    await waitFor(() =>
+      expect(calls.sent.some(frame => frame.includes('confirm-save'))).toBe(
+        true,
+      ),
+    );
+    expect(tasksStore.getAllTasks(userId)).toHaveLength(0);
+    fireEvent.press(utils.getByTestId('voice-conversation-review-confirm'));
     await waitFor(() => expect(tasksStore.getAllTasks(userId)).toHaveLength(1));
     expect(tasksStore.getAllTasks(userId)[0]).toMatchObject({
       dueTime: '15:00',
@@ -1088,7 +1160,7 @@ describe('Call Mode ChatGPT-style UX, live card revisions, and saving', () => {
     expect(utils.queryByTestId('voice-conversation-review-card')).toBeNull();
   });
 
-  test('schedule me a meeting and polite question form show confirmation card and hide orb/waveform', async () => {
+  test('schedule me a meeting and polite question form show confirmation card and keep orb/waveform', async () => {
     const userId = student('schedule-meeting');
     signIn(userId);
     fakeServer();
@@ -1114,9 +1186,22 @@ describe('Call Mode ChatGPT-style UX, live card revisions, and saving', () => {
         event_id: 401,
       },
     });
+    message({
+      type: 'client_tool_call',
+      client_tool_call: {
+        tool_name: 'prepare_lafina_action',
+        tool_call_id: 'online-fixture-5',
+        parameters: {
+          request: 'schedule me a meeting',
+          action: 'create_event',
+          title: 'Meeting',
+          time: '13:00',
+        },
+      },
+    });
     const card = await utils.findByTestId('voice-conversation-review-card');
     expect(card).toHaveTextContent(/Meeting/);
-    expect(utils.queryByTestId('call-identity-ring')).toBeNull();
+    expect(utils.getByTestId('call-identity-ring')).toBeTruthy();
     expect(utils.queryByTestId('call-waveform-area')).toBeNull();
 
     // Cancel first draft, then test polite question variant
@@ -1132,13 +1217,28 @@ describe('Call Mode ChatGPT-style UX, live card revisions, and saving', () => {
         event_id: 402,
       },
     });
-    const politeCard = await utils.findByTestId('voice-conversation-review-card');
+    message({
+      type: 'client_tool_call',
+      client_tool_call: {
+        tool_name: 'prepare_lafina_action',
+        tool_call_id: 'online-fixture-6',
+        parameters: {
+          request: 'Can you schedule me a meeting?',
+          action: 'create_event',
+          title: 'Meeting',
+          time: '13:00',
+        },
+      },
+    });
+    const politeCard = await utils.findByTestId(
+      'voice-conversation-review-card',
+    );
     expect(politeCard).toHaveTextContent(/Meeting/);
-    expect(utils.queryByTestId('call-identity-ring')).toBeNull();
+    expect(utils.getByTestId('call-identity-ring')).toBeTruthy();
     expect(utils.queryByTestId('call-waveform-area')).toBeNull();
   });
 
-  test('hides orb and waveform when displaying clarification details or assistant reply, and Done restores orb', async () => {
+  test('keeps orb and waveform when displaying replies, and Done dismisses the reply', async () => {
     const userId = student('details-card');
     signIn(userId);
     fakeServer();
@@ -1150,14 +1250,15 @@ describe('Call Mode ChatGPT-style UX, live card revisions, and saving', () => {
     message({
       type: 'agent_response',
       agent_response_event: {
-        agent_response: 'I can help plan your week. Just tell me the day and time.',
+        agent_response:
+          'I can help plan your week. Just tell me the day and time.',
         event_id: 501,
       },
     });
 
     const detailsCard = await utils.findByTestId('call-details-card');
     expect(detailsCard).toHaveTextContent(/I can help plan your week/);
-    expect(utils.queryByTestId('call-identity-ring')).toBeNull();
+    expect(utils.getByTestId('call-identity-ring')).toBeTruthy();
     expect(utils.queryByTestId('call-waveform-area')).toBeNull();
 
     fireEvent.press(utils.getByTestId('call-details-dismiss'));

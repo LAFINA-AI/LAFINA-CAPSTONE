@@ -1,0 +1,5157 @@
+{
+  "cases": 552,
+  "failures": [],
+  "interactionChecks": [
+    {
+      "name": "USTP citation opens real source details",
+      "passed": true
+    },
+    {
+      "name": "Source closes back to USTP slide",
+      "passed": true
+    },
+    {
+      "name": "Name entry is retained across navigation",
+      "passed": true
+    },
+    {
+      "name": "Goal selection works",
+      "passed": true
+    },
+    {
+      "name": "Multiple study periods supported",
+      "passed": true
+    },
+    {
+      "name": "Flexible clears fixed periods",
+      "passed": true
+    },
+    {
+      "name": "Memory review shows selected identity",
+      "passed": true
+    },
+    {
+      "name": "Memory off disables category selection",
+      "passed": true
+    },
+    {
+      "name": "Sample extraction creates only a draft",
+      "passed": true
+    },
+    {
+      "name": "Blank student cannot be verified",
+      "passed": true
+    },
+    {
+      "name": "Student verification advances",
+      "passed": true
+    },
+    {
+      "name": "Academic review advances to dates",
+      "passed": true
+    },
+    {
+      "name": "Invalid term date range is blocked",
+      "passed": true
+    },
+    {
+      "name": "Confirmed term advances to subjects",
+      "passed": true
+    },
+    {
+      "name": "Subject identity requires explicit confirmation",
+      "passed": true
+    },
+    {
+      "name": "Compare opens sample source without confirming meeting",
+      "passed": true
+    },
+    {
+      "name": "Compare returns to same meeting",
+      "passed": true
+    },
+    {
+      "name": "Meeting room edit persists",
+      "passed": true
+    },
+    {
+      "name": "Second lecture/lab meeting gets its own review",
+      "passed": true
+    },
+    {
+      "name": "Course ready only after both meetings",
+      "passed": true
+    },
+    {
+      "name": "Ambiguous DB201 times block progress",
+      "passed": true
+    },
+    {
+      "name": "Correcting missing AM/PM supplies explicit times",
+      "passed": true
+    },
+    {
+      "name": "TBA subject is handled separately",
+      "passed": true
+    },
+    {
+      "name": "TBA kept without invented meetings",
+      "passed": true
+    },
+    {
+      "name": "Overlapping meetings require a decision",
+      "passed": true
+    },
+    {
+      "name": "Unresolved overlap cannot be imported",
+      "passed": true
+    },
+    {
+      "name": "Explicit keep-both decision resolves overlap",
+      "passed": true
+    },
+    {
+      "name": "Confirmed import snapshots reviewed data",
+      "passed": true
+    },
+    {
+      "name": "Editing draft does not mutate committed preview",
+      "passed": true
+    },
+    {
+      "name": "Retrying same import does not append duplicates",
+      "passed": true
+    },
+    {
+      "name": "Undo clears only preview import and preserves draft",
+      "passed": true
+    },
+    {
+      "name": "Editing a reviewed meeting invalidates its review",
+      "passed": true
+    },
+    {
+      "name": "Draft save never commits schedule",
+      "passed": true
+    },
+    {
+      "name": "Missing subject can be added",
+      "passed": true
+    },
+    {
+      "name": "Missing meeting can be added",
+      "passed": true
+    },
+    {
+      "name": "Excluding an incomplete subject permits omission",
+      "passed": true
+    },
+    {
+      "name": "No manual campus or program input before COR",
+      "passed": true
+    },
+    {
+      "name": "COR setup is the primary student action",
+      "passed": true
+    },
+    {
+      "name": "Explicit non-USTP path activates scheduling mode",
+      "passed": true
+    },
+    {
+      "name": "Non-USTP goal picker has no handbook choice",
+      "passed": true
+    },
+    {
+      "name": "Non-USTP memory has no academic profile category",
+      "passed": true
+    },
+    {
+      "name": "Non-USTP COR shortcut returns to student setup",
+      "passed": true
+    },
+    {
+      "name": "Non-USTP handbook source action is blocked",
+      "passed": true
+    },
+    {
+      "name": "Non-USTP cannot use a direct COR import action",
+      "passed": true
+    },
+    {
+      "name": "Scheduling tour omits USTP class feed",
+      "passed": true
+    },
+    {
+      "name": "Scheduling calendar uses ordinary events",
+      "passed": true
+    },
+    {
+      "name": "Non-USTP intro revisit offers no handbook demo",
+      "passed": true
+    },
+    {
+      "name": "USTP selection starts COR-first setup",
+      "passed": true
+    },
+    {
+      "name": "Deferring COR preserves USTP intent with school features unavailable",
+      "passed": true
+    },
+    {
+      "name": "Pending COR cannot open handbook source viewer",
+      "passed": true
+    },
+    {
+      "name": "Detected campus is read-only during COR review",
+      "passed": true
+    },
+    {
+      "name": "Manual campus override is ignored",
+      "passed": true
+    },
+    {
+      "name": "Detected program is read-only during COR review",
+      "passed": true
+    },
+    {
+      "name": "Manual program override is ignored",
+      "passed": true
+    },
+    {
+      "name": "Confirmed COR enables USTP school features",
+      "passed": true
+    },
+    {
+      "name": "Handbook goal appears only after COR confirmation",
+      "passed": true
+    },
+    {
+      "name": "Confirmed COR can be selected for academic memory",
+      "passed": true
+    },
+    {
+      "name": "Switching to non-USTP immediately removes school eligibility",
+      "passed": true
+    },
+    {
+      "name": "Switching mode preserves existing personal schedule",
+      "passed": true
+    },
+    {
+      "name": "Back navigation cannot restore USTP eligibility",
+      "passed": true
+    },
+    {
+      "name": "Academic memory direct view is blocked in non-USTP mode",
+      "passed": true
+    }
+  ],
+  "interactionFailures": [],
+  "records": [
+    {
+      "theme": "light",
+      "width": 360,
+      "stage": "intro",
+      "page": 0,
+      "view": "",
+      "problems": []
+    },
+    {
+      "theme": "light",
+      "width": 360,
+      "stage": "intro",
+      "page": 1,
+      "view": "",
+      "problems": []
+    },
+    {
+      "theme": "light",
+      "width": 360,
+      "stage": "intro",
+      "page": 2,
+      "view": "",
+      "problems": []
+    },
+    {
+      "theme": "light",
+      "width": 360,
+      "stage": "intro",
+      "page": 3,
+      "view": "",
+      "problems": []
+    },
+    {
+      "theme": "light",
+      "width": 360,
+      "stage": "intro",
+      "page": 2,
+      "view": "handbook-source",
+      "problems": []
+    },
+    {
+      "theme": "light",
+      "width": 360,
+      "stage": "details",
+      "page": 0,
+      "problems": []
+    },
+    {
+      "theme": "light",
+      "width": 360,
+      "stage": "details",
+      "page": 1,
+      "problems": []
+    },
+    {
+      "theme": "light",
+      "width": 360,
+      "stage": "details",
+      "page": 2,
+      "problems": []
+    },
+    {
+      "theme": "light",
+      "width": 360,
+      "stage": "details",
+      "page": 3,
+      "problems": []
+    },
+    {
+      "theme": "light",
+      "width": 360,
+      "stage": "details",
+      "page": 4,
+      "problems": []
+    },
+    {
+      "theme": "light",
+      "width": 360,
+      "stage": "details",
+      "page": 5,
+      "problems": []
+    },
+    {
+      "theme": "light",
+      "width": 360,
+      "stage": "details",
+      "page": 6,
+      "problems": []
+    },
+    {
+      "theme": "light",
+      "width": 360,
+      "stage": "details",
+      "page": 7,
+      "problems": []
+    },
+    {
+      "theme": "light",
+      "width": 360,
+      "stage": "details",
+      "page": 7,
+      "memoryPart": "identity",
+      "problems": []
+    },
+    {
+      "theme": "light",
+      "width": 360,
+      "stage": "details",
+      "page": 7,
+      "memoryPart": "academic",
+      "problems": []
+    },
+    {
+      "theme": "light",
+      "width": 360,
+      "stage": "details",
+      "page": 7,
+      "memoryPart": "study",
+      "problems": []
+    },
+    {
+      "theme": "light",
+      "width": 360,
+      "stage": "details",
+      "page": 7,
+      "memoryPart": "style",
+      "problems": []
+    },
+    {
+      "theme": "light",
+      "width": 360,
+      "stage": "details",
+      "page": 7,
+      "memory": false,
+      "problems": []
+    },
+    {
+      "theme": "light",
+      "width": 360,
+      "stage": "details",
+      "page": 7,
+      "ready": true,
+      "problems": []
+    },
+    {
+      "theme": "light",
+      "width": 360,
+      "stage": "details",
+      "page": 0,
+      "name": "Alexandria Gabriella Dela Cruz Santiago",
+      "tone": "professional",
+      "problems": []
+    },
+    {
+      "theme": "light",
+      "width": 360,
+      "stage": "details",
+      "page": 7,
+      "ready": true,
+      "name": "Alexandria Gabriella Dela Cruz Santiago",
+      "problems": []
+    },
+    {
+      "theme": "light",
+      "width": 360,
+      "stage": "details",
+      "page": 7,
+      "memoryPart": "identity",
+      "name": "Alexandria Gabriella Dela Cruz Santiago",
+      "tone": "professional",
+      "problems": []
+    },
+    {
+      "theme": "light",
+      "width": 360,
+      "stage": "details",
+      "page": 7,
+      "memoryPart": "academic",
+      "program": "Bachelor of Science in Information Technology and Computing",
+      "campus": "Cagayan de Oro",
+      "problems": []
+    },
+    {
+      "theme": "light",
+      "width": 360,
+      "stage": "cor",
+      "view": "upload",
+      "c": 0,
+      "m": 0,
+      "problems": []
+    },
+    {
+      "theme": "light",
+      "width": 360,
+      "stage": "cor",
+      "view": "document",
+      "c": 0,
+      "m": 0,
+      "problems": []
+    },
+    {
+      "theme": "light",
+      "width": 360,
+      "stage": "cor",
+      "view": "student",
+      "c": 0,
+      "m": 0,
+      "problems": []
+    },
+    {
+      "theme": "light",
+      "width": 360,
+      "stage": "cor",
+      "view": "academic",
+      "c": 0,
+      "m": 0,
+      "problems": []
+    },
+    {
+      "theme": "light",
+      "width": 360,
+      "stage": "cor",
+      "view": "term",
+      "c": 0,
+      "m": 0,
+      "problems": []
+    },
+    {
+      "theme": "light",
+      "width": 360,
+      "stage": "cor",
+      "view": "subjects",
+      "c": 0,
+      "m": 0,
+      "problems": []
+    },
+    {
+      "theme": "light",
+      "width": 360,
+      "stage": "cor",
+      "view": "subject",
+      "c": 0,
+      "m": 0,
+      "problems": []
+    },
+    {
+      "theme": "light",
+      "width": 360,
+      "stage": "cor",
+      "view": "meeting",
+      "c": 0,
+      "m": 0,
+      "problems": []
+    },
+    {
+      "theme": "light",
+      "width": 360,
+      "stage": "cor",
+      "view": "location",
+      "c": 0,
+      "m": 0,
+      "problems": []
+    },
+    {
+      "theme": "light",
+      "width": 360,
+      "stage": "cor",
+      "view": "course-done",
+      "c": 0,
+      "m": 0,
+      "problems": []
+    },
+    {
+      "theme": "light",
+      "width": 360,
+      "stage": "cor",
+      "view": "tba",
+      "c": 3,
+      "m": 0,
+      "problems": []
+    },
+    {
+      "theme": "light",
+      "width": 360,
+      "stage": "cor",
+      "view": "conflicts",
+      "c": 0,
+      "m": 0,
+      "problems": []
+    },
+    {
+      "theme": "light",
+      "width": 360,
+      "stage": "cor",
+      "view": "final",
+      "c": 0,
+      "m": 0,
+      "problems": []
+    },
+    {
+      "theme": "light",
+      "width": 360,
+      "stage": "cor",
+      "view": "scanerror",
+      "c": 0,
+      "m": 0,
+      "problems": []
+    },
+    {
+      "theme": "light",
+      "width": 360,
+      "stage": "cor",
+      "view": "saveerror",
+      "c": 0,
+      "m": 0,
+      "problems": []
+    },
+    {
+      "theme": "light",
+      "width": 360,
+      "stage": "cor",
+      "view": "draftsaved",
+      "c": 0,
+      "m": 0,
+      "problems": []
+    },
+    {
+      "theme": "light",
+      "width": 360,
+      "stage": "cor",
+      "view": "source",
+      "c": 0,
+      "m": 0,
+      "problems": []
+    },
+    {
+      "theme": "light",
+      "width": 360,
+      "stage": "cor",
+      "view": "success",
+      "c": 0,
+      "m": 0,
+      "problems": []
+    },
+    {
+      "theme": "light",
+      "width": 360,
+      "stage": "cor",
+      "view": "meeting",
+      "c": 1,
+      "m": 0,
+      "problems": []
+    },
+    {
+      "theme": "light",
+      "width": 360,
+      "stage": "cor",
+      "view": "meeting",
+      "c": 0,
+      "m": 1,
+      "problems": []
+    },
+    {
+      "theme": "light",
+      "width": 360,
+      "stage": "cor",
+      "view": "subject",
+      "c": 1,
+      "m": 0,
+      "problems": []
+    },
+    {
+      "theme": "light",
+      "width": 360,
+      "stage": "cor",
+      "view": "subject",
+      "c": 2,
+      "m": 0,
+      "problems": []
+    },
+    {
+      "theme": "light",
+      "width": 360,
+      "stage": "cor",
+      "view": "location",
+      "c": 0,
+      "m": 1,
+      "problems": []
+    },
+    {
+      "theme": "light",
+      "width": 360,
+      "stage": "cor",
+      "view": "academic",
+      "error": "Confirm the program and year level.",
+      "problems": []
+    },
+    {
+      "theme": "light",
+      "width": 360,
+      "stage": "cor",
+      "view": "student",
+      "error": "Enter the student name and campus, or replace this COR.",
+      "problems": []
+    },
+    {
+      "theme": "light",
+      "width": 360,
+      "stage": "cor",
+      "view": "term",
+      "error": "Choose a term and an end date on or after the start date.",
+      "problems": []
+    },
+    {
+      "theme": "light",
+      "width": 360,
+      "stage": "cor",
+      "view": "subject",
+      "error": "Enter a subject code, title, and valid credit units.",
+      "problems": []
+    },
+    {
+      "theme": "light",
+      "width": 360,
+      "stage": "cor",
+      "view": "meeting",
+      "c": 1,
+      "error": "Choose class days and valid start/end times, including AM/PM.",
+      "problems": []
+    },
+    {
+      "theme": "light",
+      "width": 360,
+      "stage": "details",
+      "page": 0,
+      "keyboard": true,
+      "focusField": "name",
+      "problems": []
+    },
+    {
+      "theme": "light",
+      "width": 360,
+      "stage": "details",
+      "page": 1,
+      "studentMode": "unselected",
+      "problems": []
+    },
+    {
+      "theme": "light",
+      "width": 360,
+      "stage": "details",
+      "page": 1,
+      "studentMode": "ustp",
+      "fixture": "complete",
+      "problems": []
+    },
+    {
+      "theme": "light",
+      "width": 360,
+      "stage": "cor",
+      "view": "academic",
+      "studentMode": "ustp",
+      "fixture": "complete",
+      "problems": []
+    },
+    {
+      "theme": "light",
+      "width": 360,
+      "stage": "cor",
+      "view": "student",
+      "keyboard": true,
+      "focusField": "cor-student",
+      "problems": []
+    },
+    {
+      "theme": "light",
+      "width": 360,
+      "stage": "cor",
+      "view": "academic",
+      "keyboard": true,
+      "focusField": "cor-year",
+      "problems": []
+    },
+    {
+      "theme": "light",
+      "width": 360,
+      "stage": "cor",
+      "view": "subject",
+      "keyboard": true,
+      "focusField": "course-title",
+      "problems": []
+    },
+    {
+      "theme": "light",
+      "width": 360,
+      "stage": "cor",
+      "view": "location",
+      "keyboard": true,
+      "focusField": "meeting-room",
+      "problems": []
+    },
+    {
+      "theme": "light",
+      "width": 360,
+      "stage": "cor",
+      "view": "student",
+      "keyboard": true,
+      "focusField": "cor-student",
+      "error": "Enter the student name and campus, or replace this COR.",
+      "problems": []
+    },
+    {
+      "theme": "light",
+      "width": 360,
+      "stage": "cor",
+      "view": "final",
+      "fixture": "complete",
+      "problems": []
+    },
+    {
+      "theme": "light",
+      "width": 360,
+      "stage": "cor",
+      "view": "course-done",
+      "fixture": "long-course",
+      "problems": []
+    },
+    {
+      "theme": "light",
+      "width": 360,
+      "stage": "cor",
+      "view": "subjects",
+      "fixture": "long-course",
+      "problems": []
+    },
+    {
+      "theme": "light",
+      "width": 360,
+      "stage": "tour",
+      "page": 0,
+      "problems": []
+    },
+    {
+      "theme": "light",
+      "width": 360,
+      "stage": "tour",
+      "page": 1,
+      "problems": []
+    },
+    {
+      "theme": "light",
+      "width": 360,
+      "stage": "tour",
+      "page": 2,
+      "problems": []
+    },
+    {
+      "theme": "light",
+      "width": 360,
+      "stage": "tour",
+      "page": 0,
+      "name": "Alexandria Gabriella Dela Cruz Santiago",
+      "problems": []
+    },
+    {
+      "theme": "light",
+      "width": 360,
+      "stage": "tour",
+      "page": 1,
+      "name": "Alexandria Gabriella Dela Cruz Santiago",
+      "problems": []
+    },
+    {
+      "theme": "light",
+      "width": 360,
+      "stage": "tour",
+      "page": 2,
+      "name": "Alexandria Gabriella Dela Cruz Santiago",
+      "problems": []
+    },
+    {
+      "theme": "light",
+      "width": 360,
+      "stage": "intro",
+      "page": 0,
+      "view": "",
+      "studentMode": "other",
+      "problems": []
+    },
+    {
+      "theme": "light",
+      "width": 360,
+      "stage": "intro",
+      "page": 1,
+      "view": "",
+      "studentMode": "other",
+      "problems": []
+    },
+    {
+      "theme": "light",
+      "width": 360,
+      "stage": "intro",
+      "page": 2,
+      "view": "",
+      "studentMode": "other",
+      "problems": []
+    },
+    {
+      "theme": "light",
+      "width": 360,
+      "stage": "intro",
+      "page": 3,
+      "view": "",
+      "studentMode": "other",
+      "problems": []
+    },
+    {
+      "theme": "light",
+      "width": 360,
+      "stage": "intro",
+      "page": 2,
+      "view": "handbook-source",
+      "studentMode": "other",
+      "problems": []
+    },
+    {
+      "theme": "light",
+      "width": 360,
+      "stage": "details",
+      "page": 0,
+      "studentMode": "other",
+      "problems": []
+    },
+    {
+      "theme": "light",
+      "width": 360,
+      "stage": "details",
+      "page": 1,
+      "studentMode": "other",
+      "problems": []
+    },
+    {
+      "theme": "light",
+      "width": 360,
+      "stage": "details",
+      "page": 2,
+      "studentMode": "other",
+      "problems": []
+    },
+    {
+      "theme": "light",
+      "width": 360,
+      "stage": "details",
+      "page": 3,
+      "studentMode": "other",
+      "problems": []
+    },
+    {
+      "theme": "light",
+      "width": 360,
+      "stage": "details",
+      "page": 4,
+      "studentMode": "other",
+      "problems": []
+    },
+    {
+      "theme": "light",
+      "width": 360,
+      "stage": "details",
+      "page": 5,
+      "studentMode": "other",
+      "problems": []
+    },
+    {
+      "theme": "light",
+      "width": 360,
+      "stage": "details",
+      "page": 6,
+      "studentMode": "other",
+      "problems": []
+    },
+    {
+      "theme": "light",
+      "width": 360,
+      "stage": "details",
+      "page": 7,
+      "studentMode": "other",
+      "problems": []
+    },
+    {
+      "theme": "light",
+      "width": 360,
+      "stage": "details",
+      "page": 7,
+      "memoryPart": "identity",
+      "studentMode": "other",
+      "problems": []
+    },
+    {
+      "theme": "light",
+      "width": 360,
+      "stage": "details",
+      "page": 7,
+      "memoryPart": "academic",
+      "studentMode": "other",
+      "problems": []
+    },
+    {
+      "theme": "light",
+      "width": 360,
+      "stage": "details",
+      "page": 7,
+      "memoryPart": "study",
+      "studentMode": "other",
+      "problems": []
+    },
+    {
+      "theme": "light",
+      "width": 360,
+      "stage": "details",
+      "page": 7,
+      "memoryPart": "style",
+      "studentMode": "other",
+      "problems": []
+    },
+    {
+      "theme": "light",
+      "width": 360,
+      "stage": "details",
+      "page": 7,
+      "memory": false,
+      "studentMode": "other",
+      "problems": []
+    },
+    {
+      "theme": "light",
+      "width": 360,
+      "stage": "details",
+      "page": 7,
+      "ready": true,
+      "studentMode": "other",
+      "problems": []
+    },
+    {
+      "theme": "light",
+      "width": 360,
+      "stage": "details",
+      "page": 0,
+      "name": "Alexandria Gabriella Dela Cruz Santiago",
+      "tone": "professional",
+      "studentMode": "other",
+      "problems": []
+    },
+    {
+      "theme": "light",
+      "width": 360,
+      "stage": "details",
+      "page": 7,
+      "ready": true,
+      "name": "Alexandria Gabriella Dela Cruz Santiago",
+      "studentMode": "other",
+      "problems": []
+    },
+    {
+      "theme": "light",
+      "width": 360,
+      "stage": "details",
+      "page": 7,
+      "memoryPart": "identity",
+      "name": "Alexandria Gabriella Dela Cruz Santiago",
+      "tone": "professional",
+      "studentMode": "other",
+      "problems": []
+    },
+    {
+      "theme": "light",
+      "width": 360,
+      "stage": "details",
+      "page": 7,
+      "memoryPart": "academic",
+      "program": "Bachelor of Science in Information Technology and Computing",
+      "campus": "Cagayan de Oro",
+      "studentMode": "other",
+      "problems": []
+    },
+    {
+      "theme": "light",
+      "width": 360,
+      "stage": "cor",
+      "view": "upload",
+      "c": 0,
+      "m": 0,
+      "studentMode": "other",
+      "problems": []
+    },
+    {
+      "theme": "light",
+      "width": 360,
+      "stage": "cor",
+      "view": "document",
+      "c": 0,
+      "m": 0,
+      "studentMode": "other",
+      "problems": []
+    },
+    {
+      "theme": "light",
+      "width": 360,
+      "stage": "cor",
+      "view": "student",
+      "c": 0,
+      "m": 0,
+      "studentMode": "other",
+      "problems": []
+    },
+    {
+      "theme": "light",
+      "width": 360,
+      "stage": "cor",
+      "view": "academic",
+      "c": 0,
+      "m": 0,
+      "studentMode": "other",
+      "problems": []
+    },
+    {
+      "theme": "light",
+      "width": 360,
+      "stage": "cor",
+      "view": "term",
+      "c": 0,
+      "m": 0,
+      "studentMode": "other",
+      "problems": []
+    },
+    {
+      "theme": "light",
+      "width": 360,
+      "stage": "cor",
+      "view": "subjects",
+      "c": 0,
+      "m": 0,
+      "studentMode": "other",
+      "problems": []
+    },
+    {
+      "theme": "light",
+      "width": 360,
+      "stage": "cor",
+      "view": "subject",
+      "c": 0,
+      "m": 0,
+      "studentMode": "other",
+      "problems": []
+    },
+    {
+      "theme": "light",
+      "width": 360,
+      "stage": "cor",
+      "view": "meeting",
+      "c": 0,
+      "m": 0,
+      "studentMode": "other",
+      "problems": []
+    },
+    {
+      "theme": "light",
+      "width": 360,
+      "stage": "cor",
+      "view": "location",
+      "c": 0,
+      "m": 0,
+      "studentMode": "other",
+      "problems": []
+    },
+    {
+      "theme": "light",
+      "width": 360,
+      "stage": "cor",
+      "view": "course-done",
+      "c": 0,
+      "m": 0,
+      "studentMode": "other",
+      "problems": []
+    },
+    {
+      "theme": "light",
+      "width": 360,
+      "stage": "cor",
+      "view": "tba",
+      "c": 3,
+      "m": 0,
+      "studentMode": "other",
+      "problems": []
+    },
+    {
+      "theme": "light",
+      "width": 360,
+      "stage": "cor",
+      "view": "conflicts",
+      "c": 0,
+      "m": 0,
+      "studentMode": "other",
+      "problems": []
+    },
+    {
+      "theme": "light",
+      "width": 360,
+      "stage": "cor",
+      "view": "final",
+      "c": 0,
+      "m": 0,
+      "studentMode": "other",
+      "problems": []
+    },
+    {
+      "theme": "light",
+      "width": 360,
+      "stage": "cor",
+      "view": "scanerror",
+      "c": 0,
+      "m": 0,
+      "studentMode": "other",
+      "problems": []
+    },
+    {
+      "theme": "light",
+      "width": 360,
+      "stage": "cor",
+      "view": "saveerror",
+      "c": 0,
+      "m": 0,
+      "studentMode": "other",
+      "problems": []
+    },
+    {
+      "theme": "light",
+      "width": 360,
+      "stage": "cor",
+      "view": "draftsaved",
+      "c": 0,
+      "m": 0,
+      "studentMode": "other",
+      "problems": []
+    },
+    {
+      "theme": "light",
+      "width": 360,
+      "stage": "cor",
+      "view": "source",
+      "c": 0,
+      "m": 0,
+      "studentMode": "other",
+      "problems": []
+    },
+    {
+      "theme": "light",
+      "width": 360,
+      "stage": "cor",
+      "view": "success",
+      "c": 0,
+      "m": 0,
+      "studentMode": "other",
+      "problems": []
+    },
+    {
+      "theme": "light",
+      "width": 360,
+      "stage": "cor",
+      "view": "meeting",
+      "c": 1,
+      "m": 0,
+      "studentMode": "other",
+      "problems": []
+    },
+    {
+      "theme": "light",
+      "width": 360,
+      "stage": "cor",
+      "view": "meeting",
+      "c": 0,
+      "m": 1,
+      "studentMode": "other",
+      "problems": []
+    },
+    {
+      "theme": "light",
+      "width": 360,
+      "stage": "cor",
+      "view": "subject",
+      "c": 1,
+      "m": 0,
+      "studentMode": "other",
+      "problems": []
+    },
+    {
+      "theme": "light",
+      "width": 360,
+      "stage": "cor",
+      "view": "subject",
+      "c": 2,
+      "m": 0,
+      "studentMode": "other",
+      "problems": []
+    },
+    {
+      "theme": "light",
+      "width": 360,
+      "stage": "cor",
+      "view": "location",
+      "c": 0,
+      "m": 1,
+      "studentMode": "other",
+      "problems": []
+    },
+    {
+      "theme": "light",
+      "width": 360,
+      "stage": "cor",
+      "view": "academic",
+      "error": "Confirm the program and year level.",
+      "studentMode": "other",
+      "problems": []
+    },
+    {
+      "theme": "light",
+      "width": 360,
+      "stage": "cor",
+      "view": "student",
+      "error": "Enter the student name and campus, or replace this COR.",
+      "studentMode": "other",
+      "problems": []
+    },
+    {
+      "theme": "light",
+      "width": 360,
+      "stage": "cor",
+      "view": "term",
+      "error": "Choose a term and an end date on or after the start date.",
+      "studentMode": "other",
+      "problems": []
+    },
+    {
+      "theme": "light",
+      "width": 360,
+      "stage": "cor",
+      "view": "subject",
+      "error": "Enter a subject code, title, and valid credit units.",
+      "studentMode": "other",
+      "problems": []
+    },
+    {
+      "theme": "light",
+      "width": 360,
+      "stage": "cor",
+      "view": "meeting",
+      "c": 1,
+      "error": "Choose class days and valid start/end times, including AM/PM.",
+      "studentMode": "other",
+      "problems": []
+    },
+    {
+      "theme": "light",
+      "width": 360,
+      "stage": "details",
+      "page": 0,
+      "keyboard": true,
+      "focusField": "name",
+      "studentMode": "other",
+      "problems": []
+    },
+    {
+      "theme": "light",
+      "width": 360,
+      "stage": "details",
+      "page": 1,
+      "studentMode": "other",
+      "problems": []
+    },
+    {
+      "theme": "light",
+      "width": 360,
+      "stage": "details",
+      "page": 1,
+      "studentMode": "other",
+      "fixture": "complete",
+      "problems": []
+    },
+    {
+      "theme": "light",
+      "width": 360,
+      "stage": "cor",
+      "view": "academic",
+      "studentMode": "other",
+      "fixture": "complete",
+      "problems": []
+    },
+    {
+      "theme": "light",
+      "width": 360,
+      "stage": "cor",
+      "view": "student",
+      "keyboard": true,
+      "focusField": "cor-student",
+      "studentMode": "other",
+      "problems": []
+    },
+    {
+      "theme": "light",
+      "width": 360,
+      "stage": "cor",
+      "view": "academic",
+      "keyboard": true,
+      "focusField": "cor-year",
+      "studentMode": "other",
+      "problems": []
+    },
+    {
+      "theme": "light",
+      "width": 360,
+      "stage": "cor",
+      "view": "subject",
+      "keyboard": true,
+      "focusField": "course-title",
+      "studentMode": "other",
+      "problems": []
+    },
+    {
+      "theme": "light",
+      "width": 360,
+      "stage": "cor",
+      "view": "location",
+      "keyboard": true,
+      "focusField": "meeting-room",
+      "studentMode": "other",
+      "problems": []
+    },
+    {
+      "theme": "light",
+      "width": 360,
+      "stage": "cor",
+      "view": "student",
+      "keyboard": true,
+      "focusField": "cor-student",
+      "error": "Enter the student name and campus, or replace this COR.",
+      "studentMode": "other",
+      "problems": []
+    },
+    {
+      "theme": "light",
+      "width": 360,
+      "stage": "cor",
+      "view": "final",
+      "fixture": "complete",
+      "studentMode": "other",
+      "problems": []
+    },
+    {
+      "theme": "light",
+      "width": 360,
+      "stage": "cor",
+      "view": "course-done",
+      "fixture": "long-course",
+      "studentMode": "other",
+      "problems": []
+    },
+    {
+      "theme": "light",
+      "width": 360,
+      "stage": "cor",
+      "view": "subjects",
+      "fixture": "long-course",
+      "studentMode": "other",
+      "problems": []
+    },
+    {
+      "theme": "light",
+      "width": 360,
+      "stage": "tour",
+      "page": 0,
+      "studentMode": "other",
+      "problems": []
+    },
+    {
+      "theme": "light",
+      "width": 360,
+      "stage": "tour",
+      "page": 1,
+      "studentMode": "other",
+      "problems": []
+    },
+    {
+      "theme": "light",
+      "width": 360,
+      "stage": "tour",
+      "page": 2,
+      "studentMode": "other",
+      "problems": []
+    },
+    {
+      "theme": "light",
+      "width": 360,
+      "stage": "tour",
+      "page": 0,
+      "name": "Alexandria Gabriella Dela Cruz Santiago",
+      "studentMode": "other",
+      "problems": []
+    },
+    {
+      "theme": "light",
+      "width": 360,
+      "stage": "tour",
+      "page": 1,
+      "name": "Alexandria Gabriella Dela Cruz Santiago",
+      "studentMode": "other",
+      "problems": []
+    },
+    {
+      "theme": "light",
+      "width": 360,
+      "stage": "tour",
+      "page": 2,
+      "name": "Alexandria Gabriella Dela Cruz Santiago",
+      "studentMode": "other",
+      "problems": []
+    },
+    {
+      "theme": "light",
+      "width": 320,
+      "stage": "intro",
+      "page": 0,
+      "view": "",
+      "problems": []
+    },
+    {
+      "theme": "light",
+      "width": 320,
+      "stage": "intro",
+      "page": 1,
+      "view": "",
+      "problems": []
+    },
+    {
+      "theme": "light",
+      "width": 320,
+      "stage": "intro",
+      "page": 2,
+      "view": "",
+      "problems": []
+    },
+    {
+      "theme": "light",
+      "width": 320,
+      "stage": "intro",
+      "page": 3,
+      "view": "",
+      "problems": []
+    },
+    {
+      "theme": "light",
+      "width": 320,
+      "stage": "intro",
+      "page": 2,
+      "view": "handbook-source",
+      "problems": []
+    },
+    {
+      "theme": "light",
+      "width": 320,
+      "stage": "details",
+      "page": 0,
+      "problems": []
+    },
+    {
+      "theme": "light",
+      "width": 320,
+      "stage": "details",
+      "page": 1,
+      "problems": []
+    },
+    {
+      "theme": "light",
+      "width": 320,
+      "stage": "details",
+      "page": 2,
+      "problems": []
+    },
+    {
+      "theme": "light",
+      "width": 320,
+      "stage": "details",
+      "page": 3,
+      "problems": []
+    },
+    {
+      "theme": "light",
+      "width": 320,
+      "stage": "details",
+      "page": 4,
+      "problems": []
+    },
+    {
+      "theme": "light",
+      "width": 320,
+      "stage": "details",
+      "page": 5,
+      "problems": []
+    },
+    {
+      "theme": "light",
+      "width": 320,
+      "stage": "details",
+      "page": 6,
+      "problems": []
+    },
+    {
+      "theme": "light",
+      "width": 320,
+      "stage": "details",
+      "page": 7,
+      "problems": []
+    },
+    {
+      "theme": "light",
+      "width": 320,
+      "stage": "details",
+      "page": 7,
+      "memoryPart": "identity",
+      "problems": []
+    },
+    {
+      "theme": "light",
+      "width": 320,
+      "stage": "details",
+      "page": 7,
+      "memoryPart": "academic",
+      "problems": []
+    },
+    {
+      "theme": "light",
+      "width": 320,
+      "stage": "details",
+      "page": 7,
+      "memoryPart": "study",
+      "problems": []
+    },
+    {
+      "theme": "light",
+      "width": 320,
+      "stage": "details",
+      "page": 7,
+      "memoryPart": "style",
+      "problems": []
+    },
+    {
+      "theme": "light",
+      "width": 320,
+      "stage": "details",
+      "page": 7,
+      "memory": false,
+      "problems": []
+    },
+    {
+      "theme": "light",
+      "width": 320,
+      "stage": "details",
+      "page": 7,
+      "ready": true,
+      "problems": []
+    },
+    {
+      "theme": "light",
+      "width": 320,
+      "stage": "details",
+      "page": 0,
+      "name": "Alexandria Gabriella Dela Cruz Santiago",
+      "tone": "professional",
+      "problems": []
+    },
+    {
+      "theme": "light",
+      "width": 320,
+      "stage": "details",
+      "page": 7,
+      "ready": true,
+      "name": "Alexandria Gabriella Dela Cruz Santiago",
+      "problems": []
+    },
+    {
+      "theme": "light",
+      "width": 320,
+      "stage": "details",
+      "page": 7,
+      "memoryPart": "identity",
+      "name": "Alexandria Gabriella Dela Cruz Santiago",
+      "tone": "professional",
+      "problems": []
+    },
+    {
+      "theme": "light",
+      "width": 320,
+      "stage": "details",
+      "page": 7,
+      "memoryPart": "academic",
+      "program": "Bachelor of Science in Information Technology and Computing",
+      "campus": "Cagayan de Oro",
+      "problems": []
+    },
+    {
+      "theme": "light",
+      "width": 320,
+      "stage": "cor",
+      "view": "upload",
+      "c": 0,
+      "m": 0,
+      "problems": []
+    },
+    {
+      "theme": "light",
+      "width": 320,
+      "stage": "cor",
+      "view": "document",
+      "c": 0,
+      "m": 0,
+      "problems": []
+    },
+    {
+      "theme": "light",
+      "width": 320,
+      "stage": "cor",
+      "view": "student",
+      "c": 0,
+      "m": 0,
+      "problems": []
+    },
+    {
+      "theme": "light",
+      "width": 320,
+      "stage": "cor",
+      "view": "academic",
+      "c": 0,
+      "m": 0,
+      "problems": []
+    },
+    {
+      "theme": "light",
+      "width": 320,
+      "stage": "cor",
+      "view": "term",
+      "c": 0,
+      "m": 0,
+      "problems": []
+    },
+    {
+      "theme": "light",
+      "width": 320,
+      "stage": "cor",
+      "view": "subjects",
+      "c": 0,
+      "m": 0,
+      "problems": []
+    },
+    {
+      "theme": "light",
+      "width": 320,
+      "stage": "cor",
+      "view": "subject",
+      "c": 0,
+      "m": 0,
+      "problems": []
+    },
+    {
+      "theme": "light",
+      "width": 320,
+      "stage": "cor",
+      "view": "meeting",
+      "c": 0,
+      "m": 0,
+      "problems": []
+    },
+    {
+      "theme": "light",
+      "width": 320,
+      "stage": "cor",
+      "view": "location",
+      "c": 0,
+      "m": 0,
+      "problems": []
+    },
+    {
+      "theme": "light",
+      "width": 320,
+      "stage": "cor",
+      "view": "course-done",
+      "c": 0,
+      "m": 0,
+      "problems": []
+    },
+    {
+      "theme": "light",
+      "width": 320,
+      "stage": "cor",
+      "view": "tba",
+      "c": 3,
+      "m": 0,
+      "problems": []
+    },
+    {
+      "theme": "light",
+      "width": 320,
+      "stage": "cor",
+      "view": "conflicts",
+      "c": 0,
+      "m": 0,
+      "problems": []
+    },
+    {
+      "theme": "light",
+      "width": 320,
+      "stage": "cor",
+      "view": "final",
+      "c": 0,
+      "m": 0,
+      "problems": []
+    },
+    {
+      "theme": "light",
+      "width": 320,
+      "stage": "cor",
+      "view": "scanerror",
+      "c": 0,
+      "m": 0,
+      "problems": []
+    },
+    {
+      "theme": "light",
+      "width": 320,
+      "stage": "cor",
+      "view": "saveerror",
+      "c": 0,
+      "m": 0,
+      "problems": []
+    },
+    {
+      "theme": "light",
+      "width": 320,
+      "stage": "cor",
+      "view": "draftsaved",
+      "c": 0,
+      "m": 0,
+      "problems": []
+    },
+    {
+      "theme": "light",
+      "width": 320,
+      "stage": "cor",
+      "view": "source",
+      "c": 0,
+      "m": 0,
+      "problems": []
+    },
+    {
+      "theme": "light",
+      "width": 320,
+      "stage": "cor",
+      "view": "success",
+      "c": 0,
+      "m": 0,
+      "problems": []
+    },
+    {
+      "theme": "light",
+      "width": 320,
+      "stage": "cor",
+      "view": "meeting",
+      "c": 1,
+      "m": 0,
+      "problems": []
+    },
+    {
+      "theme": "light",
+      "width": 320,
+      "stage": "cor",
+      "view": "meeting",
+      "c": 0,
+      "m": 1,
+      "problems": []
+    },
+    {
+      "theme": "light",
+      "width": 320,
+      "stage": "cor",
+      "view": "subject",
+      "c": 1,
+      "m": 0,
+      "problems": []
+    },
+    {
+      "theme": "light",
+      "width": 320,
+      "stage": "cor",
+      "view": "subject",
+      "c": 2,
+      "m": 0,
+      "problems": []
+    },
+    {
+      "theme": "light",
+      "width": 320,
+      "stage": "cor",
+      "view": "location",
+      "c": 0,
+      "m": 1,
+      "problems": []
+    },
+    {
+      "theme": "light",
+      "width": 320,
+      "stage": "cor",
+      "view": "academic",
+      "error": "Confirm the program and year level.",
+      "problems": []
+    },
+    {
+      "theme": "light",
+      "width": 320,
+      "stage": "cor",
+      "view": "student",
+      "error": "Enter the student name and campus, or replace this COR.",
+      "problems": []
+    },
+    {
+      "theme": "light",
+      "width": 320,
+      "stage": "cor",
+      "view": "term",
+      "error": "Choose a term and an end date on or after the start date.",
+      "problems": []
+    },
+    {
+      "theme": "light",
+      "width": 320,
+      "stage": "cor",
+      "view": "subject",
+      "error": "Enter a subject code, title, and valid credit units.",
+      "problems": []
+    },
+    {
+      "theme": "light",
+      "width": 320,
+      "stage": "cor",
+      "view": "meeting",
+      "c": 1,
+      "error": "Choose class days and valid start/end times, including AM/PM.",
+      "problems": []
+    },
+    {
+      "theme": "light",
+      "width": 320,
+      "stage": "details",
+      "page": 0,
+      "keyboard": true,
+      "focusField": "name",
+      "problems": []
+    },
+    {
+      "theme": "light",
+      "width": 320,
+      "stage": "details",
+      "page": 1,
+      "studentMode": "unselected",
+      "problems": []
+    },
+    {
+      "theme": "light",
+      "width": 320,
+      "stage": "details",
+      "page": 1,
+      "studentMode": "ustp",
+      "fixture": "complete",
+      "problems": []
+    },
+    {
+      "theme": "light",
+      "width": 320,
+      "stage": "cor",
+      "view": "academic",
+      "studentMode": "ustp",
+      "fixture": "complete",
+      "problems": []
+    },
+    {
+      "theme": "light",
+      "width": 320,
+      "stage": "cor",
+      "view": "student",
+      "keyboard": true,
+      "focusField": "cor-student",
+      "problems": []
+    },
+    {
+      "theme": "light",
+      "width": 320,
+      "stage": "cor",
+      "view": "academic",
+      "keyboard": true,
+      "focusField": "cor-year",
+      "problems": []
+    },
+    {
+      "theme": "light",
+      "width": 320,
+      "stage": "cor",
+      "view": "subject",
+      "keyboard": true,
+      "focusField": "course-title",
+      "problems": []
+    },
+    {
+      "theme": "light",
+      "width": 320,
+      "stage": "cor",
+      "view": "location",
+      "keyboard": true,
+      "focusField": "meeting-room",
+      "problems": []
+    },
+    {
+      "theme": "light",
+      "width": 320,
+      "stage": "cor",
+      "view": "student",
+      "keyboard": true,
+      "focusField": "cor-student",
+      "error": "Enter the student name and campus, or replace this COR.",
+      "problems": []
+    },
+    {
+      "theme": "light",
+      "width": 320,
+      "stage": "cor",
+      "view": "final",
+      "fixture": "complete",
+      "problems": []
+    },
+    {
+      "theme": "light",
+      "width": 320,
+      "stage": "cor",
+      "view": "course-done",
+      "fixture": "long-course",
+      "problems": []
+    },
+    {
+      "theme": "light",
+      "width": 320,
+      "stage": "cor",
+      "view": "subjects",
+      "fixture": "long-course",
+      "problems": []
+    },
+    {
+      "theme": "light",
+      "width": 320,
+      "stage": "tour",
+      "page": 0,
+      "problems": []
+    },
+    {
+      "theme": "light",
+      "width": 320,
+      "stage": "tour",
+      "page": 1,
+      "problems": []
+    },
+    {
+      "theme": "light",
+      "width": 320,
+      "stage": "tour",
+      "page": 2,
+      "problems": []
+    },
+    {
+      "theme": "light",
+      "width": 320,
+      "stage": "tour",
+      "page": 0,
+      "name": "Alexandria Gabriella Dela Cruz Santiago",
+      "problems": []
+    },
+    {
+      "theme": "light",
+      "width": 320,
+      "stage": "tour",
+      "page": 1,
+      "name": "Alexandria Gabriella Dela Cruz Santiago",
+      "problems": []
+    },
+    {
+      "theme": "light",
+      "width": 320,
+      "stage": "tour",
+      "page": 2,
+      "name": "Alexandria Gabriella Dela Cruz Santiago",
+      "problems": []
+    },
+    {
+      "theme": "light",
+      "width": 320,
+      "stage": "intro",
+      "page": 0,
+      "view": "",
+      "studentMode": "other",
+      "problems": []
+    },
+    {
+      "theme": "light",
+      "width": 320,
+      "stage": "intro",
+      "page": 1,
+      "view": "",
+      "studentMode": "other",
+      "problems": []
+    },
+    {
+      "theme": "light",
+      "width": 320,
+      "stage": "intro",
+      "page": 2,
+      "view": "",
+      "studentMode": "other",
+      "problems": []
+    },
+    {
+      "theme": "light",
+      "width": 320,
+      "stage": "intro",
+      "page": 3,
+      "view": "",
+      "studentMode": "other",
+      "problems": []
+    },
+    {
+      "theme": "light",
+      "width": 320,
+      "stage": "intro",
+      "page": 2,
+      "view": "handbook-source",
+      "studentMode": "other",
+      "problems": []
+    },
+    {
+      "theme": "light",
+      "width": 320,
+      "stage": "details",
+      "page": 0,
+      "studentMode": "other",
+      "problems": []
+    },
+    {
+      "theme": "light",
+      "width": 320,
+      "stage": "details",
+      "page": 1,
+      "studentMode": "other",
+      "problems": []
+    },
+    {
+      "theme": "light",
+      "width": 320,
+      "stage": "details",
+      "page": 2,
+      "studentMode": "other",
+      "problems": []
+    },
+    {
+      "theme": "light",
+      "width": 320,
+      "stage": "details",
+      "page": 3,
+      "studentMode": "other",
+      "problems": []
+    },
+    {
+      "theme": "light",
+      "width": 320,
+      "stage": "details",
+      "page": 4,
+      "studentMode": "other",
+      "problems": []
+    },
+    {
+      "theme": "light",
+      "width": 320,
+      "stage": "details",
+      "page": 5,
+      "studentMode": "other",
+      "problems": []
+    },
+    {
+      "theme": "light",
+      "width": 320,
+      "stage": "details",
+      "page": 6,
+      "studentMode": "other",
+      "problems": []
+    },
+    {
+      "theme": "light",
+      "width": 320,
+      "stage": "details",
+      "page": 7,
+      "studentMode": "other",
+      "problems": []
+    },
+    {
+      "theme": "light",
+      "width": 320,
+      "stage": "details",
+      "page": 7,
+      "memoryPart": "identity",
+      "studentMode": "other",
+      "problems": []
+    },
+    {
+      "theme": "light",
+      "width": 320,
+      "stage": "details",
+      "page": 7,
+      "memoryPart": "academic",
+      "studentMode": "other",
+      "problems": []
+    },
+    {
+      "theme": "light",
+      "width": 320,
+      "stage": "details",
+      "page": 7,
+      "memoryPart": "study",
+      "studentMode": "other",
+      "problems": []
+    },
+    {
+      "theme": "light",
+      "width": 320,
+      "stage": "details",
+      "page": 7,
+      "memoryPart": "style",
+      "studentMode": "other",
+      "problems": []
+    },
+    {
+      "theme": "light",
+      "width": 320,
+      "stage": "details",
+      "page": 7,
+      "memory": false,
+      "studentMode": "other",
+      "problems": []
+    },
+    {
+      "theme": "light",
+      "width": 320,
+      "stage": "details",
+      "page": 7,
+      "ready": true,
+      "studentMode": "other",
+      "problems": []
+    },
+    {
+      "theme": "light",
+      "width": 320,
+      "stage": "details",
+      "page": 0,
+      "name": "Alexandria Gabriella Dela Cruz Santiago",
+      "tone": "professional",
+      "studentMode": "other",
+      "problems": []
+    },
+    {
+      "theme": "light",
+      "width": 320,
+      "stage": "details",
+      "page": 7,
+      "ready": true,
+      "name": "Alexandria Gabriella Dela Cruz Santiago",
+      "studentMode": "other",
+      "problems": []
+    },
+    {
+      "theme": "light",
+      "width": 320,
+      "stage": "details",
+      "page": 7,
+      "memoryPart": "identity",
+      "name": "Alexandria Gabriella Dela Cruz Santiago",
+      "tone": "professional",
+      "studentMode": "other",
+      "problems": []
+    },
+    {
+      "theme": "light",
+      "width": 320,
+      "stage": "details",
+      "page": 7,
+      "memoryPart": "academic",
+      "program": "Bachelor of Science in Information Technology and Computing",
+      "campus": "Cagayan de Oro",
+      "studentMode": "other",
+      "problems": []
+    },
+    {
+      "theme": "light",
+      "width": 320,
+      "stage": "cor",
+      "view": "upload",
+      "c": 0,
+      "m": 0,
+      "studentMode": "other",
+      "problems": []
+    },
+    {
+      "theme": "light",
+      "width": 320,
+      "stage": "cor",
+      "view": "document",
+      "c": 0,
+      "m": 0,
+      "studentMode": "other",
+      "problems": []
+    },
+    {
+      "theme": "light",
+      "width": 320,
+      "stage": "cor",
+      "view": "student",
+      "c": 0,
+      "m": 0,
+      "studentMode": "other",
+      "problems": []
+    },
+    {
+      "theme": "light",
+      "width": 320,
+      "stage": "cor",
+      "view": "academic",
+      "c": 0,
+      "m": 0,
+      "studentMode": "other",
+      "problems": []
+    },
+    {
+      "theme": "light",
+      "width": 320,
+      "stage": "cor",
+      "view": "term",
+      "c": 0,
+      "m": 0,
+      "studentMode": "other",
+      "problems": []
+    },
+    {
+      "theme": "light",
+      "width": 320,
+      "stage": "cor",
+      "view": "subjects",
+      "c": 0,
+      "m": 0,
+      "studentMode": "other",
+      "problems": []
+    },
+    {
+      "theme": "light",
+      "width": 320,
+      "stage": "cor",
+      "view": "subject",
+      "c": 0,
+      "m": 0,
+      "studentMode": "other",
+      "problems": []
+    },
+    {
+      "theme": "light",
+      "width": 320,
+      "stage": "cor",
+      "view": "meeting",
+      "c": 0,
+      "m": 0,
+      "studentMode": "other",
+      "problems": []
+    },
+    {
+      "theme": "light",
+      "width": 320,
+      "stage": "cor",
+      "view": "location",
+      "c": 0,
+      "m": 0,
+      "studentMode": "other",
+      "problems": []
+    },
+    {
+      "theme": "light",
+      "width": 320,
+      "stage": "cor",
+      "view": "course-done",
+      "c": 0,
+      "m": 0,
+      "studentMode": "other",
+      "problems": []
+    },
+    {
+      "theme": "light",
+      "width": 320,
+      "stage": "cor",
+      "view": "tba",
+      "c": 3,
+      "m": 0,
+      "studentMode": "other",
+      "problems": []
+    },
+    {
+      "theme": "light",
+      "width": 320,
+      "stage": "cor",
+      "view": "conflicts",
+      "c": 0,
+      "m": 0,
+      "studentMode": "other",
+      "problems": []
+    },
+    {
+      "theme": "light",
+      "width": 320,
+      "stage": "cor",
+      "view": "final",
+      "c": 0,
+      "m": 0,
+      "studentMode": "other",
+      "problems": []
+    },
+    {
+      "theme": "light",
+      "width": 320,
+      "stage": "cor",
+      "view": "scanerror",
+      "c": 0,
+      "m": 0,
+      "studentMode": "other",
+      "problems": []
+    },
+    {
+      "theme": "light",
+      "width": 320,
+      "stage": "cor",
+      "view": "saveerror",
+      "c": 0,
+      "m": 0,
+      "studentMode": "other",
+      "problems": []
+    },
+    {
+      "theme": "light",
+      "width": 320,
+      "stage": "cor",
+      "view": "draftsaved",
+      "c": 0,
+      "m": 0,
+      "studentMode": "other",
+      "problems": []
+    },
+    {
+      "theme": "light",
+      "width": 320,
+      "stage": "cor",
+      "view": "source",
+      "c": 0,
+      "m": 0,
+      "studentMode": "other",
+      "problems": []
+    },
+    {
+      "theme": "light",
+      "width": 320,
+      "stage": "cor",
+      "view": "success",
+      "c": 0,
+      "m": 0,
+      "studentMode": "other",
+      "problems": []
+    },
+    {
+      "theme": "light",
+      "width": 320,
+      "stage": "cor",
+      "view": "meeting",
+      "c": 1,
+      "m": 0,
+      "studentMode": "other",
+      "problems": []
+    },
+    {
+      "theme": "light",
+      "width": 320,
+      "stage": "cor",
+      "view": "meeting",
+      "c": 0,
+      "m": 1,
+      "studentMode": "other",
+      "problems": []
+    },
+    {
+      "theme": "light",
+      "width": 320,
+      "stage": "cor",
+      "view": "subject",
+      "c": 1,
+      "m": 0,
+      "studentMode": "other",
+      "problems": []
+    },
+    {
+      "theme": "light",
+      "width": 320,
+      "stage": "cor",
+      "view": "subject",
+      "c": 2,
+      "m": 0,
+      "studentMode": "other",
+      "problems": []
+    },
+    {
+      "theme": "light",
+      "width": 320,
+      "stage": "cor",
+      "view": "location",
+      "c": 0,
+      "m": 1,
+      "studentMode": "other",
+      "problems": []
+    },
+    {
+      "theme": "light",
+      "width": 320,
+      "stage": "cor",
+      "view": "academic",
+      "error": "Confirm the program and year level.",
+      "studentMode": "other",
+      "problems": []
+    },
+    {
+      "theme": "light",
+      "width": 320,
+      "stage": "cor",
+      "view": "student",
+      "error": "Enter the student name and campus, or replace this COR.",
+      "studentMode": "other",
+      "problems": []
+    },
+    {
+      "theme": "light",
+      "width": 320,
+      "stage": "cor",
+      "view": "term",
+      "error": "Choose a term and an end date on or after the start date.",
+      "studentMode": "other",
+      "problems": []
+    },
+    {
+      "theme": "light",
+      "width": 320,
+      "stage": "cor",
+      "view": "subject",
+      "error": "Enter a subject code, title, and valid credit units.",
+      "studentMode": "other",
+      "problems": []
+    },
+    {
+      "theme": "light",
+      "width": 320,
+      "stage": "cor",
+      "view": "meeting",
+      "c": 1,
+      "error": "Choose class days and valid start/end times, including AM/PM.",
+      "studentMode": "other",
+      "problems": []
+    },
+    {
+      "theme": "light",
+      "width": 320,
+      "stage": "details",
+      "page": 0,
+      "keyboard": true,
+      "focusField": "name",
+      "studentMode": "other",
+      "problems": []
+    },
+    {
+      "theme": "light",
+      "width": 320,
+      "stage": "details",
+      "page": 1,
+      "studentMode": "other",
+      "problems": []
+    },
+    {
+      "theme": "light",
+      "width": 320,
+      "stage": "details",
+      "page": 1,
+      "studentMode": "other",
+      "fixture": "complete",
+      "problems": []
+    },
+    {
+      "theme": "light",
+      "width": 320,
+      "stage": "cor",
+      "view": "academic",
+      "studentMode": "other",
+      "fixture": "complete",
+      "problems": []
+    },
+    {
+      "theme": "light",
+      "width": 320,
+      "stage": "cor",
+      "view": "student",
+      "keyboard": true,
+      "focusField": "cor-student",
+      "studentMode": "other",
+      "problems": []
+    },
+    {
+      "theme": "light",
+      "width": 320,
+      "stage": "cor",
+      "view": "academic",
+      "keyboard": true,
+      "focusField": "cor-year",
+      "studentMode": "other",
+      "problems": []
+    },
+    {
+      "theme": "light",
+      "width": 320,
+      "stage": "cor",
+      "view": "subject",
+      "keyboard": true,
+      "focusField": "course-title",
+      "studentMode": "other",
+      "problems": []
+    },
+    {
+      "theme": "light",
+      "width": 320,
+      "stage": "cor",
+      "view": "location",
+      "keyboard": true,
+      "focusField": "meeting-room",
+      "studentMode": "other",
+      "problems": []
+    },
+    {
+      "theme": "light",
+      "width": 320,
+      "stage": "cor",
+      "view": "student",
+      "keyboard": true,
+      "focusField": "cor-student",
+      "error": "Enter the student name and campus, or replace this COR.",
+      "studentMode": "other",
+      "problems": []
+    },
+    {
+      "theme": "light",
+      "width": 320,
+      "stage": "cor",
+      "view": "final",
+      "fixture": "complete",
+      "studentMode": "other",
+      "problems": []
+    },
+    {
+      "theme": "light",
+      "width": 320,
+      "stage": "cor",
+      "view": "course-done",
+      "fixture": "long-course",
+      "studentMode": "other",
+      "problems": []
+    },
+    {
+      "theme": "light",
+      "width": 320,
+      "stage": "cor",
+      "view": "subjects",
+      "fixture": "long-course",
+      "studentMode": "other",
+      "problems": []
+    },
+    {
+      "theme": "light",
+      "width": 320,
+      "stage": "tour",
+      "page": 0,
+      "studentMode": "other",
+      "problems": []
+    },
+    {
+      "theme": "light",
+      "width": 320,
+      "stage": "tour",
+      "page": 1,
+      "studentMode": "other",
+      "problems": []
+    },
+    {
+      "theme": "light",
+      "width": 320,
+      "stage": "tour",
+      "page": 2,
+      "studentMode": "other",
+      "problems": []
+    },
+    {
+      "theme": "light",
+      "width": 320,
+      "stage": "tour",
+      "page": 0,
+      "name": "Alexandria Gabriella Dela Cruz Santiago",
+      "studentMode": "other",
+      "problems": []
+    },
+    {
+      "theme": "light",
+      "width": 320,
+      "stage": "tour",
+      "page": 1,
+      "name": "Alexandria Gabriella Dela Cruz Santiago",
+      "studentMode": "other",
+      "problems": []
+    },
+    {
+      "theme": "light",
+      "width": 320,
+      "stage": "tour",
+      "page": 2,
+      "name": "Alexandria Gabriella Dela Cruz Santiago",
+      "studentMode": "other",
+      "problems": []
+    },
+    {
+      "theme": "dark",
+      "width": 360,
+      "stage": "intro",
+      "page": 0,
+      "view": "",
+      "problems": []
+    },
+    {
+      "theme": "dark",
+      "width": 360,
+      "stage": "intro",
+      "page": 1,
+      "view": "",
+      "problems": []
+    },
+    {
+      "theme": "dark",
+      "width": 360,
+      "stage": "intro",
+      "page": 2,
+      "view": "",
+      "problems": []
+    },
+    {
+      "theme": "dark",
+      "width": 360,
+      "stage": "intro",
+      "page": 3,
+      "view": "",
+      "problems": []
+    },
+    {
+      "theme": "dark",
+      "width": 360,
+      "stage": "intro",
+      "page": 2,
+      "view": "handbook-source",
+      "problems": []
+    },
+    {
+      "theme": "dark",
+      "width": 360,
+      "stage": "details",
+      "page": 0,
+      "problems": []
+    },
+    {
+      "theme": "dark",
+      "width": 360,
+      "stage": "details",
+      "page": 1,
+      "problems": []
+    },
+    {
+      "theme": "dark",
+      "width": 360,
+      "stage": "details",
+      "page": 2,
+      "problems": []
+    },
+    {
+      "theme": "dark",
+      "width": 360,
+      "stage": "details",
+      "page": 3,
+      "problems": []
+    },
+    {
+      "theme": "dark",
+      "width": 360,
+      "stage": "details",
+      "page": 4,
+      "problems": []
+    },
+    {
+      "theme": "dark",
+      "width": 360,
+      "stage": "details",
+      "page": 5,
+      "problems": []
+    },
+    {
+      "theme": "dark",
+      "width": 360,
+      "stage": "details",
+      "page": 6,
+      "problems": []
+    },
+    {
+      "theme": "dark",
+      "width": 360,
+      "stage": "details",
+      "page": 7,
+      "problems": []
+    },
+    {
+      "theme": "dark",
+      "width": 360,
+      "stage": "details",
+      "page": 7,
+      "memoryPart": "identity",
+      "problems": []
+    },
+    {
+      "theme": "dark",
+      "width": 360,
+      "stage": "details",
+      "page": 7,
+      "memoryPart": "academic",
+      "problems": []
+    },
+    {
+      "theme": "dark",
+      "width": 360,
+      "stage": "details",
+      "page": 7,
+      "memoryPart": "study",
+      "problems": []
+    },
+    {
+      "theme": "dark",
+      "width": 360,
+      "stage": "details",
+      "page": 7,
+      "memoryPart": "style",
+      "problems": []
+    },
+    {
+      "theme": "dark",
+      "width": 360,
+      "stage": "details",
+      "page": 7,
+      "memory": false,
+      "problems": []
+    },
+    {
+      "theme": "dark",
+      "width": 360,
+      "stage": "details",
+      "page": 7,
+      "ready": true,
+      "problems": []
+    },
+    {
+      "theme": "dark",
+      "width": 360,
+      "stage": "details",
+      "page": 0,
+      "name": "Alexandria Gabriella Dela Cruz Santiago",
+      "tone": "professional",
+      "problems": []
+    },
+    {
+      "theme": "dark",
+      "width": 360,
+      "stage": "details",
+      "page": 7,
+      "ready": true,
+      "name": "Alexandria Gabriella Dela Cruz Santiago",
+      "problems": []
+    },
+    {
+      "theme": "dark",
+      "width": 360,
+      "stage": "details",
+      "page": 7,
+      "memoryPart": "identity",
+      "name": "Alexandria Gabriella Dela Cruz Santiago",
+      "tone": "professional",
+      "problems": []
+    },
+    {
+      "theme": "dark",
+      "width": 360,
+      "stage": "details",
+      "page": 7,
+      "memoryPart": "academic",
+      "program": "Bachelor of Science in Information Technology and Computing",
+      "campus": "Cagayan de Oro",
+      "problems": []
+    },
+    {
+      "theme": "dark",
+      "width": 360,
+      "stage": "cor",
+      "view": "upload",
+      "c": 0,
+      "m": 0,
+      "problems": []
+    },
+    {
+      "theme": "dark",
+      "width": 360,
+      "stage": "cor",
+      "view": "document",
+      "c": 0,
+      "m": 0,
+      "problems": []
+    },
+    {
+      "theme": "dark",
+      "width": 360,
+      "stage": "cor",
+      "view": "student",
+      "c": 0,
+      "m": 0,
+      "problems": []
+    },
+    {
+      "theme": "dark",
+      "width": 360,
+      "stage": "cor",
+      "view": "academic",
+      "c": 0,
+      "m": 0,
+      "problems": []
+    },
+    {
+      "theme": "dark",
+      "width": 360,
+      "stage": "cor",
+      "view": "term",
+      "c": 0,
+      "m": 0,
+      "problems": []
+    },
+    {
+      "theme": "dark",
+      "width": 360,
+      "stage": "cor",
+      "view": "subjects",
+      "c": 0,
+      "m": 0,
+      "problems": []
+    },
+    {
+      "theme": "dark",
+      "width": 360,
+      "stage": "cor",
+      "view": "subject",
+      "c": 0,
+      "m": 0,
+      "problems": []
+    },
+    {
+      "theme": "dark",
+      "width": 360,
+      "stage": "cor",
+      "view": "meeting",
+      "c": 0,
+      "m": 0,
+      "problems": []
+    },
+    {
+      "theme": "dark",
+      "width": 360,
+      "stage": "cor",
+      "view": "location",
+      "c": 0,
+      "m": 0,
+      "problems": []
+    },
+    {
+      "theme": "dark",
+      "width": 360,
+      "stage": "cor",
+      "view": "course-done",
+      "c": 0,
+      "m": 0,
+      "problems": []
+    },
+    {
+      "theme": "dark",
+      "width": 360,
+      "stage": "cor",
+      "view": "tba",
+      "c": 3,
+      "m": 0,
+      "problems": []
+    },
+    {
+      "theme": "dark",
+      "width": 360,
+      "stage": "cor",
+      "view": "conflicts",
+      "c": 0,
+      "m": 0,
+      "problems": []
+    },
+    {
+      "theme": "dark",
+      "width": 360,
+      "stage": "cor",
+      "view": "final",
+      "c": 0,
+      "m": 0,
+      "problems": []
+    },
+    {
+      "theme": "dark",
+      "width": 360,
+      "stage": "cor",
+      "view": "scanerror",
+      "c": 0,
+      "m": 0,
+      "problems": []
+    },
+    {
+      "theme": "dark",
+      "width": 360,
+      "stage": "cor",
+      "view": "saveerror",
+      "c": 0,
+      "m": 0,
+      "problems": []
+    },
+    {
+      "theme": "dark",
+      "width": 360,
+      "stage": "cor",
+      "view": "draftsaved",
+      "c": 0,
+      "m": 0,
+      "problems": []
+    },
+    {
+      "theme": "dark",
+      "width": 360,
+      "stage": "cor",
+      "view": "source",
+      "c": 0,
+      "m": 0,
+      "problems": []
+    },
+    {
+      "theme": "dark",
+      "width": 360,
+      "stage": "cor",
+      "view": "success",
+      "c": 0,
+      "m": 0,
+      "problems": []
+    },
+    {
+      "theme": "dark",
+      "width": 360,
+      "stage": "cor",
+      "view": "meeting",
+      "c": 1,
+      "m": 0,
+      "problems": []
+    },
+    {
+      "theme": "dark",
+      "width": 360,
+      "stage": "cor",
+      "view": "meeting",
+      "c": 0,
+      "m": 1,
+      "problems": []
+    },
+    {
+      "theme": "dark",
+      "width": 360,
+      "stage": "cor",
+      "view": "subject",
+      "c": 1,
+      "m": 0,
+      "problems": []
+    },
+    {
+      "theme": "dark",
+      "width": 360,
+      "stage": "cor",
+      "view": "subject",
+      "c": 2,
+      "m": 0,
+      "problems": []
+    },
+    {
+      "theme": "dark",
+      "width": 360,
+      "stage": "cor",
+      "view": "location",
+      "c": 0,
+      "m": 1,
+      "problems": []
+    },
+    {
+      "theme": "dark",
+      "width": 360,
+      "stage": "cor",
+      "view": "academic",
+      "error": "Confirm the program and year level.",
+      "problems": []
+    },
+    {
+      "theme": "dark",
+      "width": 360,
+      "stage": "cor",
+      "view": "student",
+      "error": "Enter the student name and campus, or replace this COR.",
+      "problems": []
+    },
+    {
+      "theme": "dark",
+      "width": 360,
+      "stage": "cor",
+      "view": "term",
+      "error": "Choose a term and an end date on or after the start date.",
+      "problems": []
+    },
+    {
+      "theme": "dark",
+      "width": 360,
+      "stage": "cor",
+      "view": "subject",
+      "error": "Enter a subject code, title, and valid credit units.",
+      "problems": []
+    },
+    {
+      "theme": "dark",
+      "width": 360,
+      "stage": "cor",
+      "view": "meeting",
+      "c": 1,
+      "error": "Choose class days and valid start/end times, including AM/PM.",
+      "problems": []
+    },
+    {
+      "theme": "dark",
+      "width": 360,
+      "stage": "details",
+      "page": 0,
+      "keyboard": true,
+      "focusField": "name",
+      "problems": []
+    },
+    {
+      "theme": "dark",
+      "width": 360,
+      "stage": "details",
+      "page": 1,
+      "studentMode": "unselected",
+      "problems": []
+    },
+    {
+      "theme": "dark",
+      "width": 360,
+      "stage": "details",
+      "page": 1,
+      "studentMode": "ustp",
+      "fixture": "complete",
+      "problems": []
+    },
+    {
+      "theme": "dark",
+      "width": 360,
+      "stage": "cor",
+      "view": "academic",
+      "studentMode": "ustp",
+      "fixture": "complete",
+      "problems": []
+    },
+    {
+      "theme": "dark",
+      "width": 360,
+      "stage": "cor",
+      "view": "student",
+      "keyboard": true,
+      "focusField": "cor-student",
+      "problems": []
+    },
+    {
+      "theme": "dark",
+      "width": 360,
+      "stage": "cor",
+      "view": "academic",
+      "keyboard": true,
+      "focusField": "cor-year",
+      "problems": []
+    },
+    {
+      "theme": "dark",
+      "width": 360,
+      "stage": "cor",
+      "view": "subject",
+      "keyboard": true,
+      "focusField": "course-title",
+      "problems": []
+    },
+    {
+      "theme": "dark",
+      "width": 360,
+      "stage": "cor",
+      "view": "location",
+      "keyboard": true,
+      "focusField": "meeting-room",
+      "problems": []
+    },
+    {
+      "theme": "dark",
+      "width": 360,
+      "stage": "cor",
+      "view": "student",
+      "keyboard": true,
+      "focusField": "cor-student",
+      "error": "Enter the student name and campus, or replace this COR.",
+      "problems": []
+    },
+    {
+      "theme": "dark",
+      "width": 360,
+      "stage": "cor",
+      "view": "final",
+      "fixture": "complete",
+      "problems": []
+    },
+    {
+      "theme": "dark",
+      "width": 360,
+      "stage": "cor",
+      "view": "course-done",
+      "fixture": "long-course",
+      "problems": []
+    },
+    {
+      "theme": "dark",
+      "width": 360,
+      "stage": "cor",
+      "view": "subjects",
+      "fixture": "long-course",
+      "problems": []
+    },
+    {
+      "theme": "dark",
+      "width": 360,
+      "stage": "tour",
+      "page": 0,
+      "problems": []
+    },
+    {
+      "theme": "dark",
+      "width": 360,
+      "stage": "tour",
+      "page": 1,
+      "problems": []
+    },
+    {
+      "theme": "dark",
+      "width": 360,
+      "stage": "tour",
+      "page": 2,
+      "problems": []
+    },
+    {
+      "theme": "dark",
+      "width": 360,
+      "stage": "tour",
+      "page": 0,
+      "name": "Alexandria Gabriella Dela Cruz Santiago",
+      "problems": []
+    },
+    {
+      "theme": "dark",
+      "width": 360,
+      "stage": "tour",
+      "page": 1,
+      "name": "Alexandria Gabriella Dela Cruz Santiago",
+      "problems": []
+    },
+    {
+      "theme": "dark",
+      "width": 360,
+      "stage": "tour",
+      "page": 2,
+      "name": "Alexandria Gabriella Dela Cruz Santiago",
+      "problems": []
+    },
+    {
+      "theme": "dark",
+      "width": 360,
+      "stage": "intro",
+      "page": 0,
+      "view": "",
+      "studentMode": "other",
+      "problems": []
+    },
+    {
+      "theme": "dark",
+      "width": 360,
+      "stage": "intro",
+      "page": 1,
+      "view": "",
+      "studentMode": "other",
+      "problems": []
+    },
+    {
+      "theme": "dark",
+      "width": 360,
+      "stage": "intro",
+      "page": 2,
+      "view": "",
+      "studentMode": "other",
+      "problems": []
+    },
+    {
+      "theme": "dark",
+      "width": 360,
+      "stage": "intro",
+      "page": 3,
+      "view": "",
+      "studentMode": "other",
+      "problems": []
+    },
+    {
+      "theme": "dark",
+      "width": 360,
+      "stage": "intro",
+      "page": 2,
+      "view": "handbook-source",
+      "studentMode": "other",
+      "problems": []
+    },
+    {
+      "theme": "dark",
+      "width": 360,
+      "stage": "details",
+      "page": 0,
+      "studentMode": "other",
+      "problems": []
+    },
+    {
+      "theme": "dark",
+      "width": 360,
+      "stage": "details",
+      "page": 1,
+      "studentMode": "other",
+      "problems": []
+    },
+    {
+      "theme": "dark",
+      "width": 360,
+      "stage": "details",
+      "page": 2,
+      "studentMode": "other",
+      "problems": []
+    },
+    {
+      "theme": "dark",
+      "width": 360,
+      "stage": "details",
+      "page": 3,
+      "studentMode": "other",
+      "problems": []
+    },
+    {
+      "theme": "dark",
+      "width": 360,
+      "stage": "details",
+      "page": 4,
+      "studentMode": "other",
+      "problems": []
+    },
+    {
+      "theme": "dark",
+      "width": 360,
+      "stage": "details",
+      "page": 5,
+      "studentMode": "other",
+      "problems": []
+    },
+    {
+      "theme": "dark",
+      "width": 360,
+      "stage": "details",
+      "page": 6,
+      "studentMode": "other",
+      "problems": []
+    },
+    {
+      "theme": "dark",
+      "width": 360,
+      "stage": "details",
+      "page": 7,
+      "studentMode": "other",
+      "problems": []
+    },
+    {
+      "theme": "dark",
+      "width": 360,
+      "stage": "details",
+      "page": 7,
+      "memoryPart": "identity",
+      "studentMode": "other",
+      "problems": []
+    },
+    {
+      "theme": "dark",
+      "width": 360,
+      "stage": "details",
+      "page": 7,
+      "memoryPart": "academic",
+      "studentMode": "other",
+      "problems": []
+    },
+    {
+      "theme": "dark",
+      "width": 360,
+      "stage": "details",
+      "page": 7,
+      "memoryPart": "study",
+      "studentMode": "other",
+      "problems": []
+    },
+    {
+      "theme": "dark",
+      "width": 360,
+      "stage": "details",
+      "page": 7,
+      "memoryPart": "style",
+      "studentMode": "other",
+      "problems": []
+    },
+    {
+      "theme": "dark",
+      "width": 360,
+      "stage": "details",
+      "page": 7,
+      "memory": false,
+      "studentMode": "other",
+      "problems": []
+    },
+    {
+      "theme": "dark",
+      "width": 360,
+      "stage": "details",
+      "page": 7,
+      "ready": true,
+      "studentMode": "other",
+      "problems": []
+    },
+    {
+      "theme": "dark",
+      "width": 360,
+      "stage": "details",
+      "page": 0,
+      "name": "Alexandria Gabriella Dela Cruz Santiago",
+      "tone": "professional",
+      "studentMode": "other",
+      "problems": []
+    },
+    {
+      "theme": "dark",
+      "width": 360,
+      "stage": "details",
+      "page": 7,
+      "ready": true,
+      "name": "Alexandria Gabriella Dela Cruz Santiago",
+      "studentMode": "other",
+      "problems": []
+    },
+    {
+      "theme": "dark",
+      "width": 360,
+      "stage": "details",
+      "page": 7,
+      "memoryPart": "identity",
+      "name": "Alexandria Gabriella Dela Cruz Santiago",
+      "tone": "professional",
+      "studentMode": "other",
+      "problems": []
+    },
+    {
+      "theme": "dark",
+      "width": 360,
+      "stage": "details",
+      "page": 7,
+      "memoryPart": "academic",
+      "program": "Bachelor of Science in Information Technology and Computing",
+      "campus": "Cagayan de Oro",
+      "studentMode": "other",
+      "problems": []
+    },
+    {
+      "theme": "dark",
+      "width": 360,
+      "stage": "cor",
+      "view": "upload",
+      "c": 0,
+      "m": 0,
+      "studentMode": "other",
+      "problems": []
+    },
+    {
+      "theme": "dark",
+      "width": 360,
+      "stage": "cor",
+      "view": "document",
+      "c": 0,
+      "m": 0,
+      "studentMode": "other",
+      "problems": []
+    },
+    {
+      "theme": "dark",
+      "width": 360,
+      "stage": "cor",
+      "view": "student",
+      "c": 0,
+      "m": 0,
+      "studentMode": "other",
+      "problems": []
+    },
+    {
+      "theme": "dark",
+      "width": 360,
+      "stage": "cor",
+      "view": "academic",
+      "c": 0,
+      "m": 0,
+      "studentMode": "other",
+      "problems": []
+    },
+    {
+      "theme": "dark",
+      "width": 360,
+      "stage": "cor",
+      "view": "term",
+      "c": 0,
+      "m": 0,
+      "studentMode": "other",
+      "problems": []
+    },
+    {
+      "theme": "dark",
+      "width": 360,
+      "stage": "cor",
+      "view": "subjects",
+      "c": 0,
+      "m": 0,
+      "studentMode": "other",
+      "problems": []
+    },
+    {
+      "theme": "dark",
+      "width": 360,
+      "stage": "cor",
+      "view": "subject",
+      "c": 0,
+      "m": 0,
+      "studentMode": "other",
+      "problems": []
+    },
+    {
+      "theme": "dark",
+      "width": 360,
+      "stage": "cor",
+      "view": "meeting",
+      "c": 0,
+      "m": 0,
+      "studentMode": "other",
+      "problems": []
+    },
+    {
+      "theme": "dark",
+      "width": 360,
+      "stage": "cor",
+      "view": "location",
+      "c": 0,
+      "m": 0,
+      "studentMode": "other",
+      "problems": []
+    },
+    {
+      "theme": "dark",
+      "width": 360,
+      "stage": "cor",
+      "view": "course-done",
+      "c": 0,
+      "m": 0,
+      "studentMode": "other",
+      "problems": []
+    },
+    {
+      "theme": "dark",
+      "width": 360,
+      "stage": "cor",
+      "view": "tba",
+      "c": 3,
+      "m": 0,
+      "studentMode": "other",
+      "problems": []
+    },
+    {
+      "theme": "dark",
+      "width": 360,
+      "stage": "cor",
+      "view": "conflicts",
+      "c": 0,
+      "m": 0,
+      "studentMode": "other",
+      "problems": []
+    },
+    {
+      "theme": "dark",
+      "width": 360,
+      "stage": "cor",
+      "view": "final",
+      "c": 0,
+      "m": 0,
+      "studentMode": "other",
+      "problems": []
+    },
+    {
+      "theme": "dark",
+      "width": 360,
+      "stage": "cor",
+      "view": "scanerror",
+      "c": 0,
+      "m": 0,
+      "studentMode": "other",
+      "problems": []
+    },
+    {
+      "theme": "dark",
+      "width": 360,
+      "stage": "cor",
+      "view": "saveerror",
+      "c": 0,
+      "m": 0,
+      "studentMode": "other",
+      "problems": []
+    },
+    {
+      "theme": "dark",
+      "width": 360,
+      "stage": "cor",
+      "view": "draftsaved",
+      "c": 0,
+      "m": 0,
+      "studentMode": "other",
+      "problems": []
+    },
+    {
+      "theme": "dark",
+      "width": 360,
+      "stage": "cor",
+      "view": "source",
+      "c": 0,
+      "m": 0,
+      "studentMode": "other",
+      "problems": []
+    },
+    {
+      "theme": "dark",
+      "width": 360,
+      "stage": "cor",
+      "view": "success",
+      "c": 0,
+      "m": 0,
+      "studentMode": "other",
+      "problems": []
+    },
+    {
+      "theme": "dark",
+      "width": 360,
+      "stage": "cor",
+      "view": "meeting",
+      "c": 1,
+      "m": 0,
+      "studentMode": "other",
+      "problems": []
+    },
+    {
+      "theme": "dark",
+      "width": 360,
+      "stage": "cor",
+      "view": "meeting",
+      "c": 0,
+      "m": 1,
+      "studentMode": "other",
+      "problems": []
+    },
+    {
+      "theme": "dark",
+      "width": 360,
+      "stage": "cor",
+      "view": "subject",
+      "c": 1,
+      "m": 0,
+      "studentMode": "other",
+      "problems": []
+    },
+    {
+      "theme": "dark",
+      "width": 360,
+      "stage": "cor",
+      "view": "subject",
+      "c": 2,
+      "m": 0,
+      "studentMode": "other",
+      "problems": []
+    },
+    {
+      "theme": "dark",
+      "width": 360,
+      "stage": "cor",
+      "view": "location",
+      "c": 0,
+      "m": 1,
+      "studentMode": "other",
+      "problems": []
+    },
+    {
+      "theme": "dark",
+      "width": 360,
+      "stage": "cor",
+      "view": "academic",
+      "error": "Confirm the program and year level.",
+      "studentMode": "other",
+      "problems": []
+    },
+    {
+      "theme": "dark",
+      "width": 360,
+      "stage": "cor",
+      "view": "student",
+      "error": "Enter the student name and campus, or replace this COR.",
+      "studentMode": "other",
+      "problems": []
+    },
+    {
+      "theme": "dark",
+      "width": 360,
+      "stage": "cor",
+      "view": "term",
+      "error": "Choose a term and an end date on or after the start date.",
+      "studentMode": "other",
+      "problems": []
+    },
+    {
+      "theme": "dark",
+      "width": 360,
+      "stage": "cor",
+      "view": "subject",
+      "error": "Enter a subject code, title, and valid credit units.",
+      "studentMode": "other",
+      "problems": []
+    },
+    {
+      "theme": "dark",
+      "width": 360,
+      "stage": "cor",
+      "view": "meeting",
+      "c": 1,
+      "error": "Choose class days and valid start/end times, including AM/PM.",
+      "studentMode": "other",
+      "problems": []
+    },
+    {
+      "theme": "dark",
+      "width": 360,
+      "stage": "details",
+      "page": 0,
+      "keyboard": true,
+      "focusField": "name",
+      "studentMode": "other",
+      "problems": []
+    },
+    {
+      "theme": "dark",
+      "width": 360,
+      "stage": "details",
+      "page": 1,
+      "studentMode": "other",
+      "problems": []
+    },
+    {
+      "theme": "dark",
+      "width": 360,
+      "stage": "details",
+      "page": 1,
+      "studentMode": "other",
+      "fixture": "complete",
+      "problems": []
+    },
+    {
+      "theme": "dark",
+      "width": 360,
+      "stage": "cor",
+      "view": "academic",
+      "studentMode": "other",
+      "fixture": "complete",
+      "problems": []
+    },
+    {
+      "theme": "dark",
+      "width": 360,
+      "stage": "cor",
+      "view": "student",
+      "keyboard": true,
+      "focusField": "cor-student",
+      "studentMode": "other",
+      "problems": []
+    },
+    {
+      "theme": "dark",
+      "width": 360,
+      "stage": "cor",
+      "view": "academic",
+      "keyboard": true,
+      "focusField": "cor-year",
+      "studentMode": "other",
+      "problems": []
+    },
+    {
+      "theme": "dark",
+      "width": 360,
+      "stage": "cor",
+      "view": "subject",
+      "keyboard": true,
+      "focusField": "course-title",
+      "studentMode": "other",
+      "problems": []
+    },
+    {
+      "theme": "dark",
+      "width": 360,
+      "stage": "cor",
+      "view": "location",
+      "keyboard": true,
+      "focusField": "meeting-room",
+      "studentMode": "other",
+      "problems": []
+    },
+    {
+      "theme": "dark",
+      "width": 360,
+      "stage": "cor",
+      "view": "student",
+      "keyboard": true,
+      "focusField": "cor-student",
+      "error": "Enter the student name and campus, or replace this COR.",
+      "studentMode": "other",
+      "problems": []
+    },
+    {
+      "theme": "dark",
+      "width": 360,
+      "stage": "cor",
+      "view": "final",
+      "fixture": "complete",
+      "studentMode": "other",
+      "problems": []
+    },
+    {
+      "theme": "dark",
+      "width": 360,
+      "stage": "cor",
+      "view": "course-done",
+      "fixture": "long-course",
+      "studentMode": "other",
+      "problems": []
+    },
+    {
+      "theme": "dark",
+      "width": 360,
+      "stage": "cor",
+      "view": "subjects",
+      "fixture": "long-course",
+      "studentMode": "other",
+      "problems": []
+    },
+    {
+      "theme": "dark",
+      "width": 360,
+      "stage": "tour",
+      "page": 0,
+      "studentMode": "other",
+      "problems": []
+    },
+    {
+      "theme": "dark",
+      "width": 360,
+      "stage": "tour",
+      "page": 1,
+      "studentMode": "other",
+      "problems": []
+    },
+    {
+      "theme": "dark",
+      "width": 360,
+      "stage": "tour",
+      "page": 2,
+      "studentMode": "other",
+      "problems": []
+    },
+    {
+      "theme": "dark",
+      "width": 360,
+      "stage": "tour",
+      "page": 0,
+      "name": "Alexandria Gabriella Dela Cruz Santiago",
+      "studentMode": "other",
+      "problems": []
+    },
+    {
+      "theme": "dark",
+      "width": 360,
+      "stage": "tour",
+      "page": 1,
+      "name": "Alexandria Gabriella Dela Cruz Santiago",
+      "studentMode": "other",
+      "problems": []
+    },
+    {
+      "theme": "dark",
+      "width": 360,
+      "stage": "tour",
+      "page": 2,
+      "name": "Alexandria Gabriella Dela Cruz Santiago",
+      "studentMode": "other",
+      "problems": []
+    },
+    {
+      "theme": "dark",
+      "width": 320,
+      "stage": "intro",
+      "page": 0,
+      "view": "",
+      "problems": []
+    },
+    {
+      "theme": "dark",
+      "width": 320,
+      "stage": "intro",
+      "page": 1,
+      "view": "",
+      "problems": []
+    },
+    {
+      "theme": "dark",
+      "width": 320,
+      "stage": "intro",
+      "page": 2,
+      "view": "",
+      "problems": []
+    },
+    {
+      "theme": "dark",
+      "width": 320,
+      "stage": "intro",
+      "page": 3,
+      "view": "",
+      "problems": []
+    },
+    {
+      "theme": "dark",
+      "width": 320,
+      "stage": "intro",
+      "page": 2,
+      "view": "handbook-source",
+      "problems": []
+    },
+    {
+      "theme": "dark",
+      "width": 320,
+      "stage": "details",
+      "page": 0,
+      "problems": []
+    },
+    {
+      "theme": "dark",
+      "width": 320,
+      "stage": "details",
+      "page": 1,
+      "problems": []
+    },
+    {
+      "theme": "dark",
+      "width": 320,
+      "stage": "details",
+      "page": 2,
+      "problems": []
+    },
+    {
+      "theme": "dark",
+      "width": 320,
+      "stage": "details",
+      "page": 3,
+      "problems": []
+    },
+    {
+      "theme": "dark",
+      "width": 320,
+      "stage": "details",
+      "page": 4,
+      "problems": []
+    },
+    {
+      "theme": "dark",
+      "width": 320,
+      "stage": "details",
+      "page": 5,
+      "problems": []
+    },
+    {
+      "theme": "dark",
+      "width": 320,
+      "stage": "details",
+      "page": 6,
+      "problems": []
+    },
+    {
+      "theme": "dark",
+      "width": 320,
+      "stage": "details",
+      "page": 7,
+      "problems": []
+    },
+    {
+      "theme": "dark",
+      "width": 320,
+      "stage": "details",
+      "page": 7,
+      "memoryPart": "identity",
+      "problems": []
+    },
+    {
+      "theme": "dark",
+      "width": 320,
+      "stage": "details",
+      "page": 7,
+      "memoryPart": "academic",
+      "problems": []
+    },
+    {
+      "theme": "dark",
+      "width": 320,
+      "stage": "details",
+      "page": 7,
+      "memoryPart": "study",
+      "problems": []
+    },
+    {
+      "theme": "dark",
+      "width": 320,
+      "stage": "details",
+      "page": 7,
+      "memoryPart": "style",
+      "problems": []
+    },
+    {
+      "theme": "dark",
+      "width": 320,
+      "stage": "details",
+      "page": 7,
+      "memory": false,
+      "problems": []
+    },
+    {
+      "theme": "dark",
+      "width": 320,
+      "stage": "details",
+      "page": 7,
+      "ready": true,
+      "problems": []
+    },
+    {
+      "theme": "dark",
+      "width": 320,
+      "stage": "details",
+      "page": 0,
+      "name": "Alexandria Gabriella Dela Cruz Santiago",
+      "tone": "professional",
+      "problems": []
+    },
+    {
+      "theme": "dark",
+      "width": 320,
+      "stage": "details",
+      "page": 7,
+      "ready": true,
+      "name": "Alexandria Gabriella Dela Cruz Santiago",
+      "problems": []
+    },
+    {
+      "theme": "dark",
+      "width": 320,
+      "stage": "details",
+      "page": 7,
+      "memoryPart": "identity",
+      "name": "Alexandria Gabriella Dela Cruz Santiago",
+      "tone": "professional",
+      "problems": []
+    },
+    {
+      "theme": "dark",
+      "width": 320,
+      "stage": "details",
+      "page": 7,
+      "memoryPart": "academic",
+      "program": "Bachelor of Science in Information Technology and Computing",
+      "campus": "Cagayan de Oro",
+      "problems": []
+    },
+    {
+      "theme": "dark",
+      "width": 320,
+      "stage": "cor",
+      "view": "upload",
+      "c": 0,
+      "m": 0,
+      "problems": []
+    },
+    {
+      "theme": "dark",
+      "width": 320,
+      "stage": "cor",
+      "view": "document",
+      "c": 0,
+      "m": 0,
+      "problems": []
+    },
+    {
+      "theme": "dark",
+      "width": 320,
+      "stage": "cor",
+      "view": "student",
+      "c": 0,
+      "m": 0,
+      "problems": []
+    },
+    {
+      "theme": "dark",
+      "width": 320,
+      "stage": "cor",
+      "view": "academic",
+      "c": 0,
+      "m": 0,
+      "problems": []
+    },
+    {
+      "theme": "dark",
+      "width": 320,
+      "stage": "cor",
+      "view": "term",
+      "c": 0,
+      "m": 0,
+      "problems": []
+    },
+    {
+      "theme": "dark",
+      "width": 320,
+      "stage": "cor",
+      "view": "subjects",
+      "c": 0,
+      "m": 0,
+      "problems": []
+    },
+    {
+      "theme": "dark",
+      "width": 320,
+      "stage": "cor",
+      "view": "subject",
+      "c": 0,
+      "m": 0,
+      "problems": []
+    },
+    {
+      "theme": "dark",
+      "width": 320,
+      "stage": "cor",
+      "view": "meeting",
+      "c": 0,
+      "m": 0,
+      "problems": []
+    },
+    {
+      "theme": "dark",
+      "width": 320,
+      "stage": "cor",
+      "view": "location",
+      "c": 0,
+      "m": 0,
+      "problems": []
+    },
+    {
+      "theme": "dark",
+      "width": 320,
+      "stage": "cor",
+      "view": "course-done",
+      "c": 0,
+      "m": 0,
+      "problems": []
+    },
+    {
+      "theme": "dark",
+      "width": 320,
+      "stage": "cor",
+      "view": "tba",
+      "c": 3,
+      "m": 0,
+      "problems": []
+    },
+    {
+      "theme": "dark",
+      "width": 320,
+      "stage": "cor",
+      "view": "conflicts",
+      "c": 0,
+      "m": 0,
+      "problems": []
+    },
+    {
+      "theme": "dark",
+      "width": 320,
+      "stage": "cor",
+      "view": "final",
+      "c": 0,
+      "m": 0,
+      "problems": []
+    },
+    {
+      "theme": "dark",
+      "width": 320,
+      "stage": "cor",
+      "view": "scanerror",
+      "c": 0,
+      "m": 0,
+      "problems": []
+    },
+    {
+      "theme": "dark",
+      "width": 320,
+      "stage": "cor",
+      "view": "saveerror",
+      "c": 0,
+      "m": 0,
+      "problems": []
+    },
+    {
+      "theme": "dark",
+      "width": 320,
+      "stage": "cor",
+      "view": "draftsaved",
+      "c": 0,
+      "m": 0,
+      "problems": []
+    },
+    {
+      "theme": "dark",
+      "width": 320,
+      "stage": "cor",
+      "view": "source",
+      "c": 0,
+      "m": 0,
+      "problems": []
+    },
+    {
+      "theme": "dark",
+      "width": 320,
+      "stage": "cor",
+      "view": "success",
+      "c": 0,
+      "m": 0,
+      "problems": []
+    },
+    {
+      "theme": "dark",
+      "width": 320,
+      "stage": "cor",
+      "view": "meeting",
+      "c": 1,
+      "m": 0,
+      "problems": []
+    },
+    {
+      "theme": "dark",
+      "width": 320,
+      "stage": "cor",
+      "view": "meeting",
+      "c": 0,
+      "m": 1,
+      "problems": []
+    },
+    {
+      "theme": "dark",
+      "width": 320,
+      "stage": "cor",
+      "view": "subject",
+      "c": 1,
+      "m": 0,
+      "problems": []
+    },
+    {
+      "theme": "dark",
+      "width": 320,
+      "stage": "cor",
+      "view": "subject",
+      "c": 2,
+      "m": 0,
+      "problems": []
+    },
+    {
+      "theme": "dark",
+      "width": 320,
+      "stage": "cor",
+      "view": "location",
+      "c": 0,
+      "m": 1,
+      "problems": []
+    },
+    {
+      "theme": "dark",
+      "width": 320,
+      "stage": "cor",
+      "view": "academic",
+      "error": "Confirm the program and year level.",
+      "problems": []
+    },
+    {
+      "theme": "dark",
+      "width": 320,
+      "stage": "cor",
+      "view": "student",
+      "error": "Enter the student name and campus, or replace this COR.",
+      "problems": []
+    },
+    {
+      "theme": "dark",
+      "width": 320,
+      "stage": "cor",
+      "view": "term",
+      "error": "Choose a term and an end date on or after the start date.",
+      "problems": []
+    },
+    {
+      "theme": "dark",
+      "width": 320,
+      "stage": "cor",
+      "view": "subject",
+      "error": "Enter a subject code, title, and valid credit units.",
+      "problems": []
+    },
+    {
+      "theme": "dark",
+      "width": 320,
+      "stage": "cor",
+      "view": "meeting",
+      "c": 1,
+      "error": "Choose class days and valid start/end times, including AM/PM.",
+      "problems": []
+    },
+    {
+      "theme": "dark",
+      "width": 320,
+      "stage": "details",
+      "page": 0,
+      "keyboard": true,
+      "focusField": "name",
+      "problems": []
+    },
+    {
+      "theme": "dark",
+      "width": 320,
+      "stage": "details",
+      "page": 1,
+      "studentMode": "unselected",
+      "problems": []
+    },
+    {
+      "theme": "dark",
+      "width": 320,
+      "stage": "details",
+      "page": 1,
+      "studentMode": "ustp",
+      "fixture": "complete",
+      "problems": []
+    },
+    {
+      "theme": "dark",
+      "width": 320,
+      "stage": "cor",
+      "view": "academic",
+      "studentMode": "ustp",
+      "fixture": "complete",
+      "problems": []
+    },
+    {
+      "theme": "dark",
+      "width": 320,
+      "stage": "cor",
+      "view": "student",
+      "keyboard": true,
+      "focusField": "cor-student",
+      "problems": []
+    },
+    {
+      "theme": "dark",
+      "width": 320,
+      "stage": "cor",
+      "view": "academic",
+      "keyboard": true,
+      "focusField": "cor-year",
+      "problems": []
+    },
+    {
+      "theme": "dark",
+      "width": 320,
+      "stage": "cor",
+      "view": "subject",
+      "keyboard": true,
+      "focusField": "course-title",
+      "problems": []
+    },
+    {
+      "theme": "dark",
+      "width": 320,
+      "stage": "cor",
+      "view": "location",
+      "keyboard": true,
+      "focusField": "meeting-room",
+      "problems": []
+    },
+    {
+      "theme": "dark",
+      "width": 320,
+      "stage": "cor",
+      "view": "student",
+      "keyboard": true,
+      "focusField": "cor-student",
+      "error": "Enter the student name and campus, or replace this COR.",
+      "problems": []
+    },
+    {
+      "theme": "dark",
+      "width": 320,
+      "stage": "cor",
+      "view": "final",
+      "fixture": "complete",
+      "problems": []
+    },
+    {
+      "theme": "dark",
+      "width": 320,
+      "stage": "cor",
+      "view": "course-done",
+      "fixture": "long-course",
+      "problems": []
+    },
+    {
+      "theme": "dark",
+      "width": 320,
+      "stage": "cor",
+      "view": "subjects",
+      "fixture": "long-course",
+      "problems": []
+    },
+    {
+      "theme": "dark",
+      "width": 320,
+      "stage": "tour",
+      "page": 0,
+      "problems": []
+    },
+    {
+      "theme": "dark",
+      "width": 320,
+      "stage": "tour",
+      "page": 1,
+      "problems": []
+    },
+    {
+      "theme": "dark",
+      "width": 320,
+      "stage": "tour",
+      "page": 2,
+      "problems": []
+    },
+    {
+      "theme": "dark",
+      "width": 320,
+      "stage": "tour",
+      "page": 0,
+      "name": "Alexandria Gabriella Dela Cruz Santiago",
+      "problems": []
+    },
+    {
+      "theme": "dark",
+      "width": 320,
+      "stage": "tour",
+      "page": 1,
+      "name": "Alexandria Gabriella Dela Cruz Santiago",
+      "problems": []
+    },
+    {
+      "theme": "dark",
+      "width": 320,
+      "stage": "tour",
+      "page": 2,
+      "name": "Alexandria Gabriella Dela Cruz Santiago",
+      "problems": []
+    },
+    {
+      "theme": "dark",
+      "width": 320,
+      "stage": "intro",
+      "page": 0,
+      "view": "",
+      "studentMode": "other",
+      "problems": []
+    },
+    {
+      "theme": "dark",
+      "width": 320,
+      "stage": "intro",
+      "page": 1,
+      "view": "",
+      "studentMode": "other",
+      "problems": []
+    },
+    {
+      "theme": "dark",
+      "width": 320,
+      "stage": "intro",
+      "page": 2,
+      "view": "",
+      "studentMode": "other",
+      "problems": []
+    },
+    {
+      "theme": "dark",
+      "width": 320,
+      "stage": "intro",
+      "page": 3,
+      "view": "",
+      "studentMode": "other",
+      "problems": []
+    },
+    {
+      "theme": "dark",
+      "width": 320,
+      "stage": "intro",
+      "page": 2,
+      "view": "handbook-source",
+      "studentMode": "other",
+      "problems": []
+    },
+    {
+      "theme": "dark",
+      "width": 320,
+      "stage": "details",
+      "page": 0,
+      "studentMode": "other",
+      "problems": []
+    },
+    {
+      "theme": "dark",
+      "width": 320,
+      "stage": "details",
+      "page": 1,
+      "studentMode": "other",
+      "problems": []
+    },
+    {
+      "theme": "dark",
+      "width": 320,
+      "stage": "details",
+      "page": 2,
+      "studentMode": "other",
+      "problems": []
+    },
+    {
+      "theme": "dark",
+      "width": 320,
+      "stage": "details",
+      "page": 3,
+      "studentMode": "other",
+      "problems": []
+    },
+    {
+      "theme": "dark",
+      "width": 320,
+      "stage": "details",
+      "page": 4,
+      "studentMode": "other",
+      "problems": []
+    },
+    {
+      "theme": "dark",
+      "width": 320,
+      "stage": "details",
+      "page": 5,
+      "studentMode": "other",
+      "problems": []
+    },
+    {
+      "theme": "dark",
+      "width": 320,
+      "stage": "details",
+      "page": 6,
+      "studentMode": "other",
+      "problems": []
+    },
+    {
+      "theme": "dark",
+      "width": 320,
+      "stage": "details",
+      "page": 7,
+      "studentMode": "other",
+      "problems": []
+    },
+    {
+      "theme": "dark",
+      "width": 320,
+      "stage": "details",
+      "page": 7,
+      "memoryPart": "identity",
+      "studentMode": "other",
+      "problems": []
+    },
+    {
+      "theme": "dark",
+      "width": 320,
+      "stage": "details",
+      "page": 7,
+      "memoryPart": "academic",
+      "studentMode": "other",
+      "problems": []
+    },
+    {
+      "theme": "dark",
+      "width": 320,
+      "stage": "details",
+      "page": 7,
+      "memoryPart": "study",
+      "studentMode": "other",
+      "problems": []
+    },
+    {
+      "theme": "dark",
+      "width": 320,
+      "stage": "details",
+      "page": 7,
+      "memoryPart": "style",
+      "studentMode": "other",
+      "problems": []
+    },
+    {
+      "theme": "dark",
+      "width": 320,
+      "stage": "details",
+      "page": 7,
+      "memory": false,
+      "studentMode": "other",
+      "problems": []
+    },
+    {
+      "theme": "dark",
+      "width": 320,
+      "stage": "details",
+      "page": 7,
+      "ready": true,
+      "studentMode": "other",
+      "problems": []
+    },
+    {
+      "theme": "dark",
+      "width": 320,
+      "stage": "details",
+      "page": 0,
+      "name": "Alexandria Gabriella Dela Cruz Santiago",
+      "tone": "professional",
+      "studentMode": "other",
+      "problems": []
+    },
+    {
+      "theme": "dark",
+      "width": 320,
+      "stage": "details",
+      "page": 7,
+      "ready": true,
+      "name": "Alexandria Gabriella Dela Cruz Santiago",
+      "studentMode": "other",
+      "problems": []
+    },
+    {
+      "theme": "dark",
+      "width": 320,
+      "stage": "details",
+      "page": 7,
+      "memoryPart": "identity",
+      "name": "Alexandria Gabriella Dela Cruz Santiago",
+      "tone": "professional",
+      "studentMode": "other",
+      "problems": []
+    },
+    {
+      "theme": "dark",
+      "width": 320,
+      "stage": "details",
+      "page": 7,
+      "memoryPart": "academic",
+      "program": "Bachelor of Science in Information Technology and Computing",
+      "campus": "Cagayan de Oro",
+      "studentMode": "other",
+      "problems": []
+    },
+    {
+      "theme": "dark",
+      "width": 320,
+      "stage": "cor",
+      "view": "upload",
+      "c": 0,
+      "m": 0,
+      "studentMode": "other",
+      "problems": []
+    },
+    {
+      "theme": "dark",
+      "width": 320,
+      "stage": "cor",
+      "view": "document",
+      "c": 0,
+      "m": 0,
+      "studentMode": "other",
+      "problems": []
+    },
+    {
+      "theme": "dark",
+      "width": 320,
+      "stage": "cor",
+      "view": "student",
+      "c": 0,
+      "m": 0,
+      "studentMode": "other",
+      "problems": []
+    },
+    {
+      "theme": "dark",
+      "width": 320,
+      "stage": "cor",
+      "view": "academic",
+      "c": 0,
+      "m": 0,
+      "studentMode": "other",
+      "problems": []
+    },
+    {
+      "theme": "dark",
+      "width": 320,
+      "stage": "cor",
+      "view": "term",
+      "c": 0,
+      "m": 0,
+      "studentMode": "other",
+      "problems": []
+    },
+    {
+      "theme": "dark",
+      "width": 320,
+      "stage": "cor",
+      "view": "subjects",
+      "c": 0,
+      "m": 0,
+      "studentMode": "other",
+      "problems": []
+    },
+    {
+      "theme": "dark",
+      "width": 320,
+      "stage": "cor",
+      "view": "subject",
+      "c": 0,
+      "m": 0,
+      "studentMode": "other",
+      "problems": []
+    },
+    {
+      "theme": "dark",
+      "width": 320,
+      "stage": "cor",
+      "view": "meeting",
+      "c": 0,
+      "m": 0,
+      "studentMode": "other",
+      "problems": []
+    },
+    {
+      "theme": "dark",
+      "width": 320,
+      "stage": "cor",
+      "view": "location",
+      "c": 0,
+      "m": 0,
+      "studentMode": "other",
+      "problems": []
+    },
+    {
+      "theme": "dark",
+      "width": 320,
+      "stage": "cor",
+      "view": "course-done",
+      "c": 0,
+      "m": 0,
+      "studentMode": "other",
+      "problems": []
+    },
+    {
+      "theme": "dark",
+      "width": 320,
+      "stage": "cor",
+      "view": "tba",
+      "c": 3,
+      "m": 0,
+      "studentMode": "other",
+      "problems": []
+    },
+    {
+      "theme": "dark",
+      "width": 320,
+      "stage": "cor",
+      "view": "conflicts",
+      "c": 0,
+      "m": 0,
+      "studentMode": "other",
+      "problems": []
+    },
+    {
+      "theme": "dark",
+      "width": 320,
+      "stage": "cor",
+      "view": "final",
+      "c": 0,
+      "m": 0,
+      "studentMode": "other",
+      "problems": []
+    },
+    {
+      "theme": "dark",
+      "width": 320,
+      "stage": "cor",
+      "view": "scanerror",
+      "c": 0,
+      "m": 0,
+      "studentMode": "other",
+      "problems": []
+    },
+    {
+      "theme": "dark",
+      "width": 320,
+      "stage": "cor",
+      "view": "saveerror",
+      "c": 0,
+      "m": 0,
+      "studentMode": "other",
+      "problems": []
+    },
+    {
+      "theme": "dark",
+      "width": 320,
+      "stage": "cor",
+      "view": "draftsaved",
+      "c": 0,
+      "m": 0,
+      "studentMode": "other",
+      "problems": []
+    },
+    {
+      "theme": "dark",
+      "width": 320,
+      "stage": "cor",
+      "view": "source",
+      "c": 0,
+      "m": 0,
+      "studentMode": "other",
+      "problems": []
+    },
+    {
+      "theme": "dark",
+      "width": 320,
+      "stage": "cor",
+      "view": "success",
+      "c": 0,
+      "m": 0,
+      "studentMode": "other",
+      "problems": []
+    },
+    {
+      "theme": "dark",
+      "width": 320,
+      "stage": "cor",
+      "view": "meeting",
+      "c": 1,
+      "m": 0,
+      "studentMode": "other",
+      "problems": []
+    },
+    {
+      "theme": "dark",
+      "width": 320,
+      "stage": "cor",
+      "view": "meeting",
+      "c": 0,
+      "m": 1,
+      "studentMode": "other",
+      "problems": []
+    },
+    {
+      "theme": "dark",
+      "width": 320,
+      "stage": "cor",
+      "view": "subject",
+      "c": 1,
+      "m": 0,
+      "studentMode": "other",
+      "problems": []
+    },
+    {
+      "theme": "dark",
+      "width": 320,
+      "stage": "cor",
+      "view": "subject",
+      "c": 2,
+      "m": 0,
+      "studentMode": "other",
+      "problems": []
+    },
+    {
+      "theme": "dark",
+      "width": 320,
+      "stage": "cor",
+      "view": "location",
+      "c": 0,
+      "m": 1,
+      "studentMode": "other",
+      "problems": []
+    },
+    {
+      "theme": "dark",
+      "width": 320,
+      "stage": "cor",
+      "view": "academic",
+      "error": "Confirm the program and year level.",
+      "studentMode": "other",
+      "problems": []
+    },
+    {
+      "theme": "dark",
+      "width": 320,
+      "stage": "cor",
+      "view": "student",
+      "error": "Enter the student name and campus, or replace this COR.",
+      "studentMode": "other",
+      "problems": []
+    },
+    {
+      "theme": "dark",
+      "width": 320,
+      "stage": "cor",
+      "view": "term",
+      "error": "Choose a term and an end date on or after the start date.",
+      "studentMode": "other",
+      "problems": []
+    },
+    {
+      "theme": "dark",
+      "width": 320,
+      "stage": "cor",
+      "view": "subject",
+      "error": "Enter a subject code, title, and valid credit units.",
+      "studentMode": "other",
+      "problems": []
+    },
+    {
+      "theme": "dark",
+      "width": 320,
+      "stage": "cor",
+      "view": "meeting",
+      "c": 1,
+      "error": "Choose class days and valid start/end times, including AM/PM.",
+      "studentMode": "other",
+      "problems": []
+    },
+    {
+      "theme": "dark",
+      "width": 320,
+      "stage": "details",
+      "page": 0,
+      "keyboard": true,
+      "focusField": "name",
+      "studentMode": "other",
+      "problems": []
+    },
+    {
+      "theme": "dark",
+      "width": 320,
+      "stage": "details",
+      "page": 1,
+      "studentMode": "other",
+      "problems": []
+    },
+    {
+      "theme": "dark",
+      "width": 320,
+      "stage": "details",
+      "page": 1,
+      "studentMode": "other",
+      "fixture": "complete",
+      "problems": []
+    },
+    {
+      "theme": "dark",
+      "width": 320,
+      "stage": "cor",
+      "view": "academic",
+      "studentMode": "other",
+      "fixture": "complete",
+      "problems": []
+    },
+    {
+      "theme": "dark",
+      "width": 320,
+      "stage": "cor",
+      "view": "student",
+      "keyboard": true,
+      "focusField": "cor-student",
+      "studentMode": "other",
+      "problems": []
+    },
+    {
+      "theme": "dark",
+      "width": 320,
+      "stage": "cor",
+      "view": "academic",
+      "keyboard": true,
+      "focusField": "cor-year",
+      "studentMode": "other",
+      "problems": []
+    },
+    {
+      "theme": "dark",
+      "width": 320,
+      "stage": "cor",
+      "view": "subject",
+      "keyboard": true,
+      "focusField": "course-title",
+      "studentMode": "other",
+      "problems": []
+    },
+    {
+      "theme": "dark",
+      "width": 320,
+      "stage": "cor",
+      "view": "location",
+      "keyboard": true,
+      "focusField": "meeting-room",
+      "studentMode": "other",
+      "problems": []
+    },
+    {
+      "theme": "dark",
+      "width": 320,
+      "stage": "cor",
+      "view": "student",
+      "keyboard": true,
+      "focusField": "cor-student",
+      "error": "Enter the student name and campus, or replace this COR.",
+      "studentMode": "other",
+      "problems": []
+    },
+    {
+      "theme": "dark",
+      "width": 320,
+      "stage": "cor",
+      "view": "final",
+      "fixture": "complete",
+      "studentMode": "other",
+      "problems": []
+    },
+    {
+      "theme": "dark",
+      "width": 320,
+      "stage": "cor",
+      "view": "course-done",
+      "fixture": "long-course",
+      "studentMode": "other",
+      "problems": []
+    },
+    {
+      "theme": "dark",
+      "width": 320,
+      "stage": "cor",
+      "view": "subjects",
+      "fixture": "long-course",
+      "studentMode": "other",
+      "problems": []
+    },
+    {
+      "theme": "dark",
+      "width": 320,
+      "stage": "tour",
+      "page": 0,
+      "studentMode": "other",
+      "problems": []
+    },
+    {
+      "theme": "dark",
+      "width": 320,
+      "stage": "tour",
+      "page": 1,
+      "studentMode": "other",
+      "problems": []
+    },
+    {
+      "theme": "dark",
+      "width": 320,
+      "stage": "tour",
+      "page": 2,
+      "studentMode": "other",
+      "problems": []
+    },
+    {
+      "theme": "dark",
+      "width": 320,
+      "stage": "tour",
+      "page": 0,
+      "name": "Alexandria Gabriella Dela Cruz Santiago",
+      "studentMode": "other",
+      "problems": []
+    },
+    {
+      "theme": "dark",
+      "width": 320,
+      "stage": "tour",
+      "page": 1,
+      "name": "Alexandria Gabriella Dela Cruz Santiago",
+      "studentMode": "other",
+      "problems": []
+    },
+    {
+      "theme": "dark",
+      "width": 320,
+      "stage": "tour",
+      "page": 2,
+      "name": "Alexandria Gabriella Dela Cruz Santiago",
+      "studentMode": "other",
+      "problems": []
+    }
+  ]
+}

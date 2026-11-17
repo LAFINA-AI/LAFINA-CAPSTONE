@@ -766,6 +766,13 @@ export function validatePayload(
         return {valid: false, error: 'Unsupported action.'};
       for (const field of [
         'newTitle',
+        'title',
+        'date',
+        'time',
+        'endTime',
+        'priority',
+        'location',
+        'category',
         'details',
         'deliveryStyle',
         'action',
@@ -807,6 +814,8 @@ export function validatePayload(
       const data: Record<string, unknown> = {request: p.request.trim()};
       for (const field of [
         'action',
+        'location',
+        'category',
         'title',
         'date',
         'time',
@@ -834,7 +843,13 @@ export function validatePayload(
     }
 
     case 'calendar.free_time': {
-      if (typeof p.date === 'string' && !DATE_REGEX.test(p.date))
+      // "today" / "tomorrow" are accepted like read_lafina_data does (audit
+      // L8), so the agent does not spend a step correcting itself.
+      if (
+        typeof p.date === 'string' &&
+        !DATE_REGEX.test(p.date) &&
+        !/^(?:today|tomorrow)$/i.test(p.date.trim())
+      )
         return {valid: false, error: 'Invalid date.'};
       if (
         p.durationMinutes !== undefined &&

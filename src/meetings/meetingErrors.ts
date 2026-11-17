@@ -170,8 +170,8 @@ const CATALOG: Record<MeetingErrorCode, Omit<MeetingErrorInfo, 'code'>> = {
     recoveryLabel: 'Sign In',
   },
   plan_required: {
-    title: 'AI notes require Online Mode / Cloud Account',
-    message: 'Your full transcript is saved and searchable below. Connect to Online Mode to generate structured summaries and action items.',
+    title: 'AI notes are not available for this account',
+    message: 'The LAFINA server did not allow AI meeting notes for your account right now. Your full transcript is saved and searchable below; try Generate Notes again later, or contact the LAFINA team if it keeps happening.',
     recovery: 'view_transcript',
     recoveryLabel: 'View Transcript',
   },

@@ -1,0 +1,8 @@
+PASS __tests__/ui/calendarSchedulePagingPerformance.test.tsx (9.285 s)
+PASS __tests__/ui/performanceTabLifecycle.test.tsx
+
+Test Suites: 2 passed, 2 total
+Tests:       8 passed, 8 total
+Snapshots:   0 total
+Time:        12.843 s
+Ran all test suites matching /__tests__\\ui\\calendarSchedulePagingPerformance.test.tsx|__tests__\\ui\\performanceTabLifecycle.test.tsx/i.

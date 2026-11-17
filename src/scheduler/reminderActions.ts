@@ -41,6 +41,17 @@ const rejection = (message: string): ReminderActionResult => ({
   message,
 });
 
+/**
+ * Spoken and shown when a reminder is acknowledged. The call screen prepares
+ * this exact sentence ahead of time, so the confirmation plays without a gap.
+ */
+export const ACKNOWLEDGE_MESSAGE =
+  'Great! Reminder acknowledged. Have a productive day.';
+
+/** Spoken and shown when a reminder is snoozed. */
+export const snoozeMessage = (minutes: number): string =>
+  `Snoozed for ${minutes} minutes.`;
+
 const STALE_MESSAGE =
   'This reminder call is no longer current, so nothing was changed.';
 
@@ -180,7 +191,7 @@ export const snoozeReminderAction = async (
     ok: true,
     outcome: 'snoozed',
     triggerAt,
-    message: `Snoozed for ${minutes} minutes.`,
+    message: snoozeMessage(minutes),
     ...(deliveryPending ? {deliveryPending: true} : {}),
   };
 };
@@ -369,7 +380,7 @@ export const acknowledgeReminderAction = async (
     ok: true,
     outcome: 'acknowledged',
     triggerAt: null,
-    message: 'Great! Reminder acknowledged. Have a productive day!.',
+    message: ACKNOWLEDGE_MESSAGE,
   };
 };
 

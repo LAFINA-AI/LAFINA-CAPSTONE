@@ -23,6 +23,7 @@ import {onlineChatSkill} from '../../src/skills/onlineChatSkill';
 import {ThemeProvider} from '../../src/ui/contexts/ThemeContext';
 import {MeetingsProvider} from '../../src/ui/contexts/MeetingsContext';
 import {ChatScreen} from '../../src/ui/screens/ChatScreen';
+import {enableUstpForTest} from '../fixtures/ustpEligibility';
 
 const TEST_USER_ID = 'local_guest_user';
 
@@ -88,6 +89,9 @@ describe('Local offline USTP Student Handbook SQLite FTS5 RAG', () => {
   beforeEach(async () => {
     await initDatabase();
     userStore.createGuestUser();
+    // Handbook features are for students with a reviewed COR (onboarding redesign).
+    enableUstpForTest(TEST_USER_ID);
+    userStore.setCurrentUser(TEST_USER_ID);
     chatStore.clearHistory(TEST_USER_ID);
     localHandbookService.resetForTests();
     jest.restoreAllMocks();

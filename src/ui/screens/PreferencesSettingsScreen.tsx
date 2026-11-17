@@ -26,12 +26,16 @@ import {
   cancelModelDownload,
   deleteOfflineModel,
   getDeviceAiRecommendation,
+  OFFLINE_ENGINE_UNAVAILABLE_MESSAGE,
   type OfflineModelId,
   type DownloadableOfflineModelId,
   type ModelStatus,
-  type ModelDownloadProgress,
   type DeviceAiRecommendation,
 } from '../../ai/nlu';
+import {
+  useOfflineModelEngine,
+  useSharedModelDownload,
+} from '../hooks/useOfflineModels';
 import {preferencesStore} from '../../storage';
 import {localSettingsStore} from '../../storage/localSettingsStore';
 import {SETTING_KEY_ADAPTIVE_TIMING} from '../../ai/ml';
@@ -43,10 +47,11 @@ import type {
   WeeklyClassCount,
 } from '../../storage';
 import {
+  getAlarmHealth,
   getReminderPermissionStatus,
   refreshPendingReminderLeadTimes,
 } from '../../scheduler';
-import type {ReminderPermissionStatus} from '../../scheduler';
+import type {AlarmHealth, ReminderPermissionStatus} from '../../scheduler';
 import {
   Fonts,
   Layout,
@@ -228,6 +233,7 @@ export const PreferencesSettingsScreen: React.FC<
   const [permissionModalVisible, setPermissionModalVisible] = useState(false);
   const [permissionStatus, setPermissionStatus] =
     useState<ReminderPermissionStatus | null>(null);
+  const [alarmHealth, setAlarmHealth] = useState<AlarmHealth | null>(null);
   const [selectedModelId, setSelectedModelId] = useState<OfflineModelId>(() =>
     getSelectedOfflineModelId(userId),
   );
@@ -236,10 +242,13 @@ export const PreferencesSettingsScreen: React.FC<
   );
   const [deviceRecommendation, setDeviceRecommendation] =
     useState<DeviceAiRecommendation | null>(null);
-  const [downloadProgress, setDownloadProgress] =
-    useState<ModelDownloadProgress | null>(null);
-  const [downloadingModelId, setDownloadingModelId] =
-    useState<DownloadableOfflineModelId | null>(null);
+  // Shared with Chat's engine sheet, so the two screens never race
+  // (audit M3), and downloads stay off without the llama engine (H4).
+  const engineAvailable = useOfflineModelEngine();
+  const engineReady = engineAvailable === true;
+  const sharedDownload = useSharedModelDownload();
+  const downloadingModelId = sharedDownload?.modelId ?? null;
+  const downloadProgress = sharedDownload?.progress ?? null;
   const {colors, isModern, modernPalette, modernShadows} = useTheme();
   const cardShadow = isModern ? modernShadows.card : Shadows.card;
   const cardSurfaceStyle = isModern
@@ -277,7 +286,9 @@ export const PreferencesSettingsScreen: React.FC<
     OFFLINE_MODEL_CATALOG[0];
   const activeStatus = modelsStatus[selectedModelId];
   const isActiveOnDeviceModelReady =
-    selectedModelId !== 'fast_path_only' && Boolean(activeStatus?.isDownloaded);
+    engineReady &&
+    selectedModelId !== 'fast_path_only' &&
+    Boolean(activeStatus?.isDownloaded);
   const recommendedPreset = deviceRecommendation
     ? OFFLINE_MODEL_CATALOG.find(
         item => item.id === deviceRecommendation.recommendedModelId,
@@ -301,43 +312,30 @@ export const PreferencesSettingsScreen: React.FC<
 
   const handleStartDownload = async (modelId: DownloadableOfflineModelId) => {
     const preset = OFFLINE_MODEL_CATALOG.find(item => item.id === modelId);
-    const approxBytes = preset?.approximateSizeBytes || 0;
-    setDownloadingModelId(modelId);
-    setDownloadProgress({
-      bytesWritten: 0,
-      contentLength: approxBytes,
-      percent: 0,
-      status: 'downloading',
-    });
+    if (!engineReady || downloadingModelId !== null) {
+      return;
+    }
     try {
-      await downloadOfflineModel(
-        modelId,
-        prog => {
-          setDownloadProgress(prog);
-        },
-        userId,
-      );
+      await downloadOfflineModel(modelId, undefined, userId);
       await refreshModelsState();
-      setDownloadingModelId(null);
-      setDownloadProgress(null);
       Alert.alert(
         'AI Model Ready',
         `${preset?.name || 'Offline model'} is downloaded and ready for offline voice intelligence!`,
       );
     } catch (err: any) {
-      setDownloadingModelId(null);
-      setDownloadProgress(null);
+      const message = err?.message || '';
+      if (/cancel/i.test(message)) {
+        return;
+      }
       Alert.alert(
         'Download Error',
-        err?.message || 'Could not download model. Check internet connection.',
+        message || 'Could not download model. Check internet connection.',
       );
     }
   };
 
   const handleCancelDownload = async () => {
     await cancelModelDownload();
-    setDownloadingModelId(null);
-    setDownloadProgress(null);
   };
 
   const handleDeleteModel = (modelId: DownloadableOfflineModelId) => {
@@ -361,8 +359,12 @@ export const PreferencesSettingsScreen: React.FC<
 
   const handleOpenPermissions = async () => {
     try {
-      const status = await getReminderPermissionStatus();
+      const [status, alarms] = await Promise.all([
+        getReminderPermissionStatus(),
+        getAlarmHealth(),
+      ]);
       setPermissionStatus(status);
+      setAlarmHealth(alarms);
     } catch {
       // Ignore
     }
@@ -624,6 +626,18 @@ export const PreferencesSettingsScreen: React.FC<
             commands from your voice and text when you are offline.
           </Text>
 
+          {engineAvailable === false && (
+            <Text
+              testID="offline-ai-engine-unavailable"
+              style={[
+                styles.permissionHelperText,
+                {color: colors.warning, marginTop: 8},
+              ]}
+            >
+              {OFFLINE_ENGINE_UNAVAILABLE_MESSAGE}
+            </Text>
+          )}
+
           {deviceRecommendation && recommendedPreset && (
             <View
               testID="offline-ai-recommendation-card"
@@ -722,7 +736,7 @@ export const PreferencesSettingsScreen: React.FC<
               ) : (
                 <TouchableOpacity
                   testID="offline-ai-download-recommended"
-                  disabled={downloadingModelId !== null}
+                  disabled={downloadingModelId !== null || !engineReady}
                   style={[
                     styles.selectModelButton,
                     pillShapeStyle,
@@ -730,7 +744,8 @@ export const PreferencesSettingsScreen: React.FC<
                       borderColor: colors.blue,
                       alignSelf: 'flex-start',
                       marginTop: 8,
-                      opacity: downloadingModelId !== null ? 0.5 : 1,
+                      opacity:
+                        downloadingModelId !== null || !engineReady ? 0.5 : 1,
                     },
                   ]}
                   onPress={() =>
@@ -1011,6 +1026,7 @@ export const PreferencesSettingsScreen: React.FC<
                               pillShapeStyle,
                               {borderColor: colors.blue},
                             ]}
+                            disabled={!engineReady}
                             onPress={() => void handleSelectModel(preset.id)}
                           >
                             <Text
@@ -1050,14 +1066,14 @@ export const PreferencesSettingsScreen: React.FC<
                   ) : (
                     <TouchableOpacity
                       testID={`offline-model-download-${preset.id}`}
-                      disabled={isAnotherDownloading}
+                      disabled={isAnotherDownloading || !engineReady}
                       style={[
                         styles.permissionButton,
                         pillShapeStyle,
                         {
                           borderColor: colors.blue,
                           marginTop: 8,
-                          opacity: isAnotherDownloading ? 0.5 : 1,
+                          opacity: isAnotherDownloading || !engineReady ? 0.5 : 1,
                         },
                       ]}
                       onPress={() =>
@@ -1096,8 +1112,8 @@ export const PreferencesSettingsScreen: React.FC<
           <Text
             style={[styles.permissionHelperText, {color: colors.textSecondary}]}
           >
-            Ensure notifications, exact alarms, and full-screen calls are
-            enabled so LAFINA can remind you on schedule.
+            Ensure notifications, exact alarms, full-screen calls, and battery
+            saver settings allow LAFINA to remind you on schedule.
           </Text>
           <TouchableOpacity
             style={[
@@ -1141,9 +1157,11 @@ export const PreferencesSettingsScreen: React.FC<
       <ReminderPermissionModal
         visible={permissionModalVisible}
         status={permissionStatus}
+        alarmHealth={alarmHealth}
         onClose={() => setPermissionModalVisible(false)}
         onRefreshStatus={() => {
           void getReminderPermissionStatus().then(setPermissionStatus);
+          void getAlarmHealth().then(setAlarmHealth);
         }}
       />
     </SafeAreaView>

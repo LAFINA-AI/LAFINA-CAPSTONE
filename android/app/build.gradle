@@ -27,6 +27,7 @@ android {
         versionName '0.6.0'
         testInstrumentationRunner 'androidx.test.runner.AndroidJUnitRunner'
         buildConfigField 'boolean', 'ENABLE_PLANNER_HARNESS', 'false'
+        buildConfigField 'boolean', 'PERFORMANCE_HARNESS_ENABLED', 'false'
         // Debug and test builds only: a Profile setting that switches between
         // the Vercel backend and a backend on this computer. Off in release.
         buildConfigField 'boolean', 'ENABLE_BACKEND_SWITCH', 'false'
@@ -64,6 +65,13 @@ android {
             versionNameSuffix '-preview'
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+        }
+        performance {
+            initWith release
+            applicationIdSuffix '.performance'
+            buildConfigField 'boolean', 'PERFORMANCE_HARNESS_ENABLED', 'true'
+            versionNameSuffix '-performance'
+            matchingFallbacks = ['release']
         }
         // Private, debuggable data-layer review build: bundled JS, no Metro/network.
         // Same application ID/signature preserves the Phase 01 preview's settings.

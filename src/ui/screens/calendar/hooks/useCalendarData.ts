@@ -1,7 +1,7 @@
 import {useState, useEffect, useLayoutEffect, useCallback, useRef} from 'react';
 import {ViewMode, CalendarData} from '../types';
 import type {TimeBlock, Task, Event, Reminder} from '../../../../storage';
-import {remindersStore, userStore} from '../../../../storage';
+import {db, remindersStore, userStore} from '../../../../storage';
 import {plannerQueries} from '../../../../storage/plannerQueries';
 
 import {
@@ -176,13 +176,17 @@ export const useCalendarData = (
     setWeekStartsMonday(mondayStart);
   }, [userId]);
 
+  const visibilityLoadedKey = useRef('');
   const loadImportsAndVisibility = useCallback(async () => {
+    const key = `${userId}:${refreshTrigger}`;
+    if (visibilityLoadedKey.current === key) return;
     try {
       const [fetchedBatches, fetchedVisibility] = await Promise.all([
         importedBatchesStore.getImportedBatches(userId),
         calendarVisibilityStore.getVisibilityMap(userId),
       ]);
       if (activeUserIdRef.current !== userId) return;
+      visibilityLoadedKey.current = key;
       setBatches(prev =>
         prev.length === 0 && fetchedBatches.length === 0
           ? prev
@@ -206,7 +210,7 @@ export const useCalendarData = (
     } catch (error) {
       console.error('Failed to load visibility or batches:', error);
     }
-  }, [userId]);
+  }, [userId, refreshTrigger]);
 
   const getViewRange = useCallback((): {start: Date; end: Date} => {
     if (viewMode === 'week' || viewMode === 'day') {
@@ -234,16 +238,29 @@ export const useCalendarData = (
     }
   }, [viewMode, selectedDate, currentDate]);
 
+  // A single owner/range/revision snapshot serves both loaders and day selection.
+  const windowCache = useRef<{
+    key: string;
+    value: ReturnType<typeof plannerQueries.window>;
+  } | null>(null);
+  const readWindow = useCallback(() => {
+    const {start, end} = getViewRange();
+    const from = toLocalDate(start),
+      to = toLocalDate(end);
+    const key = `${userId}:${refreshTrigger}:${from}:${to}:${db.getDataRevision(
+      ['tasks', 'events', 'event_time_local', 'time_blocks'],
+    )}`;
+    if (windowCache.current?.key === key) return windowCache.current.value;
+    const value = plannerQueries.window(userId, from, to);
+    windowCache.current = {key, value};
+    return value;
+  }, [userId, refreshTrigger, getViewRange]);
+
   const loadBlocks = useCallback(() => {
     // AGY-PORT 06: only the visible window is read (recurrences expanded by SQL-bounded rows).
-    const {start: rangeStart, end: rangeEnd} = getViewRange();
     let rawData: TimeBlock[];
     try {
-      rawData = plannerQueries.window(
-        userId,
-        toLocalDate(rangeStart),
-        toLocalDate(rangeEnd),
-      ).blocks;
+      rawData = readWindow().blocks;
       lastGoodRef.current.blocks = {ownerId: userId, rows: rawData};
       markRead('blocks', null);
     } catch (error) {
@@ -280,12 +297,11 @@ export const useCalendarData = (
     });
 
     setBlocks(rawData);
-  }, [userId, batches, visibilityMap, getViewRange, markRead]);
+  }, [userId, batches, visibilityMap, readWindow, markRead]);
 
   const loadScheduleData = useCallback(() => {
     // AGY-PORT 06: the visible window only. Undated tasks stay in the paged
     // UndatedTasksModal (AGY-PORT 04).
-    const {start: rangeStart, end: rangeEnd} = getViewRange();
     try {
       setOverdue(
         plannerQueries.overdueTasks(
@@ -305,11 +321,7 @@ export const useCalendarData = (
     let rawTasks: Task[] = [];
     let rawEvents: Event[] = [];
     try {
-      const visible = plannerQueries.window(
-        userId,
-        toLocalDate(rangeStart),
-        toLocalDate(rangeEnd),
-      );
+      const visible = readWindow();
       rawTasks = visible.tasks;
       rawEvents = visible.events;
       lastGoodRef.current.schedule = {
@@ -392,7 +404,7 @@ export const useCalendarData = (
       console.error('[Calendar] Could not read reminders:', error);
       setReminders([]);
     }
-  }, [userId, batches, visibilityMap, selectedDate, getViewRange, markRead]);
+  }, [userId, batches, visibilityMap, selectedDate, readWindow, markRead]);
 
   const retryRead = useCallback(() => {
     loadBlocks();
@@ -413,8 +425,24 @@ export const useCalendarData = (
         }
       : null;
 
-  // Load the bounded window before paint, including the first mount.
+  const loadedWindowKey = useRef('');
+  const loadedLayers = useRef({batches, visibilityMap});
+  // Warm activation with unchanged data does not repeat synchronous reads.
   useLayoutEffect(() => {
+    const range = getViewRange();
+    const key = `${userId}:${refreshTrigger}:${toLocalDate(
+      selectedDate,
+    )}:${toLocalDate(range.start)}:${toLocalDate(
+      range.end,
+    )}:${weekStartsMonday}`;
+    if (
+      loadedWindowKey.current === key &&
+      loadedLayers.current.batches === batches &&
+      loadedLayers.current.visibilityMap === visibilityMap
+    )
+      return;
+    loadedWindowKey.current = key;
+    loadedLayers.current = {batches, visibilityMap};
     loadBlocks();
     loadScheduleData();
     generateWeekDays();
@@ -425,6 +453,10 @@ export const useCalendarData = (
     loadBlocks,
     loadScheduleData,
     generateWeekDays,
+    getViewRange,
+    weekStartsMonday,
+    batches,
+    visibilityMap,
   ]);
 
   const prevSettingsKeyRef = useRef(`${userId}:${refreshTrigger}`);

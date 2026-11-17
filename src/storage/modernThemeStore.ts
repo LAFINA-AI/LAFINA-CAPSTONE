@@ -1,3 +1,4 @@
+import {DEVICE_SETTINGS_SCOPE} from './deviceScope';
 import {localSettingsStore} from './localSettingsStore';
 
 /** Curated color themes available when the Modern interface is active. */
@@ -19,7 +20,7 @@ export const MODERN_THEME_IDS: readonly ModernThemeId[] = [
 ] as const;
 
 export const MODERN_THEME_SETTING_KEY = 'modern_theme';
-export const MODERN_THEME_DEVICE_SCOPE = '__device_default__';
+export const MODERN_THEME_DEVICE_SCOPE = DEVICE_SETTINGS_SCOPE;
 export const DEFAULT_MODERN_THEME: ModernThemeId = 'violet';
 
 const MODERN_THEME_SET: ReadonlySet<string> = new Set(MODERN_THEME_IDS);

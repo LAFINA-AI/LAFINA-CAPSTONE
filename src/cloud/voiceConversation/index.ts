@@ -18,6 +18,7 @@ import type {VoiceConversationDeps} from './controller';
 import {nativeVoiceTransport} from './nativeTransport';
 import {voiceConversationApi} from './voiceConversationApi';
 import {buildStudentVoiceContext} from './localVoiceData';
+import {isUstpSchoolEnabled} from '../../storage/ustpEligibility';
 
 export {
   VoiceConversationController,
@@ -133,7 +134,9 @@ export const defaultVoiceConversationDeps = (
     ensureMicPermission: () => ensureMicrophonePermission(),
   },
   getVoice: () => onlineVoiceSettingsStore.read(userId),
-  useHandbook: () => handbookPreference.read(userId),
+  // Server-side handbook search only with a confirmed USTP COR setup.
+  useHandbook: () =>
+    handbookPreference.read(userId) && isUstpSchoolEnabled(userId),
   getStudentContext: () => buildStudentVoiceContext(userId),
   api: directProviderTestEnabled() ? directTestVoiceApi : voiceConversationApi,
   transport: nativeVoiceTransport,

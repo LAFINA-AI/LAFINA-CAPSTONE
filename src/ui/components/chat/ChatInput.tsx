@@ -38,9 +38,9 @@ export interface ChatInputProps {
 
 export const SUGGESTED_PROMPTS = [
   "What's on my schedule today?",
-  'Add study block for Math tomorrow from 2pm to 4pm',
-  'Remind me tomorrow at 9am to submit lab report',
-  'Take a note: Operating Systems lecture topics',
+  'When am I free to study today?',
+  'What are my pending tasks?',
+  "What's on my schedule this week?",
 ];
 
 export const USTP_SUGGESTED_PROMPTS = [

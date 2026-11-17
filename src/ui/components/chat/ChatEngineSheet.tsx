@@ -21,16 +21,20 @@ import {
   deleteOfflineModel,
   downloadOfflineModel,
   getOfflineModelPreset,
+  OFFLINE_ENGINE_UNAVAILABLE_MESSAGE,
   setSelectedOfflineModelId,
 } from '../../../ai/nlu/modelManager';
 import type {
   DeviceAiRecommendation,
   DownloadableOfflineModelId,
-  ModelDownloadProgress,
   ModelStatus,
   OfflineModelId,
 } from '../../../ai/nlu/types';
 import { useTheme } from '../../contexts/ThemeContext';
+import {
+  useOfflineModelEngine,
+  useSharedModelDownload,
+} from '../../hooks/useOfflineModels';
 import { Fonts, FontSize, Spacing } from '../../theme';
 import { ModernShadows } from '../../theme/modern';
 import { ToolSheet } from '../tools/ToolSheet';
@@ -74,10 +78,12 @@ export const ChatEngineSheet: React.FC<ChatEngineSheetProps> = ({
   deviceRecommendation,
 }) => {
   const { colors, isModern, modernPalette } = useTheme();
-  const [downloadingModelId, setDownloadingModelId] =
-    useState<DownloadableOfflineModelId | null>(null);
-  const [downloadProgress, setDownloadProgress] =
-    useState<ModelDownloadProgress | null>(null);
+  const engineAvailable = useOfflineModelEngine();
+  const sharedDownload = useSharedModelDownload();
+  const downloadingModelId = sharedDownload?.modelId ?? null;
+  const downloadProgress = sharedDownload?.progress ?? null;
+  // Downloads and "use this model" stay off until the engine is confirmed.
+  const engineReady = engineAvailable === true;
   const [busyModelId, setBusyModelId] = useState<string | null>(null);
   const [fallbackRecommendation, setFallbackRecommendation] =
     useState<DeviceAiRecommendation | null>(null);
@@ -151,24 +157,21 @@ export const ChatEngineSheet: React.FC<ChatEngineSheetProps> = ({
 
   const handleDownloadAndLoad = async (model: ModelStatus) => {
     const modelId = model.modelId;
-    if (!modelId || modelId === 'fast_path_only' || downloadingModelId) {
+    if (
+      !modelId ||
+      modelId === 'fast_path_only' ||
+      downloadingModelId ||
+      !engineReady
+    ) {
       return;
     }
     const downloadableId = modelId as DownloadableOfflineModelId;
-    setDownloadingModelId(downloadableId);
-    setDownloadProgress({
-      bytesWritten: 0,
-      contentLength: model.approximateSizeBytes ?? 0,
-      percent: 0,
-      status: 'downloading',
-    });
 
     try {
-      await downloadOfflineModel(
-        downloadableId,
-        progress => setDownloadProgress(progress),
-        userId,
-      );
+      // Selects the model for this student on completion (not on cancel).
+      await downloadOfflineModel(downloadableId, undefined, userId);
+      // A cancelled or failed download throws above, so this runs only for a
+      // complete, verified file.
       setSelectedOfflineModelId(downloadableId, userId);
       await onModelsUpdated();
     } catch (error) {
@@ -176,22 +179,18 @@ export const ChatEngineSheet: React.FC<ChatEngineSheetProps> = ({
       if (!/cancel|abort/i.test(msg)) {
         Alert.alert(
           'Download Failed',
-          `Could not download ${model.modelName}. Check your connection and storage, then try again.`,
+          /already downloading|Not enough free storage|incomplete|too small|llama engine/i.test(
+            msg,
+          )
+            ? msg
+            : `Could not download ${model.modelName}. Check your connection and storage, then try again.`,
         );
       }
-    } finally {
-      setDownloadingModelId(null);
-      setDownloadProgress(null);
     }
   };
 
   const handleCancelDownload = async () => {
-    try {
-      await cancelModelDownload();
-    } finally {
-      setDownloadingModelId(null);
-      setDownloadProgress(null);
-    }
+    await cancelModelDownload();
   };
 
   const handleDeleteModel = (model: ModelStatus) => {
@@ -428,13 +427,17 @@ export const ChatEngineSheet: React.FC<ChatEngineSheetProps> = ({
                   styles.recommendActionBtn,
                   {
                     backgroundColor: accent,
-                    opacity: downloadingModelId ? 0.55 : 1,
+                    opacity: downloadingModelId || !engineReady ? 0.55 : 1,
                   },
                 ]}
                 onPress={() => {
                   void handleDownloadAndLoad(recommendedStatus);
                 }}
-                disabled={Boolean(downloadingModelId) || Boolean(busyModelId)}
+                disabled={
+                  Boolean(downloadingModelId) ||
+                  Boolean(busyModelId) ||
+                  !engineReady
+                }
                 accessibilityRole="button"
                 testID="chat-engine-download-recommended"
               >
@@ -456,6 +459,20 @@ export const ChatEngineSheet: React.FC<ChatEngineSheetProps> = ({
             On-Device Offline Models
           </Text>
         </View>
+
+        {engineAvailable === false && (
+          <View
+            style={[
+              styles.engineNotice,
+              { backgroundColor: colors.warning + '1A', borderColor: colors.warning + '55' },
+            ]}
+            testID="chat-engine-unavailable-notice"
+          >
+            <Text style={[styles.engineNoticeText, { color: textPrimary }]}>
+              {OFFLINE_ENGINE_UNAVAILABLE_MESSAGE}
+            </Text>
+          </View>
+        )}
 
         <View style={styles.modelsList}>
           {orderedModels.map(model => {
@@ -696,7 +713,7 @@ export const ChatEngineSheet: React.FC<ChatEngineSheetProps> = ({
                       onPress={() => {
                         void handleSelectModel(modelId);
                       }}
-                      disabled={isSelected || isBusy}
+                      disabled={isSelected || isBusy || !engineReady}
                       accessibilityRole="button"
                       testID={`chat-model-action-${modelId}`}
                     >
@@ -738,13 +755,13 @@ export const ChatEngineSheet: React.FC<ChatEngineSheetProps> = ({
                       styles.actionButton,
                       {
                         backgroundColor: accent,
-                        opacity: otherDownloadActive ? 0.55 : 1,
+                        opacity: otherDownloadActive || !engineReady ? 0.55 : 1,
                       },
                     ]}
                     onPress={() => {
                       void handleDownloadAndLoad(model);
                     }}
-                    disabled={otherDownloadActive || isBusy}
+                    disabled={otherDownloadActive || isBusy || !engineReady}
                     accessibilityRole="button"
                     testID={`chat-model-action-${modelId}`}
                   >
@@ -752,7 +769,9 @@ export const ChatEngineSheet: React.FC<ChatEngineSheetProps> = ({
                     <Text
                       style={[styles.actionButtonText, { color: '#FFFFFF' }]}
                     >
-                      Download & Load
+                      {engineAvailable === false
+                        ? 'Not Available On This Build'
+                        : 'Download & Load'}
                     </Text>
                   </TouchableOpacity>
                 )}
@@ -916,6 +935,17 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     letterSpacing: 0.6,
     textTransform: 'uppercase',
+  },
+  engineNotice: {
+    borderRadius: 14,
+    borderWidth: 1,
+    padding: Spacing.sm,
+    marginBottom: Spacing.sm,
+  },
+  engineNoticeText: {
+    fontFamily: Fonts.body,
+    fontSize: FontSize.small,
+    lineHeight: 18,
   },
   modelsList: {
     gap: 12,

@@ -1,0 +1,27 @@
+FAIL __tests__/ui/agyPort07NotesUi.test.tsx (8.394 s)
+  ● AGY-PORT 07 Notes UI › the screen searches through SQLite, shows indexing progress and a "Show more" button
+
+    expect(received).toBeNull()
+
+    Received: {"_fiber": {"_debugHookTypes": null, "_debugInfo": null, "_debugNeedsRemount": false, "_debugOwner": [FiberNode], "_debugStack": [Error: react-stack-top-frame], "_debugTask": null, "actualDuration": 0, "actualStartTime": 1794851595097, "alternate": [FiberNode], "child": [FiberNode], "childLanes": 0, "deletions": null, "dependencies": null, "elementType": "Text", "flags": 4, "index": 0, "key": null, "lanes": 0, "memoizedProps": [Object], "memoizedState": null, "mode": 3, "pendingProps": [Object], "ref": null, "refCleanup": null, "return": [FiberNode], "selfBaseDuration": 0, "sibling": null, "stateNode": [Object], "subtreeFlags": 262144, "tag": 5, "treeBaseDuration": 0, "type": "Text", "updateQueue": null}}
+
+      230 |       await new Promise(resolve => setTimeout(resolve, 300));
+      231 |     });
+    > 232 |     await waitFor(() =>
+          |                  ^
+      233 |       expect(screen.queryByTestId('notes-indexing')).toBeNull(),
+      234 |     );
+      235 |     const visibleMatches = screen.getAllByText('calculus');
+
+      at Object.<anonymous> (__tests__/ui/agyPort07NotesUi.test.tsx:232:18)
+      at asyncGeneratorStep (node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+      at _next (node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
+
+PASS __tests__/ui/notesTodoTab.test.tsx
+PASS __tests__/ui/performanceTabLifecycle.test.tsx
+
+Test Suites: 1 failed, 2 passed, 3 total
+Tests:       1 failed, 16 passed, 17 total
+Snapshots:   0 total
+Time:        12.652 s
+Ran all test suites matching /__tests__\\ui\\notesTodoTab.test.tsx|__tests__\\ui\\agyPort07NotesUi.test.tsx|__tests__\\ui\\performanceTabLifecycle.test.tsx/i.

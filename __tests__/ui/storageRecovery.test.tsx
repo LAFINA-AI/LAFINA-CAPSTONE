@@ -145,11 +145,14 @@ describe('storage recovery', () => {
           />
         </ThemeProvider>,
       );
-      fireEvent.press(screen.getByText('Get Started Free'));
+      // The introduction opens on its last page when seen before; either
+      // way, finish it and start without an account.
+      fireEvent.press(screen.getByTestId('intro-skip'));
+      fireEvent.press(screen.getByText('Continue without an account'));
       expect(onGetStarted).not.toHaveBeenCalled();
       expect(screen.getByText(/couldn’t save your guest profile/)).toBeTruthy();
-      expect(screen.getByText('Create Account')).toBeTruthy();
-      expect(screen.getByText('Log In')).toBeTruthy();
+      expect(screen.getByTestId('intro-create-account')).toBeTruthy();
+      expect(screen.getByTestId('intro-sign-in')).toBeTruthy();
     });
 
     test('settings report whether they were saved', () => {

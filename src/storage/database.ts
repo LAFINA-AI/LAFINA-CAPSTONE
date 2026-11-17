@@ -96,6 +96,57 @@ export class DatabaseService {
   private isFallbackMode: boolean = false;
   private failure: StorageFailureReason | null = null;
   private activeTransaction: symbol | null = null;
+  private dataSequence = 0;
+  private queryCount = 0;
+  public getQueryCount(): number {
+    return this.queryCount;
+  }
+  private readonly tableRevisions = new Map<string, number>();
+  private readonly pendingTables = new Set<string>();
+  private readonly dataListeners = new Set<() => void>();
+  private notificationPending = false;
+
+  /** Native Android writers are reconciled on resume, outside JS executeSync. */
+  public invalidateData(tables: readonly string[]): void {
+    for (const table of tables) this.pendingTables.add(table);
+    if (!this.activeTransaction) this.publishDataChanges();
+  }
+
+  public getDataRevision(tables: readonly string[]): number {
+    return Math.max(
+      this.tableRevisions.get('*') ?? 0,
+      ...tables.map(table => this.tableRevisions.get(table) ?? 0),
+    );
+  }
+
+  public subscribeDataChanges = (listener: () => void): (() => void) => {
+    this.dataListeners.add(listener);
+    return () => {
+      this.dataListeners.delete(listener);
+    };
+  };
+
+  private publishDataChanges(): void {
+    if (!this.pendingTables.size) return;
+    const version = ++this.dataSequence;
+    for (const table of this.pendingTables)
+      this.tableRevisions.set(table, version);
+    this.pendingTables.clear();
+    if (this.notificationPending) return;
+    this.notificationPending = true;
+    // Notify after the complete stack/transaction, never in a render-time read.
+    queueMicrotask(() => {
+      this.notificationPending = false;
+      for (const listener of this.dataListeners) {
+        try {
+          listener();
+        } catch (error) {
+          console.error('[Database] Data listener failed:', error);
+        }
+      }
+    });
+  }
+
   private readonly healthListeners = new Set<(h: StorageHealth) => void>();
 
   constructor(
@@ -109,6 +160,8 @@ export class DatabaseService {
     try {
       this.dbInstance = this.openConnection();
       this.failure = null;
+      this.pendingTables.add('*');
+      this.publishDataChanges();
     } catch (error) {
       this.dbInstance = null;
       this.failure = 'open_failed';
@@ -142,7 +195,16 @@ export class DatabaseService {
       const sanitizedParams: SqlValue[] = params.map(param =>
         param === undefined ? null : (param as SqlValue),
       );
+      this.queryCount += 1;
       const res = this.dbInstance!.executeSync(query, sanitizedParams);
+      const table =
+        /^\s*(?:INSERT(?:\s+OR\s+\w+)?\s+INTO|REPLACE\s+INTO|UPDATE(?:\s+OR\s+\w+)?|DELETE\s+FROM)\s+["`[]?([a-z_][a-z_0-9]*)/i
+          .exec(query)?.[1]
+          ?.toLowerCase();
+      if (table && res.rowsAffected) {
+        this.pendingTables.add(table);
+        if (!this.activeTransaction) this.publishDataChanges();
+      }
       return {
         rows: res?.rows ?? [],
         insertId: res?.insertId,
@@ -225,10 +287,12 @@ export class DatabaseService {
       this.executeSync('COMMIT');
     } catch (error) {
       this.activeTransaction = null;
+      this.pendingTables.clear();
       this.rollback();
       throw error;
     }
     this.activeTransaction = null;
+    this.publishDataChanges();
 
     for (const callback of callbacks) {
       try {

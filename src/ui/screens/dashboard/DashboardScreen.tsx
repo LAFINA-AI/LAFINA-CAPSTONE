@@ -1,3 +1,4 @@
+import {useStorageRevision} from '../../hooks/useStorageRevision';
 import React, {useMemo, useState} from 'react';
 import {
   RefreshControl,
@@ -30,14 +31,29 @@ import {useDashboardData} from './hooks/useDashboardData';
 import {NextAlarmCard} from './components/NextAlarmCard';
 import type {DashboardScheduleItem, DashboardScreenProps} from './types';
 
-export const DashboardScreen: React.FC<DashboardScreenProps> = ({
+export const DashboardScreen = React.memo(function Dashboard({
   userId,
-  refreshTrigger,
+  refreshTrigger: explicitRefresh,
+  isActive = true,
   onRefresh,
   onOpenCalendarTab,
   onOpenNotesTab,
   onOpenChatTab,
-}) => {
+}: DashboardScreenProps) {
+  const refreshTrigger =
+    explicitRefresh +
+    useStorageRevision([
+      'tasks',
+      'events',
+      'event_time_local',
+      'time_blocks',
+      'reminders',
+      'notes',
+      'alarms',
+      'users',
+      'local_settings',
+      'custom_categories',
+    ]);
   const {colors, isModern} = useTheme();
   const themed = useThemedStyles(getThemedStyles);
   const insets = useSafeAreaInsets();
@@ -50,6 +66,7 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({
   const {now, data, actions, blockModal} = useDashboardData({
     userId,
     refreshTrigger,
+    isActive,
     onRefresh,
   });
 
@@ -70,12 +87,13 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({
   }, [actions.config.scheduleFilterDefault]);
 
   const timeFormat24h = useMemo(() => {
+    void refreshTrigger;
     try {
       return userStore.get24HourFormat(userId);
     } catch {
       return false;
     }
-  }, [userId]);
+  }, [userId, refreshTrigger]);
 
   const hiddenSet = useMemo(
     () => new Set(actions.config.hiddenWidgets),
@@ -207,6 +225,7 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({
         {isModern ? (
           <ModernHomeContent
             userId={userId}
+            refreshTrigger={refreshTrigger}
             now={now}
             timeFormat24h={timeFormat24h}
             data={data}
@@ -309,7 +328,7 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({
       />
     </View>
   );
-};
+});
 
 const getThemedStyles = (colors: ThemeColors) => ({
   container: {

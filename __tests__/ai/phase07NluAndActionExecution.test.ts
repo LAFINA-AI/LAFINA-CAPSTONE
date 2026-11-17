@@ -879,11 +879,15 @@ describe('Phase 07: Smart Hybrid On-Device NLU & Action Execution', () => {
   describe('7. Smart Hybrid NLU Titling Pipeline (Fast-Path + Qwen 2.5 0.5B SLM)', () => {
     beforeEach(() => {
       Platform.OS = 'android';
+      if (NativeModules.LafinaIntentExtractor && !NativeModules.LafinaIntentExtractor.isEngineAvailable) {
+        NativeModules.LafinaIntentExtractor.isEngineAvailable = jest.fn(async () => true);
+      }
       if (!NativeModules.LafinaIntentExtractor) {
         NativeModules.LafinaIntentExtractor = {
           extractIntent: jest.fn(),
           isModelAvailable: jest.fn(async () => true),
           unloadModel: jest.fn(async () => true),
+          isEngineAvailable: jest.fn(async () => true),
         };
       }
     });
@@ -933,6 +937,7 @@ describe('Phase 07: Smart Hybrid On-Device NLU & Action Execution', () => {
         .spyOn(NativeModules.LafinaIntentExtractor, 'extractIntent')
         .mockResolvedValueOnce(
           JSON.stringify({
+            engine: 'slm',
             intent: 'create_task',
             title: 'Coffee Break',
             date: null,
@@ -967,6 +972,7 @@ describe('Phase 07: Smart Hybrid On-Device NLU & Action Execution', () => {
         .spyOn(NativeModules.LafinaIntentExtractor, 'extractIntent')
         .mockResolvedValueOnce(
           JSON.stringify({
+            engine: 'slm',
             intent: 'create_task',
             title: 'Study for Operating Systems Midterm',
             date: null,
@@ -1049,6 +1055,7 @@ describe('Phase 07: Smart Hybrid On-Device NLU & Action Execution', () => {
         .spyOn(NativeModules.LafinaIntentExtractor, 'extractIntent')
         .mockResolvedValue(
           JSON.stringify({
+            engine: 'slm',
             intent: 'create_task',
             title: 'What Is My Schedule',
             date: null,
@@ -1788,6 +1795,16 @@ describe('Phase 07: Smart Hybrid On-Device NLU & Action Execution', () => {
     const originalPlatformOS = Platform.OS;
     const originalNativeExtractor = NativeModules.LafinaIntentExtractor;
 
+    beforeEach(() => {
+      // Downloads now require an Android build with the llama engine (audit H4).
+      Platform.OS = 'android';
+      NativeModules.LafinaIntentExtractor = {
+        ...(originalNativeExtractor || {}),
+        isEngineAvailable: jest.fn(async () => true),
+        unloadModel: jest.fn(async () => true),
+      };
+    });
+
     afterEach(async () => {
       Platform.OS = originalPlatformOS;
       if (originalNativeExtractor === undefined) {
@@ -1849,6 +1866,7 @@ describe('Phase 07: Smart Hybrid On-Device NLU & Action Execution', () => {
     test('invokes LafinaIntentExtractor with promptFormat "gemma" for Gemma 3 270M and Gemma 3 1B', async () => {
       const extractIntentMock = jest.fn(async () =>
         JSON.stringify({
+          engine: 'slm',
           intent: 'create_reminder',
           title: 'Submit Physics Worksheet',
           date: '2026-10-28',
@@ -1861,6 +1879,7 @@ describe('Phase 07: Smart Hybrid On-Device NLU & Action Execution', () => {
       Platform.OS = 'android';
       NativeModules.LafinaIntentExtractor = {
         extractIntent: extractIntentMock,
+        isEngineAvailable: jest.fn(async () => true),
         unloadModel: unloadModelMock,
       };
 
@@ -1878,6 +1897,7 @@ describe('Phase 07: Smart Hybrid On-Device NLU & Action Execution', () => {
           'Remind me tomorrow morning that we might have to submit the physics worksheet',
         modelPath: getModelPathForId('gemma-3-270m'),
         promptFormat: 'gemma',
+        minValidBytes: expect.any(Number),
       });
 
       await downloadOfflineModel('gemma-3-1b', undefined, presetTestUser);
@@ -1894,12 +1914,14 @@ describe('Phase 07: Smart Hybrid On-Device NLU & Action Execution', () => {
           'Remind me tomorrow morning that we might have to submit the physics worksheet',
         modelPath: getModelPathForId('gemma-3-1b'),
         promptFormat: 'gemma',
+        minValidBytes: expect.any(Number),
       });
     });
 
     test('switches to fast_path_only, unloads native model, and bypasses SLM despite downloaded GGUFs', async () => {
       const extractIntentMock = jest.fn(async () =>
         JSON.stringify({
+          engine: 'slm',
           intent: 'create_task',
           title: 'Physics Worksheet',
         }),
@@ -1909,6 +1931,7 @@ describe('Phase 07: Smart Hybrid On-Device NLU & Action Execution', () => {
       Platform.OS = 'android';
       NativeModules.LafinaIntentExtractor = {
         extractIntent: extractIntentMock,
+        isEngineAvailable: jest.fn(async () => true),
         unloadModel: unloadModelMock,
       };
 
@@ -1938,12 +1961,14 @@ describe('Phase 07: Smart Hybrid On-Device NLU & Action Execution', () => {
           'Remind me tomorrow morning that we might have to submit the physics worksheet',
         modelPath: getModelPathForId('smollm2-135m'),
         promptFormat: 'chatml',
+        minValidBytes: expect.any(Number),
       });
     });
 
     test('routes Taglish scheduling phrases to active SLM while keeping schedule queries on fast path', async () => {
       const extractIntentMock = jest.fn(async () =>
         JSON.stringify({
+          engine: 'slm',
           intent: 'create_reminder',
           title: 'Magpasa Ng Lab Report',
           date: '2026-10-28',
@@ -1955,6 +1980,7 @@ describe('Phase 07: Smart Hybrid On-Device NLU & Action Execution', () => {
       Platform.OS = 'android';
       NativeModules.LafinaIntentExtractor = {
         extractIntent: extractIntentMock,
+        isEngineAvailable: jest.fn(async () => true),
         unloadModel: jest.fn(async () => true),
       };
 

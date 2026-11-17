@@ -1,4 +1,5 @@
 import {db} from './database';
+import {createHandbookFtsIndex, handbookFtsIndexExists} from './handbookSchema';
 
 export interface HandbookPackChunk {
   id: string;
@@ -218,6 +219,51 @@ export const localHandbookStore = {
         ],
       );
     });
+  },
+
+  /**
+   * Makes sure the FTS5 index exists, creating and rebuilding it when the
+   * schema 28 migration ran on a build without FTS5. Returns false when this
+   * native build has no FTS5 at all; the handbook is then reported as not
+   * available instead of failing (audit H5).
+   */
+  ensureFtsIndex(): boolean {
+    try {
+      if (handbookFtsIndexExists(db)) {
+        return true;
+      }
+      db.transactionSync(tx => {
+        createHandbookFtsIndex(tx);
+        tx.executeSync(
+          "INSERT INTO handbook_chunks_fts(handbook_chunks_fts) VALUES ('rebuild')",
+        );
+      });
+      return true;
+    } catch (error) {
+      console.warn(
+        '[LocalHandbookStore] SQLite FTS5 unavailable; offline handbook disabled:',
+        error,
+      );
+      return false;
+    }
+  },
+
+  /**
+   * True when the (porter-stemmed) token occurs anywhere in the handbook
+   * index. Used by the evidence gate to spot off-topic words.
+   */
+  hasTerm(token: string): boolean {
+    const clean = token.toLowerCase().replace(/[^a-z0-9]/g, '');
+    if (!clean) {
+      return false;
+    }
+    const res = db.executeSync(
+      `SELECT 1 AS hit FROM handbook_chunks_fts
+       WHERE handbook_chunks_fts MATCH ?
+       LIMIT 1`,
+      [`"${clean}"`],
+    );
+    return res.rows.length > 0;
   },
 
   queryFts(matchExpression: string, limit = 8): HandbookFtsHit[] {

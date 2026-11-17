@@ -1,0 +1,255 @@
+PASS __tests__/ui/chatHistoryPaging.test.tsx (11.481 s)
+  ● Console
+
+    console.error
+      An update to VirtualizedList inside a test was not wrapped in act(...).
+      
+      When testing, code that causes React state updates should be wrapped into act(...):
+      
+      act(() => {
+        /* fire events that update state */
+      });
+      /* assert on the output */
+      
+      This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+
+      at node_modules/react-test-renderer/cjs/react-test-renderer.development.js:14402:19
+      at runWithFiberInDEV (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:2315:13)
+      at warnIfUpdatesNotWrappedWithActDEV (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:14401:9)
+      at scheduleUpdateOnFiber (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:12086:9)
+      at Object.enqueueSetState (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:16926:13)
+      at VirtualizedList.Object.<anonymous>.process.env.NODE_ENV.Component.setState (node_modules/react/cjs/react.development.js:655:20)
+      at apply (node_modules/@react-native/virtualized-lists/Lists/StateSafePureComponent.js:12:32)
+      at VirtualizedList.setState (node_modules/@react-native/virtualized-lists/Lists/StateSafePureComponent.js:40:7)
+      at VirtualizedList.setState [as _updateCellsToRender] (node_modules/@react-native/virtualized-lists/Lists/VirtualizedList.js:1909:10)
+      at Timeout._updateCellsToRender [as _onTimeout] (node_modules/@react-native/virtualized-lists/Lists/VirtualizedList.js:1806:16)
+
+PASS __tests__/ui/performanceTabLifecycle.test.tsx
+PASS __tests__/ui/auditA2CalendarReadErrors.test.tsx
+FAIL __tests__/ui/agyPort07NotesUi.test.tsx
+  ● Console
+
+    console.error
+      An update to NotesScreen inside a test was not wrapped in act(...).
+      
+      When testing, code that causes React state updates should be wrapped into act(...):
+      
+      act(() => {
+        /* fire events that update state */
+      });
+      /* assert on the output */
+      
+      This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+
+      174 |     });
+      175 |     const names = cats.map(c => c.name);
+    > 176 |     setCustomCategories(names);
+          |     ^
+      177 |     setSelectedFilterState(current =>
+      178 |       BUILT_IN_FILTERS.includes(current) || names.includes(current)
+      179 |         ? current
+
+      at node_modules/react-test-renderer/cjs/react-test-renderer.development.js:14402:19
+      at runWithFiberInDEV (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:2315:13)
+      at warnIfUpdatesNotWrappedWithActDEV (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:14401:9)
+      at scheduleUpdateOnFiber (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:12086:9)
+      at dispatchSetStateInternal (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:6208:13)
+      at dispatchSetState (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:6165:7)
+      at setCustomCategories (src/ui/screens/notes/hooks/useNotesData.ts:176:5)
+      at Object.loadCategories [as current] (src/ui/screens/notes/hooks/useNotesData.ts:186:5)
+      at Timeout.current [as _onTimeout] (src/ui/screens/notes/hooks/useNotesData.ts:206:26)
+
+    console.error
+      An update to NotesScreen inside a test was not wrapped in act(...).
+      
+      When testing, code that causes React state updates should be wrapped into act(...):
+      
+      act(() => {
+        /* fire events that update state */
+      });
+      /* assert on the output */
+      
+      This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+
+      175 |     const names = cats.map(c => c.name);
+      176 |     setCustomCategories(names);
+    > 177 |     setSelectedFilterState(current =>
+          |     ^
+      178 |       BUILT_IN_FILTERS.includes(current) || names.includes(current)
+      179 |         ? current
+      180 |         : DEFAULT_FILTER,
+
+      at node_modules/react-test-renderer/cjs/react-test-renderer.development.js:14402:19
+      at runWithFiberInDEV (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:2315:13)
+      at warnIfUpdatesNotWrappedWithActDEV (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:14401:9)
+      at scheduleUpdateOnFiber (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:12086:9)
+      at dispatchSetStateInternal (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:6208:13)
+      at dispatchSetState (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:6165:7)
+      at setSelectedFilterState (src/ui/screens/notes/hooks/useNotesData.ts:177:5)
+      at Object.loadCategories [as current] (src/ui/screens/notes/hooks/useNotesData.ts:186:5)
+      at Timeout.current [as _onTimeout] (src/ui/screens/notes/hooks/useNotesData.ts:206:26)
+
+    console.error
+      An update to NotesScreen inside a test was not wrapped in act(...).
+      
+      When testing, code that causes React state updates should be wrapped into act(...):
+      
+      act(() => {
+        /* fire events that update state */
+      });
+      /* assert on the output */
+      
+      This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+
+      196 |         limit: NOTES_PAGE_SIZE,
+      197 |       });
+    > 198 |       setNotes(page.items);
+          |       ^
+      199 |       setCursor(page.nextCursor);
+      200 |       setIndexing(page.indexing);
+      201 |       setQueryError(null);
+
+      at node_modules/react-test-renderer/cjs/react-test-renderer.development.js:14402:19
+      at runWithFiberInDEV (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:2315:13)
+      at warnIfUpdatesNotWrappedWithActDEV (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:14401:9)
+      at scheduleUpdateOnFiber (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:12086:9)
+      at dispatchSetStateInternal (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:6208:13)
+      at dispatchSetState (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:6165:7)
+      at Object.setNotes [as current] (src/ui/screens/notes/hooks/useNotesData.ts:198:7)
+      at Timeout.current (src/ui/screens/notes/hooks/useNotesData.ts:206:26)
+
+    console.error
+      An update to NotesScreen inside a test was not wrapped in act(...).
+      
+      When testing, code that causes React state updates should be wrapped into act(...):
+      
+      act(() => {
+        /* fire events that update state */
+      });
+      /* assert on the output */
+      
+      This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+
+      197 |       });
+      198 |       setNotes(page.items);
+    > 199 |       setCursor(page.nextCursor);
+          |       ^
+      200 |       setIndexing(page.indexing);
+      201 |       setQueryError(null);
+      202 |       if (page.indexing) {
+
+      at node_modules/react-test-renderer/cjs/react-test-renderer.development.js:14402:19
+      at runWithFiberInDEV (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:2315:13)
+      at warnIfUpdatesNotWrappedWithActDEV (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:14401:9)
+      at scheduleUpdateOnFiber (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:12086:9)
+      at dispatchSetStateInternal (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:6208:13)
+      at dispatchSetState (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:6165:7)
+      at Object.setCursor [as current] (src/ui/screens/notes/hooks/useNotesData.ts:199:7)
+      at Timeout.current (src/ui/screens/notes/hooks/useNotesData.ts:206:26)
+
+    console.error
+      An update to NotesScreen inside a test was not wrapped in act(...).
+      
+      When testing, code that causes React state updates should be wrapped into act(...):
+      
+      act(() => {
+        /* fire events that update state */
+      });
+      /* assert on the output */
+      
+      This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+
+      198 |       setNotes(page.items);
+      199 |       setCursor(page.nextCursor);
+    > 200 |       setIndexing(page.indexing);
+          |       ^
+      201 |       setQueryError(null);
+      202 |       if (page.indexing) {
+      203 |         // Bounded batches: ask again until every note is searchable.
+
+      at node_modules/react-test-renderer/cjs/react-test-renderer.development.js:14402:19
+      at runWithFiberInDEV (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:2315:13)
+      at warnIfUpdatesNotWrappedWithActDEV (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:14401:9)
+      at scheduleUpdateOnFiber (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:12086:9)
+      at dispatchSetStateInternal (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:6208:13)
+      at dispatchSetState (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:6165:7)
+      at Object.setIndexing [as current] (src/ui/screens/notes/hooks/useNotesData.ts:200:7)
+      at Timeout.current (src/ui/screens/notes/hooks/useNotesData.ts:206:26)
+
+    console.error
+      An update to NotesScreen inside a test was not wrapped in act(...).
+      
+      When testing, code that causes React state updates should be wrapped into act(...):
+      
+      act(() => {
+        /* fire events that update state */
+      });
+      /* assert on the output */
+      
+      This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+
+      199 |       setCursor(page.nextCursor);
+      200 |       setIndexing(page.indexing);
+    > 201 |       setQueryError(null);
+          |       ^
+      202 |       if (page.indexing) {
+      203 |         // Bounded batches: ask again until every note is searchable.
+      204 |         retryTimerRef.current = setTimeout(() => {
+
+      at node_modules/react-test-renderer/cjs/react-test-renderer.development.js:14402:19
+      at runWithFiberInDEV (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:2315:13)
+      at warnIfUpdatesNotWrappedWithActDEV (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:14401:9)
+      at scheduleUpdateOnFiber (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:12086:9)
+      at dispatchSetStateInternal (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:6208:13)
+      at dispatchSetState (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:6165:7)
+      at Object.setQueryError [as current] (src/ui/screens/notes/hooks/useNotesData.ts:201:7)
+      at Timeout.current (src/ui/screens/notes/hooks/useNotesData.ts:206:26)
+
+    console.error
+      An update to VirtualizedList inside a test was not wrapped in act(...).
+      
+      When testing, code that causes React state updates should be wrapped into act(...):
+      
+      act(() => {
+        /* fire events that update state */
+      });
+      /* assert on the output */
+      
+      This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+
+      at node_modules/react-test-renderer/cjs/react-test-renderer.development.js:14402:19
+      at runWithFiberInDEV (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:2315:13)
+      at warnIfUpdatesNotWrappedWithActDEV (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:14401:9)
+      at scheduleUpdateOnFiber (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:12086:9)
+      at Object.enqueueSetState (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:16926:13)
+      at VirtualizedList.Object.<anonymous>.process.env.NODE_ENV.Component.setState (node_modules/react/cjs/react.development.js:655:20)
+      at apply (node_modules/@react-native/virtualized-lists/Lists/StateSafePureComponent.js:12:32)
+      at VirtualizedList.setState (node_modules/@react-native/virtualized-lists/Lists/StateSafePureComponent.js:40:7)
+      at VirtualizedList.setState [as _updateCellsToRender] (node_modules/@react-native/virtualized-lists/Lists/VirtualizedList.js:1909:10)
+      at Timeout._updateCellsToRender [as _onTimeout] (node_modules/@react-native/virtualized-lists/Lists/VirtualizedList.js:1806:16)
+
+  ● AGY-PORT 07 Notes UI › the screen searches through SQLite, shows indexing progress and a "Show more" button
+
+    expect(received).toBeNull()
+
+    Received: {"_fiber": {"_debugHookTypes": null, "_debugInfo": null, "_debugNeedsRemount": false, "_debugOwner": [FiberNode], "_debugStack": [Error: react-stack-top-frame], "_debugTask": null, "actualDuration": 0, "actualStartTime": 1794851298444, "alternate": [FiberNode], "child": [FiberNode], "childLanes": 0, "deletions": null, "dependencies": null, "elementType": "Text", "flags": 4, "index": 0, "key": null, "lanes": 0, "memoizedProps": [Object], "memoizedState": null, "mode": 3, "pendingProps": [Object], "ref": null, "refCleanup": null, "return": [FiberNode], "selfBaseDuration": 0, "sibling": null, "stateNode": [Object], "subtreeFlags": 262144, "tag": 5, "treeBaseDuration": 0, "type": "Text", "updateQueue": null}}
+
+      229 |       await new Promise(resolve => setTimeout(resolve, 300));
+      230 |     });
+    > 231 |     expect(screen.queryByTestId('notes-indexing')).toBeNull();
+          |                                                    ^
+      232 |     expect(screen.getAllByText('calculus')).toHaveLength(35);
+      233 |     expect(screen.queryByText('history')).toBeNull();
+      234 |   });
+
+      at Object.toBeNull (__tests__/ui/agyPort07NotesUi.test.tsx:231:52)
+      at asyncGeneratorStep (node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+      at _next (node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
+
+PASS __tests__/storage/agyPort07Notes.test.ts
+
+Test Suites: 1 failed, 4 passed, 5 total
+Tests:       1 failed, 45 passed, 46 total
+Snapshots:   0 total
+Time:        17.423 s, estimated 20 s
+Ran all test suites matching /__tests__\\ui\\performanceTabLifecycle.test.tsx|__tests__\\ui\\chatHistoryPaging.test.tsx|__tests__\\ui\\auditA2CalendarReadErrors.test.tsx|__tests__\\ui\\agyPort07NotesUi.test.tsx|__tests__\\storage\\agyPort07Notes.test.ts/i.

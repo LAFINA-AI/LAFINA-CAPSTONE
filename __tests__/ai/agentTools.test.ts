@@ -341,7 +341,11 @@ describe('agent tools on the device', () => {
     expect(answer).toMatch(/free windows/);
     expect(answer).toMatch(/7:00 AM – 2:00 PM/);
     expect(answer).toMatch(/4:00 PM – 10:00 PM/);
-    expect(answer).not.toMatch(/Say "/);
+    // The Chat-only hint and Markdown never reach the agent (audit M2); the
+    // old /Say "/ check passed vacuously against the Markdown hint.
+    expect(answer).not.toMatch(/\bSay\b/);
+    expect(answer).not.toMatch(/\*/);
+    expect(answer).not.toMatch(/^>/m);
     expect(
       answerFreeTime(user, {date: '2026-11-16', durationMinutes: 60}, REF),
     ).toBe(answer);

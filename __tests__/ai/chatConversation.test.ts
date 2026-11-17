@@ -17,6 +17,7 @@ import {
 import {cloudClient} from '../../src/cloud/cloudClient';
 import {plannerQueries} from '../../src/storage/plannerQueries';
 import {GUEST_USER_ID} from '../../src/constants';
+import {enableUstpForTest} from '../fixtures/ustpEligibility';
 
 let serial = 0;
 const student = (username: string): string => {
@@ -291,6 +292,7 @@ describe('Chat routing', () => {
   });
 
   it('offline handbook questions answer from the local USTP Handbook index', async () => {
+    enableUstpForTest(GUEST_USER_ID);
     const result = await chatOrchestrator.processMessage(
       GUEST_USER_ID,
       'What is the USTP dress code?',

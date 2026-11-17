@@ -1,0 +1,105 @@
+.......F................................................................ [ 25%]
+........................................................................ [ 50%]
+........................................................................ [ 75%]
+......................................................................F  [100%]
+================================== FAILURES ===================================
+___________ test_first_step_returns_tool_calls_with_server_schemas ____________
+
+async_client = <httpx.AsyncClient object at 0x0000023140EF57C0>
+upstream = {'response': <Response [200 OK]>, 'requests': [<Request('POST', 'https://api.deepseek.com/chat/completions')>]}
+
+    async def test_first_step_returns_tool_calls_with_server_schemas(async_client, upstream):
+        upstream["response"] = httpx.Response(
+            200,
+            content=sse_body(
+                *tool_call("c1", "find_free_time", {"date": "2026-11-16", "durationMinutes": 120}),
+                USAGE,
+                "[DONE]",
+            ),
+        )
+        headers = await signed_in(async_client)
+        response = await async_client.post("/v1/ai/chat/agent", headers=headers, json=ASK)
+        assert response.status_code == 200
+        body = response.json()
+        assert body["reply"] == ""
+        assert body["toolCalls"] == [
+            {"id": "c1", "name": "find_free_time", "arguments": {"date": "2026-11-16", "durationMinutes": 120}}
+        ]
+        payload = sent(upstream)
+        names = [t["function"]["name"] for t in payload["tools"]]
+        assert names == ["find_free_time", "prepare_lafina_action"]
+        # Server-owned schemas, never the client's.
+>       assert all(t["function"]["parameters"]["additionalProperties"] is False for t in payload["tools"])
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests\test_chat_agent.py:114: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+.0 = <list_iterator object at 0x0000023140ED6D40>
+
+>   assert all(t["function"]["parameters"]["additionalProperties"] is False for t in payload["tools"])
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E   KeyError: 'additionalProperties'
+
+tests\test_chat_agent.py:114: KeyError
+_________________ test_contract_matches_current_mobile_tools __________________
+
+    def test_contract_matches_current_mobile_tools():
+        """The server contract must follow the app's registry (mobile `REGISTERED_TOOLS`)."""
+        from app.services.voice_conversation import voice_tool_definitions
+    
+        tools = {t["function"]["name"]: t["function"] for t in voice_tool_definitions()}
+        read = tools["read_lafina_data"]["parameters"]["properties"]["kind"]["enum"]
+>       assert read == ["calendar", "todos", "notes", "memory"]
+E       AssertionError: assert ['calendar', ...ms', 'memory'] == ['calendar', ...es', 'memory']
+E         
+E         At index 3 diff: 'alarms' != 'memory'
+E         Left contains one more item: 'memory'
+E         Use -v to get more diff
+
+tests\test_voice_tool_bridge.py:92: AssertionError
+============================== warnings summary ===============================
+tests\test_elevenlabs_tts_client.py:27
+  C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\.local\call-feature-remediation-publish\tests\test_elevenlabs_tts_client.py:27: PytestUnknownMarkWarning: Unknown pytest.mark.anyio - is this a typo?  You can register custom marks to avoid this warning - for details, see https://docs.pytest.org/en/stable/how-to/mark.html
+    @pytest.mark.anyio
+
+tests\test_elevenlabs_tts_client.py:48
+  C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\.local\call-feature-remediation-publish\tests\test_elevenlabs_tts_client.py:48: PytestUnknownMarkWarning: Unknown pytest.mark.anyio - is this a typo?  You can register custom marks to avoid this warning - for details, see https://docs.pytest.org/en/stable/how-to/mark.html
+    @pytest.mark.anyio
+
+tests\test_elevenlabs_tts_client.py:63
+  C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\.local\call-feature-remediation-publish\tests\test_elevenlabs_tts_client.py:63: PytestUnknownMarkWarning: Unknown pytest.mark.anyio - is this a typo?  You can register custom marks to avoid this warning - for details, see https://docs.pytest.org/en/stable/how-to/mark.html
+    @pytest.mark.anyio
+
+tests\test_elevenlabs_tts_client.py:77
+  C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\.local\call-feature-remediation-publish\tests\test_elevenlabs_tts_client.py:77: PytestUnknownMarkWarning: Unknown pytest.mark.anyio - is this a typo?  You can register custom marks to avoid this warning - for details, see https://docs.pytest.org/en/stable/how-to/mark.html
+    @pytest.mark.anyio
+
+tests/test_documents.py::test_a_refusal_is_passed_back
+tests/test_flashcards.py::test_a_reply_with_no_cards_in_it_is_not_passed_off_as_a_deck
+tests/test_meeting_notes.py::test_notes_with_nothing_in_them_are_not_passed_off_as_a_result
+tests/test_study_notes.py::test_a_summary_with_nothing_in_it_is_not_passed_off_as_notes
+  C:\Users\USER-PC\AppData\Roaming\Python\Python314\site-packages\fastapi\routing.py:352: StarletteDeprecationWarning: 'HTTP_422_UNPROCESSABLE_ENTITY' is deprecated. Use 'HTTP_422_UNPROCESSABLE_CONTENT' instead.
+    return await dependant.call(**values)
+
+tests/test_flashcards.py::test_unusable_uploads_are_refused_before_the_model_is_called
+  C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\.local\call-feature-remediation-publish\app\api\v1\ai.py:963: StarletteDeprecationWarning: 'HTTP_413_REQUEST_ENTITY_TOO_LARGE' is deprecated. Use 'HTTP_413_CONTENT_TOO_LARGE' instead.
+    pdf_bytes = _decode_upload(req.contentBase64)
+
+tests/test_flashcards.py::test_a_document_upload_is_not_held_to_the_one_mib_body_limit
+  C:\Users\USER-PC\AppData\Roaming\Python\Python314\site-packages\starlette\middleware\base.py:193: StarletteDeprecationWarning: 'HTTP_413_REQUEST_ENTITY_TOO_LARGE' is deprecated. Use 'HTTP_413_CONTENT_TOO_LARGE' instead.
+    response = await self.dispatch_func(request, call_next)
+
+tests/test_meeting_notes.py::test_material_too_long_for_one_request_is_refused_before_the_model_sees_it
+  C:\Users\USER-PC\AppData\Roaming\Python\Python314\site-packages\fastapi\routing.py:352: StarletteDeprecationWarning: 'HTTP_413_REQUEST_ENTITY_TOO_LARGE' is deprecated. Use 'HTTP_413_CONTENT_TOO_LARGE' instead.
+    return await dependant.call(**values)
+
+tests/test_meeting_notes.py::test_each_deepseek_failure_gets_its_own_status_and_explanation
+  C:\L3mxr\Github Repositories\LAFINA-CAPSTONE-agy-development-cont\.local\call-feature-remediation-publish\app\api\v1\meeting_notes.py:208: StarletteDeprecationWarning: 'HTTP_413_REQUEST_ENTITY_TOO_LARGE' is deprecated. Use 'HTTP_413_CONTENT_TOO_LARGE' instead.
+    raise _http_error(err)
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=========================== short test summary info ===========================
+FAILED tests/test_chat_agent.py::test_first_step_returns_tool_calls_with_server_schemas
+FAILED tests/test_voice_tool_bridge.py::test_contract_matches_current_mobile_tools
+2 failed, 285 passed, 12 warnings in 42.83s

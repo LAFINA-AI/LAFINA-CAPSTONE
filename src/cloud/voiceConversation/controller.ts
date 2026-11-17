@@ -95,6 +95,7 @@ export interface VoiceConversationDeps {
   persistence?: ConversationPersistence;
   /** A finished user turn, for on-device scheduling review. */
   onFinalUserText?(text: string): void;
+  onTurnInterrupted?(): void;
   onAgentText?(text: string): void;
   suppressAgentResponse?(): boolean;
   appOwnedAudio?: boolean;
@@ -215,7 +216,7 @@ const randomId = () =>
 export const reminderCallContext = (task: string): string => {
   const reminder = task.trim().replace(/\s+/g, ' ').slice(0, 300);
   if (!reminder) return '';
-  return `Reminder call: the student just answered a reminder call about "${reminder}". The app already read this reminder aloud, so do not announce or repeat it. Wait for the student to speak, and help with it only if they ask (for example to snooze, reschedule or plan around it).`;
+  return `Reminder call: the student just answered a reminder call about "${reminder}". The app already read this reminder aloud, so do not announce or repeat it. Wait for the student to speak, and help with it only if they ask (for example to snooze, reschedule or plan around it). The app itself ends the call when the student says "acknowledge", "got it" or "snooze", or taps a button; you cannot acknowledge it, so never say you did. To snooze for a time the student names, call snooze_reminder. A planner change appears as a card only when an app update says a card is shown; never say a card is on screen otherwise.`;
 };
 
 export class VoiceConversationController {
@@ -242,6 +243,8 @@ export class VoiceConversationController {
     lastTiming: null,
   };
   private generation = 0;
+  /** Invalidates work within a live call when the student takes another turn. */
+  private turnGeneration = 0;
   private abort: AbortController | null = null;
   private live: LiveSession | null = null;
   private seen = new Set<string>();
@@ -623,10 +626,11 @@ export class VoiceConversationController {
     if (ok) {
       this.update({muted, level: muted ? 0 : this.snapshot.level});
       if (!muted) this.resetInactivity(gen);
-    } else if (!muted) {
+    } else {
       this.update({
-        notice:
-          'The microphone could not turn back on. End the conversation and start again.',
+        notice: muted
+          ? 'The microphone could not be muted. End the call to stop capture.'
+          : 'The microphone could not turn back on. End the conversation and start again.',
       });
     }
   };
@@ -666,6 +670,8 @@ export class VoiceConversationController {
 
   /** Stops LAFINA's current answer; the conversation keeps listening. */
   stopResponse = (): void => {
+    this.turnGeneration += 1;
+    this.deps.onTurnInterrupted?.();
     const live = this.live;
     if (!live) return;
     // Measured only when audio is playing; otherwise there is nothing to silence.
@@ -857,6 +863,7 @@ export class VoiceConversationController {
             : {};
         const live = this.live;
         if (!live) return;
+        const turn = this.turnGeneration;
         const toolPhrase = getToolWorkingPhrase(toolName, params.kind);
         if (this.snapshot.phase !== 'speaking') {
           this.update({phase: 'tool_working', toolPhrase});
@@ -873,6 +880,7 @@ export class VoiceConversationController {
                 params,
                 () =>
                   gen === this.generation &&
+                  turn === this.turnGeneration &&
                   this.live === live &&
                   this.deps.gates.isSignedInOwner() &&
                   this.deps.gates.isOnlineMode() &&
@@ -884,6 +892,11 @@ export class VoiceConversationController {
               'The app could not complete that request. Nothing was changed.';
           }
           if (gen !== this.generation || this.live !== live) return;
+          if (turn !== this.turnGeneration) {
+            answer =
+              'Request canceled because the student interrupted or changed their request. Nothing further was changed.';
+            failed = true;
+          }
           if (this.snapshot.phase === 'tool_working') {
             this.update({phase: 'thinking', toolPhrase: null});
           }
@@ -964,6 +977,8 @@ export class VoiceConversationController {
         }
         return;
       case 'interruption':
+        this.turnGeneration += 1;
+        this.deps.onTurnInterrupted?.();
         this.silenceRequestedAt =
           this.snapshot.phase === 'speaking' ? this.clock.now() : null;
         this.markInterrupted();
@@ -1072,6 +1087,7 @@ export class VoiceConversationController {
   }
 
   private acceptUserTurn(trimmed: string, turnId: string) {
+    this.turnGeneration += 1;
     // A new turn closes the previous answer.
     if (this.pending && !this.pending.committed) {
       if (!this.pending.complete || this.snapshot.phase === 'speaking') {
@@ -1088,6 +1104,7 @@ export class VoiceConversationController {
       this.update({notice: 'This turn could not be saved to Chat.'});
     }
     this.userFinalAt = this.clock.now();
+    this.update({lastTiming: null});
     this.firstTextAt = null;
     this.firstAudioAt = null;
     if (this.snapshot.phase !== 'speaking')

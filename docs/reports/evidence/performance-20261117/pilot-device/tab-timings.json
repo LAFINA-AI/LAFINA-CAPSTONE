@@ -1,0 +1,10 @@
+{
+  "package": "com.lafina.capstone.performance",
+  "rounds": 2,
+  "capturedUtc": "2026-11-16T18:07:31.3849705Z",
+  "device": "Infinix X6880",
+  "api": "35",
+  "limitation": "JS handler-to-layout-commit and next JS animation callback only; excludes native input delay and does not establish first-presented pixels or tap-to-usable latency.",
+  "samples": [],
+  "warmSummary": []
+}

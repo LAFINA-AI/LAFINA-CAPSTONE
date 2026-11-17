@@ -16,8 +16,10 @@ import type {
 } from '../ai/native/speechCapture';
 import { getReminderPreferences } from './userPreferences';
 import {
+  ACKNOWLEDGE_MESSAGE,
   acknowledgeReminderAction,
   autoSnoozeReminderAction,
+  snoozeMessage,
   snoozeReminderAction,
 } from './reminderActions';
 import type {
@@ -54,6 +56,11 @@ export interface CallResolution {
 export interface CallStateEvent {
   state: CallState;
   text?: string;
+  /**
+   * How the call ended. It arrives with `speaking` as soon as the reminder is
+   * acknowledged or snoozed, so the screen shows the result while the
+   * confirmation is spoken, and again with `disconnected` when the call closes.
+   */
   resolution?: CallResolution;
 }
 
@@ -91,16 +98,18 @@ let activeSession: CallDispatcherSession | null = null;
 let activeCallCapture: ActiveCallCapture | null = null;
 let sessionSequence = 0;
 
-const ACKNOWLEDGE_CONFIRMATION =
-  'Great! Task acknowledged. Have a productive day.';
+// The sentences the actions really return, so the prepared audio is the audio
+// that plays (the old copy differed and the confirmation started late).
+const ACKNOWLEDGE_CONFIRMATION = ACKNOWLEDGE_MESSAGE;
 const RETRY_PROMPT =
   'I did not catch one of the choices shown on screen. Please try again now.';
 const WHISPER_MODEL = 'ggml-tiny.en-q5_1.bin';
 const STT_MEDIAN_TARGET_MS = 1_500;
 const STT_P95_LIMIT_MS = 3_000;
+/** A confirmation that never finishes speaking must not keep the call open. */
+const OUTCOME_SPEECH_LIMIT_MS = 8_000;
 
-const getSnoozeConfirmation = (minutes: number): string =>
-  `Snoozed for ${minutes} minutes.`;
+const getSnoozeConfirmation = snoozeMessage;
 
 const buildAnnouncement = (task: string): string =>
   `Hey! This is lafina. Your scheduled reminder is "${task}". Choose one of the two responses shown on screen at any time.`;
@@ -137,10 +146,15 @@ export const prepareCallSpeech = async (
   ]);
 };
 
-const publishCallState = (state: CallState, text?: string): void => {
+const publishCallState = (
+  state: CallState,
+  text?: string,
+  resolution?: CallResolution,
+): void => {
   if (activeSession) activeSession.state = state;
   const payload: CallStateEvent = { state };
   if (text !== undefined) payload.text = text;
+  if (resolution) payload.resolution = resolution;
   DeviceEventEmitter.emit('LAFINA_CALL_STATE_CHANGE', payload);
 };
 
@@ -207,6 +221,32 @@ export const speakText = async (
   }
 };
 
+/**
+ * Speaks the result of an acknowledge or snooze. A successful result is
+ * published first, so the screen changes the moment the action is saved
+ * instead of after the sentence ends, and a stuck speech engine cannot hold
+ * the call open.
+ */
+const speakOutcome = async (action: ReminderActionResult): Promise<void> => {
+  const resolution = resolutionFromAction(action);
+  let timer: ReturnType<typeof setTimeout> | null = null;
+  try {
+    publishCallState('speaking', action.message, resolution);
+    const provider = activeSession?.speechProvider || defaultCallSpeechProvider;
+    await Promise.race([
+      provider.speakText(action.message),
+      new Promise<void>(resolve => {
+        timer = setTimeout(resolve, OUTCOME_SPEECH_LIMIT_MS);
+      }),
+    ]);
+  } catch (error) {
+    console.error('[CallDispatcher] Outcome speech error:', error);
+    if (!resolution) publishCallState('connected', action.message);
+  } finally {
+    if (timer) clearTimeout(timer);
+  }
+};
+
 const normalizeCallCommand = (transcript: string): string =>
   transcript
     .trim()
@@ -268,12 +308,57 @@ const CALL_SPOKEN_NUMBERS: Record<string, number> = {
   sixty: 60,
 };
 
+const MINUTE_WORDS =
+  '\\d{1,3}|one|two|three|four|five|six|seven|eight|nine|ten|eleven|twelve|fifteen|twenty|thirty|forty|fifty|sixty';
+
+/** "don't snooze", "do not acknowledge": never the action it names. */
+const NEGATED_COMMAND_RE =
+  /\b(?:don'?t|do\s+not|never|not)\s+(?:\w+\s+){0,2}?(?:snooz|ac?k?nowledg)/i;
+
 /**
- * Detects supported reminder-call keywords from speech text.
+ * Short everyday answers. They count only as the whole reply to the offline
+ * call's own question ("acknowledge or snooze?"), never inside a longer
+ * sentence and never in the online conversation, where "okay" or "later"
+ * is ordinary talk.
  */
-export const detectCallKeyword = (transcript: string): CallCommand | null => {
+const CASUAL_ACKNOWLEDGE_RE =
+  /^(?:(?:yes|yeah|yep|yup|ok|okay|alright|all\s+right|sure|noted|copy(?:\s+that)?|will\s+do|i\s+will|i'?ll\s+do\s+it|i'?m\s+doing\s+it|doing\s+it(?:\s+now)?|on\s+my\s+way|sige|oo|opo)(?:\s+(?:lafina|please|thanks|thank\s+you|po))?)$/i;
+const CASUAL_SNOOZE_RE =
+  /^(?:(?:not\s+now|later|maybe\s+later|in\s+a\s+bit|in\s+a\s+while|a\s+bit\s+later|wait|hold\s+on|i'?m\s+busy|busy|mamaya(?:\s+na)?|saglit(?:\s+lang)?|teka(?:\s+lang)?)(?:\s+(?:lafina|please|po))?)$/i;
+const BARE_MINUTES_RE = new RegExp(
+  `^(?:in\\s+|for\\s+)?(${MINUTE_WORDS})\\s*(?:more\\s+)?(?:minutes?|mins?)(?:\\s+more)?(?:\\s+please)?$`,
+  'i',
+);
+
+/**
+ * Detects supported reminder-call keywords from speech text. `casual` also
+ * accepts short everyday answers ("okay", "later", "ten more minutes"); use it
+ * only when the app has just asked for one of the two choices.
+ */
+export const detectCallKeyword = (
+  transcript: string,
+  options: {casual?: boolean} = {},
+): CallCommand | null => {
   const normalized = normalizeCallCommand(transcript);
   if (!normalized) return null;
+  if (NEGATED_COMMAND_RE.test(normalized)) return null;
+
+  if (options.casual) {
+    const bareMinutes = BARE_MINUTES_RE.exec(normalized);
+    if (bareMinutes) {
+      const raw = bareMinutes[1].toLowerCase();
+      const minutes = /^\d+$/.test(raw)
+        ? Number.parseInt(raw, 10)
+        : CALL_SPOKEN_NUMBERS[raw] ?? 0;
+      if (minutes >= 1 && minutes <= 120) return {intent: 'snooze', minutes};
+    }
+    if (CASUAL_ACKNOWLEDGE_RE.test(normalized)) {
+      return {intent: 'acknowledge', minutes: null};
+    }
+    if (CASUAL_SNOOZE_RE.test(normalized)) {
+      return {intent: 'snooze', minutes: null};
+    }
+  }
 
   const acknowledgeExact =
     /\b(?:ac?k?nowledg?(?:e|ed|es|ing|ement|ment)?|nowledg?(?:e|ed|es|ing)?|got\s+it|understood|i'?m\s+on\s+it|on\s+it)\b/i.test(
@@ -383,7 +468,7 @@ const processCallTranscript = async (
   }
 
   publishCallState('processing', 'Processing on this device...');
-  const command = detectCallKeyword(transcript);
+  const command = detectCallKeyword(transcript, {casual: true});
   if (!command) {
     await handleFailedAttempt(session);
     return;
@@ -398,7 +483,7 @@ const processCallTranscript = async (
         session.userId,
         session.generation,
       );
-      await speakText(action.message);
+      await speakOutcome(action);
       if (action.ok) {
         disconnectCall(resolutionFromAction(action));
       } else if (isCurrentSession(session)) {
@@ -415,7 +500,7 @@ const processCallTranscript = async (
       minutes,
       session.generation,
     );
-    await speakText(action.message);
+    await speakOutcome(action);
     if (action.ok) {
       disconnectCall(resolutionFromAction(action));
     } else if (isCurrentSession(session)) {
@@ -456,7 +541,9 @@ async function startAutomaticAttempt(
     console.error('[CallDispatcher] TTS playback failed:', error);
   }
 
-  if (!isCurrentSession(session)) return;
+  // A button already settled the call while the prompt was playing: do not
+  // open the microphone over the spoken confirmation.
+  if (!isCurrentSession(session) || session.isResolving) return;
 
   // 2. Start offline speech capture
   let handle: OfflineSpeechCaptureHandle;
@@ -659,7 +746,9 @@ export const answerCall = async (
 
   if (!voiceEnabled) {
     void speakText(announcement).then(() => {
-      if (isCurrentSession(session)) {
+      // Not while a tap is being carried out: this line would replace the
+      // confirmation on screen.
+      if (isCurrentSession(session) && !session.isResolving) {
         publishCallState(
           'connected',
           'Microphone access is unavailable. Use the buttons below.',
@@ -699,7 +788,7 @@ export const autoSnoozeCall = async (): Promise<void> => {
     session.generation,
   );
   if (session.state !== 'ringing') {
-    await speakText(action.message);
+    await speakOutcome(action);
   }
   disconnectCall(showResolution ? resolutionFromAction(action) : undefined);
 };
@@ -774,68 +863,77 @@ export const endAnsweredCall = async (
 };
 
 /**
+ * What a tap on Acknowledge or Snooze did. `busy` means the call was already
+ * being settled (a spoken answer or an earlier tap), so this tap changed
+ * nothing; `failed` means the reminder could not be changed and the call
+ * stays open.
+ */
+export type ManualCallResult = 'done' | 'busy' | 'failed';
+
+/**
+ * Runs a button's action against the live call. When the call session is
+ * gone (lost with a reload, or closed underneath the screen) the button still
+ * does what it says, fenced by the delivery generation the screen captured,
+ * instead of doing nothing.
+ */
+const settleCallManually = async (
+  reminderId: string,
+  userId: string,
+  expectedGeneration: number | null | undefined,
+  act: (generation: number | null | undefined) => Promise<ReminderActionResult>,
+): Promise<ManualCallResult> => {
+  const session = activeSession;
+  if (
+    session &&
+    session.reminderId === reminderId &&
+    session.userId === userId
+  ) {
+    if (!claimCallResolution(session)) return 'busy';
+    await stopActiveAudioAndCapture(session);
+    const action = await act(session.generation);
+    if (!isCurrentSession(session)) return action.ok ? 'done' : 'failed';
+    await speakOutcome(action);
+    if (action.ok) {
+      disconnectCall(resolutionFromAction(action));
+      return 'done';
+    }
+    if (isCurrentSession(session)) session.isResolving = false;
+    return 'failed';
+  }
+
+  const action = await act(expectedGeneration);
+  const resolution = resolutionFromAction(action);
+  const event: CallStateEvent = resolution
+    ? { state: 'disconnected', resolution }
+    : { state: 'connected', text: action.message };
+  DeviceEventEmitter.emit('LAFINA_CALL_STATE_CHANGE', event);
+  return action.ok ? 'done' : 'failed';
+};
+
+/**
  * Applies a manual snooze through the coordinated scheduler path.
  */
-export const manualSnoozeCall = async (
+export const manualSnoozeCall = (
   reminderId: string,
   userId: string,
   minutes: number,
-): Promise<void> => {
-  const session = activeSession;
-  if (
-    !session ||
-    session.reminderId !== reminderId ||
-    session.userId !== userId ||
-    !claimCallResolution(session)
-  ) {
-    return;
-  }
-  await stopActiveAudioAndCapture(session);
-  const action = await snoozeReminderAction(
-    reminderId,
-    userId,
-    minutes,
-    session.generation,
+  expectedGeneration?: number | null,
+): Promise<ManualCallResult> =>
+  settleCallManually(reminderId, userId, expectedGeneration, generation =>
+    snoozeReminderAction(reminderId, userId, minutes, generation),
   );
-  if (!isCurrentSession(session)) return;
-  await speakText(action.message);
-  if (action.ok) {
-    disconnectCall(resolutionFromAction(action));
-  } else if (isCurrentSession(session)) {
-    session.isResolving = false;
-  }
-};
 
 /**
  * Applies a manual acknowledgement through the coordinated scheduler path.
  */
-export const manualAcknowledgeCall = async (
+export const manualAcknowledgeCall = (
   reminderId: string,
   userId: string,
-): Promise<void> => {
-  const session = activeSession;
-  if (
-    !session ||
-    session.reminderId !== reminderId ||
-    session.userId !== userId ||
-    !claimCallResolution(session)
-  ) {
-    return;
-  }
-  await stopActiveAudioAndCapture(session);
-  const action = await acknowledgeReminderAction(
-    reminderId,
-    userId,
-    session.generation,
+  expectedGeneration?: number | null,
+): Promise<ManualCallResult> =>
+  settleCallManually(reminderId, userId, expectedGeneration, generation =>
+    acknowledgeReminderAction(reminderId, userId, generation),
   );
-  if (!isCurrentSession(session)) return;
-  await speakText(action.message);
-  if (action.ok) {
-    disconnectCall(resolutionFromAction(action));
-  } else if (isCurrentSession(session)) {
-    session.isResolving = false;
-  }
-};
 
 /**
  * Stops the active call loop, microphone service, and terminal UI state.

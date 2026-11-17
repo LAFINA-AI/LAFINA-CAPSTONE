@@ -16,8 +16,6 @@ import DateTimePicker from '@react-native-community/datetimepicker';
 import {
   Camera,
   CheckCircle,
-  ChevronDown,
-  ChevronUp,
   FileText,
   GraduationCap,
   Plus,
@@ -27,27 +25,18 @@ import {
 } from 'lucide-react-native';
 import {useTheme} from '../../../contexts/ThemeContext';
 import {Colors, Shadows} from '../../../theme';
-import {
-  academicProfileStore,
-  db,
-  pickSubjectColor,
-  preferencesStore,
-} from '../../../../storage';
-import type {AcademicProfileRecord} from '../../../../storage';
-import {
-  readOnboardingIdentity,
-  saveOnboardingMemories,
-} from '../../../../storage/onboardingMemory';
+import {academicProfileStore, db, pickSubjectColor} from '../../../../storage';
 import {visionService} from '../../../../ai/vision/visionService';
-import type {ParsedUstpCorResult} from '../../../../ai/vision/ustpCorParser';
+import {getConfirmedAcademicProfile} from '../../../../storage/ustpEligibility';
+import {studentSetupStore} from '../../../../storage/studentSetupStore';
+import {chooseUstpMode} from '../../../../storage/studentMode';
+import {CorReviewFlow} from '../../onboarding/CorReviewFlow';
 import {
   dateToTimeString,
   formatTimeForDisplay,
   timeStringToDate,
 } from '../utils/calendarHelpers';
 import {
-  buildMergedAcademicProfile,
-  corResultToManualEntries,
   createEmptyClassDraft,
   DAY_PATTERN_PRESETS,
   formatDaysBadge,
@@ -63,7 +52,6 @@ import type {
   ClassRecurrenceMode,
   ManualClassDraft,
   ManualClassEntry,
-  ManualCorStudentInfo,
 } from '../utils/classScheduleHelpers';
 
 interface ClassScheduleModalProps {
@@ -73,14 +61,6 @@ interface ClassScheduleModalProps {
   onClose: () => void;
   onSaved: () => void;
 }
-
-const EMPTY_COR_INFO: ManualCorStudentInfo = {
-  studentNo: '',
-  program: '',
-  yearLevel: '',
-  section: '',
-  academicTerm: '',
-};
 
 /**
  * Modal for manually entering a COR / class schedule (multi-subject batch or
@@ -101,21 +81,10 @@ export const ClassScheduleModal: React.FC<ClassScheduleModalProps> = ({
   );
   const [entries, setEntries] = useState<ManualClassEntry[]>([]);
   const [editingEntryId, setEditingEntryId] = useState<string | null>(null);
-  const [existingProfile, setExistingProfile] =
-    useState<AcademicProfileRecord | null>(null);
-  const [scannedCor, setScannedCor] = useState<ParsedUstpCorResult | null>(
-    null,
-  );
-  const [showCorInfo, setShowCorInfo] = useState(false);
-  const [hasEditedCorInfo, setHasEditedCorInfo] = useState(false);
-  const [corInfo, setCorInfo] = useState<ManualCorStudentInfo>(EMPTY_COR_INFO);
-  const updateCorField = <K extends keyof ManualCorStudentInfo>(
-    key: K,
-    val: string,
-  ) => {
-    setHasEditedCorInfo(true);
-    setCorInfo(prev => ({...prev, [key]: val}));
-  };
+  // Manual classes are plain schedule blocks. Campus, program and other
+  // school details come only from a reviewed COR (CorReviewFlow).
+  const [defaultSection, setDefaultSection] = useState('');
+  const [corReviewOpen, setCorReviewOpen] = useState(false);
   const [showStartPicker, setShowStartPicker] = useState(false);
   const [showEndPicker, setShowEndPicker] = useState(false);
   const [isScanning, setIsScanning] = useState(false);
@@ -126,37 +95,23 @@ export const ClassScheduleModal: React.FC<ClassScheduleModalProps> = ({
 
   useEffect(() => {
     if (!visible) return;
-    let existing: AcademicProfileRecord | null = null;
+    let existing: ReturnType<typeof getConfirmedAcademicProfile> = null;
     try {
-      existing = academicProfileStore.get(userId);
+      existing = getConfirmedAcademicProfile(userId);
     } catch {
       existing = null;
     }
-    setExistingProfile(existing);
     setMode('manual');
     setEntries([]);
     setEditingEntryId(null);
-    setScannedCor(null);
-    setShowCorInfo(false);
-    setHasEditedCorInfo(false);
+    setCorReviewOpen(false);
     setShowStartPicker(false);
     setShowEndPicker(false);
     setIsScanning(false);
     setStatusMessage(null);
-    const defaultSection = existing?.section || existing?.primarySection || '';
-    setCorInfo(
-      existing
-        ? {
-            studentNo: existing.studentNo || '',
-            program: existing.program || '',
-            yearLevel: existing.yearLevel || '',
-            section: defaultSection,
-            academicTerm:
-              existing.academicTerm || existing.academicYearTerm || '',
-          }
-        : EMPTY_COR_INFO,
-    );
-    setDraft(createEmptyClassDraft({section: defaultSection}));
+    const section = existing?.section || existing?.primarySection || '';
+    setDefaultSection(section);
+    setDraft(createEmptyClassDraft({section}));
   }, [visible, userId]);
 
   const toggleDay = (dayKey: string) => {
@@ -194,7 +149,7 @@ export const ClassScheduleModal: React.FC<ClassScheduleModalProps> = ({
     setEditingEntryId(null);
     setDraft(
       createEmptyClassDraft({
-        section: draft.section.trim() || corInfo.section.trim(),
+        section: draft.section.trim() || defaultSection,
         recurrenceMode: draft.recurrenceMode,
       }),
     );
@@ -223,62 +178,23 @@ export const ClassScheduleModal: React.FC<ClassScheduleModalProps> = ({
       setEditingEntryId(null);
       setDraft(
         createEmptyClassDraft({
-          section: corInfo.section.trim(),
+          section: defaultSection,
         }),
       );
     }
   };
 
-  const handleUploadUstpCor = async () => {
+  /** A COR always goes through the full review; nothing is saved from recognition alone. */
+  const handleUploadUstpCor = () => {
     if (isScanning) return;
     try {
-      const picked = await visionService.pickCorDocument();
-      if (!picked) return;
-      setIsScanning(true);
-      setStatusMessage(null);
-      const cor = await visionService.scanUstpCorFromUri(picked.uri);
-      if (
-        !cor ||
-        (cor.courses.length === 0 &&
-          !cor.profile.studentNo &&
-          !cor.profile.fullName)
-      ) {
-        setStatusMessage({
-          kind: 'error',
-          text: 'Could not extract USTP COR details from that file. You can try another file or enter classes manually.',
-        });
-        return;
-      }
-      const parsedEntries = corResultToManualEntries(cor);
-      setScannedCor(cor);
-      setEntries(prev => [...prev, ...parsedEntries]);
-      const sec = cor.profile.section || cor.profile.primarySection || '';
-      setCorInfo({
-        studentNo: cor.profile.studentNo || '',
-        program: cor.profile.program || '',
-        yearLevel: cor.profile.yearLevel || '',
-        section: sec,
-        academicTerm: cor.profile.academicTerm || '',
-      });
-      if (sec) {
-        setDraft(prev => ({...prev, section: prev.section || sec}));
-      }
-      setMode('manual');
-      setStatusMessage({
-        kind: 'success',
-        text: `Extracted ${parsedEntries.length} class session${
-          parsedEntries.length === 1 ? '' : 's'
-        } from USTP COR. Review or add more below, then tap Save.`,
-      });
+      if (studentSetupStore.get(userId).affiliation !== 'ustp') chooseUstpMode(userId);
     } catch (error) {
-      console.error('[ClassScheduleModal] COR scan failed:', error);
-      setStatusMessage({
-        kind: 'error',
-        text: 'Failed to scan COR file. Try entering your classes manually.',
-      });
-    } finally {
-      setIsScanning(false);
+      console.error('[ClassScheduleModal] Could not choose USTP mode:', error);
+      setStatusMessage({kind: 'error', text: 'That choice could not be saved. Please try again.'});
+      return;
     }
+    setCorReviewOpen(true);
   };
 
   const handleScanSchedulePhoto = async (source: 'gallery' | 'camera') => {
@@ -352,19 +268,9 @@ export const ClassScheduleModal: React.FC<ClassScheduleModalProps> = ({
     }
 
     const sessions = manualEntriesToScheduleInputs(finalEntries);
-    const mergedProfile =
-      scannedCor || hasEditedCorInfo
-        ? buildMergedAcademicProfile({
-            existing: existingProfile,
-            scannedCor,
-            manualInfo: corInfo,
-            entries: finalEntries,
-          })
-        : null;
 
     try {
       let savedSessionsCount = 0;
-      let savedProfile: AcademicProfileRecord | null = null;
       db.transactionSync(tx => {
         savedSessionsCount = academicProfileStore.persistRecurringSchedule(
           userId,
@@ -372,36 +278,7 @@ export const ClassScheduleModal: React.FC<ClassScheduleModalProps> = ({
           new Date(),
           tx,
         );
-        if (mergedProfile) {
-          savedProfile = academicProfileStore.save(userId, mergedProfile, tx);
-        }
       });
-
-      if (
-        savedProfile &&
-        (savedProfile as AcademicProfileRecord).isUstpStudent
-      ) {
-        try {
-          const prefs = preferencesStore.get(userId);
-          const ident = readOnboardingIdentity(userId);
-          saveOnboardingMemories(
-            userId,
-            {
-              preferredName:
-                (savedProfile as AcademicProfileRecord).preferredName ||
-                ident.preferredName,
-              tone: ident.tone,
-            },
-            prefs.studyPeakHours,
-            savedProfile,
-          );
-        } catch (memErr) {
-          console.error(
-            '[ClassScheduleModal] Failed saving COR onboarding memory:',
-            memErr,
-          );
-        }
-      }
 
       onSaved();
       onClose();
@@ -595,7 +472,7 @@ export const ClassScheduleModal: React.FC<ClassScheduleModalProps> = ({
                   testID="class-schedule-upload-cor"
                   accessibilityRole="button"
                   disabled={isScanning}
-                  onPress={() => void handleUploadUstpCor()}
+                  onPress={handleUploadUstpCor}
                   style={[
                     styles.scanPrimaryBtn,
                     {backgroundColor: colors.blue},
@@ -607,7 +484,7 @@ export const ClassScheduleModal: React.FC<ClassScheduleModalProps> = ({
                     <>
                       <FileText size={16} color="#FFFFFF" />
                       <Text style={styles.scanPrimaryBtnText}>
-                        Attach USTP COR (PDF / Image)
+                        Set up USTP COR (review before adding)
                       </Text>
                     </>
                   )}
@@ -1147,151 +1024,6 @@ export const ClassScheduleModal: React.FC<ClassScheduleModalProps> = ({
             )}
 
             {/* Collapsible COR / Student Details */}
-            <TouchableOpacity
-              testID="class-cor-info-toggle"
-              onPress={() => setShowCorInfo(prev => !prev)}
-              style={[
-                styles.corToggleRow,
-                {borderColor: colors.border, backgroundColor: colors.inputBg},
-              ]}
-              accessibilityRole="button"
-            >
-              <Text style={[styles.corToggleText, {color: colors.textPrimary}]}>
-                Student / COR Details (Optional)
-              </Text>
-              {showCorInfo ? (
-                <ChevronUp size={16} color={colors.textSecondary} />
-              ) : (
-                <ChevronDown size={16} color={colors.textSecondary} />
-              )}
-            </TouchableOpacity>
-
-            {showCorInfo && (
-              <View
-                style={[
-                  styles.corInfoCard,
-                  {
-                    borderColor: colors.border,
-                    backgroundColor: colors.inputBg,
-                  },
-                ]}
-              >
-                <View style={styles.twoColRow}>
-                  <View style={styles.colHalf}>
-                    <Text
-                      style={[styles.fieldLabel, {color: colors.textSecondary}]}
-                    >
-                      Student No.
-                    </Text>
-                    <TextInput
-                      testID="class-cor-student-no-input"
-                      style={[
-                        styles.input,
-                        {
-                          borderColor: colors.border,
-                          color: colors.textPrimary,
-                          backgroundColor: colors.cardBg,
-                        },
-                      ]}
-                      placeholder="e.g. 2022301234"
-                      placeholderTextColor={colors.placeholder}
-                      value={corInfo.studentNo}
-                      onChangeText={val => updateCorField('studentNo', val)}
-                    />
-                  </View>
-                  <View style={styles.colHalf}>
-                    <Text
-                      style={[styles.fieldLabel, {color: colors.textSecondary}]}
-                    >
-                      Primary Section
-                    </Text>
-                    <TextInput
-                      testID="class-cor-section-input"
-                      style={[
-                        styles.input,
-                        {
-                          borderColor: colors.border,
-                          color: colors.textPrimary,
-                          backgroundColor: colors.cardBg,
-                        },
-                      ]}
-                      placeholder="e.g. IT4R11"
-                      placeholderTextColor={colors.placeholder}
-                      value={corInfo.section}
-                      onChangeText={val => updateCorField('section', val)}
-                    />
-                  </View>
-                </View>
-
-                <Text
-                  style={[styles.fieldLabel, {color: colors.textSecondary}]}
-                >
-                  Program / Course
-                </Text>
-                <TextInput
-                  testID="class-cor-program-input"
-                  style={[
-                    styles.input,
-                    {
-                      borderColor: colors.border,
-                      color: colors.textPrimary,
-                      backgroundColor: colors.cardBg,
-                    },
-                  ]}
-                  placeholder="e.g. BS Information Technology"
-                  placeholderTextColor={colors.placeholder}
-                  value={corInfo.program}
-                  onChangeText={val => updateCorField('program', val)}
-                />
-
-                <View style={styles.twoColRow}>
-                  <View style={styles.colHalf}>
-                    <Text
-                      style={[styles.fieldLabel, {color: colors.textSecondary}]}
-                    >
-                      Year Level
-                    </Text>
-                    <TextInput
-                      testID="class-cor-year-input"
-                      style={[
-                        styles.input,
-                        {
-                          borderColor: colors.border,
-                          color: colors.textPrimary,
-                          backgroundColor: colors.cardBg,
-                        },
-                      ]}
-                      placeholder="e.g. 4th Year"
-                      placeholderTextColor={colors.placeholder}
-                      value={corInfo.yearLevel}
-                      onChangeText={val => updateCorField('yearLevel', val)}
-                    />
-                  </View>
-                  <View style={styles.colHalf}>
-                    <Text
-                      style={[styles.fieldLabel, {color: colors.textSecondary}]}
-                    >
-                      Academic Term
-                    </Text>
-                    <TextInput
-                      testID="class-cor-term-input"
-                      style={[
-                        styles.input,
-                        {
-                          borderColor: colors.border,
-                          color: colors.textPrimary,
-                          backgroundColor: colors.cardBg,
-                        },
-                      ]}
-                      placeholder="e.g. 1st Sem 2026-2027"
-                      placeholderTextColor={colors.placeholder}
-                      value={corInfo.academicTerm}
-                      onChangeText={val => updateCorField('academicTerm', val)}
-                    />
-                  </View>
-                </View>
-              </View>
-            )}
           </ScrollView>
 
           {/* Footer Actions */}
@@ -1327,6 +1059,24 @@ export const ClassScheduleModal: React.FC<ClassScheduleModalProps> = ({
           </View>
         </View>
       </KeyboardAvoidingView>
+      {corReviewOpen ? (
+        <Modal
+          visible
+          animationType="slide"
+          onRequestClose={() => setCorReviewOpen(false)}
+        >
+          <CorReviewFlow
+            userId={userId}
+            onClose={outcome => {
+              setCorReviewOpen(false);
+              if (outcome.status === 'confirmed') {
+                onSaved();
+                onClose();
+              }
+            }}
+          />
+        </Modal>
+      ) : null}
     </Modal>
   );
 };

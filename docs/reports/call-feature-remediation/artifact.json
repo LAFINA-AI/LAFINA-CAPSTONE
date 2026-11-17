@@ -1,0 +1,21 @@
+{
+  "recorded_at_utc": "2026-11-17T02:20:52.271721+00:00",
+  "apk_path": "C:\\L3mxr\\Github Repositories\\LAFINA-CAPSTONE-agy-development-cont\\android\\app\\build\\outputs\\apk\\dataQa\\app-arm64-v8a-dataQa.apk",
+  "application_id": "com.lafina.capstone",
+  "variant": "dataQa",
+  "architecture": "arm64-v8a",
+  "apk_sha256": "b63343bc0cf90f28eab9d7cd5ebfe9b9aa6fc09c373dc770d2a6208a3c967b24",
+  "bundle_sha256": "393754aeaf12498e2f56ac1b975a9e0b05083ee9622cf0e75fbdbc2bdc7dc9a1",
+  "apk_bundle_matches_generated": true,
+  "latest_call_contract_in_bundle": true,
+  "direct_provider_build_fields_empty": true,
+  "provider_testing_enabled": false,
+  "unit_tests": {
+    "suites": 8,
+    "tests": 76,
+    "failures": 0,
+    "errors": 0
+  },
+  "physical_device_validation": "NOT RUN",
+  "device_identifier": null
+}

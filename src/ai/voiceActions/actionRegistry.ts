@@ -69,7 +69,7 @@ export const REGISTERED_TOOLS: readonly RegisteredToolDefinition[] = [
     name: 'prepare_lafina_action',
     kind: 'legacy.prepare_action',
     description:
-      'Prepares a to-do, task, event, time block, reminder, alarm, or note review card (creation, completion, edit, or deletion) for student confirmation. Nothing is saved until confirmed. The app first reads the student’s own words; fill the structured fields too when the details came from earlier in the conversation (for example a free time you found), so the card can still be prepared. Deleting needs the student’s own words.',
+      'Prepares a to-do, task, event, time block, reminder, alarm, or note review card for student confirmation. Nothing is saved until the student confirms. Supply structured action, concise title and known date/time fields from the conversation; omit unknown details so the app can ask for them. Use prepare_multi_action for several items. Deleting needs the student’s own words.',
     parameters: {
       type: 'object',
       properties: {
@@ -82,7 +82,7 @@ export const REGISTERED_TOOLS: readonly RegisteredToolDefinition[] = [
           type: 'string',
           enum: STRUCTURED_ACTIONS,
           description:
-            'Optional. What to prepare when the details came from the conversation.',
+            'What to prepare. Supply this for structured online interpretation.',
         },
         title: {
           type: 'string',
@@ -115,6 +115,8 @@ export const REGISTERED_TOOLS: readonly RegisteredToolDefinition[] = [
           type: 'string',
           description: 'Optional. Note text or extra details.',
         },
+        location: {type: 'string', description: 'Optional event location.'},
+        category: {type: 'string', description: 'Optional planner category.'},
         deliveryStyle: {
           type: 'string',
           enum: ['call', 'notify'],
@@ -279,7 +281,7 @@ export const REGISTERED_TOOLS: readonly RegisteredToolDefinition[] = [
     name: 'confirm_draft',
     kind: 'draft.confirm',
     description:
-      'Confirms and commits the pending draft card to the student database.',
+      'Reports a draft save after the student explicitly confirms by speech or the card button. Never use this tool to authorize a save yourself.',
     parameters: {
       type: 'object',
       properties: {

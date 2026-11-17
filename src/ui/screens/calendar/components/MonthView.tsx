@@ -1,3 +1,5 @@
+import {useSchedulePage} from '../hooks/useSchedulePage';
+import {ScheduleMoreButton} from './ScheduleMoreButton';
 import React, {useMemo} from 'react';
 import {
   View,
@@ -177,7 +179,9 @@ export const MonthView: React.FC<MonthViewProps> = ({
 
   const planHeading = isSelectedToday
     ? 'Today’s Plan'
-    : `Plan · ${formatShortWeekday(selectedDate)}, ${formatShortMonthDay(selectedDate)}`;
+    : `Plan · ${formatShortWeekday(selectedDate)}, ${formatShortMonthDay(
+        selectedDate,
+      )}`;
 
   const renderPlanIcon = (item: ScheduleTimelineItem) => {
     if (item.kind === 'reminder') {
@@ -191,7 +195,8 @@ export const MonthView: React.FC<MonthViewProps> = ({
           hitSlop={{top: 8, bottom: 8, left: 8, right: 8}}
           accessibilityRole="checkbox"
           accessibilityLabel={`Toggle ${task.title}`}
-          accessibilityState={{checked: Boolean(task.isCompleted)}}>
+          accessibilityState={{checked: Boolean(task.isCompleted)}}
+        >
           <CheckCircle2
             size={18}
             color={palette.mintInk}
@@ -202,6 +207,8 @@ export const MonthView: React.FC<MonthViewProps> = ({
     }
     return <Calendar size={18} color={palette.accent} />;
   };
+
+  const page = useSchedulePage(selectedStr, selectedPlanItems);
 
   return (
     <View style={styles.wrapper}>
@@ -215,7 +222,8 @@ export const MonthView: React.FC<MonthViewProps> = ({
             borderWidth: palette.isDarkMode ? 1 : 0,
           },
           !palette.isDarkMode && scheduleCardShadow,
-        ]}>
+        ]}
+      >
         <View style={styles.weekdayRow}>
           {weekdays.map(dayName => (
             <View key={dayName} style={styles.weekdayCell}>
@@ -230,7 +238,12 @@ export const MonthView: React.FC<MonthViewProps> = ({
           <View key={`row-${rowIdx}`} style={styles.gridRow}>
             {weekRow.map((dayNum, colIdx) => {
               if (dayNum === null) {
-                return <View key={`empty-${rowIdx}-${colIdx}`} style={styles.dayCell} />;
+                return (
+                  <View
+                    key={`empty-${rowIdx}-${colIdx}`}
+                    style={styles.dayCell}
+                  />
+                );
               }
 
               const dateObj = new Date(year, month, dayNum);
@@ -258,11 +271,13 @@ export const MonthView: React.FC<MonthViewProps> = ({
                   onPress={() => onDayPress(dayNum)}
                   accessibilityRole="button"
                   accessibilityLabel={`${formatShortMonthDay(dateObj)}`}
-                  accessibilityState={{selected: isSelected}}>
+                  accessibilityState={{selected: isSelected}}
+                >
                   <View
                     key={`pill-${dateStr}-${pillState}`}
                     collapsable={false}
-                    style={[styles.dayPill, {backgroundColor: pillBg}]}>
+                    style={[styles.dayPill, {backgroundColor: pillBg}]}
+                  >
                     <Text
                       style={[
                         styles.dayNum,
@@ -270,7 +285,8 @@ export const MonthView: React.FC<MonthViewProps> = ({
                           color: numColor,
                           fontWeight: isToday || isSelected ? '700' : '500',
                         },
-                      ]}>
+                      ]}
+                    >
                       {dayNum}
                     </Text>
                   </View>
@@ -287,7 +303,10 @@ export const MonthView: React.FC<MonthViewProps> = ({
                     ) : null}
                     {dots?.reminder ? (
                       <View
-                        style={[styles.dot, {backgroundColor: palette.peachInk}]}
+                        style={[
+                          styles.dot,
+                          {backgroundColor: palette.peachInk},
+                        ]}
                       />
                     ) : null}
                   </View>
@@ -306,7 +325,8 @@ export const MonthView: React.FC<MonthViewProps> = ({
           style={[styles.planAddBtn, {backgroundColor: palette.accent}]}
           onPress={onAddPlanItem}
           accessibilityRole="button"
-          accessibilityLabel="Add plan item">
+          accessibilityLabel="Add plan item"
+        >
           <Plus size={18} color="#FFFFFF" strokeWidth={2.4} />
         </TouchableOpacity>
       </View>
@@ -320,7 +340,8 @@ export const MonthView: React.FC<MonthViewProps> = ({
             borderWidth: palette.isDarkMode ? 1 : 0,
           },
           !palette.isDarkMode && scheduleCardShadow,
-        ]}>
+        ]}
+      >
         {selectedPlanItems.length === 0 ? (
           <View style={styles.emptyPlan}>
             <Text style={[styles.emptyTitle, {color: palette.muted}]}>
@@ -331,26 +352,22 @@ export const MonthView: React.FC<MonthViewProps> = ({
             </Text>
           </View>
         ) : (
-          selectedPlanItems.map((item, idx) => {
+          page.items.map((item, idx) => {
             const isCompletedTask =
               item.kind === 'task' && Boolean(item.rawTask?.isCompleted);
             return (
               <View key={item.id}>
                 {idx > 0 && (
                   <View
-                    style={[
-                      styles.divider,
-                      {backgroundColor: palette.border},
-                    ]}
+                    style={[styles.divider, {backgroundColor: palette.border}]}
                   />
                 )}
                 <TouchableOpacity
                   activeOpacity={0.78}
                   onPress={() => onPressItem(item)}
-                  style={styles.planRow}>
-                  <View style={styles.planIconCol}>
-                    {renderPlanIcon(item)}
-                  </View>
+                  style={styles.planRow}
+                >
+                  <View style={styles.planIconCol}>{renderPlanIcon(item)}</View>
                   <View style={styles.planBodyCol}>
                     <Text style={[styles.planCategory, {color: palette.muted}]}>
                       {item.categoryLabel}
@@ -366,7 +383,8 @@ export const MonthView: React.FC<MonthViewProps> = ({
                             : 'none',
                           opacity: isCompletedTask ? 0.65 : 1,
                         },
-                      ]}>
+                      ]}
+                    >
                       {item.title}
                     </Text>
                     <Text style={[styles.planTime, {color: palette.muted}]}>
@@ -379,6 +397,10 @@ export const MonthView: React.FC<MonthViewProps> = ({
             );
           })
         )}
+        <ScheduleMoreButton
+          remaining={page.remaining}
+          onPress={page.showMore}
+        />
       </View>
     </View>
   );

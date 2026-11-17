@@ -1,21 +1,21 @@
 import React from 'react';
-import { render, fireEvent, waitFor, act } from '@testing-library/react-native';
-import { Alert, StyleSheet } from 'react-native';
+import {render, fireEvent, waitFor, act} from '@testing-library/react-native';
+import {StyleSheet} from 'react-native';
 import {
   chatOrchestrator,
   timeToMinutes,
   minutesToTime,
   format12HourTime,
 } from '../../src/ai/chatOrchestrator';
-import { chatStore } from '../../src/storage/chatStore';
-import { tasksStore } from '../../src/storage/tasksStore';
-import { timeBlocksStore } from '../../src/storage/timeBlocksStore';
-import { notesStore } from '../../src/storage/notesStore';
-import { userStore } from '../../src/storage/userStore';
-import { initDatabase } from '../../src/storage/dbInit';
-import { ttsService } from '../../src/ai/tts/ttsService';
-import { ChatScreen } from '../../src/ui/screens/ChatScreen';
-import { ThemeProvider } from '../../src/ui/contexts/ThemeContext';
+import {chatStore} from '../../src/storage/chatStore';
+import {tasksStore} from '../../src/storage/tasksStore';
+import {timeBlocksStore} from '../../src/storage/timeBlocksStore';
+import {notesStore} from '../../src/storage/notesStore';
+import {userStore} from '../../src/storage/userStore';
+import {initDatabase} from '../../src/storage/dbInit';
+import {ttsService} from '../../src/ai/tts/ttsService';
+import {ChatScreen} from '../../src/ui/screens/ChatScreen';
+import {ThemeProvider} from '../../src/ui/contexts/ThemeContext';
 
 /**
  * AGY-PORT 04 (PF05 intentional change): assistant-proposed planner changes now
@@ -27,7 +27,8 @@ const confirmProposal = async (
   result: Awaited<ReturnType<typeof chatOrchestrator.processMessage>>,
 ) => {
   expect(result.review?.status).toBe('proposal');
-  if (result.review?.status !== 'proposal') throw new Error('expected a proposal');
+  if (result.review?.status !== 'proposal')
+    throw new Error('expected a proposal');
   const decision = await chatOrchestrator.confirmReview(
     userId,
     result.review.proposal.operationId,
@@ -75,7 +76,7 @@ describe('Phase 08: End-to-End Offline Student Assistant & ChatScreen Integratio
       const result = await chatOrchestrator.processMessage(
         testUserId,
         'Hello LAFINA!',
-        { referenceDate: fixedDate },
+        {referenceDate: fixedDate},
       );
 
       expect(result.intent.intent).toBe('chat');
@@ -99,7 +100,7 @@ describe('Phase 08: End-to-End Offline Student Assistant & ChatScreen Integratio
       const result = await chatOrchestrator.processMessage(
         testUserId,
         'What are you',
-        { referenceDate: fixedDate },
+        {referenceDate: fixedDate},
       );
 
       expect(result.intent.intent).toBe('chat');
@@ -119,7 +120,7 @@ describe('Phase 08: End-to-End Offline Student Assistant & ChatScreen Integratio
       const result = await chatOrchestrator.processMessage(
         testUserId,
         'Save this as a note that Chemistry midterms coverage chapters 1-4',
-        { referenceDate: fixedDate },
+        {referenceDate: fixedDate},
       );
 
       expect(result.intent.intent).toBe('create_note');
@@ -132,7 +133,9 @@ describe('Phase 08: End-to-End Offline Student Assistant & ChatScreen Integratio
       expect(updatedNotes.length).toBe(initialNoteCount + 1);
       expect(
         updatedNotes.some(
-          (n) => n.title.includes('Chemistry midterms') || n.body.includes('Chemistry midterms'),
+          n =>
+            n.title.includes('Chemistry midterms') ||
+            n.body.includes('Chemistry midterms'),
         ),
       ).toBe(true);
     });
@@ -141,18 +144,22 @@ describe('Phase 08: End-to-End Offline Student Assistant & ChatScreen Integratio
       const result = await chatOrchestrator.processMessage(
         testUserId,
         'Add task to submit physics lab report',
-        { referenceDate: fixedDate },
+        {referenceDate: fixedDate},
       );
 
       expect(result.intent.intent).toBe('create_task');
       expect(
-        tasksStore.getAllTasks(testUserId).some((t) => t.title.toLowerCase().includes('physics lab')),
+        tasksStore
+          .getAllTasks(testUserId)
+          .some(t => t.title.toLowerCase().includes('physics lab')),
       ).toBe(false);
       expect(chatStore.getMessages(testUserId).length).toBe(2);
       await confirmProposal(testUserId, result);
 
       const tasks = tasksStore.getAllTasks(testUserId);
-      const created = tasks.find((t) => t.title.toLowerCase().includes('physics lab'));
+      const created = tasks.find(t =>
+        t.title.toLowerCase().includes('physics lab'),
+      );
       expect(created).toBeDefined();
 
       // User message, the review summary, and the confirmed outcome.
@@ -187,7 +194,7 @@ describe('Phase 08: End-to-End Offline Student Assistant & ChatScreen Integratio
       const result = await chatOrchestrator.processMessage(
         testUserId,
         'Add study block for Algorithms from 11am to 1pm on 2026-10-31',
-        { referenceDate: fixedDate },
+        {referenceDate: fixedDate},
       );
 
       // The overlap is shown on the review card with one-tap free times;
@@ -204,9 +211,10 @@ describe('Phase 08: End-to-End Offline Student Assistant & ChatScreen Integratio
       // 4. Confirming the card still schedules it as asked.
       const forceResult = result;
       const forced = await confirmProposal(testUserId, forceResult);
-      expect(forced.outcome?.status === 'applied' && forced.outcome.receipt.entityType).toBe(
-        'time_block',
-      );
+      expect(
+        forced.outcome?.status === 'applied' &&
+          forced.outcome.receipt.entityType,
+      ).toBe('time_block');
     });
 
     test('executes schedule queries and speaks reply when speakReply is true', async () => {
@@ -215,7 +223,7 @@ describe('Phase 08: End-to-End Offline Student Assistant & ChatScreen Integratio
       const result = await chatOrchestrator.processMessage(
         testUserId,
         "What's on my schedule today?",
-        { referenceDate: fixedDate, speakReply: true },
+        {referenceDate: fixedDate, speakReply: true},
       );
 
       expect(result.intent.intent).toBe('query_schedule');
@@ -232,7 +240,7 @@ describe('Phase 08: End-to-End Offline Student Assistant & ChatScreen Integratio
       const schedRes = await chatOrchestrator.processMessage(
         cancelChatUser,
         "So let's schedule at 2 PM for a coffee date.",
-        { referenceDate: fixedDate },
+        {referenceDate: fixedDate},
       );
       expect(tasksStore.getAllTasks(cancelChatUser)).toHaveLength(0);
       const scheduled = await confirmProposal(cancelChatUser, schedRes);
@@ -247,7 +255,7 @@ describe('Phase 08: End-to-End Offline Student Assistant & ChatScreen Integratio
       const cancelTaskRes = await chatOrchestrator.processMessage(
         cancelChatUser,
         'Cancel my 2 PM task',
-        { referenceDate: fixedDate },
+        {referenceDate: fixedDate},
       );
       expect(tasksStore.getAllTasks(cancelChatUser)).toHaveLength(1);
       const cancelled = await confirmProposal(cancelChatUser, cancelTaskRes);
@@ -266,11 +274,15 @@ describe('Phase 08: End-to-End Offline Student Assistant & ChatScreen Integratio
       const deleteEventRes = await chatOrchestrator.processMessage(
         cancelChatUser,
         'Delete my Faculty Consultation event',
-        { referenceDate: fixedDate },
+        {referenceDate: fixedDate},
       );
-      const deletedEvent = await confirmProposal(cancelChatUser, deleteEventRes);
+      const deletedEvent = await confirmProposal(
+        cancelChatUser,
+        deleteEventRes,
+      );
       expect(
-        deletedEvent.outcome?.status === 'applied' && deletedEvent.outcome.receipt.entityType,
+        deletedEvent.outcome?.status === 'applied' &&
+          deletedEvent.outcome.receipt.entityType,
       ).toBe('event');
       expect(tasksStore.getAllEvents(cancelChatUser)).toHaveLength(0);
     });
@@ -278,7 +290,7 @@ describe('Phase 08: End-to-End Offline Student Assistant & ChatScreen Integratio
 
   describe('3. ChatScreen Component & User Interactions', () => {
     test('renders empty state initially with greeting and suggestions', () => {
-      const { getByTestId, getByText } = render(
+      const {getByTestId, getByText} = render(
         <ThemeProvider userId={testUserId}>
           <ChatScreen userId={testUserId} />
         </ThemeProvider>,
@@ -293,18 +305,23 @@ describe('Phase 08: End-to-End Offline Student Assistant & ChatScreen Integratio
     test('sends message via text input and displays user and assistant bubbles', async () => {
       const onRefresh = jest.fn();
 
-      const { getByTestId, findByText, findAllByText } = render(
+      const {getByTestId, findByText, findAllByText} = render(
         <ThemeProvider userId={testUserId}>
           <ChatScreen userId={testUserId} onRefresh={onRefresh} />
         </ThemeProvider>,
       );
 
       const input = getByTestId('chat-text-input');
-      fireEvent.changeText(input, 'Take a note: Thesis ideas on offline secretarial assistants');
+      fireEvent.changeText(
+        input,
+        'Take a note: Thesis ideas on offline secretarial assistants',
+      );
       const sendBtn = getByTestId('chat-send-button');
       fireEvent.press(sendBtn);
 
-      const matches = await findAllByText('Take a note: Thesis ideas on offline secretarial assistants');
+      const matches = await findAllByText(
+        'Take a note: Thesis ideas on offline secretarial assistants',
+      );
       expect(matches.length).toBeGreaterThanOrEqual(1);
       await waitFor(() => {
         expect(chatStore.getMessages(testUserId).length).toBe(2);
@@ -314,7 +331,7 @@ describe('Phase 08: End-to-End Offline Student Assistant & ChatScreen Integratio
     });
 
     test('sends prompt suggestion when a prompt chip is pressed', async () => {
-      const { getByTestId, findByText } = render(
+      const {getByTestId, findByText} = render(
         <ThemeProvider userId={testUserId}>
           <ChatScreen userId={testUserId} />
         </ThemeProvider>,
@@ -333,12 +350,7 @@ describe('Phase 08: End-to-End Offline Student Assistant & ChatScreen Integratio
       chatStore.addMessage(testUserId, 'user', 'Previous message');
       chatStore.addMessage(testUserId, 'assistant', 'Previous reply');
 
-      jest.spyOn(Alert, 'alert').mockImplementation((title, msg, buttons) => {
-        const deleteBtn = buttons?.find((b) => b.text === 'Delete');
-        deleteBtn?.onPress?.();
-      });
-
-      const { getByTestId, findByTestId } = render(
+      const {getByTestId, findByTestId} = render(
         <ThemeProvider userId={testUserId}>
           <ChatScreen userId={testUserId} />
         </ThemeProvider>,
@@ -347,6 +359,8 @@ describe('Phase 08: End-to-End Offline Student Assistant & ChatScreen Integratio
       fireEvent.press(getByTestId('chat-history-button'));
       const sessionId = chatStore.currentSessionId(testUserId);
       fireEvent.press(getByTestId(`chat-history-delete-${sessionId}`));
+      expect(getByTestId('chat-history-delete-dialog')).toBeTruthy();
+      fireEvent.press(getByTestId('chat-history-delete-confirm'));
 
       await waitFor(() => {
         expect(chatStore.getMessages(testUserId).length).toBe(0);
@@ -355,9 +369,13 @@ describe('Phase 08: End-to-End Offline Student Assistant & ChatScreen Integratio
     });
 
     test('does not render speaker button on assistant message (clean ChatGPT style)', async () => {
-      const msg = chatStore.addMessage(testUserId, 'assistant', 'Your schedule is clear!');
+      const msg = chatStore.addMessage(
+        testUserId,
+        'assistant',
+        'Your schedule is clear!',
+      );
 
-      const { queryByTestId } = render(
+      const {queryByTestId} = render(
         <ThemeProvider userId={testUserId}>
           <ChatScreen userId={testUserId} />
         </ThemeProvider>,
@@ -367,7 +385,7 @@ describe('Phase 08: End-to-End Offline Student Assistant & ChatScreen Integratio
     });
 
     test('reserves bottom padding for CustomTabBar and updates padding on keyboard focus', async () => {
-      const { getByTestId } = render(
+      const {getByTestId} = render(
         <ThemeProvider userId={testUserId}>
           <ChatScreen userId={testUserId} />
         </ThemeProvider>,

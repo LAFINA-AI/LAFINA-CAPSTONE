@@ -1,0 +1,50 @@
+[
+  {
+    "name": "com.lafina.capstone.AlarmScheduleTest",
+    "tests": "13",
+    "failures": "0",
+    "errors": "0"
+  },
+  {
+    "name": "com.lafina.capstone.LafinaAudioPlayerTest",
+    "tests": "1",
+    "failures": "0",
+    "errors": "0"
+  },
+  {
+    "name": "com.lafina.capstone.LafinaDeliveryContractTest",
+    "tests": "18",
+    "failures": "0",
+    "errors": "0"
+  },
+  {
+    "name": "com.lafina.capstone.LafinaIntentExtractorTest",
+    "tests": "8",
+    "failures": "0",
+    "errors": "0"
+  },
+  {
+    "name": "com.lafina.capstone.LafinaReminderTest",
+    "tests": "3",
+    "failures": "0",
+    "errors": "0"
+  },
+  {
+    "name": "com.lafina.capstone.LafinaSpeechToTextTest",
+    "tests": "7",
+    "failures": "0",
+    "errors": "0"
+  },
+  {
+    "name": "com.lafina.capstone.MicrophoneLeaseTest",
+    "tests": "14",
+    "failures": "0",
+    "errors": "0"
+  },
+  {
+    "name": "com.lafina.capstone.VoiceConversationRulesTest",
+    "tests": "12",
+    "failures": "0",
+    "errors": "0"
+  }
+]

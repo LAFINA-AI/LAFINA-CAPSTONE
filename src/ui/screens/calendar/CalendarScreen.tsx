@@ -1,3 +1,4 @@
+import {ScreenOverlays} from '../../navigation/RetainedTab';
 import {resolveCallTarget} from '../../navigation/resolveCallTarget';
 import React, {useState, useEffect, useRef} from 'react';
 import {
@@ -48,12 +49,8 @@ import {
 } from './utils/calendarHelpers';
 import {groupClassBlocks} from './utils/classScheduleHelpers';
 import {CalendarScreenProps, ScheduleTimelineItem, ViewMode} from './types';
-import {
-  academicProfileStore,
-  tasksStore,
-  timeBlocksStore,
-  notesStore,
-} from '../../../storage';
+import {tasksStore, timeBlocksStore, notesStore} from '../../../storage';
+import {getConfirmedAcademicProfile} from '../../../storage/ustpEligibility';
 import type {Task} from '../../../storage';
 import {
   applyNoteFormat,
@@ -64,7 +61,7 @@ import {
 import {CalendarLayersModal} from '../../components/calendar/CalendarLayersModal';
 
 /** Renders the offline calendar workspace and its local scheduling actions. */
-export const CalendarScreen: React.FC<CalendarScreenProps> = ({
+export const CalendarScreen = React.memo(function CalendarScreenView({
   userId,
   refreshTrigger,
   onRefresh,
@@ -72,7 +69,7 @@ export const CalendarScreen: React.FC<CalendarScreenProps> = ({
   onOpenRequestHandled,
   viewMode: propViewMode,
   onViewModeChange: propOnViewModeChange,
-}) => {
+}: CalendarScreenProps) {
   const {colors} = useTheme();
   const palette = useSchedulePalette();
   const insets = useSafeAreaInsets();
@@ -217,7 +214,11 @@ export const CalendarScreen: React.FC<CalendarScreenProps> = ({
     scrollViewRef.current?.scrollTo?.({y: targetY, animated: false});
   }, []);
 
+  const loadedClassSummary = useRef('');
   useEffect(() => {
+    const key = `${userId}:${refreshTrigger}`;
+    if (loadedClassSummary.current === key) return;
+    loadedClassSummary.current = key;
     try {
       const page = tasksStore.getUndatedTasksPage(userId, {limit: 1});
       setHasUndated(page.items.length > 0);
@@ -225,8 +226,8 @@ export const CalendarScreen: React.FC<CalendarScreenProps> = ({
       setHasUndated(false);
     }
     try {
-      const count = groupClassBlocks(timeBlocksStore.getAll(userId)).length;
-      const profile = academicProfileStore.get(userId);
+      const count = groupClassBlocks(timeBlocksStore.getClasses(userId)).length;
+      const profile = getConfirmedAcademicProfile(userId);
       const profileText = profile
         ? [
             profile.program,
@@ -240,7 +241,7 @@ export const CalendarScreen: React.FC<CalendarScreenProps> = ({
     } catch {
       setClassSummary({count: 0, profileText: null});
     }
-  }, [userId, refreshTrigger, calendar.blocks, calendar.allTasks]);
+  }, [userId, refreshTrigger]);
 
   const handledRequest = useRef<string | null>(null);
   useEffect(() => {
@@ -473,10 +474,7 @@ export const CalendarScreen: React.FC<CalendarScreenProps> = ({
       {/* 3-way Segmented View Toggle: Month | Week | Day */}
       <View style={styles.subHeaderContainer}>
         <View
-          style={[
-            styles.toggleRow,
-            {backgroundColor: palette.surface},
-          ]}
+          style={[styles.toggleRow, {backgroundColor: palette.surface}]}
           accessibilityRole="tablist"
         >
           {viewModes.map(mode => {
@@ -599,7 +597,8 @@ export const CalendarScreen: React.FC<CalendarScreenProps> = ({
           <View
             onLayout={e => {
               dayContainerYRef.current = e.nativeEvent.layout.y;
-            }}>
+            }}
+          >
             <DayView
               weekDays={calendar.weekDays}
               selectedDate={calendar.selectedDate}
@@ -640,10 +639,7 @@ export const CalendarScreen: React.FC<CalendarScreenProps> = ({
                 <TouchableOpacity
                   key={ot.id}
                   onPress={() => scheduleModal.openEdit(ot, 'task')}
-                  style={[
-                    styles.overdueChip,
-                    {backgroundColor: palette.card},
-                  ]}
+                  style={[styles.overdueChip, {backgroundColor: palette.card}]}
                 >
                   <Text
                     numberOfLines={1}
@@ -656,10 +652,7 @@ export const CalendarScreen: React.FC<CalendarScreenProps> = ({
               {overdueMore > 0 && (
                 <View
                   testID="calendar-overdue-more"
-                  style={[
-                    styles.overdueChip,
-                    {backgroundColor: palette.card},
-                  ]}
+                  style={[styles.overdueChip, {backgroundColor: palette.card}]}
                 >
                   <Text
                     style={[styles.overdueChipText, {color: palette.muted}]}
@@ -673,277 +666,291 @@ export const CalendarScreen: React.FC<CalendarScreenProps> = ({
         )}
       </ScrollView>
 
-      {/* Modals */}
-      {blockModal.visible && (
-        <AddBlockModal
-          state={blockModal}
+      <ScreenOverlays>
+        {/* Modals */}
+        {blockModal.visible && (
+          <AddBlockModal
+            state={blockModal}
+            timeFormat24h={calendar.timeFormat24h}
+          />
+        )}
+        {scheduleModal.visible && (
+          <AddTaskEventModal
+            state={scheduleModal}
+            timeFormat24h={calendar.timeFormat24h}
+          />
+        )}
+        <UndatedTasksModal
+          visible={undatedVisible}
+          userId={userId}
+          refreshTrigger={refreshTrigger}
+          onClose={() => setUndatedVisible(false)}
+          onToggleTask={toggleTaskCompletion}
+        />
+
+        <ClassScheduleModal
+          visible={classScheduleVisible}
+          userId={userId}
           timeFormat24h={calendar.timeFormat24h}
+          onClose={() => setClassScheduleVisible(false)}
+          onSaved={() => {
+            calendar.loadBlocks();
+            onRefresh();
+          }}
         />
-      )}
-      {scheduleModal.visible && (
-        <AddTaskEventModal
-          state={scheduleModal}
+
+        <ViewClassesModal
+          visible={viewClassesVisible}
+          userId={userId}
+          refreshTrigger={refreshTrigger}
           timeFormat24h={calendar.timeFormat24h}
+          onClose={() => setViewClassesVisible(false)}
+          onChanged={() => {
+            calendar.loadBlocks();
+            onRefresh();
+          }}
+          onAddClassSchedule={() => setClassScheduleVisible(true)}
         />
-      )}
-      <UndatedTasksModal
-        visible={undatedVisible}
-        userId={userId}
-        refreshTrigger={refreshTrigger}
-        onClose={() => setUndatedVisible(false)}
-        onToggleTask={toggleTaskCompletion}
-      />
 
-      <ClassScheduleModal
-        visible={classScheduleVisible}
-        userId={userId}
-        timeFormat24h={calendar.timeFormat24h}
-        onClose={() => setClassScheduleVisible(false)}
-        onSaved={() => {
-          calendar.loadBlocks();
-          onRefresh();
-        }}
-      />
-
-      <ViewClassesModal
-        visible={viewClassesVisible}
-        userId={userId}
-        refreshTrigger={refreshTrigger}
-        timeFormat24h={calendar.timeFormat24h}
-        onClose={() => setViewClassesVisible(false)}
-        onChanged={() => {
-          calendar.loadBlocks();
-          onRefresh();
-        }}
-        onAddClassSchedule={() => setClassScheduleVisible(true)}
-      />
-
-      <CalendarOptionsSidebar
-        visible={calendarMenuVisible}
-        onClose={() => setCalendarMenuVisible(false)}
-        classCount={classSummary.count}
-        profileSummary={classSummary.profileText}
-        hasUndated={hasUndated}
-        onViewClasses={() => setViewClassesVisible(true)}
-        onAddClassSchedule={() => setClassScheduleVisible(true)}
-        onGoToToday={calendar.handleGoToToday}
-        onOpenLayers={() => calendar.setLayersModalVisible(true)}
-        onOpenUndated={() => setUndatedVisible(true)}
-        onImportCalendar={calendar.handleImportCalendar}
-        onRemoveImportedCalendar={calendar.startRemoveFlow}
-        onExportCalendar={calendar.handleExportCalendar}
-      />
-
-      {calendar.layersModalVisible && (
-        <CalendarLayersModal
-          visible={calendar.layersModalVisible}
-          onClose={() => calendar.setLayersModalVisible(false)}
-          username={calendar.username}
-          batches={calendar.batches}
-          visibilityMap={calendar.visibilityMap}
-          onToggleVisibility={calendar.handleToggleVisibility}
-          onRemoveBatch={calendar.handleRemoveBatch}
+        <CalendarOptionsSidebar
+          visible={calendarMenuVisible}
+          onClose={() => setCalendarMenuVisible(false)}
+          classCount={classSummary.count}
+          profileSummary={classSummary.profileText}
+          hasUndated={hasUndated}
+          onViewClasses={() => setViewClassesVisible(true)}
+          onAddClassSchedule={() => setClassScheduleVisible(true)}
+          onGoToToday={calendar.handleGoToToday}
+          onOpenLayers={() => calendar.setLayersModalVisible(true)}
+          onOpenUndated={() => setUndatedVisible(true)}
+          onImportCalendar={calendar.handleImportCalendar}
+          onRemoveImportedCalendar={calendar.startRemoveFlow}
+          onExportCalendar={calendar.handleExportCalendar}
         />
-      )}
 
-      {/* FAB Choice Overlay Menu */}
-      {fabMenuVisible && (
-        <Modal
-          visible={fabMenuVisible}
-          transparent={true}
-          animationType="fade"
-          onRequestClose={() => setFabMenuVisible(false)}
-        >
-          <TouchableOpacity
-            style={styles.modalOverlay}
-            activeOpacity={1}
-            onPress={() => setFabMenuVisible(false)}
+        {calendar.layersModalVisible && (
+          <CalendarLayersModal
+            visible={calendar.layersModalVisible}
+            onClose={() => calendar.setLayersModalVisible(false)}
+            username={calendar.username}
+            batches={calendar.batches}
+            visibilityMap={calendar.visibilityMap}
+            onToggleVisibility={calendar.handleToggleVisibility}
+            onRemoveBatch={calendar.handleRemoveBatch}
+          />
+        )}
+
+        {/* FAB Choice Overlay Menu */}
+        {fabMenuVisible && (
+          <Modal
+            visible={fabMenuVisible}
+            transparent={true}
+            animationType="fade"
+            onRequestClose={() => setFabMenuVisible(false)}
           >
-            <View
-              style={[
-                styles.modalContent,
-                {
-                  backgroundColor: colors.cardBg,
-                  borderColor: colors.border,
-                  borderWidth: 1.5,
-                },
-              ]}
+            <TouchableOpacity
+              style={styles.modalOverlay}
+              activeOpacity={1}
+              onPress={() => setFabMenuVisible(false)}
             >
-              <Text
+              <View
                 style={[
-                  styles.modalHeaderTitle,
-                  {color: colors.textPrimary, textAlign: 'center'},
-                ]}
-              >
-                Create New
-              </Text>
-
-              <TouchableOpacity
-                style={[
-                  styles.fabMenuItem,
-                  {borderBottomColor: colors.divider},
-                ]}
-                onPress={() => {
-                  setFabMenuVisible(false);
-                  scheduleModal.openNew('event');
-                }}
-              >
-                <CalendarIcon
-                  size={20}
-                  color={palette.accent}
-                  style={styles.fabMenuItemIcon}
-                />
-                <Text
-                  style={[styles.fabMenuItemText, {color: colors.textPrimary}]}
-                >
-                  Class / Event
-                </Text>
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                style={[
-                  styles.fabMenuItem,
-                  {borderBottomColor: colors.divider},
-                ]}
-                onPress={() => {
-                  setFabMenuVisible(false);
-                  blockModal.openNewBlock(undefined, calendar.selectedDate);
-                }}
-              >
-                <Clock
-                  size={20}
-                  color={colors.blue}
-                  style={styles.fabMenuItemIcon}
-                />
-                <Text
-                  style={[styles.fabMenuItemText, {color: colors.textPrimary}]}
-                >
-                  Time Block
-                </Text>
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                style={[
-                  styles.fabMenuItem,
-                  {borderBottomColor: colors.divider},
-                ]}
-                onPress={() => {
-                  setFabMenuVisible(false);
-                  scheduleModal.openNew('task');
-                }}
-              >
-                <CheckSquare
-                  size={20}
-                  color={colors.red}
-                  style={styles.fabMenuItemIcon}
-                />
-                <Text
-                  style={[styles.fabMenuItemText, {color: colors.textPrimary}]}
-                >
-                  Task
-                </Text>
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                style={[
-                  styles.fabMenuItem,
-                  {borderBottomColor: colors.divider},
-                ]}
-                onPress={() => {
-                  setFabMenuVisible(false);
-                  setNoteTitle('');
-                  setNoteBody('');
-                  setNoteCategory('Personal');
-                  setIsPinned(false);
-                  setNoteSelection({start: 0, end: 0});
-                  setNoteModalVisible(true);
-                }}
-              >
-                <FileText
-                  size={20}
-                  color={colors.textSecondary}
-                  style={styles.fabMenuItemIcon}
-                />
-                <Text
-                  style={[styles.fabMenuItemText, {color: colors.textPrimary}]}
-                >
-                  Note
-                </Text>
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                style={[
-                  styles.modalBtn,
+                  styles.modalContent,
                   {
-                    backgroundColor: colors.divider,
-                    marginTop: 16,
-                    alignSelf: 'stretch',
-                    alignItems: 'center',
+                    backgroundColor: colors.cardBg,
+                    borderColor: colors.border,
+                    borderWidth: 1.5,
                   },
                 ]}
-                onPress={() => setFabMenuVisible(false)}
               >
                 <Text
                   style={[
-                    styles.modalBtnTextDark,
-                    {color: colors.textPrimary, fontWeight: 'bold'},
+                    styles.modalHeaderTitle,
+                    {color: colors.textPrimary, textAlign: 'center'},
                   ]}
                 >
-                  Cancel
+                  Create New
                 </Text>
-              </TouchableOpacity>
-            </View>
-          </TouchableOpacity>
-        </Modal>
-      )}
 
-      {/* Full Note Editor Modal matching NotesScreen */}
-      {noteModalVisible && (
-        <NoteEditor
-          visible={noteModalVisible}
-          editingNote={null}
-          noteTitle={noteTitle}
-          noteBody={noteBody}
-          noteCategory={noteCategory}
-          noteTags={[]}
-          isPinned={isPinned}
-          imageUri={null}
-          selection={noteSelection}
-          aiLoading={false}
-          aiActionType=""
-          onTitleChange={setNoteTitle}
-          onBodyChange={next => {
-            const carried = continueListOnNewline(noteBody, next);
-            setNoteBody(carried ? carried.body : next);
-            if (carried) setNoteSelection(carried.selection);
-          }}
-          onCategoryChange={setNoteCategory}
-          onPinToggle={() => setIsPinned(p => !p)}
-          onImageUriChange={() => {}}
-          onSelectionChange={setNoteSelection}
-          onClose={() => setNoteModalVisible(false)}
-          onSave={handleSaveNote}
-          onDelete={() => {}}
-          onFormatting={type => {
-            const edit = applyNoteFormat(noteBody, noteSelection, type);
-            setNoteBody(edit.body);
-            setNoteSelection(edit.selection);
-          }}
-          onToggleChecklist={index =>
-            setNoteBody(toggleChecklistItem(noteBody, index))
-          }
-          onAttachImage={() => {}}
-          onRemoveImage={() => {}}
-          onAiAction={() => {}}
-          customCategories={customCategories}
-          onAddCategory={handleAddCategory}
-          onDeleteCategory={handleDeleteCategory}
-          onUpdateCategory={handleUpdateCategory}
-        />
-      )}
+                <TouchableOpacity
+                  style={[
+                    styles.fabMenuItem,
+                    {borderBottomColor: colors.divider},
+                  ]}
+                  onPress={() => {
+                    setFabMenuVisible(false);
+                    scheduleModal.openNew('event');
+                  }}
+                >
+                  <CalendarIcon
+                    size={20}
+                    color={palette.accent}
+                    style={styles.fabMenuItemIcon}
+                  />
+                  <Text
+                    style={[
+                      styles.fabMenuItemText,
+                      {color: colors.textPrimary},
+                    ]}
+                  >
+                    Class / Event
+                  </Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={[
+                    styles.fabMenuItem,
+                    {borderBottomColor: colors.divider},
+                  ]}
+                  onPress={() => {
+                    setFabMenuVisible(false);
+                    blockModal.openNewBlock(undefined, calendar.selectedDate);
+                  }}
+                >
+                  <Clock
+                    size={20}
+                    color={colors.blue}
+                    style={styles.fabMenuItemIcon}
+                  />
+                  <Text
+                    style={[
+                      styles.fabMenuItemText,
+                      {color: colors.textPrimary},
+                    ]}
+                  >
+                    Time Block
+                  </Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={[
+                    styles.fabMenuItem,
+                    {borderBottomColor: colors.divider},
+                  ]}
+                  onPress={() => {
+                    setFabMenuVisible(false);
+                    scheduleModal.openNew('task');
+                  }}
+                >
+                  <CheckSquare
+                    size={20}
+                    color={colors.red}
+                    style={styles.fabMenuItemIcon}
+                  />
+                  <Text
+                    style={[
+                      styles.fabMenuItemText,
+                      {color: colors.textPrimary},
+                    ]}
+                  >
+                    Task
+                  </Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={[
+                    styles.fabMenuItem,
+                    {borderBottomColor: colors.divider},
+                  ]}
+                  onPress={() => {
+                    setFabMenuVisible(false);
+                    setNoteTitle('');
+                    setNoteBody('');
+                    setNoteCategory('Personal');
+                    setIsPinned(false);
+                    setNoteSelection({start: 0, end: 0});
+                    setNoteModalVisible(true);
+                  }}
+                >
+                  <FileText
+                    size={20}
+                    color={colors.textSecondary}
+                    style={styles.fabMenuItemIcon}
+                  />
+                  <Text
+                    style={[
+                      styles.fabMenuItemText,
+                      {color: colors.textPrimary},
+                    ]}
+                  >
+                    Note
+                  </Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={[
+                    styles.modalBtn,
+                    {
+                      backgroundColor: colors.divider,
+                      marginTop: 16,
+                      alignSelf: 'stretch',
+                      alignItems: 'center',
+                    },
+                  ]}
+                  onPress={() => setFabMenuVisible(false)}
+                >
+                  <Text
+                    style={[
+                      styles.modalBtnTextDark,
+                      {color: colors.textPrimary, fontWeight: 'bold'},
+                    ]}
+                  >
+                    Cancel
+                  </Text>
+                </TouchableOpacity>
+              </View>
+            </TouchableOpacity>
+          </Modal>
+        )}
+
+        {/* Full Note Editor Modal matching NotesScreen */}
+        {noteModalVisible && (
+          <NoteEditor
+            visible={noteModalVisible}
+            editingNote={null}
+            noteTitle={noteTitle}
+            noteBody={noteBody}
+            noteCategory={noteCategory}
+            noteTags={[]}
+            isPinned={isPinned}
+            imageUri={null}
+            selection={noteSelection}
+            aiLoading={false}
+            aiActionType=""
+            onTitleChange={setNoteTitle}
+            onBodyChange={next => {
+              const carried = continueListOnNewline(noteBody, next);
+              setNoteBody(carried ? carried.body : next);
+              if (carried) setNoteSelection(carried.selection);
+            }}
+            onCategoryChange={setNoteCategory}
+            onPinToggle={() => setIsPinned(p => !p)}
+            onImageUriChange={() => {}}
+            onSelectionChange={setNoteSelection}
+            onClose={() => setNoteModalVisible(false)}
+            onSave={handleSaveNote}
+            onDelete={() => {}}
+            onFormatting={type => {
+              const edit = applyNoteFormat(noteBody, noteSelection, type);
+              setNoteBody(edit.body);
+              setNoteSelection(edit.selection);
+            }}
+            onToggleChecklist={index =>
+              setNoteBody(toggleChecklistItem(noteBody, index))
+            }
+            onAttachImage={() => {}}
+            onRemoveImage={() => {}}
+            onAiAction={() => {}}
+            customCategories={customCategories}
+            onAddCategory={handleAddCategory}
+            onDeleteCategory={handleDeleteCategory}
+            onUpdateCategory={handleUpdateCategory}
+          />
+        )}
+      </ScreenOverlays>
     </View>
   );
-};
+});
 
 const styles = StyleSheet.create({
   container: {

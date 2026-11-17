@@ -1,0 +1,64 @@
+{
+  "package": "com.lafina.capstone.performance",
+  "rounds": 4,
+  "capturedUtc": "2026-11-17T02:09:35.9048492Z",
+  "device": "Infinix X6880",
+  "api": "35",
+  "limitation": "JS handler-to-layout-commit and next JS animation callback only; excludes native input delay and does not establish first-presented pixels or tap-to-usable latency.",
+  "samples": [
+    {
+      "tab": "chat",
+      "warm": true,
+      "jsCommitMs": 134.11630800366402,
+      "nextAnimationFrameMs": 227.1246150135994
+    },
+    {
+      "tab": "notes",
+      "warm": true,
+      "jsCommitMs": 127.17300000786781,
+      "nextAnimationFrameMs": 131.53753900527954
+    },
+    {
+      "tab": "profile",
+      "warm": true,
+      "jsCommitMs": 105.47853800654411,
+      "nextAnimationFrameMs": 109.87661498785019
+    },
+    {
+      "tab": "dashboard",
+      "warm": true,
+      "jsCommitMs": 221.9818460047245,
+      "nextAnimationFrameMs": 373.1307690143585
+    }
+  ],
+  "warmSummary": [
+    {
+      "tab": "dashboard",
+      "n": 1,
+      "jsCommitP50Ms": 221.9818460047245,
+      "jsCommitP95Ms": 221.9818460047245,
+      "nextAnimationFrameP95Ms": 373.1307690143585
+    },
+    {
+      "tab": "chat",
+      "n": 1,
+      "jsCommitP50Ms": 134.11630800366402,
+      "jsCommitP95Ms": 134.11630800366402,
+      "nextAnimationFrameP95Ms": 227.1246150135994
+    },
+    {
+      "tab": "notes",
+      "n": 1,
+      "jsCommitP50Ms": 127.17300000786781,
+      "jsCommitP95Ms": 127.17300000786781,
+      "nextAnimationFrameP95Ms": 131.53753900527954
+    },
+    {
+      "tab": "profile",
+      "n": 1,
+      "jsCommitP50Ms": 105.47853800654411,
+      "jsCommitP95Ms": 105.47853800654411,
+      "nextAnimationFrameP95Ms": 109.87661498785019
+    }
+  ]
+}

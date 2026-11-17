@@ -451,7 +451,7 @@ describe('Call Dispatcher, Simulated Incoming Call & Permission Subsystem', () =
         </ThemeProvider>,
       );
 
-      expect(getByText('INCOMING SCHEDULED CALL')).toBeTruthy();
+      expect(getByText('REMINDER CALL')).toBeTruthy();
       expect(getByText('Submit Thesis Outline')).toBeTruthy();
       expect(getByText('Answer')).toBeTruthy();
       expect(getByText('Decline')).toBeTruthy();
@@ -502,7 +502,7 @@ describe('Call Dispatcher, Simulated Incoming Call & Permission Subsystem', () =
         fireEvent.press(answerBtn);
       });
 
-      expect(getByText('ACTIVE SCHEDULED CALL')).toBeTruthy();
+      expect(getByText('REMINDER CALL')).toBeTruthy();
       expect(getByText('Acknowledge')).toBeTruthy();
       expect(getByLabelText('End reminder call')).toBeTruthy();
     });

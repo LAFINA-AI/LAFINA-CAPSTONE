@@ -154,10 +154,14 @@ export class IntentService {
             transcript: trimmed,
             modelPath: activeModel.modelPath,
             promptFormat: activeModel.promptFormat,
+            minValidBytes: activeModel.minValidSizeBytes,
           });
 
-          if (rawNativeJson) {
-            const parsed = JSON.parse(rawNativeJson);
+          const parsed = rawNativeJson ? JSON.parse(rawNativeJson) : null;
+          // Only a real model answer may override the fast path (audit H4):
+          // the native Kotlin regex fallback is weaker than the TypeScript
+          // parser and must never be labelled on_device_slm.
+          if (parsed && parsed.engine === 'slm') {
             if (unstructuredCandidate && !SCHEDULE_INTENTS.has(parsed.intent)) {
               return validateIntent(fastPathResult);
             }
@@ -202,7 +206,12 @@ export class IntentService {
               source: 'on_device_slm',
               rawTranscript: transcript,
             };
-            return validateIntent(slmIntent);
+            const slmValidated = validateIntent(slmIntent);
+            // A malformed model field (bad time, empty title) falls back to
+            // the deterministic parse instead of surfacing an error.
+            return slmValidated.isValid
+              ? slmValidated
+              : validateIntent(fastPathResult);
           }
         }
       } catch (err) {

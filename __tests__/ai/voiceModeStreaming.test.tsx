@@ -27,6 +27,7 @@ import {onlineChatSkill} from '../../src/skills/onlineChatSkill';
 import {__resetTtsForTests} from '../../src/ai/tts/ttsService';
 import {VoiceModal} from '../../src/ui/components/VoiceModal';
 import {ThemeProvider} from '../../src/ui/contexts/ThemeContext';
+import {enableUstpForTest} from '../fixtures/ustpEligibility';
 
 const tts = Tts as unknown as Record<string, jest.Mock>;
 const AUDIO = Buffer.from('SYNTHETIC_MP3_BYTES').toString('base64');
@@ -381,6 +382,8 @@ describe('Handbook search for small talk', () => {
   it('greetings skip the search; real questions keep it', async () => {
     const userId = student('handbook');
     signIn(userId);
+    // The handbook is searched only for students with a reviewed COR.
+    enableUstpForTest(userId);
     expect(await ask(userId, 'hello')).toBe(false);
     expect(await ask(userId, 'thanks!')).toBe(false);
     expect(await ask(userId, 'hi, what is the USTP dress code?')).toBe(true);

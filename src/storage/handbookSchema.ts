@@ -38,6 +38,38 @@ export function migrateHandbookIndex(tx: DatabaseTransaction): void {
     'CREATE INDEX IF NOT EXISTS idx_handbook_chunks_seq ON handbook_chunks(seq)',
   );
 
+  // FTS5 exists only in native builds compiled with `"op-sqlite": {"fts5":
+  // true}`. A missing module must never fail the whole upgrade and send
+  // storage into recovery (audit H5): the plain tables above are enough for
+  // the app to start, and `localHandbookStore.ensureFtsIndex()` creates the
+  // index later on a build that has FTS5.
+  tx.executeSync('SAVEPOINT handbook_fts');
+  try {
+    createHandbookFtsIndex(tx);
+    tx.executeSync('RELEASE SAVEPOINT handbook_fts');
+  } catch (error) {
+    tx.executeSync('ROLLBACK TO SAVEPOINT handbook_fts');
+    tx.executeSync('RELEASE SAVEPOINT handbook_fts');
+    console.warn(
+      '[Database] SQLite FTS5 is unavailable; the offline handbook index is disabled on this build.',
+      error,
+    );
+  }
+}
+
+export function handbookFtsIndexExists(
+  executor: Pick<DatabaseTransaction, 'executeSync'>,
+): boolean {
+  const res = executor.executeSync(
+    "SELECT 1 AS present FROM sqlite_master WHERE type = 'table' AND name = 'handbook_chunks_fts' LIMIT 1",
+  );
+  return res.rows.length > 0;
+}
+
+/** The FTS5 table and its sync triggers. Throws when FTS5 is not compiled in. */
+export function createHandbookFtsIndex(
+  tx: Pick<DatabaseTransaction, 'executeSync'>,
+): void {
   tx.executeSync(`
     CREATE VIRTUAL TABLE IF NOT EXISTS handbook_chunks_fts USING fts5(
       chapter,

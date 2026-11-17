@@ -58,7 +58,7 @@ const BUILT_IN_FILTERS: readonly FilterType[] = [
 ];
 
 /** Delay before asking again while the search cache is still being built. */
-const INDEXING_RETRY_MS = 30;
+const INDEXING_RETRY_MS = 50;
 
 const targetOf = (note: NoteSnapshot): NoteWriteTarget => ({
   id: note.id,
@@ -107,6 +107,7 @@ export const useNotesData = (options: UseNotesDataOptions) => {
     initialPage?.nextCursor ?? null,
   );
   const [indexing, setIndexing] = useState(initialPage?.indexing ?? false);
+  const indexingPending = useRef(initialPage?.indexing ?? false);
   const [queryError, setQueryError] = useState<string | null>(null);
   const [isGridView, setIsGridView] = useState(true);
 
@@ -197,6 +198,7 @@ export const useNotesData = (options: UseNotesDataOptions) => {
       });
       setNotes(page.items);
       setCursor(page.nextCursor);
+      indexingPending.current = page.indexing;
       setIndexing(page.indexing);
       setQueryError(null);
       if (page.indexing) {
@@ -209,6 +211,7 @@ export const useNotesData = (options: UseNotesDataOptions) => {
     } catch (error) {
       setNotes([]);
       setCursor(null);
+      indexingPending.current = false;
       setIndexing(false);
       setQueryError(
         error instanceof Error && error.name === 'InvalidNotesQueryError'
@@ -269,9 +272,39 @@ export const useNotesData = (options: UseNotesDataOptions) => {
     [userId, customCategories, loadNotes],
   );
 
+  const loadedQuery = useRef({
+    userId,
+    refreshTrigger,
+    filter: selectedFilter,
+    search: '',
+  });
   useEffect(() => {
-    loadNotes();
-  }, [userId, refreshTrigger, loadNotes]);
+    const next = {
+      userId,
+      refreshTrigger,
+      filter: selectedFilter,
+      search: searchQuery,
+    };
+    const previous = loadedQuery.current;
+    if (
+      JSON.stringify(previous) === JSON.stringify(next) &&
+      !indexingPending.current
+    )
+      return;
+    queryTokenRef.current += 1;
+    if (retryTimerRef.current) clearTimeout(retryTimerRef.current);
+    const searchChanged = previous.search !== next.search;
+    const run = () => {
+      loadedQuery.current = next;
+      loadNotes();
+    };
+    if (!searchChanged) {
+      run();
+      return;
+    }
+    const timer = setTimeout(run, 150);
+    return () => clearTimeout(timer);
+  }, [userId, refreshTrigger, selectedFilter, searchQuery, loadNotes]);
 
   // A different account never sees, saves or deletes the previous one's note.
   const previousOwnerRef = useRef(userId);

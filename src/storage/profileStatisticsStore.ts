@@ -1,4 +1,4 @@
-import {academicProfileStore} from './academicProfileStore';
+import {getConfirmedAcademicProfile} from './ustpEligibility';
 import {db} from './database';
 import {createPlannerQueries} from './plannerQueries';
 import {userStore} from './userStore';
@@ -35,6 +35,7 @@ export interface DetailedProfileStatistics extends ProfileStatistics {
   highPriorityPendingCount: number | null;
   /** Whole percent 0-100; null when there are no tasks yet or on a read failure. */
   taskCompletionRate: number | null;
+  /** Class sessions (blocks) this week, not distinct subjects. */
   weeklyClassCount: number | null;
   weeklyClassMinutes: number | null;
   weeklyStudyBlockCount: number | null;
@@ -140,8 +141,9 @@ const durationMinutesBetween = (
 ): number => {
   const start = parseTimeMinutes(startTime, false);
   const end = parseTimeMinutes(endTime, true);
-  if (start === null || end === null || end <= start) return 0;
-  return end - start;
+  if (start === null || end === null || end === start) return 0;
+  // 22:00–01:00 crosses midnight, as the Calendar draws it (audit L3).
+  return end > start ? end - start : end + 1440 - start;
 };
 
 export const onTimeRate = (onTime: number, finished: number): number | null =>
@@ -151,6 +153,9 @@ export const completionRate = (
   completed: number,
   total: number,
 ): number | null => (total > 0 ? Math.round((completed / total) * 100) : null);
+
+let detailedCache: {key: string; value: DetailedProfileStatistics} | null =
+  null;
 
 export const profileStatisticsStore = {
   read: (userId: string): ProfileStatistics => {
@@ -197,7 +202,30 @@ export const profileStatisticsStore = {
   ): DetailedProfileStatistics => {
     try {
       if (!userId) throw new Error('Statistics owner required.');
+      const cacheKey = `${userId}:${Math.floor(
+        referenceDate.getTime() / 60000,
+      )}:${db.getDataRevision([
+        'tasks',
+        'notes',
+        'reminders',
+        'alarms',
+        'recorded_meetings',
+        'events',
+        'event_time_local',
+        'time_blocks',
+        'users',
+        'local_settings',
+      ])}`;
+      if (detailedCache?.key === cacheKey) {
+        // A cached summary must not conceal a storage outage.
+        db.executeSync('SELECT 1');
+        return detailedCache.value;
+      }
       const todayStr = formatLocalDate(referenceDate);
+      const nowHhmm = `${String(referenceDate.getHours()).padStart(
+        2,
+        '0',
+      )}:${String(referenceDate.getMinutes()).padStart(2, '0')}`;
       const weekStartsMonday = userStore.getWeekStartsMonday(userId);
       const dayOfWeek = referenceDate.getDay();
       const startOffset = weekStartsMonday ? (dayOfWeek + 6) % 7 : dayOfWeek;
@@ -211,12 +239,13 @@ export const profileStatisticsStore = {
            COUNT(*) AS total,
            COALESCE(SUM(CASE WHEN is_completed = 1 THEN 1 ELSE 0 END), 0) AS completed,
            COALESCE(SUM(CASE WHEN is_completed = 0 THEN 1 ELSE 0 END), 0) AS pending,
-           COALESCE(SUM(CASE WHEN is_completed = 0 AND due_date IS NOT NULL AND due_date <> '' AND due_date < ? THEN 1 ELSE 0 END), 0) AS overdue,
-           COALESCE(SUM(CASE WHEN is_completed = 0 AND due_date = ? THEN 1 ELSE 0 END), 0) AS due_today,
+           COALESCE(SUM(CASE WHEN is_completed = 0 AND due_date IS NOT NULL AND due_date <> '' AND (due_date < ? OR (due_date = ? AND due_time IS NOT NULL AND due_time <> '' AND due_time < ?)) THEN 1 ELSE 0 END), 0) AS overdue,
+           COALESCE(SUM(CASE WHEN is_completed = 0 AND due_date = ? AND NOT (due_time IS NOT NULL AND due_time <> '' AND due_time < ?) THEN 1 ELSE 0 END), 0) AS due_today,
            COALESCE(SUM(CASE WHEN is_completed = 0 AND priority = 'High' THEN 1 ELSE 0 END), 0) AS high_pending
          FROM tasks
          WHERE user_id = ? AND deleted_at IS NULL`,
-        [todayStr, todayStr, userId],
+        // A task due earlier today at a set time is overdue, not "due today".
+        [todayStr, todayStr, nowHhmm, todayStr, nowHhmm, userId],
       ).rows?.[0];
       const totalTasksCount = count(tasksRow?.total);
       const completedTasksCount = count(tasksRow?.completed);
@@ -308,11 +337,12 @@ export const profileStatisticsStore = {
       const weeklyScheduledMinutes =
         weeklyClassMinutes + weeklyStudyMinutes + weeklyEventMinutes;
 
-      const academicProfile = academicProfileStore.get(userId);
+      // Enrolled subjects count only from a reviewed COR (USTP mode).
+      const academicProfile = getConfirmedAcademicProfile(userId);
       const enrolledCoursesCount = academicProfile?.courses?.length ?? 0;
       const totalCreditUnits = academicProfile?.totalCreditUnits ?? 0;
 
-      return {
+      const value: DetailedProfileStatistics = {
         available: true,
         completedTasksCount,
         pendingTasksCount,
@@ -349,6 +379,8 @@ export const profileStatisticsStore = {
         enabledAlarmsCount,
         totalAlarmsCount,
       };
+      detailedCache = {key: cacheKey, value};
+      return value;
     } catch (error) {
       console.warn(
         '[ProfileStatistics] Detailed statistics unavailable:',

@@ -1,23 +1,32 @@
 import React from 'react';
-import {StyleSheet} from 'react-native';
-import {render} from '@testing-library/react-native';
+import {PermissionsAndroid, StyleSheet} from 'react-native';
+import {act, fireEvent, render, waitFor} from '@testing-library/react-native';
 import {
   alarmsStore,
+  chatStore,
   initDatabase,
-  saveUIVariant,
   tasksStore,
   timeBlocksStore,
   userStore,
   type ChatMessage,
 } from '../../src/storage';
+import {chatReplyFormatStore} from '../../src/storage/chatReplyFormatStore';
+import {chatOrchestrator} from '../../src/ai/chatOrchestrator';
+import {
+  endReviewSession,
+  prepareReviewedCommand,
+} from '../../src/ai/nlu/commandReview';
 import {
   answerPlannerLookup,
   executeNluAction,
 } from '../../src/ai/nlu/actionExecutor';
 import {describeAlarmsReply} from '../../src/ai/nlu/alarmReview';
 import type {ValidatedIntent} from '../../src/ai/nlu/types';
+import {onlineChatSkill} from '../../src/skills/onlineChatSkill';
 import {ttsService} from '../../src/ai/tts/ttsService';
 import {ChatMessageItem} from '../../src/ui/components/chat/ChatMessageItem';
+import {CommandReviewCard} from '../../src/ui/components/chat/CommandReviewCard';
+import {ChatScreen} from '../../src/ui/screens/ChatScreen';
 import {ThemeProvider} from '../../src/ui/contexts/ThemeContext';
 import {chatMarkdownToPlainText} from '../../src/utils/chatMarkdown';
 
@@ -58,6 +67,11 @@ describe('Offline Chat Response Design & Performance', () => {
 
   beforeEach(() => {
     jest.restoreAllMocks();
+    jest.spyOn(PermissionsAndroid, 'check').mockResolvedValue(true);
+  });
+
+  afterEach(() => {
+    endReviewSession();
   });
 
   it('formats multi-alarm replies with next-alarm callout and All Alarms bullets while stripping Markdown for plain speech', () => {
@@ -229,7 +243,6 @@ describe('Offline Chat Response Design & Performance', () => {
 
   it('preserves Classic bubble styling, plain-text replyFormat, and bold heading inheritance', () => {
     const classicUser = nextOwner('offline-classic');
-    saveUIVariant(classicUser, 'classic');
 
     const message: ChatMessage = {
       id: 'msg-classic-1',
@@ -248,7 +261,7 @@ describe('Offline Chat Response Design & Performance', () => {
     };
 
     const classicView = render(
-      <ThemeProvider userId={classicUser}>
+      <ThemeProvider userId={classicUser} initialUIVariant="classic">
         <ChatMessageItem
           item={message}
           handbookNote={message.handbookNote ?? undefined}
@@ -278,5 +291,158 @@ describe('Offline Chat Response Design & Performance', () => {
     expect(plainText).not.toContain('###');
     expect(plainText).not.toContain('**');
     expect(plainText).toContain('Bold Heading');
+  });
+
+  it('steers DeepSeek toward Markdown formatting on explanatory questions while respecting greetings and plain setting', async () => {
+    const userId = nextOwner('online-style');
+    const sendSpy = jest
+      .spyOn(onlineChatSkill, 'sendChatMessage')
+      .mockResolvedValue({
+        status: 'success',
+        data: {
+          reply: '### Photosynthesis\n• Plants turn light into glucose.',
+          sources: [],
+          usedHandbook: false,
+        },
+      });
+
+    await chatOrchestrator.processMessage(userId, 'What is photosynthesis', {
+      onlineMode: true,
+      useHandbook: false,
+      referenceDate: REF_DATE,
+    });
+    const sentPrompt =
+      sendSpy.mock.calls[0][0][sendSpy.mock.calls[0][0].length - 1].content;
+    expect(sentPrompt).toContain('Reply formatting preference:');
+    expect(sentPrompt).toContain('clean Markdown');
+
+    sendSpy.mockClear();
+    chatReplyFormatStore.save(userId, 'plain');
+    await chatOrchestrator.processMessage(userId, 'What is photosynthesis', {
+      onlineMode: true,
+      useHandbook: false,
+      referenceDate: REF_DATE,
+    });
+    const plainPrompt =
+      sendSpy.mock.calls[0][0][sendSpy.mock.calls[0][0].length - 1].content;
+    expect(plainPrompt).toBe('What is photosynthesis');
+  });
+
+  it('formats review prompts and CommandReviewCard details cleanly, and transitions confirmed messages to light-green', () => {
+    const userId = nextOwner('review-format');
+    const prepared = prepareReviewedCommand(
+      userId,
+      {
+        intent: 'create_task',
+        title: 'Fix lafina call ui/ux',
+        date: null,
+        time: null,
+        endTime: null,
+        durationMinutes: null,
+        category: 'Personal',
+        details: 'fix lafina call ui/ux',
+        snoozeMinutes: null,
+        confidence: 1,
+        source: 'fast_path',
+        rawTranscript: 'Todo: fix lafina call ui/ux',
+        isValid: true,
+      },
+      {referenceDate: REF_DATE},
+    );
+    expect(prepared.status).toBe('proposal');
+    if (prepared.status !== 'proposal') return;
+
+    expect(prepared.reply).toContain('**Please review:** Create task');
+    expect(prepared.reply).toContain('• **Category:** Personal.');
+    expect(prepared.reply).toContain('• **Notes:** fix lafina call ui/ux');
+    expect(prepared.reply).toContain(
+      '> Nothing is saved until you press **Confirm**.',
+    );
+
+    const cardView = render(
+      <ThemeProvider userId={userId}>
+        <CommandReviewCard
+          proposal={prepared.proposal}
+          expired={false}
+          busy={false}
+          onConfirm={jest.fn()}
+          onCancel={jest.fn()}
+          onDismiss={jest.fn()}
+          testIDPrefix="chat-review"
+        />
+      </ThemeProvider>,
+    );
+    expect(cardView.getByTestId('chat-review-details')).toBeTruthy();
+    expect(cardView.getByText(/Category:/)).toBeTruthy();
+    expect(cardView.getByText(/Notes:/)).toBeTruthy();
+  });
+
+  it('turns the review chat bubble light-green with a checkmark after Confirm in both normal and temporary chats', async () => {
+    // 1. Persisted chat flow
+    const persistedUser = nextOwner('review-confirm-persisted');
+    const chatUi = render(
+      <ThemeProvider userId={persistedUser}>
+        <ChatScreen userId={persistedUser} />
+      </ThemeProvider>,
+    );
+    fireEvent.changeText(
+      chatUi.getByTestId('chat-text-input'),
+      'Todo: fix lafina call ui/ux',
+    );
+    fireEvent.press(chatUi.getByTestId('chat-send-button'));
+    const confirmBtn = await chatUi.findByTestId('chat-review-confirm');
+    await act(async () => {
+      fireEvent.press(confirmBtn);
+    });
+    await waitFor(() =>
+      expect(chatUi.queryByTestId('chat-review-card')).toBeNull(),
+    );
+    expect(
+      await chatUi.findByTestId('chat-review-confirmed-badge'),
+    ).toBeTruthy();
+    expect(chatUi.getByText('Confirmed · Saved')).toBeTruthy();
+    const savedMsgs = chatStore.getMessages(persistedUser);
+    const resolvedBubble = savedMsgs.find(
+      m => m.reviewResolution?.status === 'confirmed',
+    );
+    expect(resolvedBubble).toBeTruthy();
+    expect(resolvedBubble?.content).not.toContain('Nothing is saved until');
+    const persistedBubbleStyle = StyleSheet.flatten(
+      chatUi.getByTestId(`chat-bubble-${resolvedBubble!.id}`).props.style,
+    );
+    expect(persistedBubbleStyle.backgroundColor).toBe('#E5F8F0');
+    chatUi.unmount();
+
+    // 2. Temporary chat flow (never writes to persistent chatStore)
+    const tempUser = nextOwner('review-confirm-temp');
+    const tempUi = render(
+      <ThemeProvider userId={tempUser}>
+        <ChatScreen userId={tempUser} />
+      </ThemeProvider>,
+    );
+    fireEvent.press(tempUi.getByTestId('chat-temporary-toggle-button'));
+    fireEvent.changeText(
+      tempUi.getByTestId('chat-text-input'),
+      'Todo: submit capstone deck',
+    );
+    fireEvent.press(tempUi.getByTestId('chat-send-button'));
+    const tempConfirm = await tempUi.findByTestId('chat-review-confirm');
+    await act(async () => {
+      fireEvent.press(tempConfirm);
+    });
+    await waitFor(() =>
+      expect(tempUi.queryByTestId('chat-review-card')).toBeNull(),
+    );
+    expect(
+      await tempUi.findByTestId('chat-review-confirmed-badge'),
+    ).toBeTruthy();
+    expect(
+      tempUi.getByTestId('chat-review-resolution-summary'),
+    ).toHaveTextContent(/Added task/i);
+    expect(chatStore.getMessages(tempUser)).toHaveLength(0);
+    expect(tasksStore.getAllTasks(tempUser).map(t => t.title)).toEqual([
+      'Submit capstone deck',
+    ]);
+    tempUi.unmount();
   });
 });

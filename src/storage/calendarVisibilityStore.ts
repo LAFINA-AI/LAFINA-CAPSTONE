@@ -16,6 +16,17 @@ interface StoredVisibilityFile {
 const VISIBILITY_FILE_PATH = `${RNFS.DocumentDirectoryPath}/calendar_visibility.json`;
 const DEFAULT_VISIBILITY: CalendarVisibilityMap = { main: true };
 
+let cachedFile: StoredVisibilityFile | null = null;
+
+const cloneStoredFile = (file: StoredVisibilityFile): StoredVisibilityFile => ({
+  version: 2,
+  users: file.users.map((entry) => ({
+    userId: entry.userId,
+    visibility: { ...entry.visibility },
+  })),
+  ...(file.legacyUnscoped ? { legacyUnscoped: { ...file.legacyUnscoped } } : {}),
+});
+
 const parseVisibilityMap = (value: unknown): CalendarVisibilityMap | null => {
   if (value === null || typeof value !== 'object' || Array.isArray(value)) return null;
   const entries = Object.entries(value as Record<string, unknown>);
@@ -53,14 +64,33 @@ const parseStoredFile = (value: unknown): StoredVisibilityFile => {
 
 const readStoredFile = async (): Promise<StoredVisibilityFile> => {
   const exists = await RNFS.exists(VISIBILITY_FILE_PATH);
-  if (!exists) return { version: 2, users: [] };
+  if (!exists) {
+    const empty: StoredVisibilityFile = { version: 2, users: [] };
+    cachedFile = cloneStoredFile(empty);
+    return empty;
+  }
   const content = await RNFS.readFile(VISIBILITY_FILE_PATH, 'utf8');
-  if (!content || !content.trim()) return { version: 2, users: [] };
-  return parseStoredFile(JSON.parse(content) as unknown);
+  if (!content || !content.trim()) {
+    const empty: StoredVisibilityFile = { version: 2, users: [] };
+    cachedFile = cloneStoredFile(empty);
+    return empty;
+  }
+  const parsed = parseStoredFile(JSON.parse(content) as unknown);
+  cachedFile = cloneStoredFile(parsed);
+  return parsed;
 };
 
 /** Account-scoped persistence for calendar layer visibility. */
 export const calendarVisibilityStore = {
+  /** Returns cached visibility map for one user synchronously when already loaded, or null before first read. */
+  getCachedVisibilityMap: (userId: string): CalendarVisibilityMap | null => {
+    if (cachedFile === null) return null;
+    const visibility = cachedFile.users.find((entry) => entry.userId === userId)?.visibility;
+    return visibility
+      ? { main: true, ...visibility }
+      : { ...DEFAULT_VISIBILITY };
+  },
+
   /**
    * Retrieves one user's visibility map.
    * Legacy unscoped settings stay quarantined and are never assigned to an account.
@@ -98,6 +128,7 @@ export const calendarVisibilityStore = {
       else stored.users[index] = updated;
 
       await RNFS.writeFile(VISIBILITY_FILE_PATH, JSON.stringify(stored, null, 2), 'utf8');
+      cachedFile = cloneStoredFile(stored);
     } catch (error) {
       console.error('Failed to save calendar visibility:', error);
       throw error;

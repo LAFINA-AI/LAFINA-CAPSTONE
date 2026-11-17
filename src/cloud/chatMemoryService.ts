@@ -2,6 +2,7 @@ import {DeviceEventEmitter} from 'react-native';
 import {cloudClient} from './cloudClient';
 import {isGuestAccount} from './entitlements';
 import {chatMemoryStore} from '../storage/chatMemoryStore';
+import {memoriesForPrompt} from '../storage/onboardingMemory';
 import type {ChatMemoryChanges} from '../storage/chatMemoryStore';
 import {chatStore} from '../storage/chatStore';
 import {db} from '../storage/database';
@@ -138,7 +139,7 @@ export const chatMemoryService = {
                 content: exchange.replyText.slice(0, MAX_REPLY_CHARS),
               },
             ],
-            memories: chatMemoryStore.forPrompt(userId),
+            memories: memoriesForPrompt(userId),
           }),
         },
         true,

@@ -1,0 +1,32 @@
+{
+  "status": "NOT RUN",
+  "device": null,
+  "build_receipt": "artifact.json",
+  "production_backend_updated": true,
+  "existing_agent_updated": true,
+  "metrics": {
+    "ordinary_end_of_speech_to_first_audio": {
+      "samples": 0,
+      "p50_ms": null,
+      "p95_ms": null,
+      "target_p50_ms": 1200,
+      "target_p95_ms": 2500
+    },
+    "request_to_card": {
+      "samples": 0,
+      "p50_ms": null,
+      "p95_ms": null,
+      "target_p50_ms": 2500,
+      "target_p95_ms": 5000
+    },
+    "interruption_to_silence": {
+      "samples": 0,
+      "p50_ms": null,
+      "p95_ms": null,
+      "target_p50_ms": 250,
+      "target_p95_ms": 500
+    }
+  },
+  "notes": "Synthetic tests verify bounded retrieval and early stream behavior; they are not device or production latency measurements.",
+  "backend_commit": "dfbeecb9a9e9366a6cc41d7fb73635e1d1895c2e"
+}

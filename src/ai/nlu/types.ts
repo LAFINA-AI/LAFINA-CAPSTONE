@@ -78,6 +78,12 @@ export interface NluActionResult {
   entityType?: 'task' | 'time_block' | 'event' | 'reminder' | 'note';
   entityId?: string;
   reply: string;
+  /**
+   * A natural sentence for speech when `reply` is a Markdown card ("First,
+   * Study group from 2 PM to 4 PM. Then, …"). Voice surfaces speak this
+   * instead of the flattened card text (audit M6).
+   */
+  spokenReply?: string;
   error?: string;
 }
 
@@ -240,6 +246,33 @@ export function validateIntent(intent: ExtractedIntent): ValidatedIntent {
       isValid: false,
       validationError: `Invalid date format: ${intent.date}. Expected YYYY-MM-DD.`,
     };
+  }
+
+  if (intent.date) {
+    const [y, m, d] = intent.date.split('-').map(Number);
+    const daysInMonth = new Date(y, m, 0).getDate();
+    if (m < 1 || m > 12 || d < 1 || d > daysInMonth) {
+      const monthName =
+        [
+          'January',
+          'February',
+          'March',
+          'April',
+          'May',
+          'June',
+          'July',
+          'August',
+          'September',
+          'October',
+          'November',
+          'December',
+        ][Math.min(Math.max(m, 1), 12) - 1];
+      return {
+        ...intent,
+        isValid: false,
+        validationError: `${monthName} ${d} doesn't exist (${monthName} has ${daysInMonth} days). Which date did you mean? Nothing was changed.`,
+      };
+    }
   }
 
   // Alarm plan A3. Which alarm is meant is resolved against the owner's

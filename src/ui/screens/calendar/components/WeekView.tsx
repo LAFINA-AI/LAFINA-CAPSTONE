@@ -1,3 +1,5 @@
+import {useSchedulePage} from '../hooks/useSchedulePage';
+import {ScheduleMoreButton} from './ScheduleMoreButton';
 import React, {useMemo} from 'react';
 import {View, Text, StyleSheet} from 'react-native';
 import type {TimeBlock, Task, Event, Reminder} from '../../../../storage';
@@ -50,6 +52,8 @@ export const WeekView: React.FC<WeekViewProps> = ({
     [selectedDate, blocks, events, tasks, reminders, timeFormat24h],
   );
 
+  const page = useSchedulePage(selectedDate.toDateString(), dayItems);
+
   return (
     <View style={styles.container}>
       <WeekStrip
@@ -68,14 +72,17 @@ export const WeekView: React.FC<WeekViewProps> = ({
               borderWidth: palette.isDarkMode ? 1 : 0,
             },
             !palette.isDarkMode && scheduleCardShadow,
-          ]}>
+          ]}
+        >
           <Text style={[styles.emptyText, {color: palette.muted}]}>
-            {`Clear schedule on ${formatFullWeekday(selectedDate)}. Tap + to add.`}
+            {`Clear schedule on ${formatFullWeekday(
+              selectedDate,
+            )}. Tap + to add.`}
           </Text>
         </View>
       ) : (
         <View style={styles.list}>
-          {dayItems.map(item => (
+          {page.items.map(item => (
             <ScheduleItemCard
               key={item.id}
               item={item}
@@ -83,6 +90,10 @@ export const WeekView: React.FC<WeekViewProps> = ({
               onToggleTask={onToggleTask}
             />
           ))}
+          <ScheduleMoreButton
+            remaining={page.remaining}
+            onPress={page.showMore}
+          />
         </View>
       )}
     </View>

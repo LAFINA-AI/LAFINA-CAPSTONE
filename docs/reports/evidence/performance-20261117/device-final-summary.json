@@ -1,0 +1,105 @@
+{
+  "directory": "device-final-60-streamed",
+  "rounds": 60,
+  "expectedSamples": 300,
+  "receivedSamples": 300,
+  "allSamplesWarm": true,
+  "limitation": "JS handler-to-layout-commit and next JS animation callback only; excludes native input delay and does not establish first-presented pixels or tap-to-usable latency.",
+  "warmSummary": [
+    {
+      "tab": "dashboard",
+      "n": 60,
+      "jsCommitP50Ms": 49.68523100018501,
+      "jsCommitP95Ms": 71.69907701015472,
+      "nextAnimationFrameP95Ms": 121.83161500096321
+    },
+    {
+      "tab": "calendar",
+      "n": 60,
+      "jsCommitP50Ms": 50.50892299413681,
+      "jsCommitP95Ms": 66.37946200370789,
+      "nextAnimationFrameP95Ms": 83.4200000166893
+    },
+    {
+      "tab": "chat",
+      "n": 60,
+      "jsCommitP50Ms": 26.792385011911392,
+      "jsCommitP95Ms": 37.881845980882645,
+      "nextAnimationFrameP95Ms": 77.02053901553154
+    },
+    {
+      "tab": "notes",
+      "n": 60,
+      "jsCommitP50Ms": 27.401846021413803,
+      "jsCommitP95Ms": 41.111615002155304,
+      "nextAnimationFrameP95Ms": 59.92730700969696
+    },
+    {
+      "tab": "profile",
+      "n": 60,
+      "jsCommitP50Ms": 30.36361500620842,
+      "jsCommitP95Ms": 51.0981539785862,
+      "nextAnimationFrameP95Ms": 72.02338501811028
+    }
+  ],
+  "memory": {
+    "memory-after": {
+      "pssKiB": 415795,
+      "views": 2087
+    },
+    "memory-before": {
+      "pssKiB": 344911,
+      "views": 2087
+    },
+    "memory-round-10": {
+      "pssKiB": 445438,
+      "views": 2087
+    },
+    "memory-round-20": {
+      "pssKiB": 434943,
+      "views": 2087
+    },
+    "memory-round-30": {
+      "pssKiB": 460553,
+      "views": 2087
+    },
+    "memory-round-40": {
+      "pssKiB": 425321,
+      "views": 2087
+    },
+    "memory-round-50": {
+      "pssKiB": 406765,
+      "views": 2087
+    },
+    "memory-round-60": {
+      "pssKiB": 427027,
+      "views": 2087
+    }
+  },
+  "peakSampledPssKiB": 460553,
+  "frameSummary": "Applications Graphics Acceleration Info:\nUptime: 159274345 Realtime: 271395916\n\n** Graphics info for test process [com.lafina.capstone.performance] **\n\nStats since: 159032208388170ns\nTotal frames rendered: 1838\nJanky frames: 368 (20.02%)\nJanky frames (legacy): 599 (32.59%)\n50th percentile: 17ms\n90th percentile: 53ms\n95th percentile: 73ms\n99th percentile: 81ms\nNumber Missed Vsync: 0\nNumber High input latency: 1842\nNumber Slow UI thread: 300\nNumber Slow bitmap uploads: 334\nNumber Slow issue draw commands: 265\nNumber Frame deadline missed: 368\nNumber Frame deadline missed (legacy): 300\n",
+  "warmQueryRangeByTab": {
+    "dashboard": [
+      0,
+      1
+    ],
+    "calendar": [
+      0,
+      0
+    ],
+    "chat": [
+      28,
+      43
+    ],
+    "notes": [
+      0,
+      0
+    ],
+    "profile": [
+      2,
+      2
+    ]
+  },
+  "appSha256": "63f9fb387fe23b7aadd8c1adb443095c73649a9af7a48a26950da160610a01f7",
+  "scope": "Final build; same synthetic fixture and phone as the 30-round pre-Calendar-budget trace. Sequential observational runs, not an original-app or randomized baseline."
+}

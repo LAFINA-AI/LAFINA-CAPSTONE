@@ -1,6 +1,6 @@
 import React from 'react';
 import {Alert} from 'react-native';
-import {fireEvent, render, waitFor} from '@testing-library/react-native';
+import {fireEvent, render} from '@testing-library/react-native';
 import {ThemeProvider} from '../../src/ui/contexts/ThemeContext';
 import {CalendarScreen} from '../../src/ui/screens/calendar';
 import {ClassScheduleModal} from '../../src/ui/screens/calendar/components/ClassScheduleModal';
@@ -18,22 +18,9 @@ import {
   timeBlocksStore,
   userStore,
 } from '../../src/storage';
+import {getUstpEligibility} from '../../src/storage/ustpEligibility';
+import {studentSetupStore} from '../../src/storage/studentSetupStore';
 import {visionService} from '../../src/ai/vision/visionService';
-import {parseUstpCor} from '../../src/ai/vision/ustpCorParser';
-
-const SAMPLE_COR_TEXT = `
-Registration No: 556711 Academic Year/Term : 1st Semester AY 2026-2027
-STUDENT GENERAL INFORMATION
-Student No: 2023305519 College: COLLEGE OF INFORMATION TECHNOLOGY AND COMPUTING
-Name: SANTOS, MARIA CLARA R Program: B.S. in Information Technology
-Gender: F Nationality: Filipino Major: N/A Curriculum: CITC-BSIT-2018-2019
-Age: 21 Contact #: Year Level: 3rd Year - Baccalaureate Scholarship/Discount:
-CODE SUBJECT TITLE U N I T Lec Lab Credit SECTION SCHEDULE/ROOM FACULTY
-IT311 Systems Integration 2 1 3 IT3R1 MWF 9:00 AM - 10:00 AM/09-301 Loredel Tamayo
-IT312 Information Assurance 3 0 3 IT3R1 TTH 1:00 PM - 2:30 PM/51-202 Anton Alfred Endaya
-Total Unit(s) 5 1 6
-ASSESSSED FEES
-`;
 
 describe('Calendar Class Schedule / COR Manual Entry', () => {
   let userId: string;
@@ -174,13 +161,13 @@ describe('Calendar Class Schedule / COR Manual Entry', () => {
     expect(queryByTestId('class-schedule-modal')).toBeNull();
   });
 
-  test('supports queuing multiple classes, removing/editing, and saving optional manual COR details', () => {
+  test('supports queuing multiple classes and saves them without creating a school profile', () => {
     jest.spyOn(Alert, 'alert').mockImplementation(() => {});
     const onSaved = jest.fn();
     const onClose = jest.fn();
     const originalUsername = userStore.getUserById(userId)?.username;
 
-    const {getByTestId, getByText} = render(
+    const {getByTestId, getByText, queryByTestId} = render(
       <ThemeProvider userId={userId}>
         <ClassScheduleModal
           visible={true}
@@ -217,20 +204,9 @@ describe('Calendar Class Schedule / COR Manual Entry', () => {
 
     expect(getByText('Queued Subjects (2)')).toBeTruthy();
 
-    // Fill optional Student / COR details
-    fireEvent.press(getByTestId('class-cor-info-toggle'));
-    fireEvent.changeText(
-      getByTestId('class-cor-student-no-input'),
-      '202400123',
-    );
-    fireEvent.changeText(
-      getByTestId('class-cor-program-input'),
-      'BS Computer Science',
-    );
-    fireEvent.changeText(
-      getByTestId('class-cor-term-input'),
-      '1st Sem 2026-2027',
-    );
+    // Onboarding redesign: no manual campus/program/student details here.
+    expect(queryByTestId('class-cor-info-toggle')).toBeNull();
+    expect(queryByTestId('class-cor-program-input')).toBeNull();
 
     fireEvent.press(getByTestId('class-schedule-save-button'));
 
@@ -242,39 +218,24 @@ describe('Calendar Class Schedule / COR Manual Entry', () => {
       true,
     );
 
-    const profile = academicProfileStore.get(userId);
-    expect(profile).not.toBeNull();
-    expect(profile?.studentNo).toBe('202400123');
-    expect(profile?.program).toBe('BS Computer Science');
-    expect(profile?.academicTerm).toBe('1st Sem 2026-2027');
-    expect(profile?.courses).toHaveLength(2);
+    // Manual classes are schedule blocks only; they never enable USTP features.
+    expect(academicProfileStore.get(userId)).toBeNull();
+    expect(getUstpEligibility(userId).eligible).toBe(false);
     expect(userStore.getUserById(userId)?.username).toBe(originalUsername);
     expect(onSaved).toHaveBeenCalledTimes(1);
     expect(onClose).toHaveBeenCalledTimes(1);
   });
 
-  test('can extract a USTP COR into the editable list from Scan COR / Photo tab and save', async () => {
-    jest.spyOn(Alert, 'alert').mockImplementation(() => {});
-    const parsed = parseUstpCor(
-      SAMPLE_COR_TEXT,
-      new Date('2026-11-11T09:00:00Z'),
-    );
-    jest.spyOn(visionService, 'pickCorDocument').mockResolvedValue({
-      uri: 'file:///cor.pdf',
-      name: 'cor.pdf',
-    });
-    jest.spyOn(visionService, 'scanUstpCorFromUri').mockResolvedValue(parsed);
-
+  test('a COR from Calendar opens the full review and saves nothing before confirmation', async () => {
+    const scan = jest.spyOn(visionService, 'scanUstpCorFromUri');
     const onSaved = jest.fn();
-    const onClose = jest.fn();
-
-    const {getByTestId, findByText} = render(
+    const {getByTestId, findByTestId} = render(
       <ThemeProvider userId={userId}>
         <ClassScheduleModal
           visible={true}
           userId={userId}
           timeFormat24h={false}
-          onClose={onClose}
+          onClose={jest.fn()}
           onSaved={onSaved}
         />
       </ThemeProvider>,
@@ -283,18 +244,16 @@ describe('Calendar Class Schedule / COR Manual Entry', () => {
     fireEvent.press(getByTestId('class-schedule-mode-scan'));
     fireEvent.press(getByTestId('class-schedule-upload-cor'));
 
-    expect(await findByText('Queued Subjects (2)')).toBeTruthy();
-
-    fireEvent.press(getByTestId('class-schedule-save-button'));
-
-    await waitFor(() => {
-      expect(onSaved).toHaveBeenCalledTimes(1);
+    expect(await findByTestId('cor-start')).toBeTruthy();
+    // Uploading a COR is an explicit USTP choice, but stays pending until review.
+    expect(studentSetupStore.get(userId)).toMatchObject({
+      affiliation: 'ustp',
+      corStatus: 'pending',
     });
-    const blocks = timeBlocksStore.getAll(userId);
-    expect(blocks).toHaveLength(5);
-    const savedProfile = academicProfileStore.get(userId);
-    expect(savedProfile?.isUstpStudent).toBe(true);
-    expect(savedProfile?.studentNo).toBe('2023305519');
-    expect(savedProfile?.formattedName).toBe('Maria Clara R. Santos');
+    expect(scan).not.toHaveBeenCalled();
+    fireEvent.press(getByTestId('cor-later'));
+    expect(onSaved).not.toHaveBeenCalled();
+    expect(timeBlocksStore.getAll(userId)).toHaveLength(0);
+    expect(academicProfileStore.get(userId)).toBeNull();
   });
 });

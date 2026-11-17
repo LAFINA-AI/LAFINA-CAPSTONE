@@ -6,7 +6,10 @@ import {plannerQueries} from '../../storage/plannerQueries';
 import {isRealDate, addDaysToDate} from '../../storage/eventTime';
 import {formatLocalDate} from '../../ai/nlu/fastPathParser';
 import {sanitizeUntrustedContext} from '../../ai/voiceActions/promptSanitizer';
-import {readOnboardingIdentity} from '../../storage/onboardingMemory';
+import {
+  memoriesForPrompt,
+  readOnboardingIdentity,
+} from '../../storage/onboardingMemory';
 import {extractChecklistItems, noteBodyToMarkdown} from '../../utils/richText';
 import {alarmsStore} from '../../storage/alarmsStore';
 import {
@@ -28,7 +31,8 @@ export const readLocalVoiceResult = (
   if (kind === 'memory') {
     if (!chatMemoryStore.isEnabled(userId))
       return 'Memory is turned off. No saved memories are available.';
-    const all = chatMemoryStore.list(userId);
+    // Academic facts are left out while USTP school features are off.
+    const all = memoriesForPrompt(userId);
     const matched = query
       ? all.filter(m => m.text.toLowerCase().includes(query.toLowerCase()))
       : all;
@@ -443,7 +447,7 @@ export const buildStudentVoiceContext = (
   // 4. Saved Memories
   try {
     if (chatMemoryStore.isEnabled(userId)) {
-      const memories = chatMemoryStore.list(userId);
+      const memories = memoriesForPrompt(userId);
       if (memories.length > 0) {
         const facts = memories.slice(0, 5).map(m => m.text);
         sections.push(`Student Memories & Preferences: ${facts.join('; ')}`);

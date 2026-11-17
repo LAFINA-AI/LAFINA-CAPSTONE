@@ -1,4 +1,5 @@
-import React, { useRef } from 'react';
+import {useGridRowLayout} from './VirtualNoteGrid';
+import React, {useRef} from 'react';
 import {
   View,
   Text,
@@ -9,13 +10,13 @@ import {
   Animated,
   GestureResponderHandlers,
 } from 'react-native';
-import { CheckSquare, GripVertical, Pin } from 'lucide-react-native';
-import { useTheme } from '../../../contexts/ThemeContext';
-import { ModernLayout, Shadows } from '../../../theme';
-import { getCategoryColor } from '../../../theme/categoryColors';
-import type { Note } from '../../../../storage';
-import { checklistStats } from '../../../../utils';
-import { NoteBody } from './NoteBody';
+import {CheckSquare, GripVertical, Pin} from 'lucide-react-native';
+import {useTheme} from '../../../contexts/ThemeContext';
+import {ModernLayout, Shadows} from '../../../theme';
+import {getCategoryColor} from '../../../theme/categoryColors';
+import type {Note} from '../../../../storage';
+import {checklistStats} from '../../../../utils';
+import {NoteBody} from './NoteBody';
 
 const lafinaDefaultLogo = require('../../../../assets/lafina_default_logo.png');
 const lafinaLogoGradient = require('../../../../assets/lafina_logo_gradient_bg.png');
@@ -26,12 +27,23 @@ export const getLocalImage = (uri: string | null) => {
   if (uri === 'lafina_default_logo') return lafinaDefaultLogo;
   if (uri === 'lafina_logo_gradient_bg') return lafinaLogoGradient;
   if (uri === 'spash_icon') return splashIcon;
-  return { uri };
+  return {uri};
 };
 
 const dragHandleStyles = StyleSheet.create({
-  gridHandle: { paddingLeft: 4, paddingVertical: 2, justifyContent: 'center', alignItems: 'center' },
-  listHandle: { paddingHorizontal: 16, paddingVertical: 24, justifyContent: 'center', alignItems: 'center', borderLeftWidth: 1 },
+  gridHandle: {
+    paddingLeft: 4,
+    paddingVertical: 2,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  listHandle: {
+    paddingHorizontal: 16,
+    paddingVertical: 24,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderLeftWidth: 1,
+  },
 });
 
 interface NoteCardBaseProps {
@@ -43,20 +55,36 @@ interface NoteCardBaseProps {
   panHandlers: GestureResponderHandlers;
   dragX: Animated.Value;
   dragY: Animated.Value;
-  onLayout: (id: string, layout: { x: number; y: number; width: number; height: number }) => void;
+  onLayout: (
+    id: string,
+    layout: {x: number; y: number; width: number; height: number},
+  ) => void;
   /** Ticks a to-do from the card, as the desktop's cards do. */
   onToggleChecklist: (note: Note, index: number) => void;
 }
 
 export const NoteCardBase: React.FC<NoteCardBaseProps> = ({
-  item, isGridView, onPress, isActive, canDrag, panHandlers,
-  dragX, dragY, onLayout, onToggleChecklist,
+  item,
+  isGridView,
+  onPress,
+  isActive,
+  canDrag,
+  panHandlers,
+  dragX,
+  dragY,
+  onLayout,
+  onToggleChecklist,
 }) => {
-  const { colors, isModern, modernPalette, modernShadows } = useTheme();
-  const checklist = checklistStats(item.body);
+  const {colors, isModern, modernPalette, modernShadows} = useTheme();
+  const gridLayout = useGridRowLayout();
+  const checklist = React.useMemo(() => checklistStats(item.body), [item.body]);
   const toggle = (index: number) => onToggleChecklist(item, index);
 
-  const hasCategory = Boolean(item.category && item.category !== 'None' && item.category.trim().length > 0);
+  const hasCategory = Boolean(
+    item.category &&
+      item.category !== 'None' &&
+      item.category.trim().length > 0,
+  );
   const categoryColor = hasCategory ? getCategoryColor(item.category) : '';
   const categoryPill = hasCategory ? (
     <View
@@ -69,10 +97,10 @@ export const NoteCardBase: React.FC<NoteCardBaseProps> = ({
       ]}
     >
       <View
-        style={[styles.categoryPillDot, { backgroundColor: categoryColor }]}
+        style={[styles.categoryPillDot, {backgroundColor: categoryColor}]}
       />
       <Text
-        style={[styles.categoryPillText, { color: categoryColor }]}
+        style={[styles.categoryPillText, {color: categoryColor}]}
         numberOfLines={1}
       >
         {item.category}
@@ -81,9 +109,14 @@ export const NoteCardBase: React.FC<NoteCardBaseProps> = ({
   ) : null;
 
   const progressBadge = checklist.total > 0 && (
-    <View style={[styles.checklistBadge, { backgroundColor: colors.inputBg }]}>
-      <CheckSquare size={9} color={checklist.done === checklist.total ? colors.success : colors.textMuted} />
-      <Text style={[styles.checklistBadgeText, { color: colors.textMuted }]}>
+    <View style={[styles.checklistBadge, {backgroundColor: colors.inputBg}]}>
+      <CheckSquare
+        size={9}
+        color={
+          checklist.done === checklist.total ? colors.success : colors.textMuted
+        }
+      />
+      <Text style={[styles.checklistBadgeText, {color: colors.textMuted}]}>
         {`${checklist.done}/${checklist.total}`}
       </Text>
     </View>
@@ -91,22 +124,24 @@ export const NoteCardBase: React.FC<NoteCardBaseProps> = ({
 
   const cardStyle = isActive
     ? {
-        transform: [{ translateX: dragX }, { translateY: dragY }, { scale: 1.04 }],
+        transform: [{translateX: dragX}, {translateY: dragY}, {scale: 1.04}],
         shadowColor: colors.black,
-        shadowOffset: { width: 0, height: 8 },
+        shadowOffset: {width: 0, height: 8},
         shadowOpacity: 0.25,
         shadowRadius: 12,
         elevation: 15,
         zIndex: 999,
         opacity: 0.92,
       }
-    : { zIndex: 1 };
+    : {zIndex: 1};
 
   return (
     <Animated.View
-      onLayout={(e) => {
-        const { x, y, width, height } = e.nativeEvent.layout;
-        onLayout(item.id, { x, y, width, height });
+      onLayout={e => {
+        const {x, y, width, height} = e.nativeEvent.layout;
+        const layout = {x, y, width, height};
+        if (gridLayout) gridLayout(item.id, layout, onLayout);
+        else onLayout(item.id, layout);
       }}
       style={[
         isGridView ? styles.gridCard : styles.listCard,
@@ -124,22 +159,52 @@ export const NoteCardBase: React.FC<NoteCardBaseProps> = ({
             ]
           : Shadows.card,
         cardStyle,
-        { backgroundColor: colors.cardBg },
+        {backgroundColor: colors.cardBg},
       ]}
     >
-      {hasCategory && <View style={[styles.noteTopStrip, { backgroundColor: categoryColor }]} />}
+      {hasCategory && (
+        <View style={[styles.noteTopStrip, {backgroundColor: categoryColor}]} />
+      )}
 
       {isGridView ? (
-        <TouchableOpacity style={styles.gridTouchable} onPress={() => onPress(item)} activeOpacity={0.7} disabled={isActive}>
+        <TouchableOpacity
+          style={styles.gridTouchable}
+          onPress={() => onPress(item)}
+          activeOpacity={0.7}
+          disabled={isActive}
+        >
           {item.imageUri && (
-            <Image source={getLocalImage(item.imageUri)} style={[styles.gridCardImage, { backgroundColor: colors.inputBg }]} resizeMode="cover" />
+            <Image
+              source={getLocalImage(item.imageUri)}
+              style={[styles.gridCardImage, {backgroundColor: colors.inputBg}]}
+              resizeMode="cover"
+            />
           )}
           <View style={styles.gridCardPadding}>
             <View>
               <View style={[styles.titleRow, styles.gridTitleRow]}>
-                <Text style={[styles.noteCardTitle, styles.gridCardTitle, { color: colors.textPrimary }]} numberOfLines={2}>{item.title}</Text>
-                {canDrag && <View {...panHandlers} style={dragHandleStyles.gridHandle}><GripVertical size={13} color={colors.iconMuted} /></View>}
-                {item.isPinned && <Pin size={12} color={colors.red} style={styles.gridPinIcon} />}
+                <Text
+                  style={[
+                    styles.noteCardTitle,
+                    styles.gridCardTitle,
+                    {color: colors.textPrimary},
+                  ]}
+                  numberOfLines={2}
+                >
+                  {item.title}
+                </Text>
+                {canDrag && (
+                  <View {...panHandlers} style={dragHandleStyles.gridHandle}>
+                    <GripVertical size={13} color={colors.iconMuted} />
+                  </View>
+                )}
+                {item.isPinned && (
+                  <Pin
+                    size={12}
+                    color={colors.red}
+                    style={styles.gridPinIcon}
+                  />
+                )}
               </View>
               <View style={styles.noteCardBody}>
                 <NoteBody
@@ -152,16 +217,30 @@ export const NoteCardBase: React.FC<NoteCardBaseProps> = ({
             </View>
             <View style={styles.cardFooter}>
               <View style={styles.cardFooterLeft}>
-                <Text style={[styles.cardDate, { color: colors.textMuted }]}>
-                  {new Date(item.updatedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                <Text style={[styles.cardDate, {color: colors.textMuted}]}>
+                  {new Date(item.updatedAt).toLocaleDateString('en-US', {
+                    month: 'short',
+                    day: 'numeric',
+                  })}
                 </Text>
                 {categoryPill}
               </View>
               <View style={styles.cardFooterRight}>
                 {progressBadge}
                 {item.isVoiceTranscribed && (
-                  <View style={[styles.voiceBadge, { backgroundColor: isModern ? modernPalette.softViolet : colors.blue + '22' }]}>
-                    <Text style={[styles.voiceBadgeText, { color: colors.blue }]}>AI</Text>
+                  <View
+                    style={[
+                      styles.voiceBadge,
+                      {
+                        backgroundColor: isModern
+                          ? modernPalette.softViolet
+                          : colors.blue + '22',
+                      },
+                    ]}
+                  >
+                    <Text style={[styles.voiceBadgeText, {color: colors.blue}]}>
+                      AI
+                    </Text>
                   </View>
                 )}
               </View>
@@ -169,13 +248,31 @@ export const NoteCardBase: React.FC<NoteCardBaseProps> = ({
           </View>
         </TouchableOpacity>
       ) : (
-        <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-          <TouchableOpacity style={{ flex: 1 }} onPress={() => onPress(item)} activeOpacity={0.7} disabled={isActive}>
-            <View style={{ flexDirection: 'row', padding: 12, alignItems: 'center' }}>
-              <View style={{ flex: 1, marginRight: item.imageUri ? 12 : 0 }}>
+        <View style={{flexDirection: 'row', alignItems: 'center'}}>
+          <TouchableOpacity
+            style={{flex: 1}}
+            onPress={() => onPress(item)}
+            activeOpacity={0.7}
+            disabled={isActive}
+          >
+            <View
+              style={{flexDirection: 'row', padding: 12, alignItems: 'center'}}
+            >
+              <View style={{flex: 1, marginRight: item.imageUri ? 12 : 0}}>
                 <View style={styles.titleRow}>
-                  <Text style={[styles.noteCardTitle, { color: colors.textPrimary }]} numberOfLines={1}>{item.title}</Text>
-                  {item.isPinned && <Pin size={12} color={colors.red} style={{ transform: [{ rotate: '45deg' }] }} />}
+                  <Text
+                    style={[styles.noteCardTitle, {color: colors.textPrimary}]}
+                    numberOfLines={1}
+                  >
+                    {item.title}
+                  </Text>
+                  {item.isPinned && (
+                    <Pin
+                      size={12}
+                      color={colors.red}
+                      style={{transform: [{rotate: '45deg'}]}}
+                    />
+                  )}
                 </View>
                 <View style={styles.noteCardBody}>
                   <NoteBody
@@ -187,28 +284,57 @@ export const NoteCardBase: React.FC<NoteCardBaseProps> = ({
                 </View>
                 <View style={styles.cardFooter}>
                   <View style={styles.cardFooterLeft}>
-                    <Text style={[styles.cardDate, { color: colors.textMuted }]}>
-                      {new Date(item.updatedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                    <Text style={[styles.cardDate, {color: colors.textMuted}]}>
+                      {new Date(item.updatedAt).toLocaleDateString('en-US', {
+                        month: 'short',
+                        day: 'numeric',
+                      })}
                     </Text>
                     {categoryPill}
                   </View>
                   <View style={styles.cardFooterRight}>
                     {progressBadge}
                     {item.isVoiceTranscribed && (
-                      <View style={[styles.voiceBadge, { backgroundColor: isModern ? modernPalette.softViolet : colors.blue + '22' }]}>
-                        <Text style={[styles.voiceBadgeText, { color: colors.blue }]}>AI Transcribed</Text>
+                      <View
+                        style={[
+                          styles.voiceBadge,
+                          {
+                            backgroundColor: isModern
+                              ? modernPalette.softViolet
+                              : colors.blue + '22',
+                          },
+                        ]}
+                      >
+                        <Text
+                          style={[styles.voiceBadgeText, {color: colors.blue}]}
+                        >
+                          AI Transcribed
+                        </Text>
                       </View>
                     )}
                   </View>
                 </View>
               </View>
               {item.imageUri && (
-                <Image source={getLocalImage(item.imageUri)} style={[styles.listCardImage, { backgroundColor: colors.inputBg }]} resizeMode="cover" />
+                <Image
+                  source={getLocalImage(item.imageUri)}
+                  style={[
+                    styles.listCardImage,
+                    {backgroundColor: colors.inputBg},
+                  ]}
+                  resizeMode="cover"
+                />
               )}
             </View>
           </TouchableOpacity>
           {canDrag && (
-            <View {...panHandlers} style={[dragHandleStyles.listHandle, { borderLeftColor: colors.border }]}>
+            <View
+              {...panHandlers}
+              style={[
+                dragHandleStyles.listHandle,
+                {borderLeftColor: colors.border},
+              ]}
+            >
               <GripVertical size={18} color={colors.iconMuted} />
             </View>
           )}
@@ -230,90 +356,165 @@ interface NoteCardWithDragProps {
   onDragStart: (noteId: string, index: number) => void;
   onDragMove: (dx: number, dy: number) => void;
   onDragRelease: () => void;
-  onLayout: (id: string, layout: { x: number; y: number; width: number; height: number }) => void;
+  onLayout: (
+    id: string,
+    layout: {x: number; y: number; width: number; height: number},
+  ) => void;
   onToggleChecklist: (note: Note, index: number) => void;
 }
 
-export const NoteCardWithDrag = React.memo<NoteCardWithDragProps>(({
-  item, index: _index, isGridView, isActive, canDrag,
-  dragX, dragY, onPress, onDragStart, onDragMove, onDragRelease, onLayout,
-  onToggleChecklist,
-}) => {
-  const panRef = useRef<ReturnType<typeof PanResponder.create> | null>(null);
-  const itemRef = useRef(item);
-  itemRef.current = item;
-  const onDragStartRef = useRef(onDragStart);
-  onDragStartRef.current = onDragStart;
-  const onDragMoveRef = useRef(onDragMove);
-  onDragMoveRef.current = onDragMove;
-  const onDragReleaseRef = useRef(onDragRelease);
-  onDragReleaseRef.current = onDragRelease;
+export const NoteCardWithDrag = React.memo<NoteCardWithDragProps>(
+  ({
+    item,
+    index: _index,
+    isGridView,
+    isActive,
+    canDrag,
+    dragX,
+    dragY,
+    onPress,
+    onDragStart,
+    onDragMove,
+    onDragRelease,
+    onLayout,
+    onToggleChecklist,
+  }) => {
+    const panRef = useRef<ReturnType<typeof PanResponder.create> | null>(null);
+    const itemRef = useRef(item);
+    itemRef.current = item;
+    const onDragStartRef = useRef(onDragStart);
+    onDragStartRef.current = onDragStart;
+    const onDragMoveRef = useRef(onDragMove);
+    onDragMoveRef.current = onDragMove;
+    const onDragReleaseRef = useRef(onDragRelease);
+    onDragReleaseRef.current = onDragRelease;
 
-  if (!panRef.current && canDrag) {
-    panRef.current = PanResponder.create({
-      onStartShouldSetPanResponder: () => true,
-      onMoveShouldSetPanResponder: (_, gs) => Math.abs(gs.dx) > 5 || Math.abs(gs.dy) > 5,
-      onPanResponderGrant: () => {
-        dragX.setValue(0);
-        dragY.setValue(0);
-        onDragStartRef.current(itemRef.current.id, -1);
-      },
-      onPanResponderMove: (_, gs) => onDragMoveRef.current(gs.dx, gs.dy),
-      onPanResponderRelease: () => {
-        Animated.parallel([
-          Animated.spring(dragX, { toValue: 0, useNativeDriver: false, tension: 120, friction: 8 }),
-          Animated.spring(dragY, { toValue: 0, useNativeDriver: false, tension: 120, friction: 8 }),
-        ]).start(() => onDragReleaseRef.current());
-      },
-      onPanResponderTerminate: () => {
-        dragX.setValue(0);
-        dragY.setValue(0);
-        onDragReleaseRef.current();
-      },
-    });
-  }
+    if (!panRef.current && canDrag) {
+      panRef.current = PanResponder.create({
+        onStartShouldSetPanResponder: () => true,
+        onMoveShouldSetPanResponder: (_, gs) =>
+          Math.abs(gs.dx) > 5 || Math.abs(gs.dy) > 5,
+        onPanResponderGrant: () => {
+          dragX.setValue(0);
+          dragY.setValue(0);
+          onDragStartRef.current(itemRef.current.id, -1);
+        },
+        onPanResponderMove: (_, gs) => onDragMoveRef.current(gs.dx, gs.dy),
+        onPanResponderRelease: () => {
+          Animated.parallel([
+            Animated.spring(dragX, {
+              toValue: 0,
+              useNativeDriver: false,
+              tension: 120,
+              friction: 8,
+            }),
+            Animated.spring(dragY, {
+              toValue: 0,
+              useNativeDriver: false,
+              tension: 120,
+              friction: 8,
+            }),
+          ]).start(() => onDragReleaseRef.current());
+        },
+        onPanResponderTerminate: () => {
+          dragX.setValue(0);
+          dragY.setValue(0);
+          onDragReleaseRef.current();
+        },
+      });
+    }
 
-  const panHandlers = canDrag && panRef.current ? panRef.current.panHandlers : {};
+    const panHandlers =
+      canDrag && panRef.current ? panRef.current.panHandlers : {};
 
-  return (
-    <NoteCardBase
-      item={item}
-      isGridView={isGridView}
-      onPress={onPress}
-      isActive={isActive}
-      canDrag={canDrag}
-      panHandlers={panHandlers}
-      dragX={dragX}
-      dragY={dragY}
-      onLayout={onLayout}
-      onToggleChecklist={onToggleChecklist}
-    />
-  );
-}, (prev, next) => {
-  return prev.item === next.item && prev.isGridView === next.isGridView &&
-    prev.isActive === next.isActive && prev.canDrag === next.canDrag &&
-    prev.index === next.index;
-});
+    return (
+      <NoteCardBase
+        item={item}
+        isGridView={isGridView}
+        onPress={onPress}
+        isActive={isActive}
+        canDrag={canDrag}
+        panHandlers={panHandlers}
+        dragX={dragX}
+        dragY={dragY}
+        onLayout={onLayout}
+        onToggleChecklist={onToggleChecklist}
+      />
+    );
+  },
+  (prev, next) => {
+    return (
+      prev.item === next.item &&
+      prev.isGridView === next.isGridView &&
+      prev.isActive === next.isActive &&
+      prev.canDrag === next.canDrag &&
+      prev.index === next.index
+    );
+  },
+);
 
 const styles = StyleSheet.create({
-  gridCard: { width: '48.2%', borderRadius: 16, marginBottom: 12, overflow: 'hidden' },
-  gridCardMinHeight: { minHeight: 114 },
-  listCard: { width: '100%', borderRadius: 16, marginBottom: 12, overflow: 'hidden' },
-  noteTopStrip: { height: 3, width: '100%' },
-  gridTouchable: { flex: 1 },
-  gridCardPadding: { flex: 1, padding: 14, justifyContent: 'space-between' },
-  titleRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 },
-  gridTitleRow: { alignItems: 'flex-start', marginBottom: 5, gap: 4 },
-  noteCardTitle: { fontFamily: 'sans-serif', fontSize: 14, fontWeight: 'bold', flex: 1 },
-  gridCardTitle: { lineHeight: 19 },
-  gridPinIcon: { transform: [{ rotate: '45deg' }], marginTop: 3 },
-  noteCardBody: { marginBottom: 8 },
-  checklistBadge: { flexDirection: 'row', alignItems: 'center', borderRadius: 6, paddingHorizontal: 5, paddingVertical: 2 },
-  checklistBadgeText: { fontSize: 9, fontWeight: 'bold', marginLeft: 3 },
-  cardFooter: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 4 },
-  cardFooterLeft: { flex: 1, minWidth: 0, flexDirection: 'row', alignItems: 'center', gap: 5 },
-  cardFooterRight: { flexShrink: 0, flexDirection: 'row', alignItems: 'center', gap: 4, marginLeft: 4 },
-  cardDate: { fontSize: 10.5, fontFamily: 'sans-serif', flexShrink: 0 },
+  gridCard: {
+    width: '48.2%',
+    borderRadius: 16,
+    marginBottom: 12,
+    overflow: 'hidden',
+  },
+  gridCardMinHeight: {minHeight: 114},
+  listCard: {
+    width: '100%',
+    borderRadius: 16,
+    marginBottom: 12,
+    overflow: 'hidden',
+  },
+  noteTopStrip: {height: 3, width: '100%'},
+  gridTouchable: {flex: 1},
+  gridCardPadding: {flex: 1, padding: 14, justifyContent: 'space-between'},
+  titleRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 6,
+  },
+  gridTitleRow: {alignItems: 'flex-start', marginBottom: 5, gap: 4},
+  noteCardTitle: {
+    fontFamily: 'sans-serif',
+    fontSize: 14,
+    fontWeight: 'bold',
+    flex: 1,
+  },
+  gridCardTitle: {lineHeight: 19},
+  gridPinIcon: {transform: [{rotate: '45deg'}], marginTop: 3},
+  noteCardBody: {marginBottom: 8},
+  checklistBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderRadius: 6,
+    paddingHorizontal: 5,
+    paddingVertical: 2,
+  },
+  checklistBadgeText: {fontSize: 9, fontWeight: 'bold', marginLeft: 3},
+  cardFooter: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginTop: 4,
+  },
+  cardFooterLeft: {
+    flex: 1,
+    minWidth: 0,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+  },
+  cardFooterRight: {
+    flexShrink: 0,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    marginLeft: 4,
+  },
+  cardDate: {fontSize: 10.5, fontFamily: 'sans-serif', flexShrink: 0},
   categoryPill: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -325,10 +526,21 @@ const styles = StyleSheet.create({
     minWidth: 0,
     maxWidth: 82,
   },
-  categoryPillDot: { width: 4, height: 4, borderRadius: 2, marginRight: 3, flexShrink: 0 },
-  categoryPillText: { fontSize: 8.5, fontWeight: '600', fontFamily: 'sans-serif', flexShrink: 1 },
-  voiceBadge: { borderRadius: 6, paddingHorizontal: 6, paddingVertical: 2 },
-  voiceBadgeText: { fontSize: 8, fontWeight: 'bold' },
-  gridCardImage: { width: '100%', height: 76 },
-  listCardImage: { width: 60, height: 60, borderRadius: 8 },
+  categoryPillDot: {
+    width: 4,
+    height: 4,
+    borderRadius: 2,
+    marginRight: 3,
+    flexShrink: 0,
+  },
+  categoryPillText: {
+    fontSize: 8.5,
+    fontWeight: '600',
+    fontFamily: 'sans-serif',
+    flexShrink: 1,
+  },
+  voiceBadge: {borderRadius: 6, paddingHorizontal: 6, paddingVertical: 2},
+  voiceBadgeText: {fontSize: 8, fontWeight: 'bold'},
+  gridCardImage: {width: '100%', height: 76},
+  listCardImage: {width: 60, height: 60, borderRadius: 8},
 });

@@ -17,6 +17,7 @@ import {
 import type {ChatMessage} from '../../src/storage';
 import {chatOrchestrator} from '../../src/ai';
 import {cloudClient} from '../../src/cloud';
+import {enableUstpForTest} from '../fixtures/ustpEligibility';
 
 const screen = (userId: string) => (
   <ThemeProvider userId={userId}>
@@ -27,7 +28,9 @@ const screen = (userId: string) => (
 const listData = (
   getByTestId: (id: string) => {props: Record<string, unknown>},
 ): ChatMessage[] =>
-  getByTestId('chat-messages-list').props.data as ChatMessage[];
+  [
+    ...(getByTestId('chat-messages-list').props.data as ChatMessage[]),
+  ].reverse();
 
 const seed = (userId: string, count: number): void => {
   for (let i = 0; i < count; i += 1) {
@@ -241,6 +244,8 @@ describe('AGY-PORT 02: Chat history paging UI', () => {
 
   test('a Handbook citation is stored with the reply and shown after a remount', async () => {
     const user = 'local_guest_user';
+    enableUstpForTest(user);
+    userStore.setCurrentUser(user);
     chatStore.clearHistory(user);
     jest.spyOn(cloudClient, 'request').mockResolvedValueOnce({
       status: 'success',
@@ -282,11 +287,13 @@ describe('AGY-PORT 02: Chat history paging UI', () => {
   test('opening or returning to a non-empty chat snaps to bottom immediately without animated scroll-down', async () => {
     const user = 'initial-scroll-user';
     seed(user, 30);
-    const scrollToEndSpy = jest.spyOn(FlatList.prototype, 'scrollToEnd');
+    const scrollToEndSpy = jest.spyOn(FlatList.prototype, 'scrollToOffset');
     const {getByTestId} = render(screen(user));
 
     const list = getByTestId('chat-messages-list');
-    expect(list.props.initialNumToRender).toBe(CHAT_PAGE_SIZE);
+    expect(list.props.inverted).toBe(true);
+    expect(list.props.initialNumToRender).toBeLessThan(CHAT_PAGE_SIZE);
+    expect(list.props.data[0].content).toBe('m29');
 
     act(() => {
       fireEvent(list, 'layout', {
@@ -311,7 +318,7 @@ describe('AGY-PORT 02: Chat history paging UI', () => {
     act(() => {
       fireEvent(list, 'contentSizeChange', 360, 2600);
     });
-    expect(scrollToEndSpy).toHaveBeenCalledWith({animated: true});
+    expect(scrollToEndSpy).toHaveBeenCalledWith({offset: 0, animated: true});
 
     // When scrolled up, layout/content changes do not yank back to bottom.
     scrollToEndSpy.mockClear();
@@ -338,7 +345,7 @@ describe('AGY-PORT 02: Chat history paging UI', () => {
     chatStore.startNewChat(user);
     seed(user, 10);
 
-    const scrollToEndSpy = jest.spyOn(FlatList.prototype, 'scrollToEnd');
+    const scrollToEndSpy = jest.spyOn(FlatList.prototype, 'scrollToOffset');
     const {getByTestId} = render(screen(user));
 
     const list = getByTestId('chat-messages-list');

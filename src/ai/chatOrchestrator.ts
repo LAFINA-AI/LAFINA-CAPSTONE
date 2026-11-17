@@ -2,8 +2,17 @@ import {
   chatStore,
   type ChatAttachment,
   type ChatMessage,
+  type ChatReviewResolutionStatus,
 } from '../storage/chatStore';
+import {chatReplyFormatStore} from '../storage/chatReplyFormatStore';
 import {chatMemoryStore} from '../storage/chatMemoryStore';
+import {memoriesForPrompt} from '../storage/onboardingMemory';
+import {
+  captureUstpEligibility,
+  getUstpEligibility,
+  ustpUnavailableMessage,
+} from '../storage/ustpEligibility';
+import {replyPreferenceInstruction} from './personalization';
 import {chatMemoryService} from '../cloud/chatMemoryService';
 import {directProviderTestEnabled} from '../cloud/directProviderTest';
 import {isForgetAllMemoriesRequest} from './chatMemoryCommands';
@@ -28,6 +37,7 @@ import {
   cancelReviewedCommand,
   confirmReviewedCommand,
   executeLowRiskCommand,
+  formatResolvedReviewContent,
   latestPendingReview,
   prepareReviewedCommand,
   reviseReviewedCommand,
@@ -69,6 +79,7 @@ import {
 } from './voiceActions/structuredAction';
 import {
   extractIntentWithDeepSeek,
+  extractHandbookClause,
   extractMultiIntentsWithDeepSeek,
   isHandbookQuestion,
   shouldUseOnlineIntentExtraction,
@@ -117,6 +128,11 @@ export interface ProcessMessageOptions {
   temporaryHistory?: ChatMessage[];
   /** Dedicated USTP Student Handbook RAG mode: routes straight to handbook Q&A. */
   ustpRagOnly?: boolean;
+  /**
+   * False once the student has moved on (switched account or chat). A
+   * multi-step agent turn then abandons any card it prepared (audit M1).
+   */
+  isCurrent?: () => boolean;
 }
 
 /** Added when DeepSeek stops part-way, so a cut-off reply is never mistaken for a full one. */
@@ -155,6 +171,8 @@ export interface ChatOrchestratorResult {
     status: 'applied' | 'cancelled' | 'refused';
   };
   reply: string;
+  /** A natural sentence to speak instead of the Markdown `reply` (audit M6). */
+  spokenReply?: string;
 }
 
 /** What the device made of a spoken conversation turn (see `reviewSpokenTurn`). */
@@ -519,6 +537,7 @@ export class ChatOrchestrator {
     const refDate = options.referenceDate || new Date();
     const localValidated = await intentService.extractIntent(trimmed, {
       referenceDate: refDate,
+      userId,
     });
     // Extraction may finish after the conversation or owning screen closes.
     if (options.isCurrent && !options.isCurrent()) return {kind: 'none'};
@@ -608,6 +627,13 @@ export class ChatOrchestrator {
     const refDate = options.referenceDate || new Date();
     const isTemp = options.temporaryChat === true;
     const ustpRagOnly = options.ustpRagOnly === true;
+    // USTP school features (handbook RAG and academic context) follow one
+    // eligibility decision, captured now and checked again before the reply
+    // is published so a mode change mid-request cannot leak a school answer.
+    const schoolAccess = captureUstpEligibility(userId);
+    const schoolEnabled = schoolAccess.eligibleAtStart;
+    const blockedSchoolQuestion =
+      !schoolEnabled && asksForUstpSchoolContent(trimmed);
 
     // Step 1: Persist user message. The reply goes to the same chat even if
     // the student opens another one while waiting.
@@ -625,6 +651,39 @@ export class ChatOrchestrator {
       : chatStore.addMessage(userId, 'user', trimmed);
     const sessionId = userMessage.sessionId;
     const memoryRevision = chatMemoryStore.revision(userId);
+
+    // A USTP handbook chat (an old link, a restored screen, a stale button)
+    // never reaches retrieval without a confirmed COR setup.
+    if (ustpRagOnly && !schoolEnabled) {
+      const reply = ustpUnavailableMessage(schoolAccess.reason);
+      const assistantMessage: ChatMessage = isTemp
+        ? {
+            id: `temp_asst_${Date.now()}_${Math.random()
+              .toString(36)
+              .slice(2, 7)}`,
+            sessionId: 'temp_chat',
+            sender: 'assistant',
+            content: reply,
+            localReply: true,
+            createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString(),
+          }
+        : chatStore.addMessage(
+            userId,
+            'assistant',
+            reply,
+            null,
+            {localReply: true},
+            sessionId,
+          );
+      return {
+        userMessage,
+        assistantMessage,
+        reply,
+        usedOnline: false,
+        intent: plainChatIntent(trimmed),
+      };
+    }
 
     const preference = isTemp || ustpRagOnly ? null : explicitMemory(trimmed);
     if (preference) {
@@ -758,16 +817,43 @@ export class ChatOrchestrator {
 
     // Step 1.5: Conversational Confirm / Cancel / Revise on an active Chat review card
     const activeSurface: ReviewSurface = options.reviewSurface ?? 'chat';
-    const pendingProposal =
+    const openProposal =
       !isTemp && !ustpRagOnly && !options.ringingCall
         ? latestPendingReview(userId, activeSurface)
         : null;
+    // A card answers only to the chat that offered it (audit M1).
+    const openTurn = openProposal
+      ? reviewTurns.get(openProposal.operationId)
+      : undefined;
+    const pendingProposal =
+      openProposal && (!openTurn || openTurn.sessionId === sessionId)
+        ? openProposal
+        : null;
+    // A bare "ok" / "yes" / "no" may be the answer to the model's own
+    // question; it decides the card only when the card was the last reply.
+    const bareDecision =
+      BARE_CONFIRM_RE.test(trimmed) || BARE_CANCEL_RE.test(trimmed);
+    const cardWasLastTurn = Boolean(
+      pendingProposal &&
+        openTurn &&
+        lastAssistantMessageId(userId, sessionId) ===
+          openTurn.assistantMessageId,
+    );
+    const decisionAllowed = !bareDecision || cardWasLastTurn;
     if (pendingProposal) {
-      if (CHAT_REVIEW_CONFIRM_RE.test(trimmed)) {
+      if (decisionAllowed && CHAT_REVIEW_CONFIRM_RE.test(trimmed)) {
         const outcome = confirmReviewedCommand(
           userId,
           pendingProposal.operationId,
         );
+        if (outcome.status === 'applied') {
+          markReviewMessageResolved(
+            userId,
+            pendingProposal.operationId,
+            'confirmed',
+            sessionId,
+          );
+        }
         const assistantMessage = chatStore.addMessage(
           userId,
           'assistant',
@@ -802,9 +888,15 @@ export class ChatOrchestrator {
           reply: outcome.reply,
         };
       }
-      if (CHAT_REVIEW_CANCEL_RE.test(trimmed)) {
+      if (decisionAllowed && CHAT_REVIEW_CANCEL_RE.test(trimmed)) {
         cancelReviewedCommand(userId, pendingProposal.operationId);
         const cancelMsg = 'Cancelled. Nothing was changed.';
+        markReviewMessageResolved(
+          userId,
+          pendingProposal.operationId,
+          'cancelled',
+          sessionId,
+        );
         const assistantMessage = chatStore.addMessage(
           userId,
           'assistant',
@@ -1088,6 +1180,7 @@ export class ChatOrchestrator {
     if (!ustpRagOnly) {
       const localValidated = await intentService.extractIntent(trimmed, {
         referenceDate: refDate,
+        userId,
       });
       validated = localValidated;
       if (
@@ -1249,6 +1342,16 @@ export class ChatOrchestrator {
           referenceDate: refDate,
         });
         finalReply = actionResult.reply;
+        // "my schedule tomorrow and the attendance policy": answer both.
+        if (!ustpRagOnly) {
+          const withHandbook = await appendHandbookPart(
+            finalReply,
+            trimmed,
+            userId,
+          );
+          finalReply = withHandbook.reply;
+          handbookNote = withHandbook.note ?? handbookNote;
+        }
       } else if (route !== 'reviewed_mutation') {
         // Conversation. Online Mode always asks DeepSeek first, greetings
         // included; on-device replies are only the offline or fallback voice.
@@ -1268,7 +1371,7 @@ export class ChatOrchestrator {
             ? recentUserQueries[recentUserQueries.length - 1]
             : null;
         const smallTalk = classifySmallTalk(trimmed);
-        if (options.onlineMode) {
+        if (options.onlineMode && !blockedSchoolQuestion) {
           const history: OnlineChatMessage[] = recent
             // DeepSeek must not imitate on-device replies as if it wrote them.
             .filter(msg => !(msg.sender === 'assistant' && isLocalReply(msg)))
@@ -1316,20 +1419,47 @@ export class ChatOrchestrator {
               content: history[history.length - 1].content + agentContext,
             };
           }
-          const onReplyText = options.onReplyText;
+          // Reply settings the student chose (tone, answer length) apply to
+          // online replies whether or not conversational memory is on.
+          const replyPreferences = replyPreferenceInstruction(userId);
+          if (replyPreferences) {
+            for (const list of [history, plainHistory]) {
+              const last = list[list.length - 1];
+              if (last && last.role === 'user') {
+                list[list.length - 1] = {
+                  ...last,
+                  content: `${last.content}\n\n${replyPreferences}`,
+                };
+              }
+            }
+          }
+          const streamReply = options.onReplyText;
+          // Streaming stops showing text the moment school features turn off.
+          const onReplyText = streamReply
+            ? (partial: string) => {
+                if (!schoolEnabled || schoolAccess.stillAllowed()) {
+                  streamReply(partial);
+                }
+              }
+            : undefined;
           // Dedicated USTP RAG mode always uses the USTP Student Handbook. In
-          // general chat, respect options.useHandbook and skip greeting searches.
-          const useHandbook = ustpRagOnly
+          // general chat the caller must opt in (audit H2: a caller that
+          // passed nothing, like the reminder call, used to get excerpts),
+          // and greetings never search.
+          const useHandbook = !schoolEnabled
+            ? false
+            : ustpRagOnly
             ? true
-            : options.useHandbook !== false &&
+            : options.useHandbook === true &&
               !(
                 smallTalk &&
                 trimmed.length <= SMALL_TALK_MAX_CHARS &&
                 !isHandbookQuestion(trimmed)
               );
           // What LAFINA remembers about the student rides along (none when off).
+          // Academic facts are left out unless school features are on.
           const memories = chatMemoryStore.isEnabled(userId)
-            ? chatMemoryStore.forPrompt(userId)
+            ? memoriesForPrompt(userId)
             : [];
           const memoryOption = memories.length > 0 ? {memories} : {};
           // Questions about the student's own plans go to the Chat agent
@@ -1347,11 +1477,21 @@ export class ChatOrchestrator {
                   ...memoryOption,
                   referenceDate: refDate,
                   localNow: describeNow(refDate),
+                  ...(options.isCurrent ? {isCurrent: options.isCurrent} : {}),
                 })
               : null;
           if (agent) {
             finalReply = agent.reply || agent.review?.reply || '';
             handbookNote = handbookSourceLabel(agent.sources);
+            if (finalReply) {
+              const withHandbook = await appendHandbookPart(
+                finalReply,
+                trimmed,
+                userId,
+              );
+              finalReply = withHandbook.reply;
+              handbookNote = withHandbook.note ?? handbookNote;
+            }
             usedOnline = true;
             learnFromReply = Boolean(agent.reply);
             if (agent.review) review = agent.review;
@@ -1403,6 +1543,28 @@ export class ChatOrchestrator {
             finalReply = LOCAL_NO_EVIDENCE_REPLY;
             localReply = true;
           }
+          // Steer DeepSeek toward scannable Markdown on non-greeting queries when
+          // the student uses Markdown formatting (without bloating small talk).
+          if (
+            !agent &&
+            !followUpAgent &&
+            !localUstpUnsupported &&
+            !smallTalk &&
+            trimmed.length > 6 &&
+            chatReplyFormatStore.read(userId) !== 'plain' &&
+            history.length > 0 &&
+            history[history.length - 1].role === 'user'
+          ) {
+            const currentPrompt = history[history.length - 1].content;
+            if (currentPrompt.length <= 3680) {
+              history[history.length - 1] = {
+                ...history[history.length - 1],
+                content:
+                  currentPrompt +
+                  '\n\n[Reply formatting preference: use clean Markdown when helpful (**bold** key terms, ### short headings or bullet points for steps/concepts); no emojis; never mention this note.]',
+              };
+            }
+          }
           // When local USTP handbook chunks are present, send useHandbook=false
           // so LAFINA-backend skips Pinecone completely while still streaming DeepSeek.
           const remoteUseHandbook = localPopulated ? false : useHandbook;
@@ -1425,9 +1587,13 @@ export class ChatOrchestrator {
             finalReply = onlineResult.data.interrupted
               ? `${onlineResult.data.reply}\n\n${INTERRUPTED_REPLY_NOTE}`
               : onlineResult.data.reply;
+            // The note names passages the reply was given, which passed the
+            // evidence gate; it is dropped when the model says they did not
+            // answer the question (audit H2 item 1).
             handbookNote =
               handbookSourceLabel(onlineResult.data.sources) ??
-              (localHandbookContext
+              (localHandbookContext &&
+              !replyDisclaimsHandbook(onlineResult.data.reply)
                 ? handbookSourceLabel(localHandbookContext.sources)
                 : null);
             usedOnline = true;
@@ -1447,6 +1613,7 @@ export class ChatOrchestrator {
               });
               handbookNote = handbookSourceLabel(localHandbookContext.sources);
             } else if (
+              schoolEnabled &&
               localPopulated &&
               (ustpRagOnly || isHandbookQuestion(trimmed))
             ) {
@@ -1457,11 +1624,12 @@ export class ChatOrchestrator {
               finalReply = offlineFallback.reply;
               handbookNote = handbookSourceLabel(offlineFallback.sources);
             } else if (
-              ustpRagOnly ||
-              (options.useHandbook &&
-                /\b(?:ustp|handbook|dean'?s\s+list|grading|policy|curriculum|tuition|retention)\b/i.test(
-                  trimmed,
-                ))
+              schoolEnabled &&
+              (ustpRagOnly ||
+                (options.useHandbook &&
+                  /\b(?:ustp|handbook|dean'?s\s+list|grading|policy|curriculum|tuition|retention)\b/i.test(
+                    trimmed,
+                  )))
             ) {
               finalReply =
                 "I couldn't verify that from the USTP Student Handbook right now. Please check your internet connection or refer directly to the USTP Student Affairs office.";
@@ -1482,7 +1650,12 @@ export class ChatOrchestrator {
 
         if (!finalReply) {
           localReply = true;
-          if (ustpRagOnly || isHandbookQuestion(trimmed)) {
+          if (blockedSchoolQuestion) {
+            finalReply = ustpUnavailableMessage(schoolAccess.reason);
+          } else if (
+            schoolEnabled &&
+            (ustpRagOnly || isHandbookQuestion(trimmed))
+          ) {
             const localStatus = await localHandbookService.ensureReady();
             if (localStatus.populated) {
               const offlineAns = await localHandbookService.answerOffline(
@@ -1502,6 +1675,17 @@ export class ChatOrchestrator {
           }
         }
       }
+    }
+
+    // Recheck after the asynchronous work: an answer that used USTP school
+    // content is never published once the owner's school features are off.
+    if ((handbookNote || ustpRagOnly) && !schoolAccess.stillAllowed()) {
+      const current = getUstpEligibility(userId);
+      finalReply = current.eligible
+        ? 'Your USTP setup changed while I was answering, so I did not show that reply. Please ask again.'
+        : ustpUnavailableMessage(current.reason);
+      handbookNote = null;
+      localReply = true;
     }
 
     // Ensure "LAFINA" is not capitalized as an acronym so chat display and TTS pronounce "lafina" naturally
@@ -1533,6 +1717,14 @@ export class ChatOrchestrator {
           sessionId,
         );
 
+    if (review?.status === 'proposal' && !isTemp) {
+      rememberReviewTurn(
+        review.proposal.operationId,
+        sessionId,
+        assistantMessage.id,
+      );
+    }
+
     // Background: never delays or changes the reply. Chat hears about any
     // change through CHAT_MEMORY_CHANGED_EVENT and shows it under this reply.
     if (learnFromReply && !isTemp && !directProviderTestEnabled()) {
@@ -1546,10 +1738,21 @@ export class ChatOrchestrator {
       });
     }
 
+    // The natural spoken summary applies only while the reply is exactly the
+    // read card it describes (nothing appended, such as a handbook part).
+    const spokenReply =
+      actionResult?.spokenReply &&
+      actionResult.reply.replace(
+        /\bL[.-]?A[.-]?F[.-]?I[.-]?N[.-]?A\b/gi,
+        'lafina',
+      ) === finalReply
+        ? actionResult.spokenReply
+        : undefined;
+
     // Step 7: Non-blocking react-native-tts speech synthesis if requested
     if (options.speakReply) {
       try {
-        await ttsService.speak(finalReply);
+        await ttsService.speak(spokenReply ?? finalReply);
       } catch (err) {
         console.warn('[ChatOrchestrator] TTS playback error:', err);
       }
@@ -1568,6 +1771,7 @@ export class ChatOrchestrator {
       review,
       ...(multiBatch ? {multiBatch} : {}),
       reply: finalReply,
+      ...(spokenReply ? {spokenReply} : {}),
     };
   }
 
@@ -1578,16 +1782,26 @@ export class ChatOrchestrator {
   async confirmReview(
     userId: string,
     operationId: string,
-    options: {speakReply?: boolean} = {},
+    options: {speakReply?: boolean; temporaryChat?: boolean} = {},
   ): Promise<ReviewDecisionResult> {
     const outcome = confirmReviewedCommand(userId, operationId);
     let assistantMessage: ChatMessage | null = null;
-    if (!(outcome.status === 'applied' && outcome.repeated)) {
+    if (
+      !(outcome.status === 'applied' && outcome.repeated) &&
+      !options.temporaryChat
+    ) {
+      const turn = reviewTurns.get(operationId);
+      if (outcome.status === 'applied') {
+        markReviewMessageResolved(userId, operationId, 'confirmed');
+      }
       try {
         assistantMessage = chatStore.addMessage(
           userId,
           'assistant',
           outcome.reply,
+          null,
+          {localReply: true},
+          turn?.sessionId,
         );
       } catch (error) {
         console.warn(
@@ -1635,21 +1849,32 @@ export class ChatOrchestrator {
   cancelReview(
     userId: string,
     operationId: string,
-    options: {recordInChat?: boolean} = {},
+    options: {recordInChat?: boolean; temporaryChat?: boolean} = {},
   ): ReviewDecisionResult {
     const cancelled = cancelReviewedCommand(userId, operationId);
     const reply = cancelled
       ? 'Cancelled. Nothing was changed.'
       : 'There was nothing to cancel. Nothing was changed.';
     let assistantMessage: ChatMessage | null = null;
-    if (cancelled && options.recordInChat !== false) {
-      try {
-        assistantMessage = chatStore.addMessage(userId, 'assistant', reply);
-      } catch (error) {
-        console.warn(
-          '[ChatOrchestrator] Could not save the cancellation to chat:',
-          error,
-        );
+    if (cancelled && !options.temporaryChat) {
+      const turn = reviewTurns.get(operationId);
+      markReviewMessageResolved(userId, operationId, 'cancelled');
+      if (options.recordInChat !== false) {
+        try {
+          assistantMessage = chatStore.addMessage(
+            userId,
+            'assistant',
+            reply,
+            null,
+            {localReply: true},
+            turn?.sessionId,
+          );
+        } catch (error) {
+          console.warn(
+            '[ChatOrchestrator] Could not save the cancellation to chat:',
+            error,
+          );
+        }
       }
     }
     return {cancelled, assistantMessage, reply};
@@ -1660,6 +1885,105 @@ export const chatOrchestrator = new ChatOrchestrator();
 
 const CHAT_REVIEW_CONFIRM_RE =
   /^(?:(?:yes|yeah|yep|yup|sure|ok(?:ay)?)(?:\s+please)?(?:\s+(?:confirm|save(?:\s+(?:it|that))?|do\s+it|go\s+ahead|apply))?|(?:confirm|save(?:\s+(?:it|that))?|do\s+it|go\s+ahead|apply)(?:\s+please)?)[.!]*$/i;
+
+/** A one-word yes/no that could just as well answer the model's question. */
+const BARE_CONFIRM_RE =
+  /^(?:yes|yeah|yep|yup|sure|ok(?:ay)?)(?:\s+please)?[.!]*$/i;
+const BARE_CANCEL_RE = /^(?:no|nope)[.!]*$/i;
+
+/** Which chat, and which assistant reply, offered each review card (audit M1). */
+const reviewTurns = new Map<
+  string,
+  {sessionId: string; assistantMessageId: string}
+>();
+const MAX_REMEMBERED_REVIEW_TURNS = 50;
+
+function rememberReviewTurn(
+  operationId: string,
+  sessionId: string,
+  assistantMessageId: string,
+): void {
+  reviewTurns.delete(operationId);
+  reviewTurns.set(operationId, {sessionId, assistantMessageId});
+  while (reviewTurns.size > MAX_REMEMBERED_REVIEW_TURNS) {
+    const oldest = reviewTurns.keys().next().value;
+    if (oldest === undefined) break;
+    reviewTurns.delete(oldest);
+  }
+}
+
+/** Keeps the originating chat bubble linked when a pending draft is edited. */
+export function rebindReviewTurn(
+  oldOperationId: string,
+  newOperationId: string,
+): void {
+  const existing = reviewTurns.get(oldOperationId);
+  if (!existing || oldOperationId === newOperationId) return;
+  reviewTurns.delete(oldOperationId);
+  rememberReviewTurn(
+    newOperationId,
+    existing.sessionId,
+    existing.assistantMessageId,
+  );
+}
+
+function markReviewMessageResolved(
+  userId: string,
+  operationId: string,
+  status: ChatReviewResolutionStatus,
+  fallbackSessionId?: string,
+): void {
+  try {
+    const turn = reviewTurns.get(operationId);
+    let targetMessageId = turn?.assistantMessageId;
+    if (!targetMessageId) {
+      const recent = chatStore.getRecentMessages(
+        userId,
+        6,
+        turn?.sessionId ?? fallbackSessionId,
+      );
+      for (let i = recent.length - 1; i >= 0; i -= 1) {
+        const msg = recent[i];
+        if (
+          msg.sender === 'assistant' &&
+          !msg.reviewResolution &&
+          /^(?:\*\*)?Please review:/i.test(msg.content.trim())
+        ) {
+          targetMessageId = msg.id;
+          break;
+        }
+      }
+    }
+    if (!targetMessageId) return;
+    chatStore.setReviewResolution(
+      userId,
+      targetMessageId,
+      {status, resolvedAt: new Date().toISOString()},
+      prev => formatResolvedReviewContent(prev),
+    );
+    reviewTurns.delete(operationId);
+  } catch (error) {
+    console.warn(
+      '[ChatOrchestrator] Could not mark review message resolved:',
+      error,
+    );
+  }
+}
+
+function lastAssistantMessageId(
+  userId: string,
+  sessionId: string,
+): string | null {
+  try {
+    const recent = chatStore.getRecentMessages(userId, 4, sessionId);
+    for (let i = recent.length - 1; i >= 0; i -= 1) {
+      if (recent[i].sender === 'assistant') return recent[i].id;
+    }
+  } catch {
+    // Unreadable history: treat the card as not the last turn.
+  }
+  return null;
+}
 
 /** "yes" / "confirm" said when no review card is open. */
 const NOTHING_PENDING_CONFIRM_RE =
@@ -1678,6 +2002,82 @@ const PLANNER_TOPIC_RE =
 
 export const needsPlannerContext = (text: string): boolean =>
   PLANNER_TOPIC_RE.test(text);
+
+const HANDBOOK_PART_UNAVAILABLE =
+  "For the USTP Student Handbook part of your question: the offline handbook isn't available on this device yet, so I can't check that policy right now.";
+
+/**
+ * Answers the handbook half of a mixed planner + policy message from the
+ * local handbook and appends it to the planner reply (audit H3). The planner
+ * half is never dropped and the handbook half is never silently ignored.
+ */
+async function appendHandbookPart(
+  reply: string,
+  text: string,
+  userId: string,
+): Promise<{reply: string; note: string | null}> {
+  const clause = extractHandbookClause(text);
+  if (!clause) {
+    return {reply, note: null};
+  }
+  const eligibility = getUstpEligibility(userId);
+  if (!eligibility.eligible) {
+    // The planner half is answered; the handbook half is explained, not searched.
+    return {
+      reply: `${reply}\n\nFor the USTP Student Handbook part of your question: ${ustpUnavailableMessage(
+        eligibility.reason,
+      )}`,
+      note: null,
+    };
+  }
+  try {
+    const status = await localHandbookService.ensureReady();
+    if (!status.populated) {
+      return {reply: `${reply}\n\n${HANDBOOK_PART_UNAVAILABLE}`, note: null};
+    }
+    const answer = await localHandbookService.answerOffline(clause);
+    return {
+      reply: `${reply}\n\n---\n\n${answer.reply}`,
+      note: handbookSourceLabel(answer.sources),
+    };
+  } catch (error) {
+    console.warn(
+      '[ChatOrchestrator] Handbook part of a mixed question:',
+      error,
+    );
+    return {reply: `${reply}\n\n${HANDBOOK_PART_UNAVAILABLE}`, note: null};
+  }
+}
+
+/** A question that explicitly asks for USTP or Student Handbook content. */
+const USTP_SCHOOL_CONTENT_RE =
+  /\b(?:ustp|student\s+handbook|handbook|university\s+of\s+science\s+and\s+technology\s+of\s+southern\s+philippines)\b/i;
+
+export const asksForUstpSchoolContent = (text: string): boolean =>
+  USTP_SCHOOL_CONTENT_RE.test(text);
+
+const plainChatIntent = (text: string): ValidatedIntent => ({
+  intent: 'chat',
+  title: '',
+  date: null,
+  time: null,
+  endTime: null,
+  durationMinutes: null,
+  category: 'Academic',
+  details: text,
+  snoozeMinutes: null,
+  confidence: 1,
+  source: 'fast_path',
+  rawTranscript: text,
+  isValid: true,
+});
+
+/** The model said the handbook excerpts it was given don't cover the question. */
+const HANDBOOK_DISCLAIMER_RE =
+  /\b(?:(?:excerpts?|handbook|passages?)\s+(?:provided\s+)?(?:do(?:es)?\s+not|don['’]t|doesn['’]t)\s+(?:specify|mention|cover|address|say|include|contain)|(?:not|isn['’]t)\s+(?:covered|mentioned|specified|addressed)\s+in\s+the\s+(?:provided\s+)?(?:handbook|excerpts?))/i;
+
+export const replyDisclaimsHandbook = (reply: string): boolean =>
+  HANDBOOK_DISCLAIMER_RE.test(reply);
 
 const WEEKDAY_NAMES = [
   'Sunday',

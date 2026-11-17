@@ -18,6 +18,8 @@ export interface CallLafinaScreenProps {
   onClose: () => void;
   onNavigate?: (target: CallNavigationTarget) => void;
   onMinimize?: () => void;
+  /** A card needs the student's answer; the app un-minimizes the call. */
+  onAttention?: () => void;
   deps?: (userId: string) => VoiceConversationDeps;
 }
 
@@ -31,6 +33,7 @@ export const CallLafinaScreen: React.FC<CallLafinaScreenProps> = ({
   userId,
   onClose,
   onMinimize,
+  onAttention,
   onNavigate,
   deps,
 }) => {
@@ -60,6 +63,7 @@ export const CallLafinaScreen: React.FC<CallLafinaScreenProps> = ({
         review={review}
         onBack={onClose}
         onMinimize={onMinimize}
+        onAttention={onAttention}
         onNavigate={onNavigate}
         deps={deps}
         fullScreen={true}

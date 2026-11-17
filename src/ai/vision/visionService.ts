@@ -134,4 +134,15 @@ export const visionService = {
     const text = await visionService.recognizeCorText(uri);
     return parseUstpCor(text);
   },
+
+  /**
+   * Same on-device recognition as `scanUstpCorFromUri`, also returning the
+   * recognized text so the COR review can show the original wording.
+   */
+  extractUstpCorFromUri: async (
+    uri: string,
+  ): Promise<{text: string; parsed: ParsedUstpCorResult}> => {
+    const text = await visionService.recognizeCorText(uri);
+    return {text, parsed: parseUstpCor(text)};
+  },
 };

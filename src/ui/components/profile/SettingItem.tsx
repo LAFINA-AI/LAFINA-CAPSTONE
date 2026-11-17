@@ -1,9 +1,16 @@
-import React, { useRef } from 'react';
-import { View, Text, Switch, TouchableOpacity, StyleSheet, Platform } from 'react-native';
-import { ChevronRight } from 'lucide-react-native';
-import { Fonts, useThemedStyles } from '../../theme';
-import { useTheme } from '../../contexts/ThemeContext';
-import type { ThemeColors } from '../../contexts/ThemeContext';
+import React, {useRef} from 'react';
+import {
+  View,
+  Text,
+  Switch,
+  TouchableOpacity,
+  StyleSheet,
+  Platform,
+} from 'react-native';
+import {ChevronRight} from 'lucide-react-native';
+import {Fonts, useThemedStyles} from '../../theme';
+import {useTheme} from '../../contexts/ThemeContext';
+import type {ThemeColors} from '../../contexts/ThemeContext';
 
 export interface ToggleOrigin {
   x: number;
@@ -29,7 +36,7 @@ export const SettingItem: React.FC<SettingItemProps> = ({
   onPress,
   isDestructive = false,
 }) => {
-  const { colors, isModern } = useTheme();
+  const {colors, isModern} = useTheme();
   const themed = useThemedStyles(getThemedStyles);
   const touchRef = useRef<ToggleOrigin | null>(null);
 
@@ -38,20 +45,25 @@ export const SettingItem: React.FC<SettingItemProps> = ({
       <View style={styles.settingItem}>
         <Text style={[styles.settingText, themed.settingText]}>{text}</Text>
         <View
-          onTouchStart={(event) => {
-            touchRef.current = { x: event.nativeEvent.pageX, y: event.nativeEvent.pageY };
+          onTouchStart={event => {
+            touchRef.current = {
+              x: event.nativeEvent.pageX,
+              y: event.nativeEvent.pageY,
+            };
           }}
         >
           <Switch
             accessibilityLabel={text}
             value={value}
-            onValueChange={(next) => {
+            onValueChange={next => {
               const origin = touchRef.current;
               touchRef.current = null;
               onValueChange?.(next, origin);
             }}
-            trackColor={{ false: colors.switchTrackOff, true: colors.red }}
-            thumbColor={Platform.OS === 'android' ? colors.switchThumb : undefined}
+            trackColor={{false: colors.switchTrackOff, true: colors.red}}
+            thumbColor={
+              Platform.OS === 'android' ? colors.switchThumb : undefined
+            }
           />
         </View>
       </View>
@@ -67,7 +79,9 @@ export const SettingItem: React.FC<SettingItemProps> = ({
         activeOpacity={onPress ? 0.7 : 1}
       >
         <Text style={[styles.settingText, themed.settingText]}>{text}</Text>
-        <Text style={[styles.settingValue, themed.settingValue]}>{valueText}</Text>
+        <Text style={[styles.settingValue, themed.settingValue]}>
+          {valueText}
+        </Text>
       </TouchableOpacity>
     );
   }
@@ -83,7 +97,7 @@ export const SettingItem: React.FC<SettingItemProps> = ({
           style={[
             styles.settingText,
             themed.settingText,
-            isDestructive && { color: colors.error, fontWeight: 'bold' },
+            isDestructive && {color: colors.error, fontWeight: 'bold'},
           ]}
         >
           {text}
@@ -99,7 +113,18 @@ export const SettingItem: React.FC<SettingItemProps> = ({
       activeOpacity={0.7}
     >
       <Text style={[styles.settingText, themed.settingText]}>{text}</Text>
-      {valueText && <Text style={[styles.linkValue, themed.settingValue]}>{valueText}</Text>}
+      {valueText && (
+        <Text
+          style={[
+            styles.linkValue,
+            isModern && styles.modernLinkValue,
+            themed.settingValue,
+          ]}
+          numberOfLines={1}
+        >
+          {valueText}
+        </Text>
+      )}
       {isModern ? (
         <ChevronRight size={16} color={colors.textMuted} />
       ) : (
@@ -132,6 +157,11 @@ const styles = StyleSheet.create({
     fontSize: 11,
     marginLeft: 'auto',
     marginRight: 8,
+  },
+  modernLinkValue: {
+    fontSize: 12.5,
+    fontFamily: Fonts.body,
+    maxWidth: '46%',
   },
   linkArrow: {
     fontSize: 12,

@@ -1,6 +1,7 @@
 import React from 'react';
-import {fireEvent, render, waitFor} from '@testing-library/react-native';
+import {act, fireEvent, render, waitFor} from '@testing-library/react-native';
 import {ChatScreen} from '../../src/ui/screens/ChatScreen';
+import {SUGGESTED_PROMPTS} from '../../src/ui/components/chat/ChatInput';
 import {ThemeProvider} from '../../src/ui/contexts/ThemeContext';
 import {MeetingsProvider} from '../../src/ui/contexts/MeetingsContext';
 import {
@@ -8,10 +9,16 @@ import {
   chatStore,
   initDatabase,
   localSettingsStore,
+  notesStore,
+  remindersStore,
+  tasksStore,
+  timeBlocksStore,
   userStore,
 } from '../../src/storage';
+import {parseIntentFastPath} from '../../src/ai/nlu/fastPathParser';
 import * as modelManager from '../../src/ai/nlu/modelManager';
 import {accountLinkService} from '../../src/cloud';
+import {enableUstpForTest} from '../fixtures/ustpEligibility';
 
 describe('UniGuide-inspired Chat Tab Redesign', () => {
   let userCounter = 0;
@@ -90,33 +97,14 @@ describe('UniGuide-inspired Chat Tab Redesign', () => {
 
   it('shows personalized greeting, LAFINA mascot, and 2x2 sample chat cards with distinct icons', () => {
     const guest = userStore.createGuestUser();
-    academicProfileStore.save(guest.id, {
-      isUstpStudent: true,
+    // Onboarding redesign: COR details count only after review and confirmation.
+    enableUstpForTest(guest.id, {
       campus: 'USTP CDO Campus',
-      registrationNo: '111',
-      studentNo: '2024300617',
-      fullName: 'SANTOS, MARA',
       formattedName: 'Mara Santos',
       preferredName: 'Mara',
-      gender: 'F',
-      age: 20,
-      nationality: 'Filipino',
-      college: 'CITC',
-      collegeShort: 'CITC',
       program: 'BSIT',
-      major: 'N/A',
       yearLevel: '2nd Year',
-      yearLevelShort: '2nd Year',
-      curriculum: 'CITC-2024',
-      academicTerm: '1st Semester',
-      academicYearTerm: '1st Semester AY 2025-2026',
       section: 'IT2R1',
-      primarySection: 'IT2R1',
-      totalUnits: '0',
-      totalLecUnits: 0,
-      totalLabUnits: 0,
-      totalCreditUnits: 0,
-      courses: [],
     });
 
     try {
@@ -134,14 +122,16 @@ describe('UniGuide-inspired Chat Tab Redesign', () => {
       expect(chip0.findByProps({accessibilityLabel: 'Clock'})).toBeTruthy();
       expect(chip1.findByProps({accessibilityLabel: 'BookOpen'})).toBeTruthy();
       expect(
-        chip2.findByProps({accessibilityLabel: 'AlarmClock'}),
+        chip2.findByProps({accessibilityLabel: 'CheckSquare'}),
       ).toBeTruthy();
-      expect(chip3.findByProps({accessibilityLabel: 'FileText'})).toBeTruthy();
+      expect(
+        chip3.findByProps({accessibilityLabel: 'CalendarDays'}),
+      ).toBeTruthy();
 
       expect(getByText("Today's Schedule")).toBeTruthy();
-      expect(getByText('Plan Study Block')).toBeTruthy();
-      expect(getByText('Set Reminder')).toBeTruthy();
-      expect(getByText('Quick Note')).toBeTruthy();
+      expect(getByText('Free Study Time')).toBeTruthy();
+      expect(getByText('Pending Tasks')).toBeTruthy();
+      expect(getByText('Upcoming Schedule')).toBeTruthy();
     } finally {
       academicProfileStore.clear(guest.id);
     }
@@ -149,6 +139,7 @@ describe('UniGuide-inspired Chat Tab Redesign', () => {
 
   it('renders a clean Chat sidebar without wall-of-text clutter and opens CommandGuide from What can you ask?', async () => {
     const userId = nextUser();
+    enableUstpForTest(userId);
     const {getByTestId, getByText, queryByText, findByText} =
       renderChat(userId);
 
@@ -164,6 +155,7 @@ describe('UniGuide-inspired Chat Tab Redesign', () => {
     expect(getByText('New chat')).toBeTruthy();
     expect(getByText('Temporary')).toBeTruthy();
     expect(getByText('USTP Handbook')).toBeTruthy();
+    expect(queryByText('RAG')).toBeNull();
     expect(getByText('Camera')).toBeTruthy();
     expect(getByText('Gallery')).toBeTruthy();
     expect(getByTestId('chat-history-filter-all')).toBeTruthy();
@@ -206,6 +198,9 @@ describe('UniGuide-inspired Chat Tab Redesign', () => {
         }));
       });
 
+    jest
+      .spyOn(modelManager, 'isOfflineModelEngineAvailable')
+      .mockResolvedValue(true);
     const downloadSpy = jest
       .spyOn(modelManager, 'downloadOfflineModel')
       .mockImplementation(async (_id, onProgress) => {
@@ -262,5 +257,38 @@ describe('UniGuide-inspired Chat Tab Redesign', () => {
     await waitFor(() => {
       expect(getByText('Gemma 3 270M')).toBeTruthy();
     });
+  });
+
+  it('quick action cards run read-only schedule/task queries and never create dummy items', async () => {
+    const refDate = new Date('2026-11-16T09:00:00');
+    const intents = SUGGESTED_PROMPTS.map(prompt =>
+      parseIntentFastPath(prompt, refDate),
+    );
+    expect(intents.map(item => item?.intent)).toEqual([
+      'query_schedule',
+      'query_schedule',
+      'query_schedule',
+      'query_schedule',
+    ]);
+    expect(intents[1]?.details).toBe('free_slots');
+    expect(intents[2]?.details).toBe('todo_list');
+    expect(intents[3]?.dateRange).toBe('this_week');
+
+    for (let index = 0; index < 4; index += 1) {
+      const userId = nextUser();
+      const {getByTestId, queryByTestId} = renderChat(userId);
+      await act(async () => {
+        fireEvent.press(getByTestId(`chat-prompt-chip-${index}`));
+      });
+      await waitFor(() => {
+        expect(chatStore.getMessages(userId).length).toBe(2);
+      });
+      expect(queryByTestId('command-review-card')).toBeNull();
+      expect(tasksStore.getAllTasks(userId)).toHaveLength(0);
+      expect(tasksStore.getAllEvents(userId)).toHaveLength(0);
+      expect(timeBlocksStore.getAll(userId)).toHaveLength(0);
+      expect(remindersStore.getAllReminders(userId)).toHaveLength(0);
+      expect(notesStore.getAll(userId)).toHaveLength(0);
+    }
   });
 });

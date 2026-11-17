@@ -10,10 +10,10 @@ export interface SplashTiming {
 }
 
 export const SPLASH_TIMING: SplashTiming = {
-  introMs: 480,
-  minVoiceMs: 620,
-  settleMs: 300,
-  releaseMs: 340,
+  introMs: 180,
+  minVoiceMs: 220,
+  settleMs: 60,
+  releaseMs: 140,
 };
 
 export const REDUCED_MOTION_TIMING: SplashTiming = {
@@ -53,13 +53,13 @@ export const splashMomentAt = (
 ): SplashMoment => {
   const elapsed = Math.max(0, elapsedMs);
   if (elapsed < timing.introMs) {
-    return { phase: 'intro', progress: elapsed / timing.introMs };
+    return {phase: 'intro', progress: elapsed / timing.introMs};
   }
   const exit = splashExitStart(readyAtMs, timing);
-  if (exit === null || elapsed < exit) return { phase: 'voice', progress: 0 };
+  if (exit === null || elapsed < exit) return {phase: 'voice', progress: 0};
   const since = elapsed - exit;
   if (since < timing.settleMs) {
-    return { phase: 'settle', progress: since / timing.settleMs };
+    return {phase: 'settle', progress: since / timing.settleMs};
   }
   if (since < timing.settleMs + timing.releaseMs) {
     return {
@@ -67,7 +67,7 @@ export const splashMomentAt = (
       progress: (since - timing.settleMs) / timing.releaseMs,
     };
   }
-  return { phase: 'done', progress: 1 };
+  return {phase: 'done', progress: 1};
 };
 
 const clamp01 = (value: number): number => Math.min(1, Math.max(0, value));
@@ -84,7 +84,7 @@ export interface SplashLook {
   opacity: number;
 }
 
-export const splashLookAt = ({ phase, progress }: SplashMoment): SplashLook => {
+export const splashLookAt = ({phase, progress}: SplashMoment): SplashLook => {
   switch (phase) {
     case 'intro':
       return {
@@ -94,7 +94,7 @@ export const splashLookAt = ({ phase, progress }: SplashMoment): SplashLook => {
         opacity: 1,
       };
     case 'voice':
-      return { reveal: 1, amplitude: 1, stretch: 1, opacity: 1 };
+      return {reveal: 1, amplitude: 1, stretch: 1, opacity: 1};
     case 'settle':
       return {
         reveal: 1,
@@ -110,7 +110,7 @@ export const splashLookAt = ({ phase, progress }: SplashMoment): SplashLook => {
         opacity: 1 - easeInOutCubic(progress),
       };
     default:
-      return { reveal: 1, amplitude: 0, stretch: 2.6, opacity: 0 };
+      return {reveal: 1, amplitude: 0, stretch: 2.6, opacity: 0};
   }
 };
 
@@ -126,7 +126,8 @@ export const voiceLevelAt = (seconds: number): number => {
     0.13 * Math.sin(TAU * 5.3 * seconds + 1.2) +
     0.09 * Math.sin(TAU * 1.7 * seconds + 0.4);
   const breath =
-    seconds > VOICE_BREATH_AFTER_S && Math.sin(TAU * 0.43 * seconds + 0.9) < -0.9
+    seconds > VOICE_BREATH_AFTER_S &&
+    Math.sin(TAU * 0.43 * seconds + 0.9) < -0.9
       ? 0.55
       : 1;
   const vibrato = 1 + 0.035 * Math.sin(TAU * 6.4 * seconds);

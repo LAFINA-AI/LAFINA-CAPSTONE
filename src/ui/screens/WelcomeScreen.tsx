@@ -1,17 +1,7 @@
-import React, { useState } from 'react';
-import {
-  View,
-  Text,
-  TouchableOpacity,
-  StyleSheet,
-  Image,
-  ScrollView,
-} from 'react-native';
-import {Fonts, Layout, ModernLayout, Shadows} from '../theme';
+import React, {useState} from 'react';
 import {userStore} from '../../storage';
-import {useThemedStyles} from '../theme/createThemedStyles';
-import {useTheme} from '../contexts/ThemeContext';
-import type {ThemeColors} from '../contexts/ThemeContext';
+import {onboardingProgressStore} from '../../storage/onboardingProgressStore';
+import {IntroPager} from './onboarding/IntroPager';
 
 interface WelcomeScreenProps {
   onGetStarted: (userId: string) => void;
@@ -19,16 +9,31 @@ interface WelcomeScreenProps {
   onNavigateToRegister: () => void;
 }
 
+/**
+ * The introduction shown before anyone signs in (four pages: what LAFINA
+ * is, planning by text or voice, USTP handbook answers for students with a
+ * COR, and local-first storage). After it has been seen once on this phone
+ * it opens on the last page. Starting without an account reuses the
+ * phone's guest profile; it never creates a second guest identity.
+ */
 export const WelcomeScreen: React.FC<WelcomeScreenProps> = ({
   onGetStarted,
   onNavigateToLogin,
   onNavigateToRegister,
 }) => {
-  const {isModern, modernPalette, modernShadows} = useTheme();
-  const themed = useThemedStyles(getWelcomeThemedStyles);
   const [startFailed, setStartFailed] = useState(false);
+  const [initialPage] = useState(() => (onboardingProgressStore.introSeen() ? 3 : 0));
+
+  const markSeen = () => {
+    try {
+      onboardingProgressStore.markIntroSeen();
+    } catch {
+      // Not remembering the introduction only means it is shown again.
+    }
+  };
 
   const handleGetStarted = () => {
+    markSeen();
     let guestId: string;
     try {
       const guest = userStore.createGuestUser();
@@ -44,210 +49,23 @@ export const WelcomeScreen: React.FC<WelcomeScreenProps> = ({
   };
 
   return (
-    <ScrollView contentContainerStyle={styles.container} bounces={false}>
-      <View
-        style={[
-          styles.card,
-          isModern ? modernShadows.card : Shadows.card,
-          themed.card,
-          isModern && {
-            borderRadius: ModernLayout.borderRadiusCard,
-            borderWidth: 1,
-            borderColor: modernPalette.border,
-          },
-        ]}
-      >
-        <Image
-          source={require('../../assets/lafina_default_logo.png')}
-          style={styles.logo}
-          resizeMode="contain"
-          accessibilityLabel="LAFINA"
-        />
-        <Text style={[styles.tagline, themed.tagline]}>Your Offline AI Scheduler</Text>
-        <Text style={[styles.description, themed.description]}>
-          Offline-first smart scheduling, voice notes, and calendar management — no account required.
-        </Text>
-
-        <TouchableOpacity
-          style={[
-            styles.primaryButton,
-            themed.primaryButton,
-            isModern && modernShadows.subtle,
-            isModern && {
-              borderRadius: ModernLayout.borderRadiusPill,
-              backgroundColor: modernPalette.accent,
-            },
-          ]}
-          onPress={handleGetStarted}
-          activeOpacity={0.8}
-        >
-          <Text style={[styles.primaryButtonText, themed.primaryButtonText]}>Get Started Free</Text>
-          <Text style={[styles.primaryButtonSubtext, themed.primaryButtonText]}>
-            No account needed
-          </Text>
-        </TouchableOpacity>
-
-        {startFailed ? (
-          <Text accessibilityLiveRegion="polite" style={[styles.errorText, themed.errorText]}>
-            LAFINA couldn’t save your guest profile, so nothing was started. Please try again.
-          </Text>
-        ) : null}
-
-        <View style={styles.dividerRow}>
-          <View style={[styles.dividerLine, themed.dividerLine]} />
-          <Text style={[styles.dividerText, themed.dividerText]}>or</Text>
-          <View style={[styles.dividerLine, themed.dividerLine]} />
-        </View>
-
-        <TouchableOpacity
-          style={[
-            styles.secondaryButton,
-            themed.secondaryButton,
-            isModern && {
-              borderRadius: ModernLayout.borderRadiusPill,
-              borderColor: modernPalette.border,
-            },
-          ]}
-          onPress={onNavigateToRegister}
-          activeOpacity={0.8}
-        >
-          <Text style={[styles.secondaryButtonText, themed.secondaryButtonText]}>
-            Create Account
-          </Text>
-        </TouchableOpacity>
-
-        <View style={styles.footer}>
-          <Text style={[styles.footerText, themed.footerText]}>Already have an account? </Text>
-          <TouchableOpacity onPress={onNavigateToLogin}>
-            <Text
-              style={[
-                styles.loginLink,
-                themed.loginLink,
-                isModern && {color: modernPalette.accent},
-              ]}
-            >
-              Log In
-            </Text>
-          </TouchableOpacity>
-        </View>
-      </View>
-    </ScrollView>
+    <IntroPager
+      mode="welcome"
+      initialPage={initialPage}
+      onFinish={handleGetStarted}
+      onSignIn={() => {
+        markSeen();
+        onNavigateToLogin();
+      }}
+      onCreateAccount={() => {
+        markSeen();
+        onNavigateToRegister();
+      }}
+      error={
+        startFailed
+          ? 'LAFINA couldn’t save your guest profile, so nothing was started. Please try again.'
+          : null
+      }
+    />
   );
 };
-
-const getWelcomeThemedStyles = (colors: ThemeColors) => ({
-  card: { backgroundColor: colors.cardBg },
-  tagline: { color: colors.textPrimary },
-  description: { color: colors.textSecondary },
-  primaryButton: { backgroundColor: colors.blue },
-  primaryButtonText: { color: colors.white },
-  dividerLine: { backgroundColor: colors.border },
-  dividerText: { color: colors.textSecondary },
-  secondaryButton: { borderColor: colors.border, backgroundColor: colors.cardBg },
-  secondaryButtonText: { color: colors.textPrimary },
-  footerText: { color: colors.textSecondary },
-  loginLink: { color: colors.blue },
-  errorText: { color: colors.error },
-});
-
-const styles = StyleSheet.create({
-  errorText: {
-    fontFamily: Fonts.body,
-    fontSize: 13,
-    textAlign: 'center',
-    marginTop: 12,
-  },
-  container: {
-    flexGrow: 1,
-    justifyContent: 'center',
-    padding: 24,
-  },
-  card: {
-    borderRadius: Layout.borderRadiusCard,
-    paddingHorizontal: 24,
-    paddingTop: 28,
-    paddingBottom: 24,
-    alignItems: 'center',
-  },
-  logo: {
-    width: 180,
-    height: 80,
-    marginBottom: 12,
-  },
-  tagline: {
-    fontFamily: Fonts.heading,
-    fontSize: 22,
-    fontWeight: 'bold',
-    textAlign: 'center',
-    marginBottom: 8,
-  },
-  description: {
-    fontFamily: Fonts.body,
-    fontSize: 14,
-    textAlign: 'center',
-    lineHeight: 20,
-    marginBottom: 28,
-  },
-  primaryButton: {
-    width: '100%',
-    height: 56,
-    borderRadius: Layout.borderRadiusButton,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: 20,
-  },
-  primaryButtonText: {
-    fontFamily: Fonts.body,
-    fontWeight: 'bold',
-    fontSize: 16,
-  },
-  primaryButtonSubtext: {
-    fontFamily: Fonts.body,
-    fontSize: 11,
-    marginTop: 2,
-    opacity: 0.9,
-  },
-  dividerRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    width: '100%',
-    marginBottom: 20,
-  },
-  dividerLine: {
-    flex: 1,
-    height: 1,
-  },
-  dividerText: {
-    fontFamily: Fonts.body,
-    fontSize: 12,
-    marginHorizontal: 12,
-  },
-  secondaryButton: {
-    width: '100%',
-    height: 48,
-    borderRadius: Layout.borderRadiusButton,
-    borderWidth: 1.5,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  secondaryButtonText: {
-    fontFamily: Fonts.body,
-    fontWeight: 'bold',
-    fontSize: 15,
-  },
-  footer: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    marginTop: 24,
-  },
-  footerText: {
-    fontFamily: Fonts.body,
-    fontSize: 14,
-  },
-  loginLink: {
-    fontFamily: Fonts.body,
-    fontWeight: 'bold',
-    fontSize: 14,
-    textDecorationLine: 'underline',
-  },
-});

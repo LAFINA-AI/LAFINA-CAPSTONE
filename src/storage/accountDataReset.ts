@@ -10,6 +10,8 @@ import {chatStore} from './chatStore';
 import {chatMemoryStore} from './chatMemoryStore';
 import {personalMemoryStore} from './personalMemoryStore';
 import {academicProfileStore} from './academicProfileStore';
+import {corImportStore} from './corImportStore';
+import {studentSetupStore} from './studentSetupStore';
 import {
   attachmentCleanupTarget,
   pendingAttachmentCleanup,
@@ -224,6 +226,16 @@ export const resetPersonalData = (
       // Codex audit A3: saved event defaults are personal scheduling memory.
       personalMemoryStore.clearForDataReset(userId);
       academicProfileStore.clear(userId);
+      // The reviewed COR import goes with the academic profile; the declared
+      // affiliation stays, so USTP students return to "COR pending".
+      corImportStore.clear(userId);
+      if (studentSetupStore.get(userId).corStatus === 'confirmed') {
+        studentSetupStore.update(userId, {
+          corStatus: 'pending',
+          confirmedImportId: null,
+          confirmedAt: null,
+        });
+      }
       defaults = 'cleared';
     } catch (error) {
       console.warn(

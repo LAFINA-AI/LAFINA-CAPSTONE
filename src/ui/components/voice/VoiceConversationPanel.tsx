@@ -6,6 +6,7 @@ import React, {useCallback, useEffect, useRef, useState} from 'react';
 import {
   ActivityIndicator,
   Linking,
+  ScrollView,
   StyleSheet,
   Text,
   TextInput,
@@ -34,7 +35,7 @@ import type {ThemeColors} from '../../contexts/ThemeContext';
 import {useThemedStyles} from '../../theme/createThemedStyles';
 import {chatOrchestrator} from '../../../ai/chatOrchestrator';
 import {UndoSnackbar} from '../chat/UndoSnackbar';
-import type {UndoOffer} from '../../../ai/nlu/commandReview';
+import type {PrepareResult, UndoOffer} from '../../../ai/nlu/commandReview';
 import {SynthWaveAvatar} from '../callLafina/SynthWaveAvatar';
 import {enableOnlineMode, voiceConsent} from '../../../cloud/voiceConversation';
 import type {
@@ -79,7 +80,6 @@ import {
   prepareReviewedCommand,
   latestPendingReview,
   reviseReviewedCommand,
-  confirmReviewedCommand,
   cancelReviewedCommand,
   appliedReviewReply,
 } from '../../../ai/nlu/commandReview';
@@ -87,10 +87,14 @@ import {
   hasStructuredAction,
   prepareStructuredReview,
   SUGGESTED_CARD_NOTE,
-  isReferenceTitle,
 } from '../../../ai/voiceActions/structuredAction';
 import type {StructuredActionArgs} from '../../../ai/voiceActions/structuredAction';
 import {validatePayload} from '../../../ai/voiceActions/actionValidator';
+
+import {
+  hasDraftApproval,
+  isCompoundVoiceRequest,
+} from '../../../cloud/voiceConversation/turnPolicy';
 
 const DATA_CONSENT = 'voiceConversation.directDataConsent.v1';
 
@@ -103,6 +107,11 @@ export interface VoiceConversationPanelProps {
   /** Minimize call to in-app mini bar without ending the session (Phase 13, F-054). */
   onMinimize?: () => void;
   onNavigate?: (target: CallNavigationTarget) => void;
+  /**
+   * A card that needs the student's answer was just put on screen. The host
+   * brings a minimized call forward so the card is never out of sight.
+   */
+  onAttention?: () => void;
   /** Tests inject fakes. */
   deps?: (userId: string) => VoiceConversationDeps;
   /** Whether the panel is rendered in full-screen presentation. Defaults to true. */
@@ -140,17 +149,32 @@ const statusLine = (snapshot: ConversationSnapshot, hasReviewItem = false) => {
   return PHASE_TEXT[snapshot.phase] ?? '';
 };
 
+/** What the model hears when nothing was prepared; it must not claim a card. */
+const NO_ACTION_REPLY =
+  'No action was prepared and no card is on screen. Nothing was saved. Do not tell the student a card is shown. Ask them to say what to add or change, with a day and time if it needs one.';
+
+/** Shown when LAFINA talks about a card that is not on screen. */
+const NO_CARD_NOTE =
+  'No card was prepared, so nothing was saved. Say what to add or change again, or tap Type.';
+
+/** LAFINA telling the student a card or draft is on screen. */
+const CARD_CLAIM_RE =
+  /\b(?:card|draft)\b[^.?!]*\b(?:on\s+(?:your|the)\s+screen|is\s+(?:now\s+)?(?:shown|showing|ready|up)|check|review|confirm|tap)\b|\b(?:put|placed|prepared|showing|pulled\s+up)\b[^.?!]*\b(?:card|draft)\b|\b(?:check|review|confirm|tap)\b[^.?!]*\b(?:card|draft)\b/i;
+/** "There is no card", "I could not prepare a draft": not a claim. */
+const CARD_DENIAL_RE =
+  /\b(?:no|not|never|without|cannot|can['’]?t|couldn['’]?t|didn['’]?t|wasn['’]?t|isn['’]?t)\b[^.?!]*\b(?:card|draft)\b/i;
+
+/** How long a card may still arrive after LAFINA mentions it. */
+const CARD_CLAIM_GRACE_MS = 600;
+
+type CardKind = 'review' | 'batch' | 'memory';
+
 const LIVE = new Set<ConversationPhase>([
   'listening',
   'thinking',
   'tool_working',
   'speaking',
 ]);
-
-const isVoiceDraftConfirm = (text: string): boolean =>
-  /^(?:yes|yeah|yep|yup|sure|ok(?:ay)?|confirm(?:\s+(?:it|that))?|save(?:\s+(?:it|that))?|lock(?:\s+it)?\s+in|go\s+ahead|do\s+it|sounds\s+good|please\s+(?:save(?:\s+(?:it|that))?|confirm(?:\s+(?:it|that))?)|yes\s*,?\s*(?:please|save(?:\s+(?:it|that))?|confirm(?:\s+(?:it|that))?|lock(?:\s+it)?\s+in))(?:\s+(?:please|lafina))?[.!]?$/i.test(
-    text.trim(),
-  );
 
 const isVoiceDraftRevision = (text: string): boolean => {
   const t = text.trim();
@@ -163,7 +187,8 @@ const isVoiceDraftRevision = (text: string): boolean => {
   if (
     /^(?:what|which|who|where|when|why|how\s+(?:many|much|long\s+is\s+my)|do\s+i|is\s+(?:there|that|it)\s+on|check|find|search|show|list)\b/i.test(
       t,
-    )
+    ) &&
+    !/^(?:what|how)\s+about\b/i.test(t)
   ) {
     return false;
   }
@@ -187,6 +212,7 @@ export const VoiceConversationPanel: React.FC<VoiceConversationPanelProps> = ({
   onBack,
   onMinimize,
   onNavigate,
+  onAttention,
   deps,
   fullScreen = true,
 }) => {
@@ -224,9 +250,30 @@ export const VoiceConversationPanel: React.FC<VoiceConversationPanelProps> = ({
   const actionSession = useRef(generateId('call-actions'));
   ownerRef.current = userId;
   const lastUserRequest = useRef('');
+  const preparedTurn = useRef<{
+    ticket: number;
+    signature: string;
+    id: string;
+  } | null>(null);
+  /** The student's words the device already executed this call (audit L10). */
+  const executedTurn = useRef<{text: string; reply: string} | null>(null);
   const voiceTurns = useRef<string[]>([]);
   const awaitingDetails = useRef(false);
-  const groundedReply = useRef('No action was prepared. Nothing was saved.');
+  const groundedReply = useRef(NO_ACTION_REPLY);
+  /**
+   * The device's reading of the student's latest turn. The model's
+   * prepare_lafina_action for the same words waits for it instead of reading
+   * them a second time (two cards, one replacing the other).
+   */
+  const turnReview = useRef<{
+    text: string;
+    done: Promise<void>;
+    handled: boolean;
+  } | null>(null);
+  const attentionRef = useRef(onAttention);
+  attentionRef.current = onAttention;
+  /** Which card the stage shows when more than one is open. */
+  const [cardFocus, setCardFocus] = useState<CardKind | null>(null);
   const lastLocalRevision = useRef<{
     oldId: string;
     newId: string;
@@ -270,6 +317,45 @@ export const VoiceConversationPanel: React.FC<VoiceConversationPanelProps> = ({
     memoryActionId: activeMemoryActionId.current,
     batch: activeMultiBatch,
   };
+  /**
+   * Puts a review card on the stage and in front. A memory or grouped card
+   * that is already finished (saved, cancelled) steps aside, so the card
+   * LAFINA is talking about is the one the student sees.
+   */
+  const presentReview = useCallback(
+    (prepared: PrepareResult | null | undefined): boolean => {
+      if (prepared?.status !== 'proposal') return false;
+      reviewRef.current.present(prepared);
+      const cards = currentCards.current;
+      if (cards.memory && cards.memory.status !== 'draft') {
+        setActiveMemoryProposal(null);
+        activeMemoryActionId.current = null;
+      }
+      if (
+        cards.batch &&
+        cards.batch.status !== 'draft' &&
+        cards.batch.status !== 'partial' &&
+        cards.batch.status !== 'failed'
+      ) {
+        setActiveMultiBatch(null);
+      }
+      setCardFocus('review');
+      return true;
+    },
+    [],
+  );
+  const showMemoryCard = useCallback(
+    (proposal: MemoryProposalData, actionId: string): void => {
+      activeMemoryActionId.current = actionId;
+      setActiveMemoryProposal(proposal);
+      setCardFocus('memory');
+    },
+    [],
+  );
+  const showBatchCard = useCallback((batch: MultiActionBatchData): void => {
+    setActiveMultiBatch(batch);
+    setCardFocus('batch');
+  }, []);
   const [settingsModalVisible, setSettingsModalVisible] = useState(false);
   const [callSettings, setCallSettings] = useState<CallLafinaSettings>(() =>
     getCallLafinaSettings(userId),
@@ -279,272 +365,296 @@ export const VoiceConversationPanel: React.FC<VoiceConversationPanelProps> = ({
   const [callDuration, setCallDuration] = useState(0);
   const callConnectedAt = useRef<number | null>(null);
 
-  // Non-scrolling ChatGPT-style screen swaps circular orb for active cards.
-
-  // A finished spoken turn is also read on the device: a planner change
-  // becomes a review card (nothing is saved until Confirm), and a schedule
-  // question gets the on-device answer next to the spoken one.
-  const onFinalUserText = useCallback((text: string) => {
-    if (!isToolExecutionPermitted(ownerRef.current).permitted) return;
-    const session = actionSession.current;
-    const ticket = ++turnTicket.current;
-    voiceTurns.current = [...voiceTurns.current, text].slice(-8);
-    lastUserRequest.current = text;
-    const owner = ownerRef.current;
-    const fact = explicitMemory(text);
-    if (fact) {
-      const prepared = actionService.createMemoryProposal(
-        owner,
-        actionSession.current,
-        fact,
-        text,
-      );
-      activeMemoryActionId.current = prepared.actionId;
-      setActiveMemoryProposal(prepared.proposal);
-      setLocalNote('Review the memory card. Nothing has been saved.');
-      void conversationRef.current?.sendContext(
-        'Memory review card shown for "' +
-          prepared.proposal.text +
-          '". Card ID: ' +
-          prepared.actionId +
-          '; revision: 1. Call confirm_draft to save it if the student confirms or asks you to save it.',
-      );
-      return;
-    }
-    const cards = currentCards.current;
-    const pending = latestPendingReview(owner, 'voice');
-    const memoryOpen = cards.memory?.status === 'draft';
-    const batchOpen =
-      cards.batch &&
-      (cards.batch.status === 'draft' ||
-        cards.batch.status === 'partial' ||
-        cards.batch.status === 'failed');
-    const openCount =
-      Number(!!pending) + Number(memoryOpen) + Number(!!batchOpen);
-    const trimmed = text.trim();
-
-    if (
-      /^(?:cancel(?:\s+that|\s+it)?|never\s*mind|don['\u2019]?t\s+save(?:\s+(?:it|that))?|discard(?:\s+(?:it|that))?)[.!]?$/i.test(
-        trimmed,
-      )
-    ) {
-      if (openCount > 1) {
-        setLocalNote(
-          'Which draft should I cancel? Use Cancel on the card you mean.',
+  // Keep the live avatar visible in compact form alongside active cards.
+  // Read questions can use local data immediately. Online tools interpret
+  // planner changes into structured review cards before student confirmation.
+  const onFinalUserText = useCallback(
+    (text: string) => {
+      if (!isToolExecutionPermitted(ownerRef.current).permitted) return;
+      const session = actionSession.current;
+      const ticket = ++turnTicket.current;
+      voiceTurns.current = [...voiceTurns.current, text].slice(-8);
+      lastUserRequest.current = text;
+      // What an earlier turn prepared is not this turn's answer: a stale "card
+      // is on screen" here made LAFINA announce a card that was long gone.
+      groundedReply.current = NO_ACTION_REPLY;
+      turnReview.current = null;
+      const owner = ownerRef.current;
+      const fact = explicitMemory(text);
+      if (fact) {
+        const prepared = actionService.createMemoryProposal(
+          owner,
+          actionSession.current,
+          fact,
+          text,
         );
+        showMemoryCard(prepared.proposal, prepared.actionId);
+        setLocalNote('Review the memory card. Nothing has been saved.');
         void conversationRef.current?.sendContext(
-          'There is more than one open draft. Ask which card to cancel. Nothing was canceled or saved.',
+          'Memory review card shown for "' +
+            prepared.proposal.text +
+            '". Card ID: ' +
+            prepared.actionId +
+            '; revision: 1. Ask the student to confirm; the app handles spoken or tapped approval and reports the save receipt.',
         );
         return;
       }
-      if (memoryOpen && cards.memoryActionId) {
-        actionService.cancelMemoryProposal(owner, cards.memoryActionId);
-        setActiveMemoryProposal(null);
-        activeMemoryActionId.current = null;
-        setLocalNote('Memory draft canceled. Nothing was saved.');
-        return;
-      }
-      if (batchOpen && cards.batch) {
-        const result = actionService.cancelMultiActionBatch(owner, cards.batch);
-        setActiveMultiBatch(result.batch);
-        setLocalNote(result.spokenSummary);
-        return;
-      }
-      if (pending) {
-        cancelReviewedCommand(owner, pending.operationId);
-        reviewRef.current.dismiss();
+      const cards = currentCards.current;
+      const pending = latestPendingReview(owner, 'voice');
+      const memoryOpen = cards.memory?.status === 'draft';
+      const batchOpen =
+        cards.batch &&
+        (cards.batch.status === 'draft' ||
+          cards.batch.status === 'partial' ||
+          cards.batch.status === 'failed');
+      const openCount =
+        Number(!!pending) + Number(memoryOpen) + Number(!!batchOpen);
+      const trimmed = text.trim();
+
+      if (
+        /^(?:actually[, ]+)?(?:cancel(?:\s+that|\s+it)?(?:[, ]+do\s+not\s+create\s+it)?|never\s*mind|don['\u2019]?t\s+save(?:\s+(?:it|that))?|discard(?:\s+(?:it|that))?)[.!]?$/i.test(
+          trimmed,
+        )
+      ) {
         voiceTurns.current = [];
         awaitingDetails.current = false;
-        groundedReply.current = 'Draft canceled. Nothing was saved.';
-        setLocalNote(groundedReply.current);
+        if (openCount > 1) {
+          setLocalNote(
+            'Which draft should I cancel? Use Cancel on the card you mean.',
+          );
+          void conversationRef.current?.sendContext(
+            'There is more than one open draft. Ask which card to cancel. Nothing was canceled or saved.',
+          );
+          return;
+        }
+        if (memoryOpen && cards.memoryActionId) {
+          actionService.cancelMemoryProposal(owner, cards.memoryActionId);
+          setActiveMemoryProposal(null);
+          activeMemoryActionId.current = null;
+          setLocalNote('Memory draft canceled. Nothing was saved.');
+          return;
+        }
+        if (batchOpen && cards.batch) {
+          const result = actionService.cancelMultiActionBatch(
+            owner,
+            cards.batch,
+          );
+          setActiveMultiBatch(result.batch);
+          setLocalNote(result.spokenSummary);
+          return;
+        }
+        if (pending) {
+          cancelReviewedCommand(owner, pending.operationId);
+          reviewRef.current.dismiss();
+          voiceTurns.current = [];
+          awaitingDetails.current = false;
+          groundedReply.current = 'Draft canceled. Nothing was saved.';
+          setLocalNote(groundedReply.current);
+          return;
+        }
+        setLocalNote('Request canceled. Nothing was saved.');
         return;
       }
-    }
 
-    if (openCount === 1 && isVoiceDraftConfirm(trimmed)) {
-      awaitingDetails.current = false;
-      voiceTurns.current = [];
-      if (pending) {
-        void confirmHandlersRef.current.confirmDraft();
-        return;
-      }
-      if (memoryOpen) {
-        const memRes = confirmHandlersRef.current.saveMemory();
-        void conversationRef.current?.sendContext(
-          'Confirmed and handled memory draft: ' + memRes.message,
-        );
-        return;
-      }
-      if (batchOpen) {
-        void confirmHandlersRef.current.confirmMultiAll();
-        return;
-      }
-    }
-
-    const fragment = parseIntentFastPath(text);
-    const hasRevisionDelta = Boolean(
-      fragment.date ||
-        fragment.time ||
-        fragment.endTime ||
-        fragment.durationMinutes,
-    );
-    if (
-      pending &&
-      (isVoiceDraftRevision(trimmed) ||
-        (!isVoiceScheduleStart(trimmed) && hasRevisionDelta))
-    ) {
-      const revised = reviseReviewedCommand(owner, pending.operationId, text);
       if (
-        revised.status === 'proposal' &&
-        actionService.isSuggestedCard(pending.operationId)
-      )
-        actionService.markSuggestedCard(revised.proposal.operationId);
-      if (revised.status === 'proposal') {
-        reviewRef.current.present(revised);
-        lastLocalRevision.current = {
-          oldId: pending.operationId,
-          newId: revised.proposal.operationId,
-          utterance: text,
-          reply: revised.reply,
-          at: Date.now(),
-        };
+        openCount === 1 &&
+        hasDraftApproval(
+          trimmed,
+          [...(conversationRef.current?.snapshot.turns ?? [])]
+            .reverse()
+            .find(
+              turn =>
+                turn.role === 'assistant' && turn.status !== 'provisional',
+            )?.text ?? '',
+        )
+      ) {
+        awaitingDetails.current = false;
+        voiceTurns.current = [];
         groundedReply.current =
-          'A review card is shown: ' +
-          revised.proposal.title +
-          ' (' +
-          revised.proposal.details.join(', ') +
-          '). Card ID: ' +
-          revised.proposal.operationId +
-          '; revision: 1. Nothing has been saved yet. Call confirm_draft to save it if confirmed.';
-        setLocalNote(revised.reply);
-        void conversationRef.current?.sendContext(
-          'Draft card updated on screen: ' +
+          'The student just confirmed the open card by voice and the app is saving it. Do not prepare it again.';
+        if (pending) {
+          void confirmHandlersRef.current.confirmDraft();
+          return;
+        }
+        if (memoryOpen) {
+          const memRes = confirmHandlersRef.current.saveMemory();
+          void conversationRef.current?.sendContext(
+            'Confirmed and handled memory draft: ' + memRes.message,
+          );
+          return;
+        }
+        if (batchOpen) {
+          void confirmHandlersRef.current.confirmMultiAll();
+          return;
+        }
+      }
+
+      const fragment = parseIntentFastPath(text);
+      const hasRevisionDelta = Boolean(
+        fragment.date ||
+          fragment.time ||
+          fragment.endTime ||
+          fragment.durationMinutes,
+      );
+      if (
+        pending &&
+        (isVoiceDraftRevision(trimmed) ||
+          (!isVoiceScheduleStart(trimmed) &&
+            hasRevisionDelta &&
+            !/^(?:what|which|when|where|who|why|how|show|list|check|find|search|do\s+i|am\s+i|is\s+there|can\s+you\s+(?:show|check|find))\b/i.test(
+              trimmed,
+            )))
+      ) {
+        const revised = reviseReviewedCommand(owner, pending.operationId, text);
+        if (
+          revised.status === 'proposal' &&
+          actionService.isSuggestedCard(pending.operationId)
+        )
+          actionService.markSuggestedCard(revised.proposal.operationId);
+        if (revised.status === 'proposal') {
+          presentReview(revised);
+          lastLocalRevision.current = {
+            oldId: pending.operationId,
+            newId: revised.proposal.operationId,
+            utterance: text,
+            reply: revised.reply,
+            at: Date.now(),
+          };
+          groundedReply.current =
+            'A review card is shown: ' +
             revised.proposal.title +
             ' (' +
             revised.proposal.details.join(', ') +
             '). Card ID: ' +
             revised.proposal.operationId +
-            '; revision: 1. Summarize the updated draft and call confirm_draft when the student confirms or asks you to save it.',
-        );
-      } else {
-        setLocalNote(revised.reply);
-        void conversationRef.current?.sendContext(
-          'The student asked to adjust the open draft ("' +
-            pending.title +
-            '", Card ID: ' +
-            pending.operationId +
-            ', revision: 1) with "' +
-            text +
-            '". ' +
-            revised.reply +
-            ' If they specified concrete details, call revise_draft with this Card ID.',
-        );
-      }
-      return;
-    }
-
-    if (isVoiceScheduleStart(text) || awaitingDetails.current) {
-      const now = new Date();
-      const draft = groundedVoiceDraft(voiceTurns.current, now);
-      if (draft.kind === 'clarify') {
-        awaitingDetails.current = true;
-        groundedReply.current = draft.reply;
-        setLocalNote(groundedReply.current);
-      } else {
-        if (pending) cancelReviewedCommand(owner, pending.operationId);
-        const prepared = prepareReviewedCommand(owner, draft.intent, {
-          referenceDate: now,
-          surface: 'voice',
-        });
-        awaitingDetails.current = prepared.status !== 'proposal';
-        groundedReply.current = prepared.reply;
-        if (prepared.status === 'proposal') {
-          reviewRef.current.present(prepared);
-          const detailsSummary = prepared.proposal.details.join(', ');
-          groundedReply.current =
-            'Review card is now on screen: ' +
-            prepared.proposal.title +
-            (detailsSummary ? ' (' + detailsSummary + ')' : '') +
-            '. Card ID: ' +
-            prepared.proposal.operationId +
-            '; revision: 1. Nothing has been saved yet. Always speak directly in first person ("I", "me", "my") and tell the student you put a confirmation card on their screen to confirm or adjust. Call confirm_draft only if they confirm or ask you to save it.';
-          setLocalNote('Check the card — nothing is saved until confirmed.');
-          void conversationRef.current?.sendContext(groundedReply.current);
+            '; revision: 1. Nothing has been saved yet. Ask the student to confirm; wait for the app save receipt.';
+          setLocalNote(revised.reply);
+          void conversationRef.current?.sendContext(
+            'Draft card updated on screen: ' +
+              revised.proposal.title +
+              ' (' +
+              revised.proposal.details.join(', ') +
+              '). Card ID: ' +
+              revised.proposal.operationId +
+              '; revision: 1. Summarize the updated draft and call confirm_draft when the student confirms or asks you to save it.',
+          );
         } else {
-          setLocalNote(groundedReply.current);
+          setLocalNote(revised.reply);
+          void conversationRef.current?.sendContext(
+            'The student asked to adjust the open draft ("' +
+              pending.title +
+              '", Card ID: ' +
+              pending.operationId +
+              ', revision: 1) with "' +
+              text +
+              '". ' +
+              revised.reply +
+              ' If they specified concrete details, call revise_draft with this Card ID.',
+          );
         }
+        return;
       }
-      return;
-    }
-    setLocalNote(null);
-    if (directProviderTestEnabled()) return;
-    void chatOrchestrator
-      .reviewSpokenTurn(owner, text, {
-        onlineMode: true,
-        actionSessionId: session,
-        isCurrent: () =>
-          ticket === turnTicket.current &&
-          owner === ownerRef.current &&
-          session === actionSession.current &&
-          !!conversationRef.current &&
-          LIVE.has(conversationRef.current.snapshot.phase),
-      })
-      .then(result => {
-        if (
-          ticket !== turnTicket.current ||
-          owner !== ownerRef.current ||
-          session !== actionSession.current ||
-          !conversationRef.current ||
-          !LIVE.has(conversationRef.current.snapshot.phase)
-        ) {
-          if (result.kind === 'proposal' && result.review.status === 'proposal')
-            cancelReviewedCommand(owner, result.review.proposal.operationId);
-          return;
-        }
-        if (result.kind === 'proposal') {
-          reviewRef.current.present(result.review);
-          setLocalNote('Check the card — nothing is saved until confirmed.');
-          if (result.review.status === 'proposal') {
+
+      // The live online model already has the conversation. Let its structured
+      // tool describe mutations instead of racing a second LLM/local parser.
+      if (
+        fragment.intent.startsWith('create_') ||
+        fragment.intent.startsWith('update_') ||
+        fragment.intent.startsWith('delete_') ||
+        fragment.intent === 'reschedule' ||
+        isVoiceScheduleStart(text)
+      ) {
+        setLocalNote(null);
+        return;
+      }
+      setLocalNote(null);
+      if (
+        directProviderTestEnabled() ||
+        !['query_schedule', 'query_notes'].includes(fragment.intent)
+      )
+        return;
+      const tracked = {text, done: Promise.resolve(), handled: false};
+      turnReview.current = tracked;
+      tracked.done = chatOrchestrator
+        .reviewSpokenTurn(owner, text, {
+          onlineMode: false,
+          actionSessionId: session,
+          isCurrent: () =>
+            ticket === turnTicket.current &&
+            owner === ownerRef.current &&
+            session === actionSession.current &&
+            !!conversationRef.current &&
+            LIVE.has(conversationRef.current.snapshot.phase),
+        })
+        .then(result => {
+          if (
+            ticket !== turnTicket.current ||
+            owner !== ownerRef.current ||
+            session !== actionSession.current ||
+            !conversationRef.current ||
+            !LIVE.has(conversationRef.current.snapshot.phase)
+          ) {
+            if (
+              result.kind === 'proposal' &&
+              result.review.status === 'proposal'
+            )
+              cancelReviewedCommand(owner, result.review.proposal.operationId);
+            return;
+          }
+          tracked.handled = true;
+          if (result.kind === 'proposal') {
+            if (presentReview(result.review))
+              setLocalNote(
+                'Check the card — nothing is saved until confirmed.',
+              );
+            if (result.review.status === 'proposal') {
+              void conversationRef.current?.sendContext(
+                'A review card is shown: ' +
+                  result.review.proposal.title +
+                  ' (' +
+                  result.review.proposal.details.join(', ') +
+                  '). Card ID: ' +
+                  result.review.proposal.operationId +
+                  '; revision: 1. Ask the student to confirm; wait for the app save receipt.',
+              );
+            }
+          } else if (result.kind === 'executed') {
+            executedTurn.current = {text, reply: result.reply};
+            setLocalNote(result.reply);
+            setUndoOffer(result.undo ?? null);
+            groundedReply.current = result.reply;
+            const updatedContext = buildStudentVoiceContext(owner);
             void conversationRef.current?.sendContext(
-              'A review card is shown: ' +
-                result.review.proposal.title +
-                ' (' +
-                result.review.proposal.details.join(', ') +
-                '). Card ID: ' +
-                result.review.proposal.operationId +
-                '; revision: 1. Call confirm_draft to save it if confirmed.',
+              `Executed immediately on device: ${result.reply}${
+                updatedContext
+                  ? `\n\n[UPDATED PLANNER CONTEXT]\n${updatedContext}`
+                  : ''
+              }`,
+            );
+          } else if (result.kind === 'multi') {
+            reviewRef.current.dismiss();
+            showBatchCard(result.batch);
+            setLocalNote(result.reply);
+            groundedReply.current = `Grouped review card is now on screen with ${result.batch.items.length} items. Nothing has been saved yet. Tell the student to review and tap Confirm All.`;
+            void conversationRef.current?.sendContext(
+              `Grouped review card is now on screen with ${result.batch.items.length} items. Tell the student to review and confirm all or cancel.`,
+            );
+          } else if (
+            result.kind === 'note' ||
+            result.kind === 'local_answer' ||
+            result.kind === 'memory'
+          ) {
+            setLocalNote(result.reply);
+            groundedReply.current = result.reply;
+            void conversationRef.current?.sendContext(
+              `Local verified database result for student request "${text}": ${result.reply}`,
             );
           }
-        } else if (result.kind === 'executed') {
-          setLocalNote(result.reply);
-          setUndoOffer(result.undo ?? null);
-          groundedReply.current = result.reply;
-          const updatedContext = buildStudentVoiceContext(owner);
-          void conversationRef.current?.sendContext(
-            `Executed immediately on device: ${result.reply}${
-              updatedContext ? `\n\n[UPDATED PLANNER CONTEXT]\n${updatedContext}` : ''
-            }`,
-          );
-        } else if (result.kind === 'multi') {
-          reviewRef.current.dismiss();
-          setActiveMultiBatch(result.batch);
-          setLocalNote(result.reply);
-          void conversationRef.current?.sendContext(
-            `Grouped review card is now on screen with ${result.batch.items.length} items. Tell the student to review and confirm all or cancel.`,
-          );
-        } else if (
-          result.kind === 'note' ||
-          result.kind === 'local_answer' ||
-          result.kind === 'memory'
-        ) {
-          setLocalNote(result.reply);
-          void conversationRef.current?.sendContext(
-            `Local verified database result for student request "${text}": ${result.reply}`,
-          );
-        }
-      })
-      .catch(() => undefined);
-  }, []);
+        })
+        .catch(() => undefined);
+    },
+    [presentReview, showBatchCard, showMemoryCard],
+  );
 
   const onClientTool = useCallback(
     async (
@@ -561,12 +671,105 @@ export const VoiceConversationPanel: React.FC<VoiceConversationPanelProps> = ({
       // Legacy model tool arguments cannot invent or replace a student's request.
       // New structured tools keep their validated on-screen review contracts.
       if (name === 'prepare_lafina_action') {
+        if (isCompoundVoiceRequest(lastUserRequest.current))
+          return 'This request contains multiple actions. Use prepare_multi_action with separate structured items. No single-item card was prepared.';
+        const fields = parameters as StructuredActionArgs;
+        if (hasStructuredAction(fields)) {
+          const checked = validatePayload('legacy.prepare_action', parameters);
+          if (!checked.valid) return `Nothing was prepared: ${checked.error}`;
+          const signature = JSON.stringify(
+            Object.entries(checked.data as Record<string, unknown>).sort(
+              ([a], [b]) => a.localeCompare(b),
+            ),
+          );
+          const prior = preparedTurn.current;
+          const pending = latestPendingReview(owner, 'voice');
+          if (
+            prior?.ticket === turnTicket.current &&
+            prior.signature === signature &&
+            pending?.operationId === prior.id
+          )
+            return `Review card is already shown: ${pending.title}. Card ID: ${pending.operationId}; revision: 1. Nothing was saved.`;
+          const prepared = prepareStructuredReview(
+            owner,
+            checked.data as StructuredActionArgs,
+            'voice',
+          );
+          if (!isCurrent()) {
+            if (prepared?.status === 'proposal')
+              cancelReviewedCommand(owner, prepared.proposal.operationId);
+            return 'Request canceled. Nothing was saved.';
+          }
+          if (prepared?.status === 'proposal') {
+            preparedTurn.current = {
+              ticket: turnTicket.current,
+              signature,
+              id: prepared.proposal.operationId,
+            };
+            actionService.markSuggestedCard(prepared.proposal.operationId);
+            presentReview(prepared);
+            setLocalNote(
+              'Check the card — nothing is saved until you confirm.',
+            );
+            return `Review card is now on screen: ${
+              prepared.proposal.title
+            }. ${prepared.proposal.details.join(' ')} Card ID: ${
+              prepared.proposal.operationId
+            }; revision: 1. ${SUGGESTED_CARD_NOTE}`;
+          }
+          return (
+            prepared?.reply ||
+            'The action needs more details. Nothing was saved.'
+          );
+        }
+        // Compatibility for an older agent: parse only actual finalized user
+        // turns, never the tool's rewritten request. Modern agents supply fields.
+        if (voiceTurns.current.some(isVoiceScheduleStart)) {
+          const draft = groundedVoiceDraft(voiceTurns.current, new Date());
+          if (draft.kind === 'clarify') {
+            setLocalNote(draft.reply);
+            return draft.reply;
+          }
+          const prepared = prepareReviewedCommand(owner, draft.intent, {
+            surface: 'voice',
+          });
+          if (prepared.status === 'proposal') {
+            presentReview(prepared);
+            setLocalNote('Check the card — nothing is saved until confirmed.');
+            return `Review card is now on screen: ${prepared.proposal.title}. Card ID: ${prepared.proposal.operationId}; revision: 1. Nothing has been saved. Ask the student to confirm.`;
+          }
+          return prepared.reply;
+        }
+        // The device may still be reading the same words. Wait for that one
+        // reading instead of starting a second: two readings made two cards,
+        // and the later one cancelled the card already on screen.
+        const sameTurn =
+          turnReview.current?.text === lastUserRequest.current
+            ? turnReview.current
+            : null;
+        if (sameTurn) {
+          await sameTurn.done;
+          if (!isCurrent()) {
+            throw new Error(
+              'Request cancelled because conversational turn updated.',
+            );
+          }
+        }
         let pending = latestPendingReview(owner, 'voice');
+        // The student's own turn already ran this low-risk request (complete,
+        // pin…); never evaluate the same words a second time (audit L10).
         if (
           !pending &&
+          executedTurn.current &&
+          executedTurn.current.text === lastUserRequest.current
+        ) {
+          return `Done. Already executed on device: ${executedTurn.current.reply}`;
+        }
+        if (
+          !pending &&
+          !sameTurn?.handled &&
           !awaitingDetails.current &&
           lastUserRequest.current &&
-          !isVoiceScheduleStart(lastUserRequest.current) &&
           !directProviderTestEnabled()
         ) {
           const reviewed = await chatOrchestrator
@@ -577,10 +780,15 @@ export const VoiceConversationPanel: React.FC<VoiceConversationPanelProps> = ({
             })
             .catch(() => null);
           if (!isCurrent()) {
-            throw new Error('Request cancelled because conversational turn updated.');
+            throw new Error(
+              'Request cancelled because conversational turn updated.',
+            );
           }
-          if (reviewed?.kind === 'proposal' && reviewed.review.status === 'proposal') {
-            reviewRef.current.present(reviewed.review);
+          if (
+            reviewed?.kind === 'proposal' &&
+            reviewed.review.status === 'proposal'
+          ) {
+            presentReview(reviewed.review);
             setLocalNote('Check the card — nothing is saved until confirmed.');
             pending = reviewed.review.proposal;
           } else if (reviewed?.kind === 'executed') {
@@ -590,7 +798,7 @@ export const VoiceConversationPanel: React.FC<VoiceConversationPanelProps> = ({
             return `Done. Executed immediately: ${reviewed.reply}`;
           } else if (reviewed?.kind === 'multi') {
             reviewRef.current.dismiss();
-            setActiveMultiBatch(reviewed.batch);
+            showBatchCard(reviewed.batch);
             setLocalNote(reviewed.reply);
             groundedReply.current = reviewed.reply;
             return `Grouped review card is now on screen with ${reviewed.batch.items.length} items. Tell the student to review and tap Confirm All.`;
@@ -604,52 +812,20 @@ export const VoiceConversationPanel: React.FC<VoiceConversationPanelProps> = ({
             groundedReply.current = reviewed.reply;
           }
         }
-        // The student's own words gave nothing to act on, or a card about
-        // something else ("book the first one" after find_free_time reads as
-        // a task "First one"): use the model's fields. The card waits for the
-        // student's own yes or tap (ADR-033).
-        const fields = parameters as StructuredActionArgs;
+        // "On screen" has to be true: a pending draft that the stage is not
+        // showing (prepared elsewhere, or hidden) is put there first.
         if (
-          hasStructuredAction(fields) &&
-          (!pending || isReferenceTitle(pending.title))
+          pending &&
+          reviewRef.current.proposal?.operationId !== pending.operationId
         ) {
-          const checked = validatePayload('legacy.prepare_action', parameters);
-          if (!checked.valid) return `Nothing was prepared: ${checked.error}`;
-          const prepared = prepareStructuredReview(
-            owner,
-            checked.data as StructuredActionArgs,
-            'voice',
-          );
-          if (prepared?.status === 'proposal' && pending) {
-            cancelReviewedCommand(owner, pending.operationId);
-            pending = null;
-          }
-          if (!isCurrent()) {
-            if (prepared?.status === 'proposal')
-              cancelReviewedCommand(owner, prepared.proposal.operationId);
-            throw new Error('Request cancelled because conversational turn updated.');
-          }
-          if (prepared?.status === 'proposal') {
-            actionService.markSuggestedCard(prepared.proposal.operationId);
-            reviewRef.current.present(prepared);
-            setLocalNote('Check the card — nothing is saved until you confirm.');
-            const summary = prepared.proposal.details.join(', ');
-            groundedReply.current =
-              'Review card is now on screen: ' +
-              prepared.proposal.title +
-              (summary ? ' (' + summary + ')' : '') +
-              '. Card ID: ' +
-              prepared.proposal.operationId +
-              '; revision: 1. Nothing has been saved yet. ' +
-              SUGGESTED_CARD_NOTE;
-            return groundedReply.current;
-          }
-          // A card from the student's words stays when the fields made none.
-          if (prepared && !pending) {
-            setLocalNote(prepared.reply);
-            groundedReply.current = prepared.reply;
-            return prepared.reply;
-          }
+          presentReview({
+            status: 'proposal',
+            proposal: pending,
+            reply: pending.reply,
+          });
+          setLocalNote('Check the card — nothing is saved until confirmed.');
+        } else if (pending) {
+          setCardFocus('review');
         }
         return pending
           ? 'Review card is now on screen: ' +
@@ -679,10 +855,10 @@ export const VoiceConversationPanel: React.FC<VoiceConversationPanelProps> = ({
             lastLocalRevision.current.reply +
             ' Card ID: ' +
             lastLocalRevision.current.newId +
-            '; revision: 1. Nothing has been saved yet. Call confirm_draft to save it if confirmed.'
+            '; revision: 1. Nothing has been saved yet. Ask the student to confirm; wait for the app save receipt.'
           );
         }
-        parameters = {...parameters, cardId: lastLocalRevision.current.newId};
+        return 'That draft revision was replaced. Use the current on-screen card ID and repeat the requested change; nothing was changed.';
       }
       if (name === 'save_lafina_memory') {
         if (!explicitMemory(lastUserRequest.current))
@@ -720,56 +896,17 @@ export const VoiceConversationPanel: React.FC<VoiceConversationPanelProps> = ({
                   'Stale draft revision. Nothing has been saved. Please check the current card.',
               };
             }
-            const currentProposal = reviewRef.current.proposal;
-            const pendingReview = latestPendingReview(owner, 'voice');
-            // A card built from the model's fields is confirmed only by the
-            // student (their "yes" is read on the device, or the button).
-            const target =
-              currentProposal?.operationId ?? pendingReview?.operationId;
-            if (
-              actionService.isSuggestedCard(cardId) ||
-              (target && actionService.isSuggestedCard(target))
-            ) {
-              const saved = appliedReviewReply(owner, cardId);
-              return saved
-                ? {saved: true, message: 'The student already confirmed it: ' + saved}
-                : {saved: false, message: SUGGESTED_CONFIRM_REFUSAL};
-            }
-            if (
-              currentProposal?.operationId === cardId ||
-              pendingReview?.operationId === cardId ||
-              (currentProposal &&
-                lastLocalRevision.current?.oldId === cardId &&
-                Date.now() - lastLocalRevision.current.at < 8000)
-            ) {
-              return confirmHandlersRef.current.confirmDraft();
-            }
-            if (activeMemoryActionId.current === cardId) {
-              return confirmHandlersRef.current.saveMemory();
-            }
-            if (currentCards.current.batch?.id === cardId) {
-              return confirmHandlersRef.current.confirmMultiAll();
-            }
-            const direct = confirmReviewedCommand(owner, cardId);
-            if (direct.status === 'applied') {
-              reviewRef.current.dismiss();
-              setLocalNote(direct.reply);
-              const refreshed = buildStudentVoiceContext(owner);
-              if (refreshed)
-                void conversationRef.current?.sendContext(refreshed);
+            const saved = appliedReviewReply(owner, cardId);
+            if (saved)
               return {
                 saved: true,
-                message: 'Confirmed and saved: ' + direct.reply,
+                message: 'Already saved after student confirmation: ' + saved,
               };
-            }
-            return {
-              saved: false,
-              message: direct.reply + ' Nothing has been saved.',
-            };
+            return {saved: false, message: SUGGESTED_CONFIRM_REFUSAL};
           },
           onProposal: result => {
             if (result.kind === 'proposal') {
-              reviewRef.current.present(result.review);
+              presentReview(result.review);
               setLocalNote(
                 'Check the card — nothing is saved until confirmed.',
               );
@@ -782,12 +919,11 @@ export const VoiceConversationPanel: React.FC<VoiceConversationPanelProps> = ({
             }
           },
           onMemoryProposal: (memProp, actionId) => {
-            activeMemoryActionId.current = actionId;
-            setActiveMemoryProposal(memProp);
+            showMemoryCard(memProp, actionId);
             setLocalNote('Check the memory card — nothing is saved yet.');
           },
           onMultiActionBatch: batch => {
-            setActiveMultiBatch(batch);
+            showBatchCard(batch);
             setLocalNote(
               'Check the grouped actions card — nothing is saved yet.',
             );
@@ -797,7 +933,14 @@ export const VoiceConversationPanel: React.FC<VoiceConversationPanelProps> = ({
       if (toolError) throw new Error('Tool request failed.');
       return answer;
     },
-    [deps, userId, callSettings.toolAudioCue],
+    [
+      deps,
+      userId,
+      callSettings.toolAudioCue,
+      presentReview,
+      showBatchCard,
+      showMemoryCard,
+    ],
   );
 
   const handleSaveMemory = useCallback(
@@ -957,6 +1100,9 @@ export const VoiceConversationPanel: React.FC<VoiceConversationPanelProps> = ({
 
   const conversation = useVoiceConversation(userId, {
     onFinalUserText,
+    onTurnInterrupted: () => {
+      turnTicket.current += 1;
+    },
     onClientTool,
     deps,
   });
@@ -1056,6 +1202,40 @@ export const VoiceConversationPanel: React.FC<VoiceConversationPanelProps> = ({
   const hasActiveCard = Boolean(
     review?.proposal || activeMemoryProposal || activeMultiBatch,
   );
+  // One card at a time, the newest in front. The others wait behind it.
+  const openCards: CardKind[] = [];
+  if (review?.proposal) openCards.push('review');
+  if (activeMultiBatch) openCards.push('batch');
+  if (activeMemoryProposal) openCards.push('memory');
+  const shownCard: CardKind | null =
+    cardFocus && openCards.includes(cardFocus)
+      ? cardFocus
+      : openCards[0] ?? null;
+  const batchNeedsAnswer =
+    activeMultiBatch?.status === 'draft' ||
+    activeMultiBatch?.status === 'partial' ||
+    activeMultiBatch?.status === 'failed';
+  /** A card is waiting for the student's Confirm or Cancel. */
+  const needsAnswer = Boolean(
+    review?.proposal ||
+      activeMemoryProposal?.status === 'draft' ||
+      batchNeedsAnswer,
+  );
+  const needsAnswerRef = useRef(needsAnswer);
+  needsAnswerRef.current = needsAnswer;
+  // The identity of the card that needs an answer; a new one asks the host
+  // to bring a minimized call forward.
+  const attentionKey =
+    shownCard === 'review'
+      ? review?.proposal?.operationId ?? null
+      : shownCard === 'memory' && activeMemoryProposal?.status === 'draft'
+      ? activeMemoryProposal.id
+      : shownCard === 'batch' && batchNeedsAnswer
+      ? activeMultiBatch?.id ?? null
+      : null;
+  useEffect(() => {
+    if (attentionKey) attentionRef.current?.();
+  }, [attentionKey]);
 
   useEffect(() => {
     return () => {
@@ -1073,9 +1253,12 @@ export const VoiceConversationPanel: React.FC<VoiceConversationPanelProps> = ({
     actionService.clearSessionActions(actionSession.current);
     actionSession.current = generateId('call-actions');
     lastUserRequest.current = '';
+    executedTurn.current = null;
     voiceTurns.current = [];
     awaitingDetails.current = false;
-    groundedReply.current = 'No action was prepared. Nothing was saved.';
+    groundedReply.current = NO_ACTION_REPLY;
+    turnReview.current = null;
+    setCardFocus(null);
     turnTicket.current += 1;
     setDismissedTurnId(null);
     setLocalNote(null);
@@ -1143,8 +1326,16 @@ export const VoiceConversationPanel: React.FC<VoiceConversationPanelProps> = ({
       return {saved, message: reply};
     }
     setLocalNote(reply);
+    groundedReply.current = saved
+      ? 'The student confirmed the card and it was saved: ' +
+        reply +
+        ' No card is open now.'
+      : 'The card was not saved: ' + reply;
     const refreshed = buildStudentVoiceContext(userId);
-    const confirmMsg = 'Confirmed and saved action result: ' + reply;
+    const confirmMsg =
+      (saved
+        ? 'Confirmed and saved action result: '
+        : 'Action was not saved: ') + reply;
     void conversation.sendContext(
       refreshed ? `${confirmMsg}\n\n${refreshed}` : confirmMsg,
     );
@@ -1161,6 +1352,8 @@ export const VoiceConversationPanel: React.FC<VoiceConversationPanelProps> = ({
     const decision = reviewRef.current.cancel();
     if (decision) {
       setLocalNote(decision.reply);
+      groundedReply.current =
+        'The student canceled the card. Nothing was saved and no card is open now.';
       void conversation.sendContext(
         'The student canceled the review card. Nothing was saved.',
       );
@@ -1196,6 +1389,60 @@ export const VoiceConversationPanel: React.FC<VoiceConversationPanelProps> = ({
     latestAgentReply && latestAgentReply.id !== dismissedTurnId
       ? latestAgentReply
       : null;
+  // LAFINA said a card is on screen. If none is there, and none arrives while
+  // the device finishes reading the turn, bring back the pending draft or say
+  // plainly that nothing was prepared, and tell the model so it stops.
+  const claimTurnId =
+    latestAgentReply &&
+    live &&
+    CARD_CLAIM_RE.test(latestAgentReply.text) &&
+    !CARD_DENIAL_RE.test(latestAgentReply.text)
+      ? latestAgentReply.id
+      : null;
+  const checkedClaim = useRef<string | null>(null);
+  useEffect(() => {
+    if (!claimTurnId || checkedClaim.current === claimTurnId) return undefined;
+    let cancelled = false;
+    const session = actionSession.current;
+    const owner = ownerRef.current;
+    const timer = setTimeout(() => {
+      void (async () => {
+        await turnReview.current?.done;
+        if (
+          cancelled ||
+          session !== actionSession.current ||
+          owner !== ownerRef.current ||
+          !conversationRef.current ||
+          !LIVE.has(conversationRef.current.snapshot.phase)
+        ) {
+          return;
+        }
+        checkedClaim.current = claimTurnId;
+        if (needsAnswerRef.current) return;
+        const pending = latestPendingReview(owner, 'voice');
+        if (pending) {
+          presentReview({
+            status: 'proposal',
+            proposal: pending,
+            reply: pending.reply,
+          });
+          setLocalNote('Check the card — nothing is saved until confirmed.');
+          return;
+        }
+        // A saved or cancelled card still on the stage is what LAFINA means.
+        if (currentCards.current.memory || currentCards.current.batch) return;
+        setLocalNote(NO_CARD_NOTE);
+        void conversationRef.current.sendContext(
+          'No review card is on screen and nothing was saved. Do not say a card is shown unless a tool result says so. Tell the student nothing was prepared and ask them to say the request again with a title, and a day and time if it needs one.',
+        );
+      })();
+    }, CARD_CLAIM_GRACE_MS);
+    return () => {
+      cancelled = true;
+      clearTimeout(timer);
+    };
+  }, [claimTurnId, presentReview]);
+
   const failure = snapshot.failure;
   const needsConsent = (!consented || !dataConsented) && !live && !connecting;
   const hasDetailsCard = Boolean(
@@ -1206,7 +1453,7 @@ export const VoiceConversationPanel: React.FC<VoiceConversationPanelProps> = ({
       snapshot.phase !== 'restart_required' &&
       (localNote || snapshot.notice || visibleAgentReply),
   );
-  const statusText = statusLine(snapshot, Boolean(review?.proposal));
+  const statusText = statusLine(snapshot, needsAnswer);
   const showOverlayContent = Boolean(
     needsConsent ||
       hasActiveCard ||
@@ -1226,49 +1473,29 @@ export const VoiceConversationPanel: React.FC<VoiceConversationPanelProps> = ({
     >
       {/* Top Header Row */}
       <View style={styles.headerRow}>
-        <TouchableOpacity
-          onPress={handleBack}
-          style={styles.backButton}
-          accessibilityRole="button"
-          accessibilityLabel="Back to push-to-talk"
-          testID="voice-conversation-back"
-        >
-          <ArrowLeft size={16} color={colors.primary} />
-          <Text style={[styles.linkText, {color: colors.primary}]}>
-            Push-to-talk
-          </Text>
-        </TouchableOpacity>
-
-        <Text
-          style={[styles.headerTitle, themed.title]}
-          testID="call-header-title"
-        >
-          Call Lafina
-        </Text>
-
-        <View style={styles.headerRight}>
-          {onMinimize && (
-            <TouchableOpacity
-              onPress={onMinimize}
-              style={styles.settingsButton}
-              accessibilityRole="button"
-              accessibilityLabel="Minimize Call Lafina to mini bar"
-              testID="call-minimize-button"
-            >
-              <Minimize2 size={18} color={colors.primary} />
-            </TouchableOpacity>
-          )}
-
+        <View style={styles.headerSide}>
           <TouchableOpacity
-            onPress={() => setSettingsModalVisible(true)}
-            style={styles.settingsButton}
+            onPress={handleBack}
+            style={[
+              styles.headerCircle,
+              themed.headerCircle,
+              isModern && modernShadows.subtle,
+            ]}
             accessibilityRole="button"
-            accessibilityLabel="Call Lafina settings"
-            testID="call-settings-button"
+            accessibilityLabel="Back to push-to-talk"
+            testID="voice-conversation-back"
           >
-            <Sliders size={18} color={colors.primary} />
+            <ArrowLeft size={20} color={colors.textPrimary} strokeWidth={2.2} />
           </TouchableOpacity>
+        </View>
 
+        <View style={styles.headerCenter}>
+          <Text
+            style={[styles.headerTitle, themed.title]}
+            testID="call-header-title"
+          >
+            Call Lafina
+          </Text>
           <View
             style={[
               styles.onlinePill,
@@ -1313,6 +1540,38 @@ export const VoiceConversationPanel: React.FC<VoiceConversationPanelProps> = ({
             )}
           </View>
         </View>
+
+        <View style={[styles.headerSide, styles.headerRight]}>
+          {onMinimize && (
+            <TouchableOpacity
+              onPress={onMinimize}
+              style={[
+                styles.headerCircle,
+                themed.headerCircle,
+                isModern && modernShadows.subtle,
+              ]}
+              accessibilityRole="button"
+              accessibilityLabel="Minimize Call Lafina to mini bar"
+              testID="call-minimize-button"
+            >
+              <Minimize2 size={18} color={colors.textPrimary} />
+            </TouchableOpacity>
+          )}
+
+          <TouchableOpacity
+            onPress={() => setSettingsModalVisible(true)}
+            style={[
+              styles.headerCircle,
+              themed.headerCircle,
+              isModern && modernShadows.subtle,
+            ]}
+            accessibilityRole="button"
+            accessibilityLabel="Call Lafina settings"
+            testID="call-settings-button"
+          >
+            <Sliders size={18} color={colors.textPrimary} />
+          </TouchableOpacity>
+        </View>
       </View>
 
       {/* Fixed Non-Scrolling Visible Call Stage (ChatGPT-style) */}
@@ -1325,10 +1584,11 @@ export const VoiceConversationPanel: React.FC<VoiceConversationPanelProps> = ({
           ]}
           testID="call-center-stage"
         >
-          {!showOverlayContent ? (
+          {live || !showOverlayContent ? (
             <View
               style={[
                 styles.avatarRing,
+                showOverlayContent && styles.avatarRingCompact,
                 {
                   borderColor: live
                     ? snapshot.muted
@@ -1343,7 +1603,8 @@ export const VoiceConversationPanel: React.FC<VoiceConversationPanelProps> = ({
                 phase={snapshot.phase}
                 outputLevel={snapshot.outputLevel ?? 0}
                 muted={snapshot.muted}
-                size={76}
+                size={showOverlayContent ? 48 : 76}
+                userLevel={snapshot.level}
               />
             </View>
           ) : null}
@@ -1384,268 +1645,434 @@ export const VoiceConversationPanel: React.FC<VoiceConversationPanelProps> = ({
           ) : null}
         </View>
 
-        {needsConsent ? (
-          <View
-            style={[styles.card, themed.card, modernCardStyle]}
-            testID="voice-conversation-consent"
-          >
-            <Text style={[styles.cardTitle, themed.text]}>
-              Before you start
-            </Text>
-            <Text style={[styles.cardBody, themed.text]}>
-              While a call is open, your microphone audio streams to ElevenLabs
-              for transcription and speech, and your words go to DeepSeek and
-              LAFINA's server for answers. When a call starts, a short summary
-              of your next 7 days (schedule, tasks and overdue items), recent
-              notes and saved memories is shared with them so LAFINA can help
-              with your plans. Capture continues when minimized inside the app,
-              with a visible call strip. It stops when you tap End or leave the
-              app, and you can mute at any time. Finished turns are saved to
-              your Chat history. You can review, change, or confirm planner
-              items by voice or tap.
-            </Text>
-            <TouchableOpacity
-              style={[styles.primaryButton, {backgroundColor: colors.primary}]}
-              onPress={handleConsent}
-              accessibilityRole="button"
-              testID="voice-conversation-consent-accept"
+        {/* Cards and notes scroll inside the fixed stage, so a tall card is
+            never clipped (the stage itself does not scroll). */}
+        <ScrollView
+          style={styles.overlayScroll}
+          contentContainerStyle={styles.overlayScrollContent}
+          keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}
+          nestedScrollEnabled
+          testID="call-overlay-scroll"
+        >
+          {needsConsent ? (
+            <View
+              style={[styles.card, themed.card, modernCardStyle]}
+              testID="voice-conversation-consent"
             >
-              <Text style={[styles.primaryText, {color: colors.textOnPrimary}]}>
-                I understand, start
+              <Text style={[styles.cardTitle, themed.text]}>
+                Before you start
               </Text>
-            </TouchableOpacity>
-          </View>
-        ) : null}
-
-        {/* Promoted Action Card Stage (Immediate focus above history, no scrolling needed) */}
-        {hasActiveCard ? (
-          <View
-            style={styles.actionCardSection}
-            testID="call-action-card-stage"
-          >
-            <ActionCardHost
-              proposal={review?.proposal}
-              memoryProposal={activeMemoryProposal}
-              multiActionBatch={activeMultiBatch}
-              expired={review?.expired}
-              busy={review?.busy}
-              onEdit={review?.edit}
-              onConfirm={() => {
-                void handleConfirm();
-              }}
-              onCancel={() => {
-                if (activeMultiBatch) {
-                  handleCancelMultiAll();
-                  setActiveMultiBatch(null);
-                } else if (activeMemoryProposal) {
-                  if (activeMemoryActionId.current) {
-                    actionService.cancelMemoryProposal(
-                      ownerRef.current,
-                      activeMemoryActionId.current,
-                    );
-                    activeMemoryActionId.current = null;
-                  }
-                  setActiveMemoryProposal(null);
-                } else {
-                  handleCancelReview();
-                }
-              }}
-              onDismiss={() => {
-                if (activeMultiBatch) {
-                  setActiveMultiBatch(null);
-                } else if (activeMemoryProposal) {
-                  setActiveMemoryProposal(null);
-                } else {
-                  review.dismiss();
-                }
-              }}
-              onSaveMemory={handleSaveMemory}
-              onUndoMemory={handleUndoMemory}
-              onConfirmMultiAll={handleConfirmMultiAll}
-              onCancelMultiAll={handleCancelMultiAll}
-              onCancelMultiItem={handleCancelMultiItem}
-              onRetryMultiItem={handleRetryMultiItem}
-              onOpenMultiItem={
-                onNavigate
-                  ? item => {
-                      if (item.status === 'saved' && item.savedEntityId)
-                        onNavigate({
-                          ownerId: userId,
-                          screen:
-                            item.kind === 'note' ||
-                            (item.kind === 'task' && !item.date)
-                              ? 'notes'
-                              : 'calendar',
-                          ...(item.kind === 'task' && !item.date
-                            ? {notesTab: 'todo'}
-                            : {}),
-                          entityKind: item.kind,
-                          entityId: item.savedEntityId,
-                          date: item.date,
-                        });
-                    }
-                  : undefined
-              }
-              onEditMultiItemFields={(itemId, patch) => {
-                if (!activeMultiBatch) return;
-                const updated = reviseMultiItem(
-                  activeMultiBatch,
-                  itemId,
-                  patch,
-                );
-                setActiveMultiBatch({...updated});
-              }}
-              onEditMultiItemTitle={(itemId, title) => {
-                setActiveMultiBatch(previous =>
-                  previous
-                    ? {
-                        ...previous,
-                        revision: previous.revision + 1,
-                        items: previous.items.map(item =>
-                          item.id === itemId && item.status !== 'saved'
-                            ? {...item, title}
-                            : item,
-                        ),
-                      }
-                    : null,
-                );
-              }}
-              testIDPrefix="voice-conversation-review"
-            />
-            {review?.proposal && !review.busy && (
-              <View style={styles.draftRevisionRow}>
-                <TextInput
-                  value={draftCorrection}
-                  onChangeText={setDraftCorrection}
-                  accessibilityLabel="Edit draft date, time, title or note content"
-                  placeholder="Need changes? Type or speak (e.g. 'Change to 4 PM')"
-                  placeholderTextColor={colors.textSecondary}
-                  style={[
-                    styles.draftRevisionInput,
-                    {
-                      color: colors.textPrimary,
-                      borderColor: colors.border,
-                      backgroundColor: colors.inputBg,
-                    },
-                  ]}
-                />
-                <TouchableOpacity
-                  accessibilityRole="button"
-                  accessibilityLabel="Update draft"
-                  style={[
-                    styles.draftRevisionBtn,
-                    {
-                      backgroundColor: draftCorrection.trim()
-                        ? colors.primary
-                        : colors.inputBg,
-                      borderColor: colors.border,
-                    },
-                  ]}
-                  disabled={!draftCorrection.trim()}
-                  onPress={() => {
-                    const current = reviewRef.current.proposal;
-                    if (!current) return;
-                    const revised = reviseReviewedCommand(
-                      userId,
-                      current.operationId,
-                      draftCorrection,
-                    );
-                    if (revised.status === 'proposal') {
-                      reviewRef.current.present(revised);
-                      setDraftCorrection('');
-                    }
-                    setLocalNote(revised.reply);
-                  }}
-                >
-                  <Text
-                    style={{
-                      color: draftCorrection.trim()
-                        ? colors.textOnPrimary
-                        : colors.textSecondary,
-                      fontSize: 12,
-                      fontWeight: '600',
-                    }}
-                  >
-                    Update
-                  </Text>
-                </TouchableOpacity>
-              </View>
-            )}
-          </View>
-        ) : null}
-
-        {hasDetailsCard ? (
-          <View
-            style={[styles.card, themed.card, styles.detailsCard, modernCardStyle]}
-            testID="call-details-card"
-          >
-            <View style={styles.detailsHeader}>
-              <Text style={[styles.detailsLabel, {color: colors.primary}]}>
-                {visibleAgentReply ? 'LAFINA' : 'Details'}
+              <Text style={[styles.cardBody, themed.text]}>
+                While a call is open, your microphone audio streams to
+                ElevenLabs for transcription and speech, and your words go to
+                DeepSeek and LAFINA's server for answers. When a call starts, a
+                short summary of your next 7 days (schedule, tasks and overdue
+                items), recent notes and saved memories is shared with them so
+                LAFINA can help with your plans. Capture continues when
+                minimized inside the app, with a visible call strip. It stops
+                when you tap End or leave the app, and you can mute at any time.
+                Finished turns are saved to your Chat history. You can review,
+                change, or confirm planner items by voice or tap.
               </Text>
               <TouchableOpacity
-                onPress={() => {
-                  setLocalNote(null);
-                  if (visibleAgentReply) {
-                    setDismissedTurnId(visibleAgentReply.id);
-                  }
-                }}
-                style={styles.detailsDismissBtn}
+                style={[
+                  styles.primaryButton,
+                  {backgroundColor: colors.primary},
+                ]}
+                onPress={handleConsent}
                 accessibilityRole="button"
-                accessibilityLabel="Back to voice view"
-                testID="call-details-dismiss"
+                testID="voice-conversation-consent-accept"
               >
-                <Text style={[styles.detailsDismissText, themed.muted]}>
-                  Done
+                <Text
+                  style={[styles.primaryText, {color: colors.textOnPrimary}]}
+                >
+                  I understand, start
                 </Text>
               </TouchableOpacity>
             </View>
-            {visibleAgentReply ? (
-              <Text
-                style={[styles.detailsReplyText, themed.text]}
-                testID="call-details-reply"
-              >
-                {visibleAgentReply.text}
-              </Text>
-            ) : null}
-            {localNote ? (
-              <Text
-                style={[styles.detailsNoteText, themed.text]}
-                testID="voice-conversation-local-note"
-              >
-                {localNote}
-              </Text>
-            ) : null}
-            {snapshot.notice ? (
-              <Text
-                style={[styles.detailsNoteText, themed.muted]}
-                testID="voice-conversation-notice"
-              >
-                {snapshot.notice}
-              </Text>
-            ) : null}
-          </View>
-        ) : (
-          <>
-            {snapshot.notice ? (
-              <Text
-                style={[styles.notice, themed.muted]}
-                testID="voice-conversation-notice"
-              >
-                {snapshot.notice}
-              </Text>
-            ) : null}
+          ) : null}
 
-            {localNote ? (
-              <Text
-                style={[styles.notice, themed.text]}
-                testID="voice-conversation-local-note"
-              >
-                {localNote}
+          {/* Promoted Action Card Stage (Immediate focus above history, no scrolling needed) */}
+          {hasActiveCard ? (
+            <View
+              style={styles.actionCardSection}
+              testID="call-action-card-stage"
+            >
+              {openCards.length > 1 ? (
+                <TouchableOpacity
+                  style={[
+                    styles.cardSwitch,
+                    {
+                      backgroundColor: isModern
+                        ? modernPalette.softViolet
+                        : colors.inputBg,
+                      borderColor: isModern
+                        ? modernPalette.border
+                        : colors.border,
+                    },
+                  ]}
+                  onPress={() => {
+                    const at = shownCard ? openCards.indexOf(shownCard) : -1;
+                    setCardFocus(openCards[(at + 1) % openCards.length]);
+                  }}
+                  accessibilityRole="button"
+                  accessibilityLabel={`${openCards.length} cards are open. Show the next card`}
+                  testID="call-card-switch"
+                >
+                  <Text
+                    style={[styles.cardSwitchText, {color: colors.primary}]}
+                  >
+                    {openCards.length} cards open · Show next
+                  </Text>
+                </TouchableOpacity>
+              ) : null}
+              <ActionCardHost
+                proposal={shownCard === 'review' ? review?.proposal : null}
+                memoryProposal={
+                  shownCard === 'memory' ? activeMemoryProposal : null
+                }
+                multiActionBatch={
+                  shownCard === 'batch' ? activeMultiBatch : null
+                }
+                expired={review?.expired}
+                busy={review?.busy}
+                onEdit={patch => {
+                  const result = reviewRef.current.edit?.(patch);
+                  if (result?.status === 'proposal') {
+                    void conversationRef.current?.sendContext(
+                      `Draft updated on screen: ${
+                        result.proposal.title
+                      }. ${result.proposal.details.join(' ')} Card ID: ${
+                        result.proposal.operationId
+                      }; revision: 1. Nothing was saved.`,
+                    );
+                  }
+                  return result;
+                }}
+                onConfirm={() => {
+                  void handleConfirm();
+                }}
+                onCancel={() => {
+                  if (shownCard === 'batch') {
+                    handleCancelMultiAll();
+                    setActiveMultiBatch(null);
+                  } else if (shownCard === 'memory') {
+                    if (activeMemoryActionId.current) {
+                      actionService.cancelMemoryProposal(
+                        ownerRef.current,
+                        activeMemoryActionId.current,
+                      );
+                      activeMemoryActionId.current = null;
+                    }
+                    setActiveMemoryProposal(null);
+                  } else {
+                    handleCancelReview();
+                  }
+                }}
+                onDismiss={() => {
+                  if (shownCard === 'batch') {
+                    setActiveMultiBatch(null);
+                  } else if (shownCard === 'memory') {
+                    setActiveMemoryProposal(null);
+                  } else {
+                    review.dismiss();
+                  }
+                }}
+                onSaveMemory={handleSaveMemory}
+                onUndoMemory={handleUndoMemory}
+                onConfirmMultiAll={handleConfirmMultiAll}
+                onCancelMultiAll={handleCancelMultiAll}
+                onCancelMultiItem={handleCancelMultiItem}
+                onRetryMultiItem={handleRetryMultiItem}
+                onOpenMultiItem={
+                  onNavigate
+                    ? item => {
+                        if (item.status === 'saved' && item.savedEntityId)
+                          onNavigate({
+                            ownerId: userId,
+                            screen:
+                              item.kind === 'note' ||
+                              (item.kind === 'task' && !item.date)
+                                ? 'notes'
+                                : 'calendar',
+                            ...(item.kind === 'task' && !item.date
+                              ? {notesTab: 'todo'}
+                              : {}),
+                            entityKind: item.kind,
+                            entityId: item.savedEntityId,
+                            date: item.date,
+                          });
+                      }
+                    : undefined
+                }
+                onEditMultiItemFields={(itemId, patch) => {
+                  if (!activeMultiBatch) return;
+                  const updated = reviseMultiItem(
+                    activeMultiBatch,
+                    itemId,
+                    patch,
+                  );
+                  setActiveMultiBatch({...updated});
+                }}
+                onEditMultiItemTitle={(itemId, title) => {
+                  setActiveMultiBatch(previous =>
+                    previous
+                      ? {
+                          ...previous,
+                          revision: previous.revision + 1,
+                          items: previous.items.map(item =>
+                            item.id === itemId && item.status !== 'saved'
+                              ? {...item, title}
+                              : item,
+                          ),
+                        }
+                      : null,
+                  );
+                }}
+                testIDPrefix="voice-conversation-review"
+              />
+              {shownCard === 'review' && review?.proposal && !review.busy && (
+                <View style={styles.draftRevisionRow}>
+                  <TextInput
+                    value={draftCorrection}
+                    onChangeText={setDraftCorrection}
+                    accessibilityLabel="Edit draft date, time, title or note content"
+                    placeholder="Need changes? Type or speak (e.g. 'Change to 4 PM')"
+                    placeholderTextColor={colors.textSecondary}
+                    style={[
+                      styles.draftRevisionInput,
+                      {
+                        color: colors.textPrimary,
+                        borderColor: colors.border,
+                        backgroundColor: colors.inputBg,
+                      },
+                    ]}
+                  />
+                  <TouchableOpacity
+                    accessibilityRole="button"
+                    accessibilityLabel="Update draft"
+                    style={[
+                      styles.draftRevisionBtn,
+                      {
+                        backgroundColor: draftCorrection.trim()
+                          ? colors.primary
+                          : colors.inputBg,
+                        borderColor: colors.border,
+                      },
+                    ]}
+                    disabled={!draftCorrection.trim()}
+                    onPress={() => {
+                      const current = reviewRef.current.proposal;
+                      if (!current) return;
+                      const revised = reviseReviewedCommand(
+                        userId,
+                        current.operationId,
+                        draftCorrection,
+                      );
+                      if (revised.status === 'proposal') {
+                        presentReview(revised);
+                        setDraftCorrection('');
+                        void conversationRef.current?.sendContext(
+                          `Draft updated on screen: ${
+                            revised.proposal.title
+                          }. ${revised.proposal.details.join(' ')} Card ID: ${
+                            revised.proposal.operationId
+                          }; revision: 1. Nothing was saved.`,
+                        );
+                      }
+                      setLocalNote(revised.reply);
+                    }}
+                  >
+                    <Text
+                      style={{
+                        color: draftCorrection.trim()
+                          ? colors.textOnPrimary
+                          : colors.textSecondary,
+                        fontSize: 12,
+                        fontWeight: '600',
+                      }}
+                    >
+                      Update
+                    </Text>
+                  </TouchableOpacity>
+                </View>
+              )}
+            </View>
+          ) : null}
+
+          {hasDetailsCard ? (
+            <View
+              style={[
+                styles.card,
+                themed.card,
+                styles.detailsCard,
+                modernCardStyle,
+              ]}
+              testID="call-details-card"
+            >
+              <View style={styles.detailsHeader}>
+                <Text style={[styles.detailsLabel, {color: colors.primary}]}>
+                  {visibleAgentReply ? 'LAFINA' : 'Details'}
+                </Text>
+                <TouchableOpacity
+                  onPress={() => {
+                    setLocalNote(null);
+                    if (visibleAgentReply) {
+                      setDismissedTurnId(visibleAgentReply.id);
+                    }
+                  }}
+                  style={styles.detailsDismissBtn}
+                  accessibilityRole="button"
+                  accessibilityLabel="Back to voice view"
+                  testID="call-details-dismiss"
+                >
+                  <Text style={[styles.detailsDismissText, themed.muted]}>
+                    Done
+                  </Text>
+                </TouchableOpacity>
+              </View>
+              {visibleAgentReply ? (
+                <Text
+                  style={[styles.detailsReplyText, themed.text]}
+                  testID="call-details-reply"
+                >
+                  {visibleAgentReply.text}
+                </Text>
+              ) : null}
+              {localNote ? (
+                <Text
+                  style={[styles.detailsNoteText, themed.text]}
+                  testID="voice-conversation-local-note"
+                >
+                  {localNote}
+                </Text>
+              ) : null}
+              {snapshot.notice ? (
+                <Text
+                  style={[styles.detailsNoteText, themed.muted]}
+                  testID="voice-conversation-notice"
+                >
+                  {snapshot.notice}
+                </Text>
+              ) : null}
+            </View>
+          ) : (
+            <>
+              {snapshot.notice ? (
+                <Text
+                  style={[styles.notice, themed.muted]}
+                  testID="voice-conversation-notice"
+                >
+                  {snapshot.notice}
+                </Text>
+              ) : null}
+
+              {localNote ? (
+                <Text
+                  style={[styles.notice, themed.text]}
+                  testID="voice-conversation-local-note"
+                >
+                  {localNote}
+                </Text>
+              ) : null}
+            </>
+          )}
+
+          {readResult !== null && (
+            <CallReadResults
+              result={readResult}
+              ownerId={userId}
+              onDismiss={() => setReadResult(null)}
+              onNavigate={onNavigate}
+            />
+          )}
+
+          {failure || snapshot.phase === 'restart_required' ? (
+            <View
+              style={[styles.card, themed.card, modernCardStyle]}
+              testID="voice-conversation-problem"
+            >
+              <View style={styles.problemRow}>
+                <CircleAlert
+                  size={16}
+                  color={failure ? colors.error : colors.textSecondary}
+                />
+                <Text
+                  style={[styles.cardBody, styles.flex, themed.text]}
+                  testID="voice-conversation-problem-text"
+                >
+                  {failure ? failure.message : snapshot.restartReason}
+                </Text>
+              </View>
+              {failure?.kind === 'online_mode_required' ? (
+                <TouchableOpacity
+                  style={[
+                    styles.primaryButton,
+                    {backgroundColor: colors.primary},
+                  ]}
+                  onPress={() => {
+                    void handleEnableOnline();
+                  }}
+                  disabled={enabling}
+                  accessibilityRole="button"
+                  testID="voice-conversation-enable-online"
+                >
+                  {enabling ? (
+                    <ActivityIndicator color={colors.textOnPrimary} />
+                  ) : (
+                    <Text
+                      style={[
+                        styles.primaryText,
+                        {color: colors.textOnPrimary},
+                      ]}
+                    >
+                      Turn on Online Mode and start
+                    </Text>
+                  )}
+                </TouchableOpacity>
+              ) : failure?.kind === 'mic_denied' ? (
+                <TouchableOpacity
+                  style={[styles.secondaryButton, themed.secondary]}
+                  onPress={() => {
+                    void Linking.openSettings().catch(() => undefined);
+                  }}
+                  accessibilityRole="button"
+                  testID="voice-conversation-open-settings"
+                >
+                  <Text style={[styles.secondaryText, themed.text]}>
+                    Open Settings
+                  </Text>
+                </TouchableOpacity>
+              ) : failure?.kind === 'signin_required' ||
+                failure?.kind === 'not_configured' ||
+                failure?.kind === 'voice_unavailable' ? null : (
+                <TouchableOpacity
+                  style={[styles.secondaryButton, themed.secondary]}
+                  onPress={handleStart}
+                  accessibilityRole="button"
+                  testID="voice-conversation-restart"
+                >
+                  <RotateCcw size={14} color={colors.textPrimary} />
+                  <Text style={[styles.secondaryText, themed.text]}>
+                    {failure ? 'Try again' : 'Start again'}
+                  </Text>
+                </TouchableOpacity>
+              )}
+              {enableError ? (
+                <Text
+                  style={[styles.notice, {color: colors.error}]}
+                  testID="voice-conversation-enable-error"
+                >
+                  {enableError}
+                </Text>
+              ) : null}
+              <Text style={[styles.hint, themed.muted]}>
+                Push-to-talk, typing and your schedule keep working offline.
               </Text>
-            ) : null}
-          </>
-        )}
+            </View>
+          ) : null}
+        </ScrollView>
 
         {undoOffer ? (
           <UndoSnackbar
@@ -1662,97 +2089,6 @@ export const VoiceConversationPanel: React.FC<VoiceConversationPanelProps> = ({
             }}
             testID="voice-undo"
           />
-        ) : null}
-
-        {readResult !== null && (
-          <CallReadResults
-            result={readResult}
-            ownerId={userId}
-            onDismiss={() => setReadResult(null)}
-            onNavigate={onNavigate}
-          />
-        )}
-
-        {failure || snapshot.phase === 'restart_required' ? (
-          <View
-            style={[styles.card, themed.card, modernCardStyle]}
-            testID="voice-conversation-problem"
-          >
-            <View style={styles.problemRow}>
-              <CircleAlert
-                size={16}
-                color={failure ? colors.error : colors.textSecondary}
-              />
-              <Text
-                style={[styles.cardBody, styles.flex, themed.text]}
-                testID="voice-conversation-problem-text"
-              >
-                {failure ? failure.message : snapshot.restartReason}
-              </Text>
-            </View>
-            {failure?.kind === 'online_mode_required' ? (
-              <TouchableOpacity
-                style={[
-                  styles.primaryButton,
-                  {backgroundColor: colors.primary},
-                ]}
-                onPress={() => {
-                  void handleEnableOnline();
-                }}
-                disabled={enabling}
-                accessibilityRole="button"
-                testID="voice-conversation-enable-online"
-              >
-                {enabling ? (
-                  <ActivityIndicator color={colors.textOnPrimary} />
-                ) : (
-                  <Text
-                    style={[styles.primaryText, {color: colors.textOnPrimary}]}
-                  >
-                    Turn on Online Mode and start
-                  </Text>
-                )}
-              </TouchableOpacity>
-            ) : failure?.kind === 'mic_denied' ? (
-              <TouchableOpacity
-                style={[styles.secondaryButton, themed.secondary]}
-                onPress={() => {
-                  void Linking.openSettings().catch(() => undefined);
-                }}
-                accessibilityRole="button"
-                testID="voice-conversation-open-settings"
-              >
-                <Text style={[styles.secondaryText, themed.text]}>
-                  Open Settings
-                </Text>
-              </TouchableOpacity>
-            ) : failure?.kind === 'signin_required' ||
-              failure?.kind === 'not_configured' ||
-              failure?.kind === 'voice_unavailable' ? null : (
-              <TouchableOpacity
-                style={[styles.secondaryButton, themed.secondary]}
-                onPress={handleStart}
-                accessibilityRole="button"
-                testID="voice-conversation-restart"
-              >
-                <RotateCcw size={14} color={colors.textPrimary} />
-                <Text style={[styles.secondaryText, themed.text]}>
-                  {failure ? 'Try again' : 'Start again'}
-                </Text>
-              </TouchableOpacity>
-            )}
-            {enableError ? (
-              <Text
-                style={[styles.notice, {color: colors.error}]}
-                testID="voice-conversation-enable-error"
-              >
-                {enableError}
-              </Text>
-            ) : null}
-            <Text style={[styles.hint, themed.muted]}>
-              Push-to-talk, typing and your schedule keep working offline.
-            </Text>
-          </View>
         ) : null}
 
         {showTyping ? (
@@ -1826,8 +2162,9 @@ export const VoiceConversationPanel: React.FC<VoiceConversationPanelProps> = ({
             <ActivityIndicator color={colors.primary} />
             <ControlButton
               label="Cancel"
-              icon={<PhoneOff size={18} color={colors.textOnPrimary} />}
+              icon={<PhoneOff size={22} color={colors.textOnPrimary} />}
               color={colors.error}
+              labelColor={colors.error}
               textColor={colors.textOnPrimary}
               onPress={conversation.end}
               testID="voice-conversation-end"
@@ -1841,9 +2178,9 @@ export const VoiceConversationPanel: React.FC<VoiceConversationPanelProps> = ({
               label={snapshot.muted ? 'Unmute' : 'Mute'}
               icon={
                 snapshot.muted ? (
-                  <MicOff size={18} color={colors.warning} />
+                  <MicOff size={22} color={colors.warning} />
                 ) : (
-                  <Mic size={18} color={colors.textPrimary} />
+                  <Mic size={22} color={colors.textPrimary} />
                 )
               }
               color={colors.inputBg}
@@ -1854,7 +2191,7 @@ export const VoiceConversationPanel: React.FC<VoiceConversationPanelProps> = ({
             />
             <ControlButton
               label={showTyping ? 'Voice' : 'Type'}
-              icon={<MessageSquareText size={18} color={colors.textPrimary} />}
+              icon={<MessageSquareText size={22} color={colors.textPrimary} />}
               color={showTyping ? colors.primary + '20' : colors.inputBg}
               textColor={colors.textPrimary}
               onPress={() => setShowTyping(prev => !prev)}
@@ -1867,7 +2204,7 @@ export const VoiceConversationPanel: React.FC<VoiceConversationPanelProps> = ({
             />
             <ControlButton
               label="Stop"
-              icon={<Square size={16} color={colors.textPrimary} />}
+              icon={<Square size={20} color={colors.textPrimary} />}
               color={colors.inputBg}
               textColor={colors.textPrimary}
               onPress={conversation.stopResponse}
@@ -1877,8 +2214,9 @@ export const VoiceConversationPanel: React.FC<VoiceConversationPanelProps> = ({
             />
             <ControlButton
               label="End"
-              icon={<PhoneOff size={18} color={colors.textOnPrimary} />}
+              icon={<PhoneOff size={22} color={colors.textOnPrimary} />}
               color={colors.error}
+              labelColor={colors.error}
               textColor={colors.textOnPrimary}
               onPress={conversation.end}
               testID="voice-conversation-end"
@@ -1913,6 +2251,8 @@ const ControlButton: React.FC<{
   disabled?: boolean;
   selected?: boolean;
   accessibilityLabel?: string;
+  /** Label colour when it differs from the icon colour (a filled button). */
+  labelColor?: string;
 }> = ({
   label,
   icon,
@@ -1923,27 +2263,38 @@ const ControlButton: React.FC<{
   disabled,
   selected,
   accessibilityLabel,
+  labelColor,
 }) => (
   <TouchableOpacity
-    style={[
-      styles.control,
-      {backgroundColor: color},
-      disabled && styles.disabled,
-    ]}
+    style={[styles.control, disabled && styles.disabled]}
     onPress={onPress}
     disabled={disabled}
+    activeOpacity={0.8}
     accessibilityRole="button"
     accessibilityLabel={accessibilityLabel ?? label}
     accessibilityState={{disabled: !!disabled, selected: !!selected}}
     testID={testID}
   >
-    {icon}
-    <Text style={[styles.controlText, {color: textColor}]}>{label}</Text>
+    <View
+      style={[
+        styles.controlCircle,
+        {backgroundColor: color, borderColor: selected ? textColor : color},
+      ]}
+    >
+      {icon}
+    </View>
+    <Text
+      style={[styles.controlText, {color: labelColor ?? textColor}]}
+      numberOfLines={1}
+    >
+      {label}
+    </Text>
   </TouchableOpacity>
 );
 
 const getThemedStyles = (colors: ThemeColors) => ({
   card: {backgroundColor: colors.inputBg, borderColor: colors.border},
+  headerCircle: {backgroundColor: colors.cardBg, borderColor: colors.border},
   pill: {backgroundColor: colors.inputBg},
   dock: {backgroundColor: 'transparent', borderColor: 'transparent'},
   text: {color: colors.textPrimary},
@@ -1968,34 +2319,36 @@ const styles = StyleSheet.create({
   headerRow: {
     width: '100%',
     flexDirection: 'row',
-    flexWrap: 'wrap',
     gap: 8,
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingVertical: 6,
   },
-  headerTitle: {
-    fontFamily: Fonts.heading,
-    fontSize: 18,
-    fontWeight: 'bold',
-  },
-  backButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    paddingVertical: 6,
-    minHeight: 44,
-  },
-  linkText: {fontFamily: Fonts.body, fontSize: 14, fontWeight: '600'},
-  headerRight: {
+  // Equal sides keep the title centered whatever buttons the right side has.
+  headerSide: {
+    flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
   },
-  settingsButton: {
-    padding: 6,
-    minWidth: 36,
-    minHeight: 36,
+  headerRight: {
+    justifyContent: 'flex-end',
+  },
+  headerCenter: {
+    alignItems: 'center',
+    gap: 4,
+  },
+  headerTitle: {
+    fontFamily: Fonts.heading,
+    fontSize: 18,
+    fontWeight: '700',
+    letterSpacing: -0.2,
+  },
+  headerCircle: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    borderWidth: 1,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -2024,6 +2377,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     marginBottom: 4,
   },
+  avatarRingCompact: {width: 56, height: 56, borderRadius: 28, borderWidth: 2},
   avatarInner: {
     width: 72,
     height: 72,
@@ -2199,24 +2553,26 @@ const styles = StyleSheet.create({
   secondaryText: {fontFamily: Fonts.body, fontSize: 14, fontWeight: '600'},
   controls: {
     flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 10,
-    alignItems: 'center',
+    gap: 18,
+    alignItems: 'flex-start',
     justifyContent: 'center',
     width: '100%',
   },
   control: {
-    flex: 1,
-    maxWidth: 90,
-    minHeight: 48,
-    borderRadius: 24,
+    minWidth: 64,
     alignItems: 'center',
     justifyContent: 'center',
-    flexDirection: 'row',
-    gap: 4,
-    paddingHorizontal: 8,
+    gap: 6,
   },
-  controlText: {fontFamily: Fonts.body, fontSize: 12, fontWeight: 'bold'},
+  controlCircle: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    borderWidth: 1.5,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  controlText: {fontFamily: Fonts.body, fontSize: 12, fontWeight: '600'},
   disabled: {opacity: 0.45},
   inputRow: {
     width: '100%',
@@ -2240,6 +2596,26 @@ const styles = StyleSheet.create({
     width: '100%',
     marginVertical: 4,
   },
+  overlayScroll: {
+    width: '100%',
+    flexGrow: 0,
+    flexShrink: 1,
+  },
+  overlayScrollContent: {
+    alignItems: 'center',
+    gap: 10,
+    paddingBottom: 4,
+  },
+  cardSwitch: {
+    alignSelf: 'center',
+    minHeight: 36,
+    justifyContent: 'center',
+    paddingHorizontal: 14,
+    borderRadius: 999,
+    borderWidth: 1,
+    marginBottom: 6,
+  },
+  cardSwitchText: {fontFamily: Fonts.body, fontSize: 12, fontWeight: '700'},
   draftRevisionRow: {
     flexDirection: 'row',
     alignItems: 'center',

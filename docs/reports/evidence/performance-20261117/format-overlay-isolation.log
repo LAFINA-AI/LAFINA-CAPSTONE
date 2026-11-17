@@ -1,0 +1,5 @@
+src\ui\navigation\RetainedTab.tsx 335ms
+src\ui\screens\ChatScreen.tsx 567ms
+src\ui\screens\ProfileScreen.tsx 345ms
+src\ui\screens\calendar\CalendarScreen.tsx 155ms
+src\ui\screens\notes\NotesScreen.tsx 100ms

@@ -15,11 +15,62 @@ import {
   type ValidatedIntent,
 } from './nlu/types';
 
-/** Detects USTP Student Handbook / academic policy questions for local FTS5 or online RAG. */
+/**
+ * Phrases that name a handbook policy on their own ("dean's list", "dress
+ * code", "leave of absence").
+ */
+const HANDBOOK_STRONG_CUE_RE =
+  /\b(?:ustp\s+(?:policy|policies|rules?|handbook|regulations?)|(?:student\s+)?handbook|dean['\u2018\u2019]?s\s+list|grading\s+system|retention\s+policy|graduation\s+requirements?|uniform\s+policy|dress\s+code|academic\s+probation|inc\s+(?:grade|completion|policy)|grade\s+completion|cum\s+laude|latin\s+honors|leave\s+of\s+absence|attendance\s+policy|absenteeism|academic\s+dishonesty|student\s+conduct|shifting\s+policy|honorable\s+dismissal|scholarship\s+policy|maximum\s+(?:allowable\s+)?absences|allowable\s+absences|unexcused\s+absences?|passing\s+grade)\b/i;
+
+/** Policy topics that are only handbook questions next to a policy cue. */
+const HANDBOOK_TOPIC_RE =
+  /\b(?:gwa|gpa|tuition|fees?|prerequisites?|absences?|absent|tardiness|plagiari[sz]m|cheating|cheat|transferee|uniform|haircut|probation|retention|scholarship|overload|underload|inc|incomplete|grades?|grading|honors?|nstp|rotc|loa|(?:drop(?:ping)?|withdraw(?:ing|al)?)\s+(?:(?:a|this|that|my|the|one)\s+)?(?:subjects?|course|class|units?)|mag[\s-]?drop|fail(?:ed|ing)?\s+(?:(?:a|this|that|my|the)\s+)?(?:subjects?|course|class)|shift(?:ing)?\s+(?:(?:of|to|ng|my|another|a)\s+)*(?:courses?|programs?|degrees?|majors?)|mag[\s-]?shift)\b/i;
+
+/** Words that ask what is allowed, required or what happens. */
+const HANDBOOK_POLICY_CUE_RE =
+  /\b(?:ustp|polic(?:y|ies)|rules?|regulations?|allowed|allowable|permitted|maximum|max|minimum|required|requirements?|requirement|penalty|penalties|sanctions?|what\s+happens|can\s+i|may\s+i|am\s+i\s+allowed|is\s+it\s+(?:okay|ok|allowed)|pwede|puwede|bawal|procedure|process|how\s+(?:do|can)\s+i|how\s+to|how\s+many|how\s+much|qualify|qualifications?|eligible|eligibility|deadline|what\s+is|what\s+are|ano\s+ang)\b/i;
+
+/**
+ * Commands and questions about the student's own data. They stay with the
+ * planner even when they mention a policy word ("remind me to pay tuition",
+ * "how many absences do I have left").
+ */
+const PERSONAL_PLANNER_RE =
+  /^(?:please\s+)?(?:add|remind|schedule|create|make|set|book|put|take\s+(?:a\s+)?note|note|jot|save|mark|move|delete|cancel|update|edit|rename)\b|\b(?:do\s+i\s+(?:still\s+)?have(?:\s+left)?|i\s+have\s+left|have\s+i\s+(?:got|used)|my\s+(?:schedule|calendar|tasks?|to-?dos?|notes?|reminders?|alarms?|classes|goal|goals|plan|plans|day|week|grades?|gwa|gpa|absences?|units|balance)|(?:goal|target)\s+note)\b/i;
+
+/** True when the text asks about a handbook policy anywhere in it. */
+export const hasHandbookSignal = (text: string): boolean =>
+  HANDBOOK_STRONG_CUE_RE.test(text) ||
+  (HANDBOOK_TOPIC_RE.test(text) && HANDBOOK_POLICY_CUE_RE.test(text));
+
+/**
+ * Detects USTP Student Handbook / academic policy questions for local FTS5 or
+ * online RAG. Personal planner commands and questions about the student's
+ * own data never count, even when they contain a policy word (audit H3).
+ */
 export const isHandbookQuestion = (text: string): boolean =>
-  /\b(?:ustp|handbook|dean['\u2018\u2019]?s\s+list|grading\s+system|retention\s+policy|tuition|graduation\s+requirements|uniform\s+policy|dress\s+code|drop(?:ping)?\s+subject|prerequisite|academic\s+probation|inc\s+(?:grade|completion|policy)|gwa|gpa|cum\s+laude|latin\s+honors|leave\s+of\s+absence|attendance\s+policy|absenteeism|(?:unexcused\s+|allowable\s+|max(?:imum)?\s+|how\s+many\s+)?absences|plagiarism|academic\s+dishonesty|student\s+conduct|shifting\s+policy|transferee|honorable\s+dismissal|scholarship\s+policy)\b/i.test(
-    text,
-  );
+  hasHandbookSignal(text) && !PERSONAL_PLANNER_RE.test(text.trim());
+
+/**
+ * The handbook half of a mixed question ("what is my schedule tomorrow and
+ * what is the USTP attendance policy?"), or null when there is none or the
+ * whole message is the handbook question.
+ */
+export function extractHandbookClause(text: string): string | null {
+  const trimmed = (text || '').trim();
+  if (!trimmed || isHandbookQuestion(trimmed)) {
+    return null;
+  }
+  const clauses = trimmed
+    .split(/\s*(?:[?;]|\.\s+|,?\s+\b(?:and\s+also|and|also|plus|tapos|at\s+saka)\b)\s*/i)
+    .map(part => part.trim())
+    .filter(part => part.length > 0);
+  if (clauses.length < 2) {
+    return null;
+  }
+  const hit = clauses.find(part => isHandbookQuestion(part));
+  return hit ?? null;
+}
 
 const ONLINE_EXTRACTABLE_INTENTS = new Set<ParsedIntentType>([
   'create_task',
