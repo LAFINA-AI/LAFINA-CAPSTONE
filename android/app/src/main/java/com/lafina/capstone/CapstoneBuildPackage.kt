@@ -25,6 +25,7 @@ class CapstoneBuildPackage : ReactPackage {
       LafinaMeetingRecorderModule(context),
       LafinaVoiceConversationModule(context),
       LafinaVisionModule(context),
+      LafinaFloatingAssistantModule(context),
     )
 
   override fun createViewManagers(context: ReactApplicationContext): List<ViewManager<*, *>> =

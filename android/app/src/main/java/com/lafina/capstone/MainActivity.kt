@@ -35,6 +35,21 @@ class MainActivity : ReactActivity() {
    */
   override fun getMainComponentName(): String = "LafinaCapstone"
 
+  // Floating LAFINA (ADR-036): the orb hides while this screen is visible,
+  // and starts (when enabled and permitted) from this visible state. An open
+  // Quick Chat panel is closed first so the two React screens never share
+  // the host while both are resumed (ADR-036 Decision 5).
+  override fun onResume() {
+    QuickChatActivity.finishIfOpen()
+    super.onResume()
+    LafinaFloatingAssistantService.onMainResumed(this)
+  }
+
+  override fun onPause() {
+    LafinaFloatingAssistantService.onMainPaused(this)
+    super.onPause()
+  }
+
   /**
    * Returns the instance of the [ReactActivityDelegate]. We use [DefaultReactActivityDelegate]
    * which allows you to enable New Architecture with a single boolean flags [fabricEnabled]

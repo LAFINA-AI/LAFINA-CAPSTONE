@@ -14,6 +14,10 @@
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MICROPHONE" />
     <!-- Alarm phase A1: the alarm tone is played by a media-playback foreground service. -->
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MEDIA_PLAYBACK" />
+    <!-- Floating LAFINA (owner approved 2026-11-17, OWNER-AUTHORIZATION.md): the
+         optional, off-by-default floating button over other apps and its service. -->
+    <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_SPECIAL_USE" />
 
     <queries>
         <intent>
@@ -109,6 +113,17 @@
         android:exported="false"
         android:foregroundServiceType="microphone" />
 
+      <!-- Floating LAFINA (ADR-036): runs only while the student has it on. -->
+      <service
+        android:name=".LafinaFloatingAssistantService"
+        android:enabled="true"
+        android:exported="false"
+        android:foregroundServiceType="specialUse">
+        <property
+          android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE"
+          android:value="User-enabled floating button that opens LAFINA Quick Chat" />
+      </service>
+
       <provider
         android:name="androidx.core.content.FileProvider"
         android:authorities="${applicationId}.fileprovider"
@@ -131,5 +146,17 @@
             <category android:name="android.intent.category.LAUNCHER" />
         </intent-filter>
       </activity>
+      <!-- Floating LAFINA (ADR-036): the Quick Chat panel. Own task, not in
+           recents, not exported, never shown on the lock screen. -->
+      <activity
+        android:name=".QuickChatActivity"
+        android:label="Quick Chat"
+        android:theme="@style/QuickChatTheme"
+        android:configChanges="keyboard|keyboardHidden|orientation|screenLayout|screenSize|smallestScreenSize|uiMode"
+        android:launchMode="singleTask"
+        android:taskAffinity="${applicationId}.quickchat"
+        android:excludeFromRecents="true"
+        android:windowSoftInputMode="adjustResize|stateVisible"
+        android:exported="false" />
     </application>
 </manifest>
