@@ -3,6 +3,7 @@ import {StyleSheet, View} from 'react-native';
 import Svg, {Defs, LinearGradient, Path, Stop} from 'react-native-svg';
 import type {ConversationPhase} from '../../../cloud/voiceConversation/types';
 import {useTheme} from '../../contexts/ThemeContext';
+import {useReducedMotion} from '../../hooks/useReducedMotion';
 import {
   DARK_STOPS,
   LIGHT_STOPS,
@@ -13,6 +14,7 @@ import {
 export interface SynthWaveAvatarProps {
   phase: ConversationPhase;
   outputLevel?: number;
+  userLevel?: number;
   muted?: boolean;
   size?: number;
   testID?: string;
@@ -33,8 +35,7 @@ function getTargetAmplitude(
       typeof outputLevel === 'number' && !Number.isNaN(outputLevel)
         ? outputLevel
         : 0;
-    // When Lafina speaks, the waveform comes vigorously alive (0.42 to 0.95)
-    return Math.max(0.42, Math.min(0.95, raw > 0 ? 0.35 + raw * 0.65 : 0.65));
+    return Math.max(0.08, Math.min(0.95, Number.isFinite(raw) ? raw : 0));
   }
   if (phase === 'thinking' || phase === 'tool_working') {
     return 0.28;
@@ -52,11 +53,15 @@ function getTargetAmplitude(
 export const SynthWaveAvatar: React.FC<SynthWaveAvatarProps> = ({
   phase,
   outputLevel = 0,
+  userLevel = 0,
   muted = false,
   size = 76,
   testID = 'synth-wave-avatar',
 }) => {
   const {isDarkMode, isModern, modernTheme, modernThemeExtras} = useTheme();
+  const reducedMotion = useReducedMotion();
+  const measuredLevel =
+    phase === 'listening' && !muted ? userLevel : outputLevel;
   const startRef = useRef(Date.now());
 
   const stops = useMemo(
@@ -78,13 +83,16 @@ export const SynthWaveAvatar: React.FC<SynthWaveAvatarProps> = ({
       if (phase === 'speaking') {
         // Human syllable rhythm dynamics from synthWave
         modulatedAmp = Math.max(
-          0.32,
+          0.08,
           Math.min(1.0, baseAmp * (0.85 + 0.3 * voiceLevelAt(seconds))),
         );
       } else if (phase === 'thinking' || phase === 'tool_working') {
         modulatedAmp = baseAmp * (1 + 0.25 * Math.sin(seconds * 4));
-      } else if (phase === 'listening') {
-        modulatedAmp = baseAmp * (1 + 0.18 * Math.sin(seconds * 1.8));
+      } else if (phase === 'listening' && !muted) {
+        modulatedAmp = Math.max(
+          0.08,
+          Math.min(0.95, Number.isFinite(userLevel) ? userLevel : 0),
+        );
       }
 
       const paths: string[] = [];
@@ -102,16 +110,17 @@ export const SynthWaveAvatar: React.FC<SynthWaveAvatarProps> = ({
       }
       return paths;
     },
-    [halfHeight, middle, phase, size],
+    [halfHeight, middle, phase, size, muted, userLevel],
   );
 
   const [strands, setStrands] = useState<string[]>(() =>
-    computeStrands(0, getTargetAmplitude(phase, outputLevel)),
+    computeStrands(0, getTargetAmplitude(phase, measuredLevel)),
   );
 
   useEffect(() => {
     // In automated Jest test environments, avoid running background animation timers to prevent act() warnings
-    if (process.env.NODE_ENV === 'test') {
+    if (reducedMotion || process.env.NODE_ENV === 'test') {
+      setStrands(computeStrands(0, getTargetAmplitude(phase, measuredLevel)));
       return undefined;
     }
 
@@ -126,7 +135,7 @@ export const SynthWaveAvatar: React.FC<SynthWaveAvatarProps> = ({
       if (nowMs - lastTime >= 28) {
         lastTime = nowMs;
         const elapsed = (Date.now() - startRef.current) / 1000;
-        const targetAmp = getTargetAmplitude(phase, outputLevel);
+        const targetAmp = getTargetAmplitude(phase, measuredLevel);
         const nextStrands = computeStrands(elapsed, targetAmp);
         setStrands(nextStrands);
       }
@@ -138,7 +147,7 @@ export const SynthWaveAvatar: React.FC<SynthWaveAvatarProps> = ({
       cancelled = true;
       cancelAnimationFrame(raf);
     };
-  }, [phase, outputLevel, computeStrands]);
+  }, [phase, measuredLevel, computeStrands, reducedMotion]);
 
   const centerIndex = Math.floor(STRAND_COUNT / 2);
   const centerStrand = strands[centerIndex] ?? '';
@@ -197,7 +206,13 @@ export const SynthWaveAvatar: React.FC<SynthWaveAvatarProps> = ({
             stroke={`url(#${gradientId})`}
             strokeWidth={5}
             strokeOpacity={
-              muted ? 0.1 : phase === 'speaking' ? (isDarkMode ? 0.35 : 0.25) : 0.15
+              muted
+                ? 0.1
+                : phase === 'speaking'
+                ? isDarkMode
+                  ? 0.35
+                  : 0.25
+                : 0.15
             }
             strokeLinecap="round"
             strokeLinejoin="round"

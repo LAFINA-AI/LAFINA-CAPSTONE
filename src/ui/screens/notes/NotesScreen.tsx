@@ -1,3 +1,5 @@
+import {VirtualNoteGrid} from './components/VirtualNoteGrid';
+import {ScreenOverlays} from '../../navigation/RetainedTab';
 import {resolveCallTarget} from '../../navigation/resolveCallTarget';
 import React, {useCallback, useState, useEffect, useRef, useMemo} from 'react';
 import {
@@ -6,7 +8,6 @@ import {
   StyleSheet,
   TouchableOpacity,
   TextInput,
-  ScrollView,
   FlatList,
   Alert,
 } from 'react-native';
@@ -39,13 +40,13 @@ import {
 import {NotesScreenProps, NotesSubTab} from './types';
 import type {NoteSnapshot} from '../../../storage';
 
-export const NotesScreen: React.FC<NotesScreenProps> = ({
+export const NotesScreen = React.memo(function NotesScreenView({
   userId,
   refreshTrigger,
   onRefresh,
   openRequest,
   onOpenRequestHandled,
-}) => {
+}: NotesScreenProps) {
   const {colors} = useTheme();
   const palette = useSchedulePalette();
   const [activeSubTab, setActiveSubTab] = useState<NotesSubTab>('notes');
@@ -64,6 +65,7 @@ export const NotesScreen: React.FC<NotesScreenProps> = ({
     onRefresh: handleCombinedRefresh,
   });
   const todo = useTodoData({
+    enabled: activeSubTab === 'todo',
     userId,
     refreshTrigger,
     searchQuery: data.searchQuery,
@@ -274,13 +276,19 @@ export const NotesScreen: React.FC<NotesScreenProps> = ({
               styles.searchRow,
               {
                 backgroundColor: palette.card,
-                borderColor: palette.isDarkMode ? palette.border : 'transparent',
+                borderColor: palette.isDarkMode
+                  ? palette.border
+                  : 'transparent',
                 borderWidth: palette.isDarkMode ? 1 : 0,
               },
               !palette.isDarkMode && scheduleCardShadow,
             ]}
           >
-            <Search size={16} color={palette.muted} style={styles.searchPrefixIcon} />
+            <Search
+              size={16}
+              color={palette.muted}
+              style={styles.searchPrefixIcon}
+            />
             <TextInput
               style={[styles.searchInput, {color: palette.text}]}
               placeholder={
@@ -364,10 +372,7 @@ export const NotesScreen: React.FC<NotesScreenProps> = ({
                 accessibilityLabel={
                   activeSubTab === 'alarms' ? 'Add alarm' : undefined
                 }
-                style={[
-                  styles.headerAddBtn,
-                  {backgroundColor: palette.accent},
-                ]}
+                style={[styles.headerAddBtn, {backgroundColor: palette.accent}]}
               >
                 <Plus size={20} color="#FFFFFF" strokeWidth={2.4} />
               </TouchableOpacity>
@@ -378,10 +383,7 @@ export const NotesScreen: React.FC<NotesScreenProps> = ({
 
       {/* Segmented Switcher: Alarms | Todo | Notes */}
       <View
-        style={[
-          styles.segmentedBar,
-          {backgroundColor: palette.surface},
-        ]}
+        style={[styles.segmentedBar, {backgroundColor: palette.surface}]}
         accessibilityRole="tablist"
       >
         <TouchableOpacity
@@ -406,8 +408,7 @@ export const NotesScreen: React.FC<NotesScreenProps> = ({
             style={[
               styles.segmentText,
               {
-                color:
-                  activeSubTab === 'alarms' ? palette.text : palette.muted,
+                color: activeSubTab === 'alarms' ? palette.text : palette.muted,
                 fontWeight: activeSubTab === 'alarms' ? '700' : '500',
               },
             ]}
@@ -435,23 +436,20 @@ export const NotesScreen: React.FC<NotesScreenProps> = ({
               style={[
                 styles.segmentText,
                 {
-                  color:
-                    activeSubTab === 'todo' ? palette.text : palette.muted,
+                  color: activeSubTab === 'todo' ? palette.text : palette.muted,
                   fontWeight: activeSubTab === 'todo' ? '700' : '500',
                 },
               ]}
             >
               Todo
             </Text>
-            {todo.pendingCount > 0 ? (
+            {todo.pendingCount > 0 || todo.checklistsLoading ? (
               <View
                 style={[
                   styles.segmentBadge,
                   {
                     backgroundColor:
-                      activeSubTab === 'todo'
-                        ? palette.accent
-                        : palette.border,
+                      activeSubTab === 'todo' ? palette.accent : palette.border,
                   },
                 ]}
               >
@@ -459,12 +457,11 @@ export const NotesScreen: React.FC<NotesScreenProps> = ({
                   style={[
                     styles.segmentBadgeText,
                     {
-                      color:
-                        activeSubTab === 'todo' ? '#FFFFFF' : palette.text,
+                      color: activeSubTab === 'todo' ? '#FFFFFF' : palette.text,
                     },
                   ]}
                 >
-                  {todo.pendingCount}
+                  {todo.checklistsLoading ? '…' : todo.pendingCount}
                 </Text>
               </View>
             ) : null}
@@ -489,8 +486,7 @@ export const NotesScreen: React.FC<NotesScreenProps> = ({
             style={[
               styles.segmentText,
               {
-                color:
-                  activeSubTab === 'notes' ? palette.text : palette.muted,
+                color: activeSubTab === 'notes' ? palette.text : palette.muted,
                 fontWeight: activeSubTab === 'notes' ? '700' : '500',
               },
             ]}
@@ -511,6 +507,8 @@ export const NotesScreen: React.FC<NotesScreenProps> = ({
         />
       ) : activeSubTab === 'todo' ? (
         <TodoListView
+          hasMoreTasks={todo.hasMoreTasks}
+          onLoadMoreTasks={todo.loadMoreTasks}
           undatedOpen={todo.undatedOpen}
           scheduledOpen={todo.scheduledOpen}
           completedTasks={todo.completedTasks}
@@ -633,47 +631,14 @@ export const NotesScreen: React.FC<NotesScreenProps> = ({
               </View>
             </View>
           ) : data.isGridView ? (
-            <ScrollView
-              style={styles.notesListScroll}
-              contentContainerStyle={[styles.notesList, styles.gridContainer]}
+            <VirtualNoteGrid
+              items={data.filtered}
+              renderItem={renderItem}
               scrollEnabled={!data.isDragging}
-            >
-              {data.filtered.map((item, index) => (
-                <React.Fragment key={item.id}>
-                  {hasPinned && item.id === firstPinnedId && (
-                    <View style={styles.sectionHeaderRow}>
-                      <Pin
-                        size={11}
-                        color={colors.red}
-                        style={{transform: [{rotate: '45deg'}], marginRight: 6}}
-                      />
-                      <Text
-                        style={[
-                          styles.sectionHeaderText,
-                          {color: colors.textSecondary},
-                        ]}
-                      >
-                        PINNED
-                      </Text>
-                    </View>
-                  )}
-                  {hasPinned && item.id === firstOtherId && (
-                    <View style={styles.sectionHeaderRow}>
-                      <Text
-                        style={[
-                          styles.sectionHeaderText,
-                          {color: colors.textSecondary},
-                        ]}
-                      >
-                        OTHERS
-                      </Text>
-                    </View>
-                  )}
-                  {renderItem({item, index})}
-                </React.Fragment>
-              ))}
-              {loadMoreButton}
-            </ScrollView>
+              footer={loadMoreButton}
+              generation={data.renderGen}
+              showSections={!hasSearch}
+            />
           ) : (
             <FlatList
               key="list"
@@ -685,73 +650,76 @@ export const NotesScreen: React.FC<NotesScreenProps> = ({
               extraData={data.renderGen}
               renderItem={renderItem}
               removeClippedSubviews={false}
-              windowSize={21}
+              initialNumToRender={12}
+              maxToRenderPerBatch={6}
+              windowSize={7}
               ListFooterComponent={loadMoreButton}
             />
           )}
         </>
       )}
 
-      {todo.editorVisible && (
-        <TodoEditorModal
-          key={todo.editingTask?.id || 'new-todo'}
-          visible={todo.editorVisible}
-          editingTask={todo.editingTask}
-          customCategories={data.customCategories}
-          onClose={todo.closeEditor}
-          onAddCategory={data.addCategory}
-          onSave={(draft, editing) => {
-            if (editing) {
-              todo.updateTodo(editing, draft);
-            } else {
-              todo.addTodo(draft);
+      <ScreenOverlays>
+        {todo.editorVisible && (
+          <TodoEditorModal
+            key={todo.editingTask?.id || 'new-todo'}
+            visible={todo.editorVisible}
+            editingTask={todo.editingTask}
+            customCategories={data.customCategories}
+            onClose={todo.closeEditor}
+            onAddCategory={data.addCategory}
+            onSave={(draft, editing) => {
+              if (editing) {
+                todo.updateTodo(editing, draft);
+              } else {
+                todo.addTodo(draft);
+              }
+              todo.closeEditor();
+            }}
+            onDelete={todo.deleteTodo}
+          />
+        )}
+
+        {/* Editor Modal */}
+        {data.editorVisible && (
+          <NoteEditor
+            visible={data.editorVisible}
+            editingNote={data.editingNote}
+            noteTitle={data.noteTitle}
+            noteBody={data.noteBody}
+            noteCategory={data.noteCategory}
+            noteTags={data.noteTags}
+            isPinned={data.isPinned}
+            imageUri={data.imageUri}
+            selection={data.selection}
+            aiLoading={data.aiLoading}
+            aiActionType={data.aiActionType}
+            onTitleChange={data.setNoteTitle}
+            onBodyChange={data.changeBody}
+            onCategoryChange={data.setNoteCategory}
+            onPinToggle={() => data.setIsPinned(!data.isPinned)}
+            onImageUriChange={data.setImageUri}
+            onSelectionChange={data.setSelection}
+            onClose={data.closeEditor}
+            onSave={data.saveNote}
+            onDelete={() =>
+              data.editingNote && data.deleteNote(data.editingNote.id)
             }
-            todo.closeEditor();
-          }}
-          onDelete={todo.deleteTodo}
-        />
-      )}
-
-      {/* Editor Modal */}
-      {data.editorVisible && (
-        <NoteEditor
-          visible={data.editorVisible}
-          editingNote={data.editingNote}
-          noteTitle={data.noteTitle}
-          noteBody={data.noteBody}
-          noteCategory={data.noteCategory}
-          noteTags={data.noteTags}
-          isPinned={data.isPinned}
-          imageUri={data.imageUri}
-          selection={data.selection}
-          aiLoading={data.aiLoading}
-          aiActionType={data.aiActionType}
-          onTitleChange={data.setNoteTitle}
-          onBodyChange={data.changeBody}
-          onCategoryChange={data.setNoteCategory}
-          onPinToggle={() => data.setIsPinned(!data.isPinned)}
-          onImageUriChange={data.setImageUri}
-          onSelectionChange={data.setSelection}
-          onClose={data.closeEditor}
-          onSave={data.saveNote}
-          onDelete={() =>
-            data.editingNote && data.deleteNote(data.editingNote.id)
-          }
-          onFormatting={data.applyFormatting}
-          onToggleChecklist={data.toggleEditorChecklist}
-          onAttachImage={handleAttachImage}
-          onRemoveImage={() => data.setImageUri(null)}
-          onAiAction={data.triggerAiAction}
-          customCategories={data.customCategories}
-          onAddCategory={data.addCategory}
-          onDeleteCategory={data.deleteCategory}
-          onUpdateCategory={data.updateCategory}
-        />
-      )}
-
+            onFormatting={data.applyFormatting}
+            onToggleChecklist={data.toggleEditorChecklist}
+            onAttachImage={handleAttachImage}
+            onRemoveImage={() => data.setImageUri(null)}
+            onAiAction={data.triggerAiAction}
+            customCategories={data.customCategories}
+            onAddCategory={data.addCategory}
+            onDeleteCategory={data.deleteCategory}
+            onUpdateCategory={data.updateCategory}
+          />
+        )}
+      </ScreenOverlays>
     </View>
   );
-};
+});
 
 const styles = StyleSheet.create({
   container: {

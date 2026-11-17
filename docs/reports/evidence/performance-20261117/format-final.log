@@ -1,0 +1,9 @@
+App.tsx 2048ms
+src\ui\screens\ChatScreen.tsx 1166ms
+src\ui\screens\ProfileScreen.tsx 918ms
+src\ui\screens\calendar\CalendarScreen.tsx 276ms
+src\ui\screens\calendar\hooks\useCalendarData.ts 361ms
+src\ui\screens\notes\NotesScreen.tsx 202ms
+src\ui\screens\notes\components\VirtualNoteGrid.tsx 44ms
+src\storage\database.ts 142ms
+src\utils\tabPerformance.ts 13ms

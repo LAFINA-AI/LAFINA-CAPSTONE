@@ -4,8 +4,8 @@
  * meeting-generated notes editable. Synthetic notes only.
  */
 import React from 'react';
-import { Alert } from 'react-native';
-import type { AlertButton } from 'react-native';
+import {Alert} from 'react-native';
+import type {AlertButton} from 'react-native';
 import {
   act,
   fireEvent,
@@ -19,17 +19,17 @@ import {
   tasksStore,
   userStore,
 } from '../../src/storage';
-import { GUEST_USER_ID } from '../../src/constants';
-import { useNotesData } from '../../src/ui/screens/notes/hooks/useNotesData';
-import { NotesScreen } from '../../src/ui/screens/notes';
-import { ThemeProvider } from '../../src/ui/contexts/ThemeContext';
+import {GUEST_USER_ID} from '../../src/constants';
+import {useNotesData} from '../../src/ui/screens/notes/hooks/useNotesData';
+import {NotesScreen} from '../../src/ui/screens/notes';
+import {ThemeProvider} from '../../src/ui/contexts/ThemeContext';
 
-type AlertCall = { title: string; message?: string; buttons?: AlertButton[] };
+type AlertCall = {title: string; message?: string; buttons?: AlertButton[]};
 
 const captureAlerts = (): AlertCall[] => {
   const calls: AlertCall[] = [];
   jest.spyOn(Alert, 'alert').mockImplementation((title, message, buttons) => {
-    calls.push({ title, message, buttons: buttons as AlertButton[] | undefined });
+    calls.push({title, message, buttons: buttons as AlertButton[] | undefined});
   });
   return calls;
 };
@@ -45,7 +45,7 @@ const press = (call: AlertCall | undefined, label: string): void => {
 let serial = 0;
 const seed = (
   userId: string,
-  fields: { title?: string; body?: string; sortOrder?: number } = {},
+  fields: {title?: string; body?: string; sortOrder?: number} = {},
 ): string => {
   serial += 1;
   const id = `p07ui-${String(serial).padStart(5, '0')}`;
@@ -69,9 +69,9 @@ const row = (id: string) =>
 
 const renderNotesHook = (initialUser: string = GUEST_USER_ID) =>
   renderHook(
-    ({ userId }: { userId: string }) =>
-      useNotesData({ userId, refreshTrigger: 0, onRefresh: jest.fn() }),
-    { initialProps: { userId: initialUser } },
+    ({userId}: {userId: string}) =>
+      useNotesData({userId, refreshTrigger: 0, onRefresh: jest.fn()}),
+    {initialProps: {userId: initialUser}},
   );
 
 describe('AGY-PORT 07 Notes UI', () => {
@@ -92,14 +92,14 @@ describe('AGY-PORT 07 Notes UI', () => {
   });
 
   test('a stale editor save keeps the draft open and "Save as a copy" never overwrites the newer note', () => {
-    const id = seed(GUEST_USER_ID, { title: 'Lab', body: 'original' });
+    const id = seed(GUEST_USER_ID, {title: 'Lab', body: 'original'});
     const alerts = captureAlerts();
-    const { result } = renderNotesHook();
+    const {result} = renderNotesHook();
     act(() => result.current.openEditNote(result.current.notes[0]));
     act(() => result.current.setNoteBody('my phone draft'));
 
     // Another writer (sync, assistant, second editor) saves first.
-    notesStore.update({ id, body: 'newer from the laptop' });
+    notesStore.update({id, body: 'newer from the laptop'});
     act(() => result.current.saveNote());
 
     expect(alerts.at(-1)?.title).toBe('Note changed elsewhere');
@@ -114,16 +114,16 @@ describe('AGY-PORT 07 Notes UI', () => {
       'SELECT title, body FROM notes WHERE id <> ? AND deleted_at IS NULL',
       [id],
     ).rows;
-    expect(copies).toEqual([{ title: 'Lab (copy)', body: 'my phone draft' }]);
+    expect(copies).toEqual([{title: 'Lab (copy)', body: 'my phone draft'}]);
   });
 
   test('a delete confirmed after the note changed is refused and the note stays', () => {
-    const id = seed(GUEST_USER_ID, { body: 'v1' });
+    const id = seed(GUEST_USER_ID, {body: 'v1'});
     const alerts = captureAlerts();
-    const { result } = renderNotesHook();
+    const {result} = renderNotesHook();
     act(() => result.current.openEditNote(result.current.notes[0]));
     act(() => result.current.deleteNote(id));
-    notesStore.update({ id, body: 'v2 from sync' });
+    notesStore.update({id, body: 'v2 from sync'});
     press(alerts.at(-1), 'Delete');
 
     expect(alerts.at(-1)?.title).toBe('Note not deleted');
@@ -133,9 +133,9 @@ describe('AGY-PORT 07 Notes UI', () => {
   });
 
   test('a card checklist tap over a stale card is refused and the list refreshes', () => {
-    const id = seed(GUEST_USER_ID, { body: '- [ ] read chapter' });
+    const id = seed(GUEST_USER_ID, {body: '- [ ] read chapter'});
     const alerts = captureAlerts();
-    const { result } = renderNotesHook();
+    const {result} = renderNotesHook();
     const card = result.current.notes[0];
     notesStore.update({
       id,
@@ -158,11 +158,11 @@ describe('AGY-PORT 07 Notes UI', () => {
       title: 'Plan',
       body: 'Write the introduction section',
     });
-    const { result, rerender } = renderNotesHook();
+    const {result, rerender} = renderNotesHook();
     act(() => result.current.openEditNote(result.current.notes[0]));
     act(() => result.current.triggerAiAction('tasks'));
 
-    rerender({ userId: 'p07ui-other-account' });
+    rerender({userId: 'p07ui-other-account'});
     expect(result.current.editorVisible).toBe(false);
     expect(result.current.noteBody).toBe('');
     act(() => {
@@ -175,8 +175,8 @@ describe('AGY-PORT 07 Notes UI', () => {
 
   test('closing the editor before the AI timer fires retires it', () => {
     jest.useFakeTimers();
-    seed(GUEST_USER_ID, { body: 'Line that is long enough to extract' });
-    const { result } = renderNotesHook();
+    seed(GUEST_USER_ID, {body: 'Line that is long enough to extract'});
+    const {result} = renderNotesHook();
     act(() => result.current.openEditNote(result.current.notes[0]));
     act(() => result.current.triggerAiAction('tasks'));
     act(() => result.current.closeEditor());
@@ -187,8 +187,8 @@ describe('AGY-PORT 07 Notes UI', () => {
   });
 
   test('pages load on request; reorder waits for the complete collection', () => {
-    for (let i = 0; i < 60; i += 1) seed(GUEST_USER_ID, { sortOrder: i });
-    const { result } = renderNotesHook();
+    for (let i = 0; i < 60; i += 1) seed(GUEST_USER_ID, {sortOrder: i});
+    const {result} = renderNotesHook();
     expect(result.current.notes).toHaveLength(50);
     expect(result.current.hasMore).toBe(true);
     expect(result.current.canReorder).toBe(false);
@@ -201,6 +201,7 @@ describe('AGY-PORT 07 Notes UI', () => {
   });
 
   test('the screen searches through SQLite, shows indexing progress and a "Show more" button', async () => {
+    jest.useFakeTimers();
     for (let i = 0; i < 70; i += 1) {
       seed(GUEST_USER_ID, {
         title: `Entry ${i}`,
@@ -223,13 +224,23 @@ describe('AGY-PORT 07 Notes UI', () => {
       screen.getByPlaceholderText('Search notes...'),
       'calculus',
     );
-    expect(screen.getByTestId('notes-indexing')).toBeTruthy();
-    // The screen asks again on a short timer until the cache is complete.
     await act(async () => {
-      await new Promise(resolve => setTimeout(resolve, 300));
+      jest.advanceTimersByTime(150);
     });
+    expect(screen.getByTestId('notes-indexing')).toBeTruthy();
+    for (
+      let batch = 0;
+      batch < 20 && screen.queryByTestId('notes-indexing');
+      batch += 1
+    ) {
+      await act(async () => {
+        jest.advanceTimersByTime(60);
+      });
+    }
     expect(screen.queryByTestId('notes-indexing')).toBeNull();
-    expect(screen.getAllByText('calculus')).toHaveLength(35);
+    const visibleMatches = screen.getAllByText('calculus');
+    expect(visibleMatches.length).toBeGreaterThan(0);
+    expect(visibleMatches.length).toBeLessThanOrEqual(35);
     expect(screen.queryByText('history')).toBeNull();
   });
 
@@ -245,7 +256,7 @@ describe('AGY-PORT 07 Notes UI', () => {
       tags: ['Lecture', 'Transcript'],
       isVoiceTranscribed: true,
     });
-    const { result } = renderNotesHook();
+    const {result} = renderNotesHook();
     act(() => result.current.setSearchQuery('entropy'));
     for (let i = 0; i < 3 && result.current.indexing; i += 1) {
       act(() => result.current.loadNotes());
@@ -260,7 +271,7 @@ describe('AGY-PORT 07 Notes UI', () => {
   });
 
   test('a new note defaults to no category rather than Personal', () => {
-    const { result } = renderNotesHook();
+    const {result} = renderNotesHook();
     act(() => result.current.openNewNote());
     expect(result.current.editorVisible).toBe(true);
     expect(result.current.noteCategory).toBe('');

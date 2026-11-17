@@ -1,0 +1,1099 @@
+{
+  "package": "com.lafina.capstone.performance",
+  "rounds": 30,
+  "capturedUtc": "2026-11-17T04:00:50.1753578Z",
+  "device": "Infinix X6880",
+  "api": "35",
+  "limitation": "JS handler-to-layout-commit and next JS animation callback only; excludes native input delay and does not establish first-presented pixels or tap-to-usable latency.",
+  "expectedSamples": 150,
+  "receivedSamples": 150,
+  "samples": [
+    {
+      "tab": "calendar",
+      "warm": true,
+      "jsCommitMs": 103.12953898310661,
+      "queriesThroughAnimationFrame": 0,
+      "nextAnimationFrameMs": 119.58884599804878
+    },
+    {
+      "tab": "chat",
+      "warm": true,
+      "jsCommitMs": 72.40776899456978,
+      "queriesThroughAnimationFrame": 43,
+      "nextAnimationFrameMs": 82.72900000214577
+    },
+    {
+      "tab": "notes",
+      "warm": true,
+      "jsCommitMs": 63.89076900482178,
+      "queriesThroughAnimationFrame": 0,
+      "nextAnimationFrameMs": 111.79423099756241
+    },
+    {
+      "tab": "profile",
+      "warm": true,
+      "jsCommitMs": 56.7608460187912,
+      "queriesThroughAnimationFrame": 2,
+      "nextAnimationFrameMs": 109.1058460175991
+    },
+    {
+      "tab": "dashboard",
+      "warm": true,
+      "jsCommitMs": 78.26669198274612,
+      "queriesThroughAnimationFrame": 0,
+      "nextAnimationFrameMs": 136.5089229941368
+    },
+    {
+      "tab": "calendar",
+      "warm": true,
+      "jsCommitMs": 84.7307699918747,
+      "queriesThroughAnimationFrame": 0,
+      "nextAnimationFrameMs": 92.49684700369835
+    },
+    {
+      "tab": "chat",
+      "warm": true,
+      "jsCommitMs": 86.88238498568535,
+      "queriesThroughAnimationFrame": 28,
+      "nextAnimationFrameMs": 101.49107700586319
+    },
+    {
+      "tab": "notes",
+      "warm": true,
+      "jsCommitMs": 64.11930698156357,
+      "queriesThroughAnimationFrame": 0,
+      "nextAnimationFrameMs": 111.00799998641014
+    },
+    {
+      "tab": "profile",
+      "warm": true,
+      "jsCommitMs": 82.39592298865318,
+      "queriesThroughAnimationFrame": 2,
+      "nextAnimationFrameMs": 142.5393079817295
+    },
+    {
+      "tab": "dashboard",
+      "warm": true,
+      "jsCommitMs": 87.21253898739815,
+      "queriesThroughAnimationFrame": 0,
+      "nextAnimationFrameMs": 143.76576998829842
+    },
+    {
+      "tab": "calendar",
+      "warm": true,
+      "jsCommitMs": 134.97130799293518,
+      "queriesThroughAnimationFrame": 0,
+      "nextAnimationFrameMs": 143.26830798387527
+    },
+    {
+      "tab": "chat",
+      "warm": true,
+      "jsCommitMs": 85.68715399503708,
+      "queriesThroughAnimationFrame": 28,
+      "nextAnimationFrameMs": 98.58961498737335
+    },
+    {
+      "tab": "notes",
+      "warm": true,
+      "jsCommitMs": 57.07476997375488,
+      "queriesThroughAnimationFrame": 0,
+      "nextAnimationFrameMs": 98.46869298815727
+    },
+    {
+      "tab": "profile",
+      "warm": true,
+      "jsCommitMs": 62.32738500833511,
+      "queriesThroughAnimationFrame": 2,
+      "nextAnimationFrameMs": 64.58184599876404
+    },
+    {
+      "tab": "dashboard",
+      "warm": true,
+      "jsCommitMs": 85.10953798890114,
+      "queriesThroughAnimationFrame": 0,
+      "nextAnimationFrameMs": 141.1728459894657
+    },
+    {
+      "tab": "calendar",
+      "warm": true,
+      "jsCommitMs": 121.07253900170326,
+      "queriesThroughAnimationFrame": 0,
+      "nextAnimationFrameMs": 129.53192299604416
+    },
+    {
+      "tab": "chat",
+      "warm": true,
+      "jsCommitMs": 79.75900000333786,
+      "queriesThroughAnimationFrame": 28,
+      "nextAnimationFrameMs": 88.97569200396538
+    },
+    {
+      "tab": "notes",
+      "warm": true,
+      "jsCommitMs": 55.519923001527786,
+      "queriesThroughAnimationFrame": 0,
+      "nextAnimationFrameMs": 57.687384992837906
+    },
+    {
+      "tab": "profile",
+      "warm": true,
+      "jsCommitMs": 57.80215400457382,
+      "queriesThroughAnimationFrame": 2,
+      "nextAnimationFrameMs": 123.93999999761581
+    },
+    {
+      "tab": "dashboard",
+      "warm": true,
+      "jsCommitMs": 106.47653901576996,
+      "queriesThroughAnimationFrame": 1,
+      "nextAnimationFrameMs": 207.398461997509
+    },
+    {
+      "tab": "calendar",
+      "warm": true,
+      "jsCommitMs": 110.3274610042572,
+      "queriesThroughAnimationFrame": 0,
+      "nextAnimationFrameMs": 118.34900000691414
+    },
+    {
+      "tab": "chat",
+      "warm": true,
+      "jsCommitMs": 73.86684599518776,
+      "queriesThroughAnimationFrame": 28,
+      "nextAnimationFrameMs": 83.33823001384735
+    },
+    {
+      "tab": "notes",
+      "warm": true,
+      "jsCommitMs": 61.48792299628258,
+      "queriesThroughAnimationFrame": 0,
+      "nextAnimationFrameMs": 104.31499999761581
+    },
+    {
+      "tab": "profile",
+      "warm": true,
+      "jsCommitMs": 68.1591539978981,
+      "queriesThroughAnimationFrame": 2,
+      "nextAnimationFrameMs": 119.55269199609756
+    },
+    {
+      "tab": "dashboard",
+      "warm": true,
+      "jsCommitMs": 106.97846099734306,
+      "queriesThroughAnimationFrame": 0,
+      "nextAnimationFrameMs": 152.216000020504
+    },
+    {
+      "tab": "calendar",
+      "warm": true,
+      "jsCommitMs": 91.2633849978447,
+      "queriesThroughAnimationFrame": 0,
+      "nextAnimationFrameMs": 99.06607699394226
+    },
+    {
+      "tab": "chat",
+      "warm": true,
+      "jsCommitMs": 69.88861501216888,
+      "queriesThroughAnimationFrame": 28,
+      "nextAnimationFrameMs": 79.026152998209
+    },
+    {
+      "tab": "notes",
+      "warm": true,
+      "jsCommitMs": 56.254462003707886,
+      "queriesThroughAnimationFrame": 0,
+      "nextAnimationFrameMs": 101.91284599900246
+    },
+    {
+      "tab": "profile",
+      "warm": true,
+      "jsCommitMs": 56.96346101164818,
+      "queriesThroughAnimationFrame": 2,
+      "nextAnimationFrameMs": 109.6526919901371
+    },
+    {
+      "tab": "dashboard",
+      "warm": true,
+      "jsCommitMs": 113.80738401412964,
+      "queriesThroughAnimationFrame": 0,
+      "nextAnimationFrameMs": 159.77300000190735
+    },
+    {
+      "tab": "calendar",
+      "warm": true,
+      "jsCommitMs": 98.0448459982872,
+      "queriesThroughAnimationFrame": 0,
+      "nextAnimationFrameMs": 105.81446099281311
+    },
+    {
+      "tab": "chat",
+      "warm": true,
+      "jsCommitMs": 73.56638500094414,
+      "queriesThroughAnimationFrame": 28,
+      "nextAnimationFrameMs": 83.02553901076317
+    },
+    {
+      "tab": "notes",
+      "warm": true,
+      "jsCommitMs": 55.541153997182846,
+      "queriesThroughAnimationFrame": 0,
+      "nextAnimationFrameMs": 134.04207700490952
+    },
+    {
+      "tab": "profile",
+      "warm": true,
+      "jsCommitMs": 63.45507702231407,
+      "queriesThroughAnimationFrame": 2,
+      "nextAnimationFrameMs": 67.00307700037956
+    },
+    {
+      "tab": "dashboard",
+      "warm": true,
+      "jsCommitMs": 131.86153900623322,
+      "queriesThroughAnimationFrame": 0,
+      "nextAnimationFrameMs": 179.03576999902725
+    },
+    {
+      "tab": "calendar",
+      "warm": true,
+      "jsCommitMs": 84.77538499236107,
+      "queriesThroughAnimationFrame": 0,
+      "nextAnimationFrameMs": 100.91807699203491
+    },
+    {
+      "tab": "chat",
+      "warm": true,
+      "jsCommitMs": 91.28153800964355,
+      "queriesThroughAnimationFrame": 28,
+      "nextAnimationFrameMs": 102.85692301392555
+    },
+    {
+      "tab": "notes",
+      "warm": true,
+      "jsCommitMs": 55.89999997615814,
+      "queriesThroughAnimationFrame": 0,
+      "nextAnimationFrameMs": 101.94246098399162
+    },
+    {
+      "tab": "profile",
+      "warm": true,
+      "jsCommitMs": 56.41853901743889,
+      "queriesThroughAnimationFrame": 2,
+      "nextAnimationFrameMs": 108.0230770111084
+    },
+    {
+      "tab": "dashboard",
+      "warm": true,
+      "jsCommitMs": 129.03046199679375,
+      "queriesThroughAnimationFrame": 0,
+      "nextAnimationFrameMs": 178.2217690050602
+    },
+    {
+      "tab": "calendar",
+      "warm": true,
+      "jsCommitMs": 97.51323100924492,
+      "queriesThroughAnimationFrame": 0,
+      "nextAnimationFrameMs": 152.83169302344322
+    },
+    {
+      "tab": "chat",
+      "warm": true,
+      "jsCommitMs": 73.27884602546692,
+      "queriesThroughAnimationFrame": 43,
+      "nextAnimationFrameMs": 83.55300000309944
+    },
+    {
+      "tab": "notes",
+      "warm": true,
+      "jsCommitMs": 64.00653898715973,
+      "queriesThroughAnimationFrame": 0,
+      "nextAnimationFrameMs": 111.38715398311615
+    },
+    {
+      "tab": "profile",
+      "warm": true,
+      "jsCommitMs": 65.29377001523972,
+      "queriesThroughAnimationFrame": 2,
+      "nextAnimationFrameMs": 117.9734620153904
+    },
+    {
+      "tab": "dashboard",
+      "warm": true,
+      "jsCommitMs": 78.00123098492622,
+      "queriesThroughAnimationFrame": 5,
+      "nextAnimationFrameMs": 142.61623099446297
+    },
+    {
+      "tab": "calendar",
+      "warm": true,
+      "jsCommitMs": 91.32607698440552,
+      "queriesThroughAnimationFrame": 0,
+      "nextAnimationFrameMs": 99.38638401031494
+    },
+    {
+      "tab": "chat",
+      "warm": true,
+      "jsCommitMs": 70.74992299079895,
+      "queriesThroughAnimationFrame": 28,
+      "nextAnimationFrameMs": 79.87199997901917
+    },
+    {
+      "tab": "notes",
+      "warm": true,
+      "jsCommitMs": 56.53038501739502,
+      "queriesThroughAnimationFrame": 0,
+      "nextAnimationFrameMs": 58.69100001454353
+    },
+    {
+      "tab": "profile",
+      "warm": true,
+      "jsCommitMs": 66.37723100185394,
+      "queriesThroughAnimationFrame": 2,
+      "nextAnimationFrameMs": 121.39138498902321
+    },
+    {
+      "tab": "dashboard",
+      "warm": true,
+      "jsCommitMs": 113.65299999713898,
+      "queriesThroughAnimationFrame": 0,
+      "nextAnimationFrameMs": 163.50653898715973
+    },
+    {
+      "tab": "calendar",
+      "warm": true,
+      "jsCommitMs": 95.21199998259544,
+      "queriesThroughAnimationFrame": 0,
+      "nextAnimationFrameMs": 103.05630800127983
+    },
+    {
+      "tab": "chat",
+      "warm": true,
+      "jsCommitMs": 73.25715401768684,
+      "queriesThroughAnimationFrame": 28,
+      "nextAnimationFrameMs": 149.37376901507378
+    },
+    {
+      "tab": "notes",
+      "warm": true,
+      "jsCommitMs": 57.278230994939804,
+      "queriesThroughAnimationFrame": 0,
+      "nextAnimationFrameMs": 59.52215397357941
+    },
+    {
+      "tab": "profile",
+      "warm": true,
+      "jsCommitMs": 57.77300000190735,
+      "queriesThroughAnimationFrame": 2,
+      "nextAnimationFrameMs": 111.12376901507378
+    },
+    {
+      "tab": "dashboard",
+      "warm": true,
+      "jsCommitMs": 108.03692299127579,
+      "queriesThroughAnimationFrame": 0,
+      "nextAnimationFrameMs": 154.83046099543571
+    },
+    {
+      "tab": "calendar",
+      "warm": true,
+      "jsCommitMs": 91.44946199655533,
+      "queriesThroughAnimationFrame": 0,
+      "nextAnimationFrameMs": 134.6387699842453
+    },
+    {
+      "tab": "chat",
+      "warm": true,
+      "jsCommitMs": 82.15115401148796,
+      "queriesThroughAnimationFrame": 28,
+      "nextAnimationFrameMs": 94.8076919913292
+    },
+    {
+      "tab": "notes",
+      "warm": true,
+      "jsCommitMs": 64.15046200156212,
+      "queriesThroughAnimationFrame": 0,
+      "nextAnimationFrameMs": 68.29846200346947
+    },
+    {
+      "tab": "profile",
+      "warm": true,
+      "jsCommitMs": 121.25230699777603,
+      "queriesThroughAnimationFrame": 2,
+      "nextAnimationFrameMs": 175.07723000645638
+    },
+    {
+      "tab": "dashboard",
+      "warm": true,
+      "jsCommitMs": 70.00453898310661,
+      "queriesThroughAnimationFrame": 0,
+      "nextAnimationFrameMs": 115.89630797505379
+    },
+    {
+      "tab": "calendar",
+      "warm": true,
+      "jsCommitMs": 107.11300000548363,
+      "queriesThroughAnimationFrame": 0,
+      "nextAnimationFrameMs": 148.82646200060844
+    },
+    {
+      "tab": "chat",
+      "warm": true,
+      "jsCommitMs": 78.81230801343918,
+      "queriesThroughAnimationFrame": 28,
+      "nextAnimationFrameMs": 88.08484601974487
+    },
+    {
+      "tab": "notes",
+      "warm": true,
+      "jsCommitMs": 57.24669200181961,
+      "queriesThroughAnimationFrame": 0,
+      "nextAnimationFrameMs": 59.813461005687714
+    },
+    {
+      "tab": "profile",
+      "warm": true,
+      "jsCommitMs": 67.70776900649071,
+      "queriesThroughAnimationFrame": 2,
+      "nextAnimationFrameMs": 70.0799999833107
+    },
+    {
+      "tab": "dashboard",
+      "warm": true,
+      "jsCommitMs": 103.7194609940052,
+      "queriesThroughAnimationFrame": 0,
+      "nextAnimationFrameMs": 148.5357689857483
+    },
+    {
+      "tab": "calendar",
+      "warm": true,
+      "jsCommitMs": 95.9963850080967,
+      "queriesThroughAnimationFrame": 0,
+      "nextAnimationFrameMs": 103.8141539990902
+    },
+    {
+      "tab": "chat",
+      "warm": true,
+      "jsCommitMs": 69.58623000979424,
+      "queriesThroughAnimationFrame": 28,
+      "nextAnimationFrameMs": 78.73415300250053
+    },
+    {
+      "tab": "notes",
+      "warm": true,
+      "jsCommitMs": 79.7391539812088,
+      "queriesThroughAnimationFrame": 0,
+      "nextAnimationFrameMs": 120.77423098683357
+    },
+    {
+      "tab": "profile",
+      "warm": true,
+      "jsCommitMs": 62.56099998950958,
+      "queriesThroughAnimationFrame": 2,
+      "nextAnimationFrameMs": 114.58807700872421
+    },
+    {
+      "tab": "dashboard",
+      "warm": true,
+      "jsCommitMs": 86.88315400481224,
+      "queriesThroughAnimationFrame": 0,
+      "nextAnimationFrameMs": 132.81292301416397
+    },
+    {
+      "tab": "calendar",
+      "warm": true,
+      "jsCommitMs": 91.57561498880386,
+      "queriesThroughAnimationFrame": 0,
+      "nextAnimationFrameMs": 99.3177689909935
+    },
+    {
+      "tab": "chat",
+      "warm": true,
+      "jsCommitMs": 88.26499998569489,
+      "queriesThroughAnimationFrame": 28,
+      "nextAnimationFrameMs": 99.52830800414085
+    },
+    {
+      "tab": "notes",
+      "warm": true,
+      "jsCommitMs": 68.16861599683762,
+      "queriesThroughAnimationFrame": 0,
+      "nextAnimationFrameMs": 108.11915397644043
+    },
+    {
+      "tab": "profile",
+      "warm": true,
+      "jsCommitMs": 57.385845988988876,
+      "queriesThroughAnimationFrame": 2,
+      "nextAnimationFrameMs": 109.8082309961319
+    },
+    {
+      "tab": "dashboard",
+      "warm": true,
+      "jsCommitMs": 89.49815401434898,
+      "queriesThroughAnimationFrame": 0,
+      "nextAnimationFrameMs": 145.7650000154972
+    },
+    {
+      "tab": "calendar",
+      "warm": true,
+      "jsCommitMs": 116.86676999926567,
+      "queriesThroughAnimationFrame": 0,
+      "nextAnimationFrameMs": 124.64238500595093
+    },
+    {
+      "tab": "chat",
+      "warm": true,
+      "jsCommitMs": 84.34976899623871,
+      "queriesThroughAnimationFrame": 28,
+      "nextAnimationFrameMs": 98.20738500356674
+    },
+    {
+      "tab": "notes",
+      "warm": true,
+      "jsCommitMs": 54.495692014694214,
+      "queriesThroughAnimationFrame": 0,
+      "nextAnimationFrameMs": 117.98215299844742
+    },
+    {
+      "tab": "profile",
+      "warm": true,
+      "jsCommitMs": 81.32799997925758,
+      "queriesThroughAnimationFrame": 2,
+      "nextAnimationFrameMs": 127.39115399122238
+    },
+    {
+      "tab": "dashboard",
+      "warm": true,
+      "jsCommitMs": 70.02276998758316,
+      "queriesThroughAnimationFrame": 0,
+      "nextAnimationFrameMs": 114.96761599183083
+    },
+    {
+      "tab": "calendar",
+      "warm": true,
+      "jsCommitMs": 105.60315400362015,
+      "queriesThroughAnimationFrame": 0,
+      "nextAnimationFrameMs": 146.35107699036598
+    },
+    {
+      "tab": "chat",
+      "warm": true,
+      "jsCommitMs": 95.57746097445488,
+      "queriesThroughAnimationFrame": 43,
+      "nextAnimationFrameMs": 112.31846100091934
+    },
+    {
+      "tab": "notes",
+      "warm": true,
+      "jsCommitMs": 56.39877000451088,
+      "queriesThroughAnimationFrame": 0,
+      "nextAnimationFrameMs": 107.22061601281166
+    },
+    {
+      "tab": "profile",
+      "warm": true,
+      "jsCommitMs": 80.33538499474525,
+      "queriesThroughAnimationFrame": 2,
+      "nextAnimationFrameMs": 127.28746199607849
+    },
+    {
+      "tab": "dashboard",
+      "warm": true,
+      "jsCommitMs": 70.86984699964523,
+      "queriesThroughAnimationFrame": 0,
+      "nextAnimationFrameMs": 116.65353900194168
+    },
+    {
+      "tab": "calendar",
+      "warm": true,
+      "jsCommitMs": 104.94053900241852,
+      "queriesThroughAnimationFrame": 0,
+      "nextAnimationFrameMs": 112.67807701230049
+    },
+    {
+      "tab": "chat",
+      "warm": true,
+      "jsCommitMs": 86.49392300844193,
+      "queriesThroughAnimationFrame": 28,
+      "nextAnimationFrameMs": 98.0471540093422
+    },
+    {
+      "tab": "notes",
+      "warm": true,
+      "jsCommitMs": 58.45115402340889,
+      "queriesThroughAnimationFrame": 0,
+      "nextAnimationFrameMs": 125.04338499903679
+    },
+    {
+      "tab": "profile",
+      "warm": true,
+      "jsCommitMs": 65.66153800487518,
+      "queriesThroughAnimationFrame": 2,
+      "nextAnimationFrameMs": 68.41907700896263
+    },
+    {
+      "tab": "dashboard",
+      "warm": true,
+      "jsCommitMs": 77.49623000621796,
+      "queriesThroughAnimationFrame": 0,
+      "nextAnimationFrameMs": 127.35476899147034
+    },
+    {
+      "tab": "calendar",
+      "warm": true,
+      "jsCommitMs": 99.84553900361061,
+      "queriesThroughAnimationFrame": 0,
+      "nextAnimationFrameMs": 139.6938470005989
+    },
+    {
+      "tab": "chat",
+      "warm": true,
+      "jsCommitMs": 96.17200002074242,
+      "queriesThroughAnimationFrame": 28,
+      "nextAnimationFrameMs": 122.02146202325821
+    },
+    {
+      "tab": "notes",
+      "warm": true,
+      "jsCommitMs": 128.79569199681282,
+      "queriesThroughAnimationFrame": 0,
+      "nextAnimationFrameMs": 224.948076993227
+    },
+    {
+      "tab": "profile",
+      "warm": true,
+      "jsCommitMs": 88.78515401482582,
+      "queriesThroughAnimationFrame": 2,
+      "nextAnimationFrameMs": 163.0817690193653
+    },
+    {
+      "tab": "dashboard",
+      "warm": true,
+      "jsCommitMs": 442.6111539900303,
+      "queriesThroughAnimationFrame": 1,
+      "nextAnimationFrameMs": 548.5631539821625
+    },
+    {
+      "tab": "calendar",
+      "warm": true,
+      "jsCommitMs": 123.11438500881195,
+      "queriesThroughAnimationFrame": 0,
+      "nextAnimationFrameMs": 164.50515401363373
+    },
+    {
+      "tab": "chat",
+      "warm": true,
+      "jsCommitMs": 77.8377700150013,
+      "queriesThroughAnimationFrame": 28,
+      "nextAnimationFrameMs": 86.98800000548363
+    },
+    {
+      "tab": "notes",
+      "warm": true,
+      "jsCommitMs": 78.08461499214172,
+      "queriesThroughAnimationFrame": 0,
+      "nextAnimationFrameMs": 121.00653800368309
+    },
+    {
+      "tab": "profile",
+      "warm": true,
+      "jsCommitMs": 61.17423102259636,
+      "queriesThroughAnimationFrame": 2,
+      "nextAnimationFrameMs": 118.4316920042038
+    },
+    {
+      "tab": "dashboard",
+      "warm": true,
+      "jsCommitMs": 103.64284598827362,
+      "queriesThroughAnimationFrame": 0,
+      "nextAnimationFrameMs": 160.51792299747467
+    },
+    {
+      "tab": "calendar",
+      "warm": true,
+      "jsCommitMs": 114.61261600255966,
+      "queriesThroughAnimationFrame": 0,
+      "nextAnimationFrameMs": 127.78623101115227
+    },
+    {
+      "tab": "chat",
+      "warm": true,
+      "jsCommitMs": 73.90869200229645,
+      "queriesThroughAnimationFrame": 28,
+      "nextAnimationFrameMs": 83.54807701706886
+    },
+    {
+      "tab": "notes",
+      "warm": true,
+      "jsCommitMs": 94.8926149904728,
+      "queriesThroughAnimationFrame": 0,
+      "nextAnimationFrameMs": 146.03223100304604
+    },
+    {
+      "tab": "profile",
+      "warm": true,
+      "jsCommitMs": 55.20923098921776,
+      "queriesThroughAnimationFrame": 2,
+      "nextAnimationFrameMs": 103.55500000715256
+    },
+    {
+      "tab": "dashboard",
+      "warm": true,
+      "jsCommitMs": 89.30715399980545,
+      "queriesThroughAnimationFrame": 0,
+      "nextAnimationFrameMs": 136.66746199131012
+    },
+    {
+      "tab": "calendar",
+      "warm": true,
+      "jsCommitMs": 98.9268470108509,
+      "queriesThroughAnimationFrame": 0,
+      "nextAnimationFrameMs": 107.3766930103302
+    },
+    {
+      "tab": "chat",
+      "warm": true,
+      "jsCommitMs": 100.22184598445892,
+      "queriesThroughAnimationFrame": 28,
+      "nextAnimationFrameMs": 182.1883849799633
+    },
+    {
+      "tab": "notes",
+      "warm": true,
+      "jsCommitMs": 67.3033840060234,
+      "queriesThroughAnimationFrame": 0,
+      "nextAnimationFrameMs": 120.00092300772667
+    },
+    {
+      "tab": "profile",
+      "warm": true,
+      "jsCommitMs": 64.31653898954391,
+      "queriesThroughAnimationFrame": 2,
+      "nextAnimationFrameMs": 66.7793850004673
+    },
+    {
+      "tab": "dashboard",
+      "warm": true,
+      "jsCommitMs": 91.96346098184586,
+      "queriesThroughAnimationFrame": 0,
+      "nextAnimationFrameMs": 142.8733069896698
+    },
+    {
+      "tab": "calendar",
+      "warm": true,
+      "jsCommitMs": 110.84515401721,
+      "queriesThroughAnimationFrame": 0,
+      "nextAnimationFrameMs": 118.6793839931488
+    },
+    {
+      "tab": "chat",
+      "warm": true,
+      "jsCommitMs": 80.01784598827362,
+      "queriesThroughAnimationFrame": 28,
+      "nextAnimationFrameMs": 89.39784598350525
+    },
+    {
+      "tab": "notes",
+      "warm": true,
+      "jsCommitMs": 57.62361499667168,
+      "queriesThroughAnimationFrame": 0,
+      "nextAnimationFrameMs": 107.11438399553299
+    },
+    {
+      "tab": "profile",
+      "warm": true,
+      "jsCommitMs": 74.65446099638939,
+      "queriesThroughAnimationFrame": 2,
+      "nextAnimationFrameMs": 123.29761499166489
+    },
+    {
+      "tab": "dashboard",
+      "warm": true,
+      "jsCommitMs": 83.03353899717331,
+      "queriesThroughAnimationFrame": 0,
+      "nextAnimationFrameMs": 140.3572309911251
+    },
+    {
+      "tab": "calendar",
+      "warm": true,
+      "jsCommitMs": 101.70276898145676,
+      "queriesThroughAnimationFrame": 0,
+      "nextAnimationFrameMs": 109.47623097896576
+    },
+    {
+      "tab": "chat",
+      "warm": true,
+      "jsCommitMs": 97.15607699751854,
+      "queriesThroughAnimationFrame": 28,
+      "nextAnimationFrameMs": 107.88399997353554
+    },
+    {
+      "tab": "notes",
+      "warm": true,
+      "jsCommitMs": 77.9704609811306,
+      "queriesThroughAnimationFrame": 0,
+      "nextAnimationFrameMs": 170.5494609773159
+    },
+    {
+      "tab": "profile",
+      "warm": true,
+      "jsCommitMs": 57.43299999833107,
+      "queriesThroughAnimationFrame": 11,
+      "nextAnimationFrameMs": 119.87146198749542
+    },
+    {
+      "tab": "dashboard",
+      "warm": true,
+      "jsCommitMs": 108.26407700777054,
+      "queriesThroughAnimationFrame": 0,
+      "nextAnimationFrameMs": 155.5831539928913
+    },
+    {
+      "tab": "calendar",
+      "warm": true,
+      "jsCommitMs": 97.01499998569489,
+      "queriesThroughAnimationFrame": 0,
+      "nextAnimationFrameMs": 105.06430700421333
+    },
+    {
+      "tab": "chat",
+      "warm": true,
+      "jsCommitMs": 78.3051530122757,
+      "queriesThroughAnimationFrame": 43,
+      "nextAnimationFrameMs": 88.58430701494217
+    },
+    {
+      "tab": "notes",
+      "warm": true,
+      "jsCommitMs": 63.32892298698425,
+      "queriesThroughAnimationFrame": 0,
+      "nextAnimationFrameMs": 65.48607698082924
+    },
+    {
+      "tab": "profile",
+      "warm": true,
+      "jsCommitMs": 80.90053901076317,
+      "queriesThroughAnimationFrame": 2,
+      "nextAnimationFrameMs": 127.62330800294876
+    },
+    {
+      "tab": "dashboard",
+      "warm": true,
+      "jsCommitMs": 71.1003839969635,
+      "queriesThroughAnimationFrame": 0,
+      "nextAnimationFrameMs": 118.38984599709511
+    },
+    {
+      "tab": "calendar",
+      "warm": true,
+      "jsCommitMs": 121.03384599089622,
+      "queriesThroughAnimationFrame": 0,
+      "nextAnimationFrameMs": 172.94884598255157
+    },
+    {
+      "tab": "chat",
+      "warm": true,
+      "jsCommitMs": 73.4707690179348,
+      "queriesThroughAnimationFrame": 28,
+      "nextAnimationFrameMs": 82.8034619987011
+    },
+    {
+      "tab": "notes",
+      "warm": true,
+      "jsCommitMs": 69.80892297625542,
+      "queriesThroughAnimationFrame": 0,
+      "nextAnimationFrameMs": 132.7717689871788
+    },
+    {
+      "tab": "profile",
+      "warm": true,
+      "jsCommitMs": 57.17969200015068,
+      "queriesThroughAnimationFrame": 2,
+      "nextAnimationFrameMs": 108.50607600808144
+    },
+    {
+      "tab": "dashboard",
+      "warm": true,
+      "jsCommitMs": 88.11669299006462,
+      "queriesThroughAnimationFrame": 0,
+      "nextAnimationFrameMs": 137.128692984581
+    },
+    {
+      "tab": "calendar",
+      "warm": true,
+      "jsCommitMs": 91.72776898741722,
+      "queriesThroughAnimationFrame": 0,
+      "nextAnimationFrameMs": 99.51730799674988
+    },
+    {
+      "tab": "chat",
+      "warm": true,
+      "jsCommitMs": 84.95776998996735,
+      "queriesThroughAnimationFrame": 28,
+      "nextAnimationFrameMs": 98.58084699511528
+    },
+    {
+      "tab": "notes",
+      "warm": true,
+      "jsCommitMs": 55.03507697582245,
+      "queriesThroughAnimationFrame": 0,
+      "nextAnimationFrameMs": 105.9378459751606
+    },
+    {
+      "tab": "profile",
+      "warm": true,
+      "jsCommitMs": 57.78830799460411,
+      "queriesThroughAnimationFrame": 2,
+      "nextAnimationFrameMs": 109.85330802202225
+    },
+    {
+      "tab": "dashboard",
+      "warm": true,
+      "jsCommitMs": 108.78807699680328,
+      "queriesThroughAnimationFrame": 0,
+      "nextAnimationFrameMs": 157.2034609913826
+    },
+    {
+      "tab": "calendar",
+      "warm": true,
+      "jsCommitMs": 95.26992398500443,
+      "queriesThroughAnimationFrame": 0,
+      "nextAnimationFrameMs": 103.05507698655128
+    },
+    {
+      "tab": "chat",
+      "warm": true,
+      "jsCommitMs": 129.05361598730087,
+      "queriesThroughAnimationFrame": 28,
+      "nextAnimationFrameMs": 139.92561599612236
+    },
+    {
+      "tab": "notes",
+      "warm": true,
+      "jsCommitMs": 69.98100000619888,
+      "queriesThroughAnimationFrame": 0,
+      "nextAnimationFrameMs": 122.84623101353645
+    },
+    {
+      "tab": "profile",
+      "warm": true,
+      "jsCommitMs": 65.02207699418068,
+      "queriesThroughAnimationFrame": 2,
+      "nextAnimationFrameMs": 117.4620769917965
+    },
+    {
+      "tab": "dashboard",
+      "warm": true,
+      "jsCommitMs": 105.80092298984528,
+      "queriesThroughAnimationFrame": 0,
+      "nextAnimationFrameMs": 107.89446198940277
+    },
+    {
+      "tab": "calendar",
+      "warm": true,
+      "jsCommitMs": 95.57823097705841,
+      "queriesThroughAnimationFrame": 0,
+      "nextAnimationFrameMs": 103.40123099088669
+    },
+    {
+      "tab": "chat",
+      "warm": true,
+      "jsCommitMs": 78.41176900267601,
+      "queriesThroughAnimationFrame": 28,
+      "nextAnimationFrameMs": 87.68592301011086
+    },
+    {
+      "tab": "notes",
+      "warm": true,
+      "jsCommitMs": 58.31053799390793,
+      "queriesThroughAnimationFrame": 0,
+      "nextAnimationFrameMs": 114.67946198582649
+    },
+    {
+      "tab": "profile",
+      "warm": true,
+      "jsCommitMs": 60.36738499999046,
+      "queriesThroughAnimationFrame": 2,
+      "nextAnimationFrameMs": 118.36346200108528
+    },
+    {
+      "tab": "dashboard",
+      "warm": true,
+      "jsCommitMs": 112.13807699084282,
+      "queriesThroughAnimationFrame": 0,
+      "nextAnimationFrameMs": 159.2328459918499
+    },
+    {
+      "tab": "calendar",
+      "warm": true,
+      "jsCommitMs": 95.54153901338577,
+      "queriesThroughAnimationFrame": 0,
+      "nextAnimationFrameMs": 103.42953902482986
+    },
+    {
+      "tab": "chat",
+      "warm": true,
+      "jsCommitMs": 78.00553798675537,
+      "queriesThroughAnimationFrame": 28,
+      "nextAnimationFrameMs": 87.29722997546196
+    },
+    {
+      "tab": "notes",
+      "warm": true,
+      "jsCommitMs": 70.59999999403954,
+      "queriesThroughAnimationFrame": 0,
+      "nextAnimationFrameMs": 129.4473079741001
+    },
+    {
+      "tab": "profile",
+      "warm": true,
+      "jsCommitMs": 68.36100000143051,
+      "queriesThroughAnimationFrame": 2,
+      "nextAnimationFrameMs": 71.0219230055809
+    },
+    {
+      "tab": "dashboard",
+      "warm": true,
+      "jsCommitMs": 121.6068460047245,
+      "queriesThroughAnimationFrame": 0,
+      "nextAnimationFrameMs": 171.49661502242088
+    }
+  ],
+  "warmSummary": [
+    {
+      "tab": "dashboard",
+      "n": 30,
+      "jsCommitP50Ms": 91.96346098184586,
+      "jsCommitP95Ms": 131.86153900623322,
+      "nextAnimationFrameP95Ms": 207.398461997509
+    },
+    {
+      "tab": "calendar",
+      "n": 30,
+      "jsCommitP50Ms": 98.0448459982872,
+      "jsCommitP95Ms": 123.11438500881195,
+      "nextAnimationFrameP95Ms": 164.50515401363373
+    },
+    {
+      "tab": "chat",
+      "n": 30,
+      "jsCommitP50Ms": 78.81230801343918,
+      "jsCommitP95Ms": 100.22184598445892,
+      "nextAnimationFrameP95Ms": 149.37376901507378
+    },
+    {
+      "tab": "notes",
+      "n": 30,
+      "jsCommitP50Ms": 61.48792299628258,
+      "jsCommitP95Ms": 94.8926149904728,
+      "nextAnimationFrameP95Ms": 170.5494609773159
+    },
+    {
+      "tab": "profile",
+      "n": 30,
+      "jsCommitP50Ms": 63.45507702231407,
+      "jsCommitP95Ms": 88.78515401482582,
+      "nextAnimationFrameP95Ms": 163.0817690193653
+    }
+  ]
+}

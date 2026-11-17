@@ -1,5 +1,6 @@
 import { cloudClient, CloudResult } from '../cloud';
-import { localSettingsStore } from '../storage';
+import { localSettingsStore, userStore } from '../storage';
+import { isUstpSchoolEnabled } from '../storage/ustpEligibility';
 import {directProviderTestEnabled, directTestChat} from '../cloud/directProviderTest';
 
 export interface OnlineChatMessage {
@@ -38,6 +39,21 @@ export interface StreamChatMessageOptions extends SendChatMessageOptions {
   /** The reply so far, each time more of it arrives. */
   onReplyText: (replySoFar: string) => void;
 }
+
+/**
+ * Onboarding redesign: the USTP handbook is requested from the backend only
+ * for the signed-in student whose school features are on (confirmed COR),
+ * whatever an individual caller asked for. Checked at send time.
+ */
+const handbookAllowed = (requested: boolean | undefined): boolean => {
+  if (requested === false) return false;
+  try {
+    const user = userStore.getCurrentUser();
+    return Boolean(user && isUstpSchoolEnabled(user.id));
+  } catch {
+    return false;
+  }
+};
 
 const HANDBOOK_SETTING_KEY = 'chat.useHandbook';
 const HANDBOOK_SETTING_ALIAS = 'ustp_handbook_enabled';
@@ -269,7 +285,7 @@ export const onlineChatSkill = {
         method: 'POST',
         body: JSON.stringify({
           messages: bounded,
-          useHandbook: options.useHandbook !== false,
+          useHandbook: handbookAllowed(options.useHandbook),
           ...(options.memories?.length ? { memories: options.memories } : {}),
         }),
       },
@@ -322,7 +338,7 @@ export const onlineChatSkill = {
       if (result.status === 'success' && result.data) options.onReplyText(result.data.reply);
       return result;
     }
-    const useHandbook = options.useHandbook !== false;
+    const useHandbook = handbookAllowed(options.useHandbook);
     const memoryField = options.memories?.length ? { memories: options.memories } : {};
     const fallback = () =>
       onlineChatSkill.sendChatMessage(bounded, { useHandbook, ...memoryField });
@@ -413,7 +429,7 @@ export const onlineChatSkill = {
         method: 'POST',
         body: JSON.stringify({
           messages: bounded,
-          useHandbook: options.useHandbook !== false,
+          useHandbook: handbookAllowed(options.useHandbook),
           ...(options.memories?.length ? {memories: options.memories} : {}),
           tools: options.tools,
           exchange: options.exchange,

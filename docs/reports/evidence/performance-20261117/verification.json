@@ -1,0 +1,42 @@
+{
+  "recordedUtc": "2026-11-17T04:23:33.554610+00:00",
+  "preflight": {
+    "status": "PASS",
+    "suitesPassed": 146,
+    "testsPassed": 2027,
+    "testsSkipped": 1,
+    "log": "preflight-final.log"
+  },
+  "native": {
+    "status": "PASS",
+    "testsPassed": 76,
+    "suites": 8,
+    "log": "gradle-final.log",
+    "detail": "Native tests up-to-date after prior successful run; see native-tests.json."
+  },
+  "androidPerformanceBuild": "PASS",
+  "androidNormalPreviewBuild": "PASS",
+  "targetedFormatCheck": "PASS",
+  "originalAppBeforeAfterBenchmark": "NOT RUN",
+  "calendarBudgetComparison": "Sequential physical-device traces before/after the follow-up rendering bound; prior performance work already present in both.",
+  "finalWarmNavigationTrace": {
+    "status": "COMPLETE",
+    "samples": 300,
+    "rounds": 60,
+    "summary": "device-final-summary.json"
+  },
+  "humanAcceptance": "PENDING: real-user scroll/drag/keyboard/accessibility and authenticated sync/live-call load.",
+  "pilotTraces": "INCOMPLETE / NOT QUALIFYING",
+  "artifacts": {
+    "preview": {
+      "path": "android/app/build/outputs/apk/release/app-arm64-v8a-release.apk",
+      "bytes": 123078808,
+      "sha256": "1c1fd49af1775480f6e791d900a5ca87fde07efd80fc9b08c82da8c99d32a1fe"
+    },
+    "performance": {
+      "path": "android/app/build/outputs/apk/performance/app-arm64-v8a-performance.apk",
+      "bytes": 123078812,
+      "sha256": "63f9fb387fe23b7aadd8c1adb443095c73649a9af7a48a26950da160610a01f7"
+    }
+  }
+}

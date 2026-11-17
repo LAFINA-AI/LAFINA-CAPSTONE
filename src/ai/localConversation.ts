@@ -9,6 +9,8 @@
 import {plannerQueries} from '../storage/plannerQueries';
 import {userStore} from '../storage/userStore';
 import {GUEST_USERNAME} from '../constants';
+import {studentSetupStore} from '../storage/studentSetupStore';
+import {isUstpSchoolEnabled} from '../storage/ustpEligibility';
 
 export type SmallTalkKind =
   | 'greeting'
@@ -94,6 +96,9 @@ const localDate = (d: Date): string =>
 const firstName = (userId: string): string | null => {
   if (!userId) return null;
   try {
+    // The name chosen during setup comes first.
+    const chosen = studentSetupStore.get(userId).preferredName.trim();
+    if (chosen) return chosen.slice(0, 24);
     const raw = userStore.getUserById(userId)?.username?.trim();
     if (!raw || raw === GUEST_USERNAME || raw.includes('@')) return null;
     const first = raw.split(/[\s._-]+/)[0];
@@ -314,7 +319,9 @@ export const buildLocalConversationReply = (
         '• **Schedule & Classes** — View today, this week, or free slots',
         '• **Tasks & Study Blocks** — Add deadlines and study sessions',
         '• **Reminders & Alarms** — Call alerts when something is due',
-        '• **Notes & USTP Handbook** — Save notes or look up policies',
+        isUstpSchoolEnabled(userId)
+          ? '• **Notes & USTP Handbook** — Save notes or look up policies'
+          : '• **Notes** — Save notes and checklists',
         '',
         `> Try: *${example.replace(/^"|"$/g, '')}*`,
       ].join('\n');

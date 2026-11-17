@@ -25,6 +25,8 @@ interface ProductTourProps {
   steps: TourStep[];
   onNavigate: (tab: TabType) => void;
   onFinish: (completed: boolean) => void;
+  /** Shown before the step count, e.g. "Quick tour". */
+  label?: string;
 }
 
 const PADDING = 6;
@@ -65,7 +67,7 @@ const lerp = (from: ScreenRect, to: ScreenRect, t: number): ScreenRect => ({
   height: from.height + (to.height - from.height) * t,
 });
 
-export const ProductTour: React.FC<ProductTourProps> = ({ steps, onNavigate, onFinish }) => {
+export const ProductTour: React.FC<ProductTourProps> = ({ steps, onNavigate, onFinish, label }) => {
   const {colors, isModern, modernPalette, modernShadows} = useTheme();
   const themed = useThemedStyles(getThemedStyles);
   const [index, setIndex] = useState(0);
@@ -250,7 +252,7 @@ export const ProductTour: React.FC<ProductTourProps> = ({ steps, onNavigate, onF
               isModern && {color: modernPalette.accent},
             ]}
           >
-            {index + 1} of {steps.length}
+            {label ? `${label.toUpperCase()} · ` : ''}{index + 1} of {steps.length}
           </Text>
           <TouchableOpacity
             onPress={() => close(false)}

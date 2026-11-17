@@ -37,6 +37,7 @@ import {useTheme} from '../../../contexts/ThemeContext';
 import {CharacterAvatar} from '../../../components/profile/CharacterAvatar';
 import {avatarSource} from '../../../components/profile/avatarFile';
 import {Fonts, ModernLayout, Spacing} from '../../../theme';
+import {isUstpSchoolEnabled} from '../../../../storage/ustpEligibility';
 import type {CallNavigationTarget} from '../../../navigation/callNavigation';
 import {
   formatDurationMinutes,
@@ -56,6 +57,7 @@ const LAFINA_MASCOT = require('../../../../assets/new_lafina_app_logo/lafina_app
 
 export interface ModernHomeContentProps {
   userId: string;
+  refreshTrigger?: number;
   now: Date;
   timeFormat24h: boolean;
   data: DashboardLoadedData;
@@ -170,6 +172,7 @@ const ProgressRing: React.FC<ProgressRingProps> = ({
 
 export const ModernHomeContent: React.FC<ModernHomeContentProps> = ({
   userId,
+  refreshTrigger = 0,
   now,
   timeFormat24h,
   data,
@@ -203,6 +206,7 @@ export const ModernHomeContent: React.FC<ModernHomeContentProps> = ({
   const isVisible = (id: DashboardWidgetId): boolean => visibleSet.has(id);
 
   const {photoSource, avatarSeed} = useMemo(() => {
+    void refreshTrigger;
     let avatarUri: string | null = null;
     try {
       avatarUri = userStore.getUserById(userId)?.avatarUri ?? null;
@@ -219,15 +223,16 @@ export const ModernHomeContent: React.FC<ModernHomeContentProps> = ({
       photoSource: avatarSource(avatarUri),
       avatarSeed: seed,
     };
-  }, [userId]);
+  }, [userId, refreshTrigger]);
 
   const activeAlarm = useMemo(() => {
+    void refreshTrigger;
     try {
       return nextAlarm(userId, now);
     } catch {
       return null;
     }
-  }, [userId, now]);
+  }, [userId, now, refreshTrigger]);
 
   const allPendingTasks = useMemo(
     () => [
@@ -347,7 +352,9 @@ export const ModernHomeContent: React.FC<ModernHomeContentProps> = ({
     return {
       badge: 'ALL CLEAR',
       title: 'No more classes or events today',
-      subtitle: 'Ask LAFINA about your handbook or plan your study day',
+      subtitle: isUstpSchoolEnabled(userId)
+        ? 'Ask LAFINA about your handbook or plan your study day'
+        : 'Ask LAFINA to help plan your day',
       cta: 'ASK LAFINA',
       onPress: () => onOpenChatTab(),
     };
@@ -361,11 +368,12 @@ export const ModernHomeContent: React.FC<ModernHomeContentProps> = ({
     onOpenAlarms,
     onPressTask,
     onOpenChatTab,
+    userId,
   ]);
 
   const firstStudySlot = data.freeStudy.freeBlocks[0] ?? null;
   const hasAlertDot = Boolean(activeAlarm || data.pendingReminders.length > 0);
-  const subtitleText = data.academicBadge || 'USTP · Cagayan de Oro';
+  const subtitleText = data.academicBadge || 'Your day, organized';
   const heroBgColor = modernThemeExtras.heroBgColor;
   const heroHighlightColor = modernThemeExtras.heroHighlightColor;
   const subtleCardBorder = isDarkMode
@@ -505,7 +513,7 @@ export const ModernHomeContent: React.FC<ModernHomeContentProps> = ({
         <TextInput
           value={searchQuery}
           onChangeText={setSearchQuery}
-          placeholder="Search handbook, classes, notes..."
+          placeholder="Search classes, notes..."
           placeholderTextColor={modernPalette.muted}
           returnKeyType="search"
           onSubmitEditing={() => {
@@ -752,7 +760,7 @@ export const ModernHomeContent: React.FC<ModernHomeContentProps> = ({
             >
               {data.pinnedNotesCount > 0
                 ? `${data.pinnedNotesCount} pinned`
-                : 'Notes & Handbook'}
+                : 'Notes'}
             </Text>
             <Text
               style={[styles.bentoTitle, {color: modernPalette.text}]}

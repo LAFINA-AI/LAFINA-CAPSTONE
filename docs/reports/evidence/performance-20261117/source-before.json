@@ -1,0 +1,19 @@
+{
+  "App.tsx": "279dbab9e703ff4523bc9c51f3e9be18f69253ac4b3416ef98dd4493dfa784ab",
+  "src/storage/database.ts": "0583d14b66cc25563c886c0e10d1864960b9daa4997bcf04684e0317b2df7a14",
+  "src/ui/screens/calendar/hooks/useCalendarData.ts": "4e384724d75b3fd2f22d712fa83eae968cdbc87334d5b0f0b1967b6a3eecadf5",
+  "src/ui/screens/calendar/CalendarScreen.tsx": "e3fd8e9922801ac35232ef1675b553f0b7583233012d6235c701fc3882ecdb85",
+  "src/ui/screens/calendar/components/ViewClassesModal.tsx": "a039e4205037f46e779b9238ddbab6a0c80df99d575da7c81fe24c37e4d66fb0",
+  "src/ui/screens/notes/NotesScreen.tsx": "6ef4d355cf6eedbb137b16080891bfa7d6a94c1c1feac09a785b9e8a21591a02",
+  "src/ui/screens/notes/hooks/useTodoData.ts": "8c745936fb9a648cdddae937a12649ade0e585315306e94da0900c2f164434ea",
+  "src/ui/screens/notes/hooks/useNotesData.ts": "f1e6f5d78e75354ab72d9ac36d5480e9dbb095145c93a3e59b5bf2f955945577",
+  "src/ui/screens/notes/components/NoteBody.tsx": "42b0a1a9a932094fb595cceecece02940a0b7b4e26f51d304f165068dd578d11",
+  "src/ui/screens/notes/components/NoteCard.tsx": "f31245a4ad8581dbd1f7f5405cca244b06615e73efee4cf315eb1eb04c697492",
+  "src/ui/screens/notes/components/TodoListView.tsx": "74e466bb1812a62cd2efa8479fbc6400e44d0a5e075e1f93701c630cb8cdb7b3",
+  "src/ui/screens/ChatScreen.tsx": "36fd84bd6890fc3fe6c766cec8cfef5764c5da885e6c4de63655834fc36d1dbe",
+  "src/ui/screens/ProfileScreen.tsx": "d13d8dc280a70a18b7baf10d1804223c03bed785eb759e9388f5f10c8f608e59",
+  "src/ui/components/chat/ChatMessageItem.tsx": "ce5dcb76dc2edbd9e637aab3c4c06ce02fe00f25c11bbca87ed27c3cdf1781a8",
+  "src/ui/screens/dashboard/hooks/useDashboardData.ts": "39b13e62920220c5197c75d933f19cfc4911fa7a51e82b5feeae735196c44e1a",
+  "src/ui/splash/SynthSplash.tsx": "28ee415c24fc0fa6d0085e0637212279a62ab5a098c4923fe33626f12c477eda",
+  "src/ui/splash/synthWave.ts": "72f91e6ce6b17d9587e77350759ccebd39a819797eb7bcbfa48bd5d86c14927f"
+}

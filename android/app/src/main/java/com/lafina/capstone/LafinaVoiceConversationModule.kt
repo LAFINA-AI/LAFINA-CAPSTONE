@@ -233,7 +233,9 @@ class LafinaVoiceConversationModule(private val reactContext: ReactApplicationCo
             emit(owner.key, "message") { putString("data", text) }
           }
           flushPlayback(owner)
-          owner.suppressAgentAudio = false
+          // Discard late audio from the interrupted answer until the next
+          // finalized student turn, matching Stop's suppression behavior.
+          owner.suppressAgentAudio = true
           return
         }
         "user_transcript" -> owner.suppressAgentAudio = false

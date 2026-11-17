@@ -179,22 +179,40 @@ export const ProfileStats: React.FC<ProfileStatsProps> = ({
   return (
     <View style={containerStyle} testID="profile-stats-card">
       <View style={styles.headerRow}>
-        <View style={styles.headerTextWrap}>
-          <View style={styles.headerTitleRow}>
-            <BarChart3
-              size={15}
-              color={isModern ? modernPalette.accent : colors.primary}
-            />
-            <Text style={[styles.headerTitle, themed.statVal]}>
+        <View style={styles.headerLeftGroup}>
+          {isModern ? (
+            <View
+              style={[
+                styles.modernHeaderIconCircle,
+                {backgroundColor: modernPalette.softViolet},
+              ]}
+            >
+              <BarChart3 size={17} color={modernPalette.accent} />
+            </View>
+          ) : (
+            <BarChart3 size={15} color={colors.primary} />
+          )}
+          <View style={styles.headerTextWrap}>
+            <Text
+              style={[
+                styles.headerTitle,
+                isModern && styles.modernHeaderTitle,
+                themed.statVal,
+              ]}
+            >
               Study Overview
             </Text>
+            <Text
+              style={[
+                styles.headerSubtitle,
+                isModern && styles.modernHeaderSubtitle,
+                themed.statLabel,
+              ]}
+              numberOfLines={1}
+            >
+              {headerSubtitle}
+            </Text>
           </View>
-          <Text
-            style={[styles.headerSubtitle, themed.statLabel]}
-            numberOfLines={1}
-          >
-            {headerSubtitle}
-          </Text>
         </View>
         {onPressViewStats && (
           <TouchableOpacity
@@ -205,6 +223,7 @@ export const ProfileStats: React.FC<ProfileStatsProps> = ({
             accessibilityLabel="View detailed statistics"
             style={[
               styles.viewStatsBtn,
+              isModern && styles.modernViewStatsBtn,
               {
                 backgroundColor: isModern
                   ? modernPalette.softViolet
@@ -286,6 +305,8 @@ const styles = StyleSheet.create({
   modernContainer: {
     borderRadius: ModernLayout.borderRadiusCard,
     borderWidth: 1,
+    padding: ModernLayout.cardPadding,
+    marginBottom: 0,
   },
   headerRow: {
     flexDirection: 'row',
@@ -294,24 +315,41 @@ const styles = StyleSheet.create({
     gap: Spacing.sm,
     marginBottom: Spacing.md,
   },
-  headerTextWrap: {
+  headerLeftGroup: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
     flex: 1,
     minWidth: 0,
   },
-  headerTitleRow: {
-    flexDirection: 'row',
+  modernHeaderIconCircle: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
     alignItems: 'center',
-    gap: 6,
+    justifyContent: 'center',
+    flexShrink: 0,
+  },
+  headerTextWrap: {
+    flex: 1,
+    minWidth: 0,
   },
   headerTitle: {
     fontSize: 15,
     fontFamily: Fonts.heading,
     fontWeight: '700',
   },
+  modernHeaderTitle: {
+    fontSize: 16,
+  },
   headerSubtitle: {
     fontSize: 11,
     fontFamily: Fonts.body,
     marginTop: 2,
+  },
+  modernHeaderSubtitle: {
+    fontSize: 12,
+    marginTop: 1,
   },
   viewStatsBtn: {
     flexDirection: 'row',
@@ -322,6 +360,10 @@ const styles = StyleSheet.create({
     borderRadius: ModernLayout.borderRadiusPill,
     borderWidth: 1,
     flexShrink: 0,
+  },
+  modernViewStatsBtn: {
+    paddingHorizontal: 12,
+    paddingVertical: 7,
   },
   viewStatsBtnText: {
     fontSize: 12,

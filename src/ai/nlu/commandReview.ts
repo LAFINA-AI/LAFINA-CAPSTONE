@@ -1204,7 +1204,7 @@ const buildCreateTimeBlock = (
             (note): note is string => note !== null,
           ),
           `Category: ${c.category}.`,
-          'Added to your Calendar events.',
+          'Will be added to Calendar after confirmation.',
           ...(eventReminder
             ? [`Reminder: rings ${leadMinutes} minutes before it starts.`]
             : []),
@@ -1973,7 +1973,9 @@ const buildUpdate = (
     return {
       draft: {
         heading:
-          nextPinned !== note.isPinned && title === note.title && body === note.body
+          nextPinned !== note.isPinned &&
+          title === note.title &&
+          body === note.body
             ? nextPinned
               ? 'Pin note'
               : 'Unpin note'
@@ -2164,7 +2166,9 @@ const buildUpdate = (
   const nextPriority = c.priority || task.priority;
   const nextCategory = c.newCategory || task.category;
   const nextNotes =
-    c.details !== null && c.details !== undefined ? c.details : task.notes ?? null;
+    c.details !== null && c.details !== undefined
+      ? c.details
+      : task.notes ?? null;
   if (
     title === task.title &&
     dueDate === (task.dueDate || null) &&
@@ -2543,16 +2547,39 @@ const pruneReviews = (now: number): void => {
   }
 };
 
-const composeReply = (draft: Draft): string => {
-  const parts = [
-    `Please review: ${draft.heading} ${quote(draft.title)}.`,
-    ...draft.details,
-  ];
-  if (draft.assumptions.length > 0) parts.push(...draft.assumptions);
-  if (draft.warnings.length > 0) parts.push(...draft.warnings);
-  parts.push('Nothing is saved until you press Confirm.');
-  return parts.join(' ');
+const formatDetailBullet = (line: string): string => {
+  const match = /^([A-Z][A-Za-z ]{1,24}):\s+(.+)$/.exec(line.trim());
+  if (!match) return `• ${line}`;
+  return `• **${match[1]}:** ${match[2]}`;
 };
+
+const composeReply = (draft: Draft): string => {
+  const lines: string[] = [
+    `**Please review:** ${draft.heading} **${quote(draft.title)}**`,
+  ];
+  if (draft.details.length > 0) {
+    lines.push('', ...draft.details.map(formatDetailBullet));
+  }
+  if (draft.assumptions.length > 0) {
+    lines.push('', ...draft.assumptions.map(line => `• *Assumed:* ${line}`));
+  }
+  if (draft.warnings.length > 0) {
+    lines.push('', ...draft.warnings.map(line => `> **Notice:** ${line}`));
+  }
+  lines.push('', '> Nothing is saved until you press **Confirm**.');
+  return lines.join('\n');
+};
+
+/** Strips the pending review prompt wrapper once Confirmed or Cancelled. */
+export const formatResolvedReviewContent = (content: string): string =>
+  content
+    .replace(/^\*\*Please review:\*\*\s*/i, '')
+    .replace(/^Please review:\s*/i, '')
+    .replace(
+      /(?:\r?\n)*>?\s*Nothing is saved until you press (?:\*\*)?Confirm(?:\*\*)?\.\s*$/i,
+      '',
+    )
+    .trim();
 
 const extractEditableFields = (
   op: PlannedOperation,
@@ -3962,6 +3989,18 @@ export const reviseReviewedCommand = (
     };
   }
   const referenceDate = new Date();
+  // A date in a question is not an instruction to move this draft.
+  if (
+    /^(?:what|which|when|where|who|why|show|list|check|find|search|do\s+i|am\s+i|is\s+there)\b/i.test(
+      instruction.trim(),
+    ) &&
+    !/^(?:what|how)\s+about\b/i.test(instruction.trim())
+  ) {
+    return {
+      status: 'invalid',
+      reply: 'That is a question, so the draft was not changed.',
+    };
+  }
   const parsed = parseDateAndTime(instruction, referenceDate);
   let durationMinutes = parsed.durationMinutes;
   if (!durationMinutes) {
@@ -4044,6 +4083,8 @@ export const reviseReviewedCommand = (
       endTime: blockEnd || parsed.endTime || null,
       durationMinutes: durationMinutes || null,
       category: op.category,
+      ...(op.op === 'create_task' ? {priority: op.priority} : {}),
+      ...(op.op === 'create_event' ? {location: op.location} : {}),
       details:
         body ||
         (op.op === 'create_note'
@@ -4059,7 +4100,8 @@ export const reviseReviewedCommand = (
       source: 'fast_path',
       rawTranscript: instruction,
       isValid: true,
-      recurrenceRule: op.op === 'create_reminder' ? op.recurrenceRule : null,
+      recurrenceRule: 'recurrenceRule' in op ? op.recurrenceRule : null,
+      deliveryStyle: current.reminderDelivery,
     },
     {surface: current.proposal.surface},
   );
@@ -4276,8 +4318,11 @@ export const editReviewedCommand = (
       source: 'fast_path',
       rawTranscript: nextTitle,
       isValid: true,
+      ...(op.op === 'create_event' ? {location: nextDetails} : {}),
       recurrenceRule:
-        op.op === 'create_reminder' || op.op === 'create_time_block'
+        op.op === 'create_reminder' ||
+        op.op === 'create_time_block' ||
+        op.op === 'create_event'
           ? op.recurrenceRule ?? null
           : null,
       deliveryStyle: patch.reminderDelivery ?? current.reminderDelivery,
@@ -4502,7 +4547,8 @@ export const executeLowRiskCommand = (
     console.warn('[CommandReview] Low-risk execution failed:', error);
     return {
       status: 'invalid',
-      reply: 'I could not complete that request right now. Nothing was changed.',
+      reply:
+        'I could not complete that request right now. Nothing was changed.',
     };
   }
 };

@@ -42,11 +42,11 @@ export interface NotesPage {
 
 export const NOTES_PAGE_SIZE = 50;
 export const MAX_NOTES_PAGE_SIZE = 100;
-export const INDEX_BATCH = 50;
+export const INDEX_BATCH = 8;
 /** Characters of one body normalized for search; the note itself is untouched. */
 export const MAX_INDEXED_BODY_CHARS = 100_000;
 /** Body characters normalized per page call before the rest waits for the next call. */
-export const INDEX_CHAR_BUDGET = 400_000;
+export const INDEX_CHAR_BUDGET = 50_000;
 const MAX_SEARCH_CHARS = 100;
 const CURSOR_VERSION = 1;
 

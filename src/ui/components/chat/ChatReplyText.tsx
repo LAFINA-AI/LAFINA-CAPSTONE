@@ -410,7 +410,7 @@ export const ChatReplyText: React.FC<ChatReplyTextProps> = ({
 };
 
 const styles = StyleSheet.create({
-  blank: {height: 7},
+  blank: {height: 10},
   divider: {height: 1, marginVertical: 9, opacity: 0.7},
   heading: {
     fontFamily: Fonts.heading,

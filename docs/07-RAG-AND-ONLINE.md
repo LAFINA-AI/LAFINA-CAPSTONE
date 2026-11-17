@@ -79,3 +79,10 @@ Errors the app turns into actions: 401 → sign in again; 403 → account cannot
 - The choice is one device-wide `local_settings` row (owner `__device__`, key `debug.api_backend`). It is never synced, and is applied at startup before the first request (`src/cloud/backendSelection.ts`).
 - Sign-ins belong to one server. A signed-in account is first signed out at the old server, and planner data stays on the phone. A guest is simply switched.
 - `-PlafinaApiBaseUrl` still sets a test build's starting server. A choice made in Profile overrides it.
+
+## Offline handbook pack and the two handbook sources (2026-11-16)
+
+- **Source PDF.** `USTP Student Handbook 2023 Edition.pdf` at the repo root is the input for `scripts/build_handbook_pack.py`. It has been tracked since `cd9fdc8`, so the app status audit's L6 note ("untracked") is out of date. Whether LAFINA may redistribute the PDF is the owner's decision. If it ever has to come out of the repo, keep the generated pack in `src/handbook/` and document where to get the PDF instead.
+- **Two sources (audit L9).** Chat answers handbook questions from the **local 2023 pack**: offline with BM25 search, and online by sending local excerpts as `<handbook_excerpts>`. **Call Lafina** sends `useHandbook` to the backend, which searches its **server-side index**. If the two indexes are built from different editions or chunkings, they can cite different pages for the same question. Rebuild both from the same PDF, or say in the UI which source a call used.
+- **Fail-closed search (audit H1/M5).** The local search answers only when a domain concept (INC, LOA, shifting, dress code…) or enough free words match, and when words absent from the pack's vocabulary do not outweigh the matches. Otherwise it returns `insufficientEvidence` and the app shows the no-evidence reply. Regression list: `__tests__/ai/appStatusAudit20261116.test.ts`.
+- **No FTS5 (audit H5).** On a build where SQLite has no FTS5 module, schema v28 still applies: the FTS table and triggers are skipped inside a savepoint, and the handbook reports *not available* instead of failing database init.

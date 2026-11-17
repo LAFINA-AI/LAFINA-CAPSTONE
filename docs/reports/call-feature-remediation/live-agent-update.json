@@ -1,0 +1,12 @@
+{
+  "updated_at_utc": "2026-11-17T04:06:06.027402+00:00",
+  "agent_id": "agent_3301m72cp0msf3ftqdkswte8qg16",
+  "tool_count": 14,
+  "turn_eagerness": "normal",
+  "unrelated_configuration_preserved": true,
+  "auth_enabled": true,
+  "version_id": "agtvrsn_0801m7ktxx22f3d85392grc92t50",
+  "branch_id": "agtbrch_6401m72cp1mff7xt335e5kqt64y8",
+  "tool_schemas_verified": true,
+  "client_tool_event_enabled": true
+}

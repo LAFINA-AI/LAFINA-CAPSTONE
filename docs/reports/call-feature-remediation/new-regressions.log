@@ -1,0 +1,8 @@
+PASS __tests__/ui/callFlowAudit20261116.test.tsx (12.138 s)
+PASS __tests__/ui/callLafinaPhase15.test.tsx
+PASS __tests__/ai/callFeatureRemediation.test.ts
+
+Test Suites: 3 passed, 3 total
+Tests:       29 passed, 29 total
+Snapshots:   0 total
+Time:        13.43 s

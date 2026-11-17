@@ -91,6 +91,25 @@ export interface AcademicProfileRecord {
   totalCreditUnits: number | null;
   courses: AcademicCourseRecord[];
   updatedAt: string;
+  /**
+   * Set only by the reviewed COR import (onboarding redesign). A profile
+   * written by any other path has no provenance and never enables USTP
+   * school features on its own.
+   */
+  provenance?: AcademicProfileProvenance | null;
+}
+
+export interface AcademicProfileProvenance {
+  source: 'cor_review';
+  importId: string;
+  reviewedAt: string;
+}
+
+export interface AcademicProfileSaveOptions {
+  /** Defaults to true for older callers; the reviewed COR import keeps the chosen name. */
+  updateUsername?: boolean;
+  /** Only the reviewed COR import passes this. Every other save drops provenance. */
+  provenance?: AcademicProfileProvenance | null;
 }
 
 export interface OnboardingScheduleSessionInput {
@@ -289,6 +308,16 @@ export const academicProfileStore = {
             : null,
         courses,
         updatedAt: String(parsed.updatedAt ?? ''),
+        provenance:
+          parsed.provenance &&
+          parsed.provenance.source === 'cor_review' &&
+          typeof parsed.provenance.importId === 'string'
+            ? {
+                source: 'cor_review',
+                importId: parsed.provenance.importId,
+                reviewedAt: String(parsed.provenance.reviewedAt ?? ''),
+              }
+            : null,
       };
     } catch {
       return null;
@@ -299,6 +328,7 @@ export const academicProfileStore = {
     userId: string,
     profile: Omit<AcademicProfileRecord, 'updatedAt'>,
     executor?: DatabaseTransaction,
+    options: AcademicProfileSaveOptions = {},
   ): AcademicProfileRecord => {
     const now = new Date().toISOString();
     const academicTerm = profile.academicTerm || profile.academicYearTerm || '';
@@ -316,6 +346,7 @@ export const academicProfileStore = {
       primarySection: section,
       courses,
       updatedAt: now,
+      provenance: options.provenance ?? null,
     };
 
     const apply = (tx: DatabaseTransaction) => {
@@ -325,7 +356,10 @@ export const academicProfileStore = {
          ON CONFLICT(user_id, key) DO UPDATE SET value = excluded.value, updated_at = excluded.updated_at`,
         [userId, ACADEMIC_PROFILE_KEY, JSON.stringify(record), now],
       );
-      if (record.formattedName.trim().length > 0) {
+      if (
+        options.updateUsername !== false &&
+        record.formattedName.trim().length > 0
+      ) {
         userStore.setUsername(userId, record.formattedName, tx);
       }
     };

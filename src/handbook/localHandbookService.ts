@@ -10,6 +10,7 @@ import {
   buildFtsQueries,
   buildPromptHandbookContext,
   formatOfflineHandbookReply,
+  freeTokensOf,
   rankAndFilterFtsCandidates,
   shouldMergeFollowUpQuery,
   type LocalHandbookMatch,
@@ -52,6 +53,8 @@ const OVERRIDE_RELATIVE_PATH = 'handbook/ustp_handbook_pack.json';
 let readyPromise: Promise<LocalHandbookStatus> | null = null;
 let lastOrigin: HandbookPackOrigin = 'none';
 let cachedStatus: LocalHandbookStatus | null = null;
+/** False on a native build without SQLite FTS5: the handbook is "not available". */
+let ftsAvailable = true;
 
 function overrideFilePath(): string | null {
   const dir =
@@ -112,6 +115,18 @@ function buildStatusFromMeta(
   ready = cachedStatus?.ready === true,
 ): LocalHandbookStatus {
   const meta = localHandbookStore.getMeta();
+  if (!ftsAvailable) {
+    return {
+      ready,
+      populated: false,
+      chunkCount: 0,
+      title: meta?.title ?? 'USTP Student Handbook',
+      edition: meta?.edition ?? 'Unavailable on this build',
+      sourceLabel: meta?.sourceLabel ?? 'USTP Student Handbook',
+      sha256: meta?.sha256 ?? 'empty-0',
+      origin: 'none',
+    };
+  }
   if (meta) {
     return {
       ready: true,
@@ -175,6 +190,47 @@ function runFtsCandidates(
   return {built, hits: collected};
 }
 
+/** Per-pack cache of "is this word anywhere in the handbook?". */
+const termPresenceCache = new Map<string, boolean>();
+let termPresenceDigest = '';
+
+function unknownFreeTokens(
+  built: ReturnType<typeof buildFtsQueries>,
+): Set<string> {
+  const digest = localHandbookStore.getMeta()?.sha256 ?? 'empty-0';
+  if (digest !== termPresenceDigest) {
+    termPresenceCache.clear();
+    termPresenceDigest = digest;
+  }
+  const unknown = new Set<string>();
+  for (const token of freeTokensOf(built)) {
+    let present = termPresenceCache.get(token);
+    if (present === undefined) {
+      try {
+        present = localHandbookStore.hasTerm(token);
+      } catch {
+        // FTS unavailable: do not invent unknown words.
+        present = true;
+      }
+      termPresenceCache.set(token, present);
+    }
+    if (!present) {
+      unknown.add(token);
+    }
+  }
+  return unknown;
+}
+
+function searchOnce(
+  queryText: string,
+  limit: number,
+): LocalHandbookSearchResult {
+  const {built, hits} = runFtsCandidates(queryText, limit);
+  return rankAndFilterFtsCandidates(queryText, built, hits, limit, {
+    unknownTokens: unknownFreeTokens(built),
+  });
+}
+
 export const localHandbookService = {
   async ensureReady(): Promise<LocalHandbookStatus> {
     if (cachedStatus?.ready) {
@@ -188,6 +244,11 @@ export const localHandbookService = {
     if (!readyPromise) {
       readyPromise = (async () => {
         try {
+          ftsAvailable = localHandbookStore.ensureFtsIndex();
+          if (!ftsAvailable) {
+            cachedStatus = buildStatusFromMeta('none', true);
+            return cachedStatus;
+          }
           const {pack, origin} = await loadBestAvailablePack();
           const existingMeta = localHandbookStore.getMeta();
           const needsSync =
@@ -221,6 +282,9 @@ export const localHandbookService = {
   },
 
   isPopulated(): boolean {
+    if (!ftsAvailable) {
+      return false;
+    }
     const meta = localHandbookStore.getMeta();
     if (meta !== null) {
       return meta.chunkCount > 0;
@@ -244,27 +308,20 @@ export const localHandbookService = {
     }
 
     const limit = options.limit ?? 4;
-    const primary = runFtsCandidates(query, limit);
-    let result = rankAndFilterFtsCandidates(
-      query,
-      primary.built,
-      primary.hits,
-      limit,
-    );
+    let result = searchOnce(query, limit);
 
+    // A short follow-up borrows the previous question only when that
+    // question was itself answerable from the handbook (audit H2 item 3):
+    // "tell me a joke" after small talk must not pull in old keywords.
+    const previous = options.previousUserQuery?.trim() ?? '';
     if (
       (result.insufficientEvidence || result.matches.length === 0) &&
-      options.previousUserQuery &&
-      shouldMergeFollowUpQuery(query)
+      previous &&
+      shouldMergeFollowUpQuery(query) &&
+      !searchOnce(previous, 1).insufficientEvidence
     ) {
-      const mergedQuery = `${options.previousUserQuery.trim()} ${query.trim()}`;
-      const merged = runFtsCandidates(mergedQuery, limit);
-      const mergedResult = rankAndFilterFtsCandidates(
-        mergedQuery,
-        merged.built,
-        merged.hits,
-        limit,
-      );
+      const mergedQuery = `${previous} ${query.trim()}`;
+      const mergedResult = searchOnce(mergedQuery, limit);
       if (
         !mergedResult.insufficientEvidence &&
         mergedResult.matches.length > 0
@@ -331,6 +388,9 @@ export const localHandbookService = {
     readyPromise = null;
     cachedStatus = null;
     lastOrigin = 'none';
+    ftsAvailable = true;
+    termPresenceCache.clear();
+    termPresenceDigest = '';
     try {
       localHandbookStore.clearPack();
     } catch {

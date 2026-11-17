@@ -2019,17 +2019,17 @@ export async function executeNluAction(
         const reply = `Here is your To-Do list (${totalTodoCount} open):\n\n${lines.join(
           '\n',
         )}`;
+        const spokenItems = [
+          ...undatedTodos.map(t => t.title),
+          ...scheduledTodos.map(t => t.title),
+          ...openChecklists.map(c => c.text),
+        ].slice(0, 6);
+        const todoSpokenSummary = `You have ${totalTodoCount} open item${
+          totalTodoCount === 1 ? '' : 's'
+        } on your to-do list: ${formatListWithAnd(spokenItems)}.`;
         if (options.speakResult) {
-          const spokenItems = [
-            ...undatedTodos.map(t => t.title),
-            ...scheduledTodos.map(t => t.title),
-            ...openChecklists.map(c => c.text),
-          ].slice(0, 6);
-          const spokenSummary = `You have ${totalTodoCount} open item${
-            totalTodoCount === 1 ? '' : 's'
-          } on your to-do list: ${formatListWithAnd(spokenItems)}.`;
           try {
-            await ttsService.speak(spokenSummary);
+            await ttsService.speak(todoSpokenSummary);
           } catch (e) {
             console.warn('[ActionExecutor] TTS playback error:', e);
           }
@@ -2038,6 +2038,7 @@ export async function executeNluAction(
           success: true,
           intent: 'query_schedule',
           reply,
+          spokenReply: todoSpokenSummary,
         };
       }
 
@@ -2236,6 +2237,7 @@ export async function executeNluAction(
         success: true,
         intent: 'query_schedule',
         reply: summary,
+        ...(spokenSummary ? {spokenReply: spokenSummary} : {}),
       };
     }
 
@@ -2285,11 +2287,12 @@ export async function executeNluAction(
           )
           .join('\n');
         const reply = `Here are your saved notes in the Notes tab (${notes.length} total):\n\n${noteList}\n\nAsk me to check or read any note for its details!`;
+        const notesSpoken = `You have ${notes.length} saved note${
+          notes.length === 1 ? '' : 's'
+        }: ${formatListWithAnd(recent.slice(0, 5).map(n => n.title))}. Ask me to check any note for details.`;
         if (options.speakResult) {
           try {
-            await ttsService.speak(
-              `You have ${notes.length} saved notes. Ask me to check any note for details.`,
-            );
+            await ttsService.speak(notesSpoken);
           } catch (e) {
             console.warn('[ActionExecutor] TTS playback error:', e);
           }
@@ -2298,6 +2301,7 @@ export async function executeNluAction(
           success: true,
           intent: 'query_notes',
           reply,
+          spokenReply: notesSpoken,
         };
       }
 

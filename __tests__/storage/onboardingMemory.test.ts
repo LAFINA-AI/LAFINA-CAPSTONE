@@ -3,9 +3,12 @@ import {chatMemoryStore} from '../../src/storage/chatMemoryStore';
 import {
   onboardingVoiceContext,
   readOnboardingIdentity,
+  refreshAcademicMemories,
   saveOnboardingMemories,
 } from '../../src/storage/onboardingMemory';
 import {localSettingsStore} from '../../src/storage/localSettingsStore';
+import {chooseNotUstpMode} from '../../src/storage/studentMode';
+import {enableUstpForTest} from '../fixtures/ustpEligibility';
 
 beforeAll(async () => {
   await initDatabase();
@@ -93,54 +96,73 @@ test('voice identity context respects memory-off and removed memories', () => {
   expect(onboardingVoiceContext(user)).toBe('');
 });
 
-test('COR onboarding saves student number, college, program, and gender in memory and voice context', () => {
+test('academic memory comes only from a confirmed COR and never holds IDs or demographics', () => {
   const user = 'onboarding-cor-details';
+  chatMemoryStore.setEnabled(user, true);
+  const legacyProfile = {
+    isUstpStudent: true,
+    campus: 'USTP CDO Campus',
+    registrationNo: '556711',
+    studentNo: '2023305519',
+    fullName: 'GONZALES, JOHN LEMAR L',
+    formattedName: 'John Lemar L. Gonzales',
+    preferredName: 'John Lemar',
+    gender: 'M',
+    age: 22,
+    nationality: 'Filipino',
+    college: 'COLLEGE OF INFORMATION TECHNOLOGY AND COMPUTING',
+    collegeShort: 'CITC',
+    program: 'B.S. in Information Technology',
+    major: 'N/A',
+    yearLevel: '4th Year - Baccalaureate',
+    yearLevelShort: '4th Year',
+    curriculum: 'CITC-BSIT-2018-2019',
+    academicTerm: '1st Semester AY 2026-2027',
+    academicYearTerm: '1st Semester AY 2026-2027',
+    section: 'IT4R11_Track2',
+    primarySection: 'IT4R11_Track2',
+    totalUnits: '18',
+    totalLecUnits: 14,
+    totalLabUnits: 4,
+    totalCreditUnits: 18,
+    courses: [],
+    updatedAt: '2026-11-12T00:00:00Z',
+  };
+
+  // The older call path (an unreviewed profile argument) adds no academic facts.
   saveOnboardingMemories(
     user,
     {preferredName: 'John Lemar', tone: 'casual'},
     ['evening'],
-    {
-      isUstpStudent: true,
-      campus: 'USTP CDO Campus',
-      registrationNo: '556711',
-      studentNo: '2023305519',
-      fullName: 'GONZALES, JOHN LEMAR L',
-      formattedName: 'John Lemar L. Gonzales',
-      preferredName: 'John Lemar',
-      gender: 'M',
-      age: 22,
-      nationality: 'Filipino',
-      college: 'COLLEGE OF INFORMATION TECHNOLOGY AND COMPUTING',
-      collegeShort: 'CITC',
-      program: 'B.S. in Information Technology',
-      major: 'N/A',
-      yearLevel: '4th Year - Baccalaureate',
-      yearLevelShort: '4th Year',
-      curriculum: 'CITC-BSIT-2018-2019',
-      academicTerm: '1st Semester AY 2026-2027',
-      academicYearTerm: '1st Semester AY 2026-2027',
-      section: 'IT4R11_Track2',
-      primarySection: 'IT4R11_Track2',
-      totalUnits: '18',
-      totalLecUnits: 14,
-      totalLabUnits: 4,
-      totalCreditUnits: 18,
-      courses: [],
-      updatedAt: '2026-11-12T00:00:00Z',
-    },
+    legacyProfile,
   );
-  const texts = chatMemoryStore.list(user).map(m => m.text);
-  expect(
-    texts.some(
-      t =>
-        t.includes('2023305519') &&
-        t.includes('CITC') &&
-        t.includes('B.S. in Information Technology') &&
-        t.includes('Gender: Male'),
-    ),
-  ).toBe(true);
+  let texts = chatMemoryStore.list(user).map(m => m.text);
+  expect(texts).toContain('Prefers to be called John Lemar.');
+  expect(texts.some(t => t.includes('B.S. in Information Technology'))).toBe(
+    false,
+  );
+  expect(onboardingVoiceContext(user)).not.toContain('Information Technology');
+
+  // A reviewed, confirmed COR adds program/campus facts, but never the
+  // student or registration number, age, gender or nationality.
+  enableUstpForTest(user, legacyProfile);
+  refreshAcademicMemories(user);
+  texts = chatMemoryStore.list(user).map(m => m.text);
+  const all = texts.join('\n');
+  expect(all).toContain('B.S. in Information Technology');
+  expect(all).toContain('USTP CDO Campus');
+  expect(all).not.toContain('2023305519');
+  expect(all).not.toContain('556711');
+  expect(all).not.toMatch(/Gender|Male|\bage\b|Filipino/i);
   const voiceCtx = onboardingVoiceContext(user);
-  expect(voiceCtx).toContain('2023305519');
   expect(voiceCtx).toContain('B.S. in Information Technology');
-  expect(voiceCtx).toContain('Male');
+  expect(voiceCtx).not.toContain('2023305519');
+  expect(voiceCtx).not.toMatch(/Male/);
+
+  // Leaving USTP mode removes the academic facts and keeps the rest.
+  chooseNotUstpMode(user);
+  texts = chatMemoryStore.list(user).map(m => m.text);
+  expect(texts.some(t => t.includes('Information Technology'))).toBe(false);
+  expect(texts).toContain('Prefers to be called John Lemar.');
+  expect(onboardingVoiceContext(user)).not.toContain('Information Technology');
 });

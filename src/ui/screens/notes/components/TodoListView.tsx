@@ -1,6 +1,7 @@
 import React, {useState} from 'react';
 import {
   ScrollView,
+  FlatList,
   StyleSheet,
   Text,
   TextInput,
@@ -31,6 +32,8 @@ import {toLocalYmd} from '../hooks/useTodoData';
 import type {TodoFilterType} from '../types';
 
 interface TodoListViewProps {
+  hasMoreTasks?: boolean;
+  onLoadMoreTasks?: () => void;
   undatedOpen: Task[];
   scheduledOpen: Task[];
   completedTasks: Task[];
@@ -80,7 +83,11 @@ const formatTime12h = (timeStr?: string | null): string => {
 const formatShortDate = (ymd: string): string => {
   const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(ymd);
   if (!match) return ymd;
-  const date = new Date(Number(match[1]), Number(match[2]) - 1, Number(match[3]));
+  const date = new Date(
+    Number(match[1]),
+    Number(match[2]) - 1,
+    Number(match[3]),
+  );
   if (Number.isNaN(date.getTime())) return ymd;
   return date.toLocaleDateString('en-US', {month: 'short', day: 'numeric'});
 };
@@ -113,6 +120,8 @@ const formatCompactDueLabel = (task: Task, todayStr: string): string => {
 };
 
 export const TodoListView: React.FC<TodoListViewProps> = ({
+  hasMoreTasks,
+  onLoadMoreTasks,
   undatedOpen,
   scheduledOpen,
   completedTasks,
@@ -219,7 +228,9 @@ export const TodoListView: React.FC<TodoListViewProps> = ({
         accessibilityState={{checked: task.isCompleted}}
         accessibilityLabel={`Toggle ${task.title}`}
         testID={`todo-checkbox-${task.id}`}
-        hitSlop={isGridView ? {top: 6, bottom: 6, left: 6, right: 6} : undefined}
+        hitSlop={
+          isGridView ? {top: 6, bottom: 6, left: 6, right: 6} : undefined
+        }
         style={[
           styles.checkbox,
           isGridView && styles.gridCheckbox,
@@ -251,9 +262,7 @@ export const TodoListView: React.FC<TodoListViewProps> = ({
           styles.duePill,
           styles.gridSinglePill,
           {
-            backgroundColor: isOverdue
-              ? `${colors.error}18`
-              : colors.inputBg,
+            backgroundColor: isOverdue ? `${colors.error}18` : colors.inputBg,
           },
         ]}
       >
@@ -277,10 +286,13 @@ export const TodoListView: React.FC<TodoListViewProps> = ({
 
     if (isGridView) {
       const topRightBadge =
-        priorityPill ?? (hasCategory ? renderCategoryPill(task.category) : null);
+        priorityPill ??
+        (hasCategory ? renderCategoryPill(task.category) : null);
       const bottomBadge =
         duePill ??
-        (priorityPill && hasCategory ? renderCategoryPill(task.category) : null);
+        (priorityPill && hasCategory
+          ? renderCategoryPill(task.category)
+          : null);
 
       return (
         <View
@@ -305,7 +317,9 @@ export const TodoListView: React.FC<TodoListViewProps> = ({
                   color: task.isCompleted
                     ? colors.textSecondary
                     : colors.textPrimary,
-                  textDecorationLine: task.isCompleted ? 'line-through' : 'none',
+                  textDecorationLine: task.isCompleted
+                    ? 'line-through'
+                    : 'none',
                 },
               ]}
               numberOfLines={2}
@@ -375,7 +389,9 @@ export const TodoListView: React.FC<TodoListViewProps> = ({
         accessibilityState={{checked: item.done}}
         accessibilityLabel={`Toggle checklist item ${item.text}`}
         testID={`todo-note-checklist-${item.noteId}-${item.checklistIndex}`}
-        hitSlop={isGridView ? {top: 6, bottom: 6, left: 6, right: 6} : undefined}
+        hitSlop={
+          isGridView ? {top: 6, bottom: 6, left: 6, right: 6} : undefined
+        }
         style={[
           styles.checkbox,
           isGridView && styles.gridCheckbox,
@@ -477,6 +493,55 @@ export const TodoListView: React.FC<TodoListViewProps> = ({
       </View>
     );
   };
+
+  type TodoRow = {
+    key: string;
+    label?: string;
+    toggle?: boolean;
+    tasks?: Task[];
+    checklists?: NoteChecklistTodoItem[];
+  };
+  const todoRows: TodoRow[] = [];
+  const appendTasks = (label: string, items: Task[]) => {
+    if (!items.length) return;
+    todoRows.push({key: label, label: `${label} (${items.length})`});
+    const step = isGridView ? 2 : 1;
+    for (let index = 0; index < items.length; index += step)
+      todoRows.push({
+        key: `task:${items[index].id}`,
+        tasks: items.slice(index, index + step),
+      });
+  };
+  if (showUndated) appendTasks('TO-DO', undatedOpen);
+  if (showScheduled) appendTasks('SCHEDULED & DEADLINES', scheduledOpen);
+  if (showChecklists && noteChecklists.length) {
+    todoRows.push({
+      key: 'checklists',
+      label: `FROM NOTES CHECKLISTS (${noteChecklists.length})`,
+    });
+    const step = isGridView ? 2 : 1;
+    for (let index = 0; index < noteChecklists.length; index += step)
+      todoRows.push({
+        key: `checklist:${noteChecklists[index].id}`,
+        checklists: noteChecklists.slice(index, index + step),
+      });
+  }
+  if (showCompletedList) appendTasks('COMPLETED', completedTasks);
+  if (filter === 'open' && completedTasks.length) {
+    todoRows.push({
+      key: 'completed-toggle',
+      toggle: true,
+      label: `COMPLETED (${completedTasks.length})`,
+    });
+    if (showCompletedInline) {
+      const step = isGridView ? 2 : 1;
+      for (let index = 0; index < completedTasks.length; index += step)
+        todoRows.push({
+          key: `completed:${completedTasks[index].id}`,
+          tasks: completedTasks.slice(index, index + step),
+        });
+    }
+  }
 
   return (
     <View style={styles.container} testID="notes-todo-view">
@@ -598,89 +663,62 @@ export const TodoListView: React.FC<TodoListViewProps> = ({
       </View>
 
       {/* Content */}
-      <ScrollView
-        showsVerticalScrollIndicator={false}
-        contentContainerStyle={styles.scrollContent}
-      >
-        {visibleCount === 0 ? (
-          <View style={styles.emptyState}>
-            <Text style={[styles.emptyTitle, {color: colors.textPrimary}]}>
-              {searchQuery.trim()
-                ? 'No matching to-dos'
-                : filter === 'completed'
-                ? 'No completed to-dos yet'
-                : 'Your To-Do list is clear'}
-            </Text>
-            <Text style={[styles.emptySub, {color: colors.textSecondary}]}>
-              {searchQuery.trim()
-                ? 'Try another search term or switch filters.'
-                : 'Type above to add an undated to-do, tap + to set a due date, or ask LAFINA in Chat or Call.'}
-            </Text>
-            {!searchQuery.trim() && filter !== 'completed' ? (
-              <TouchableOpacity
-                onPress={onOpenNewTodoModal}
-                style={[
-                  styles.emptyBtn,
-                  isModern && styles.modernPill,
-                  {borderColor: accentColor, backgroundColor: colors.cardBg},
-                ]}
-              >
-                <Text style={{color: accentColor, fontWeight: '700'}}>
-                  Add detailed To-Do
-                </Text>
-              </TouchableOpacity>
-            ) : null}
-          </View>
-        ) : null}
-
-        {showUndated && undatedOpen.length > 0 ? (
-          <View style={styles.section}>
-            <Text style={[styles.sectionHeader, {color: colors.textSecondary}]}>
-              TO-DO ({undatedOpen.length})
-            </Text>
-            <View style={isGridView ? styles.gridContainer : undefined}>
-              {undatedOpen.map(renderTaskRow)}
-            </View>
-          </View>
-        ) : null}
-
-        {showScheduled && scheduledOpen.length > 0 ? (
-          <View style={styles.section}>
-            <Text style={[styles.sectionHeader, {color: colors.textSecondary}]}>
-              SCHEDULED & DEADLINES ({scheduledOpen.length})
-            </Text>
-            <View style={isGridView ? styles.gridContainer : undefined}>
-              {scheduledOpen.map(renderTaskRow)}
-            </View>
-          </View>
-        ) : null}
-
-        {showChecklists && noteChecklists.length > 0 ? (
-          <View style={styles.section}>
-            <Text style={[styles.sectionHeader, {color: colors.textSecondary}]}>
-              FROM NOTES CHECKLISTS ({noteChecklists.length})
-            </Text>
-            <View style={isGridView ? styles.gridContainer : undefined}>
-              {noteChecklists.map(renderChecklistCard)}
-            </View>
-          </View>
-        ) : null}
-
-        {showCompletedList && completedTasks.length > 0 ? (
-          <View style={styles.section}>
-            <Text style={[styles.sectionHeader, {color: colors.textSecondary}]}>
-              COMPLETED ({completedTasks.length})
-            </Text>
-            <View style={isGridView ? styles.gridContainer : undefined}>
-              {completedTasks.map(renderTaskRow)}
-            </View>
-          </View>
-        ) : null}
-
-        {filter === 'open' && completedTasks.length > 0 ? (
-          <View style={styles.section}>
+      <FlatList
+        data={todoRows}
+        ListFooterComponent={
+          hasMoreTasks ? (
             <TouchableOpacity
-              onPress={() => setShowCompletedInline(prev => !prev)}
+              onPress={onLoadMoreTasks}
+              accessibilityRole="button"
+              style={styles.completedToggleRow}
+            >
+              <Text style={{color: colors.textPrimary}}>Show more to-dos</Text>
+            </TouchableOpacity>
+          ) : null
+        }
+        keyExtractor={row => row.key}
+        contentContainerStyle={styles.scrollContent}
+        showsVerticalScrollIndicator={false}
+        initialNumToRender={8}
+        maxToRenderPerBatch={4}
+        windowSize={7}
+        removeClippedSubviews={false}
+        ListEmptyComponent={
+          visibleCount === 0 ? (
+            <View style={styles.emptyState}>
+              <Text style={[styles.emptyTitle, {color: colors.textPrimary}]}>
+                {searchQuery.trim()
+                  ? 'No matching to-dos'
+                  : filter === 'completed'
+                  ? 'No completed to-dos yet'
+                  : 'Your To-Do list is clear'}
+              </Text>
+              <Text style={[styles.emptySub, {color: colors.textSecondary}]}>
+                {searchQuery.trim()
+                  ? 'Try another search term or switch filters.'
+                  : 'Type above to add an undated to-do, tap + to set a due date, or ask LAFINA in Chat or Call.'}
+              </Text>
+              {!searchQuery.trim() && filter !== 'completed' ? (
+                <TouchableOpacity
+                  onPress={onOpenNewTodoModal}
+                  style={[
+                    styles.emptyBtn,
+                    isModern && styles.modernPill,
+                    {borderColor: accentColor, backgroundColor: colors.cardBg},
+                  ]}
+                >
+                  <Text style={{color: accentColor, fontWeight: '700'}}>
+                    Add detailed To-Do
+                  </Text>
+                </TouchableOpacity>
+              ) : null}
+            </View>
+          ) : null
+        }
+        renderItem={({item: row}) =>
+          row.toggle ? (
+            <TouchableOpacity
+              onPress={() => setShowCompletedInline(previous => !previous)}
               style={styles.completedToggleRow}
               testID="todo-completed-toggle"
             >
@@ -692,17 +730,21 @@ export const TodoListView: React.FC<TodoListViewProps> = ({
               <Text
                 style={[styles.sectionHeader, {color: colors.textSecondary}]}
               >
-                COMPLETED ({completedTasks.length})
+                {row.label}
               </Text>
             </TouchableOpacity>
-            {showCompletedInline ? (
-              <View style={isGridView ? styles.gridContainer : undefined}>
-                {completedTasks.map(renderTaskRow)}
-              </View>
-            ) : null}
-          </View>
-        ) : null}
-      </ScrollView>
+          ) : row.label ? (
+            <Text style={[styles.sectionHeader, {color: colors.textSecondary}]}>
+              {row.label}
+            </Text>
+          ) : (
+            <View style={isGridView ? styles.gridContainer : undefined}>
+              {row.tasks?.map(renderTaskRow)}
+              {row.checklists?.map(renderChecklistCard)}
+            </View>
+          )
+        }
+      />
     </View>
   );
 };

@@ -161,6 +161,8 @@ export interface UstpEnrolledCourse {
   faculty: string;
   sessions: UstpCorClassSession[];
   scheduleSummary: string;
+  /** The recognized COR row this subject came from, for side-by-side review. */
+  rawText?: string;
 }
 
 export interface UstpStudentProfile {
@@ -234,6 +236,157 @@ const COLLEGE_ACRONYMS: Array<[RegExp, string]> = [
   [/TECHNOLOGY\b/i, 'COT'],
   [/MEDICINE\b/i, 'COM'],
 ];
+
+const USTP_CAMPUS_ENTRIES: ReadonlyArray<{
+  canonical: string;
+  letterheadPattern: RegExp;
+  tokenPattern: string;
+}> = [
+  {
+    canonical: 'USTP CDO Campus',
+    letterheadPattern: /\b(?:C\.?\s*D\.?\s*[O0Q](?:\.|\b)|Cagayan\s+de\s+Oro\b)/i,
+    tokenPattern:
+      '(?:C\\.?[ \\t]*D\\.?[ \\t]*[O0Q](?:\\.|\\b)|CAGAYAN[ \\t]+DE[ \\t]+ORO\\b)',
+  },
+  {
+    canonical: 'USTP Claveria Campus',
+    letterheadPattern: /\bClaveria\b/i,
+    tokenPattern: 'CLAVER[I1]A\\b',
+  },
+  {
+    canonical: 'USTP Jasaan Campus',
+    letterheadPattern: /\bJasaan\b/i,
+    tokenPattern: 'JASAAN\\b',
+  },
+  {
+    canonical: 'USTP Alubijid Campus',
+    letterheadPattern: /\bAlubijid\b/i,
+    tokenPattern: 'ALUB[I1]J[I1]D\\b',
+  },
+  {
+    canonical: 'USTP Oroquieta Campus',
+    letterheadPattern: /\bOroquieta\b/i,
+    tokenPattern: 'OROQU[I1]ETA\\b',
+  },
+  {
+    canonical: 'USTP Panaon Campus',
+    letterheadPattern: /\bPanaon\b/i,
+    tokenPattern: 'PANAON\\b',
+  },
+  {
+    canonical: 'USTP Balubal Campus',
+    letterheadPattern: /\bBalubal\b/i,
+    tokenPattern: 'BALUBAL\\b',
+  },
+  {
+    canonical: 'USTP Villanueva Campus',
+    letterheadPattern: /\bVillanueva\b/i,
+    tokenPattern: 'V[I1]LLANUEVA\\b',
+  },
+];
+
+const USTP_CAMPUS_LINE_MATCHERS: ReadonlyArray<{
+  canonical: string;
+  withCampus: RegExp;
+  withPrefix: RegExp;
+}> = USTP_CAMPUS_ENTRIES.map(entry => ({
+  canonical: entry.canonical,
+  withCampus: new RegExp(
+    `(?:\\bUSTP\\b[ \\t\\-–—]*)?\\b${entry.tokenPattern}[ \\t]+CA[MN]P[UO]S\\b`,
+    'i',
+  ),
+  withPrefix: new RegExp(
+    `\\bUSTP[ \\t]*[\\-–—]?[ \\t]*${entry.tokenPattern}`,
+    'i',
+  ),
+}));
+
+// Rejects words from the USTP seal/header ("University of Science and Technology of Southern Philippines")
+// when OCR garbles the circular logo near the campus badge.
+const CAMPUS_NOISE_WORD_REGEX =
+  /^(?:OF|THE|AND|FOR|IN|REPUBLIC|PHIL\w*|FHH\w*|FHIL\w*|PHH\w*|UNIVERS\w*|SCIEN\w*|TECH\w*|INOLOG\w*|SOUTH\w*|CERT\w*|REGIS\w*|STUD\w*|GENER\w*|INFOR\w*)$/i;
+
+function isMultiCampusLetterheadLine(line: string): boolean {
+  if (line.includes('|')) return true;
+  let hits = 0;
+  for (const entry of USTP_CAMPUS_ENTRIES) {
+    if (entry.letterheadPattern.test(line)) hits += 1;
+    if (hits >= 2) return true;
+  }
+  return false;
+}
+
+function normalizeUstpCampusName(rawName: string): string {
+  const words = rawName
+    .replace(/[-–—]/g, ' ')
+    .trim()
+    .split(/\s+/)
+    .filter(Boolean);
+  if (words.length === 0) return '';
+  const body = words.filter(
+    w => w.toUpperCase() !== 'USTP' && !/^CA[MN]P[UO]S$/i.test(w),
+  );
+  if (body.length === 0) return '';
+  if (body.some(w => CAMPUS_NOISE_WORD_REGEX.test(w))) return '';
+
+  const joined = body.join(' ').toUpperCase();
+  if (/^C\.?\s*D\.?\s*[O0Q]\.?$|^CAGAYAN\s+DE\s+ORO$/i.test(joined)) {
+    return 'USTP CDO Campus';
+  }
+  const formattedBody = body.map(w => toTitleCaseWord(w)).join(' ');
+  return `USTP ${formattedBody} Campus`;
+}
+
+/**
+ * Extracts the specific USTP campus from Zone 1 header lines without crossing
+ * newlines or swallowing OCR-garbled circular seal text.
+ */
+export function extractUstpCampus(
+  zone1Lines: string[],
+  isUstpCor: boolean,
+): string {
+  const candidateLines = zone1Lines.filter(
+    line => !isMultiCampusLetterheadLine(line) && !/^\s*Address\s*:/i.test(line),
+  );
+
+  for (const line of candidateLines) {
+    for (const matcher of USTP_CAMPUS_LINE_MATCHERS) {
+      if (matcher.withCampus.test(line)) {
+        return matcher.canonical;
+      }
+    }
+  }
+
+  for (const line of candidateLines) {
+    for (const matcher of USTP_CAMPUS_LINE_MATCHERS) {
+      if (matcher.withPrefix.test(line)) {
+        return matcher.canonical;
+      }
+    }
+  }
+
+  for (const line of candidateLines) {
+    const labelMatch = line.match(
+      /\bCampus\s*:\s*([A-Za-z0-9.\s-]+?)(?=\s+(?:Program|College|Registration|Student|Academic|Name|Major|Gender|Year|Curriculum)\s*:|$)/i,
+    );
+    if (labelMatch) {
+      const normalized = normalizeUstpCampusName(labelMatch[1]);
+      if (normalized) return normalized;
+    }
+  }
+
+  for (const line of candidateLines) {
+    const genericMatch = line.match(
+      /\bUSTP[ \t]*[-–—]?[ \t]*([A-Za-z]{2,20}(?:[ \t]+[A-Za-z]{2,15}){0,2})[ \t]+CA[MN]P[UO]S\b/i,
+    );
+    if (genericMatch) {
+      const normalized = normalizeUstpCampusName(genericMatch[1]);
+      if (normalized) return normalized;
+    }
+  }
+
+  return isUstpCor ? 'USTP CDO Campus' : '';
+}
 
 function toTitleCaseWord(word: string): string {
   if (!word) return '';
@@ -1010,19 +1163,7 @@ export function parseUstpCor(
   // --- Parse Zone 1: Student General Information ---
   const zone1Text = zone1Lines.join('\n');
 
-  let campus = 'USTP CDO Campus';
-  const campusMatch = zone1Text.match(/\b(USTP\s+[A-Z\s]+CAMPUS)\b/i);
-  if (campusMatch) {
-    campus = campusMatch[1]
-      .trim()
-      .split(/\s+/)
-      .map(w =>
-        w.toUpperCase() === 'USTP' || w.toUpperCase() === 'CDO'
-          ? w.toUpperCase()
-          : toTitleCaseWord(w),
-      )
-      .join(' ');
-  }
+  const campus = extractUstpCampus(zone1Lines, isUstpCor);
 
   let registrationNo = '';
   const regInline =
@@ -1215,6 +1356,7 @@ export function parseUstpCor(
         faculty: 'TBA',
         sessions: [],
         scheduleSummary: 'TBA',
+        rawText: line,
       };
 
       if (tail) {

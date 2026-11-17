@@ -29,6 +29,9 @@ import {
 } from '../../src/scheduler/alarmService';
 import {ThemeProvider} from '../../src/ui/contexts/ThemeContext';
 import {AlarmsView} from '../../src/ui/screens/calendar/components/AlarmsView';
+import {AlarmEditorModal} from '../../src/ui/screens/calendar/components/AlarmEditorModal';
+import {ReminderHealth} from '../../src/ui/components/profile/ReminderHealth';
+import {ReminderPermissionModal} from '../../src/ui/components/call/ReminderPermissionModal';
 import {NextAlarmCard} from '../../src/ui/screens/dashboard/components/NextAlarmCard';
 
 /** Saturday 14 Nov 2026, 22:00 local. */
@@ -259,8 +262,8 @@ describe('screens', () => {
     expect(screen.getByTestId(`alarm-grid-card-${saved.id}`)).toBeTruthy();
   });
 
-  it('shows what could stop an alarm, with a fix', async () => {
-    LafinaAlarm.getStatus.mockResolvedValueOnce({
+  it('omits test alarm & alarm health from Alarms tab and surfaces battery saver in ReminderHealth & permissions', async () => {
+    LafinaAlarm.getStatus.mockResolvedValue({
       canScheduleExactAlarms: false,
       canUseFullScreenIntent: true,
       notificationsEnabled: true,
@@ -273,7 +276,154 @@ describe('screens', () => {
       ),
     );
     expect(await screen.findByText(/ring a few minutes late/)).toBeTruthy();
-    expect(screen.getByText(/battery saver may stop alarms/)).toBeTruthy();
+    expect(screen.queryByText(/battery saver may stop alarms/)).toBeNull();
+    expect(screen.queryByTestId('alarm-test-button')).toBeNull();
+    expect(screen.queryByTestId('alarm-health-button')).toBeNull();
+
+    const healthSheet = render(
+      wrap(<ReminderHealth userId={user} visible onClose={jest.fn()} />),
+    );
+    expect(
+      await healthSheet.findByText(
+        /This phone’s battery saver may stop alarms/,
+      ),
+    ).toBeTruthy();
+    expect(healthSheet.getByTestId('health-battery-guidance')).toBeTruthy();
+    expect(healthSheet.getByTestId('health-open-battery')).toBeTruthy();
+    expect(healthSheet.getByTestId('health-test-alarm')).toBeTruthy();
+
+    const permsModal = render(
+      wrap(
+        <ReminderPermissionModal
+          visible
+          status={{
+            canScheduleExactAlarms: true,
+            canUseFullScreenIntent: true,
+            notificationsEnabled: true,
+          }}
+          alarmHealth={{
+            available: true,
+            canScheduleExactAlarms: true,
+            canUseFullScreenIntent: true,
+            notificationsEnabled: true,
+            ignoringBatteryOptimizations: false,
+            manufacturer: 'Xiaomi',
+          }}
+          onClose={jest.fn()}
+        />,
+      ),
+    );
+    expect(permsModal.getByText('Battery Saver')).toBeTruthy();
+    expect(
+      permsModal.getByText(/This phone’s battery saver may stop alarms/),
+    ).toBeTruthy();
+    expect(permsModal.getByTestId('permission-open-battery')).toBeTruthy();
+  });
+
+  it('scrollable AlarmEditorModal updates time via wheel scroll, wheel taps, presets, and 24h mode', () => {
+    const onSave = jest.fn(() => null);
+    const closed = render(
+      wrap(
+        <AlarmEditorModal
+          visible={false}
+          alarm={null}
+          use24h={false}
+          onSave={onSave}
+          onClose={jest.fn()}
+        />,
+      ),
+    );
+    expect(closed.queryByTestId('alarm-editor-sheet')).toBeNull();
+    closed.unmount();
+
+    const editor = render(
+      wrap(
+        <AlarmEditorModal
+          visible
+          alarm={null}
+          use24h={false}
+          onSave={onSave}
+          onClose={jest.fn()}
+        />,
+      ),
+    );
+
+    expect(editor.getByTestId('alarm-wheel-hour')).toBeTruthy();
+    expect(editor.getByTestId('alarm-wheel-minute')).toBeTruthy();
+    expect(editor.getByTestId('alarm-wheel-period')).toBeTruthy();
+    expect(editor.getByTestId('alarm-countdown-badge')).toBeTruthy();
+
+    // Tap nearby minute 5 in initial viewport, then settle hour=7 and minute=35 via momentumScrollEnd
+    fireEvent.press(editor.getByTestId('alarm-wheel-minute-item-5'));
+    expect(editor.getByTestId('alarm-time-readout').props.children).toContain(
+      '6:05 AM',
+    );
+    fireEvent(editor.getByTestId('alarm-wheel-hour'), 'momentumScrollEnd', {
+      nativeEvent: {contentOffset: {y: 30 * 42}},
+    });
+    fireEvent(editor.getByTestId('alarm-wheel-minute'), 'momentumScrollEnd', {
+      nativeEvent: {contentOffset: {y: 95 * 42}},
+    });
+    fireEvent.press(editor.getByTestId('alarm-wheel-period-item-PM'));
+    fireEvent.press(editor.getByTestId('alarm-repeat-weekends'));
+    fireEvent.press(editor.getByTestId('alarm-label-chip-Study'));
+    fireEvent.press(editor.getByTestId('alarm-save-button'));
+
+    expect(onSave).toHaveBeenCalledWith(
+      expect.objectContaining({
+        hour: 19,
+        minute: 35,
+        repeatDays: 96,
+        label: 'Study',
+      }),
+    );
+
+    // Quick preset sets 7:00 AM cleanly, and 24h mode hides AM/PM wheel
+    onSave.mockClear();
+    editor.rerender(
+      wrap(
+        <AlarmEditorModal
+          visible
+          alarm={{
+            id: 'edit-1',
+            userId: user,
+            hour: 21,
+            minute: 15,
+            repeatDays: 0,
+            oneShotDate: '2026-11-18',
+            label: 'Night review',
+            enabled: true,
+            snoozeMinutes: 9,
+            vibrate: true,
+            soundUri: null,
+            briefing: false,
+            generation: 1,
+            nextTriggerAt: null,
+            lastFiredAt: null,
+            lastOutcome: null,
+            sourceReminderId: null,
+            createdAt: '2026-11-16T00:00:00Z',
+            updatedAt: '2026-11-16T00:00:00Z',
+          }}
+          use24h
+          onSave={onSave}
+          onClose={jest.fn()}
+        />,
+      ),
+    );
+    expect(editor.queryByTestId('alarm-wheel-period')).toBeNull();
+    expect(editor.getByTestId('alarm-time-readout').props.children).toContain(
+      '21:15',
+    );
+    fireEvent.press(editor.getByTestId('alarm-preset-7-0'));
+    fireEvent.press(editor.getByTestId('alarm-save-button'));
+    expect(onSave).toHaveBeenCalledWith(
+      expect.objectContaining({
+        hour: 7,
+        minute: 0,
+        label: 'Night review',
+      }),
+    );
   });
 
   it('Home shows the next alarm only when one is on', () => {

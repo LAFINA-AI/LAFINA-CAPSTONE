@@ -1,11 +1,16 @@
 import React, {useCallback, useEffect, useRef, useState} from 'react';
 import {
   Alert,
+  Animated,
+  Easing,
+  LayoutAnimation,
+  Platform,
   ScrollView,
   StyleSheet,
   Switch,
   Text,
   TouchableOpacity,
+  UIManager,
   View,
 } from 'react-native';
 import {
@@ -18,6 +23,7 @@ import {
 } from 'lucide-react-native';
 import {useSafeAreaInsets} from 'react-native-safe-area-context';
 import {useTheme} from '../../../contexts/ThemeContext';
+import {useReducedMotion} from '../../../hooks/useReducedMotion';
 import {useSchedulePalette, scheduleCardShadow} from './schedulePalette';
 import {alarmsStore, userStore} from '../../../../storage';
 import type {Alarm, AlarmInput} from '../../../../storage';
@@ -28,13 +34,7 @@ import {
   formatAlarmTime,
   nextAlarmTrigger,
 } from '../../../../scheduler/alarmSchedule';
-import {
-  getAlarmHealth,
-  needsBatteryGuidance,
-  nextAlarm,
-  openBatterySettings,
-  ringTestAlarm,
-} from '../../../../scheduler/alarmService';
+import {getAlarmHealth, nextAlarm} from '../../../../scheduler/alarmService';
 import type {AlarmHealth} from '../../../../scheduler/alarmService';
 import {
   openExactAlarmSettings,
@@ -42,6 +42,40 @@ import {
   openNotificationSettings,
 } from '../../../../scheduler/reminderAlarm';
 import {AlarmEditorModal} from './AlarmEditorModal';
+
+if (
+  Platform.OS === 'android' &&
+  UIManager.setLayoutAnimationEnabledExperimental
+) {
+  try {
+    UIManager.setLayoutAnimationEnabledExperimental(true);
+  } catch {
+    // Ignore when new architecture / Fabric handles layout animations natively.
+  }
+}
+
+const animateAlarmListLayout = (reducedMotion: boolean) => {
+  if (reducedMotion || Platform.OS === 'web') return;
+  try {
+    LayoutAnimation.configureNext({
+      duration: 240,
+      create: {
+        type: LayoutAnimation.Types.easeInEaseOut,
+        property: LayoutAnimation.Properties.opacity,
+      },
+      update: {
+        type: LayoutAnimation.Types.spring,
+        springDamping: 0.82,
+      },
+      delete: {
+        type: LayoutAnimation.Types.easeInEaseOut,
+        property: LayoutAnimation.Properties.opacity,
+      },
+    });
+  } catch {
+    // Ignore in environments without native LayoutAnimation.
+  }
+};
 
 interface AlarmsViewProps {
   userId: string;
@@ -62,7 +96,11 @@ interface HealthIssue {
   onPress: () => void;
 }
 
-/** What could stop an alarm from ringing on time, each with its fix. */
+/**
+ * Critical OS permission blockers that stop alarms from ringing or showing.
+ * Battery-saver guidance is surfaced in Alarm & Reminder Health instead of
+ * cluttering the Alarms tab feed.
+ */
 export const alarmHealthIssues = (
   health: AlarmHealth | null,
 ): HealthIssue[] => {
@@ -89,30 +127,202 @@ export const alarmHealthIssues = (
       action: 'Allow',
       onPress: () => void openFullScreenIntentSettings(),
     });
-  if (needsBatteryGuidance(health))
-    issues.push({
-      key: 'battery',
-      text: 'This phone’s battery saver may stop alarms. Set LAFINA to “Don’t optimize” or “No restrictions”.',
-      action: 'Open',
-      onPress: () => void openBatterySettings(),
-    });
   return issues;
 };
 
-/** Alarm plan A2: Schedule → Alarms. */
-const SHORT_WEEKDAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'] as const;
+/** Alarm plan A2: the Alarms view, shown under Tools → Alarms. */
+const SHORT_WEEKDAYS = [
+  'Sun',
+  'Mon',
+  'Tue',
+  'Wed',
+  'Thu',
+  'Fri',
+  'Sat',
+] as const;
 
-const formatRelativeAlarmDay = (target: Date, now: Date = new Date()): string => {
+const formatRelativeAlarmDay = (
+  target: Date,
+  now: Date = new Date(),
+): string => {
   const startToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
   const startTarget = new Date(
     target.getFullYear(),
     target.getMonth(),
     target.getDate(),
   );
-  const diffDays = Math.round((startTarget.getTime() - startToday.getTime()) / 86400000);
+  const diffDays = Math.round(
+    (startTarget.getTime() - startToday.getTime()) / 86400000,
+  );
   if (diffDays === 0) return 'Today';
   if (diffDays === 1) return 'Tomorrow';
   return SHORT_WEEKDAYS[target.getDay()];
+};
+
+interface AlarmArrivalWrapperProps {
+  isHighlighted: boolean;
+  arrivalTick: number;
+  reducedMotion: boolean;
+  accentColor: string;
+  radius: number;
+  isGridView: boolean;
+  children: React.ReactNode;
+}
+
+/**
+ * Plays a spring entrance + soft accent halo glow + ringing-bell wiggle
+ * when an alarm is newly created or saved, spotlighting where it landed.
+ */
+const AlarmArrivalWrapper: React.FC<AlarmArrivalWrapperProps> = ({
+  isHighlighted,
+  arrivalTick,
+  reducedMotion,
+  accentColor,
+  radius,
+  isGridView,
+  children,
+}) => {
+  const scaleAnim = useRef(new Animated.Value(1)).current;
+  const translateYAnim = useRef(new Animated.Value(0)).current;
+  const opacityAnim = useRef(new Animated.Value(1)).current;
+  const haloAnim = useRef(new Animated.Value(0)).current;
+  const bellWiggleAnim = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    if (!isHighlighted) {
+      haloAnim.setValue(0);
+      return;
+    }
+    if (reducedMotion) {
+      haloAnim.setValue(0.8);
+      const fade = Animated.timing(haloAnim, {
+        toValue: 0,
+        duration: 1100,
+        useNativeDriver: true,
+      });
+      fade.start();
+      return () => fade.stop();
+    }
+
+    scaleAnim.setValue(0.84);
+    translateYAnim.setValue(20);
+    opacityAnim.setValue(0);
+    haloAnim.setValue(1);
+    bellWiggleAnim.setValue(0);
+
+    const entrance = Animated.parallel([
+      Animated.timing(opacityAnim, {
+        toValue: 1,
+        duration: 210,
+        easing: Easing.out(Easing.cubic),
+        useNativeDriver: true,
+      }),
+      Animated.spring(scaleAnim, {
+        toValue: 1,
+        tension: 120,
+        friction: 7,
+        useNativeDriver: true,
+      }),
+      Animated.spring(translateYAnim, {
+        toValue: 0,
+        tension: 120,
+        friction: 8,
+        useNativeDriver: true,
+      }),
+      Animated.sequence([
+        Animated.timing(bellWiggleAnim, {
+          toValue: 1,
+          duration: 85,
+          useNativeDriver: true,
+        }),
+        Animated.timing(bellWiggleAnim, {
+          toValue: -1,
+          duration: 85,
+          useNativeDriver: true,
+        }),
+        Animated.timing(bellWiggleAnim, {
+          toValue: 0.7,
+          duration: 80,
+          useNativeDriver: true,
+        }),
+        Animated.timing(bellWiggleAnim, {
+          toValue: -0.7,
+          duration: 80,
+          useNativeDriver: true,
+        }),
+        Animated.timing(bellWiggleAnim, {
+          toValue: 0,
+          duration: 80,
+          useNativeDriver: true,
+        }),
+      ]),
+      Animated.timing(haloAnim, {
+        toValue: 0,
+        duration: 1650,
+        easing: Easing.out(Easing.quad),
+        useNativeDriver: true,
+      }),
+    ]);
+
+    entrance.start();
+    return () => entrance.stop();
+  }, [
+    isHighlighted,
+    arrivalTick,
+    reducedMotion,
+    scaleAnim,
+    translateYAnim,
+    opacityAnim,
+    haloAnim,
+    bellWiggleAnim,
+  ]);
+
+  const bellRotate = bellWiggleAnim.interpolate({
+    inputRange: [-1, 1],
+    outputRange: ['-16deg', '16deg'],
+  });
+
+  return (
+    <Animated.View
+      style={[
+        isGridView ? styles.gridItemSlot : styles.listItemSlot,
+        {
+          opacity: opacityAnim,
+          transform: [{translateY: translateYAnim}, {scale: scaleAnim}],
+        },
+      ]}
+    >
+      {children}
+      {isHighlighted && (
+        <>
+          <Animated.View
+            pointerEvents="none"
+            style={[
+              styles.arrivalHalo,
+              {
+                borderRadius: radius,
+                borderColor: accentColor,
+                opacity: haloAnim,
+              },
+            ]}
+          />
+          <Animated.View
+            pointerEvents="none"
+            style={[
+              styles.arrivalBellBadge,
+              {
+                backgroundColor: accentColor,
+                opacity: haloAnim,
+                transform: [{rotate: bellRotate}],
+              },
+            ]}
+          >
+            <BellRing size={11} color="#FFFFFF" />
+          </Animated.View>
+        </>
+      )}
+    </Animated.View>
+  );
 };
 
 export const AlarmsView: React.FC<AlarmsViewProps> = ({
@@ -125,16 +335,20 @@ export const AlarmsView: React.FC<AlarmsViewProps> = ({
 }) => {
   const {colors, modernPalette} = useTheme();
   const palette = useSchedulePalette();
+  const reducedMotion = useReducedMotion();
   const insets = useSafeAreaInsets();
   const scrollBottomPad = Math.max(insets.bottom, 16) + 96;
   const [alarms, setAlarms] = useState<Alarm[]>([]);
   const [health, setHealth] = useState<AlarmHealth | null>(null);
   const [editing, setEditing] = useState<Alarm | null>(null);
   const [editorOpen, setEditorOpen] = useState(false);
-  const [note, setNote] = useState<string | null>(null);
+  const [recentAlarmId, setRecentAlarmId] = useState<string | null>(null);
+  const [arrivalTick, setArrivalTick] = useState(0);
   const [localIsGridView, setLocalIsGridView] = useState(true);
   const effectiveIsGridView = isGridView ?? localIsGridView;
   const lastCreateTriggerRef = useRef(createTrigger ?? 0);
+  const highlightTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const nextPulseAnim = useRef(new Animated.Value(1)).current;
   const [use24h] = useState(() => {
     try {
       return userStore.get24HourFormat(userId);
@@ -142,6 +356,15 @@ export const AlarmsView: React.FC<AlarmsViewProps> = ({
       return false;
     }
   });
+
+  useEffect(
+    () => () => {
+      if (highlightTimerRef.current) {
+        clearTimeout(highlightTimerRef.current);
+      }
+    },
+    [],
+  );
 
   useEffect(() => {
     if (
@@ -154,6 +377,13 @@ export const AlarmsView: React.FC<AlarmsViewProps> = ({
     }
   }, [createTrigger]);
 
+  const loadHealth = useCallback(async (isMounted?: () => boolean) => {
+    const result = await getAlarmHealth();
+    if (!isMounted || isMounted()) {
+      setHealth(result);
+    }
+  }, []);
+
   const load = useCallback(() => {
     try {
       setAlarms(alarmsStore.list(userId));
@@ -165,21 +395,57 @@ export const AlarmsView: React.FC<AlarmsViewProps> = ({
   useEffect(() => {
     load();
     let alive = true;
-    void getAlarmHealth().then(result => {
-      if (alive) setHealth(result);
-    });
+    void loadHealth(() => alive);
     return () => {
       alive = false;
     };
-  }, [load, refreshTrigger]);
+  }, [load, loadHealth, refreshTrigger]);
 
   const next = nextAlarm(userId);
   const issues = alarmHealthIssues(health);
 
+  const triggerArrivalHighlight = useCallback((alarmId: string) => {
+    if (highlightTimerRef.current) {
+      clearTimeout(highlightTimerRef.current);
+    }
+    setRecentAlarmId(alarmId);
+    setArrivalTick(tick => tick + 1);
+    highlightTimerRef.current = setTimeout(() => {
+      setRecentAlarmId(null);
+      highlightTimerRef.current = null;
+    }, 2000);
+  }, []);
+
+  useEffect(() => {
+    if (
+      reducedMotion ||
+      !recentAlarmId ||
+      !next ||
+      next.alarm.id !== recentAlarmId
+    ) {
+      return;
+    }
+    nextPulseAnim.setValue(0.97);
+    const anim = Animated.spring(nextPulseAnim, {
+      toValue: 1,
+      tension: 140,
+      friction: 7,
+      useNativeDriver: true,
+    });
+    anim.start();
+    return () => anim.stop();
+  }, [arrivalTick, next, nextPulseAnim, recentAlarmId, reducedMotion]);
+
   const save = (input: AlarmInput): string | null => {
     try {
-      if (editing) alarmsStore.update(editing.id, userId, input);
-      else alarmsStore.create(userId, input);
+      animateAlarmListLayout(reducedMotion);
+      if (editing) {
+        const updated = alarmsStore.update(editing.id, userId, input);
+        if (updated) triggerArrivalHighlight(updated.id);
+      } else {
+        const created = alarmsStore.create(userId, input);
+        triggerArrivalHighlight(created.id);
+      }
       setEditorOpen(false);
       load();
       onRefresh();
@@ -191,6 +457,7 @@ export const AlarmsView: React.FC<AlarmsViewProps> = ({
 
   const toggle = (alarm: Alarm, enabled: boolean) => {
     try {
+      animateAlarmListLayout(reducedMotion);
       alarmsStore.setEnabled(alarm.id, userId, enabled);
       load();
     } catch (error) {
@@ -210,6 +477,7 @@ export const AlarmsView: React.FC<AlarmsViewProps> = ({
           text: 'Delete',
           style: 'destructive',
           onPress: () => {
+            animateAlarmListLayout(reducedMotion);
             alarmsStore.remove(alarm.id, userId);
             setEditorOpen(false);
             load();
@@ -217,15 +485,6 @@ export const AlarmsView: React.FC<AlarmsViewProps> = ({
           },
         },
       ],
-    );
-  };
-
-  const test = async () => {
-    const at = await ringTestAlarm(60);
-    setNote(
-      at
-        ? 'A test alarm rings in about 1 minute. Lock the phone to check it.'
-        : 'Test alarms work on an Android phone only.',
     );
   };
 
@@ -258,9 +517,13 @@ export const AlarmsView: React.FC<AlarmsViewProps> = ({
 
   const todayCircleBg = palette.isDarkMode ? palette.text : palette.darkInkBtn;
   const todayCircleIcon = palette.isDarkMode ? palette.bg : '#FFFFFF';
-  const labelTileBg = palette.isDarkMode ? palette.surface : modernPalette.softViolet;
+  const labelTileBg = palette.isDarkMode
+    ? palette.surface
+    : modernPalette.softViolet;
   const repeatTileBg = palette.isDarkMode ? palette.surface : palette.blueSoft;
-  const repeatTileInk = palette.isDarkMode ? palette.accent : modernPalette.blueInk;
+  const repeatTileInk = palette.isDarkMode
+    ? palette.accent
+    : modernPalette.blueInk;
   const cardSurfaceStyle = [
     {
       backgroundColor: palette.card,
@@ -274,6 +537,7 @@ export const AlarmsView: React.FC<AlarmsViewProps> = ({
     const repeatText = describeRepeat(alarm.repeatDays);
     const labelText = alarm.label?.trim() || '';
     const timeText = formatAlarmTime(alarm.hour, alarm.minute, use24h);
+    const isHighlighted = alarm.id === recentAlarmId;
     const openEditor = () => {
       setEditing(alarm);
       setEditorOpen(true);
@@ -295,65 +559,60 @@ export const AlarmsView: React.FC<AlarmsViewProps> = ({
       />
     );
 
-    if (effectiveIsGridView) {
-      return (
-        <View
-          key={alarm.id}
-          testID={`alarm-grid-card-${alarm.id}`}
-          style={[styles.alarmGridCard, cardSurfaceStyle]}
-        >
-          <View style={styles.alarmGridTopRow}>
-            <TouchableOpacity
-              style={styles.alarmGridRepeatTouch}
-              onPress={openEditor}
-              onLongPress={() => remove(alarm)}
-              activeOpacity={0.7}
-            >
-              <Text
-                style={[
-                  styles.alarmGridRepeat,
-                  {color: alarm.enabled ? palette.accent : palette.muted},
-                ]}
-                numberOfLines={1}
-              >
-                {repeatText}
-              </Text>
-            </TouchableOpacity>
-            {switchNode}
-          </View>
+    const cardNode = effectiveIsGridView ? (
+      <View
+        testID={`alarm-grid-card-${alarm.id}`}
+        style={[styles.alarmGridCard, cardSurfaceStyle]}
+      >
+        <View style={styles.alarmGridTopRow}>
           <TouchableOpacity
-            testID={`alarm-row-${alarm.id}`}
-            style={styles.alarmGridBody}
+            style={styles.alarmGridRepeatTouch}
             onPress={openEditor}
             onLongPress={() => remove(alarm)}
             activeOpacity={0.7}
-            accessibilityRole="button"
-            accessibilityLabel={rowLabel}
           >
             <Text
               style={[
-                styles.alarmGridTime,
-                {color: alarm.enabled ? palette.text : palette.muted},
+                styles.alarmGridRepeat,
+                {color: alarm.enabled ? palette.accent : palette.muted},
               ]}
               numberOfLines={1}
-              adjustsFontSizeToFit
-              minimumFontScale={0.8}
             >
-              {timeText}
-            </Text>
-            <Text
-              style={[styles.alarmGridLabel, {color: palette.muted}]}
-              numberOfLines={1}
-            >
-              {labelText || 'Alarm'}
+              {repeatText}
             </Text>
           </TouchableOpacity>
+          {switchNode}
         </View>
-      );
-    }
-
-    return (
-      <View key={alarm.id} style={[styles.alarmCard, cardSurfaceStyle]}>
+        <TouchableOpacity
+          testID={`alarm-row-${alarm.id}`}
+          style={styles.alarmGridBody}
+          onPress={openEditor}
+          onLongPress={() => remove(alarm)}
+          activeOpacity={0.7}
+          accessibilityRole="button"
+          accessibilityLabel={rowLabel}
+        >
+          <Text
+            style={[
+              styles.alarmGridTime,
+              {color: alarm.enabled ? palette.text : palette.muted},
+            ]}
+            numberOfLines={1}
+            adjustsFontSizeToFit
+            minimumFontScale={0.8}
+          >
+            {timeText}
+          </Text>
+          <Text
+            style={[styles.alarmGridLabel, {color: palette.muted}]}
+            numberOfLines={1}
+          >
+            {labelText || 'Alarm'}
+          </Text>
+        </TouchableOpacity>
+      </View>
+    ) : (
+      <View style={[styles.alarmCard, cardSurfaceStyle]}>
         <TouchableOpacity
           testID={`alarm-row-${alarm.id}`}
           style={styles.rowText}
@@ -389,10 +648,27 @@ export const AlarmsView: React.FC<AlarmsViewProps> = ({
         {switchNode}
       </View>
     );
+
+    return (
+      <AlarmArrivalWrapper
+        key={alarm.id}
+        isHighlighted={isHighlighted}
+        arrivalTick={arrivalTick}
+        reducedMotion={reducedMotion}
+        accentColor={palette.accent}
+        radius={effectiveIsGridView ? 20 : 22}
+        isGridView={effectiveIsGridView}
+      >
+        {cardNode}
+      </AlarmArrivalWrapper>
+    );
   };
 
   return (
-    <View style={[styles.container, {backgroundColor: palette.bg}]} testID="alarms-view">
+    <View
+      style={[styles.container, {backgroundColor: palette.bg}]}
+      testID="alarms-view"
+    >
       <ScrollView
         showsVerticalScrollIndicator={false}
         contentContainerStyle={[
@@ -453,14 +729,18 @@ export const AlarmsView: React.FC<AlarmsViewProps> = ({
             const circleBg = col.isToday
               ? todayCircleBg
               : col.hasAlarm
-                ? palette.accent
-                : palette.surface;
+              ? palette.accent
+              : palette.surface;
             const iconColor = col.isToday
               ? todayCircleIcon
               : col.hasAlarm
-                ? '#FFFFFF'
-                : palette.muted;
-            const pillState = col.isToday ? 'today' : col.hasAlarm ? 'active' : 'idle';
+              ? '#FFFFFF'
+              : palette.muted;
+            const pillState = col.isToday
+              ? 'today'
+              : col.hasAlarm
+              ? 'active'
+              : 'idle';
 
             return (
               <View key={col.dayLabel} style={styles.weekCol}>
@@ -492,61 +772,67 @@ export const AlarmsView: React.FC<AlarmsViewProps> = ({
         </Text>
 
         {next ? (
-          <TouchableOpacity
-            testID="alarms-next"
-            activeOpacity={0.85}
-            onPress={() => {
-              setEditing(next.alarm);
-              setEditorOpen(true);
-            }}
-            style={[
-              styles.nextCard,
-              {
-                backgroundColor: palette.card,
-                borderColor: palette.isDarkMode ? palette.border : 'transparent',
-                borderWidth: palette.isDarkMode ? 1 : 0,
-              },
-              !palette.isDarkMode && scheduleCardShadow,
-            ]}
-          >
-            <View style={styles.nextTopRow}>
-              <View style={styles.nextLeft}>
-                <Text style={[styles.nextDayLabel, {color: palette.accent}]}>
-                  {formatRelativeAlarmDay(next.at)}
-                </Text>
-                <Text style={[styles.nextCountdown, {color: palette.muted}]}>
-                  {`Rings ${describeTimeUntil(next.at)}`}
+          <Animated.View style={{transform: [{scale: nextPulseAnim}]}}>
+            <TouchableOpacity
+              testID="alarms-next"
+              activeOpacity={0.85}
+              onPress={() => {
+                setEditing(next.alarm);
+                setEditorOpen(true);
+              }}
+              style={[
+                styles.nextCard,
+                {
+                  backgroundColor: palette.card,
+                  borderColor: palette.isDarkMode
+                    ? palette.border
+                    : 'transparent',
+                  borderWidth: palette.isDarkMode ? 1 : 0,
+                },
+                !palette.isDarkMode && scheduleCardShadow,
+              ]}
+            >
+              <View style={styles.nextTopRow}>
+                <View style={styles.nextLeft}>
+                  <Text style={[styles.nextDayLabel, {color: palette.accent}]}>
+                    {formatRelativeAlarmDay(next.at)}
+                  </Text>
+                  <Text style={[styles.nextCountdown, {color: palette.muted}]}>
+                    {`Rings ${describeTimeUntil(next.at)}`}
+                  </Text>
+                </View>
+                <Text style={[styles.nextBigTime, {color: palette.text}]}>
+                  {formatAlarmTime(next.alarm.hour, next.alarm.minute, use24h)}
                 </Text>
               </View>
-              <Text style={[styles.nextBigTime, {color: palette.text}]}>
-                {formatAlarmTime(next.alarm.hour, next.alarm.minute, use24h)}
-              </Text>
-            </View>
-            <View style={styles.nextTilesRow}>
-              <View style={[styles.nextTile, {backgroundColor: labelTileBg}]}>
-                <Text style={[styles.nextTileLabel, {color: palette.accent}]}>
-                  LABEL
-                </Text>
-                <Text
-                  style={[styles.nextTileValue, {color: palette.text}]}
-                  numberOfLines={2}
+              <View style={styles.nextTilesRow}>
+                <View style={[styles.nextTile, {backgroundColor: labelTileBg}]}>
+                  <Text style={[styles.nextTileLabel, {color: palette.accent}]}>
+                    LABEL
+                  </Text>
+                  <Text
+                    style={[styles.nextTileValue, {color: palette.text}]}
+                    numberOfLines={2}
+                  >
+                    {next.alarm.label?.trim() || 'Alarm'}
+                  </Text>
+                </View>
+                <View
+                  style={[styles.nextTile, {backgroundColor: repeatTileBg}]}
                 >
-                  {next.alarm.label?.trim() || 'Alarm'}
-                </Text>
+                  <Text style={[styles.nextTileLabel, {color: repeatTileInk}]}>
+                    REPEAT
+                  </Text>
+                  <Text
+                    style={[styles.nextTileValue, {color: palette.text}]}
+                    numberOfLines={2}
+                  >
+                    {describeRepeat(next.alarm.repeatDays)}
+                  </Text>
+                </View>
               </View>
-              <View style={[styles.nextTile, {backgroundColor: repeatTileBg}]}>
-                <Text style={[styles.nextTileLabel, {color: repeatTileInk}]}>
-                  REPEAT
-                </Text>
-                <Text
-                  style={[styles.nextTileValue, {color: palette.text}]}
-                  numberOfLines={2}
-                >
-                  {describeRepeat(next.alarm.repeatDays)}
-                </Text>
-              </View>
-            </View>
-          </TouchableOpacity>
+            </TouchableOpacity>
+          </Animated.View>
         ) : (
           <View
             testID="alarms-next"
@@ -554,7 +840,9 @@ export const AlarmsView: React.FC<AlarmsViewProps> = ({
               styles.nextEmptyCard,
               {
                 backgroundColor: palette.card,
-                borderColor: palette.isDarkMode ? palette.border : 'transparent',
+                borderColor: palette.isDarkMode
+                  ? palette.border
+                  : 'transparent',
                 borderWidth: palette.isDarkMode ? 1 : 0,
               },
               !palette.isDarkMode && scheduleCardShadow,
@@ -608,12 +896,19 @@ export const AlarmsView: React.FC<AlarmsViewProps> = ({
         </View>
 
         {alarms.length === 0 ? (
-          <View style={[styles.emptyCard, cardSurfaceStyle]}>
+          <TouchableOpacity
+            activeOpacity={0.8}
+            onPress={() => {
+              setEditing(null);
+              setEditorOpen(true);
+            }}
+            style={[styles.emptyCard, cardSurfaceStyle]}
+          >
             <Text style={[styles.empty, {color: palette.muted}]}>
               No alarms yet. Tap + to add one, or ask LAFINA: “wake me up at 6
               on weekdays”.
             </Text>
-          </View>
+          </TouchableOpacity>
         ) : (
           <View
             testID="alarms-list"
@@ -621,30 +916,6 @@ export const AlarmsView: React.FC<AlarmsViewProps> = ({
           >
             {alarms.map(renderAlarmItem)}
           </View>
-        )}
-
-        <TouchableOpacity
-          testID="alarm-test-button"
-          onPress={() => void test()}
-          accessibilityRole="button"
-          accessibilityLabel="Ring a test alarm in 1 minute"
-          style={[
-            styles.testButton,
-            {
-              backgroundColor: palette.card,
-              borderColor: palette.border,
-            },
-          ]}
-        >
-          <BellRing size={15} color={palette.accent} />
-          <Text style={[styles.testText, {color: palette.text}]}>
-            Test alarm in 1 minute
-          </Text>
-        </TouchableOpacity>
-        {note && (
-          <Text style={[styles.note, {color: palette.muted}]}>
-            {note}
-          </Text>
         )}
       </ScrollView>
 
@@ -836,13 +1107,6 @@ const styles = StyleSheet.create({
     lineHeight: 20,
     textAlign: 'center',
   },
-  alarmCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: 16,
-    paddingHorizontal: 18,
-    borderRadius: 22,
-  },
   alarmsList: {
     gap: 12,
   },
@@ -852,8 +1116,42 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     rowGap: 10,
   },
-  alarmGridCard: {
+  gridItemSlot: {
     width: '48.3%',
+    position: 'relative',
+  },
+  listItemSlot: {
+    width: '100%',
+    position: 'relative',
+  },
+  arrivalHalo: {
+    position: 'absolute',
+    top: 0,
+    right: 0,
+    bottom: 0,
+    left: 0,
+    borderWidth: 2,
+  },
+  arrivalBellBadge: {
+    position: 'absolute',
+    top: -6,
+    right: -4,
+    width: 22,
+    height: 22,
+    borderRadius: 11,
+    alignItems: 'center',
+    justifyContent: 'center',
+    elevation: 4,
+  },
+  alarmCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 16,
+    paddingHorizontal: 18,
+    borderRadius: 22,
+  },
+  alarmGridCard: {
+    width: '100%',
     borderRadius: 20,
     padding: 14,
     justifyContent: 'space-between',
@@ -899,24 +1197,5 @@ const styles = StyleSheet.create({
   rowSub: {
     fontSize: 13,
     marginTop: 3,
-  },
-  testButton: {
-    minHeight: 44,
-    borderRadius: 22,
-    borderWidth: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 8,
-    marginTop: 4,
-  },
-  testText: {
-    fontSize: 13,
-    fontWeight: '600',
-  },
-  note: {
-    fontSize: 12,
-    textAlign: 'center',
-    marginTop: 2,
   },
 });

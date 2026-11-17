@@ -20,6 +20,7 @@ import {
   transcribeMeetingChunks,
 } from '../../src/ai';
 import {cloudClient, requestMeetingSummary} from '../../src/cloud';
+import {enableUstpForTest} from '../fixtures/ustpEligibility';
 
 describe('Phase 09: Online Mode, Document Generation & Meeting Transcription', () => {
   const testUserId = 'local_guest_user';
@@ -43,6 +44,8 @@ describe('Phase 09: Online Mode, Document Generation & Meeting Transcription', (
 
   describe('1. Online Mode & Cloud AI Chat Client', () => {
     it('uses POST /v1/ai/chat when Online Mode is active and attaches handbook citations', async () => {
+      enableUstpForTest(testUserId);
+      userStore.setCurrentUser(testUserId);
       const requestSpy = jest
         .spyOn(cloudClient, 'request')
         .mockResolvedValueOnce({

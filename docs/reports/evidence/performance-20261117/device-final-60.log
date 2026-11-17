@@ -1,0 +1,10 @@
+/sdcard/lafina-perf-ui.xml: 1 file pulled, 0 skipped. 9.8 MB/s (68123 bytes in 0.007s)
+
+tab        n jsCommitP50Ms jsCommitP95Ms nextAnimationFrameP95Ms
+---        - ------------- ------------- -----------------------
+dashboard 47         51.27         68.91                  125.80
+calendar  46         55.85         69.17                   90.12
+chat      46         26.02         34.68                   83.53
+notes     47         26.66         47.92                   70.05
+profile   47         29.39         41.76                   70.59
+

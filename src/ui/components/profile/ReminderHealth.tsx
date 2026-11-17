@@ -1,6 +1,8 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { AppState, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { TriangleAlert } from 'lucide-react-native';
 import { ToolSheet } from '../tools';
+import { useTheme } from '../../contexts/ThemeContext';
 import { useThemedStyles } from '../../theme/createThemedStyles';
 import type { ThemeColors } from '../../contexts/ThemeContext';
 import { Fonts, FontSize, Spacing } from '../../theme';
@@ -35,6 +37,7 @@ const access = (value: boolean | undefined): string =>
  * result for an earlier owner or an earlier open is discarded.
  */
 export const ReminderHealth: React.FC<ReminderHealthProps> = ({ userId, visible, onClose }) => {
+  const { colors } = useTheme();
   const themed = useThemedStyles(getThemedStyles);
   const [snapshot, setSnapshot] = useState<ReminderHealthSnapshot | null>(null);
   const [loading, setLoading] = useState(false);
@@ -163,7 +166,7 @@ export const ReminderHealth: React.FC<ReminderHealthProps> = ({ userId, visible,
         </Text>
       )}
 
-      <Text style={[styles.section, themed.text]}>Alarms</Text>
+      <Text style={[styles.section, themed.text]}>Alarms &amp; battery saver</Text>
       {alarmHealth?.available ? (
         <>
           {row(
@@ -172,9 +175,26 @@ export const ReminderHealth: React.FC<ReminderHealthProps> = ({ userId, visible,
             'health-battery',
           )}
           {needsBatteryGuidance(alarmHealth) && (
-            <Text testID="health-battery-guidance" style={[styles.note, themed.text]}>
-              {`On ${alarmHealth.manufacturer} phones the battery saver can stop alarms. In Battery settings, set LAFINA to "Don't optimize" or "No restrictions", and allow it to start in the background.`}
-            </Text>
+            <View
+              accessibilityRole="alert"
+              style={[
+                styles.batteryWarningCard,
+                {
+                  borderColor: colors.warning,
+                  backgroundColor: colors.cardBg,
+                },
+              ]}
+            >
+              <View style={styles.batteryWarningHeader}>
+                <TriangleAlert size={16} color={colors.warning} />
+                <Text style={[styles.batteryWarningTitle, themed.text]}>
+                  This phone’s battery saver may stop alarms
+                </Text>
+              </View>
+              <Text testID="health-battery-guidance" style={[styles.batteryWarningBody, themed.muted]}>
+                {`On ${alarmHealth.manufacturer} phones the battery saver can stop alarms. In Battery settings, set LAFINA to "Don't optimize" or "No restrictions", and allow it to start in the background.`}
+              </Text>
+            </View>
           )}
           {button('Battery settings', () => void openSettings(async () => {
             await openBatterySettings();
@@ -270,6 +290,29 @@ const styles = StyleSheet.create({
     fontFamily: Fonts.body,
     fontSize: FontSize.small,
     paddingVertical: 2,
+  },
+  batteryWarningCard: {
+    borderWidth: 1,
+    borderRadius: 12,
+    padding: Spacing.md,
+    marginTop: Spacing.sm,
+    gap: 6,
+  },
+  batteryWarningHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  batteryWarningTitle: {
+    flex: 1,
+    fontFamily: Fonts.heading,
+    fontSize: FontSize.body,
+    fontWeight: '700',
+  },
+  batteryWarningBody: {
+    fontFamily: Fonts.body,
+    fontSize: FontSize.small,
+    lineHeight: 18,
   },
 });
 

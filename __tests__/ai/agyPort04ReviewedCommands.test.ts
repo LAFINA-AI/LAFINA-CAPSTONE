@@ -47,6 +47,7 @@ import {
 } from '../../src/sync/syncEntityTypes';
 import fs from 'fs';
 import path from 'path';
+import {enableUstpForTest} from '../fixtures/ustpEligibility';
 
 const ALL_INTENTS: ParsedIntentType[] = [
   'create_task',
@@ -1179,6 +1180,7 @@ describe('AGY-PORT 04 reviewed assistant commands', () => {
 
     test('online chat and Handbook RAG are routed exactly as before, with no review', async () => {
       const userId = owner('rag');
+      enableUstpForTest(userId);
       const send = jest
         .spyOn(onlineChatSkill, 'sendChatMessage')
         .mockResolvedValue({

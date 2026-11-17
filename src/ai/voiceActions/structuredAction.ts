@@ -27,6 +27,8 @@ export interface StructuredActionArgs {
   priority?: string;
   newTitle?: string;
   details?: string;
+  location?: string;
+  category?: string;
   deliveryStyle?: string;
   /** "daily", "weekdays" or "weekly:mo,we" (new items only). */
   repeat?: string;
@@ -207,6 +209,8 @@ export const intentFromToolArguments = (
       durationMinutes: args.durationMinutes ?? null,
       priority: args.priority ?? null,
       details: args.details ?? null,
+      location: args.location ?? null,
+      category: args.category ?? null,
       ...(action === 'update_task' ||
       action === 'complete_task' ||
       action === 'reopen_task'
@@ -246,6 +250,17 @@ export const prepareStructuredReview = (
 ): PrepareResult | null => {
   const intent = intentFromToolArguments(args);
   if (!intent) return null;
+  if (
+    ['create_event', 'create_time_block', 'create_reminder'].includes(
+      args.action || '',
+    ) &&
+    !args.time
+  ) {
+    return {
+      status: 'invalid',
+      reply: 'What time should I use? Nothing was saved.',
+    };
+  }
   return prepareReviewedCommand(userId, intent, {referenceDate, surface});
 };
 
@@ -259,10 +274,23 @@ export const answerFreeTime = (
   args: {date?: string; durationMinutes?: number},
   referenceDate: Date = new Date(),
 ): string => {
+  const relative = args.date?.trim().toLowerCase();
+  const date =
+    relative === 'tomorrow'
+      ? formatLocalDate(
+          new Date(
+            referenceDate.getFullYear(),
+            referenceDate.getMonth(),
+            referenceDate.getDate() + 1,
+          ),
+        )
+      : !relative || relative === 'today'
+      ? formatLocalDate(referenceDate)
+      : args.date!.trim();
   const intent: ValidatedIntent = {
     intent: 'query_schedule',
     title: null,
-    date: args.date || formatLocalDate(referenceDate),
+    date,
     time: null,
     endTime: null,
     durationMinutes: args.durationMinutes ?? 60,
@@ -275,7 +303,17 @@ export const answerFreeTime = (
     isValid: true,
   };
   const reply = answerPlannerLookup(userId, intent, referenceDate);
-  // The on-device answer ends with a "Say …" hint meant for Chat; the agent
-  // gets only the facts.
-  return reply.replace(/\n\nSay "[\s\S]*$/, '');
+  return plainToolText(reply);
 };
+
+/**
+ * The on-device answer is written for Chat: it ends with a "Say …" hint to
+ * the student (plain or as a Markdown quote) and uses Markdown emphasis.
+ * Agent tools get only the facts, as plain text (audit M2).
+ */
+export const plainToolText = (reply: string): string =>
+  reply
+    .replace(/\n\n(?:>\s*)?Say\s[\s\S]*$/, '')
+    .replace(/\*\*([^*]+)\*\*/g, '$1')
+    .replace(/(^|\s)\*([^*\n]+)\*(?=\s|[.,;:!?]|$)/g, '$1$2')
+    .trim();

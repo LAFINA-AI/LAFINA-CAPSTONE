@@ -2,10 +2,12 @@ import React from 'react';
 import {View, Text, StyleSheet, TouchableOpacity} from 'react-native';
 import {
   BookOpen,
+  CheckCircle2,
   FileSpreadsheet,
   FileText,
   Presentation,
   Share2,
+  XCircle,
 } from 'lucide-react-native';
 import {Fonts, Shadows} from '../../theme';
 import {useTheme} from '../../contexts/ThemeContext';
@@ -48,17 +50,35 @@ const AttachmentIcon: React.FC<{format: string; color: string}> = ({
   }
 };
 
-export const ChatMessageItem: React.FC<ChatMessageItemProps> = ({
+export const ChatMessageItem = React.memo(function MessageRow({
   item,
   handbookNote,
   onOpenAttachment,
   streaming = false,
   replyFormat = 'markdown',
   onUndoMemory,
-}) => {
+}: ChatMessageItemProps) {
   const isUser = item.sender === 'user';
-  const {colors, isModern, modernPalette, modernShadows} = useTheme();
+  const {colors, isDarkMode, isModern, modernPalette, modernShadows} =
+    useTheme();
   const themed = useThemedStyles(getThemedStyles);
+  const reviewResolution = !isUser ? item.reviewResolution ?? null : null;
+  const isConfirmedReview = reviewResolution?.status === 'confirmed';
+  const isCancelledReview = reviewResolution?.status === 'cancelled';
+  const confirmedBg = isModern
+    ? modernPalette.mint
+    : isDarkMode
+    ? '#143326'
+    : '#ECFDF5';
+  const confirmedBorder = isModern
+    ? isDarkMode
+      ? '#2D6A54'
+      : '#9AD8BE'
+    : colors.success;
+  const confirmedInk = isModern ? modernPalette.mintInk : colors.success;
+  const cancelledBg = isModern ? modernPalette.surface : colors.surface;
+  const cancelledBorder = isModern ? modernPalette.border : colors.border;
+  const cancelledInk = isModern ? modernPalette.muted : colors.textSecondary;
 
   const attachment = item.attachment ?? null;
   const attachmentMeta =
@@ -109,6 +129,14 @@ export const ChatMessageItem: React.FC<ChatMessageItemProps> = ({
                     borderColor: modernPalette.border,
                   },
                 ],
+                isConfirmedReview && {
+                  backgroundColor: confirmedBg,
+                  borderColor: confirmedBorder,
+                },
+                isCancelledReview && {
+                  backgroundColor: cancelledBg,
+                  borderColor: cancelledBorder,
+                },
                 // Tables and code need the whole width of a phone to be read.
                 replyFormat === 'markdown' &&
                   hasWideMarkdownBlock(item.content) &&
@@ -117,6 +145,28 @@ export const ChatMessageItem: React.FC<ChatMessageItemProps> = ({
         ]}
         testID={`chat-bubble-${item.id}`}
       >
+        {isConfirmedReview ? (
+          <View
+            style={styles.reviewStatusHeader}
+            testID="chat-review-confirmed-badge"
+          >
+            <CheckCircle2 size={15} color={confirmedInk} />
+            <Text style={[styles.reviewStatusText, {color: confirmedInk}]}>
+              Confirmed · Saved
+            </Text>
+          </View>
+        ) : isCancelledReview ? (
+          <View
+            style={styles.reviewStatusHeader}
+            testID="chat-review-cancelled-badge"
+          >
+            <XCircle size={15} color={cancelledInk} />
+            <Text style={[styles.reviewStatusText, {color: cancelledInk}]}>
+              Cancelled · Not saved
+            </Text>
+          </View>
+        ) : null}
+
         {isUser ? (
           <Text
             style={[styles.messageText, styles.userText]}
@@ -142,6 +192,29 @@ export const ChatMessageItem: React.FC<ChatMessageItemProps> = ({
             }
           />
         )}
+
+        {reviewResolution?.summary ? (
+          <View
+            style={[
+              styles.reviewSummaryBox,
+              {
+                borderTopColor: isConfirmedReview
+                  ? confirmedBorder
+                  : cancelledBorder,
+              },
+            ]}
+            testID="chat-review-resolution-summary"
+          >
+            <Text
+              style={[
+                styles.reviewSummaryText,
+                {color: isConfirmedReview ? confirmedInk : cancelledInk},
+              ]}
+            >
+              {reviewResolution.summary}
+            </Text>
+          </View>
+        ) : null}
 
         {attachment && (
           <TouchableOpacity
@@ -238,7 +311,7 @@ export const ChatMessageItem: React.FC<ChatMessageItemProps> = ({
       </View>
     </View>
   );
-};
+});
 
 const styles = StyleSheet.create({
   messageRow: {
@@ -270,9 +343,32 @@ const styles = StyleSheet.create({
   },
   modernAssistantBubble: {
     borderBottomLeftRadius: 6,
-    paddingHorizontal: 15,
-    paddingTop: 12,
-    paddingBottom: 9,
+    paddingHorizontal: 16,
+    paddingTop: 13,
+    paddingBottom: 10,
+  },
+  reviewStatusHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginBottom: 8,
+  },
+  reviewStatusText: {
+    fontFamily: Fonts.heading,
+    fontSize: 12.5,
+    fontWeight: '700',
+    letterSpacing: 0.2,
+  },
+  reviewSummaryBox: {
+    marginTop: 10,
+    paddingTop: 8,
+    borderTopWidth: StyleSheet.hairlineWidth,
+  },
+  reviewSummaryText: {
+    fontFamily: Fonts.heading,
+    fontSize: 12.5,
+    fontWeight: '600',
+    lineHeight: 18,
   },
   wideBubble: {
     width: '100%',
@@ -281,7 +377,7 @@ const styles = StyleSheet.create({
   messageText: {
     fontFamily: Fonts.body,
     fontSize: 14.5,
-    lineHeight: 21,
+    lineHeight: 22,
   },
   userText: {
     color: '#FFFFFF',

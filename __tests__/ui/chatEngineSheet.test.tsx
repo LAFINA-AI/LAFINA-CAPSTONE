@@ -111,6 +111,7 @@ describe('ChatEngineSheet Phone Spec AI Recommendation', () => {
     Platform.OS = 'android';
     NativeModules.LafinaIntentExtractor = {
       unloadModel: jest.fn(async () => true),
+      isEngineAvailable: jest.fn(async () => true),
       getDeviceSpecs: jest.fn(async () => ({
         totalRamBytes: 7_900_000_000,
         availableRamBytes: 3_200_000_000,
@@ -190,6 +191,7 @@ describe('ChatEngineSheet Phone Spec AI Recommendation', () => {
     Platform.OS = 'android';
     NativeModules.LafinaIntentExtractor = {
       unloadModel: jest.fn(async () => true),
+      isEngineAvailable: jest.fn(async () => true),
       getDeviceSpecs: jest.fn(async () => ({
         totalRamBytes: 3_900_000_000,
         availableRamBytes: 1_500_000_000,

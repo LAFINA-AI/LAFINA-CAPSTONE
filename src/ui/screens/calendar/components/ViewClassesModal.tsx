@@ -26,11 +26,8 @@ import {
   X,
 } from 'lucide-react-native';
 import {useTheme} from '../../../contexts/ThemeContext';
-import {
-  academicProfileStore,
-  timeBlocksStore,
-  type AcademicProfileRecord,
-} from '../../../../storage';
+import {timeBlocksStore, type AcademicProfileRecord} from '../../../../storage';
+import {getConfirmedAcademicProfile} from '../../../../storage/ustpEligibility';
 import {
   dateToTimeString,
   formatTimeForDisplay,
@@ -78,13 +75,9 @@ export const ViewClassesModal: React.FC<ViewClassesModalProps> = ({
   const palette = useSchedulePalette();
 
   const [profile, setProfile] = useState<AcademicProfileRecord | null>(null);
-  const [rawBlocks, setRawBlocks] = useState(() => {
-    try {
-      return timeBlocksStore.getAll(userId);
-    } catch {
-      return [];
-    }
-  });
+  const [rawBlocks, setRawBlocks] = useState<
+    ReturnType<typeof timeBlocksStore.getAll>
+  >([]);
   const [search, setSearch] = useState('');
   const [editingGroup, setEditingGroup] = useState<GroupedClassSchedule | null>(
     null,
@@ -108,7 +101,7 @@ export const ViewClassesModal: React.FC<ViewClassesModalProps> = ({
   useEffect(() => {
     if (!visible) return;
     try {
-      setProfile(academicProfileStore.get(userId));
+      setProfile(getConfirmedAcademicProfile(userId));
     } catch {
       setProfile(null);
     }
@@ -235,7 +228,9 @@ export const ViewClassesModal: React.FC<ViewClassesModalProps> = ({
     const slotCount = group.blocks.length;
     Alert.alert(
       'Remove Class',
-      `Remove "${group.displayTitle}" (${group.daysLabel}, ${slotCount} weekly slot${
+      `Remove "${group.displayTitle}" (${
+        group.daysLabel
+      }, ${slotCount} weekly slot${
         slotCount === 1 ? '' : 's'
       }) from your schedule?`,
       [
@@ -381,10 +376,7 @@ export const ViewClassesModal: React.FC<ViewClassesModalProps> = ({
                 accessibilityLabel={
                   isEditing ? 'Cancel editing class' : 'Close my classes'
                 }
-                style={[
-                  styles.closeBtn,
-                  {backgroundColor: palette.surface},
-                ]}
+                style={[styles.closeBtn, {backgroundColor: palette.surface}]}
               >
                 <X size={18} color={palette.muted} />
               </TouchableOpacity>
@@ -775,7 +767,10 @@ export const ViewClassesModal: React.FC<ViewClassesModalProps> = ({
                 </TouchableOpacity>
                 <TouchableOpacity
                   testID="view-class-edit-save"
-                  style={[styles.editSaveBtn, {backgroundColor: palette.accent}]}
+                  style={[
+                    styles.editSaveBtn,
+                    {backgroundColor: palette.accent},
+                  ]}
                   onPress={handleSaveEdit}
                 >
                   <Text style={styles.editSaveText}>Save Changes</Text>
@@ -974,7 +969,9 @@ export const ViewClassesModal: React.FC<ViewClassesModalProps> = ({
                         </View>
                       </View>
 
-                      <Text style={[styles.subjectTitle, {color: palette.text}]}>
+                      <Text
+                        style={[styles.subjectTitle, {color: palette.text}]}
+                      >
                         {group.subjectTitle}
                       </Text>
 

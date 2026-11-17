@@ -1,5 +1,6 @@
 import { NativeModules, Platform } from 'react-native';
 import RNFS from 'react-native-fs';
+import { DEVICE_SETTINGS_SCOPE } from '../../storage/deviceScope';
 import { localSettingsStore } from '../../storage/localSettingsStore';
 import type {
   DownloadableOfflineModelId,
@@ -11,7 +12,9 @@ import type {
 } from './types';
 
 export const SETTING_KEY_OFFLINE_AI_MODEL = 'offline_ai_model_id';
-const DEVICE_SETTINGS_OWNER = '__device__';
+const DEVICE_SETTINGS_OWNER = DEVICE_SETTINGS_SCOPE;
+/** Where earlier builds of this branch kept the device-wide model choice. */
+const LEGACY_DEVICE_SETTINGS_OWNER = '__device__';
 const DEFAULT_SELECTED_MODEL_ID: OfflineModelId = 'qwen2.5-0.5b';
 
 export const QWEN_MODEL_INFO = {
@@ -90,9 +93,81 @@ export const OFFLINE_MODEL_CATALOG: readonly OfflineModelPreset[] = [
   },
 ];
 
-let currentDownloadJobId: number | null = null;
 let selectedModelIdCache: OfflineModelId = DEFAULT_SELECTED_MODEL_ID;
 let lastPersistFailed = false;
+
+export const OFFLINE_ENGINE_UNAVAILABLE_MESSAGE =
+  'On-device AI models need the llama engine, which is not included in this build of LAFINA. The built-in Fast-Path parser handles offline commands.';
+
+/**
+ * Whether this native build can run a downloaded GGUF model (audit H4). The
+ * `lafina_llama` JNI library is optional; without it every "model" answer
+ * would really be the Kotlin regex fallback. Older native builds that lack
+ * `isEngineAvailable` are treated as having no engine.
+ */
+export async function isOfflineModelEngineAvailable(): Promise<boolean> {
+  if (Platform.OS !== 'android') {
+    return false;
+  }
+  const extractor = NativeModules.LafinaIntentExtractor;
+  if (!extractor || typeof extractor.isEngineAvailable !== 'function') {
+    return false;
+  }
+  try {
+    return (await extractor.isEngineAvailable()) === true;
+  } catch {
+    return false;
+  }
+}
+
+/** The one model download that may run at a time, shared by every screen. */
+export interface ActiveModelDownload {
+  modelId: DownloadableOfflineModelId;
+  progress: ModelDownloadProgress;
+}
+
+interface DownloadJob extends ActiveModelDownload {
+  jobId: number | null;
+  cancelled: boolean;
+  tempPath: string;
+}
+
+let activeDownload: DownloadJob | null = null;
+const downloadListeners = new Set<
+  (download: ActiveModelDownload | null) => void
+>();
+
+function publishDownload(): void {
+  const snapshot = getActiveModelDownload();
+  for (const listener of downloadListeners) {
+    try {
+      listener(snapshot);
+    } catch {
+      // A screen's listener must never break the download.
+    }
+  }
+}
+
+export function getActiveModelDownload(): ActiveModelDownload | null {
+  return activeDownload
+    ? {modelId: activeDownload.modelId, progress: {...activeDownload.progress}}
+    : null;
+}
+
+/** Follows the shared download so a screen reopened mid-download shows it. */
+export function subscribeModelDownload(
+  listener: (download: ActiveModelDownload | null) => void,
+): () => void {
+  downloadListeners.add(listener);
+  return () => {
+    downloadListeners.delete(listener);
+  };
+}
+
+/** Free space needed for a download: the file plus 15 % and 40 MB of headroom. */
+export function requiredFreeBytesFor(approximateSizeBytes: number): number {
+  return Math.round(approximateSizeBytes * 1.15) + 40_000_000;
+}
 
 export interface ActiveOfflineModelConfig {
   modelId: DownloadableOfflineModelId;
@@ -143,11 +218,17 @@ export function getSelectedOfflineModelId(userId?: string): OfflineModelId {
         return userStored;
       }
     }
-    const deviceStored = localSettingsStore.get(
-      DEVICE_SETTINGS_OWNER,
-      SETTING_KEY_OFFLINE_AI_MODEL,
-      null,
-    );
+    const deviceStored =
+      localSettingsStore.get(
+        DEVICE_SETTINGS_OWNER,
+        SETTING_KEY_OFFLINE_AI_MODEL,
+        null,
+      ) ??
+      localSettingsStore.get(
+        LEGACY_DEVICE_SETTINGS_OWNER,
+        SETTING_KEY_OFFLINE_AI_MODEL,
+        null,
+      );
     if (isValidOfflineModelId(deviceStored)) {
       selectedModelIdCache = deviceStored;
       lastPersistFailed = false;
@@ -321,6 +402,9 @@ export async function getActiveOfflineModelReadyConfig(
   if (selectedId === 'fast_path_only') {
     return null;
   }
+  if (!(await isOfflineModelEngineAvailable())) {
+    return null;
+  }
   const ready = await isModelReadyById(selectedId);
   if (!ready) {
     return null;
@@ -349,20 +433,96 @@ export async function downloadOfflineModel(
   if (!preset.url || !preset.filename) {
     throw new Error(`Model ${modelId} is built-in and does not require downloading.`);
   }
-
-  const dir = getModelsDirectory();
-  const dirExists = await RNFS.exists(dir);
-  if (!dirExists) {
-    await RNFS.mkdir(dir);
+  // Never download hundreds of MB that this build cannot load (audit H4).
+  if (!(await isOfflineModelEngineAvailable())) {
+    throw new Error(OFFLINE_ENGINE_UNAVAILABLE_MESSAGE);
+  }
+  // One download at a time across every screen (audit M3).
+  if (activeDownload) {
+    throw new Error(
+      `${getOfflineModelPreset(activeDownload.modelId).name} is already downloading. Wait for it to finish or cancel it first.`,
+    );
   }
 
   const destinationPath = getModelPathForId(modelId);
   const tempPath = `${destinationPath}.tmp`;
+  const job: DownloadJob = {
+    modelId,
+    jobId: null,
+    cancelled: false,
+    tempPath,
+    progress: {
+      bytesWritten: 0,
+      contentLength: preset.approximateSizeBytes,
+      percent: 0,
+      status: 'downloading',
+    },
+  };
+  // Claimed before the first await so a second tap cannot start a twin.
+  activeDownload = job;
 
-  // Clean up any stale temp file
-  if (await RNFS.exists(tempPath)) {
+  const report = (progress: ModelDownloadProgress): void => {
+    job.progress = progress;
+    if (activeDownload === job) {
+      publishDownload();
+    }
+    onProgress?.(progress);
+  };
+  const fail = async (message: string): Promise<never> => {
+    if (activeDownload === job) {
+      activeDownload = null;
+    }
     await RNFS.unlink(tempPath).catch(() => {});
+    report({
+      bytesWritten: 0,
+      contentLength: 0,
+      percent: 0,
+      status: 'error',
+      error: message,
+    });
+    publishDownload();
+    throw new Error(message);
+  };
+
+  try {
+    const dir = getModelsDirectory();
+    if (!(await RNFS.exists(dir))) {
+      await RNFS.mkdir(dir);
+    }
+
+    // Free-space check at download time, not only the advisory tier.
+    if (typeof RNFS.getFSInfo === 'function') {
+      try {
+        const info = await RNFS.getFSInfo();
+        const needed = requiredFreeBytesFor(preset.approximateSizeBytes);
+        if (Number(info.freeSpace) > 0 && Number(info.freeSpace) < needed) {
+          const neededMb = Math.ceil(needed / (1024 * 1024));
+          return await fail(
+            `Not enough free storage for ${preset.name}. About ${neededMb} MB is needed.`,
+          );
+        }
+      } catch (error) {
+        if (error instanceof Error && /Not enough free storage/.test(error.message)) {
+          throw error;
+        }
+        // Storage info unavailable: the size check after download still applies.
+      }
+    }
+
+    // Clean up a stale temp file for this model only.
+    if (await RNFS.exists(tempPath)) {
+      await RNFS.unlink(tempPath).catch(() => {});
+    }
+  } catch (error) {
+    if (activeDownload === job) {
+      activeDownload = null;
+      publishDownload();
+    }
+    throw error;
   }
+
+  publishDownload();
+  let expectedBytes = 0;
 
   return new Promise((resolve, reject) => {
     const download = RNFS.downloadFile({
@@ -370,11 +530,19 @@ export async function downloadOfflineModel(
       toFile: tempPath,
       progressInterval: 250,
       progressDivider: 1,
+      begin: (res: { contentLength?: number }) => {
+        if (Number(res?.contentLength) > 0) {
+          expectedBytes = Number(res.contentLength);
+        }
+      },
       progress: (res) => {
+        if (res.contentLength > 0) {
+          expectedBytes = res.contentLength;
+        }
         const total =
           res.contentLength > 0 ? res.contentLength : preset.approximateSizeBytes;
         const percent = Math.min(100, Math.round((res.bytesWritten / total) * 100));
-        onProgress?.({
+        report({
           bytesWritten: res.bytesWritten,
           contentLength: total,
           percent,
@@ -383,51 +551,73 @@ export async function downloadOfflineModel(
       },
     });
 
-    currentDownloadJobId = download.jobId;
+    job.jobId = download.jobId;
 
     download.promise
       .then(async (result) => {
-        currentDownloadJobId = null;
-        if (result.statusCode === 200 || result.statusCode === 206) {
-          // Rename temp file to final destination
-          if (await RNFS.exists(destinationPath)) {
-            await RNFS.unlink(destinationPath).catch(() => {});
-          }
-          await RNFS.moveFile(tempPath, destinationPath);
-          setSelectedOfflineModelId(modelId, userId);
-          onProgress?.({
-            bytesWritten: preset.approximateSizeBytes,
-            contentLength: preset.approximateSizeBytes,
-            percent: 100,
-            status: 'ready',
-          });
-          resolve(destinationPath);
-        } else {
+        if (job.cancelled) {
+          if (activeDownload === job) activeDownload = null;
           await RNFS.unlink(tempPath).catch(() => {});
-          const errorMsg = `Download failed with HTTP status ${result.statusCode}`;
-          onProgress?.({
-            bytesWritten: 0,
-            contentLength: 0,
-            percent: 0,
-            status: 'error',
-            error: errorMsg,
-          });
-          reject(new Error(errorMsg));
+          publishDownload();
+          reject(new Error('Download cancelled.'));
+          return;
         }
+        if (result.statusCode !== 200 && result.statusCode !== 206) {
+          await fail(`Download failed with HTTP status ${result.statusCode}`);
+          return;
+        }
+        // Integrity: the file must be complete, not merely "big enough"
+        // (audit M3). The server's Content-Length is the reference.
+        let size = 0;
+        try {
+          size = Number((await RNFS.stat(tempPath)).size);
+        } catch {
+          size = 0;
+        }
+        if (expectedBytes > 0 && size !== expectedBytes) {
+          await fail(
+            `The ${preset.name} download was incomplete (${size} of ${expectedBytes} bytes). Please try again.`,
+          );
+          return;
+        }
+        if (size <= preset.minValidSizeBytes) {
+          await fail(`The ${preset.name} download is too small to be a valid model.`);
+          return;
+        }
+        if (await RNFS.exists(destinationPath)) {
+          await RNFS.unlink(destinationPath).catch(() => {});
+        }
+        await RNFS.moveFile(tempPath, destinationPath);
+        if (activeDownload === job) activeDownload = null;
+        // Selected for the student who started it, unless they cancelled.
+        if (!job.cancelled) {
+          setSelectedOfflineModelId(modelId, userId);
+        }
+        report({
+          bytesWritten: size,
+          contentLength: size,
+          percent: 100,
+          status: 'ready',
+        });
+        publishDownload();
+        resolve(destinationPath);
       })
       .catch(async (err) => {
-        currentDownloadJobId = null;
-        await RNFS.unlink(tempPath).catch(() => {});
+        if (job.cancelled) {
+          if (activeDownload === job) activeDownload = null;
+          await RNFS.unlink(tempPath).catch(() => {});
+          publishDownload();
+          reject(new Error('Download cancelled.'));
+          return;
+        }
         const errorMessage = err instanceof Error ? err.message : String(err);
-        onProgress?.({
-          bytesWritten: 0,
-          contentLength: 0,
-          percent: 0,
-          status: 'error',
-          error: errorMessage,
-        });
-        reject(err);
-      });
+        try {
+          await fail(errorMessage);
+        } catch (failure) {
+          reject(failure);
+        }
+      })
+      .catch(reject);
   });
 }
 
@@ -438,19 +628,28 @@ export async function downloadQwenModel(
   return downloadOfflineModel('qwen2.5-0.5b', onProgress);
 }
 
-/** Cancels an ongoing model download and cleans up partial temp files. */
+/**
+ * Cancels the active model download and removes only its own partial file
+ * (audit M3: it used to delete every preset's temp file).
+ */
 export async function cancelModelDownload(): Promise<void> {
-  if (currentDownloadJobId !== null) {
-    RNFS.stopDownload(currentDownloadJobId);
-    currentDownloadJobId = null;
+  const job = activeDownload;
+  if (!job) {
+    return;
   }
-  for (const preset of OFFLINE_MODEL_CATALOG) {
-    if (!preset.filename) continue;
-    const tempPath = `${getModelPathForId(preset.id)}.tmp`;
-    if (await RNFS.exists(tempPath)) {
-      await RNFS.unlink(tempPath).catch(() => {});
+  job.cancelled = true;
+  activeDownload = null;
+  if (job.jobId !== null) {
+    try {
+      RNFS.stopDownload(job.jobId);
+    } catch {
+      // Already finished.
     }
   }
+  if (await RNFS.exists(job.tempPath)) {
+    await RNFS.unlink(job.tempPath).catch(() => {});
+  }
+  publishDownload();
 }
 
 /** Deletes a downloaded curated model file from storage to free up space. */

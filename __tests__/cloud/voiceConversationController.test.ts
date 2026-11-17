@@ -212,6 +212,56 @@ const setup = (
   return {controller, calls, clock, emit, message, listeners, deps};
 };
 
+it.each(['interruption', 'new_turn', 'stop'])(
+  'invalidates an in-flight tool on %s without ending the call',
+  async action => {
+    const {controller, deps, message, calls} = setup();
+    const result = deferred<string>();
+    let current: (() => boolean) | undefined;
+    deps.onClientTool = async (_name, _args, isCurrent) => {
+      current = isCurrent;
+      return result.promise;
+    };
+    await controller.start();
+    message({
+      type: 'user_transcript',
+      user_transcription_event: {
+        user_transcript: 'Add capstone meeting',
+        event_id: 901,
+      },
+    });
+    message({
+      type: 'client_tool_call',
+      client_tool_call: {
+        tool_name: 'prepare_lafina_action',
+        tool_call_id: 'pending-tool',
+        parameters: {},
+      },
+    });
+    expect(current?.()).toBe(true);
+    if (action === 'interruption') message({type: 'interruption'});
+    else if (action === 'stop') controller.stopResponse();
+    else
+      message({
+        type: 'user_transcript',
+        user_transcription_event: {
+          user_transcript: 'cancel that',
+          event_id: 902,
+        },
+      });
+    expect(current?.()).toBe(false);
+    result.resolve('stale success');
+    await flush();
+    const sent = calls.sent
+      .map(frame => JSON.parse(frame))
+      .find(frame => frame.tool_call_id === 'pending-tool');
+    expect(sent).toMatchObject({is_error: true});
+    expect(sent.result).not.toContain('stale success');
+    expect(controller.isActive()).toBe(true);
+    controller.dispose();
+  },
+);
+
 const userFinal = (text: string, eventId = 1) => ({
   type: 'user_transcript',
   user_transcription_event: {user_transcript: text, event_id: eventId},
@@ -338,7 +388,9 @@ it('describes the answered reminder as start-of-call context that is not re-anno
   expect(text).toContain('"Review math at 10"');
   expect(text).toMatch(/do not announce or repeat it/);
   expect(reminderCallContext('   ')).toBe('');
-  expect(reminderCallContext('x'.repeat(500))).toContain(`"${'x'.repeat(300)}"`);
+  expect(reminderCallContext('x'.repeat(500))).toContain(
+    `"${'x'.repeat(300)}"`,
+  );
 });
 
 it('sends no mid-call message for the reminder: nothing a user turn or contextual update', async () => {
@@ -993,6 +1045,8 @@ describe('provider error humanization and close status checks', () => {
     await flush();
 
     expect(calls.status).toBe(1);
-    expect(controller.getSnapshot().notice).toBe('Answers are paused right now.');
+    expect(controller.getSnapshot().notice).toBe(
+      'Answers are paused right now.',
+    );
   });
 });

@@ -1,478 +1,674 @@
-import React, { useState } from 'react';
-import {
-  View,
-  StyleSheet,
-  ScrollView,
-  StatusBar,
-  Text,
-  TouchableOpacity,
-} from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import {Layout, ModernLayout} from '../theme';
-import {
-  userStore,
-  behaviorStore,
-  preferencesStore,
-  academicProfileStore,
-  mapCorCoursesToAcademicRecords,
-} from '../../storage';
-import type {
-  StudyPeakHour,
-  SnoozeTendency,
-  WeeklyClassCount,
-  LongestClassGap,
-} from '../../storage';
-import { useTheme } from '../contexts/ThemeContext';
-import { useThemedStyles } from '../theme/createThemedStyles';
-import type { ThemeColors } from '../contexts/ThemeContext';
-import { OnboardingProgress } from '../components/onboarding/OnboardingProgress';
-import { OnboardingStep } from '../components/onboarding/OnboardingStep';
-import { OnboardingNavigation } from '../components/onboarding/OnboardingNavigation';
-import { chatMemoryStore } from '../../storage/chatMemoryStore';
+import React, {useCallback, useEffect, useRef, useState} from 'react';
+import {BackHandler, StatusBar, StyleSheet, Text, View} from 'react-native';
+import {behaviorStore, preferencesStore, userStore} from '../../storage';
+import type {StudyPeakHour} from '../../storage';
+import {useTheme} from '../contexts/ThemeContext';
+import {chatMemoryStore} from '../../storage/chatMemoryStore';
 import {
   readOnboardingIdentity,
-  saveOnboardingMemories,
+  syncOnboardingMemories,
 } from '../../storage/onboardingMemory';
-import type { ConversationTone } from '../../storage/onboardingMemory';
-import { visionService } from '../../ai/vision/visionService';
-import type { ParsedUstpCorResult } from '../../ai/vision/ustpCorParser';
-import type { ParsedScheduleResult } from '../../ai/vision/scheduleParser';
+import {studentSetupStore} from '../../storage/studentSetupStore';
+import type {
+  ExplicitPreference,
+  MainGoal,
+  MemoryChoices,
+  ResponseStyle,
+  StudentSetupState,
+} from '../../storage/studentSetupStore';
+import {
+  emptyAnswers,
+  onboardingProgressStore,
+} from '../../storage/onboardingProgressStore';
+import type {
+  OnboardingAnswers,
+  OnboardingStage,
+} from '../../storage/onboardingProgressStore';
+import {
+  getConfirmedAcademicProfile,
+  getUstpEligibility,
+} from '../../storage/ustpEligibility';
+import {chooseNotUstpMode, chooseUstpMode} from '../../storage/studentMode';
+import {IntroPager} from './onboarding/IntroPager';
+import {CorReviewFlow} from './onboarding/CorReviewFlow';
+import {OfflineModelStep} from './onboarding/OfflineModelStep';
+import {PermissionsStep} from './onboarding/PermissionsStep';
+import {
+  getOfflineModelPreset,
+  getSelectedOfflineModelId,
+  isModelReadyById,
+} from '../../ai/nlu';
+import {useSharedModelDownload} from '../hooks/useOfflineModels';
+import {
+  Card,
+  CheckRow,
+  ChoiceButton,
+  Field,
+  Notice,
+  OnboardingPage,
+  SecondaryButton,
+  SlimRow,
+  Tag,
+  TagRow,
+  onboardingStyles,
+  useOnboardingTokens,
+} from './onboarding/onboardingUi';
+
+/**
+ * Simplified USTP-first onboarding:
+ *   1. Choose your offline AI model (with device recommendation; downloads in background)
+ *   2. Add & review your USTP COR (all on 1 screen, or defer / choose scheduling-only)
+ *   3. Enable alerts & voice permissions (notifications, alarms, full-screen calls, mic)
+ *   4. Optional quick preferences (name, tone, reminder lead time, memory) → Done
+ *
+ * Every answer is saved as the student goes so Back, restarts and
+ * interruptions preserve progress.
+ */
+export interface OnboardingCompletion {
+  startTour: boolean;
+  goal: MainGoal | null;
+}
 
 interface OnboardingScreenProps {
   userId: string;
-  onOnboardingComplete: () => void;
+  onOnboardingComplete: (completion?: OnboardingCompletion) => void;
+  /** Present when setup is replayed from Profile. */
   onCancel?: () => void;
 }
+
+type Page = 'ai' | 'cor' | 'permissions' | 'finish';
+const PAGES: Page[] = ['ai', 'cor', 'permissions', 'finish'];
+const FLEXIBLE = 'flexible';
+const LEAD_OPTIONS = [5, 10, 15, 30, 60];
+
+/** Replaying setup starts from what the student chose before (never from defaults). */
+const answersFromSaved = (
+  userId: string,
+  setup: StudentSetupState,
+): OnboardingAnswers => {
+  const prefs = preferencesStore.get(userId);
+  const explicit = new Set(setup.explicit);
+  const identity = readOnboardingIdentity(userId);
+  return {
+    name: setup.preferredName || identity.preferredName,
+    tone: setup.tone ?? (identity.tone || null),
+    goal: setup.goal,
+    wake: explicit.has('routine') ? prefs.wakeTime : null,
+    sleep: explicit.has('routine') ? prefs.sleepTime : null,
+    study: explicit.has('study')
+      ? prefs.studyPeakHours.length
+        ? prefs.studyPeakHours
+        : [FLEXIBLE]
+      : null,
+    response: setup.responseStyle,
+    lead: explicit.has('lead') ? prefs.reminderLeadMinutes : null,
+  };
+};
 
 export const OnboardingScreen: React.FC<OnboardingScreenProps> = ({
   userId,
   onOnboardingComplete,
   onCancel,
 }) => {
-  const [step, setStep] = useState(1);
-  const [saveError, setSaveError] = useState<string | null>(null);
-  const totalSteps = 6;
-  const [existing] = useState(() => preferencesStore.get(userId));
-  const [existingAcademicProfile] = useState(() => academicProfileStore.get(userId));
-  const [identity] = useState(() => readOnboardingIdentity(userId));
-  const [preferredName, setPreferredName] = useState(
-    identity.preferredName || existingAcademicProfile?.preferredName || '',
-  );
-  const [tone, setTone] = useState<ConversationTone>(identity.tone);
-  const [memoryEnabled] = useState(() => chatMemoryStore.isEnabled(userId));
-
-  const [isUstpStudent, setIsUstpStudent] = useState<boolean | null>(
-    existingAcademicProfile ? existingAcademicProfile.isUstpStudent : null,
-  );
-  const [parsedCor, setParsedCor] = useState<ParsedUstpCorResult | null>(null);
-  const [corFileName, setCorFileName] = useState<string | null>(null);
-  const [scannedSchedule, setScannedSchedule] = useState<ParsedScheduleResult | null>(
-    null,
-  );
-  const [scheduleFileName, setScheduleFileName] = useState<string | null>(null);
-  const [isScanningDocument, setIsScanningDocument] = useState(false);
-  const [scanStatusMessage, setScanStatusMessage] = useState<string | null>(null);
-
-  const [wakeTime, setWakeTime] = useState(existing.wakeTime);
-  const [sleepTime, setSleepTime] = useState(existing.sleepTime);
-  const [studyPeak, setStudyPeak] = useState<StudyPeakHour[]>(
-    onCancel ? existing.studyPeakHours : [],
-  );
-  const [busiestDay, setBusiestDay] = useState(existing.busiestDay);
-  const [reminderLead, setReminderLead] = useState(String(existing.reminderLeadMinutes));
-  const [snoozeTendency, setSnoozeTendency] = useState<SnoozeTendency>(
-    existing.snoozeTendency,
-  );
-  const [classCount, setClassCount] = useState<WeeklyClassCount>(
-    existing.weeklyClassCount,
-  );
-  const [longestGap, setLongestGap] = useState<LongestClassGap>(existing.longestClassGap);
-
-  const {colors, isModern, modernPalette, modernShadows} = useTheme();
-  const themed = useThemedStyles(getOnboardThemedStyles);
-
-  const toggleStudyPeak = (value: StudyPeakHour) => {
-    if (studyPeak.includes(value)) {
-      setStudyPeak(studyPeak.filter((p) => p !== value));
-    } else {
-      setStudyPeak([...studyPeak, value]);
+  const {colors} = useTheme();
+  const t = useOnboardingTokens();
+  const [initial] = useState(() => {
+    const saved = onboardingProgressStore.get(userId);
+    const setup = studentSetupStore.get(userId);
+    if (saved) {
+      return {
+        stage: saved.stage,
+        page: Math.min(Math.max(saved.page, 0), PAGES.length - 1),
+        answers: saved.answers,
+      };
     }
-  };
+    return {
+      stage: (onCancel || onboardingProgressStore.introSeen()
+        ? 'details'
+        : 'intro') as OnboardingStage,
+      page: 0,
+      answers: onCancel ? answersFromSaved(userId, setup) : emptyAnswers(),
+    };
+  });
+  const [stage, setStage] = useState<OnboardingStage>(initial.stage);
+  const [page, setPage] = useState(
+    Math.min(Math.max(initial.page, 0), PAGES.length - 1),
+  );
+  const [answers, setAnswers] = useState<OnboardingAnswers>(initial.answers);
+  const [setup, setSetup] = useState<StudentSetupState>(() =>
+    studentSetupStore.get(userId),
+  );
+  const [corOpen, setCorOpen] = useState(false);
+  const [memoryOn, setMemoryOn] = useState(() =>
+    chatMemoryStore.isEnabled(userId),
+  );
+  const [choices] = useState<MemoryChoices>(
+    () => studentSetupStore.get(userId).memory,
+  );
+  const [error, setError] = useState<string | null>(null);
+  const [notice, setNotice] = useState<string | null>(null);
+  const sharedDownload = useSharedModelDownload();
+  const [activeModelReady, setActiveModelReady] = useState(false);
+  const saving = useRef(false);
 
-  const handleSelectUstpStudent = (value: boolean) => {
-    setIsUstpStudent(value);
-    setScanStatusMessage(null);
-  };
+  const schoolOn = getUstpEligibility(userId).eligible;
+  const notUstp = setup.affiliation === 'not_ustp';
+  const selectedModelId = getSelectedOfflineModelId(userId);
 
-  const handleAttachUstpCor = async () => {
-    if (isScanningDocument) return;
-    try {
-      const picked = await visionService.pickCorDocument();
-      if (!picked) return;
-
-      setIsScanningDocument(true);
-      setScanStatusMessage(null);
-
-      const cor = await visionService.scanUstpCorFromUri(picked.uri);
-      if (
-        !cor ||
-        (cor.courses.length === 0 &&
-          !cor.profile.studentNo &&
-          !cor.profile.fullName)
-      ) {
-        setScanStatusMessage(
-          'Could not recognize USTP COR details in that file. Please try a clearer COR PDF or screenshot.',
-        );
-        return;
-      }
-
-      setParsedCor(cor);
-      setCorFileName(picked.fileName || 'USTP COR');
-      if (cor.profile.preferredName && (!preferredName || preferredName === identity.preferredName)) {
-        setPreferredName(cor.profile.preferredName);
-      }
-      setBusiestDay(cor.recommendedPreferences.busiestDay);
-      setClassCount(cor.recommendedPreferences.weeklyClassCount);
-      setLongestGap(cor.recommendedPreferences.longestClassGap);
-    } catch (error) {
-      console.error('[OnboardingScreen] Failed scanning USTP COR:', error);
-      setScanStatusMessage('Failed to read COR document. Please try again.');
-    } finally {
-      setIsScanningDocument(false);
-    }
-  };
-
-  const handleClearUstpCor = () => {
-    setParsedCor(null);
-    setCorFileName(null);
-    setScanStatusMessage(null);
-  };
-
-  const runScheduleScan = async (
-    uri: string,
-    fileName?: string,
-  ): Promise<void> => {
-    setIsScanningDocument(true);
-    setScanStatusMessage(null);
-    try {
-      const result = await visionService.scanScheduleFromUri(uri);
-      if (!result || result.classes.length === 0) {
-        setScanStatusMessage(
-          'No clear class schedule was found in that image. You can try another photo or add classes manually later.',
-        );
-        return;
-      }
-      setScannedSchedule(result);
-      setScheduleFileName(fileName || 'Schedule Image');
-      const count = result.classes.length;
-      setClassCount(count <= 3 ? '1-3' : count <= 6 ? '4-6' : '7+');
-    } catch (error) {
-      console.error('[OnboardingScreen] Failed scanning schedule image:', error);
-      setScanStatusMessage('Failed to scan schedule image. Please try again.');
-    } finally {
-      setIsScanningDocument(false);
-    }
-  };
-
-  const handleScanScheduleGallery = async () => {
-    if (isScanningDocument) return;
-    const photo = await visionService.pickImageFromGallery();
-    if (!photo) return;
-    await runScheduleScan(photo.uri, photo.fileName);
-  };
-
-  const handleScanScheduleCamera = async () => {
-    if (isScanningDocument) return;
-    const photo = await visionService.takePhoto();
-    if (!photo) return;
-    await runScheduleScan(photo.uri, photo.fileName || 'Camera Capture');
-  };
-
-  const handleClearScannedSchedule = () => {
-    setScannedSchedule(null);
-    setScheduleFileName(null);
-    setScanStatusMessage(null);
-  };
-
-  const handleNext = () => {
-    if (step < totalSteps) {
-      setStep(step + 1);
-    } else {
-      completeOnboarding();
-    }
-  };
-
-  const handleBack = () => {
-    if (step > 1) {
-      setStep(step - 1);
-    }
-  };
-
-  const completeOnboarding = () => {
-    try {
-      setSaveError(null);
-      const leadMinutes = parseInt(reminderLead, 10) || 15;
-
-      behaviorStore.logBehaviorEvent(
-        userId,
-        'onboarding_response',
-        'typical_wake_time',
-        wakeTime,
-      );
-      behaviorStore.logBehaviorEvent(
-        userId,
-        'onboarding_response',
-        'typical_sleep_time',
-        sleepTime,
-      );
-      behaviorStore.logBehaviorEvent(
-        userId,
-        'onboarding_response',
-        'study_peak_hours',
-        JSON.stringify(studyPeak),
-      );
-      behaviorStore.logBehaviorEvent(
-        userId,
-        'onboarding_response',
-        'busiest_day',
-        busiestDay,
-      );
-      behaviorStore.logBehaviorEvent(
-        userId,
-        'onboarding_response',
-        'preferred_reminder_lead_time',
-        reminderLead,
-      );
-      behaviorStore.logBehaviorEvent(
-        userId,
-        'onboarding_response',
-        'reminder_response_tendency',
-        snoozeTendency,
-      );
-      behaviorStore.logBehaviorEvent(
-        userId,
-        'onboarding_response',
-        'weekly_class_count',
-        classCount,
-      );
-      behaviorStore.logBehaviorEvent(
-        userId,
-        'onboarding_response',
-        'longest_class_gap',
-        longestGap,
-      );
-
-      const initialFeatureVector = JSON.stringify({
-        preferredStudyTimes: studyPeak,
-        busiestDay,
-        typicalWakeTime: wakeTime,
-        typicalSleepTime: sleepTime,
-        reminderLeadMinutes: leadMinutes,
-        reminderSnoozeBehavior: snoozeTendency,
-        academicLoadScore: classCount === '1-3' ? 1 : classCount === '4-6' ? 2 : 3,
-        freeTimeGapsHours:
-          longestGap === 'None'
-            ? 0
-            : longestGap === '30 min'
-              ? 0.5
-              : longestGap === '1 hour'
-                ? 1.0
-                : 2.0,
+  useEffect(() => {
+    let active = true;
+    void isModelReadyById(selectedModelId)
+      .then(ready => {
+        if (active) setActiveModelReady(ready);
+      })
+      .catch(() => {
+        if (active) setActiveModelReady(false);
       });
+    return () => {
+      active = false;
+    };
+  }, [selectedModelId, sharedDownload?.modelId, page]);
 
-      behaviorStore.saveFeatureSnapshot(
-        userId,
-        'schedule_preference',
-        initialFeatureVector,
-      );
+  useEffect(
+    () =>
+      studentSetupStore.subscribe(changed => {
+        if (changed === userId) setSetup(studentSetupStore.get(userId));
+      }),
+    [userId],
+  );
 
+  // Progress is saved on every change (Back, restart and interruptions keep answers).
+  useEffect(() => {
+    onboardingProgressStore.save(userId, {stage, page, answers});
+  }, [userId, stage, page, answers]);
+
+  useEffect(() => {
+    if (!schoolOn && answers.goal === 'handbook') {
+      setAnswers(current => ({...current, goal: null}));
+    }
+  }, [schoolOn, answers.goal]);
+
+  const set = <K extends keyof OnboardingAnswers>(
+    key: K,
+    value: OnboardingAnswers[K],
+  ) => setAnswers(current => ({...current, [key]: value}));
+
+  const go = useCallback((next: number) => {
+    setError(null);
+    setNotice(null);
+    setPage(Math.max(0, Math.min(next, PAGES.length - 1)));
+  }, []);
+
+  const forward = () => go(page + 1);
+
+  const back = useCallback((): boolean => {
+    if (corOpen) return false;
+    if (stage === 'intro') return false;
+    if (page > 0) {
+      go(page - 1);
+      return true;
+    }
+    if (onCancel) {
+      onCancel();
+      return true;
+    }
+    if (!onboardingProgressStore.introSeen()) return false;
+    setStage('intro');
+    return true;
+  }, [corOpen, stage, page, onCancel, go]);
+
+  useEffect(() => {
+    const subscription = BackHandler.addEventListener(
+      'hardwareBackPress',
+      back,
+    );
+    return () => subscription.remove();
+  }, [back]);
+
+  const finishIntro = () => {
+    onboardingProgressStore.markIntroSeen();
+    setStage('details');
+  };
+
+  const openCorSetup = () => {
+    try {
+      setSetup(chooseUstpMode(userId));
+      setCorOpen(true);
+    } catch (modeError) {
+      console.error('[Onboarding] Could not choose USTP mode:', modeError);
+      setError('That choice could not be saved. Try again.');
+    }
+  };
+
+  const complete = (startTour: boolean) => {
+    if (saving.current) return;
+    saving.current = true;
+    setError(null);
+    try {
+      const current = studentSetupStore.get(userId);
+      const school = getUstpEligibility(userId).eligible;
+      const flexible = answers.study?.includes(FLEXIBLE) ?? false;
+      const peaks = answers.study
+        ? (answers.study.filter(v => v !== FLEXIBLE) as StudyPeakHour[])
+        : null;
+      const goal = answers.goal === 'handbook' && !school ? null : answers.goal;
+      const explicit: ExplicitPreference[] = [];
+      if (answers.name.trim()) explicit.push('name');
+      if (answers.tone) explicit.push('tone');
+      if (goal) explicit.push('goal');
+      if (answers.wake || answers.sleep) explicit.push('routine');
+      if (answers.study) explicit.push('study');
+      if (answers.response) explicit.push('response');
+      if (answers.lead !== null) explicit.push('lead');
+
+      const prefs = preferencesStore.get(userId);
       preferencesStore.save(userId, {
-        wakeTime,
-        sleepTime,
-        studyPeakHours: studyPeak,
-        busiestDay,
-        reminderLeadMinutes: leadMinutes,
-        snoozeTendency,
-        weeklyClassCount: classCount,
-        longestClassGap: longestGap,
+        ...prefs,
+        wakeTime: answers.wake ?? prefs.wakeTime,
+        sleepTime: answers.sleep ?? prefs.sleepTime,
+        studyPeakHours: peaks ?? prefs.studyPeakHours,
+        reminderLeadMinutes: answers.lead ?? prefs.reminderLeadMinutes,
       });
-
-      let activeAcademicProfile = existingAcademicProfile;
-
-      if (isUstpStudent && parsedCor) {
-        activeAcademicProfile = academicProfileStore.save(userId, {
-          ...parsedCor.profile,
-          isUstpStudent: true,
-          courses: mapCorCoursesToAcademicRecords(parsedCor.courses),
-        });
-        academicProfileStore.persistRecurringSchedule(userId, parsedCor.sessions);
+      if (answers.wake) {
         behaviorStore.logBehaviorEvent(
           userId,
           'onboarding_response',
-          'ustp_cor_attached',
-          parsedCor.profile.studentNo || 'true',
+          'typical_wake_time',
+          answers.wake,
         );
-      } else if (
-        isUstpStudent === false &&
-        scannedSchedule &&
-        scannedSchedule.classes.length > 0
-      ) {
-        academicProfileStore.persistRecurringSchedule(
-          userId,
-          scannedSchedule.classes.map((c) => ({
-            code: c.code,
-            subjectTitle: c.subjectTitle || c.subject,
-            section: c.section,
-            faculty: c.faculty,
-            room: c.room,
-            days: c.days,
-            startTime: c.startTime,
-            endTime: c.endTime,
-            recurrenceRule: c.recurrenceRule,
-          })),
-        );
+      }
+      if (answers.sleep) {
         behaviorStore.logBehaviorEvent(
           userId,
           'onboarding_response',
-          'schedule_image_scanned',
-          String(scannedSchedule.classes.length),
+          'typical_sleep_time',
+          answers.sleep,
+        );
+      }
+      if (answers.study) {
+        behaviorStore.logBehaviorEvent(
+          userId,
+          'onboarding_response',
+          'study_peak_hours',
+          JSON.stringify(answers.study),
+        );
+      }
+      if (answers.lead !== null) {
+        behaviorStore.logBehaviorEvent(
+          userId,
+          'onboarding_response',
+          'preferred_reminder_lead_time',
+          String(answers.lead),
         );
       }
 
-      saveOnboardingMemories(
-        userId,
-        { preferredName, tone },
-        studyPeak,
-        activeAcademicProfile,
-      );
+      studentSetupStore.update(userId, {
+        preferredName: answers.name.trim(),
+        tone: answers.tone,
+        goal,
+        responseStyle: answers.response as ResponseStyle | null,
+        explicit,
+        memory: choices,
+        setupCompletedAt: new Date().toISOString(),
+      });
+      if (chatMemoryStore.isEnabled(userId) !== memoryOn) {
+        chatMemoryStore.setEnabled(userId, memoryOn);
+      }
+      syncOnboardingMemories(userId, {
+        identity: {
+          preferredName: answers.name.trim(),
+          tone: answers.tone ?? '',
+        },
+        peaks,
+        flexibleStudy: flexible,
+        goal,
+        choices,
+        schedulingOnly: current.affiliation === 'not_ustp',
+      });
       userStore.markOnboardingComplete(userId);
-      onOnboardingComplete();
-    } catch (error) {
-      console.error('Failed completing onboarding:', error);
-      setSaveError('Could not save your setup. Please try again.');
+      onboardingProgressStore.clear(userId);
+      onOnboardingComplete({startTour, goal});
+    } catch (completeError) {
+      console.error('[Onboarding] Could not save setup:', completeError);
+      setError(
+        'Your setup could not be saved. Your answers are kept — try again.',
+      );
+    } finally {
+      saving.current = false;
     }
   };
+
+  if (stage === 'intro') {
+    return (
+      <View style={[styles.root, {backgroundColor: t.bg}]}>
+        <StatusBar barStyle={colors.statusBarStyle} backgroundColor={t.bg} />
+        <IntroPager
+          mode="flow"
+          schedulingOnly={notUstp}
+          onFinish={finishIntro}
+          onSkip={finishIntro}
+        />
+      </View>
+    );
+  }
+
+  if (corOpen) {
+    return (
+      <View style={[styles.root, {backgroundColor: t.bg}]}>
+        <StatusBar barStyle={colors.statusBarStyle} backgroundColor={t.bg} />
+        <CorReviewFlow
+          userId={userId}
+          laterLabel="I'll add my COR later"
+          onClose={outcome => {
+            setCorOpen(false);
+            setSetup(studentSetupStore.get(userId));
+            if (outcome.status === 'confirmed') {
+              const profile = getConfirmedAcademicProfile(userId);
+              if (profile?.formattedName && !answers.name.trim()) {
+                set('name', profile.formattedName.slice(0, 60));
+              }
+              go(PAGES.indexOf('permissions'));
+            } else if (outcome.status === 'later') {
+              go(PAGES.indexOf('permissions'));
+              setNotice(
+                'COR pending: scheduling works now; USTP features turn on after you add your COR.',
+              );
+            } else {
+              setNotice(
+                'COR setup was cancelled. You can add it anytime from Profile or Schedule.',
+              );
+            }
+          }}
+        />
+      </View>
+    );
+  }
+
+  const progress = {count: PAGES.length, active: page};
+  const onBack =
+    page > 0 || onCancel || onboardingProgressStore.introSeen()
+      ? () => back()
+      : undefined;
+  const headLabel = onCancel ? 'Edit your setup' : 'Set up LAFINA';
+  const pageName = PAGES[page];
+  const common = {
+    pageKey: pageName,
+    headLabel,
+    onBack,
+    backLabel: page === 0 && onCancel ? 'Cancel replay' : 'Back',
+    progress,
+    error,
+  };
+
+  const statusTag = () =>
+    schoolOn ? (
+      <Tag label="USTP · COR confirmed" tone="good" />
+    ) : setup.affiliation === 'ustp' ? (
+      <Tag
+        label={
+          setup.corStatus === 'needs_review'
+            ? 'USTP · COR needs review'
+            : 'USTP · COR pending'
+        }
+        tone="attention"
+      />
+    ) : notUstp ? (
+      <Tag label="Scheduling mode" tone="good" />
+    ) : null;
+
+  if (pageName === 'ai') {
+    return (
+      <View
+        style={[styles.root, {backgroundColor: t.bg}]}
+        testID="onboarding-screen"
+      >
+        <StatusBar barStyle={colors.statusBarStyle} backgroundColor={t.bg} />
+        <OfflineModelStep
+          userId={userId}
+          headLabel={headLabel}
+          onBack={onBack}
+          backLabel={common.backLabel}
+          progress={progress}
+          onContinue={forward}
+        />
+      </View>
+    );
+  }
+
+  if (pageName === 'cor') {
+    const profile = schoolOn ? getConfirmedAcademicProfile(userId) : null;
+    return (
+      <View
+        style={[styles.root, {backgroundColor: t.bg}]}
+        testID="onboarding-screen"
+      >
+        <StatusBar barStyle={colors.statusBarStyle} backgroundColor={t.bg} />
+        <OnboardingPage
+          {...common}
+          title={schoolOn ? 'Your USTP COR is ready.' : 'Add your USTP COR.'}
+          copy="Upload your Certificate of Registration to import your classes and unlock USTP Handbook AI."
+          note={notice ?? undefined}
+          primary={
+            schoolOn || notUstp
+              ? {
+                  label: 'Continue',
+                  onPress: forward,
+                  testID: 'onboarding-continue',
+                }
+              : {
+                  label:
+                    setup.corStatus === 'needs_review'
+                      ? 'Review my USTP COR'
+                      : 'Set up my USTP COR',
+                  onPress: openCorSetup,
+                  testID: 'onboarding-setup-cor',
+                }
+          }
+          secondary={
+            schoolOn
+              ? {
+                  label: 'Replace my COR',
+                  onPress: () => setCorOpen(true),
+                  testID: 'onboarding-replace-cor',
+                }
+              : notUstp
+              ? {
+                  label: "I'm a USTP student · set up my COR",
+                  onPress: openCorSetup,
+                  testID: 'onboarding-setup-cor',
+                }
+              : {
+                  label: "I'll add my COR later",
+                  onPress: () => {
+                    try {
+                      setSetup(chooseUstpMode(userId));
+                      forward();
+                    } catch (modeError) {
+                      console.error(
+                        '[Onboarding] Could not choose USTP mode:',
+                        modeError,
+                      );
+                      setError('That choice could not be saved. Try again.');
+                    }
+                  },
+                  testID: 'onboarding-cor-later',
+                }
+          }
+        >
+          <TagRow>{statusTag()}</TagRow>
+          {sharedDownload ? (
+            <Notice
+              testID="onboarding-cor-ai-downloading"
+              text={`Downloading ${
+                getOfflineModelPreset(sharedDownload.modelId).shortLabel
+              } (${sharedDownload.progress.percent}%) in the background…`}
+            />
+          ) : null}
+          {profile ? (
+            <Card>
+              <SlimRow label="Campus" value={profile.campus} />
+              <SlimRow label="Program" value={profile.program} />
+              <SlimRow label="Subjects" value={`${profile.courses.length}`} />
+            </Card>
+          ) : (
+            <Card>
+              <Text style={[onboardingStyles.body, {color: t.ink}]}>
+                • Imports your class schedule in one simple review{'\n'}• Turns
+                on USTP Student Handbook answers{'\n'}• You can also add or
+                replace it anytime in Profile
+              </Text>
+            </Card>
+          )}
+          <SecondaryButton
+            label={
+              notUstp ? "I'm not a USTP student ✓" : "I'm not a USTP student"
+            }
+            onPress={() => {
+              try {
+                setSetup(chooseNotUstpMode(userId));
+                forward();
+              } catch (modeError) {
+                console.error(
+                  '[Onboarding] Could not choose scheduling mode:',
+                  modeError,
+                );
+                setError('That choice could not be saved. Try again.');
+              }
+            }}
+            testID="onboarding-not-ustp"
+          />
+        </OnboardingPage>
+      </View>
+    );
+  }
+
+  if (pageName === 'permissions') {
+    return (
+      <View
+        style={[styles.root, {backgroundColor: t.bg}]}
+        testID="onboarding-screen"
+      >
+        <StatusBar barStyle={colors.statusBarStyle} backgroundColor={t.bg} />
+        <PermissionsStep
+          headLabel={headLabel}
+          onBack={onBack}
+          backLabel={common.backLabel}
+          progress={progress}
+          onContinue={forward}
+        />
+      </View>
+    );
+  }
+
+  const aiStatusLabel = sharedDownload
+    ? `${
+        getOfflineModelPreset(sharedDownload.modelId).shortLabel
+      } · Downloading ${sharedDownload.progress.percent}%`
+    : selectedModelId !== 'fast_path_only' && activeModelReady
+    ? `${getOfflineModelPreset(selectedModelId).shortLabel} · Ready`
+    : 'Fast-Path Only (Built-in)';
 
   return (
-    <SafeAreaView style={[styles.container, themed.container]}>
-      <StatusBar barStyle={colors.statusBarStyle} backgroundColor={colors.background} />
-
-      {onCancel ? (
-        <TouchableOpacity
-          accessibilityRole="button"
-          onPress={onCancel}
-          style={styles.cancel}
-        >
-          <Text style={{ color: colors.textSecondary }}>Cancel replay</Text>
-        </TouchableOpacity>
-      ) : null}
-
-      <OnboardingProgress step={step} totalSteps={totalSteps} />
-      {saveError ? (
-        <Text
-          accessibilityRole="alert"
-          style={{ color: colors.error, paddingHorizontal: 24 }}
-        >
-          {saveError}
-        </Text>
-      ) : null}
-
-      <ScrollView contentContainerStyle={styles.scrollContent}>
-        <View
-          style={[
-            styles.card,
-            isModern && modernShadows.card,
-            themed.card,
-            isModern && {
-              borderRadius: ModernLayout.borderRadiusCard,
-              borderWidth: 1,
-              borderColor: modernPalette.border,
-            },
-          ]}
-        >
-          <OnboardingStep
-            step={step}
-            wakeTime={wakeTime}
-            setWakeTime={setWakeTime}
-            sleepTime={sleepTime}
-            setSleepTime={setSleepTime}
-            studyPeak={studyPeak}
-            toggleStudyPeak={toggleStudyPeak}
-            busiestDay={busiestDay}
-            setBusiestDay={setBusiestDay}
-            reminderLead={reminderLead}
-            setReminderLead={setReminderLead}
-            snoozeTendency={snoozeTendency}
-            setSnoozeTendency={setSnoozeTendency}
-            classCount={classCount}
-            setClassCount={setClassCount}
-            longestGap={longestGap}
-            setLongestGap={setLongestGap}
-            preferredName={preferredName}
-            setPreferredName={setPreferredName}
-            tone={tone}
-            setTone={setTone}
-            memoryEnabled={memoryEnabled}
-            isUstpStudent={isUstpStudent}
-            setIsUstpStudent={handleSelectUstpStudent}
-            parsedCor={parsedCor}
-            corFileName={corFileName}
-            onAttachUstpCor={handleAttachUstpCor}
-            onClearUstpCor={handleClearUstpCor}
-            scannedSchedule={scannedSchedule}
-            scheduleFileName={scheduleFileName}
-            onScanScheduleGallery={handleScanScheduleGallery}
-            onScanScheduleCamera={handleScanScheduleCamera}
-            onClearScannedSchedule={handleClearScannedSchedule}
-            isScanningDocument={isScanningDocument}
-            scanStatusMessage={scanStatusMessage}
+    <View
+      style={[styles.root, {backgroundColor: t.bg}]}
+      testID="onboarding-screen"
+    >
+      <StatusBar barStyle={colors.statusBarStyle} backgroundColor={t.bg} />
+      <OnboardingPage
+        {...common}
+        scrollable
+        title={schoolOn ? 'Almost done!' : 'Quick preferences.'}
+        copy="Optional — you can change these anytime in Profile."
+        note={notice ?? undefined}
+        primary={{
+          label: 'Start using LAFINA',
+          onPress: () => complete(false),
+          testID: 'onboarding-finish',
+        }}
+        secondary={{
+          label: 'Take a quick tour first',
+          onPress: () => complete(true),
+          testID: 'onboarding-finish-tour',
+        }}
+        testID="onboarding-ready"
+      >
+        <TagRow>{statusTag() ?? <Tag label="Scheduling mode" />}</TagRow>
+        <Card testID="onboarding-finish-ai-status">
+          <SlimRow label="Offline AI" value={aiStatusLabel} />
+        </Card>
+        <Field
+          label="Preferred name"
+          value={answers.name}
+          onChangeText={value => set('name', value.slice(0, 60))}
+          maxLength={60}
+          autoCapitalize="words"
+          placeholder="e.g. Sam"
+          returnKeyType="done"
+          testID="onboarding-name"
+        />
+        <Text style={[styles.label, {color: t.ink}]}>Assistant tone</Text>
+        <View style={onboardingStyles.rowGap}>
+          <ChoiceButton
+            label="Casual"
+            selected={answers.tone === 'casual'}
+            onPress={() =>
+              set('tone', answers.tone === 'casual' ? null : 'casual')
+            }
+            testID="onboarding-tone-casual"
+          />
+          <ChoiceButton
+            label="Professional"
+            selected={answers.tone === 'professional'}
+            onPress={() =>
+              set(
+                'tone',
+                answers.tone === 'professional' ? null : 'professional',
+              )
+            }
+            testID="onboarding-tone-professional"
           />
         </View>
-      </ScrollView>
-
-      <OnboardingNavigation
-        step={step}
-        totalSteps={totalSteps}
-        onBack={handleBack}
-        onNext={handleNext}
-      />
-    </SafeAreaView>
+        <Text style={[styles.label, {color: t.ink}]}>
+          Remind me before class / tasks
+        </Text>
+        <View style={styles.wrap}>
+          {LEAD_OPTIONS.map(minutes => (
+            <ChoiceButton
+              key={minutes}
+              label={minutes === 60 ? '1 hr' : `${minutes} min`}
+              selected={answers.lead === minutes}
+              onPress={() =>
+                set('lead', answers.lead === minutes ? null : minutes)
+              }
+              testID={`onboarding-lead-${minutes}`}
+              style={styles.leadChip}
+            />
+          ))}
+        </View>
+        <CheckRow
+          label="Remember my details for AI replies"
+          detail={
+            memoryOn
+              ? 'Stored on this phone; selected facts may be included in online AI requests.'
+              : 'Off: nothing is remembered. Scheduling still works.'
+          }
+          checked={memoryOn}
+          onToggle={() => setMemoryOn(!memoryOn)}
+          testID="onboarding-memory-toggle"
+        />
+      </OnboardingPage>
+    </View>
   );
 };
 
-const getOnboardThemedStyles = (colors: ThemeColors, isDarkMode: boolean) => ({
-  container: { backgroundColor: colors.background },
-  progressBarBg: { backgroundColor: colors.border },
-  progressText: { color: colors.textMuted },
-  card: { backgroundColor: colors.cardBg },
-  stepTitle: { color: colors.textPrimary },
-  stepDesc: { color: colors.textSecondary },
-  inputLabel: { color: colors.textPrimary },
-  chip: { backgroundColor: colors.inputBg, borderColor: colors.border },
-  chipText: { color: colors.textPrimary },
-  navigation: { borderTopColor: colors.border },
-  backButtonText: { color: colors.textSecondary },
-  iconCircle: {
-    backgroundColor: isDarkMode ? 'rgba(46, 204, 113, 0.15)' : 'rgba(46, 204, 113, 0.08)',
-  },
-  summaryCard: { backgroundColor: colors.inputBg, borderColor: colors.border },
-  summaryTitle: { color: colors.textPrimary },
-  summaryItem: { color: colors.textPrimary },
-});
-
 const styles = StyleSheet.create({
-  cancel: { alignSelf: 'flex-end', paddingHorizontal: 24, paddingVertical: 10 },
-  container: {
-    flex: 1,
-  },
-  scrollContent: {
-    flexGrow: 1,
-    padding: 24,
-    justifyContent: 'center',
-  },
-  card: {
-    borderRadius: Layout.borderRadiusCard,
-    padding: 24,
-    minHeight: 380,
+  root: {flex: 1},
+  label: {fontSize: 13, fontWeight: '600', marginTop: 4},
+  wrap: {flexDirection: 'row', flexWrap: 'wrap', gap: 8},
+  leadChip: {
+    flex: 0,
+    minHeight: 40,
+    paddingHorizontal: 14,
+    paddingVertical: 6,
   },
 });

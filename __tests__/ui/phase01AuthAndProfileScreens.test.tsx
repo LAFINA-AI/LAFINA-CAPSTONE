@@ -1,22 +1,33 @@
 import React from 'react';
-import {render, fireEvent, waitFor, act} from '@testing-library/react-native';
+import {
+  render,
+  fireEvent,
+  waitFor,
+  act,
+  within,
+} from '@testing-library/react-native';
 import {ThemeProvider} from '../../src/ui/contexts/ThemeContext';
 import {WelcomeScreen} from '../../src/ui/screens/WelcomeScreen';
 import {OnboardingScreen} from '../../src/ui/screens/OnboardingScreen';
 import {ProfileScreen} from '../../src/ui/screens/ProfileScreen';
 import {developerTestService} from '../../src/ui/components/profile/developerTestService';
-import {
-  db,
-  initDatabase,
-  userStore,
-  academicProfileStore,
-  timeBlocksStore,
-} from '../../src/storage';
+import {db, initDatabase, userStore} from '../../src/storage';
 import {GUEST_USER_ID} from '../../src/constants';
 import {chatMemoryStore} from '../../src/storage/chatMemoryStore';
-import {visionService} from '../../src/ai/vision/visionService';
 import {parseUstpCor} from '../../src/ai/vision/ustpCorParser';
-import {NativeModules, Alert, Platform} from 'react-native';
+import {preferencesStore} from '../../src/storage/preferencesStore';
+import {studentSetupStore} from '../../src/storage/studentSetupStore';
+import {onboardingProgressStore} from '../../src/storage/onboardingProgressStore';
+import {getUstpEligibility} from '../../src/storage/ustpEligibility';
+import {replyPreferenceInstruction} from '../../src/ai/personalization';
+import {enableUstpForTest} from '../fixtures/ustpEligibility';
+import {
+  NativeModules,
+  Alert,
+  BackHandler,
+  PermissionsAndroid,
+  Platform,
+} from 'react-native';
 import RNFS from 'react-native-fs';
 import {PreferencesSettingsScreen} from '../../src/ui/screens/PreferencesSettingsScreen';
 import {
@@ -56,12 +67,58 @@ describe('Phase 01 Welcome, Onboarding, and Profile Screens', () => {
     db.executeSync('DELETE FROM users');
   });
 
-  test('WelcomeScreen starts guest session on Get Started Free and navigates to Login/Register', () => {
+  test('Android Back on the introduction returns to the previous page and from the source page (found on emulator)', () => {
+    type BackListener = Parameters<typeof BackHandler.addEventListener>[1];
+    const handlers: BackListener[] = [];
+    jest
+      .spyOn(BackHandler, 'addEventListener')
+      .mockImplementation((_event, handler) => {
+        handlers.push(handler);
+        return {
+          remove: () => {
+            const index = handlers.indexOf(handler);
+            if (index >= 0) handlers.splice(index, 1);
+          },
+        };
+      });
+    const pressBack = (): boolean | null | undefined => {
+      let handled: boolean | null | undefined;
+      act(() => {
+        handled = handlers[handlers.length - 1](
+          {} as Parameters<BackListener>[0],
+        );
+      });
+      return handled;
+    };
+    const ui = render(
+      <ThemeProvider userId={null}>
+        <WelcomeScreen
+          onGetStarted={jest.fn()}
+          onNavigateToLogin={jest.fn()}
+          onNavigateToRegister={jest.fn()}
+        />
+      </ThemeProvider>,
+    );
+    fireEvent.press(ui.getByTestId('intro-continue'));
+    fireEvent.press(ui.getByTestId('intro-continue'));
+    fireEvent.press(ui.getByTestId('intro-handbook-citation'));
+    expect(ui.getByText('USTP Student Handbook 2023 Edition')).toBeTruthy();
+    expect(pressBack()).toBe(true);
+    expect(ui.getByTestId('intro-page-2')).toBeTruthy();
+    expect(pressBack()).toBe(true);
+    expect(ui.getByTestId('intro-page-1')).toBeTruthy();
+    expect(pressBack()).toBe(true);
+    // On the first page, Back is left to Android (leave the app).
+    expect(pressBack()).toBe(false);
+    jest.restoreAllMocks();
+  });
+
+  test('WelcomeScreen introduction: real handbook citation, sign-in, create account and guest start without records', () => {
     const onGetStarted = jest.fn();
     const onNavigateToLogin = jest.fn();
     const onNavigateToRegister = jest.fn();
 
-    const {getByText} = render(
+    const ui = render(
       <ThemeProvider userId={null}>
         <WelcomeScreen
           onGetStarted={onGetStarted}
@@ -71,145 +128,420 @@ describe('Phase 01 Welcome, Onboarding, and Profile Screens', () => {
       </ThemeProvider>,
     );
 
-    fireEvent.press(getByText('Get Started Free'));
-    expect(onGetStarted).toHaveBeenCalledWith(GUEST_USER_ID);
+    expect(ui.getByTestId('intro-page-0')).toBeTruthy();
+    expect(ui.getByText(/Your academic day/)).toBeTruthy();
+    fireEvent.press(ui.getByTestId('intro-continue'));
+    expect(ui.getByText(/Say it\./)).toBeTruthy();
+    fireEvent.press(ui.getByTestId('intro-continue'));
+    // "Ask anything about USTP" quotes the bundled pack with its real citation.
+    expect(ui.getByText(/Ask anything/)).toBeTruthy();
+    expect(
+      ui.getByText('Available to USTP students after COR setup.'),
+    ).toBeTruthy();
+    expect(
+      ui.getByText(/2023 Handbook · Ch\. 14 · Art\. 1 · p\. 50/),
+    ).toBeTruthy();
+    fireEvent.press(ui.getByTestId('intro-handbook-citation'));
+    expect(ui.getByText('USTP Student Handbook 2023 Edition')).toBeTruthy();
+    expect(ui.getByText(/multiples of 0\.25 from 1 to 5/)).toBeTruthy();
+    fireEvent.press(ui.getByTestId('intro-source-back'));
 
-    fireEvent.press(getByText('Log In'));
+    fireEvent.press(ui.getByTestId('intro-sign-in'));
     expect(onNavigateToLogin).toHaveBeenCalledTimes(1);
-
-    fireEvent.press(getByText('Create Account'));
+    fireEvent.press(ui.getByTestId('intro-skip'));
+    expect(ui.getByTestId('intro-page-3')).toBeTruthy();
+    fireEvent.press(ui.getByTestId('intro-create-account'));
     expect(onNavigateToRegister).toHaveBeenCalledTimes(1);
+
+    // The demos created nothing and asked for nothing.
+    expect(
+      db.executeSync('SELECT COUNT(*) AS n FROM time_blocks').rows?.[0]?.n,
+    ).toBe(0);
+    fireEvent.press(ui.getByText('Continue without an account'));
+    expect(onGetStarted).toHaveBeenCalledWith(GUEST_USER_ID);
+    expect(onboardingProgressStore.introSeen()).toBe(true);
   });
 
-  test('OnboardingScreen steps through 6 steps and marks onboarding complete', async () => {
+  test('scheduling-mode onboarding: 4-step AI + COR + permissions + finish saves preferences and memory', async () => {
     const guest = userStore.createGuestUser();
+    chatMemoryStore.setEnabled(guest.id, true);
+    const defaults = preferencesStore.get(guest.id);
     const onComplete = jest.fn();
-
-    const {getByText} = render(
+    const ui = render(
       <ThemeProvider userId={guest.id}>
         <OnboardingScreen userId={guest.id} onOnboardingComplete={onComplete} />
       </ThemeProvider>,
     );
 
-    for (let i = 0; i < 5; i += 1) {
-      fireEvent.press(getByText('Continue'));
-    }
-    fireEvent.press(getByText('Get Started'));
+    // Intro in the flow (not seen yet on this phone), then skippable.
+    fireEvent.press(ui.getByTestId('intro-skip'));
 
-    await waitFor(() => {
-      expect(onComplete).toHaveBeenCalledTimes(1);
+    // Step 1: offline AI chooser; user can continue right away without waiting.
+    expect(ui.getByTestId('onboarding-ai')).toBeTruthy();
+    fireEvent.press(ui.getByTestId('onboarding-continue'));
+
+    // Step 2 is COR-first: no campus or program picker, no manual entry.
+    expect(ui.getByText('Set up my USTP COR')).toBeTruthy();
+    expect(ui.getByText("I'll add my COR later")).toBeTruthy();
+    expect(ui.queryByText(/campus/i)).toBeNull();
+    expect(ui.queryByPlaceholderText(/program/i)).toBeNull();
+    fireEvent.press(ui.getByTestId('onboarding-not-ustp'));
+
+    // Step 3: permissions prompt (can skip/continue without blocking).
+    expect(ui.getByTestId('onboarding-permissions')).toBeTruthy();
+    fireEvent.press(ui.getByTestId('onboarding-continue'));
+
+    // Step 4: optional quick preferences on a single finish screen.
+    fireEvent.changeText(ui.getByTestId('onboarding-name'), 'Alex');
+    fireEvent.press(ui.getByTestId('onboarding-tone-casual'));
+    fireEvent.press(ui.getByTestId('onboarding-lead-10'));
+    fireEvent.press(ui.getByTestId('onboarding-finish'));
+
+    await waitFor(() => expect(onComplete).toHaveBeenCalledTimes(1));
+    expect(onComplete).toHaveBeenCalledWith({
+      startTour: false,
+      goal: null,
     });
     expect(userStore.isOnboardingComplete(guest.id)).toBe(true);
-  });
-
-  test('onboarding saves optional name and conversation style as memories', async () => {
-    const guest = userStore.createGuestUser();
-    chatMemoryStore.setEnabled(guest.id, true);
-    const onComplete = jest.fn();
-    const ui = render(
-      <ThemeProvider userId={guest.id}>
-        <OnboardingScreen userId={guest.id} onOnboardingComplete={onComplete} />
-      </ThemeProvider>,
+    const setup = studentSetupStore.get(guest.id);
+    expect(setup.affiliation).toBe('not_ustp');
+    expect(setup.preferredName).toBe('Alex');
+    expect(setup.tone).toBe('casual');
+    expect(setup.explicit).toEqual(
+      expect.arrayContaining(['name', 'tone', 'lead']),
     );
-    for (let i = 0; i < 4; i += 1) fireEvent.press(ui.getByText('Continue'));
-    fireEvent.changeText(ui.getByTestId('onboarding-preferred-name'), 'Alex');
-    fireEvent.press(ui.getByTestId('onboarding-tone-casual'));
-    fireEvent.press(ui.getByText('Continue'));
-    fireEvent.press(ui.getByText('Get Started'));
-    await waitFor(() => expect(onComplete).toHaveBeenCalledTimes(1));
-    const values = chatMemoryStore.list(guest.id).map(m => m.text);
-    expect(values).toContain('Prefers to be called Alex.');
-    expect(values).toContain('Prefers a casual conversational tone.');
-  });
-
-  test('OnboardingScreen USTP Student flow attaches COR PDF, auto-fills preferences, updates profile name, schedules classes, and saves COR memories', async () => {
-    const guest = userStore.createGuestUser();
-    chatMemoryStore.setEnabled(guest.id, true);
-    const onComplete = jest.fn();
-
-    jest.spyOn(visionService, 'pickCorDocument').mockResolvedValue({
-      uri: 'content://com.ustp/cor-ustp.pdf',
-      fileName: 'cor-ustp.pdf',
-      mimeType: 'application/pdf',
-    });
-    jest
-      .spyOn(visionService, 'scanUstpCorFromUri')
-      .mockResolvedValue(parseUstpCor(SAMPLE_COR_TEXT));
-
-    const ui = render(
-      <ThemeProvider userId={guest.id}>
-        <OnboardingScreen userId={guest.id} onOnboardingComplete={onComplete} />
-      </ThemeProvider>,
-    );
-
-    // Step 1: Select "Yes, USTP Student" and attach COR
-    fireEvent.press(ui.getByTestId('onboarding-ustp-yes'));
-    fireEvent.press(ui.getByTestId('onboarding-attach-cor'));
-
-    await waitFor(() => {
-      expect(ui.getByTestId('onboarding-cor-preview')).toBeTruthy();
-    });
-    expect(ui.getByText(/John Lemar L\. Gonzales/)).toBeTruthy();
-
-    // Advance through steps 1 -> 6 and finish
-    for (let i = 0; i < 5; i += 1) {
-      fireEvent.press(ui.getByText('Continue'));
-    }
-    fireEvent.press(ui.getByText('Get Started'));
-
-    await waitFor(() => expect(onComplete).toHaveBeenCalledTimes(1));
-
-    // Verify user display name updated to COR name
-    expect(userStore.getUserById(guest.id)?.username).toBe(
-      'John Lemar L. Gonzales',
-    );
-
-    // Verify academic profile saved
-    const savedProfile = academicProfileStore.get(guest.id);
-    expect(savedProfile?.studentNo).toBe('2023305519');
-    expect(savedProfile?.program).toBe('B.S. in Information Technology');
-    expect(savedProfile?.yearLevel).toBe('4th Year - Baccalaureate');
-
-    // Verify recurring schedule persisted in timeBlocksStore (F + W + T + F = 4 blocks)
-    const blocks = timeBlocksStore.getAll(guest.id);
-    expect(blocks.length).toBe(4);
-    expect(blocks.some(b => b.title === 'IT414 · IT Elective 3')).toBe(true);
-
-    // Verify memories saved
+    expect(setup.explicit).not.toContain('routine');
+    const prefs = preferencesStore.get(guest.id);
+    expect(prefs.reminderLeadMinutes).toBe(10);
+    expect(prefs.wakeTime).toBe(defaults.wakeTime);
+    expect(getUstpEligibility(guest.id).eligible).toBe(false);
     const memories = chatMemoryStore.list(guest.id).map(m => m.text);
-    expect(memories).toContain('Prefers to be called John Lemar.');
-    expect(memories.some(m => m.includes('2023305519'))).toBe(true);
+    expect(memories).toContain('Prefers to be called Alex.');
+    expect(memories).toContain('Prefers a casual conversational tone.');
+    expect(replyPreferenceInstruction(guest.id)).toMatch(/casual/i);
   });
 
-  test('OnboardingScreen Non-USTP Student flow prompts to upload schedule image or skip', async () => {
+  test('"add my COR later" keeps USTP pending; memory off still finishes cleanly', async () => {
     const guest = userStore.createGuestUser();
+    onboardingProgressStore.markIntroSeen();
+    const memoriesBefore = chatMemoryStore.list(guest.id);
     const onComplete = jest.fn();
-
     const ui = render(
       <ThemeProvider userId={guest.id}>
         <OnboardingScreen userId={guest.id} onOnboardingComplete={onComplete} />
       </ThemeProvider>,
     );
-
-    fireEvent.press(ui.getByTestId('onboarding-ustp-no'));
-    expect(ui.getByTestId('onboarding-scan-schedule-image')).toBeTruthy();
-    expect(ui.getByTestId('onboarding-scan-schedule-camera')).toBeTruthy();
-
-    // User can skip and continue normally
-    for (let i = 0; i < 5; i += 1) {
-      fireEvent.press(ui.getByText('Continue'));
-    }
-    fireEvent.press(ui.getByText('Get Started'));
-
+    fireEvent.press(ui.getByTestId('onboarding-continue'));
+    fireEvent.press(ui.getByTestId('onboarding-cor-later'));
+    fireEvent.press(ui.getByTestId('onboarding-continue'));
+    const setup = studentSetupStore.get(guest.id);
+    expect(setup.affiliation).toBe('ustp');
+    expect(setup.corStatus).toBe('pending');
+    expect(getUstpEligibility(guest.id)).toMatchObject({
+      eligible: false,
+      reason: 'cor_pending',
+    });
+    fireEvent.press(ui.getByTestId('onboarding-memory-toggle'));
+    fireEvent.press(ui.getByTestId('onboarding-finish-tour'));
     await waitFor(() => expect(onComplete).toHaveBeenCalledTimes(1));
+    expect(onComplete).toHaveBeenCalledWith({startTour: true, goal: null});
+    expect(chatMemoryStore.isEnabled(guest.id)).toBe(false);
+    // Nothing new was remembered.
+    expect(chatMemoryStore.list(guest.id)).toEqual(memoriesBefore);
+    expect(studentSetupStore.get(guest.id).explicit).toEqual([]);
+  });
+
+  test('Back and restarts keep onboarding answers', () => {
+    const guest = userStore.createGuestUser();
+    onboardingProgressStore.markIntroSeen();
+    const first = render(
+      <ThemeProvider userId={guest.id}>
+        <OnboardingScreen userId={guest.id} onOnboardingComplete={jest.fn()} />
+      </ThemeProvider>,
+    );
+    fireEvent.press(first.getByTestId('onboarding-continue'));
+    fireEvent.press(first.getByTestId('onboarding-not-ustp'));
+    fireEvent.press(first.getByTestId('onboarding-continue'));
+    fireEvent.changeText(first.getByTestId('onboarding-name'), 'Rin');
+    fireEvent.press(first.getByTestId('onboarding-back'));
+    expect(first.getByTestId('onboarding-permissions')).toBeTruthy();
+    first.unmount();
+
+    const again = render(
+      <ThemeProvider userId={guest.id}>
+        <OnboardingScreen userId={guest.id} onOnboardingComplete={jest.fn()} />
+      </ThemeProvider>,
+    );
+    fireEvent.press(again.getByTestId('onboarding-continue'));
+    expect(again.getByTestId('onboarding-name').props.value).toBe('Rin');
+  });
+
+  test('choosing "Set up my USTP COR" opens the review; leaving it keeps the COR pending', async () => {
+    const guest = userStore.createGuestUser();
+    onboardingProgressStore.markIntroSeen();
+    const ui = render(
+      <ThemeProvider userId={guest.id}>
+        <OnboardingScreen userId={guest.id} onOnboardingComplete={jest.fn()} />
+      </ThemeProvider>,
+    );
+    fireEvent.press(ui.getByTestId('onboarding-continue'));
+    fireEvent.press(ui.getByTestId('onboarding-setup-cor'));
+    expect(ui.getByTestId('cor-start')).toBeTruthy();
+    expect(ui.getByText(/not official USTP verification/)).toBeTruthy();
+    fireEvent.press(ui.getByTestId('cor-later'));
+    expect(studentSetupStore.get(guest.id)).toMatchObject({
+      affiliation: 'ustp',
+      corStatus: 'pending',
+    });
+    expect(ui.getByTestId('onboarding-permissions')).toBeTruthy();
+    fireEvent.press(ui.getByTestId('onboarding-continue'));
+    expect(ui.getByTestId('onboarding-ready')).toBeTruthy();
+  });
+
+  test('onboarding permissions step prompts for notifications, alarms, full-screen calls and microphone', async () => {
+    const originalPlatformOS = Platform.OS;
+    const originalReminderModule = NativeModules.LafinaReminder;
+    let notificationsGranted = false;
+    let micGranted = false;
+    const openExactAlarmSettings = jest.fn(async () => true);
+    const openFullScreenIntentSettings = jest.fn(async () => true);
+
+    Platform.OS = 'android';
+    NativeModules.LafinaReminder = {
+      ...(originalReminderModule ?? {}),
+      scheduleExactAlarm: jest.fn(async () => true),
+      getPermissionStatus: jest.fn(async () => ({
+        notificationsEnabled: notificationsGranted,
+        canScheduleExactAlarms: false,
+        canUseFullScreenIntent: false,
+      })),
+      openExactAlarmSettings,
+      openFullScreenIntentSettings,
+      openNotificationSettings: jest.fn(async () => true),
+    };
+    jest
+      .spyOn(PermissionsAndroid, 'check')
+      .mockImplementation(async permission => {
+        if (permission === PermissionsAndroid.PERMISSIONS.RECORD_AUDIO) {
+          return micGranted;
+        }
+        if (permission === PermissionsAndroid.PERMISSIONS.POST_NOTIFICATIONS) {
+          return notificationsGranted;
+        }
+        return false;
+      });
+    const requestSpy = jest
+      .spyOn(PermissionsAndroid, 'request')
+      .mockImplementation(async permission => {
+        if (permission === PermissionsAndroid.PERMISSIONS.POST_NOTIFICATIONS) {
+          notificationsGranted = true;
+        }
+        if (permission === PermissionsAndroid.PERMISSIONS.RECORD_AUDIO) {
+          micGranted = true;
+        }
+        return PermissionsAndroid.RESULTS.GRANTED;
+      });
+
+    try {
+      const guest = userStore.createGuestUser();
+      onboardingProgressStore.markIntroSeen();
+      const ui = render(
+        <ThemeProvider userId={guest.id}>
+          <OnboardingScreen
+            userId={guest.id}
+            onOnboardingComplete={jest.fn()}
+          />
+        </ThemeProvider>,
+      );
+      fireEvent.press(ui.getByTestId('onboarding-continue'));
+      fireEvent.press(ui.getByTestId('onboarding-cor-later'));
+
+      expect(await ui.findByTestId('onboarding-permissions')).toBeTruthy();
+      expect(ui.getByTestId('onboarding-perm-notifications')).toBeTruthy();
+      expect(ui.getByTestId('onboarding-perm-alarms')).toBeTruthy();
+      expect(ui.getByTestId('onboarding-perm-fullscreen')).toBeTruthy();
+      expect(ui.getByTestId('onboarding-perm-mic')).toBeTruthy();
+
+      fireEvent.press(ui.getByTestId('onboarding-perm-alarms-btn'));
+      expect(openExactAlarmSettings).toHaveBeenCalledTimes(1);
+      fireEvent.press(ui.getByTestId('onboarding-perm-fullscreen-btn'));
+      expect(openFullScreenIntentSettings).toHaveBeenCalledTimes(1);
+
+      fireEvent.press(await ui.findByTestId('onboarding-perm-allow-all'));
+      await waitFor(() => {
+        expect(requestSpy).toHaveBeenCalledWith(
+          PermissionsAndroid.PERMISSIONS.POST_NOTIFICATIONS,
+        );
+        expect(requestSpy).toHaveBeenCalledWith(
+          PermissionsAndroid.PERMISSIONS.RECORD_AUDIO,
+        );
+        expect(ui.getAllByText('Allowed').length).toBeGreaterThanOrEqual(2);
+      });
+
+      fireEvent.press(ui.getByTestId('onboarding-continue'));
+      expect(ui.getByTestId('onboarding-ready')).toBeTruthy();
+    } finally {
+      Platform.OS = originalPlatformOS;
+      if (originalReminderModule === undefined) {
+        delete NativeModules.LafinaReminder;
+      } else {
+        NativeModules.LafinaReminder = originalReminderModule;
+      }
+    }
+  });
+
+  test('onboarding offline AI chooser recommends a model and lets the user continue while downloading in the background', async () => {
+    const rnfsMutable = RNFS as unknown as Record<string, unknown>;
+    const originalPlatformOS = Platform.OS;
+    const originalNativeExtractor = NativeModules.LafinaIntentExtractor;
+    const mockFiles: Record<string, {size: number}> = {};
+    const savedRnfsProps = {
+      exists: rnfsMutable.exists,
+      stat: rnfsMutable.stat,
+      mkdir: rnfsMutable.mkdir,
+      unlink: rnfsMutable.unlink,
+      downloadFile: rnfsMutable.downloadFile,
+      stopDownload: rnfsMutable.stopDownload,
+      moveFile: rnfsMutable.moveFile,
+    };
+
+    let resolveDownload!: (res: {statusCode: number}) => void;
+    let downloadTarget = '';
+    const modelSize = 193_986_560;
+
+    Platform.OS = 'android';
+    NativeModules.LafinaIntentExtractor = {
+      unloadModel: jest.fn(async () => true),
+      isEngineAvailable: jest.fn(async () => true),
+      getDeviceSpecs: jest.fn(async () => ({
+        totalRamBytes: 3_900_000_000,
+        availableRamBytes: 1_500_000_000,
+        isLowRamDevice: false,
+        isLowMemoryNow: false,
+        cpuCores: 8,
+        supports64Bit: true,
+        primaryAbi: 'arm64-v8a',
+        availableStorageBytes: 8_000_000_000,
+        totalStorageBytes: 64_000_000_000,
+        deviceLabel: 'Redmi Note Test',
+        androidSdk: 34,
+      })),
+    };
+    rnfsMutable.exists = jest.fn(async (filePath: string) =>
+      Boolean(mockFiles[filePath]),
+    );
+    rnfsMutable.stat = jest.fn(async (filePath: string) => {
+      if (!mockFiles[filePath]) throw new Error('File does not exist');
+      return {size: mockFiles[filePath].size};
+    });
+    rnfsMutable.mkdir = jest.fn(async () => undefined);
+    rnfsMutable.unlink = jest.fn(async (filePath: string) => {
+      delete mockFiles[filePath];
+    });
+    rnfsMutable.moveFile = jest.fn(async (from: string, to: string) => {
+      mockFiles[to] = mockFiles[from] || {size: modelSize};
+      delete mockFiles[from];
+    });
+    rnfsMutable.stopDownload = jest.fn();
+    rnfsMutable.downloadFile = jest.fn(
+      ({
+        toFile,
+        progress,
+      }: {
+        toFile: string;
+        progress?: (res: {bytesWritten: number; contentLength: number}) => void;
+      }) => {
+        downloadTarget = toFile;
+        if (progress) {
+          progress({
+            bytesWritten: Math.round(modelSize * 0.4),
+            contentLength: modelSize,
+          });
+        }
+        return {
+          jobId: 777,
+          promise: new Promise<{statusCode: number}>(resolve => {
+            resolveDownload = res => {
+              mockFiles[toFile] = {size: modelSize};
+              resolve(res);
+            };
+          }),
+        };
+      },
+    );
+
+    try {
+      const guest = userStore.createGuestUser();
+      onboardingProgressStore.markIntroSeen();
+      const ui = render(
+        <ThemeProvider userId={guest.id}>
+          <OnboardingScreen
+            userId={guest.id}
+            onOnboardingComplete={jest.fn()}
+          />
+        </ThemeProvider>,
+      );
+
+      await waitFor(() => {
+        expect(ui.getByTestId('onboarding-ai-recommendation')).toBeTruthy();
+        expect(ui.getByTestId('onboarding-ai-download-continue')).toBeTruthy();
+      });
+
+      // Recommended for 4 GB RAM device is Gemma 3 270M.
+      expect(ui.getByText(/Recommended: Gemma-3-270M-Instruct/)).toBeTruthy();
+
+      // Tapping "Download Gemma 3 270M & continue" starts the download AND moves immediately to COR step!
+      fireEvent.press(ui.getByTestId('onboarding-ai-download-continue'));
+      expect(ui.getByTestId('onboarding-setup-cor')).toBeTruthy();
+
+      // Progress banner is visible while the user goes through COR / finishes onboarding.
+      await waitFor(() => {
+        expect(ui.getByTestId('onboarding-cor-ai-downloading')).toBeTruthy();
+      });
+
+      fireEvent.press(ui.getByTestId('onboarding-cor-later'));
+      expect(ui.getByTestId('onboarding-permissions')).toBeTruthy();
+      expect(ui.getByTestId('onboarding-perm-ai-downloading')).toBeTruthy();
+      fireEvent.press(ui.getByTestId('onboarding-continue'));
+      expect(ui.getByTestId('onboarding-ready')).toBeTruthy();
+      expect(ui.getByTestId('onboarding-finish-ai-status')).toBeTruthy();
+      expect(ui.getByText(/Downloading 40%/)).toBeTruthy();
+
+      // Finish the download while on the final screen -> shows Ready and active model is selected.
+      expect(downloadTarget).toContain('gemma-3-270m');
+      await act(async () => {
+        resolveDownload({statusCode: 200});
+      });
+
+      await waitFor(() => {
+        expect(getSelectedOfflineModelId(guest.id)).toBe('gemma-3-270m');
+        expect(ui.getByText(/Gemma 3 270M · Ready/)).toBeTruthy();
+      });
+      ui.unmount();
+    } finally {
+      await deleteOfflineModel('gemma-3-270m', GUEST_USER_ID);
+      setSelectedOfflineModelId('qwen2.5-0.5b', GUEST_USER_ID);
+      Platform.OS = originalPlatformOS;
+      if (originalNativeExtractor === undefined) {
+        delete NativeModules.LafinaIntentExtractor;
+      } else {
+        NativeModules.LafinaIntentExtractor = originalNativeExtractor;
+      }
+      for (const [key, originalValue] of Object.entries(savedRnfsProps)) {
+        if (originalValue === undefined) {
+          delete rnfsMutable[key];
+        } else {
+          rnfsMutable[key] = originalValue;
+        }
+      }
+    }
   });
 
   test('ProfileScreen displays USTP COR Academic Profile details cleanly without header overlap or shouting uppercase', () => {
     const guest = userStore.createGuestUser();
     const cor = parseUstpCor(SAMPLE_COR_TEXT);
-    academicProfileStore.save(guest.id, {
+    enableUstpForTest(guest.id, {
       ...cor.profile,
-      isUstpStudent: true,
       courses: cor.courses.map(c => ({
         code: c.code,
         subjectTitle: c.subjectTitle,
@@ -233,11 +565,15 @@ describe('Phase 01 Welcome, Onboarding, and Profile Screens', () => {
       </ThemeProvider>,
     );
 
-    expect(ui.getByText(/John Lemar L\. Gonzales/)).toBeTruthy();
     expect(ui.getByText('Offline Guest Account')).toBeTruthy();
+    const heroSubtitle = ui.getByTestId('profile-academic-subtitle');
+    expect(within(heroSubtitle).getByText('CITC')).toBeTruthy();
+    expect(within(heroSubtitle).getByText('4th Year')).toBeTruthy();
+    expect(within(heroSubtitle).getByText('IT4R11_Track2')).toBeTruthy();
     expect(ui.getByTestId('profile-academic-card')).toBeTruthy();
     expect(ui.getByText('Academic Profile')).toBeTruthy();
-    expect(ui.getByText('USTP COR')).toBeTruthy();
+    expect(ui.getByText('Reviewed USTP COR')).toBeTruthy();
+    expect(ui.getByText('USTP · COR confirmed')).toBeTruthy();
     expect(ui.getByTestId('profile-attach-cor-btn')).toBeTruthy();
     expect(ui.getByText('B.S. in Information Technology')).toBeTruthy();
     expect(ui.getByText('4th Year - Baccalaureate')).toBeTruthy();
@@ -249,7 +585,8 @@ describe('Phase 01 Welcome, Onboarding, and Profile Screens', () => {
     expect(ui.getByText('1st Semester AY 2026-2027')).toBeTruthy();
     expect(ui.getByText('Curriculum')).toBeTruthy();
     expect(ui.getByText('CITC-BSIT-2018-2019')).toBeTruthy();
-    expect(ui.getAllByText('2023305519').length).toBeGreaterThanOrEqual(1);
+    // The student number is not shown (academic memory and profile keep no IDs).
+    expect(ui.queryByText('Student No.')).toBeNull();
 
     // Enrolled subjects list expands and collapses when tapped
     expect(ui.queryByTestId('profile-academic-subjects-list')).toBeNull();
@@ -263,8 +600,7 @@ describe('Phase 01 Welcome, Onboarding, and Profile Screens', () => {
 
   test('ProfileScreen uses singular subject label when only 1 subject is saved', () => {
     const guest = userStore.createGuestUser();
-    academicProfileStore.save(guest.id, {
-      isUstpStudent: true,
+    enableUstpForTest(guest.id, {
       campus: 'USTP CDO Campus',
       registrationNo: '111',
       studentNo: '2024300617',
@@ -357,7 +693,7 @@ describe('Phase 01 Welcome, Onboarding, and Profile Screens', () => {
         />
       </ThemeProvider>,
     );
-    fireEvent.press(ui.getByText('Cancel replay'));
+    fireEvent.press(ui.getByLabelText('Cancel replay'));
     expect(cancel).toHaveBeenCalledTimes(1);
     expect(chatMemoryStore.list(guest.id).map(m => m.text)).toEqual(prior);
   });
@@ -409,9 +745,9 @@ describe('Phase 01 Welcome, Onboarding, and Profile Screens', () => {
       </ThemeProvider>,
     );
 
-    expect(
-      ui.getByTestId('profile-display-name').props.children,
-    ).toBe('Maria Concepcion D. Villanueva-Reyes');
+    expect(ui.getByTestId('profile-display-name').props.children).toBe(
+      'Maria Concepcion D. Villanueva-Reyes',
+    );
     expect(ui.queryByTestId('student-pro-tag')).toBeNull();
     expect(ui.queryByText('Student Pro')).toBeNull();
     expect(ui.queryByText('App Interface')).toBeNull();
@@ -440,6 +776,7 @@ describe('Phase 01 Welcome, Onboarding, and Profile Screens', () => {
       Platform.OS = 'android';
       NativeModules.LafinaIntentExtractor = {
         unloadModel: jest.fn(async () => true),
+        isEngineAvailable: jest.fn(async () => true),
         getDeviceSpecs: jest.fn(async () => ({
           totalRamBytes: 3_900_000_000,
           availableRamBytes: 1_500_000_000,
@@ -474,13 +811,16 @@ describe('Phase 01 Welcome, Onboarding, and Profile Screens', () => {
           progress,
         }: {
           toFile: string;
-          progress?: (res: {bytesWritten: number; contentLength: number}) => void;
+          progress?: (res: {
+            bytesWritten: number;
+            contentLength: number;
+          }) => void;
         }) => {
           const mockSize = toFile.includes('gemma-3-1b')
             ? 845000000
             : toFile.includes('gemma-3-270m')
-              ? 193986560
-              : 397800000;
+            ? 193986560
+            : 397800000;
           if (progress) {
             progress({bytesWritten: mockSize, contentLength: mockSize});
           }
@@ -542,9 +882,9 @@ describe('Phase 01 Welcome, Onboarding, and Profile Screens', () => {
         expect(ui.getByTestId('offline-ai-recommendation-card')).toBeTruthy();
       });
 
-      expect(ui.getByTestId('offline-ai-device-specs').props.children).toContain(
-        '4 GB RAM',
-      );
+      expect(
+        ui.getByTestId('offline-ai-device-specs').props.children,
+      ).toContain('4 GB RAM');
       expect(
         ui.getByTestId('offline-model-recommended-gemma-3-270m'),
       ).toBeTruthy();
@@ -565,7 +905,9 @@ describe('Phase 01 Welcome, Onboarding, and Profile Screens', () => {
         expect(ui.getByTestId('offline-ai-header-badge').props.children).toBe(
           'Active: Gemma 3 270M',
         );
-        expect(ui.getByTestId('offline-model-active-gemma-3-270m')).toBeTruthy();
+        expect(
+          ui.getByTestId('offline-model-active-gemma-3-270m'),
+        ).toBeTruthy();
       });
 
       expect(getSelectedOfflineModelId(guest.id)).toBe('gemma-3-270m');
@@ -577,7 +919,9 @@ describe('Phase 01 Welcome, Onboarding, and Profile Screens', () => {
         expect(ui.getByTestId('offline-ai-header-badge').props.children).toBe(
           'Fast-Path Only',
         );
-        expect(ui.getByTestId('offline-model-select-gemma-3-270m')).toBeTruthy();
+        expect(
+          ui.getByTestId('offline-model-select-gemma-3-270m'),
+        ).toBeTruthy();
       });
 
       fireEvent.press(ui.getByTestId('offline-model-select-gemma-3-270m'));
@@ -587,7 +931,9 @@ describe('Phase 01 Welcome, Onboarding, and Profile Screens', () => {
         expect(ui.getByTestId('offline-ai-header-badge').props.children).toBe(
           'Active: Gemma 3 270M',
         );
-        expect(ui.getByTestId('offline-model-active-gemma-3-270m')).toBeTruthy();
+        expect(
+          ui.getByTestId('offline-model-active-gemma-3-270m'),
+        ).toBeTruthy();
       });
 
       alertSpy.mockClear();

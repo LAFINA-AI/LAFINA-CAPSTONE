@@ -26,6 +26,8 @@ export interface ChatMessage {
   voiceInterrupted?: boolean;
   /** Memories this reply's exchange added or removed (shown with Undo). */
   memoryChanges?: ChatMemoryChanges | null;
+  /** Resolution state for a review prompt bubble after Confirm or Cancel. */
+  reviewResolution?: ChatReviewResolution | null;
   /** Durable insertion order; breaks ties between equal timestamps. */
   sequence?: number;
   createdAt: string;
@@ -57,6 +59,14 @@ export interface ChatSession {
   updatedAt: string;
 }
 
+export type ChatReviewResolutionStatus = 'confirmed' | 'cancelled';
+
+export interface ChatReviewResolution {
+  status: ChatReviewResolutionStatus;
+  summary?: string | null;
+  resolvedAt?: string | null;
+}
+
 export interface ChatMessageMetadata {
   handbookNote?: string | null;
   /** Marks an on-device reply so it is never sent to DeepSeek as its own words. */
@@ -64,6 +74,7 @@ export interface ChatMessageMetadata {
   /** Saved from a live voice conversation and not heard to the end. */
   voiceInterrupted?: boolean;
   memoryChanges?: ChatMemoryChanges | null;
+  reviewResolution?: ChatReviewResolution | null;
 }
 
 export interface ChatPage {
@@ -200,6 +211,32 @@ const parseMemoryChanges = (raw: unknown): ChatMemoryChanges | null => {
   }
 };
 
+const parseReviewResolution = (raw: unknown): ChatReviewResolution | null => {
+  if (typeof raw !== 'string' || !raw) return null;
+  try {
+    const value = (JSON.parse(raw) as {reviewResolution?: unknown} | null)
+      ?.reviewResolution as Partial<ChatReviewResolution> | undefined;
+    if (
+      !value ||
+      typeof value !== 'object' ||
+      (value.status !== 'confirmed' && value.status !== 'cancelled')
+    ) {
+      return null;
+    }
+    return {
+      status: value.status,
+      ...(typeof value.summary === 'string' && value.summary.trim()
+        ? {summary: value.summary}
+        : {}),
+      ...(typeof value.resolvedAt === 'string'
+        ? {resolvedAt: value.resolvedAt}
+        : {}),
+    };
+  } catch {
+    return null;
+  }
+};
+
 const mapMessage = (row: Record<string, unknown>): ChatMessage => ({
   id: String(row.id),
   sessionId: String(row.session_id),
@@ -210,6 +247,7 @@ const mapMessage = (row: Record<string, unknown>): ChatMessage => ({
   localReply: parseLocalReply(row.metadata_json),
   voiceInterrupted: parseFlag(row.metadata_json, 'voiceInterrupted'),
   memoryChanges: parseMemoryChanges(row.metadata_json),
+  reviewResolution: parseReviewResolution(row.metadata_json),
   sequence: Number(row.seq),
   createdAt: String(row.created_at),
   updatedAt: String(row.updated_at),
@@ -772,6 +810,9 @@ export const chatStore = {
         ...(msg.metadata?.memoryChanges
           ? {memoryChanges: msg.metadata.memoryChanges}
           : {}),
+        ...(msg.metadata?.reviewResolution
+          ? {reviewResolution: msg.metadata.reviewResolution}
+          : {}),
       };
       const metadataJson = Object.keys(metadataValue).length
         ? JSON.stringify(metadataValue)
@@ -807,6 +848,7 @@ export const chatStore = {
         localReply: msg.metadata?.localReply === true,
         voiceInterrupted: msg.metadata?.voiceInterrupted === true,
         memoryChanges: msg.metadata?.memoryChanges ?? null,
+        reviewResolution: msg.metadata?.reviewResolution ?? null,
         sequence: Number(row?.seq),
         createdAt: now,
         updatedAt: now,
@@ -873,6 +915,58 @@ export const chatStore = {
       tx.executeSync(
         'UPDATE messages SET metadata_json = ?, updated_at = ? WHERE id = ?',
         [
+          Object.keys(metadata).length ? JSON.stringify(metadata) : null,
+          new Date().toISOString(),
+          messageId,
+        ],
+      );
+      return true;
+    };
+    return executor ? write(executor) : db.transactionSync(write);
+  },
+
+  /**
+   * Marks an owned assistant review prompt message as confirmed or cancelled
+   * (and optionally updates its displayed text), keeping owner isolation intact.
+   */
+  setReviewResolution: (
+    userId: string,
+    messageId: string,
+    resolution: ChatReviewResolution | null,
+    updatedContent?: string | ((previousContent: string) => string),
+    executor?: Executor,
+  ): boolean => {
+    const write = (tx: Executor): boolean => {
+      const row = tx.executeSync(
+        `SELECT m.content, m.metadata_json FROM messages m JOIN chat_sessions s ON s.id = m.session_id
+         WHERE m.id = ? AND m.sender = 'assistant' AND s.user_id = ? AND s.id IN (${OWNED_SESSIONS})`,
+        [messageId, userId, ...ownedSessionParams(userId)],
+      ).rows[0];
+      if (!row) return false;
+      let metadata: Record<string, unknown> = {};
+      try {
+        const parsed: unknown = row.metadata_json
+          ? JSON.parse(String(row.metadata_json))
+          : {};
+        if (parsed && typeof parsed === 'object') {
+          metadata = parsed as Record<string, unknown>;
+        }
+      } catch {
+        metadata = {};
+      }
+      if (resolution) metadata.reviewResolution = resolution;
+      else delete metadata.reviewResolution;
+      const prevContent = String(row.content ?? '');
+      const nextContent =
+        typeof updatedContent === 'function'
+          ? updatedContent(prevContent)
+          : typeof updatedContent === 'string'
+          ? updatedContent
+          : prevContent;
+      tx.executeSync(
+        'UPDATE messages SET content = ?, metadata_json = ?, updated_at = ? WHERE id = ?',
+        [
+          nextContent,
           Object.keys(metadata).length ? JSON.stringify(metadata) : null,
           new Date().toISOString(),
           messageId,

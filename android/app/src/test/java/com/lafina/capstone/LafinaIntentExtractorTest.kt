@@ -16,6 +16,21 @@ class LafinaIntentExtractorTest {
     assertTrue(moduleMethods.contains("isModelAvailable"))
     assertTrue(moduleMethods.contains("unloadModel"))
     assertTrue(moduleMethods.contains("getDeviceSpecs"))
+    assertTrue(moduleMethods.contains("isEngineAvailable"))
+  }
+
+  @Test
+  fun `per-model size floor from JS never drops below the generic 40 MB floor`() {
+    assertEquals(40_000_000L, LafinaIntentExtractorModule.resolveMinValidBytes(null))
+    assertEquals(40_000_000L, LafinaIntentExtractorModule.resolveMinValidBytes(1_000.0))
+    assertEquals(40_000_000L, LafinaIntentExtractorModule.resolveMinValidBytes(Double.NaN))
+    assertEquals(300_000_000L, LafinaIntentExtractorModule.resolveMinValidBytes(300_000_000.0))
+  }
+
+  @Test
+  fun `engine tags distinguish model output from the regex fallback`() {
+    assertEquals("slm", LafinaIntentExtractorModule.ENGINE_SLM)
+    assertEquals("kotlin_fallback", LafinaIntentExtractorModule.ENGINE_FALLBACK)
   }
 
   @Test

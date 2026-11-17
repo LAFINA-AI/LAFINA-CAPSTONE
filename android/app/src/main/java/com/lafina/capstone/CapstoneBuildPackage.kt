@@ -38,6 +38,7 @@ class CapstoneBuildModule(context: ReactApplicationContext) : ReactContextBaseJa
   override fun getConstants(): Map<String, Any> =
     mapOf(
       "plannerHarnessEnabled" to BuildConfig.ENABLE_PLANNER_HARNESS,
+      "performanceHarnessEnabled" to BuildConfig.PERFORMANCE_HARNESS_ENABLED,
       // Empty except in a test build made with -PlafinaApiBaseUrl.
       "apiBaseUrlOverride" to BuildConfig.API_BASE_URL_OVERRIDE,
       // Debug and test builds only: Profile's Vercel/local server switch.

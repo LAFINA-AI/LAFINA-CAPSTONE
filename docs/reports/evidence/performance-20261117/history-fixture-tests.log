@@ -1,0 +1,8 @@
+PASS __tests__/ui/chatHistoryAndMemoryUi.test.tsx (8.581 s)
+PASS __tests__/ui/performanceTabLifecycle.test.tsx
+
+Test Suites: 2 passed, 2 total
+Tests:       12 passed, 12 total
+Snapshots:   0 total
+Time:        9.48 s
+Ran all test suites matching /__tests__\\ui\\chatHistoryAndMemoryUi.test.tsx|__tests__\\ui\\performanceTabLifecycle.test.tsx/i.

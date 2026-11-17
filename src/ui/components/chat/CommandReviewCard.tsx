@@ -121,9 +121,13 @@ export const CommandReviewCard: React.FC<CommandReviewCardProps> = ({
   editError,
   testIDPrefix,
 }) => {
-  const {colors} = useTheme();
+  const {colors, isModern, modernPalette, modernShadows} = useTheme();
   const themed = useThemedStyles(getThemedStyles);
-  const accent = proposal.destructive ? colors.error : colors.primary;
+  const accent = proposal.destructive
+    ? colors.error
+    : isModern
+    ? modernPalette.accent
+    : colors.primary;
   const action = `${proposal.heading} “${proposal.title}”`;
   const fields = proposal.draftFields ?? null;
   const canEdit = Boolean(!expired && fields && onEdit);
@@ -176,10 +180,7 @@ export const CommandReviewCard: React.FC<CommandReviewCardProps> = ({
     if (fields.supportsEndTime && form.endTime.trim() !== baseline.endTime) {
       patch.endTime = form.endTime.trim() || null;
     }
-    if (
-      fields.supportsCategory &&
-      form.category.trim() !== baseline.category
-    ) {
+    if (fields.supportsCategory && form.category.trim() !== baseline.category) {
       patch.category = form.category.trim() || 'Personal';
     }
     if (fields.supportsDetails && form.details.trim() !== baseline.details) {
@@ -215,9 +216,66 @@ export const CommandReviewCard: React.FC<CommandReviewCardProps> = ({
       ? [fields.category, 'Academic', 'Personal']
       : ['Academic', 'Personal'];
 
+  const renderDetailLine = (line: string, index: number) => {
+    const trimmed = line.trim();
+    const fieldMatch = /^([A-Z][A-Za-z ]{1,24}):\s+(.+)$/.exec(trimmed);
+    if (fieldMatch) {
+      return (
+        <Text
+          key={`d-${index}`}
+          style={[styles.line, styles.detailLine, themed.secondaryText]}
+        >
+          <Text style={[styles.detailLabel, themed.primaryText]}>
+            {`${fieldMatch[1]}: `}
+          </Text>
+          {fieldMatch[2]}
+        </Text>
+      );
+    }
+    const leadMatch =
+      /^(No due date\.|No reminder(?:\s*\([^)]+\))?\.?|Repeats [^.]+\.)(?:\s+(.+))?$/i.exec(
+        trimmed,
+      );
+    if (leadMatch) {
+      return (
+        <Text
+          key={`d-${index}`}
+          style={[styles.line, styles.detailLine, themed.secondaryText]}
+        >
+          <Text style={[styles.detailStatusLead, themed.primaryText]}>
+            {leadMatch[1]}
+          </Text>
+          {leadMatch[2] ? ` ${leadMatch[2]}` : ''}
+        </Text>
+      );
+    }
+    return (
+      <Text
+        key={`d-${index}`}
+        style={[styles.line, styles.detailLine, themed.secondaryText]}
+      >
+        {line}
+      </Text>
+    );
+  };
+
   return (
     <View
-      style={[styles.card, themed.card, {borderColor: accent}]}
+      style={[
+        styles.card,
+        themed.card,
+        isModern
+          ? [
+              modernShadows.card,
+              {
+                backgroundColor: modernPalette.card,
+                borderColor: proposal.destructive
+                  ? colors.error
+                  : modernPalette.border,
+              },
+            ]
+          : {borderColor: accent},
+      ]}
       accessibilityLabel={`Review before saving: ${action}`}
       testID={`${testIDPrefix}-card`}
     >
@@ -449,9 +507,7 @@ export const CommandReviewCard: React.FC<CommandReviewCardProps> = ({
               accessibilityLabel={`Cancel editing ${action}`}
               testID={`${testIDPrefix}-edit-cancel`}
             >
-              <Text style={[styles.buttonText, themed.primaryText]}>
-                Back
-              </Text>
+              <Text style={[styles.buttonText, themed.primaryText]}>Back</Text>
             </TouchableOpacity>
             <TouchableOpacity
               style={[styles.button, {backgroundColor: accent}]}
@@ -469,21 +525,42 @@ export const CommandReviewCard: React.FC<CommandReviewCardProps> = ({
         </View>
       ) : (
         <>
-          {proposal.details.map((line, index) => (
-            <Text key={`d-${index}`} style={[styles.line, themed.secondaryText]}>
-              {line}
-            </Text>
-          ))}
+          {proposal.details.length > 0 ? (
+            <View
+              style={[
+                styles.detailsBox,
+                isModern
+                  ? {
+                      backgroundColor: modernPalette.surface,
+                      borderColor: modernPalette.border,
+                    }
+                  : {
+                      backgroundColor: colors.inputBg,
+                      borderColor: colors.border,
+                    },
+              ]}
+              testID={`${testIDPrefix}-details`}
+            >
+              {proposal.details.map(renderDetailLine)}
+            </View>
+          ) : null}
           {proposal.assumptions.length > 0 ? (
             <View
-              style={[styles.assumptions, themed.assumptions]}
+              style={[
+                styles.assumptions,
+                themed.assumptions,
+                isModern && {backgroundColor: modernPalette.softViolet},
+              ]}
               testID={`${testIDPrefix}-assumptions`}
             >
               <Text style={[styles.sectionLabel, themed.secondaryText]}>
                 Assumed
               </Text>
               {proposal.assumptions.map((line, index) => (
-                <Text key={`a-${index}`} style={[styles.line, themed.primaryText]}>
+                <Text
+                  key={`a-${index}`}
+                  style={[styles.line, themed.primaryText]}
+                >
                   {line}
                 </Text>
               ))}
@@ -496,7 +573,9 @@ export const CommandReviewCard: React.FC<CommandReviewCardProps> = ({
               testID={`${testIDPrefix}-warning`}
             >
               <CircleAlert size={14} color={colors.warning} />
-              <Text style={[styles.line, styles.warningText, themed.primaryText]}>
+              <Text
+                style={[styles.line, styles.warningText, themed.primaryText]}
+              >
                 {line}
               </Text>
             </View>
@@ -543,7 +622,10 @@ export const CommandReviewCard: React.FC<CommandReviewCardProps> = ({
               <Text style={[styles.sectionLabel, themed.secondaryText]}>
                 When it is due
               </Text>
-              <View style={styles.alternativeRow} accessibilityRole="radiogroup">
+              <View
+                style={styles.alternativeRow}
+                accessibilityRole="radiogroup"
+              >
                 {DELIVERY_CHOICES.map(choice => {
                   const selected = proposal.reminderDelivery === choice.style;
                   return (
@@ -665,10 +747,7 @@ export const CommandReviewCard: React.FC<CommandReviewCardProps> = ({
                     />
                   ) : (
                     <Text
-                      style={[
-                        styles.buttonText,
-                        {color: colors.textOnPrimary},
-                      ]}
+                      style={[styles.buttonText, {color: colors.textOnPrimary}]}
                     >
                       Confirm
                     </Text>
@@ -730,6 +809,23 @@ const styles = StyleSheet.create({
     fontFamily: Fonts.body,
     fontSize: FontSize.body,
     lineHeight: 20,
+  },
+  detailsBox: {
+    borderWidth: 1,
+    borderRadius: Layout.borderRadiusButton,
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.sm,
+    marginTop: Spacing.xxs,
+    gap: Spacing.xs,
+  },
+  detailLine: {
+    lineHeight: 21,
+  },
+  detailLabel: {
+    fontWeight: '700',
+  },
+  detailStatusLead: {
+    fontWeight: '600',
   },
   assumptions: {
     borderRadius: Layout.borderRadiusButton,

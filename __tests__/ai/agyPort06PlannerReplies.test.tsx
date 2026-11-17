@@ -32,6 +32,7 @@ import {CalendarScreen} from '../../src/ui/screens/calendar';
 import {addDaysToDate} from '../../src/storage/eventTime';
 import {ThemeProvider} from '../../src/ui/contexts/ThemeContext';
 import {chatDraftStore} from '../../src/ui/drafts/chatDraftStore';
+import {enableUstpForTest} from '../fixtures/ustpEligibility';
 
 // Friday 2026-11-06 10:00 local.
 const REF = new Date(2026, 10, 6, 10, 0, 0);
@@ -249,6 +250,7 @@ describe('AGY-PORT 06 planner replies and guide', () => {
   describe('online, Handbook and document routes are unchanged', () => {
     test('a general handbook question in Online mode enriches DeepSeek locally while skipping backend Pinecone', async () => {
       const me = owner('online');
+      enableUstpForTest(me);
       const online = jest
         .spyOn(onlineChatSkill, 'sendChatMessage')
         .mockResolvedValue({

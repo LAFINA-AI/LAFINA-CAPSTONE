@@ -1,3 +1,4 @@
+import {DEVICE_SETTINGS_SCOPE} from './deviceScope';
 import {localSettingsStore} from './localSettingsStore';
 
 /**
@@ -7,7 +8,7 @@ import {localSettingsStore} from './localSettingsStore';
 export type UIVariant = 'modern' | 'classic';
 
 export const UI_VARIANT_SETTING_KEY = 'ui_variant';
-export const UI_VARIANT_DEVICE_SCOPE = '__device_default__';
+export const UI_VARIANT_DEVICE_SCOPE = DEVICE_SETTINGS_SCOPE;
 export const DEFAULT_UI_VARIANT: UIVariant = 'modern';
 
 export const normalizeUIVariant = (value: unknown): UIVariant => {

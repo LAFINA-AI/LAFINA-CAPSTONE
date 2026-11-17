@@ -1,8 +1,9 @@
+import {ScreenOverlays} from '../navigation/RetainedTab';
 import React, {useState, useEffect, useRef} from 'react';
 import {
-  ActivityIndicator,
   Alert,
   Image,
+  Modal,
   ScrollView,
   StyleSheet,
   Text,
@@ -17,13 +18,7 @@ import {
   ModernTypography,
   Shadows,
 } from '../theme';
-import {
-  preferencesStore,
-  userStore,
-  academicProfileStore,
-  avatarSeedStore,
-  mapCorCoursesToAcademicRecords,
-} from '../../storage';
+import {preferencesStore, userStore, avatarSeedStore} from '../../storage';
 import type {UserPreferences, User, AcademicProfileRecord} from '../../storage';
 import {useTheme} from '../contexts/ThemeContext';
 import {useThemedStyles} from '../theme/createThemedStyles';
@@ -33,15 +28,22 @@ import {GUEST_USER_ID} from '../../constants';
 import {SvgXml} from 'react-native-svg';
 import {ARC_SCREEN_XML} from '../../assets/arc_screen_xml';
 import {
+  BookOpen,
   Camera,
   Check,
   ChevronDown,
   ChevronUp,
+  Clock,
   Dices,
   FileText,
   GraduationCap,
   LayoutGrid,
+  LogOut,
+  Moon,
+  SlidersHorizontal,
   Sparkles,
+  Sun,
+  User as UserIcon,
 } from 'lucide-react-native';
 import {authService} from '../../cloud/authService';
 import {
@@ -66,10 +68,7 @@ import {ReminderHealth} from '../components/profile/ReminderHealth';
 import {PersonalMemory} from '../components/profile/PersonalMemory';
 import {ChatMemorySettings} from '../components/profile/ChatMemorySettings';
 import {chatMemoryStore} from '../../storage/chatMemoryStore';
-import {
-  readOnboardingIdentity,
-  saveOnboardingMemories,
-} from '../../storage/onboardingMemory';
+import {} from '../../storage/onboardingMemory';
 import {OfflineVoice} from '../components/profile/OfflineVoice';
 import {OnlineVoice} from '../components/profile/OnlineVoice';
 import {onlineVoiceSettingsStore} from '../../storage/onlineVoiceSettingsStore';
@@ -88,7 +87,16 @@ import {
 import type {DataResetAuthority} from '../../storage/accountDataReset';
 import {DeveloperModal} from '../components/profile/DeveloperModal';
 import {developerTestService} from '../components/profile/developerTestService';
-import {visionService} from '../../ai/vision/visionService';
+import {
+  getConfirmedAcademicProfile,
+  getUstpEligibility,
+} from '../../storage/ustpEligibility';
+import {studentSetupStore} from '../../storage/studentSetupStore';
+import type {StudentSetupState} from '../../storage/studentSetupStore';
+import {chooseNotUstpMode, chooseUstpMode} from '../../storage/studentMode';
+import {corImportStore} from '../../storage/corImportStore';
+import {refreshAcademicMemories} from '../../storage/onboardingMemory';
+import {CorReviewFlow} from './onboarding/CorReviewFlow';
 
 const COLLEGE_LOWER_WORDS = new Set([
   'of',
@@ -136,6 +144,26 @@ function formatCollegeDisplay(college: string, collegeShort?: string): string {
   return formatted;
 }
 
+/** Converts all-caps COR instructor names into readable Title Case. */
+function formatFacultyDisplay(faculty: string): string {
+  const clean = faculty.replace(/\s+/g, ' ').trim();
+  if (!clean) return '';
+  const letters = clean.replace(/[^A-Za-z]/g, '');
+  const upperRatio =
+    letters.length > 0
+      ? clean.replace(/[^A-Z]/g, '').length / letters.length
+      : 0;
+  if (upperRatio < 0.7) return clean;
+  return clean
+    .split(' ')
+    .map(word => {
+      if (/^(?:ii|iii|iv)$/i.test(word)) return word.toUpperCase();
+      const lower = word.toLowerCase();
+      return lower.charAt(0).toUpperCase() + lower.slice(1);
+    })
+    .join(' ');
+}
+
 const getSnoozePreferenceLabel = (preferences: UserPreferences): string => {
   switch (preferences.snoozeTendency) {
     case 'immediate':
@@ -159,7 +187,7 @@ interface ProfileScreenProps {
   onReplayOnboarding?: () => void;
 }
 
-export const ProfileScreen: React.FC<ProfileScreenProps> = ({
+export const ProfileScreen = React.memo(function ProfileScreenView({
   userId,
   refreshTrigger,
   onRefresh,
@@ -167,7 +195,7 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
   onNavigateToRegister,
   onReplayTour,
   onReplayOnboarding,
-}) => {
+}: ProfileScreenProps) {
   const [currentUser, setCurrentUser] = useState<User | null>(() => {
     try {
       return userStore.getUserById(userId);
@@ -178,12 +206,15 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
   const [academicProfile, setAcademicProfile] =
     useState<AcademicProfileRecord | null>(() => {
       try {
-        return academicProfileStore.get(userId);
+        return getConfirmedAcademicProfile(userId);
       } catch {
         return null;
       }
     });
-  const [corUploading, setCorUploading] = useState(false);
+  const [corReviewOpen, setCorReviewOpen] = useState(false);
+  const [studentSetup, setStudentSetup] = useState<StudentSetupState>(() =>
+    studentSetupStore.get(userId),
+  );
   const [subjectsExpanded, setSubjectsExpanded] = useState(false);
 
   const [statistics, setStatistics] = useState<DetailedProfileStatistics>(() =>
@@ -243,7 +274,6 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
       );
     }
   };
-  const [dailyBriefingEnabled, setDailyBriefingEnabled] = useState(true);
   const [preferenceSummary, setPreferenceSummary] = useState(() => {
     try {
       const preferences = preferencesStore.get(userId);
@@ -334,12 +364,12 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
   const alive = useRef(true);
   const currentUserId = useRef(userId);
   currentUserId.current = userId;
-  useEffect(
-    () => () => {
+  useEffect(() => {
+    alive.current = true;
+    return () => {
       alive.current = false;
-    },
-    [],
-  );
+    };
+  }, []);
 
   const {
     colors,
@@ -363,6 +393,8 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
           borderRadius: ModernLayout.borderRadiusCard,
           borderWidth: 1,
           borderColor: modernPalette.border,
+          paddingHorizontal: ModernLayout.cardPadding,
+          marginBottom: 14,
         },
       ]
     : [Shadows.card, themed.settingsGroupCard];
@@ -390,7 +422,8 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
 
   const loadSettings = () => {
     setCurrentUser(userStore.getUserById(userId));
-    setAcademicProfile(academicProfileStore.get(userId));
+    setAcademicProfile(getConfirmedAcademicProfile(userId));
+    setStudentSetup(studentSetupStore.get(userId));
     setAvatarSeed(avatarSeedStore.getOrCreate(userId));
     setChatMemorySummary(readChatMemorySummary());
 
@@ -433,71 +466,121 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
     onRefresh();
   };
 
-  const handleUploadCor = async () => {
-    if (corUploading) return;
+  /**
+   * Onboarding redesign: a COR is never saved straight from recognition.
+   * Every path (set up, replace, review a legacy profile) opens the full
+   * review flow, which adds classes only after the student confirms.
+   */
+  const handleUploadCor = () => {
     try {
-      const picked = await visionService.pickCorDocument();
-      if (!picked) return;
-
-      setCorUploading(true);
-      const cor = await visionService.scanUstpCorFromUri(picked.uri);
-      if (
-        !cor ||
-        (cor.courses.length === 0 &&
-          !cor.profile.studentNo &&
-          !cor.profile.fullName)
-      ) {
-        Alert.alert(
-          'COR Not Recognized',
-          'Could not extract USTP COR details from that file. Please try a clearer COR PDF or screenshot.',
-        );
-        return;
+      if (studentSetupStore.get(userId).affiliation !== 'ustp') {
+        setStudentSetup(chooseUstpMode(userId));
       }
-
-      const savedProfile = academicProfileStore.save(userId, {
-        ...cor.profile,
-        isUstpStudent: true,
-        courses: mapCorCoursesToAcademicRecords(cor.courses),
-      });
-
-      const scheduledCount = academicProfileStore.persistRecurringSchedule(
-        userId,
-        cor.sessions,
-      );
-
-      const prefs = preferencesStore.get(userId);
-      const ident = readOnboardingIdentity(userId);
-      saveOnboardingMemories(
-        userId,
-        {
-          preferredName: cor.profile.preferredName || ident.preferredName,
-          tone: ident.tone,
-        },
-        prefs.studyPeakHours,
-        savedProfile,
-      );
-
-      setAcademicProfile(savedProfile);
-      setCurrentUser(userStore.getUserById(userId));
-      setChatMemorySummary(readChatMemorySummary());
-      loadStats();
-      onRefresh();
-
-      Alert.alert(
-        'USTP COR Updated',
-        `Updated profile for ${savedProfile.formattedName || 'Student'} (${
-          savedProfile.program || 'USTP'
-        }) and scheduled ${scheduledCount} recurring class sessions in your Calendar.`,
-      );
     } catch (error) {
-      console.error('[ProfileScreen] Failed uploading USTP COR:', error);
+      console.error('[ProfileScreen] Could not choose USTP mode:', error);
       Alert.alert(
-        'COR Upload Failed',
-        'Could not process the selected COR file.',
+        'Not Saved',
+        'That choice could not be saved. Please try again.',
       );
-    } finally {
-      setCorUploading(false);
+      return;
     }
+    setCorReviewOpen(true);
+  };
+
+  const closeCorReview = () => {
+    setCorReviewOpen(false);
+    loadSettings();
+    setChatMemorySummary(readChatMemorySummary());
+    loadStats();
+    onRefresh();
+  };
+
+  const switchToSchedulingMode = () => {
+    Alert.alert(
+      'Use scheduling mode?',
+      'USTP features turn off now: handbook answers, school details and academic memory. Your classes stay in your schedule.',
+      [
+        {text: 'Cancel', style: 'cancel'},
+        {
+          text: 'Switch',
+          onPress: () => {
+            try {
+              setStudentSetup(chooseNotUstpMode(userId));
+              setAcademicProfile(null);
+              setChatMemorySummary(readChatMemorySummary());
+              onRefresh();
+            } catch (error) {
+              console.error('[ProfileScreen] Could not switch mode:', error);
+              Alert.alert(
+                'Not Saved',
+                'The mode could not be changed. Please try again.',
+              );
+            }
+          },
+        },
+      ],
+    );
+  };
+
+  const undoLatestCorImport = () => {
+    Alert.alert(
+      'Undo the last COR import?',
+      'Classes added by that import are removed and the earlier state returns. Your other plans are unchanged.',
+      [
+        {text: 'Cancel', style: 'cancel'},
+        {
+          text: 'Undo',
+          style: 'destructive',
+          onPress: () => {
+            try {
+              corImportStore.undoLatestImport(userId);
+              refreshAcademicMemories(userId);
+              closeCorReview();
+            } catch (error) {
+              console.error('[ProfileScreen] COR undo failed:', error);
+              Alert.alert(
+                'Not Undone',
+                'The import could not be undone. Please try again.',
+              );
+            }
+          },
+        },
+      ],
+    );
+  };
+
+  const handleStudentSetup = () => {
+    const setup = studentSetupStore.get(userId);
+    const eligible = getUstpEligibility(userId).eligible;
+    if (setup.affiliation !== 'ustp') {
+      Alert.alert(
+        'Student setup',
+        'You are using scheduling mode. USTP features need your COR.',
+        [
+          {text: 'Cancel', style: 'cancel'},
+          {text: "I'm a USTP student", onPress: handleUploadCor},
+        ],
+      );
+      return;
+    }
+    Alert.alert(
+      'Student setup',
+      eligible
+        ? 'USTP features are on from your reviewed COR. This is not official USTP verification.'
+        : 'Your COR is not reviewed yet, so LAFINA works in scheduling mode.',
+      [
+        {text: 'Cancel', style: 'cancel'},
+        {text: "I'm not a USTP student", onPress: switchToSchedulingMode},
+        {
+          text: eligible
+            ? 'Replace COR'
+            : setup.corStatus === 'needs_review'
+            ? 'Review COR'
+            : 'Set up COR',
+          onPress: handleUploadCor,
+        },
+      ],
+    );
   };
 
   const handleTestTtsVoice = async () => {
@@ -718,7 +801,8 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
     }
     if (alive.current) {
       setCurrentUser(userStore.getUserById(userId));
-      setAcademicProfile(academicProfileStore.get(userId));
+      setAcademicProfile(getConfirmedAcademicProfile(userId));
+      setStudentSetup(studentSetupStore.get(userId));
       setChatMemorySummary(readChatMemorySummary());
       loadStats();
       loadEventDefaultsSummary();
@@ -825,7 +909,6 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
             academicProfile.collegeShort,
           ),
         },
-        {label: 'Student No.', value: academicProfile.studentNo},
         {label: 'Academic Term', value: academicTerm},
         {label: 'Curriculum', value: academicProfile.curriculum},
       ].filter(row => Boolean(row.value))
@@ -834,9 +917,64 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
   return (
     <ScrollView
       style={[styles.container, themed.container]}
-      contentContainerStyle={styles.contentContainer}
+      contentContainerStyle={[
+        styles.contentContainer,
+        isModern && styles.modernContentContainer,
+      ]}
+      showsVerticalScrollIndicator={false}
     >
-      {!isModern && (
+      {isModern ? (
+        <View style={styles.modernTopHeader}>
+          <Text
+            style={[styles.modernPageTitle, {color: modernPalette.text}]}
+            numberOfLines={1}
+          >
+            Profile
+          </Text>
+          <View style={styles.modernHeaderActions}>
+            <TouchableOpacity
+              onPress={() => toggleTheme()}
+              activeOpacity={0.8}
+              accessibilityRole="button"
+              accessibilityLabel={
+                isDarkMode ? 'Switch to light mode' : 'Switch to dark mode'
+              }
+              testID="profile-quick-theme-btn"
+              style={[
+                styles.modernHeaderCircleBtn,
+                modernShadows.subtle,
+                {
+                  backgroundColor: modernPalette.card,
+                  borderColor: modernPalette.border,
+                },
+              ]}
+            >
+              {isDarkMode ? (
+                <Sun size={18} color={modernPalette.text} />
+              ) : (
+                <Moon size={18} color={modernPalette.text} />
+              )}
+            </TouchableOpacity>
+            <TouchableOpacity
+              onPress={() => setPreferencesVisible(true)}
+              activeOpacity={0.8}
+              accessibilityRole="button"
+              accessibilityLabel="Open preferences"
+              testID="profile-quick-prefs-btn"
+              style={[
+                styles.modernHeaderCircleBtn,
+                modernShadows.subtle,
+                {
+                  backgroundColor: modernPalette.card,
+                  borderColor: modernPalette.border,
+                },
+              ]}
+            >
+              <SlidersHorizontal size={17} color={modernPalette.text} />
+            </TouchableOpacity>
+          </View>
+        </View>
+      ) : (
         <View style={styles.headerBackground}>
           <SvgXml
             xml={ARC_SCREEN_XML}
@@ -868,7 +1006,9 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
             ]}
           />
         )}
-        <View style={styles.avatarWrapper}>
+        <View
+          style={[styles.avatarWrapper, isModern && styles.modernAvatarWrapper]}
+        >
           <TouchableOpacity
             onPress={handleEditProfile}
             activeOpacity={0.85}
@@ -879,9 +1019,12 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
             }
             style={[
               styles.avatarCircle,
+              isModern && styles.modernAvatarCircle,
               themed.avatarCircle,
               {
-                backgroundColor: colors.cardBg,
+                backgroundColor: isModern
+                  ? modernPalette.surface
+                  : colors.cardBg,
                 borderColor: isModern ? modernPalette.accent : colors.cardBg,
               },
             ]}
@@ -895,7 +1038,7 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
             ) : (
               <CharacterAvatar
                 seed={avatarSeed}
-                size={112}
+                size={isModern ? 88 : 112}
                 testID="profile-character-avatar"
               />
             )}
@@ -903,24 +1046,48 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
           {!photoSource && (
             <TouchableOpacity
               onPress={randomizeCharacterAvatar}
-              style={[styles.randomizeBadge, themed.editBadge, Shadows.card]}
+              style={[
+                styles.randomizeBadge,
+                isModern && styles.modernAvatarBadge,
+                themed.editBadge,
+                isModern ? modernShadows.subtle : Shadows.card,
+                isModern && {
+                  backgroundColor: modernPalette.card,
+                  borderColor: modernPalette.border,
+                },
+              ]}
               testID="profile-randomize-avatar-btn"
               accessibilityRole="button"
               accessibilityLabel="Randomize character avatar"
             >
-              <Dices size={16} color={colors.textPrimary} />
+              <Dices
+                size={isModern ? 15 : 16}
+                color={isModern ? modernPalette.text : colors.textPrimary}
+              />
             </TouchableOpacity>
           )}
           <TouchableOpacity
             onPress={handleEditProfile}
-            style={[styles.editBadge, themed.editBadge, Shadows.card]}
+            style={[
+              styles.editBadge,
+              isModern && styles.modernAvatarBadge,
+              themed.editBadge,
+              isModern ? modernShadows.subtle : Shadows.card,
+              isModern && {
+                backgroundColor: modernPalette.card,
+                borderColor: modernPalette.border,
+              },
+            ]}
             testID="profile-photo-badge-btn"
             accessibilityRole="button"
             accessibilityLabel={
               photoSource ? 'Change profile photo' : 'Add a profile photo'
             }
           >
-            <Camera size={16} color={colors.textPrimary} />
+            <Camera
+              size={isModern ? 15 : 16}
+              color={isModern ? modernPalette.text : colors.textPrimary}
+            />
           </TouchableOpacity>
         </View>
         <View style={styles.nameRow} testID="profile-identity-block">
@@ -938,7 +1105,11 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
           </Text>
         </View>
         <Text
-          style={[styles.userEmail, themed.userEmail]}
+          style={[
+            styles.userEmail,
+            themed.userEmail,
+            isModern && styles.modernUserEmail,
+          ]}
           numberOfLines={1}
           testID="profile-display-email"
         >
@@ -946,34 +1117,98 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
             (isGuest ? 'Offline Guest Account' : 'No email set')}
         </Text>
         {academicProfile &&
-          (academicProfile.program ||
+          (academicProfile.collegeShort ||
             academicProfile.yearLevelShort ||
             academicProfile.yearLevel ||
-            academicSection) && (
+            academicSection) &&
+          (isModern ? (
+            <View
+              testID="profile-academic-subtitle"
+              style={styles.modernHeroAcademicBlock}
+            >
+              <View style={styles.modernHeroPillsRow}>
+                {academicProfile.collegeShort ? (
+                  <View
+                    style={[
+                      styles.modernHeroPill,
+                      {backgroundColor: modernPalette.blueSoft},
+                    ]}
+                  >
+                    <GraduationCap size={12} color={modernPalette.blueInk} />
+                    <Text
+                      style={[
+                        styles.modernHeroPillText,
+                        {color: modernPalette.blueInk},
+                      ]}
+                      numberOfLines={1}
+                    >
+                      {academicProfile.collegeShort}
+                    </Text>
+                  </View>
+                ) : null}
+                {academicProfile.yearLevelShort || academicProfile.yearLevel ? (
+                  <View
+                    style={[
+                      styles.modernHeroPill,
+                      {backgroundColor: modernPalette.softViolet},
+                    ]}
+                  >
+                    {!academicProfile.collegeShort && (
+                      <GraduationCap size={12} color={modernPalette.accent} />
+                    )}
+                    <Text
+                      style={[
+                        styles.modernHeroPillText,
+                        {color: modernPalette.accent},
+                      ]}
+                      numberOfLines={1}
+                    >
+                      {academicProfile.yearLevelShort ||
+                        academicProfile.yearLevel.split(' - ')[0]}
+                    </Text>
+                  </View>
+                ) : null}
+                {academicSection ? (
+                  <View
+                    style={[
+                      styles.modernHeroPill,
+                      {backgroundColor: modernPalette.mint},
+                    ]}
+                  >
+                    <Text
+                      style={[
+                        styles.modernHeroPillText,
+                        {color: modernPalette.mintInk},
+                      ]}
+                      numberOfLines={1}
+                    >
+                      {academicSection}
+                    </Text>
+                  </View>
+                ) : null}
+              </View>
+            </View>
+          ) : (
             <View
               testID="profile-academic-subtitle"
               style={[
                 styles.academicSubtitlePill,
                 {
-                  backgroundColor: isModern
-                    ? modernPalette.blueSoft
-                    : colors.cardBg,
-                  borderColor: isModern ? 'transparent' : colors.border,
+                  backgroundColor: colors.cardBg,
+                  borderColor: colors.border,
                 },
               ]}
             >
               <GraduationCap
                 size={14}
-                color={isModern ? modernPalette.blueInk : colors.blue}
+                color={colors.blue}
                 style={styles.academicSubtitleIcon}
               />
               <Text
                 style={[
                   styles.academicSubtitleText,
                   {
-                    color: isModern
-                      ? modernPalette.blueInk
-                      : colors.textPrimary,
+                    color: colors.textPrimary,
                   },
                 ]}
                 numberOfLines={2}
@@ -987,27 +1222,47 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
                   .join(' · ')}
               </Text>
             </View>
-          )}
+          ))}
       </View>
 
-      <View style={styles.mainContent}>
+      <View style={[styles.mainContent, isModern && styles.modernMainContent]}>
         {academicProfile && (
           <View
             testID="profile-academic-card"
-            style={[styles.academicCard, ...cardSurfaceStyle]}
+            style={[
+              styles.academicCard,
+              ...cardSurfaceStyle,
+              isModern && styles.modernAcademicCard,
+            ]}
           >
             <View style={styles.academicCardHeader}>
               <View style={styles.academicCardTitleRow}>
-                <GraduationCap
-                  size={18}
-                  color={colors.blue}
-                  style={styles.academicHeaderIcon}
-                />
+                {isModern ? (
+                  <View
+                    style={[
+                      styles.modernCardIconCircle,
+                      {backgroundColor: modernPalette.blueSoft},
+                    ]}
+                  >
+                    <GraduationCap size={18} color={modernPalette.blueInk} />
+                  </View>
+                ) : (
+                  <GraduationCap
+                    size={18}
+                    color={colors.blue}
+                    style={styles.academicHeaderIcon}
+                  />
+                )}
                 <View style={styles.academicCardTitleGroup}>
                   <Text
                     style={[
                       styles.academicCardTitle,
-                      {color: colors.textPrimary},
+                      isModern && styles.modernCardTitle,
+                      {
+                        color: isModern
+                          ? modernPalette.text
+                          : colors.textPrimary,
+                      },
                     ]}
                   >
                     Academic Profile
@@ -1015,37 +1270,48 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
                   <Text
                     style={[
                       styles.academicCardSubtitle,
-                      {color: colors.textSecondary},
+                      isModern && styles.modernCardSubtitle,
+                      {
+                        color: isModern
+                          ? modernPalette.muted
+                          : colors.textSecondary,
+                      },
                     ]}
                     numberOfLines={1}
                   >
-                    USTP COR
+                    Reviewed USTP COR
                   </Text>
                 </View>
               </View>
               <TouchableOpacity
                 testID="profile-attach-cor-btn"
                 accessibilityRole="button"
-                accessibilityLabel={
-                  corUploading ? 'Scanning USTP COR' : 'Update COR'
-                }
-                onPress={() => void handleUploadCor()}
-                disabled={corUploading}
+                accessibilityLabel="Replace COR"
+                onPress={handleUploadCor}
+                activeOpacity={0.8}
                 style={[
                   styles.academicUpdateBtn,
-                  {borderColor: colors.blue},
-                  corUploading && styles.academicUpdateBtnDisabled,
+                  isModern && styles.modernCorPillBtn,
+                  {
+                    borderColor: isModern ? modernPalette.border : colors.blue,
+                    backgroundColor: isModern
+                      ? modernPalette.softViolet
+                      : 'transparent',
+                  },
                 ]}
               >
-                {corUploading ? (
-                  <ActivityIndicator size="small" color={colors.blue} />
-                ) : (
-                  <FileText size={12} color={colors.blue} />
-                )}
+                <FileText
+                  size={isModern ? 13 : 12}
+                  color={isModern ? modernPalette.accent : colors.blue}
+                />
                 <Text
-                  style={[styles.academicUpdateBtnText, {color: colors.blue}]}
+                  style={[
+                    styles.academicUpdateBtnText,
+                    isModern && styles.modernCorPillBtnText,
+                    {color: isModern ? modernPalette.accent : colors.blue},
+                  ]}
                 >
-                  {corUploading ? 'Scanning…' : 'Update COR'}
+                  Replace COR
                 </Text>
               </TouchableOpacity>
             </View>
@@ -1062,17 +1328,35 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
                     style={[styles.settingDivider, themed.settingDivider]}
                   />
                 )}
-                <View style={styles.academicRow}>
+                <View
+                  style={[
+                    styles.academicRow,
+                    isModern && styles.modernAcademicRow,
+                  ]}
+                >
                   <Text
                     style={[
                       styles.academicLabel,
-                      {color: colors.textSecondary},
+                      isModern && styles.modernAcademicLabel,
+                      {
+                        color: isModern
+                          ? modernPalette.muted
+                          : colors.textSecondary,
+                      },
                     ]}
                   >
                     {row.label}
                   </Text>
                   <Text
-                    style={[styles.academicValue, {color: colors.textPrimary}]}
+                    style={[
+                      styles.academicValue,
+                      isModern && styles.modernAcademicValue,
+                      {
+                        color: isModern
+                          ? modernPalette.text
+                          : colors.textPrimary,
+                      },
+                    ]}
                   >
                     {row.value}
                   </Text>
@@ -1082,7 +1366,7 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
 
             {academicProfile.courses.length > 0 ? (
               <>
-                {academicRows.length > 0 && (
+                {academicRows.length > 0 && !isModern && (
                   <View
                     style={[styles.settingDivider, themed.settingDivider]}
                   />
@@ -1092,23 +1376,54 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
                   accessibilityRole="button"
                   accessibilityState={{expanded: subjectsExpanded}}
                   onPress={() => setSubjectsExpanded(prev => !prev)}
-                  activeOpacity={0.7}
-                  style={styles.academicRow}
+                  activeOpacity={0.75}
+                  style={[
+                    styles.academicRow,
+                    isModern && [
+                      styles.modernSubjectsToggleRow,
+                      {
+                        backgroundColor: modernPalette.surface,
+                        borderColor: modernPalette.border,
+                      },
+                    ],
+                  ]}
                 >
-                  <Text
+                  <View style={styles.modernSubjectsLabelGroup}>
+                    {isModern && (
+                      <BookOpen size={15} color={modernPalette.accent} />
+                    )}
+                    <Text
+                      style={[
+                        styles.academicLabel,
+                        isModern && [
+                          styles.modernAcademicLabel,
+                          styles.modernSubjectsToggleLabel,
+                          {color: modernPalette.text},
+                        ],
+                        !isModern && {color: colors.textSecondary},
+                      ]}
+                      numberOfLines={1}
+                    >
+                      Enrolled Subjects
+                    </Text>
+                  </View>
+                  <View
                     style={[
-                      styles.academicLabel,
-                      {color: colors.textSecondary},
+                      styles.academicSubjectsValueWrap,
+                      isModern && styles.modernSubjectsValueWrap,
                     ]}
                   >
-                    Enrolled Subjects
-                  </Text>
-                  <View style={styles.academicSubjectsValueWrap}>
                     <Text
                       style={[
                         styles.academicSubjectsValue,
-                        {color: colors.textPrimary},
+                        isModern && styles.modernSubjectsValueText,
+                        {
+                          color: isModern
+                            ? modernPalette.accent
+                            : colors.textPrimary,
+                        },
                       ]}
+                      numberOfLines={1}
                     >
                       {academicProfile.courses.length}{' '}
                       {academicProfile.courses.length === 1
@@ -1119,9 +1434,15 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
                         : ''}
                     </Text>
                     {subjectsExpanded ? (
-                      <ChevronUp size={15} color={colors.blue} />
+                      <ChevronUp
+                        size={15}
+                        color={isModern ? modernPalette.accent : colors.blue}
+                      />
                     ) : (
-                      <ChevronDown size={15} color={colors.blue} />
+                      <ChevronDown
+                        size={15}
+                        color={isModern ? modernPalette.accent : colors.blue}
+                      />
                     )}
                   </View>
                 </TouchableOpacity>
@@ -1131,65 +1452,193 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
                     testID="profile-academic-subjects-list"
                     style={[
                       styles.academicSubjectsList,
+                      isModern && styles.modernAcademicSubjectsList,
                       {
-                        backgroundColor: colors.inputBg,
-                        borderColor: colors.border,
+                        backgroundColor: isModern
+                          ? modernPalette.surface
+                          : colors.inputBg,
+                        borderColor: isModern
+                          ? modernPalette.border
+                          : colors.border,
                       },
                     ]}
                   >
-                    {academicProfile.courses.map((course, idx) => (
-                      <View
-                        key={`${course.code}-${course.section}-${idx}`}
-                        style={[
-                          styles.academicSubjectItem,
-                          idx > 0 && [
-                            styles.academicSubjectItemBorder,
-                            {borderTopColor: colors.divider},
-                          ],
-                        ]}
-                      >
-                        <View style={styles.academicSubjectTopRow}>
-                          <Text
-                            style={[
-                              styles.academicSubjectTitle,
-                              {color: colors.textPrimary},
-                            ]}
-                          >
-                            <Text style={{color: colors.blue}}>
-                              {course.code}
+                    {academicProfile.courses.map((course, idx) =>
+                      isModern ? (
+                        <View
+                          key={`${course.code}-${course.section}-${idx}`}
+                          style={[
+                            styles.modernSubjectItem,
+                            idx > 0 && [
+                              styles.academicSubjectItemBorder,
+                              {borderTopColor: modernPalette.border},
+                            ],
+                          ]}
+                        >
+                          <View style={styles.modernSubjectTopRow}>
+                            <View style={styles.modernSubjectTitleWrap}>
+                              <View
+                                style={[
+                                  styles.modernSubjectCodeBadge,
+                                  {backgroundColor: modernPalette.softViolet},
+                                ]}
+                              >
+                                <Text
+                                  style={[
+                                    styles.modernSubjectCodeText,
+                                    {color: modernPalette.accent},
+                                  ]}
+                                  numberOfLines={1}
+                                >
+                                  {course.code}
+                                </Text>
+                              </View>
+                              {course.subjectTitle ? (
+                                <Text
+                                  style={[
+                                    styles.modernSubjectTitle,
+                                    {color: modernPalette.text},
+                                  ]}
+                                >
+                                  {course.subjectTitle}
+                                </Text>
+                              ) : null}
+                            </View>
+                            <View
+                              style={[
+                                styles.modernSubjectUnitsPill,
+                                {
+                                  backgroundColor: modernPalette.card,
+                                  borderColor: modernPalette.border,
+                                },
+                              ]}
+                            >
+                              <Text
+                                style={[
+                                  styles.modernSubjectUnitsText,
+                                  {color: modernPalette.muted},
+                                ]}
+                                numberOfLines={1}
+                              >
+                                {course.creditUnits}{' '}
+                                {course.creditUnits === 1 ? 'unit' : 'units'}
+                              </Text>
+                            </View>
+                          </View>
+
+                          {course.scheduleSummary ? (
+                            <View style={styles.modernSubjectDetailRow}>
+                              <Clock
+                                size={12}
+                                color={modernPalette.accent}
+                                style={styles.modernSubjectDetailIcon}
+                              />
+                              <Text
+                                style={[
+                                  styles.modernSubjectScheduleText,
+                                  {color: modernPalette.text},
+                                ]}
+                              >
+                                {course.scheduleSummary}
+                              </Text>
+                            </View>
+                          ) : null}
+
+                          {(course.section ||
+                            (course.faculty && course.faculty !== 'TBA')) && (
+                            <View style={styles.modernSubjectMetaRow}>
+                              {course.section ? (
+                                <View
+                                  style={[
+                                    styles.modernSubjectSectionChip,
+                                    {backgroundColor: modernPalette.mint},
+                                  ]}
+                                >
+                                  <Text
+                                    style={[
+                                      styles.modernSubjectSectionText,
+                                      {color: modernPalette.mintInk},
+                                    ]}
+                                    numberOfLines={1}
+                                  >
+                                    {course.section}
+                                  </Text>
+                                </View>
+                              ) : null}
+                              {course.faculty && course.faculty !== 'TBA' ? (
+                                <View style={styles.modernSubjectFacultyRow}>
+                                  <UserIcon
+                                    size={11.5}
+                                    color={modernPalette.muted}
+                                  />
+                                  <Text
+                                    style={[
+                                      styles.modernSubjectFacultyText,
+                                      {color: modernPalette.muted},
+                                    ]}
+                                    numberOfLines={1}
+                                  >
+                                    {formatFacultyDisplay(course.faculty)}
+                                  </Text>
+                                </View>
+                              ) : null}
+                            </View>
+                          )}
+                        </View>
+                      ) : (
+                        <View
+                          key={`${course.code}-${course.section}-${idx}`}
+                          style={[
+                            styles.academicSubjectItem,
+                            idx > 0 && [
+                              styles.academicSubjectItemBorder,
+                              {borderTopColor: colors.divider},
+                            ],
+                          ]}
+                        >
+                          <View style={styles.academicSubjectTopRow}>
+                            <Text
+                              style={[
+                                styles.academicSubjectTitle,
+                                {color: colors.textPrimary},
+                              ]}
+                            >
+                              <Text style={{color: colors.blue}}>
+                                {course.code}
+                              </Text>
+                              {course.subjectTitle
+                                ? ` · ${course.subjectTitle}`
+                                : ''}
                             </Text>
-                            {course.subjectTitle
-                              ? ` · ${course.subjectTitle}`
-                              : ''}
-                          </Text>
+                            <Text
+                              style={[
+                                styles.academicSubjectUnits,
+                                {color: colors.textSecondary},
+                              ]}
+                            >
+                              {course.creditUnits}{' '}
+                              {course.creditUnits === 1 ? 'unit' : 'units'}
+                            </Text>
+                          </View>
                           <Text
                             style={[
-                              styles.academicSubjectUnits,
+                              styles.academicSubjectMeta,
                               {color: colors.textSecondary},
                             ]}
                           >
-                            {course.creditUnits}{' '}
-                            {course.creditUnits === 1 ? 'unit' : 'units'}
+                            {[
+                              course.scheduleSummary,
+                              course.section,
+                              course.faculty && course.faculty !== 'TBA'
+                                ? course.faculty
+                                : '',
+                            ]
+                              .filter(Boolean)
+                              .join(' · ')}
                           </Text>
                         </View>
-                        <Text
-                          style={[
-                            styles.academicSubjectMeta,
-                            {color: colors.textSecondary},
-                          ]}
-                        >
-                          {[
-                            course.scheduleSummary,
-                            course.section,
-                            course.faculty && course.faculty !== 'TBA'
-                              ? course.faculty
-                              : '',
-                          ]
-                            .filter(Boolean)
-                            .join(' · ')}
-                        </Text>
-                      </View>
-                    ))}
+                      ),
+                    )}
                   </View>
                 )}
               </>
@@ -1200,17 +1649,35 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
                     style={[styles.settingDivider, themed.settingDivider]}
                   />
                 )}
-                <View style={styles.academicRow}>
+                <View
+                  style={[
+                    styles.academicRow,
+                    isModern && styles.modernAcademicRow,
+                  ]}
+                >
                   <Text
                     style={[
                       styles.academicLabel,
-                      {color: colors.textSecondary},
+                      isModern && styles.modernAcademicLabel,
+                      {
+                        color: isModern
+                          ? modernPalette.muted
+                          : colors.textSecondary,
+                      },
                     ]}
                   >
                     Total Units
                   </Text>
                   <Text
-                    style={[styles.academicValue, {color: colors.textPrimary}]}
+                    style={[
+                      styles.academicValue,
+                      isModern && styles.modernAcademicValue,
+                      {
+                        color: isModern
+                          ? modernPalette.text
+                          : colors.textPrimary,
+                      },
+                    ]}
                   >
                     {academicProfile.totalCreditUnits} units
                   </Text>
@@ -1225,9 +1692,21 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
           onPressViewStats={() => setStatsModalVisible(true)}
         />
 
-        <View style={styles.settingsContainer}>
+        <View
+          style={[
+            styles.settingsContainer,
+            isModern && styles.modernSettingsContainer,
+          ]}
+        >
           <Text
-            style={[styles.settingsGroupHeader, themed.settingsGroupHeader]}
+            style={[
+              styles.settingsGroupHeader,
+              themed.settingsGroupHeader,
+              isModern && [
+                styles.modernSettingsGroupHeader,
+                {color: modernPalette.muted, marginTop: 2},
+              ],
+            ]}
           >
             Preferences
           </Text>
@@ -1267,25 +1746,43 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
             />
             <View style={[styles.settingDivider, themed.settingDivider]} />
             <SettingItem
-              text={
-                corUploading
-                  ? 'Scanning USTP COR…'
-                  : academicProfile
-                  ? 'Update USTP COR'
-                  : 'Attach USTP COR'
-              }
+              text="Student Setup"
               type="link"
               valueText={
-                academicProfile?.studentNo ||
-                academicProfile?.yearLevelShort ||
-                'PDF / Image'
+                studentSetup.affiliation === 'ustp'
+                  ? academicProfile
+                    ? 'USTP · COR confirmed'
+                    : studentSetup.corStatus === 'needs_review'
+                    ? 'USTP · COR needs review'
+                    : 'USTP · COR pending'
+                  : studentSetup.affiliation === 'not_ustp'
+                  ? 'Scheduling mode'
+                  : 'Not chosen'
               }
-              onPress={() => void handleUploadCor()}
+              onPress={handleStudentSetup}
             />
+            {corImportStore.latestActiveImport(userId) ? (
+              <>
+                <View style={[styles.settingDivider, themed.settingDivider]} />
+                <SettingItem
+                  text="Undo Last COR Import"
+                  type="link"
+                  valueText="Only that import"
+                  onPress={undoLatestCorImport}
+                />
+              </>
+            ) : null}
           </View>
 
           <Text
-            style={[styles.settingsGroupHeader, themed.settingsGroupHeader]}
+            style={[
+              styles.settingsGroupHeader,
+              themed.settingsGroupHeader,
+              isModern && [
+                styles.modernSettingsGroupHeader,
+                {color: modernPalette.muted},
+              ],
+            ]}
           >
             AI & Voice
           </Text>
@@ -1332,7 +1829,14 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
           </View>
 
           <Text
-            style={[styles.settingsGroupHeader, themed.settingsGroupHeader]}
+            style={[
+              styles.settingsGroupHeader,
+              themed.settingsGroupHeader,
+              isModern && [
+                styles.modernSettingsGroupHeader,
+                {color: modernPalette.muted},
+              ],
+            ]}
           >
             Notifications
           </Text>
@@ -1344,27 +1848,26 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
             ]}
           >
             <SettingItem
-              text="Daily Morning Briefing"
-              type="toggle"
-              value={dailyBriefingEnabled}
-              onValueChange={setDailyBriefingEnabled}
-            />
-            <View style={[styles.settingDivider, themed.settingDivider]} />
-            <SettingItem
               text="Alarm & Reminder Health"
               type="link"
+              valueText="Permissions & battery"
               onPress={() => setHealthVisible(true)}
             />
           </View>
 
           <Text
-            style={[styles.settingsGroupHeader, themed.settingsGroupHeader]}
+            style={[
+              styles.settingsGroupHeader,
+              themed.settingsGroupHeader,
+              isModern && [
+                styles.modernSettingsGroupHeader,
+                {color: modernPalette.muted},
+              ],
+            ]}
           >
             Appearance
           </Text>
-          <View
-            style={[styles.settingsGroupCard, ...cardSurfaceStyle]}
-          >
+          <View style={[styles.settingsGroupCard, ...cardSurfaceStyle]}>
             <SettingItem
               text="Dark Mode"
               type="toggle"
@@ -1504,7 +2007,11 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
                                 {backgroundColor: modernPalette.accent},
                               ]}
                             >
-                              <Check size={10} color="#FFFFFF" strokeWidth={3} />
+                              <Check
+                                size={10}
+                                color="#FFFFFF"
+                                strokeWidth={3}
+                              />
                             </View>
                           )}
                         </TouchableOpacity>
@@ -1517,7 +2024,14 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
           </View>
 
           <Text
-            style={[styles.settingsGroupHeader, themed.settingsGroupHeader]}
+            style={[
+              styles.settingsGroupHeader,
+              themed.settingsGroupHeader,
+              isModern && [
+                styles.modernSettingsGroupHeader,
+                {color: modernPalette.muted},
+              ],
+            ]}
           >
             Data Settings
           </Text>
@@ -1539,7 +2053,14 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
           {isDevMode && (
             <>
               <Text
-                style={[styles.settingsGroupHeader, themed.settingsGroupHeader]}
+                style={[
+                  styles.settingsGroupHeader,
+                  themed.settingsGroupHeader,
+                  isModern && [
+                    styles.modernSettingsGroupHeader,
+                    {color: modernPalette.muted},
+                  ],
+                ]}
               >
                 Developer
               </Text>
@@ -1551,11 +2072,16 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
                 ]}
               >
                 <View style={styles.interfaceSelectorBlock}>
-                  <Text style={[styles.interfaceTitle, {color: colors.textPrimary}]}>
+                  <Text
+                    style={[styles.interfaceTitle, {color: colors.textPrimary}]}
+                  >
                     App Interface
                   </Text>
                   <Text
-                    style={[styles.interfaceSubtitle, {color: colors.textSecondary}]}
+                    style={[
+                      styles.interfaceSubtitle,
+                      {color: colors.textSecondary},
+                    ]}
                   >
                     Choose how LAFINA looks
                   </Text>
@@ -1755,7 +2281,14 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
           )}
 
           <Text
-            style={[styles.settingsGroupHeader, themed.settingsGroupHeader]}
+            style={[
+              styles.settingsGroupHeader,
+              themed.settingsGroupHeader,
+              isModern && [
+                styles.modernSettingsGroupHeader,
+                {color: modernPalette.muted},
+              ],
+            ]}
           >
             About
           </Text>
@@ -1764,6 +2297,7 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
               styles.settingsGroupCard,
               cardSurfaceStyle,
               themed.settingsGroupCard,
+              isModern && styles.modernLastGroupCard,
             ]}
           >
             <SettingItem
@@ -1795,7 +2329,11 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
 
         {isGuest ? (
           <View
-            style={[styles.guestPromptCard, ...cardSurfaceStyle]}
+            style={[
+              styles.guestPromptCard,
+              ...cardSurfaceStyle,
+              isModern && styles.modernGuestPromptCard,
+            ]}
           >
             <Text style={[styles.guestPromptTitle, themed.settingText]}>
               Save & Sync Your Data
@@ -1815,7 +2353,14 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
                 },
               ]}
             >
-              <Text style={[styles.createAccountBtnText, themed.createAccountBtnText]}>Create Account</Text>
+              <Text
+                style={[
+                  styles.createAccountBtnText,
+                  themed.createAccountBtnText,
+                ]}
+              >
+                Create Account
+              </Text>
             </TouchableOpacity>
             <TouchableOpacity
               onPress={handleSignOut}
@@ -1829,16 +2374,21 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
         ) : (
           <TouchableOpacity
             onPress={handleSignOut}
+            activeOpacity={0.82}
             style={[
               styles.signOutBtn,
               themed.signOutBtn,
               isModern && {
-                borderColor: modernPalette.danger,
+                borderColor: modernPalette.danger + '38',
                 backgroundColor: modernPalette.dangerSoft,
                 borderRadius: ModernLayout.borderRadiusPill,
+                borderWidth: 1,
+                flexDirection: 'row',
+                gap: 8,
               },
             ]}
           >
+            {isModern && <LogOut size={16} color={modernPalette.danger} />}
             <Text
               style={[
                 styles.signOutText,
@@ -1852,67 +2402,79 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
         )}
       </View>
 
-      {privacyModalVisible && (
-        <PrivacyModal
-          visible={privacyModalVisible}
-          onClose={() => setPrivacyModalVisible(false)}
+      <ScreenOverlays>
+        {corReviewOpen && (
+          <Modal
+            visible
+            animationType="slide"
+            onRequestClose={closeCorReview}
+            testID="profile-cor-review-modal"
+          >
+            <CorReviewFlow userId={userId} onClose={closeCorReview} />
+          </Modal>
+        )}
+        {privacyModalVisible && (
+          <PrivacyModal
+            visible={privacyModalVisible}
+            onClose={() => setPrivacyModalVisible(false)}
+          />
+        )}
+        <ProfileStatsModal
+          visible={statsModalVisible}
+          statistics={statistics}
+          onClose={() => setStatsModalVisible(false)}
         />
-      )}
-      <ProfileStatsModal
-        visible={statsModalVisible}
-        statistics={statistics}
-        onClose={() => setStatsModalVisible(false)}
-      />
-      <ReminderHealth
-        userId={userId}
-        visible={healthVisible}
-        onClose={() => setHealthVisible(false)}
-      />
-      <ChatMemorySettings
-        userId={userId}
-        isGuest={isGuest}
-        visible={chatMemoryVisible}
-        onClose={() => {
-          setChatMemoryVisible(false);
-          setChatMemorySummary(readChatMemorySummary());
-        }}
-        onChanged={() => setChatMemorySummary(readChatMemorySummary())}
-      />
-      <PersonalMemory
-        userId={userId}
-        visible={memoryVisible}
-        onClose={() => setMemoryVisible(false)}
-        onChanged={loadEventDefaultsSummary}
-      />
-      <OnlineVoice
-        key={`online-${userId}`}
-        userId={userId}
-        visible={onlineVoiceVisible}
-        onClose={() => setOnlineVoiceVisible(false)}
-        onChanged={loadOnlineVoiceSummary}
-      />
-      <OfflineVoice
-        userId={userId}
-        visible={voiceVisible}
-        onClose={() => setVoiceVisible(false)}
-        onChanged={loadVoiceSummary}
-      />
-      {isDevMode && developerModalVisible && (
-        <DeveloperModal
-          visible={developerModalVisible}
+        <ReminderHealth
+          userId={userId}
+          visible={healthVisible}
+          onClose={() => setHealthVisible(false)}
+        />
+        <ChatMemorySettings
           userId={userId}
           isGuest={isGuest}
-          onClose={() => setDeveloperModalVisible(false)}
-          onRefreshProfile={onRefresh}
-          onReplayTour={onReplayTour}
-          onReplayOnboarding={onReplayOnboarding}
-          endSessionForServerSwitch={endSessionForServerSwitch}
-          onLogout={onLogout}
+          visible={chatMemoryVisible}
+          onClose={() => {
+            setChatMemoryVisible(false);
+            setChatMemorySummary(readChatMemorySummary());
+          }}
+          onChanged={() => setChatMemorySummary(readChatMemorySummary())}
         />
-      )}
+        <PersonalMemory
+          userId={userId}
+          visible={memoryVisible}
+          onClose={() => setMemoryVisible(false)}
+          onChanged={loadEventDefaultsSummary}
+        />
+        <OnlineVoice
+          key={`online-${userId}`}
+          userId={userId}
+          visible={onlineVoiceVisible}
+          onClose={() => setOnlineVoiceVisible(false)}
+          onChanged={loadOnlineVoiceSummary}
+        />
+        <OfflineVoice
+          userId={userId}
+          visible={voiceVisible}
+          onClose={() => setVoiceVisible(false)}
+          onChanged={loadVoiceSummary}
+        />
+        {isDevMode && developerModalVisible && (
+          <DeveloperModal
+            visible={developerModalVisible}
+            userId={userId}
+            isGuest={isGuest}
+            onClose={() => setDeveloperModalVisible(false)}
+            onRefreshProfile={onRefresh}
+            onReplayTour={onReplayTour}
+            onReplayOnboarding={onReplayOnboarding}
+            endSessionForServerSwitch={endSessionForServerSwitch}
+            onLogout={onLogout}
+          />
+        )}
+      </ScreenOverlays>
     </ScrollView>
   );
-};
+});
 
 const getProfileThemedStyles = (colors: ThemeColors) => ({
   container: {backgroundColor: colors.background},
@@ -1940,6 +2502,37 @@ const styles = StyleSheet.create({
   contentContainer: {
     paddingBottom: 130,
   },
+  modernContentContainer: {
+    paddingHorizontal: 18,
+    paddingTop: 14,
+    paddingBottom: 120,
+    gap: 14,
+  },
+  modernTopHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 12,
+  },
+  modernPageTitle: {
+    fontSize: 26,
+    fontFamily: Fonts.heading,
+    fontWeight: '800',
+    letterSpacing: -0.5,
+  },
+  modernHeaderActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  modernHeaderCircleBtn: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    borderWidth: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   headerBackground: {
     width: '100%',
     height: 180,
@@ -1956,6 +2549,11 @@ const styles = StyleSheet.create({
     height: 120,
     marginBottom: 12,
   },
+  modernAvatarWrapper: {
+    width: 96,
+    height: 96,
+    marginBottom: 10,
+  },
   avatarCircle: {
     width: 120,
     height: 120,
@@ -1965,6 +2563,12 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     overflow: 'hidden',
     ...Shadows.card,
+  },
+  modernAvatarCircle: {
+    width: 96,
+    height: 96,
+    borderRadius: 48,
+    borderWidth: 3,
   },
   avatarImage: {
     width: '100%',
@@ -1992,9 +2596,20 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     borderWidth: 1.5,
   },
+  modernAvatarBadge: {
+    width: 30,
+    height: 30,
+    borderRadius: 15,
+    borderWidth: 1,
+  },
   mainContent: {
     paddingHorizontal: 16,
     paddingTop: 8,
+  },
+  modernMainContent: {
+    paddingHorizontal: 0,
+    paddingTop: 0,
+    gap: 14,
   },
   nameRow: {
     width: '100%',
@@ -2019,6 +2634,36 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontFamily: Fonts.body,
     marginTop: 4,
+  },
+  modernUserEmail: {
+    fontSize: 13,
+    marginTop: 3,
+  },
+  modernHeroAcademicBlock: {
+    width: '100%',
+    alignItems: 'center',
+    marginTop: 12,
+    paddingHorizontal: 4,
+  },
+  modernHeroPillsRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+  },
+  modernHeroPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: ModernLayout.borderRadiusPill,
+  },
+  modernHeroPillText: {
+    fontSize: 11.5,
+    fontFamily: Fonts.heading,
+    fontWeight: '700',
   },
   academicSubtitlePill: {
     flexDirection: 'row',
@@ -2046,6 +2691,26 @@ const styles = StyleSheet.create({
     padding: 16,
     marginBottom: 16,
   },
+  modernAcademicCard: {
+    padding: ModernLayout.cardPadding,
+    marginBottom: 0,
+  },
+  modernCardIconCircle: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    alignItems: 'center',
+    justifyContent: 'center',
+    flexShrink: 0,
+  },
+  modernCardTitle: {
+    fontSize: 16,
+  },
+  modernCardSubtitle: {
+    fontSize: 12,
+    fontWeight: '500',
+    marginTop: 1,
+  },
   academicCardHeader: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -2056,7 +2721,7 @@ const styles = StyleSheet.create({
   academicCardTitleRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
+    gap: 10,
     flex: 1,
     minWidth: 0,
   },
@@ -2090,6 +2755,11 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     flexShrink: 0,
   },
+  modernCorPillBtn: {
+    paddingHorizontal: 12,
+    paddingVertical: 7,
+    borderRadius: ModernLayout.borderRadiusPill,
+  },
   academicUpdateBtnDisabled: {
     opacity: 0.6,
   },
@@ -2098,12 +2768,19 @@ const styles = StyleSheet.create({
     fontFamily: Fonts.body,
     fontWeight: '700',
   },
+  modernCorPillBtnText: {
+    fontSize: 12,
+    fontFamily: Fonts.heading,
+  },
   academicRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'flex-start',
     paddingVertical: 8,
     gap: 12,
+  },
+  modernAcademicRow: {
+    paddingVertical: 10,
   },
   academicLabel: {
     fontSize: 12,
@@ -2112,12 +2789,44 @@ const styles = StyleSheet.create({
     minWidth: 100,
     flexShrink: 0,
   },
+  modernAcademicLabel: {
+    fontSize: 13,
+    fontWeight: '500',
+  },
   academicValue: {
     fontSize: 12,
     fontFamily: Fonts.body,
     fontWeight: '600',
     flex: 1,
     textAlign: 'right',
+  },
+  modernAcademicValue: {
+    fontSize: 13,
+    fontFamily: Fonts.heading,
+    fontWeight: '600',
+    lineHeight: 18,
+  },
+  modernSubjectsToggleRow: {
+    marginTop: 6,
+    borderRadius: 16,
+    borderWidth: 1,
+    paddingHorizontal: 12,
+    paddingVertical: 11,
+    alignItems: 'center',
+    gap: 8,
+  },
+  modernSubjectsLabelGroup: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    flexShrink: 1,
+    minWidth: 0,
+  },
+  modernSubjectsToggleLabel: {
+    minWidth: 0,
+    fontSize: 12.5,
+    fontFamily: Fonts.heading,
+    fontWeight: '600',
   },
   academicSubjectsValueWrap: {
     flex: 1,
@@ -2126,6 +2835,10 @@ const styles = StyleSheet.create({
     justifyContent: 'flex-end',
     gap: 4,
   },
+  modernSubjectsValueWrap: {
+    flex: 0,
+    flexShrink: 0,
+  },
   academicSubjectsValue: {
     fontSize: 12,
     fontFamily: Fonts.body,
@@ -2133,12 +2846,115 @@ const styles = StyleSheet.create({
     textAlign: 'right',
     flexShrink: 1,
   },
+  modernSubjectsValueText: {
+    fontSize: 12,
+    fontFamily: Fonts.heading,
+    fontWeight: '700',
+    flexShrink: 0,
+  },
   academicSubjectsList: {
     marginTop: 4,
     borderRadius: 12,
     borderWidth: 1,
     paddingHorizontal: 12,
     paddingVertical: 4,
+  },
+  modernAcademicSubjectsList: {
+    marginTop: 8,
+    borderRadius: 16,
+    paddingHorizontal: 14,
+    paddingVertical: 2,
+  },
+  modernSubjectItem: {
+    paddingVertical: 12,
+    gap: 6,
+  },
+  modernSubjectTopRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    justifyContent: 'space-between',
+    gap: 8,
+  },
+  modernSubjectTitleWrap: {
+    flex: 1,
+    minWidth: 0,
+    gap: 4,
+  },
+  modernSubjectCodeBadge: {
+    alignSelf: 'flex-start',
+    paddingHorizontal: 8,
+    paddingVertical: 2.5,
+    borderRadius: 8,
+  },
+  modernSubjectCodeText: {
+    fontSize: 11,
+    fontFamily: Fonts.heading,
+    fontWeight: '700',
+    letterSpacing: 0.2,
+  },
+  modernSubjectTitle: {
+    fontSize: 13.5,
+    fontFamily: Fonts.heading,
+    fontWeight: '700',
+    lineHeight: 18,
+  },
+  modernSubjectUnitsPill: {
+    borderRadius: ModernLayout.borderRadiusPill,
+    borderWidth: 1,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    flexShrink: 0,
+  },
+  modernSubjectUnitsText: {
+    fontSize: 11,
+    fontFamily: Fonts.heading,
+    fontWeight: '700',
+  },
+  modernSubjectDetailRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 6,
+    marginTop: 1,
+  },
+  modernSubjectDetailIcon: {
+    marginTop: 2.5,
+    flexShrink: 0,
+  },
+  modernSubjectScheduleText: {
+    flex: 1,
+    fontSize: 12,
+    fontFamily: Fonts.body,
+    lineHeight: 17,
+  },
+  modernSubjectMetaRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    alignItems: 'center',
+    gap: 8,
+    marginTop: 1,
+  },
+  modernSubjectSectionChip: {
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: ModernLayout.borderRadiusPill,
+  },
+  modernSubjectSectionText: {
+    fontSize: 11,
+    fontFamily: Fonts.heading,
+    fontWeight: '700',
+  },
+  modernSubjectFacultyRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    flexShrink: 1,
+    minWidth: 0,
+  },
+  modernSubjectFacultyText: {
+    fontSize: 11.5,
+    fontFamily: Fonts.body,
+    fontWeight: '500',
+    flexShrink: 1,
   },
   academicSubjectItem: {
     paddingVertical: 8,
@@ -2172,6 +2988,9 @@ const styles = StyleSheet.create({
   settingsContainer: {
     marginBottom: 24,
   },
+  modernSettingsContainer: {
+    marginBottom: 0,
+  },
   settingsGroupHeader: {
     fontSize: 12,
     fontWeight: 'bold',
@@ -2179,14 +2998,24 @@ const styles = StyleSheet.create({
     textTransform: 'uppercase',
     letterSpacing: 0.5,
   },
+  modernSettingsGroupHeader: {
+    fontSize: 11,
+    fontFamily: Fonts.heading,
+    fontWeight: '700',
+    letterSpacing: 0.7,
+    paddingHorizontal: 4,
+    marginTop: 2,
+    marginBottom: 8,
+  },
   modernHeroCard: {
-    marginTop: 12,
-    marginHorizontal: 16,
+    marginTop: 0,
+    marginBottom: 0,
+    marginHorizontal: 0,
     borderRadius: ModernLayout.borderRadiusCard,
     borderWidth: 1,
-    paddingTop: 24,
-    paddingBottom: 20,
-    paddingHorizontal: 16,
+    paddingTop: 20,
+    paddingBottom: 18,
+    paddingHorizontal: 18,
     overflow: 'hidden',
   },
   modernHeroAccentBand: {
@@ -2194,7 +3023,7 @@ const styles = StyleSheet.create({
     top: 0,
     left: 0,
     right: 0,
-    height: 76,
+    height: 64,
   },
   interfaceSelectorBlock: {
     paddingVertical: 14,
@@ -2335,6 +3164,9 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     marginBottom: 16,
   },
+  modernLastGroupCard: {
+    marginBottom: 0,
+  },
   settingDivider: {
     height: 1,
   },
@@ -2343,6 +3175,9 @@ const styles = StyleSheet.create({
     padding: 20,
     alignItems: 'center',
     marginBottom: 16,
+  },
+  modernGuestPromptCard: {
+    marginBottom: 0,
   },
   guestPromptTitle: {
     fontFamily: Fonts.heading,

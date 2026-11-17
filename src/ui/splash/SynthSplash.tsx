@@ -1,25 +1,19 @@
-import React, {
-  useCallback,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-} from 'react';
-import { StyleSheet, useWindowDimensions, View } from 'react-native';
-import Svg, { Defs, LinearGradient, Path, Stop } from 'react-native-svg';
-import { useTheme } from '../contexts/ThemeContext';
+import {useReducedMotion} from '../hooks/useReducedMotion';
+import React, {useCallback, useEffect, useMemo, useRef, useState} from 'react';
+import {StyleSheet, useWindowDimensions, View} from 'react-native';
+import Svg, {Defs, LinearGradient, Path, Stop} from 'react-native-svg';
+import {useTheme} from '../contexts/ThemeContext';
 import {
   DARK_STOPS,
   LIGHT_STOPS,
   SPLASH_TIMING,
+  REDUCED_MOTION_TIMING,
   splashDoneAt,
   splashLookAt,
   splashMomentAt,
   strandHeightAt,
   type SplashLook,
 } from './synthWave';
-
-
 
 const STRAND_COUNT = 9;
 const POINT_STEP = 6;
@@ -36,14 +30,16 @@ interface Frame {
   opacity: number;
 }
 
-const EMPTY_FRAME: Frame = { strands: [], opacity: 0 };
+const EMPTY_FRAME: Frame = {strands: [], opacity: 0};
 
 export const SynthSplash: React.FC<SynthSplashProps> = ({
   ready,
   onFinished,
 }) => {
-  const { colors, isDarkMode } = useTheme();
-  const { width } = useWindowDimensions();
+  const {colors, isDarkMode} = useTheme();
+  const reducedMotion = useReducedMotion();
+  const timing = reducedMotion ? REDUCED_MOTION_TIMING : SPLASH_TIMING;
+  const {width} = useWindowDimensions();
   const startRef = useRef(Date.now());
   const readyAtRef = useRef<number | null>(null);
   const finishedRef = useRef(onFinished);
@@ -73,7 +69,9 @@ export const SynthSplash: React.FC<SynthSplashProps> = ({
         const y =
           middle -
           strandHeightAt(x, strand, seconds, look.amplitude) * halfHeight;
-        path += `${index === 0 ? 'M' : 'L'}${toX(x).toFixed(2)} ${y.toFixed(2)}`;
+        path += `${index === 0 ? 'M' : 'L'}${toX(x).toFixed(2)} ${y.toFixed(
+          2,
+        )}`;
       }
       return path;
     },
@@ -84,13 +82,13 @@ export const SynthSplash: React.FC<SynthSplashProps> = ({
     if (!ready) return undefined;
     const now = Date.now() - startRef.current;
     if (readyAtRef.current === null) readyAtRef.current = now;
-    const doneAt = splashDoneAt(readyAtRef.current, SPLASH_TIMING) ?? now;
+    const doneAt = splashDoneAt(readyAtRef.current, timing) ?? now;
     const timer = setTimeout(
       () => finishedRef.current(),
       Math.max(0, doneAt - now),
     );
     return () => clearTimeout(timer);
-  }, [ready]);
+  }, [ready, timing]);
 
   useEffect(() => {
     let raf = 0;
@@ -99,16 +97,16 @@ export const SynthSplash: React.FC<SynthSplashProps> = ({
     const tick = (): void => {
       if (cancelled) return;
       const elapsed = Date.now() - startRef.current;
-      const moment = splashMomentAt(elapsed, readyAtRef.current, SPLASH_TIMING);
+      const moment = splashMomentAt(elapsed, readyAtRef.current, timing);
       const look = splashLookAt(moment);
       const seconds = elapsed / 1000;
       const strands =
         look.opacity <= 0
           ? []
-          : Array.from({ length: STRAND_COUNT }, (_, index) =>
+          : Array.from({length: STRAND_COUNT}, (_, index) =>
               traceStrand(-1 + (2 * index) / (STRAND_COUNT - 1), seconds, look),
             );
-      setFrame({ strands, opacity: look.opacity });
+      setFrame({strands, opacity: look.opacity});
       if (moment.phase !== 'done') raf = requestAnimationFrame(tick);
     };
 
@@ -117,17 +115,17 @@ export const SynthSplash: React.FC<SynthSplashProps> = ({
       cancelled = true;
       cancelAnimationFrame(raf);
     };
-  }, [traceStrand]);
+  }, [traceStrand, timing]);
 
   const gradient = useMemo(
-    () => stops.map(([offset, colour]) => ({ offset, colour })),
+    () => stops.map(([offset, colour]) => ({offset, colour})),
     [stops],
   );
 
   return (
     <View
       testID="synth-splash"
-      style={[styles.container, { backgroundColor: colors.background }]}
+      style={[styles.container, {backgroundColor: colors.background}]}
       accessible
       accessibilityRole="progressbar"
       accessibilityLabel={ready ? 'LAFINA is ready' : 'Loading LAFINA'}
@@ -136,7 +134,7 @@ export const SynthSplash: React.FC<SynthSplashProps> = ({
         <Svg width={width} height={CANVAS_HEIGHT} opacity={frame.opacity}>
           <Defs>
             <LinearGradient id="lafinaVoice" x1="0" y1="0" x2="1" y2="0">
-              {gradient.map(({ offset, colour }) => (
+              {gradient.map(({offset, colour}) => (
                 <Stop key={offset} offset={offset} stopColor={colour} />
               ))}
             </LinearGradient>
@@ -182,5 +180,5 @@ const styles = StyleSheet.create({
   canvas: {
     alignItems: 'center',
     justifyContent: 'center',
-  }
+  },
 });

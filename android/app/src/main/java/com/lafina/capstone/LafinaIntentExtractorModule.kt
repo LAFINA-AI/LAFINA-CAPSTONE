@@ -52,6 +52,25 @@ class LafinaIntentExtractorModule(reactContext: ReactApplicationContext) :
     private const val TAG = "LafinaIntentExtractor"
     private const val IDLE_UNLOAD_TIMEOUT_MS = 60_000L
     private const val MIN_VALID_MODEL_BYTES = 40_000_000L
+    internal const val ENGINE_SLM = "slm"
+    internal const val ENGINE_FALLBACK = "kotlin_fallback"
+
+    /** The catalog's per-model floor from JS, never below the generic 40 MB floor. */
+    @JvmStatic
+    internal fun resolveMinValidBytes(requested: Double?): Long {
+      val asLong = requested?.takeIf { it.isFinite() && it > 0 }?.toLong() ?: 0L
+      return maxOf(MIN_VALID_MODEL_BYTES, asLong)
+    }
+
+    /** Adds `"engine"` so JS can tell a real model answer from the regex fallback. */
+    @JvmStatic
+    internal fun tagEngine(json: String, engine: String): String {
+      return try {
+        JSONObject(json).apply { put("engine", engine) }.toString()
+      } catch (_: Exception) {
+        json
+      }
+    }
 
     private const val NLU_CORE_INSTRUCTIONS = """You are LAFINA's on-device academic NLU extractor. Extract student intent from speech into valid JSON only.
 
@@ -151,6 +170,12 @@ Assistant: {"intent":"query_schedule","title":null,"date":null,"time":null,"cate
     loadedModelPath = null
   }
 
+  /** True only when the lafina_llama JNI library is bundled and loaded. */
+  @ReactMethod
+  fun isEngineAvailable(promise: Promise) {
+    promise.resolve(LafinaLlamaBridge.isLoaded())
+  }
+
   @ReactMethod
   fun isModelAvailable(modelPath: String, promise: Promise) {
     try {
@@ -228,6 +253,9 @@ Assistant: {"intent":"query_schedule","title":null,"date":null,"time":null,"cate
     val modelPath = if (options.hasKey("modelPath")) options.getString("modelPath") else null
     val requestedFormat = if (options.hasKey("promptFormat")) options.getString("promptFormat") else null
     val promptFormat = resolvePromptFormat(requestedFormat, modelPath)
+    val minValidBytes = resolveMinValidBytes(
+      if (options.hasKey("minValidBytes") && !options.isNull("minValidBytes")) options.getDouble("minValidBytes") else null
+    )
 
     executor.execute {
       try {
@@ -249,12 +277,12 @@ Assistant: {"intent":"query_schedule","title":null,"date":null,"time":null,"cate
         // Check if dynamic model is available and requested
         if (!modelPath.isNullOrBlank() && LafinaLlamaBridge.isLoaded()) {
           val modelFile = File(modelPath)
-          if (modelFile.exists() && modelFile.length() > MIN_VALID_MODEL_BYTES) {
+          if (modelFile.exists() && modelFile.length() > minValidBytes) {
             try {
               val resultJson = executeOnDeviceLlm(modelPath, trimmed, promptFormat)
               if (resultJson != null) {
                 scheduleAutoUnload()
-                promise.resolve(resultJson)
+                promise.resolve(tagEngine(resultJson, ENGINE_SLM))
                 return@execute
               }
             } catch (e: Exception) {
@@ -263,9 +291,10 @@ Assistant: {"intent":"query_schedule","title":null,"date":null,"time":null,"cate
           }
         }
 
-        // Fast-path deterministic Kotlin parser
+        // Fast-path deterministic Kotlin parser. Tagged so JS never mistakes
+        // it for model output (audit H4).
         val fastResult = executeFastPath(trimmed)
-        promise.resolve(fastResult)
+        promise.resolve(tagEngine(fastResult, ENGINE_FALLBACK))
       } catch (e: Exception) {
         promise.reject("NLU_EXTRACT_ERROR", e.message, e)
       }

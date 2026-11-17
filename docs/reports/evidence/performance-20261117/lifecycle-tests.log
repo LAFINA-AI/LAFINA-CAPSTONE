@@ -1,0 +1,32 @@
+FAIL __tests__/ui/performanceTabLifecycle.test.tsx
+  × visited tabs retain state, clean up hidden effects, and reset across owners (865 ms)
+  √ only committed table changes invalidate subscribers; rollback leaves revisions intact (19 ms)
+
+  ● visited tabs retain state, clean up hidden effects, and reset across owners
+
+    Unable to find node on an unmounted component.
+
+      30 |   expect(connect).toHaveBeenCalledTimes(2);
+      31 |   await act(async () => {view.rerender(ui('b', true));});
+    > 32 |   expect(view.getByText('0')).toBeTruthy();
+         |               ^
+      33 | });
+      34 |
+      35 | test('only committed table changes invalidate subscribers; rollback leaves revisions intact', async () => {
+
+      at findCurrentFiberUsingSlowPath (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:177:17)
+      at ReactTestInstance.Object.<anonymous>.process.env.NODE_ENV._proto._currentFiber (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:17197:23)
+      at ReactTestInstance.get (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:17303:39)
+      at children (node_modules/@testing-library/react-native/src/helpers/find-all.ts:48:8)
+      at findAllInternal (node_modules/@testing-library/react-native/src/helpers/find-all.ts:24:19)
+      at queryAllByTextFn (node_modules/@testing-library/react-native/src/queries/text.ts:22:19)
+      at Object.getFn [as getByText] (node_modules/@testing-library/react-native/src/queries/make-queries.ts:154:48)
+      at Object.getByText (__tests__/ui/performanceTabLifecycle.test.tsx:32:15)
+      at asyncGeneratorStep (node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+      at _next (node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
+
+Test Suites: 1 failed, 1 total
+Tests:       1 failed, 1 passed, 2 total
+Snapshots:   0 total
+Time:        4.95 s
+Ran all test suites matching /__tests__\\ui\\performanceTabLifecycle.test.tsx/i.

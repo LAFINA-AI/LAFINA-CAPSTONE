@@ -58,6 +58,7 @@ export const useVoiceConversation = (
   userId: string,
   options: {
     onFinalUserText?: (text: string) => void;
+    onTurnInterrupted?: () => void;
     onAgentText?: (text: string) => void;
     suppressAgentResponse?: () => boolean;
     appOwnedAudio?: boolean;
@@ -79,6 +80,8 @@ export const useVoiceConversation = (
   const controllerRef = useRef<VoiceConversationController | null>(null);
   const finalTextRef = useRef(options.onFinalUserText);
   finalTextRef.current = options.onFinalUserText;
+  const interruptedRef = useRef(options.onTurnInterrupted);
+  interruptedRef.current = options.onTurnInterrupted;
   const agentTextRef = useRef(options.onAgentText);
   agentTextRef.current = options.onAgentText;
   const suppressRef = useRef(options.suppressAgentResponse);
@@ -98,6 +101,7 @@ export const useVoiceConversation = (
           .filter(Boolean)
           .join('\n\n'),
       onFinalUserText: text => finalTextRef.current?.(text),
+      onTurnInterrupted: () => interruptedRef.current?.(),
       onAgentText: text => agentTextRef.current?.(text),
       suppressAgentResponse: () => suppressRef.current?.() ?? false,
       appOwnedAudio: appOwnedAudio.current,

@@ -142,14 +142,72 @@ const STOP_WORDS = new Set([
   'would',
   'you',
   'your',
+  // Conversational filler: never evidence of a handbook topic.
+  'another',
+  'explain',
+  'help',
+  'okay',
+  'other',
+  'simply',
+  'study',
+  'studying',
+  'sure',
+  'thank',
+  'thanks',
+  'want',
+  'yeah',
+  'yes',
+  // Tagalog / Taglish function words.
+  'ako',
+  'ang',
+  'ano',
+  'anong',
+  'bago',
+  'bakit',
+  'din',
+  'ilan',
+  'ilang',
+  'ito',
+  'kailan',
+  'kami',
+  'kapag',
+  'kasi',
+  'kayo',
+  'kung',
+  'lang',
+  'mag',
+  'mga',
+  'naman',
+  'natin',
+  'nga',
+  'paano',
+  'pag',
+  'para',
+  'pede',
+  'puwede',
+  'pwede',
+  'rin',
+  'saan',
+  'sila',
+  'siya',
+  'tayo',
+  'wala',
+  'yan',
+  'yung',
 ]);
 
+/**
+ * Domain concept groups. Every term here is specific to academic policy:
+ * generic English words ("list", "free", "final", "load", "leave", "mark")
+ * and bare digits were removed because a single generic hit used to count
+ * as handbook evidence (audit 2026-11-16 H1). Numeric grades such as "5.0"
+ * are normalised to the word "grade" before tokenising instead.
+ */
 const CONCEPT_GROUPS: ReadonlyArray<readonly string[]> = [
   [
     'dean',
     'deans',
     'dl',
-    'list',
     'honor',
     'honors',
     'latin',
@@ -157,15 +215,18 @@ const CONCEPT_GROUPS: ReadonlyArray<readonly string[]> = [
     'laude',
     'magna',
     'summa',
-    'scholar',
+    'valedictorian',
+    'salutatorian',
   ],
   ['inc', 'incomplete', 'completion', 'deficiency'],
-  ['grade', 'grades', 'grading', 'gwa', 'gpa', 'rating', 'passing', 'mark'],
-  ['fail', 'failed', 'failing', 'singko', '5', '00', 'delinquency'],
+  ['grade', 'grades', 'grading', 'passing'],
+  ['gwa', 'gpa'],
+  ['fail', 'failed', 'failing', 'singko', 'delinquency'],
   ['drop', 'dropping', 'dropped', 'withdraw', 'withdrawal'],
-  ['loa', 'leave', 'absence'],
+  ['loa'],
   [
     'absent',
+    'absence',
     'absences',
     'attendance',
     'tardy',
@@ -173,7 +234,7 @@ const CONCEPT_GROUPS: ReadonlyArray<readonly string[]> = [
     'excused',
     'unexcused',
   ],
-  ['uniform', 'dress', 'attire', 'haircut', 'id', 'identification'],
+  ['uniform', 'dress', 'attire', 'haircut'],
   [
     'cheat',
     'cheating',
@@ -188,24 +249,22 @@ const CONCEPT_GROUPS: ReadonlyArray<readonly string[]> = [
     'suspension',
     'expulsion',
   ],
-  ['shift', 'shifting', 'transfer', 'transferee', 'curriculum'],
+  ['shift', 'shifting', 'transferee'],
   ['retention', 'probation', 'dismissal', 'dismissed', 'disqualification'],
-  ['graduate', 'graduation', 'commencement', 'clearance', 'candidate'],
-  ['tuition', 'fee', 'fees', 'scholarship', 'refund', 'unifast', 'free'],
+  ['graduate', 'graduation', 'commencement', 'clearance'],
+  ['tuition', 'fee', 'fees', 'scholarship', 'refund', 'unifast'],
   [
     'enroll',
     'enrollment',
     'enrolment',
-    'load',
     'overload',
     'underload',
     'prerequisite',
     'registration',
-    'units',
   ],
   ['nstp', 'rotc', 'cwts', 'lts'],
-  ['grievance', 'appeal', 'complaint', 'petition', 'hearing'],
-  ['examination', 'exam', 'exams', 'midterm', 'final', 'special'],
+  ['grievance', 'appeal', 'complaint', 'petition'],
+  ['examination', 'exam', 'exams', 'midterm'],
 ];
 
 const TOKEN_TO_GROUP_INDEX: Map<string, number> = (() => {
@@ -218,6 +277,9 @@ const TOKEN_TO_GROUP_INDEX: Map<string, number> = (() => {
   return map;
 })();
 
+/** "5.0", "1.75", "3.00" read as a grade, never as loose digits. */
+const NUMERIC_GRADE_RE = /\b[1-5]\.(?:0{1,2}|25|5|50|75)\b/g;
+
 function quoteFtsToken(token: string): string {
   return `"${token.replace(/[^a-z0-9]/g, '')}"`;
 }
@@ -225,14 +287,16 @@ function quoteFtsToken(token: string): string {
 function normalizeAlphaNumericWords(text: string): string[] {
   return (
     text
-      .replace(/(\w)['\u2018\u2019](\w)/g, '$1$2')
+      .replace(/(\w)['‘’](\w)/g, '$1$2')
       .toLowerCase()
       .match(/[a-z0-9]+/g) ?? []
   );
 }
 
 export function extractQueryTokens(rawQuery: string): string[] {
-  const rawMatches = normalizeAlphaNumericWords(rawQuery);
+  const rawMatches = normalizeAlphaNumericWords(
+    rawQuery.replace(NUMERIC_GRADE_RE, ' grade '),
+  );
   const seen = new Set<string>();
   const tokens: string[] = [];
 
@@ -241,9 +305,11 @@ export function extractQueryTokens(rawQuery: string): string[] {
     if (!clean) {
       continue;
     }
-    const isImportantShortToken =
-      clean === 'id' || clean === 'dl' || clean === '5';
+    const isImportantShortToken = clean === 'id' || clean === 'dl';
     if (clean.length < 3 && !isImportantShortToken) {
+      continue;
+    }
+    if (/^\d+$/.test(clean)) {
       continue;
     }
     if (STOP_WORDS.has(clean)) {
@@ -260,6 +326,10 @@ export function extractQueryTokens(rawQuery: string): string[] {
 export interface BuiltFtsQueries {
   tokens: string[];
   conceptTerms: string[][];
+  /** Parallel to `conceptTerms`: true when the concept is a policy domain group. */
+  conceptIsDomain: boolean[];
+  /** Parallel to `conceptTerms`: the query tokens that produced each concept. */
+  conceptTokens: string[][];
   strictAndExpr: string | null;
   relaxedOrExpr: string | null;
 }
@@ -270,42 +340,51 @@ export function buildFtsQueries(rawQuery: string): BuiltFtsQueries {
     return {
       tokens: [],
       conceptTerms: [],
+      conceptIsDomain: [],
+      conceptTokens: [],
       strictAndExpr: null,
       relaxedOrExpr: null,
     };
   }
 
-  const groupBuckets = new Map<number, Set<string>>();
+  const groupBuckets = new Map<number, {terms: Set<string>; index: number}>();
   const conceptTerms: string[][] = [];
+  const conceptIsDomain: boolean[] = [];
+  const conceptTokens: string[][] = [];
 
   for (const token of tokens) {
     const groupIdx = TOKEN_TO_GROUP_INDEX.get(token);
     if (groupIdx !== undefined) {
       let bucket = groupBuckets.get(groupIdx);
       if (!bucket) {
-        bucket = new Set<string>();
+        bucket = {
+          terms: new Set<string>(CONCEPT_GROUPS[groupIdx]),
+          index: conceptTerms.length,
+        };
         groupBuckets.set(groupIdx, bucket);
-        for (const synonym of CONCEPT_GROUPS[groupIdx]) {
-          bucket.add(synonym);
-        }
-        conceptTerms.push(Array.from(bucket));
-      } else {
-        bucket.add(token);
+        conceptTerms.push([]);
+        conceptIsDomain.push(true);
+        conceptTokens.push([]);
       }
-      // Also preserve unexpanded singular/stem variant if needed
+      bucket.terms.add(token);
       if (token.endsWith('s') && token.length > 4) {
-        bucket.add(token.slice(0, -1));
+        bucket.terms.add(token.slice(0, -1));
       }
+      conceptTerms[bucket.index] = Array.from(bucket.terms);
+      conceptTokens[bucket.index].push(token);
     } else {
       const variants = new Set<string>([token]);
       if (token.endsWith('s') && token.length > 4) {
         variants.add(token.slice(0, -1));
       }
       conceptTerms.push(Array.from(variants));
+      conceptIsDomain.push(false);
+      conceptTokens.push([token]);
     }
   }
 
-  const cappedConcepts = conceptTerms.slice(0, 6);
+  const cap = 6;
+  const cappedConcepts = conceptTerms.slice(0, cap);
   const groupExprs = cappedConcepts.map(terms => {
     const quoted = terms.map(quoteFtsToken);
     return quoted.length === 1 ? quoted[0] : `(${quoted.join(' OR ')})`;
@@ -322,6 +401,8 @@ export function buildFtsQueries(rawQuery: string): BuiltFtsQueries {
   return {
     tokens,
     conceptTerms: cappedConcepts,
+    conceptIsDomain: conceptIsDomain.slice(0, cap),
+    conceptTokens: conceptTokens.slice(0, cap),
     strictAndExpr,
     relaxedOrExpr,
   };
@@ -352,55 +433,92 @@ export function hitToHandbookSource(hit: HandbookFtsHit): LocalHandbookSource {
   };
 }
 
-function countMatchedConcepts(
-  hit: HandbookFtsHit,
-  conceptTerms: string[][],
-): number {
-  if (conceptTerms.length === 0) {
-    return 0;
+/** Whole word, or a stem-like prefix for longer words ("grading" ~ "grade"). */
+function wordMatches(docWords: Set<string>, term: string): boolean {
+  if (docWords.has(term)) {
+    return true;
   }
-  const haystack = `${hit.chapter} ${hit.section} ${hit.keywords} ${hit.content}`;
-  const docWords = new Set(normalizeAlphaNumericWords(haystack));
-
-  let matched = 0;
-  for (const terms of conceptTerms) {
-    const hitFound = terms.some(term => {
-      if (docWords.has(term)) {
+  if (term.length >= 5) {
+    const prefix = term.slice(0, term.length - 1);
+    for (const word of docWords) {
+      if (word.startsWith(prefix)) {
         return true;
       }
-      if (term.length >= 5) {
-        const prefix = term.slice(0, term.length - 1);
-        for (const word of docWords) {
-          if (word.startsWith(prefix)) {
-            return true;
-          }
-        }
+    }
+  } else if (term.length === 4) {
+    for (const word of docWords) {
+      if (word.startsWith(term)) {
+        return true;
       }
-      return false;
-    });
-    if (hitFound) {
-      matched += 1;
     }
   }
-  return matched;
+  return false;
 }
 
-function countRawTokenHits(hit: HandbookFtsHit, tokens: string[]): number {
-  const haystack = `${hit.chapter} ${hit.section} ${hit.keywords} ${hit.content}`;
-  const docWords = normalizeAlphaNumericWords(haystack);
-  const docSet = new Set(docWords);
-  let count = 0;
-  for (const token of tokens) {
-    if (docSet.has(token)) {
-      count += 1;
-    } else if (token.length >= 5) {
-      const prefix = token.slice(0, token.length - 1);
-      if (docWords.some(w => w.startsWith(prefix))) {
-        count += 1;
-      }
-    }
+function hitWords(hit: HandbookFtsHit): Set<string> {
+  return new Set(
+    normalizeAlphaNumericWords(
+      `${hit.chapter} ${hit.section} ${hit.keywords} ${hit.content}`,
+    ),
+  );
+}
+
+function conceptFlags(docWords: Set<string>, conceptTerms: string[][]): boolean[] {
+  return conceptTerms.map(terms => terms.some(t => wordMatches(docWords, t)));
+}
+
+function countLiteralHits(docWords: Set<string>, tokens: string[]): number {
+  return tokens.filter(token => wordMatches(docWords, token)).length;
+}
+
+/**
+ * Evidence gate (audit H1). A passage counts as evidence only when:
+ * - a free (non-domain) word the handbook never uses is outweighed by two
+ *   matched policy concepts, or by one policy concept plus more matched
+ *   known words than unknown ones ("explain photosynthesis", "best laptops",
+ *   "park near the mall" are refused);
+ * - a question with no policy concept matches all of its words (two or more);
+ * - a question with policy concepts matches at least one of them and at least
+ *   half of all its concepts.
+ */
+function passesEvidenceGate(
+  flags: boolean[],
+  built: BuiltFtsQueries,
+  unknownFreeTokens: number,
+): boolean {
+  const total = flags.length;
+  if (total === 0) {
+    return false;
   }
-  return count;
+  const domainTotal = built.conceptIsDomain.filter(Boolean).length;
+  const matchedTotal = flags.filter(Boolean).length;
+  const matchedDomain = flags.filter(
+    (f, i) => f && built.conceptIsDomain[i],
+  ).length;
+
+  const matchedFree = matchedTotal - matchedDomain;
+  if (
+    unknownFreeTokens > 0 &&
+    matchedDomain < 2 &&
+    !(matchedDomain >= 1 && matchedFree > unknownFreeTokens)
+  ) {
+    return false;
+  }
+  if (domainTotal === 0) {
+    return total >= 2 && matchedTotal === total;
+  }
+  if (matchedDomain === 0) {
+    return false;
+  }
+  return matchedTotal / total >= 0.5;
+}
+
+export interface RankOptions {
+  /**
+   * Free (non-domain) query tokens that appear nowhere in the handbook index.
+   * Supplied by the service; when omitted every token is treated as known.
+   */
+  unknownTokens?: ReadonlySet<string>;
 }
 
 export function rankAndFilterFtsCandidates(
@@ -408,15 +526,24 @@ export function rankAndFilterFtsCandidates(
   built: BuiltFtsQueries,
   candidates: HandbookFtsHit[],
   limit: number,
+  options: RankOptions = {},
 ): LocalHandbookSearchResult {
+  const refused: LocalHandbookSearchResult = {
+    matches: [],
+    queryUsed: rawQuery,
+    insufficientEvidence: true,
+    sources: [],
+  };
   if (candidates.length === 0 || built.conceptTerms.length === 0) {
-    return {
-      matches: [],
-      queryUsed: rawQuery,
-      insufficientEvidence: true,
-      sources: [],
-    };
+    return refused;
   }
+
+  const unknown = options.unknownTokens;
+  const unknownFreeTokens = unknown
+    ? built.conceptTokens.filter(
+        (toks, i) => !built.conceptIsDomain[i] && toks.some(t => unknown.has(t)),
+      ).length
+    : 0;
 
   const totalConcepts = built.conceptTerms.length;
   const deduped = new Map<string, HandbookFtsHit>();
@@ -429,20 +556,46 @@ export function rankAndFilterFtsCandidates(
 
   const scored: LocalHandbookMatch[] = [];
   for (const hit of deduped.values()) {
-    const matchedConcepts = countMatchedConcepts(hit, built.conceptTerms);
-    if (matchedConcepts === 0) {
+    const docWords = hitWords(hit);
+    const flags = conceptFlags(docWords, built.conceptTerms);
+    if (!passesEvidenceGate(flags, built, unknownFreeTokens)) {
       continue;
     }
-    const rawTokenHits = countRawTokenHits(hit, built.tokens);
-    // Require either domain concept match or literal raw token overlap
+    const matchedConcepts = flags.filter(Boolean).length;
+    const matchedDomain = flags.filter(
+      (f, i) => f && built.conceptIsDomain[i],
+    ).length;
     const coverageRatio = matchedConcepts / totalConcepts;
-    if (rawTokenHits === 0 && coverageRatio < 0.5) {
-      continue;
-    }
+    const literal = countLiteralHits(docWords, built.tokens);
 
-    // FTS5 bm25Score is negative (more negative = stronger match). Convert to positive relevance score.
-    const bm25Magnitude = Math.max(0, -hit.bm25Score);
-    const score = matchedConcepts * 4 + coverageRatio * 3 + bm25Magnitude;
+    // The chapter/section title is the strongest signal of what a passage
+    // is about (audit M5): "Grade Completion" should beat a chunk that
+    // merely mentions grades. Keywords count, but less.
+    const sectionWords = new Set(
+      normalizeAlphaNumericWords(`${hit.chapter} ${hit.section}`),
+    );
+    const sectionLiteral = countLiteralHits(sectionWords, built.tokens);
+    const sectionConcepts = conceptFlags(
+      sectionWords,
+      built.conceptTerms,
+    ).filter(Boolean).length;
+    const keywordLiteral = countLiteralHits(
+      new Set(normalizeAlphaNumericWords(hit.keywords)),
+      built.tokens,
+    );
+
+    // FTS5 bm25 is negative (more negative = stronger). Clamp it so long,
+    // repetitive chunks cannot drown the literal and title signals.
+    const bm25Magnitude = Math.min(15, Math.max(0, -hit.bm25Score));
+    const score =
+      matchedDomain * 5 +
+      (matchedConcepts - matchedDomain) * 2 +
+      coverageRatio * 3 +
+      literal * 1.5 +
+      sectionLiteral * 4 +
+      sectionConcepts * 3 +
+      keywordLiteral +
+      bm25Magnitude * 0.4;
 
     scored.push({
       chunk: hit,
@@ -455,9 +608,6 @@ export function rankAndFilterFtsCandidates(
   }
 
   scored.sort((a, b) => {
-    if (b.matchedConcepts !== a.matchedConcepts) {
-      return b.matchedConcepts - a.matchedConcepts;
-    }
     if (Math.abs(b.score - a.score) > 0.001) {
       return b.score - a.score;
     }
@@ -466,26 +616,7 @@ export function rankAndFilterFtsCandidates(
 
   const top = scored[0];
   if (!top) {
-    return {
-      matches: [],
-      queryUsed: rawQuery,
-      insufficientEvidence: true,
-      sources: [],
-    };
-  }
-
-  // Fail-closed gate: single generic token in a multi-concept unrelated question
-  // without meaningful BM25 or concept overlap must not hallucinate a citation.
-  const insufficientEvidence =
-    totalConcepts >= 3 && top.matchedConcepts === 1 && top.score < 5.5;
-
-  if (insufficientEvidence) {
-    return {
-      matches: [],
-      queryUsed: rawQuery,
-      insufficientEvidence: true,
-      sources: [],
-    };
+    return refused;
   }
 
   const finalMatches = scored
@@ -502,6 +633,13 @@ export function rankAndFilterFtsCandidates(
     insufficientEvidence: false,
     sources: finalMatches.map(m => m.source),
   };
+}
+
+/** Free (non-domain) tokens of a query, the ones checked against the index vocabulary. */
+export function freeTokensOf(built: BuiltFtsQueries): string[] {
+  return built.conceptTokens
+    .filter((_toks, i) => !built.conceptIsDomain[i])
+    .flat();
 }
 
 /**
@@ -558,6 +696,12 @@ export function buildPromptHandbookContext(
   return `${header}${lines.join('')}${footer}`;
 }
 
+/** Chunks can start mid-sentence; mark that honestly instead of hiding it. */
+function presentExcerpt(content: string): string {
+  const excerpt = content.replace(/\s+/g, ' ').trim();
+  return /^[a-z,;)]/.test(excerpt) ? `…${excerpt}` : excerpt;
+}
+
 export function formatOfflineHandbookReply(
   result: LocalHandbookSearchResult,
 ): string {
@@ -570,10 +714,9 @@ export function formatOfflineHandbookReply(
       ? ` *(${match.chunk.pageLabel})*`
       : '';
     const chapterPart = match.chunk.chapter ? `\n*${match.chunk.chapter}*` : '';
-    const excerpt = match.chunk.content.replace(/\s+/g, ' ').trim();
     return [
       `### ${match.chunk.section}${pagePart}${chapterPart}`,
-      `> "${excerpt}"`,
+      `> "${presentExcerpt(match.chunk.content)}"`,
     ].join('\n');
   });
 

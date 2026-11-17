@@ -52,7 +52,7 @@ export const buildTourSteps = ({isGuest}: TourAudience): TourStep[] => [
   {
     id: 'notes',
     title: 'Tools',
-    body: 'Alarms, to-dos and lecture notes in one workspace. Manage reminder alarms, track tasks and capture study notes with checklists and images.',
+    body: 'Alarms, to-dos and lecture notes in one workspace. Set wake-up alarms, track tasks and capture study notes with checklists and images.',
     anchor: 'tab-notes',
     tab: 'notes',
   },
@@ -69,5 +69,51 @@ export const buildTourSteps = ({isGuest}: TourAudience): TourStep[] => [
     id: 'done',
     title: 'That is the tour',
     body: 'Everything is stored on this phone first, so LAFINA works with no connection. You can run this walkthrough again any time from Profile.',
+  },
+];
+
+export interface QuickTourAudience {
+  /** USTP school features are on (confirmed COR). */
+  schoolEnabled: boolean;
+  /** Chose USTP but the COR is not reviewed yet. */
+  corPending: boolean;
+}
+
+/**
+ * The walkthrough after first-use setup (approved v3 journey): Home →
+ * Schedule → AI inside the real app, skippable and replayable from Profile.
+ * Copy adapts to the mode; USTP handbook features are mentioned only when
+ * they are actually available.
+ */
+export const buildQuickTourSteps = ({
+  schoolEnabled,
+  corPending,
+}: QuickTourAudience): TourStep[] => [
+  {
+    id: 'quick-home',
+    title: 'Home',
+    body: 'Your day at a glance: what is live or up next, open time between plans, and reminders.',
+    anchor: 'tab-dashboard',
+    tab: 'dashboard',
+  },
+  {
+    id: 'quick-schedule',
+    title: 'Schedule',
+    body: schoolEnabled
+      ? 'Your reviewed COR classes, deadlines and plans in one place. Tap an empty hour or + to add something.'
+      : corPending
+      ? 'Classes, deadlines and plans in one place. Add your COR from Profile when you are ready.'
+      : 'Classes, deadlines and plans in one place. Tap an empty hour or + to add something.',
+    anchor: 'tab-calendar',
+    tab: 'calendar',
+  },
+  {
+    id: 'quick-ai',
+    title: 'AI',
+    body: schoolEnabled
+      ? 'Type or choose to speak — "remind me at 6 PM" — or ask about the USTP handbook, with sources you can check.'
+      : 'Type or choose to speak — "remind me tomorrow at 6 PM" — and LAFINA plans it on this phone, even offline.',
+    anchor: 'tab-chat',
+    tab: 'chat',
   },
 ];

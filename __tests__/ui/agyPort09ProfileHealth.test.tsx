@@ -168,7 +168,6 @@ describe('AGY-PORT 09 Profile statistics card & modal', () => {
       'Week Starts on Monday',
       'Detailed AI Summaries',
       'Test TTS Voice',
-      'Daily Morning Briefing',
       'Dark Mode',
       'Clear All Data',
       'Privacy Policy',

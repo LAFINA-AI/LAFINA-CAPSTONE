@@ -2,13 +2,17 @@ import React, {useCallback, useEffect, useRef, useState} from 'react';
 import {
   Alert,
   Animated,
+  Easing,
   FlatList,
+  LayoutAnimation,
   Modal,
+  Platform,
   Pressable,
   StyleSheet,
   Text,
   TextInput,
   TouchableOpacity,
+  UIManager,
   useWindowDimensions,
   View,
 } from 'react-native';
@@ -25,6 +29,8 @@ import {
   Minimize2,
   Pencil,
   Search,
+  ShieldCheck,
+  Trash2,
   X,
 } from 'lucide-react-native';
 import {Fonts, FontSize, Shadows} from '../../theme';
@@ -37,6 +43,7 @@ import {
   type ChatSummary,
 } from '../../../storage/chatStore';
 import {removeAttachmentFiles} from './chatFiles';
+import {isUstpSchoolEnabled} from '../../../storage/ustpEligibility';
 
 export interface ChatHistorySheetProps {
   visible: boolean;
@@ -49,6 +56,8 @@ export interface ChatHistorySheetProps {
   /** The student opened another chat, started a new one, or deleted the open one. */
   onChanged: () => void;
   onStartUstpChat?: () => void;
+  /** USTP school features (handbook chat) are on for this student. */
+  ustpAvailable?: boolean;
   onStartTemporaryChat?: () => void;
   onScanCamera?: () => void;
   onScanGallery?: () => void;
@@ -62,6 +71,157 @@ const FILTER_OPTIONS: readonly {key: FilterTab; label: string}[] = [
   {key: 'general', label: 'General'},
   {key: 'ustp', label: 'USTP'},
 ];
+
+if (
+  Platform.OS === 'android' &&
+  UIManager.setLayoutAnimationEnabledExperimental
+) {
+  UIManager.setLayoutAnimationEnabledExperimental(true);
+}
+
+interface ChatHistoryRowProps {
+  item: ChatSummary;
+  isOpen: boolean;
+  showPreview: boolean;
+  isRenaming: boolean;
+  renameTitle: string;
+  accent: string;
+  softViolet: string;
+  textPrimary: string;
+  textSecondary: string;
+  borderColor: string;
+  onOpen: (id: string) => void;
+  onStartRename: (item: ChatSummary) => void;
+  onChangeRename: (title: string) => void;
+  onSaveRename: () => void;
+  onRequestDelete: (item: ChatSummary) => void;
+}
+
+const ChatHistoryRow = React.memo<ChatHistoryRowProps>(
+  ({
+    item,
+    isOpen,
+    showPreview,
+    isRenaming,
+    renameTitle,
+    accent,
+    softViolet,
+    textPrimary,
+    textSecondary,
+    borderColor,
+    onOpen,
+    onStartRename,
+    onChangeRename,
+    onSaveRename,
+    onRequestDelete,
+  }) => {
+    const isUstp = item.kind === 'ustp';
+    if (isRenaming) {
+      return (
+        <View style={[styles.row, {borderColor}]}>
+          <TextInput
+            value={renameTitle}
+            onChangeText={onChangeRename}
+            onSubmitEditing={onSaveRename}
+            maxLength={MAX_CHAT_TITLE}
+            autoFocus
+            style={[
+              styles.renameInput,
+              {color: textPrimary, borderColor: accent},
+            ]}
+            accessibilityLabel="Chat title"
+            testID="chat-history-rename-input"
+          />
+          <TouchableOpacity
+            onPress={onSaveRename}
+            accessibilityRole="button"
+            accessibilityLabel="Save chat title"
+            testID="chat-history-rename-save"
+            style={styles.textButton}
+          >
+            <Text style={[styles.textButtonLabel, {color: accent}]}>Save</Text>
+          </TouchableOpacity>
+        </View>
+      );
+    }
+
+    return (
+      <View style={[styles.row, isOpen && {backgroundColor: softViolet}]}>
+        <TouchableOpacity
+          style={styles.rowMain}
+          onPress={() => onOpen(item.id)}
+          accessibilityRole="button"
+          accessibilityLabel={`Open chat ${item.title}${
+            isOpen ? ', open now' : ''
+          }`}
+          testID={`chat-history-item-${item.id}`}
+        >
+          <View style={styles.titleRow}>
+            {isUstp ? (
+              <BookOpen size={14} color={accent} />
+            ) : (
+              <MessageSquare
+                size={14}
+                color={isOpen ? accent : textSecondary}
+              />
+            )}
+            <Text
+              style={[
+                styles.title,
+                {color: textPrimary},
+                isOpen && {fontWeight: '700'},
+              ]}
+              numberOfLines={1}
+            >
+              {item.title}
+            </Text>
+            {isUstp && (
+              <View
+                style={[styles.itemBadge, {backgroundColor: softViolet}]}
+                testID={`chat-history-ustp-badge-${item.id}`}
+              >
+                <Text style={[styles.itemBadgeText, {color: accent}]}>
+                  USTP
+                </Text>
+              </View>
+            )}
+            <Text style={[styles.when, {color: textSecondary}]}>
+              {formatWhen(item.lastMessageAt)}
+            </Text>
+          </View>
+          {showPreview && !!item.preview && (
+            <Text
+              style={[styles.preview, {color: textSecondary}]}
+              numberOfLines={1}
+            >
+              {item.preview}
+            </Text>
+          )}
+        </TouchableOpacity>
+        <TouchableOpacity
+          onPress={() => onStartRename(item)}
+          hitSlop={{top: 8, bottom: 8, left: 4, right: 4}}
+          accessibilityRole="button"
+          accessibilityLabel={`Rename chat ${item.title}`}
+          testID={`chat-history-rename-${item.id}`}
+          style={styles.iconButton}
+        >
+          <Pencil size={14} color={textSecondary} />
+        </TouchableOpacity>
+        <TouchableOpacity
+          onPress={() => onRequestDelete(item)}
+          hitSlop={{top: 8, bottom: 8, left: 4, right: 8}}
+          accessibilityRole="button"
+          accessibilityLabel={`Delete chat ${item.title}`}
+          testID={`chat-history-delete-${item.id}`}
+          style={styles.iconButton}
+        >
+          <Trash2 size={14} color={textSecondary} />
+        </TouchableOpacity>
+      </View>
+    );
+  },
+);
 
 const formatWhen = (iso: string, now = new Date()): string => {
   const date = new Date(iso);
@@ -94,12 +254,14 @@ export const ChatHistorySheet: React.FC<ChatHistorySheetProps> = ({
   onClose,
   onChanged,
   onStartUstpChat,
+  ustpAvailable,
   onStartTemporaryChat,
   onScanCamera,
   onScanGallery,
   onOpenGuide,
 }) => {
-  const {colors, isModern, modernPalette, modernShadows} = useTheme();
+  const {colors, isDarkMode, isModern, modernPalette, modernShadows} =
+    useTheme();
   const insets = useSafeAreaInsets();
   const accent = isModern ? modernPalette.accent : colors.primary;
   const surfaceBg = isModern ? modernPalette.surface : colors.cardBg;
@@ -110,22 +272,44 @@ export const ChatHistorySheet: React.FC<ChatHistorySheetProps> = ({
   const textPrimary = isModern ? modernPalette.text : colors.textPrimary;
   const textSecondary = isModern ? modernPalette.muted : colors.textSecondary;
   const borderColor = isModern ? modernPalette.border : colors.border;
+  const dangerInk = isModern ? modernPalette.danger : colors.error;
+  const dangerSoftBg = isModern
+    ? modernPalette.dangerSoft
+    : isDarkMode
+    ? '#3A1D24'
+    : '#FDECEC';
+  const dangerButtonBg = isDarkMode
+    ? '#DC3B30'
+    : isModern
+    ? modernPalette.danger
+    : colors.error;
+  const safeBg = isModern
+    ? modernPalette.mint
+    : isDarkMode
+    ? '#143326'
+    : '#ECFDF5';
+  const safeInk = isModern ? modernPalette.mintInk : colors.success;
   const {width: windowWidth} = useWindowDimensions();
   const safeWindowWidth = Math.max(windowWidth || 360, 320);
   const sidebarWidth = Math.min(Math.round(safeWindowWidth * 0.85), 360);
 
+  const [prevVisible, setPrevVisible] = useState(visible);
+  const [modalVisible, setModalVisible] = useState(visible);
+  const modalVisibleRef = useRef(modalVisible);
+  modalVisibleRef.current = modalVisible;
   const [search, setSearch] = useState('');
   const [kindFilter, setKindFilter] = useState<FilterTab>('all');
+  const showUstp = ustpAvailable ?? isUstpSchoolEnabled(userId);
   const [isFullScreen, setIsFullScreen] = useState(false);
   const [chats, setChats] = useState<ChatSummary[]>([]);
   const [loadError, setLoadError] = useState(false);
   const [renaming, setRenaming] = useState<{id: string; title: string} | null>(
     null,
   );
+  const [pendingDelete, setPendingDelete] = useState<ChatSummary | null>(null);
 
   const isTestEnv = process.env.NODE_ENV === 'test';
-  const slideAnim = useRef(new Animated.Value(0)).current;
-  const expandAnim = useRef(new Animated.Value(0)).current;
+  const slideAnim = useRef(new Animated.Value(visible ? 1 : 0)).current;
 
   const isCurrentUstp = !isTemporaryChat && isUstpSessionId(currentSessionId);
 
@@ -139,60 +323,98 @@ export const ChatHistorySheet: React.FC<ChatHistorySheetProps> = ({
     }
   }, [kindFilter, search, userId]);
 
+  if (visible !== prevVisible) {
+    setPrevVisible(visible);
+    if (visible) {
+      setModalVisible(true);
+      try {
+        setChats(chatStore.listSessions(userId, '', 'all'));
+        setLoadError(false);
+      } catch (error) {
+        console.error('[ChatHistory] Could not list chats:', error);
+        setLoadError(true);
+      }
+    } else {
+      setSearch('');
+      setKindFilter('all');
+      setIsFullScreen(false);
+      setRenaming(null);
+      setPendingDelete(null);
+    }
+  }
+
   useEffect(() => {
     if (visible) reload();
   }, [visible, reload]);
 
   useEffect(() => {
-    if (!visible) {
-      setSearch('');
-      setKindFilter('all');
-      setIsFullScreen(false);
-      setRenaming(null);
+    if (visible) {
+      if (isTestEnv) {
+        slideAnim.setValue(1);
+        return;
+      }
       slideAnim.setValue(0);
-      expandAnim.setValue(0);
+      const anim = Animated.timing(slideAnim, {
+        toValue: 1,
+        duration: 200,
+        easing: Easing.out(Easing.cubic),
+        useNativeDriver: true,
+      });
+      anim.start();
+      return () => anim.stop();
+    }
+
+    if (isTestEnv || !modalVisibleRef.current) {
+      slideAnim.setValue(0);
+      setModalVisible(false);
       return;
     }
-    if (isTestEnv) {
-      slideAnim.setValue(1);
-      return;
-    }
+
     const anim = Animated.timing(slideAnim, {
-      toValue: 1,
-      duration: 180,
-      useNativeDriver: false,
+      toValue: 0,
+      duration: 155,
+      easing: Easing.in(Easing.cubic),
+      useNativeDriver: true,
     });
-    anim.start();
-    return () => anim.stop();
-  }, [visible, isTestEnv, slideAnim, expandAnim]);
-
-  useEffect(() => {
-    if (!visible) return;
-    if (isTestEnv) {
-      expandAnim.setValue(isFullScreen ? 1 : 0);
-      return;
-    }
-    const anim = Animated.timing(expandAnim, {
-      toValue: isFullScreen ? 1 : 0,
-      duration: 180,
-      useNativeDriver: false,
+    anim.start(({finished}) => {
+      if (finished) setModalVisible(false);
     });
-    anim.start();
     return () => anim.stop();
-  }, [isFullScreen, visible, isTestEnv, expandAnim]);
+  }, [visible, isTestEnv, slideAnim]);
 
-  const blockedWhileBusy = (): boolean => {
+  const setExpandedAnimated = useCallback(
+    (next: boolean | ((prev: boolean) => boolean)) => {
+      if (!isTestEnv) {
+        LayoutAnimation.configureNext({
+          duration: 180,
+          create: {
+            type: LayoutAnimation.Types.easeInEaseOut,
+            property: LayoutAnimation.Properties.opacity,
+          },
+          update: {type: LayoutAnimation.Types.easeInEaseOut},
+        });
+      }
+      setIsFullScreen(next);
+    },
+    [isTestEnv],
+  );
+
+  const blockedWhileBusy = useCallback((): boolean => {
     if (!busy) return false;
     Alert.alert(
       'One moment',
       'Wait for LAFINA to finish this reply, then switch chats.',
     );
     return true;
-  };
+  }, [busy]);
 
   const handleRequestClose = () => {
+    if (pendingDelete) {
+      setPendingDelete(null);
+      return;
+    }
     if (isFullScreen) {
-      setIsFullScreen(false);
+      setExpandedAnimated(false);
       return;
     }
     onClose();
@@ -270,152 +492,83 @@ export const ChatHistorySheet: React.FC<ChatHistorySheetProps> = ({
     }
   };
 
-  const confirmDelete = (chat: ChatSummary) => {
-    if (chat.id === currentSessionId && blockedWhileBusy()) return;
-    Alert.alert(
-      'Delete Chat',
-      `Delete "${chat.title}"? Its messages and files are removed from this phone. Saved schedule items, notes and memories are kept.`,
-      [
-        {text: 'Cancel', style: 'cancel'},
-        {
-          text: 'Delete',
-          style: 'destructive',
-          onPress: () => {
-            try {
-              const {attachmentUris} = chatStore.deleteSession(userId, chat.id);
-              void removeAttachmentFiles(attachmentUris);
-            } catch (error) {
-              console.error('[ChatHistory] Could not delete chat:', error);
-              Alert.alert(
-                'Could Not Delete',
-                'The chat could not be deleted. Nothing was removed.',
-              );
-              return;
-            }
-            reload();
-            if (chat.id === currentSessionId) onChanged();
-          },
-        },
-      ],
-    );
+  const requestDelete = useCallback(
+    (chat: ChatSummary) => {
+      if (chat.id === currentSessionId && blockedWhileBusy()) return;
+      setPendingDelete(chat);
+    },
+    [blockedWhileBusy, currentSessionId],
+  );
+
+  const executePendingDelete = () => {
+    const target = pendingDelete;
+    if (!target) return;
+    setPendingDelete(null);
+    try {
+      const {attachmentUris} = chatStore.deleteSession(userId, target.id);
+      void removeAttachmentFiles(attachmentUris);
+    } catch (error) {
+      console.error('[ChatHistory] Could not delete chat:', error);
+      Alert.alert(
+        'Could Not Delete',
+        'The chat could not be deleted. Nothing was removed.',
+      );
+      return;
+    }
+    reload();
+    if (target.id === currentSessionId) onChanged();
   };
 
-  const renderChat = ({item}: {item: ChatSummary}) => {
-    const isOpen = !isTemporaryChat && item.id === currentSessionId;
-    const isUstp = item.kind === 'ustp';
-    const isSearching = search.trim().length > 0;
-    if (renaming?.id === item.id) {
-      return (
-        <View style={[styles.row, {borderColor}]}>
-          <TextInput
-            value={renaming.title}
-            onChangeText={title => setRenaming({id: item.id, title})}
-            onSubmitEditing={saveRename}
-            maxLength={MAX_CHAT_TITLE}
-            autoFocus
-            style={[
-              styles.renameInput,
-              {color: textPrimary, borderColor: accent},
-            ]}
-            accessibilityLabel="Chat title"
-            testID="chat-history-rename-input"
-          />
-          <TouchableOpacity
-            onPress={saveRename}
-            accessibilityRole="button"
-            accessibilityLabel="Save chat title"
-            testID="chat-history-rename-save"
-            style={styles.textButton}
-          >
-            <Text style={[styles.textButtonLabel, {color: accent}]}>Save</Text>
-          </TouchableOpacity>
-        </View>
-      );
-    }
-    return (
-      <View style={[styles.row, isOpen && {backgroundColor: softViolet}]}>
-        <TouchableOpacity
-          style={styles.rowMain}
-          onPress={() => openChat(item.id)}
-          accessibilityRole="button"
-          accessibilityLabel={`Open chat ${item.title}${
-            isOpen ? ', open now' : ''
-          }`}
-          testID={`chat-history-item-${item.id}`}
-        >
-          <View style={styles.titleRow}>
-            {isUstp ? (
-              <BookOpen size={14} color={accent} />
-            ) : (
-              <MessageSquare
-                size={14}
-                color={isOpen ? accent : textSecondary}
-              />
-            )}
-            <Text
-              style={[
-                styles.title,
-                {color: textPrimary},
-                isOpen && {fontWeight: '700'},
-              ]}
-              numberOfLines={1}
-            >
-              {item.title}
-            </Text>
-            {isUstp && (
-              <View
-                style={[styles.itemBadge, {backgroundColor: softViolet}]}
-                testID={`chat-history-ustp-badge-${item.id}`}
-              >
-                <Text style={[styles.itemBadgeText, {color: accent}]}>
-                  USTP
-                </Text>
-              </View>
-            )}
-            <Text style={[styles.when, {color: textSecondary}]}>
-              {formatWhen(item.lastMessageAt)}
-            </Text>
-          </View>
-          {(isSearching || isFullScreen) && !!item.preview && (
-            <Text
-              style={[styles.preview, {color: textSecondary}]}
-              numberOfLines={1}
-            >
-              {item.preview}
-            </Text>
-          )}
-        </TouchableOpacity>
-        <TouchableOpacity
-          onPress={() =>
-            setRenaming({
-              id: item.id,
-              title: item.customTitle ? item.title : '',
-            })
-          }
-          hitSlop={{top: 8, bottom: 8, left: 4, right: 4}}
-          accessibilityRole="button"
-          accessibilityLabel={`Rename chat ${item.title}`}
-          testID={`chat-history-rename-${item.id}`}
-          style={styles.iconButton}
-        >
-          <Pencil size={14} color={textSecondary} />
-        </TouchableOpacity>
-        <TouchableOpacity
-          onPress={() => confirmDelete(item)}
-          hitSlop={{top: 8, bottom: 8, left: 4, right: 8}}
-          accessibilityRole="button"
-          accessibilityLabel={`Delete chat ${item.title}`}
-          testID={`chat-history-delete-${item.id}`}
-          style={styles.iconButton}
-        >
-          <X size={15} color={textSecondary} />
-        </TouchableOpacity>
-      </View>
-    );
-  };
+  const handleStartRename = useCallback((chat: ChatSummary) => {
+    setRenaming({
+      id: chat.id,
+      title: chat.customTitle ? chat.title : '',
+    });
+  }, []);
+
+  const handleChangeRename = useCallback((title: string) => {
+    setRenaming(prev => (prev ? {...prev, title} : prev));
+  }, []);
+
+  const isSearching = search.trim().length > 0;
+  const showPreview = isSearching || isFullScreen;
+
+  const renderChat = useCallback(
+    ({item}: {item: ChatSummary}) => (
+      <ChatHistoryRow
+        item={item}
+        isOpen={!isTemporaryChat && item.id === currentSessionId}
+        showPreview={showPreview}
+        isRenaming={renaming?.id === item.id}
+        renameTitle={renaming?.id === item.id ? renaming.title : ''}
+        accent={accent}
+        softViolet={softViolet}
+        textPrimary={textPrimary}
+        textSecondary={textSecondary}
+        borderColor={borderColor}
+        onOpen={openChat}
+        onStartRename={handleStartRename}
+        onChangeRename={handleChangeRename}
+        onSaveRename={saveRename}
+        onRequestDelete={requestDelete}
+      />
+    ),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [
+      isTemporaryChat,
+      currentSessionId,
+      showPreview,
+      renaming,
+      accent,
+      softViolet,
+      textPrimary,
+      textSecondary,
+      borderColor,
+      requestDelete,
+    ],
+  );
 
   const renderDrawerHeader = () => {
-    const isSearching = search.trim().length > 0;
     return (
       <View style={styles.listTopSections}>
         {!isSearching && (
@@ -467,30 +620,29 @@ export const ChatHistorySheet: React.FC<ChatHistorySheetProps> = ({
               )}
             </View>
 
-            <TouchableOpacity
-              style={[
-                styles.ustpRow,
-                {
-                  backgroundColor: isCurrentUstp ? softViolet : surfaceBg,
-                  borderColor: isCurrentUstp ? accent : borderColor,
-                },
-              ]}
-              onPress={startUstpChat}
-              accessibilityRole="button"
-              accessibilityLabel="Ask LAFINA anything about USTP"
-              testID="chat-history-ustp-new"
-            >
-              <BookOpen size={16} color={accent} />
-              <Text
-                style={[styles.ustpRowTitle, {color: textPrimary}]}
-                numberOfLines={1}
+            {showUstp && (
+              <TouchableOpacity
+                style={[
+                  styles.ustpRow,
+                  {
+                    backgroundColor: isCurrentUstp ? softViolet : surfaceBg,
+                    borderColor: isCurrentUstp ? accent : borderColor,
+                  },
+                ]}
+                onPress={startUstpChat}
+                accessibilityRole="button"
+                accessibilityLabel="Ask LAFINA anything about USTP"
+                testID="chat-history-ustp-new"
               >
-                USTP Handbook
-              </Text>
-              <View style={[styles.ragPill, {backgroundColor: softViolet}]}>
-                <Text style={[styles.ragPillText, {color: accent}]}>RAG</Text>
-              </View>
-            </TouchableOpacity>
+                <BookOpen size={16} color={accent} />
+                <Text
+                  style={[styles.ustpRowTitle, {color: textPrimary}]}
+                  numberOfLines={1}
+                >
+                  USTP Handbook
+                </Text>
+              </TouchableOpacity>
+            )}
 
             {(onScanCamera || onScanGallery || onOpenGuide) && (
               <View style={styles.toolsSection}>
@@ -571,7 +723,9 @@ export const ChatHistorySheet: React.FC<ChatHistorySheetProps> = ({
 
         <View style={[styles.recentHeaderRow, {borderTopColor: borderColor}]}>
           <View style={[styles.segmentedFilter, {backgroundColor: surfaceBg}]}>
-            {FILTER_OPTIONS.map(option => {
+            {FILTER_OPTIONS.filter(
+              option => showUstp || option.key !== 'ustp',
+            ).map(option => {
               const active = kindFilter === option.key;
               return (
                 <TouchableOpacity
@@ -619,14 +773,6 @@ export const ChatHistorySheet: React.FC<ChatHistorySheetProps> = ({
     inputRange: [0, 1],
     outputRange: [-sidebarWidth, 0],
   });
-  const drawerWidth = expandAnim.interpolate({
-    inputRange: [0, 1],
-    outputRange: [sidebarWidth, safeWindowWidth],
-  });
-  const drawerRadius = expandAnim.interpolate({
-    inputRange: [0, 1],
-    outputRange: [20, 0],
-  });
   const backdropOpacity = slideAnim.interpolate({
     inputRange: [0, 1],
     outputRange: [0, 0.42],
@@ -634,9 +780,11 @@ export const ChatHistorySheet: React.FC<ChatHistorySheetProps> = ({
 
   return (
     <Modal
-      visible={visible}
+      visible={modalVisible}
       transparent
       animationType="none"
+      statusBarTranslucent
+      hardwareAccelerated
       onRequestClose={handleRequestClose}
     >
       <View style={styles.overlayRoot}>
@@ -660,9 +808,9 @@ export const ChatHistorySheet: React.FC<ChatHistorySheetProps> = ({
               backgroundColor: cardBg,
               borderRightColor: borderColor,
               borderRightWidth: isFullScreen ? 0 : StyleSheet.hairlineWidth,
-              width: drawerWidth,
-              borderTopRightRadius: drawerRadius,
-              borderBottomRightRadius: drawerRadius,
+              width: isFullScreen ? safeWindowWidth : sidebarWidth,
+              borderTopRightRadius: isFullScreen ? 0 : 22,
+              borderBottomRightRadius: isFullScreen ? 0 : 22,
               transform: [{translateX}],
               paddingTop: Math.max(insets.top, 14),
               paddingBottom: Math.max(insets.bottom, 12),
@@ -675,7 +823,7 @@ export const ChatHistorySheet: React.FC<ChatHistorySheetProps> = ({
 
             <View style={styles.headerActions}>
               <TouchableOpacity
-                onPress={() => setIsFullScreen(prev => !prev)}
+                onPress={() => setExpandedAnimated(prev => !prev)}
                 accessibilityRole="button"
                 accessibilityLabel={
                   isFullScreen ? 'Collapse to sidebar' : 'Expand to full screen'
@@ -723,7 +871,7 @@ export const ChatHistorySheet: React.FC<ChatHistorySheetProps> = ({
             <TextInput
               value={search}
               onChangeText={setSearch}
-              onFocus={() => setIsFullScreen(true)}
+              onFocus={() => setExpandedAnimated(true)}
               placeholder="Search chats…"
               placeholderTextColor={textSecondary}
               style={[styles.searchInput, {color: textPrimary}]}
@@ -755,6 +903,10 @@ export const ChatHistorySheet: React.FC<ChatHistorySheetProps> = ({
               ListHeaderComponent={renderDrawerHeader}
               keyboardShouldPersistTaps="handled"
               showsVerticalScrollIndicator={false}
+              initialNumToRender={12}
+              maxToRenderPerBatch={10}
+              windowSize={5}
+              removeClippedSubviews={!isTestEnv}
               contentContainerStyle={styles.listContainer}
               ListEmptyComponent={
                 <Text
@@ -767,6 +919,137 @@ export const ChatHistorySheet: React.FC<ChatHistorySheetProps> = ({
             />
           )}
         </Animated.View>
+
+        {pendingDelete ? (
+          <View
+            style={styles.deleteOverlay}
+            testID="chat-history-delete-dialog"
+          >
+            <Pressable
+              style={StyleSheet.absoluteFill}
+              onPress={() => setPendingDelete(null)}
+              accessibilityRole="button"
+              accessibilityLabel="Dismiss delete confirmation"
+            />
+            <View
+              style={[
+                styles.deleteCard,
+                modernShadows.floating,
+                {backgroundColor: cardBg, borderColor},
+              ]}
+            >
+              <View
+                style={[
+                  styles.deleteIconBadge,
+                  {backgroundColor: dangerSoftBg},
+                ]}
+              >
+                <Trash2 size={20} color={dangerInk} />
+              </View>
+              <Text style={[styles.deleteTitle, {color: textPrimary}]}>
+                Delete this chat?
+              </Text>
+              <View
+                style={[
+                  styles.deleteChatChip,
+                  {backgroundColor: surfaceBg, borderColor},
+                ]}
+              >
+                {pendingDelete.kind === 'ustp' ? (
+                  <BookOpen size={13} color={accent} />
+                ) : (
+                  <MessageSquare size={13} color={textSecondary} />
+                )}
+                <Text
+                  style={[styles.deleteChatName, {color: textPrimary}]}
+                  numberOfLines={1}
+                >
+                  {pendingDelete.title}
+                </Text>
+              </View>
+
+              <View style={styles.deleteImpactList}>
+                <View
+                  style={[
+                    styles.deleteImpactRow,
+                    {backgroundColor: dangerSoftBg},
+                  ]}
+                >
+                  <Trash2
+                    size={15}
+                    color={dangerInk}
+                    style={styles.deleteImpactIcon}
+                  />
+                  <View style={styles.deleteImpactBody}>
+                    <Text
+                      style={[styles.deleteImpactTitle, {color: dangerInk}]}
+                    >
+                      Removed from this phone
+                    </Text>
+                    <Text
+                      style={[styles.deleteImpactText, {color: textSecondary}]}
+                    >
+                      Messages and attached files in this chat will be deleted.
+                    </Text>
+                  </View>
+                </View>
+
+                <View
+                  style={[styles.deleteImpactRow, {backgroundColor: safeBg}]}
+                >
+                  <ShieldCheck
+                    size={15}
+                    color={safeInk}
+                    style={styles.deleteImpactIcon}
+                  />
+                  <View style={styles.deleteImpactBody}>
+                    <Text style={[styles.deleteImpactTitle, {color: safeInk}]}>
+                      Kept safely
+                    </Text>
+                    <Text
+                      style={[styles.deleteImpactText, {color: textSecondary}]}
+                    >
+                      Saved schedule items, tasks, notes, and memories stay
+                      intact.
+                    </Text>
+                  </View>
+                </View>
+              </View>
+
+              <View style={styles.deleteButtonRow}>
+                <TouchableOpacity
+                  style={[
+                    styles.deleteCancelBtn,
+                    {backgroundColor: surfaceBg, borderColor},
+                  ]}
+                  onPress={() => setPendingDelete(null)}
+                  accessibilityRole="button"
+                  accessibilityLabel="Cancel deleting chat"
+                  testID="chat-history-delete-cancel"
+                >
+                  <Text style={[styles.deleteBtnText, {color: textPrimary}]}>
+                    Cancel
+                  </Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[
+                    styles.deleteConfirmBtn,
+                    {backgroundColor: dangerButtonBg},
+                  ]}
+                  onPress={executePendingDelete}
+                  accessibilityRole="button"
+                  accessibilityLabel={`Confirm delete ${pendingDelete.title}`}
+                  testID="chat-history-delete-confirm"
+                >
+                  <Trash2 size={15} color="#FFFFFF" />
+                  <Text style={[styles.deleteBtnText, {color: '#FFFFFF'}]}>
+                    Delete
+                  </Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          </View>
+        ) : null}
       </View>
     </Modal>
   );
@@ -886,17 +1169,6 @@ const styles = StyleSheet.create({
     fontFamily: Fonts.heading,
     fontSize: 13.5,
     fontWeight: '600',
-  },
-  ragPill: {
-    paddingHorizontal: 7,
-    paddingVertical: 3,
-    borderRadius: 8,
-    flexShrink: 0,
-  },
-  ragPillText: {
-    fontFamily: Fonts.heading,
-    fontSize: 10,
-    fontWeight: '700',
   },
   toolsSection: {
     gap: 7,
@@ -1028,5 +1300,113 @@ const styles = StyleSheet.create({
     fontFamily: Fonts.body,
     fontSize: FontSize.small,
     paddingVertical: 24,
+  },
+  deleteOverlay: {
+    position: 'absolute',
+    top: 0,
+    right: 0,
+    bottom: 0,
+    left: 0,
+    backgroundColor: 'rgba(15, 13, 30, 0.52)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 22,
+  },
+  deleteCard: {
+    width: '100%',
+    maxWidth: 340,
+    borderRadius: 24,
+    borderWidth: 1,
+    padding: 20,
+    alignItems: 'center',
+  },
+  deleteIconBadge: {
+    width: 46,
+    height: 46,
+    borderRadius: 23,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 12,
+  },
+  deleteTitle: {
+    fontFamily: Fonts.heading,
+    fontSize: 18,
+    fontWeight: '800',
+    marginBottom: 8,
+  },
+  deleteChatChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    maxWidth: '100%',
+    borderWidth: 1,
+    borderRadius: 999,
+    paddingHorizontal: 12,
+    paddingVertical: 5,
+    marginBottom: 14,
+  },
+  deleteChatName: {
+    fontFamily: Fonts.heading,
+    fontSize: 13,
+    fontWeight: '600',
+    flexShrink: 1,
+  },
+  deleteImpactList: {
+    width: '100%',
+    gap: 8,
+    marginBottom: 18,
+  },
+  deleteImpactRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 10,
+    borderRadius: 14,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+  },
+  deleteImpactIcon: {
+    marginTop: 2,
+  },
+  deleteImpactBody: {
+    flex: 1,
+    gap: 2,
+  },
+  deleteImpactTitle: {
+    fontFamily: Fonts.heading,
+    fontSize: 13,
+    fontWeight: '700',
+  },
+  deleteImpactText: {
+    fontFamily: Fonts.body,
+    fontSize: 12,
+    lineHeight: 17,
+  },
+  deleteButtonRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    width: '100%',
+  },
+  deleteCancelBtn: {
+    flex: 1,
+    minHeight: 44,
+    borderRadius: 14,
+    borderWidth: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  deleteConfirmBtn: {
+    flex: 1,
+    minHeight: 44,
+    borderRadius: 14,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+  },
+  deleteBtnText: {
+    fontFamily: Fonts.heading,
+    fontSize: 14,
+    fontWeight: '700',
   },
 });

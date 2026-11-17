@@ -1,4 +1,6 @@
-import {useState, useEffect, useCallback, useMemo} from 'react';
+import {mapRowToTask} from '../../../../storage/tasksStore';
+import {escapeLike} from '../../../../storage/notesQueryStore';
+import {useState, useEffect, useCallback, useMemo, useRef} from 'react';
 import {Alert} from 'react-native';
 import type {Task, Reminder} from '../../../../storage';
 import {
@@ -6,7 +8,6 @@ import {
   deliveryStore,
   isNoteEditConflict,
   notesEditStore,
-  notesStore,
   remindersStore,
   tasksStore,
 } from '../../../../storage';
@@ -48,6 +49,7 @@ interface UseTodoDataOptions {
   refreshTrigger: number;
   searchQuery: string;
   onRefresh: () => void;
+  enabled?: boolean;
 }
 
 const LIVE_REMINDER_STATUSES = ['pending', 'snoozed', 'triggered'] as const;
@@ -141,12 +143,16 @@ export const useTodoData = ({
   refreshTrigger,
   searchQuery,
   onRefresh,
+  enabled = true,
 }: UseTodoDataOptions) => {
   const [tasks, setTasks] = useState<Task[]>([]);
   const [noteChecklists, setNoteChecklists] = useState<NoteChecklistTodoItem[]>(
     [],
   );
   const [filter, setFilter] = useState<TodoFilterType>('open');
+  const [taskLimit, setTaskLimit] = useState(100);
+  const [hasMoreTasks, setHasMoreTasks] = useState(false);
+  const [checklistsLoading, setChecklistsLoading] = useState(false);
   const [quickTitle, setQuickTitle] = useState('');
   const [quickPriority, setQuickPriority] =
     useState<Task['priority']>('Medium');
@@ -156,41 +162,143 @@ export const useTodoData = ({
     null,
   );
 
+  const checklistCache = useRef(
+    new Map<string, {revision: number; items: NoteChecklistTodoItem[]}>(),
+  );
+  const scanTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [openTaskCount, setOpenTaskCount] = useState(0);
+  const loadedKey = useRef('');
+  const cancelScan = useCallback(() => {
+    if (scanTimer.current) clearTimeout(scanTimer.current);
+    scanTimer.current = null;
+  }, []);
   const loadTodos = useCallback(() => {
+    cancelScan();
+    const revision = db.getDataRevision(['tasks', 'notes']);
+    const key = `${userId}:${revision}:${enabled}:${filter}:${searchQuery}:${taskLimit}`;
+    if (loadedKey.current === key) return;
     try {
-      const allTasks = tasksStore.getAllTasks(userId);
-      setTasks(allTasks);
-    } catch (err) {
-      console.error('[To-Do] Failed to load tasks:', err);
-      setTasks([]);
-    }
-
-    try {
-      const notes = notesStore.getAll(userId);
-      const extracted: NoteChecklistTodoItem[] = [];
-      for (const note of notes) {
-        const items = extractChecklistItems(note.body);
-        items.forEach((item, checklistIndex) => {
-          if (!item.text) return;
-          extracted.push({
-            id: `${note.id}::${checklistIndex}`,
-            noteId: note.id,
-            noteTitle: note.title || 'Untitled Note',
-            noteCategory: note.category || 'Personal',
-            checklistIndex,
-            text: item.text,
-            done: item.done,
-          });
-        });
+      setOpenTaskCount(
+        Number(
+          db.executeSync(
+            'SELECT COUNT(*) AS count FROM tasks WHERE user_id = ? AND deleted_at IS NULL AND is_completed = 0',
+            [userId],
+          ).rows[0]?.count ?? 0,
+        ),
+      );
+      // Notes needs the badge, not every task body and its sorted lists.
+      if (enabled) {
+        let where = 'user_id = ? AND deleted_at IS NULL';
+        const parameters: unknown[] = [userId];
+        if (filter === 'undated')
+          where +=
+            " AND is_completed = 0 AND (due_date IS NULL OR due_date = '')";
+        if (filter === 'scheduled')
+          where +=
+            " AND is_completed = 0 AND due_date IS NOT NULL AND due_date <> ''";
+        if (filter === 'completed') where += ' AND is_completed = 1';
+        if (searchQuery.trim()) {
+          where +=
+            " AND (lower(title) LIKE ? ESCAPE '\\' OR lower(COALESCE(notes, '')) LIKE ? ESCAPE '\\' OR lower(category) LIKE ? ESCAPE '\\')";
+          const pattern = `%${escapeLike(searchQuery.trim().toLowerCase())}%`;
+          parameters.push(pattern, pattern, pattern);
+        }
+        const rows = db.executeSync(
+          `SELECT * FROM tasks WHERE ${where} ORDER BY is_completed,
+            CASE WHEN due_date IS NULL OR due_date = '' THEN 0 ELSE 1 END,
+            CASE WHEN due_date IS NULL OR due_date = '' THEN CASE priority WHEN 'High' THEN 0 WHEN 'Medium' THEN 1 ELSE 2 END END,
+            CASE WHEN is_completed = 1 OR due_date IS NULL OR due_date = '' THEN updated_at END DESC,
+            CASE WHEN is_completed = 0 THEN due_date END,
+            CASE WHEN is_completed = 0 THEN due_time END,
+            CASE priority WHEN 'High' THEN 0 WHEN 'Medium' THEN 1 ELSE 2 END, id LIMIT ?`,
+          [...parameters, taskLimit + 1],
+        ).rows;
+        setTasks(rows.slice(0, taskLimit).map(mapRowToTask));
+        setHasMoreTasks(rows.length > taskLimit);
       }
-      setNoteChecklists(extracted);
+      const metadata = db.executeSync(
+        `SELECT n.id, COALESCE(r.revision, 0) AS revision
+        FROM notes n LEFT JOIN entity_local_revisions r ON r.entity_type = 'note' AND r.entity_id = n.id
+        WHERE n.user_id = ? AND n.deleted_at IS NULL ORDER BY n.id`,
+        [userId],
+      ).rows;
+      const liveIds = new Set(metadata.map(row => String(row.id)));
+      for (const id of checklistCache.current.keys())
+        if (!liveIds.has(id)) checklistCache.current.delete(id);
+      const stale = metadata.filter(
+        row =>
+          checklistCache.current.get(String(row.id))?.revision !==
+          Number(row.revision),
+      );
+      setChecklistsLoading(stale.length > 8);
+      let offset = 0;
+      const publish = () =>
+        setNoteChecklists(
+          Array.from(checklistCache.current.values()).flatMap(
+            entry => entry.items,
+          ),
+        );
+      const batch = () => {
+        try {
+          // Yield between small batches; unchanged bodies are never read/parsed again.
+          for (const row of stale.slice(offset, offset + 8)) {
+            const note = db.executeSync(
+              'SELECT title, category, body FROM notes WHERE id = ? AND user_id = ? AND deleted_at IS NULL',
+              [row.id, userId],
+            ).rows[0];
+            if (!note) continue;
+            const noteId = String(row.id);
+            const items = extractChecklistItems(
+              String(note.body ?? ''),
+            ).flatMap((item, checklistIndex) =>
+              item.text
+                ? [
+                    {
+                      id: `${noteId}::${checklistIndex}`,
+                      noteId,
+                      noteTitle: String(note.title || 'Untitled Note'),
+                      noteCategory: String(note.category || 'Personal'),
+                      checklistIndex,
+                      text: item.text,
+                      done: item.done,
+                    },
+                  ]
+                : [],
+            );
+            checklistCache.current.set(noteId, {
+              revision: Number(row.revision),
+              items,
+            });
+          }
+          offset += 8;
+          publish();
+          if (offset < stale.length) scanTimer.current = setTimeout(batch, 16);
+          else {
+            scanTimer.current = null;
+            loadedKey.current = key;
+            setChecklistsLoading(false);
+          }
+        } catch (error) {
+          loadedKey.current = '';
+          scanTimer.current = null;
+          setChecklistsLoading(false);
+          console.error('[To-Do] Could not read checklist batch:', error);
+        }
+      };
+      batch();
     } catch (err) {
-      console.error('[To-Do] Failed to extract note checklists:', err);
-      setNoteChecklists([]);
+      loadedKey.current = '';
+      console.error('[To-Do] Could not load local items:', err);
     }
-  }, [userId]);
+  }, [userId, enabled, filter, searchQuery, taskLimit, cancelScan]);
+  useEffect(() => cancelScan, [cancelScan]);
 
+  const checklistOwner = useRef(userId);
   useEffect(() => {
+    if (checklistOwner.current === userId) return;
+    checklistOwner.current = userId;
+    checklistCache.current.clear();
+    loadedKey.current = '';
     setHighlightedTaskId(null);
     setEditorVisible(false);
     setEditingTask(null);
@@ -202,6 +310,9 @@ export const useTodoData = ({
     loadTodos();
   }, [loadTodos, refreshTrigger]);
 
+  useEffect(() => {
+    setTaskLimit(100);
+  }, [userId, filter, searchQuery]);
   const query = searchQuery.trim().toLowerCase();
 
   const matchesTaskQuery = useCallback(
@@ -261,10 +372,9 @@ export const useTodoData = ({
   }, [noteChecklists, filter, query]);
 
   const pendingCount = useMemo(() => {
-    const openTaskCount = tasks.filter(t => !t.isCompleted).length;
     const openChecklistCount = noteChecklists.filter(c => !c.done).length;
     return openTaskCount + openChecklistCount;
-  }, [tasks, noteChecklists]);
+  }, [openTaskCount, noteChecklists]);
 
   const addTodo = useCallback(
     (input: TodoDraftInput) => {
@@ -460,6 +570,9 @@ export const useTodoData = ({
   }, []);
 
   return {
+    checklistsLoading,
+    hasMoreTasks,
+    loadMoreTasks: () => setTaskLimit(limit => limit + 100),
     tasks,
     undatedOpen,
     scheduledOpen,

@@ -93,7 +93,7 @@ it('starts online only after Answer and stops it before acknowledging', async ()
   expect(mockEndAndWait).toHaveBeenCalled();
   expect(scheduler.manualAcknowledgeCall).not.toHaveBeenCalled();
   await act(async () => { release(); });
-  expect(scheduler.manualAcknowledgeCall).toHaveBeenCalledWith('reminder-online', 'student-online-call');
+  expect(scheduler.manualAcknowledgeCall).toHaveBeenCalledWith('reminder-online', 'student-online-call', null);
   expect(mockEndAndWait.mock.invocationCallOrder[0]).toBeLessThan(
     (scheduler.manualAcknowledgeCall as jest.Mock).mock.invocationCallOrder[0]);
 });
@@ -150,7 +150,7 @@ it('never treats a discussion about snoozing as a reminder action', async () => 
   act(() => { mockOnlineProps.onSpokenTurn('Can you explain what snooze means?'); });
   expect(scheduler.manualSnoozeCall).not.toHaveBeenCalled();
   await act(async () => { mockOnlineProps.onSpokenTurn('Snooze for 10 minutes'); });
-  expect(scheduler.manualSnoozeCall).toHaveBeenCalledWith('reminder-online', 'student-online-call', 10);
+  expect(scheduler.manualSnoozeCall).toHaveBeenCalledWith('reminder-online', 'student-online-call', 10, null);
 });
 
 it('asks for streaming consent before requesting microphone access', async () => {

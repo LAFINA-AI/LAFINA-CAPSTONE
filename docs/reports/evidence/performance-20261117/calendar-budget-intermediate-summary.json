@@ -1,0 +1,91 @@
+{
+  "directory": "device-calendar-budget-30",
+  "rounds": 30,
+  "expectedSamples": 150,
+  "receivedSamples": 150,
+  "allSamplesWarm": true,
+  "limitation": "JS handler-to-layout-commit and next JS animation callback only; excludes native input delay and does not establish first-presented pixels or tap-to-usable latency.",
+  "warmSummary": [
+    {
+      "tab": "dashboard",
+      "n": 30,
+      "jsCommitP50Ms": 52.27353799343109,
+      "jsCommitP95Ms": 71.93446201086044,
+      "nextAnimationFrameP95Ms": 144.94515398144722
+    },
+    {
+      "tab": "calendar",
+      "n": 30,
+      "jsCommitP50Ms": 51.151616007089615,
+      "jsCommitP95Ms": 95.30638501048088,
+      "nextAnimationFrameP95Ms": 108.56638500094414
+    },
+    {
+      "tab": "chat",
+      "n": 30,
+      "jsCommitP50Ms": 27.608308017253876,
+      "jsCommitP95Ms": 41.845308005809784,
+      "nextAnimationFrameP95Ms": 98.50246199965477
+    },
+    {
+      "tab": "notes",
+      "n": 30,
+      "jsCommitP50Ms": 26.665537983179092,
+      "jsCommitP95Ms": 50.4782310128212,
+      "nextAnimationFrameP95Ms": 70.6660769879818
+    },
+    {
+      "tab": "profile",
+      "n": 30,
+      "jsCommitP50Ms": 30.332691997289658,
+      "jsCommitP95Ms": 46.010154008865356,
+      "nextAnimationFrameP95Ms": 77.53230801224709
+    }
+  ],
+  "memory": {
+    "memory-after": {
+      "pssKiB": 336817,
+      "views": 2087
+    },
+    "memory-before": {
+      "pssKiB": 290274,
+      "views": 2087
+    },
+    "memory-round-10": {
+      "pssKiB": 368641,
+      "views": 2087
+    },
+    "memory-round-20": {
+      "pssKiB": 425429,
+      "views": 2087
+    },
+    "memory-round-30": {
+      "pssKiB": 346341,
+      "views": 2087
+    }
+  },
+  "peakSampledPssKiB": 425429,
+  "frameSummary": "Applications Graphics Acceleration Info:\nUptime: 158499414 Realtime: 270620985\n\n** Graphics info for test process [com.lafina.capstone.performance] **\n\nStats since: 158378551141132ns\nTotal frames rendered: 828\nJanky frames: 178 (21.50%)\nJanky frames (legacy): 302 (36.47%)\n50th percentile: 17ms\n90th percentile: 57ms\n95th percentile: 81ms\n99th percentile: 97ms\nNumber Missed Vsync: 0\nNumber High input latency: 799\nNumber Slow UI thread: 150\nNumber Slow bitmap uploads: 159\nNumber Slow issue draw commands: 131\nNumber Frame deadline missed: 178\nNumber Frame deadline missed (legacy): 150\n",
+  "warmQueryRangeByTab": {
+    "dashboard": [
+      0,
+      1
+    ],
+    "calendar": [
+      0,
+      0
+    ],
+    "chat": [
+      28,
+      43
+    ],
+    "notes": [
+      0,
+      0
+    ],
+    "profile": [
+      2,
+      2
+    ]
+  }
+}

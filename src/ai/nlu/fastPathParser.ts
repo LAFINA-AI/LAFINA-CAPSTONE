@@ -385,7 +385,7 @@ export function normalizeSpeech(transcript: string): string {
 }
 
 const TAGLISH_MARKER =
-  /\b(?:paalala(?:han)?|ipaalala|dagdag(?:an)?|idagdag|i?lagay|ano(?:ng)?|bukas|mamaya(?:ng)?|ngayon(?:g)?|sakin|saakin|mag-?aral|mag-?review|bumili|magpasa|ipasa|alas|pa-?remind|i-?cancel|i-?delete|burahin|tanggalin|tapos\s+na|natapos|gisingin|gisingan|alarm\s+ko|i-?alarm|mag-?alarm|tuwing|araw-?araw|patayin|buksan|i-?off|free\s+ba|bakante\s+ba|lunes|martes|miyerkules|myerkules|huwebes|biyernes|sabado)\b|\bmay\s+\S+(?:\s+\S+)?\s+ako\b/i;
+  /\b(?:paalala(?:han)?|ipaalala|dagdag(?:an)?|idagdag|i?lagay|ano(?:ng)?|bukas|mamaya(?:ng)?|ngayon(?:g)?|sakin|saakin|mag-?aral|mag-?review|bumili|magpasa|ipasa|alas|pa-?remind|i-?cancel|i-?delete|burahin|tanggalin|tapos\s+na|natapos|gisingin|gisingan|alarm\s+ko|i-?alarm|mag-?alarm|tuwing|araw-?araw|patayin|buksan|i-?off|free\s+ba|bakante\s+ba|lunes|martes|miyerkules|myerkules|huwebes|biyernes|sabado)\b|\bmay\s+\S+(?:\s+\S+)?\s+(?:ako|kami|tayo)\b/i;
 
 /** "gawa ka ng note: …": the note's own words stay exactly as said. */
 const TAGLISH_NOTE_FRAME =
@@ -441,6 +441,8 @@ export function translateTaglishCommand(text: string): string | null {
     /\s(?:pa-?remind|remind\s+mo)\s+(?:mo\s+)?(?:ako|sakin|saakin|sa\s+akin)\b\s*/g,
     ' remind me ',
   );
+  // A bare "pa-remind bukas …" (no pronoun) is still "remind me" (audit L2).
+  replace(/\spa-?remind\b\s*/g, ' remind me ');
   // Wake-up requests: "gisingin mo ako ng 6 bukas".
   replace(
     /\s(?:gisingin|gisingan)\s+(?:mo\s+)?(?:ako|sakin)\b/g,
@@ -479,12 +481,10 @@ export function translateTaglishCommand(text: string): string | null {
     ' mark $1 as done ',
   );
   // Schedule questions: "free ba ako sa biyernes?".
-  replace(
-    /\s(?:free|bakante)\s+ba\s+(?:ako|ko)\b/g,
-    ' when am i free',
-  );
+  replace(/\s(?:free|bakante)\s+ba\s+(?:ako|ko)\b/g, ' when am i free');
   // "may quiz ako sa lunes": the student has something on a day.
-  replace(/^\smay\s+(\S+(?:\s+\S+)?)\s+ako\b/g, ' i have a $1');
+  // "may quiz kami/tayo bukas" is the same for the class (audit L2).
+  replace(/^\smay\s+(\S+(?:\s+\S+)?)\s+(?:ako|kami|tayo)\b/g, ' i have a $1');
   replace(
     /\sano(?:ng)?\s+(?:ang\s+)?(?:sched(?:ule)?|iskedyul|gagawin|lakad)\s+(?:ko|natin)\b/g,
     ' what is my schedule',
@@ -1088,12 +1088,36 @@ export function parseDateAndTime(
       if (mIdx === -1) mIdx = monthShort.indexOf(mStr.slice(0, 3));
       if (mIdx !== -1) {
         const dNum = parseInt(monthMatch[2], 10);
-        const yNum = monthMatch[3]
+        const explicitYear = Boolean(monthMatch[3]);
+        let yNum = explicitYear
           ? parseInt(monthMatch[3], 10)
           : referenceDate.getFullYear();
         if (dNum >= 1 && dNum <= 31) {
-          const d = new Date(yNum, mIdx, dNum);
-          date = formatLocalDate(d);
+          const daysInMonth = new Date(yNum, mIdx + 1, 0).getDate();
+          if (dNum > daysInMonth) {
+            // "November 31" must not silently become December 1 (audit
+            // M7): keep the impossible date so validation can say so.
+            date = `${yNum}-${String(mIdx + 1).padStart(2, '0')}-${String(
+              dNum,
+            ).padStart(2, '0')}`;
+          } else {
+            // Without a year, a date well in the past means next year: in
+            // November, "January 5" is the coming January (audit M7). A
+            // date only a few weeks back stays, so "already passed" is said.
+            const startOfToday = new Date(
+              referenceDate.getFullYear(),
+              referenceDate.getMonth(),
+              referenceDate.getDate(),
+            );
+            let d = new Date(yNum, mIdx, dNum);
+            const daysPast =
+              (startOfToday.getTime() - d.getTime()) / 86_400_000;
+            if (!explicitYear && daysPast > 60) {
+              yNum += 1;
+              d = new Date(yNum, mIdx, dNum);
+            }
+            date = formatLocalDate(d);
+          }
           matchedText.push(monthMatch[0]);
         }
       }
@@ -1781,7 +1805,7 @@ export function extractNotifyOnlyRequest(transcript: string): string | null {
 /** Deterministic Fast-Path NLU Intent Extractor. */
 // ---------------------------------------------------------------------------
 // Alarm plan A3: alarm commands. An alarm rings like a clock alarm (never a
-// call) and lives in Schedule → Alarms. A bare hour means the morning: "wake
+// call) and lives in Tools → Alarms. A bare hour means the morning: "wake
 // me up at 6" is 6 AM, and "6pm", "18:00" or "tonight" stay as said.
 // ---------------------------------------------------------------------------
 
@@ -1981,8 +2005,8 @@ export function parseAlarmCommand(
     } else if (
       (match =
         /^(?:turn|switch)\s+(.*?)\balarms?\s+(?:back\s+)?(off|on)\b(.*)$/.exec(
-        text,
-      ))
+          text,
+        ))
     ) {
       enabled = match[2] === 'on';
       descriptor = match[1];
@@ -2073,9 +2097,7 @@ export function parseAlarmCommand(
   }
 
   // "wake me up at 6 on weekdays", "wake me at 5:30 tomorrow".
-  const rest = text
-    .replace(/^wake\s+me(?:\s+up)?\b/, '')
-    .trim();
+  const rest = text.replace(/^wake\s+me(?:\s+up)?\b/, '').trim();
   const clock = alarmClock(rest, referenceDate);
   return {
     ...base,
@@ -2255,7 +2277,7 @@ function parseEnglishIntent(
 
   // 2d. Overdue work ("show overdue tasks", "what am I behind on").
   if (
-    /\b(?:overdue|past[\s-]+due|late)\s+(?:tasks?|to-?dos?|todos?|to\s+dos?|assignments?|homework|work|items?)\b|\b(?:tasks?|to-?dos?|todos?|assignments?|homework)\s+(?:that\s+(?:are|is)\s+)?(?:overdue|past\s+due|late)\b|\bwhat(?:'s|s|\s+is|\s+am\s+i)\s+(?:overdue|behind(?:\s+on)?)\b|\bam\s+i\s+behind\b|^(?:show|list|check)\s+(?:my\s+)?overdue\b/i.test(
+    /\b(?:overdue|past[\s-]+due|late)\s+(?:tasks?|to-?dos?|todos?|to\s+dos?|assignments?|homework|work|items?)\b|\b(?:tasks?|to-?dos?|todos?|assignments?|homework)\s+(?:(?:that\s+)?(?:are|is)\s+(?:still\s+)?)?(?:overdue|past\s+due|late)\b|\b(?:is\s+)?any(?:thing)?\s+(?:overdue|past\s+due)\b|\bwhat(?:'s|s|\s+is|\s+am\s+i)\s+(?:overdue|behind(?:\s+on)?)\b|\bam\s+i\s+behind\b|^(?:show|list|check)\s+(?:my\s+)?overdue\b/i.test(
       commandLower,
     )
   ) {
@@ -2458,7 +2480,7 @@ function parseEnglishIntent(
     );
 
   const isScheduleQuery =
-    /\b(?:what(?:'s|s| is| are) (?:on |in |for )?(?:my |the )?(?:schedule|calendar|agenda|plans?|tasks?|todos?|to-?dos?(?:\s+list)?|to\s+dos?(?:\s+list)?|checklists?|events?|time\s*blocks?|blocks?|reminders?|classes?)|what(?:'s|s| is) (?:happening|upcoming|planned|scheduled|on\s+deck)|what (?:do i have|have i got|i have|am i doing|do i need to do)|what (?:tasks?|todos?|to-?dos?|to\s+dos?|checklists?|events?|time\s*blocks?|blocks?|reminders?|classes?|plans?|items?) (?:do i have|have i got|i have|are due|are scheduled|are on|are left|are pending)|what does my (?:day|schedule|calendar|morning|afternoon|evening|week|to-?do(?:\s+list)?) look|how(?:'s|s| is| does) my (?:schedule|day|calendar|agenda|to-?do(?:\s+list)?)(?: look(?:ing)?)?|do i have (?:anything(?:(?:\s+(?:on|in)\s+(?:my\s+|the\s+)?(?:to-?do|to\s+do|todo)(?:\s+list)?))?|any (?:tasks?|todos?|to-?dos?|to\s+dos?|checklists?|events?|time\s*blocks?|blocks?|reminders?|classes?|plans?))|is there anything (?:on |in |for )?(?:my |the )?(?:schedule|calendar|agenda|to-?do(?:\s+list)?|todo\s+list)|is anything (?:scheduled|planned|due|pending)|am i (?:free|busy|available)|(?:audit|check|show|tell(?:\s+me)?|give(?:\s+me)?|read(?:\s+out)?|list|get|view|review|summarize|brief(?:\s+me(?:\s+on)?)?)(?:\s+(?:me|you|us))?\s+(?:what(?:'s|s| is| are)\s+(?:on\s+|in\s+)?)?(?:everything|all|a\s+|my\s+|the\s+|today'?s\s+|tomorrow'?s\s+)?(?:schedule(?:\s+audit)?|calendar|agenda|tasks?|todos?|to-?dos?(?:\s+list)?|to\s+dos?(?:\s+list)?|checklists?|time\s*blocks?|plans?|events?|scheduled|planned)|(?:show|tell|list|view|read|summarize|give)\s+(?:me|you|us\s+)?(?:everything|all|what(?:'s|\s+is))\s+(?:that(?:'s|\s+is)\s+)?(?:scheduled|planned|on\s+(?:my\s+|the\s+)?(?:schedule|calendar|agenda|to-?do(?:\s+list)?|todo\s+list))|(?:everything|anything)\s+scheduled\s+(?:for\s+)?(?:this|next)\s+week|(?:this|next)\s+week(?:'?s)?\s+(?:schedule|agenda|calendar|plans?|tasks?)|what\s+do\s+i\s+have\s+(?:scheduled\s+)?(?:this|next)\s+week|schedule\s+audit|my\s+schedule|my\s+to-?do(?:\s+list)?|today'?s\s+schedule|tomorrow'?s\s+schedule|^schedule\s+(?:for\s+)?(?:today|to-?morrow|tommorow|tomorow|tommorrow|morrow|tmrw|tmr|tonight|monday|tuesday|wednesday|thursday|friday|saturday|sunday)|any\s+(?:plans?|tasks?|to-?dos?|todos?|events?|time\s*blocks?|classes?)\s+(?:for\s+|on\s+)?(?:today|to-?morrow|tommorow|tomorow|tommorrow|morrow|tmrw|tmr|tonight))\b/i.test(
+    /\b(?:what(?:'s|s| is| are) (?:on |in |for )?(?:my |the )?(?:(?:pending|open|remaining|unfinished|incomplete)\s+)?(?:schedule|calendar|agenda|plans?|tasks?|todos?|to-?dos?(?:\s+list)?|to\s+dos?(?:\s+list)?|checklists?|events?|time\s*blocks?|blocks?|reminders?|classes?)|what(?:'s|s| is) (?:happening|upcoming|planned|scheduled|on\s+deck)|what (?:do i have|have i got|i have|am i doing|do i need to do)|what (?:(?:pending|open|remaining|unfinished|incomplete)\s+)?(?:tasks?|todos?|to-?dos?|to\s+dos?|checklists?|events?|time\s*blocks?|blocks?|reminders?|classes?|plans?|items?) (?:do i have|have i got|i have|are due|are scheduled|are on|are left|are pending)|what does my (?:day|schedule|calendar|morning|afternoon|evening|week|to-?do(?:\s+list)?) look|how(?:'s|s| is| does) my (?:schedule|day|calendar|agenda|to-?do(?:\s+list)?)(?: look(?:ing)?)?|do i have (?:anything(?:(?:\s+(?:on|in)\s+(?:my\s+|the\s+)?(?:to-?do|to\s+do|todo)(?:\s+list)?))?|any (?:(?:pending|open|remaining|unfinished|incomplete)\s+)?(?:tasks?|todos?|to-?dos?|to\s+dos?|checklists?|events?|time\s*blocks?|blocks?|reminders?|classes?|plans?))|is there anything (?:on |in |for )?(?:my |the )?(?:schedule|calendar|agenda|to-?do(?:\s+list)?|todo\s+list)|is anything (?:scheduled|planned|due|pending)|am i (?:free|busy|available)|(?:audit|check|show|tell(?:\s+me)?|give(?:\s+me)?|read(?:\s+out)?|list|get|view|review|summarize|brief(?:\s+me(?:\s+on)?)?)(?:\s+(?:me|you|us))?\s+(?:what(?:'s|s| is| are)\s+(?:on\s+|in\s+)?)?(?:everything|all|a\s+|my\s+|the\s+|today'?s\s+|tomorrow'?s\s+)?(?:(?:pending|open|remaining|unfinished|incomplete)\s+)?(?:schedule(?:\s+audit)?|calendar|agenda|tasks?|todos?|to-?dos?(?:\s+list)?|to\s+dos?(?:\s+list)?|checklists?|time\s*blocks?|plans?|events?|scheduled|planned)|(?:show|tell|list|view|read|summarize|give)\s+(?:me|you|us\s+)?(?:everything|all|what(?:'s|\s+is))\s+(?:that(?:'s|\s+is)\s+)?(?:scheduled|planned|on\s+(?:my\s+|the\s+)?(?:schedule|calendar|agenda|to-?do(?:\s+list)?|todo\s+list))|(?:everything|anything)\s+scheduled\s+(?:for\s+)?(?:this|next)\s+week|(?:this|next)\s+week(?:'?s)?\s+(?:schedule|agenda|calendar|plans?|tasks?)|what\s+do\s+i\s+have\s+(?:scheduled\s+)?(?:this|next)\s+week|schedule\s+audit|my\s+schedule|my\s+to-?do(?:\s+list)?|today'?s\s+schedule|tomorrow'?s\s+schedule|^schedule\s+(?:for\s+)?(?:today|to-?morrow|tommorow|tomorow|tommorrow|morrow|tmrw|tmr|tonight|monday|tuesday|wednesday|thursday|friday|saturday|sunday)|any\s+(?:plans?|tasks?|to-?dos?|todos?|events?|time\s*blocks?|classes?)\s+(?:for\s+|on\s+)?(?:today|to-?morrow|tommorow|tomorow|tommorrow|morrow|tmrw|tmr|tonight))\b/i.test(
       commandLower,
     );
 
@@ -2478,7 +2500,7 @@ function parseEnglishIntent(
     const targetDate = dt.date || formatLocalDate(referenceDate);
     const isTodoFocusQuery =
       !dateRange &&
-      /\b(?:todos?(?:\s+list)?|to-?dos?(?:\s+list)?|to\s+dos?(?:\s+list)?|checklists?|undated(?:\s+tasks?)?|pending\s+tasks?)\b/i.test(
+      /\b(?:todos?(?:\s+list)?|to-?dos?(?:\s+list)?|to\s+dos?(?:\s+list)?|checklists?|undated(?:\s+tasks?)?|(?:pending|open|remaining|unfinished|incomplete)\s+tasks?|tasks?\s+(?:that\s+)?(?:are\s+)?pending)\b/i.test(
         commandLower,
       );
     return {
@@ -2674,7 +2696,7 @@ function parseEnglishIntent(
     );
   const markDoneMatch = isNegativeCompletion
     ? null
-    : (/\bmark\s+(.+?)\s+(?:as\s+)?(?:done|complete|completed|finished)\b/i.exec(
+    : /\bmark\s+(.+?)\s+(?:as\s+)?(?:done|complete|completed|finished)\b/i.exec(
         commandLower,
       ) ||
       /^(?:complete|finish|check\s+off|tick\s+off)\s+(?:(?:my|the|a|an)\s+)?(?:(?:task|todo|to-?do|to\s+do)\s+)(.+)$/i.exec(
@@ -2686,7 +2708,7 @@ function parseEnglishIntent(
       /^(?:check\s+off|tick\s+off)\s+(.+)$/i.exec(commandLower) ||
       /^(?:i(?:'m| am)?\s+done\s+with|i\s+(?:already\s+)?finished)\s+(?:(?:my|the|a|an)\s+)?(?:(?:task|event|todo|to-?do|to\s+do)\s+)?(.+)$/i.exec(
         commandLower,
-      ));
+      );
   if (markDoneMatch) {
     const rawTarget = markDoneMatch[1];
     const targetTitle = cleanCrudTargetTitle(rawTarget);
@@ -3637,9 +3659,11 @@ export function distillScheduleTitle(rawTitle: string): string {
     prev = cleaned;
     cleaned = cleaned
       .replace(
-        /^(?:(?:uh|um|er|ah|hey|hi|hello|okay|ok|well|so|like|actually|honestly|basically|alright)\s*[,.!:-]*\s*)+/i,
+        /^(?:(?:uh|um|er|ah|hey|hi|hello|yeah|yep|yes|okay|ok|well|so|like|actually|honestly|basically|alright)\s*[,.!:-]*\s*)+/i,
         '',
       )
+      .replace(/^(?:i|we)\s+(?:want|need|would\s+like)\s+you\s+to\s+/i, '')
+      .replace(/^(?:set|make|create)\s+(?:a\s+)?schedule\s+(?:for\s+)?/i, '')
       .replace(/^lafina\s*[,.!:-]*\s*/i, '')
       .replace(
         /^(?:(?:can|could|would|will|may)\s+(?:you|we)\s+(?:please\s+)?(?:help\s+me\s+(?:to\s+)?)?)/i,

@@ -5,15 +5,18 @@
  * injected into plannerQueries only.
  */
 import React from 'react';
-import { act, fireEvent, render } from '@testing-library/react-native';
-import { ThemeProvider } from '../../src/ui/contexts/ThemeContext';
-import { CalendarScreen } from '../../src/ui/screens/calendar';
-import { db, initDatabase, tasksStore, userStore } from '../../src/storage';
-import { plannerQueries } from '../../src/storage/plannerQueries';
+import {act, fireEvent, render} from '@testing-library/react-native';
+import {ThemeProvider} from '../../src/ui/contexts/ThemeContext';
+import {CalendarScreen} from '../../src/ui/screens/calendar';
+import {db, initDatabase, tasksStore, userStore} from '../../src/storage';
+import {plannerQueries} from '../../src/storage/plannerQueries';
 
 const today = (): string => {
   const now = new Date();
-  return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+  return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(
+    2,
+    '0',
+  )}-${String(now.getDate()).padStart(2, '0')}`;
 };
 
 let serial = 0;
@@ -43,7 +46,11 @@ const addTask = (userId: string, title: string) =>
 
 const screen = (userId: string, refreshTrigger = 0) => (
   <ThemeProvider userId={userId}>
-    <CalendarScreen userId={userId} refreshTrigger={refreshTrigger} onRefresh={jest.fn()} />
+    <CalendarScreen
+      userId={userId}
+      refreshTrigger={refreshTrigger}
+      onRefresh={jest.fn()}
+    />
   </ThemeProvider>
 );
 
@@ -119,22 +126,15 @@ describe('codex audit A2: Calendar read failures', () => {
     expect(view.getByText(/does not mean your calendar is empty/)).toBeTruthy();
   });
 
-  it('a tasks-and-events-only failure is reported even when blocks read fine', () => {
-    const a = owner('schedule-only');
+  it('shares one successful planner snapshot between blocks and schedule', () => {
+    const a = owner('shared-window');
     userStore.setCurrentUser(a);
     addTask(a, 'Quiz Review');
-    // Each load reads blocks first, then tasks/events: fail only the second.
-    const real = plannerQueries.window.bind(plannerQueries);
-    let calls = 0;
-    jest.spyOn(plannerQueries, 'window').mockImplementation((...args) => {
-      calls += 1;
-      if (calls % 2 === 0) throw new Error('database is locked');
-      return real(...args);
-    });
+    const spy = jest.spyOn(plannerQueries, 'window');
     const view = render(screen(a));
-    expect(calls).toBeGreaterThanOrEqual(2);
-    expect(view.getByTestId('calendar-read-error')).toBeTruthy();
-    expect(view.queryByText('Quiz Review')).toBeNull();
+    expect(spy).toHaveBeenCalledTimes(1);
+    expect(view.queryByTestId('calendar-read-error')).toBeNull();
+    expect(view.getByText('Quiz Review')).toBeTruthy();
   });
 
   it('an overdue-only failure is still reported', () => {

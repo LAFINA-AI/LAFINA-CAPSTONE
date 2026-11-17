@@ -22,6 +22,15 @@ interface StoredImportBatch {
 
 const BATCHES_FILE_PATH = `${RNFS.DocumentDirectoryPath}/imported_batches.json`;
 
+let cachedBatches: StoredImportBatch[] | null = null;
+
+const cloneBatch = (batch: StoredImportBatch): StoredImportBatch => ({
+  ...batch,
+  events: [...batch.events],
+  blocks: [...batch.blocks],
+  tasks: [...batch.tasks],
+});
+
 const isStringArray = (value: unknown): value is string[] => (
   Array.isArray(value) && value.every((entry) => typeof entry === 'string')
 );
@@ -53,18 +62,34 @@ const parseStoredBatch = (value: unknown): StoredImportBatch | null => {
 
 const readStoredBatches = async (): Promise<StoredImportBatch[]> => {
   const exists = await RNFS.exists(BATCHES_FILE_PATH);
-  if (!exists) return [];
+  if (!exists) {
+    cachedBatches = [];
+    return [];
+  }
   const content = await RNFS.readFile(BATCHES_FILE_PATH, 'utf8');
-  if (!content || !content.trim()) return [];
+  if (!content || !content.trim()) {
+    cachedBatches = [];
+    return [];
+  }
   const parsed = JSON.parse(content) as unknown;
   if (!Array.isArray(parsed)) {
     throw new Error('Imported calendar batch file must contain an array.');
   }
-  return parsed.map(parseStoredBatch).filter((batch): batch is StoredImportBatch => batch !== null);
+  const next = parsed.map(parseStoredBatch).filter((batch): batch is StoredImportBatch => batch !== null);
+  cachedBatches = next.map(cloneBatch);
+  return next;
 };
 
 /** Account-scoped store for imported calendar batch metadata. */
 export const importedBatchesStore = {
+  /** Returns cached batches for one user synchronously when already loaded, or null before first read. */
+  getCachedImportedBatches: (userId: string): ImportBatch[] | null => {
+    if (cachedBatches === null) return null;
+    return cachedBatches
+      .filter((batch): batch is ImportBatch => batch.userId === userId)
+      .map(cloneBatch) as ImportBatch[];
+  },
+
   /**
    * Retrieves batches owned by one local user, newest first.
    * Legacy batches without an owner remain quarantined and are never exposed to an account.
@@ -100,6 +125,7 @@ export const importedBatchesStore = {
       };
       batches.unshift(newBatch);
       await RNFS.writeFile(BATCHES_FILE_PATH, JSON.stringify(batches, null, 2), 'utf8');
+      cachedBatches = batches.map(cloneBatch);
     } catch (error) {
       console.error('Failed to save imported batch:', error);
       throw error;
@@ -115,6 +141,7 @@ export const importedBatchesStore = {
 
       const [removed] = batches.splice(index, 1);
       await RNFS.writeFile(BATCHES_FILE_PATH, JSON.stringify(batches, null, 2), 'utf8');
+      cachedBatches = batches.map(cloneBatch);
       return removed as ImportBatch;
     } catch (error) {
       console.error('Failed to delete imported batch:', error);

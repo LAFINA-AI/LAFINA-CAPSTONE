@@ -18,6 +18,7 @@ import {
   handbookPreference,
   handbookSourceLabel,
 } from '../../src/skills/onlineChatSkill';
+import {enableUstpForTest} from '../fixtures/ustpEligibility';
 
 describe('Phase 10: USTP Student Handbook RAG & Citation-Backed Answers', () => {
   const testUserId = 'local_guest_user';
@@ -25,6 +26,9 @@ describe('Phase 10: USTP Student Handbook RAG & Citation-Backed Answers', () => 
   beforeEach(async () => {
     await initDatabase();
     userStore.createGuestUser();
+    // Handbook features are for students with a reviewed COR (onboarding redesign).
+    enableUstpForTest(testUserId);
+    userStore.setCurrentUser(testUserId);
     chatStore.clearHistory(testUserId);
     jest.restoreAllMocks();
     jest.clearAllMocks();

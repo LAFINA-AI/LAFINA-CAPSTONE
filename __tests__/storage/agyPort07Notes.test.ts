@@ -316,7 +316,11 @@ describe('AGY-PORT 07 Notes consistency, search and pages', () => {
 
     test('indexing is bounded per call, reports progress and survives reopening', () => {
       const me = owner('index');
-      for (let i = 0; i < INDEX_BATCH * 2 + 10; i += 1) {
+      for (
+        let i = 0;
+        i < INDEX_BATCH * 2 + Math.floor(INDEX_BATCH / 2);
+        i += 1
+      ) {
         seedNote(me, {body: `entry ${i} keyword`});
       }
       const first = notesQueryStore.page({userId: me, search: 'keyword'});
@@ -329,7 +333,7 @@ describe('AGY-PORT 07 Notes consistency, search and pages', () => {
       expect(
         notesQueryStore.page({userId: me, search: 'keyword'}).indexing,
       ).toBe(false);
-      expect(cacheRows(me)).toBe(INDEX_BATCH * 2 + 10);
+      expect(cacheRows(me)).toBe(INDEX_BATCH * 2 + Math.floor(INDEX_BATCH / 2));
 
       // "Reopen": a fresh query store finds the cache complete and does no work.
       const reopened =
@@ -338,7 +342,7 @@ describe('AGY-PORT 07 Notes consistency, search and pages', () => {
         false,
       );
       expect(allPages(me, {search: 'keyword'})).toHaveLength(
-        INDEX_BATCH * 2 + 10,
+        INDEX_BATCH * 2 + Math.floor(INDEX_BATCH / 2),
       );
     });
 

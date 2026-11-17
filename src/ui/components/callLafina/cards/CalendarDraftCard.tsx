@@ -51,7 +51,10 @@ export const CalendarDraftCard: React.FC<CalendarDraftCardProps> = ({
   const {colors} = useTheme();
   const themed = useThemedStyles(getThemedStyles);
 
-  const isBlock = proposal.intent === 'create_time_block' || proposal.intent === 'update_time_block';
+  const isBlock =
+    !/event/i.test(proposal.heading) &&
+    (proposal.intent === 'create_time_block' ||
+      proposal.intent === 'update_time_block');
   const Icon = isBlock ? Clock : Calendar;
   const accent = proposal.destructive ? colors.error : colors.primary;
   const actionText = `${proposal.heading} “${proposal.title}”`;
@@ -194,7 +197,9 @@ export const CalendarDraftCard: React.FC<CalendarDraftCardProps> = ({
               accessibilityLabel="Dismiss expired review"
               testID={`${testIDPrefix}-dismiss`}
             >
-              <Text style={[styles.buttonText, themed.primaryText]}>Dismiss</Text>
+              <Text style={[styles.buttonText, themed.primaryText]}>
+                Dismiss
+              </Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -213,7 +218,9 @@ export const CalendarDraftCard: React.FC<CalendarDraftCardProps> = ({
               accessibilityState={{disabled: busy}}
               testID={`${testIDPrefix}-cancel`}
             >
-              <Text style={[styles.buttonText, themed.primaryText]}>Cancel</Text>
+              <Text style={[styles.buttonText, themed.primaryText]}>
+                Cancel
+              </Text>
             </TouchableOpacity>
             <TouchableOpacity
               style={[
@@ -370,4 +377,3 @@ const styles = StyleSheet.create({
     fontSize: FontSize.body,
   },
 });
-

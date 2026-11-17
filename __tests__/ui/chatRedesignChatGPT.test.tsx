@@ -67,9 +67,9 @@ describe('ChatGPT-style Chat Tab Redesign', () => {
     expect(getByTestId('chat-prompt-chip-2')).toBeTruthy();
     expect(getByTestId('chat-prompt-chip-3')).toBeTruthy();
     expect(getByText("Today's Schedule")).toBeTruthy();
-    expect(getByText('Plan Study Block')).toBeTruthy();
-    expect(getByText('Set Reminder')).toBeTruthy();
-    expect(getByText('Quick Note')).toBeTruthy();
+    expect(getByText('Free Study Time')).toBeTruthy();
+    expect(getByText('Pending Tasks')).toBeTruthy();
+    expect(getByText('Upcoming Schedule')).toBeTruthy();
   });
 
   test('2. Header circle waveform (AudioLines/meetings) is removed from header', () => {

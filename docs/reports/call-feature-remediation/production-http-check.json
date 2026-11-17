@@ -1,0 +1,43 @@
+{
+  "checked_at_utc": "2026-11-17T04:12:02.775701+00:00",
+  "base_url": "https://lafina-backend.vercel.app",
+  "checks": [
+    {
+      "method": "GET",
+      "path": "/healthz",
+      "status": 200,
+      "expected": 200,
+      "elapsed_ms": 501,
+      "passed": true
+    },
+    {
+      "method": "GET",
+      "path": "/openapi.json",
+      "status": 200,
+      "expected": 200,
+      "elapsed_ms": 541,
+      "passed": true,
+      "voice_session_route_present": true,
+      "voice_llm_route_present": true
+    },
+    {
+      "method": "POST",
+      "path": "/v1/ai/voice/sessions",
+      "status": 401,
+      "expected": 401,
+      "elapsed_ms": 322,
+      "passed": true
+    },
+    {
+      "method": "POST",
+      "path": "/v1/ai/voice/llm/chat/completions",
+      "status": 401,
+      "expected": 401,
+      "elapsed_ms": 563,
+      "passed": true
+    }
+  ],
+  "all_passed": true,
+  "signed_in_voice_test": "NOT RUN",
+  "note": "HTTP probe duration is not conversational audio/card latency. No tokens, accounts, voice sessions or billable provider calls were created."
+}

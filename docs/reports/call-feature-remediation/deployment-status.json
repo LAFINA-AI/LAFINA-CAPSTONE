@@ -1,0 +1,44 @@
+{
+  "checked_at_utc": "2026-11-17T04:09:54.528Z",
+  "repository": "LAFINA-AI/LAFINA-backend",
+  "main_commit": "dfbeecb9a9e9366a6cc41d7fb73635e1d1895c2e",
+  "production_url": "https://lafina-backend.vercel.app",
+  "status_source": "GitHub Vercel commit status",
+  "statuses": [
+    {
+      "state": "success",
+      "description": "Deployment has completed",
+      "context": "Vercel",
+      "target_url": "https://vercel.com/nblancs-projects/lafina-backend/Cz6tX3Yfrh2VneGEBPD3DsMyAsGF",
+      "created_at": "2026-11-17T04:09:45Z",
+      "updated_at": "2026-11-17T04:09:45Z"
+    },
+    {
+      "state": "success",
+      "description": "Deployment has completed",
+      "context": "Vercel",
+      "target_url": "https://vercel.com/nblancs-projects/lafina-backend/4eeSkGJcU16EAdzEoWbTBGU5akHA",
+      "created_at": "2026-11-17T04:09:05Z",
+      "updated_at": "2026-11-17T04:09:05Z"
+    },
+    {
+      "state": "pending",
+      "description": "Vercel is deploying your app",
+      "context": "Vercel",
+      "target_url": "https://vercel.com/nblancs-projects/lafina-backend/Cz6tX3Yfrh2VneGEBPD3DsMyAsGF",
+      "created_at": "2026-11-17T04:08:23Z",
+      "updated_at": "2026-11-17T04:08:23Z"
+    },
+    {
+      "state": "pending",
+      "description": "Vercel is deploying your app",
+      "context": "Vercel",
+      "target_url": "https://vercel.com/nblancs-projects/lafina-backend/4eeSkGJcU16EAdzEoWbTBGU5akHA",
+      "created_at": "2026-11-17T04:08:23Z",
+      "updated_at": "2026-11-17T04:08:23Z"
+    }
+  ],
+  "direct_vercel_project_access": false,
+  "runtime_error_scan": "NOT RUN - connected account lacks existing team access",
+  "signed_in_voice_test": "NOT RUN"
+}

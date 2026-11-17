@@ -95,4 +95,5 @@ export type {
   CallResolution,
   CallStateEvent,
   CallCommand,
+  ManualCallResult,
 } from './callDispatcher';

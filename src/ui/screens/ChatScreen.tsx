@@ -1,3 +1,4 @@
+import {ScreenOverlays} from '../navigation/RetainedTab';
 import React, {useState, useEffect, useRef, useCallback, useMemo} from 'react';
 import {
   View,
@@ -24,8 +25,8 @@ import {
   ChevronDown,
   Clock,
   BookOpen,
-  AlarmClock,
-  FileText,
+  CheckSquare,
+  CalendarDays,
   Award,
   Scale,
   ShieldCheck,
@@ -34,24 +35,16 @@ import {
   Image as ImageIcon,
   MessageCircleDashed,
 } from 'lucide-react-native';
-import {
-  Fonts,
-  FontSize,
-  Layout,
-  ModernLayout,
-  Spacing,
-} from '../theme';
+import {Fonts, FontSize, Layout, ModernLayout, Spacing} from '../theme';
 import {useTheme} from '../contexts/ThemeContext';
 import {useThemedStyles} from '../theme/createThemedStyles';
 import type {ThemeColors} from '../contexts/ThemeContext';
 import {
-  CHAT_PAGE_SIZE,
   chatStore,
   isUstpSessionId,
   type ChatAttachment,
   type ChatMessage,
 } from '../../storage/chatStore';
-import {academicProfileStore} from '../../storage/academicProfileStore';
 import {userStore} from '../../storage/userStore';
 import {mergeChatPages} from './chat/chatPaging';
 import {localSettingsStore} from '../../storage/localSettingsStore';
@@ -64,7 +57,7 @@ import {
   chatMemoryService,
 } from '../../cloud/chatMemoryService';
 import type {ChatMemoryChangedEvent} from '../../cloud/chatMemoryService';
-import {chatOrchestrator} from '../../ai/chatOrchestrator';
+import {chatOrchestrator, rebindReviewTurn} from '../../ai/chatOrchestrator';
 import {localHandbookService, type LocalHandbookStatus} from '../../handbook';
 import {
   OFFLINE_MODEL_CATALOG,
@@ -80,6 +73,14 @@ import type {
 } from '../../ai/nlu/types';
 import {ChatMessageItem} from '../components/chat/ChatMessageItem';
 import {ChatHistorySheet} from '../components/chat/ChatHistorySheet';
+import {
+  getConfirmedAcademicProfile,
+  getUstpEligibility,
+  ustpUnavailableMessage,
+} from '../../storage/ustpEligibility';
+import type {UstpEligibility} from '../../storage/ustpEligibility';
+import {studentSetupStore} from '../../storage/studentSetupStore';
+import {effectiveGoal} from '../../ai/personalization';
 import {ChatEngineSheet} from '../components/chat/ChatEngineSheet';
 import {
   ChatInput,
@@ -91,7 +92,11 @@ import {CommandReviewCard} from '../components/chat/CommandReviewCard';
 import {UndoSnackbar} from '../components/chat/UndoSnackbar';
 import {CommandGuide} from '../components/chat/CommandGuide';
 import {useCommandReview} from '../hooks/useCommandReview';
-import type {ReviewEditPatch, UndoOffer} from '../../ai/nlu/commandReview';
+import {
+  formatResolvedReviewContent,
+  type ReviewEditPatch,
+  type UndoOffer,
+} from '../../ai/nlu/commandReview';
 import {useDraftProtection} from '../hooks/useDraftProtection';
 import {useChatReplyFormat} from '../hooks/useChatReplyFormat';
 import {DraftDecisionDialog} from '../components/DraftDecisionDialog';
@@ -113,8 +118,8 @@ const LAFINA_MASCOT = require('../../assets/new_lafina_app_logo/lafina_app_logo.
 type SampleCardIconKey =
   | 'clock'
   | 'book'
-  | 'alarm'
-  | 'note'
+  | 'tasks'
+  | 'upcoming'
   | 'award'
   | 'scale'
   | 'shield'
@@ -133,19 +138,19 @@ const GENERAL_SAMPLE_CARDS: readonly SampleChatCardConfig[] = [
     iconKey: 'clock',
   },
   {
-    label: 'Plan Study Block',
+    label: 'Free Study Time',
     prompt: SUGGESTED_PROMPTS[1],
     iconKey: 'book',
   },
   {
-    label: 'Set Reminder',
+    label: 'Pending Tasks',
     prompt: SUGGESTED_PROMPTS[2],
-    iconKey: 'alarm',
+    iconKey: 'tasks',
   },
   {
-    label: 'Quick Note',
+    label: 'Upcoming Schedule',
     prompt: SUGGESTED_PROMPTS[3],
-    iconKey: 'note',
+    iconKey: 'upcoming',
   },
 ];
 
@@ -207,8 +212,27 @@ function areModelStatusesEqual(
   });
 }
 
+/** The chosen main goal puts its most relevant starter first. */
+function orderCardsByGoal(
+  cards: readonly SampleChatCardConfig[],
+  goal: ReturnType<typeof effectiveGoal>,
+): readonly SampleChatCardConfig[] {
+  const firstKey =
+    goal === 'deadlines' ? 'tasks' : goal === 'schedule' ? 'clock' : null;
+  if (!firstKey) return cards;
+  return [
+    ...cards.filter(card => card.iconKey === firstKey),
+    ...cards.filter(card => card.iconKey !== firstKey),
+  ];
+}
+
 function resolveStudentGreetingName(userId: string): string {
-  const academic = academicProfileStore.get(userId);
+  // The name the student chose comes first; a COR legal name never replaces it.
+  const chosen = studentSetupStore.get(userId).preferredName.trim();
+  if (chosen) {
+    return chosen;
+  }
+  const academic = getConfirmedAcademicProfile(userId);
   const preferred = academic?.preferredName?.trim();
   if (preferred) {
     return preferred;
@@ -234,10 +258,10 @@ function renderSampleCardIcon(iconKey: SampleCardIconKey, color: string) {
       return <Clock size={18} color={color} />;
     case 'book':
       return <BookOpen size={18} color={color} />;
-    case 'alarm':
-      return <AlarmClock size={18} color={color} />;
-    case 'note':
-      return <FileText size={18} color={color} />;
+    case 'tasks':
+      return <CheckSquare size={18} color={color} />;
+    case 'upcoming':
+      return <CalendarDays size={18} color={color} />;
     case 'award':
       return <Award size={18} color={color} />;
     case 'scale':
@@ -256,12 +280,12 @@ export interface ChatScreenProps {
   onCallLafina?: () => void;
 }
 
-export const ChatScreen: React.FC<ChatScreenProps> = ({
+export const ChatScreen = React.memo(function ChatScreenView({
   userId,
   refreshTrigger = 0,
   onRefresh,
   onCallLafina,
-}) => {
+}: ChatScreenProps) {
   const [initialPage] = useState(() => {
     try {
       return chatStore.getMessagesPage(userId);
@@ -284,8 +308,13 @@ export const ChatScreen: React.FC<ChatScreenProps> = ({
     }
   }, [userId]);
   const [currentChatId, setCurrentChatId] = useState(readCurrentChat);
+  const shownChatIdRef = useRef(currentChatId);
   const [historyVisible, setHistoryVisible] = useState(false);
-  const [loadError, setLoadError] = useState<string | null>(null);
+  const [loadError, setLoadError] = useState<string | null>(
+    initialPage
+      ? null
+      : 'Your conversation could not be loaded right now. Nothing was deleted.',
+  );
   const [legacyHiddenCount, setLegacyHiddenCount] = useState(() => {
     try {
       return chatStore.getLegacyQuarantineSummary().messageCount;
@@ -334,9 +363,7 @@ export const ChatScreen: React.FC<ChatScreenProps> = ({
   const isSendingRef = useRef(false);
   const messagesLengthRef = useRef(messages.length);
   messagesLengthRef.current = messages.length;
-  const listOpacity = useRef(
-    new Animated.Value(hasInitialMessages ? 0 : 1),
-  ).current;
+  const listOpacity = useRef(new Animated.Value(1)).current;
   const revealRafRef = useRef<number | null>(null);
   const fallbackRevealTimerRef = useRef<ReturnType<typeof setTimeout> | null>(
     null,
@@ -354,9 +381,12 @@ export const ChatScreen: React.FC<ChatScreenProps> = ({
     [userId],
   );
   // The text a waiting review came from; Cancel puts it back in an empty composer.
-  const reviewSourceRef = useRef<{operationId: string; text: string} | null>(
-    null,
-  );
+  const reviewSourceRef = useRef<{
+    operationId: string;
+    text: string;
+    messageId?: string;
+    isTemporary?: boolean;
+  } | null>(null);
   const [isSending, setIsSending] = useState(false);
   // "Marked done · Undo" after an immediate action (audit finding 10).
   const [undoOffer, setUndoOffer] = useState<UndoOffer | null>(null);
@@ -375,6 +405,20 @@ export const ChatScreen: React.FC<ChatScreenProps> = ({
     readInitialOnlineMode(userId),
   );
   const isUstpChat = !isTemporaryChat && isUstpSessionId(currentChatId);
+  // One eligibility decision for every USTP entry point on this screen.
+  const [schoolEligibility, setSchoolEligibility] = useState<UstpEligibility>(
+    () => getUstpEligibility(userId),
+  );
+  const schoolEnabled = schoolEligibility.eligible;
+  const ustpChatBlocked = isUstpChat && !schoolEnabled;
+  useEffect(() => {
+    setSchoolEligibility(getUstpEligibility(userId));
+    return studentSetupStore.subscribe(changedUserId => {
+      if (changedUserId === userId && isMountedRef.current) {
+        setSchoolEligibility(getUstpEligibility(userId));
+      }
+    });
+  }, [userId, refreshTrigger]);
   const [handbookNotes, setHandbookNotes] = useState<Record<string, string>>(
     {},
   );
@@ -426,34 +470,40 @@ export const ChatScreen: React.FC<ChatScreenProps> = ({
   } = useTheme();
   const themed = useThemedStyles(getThemedStyles);
 
-  const refreshModelAndProfileState = useCallback(async () => {
-    const nextName = resolveStudentGreetingName(userId);
-    const nextSelected = getSelectedOfflineModelId(userId);
-    if (studentNameRef.current !== nextName) {
-      studentNameRef.current = nextName;
-      setStudentName(nextName);
-    }
-    if (selectedModelRef.current !== nextSelected) {
-      selectedModelRef.current = nextSelected;
-      setSelectedOfflineModelIdState(nextSelected);
-    }
-    try {
-      const statuses = await getAllModelsStatus(userId);
-      if (!isMountedRef.current) {
-        return;
+  const modelCheckedAt = useRef(0);
+  const refreshModelAndProfileState = useCallback(
+    async (force = false) => {
+      const nextName = resolveStudentGreetingName(userId);
+      const nextSelected = getSelectedOfflineModelId(userId);
+      if (studentNameRef.current !== nextName) {
+        studentNameRef.current = nextName;
+        setStudentName(nextName);
       }
-      if (!areModelStatusesEqual(modelsStatusRef.current, statuses)) {
-        modelsStatusRef.current = statuses;
-        setModelsStatus(statuses);
+      if (selectedModelRef.current !== nextSelected) {
+        selectedModelRef.current = nextSelected;
+        setSelectedOfflineModelIdState(nextSelected);
       }
-    } catch {
-      // Preserve last known model download statuses if storage inspection fails
-    }
-  }, [userId]);
+      if (!force && Date.now() - modelCheckedAt.current < 30_000) return;
+      try {
+        const statuses = await getAllModelsStatus(userId);
+        modelCheckedAt.current = Date.now();
+        if (!isMountedRef.current) {
+          return;
+        }
+        if (!areModelStatusesEqual(modelsStatusRef.current, statuses)) {
+          modelsStatusRef.current = statuses;
+          setModelsStatus(statuses);
+        }
+      } catch {
+        // Preserve last known model download statuses if storage inspection fails
+      }
+    },
+    [userId],
+  );
 
   useEffect(() => {
-    void refreshModelAndProfileState();
-  }, [refreshModelAndProfileState, refreshTrigger]);
+    void refreshModelAndProfileState(engineSheetVisible);
+  }, [refreshModelAndProfileState, refreshTrigger, engineSheetVisible]);
 
   useEffect(() => {
     let cancelled = false;
@@ -521,6 +571,10 @@ export const ChatScreen: React.FC<ChatScreenProps> = ({
   }, [isOnlineMode, modelsStatus, selectedOfflineModelId]);
   // AGY-PORT 04: planner changes wait on this card until Confirm.
   const review = useCommandReview(userId, 'chat');
+  // A card belongs to the chat that offered it: opening or starting another
+  // chat cancels it silently, so a later "ok" there cannot save it (audit M1).
+  const cancelOpenReviewRef = useRef(review.cancel);
+  cancelOpenReviewRef.current = review.cancel;
 
   // AGY-PORT 05: Android back with unsent text asks first (default keeps it).
   const draft = useDraftProtection(
@@ -609,13 +663,13 @@ export const ChatScreen: React.FC<ChatScreenProps> = ({
     fallbackRevealTimerRef.current = setTimeout(() => {
       fallbackRevealTimerRef.current = null;
       needsInitialScrollRef.current = false;
-      flatListRef.current?.scrollToEnd({animated: false});
+      flatListRef.current?.scrollToOffset({offset: 0, animated: false});
       listOpacity.setValue(1);
     }, 200);
   }, [listOpacity]);
 
   useEffect(() => {
-    if (hasInitialMessages) {
+    if (hasInitialMessages && needsInitialScrollRef.current) {
       scheduleFallbackReveal();
     }
   }, [hasInitialMessages, scheduleFallbackReveal]);
@@ -633,7 +687,7 @@ export const ChatScreen: React.FC<ChatScreenProps> = ({
       }
       needsInitialScrollRef.current = true;
       initialSettleUntilRef.current = Date.now() + 300;
-      listOpacity.setValue(0);
+      listOpacity.setValue(1);
       scheduleFallbackReveal();
     },
     [clearInitialRevealHandles, listOpacity, scheduleFallbackReveal],
@@ -647,10 +701,10 @@ export const ChatScreen: React.FC<ChatScreenProps> = ({
     needsInitialScrollRef.current = false;
     isNearBottomRef.current = true;
     clearInitialRevealHandles();
-    flatListRef.current?.scrollToEnd({animated: false});
+    flatListRef.current?.scrollToOffset({offset: 0, animated: false});
     const commitReveal = () => {
       revealRafRef.current = null;
-      flatListRef.current?.scrollToEnd({animated: false});
+      flatListRef.current?.scrollToOffset({offset: 0, animated: false});
       listOpacity.setValue(1);
     };
     if (typeof requestAnimationFrame === 'function') {
@@ -662,9 +716,8 @@ export const ChatScreen: React.FC<ChatScreenProps> = ({
 
   const handleListScroll = useCallback(
     (event: NativeSyntheticEvent<NativeScrollEvent>) => {
-      const {contentOffset, contentSize, layoutMeasurement} = event.nativeEvent;
-      const distanceFromBottom =
-        contentSize.height - layoutMeasurement.height - contentOffset.y;
+      const {contentOffset} = event.nativeEvent;
+      const distanceFromBottom = contentOffset.y;
       isNearBottomRef.current = distanceFromBottom <= 80;
     },
     [],
@@ -682,7 +735,7 @@ export const ChatScreen: React.FC<ChatScreenProps> = ({
       }
       if (needsInitialScrollRef.current) {
         if (height > 0) {
-          flatListRef.current?.scrollToEnd({animated: false});
+          flatListRef.current?.scrollToOffset({offset: 0, animated: false});
           if (layoutReadyRef.current) {
             finishInitialScroll();
           }
@@ -690,11 +743,11 @@ export const ChatScreen: React.FC<ChatScreenProps> = ({
         return;
       }
       if (Date.now() < initialSettleUntilRef.current) {
-        flatListRef.current?.scrollToEnd({animated: false});
+        flatListRef.current?.scrollToOffset({offset: 0, animated: false});
         return;
       }
       if (isNearBottomRef.current) {
-        flatListRef.current?.scrollToEnd({animated: true});
+        flatListRef.current?.scrollToOffset({offset: 0, animated: true});
       }
     },
     [finishInitialScroll],
@@ -705,14 +758,14 @@ export const ChatScreen: React.FC<ChatScreenProps> = ({
       if (event.nativeEvent.layout.height <= 0) return;
       layoutReadyRef.current = true;
       if (needsInitialScrollRef.current) {
-        flatListRef.current?.scrollToEnd({animated: false});
+        flatListRef.current?.scrollToOffset({offset: 0, animated: false});
         if (contentReadyRef.current) {
           finishInitialScroll();
         }
         return;
       }
       if (isNearBottomRef.current) {
-        flatListRef.current?.scrollToEnd({animated: false});
+        flatListRef.current?.scrollToOffset({offset: 0, animated: false});
       }
     },
     [finishInitialScroll],
@@ -730,7 +783,10 @@ export const ChatScreen: React.FC<ChatScreenProps> = ({
       needsInitialScrollRef.current = false;
       initialSettleUntilRef.current = 0;
       isNearBottomRef.current = true;
-      setTimeout(() => flatListRef.current?.scrollToEnd({animated: true}), 100);
+      setTimeout(
+        () => flatListRef.current?.scrollToOffset({offset: 0, animated: true}),
+        100,
+      );
     });
     const hideSub = Keyboard.addListener(hideEvent, () => {
       setIsKeyboardVisible(false);
@@ -826,13 +882,22 @@ export const ChatScreen: React.FC<ChatScreenProps> = ({
     beginInitialScroll(false);
   }, [userId, readCurrentChat, beginInitialScroll]);
 
+  const loadedChatRevision = useRef({userId, refreshTrigger});
   useEffect(() => {
+    const previous = loadedChatRevision.current;
+    if (
+      previous.userId === userId &&
+      previous.refreshTrigger === refreshTrigger
+    )
+      return;
+    loadedChatRevision.current = {userId, refreshTrigger};
     loadMessages();
   }, [userId, loadMessages, refreshTrigger]);
 
   // Automatically detect Wi-Fi / data connection and sync online mode
   useEffect(() => {
     let active = true;
+    let lastConnectivity: boolean | null = null;
 
     const syncConnectivity = async (
       isConnected: boolean | null,
@@ -845,6 +910,9 @@ export const ChatScreen: React.FC<ChatScreenProps> = ({
       const optedIn = () =>
         localSettingsStore.get(userId, 'chat.onlineMode', null) === 'true';
 
+      // fetch() and the listener may report the same initial connection.
+      if (lastConnectivity === isDeviceConnected) return;
+      lastConnectivity = isDeviceConnected;
       // Online Mode is opt-in: connectivity alone never turns it on.
       if (!optedIn()) {
         return;
@@ -932,9 +1000,16 @@ export const ChatScreen: React.FC<ChatScreenProps> = ({
 
   /** Shows the chat that is now open (after New chat, opening another, or deleting the open one). */
   const showCurrentChat = useCallback(() => {
+    const nextChatId = readCurrentChat();
+    // Only a real switch cancels the card; renaming the open chat does not.
+    if (nextChatId !== shownChatIdRef.current) {
+      cancelOpenReviewRef.current({silent: true});
+      reviewSourceRef.current = null;
+    }
+    shownChatIdRef.current = nextChatId;
     setIsTemporaryChat(false);
     setTempMessages([]);
-    setCurrentChatId(readCurrentChat());
+    setCurrentChatId(nextChatId);
     setHandbookNotes({});
     setOlderCursor(null);
     setLoadError(null);
@@ -954,8 +1029,29 @@ export const ChatScreen: React.FC<ChatScreenProps> = ({
     }
   };
 
+  const showUstpUnavailable = () => {
+    Alert.alert(
+      'USTP features unavailable',
+      ustpUnavailableMessage(getUstpEligibility(userId).reason),
+    );
+  };
+
+  const handleLeaveBlockedUstpChat = () => {
+    try {
+      chatStore.startNewChat(userId, 'general');
+      showCurrentChat();
+    } catch (error) {
+      console.error('[ChatScreen] Could not open a scheduling chat:', error);
+    }
+  };
+
   const handleStartUstpChat = () => {
     if (isSending) return;
+    if (!getUstpEligibility(userId).eligible) {
+      setHistoryVisible(false);
+      showUstpUnavailable();
+      return;
+    }
     setHistoryVisible(false);
     setIsTemporaryChat(false);
     setTempMessages([]);
@@ -1086,33 +1182,37 @@ export const ChatScreen: React.FC<ChatScreenProps> = ({
     }
   };
 
-  const handleOpenAttachment = async (attachment: ChatAttachment) => {
-    if (!chatStore.hasAttachment(userId, attachment.uri)) {
-      Alert.alert(
-        'File Not Available',
-        'That file is no longer in this conversation.',
-      );
-      return;
-    }
-    const status = await shareAttachment(attachment);
-    if (status === 'Unavailable') {
-      Alert.alert(
-        'File Not Found',
-        'This file is no longer stored on your device. Ask lafina to generate it again.',
-      );
-    } else if (status === 'failed') {
-      Alert.alert(
-        'Could Not Open File',
-        'No app on this device could open or share the file.',
-      );
-    }
-  };
+  const handleOpenAttachment = useCallback(
+    async (attachment: ChatAttachment) => {
+      if (!chatStore.hasAttachment(userId, attachment.uri)) {
+        Alert.alert(
+          'File Not Available',
+          'That file is no longer in this conversation.',
+        );
+        return;
+      }
+      const status = await shareAttachment(attachment);
+      if (status === 'Unavailable') {
+        Alert.alert(
+          'File Not Found',
+          'This file is no longer stored on your device. Ask lafina to generate it again.',
+        );
+      } else if (status === 'failed') {
+        Alert.alert(
+          'Could Not Open File',
+          'No app on this device could open or share the file.',
+        );
+      }
+    },
+    [userId],
+  );
 
   const handleSend = async (overrideText?: string) => {
     const query = (overrideText || inputText).trim();
     if (!query || isSending) return;
 
     const requestUser = userId;
+    const requestChatId = shownChatIdRef.current;
     setInputText('');
     isSendingRef.current = true;
     needsInitialScrollRef.current = false;
@@ -1167,6 +1267,9 @@ export const ChatScreen: React.FC<ChatScreenProps> = ({
         useHandbook: isUstpChat,
         ustpRagOnly: isUstpChat,
         onReplyText,
+        isCurrent: () =>
+          activeUserRef.current === requestUser &&
+          shownChatIdRef.current === requestChatId,
         temporaryChat: isTemporaryChat,
         temporaryHistory: isTemporaryChat
           ? userTempMsg
@@ -1197,6 +1300,8 @@ export const ChatScreen: React.FC<ChatScreenProps> = ({
           reviewSourceRef.current = {
             operationId: result.review.proposal.operationId,
             text: query,
+            messageId: result.assistantMessage?.id,
+            isTemporary: isTemporaryChat,
           };
         }
         review.present(result.review);
@@ -1246,12 +1351,62 @@ export const ChatScreen: React.FC<ChatScreenProps> = ({
     onRefresh?.();
   };
 
+  const updateTempReviewMessage = (
+    status: 'confirmed' | 'cancelled',
+    summary: string,
+    targetMessageId?: string,
+  ) => {
+    const resolvedAt = new Date().toISOString();
+    setTempMessages(prev => {
+      let targetIdx = targetMessageId
+        ? prev.findIndex(msg => msg.id === targetMessageId)
+        : -1;
+      if (targetIdx === -1) {
+        for (let i = prev.length - 1; i >= 0; i -= 1) {
+          const candidate = prev[i];
+          if (
+            candidate.sender === 'assistant' &&
+            !candidate.reviewResolution &&
+            /^(?:\*\*)?Please review:/i.test(candidate.content.trim())
+          ) {
+            targetIdx = i;
+            break;
+          }
+        }
+      }
+      if (targetIdx === -1) return prev;
+      return prev.map((msg, idx) =>
+        idx === targetIdx
+          ? {
+              ...msg,
+              content: formatResolvedReviewContent(msg.content),
+              reviewResolution: {status, summary, resolvedAt},
+            }
+          : msg,
+      );
+    });
+  };
+
   const handleConfirmReview = async () => {
     const requestUser = userId;
+    const source = reviewSourceRef.current;
+    const confirmedInTemp = Boolean(source?.isTemporary ?? isTemporaryChat);
     try {
-      const decision = await review.confirm();
+      const decision = await review.confirm({
+        temporaryChat: confirmedInTemp,
+      });
       if (!decision || activeUserRef.current !== requestUser) return;
-      loadMessages();
+      if (decision.outcome?.status === 'applied') {
+        if (confirmedInTemp) {
+          updateTempReviewMessage(
+            'confirmed',
+            decision.reply,
+            source?.messageId,
+          );
+        }
+        reviewSourceRef.current = null;
+      }
+      if (!confirmedInTemp) loadMessages();
       onRefresh?.();
     } catch (err) {
       console.error('[ChatScreen] Error confirming a reviewed command:', err);
@@ -1260,9 +1415,11 @@ export const ChatScreen: React.FC<ChatScreenProps> = ({
 
   const handleCancelReview = () => {
     const cancelled = review.proposal;
-    if (!review.cancel()) return;
-    // AGY-PORT 05: cancelling keeps the text editable; nothing was saved.
     const source = reviewSourceRef.current;
+    const cancelledInTemp = Boolean(source?.isTemporary ?? isTemporaryChat);
+    const decision = review.cancel({temporaryChat: cancelledInTemp});
+    if (!decision) return;
+    // AGY-PORT 05: cancelling keeps the text editable; nothing was saved.
     if (
       cancelled &&
       source?.operationId === cancelled.operationId &&
@@ -1270,22 +1427,35 @@ export const ChatScreen: React.FC<ChatScreenProps> = ({
     ) {
       setInputText(source.text);
     }
+    if (cancelledInTemp) {
+      updateTempReviewMessage('cancelled', decision.reply, source?.messageId);
+    } else {
+      loadMessages();
+    }
     reviewSourceRef.current = null;
-    loadMessages();
   };
 
   const handleEditReview = (patch: ReviewEditPatch) => {
     const previousId = review.proposal?.operationId;
     const edited = review.edit ? review.edit(patch) : null;
-    if (
-      edited?.status === 'proposal' &&
-      previousId &&
-      reviewSourceRef.current?.operationId === previousId
-    ) {
-      reviewSourceRef.current = {
-        operationId: edited.proposal.operationId,
-        text: reviewSourceRef.current.text,
-      };
+    if (edited?.status === 'proposal' && previousId) {
+      rebindReviewTurn(previousId, edited.proposal.operationId);
+      const source = reviewSourceRef.current;
+      if (source?.operationId === previousId) {
+        reviewSourceRef.current = {
+          ...source,
+          operationId: edited.proposal.operationId,
+        };
+        if (source.isTemporary && source.messageId) {
+          setTempMessages(prev =>
+            prev.map(msg =>
+              msg.id === source.messageId
+                ? {...msg, content: edited.reply}
+                : msg,
+            ),
+          );
+        }
+      }
     }
     return edited;
   };
@@ -1373,6 +1543,15 @@ export const ChatScreen: React.FC<ChatScreenProps> = ({
     setLegacyNoticeDismissed(true);
     localSettingsStore.set(userId, 'chat.legacyNoticeDismissed', 'true');
   };
+
+  const displayedMessages = useMemo(() => {
+    const current = isTemporaryChat
+      ? tempMessages
+      : ustpChatBlocked
+      ? []
+      : messages;
+    return [...current].reverse();
+  }, [isTemporaryChat, tempMessages, ustpChatBlocked, messages]);
 
   const renderListHeader = () => (
     <View>
@@ -1505,6 +1684,51 @@ export const ChatScreen: React.FC<ChatScreenProps> = ({
       ? modernPalette.softViolet
       : colors.primary + '16';
 
+    if (ustpChatBlocked) {
+      // An old USTP chat, a restored screen or a stale link: explained, not answered.
+      return (
+        <View style={styles.emptyContainer} testID="chat-ustp-unavailable">
+          <View style={styles.greetingBlock}>
+            <Text style={[styles.greetingEyebrow, {color: subtitleColor}]}>
+              USTP school features
+            </Text>
+            <Text style={[styles.greetingTitle, {color: greetingColor}]}>
+              Not available right now
+            </Text>
+            <Text
+              style={[
+                styles.greetingEyebrow,
+                {color: subtitleColor, marginTop: 10, lineHeight: 20},
+              ]}
+            >
+              {ustpUnavailableMessage(schoolEligibility.reason)}
+            </Text>
+          </View>
+          <View style={styles.emptyBottomSection}>
+            <TouchableOpacity
+              style={[
+                styles.ustpOnlineBanner,
+                isModern && styles.modernUstpBanner,
+                {
+                  backgroundColor: softVioletBg,
+                  borderColor: accentColor + '35',
+                },
+              ]}
+              onPress={handleLeaveBlockedUstpChat}
+              accessibilityRole="button"
+              accessibilityLabel="Back to a scheduling chat"
+              testID="chat-ustp-unavailable-back"
+              activeOpacity={0.75}
+            >
+              <Text style={[styles.ustpOnlineBannerText, {color: accentColor}]}>
+                Back to a scheduling chat
+              </Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      );
+    }
+
     if (isUstpChat) {
       return (
         <View style={styles.emptyContainer} testID="chat-empty-state">
@@ -1540,7 +1764,7 @@ export const ChatScreen: React.FC<ChatScreenProps> = ({
               <Text style={[styles.mascotModeTagText, {color: accentColor}]}>
                 {localHandbookStatus.populated
                   ? 'Local FTS5 Ready'
-                  : 'Handbook RAG'}
+                  : 'USTP Handbook'}
               </Text>
             </View>
           </View>
@@ -1621,8 +1845,11 @@ export const ChatScreen: React.FC<ChatScreenProps> = ({
         </View>
 
         <View style={styles.emptyBottomSection}>
-          {renderSampleGrid(GENERAL_SAMPLE_CARDS, 'chat-prompt-chip')}
-          {!isTemporaryChat && (
+          {renderSampleGrid(
+            orderCardsByGoal(GENERAL_SAMPLE_CARDS, effectiveGoal(userId)),
+            'chat-prompt-chip',
+          )}
+          {!isTemporaryChat && schoolEnabled && (
             <TouchableOpacity
               style={[
                 styles.ustpCompactLink,
@@ -1646,18 +1873,6 @@ export const ChatScreen: React.FC<ChatScreenProps> = ({
               >
                 Ask LAFINA anything about USTP
               </Text>
-              <View
-                style={[
-                  styles.ustpCompactBadge,
-                  {backgroundColor: accentColor + '1E'},
-                ]}
-              >
-                <Text
-                  style={[styles.ustpCompactBadgeText, {color: accentColor}]}
-                >
-                  RAG
-                </Text>
-              </View>
             </TouchableOpacity>
           )}
         </View>
@@ -1690,7 +1905,9 @@ export const ChatScreen: React.FC<ChatScreenProps> = ({
       >
         <Defs>
           <LinearGradient
-            id={`chatUniGuideBg_${modernTheme}_${isDarkMode ? 'dark' : 'light'}`}
+            id={`chatUniGuideBg_${modernTheme}_${
+              isDarkMode ? 'dark' : 'light'
+            }`}
             x1="0"
             y1="0"
             x2="0"
@@ -1889,10 +2106,10 @@ export const ChatScreen: React.FC<ChatScreenProps> = ({
                 chatTitle !== 'Ask LAFINA about USTP'
                   ? localHandbookStatus.populated
                     ? `Offline USTP Handbook · ${chatTitle}`
-                    : `USTP Handbook RAG · ${chatTitle}`
+                    : `USTP Handbook · ${chatTitle}`
                   : localHandbookStatus.populated
                   ? 'Offline USTP Handbook'
-                  : 'USTP Handbook RAG'}
+                  : 'USTP Handbook'}
               </Text>
             </View>
           ) : isTemporaryChat ? (
@@ -1949,8 +2166,12 @@ export const ChatScreen: React.FC<ChatScreenProps> = ({
       <Animated.View style={[styles.messagesList, {opacity: listOpacity}]}>
         <FlatList
           ref={flatListRef}
-          data={isTemporaryChat ? tempMessages : messages}
-          initialNumToRender={CHAT_PAGE_SIZE}
+          data={displayedMessages}
+          inverted={displayedMessages.length > 0}
+          maintainVisibleContentPosition={{minIndexForVisible: 0}}
+          initialNumToRender={12}
+          maxToRenderPerBatch={6}
+          windowSize={7}
           // Switching the reply format or chat mode redraws replies/empty state.
           extraData={`${replyFormat}:${isOnlineMode}:${isTemporaryChat}:${isUstpChat}:${studentName}:${modernTheme}:${isDarkMode}`}
           keyExtractor={item => item.id}
@@ -1967,7 +2188,11 @@ export const ChatScreen: React.FC<ChatScreenProps> = ({
             <ChatMessageItem
               item={item}
               replyFormat={replyFormat}
-              handbookNote={item.handbookNote ?? handbookNotes[item.id]}
+              handbookNote={
+                schoolEnabled
+                  ? item.handbookNote ?? handbookNotes[item.id]
+                  : undefined
+              }
               onUndoMemory={handleUndoMemory}
               onOpenAttachment={handleOpenAttachment}
             />
@@ -1977,9 +2202,9 @@ export const ChatScreen: React.FC<ChatScreenProps> = ({
             (isTemporaryChat ? tempMessages.length : messages.length) === 0 &&
               styles.listContentEmpty,
           ]}
-          ListHeaderComponent={renderListHeader}
+          ListFooterComponent={renderListHeader}
           ListEmptyComponent={loadError ? null : renderEmptyState}
-          ListFooterComponent={
+          ListHeaderComponent={
             streamingReply ? (
               <ChatMessageItem
                 replyFormat={replyFormat}
@@ -2068,7 +2293,9 @@ export const ChatScreen: React.FC<ChatScreenProps> = ({
         onSelectPrompt={prompt => handleSend(prompt)}
         showSuggestions={false}
         placeholderOverride={
-          isUstpChat ? 'Ask anything about the USTP Handbook…' : undefined
+          isUstpChat && schoolEnabled
+            ? 'Ask anything about the USTP Handbook…'
+            : undefined
         }
         onFocus={() => {
           setIsKeyboardVisible(true);
@@ -2076,126 +2303,140 @@ export const ChatScreen: React.FC<ChatScreenProps> = ({
           initialSettleUntilRef.current = 0;
           isNearBottomRef.current = true;
           setTimeout(
-            () => flatListRef.current?.scrollToEnd({animated: true}),
+            () =>
+              flatListRef.current?.scrollToOffset({offset: 0, animated: true}),
             100,
           );
         }}
       />
 
       {/* Attachment & Create Picker Sheet (Gemini-style) */}
-      <ToolSheet
-        visible={formatPickerOpen}
-        title="Add to conversation"
-        onClose={() => setFormatPickerOpen(false)}
-      >
-        <Text style={[styles.sectionHeader, themed.sectionHeader]}>
-          Photos & Schedule
-        </Text>
+      <ScreenOverlays>
+        <ToolSheet
+          visible={formatPickerOpen}
+          title="Add to conversation"
+          onClose={() => setFormatPickerOpen(false)}
+        >
+          <Text style={[styles.sectionHeader, themed.sectionHeader]}>
+            Photos & Schedule
+          </Text>
 
-        <TouchableOpacity
-          style={[styles.formatOption, themed.formatOption]}
-          onPress={() => {
+          <TouchableOpacity
+            style={[styles.formatOption, themed.formatOption]}
+            onPress={() => {
+              void handleScanCamera();
+            }}
+            accessibilityRole="button"
+            accessibilityLabel="Take photo with camera"
+            testID="chat-attach-camera"
+          >
+            <Camera size={20} color={colors.primary} />
+            <View style={styles.formatOptionText}>
+              <Text
+                style={[styles.formatOptionTitle, themed.formatOptionTitle]}
+              >
+                Camera
+              </Text>
+              <Text
+                style={[
+                  styles.formatOptionSubtitle,
+                  themed.formatOptionSubtitle,
+                ]}
+              >
+                Scan timetable, syllabus, or notes
+              </Text>
+            </View>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={[styles.formatOption, themed.formatOption]}
+            onPress={() => {
+              void handleScanGallery();
+            }}
+            accessibilityRole="button"
+            accessibilityLabel="Choose from photos"
+            testID="chat-attach-gallery"
+          >
+            <ImageIcon size={20} color={colors.primary} />
+            <View style={styles.formatOptionText}>
+              <Text
+                style={[styles.formatOptionTitle, themed.formatOptionTitle]}
+              >
+                Photos & Screenshots
+              </Text>
+              <Text
+                style={[
+                  styles.formatOptionSubtitle,
+                  themed.formatOptionSubtitle,
+                ]}
+              >
+                Import schedule image from gallery
+              </Text>
+            </View>
+          </TouchableOpacity>
+        </ToolSheet>
+
+        <ChatHistorySheet
+          visible={historyVisible}
+          userId={userId}
+          currentSessionId={currentChatId}
+          isTemporaryChat={isTemporaryChat}
+          busy={isSending}
+          onClose={() => setHistoryVisible(false)}
+          onChanged={showCurrentChat}
+          onStartUstpChat={handleStartUstpChat}
+          ustpAvailable={schoolEnabled}
+          onStartTemporaryChat={handleStartTemporaryFromSidebar}
+          onScanCamera={() => {
+            setHistoryVisible(false);
+            ensureGeneralSessionForTool();
             void handleScanCamera();
           }}
-          accessibilityRole="button"
-          accessibilityLabel="Take photo with camera"
-          testID="chat-attach-camera"
-        >
-          <Camera size={20} color={colors.primary} />
-          <View style={styles.formatOptionText}>
-            <Text style={[styles.formatOptionTitle, themed.formatOptionTitle]}>
-              Camera
-            </Text>
-            <Text
-              style={[styles.formatOptionSubtitle, themed.formatOptionSubtitle]}
-            >
-              Scan timetable, syllabus, or notes
-            </Text>
-          </View>
-        </TouchableOpacity>
-
-        <TouchableOpacity
-          style={[styles.formatOption, themed.formatOption]}
-          onPress={() => {
+          onScanGallery={() => {
+            setHistoryVisible(false);
+            ensureGeneralSessionForTool();
             void handleScanGallery();
           }}
-          accessibilityRole="button"
-          accessibilityLabel="Choose from photos"
-          testID="chat-attach-gallery"
-        >
-          <ImageIcon size={20} color={colors.primary} />
-          <View style={styles.formatOptionText}>
-            <Text style={[styles.formatOptionTitle, themed.formatOptionTitle]}>
-              Photos & Screenshots
-            </Text>
-            <Text
-              style={[styles.formatOptionSubtitle, themed.formatOptionSubtitle]}
-            >
-              Import schedule image from gallery
-            </Text>
-          </View>
-        </TouchableOpacity>
-      </ToolSheet>
+          onOpenGuide={() => {
+            setHistoryVisible(false);
+            setGuideVisible(true);
+          }}
+        />
 
-      <ChatHistorySheet
-        visible={historyVisible}
-        userId={userId}
-        currentSessionId={currentChatId}
-        isTemporaryChat={isTemporaryChat}
-        busy={isSending}
-        onClose={() => setHistoryVisible(false)}
-        onChanged={showCurrentChat}
-        onStartUstpChat={handleStartUstpChat}
-        onStartTemporaryChat={handleStartTemporaryFromSidebar}
-        onScanCamera={() => {
-          setHistoryVisible(false);
-          ensureGeneralSessionForTool();
-          void handleScanCamera();
-        }}
-        onScanGallery={() => {
-          setHistoryVisible(false);
-          ensureGeneralSessionForTool();
-          void handleScanGallery();
-        }}
-        onOpenGuide={() => {
-          setHistoryVisible(false);
-          setGuideVisible(true);
-        }}
-      />
+        {/* AGY-PORT 06: an example only fills the draft; unsent text is kept unless replaced. */}
+        <CommandGuide
+          visible={guideVisible}
+          onClose={() => setGuideVisible(false)}
+          onSelect={command => {
+            setGuideVisible(false);
+            draft.offerText(command, undefined, {
+              title: 'Replace your draft?',
+              message:
+                'Keep your current text, or replace it with this example. Nothing will be sent.',
+            });
+          }}
+        />
 
-      {/* AGY-PORT 06: an example only fills the draft; unsent text is kept unless replaced. */}
-      <CommandGuide
-        visible={guideVisible}
-        onClose={() => setGuideVisible(false)}
-        onSelect={command => {
-          setGuideVisible(false);
-          draft.offerText(command, undefined, {
-            title: 'Replace your draft?',
-            message:
-              'Keep your current text, or replace it with this example. Nothing will be sent.',
-          });
-        }}
-      />
+        <ChatEngineSheet
+          visible={engineSheetVisible}
+          onClose={() => setEngineSheetVisible(false)}
+          userId={userId}
+          isOnlineMode={isOnlineMode}
+          onToggleOnline={async () => {
+            await handleToggleOnline();
+            await refreshModelAndProfileState(true);
+          }}
+          selectedModelId={selectedOfflineModelId}
+          modelsStatus={modelsStatus}
+          onModelsUpdated={() => refreshModelAndProfileState(true)}
+          deviceRecommendation={deviceRecommendation}
+        />
 
-      <ChatEngineSheet
-        visible={engineSheetVisible}
-        onClose={() => setEngineSheetVisible(false)}
-        userId={userId}
-        isOnlineMode={isOnlineMode}
-        onToggleOnline={async () => {
-          await handleToggleOnline();
-          await refreshModelAndProfileState();
-        }}
-        selectedModelId={selectedOfflineModelId}
-        modelsStatus={modelsStatus}
-        onModelsUpdated={refreshModelAndProfileState}
-        deviceRecommendation={deviceRecommendation}
-      />
-
-      <DraftDecisionDialog request={draft.dialog} testIDPrefix="chat-draft" />
+        <DraftDecisionDialog request={draft.dialog} testIDPrefix="chat-draft" />
+      </ScreenOverlays>
     </View>
   );
-};
+});
 
 const styles = StyleSheet.create({
   container: {
@@ -2420,16 +2661,6 @@ const styles = StyleSheet.create({
   ustpCompactLinkText: {
     fontFamily: Fonts.heading,
     fontSize: 12.5,
-    fontWeight: '700',
-  },
-  ustpCompactBadge: {
-    paddingHorizontal: 7,
-    paddingVertical: 2,
-    borderRadius: 999,
-  },
-  ustpCompactBadgeText: {
-    fontFamily: Fonts.heading,
-    fontSize: 10,
     fontWeight: '700',
   },
   ustpOnlineBanner: {

@@ -65,3 +65,7 @@ For the unattended AGY-PORT 00-13 run only, `docs/plans/agy-improvements/OWNER-A
 ## Task-scoped notice: Phase 09 ElevenLabs migration (2026-11-07)
 
 The owner explicitly authorized the scoped `LAFINA-backend` speech-provider change and deployment for this task. It replaces active Gemini TTS with ElevenLabs while preserving DeepSeek, authentication, entitlement, sync and existing quotas. Backend commit `34f9fba` is on `codex/elevenlabs-online-tts`; the owner subsequently merged main `f0fae4d`, and production deployment/contract authentication boundaries were verified on 2026-11-07. Signed-in voice/device validation remains pending. This exception does not authorize unrelated backend changes or a replacement hosting project. See `backend_integration/README.md` and the Phase 09 follow-up report.
+
+## Task-scoped notice: Floating LAFINA (2026-11-17)
+
+For the Floating LAFINA task only (phases `FLOAT-00` to `FLOAT-08`), `docs/plans/lafina-floating-assistant/OWNER-AUTHORIZATION.md` records the owner's decision: an optional, off-by-default floating orb and Quick Chat panel are in scope, and the manifest permissions `SYSTEM_ALERT_WINDOW` and `FOREGROUND_SERVICE_SPECIAL_USE` are approved for it. `FLOAT-00` may start; every later phase still needs explicit approval. Everything else in this file still applies, including confirm-before-write, no wake word, no always-on mic, no reading of other apps, and no writes outside this checkout.

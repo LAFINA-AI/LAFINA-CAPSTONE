@@ -1,9 +1,12 @@
 import React from 'react';
+import RNFS from 'react-native-fs';
 import {fireEvent, render, waitFor} from '@testing-library/react-native';
 import {
   ALL_DASHBOARD_WIDGET_IDS,
+  calendarVisibilityStore,
   dashboardConfigStore,
   db,
+  importedBatchesStore,
   initDatabase,
   notesStore,
   preferencesStore,
@@ -15,6 +18,7 @@ import {
 import type {Event, TimeBlock} from '../../src/storage';
 import {ThemeProvider} from '../../src/ui/contexts/ThemeContext';
 import {DashboardScreen} from '../../src/ui/screens/dashboard';
+import {useDashboardData} from '../../src/ui/screens/dashboard/hooks/useDashboardData';
 import {
   buildDayScheduleItems,
   computeFreeStudySummary,
@@ -383,6 +387,167 @@ describe('Dashboard Config Store, Schedule Calculations & Screen UI', () => {
       expect(dashboardConfigStore.get(uid).hiddenWidgets).toContain(
         'pinned_notes',
       );
+    });
+
+    test('renders real greetingName and upNext synchronously on the very first frame without split-second flicker', async () => {
+      const fixedNow = new Date(2026, 10, 12, 9, 30, 0);
+      jest.useFakeTimers().setSystemTime(fixedNow);
+
+      const uid = makeUser('instant');
+      const todayStr = formatLocalDateStr(fixedNow);
+
+      timeBlocksStore.insert({
+        id: 'cls-instant-1',
+        userId: uid,
+        title: 'CS 401 · Compilers',
+        date: todayStr,
+        startTime: '10:30',
+        endTime: '12:00',
+        color: '#2563EB',
+        category: 'Class',
+        notes: 'Room: ICT 201',
+      });
+
+      const observedFrames: Array<{
+        greetingName: string;
+        upNextMode: string;
+        upNextTitle: string | null;
+      }> = [];
+
+      const Probe: React.FC<{isActive?: boolean; refreshTrigger?: number}> = ({
+        isActive = true,
+        refreshTrigger = 0,
+      }) => {
+        const {data} = useDashboardData({
+          userId: uid,
+          refreshTrigger,
+          isActive,
+          onRefresh: jest.fn(),
+        });
+        observedFrames.push({
+          greetingName: data.greetingName,
+          upNextMode: data.upNext.mode,
+          upNextTitle: data.upNext.primaryItem?.title ?? null,
+        });
+        return null;
+      };
+
+      const utils = render(<Probe />);
+      await waitFor(() => {
+        expect(observedFrames.length).toBeGreaterThan(0);
+      });
+
+      // Frame 0 (first synchronous render) must already have the real user name and Up Next item.
+      expect(observedFrames[0]).toEqual({
+        greetingName: 'Juan',
+        upNextMode: 'upcoming',
+        upNextTitle: 'CS 401 · Compilers',
+      });
+      expect(
+        observedFrames.some(
+          f => f.greetingName === 'Student' || f.upNextMode === 'wrapped_up',
+        ),
+      ).toBe(false);
+
+      // Switching away and back within the same minute with no changes does not flicker.
+      const countBeforeSwitch = observedFrames.length;
+      utils.rerender(<Probe isActive={false} />);
+      utils.rerender(<Probe isActive />);
+      expect(observedFrames.length).toBe(countBeforeSwitch + 2);
+    });
+
+    test('uses warmed layer-visibility cache on first frame and updates when refreshTrigger increments while inactive', async () => {
+      const fixedNow = new Date(2026, 10, 12, 9, 30, 0);
+      jest.useFakeTimers().setSystemTime(fixedNow);
+
+      const memFiles = new Map<string, string>();
+      jest
+        .spyOn(RNFS, 'exists')
+        .mockImplementation(async path => memFiles.has(path));
+      jest.spyOn(RNFS, 'readFile').mockImplementation(async path => {
+        const val = memFiles.get(path);
+        if (val === undefined) throw new Error('ENOENT');
+        return val;
+      });
+      jest.spyOn(RNFS, 'writeFile').mockImplementation(async (path, data) => {
+        memFiles.set(path, data);
+      });
+
+      const uid = makeUser('cached-vis');
+      const todayStr = formatLocalDateStr(fixedNow);
+
+      timeBlocksStore.insert({
+        id: 'cls-vis-hidden',
+        userId: uid,
+        title: 'Hidden Imported Class',
+        date: todayStr,
+        startTime: '10:00',
+        endTime: '11:00',
+        color: '#2563EB',
+        category: 'Class',
+      });
+      timeBlocksStore.insert({
+        id: 'cls-vis-shown',
+        userId: uid,
+        title: 'Main Schedule Class',
+        date: todayStr,
+        startTime: '13:00',
+        endTime: '14:00',
+        color: '#2563EB',
+        category: 'Class',
+      });
+
+      await importedBatchesStore.saveImportedBatch(
+        uid,
+        'cor.ics',
+        [],
+        ['cls-vis-hidden'],
+        [],
+      );
+      const batches = await importedBatchesStore.getImportedBatches(uid);
+      expect(batches).toHaveLength(1);
+      await calendarVisibilityStore.setVisibility(uid, batches[0].id, false);
+
+      const firstRenderTitles: Array<string | null> = [];
+      const Probe: React.FC<{isActive: boolean; refreshTrigger: number}> = ({
+        isActive,
+        refreshTrigger,
+      }) => {
+        const {data} = useDashboardData({
+          userId: uid,
+          refreshTrigger,
+          isActive,
+          onRefresh: jest.fn(),
+        });
+        firstRenderTitles.push(data.upNext.primaryItem?.title ?? null);
+        return null;
+      };
+
+      const utils = render(<Probe isActive refreshTrigger={0} />);
+      // Frame 0 already excludes the hidden imported batch.
+      expect(firstRenderTitles[0]).toBe('Main Schedule Class');
+      expect(firstRenderTitles).not.toContain('Hidden Imported Class');
+
+      // While inactive, a refreshTrigger update prepares fresh data before returning Home.
+      utils.rerender(<Probe isActive={false} refreshTrigger={0} />);
+      timeBlocksStore.insert({
+        id: 'cls-vis-new',
+        userId: uid,
+        title: 'Newly Added Earlier Class',
+        date: todayStr,
+        startTime: '10:30',
+        endTime: '11:30',
+        color: '#059669',
+        category: 'Class',
+      });
+      utils.rerender(<Probe isActive={false} refreshTrigger={1} />);
+      utils.rerender(<Probe isActive refreshTrigger={1} />);
+
+      await waitFor(() => {
+        expect(firstRenderTitles[firstRenderTitles.length - 1]).toBe(
+          'Newly Added Earlier Class',
+        );
+      });
     });
   });
 });

@@ -1,7 +1,13 @@
-import {useCallback, useEffect, useMemo, useRef, useState} from 'react';
+import {
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
 import {AppState} from 'react-native';
 import {
-  academicProfileStore,
   dashboardConfigStore,
   notesQueryStore,
   notesStore,
@@ -10,6 +16,7 @@ import {
   tasksStore,
   userStore,
 } from '../../../../storage';
+import {getConfirmedAcademicProfile} from '../../../../storage/ustpEligibility';
 import type {
   AcademicProfileRecord,
   DashboardConfig,
@@ -52,6 +59,7 @@ import type {
 interface UseDashboardDataOptions {
   userId: string;
   refreshTrigger: number;
+  isActive?: boolean;
   onRefresh: () => void;
 }
 
@@ -100,110 +108,166 @@ const resolveGreetingName = (
   return 'Student';
 };
 
+const readDashboardSnapshot = (userId: string, refDate: Date): RawSnapshot => {
+  const todayStr = formatLocalDateStr(refDate);
+  const sevenDaysStr = formatLocalDateStr(addDaysToDate(refDate, 7));
+
+  let academic: AcademicProfileRecord | null = null;
+  try {
+    // School details appear only from a reviewed COR (USTP mode).
+    academic = getConfirmedAcademicProfile(userId);
+  } catch {
+    academic = null;
+  }
+
+  let preferences = getDefaultUserPreferences();
+  try {
+    preferences = preferencesStore.get(userId);
+  } catch {
+    // Keep defaults on error
+  }
+
+  try {
+    const customCats = notesStore.getCustomCategories(userId);
+    customCats.forEach(c => registerCustomCategoryColor(c.name, c.color));
+  } catch {
+    // Ignore custom category color load failure
+  }
+
+  let blocks: TimeBlock[] = [];
+  let events: Event[] = [];
+  let windowTasks: Task[] = [];
+  let overdue: {items: Task[]; total: number} = {items: [], total: 0};
+  let readError: string | null = null;
+
+  try {
+    const win = plannerQueries.window(userId, todayStr, sevenDaysStr);
+    blocks = win.blocks;
+    events = win.events;
+    windowTasks = win.tasks;
+    overdue = plannerQueries.overdueTasks(userId, todayStr, 20);
+  } catch {
+    readError = 'Could not read your local schedule from storage.';
+  }
+
+  let reminders: Reminder[] = [];
+  try {
+    reminders = remindersStore.getPendingReminders(userId);
+  } catch {
+    reminders = [];
+  }
+
+  let notes: NoteSnapshot[] = [];
+  try {
+    notes = notesQueryStore.page({
+      userId,
+      filter: 'All',
+      limit: 6,
+    }).items;
+  } catch {
+    notes = [];
+  }
+
+  return {
+    blocks,
+    events,
+    windowTasks,
+    overdue,
+    reminders,
+    notes,
+    preferences,
+    greetingName: resolveGreetingName(userId, academic),
+    academicBadge: buildAcademicBadge(academic),
+    readError,
+  };
+};
+
+const areStringArraysEqual = (
+  a: readonly string[],
+  b: readonly string[],
+): boolean => a.length === b.length && a.every((item, idx) => item === b[idx]);
+
+const areBatchesEqual = (
+  a: readonly ImportBatch[],
+  b: readonly ImportBatch[],
+): boolean =>
+  a.length === b.length &&
+  a.every((left, idx) => {
+    const right = b[idx];
+    return (
+      left.id === right.id &&
+      left.userId === right.userId &&
+      left.timestamp === right.timestamp &&
+      left.fileName === right.fileName &&
+      areStringArraysEqual(left.events, right.events) &&
+      areStringArraysEqual(left.blocks, right.blocks) &&
+      areStringArraysEqual(left.tasks, right.tasks)
+    );
+  });
+
+const areVisibilityMapsEqual = (
+  a: Record<string, boolean>,
+  b: Record<string, boolean>,
+): boolean => {
+  const keysA = Object.keys(a);
+  const keysB = Object.keys(b);
+  if (keysA.length !== keysB.length) return false;
+  return keysA.every(k => a[k] === b[k]);
+};
+
 export const useDashboardData = ({
   userId,
   refreshTrigger,
+  isActive = true,
   onRefresh,
 }: UseDashboardDataOptions) => {
-  const [now, setNow] = useState(() => new Date());
+  const initialNowRef = useRef<Date | null>(null);
+  if (!initialNowRef.current) {
+    initialNowRef.current = new Date();
+  }
+
+  const [now, setNow] = useState<Date>(() => initialNowRef.current!);
+  const nowRef = useRef(now);
+  nowRef.current = now;
+
   const [config, setConfigState] = useState<DashboardConfig>(() =>
     dashboardConfigStore.get(userId),
   );
-  const [batches, setBatches] = useState<ImportBatch[]>([]);
-  const [visibilityMap, setVisibilityMap] = useState<Record<string, boolean>>({
-    main: true,
-  });
+  const [batches, setBatches] = useState<ImportBatch[]>(
+    () => importedBatchesStore.getCachedImportedBatches(userId) ?? [],
+  );
+  const [visibilityMap, setVisibilityMap] = useState<Record<string, boolean>>(
+    () =>
+      calendarVisibilityStore.getCachedVisibilityMap(userId) ?? {main: true},
+  );
   const activeUserRef = useRef(userId);
   activeUserRef.current = userId;
 
-  const [raw, setRaw] = useState<RawSnapshot>(() => ({
-    blocks: [],
-    events: [],
-    windowTasks: [],
-    overdue: {items: [], total: 0},
-    reminders: [],
-    notes: [],
-    preferences: getDefaultUserPreferences(),
-    greetingName: 'Student',
-    academicBadge: null,
-    readError: null,
-  }));
+  const [raw, setRaw] = useState<RawSnapshot>(() =>
+    readDashboardSnapshot(userId, initialNowRef.current!),
+  );
 
   const loadRawData = useCallback(
     (refDate: Date = new Date()) => {
-      const todayStr = formatLocalDateStr(refDate);
-      const sevenDaysStr = formatLocalDateStr(addDaysToDate(refDate, 7));
-
-      let academic: AcademicProfileRecord | null = null;
-      try {
-        academic = academicProfileStore.get(userId);
-      } catch {
-        academic = null;
-      }
-
-      let preferences = getDefaultUserPreferences();
-      try {
-        preferences = preferencesStore.get(userId);
-      } catch {
-        // Keep defaults on error
-      }
-
-      try {
-        const customCats = notesStore.getCustomCategories(userId);
-        customCats.forEach(c => registerCustomCategoryColor(c.name, c.color));
-      } catch {
-        // Ignore custom category color load failure
-      }
-
-      let blocks: TimeBlock[] = [];
-      let events: Event[] = [];
-      let windowTasks: Task[] = [];
-      let overdue: {items: Task[]; total: number} = {items: [], total: 0};
-      let readError: string | null = null;
-
-      try {
-        const win = plannerQueries.window(userId, todayStr, sevenDaysStr);
-        blocks = win.blocks;
-        events = win.events;
-        windowTasks = win.tasks;
-        overdue = plannerQueries.overdueTasks(userId, todayStr, 20);
-      } catch {
-        readError = 'Could not read your local schedule from storage.';
-      }
-
-      let reminders: Reminder[] = [];
-      try {
-        reminders = remindersStore.getPendingReminders(userId);
-      } catch {
-        reminders = [];
-      }
-
-      let notes: NoteSnapshot[] = [];
-      try {
-        notes = notesQueryStore.page({
-          userId,
-          filter: 'All',
-          limit: 6,
-        }).items;
-      } catch {
-        notes = [];
-      }
-
-      setRaw({
-        blocks,
-        events,
-        windowTasks,
-        overdue,
-        reminders,
-        notes,
-        preferences,
-        greetingName: resolveGreetingName(userId, academic),
-        academicBadge: buildAcademicBadge(academic),
-        readError,
-      });
+      setRaw(readDashboardSnapshot(userId, refDate));
     },
     [userId],
   );
+
+  const syncVisibilityFromCache = useCallback(() => {
+    const cachedBatches = importedBatchesStore.getCachedImportedBatches(userId);
+    if (cachedBatches) {
+      setBatches(prev =>
+        areBatchesEqual(prev, cachedBatches) ? prev : cachedBatches,
+      );
+    }
+    const cachedMap = calendarVisibilityStore.getCachedVisibilityMap(userId);
+    if (cachedMap) {
+      setVisibilityMap(prev =>
+        areVisibilityMapsEqual(prev, cachedMap) ? prev : cachedMap,
+      );
+    }
+  }, [userId]);
 
   const loadVisibility = useCallback(async () => {
     try {
@@ -212,12 +276,20 @@ export const useDashboardData = ({
         calendarVisibilityStore.getVisibilityMap(userId),
       ]);
       if (activeUserRef.current !== userId) return;
-      setBatches(fetchedBatches);
-      setVisibilityMap(fetchedVisibility);
+      setBatches(prev =>
+        areBatchesEqual(prev, fetchedBatches) ? prev : fetchedBatches,
+      );
+      setVisibilityMap(prev =>
+        areVisibilityMapsEqual(prev, fetchedVisibility)
+          ? prev
+          : fetchedVisibility,
+      );
     } catch {
       if (activeUserRef.current !== userId) return;
-      setBatches([]);
-      setVisibilityMap({main: true});
+      setBatches(prev => (prev.length === 0 ? prev : []));
+      setVisibilityMap(prev =>
+        areVisibilityMapsEqual(prev, {main: true}) ? prev : {main: true},
+      );
     }
   }, [userId]);
 
@@ -226,15 +298,48 @@ export const useDashboardData = ({
     setNow(freshNow);
     setConfigState(dashboardConfigStore.get(userId));
     loadRawData(freshNow);
+    syncVisibilityFromCache();
     void loadVisibility();
-  }, [userId, loadRawData, loadVisibility]);
+  }, [userId, loadRawData, syncVisibilityFromCache, loadVisibility]);
+
+  const loadedIdentityRef = useRef({userId, refreshTrigger});
+  useLayoutEffect(() => {
+    if (
+      loadedIdentityRef.current.userId === userId &&
+      loadedIdentityRef.current.refreshTrigger === refreshTrigger
+    ) {
+      return;
+    }
+    loadedIdentityRef.current = {userId, refreshTrigger};
+    refresh();
+  }, [userId, refreshTrigger, refresh]);
 
   useEffect(() => {
-    refresh();
-  }, [refresh, refreshTrigger]);
+    void loadVisibility();
+  }, [loadVisibility]);
+
+  const prevActiveRef = useRef(isActive);
+  useLayoutEffect(() => {
+    const wasActive = prevActiveRef.current;
+    prevActiveRef.current = isActive;
+    if (!wasActive && isActive) {
+      syncVisibilityFromCache();
+      const freshNow = new Date();
+      if (formatLocalDateStr(freshNow) !== formatLocalDateStr(nowRef.current)) {
+        setNow(freshNow);
+        loadRawData(freshNow);
+      } else if (
+        Math.floor(freshNow.getTime() / 60_000) !==
+        Math.floor(nowRef.current.getTime() / 60_000)
+      ) {
+        setNow(freshNow);
+      }
+    }
+  }, [isActive, syncVisibilityFromCache, loadRawData]);
 
   // Keep live countdowns & current-class progress fresh while active.
   useEffect(() => {
+    if (!isActive) return undefined;
     const tick = () => setNow(new Date());
     const interval = setInterval(tick, 30_000);
     const sub = AppState.addEventListener('change', state => {
@@ -246,7 +351,7 @@ export const useDashboardData = ({
       clearInterval(interval);
       sub.remove();
     };
-  }, [refresh]);
+  }, [isActive, refresh]);
 
   const todayDate = useMemo(() => new Date(now), [now]);
   const blockModal = useTimeBlockModal({

@@ -33,9 +33,13 @@ export interface CommandReviewState {
   /** Applies the proposal once. A second tap while busy does nothing. */
   confirm: (options?: {
     speakReply?: boolean;
+    temporaryChat?: boolean;
   }) => Promise<ReviewDecisionResult | null>;
   /** Discards the proposal. `silent` skips the transcript line (used when a sheet closes). */
-  cancel: (options?: {silent?: boolean}) => ReviewDecisionResult | null;
+  cancel: (options?: {
+    silent?: boolean;
+    temporaryChat?: boolean;
+  }) => ReviewDecisionResult | null;
   /** Hides an expired card. */
   dismiss: () => void;
 }
@@ -136,6 +140,7 @@ export const useCommandReview = (
   const confirm = useCallback(
     async (options?: {
       speakReply?: boolean;
+      temporaryChat?: boolean;
     }): Promise<ReviewDecisionResult | null> => {
       const current = proposal;
       if (!current || expired || busyRef.current) return null;
@@ -168,7 +173,10 @@ export const useCommandReview = (
   );
 
   const cancel = useCallback(
-    (options?: {silent?: boolean}): ReviewDecisionResult | null => {
+    (options?: {
+      silent?: boolean;
+      temporaryChat?: boolean;
+    }): ReviewDecisionResult | null => {
       const current = proposal;
       if (!current || busyRef.current) return null;
       setProposal(null);
@@ -181,6 +189,7 @@ export const useCommandReview = (
       return chatOrchestrator.cancelReview(
         current.ownerId,
         current.operationId,
+        options?.temporaryChat ? {temporaryChat: true} : undefined,
       );
     },
     [proposal],

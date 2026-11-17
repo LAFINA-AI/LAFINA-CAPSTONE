@@ -392,7 +392,8 @@ describe('USTP COR Tailored Parser & Onboarding/Profile/Calendar Integration', (
       '09-302(CITC Lab 3) · IT4R11_Track2 · Loredel Tamayo',
     );
 
-    // 4. Memories saved in chatMemoryStore include student info, program, and all 6 courses (including unscheduled IT411)
+    // 4. Onboarding redesign: an unreviewed COR never becomes academic
+    //    memory (only the reviewed import does, without IDs or gender).
     saveOnboardingMemories(
       guest.id,
       {preferredName: cor.profile.preferredName, tone: 'casual'},
@@ -401,38 +402,11 @@ describe('USTP COR Tailored Parser & Onboarding/Profile/Calendar Integration', (
     );
     const memories = chatMemoryStore.list(guest.id).map(m => m.text);
     expect(memories).toContain('Prefers to be called John Lemar.');
+    expect(memories.some(m => m.includes('2023305519'))).toBe(false);
+    expect(memories.some(m => m.includes('Gender'))).toBe(false);
     expect(
-      memories.some(
-        m =>
-          m.includes('John Lemar L. Gonzales') &&
-          m.includes('2023305519') &&
-          m.includes('USTP CDO Campus'),
-      ),
-    ).toBe(true);
-    expect(
-      memories.some(
-        m =>
-          m.includes('Student No: 2023305519') &&
-          m.includes('CITC') &&
-          m.includes('B.S. in Information Technology') &&
-          m.includes('Gender: Male'),
-      ),
-    ).toBe(true);
-    expect(
-      memories.some(
-        m =>
-          m.includes('B.S. in Information Technology') &&
-          m.includes('4th Year - Baccalaureate') &&
-          m.includes('IT4R11_Track2'),
-      ),
-    ).toBe(true);
-    expect(
-      memories.some(
-        m =>
-          m.includes('IT411 CAPSTONE Project and Research 2') &&
-          m.includes('JAY NOEL ROJO'),
-      ),
-    ).toBe(true);
+      memories.some(m => m.includes('B.S. in Information Technology')),
+    ).toBe(false);
     // Never stores street address in memories
     expect(memories.some(m => m.includes('TIBASAK'))).toBe(false);
   });
@@ -568,5 +542,78 @@ ASSESSSED FEES
     expect(gns?.creditUnits).toBe(3);
     expect(gns?.sessions.length).toBe(1);
     expect(gns?.sessions[0]?.days).toEqual(['Tuesday', 'Friday']);
+  });
+
+  test('extracts USTP campus accurately despite garbled circular seal OCR, multi-campus letterhead, and home address', () => {
+    const realDeviceOcrHeader = `
+Republic of the Philippines
+University of Science and Technology of Southern Philippines
+Alubijid | Cagayan de Oro | Claveria | Jasaan |
+Oroquieta | Panaon | Balubal|Villanueva
+USTP CERTIFICATE OF REGISTRATION
+UNIVERSITT OF
+SCIENCE OF SOUTHLRN FHHILIFFINIS INOLOGY USTP
+CDO CAMPUS
+Registration No: 556711 Academic Year/Term : 1st Semester AY 2026-2027
+STUDENT GENERAL INFORMATION
+Student No: 2023305519 College: COLLEGE OF INFORMATION TECHNOLOGY AND COMPUTING
+Name: GONZALES, JOHN LEMARL Program: B.S. in Information Technology
+Gender: M Nationality:Filipino Major: NNA Curriculum: CITC-BSIT-2018-2019
+Age: 22 Contact #: Year Level: 4th Year - BaccalaureateScholarship/Discount:
+Address: BLOCK6, LOT 1 TIBASAK, MACASANDIG, CAGAYAN DE ORO CITYMacasandigCagayan de Oro City
+CODE SUBJECT TITLE SECTION SCHEDULE/ROOM FACULTY
+IT415 IT Elective 4 2 1 3 IT4R11_Track2 W 10:00 AM - 1:00 PM/09-105 FLORETO JR. QUINITO
+Total Unit(s) 2 1 3
+`;
+    const parsedReal = parseUstpCor(realDeviceOcrHeader);
+    expect(parsedReal.profile.campus).toBe('USTP CDO Campus');
+    expect(parsedReal.profile.yearLevel).toBe('4th Year - Baccalaureate');
+    expect(parsedReal.profile.formattedName).toBe('John Lemar L. Gonzales');
+
+    const singleLineSealNoise = parseUstpCor(`
+USTP CERTIFICATE OF REGISTRATION
+SCIENCE OF SOUTHLRN FHHILIFFINIS INOLOGY USTP CDO CAMPUS
+Student No: 2023305519 Program: B.S. in Information Technology
+`);
+    expect(singleLineSealNoise.profile.campus).toBe('USTP CDO Campus');
+
+    const unreadableCampusWithSealNoise = parseUstpCor(`
+USTP CERTIFICATE OF REGISTRATION
+USTP UNIVERSITT OF SCIENCE OF SOUTHLRN FHHILIFFINIS INOLOGY CAMPUS
+Student No: 2023305519 Program: B.S. in Information Technology
+`);
+    expect(unreadableCampusWithSealNoise.profile.campus).toBe(
+      'USTP CDO Campus',
+    );
+
+    const campusVariants: Array<[string, string]> = [
+      ['CLAVERIA CAMPUS', 'USTP Claveria Campus'],
+      ['USTP - JASAAN CAMPUS', 'USTP Jasaan Campus'],
+      ['USTP ALUBIJID', 'USTP Alubijid Campus'],
+      ['OROQUIETA CAMPUS', 'USTP Oroquieta Campus'],
+      ['USTP PANAON CAMPUS', 'USTP Panaon Campus'],
+      ['BALUBAL CAMPUS', 'USTP Balubal Campus'],
+      ['Campus: Villanueva', 'USTP Villanueva Campus'],
+      ['USTP CAGAYAN DE ORO CAMPUS', 'USTP CDO Campus'],
+    ];
+
+    for (const [campusLine, expected] of campusVariants) {
+      const parsed = parseUstpCor(`
+Republic of the Philippines
+University of Science and Technology of Southern Philippines
+Alubijid | Cagayan de Oro | Claveria | Jasaan | Oroquieta | Panaon | Balubal | Villanueva
+USTP CERTIFICATE OF REGISTRATION
+UNIVERSITT OF
+SCIENCE OF SOUTHLRN FHHILIFFINIS INOLOGY USTP
+${campusLine}
+Student No: 2023305519 Program: B.S. in Information Technology
+Address: Poblacion, Cagayan de Oro City
+`);
+      expect(parsed.profile.campus).toBe(expected);
+    }
+
+    expect(parseUstpCor('Grocery Receipt\nMilk 50.00').profile.campus).toBe(
+      '',
+    );
   });
 });

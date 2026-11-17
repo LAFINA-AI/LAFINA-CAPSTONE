@@ -12,6 +12,8 @@ import {buildDayTimelineItems, formatLocalDate} from '../utils/calendarHelpers';
 import {WeekStrip} from './WeekStrip';
 import {ScheduleItemCard} from './ScheduleItemCard';
 import {useSchedulePalette} from './schedulePalette';
+import {useSchedulePage} from '../hooks/useSchedulePage';
+import {ScheduleMoreButton} from './ScheduleMoreButton';
 
 interface DayViewProps {
   weekDays: Date[];
@@ -27,6 +29,34 @@ interface DayViewProps {
   onToggleTask?: (task: Task) => void;
   now?: Date;
   onCurrentTimeLayout?: (y: number) => void;
+}
+
+function HourItems({
+  day,
+  items,
+  onPress,
+  onToggleTask,
+}: {
+  day: string;
+  items: ScheduleTimelineItem[];
+  onPress: DayViewProps['onPressItem'];
+  onToggleTask: DayViewProps['onToggleTask'];
+}) {
+  const page = useSchedulePage(day, items);
+  return (
+    <View style={styles.slotList}>
+      {page.items.map(item => (
+        <ScheduleItemCard
+          key={item.id}
+          item={item}
+          compact
+          onPress={onPress}
+          onToggleTask={onToggleTask}
+        />
+      ))}
+      <ScheduleMoreButton remaining={page.remaining} onPress={page.showMore} />
+    </View>
+  );
 }
 
 const formatHourLabel = (hour: number, timeFormat24h: boolean): string => {
@@ -182,7 +212,8 @@ export const DayView: React.FC<DayViewProps> = ({
       <View
         testID="day-timeline"
         style={styles.timeline}
-        onLayout={handleTimelineLayout}>
+        onLayout={handleTimelineLayout}
+      >
         {hours.map(hour => {
           const slotItems = itemsByHour.get(hour) ?? [];
           const hourLabel = formatHourLabel(hour, timeFormat24h);
@@ -193,23 +224,23 @@ export const DayView: React.FC<DayViewProps> = ({
               key={hour}
               testID={isCurrentHour ? 'day-current-hour-row' : undefined}
               onLayout={isCurrentHour ? handleCurrentRowLayout : undefined}
-              style={styles.hourRow}>
+              style={styles.hourRow}
+            >
               <View style={styles.hourLabelCol}>
                 <Text
                   style={[
                     styles.hourLabel,
                     {color: isCurrentHour ? palette.danger : palette.muted},
                     isCurrentHour && styles.hourLabelActive,
-                  ]}>
+                  ]}
+                >
                   {hourLabel}
                 </Text>
                 {isCurrentHour && (
                   <View
                     testID="day-current-time-badge"
-                    style={[
-                      styles.nowBadge,
-                      {backgroundColor: palette.danger},
-                    ]}>
+                    style={[styles.nowBadge, {backgroundColor: palette.danger}]}
+                  >
                     <Text style={styles.nowBadgeText} numberOfLines={1}>
                       {currentTimeLabel}
                     </Text>
@@ -225,17 +256,16 @@ export const DayView: React.FC<DayViewProps> = ({
                       : palette.border,
                   },
                   isCurrentHour && {backgroundColor: currentRowBg},
-                ]}>
+                ]}
+              >
                 {isCurrentHour && (
                   <View
                     testID="day-current-time-line"
                     pointerEvents="none"
-                    style={[styles.nowLineRow, {top: `${minutePct}%`}]}>
+                    style={[styles.nowLineRow, {top: `${minutePct}%`}]}
+                  >
                     <View
-                      style={[
-                        styles.nowDot,
-                        {backgroundColor: palette.danger},
-                      ]}
+                      style={[styles.nowDot, {backgroundColor: palette.danger}]}
                     />
                     <View
                       style={[
@@ -253,17 +283,12 @@ export const DayView: React.FC<DayViewProps> = ({
                     accessibilityLabel={`Add block at ${hourLabel}`}
                   />
                 ) : (
-                  <View style={styles.slotList}>
-                    {slotItems.map(item => (
-                      <ScheduleItemCard
-                        key={item.id}
-                        item={item}
-                        compact
-                        onPress={onPressItem}
-                        onToggleTask={onToggleTask}
-                      />
-                    ))}
-                  </View>
+                  <HourItems
+                    day={formatLocalDate(selectedDate)}
+                    items={slotItems}
+                    onPress={onPressItem}
+                    onToggleTask={onToggleTask}
+                  />
                 )}
               </View>
             </View>
