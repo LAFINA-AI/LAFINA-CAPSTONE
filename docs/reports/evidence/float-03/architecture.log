@@ -1,0 +1,2 @@
+PASS: 397 TypeScript modules checked; 0 import cycles, 0 forbidden business/Gmail/study-tool/Kokoro dependencies; 108 offline leaves reach no network API or online module (transitive, dynamic imports included).
+arch exit=0

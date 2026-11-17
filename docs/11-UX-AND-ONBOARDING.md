@@ -19,6 +19,8 @@ Supersedes the numbered list above for the current app. Reference prototype: `do
 
 Journey: Intro (4 pages, skippable; no records, mic or permission requests) → Name/tone → Student setup → Goal → Routine → Study/focus → Answer style → Reminder timing → Memory review → Ready → optional 3-step quick tour (Home → Schedule → AI), replayable from Profile.
 
+Floating LAFINA (ADR-036) is **not** part of onboarding and never prompts by itself. It is turned on later from Profile → Floating LAFINA: switch → explainer ("Allow LAFINA to appear on top": why, what it does not do, and that Android opens a list) → Android's "Display over other apps" list → back to LAFINA. Without the grant the switch stays off with one line saying so; "Not now" leaves everything off and LAFINA does not ask again.
+
 Student setup is COR-first: **Set up my USTP COR**, **I'll add my COR later**, or **I'm not a USTP student**. There is no campus/program picker, no manual academic entry and no override. States:
 
 | State | Meaning | School features |

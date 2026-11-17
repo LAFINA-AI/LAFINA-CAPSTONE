@@ -1,0 +1,49 @@
+  console.warn
+    [ChatOrchestrator] Online AI chat failed: server_error
+
+    [0m [90m 1600 |[39m             learnFromReply [33m=[39m [33m![39monlineResult[33m.[39mdata[33m.[39minterrupted[33m;[39m
+     [90m 1601 |[39m           } [36melse[39m {
+    [31m[1m>[22m[39m[90m 1602 |[39m             console[33m.[39mwarn(
+     [90m      |[39m                     [31m[1m^[22m[39m
+     [90m 1603 |[39m               [32m'[ChatOrchestrator] Online AI chat failed:'[39m[33m,[39m
+     [90m 1604 |[39m               onlineResult[33m.[39mstatus[33m,[39m
+     [90m 1605 |[39m             )[33m;[39m[0m
+
+      at ChatOrchestrator.warn (src/ai/chatOrchestrator.ts:1602:21)
+      at asyncGeneratorStep (node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+      at _next (node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
+
+PASS __tests__/ai/phase10HandbookRAG.test.tsx (16.964 s)
+  Phase 10: USTP Student Handbook RAG & Citation-Backed Answers
+    1. Handbook Preference & localSettingsStore Persistence
+      √ defaults to true when unconfigured (74 ms)
+      √ writes and reads both chat.useHandbook and ustp_handbook_enabled (9 ms)
+    2. Handbook Citation Formatting (handbookSourceLabel)
+      √ returns null when sources list is empty (8 ms)
+      √ formats single page reference correctly (4 ms)
+      √ formats multiple distinct page references and deduplicates (7 ms)
+      √ falls back to title without pages if page numbers are absent (5 ms)
+    3. onlineChatSkill Handbook Integration
+      √ sends useHandbook: true and parses sources with citations (9 ms)
+      √ sends useHandbook: false when handbook toggle is disabled (6 ms)
+      √ fetches handbook availability status from /v1/ai/handbook/status (6 ms)
+    4. ChatOrchestrator Offline & Online Fail-Closed Handbook Routing
+      √ returns fail-closed handbook offline message when local handbook index is unavailable while offline (91 ms)
+      √ returns fail-closed fallback message if online handbook request fails without local excerpts (122 ms)
+      √ attaches verified handbook citation note when online query succeeds (43 ms)
+      √ routes dedicated ustpRagOnly questions directly to Handbook RAG without planner NLU (20 ms)
+    5. UI Verification: Citation Rendering & Handbook Toggle
+      √ renders citation badge in ChatMessageItem when handbookNote is present (445 ms)
+      √ does not render citation badge when handbookNote is absent (20 ms)
+      √ separates Ask LAFINA about USTP into its own RAG chat and sends handbook queries with useHandbook: true (4963 ms)
+
+Test Suites: 1 passed, 1 total
+Tests:       16 passed, 16 total
+Snapshots:   0 total
+Time:        19.082 s
+Ran all test suites matching /__tests__\\ai\\phase10HandbookRAG.test.tsx/i.
+npm notice
+npm notice New major version of npm available! 11.17.0 -> 12.2.2
+npm notice Changelog: https://github.com/npm/cli/releases/tag/v12.2.2
+npm notice To update run: npm install -g npm@12.2.2
+npm notice
