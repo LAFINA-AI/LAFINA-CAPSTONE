@@ -105,6 +105,10 @@ import {getCallLafinaSettings} from './src/cloud/voiceConversation/callLafinaSet
 import {endReviewSession} from './src/ai/nlu/commandReview';
 import {chatDraftStore} from './src/ui/drafts/chatDraftStore';
 import {applySpeechPreferences} from './src/ai/tts/speechPreferences';
+import {QUICK_CHAT_DATA_CHANGED_EVENT} from './src/ai/quickChat/quickChatController';
+import type {QuickChatDataChangedEvent} from './src/ai/quickChat/quickChatController';
+import {quickChatPresence} from './src/ui/quickChat/quickChatPresence';
+import {applyFloatingAssistantForUser} from './src/ui/quickChat/floatingAssistantAccount';
 
 const TAB_DATA_TABLES = {
   calendar: [
@@ -235,7 +239,7 @@ function AppContent({
   // One admission path for every call source: owner + captured identity fence first.
   const presentCall = useCallback(
     (incoming: CallRequest): boolean => {
-      if (!userId) return false;
+      if (!userId || quickChatPresence.isOpen()) return false;
       const request = recoverNativeCall(incoming, userId);
       if (!request) return false;
       // Startup events are retained natively until account hydration finishes.
@@ -339,6 +343,53 @@ function AppContent({
     void applySpeechPreferences(userId);
   }, [userId]);
 
+  // Floating LAFINA (ADR-036): only the active student's own choice runs the
+  // orb, and Quick Chat keeps nothing from another account. Waits for startup
+  // so the not-yet-known user does not stop an orb that should stay.
+  useEffect(() => {
+    if (!startupReady) return;
+    void applyFloatingAssistantForUser(userId ?? null);
+  }, [userId, startupReady]);
+
+  // Floating LAFINA: a change confirmed in Quick Chat refreshes these screens.
+  useEffect(() => {
+    const subscription = DeviceEventEmitter.addListener(
+      QUICK_CHAT_DATA_CHANGED_EVENT,
+      (event: QuickChatDataChangedEvent) => {
+        if (!userId || event?.ownerId !== userId) return;
+        db.invalidateData(['alarms', 'reminders', 'tasks']);
+        setRefreshTrigger(previous => previous + 1);
+      },
+    );
+    return () => subscription.remove();
+  }, [userId, setRefreshTrigger]);
+
+  // Floating LAFINA: "Open LAFINA" / "View in LAFINA" from Quick Chat, once,
+  // for the same student only, after Quick Chat has left the front.
+  const navigateFromCallRef = useRef(navigateFromCall);
+  navigateFromCallRef.current = navigateFromCall;
+  useEffect(() => {
+    if (!userId || !startupReady) return undefined;
+    const consume = () => {
+      if (
+        quickChatPresence.isOpen() ||
+        !quickChatPresence.hasPendingNavigation()
+      )
+        return;
+      const target = quickChatPresence.consumeNavigation(userId);
+      if (target) navigateFromCallRef.current(target);
+    };
+    consume();
+    const unsubscribe = quickChatPresence.subscribe(consume);
+    const appState = AppState.addEventListener('change', state => {
+      if (state === 'active') consume();
+    });
+    return () => {
+      unsubscribe();
+      appState.remove();
+    };
+  }, [userId, startupReady]);
+
   const lastCallEntryTab = useRef(activeTab);
   useEffect(() => {
     const entered = lastCallEntryTab.current !== activeTab;
@@ -367,7 +418,7 @@ function AppContent({
       stopReminderPoller();
       return undefined;
     }
-    void rescheduleUserReminders(userId);
+    void rescheduleUserReminders(userId, !quickChatPresence.isOpen());
     startReminderPoller(userId);
     return () => {
       stopReminderPoller();
@@ -411,6 +462,7 @@ function AppContent({
       }
     })();
 
+    if (quickChatPresence.isOpen()) return;
     void consumePendingNativeCalls().then(payloads => {
       for (const payload of payloads)
         if (presentCall(payload)) setIsLoading(false);
@@ -528,7 +580,7 @@ function AppContent({
     const unsubscribeRemoteChanges = syncWorker.onRemoteChanges(
       changedUserId => {
         if (changedUserId === userId) {
-          void rescheduleUserReminders(userId);
+          void rescheduleUserReminders(userId, !quickChatPresence.isOpen());
         }
       },
     );
@@ -558,11 +610,17 @@ function AppContent({
         }
         db.invalidateData(['alarms', 'reminders', 'tasks']);
         scheduler.start();
-        startReminderPoller(userId);
-        void rescheduleUserReminders(userId);
-        void consumePendingNativeCalls().then(payloads => {
-          payloads.forEach(presentCall);
-        });
+        // Floating LAFINA (ADR-036 Decision 6, risk R-03): while Quick Chat is
+        // the visible screen this root is hidden, so reminders stay with
+        // Android exactly as when LAFINA is in the background.
+        const quickChatInFront = quickChatPresence.isOpen();
+        if (!quickChatInFront) startReminderPoller(userId);
+        void rescheduleUserReminders(userId, !quickChatPresence.isOpen());
+        if (!quickChatInFront) {
+          void consumePendingNativeCalls().then(payloads => {
+            payloads.forEach(presentCall);
+          });
+        }
         void getReminderPermissionStatus().then(status => {
           if (status) setPermissionStatus(status);
         });
@@ -570,7 +628,7 @@ function AppContent({
           .performSync()
           .then(() => {
             setRefreshTrigger(previous => previous + 1);
-            void rescheduleUserReminders(userId);
+            void rescheduleUserReminders(userId, !quickChatPresence.isOpen());
           })
           .catch(() => undefined);
       },
