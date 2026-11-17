@@ -72,7 +72,8 @@ import type {
   ValidatedIntent,
 } from './types';
 
-export type ReviewSurface = 'chat' | 'voice';
+/** `'quick'` is Floating LAFINA's Quick Chat panel (ADR-036): its own card slot. */
+export type ReviewSurface = 'chat' | 'voice' | 'quick';
 
 /**
  * How long a proposal can be confirmed. It never confirms itself. Long enough
@@ -2816,7 +2817,10 @@ export const prepareReviewedCommand = (
   const today = formatLocalDate(options.referenceDate || new Date());
   // "Has this time passed?" is judged at the request's own moment.
   const nowMs = options.referenceDate ? options.referenceDate.getTime() : now;
-  const surface: ReviewSurface = options.surface === 'voice' ? 'voice' : 'chat';
+  const surface: ReviewSurface =
+    options.surface === 'voice' || options.surface === 'quick'
+      ? options.surface
+      : 'chat';
   try {
     let built: BuildResult;
     switch (clean.intent) {
