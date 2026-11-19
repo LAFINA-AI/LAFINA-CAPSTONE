@@ -1,181 +1,278 @@
-> **Online Voice Migration (2026-11-07):** [ElevenLabs setup and backend-owner handoff](backend_integration/README.md). DeepSeek powers online chat responses; offline voices remain native on-device (`react-native-tts`). Production speech endpoints are deployed on `LAFINA-backend` (`https://lafina-backend.vercel.app`) with automatic local TTS fallback.
->
-> **Lem-Branch Integration:** [Lem-branch integration report](docs/plans/lem-integration/REPORT.md) records the merged Whisper runtime model warmup, personalized ML reminder timing advisor, screen rendering optimizations, audio ducking, and personal memory stores.
-
 # LAFINA-CAPSTONE
 
-**Android-first, offline-first personal academic AI secretary for university students.**
+**An Android-first academic AI secretary that helps students organize their day, remember commitments, and find answers—even when they are offline.**
 
-LAFINA-CAPSTONE is built around zero-barrier offline onboarding, student task and calendar scheduling, durable native Android reminder alarms with simulated voice reminder calls, push-to-talk on-device speech recognition, fast local text-to-speech, and optional bidirectional cloud synchronization with citation-backed USTP Student Handbook RAG.
+LAFINA brings a student's schedule, to-dos, notes, reminders, and assistant into one app. Students can enter plans by hand, type a request, or use their voice. Core planning stays on the phone; an optional account adds cloud synchronization and online AI services.
 
----
+The project is designed around university life, with additional support for University of Science and Technology of Southern Philippines (USTP) students through Certificate of Registration (COR) import and source-backed Student Handbook answers.
 
-## 1. Current Implementation Status
+## Explore this README
 
-**Status:** **Feature-Complete Milestone (Phases 01–10 + Lem-Branch Integration & Phase 09 ElevenLabs Speech Provider Migration)**  
-* **Package Version:** `1.3.4`  
-* **Android Release Version:** `0.6.0-preview` (versionCode `6`)  
-* **Preflight Pipeline:** `npm run preflight` PASS (84/84 Jest test suites, 1,212 unit tests, TypeScript strict, ESLint 0 warnings, 259 modules verified by AST architecture guardrails).  
-* **Android 15 Compatibility:** Verified 16 KiB ELF alignment across all 16 bundled native `.so` libraries (`ONNX Runtime 1.22.0`).
+- [What students can do](#what-students-can-do)
+- [How the assistant makes changes](#how-the-assistant-makes-changes)
+- [Alarms and reminder calls](#alarms-and-reminder-calls)
+- [Voice, handbook answers, and personalization](#voice-handbook-answers-and-personalization)
+- [Offline use and cloud synchronization](#offline-use-and-cloud-synchronization)
+- [Privacy and permissions](#privacy-and-permissions)
+- [Run the project](#run-the-project)
+- [Project structure and further reading](#project-structure-and-further-reading)
 
----
+## What students can do
 
-## 2. Core Feature Matrix
+LAFINA's five main tabs keep everyday actions close together:
 
-### Student UI/UX & Design System (`src/ui/`)
-* **Visual Shell:** Multi-strand procedural bezier spline splash (`SynthSplash`), hardware-accelerated OpenGL grain-gradient backdrop (`AuthBackdrop` + `LafinaGrainientView.kt`), and circular theme reveal animations.
-* **Onboarding & Auth:** Frictionless guest onboarding (`local_guest_user`) with zero barrier to entry, plus optional authenticated student cloud accounts (`student`, `student_pro`, `admin`).
-* **Design Tokens:** Centralized theme system (`Colors`, `Fonts`, `FontSize`, `Spacing`, `Layout`, `Shadows`, `useThemedStyles`, `useTheme`) supporting dark, light, and system themes.
-* **Navigation:** `CustomTabBar` with animated tab transitions and floating action button modal triggers.
+| Area         | What it is for                                                                                    |
+| ------------ | ------------------------------------------------------------------------------------------------- |
+| **Home**     | See the day at a glance, upcoming commitments, and shortcuts to common actions.                   |
+| **Schedule** | Plan classes, events, and blocks of time; browse the calendar and manage alarms.                  |
+| **AI**       | Chat with LAFINA, ask about personal plans, prepare changes, and access voice conversations.      |
+| **Tools**    | Keep notes, manage to-dos, and access alarms.                                                     |
+| **Profile**  | Manage an optional account, sync, appearance, speech preferences, and alarm reliability settings. |
 
-### Academic Calendar & Notes Workspace (`src/ui/screens/calendar/`, `src/ui/screens/notes/`)
-* **Interactive Calendar:** Continuous timeline Week View and 7-day grid Month View with minute-accurate focus blocks and collision detection.
-* **Philippine National Holidays:** Built-in holiday schedule banner highlighting regular and special non-working holidays.
-* **RFC 5545 Recurrence & iCalendar Interoperability:** Zero-dependency recurrence rule parser (`DAILY`, `WEEKLY`, `MONTHLY`, `YEARLY` up to 1,000 occurrences) and full `.ics` academic timetable import/export with layer visibility toggles.
-* **Lecture Notes Editor:** Full-screen Markdown editor with live preview, interactive checklists (`- [ ]` / `- [x]`), category tags, pinning, search, and drag-and-drop reordering.
+```mermaid
+flowchart LR
+    Student[Student] --> Home[Home: see the day]
+    Student --> Schedule[Schedule: plan time]
+    Student --> AI[AI: ask or speak]
+    Student --> Tools[Tools: notes and to-dos]
+    Student --> Profile[Profile: preferences and account]
+    AI --> Review[Review a proposed change]
+    Review --> Plans[Saved plans on the phone]
+    Schedule --> Plans
+    Tools --> Plans
+```
 
-### Durable Native Android Alarms & Reminder Calls (`src/scheduler/`, `android/`)
-* **Native Android Exact Alarms:** Scheduled via `AlarmManager.setExactAndAllowWhileIdle` (`LafinaReminderModule.kt`) with fallback for battery-saver restrictions and full-screen intent over the Android lock screen.
-* **Simulated Incoming Reminder Calls:** `IncomingCallScreen` simulated phone call with push-to-talk mic activation, ringtone playback, vibration, and background foreground service (`LafinaReminderService.kt`).
-* **Decoupled Acknowledgment Invariant:** Answering, snoozing, or dismissing an alert updates reminder status to `acknowledged` while strictly keeping the underlying task pending (`isCompleted === false`).
-* **Reboot & Lifecycle Recovery:** Reschedules pending alarms across device reboots (`BOOT_COMPLETED`), timezone adjustments (`TIMEZONE_CHANGED`), and package updates (`MY_PACKAGE_REPLACED`). Stale alerts (>15 min) transition to `missed`, and near-due alerts (<3 min) trigger immediately.
+### Getting started as a student
 
-### On-Device Speech & NLU (`src/ai/`)
-* **Push-to-Talk STT:** Offline `whisper.cpp` (`ggml-base.en-q5_1.bin`) with Silero VAD (`silero_vad.onnx`) and background model warmup on Voice modal open.
-* **Fast On-Device NLU:** Deterministic regex and grammar fast-path parser extracting actions, dates, and entities with zero network latency.
-* **Fast Local TTS:** Native Android speech synthesis powered by `react-native-tts` (completely replacing the legacy 85 MB Kokoro 82M ONNX binary for sub-100ms latency).
+1. Open LAFINA and follow the introduction. Continue without an account for local guest use, or sign in for account services.
+2. Choose your preferences and follow the optional offline model setup. USTP students can review a COR import to add their classes.
+3. Take the guided walkthrough, then add a small task or note to try the planner.
+4. Set up a test alarm and review Android's alert permissions before relying on time-critical reminders. Enable online AI, voice, or the floating shortcut when you want to use them.
 
-### Adaptive Reminder Timing ML Advisor (`src/ai/ml/`)
-* **Local Machine Learning Pipeline:** EWMA user response latency tracking, historical feature clustering (KNN), and Random Forest adherence recommendations for optimal reminder lead times.
-* **Non-Intrusive & Controllable:** Preserves baseline schedules on cold start or opt-out; suggestions are explicitly surfaced in command reviews before commit.
+### Planning, to-dos, and notes
 
-### Cloud Sync & Online AI (`src/cloud/`, `src/sync/`)
-* **Personal Entity Sync:** Offline-first bidirectional sync across the 7 personal entities (`profile`, `task`, `event`, `time_block`, `reminder`, `note`, `custom_category`) against `LAFINA-backend` (`https://lafina-backend.vercel.app` with `http://127.0.0.1:8000` dev fallback).
-* **Online AI Assistant:** DeepSeek AI chat endpoint integration with automatic local fallback when offline.
-* **Cloud Voice Synthesis:** Online ElevenLabs TTS endpoint (`/v1/ai/tts`) with automatic, silent fallback to local `react-native-tts`.
-* **USTP Student Handbook RAG:** Citation-backed academic policy Q&A (`/v1/ai/chat` with `use_handbook: true`) showing verified page references, coupled with strict fail-closed guidance when offline.
+- **Calendar planning:** organize events and time blocks in week and month views, with recurring schedules and checks for overlapping commitments.
+- **To-dos:** keep track of tasks, deadlines, priorities, and completion separately from calendar events.
+- **Notes:** write and edit formatted notes with Markdown preview, checklists, categories, search, pinning, and reordering.
+- **Calendar files:** import or export `.ics` files and control the visibility of imported calendar layers.
+- **Philippine holidays:** see holiday information alongside the calendar when planning the week.
 
----
+### Bring in a class schedule
 
-## 3. Strict Architectural Guardrails
+USTP students can import a COR rather than re-enter each class. LAFINA reads a portal PDF's text on the device and uses image text recognition for supported photos or screenshots. It checks the extracted subjects, units, days, and times, then presents the result for review before adding it to the schedule.
 
-Enforced automatically by AST analysis (`scripts/check-architecture.mjs`):
-* **Forbidden Business Scope:** 0 business dashboards, business roles (`manager`, `employee`, `business`), business tasks, business work blocks, company chat, or team invitations.
-* **Forbidden Gmail Scope:** 0 Gmail APIs, OAuth scopes, mail sync jobs, or inbox screens.
-* **Forbidden Study Tool Bloat:** 0 Pomodoro timers, Flashcard decks, or Meeting recording modules.
-* **Forbidden Heavy Models:** 0 Kokoro 82M ONNX binaries (`kokoro-v0_19.onnx`, `af_bella.bin`, `cmudict.txt`), keeping APKs lightweight.
-* **Offline Boundaries:** 81 offline leaf modules verified to have zero transitive reach to network APIs.
+Use the original portal PDF when possible. Small or blurry images can lose details, and names or rooms may still need correction. The review highlights reading problems instead of quietly filling in an uncertain schedule. Importing a COR does not connect to or sign in to the university portal.
 
----
+### Other supported academic workflows
 
-## 4. Development Environment
+The app also includes document-generation and lecture/meeting-recording workflows. Document requests support PDF, Word, Excel, and PowerPoint output through online services. Recording starts through an explicit user action; the recording workflow can produce transcripts and request organized notes online. Availability depends on the relevant screen, device support, account access, and backend configuration.
 
-| Dependency | Required Version |
-| :--- | :--- |
-| **Node.js** | `>= 24.19.0` (LTS) |
-| **npm** | `>= 10.0.0` |
-| **JDK** | OpenJDK 17 (`hotspot-17`) |
-| **Android SDK Platform** | Android 36 (API 36) |
-| **Android Build Tools** | `36.0.0` |
-| **Android NDK** | `27.1.12297006` |
-| **CMake** | `3.22.1` |
-| **Minimum Android OS** | Android 11.0+ (API 30+) |
+These workflows have different connectivity requirements from the core planner: cloud document generation and AI-generated meeting notes require online service access.
 
----
+## How the assistant makes changes
 
-## 5. Development & Testing Commands
+A request such as “Remind me to submit my assignment tomorrow at 5 PM” becomes a proposed change. LAFINA shows the interpreted details so the student can correct the title, date, or time before confirming.
 
-### Setup and Environment Check
+```mermaid
+flowchart TD
+    Request[Type or speak a request] --> Understand[Identify the action and details]
+    Understand --> Kind{Does it change a plan?}
+    Kind -->|No| Answer[Answer from available information]
+    Kind -->|Yes| Draft[Show a review card]
+    Draft --> Choice{Student decides}
+    Choice -->|Edit| Draft
+    Choice -->|Cancel| Cancel[Discard the proposal]
+    Choice -->|Confirm| Save[Save the approved change locally]
+    Save --> Receipt[Show the result]
+```
+
+For supported requests, LAFINA can prepare tasks, events, time blocks, reminders, notes, and alarms. It can also look up personal plans and available time. Online AI can help interpret a request or suggest a plan, but assistant changes still follow the review and confirmation flow.
+
+Examples of everyday requests include:
+
+- “What is on my schedule today?”
+- “Add a task to finish my research outline tomorrow.”
+- “Block an hour for reviewing chemistry on Friday.”
+- “Wake me up at 6 AM.”
+
+The manual screens remain available when speech recognition, an AI model, or the internet is unavailable. Offline understanding handles supported planning commands; it does not offer the same open-ended conversation as an online model.
+
+## Alarms and reminder calls
+
+An alarm clock and an academic reminder serve different purposes in LAFINA:
+
+|                    | Alarm                                                  | Reminder                                                                |
+| ------------------ | ------------------------------------------------------ | ----------------------------------------------------------------------- |
+| **Typical use**    | Wake up at a specific time.                            | Remember a deadline, class, or planned activity.                        |
+| **Alert**          | Native Android ringing screen with Dismiss and Snooze. | A reminder alert, including a simulated incoming call where configured. |
+| **Speech**         | Optional local morning briefing after dismissal.       | Spoken reminder and supported follow-up actions.                        |
+| **Across devices** | Stays on the phone where it was created.               | Included in personal cloud sync when using an account.                  |
+
+Android handles alarm and reminder delivery so it does not depend only on an open app screen. Recovery logic rechecks pending alerts after events such as a reboot or a timezone change. Exact timing and lock-screen presentation depend on Android permissions, notification settings, and the phone's battery restrictions. **Profile → Alarm & Reminder Health** helps identify these settings and provides a test alarm.
+
+Reminder calls are simulated inside LAFINA; they are not telephone calls. Answering or acknowledging an alert does **not** complete the underlying task. A task stays pending until the student explicitly completes it.
+
+Adaptive reminder timing can suggest a lead time based on local response history. Students can turn this off, and proposed timing adjustments appear in the review flow.
+
+## Voice, handbook answers, and personalization
+
+### Talk to LAFINA
+
+**Offline voice input** uses push-to-talk speech recognition on the device through Whisper. Supported requests are interpreted locally using command rules and available on-device models. Model setup or downloads may be needed before the selected offline features can be used.
+
+**Offline spoken replies** use the phone's text-to-speech engine through `react-native-tts`. An installed offline voice is needed to speak without internet access. LAFINA does not use Kokoro.
+
+**Online voice** uses ElevenLabs services when Online Mode is enabled and the account and server allow access. Call LAFINA supports a live voice session with transcripts, microphone controls, and an End action. It starts only after user interaction and microphone permission. DeepSeek supplies online assistant responses through the backend. If online spoken output fails, ordinary text-to-speech replies can fall back to the phone's voice; text and manual controls remain available.
+
+### Ask about the USTP Student Handbook
+
+LAFINA looks for relevant handbook passages and presents source references so students can check an answer. This approach is often called **retrieval-augmented generation (RAG)**: the assistant uses retrieved source material to support its response.
+
+- Local handbook search can return relevant excerpts and references without internet access when a usable handbook pack is available.
+- Online answers can use handbook evidence to produce a more conversational explanation.
+- When the available material does not support an answer, LAFINA should say that it could not verify the policy.
+
+USTP-specific features follow the app's student setup and eligibility checks. Answers refer to the available handbook edition; students should check the cited passage and confirm official decisions with the university.
+
+### Make the experience personal
+
+Light, dark, and system themes, speech settings, and reply preferences let students adjust how LAFINA looks and responds. Personal memory can retain useful preferences and can be managed or turned off. Relevant saved context may accompany online assistant requests when those features are enabled.
+
+**Floating LAFINA** is an optional, off-by-default shortcut: an edge handle or bubble opens Quick Chat over another app. Students can adjust its appearance and position. It uses the same confirmation rules as the main assistant and does not read the contents of other apps.
+
+## Offline use and cloud synchronization
+
+“Offline-first” means the phone holds the working copy of a student's plans. Saving a task or note does not require a successful server request.
+
+| Capability                                 | Without internet                                             | What online access adds                                      |
+| ------------------------------------------ | ------------------------------------------------------------ | ------------------------------------------------------------ |
+| Tasks, notes, events, and time blocks      | Create, view, and edit locally.                              | Synchronize supported personal records with an account.      |
+| Alarms and reminders                       | Scheduled Android alerts, subject to device settings.        | Sync supported reminder records; alarms remain device-local. |
+| Voice commands                             | On-device recognition and supported commands after setup.    | Broader interpretation and live voice services.              |
+| Spoken replies                             | Phone speech engine with an offline voice installed.         | Available ElevenLabs voices.                                 |
+| Handbook questions                         | Local excerpts when handbook data is available.              | AI explanations supported by retrieved sources.              |
+| Open-ended AI chat and document generation | Local supported replies and saved content remain accessible. | Cloud conversation and document generation.                  |
+
+Guest mode works without creating an account. An optional account enables synchronization of **profile, tasks, events, time blocks, reminders, notes, and custom categories**. These seven record types do not include every file or setting on the phone; alarms and floating-assistant preferences remain local.
+
+```mermaid
+flowchart LR
+    Student[Student approves an edit] --> Local[(Local data on the phone)]
+    Local --> Screens[Available immediately in the app]
+    Local --> Queue[Queue supported record changes]
+    Queue --> Gate{Signed in and connected?}
+    Gate -->|No| Wait[Keep changes for a later sync]
+    Wait --> Gate
+    Gate -->|Yes| Backend[LAFINA backend]
+    Backend --> Incoming[Receive changes and handle conflicts]
+    Incoming --> Local
+    Online[Online AI or voice request] --> Backend
+    Backend --> Providers[Configured AI and voice services]
+```
+
+Sync keeps track of pending changes and conflicts rather than treating the server as a requirement for every edit. Account boundaries separate personal records, and local writes and their queued sync changes are saved together to reduce inconsistencies.
+
+The mobile app uses the [LAFINA backend](https://lafina-backend.vercel.app) for authentication, sync, and online AI. Development builds can also use a local backend. Online features depend on authentication, connection quality, service configuration, and applicable subscription or usage limits.
+
+## Privacy and permissions
+
+- **Local planning:** guest planner records stay in the phone's database. Offline speech recognition and COR reading run on the device.
+- **Cloud use is a separate choice:** signing in enables account services; Online Mode controls online AI and speech. Requests may send the relevant message, context, or audio to the backend and its configured providers.
+- **Intentional microphone use:** push-to-talk, answering a reminder call, starting a voice session, or starting a recording requires user interaction and OS permission. There is no wake word or always-on listening.
+- **Optional overlay access:** Floating LAFINA requires Android's permission to display over other apps. It can be disabled in settings.
+- **Alert permissions:** notification, exact-alarm, and full-screen settings affect how alerts arrive. The app exposes reliability checks rather than assuming every phone allows them.
+- **Backend-managed credentials:** normal app builds call the backend for cloud services; provider API keys belong on the server.
+- **Local data needs care:** clearing app data or uninstalling removes device-local content. Cloud sync covers the supported record types, not a complete backup of every file and setting.
+
+LAFINA focuses on personal academic organization. It does not include business/team administration, Gmail inbox integration, or automatic access to university portal accounts.
+
+## Run the project
+
+This section is for contributors who want to run the Android app. The application uses React Native with TypeScript, Android native components, and a local SQLite database.
+
+### Requirements
+
+| Tool              | Project requirement                                                                                    |
+| ----------------- | ------------------------------------------------------------------------------------------------------ |
+| Node.js           | `>= 22.11.0` declared in `package.json`; Node `24.19.0+` is recommended for the full test environment. |
+| npm               | `>= 10.0.0`                                                                                            |
+| Java              | JDK 17                                                                                                 |
+| Android SDK       | Platform 36 and Build Tools `36.0.0`                                                                   |
+| Android NDK       | `27.1.12297006`                                                                                        |
+| CMake             | `3.22.1`                                                                                               |
+| Phone or emulator | Android 11 or newer (API 30+)                                                                          |
+
+Install Android Studio and the listed SDK components, set `JAVA_HOME` and `ANDROID_HOME`, then run these commands from the repository root:
+
 ```powershell
-# Install Node dependencies
 npm ci
-
-# Run system requirements check
-node scripts/doctor.mjs
+npm run doctor
 ```
 
-### Full Preflight Validation
-Runs TypeScript typechecking, ESLint, the full Jest unit test suite, and the architectural AST dependency checks:
-```powershell
-npm run preflight
-```
+Start the development server:
 
-Individual checks:
 ```powershell
-npm run typecheck            # TypeScript compiler check
-npm run lint                 # ESLint check (0 warnings allowed)
-npm test                     # Jest unit test suites
-npm run check:architecture   # AST circular dependency & scope verification
-```
-
-### Running on Android Device / Emulator
-```powershell
-# Start Metro bundler
 npm start
+```
 
-# In a second terminal (with Android device connected via USB or emulator running):
+In a second terminal, connect an Android device with USB debugging enabled or start an emulator, then run:
+
+```powershell
 npm run android
 ```
 
----
+The debug app uses the package ID `com.lafina.capstone.debug`. Core guest planning does not need backend credentials. For local online-service testing, follow the [provider-testing guide](docs/qa-provider-testing.md); a backend on the computer can be reached over USB using `adb reverse tcp:8000 tcp:8000` and the debug server setting. Cloud provider secrets must not be added to the app.
 
-## 6. Building Standalone Release APKs
-
-On Windows, native C++ builds (CMake/Ninja) exceed the 260-character `MAX_PATH` limit on long directory structures. The reliable two-step build process prebuilds the JavaScript bundle on the physical checkout and assembles the APK from a short virtual drive mapping (`subst`):
+### Check a change
 
 ```powershell
-# Step 1: Prebuild the React Native release bundle from the physical path
-Push-Location android
-.\gradlew.bat :app:createBundleReleaseJsAndAssets --console=plain
-Pop-Location
+# TypeScript, lint, unit tests, and architecture checks
+npm run preflight
 
-# Step 2: Assemble release APKs from a short virtual drive alias (e.g., L:)
-$checkout = (Get-Location).Path
-if (Get-PSDrive -Name L -ErrorAction SilentlyContinue) { & subst.exe L: /d }
-& subst.exe L: $checkout
-
-# Temporary init script to skip re-bundling during assembly
-$initScript = "allprojects { tasks.configureEach { if (it.name == 'createBundleReleaseJsAndAssets') { it.onlyIf { false } } } }"
-Set-Content -Path "android/.skip-bundle.init.gradle" -Value $initScript
-
-try {
-    Push-Location "L:\android"
-    try {
-        .\gradlew.bat :app:assembleRelease --console=plain --init-script "L:\android\.skip-bundle.init.gradle"
-    } finally {
-        Pop-Location
-    }
-} finally {
-    & subst.exe L: /d
-    Remove-Item "android/.skip-bundle.init.gradle" -Force -ErrorAction SilentlyContinue
-}
+# Android compilation and native unit tests
+.\android\gradlew.bat -p android :app:compileDebugKotlin :app:testDebugUnitTest --console=plain
 ```
 
-The resulting split APKs are generated under `android/app/build/outputs/apk/release/`:
-* **`app-arm64-v8a-release.apk`:** For physical 64-bit ARM Android devices.
-* **`app-x86_64-release.apk`:** For x86_64 Android emulators.
+Individual checks are available as `npm run typecheck`, `npm run lint`, `npm test`, and `npm run check:architecture`. For actual alarm delivery, microphone behavior, voice quality, and battery restrictions, use the [manual phone checklist](docs/MANUAL-PHONE-TESTING.md). Automated tests alone cannot establish those behaviors on a physical device.
 
-### Audit APK Integrity & 16 KiB ELF Alignment
-Verify single-ABI packaging, 16 KiB ELF load alignment (Android 15+ compatible), model file hashes, and ZIP alignment:
+### Build an APK
+
+For a standard preview build:
+
 ```powershell
-python scripts/apk_audit.py android/app/build/outputs/apk/release/app-arm64-v8a-release.apk --output docs/plans/agy-improvements/reports/evidence/release-audit-arm64.json
+.\android\gradlew.bat -p android :app:assembleRelease --console=plain
 ```
 
-### Install onto Device via ADB
+Split APKs are written to `android/app/build/outputs/apk/release/`: use `app-arm64-v8a-release.apk` for a compatible physical ARM64 phone or `app-x86_64-release.apk` for an x86_64 emulator. The release build is configured with preview signing; public distribution requires appropriate release signing.
+
+Long Windows checkout paths can exceed native build-tool limits. The [native build guide](docs/plans/agy-improvements/reports/phase-11-native-qa.md) documents the short-path build procedure and APK checks. Avoid removing an existing drive mapping to reuse its letter.
+
+To install the ARM64 preview on a connected phone:
+
 ```powershell
-# For physical phone (ARM64)
 adb install -r android/app/build/outputs/apk/release/app-arm64-v8a-release.apk
-
-# For emulator (x86_64)
-adb install -r android/app/build/outputs/apk/release/app-x86_64-release.apk
 ```
 
----
+## Project structure and further reading
 
-## 7. Security and Privacy Principles
+| Location                              | Purpose                                                                     |
+| ------------------------------------- | --------------------------------------------------------------------------- |
+| `App.tsx`                             | App entry, navigation, and shared lifecycle behavior.                       |
+| `src/ui/`                             | Screens, reusable components, themes, onboarding, and the product tour.     |
+| `src/storage/`                        | Local records, database migrations, and persistence.                        |
+| `src/scheduler/`                      | Reminder scheduling and delivery coordination.                              |
+| `src/ai/`                             | Local speech, command understanding, assistant behavior, and spoken output. |
+| `src/handbook/`                       | Local handbook data, search, and source references.                         |
+| `src/cloud/` and `src/sync/`          | Account services, online AI, voice sessions, and synchronization.           |
+| `src/skills/` and `src/meetings/`     | Document and recording-related workflows.                                   |
+| `android/`                            | Android application, alarms, audio, and native bridges.                     |
+| `__tests__/`, `scripts/`, and `docs/` | Automated checks, development utilities, and supporting documentation.      |
 
-1. **Offline Privacy First:** Tasks, notes, schedules, audio input, and voice models run locally. Offline guest users store data strictly in local SQLite (`lafina.db`).
-2. **Opt-in Cloud Sync:** Network transmission occurs only when the user explicitly registers or logs into a cloud account.
-3. **No Embedded Secret Keys:** Client APKs contain zero embedded cloud API keys; cloud communication authenticates via short-lived bearer tokens managed by `LAFINA-backend`.
-4. **Decoupled Alert Invariants:** An alert acknowledgment is strictly distinct from completing academic tasks.
-5. **No Background Eavesdropping:** Speech-to-text uses push-to-talk activation only. No wake words, no always-on recording, and no background audio capture.
+For more detail:
+
+- [Architecture overview](docs/02-ARCHITECTURE.md) and [data and scheduling](docs/05-DATA-SCHEDULING.md).
+- [Voice and offline AI](docs/06-VOICE-AND-OFFLINE-AI.md), [online AI and RAG](docs/07-RAG-AND-ONLINE.md), and [ElevenLabs backend integration](backend_integration/README.md).
+- [Alarm design](docs/decisions/ADR-034-device-local-alarms.md), [reviewed assistant tools](docs/decisions/ADR-033-bounded-agent-tools.md), and [COR import checks](docs/decisions/ADR-039-cor-exact-pdf-text-and-layout-checks.md).
+- [Floating LAFINA design](docs/decisions/ADR-036-floating-assistant.md), [security and privacy](docs/10-SECURITY-AND-PRIVACY.md), and [manual phone testing](docs/MANUAL-PHONE-TESTING.md).
+
+Detailed design decisions live in `docs/decisions/`; some older planning documents describe earlier designs. Use the relevant feature decision and implementation together when making changes, and follow [AGENTS.md](AGENTS.md) for repository contribution rules.
