@@ -1,5 +1,5 @@
 import {ScreenOverlays} from '../navigation/RetainedTab';
-import React, {useState, useEffect, useRef} from 'react';
+import React, {useCallback, useState, useEffect, useRef} from 'react';
 import {
   Alert,
   Image,
@@ -113,6 +113,8 @@ import {chooseNotUstpMode, chooseUstpMode} from '../../storage/studentMode';
 import {corImportStore} from '../../storage/corImportStore';
 import {refreshAcademicMemories} from '../../storage/onboardingMemory';
 import {CorReviewFlow} from './onboarding/CorReviewFlow';
+import type {TourAnchor} from '../tour/tourSteps';
+import {measureInWindow, tourTargetRef} from '../tour/tourTargets';
 
 const COLLEGE_LOWER_WORDS = new Set([
   'of',
@@ -207,6 +209,7 @@ interface ProfileScreenProps {
   onReplayTour?: () => void;
   onReplayOnboarding?: () => void;
   onResetFromOnboarding?: () => void;
+  tourAnchor?: TourAnchor | null;
 }
 
 export const ProfileScreen = React.memo(function ProfileScreenView({
@@ -218,7 +221,60 @@ export const ProfileScreen = React.memo(function ProfileScreenView({
   onReplayTour,
   onReplayOnboarding,
   onResetFromOnboarding,
+  tourAnchor,
 }: ProfileScreenProps) {
+  const scrollWrapRef = useRef<View>(null);
+  const scrollRef = useRef<ScrollView>(null);
+  const scrollYRef = useRef(0);
+  const floatingRowNodeRef = useRef<View | null>(null);
+  const attachFloatingRowRef = useCallback((node: View | null) => {
+    floatingRowNodeRef.current = node;
+    tourTargetRef('profile-floating-row')(node);
+  }, []);
+
+  useEffect(() => {
+    if (!tourAnchor) return;
+    if (tourAnchor === 'tab-profile') {
+      scrollRef.current?.scrollTo?.({y: 0, animated: false});
+      return;
+    }
+    if (tourAnchor === 'profile-floating-row') {
+      let cancelled = false;
+      let timer: ReturnType<typeof setTimeout> | null = null;
+      const retryDelays = [60, 140];
+
+      const attemptScroll = (attempt: number) => {
+        if (cancelled) return;
+        void Promise.all([
+          measureInWindow(floatingRowNodeRef.current),
+          measureInWindow(scrollWrapRef.current),
+        ]).then(([rowRect, wrapRect]) => {
+          if (cancelled) return;
+          if (!rowRect || !wrapRect) {
+            if (attempt < retryDelays.length) {
+              timer = setTimeout(
+                () => attemptScroll(attempt + 1),
+                retryDelays[attempt],
+              );
+            }
+            return;
+          }
+          const contentY = scrollYRef.current + (rowRect.y - wrapRect.y);
+          scrollRef.current?.scrollTo?.({
+            y: Math.max(0, contentY - 120),
+            animated: false,
+          });
+        });
+      };
+
+      const frame = requestAnimationFrame(() => attemptScroll(0));
+      return () => {
+        cancelled = true;
+        cancelAnimationFrame(frame);
+        if (timer) clearTimeout(timer);
+      };
+    }
+  }, [tourAnchor]);
   const [currentUser, setCurrentUser] = useState<User | null>(() => {
     try {
       return userStore.getUserById(userId);
@@ -977,14 +1033,20 @@ export const ProfileScreen = React.memo(function ProfileScreenView({
     : [];
 
   return (
-    <ScrollView
-      style={[styles.container, themed.container]}
-      contentContainerStyle={[
-        styles.contentContainer,
-        isModern && styles.modernContentContainer,
-      ]}
-      showsVerticalScrollIndicator={false}
-    >
+    <View style={styles.container} collapsable={false} ref={scrollWrapRef}>
+      <ScrollView
+        ref={scrollRef}
+        style={[styles.container, themed.container]}
+        contentContainerStyle={[
+          styles.contentContainer,
+          isModern && styles.modernContentContainer,
+        ]}
+        scrollEventThrottle={16}
+        onScroll={event => {
+          scrollYRef.current = event.nativeEvent.contentOffset.y;
+        }}
+        showsVerticalScrollIndicator={false}
+      >
       {isModern ? (
         <View style={styles.modernTopHeader}>
           <Text
@@ -1889,12 +1951,14 @@ export const ProfileScreen = React.memo(function ProfileScreenView({
               onPress={() => setOnlineVoiceVisible(true)}
             />
             <View style={[styles.settingDivider, themed.settingDivider]} />
-            <SettingItem
-              text="Floating LAFINA"
-              type="link"
-              valueText={floatingSummary}
-              onPress={() => setFloatingVisible(true)}
-            />
+            <View collapsable={false} ref={attachFloatingRowRef}>
+              <SettingItem
+                text="Floating LAFINA"
+                type="link"
+                valueText={floatingSummary}
+                onPress={() => setFloatingVisible(true)}
+              />
+            </View>
           </View>
 
           <Text
@@ -2570,6 +2634,7 @@ export const ProfileScreen = React.memo(function ProfileScreenView({
                 <SettingItem
                   text="Show the walkthrough again"
                   type="link"
+                  valueText="All features"
                   onPress={onReplayTour}
                 />
                 <View style={[styles.settingDivider, themed.settingDivider]} />
@@ -2748,8 +2813,9 @@ export const ProfileScreen = React.memo(function ProfileScreenView({
             onLogout={onLogout}
           />
         )}
-      </ScreenOverlays>
-    </ScrollView>
+        </ScreenOverlays>
+      </ScrollView>
+    </View>
   );
 });
 

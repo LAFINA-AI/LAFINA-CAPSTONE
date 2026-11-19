@@ -39,6 +39,7 @@ import {avatarSource} from '../../../components/profile/avatarFile';
 import {Fonts, ModernLayout, Spacing} from '../../../theme';
 import {isUstpSchoolEnabled} from '../../../../storage/ustpEligibility';
 import type {CallNavigationTarget} from '../../../navigation/callNavigation';
+import {tourTargetRef} from '../../../tour/tourTargets';
 import {
   formatDurationMinutes,
   formatLocalDateStr,
@@ -427,7 +428,11 @@ export const ModernHomeContent: React.FC<ModernHomeContentProps> = ({
           </View>
         </View>
 
-        <View style={styles.headerButtons}>
+        <View
+          collapsable={false}
+          ref={tourTargetRef('home-actions')}
+          style={styles.headerButtons}
+        >
           <TouchableOpacity
             accessibilityRole="button"
             accessibilityLabel="Open alarms"

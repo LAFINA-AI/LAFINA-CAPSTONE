@@ -3,7 +3,7 @@ import { localSettingsStore } from './localSettingsStore';
 const KEY = 'product_tour';
 const PENDING = 'pending';
 
-export const PRODUCT_TOUR_VERSION = 1;
+export const PRODUCT_TOUR_VERSION = 2;
 
 export const productTourStore = {
   queue: (userId: string): void => {

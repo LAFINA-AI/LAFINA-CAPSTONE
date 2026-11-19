@@ -17,6 +17,7 @@ import {Fonts, Shadows} from '../../theme';
 import {useTheme} from '../../contexts/ThemeContext';
 import {useThemedStyles} from '../../theme/createThemedStyles';
 import type {ThemeColors} from '../../contexts/ThemeContext';
+import {tourTargetRef} from '../../tour/tourTargets';
 import {
   sttService,
   type OfflineSpeechCaptureHandle,
@@ -339,6 +340,8 @@ export const ChatInput: React.FC<ChatInputProps> = ({
       )}
 
       <View
+        collapsable={false}
+        ref={tourTargetRef('chat-composer')}
         testID="chat-composer-input-row"
         style={[
           styles.inputRow,

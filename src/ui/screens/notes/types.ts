@@ -13,5 +13,6 @@ export interface NotesScreenProps {
   refreshTrigger: number;
   openRequest?: CallNavigationRequest;
   onOpenRequestHandled?: (requestId: string) => void;
+  tourSubTab?: NotesSubTab;
   onRefresh: () => void;
 }

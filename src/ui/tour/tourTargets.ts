@@ -28,7 +28,7 @@ export const tourTargetRef = (anchor: TourAnchor): ((node: Measurable | null) =>
 
 export const measureInWindow = (node: Measurable | null | undefined): Promise<ScreenRect | null> =>
   new Promise((resolve) => {
-    if (!node) {
+    if (!node || typeof node.measureInWindow !== 'function') {
       resolve(null);
       return;
     }

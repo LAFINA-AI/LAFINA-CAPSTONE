@@ -106,6 +106,7 @@ import {shareAttachment} from '../components/chat/chatFiles';
 import {ToolSheet} from '../components/tools';
 import {MultiActionCard} from '../components/callLafina/cards/MultiActionCard';
 import {actionService} from '../../ai/voiceActions/actionService';
+import {tourTargetRef} from '../tour/tourTargets';
 import type {
   MultiActionBatchData,
   MultiActionItemData,
@@ -1981,6 +1982,7 @@ export const ChatScreen = React.memo(function ChatScreenView({
 
         <View style={styles.headerCenter}>
           <TouchableOpacity
+            ref={tourTargetRef('chat-engine-pill')}
             style={[
               styles.centerStatusPill,
               themed.headerCircleButton,

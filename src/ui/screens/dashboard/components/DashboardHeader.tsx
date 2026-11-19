@@ -18,6 +18,7 @@ import {
   Spacing,
 } from '../../../theme';
 import {useThemedStyles} from '../../../theme/createThemedStyles';
+import {tourTargetRef} from '../../../tour/tourTargets';
 import {
   formatDurationMinutes,
   getTimeOfDayGreeting,
@@ -103,7 +104,11 @@ export const DashboardHeader: React.FC<DashboardHeaderProps> = ({
           )}
         </View>
 
-        <View style={styles.headerActions}>
+        <View
+          collapsable={false}
+          ref={tourTargetRef('home-actions')}
+          style={styles.headerActions}
+        >
           <TouchableOpacity
             style={[
               styles.iconPillBtn,

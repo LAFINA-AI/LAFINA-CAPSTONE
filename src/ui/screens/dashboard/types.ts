@@ -9,11 +9,13 @@ import type {
   Task,
 } from '../../../storage';
 import type {CallNavigationTarget} from '../../navigation/callNavigation';
+import type {TourAnchor} from '../../tour/tourSteps';
 
 export interface DashboardScreenProps {
   userId: string;
   refreshTrigger: number;
   isActive?: boolean;
+  tourAnchor?: TourAnchor | null;
   onRefresh: () => void;
   onOpenCalendarTab: (
     target?: Omit<CallNavigationTarget, 'ownerId' | 'screen'>,

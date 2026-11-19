@@ -1,5 +1,5 @@
 import {useStorageRevision} from '../../hooks/useStorageRevision';
-import React, {useMemo, useState} from 'react';
+import React, {useEffect, useMemo, useRef, useState} from 'react';
 import {
   RefreshControl,
   ScrollView,
@@ -35,11 +35,19 @@ export const DashboardScreen = React.memo(function Dashboard({
   userId,
   refreshTrigger: explicitRefresh,
   isActive = true,
+  tourAnchor,
   onRefresh,
   onOpenCalendarTab,
   onOpenNotesTab,
   onOpenChatTab,
 }: DashboardScreenProps) {
+  const scrollRef = useRef<ScrollView>(null);
+
+  useEffect(() => {
+    if (isActive && tourAnchor) {
+      scrollRef.current?.scrollTo?.({y: 0, animated: false});
+    }
+  }, [isActive, tourAnchor]);
   const refreshTrigger =
     explicitRefresh +
     useStorageRevision([
@@ -203,6 +211,7 @@ export const DashboardScreen = React.memo(function Dashboard({
       testID="dashboard-screen"
     >
       <ScrollView
+        ref={scrollRef}
         style={styles.scroll}
         contentContainerStyle={[
           styles.scrollContent,
