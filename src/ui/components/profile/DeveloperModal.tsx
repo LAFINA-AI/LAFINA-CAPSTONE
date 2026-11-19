@@ -24,6 +24,7 @@ import {
   ExternalLink,
   Play,
   CheckCircle,
+  RotateCcw,
 } from 'lucide-react-native';
 import { Fonts, Shadows, Layout, Colors } from '../../theme';
 import { useTheme } from '../../contexts/ThemeContext';
@@ -31,6 +32,7 @@ import { useThemedStyles } from '../../theme/createThemedStyles';
 import type { ThemeColors } from '../../contexts/ThemeContext';
 import {
   developerTestService,
+  promptClearAllDataAndResetOnboarding,
   type DatabaseDiagnostics,
   type SyncDiagnostics,
   type AlarmDiagnostics,
@@ -46,6 +48,7 @@ interface DeveloperModalProps {
   onRefreshProfile: () => void;
   onReplayTour?: () => void;
   onReplayOnboarding?: () => void;
+  onResetFromOnboarding?: () => void;
   endSessionForServerSwitch?: () => Promise<void>;
   onLogout?: (isGuest?: boolean) => void;
 }
@@ -60,6 +63,7 @@ export const DeveloperModal: React.FC<DeveloperModalProps> = ({
   onRefreshProfile,
   onReplayTour,
   onReplayOnboarding,
+  onResetFromOnboarding,
   endSessionForServerSwitch,
   onLogout,
 }) => {
@@ -91,6 +95,7 @@ export const DeveloperModal: React.FC<DeveloperModalProps> = ({
   const [dbDiag, setDbDiag] = useState<DatabaseDiagnostics | null>(null);
   const [seedBusy, setSeedBusy] = useState(false);
   const [seedNotice, setSeedNotice] = useState<string | null>(null);
+  const [resetBusy, setResetBusy] = useState(false);
 
   // Load diagnostics when tab changes or modal opens
   const refreshDiagnostics = useCallback(async () => {
@@ -275,6 +280,21 @@ export const DeveloperModal: React.FC<DeveloperModalProps> = ({
     } finally {
       setSeedBusy(false);
     }
+  };
+
+  const handleResetFromOnboarding = () => {
+    promptClearAllDataAndResetOnboarding({
+      onStart: () => setResetBusy(true),
+      onFinish: () => setResetBusy(false),
+      onSuccess: () => {
+        onClose();
+        if (onResetFromOnboarding) {
+          onResetFromOnboarding();
+        } else {
+          onLogout?.(true);
+        }
+      },
+    });
   };
 
   return (
@@ -838,7 +858,7 @@ export const DeveloperModal: React.FC<DeveloperModalProps> = ({
                 )}
                 {onReplayOnboarding && (
                   <TouchableOpacity
-                    style={[styles.secondaryBtn, themed.secondaryBtn]}
+                    style={[styles.secondaryBtn, themed.secondaryBtn, { marginBottom: 8 }]}
                     onPress={() => {
                       onClose();
                       onReplayOnboarding();
@@ -847,6 +867,23 @@ export const DeveloperModal: React.FC<DeveloperModalProps> = ({
                     <Text style={[styles.secondaryBtnText, themed.textPrimary]}>Replay Onboarding Screen</Text>
                   </TouchableOpacity>
                 )}
+                <TouchableOpacity
+                  testID="dev-reset-from-onboarding"
+                  style={[styles.outlineBtn, { borderColor: colors.red }]}
+                  onPress={handleResetFromOnboarding}
+                  disabled={resetBusy}
+                >
+                  {resetBusy ? (
+                    <ActivityIndicator size="small" color={colors.red} />
+                  ) : (
+                    <>
+                      <RotateCcw size={14} color={colors.red} style={styles.btnIcon} />
+                      <Text style={[styles.outlineBtnText, { color: colors.red }]}>
+                        Clear All Data & Reset from Onboarding
+                      </Text>
+                    </>
+                  )}
+                </TouchableOpacity>
               </View>
             </View>
           )}

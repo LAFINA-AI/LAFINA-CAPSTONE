@@ -82,6 +82,11 @@ const readStoredFile = async (): Promise<StoredVisibilityFile> => {
 
 /** Account-scoped persistence for calendar layer visibility. */
 export const calendarVisibilityStore = {
+  /** Drops the in-memory file cache (used after deleting the backing file on reset). */
+  resetCache: (): void => {
+    cachedFile = null;
+  },
+
   /** Returns cached visibility map for one user synchronously when already loaded, or null before first read. */
   getCachedVisibilityMap: (userId: string): CalendarVisibilityMap | null => {
     if (cachedFile === null) return null;

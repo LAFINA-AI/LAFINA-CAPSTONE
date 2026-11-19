@@ -1,4 +1,5 @@
-import {DeviceEventEmitter} from 'react-native';
+import {Alert, DeviceEventEmitter} from 'react-native';
+import RNFS from 'react-native-fs';
 import {
   db,
   StorageHealth,
@@ -12,8 +13,12 @@ import {notesStore} from '../../../storage/notesStore';
 import {timeBlocksStore} from '../../../storage/timeBlocksStore';
 import {syncStateStore} from '../../../storage/syncStateStore';
 import {localSettingsStore} from '../../../storage/localSettingsStore';
+import {noteSessionChange} from '../../../storage/sessionEpoch';
+import {calendarVisibilityStore} from '../../../storage/calendarVisibilityStore';
+import {importedBatchesStore} from '../../../storage/importedBatchesStore';
 import {
   reconcileReminderDelivery,
+  reconcileAlarms,
   EVENT_CALL_TRIGGER,
   getReminderPermissionStatus,
   openExactAlarmSettings,
@@ -30,8 +35,11 @@ import {syncWorker} from '../../../sync/syncWorker';
 import {cloudClient} from '../../../cloud/cloudClient';
 import {
   backendSelection,
+  BACKEND_CHOICE_KEY,
   DEVICE_SETTINGS_OWNER,
+  LOCAL_BACKEND_URL_KEY,
 } from '../../../cloud/backendSelection';
+import {floatingAssistantNative} from '../../../utils/floatingAssistantNative';
 import {IntentService} from '../../../ai/nlu/intentService';
 import {formatLocalDate} from '../../../ai/nlu/fastPathParser';
 import {routeIntent} from '../../../ai/nlu/intentRoutes';
@@ -46,6 +54,62 @@ import type {ValidatedIntent, NluActionResult} from '../../../ai/nlu/types';
 
 export const DEVELOPER_MODE_KEY = 'debug.developer_mode';
 export const DEV_FIXTURE_TAG = '[DevFixture]';
+export const RESET_APP_FROM_ONBOARDING_TITLE =
+  'Clear All Data & Reset from Onboarding';
+export const RESET_APP_FROM_ONBOARDING_MESSAGE =
+  'This wipes all local accounts, active session, tasks, events, reminders, alarms, notes, chat history, academic/COR setup, sync state, and onboarding progress so you can test from first app launch.\n\nPreserved: Dev Mode, backend server choice, bundled handbook, and downloaded AI model files. Cloud server data is not deleted.';
+
+const RESET_TABLES_IN_ORDER: readonly string[] = [
+  'messages',
+  'chat_sessions',
+  'chat_memories',
+  'chat_legacy_quarantine',
+  'tasks',
+  'events',
+  'event_time_local',
+  'time_blocks',
+  'reminders',
+  'reminder_delivery_styles',
+  'reminder_delivery_jobs',
+  'reminder_delivery_events',
+  'alarms',
+  'job_queue_items',
+  'notes',
+  'notes_search_index',
+  'custom_categories',
+  'recorded_meetings',
+  'user_behavior_logs',
+  'ml_feature_snapshots',
+  'assistant_operation_receipts',
+  'entity_local_revisions',
+  'attachment_cleanup',
+  'sync_outbox',
+  'sync_metadata',
+  'sync_state',
+  'sync_control',
+  'sync_conflicts',
+  'user_preferences',
+  'active_session',
+  'remember_me',
+  'users',
+];
+
+const removePathIfExists = async (targetPath: string): Promise<void> => {
+  if (
+    !targetPath ||
+    typeof RNFS.exists !== 'function' ||
+    typeof RNFS.unlink !== 'function'
+  ) {
+    return;
+  }
+  try {
+    if (await RNFS.exists(targetPath)) {
+      await RNFS.unlink(targetPath);
+    }
+  } catch (error) {
+    console.warn(`[DeveloperTestService] Failed to remove ${targetPath}:`, error);
+  }
+};
 
 export interface DatabaseDiagnostics {
   health: StorageHealth;
@@ -855,9 +919,140 @@ export const developerTestService = {
   },
 
   /**
+   * Wipes all local user/app data, session state, and onboarding/intro progress
+   * so the app returns to the exact first-launch onboarding flow.
+   * Preserves developer mode, debug backend selection, bundled handbook index,
+   * and downloaded GGUF AI model binaries.
+   */
+  clearAllDataAndResetOnboarding: async (): Promise<{
+    success: boolean;
+    message: string;
+  }> => {
+    try {
+      await Promise.allSettled([
+        reconcileReminderDelivery(null),
+        reconcileAlarms(null),
+        floatingAssistantNative.setEnabled(false, null),
+      ]);
+
+      cloudClient.clearActiveSession();
+      cloudClient.resetSessionCache();
+      noteSessionChange();
+
+      db.transactionSync((tx: DatabaseTransaction) => {
+        for (const table of RESET_TABLES_IN_ORDER) {
+          tx.executeSync(`DELETE FROM ${table}`);
+        }
+        tx.executeSync(
+          `DELETE FROM local_settings
+           WHERE NOT (user_id = ? AND key IN (?, ?, ?))`,
+          [
+            DEVICE_SETTINGS_OWNER,
+            DEVELOPER_MODE_KEY,
+            BACKEND_CHOICE_KEY,
+            LOCAL_BACKEND_URL_KEY,
+          ],
+        );
+      });
+
+      db.invalidateData([
+        'tasks',
+        'events',
+        'time_blocks',
+        'reminders',
+        'notes',
+        'custom_categories',
+        'alarms',
+        'recorded_meetings',
+        'local_settings',
+        'chat_memories',
+      ]);
+
+      calendarVisibilityStore.resetCache();
+      importedBatchesStore.resetCache();
+
+      const docDir = String(RNFS.DocumentDirectoryPath ?? '').replace(
+        /\/+$/,
+        '',
+      );
+      const cacheDir = String(RNFS.CachesDirectoryPath ?? '').replace(
+        /\/+$/,
+        '',
+      );
+      const pathsToClean: string[] = [];
+      if (docDir) {
+        pathsToClean.push(
+          `${docDir}/cor_drafts`,
+          `${docDir}/chat_files`,
+          `${docDir}/avatars`,
+          `${docDir}/meetings`,
+          `${docDir}/calendar_visibility.json`,
+          `${docDir}/imported_batches.json`,
+        );
+      }
+      if (cacheDir) {
+        pathsToClean.push(
+          `${cacheDir}/elevenlabs_tts`,
+          `${cacheDir}/chat_share`,
+          `${cacheDir}/tool_exports`,
+        );
+      }
+      await Promise.allSettled(pathsToClean.map(removePathIfExists));
+
+      return {
+        success: true,
+        message: 'All local data cleared. Restarting from onboarding.',
+      };
+    } catch (error) {
+      const msg = error instanceof Error ? error.message : String(error);
+      console.error(
+        '[DeveloperTestService] clearAllDataAndResetOnboarding error:',
+        error,
+      );
+      return {
+        success: false,
+        message: `Failed to reset app data: ${msg}`,
+      };
+    }
+  },
+
+  /**
    * Direct permission shortcuts to Android OS settings.
    */
   openExactAlarmSettings,
   openFullScreenIntentSettings,
   openNotificationSettings,
+};
+
+/** Prompts for confirmation, then wipes local app state back to first-launch onboarding. */
+export const promptClearAllDataAndResetOnboarding = (options: {
+  onStart?: () => void;
+  onFinish?: () => void;
+  onSuccess: () => void;
+}): void => {
+  Alert.alert(
+    RESET_APP_FROM_ONBOARDING_TITLE,
+    RESET_APP_FROM_ONBOARDING_MESSAGE,
+    [
+      {text: 'Cancel', style: 'cancel'},
+      {
+        text: 'Reset App',
+        style: 'destructive',
+        onPress: async () => {
+          options.onStart?.();
+          try {
+            const res =
+              await developerTestService.clearAllDataAndResetOnboarding();
+            if (res.success) {
+              options.onSuccess();
+            } else {
+              Alert.alert('Reset Failed', res.message);
+            }
+          } finally {
+            options.onFinish?.();
+          }
+        },
+      },
+    ],
+  );
 };

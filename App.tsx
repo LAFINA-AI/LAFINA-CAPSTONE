@@ -804,6 +804,24 @@ function AppContent({
     setIsOnboardingReplay(true);
     setIsOnboarding(true);
   }, []);
+  const resetFromOnboarding = useCallback(() => {
+    activeCallRequest.current = null;
+    callOwnerRef.current = null;
+    previousUserRef.current = null;
+    setCallVisible(false);
+    setCallGeneration(null);
+    setCallLafinaVisible(false);
+    setCallLafinaMinimized(false);
+    setCallNavigation(null);
+    setPermissionModalVisible(false);
+    setTourOpen(false);
+    setIsOnboardingReplay(false);
+    setIsOnboarding(false);
+    setActiveTab('dashboard');
+    setAuthScreen('welcome');
+    setUserId(null);
+    setRefreshTrigger(previous => previous + 1);
+  }, [setUserId, setRefreshTrigger]);
   const finishOpenRequest = useCallback((requestId: string) => {
     setCallNavigation(current =>
       current?.requestId === requestId ? null : current,
@@ -870,6 +888,7 @@ function AppContent({
             onNavigateToRegister={handleGuestCreateAccount}
             onReplayTour={replayTour}
             onReplayOnboarding={replayOnboarding}
+            onResetFromOnboarding={resetFromOnboarding}
           />
         );
       default:

@@ -1,5 +1,6 @@
 import React from 'react';
 import {
+  act,
   fireEvent,
   render,
   waitFor,
@@ -57,7 +58,47 @@ describe('Developer Settings UI & Triggers', () => {
     expect(screen.getByText('Schedule Native Alarm (in 5s)')).toBeTruthy();
     expect(screen.getByText('Force Cloud Sync Now')).toBeTruthy();
     expect(screen.getByText('Seed Sample Student Data')).toBeTruthy();
+    expect(screen.getByText('Clear all data & reset onboarding')).toBeTruthy();
 
+    screen.unmount();
+  });
+
+  it('confirms and triggers clear all data & reset onboarding from ProfileScreen', async () => {
+    const resetSpy = jest
+      .spyOn(developerTestService, 'clearAllDataAndResetOnboarding')
+      .mockResolvedValue({ success: true, message: 'Reset complete' });
+    const onResetFromOnboarding = jest.fn();
+
+    const screen = render(
+      <ThemeProvider userId={TEST_USER}>
+        <ProfileScreen
+          userId={TEST_USER}
+          refreshTrigger={0}
+          onRefresh={jest.fn()}
+          onResetFromOnboarding={onResetFromOnboarding}
+        />
+      </ThemeProvider>,
+    );
+
+    fireEvent.press(screen.getByText('Clear all data & reset onboarding'));
+    expect(Alert.alert).toHaveBeenCalledTimes(1);
+
+    const buttons = (Alert.alert as jest.Mock).mock.calls[0][2] as Array<{
+      text: string;
+      onPress?: () => void | Promise<void>;
+    }>;
+    const confirmBtn = buttons.find(b => b.text === 'Reset App');
+    expect(confirmBtn).toBeDefined();
+    await act(async () => {
+      await confirmBtn?.onPress?.();
+    });
+
+    await waitFor(() => {
+      expect(resetSpy).toHaveBeenCalledTimes(1);
+      expect(onResetFromOnboarding).toHaveBeenCalledTimes(1);
+    });
+
+    resetSpy.mockRestore();
     screen.unmount();
   });
 
@@ -176,11 +217,56 @@ describe('Developer Settings UI & Triggers', () => {
     fireEvent.press(modal.getByText('Data & DB'));
     expect(modal.getByText('Student Data Fixtures')).toBeTruthy();
     expect(modal.getByText('Seed Sample Student Data')).toBeTruthy();
+    expect(modal.getByTestId('dev-reset-from-onboarding')).toBeTruthy();
 
     // Close button
     fireEvent.press(modal.getByLabelText('Close developer tools'));
     expect(onClose).toHaveBeenCalled();
 
+    modal.unmount();
+  });
+
+  it('confirms and triggers clear all data & reset onboarding from DeveloperModal', async () => {
+    const resetSpy = jest
+      .spyOn(developerTestService, 'clearAllDataAndResetOnboarding')
+      .mockResolvedValue({ success: true, message: 'Reset complete' });
+    const onClose = jest.fn();
+    const onResetFromOnboarding = jest.fn();
+
+    const modal = render(
+      <ThemeProvider userId={TEST_USER}>
+        <DeveloperModal
+          visible={true}
+          userId={TEST_USER}
+          isGuest={false}
+          onClose={onClose}
+          onRefreshProfile={jest.fn()}
+          onResetFromOnboarding={onResetFromOnboarding}
+        />
+      </ThemeProvider>,
+    );
+
+    fireEvent.press(modal.getByText('Data & DB'));
+    fireEvent.press(modal.getByTestId('dev-reset-from-onboarding'));
+    expect(Alert.alert).toHaveBeenCalledTimes(1);
+
+    const buttons = (Alert.alert as jest.Mock).mock.calls[0][2] as Array<{
+      text: string;
+      onPress?: () => void | Promise<void>;
+    }>;
+    const confirmBtn = buttons.find(b => b.text === 'Reset App');
+    expect(confirmBtn).toBeDefined();
+    await act(async () => {
+      await confirmBtn?.onPress?.();
+    });
+
+    await waitFor(() => {
+      expect(resetSpy).toHaveBeenCalledTimes(1);
+      expect(onClose).toHaveBeenCalledTimes(1);
+      expect(onResetFromOnboarding).toHaveBeenCalledTimes(1);
+    });
+
+    resetSpy.mockRestore();
     modal.unmount();
   });
 });

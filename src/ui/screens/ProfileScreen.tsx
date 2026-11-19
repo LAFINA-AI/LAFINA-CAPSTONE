@@ -99,7 +99,10 @@ import {
   ClearDataResultModal,
   type ClearDataResultState,
 } from '../components/profile/ClearAllDataModal';
-import {developerTestService} from '../components/profile/developerTestService';
+import {
+  developerTestService,
+  promptClearAllDataAndResetOnboarding,
+} from '../components/profile/developerTestService';
 import {
   getConfirmedAcademicProfile,
   getUstpEligibility,
@@ -203,6 +206,7 @@ interface ProfileScreenProps {
   onNavigateToRegister?: () => void;
   onReplayTour?: () => void;
   onReplayOnboarding?: () => void;
+  onResetFromOnboarding?: () => void;
 }
 
 export const ProfileScreen = React.memo(function ProfileScreenView({
@@ -213,6 +217,7 @@ export const ProfileScreen = React.memo(function ProfileScreenView({
   onNavigateToRegister,
   onReplayTour,
   onReplayOnboarding,
+  onResetFromOnboarding,
 }: ProfileScreenProps) {
   const [currentUser, setCurrentUser] = useState<User | null>(() => {
     try {
@@ -383,6 +388,18 @@ export const ProfileScreen = React.memo(function ProfileScreenView({
     } else {
       Alert.alert('Seeding Error', 'Failed to seed sample student data.');
     }
+  };
+
+  const handleClearAllDataAndResetOnboarding = () => {
+    promptClearAllDataAndResetOnboarding({
+      onSuccess: () => {
+        if (onResetFromOnboarding) {
+          onResetFromOnboarding();
+        } else {
+          onLogout?.(true);
+        }
+      },
+    });
   };
   const [ttsTesting, setTtsTesting] = useState(false);
 
@@ -2508,6 +2525,13 @@ export const ProfileScreen = React.memo(function ProfileScreenView({
                     />
                   </>
                 )}
+                <View style={[styles.settingDivider, themed.settingDivider]} />
+                <SettingItem
+                  text="Clear all data & reset onboarding"
+                  type="clickable"
+                  isDestructive
+                  onPress={handleClearAllDataAndResetOnboarding}
+                />
               </View>
             </>
           )}
@@ -2719,6 +2743,7 @@ export const ProfileScreen = React.memo(function ProfileScreenView({
             onRefreshProfile={onRefresh}
             onReplayTour={onReplayTour}
             onReplayOnboarding={onReplayOnboarding}
+            onResetFromOnboarding={onResetFromOnboarding}
             endSessionForServerSwitch={endSessionForServerSwitch}
             onLogout={onLogout}
           />
