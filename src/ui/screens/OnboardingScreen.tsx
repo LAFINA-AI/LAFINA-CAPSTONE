@@ -79,7 +79,12 @@ interface OnboardingScreenProps {
 type Page = 'ai' | 'cor' | 'permissions' | 'finish';
 const PAGES: Page[] = ['ai', 'cor', 'permissions', 'finish'];
 const FLEXIBLE = 'flexible';
-const LEAD_OPTIONS = [5, 10, 15, 30, 60];
+const LEAD_OPTIONS = [5, 10, 15, 30, 60, 120, 180, 300];
+
+const formatLeadOption = (minutes: number): string =>
+  minutes >= 60 && minutes % 60 === 0
+    ? `${minutes / 60} hr`
+    : `${minutes} min`;
 
 /** Replaying setup starts from what the student chose before (never from defaults). */
 const answersFromSaved = (
@@ -344,7 +349,6 @@ export const OnboardingScreen: React.FC<OnboardingScreenProps> = ({
         <StatusBar barStyle={colors.statusBarStyle} backgroundColor={t.bg} />
         <IntroPager
           mode="flow"
-          schedulingOnly={notUstp}
           onFinish={finishIntro}
           onSkip={finishIntro}
         />
@@ -635,7 +639,7 @@ export const OnboardingScreen: React.FC<OnboardingScreenProps> = ({
           {LEAD_OPTIONS.map(minutes => (
             <ChoiceButton
               key={minutes}
-              label={minutes === 60 ? '1 hr' : `${minutes} min`}
+              label={formatLeadOption(minutes)}
               selected={answers.lead === minutes}
               onPress={() =>
                 set('lead', answers.lead === minutes ? null : minutes)
@@ -666,9 +670,10 @@ const styles = StyleSheet.create({
   label: {fontSize: 13, fontWeight: '600', marginTop: 4},
   wrap: {flexDirection: 'row', flexWrap: 'wrap', gap: 8},
   leadChip: {
-    flex: 0,
+    flexGrow: 1,
+    flexBasis: '22%',
     minHeight: 40,
-    paddingHorizontal: 14,
+    paddingHorizontal: 8,
     paddingVertical: 6,
   },
 });

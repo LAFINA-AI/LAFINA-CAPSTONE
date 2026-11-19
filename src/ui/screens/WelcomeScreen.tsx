@@ -10,11 +10,12 @@ interface WelcomeScreenProps {
 }
 
 /**
- * The introduction shown before anyone signs in (four pages: what LAFINA
- * is, planning by text or voice, USTP handbook answers for students with a
- * COR, and local-first storage). After it has been seen once on this phone
- * it opens on the last page. Starting without an account reuses the
- * phone's guest profile; it never creates a second guest identity.
+ * The introduction shown before anyone signs in: the welcome, then four
+ * slides (what LAFINA is, planning by text or voice, USTP handbook answers
+ * for students with a COR, and local-first storage). It always opens on the
+ * welcome, which offers sign-in directly. Starting without an account
+ * reuses the phone's guest profile; it never creates a second guest
+ * identity.
  */
 export const WelcomeScreen: React.FC<WelcomeScreenProps> = ({
   onGetStarted,
@@ -22,7 +23,6 @@ export const WelcomeScreen: React.FC<WelcomeScreenProps> = ({
   onNavigateToRegister,
 }) => {
   const [startFailed, setStartFailed] = useState(false);
-  const [initialPage] = useState(() => (onboardingProgressStore.introSeen() ? 3 : 0));
 
   const markSeen = () => {
     try {
@@ -51,7 +51,6 @@ export const WelcomeScreen: React.FC<WelcomeScreenProps> = ({
   return (
     <IntroPager
       mode="welcome"
-      initialPage={initialPage}
       onFinish={handleGetStarted}
       onSignIn={() => {
         markSeen();

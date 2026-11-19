@@ -15,6 +15,7 @@ import React, {
   useCallback,
   useEffect,
   useLayoutEffect,
+  useMemo,
   useRef,
   useState,
 } from 'react';
@@ -92,7 +93,11 @@ import {IncomingCallScreen} from './src/ui/screens/IncomingCallScreen';
 import {ReminderPermissionModal} from './src/ui/components/call/ReminderPermissionModal';
 import {AuthBackdrop} from './src/ui/components/auth/AuthBackdrop';
 import {ProductTour} from './src/ui/tour/ProductTour';
-import {buildQuickTourSteps} from './src/ui/tour/tourSteps';
+import {
+  buildWalkthroughSteps,
+  type TourStep,
+} from './src/ui/tour/tourSteps';
+import {isGuestAccount} from './src/cloud/entitlements';
 import {getUstpEligibility} from './src/storage/ustpEligibility';
 import {studentSetupStore} from './src/storage/studentSetupStore';
 import type {OnboardingCompletion} from './src/ui/screens/OnboardingScreen';
@@ -165,6 +170,8 @@ function AppContent({
   useLayoutEffect(() => finishTabSwitch(activeTab), [activeTab]);
 
   const [tourOpen, setTourOpen] = useState(false);
+  const [activeTourStep, setActiveTourStep] = useState<TourStep | null>(null);
+  const tourReturnTabRef = useRef<TabType>('dashboard');
   const [isKeyboardVisible, setIsKeyboardVisible] = useState(false);
   const [startupReady, setStartupReady] = useState(false);
   const [storageHealth, setStorageHealth] = useState(() => db.getHealth());
@@ -394,7 +401,7 @@ function AppContent({
   useEffect(() => {
     const entered = lastCallEntryTab.current !== activeTab;
     lastCallEntryTab.current = activeTab;
-    if (entered && activeTab === 'chat' && userId) {
+    if (entered && activeTab === 'chat' && userId && !tourOpen) {
       const settings = getCallLafinaSettings(userId);
       if (
         settings.startWithCallLafina &&
@@ -404,7 +411,7 @@ function AppContent({
         setCallLafinaVisible(true);
       }
     }
-  }, [activeTab, userId, callLafinaVisible, callLafinaMinimized]);
+  }, [activeTab, userId, callLafinaVisible, callLafinaMinimized, tourOpen]);
 
   // Alarm plan A2: Android holds exactly the active student's alarms (none
   // when signed out); native's ring/dismiss/snooze events are recorded here.
@@ -432,9 +439,11 @@ function AppContent({
     void reconcileReminderDelivery(userId);
 
     void (async (): Promise<void> => {
-      // Onboarding redesign: no permission prompt while first-use setup is
-      // open. Reminder permissions are asked after setup, in context.
-      if (isOnboarding) return;
+      // Onboarding redesign: no permission prompt while first-use setup or
+      // the walkthrough is open. Reminder permissions are asked after, in context.
+      if (isOnboarding || tourOpen || productTourStore.isPending(userId)) {
+        return;
+      }
       try {
         let status = await getReminderPermissionStatus();
         if (
@@ -467,7 +476,7 @@ function AppContent({
       for (const payload of payloads)
         if (presentCall(payload)) setIsLoading(false);
     });
-  }, [userId, presentCall, isOnboarding]);
+  }, [userId, presentCall, isOnboarding, tourOpen]);
 
   // Recover durable queue entries after a close/restart; never auto-answer recovery.
   useEffect(() => {
@@ -663,6 +672,7 @@ function AppContent({
   }, [setRefreshTrigger]);
 
   const handleGetStarted = (uid: string) => {
+    tourReturnTabRef.current = 'dashboard';
     setUserId(uid);
     const user = userStore.getUserById(uid);
     setIsOnboarding(user ? user.isNewUser : false);
@@ -676,6 +686,7 @@ function AppContent({
   }, [setUserId]);
 
   const handleLoginSuccess = (uid: string) => {
+    tourReturnTabRef.current = 'dashboard';
     setUserId(uid);
     const user = userStore.getUserById(uid);
     setIsOnboarding(user ? user.isNewUser : false);
@@ -696,20 +707,23 @@ function AppContent({
 
   const handleOnboardingComplete = (completion?: OnboardingCompletion) => {
     const startTour = completion?.startTour ?? !isOnboardingReplay;
-    if (userId && startTour) productTourStore.queue(userId);
-    else if (userId && !isOnboardingReplay)
+    const goalTab: TabType =
+      completion?.goal === 'schedule'
+        ? 'calendar'
+        : completion?.goal === 'handbook'
+        ? 'chat'
+        : 'dashboard';
+    if (userId && startTour) {
+      tourReturnTabRef.current = goalTab;
+      productTourStore.queue(userId);
+    } else if (userId && !isOnboardingReplay) {
       productTourStore.markSeen(userId, false);
+    }
     setIsOnboardingReplay(false);
     setIsOnboarding(false);
     // Without the tour, land where the chosen goal starts.
     if (!startTour) {
-      setActiveTab(
-        completion?.goal === 'schedule'
-          ? 'calendar'
-          : completion?.goal === 'handbook'
-          ? 'chat'
-          : 'dashboard',
-      );
+      setActiveTab(goalTab);
     }
     syncWorker
       .performSync()
@@ -721,20 +735,28 @@ function AppContent({
 
   useEffect(() => {
     if (!userId || isOnboarding || isLoading) return;
-    if (productTourStore.isPending(userId)) setTourOpen(true);
+    if (productTourStore.isPending(userId)) {
+      Keyboard.dismiss();
+      setPermissionModalVisible(false);
+      setTourOpen(true);
+    }
   }, [userId, isOnboarding, isLoading]);
 
   const finishTour = useCallback(
     (completed: boolean) => {
       if (userId) productTourStore.markSeen(userId, completed);
       setTourOpen(false);
+      setActiveTourStep(null);
+      setActiveTab(tourReturnTabRef.current);
     },
     [userId],
   );
 
   const handleLogout = useCallback(
     (isGuestParam?: boolean) => {
+      tourReturnTabRef.current = 'dashboard';
       setTourOpen(false);
+      setActiveTourStep(null);
       setUserId(null);
       setAuthScreen(isGuestParam ? 'welcome' : 'login');
       setIsOnboarding(false);
@@ -799,11 +821,49 @@ function AppContent({
   );
 
   const openCallLafina = useCallback(() => setCallLafinaVisible(true), []);
-  const replayTour = useCallback(() => setTourOpen(true), []);
+  const replayTour = useCallback(() => {
+    tourReturnTabRef.current = activeTab;
+    Keyboard.dismiss();
+    setPermissionModalVisible(false);
+    setTourOpen(true);
+  }, [activeTab]);
+  const handleTourStepChange = useCallback((step: TourStep) => {
+    setActiveTourStep(step);
+  }, []);
+  const walkthroughSteps = useMemo(() => {
+    if (!tourOpen || !userId) return [];
+    const eligible = getUstpEligibility(userId).eligible;
+    return buildWalkthroughSteps({
+      isGuest: isGuestAccount(userId),
+      schoolEnabled: eligible,
+      corPending:
+        studentSetupStore.get(userId).affiliation === 'ustp' && !eligible,
+    });
+  }, [tourOpen, userId]);
   const replayOnboarding = useCallback(() => {
     setIsOnboardingReplay(true);
     setIsOnboarding(true);
   }, []);
+  const resetFromOnboarding = useCallback(() => {
+    activeCallRequest.current = null;
+    callOwnerRef.current = null;
+    previousUserRef.current = null;
+    setCallVisible(false);
+    setCallGeneration(null);
+    setCallLafinaVisible(false);
+    setCallLafinaMinimized(false);
+    setCallNavigation(null);
+    setPermissionModalVisible(false);
+    setTourOpen(false);
+    setActiveTourStep(null);
+    tourReturnTabRef.current = 'dashboard';
+    setIsOnboardingReplay(false);
+    setIsOnboarding(false);
+    setActiveTab('dashboard');
+    setAuthScreen('welcome');
+    setUserId(null);
+    setRefreshTrigger(previous => previous + 1);
+  }, [setUserId, setRefreshTrigger]);
   const finishOpenRequest = useCallback((requestId: string) => {
     setCallNavigation(current =>
       current?.requestId === requestId ? null : current,
@@ -855,6 +915,11 @@ function AppContent({
                 ? callNavigation
                 : undefined
             }
+            tourSubTab={
+              tourOpen && activeTourStep?.tab === 'notes'
+                ? activeTourStep.notesSubTab
+                : undefined
+            }
             userId={userId}
             refreshTrigger={refreshTrigger}
             onRefresh={triggerRefresh}
@@ -870,6 +935,12 @@ function AppContent({
             onNavigateToRegister={handleGuestCreateAccount}
             onReplayTour={replayTour}
             onReplayOnboarding={replayOnboarding}
+            onResetFromOnboarding={resetFromOnboarding}
+            tourAnchor={
+              tourOpen && activeTourStep?.tab === 'profile'
+                ? activeTourStep.anchor ?? null
+                : null
+            }
           />
         );
       default:
@@ -1018,6 +1089,11 @@ function AppContent({
               key={userId}
               userId={userId}
               isActive={activeTab === 'dashboard'}
+              tourAnchor={
+                tourOpen && activeTourStep?.tab === 'dashboard'
+                  ? activeTourStep.anchor ?? null
+                  : null
+              }
               refreshTrigger={0}
               onRefresh={triggerRefresh}
               onOpenCalendarTab={handleOpenCalendarFromDashboard}
@@ -1102,14 +1178,10 @@ function AppContent({
 
       {tourOpen && (
         <ProductTour
-          steps={buildQuickTourSteps({
-            schoolEnabled: getUstpEligibility(userId).eligible,
-            corPending:
-              studentSetupStore.get(userId).affiliation === 'ustp' &&
-              !getUstpEligibility(userId).eligible,
-          })}
-          label="Quick tour"
+          steps={walkthroughSteps}
+          label="Walkthrough"
           onNavigate={setActiveTab}
+          onStepChange={handleTourStepChange}
           onFinish={finishTour}
         />
       )}

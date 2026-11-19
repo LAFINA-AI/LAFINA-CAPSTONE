@@ -10,8 +10,8 @@ export const refreshPendingReminderLeadTimes = async (
   userId: string,
   leadTimeMinutes: number,
 ): Promise<ReminderPreferenceRefreshResult> => {
-  if (!Number.isInteger(leadTimeMinutes) || leadTimeMinutes < 0 || leadTimeMinutes > 120) {
-    throw new Error('Reminder lead time must be between 0 and 120 minutes.');
+  if (!Number.isInteger(leadTimeMinutes) || leadTimeMinutes < 0 || leadTimeMinutes > 1440) {
+    throw new Error('Reminder lead time must be between 0 and 1440 minutes.');
   }
 
   let updatedCount = 0;

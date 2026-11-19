@@ -83,6 +83,7 @@ import {
   toggleChecklistItem,
 } from '../../../utils';
 import {CalendarLayersModal} from '../../components/calendar/CalendarLayersModal';
+import {tourTargetRef} from '../../tour/tourTargets';
 
 /** Renders the offline calendar workspace and its local scheduling actions. */
 export const CalendarScreen = React.memo(function CalendarScreenView({
@@ -593,6 +594,7 @@ export const CalendarScreen = React.memo(function CalendarScreenView({
           </TouchableOpacity>
 
           <TouchableOpacity
+            ref={tourTargetRef('calendar-more-button')}
             onPress={() => setCalendarMenuVisible(true)}
             style={styles.iconChevronBtn}
             activeOpacity={0.7}
@@ -609,6 +611,7 @@ export const CalendarScreen = React.memo(function CalendarScreenView({
           </TouchableOpacity>
 
           <TouchableOpacity
+            ref={tourTargetRef('calendar-add-button')}
             style={[styles.addCircleBtn, {backgroundColor: palette.accent}]}
             onPress={handleFABPress}
             activeOpacity={0.85}

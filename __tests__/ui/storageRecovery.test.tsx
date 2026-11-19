@@ -145,8 +145,8 @@ describe('storage recovery', () => {
           />
         </ThemeProvider>,
       );
-      // The introduction opens on its last page when seen before; either
-      // way, finish it and start without an account.
+      // Welcome → skip to the last slide → start without an account.
+      fireEvent.press(screen.getByTestId('intro-get-started'));
       fireEvent.press(screen.getByTestId('intro-skip'));
       fireEvent.press(screen.getByText('Continue without an account'));
       expect(onGetStarted).not.toHaveBeenCalled();

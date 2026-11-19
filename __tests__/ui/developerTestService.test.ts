@@ -1,5 +1,10 @@
 import { DeviceEventEmitter } from 'react-native';
 import { db, initDatabase, userStore, tasksStore, notesStore, remindersStore, syncOutboxStore, syncStateStore } from '../../src/storage';
+import { localSettingsStore } from '../../src/storage/localSettingsStore';
+import { onboardingProgressStore } from '../../src/storage/onboardingProgressStore';
+import { productTourStore } from '../../src/storage/productTourStore';
+import { chatStore } from '../../src/storage/chatStore';
+import { BACKEND_CHOICE_KEY, DEVICE_SETTINGS_OWNER } from '../../src/cloud/backendSelection';
 import {
   developerTestService,
   DEV_FIXTURE_TAG,
@@ -185,6 +190,64 @@ describe('developerTestService', () => {
       const result = await developerTestService.executeNluIntent(intent, TEST_USER);
       expect(result.success).toBe(true);
       expect(result.reply).toBeDefined();
+    });
+  });
+
+  describe('Clear All Data & Reset from Onboarding', () => {
+    it('wipes user/app data and onboarding state while preserving dev mode and backend choice', async () => {
+      developerTestService.setDeveloperModeEnabled(true);
+      localSettingsStore.set(DEVICE_SETTINGS_OWNER, BACKEND_CHOICE_KEY, 'local');
+      userStore.setCurrentUser(TEST_USER);
+      onboardingProgressStore.markIntroSeen();
+      onboardingProgressStore.save(TEST_USER, {
+        stage: 'details',
+        page: 2,
+        answers: {
+          name: 'Alex',
+          tone: 'casual',
+          goal: 'schedule',
+          wake: '07:00',
+          sleep: '23:00',
+          study: ['morning'],
+          response: 'balanced',
+          lead: 15,
+        },
+      });
+      productTourStore.markSeen(TEST_USER, true);
+      await developerTestService.seedStudentSampleData(TEST_USER);
+      chatStore.ensureDefaultSession(TEST_USER);
+      chatStore.addMessage(TEST_USER, 'user', 'Hello LAFINA');
+
+      const result = await developerTestService.clearAllDataAndResetOnboarding();
+      expect(result.success).toBe(true);
+
+      expect(userStore.getCurrentUser()).toBeNull();
+      expect(onboardingProgressStore.introSeen()).toBe(false);
+      expect(onboardingProgressStore.get(TEST_USER)).toBeNull();
+      expect(localSettingsStore.get(TEST_USER, 'product_tour')).toBeNull();
+
+      for (const table of [
+        'users',
+        'active_session',
+        'tasks',
+        'events',
+        'reminders',
+        'notes',
+        'chat_sessions',
+        'messages',
+        'sync_outbox',
+        'sync_state',
+      ]) {
+        const count = Number(
+          db.executeSync(`SELECT COUNT(*) AS cnt FROM ${table}`).rows?.[0]?.cnt ?? -1,
+        );
+        expect(count).toBe(0);
+      }
+
+      expect(developerTestService.isDeveloperModeEnabled()).toBe(true);
+      expect(
+        localSettingsStore.get(DEVICE_SETTINGS_OWNER, BACKEND_CHOICE_KEY),
+      ).toBe('local');
     });
   });
 });

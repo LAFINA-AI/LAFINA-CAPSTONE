@@ -5,14 +5,36 @@ export type TourAnchor =
   | 'tab-calendar'
   | 'tab-dashboard'
   | 'tab-notes'
-  | 'tab-profile';
+  | 'tab-profile'
+  | 'home-actions'
+  | 'calendar-add-button'
+  | 'calendar-more-button'
+  | 'chat-engine-pill'
+  | 'chat-composer'
+  | 'tools-subtab-alarms'
+  | 'tools-subtab-todo'
+  | 'tools-subtab-notes'
+  | 'profile-floating-row';
+
+export type TourNotesSubTab = 'alarms' | 'todo' | 'notes';
+
+export interface TourHighlight {
+  label: string;
+  detail: string;
+}
 
 export interface TourStep {
   id: string;
+  section?: TabType;
+  sectionLabel?: string;
   title: string;
   body: string;
+  highlights?: TourHighlight[];
+  tip?: string;
   anchor?: TourAnchor;
+  fallbackAnchor?: TourAnchor;
   tab?: TabType;
+  notesSubTab?: TourNotesSubTab;
 }
 
 export interface TourAudience {
@@ -31,28 +53,28 @@ export const buildTourSteps = ({isGuest}: TourAudience): TourStep[] => [
   {
     id: 'dashboard',
     title: 'Home',
-    body: 'Your day at a glance: see what class or event is live or up next, spot open study blocks between classes, and customize which cards appear.',
+    body: 'Your day at a glance: see what class or event is live or up next, spot open study blocks between classes, check your next alarm, and customize which cards appear.',
     anchor: 'tab-dashboard',
     tab: 'dashboard',
   },
   {
     id: 'calendar',
     title: 'Schedule',
-    body: 'Your classes, deadlines and study blocks in one place. Tap a day in the week strip to see it hour by hour, tap an empty hour or the + button to add something, and use Import to bring in a class schedule.',
+    body: 'Month, Week and Day views for classes, deadlines and study blocks. Tap an empty hour or + to add something, and open the top-right menu for COR classes, calendar groups and .ics files.',
     anchor: 'tab-calendar',
     tab: 'calendar',
   },
   {
     id: 'assistant',
     title: 'AI',
-    body: 'The middle tab. Ask in plain language or hold the mic to speak — "block 2 to 4 pm for thesis writing tomorrow" — and LAFINA schedules it on this phone, even offline.',
+    body: 'Ask in plain language, hold the mic for offline speech, or tap the phone icon for live Call LAFINA. Every planner change opens a review card before saving.',
     anchor: 'tab-chat',
     tab: 'chat',
   },
   {
     id: 'notes',
     title: 'Tools',
-    body: 'Alarms, to-dos and lecture notes in one workspace. Set wake-up alarms, track tasks and capture study notes with checklists and images.',
+    body: 'Device-local Alarms with Morning Briefing, To-Do lists synced with note checklists, and rich Markdown Notes with image attachments and AI Assist.',
     anchor: 'tab-notes',
     tab: 'notes',
   },
@@ -60,8 +82,8 @@ export const buildTourSteps = ({isGuest}: TourAudience): TourStep[] => [
     id: 'account',
     title: isGuest ? 'Your guest session' : 'Profile & settings',
     body: isGuest
-      ? 'Guest data lives on this phone. Create an account from here when you want it on your other devices — nothing you have made is lost in the swap.'
-      : 'Reminder preferences, dark mode and your photo all live here. Your data syncs when you are signed in and online.',
+      ? 'Guest data lives on this phone. Create an account from here when you want cross-device sync — nothing you have made is lost in the swap. You can also turn on Floating LAFINA here.'
+      : 'Floating LAFINA, voices, memory, Alarm & Reminder Health, dark mode and color themes all live here. Your data syncs when signed in and online.',
     anchor: 'tab-profile',
     tab: 'profile',
   },
@@ -73,6 +95,8 @@ export const buildTourSteps = ({isGuest}: TourAudience): TourStep[] => [
 ];
 
 export interface QuickTourAudience {
+  /** True for local_guest_user (data stays local until an account is linked). */
+  isGuest?: boolean;
   /** USTP school features are on (confirmed COR). */
   schoolEnabled: boolean;
   /** Chose USTP but the COR is not reviewed yet. */
@@ -80,40 +104,310 @@ export interface QuickTourAudience {
 }
 
 /**
- * The walkthrough after first-use setup (approved v3 journey): Home →
- * Schedule → AI inside the real app, skippable and replayable from Profile.
- * Copy adapts to the mode; USTP handbook features are mentioned only when
- * they are actually available.
+ * Comprehensive feature walkthrough across all 5 tabs and key capabilities:
+ * Home → Schedule → AI & Calls → Tools (Alarms / To-Do / Notes) → Floating & Profile.
+ * Copy adapts honestly to guest/signed-in and COR eligibility state.
  */
-export const buildQuickTourSteps = ({
+export const buildWalkthroughSteps = ({
+  isGuest = false,
   schoolEnabled,
   corPending,
 }: QuickTourAudience): TourStep[] => [
   {
-    id: 'quick-home',
-    title: 'Home',
-    body: 'Your day at a glance: what is live or up next, open time between plans, and reminders.',
+    id: 'home-overview',
+    section: 'dashboard',
+    sectionLabel: 'Home',
+    title: 'Your day at a glance',
+    body: 'Home brings live schedules, due tasks, alarms and pinned notes together — saved on this phone first so it works offline.',
+    highlights: [
+      {
+        label: 'Live Up Next hero',
+        detail:
+          'Shows what class, event, alarm or task is live or next, with time remaining and room.',
+      },
+      {
+        label: 'Search & Ask bar',
+        detail:
+          'Filter classes, tasks and notes right here, or tap Ask to jump straight into AI chat.',
+      },
+      {
+        label: 'Filters & quick check-off',
+        detail:
+          'Switch All, Tasks, Alarms or Docs, tick off tasks directly, or tap the bell for Alarms.',
+      },
+    ],
     anchor: 'tab-dashboard',
     tab: 'dashboard',
   },
   {
-    id: 'quick-schedule',
-    title: 'Schedule',
-    body: schoolEnabled
-      ? 'Your reviewed COR classes, deadlines and plans in one place. Tap an empty hour or + to add something.'
-      : corPending
-      ? 'Classes, deadlines and plans in one place. Add your COR from Profile when you are ready.'
-      : 'Classes, deadlines and plans in one place. Tap an empty hour or + to add something.',
-    anchor: 'tab-calendar',
+    id: 'home-study-customize',
+    section: 'dashboard',
+    sectionLabel: 'Home',
+    title: 'Free study gaps & custom layout',
+    body: 'Spot open time between classes and tailor which cards appear on your Home screen.',
+    highlights: [
+      {
+        label: 'Free Study Blocks',
+        detail:
+          'Automatically detects usable gaps today — tap + Study to turn a gap into a planned study block.',
+      },
+      {
+        label: 'Customize Dashboard',
+        detail:
+          'Tap the sliders icon to apply presets (Balanced, Class Focus, Exam Crunch), reorder cards or hide widgets.',
+      },
+    ],
+    anchor: 'home-actions',
+    fallbackAnchor: 'tab-dashboard',
+    tab: 'dashboard',
+  },
+  {
+    id: 'schedule-planner',
+    section: 'calendar',
+    sectionLabel: 'Schedule',
+    title: 'Month, Week & Day planning',
+    body: 'Switch views cleanly, pick any date, jump back to Today, and manage overdue items in one place.',
+    highlights: [
+      {
+        label: '+ Create anything',
+        detail:
+          'Tap + to add a Class / Event, Time Block, Task or Note — or tap any empty hour in Day view.',
+      },
+      {
+        label: 'Tap items for details',
+        detail:
+          'Inspect timing and room, edit or mark complete, and attach notes or to-dos directly to that session.',
+      },
+    ],
+    anchor: 'calendar-add-button',
+    fallbackAnchor: 'tab-calendar',
     tab: 'calendar',
   },
   {
-    id: 'quick-ai',
-    title: 'AI',
-    body: schoolEnabled
-      ? 'Type or choose to speak — "remind me at 6 PM" — or ask about the USTP handbook, with sources you can check.'
-      : 'Type or choose to speak — "remind me tomorrow at 6 PM" — and LAFINA plans it on this phone, even offline.',
+    id: 'schedule-cor-groups',
+    section: 'calendar',
+    sectionLabel: 'Schedule',
+    title: 'COR classes, Groups & .ics files',
+    body: 'Open the top-right menu in Schedule to manage classes, layers and calendar files.',
+    highlights: [
+      {
+        label: 'Classes & USTP COR',
+        detail:
+          'Inspect or edit repeating classes in View Classes, or import a reviewed USTP COR (PDF, photo or text).',
+      },
+      {
+        label: 'Calendar Groups',
+        detail:
+          'Toggle Classes, Birthdays, Philippine Holidays, or create custom color groups like Exams, Org or Gym.',
+      },
+      {
+        label: 'Undated tasks & .ics',
+        detail:
+          'Review tasks without due dates, and import or export .ics calendar files anytime.',
+      },
+    ],
+    anchor: 'calendar-more-button',
+    fallbackAnchor: 'tab-calendar',
+    tab: 'calendar',
+  },
+  {
+    id: 'ai-chat-review',
+    section: 'chat',
+    sectionLabel: 'AI',
+    title: 'Plan by text or offline voice',
+    body: 'Ask in plain English or Taglish to read your day or create, update and organize plans — even multiple items at once.',
+    highlights: [
+      {
+        label: 'Hold Mic to speak offline',
+        detail:
+          'On-device Whisper speech-to-text works with no internet; slide left or up anytime to cancel.',
+      },
+      {
+        label: 'Confirm before save',
+        detail:
+          'Every write or deletion opens a Review Card so you can inspect, edit fields, confirm or undo.',
+      },
+    ],
     anchor: 'tab-chat',
     tab: 'chat',
   },
+  {
+    id: 'ai-engine-handbook',
+    section: 'chat',
+    sectionLabel: 'AI',
+    title: 'AI Engine, Scanner & USTP Handbook',
+    body: 'Switch AI modes from the top pill, scan schedules from images, or check official USTP policies.',
+    highlights: [
+      {
+        label: 'Offline & Online AI',
+        detail:
+          'Tap the top pill to switch between Fast-Path / downloaded offline models and Online Cloud AI.',
+      },
+      {
+        label: 'Scanner, History & Temp Chat',
+        detail:
+          'Tap + to scan a timetable from Camera/Photos, open the menu for History & Command Guide, or use Temporary Chat.',
+      },
+      {
+        label: 'USTP Handbook',
+        detail: schoolEnabled
+          ? 'Open USTP Handbook from the sidebar for offline and online answers with checkable chapter and page citations.'
+          : corPending
+          ? 'Add and confirm your USTP COR in Profile or Schedule to unlock cited USTP Handbook answers.'
+          : 'USTP Handbook stays off in Scheduling mode — switch anytime in Profile → Student Setup.',
+      },
+    ],
+    anchor: 'chat-engine-pill',
+    fallbackAnchor: 'tab-chat',
+    tab: 'chat',
+  },
+  {
+    id: 'ai-calls-reminders',
+    section: 'chat',
+    sectionLabel: 'AI',
+    title: 'Call LAFINA & Reminder Calls',
+    body: 'Talk hands-free in real time and choose how time-critical reminders reach you.',
+    highlights: [
+      {
+        label: 'Live Call LAFINA',
+        detail:
+          'Tap the phone icon to converse naturally (Online Mode when signed in), interrupt mid-reply, type, or minimize to a mini bar.',
+      },
+      {
+        label: 'Call me vs Notify only',
+        detail:
+          'Reminders can trigger a simulated incoming call (talk online or tap Acknowledge / Snooze offline) or a quiet notification.',
+      },
+      {
+        label: 'Safe alert status',
+        detail:
+          'Acknowledging a reminder confirms you received it — your task stays open until you mark it done.',
+      },
+    ],
+    anchor: 'chat-composer',
+    fallbackAnchor: 'tab-chat',
+    tab: 'chat',
+  },
+  {
+    id: 'tools-alarms',
+    section: 'notes',
+    sectionLabel: 'Tools',
+    title: 'Alarms & Morning Briefing',
+    body: 'Device-local clock alarms built on Android AlarmManager — kept separate from synced calendar reminders.',
+    highlights: [
+      {
+        label: 'Reliable wake-ups',
+        detail:
+          'Rings even when the app is closed or after a restart, with weekday repeats, vibration and custom snooze.',
+      },
+      {
+        label: 'Morning Briefing',
+        detail:
+          'Enable Morning Briefing on an alarm and LAFINA reads today’s actual schedule aloud offline after you dismiss it.',
+      },
+    ],
+    anchor: 'tools-subtab-alarms',
+    fallbackAnchor: 'tab-notes',
+    tab: 'notes',
+    notesSubTab: 'alarms',
+  },
+  {
+    id: 'tools-todo',
+    section: 'notes',
+    sectionLabel: 'Tools',
+    title: 'To-Do lists & synced note checklists',
+    body: 'Capture quick errands, manage scheduled deadlines, and check off tasks written inside your study notes.',
+    highlights: [
+      {
+        label: 'Quick-add & priorities',
+        detail:
+          'Add undated tasks in seconds, cycle High / Medium / Low priority, or attach due times and reminders.',
+      },
+      {
+        label: 'From Notes filter',
+        detail:
+          'Interactive checklists inside your Notes automatically appear in From Notes and stay synced both ways.',
+      },
+    ],
+    anchor: 'tools-subtab-todo',
+    fallbackAnchor: 'tab-notes',
+    tab: 'notes',
+    notesSubTab: 'todo',
+  },
+  {
+    id: 'tools-notes',
+    section: 'notes',
+    sectionLabel: 'Tools',
+    title: 'Rich Notes & AI Note Assistant',
+    body: 'Capture structured class notes offline with Markdown formatting, images, pins and built-in AI helpers.',
+    highlights: [
+      {
+        label: 'Markdown, images & categories',
+        detail:
+          'Format headings, bold, highlight, code, quotes and checklists, toggle Write/Preview, pin notes, color categories and attach photos.',
+      },
+      {
+        label: 'AI Assist in editor',
+        detail:
+          'Tap AI Assist to Summarize key takeaways, Clean Up spacing, or Extract Tasks straight to To-Do.',
+      },
+    ],
+    anchor: 'tools-subtab-notes',
+    fallbackAnchor: 'tab-notes',
+    tab: 'notes',
+    notesSubTab: 'notes',
+  },
+  {
+    id: 'profile-floating',
+    section: 'profile',
+    sectionLabel: 'Profile',
+    title: 'Floating LAFINA & Quick Chat',
+    body: 'Turn on an optional floating Edge Bar or Bubble (off by default) to plan over any app without switching screens.',
+    highlights: [
+      {
+        label: 'Quick Chat anywhere',
+        detail:
+          'Tap or swipe inward from browsers, PDFs or chats to add tasks, reminders, events or notes with Confirm-before-save.',
+      },
+      {
+        label: 'Custom & private',
+        detail:
+          'Choose Edge Bar or Bubble, tune size, color, opacity, Tuck and Lock — never reads your screen or listens in the background.',
+      },
+    ],
+    anchor: 'profile-floating-row',
+    fallbackAnchor: 'tab-profile',
+    tab: 'profile',
+  },
+  {
+    id: 'profile-sync-health-themes',
+    section: 'profile',
+    sectionLabel: 'Profile',
+    title: 'Sync, Voices, Health & Themes',
+    body: 'Everything saves locally first. Configure how LAFINA syncs, speaks, looks and checks alarm reliability.',
+    highlights: [
+      {
+        label: isGuest ? 'Guest data & upgrade' : 'Cross-device Cloud Sync',
+        detail: isGuest
+          ? 'Guest work stays on this phone. Create an account in Profile anytime to sync across devices without losing data.'
+          : 'Tasks, events, blocks, reminders, notes, categories and profile sync automatically when signed in and online.',
+      },
+      {
+        label: 'Preferences, Memory & Voices',
+        detail:
+          'Set routine, lead time, Adaptive Timing, Personal Memory, Event Defaults, Offline Voice, ElevenLabs Online Voice and Student Setup.',
+      },
+      {
+        label: 'Health & Appearance',
+        detail:
+          'Verify Notifications, Exact Alarms and Battery in Alarm & Reminder Health, and customize Dark Mode, 6 Color Themes & 5 AI Orb Designs.',
+      },
+    ],
+    tip: 'You can replay this full walkthrough or jump to any section anytime from Profile → Show the walkthrough again.',
+    anchor: 'tab-profile',
+    tab: 'profile',
+  },
 ];
+
+export const buildQuickTourSteps = (audience: QuickTourAudience): TourStep[] =>
+  buildWalkthroughSteps(audience);

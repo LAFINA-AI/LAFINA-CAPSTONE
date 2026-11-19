@@ -82,6 +82,11 @@ const readStoredBatches = async (): Promise<StoredImportBatch[]> => {
 
 /** Account-scoped store for imported calendar batch metadata. */
 export const importedBatchesStore = {
+  /** Drops the in-memory batch cache (used after deleting the backing file on reset). */
+  resetCache: (): void => {
+    cachedBatches = null;
+  },
+
   /** Returns cached batches for one user synchronously when already loaded, or null before first read. */
   getCachedImportedBatches: (userId: string): ImportBatch[] | null => {
     if (cachedBatches === null) return null;

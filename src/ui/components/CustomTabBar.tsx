@@ -733,7 +733,6 @@ export const CustomTabBar: React.FC<CustomTabBarProps> = ({
               return (
                 <TouchableOpacity
                   key={tab}
-                  ref={tourTargetRef(anchor)}
                   testID={`modern-tab-${tab}`}
                   style={styles.modernCenterSlot}
                   onPress={() => onTabPress(tab)}
@@ -743,6 +742,12 @@ export const CustomTabBar: React.FC<CustomTabBarProps> = ({
                   accessibilityLabel={`${label} tab`}
                   accessibilityState={{selected: isActive}}
                 >
+                  <View
+                    collapsable={false}
+                    pointerEvents="none"
+                    ref={tourTargetRef(anchor)}
+                    style={styles.modernCenterTourTarget}
+                  />
                   <View
                     testID="modern-tab-chat-fab"
                     style={[
@@ -995,6 +1000,13 @@ const styles = StyleSheet.create({
     justifyContent: 'flex-end',
     paddingBottom: 11,
     height: ModernLayout.navbarContentHeight,
+  },
+  modernCenterTourTarget: {
+    position: 'absolute',
+    top: -MODERN_FAB_OVERHANG,
+    bottom: 4,
+    left: 4,
+    right: 4,
   },
   modernCenterFab: {
     position: 'absolute',

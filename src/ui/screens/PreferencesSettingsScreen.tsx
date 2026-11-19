@@ -125,9 +125,14 @@ const BUSIEST_DAY_OPTIONS: PreferenceOption[] = [
 ].map(value => ({label: value, value}));
 const REMINDER_LEAD_OPTIONS: PreferenceOption[] = [
   {label: 'On the dot', value: '0'},
+  {label: '5 min before', value: '5'},
+  {label: '10 min before', value: '10'},
   {label: '15 min before', value: '15'},
   {label: '30 min before', value: '30'},
   {label: '1 hour before', value: '60'},
+  {label: '2 hours before', value: '120'},
+  {label: '3 hours before', value: '180'},
+  {label: '5 hours before', value: '300'},
 ];
 const SNOOZE_OPTIONS: PreferenceOption[] = [
   {label: 'Do it right away', value: 'immediate'},

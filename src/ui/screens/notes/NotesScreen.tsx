@@ -41,6 +41,7 @@ import {
 } from '../calendar/components/schedulePalette';
 import {NotesScreenProps, NotesSubTab} from './types';
 import type {NoteSnapshot} from '../../../storage';
+import {tourTargetRef} from '../../tour/tourTargets';
 
 export const NotesScreen = React.memo(function NotesScreenView({
   userId,
@@ -48,6 +49,7 @@ export const NotesScreen = React.memo(function NotesScreenView({
   onRefresh,
   openRequest,
   onOpenRequestHandled,
+  tourSubTab,
 }: NotesScreenProps) {
   const {colors, isModern} = useTheme();
   const insets = useSafeAreaInsets();
@@ -56,6 +58,25 @@ export const NotesScreen = React.memo(function NotesScreenView({
     ? ModernLayout.navbarContentHeight + Math.max(insets.bottom, 8) + 40
     : Math.max(insets.bottom, 12) + 14 + Layout.navbarHeight + 8;
   const [activeSubTab, setActiveSubTab] = useState<NotesSubTab>('notes');
+  const preTourSubTabRef = useRef<NotesSubTab | null>(null);
+
+  useEffect(() => {
+    if (tourSubTab) {
+      if (preTourSubTabRef.current === null) {
+        preTourSubTabRef.current = activeSubTab;
+      }
+      data.setSearchActive(false);
+      data.setSearchQuery('');
+      setActiveSubTab(tourSubTab);
+      return;
+    }
+    if (preTourSubTabRef.current !== null) {
+      setActiveSubTab(preTourSubTabRef.current);
+      preTourSubTabRef.current = null;
+    }
+    // Only react to tourSubTab transitions so manual tab taps remain free.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [tourSubTab]);
   const [alarmCreateTick, setAlarmCreateTick] = useState(0);
   const handleAddAlarm = useCallback(() => {
     setAlarmCreateTick(tick => tick + 1);
@@ -393,6 +414,7 @@ export const NotesScreen = React.memo(function NotesScreenView({
         accessibilityRole="tablist"
       >
         <TouchableOpacity
+          ref={tourTargetRef('tools-subtab-alarms')}
           onPress={() => {
             data.setSearchActive(false);
             data.setSearchQuery('');
@@ -424,6 +446,7 @@ export const NotesScreen = React.memo(function NotesScreenView({
         </TouchableOpacity>
 
         <TouchableOpacity
+          ref={tourTargetRef('tools-subtab-todo')}
           onPress={() => setActiveSubTab('todo')}
           accessibilityRole="tab"
           accessibilityState={{selected: activeSubTab === 'todo'}}
@@ -475,6 +498,7 @@ export const NotesScreen = React.memo(function NotesScreenView({
         </TouchableOpacity>
 
         <TouchableOpacity
+          ref={tourTargetRef('tools-subtab-notes')}
           onPress={() => setActiveSubTab('notes')}
           accessibilityRole="tab"
           accessibilityState={{selected: activeSubTab === 'notes'}}
