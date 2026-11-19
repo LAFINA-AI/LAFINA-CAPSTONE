@@ -1,0 +1,259 @@
+{
+  "date": "2026-11-20",
+  "referenceHtml": {
+    "file": "docs/design/skills/lafina-tools.html",
+    "sha256": "f641dcd46078254b839ac10ecdea952d55ae19b30e2fd57f689bb1a2c54ea8d3",
+    "matchesOriginal": true
+  },
+  "screenshots": [
+    {
+      "file": "docs/design/skills/screens/00-tools-hub.png",
+      "sha256": "93e9a328c25018394970b76d5675988368c1d6e0ea413e6ed946fabc81c53952",
+      "matchesOriginal": true,
+      "width": 1170,
+      "height": 2532
+    },
+    {
+      "file": "docs/design/skills/screens/01-alarms.png",
+      "sha256": "a9e856ea9f7885933a6735ab05d6fc8d2175d69cfc167f42d494a4a00c0fc59b",
+      "matchesOriginal": true,
+      "width": 1170,
+      "height": 2532
+    },
+    {
+      "file": "docs/design/skills/screens/02-todo.png",
+      "sha256": "55d50abb50dab05259db1e48340cf961868c880a3a236534f97ab8d2b82ec9ba",
+      "matchesOriginal": true,
+      "width": 1170,
+      "height": 2532
+    },
+    {
+      "file": "docs/design/skills/screens/03-notes.png",
+      "sha256": "3b7bd15ab9dee46317d43a20423d57ffaa80d574049823f912d381390901ee90",
+      "matchesOriginal": true,
+      "width": 1170,
+      "height": 2532
+    },
+    {
+      "file": "docs/design/skills/screens/04-pomodoro.png",
+      "sha256": "740033c928445e2b0aabc5dfae1a17dbea2b991cc023bf6e5dbc5e40e35cc23a",
+      "matchesOriginal": true,
+      "width": 1170,
+      "height": 2532
+    },
+    {
+      "file": "docs/design/skills/screens/04b-pomodoro-running.png",
+      "sha256": "ad101e7e6cae91053b69bca4339045aadf403ed1f5c59ddd7075c0f142ee5cfb",
+      "matchesOriginal": true,
+      "width": 1170,
+      "height": 2532
+    },
+    {
+      "file": "docs/design/skills/screens/05-flashcards.png",
+      "sha256": "f959b2b897143f25058f9366488d0211a01ba270e39ae7246f0325910dedba96",
+      "matchesOriginal": true,
+      "width": 1170,
+      "height": 2532
+    },
+    {
+      "file": "docs/design/skills/screens/05b-flashcards-answer.png",
+      "sha256": "1d16e82265424ee2195c6aba3d19b757a0c581ec5d0ec76e2d952a529959cc10",
+      "matchesOriginal": true,
+      "width": 1170,
+      "height": 2532
+    },
+    {
+      "file": "docs/design/skills/screens/06-quiz-maker.png",
+      "sha256": "7de292a2da02cb227aad93871914b313cec1d970f431f020eb387c38f2097de7",
+      "matchesOriginal": true,
+      "width": 1170,
+      "height": 2532
+    },
+    {
+      "file": "docs/design/skills/screens/06b-quiz-question.png",
+      "sha256": "42e37f4e0eadee324b44a44d4fd163cb567586883630900387ccbb27ade06e83",
+      "matchesOriginal": true,
+      "width": 1170,
+      "height": 2532
+    },
+    {
+      "file": "docs/design/skills/screens/07-gwa-calculator.png",
+      "sha256": "0788a249189291847ea8c69f5ffb3f71cb4882adae1180c9ffcc4e4fcd62b744",
+      "matchesOriginal": true,
+      "width": 1170,
+      "height": 2532
+    },
+    {
+      "file": "docs/design/skills/screens/08-summarizer.png",
+      "sha256": "2c28e6b3bbc3d94184636036da17768c3ec065ab4117d302d85d623dbfab72b6",
+      "matchesOriginal": true,
+      "width": 1170,
+      "height": 2532
+    },
+    {
+      "file": "docs/design/skills/screens/09-meetings.png",
+      "sha256": "9209d2bd92764bd103d4329647532a331da0753934e9c23af4f549d9335937a8",
+      "matchesOriginal": true,
+      "width": 1170,
+      "height": 2532
+    },
+    {
+      "file": "docs/design/skills/screens/09b-meetings-recording.png",
+      "sha256": "f07e8c44bf17205fd976b91309e66b314fda30b911016bc9e346943299dc1548",
+      "matchesOriginal": true,
+      "width": 1170,
+      "height": 2532
+    },
+    {
+      "file": "docs/design/skills/screens/10-create-with-lafina.png",
+      "sha256": "a709fdc9cbcfbdde7bb81f8c24ac8535b38a43039bac1a1dae62c490bd8b4d02",
+      "matchesOriginal": true,
+      "width": 1170,
+      "height": 2532
+    },
+    {
+      "file": "docs/design/skills/screens/10b-create-working.png",
+      "sha256": "bdf0e9f71babc81553bd82e21cbbea2d4839f8b10d19d67c8aec5d11c6e55a37",
+      "matchesOriginal": true,
+      "width": 1170,
+      "height": 2532
+    },
+    {
+      "file": "docs/design/skills/screens/10c-create-done.png",
+      "sha256": "c4e05f82437705215e7d995c7c1482d1fc5ec5bc21ff6fa532b1b3ecad8f4b8f",
+      "matchesOriginal": true,
+      "width": 1170,
+      "height": 2532
+    }
+  ],
+  "unchangedRegressionBoundaries": [
+    {
+      "file": "src/storage/dbInit.ts",
+      "unchangedFrom": "df573ba",
+      "sha256Lf": "16b0ce4d73e1afd2fe7aa41c19c697fbdb957cb1094307859daf8e4b797acd84"
+    },
+    {
+      "file": "src/storage/alarmsStore.ts",
+      "unchangedFrom": "df573ba",
+      "sha256Lf": "33a025751359c71539e5cedc7c3a1c7f17a5a61de24c5b5e6597a25ba275cbc3"
+    },
+    {
+      "file": "src/storage/tasksStore.ts",
+      "unchangedFrom": "df573ba",
+      "sha256Lf": "86ef308e6ec4fd3270ec9f2a1bd27965f15bba19e0b2bad611e1f0075af4fa4e"
+    },
+    {
+      "file": "src/storage/notesStore.ts",
+      "unchangedFrom": "df573ba",
+      "sha256Lf": "430e08ddda32dcfa7b238320d7b26d4f2195085699afe7a90caaa6617ec3cb0e"
+    },
+    {
+      "file": "src/storage/notesEditStore.ts",
+      "unchangedFrom": "df573ba",
+      "sha256Lf": "3badee41a1c0a3648c48ec4dbc2d59c89b45bafb337c6e23b420b43c05d0e4a6"
+    },
+    {
+      "file": "src/storage/notesQueryStore.ts",
+      "unchangedFrom": "df573ba",
+      "sha256Lf": "06150c4c40eb3de6d768c81fc184ee061e8ff23548ab57886761f680dd0125e9"
+    },
+    {
+      "file": "src/storage/syncOutboxStore.ts",
+      "unchangedFrom": "df573ba",
+      "sha256Lf": "dd0e46f6767386a37ea7faf69155e73166861393f3776dc4ccdff9a515b9a3f5"
+    },
+    {
+      "file": "src/ui/screens/notes/hooks/useNotesData.ts",
+      "unchangedFrom": "df573ba",
+      "sha256Lf": "9e3a9c73a6a6fe1cfea169855f05b0fcb0710b0f9488f01e1f40fe5c57ecd9a1"
+    },
+    {
+      "file": "src/ui/screens/notes/hooks/useTodoData.ts",
+      "unchangedFrom": "df573ba",
+      "sha256Lf": "5436a53fe38ef25ace31e5c95fb9ce1393158ca0febf25d33789e1df2f1ea6ab"
+    },
+    {
+      "file": "src/scheduler/alarmService.ts",
+      "unchangedFrom": "df573ba",
+      "sha256Lf": "cfd58afc2270a9b6313b7a5480d074aa21df74a47c441ce69b3d1741ffcaa711"
+    },
+    {
+      "file": "src/scheduler/alarmSchedule.ts",
+      "unchangedFrom": "df573ba",
+      "sha256Lf": "97508e7b8d2f1dba70ef0dcfe3a2001134fe83605d13f377875ec816f6f259f1"
+    },
+    {
+      "file": "src/scheduler/reminderAlarm.ts",
+      "unchangedFrom": "df573ba",
+      "sha256Lf": "f19491a90ca780ace601db7906053e472919e05b784ad26debd2814aaa44e317"
+    }
+  ],
+  "deviceUiValidation": "NOT RUN — owner explicitly accepts manual phone review; no installation or settings change by the agent",
+  "benchmarks": "NOT RUN — no synthetic performance numbers",
+  "device": {
+    "model": "Infinix X6880",
+    "androidApi": 35,
+    "abi": "arm64-v8a",
+    "checksPerformed": "ADB connection and non-sensitive properties only; no UI, alarm, recording, speech, or AI device result claimed"
+  },
+  "nativeUnitTests": {
+    "suites": 10,
+    "tests": 101,
+    "failures": 0,
+    "errors": 0,
+    "reportDirectory": "android/app/build/test-results/testDebugUnitTest"
+  },
+  "originalAiClientsUnchanged": true,
+  "finalPreflight": {
+    "status": "PASS",
+    "command": "npm run preflight",
+    "exitCode": 0,
+    "log": "docs/design/skills/logs/final-gates.log.gz",
+    "jestSuites": 181,
+    "jestPassed": 2449,
+    "jestSkipped": 1,
+    "jestTotal": 2450,
+    "note": "Full current-checkout run includes pre-existing unrelated edits. Final switch touch-target/filter-role props are checked again by the focused regression and rebuilt APK."
+  },
+  "architecture": {
+    "status": "PASS",
+    "modules": 452,
+    "importCycles": 0,
+    "offlineLeaves": 109,
+    "log": "docs/design/skills/logs/final-gates.log.gz"
+  },
+  "deliveryApk": {
+    "status": "PASS",
+    "command": "android/gradlew.bat :app:assembleDataQa -PreactNativeArchitectures=arm64-v8a --console=plain",
+    "exitCode": 0,
+    "file": "android/app/build/outputs/apk/dataQa/app-arm64-v8a-dataQa.apk",
+    "bytes": 180667400,
+    "sha256": "963fef5493ada30f003eccb5a684eaf50220b713a60e6304bb467631adc6ff8b",
+    "log": "docs/design/skills/logs/delivery-apk.log.gz",
+    "installedByAgent": false,
+    "note": "Bundled ARM64 dataQa review build of the complete current checkout, including preserved unrelated working changes; not a production release."
+  },
+  "deliveryStaticChecks": [
+    {
+      "command": "npm run lint",
+      "status": "PASS",
+      "log": "docs/design/skills/logs/delivery-lint.log.gz"
+    },
+    {
+      "command": "npm run typecheck",
+      "status": "PASS",
+      "log": "docs/design/skills/logs/delivery-typecheck.log.gz"
+    },
+    {
+      "command": "npm run check:architecture",
+      "status": "PASS",
+      "log": "docs/design/skills/logs/delivery-architecture.log.gz"
+    }
+  ],
+  "finalAccessibilityRegression": {
+    "status": "PASS",
+    "suites": 9,
+    "testsPassed": 66,
+    "log": "docs/design/skills/logs/accessibility-regression.log.gz"
+  }
+}
