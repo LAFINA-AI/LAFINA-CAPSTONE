@@ -5,6 +5,7 @@ import type {CallNavigationTarget} from '../../navigation/callNavigation';
 import React, {useCallback, useEffect, useRef, useState} from 'react';
 import {
   ActivityIndicator,
+  Animated,
   Linking,
   ScrollView,
   StyleSheet,
@@ -44,6 +45,7 @@ import type {
   VoiceConversationDeps,
 } from '../../../cloud/voiceConversation';
 import {useVoiceConversation} from '../../hooks/useVoiceConversation';
+import {useReducedMotion} from '../../hooks/useReducedMotion';
 import type {CommandReviewState} from '../../hooks/useCommandReview';
 import {ActionCardHost} from '../callLafina/ActionCardHost';
 import {isToolExecutionPermitted} from '../../../ai/voiceActions/actionSecurity';
@@ -1110,6 +1112,30 @@ export const VoiceConversationPanel: React.FC<VoiceConversationPanelProps> = ({
   const {snapshot} = conversation;
   const live = LIVE.has(snapshot.phase);
   const connecting = snapshot.phase === 'connecting';
+  const reducedMotion = useReducedMotion();
+  const connectingPulse = useRef(new Animated.Value(0)).current;
+  useEffect(() => {
+    if (!connecting || reducedMotion || process.env.NODE_ENV === 'test') {
+      connectingPulse.setValue(0);
+      return undefined;
+    }
+    const loop = Animated.loop(
+      Animated.sequence([
+        Animated.timing(connectingPulse, {
+          toValue: 1,
+          duration: 950,
+          useNativeDriver: true,
+        }),
+        Animated.timing(connectingPulse, {
+          toValue: 0,
+          duration: 950,
+          useNativeDriver: true,
+        }),
+      ]),
+    );
+    loop.start();
+    return () => loop.stop();
+  }, [connecting, connectingPulse, reducedMotion]);
   useEffect(() => {
     if (
       snapshot.phase !== 'ended' &&
@@ -1519,7 +1545,11 @@ export const VoiceConversationPanel: React.FC<VoiceConversationPanelProps> = ({
               </>
             ) : connecting ? (
               <>
-                <ActivityIndicator size="small" color={colors.primary} />
+                <ActivityIndicator
+                  size="small"
+                  color={colors.primary}
+                  style={styles.pillSpinner}
+                />
                 <Text
                   style={[styles.pillText, {color: colors.primary}]}
                   testID="call-connecting-badge"
@@ -1529,9 +1559,15 @@ export const VoiceConversationPanel: React.FC<VoiceConversationPanelProps> = ({
               </>
             ) : (
               <>
-                <AudioLines size={12} color={colors.primary} />
+                <AudioLines
+                  size={12}
+                  color={live ? colors.primary : colors.textSecondary}
+                />
                 <Text
-                  style={[styles.pillText, {color: colors.primary}]}
+                  style={[
+                    styles.pillText,
+                    {color: live ? colors.primary : colors.textSecondary},
+                  ]}
                   testID="call-online-badge"
                 >
                   {live ? 'Online' : 'Not connected'}
@@ -1585,27 +1621,54 @@ export const VoiceConversationPanel: React.FC<VoiceConversationPanelProps> = ({
           testID="call-center-stage"
         >
           {live || !showOverlayContent ? (
-            <View
-              style={[
-                styles.avatarRing,
-                showOverlayContent && styles.avatarRingCompact,
-                {
-                  borderColor: live
-                    ? snapshot.muted
-                      ? colors.warning
-                      : colors.primary
-                    : colors.border,
-                },
-              ]}
-              testID="call-identity-ring"
-            >
-              <SynthWaveAvatar
-                phase={snapshot.phase}
-                outputLevel={snapshot.outputLevel ?? 0}
-                muted={snapshot.muted}
-                size={showOverlayContent ? 48 : 76}
-                userLevel={snapshot.level}
-              />
+            <View style={styles.avatarRingHost}>
+              {connecting && !showOverlayContent ? (
+                <Animated.View
+                  pointerEvents="none"
+                  style={[
+                    styles.connectingHalo,
+                    {
+                      borderColor: colors.primary,
+                      opacity: connectingPulse.interpolate({
+                        inputRange: [0, 1],
+                        outputRange: [0.42, 0.08],
+                      }),
+                      transform: [
+                        {
+                          scale: connectingPulse.interpolate({
+                            inputRange: [0, 1],
+                            outputRange: [1, 1.24],
+                          }),
+                        },
+                      ],
+                    },
+                  ]}
+                />
+              ) : null}
+              <View
+                style={[
+                  styles.avatarRing,
+                  showOverlayContent && styles.avatarRingCompact,
+                  {
+                    borderColor: live
+                      ? snapshot.muted
+                        ? colors.warning
+                        : colors.primary
+                      : connecting
+                      ? colors.primary
+                      : colors.border,
+                  },
+                ]}
+                testID="call-identity-ring"
+              >
+                <SynthWaveAvatar
+                  phase={snapshot.phase}
+                  outputLevel={snapshot.outputLevel ?? 0}
+                  muted={snapshot.muted}
+                  size={showOverlayContent ? 48 : 76}
+                  userLevel={snapshot.level}
+                />
+              </View>
             </View>
           ) : null}
 
@@ -1622,7 +1685,7 @@ export const VoiceConversationPanel: React.FC<VoiceConversationPanelProps> = ({
               {
                 color: failure
                   ? colors.error
-                  : live
+                  : live || connecting
                   ? colors.primary
                   : colors.textSecondary,
               },
@@ -1633,7 +1696,16 @@ export const VoiceConversationPanel: React.FC<VoiceConversationPanelProps> = ({
             {statusText}
           </Text>
 
-          {!showOverlayContent ? (
+          {connecting && !showOverlayContent ? (
+            <Text
+              style={[styles.connectingHint, themed.muted]}
+              testID="call-connecting-hint"
+            >
+              Starting secure voice session
+            </Text>
+          ) : null}
+
+          {live && !showOverlayContent ? (
             <CallWaveform
               phase={snapshot.phase}
               muted={snapshot.muted}
@@ -1641,6 +1713,7 @@ export const VoiceConversationPanel: React.FC<VoiceConversationPanelProps> = ({
               userLevel={snapshot.level}
               outputLevel={snapshot.outputLevel ?? 0}
               hasReviewItem={Boolean(review?.proposal)}
+              showStatusText={false}
             />
           ) : null}
         </View>
@@ -2159,7 +2232,6 @@ export const VoiceConversationPanel: React.FC<VoiceConversationPanelProps> = ({
 
         {connecting ? (
           <View style={styles.controls}>
-            <ActivityIndicator color={colors.primary} />
             <ControlButton
               label="Cancel"
               icon={<PhoneOff size={22} color={colors.textOnPrimary} />}
@@ -2355,18 +2427,31 @@ const styles = StyleSheet.create({
   onlinePill: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
+    gap: 5,
     paddingHorizontal: 10,
     paddingVertical: 4,
     borderRadius: 12,
   },
+  pillSpinner: {transform: [{scale: 0.72}], marginRight: -2},
   pillText: {fontFamily: Fonts.body, fontSize: 11, fontWeight: 'bold'},
   centerStage: {
     alignItems: 'center',
     justifyContent: 'center',
     paddingVertical: 12,
-    gap: 6,
+    gap: 8,
     width: '100%',
+  },
+  avatarRingHost: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 4,
+  },
+  connectingHalo: {
+    position: 'absolute',
+    width: 94,
+    height: 94,
+    borderRadius: 47,
+    borderWidth: 2,
   },
   avatarRing: {
     width: 88,
@@ -2375,7 +2460,6 @@ const styles = StyleSheet.create({
     borderWidth: 3,
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: 4,
   },
   avatarRingCompact: {width: 56, height: 56, borderRadius: 28, borderWidth: 2},
   avatarInner: {
@@ -2393,8 +2477,13 @@ const styles = StyleSheet.create({
   },
   status: {
     fontFamily: Fonts.body,
-    fontSize: 14,
+    fontSize: 15,
     fontWeight: '600',
+    textAlign: 'center',
+  },
+  connectingHint: {
+    fontFamily: Fonts.body,
+    fontSize: 13,
     textAlign: 'center',
   },
   emptyStatus: {height: 0, margin: 0, padding: 0},

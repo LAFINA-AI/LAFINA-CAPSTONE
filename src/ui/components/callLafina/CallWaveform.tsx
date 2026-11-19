@@ -19,6 +19,7 @@ export interface CallWaveformProps {
   activeTool?: string | null;
   hasReviewItem?: boolean;
   reduceMotion?: boolean;
+  showStatusText?: boolean;
   testID?: string;
 }
 
@@ -85,6 +86,7 @@ export const CallWaveform: React.FC<CallWaveformProps> = ({
   activeTool,
   hasReviewItem = false,
   reduceMotion: reduceMotionProp,
+  showStatusText = true,
   testID = 'call-waveform-area',
 }) => {
   const {colors} = useTheme();
@@ -251,13 +253,15 @@ export const CallWaveform: React.FC<CallWaveformProps> = ({
       )}
 
       {/* 3. Truthful Concise State Line */}
-      <Text
-        style={[styles.stateText, {color: colors.textMuted}]}
-        testID="call-waveform-status-text"
-        accessibilityLiveRegion="polite"
-      >
-        {stateText}
-      </Text>
+      {showStatusText ? (
+        <Text
+          style={[styles.stateText, {color: colors.textMuted}]}
+          testID="call-waveform-status-text"
+          accessibilityLiveRegion="polite"
+        >
+          {stateText}
+        </Text>
+      ) : null}
 
       {/* 4. User Input Waveform (Secondary Micro-meter) */}
       <View

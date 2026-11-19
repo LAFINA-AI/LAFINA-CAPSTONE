@@ -119,6 +119,14 @@ const getSnoozeConfirmation = snoozeMessage;
 const buildAnnouncement = (task: string): string =>
   `Hey! This is lafina. Your scheduled reminder is "${task}". Choose one of the two responses shown on screen at any time.`;
 
+/**
+ * The online reminder call has no Acknowledge or Snooze buttons: it is a
+ * conversation, ended by hanging up. The opening line says how to get more
+ * time, because there is nothing on screen to tap for it.
+ */
+export const buildOnlineAnnouncement = (task: string): string =>
+  `Hi, it's lafina. Your reminder: "${task}". Need more time? Just tell me when to call you back. Otherwise, hang up whenever you're ready.`;
+
 const warmCallResponseAudio = async (): Promise<void> => {
   try {
     await initTts();
@@ -134,6 +142,7 @@ export const prepareCallSpeech = async (
   provider: CallSpeechProvider,
   task: string,
   defaultSnoozeMinutes: number,
+  online = false,
 ): Promise<void> => {
   if (!provider.prepareText) return;
   const preparePhrase = async (phrase: string): Promise<void> => {
@@ -144,7 +153,9 @@ export const prepareCallSpeech = async (
     }
   };
 
-  await preparePhrase(buildAnnouncement(task));
+  await preparePhrase(
+    online ? buildOnlineAnnouncement(task) : buildAnnouncement(task),
+  );
   await Promise.all([
     preparePhrase(ACKNOWLEDGE_CONFIRMATION),
     preparePhrase(getSnoozeConfirmation(defaultSnoozeMinutes)),
@@ -585,9 +596,9 @@ export const answerCall = async (
   if (session.externalVoice) {
     // Deliver the actual reminder before handing the speaker and microphone to
     // the conversation. No offline capture runs during the online session.
-    await speakText(buildAnnouncement(reminder.task), {
-      fallbackAudioPath: reminder.preCastAudioPath,
-    });
+    // The pre-cast audio is the offline wording (it names on-screen choices
+    // this call does not show), so it is not used as the fallback here.
+    await speakText(buildOnlineAnnouncement(reminder.task));
     if (!isCurrentSession(session)) return false;
     publishCallState('connected', 'Connecting to online conversation…');
     return true;

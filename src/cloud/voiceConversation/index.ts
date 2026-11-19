@@ -180,7 +180,7 @@ export const startVoiceConversation = async (
 ): Promise<void> => {
   const token = ++acquisition;
   if (active && active !== controller) {
-    if (!(await active.endAndWait())) return;
+    await active.endAndWait().catch(() => false);
   }
   await pendingRelease;
   if (token !== acquisition) return;

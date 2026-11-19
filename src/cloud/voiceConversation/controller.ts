@@ -214,10 +214,24 @@ const randomId = () =>
  * agent is told not to announce it again (audit finding 12). No chat turn is
  * created.
  */
-export const reminderCallContext = (task: string): string => {
+export const reminderCallContext = (
+  task: string,
+  defaultSnoozeMinutes?: number,
+): string => {
   const reminder = task.trim().replace(/\s+/g, ' ').slice(0, 300);
   if (!reminder) return '';
-  return `Reminder call: the student just answered a reminder call about "${reminder}". The app already read this reminder aloud, so do not announce or repeat it. Wait for the student to speak, and help with it only if they ask (for example to snooze, reschedule or plan around it). The app itself ends the call when the student says "acknowledge", "got it" or "snooze", or taps a button; you cannot acknowledge it, so never say you did. To snooze for a time the student names, call snooze_reminder. A planner change appears as a card only when an app update says a card is shown; never say a card is on screen otherwise.`;
+  const snoozeDefault =
+    typeof defaultSnoozeMinutes === 'number' &&
+    Number.isFinite(defaultSnoozeMinutes) &&
+    defaultSnoozeMinutes >= 1 &&
+    defaultSnoozeMinutes <= 120
+      ? Math.round(defaultSnoozeMinutes)
+      : null;
+  return `Reminder call: the student just answered a reminder call about "${reminder}". The app already read this reminder aloud and told them they can ask for more time or hang up, so do not announce or repeat it. Wait for the student to speak, and help with it only if they ask (for example to snooze, reschedule or plan around it). This call screen has no Acknowledge or Snooze buttons, so never tell the student to tap one. Hanging up counts the reminder as received, and the app also ends the call when the student says "got it", "acknowledge" or "snooze"; you cannot acknowledge it, so never say you did. When the student wants more time ("call me back in 20 minutes", "remind me later"), call snooze_reminder with the minutes they name${
+    snoozeDefault
+      ? `, or ${snoozeDefault} minutes (their usual snooze) if they name none`
+      : ''
+  }. A planner change appears as a card only when an app update says a card is shown; never say a card is on screen otherwise.`;
 };
 
 export class VoiceConversationController {
@@ -274,6 +288,7 @@ export class VoiceConversationController {
   private disposed = false;
   private waitingForStudent = false;
   private transportEnding: Promise<boolean> = Promise.resolve(true);
+  private transportEndingPending = false;
   private personaPreferences: VoicePersonaPreferences = {
     ...DEFAULT_VOICE_PREFERENCES,
   };
@@ -398,13 +413,53 @@ export class VoiceConversationController {
 
     const controller = new AbortController();
     this.abort = controller;
-    const capabilities = await api
-      .capabilities(controller.signal)
-      .catch(() => null);
-    if (stale()) return;
-    if (!capabilities) return this.fail(gen, 'connect_failed');
-    if (!capabilities.ok) return this.failFromApi(gen, capabilities);
+    let apiTimedOut = false;
+    this.timers.set('api_connect', this.limits.connectTimeoutMs, () => {
+      apiTimedOut = true;
+      controller.abort();
+    });
+    const awaitUntilAborted = <T>(work: Promise<T>): Promise<T | null> =>
+      new Promise<T | null>(resolve => {
+        let settled = false;
+        const done = (value: T | null) => {
+          if (settled) return;
+          settled = true;
+          resolve(value);
+        };
+        const onAbort = () => done(null);
+        if (controller.signal.aborted) {
+          done(null);
+          return;
+        }
+        controller.signal.addEventListener('abort', onAbort, {once: true});
+        work.then(
+          val => {
+            controller.signal.removeEventListener('abort', onAbort);
+            done(val);
+          },
+          () => {
+            controller.signal.removeEventListener('abort', onAbort);
+            done(null);
+          },
+        );
+      });
+    const capabilities = await awaitUntilAborted(
+      api.capabilities(controller.signal),
+    );
+    if (stale()) {
+      this.timers.clear('api_connect');
+      return;
+    }
+    if (apiTimedOut || !capabilities) {
+      this.timers.clear('api_connect');
+      return this.fail(gen, 'connect_failed');
+    }
+    if (!capabilities.ok) {
+      this.timers.clear('api_connect');
+      return this.failFromApi(gen, capabilities);
+    }
     if (!capabilities.data.enabled) {
+      this.timers.clear('api_connect');
       return this.fail(
         gen,
         'not_configured',
@@ -412,10 +467,22 @@ export class VoiceConversationController {
       );
     }
     // The student may have switched mode or account meanwhile.
-    if (!gates.isOnlineMode()) return this.fail(gen, 'online_mode_required');
-    if (!gates.isSignedInOwner()) return this.fail(gen, 'signin_required');
+    if (!gates.isOnlineMode()) {
+      this.timers.clear('api_connect');
+      return this.fail(gen, 'online_mode_required');
+    }
+    if (!gates.isSignedInOwner()) {
+      this.timers.clear('api_connect');
+      return this.fail(gen, 'signin_required');
+    }
 
-    const session = await api
+    let sessionClosedOnServer = false;
+    const closeLateSession = (sessionId: string) => {
+      if (sessionClosedOnServer) return;
+      sessionClosedOnServer = true;
+      void api.end(sessionId, null).catch(() => undefined);
+    };
+    const sessionPromise = api
       .createSession(
         {
           requestId: this.deps.newRequestId?.() ?? randomId(),
@@ -424,18 +491,34 @@ export class VoiceConversationController {
         },
         controller.signal,
       )
-      .catch(() => null);
+      .then(outcome => {
+        if ((stale() || apiTimedOut) && outcome?.ok) {
+          closeLateSession(outcome.data.sessionId);
+        }
+        return outcome;
+      });
+    const session = await awaitUntilAborted(sessionPromise);
+    this.timers.clear('api_connect');
     if (stale()) {
       // Ended while the server was creating it: close it there too.
-      if (session?.ok)
-        void api.end(session.data.sessionId, null).catch(() => undefined);
+      if (session?.ok) closeLateSession(session.data.sessionId);
       return;
     }
-    if (!session) return this.fail(gen, 'connect_failed');
+    if (apiTimedOut || !session) {
+      if (session?.ok) closeLateSession(session.data.sessionId);
+      return this.fail(gen, 'connect_failed');
+    }
     if (!session.ok) return this.failFromApi(gen, session);
     this.abort = null;
+    if (this.transportEndingPending) {
+      await this.transportEnding.catch(() => undefined);
+      if (stale()) {
+        closeLateSession(session.data.sessionId);
+        return;
+      }
+    }
     if (gates.isForeground?.() === false) {
-      void api.end(session.data.sessionId, null).catch(() => undefined);
+      closeLateSession(session.data.sessionId);
       return this.stopForSystem(
         'The app left the screen before audio started.',
       );
@@ -453,7 +536,9 @@ export class VoiceConversationController {
     );
     this.live = live;
     // Built here, handed to native once, never stored or logged.
-    const studentContext = this.deps.getStudentContext?.() ?? '';
+    const rawContext = this.deps.getStudentContext?.() ?? '';
+    const studentContext =
+      rawContext.length > 12000 ? rawContext.slice(0, 12000) : rawContext;
     const initiation = JSON.stringify({
       type: 'conversation_initiation_client_data',
       conversation_config_override: {tts: {voice_id: session.data.voiceId}},
@@ -1346,9 +1431,13 @@ export class VoiceConversationController {
     this.live = null;
     if (live) {
       live.unsubscribe();
+      this.transportEndingPending = true;
       this.transportEnding = this.deps.transport
         .end(live.key)
-        .catch(() => false);
+        .catch(() => false)
+        .finally(() => {
+          this.transportEndingPending = false;
+        });
       void this.deps.api
         .end(live.sessionId, live.conversationId)
         .catch(() => undefined);

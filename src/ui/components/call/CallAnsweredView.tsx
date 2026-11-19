@@ -62,6 +62,53 @@ const formatCallDuration = (seconds: number): string => {
   return minutes + ':' + remainingSeconds;
 };
 
+/** How a reminder call ended: acknowledged, snoozed or missed. */
+export const CallResultView: React.FC<{resolution: CallResolution}> = ({
+  resolution,
+}) => {
+  const {colors, isModern, modernPalette} = useTheme();
+  const cardSurface = isModern ? modernPalette.card : colors.cardBg;
+  const resolutionColor =
+    resolution.outcome === 'acknowledged' ? colors.success : colors.warning;
+  const title =
+    resolution.outcome === 'acknowledged'
+      ? 'Reminder acknowledged'
+      : resolution.outcome === 'snoozed'
+      ? 'Reminder snoozed'
+      : 'Reminder missed';
+  const icon =
+    resolution.outcome === 'acknowledged' ? (
+      <Check size={40} color={resolutionColor} strokeWidth={2.4} />
+    ) : resolution.outcome === 'snoozed' ? (
+      <Clock size={38} color={resolutionColor} strokeWidth={2.2} />
+    ) : (
+      <AlertTriangle size={38} color={resolutionColor} strokeWidth={2.2} />
+    );
+
+  return (
+    <View
+      style={styles.result}
+      accessibilityLiveRegion="polite"
+      testID="reminder-call-result"
+    >
+      <View
+        style={[
+          styles.resultIcon,
+          {borderColor: resolutionColor, backgroundColor: cardSurface},
+        ]}
+      >
+        {icon}
+      </View>
+      <Text style={[styles.resultTitle, {color: resolutionColor}]}>
+        {title}
+      </Text>
+      <Text style={[styles.resultMessage, {color: colors.textSecondary}]}>
+        {resolution.message}
+      </Text>
+    </View>
+  );
+};
+
 /** Renders the answered reminder call and its result. */
 export const CallAnsweredView: React.FC<CallAnsweredViewProps> = ({
   task,
@@ -178,12 +225,6 @@ export const CallAnsweredView: React.FC<CallAnsweredViewProps> = ({
     return colors.blue;
   };
 
-  const resolutionColor =
-    resolution?.outcome === 'missed'
-      ? colors.warning
-      : resolution?.outcome === 'snoozed'
-      ? colors.warning
-      : colors.success;
   // One tap settles the call: after it, or while the call is still being set
   // up, the buttons wait instead of looking tappable and doing nothing.
   const controlsEnabled = resolution === null && !busy && !pendingAction;
@@ -280,46 +321,8 @@ export const CallAnsweredView: React.FC<CallAnsweredViewProps> = ({
     );
   };
 
-  const renderResult = (): React.ReactNode => {
-    if (!resolution) return null;
-    const title =
-      resolution.outcome === 'acknowledged'
-        ? 'Reminder acknowledged'
-        : resolution.outcome === 'snoozed'
-        ? 'Reminder snoozed'
-        : 'Reminder missed';
-    const icon =
-      resolution.outcome === 'acknowledged' ? (
-        <Check size={40} color={resolutionColor} strokeWidth={2.4} />
-      ) : resolution.outcome === 'snoozed' ? (
-        <Clock size={38} color={resolutionColor} strokeWidth={2.2} />
-      ) : (
-        <AlertTriangle size={38} color={resolutionColor} strokeWidth={2.2} />
-      );
-
-    return (
-      <View
-        style={styles.result}
-        accessibilityLiveRegion="polite"
-        testID="reminder-call-result"
-      >
-        <View
-          style={[
-            styles.resultIcon,
-            {borderColor: resolutionColor, backgroundColor: cardSurface},
-          ]}
-        >
-          {icon}
-        </View>
-        <Text style={[styles.resultTitle, {color: resolutionColor}]}>
-          {title}
-        </Text>
-        <Text style={[styles.resultMessage, {color: colors.textSecondary}]}>
-          {resolution.message}
-        </Text>
-      </View>
-    );
-  };
+  const renderResult = (): React.ReactNode =>
+    resolution ? <CallResultView resolution={resolution} /> : null;
 
   const otherSnoozeChoices = SNOOZE_CHOICES.filter(
     minutes => minutes !== snoozeMinutes,

@@ -23,7 +23,7 @@ object VoiceConversationRules {
   const val MAX_INBOUND_FRAME_CHARS = 2_000_000
   /** What may be forwarded to JavaScript per frame (transcripts, text parts). */
   const val MAX_FORWARDED_FRAME_CHARS = 64 * 1024
-  const val MAX_INITIATION_CHARS = 16 * 1024
+  const val MAX_INITIATION_CHARS = 64 * 1024
 
   /**
    * Only ElevenLabs conversation sockets over TLS. A test build that talks to a
