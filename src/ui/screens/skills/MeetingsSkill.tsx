@@ -179,6 +179,7 @@ export function MeetingsSkill({
               </SkillText>
             </View>
             <Switch
+              hitSlop={12}
               accessibilityLabel="Keep meeting audio after transcription"
               value={meetings.keepAudio}
               onValueChange={meetings.setKeepAudio}

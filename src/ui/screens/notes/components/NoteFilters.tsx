@@ -38,7 +38,11 @@ export const NoteFilters: React.FC<NoteFiltersProps> = ({
   ];
 
   return (
-    <View style={styles.filterContainer}>
+    <View
+      style={styles.filterContainer}
+      accessibilityRole="radiogroup"
+      accessibilityLabel="Filter notes"
+    >
       <ScrollView
         horizontal
         showsHorizontalScrollIndicator={false}

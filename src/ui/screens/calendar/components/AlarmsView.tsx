@@ -553,6 +553,7 @@ export const AlarmsView: React.FC<AlarmsViewProps> = ({
     }, ${alarm.enabled ? 'on' : 'off'}. Edit`;
     const switchNode = (
       <Switch
+        hitSlop={12}
         testID={`alarm-switch-${alarm.id}`}
         value={alarm.enabled}
         onValueChange={value => toggle(alarm, value)}

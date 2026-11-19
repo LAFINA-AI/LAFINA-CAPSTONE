@@ -370,6 +370,7 @@ export function PomodoroSkill({
             </SkillText>
           </View>
           <Switch
+            hitSlop={12}
             accessibilityLabel="Silence notifications while focusing"
             value={timer.silence}
             onValueChange={v => {
