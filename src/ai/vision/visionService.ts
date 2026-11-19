@@ -1,19 +1,54 @@
-import { NativeModules, Platform } from 'react-native';
-import { pick, types } from '@react-native-documents/picker';
-import { parseScannedSchedule, type ParsedScheduleResult } from './scheduleParser';
-import { parseUstpCor, type ParsedUstpCorResult } from './ustpCorParser';
+import {NativeModules, Platform} from 'react-native';
+import {pick, types} from '@react-native-documents/picker';
+import {
+  parseScannedSchedule,
+  type ParsedScheduleResult,
+} from './scheduleParser';
+import {parseUstpCor, type ParsedUstpCorResult} from './ustpCorParser';
+import {chooseCorReading} from './corExtraction';
+import type {CorPageWords, CorWord} from './corLayoutParser';
 
 interface NativeVisionModule {
   isAvailable(): Promise<boolean>;
-  takePhoto(): Promise<{ uri: string; path: string } | null>;
+  takePhoto(): Promise<{uri: string; path: string} | null>;
   recognizeText(uriString: string): Promise<{
     text: string;
     structuredText?: string;
     blockCount: number;
+    imageWidth?: number;
+    imageHeight?: number;
+    words?: CorWord[];
   }>;
+  /** Exact PDF text layer as positioned words; null when the file is not a PDF. */
+  extractPdfWords?(uriString: string): Promise<CorPageWords | null>;
 }
 
 const LafinaVision: NativeVisionModule | undefined = NativeModules.LafinaVision;
+
+/** The PDF text layer reads in about a second; past this, fall back to OCR. */
+const PDF_TEXT_TIMEOUT_MS = 15000;
+/** OCR of one page takes a few seconds; past this, the import reports a failure. */
+const OCR_TIMEOUT_MS = 60000;
+
+/** Rejects if a native call does not settle in time (a stuck call never blocks the import). */
+const withTimeout = <T>(
+  promise: Promise<T>,
+  ms: number,
+  message: string,
+): Promise<T> =>
+  new Promise<T>((resolve, reject) => {
+    const timer = setTimeout(() => reject(new Error(message)), ms);
+    promise.then(
+      value => {
+        clearTimeout(timer);
+        resolve(value);
+      },
+      error => {
+        clearTimeout(timer);
+        reject(error);
+      },
+    );
+  });
 
 export interface PhotoCaptureResult {
   uri: string;
@@ -46,7 +81,7 @@ export const visionService = {
     }
     const result = await LafinaVision.takePhoto();
     if (!result?.uri) return null;
-    return { uri: result.uri, path: result.path };
+    return {uri: result.uri, path: result.path};
   },
 
   /**
@@ -66,7 +101,10 @@ export const visionService = {
         mimeType: res.type || undefined,
       };
     } catch (err: any) {
-      if (err?.code === 'OPERATION_CANCELLED' || err?.message?.includes('cancel')) {
+      if (
+        err?.code === 'OPERATION_CANCELLED' ||
+        err?.message?.includes('cancel')
+      ) {
         return null;
       }
       throw err;
@@ -89,7 +127,10 @@ export const visionService = {
         mimeType: res.type || undefined,
       };
     } catch (err: any) {
-      if (err?.code === 'OPERATION_CANCELLED' || err?.message?.includes('cancel')) {
+      if (
+        err?.code === 'OPERATION_CANCELLED' ||
+        err?.message?.includes('cancel')
+      ) {
         return null;
       }
       throw err;
@@ -136,13 +177,49 @@ export const visionService = {
   },
 
   /**
-   * Same on-device recognition as `scanUstpCorFromUri`, also returning the
-   * recognized text so the COR review can show the original wording.
+   * Reads a USTP COR for the review flow, choosing the most trustworthy reading:
+   * the PDF's own text layer when available (exact), otherwise OCR read by
+   * column layout or as text, whichever passes more of the automatic checks.
+   * The result carries `checks` describing anything the student should verify.
    */
   extractUstpCorFromUri: async (
     uri: string,
   ): Promise<{text: string; parsed: ParsedUstpCorResult}> => {
-    const text = await visionService.recognizeCorText(uri);
-    return {text, parsed: parseUstpCor(text)};
+    if (Platform.OS === 'android' && LafinaVision?.extractPdfWords) {
+      try {
+        const pdfWords = await withTimeout(
+          LafinaVision.extractPdfWords(uri),
+          PDF_TEXT_TIMEOUT_MS,
+          'Reading the PDF text took too long.',
+        );
+        if (pdfWords && pdfWords.words.length > 0) {
+          const reading = chooseCorReading({pdfWords});
+          if (reading) return reading;
+        }
+      } catch (error) {
+        // A damaged or protected PDF still gets the OCR path below.
+        console.warn('[visionService] PDF text layer unavailable:', error);
+      }
+    }
+    if (Platform.OS !== 'android' || !LafinaVision?.recognizeText) {
+      return {text: '', parsed: parseUstpCor('')};
+    }
+    const ocr = await withTimeout(
+      LafinaVision.recognizeText(uri),
+      OCR_TIMEOUT_MS,
+      'Reading the COR took too long. Try the COR PDF from the student portal.',
+    );
+    const ocrText = (ocr?.structuredText || ocr?.text || '').trim();
+    const ocrWords: CorPageWords | null =
+      ocr?.words && ocr.words.length > 0
+        ? {
+            source: 'ocr',
+            pageWidth: ocr.imageWidth ?? 0,
+            pageHeight: ocr.imageHeight ?? 0,
+            words: ocr.words,
+          }
+        : null;
+    const reading = chooseCorReading({ocrWords, ocrText});
+    return reading ?? {text: ocrText, parsed: parseUstpCor(ocrText)};
   },
 };

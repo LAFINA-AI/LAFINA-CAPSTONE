@@ -3,6 +3,7 @@ package com.lafina.capstone
 import android.app.Activity
 import android.content.Intent
 import android.graphics.Bitmap
+import android.graphics.BitmapFactory
 import android.graphics.Color
 import android.graphics.Rect
 import android.graphics.pdf.PdfRenderer
@@ -23,6 +24,7 @@ import com.google.mlkit.vision.text.Text
 import com.google.mlkit.vision.text.TextRecognition
 import com.google.mlkit.vision.text.latin.TextRecognizerOptions
 import java.io.File
+import java.io.InputStream
 import kotlin.math.abs
 
 class LafinaVisionModule(private val reactContext: ReactApplicationContext) :
@@ -240,15 +242,91 @@ class LafinaVisionModule(private val reactContext: ReactApplicationContext) :
     }
   }
 
+  private fun openInput(uri: Uri): InputStream =
+    if (uri.scheme == "file" && !uri.path.isNullOrBlank()) {
+      File(uri.path!!).inputStream()
+    } else {
+      reactContext.contentResolver.openInputStream(uri)
+        ?: throw IllegalStateException("Could not open the selected file.")
+    }
+
+  /**
+   * Reads a PDF's own text layer as positioned words (exact, no OCR).
+   * Resolves null when the file is not a PDF; an image-only PDF resolves
+   * with no words so the caller falls back to OCR.
+   */
+  @ReactMethod
+  fun extractPdfWords(uriString: String, promise: Promise) {
+    val uri = Uri.parse(uriString)
+    if (!isPdfUri(uri, uriString)) {
+      promise.resolve(null)
+      return
+    }
+    Thread {
+      try {
+        CorPdfTextExtractor.ensureInit(reactContext)
+        val result = openInput(uri).use { CorPdfTextExtractor.extract(it) }
+        val map = Arguments.createMap()
+        map.putString("source", "pdf")
+        map.putDouble("pageWidth", result.pageWidth.toDouble())
+        map.putDouble("pageHeight", result.pageHeight.toDouble())
+        map.putInt("pageCount", result.pageCount)
+        map.putString("producer", result.producer)
+        map.putString("creator", result.creator)
+        val words = Arguments.createArray()
+        for (word in result.words) {
+          val w = Arguments.createMap()
+          w.putString("t", word.text)
+          w.putDouble("x0", word.x0.toDouble())
+          w.putDouble("y0", word.y0.toDouble())
+          w.putDouble("x1", word.x1.toDouble())
+          w.putDouble("y1", word.y1.toDouble())
+          w.putDouble("s", word.size.toDouble())
+          words.pushMap(w)
+        }
+        map.putArray("words", words)
+        promise.resolve(map)
+      } catch (e: Throwable) {
+        promise.reject("PDF_TEXT_FAILED", e.message ?: "Could not read the PDF text.", e)
+      }
+    }.start()
+  }
+
+  /**
+   * Small screenshots (e.g. a ~800 px wide COR) put the smallest COR text at a
+   * few pixels tall, below what OCR reads reliably. They are enlarged first.
+   * Large photos keep the original path (which also honors EXIF rotation).
+   */
+  private fun loadImageForOcr(uri: Uri): Pair<InputImage, IntArray> {
+    val bounds = BitmapFactory.Options().apply { inJustDecodeBounds = true }
+    openInput(uri).use { BitmapFactory.decodeStream(it, null, bounds) }
+    val width = bounds.outWidth
+    val height = bounds.outHeight
+    if (width in 1 until OCR_MIN_WIDTH && height > 0) {
+      val decoded = openInput(uri).use { BitmapFactory.decodeStream(it) }
+        ?: throw IllegalStateException("Could not decode the image.")
+      val factor = OCR_TARGET_WIDTH.toFloat() / decoded.width
+      val scaled = Bitmap.createScaledBitmap(
+        decoded,
+        OCR_TARGET_WIDTH,
+        (decoded.height * factor).toInt().coerceAtLeast(1),
+        true
+      )
+      return Pair(InputImage.fromBitmap(scaled, 0), intArrayOf(scaled.width, scaled.height))
+    }
+    val image = InputImage.fromFilePath(reactContext, uri)
+    return Pair(image, intArrayOf(image.width, image.height))
+  }
+
   @ReactMethod
   fun recognizeText(uriString: String, promise: Promise) {
     try {
       val uri = Uri.parse(uriString)
-      val image: InputImage = if (isPdfUri(uri, uriString)) {
+      val (image, size) = if (isPdfUri(uri, uriString)) {
         val pdfBitmap = renderPdfFirstPage(uri)
-        InputImage.fromBitmap(pdfBitmap, 0)
+        Pair(InputImage.fromBitmap(pdfBitmap, 0), intArrayOf(pdfBitmap.width, pdfBitmap.height))
       } else {
-        InputImage.fromFilePath(reactContext, uri)
+        loadImageForOcr(uri)
       }
       val recognizer = TextRecognition.getClient(TextRecognizerOptions.DEFAULT_OPTIONS)
 
@@ -259,6 +337,26 @@ class LafinaVisionModule(private val reactContext: ReactApplicationContext) :
           result.putString("text", visionText.text)
           result.putString("structuredText", structuredText)
           result.putInt("blockCount", visionText.textBlocks.size)
+          result.putInt("imageWidth", size[0])
+          result.putInt("imageHeight", size[1])
+          val words = Arguments.createArray()
+          for (block in visionText.textBlocks) {
+            for (line in block.lines) {
+              for (element in line.elements) {
+                val box = element.boundingBox ?: continue
+                val text = element.text.trim()
+                if (text.isEmpty()) continue
+                val w = Arguments.createMap()
+                w.putString("t", text)
+                w.putDouble("x0", box.left.toDouble())
+                w.putDouble("y0", box.top.toDouble())
+                w.putDouble("x1", box.right.toDouble())
+                w.putDouble("y1", box.bottom.toDouble())
+                words.pushMap(w)
+              }
+            }
+          }
+          result.putArray("words", words)
           promise.resolve(result)
         }
         .addOnFailureListener { e ->
@@ -271,5 +369,8 @@ class LafinaVisionModule(private val reactContext: ReactApplicationContext) :
 
   companion object {
     private const val REQUEST_IMAGE_CAPTURE = 9201
+    /** Images narrower than this are enlarged before OCR. */
+    private const val OCR_MIN_WIDTH = 1600
+    private const val OCR_TARGET_WIDTH = 2400
   }
 }
