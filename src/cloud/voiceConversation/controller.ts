@@ -124,6 +124,10 @@ const ACTIVE: ReadonlySet<ConversationPhase> = new Set([
 const MEANINGFUL = /[0-9A-Za-zÀ-ɏͰ-῿぀-￯]/;
 /** Quiet playback this long after a complete answer means it was heard to the end. */
 const PLAYBACK_SETTLE_MS = 1200;
+/** End this long before the server's limit; its clock starts at socket open. */
+const LIMIT_EARLY_MS = 5000;
+/** A remote close this close to the limit is the limit, not a dropped call. */
+const LIMIT_CLOSE_WINDOW_MS = 15_000;
 const CONVERSATION_ID = /^[A-Za-z0-9_-]{1,128}$/;
 
 export const FAILURE_MESSAGES: Record<ConversationFailureKind, string> = {
@@ -287,6 +291,9 @@ export class VoiceConversationController {
   }
   private disposed = false;
   private waitingForStudent = false;
+  /** A student turn is waiting for its answer to finish playing. */
+  private studentSpokeSinceAnswer = false;
+  private limitReason: string | null = null;
   private transportEnding: Promise<boolean> = Promise.resolve(true);
   private transportEndingPending = false;
   private personaPreferences: VoicePersonaPreferences = {
@@ -339,6 +346,8 @@ export class VoiceConversationController {
     if (this.disposed || ACTIVE.has(this.snapshot.phase)) return; // double tap
     const gen = ++this.generation;
     this.waitingForStudent = false;
+    this.studentSpokeSinceAnswer = false;
+    this.limitReason = null;
     const stale = () => gen !== this.generation || this.disposed;
     this.seen = new Set();
     this.pending = null;
@@ -606,15 +615,22 @@ export class VoiceConversationController {
       void this.sendContext(voicePreferenceContext(this.personaPreferences));
     }
     this.log('connected');
-    this.timers.set('limit', session.data.maxDurationSeconds * 1000, () => {
-      if (gen === this.generation) {
-        this.stopForSystem(
-          `The conversation reached its ${Math.round(
-            session.data.maxDurationSeconds / 60,
-          )}-minute limit. Start a new one to keep talking.`,
-        );
-      }
-    });
+    this.limitReason = `The conversation reached its ${Math.round(
+      session.data.maxDurationSeconds / 60,
+    )}-minute limit. Start a new one to keep talking.`;
+    // ElevenLabs starts its own clock when the socket opens, before audio is
+    // ready here, so end a little early and say why, instead of being cut off
+    // by the server and showing "connection closed".
+    const limitMs = session.data.maxDurationSeconds * 1000;
+    this.timers.set(
+      'limit',
+      Math.max(limitMs / 2, limitMs - LIMIT_EARLY_MS),
+      () => {
+        if (gen === this.generation && this.limitReason)
+          this.stopForSystem(this.limitReason);
+      },
+    );
+    this.studentSpokeSinceAnswer = false;
     this.resetInactivity(gen);
   };
 
@@ -862,6 +878,16 @@ export class VoiceConversationController {
         const sessionId = live?.sessionId;
         const detail = event.reason ? `: ${event.reason}` : '';
         this.log(`connection closed (code=${event.code}${detail})`);
+        const endsAt = this.snapshot.endsAt;
+        if (
+          this.limitReason &&
+          typeof endsAt === 'number' &&
+          this.clock.now() >= endsAt - LIMIT_CLOSE_WINDOW_MS
+        ) {
+          // The server's time limit, not a broken connection.
+          this.stopForSystem(this.limitReason);
+          return;
+        }
         this.stopForSystem(
           'The conversation connection closed. Start again when you are ready.',
         );
@@ -918,7 +944,6 @@ export class VoiceConversationController {
       // Audio resumed after a short underrun: the answer is not over yet.
       this.timers.clear('settle');
       this.update({phase: 'speaking'});
-      this.resetInactivity(this.generation);
       return;
     }
     if (this.silenceRequestedAt !== null) {
@@ -931,7 +956,10 @@ export class VoiceConversationController {
       this.update({outputLevel: 0});
     }
     this.settleIfHeard();
-    this.resetInactivity(this.generation);
+    // The student gets the full quiet time after hearing an answer they
+    // asked for. LAFINA speaking up on its own after a silence ("I'm still
+    // here") does not count as activity, or a silent call would never end.
+    if (this.studentSpokeSinceAnswer) this.resetInactivity(this.generation);
   }
 
   private onMessage(gen: number, data: string) {
@@ -1198,6 +1226,7 @@ export class VoiceConversationController {
       }
       this.commitAnswer();
     }
+    this.studentSpokeSinceAnswer = true;
     const id = this.provisionalUserId ?? turnId;
     this.provisionalUserId = null;
     this.upsertTurn({id, role: 'user', text: trimmed, status: 'final'});
@@ -1350,6 +1379,16 @@ export class VoiceConversationController {
     const pending = this.pending;
     if (!pending || pending.committed) return;
     pending.committed = true;
+    // The answer the student asked for is over; later speech is LAFINA's own.
+    if (
+      this.live &&
+      this.studentSpokeSinceAnswer &&
+      pending.audioStarted &&
+      !pending.interrupted
+    ) {
+      this.studentSpokeSinceAnswer = false;
+      this.resetInactivity(this.generation);
+    }
     this.timers.clear('commit');
     if (!pending.text.trim()) return;
     const heard = pending.interrupted ? 'interrupted' : 'complete';
@@ -1411,13 +1450,21 @@ export class VoiceConversationController {
 
   private resetInactivity(gen: number) {
     this.timers.set('inactive', this.limits.inactivityMs, () => {
-      if (gen === this.generation) {
-        this.stopForSystem(
-          `The conversation ended after ${Math.round(
-            this.limits.inactivityMs / 60000,
-          )} minutes without speech.`,
-        );
+      if (gen !== this.generation) return;
+      if (
+        this.snapshot.phase === 'speaking' ||
+        this.snapshot.phase === 'thinking' ||
+        this.snapshot.phase === 'tool_working'
+      ) {
+        // Never cut LAFINA off mid-answer; check again after it.
+        this.resetInactivity(gen);
+        return;
       }
+      this.stopForSystem(
+        `The conversation ended after ${Math.round(
+          this.limits.inactivityMs / 60000,
+        )} minutes without speech.`,
+      );
     });
   }
 

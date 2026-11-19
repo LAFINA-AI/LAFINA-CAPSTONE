@@ -668,12 +668,18 @@ class LafinaVoiceConversationModule(private val reactContext: ReactApplicationCo
     }
     owner.startPromise?.reject("ENDED", "The conversation ended before it started.")
     owner.startPromise = null
-    try {
-      owner.socket?.close(code, null)
-    } catch (_: Exception) {
-    }
-    owner.socket?.cancel()
+    // A graceful close, so ElevenLabs records a hang-up as a normal close
+    // (1000) and real network drops (1006) stay recognisable in its history.
+    // Cancelling right after close() aborted the handshake and every hang-up
+    // looked like a dropped connection. Late events are ignored (`ended`).
+    val socket = owner.socket
     owner.socket = null
+    val closing = try {
+      socket?.close(code, null) == true
+    } catch (_: Exception) {
+      false
+    }
+    if (!closing) socket?.cancel()
     stopCapture(owner)
     owner.queue.close()
     owner.playThread?.let {

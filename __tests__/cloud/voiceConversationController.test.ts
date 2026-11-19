@@ -654,6 +654,105 @@ describe('voice conversation controller: lifecycle', () => {
     );
   });
 
+  /** The student keeps talking (a new words turn each minute). */
+  const talkUntil = (
+    t: ReturnType<typeof setup>,
+    totalMs: number,
+  ): void => {
+    let elapsed = 0;
+    let turn = 0;
+    while (elapsed + 60_000 <= totalMs) {
+      t.clock.advance(60_000);
+      elapsed += 60_000;
+      t.message(userFinal(`Question ${++turn}`, 300 + turn));
+      t.controller.completeLocalTurn();
+    }
+    t.clock.advance(totalMs - elapsed);
+  };
+
+  it('ends just before the server limit and says why', async () => {
+    const t = setup();
+    await t.controller.start();
+    talkUntil(t, 294_000);
+    expect(t.controller.getSnapshot().phase).toBe('listening');
+    t.clock.advance(1_000);
+    expect(t.controller.getSnapshot().phase).toBe('restart_required');
+    expect(t.controller.getSnapshot().restartReason).toMatch(/5-minute limit/);
+  });
+
+  it('a server close at the time limit is reported as the limit', async () => {
+    const t = setup();
+    const {controller, emit} = t;
+    await controller.start();
+    talkUntil(t, 290_000);
+    emit({kind: 'closed', code: 1000, reason: ''});
+    expect(controller.getSnapshot().restartReason).toMatch(/5-minute limit/);
+    expect(controller.getSnapshot().restartReason).not.toMatch(
+      /connection closed/,
+    );
+  });
+
+  it('a close long before the limit is still a closed connection', async () => {
+    const {controller, clock, emit} = setup();
+    await controller.start();
+    clock.advance(60_000);
+    emit({kind: 'closed', code: 1002, reason: 'custom_llm generation failed'});
+    expect(controller.getSnapshot().restartReason).toMatch(/connection closed/);
+  });
+
+  it("LAFINA's own check-ins do not keep a silent call open", async () => {
+    const {controller, clock, emit, message} = setup();
+    await controller.start();
+    for (let i = 0; i < 3; i += 1) {
+      clock.advance(35_000);
+      // "I'm still here whenever you're ready." with no student turn.
+      message({
+        type: 'agent_response',
+        agent_response_event: {
+          agent_response: "I'm still here whenever you're ready.",
+          event_id: 50 + i,
+        },
+      });
+      emit({kind: 'playback', speaking: true});
+      clock.advance(2_000);
+      emit({kind: 'playback', speaking: false});
+      clock.advance(1_500);
+    }
+    expect(controller.getSnapshot().phase).toBe('listening');
+    clock.advance(120_000 - 3 * 38_500);
+    expect(controller.getSnapshot().restartReason).toMatch(/without speech/);
+  });
+
+  it('the quiet time restarts after the answer the student asked for', async () => {
+    const {controller, clock, emit, message} = setup();
+    await controller.start();
+    clock.advance(10_000);
+    message(userFinal('What is due tomorrow?'));
+    message({
+      type: 'agent_response',
+      agent_response_event: {agent_response: 'Your essay.', event_id: 7},
+    });
+    emit({kind: 'playback', speaking: true});
+    clock.advance(20_000);
+    emit({kind: 'playback', speaking: false});
+    clock.advance(119_000);
+    expect(controller.getSnapshot().phase).toBe('listening');
+    clock.advance(3_000);
+    expect(controller.getSnapshot().restartReason).toMatch(/without speech/);
+  });
+
+  it('the quiet-time limit never cuts LAFINA off mid-answer', async () => {
+    const {controller, clock, emit} = setup();
+    await controller.start();
+    clock.advance(110_000);
+    emit({kind: 'playback', speaking: true});
+    clock.advance(15_000);
+    expect(controller.getSnapshot().phase).toBe('speaking');
+    emit({kind: 'playback', speaking: false});
+    clock.advance(120_000);
+    expect(controller.getSnapshot().restartReason).toMatch(/without speech/);
+  });
+
   it('end is idempotent and releases everything once', async () => {
     const {controller, calls, clock} = setup();
     await controller.start();
