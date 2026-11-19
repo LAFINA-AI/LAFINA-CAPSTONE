@@ -25,6 +25,8 @@ import type {PomodoroMode, PomodoroState} from '../../../skills/studyLogic';
 import {SkillFonts, useSkillsPalette} from '../../theme/skills';
 import {Choices, SkillButton, SkillCard, SkillText, ui} from './SkillUI';
 import {SkillRing} from './SkillRing';
+import {useStorageRevision} from '../../hooks/useStorageRevision';
+const TASK_TABLES = ['tasks'] as const;
 
 interface FocusNative {
   schedule: (
@@ -57,7 +59,13 @@ export function PomodoroSkill({
   const busy = useRef(false);
   const [notice, setNotice] = useState('');
   const [pickTask, setPickTask] = useState(false);
-  const tasks = tasksStore.getAllTasks(userId).filter(t => !t.isCompleted);
+  const taskRevision = useStorageRevision(TASK_TABLES);
+  const [tasks, setTasks] = useState(() =>
+    tasksStore.getAllTasks(userId).filter(t => !t.isCompleted),
+  );
+  useEffect(() => {
+    setTasks(tasksStore.getAllTasks(userId).filter(t => !t.isCompleted));
+  }, [userId, taskRevision]);
   const save = useCallback(
     (state: PomodoroState) => {
       ref.current = state;
@@ -290,9 +298,10 @@ export function PomodoroSkill({
           accessibilityRole="button"
           accessibilityLabel="Reset timer"
           onPress={() => {
+            const current = reconcilePomodoro(ref.current, Date.now());
             void apply({
-              ...reconcilePomodoro(ref.current, Date.now()),
-              remaining: MODE_SECONDS[ref.current.mode],
+              ...current,
+              remaining: MODE_SECONDS[current.mode],
               deadline: null,
             });
           }}

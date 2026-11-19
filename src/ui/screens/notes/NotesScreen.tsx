@@ -36,14 +36,11 @@ import {
 } from './components';
 import {NoteEditor} from './components/NoteEditor';
 import {AlarmsView} from '../calendar/components/AlarmsView';
-import {
-  useSchedulePalette,
-  scheduleCardShadow,
-} from '../calendar/components/schedulePalette';
+import {scheduleCardShadow} from '../calendar/components/schedulePalette';
 import {NotesScreenProps, NotesSubTab} from './types';
 import type {NoteSnapshot} from '../../../storage';
 import {tourTargetRef} from '../../tour/tourTargets';
-import {SkillFonts} from '../../theme/skills';
+import {SkillFonts, useSkillsPalette} from '../../theme/skills';
 
 export const NotesScreen = React.memo(function NotesScreenView({
   userId,
@@ -54,10 +51,11 @@ export const NotesScreen = React.memo(function NotesScreenView({
   tourSubTab,
   initialSubTab = 'notes',
   onBackToSkills,
+  onRecordMeeting,
 }: NotesScreenProps) {
   const {colors, isModern} = useTheme();
   const insets = useSafeAreaInsets();
-  const palette = useSchedulePalette();
+  const palette = useSkillsPalette();
   const tabBarClearance = isModern
     ? ModernLayout.navbarContentHeight + Math.max(insets.bottom, 8) + 40
     : Math.max(insets.bottom, 12) + 14 + Layout.navbarHeight + 8;
@@ -305,7 +303,14 @@ export const NotesScreen = React.memo(function NotesScreenView({
   return (
     <View style={[styles.container, {backgroundColor: palette.bg}]}>
       {/* Header */}
-      <View style={styles.header}>
+      <View
+        style={styles.header}
+        ref={
+          onBackToSkills
+            ? tourTargetRef(`tools-subtab-${activeSubTab}`)
+            : undefined
+        }
+      >
         {onBackToSkills && (
           <TouchableOpacity
             accessibilityRole="button"
@@ -346,6 +351,8 @@ export const NotesScreen = React.memo(function NotesScreenView({
               onChangeText={data.setSearchQuery}
             />
             <TouchableOpacity
+              accessibilityRole="button"
+              accessibilityLabel="Clear search"
               onPress={() => {
                 data.setSearchActive(false);
                 data.setSearchQuery('');
@@ -418,15 +425,17 @@ export const NotesScreen = React.memo(function NotesScreenView({
                     ? 'todo-fab-add'
                     : 'notes-fab-add'
                 }
-                accessibilityRole={
-                  activeSubTab === 'alarms' ? 'button' : undefined
-                }
+                accessibilityRole="button"
                 accessibilityLabel={
-                  activeSubTab === 'alarms' ? 'Add alarm' : undefined
+                  activeSubTab === 'alarms'
+                    ? 'Add alarm'
+                    : activeSubTab === 'todo'
+                    ? 'Add detailed to-do'
+                    : 'Add note'
                 }
                 style={[styles.headerAddBtn, {backgroundColor: palette.accent}]}
               >
-                <Plus size={20} color="#FFFFFF" strokeWidth={2.4} />
+                <Plus size={20} color={palette.onAccent} strokeWidth={2.4} />
               </TouchableOpacity>
             </View>
           </>
@@ -602,6 +611,120 @@ export const NotesScreen = React.memo(function NotesScreenView({
             onFilterChange={data.setSelectedFilter}
             customCategories={data.customCategories}
           />
+          {onBackToSkills && (
+            <View
+              style={[
+                styles.emptyStarterRow,
+                {marginTop: 0, marginBottom: 14, flexWrap: 'wrap'},
+              ]}
+            >
+              <TouchableOpacity
+                accessibilityRole="button"
+                accessibilityLabel="Quick note"
+                style={[
+                  styles.starterChip,
+                  {
+                    minHeight: 44,
+                    borderColor: palette.border,
+                    backgroundColor: palette.card,
+                  },
+                ]}
+                onPress={data.openNewNote}
+              >
+                <Text
+                  style={{
+                    fontFamily: SkillFonts.medium,
+                    fontSize: 12,
+                    color: palette.accent,
+                  }}
+                >
+                  Quick note
+                </Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                accessibilityRole="button"
+                accessibilityLabel="New checklist"
+                style={[
+                  styles.starterChip,
+                  {
+                    minHeight: 44,
+                    borderColor: palette.border,
+                    backgroundColor: palette.card,
+                  },
+                ]}
+                onPress={() => {
+                  data.openNewNote();
+                  data.setNoteBody('- [ ] ');
+                  data.setSelection({start: 6, end: 6});
+                }}
+              >
+                <Text
+                  style={{
+                    fontFamily: SkillFonts.medium,
+                    fontSize: 12,
+                    color: palette.accent,
+                  }}
+                >
+                  Checklist
+                </Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                accessibilityRole="button"
+                accessibilityLabel="Lecture note template"
+                style={[
+                  styles.starterChip,
+                  {
+                    minHeight: 44,
+                    borderColor: palette.border,
+                    backgroundColor: palette.card,
+                  },
+                ]}
+                onPress={() => {
+                  data.openNewNote();
+                  data.setNoteTitle('Lecture notes');
+                  data.setNoteCategory('Learning');
+                  data.setNoteBody(
+                    '## Key points\n\n## Questions\n\n## Next steps\n- [ ] ',
+                  );
+                }}
+              >
+                <Text
+                  style={{
+                    fontFamily: SkillFonts.medium,
+                    fontSize: 12,
+                    color: palette.accent,
+                  }}
+                >
+                  Lecture
+                </Text>
+              </TouchableOpacity>
+              {onRecordMeeting && (
+                <TouchableOpacity
+                  accessibilityRole="button"
+                  accessibilityLabel="Record a meeting"
+                  style={[
+                    styles.starterChip,
+                    {
+                      minHeight: 44,
+                      borderColor: palette.border,
+                      backgroundColor: palette.card,
+                    },
+                  ]}
+                  onPress={onRecordMeeting}
+                >
+                  <Text
+                    style={{
+                      fontFamily: SkillFonts.medium,
+                      fontSize: 12,
+                      color: palette.accent,
+                    }}
+                  >
+                    Record
+                  </Text>
+                </TouchableOpacity>
+              )}
+            </View>
+          )}
 
           {data.indexing && (
             <Text

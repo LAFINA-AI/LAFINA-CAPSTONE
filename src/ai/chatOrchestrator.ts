@@ -332,7 +332,7 @@ const readDay = (userId: string, date: string): PlannerWindow => {
  * plainly that the online answer is missing and that offline tools still work.
  */
 export const describeOnlineChatFailure = (status: string): string => {
-  const offlineNote = ' Your offline scheduling tools are still available.';
+  const offlineNote = ' Your offline scheduling features are still available.';
   switch (status) {
     case 'auth_required':
       return (

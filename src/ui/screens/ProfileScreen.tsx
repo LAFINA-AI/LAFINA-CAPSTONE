@@ -400,7 +400,7 @@ export const ProfileScreen = React.memo(function ProfileScreenView({
       Alert.alert(
         'Developer Mode',
         next
-          ? 'Developer Mode enabled! Test triggers and developer tools are now visible.'
+          ? 'Developer Mode enabled! Test triggers and developer options are now visible.'
           : 'Developer Mode disabled.',
       );
     }

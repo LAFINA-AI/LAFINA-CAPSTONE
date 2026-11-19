@@ -6,13 +6,37 @@ import {useScreenActive} from '../../navigation/RetainedTab';
 import {useSkillsPalette} from '../../theme/skills';
 import {SkillsHub, SKILLS} from './SkillsHub';
 import type {SkillRoute} from './SkillsHub';
-import {SkillButton, SkillPage, SkillText, ui} from './SkillUI';
+import {SkillButton, SkillPage, ui} from './SkillUI';
+import {PomodoroSkill} from './PomodoroSkill';
+import {FlashcardsSkill} from './FlashcardsSkill';
+import {GwaSkill} from './GwaSkill';
+import {QuizSkill} from './QuizSkill';
+import {SummarizerSkill} from './SummarizerSkill';
+import {DocGenSkill} from './DocGenSkill';
+import {MeetingsSkill} from './MeetingsSkill';
+import {MeetingsProvider} from '../../contexts/MeetingsContext';
 
 /** The persisted root route stays `notes`; Skills is its new visible name. */
 export function SkillsScreen(props: NotesScreenProps) {
+  return (
+    <MeetingsProvider
+      key={props.userId}
+      userId={props.userId}
+      syncRevision={props.refreshTrigger}
+    >
+      <SkillsContent {...props} />
+    </MeetingsProvider>
+  );
+}
+function SkillsContent(props: NotesScreenProps) {
   const p = useSkillsPalette();
   const active = useScreenActive();
   const [route, setRoute] = useState<SkillRoute>('hub');
+  const onPageChange = props.onSkillsPageChange;
+  useEffect(() => {
+    onPageChange?.(active && route !== 'hub');
+    return () => onPageChange?.(false);
+  }, [active, route, onPageChange]);
   const [request, setRequest] = useState(props.openRequest);
   const beforeTour = useRef<SkillRoute>('hub');
   const wasTour = useRef(false);
@@ -88,6 +112,7 @@ export function SkillsScreen(props: NotesScreenProps) {
           {...props}
           initialSubTab={route as NotesSubTab}
           onBackToSkills={back}
+          onRecordMeeting={() => setRoute('meetings')}
           openRequest={request}
           onOpenRequestHandled={id => {
             setRequest(undefined);
@@ -113,9 +138,53 @@ export function SkillsScreen(props: NotesScreenProps) {
                 onPress={() => setRoute(s.id)}
               />
             ))
-          ) : (
-            <SkillText>Preparing this skill.</SkillText>
-          )}
+          ) : route === 'pomodoro' ? (
+            <PomodoroSkill
+              userId={props.userId}
+              onOpenTodo={id => {
+                if (id)
+                  setRequest({
+                    requestId: `focus-${Date.now()}`,
+                    ownerId: props.userId,
+                    screen: 'notes',
+                    entityKind: 'task',
+                    entityId: id,
+                  });
+                setRoute('todo');
+              }}
+            />
+          ) : route === 'flashcards' ? (
+            <FlashcardsSkill
+              userId={props.userId}
+              onQuiz={() => setRoute('quiz')}
+            />
+          ) : route === 'gwa' ? (
+            <GwaSkill userId={props.userId} />
+          ) : route === 'quiz' ? (
+            <QuizSkill
+              userId={props.userId}
+              onFlashcards={() => setRoute('flashcards')}
+              onNote={id => {
+                setRequest({
+                  requestId: `quiz-${Date.now()}`,
+                  ownerId: props.userId,
+                  screen: 'notes',
+                  entityKind: 'note',
+                  entityId: id,
+                });
+                setRoute('notes');
+              }}
+            />
+          ) : route === 'summarizer' ? (
+            <SummarizerSkill
+              userId={props.userId}
+              onFlashcards={() => setRoute('flashcards')}
+            />
+          ) : route === 'meetings' ? (
+            <MeetingsSkill userId={props.userId} onSaved={props.onRefresh} />
+          ) : route === 'docgen' ? (
+            <DocGenSkill userId={props.userId} />
+          ) : null}
         </SkillPage>
       )}
     </View>

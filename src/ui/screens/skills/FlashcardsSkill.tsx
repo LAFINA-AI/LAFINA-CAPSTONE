@@ -3,6 +3,7 @@ import {
   Alert,
   Animated,
   Easing,
+  ScrollView,
   Text,
   TouchableOpacity,
   View,
@@ -267,7 +268,7 @@ export function FlashcardsSkill({
                   left: 0,
                   right: 0,
                   borderRadius: 28,
-                  backgroundColor: back ? p.surface : p.card,
+                  backgroundColor: back ? p.darkInkBtn : p.card,
                   borderWidth: 1,
                   borderColor: p.border,
                   padding: 24,
@@ -281,26 +282,42 @@ export function FlashcardsSkill({
                     fontFamily: SkillFonts.semibold,
                     fontSize: 12,
                     letterSpacing: 1.2,
-                    color: p.accent,
+                    color: back ? '#FFFFFF' : p.accent,
                   }}
                 >
                   {back ? 'ANSWER' : 'QUESTION'}
                 </Text>
+                <ScrollView
+                  style={ui.fill}
+                  contentContainerStyle={{
+                    flexGrow: 1,
+                    justifyContent: 'center',
+                    paddingVertical: 16,
+                  }}
+                  nestedScrollEnabled
+                >
+                  <Text
+                    style={{
+                      fontFamily: SkillFonts.semibold,
+                      fontSize: back ? 22 : 26,
+                      lineHeight: 34,
+                      color: back ? '#FFFFFF' : p.text,
+                    }}
+                  >
+                    {back ? queue[index].answer : queue[index].question}
+                  </Text>
+                </ScrollView>
                 <Text
                   style={{
-                    fontFamily: SkillFonts.semibold,
-                    fontSize: back ? 22 : 26,
-                    lineHeight: 34,
-                    color: p.text,
+                    fontFamily: SkillFonts.body,
+                    fontSize: 13,
+                    color: back ? '#FFFFFF' : p.muted,
                   }}
                 >
-                  {back ? queue[index].answer : queue[index].question}
-                </Text>
-                <SkillText muted size={13}>
                   {back
                     ? 'How well did you remember?'
                     : 'Tap to reveal the answer'}
-                </SkillText>
+                </Text>
               </View>
             ))}
           </Animated.View>

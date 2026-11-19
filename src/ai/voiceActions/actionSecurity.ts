@@ -29,7 +29,7 @@ export function isToolExecutionPermitted(userId: string): ToolPermissionResult {
   if (userStore.isGuest(userId)) {
     return {
       permitted: false,
-      reason: 'Guest accounts cannot execute cloud tools. Please sign in.',
+      reason: 'Guest accounts cannot execute cloud actions. Please sign in.',
     };
   }
 
@@ -37,7 +37,7 @@ export function isToolExecutionPermitted(userId: string): ToolPermissionResult {
   try {
     session = userStore.getActiveSessionToken();
   } catch {
-    return {permitted: false, reason: 'Sign in before using assistant tools.'};
+    return {permitted: false, reason: 'Sign in before using assistant actions.'};
   }
   if (!session || !session.accessToken || session.userId !== userId) {
     return {
@@ -53,7 +53,7 @@ export function isToolExecutionPermitted(userId: string): ToolPermissionResult {
     return {
       permitted: false,
       reason:
-        'Data consent is required. Please review the data disclosure before using tools.',
+        'Data consent is required. Please review the data disclosure before using assistant actions.',
     };
   }
 

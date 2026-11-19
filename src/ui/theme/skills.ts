@@ -1,6 +1,7 @@
-import {useSchedulePalette} from '../screens/calendar/components/schedulePalette';
+import {useThemedStyles} from './createThemedStyles';
+import type {ThemedStyleMeta} from './createThemedStyles';
+import type {ThemeColors} from './palettes';
 import {mixColors} from './colorMix';
-import {useMemo} from 'react';
 
 /** Reference dimensions are dp; colors follow the active app palette. */
 export const SkillFonts = {
@@ -29,42 +30,56 @@ export const skillContrast = (a: string, b: string) => {
     y = luminance(b);
   return (Math.max(x, y) + 0.05) / (Math.min(x, y) + 0.05);
 };
-export function skillInk(color: string, background: string): string {
-  if (skillContrast(color, background) >= 4.5) return color;
-  const target = luminance(background) > 0.18 ? '#000000' : '#FFFFFF';
+export function skillInk(
+  color: string,
+  background: string | readonly string[],
+): string {
+  const backgrounds =
+    typeof background === 'string' ? [background] : background;
+  const readable = (ink: string) =>
+    backgrounds.every(bg => skillContrast(ink, bg) >= 4.5);
+  if (readable(color)) return color;
+  const target = luminance(backgrounds[0]) > 0.18 ? '#000000' : '#FFFFFF';
   for (let i = 1; i <= 20; i++) {
     const next = mixColors(target, color, i / 20);
-    if (skillContrast(next, background) >= 4.5) return next;
+    if (readable(next)) return next;
   }
   return target;
 }
-export function useSkillsPalette() {
-  const palette = useSchedulePalette();
-  const {
-    bg,
-    card,
-    surface,
-    text,
-    muted,
-    accent,
-    border,
-    peach,
-    mint,
-    blueSoft,
-    mintInk,
-    peachInk,
-    dangerSoft,
-    danger,
-    isDarkMode,
-  } = palette;
-  return useMemo(() => {
-    const action = skillInk(accent, card);
-    return {
+function getSkillsStyles(
+  colors: ThemeColors,
+  isDarkMode: boolean,
+  modern: ThemedStyleMeta,
+) {
+  const m = modern.modernPalette;
+  const bg = modern.isModern ? m.bg : colors.background;
+  const card = modern.isModern ? m.card : colors.cardBg;
+  const surface = modern.isModern ? m.surface : colors.divider;
+  const text = modern.isModern ? m.text : colors.textPrimary;
+  const muted = modern.isModern ? m.muted : colors.textSecondary;
+  const accent = modern.isModern ? m.accent : colors.primary;
+  const border = modern.isModern ? m.border : colors.border;
+  const peach = modern.isModern || !isDarkMode ? m.peach : colors.cardBg;
+  const mint = modern.isModern || !isDarkMode ? m.mint : colors.cardBg;
+  const blueSoft = modern.isModern || !isDarkMode ? m.blueSoft : colors.cardBg;
+  const mintInk = m.mintInk,
+    peachInk = m.peachInk;
+  const dangerSoft = modern.isModern
+    ? m.dangerSoft
+    : isDarkMode
+    ? colors.cardBg
+    : m.dangerSoft;
+  const danger = colors.error;
+
+  const backgrounds = [card, surface, bg];
+  const action = skillInk(accent, backgrounds);
+  return {
+    palette: {
       bg,
       card,
       surface,
-      text,
-      muted: skillInk(muted, card),
+      text: skillInk(text, backgrounds),
+      muted: skillInk(muted, backgrounds),
       accent: action,
       onAccent: skillContrast('#FFFFFF', action) >= 4.5 ? '#FFFFFF' : '#14142B',
       darkInkBtn: mixColors(accent, '#121022', 0.2),
@@ -72,27 +87,14 @@ export function useSkillsPalette() {
       peach,
       mint,
       blueSoft,
-      mintInk: skillInk(mintInk, card),
-      peachInk: skillInk(peachInk, card),
+      mintInk: skillInk(mintInk, backgrounds),
+      peachInk: skillInk(peachInk, backgrounds),
       dangerSoft,
-      danger: skillInk(danger, card),
+      danger: skillInk(danger, backgrounds),
       isDarkMode,
-    };
-  }, [
-    bg,
-    card,
-    surface,
-    text,
-    muted,
-    accent,
-    border,
-    peach,
-    mint,
-    blueSoft,
-    mintInk,
-    peachInk,
-    dangerSoft,
-    danger,
-    isDarkMode,
-  ]);
+    },
+  };
+}
+export function useSkillsPalette() {
+  return useThemedStyles(getSkillsStyles).palette;
 }

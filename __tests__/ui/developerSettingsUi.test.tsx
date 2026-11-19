@@ -199,7 +199,7 @@ describe('Developer Settings UI & Triggers', () => {
     );
 
     // Initial Tab: Alarms & Calls
-    expect(modal.getByText('Developer Tools')).toBeTruthy();
+    expect(modal.getByText('Developer options')).toBeTruthy();
     expect(modal.getByText('Trigger Incoming Call Now')).toBeTruthy();
     expect(modal.getByText('Android Alarm Permissions')).toBeTruthy();
 
@@ -220,7 +220,7 @@ describe('Developer Settings UI & Triggers', () => {
     expect(modal.getByTestId('dev-reset-from-onboarding')).toBeTruthy();
 
     // Close button
-    fireEvent.press(modal.getByLabelText('Close developer tools'));
+    fireEvent.press(modal.getByLabelText('Close developer options'));
     expect(onClose).toHaveBeenCalled();
 
     modal.unmount();

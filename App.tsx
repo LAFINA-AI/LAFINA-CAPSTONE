@@ -167,6 +167,7 @@ function AppContent({
   const [isOnboarding, setIsOnboarding] = useState(false);
   const [isOnboardingReplay, setIsOnboardingReplay] = useState(false);
   const [activeTab, setActiveTab] = useState<TabType>('dashboard');
+  const [skillsPageOpen, setSkillsPageOpen] = useState(false);
   useLayoutEffect(() => finishTabSwitch(activeTab), [activeTab]);
 
   const [tourOpen, setTourOpen] = useState(false);
@@ -908,6 +909,7 @@ function AppContent({
       case 'notes':
         return (
           <NotesScreen
+            onSkillsPageChange={setSkillsPageOpen}
             onOpenRequestHandled={finishOpenRequest}
             openRequest={
               callNavigation?.ownerId === userId &&
@@ -1113,7 +1115,7 @@ function AppContent({
         ))}
       </View>
 
-      {!isKeyboardVisible && (
+      {!isKeyboardVisible && !(activeTab === 'notes' && skillsPageOpen) && (
         <CustomTabBar
           activeTab={activeTab}
           onTabPress={tab => {

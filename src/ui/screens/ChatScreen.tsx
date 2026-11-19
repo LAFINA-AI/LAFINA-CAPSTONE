@@ -1974,7 +1974,7 @@ export const ChatScreen = React.memo(function ChatScreenView({
           ]}
           onPress={() => setHistoryVisible(true)}
           accessibilityRole="button"
-          accessibilityLabel="Open chats, USTP Handbook, and tools sidebar"
+          accessibilityLabel="Open chats, USTP Handbook, and skills sidebar"
           testID="chat-history-button"
         >
           <Menu size={20} color={themed.headerTitle.color} strokeWidth={2.2} />

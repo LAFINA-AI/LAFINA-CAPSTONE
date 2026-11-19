@@ -1,4 +1,5 @@
-import React, {useState} from 'react';
+import React, {useEffect, useState} from 'react';
+import NetInfo from '@react-native-community/netinfo';
 import {NativeModules, TouchableOpacity, View} from 'react-native';
 import RNFS from 'react-native-fs';
 import {notesQueryStore} from '../../../storage/notesQueryStore';
@@ -6,6 +7,9 @@ import type {NoteSnapshot} from '../../../storage/notesEditStore';
 import {noteBodyToMarkdown} from '../../../utils';
 import {pickDocument} from '../../components/tools/files';
 import {useSkillsPalette} from '../../theme/skills';
+import {SKILLS_CAPABILITIES} from '../../../skills/skillsCapabilities';
+import {localSettingsStore} from '../../../storage/localSettingsStore';
+import {STUDY_OFFLINE_MESSAGE} from '../../../skills/studyAi';
 import {
   Choices,
   SkillButton,
@@ -19,6 +23,7 @@ export interface SkillSource {
   text: string;
   label: string;
   noteId?: string;
+  notes?: Array<{id: string; title: string; text: string}>;
 }
 export function SourcePicker({
   userId,
@@ -30,6 +35,16 @@ export function SourcePicker({
   onChange: (source: SkillSource) => void;
 }) {
   const p = useSkillsPalette();
+  const [connected, setConnected] = useState(true);
+  useEffect(
+    () =>
+      NetInfo.addEventListener(state =>
+        setConnected(
+          state.isConnected !== false && state.isInternetReachable !== false,
+        ),
+      ),
+    [],
+  );
   const [mode, setMode] = useState<'From notes' | 'Paste text' | 'Upload file'>(
     'From notes',
   );
@@ -37,6 +52,33 @@ export function SourcePicker({
   const [cursor, setCursor] = useState<string | null>(null);
   const [loaded, setLoaded] = useState(false);
   const [error, setError] = useState('');
+  const selectedNotes =
+    source.notes ??
+    (source.noteId
+      ? [{id: source.noteId, title: source.label, text: source.text}]
+      : []);
+  const selectNote = (note: NoteSnapshot) => {
+    const next = selectedNotes.some(n => n.id === note.id)
+      ? selectedNotes.filter(n => n.id !== note.id)
+      : [
+          ...selectedNotes,
+          {id: note.id, title: note.title, text: noteBodyToMarkdown(note.body)},
+        ];
+    const text = next.map(n => `## ${n.title}\n${n.text}`).join('\n\n');
+    if (text.length > 12000) {
+      setError(
+        'Choose fewer notes or paste an excerpt: sources can contain up to 12,000 characters.',
+      );
+      return;
+    }
+    setError('');
+    onChange({
+      text,
+      label: next.map(n => n.title).join(', '),
+      notes: next,
+      ...(next.length === 1 ? {noteId: next[0].id} : {}),
+    });
+  };
   const load = (more = false) => {
     try {
       const page = notesQueryStore.page({
@@ -107,6 +149,12 @@ export function SourcePicker({
   };
   return (
     <>
+      {(!connected ||
+        localSettingsStore.get(userId, 'chat.onlineMode') !== 'true') && (
+        <SkillText muted size={12}>
+          {STUDY_OFFLINE_MESSAGE}
+        </SkillText>
+      )}
       <Choices
         label="Source"
         values={['From notes', 'Paste text', 'Upload file'] as const}
@@ -132,22 +180,23 @@ export function SourcePicker({
             <TouchableOpacity
               accessibilityRole="checkbox"
               accessibilityLabel={n.title}
-              accessibilityState={{checked: source.noteId === n.id}}
+              accessibilityState={{
+                checked: selectedNotes.some(note => note.id === n.id),
+              }}
               key={n.id}
-              onPress={() =>
-                onChange({
-                  noteId: n.id,
-                  label: n.title,
-                  text: noteBodyToMarkdown(n.body),
-                })
-              }
+              onPress={() => selectNote(n)}
             >
               <SkillCard
                 style={{
-                  borderColor: source.noteId === n.id ? p.accent : p.border,
+                  borderColor: selectedNotes.some(note => note.id === n.id)
+                    ? p.accent
+                    : p.border,
                 }}
               >
-                <SkillText strong>{n.title}</SkillText>
+                <SkillText strong>
+                  {selectedNotes.some(note => note.id === n.id) ? '✓ ' : ''}
+                  {n.title}
+                </SkillText>
                 <SkillText muted size={12}>
                   {n.category || 'Note'}
                 </SkillText>
@@ -186,6 +235,12 @@ export function SourcePicker({
             Text, Markdown, CSV and text-based PDF · up to 5 MB. Scanned files
             need pasted text.
           </SkillText>
+          {!SKILLS_CAPABILITIES.docxSourceExtraction && (
+            <SkillText muted size={12}>
+              Word uploads are not available yet. Choose text or a text-based
+              PDF.
+            </SkillText>
+          )}
         </>
       )}
       {!!source.text && (

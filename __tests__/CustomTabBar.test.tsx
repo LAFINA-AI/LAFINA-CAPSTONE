@@ -48,7 +48,7 @@ describe('CustomTabBar (Phase 03 Modern Curved SVG + Classic Pill)', () => {
     fireEvent.press(ui.getByLabelText('AI tab'));
     expect(onTabPress).toHaveBeenCalledWith('chat');
 
-    fireEvent.press(ui.getByLabelText('Tools tab'));
+    fireEvent.press(ui.getByLabelText('Skills tab'));
     expect(onTabPress).toHaveBeenCalledWith('notes');
 
     fireEvent.press(ui.getByLabelText('Profile tab'));

@@ -99,6 +99,8 @@ export interface QuizQuestion {
   correct: number;
   explanation: string;
   source: string;
+  sourceNoteId?: string;
+  sourceLabel?: string;
 }
 export async function quizFromSource(
   owner: string,
@@ -111,6 +113,8 @@ export async function quizFromSource(
     `Create exactly ${count} ${type} quiz questions. Return only JSON: {"questions":[{"question":"...","options":["..."],"correct":0,"explanation":"...","source":"a short verbatim supporting quote"}]}. correct is the zero-based option index. ${
       type === 'True / False'
         ? 'Exactly two options: True and False.'
+        : type === 'Mixed'
+        ? 'Mix true/false questions (two options) with multiple-choice questions (four options).'
         : 'Exactly four options per question.'
     }`,
     source,
@@ -124,7 +128,9 @@ export async function quizFromSource(
       typeof q.question !== 'string' ||
       !q.question.trim() ||
       !Array.isArray(q.options) ||
-      q.options.length !== (type === 'True / False' ? 2 : 4) ||
+      (type === 'Mixed'
+        ? ![2, 4].includes(q.options.length)
+        : q.options.length !== (type === 'True / False' ? 2 : 4)) ||
       q.options.some((o: unknown) => typeof o !== 'string' || !o.trim()) ||
       !Number.isInteger(q.correct) ||
       q.correct < 0 ||

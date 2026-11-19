@@ -1,3 +1,5 @@
+import {alarmsStore} from '../../../storage/alarmsStore';
+import {useTodoData} from '../notes/hooks/useTodoData';
 import React, {useEffect, useState} from 'react';
 import {
   Alert,
@@ -31,7 +33,6 @@ import {db, notesQueryStore} from '../../../storage';
 import {escapeLike} from '../../../storage/notesQueryStore';
 import {readSkillState, writeSkillState} from '../../../skills/skillsState';
 import {SkillFonts, useSkillsPalette} from '../../theme/skills';
-import {tourTargetRef} from '../../tour/tourTargets';
 import {Entry, SkillButton, SkillCard, SkillText, ui} from './SkillUI';
 
 export type SkillRoute =
@@ -86,6 +87,7 @@ export const SKILLS = [
     icon: Sparkles,
   },
 ] as const;
+const noRefresh = () => {};
 const ESSENTIALS = [
   {id: 'alarms', title: 'Alarms', icon: AlarmClock},
   {id: 'todo', title: 'To-do', icon: CheckCheck},
@@ -103,6 +105,13 @@ export function SkillsHub({
   onEntity: (kind: 'task' | 'note', id: string) => void;
 }) {
   const p = useSkillsPalette();
+  const todo = useTodoData({
+    userId,
+    refreshTrigger,
+    enabled: false,
+    searchQuery: '',
+    onRefresh: noRefresh,
+  });
   const [query, setQuery] = useState('');
   const [edit, setEdit] = useState(false);
   const [order, setOrder] = useState<string[]>(() =>
@@ -134,7 +143,7 @@ export function SkillsHub({
             ).rows[0]?.count ?? 0,
           );
         setCounts({
-          alarms: count('alarms', 'AND enabled = 1'),
+          alarms: alarmsStore.list(userId).filter(a => a.enabled).length,
           todo: count('tasks', 'AND is_completed = 0'),
           notes: count('notes'),
         });
@@ -193,11 +202,15 @@ export function SkillsHub({
           .toLowerCase()
           .includes(query.toLowerCase()),
       )
-    : ordered.filter(s => s.id !== 'docgen').slice(0, 6);
+    : ordered
+        .filter(s => s.id !== 'docgen' || pinned.includes(s.id))
+        .slice(0, 6);
   const save = (nextOrder: string[], nextPins: string[]) => {
     try {
-      writeSkillState(userId, 'order', nextOrder);
-      writeSkillState(userId, 'pins', nextPins);
+      db.transactionSync(() => {
+        writeSkillState(userId, 'order', nextOrder);
+        writeSkillState(userId, 'pins', nextPins);
+      });
       setOrder(nextOrder);
       setPinned(nextPins);
     } catch (e) {
@@ -219,7 +232,7 @@ export function SkillsHub({
         keyboardShouldPersistTaps="handled"
         contentContainerStyle={styles.content}
       >
-        <Entry>
+        <Entry duration={550}>
           <View style={ui.between}>
             <Text
               accessibilityRole="header"
@@ -238,7 +251,7 @@ export function SkillsHub({
             </TouchableOpacity>
           </View>
         </Entry>
-        <Entry delay={30}>
+        <Entry duration={550} delay={30}>
           <View style={[styles.search, {backgroundColor: p.surface}]}>
             <Search size={18} color={p.muted} />
             <TextInput
@@ -258,7 +271,6 @@ export function SkillsHub({
           ).map((s, i) => (
             <Entry key={s.id} delay={60 + i * 30} style={ui.fill}>
               <TouchableOpacity
-                ref={tourTargetRef(`tools-subtab-${s.id}`)}
                 testID={`skills-open-${s.id}`}
                 accessibilityRole="button"
                 accessibilityLabel={`Open ${s.title}`}
@@ -288,7 +300,7 @@ export function SkillsHub({
                       ? `${counts.alarms} on`
                       : 'None on'
                     : s.id === 'todo'
-                    ? `${counts.todo} open`
+                    ? `${todo.pendingCount} open`
                     : `${counts.notes} notes`}
                 </SkillText>
               </TouchableOpacity>
@@ -296,7 +308,7 @@ export function SkillsHub({
           ))}
         </View>
         {!query && (
-          <Entry delay={150}>
+          <Entry duration={550} delay={150}>
             <TouchableOpacity
               accessibilityRole="button"
               accessibilityLabel="Create with LAFINA: slides, document or PDF"
@@ -317,13 +329,13 @@ export function SkillsHub({
                   ))}
                 </View>
                 <View style={[styles.arrow, {backgroundColor: p.accent}]}>
-                  <ArrowRight size={20} color="#FFFFFF" />
+                  <ArrowRight size={20} color={p.onAccent} />
                 </View>
               </View>
             </TouchableOpacity>
           </Entry>
         )}
-        <Entry delay={200}>
+        <Entry duration={550} delay={200}>
           <View style={[ui.between, ui.section]}>
             <SkillText strong size={17}>
               {query ? 'Skills' : 'Study skills'}

@@ -42,7 +42,7 @@ import {
   openNotificationSettings,
 } from '../../../../scheduler/reminderAlarm';
 import {AlarmEditorModal} from './AlarmEditorModal';
-import {SkillFonts} from '../../../theme/skills';
+import {SkillFonts, useSkillsPalette} from '../../../theme/skills';
 
 if (
   Platform.OS === 'android' &&
@@ -337,7 +337,10 @@ export const AlarmsView: React.FC<AlarmsViewProps> = ({
   skillsPresentation = false,
 }) => {
   const {colors, modernPalette} = useTheme();
-  const palette = useSchedulePalette();
+  const schedulePalette = useSchedulePalette();
+  const skillsPalette = useSkillsPalette();
+  const palette = skillsPresentation ? skillsPalette : schedulePalette;
+  const [selectedDay, setSelectedDay] = useState<number | null>(null);
   const reducedMotion = useReducedMotion();
   const insets = useSafeAreaInsets();
   const scrollBottomPad = Math.max(insets.bottom, 16) + 96;
@@ -615,7 +618,22 @@ export const AlarmsView: React.FC<AlarmsViewProps> = ({
         </TouchableOpacity>
       </View>
     ) : (
-      <View style={[styles.alarmCard, cardSurfaceStyle]}>
+      <View
+        style={[
+          styles.alarmCard,
+          cardSurfaceStyle,
+          skillsPresentation && {
+            backgroundColor: 'transparent',
+            borderRadius: 0,
+            borderWidth: 0,
+            borderBottomWidth: 1,
+            borderColor: palette.border,
+            paddingHorizontal: 0,
+            shadowOpacity: 0,
+            elevation: 0,
+          },
+        ]}
+      >
         <TouchableOpacity
           testID={`alarm-row-${alarm.id}`}
           style={styles.rowText}
@@ -750,17 +768,29 @@ export const AlarmsView: React.FC<AlarmsViewProps> = ({
             </View>
             <View style={styles.skillWeek}>
               {weekColumns.map(col => (
-                <View
+                <TouchableOpacity
                   key={col.dayLabel}
+                  accessibilityRole="button"
+                  accessibilityState={{
+                    selected: selectedDay === col.dayDate.getDay(),
+                  }}
+                  onPress={() =>
+                    setSelectedDay(previous =>
+                      previous === col.dayDate.getDay()
+                        ? null
+                        : col.dayDate.getDay(),
+                    )
+                  }
                   accessibilityLabel={`${col.dayLabel}${
                     col.isToday ? ', today' : ''
                   }${col.hasAlarm ? ', alarm scheduled' : ''}`}
                   style={[
                     styles.skillDay,
                     {
-                      backgroundColor: col.isToday
-                        ? palette.accent
-                        : palette.surface,
+                      backgroundColor:
+                        selectedDay === col.dayDate.getDay()
+                          ? palette.accent
+                          : palette.surface,
                     },
                   ]}
                 >
@@ -768,7 +798,10 @@ export const AlarmsView: React.FC<AlarmsViewProps> = ({
                     style={{
                       fontFamily: SkillFonts.medium,
                       fontSize: 12,
-                      color: col.isToday ? '#FFFFFF' : palette.muted,
+                      color:
+                        selectedDay === col.dayDate.getDay()
+                          ? skillsPalette.onAccent
+                          : palette.muted,
                     }}
                   >
                     {col.dayLabel}
@@ -785,7 +818,7 @@ export const AlarmsView: React.FC<AlarmsViewProps> = ({
                         : palette.border,
                     }}
                   />
-                </View>
+                </TouchableOpacity>
               ))}
             </View>
           </>
@@ -969,7 +1002,9 @@ export const AlarmsView: React.FC<AlarmsViewProps> = ({
 
         <View style={styles.sectionHeaderRow}>
           <Text style={[styles.sectionLabel, {color: palette.text}]}>
-            All alarms
+            {skillsPresentation && selectedDay !== null
+              ? `${SHORT_WEEKDAYS[selectedDay]} alarms`
+              : 'All alarms'}
           </Text>
           {!showHeader && (
             <Text style={[styles.headerSubtitle, {color: palette.muted}]}>
@@ -995,9 +1030,30 @@ export const AlarmsView: React.FC<AlarmsViewProps> = ({
         ) : (
           <View
             testID="alarms-list"
-            style={effectiveIsGridView ? styles.alarmsGrid : styles.alarmsList}
+            style={[
+              effectiveIsGridView ? styles.alarmsGrid : styles.alarmsList,
+              skillsPresentation &&
+                !effectiveIsGridView && {
+                  backgroundColor: palette.card,
+                  borderRadius: 20,
+                  borderWidth: 1,
+                  borderColor: palette.border,
+                  paddingHorizontal: 16,
+                },
+            ]}
           >
-            {alarms.map(renderAlarmItem)}
+            {alarms
+              .filter(
+                alarm =>
+                  !skillsPresentation ||
+                  selectedDay === null ||
+                  (alarm.repeatDays > 0 &&
+                    (alarm.repeatDays & (1 << (selectedDay + 6) % 7)) !== 0) ||
+                  (alarm.repeatDays === 0 &&
+                    new Date(`${alarm.oneShotDate}T12:00:00`).getDay() ===
+                      selectedDay),
+              )
+              .map(renderAlarmItem)}
           </View>
         )}
       </ScrollView>

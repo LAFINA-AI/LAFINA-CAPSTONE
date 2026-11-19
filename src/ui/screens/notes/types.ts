@@ -16,5 +16,7 @@ export interface NotesScreenProps {
   tourSubTab?: NotesSubTab;
   initialSubTab?: NotesSubTab;
   onBackToSkills?: () => void;
+  onSkillsPageChange?: (open: boolean) => void;
+  onRecordMeeting?: () => void;
   onRefresh: () => void;
 }
