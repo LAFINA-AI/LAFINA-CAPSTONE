@@ -30,6 +30,7 @@ import {
 } from 'react-native';
 import RNFS from 'react-native-fs';
 import {PreferencesSettingsScreen} from '../../src/ui/screens/PreferencesSettingsScreen';
+import {formatIntroToday} from '../../src/ui/screens/onboarding/intro/introTokens';
 import {
   setSelectedOfflineModelId,
   deleteOfflineModel,
@@ -99,16 +100,21 @@ describe('Phase 01 Welcome, Onboarding, and Profile Screens', () => {
         />
       </ThemeProvider>,
     );
+    fireEvent.press(ui.getByTestId('intro-get-started'));
     fireEvent.press(ui.getByTestId('intro-continue'));
     fireEvent.press(ui.getByTestId('intro-continue'));
     fireEvent.press(ui.getByTestId('intro-handbook-citation'));
     expect(ui.getByText('USTP Student Handbook 2023 Edition')).toBeTruthy();
     expect(pressBack()).toBe(true);
+    expect(ui.getByTestId('intro-page-3')).toBeTruthy();
+    expect(pressBack()).toBe(true);
     expect(ui.getByTestId('intro-page-2')).toBeTruthy();
     expect(pressBack()).toBe(true);
     expect(ui.getByTestId('intro-page-1')).toBeTruthy();
+    // The first slide goes back to the welcome.
     expect(pressBack()).toBe(true);
-    // On the first page, Back is left to Android (leave the app).
+    expect(ui.getByTestId('intro-welcome')).toBeTruthy();
+    // On the welcome, Back is left to Android (leave the app).
     expect(pressBack()).toBe(false);
     jest.restoreAllMocks();
   });
@@ -128,8 +134,19 @@ describe('Phase 01 Welcome, Onboarding, and Profile Screens', () => {
       </ThemeProvider>,
     );
 
-    expect(ui.getByTestId('intro-page-0')).toBeTruthy();
+    // Welcome first: sign-in is offered directly.
+    expect(ui.getByTestId('intro-welcome')).toBeTruthy();
+    expect(ui.getByText('Your academic AI secretary')).toBeTruthy();
+    fireEvent.press(ui.getByTestId('intro-have-account'));
+    expect(onNavigateToLogin).toHaveBeenCalledTimes(1);
+    fireEvent.press(ui.getByTestId('intro-get-started'));
+
+    expect(ui.getByTestId('intro-page-1')).toBeTruthy();
     expect(ui.getByText(/Your academic day/)).toBeTruthy();
+    // The sample day shows today's real date, not a fixed one.
+    expect(ui.getByTestId('intro-day-date').props.children).toBe(
+      formatIntroToday(),
+    );
     fireEvent.press(ui.getByTestId('intro-continue'));
     expect(ui.getByText(/Say it\./)).toBeTruthy();
     fireEvent.press(ui.getByTestId('intro-continue'));
@@ -147,9 +164,9 @@ describe('Phase 01 Welcome, Onboarding, and Profile Screens', () => {
     fireEvent.press(ui.getByTestId('intro-source-back'));
 
     fireEvent.press(ui.getByTestId('intro-sign-in'));
-    expect(onNavigateToLogin).toHaveBeenCalledTimes(1);
+    expect(onNavigateToLogin).toHaveBeenCalledTimes(2);
     fireEvent.press(ui.getByTestId('intro-skip'));
-    expect(ui.getByTestId('intro-page-3')).toBeTruthy();
+    expect(ui.getByTestId('intro-page-4')).toBeTruthy();
     fireEvent.press(ui.getByTestId('intro-create-account'));
     expect(onNavigateToRegister).toHaveBeenCalledTimes(1);
 

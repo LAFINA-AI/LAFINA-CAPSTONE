@@ -349,7 +349,6 @@ export const OnboardingScreen: React.FC<OnboardingScreenProps> = ({
         <StatusBar barStyle={colors.statusBarStyle} backgroundColor={t.bg} />
         <IntroPager
           mode="flow"
-          schedulingOnly={notUstp}
           onFinish={finishIntro}
           onSkip={finishIntro}
         />
