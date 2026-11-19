@@ -73,7 +73,7 @@ export const buildTourSteps = ({isGuest}: TourAudience): TourStep[] => [
   },
   {
     id: 'notes',
-    title: 'Tools',
+    title: 'Skills',
     body: 'Device-local Alarms with Morning Briefing, To-Do lists synced with note checklists, and rich Markdown Notes with image attachments and AI Assist.',
     anchor: 'tab-notes',
     tab: 'notes',
@@ -291,7 +291,7 @@ export const buildWalkthroughSteps = ({
   {
     id: 'tools-alarms',
     section: 'notes',
-    sectionLabel: 'Tools',
+    sectionLabel: 'Skills',
     title: 'Alarms & Morning Briefing',
     body: 'Device-local clock alarms built on Android AlarmManager — kept separate from synced calendar reminders.',
     highlights: [
@@ -314,7 +314,7 @@ export const buildWalkthroughSteps = ({
   {
     id: 'tools-todo',
     section: 'notes',
-    sectionLabel: 'Tools',
+    sectionLabel: 'Skills',
     title: 'To-Do lists & synced note checklists',
     body: 'Capture quick errands, manage scheduled deadlines, and check off tasks written inside your study notes.',
     highlights: [
@@ -337,7 +337,7 @@ export const buildWalkthroughSteps = ({
   {
     id: 'tools-notes',
     section: 'notes',
-    sectionLabel: 'Tools',
+    sectionLabel: 'Skills',
     title: 'Rich Notes & AI Note Assistant',
     body: 'Capture structured class notes offline with Markdown formatting, images, pins and built-in AI helpers.',
     highlights: [

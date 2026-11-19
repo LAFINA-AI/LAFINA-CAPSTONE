@@ -21,6 +21,7 @@ import {
   X,
   Pin,
   CheckSquare,
+  ArrowLeft,
 } from 'lucide-react-native';
 import {useSafeAreaInsets} from 'react-native-safe-area-context';
 import {useTheme} from '../../contexts/ThemeContext';
@@ -42,6 +43,7 @@ import {
 import {NotesScreenProps, NotesSubTab} from './types';
 import type {NoteSnapshot} from '../../../storage';
 import {tourTargetRef} from '../../tour/tourTargets';
+import {SkillFonts} from '../../theme/skills';
 
 export const NotesScreen = React.memo(function NotesScreenView({
   userId,
@@ -50,6 +52,8 @@ export const NotesScreen = React.memo(function NotesScreenView({
   openRequest,
   onOpenRequestHandled,
   tourSubTab,
+  initialSubTab = 'notes',
+  onBackToSkills,
 }: NotesScreenProps) {
   const {colors, isModern} = useTheme();
   const insets = useSafeAreaInsets();
@@ -57,7 +61,7 @@ export const NotesScreen = React.memo(function NotesScreenView({
   const tabBarClearance = isModern
     ? ModernLayout.navbarContentHeight + Math.max(insets.bottom, 8) + 40
     : Math.max(insets.bottom, 12) + 14 + Layout.navbarHeight + 8;
-  const [activeSubTab, setActiveSubTab] = useState<NotesSubTab>('notes');
+  const [activeSubTab, setActiveSubTab] = useState<NotesSubTab>(initialSubTab);
   const preTourSubTabRef = useRef<NotesSubTab | null>(null);
 
   useEffect(() => {
@@ -297,6 +301,16 @@ export const NotesScreen = React.memo(function NotesScreenView({
     <View style={[styles.container, {backgroundColor: palette.bg}]}>
       {/* Header */}
       <View style={styles.header}>
+        {onBackToSkills && (
+          <TouchableOpacity
+            accessibilityRole="button"
+            accessibilityLabel="Back to Skills"
+            onPress={onBackToSkills}
+            style={styles.headerIconBtn}
+          >
+            <ArrowLeft size={24} color={palette.text} />
+          </TouchableOpacity>
+        )}
         {data.searchActive && activeSubTab !== 'alarms' ? (
           <View
             style={[
@@ -339,7 +353,13 @@ export const NotesScreen = React.memo(function NotesScreenView({
         ) : (
           <>
             <Text style={[styles.headerTitle, {color: palette.text}]}>
-              Tools
+              {onBackToSkills
+                ? activeSubTab === 'todo'
+                  ? 'To-do'
+                  : activeSubTab === 'alarms'
+                  ? 'Alarms'
+                  : 'Notes'
+                : 'Skills'}
             </Text>
             <View style={styles.headerIcons}>
               {activeSubTab !== 'alarms' && (
@@ -409,122 +429,130 @@ export const NotesScreen = React.memo(function NotesScreenView({
       </View>
 
       {/* Segmented Switcher: Alarms | Todo | Notes */}
-      <View
-        style={[styles.segmentedBar, {backgroundColor: palette.surface}]}
-        accessibilityRole="tablist"
-      >
-        <TouchableOpacity
-          ref={tourTargetRef('tools-subtab-alarms')}
-          onPress={() => {
-            data.setSearchActive(false);
-            data.setSearchQuery('');
-            setActiveSubTab('alarms');
-          }}
-          accessibilityRole="tab"
-          accessibilityState={{selected: activeSubTab === 'alarms'}}
-          testID="notes-subtab-alarms"
-          style={[
-            styles.segmentBtn,
-            activeSubTab === 'alarms' && [
-              styles.segmentBtnActive,
-              {backgroundColor: palette.card},
-              !palette.isDarkMode && scheduleCardShadow,
-            ],
-          ]}
+      {!onBackToSkills && (
+        <View
+          style={[styles.segmentedBar, {backgroundColor: palette.surface}]}
+          accessibilityRole="tablist"
         >
-          <Text
+          <TouchableOpacity
+            ref={tourTargetRef('tools-subtab-alarms')}
+            onPress={() => {
+              data.setSearchActive(false);
+              data.setSearchQuery('');
+              setActiveSubTab('alarms');
+            }}
+            accessibilityRole="tab"
+            accessibilityState={{selected: activeSubTab === 'alarms'}}
+            testID="notes-subtab-alarms"
             style={[
-              styles.segmentText,
-              {
-                color: activeSubTab === 'alarms' ? palette.text : palette.muted,
-                fontWeight: activeSubTab === 'alarms' ? '700' : '500',
-              },
+              styles.segmentBtn,
+              activeSubTab === 'alarms' && [
+                styles.segmentBtnActive,
+                {backgroundColor: palette.card},
+                !palette.isDarkMode && scheduleCardShadow,
+              ],
             ]}
           >
-            Alarms
-          </Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity
-          ref={tourTargetRef('tools-subtab-todo')}
-          onPress={() => setActiveSubTab('todo')}
-          accessibilityRole="tab"
-          accessibilityState={{selected: activeSubTab === 'todo'}}
-          testID="notes-subtab-todo"
-          style={[
-            styles.segmentBtn,
-            activeSubTab === 'todo' && [
-              styles.segmentBtnActive,
-              {backgroundColor: palette.card},
-              !palette.isDarkMode && scheduleCardShadow,
-            ],
-          ]}
-        >
-          <View style={styles.segmentLabelRow}>
             <Text
               style={[
                 styles.segmentText,
                 {
-                  color: activeSubTab === 'todo' ? palette.text : palette.muted,
-                  fontWeight: activeSubTab === 'todo' ? '700' : '500',
+                  color:
+                    activeSubTab === 'alarms' ? palette.text : palette.muted,
+                  fontWeight: activeSubTab === 'alarms' ? '700' : '500',
                 },
               ]}
             >
-              Todo
+              Alarms
             </Text>
-            {todo.pendingCount > 0 || todo.checklistsLoading ? (
-              <View
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            ref={tourTargetRef('tools-subtab-todo')}
+            onPress={() => setActiveSubTab('todo')}
+            accessibilityRole="tab"
+            accessibilityState={{selected: activeSubTab === 'todo'}}
+            testID="notes-subtab-todo"
+            style={[
+              styles.segmentBtn,
+              activeSubTab === 'todo' && [
+                styles.segmentBtnActive,
+                {backgroundColor: palette.card},
+                !palette.isDarkMode && scheduleCardShadow,
+              ],
+            ]}
+          >
+            <View style={styles.segmentLabelRow}>
+              <Text
                 style={[
-                  styles.segmentBadge,
+                  styles.segmentText,
                   {
-                    backgroundColor:
-                      activeSubTab === 'todo' ? palette.accent : palette.border,
+                    color:
+                      activeSubTab === 'todo' ? palette.text : palette.muted,
+                    fontWeight: activeSubTab === 'todo' ? '700' : '500',
                   },
                 ]}
               >
-                <Text
+                Todo
+              </Text>
+              {todo.pendingCount > 0 || todo.checklistsLoading ? (
+                <View
                   style={[
-                    styles.segmentBadgeText,
+                    styles.segmentBadge,
                     {
-                      color: activeSubTab === 'todo' ? '#FFFFFF' : palette.text,
+                      backgroundColor:
+                        activeSubTab === 'todo'
+                          ? palette.accent
+                          : palette.border,
                     },
                   ]}
                 >
-                  {todo.checklistsLoading ? '…' : todo.pendingCount}
-                </Text>
-              </View>
-            ) : null}
-          </View>
-        </TouchableOpacity>
+                  <Text
+                    style={[
+                      styles.segmentBadgeText,
+                      {
+                        color:
+                          activeSubTab === 'todo' ? '#FFFFFF' : palette.text,
+                      },
+                    ]}
+                  >
+                    {todo.checklistsLoading ? '…' : todo.pendingCount}
+                  </Text>
+                </View>
+              ) : null}
+            </View>
+          </TouchableOpacity>
 
-        <TouchableOpacity
-          ref={tourTargetRef('tools-subtab-notes')}
-          onPress={() => setActiveSubTab('notes')}
-          accessibilityRole="tab"
-          accessibilityState={{selected: activeSubTab === 'notes'}}
-          testID="notes-subtab-notes"
-          style={[
-            styles.segmentBtn,
-            activeSubTab === 'notes' && [
-              styles.segmentBtnActive,
-              {backgroundColor: palette.card},
-              !palette.isDarkMode && scheduleCardShadow,
-            ],
-          ]}
-        >
-          <Text
+          <TouchableOpacity
+            ref={tourTargetRef('tools-subtab-notes')}
+            onPress={() => setActiveSubTab('notes')}
+            accessibilityRole="tab"
+            accessibilityState={{selected: activeSubTab === 'notes'}}
+            testID="notes-subtab-notes"
             style={[
-              styles.segmentText,
-              {
-                color: activeSubTab === 'notes' ? palette.text : palette.muted,
-                fontWeight: activeSubTab === 'notes' ? '700' : '500',
-              },
+              styles.segmentBtn,
+              activeSubTab === 'notes' && [
+                styles.segmentBtnActive,
+                {backgroundColor: palette.card},
+                !palette.isDarkMode && scheduleCardShadow,
+              ],
             ]}
           >
-            Notes
-          </Text>
-        </TouchableOpacity>
-      </View>
+            <Text
+              style={[
+                styles.segmentText,
+                {
+                  color:
+                    activeSubTab === 'notes' ? palette.text : palette.muted,
+                  fontWeight: activeSubTab === 'notes' ? '700' : '500',
+                },
+              ]}
+            >
+              Notes
+            </Text>
+          </TouchableOpacity>
+        </View>
+      )}
 
       {activeSubTab === 'alarms' ? (
         <AlarmsView
@@ -757,7 +785,7 @@ export const NotesScreen = React.memo(function NotesScreenView({
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    paddingHorizontal: 16,
+    paddingHorizontal: 20,
     paddingTop: 12,
   },
   modalFill: {
@@ -768,7 +796,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     marginBottom: 12,
-    height: 44,
+    minHeight: 64,
   },
   segmentedBar: {
     flexDirection: 'row',
@@ -832,13 +860,13 @@ const styles = StyleSheet.create({
     flex: 1,
     height: '100%',
     fontSize: 14,
-    fontFamily: 'sans-serif',
+    fontFamily: SkillFonts.body,
     paddingVertical: 0,
   },
   headerTitle: {
-    fontSize: 26,
-    fontWeight: '800',
-    letterSpacing: -0.5,
+    flex: 1,
+    fontFamily: SkillFonts.semibold,
+    fontSize: 20,
   },
   headerIcons: {
     flexDirection: 'row',
@@ -846,16 +874,16 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   headerIconBtn: {
-    width: 38,
-    height: 38,
-    borderRadius: 19,
+    width: 44,
+    height: 44,
+    borderRadius: 22,
     alignItems: 'center',
     justifyContent: 'center',
   },
   headerAddBtn: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
+    width: 44,
+    height: 44,
+    borderRadius: 22,
     overflow: 'hidden',
     alignItems: 'center',
     justifyContent: 'center',

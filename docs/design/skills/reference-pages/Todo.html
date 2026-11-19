@@ -1,0 +1,54 @@
+
+<div style="width: 390px; height: 844px; position: relative; overflow: hidden; font-family: 'Lexend', system-ui, sans-serif; color: #14142B; background: #FAFAFD">
+  <div style="height: 64px; display: flex; align-items: center; gap: 8px; padding: 0 16px 0 8px">
+    <a href="ToolsHubA.dc.html" aria-label="Back to Tools" style="width: 44px; height: 44px; flex-shrink: 0; border-radius: 22px; display: flex; align-items: center; justify-content: center; color: #14142B"><svg aria-hidden="true" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5M11 18l-6-6 6-6"></path></svg></a>
+    <h1 style="flex: 1; min-width: 0; margin: 0; font-size: 20px; font-weight: 600">To-do</h1>
+    <button aria-label="New detailed to-do" style="width: 44px; height: 44px; border: 0; border-radius: 22px; background: #5442E0; display: flex; align-items: center; justify-content: center; cursor: pointer; box-shadow: 0 6px 16px rgba(84,66,224,.3)"><svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" stroke-width="2.4" stroke-linecap="round"><path d="M12 5v14M5 12h14"></path></svg></button>
+  </div>
+
+  <div class="a-up field" style="margin: 4px 20px 0; height: 52px; border-radius: 16px; background: #FFFFFF; border: 1.5px solid #E6E5EF; display: flex; align-items: center; gap: 8px; padding: 0 6px 0 16px; box-sizing: border-box">
+    <label for="quick" style="position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0)">Quick add a to-do</label>
+    <input id="quick" type="text" placeholder="Quick add a to-do…" value="{{draft}}" onChange="{{onDraft}}" onKeyDown="{{onKey}}" style="flex: 1; min-width: 0; border: 0; background: transparent; font-size: 15px; color: #14142B; outline: none">
+    <button onClick="{{cyclePri}}" aria-label="{{priAria}}" style="height: 30px; padding: 0 10px; border-radius: 15px; border: 1.5px solid {{priInk}}; background: transparent; color: {{priInk}}; font-size: 12px; font-weight: 600; cursor: pointer">{{priLabel}}</button>
+    <button aria-label="Add to-do" onClick="{{addDraft}}" style="width: 40px; height: 40px; border: 0; border-radius: 12px; background: #F0EFF6; display: flex; align-items: center; justify-content: center; cursor: pointer"><svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#14142B" stroke-width="2.2" stroke-linecap="round"><path d="M12 5v14M5 12h14"></path></svg></button>
+  </div>
+
+  <div class="a-up" style="margin: 12px 0 0; padding: 0 20px; display: flex; gap: 8px; overflow: hidden; animation-delay: .03s">
+    <span style="flex-shrink: 0; height: 36px; padding: 0 14px; border-radius: 18px; background: #14142B; color: #FFFFFF; font-size: 13px; font-weight: 600; display: flex; align-items: center">All open · {{openCount}}</span>
+    <span style="flex-shrink: 0; height: 36px; padding: 0 14px; border-radius: 18px; background: #F0EFF6; color: #5E5E73; font-size: 13px; display: flex; align-items: center">Today</span>
+    <span style="flex-shrink: 0; height: 36px; padding: 0 14px; border-radius: 18px; background: #F0EFF6; color: #5E5E73; font-size: 13px; display: flex; align-items: center">Scheduled</span>
+    <span style="flex-shrink: 0; height: 36px; padding: 0 14px; border-radius: 18px; background: #F0EFF6; color: #5E5E73; font-size: 13px; display: flex; align-items: center">From notes</span>
+    <span style="flex-shrink: 0; height: 36px; padding: 0 14px; border-radius: 18px; background: #F0EFF6; color: #5E5E73; font-size: 13px; display: flex; align-items: center">Completed</span>
+  </div>
+
+  <sc-for list="{{groups}}" as="g" hint-placeholder-count="3">
+    <div class="a-up" style="margin: 18px 20px 0; animation-delay: {{g.delay}}">
+      <p style="margin: 0 4px 8px; font-size: 13px; font-weight: 600; color: {{g.ink}}">{{g.title}}</p>
+      <div style="background: #FFFFFF; border: 1px solid #ECEBF4; border-radius: 18px; padding: 0 14px">
+        <sc-for list="{{g.items}}" as="t" hint-placeholder-count="2">
+          <div style="display: flex; align-items: center; gap: 12px; min-height: 60px; border-top: {{t.divider}}">
+            <button role="checkbox" aria-checked="{{t.done}}" aria-label="{{t.title}}" onClick="{{t.toggle}}" style="width: 44px; height: 44px; margin: 0 -10px 0 -10px; flex-shrink: 0; border: 0; background: transparent; display: flex; align-items: center; justify-content: center; cursor: pointer; padding: 0">
+              <span style="width: 22px; height: 22px; border-radius: 50%; border: 2px solid {{t.ring}}; background: {{t.fill}}; box-sizing: border-box; display: flex; align-items: center; justify-content: center; transition: background .2s ease">
+                <sc-if value="{{t.done}}" hint-placeholder-val="{{false}}"><svg aria-hidden="true" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" stroke-width="3.6" stroke-linecap="round" stroke-linejoin="round"><path class="draw" d="M5 12.5l4.5 4.5L19 7.5"></path></svg></sc-if>
+              </span>
+            </button>
+            <span style="flex: 1; min-width: 0; padding: 10px 0">
+              <span style="display: block; font-size: 15px; color: {{t.titleInk}}; text-decoration: {{t.strike}}; transition: color .2s ease">{{t.title}}</span>
+              <span style="display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin-top: 3px; font-size: 12px; color: #626277">
+                <span style="color: {{t.dueInk}}">{{t.due}}</span>
+                <sc-if value="{{t.hasTag}}" hint-placeholder-val="{{true}}"><span style="padding: 2px 7px; border-radius: 6px; background: #F2F1F9; color: #3F3F55">{{t.tag}}</span></sc-if>
+              </span>
+            </span>
+          </div>
+        </sc-for>
+      </div>
+    </div>
+  </sc-for>
+
+  <div class="a-up" style="margin: 14px 20px 0; height: 48px; border-radius: 14px; background: #F2F1F9; padding: 0 14px; display: flex; align-items: center; gap: 10px; animation-delay: .2s">
+    <svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#1F8A5B" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"></path></svg>
+    <span style="flex: 1; font-size: 13px; color: #3F3F55">Completed · {{doneCount}}</span>
+    <svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#8A8AA0" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"></path></svg>
+  </div>
+
+</div>

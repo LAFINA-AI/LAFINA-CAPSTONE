@@ -311,7 +311,7 @@ const buildCreate = (
   const existing = alarmsStore.list(userId);
   if (existing.length >= MAX_ALARMS_PER_OWNER)
     return invalid(
-      `You already have ${MAX_ALARMS_PER_OWNER} alarms, the most LAFINA keeps. Delete one in Tools → Alarms first. Nothing was changed.`,
+      `You already have ${MAX_ALARMS_PER_OWNER} alarms, the most LAFINA keeps. Delete one in Skills → Alarms first. Nothing was changed.`,
     );
   const assumptions: string[] = [];
   const repeat = repeatFor(req.recurrenceRule, req.date, now);
@@ -612,7 +612,7 @@ export const describeAlarmsReply = (
 ): string => {
   const alarms = alarmsStore.list(userId);
   if (alarms.length === 0)
-    return 'You don’t have any alarms yet. Say “set an alarm for 6 AM”, or open Tools → Alarms.';
+    return 'You don’t have any alarms yet. Say “set an alarm for 6 AM”, or open Skills → Alarms.';
   let next: {alarm: Alarm; at: Date} | null = null;
   for (const alarm of alarms) {
     const at = nextAlarmTrigger(alarm, now);

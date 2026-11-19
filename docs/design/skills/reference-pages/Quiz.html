@@ -1,0 +1,97 @@
+
+<div style="width: 390px; height: 844px; position: relative; overflow: hidden; font-family: 'Lexend', system-ui, sans-serif; color: #14142B; background: #FAFAFD">
+  <div style="height: 64px; display: flex; align-items: center; gap: 8px; padding: 0 16px 0 8px">
+    <a href="ToolsHubA.dc.html" aria-label="Back to Tools" style="width: 44px; height: 44px; flex-shrink: 0; border-radius: 22px; display: flex; align-items: center; justify-content: center; color: #14142B"><svg aria-hidden="true" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5M11 18l-6-6 6-6"></path></svg></a>
+    <h1 style="flex: 1; min-width: 0; margin: 0; font-size: 20px; font-weight: 600">Quiz maker</h1>
+    
+  </div>
+
+  <!-- SETUP -->
+  <sc-if value="{{isSetup}}" hint-placeholder-val="{{true}}">
+  <div style="padding: 4px 20px 0">
+    <p class="a-up" style="margin: 0 4px 10px; font-size: 13px; font-weight: 500; color: #3F3F55">Make a quiz from</p>
+    <div class="a-up" style="background: #FFFFFF; border: 1px solid #ECEBF4; border-radius: 20px; padding: 0 14px">
+      <sc-for list="{{notes}}" as="n" hint-placeholder-count="3">
+        <label style="display: flex; align-items: center; gap: 12px; height: 60px; border-top: {{n.divider}}; cursor: pointer">
+          <input type="checkbox" checked="{{n.on}}" onChange="{{n.toggle}}" style="width: 20px; height: 20px; margin: 0; accent-color: #5442E0; cursor: pointer">
+          <span style="flex: 1; min-width: 0"><span style="display: block; font-size: 15px; font-weight: 500">{{n.title}}</span><span style="display: block; font-size: 12px; color: #626277">{{n.meta}}</span></span>
+        </label>
+      </sc-for>
+    </div>
+    <button class="a-up" style="margin-top: 10px; height: 40px; padding: 0 4px; border: 0; background: transparent; color: #4433C9; font-size: 14px; font-weight: 500; display: flex; align-items: center; gap: 6px; cursor: pointer; animation-delay: .03s"><svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 15V3M7 8l5-5 5 5M5 14v5a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-5"></path></svg>Or upload a file</button>
+
+    <p class="a-up" style="margin: 16px 4px 8px; font-size: 13px; font-weight: 500; color: #3F3F55; animation-delay: .06s">Questions</p>
+    <div class="a-up" role="radiogroup" aria-label="Number of questions" style="height: 44px; border-radius: 14px; background: #F0EFF6; padding: 4px; box-sizing: border-box; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 4px; animation-delay: .06s">
+      <sc-for list="{{counts}}" as="c" hint-placeholder-count="3">
+        <button role="radio" aria-checked="{{c.on}}" onClick="{{c.pick}}" style="border: 0; border-radius: 10px; background: {{c.bg}}; color: {{c.ink}}; font-size: 14px; font-weight: {{c.fw}}; cursor: pointer; box-shadow: {{c.shadow}}">{{c.label}}</button>
+      </sc-for>
+    </div>
+
+    <p class="a-up" style="margin: 16px 4px 8px; font-size: 13px; font-weight: 500; color: #3F3F55; animation-delay: .09s">Type</p>
+    <div class="a-up" style="display: flex; flex-wrap: wrap; gap: 8px; animation-delay: .09s">
+      <sc-for list="{{types}}" as="t" hint-placeholder-count="3">
+        <button aria-pressed="{{t.on}}" onClick="{{t.pick}}" style="height: 38px; padding: 0 14px; border-radius: 19px; border: {{t.border}}; background: {{t.bg}}; color: {{t.ink}}; font-size: 13px; font-weight: 500; cursor: pointer">{{t.label}}</button>
+      </sc-for>
+    </div>
+
+    <div style="position: absolute; left: 20px; right: 20px; bottom: 24px">
+      <button onClick="{{start}}" style="width: 100%; height: 56px; border: 0; border-radius: 18px; background: #5442E0; color: #FFFFFF; font-size: 17px; font-weight: 600; display: flex; align-items: center; justify-content: center; gap: 10px; cursor: pointer; box-shadow: 0 10px 24px rgba(84,66,224,.3)">
+        <svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24"><path fill="#FFFFFF" d="M12 1.5c.9 5.6 4.9 9.6 10.5 10.5-5.6.9-9.6 4.9-10.5 10.5C11.1 16.9 7.1 12.9 1.5 12 7.1 11.1 11.1 7.1 12 1.5Z"></path></svg>
+        Make quiz
+      </button>
+    </div>
+  </div>
+  </sc-if>
+
+  <!-- QUESTION -->
+  <sc-if value="{{isQuiz}}" hint-placeholder-val="{{false}}">
+  <div style="padding: 0 20px">
+    <div style="display: flex; align-items: center; gap: 10px">
+      <div aria-hidden="true" style="flex: 1; height: 6px; border-radius: 3px; background: #ECEBF4; overflow: hidden"><div style="height: 6px; border-radius: 3px; background: #0F8A7C; width: {{progress}}; transition: width .4s ease"></div></div>
+      <span style="font-size: 13px; color: #626277; font-variant-numeric: tabular-nums">{{qCounter}}</span>
+    </div>
+    <sc-for list="{{currentQ}}" as="q" hint-placeholder-count="1">
+      <div>
+        <p class="a-up" style="margin: 26px 4px 0; font-size: 22px; font-weight: 600; line-height: 1.35">{{q.text}}</p>
+        <div role="radiogroup" aria-label="Answers" style="margin-top: 22px; display: flex; flex-direction: column; gap: 10px">
+          <sc-for list="{{q.options}}" as="o" hint-placeholder-count="4">
+            <button class="a-up" role="radio" aria-checked="{{o.picked}}" onClick="{{o.pick}}" style="min-height: 58px; border-radius: 16px; border: {{o.border}}; background: {{o.bg}}; padding: 0 16px; display: flex; align-items: center; gap: 12px; text-align: left; cursor: pointer; animation-delay: {{o.delay}}">
+              <span style="width: 28px; height: 28px; flex-shrink: 0; border-radius: 9px; background: {{o.keyBg}}; color: {{o.keyInk}}; font-size: 13px; font-weight: 600; display: flex; align-items: center; justify-content: center">{{o.key}}</span>
+              <span style="flex: 1; font-size: 15px; color: #14142B">{{o.text}}</span>
+              <sc-if value="{{o.right}}" hint-placeholder-val="{{false}}"><svg class="a-pop" role="img" aria-label="Correct" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#1F8A5B" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"></path></svg></sc-if>
+              <sc-if value="{{o.wrong}}" hint-placeholder-val="{{false}}"><svg class="a-pop" role="img" aria-label="Incorrect" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#B42318" stroke-width="2.8" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"></path></svg></sc-if>
+            </button>
+          </sc-for>
+        </div>
+      </div>
+    </sc-for>
+    <sc-if value="{{answered}}" hint-placeholder-val="{{false}}">
+      <div class="a-up" style="margin-top: 16px; border-radius: 16px; background: {{fbBg}}; padding: 14px 16px">
+        <p style="margin: 0; font-size: 14px; font-weight: 600; color: {{fbInk}}">{{fbTitle}}</p>
+        <p style="margin: 4px 0 0; font-size: 13px; line-height: 1.5; color: #3F3F55">{{explain}}</p>
+        <p style="margin: 6px 0 0; font-size: 12px; color: #626277">From: Lecture 4 – Cloud models</p>
+      </div>
+      <div style="position: absolute; left: 20px; right: 20px; bottom: 24px">
+        <button onClick="{{next}}" class="a-up" style="width: 100%; height: 56px; border: 0; border-radius: 18px; background: #14142B; color: #FFFFFF; font-size: 16px; font-weight: 600; cursor: pointer">{{nextLabel}}</button>
+      </div>
+    </sc-if>
+  </div>
+  </sc-if>
+
+  <!-- RESULT -->
+  <sc-if value="{{isResult}}" hint-placeholder-val="{{false}}">
+  <div class="a-up" style="padding: 30px 24px 0; display: flex; flex-direction: column; align-items: center; text-align: center">
+    <div style="position: relative; width: 170px; height: 170px">
+      <svg aria-hidden="true" width="170" height="170" viewBox="0 0 170 170"><circle cx="85" cy="85" r="72" fill="none" stroke="#DDF3EF" stroke-width="14"></circle><circle class="score-ring" cx="85" cy="85" r="72" fill="none" stroke="#0F8A7C" stroke-width="14" stroke-linecap="round" stroke-dasharray="452.4" stroke-dashoffset="{{scoreOffset}}" transform="rotate(-90 85 85)"></circle></svg>
+      <div style="position: absolute; top: 0; left: 0; width: 170px; height: 170px; display: flex; flex-direction: column; align-items: center; justify-content: center"><span style="font-size: 40px; font-weight: 600">{{score}}</span><span style="font-size: 13px; color: #626277">correct</span></div>
+    </div>
+    <p style="margin: 22px 0 0; font-size: 24px; font-weight: 600">{{resultTitle}}</p>
+    <p style="margin: 8px 0 0; font-size: 15px; line-height: 1.5; color: #626277">{{resultText}}</p>
+    <div style="margin-top: 28px; width: 100%; display: flex; flex-direction: column; gap: 10px">
+      <a href="Flashcards.dc.html" style="height: 56px; border-radius: 18px; background: #5442E0; color: #FFFFFF; font-size: 16px; font-weight: 600; display: flex; align-items: center; justify-content: center; text-decoration: none">Make flashcards from mistakes</a>
+      <button onClick="{{retry}}" style="height: 52px; border: 1.5px solid #E2E1EC; border-radius: 16px; background: #FFFFFF; color: #14142B; font-size: 15px; font-weight: 500; cursor: pointer">Retake quiz</button>
+    </div>
+  </div>
+  </sc-if>
+
+</div>

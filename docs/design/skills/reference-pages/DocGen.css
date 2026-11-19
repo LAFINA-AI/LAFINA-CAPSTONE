@@ -1,0 +1,27 @@
+
+body{margin:0}
+a{color:#4433C9}a:hover{color:#3B2CB8}
+button,textarea{font-family:inherit}
+textarea{outline:none;resize:none}
+textarea::placeholder{color:#8A8AA0}
+@keyframes up{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:none}}
+@keyframes pop{0%{opacity:0;transform:scale(.6)}60%{opacity:1;transform:scale(1.1)}100%{opacity:1;transform:scale(1)}}
+@keyframes spin{to{transform:rotate(360deg)}}
+@keyframes breathe{0%,100%{transform:scale(1)}50%{transform:scale(1.08)}}
+@keyframes halo{0%{transform:scale(1);opacity:.4}100%{transform:scale(1.9);opacity:0}}
+@keyframes draw{from{stroke-dashoffset:24}to{stroke-dashoffset:0}}
+@keyframes shimmer{from{background-position:-200px 0}to{background-position:200px 0}}
+@keyframes deal{from{opacity:0;transform:translateY(20px) rotate(-4deg)}to{opacity:1;transform:none}}
+.a-up{animation:up .45s cubic-bezier(.2,.8,.2,1) both}
+.a-pop{animation:pop .4s cubic-bezier(.2,.8,.2,1) both}
+.spin{animation:spin 1s linear infinite}
+.spin-slow{animation:spin 6s linear infinite}
+.breathe{animation:breathe 2s ease-in-out infinite}
+.halo{animation:halo 2s ease-out infinite}
+.draw{stroke-dasharray:24;stroke-dashoffset:24;animation:draw .4s ease .05s forwards}
+.deal{animation:deal .5s cubic-bezier(.2,.8,.2,1) both}
+.fmt{transition:border-color .2s ease, box-shadow .2s ease, transform .12s ease}
+.fmt:active{transform:scale(.97)}
+.field{transition:border-color .2s ease, background .2s ease, box-shadow .2s ease}
+.field:focus-within{border-color:#5442E0 !important;background:#FFFFFF !important;box-shadow:0 0 0 4px #EEECFD}
+@media (prefers-reduced-motion: reduce){*{animation-duration:.01ms!important;animation-iteration-count:1!important;animation-delay:0s!important;transition:none!important}}

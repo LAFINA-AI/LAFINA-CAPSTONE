@@ -55,7 +55,7 @@ export const TAB_LABELS: Record<TabType, string> = {
   dashboard: 'Home',
   calendar: 'Schedule',
   chat: 'AI',
-  notes: 'Tools',
+  notes: 'Skills',
   profile: 'Profile',
 };
 

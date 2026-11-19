@@ -1,0 +1,15 @@
+
+body{margin:0}
+a{color:#5442E0}a:hover{color:#3B2CB8}
+button{font-family:inherit}
+@keyframes up{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:none}}
+@keyframes halo{0%{transform:scale(1);opacity:.35}70%{transform:scale(1.55);opacity:0}100%{transform:scale(1.55);opacity:0}}
+@keyframes bar{0%,100%{transform:scaleY(.45)}50%{transform:scaleY(1)}}
+@keyframes drift{0%,100%{transform:rotate(-8deg)}50%{transform:rotate(8deg)}}
+@keyframes ringIn{to{stroke-dashoffset:0}}
+.a-up{animation:up .55s cubic-bezier(.2,.8,.2,1) both}
+.halo{animation:halo 3.6s ease-out 1s infinite}
+.ibar{animation:bar 1.6s ease-in-out infinite;transform-origin:center}
+.drift{animation:drift 8s ease-in-out infinite}
+.ring{stroke-dasharray:264;stroke-dashoffset:264;animation:ringIn 1.2s cubic-bezier(.2,.8,.2,1) .3s forwards}
+@media (prefers-reduced-motion: reduce){*{animation-duration:.01ms!important;animation-iteration-count:1!important;animation-delay:0s!important}}

@@ -1,0 +1,60 @@
+
+<div style="width: 390px; height: 844px; position: relative; overflow: hidden; font-family: 'Lexend', system-ui, sans-serif; color: #14142B; background: #FAFAFD">
+  <div style="height: 64px; display: flex; align-items: center; gap: 8px; padding: 0 16px 0 8px">
+    <a href="ToolsHubA.dc.html" aria-label="Back to Tools" style="width: 44px; height: 44px; flex-shrink: 0; border-radius: 22px; display: flex; align-items: center; justify-content: center; color: #14142B"><svg aria-hidden="true" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5M11 18l-6-6 6-6"></path></svg></a>
+    <h1 style="flex: 1; min-width: 0; margin: 0; font-size: 20px; font-weight: 600">Pomodoro</h1>
+    <button aria-label="Timer settings" style="width: 44px; height: 44px; border: 0; border-radius: 22px; background: #F0EFF6; display: flex; align-items: center; justify-content: center; cursor: pointer"><svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#14142B" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6h10M18 6h2M4 12h4M12 12h8M4 18h12M20 18h0M16 4v4M8 10v4M16 16v4"></path></svg></button>
+  </div>
+
+  <div class="a-up" role="radiogroup" aria-label="Mode" style="margin: 8px 20px 0; height: 44px; border-radius: 14px; background: #F0EFF6; padding: 4px; box-sizing: border-box; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 4px">
+    <sc-for list="{{modes}}" as="m" hint-placeholder-count="3">
+      <button role="radio" aria-checked="{{m.on}}" onClick="{{m.pick}}" style="border: 0; border-radius: 10px; background: {{m.bg}}; color: {{m.ink}}; font-size: 13px; font-weight: {{m.fw}}; cursor: pointer; box-shadow: {{m.shadow}}">{{m.label}}</button>
+    </sc-for>
+  </div>
+
+  <div class="a-up" style="position: relative; width: 260px; height: 260px; margin: 34px auto 0; animation-delay: .05s">
+    <sc-if value="{{running}}" hint-placeholder-val="{{false}}">
+      <div aria-hidden="true" class="breathe-soft" style="position: absolute; top: 20px; left: 20px; width: 220px; height: 220px; border-radius: 50%; background: {{soft}}"></div>
+    </sc-if>
+    <svg aria-hidden="true" width="260" height="260" viewBox="0 0 260 260" style="position: absolute; top: 0; left: 0"><circle cx="130" cy="130" r="110" fill="none" stroke="{{soft}}" stroke-width="14"></circle><circle cx="130" cy="130" r="110" fill="none" stroke="{{accent}}" stroke-width="14" stroke-linecap="round" stroke-dasharray="691.15" stroke-dashoffset="{{offset}}" transform="rotate(-90 130 130)" style="transition: stroke-dashoffset 1s linear, stroke .3s ease"></circle></svg>
+    <div style="position: absolute; top: 0; left: 0; width: 260px; height: 260px; display: flex; flex-direction: column; align-items: center; justify-content: center">
+      <span role="timer" aria-live="off" style="font-size: 56px; font-weight: 600; letter-spacing: -.02em; font-variant-numeric: tabular-nums">{{clock}}</span>
+      <span style="margin-top: 2px; font-size: 14px; color: #626277">{{status}}</span>
+    </div>
+  </div>
+
+  <div class="a-up" style="margin-top: 22px; display: flex; flex-direction: column; align-items: center; gap: 8px; animation-delay: .1s">
+    <div aria-hidden="true" style="display: flex; gap: 8px">
+      <sc-for list="{{dots}}" as="d" hint-placeholder-count="4"><span style="width: 10px; height: 10px; border-radius: 50%; background: {{d.bg}}"></span></sc-for>
+    </div>
+    <span style="font-size: 13px; color: #626277">{{sessionText}}</span>
+  </div>
+
+  <div class="a-up" style="margin-top: 16px; display: flex; justify-content: center; animation-delay: .12s">
+    <a href="Todo.dc.html" style="height: 40px; padding: 0 8px 0 14px; border-radius: 20px; background: #FFFFFF; border: 1px solid #ECEBF4; display: flex; align-items: center; gap: 8px; text-decoration: none; color: #14142B; font-size: 13px">
+      <span style="color: #626277">Working on</span><span style="font-weight: 600">Cloud computing slides</span>
+      <svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#8A8AA0" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"></path></svg>
+    </a>
+  </div>
+
+  <div class="a-up" style="margin-top: 28px; display: flex; justify-content: center; align-items: center; gap: 28px; animation-delay: .15s">
+    <button aria-label="Reset" onClick="{{reset}}" style="width: 56px; height: 56px; border-radius: 50%; border: 1.5px solid #E2E1EC; background: #FFFFFF; display: flex; align-items: center; justify-content: center; cursor: pointer"><svg aria-hidden="true" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#14142B" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 3-6.7L3 8M3 3v5h5"></path></svg></button>
+    <button aria-label="{{playLabel}}" onClick="{{toggle}}" class="press" style="width: 84px; height: 84px; border-radius: 50%; border: 0; background: {{accent}}; display: flex; align-items: center; justify-content: center; cursor: pointer; box-shadow: 0 12px 28px {{glow}}">
+      <sc-if value="{{running}}" hint-placeholder-val="{{false}}"><svg aria-hidden="true" width="30" height="30" viewBox="0 0 24 24" fill="#FFFFFF"><rect x="6" y="5" width="4" height="14" rx="1.5"></rect><rect x="14" y="5" width="4" height="14" rx="1.5"></rect></svg></sc-if>
+      <sc-if value="{{paused}}" hint-placeholder-val="{{true}}"><svg aria-hidden="true" width="30" height="30" viewBox="0 0 24 24" fill="#FFFFFF"><path d="M8 5.5v13a1 1 0 0 0 1.5.9l10-6.5a1 1 0 0 0 0-1.7l-10-6.6A1 1 0 0 0 8 5.5Z"></path></svg></sc-if>
+    </button>
+    <button aria-label="Skip to next" onClick="{{skip}}" style="width: 56px; height: 56px; border-radius: 50%; border: 1.5px solid #E2E1EC; background: #FFFFFF; display: flex; align-items: center; justify-content: center; cursor: pointer"><svg aria-hidden="true" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#14142B" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 5l10 7-10 7V5ZM19 5v14"></path></svg></button>
+  </div>
+
+  <div class="a-up" style="position: absolute; left: 20px; right: 20px; bottom: 24px; background: #FFFFFF; border: 1px solid #ECEBF4; border-radius: 20px; padding: 4px 16px; animation-delay: .2s">
+    <div style="display: flex; align-items: center; justify-content: space-between; height: 52px">
+      <span style="font-size: 14px; color: #626277">Today</span>
+      <span style="font-size: 14px; font-weight: 600">{{todayText}}</span>
+    </div>
+    <button role="switch" aria-checked="{{dnd}}" onClick="{{toggleDnd}}" style="width: 100%; height: 56px; border: 0; border-top: 1px solid #F0EFF6; background: transparent; padding: 0; display: flex; align-items: center; justify-content: space-between; cursor: pointer; text-align: left">
+      <span style="font-size: 14px; color: #14142B">Silence notifications while focusing</span>
+      <span class="track" style="width: 46px; height: 28px; flex-shrink: 0; border-radius: 14px; background: {{dndTrack}}; padding: 3px; box-sizing: border-box"><span class="knob" style="display: block; width: 22px; height: 22px; border-radius: 50%; background: #FFFFFF; box-shadow: 0 1px 3px rgba(0,0,0,.2); transform: {{dndKnob}}"></span></span>
+    </button>
+  </div>
+
+</div>

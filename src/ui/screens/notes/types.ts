@@ -14,5 +14,7 @@ export interface NotesScreenProps {
   openRequest?: CallNavigationRequest;
   onOpenRequestHandled?: (requestId: string) => void;
   tourSubTab?: NotesSubTab;
+  initialSubTab?: NotesSubTab;
+  onBackToSkills?: () => void;
   onRefresh: () => void;
 }

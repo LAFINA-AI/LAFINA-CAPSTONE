@@ -1,0 +1,51 @@
+
+<div style="width: 390px; height: 844px; position: relative; overflow: hidden; font-family: 'Lexend', system-ui, sans-serif; color: #14142B; background: #FAFAFD">
+  <div style="height: 64px; display: flex; align-items: center; gap: 8px; padding: 0 16px 0 8px">
+    <a href="ToolsHubA.dc.html" aria-label="Back to Tools" style="width: 44px; height: 44px; flex-shrink: 0; border-radius: 22px; display: flex; align-items: center; justify-content: center; color: #14142B"><svg aria-hidden="true" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5M11 18l-6-6 6-6"></path></svg></a>
+    <h1 style="flex: 1; min-width: 0; margin: 0; font-size: 20px; font-weight: 600">Summarizer</h1>
+    
+  </div>
+
+  <div class="a-up" style="margin: 4px 20px 0; display: flex; gap: 8px">
+    <button style="height: 38px; padding: 0 14px; border-radius: 19px; border: 1.5px solid #5442E0; background: #EEECFD; color: #3B2CB8; font-size: 13px; font-weight: 500; cursor: pointer">From notes</button>
+    <button style="height: 38px; padding: 0 14px; border-radius: 19px; border: 1.5px solid #E2E1EC; background: #FFFFFF; color: #3F3F55; font-size: 13px; font-weight: 500; cursor: pointer">Paste text</button>
+    <button style="height: 38px; padding: 0 14px; border-radius: 19px; border: 1.5px solid #E2E1EC; background: #FFFFFF; color: #3F3F55; font-size: 13px; font-weight: 500; cursor: pointer">Upload file</button>
+  </div>
+
+  <div class="a-up" style="margin: 14px 20px 0; background: #FFFFFF; border: 1px solid #ECEBF4; border-radius: 18px; padding: 12px 14px; display: flex; align-items: center; gap: 12px; animation-delay: .03s">
+    <span style="width: 40px; height: 40px; flex-shrink: 0; border-radius: 12px; background: #EEECFD; display: flex; align-items: center; justify-content: center"><svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#5442E0" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8l-5-5ZM14 3v5h5M9 13h6M9 17h4"></path></svg></span>
+    <span style="flex: 1; min-width: 0"><span style="display: block; font-size: 15px; font-weight: 500">Lecture 4 – Cloud models</span><span style="display: block; font-size: 12px; color: #626277">2,140 words · about 9 min to read</span></span>
+    <button style="height: 36px; padding: 0 12px; border: 0; border-radius: 10px; background: #F2F1F9; color: #14142B; font-size: 13px; cursor: pointer">Change</button>
+  </div>
+
+  <div class="a-up" role="radiogroup" aria-label="Summary length" style="margin: 14px 20px 0; height: 44px; border-radius: 14px; background: #F0EFF6; padding: 4px; box-sizing: border-box; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 4px; animation-delay: .06s">
+    <sc-for list="{{lengths}}" as="l" hint-placeholder-count="3">
+      <button role="radio" aria-checked="{{l.on}}" onClick="{{l.pick}}" style="border: 0; border-radius: 10px; background: {{l.bg}}; color: {{l.ink}}; font-size: 14px; font-weight: {{l.fw}}; cursor: pointer; box-shadow: {{l.shadow}}">{{l.label}}</button>
+    </sc-for>
+  </div>
+
+  <div class="a-up" style="margin: 16px 20px 0; background: #FFFFFF; border: 1px solid #ECEBF4; border-radius: 22px; padding: 18px; box-shadow: 0 12px 30px rgba(38,28,120,.06); animation-delay: .1s">
+    <div style="display: flex; align-items: center; justify-content: space-between">
+      <span style="display: flex; align-items: center; gap: 8px; font-size: 15px; font-weight: 600"><svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24"><path fill="#5442E0" d="M12 1.5c.9 5.6 4.9 9.6 10.5 10.5-5.6.9-9.6 4.9-10.5 10.5C11.1 16.9 7.1 12.9 1.5 12 7.1 11.1 11.1 7.1 12 1.5Z"></path></svg>Summary</span>
+      <span style="font-size: 12px; color: #626277">{{readTime}}</span>
+    </div>
+    <ul style="margin: 14px 0 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 12px">
+      <sc-for list="{{points}}" as="p" hint-placeholder-count="3">
+        <li class="a-up" style="display: flex; gap: 10px; font-size: 14px; line-height: 1.5; color: #14142B; animation-delay: {{p.delay}}"><span style="width: 6px; height: 6px; flex-shrink: 0; margin-top: 8px; border-radius: 50%; background: #5442E0"></span><span>{{p.text}}</span></li>
+      </sc-for>
+    </ul>
+    <div style="display: flex; flex-wrap: wrap; gap: 6px; margin-top: 16px">
+      <span style="padding: 5px 10px; border-radius: 8px; background: #F2F1F9; font-size: 12px; color: #3F3F55">IaaS</span>
+      <span style="padding: 5px 10px; border-radius: 8px; background: #F2F1F9; font-size: 12px; color: #3F3F55">PaaS</span>
+      <span style="padding: 5px 10px; border-radius: 8px; background: #F2F1F9; font-size: 12px; color: #3F3F55">SaaS</span>
+      <span style="padding: 5px 10px; border-radius: 8px; background: #F2F1F9; font-size: 12px; color: #3F3F55">Deployment models</span>
+    </div>
+  </div>
+
+  <div style="position: absolute; left: 20px; right: 20px; bottom: 24px; display: grid; grid-template-columns: 52px minmax(0, 1fr) minmax(0, 1.3fr); gap: 8px">
+    <button aria-label="Copy summary" style="height: 52px; border: 1.5px solid #E2E1EC; border-radius: 16px; background: #FFFFFF; display: flex; align-items: center; justify-content: center; cursor: pointer"><svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#14142B" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 9h10a1 1 0 0 1 1 1v10a1 1 0 0 1-1 1H9a1 1 0 0 1-1-1V10a1 1 0 0 1 1-1ZM5 15H4a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1h10a1 1 0 0 1 1 1v1"></path></svg></button>
+    <button style="height: 52px; border: 1.5px solid #E2E1EC; border-radius: 16px; background: #FFFFFF; color: #14142B; font-size: 14px; font-weight: 500; cursor: pointer">Save to notes</button>
+    <a href="Flashcards.dc.html" style="height: 52px; border-radius: 16px; background: #5442E0; color: #FFFFFF; font-size: 14px; font-weight: 600; display: flex; align-items: center; justify-content: center; text-decoration: none">Make flashcards</a>
+  </div>
+
+</div>
