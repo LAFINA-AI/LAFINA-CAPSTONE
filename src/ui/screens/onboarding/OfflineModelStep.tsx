@@ -42,7 +42,7 @@ export interface OfflineModelStepProps {
 }
 
 const formatMb = (bytes: number): number =>
-  Math.max(1, Math.round(bytes / (1024 * 1024)));
+  Math.max(1, Math.round(bytes / 1_000_000));
 
 export const OfflineModelStep: React.FC<OfflineModelStepProps> = ({
   userId,
@@ -206,13 +206,15 @@ export const OfflineModelStep: React.FC<OfflineModelStepProps> = ({
       {recommendation ? (
         <Card testID="onboarding-ai-recommendation">
           <View style={styles.recHeader}>
-            <Text style={[onboardingStyles.strong, {color: t.ink}]}>
-              {recommendation.headline}
-            </Text>
             <Tag label="Recommended" tone="good" />
+            <Text
+              style={[onboardingStyles.small, styles.recSpecs, {color: t.muted}]}
+            >
+              {recommendation.specSummary}
+            </Text>
           </View>
-          <Text style={[onboardingStyles.small, {color: t.muted}]}>
-            {recommendation.specSummary}
+          <Text style={[onboardingStyles.strong, {color: t.ink}]}>
+            {recommendation.headline}
           </Text>
           <Text style={[onboardingStyles.small, {color: t.ink}]}>
             {recommendation.reason}
@@ -237,14 +239,22 @@ export const OfflineModelStep: React.FC<OfflineModelStepProps> = ({
         const percent = downloadProgress?.percent ?? 0;
 
         return (
-          <Card key={preset.id} testID={`onboarding-ai-card-${preset.id}`}>
+          <Card
+            key={preset.id}
+            testID={`onboarding-ai-card-${preset.id}`}
+            style={
+              isSelected && isDownloaded ? {borderColor: t.accent} : undefined
+            }
+          >
             <View style={styles.cardTop}>
-              <View style={onboardingStyles.flex1}>
+              <View style={styles.cardTitleCol}>
                 <Text style={[onboardingStyles.strong, {color: t.ink}]}>
                   {preset.shortLabel}
-                  <Text style={[onboardingStyles.small, {color: t.muted}]}>
-                    {isFastPath ? ' · Built-in' : ` · ~${approxMb} MB`}
-                  </Text>
+                </Text>
+                <Text style={[onboardingStyles.small, {color: t.muted}]}>
+                  {isFastPath
+                    ? 'Built-in · 0 MB'
+                    : `~${approxMb} MB · ${preset.recommendedRamGb} GB+ RAM`}
                 </Text>
               </View>
               <TagRow>
@@ -344,13 +354,23 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
+    flexWrap: 'wrap',
     gap: 8,
+  },
+  recSpecs: {
+    flexShrink: 1,
   },
   cardTop: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'flex-start',
+    flexWrap: 'wrap',
     gap: 8,
+  },
+  cardTitleCol: {
+    flex: 1,
+    minWidth: 120,
+    gap: 2,
   },
   progressWrap: {gap: 6, marginTop: 4},
   progressTrack: {

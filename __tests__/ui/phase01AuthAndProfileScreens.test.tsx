@@ -490,8 +490,10 @@ describe('Phase 01 Welcome, Onboarding, and Profile Screens', () => {
         expect(ui.getByTestId('onboarding-ai-download-continue')).toBeTruthy();
       });
 
-      // Recommended for 4 GB RAM device is Gemma 3 270M.
+      // Recommended for 4 GB RAM device is Gemma 3 270M, with matching decimal MB size.
       expect(ui.getByText(/Recommended: Gemma-3-270M-Instruct/)).toBeTruthy();
+      expect(ui.getByText('~185 MB · 4 GB+ RAM')).toBeTruthy();
+      expect(ui.getByText('~806 MB · 6 GB+ RAM')).toBeTruthy();
 
       // Tapping "Download Gemma 3 270M & continue" starts the download AND moves immediately to COR step!
       fireEvent.press(ui.getByTestId('onboarding-ai-download-continue'));

@@ -650,14 +650,15 @@ export const Notice: React.FC<{text: string; testID?: string}> = ({
   );
 };
 
-export const Card: React.FC<{children: React.ReactNode; testID?: string}> = ({
-  children,
-  testID,
-}) => {
+export const Card: React.FC<{
+  children: React.ReactNode;
+  testID?: string;
+  style?: ViewStyle;
+}> = ({children, testID, style}) => {
   const t = useOnboardingTokens();
   return (
     <View
-      style={[styles.card, {backgroundColor: t.paper, borderColor: t.line}]}
+      style={[styles.card, {backgroundColor: t.paper, borderColor: t.line}, style]}
       testID={testID}
     >
       {children}
