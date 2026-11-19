@@ -42,6 +42,7 @@ import {
   openNotificationSettings,
 } from '../../../../scheduler/reminderAlarm';
 import {AlarmEditorModal} from './AlarmEditorModal';
+import {SkillFonts} from '../../../theme/skills';
 
 if (
   Platform.OS === 'android' &&
@@ -87,6 +88,7 @@ interface AlarmsViewProps {
   isGridView?: boolean;
   /** Incrementing signal from the parent Tools header + button to open a new alarm. */
   createTrigger?: number;
+  skillsPresentation?: boolean;
 }
 
 interface HealthIssue {
@@ -332,6 +334,7 @@ export const AlarmsView: React.FC<AlarmsViewProps> = ({
   showHeader = true,
   isGridView,
   createTrigger,
+  skillsPresentation = false,
 }) => {
   const {colors, modernPalette} = useTheme();
   const palette = useSchedulePalette();
@@ -624,6 +627,7 @@ export const AlarmsView: React.FC<AlarmsViewProps> = ({
           <Text
             style={[
               styles.rowTime,
+              {fontFamily: SkillFonts.semibold, fontSize: 30},
               {
                 color: alarm.enabled ? palette.text : palette.muted,
               },
@@ -724,137 +728,216 @@ export const AlarmsView: React.FC<AlarmsViewProps> = ({
           </View>
         )}
 
-        <View style={[styles.weekCard, cardSurfaceStyle]}>
-          {weekColumns.map(col => {
-            const circleBg = col.isToday
-              ? todayCircleBg
-              : col.hasAlarm
-              ? palette.accent
-              : palette.surface;
-            const iconColor = col.isToday
-              ? todayCircleIcon
-              : col.hasAlarm
-              ? '#FFFFFF'
-              : palette.muted;
-            const pillState = col.isToday
-              ? 'today'
-              : col.hasAlarm
-              ? 'active'
-              : 'idle';
-
-            return (
-              <View key={col.dayLabel} style={styles.weekCol}>
-                <Text
+        {skillsPresentation && (
+          <>
+            <View
+              testID="skills-next-alarm"
+              style={[styles.skillHero, {backgroundColor: palette.darkInkBtn}]}
+            >
+              <Text style={styles.skillHeroLabel}>NEXT ALARM</Text>
+              <Text style={styles.skillHeroTime}>
+                {next
+                  ? formatAlarmTime(next.alarm.hour, next.alarm.minute, use24h)
+                  : 'None on'}
+              </Text>
+              <Text style={styles.skillHeroMeta}>
+                {next
+                  ? `${formatRelativeAlarmDay(next.at)} · ${
+                      next.alarm.label || 'Alarm'
+                    } · ${describeTimeUntil(next.at)}`
+                  : 'Add an alarm to start your day.'}
+              </Text>
+            </View>
+            <View style={styles.skillWeek}>
+              {weekColumns.map(col => (
+                <View
+                  key={col.dayLabel}
+                  accessibilityLabel={`${col.dayLabel}${
+                    col.isToday ? ', today' : ''
+                  }${col.hasAlarm ? ', alarm scheduled' : ''}`}
                   style={[
-                    styles.weekDayText,
+                    styles.skillDay,
                     {
-                      color: col.isToday ? palette.text : palette.muted,
-                      fontWeight: col.isToday ? '700' : '500',
+                      backgroundColor: col.isToday
+                        ? palette.accent
+                        : palette.surface,
                     },
                   ]}
                 >
-                  {col.dayLabel}
-                </Text>
-                <View
-                  key={`alarm-day-${col.dayLabel}-${pillState}`}
-                  collapsable={false}
-                  style={[styles.weekCircle, {backgroundColor: circleBg}]}
-                >
-                  <AlarmClock size={16} color={iconColor} />
-                </View>
-              </View>
-            );
-          })}
-        </View>
-
-        <Text style={[styles.sectionLabel, {color: palette.text}]}>
-          Next Alarm
-        </Text>
-
-        {next ? (
-          <Animated.View style={{transform: [{scale: nextPulseAnim}]}}>
-            <TouchableOpacity
-              testID="alarms-next"
-              activeOpacity={0.85}
-              onPress={() => {
-                setEditing(next.alarm);
-                setEditorOpen(true);
-              }}
-              style={[
-                styles.nextCard,
-                {
-                  backgroundColor: palette.card,
-                  borderColor: palette.isDarkMode
-                    ? palette.border
-                    : 'transparent',
-                  borderWidth: palette.isDarkMode ? 1 : 0,
-                },
-                !palette.isDarkMode && scheduleCardShadow,
-              ]}
-            >
-              <View style={styles.nextTopRow}>
-                <View style={styles.nextLeft}>
-                  <Text style={[styles.nextDayLabel, {color: palette.accent}]}>
-                    {formatRelativeAlarmDay(next.at)}
-                  </Text>
-                  <Text style={[styles.nextCountdown, {color: palette.muted}]}>
-                    {`Rings ${describeTimeUntil(next.at)}`}
-                  </Text>
-                </View>
-                <Text style={[styles.nextBigTime, {color: palette.text}]}>
-                  {formatAlarmTime(next.alarm.hour, next.alarm.minute, use24h)}
-                </Text>
-              </View>
-              <View style={styles.nextTilesRow}>
-                <View style={[styles.nextTile, {backgroundColor: labelTileBg}]}>
-                  <Text style={[styles.nextTileLabel, {color: palette.accent}]}>
-                    LABEL
-                  </Text>
                   <Text
-                    style={[styles.nextTileValue, {color: palette.text}]}
-                    numberOfLines={2}
+                    style={{
+                      fontFamily: SkillFonts.medium,
+                      fontSize: 12,
+                      color: col.isToday ? '#FFFFFF' : palette.muted,
+                    }}
                   >
-                    {next.alarm.label?.trim() || 'Alarm'}
+                    {col.dayLabel}
                   </Text>
+                  <View
+                    style={{
+                      width: 5,
+                      height: 5,
+                      borderRadius: 3,
+                      backgroundColor: col.hasAlarm
+                        ? col.isToday
+                          ? '#FFFFFF'
+                          : palette.accent
+                        : palette.border,
+                    }}
+                  />
                 </View>
-                <View
-                  style={[styles.nextTile, {backgroundColor: repeatTileBg}]}
-                >
-                  <Text style={[styles.nextTileLabel, {color: repeatTileInk}]}>
-                    REPEAT
-                  </Text>
-                  <Text
-                    style={[styles.nextTileValue, {color: palette.text}]}
-                    numberOfLines={2}
-                  >
-                    {describeRepeat(next.alarm.repeatDays)}
-                  </Text>
-                </View>
-              </View>
-            </TouchableOpacity>
-          </Animated.View>
-        ) : (
-          <View
-            testID="alarms-next"
-            style={[
-              styles.nextEmptyCard,
-              {
-                backgroundColor: palette.card,
-                borderColor: palette.isDarkMode
-                  ? palette.border
-                  : 'transparent',
-                borderWidth: palette.isDarkMode ? 1 : 0,
-              },
-              !palette.isDarkMode && scheduleCardShadow,
-            ]}
-          >
-            <AlarmClock size={20} color={palette.muted} />
-            <Text style={[styles.nextEmptyText, {color: palette.muted}]}>
-              No alarm is on.
-            </Text>
-          </View>
+              ))}
+            </View>
+          </>
         )}
+        {!skillsPresentation && (
+          <>
+            <View style={[styles.weekCard, cardSurfaceStyle]}>
+              {weekColumns.map(col => {
+                const circleBg = col.isToday
+                  ? todayCircleBg
+                  : col.hasAlarm
+                  ? palette.accent
+                  : palette.surface;
+                const iconColor = col.isToday
+                  ? todayCircleIcon
+                  : col.hasAlarm
+                  ? '#FFFFFF'
+                  : palette.muted;
+                const pillState = col.isToday
+                  ? 'today'
+                  : col.hasAlarm
+                  ? 'active'
+                  : 'idle';
 
+                return (
+                  <View key={col.dayLabel} style={styles.weekCol}>
+                    <Text
+                      style={[
+                        styles.weekDayText,
+                        {
+                          color: col.isToday ? palette.text : palette.muted,
+                          fontWeight: col.isToday ? '700' : '500',
+                        },
+                      ]}
+                    >
+                      {col.dayLabel}
+                    </Text>
+                    <View
+                      key={`alarm-day-${col.dayLabel}-${pillState}`}
+                      collapsable={false}
+                      style={[styles.weekCircle, {backgroundColor: circleBg}]}
+                    >
+                      <AlarmClock size={16} color={iconColor} />
+                    </View>
+                  </View>
+                );
+              })}
+            </View>
+
+            <Text style={[styles.sectionLabel, {color: palette.text}]}>
+              Next Alarm
+            </Text>
+
+            {next ? (
+              <Animated.View style={{transform: [{scale: nextPulseAnim}]}}>
+                <TouchableOpacity
+                  testID="alarms-next"
+                  activeOpacity={0.85}
+                  onPress={() => {
+                    setEditing(next.alarm);
+                    setEditorOpen(true);
+                  }}
+                  style={[
+                    styles.nextCard,
+                    {
+                      backgroundColor: palette.card,
+                      borderColor: palette.isDarkMode
+                        ? palette.border
+                        : 'transparent',
+                      borderWidth: palette.isDarkMode ? 1 : 0,
+                    },
+                    !palette.isDarkMode && scheduleCardShadow,
+                  ]}
+                >
+                  <View style={styles.nextTopRow}>
+                    <View style={styles.nextLeft}>
+                      <Text
+                        style={[styles.nextDayLabel, {color: palette.accent}]}
+                      >
+                        {formatRelativeAlarmDay(next.at)}
+                      </Text>
+                      <Text
+                        style={[styles.nextCountdown, {color: palette.muted}]}
+                      >
+                        {`Rings ${describeTimeUntil(next.at)}`}
+                      </Text>
+                    </View>
+                    <Text style={[styles.nextBigTime, {color: palette.text}]}>
+                      {formatAlarmTime(
+                        next.alarm.hour,
+                        next.alarm.minute,
+                        use24h,
+                      )}
+                    </Text>
+                  </View>
+                  <View style={styles.nextTilesRow}>
+                    <View
+                      style={[styles.nextTile, {backgroundColor: labelTileBg}]}
+                    >
+                      <Text
+                        style={[styles.nextTileLabel, {color: palette.accent}]}
+                      >
+                        LABEL
+                      </Text>
+                      <Text
+                        style={[styles.nextTileValue, {color: palette.text}]}
+                        numberOfLines={2}
+                      >
+                        {next.alarm.label?.trim() || 'Alarm'}
+                      </Text>
+                    </View>
+                    <View
+                      style={[styles.nextTile, {backgroundColor: repeatTileBg}]}
+                    >
+                      <Text
+                        style={[styles.nextTileLabel, {color: repeatTileInk}]}
+                      >
+                        REPEAT
+                      </Text>
+                      <Text
+                        style={[styles.nextTileValue, {color: palette.text}]}
+                        numberOfLines={2}
+                      >
+                        {describeRepeat(next.alarm.repeatDays)}
+                      </Text>
+                    </View>
+                  </View>
+                </TouchableOpacity>
+              </Animated.View>
+            ) : (
+              <View
+                testID="alarms-next"
+                style={[
+                  styles.nextEmptyCard,
+                  {
+                    backgroundColor: palette.card,
+                    borderColor: palette.isDarkMode
+                      ? palette.border
+                      : 'transparent',
+                    borderWidth: palette.isDarkMode ? 1 : 0,
+                  },
+                  !palette.isDarkMode && scheduleCardShadow,
+                ]}
+              >
+                <AlarmClock size={20} color={palette.muted} />
+                <Text style={[styles.nextEmptyText, {color: palette.muted}]}>
+                  No alarm is on.
+                </Text>
+              </View>
+            )}
+          </>
+        )}
         {issues.map(issue => (
           <View
             key={issue.key}
@@ -932,6 +1015,33 @@ export const AlarmsView: React.FC<AlarmsViewProps> = ({
 };
 
 const styles = StyleSheet.create({
+  skillHero: {
+    borderRadius: 24,
+    paddingVertical: 18,
+    paddingHorizontal: 20,
+    gap: 6,
+  },
+  skillHeroLabel: {
+    fontFamily: SkillFonts.semibold,
+    fontSize: 12,
+    letterSpacing: 1.2,
+    color: '#FFFFFF',
+  },
+  skillHeroTime: {
+    fontFamily: SkillFonts.semibold,
+    fontSize: 40,
+    color: '#FFFFFF',
+  },
+  skillHeroMeta: {fontFamily: SkillFonts.body, fontSize: 14, color: '#FFFFFF'},
+  skillWeek: {flexDirection: 'row', gap: 6, marginTop: 2},
+  skillDay: {
+    flex: 1,
+    minHeight: 58,
+    borderRadius: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+  },
   container: {
     flex: 1,
   },

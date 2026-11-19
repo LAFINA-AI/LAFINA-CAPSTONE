@@ -1,3 +1,4 @@
+import {SkillFonts} from '../../../theme/skills';
 import {useGridRowLayout} from './VirtualNoteGrid';
 import React, {useRef} from 'react';
 import {
@@ -478,8 +479,8 @@ const styles = StyleSheet.create({
   },
   gridTitleRow: {alignItems: 'flex-start', marginBottom: 5, gap: 4},
   noteCardTitle: {
-    fontFamily: 'sans-serif',
-    fontSize: 14,
+    fontFamily: SkillFonts.semibold,
+    fontSize: 15,
     fontWeight: 'bold',
     flex: 1,
   },
@@ -514,7 +515,7 @@ const styles = StyleSheet.create({
     gap: 4,
     marginLeft: 4,
   },
-  cardDate: {fontSize: 10.5, fontFamily: 'sans-serif', flexShrink: 0},
+  cardDate: {fontSize: 10.5, fontFamily: SkillFonts.body, flexShrink: 0},
   categoryPill: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -534,13 +535,13 @@ const styles = StyleSheet.create({
     flexShrink: 0,
   },
   categoryPillText: {
-    fontSize: 8.5,
+    fontSize: 11,
     fontWeight: '600',
-    fontFamily: 'sans-serif',
+    fontFamily: SkillFonts.body,
     flexShrink: 1,
   },
   voiceBadge: {borderRadius: 6, paddingHorizontal: 6, paddingVertical: 2},
-  voiceBadgeText: {fontSize: 8, fontWeight: 'bold'},
+  voiceBadgeText: {fontSize: 10, fontWeight: 'bold'},
   gridCardImage: {width: '100%', height: 76},
   listCardImage: {width: 60, height: 60, borderRadius: 8},
 });

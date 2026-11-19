@@ -102,6 +102,11 @@ export const NotesScreen = React.memo(function NotesScreenView({
     searchQuery: data.searchQuery,
     onRefresh,
   });
+  useEffect(() => {
+    if (onBackToSkills) data.setIsGridView(initialSubTab === 'notes');
+    // Set the initial presentation once for each pushed essential page.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
   todoReloadRef.current = todo.loadTodos;
   const {setHighlightedTaskId} = todo;
   const handledRequest = useRef<string | null>(null);
@@ -562,6 +567,7 @@ export const NotesScreen = React.memo(function NotesScreenView({
           showHeader={false}
           isGridView={data.isGridView}
           createTrigger={alarmCreateTick}
+          skillsPresentation={Boolean(onBackToSkills)}
         />
       ) : activeSubTab === 'todo' ? (
         <TodoListView

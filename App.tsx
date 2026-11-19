@@ -83,7 +83,7 @@ import {ChatScreen} from './src/ui/screens/ChatScreen';
 import {ProfileScreen} from './src/ui/screens/ProfileScreen';
 import {CalendarScreen} from './src/ui/screens/calendar';
 import {DashboardScreen} from './src/ui/screens/dashboard';
-import {NotesScreen} from './src/ui/screens/notes';
+import {SkillsScreen as NotesScreen} from './src/ui/screens/skills/SkillsScreen';
 import {SynthSplash} from './src/ui/splash';
 import {WelcomeScreen} from './src/ui/screens/WelcomeScreen';
 import {LoginScreen} from './src/ui/screens/LoginScreen';

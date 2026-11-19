@@ -488,7 +488,7 @@ describe('Phase 02 Calendar & Notes UI Screens', () => {
         </ThemeProvider>,
       );
 
-      expect(getByText('Tools')).toBeTruthy();
+      expect(getByText('Skills')).toBeTruthy();
       const alarmsTab = getByTestId('notes-subtab-alarms');
       const todoTab = getByTestId('notes-subtab-todo');
       const notesTab = getByTestId('notes-subtab-notes');

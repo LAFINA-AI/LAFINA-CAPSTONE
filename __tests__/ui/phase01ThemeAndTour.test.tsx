@@ -104,7 +104,7 @@ describe('Phase 01 Theme, SynthWave, ProductTour & CustomTabBar', () => {
       'Home',
       'Schedule',
       'AI',
-      'Tools',
+      'Skills',
       'Profile',
     ]);
     expect(TAB_ORDER[2]).toBe('chat');
