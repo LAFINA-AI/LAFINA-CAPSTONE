@@ -17,8 +17,13 @@ import {useReducedMotion} from '../../hooks/useReducedMotion';
 export function Entry({
   children,
   delay = 0,
+  duration = SkillMotion.entry,
   style,
-}: React.PropsWithChildren<{delay?: number; style?: StyleProp<ViewStyle>}>) {
+}: React.PropsWithChildren<{
+  delay?: number;
+  duration?: number;
+  style?: StyleProp<ViewStyle>;
+}>) {
   const reduced = useReducedMotion();
   const progress = useRef(new Animated.Value(1)).current;
   useEffect(() => {
@@ -29,14 +34,14 @@ export function Entry({
     progress.setValue(0);
     const animation = Animated.timing(progress, {
       toValue: 1,
-      duration: SkillMotion.entry,
+      duration,
       delay,
       easing: Easing.bezier(0.2, 0.8, 0.2, 1),
       useNativeDriver: true,
     });
     animation.start();
     return () => animation.stop();
-  }, [progress, reduced, delay]);
+  }, [progress, reduced, delay, duration]);
   return (
     <Animated.View
       style={[
@@ -121,7 +126,7 @@ export function SkillButton({
         style={{
           fontFamily: SkillFonts.semibold,
           fontSize: 15,
-          color: secondary ? p.text : '#FFFFFF',
+          color: secondary ? p.text : p.onAccent,
           textAlign: 'center',
         }}
       >
