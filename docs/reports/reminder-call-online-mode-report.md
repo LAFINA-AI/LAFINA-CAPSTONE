@@ -1,6 +1,6 @@
 # Reminder call: online conversation without Acknowledge/Snooze — Completion Report
 
-**Branch / base commit:** `feature/lafina-floating-assistant` @ `0082d1c` (changes left uncommitted in the working tree for owner review)
+**Branch / base commit:** written on `feature/lafina-floating-assistant` @ `0082d1c`; committed as `458ca1e` on `feature/cor-accuracy-calendar-call-updates`
 **Date/time UTC:** 2026-11-18
 **Device(s) available:** NONE (owner's phone was not connected; owner will test on return)
 **Status:** `AWAITING DEVICE VALIDATION`

@@ -1,6 +1,6 @@
 # COR import accuracy — Completion Report
 
-**Branch / commit SHA:** `feature/lafina-floating-assistant`, uncommitted on top of `0082d1c`
+**Branch / commit SHA:** written on `feature/lafina-floating-assistant` @ `0082d1c`; committed as `d77d293` on `feature/cor-accuracy-calendar-call-updates`
 **Date/time UTC:** 2026-11-18T17:30Z (2026-11-19 01:30 PHT)
 **Device(s) available:** Infinix X6880, Android 15 (API 35), `com.lafina.capstone` 0.6.0-data-qa
 **Status:** `AWAITING DEVICE VALIDATION` (in-app import not yet tried by a human)
